@@ -1,0 +1,917 @@
+
+Installation and Getting Started
+================================
+
+This toolkit provides some simple libraries for writing quantum
+programs.
+
+::
+
+    import pyquil.quil as pq
+    import pyquil.forest as forest
+    from pyquil.gates import *
+    qvm = forest.Connection()
+    p = pq.Program()
+    p.inst(H(0), CNOT(0, 1))
+        <pyquil.pyquil.Program object at 0x101ebfb50>
+    qvm.wavefunction(p)
+        (array([ 0.70710678+0.j,  0.00000000+0.j,  0.00000000+0.j,  0.70710678+0.j]),
+            [])
+
+It comes with a few parts:
+
+1. **Quil**: The Quantum Instruction Language standard. Instructions
+   written in Quil can be executed on any implementation of a quantum
+   abstract machine, such as the quantum virtual machine (QVM), or on a
+   real quantum processor unit (QPU). More details regarding Quil can be
+   found in the `whitepaper <https://arxiv.org/abs/1608.03355>`__.
+2. **QVM**: A Quantum Virtual Machine: an implementation of the quantum
+   abstract machine on classical hardware. The QVM lets you use a
+   regular computer to simulate a small quantum computer. You can access
+   the Rigetti QVM running in the cloud with your API key.
+3. **pyQuil**: A Python library to help write and run Quil code and
+   quantum programs in Python.
+
+Environment Setup
+-----------------
+
+Prerequisites
+~~~~~~~~~~~~~
+
+Before you can start writing quantum programs, you will need Python 2.7
+(version 2.7.10 or greater) and the Python package manager pip. We recommend
+installing `Anaconda <https://www.continuum.io/downloads>`__ for an all-in-one
+installation of Python 2.7. If you don't have pip, it can be installed with
+``easy_install pip``.
+
+Installation
+~~~~~~~~~~~~
+
+After obtaining pyQuil from `Github <https://github.com/rigetticomputing/pyQuil>`_
+or from a source distribution, navigate into its directory in a terminal and run
+
+::
+
+    pip install -e .
+
+On Mac/Linux, if this command does not succeed because of permissions
+errors, then run with
+
+::
+
+    sudo pip install -e .
+
+This will install pyQuil's dependencies (requests >= 2.4.2 and numpy >= 1.10) if you do not already
+have them.
+
+The library will now be available globally.
+
+Connecting to a Rigetti QVM
+~~~~~~~~~~~~~~~~~~~~~~~~~~~
+
+In order to connect to the QVM you need to set up configuration in the file ``.pyquil_config``
+which pyQuil will attempt to find in your home directory by default. (You can change this location by setting the
+environment variable ``PYQUIL_CONFIG`` to the path of the file.) Loading the ``pyquil.forest``
+module will print a warning if this is not found. The configuration file is in INI format and
+should contain all the information required to connect to Forest:
+
+::
+
+    [Rigetti Forest]
+    url: <URL to Rigetti Forest or QVM endpoint>
+    key: <Rigetti Forest API key>
+
+Look `here <http://forest.rigetti.com>`_ to learn more about the Forest toolkit.
+
+If ``url`` is not set, pyQuil will default to looking for a
+local endpoint at ``127.0.0.1:5000``. In addition to the above, the fields ``https_cert``
+and ``https_key`` are supported for direct HTTPS connections to Forest.
+
+::
+
+    https_cert: <path to signed HTTPS certificate and key>
+    https_key: <path to separate key file, if different from the above>
+
+Alternatively, connection information can be provided in environment variables.
+
+::
+
+    export QVM_URL=<URL to Rigetti Forest or QVM endpoint>
+    export QVM_API_KEY=<Rigetti Forest API key>
+
+Basic Usage
+-----------
+
+To ensure that your installation is working correctly, try running the
+following Python commands interactively. First, import the ``pyquil``
+module (which constructs quantum programs) and the ``forest`` module (which
+allows connections to the Rigetti QVM). We will also import some basic
+gates for pyQuil.
+
+.. code:: ipython2
+
+    import pyquil.quil as pq
+    import pyquil.forest as forest
+    from pyquil.gates import *
+
+Next, we want to open a connection to the QVM.
+
+.. code:: ipython2
+
+    qvm = forest.Connection()
+
+Now we can make a program by adding some Quil instruction using the
+``inst`` method on a ``Program`` object.
+
+.. code:: ipython2
+
+    p = pq.Program()
+    p.inst(X(0)).measure(0, 0)
+
+
+
+
+.. parsed-literal::
+
+    <pyquil.quil.Program at 0x101d45a90>
+
+
+
+This program simply applies the :math:`X`-gate to the zeroth qubit,
+measures that qubit and stores the measurement result in the zeroth
+classical register. We can look at the Quil code that makes up this
+program simply by printing it.
+
+.. code:: ipython2
+
+    print p
+
+
+.. parsed-literal::
+
+    X 0
+    MEASURE 0 [0]
+
+
+
+Most importantly, of course, we can see what happens if we run this
+program on the QVM with the following.
+
+.. code:: ipython2
+
+    classical_regs = [0] # A list of which classical registers to return the values of.
+
+    qvm.run(p, classical_regs)
+
+
+
+
+.. parsed-literal::
+
+    [[1]]
+
+
+
+We see that the result of this program is that the classical register
+``[0]`` now stores the state of qubit 0, which should be
+:math:`\left\vert 1\right\rangle` after an :math:`X`-gate. We can of
+course ask for more classical registers:
+
+.. code:: ipython2
+
+    qvm.run(p, [0, 1, 2])
+
+
+
+
+.. parsed-literal::
+
+    [[1, 0, 0]]
+
+
+
+The classical registers are initialized to zero, so registers ``[1]``
+and ``[2]`` come out as zero. If we stored the measurement in a
+different classical register we would obtain:
+
+.. code:: ipython2
+
+    p = pq.Program()   # clear the old program
+    p.inst(X(0)).measure(0, 1)
+    qvm.run(p, [0, 1, 2])
+
+
+
+
+.. parsed-literal::
+
+    [[0, 1, 0]]
+
+
+
+We can also run programs multiple times and accumulate all the results
+in a single list. Try running this a few times to see different results.
+
+.. code:: ipython2
+
+    coin_flip = pq.Program().inst(H(0)).measure(0, 0)
+    num_flips = 5
+    qvm.run(coin_flip, [0], num_flips)
+
+
+
+
+.. parsed-literal::
+
+    [[0], [1], [0], [1], [0]]
+
+
+
+Try running the above code several times. You will see that you will,
+with very high probability, get different results each time.
+
+As the QVM is a virtual machine, we can also inspect the wavefunction of
+a program directly, even without measurements, e.g.
+
+.. code:: ipython2
+
+    coin_flip = pq.Program().inst(H(0))
+    qvm.wavefunction(coin_flip)
+
+
+
+
+.. parsed-literal::
+
+    (array([ 0.70710678+0.j,  0.70710678+0.j]), [])
+
+
+The second element in this tuple is an optional amount of classical memory to check along
+with the wavefunction. For example:
+
+.. code:: ipython2
+
+    coin_flip = pq.Program().inst(H(0)).measure(0,0)
+    wavf, classical_mem = qvm.wavefunction(coin_flip, classical_addresses=range(9))
+
+
+A random seed can be passed into the Connection object to make for deterministic testing.
+
+.. code:: ipython2
+
+    seeded_cxn = forest.Connection(random_seed=17)
+    print seeded_cxn.run(pq.Program(H(0)).measure(0, 0), [0], 20)
+
+    seeded_cxn = forest.Connection(random_seed=17)
+    # This will give identical output to the above
+    print seeded_cxn.run(pq.Program(H(0)).measure(0, 0), [0], 20)
+
+
+It is important to remember that this is just a useful debugging tool
+for small quantum systems, and it cannot be feasibly obtained on a
+quantum processor.
+
+Some Program Construction Features
+~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
+
+Multiple instructions can be applied at once or chained together. The
+following are all valid programs:
+
+.. code:: ipython2
+
+    print "Multiple inst arguments with final measurement:"
+    print pq.Program().inst(X(0), Y(1), Z(0)).measure(0, 1)
+
+    print "Chained inst with explicit MEASURE instruction:"
+    print pq.Program().inst(X(0)).inst(Y(1)).measure(0, 1).inst(MEASURE(1, 2))
+
+    print "A mix of chained inst and measures:"
+    print pq.Program().inst(X(0)).measure(0, 1).inst(Y(1), X(0)).measure(0, 0)
+
+    print "A composition of two programs:"
+    print pq.Program(X(0)) + pq.Program(Y(0))
+
+
+.. parsed-literal::
+
+    Multiple inst arguments with final measurement:
+    X 0
+    Y 1
+    Z 0
+    MEASURE 0 [1]
+
+    Chained inst with explicit MEASURE instruction:
+    X 0
+    Y 1
+    MEASURE 0 [1]
+    MEASURE 1 [2]
+
+    A mix of chained inst and measures:
+    X 0
+    MEASURE 0 [1]
+    Y 1
+    X 0
+    MEASURE 0 [0]
+
+    A composition of two programs:
+    X 0
+    Y 0
+
+
+
+Fixing a Mistaken Instruction
+~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
+
+If an instruction was appended to a program incorrectly, one can pop it
+off.
+
+.. code:: ipython2
+
+    p = pq.Program().inst(X(0))
+    p.inst(Y(1))
+    print "Oops! We have added Y 1 by accident:"
+    print p
+
+    print "We can fix by popping:"
+    p.pop()
+    print p
+
+    print "And then add it back:"
+    p += pq.Program(Y(1))
+    print p
+
+
+.. parsed-literal::
+
+    Oops! We have added Y 1 by accident:
+    X 0
+    Y 1
+
+    We can fix by popping:
+    X 0
+
+    And then add it back:
+    X 0
+    Y 1
+
+
+The Standard Gate Set
+~~~~~~~~~~~~~~~~~~~~~
+
+The following gates methods come standard with Quil and ``gates.py``:
+
+-  Pauli gates ``I``, ``X``, ``Y``, ``Z``
+
+-  Hadamard gate: ``H``
+
+-  Phase gates: ``PHASE(``\ :math:`\theta`\ ``)``, ``S``, ``T``
+
+-  Controlled phase gates: ``CPHASE00(`` :math:`\alpha` ``)``,
+   ``CPHASE01(`` :math:`\alpha` ``)``, ``CPHASE10(`` :math:`\alpha`
+   ``)``, ``CPHASE(`` :math:`\alpha` ``)``
+
+-  Cartesian rotation gates: ``RX(`` :math:`\theta` ``)``, ``RY(``
+   :math:`\theta` ``)``, ``RZ(`` :math:`\theta` ``)``
+
+-  Controlled :math:`X` gates: ``CNOT``, ``CCNOT``
+
+-  Swap gates: ``SWAP``, ``CSWAP``, ``ISWAP``, ``PSWAP(`` :math:`\alpha`
+   ``)``
+
+The parameterized gates take a real or complex floating point
+number as an argument.
+
+
+
+Defining New Gates
+~~~~~~~~~~~~~~~~~~
+
+New gates can be easily added inline to Quil programs. All you need is a
+matrix representation of the gate. For example, below we define a
+:math:`\sqrt{X}` gate.
+
+.. code:: ipython2
+
+    import numpy as np
+    from scipy.linalg import sqrtm
+
+    # First we define the new gate from a matrix
+    x_gate_matrix = np.array(([0.0, 1.0], [1.0, 0.0]))
+    sqrt_x = sqrtm(x_gate_matrix)
+    p = pq.Program().defgate("SQRT-X", sqrt_x)
+
+    # Then we can use the new gate,
+    p.inst(("SQRT-X", 0))
+    print p
+
+
+.. parsed-literal::
+
+    DEFGATE SQRT-X:
+        0.49999999999999989+0.49999999999999989i, 0.49999999999999989-0.49999999999999989i
+        0.49999999999999989-0.49999999999999989i, 0.49999999999999989+0.49999999999999989i
+
+    SQRT-X 0
+
+
+
+.. code:: ipython2
+
+    qvm.wavefunction(p)
+
+
+
+
+.. parsed-literal::
+
+    (array([ 0.5+0.5j,  0.5-0.5j]), [])
+
+
+
+Quil in general supports defining parametric gates, though right now
+only static gates are supported by pyQuil. Below we show how we can
+define :math:`X_1\otimes \sqrt{X_0}` as a single
+gate.
+
+.. code:: ipython2
+
+    # A multi-qubit defgate example
+    x_gate_matrix = np.array(([0.0, 1.0], [1.0, 0.0]))
+    x_sqrt_x = np.kron(sqrtm(x_gate_matrix), x_gate_matrix)
+    p = pq.Program().defgate("X-SQRT-X", x_sqrt_x)
+
+    # Then we can use the new gate
+    p.inst(("X-SQRT-X", 1, 0))
+    wavf, _ = qvm.wavefunction(p)
+    print wavf
+
+
+
+
+.. parsed-literal::
+
+    array([ 0.0+0.j ,  0.5+0.5j,  0.0+0.j ,  0.5-0.5j])
+
+
+Advanced Usage
+--------------
+
+Quantum Fourier Transform (QFT)
+~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
+
+Let us do an example that includes multi-qubit parameterized gates.
+
+Here we wish to compute the discrete Fourier transform of
+``[0, 1, 0, 0, 0, 0, 0, 0]``. We do this in three steps:
+
+1. Write a function called ``qft3`` to make a 3-qubit QFT quantum
+   program.
+2. Write a state preparation quantum program.
+3. Execute state preparation followed by the QFT on the QVM.
+
+First we define a function to make a 3-qubit QFT quantum program. This
+is a mix of Hadamard and CPHASE gates, with a final bit reversal
+correction at the end consisting of a single SWAP gate.
+
+.. code:: ipython2
+
+    from math import pi
+
+    def qft3(q0, q1, q2):
+        p = pq.Program()
+        p.inst( H(q2),
+                CPHASE(pi/2.0, q1, q2),
+                H(q1),
+                CPHASE(pi/4.0, q0, q2),
+                CPHASE(pi/2.0, q0, q1),
+                H(q0),
+                SWAP(q0, q2) )
+        return p
+
+There is a very important detail to recognize here: The function
+``qft3`` doesn't *compute* the QFT, but rather it *makes a quantum
+program* to compute the QFT on qubits ``q0``, ``q1``, and ``q2``.
+
+We can see what this program looks like in Quil notation by doing
+the following:
+
+.. code:: ipython2
+
+    print qft3(0, 1, 2)
+
+
+.. parsed-literal::
+
+    H 2
+    CPHASE(1.5707963267948966) 1 2
+    H 1
+    CPHASE(0.7853981633974483) 0 2
+    CPHASE(1.5707963267948966) 0 1
+    H 0
+    SWAP 0 2
+
+
+
+Next, we want to prepare a state that corresponds to the sequence we
+want to compute the discrete Fourier transform of. Fortunately, this is
+easy, we just apply an :math:`X`-gate to the zeroth qubit.
+
+.. code:: ipython2
+
+    state_prep = pq.Program().inst(X(0))
+
+We can verify that this works by computing its wavefunction. However, we
+need to add some "dummy" qubits, because otherwise ``wavefunction``
+would return a two-element vector.
+
+.. code:: ipython2
+
+    add_dummy_qubits = pq.Program().inst(I(1), I(2))
+    wavf, _ = qvm.wavefunction(state_prep + add_dummy_qubits)
+    print wavf
+
+
+
+.. parsed-literal::
+
+    array([ 0.+0.j,  1.+0.j,  0.+0.j,  0.+0.j,  0.+0.j,  0.+0.j,  0.+0.j,  0.+0.j])
+
+
+
+If we have two quantum programs ``a`` and ``b``, we can concatenate them
+by doing ``a + b``. Using this, all we need to do is compute the QFT
+after state preparation to get our final result.
+
+.. code:: ipython2
+
+    wavf, _ = qvm.wavefunction(state_prep + qft3(0, 1, 2))
+    print wavf
+
+
+
+.. parsed-literal::
+
+    array([  3.53553391e-01+0.j        ,   2.50000000e-01+0.25j      ,
+             2.16489014e-17+0.35355339j,  -2.50000000e-01+0.25j      ,
+            -3.53553391e-01+0.j        ,  -2.50000000e-01-0.25j      ,
+            -2.16489014e-17-0.35355339j,   2.50000000e-01-0.25j      ])
+
+
+
+We can verify this works by computing the (inverse) FFT from NumPy.
+
+.. code:: ipython2
+
+    from numpy.fft import ifft
+    ifft([0,1,0,0,0,0,0,0], norm="ortho")
+
+
+
+
+.. parsed-literal::
+
+    array([ 0.35355339+0.j        ,  0.25000000+0.25j      ,
+            0.00000000+0.35355339j, -0.25000000+0.25j      ,
+           -0.35355339+0.j        , -0.25000000-0.25j      ,
+            0.00000000-0.35355339j,  0.25000000-0.25j      ])
+
+
+
+Classical Control Flow
+~~~~~~~~~~~~~~~~~~~~~~
+
+Here are a couple quick examples that show how much richer the classical
+control of a Quil program can be. In this first example, we have a
+register called ``classical_flag_register`` which we use for looping.
+Then we construct the loop in the following steps:
+
+1. We first initialize this register to ``1`` with the ``init_register``
+   program so our while loop will execute. This is often called the
+   *loop preamble* or *loop initialization*.
+
+2. Next, we write body of the loop in a program itself. This will be a
+   program that computes an :math:`X` followed by an :math:`H` on our
+   qubit.
+
+3. Lastly, we put it all together using the ``while_do`` method.
+
+.. code:: ipython2
+
+    # Name our classical registers:
+    classical_flag_register = 2
+
+    # Write out the loop initialization and body programs:
+    init_register = pq.Program(TRUE([classical_flag_register]))
+    loop_body = pq.Program(X(0), H(0)).measure(0, classical_flag_register)
+
+    # Put it all together in a loop program:
+    loop_prog = init_register.while_do(classical_flag_register, loop_body)
+
+    print loop_prog
+
+
+.. parsed-literal::
+
+    TRUE [2]
+    LABEL @START1
+    JUMP-UNLESS @END2 [2]
+    X 0
+    H 0
+    MEASURE 0 [2]
+    JUMP @START1
+    LABEL @END2
+
+
+Notice that the ``init_register`` program applied a Quil instruction directly to a
+classical register.  There are several classical commands that can be used in this fashion.
+They are:
+
+- ``TRUE`` which sets a single classical bit to be 1
+- ``FALSE`` which sets a single classical bit to be 0
+- ``NOT`` which flips a classical bit
+- ``AND`` which operates on two classical bits
+- ``OR`` which operates on two classical bits
+- ``MOVE`` which moves the value of a classical bit at one classical address into another
+- ``EXCHANGE`` which swaps the value of two classical bits
+
+In this next example, we show how to do conditional branching in the
+form of the traditional ``if`` construct as in many programming
+languages. Much like the last example, we construct programs for each
+branch of the ``if``, and put it all together by using the ``if_then``
+method.
+
+.. code:: ipython2
+
+    # Name our classical registers:
+    test_register = 1
+    answer_register = 0
+
+    # Construct each branch of our if-statement. We can have empty branches
+    # simply by having empty programs.
+    then_branch = pq.Program(X(0))
+    else_branch = pq.Program()
+
+    # Make a program that will put a 0 or 1 in test_register with 50% probability:
+    branching_prog = pq.Program(H(1)).measure(1, test_register)
+
+    # Add the conditional branching:
+    branching_prog.if_then(test_register, then_branch, else_branch)
+
+    # Measure qubit 0 into our answer register:
+    branching_prog.measure(0, answer_register)
+
+    print branching_prog
+
+
+.. parsed-literal::
+
+    H 1
+    MEASURE 1 [1]
+    JUMP-WHEN @THEN3 [1]
+    JUMP @END4
+    LABEL @THEN3
+    X 0
+    LABEL @END4
+    MEASURE 0 [0]
+
+
+
+We can run this program a few times to see what we get in the
+``answer_register``.
+
+.. code:: ipython2
+
+    qvm.run(branching_prog, [answer_register], 10)
+
+
+
+
+.. parsed-literal::
+
+    [[1], [1], [1], [0], [1], [0], [0], [1], [1], [0]]
+
+Parametric Depolarizing Noise
+~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
+
+The Rigetti QVM has support for emulating certain types of noise models.
+One such model is *parametric Pauli noise*, which is defined by a
+set of 6 probabilities:
+
+-  The probabilities :math:`P_X`, :math:`P_Y`, and :math:`P_Z` which
+   define respectively the probability of a Pauli :math:`X`, :math:`Y`,
+   or :math:`Z` gate getting applied to *each* qubit after *every* gate
+   application. These probabilities are called the *gate noise
+   probabilities*.
+
+-  The probabilities :math:`P_X'`, :math:`P_Y'`, and :math:`P_Z'` which
+   define respectively the probability of a Pauli :math:`X`, :math:`Y`,
+   or :math:`Z` gate getting applied to the qubit being measured
+   *before* it is measured. These probabilities are called the
+   *measurement noise probabilities*.
+
+We can instantiate a noisy QVM by creating a new connection with these
+probabilities specified.
+
+.. code:: ipython2
+
+    # 20% chance of a X gate being applied after gate applications and before measurements.
+    gate_noise_probs = [0.2, 0.0, 0.0]
+    meas_noise_probs = [0.2, 0.0, 0.0]
+    noisy_qvm = qvm_endpoint.Connection(gate_noise=gate_noise_probs, measurement_noise=meas_noise_probs)
+
+We can test this by applying an :math:`X`-gate and measuring. Nominally,
+we should always measure ``1``.
+
+.. code:: ipython2
+
+    p = pq.Program().inst(X(0)).measure(0, 0)
+    print "Without Noise:", qvm.run(p, [0], 10)
+    print "With Noise   :", noisy_qvm.run(p, [0], 10)
+
+
+.. parsed-literal::
+
+    Without Noise: [[1], [1], [1], [1], [1], [1], [1], [1], [1], [1]]
+    With Noise   : [[0], [0], [0], [0], [0], [1], [1], [1], [1], [0]]
+
+
+Parametric Programs
+~~~~~~~~~~~~~~~~~~~
+
+A big advantage of working in pyQuil is that you are able to leverage all the functionality of
+Python to generate Quil programs.  In quantum/classical hybrid algorithms this often leads to
+situations where complex classical functions are used to generate Quil programs. pyQuil provides
+a convenient construction to allow you to use python functions to generate templates of Quil
+programs called ParametricPrograms.  Here's a simple example:
+
+.. code:: ipython2
+
+    # This function returns a quantum circuit with different rotation angles on a gate on qubit 0
+    def rotator(angle):
+        return pq.Program(RX(angle, 0))
+
+    from pyquil.parametric import ParametricProgram
+    par_p = ParametricProgram(rotator) # This produces a new type of parameterized program object
+
+The ParametricProgram ``par_p`` now takes the same arguments as `rotator`, e.g.
+
+.. code:: ipython2
+
+    print par_p(0.5)
+
+.. parsed-literal::
+
+    RX(0.5) 0
+
+We can think of ParametricPrograms as a sort of template for Quil programs.  They cache computations
+that happen in python functions so that templates in Quil can be efficiently substituted.
+
+
+Pauli Operator Algebra
+~~~~~~~~~~~~~~~~~~~~~~
+
+Many algorithms require manipulating sums of Pauli combinations, such as
+:math:`\sigma = \frac{1}{2}I - \frac{3}{4}X_0Y_1Z_3 + (5-2i)Z_1X_2,` where
+:math:`G_n` indicates the gate :math:`G` acting on qubit :math:`n`. We
+can represent such sums by constructing ``PauliTerm`` and ``PauliSum``.
+The above sum can be constructed as follows:
+
+.. code:: ipython2
+
+    from pyquil.paulis import ID, sX, sY, sZ
+
+    # Pauli term takes an operator "X", "Y", "Z", or "I"; a qubit to act on, and
+    # an optional coefficient.
+    a = 0.5 * ID
+    b = -0.75 * sX(0) * sY(1) * sZ(3)
+    c = (5-2j) * sZ(1) * sX(2)
+
+    # Construct a sum of Pauli terms.
+    sigma = a + b + c
+    print "sigma =", sigma
+
+
+.. parsed-literal::
+
+    sigma = 0.5*I + -0.75*X0*Y1*Z3 + (5-2j)*Z1*X2
+
+
+Right now, the primary thing one can do with Pauli terms and sums is to construct the
+exponential of the Pauli term, i.e., :math:`\exp[-i\beta\sigma]`.  This is
+accomplished by constructing a parameterized Quil program that is evaluated
+when passed values for the coefficients of the angle :math:`\beta`.
+
+Related to exponentiating Pauli sums we provide utility functions for finding
+the commuting subgroups of a Pauli sum and approximating the exponential with the
+Suzuki-Trotter approximation through fourth order.
+
+When arithmetic is done with Pauli sums, simplification is automatically
+done.
+
+The following shows an instructive example of all three.
+
+.. code:: ipython2
+
+    import pyquil.paulis as pl
+
+    # Simplification
+    sigma_cubed = sigma * sigma * sigma
+    print "Simplified  :", sigma_cubed
+    print
+
+    #Produce Quil code to compute exp[iX]
+    H = -1.0 * sX(0)
+    print "Quil to compute exp[iX] on qubit 0:"
+    print pl.exponentiate(H)
+
+
+.. parsed-literal::
+
+    Simplified  : (32.46875-30j)*I + (-16.734375+15j)*X0*Y1*Z3 + (71.5625-144.625j)*Z1*X2
+
+    Quil to compute exp[iX] on qubit 0:
+    H 0
+    RZ(-2.0) 0
+    H 0
+    
+A more sophisticated feature of pyQuil is that it can create templates of Quil programs in
+ParametricProgram objects.  An example use of these templates is in exponentiating a Hamiltonian
+that is parametrized by a constant.  This commonly occurs in variational algorithms. The function
+``exponential_map`` is used to compute exp[i * alpha * H] without explicitly filling in a value for
+alpha.
+
+.. code:: ipython2
+
+    parametric_prog = pl.exponential_map(H)
+    print parametric_prog(0.0)
+    print parametric_prog(1.0)
+    print parametric_prog(2.0)
+
+This ParametricProgram now acts as a template, caching the result of the ``exponential_map``
+calculation so that it can be used later with new values.
+
+Exercises
+---------
+
+Exercise 1.
+~~~~~~~~~~~
+
+Write a quantum program to simulate throwing an 8-sided die. The Python
+function you should produce is:
+
+::
+
+    def throw_octahedral_die():
+        # return the result of throwing an 8 sided die, an int between 1 and 8, by running a quantum program
+
+Next, extend the program to work for any kind of fair die:
+
+::
+
+    def throw_polyhedral_die(num_sides):
+        # return the result of throwing a num_sides sided die by running a quantum program
+
+Exercise 2.
+~~~~~~~~~~~
+
+We can use the full generality of NumPy and SciPy to construct new gate
+matrices.
+
+1. Write a function ``controlled`` which takes a :math:`2\times 2`
+   matrix :math:`U` representing a single qubit operator, and makes a
+   :math:`4\times 4` matrix which is a controlled variant of :math:`U`,
+   with the first argument being the *control qubit*.
+
+2. Write a Quil program to define a controlled-\ :math:`Y` gate in this
+   manner. Find the wavefunction when applying this gate to qubit 1
+   controlled by qubit 0.
+
+Exercise 3.
+~~~~~~~~~~~
+
+Write a quantum program for the single-shot Grover's algorithm. The
+Python function you should produce is:
+
+::
+
+    # data is an array of 0's and 1's such that there are exactly three times as many
+    # 0's as 1's
+    def single_shot_grovers(data):
+        # return an index that contains the value 1
+
+As an example: ``single_shot_grovers([0,0,1,0])`` should return 2.
+
+Hints
+^^^^^
+
+Remember that the Grover's diffusion operator is:
+
+.. math::
+
+
+   \begin{pmatrix}
+   2/N - 1 & 2/N & \cdots & 2/N \\
+   2/N &  & &\\
+   \vdots & & \ddots & \\
+   2/N & & & 2/N-1
+   \end{pmatrix}

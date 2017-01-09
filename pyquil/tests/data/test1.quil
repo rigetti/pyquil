@@ -1,0 +1,27 @@
+# Comment
+DEFGATE H0:
+    0.707, 0.707
+    0.707, -0.707
+DEFGATE H1:
+    1/sqrt(2), 1/sqrt(2)
+    1/sqrt(2), -1/sqrt(2)
+DEFGATE CPHASE(%theta):
+    1, 0, 0, 0
+    0, 1, 0, 0
+    0, 0, 1, 0
+    0, 0, 0, cis(%theta)
+HADAMARD 0
+FREDKIN 0 1 2
+Rx(3.14) 0
+Ry(-1.1E-1-1.2e2i) 1
+LABEL @START1
+JUMP-UNLESS @END1 [0]
+FOO 1
+BAR 2
+JUMP @START1
+LABEL @END1
+Rx(1.2e5) 1 2
+MEASURE 0
+MEASURE 1 [0]
+HALT
+WAIT
