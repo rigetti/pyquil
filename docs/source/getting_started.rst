@@ -5,7 +5,7 @@ Installation and Getting Started
 This toolkit provides some simple libraries for writing quantum
 programs.
 
-::
+.. code:: python
 
     import pyquil.quil as pq
     import pyquil.forest as forest
@@ -108,7 +108,7 @@ module (which constructs quantum programs) and the ``forest`` module (which
 allows connections to the Rigetti QVM). We will also import some basic
 gates for pyQuil.
 
-.. code:: ipython2
+.. code:: python
 
     import pyquil.quil as pq
     import pyquil.forest as forest
@@ -116,14 +116,14 @@ gates for pyQuil.
 
 Next, we want to open a connection to the QVM.
 
-.. code:: ipython2
+.. code:: python
 
     qvm = forest.Connection()
 
 Now we can make a program by adding some Quil instruction using the
 ``inst`` method on a ``Program`` object.
 
-.. code:: ipython2
+.. code:: python
 
     p = pq.Program()
     p.inst(X(0)).measure(0, 0)
@@ -142,7 +142,7 @@ measures that qubit and stores the measurement result in the zeroth
 classical register. We can look at the Quil code that makes up this
 program simply by printing it.
 
-.. code:: ipython2
+.. code:: python
 
     print p
 
@@ -157,7 +157,7 @@ program simply by printing it.
 Most importantly, of course, we can see what happens if we run this
 program on the QVM with the following.
 
-.. code:: ipython2
+.. code:: python
 
     classical_regs = [0] # A list of which classical registers to return the values of.
 
@@ -177,7 +177,7 @@ We see that the result of this program is that the classical register
 :math:`\left\vert 1\right\rangle` after an :math:`X`-gate. We can of
 course ask for more classical registers:
 
-.. code:: ipython2
+.. code:: python
 
     qvm.run(p, [0, 1, 2])
 
@@ -194,7 +194,7 @@ The classical registers are initialized to zero, so registers ``[1]``
 and ``[2]`` come out as zero. If we stored the measurement in a
 different classical register we would obtain:
 
-.. code:: ipython2
+.. code:: python
 
     p = pq.Program()   # clear the old program
     p.inst(X(0)).measure(0, 1)
@@ -212,7 +212,7 @@ different classical register we would obtain:
 We can also run programs multiple times and accumulate all the results
 in a single list. Try running this a few times to see different results.
 
-.. code:: ipython2
+.. code:: python
 
     coin_flip = pq.Program().inst(H(0)).measure(0, 0)
     num_flips = 5
@@ -233,7 +233,7 @@ with very high probability, get different results each time.
 As the QVM is a virtual machine, we can also inspect the wavefunction of
 a program directly, even without measurements, e.g.
 
-.. code:: ipython2
+.. code:: python
 
     coin_flip = pq.Program().inst(H(0))
     qvm.wavefunction(coin_flip)
@@ -249,7 +249,7 @@ a program directly, even without measurements, e.g.
 The second element in this tuple is an optional amount of classical memory to check along
 with the wavefunction. For example:
 
-.. code:: ipython2
+.. code:: python
 
     coin_flip = pq.Program().inst(H(0)).measure(0,0)
     wavf, classical_mem = qvm.wavefunction(coin_flip, classical_addresses=range(9))
@@ -257,7 +257,7 @@ with the wavefunction. For example:
 
 A random seed can be passed into the Connection object to make for deterministic testing.
 
-.. code:: ipython2
+.. code:: python
 
     seeded_cxn = forest.Connection(random_seed=17)
     print seeded_cxn.run(pq.Program(H(0)).measure(0, 0), [0], 20)
@@ -277,7 +277,7 @@ Some Program Construction Features
 Multiple instructions can be applied at once or chained together. The
 following are all valid programs:
 
-.. code:: ipython2
+.. code:: python
 
     print "Multiple inst arguments with final measurement:"
     print pq.Program().inst(X(0), Y(1), Z(0)).measure(0, 1)
@@ -325,7 +325,7 @@ Fixing a Mistaken Instruction
 If an instruction was appended to a program incorrectly, one can pop it
 off.
 
-.. code:: ipython2
+.. code:: python
 
     p = pq.Program().inst(X(0))
     p.inst(Y(1))
@@ -390,7 +390,7 @@ New gates can be easily added inline to Quil programs. All you need is a
 matrix representation of the gate. For example, below we define a
 :math:`\sqrt{X}` gate.
 
-.. code:: ipython2
+.. code:: python
 
     import numpy as np
     from scipy.linalg import sqrtm
@@ -415,7 +415,7 @@ matrix representation of the gate. For example, below we define a
 
 
 
-.. code:: ipython2
+.. code:: python
 
     qvm.wavefunction(p)
 
@@ -433,7 +433,7 @@ only static gates are supported by pyQuil. Below we show how we can
 define :math:`X_1\otimes \sqrt{X_0}` as a single
 gate.
 
-.. code:: ipython2
+.. code:: python
 
     # A multi-qubit defgate example
     x_gate_matrix = np.array(([0.0, 1.0], [1.0, 0.0]))
@@ -473,7 +473,7 @@ First we define a function to make a 3-qubit QFT quantum program. This
 is a mix of Hadamard and CPHASE gates, with a final bit reversal
 correction at the end consisting of a single SWAP gate.
 
-.. code:: ipython2
+.. code:: python
 
     from math import pi
 
@@ -495,7 +495,7 @@ program* to compute the QFT on qubits ``q0``, ``q1``, and ``q2``.
 We can see what this program looks like in Quil notation by doing
 the following:
 
-.. code:: ipython2
+.. code:: python
 
     print qft3(0, 1, 2)
 
@@ -516,7 +516,7 @@ Next, we want to prepare a state that corresponds to the sequence we
 want to compute the discrete Fourier transform of. Fortunately, this is
 easy, we just apply an :math:`X`-gate to the zeroth qubit.
 
-.. code:: ipython2
+.. code:: python
 
     state_prep = pq.Program().inst(X(0))
 
@@ -524,7 +524,7 @@ We can verify that this works by computing its wavefunction. However, we
 need to add some "dummy" qubits, because otherwise ``wavefunction``
 would return a two-element vector.
 
-.. code:: ipython2
+.. code:: python
 
     add_dummy_qubits = pq.Program().inst(I(1), I(2))
     wavf, _ = qvm.wavefunction(state_prep + add_dummy_qubits)
@@ -542,7 +542,7 @@ If we have two quantum programs ``a`` and ``b``, we can concatenate them
 by doing ``a + b``. Using this, all we need to do is compute the QFT
 after state preparation to get our final result.
 
-.. code:: ipython2
+.. code:: python
 
     wavf, _ = qvm.wavefunction(state_prep + qft3(0, 1, 2))
     print wavf
@@ -560,7 +560,7 @@ after state preparation to get our final result.
 
 We can verify this works by computing the (inverse) FFT from NumPy.
 
-.. code:: ipython2
+.. code:: python
 
     from numpy.fft import ifft
     ifft([0,1,0,0,0,0,0,0], norm="ortho")
@@ -595,7 +595,7 @@ Then we construct the loop in the following steps:
 
 3. Lastly, we put it all together using the ``while_do`` method.
 
-.. code:: ipython2
+.. code:: python
 
     # Name our classical registers:
     classical_flag_register = 2
@@ -640,7 +640,7 @@ languages. Much like the last example, we construct programs for each
 branch of the ``if``, and put it all together by using the ``if_then``
 method.
 
-.. code:: ipython2
+.. code:: python
 
     # Name our classical registers:
     test_register = 1
@@ -679,7 +679,7 @@ method.
 We can run this program a few times to see what we get in the
 ``answer_register``.
 
-.. code:: ipython2
+.. code:: python
 
     qvm.run(branching_prog, [answer_register], 10)
 
@@ -712,7 +712,7 @@ set of 6 probabilities:
 We can instantiate a noisy QVM by creating a new connection with these
 probabilities specified.
 
-.. code:: ipython2
+.. code:: python
 
     # 20% chance of a X gate being applied after gate applications and before measurements.
     gate_noise_probs = [0.2, 0.0, 0.0]
@@ -722,7 +722,7 @@ probabilities specified.
 We can test this by applying an :math:`X`-gate and measuring. Nominally,
 we should always measure ``1``.
 
-.. code:: ipython2
+.. code:: python
 
     p = pq.Program().inst(X(0)).measure(0, 0)
     print "Without Noise:", qvm.run(p, [0], 10)
@@ -744,7 +744,7 @@ situations where complex classical functions are used to generate Quil programs.
 a convenient construction to allow you to use python functions to generate templates of Quil
 programs called ParametricPrograms.  Here's a simple example:
 
-.. code:: ipython2
+.. code:: python
 
     # This function returns a quantum circuit with different rotation angles on a gate on qubit 0
     def rotator(angle):
@@ -755,7 +755,7 @@ programs called ParametricPrograms.  Here's a simple example:
 
 The ParametricProgram ``par_p`` now takes the same arguments as `rotator`, e.g.
 
-.. code:: ipython2
+.. code:: python
 
     print par_p(0.5)
 
@@ -776,7 +776,7 @@ Many algorithms require manipulating sums of Pauli combinations, such as
 can represent such sums by constructing ``PauliTerm`` and ``PauliSum``.
 The above sum can be constructed as follows:
 
-.. code:: ipython2
+.. code:: python
 
     from pyquil.paulis import ID, sX, sY, sZ
 
@@ -810,7 +810,7 @@ done.
 
 The following shows an instructive example of all three.
 
-.. code:: ipython2
+.. code:: python
 
     import pyquil.paulis as pl
 
@@ -840,7 +840,7 @@ that is parametrized by a constant.  This commonly occurs in variational algorit
 ``exponential_map`` is used to compute exp[i * alpha * H] without explicitly filling in a value for
 alpha.
 
-.. code:: ipython2
+.. code:: python
 
     parametric_prog = pl.exponential_map(H)
     print parametric_prog(0.0)
