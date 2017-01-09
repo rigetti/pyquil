@@ -3,7 +3,7 @@
 A library for easily generating Quil programs to be executed using the Rigetti Forest platform.
 pyQuil is licensed under the [Apache 2.0 license](https://github.com/rigetticomputing/pyQuil/blob/master/LICENSE).
 
-[![Build Status](https://semaphoreci.com/api/v1/projects/a92fb821-c9b1-4214-b84b-99a1fab26793/1110755/badge.svg)](https://semaphoreci.com/rigetti/pyquil-dev)
+[![Build Status](https://semaphoreci.com/api/v1/projects/044fb8f4-1f90-4e28-8459-95289d682b70/1124972/badge.svg)](https://semaphoreci.com/rigetti/pyquil)
 
 
 ## Installation
