@@ -21,6 +21,7 @@ resources in pyQuil.
 
 from itertools import count
 from pyquil.quil_atom import QuilAtom
+from copy import copy
 
 class AbstractQubit(QuilAtom):
     """
@@ -116,7 +117,7 @@ class ResourceManager(object):
         """
         Frees all qubits, resetting this ResourceManager.
         """
-        for qubit in self.live_qubits:
+        for qubit in copy(self.live_qubits):
             self.free_qubit(qubit)
             qubit.resource_manager = None
         self.live_qubits = []
@@ -174,7 +175,7 @@ class ResourceManager(object):
 def merge_resource_managers(rm1, rm2):
     """
     Merge two resource managers into a new resource manager. All qubits in the old managers will
-    point to the new one.
+    point to the new one. The in_use labels of the second resource manager have priority.
     :param rm1: A ResourceManager.
     :param rm2: A ResourceManager.
     :return: A merged ResourceManager.
@@ -183,7 +184,7 @@ def merge_resource_managers(rm1, rm2):
     rm.live_qubits = rm1.live_qubits + rm2.live_qubits
     rm.dead_qubits = rm1.dead_qubits + rm2.dead_qubits
     for q in rm.dead_qubits + rm.live_qubits:
-        q.resource_manager(rm)
+        q.resource_manager = rm
     rm.in_use.update(rm1.in_use)
     rm.in_use.update(rm2.in_use)
     return rm
