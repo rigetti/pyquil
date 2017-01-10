@@ -28,6 +28,6 @@ since been released as a separate project called [Grove](https://github.com/rige
 
 After about 300 commits, the git history was removed for release.
 
-We give special thanks to Anthony Pollereno (@ampolloreno), Peter Karalekas (@pkaralekas), Nikolas
+We give special thanks to Anthony Polloreno (@ampolloreno), Peter Karalekas (@pkaralekas), Nikolas
 Tezak (@ntezak), and Chris Osborn (@cbosborn) for their contributions, use, and rigorous testing of
 pyQuil prior to its release.

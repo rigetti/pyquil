@@ -85,7 +85,7 @@ MEASURE 1 [1]
 
 pyQuil can be used to build and manipulate Quil programs without restriction. However, to run
 programs (e.g., to get wavefunctions, get multishot experiment data), you will need an API key
-for [Rigetti Forest](https://forest.rigetti.com).
+for [Rigetti Forest](http://forest.rigetti.com).
 
 ## Building the docs
 
