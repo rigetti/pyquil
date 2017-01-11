@@ -16,6 +16,13 @@ Documentation is hosted at [http://pyquil.readthedocs.io/en/latest/]
 
 ## Installation
 
+You can install directly from the Python pip package manager using
+```
+pip install pyquil
+```
+
+### Installation from source
+
 Clone the git repository, `cd` into it, and run
 
 ```
