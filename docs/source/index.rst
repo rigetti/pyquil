@@ -3,7 +3,7 @@
    You can adapt this file completely to your liking, but it should at least
    contain the root `toctree` directive.
 
-Welcome to the documentation for Forest and pyQuil!
+Welcome to the Documentation for Forest and pyQuil!
 ===================================================
 
 .. toctree::
@@ -16,7 +16,7 @@ Welcome to the documentation for Forest and pyQuil!
    source_docs
 
 
-Indices and tables
+Indices and Tables
 ==================
 
 * :ref:`genindex`
