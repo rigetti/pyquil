@@ -3,7 +3,7 @@ Next Steps
 
 We hope that you have enjoyed your whirlwind tour of quantum computing.
 If you would like to learn more, Nielsen and Chuang's
-*Quantum Information and Quantum Computation* is a particularly excellent resource for
+*Quantum Computation and Quantum Information* is a particularly excellent resource for
 newcomers to the field. Also, be sure to check out the
 `resources <http://rigetti.com/resources>`_ section of the Rigetti website.
 

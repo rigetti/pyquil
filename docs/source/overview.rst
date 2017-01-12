@@ -12,7 +12,7 @@ obtaining an API key for the beta, please reach out by signing up
 pyQuil is an open source Python library developed at
 `Rigetti Quantum Computing <http://rigetti.com>`_ that constructs
 programs for quantum computers.  The source is hosted on
-`Github <https://github.com/rigetticomputing/pyQuil>`_.
+`GitHub <https://github.com/rigetticomputing/pyquil>`_.
 
 More concretely, pyQuil produces programs in the Quantum Instruction Language (Quil).  For a full
 description of Quil, please refer to the whitepaper *A Practical Quantum Instruction Set Architecture*.

@@ -23,14 +23,15 @@ It comes with a few parts:
 1. **Quil**: The Quantum Instruction Language standard. Instructions
    written in Quil can be executed on any implementation of a quantum
    abstract machine, such as the quantum virtual machine (QVM), or on a
-   real quantum processor unit (QPU). More details regarding Quil can be
+   real quantum processing unit (QPU). More details regarding Quil can be
    found in the `whitepaper <https://arxiv.org/abs/1608.03355>`__.
-2. **QVM**: A Quantum Virtual Machine: an implementation of the quantum
+2. **QVM**: A Quantum Virtual Machine, which is an implementation of the quantum
    abstract machine on classical hardware. The QVM lets you use a
    regular computer to simulate a small quantum computer. You can access
    the Rigetti QVM running in the cloud with your API key.
+   Sign up `here <http://forest.rigetti.com>`_ to get your key.
 3. **pyQuil**: A Python library to help write and run Quil code and
-   quantum programs in Python.
+   quantum programs.
 
 Environment Setup
 -----------------
@@ -47,7 +48,7 @@ installation of Python 2.7. If you don't have pip, it can be installed with
 Installation
 ~~~~~~~~~~~~
 
-After obtaining pyQuil from `Github <https://github.com/rigetticomputing/pyQuil>`_
+After obtaining pyQuil from `GitHub <https://github.com/rigetticomputing/pyquil>`_
 or from a source distribution, navigate into its directory in a terminal and run
 
 ::
@@ -103,7 +104,7 @@ Basic Usage
 -----------
 
 To ensure that your installation is working correctly, try running the
-following Python commands interactively. First, import the ``pyquil``
+following Python commands interactively. First, import the ``quil``
 module (which constructs quantum programs) and the ``forest`` module (which
 allows connections to the Rigetti QVM). We will also import some basic
 gates for pyQuil.
@@ -138,7 +139,7 @@ Now we can make a program by adding some Quil instruction using the
 
 
 This program simply applies the :math:`X`-gate to the zeroth qubit,
-measures that qubit and stores the measurement result in the zeroth
+measures that qubit, and stores the measurement result in the zeroth
 classical register. We can look at the Quil code that makes up this
 program simply by printing it.
 
@@ -155,7 +156,7 @@ program simply by printing it.
 
 
 Most importantly, of course, we can see what happens if we run this
-program on the QVM with the following.
+program on the QVM:
 
 .. code:: python
 
@@ -210,7 +211,7 @@ different classical register we would obtain:
 
 
 We can also run programs multiple times and accumulate all the results
-in a single list. Try running this a few times to see different results.
+in a single list.
 
 .. code:: python
 
@@ -231,7 +232,7 @@ Try running the above code several times. You will see that you will,
 with very high probability, get different results each time.
 
 As the QVM is a virtual machine, we can also inspect the wavefunction of
-a program directly, even without measurements, e.g.
+a program directly, even without measurements:
 
 .. code:: python
 
@@ -246,8 +247,8 @@ a program directly, even without measurements, e.g.
     (array([ 0.70710678+0.j,  0.70710678+0.j]), [])
 
 
-The second element in this tuple is an optional amount of classical memory to check along
-with the wavefunction. For example:
+The second element in the resulting tuple is an optional amount of classical memory to check along
+with the wavefunction:
 
 .. code:: python
 
@@ -255,7 +256,8 @@ with the wavefunction. For example:
     wavf, classical_mem = qvm.wavefunction(coin_flip, classical_addresses=range(9))
 
 
-A random seed can be passed into the Connection object to make for deterministic testing.
+Additionally, we can pass a random seed to the Connection object. This allows us to reliably
+reproduce measurement results for the purpose of testing:
 
 .. code:: python
 
@@ -267,7 +269,7 @@ A random seed can be passed into the Connection object to make for deterministic
     print seeded_cxn.run(pq.Program(H(0)).measure(0, 0), [0], 20)
 
 
-It is important to remember that this is just a useful debugging tool
+It is important to remember that this ``wavefunction`` method is just a useful debugging tool
 for small quantum systems, and it cannot be feasibly obtained on a
 quantum processor.
 
@@ -623,8 +625,7 @@ Then we construct the loop in the following steps:
 
 
 Notice that the ``init_register`` program applied a Quil instruction directly to a
-classical register.  There are several classical commands that can be used in this fashion.
-They are:
+classical register.  There are several classical commands that can be used in this fashion:
 
 - ``TRUE`` which sets a single classical bit to be 1
 - ``FALSE`` which sets a single classical bit to be 0
@@ -717,7 +718,7 @@ probabilities specified.
     # 20% chance of a X gate being applied after gate applications and before measurements.
     gate_noise_probs = [0.2, 0.0, 0.0]
     meas_noise_probs = [0.2, 0.0, 0.0]
-    noisy_qvm = qvm_endpoint.Connection(gate_noise=gate_noise_probs, measurement_noise=meas_noise_probs)
+    noisy_qvm = forest.Connection(gate_noise=gate_noise_probs, measurement_noise=meas_noise_probs)
 
 We can test this by applying an :math:`X`-gate and measuring. Nominally,
 we should always measure ``1``.
@@ -741,8 +742,8 @@ Parametric Programs
 A big advantage of working in pyQuil is that you are able to leverage all the functionality of
 Python to generate Quil programs.  In quantum/classical hybrid algorithms this often leads to
 situations where complex classical functions are used to generate Quil programs. pyQuil provides
-a convenient construction to allow you to use python functions to generate templates of Quil
-programs called ParametricPrograms.  Here's a simple example:
+a convenient construction to allow you to use Python functions to generate templates of Quil
+programs, called ``ParametricPrograms``:
 
 .. code:: python
 
@@ -753,7 +754,7 @@ programs called ParametricPrograms.  Here's a simple example:
     from pyquil.parametric import ParametricProgram
     par_p = ParametricProgram(rotator) # This produces a new type of parameterized program object
 
-The ParametricProgram ``par_p`` now takes the same arguments as `rotator`, e.g.
+The parametric program ``par_p`` now takes the same arguments as ``rotator``:
 
 .. code:: python
 
@@ -763,8 +764,8 @@ The ParametricProgram ``par_p`` now takes the same arguments as `rotator`, e.g.
 
     RX(0.5) 0
 
-We can think of ParametricPrograms as a sort of template for Quil programs.  They cache computations
-that happen in python functions so that templates in Quil can be efficiently substituted.
+We can think of ``ParametricPrograms`` as a sort of template for Quil programs.  They cache computations
+that happen in Python functions so that templates in Quil can be efficiently substituted.
 
 
 Pauli Operator Algebra
@@ -853,8 +854,8 @@ calculation so that it can be used later with new values.
 Exercises
 ---------
 
-Exercise 1.
-~~~~~~~~~~~
+Exercise 1 - Quantum Dice
+~~~~~~~~~~~~~~~~~~~~~~~~~
 
 Write a quantum program to simulate throwing an 8-sided die. The Python
 function you should produce is:
@@ -871,8 +872,8 @@ Next, extend the program to work for any kind of fair die:
     def throw_polyhedral_die(num_sides):
         # return the result of throwing a num_sides sided die by running a quantum program
 
-Exercise 2.
-~~~~~~~~~~~
+Exercise 2 - Controlled Gates
+~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
 
 We can use the full generality of NumPy and SciPy to construct new gate
 matrices.
@@ -886,8 +887,8 @@ matrices.
    manner. Find the wavefunction when applying this gate to qubit 1
    controlled by qubit 0.
 
-Exercise 3.
-~~~~~~~~~~~
+Exercise 3 - Grover's Algorithm
+~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
 
 Write a quantum program for the single-shot Grover's algorithm. The
 Python function you should produce is:
@@ -901,10 +902,7 @@ Python function you should produce is:
 
 As an example: ``single_shot_grovers([0,0,1,0])`` should return 2.
 
-Hints
-^^^^^
-
-Remember that the Grover's diffusion operator is:
+**HINT** - Remember that the Grover's diffusion operator is:
 
 .. math::
 
