@@ -14,7 +14,6 @@
 #    See the License for the specific language governing permissions and
 #    limitations under the License.
 ##############################################################################
-
 """
 A lovely bunch of gates and instructions for programming with.  This module is used to provide
 Pythonic sugar for Quil instructions.

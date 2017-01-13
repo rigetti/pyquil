@@ -15,7 +15,7 @@
 #    limitations under the License.
 ##############################################################################
 """
-This module contains the core pyQuil objects that correspond to Quil instructions.
+Contains the core pyQuil objects that correspond to Quil instructions.
 """
 
 import numpy as np
