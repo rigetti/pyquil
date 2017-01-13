@@ -48,29 +48,40 @@ installation of Python 2.7. If you don't have pip, it can be installed with
 Installation
 ~~~~~~~~~~~~
 
-After obtaining pyQuil from `GitHub <https://github.com/rigetticomputing/pyquil>`_
-or from a source distribution, navigate into its directory in a terminal and run
+You can install pyQuil directly from the Python package manager pip using:
+
+::
+
+    pip install pyquil
+
+To instead install the bleeding-edge version from source, clone the
+`pyquil GitHub repository <https://github.com/rigetticomputing/pyquil>`_,
+navigate into its directory in a terminal, and run:
 
 ::
 
     pip install -e .
 
 On Mac/Linux, if this command does not succeed because of permissions
-errors, then run with
+errors, then instead run:
 
 ::
 
     sudo pip install -e .
 
-This will install pyQuil's dependencies (requests >= 2.4.2 and numpy >= 1.10) if you do not already
+This will also install pyQuil's dependencies (requests >= 2.4.2 and NumPy >= 1.10) if you do not already
 have them.
 
 The library will now be available globally.
 
-Connecting to a Rigetti QVM
-~~~~~~~~~~~~~~~~~~~~~~~~~~~
+Connecting to the Rigetti Forest
+~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
 
-In order to connect to the QVM you need to set up configuration in the file ``.pyquil_config``
+pyQuil can be used to build and manipulate Quil programs without restriction. However, to run
+programs (e.g., to get wavefunctions, get multishot experiment data), you will need an API key
+for Rigetti Forest. This will allow you to run your programs on the Rigetti QVM or QPU.
+
+Once you have your key, you need to set up configuration in the file ``.pyquil_config``
 which pyQuil will attempt to find in your home directory by default. (You can change this location by setting the
 environment variable ``PYQUIL_CONFIG`` to the path of the file.) Loading the ``pyquil.forest``
 module will print a warning if this is not found. The configuration file is in INI format and
