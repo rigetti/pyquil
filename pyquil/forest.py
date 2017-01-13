@@ -14,6 +14,9 @@
 #    See the License for the specific language governing permissions and
 #    limitations under the License.
 ##############################################################################
+"""
+Module for facilitating connections to the QVM / QPU.
+"""
 
 from __future__ import print_function
 from requests.packages.urllib3.util import Retry

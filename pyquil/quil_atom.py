@@ -15,7 +15,7 @@
 #    limitations under the License.
 ##############################################################################
 """
-Contains the base class for Atomic Quil elements
+Contains the base class for Atomic Quil elements.
 """
 
 class QuilAtom(object):
