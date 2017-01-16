@@ -107,3 +107,23 @@ We use pytest for testing. Tests can be run from the top-level directory using:
 ```
 pytest --cov=pyquil
 ```
+
+## How to cite pyQuil and Forest
+
+If you use pyquil, grove or other parts of Forest in your research, please cite it as follows:
+
+bibTeX:
+```
+@misc{1608.03355,
+  title={A Practical Quantum Instruction Set Architecture},
+  author={Smith, Robert S and Curtis, Michael J and Zeng, William J},
+  journal={arXiv preprint arXiv:1608.03355},
+  year={2016}
+}
+```
+
+Text:
+```
+R. Smith, M. J. Curtis and W. J. Zeng, "A Practical Quantum Instruction Set Architecture," (2015), 
+  arXiv:1608.03355 [quant-ph], https://arxiv.org/abs/1608.03355
+```
