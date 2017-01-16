@@ -117,6 +117,7 @@ class ResourceManager(object):
         """
         Frees all qubits, resetting this ResourceManager.
         """
+        # A copy is necessary here so that the modifications to the list don't affect the traversal.
         for qubit in copy(self.live_qubits):
             self.free_qubit(qubit)
             qubit.resource_manager = None
