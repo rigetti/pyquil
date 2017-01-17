@@ -48,11 +48,11 @@ class Program(InstructionGroup):
         :return: A newly concatenated program.
         """
         if isinstance(other, Program):
-            self.resource_manager = merge_resource_managers(self.resource_manager,
-                                                            other.resource_manager)
             p = Program()
             p.defined_gates = self.defined_gates + other.defined_gates
             p.actions = self.actions + other.actions
+            p.resource_manager = merge_resource_managers(self.resource_manager,
+                                                         other.resource_manager)
             return p
         else:
             return super(Program, self).__add__(other)
