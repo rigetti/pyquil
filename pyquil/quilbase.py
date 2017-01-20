@@ -302,6 +302,26 @@ class InstructionGroup(QuilAction):
         if 0 != len(self.actions):
             self.actions.pop()
 
+    def extract_qubits(self):
+        """
+        Return all qubit addresses involved in the instruction group.
+        """
+        qubits = set()
+        for jj, act_jj in self.actions:
+            if isinstance(act_jj, (Instr)):
+                qubits = qubits | act_jj.qubits()
+            elif isinstance(act_jj, If):
+                qubits = qubits | act_jj.Then.extract_qubits() | act_jj.Else.extract_qubits()
+            elif isinstance(act_jj, While):
+                qubits = qubits | act_jj.Body.extract_qubits()
+            elif isinstance(act_jj, InstructionGroup):
+                qubits = qubits | act_jj.extract_qubits()
+            elif isinstance(act_jj, (JumpTarget, JumpConditional, SimpleInstruction,
+                                     UnaryClassicalInstruction, BinaryClassicalInstruction, Jump)):
+                continue
+            else:
+                raise ValueError(type(act_jj))
+        return qubits
 
 class JumpTarget(AbstractInstruction):
     """
