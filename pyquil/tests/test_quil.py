@@ -355,8 +355,12 @@ def test_alloc_no_free():
 
 def test_extract_qubits():
     p = Program(RX(0.5)(0), RY(0.1)(1), RZ(1.4)(2))
-    assert p.extract_qubits() == set([0,1,2])
+    assert p.extract_qubits() == set([0, 1, 2])
     p.if_then(0, X(4), H(5)).measure(6, 2)
-    assert p.extract_qubits() == set([0,1,2,4,5,6])
+    assert p.extract_qubits() == set([0, 1, 2, 4, 5, 6])
     p.while_do(0, Program(X(3)).measure(3, 0))
-    assert p.extract_qubits() == set([0,1,2,3,4,5,6])
+    assert p.extract_qubits() == set([0, 1, 2, 3, 4, 5, 6])
+    new_qubit = p.alloc()
+    p.inst(X(new_qubit))
+    p.synthesize()
+    assert p.extract_qubits() == set([0, 1, 2, 3, 4, 5, 6, new_qubit.index()])
