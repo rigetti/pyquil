@@ -208,7 +208,7 @@ class Connection(object):
     #################################################################################
 
     def __init__(self, endpoint=ENDPOINT, cert=HTTPS_CERT, key=HTTPS_KEY, api_key=API_KEY,
-                 gate_noise=None, measurement_noise=None, num_retries=5, random_seed=None):
+                 gate_noise=None, measurement_noise=None, num_retries=3, random_seed=None):
         """
         Constructor for Connection. Sets up any necessary security, and establishes the noise model
         to use.
@@ -223,7 +223,7 @@ class Connection(object):
                                   an X, Y, or Z gate getting applied before a a measurement.
                                   (default None)
         :param num_retries: The number of times to retry a request when faced with an HTTP response
-                            code in [502, 503, 504, 521, 523] (default 5)
+                            code in [502, 503, 504, 521, 523] (default 3)
         :param random_seed: A seed for the QVM's random number generators. Either None (for an
                             automatically generated seed) or a non-negative integer.
         """
