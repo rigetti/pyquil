@@ -279,7 +279,11 @@ class Connection(object):
             print("! Server caught an error. This could be due to a bug in the server\n"
                   "! or a bug in your code. The server came back with the following\n"
                   "! information:\n"
-                  "%s\n%s\n%s\n" % ("=" * 80, res.text, "=" * 80),
+                  "%s\n%s\n%s" % ("=" * 80, res.text, "=" * 80),
+                  file=sys.stderr)
+            print("! If you suspect this to be a bug in pyQuil or Rigetti Forest,\n"
+                  "! then please describe the problem in a GitHub issue at:\n!\n"
+                  "!      https://github.com/rigetticomputing/pyquil/issues\n",
                   file=sys.stderr)
 
         res.raise_for_status()
