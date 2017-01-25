@@ -110,9 +110,9 @@ pytest --cov=pyquil
 
 ## How to cite pyQuil and Forest
 
-If you use pyquil, grove or other parts of Forest in your research, please cite it as follows:
+If you use pyQuil, Grove, or other parts of the Rigetti Forest stack in your research, please cite it as follows:
 
-bibTeX:
+BibTeX:
 ```
 @misc{1608.03355,
   title={A Practical Quantum Instruction Set Architecture},
@@ -124,6 +124,6 @@ bibTeX:
 
 Text:
 ```
-R. Smith, M. J. Curtis and W. J. Zeng, "A Practical Quantum Instruction Set Architecture," (2015), 
+R. Smith, M. J. Curtis and W. J. Zeng, "A Practical Quantum Instruction Set Architecture," (2016), 
   arXiv:1608.03355 [quant-ph], https://arxiv.org/abs/1608.03355
 ```
