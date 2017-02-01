@@ -298,25 +298,6 @@ This instruction ends the program.
 """
 
 
-def unpack_classical_reg(c):
-    """
-    Get the address for a classical register.
-
-    :param c: A list of length 1 or an int or an Addr.
-    :return: The address as an Addr.
-    """
-    if not isinstance(c, (int, list, Addr)):
-        raise TypeError("c should be an int or list or Addr")
-    if isinstance(c, list) and (len(c) != 1 or not isinstance(c[0], int)):
-        raise ValueError("if c is a list, it should be of 1 int")
-    if isinstance(c, Addr):
-        return c
-    elif isinstance(c, list):
-        return Addr(c[0])
-    else:
-        return Addr(c)
-
-      
 def MEASURE(qubit, classical_reg=None):
     """
     Produce a MEASURE instruction.
