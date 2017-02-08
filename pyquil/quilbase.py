@@ -299,8 +299,13 @@ class InstructionGroup(QuilAction):
         return p.inst(instruction)
 
     def pop(self):
+        """
+        Pops off the last instruction.
+
+        :return: The (action, instruction) pair for the instruction that was popped.
+        """
         if 0 != len(self.actions):
-            self.actions.pop()
+            return self.actions.pop()
 
     def extract_qubits(self):
         """

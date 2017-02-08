@@ -84,6 +84,13 @@ def test_program_gates():
     assert ig.out() == "H 0\nX 1\n"
 
 
+def test_program_pop():
+    prog = Program(X(0), X(1))
+    _, instruction = prog.pop()
+    assert prog.out() == "X 0\n"
+    assert Program(instruction).out() == "X 1\n"
+
+
 def test_plus_operator():
     p = Program()
     p += H(0)
