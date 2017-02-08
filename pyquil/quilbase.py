@@ -302,7 +302,7 @@ class InstructionGroup(QuilAction):
         """
         Pops off the last instruction.
 
-        :return: The instruction that was popped.
+        :return: The (action, instruction) pair for the instruction that was popped.
         """
         if 0 != len(self.actions):
             return self.actions.pop()
