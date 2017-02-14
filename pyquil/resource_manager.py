@@ -69,7 +69,8 @@ class Qubit(AbstractQubit):
 
     def index(self):
         """
-        :returns: (int) The index of this qubit.
+        :returns: The index of this qubit.
+        :rtype: int
         """
         if not instantiated(self):
             raise RuntimeError("Can't get the index of an unassigned qubit.")
@@ -101,8 +102,9 @@ def instantiated(qubit):
     """
     Is the qubit instantiated?
 
-    :param qubit: A AbstractQubit instance.
+    :param AbstractQubit qubit: A AbstractQubit instance.
     :return: A boolean.
+    :rtype: bool
     """
     return qubit.assignment is not None
 
@@ -128,7 +130,9 @@ class ResourceManager(object):
     def allocate_qubit(self):
         """
         Create a new Qubit object.
+
         :return: A Qubit instance.
+        :rtype: Qubit
         """
         new_q = Qubit(self)
         self.live_qubits.append(new_q)
@@ -137,7 +141,8 @@ class ResourceManager(object):
     def free_qubit(self, q):
         """
         Free the previously allocated qubit.
-        :param q: A live Qubit that was previously allocated.
+
+        :param Qubit q: A live Qubit that was previously allocated.
         """
         if q not in self.live_qubits:
             raise RuntimeError("Qubit {} is not part of the ResourceManager".format(q))
@@ -148,7 +153,8 @@ class ResourceManager(object):
     def instantiate(self, qubit):
         """
         Assign a number to a qubit.
-        :param qubit: A Qubit object.
+
+        :param Qubit qubit: A Qubit object.
         """
 
         def find_available_qubit(d):
@@ -166,7 +172,8 @@ class ResourceManager(object):
     def uninstantiate_index(self, i):
         """
         Free up an index that was previously instantiated.
-        :param i: The index.
+
+        :param int i: The index.
         """
         q = self.in_use.get(i, False)
         if q and isinstance(q, Qubit):
@@ -177,9 +184,11 @@ def merge_resource_managers(rm1, rm2):
     """
     Merge two resource managers into a new resource manager. All qubits in the old managers will
     point to the new one. The in_use labels of the second resource manager have priority.
-    :param rm1: A ResourceManager.
-    :param rm2: A ResourceManager.
+
+    :param ResourceManager rm1: A ResourceManager.
+    :param ResourceManager rm2: A ResourceManager.
     :return: A merged ResourceManager.
+    :rtype: ResourceManager
     """
     rm = ResourceManager()
     rm.live_qubits = rm1.live_qubits + rm2.live_qubits

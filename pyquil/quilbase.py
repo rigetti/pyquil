@@ -58,7 +58,7 @@ def format_matrix_element(element):
     """
     Formats a parameterized matrix element.
 
-    :param: {int, long, float, complex, str} The parameterized element to format.
+    :param element: {int, long, float, complex, str} The parameterized element to format.
     """
     if isinstance(element, (int, long, float, complex)):
         return format_parameter(element)
@@ -72,7 +72,7 @@ def format_parameter(element):
     """
     Formats a particular parameter.
 
-    :param: {int, float, long, complex, Slot} Formats a parameter for Quil output.
+    :param element: {int, float, long, complex, Slot} Formats a parameter for Quil output.
     """
     if isinstance(element, (int, float)):
         return repr(element)
@@ -94,7 +94,7 @@ class Addr(QuilAtom):
     """
     Representation of a classical bit address.
 
-    :param value: (int) The classical address.
+    :param int value: The classical address.
     """
 
     def __init__(self, value):
@@ -113,7 +113,7 @@ class Label(QuilAtom):
     """
     Representation of a label.
 
-    :param label_name: (string) The label name.
+    :param string label_name: The label name.
     """
 
     def __init__(self, label_name):
@@ -152,8 +152,8 @@ class DefGate(AbstractInstruction):
     """
     A DEFGATE directive.
 
-    :param name: (string) the name of the newly defined gate.
-    :param matrix: {list, nparray, np.matrix} The matrix defining this gate.
+    :param string name: The name of the newly defined gate.
+    :param array-like matrix: {list, nparray, np.matrix} The matrix defining this gate.
     """
 
     def __init__(self, name, matrix):
@@ -178,7 +178,8 @@ class DefGate(AbstractInstruction):
         """
         Prints a readable Quil string representation of this gate.
 
-        :returns: (string)
+        :returns: String representation of a gate
+        :rtype: string
         """
         result = "DEFGATE %s:\n" % (self.name)
         for row in self.matrix:
@@ -198,6 +199,7 @@ class DefGate(AbstractInstruction):
     def num_args(self):
         """
         :return: The number of qubit arguments the gate takes.
+        :rtype: int
         """
         rows = len(self.matrix)
         return int(np.log2(rows))
@@ -242,7 +244,9 @@ class InstructionGroup(QuilAction):
     def alloc(self):
         """
         Get a new qubit.
+
         :return: A qubit.
+        :rtype: Qubit
         """
         qubit = self.resource_manager.allocate_qubit()
         self.actions.append(action(ACTION_INSTANTIATE_QUBIT, qubit))
@@ -252,7 +256,8 @@ class InstructionGroup(QuilAction):
     def free(self, qubit):
         """
         Free a qubit.
-        :param q: An AbstractQubit instance
+
+        :param AbstractQubit q: An AbstractQubit instance
         """
         check_live_qubit(qubit)
 
@@ -517,8 +522,10 @@ def reset_label_counter():
 def gen_label(prefix="L"):
     """
     Generate a fresh label.
-    :param prefix: An optional prefix for the label name
+
+    :param string prefix: An optional prefix for the label name
     :return: A new Label instance.
+    :rtype: Label
     """
     global label_counter
     label_counter += 1
@@ -601,7 +608,8 @@ class Instr(AbstractInstruction):
     def make_qubits_known(self, rm):
         """
         Make the qubits involved with this instruction known to a ResourceManager.
-        :param rm: A ResourceManager.
+
+        :param ResourceManager rm: A ResourceManager object.
         """
         if not isinstance(rm, ResourceManager):
             raise TypeError("rm should be a ResourceManager")
@@ -617,7 +625,9 @@ class Instr(AbstractInstruction):
     def qubits(self):
         """
         The qubits this instruction affects.
+
         :return: Set of qubit indexes.
+        :rtype: set
         """
         qubits = set()
         for arg in self.arguments:

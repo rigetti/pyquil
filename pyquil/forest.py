@@ -51,6 +51,7 @@ except:
 def config_value(name, default=None):
     """
     Get a config file value for a particular name
+
     :param name: The key.
     :param default: A default if it's not found.
     :return: The value.
@@ -66,6 +67,7 @@ def env_or_config(env, name, default=None):
     """
     Get the value of the environment variable or config file value.
     The environment variable takes precedence.
+
     :param env: The environment variable name.
     :param name: The config file key.
     :param default: The default value to use.
@@ -109,7 +111,8 @@ def certificate(cert=HTTPS_CERT, key=HTTPS_KEY):
 def add_noise_to_payload(payload, gate_noise, measurement_noise):
     """
     Set the gate noise and measurement noise of a payload.
-    :param payload: Dictionary of run information.
+
+    :param dict payload: Dictionary of run information.
     :param gate_noise: Probability of a noise gate being applied at each time step.
     :param measurement_noise: Probability of a noise gate being applied before measurement.
     """
@@ -122,8 +125,9 @@ def add_noise_to_payload(payload, gate_noise, measurement_noise):
 def add_rng_seed_to_payload(payload, seed):
     """
     Add a random seed to the payload.
+
     :param payload: JSON payload.
-    :param seed: A non-negative integer.
+    :param int seed: A non-negative integer.
     """
     if seed is not None:
         payload['rng-seed'] = seed
@@ -132,7 +136,8 @@ def add_rng_seed_to_payload(payload, seed):
 def _validate_noise_probabilities(noise_parameter):
     """
     Is noise_parameter a valid specification of noise probabilities for depolarizing noise?
-    :param noise_parameter: List of noise parameter values to be validated.
+
+    :param list noise_parameter: List of noise parameter values to be validated.
     """
     if not noise_parameter:
         return
@@ -151,7 +156,8 @@ def _validate_noise_probabilities(noise_parameter):
 def _validate_run_items(run_items):
     """
     Check the validity of classical addresses / qubits for the payload.
-    :param run_items: List of classical addresses or qubits to be validated.
+
+    :param list run_items: List of classical addresses or qubits to be validated.
     """
     if not isinstance(run_items, list):
         raise TypeError("run_items must be a list")
@@ -162,6 +168,7 @@ def _validate_run_items(run_items):
 def _round_to_next_multiple(n, m):
     """
     Round up the the next multiple.
+
     :param n: The number to round up.
     :param m: The multiple.
     :return: The rounded number
@@ -172,8 +179,10 @@ def _round_to_next_multiple(n, m):
 def _octet_bits(o):
     """
     Get the bits of an octet.
+
     :param o: The octets.
     :return: The bits as a list in LSB-to-MSB order.
+    :rtype: list
     """
     if not isinstance(o, (int, long)):
         raise TypeError("o should be an int or long")
@@ -265,6 +274,7 @@ class Connection(object):
     def post_json(self, j):
         """
         Post JSON to the QVM endpoint.
+
         :param j: JSON.
         :return: A non-error response.
         """
@@ -293,7 +303,9 @@ class Connection(object):
     def ping(self):
         """
         Ping the QVM.
+
         :return: Should get "pong" back.
+        :rtype: string
         """
         payload = {"type": "ping"}
         res = self.post_json(payload)
@@ -302,7 +314,9 @@ class Connection(object):
     def version(self):
         """
         Query the QVM version.
+
         :return: The current version of the QVM.
+        :rtype: string
         """
         payload = {"type": "version"}
         res = self.post_json(payload)
@@ -311,11 +325,13 @@ class Connection(object):
     def wavefunction(self, quil_program, classical_addresses=[]):
         """
         Simulate a Quil program and get the wavefunction back.
-        :param quil_program: A Quil program.
-        :param classical_addresses: An optional list of classical addresses.
+
+        :param Program quil_program: A Quil program.
+        :param list classical_addresses: An optional list of classical addresses.
         :return: A tuple whose first element is a a NumPy array of amplitudes,
                  and whose second element is the list of classical bits corresponding
                  to the classical addresses.
+        :rtype: tuple
         """
 
         def recover_complexes(coef_string):
@@ -361,9 +377,11 @@ class Connection(object):
         """
         Calculate the expectation value of operators given a state prepared by
         prep_program.
-        :params prep_prog: Quil program for state preparation.
-        :params operators: (list) of PauliTerms. Default is Identity operator.
-        :returns: float expectation value of the operators.
+
+        :param Program prep_prog: Quil program for state preparation.
+        :param list operators: A list of PauliTerms. Default is Identity operator.
+        :returns: Expectation value of the operators.
+        :rtype: float
         """
         if not isinstance(prep_prog, pq.Program):
             raise TypeError("prep_prog variable must be a Quil program object")
@@ -382,8 +400,10 @@ class Connection(object):
     def bit_string_probabilities(self, quil_program):
         """
         Simulate a Quil program and get outcome probabilities back.
-        :param quil_program: A Quil program.
-        :return: A dict with outcomes as keys and probabilities as values.
+
+        :param Program quil_program: A Quil program.
+        :return: A dictionary with outcomes as keys and probabilities as values.
+        :rtype: dict
         """
         wvf, _ = self.wavefunction(quil_program)
         return get_outcome_probs(wvf)
@@ -392,11 +412,13 @@ class Connection(object):
         """
         Run a Quil program multiple times, accumulating the values deposited in
         a list of classical addresses.
-        :param quil_program: A Quil program.
-        :param classical_addresses: A list of addresses.
-        :param trials: Number of shots to collect.
+
+        :param Program quil_program: A Quil program.
+        :param list classical_addresses: A list of addresses.
+        :param int trials: Number of shots to collect.
         :return: A list of lists of bits. Each sublist corresponds to the values
-        in `classical_addresses`.
+                 in `classical_addresses`.
+        :rtype: list
         """
         if not isinstance(quil_program, pq.Program):
             raise TypeError("quil_program must be a Quil program object")
@@ -419,10 +441,12 @@ class Connection(object):
     def run_and_measure(self, quil_program, qubits, trials=1):
         """
         Run a Quil program once to determine the final wavefunction, and measure multiple times.
-        :param quil_program: A Quil program.
-        :param qubits: A list of qubits.
-        :param trials: Number of shots to collect.
+
+        :param Program quil_program: A Quil program.
+        :param list qubits: A list of qubits.
+        :param int trials: Number of shots to collect.
         :return: A list of a list of bits.
+        :rtype: list
         """
         if not isinstance(quil_program, pq.Program):
             raise TypeError("quil_program must be a Quil program object")
@@ -447,8 +471,10 @@ def get_outcome_probs(wvf):
     """
     Parses a wavefunction (array of complex amplitudes) and returns a dictionary of
     outcomes and associated probabilities.
-    :param wvf: A complex list of amplitudes.
+
+    :param list wvf: A complex list of amplitudes.
     :return: A dict with outcomes as keys and probabilities as values.
+    :rtype: dict
     """
     outcome_dict = {}
     qubit_num = len(wvf).bit_length() - 1

@@ -61,8 +61,8 @@ class Program(InstructionGroup):
         """
         Define a new static gate.
 
-        :param name: (int) The name of the gate (str).
-        :param matrix: List of lists or Numpy 2d array.
+        :param string name: The name of the gate.
+        :param array-like matrix: List of lists or Numpy 2d array.
         :return: The Program instance.
         """
         self.defined_gates.append(DefGate(name, matrix))
@@ -72,11 +72,11 @@ class Program(InstructionGroup):
         """
         Measures a qubit at qubit_index and puts the result in classical_reg
 
-        :param qubit_index: (int) The address of the qubit to measure.
-        :param classical_reg: (int) The address of the classical bit to store the result.
-
+        :param int qubit_index: The address of the qubit to measure.
+        :param int classical_reg: The address of the classical bit to store the result.
         :returns: The Quil Program with the appropriate measure instruction appended, e.g.
                   MEASURE 0 [1]
+        :rtype: Program
         """
         return self.inst(MEASURE(qubit_index, classical_reg))
 
@@ -84,10 +84,10 @@ class Program(InstructionGroup):
         """
         While a classical register at index classical_reg is 1, loop q_program
 
-        :param classical_reg: (int) The classical register to check
-        :param q_program: (Program) The Quil program to loop.
-
+        :param int classical_reg: The classical register to check
+        :param Program q_program: The Quil program to loop.
         :return: The Quil Program with the loop instructions added.
+        :rtype: Program
         """
         w_loop = While(Addr(classical_reg))
         w_loop.Body.inst(q_program)
@@ -98,12 +98,12 @@ class Program(InstructionGroup):
         If the classical register at index classical reg is 1, run if_program, else run
         else_program.
 
-        :param classical_reg: (int) The classical register to check as the condition
-        :param if_program: (Program) A Quil program to execute if classical_reg is 1
-        :param else_program: (Program) A Quil program to execute if classical_reg is 0. This
+        :param int classical_reg: The classical register to check as the condition
+        :param Program if_program: A Quil program to execute if classical_reg is 1
+        :param Program else_program: A Quil program to execute if classical_reg is 0. This
             argument is optional and defaults to an empty Program.
-
         :returns: The Quil Program with the branching instructions added.
+        :rtype: Program
         """
 
         else_program = else_program if else_program is not None else Program()
@@ -116,7 +116,9 @@ class Program(InstructionGroup):
     def out(self):
         """
         Converts the Quil program to a readable string.
-        :return: (string)
+
+        :return: String form of a program
+        :rtype: string
         """
         s = ""
         for dg in self.defined_gates:
