@@ -44,8 +44,9 @@ class Program(InstructionGroup):
         """
         Concatenate two programs together, returning a new one.
 
-        :param other: Another program or instruction to concatenate to this one.
+        :param Program other: Another program or instruction to concatenate to this one.
         :return: A newly concatenated program.
+        :rtype: Program
         """
         if isinstance(other, Program):
             p = Program()
@@ -64,6 +65,7 @@ class Program(InstructionGroup):
         :param string name: The name of the gate.
         :param array-like matrix: List of lists or Numpy 2d array.
         :return: The Program instance.
+        :rtype: Program
         """
         self.defined_gates.append(DefGate(name, matrix))
         return self

@@ -121,6 +121,7 @@ class PauliTerm(object):
 
         :param term: (PauliTerm or PauliSum or Number) A term to multiply by.
         :returns: The product of this PauliTerm and term.
+        :rtype: PauliTerm
         """
         if isinstance(term, Number):
             return term_with_coeff(self, self.coefficient * term)
@@ -390,6 +391,7 @@ def exponentiate(term):
 
     :param PauliTerm term: Tests is a PauliTerm is the identity operator
     :returns: A Program object
+    :rtype: Program
     """
     return exponential_map(term)(1.0)
 
@@ -428,8 +430,9 @@ def _exponentiate_general_case(pauli_term, param):
     the pauli_term object, i.e. exp[-1.0j * param * pauli_term]
 
     :param PauliTerm pauli_term: A PauliTerm to exponentiate
-    :param param: scalar, non-complex, value
-    :returns: A Quil (Program()) object
+    :param float param: scalar, non-complex, value
+    :returns: A Quil program object
+    :rtype: Program
     """
     def reverse_hack(p):
         # A hack to produce a *temporary* program which reverses p.
@@ -492,8 +495,8 @@ def suzuki_trotter(trotter_order, trotter_steps):
     [(0.5/trotter_steps, 0), (1/trotteri_steps, 1),
     (0.5/trotter_steps, 0)] * trotter_steps.
 
-    :param trotter_order: order of Suzuki-Trotter approximation
-    :param trotter_steps: number of steps in the approximation
+    :param int trotter_order: order of Suzuki-Trotter approximation
+    :param int trotter_steps: number of steps in the approximation
     :returns: List of tuples corresponding to the coefficient and operator
               type: o=0 is A and o=1 is B.
     :rtype: list
@@ -545,14 +548,15 @@ def trotterize(first_pauli_term, second_pauli_term, trotter_order=1,
     Create a Quil program that approximates exp( (A + B)t) where A and B are
     PauliTerm operators.
 
-    :param first_pauli_term: PauliTerm denoted `A`
-    :param second_pauli_term: PauliTerm denoted `B`
-    :param trotter_order: Optional argument indicating the Suzuki-Trotter
+    :param PauliTerm first_pauli_term: PauliTerm denoted `A`
+    :param PauliTerm second_pauli_term: PauliTerm denoted `B`
+    :param int trotter_order: Optional argument indicating the Suzuki-Trotter
                           approximation order--only accepts orders 1, 2, 3, 4.
-    :param trotter_steps: Optional argument indicating the number of products
+    :param int trotter_steps: Optional argument indicating the number of products
                           to decompose the exponential into.
 
     :return: Quil program
+    :rtype: Program
     """
 
     if not (1 <= trotter_order < 5):

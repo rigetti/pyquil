@@ -257,7 +257,7 @@ class InstructionGroup(QuilAction):
         """
         Free a qubit.
 
-        :param AbstractQubit q: An AbstractQubit instance
+        :param AbstractQubit q: An AbstractQubit instance.
         """
         check_live_qubit(qubit)
 
@@ -308,6 +308,7 @@ class InstructionGroup(QuilAction):
         Pops off the last instruction.
 
         :return: The (action, instruction) pair for the instruction that was popped.
+        :rtype: tuple
         """
         if 0 != len(self.actions):
             return self.actions.pop()
@@ -315,6 +316,8 @@ class InstructionGroup(QuilAction):
     def extract_qubits(self):
         """
         Return all qubit addresses involved in the instruction group.
+        :return: Set of qubits.
+        :rtype: set
         """
         qubits = set()
         for jj, act_jj in self.actions:
@@ -523,7 +526,7 @@ def gen_label(prefix="L"):
     """
     Generate a fresh label.
 
-    :param string prefix: An optional prefix for the label name
+    :param string prefix: An optional prefix for the label name.
     :return: A new Label instance.
     :rtype: Label
     """
