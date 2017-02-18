@@ -31,6 +31,7 @@ def argument_count(thing):
 
     :param thing: A callable.
     :return: The number of arguments it takes.
+    :rtype: int
     """
     if not callable(thing):
         raise TypeError("should be callable")
@@ -60,6 +61,7 @@ class ParametricProgram(object):
 
         :param other: A Program or ParametricProgram.
         :return: A new ParametricProgram.
+        :rtype: ParametricProgram
         """
         r = copy(self)   # shallow copy the object
 
@@ -90,5 +92,6 @@ def parametric(decorated_function):
 
     :param decorated_function: The function taking parameters producing a Program object.
     :return: a callable ParametricProgram
+    :rtype: ParametricProgram
     """
     return ParametricProgram(decorated_function)
