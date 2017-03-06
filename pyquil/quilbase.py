@@ -174,6 +174,11 @@ class DefGate(AbstractInstruction):
         self.name = name
         self.matrix = np.asarray(matrix)
 
+        is_unitary = np.allclose(np.eye(rows), self.matrix.dot(self.matrix.T.conj()))
+        if not is_unitary:
+            raise AssertionError("Matrix must be unitary.")
+
+
     def out(self):
         """
         Prints a readable Quil string representation of this gate.
