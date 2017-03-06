@@ -193,7 +193,7 @@ def test_rotations():
     assert p.out() == 'RX(0.5) 0\nRY(0.1) 1\nRZ(1.4) 2\n'
 
 
-def test_contolled_gates():
+def test_controlled_gates():
     p = Program(CNOT(0, 1), CCNOT(0, 1, 2))
     assert p.out() == 'CNOT 0 1\nCCNOT 0 1 2\n'
 
