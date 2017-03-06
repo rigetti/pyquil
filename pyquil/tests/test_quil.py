@@ -40,11 +40,9 @@ def test_gate():
 
 
 def test_defgate():
-    dg = DefGate("TEST", np.array([[sqrt(0.5), sqrt(0.5)],
-                                   [-sqrt(0.5) * 1j, sqrt(0.5) * 1j]]))
-    assert dg.out() == "DEFGATE TEST:" \
-                       "\n    0.70710678118654757+0.0i, 0.70710678118654757+0.0i"\
-                       "\n    -0.0-0.70710678118654757i, 0.0+0.70710678118654757i\n"
+    dg = DefGate("TEST", np.array([[1., 0.],
+                                   [0., 1.]]))
+    assert dg.out() == "DEFGATE TEST:\n    1.0, 0.0\n    0.0, 1.0\n"
     test = dg.get_constructor()
     tg = test(DirectQubit(1), DirectQubit(2))
     assert tg.out() == "TEST 1 2"
@@ -53,7 +51,7 @@ def test_defgate():
 def test_defgate_non_square_should_throw_error():
     with pytest.raises(AssertionError) as error_info:
         DefGate("TEST", np.array([[0 + 0.5j, 0.5, 1],
-                                   [0.5, 0 - 0.5j, 1]]))
+                                  [0.5, 0 - 0.5j, 1]]))
     assert str(error_info.value) == "Matrix must be square."
 
 
