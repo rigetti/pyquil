@@ -27,6 +27,7 @@ from pyquil.quilbase import Measurement, Gate, Addr, \
 def unpack_classical_reg(c):
     """
     Get the address for a classical register.
+
     :param c: A list of length 1 or an int or an Addr.
     :return: The address as an Addr.
     """
@@ -45,6 +46,7 @@ def unpack_classical_reg(c):
 def unpack_qubit(qubit):
     """
     Get a qubit from an object.
+
     :param qubit: An int or AbstractQubit.
     :return: An AbstractQubit instance
     """
@@ -170,6 +172,8 @@ PHASE = _make_gate("PHASE", 1, 1)
 """
 Produces a PHASE instruction. This is the same as the RZ gate.
 
+:param angle: The angle to rotate around the z-axis on the bloch sphere.
+:param qubit: The qubit apply the gate to.
 :returns: A Gate object.
 """
 

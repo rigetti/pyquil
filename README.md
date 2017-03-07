@@ -3,7 +3,7 @@
 A library for easily generating Quil programs to be executed using the Rigetti Forest platform.
 pyQuil is licensed under the [Apache 2.0 license](https://github.com/rigetticomputing/pyQuil/blob/master/LICENSE).
 
-[![Build Status](https://semaphoreci.com/api/v1/projects/044fb8f4-1f90-4e28-8459-95289d682b70/1124972/badge.svg)](https://semaphoreci.com/rigetti/pyquil)
+[![Build Status](https://semaphoreci.com/api/v1/rigetti/pyquil/branches/master/badge.svg)](https://semaphoreci.com/rigetti/pyquil)
 [![Documentation Status](https://readthedocs.org/projects/pyquil/badge/?version=latest)](http://pyquil.readthedocs.io/en/latest/?badge=latest)
 
 ## Documentation
@@ -73,6 +73,7 @@ each measurement pair will be `00` or `11`.)
 ```python
 >>> import pyquil.quil as pq
 >>> import pyquil.forest as forest
+>>> from pyquil.gates import *
 >>> qvm = forest.Connection()
 >>> p = pq.Program()
 >>> p.inst(H(0),
@@ -103,9 +104,9 @@ our documentation, so this may need to be installed using `pip install sphinx_rt
 
 ## Development and Testing
 
-We use pytest for testing. Tests can be run from the top-level directory using:
+We use pytest (version > 3.0) for testing. After installing pytest with `pip`, tests can be run from the top-level directory using:
 ```
-pytest --cov=pyquil
+pytest
 ```
 
 ## How to cite pyQuil and Forest

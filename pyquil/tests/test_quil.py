@@ -23,9 +23,11 @@ from pyquil.gates import I, X, Y, Z, H, T, S, RX, RY, RZ, CNOT, CCNOT, PHASE, CP
     TRUE, FALSE, NOT, AND, OR, MOVE, EXCHANGE
 from pyquil.quilbase import InstructionGroup, DefGate, Gate, reset_label_counter, RawInstr, Addr
 
+import pytest
+
 import numpy as np
 from scipy.linalg import sqrtm
-from math import pi
+from math import pi, sqrt
 
 
 def test_make_connection():
@@ -38,17 +40,31 @@ def test_gate():
 
 
 def test_defgate():
-    dg = DefGate("TEST", np.array([[0 + 0.5j, 0.5],
-                                   [0.5, 0 - 0.5j]]))
-    assert dg.out() == "DEFGATE TEST:\n    0.0+0.5i, 0.5+0.0i\n    0.5+0.0i, 0.0-0.5i\n"
+    dg = DefGate("TEST", np.array([[1., 0.],
+                                   [0., 1.]]))
+    assert dg.out() == "DEFGATE TEST:\n    1.0, 0.0\n    0.0, 1.0\n"
     test = dg.get_constructor()
     tg = test(DirectQubit(1), DirectQubit(2))
     assert tg.out() == "TEST 1 2"
 
 
+def test_defgate_non_square_should_throw_error():
+    with pytest.raises(AssertionError) as error_info:
+        DefGate("TEST", np.array([[0 + 0.5j, 0.5, 1],
+                                  [0.5, 0 - 0.5j, 1]]))
+    assert str(error_info.value) == "Matrix must be square."
+
+
+def test_defgate_non_unitary_should_throw_error():
+    with pytest.raises(AssertionError) as error_info:
+        DefGate("TEST", np.array([[0, 1],
+                                  [2, 3]]))
+    assert str(error_info.value) == "Matrix must be unitary."
+
+
 def test_defgate_param():
-    dgp = DefGate("TEST", [[1., 1.], [0., 1.]])
-    assert dgp.out() == "DEFGATE TEST:\n    1.0, 1.0\n    0.0, 1.0\n"
+    dgp = DefGate("TEST", [[1., 0.], [0., 1.]])
+    assert dgp.out() == "DEFGATE TEST:\n    1.0, 0.0\n    0.0, 1.0\n"
     test = dgp.get_constructor()
     tg = test(DirectQubit(1))
     assert tg.out() == "TEST 1"
@@ -82,6 +98,13 @@ def test_program_gates():
     ig.inst(H(0), X(1))
     assert len(ig.actions) == 2
     assert ig.out() == "H 0\nX 1\n"
+
+
+def test_program_pop():
+    prog = Program(X(0), X(1))
+    _, instruction = prog.pop()
+    assert prog.out() == "X 0\n"
+    assert Program(instruction).out() == "X 1\n"
 
 
 def test_plus_operator():
@@ -186,7 +209,7 @@ def test_rotations():
     assert p.out() == 'RX(0.5) 0\nRY(0.1) 1\nRZ(1.4) 2\n'
 
 
-def test_contolled_gates():
+def test_controlled_gates():
     p = Program(CNOT(0, 1), CCNOT(0, 1, 2))
     assert p.out() == 'CNOT 0 1\nCCNOT 0 1 2\n'
 
