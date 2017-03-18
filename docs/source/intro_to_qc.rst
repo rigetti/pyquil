@@ -177,8 +177,9 @@ An Important Distinction
 An important distinction between the probabilistic case described above
 and the quantum case is that probabilistic states may just mask out
 ignorance. For example a coin is physically only 0 or 1 and the
-probalistic view merely represents our ignorance about which it actually
-is. **This is not the case in quantum mechanics**. Assuming events cannot instaneously influence one another, the quantum states -
+probabilistic view merely represents our ignorance about which it actually
+is. **This is not the case in quantum mechanics**. Assuming events cannot instantaneously
+influence one another, the quantum states -
 as far as we know - cannot mask any underlying state. This is what
 people mean when they say that there is no `local hidden variable theory
 <https://en.wikipedia.org/wiki/Bell's_theorem>`_ for
