@@ -406,11 +406,11 @@ matrix representation of the gate. For example, below we define a
 .. code:: python
 
     import numpy as np
-    from scipy.linalg import sqrtm
 
     # First we define the new gate from a matrix
     x_gate_matrix = np.array(([0.0, 1.0], [1.0, 0.0]))
-    sqrt_x = sqrtm(x_gate_matrix)
+    sqrt_x = np.array([[ 0.5+0.5j,  0.5-0.5j],
+                       [ 0.5-0.5j,  0.5+0.5j]])
     p = pq.Program().defgate("SQRT-X", sqrt_x)
 
     # Then we can use the new gate,
@@ -443,18 +443,20 @@ matrix representation of the gate. For example, below we define a
 
 Quil in general supports defining parametric gates, though right now
 only static gates are supported by pyQuil. Below we show how we can
-define :math:`X_1\otimes \sqrt{X_0}` as a single
+define :math:`X_0\otimes \sqrt{X_1}` as a single
 gate.
 
 .. code:: python
 
     # A multi-qubit defgate example
     x_gate_matrix = np.array(([0.0, 1.0], [1.0, 0.0]))
-    x_sqrt_x = np.kron(sqrtm(x_gate_matrix), x_gate_matrix)
+    sqrt_x = np.array([[ 0.5+0.5j,  0.5-0.5j],
+                       [ 0.5-0.5j,  0.5+0.5j]])
+    x_sqrt_x = np.kron(x_gate_matrix, sqrt_x)
     p = pq.Program().defgate("X-SQRT-X", x_sqrt_x)
 
     # Then we can use the new gate
-    p.inst(("X-SQRT-X", 1, 0))
+    p.inst(("X-SQRT-X", 0, 1))
     wavf, _ = qvm.wavefunction(p)
     print wavf
 

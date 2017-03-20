@@ -26,7 +26,6 @@ from pyquil.quilbase import InstructionGroup, DefGate, Gate, reset_label_counter
 import pytest
 
 import numpy as np
-from scipy.linalg import sqrtm
 from math import pi, sqrt
 
 
@@ -231,35 +230,29 @@ def test_swaps():
 def test_def_gate():
     # First we define the new gate from a matrix
     x_gate_matrix = np.array(([0.0, 1.0], [1.0, 0.0]))
-    sqrt_x = sqrtm(x_gate_matrix)
+    sqrt_x = np.array([[ 0.5+0.5j,  0.5-0.5j],
+                       [ 0.5-0.5j,  0.5+0.5j]])
     p = Program().defgate("SQRT-X", sqrt_x)
 
     # Then we can use the new gate
     p.inst(("SQRT-X", 0))
-    assert p.out() == 'DEFGATE SQRT-X:\n    0.49999999999999989+0.49999999999999989i, ' \
-                      '0.49999999999999989-0.49999999999999989i\n    ' \
-                      '0.49999999999999989-0.49999999999999989i, 0.49999999999999989+' \
-                      '0.49999999999999989i\n\nSQRT-X 0\n'
-
+    assert p.out() == 'DEFGATE SQRT-X:\n    0.5+0.5i, 0.5-0.5i\n    0.5-0.5i, 0.5+0.5i\n\nSQRT-X 0\n'
 
 def test_multiqubit_gate():
     # A multi-qubit defgate example
     x_gate_matrix = np.array(([0.0, 1.0], [1.0, 0.0]))
-    x_sqrt_x = np.kron(sqrtm(x_gate_matrix), x_gate_matrix)
+    sqrt_x = np.array([[ 0.5+0.5j,  0.5-0.5j],
+                       [ 0.5-0.5j,  0.5+0.5j]])
+    x_sqrt_x = np.kron(sqrt_x, x_gate_matrix)
     p = Program().defgate("X-SQRT-X", x_sqrt_x)
 
     # Then we can use the new gate
     p.inst(("X-SQRT-X", 0, 1))
 
-    assert p.out() == 'DEFGATE X-SQRT-X:\n    0.0+0.0i, ' \
-                      '0.49999999999999989+0.49999999999999989i, ' \
-                      '0.0+0.0i, 0.49999999999999989-0.49999999999999989i\n    ' \
-                      '0.49999999999999989+0.49999999999999989i, 0.0+0.0i, ' \
-                      '0.49999999999999989-0.49999999999999989i, 0.0+0.0i\n    0.0+0.0i,' \
-                      ' 0.49999999999999989-0.49999999999999989i, 0.0+0.0i, ' \
-                      '0.49999999999999989+0.49999999999999989i\n    ' \
-                      '0.49999999999999989-0.49999999999999989i, ' \
-                      '0.0+0.0i, 0.49999999999999989+0.49999999999999989i, 0.0+0.0i\n\nX-SQRT-X 0 1\n'
+    assert p.out() == 'DEFGATE X-SQRT-X:\n    0.0+0.0i, 0.5+0.5i, 0.0+0.0i, 0.5-0.5i\n    ' \
+                      '0.5+0.5i, 0.0+0.0i, 0.5-0.5i, 0.0+0.0i\n    ' \
+                      '0.0+0.0i, 0.5-0.5i, 0.0+0.0i, 0.5+0.5i\n    ' \
+                      '0.5-0.5i, 0.0+0.0i, 0.5+0.5i, 0.0+0.0i\n\nX-SQRT-X 0 1\n'
 
 
 def test_define_qft():

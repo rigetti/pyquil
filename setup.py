@@ -30,7 +30,6 @@ setup(
     install_requires = [
         'requests >= 2.4.2',
         'numpy >= 1.10',
-        'scipy >= 0.18.0'
     ],
     keywords='quantum quil programming hybrid'
 )
