@@ -273,6 +273,12 @@ class InstructionGroup(QuilAction):
         self.resource_manager.free_qubit(qubit)
 
     def inst(self, *instructions):
+        """
+        Mutates the Program object by appending new instructions.
+
+        :param instructions: A list of Instruction objects, e.g. Gates
+        :return: self
+        """
         for instruction in instructions:
             if isinstance(instruction, list):
                 self.inst(*instruction)
