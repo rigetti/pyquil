@@ -31,5 +31,10 @@ setup(
         'requests >= 2.4.2',
         'numpy >= 1.10',
     ],
+    setup_requires = ['pytest-runner'],
+    tests_require = [
+        'pytest >= 3.0.0',
+        'mock',
+    ],
     keywords='quantum quil programming hybrid'
 )
