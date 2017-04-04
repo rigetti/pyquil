@@ -888,8 +888,7 @@ Next, extend the program to work for any kind of fair die:
 Exercise 2 - Controlled Gates
 ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
 
-We can use the full generality of NumPy and SciPy to construct new gate
-matrices.
+We can use the full generality of NumPy to construct new gate matrices.
 
 1. Write a function ``controlled`` which takes a :math:`2\times 2`
    matrix :math:`U` representing a single qubit operator, and makes a
