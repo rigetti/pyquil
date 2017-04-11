@@ -104,9 +104,9 @@ our documentation, so this may need to be installed using `pip install sphinx_rt
 
 ## Development and Testing
 
-We use pytest (version > 3.0) for testing. After installing pytest with `pip`, tests can be run from the top-level directory using:
+We use pytest (version > 3.0) and mock for testing. Tests can be run from the top-level directory using:
 ```
-pytest
+python setup.py test
 ```
 
 ## How to cite pyQuil and Forest
