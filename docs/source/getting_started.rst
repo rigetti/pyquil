@@ -82,10 +82,15 @@ programs (e.g., to get wavefunctions, get multishot experiment data), you will n
 for Rigetti Forest. This will allow you to run your programs on the Rigetti QVM or QPU.
 
 Once you have your key, you need to set up configuration in the file ``.pyquil_config``
-which pyQuil will attempt to find in your home directory by default. (You can change this location by setting the
-environment variable ``PYQUIL_CONFIG`` to the path of the file.) Loading the ``pyquil.forest``
-module will print a warning if this is not found. The configuration file is in INI format and
-should contain all the information required to connect to Forest:
+which pyQuil will attempt to find in your home directory by default. You can change this location by setting the
+environment variable ``PYQUIL_CONFIG`` to the path of the file.
+
+.. note::
+  When setting the environment variable make sure to use the full path or include the HOME variable.
+  E.g. ``export PYQUIL_CONFIG=$HOME/<CONFIG_NAME>``
+
+Loading the ``pyquil.forest`` module will print a warning if this is not found. The configuration file is in INI format
+and should contain all the information required to connect to Forest:
 
 ::
 
