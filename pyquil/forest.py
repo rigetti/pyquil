@@ -37,6 +37,8 @@ PYQUIL_CONFIG_PATH = os.getenv('PYQUIL_CONFIG', os.path.join(USER_HOMEDIR, ".pyq
 PYQUIL_CONFIG = ConfigParser.ConfigParser()
 
 try:
+    if "~" in PYQUIL_CONFIG_PATH:
+        raise RuntimeError("PYQUIL_CONFIG enviroment variable contains `~`. Use $HOME instead.")
     if len(PYQUIL_CONFIG.read(PYQUIL_CONFIG_PATH)) == 0:
         raise RuntimeError("Error locating config file")
 except:
