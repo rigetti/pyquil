@@ -21,8 +21,8 @@ Module for working with Pauli algebras.
 from itertools import product
 import numpy as np
 import copy
+from quil import Program
 from pyquil.gates import H, RZ, RX, CNOT, X, PHASE
-from pyquil.parametric import parametric, ParametricProgram
 import pyquil.quil as pq
 import pyquil.quilbase as pqb
 from numbers import Number
@@ -398,18 +398,17 @@ def exponentiate(term):
 
 def exponential_map(term):
     """
-    Creates map alpha -> exp(-1j*alpha*term) represented as a ParametricProgram.
+    Creates map alpha -> exp(-1j*alpha*term) represented as a Program.
 
     :param PauliTerm term: Tests is a PauliTerm is the identity operator
-    :returns: A ParametricProgram
-    :rtype: ParametricProgram
+    :returns: Program
+    :rtype: Program
     """
     if not np.isclose(np.imag(term.coefficient), 0.0):
         raise TypeError("PauliTerm coefficient must be real")
 
     coeff = term.coefficient
 
-    @parametric
     def exp_wrap(param):
         prog = pq.Program()
         if is_identity(term):
@@ -566,7 +565,6 @@ def trotterize(first_pauli_term, second_pauli_term, trotter_order=1,
                  (-1 * second_pauli_term * first_pauli_term)
 
     prog = pq.Program()
-    fused_param_prog = ParametricProgram(lambda: pq.Program())
     if is_zero(commutator):
         param_exp_prog_one = exponential_map(first_pauli_term)
         exp_prog = param_exp_prog_one(1)
@@ -574,19 +572,16 @@ def trotterize(first_pauli_term, second_pauli_term, trotter_order=1,
         param_exp_prog_two = exponential_map(second_pauli_term)
         exp_prog = param_exp_prog_two(1)
         prog += exp_prog
-        fused_param_prog = param_exp_prog_one.fuse(param_exp_prog_two)
-        return prog, fused_param_prog
+        return prog
 
     order_slices = suzuki_trotter(trotter_order, trotter_steps)
     for coeff, operator in order_slices:
         if operator == 0:
             param_prog = exponential_map(coeff * first_pauli_term)
             exp_prog = param_prog(1)
-            fused_param_prog = fused_param_prog.fuse(param_prog)
             prog += exp_prog
         else:
             param_prog = exponential_map(coeff * second_pauli_term)
             exp_prog = param_prog(1)
-            fused_param_prog = fused_param_prog.fuse(param_prog)
             prog += exp_prog
-    return prog, fused_param_prog
+    return prog
