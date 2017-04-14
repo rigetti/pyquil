@@ -324,30 +324,30 @@ def test_trotterize():
     with pytest.raises(ValueError):
         trotterize(term_one, term_two, trotter_order=5)
 
-    prog, _ = trotterize(term_one, term_one)
+    prog = trotterize(term_one, term_one)
     result_prog = Program().inst([H(0), RZ(2.0)(0), H(0), H(0),
                                   RZ(2.0)(0), H(0)])
     compare_progs(prog, result_prog)
 
     # trotter_order 1 steps 1
-    prog, _ = trotterize(term_one, term_two, trotter_steps=1)
+    prog = trotterize(term_one, term_two, trotter_steps=1)
     result_prog = Program().inst([H(0), RZ(2.0)(0), H(0), RZ(2.0)(0)])
     compare_progs(prog, result_prog)
 
     # trotter_order 1 steps 2
-    prog, _ = trotterize(term_one, term_two, trotter_steps=2)
+    prog  = trotterize(term_one, term_two, trotter_steps=2)
     result_prog = Program().inst([H(0), RZ(1.0)(0), H(0), RZ(1.0)(0),
                                   H(0), RZ(1.0)(0), H(0), RZ(1.0)(0)])
     compare_progs(prog, result_prog)
 
     # trotter_order 2 steps 1
-    prog, _ = trotterize(term_one, term_two, trotter_order=2)
+    prog  = trotterize(term_one, term_two, trotter_order=2)
     result_prog = Program().inst([H(0), RZ(1.0)(0), H(0), RZ(2.0)(0),
                                   H(0), RZ(1.0)(0), H(0)])
     compare_progs(prog, result_prog)
 
     # trotter_order 2 steps 2
-    prog, _ = trotterize(term_one, term_two, trotter_order=2, trotter_steps=2)
+    prog = trotterize(term_one, term_two, trotter_order=2, trotter_steps=2)
     result_prog = Program().inst([H(0), RZ(0.5)(0), H(0), RZ(1.0)(0),
                                   H(0), RZ(0.5)(0), H(0),
                                   H(0), RZ(0.5)(0), H(0), RZ(1.0)(0),
@@ -355,7 +355,7 @@ def test_trotterize():
     compare_progs(prog, result_prog)
 
     # trotter_order 3 steps 1
-    prog, _ = trotterize(term_one, term_two, trotter_order=3, trotter_steps=1)
+    prog = trotterize(term_one, term_two, trotter_order=3, trotter_steps=1)
     result_prog = Program().inst([H(0), RZ(14.0 / 24)(0), H(0), RZ(4.0 / 3.0)(0),
                                   H(0), RZ(1.5)(0), H(0), RZ(-4.0 / 3.0)(0),
                                   H(0), RZ(-2.0 / 24)(0), H(0), RZ(2.0)(0)])
