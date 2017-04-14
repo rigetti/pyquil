@@ -21,9 +21,8 @@ Module for working with Pauli algebras.
 from itertools import product
 import numpy as np
 import copy
-from quil import Program
+from pyquil.quil import Program
 from pyquil.gates import H, RZ, RX, CNOT, X, PHASE
-import pyquil.quil as pq
 import pyquil.quilbase as pqb
 from numbers import Number
 
@@ -410,7 +409,7 @@ def exponential_map(term):
     coeff = term.coefficient
 
     def exp_wrap(param):
-        prog = pq.Program()
+        prog = Program()
         if is_identity(term):
             prog.inst(X(0))
             prog.inst(PHASE(-param*coeff)(0))
@@ -443,14 +442,14 @@ def _exponentiate_general_case(pauli_term, param):
                 return (pqb.ACTION_RELEASE_QUBIT, obj)
             else:
                 return tup
-        revp = pq.Program()
+        revp = Program()
         revp.actions = map(translate, reversed(p.actions))
         return revp
 
-    quil_prog = pq.Program()
-    change_to_z_basis = pq.Program()
-    change_to_original_basis = pq.Program()
-    cnot_seq = pq.Program()
+    quil_prog = Program()
+    change_to_z_basis = Program()
+    change_to_original_basis = Program()
+    cnot_seq = Program()
     prev_index = None
     highest_target_index = None
 
@@ -564,7 +563,7 @@ def trotterize(first_pauli_term, second_pauli_term, trotter_order=1,
     commutator = (first_pauli_term * second_pauli_term) +\
                  (-1 * second_pauli_term * first_pauli_term)
 
-    prog = pq.Program()
+    prog = Program()
     if is_zero(commutator):
         param_exp_prog_one = exponential_map(first_pauli_term)
         exp_prog = param_exp_prog_one(1)
