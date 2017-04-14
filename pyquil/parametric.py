@@ -45,6 +45,8 @@ def argument_count(thing):
 
 class ParametricProgram(object):
     """
+    .. note:: Experimental
+
     A class representing Programs with changeable gate parameters.
     """
 
@@ -57,6 +59,8 @@ class ParametricProgram(object):
 
     def fuse(self, other):
         """
+        .. note:: Experimental
+
         Fuse another program to this one.
 
         :param other: A Program or ParametricProgram.
@@ -88,6 +92,8 @@ class ParametricProgram(object):
 
 def parametric(decorated_function):
     """
+    .. note:: Experimental
+
     A decorator to change a function into a ParametricProgram.
 
     :param decorated_function: The function taking parameters producing a Program object.
