@@ -13,6 +13,7 @@ Welcome to the Documentation for Forest and pyQuil!
    intro_to_qc
    getting_started
    next_steps
+   examples
    source_docs
 
 
