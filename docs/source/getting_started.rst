@@ -116,8 +116,26 @@ Alternatively, connection information can be provided in environment variables.
     export QVM_URL=<URL to Rigetti Forest or QVM endpoint>
     export QVM_API_KEY=<Rigetti Forest API key>
 
-Basic Usage
------------
+Running your first quantum program
+----------------------------------
+pyQuil is a Python library that helps you write programs in the Quantum Instruction Language (Quil).
+It also ships with a simple script ``examples/run_quil.py`` that runs Quil code directly. You can
+test your connection to Forest using this script by executing the following on your command line
+
+::
+
+    cd examples/
+    run_quil.py hello_world.quil
+
+You should see the following output array ``[[1, 0, 0, 0, 0, 0, 0, 0]]``. This indicates that you have
+a good connection to our API.
+
+You can continue to write more Quil code in files and run them using the ``run_quil.py`` script. The
+following sections describe how to use the pyQuil library directly to build quantum programs in
+Python.
+
+Basic pyQuil Usage
+------------------
 
 To ensure that your installation is working correctly, try running the
 following Python commands interactively. First, import the ``quil``
