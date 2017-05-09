@@ -28,8 +28,10 @@ import os.path
 import numpy as np
 import sys
 import struct
-import pyquil.quil as pq
 import ConfigParser
+
+import pyquil.quil as pq
+from pyquil.wavefunction import Wavefunction
 
 USER_HOMEDIR = os.path.expanduser("~")
 
@@ -330,7 +332,7 @@ class Connection(object):
 
         :param Program quil_program: A Quil program.
         :param list classical_addresses: An optional list of classical addresses.
-        :return: A tuple whose first element is a a NumPy array of amplitudes,
+        :return: A tuple whose first element is a Wavefunction object,
                  and whose second element is the list of classical bits corresponding
                  to the classical addresses.
         :rtype: tuple
@@ -359,7 +361,7 @@ class Connection(object):
                 im = struct.unpack('>d', im_be)[0]
                 wf[i] = complex(re, im)
 
-            return wf, mem
+            return Wavefunction(wf), mem
 
         if not isinstance(quil_program, pq.Program):
             raise TypeError("quil_program must be a Quil program object")
@@ -408,7 +410,7 @@ class Connection(object):
         :rtype: dict
         """
         wvf, _ = self.wavefunction(quil_program)
-        return get_outcome_probs(wvf)
+        return wvf.get_outcome_probs()
 
     def run(self, quil_program, classical_addresses, trials=1):
         """
@@ -467,20 +469,3 @@ class Connection(object):
         res = self.post_json(payload)
 
         return json.loads(res.text)
-
-
-def get_outcome_probs(wvf):
-    """
-    Parses a wavefunction (array of complex amplitudes) and returns a dictionary of
-    outcomes and associated probabilities.
-
-    :param list wvf: A complex list of amplitudes.
-    :return: A dict with outcomes as keys and probabilities as values.
-    :rtype: dict
-    """
-    outcome_dict = {}
-    qubit_num = len(wvf).bit_length() - 1
-    for index, amplitude in enumerate(wvf):
-        outcome = bin(index)[2:].rjust(qubit_num, '0')
-        outcome_dict[outcome] = abs(amplitude) ** 2
-    return outcome_dict
