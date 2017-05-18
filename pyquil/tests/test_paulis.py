@@ -17,7 +17,7 @@
 
 import pytest
 from pyquil.paulis import (PauliTerm, PauliSum, exponential_map, ID, exponentiate,
-                           trotterize, is_zero, check_commutation, commuting_sets,
+                           trotterize, is_zero, check_commutation, commuting_sets, sZ, sX
                            )
 from pyquil.quil import Program
 from pyquil.gates import RX, RZ, CNOT, H, X, PHASE
@@ -431,3 +431,10 @@ def test_commuting_sets():
     term3 = PauliTerm("Y", 0) * PauliTerm("Z", 2)
     pauli_sum = term1 + term2 + term3
     commuting_sets(pauli_sum, 3)
+
+
+def test_paulisum_iteration():
+    pauli_sum = 0.5 * sX(0) + 0.1 * sZ(1)
+    assert pauli_sum[0] == 0.5 * sX(0)
+    for ii, term in enumerate(pauli_sum):
+        assert pauli_sum[ii] == term

@@ -78,10 +78,12 @@ class PauliTerm(object):
             self._id = s
             return s
 
+    def __eq__(self, other):
+        return self.id() == other.id()
+
     def __len__(self):
-        """l
-        The length of the pauliterm is the number of Pauli operators in the term. This is
-        equivalent to the length of self._ops dict
+        """
+        The length of the pauliterm is the number of Pauli operators in the term.
         """
         return len(self._ops)
 
@@ -267,6 +269,12 @@ class PauliSum(object):
 
     def __str__(self):
         return " + ".join([str(term) for term in self.terms])
+
+    def __getitem__(self, item):
+        return self.terms[item]
+
+    def __iter__(self):
+        return self.terms.__iter__()
 
     def __mul__(self, other):
         if isinstance(other, PauliTerm):
