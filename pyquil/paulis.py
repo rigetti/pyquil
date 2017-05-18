@@ -170,6 +170,24 @@ class PauliTerm(object):
         assert isinstance(term, Number)
         return self + term
 
+    def __sub__(self, term):
+        """Subtracts a PauliTerm from this one.
+
+        :param PauliTerm term: A PauliTerm object
+        :returns: A PauliSum object representing the sum of this PauliTerm and term
+        :rtype: PauliSum
+        """
+        return self + -1. * term
+
+    def __rsub__(self, other):
+        """Subtracts this PauliTerm from a Number or PauliTerm one.
+
+        :param PauliTerm term: A PauliTerm object
+        :returns: A PauliSum object representing the sum of this PauliTerm and term
+        :rtype: PauliSum
+        """
+        return other + -1. * self
+
     def __str__(self):
         term_strs = []
         for index in sorted(self._ops.keys()):
@@ -281,6 +299,12 @@ class PauliSum(object):
     def __radd__(self, other):
         assert isinstance(other, Number)
         return self + other
+
+    def __sub__(self, other):
+        return self + -1. * other
+
+    def __rsub__(self, other):
+        return other + -1. * self
 
     def get_qubits(self):
         """

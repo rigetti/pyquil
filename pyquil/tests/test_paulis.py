@@ -193,6 +193,14 @@ def test_ps_adds_pt_2():
     assert str(1.0 + b) == "3.0*I"
 
 
+def test_ps_sub():
+    term = 3 * ID
+    b = term - 1.0
+    assert str(b) == "2.0*I"
+    assert str(b - 1.0) == "1.0*I"
+    assert str(1.0 - b) == "-1.0*I"
+
+
 def test_zero_terms():
     term = PauliTerm("X", 0, 1.0) + PauliTerm("X", 0, -1.0) + \
            PauliTerm("Y", 0, 0.5)
