@@ -114,11 +114,18 @@ def test_plus_operator():
     assert p.out() == "H 0\nX 0\nY 0\nZ 0\n"
 
 
-def test_iteration():
+def test_indexing():
     program = Program(H(0), Y(1), CNOT(0, 1)).measure(0, 0).if_then(0, Program(X(0)), Program())
     assert program[0] == (0, H(0))
-    for ii, action in enumerate(program):
+    for ii, action in enumerate(program.actions):
         assert program[ii] == action
+
+
+def test_iteration():
+    gate_list = [H(0), Y(1), CNOT(0, 1)]
+    program = Program(gate_list)
+    for ii, action in enumerate(program):
+        assert action[1] == gate_list[ii]
 
 
 def test_program_plus_program():
