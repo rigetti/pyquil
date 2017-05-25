@@ -143,3 +143,14 @@ class Program(InstructionGroup):
             s += "\n"
         s += super(Program, self).out()
         return s
+
+
+def merge_programs(prog_list):
+    """
+    Merges a list of pyQuil programs into a single one by appending them in sequence
+
+    :param list prog_list: A list of pyquil programs
+    :return: a single pyQuil program
+    :rtype: Program
+    """
+    return sum(prog_list, Program())
