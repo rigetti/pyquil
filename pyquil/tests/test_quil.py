@@ -114,6 +114,20 @@ def test_plus_operator():
     assert p.out() == "H 0\nX 0\nY 0\nZ 0\n"
 
 
+def test_indexing():
+    program = Program(H(0), Y(1), CNOT(0, 1)).measure(0, 0).if_then(0, Program(X(0)), Program())
+    assert program[0] == (0, H(0))
+    for ii, action in enumerate(program.actions):
+        assert program[ii] == action
+
+
+def test_iteration():
+    gate_list = [H(0), Y(1), CNOT(0, 1)]
+    program = Program(gate_list)
+    for ii, action in enumerate(program):
+        assert action[1] == gate_list[ii]
+
+
 def test_program_plus_program():
     p = Program().inst(X(0))
     q = Program().inst(Y(0))
@@ -272,7 +286,6 @@ def test_define_qft():
 
     prog = state_prep + qft3(0, 1, 2)
     output = prog.out()
-    print output
     assert output == 'X 0\nH 2\nCPHASE(1.5707963267948966) 1 2\nH 1\nCPHASE(0.7853981633974483) 0 ' \
                      '2\nCPHASE(1.5707963267948966) 0 1\nH 0\nSWAP 0 2\n'
 
@@ -305,7 +318,6 @@ def test_if_option():
 
 def test_alloc_free():
     p = Program()
-    print p.resource_manager.in_use
     q1 = p.alloc()
     p.inst(H(q1))
     p.free(q1)

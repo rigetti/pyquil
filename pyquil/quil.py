@@ -58,6 +58,21 @@ class Program(InstructionGroup):
         else:
             return super(Program, self).__add__(other)
 
+    def __getitem__(self, index):
+        """
+        Allows indexing into the program to get an action.
+        :param index: The action at the specified index.
+        :return:
+        """
+        return self.actions[index]
+
+    def __iter__(self):
+        """
+        Allow built in iteration through a program's actions, e.g. [a for a in Program(X(0))]
+        :return:
+        """
+        return self.actions.__iter__()
+
     def defgate(self, name, matrix):
         """
         Define a new static gate.
