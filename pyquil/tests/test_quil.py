@@ -16,7 +16,7 @@
 ##############################################################################
 
 import pyquil.forest as qvm_endpoint
-from pyquil.quil import Program
+from pyquil.quil import Program, merge_programs
 from pyquil.quilbase import DirectQubit
 from pyquil.gates import I, X, Y, Z, H, T, S, RX, RY, RZ, CNOT, CCNOT, PHASE, CPHASE00, CPHASE01, \
     CPHASE10, CPHASE, SWAP, CSWAP, ISWAP, PSWAP, MEASURE, HALT, WAIT, NOP, RESET, \
@@ -392,3 +392,9 @@ def test_extract_qubits():
     p.inst(X(new_qubit))
     p.synthesize()
     assert p.extract_qubits() == set([0, 1, 2, 3, 4, 5, 6, new_qubit.index()])
+
+
+def test_prog_merge():
+    prog_0 = Program(X(0))
+    prog_1 = Program(Y(0))
+    assert merge_programs([prog_0, prog_1]).out() == (prog_0 + prog_1).out()
