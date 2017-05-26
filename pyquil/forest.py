@@ -28,15 +28,17 @@ import os.path
 import numpy as np
 import sys
 import struct
-import ConfigParser
-
-import pyquil.quil as pq
-from pyquil.wavefunction import Wavefunction
+from . import quil as pq
+from .wavefunction import Wavefunction
+try:
+    from configparser import ConfigParser, NoOptionError, NoSectionError
+except ImportError:
+    from ConfigParser import ConfigParser, NoOptionError, NoSectionError
 
 USER_HOMEDIR = os.path.expanduser("~")
 
 PYQUIL_CONFIG_PATH = os.getenv('PYQUIL_CONFIG', os.path.join(USER_HOMEDIR, ".pyquil_config"))
-PYQUIL_CONFIG = ConfigParser.ConfigParser()
+PYQUIL_CONFIG = ConfigParser()
 
 try:
     if "~" in PYQUIL_CONFIG_PATH:
@@ -63,7 +65,7 @@ def config_value(name, default=None):
     SECTION = "Rigetti Forest"
     try:
         return PYQUIL_CONFIG.get(SECTION, name)
-    except (ConfigParser.NoSectionError, ConfigParser.NoOptionError, KeyError):
+    except (NoSectionError, NoOptionError, KeyError):
         return default
 
 
@@ -188,12 +190,12 @@ def _octet_bits(o):
     :return: The bits as a list in LSB-to-MSB order.
     :rtype: list
     """
-    if not isinstance(o, (int, long)):
-        raise TypeError("o should be an int or long")
+    if not isinstance(o, int):
+        raise TypeError("o should be an int")
     if not (0 <= o <= 255):
         raise ValueError("o should be between 0 and 255 inclusive")
     bits = [0] * 8
-    for i in xrange(8):
+    for i in range(8):
         if 1 == o & 1:
             bits[i] = 1
         o = o >> 1
@@ -270,7 +272,7 @@ class Connection(object):
 
         if random_seed is None:
             self.random_seed = None
-        elif isinstance(random_seed, (int, long)) and random_seed >= 0:
+        elif isinstance(random_seed, int) and random_seed >= 0:
             self.random_seed = random_seed
         else:
             raise TypeError("random_seed should be None or a non-negative int or long.")
@@ -326,7 +328,7 @@ class Connection(object):
         res = self.post_json(payload)
         return str(res.text)
 
-    def wavefunction(self, quil_program, classical_addresses=[]):
+    def wavefunction(self, quil_program, classical_addresses=None):
         """
         Simulate a Quil program and get the wavefunction back.
 
@@ -338,23 +340,29 @@ class Connection(object):
         :rtype: tuple
         """
 
+        if classical_addresses is None:
+            classical_addresses = []
+
         def recover_complexes(coef_string):
             num_octets = len(coef_string)
             num_addresses = len(classical_addresses)
-            num_memory_octets = _round_to_next_multiple(num_addresses, 8) / 8
+            num_memory_octets = _round_to_next_multiple(num_addresses, 8) // 8
             num_wavefunction_octets = num_octets - num_memory_octets
 
             # Parse the classical memory
             mem = []
-            for i in xrange(num_memory_octets):
-                octet = struct.unpack('B', coef_string[i])[0]
+            for i in range(num_memory_octets):
+                # Python 3 oddity: indexing coef_string with a single
+                # index returns an int. If you request a slice it keeps
+                # it as a bytestring.
+                octet = struct.unpack('B', coef_string[i:i+1])[0]
                 mem.extend(_octet_bits(octet))
 
             mem = mem[0:num_addresses]
 
             # Parse the wavefunction
-            wf = np.zeros(num_wavefunction_octets / OCTETS_PER_COMPLEX_DOUBLE, dtype=np.cfloat)
-            for i, p in enumerate(xrange(num_memory_octets, num_octets, OCTETS_PER_COMPLEX_DOUBLE)):
+            wf = np.zeros(num_wavefunction_octets // OCTETS_PER_COMPLEX_DOUBLE, dtype=np.cfloat)
+            for i, p in enumerate(range(num_memory_octets, num_octets, OCTETS_PER_COMPLEX_DOUBLE)):
                 re_be = coef_string[p: p + OCTETS_PER_DOUBLE_FLOAT]
                 im_be = coef_string[p + OCTETS_PER_DOUBLE_FLOAT: p + OCTETS_PER_COMPLEX_DOUBLE]
                 re = struct.unpack('>d', re_be)[0]
@@ -377,7 +385,7 @@ class Connection(object):
 
         return recover_complexes(res.content)
 
-    def expectation(self, prep_prog, operator_programs=[pq.Program()]):
+    def expectation(self, prep_prog, operator_programs=None):
         """
         Calculate the expectation value of operators given a state prepared by
         prep_program.
@@ -387,6 +395,9 @@ class Connection(object):
         :returns: Expectation value of the operators.
         :rtype: float
         """
+        if operator_programs is None:
+            operator_programs = [pq.Program()]
+
         if not isinstance(prep_prog, pq.Program):
             raise TypeError("prep_prog variable must be a Quil program object")
 

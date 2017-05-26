@@ -18,18 +18,16 @@
 Module for creating and defining Quil programs.
 """
 
+from .quilbase import (InstructionGroup,
+                       Addr,
+                       While,
+                       If,
+                       DefGate,
+                       Gate,
+                       Measurement,
+                       merge_resource_managers)
 
-
-from pyquil.quilbase import (InstructionGroup,
-                             Addr,
-                             While,
-                             If,
-                             DefGate,
-                             Gate,
-                             Measurement,
-                             merge_resource_managers)
-
-from pyquil.gates import MEASURE
+from .gates import MEASURE
 
 
 class Program(InstructionGroup):

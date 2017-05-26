@@ -2,16 +2,13 @@ from pyquil.resource_manager import *
 import pyquil.quil as pq
 from pyquil.gates import *
 import pytest
-import json
-from mock import Mock
-import numpy as np
 
 
 @pytest.fixture
 def five_qubit_prog():
     p = pq.Program()
-    qubits = [p.alloc() for _ in xrange(5)]
-    p.inst(map(H, qubits))
+    qubits = [p.alloc() for _ in range(5)]
+    p.inst([H(q) for q in qubits])
     return p, qubits
 
 
@@ -34,5 +31,5 @@ def test_add_resource_managers():
     p, p_qubits = five_qubit_prog()
     q, q_qubits = five_qubit_prog()
     summed_program = p + q
-    assert set(summed_program.resource_manager.live_qubits) == set.union(set(p_qubits),
-                                                                         set(q_qubits))
+    assert (set(summed_program.resource_manager.live_qubits)
+            == set.union(set(p_qubits), set(q_qubits)))

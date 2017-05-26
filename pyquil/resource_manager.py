@@ -20,7 +20,7 @@ resources in pyQuil.
 """
 
 from itertools import count
-from pyquil.quil_atom import QuilAtom
+from .quil_atom import QuilAtom
 from copy import copy
 
 class AbstractQubit(QuilAtom):

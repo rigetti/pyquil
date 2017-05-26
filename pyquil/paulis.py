@@ -18,12 +18,13 @@
 Module for working with Pauli algebras.
 """
 
+from __future__ import division
 from itertools import product
 import numpy as np
 import copy
-from pyquil.quil import Program
-from pyquil.gates import H, RZ, RX, CNOT, X, PHASE
-import pyquil.quilbase as pqb
+from .quil import Program
+from .gates import H, RZ, RX, CNOT, X, PHASE
+from . import quilbase as pqb
 from numbers import Number
 
 PAULI_OPS = ["X", "Y", "Z", "I"]
@@ -91,7 +92,7 @@ class PauliTerm(object):
     def get_qubits(self):
         """Gets all the qubits that this PauliTerm operates on.
         """
-        return self._ops.keys()
+        return list(self._ops.keys())
 
     def __getitem__(self, i):
         return self._ops.get(i, "I")
@@ -446,9 +447,9 @@ def commuting_sets(pauli_terms, nqubits):
     m_s = 1
     groups = []
     groups.append([pauli_terms.terms[0]])
-    for j in xrange(1, m_terms):
+    for j in range(1, m_terms):
         isAssigned_bool = False
-        for p in xrange(m_s):  # check if it commutes with each group
+        for p in range(m_s):  # check if it commutes with each group
             if isAssigned_bool is False:
 
                 if check_commutation(groups[p], pauli_terms.terms[j]):
@@ -530,7 +531,7 @@ def _exponentiate_general_case(pauli_term, param):
             else:
                 return tup
         revp = Program()
-        revp.actions = map(translate, reversed(p.actions))
+        revp.actions = [translate(action) for action in reversed(p.actions)]
         return revp
 
     quil_prog = Program()
@@ -598,9 +599,7 @@ def suzuki_trotter(trotter_order, trotter_steps):
                         (p2/2, 0), (p2, 1), (p2/2, 0),
                         (p1/2, 0), (p1, 1), (p1/2, 0)]}
 
-    order_slices = map(lambda x: (x[0]/float(trotter_steps), x[1]),
-                       trotter_dict[trotter_order])
-
+    order_slices = [(x0 / trotter_steps, x1) for x0, x1 in trotter_dict[trotter_order]]
     order_slices = order_slices * trotter_steps
     return order_slices
 

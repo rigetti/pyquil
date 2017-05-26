@@ -19,10 +19,9 @@ A lovely bunch of gates and instructions for programming with.  This module is u
 Pythonic sugar for Quil instructions.
 """
 
-from pyquil.quilbase import Measurement, Gate, Addr, \
-    Wait, Reset, Halt, Nop, \
-    ClassicalTrue, ClassicalFalse, ClassicalNot, ClassicalAnd, ClassicalOr, ClassicalMove, \
-    ClassicalExchange, DirectQubit, AbstractQubit, issubinstance
+from .quilbase import (Measurement, Gate, Addr, Wait, Reset, Halt, Nop, ClassicalTrue,
+                       ClassicalFalse, ClassicalNot, ClassicalAnd, ClassicalOr, ClassicalMove,
+                       ClassicalExchange, DirectQubit, AbstractQubit, issubinstance)
 
 def unpack_classical_reg(c):
     """
@@ -64,9 +63,8 @@ def _make_gate(name, num_qubits, num_params=0):
         stray_qubits = []
         if len(params) < num_params:
             raise ValueError(
-                "Wrong number of params for {}. {} given, require {}.".format(name,
-                                                                              len(params),
-                                                                              num_params)
+                "Wrong number of params for {}. {} given, require {}."
+                    .format(name, len(params), num_params)
             )
         elif len(params) > num_params:
             stray_qubits = params[num_params:]
@@ -76,14 +74,13 @@ def _make_gate(name, num_qubits, num_params=0):
             qubits = stray_qubits + list(qubits)
             if len(qubits) != num_qubits:
                 raise ValueError(
-                    "Wrong number of qubits for {}. {} given, require {}.".format(name,
-                                                                                  len(qubits),
-                                                                                  num_qubits)
+                    "Wrong number of qubits for {}. {} given, require {}."
+                        .format(name, len(qubits), num_qubits)
                 )
-            return Gate(name, params, map(unpack_qubit, qubits))
+            return Gate(name, params, [unpack_qubit(q) for q in qubits])
 
         if len(stray_qubits) == num_qubits:
-            return Gate(name, params, map(unpack_qubit, stray_qubits))
+            return Gate(name, params, [unpack_qubit(q) for q in stray_qubits])
         else:
             return ctor
 

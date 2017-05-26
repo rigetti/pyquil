@@ -20,10 +20,10 @@ Contains the core pyQuil objects that correspond to Quil instructions.
 
 import numpy as np
 from copy import deepcopy
-from pyquil.quil_atom import QuilAtom
-from pyquil.slot import Slot
-from pyquil.resource_manager import AbstractQubit, DirectQubit, Qubit, \
-    ResourceManager, check_live_qubit, merge_resource_managers
+from .quil_atom import QuilAtom
+from .slot import Slot
+from .resource_manager import (AbstractQubit, DirectQubit, Qubit,
+                               ResourceManager, check_live_qubit, merge_resource_managers)
 
 allow_raw_instructions = True
 """
@@ -58,9 +58,9 @@ def format_matrix_element(element):
     """
     Formats a parameterized matrix element.
 
-    :param element: {int, long, float, complex, str} The parameterized element to format.
+    :param element: {int, float, complex, str} The parameterized element to format.
     """
-    if isinstance(element, (int, long, float, complex)):
+    if isinstance(element, (int, float, complex)):
         return format_parameter(element)
     elif isinstance(element, str):
         return element
@@ -76,8 +76,6 @@ def format_parameter(element):
     """
     if isinstance(element, (int, float)):
         return repr(element)
-    elif isinstance(element, long):
-        return repr(element)[0:-1]
     elif isinstance(element, complex):
         r = element.real
         i = element.imag
@@ -575,7 +573,7 @@ class Instr(AbstractInstruction):
     """
 
     def __init__(self, op, params, args):
-        if not isinstance(op, (str, unicode)):
+        if not isinstance(op, str):
             raise TypeError("op must be a string")
         self.operator_name = op
         self.parameters = params

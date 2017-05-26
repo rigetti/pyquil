@@ -36,16 +36,16 @@ def compare_progs(test, reference):
     tinstr = test.actions
     rinstr = reference.actions
     assert len(tinstr) == len(rinstr)
-    for idx in xrange(len(tinstr)):
+    for idx in range(len(tinstr)):
         # check each field of the instruction object
         assert tinstr[idx][1].operator_name == rinstr[idx][1].operator_name
         assert len(tinstr[idx][1].parameters) == len(rinstr[idx][1].parameters)
-        for pp in xrange(len(tinstr[idx][1].parameters)):
+        for pp in range(len(tinstr[idx][1].parameters)):
             cmp_val = isclose(tinstr[idx][1].parameters[pp], rinstr[idx][1].parameters[pp])
             assert cmp_val
 
         assert len(tinstr[idx][1].arguments) == len(rinstr[idx][1].arguments)
-        for aa in xrange(len(tinstr[idx][1].arguments)):
+        for aa in range(len(tinstr[idx][1].arguments)):
             assert tinstr[idx][1].arguments[aa] == rinstr[idx][1].arguments[aa]
 
 
@@ -110,7 +110,8 @@ def test_simplify_term_multindex():
 
 def test_simplify_sum_terms():
     sum_term = PauliSum([PauliTerm('X', 0, 0.5), PauliTerm('Z', 0, 0.5j)])
-    assert str(sum_term + sum_term) == '1.0*X0 + 1j*Z0'
+    str_sum_term = str(sum_term + sum_term)
+    assert str_sum_term == '1.0*X0 + 1j*Z0' or str_sum_term == '1j*Z0 + 1.0*X0'
     sum_term = PauliSum([PauliTerm('X', 0, 0.5), PauliTerm('X', 0, 0.5)])
     assert str(sum_term.simplify()) == '1.0*X0'
 
@@ -156,21 +157,21 @@ def test_pauliop_inputs():
 def test_pauli_sum():
     q_plus = 0.5 * PauliTerm('X', 0) + 0.5j * PauliTerm('Y', 0)
     the_sum = q_plus * PauliSum([PauliTerm('X', 0)])
-    term_strings = map(lambda x: str(x), the_sum.terms)
+    term_strings = [str(x) for x in the_sum.terms]
     assert '0.5*I' in term_strings
     assert '(0.5+0j)*Z0' in term_strings
     assert len(term_strings) == 2
     assert len(the_sum.terms) == 2
 
     the_sum = q_plus * PauliTerm('X', 0)
-    term_strings = map(lambda x: str(x), the_sum.terms)
+    term_strings = [str(x) for x in the_sum.terms]
     assert '0.5*I' in term_strings
     assert '(0.5+0j)*Z0' in term_strings
     assert len(term_strings) == 2
     assert len(the_sum.terms) == 2
 
     the_sum = PauliTerm('X', 0) * q_plus
-    term_strings = map(lambda x: str(x), the_sum.terms)
+    term_strings = [str(x) for x in the_sum.terms]
     assert '0.5*I' in term_strings
     assert '(-0.5+0j)*Z0' in term_strings
     assert len(term_strings) == 2
@@ -399,21 +400,21 @@ def test_check_commutation():
     # more rigorous test.  Get all operators in Pauli group
     p_n_group = ("I", "X", "Y", "Z")
     pauli_list = list(product(p_n_group, repeat=3))
-    pauli_ops = map(lambda x: zip(x, range(3)), pauli_list)
+    pauli_ops = [list(zip(x, range(3))) for x in pauli_list]
     pauli_ops_pq = []
     for op in pauli_ops:
-        pauli_ops_pq.append(reduce(lambda x, y: x * PauliTerm(y[0], y[1]),
-                                   op[1:],
-                                   PauliTerm(op[0][0], op[0][1]))
-                            )
+        reduced = PauliTerm(op[0][0], op[0][1])
+        for y in op[1:]:
+            reduced *= PauliTerm(y[0], y[1])
+        pauli_ops_pq.append(reduced)
 
     def commutator(t1, t2):
         return t1 * t2 + -1 * t2 * t1
 
     non_commuting_pairs = []
     commuting_pairs = []
-    for x in xrange(len(pauli_ops_pq)):
-        for y in xrange(x, len(pauli_ops_pq)):
+    for x in range(len(pauli_ops_pq)):
+        for y in range(x, len(pauli_ops_pq)):
 
             tmp_op = commutator(pauli_ops_pq[x], pauli_ops_pq[y])
             assert len(tmp_op.terms) == 1
