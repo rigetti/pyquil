@@ -399,16 +399,29 @@ class Connection(object):
 
         return result_overlaps
 
-    def bit_string_probabilities(self, quil_program):
+    def bit_string_probabilities(self, quil_program, hide_zeros=False):
         """
         Simulate a Quil program and get outcome probabilities back.
 
         :param Program quil_program: A Quil program.
+        :param bool hide_zeros: Whether to include outcomes with zero probability.
         :return: A dictionary with outcomes as keys and probabilities as values.
         :rtype: dict
         """
         wvf, _ = self.wavefunction(quil_program)
-        return get_outcome_probs(wvf)
+        return get_outcome_probs(wvf, hide_zeros)
+
+    def bit_string_amplitudes(self, quil_program, hide_zeros=False):
+        """
+        Simulate a Quil program and get outcome amplitudes back.
+        
+        :param Program quil_program: A Quil program.
+        :param bool hide_zeros: Whether to include outcomes with zero amplitude.
+        :return: A dictionary with outcomes as keys and amplitudes as values
+        :rtype: dict
+        """
+        wvf, _ = self.wavefunction(quil_program)
+        return get_outcome_amplitudes(wvf, hide_zeros)
 
     def run(self, quil_program, classical_addresses, trials=1):
         """
@@ -469,18 +482,40 @@ class Connection(object):
         return json.loads(res.text)
 
 
-def get_outcome_probs(wvf):
+def _iterate_outcomes(wvf, func, hide_zeros):
+    outcome_dict = {}
+    qubit_num = len(wvf).bit_length() - 1
+    for index, amplitude in enumerate(wvf):
+        outcome = bin(index)[2:].rjust(qubit_num, '0')
+        val = func(amplitude)
+        if hide_zeros and np.isclose(val, 0):
+            pass
+        else:
+            outcome_dict[outcome] = val
+    return outcome_dict
+
+
+def get_outcome_amplitudes(wvf, hide_zeros=False):
+    """
+    Parses a wavefunction (array of complex amplitudes) and returns a dictionary of
+    outcomes and associated amplitudes.
+
+    :param list wvf: A complex list of amplitudes.
+    :param bool hide_zeros: Hide outcomes with zero amplitude.
+    :return: A dict with outcomes as keys and amplitudes as values.
+    :rtype: dict
+    """
+    return _iterate_outcomes(wvf, lambda x: x, hide_zeros)
+
+
+def get_outcome_probs(wvf, hide_zeros=False):
     """
     Parses a wavefunction (array of complex amplitudes) and returns a dictionary of
     outcomes and associated probabilities.
 
     :param list wvf: A complex list of amplitudes.
+    :param bool hide_zeros: Hide outcomes with zero probability.
     :return: A dict with outcomes as keys and probabilities as values.
     :rtype: dict
     """
-    outcome_dict = {}
-    qubit_num = len(wvf).bit_length() - 1
-    for index, amplitude in enumerate(wvf):
-        outcome = bin(index)[2:].rjust(qubit_num, '0')
-        outcome_dict[outcome] = abs(amplitude) ** 2
-    return outcome_dict
+    return _iterate_outcomes(wvf, lambda amplitude: abs(amplitude) ** 2, hide_zeros)

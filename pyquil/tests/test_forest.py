@@ -35,12 +35,25 @@ def cxn():
 
 WAVEFUNCTION_BINARY = '\x01\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00?\xe6\xa0\x9ef\x7f;\xcc\x00\x00\x00\x00\x00\x00\x00\x00\xbf\xe6\xa0\x9ef\x7f;\xcc\x00\x00\x00\x00\x00\x00\x00\x00'
 
+WAVEFUNCTION_NO_CLASSICAL_BINARY = (b'\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00'
+                                    b'\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00'
+                                    b'\x00\x00\x00\x00\x00\x00?\xe6\xa0\x9ef\x7f;\xcc\x00'
+                                    b'\x00\x00\x00\x00\x00\x00\x00\xbf\xe6\xa0\x9ef\x7f;'
+                                    b'\xcc\x00\x00\x00\x00\x00\x00\x00\x00')
+
 
 @pytest.fixture
 def cxn_wf():
     c = qvm.Connection()
     c.post_json = Mock()
     c.post_json.return_value.content = WAVEFUNCTION_BINARY
+    return c
+
+@pytest.fixture
+def cxn_wf_no_classical():
+    c = qvm.Connection()
+    c.post_json = Mock()
+    c.post_json.return_value.content = WAVEFUNCTION_NO_CLASSICAL_BINARY
     return c
 
 
@@ -135,3 +148,49 @@ def test_wavefunction(cxn_wf, prog_wf):
     mem_expected = [1, 0]
     assert np.all(np.isclose(wf, wf_expected))
     assert mem == mem_expected
+
+
+def test_bit_string_amplitudes(cxn_wf_no_classical, prog_wf):
+    bs = cxn_wf_no_classical.bit_string_amplitudes(prog_wf)
+    bs_expected = {
+        '00': 0.0 + 0.j,
+        '01': 0.0 + 0.j,
+        '10': 0.70710678 + 0.j,
+        '11': -0.70710678 + 0.j,
+    }
+    assert set(bs_expected.keys()) == set(bs.keys())
+    for state in bs_expected:
+        assert np.isclose(bs_expected[state], bs[state])
+
+def test_bit_string_amplitudes_hide_zeros(cxn_wf_no_classical, prog_wf):
+    bs = cxn_wf_no_classical.bit_string_amplitudes(prog_wf, hide_zeros=True)
+    bs_expected = {
+        '10': 0.70710678 + 0.j,
+        '11': -0.70710678 + 0.j,
+    }
+    assert set(bs_expected.keys()) == set(bs.keys())
+    for state in bs_expected:
+        assert np.isclose(bs_expected[state], bs[state])
+
+
+def test_bit_string_probabilities(cxn_wf_no_classical, prog_wf):
+    bs = cxn_wf_no_classical.bit_string_probabilities(prog_wf)
+    bs_expected = {
+        '00': 0.0,
+        '01': 0.0,
+        '10': 0.5,
+        '11': 0.5,
+    }
+    assert set(bs_expected.keys()) == set(bs.keys())
+    for state in bs_expected:
+        assert np.isclose(bs_expected[state], bs[state])
+
+def test_bit_string_probabilities_hide_zeros(cxn_wf_no_classical, prog_wf):
+    bs = cxn_wf_no_classical.bit_string_probabilities(prog_wf, hide_zeros=True)
+    bs_expected = {
+        '10': 0.5,
+        '11': 0.5,
+    }
+    assert set(bs_expected.keys()) == set(bs.keys())
+    for state in bs_expected:
+        assert np.isclose(bs_expected[state], bs[state])
