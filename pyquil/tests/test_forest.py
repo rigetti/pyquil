@@ -15,13 +15,15 @@
 #    limitations under the License.
 ##############################################################################
 
-import pyquil.forest as qvm
-import pyquil.quil as pq
-from pyquil.gates import *
+
 import pytest
 import json
 from mock import Mock
 import numpy as np
+
+import pyquil.forest as qvm
+import pyquil.quil as pq
+from pyquil.gates import *
 
 
 @pytest.fixture
@@ -133,5 +135,5 @@ def test_wavefunction(cxn_wf, prog_wf):
     wf_expected = np.array(
         [0.00000000 + 0.j, 0.00000000 + 0.j, 0.70710678 + 0.j, -0.70710678 + 0.j])
     mem_expected = [1, 0]
-    assert np.all(np.isclose(wf, wf_expected))
+    assert np.all(np.isclose(wf.amplitudes, wf_expected))
     assert mem == mem_expected

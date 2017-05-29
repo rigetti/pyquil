@@ -217,6 +217,7 @@ Each of the code snippets below will be immediately followed by its output.
     # This call will return the state of our qubits after we run program p.
     # This api call returns a tuple, but we'll ignore the second value for now.
     wavefunc, _ = quantum_simulator.wavefunction(p)
+    # wavefunc is a Wavefunction object that stores a quantum state as a list of amplitudes
     alpha, beta = wavefunc
     print "Our qubit is in the state alpha={} and beta={}".format(alpha, beta)
     print "The probability of measuring the qubit in outcome 0 is {}".format(abs(alpha)**2)
