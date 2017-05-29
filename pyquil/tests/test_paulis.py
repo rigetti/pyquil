@@ -193,6 +193,11 @@ def test_ps_adds_pt_2():
     assert str(1.0 + b) == "3.0*I"
 
 
+def test_pauliterm_sub():
+    assert str(sX(1) - 2.0) == str(sX(1) + -2.0)
+    assert str(1.4 - sZ(1)) == str(1.4 + -1.0 * sZ(1))
+
+
 def test_ps_sub():
     term = 3 * ID
     b = term - 1.0
@@ -434,7 +439,14 @@ def test_commuting_sets():
 
 
 def test_paulisum_iteration():
+    term_list = [sX(2), sZ(4)]
+    pauli_sum = sum(term_list)
+    for ii, term in enumerate(pauli_sum):
+        assert term_list[ii] == term
+
+
+def test_paulisum_indexing():
     pauli_sum = 0.5 * sX(0) + 0.1 * sZ(1)
     assert pauli_sum[0] == 0.5 * sX(0)
-    for ii, term in enumerate(pauli_sum):
+    for ii, term in enumerate(pauli_sum.terms):
         assert pauli_sum[ii] == term
