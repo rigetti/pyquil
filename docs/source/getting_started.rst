@@ -14,9 +14,9 @@ programs.
     p = pq.Program()
     p.inst(H(0), CNOT(0, 1))
         <pyquil.pyquil.Program object at 0x101ebfb50>
-    qvm.wavefunction(p)
-        (array([ 0.70710678+0.j,  0.00000000+0.j,  0.00000000+0.j,  0.70710678+0.j]),
-            [])
+    wvf, _ = qvm.wavefunction(p)
+    print wvf
+        (0.7071067812+0j)|00> + (0.7071067812+0j)|11>
 
 It comes with a few parts:
 
@@ -278,11 +278,42 @@ a program directly, even without measurements:
 
 .. parsed-literal::
 
-    (array([ 0.70710678+0.j,  0.70710678+0.j]), [])
+    (<pyquil.wavefunction.Wavefunction at 0x1088a2c10>, [])
 
 
-The second element in the resulting tuple is an optional amount of classical memory to check along
-with the wavefunction:
+The first element in the returned tuple is a Wavefunction object that stores the amplitudes of the
+quantum state at the conclusion of the program. We can print this object
+
+.. code:: python
+
+    coin_flip = pq.Program().inst(H(0))
+    wvf, _ = qvm.wavefunction(coin_flip)
+    print wvf
+
+.. parsed-literal::
+
+  (0.7071067812+0j)|00> + (0.7071067812+0j)|11>
+
+To see the amplitudes listed as a sum of computational basis states. We can index into those
+amplitudes directly or look at a dictionary of associated outcome probabilities.
+
+.. code:: python
+
+  assert wvf[0] == 1 / np.sqrt(2)
+  # The amplitudes are stored as a numpy array on the Wavefunction object
+  print wvf.amplitudes
+  prob_dict = wvf.get_outcome_probs() # extracts the probabilities of outcomes as a dict
+  print prob_dict
+  prob_dict.keys() # these stores the bitstring outcomes
+  assert len(wvf) == 2 # gives the number of qubits
+
+.. parsed-literal::
+
+  [ 0.70710678+0.j  0.00000000+0.j  0.00000000+0.j  0.70710678+0.j]
+  {'11': 0.49999999999999989, '10': 0.0, '00': 0.49999999999999989, '01': 0.0}
+
+The second element returned from a wavefunction call is an optional amount of classical memory to
+check:
 
 .. code:: python
 
@@ -453,14 +484,14 @@ matrix representation of the gate. For example, below we define a
 
 .. code:: python
 
-    qvm.wavefunction(p)
+    print qvm.wavefunction(p)[0]
 
 
 
 
 .. parsed-literal::
 
-    (array([ 0.5+0.5j,  0.5-0.5j]), [])
+    (0.5+0.5j)|0> + (0.5-0.5j)|1>
 
 
 
@@ -488,7 +519,7 @@ gate.
 
 .. parsed-literal::
 
-    array([ 0.0+0.j ,  0.5+0.5j,  0.0+0.j ,  0.5-0.5j])
+    (0.5+0.5j)|01> + (0.5-0.5j)|11>
 
 
 Advanced Usage
@@ -572,7 +603,7 @@ would return a two-element vector.
 
 .. parsed-literal::
 
-    array([ 0.+0.j,  1.+0.j,  0.+0.j,  0.+0.j,  0.+0.j,  0.+0.j,  0.+0.j,  0.+0.j])
+    (1+0j)|001>
 
 
 
@@ -583,7 +614,7 @@ after state preparation to get our final result.
 .. code:: python
 
     wavf, _ = qvm.wavefunction(state_prep + qft3(0, 1, 2))
-    print wavf
+    print wavf.amplitudes
 
 
 
