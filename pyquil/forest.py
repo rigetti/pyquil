@@ -403,7 +403,7 @@ class Connection(object):
 
         payload = {'type': TYPE_EXPECTATION,
                    'state-preparation': prep_prog.out(),
-                   'operators': map(lambda x: x.out(), operator_programs)}
+                   'operators': [x.out() for x in operator_programs]}
 
         add_rng_seed_to_payload(payload, self.random_seed)
 
