@@ -26,10 +26,19 @@ import pyquil.quil as pq
 from pyquil.gates import *
 
 
+class MockPostJson(object):
+    def __init__(self):
+        self.return_value = Mock()
+
+    def __call__(self, payload):
+        json.dumps(payload)
+        return self.return_value
+
+
 @pytest.fixture
 def cxn():
     c = qvm.Connection()
-    c.post_json = Mock()
+    c.post_json = MockPostJson()
     c.post_json.return_value.text = json.dumps("Success")
     c.measurement_noise = 1
     return c
@@ -42,11 +51,9 @@ WAVEFUNCTION_BINARY = (b'\x01\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00\x0
 
 
 @pytest.fixture
-def cxn_wf():
-    c = qvm.Connection()
-    c.post_json = Mock()
-    c.post_json.return_value.content = WAVEFUNCTION_BINARY
-    return c
+def cxn_wf(cxn):
+    cxn.post_json.return_value.content = WAVEFUNCTION_BINARY
+    return cxn
 
 
 @pytest.fixture
@@ -131,6 +138,10 @@ def test_run_and_measure(cxn, prog):
     with pytest.raises(TypeError):
         cxn.run_and_measure(prog, [0, 1], "a")
     assert cxn.run_and_measure(prog, [0, 1], 1) == "Success"
+
+
+def test_expectation(cxn, prog):
+    assert cxn.expectation(prog) == "Success"
 
 
 def test_wavefunction(cxn_wf, prog_wf):
