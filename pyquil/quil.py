@@ -97,6 +97,35 @@ class Program(InstructionGroup):
         """
         return self.inst(MEASURE(qubit_index, classical_reg))
 
+    def measure_many(self, qubit_indices, classical_regs):
+        """
+        Measures specified qubits at qubit_indices and puts the results in classical_regs
+
+        :param list qubit_indices: The addresses of the qubits to measure.
+        :param list classical_regs: The addresses of the classical bits to store the results.
+        :return: The Quil Program with the appropriate measure instructions appended, e.g.
+                  MEASURE 0 [1]
+                  MEASURE 1 [2]
+                  MEASURE 2 [3]
+        :rtype: Program
+        """
+        for qubit_index, classical_reg in zip(qubit_indices, classical_regs):
+            self.inst(MEASURE(qubit_index, classical_reg))
+        return self
+
+    def measure_all(self):
+        """
+        Measures all qubits that the program has accessed into corresponding classical registers.
+
+        :return: The Quil Program with the appropriate measure instructions appended, e.g.
+                  MEASURE 0 [0]
+                  MEASURE 1 [1]
+                  MEASURE 2 [2]
+        :rtype: Program
+        """
+        live = self.resource_manager.live_qubits
+        return self.measure_many(live, live)
+
     def while_do(self, classical_reg, q_program):
         """
         While a classical register at index classical_reg is 1, loop q_program
