@@ -22,6 +22,7 @@ resources in pyQuil.
 from itertools import count
 from .quil_atom import QuilAtom
 from copy import copy
+from six import integer_types
 
 class AbstractQubit(QuilAtom):
     """
@@ -38,7 +39,7 @@ class DirectQubit(AbstractQubit):
     """
 
     def __init__(self, index):
-        if not isinstance(index, int) or index < 0:
+        if not isinstance(index, integer_types) or index < 0:
             raise TypeError("index should be a non-negative int")
         self._index = index
 

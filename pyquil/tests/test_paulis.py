@@ -23,6 +23,7 @@ from pyquil.quil import Program
 from pyquil.gates import RX, RZ, CNOT, H, X, PHASE
 import math
 from itertools import product
+from six.moves import range
 
 
 def isclose(a, b, rel_tol=1e-10, abs_tol=0.0):

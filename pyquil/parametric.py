@@ -20,6 +20,7 @@ Module for creating and defining parametric programs.
 
 import inspect
 from copy import copy
+from six.moves import range
 
 from .quilbase import Slot
 from .quil import Program

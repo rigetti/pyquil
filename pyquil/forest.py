@@ -28,12 +28,12 @@ import os.path
 import numpy as np
 import sys
 import struct
+from six.moves.configparser import ConfigParser, NoOptionError, NoSectionError
+from six.moves import range
+from six import integer_types
+
 from . import quil as pq
 from .wavefunction import Wavefunction
-try:
-    from configparser import ConfigParser, NoOptionError, NoSectionError
-except ImportError:
-    from ConfigParser import ConfigParser, NoOptionError, NoSectionError
 
 USER_HOMEDIR = os.path.expanduser("~")
 
@@ -167,7 +167,7 @@ def _validate_run_items(run_items):
     """
     if not isinstance(run_items, list):
         raise TypeError("run_items must be a list")
-    if any([not isinstance(i, int) for i in run_items]):
+    if any([not isinstance(i, integer_types) for i in run_items]):
         raise TypeError("run_items list must contain integer values")
 
 
@@ -190,7 +190,7 @@ def _octet_bits(o):
     :return: The bits as a list in LSB-to-MSB order.
     :rtype: list
     """
-    if not isinstance(o, int):
+    if not isinstance(o, integer_types):
         raise TypeError("o should be an int")
     if not (0 <= o <= 255):
         raise ValueError("o should be between 0 and 255 inclusive")
@@ -272,7 +272,7 @@ class Connection(object):
 
         if random_seed is None:
             self.random_seed = None
-        elif isinstance(random_seed, int) and random_seed >= 0:
+        elif isinstance(random_seed, integer_types) and random_seed >= 0:
             self.random_seed = random_seed
         else:
             raise TypeError("random_seed should be None or a non-negative int or long.")
@@ -438,7 +438,7 @@ class Connection(object):
         if not isinstance(quil_program, pq.Program):
             raise TypeError("quil_program must be a Quil program object")
         _validate_run_items(classical_addresses)
-        if not isinstance(trials, int):
+        if not isinstance(trials, integer_types):
             raise TypeError("trials must be an integer")
 
         payload = {"type": TYPE_MULTISHOT,
@@ -466,7 +466,7 @@ class Connection(object):
         if not isinstance(quil_program, pq.Program):
             raise TypeError("quil_program must be a Quil program object")
         _validate_run_items(qubits)
-        if not isinstance(trials, int):
+        if not isinstance(trials, integer_types):
             raise TypeError("trials must be an integer")
 
         payload = {"type": TYPE_MULTISHOT_MEASURE,
