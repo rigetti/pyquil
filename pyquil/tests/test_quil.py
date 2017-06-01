@@ -401,9 +401,9 @@ def test_prog_merge():
 
 
 def test_get_qubits():
-    pq = Program(X(0), CNOT(0, 4))
-    assert pq.get_qubits() == {0, 4}
+    pq = Program(X(0), CNOT(0, 4), MEASURE(5, [5]))
+    assert pq.get_qubits() == {0, 4, 5}
 
     qq = pq.alloc()
     pq.inst(Y(2), X(qq))
-    assert pq.get_qubits() == {0, 1, 2, 4}  # this synthesizes the allocation
+    assert pq.get_qubits() == {0, 1, 2, 4, 5}  # this synthesizes the allocation

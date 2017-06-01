@@ -26,6 +26,7 @@ from pyquil.quilbase import (InstructionGroup,
                              If,
                              DefGate,
                              Gate,
+                             Measurement,
                              merge_resource_managers)
 
 from pyquil.gates import MEASURE
@@ -85,7 +86,11 @@ class Program(InstructionGroup):
         for ii, action in self:
             if isinstance(action, Gate):
                 qubit_indices = {qq.index() for qq in action.arguments}
-                allocated_qubits = set.union(allocated_qubits, qubit_indices)
+            elif isinstance(action, Measurement):
+                qubit_indices = {action.arguments[0].index()}
+            else:
+                continue
+            allocated_qubits = set.union(allocated_qubits, qubit_indices)
         return allocated_qubits
 
     def defgate(self, name, matrix):
