@@ -406,7 +406,7 @@ def exponential_map(term):
     if not np.isclose(np.imag(term.coefficient), 0.0):
         raise TypeError("PauliTerm coefficient must be real")
 
-    coeff = term.coefficient
+    coeff = term.coefficient.real
 
     def exp_wrap(param):
         prog = Program()
