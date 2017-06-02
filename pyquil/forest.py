@@ -493,37 +493,40 @@ class Connection(object):
 
 class QPUConnection(Connection):
 
-    def rabi(self, chip_name, start, stop, step, the_time):
+    def rabi(self, chip_name, qubit_id, start, stop, step, the_time):
         payload = {
             'type': 'pyquillow',
             'experiment': 'rabi',
             'start': start,
             'stop': stop,
             'step': step,
-            'time': the_time
+            'time': the_time,
+            'qcid': qubit_id
         }
         res = self.post_json(payload)
         return res
 
-    def ramsey(self, chip_name, start, stop, step, detuning):
+    def ramsey(self, chip_name, qubit_id, start, stop, step, detuning):
         payload = {
             'type': 'pyquillow',
             'experiment': 'ramsey',
             'start': start,
             'stop': stop,
             'step': step,
-            'detuning': detuning
+            'detuning': detuning,
+            'qcid': qubit_id
         }
         res = self.post_json(payload)
         return res
 
-    def t1(self, chip_name, start, stop, num_pts):
+    def t1(self, chip_name, qubit_id, start, stop, num_pts):
         payload = {
             'type': 'pyquillow',
             'experiment': 't1',
             'start': start,
             'stop': stop,
-            'num_pts': num_pts
+            'num_pts': num_pts,
+            'qcid': qubit_id
         }
         res = self.post_json(payload)
         return res
