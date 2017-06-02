@@ -33,9 +33,6 @@ from six.moves import range
 from six import integer_types
 
 
-from boto.sqs import connect_to_region
-from boto.sqs.message import Message
-
 import pyquil.quil as pq
 from pyquil.wavefunction import Wavefunction
 
@@ -214,25 +211,6 @@ TYPE_MULTISHOT = "multishot"
 TYPE_MULTISHOT_MEASURE = "multishot-measure"
 TYPE_WAVEFUNCTION = "wavefunction"
 
-conn = connect_to_region('us-west-2')
-job_queue = conn.get_queue('pyquillow')
-result_queue = conn.get_queue('pyquillow_results')
-
-import time
-
-def rabi(chip_name, start, stop, step, the_time):
-    jd = {'type':'rabi', 'start': start, 'stop': stop, 'step': step, 'time': the_time}
-    job_queue.write(Message(body=json.dumps(jd)))
-    counter = 0
-    while True:
-        message = result_queue.read()
-        if message:
-            body = json.loads(message.get_body())
-            message.delete()
-            return body
-        print(str(counter) + " seconds.")
-        counter += 5
-        time.sleep(5)
 
 class Connection(object):
     """
@@ -350,6 +328,14 @@ class Connection(object):
         payload = {"type": "version"}
         res = self.post_json(payload)
         return str(res.text)
+
+    def get_result(self, res):
+        """
+        Based on the job_id, this gets the result of a posted job.
+        :param res:
+        :return:
+        """
+        pass
 
     def wavefunction(self, quil_program, classical_addresses=None):
         """
@@ -503,3 +489,72 @@ class Connection(object):
         res = self.post_json(payload)
 
         return json.loads(res.text)
+
+
+class QPUConnection(Connection):
+
+    def rabi(self, chip_name, start, stop, step, the_time):
+        payload = {
+            'type': 'pyquillow',
+            'experiment': 'rabi',
+            'start': start,
+            'stop': stop,
+            'step': step,
+            'time': the_time
+        }
+        res = self.post_json(payload)
+        return res
+
+    def ramsey(self, chip_name, start, stop, step, detuning):
+        payload = {
+            'type': 'pyquillow',
+            'experiment': 'ramsey',
+            'start': start,
+            'stop': stop,
+            'step': step,
+            'detuning': detuning
+        }
+        res = self.post_json(payload)
+        return res
+
+    def t1(self, chip_name, start, stop, num_pts):
+        payload = {
+            'type': 'pyquillow',
+            'experiment': 't1',
+            'start': start,
+            'stop': stop,
+            'num_pts': num_pts
+        }
+        res = self.post_json(payload)
+        return res
+
+    def version(self):
+        """
+        This returns a JSON blob with some information about the currently available chip, e.g.
+        number of qubits, t1, t2, and whether the chip is live for execution or not.
+        :return:
+        """
+        pass
+
+    def ping(self):
+        """
+        This returns a JSON blob with some information about the currently available chip, e.g.
+        number of qubits, t1, t2, and whether the chip is live for execution or not.
+        :return:
+        """
+        return self.version()
+
+    def wavefunction(self, quil_program, classical_addresses=[]):
+        return NotImplementedError
+
+    def run(self, quil_program, classical_addresses, trials=1):
+        return NotImplementedError
+
+    def run_and_measure(self, quil_program, qubits, trials=1):
+        return NotImplementedError
+
+    def expectation(self, prep_prog, operator_programs=[pq.Program()]):
+        return NotImplementedError
+
+    def bit_string_probabilities(self, quil_program):
+        return NotImplementedError
