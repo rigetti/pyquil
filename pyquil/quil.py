@@ -99,8 +99,8 @@ class Program(InstructionGroup):
 
     def measure_all(self, *qubit_reg_pairs):
         """
-        Measures many qubits at once into their specified classical bits, in the
-        provided order.
+        Measures many qubits into their specified classical bits, in the order
+        they were entered.
 
         :param Tuple qubit_reg_pairs: Tuples of qubit indices paired with classical bits.
         :return: The Quil Program with the appropriate measure instructions appended, e.g.
