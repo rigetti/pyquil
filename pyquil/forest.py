@@ -32,8 +32,12 @@ from six.moves.configparser import ConfigParser, NoOptionError, NoSectionError
 from six.moves import range
 from six import integer_types
 
-from . import quil as pq
-from .wavefunction import Wavefunction
+
+from boto.sqs import connect_to_region
+from boto.sqs.message import Message
+
+import pyquil.quil as pq
+from pyquil.wavefunction import Wavefunction
 
 USER_HOMEDIR = os.path.expanduser("~")
 
@@ -210,6 +214,25 @@ TYPE_MULTISHOT = "multishot"
 TYPE_MULTISHOT_MEASURE = "multishot-measure"
 TYPE_WAVEFUNCTION = "wavefunction"
 
+conn = connect_to_region('us-west-2')
+job_queue = conn.get_queue('pyquillow')
+result_queue = conn.get_queue('pyquillow_results')
+
+import time
+
+def rabi(chip_name, start, stop, step, the_time):
+    jd = {'type':'rabi', 'start': start, 'stop': stop, 'step': step, 'time': the_time}
+    job_queue.write(Message(body=json.dumps(jd)))
+    counter = 0
+    while True:
+        message = result_queue.read()
+        if message:
+            body = json.loads(message.get_body())
+            message.delete()
+            return body
+        print(str(counter) + " seconds.")
+        counter += 5
+        time.sleep(5)
 
 class Connection(object):
     """
