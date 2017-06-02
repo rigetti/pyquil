@@ -202,6 +202,13 @@ def test_measurement_calls():
            MEASURE(0, Addr(1)))
     assert p.out() == 'MEASURE 0 [1]\n' * 2
 
+def test_measure_all():
+    p = Program()
+    p.measure_all((0, 0), (1, 1), (2, 3))
+    assert p.out() == 'MEASURE 0 [0]\n' \
+                      'MEASURE 1 [1]\n' \
+                      'MEASURE 2 [3]\n'
+
 
 def test_construction_syntax():
     p = Program().inst(X(0), Y(1), Z(0)).measure(0, 1)
