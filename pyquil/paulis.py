@@ -78,10 +78,13 @@ class PauliTerm(object):
             self._id = s
             return s
 
+    def __eq__(self, other):
+        return self.id() == other.id()
+
     def __len__(self):
-        """l
-        The length of the pauliterm is the number of Pauli operators in the term. This is
-        equivalent to the length of self._ops dict
+        """
+        The length of the PauliTerm is the number of Pauli operators in the term. A term that
+        consists of only a scalar has a length of zero.
         """
         return len(self._ops)
 
@@ -116,7 +119,8 @@ class PauliTerm(object):
         return new_term
 
     def __mul__(self, term):
-        """Multiplies this Pauli Term with another PauliTerm, PauliSum, or number according to the Pauli algebra rules.
+        """Multiplies this Pauli Term with another PauliTerm, PauliSum, or number according to the
+        Pauli algebra rules.
 
         :param term: (PauliTerm or PauliSum or Number) A term to multiply by.
         :returns: The product of this PauliTerm and term.
@@ -138,37 +142,55 @@ class PauliTerm(object):
     def __rmul__(self, other):
         """Multiplies this PauliTerm with another object, probably a number.
 
-        :param Number term: A number to multiply by
+        :param other: A number or PauliTerm to multiply by
         :returns: A new PauliTerm
         :rtype: PauliTerm
         """
         assert isinstance(other, Number)
         return self * other
 
-    def __add__(self, term):
+    def __add__(self, other):
         """Adds this PauliTerm with another one.
 
-        :param PauliTerm term: A PauliTerm object
-        :returns: A PauliSum object representing the sum of this PauliTerm and term
+        :param other: A PauliTerm object or a Number
+        :returns: A PauliSum object representing the sum of this PauliTerm and other
         :rtype: PauliSum
         """
-        if isinstance(term, Number):
-            return self + PauliTerm("I", 0, term)
-        elif isinstance(term, PauliSum):
-            return term + self
+        if isinstance(other, Number):
+            return self + PauliTerm("I", 0, other)
+        elif isinstance(other, PauliSum):
+            return other + self
         else:
-            new_sum = PauliSum([self, term])
+            new_sum = PauliSum([self, other])
             return new_sum.simplify()
 
-    def __radd__(self, term):
+    def __radd__(self, other):
         """Adds this PauliTerm with a Number.
 
-        :param Number term: A number to multiply by
+        :param other: A PauliTerm object or a Number
         :returns: A new PauliTerm
         :rtype: PauliTerm
         """
-        assert isinstance(term, Number)
-        return self + term
+        assert isinstance(other, Number)
+        return self + other
+
+    def __sub__(self, other):
+        """Subtracts a PauliTerm from this one.
+
+        :param other: A PauliTerm object or a Number
+        :returns: A PauliSum object representing the difference of this PauliTerm and term
+        :rtype: PauliSum
+        """
+        return self + -1. * other
+
+    def __rsub__(self, other):
+        """Subtracts this PauliTerm from a Number or PauliTerm.
+
+        :param other: A PauliTerm object or a Number
+        :returns: A PauliSum object representing the difference of this PauliTerm and term
+        :rtype: PauliSum
+        """
+        return other + -1. * self
 
     def __str__(self):
         term_strs = []
@@ -250,7 +272,26 @@ class PauliSum(object):
     def __str__(self):
         return " + ".join([str(term) for term in self.terms])
 
+    def __getitem__(self, item):
+        """
+        :param int item: The index of the term in the sum to return
+        :return: The PauliTerm at the index-th position in the PauliSum
+        :rtype: PauliTerm
+        """
+        return self.terms[item]
+
+    def __iter__(self):
+        return self.terms.__iter__()
+
     def __mul__(self, other):
+        """
+        Multiplies together this PauliSum with PauliSum, PauliTerm or Number objects. The new term
+        is then simplified according to the Pauli Algebra rules.
+
+        :param other: a PauliSum, PauliTerm or Number object
+        :return: A new PauliSum object given by the multiplication.
+        :rtype: PauliSum
+        """
         if isinstance(other, PauliTerm):
             other_terms = [other]
         elif isinstance(other, PauliSum):
@@ -262,6 +303,14 @@ class PauliSum(object):
         return new_sum.simplify()
 
     def __rmul__(self, other):
+        """
+        Multiples together this PauliSum with PauliSum, PauliTerm or Number objects. The new term
+        is then simplified according to the Pauli Algebra rules.
+
+        :param other: a PauliSum, PauliTerm or Number object
+        :return: A new PauliSum object given by the multiplication.
+        :rtype: PauliSum
+        """
         assert isinstance(other, Number)
         new_terms = copy.deepcopy(self.terms)
         for term in new_terms:
@@ -269,6 +318,14 @@ class PauliSum(object):
         return PauliSum(new_terms).simplify()
 
     def __add__(self, other):
+        """
+        Adds together this PauliSum with PauliSum, PauliTerm or Number objects. The new term
+        is then simplified according to the Pauli Algebra rules.
+
+        :param other: a PauliSum, PauliTerm or Number object
+        :return: A new PauliSum object given by the addition.
+        :rtype: PauliSum
+        """
         if isinstance(other, PauliTerm):
             other = PauliSum([other])
         elif isinstance(other, Number):
@@ -279,8 +336,38 @@ class PauliSum(object):
         return new_sum.simplify()
 
     def __radd__(self, other):
+        """
+        Adds together this PauliSum with PauliSum, PauliTerm or Number objects. The new term
+        is then simplified according to the Pauli Algebra rules.
+
+        :param other: a PauliSum, PauliTerm or Number object
+        :return: A new PauliSum object given by the addition.
+        :rtype: PauliSum
+        """
         assert isinstance(other, Number)
         return self + other
+
+    def __sub__(self, other):
+        """
+        Finds the difference of this PauliSum with PauliSum, PauliTerm or Number objects. The new
+        term is then simplified according to the Pauli Algebra rules.
+
+        :param other: a PauliSum, PauliTerm or Number object
+        :return: A new PauliSum object given by the subtraction.
+        :rtype: PauliSum
+        """
+        return self + -1. * other
+
+    def __rsub__(self, other):
+        """
+        Finds the different of this PauliSum with PauliSum, PauliTerm or Number objects. The new
+        term is then simplified according to the Pauli Algebra rules.
+
+        :param other: a PauliSum, PauliTerm or Number object
+        :return: A new PauliSum object given by the subtraction.
+        :rtype: PauliSum
+        """
+        return other + -1. * self
 
     def get_qubits(self):
         """
