@@ -493,8 +493,9 @@ class Connection(object):
 
 class QPUConnection(Connection):
 
-    def __init__(self, *args):
+    def __init__(self, chip_name, *args):
         super(Connection, self).__init__(*args)
+        self.chip_name = chip_name
         # overloads the connection information with endpoints for the jobqueue
         self.endpoint = "https://dev.rigetti.com/Beta"
         self.userId = "3154a2d2-24bd-43bd-873f-f565255dac42"
@@ -529,7 +530,7 @@ class QPUConnection(Connection):
         result = json.loads(res.content.decode("utf-8"))
         return JobResult(res.ok, result)
 
-    def rabi(self, chip_name, qubit_id, start, stop, step, the_time):
+    def rabi(self, qubit_id, start, stop, step, the_time):
         payload = {
             'type': 'pyquillow',
             'experiment': 'rabi',
@@ -542,7 +543,7 @@ class QPUConnection(Connection):
         res = self.post_job(payload)
         return res
 
-    def ramsey(self, chip_name, qubit_id, start, stop, step, detuning):
+    def ramsey(self, qubit_id, start, stop, step, detuning):
         payload = {
             'type': 'pyquillow',
             'experiment': 'ramsey',
@@ -555,7 +556,7 @@ class QPUConnection(Connection):
         res = self.post_job(payload)
         return res
 
-    def t1(self, chip_name, qubit_id, start, stop, num_pts):
+    def t1(self, qubit_id, start, stop, num_pts):
         payload = {
             'type': 'pyquillow',
             'experiment': 't1',
@@ -573,7 +574,12 @@ class QPUConnection(Connection):
         number of qubits, t1, t2, and whether the chip is live for execution or not.
         :return:
         """
-        pass
+        payload = {
+            'type': 'pyquillow',
+            'experiment': 'version_query'
+        }
+        res = self.post_job(payload)
+        return res
 
     def ping(self):
         """
