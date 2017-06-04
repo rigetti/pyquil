@@ -493,6 +493,42 @@ class Connection(object):
 
 class QPUConnection(Connection):
 
+    def __init__(self, *args):
+        super(Connection, self).__init__(*args)
+        # overloads the connection information with endpoints for the jobqueue
+        self.endpoint = "https://dev.rigetti.com/Beta"
+        self.userId = "3154a2d2-24bd-43bd-873f-f565255dac42"
+        self.api_key = ""
+        self.json_headers = {
+            'Content-Type' : 'application/json; charset=utf-8',
+            'x-api-key' : self.api_key,
+            'x-user-id' : self.userId,
+        }
+        self.text_headers = self.json_headers
+        self.text_headers['Content-Type'] = 'application/text; charset=utf-8'
+
+    def post_job(self, program):
+        message = {}
+        message['machine'] = "QPU"
+        message['program'] = program
+        message['userId'] = self.userId
+        message['jobId'] = ''
+        message['results'] = ''
+        url = self.endpoint + "/job"
+        res = requests.post(url, json=message, headers=self.json_headers)
+        result = json.loads(res.content.decode("utf-8"))
+        return JobResult(res.ok, result)
+
+    def get_job(self, job_result):
+        """
+        :param JobResult job_result:
+        :return: fills in the result in the JobResult object
+        """
+        url = self.endpoint + ("/job/%s" % (job_result.job_id()))
+        res = requests.get(url, headers=self.text_headers)
+        result = json.loads(res.content.decode("utf-8"))
+        return JobResult(res.ok, result)
+
     def rabi(self, chip_name, qubit_id, start, stop, step, the_time):
         payload = {
             'type': 'pyquillow',
@@ -503,7 +539,7 @@ class QPUConnection(Connection):
             'time': the_time,
             'qcid': qubit_id
         }
-        res = self.post_json(payload)
+        res = self.post_job(payload)
         return res
 
     def ramsey(self, chip_name, qubit_id, start, stop, step, detuning):
@@ -516,7 +552,7 @@ class QPUConnection(Connection):
             'detuning': detuning,
             'qcid': qubit_id
         }
-        res = self.post_json(payload)
+        res = self.post_job(payload)
         return res
 
     def t1(self, chip_name, qubit_id, start, stop, num_pts):
@@ -528,7 +564,7 @@ class QPUConnection(Connection):
             'num_pts': num_pts,
             'qcid': qubit_id
         }
-        res = self.post_json(payload)
+        res = self.post_job(payload)
         return res
 
     def version(self):
@@ -561,3 +597,12 @@ class QPUConnection(Connection):
 
     def bit_string_probabilities(self, quil_program):
         return NotImplementedError
+
+
+class JobResult(object):
+    def __init__(self, success, result=None):
+        self.success = success
+        self.result = result
+
+    def job_id(self):
+        return self.result['jobId']
