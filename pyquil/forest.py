@@ -21,6 +21,7 @@ Module for facilitating connections to the QVM / QPU.
 from __future__ import print_function
 from requests.packages.urllib3.util import Retry
 from requests.adapters import HTTPAdapter
+from copy import deepcopy
 import requests
 import json
 import os
@@ -505,7 +506,7 @@ class QPUConnection(Connection):
             'x-api-key' : self.api_key,
             'x-user-id' : self.userId,
         }
-        self.text_headers = self.json_headers
+        self.text_headers = deepcopy(self.json_headers)
         self.text_headers['Content-Type'] = 'application/text; charset=utf-8'
 
     def post_job(self, program):
