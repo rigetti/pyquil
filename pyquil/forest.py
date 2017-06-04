@@ -330,7 +330,7 @@ class Connection(object):
         res = self.post_json(payload)
         return str(res.text)
 
-    def get_result(self, res):
+    def get_job(self, res):
         """
         Based on the job_id, this gets the result of a posted job.
         :param res:
@@ -517,6 +517,7 @@ class QPUConnection(Connection):
         message['jobId'] = ''
         message['results'] = ''
         url = self.endpoint + "/job"
+        print('posting', message)
         res = requests.post(url, json=message, headers=self.json_headers)
         result = json.loads(res.content.decode("utf-8"))
         return JobResult(res.ok, result)
@@ -613,3 +614,19 @@ class JobResult(object):
 
     def job_id(self):
         return self.result['jobId']
+
+    def get_results(self):
+        result = self.result['result']
+        experiment = self.result['program']['experiment']
+        if experiment in ['rabi', 'ramsey', 't1']:
+            x_axis = [rr[0] for rr in result]
+            amplitudes = [rr[1] for rr in result]
+            phases = [rr[2] for rr in result]
+            data_dict = {
+                'amplitudes': amplitudes,
+                'phases': phases,
+            }
+            if experiment is 'rabi':
+                data_dict['pulse_powers'] = x_axis
+            elif experiment is 'ramsey' or experiment is 't1':
+                data_dict['delays'] = x_axis
