@@ -111,6 +111,44 @@ def get_info():
     return config_json
 
 
+def get_rabi_params(device_name, qcid):
+    config_dict = get_info()
+    for qc in config_dict[device_name]['qubits']:
+        if qc['num'] == qcid:
+            rabi_params = qc['rabi_params']
+            return {
+                'start': rabi_params['start'],
+                'stop': rabi_params['stop'],
+                'step': rabi_params['step'],
+                'time': rabi_params['time'],
+            }
+
+
+def get_ramsey_params(device_name, qcid):
+    config_dict = get_info()
+    for qc in config_dict[device_name]['qubits']:
+        if qc['num'] == qcid:
+            ramsey_params = qc['ramsey_params']
+            return {
+                'start': ramsey_params['start'],
+                'stop': ramsey_params['stop'],
+                'step': ramsey_params['step'],
+                'detuning': ramsey_params['detuning'],
+            }
+
+
+def get_t1_params(device_name, qcid):
+    config_dict = get_info()
+    for qc in config_dict[device_name]['qubits']:
+        if qc['num'] == qcid:
+            t1_params = qc['t1_params']
+            return {
+                'start': t1_params['start'],
+                'stop': t1_params['stop'],
+                'num_pts': t1_params['num_pts'],
+            }
+
+
 def certificate(cert=HTTPS_CERT, key=HTTPS_KEY):
     """
     Return information about the location of the client certificate. This is used for
@@ -553,41 +591,35 @@ class QPUConnection(Connection):
         result = json.loads(res.content.decode("utf-8"))
         return JobResult(res.ok, result)
 
-    def rabi(self, qubit_id, start, stop, step, the_time):
-        payload = {
+    def rabi(self, qubit_id):
+        payload = get_rabi_params(self.device_name, qubit_id)
+        payload.update({
             'type': 'pyquillow',
             'experiment': 'rabi',
-            'start': start,
-            'stop': stop,
-            'step': step,
-            'time': the_time,
             'qcid': qubit_id
-        }
+
+        })
         res = self.post_job(payload)
         return res
 
-    def ramsey(self, qubit_id, start, stop, step, detuning):
-        payload = {
+    def ramsey(self, qubit_id):
+        payload = get_ramsey_params(self.device_name, qubit_id)
+        payload.update({
             'type': 'pyquillow',
             'experiment': 'ramsey',
-            'start': start,
-            'stop': stop,
-            'step': step,
-            'detuning': detuning,
             'qcid': qubit_id
-        }
+
+        })
         res = self.post_job(payload)
         return res
 
-    def t1(self, qubit_id, start, stop, num_pts):
-        payload = {
+    def t1(self, qubit_id):
+        payload = get_t1_params(self.device_name, qubit_id)
+        payload.update({
             'type': 'pyquillow',
             'experiment': 't1',
-            'start': start,
-            'stop': stop,
-            'num_pts': num_pts,
             'qcid': qubit_id
-        }
+        })
         res = self.post_job(payload)
         return res
 
