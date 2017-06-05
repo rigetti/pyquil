@@ -579,7 +579,7 @@ class QPUConnection(Connection):
         print('posting', message)
         res = requests.post(url, json=message, headers=self.json_headers)
         result = json.loads(res.content.decode("utf-8"))
-        return JobResult(self, res.ok, result)
+        return JobResult(self, message, res.ok, result)
 
     def get_job(self, job_result):
         """
@@ -660,6 +660,13 @@ class QPUConnection(Connection):
         return NotImplementedError
 
 
+RESULT_TYPES = {
+    'ramsey': RamseyResult,
+    'rabi': RabiResult,
+    't1': T1Result,
+}
+
+
 class JobResult(object):
     def __init__(self, qpu, success, result=None):
         """
@@ -681,3 +688,30 @@ class JobResult(object):
         self.success = success
         self.result = result
         return self
+
+    def plot(self):
+        raise NotImplementedError
+
+    @classmethod
+    def make_result(cls, message, qpu, success, result):
+        try:
+            type = message['program']['experiment']
+            result_class = RESULT_TYPES[type]
+            return result_class(qpu, success, result)
+        except KeyError:
+            return cls(qpu, success, result)
+
+
+class RamseyResult(JobResult):
+    def plot(self):
+        print({"RAMSEY": self.result})
+
+
+class RabiResult(JobResult):
+    def plot(self):
+        print({"RABI": self.result})
+
+
+class T1Result(JobResult):
+    def plot(self):
+        print({"T1": self.result})
