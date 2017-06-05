@@ -117,6 +117,22 @@ class Program(InstructionGroup):
         """
         return self.inst(MEASURE(qubit_index, classical_reg))
 
+    def measure_all(self, *qubit_reg_pairs):
+        """
+        Measures many qubits into their specified classical bits, in the order
+        they were entered.
+
+        :param Tuple qubit_reg_pairs: Tuples of qubit indices paired with classical bits.
+        :return: The Quil Program with the appropriate measure instructions appended, e.g.
+                  MEASURE 0 [1]
+                  MEASURE 1 [2]
+                  MEASURE 2 [3]
+        :rtype: Program
+        """
+        for qubit_index, classical_reg in qubit_reg_pairs:
+            self.inst(MEASURE(qubit_index, classical_reg))
+        return self
+
     def while_do(self, classical_reg, q_program):
         """
         While a classical register at index classical_reg is 1, loop q_program
