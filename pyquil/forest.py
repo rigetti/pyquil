@@ -275,7 +275,8 @@ class Connection(object):
     #################################################################################
 
     def __init__(self, endpoint=ENDPOINT, cert=HTTPS_CERT, key=HTTPS_KEY, api_key=API_KEY,
-                 gate_noise=None, measurement_noise=None, num_retries=3, random_seed=None):
+                 user_id=USER_ID, gate_noise=None, measurement_noise=None, num_retries=3,
+                 random_seed=None):
         """
         Constructor for Connection. Sets up any necessary security, and establishes the noise model
         to use.
@@ -315,6 +316,7 @@ class Connection(object):
         self.key_file = key
         self.cached_certificate = certificate(cert, key)
         self.api_key = api_key
+        self.userId = user_id
         if self.api_key:
             self.session.headers.update({'x-api-key': self.api_key})
         # Once these are set, they should not ever be cleared/changed/touched.
@@ -544,12 +546,10 @@ class Connection(object):
 
 class QPUConnection(Connection):
 
-    def __init__(self, chip_name, *args):
+    def __init__(self, device_name, *args):
         super(Connection, self).__init__(*args)
-        self.chip_name = chip_name
+        self.device_name = device_name
         # overloads the connection information with endpoints for the jobqueue
-        self.endpoint = "https://dev.rigetti.com/Beta"
-        self.userId = "3154a2d2-24bd-43bd-873f-f565255dac42"
         self.api_key = ""
         self.json_headers = {
             'Content-Type' : 'application/json; charset=utf-8',
