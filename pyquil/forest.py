@@ -579,7 +579,7 @@ class QPUConnection(Connection):
         print('posting', message)
         res = requests.post(url, json=message, headers=self.json_headers)
         result = json.loads(res.content.decode("utf-8"))
-        return JobResult(self, message, res.ok, result)
+        return JobResult.make_result(message, qpu=self, success=res.ok, result=result)
 
     def get_job(self, job_result):
         """
