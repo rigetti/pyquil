@@ -91,12 +91,24 @@ def env_or_config(env, name, default=None):
 
     return default
 
-
 # Set up the configuration.
 ENDPOINT = env_or_config('QVM_URL', 'url', default='https://api.rigetti.com/qvm')
 API_KEY = env_or_config('QVM_API_KEY', 'key')
 HTTPS_CERT = env_or_config('QVM_HTTPS_CERT', 'https_cert')
 HTTPS_KEY = env_or_config('QVM_HTTPS_KEY', 'https_key')
+USER_ID = env_or_config("QVM_USER_ID", 'user_id')
+
+
+def get_info():
+    url = ENDPOINT + "/config"
+    headers = {
+            'Content-Type' : 'application/json; charset=utf-8',
+            'x-api-key' : API_KEY,
+            'x-user-id' : USER_ID,
+    }
+    res = requests.get(url, headers=headers)
+    config_json = json.loads(res.content.decode("utf-8"))
+    return config_json
 
 
 def certificate(cert=HTTPS_CERT, key=HTTPS_KEY):
