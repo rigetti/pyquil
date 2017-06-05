@@ -17,7 +17,7 @@
 
 import pytest
 from pyquil.paulis import (PauliTerm, PauliSum, exponential_map, ID, exponentiate,
-                           trotterize, is_zero, check_commutation, commuting_sets,
+                           trotterize, is_zero, check_commutation, commuting_sets, sZ, sX
                            )
 from pyquil.quil import Program
 from pyquil.gates import RX, RZ, CNOT, H, X, PHASE
@@ -191,6 +191,19 @@ def test_ps_adds_pt_2():
     assert str(b) == "2.0*I"
     assert str(b + 1.0) == "3.0*I"
     assert str(1.0 + b) == "3.0*I"
+
+
+def test_pauliterm_sub():
+    assert str(sX(1) - 2.0) == str(sX(1) + -2.0)
+    assert str(1.4 - sZ(1)) == str(1.4 + -1.0 * sZ(1))
+
+
+def test_ps_sub():
+    term = 3 * ID
+    b = term - 1.0
+    assert str(b) == "2.0*I"
+    assert str(b - 1.0) == "1.0*I"
+    assert str(1.0 - b) == "-1.0*I"
 
 
 def test_zero_terms():
@@ -423,3 +436,17 @@ def test_commuting_sets():
     term3 = PauliTerm("Y", 0) * PauliTerm("Z", 2)
     pauli_sum = term1 + term2 + term3
     commuting_sets(pauli_sum, 3)
+
+
+def test_paulisum_iteration():
+    term_list = [sX(2), sZ(4)]
+    pauli_sum = sum(term_list)
+    for ii, term in enumerate(pauli_sum):
+        assert term_list[ii] == term
+
+
+def test_paulisum_indexing():
+    pauli_sum = 0.5 * sX(0) + 0.1 * sZ(1)
+    assert pauli_sum[0] == 0.5 * sX(0)
+    for ii, term in enumerate(pauli_sum.terms):
+        assert pauli_sum[ii] == term

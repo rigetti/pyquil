@@ -18,13 +18,15 @@
 Module for creating and defining Quil programs.
 """
 
-import copy
+
 
 from pyquil.quilbase import (InstructionGroup,
                              Addr,
                              While,
                              If,
                              DefGate,
+                             Gate,
+                             Measurement,
                              merge_resource_managers)
 
 from pyquil.gates import MEASURE
@@ -72,6 +74,24 @@ class Program(InstructionGroup):
         :return:
         """
         return self.actions.__iter__()
+
+    def get_qubits(self):
+        """
+        :return: a set of all the qubit indices allocated in this program, synthesizing freely
+        allocated qubits if neccessary.
+        :rtype: set
+        """
+        allocated_qubits = set()
+        self.synthesize()
+        for ii, action in self:
+            if isinstance(action, Gate):
+                qubit_indices = {qq.index() for qq in action.arguments}
+            elif isinstance(action, Measurement):
+                qubit_indices = {action.arguments[0].index()}
+            else:
+                continue
+            allocated_qubits = set.union(allocated_qubits, qubit_indices)
+        return allocated_qubits
 
     def defgate(self, name, matrix):
         """
