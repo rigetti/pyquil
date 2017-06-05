@@ -579,7 +579,7 @@ class QPUConnection(Connection):
         print('posting', message)
         res = requests.post(url, json=message, headers=self.json_headers)
         result = json.loads(res.content.decode("utf-8"))
-        return JobResult(res.ok, result)
+        return JobResult(self, res.ok, result)
 
     def get_job(self, job_result):
         """
@@ -589,7 +589,7 @@ class QPUConnection(Connection):
         url = self.endpoint + ("/job/%s" % (job_result.job_id()))
         res = requests.get(url, headers=self.text_headers)
         result = json.loads(res.content.decode("utf-8"))
-        return JobResult(res.ok, result)
+        return job_result.update(res.ok, result)
 
     def rabi(self, qubit_id):
         payload = get_rabi_params(self.device_name, qubit_id)
@@ -661,9 +661,23 @@ class QPUConnection(Connection):
 
 
 class JobResult(object):
-    def __init__(self, success, result=None):
+    def __init__(self, qpu, success, result=None):
+        """
+        :param QPUConnection qpu:
+        :param bool success:
+        :param dict result: JSON dictionary of the result message
+        """
+        self.qpu = qpu
         self.success = success
         self.result = result
 
     def job_id(self):
         return self.result['jobId']
+
+    def get(self):
+        return self.qpu.get_job(self)
+
+    def update(self, success, result):
+        self.success = success
+        self.result = result
+        return self
