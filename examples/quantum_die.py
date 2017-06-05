@@ -20,6 +20,7 @@ from functools import reduce
 import pyquil.quil as pq
 import pyquil.forest as forest
 from pyquil.gates import H
+from six.moves import range
 
 def qubits_needed(n):
     """
@@ -34,10 +35,10 @@ def die_program(n):
     prog = pq.Program()
     qubits = qubits_needed(n)
     # Hadamard initialize.
-    for q in xrange(qubits):
+    for q in range(qubits):
         prog.inst(H(q))
     # Measure everything.
-    for q in xrange(qubits):
+    for q in range(qubits):
         prog.measure(q, [q])
     return prog
 
@@ -57,7 +58,7 @@ def roll_die(n):
     """
     Roll an n-sided quantum die.
     """
-    addresses = range(qubits_needed(n))
+    addresses = list(range(qubits_needed(n)))
     if not n in dice:
         dice[n] = die_program(n)
     die = dice[n]
@@ -71,4 +72,4 @@ def roll_die(n):
 
 if __name__ == '__main__':
     while True:
-        print roll_die(16384)
+        print(roll_die(16384))

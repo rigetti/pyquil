@@ -53,6 +53,6 @@ if __name__ == "__main__":
     qvm = forest.Connection()
     outcomes = np.asarray(qvm.run(meyer_penny_program(), [0, 1], trials=n_trials))
 
-    print "Number of games: {}".format(n_trials)
-    print "Q's winning average: {}".format(outcomes[:, 0].mean())
-    print "Picard's flip-decision average: {}".format(outcomes[:, 1].mean())
+    print("Number of games: {}".format(n_trials))
+    print("Q's winning average: {}".format(outcomes[:, 0].mean()))
+    print("Picard's flip-decision average: {}".format(outcomes[:, 1].mean()))
