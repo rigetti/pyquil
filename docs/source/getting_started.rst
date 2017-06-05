@@ -40,9 +40,10 @@ Prerequisites
 ~~~~~~~~~~~~~
 
 Before you can start writing quantum programs, you will need Python 2.7
-(version 2.7.10 or greater) and the Python package manager pip. We recommend
+(version 2.7.10 or greater) or Python 3 (version 3.5 or greater)
+and the Python package manager pip. We recommend
 installing `Anaconda <https://www.continuum.io/downloads>`__ for an all-in-one
-installation of Python 2.7. If you don't have pip, it can be installed with
+installation of Python (2.7 or 3). If you don't have pip, it can be installed with
 ``easy_install pip``.
 
 Installation
