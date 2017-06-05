@@ -387,7 +387,8 @@ class PauliSum(object):
         """
         def coalesce(d):
             terms = []
-            for term_list in d.values():
+            for k in sorted(d):
+                term_list = d[k]
                 if (len(term_list) == 1 and not
                    np.isclose(term_list[0].coefficient, 0.0)):
                     terms.append(term_list[0])
