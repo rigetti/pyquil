@@ -521,6 +521,15 @@ class QPUConnection(Connection):
         self.text_headers = deepcopy(self.json_headers)
         self.text_headers['Content-Type'] = 'application/text; charset=utf-8'
 
+    def get_qubits(self):
+        """
+        :return: A list of active qubit ids on this device.
+        :rtype: list
+        """
+        config_dict = get_info()
+        device_config = config_dict[self.device_name]
+        return [qq['num'] for qq in device_config['qubits']]
+
     def post_job(self, program):
         message = {}
         message['machine'] = "QPU"
@@ -626,19 +635,3 @@ class JobResult(object):
 
     def job_id(self):
         return self.result['jobId']
-
-    def get_results(self):
-        result = self.result['result']
-        experiment = self.result['program']['experiment']
-        if experiment in ['rabi', 'ramsey', 't1']:
-            x_axis = [rr[0] for rr in result]
-            amplitudes = [rr[1] for rr in result]
-            phases = [rr[2] for rr in result]
-            data_dict = {
-                'amplitudes': amplitudes,
-                'phases': phases,
-            }
-            if experiment is 'rabi':
-                data_dict['pulse_powers'] = x_axis
-            elif experiment is 'ramsey' or experiment is 't1':
-                data_dict['delays'] = x_axis
