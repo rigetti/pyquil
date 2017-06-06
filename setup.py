@@ -19,7 +19,7 @@ from setuptools import setup
 
 setup(
     name = "pyquil",
-    version = "0.0.3",
+    version = "0.0.4",
     author = "Rigetti Computing",
     author_email = "softapps@rigetti.com",
     description = "A Python library to generate Quantum Instruction Language (Quil) Programs.",
