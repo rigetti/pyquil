@@ -1,7 +1,6 @@
 """
 Module containing the Wavefunction object and methods for working with wavefunctions.
 """
-import numpy as np
 
 
 class Wavefunction(object):
@@ -11,7 +10,9 @@ class Wavefunction(object):
         Initializes a wavefunction
         :param amplitude_vector: A numpy array of complex amplitudes
         """
-        # TODO assert that the length of the amplitudes vector is a power of 2
+        if len(amplitude_vector) == 0 or len(amplitude_vector) & (len(amplitude_vector) - 1) != 0:
+            raise TypeError("Amplitude vector must have a length that is a power of two")
+
         self.amplitudes = amplitude_vector
 
     def __len__(self):
@@ -95,7 +96,7 @@ class Wavefunction(object):
         :return: A Wavefunction in the ground state
         :rtype: Wavefunction
         """
-        container = np.zeros(2**qubit_num)
+        container = [0] * (2**qubit_num)
         container[0] = 1.0
         return cls(container)
 

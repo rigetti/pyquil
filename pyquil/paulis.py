@@ -498,6 +498,7 @@ def exponential_map(term):
         raise TypeError("PauliTerm coefficient must be real")
 
     coeff = term.coefficient.real
+    term.coefficient = term.coefficient.real
 
     def exp_wrap(param):
         prog = Program()
