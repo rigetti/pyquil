@@ -53,16 +53,16 @@ if __name__ == '__main__':
     # initialize qubit 0 in |1>
     teleport_demo = Program(X(0))
     teleport_demo += teleport(0, 2, 1)
-    print "Teleporting |1> state: ", qvm.run(teleport_demo, [2])
+    print("Teleporting |1> state: {}".format(qvm.run(teleport_demo, [2])))
 
     # initialize qubit 0 in |0>
     teleport_demo = Program()
     teleport_demo += teleport(0, 2, 1)
-    print "Teleporting |0> state: ", qvm.run(teleport_demo, [2])
+    print("Teleporting |0> state: {}".format(qvm.run(teleport_demo, [2])))
 
     # initialize qubit 0 in |+>
     teleport_demo = Program(H(0))
     teleport_demo += teleport(0, 2, 1)
-    print "Teleporting |+> state: ", qvm.run(teleport_demo, [2], 10)
+    print("Teleporting |+> state: {}".format(qvm.run(teleport_demo, [2], 10)))
 
-    print Program(X(0)).measure(0, 0).if_then(0, Program(X(1)))
+    print(Program(X(0)).measure(0, 0).if_then(0, Program(X(1))))

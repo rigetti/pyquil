@@ -67,8 +67,12 @@ class Slot(object):
     def __div__(self, val):
         return Slot(self, lambda: self.value() / val)
 
+    __truediv__ = __div__
+
     def __rdiv__(self, val):
         return Slot(self, lambda: val / self.value())
+
+    __rtruediv__ = __rdiv__
 
     def __neg__(self):
         return Slot(self, lambda: -self.value())

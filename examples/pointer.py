@@ -19,6 +19,7 @@ import numpy as np
 import pyquil.quil as pq
 from pyquil.gates import X
 from math import floor
+from six.moves import range
 
 
 def changed_bit_pos(a, b):
@@ -44,7 +45,7 @@ def gray(num_bits):
     x = 0
     n = 1 << num_bits
     while n > x:
-        bit_string = bin(n + x ^ x/2)[3:]
+        bit_string = bin(n + x ^ x//2)[3:]
         value = int(bit_string, 2)
         yield bit_string, value, changed_bit_pos(last, value)
         last = value
@@ -67,7 +68,7 @@ def fixup(p, data_bits, ptr_bits, bits_set):
     Flip back the pointer qubits that were previously flipped indicated by
     the flags `bits_set`.
     """
-    for i in xrange(ptr_bits):
+    for i in range(ptr_bits):
         if 0 != bits_set & (1 << i):
             p.inst(X(data_bits + i))
 
@@ -99,7 +100,7 @@ def pointer_gate(num_qubits, U):
 
     for _, target_qubit, changed in gray(ptr_bits):
         if changed is None:
-            for ptr_qubit in xrange(num_qubits - ptr_bits, num_qubits):
+            for ptr_qubit in range(num_qubits - ptr_bits, num_qubits):
                 p.inst(X(ptr_qubit))
                 ptr_state ^= 1 << (ptr_qubit - data_bits)
         else:
@@ -107,7 +108,7 @@ def pointer_gate(num_qubits, U):
             ptr_state ^= 1 << changed
 
         if target_qubit < data_bits:
-            control_qubits = tuple(data_bits + i for i in xrange(ptr_bits))
+            control_qubits = tuple(data_bits + i for i in range(ptr_bits))
             p.inst(("CU",) + control_qubits + (target_qubit,))
 
     fixup(p, data_bits, ptr_bits, ptr_state)
@@ -116,4 +117,4 @@ def pointer_gate(num_qubits, U):
 
 if __name__ == '__main__':
     H = np.matrix([[1, 1], [1, -1]])/np.sqrt(2)
-    print pointer_gate(11, H)
+    print(pointer_gate(11, H))

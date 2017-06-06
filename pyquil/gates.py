@@ -19,10 +19,10 @@ A lovely bunch of gates and instructions for programming with.  This module is u
 Pythonic sugar for Quil instructions.
 """
 
-from pyquil.quilbase import Measurement, Gate, Addr, \
-    Wait, Reset, Halt, Nop, \
-    ClassicalTrue, ClassicalFalse, ClassicalNot, ClassicalAnd, ClassicalOr, ClassicalMove, \
-    ClassicalExchange, DirectQubit, AbstractQubit, issubinstance
+from .quilbase import (Measurement, Gate, Addr, Wait, Reset, Halt, Nop, ClassicalTrue,
+                       ClassicalFalse, ClassicalNot, ClassicalAnd, ClassicalOr, ClassicalMove,
+                       ClassicalExchange, DirectQubit, AbstractQubit, issubinstance)
+from six import integer_types
 
 def unpack_classical_reg(c):
     """
@@ -31,7 +31,7 @@ def unpack_classical_reg(c):
     :param c: A list of length 1 or an int or an Addr.
     :return: The address as an Addr.
     """
-    if not isinstance(c, (int, list, Addr)):
+    if not (isinstance(c, integer_types) or isinstance(c,(list, Addr))):
         raise TypeError("c should be an int or list or Addr")
     if isinstance(c, list) and (len(c) != 1 or not isinstance(c[0], int)):
         raise ValueError("if c is a list, it should be of 1 int")
@@ -50,7 +50,7 @@ def unpack_qubit(qubit):
     :param qubit: An int or AbstractQubit.
     :return: An AbstractQubit instance
     """
-    if isinstance(qubit, int):
+    if isinstance(qubit, integer_types):
         return DirectQubit(qubit)
     elif not isinstance(qubit, AbstractQubit):
         raise TypeError("qubit should be an int or AbstractQubit instance")
@@ -64,9 +64,8 @@ def _make_gate(name, num_qubits, num_params=0):
         stray_qubits = []
         if len(params) < num_params:
             raise ValueError(
-                "Wrong number of params for {}. {} given, require {}.".format(name,
-                                                                              len(params),
-                                                                              num_params)
+                "Wrong number of params for {}. {} given, require {}."
+                    .format(name, len(params), num_params)
             )
         elif len(params) > num_params:
             stray_qubits = params[num_params:]
@@ -76,14 +75,13 @@ def _make_gate(name, num_qubits, num_params=0):
             qubits = stray_qubits + list(qubits)
             if len(qubits) != num_qubits:
                 raise ValueError(
-                    "Wrong number of qubits for {}. {} given, require {}.".format(name,
-                                                                                  len(qubits),
-                                                                                  num_qubits)
+                    "Wrong number of qubits for {}. {} given, require {}."
+                        .format(name, len(qubits), num_qubits)
                 )
-            return Gate(name, params, map(unpack_qubit, qubits))
+            return Gate(name, params, [unpack_qubit(q) for q in qubits])
 
         if len(stray_qubits) == num_qubits:
-            return Gate(name, params, map(unpack_qubit, stray_qubits))
+            return Gate(name, params, [unpack_qubit(q) for q in stray_qubits])
         else:
             return ctor
 

@@ -109,5 +109,5 @@ def get_bitstring_from_index(index, qubit_num):
     :rtype: str
     """
     if index > (2**qubit_num - 1):
-        raise IndexError, "Index {} too large for {} qubits.".format(index, qubit_num)
+        raise IndexError("Index {} too large for {} qubits.".format(index, qubit_num))
     return bin(index)[2:].rjust(qubit_num, '0')
