@@ -27,7 +27,6 @@ import json
 import os
 import os.path
 import sys
-import struct
 from six.moves.configparser import ConfigParser, NoOptionError, NoSectionError
 from six.moves import range
 from six import integer_types
