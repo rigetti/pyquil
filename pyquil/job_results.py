@@ -41,18 +41,9 @@ class JobResult(object):
         return str(self.result)
 
     @classmethod
-    def load(cls, message, qpu, success, result):
-        try:
-            type = message['program']['experiment']
-            result_class = RESULT_TYPES[type]
-            return result_class(qpu, success, result)
-        except KeyError:
-            return cls(qpu, success, result)
-
-    @classmethod
     def load_res(cls, qpu, response):
         result = json.loads(response.content.decode("utf-8"))
-        return JobResult(qpu, response.ok, result)
+        return cls(qpu, response.ok, result)
 
 
 class WavefunctionResult(JobResult):
@@ -100,13 +91,6 @@ class RabiResult(JobResult):
 
 class T1Result(JobResult):
     pass
-
-
-RESULT_TYPES = {
-    'ramsey': RamseyResult,
-    'rabi': RabiResult,
-    't1': T1Result,
-}
 
 
 def _round_to_next_multiple(n, m):

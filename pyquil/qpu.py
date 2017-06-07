@@ -5,6 +5,7 @@ import requests
 
 from pyquil.forest import Connection, JobResult, ENDPOINT, USER_ID, API_KEY
 import pyquil.quil as pq
+from pyquil.job_results import RamseyResult, RabiResult, T1Result
 
 class QPUConnection(Connection):
 
@@ -30,15 +31,6 @@ class QPUConnection(Connection):
         device_config = config_dict[self.device_name]
         return [qq['num'] for qq in device_config['qubits']]
 
-    def post_job(self, program):
-        message = {'machine': "QPU", 'program': program, 'userId': self.user_id, 'jobId': '',
-                   'results': ''}
-        url = self.endpoint + "/job"
-        print('posting', message)
-        res = requests.post(url, json=message, headers=self.json_headers)
-        result = json.loads(res.content.decode("utf-8"))
-        return JobResult.load(message, qpu=self, success=res.ok, result=result)
-
     def rabi(self, qubit_id):
         payload = get_rabi_params(self.device_name, qubit_id)
         payload.update({
@@ -48,7 +40,7 @@ class QPUConnection(Connection):
 
         })
         res = self.post_job(payload)
-        return res
+        return RabiResult.load_res(self, res)
 
     def ramsey(self, qubit_id):
         payload = get_ramsey_params(self.device_name, qubit_id)
@@ -59,7 +51,7 @@ class QPUConnection(Connection):
 
         })
         res = self.post_job(payload)
-        return res
+        return RamseyResult.load_res(self, res)
 
     def t1(self, qubit_id):
         payload = get_t1_params(self.device_name, qubit_id)
@@ -69,7 +61,7 @@ class QPUConnection(Connection):
             'qcid': qubit_id
         })
         res = self.post_job(payload)
-        return res
+        return T1Result.load_res(self, res)
 
     def version(self):
         """
@@ -106,6 +98,7 @@ class QPUConnection(Connection):
 
     def bit_string_probabilities(self, quil_program):
         return NotImplementedError
+
 
 def get_info():
     url = ENDPOINT + "/config"
