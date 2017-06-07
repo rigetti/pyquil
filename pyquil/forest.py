@@ -26,16 +26,14 @@ import requests
 import json
 import os
 import os.path
-import numpy as np
 import sys
 import struct
 from six.moves.configparser import ConfigParser, NoOptionError, NoSectionError
 from six.moves import range
 from six import integer_types
 
-
 import pyquil.quil as pq
-from pyquil.wavefunction import Wavefunction
+from pyquil.job_results import JobResult, WavefunctionResult
 
 USER_HOMEDIR = os.path.expanduser("~")
 
@@ -94,76 +92,7 @@ def env_or_config(env, name, default=None):
 # Set up the configuration.
 ENDPOINT = env_or_config('QVM_URL', 'url', default='https://api.rigetti.com/qvm')
 API_KEY = env_or_config('QVM_API_KEY', 'key')
-HTTPS_CERT = env_or_config('QVM_HTTPS_CERT', 'https_cert')
-HTTPS_KEY = env_or_config('QVM_HTTPS_KEY', 'https_key')
 USER_ID = env_or_config("QVM_USER_ID", 'user_id')
-
-
-def get_info():
-    url = ENDPOINT + "/config"
-    headers = {
-            'Content-Type' : 'application/json; charset=utf-8',
-            'x-api-key' : API_KEY,
-            'x-user-id' : USER_ID,
-    }
-    res = requests.get(url, headers=headers)
-    config_json = json.loads(res.content.decode("utf-8"))
-    return config_json
-
-
-def get_rabi_params(device_name, qcid):
-    config_dict = get_info()
-    for qc in config_dict[device_name]['qubits']:
-        if qc['num'] == qcid:
-            rabi_params = qc['rabi_params']
-            return {
-                'start': rabi_params['start'],
-                'stop': rabi_params['stop'],
-                'step': rabi_params['step'],
-                'time': rabi_params['time'],
-            }
-
-
-def get_ramsey_params(device_name, qcid):
-    config_dict = get_info()
-    for qc in config_dict[device_name]['qubits']:
-        if qc['num'] == qcid:
-            ramsey_params = qc['ramsey_params']
-            return {
-                'start': ramsey_params['start'],
-                'stop': ramsey_params['stop'],
-                'step': ramsey_params['step'],
-                'detuning': ramsey_params['detuning'],
-            }
-
-
-def get_t1_params(device_name, qcid):
-    config_dict = get_info()
-    for qc in config_dict[device_name]['qubits']:
-        if qc['num'] == qcid:
-            t1_params = qc['t1_params']
-            return {
-                'start': t1_params['start'],
-                'stop': t1_params['stop'],
-                'num_pts': t1_params['num_pts'],
-            }
-
-
-def certificate(cert=HTTPS_CERT, key=HTTPS_KEY):
-    """
-    Return information about the location of the client certificate. This is used for
-    HTTPS authentication with the Requests library.
-
-    :param cert: Certificate file or None (default HTTPS_CERT)
-    :param key: Key file or None (default HTTPS_KEY)
-    :return: Either None or a certificate file or a tuple of certificate and key files.
-    """
-    if cert is None:
-        return None
-    elif key is None:
-        return cert
-    else:
-        return cert, key
 
 
 def add_noise_to_payload(payload, gate_noise, measurement_noise):
@@ -223,40 +152,6 @@ def _validate_run_items(run_items):
         raise TypeError("run_items list must contain integer values")
 
 
-def _round_to_next_multiple(n, m):
-    """
-    Round up the the next multiple.
-
-    :param n: The number to round up.
-    :param m: The multiple.
-    :return: The rounded number
-    """
-    return n if n % m == 0 else n + m - n % m
-
-
-def _octet_bits(o):
-    """
-    Get the bits of an octet.
-
-    :param o: The octets.
-    :return: The bits as a list in LSB-to-MSB order.
-    :rtype: list
-    """
-    if not isinstance(o, integer_types):
-        raise TypeError("o should be an int")
-    if not (0 <= o <= 255):
-        raise ValueError("o should be between 0 and 255 inclusive")
-    bits = [0] * 8
-    for i in range(8):
-        if 1 == o & 1:
-            bits[i] = 1
-        o = o >> 1
-    return bits
-
-
-OCTETS_PER_DOUBLE_FLOAT = 8
-OCTETS_PER_COMPLEX_DOUBLE = 2 * OCTETS_PER_DOUBLE_FLOAT
-
 TYPE_EXPECTATION = "expectation"
 TYPE_MULTISHOT = "multishot"
 TYPE_MULTISHOT_MEASURE = "multishot-measure"
@@ -274,16 +169,15 @@ class Connection(object):
     #    for people like you to join our team: https://jobs.lever.co/rigetti
     #################################################################################
 
-    def __init__(self, endpoint=ENDPOINT, cert=HTTPS_CERT, key=HTTPS_KEY, api_key=API_KEY,
-                 user_id=USER_ID, gate_noise=None, measurement_noise=None, num_retries=3,
-                 random_seed=None):
+    def __init__(self, endpoint=ENDPOINT, api_key=API_KEY, user_id=USER_ID, gate_noise=None,
+                 measurement_noise=None, num_retries=3, random_seed=None):
         """
         Constructor for Connection. Sets up any necessary security, and establishes the noise model
         to use.
 
         :param endpoint: The endpoint of the server (default ENDPOINT)
-        :param cert: The certificate file or None (default HTTPS_CERT)
-        :param key: The key file or None (default HTTPS_KEY)
+        :param api_key: The key to the Forest API Gateway (default QVM_API_KEY)
+        :param user_id: Your userid for Forest (default QVM_USER_ID)
         :param gate_noise: A list of three numbers [Px, Py, Pz] indicating the probability of an X,
                            Y, or Z gate getting applied to each qubit after a gate application or
                            reset. (default None)
@@ -295,8 +189,13 @@ class Connection(object):
         :param random_seed: A seed for the QVM's random number generators. Either None (for an
                             automatically generated seed) or a non-negative integer.
         """
+        # Once these are set, they should not ever be cleared/changed/touched.
+        # Make a new Connection() if you need that.
         _validate_noise_probabilities(gate_noise)
         _validate_noise_probabilities(measurement_noise)
+        self.gate_noise = gate_noise
+        self.measurement_noise = measurement_noise
+
         self.session = requests.Session()
 
         # We need this to get binary payload for the wavefunction call.
@@ -312,17 +211,18 @@ class Connection(object):
         self.session.mount("https://", retry_adapter)
 
         self.endpoint = endpoint
-        self.certificate_file = cert
-        self.key_file = key
-        self.cached_certificate = certificate(cert, key)
         self.api_key = api_key
-        self.userId = user_id
-        if self.api_key:
-            self.session.headers.update({'x-api-key': self.api_key})
-        # Once these are set, they should not ever be cleared/changed/touched.
-        # Make a new Connection() if you need that.
-        self.gate_noise = gate_noise
-        self.measurement_noise = measurement_noise
+        self.user_id = user_id
+        self.json_headers = None
+        self.text_headers = None
+        if self.api_key or self.user_id:
+            self.json_headers = {
+                'Content-Type': 'application/json; charset=utf-8',
+                'x-api-key': self.api_key,
+                'x-user-id': self.user_id,
+            }
+            self.text_headers = deepcopy(self.json_headers)
+            self.text_headers['Content-Type'] = 'application/text; charset=utf-8'
 
         if random_seed is None:
             self.random_seed = None
@@ -331,18 +231,21 @@ class Connection(object):
         else:
             raise TypeError("random_seed should be None or a non-negative int or long.")
 
-    def post_json(self, j):
-        """
-        Post JSON to the QVM endpoint.
+        self.machine = 'QVM' # default to a QVM Machine Connection
 
-        :param j: JSON.
+    def post_json(self, jd, headers=None, route=""):
+        """
+        Post JSON to the Forest endpoint.
+
+        :param dict jd: JSON.
+        :param dict headers: The headers for the post request.
+        :param: str route: The route to append to the endpoint, e.g. "/job"
         :return: A non-error response.
         """
-
-        if self.cached_certificate is None:
-            res = self.session.post(self.endpoint, json=j)
-        else:
-            res = self.session.post(self.endpoint, json=j, cert=self.cached_certificate)
+        if headers is None:
+            headers = self.json_headers
+        url = self.endpoint + route
+        res = self.session.post(url, json=jd, headers=headers)
 
         # Print some nice info for internal server errors.
         if res.status_code == 500:
@@ -357,19 +260,54 @@ class Connection(object):
                   file=sys.stderr)
 
         res.raise_for_status()
-
         return res
+
+    def wrap_payload_into_message(self, payload):
+        """
+        Wraps the payload into a Forest query.
+
+        :param dict payload:
+        :return: A JSON dictionary to post as a Forest query.
+        """
+        message = {
+            'machine': self.machine,
+            'program': payload,
+            'userId': self.user_id,
+            'jobId': '',
+            'results': '',
+        }
+        return message
+
+    def post_job(self, program, headers=None):
+        """
+        Post a Job to the Forest endpoint.
+
+        :param program:
+        :param headers:
+        :return: A non-error response.
+        """
+        message = self.wrap_payload_into_message(program)
+        return self.post_json(message, headers, route="/job")
+
+    def get_job(self, job_result):
+        """
+        :param JobResult job_result:
+        :return: fills in the result in the JobResult object
+        """
+        url = self.endpoint + ("/job/%s" % (job_result.job_id()))
+        res = requests.get(url, headers=self.text_headers)
+        result = json.loads(res.content.decode("utf-8"))
+        return job_result.update(res.ok, result)
 
     def ping(self):
         """
-        Ping the QVM.
+        Ping Forest.
 
-        :return: Should get "pong" back.
+        :return: Should get "ok" back.
         :rtype: string
         """
-        payload = {"type": "ping"}
-        res = self.post_json(payload)
-        return str(res.text)
+        res = self.session.get(self.endpoint+"/check")
+        return str(json.loads(res.text)["rc"])
 
     def version(self):
         """
@@ -378,9 +316,8 @@ class Connection(object):
         :return: The current version of the QVM.
         :rtype: string
         """
-        payload = {"type": "version"}
-        res = self.post_json(payload)
-        return str(res.text)
+        raise DeprecationWarning, "Version checks have been deprecated."
+        return None
 
     def get_job(self, res):
         """
@@ -401,37 +338,8 @@ class Connection(object):
                  to the classical addresses.
         :rtype: tuple
         """
-
         if classical_addresses is None:
             classical_addresses = []
-
-        def recover_complexes(coef_string):
-            num_octets = len(coef_string)
-            num_addresses = len(classical_addresses)
-            num_memory_octets = _round_to_next_multiple(num_addresses, 8) // 8
-            num_wavefunction_octets = num_octets - num_memory_octets
-
-            # Parse the classical memory
-            mem = []
-            for i in range(num_memory_octets):
-                # Python 3 oddity: indexing coef_string with a single
-                # index returns an int. If you request a slice it keeps
-                # it as a bytestring.
-                octet = struct.unpack('B', coef_string[i:i+1])[0]
-                mem.extend(_octet_bits(octet))
-
-            mem = mem[0:num_addresses]
-
-            # Parse the wavefunction
-            wf = np.zeros(num_wavefunction_octets // OCTETS_PER_COMPLEX_DOUBLE, dtype=np.cfloat)
-            for i, p in enumerate(range(num_memory_octets, num_octets, OCTETS_PER_COMPLEX_DOUBLE)):
-                re_be = coef_string[p: p + OCTETS_PER_DOUBLE_FLOAT]
-                im_be = coef_string[p + OCTETS_PER_DOUBLE_FLOAT: p + OCTETS_PER_COMPLEX_DOUBLE]
-                re = struct.unpack('>d', re_be)[0]
-                im = struct.unpack('>d', im_be)[0]
-                wf[i] = complex(re, im)
-
-            return Wavefunction(wf), mem
 
         if not isinstance(quil_program, pq.Program):
             raise TypeError("quil_program must be a Quil program object")
@@ -443,9 +351,9 @@ class Connection(object):
         add_noise_to_payload(payload, self.gate_noise, self.measurement_noise)
         add_rng_seed_to_payload(payload, self.random_seed)
 
-        res = self.post_json(payload)
-
-        return recover_complexes(res.content)
+        res = self.post_job(payload, headers=self.json_headers)
+        result = json.loads(res.content.decode("utf-8"))
+        return WavefunctionResult(self, res.ok, result=result, payload=payload)
 
     def expectation(self, prep_prog, operator_programs=None):
         """
@@ -469,10 +377,8 @@ class Connection(object):
 
         add_rng_seed_to_payload(payload, self.random_seed)
 
-        res = self.post_json(payload)
-        result_overlaps = json.loads(res.text)
-
-        return result_overlaps
+        res = self.post_job(payload, headers=self.json_headers)
+        return JobResult.load_res(self, res)
 
     def bit_string_probabilities(self, quil_program):
         """
@@ -482,8 +388,7 @@ class Connection(object):
         :return: A dictionary with outcomes as keys and probabilities as values.
         :rtype: dict
         """
-        wvf, _ = self.wavefunction(quil_program)
-        return wvf.get_outcome_probs()
+        return DeprecationWarning, "This function is deprecated."
 
     def run(self, quil_program, classical_addresses, trials=1):
         """
@@ -511,9 +416,8 @@ class Connection(object):
         add_noise_to_payload(payload, self.gate_noise, self.measurement_noise)
         add_rng_seed_to_payload(payload, self.random_seed)
 
-        res = self.post_json(payload)
-
-        return json.loads(res.text)
+        res = self.post_job(payload, headers=self.json_headers)
+        return JobResult.load_res(self, res)
 
     def run_and_measure(self, quil_program, qubits, trials=1):
         """
@@ -539,179 +443,5 @@ class Connection(object):
         add_noise_to_payload(payload, self.gate_noise, self.measurement_noise)
         add_rng_seed_to_payload(payload, self.random_seed)
 
-        res = self.post_json(payload)
-
-        return json.loads(res.text)
-
-
-class QPUConnection(Connection):
-
-    def __init__(self, device_name, *args):
-        super(Connection, self).__init__(*args)
-        self.device_name = device_name
-        # overloads the connection information with endpoints for the jobqueue
-        self.api_key = ""
-        self.json_headers = {
-            'Content-Type' : 'application/json; charset=utf-8',
-            'x-api-key' : self.api_key,
-            'x-user-id' : self.userId,
-        }
-        self.text_headers = deepcopy(self.json_headers)
-        self.text_headers['Content-Type'] = 'application/text; charset=utf-8'
-
-    def get_qubits(self):
-        """
-        :return: A list of active qubit ids on this device.
-        :rtype: list
-        """
-        config_dict = get_info()
-        device_config = config_dict[self.device_name]
-        return [qq['num'] for qq in device_config['qubits']]
-
-    def post_job(self, program):
-        message = {}
-        message['machine'] = "QPU"
-        message['program'] = program
-        message['userId'] = self.userId
-        message['jobId'] = ''
-        message['results'] = ''
-        url = self.endpoint + "/job"
-        print('posting', message)
-        res = requests.post(url, json=message, headers=self.json_headers)
-        result = json.loads(res.content.decode("utf-8"))
-        return JobResult.make_result(message, qpu=self, success=res.ok, result=result)
-
-    def get_job(self, job_result):
-        """
-        :param JobResult job_result:
-        :return: fills in the result in the JobResult object
-        """
-        url = self.endpoint + ("/job/%s" % (job_result.job_id()))
-        res = requests.get(url, headers=self.text_headers)
-        result = json.loads(res.content.decode("utf-8"))
-        return job_result.update(res.ok, result)
-
-    def rabi(self, qubit_id):
-        payload = get_rabi_params(self.device_name, qubit_id)
-        payload.update({
-            'type': 'pyquillow',
-            'experiment': 'rabi',
-            'qcid': qubit_id
-
-        })
-        res = self.post_job(payload)
-        return res
-
-    def ramsey(self, qubit_id):
-        payload = get_ramsey_params(self.device_name, qubit_id)
-        payload.update({
-            'type': 'pyquillow',
-            'experiment': 'ramsey',
-            'qcid': qubit_id
-
-        })
-        res = self.post_job(payload)
-        return res
-
-    def t1(self, qubit_id):
-        payload = get_t1_params(self.device_name, qubit_id)
-        payload.update({
-            'type': 'pyquillow',
-            'experiment': 't1',
-            'qcid': qubit_id
-        })
-        res = self.post_job(payload)
-        return res
-
-    def version(self):
-        """
-        This returns a JSON blob with some information about the currently available chip, e.g.
-        number of qubits, t1, t2, and whether the chip is live for execution or not.
-        :return:
-        """
-        payload = {
-            'type': 'pyquillow',
-            'experiment': 'version_query'
-        }
-        res = self.post_job(payload)
-        return res
-
-    def ping(self):
-        """
-        This returns a JSON blob with some information about the currently available chip, e.g.
-        number of qubits, t1, t2, and whether the chip is live for execution or not.
-        :return:
-        """
-        return self.version()
-
-    def wavefunction(self, quil_program, classical_addresses=[]):
-        return NotImplementedError
-
-    def run(self, quil_program, classical_addresses, trials=1):
-        return NotImplementedError
-
-    def run_and_measure(self, quil_program, qubits, trials=1):
-        return NotImplementedError
-
-    def expectation(self, prep_prog, operator_programs=[pq.Program()]):
-        return NotImplementedError
-
-    def bit_string_probabilities(self, quil_program):
-        return NotImplementedError
-
-
-RESULT_TYPES = {
-    'ramsey': RamseyResult,
-    'rabi': RabiResult,
-    't1': T1Result,
-}
-
-
-class JobResult(object):
-    def __init__(self, qpu, success, result=None):
-        """
-        :param QPUConnection qpu:
-        :param bool success:
-        :param dict result: JSON dictionary of the result message
-        """
-        self.qpu = qpu
-        self.success = success
-        self.result = result
-
-    def job_id(self):
-        return self.result['jobId']
-
-    def get(self):
-        return self.qpu.get_job(self)
-
-    def update(self, success, result):
-        self.success = success
-        self.result = result
-        return self
-
-    def plot(self):
-        raise NotImplementedError
-
-    @classmethod
-    def make_result(cls, message, qpu, success, result):
-        try:
-            type = message['program']['experiment']
-            result_class = RESULT_TYPES[type]
-            return result_class(qpu, success, result)
-        except KeyError:
-            return cls(qpu, success, result)
-
-
-class RamseyResult(JobResult):
-    def plot(self):
-        print({"RAMSEY": self.result})
-
-
-class RabiResult(JobResult):
-    def plot(self):
-        print({"RABI": self.result})
-
-
-class T1Result(JobResult):
-    def plot(self):
-        print({"T1": self.result})
+        res = self.post_job(payload, headers=self.json_headers)
+        return JobResult.load_res(self, res)
