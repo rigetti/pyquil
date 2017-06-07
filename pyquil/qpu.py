@@ -1,6 +1,5 @@
 from copy import deepcopy
 import json
-
 import requests
 
 from pyquil.forest import Connection, ENDPOINT, USER_ID, API_KEY
@@ -8,20 +7,16 @@ import pyquil.quil as pq
 from pyquil.job_results import RamseyResult, RabiResult, T1Result
 
 
+class NoParametersFoundException(Exception):
+    pass
+
+
 class QPUConnection(Connection):
 
     def __init__(self, device_name, *args):
-        super(Connection, self).__init__(*args)
+        super(QPUConnection, self).__init__(*args)
         self.device_name = device_name
-        # overloads the connection information with endpoints for the jobqueue
-        self.api_key = ""
-        self.json_headers = {
-            'Content-Type' : 'application/json; charset=utf-8',
-            'x-api-key' : self.api_key,
-            'x-user-id' : self.user_id,
-        }
-        self.text_headers = deepcopy(self.json_headers)
-        self.text_headers['Content-Type'] = 'application/text; charset=utf-8'
+        self.machine = "QPU"
 
     def get_qubits(self):
         """
@@ -38,7 +33,6 @@ class QPUConnection(Connection):
             'type': 'pyquillow',
             'experiment': 'rabi',
             'qcid': qubit_id
-
         })
         res = self.post_job(payload)
         return RabiResult.load_res(self, res)
@@ -113,39 +107,49 @@ def get_info():
     return config_json
 
 
-def get_rabi_params(device_name, qcid):
+def get_params(device_name, qcid, func):
     config_dict = get_info()
-    for qc in config_dict[device_name]['qubits']:
+    try:
+        device_config = filter(lambda dd: dd['name'] == device_name, config_dict['devices'])[0]
+        device_config = device_config['qubits']
+    except (KeyError, IndexError):
+        raise NoParametersFoundException, "Device with name {} not found.".format(device_name)
+    for qc in device_config:
         if qc['num'] == qcid:
-            rabi_params = qc['rabi_params']
-            return {
-                'start': rabi_params['start'],
-                'stop': rabi_params['stop'],
-                'step': rabi_params['step'],
-                'time': rabi_params['time'],
-            }
+            return func(qc)
+    raise NoParametersFoundException
+
+
+def get_rabi_params(device_name, qcid):
+    def rabi_parse(qc):
+        rabi_params = qc['rabi_params']
+        return {
+            'start': rabi_params['start'],
+            'stop': rabi_params['stop'],
+            'step': rabi_params['step'],
+            'time': rabi_params['time'],
+        }
+    return get_params(device_name, qcid, rabi_parse)
 
 
 def get_ramsey_params(device_name, qcid):
-    config_dict = get_info()
-    for qc in config_dict[device_name]['qubits']:
-        if qc['num'] == qcid:
-            ramsey_params = qc['ramsey_params']
-            return {
-                'start': ramsey_params['start'],
-                'stop': ramsey_params['stop'],
-                'step': ramsey_params['step'],
-                'detuning': ramsey_params['detuning'],
-            }
+    def ramsey_parse(qc):
+        ramsey_params = qc['ramsey_params']
+        return {
+            'start': ramsey_params['start'],
+            'stop': ramsey_params['stop'],
+            'step': ramsey_params['step'],
+            'detuning': ramsey_params['detuning'],
+        }
+    return get_params(device_name, qcid, ramsey_parse)
 
 
 def get_t1_params(device_name, qcid):
-    config_dict = get_info()
-    for qc in config_dict[device_name]['qubits']:
-        if qc['num'] == qcid:
-            t1_params = qc['t1_params']
-            return {
-                'start': t1_params['start'],
-                'stop': t1_params['stop'],
-                'num_pts': t1_params['num_pts'],
-            }
+    def t1_parse(qc):
+        t1_params = qc['t1_params']
+        return {
+            'start': t1_params['start'],
+            'stop': t1_params['stop'],
+            'num_pts': t1_params['num_pts'],
+        }
+    return get_params(device_name, qcid, t1_parse)
