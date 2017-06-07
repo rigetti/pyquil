@@ -3,9 +3,10 @@ import json
 
 import requests
 
-from pyquil.forest import Connection, JobResult, ENDPOINT, USER_ID, API_KEY
+from pyquil.forest import Connection, ENDPOINT, USER_ID, API_KEY
 import pyquil.quil as pq
 from pyquil.job_results import RamseyResult, RabiResult, T1Result
+
 
 class QPUConnection(Connection):
 
