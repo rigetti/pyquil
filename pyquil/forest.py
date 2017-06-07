@@ -33,7 +33,7 @@ from six.moves import range
 from six import integer_types
 
 import pyquil.quil as pq
-from pyquil.job_results import JobResult, WavefunctionResult
+from pyquil.job_results import JobResult, WavefunctionResult, recover_complexes
 
 USER_HOMEDIR = os.path.expanduser("~")
 
@@ -319,13 +319,12 @@ class Connection(object):
         raise DeprecationWarning, "Version checks have been deprecated."
         return None
 
-    def get_job(self, res):
-        """
-        Based on the job_id, this gets the result of a posted job.
-        :param res:
-        :return:
-        """
-        pass
+    def process_response(self, res):
+        return JobResult.load_res(self, res)
+
+    def process_wavefunction_response(self, res, payload):
+        result = json.loads(res.content.decode("utf-8"))
+        return WavefunctionResult(self, res.ok, result=result, payload=payload)
 
     def wavefunction(self, quil_program, classical_addresses=None):
         """
@@ -352,8 +351,7 @@ class Connection(object):
         add_rng_seed_to_payload(payload, self.random_seed)
 
         res = self.post_job(payload, headers=self.json_headers)
-        result = json.loads(res.content.decode("utf-8"))
-        return WavefunctionResult(self, res.ok, result=result, payload=payload)
+        return self.process_wavefunction_response(res, payload)
 
     def expectation(self, prep_prog, operator_programs=None):
         """
@@ -378,7 +376,7 @@ class Connection(object):
         add_rng_seed_to_payload(payload, self.random_seed)
 
         res = self.post_job(payload, headers=self.json_headers)
-        return JobResult.load_res(self, res)
+        return self.process_response(res)
 
     def bit_string_probabilities(self, quil_program):
         """
@@ -417,7 +415,7 @@ class Connection(object):
         add_rng_seed_to_payload(payload, self.random_seed)
 
         res = self.post_job(payload, headers=self.json_headers)
-        return JobResult.load_res(self, res)
+        return self.process_response(res)
 
     def run_and_measure(self, quil_program, qubits, trials=1):
         """
@@ -444,4 +442,46 @@ class Connection(object):
         add_rng_seed_to_payload(payload, self.random_seed)
 
         res = self.post_job(payload, headers=self.json_headers)
-        return JobResult.load_res(self, res)
+        return self.process_response(res)
+
+
+class LocalConnection(Connection):
+
+    def ping(self):
+        """
+        Ping the QVM.
+        :return: Should get "pong" back.
+        :rtype: string
+        """
+        payload = {"type": "ping"}
+        res = self.post_json(payload)
+        return str(res.text)
+
+    def version(self):
+        """
+        Query the QVM version.
+        :return: The current version of the QVM.
+        :rtype: string
+        """
+        payload = {"type": "version"}
+        res = self.post_json(payload)
+        return str(res.text)
+
+    def post_job(self, program, headers=None):
+        """
+        Post a Job to the local QVM endpoint.
+
+        :param program:
+        :param headers:
+        :return: A non-error response.
+        """
+        return self.post_json(program, headers)
+
+    def process_response(self, res):
+        return json.loads(res.text)
+
+    def process_wavefunction_response(self, res, payload):
+        return recover_complexes(res.content, classical_addresses=payload['addresses'])
+
+    def get_job(self, job_result):
+        raise NotImplementedError

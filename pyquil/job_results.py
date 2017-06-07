@@ -51,34 +51,35 @@ class WavefunctionResult(JobResult):
     def decode(self):
         string_result = self.result['result']
         coef_string = base64.b64decode(string_result.encode("utf-8"))
-        wvf, classical_mem = self.recover_complexes(coef_string=coef_string)
+        wvf, classical_mem = recover_complexes(coef_string=coef_string,
+                                               classical_addresses=self.payload['addresses'])
         return wvf, classical_mem
 
-    def recover_complexes(self, coef_string):
-        classical_addresses = self.payload['addresses']
-        num_octets = len(coef_string)
-        num_addresses = len(classical_addresses)
-        num_memory_octets = _round_to_next_multiple(num_addresses, 8) / 8
-        num_wavefunction_octets = num_octets - num_memory_octets
 
-        # Parse the classical memory
-        mem = []
-        for i in range(num_memory_octets):
-            octet = struct.unpack('B', coef_string[i])[0]
-            mem.extend(_octet_bits(octet))
+def recover_complexes(coef_string, classical_addresses):
+    num_octets = len(coef_string)
+    num_addresses = len(classical_addresses)
+    num_memory_octets = _round_to_next_multiple(num_addresses, 8) / 8
+    num_wavefunction_octets = num_octets - num_memory_octets
 
-        mem = mem[0:num_addresses]
+    # Parse the classical memory
+    mem = []
+    for i in range(num_memory_octets):
+        octet = struct.unpack('B', coef_string[i])[0]
+        mem.extend(_octet_bits(octet))
 
-        # Parse the wavefunction
-        wf = np.zeros(num_wavefunction_octets / OCTETS_PER_COMPLEX_DOUBLE, dtype=np.cfloat)
-        for i, p in enumerate(range(num_memory_octets, num_octets, OCTETS_PER_COMPLEX_DOUBLE)):
-            re_be = coef_string[p: p + OCTETS_PER_DOUBLE_FLOAT]
-            im_be = coef_string[p + OCTETS_PER_DOUBLE_FLOAT: p + OCTETS_PER_COMPLEX_DOUBLE]
-            re = struct.unpack('>d', re_be)[0]
-            im = struct.unpack('>d', im_be)[0]
-            wf[i] = complex(re, im)
+    mem = mem[0:num_addresses]
 
-        return Wavefunction(wf), mem
+    # Parse the wavefunction
+    wf = np.zeros(num_wavefunction_octets / OCTETS_PER_COMPLEX_DOUBLE, dtype=np.cfloat)
+    for i, p in enumerate(range(num_memory_octets, num_octets, OCTETS_PER_COMPLEX_DOUBLE)):
+        re_be = coef_string[p: p + OCTETS_PER_DOUBLE_FLOAT]
+        im_be = coef_string[p + OCTETS_PER_DOUBLE_FLOAT: p + OCTETS_PER_COMPLEX_DOUBLE]
+        re = struct.unpack('>d', re_be)[0]
+        im = struct.unpack('>d', im_be)[0]
+        wf[i] = complex(re, im)
+
+    return Wavefunction(wf), mem
 
 
 class RamseyResult(JobResult):
