@@ -30,7 +30,7 @@ class MockPostJson(object):
     def __init__(self):
         self.return_value = Mock()
 
-    def __call__(self, payload):
+    def __call__(self, payload, route):
         json.dumps(payload)
         return self.return_value
 
