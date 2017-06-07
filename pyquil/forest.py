@@ -320,9 +320,21 @@ class Connection(object):
         return None
 
     def process_response(self, res):
+        """
+        :param res: A response object from a request
+        :return: A JobResult filled in with the response data
+        :rtype: JobResult
+        """
         return JobResult.load_res(self, res)
 
     def process_wavefunction_response(self, res, payload):
+        """
+        Wavefunctions are processed differently as they are byte encoded.
+        :param res: A response object from a request
+        :param payload: The payload that was used to make that request
+        :return: A WavefunctionResult with the response data filled in
+        :rtype: WavefunctionResult
+        """
         result = json.loads(res.content.decode("utf-8"))
         return WavefunctionResult(self, res.ok, result=result, payload=payload)
 
@@ -478,9 +490,19 @@ class LocalConnection(Connection):
         return self.post_json(program, headers)
 
     def process_response(self, res):
+        """
+        :param res: A response object from a request
+        :return: The json dictionary of the response
+        :rtype: dict
+        """
         return json.loads(res.text)
 
     def process_wavefunction_response(self, res, payload):
+        """
+        :param res: A response object from a request
+        :return: The json dictionary of the response
+        :rtype: dict
+        """
         return recover_complexes(res.content, classical_addresses=payload['addresses'])
 
     def get_job(self, job_result):
