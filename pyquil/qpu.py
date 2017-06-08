@@ -58,14 +58,6 @@ class QPUConnection(Connection):
         res = self.post_job(payload)
         return T1Result.load_res(self, res)
 
-    def version(self):
-        """
-        This returns a JSON blob with some information about the currently available chip, e.g.
-        number of qubits, t1, t2, and whether the chip is live for execution or not.
-        :return:
-        """
-        raise NotImplementedError
-
     def wavefunction(self, quil_program, classical_addresses=[]):
         return NotImplementedError
 
