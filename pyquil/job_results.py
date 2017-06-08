@@ -1,6 +1,7 @@
 import base64
 import json
 import struct
+import time
 
 from six import integer_types
 import numpy as np
@@ -9,6 +10,13 @@ from pyquil.wavefunction import Wavefunction
 
 OCTETS_PER_DOUBLE_FLOAT = 8
 OCTETS_PER_COMPLEX_DOUBLE = 2 * OCTETS_PER_DOUBLE_FLOAT
+
+
+def wait_for_job(res, ping_time=0.5):
+    while not res.is_done():
+        res.get()
+        time.sleep(ping_time)
+    return res
 
 
 class JobResult(object):
@@ -22,6 +30,9 @@ class JobResult(object):
         self.success = success
         self.result = result
         self.payload = payload
+
+    def is_done(self):
+        return 'result' in self.result
 
     def job_id(self):
         return self.result['jobId']
