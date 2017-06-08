@@ -64,20 +64,7 @@ class QPUConnection(Connection):
         number of qubits, t1, t2, and whether the chip is live for execution or not.
         :return:
         """
-        payload = {
-            'type': 'pyquillow',
-            'experiment': 'version_query'
-        }
-        res = self.post_job(payload)
-        return res
-
-    def ping(self):
-        """
-        This returns a JSON blob with some information about the currently available chip, e.g.
-        number of qubits, t1, t2, and whether the chip is live for execution or not.
-        :return:
-        """
-        return self.version()
+        raise NotImplementedError
 
     def wavefunction(self, quil_program, classical_addresses=[]):
         return NotImplementedError
