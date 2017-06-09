@@ -27,7 +27,7 @@ from .quilbase import (InstructionGroup,
                        Measurement,
                        merge_resource_managers)
 
-from .gates import MEASURE
+from .gates import MEASURE, STANDARD_GATES
 
 
 class Program(InstructionGroup):
@@ -164,6 +164,24 @@ class Program(InstructionGroup):
         branch.Else.inst(else_program)
         return self.inst(branch)
 
+    def inverse(self):
+        inverted = Program()
+        for gate in self.defined_gates:
+            inverted.defgate(gate.operator_name + "-INVERSE", gate.matrix.T.conj())
+
+        for action in self.actions:
+            gate = action[1]
+            assert not isinstance(gate, Measurement), "Measurements are irreversible"
+
+            if gate.operator_name in STANDARD_GATES:
+                pass # TODO
+            else:
+                gate_inv_name = gate.operator_name + "-INVERSE"
+                gate_inv = [g for g in self.defined_gates if g.operator_name == gate_inv_name][0]
+                inverted.inst(tuple([gate_inv] + gate.parameters))
+
+
+
     def out(self):
         """
         Converts the Quil program to a readable string.
@@ -177,7 +195,6 @@ class Program(InstructionGroup):
             s += "\n"
         s += super(Program, self).out()
         return s
-
 
 def merge_programs(prog_list):
     """
