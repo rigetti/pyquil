@@ -18,7 +18,7 @@
 import math
 from functools import reduce
 import pyquil.quil as pq
-import pyquil.forest as forest
+import pyquil.api as forest
 from pyquil.gates import H
 from six.moves import range
 

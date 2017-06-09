@@ -16,7 +16,7 @@
 ##############################################################################
 
 from pyquil.quil import Program
-import pyquil.forest as forest
+import pyquil.api as forest
 from pyquil.gates import X, Z, H, CNOT
 
 

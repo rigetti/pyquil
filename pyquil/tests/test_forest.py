@@ -21,7 +21,7 @@ import json
 from mock import Mock
 import numpy as np
 
-import pyquil.forest as qvm
+import pyquil.api as qvm
 import pyquil.quil as pq
 from pyquil.gates import *
 

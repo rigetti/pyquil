@@ -45,7 +45,7 @@ import os
 
 def remove_secrets(app, what, name, obj, options, signature, return_annotation):
     if what == "class" and name == "pyquil.forest.Connection":
-        import pyquil.forest as pqf
+        import pyquil.api as pqf
         print("Replacing endpoint secrets in pyquil.forest.Connection() signature")
         print(signature,)
         signature = signature.replace("'{}'".format(pqf.ENDPOINT), "ENDPOINT")

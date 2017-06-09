@@ -2,7 +2,7 @@ from copy import deepcopy
 import json
 import requests
 
-from pyquil.forest import Connection, ENDPOINT, USER_ID, API_KEY
+from pyquil.api import Connection, ENDPOINT, USER_ID, API_KEY
 import pyquil.quil as pq
 from pyquil.job_results import RamseyResult, RabiResult, T1Result
 
