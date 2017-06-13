@@ -30,7 +30,7 @@ from math import pi, sqrt
 
 
 def test_make_connection():
-    qvm_endpoint.Connection()
+    qvm_endpoint.JobConnection()
 
 
 def test_gate():

@@ -157,7 +157,7 @@ TYPE_MULTISHOT_MEASURE = "multishot-measure"
 TYPE_WAVEFUNCTION = "wavefunction"
 
 
-class Connection(object):
+class JobConnection(object):
     """
     Represents a connection to the QVM.
     """
@@ -171,8 +171,8 @@ class Connection(object):
     def __init__(self, endpoint=ENDPOINT, api_key=API_KEY, user_id=USER_ID, gate_noise=None,
                  measurement_noise=None, num_retries=3, random_seed=None):
         """
-        Constructor for Connection. Sets up any necessary security, and establishes the noise model
-        to use.
+        Constructor for JobConnection. Sets up any necessary security, and establishes the noise
+        model to use.
 
         :param endpoint: The endpoint of the server (default ENDPOINT)
         :param api_key: The key to the Forest API Gateway (default QVM_API_KEY)
@@ -189,7 +189,7 @@ class Connection(object):
                             automatically generated seed) or a non-negative integer.
         """
         # Once these are set, they should not ever be cleared/changed/touched.
-        # Make a new Connection() if you need that.
+        # Make a new JobConnection() if you need that.
         _validate_noise_probabilities(gate_noise)
         _validate_noise_probabilities(measurement_noise)
         self.gate_noise = gate_noise
@@ -456,7 +456,10 @@ class Connection(object):
         return self.process_response(res)
 
 
-class LocalConnection(Connection):
+class SyncConnection(JobConnection):
+    """
+    The SyncConnection makes a synchronous connection to the Forest API.
+    """
 
     def ping(self):
         """
@@ -480,7 +483,7 @@ class LocalConnection(Connection):
 
     def post_job(self, program, headers=None):
         """
-        Post a Job to the local QVM endpoint.
+        Post a synchronous Job to the QVM endpoint.
 
         :param program:
         :param headers:

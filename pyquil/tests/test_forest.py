@@ -37,7 +37,7 @@ class MockPostJson(object):
 
 @pytest.fixture
 def cxn():
-    c = qvm.LocalConnection()
+    c = qvm.SyncConnection()
     c.post_json = MockPostJson()
     c.post_json.return_value.text = json.dumps("Success")
     c.measurement_noise = 1

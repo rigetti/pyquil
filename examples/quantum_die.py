@@ -52,7 +52,7 @@ BATCH_SIZE = 10
 
 dice = {}
 
-CXN = forest.Connection()
+CXN = forest.JobConnection()
 
 def roll_die(n):
     """

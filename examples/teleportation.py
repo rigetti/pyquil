@@ -48,7 +48,7 @@ def teleport(start_index, end_index, ancilla_index):
 
 
 if __name__ == '__main__':
-    qvm = forest.Connection()
+    qvm = forest.JobConnection()
 
     # initialize qubit 0 in |1>
     teleport_demo = Program(X(0))

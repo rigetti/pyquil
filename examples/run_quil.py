@@ -7,7 +7,7 @@ from argparse import ArgumentParser, ArgumentDefaultsHelpFormatter
 from pyquil.quil import Program
 import pyquil.api as forest
 
-qvm = forest.Connection()
+qvm = forest.JobConnection()
 
 help_string = "Script takes two arguments. Quil program filename is required as the first " \
               "argument and number of classical registers to return is the optional second " \

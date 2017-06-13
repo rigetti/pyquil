@@ -2,7 +2,7 @@ from copy import deepcopy
 import json
 import requests
 
-from pyquil.api import Connection, ENDPOINT, USER_ID, API_KEY
+from pyquil.api import JobConnection, ENDPOINT, USER_ID, API_KEY
 import pyquil.quil as pq
 from pyquil.job_results import RamseyResult, RabiResult, T1Result
 
@@ -11,7 +11,7 @@ class NoParametersFoundException(Exception):
     pass
 
 
-class QPUConnection(Connection):
+class QPUConnection(JobConnection):
 
     def __init__(self, device_name, *args):
         super(QPUConnection, self).__init__(*args)
