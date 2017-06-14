@@ -28,6 +28,7 @@ from .quilbase import (InstructionGroup,
                        merge_resource_managers)
 
 from .gates import MEASURE, STANDARD_GATES
+from math import pi
 
 
 class Program(InstructionGroup):
@@ -164,23 +165,41 @@ class Program(InstructionGroup):
         branch.Else.inst(else_program)
         return self.inst(branch)
 
-    def inverse(self):
-        inverted = Program()
-        for gate in self.defined_gates:
-            inverted.defgate(gate.operator_name + "-INVERSE", gate.matrix.T.conj())
+    def dagger(self):
+        """
+        Creates the conjugate transpose of the Quil program. The program must not
+        contain any irreversible actions (measurement, control flow, qubit allocation).
 
-        for action in self.actions:
+        :return: The Quil program's inverse
+        :rtype: Program
+        """
+
+        daggered = Program()
+        for gate in self.defined_gates:
+            daggered.defgate(gate.name + "-INV", gate.matrix.T.conj())
+
+        for action in self.actions[::-1]:
+            assert action[0] == 0, "Program cannot allocate qubits"
             gate = action[1]
-            assert not isinstance(gate, Measurement), "Measurements are irreversible"
+            assert not isinstance(gate, Measurement), "Program cannot contain measurements"
+            assert not isinstance(gate, While) and not isinstance(gate, If),\
+                "Program cannot contain control flow"
 
             if gate.operator_name in STANDARD_GATES:
-                pass # TODO
+                if gate.operator_name == "S":
+                    daggered.inst(STANDARD_GATES["RZ"](-pi / 2, *gate.arguments))
+                elif gate.operator_name == "T":
+                    daggered.inst(STANDARD_GATES["RZ"](-pi / 4, *gate.arguments))
+                elif gate.operator_name == "ISWAP":
+                    daggered.inst(STANDARD_GATES["PSWAP"](pi / 2, *gate.arguments))
+                else:
+                    negated_params = map(lambda x : -1*x, gate.parameters)
+                    daggered.inst(STANDARD_GATES[gate.operator_name](*(negated_params+gate.arguments)))
             else:
-                gate_inv_name = gate.operator_name + "-INVERSE"
-                gate_inv = [g for g in self.defined_gates if g.operator_name == gate_inv_name][0]
-                inverted.inst(tuple([gate_inv] + gate.parameters))
+                gate_inv_name = gate.operator_name + "-INV"
+                daggered.inst(tuple([gate_inv_name] + gate.arguments))
 
-
+        return daggered
 
     def out(self):
         """

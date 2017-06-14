@@ -209,6 +209,44 @@ def test_measure_all():
                       'MEASURE 1 [1]\n' \
                       'MEASURE 2 [3]\n'
 
+def test_dagger():
+    # these gates are their own inverses
+    p = Program().inst(I(0), X(0), Y(0), Z(0),
+                       H(0), CNOT(0,1), CCNOT(0,1,2),
+                       SWAP(0,1), CSWAP(0,1,2))
+    assert p.dagger().out() == 'CSWAP 0 1 2\nSWAP 0 1\n' \
+                      'CCNOT 0 1 2\nCNOT 0 1\nH 0\n' \
+                      'Z 0\nY 0\nX 0\nI 0\n'
+
+    # these gates require negating a parameter
+    p = Program().inst(PHASE(pi, 0), RX(pi, 0), RY(pi, 0),
+                       RZ(pi, 0), CPHASE(pi, 0, 1),
+                       CPHASE00(pi, 0, 1), CPHASE01(pi, 0, 1),
+                       CPHASE10(pi, 0, 1), PSWAP(pi, 0, 1))
+    assert p.dagger().out() == 'PSWAP(-3.141592653589793) 0 1\n' \
+                               'CPHASE10(-3.141592653589793) 0 1\n' \
+                               'CPHASE01(-3.141592653589793) 0 1\n' \
+                               'CPHASE00(-3.141592653589793) 0 1\n' \
+                               'CPHASE(-3.141592653589793) 0 1\n' \
+                               'RZ(-3.141592653589793) 0\n' \
+                               'RY(-3.141592653589793) 0\n' \
+                               'RX(-3.141592653589793) 0\n' \
+                               'PHASE(-3.141592653589793) 0\n'
+
+    # these gates are special cases
+    p = Program().inst(S(0), T(0), ISWAP(0, 1))
+    assert p.dagger().out() == 'PSWAP(1.5707963267948966) 0 1\n' \
+                               'RZ(-0.7853981633974483) 0\n' \
+                               'RZ(-1.5707963267948966) 0\n'
+
+    # must invert defined gates
+    G = np.array([[0, 1], [0+1j, 0]])
+    p = Program().defgate("G", G).inst(("G", 0))
+    assert p.dagger().out() == 'DEFGATE G-INV:\n' \
+                               '    0.0+-0.0i, 0.0-1.0i\n' \
+                               '    1.0+-0.0i, 0.0+-0.0i\n\n' \
+                               'G-INV 0\n'
+
 
 def test_construction_syntax():
     p = Program().inst(X(0), Y(1), Z(0)).measure(0, 1)
