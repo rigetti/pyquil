@@ -179,7 +179,8 @@ class Program(InstructionGroup):
             daggered.defgate(gate.name + "-INV", gate.matrix.T.conj())
 
         for action in self.actions[::-1]:
-            assert action[0] == 0, "Program cannot allocate qubits"
+            if action[0] != 0:
+                continue
             gate = action[1]
             assert not isinstance(gate, Measurement), "Program cannot contain measurements"
             assert not isinstance(gate, While) and not isinstance(gate, If),\
