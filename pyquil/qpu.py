@@ -28,8 +28,13 @@ class QPUConnection(JobConnection):
         return [qq['num'] for qq in device_config['qubits']]
 
     def rabi(self, qubit_id):
+        """
+        Runs a Rabi experiment on the given qubit
+        :param int qubit_id:
+        :return: A RabiResult object
+        """
         payload = get_rabi_params(self.device_name, qubit_id)
-        payload.update({
+        payload._update({
             'type': 'pyquillow',
             'experiment': 'rabi',
             'qcid': qubit_id,
@@ -39,8 +44,13 @@ class QPUConnection(JobConnection):
         return RabiResult.load_res(self, res)
 
     def ramsey(self, qubit_id):
+        """
+         Runs a Ramsey experiment on the given qubit
+         :param int qubit_id:
+         :return: A RamseyResult object
+         """
         payload = get_ramsey_params(self.device_name, qubit_id)
-        payload.update({
+        payload._update({
             'type': 'pyquillow',
             'experiment': 'ramsey',
             'qcid': qubit_id,
@@ -50,8 +60,13 @@ class QPUConnection(JobConnection):
         return RamseyResult.load_res(self, res)
 
     def t1(self, qubit_id):
+        """
+         Runs a T1 experiment on the given qubit
+         :param int qubit_id:
+         :return: A T1Result object
+         """
         payload = get_t1_params(self.device_name, qubit_id)
-        payload.update({
+        payload._update({
             'type': 'pyquillow',
             'experiment': 't1',
             'qcid': qubit_id,
@@ -77,6 +92,10 @@ class QPUConnection(JobConnection):
 
 
 def get_info():
+    """
+    Gets information about what devices are currently available through the Forest API.
+    :return: A JSON dictionary with configuration information.
+    """
     url = ENDPOINT + "/config"
     headers = {
             'Content-Type' : 'application/json; charset=utf-8',
@@ -89,6 +108,13 @@ def get_info():
 
 
 def get_params(device_name, qcid, func):
+    """
+    Get and parse the configuration information from the Forest API.
+    :param str device_name: The device to get info for
+    :param int qcid: The qubit number to look at
+    :param func: A function to apply to the qubit specific JSON dictionary of config info
+    :return:
+    """
     config_dict = get_info()
     try:
         device_config = filter(lambda dd: dd['name'] == device_name, config_dict['devices'])[0]
@@ -102,6 +128,13 @@ def get_params(device_name, qcid, func):
 
 
 def get_rabi_params(device_name, qcid):
+    """
+    Gets the current Rabi experiment parameters for a specific qubit on a specific device
+    :param str device_name:
+    :param int qcid:
+    :return: A dictionary with the parameter info
+    :rtype: dict
+    """
     def rabi_parse(qc):
         rabi_params = qc['rabi_params']
         return {
@@ -114,6 +147,13 @@ def get_rabi_params(device_name, qcid):
 
 
 def get_ramsey_params(device_name, qcid):
+    """
+    Gets the current Ramsey experiment parameters for a specific qubit on a specific device
+    :param str device_name:
+    :param int qcid:
+    :return: A dictionary with the parameter info
+    :rtype: dict
+    """
     def ramsey_parse(qc):
         ramsey_params = qc['ramsey_params']
         return {
@@ -126,6 +166,13 @@ def get_ramsey_params(device_name, qcid):
 
 
 def get_t1_params(device_name, qcid):
+    """
+    Gets the current T1 experiment parameters for a specific qubit on a specific device
+    :param str device_name:
+    :param int qcid:
+    :return: A dictionary with the parameter info
+    :rtype: dict
+    """
     def t1_parse(qc):
         t1_params = qc['t1_params']
         return {

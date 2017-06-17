@@ -198,7 +198,7 @@ class JobConnection(object):
         self.session = requests.Session()
 
         # We need this to get binary payload for the wavefunction call.
-        self.session.headers.update({"Accept": "application/octet-stream"})
+        self.session.headers._update({"Accept": "application/octet-stream"})
 
         self.num_retries = num_retries
         retry_adapter = HTTPAdapter(max_retries=Retry(total=num_retries,
@@ -296,7 +296,7 @@ class JobConnection(object):
         url = self.endpoint + ("/job/%s" % (job_result.job_id()))
         res = requests.get(url, headers=self.text_headers)
         result = json.loads(res.content.decode("utf-8"))
-        return job_result.update(res.ok, result)
+        return job_result._update(res.ok, result)
 
     def ping(self):
         """

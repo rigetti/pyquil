@@ -13,6 +13,13 @@ OCTETS_PER_COMPLEX_DOUBLE = 2 * OCTETS_PER_DOUBLE_FLOAT
 
 
 def wait_for_job(res, ping_time=0.5):
+    """
+    Blocks execution and waits for an async Forest Job to complete.
+
+    :param JobResult res: The JobResult object to wait for.
+    :param ping_time: The interval (in seconds) at which to ping the server.
+    :return: The completed JobResult
+    """
     while not res.is_done():
         res.get()
         time.sleep(ping_time)
@@ -32,20 +39,37 @@ class JobResult(object):
         self.payload = payload
 
     def is_done(self):
+        """
+        :return: Returns True if the Job is completed and False otherwise.
+        :rtype: bool
+        """
         return 'result' in self.result
 
     def job_id(self):
+        """
+        :return: Returns the id of this job
+        :rtype: str
+        """
         return self.result['jobId']
 
     def get(self):
+        """
+        Gets an update from the Forest API on the status of this job.
+        :return: The JobResult object with fields updated.
+        :rtype: JobResult
+        """
         return self.qpu.get_job(self)
 
-    def update(self, success, result):
+    def _update(self, success, result):
         self.success = success
         self.result = result
         return self
 
     def decode(self):
+        """
+        Decodes the result of the job.
+        :return: Depends on the type of job. A JSON object.
+        """
         return json.loads(self.result['result'])
 
     def __str__(self):
@@ -68,6 +92,12 @@ class WavefunctionResult(JobResult):
 
 
 def recover_complexes(coef_string, classical_addresses):
+    """
+    From a bit packed string, unpacks to get the wavefunction and classical measurement results
+    :param coef_string:
+    :param classical_addresses:
+    :return:
+    """
     num_octets = len(coef_string)
     num_addresses = len(classical_addresses)
     num_memory_octets = _round_to_next_multiple(num_addresses, 8) / 8
