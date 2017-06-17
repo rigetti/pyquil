@@ -946,7 +946,7 @@ to see if the job result is finished.
 
 .. parsed-literal::
 
-    TODO
+    <class 'pyquil.job_results.JobResult'> {u'status': u'Submitted', u'jobId': u'BLSLJCBGNP'}
 
 Once the job is finished, then the results can be retrieved from the JobResult object:
 

@@ -32,7 +32,8 @@ class QPUConnection(JobConnection):
         payload.update({
             'type': 'pyquillow',
             'experiment': 'rabi',
-            'qcid': qubit_id
+            'qcid': qubit_id,
+            'device_id': self.device_name,
         })
         res = self.post_job(payload)
         return RabiResult.load_res(self, res)
@@ -42,8 +43,8 @@ class QPUConnection(JobConnection):
         payload.update({
             'type': 'pyquillow',
             'experiment': 'ramsey',
-            'qcid': qubit_id
-
+            'qcid': qubit_id,
+            'device_id': self.device_name,
         })
         res = self.post_job(payload)
         return RamseyResult.load_res(self, res)
@@ -53,7 +54,8 @@ class QPUConnection(JobConnection):
         payload.update({
             'type': 'pyquillow',
             'experiment': 't1',
-            'qcid': qubit_id
+            'qcid': qubit_id,
+            'device_id': self.device_name,
         })
         res = self.post_job(payload)
         return T1Result.load_res(self, res)
