@@ -15,7 +15,7 @@ them using pyQuil.
 Before running any experiments, we need to take a look at what devices are available on the
 platform.
 
-.. code-block::
+::
 
     from pyquil.qpu import QPUConnection, get_info
     print get_info()
@@ -58,7 +58,8 @@ information about the parameters for each of the experiments on each qubit.
 
 Next we open up a connection to the QPU for the available device.
 
-.. code-block::
+::
+
     qpu = QPUConnection("Z12-13-C4a2")
     qpu.ping() # checks to make sure the connection is good
 
@@ -71,7 +72,7 @@ Rabi Experiments
 A Rabi experiment runs a series of Quil programs.  Each program is parameterized by a rotation
 angle:
 
-.. code-block::
+::
 
     DEFCIRCUIT RABI(%angle) q:
         RX(%angle) q
@@ -83,7 +84,7 @@ run the RABI program for a series of different amplitudes for the ``RX`` pulse.
 
 Here is how to run a Rabi experiment:
 
-.. code-block::
+::
 
     my_qubit = 5
     res = qpu.rabi(my_qubit)
@@ -96,7 +97,7 @@ Here is how to run a Rabi experiment:
 Just like in the JobConnection example for working with the QVM, experiments on a QPU work through
 the jobqueue pattern.  When a job is completed, we can use a built in method to plot the results
 
-.. code-block::
+::
 
     from pyquil.job_results import wait_for_job
     from pyquil.plots import analog_plot
@@ -112,7 +113,7 @@ Ramsey experiments are typically used to measure the T2 coherence time of qubits
 of the experiment is a ``X-HALF`` pulse, followed by a wait time, followed by another ``X-HALF``
 pulse and a measurement.  Sweeping the wait time over many runs gives a Ramsey experiment.
 
-.. code-block::
+::
 
     my_qubit = 5
     res = qpu.ramsey(my_qubit)
@@ -134,7 +135,7 @@ constant of this exponent is called the T1 coherence time.
 
 You can run a T1 experiment on our qubits to check their coherence times.
 
-.. code-block::
+::
 
     my_qubit = 5
     res = qpu.t1(my_qubit)
@@ -143,3 +144,11 @@ You can run a T1 experiment on our qubits to check their coherence times.
 
 TODO include plot
 TODO explain plot
+
+pyquil.qpu
+----------
+
+.. automodule:: pyquil.qpu
+    :members:
+    :undoc-members:
+    :show-inheritance:

@@ -29,7 +29,7 @@ It comes with a few parts:
    quantum abstract machine on classical hardware. The QVM lets you use a
    regular computer to simulate a small quantum computer. You can access
    the Rigetti QVM running in the cloud with your API key.
-   Sign up `here <http://forest.rigetti.com>`_ to get your key.
+   `Sign up here <http://forest.rigetti.com>`_ to get your key.
 3. **pyQuil**: A Python library to help write and run Quil code and
    quantum programs.
 4. **QPUConnection**: pyQuil also includes some a special connection which lets you run experiments
@@ -930,6 +930,7 @@ cloud job queue using a different connection object.  The mode of interactive wi
 asynchronous.  This means that there is a seperate query to post a job and to get the result.
 
 ::
+
   from pyquil.quil import Program
   from pyquil.gates import X, H, I
   from pyquil.api import JobConnection
@@ -941,6 +942,7 @@ The `res` is an instance of a ``JobResult`` object.  It has an id and allows you
 to see if the job result is finished.
 
 ::
+
   zz = res.get()
   print type(zz), zz
 
@@ -951,6 +953,7 @@ to see if the job result is finished.
 Once the job is finished, then the results can be retrieved from the JobResult object:
 
 ::
+
   import time
 
   while not res.is_done():
