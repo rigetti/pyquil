@@ -949,7 +949,7 @@ asynchronous.  This means that there is a seperate query to post a job and to ge
   from pyquil.api import JobConnection
 
   job_qvm = JobConnection()
-  res = qvm.run(Program(X(0)).measure(0, 0), [0])
+  res = job_qvm.run(Program(X(0)).measure(0, 0), [0])
 
 The `res` is an instance of a ``JobResult`` object.  It has an id and allows you to make queries
 to see if the job result is finished.
@@ -972,15 +972,18 @@ Once the job is finished, then the results can be retrieved from the JobResult o
   while not res.is_done():
       res.get()
       time.sleep(1)
+  print res
   answer = res.decode()
   print answer
 
 .. parsed-literal::
 
-    TODO
+  {u'result': u'[[1]]', u'jobId': u'BLSLJCBGNP'}
 
-This same pattern applies to the `wavefunction`, `expectation`, and `run_and_measure` calls on the
-JobConnection object.
+  <type 'list'> [[1]]
+
+This same pattern applies to the ``wavefunction``, ``expectation``, and ``run_and_measure`` calls
+on the JobConnection object.
 
 Exercises
 ---------
