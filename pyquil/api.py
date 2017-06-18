@@ -198,7 +198,7 @@ class JobConnection(object):
         self.session = requests.Session()
 
         # We need this to get binary payload for the wavefunction call.
-        self.session.headers._update({"Accept": "application/octet-stream"})
+        self.session.headers.update({"Accept": "application/octet-stream"})
 
         self.num_retries = num_retries
         retry_adapter = HTTPAdapter(max_retries=Retry(total=num_retries,

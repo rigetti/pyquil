@@ -34,7 +34,7 @@ class QPUConnection(JobConnection):
         :return: A RabiResult object
         """
         payload = get_rabi_params(self.device_name, qubit_id)
-        payload._update({
+        payload.update({
             'type': 'pyquillow',
             'experiment': 'rabi',
             'qcid': qubit_id,
@@ -50,7 +50,7 @@ class QPUConnection(JobConnection):
          :return: A RamseyResult object
          """
         payload = get_ramsey_params(self.device_name, qubit_id)
-        payload._update({
+        payload.update({
             'type': 'pyquillow',
             'experiment': 'ramsey',
             'qcid': qubit_id,
@@ -66,7 +66,7 @@ class QPUConnection(JobConnection):
          :return: A T1Result object
          """
         payload = get_t1_params(self.device_name, qubit_id)
-        payload._update({
+        payload.update({
             'type': 'pyquillow',
             'experiment': 't1',
             'qcid': qubit_id,

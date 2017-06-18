@@ -20,5 +20,5 @@ def analog_plot(job_result):
         plt.ylabel("Response Amplitude (mV)")
         plt.xlabel("Readout Delay (us)")
         xs = np.asarray(xs) * 1.e6
-    plt.plot(xs, amps)
+    plt.plot(xs, amps, 'bo')
     plt.show()
