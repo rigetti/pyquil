@@ -52,12 +52,13 @@ def test_qpu_rabi(sample_config):
         with mock.patch.object(QPUConnection, "post_json") as m_post:
             mocked_response = {'jobId': "ASHJKSDUK", 'result': [[1]]}
             m_post.return_value.content = json.dumps(mocked_response)
-            qpu = QPUConnection("Z12-13-C4a2")
-
+            device_name = "Z12-13-C4a2"
+            qpu = QPUConnection(device_name)
             qpu.rabi(2)
             message = {'machine': 'QPU',
                        'program': {'start': 0.01, 'step': 0.2, 'experiment': 'rabi', 'time': 160.0,
-                                   'type': 'pyquillow', 'qcid': 2, 'stop': 20},
+                                   'type': 'pyquillow', 'qcid': 2, 'stop': 20,
+                                   'device_id': device_name},
                        'results': '', 'jobId': ''}
             # userIds are passed in the message, but shouldn't be tested against
             assert message == anon_message(m_post.call_args[0][0])
@@ -69,11 +70,13 @@ def test_qpu_ramsey(sample_config):
         with mock.patch.object(QPUConnection, "post_json") as m_post:
             mocked_response = {'jobId': "ASHJKSDUK", 'result': [[1]]}
             m_post.return_value.content = json.dumps(mocked_response)
-            qpu = QPUConnection("Z12-13-C4a2")
+            device_name = "Z12-13-C4a2"
+            qpu = QPUConnection(device_name)
             qpu.ramsey(3)
             message = {'machine': 'QPU',
                        'program': {'start': 0.01, 'step': 0.2, 'experiment': 'ramsey',
-                                   'type': 'pyquillow', 'qcid': 3, 'stop': 20, 'detuning': 0.5},
+                                   'type': 'pyquillow', 'qcid': 3, 'stop': 20, 'detuning': 0.5,
+                                   'device_id': device_name},
                        'results': '', 'jobId': ''}
             # userIds are passed in the message, but shouldn't be tested against
             assert message == anon_message(m_post.call_args[0][0])
@@ -85,11 +88,12 @@ def test_qpu_t1(sample_config):
         with mock.patch.object(QPUConnection, "post_json") as m_post:
             mocked_response = {'jobId': "ASHJKSDUK", 'result': [[1]]}
             m_post.return_value.content = json.dumps(mocked_response)
-            qpu = QPUConnection("Z12-13-C4a2")
+            device_name = "Z12-13-C4a2"
+            qpu = QPUConnection(device_name)
             qpu.t1(2)
             message = {'machine': 'QPU',
                        'program': {'start': 0.01, 'experiment': 't1', 'type': 'pyquillow',
-                                   'qcid': 2, 'stop': 20, 'num_pts': 25},
+                                   'qcid': 2, 'stop': 20, 'num_pts': 25, 'device_id':device_name},
                        'results': '', 'jobId': ''}
             # userIds are passed in the message, but shouldn't be tested against
             assert message == anon_message(m_post.call_args[0][0])
