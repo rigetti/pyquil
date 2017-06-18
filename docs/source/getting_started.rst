@@ -948,7 +948,7 @@ asynchronous.  This means that there is a seperate query to post a job and to ge
   from pyquil.gates import X, H, I
   from pyquil.api import JobConnection
 
-  job_qvm = JobConnection()
+  job_qvm = JobConnection(endpoint="https://job.rigetti.com/Beta")
   res = job_qvm.run(Program(X(0)).measure(0, 0), [0])
 
 The `res` is an instance of a ``JobResult`` object.  It has an id and allows you to make queries
