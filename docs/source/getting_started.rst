@@ -113,6 +113,19 @@ Alternatively, connection information can be provided in environment variables.
 
     export QVM_URL=<URL to Rigetti Forest or QVM endpoint>
     export QVM_API_KEY=<Rigetti Forest API key>
+    export QVM_USER_ID=<Rigetti User ID>
+
+Endpoints
++++++++++
+There are two important endpoints to keep in mind.  You will use different ones for different types
+of jobs.
+
+``https://api.rigetti.com/qvm`` is used for making synchronous calls to the QVM.  You should use
+this for most of the getting started materials unless otherwise instructed.
+
+``https://job.rigetti.com/Beta`` is used for large async `QVM jobs <getting_started.html#jobconnections>`_
+or for running `jobs on a QPU <qpu.html>`_.
+
 
 Running your first quantum program
 ----------------------------------
@@ -923,8 +936,8 @@ alpha.
 This ParametricProgram now acts as a template, caching the result of the ``exponential_map``
 calculation so that it can be used later with new values.
 
-Running larger jobs asynchronously using JobConnection
-------------------------------------------------------
+JobConnections
+--------------
 Larger pyQuil programs can take longer than 30 seconds to run.  These jobs can be posted into the
 cloud job queue using a different connection object.  The mode of interactive with the API is
 asynchronous.  This means that there is a seperate query to post a job and to get the result.
