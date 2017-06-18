@@ -102,27 +102,29 @@ the jobqueue pattern.  When a job is completed, we can use a built in method to 
     from pyquil.job_results import wait_for_job
     from pyquil.plots import analog_plot
     wait_for_job(res) # blocks execution until the job is completed
+    print res.result
     analog_plot(res)
 
-TODO include plot
-TODO explain plot
+.. parsed-literal::
 
-Ramsey Experiments
-------------------
-Ramsey experiments are typically used to measure the T2 coherence time of qubits.  A single run
-of the experiment is a ``X-HALF`` pulse, followed by a wait time, followed by another ``X-HALF``
-pulse and a measurement.  Sweeping the wait time over many runs gives a Ramsey experiment.
+    {u'result': u'[[0.01, 0.0296, 0.0492, 0.0688, ... ,
+    -0.0007563137318034532, -0.0014812487258596086, -0.0016550719404520116, -0.0020105023806951602,
+    -0.0021007405399624955]]', u'jobId': u'LZLQZTAVPK'}
 
-::
+.. image:: images/rabi_example.png
 
-    my_qubit = 5
-    res = qpu.ramsey(my_qubit)
-    wait_for_job(res)
-    analog_plot(res)
+This plot is showing real analog data from an experiment on a superconducting qubit.  The x-axis is
+the amplitude of the ``RX`` pulse that is sent to the qubit, in millivolts.  The y-axis is a
+response function from a measurement of that qubit that corresponds to the qubits state, as measured
+in the computational basis.
 
-TODO include plot
-TODO explain plot
-
+Since varying the amplitude of the ``RX`` pulse changes the rotation angle of the qubit around the
+x-axis on the Bloch sphere, we can expect to see a periodic change in the state of qubit.  It starts
+in the ground state at ``RX(0)`` and then moves to the excited state when ``RX(pi)``.  In this example
+we see that an applied pulse amplitude of about 0.18mV corresponds to an ``RX(pi)`` rotation.  This
+also tells us that a fitted response of about -0.0024 corresponds to the excited state. In this way
+we use experiments like this one, and the others given here, to figure out what physical signals
+corresponds to computational operations on our qubits.
 
 T1 Experiments
 --------------
@@ -138,12 +140,111 @@ You can run a T1 experiment on our qubits to check their coherence times.
 ::
 
     my_qubit = 5
-    res = qpu.t1(my_qubit)
-    wait_for_job(res)
-    analog_plot(res)
+    res_t1 = qpu.t1(my_qubit)
+    wait_for_job(res_t1)
+    analog_plot(res_t1)
 
-TODO include plot
-TODO explain plot
+.. image:: images/t1_example.png
+
+In this exampe we can see an exponential decay of the excited qubit. If we fit this data to an
+exponential then we can extract what T1 decay we have measured:
+
+::
+
+    from pyquil.plots import T1DecayModel
+    import numpy as np
+
+    model = T1DecayModel()
+    x, y = res_t1.decode()
+
+    fit_n_data = model.report_fit(np.asarray(x), np.asarray(y))
+    fit, data = (fit_n_data[0], fit_n_data[1:])
+    print fit.fit_report()
+
+.. parsed-literal::
+
+    [[Model]]
+    Model(fn_T1_decay)
+    [[Fit Statistics]]
+        # function evals   = 27
+        # data points      = 25
+        # variables        = 3
+        chi-square         = 0.000
+        reduced chi-square = 0.000
+        Akaike info crit   = -440.113
+        Bayesian info crit = -436.456
+    [[Variables]]
+        baseline:   -0.00106788 +/- 0.000145 (13.56%) (init=-0.0008674491)
+        amplitude:   0.00326745 +/- 0.000129 (3.95%) (init= 0.00321364)
+        T1:          1.6752e-05 +/- 1.97e-06 (11.76%) (init= 5.33208e-06)
+    [[Correlations]] (unreported correlations are <  0.100)
+        C(baseline, T1)              = -0.938
+        C(baseline, amplitude)       = -0.759
+        C(amplitude, T1)             =  0.555
+
+This example showed a T1 of about 16.7 microseconds.
+
+Ramsey Experiments
+------------------
+Ramsery experiments measure a different kind of decoherence.  While T1 experiments measure the loss
+of information along the north-south axis of the Bloch sphere, Ramsey experiments measure the loss
+of information around the axis.  This type of decoherence is called dephasing and is captured in the
+T2 coherence time of qubits.
+
+A single run of the experiment is a ``X-HALF`` pulse, followed by a wait time, followed by
+another ``X-HALF``pulse and a measurement.  Sweeping the wait time over many runs gives a Ramsey
+experiment.  The first pulse puts the qubit into a state on the equator of the Bloch sphere.  Waiting
+then allows the state to dephase and the second pulse rotates the state back towards the north-south
+Bloch sphere axis.  If dephasing has occured, then this will be represented by a decrease in
+amplitude in the resulting periodic function.
+
+::
+
+    my_qubit = 5
+    ramsey_res = qpu.ramsey(my_qubit)
+    wait_for_job(ramsey_res)
+    analog_plot(ramsey_res)
+
+.. image:: images/ramsey_example.png
+
+If we fit this data to the a decaying periodic function, then we can extract the T2 decay constant.
+
+::
+
+    model = T2RamseyModel()
+    x, y = res_ramsey.decode()
+    fit_n_data = model.report_fit(np.asarray(x), np.asarray(y))
+    fit, data = (fit_n_data[0], fit_n_data[1:])
+    fit.plot()
+    plt.show()
+    print fit.fit_report()
+
+.. image:: images/ramsey_fit.png
+
+.. parsed-literal::
+
+    [[Model]]
+        Model(fn_T2_Ramsey)
+    [[Fit Statistics]]
+        # function evals   = 52
+        # data points      = 101
+        # variables        = 5
+        chi-square         = 0.000
+        reduced chi-square = 0.000
+        Akaike info crit   = -1666.553
+        Bayesian info crit = -1653.477
+    [[Variables]]
+        baseline:    0.00049312 +/- 2.54e-05 (5.16%) (init= 0.0005435569)
+        amplitude:   0.00192550 +/- 9.55e-05 (4.96%) (init= 0.002179158)
+        T2:          1.4413e-05 +/- 1.35e-06 (9.36%) (init= 5e-06)
+        detuning:    4.2761e+05 +/- 1.05e+03 (0.25%) (init= 445767.4)
+        x0:         -8.4993e-08 +/- 1.88e-08 (22.16%) (init= 0)
+    [[Correlations]] (unreported correlations are <  0.100)
+        C(detuning, x0)              =  0.773
+        C(amplitude, T2)             = -0.764
+
+From this we can extract that the T2 decoherence for this qubit is about 14.4 microseconds.
+
 
 pyquil.qpu
 ----------
