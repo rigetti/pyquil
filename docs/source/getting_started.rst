@@ -136,7 +136,7 @@ test your connection to Forest using this script by executing the following on y
 ::
 
     cd examples/
-    run_quil.py hello_world.quil
+    python run_quil.py hello_world.quil
 
 You should see the following output array ``[[1, 0, 0, 0, 0, 0, 0, 0]]``. This indicates that you have
 a good connection to our API.
@@ -307,7 +307,7 @@ quantum state at the conclusion of the program. We can print this object
 
 .. parsed-literal::
 
-  (0.7071067812+0j)|00> + (0.7071067812+0j)|11>
+  (0.7071067812+0j)|0> + (0.7071067812+0j)|1>
 
 To see the amplitudes listed as a sum of computational basis states. We can index into those
 amplitudes directly or look at a dictionary of associated outcome probabilities.
@@ -320,12 +320,12 @@ amplitudes directly or look at a dictionary of associated outcome probabilities.
   prob_dict = wvf.get_outcome_probs() # extracts the probabilities of outcomes as a dict
   print(prob_dict)
   prob_dict.keys() # these stores the bitstring outcomes
-  assert len(wvf) == 2 # gives the number of qubits
+  assert len(wvf) == 1 # gives the number of qubits
 
 .. parsed-literal::
 
-  [ 0.70710678+0.j  0.00000000+0.j  0.00000000+0.j  0.70710678+0.j]
-  {'11': 0.49999999999999989, '10': 0.0, '00': 0.49999999999999989, '01': 0.0}
+  [ 0.70710678+0.j  0.70710678+0.j]
+  {'1': 0.49999999999999989, '0': 0.49999999999999989}
 
 The second element returned from a wavefunction call is an optional amount of classical memory to
 check:
