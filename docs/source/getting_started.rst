@@ -123,7 +123,7 @@ of jobs.
 ``https://api.rigetti.com/qvm`` is used for making synchronous calls to the QVM.  You should use
 this for most of the getting started materials unless otherwise instructed.
 
-``https://job.rigetti.com/Beta`` is used for large async `QVM jobs <getting_started.html#jobconnections>`_
+``https://job.rigetti.com/beta`` is used for large async `QVM jobs <getting_started.html#jobconnections>`_
 or for running `jobs on a QPU <qpu.html>`_.
 
 
