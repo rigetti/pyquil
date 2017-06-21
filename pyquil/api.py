@@ -315,7 +315,7 @@ class JobConnection(object):
         :return: The current version of the QVM.
         :rtype: string
         """
-        raise DeprecationWarning, "Version checks have been deprecated."
+        raise DeprecationWarning("Version checks have been deprecated.")
         return None
 
     def process_response(self, res):
