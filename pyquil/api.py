@@ -21,22 +21,23 @@ Module for facilitating connections to the QVM / QPU.
 from __future__ import print_function
 from requests.packages.urllib3.util import Retry
 from requests.adapters import HTTPAdapter
+from copy import deepcopy
 import requests
 import json
 import os
 import os.path
-import numpy as np
 import sys
-import struct
-import ConfigParser
+from six.moves.configparser import ConfigParser, NoOptionError, NoSectionError
+from six.moves import range
+from six import integer_types
 
 import pyquil.quil as pq
-from pyquil.wavefunction import Wavefunction
+from pyquil.job_results import JobResult, WavefunctionResult, recover_complexes
 
 USER_HOMEDIR = os.path.expanduser("~")
 
 PYQUIL_CONFIG_PATH = os.getenv('PYQUIL_CONFIG', os.path.join(USER_HOMEDIR, ".pyquil_config"))
-PYQUIL_CONFIG = ConfigParser.ConfigParser()
+PYQUIL_CONFIG = ConfigParser()
 
 try:
     if "~" in PYQUIL_CONFIG_PATH:
@@ -63,7 +64,7 @@ def config_value(name, default=None):
     SECTION = "Rigetti Forest"
     try:
         return PYQUIL_CONFIG.get(SECTION, name)
-    except (ConfigParser.NoSectionError, ConfigParser.NoOptionError, KeyError):
+    except (NoSectionError, NoOptionError, KeyError):
         return default
 
 
@@ -87,29 +88,10 @@ def env_or_config(env, name, default=None):
 
     return default
 
-
 # Set up the configuration.
 ENDPOINT = env_or_config('QVM_URL', 'url', default='https://api.rigetti.com/qvm')
 API_KEY = env_or_config('QVM_API_KEY', 'key')
-HTTPS_CERT = env_or_config('QVM_HTTPS_CERT', 'https_cert')
-HTTPS_KEY = env_or_config('QVM_HTTPS_KEY', 'https_key')
-
-
-def certificate(cert=HTTPS_CERT, key=HTTPS_KEY):
-    """
-    Return information about the location of the client certificate. This is used for
-    HTTPS authentication with the Requests library.
-
-    :param cert: Certificate file or None (default HTTPS_CERT)
-    :param key: Key file or None (default HTTPS_KEY)
-    :return: Either None or a certificate file or a tuple of certificate and key files.
-    """
-    if cert is None:
-        return None
-    elif key is None:
-        return cert
-    else:
-        return cert, key
+USER_ID = env_or_config("QVM_USER_ID", 'user_id')
 
 
 def add_noise_to_payload(payload, gate_noise, measurement_noise):
@@ -165,43 +147,9 @@ def _validate_run_items(run_items):
     """
     if not isinstance(run_items, list):
         raise TypeError("run_items must be a list")
-    if any([not isinstance(i, int) for i in run_items]):
+    if any([not isinstance(i, integer_types) for i in run_items]):
         raise TypeError("run_items list must contain integer values")
 
-
-def _round_to_next_multiple(n, m):
-    """
-    Round up the the next multiple.
-
-    :param n: The number to round up.
-    :param m: The multiple.
-    :return: The rounded number
-    """
-    return n if n % m == 0 else n + m - n % m
-
-
-def _octet_bits(o):
-    """
-    Get the bits of an octet.
-
-    :param o: The octets.
-    :return: The bits as a list in LSB-to-MSB order.
-    :rtype: list
-    """
-    if not isinstance(o, (int, long)):
-        raise TypeError("o should be an int or long")
-    if not (0 <= o <= 255):
-        raise ValueError("o should be between 0 and 255 inclusive")
-    bits = [0] * 8
-    for i in xrange(8):
-        if 1 == o & 1:
-            bits[i] = 1
-        o = o >> 1
-    return bits
-
-
-OCTETS_PER_DOUBLE_FLOAT = 8
-OCTETS_PER_COMPLEX_DOUBLE = 2 * OCTETS_PER_DOUBLE_FLOAT
 
 TYPE_EXPECTATION = "expectation"
 TYPE_MULTISHOT = "multishot"
@@ -209,7 +157,7 @@ TYPE_MULTISHOT_MEASURE = "multishot-measure"
 TYPE_WAVEFUNCTION = "wavefunction"
 
 
-class Connection(object):
+class JobConnection(object):
     """
     Represents a connection to the QVM.
     """
@@ -220,15 +168,15 @@ class Connection(object):
     #    for people like you to join our team: https://jobs.lever.co/rigetti
     #################################################################################
 
-    def __init__(self, endpoint=ENDPOINT, cert=HTTPS_CERT, key=HTTPS_KEY, api_key=API_KEY,
-                 gate_noise=None, measurement_noise=None, num_retries=3, random_seed=None):
+    def __init__(self, endpoint=ENDPOINT, api_key=API_KEY, user_id=USER_ID, gate_noise=None,
+                 measurement_noise=None, num_retries=3, random_seed=None):
         """
-        Constructor for Connection. Sets up any necessary security, and establishes the noise model
-        to use.
+        Constructor for JobConnection. Sets up any necessary security, and establishes the noise
+        model to use.
 
         :param endpoint: The endpoint of the server (default ENDPOINT)
-        :param cert: The certificate file or None (default HTTPS_CERT)
-        :param key: The key file or None (default HTTPS_KEY)
+        :param api_key: The key to the Forest API Gateway (default QVM_API_KEY)
+        :param user_id: Your userid for Forest (default QVM_USER_ID)
         :param gate_noise: A list of three numbers [Px, Py, Pz] indicating the probability of an X,
                            Y, or Z gate getting applied to each qubit after a gate application or
                            reset. (default None)
@@ -240,8 +188,13 @@ class Connection(object):
         :param random_seed: A seed for the QVM's random number generators. Either None (for an
                             automatically generated seed) or a non-negative integer.
         """
+        # Once these are set, they should not ever be cleared/changed/touched.
+        # Make a new JobConnection() if you need that.
         _validate_noise_probabilities(gate_noise)
         _validate_noise_probabilities(measurement_noise)
+        self.gate_noise = gate_noise
+        self.measurement_noise = measurement_noise
+
         self.session = requests.Session()
 
         # We need this to get binary payload for the wavefunction call.
@@ -257,36 +210,41 @@ class Connection(object):
         self.session.mount("https://", retry_adapter)
 
         self.endpoint = endpoint
-        self.certificate_file = cert
-        self.key_file = key
-        self.cached_certificate = certificate(cert, key)
         self.api_key = api_key
-        if self.api_key:
-            self.session.headers.update({'x-api-key': self.api_key})
-        # Once these are set, they should not ever be cleared/changed/touched.
-        # Make a new Connection() if you need that.
-        self.gate_noise = gate_noise
-        self.measurement_noise = measurement_noise
+        self.user_id = user_id
+        self.json_headers = None
+        self.text_headers = None
+        if self.api_key or self.user_id:
+            self.json_headers = {
+                'Content-Type': 'application/json; charset=utf-8',
+                'x-api-key': self.api_key,
+                'x-user-id': self.user_id,
+            }
+            self.text_headers = deepcopy(self.json_headers)
+            self.text_headers['Content-Type'] = 'application/text; charset=utf-8'
 
         if random_seed is None:
             self.random_seed = None
-        elif isinstance(random_seed, (int, long)) and random_seed >= 0:
+        elif isinstance(random_seed, integer_types) and random_seed >= 0:
             self.random_seed = random_seed
         else:
             raise TypeError("random_seed should be None or a non-negative int or long.")
 
-    def post_json(self, j):
-        """
-        Post JSON to the QVM endpoint.
+        self.machine = 'QVM' # default to a QVM Machine Connection
 
-        :param j: JSON.
+    def post_json(self, jd, headers=None, route=""):
+        """
+        Post JSON to the Forest endpoint.
+
+        :param dict jd: JSON.
+        :param dict headers: The headers for the post request.
+        :param: str route: The route to append to the endpoint, e.g. "/job"
         :return: A non-error response.
         """
-
-        if self.cached_certificate is None:
-            res = self.session.post(self.endpoint, json=j)
-        else:
-            res = self.session.post(self.endpoint, json=j, cert=self.cached_certificate)
+        if headers is None:
+            headers = self.json_headers
+        url = self.endpoint + route
+        res = self.session.post(url, json=jd, headers=headers)
 
         # Print some nice info for internal server errors.
         if res.status_code == 500:
@@ -301,19 +259,54 @@ class Connection(object):
                   file=sys.stderr)
 
         res.raise_for_status()
-
         return res
+
+    def wrap_payload_into_message(self, payload):
+        """
+        Wraps the payload into a Forest query.
+
+        :param dict payload:
+        :return: A JSON dictionary to post as a Forest query.
+        """
+        message = {
+            'machine': self.machine,
+            'program': payload,
+            'userId': self.user_id,
+            'jobId': '',
+            'results': '',
+        }
+        return message
+
+    def post_job(self, program, headers=None):
+        """
+        Post a Job to the Forest endpoint.
+
+        :param program:
+        :param headers:
+        :return: A non-error response.
+        """
+        message = self.wrap_payload_into_message(program)
+        return self.post_json(message, headers, route="/job")
+
+    def get_job(self, job_result):
+        """
+        :param JobResult job_result:
+        :return: fills in the result in the JobResult object
+        """
+        url = self.endpoint + ("/job/%s" % (job_result.job_id()))
+        res = requests.get(url, headers=self.text_headers)
+        result = json.loads(res.content.decode("utf-8"))
+        return job_result._update(res.ok, result)
 
     def ping(self):
         """
-        Ping the QVM.
+        Ping Forest.
 
-        :return: Should get "pong" back.
+        :return: Should get "ok" back.
         :rtype: string
         """
-        payload = {"type": "ping"}
-        res = self.post_json(payload)
-        return str(res.text)
+        res = self.session.get(self.endpoint+"/check")
+        return str(json.loads(res.text)["rc"])
 
     def version(self):
         """
@@ -322,11 +315,29 @@ class Connection(object):
         :return: The current version of the QVM.
         :rtype: string
         """
-        payload = {"type": "version"}
-        res = self.post_json(payload)
-        return str(res.text)
+        raise DeprecationWarning("Version checks have been deprecated.")
+        return None
 
-    def wavefunction(self, quil_program, classical_addresses=[]):
+    def process_response(self, res):
+        """
+        :param res: A response object from a request
+        :return: A JobResult filled in with the response data
+        :rtype: JobResult
+        """
+        return JobResult.load_res(self, res)
+
+    def process_wavefunction_response(self, res, payload):
+        """
+        Wavefunctions are processed differently as they are byte encoded.
+        :param res: A response object from a request
+        :param payload: The payload that was used to make that request
+        :return: A WavefunctionResult with the response data filled in
+        :rtype: WavefunctionResult
+        """
+        result = json.loads(res.content.decode("utf-8"))
+        return WavefunctionResult(self, res.ok, result=result, payload=payload)
+
+    def wavefunction(self, quil_program, classical_addresses=None):
         """
         Simulate a Quil program and get the wavefunction back.
 
@@ -337,31 +348,8 @@ class Connection(object):
                  to the classical addresses.
         :rtype: tuple
         """
-
-        def recover_complexes(coef_string):
-            num_octets = len(coef_string)
-            num_addresses = len(classical_addresses)
-            num_memory_octets = _round_to_next_multiple(num_addresses, 8) / 8
-            num_wavefunction_octets = num_octets - num_memory_octets
-
-            # Parse the classical memory
-            mem = []
-            for i in xrange(num_memory_octets):
-                octet = struct.unpack('B', coef_string[i])[0]
-                mem.extend(_octet_bits(octet))
-
-            mem = mem[0:num_addresses]
-
-            # Parse the wavefunction
-            wf = np.zeros(num_wavefunction_octets / OCTETS_PER_COMPLEX_DOUBLE, dtype=np.cfloat)
-            for i, p in enumerate(xrange(num_memory_octets, num_octets, OCTETS_PER_COMPLEX_DOUBLE)):
-                re_be = coef_string[p: p + OCTETS_PER_DOUBLE_FLOAT]
-                im_be = coef_string[p + OCTETS_PER_DOUBLE_FLOAT: p + OCTETS_PER_COMPLEX_DOUBLE]
-                re = struct.unpack('>d', re_be)[0]
-                im = struct.unpack('>d', im_be)[0]
-                wf[i] = complex(re, im)
-
-            return Wavefunction(wf), mem
+        if classical_addresses is None:
+            classical_addresses = []
 
         if not isinstance(quil_program, pq.Program):
             raise TypeError("quil_program must be a Quil program object")
@@ -373,11 +361,10 @@ class Connection(object):
         add_noise_to_payload(payload, self.gate_noise, self.measurement_noise)
         add_rng_seed_to_payload(payload, self.random_seed)
 
-        res = self.post_json(payload)
+        res = self.post_job(payload, headers=self.json_headers)
+        return self.process_wavefunction_response(res, payload)
 
-        return recover_complexes(res.content)
-
-    def expectation(self, prep_prog, operator_programs=[pq.Program()]):
+    def expectation(self, prep_prog, operator_programs=None):
         """
         Calculate the expectation value of operators given a state prepared by
         prep_program.
@@ -387,19 +374,20 @@ class Connection(object):
         :returns: Expectation value of the operators.
         :rtype: float
         """
+        if operator_programs is None:
+            operator_programs = [pq.Program()]
+
         if not isinstance(prep_prog, pq.Program):
             raise TypeError("prep_prog variable must be a Quil program object")
 
         payload = {'type': TYPE_EXPECTATION,
                    'state-preparation': prep_prog.out(),
-                   'operators': map(lambda x: x.out(), operator_programs)}
+                   'operators': [x.out() for x in operator_programs]}
 
         add_rng_seed_to_payload(payload, self.random_seed)
 
-        res = self.post_json(payload)
-        result_overlaps = json.loads(res.text)
-
-        return result_overlaps
+        res = self.post_job(payload, headers=self.json_headers)
+        return self.process_response(res)
 
     def bit_string_probabilities(self, quil_program):
         """
@@ -409,8 +397,7 @@ class Connection(object):
         :return: A dictionary with outcomes as keys and probabilities as values.
         :rtype: dict
         """
-        wvf, _ = self.wavefunction(quil_program)
-        return wvf.get_outcome_probs()
+        return DeprecationWarning, "This function is deprecated."
 
     def run(self, quil_program, classical_addresses, trials=1):
         """
@@ -427,7 +414,7 @@ class Connection(object):
         if not isinstance(quil_program, pq.Program):
             raise TypeError("quil_program must be a Quil program object")
         _validate_run_items(classical_addresses)
-        if not isinstance(trials, int):
+        if not isinstance(trials, integer_types):
             raise TypeError("trials must be an integer")
 
         payload = {"type": TYPE_MULTISHOT,
@@ -438,9 +425,8 @@ class Connection(object):
         add_noise_to_payload(payload, self.gate_noise, self.measurement_noise)
         add_rng_seed_to_payload(payload, self.random_seed)
 
-        res = self.post_json(payload)
-
-        return json.loads(res.text)
+        res = self.post_job(payload, headers=self.json_headers)
+        return self.process_response(res)
 
     def run_and_measure(self, quil_program, qubits, trials=1):
         """
@@ -455,7 +441,7 @@ class Connection(object):
         if not isinstance(quil_program, pq.Program):
             raise TypeError("quil_program must be a Quil program object")
         _validate_run_items(qubits)
-        if not isinstance(trials, int):
+        if not isinstance(trials, integer_types):
             raise TypeError("trials must be an integer")
 
         payload = {"type": TYPE_MULTISHOT_MEASURE,
@@ -466,6 +452,60 @@ class Connection(object):
         add_noise_to_payload(payload, self.gate_noise, self.measurement_noise)
         add_rng_seed_to_payload(payload, self.random_seed)
 
-        res = self.post_json(payload)
+        res = self.post_job(payload, headers=self.json_headers)
+        return self.process_response(res)
 
+
+class SyncConnection(JobConnection):
+    """
+    The SyncConnection makes a synchronous connection to the Forest API.
+    """
+
+    def ping(self):
+        """
+        Ping the QVM.
+        :return: Should get "pong" back.
+        :rtype: string
+        """
+        payload = {"type": "ping"}
+        res = self.post_json(payload)
+        return str(res.text)
+
+    def version(self):
+        """
+        Query the QVM version.
+        :return: The current version of the QVM.
+        :rtype: string
+        """
+        payload = {"type": "version"}
+        res = self.post_json(payload)
+        return str(res.text)
+
+    def post_job(self, program, headers=None):
+        """
+        Post a synchronous Job to the QVM endpoint.
+
+        :param program:
+        :param headers:
+        :return: A non-error response.
+        """
+        return self.post_json(program, headers)
+
+    def process_response(self, res):
+        """
+        :param res: A response object from a request
+        :return: The json dictionary of the response
+        :rtype: dict
+        """
         return json.loads(res.text)
+
+    def process_wavefunction_response(self, res, payload):
+        """
+        :param res: A response object from a request
+        :return: The json dictionary of the response
+        :rtype: dict
+        """
+        return recover_complexes(res.content, classical_addresses=payload['addresses'])
+
+    def get_job(self, job_result):
+        raise NotImplementedError

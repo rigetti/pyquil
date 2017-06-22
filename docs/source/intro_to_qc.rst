@@ -193,7 +193,7 @@ Some Code
 Let us take a look at some code in pyQuil to see how these quantum states
 play out. We will dive deeper into quantum operations and pyQuil in
 the following sections. Note that in order to run these examples you will need
-to `install pyQuil and set up a connection to Forest <getting_started.html#getting-started>`_.
+to `install pyQuil and set up a connection to the Forest API <getting_started.html#getting-started>`_.
 Each of the code snippets below will be immediately followed by its output.
 
 .. code:: python
@@ -201,8 +201,8 @@ Each of the code snippets below will be immediately followed by its output.
     # Imports for pyQuil (ignore for now)
     import numpy as np
     from pyquil.quil import Program
-    import pyquil.forest as forest
-    quantum_simulator = forest.Connection()
+    import pyquil.api as api
+    quantum_simulator = api.SyncConnection()
 
     # pyQuil is based around operations (or gates) so we will start with the most
     # basic one: the identity operation, called I. I takes one argument, the index

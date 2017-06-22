@@ -21,29 +21,39 @@ import json
 from mock import Mock
 import numpy as np
 
-import pyquil.forest as qvm
+import pyquil.api as qvm
 import pyquil.quil as pq
 from pyquil.gates import *
 
 
+class MockPostJson(object):
+    def __init__(self):
+        self.return_value = Mock()
+
+    def __call__(self, payload, route):
+        json.dumps(payload)
+        return self.return_value
+
+
 @pytest.fixture
 def cxn():
-    c = qvm.Connection()
-    c.post_json = Mock()
+    c = qvm.SyncConnection()
+    c.post_json = MockPostJson()
     c.post_json.return_value.text = json.dumps("Success")
     c.measurement_noise = 1
     return c
 
 
-WAVEFUNCTION_BINARY = '\x01\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00?\xe6\xa0\x9ef\x7f;\xcc\x00\x00\x00\x00\x00\x00\x00\x00\xbf\xe6\xa0\x9ef\x7f;\xcc\x00\x00\x00\x00\x00\x00\x00\x00'
+WAVEFUNCTION_BINARY = (b'\x01\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00'
+                       b'\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00?\xe6'
+                       b'\xa0\x9ef\x7f;\xcc\x00\x00\x00\x00\x00\x00\x00\x00\xbf\xe6\xa0\x9ef'
+                       b'\x7f;\xcc\x00\x00\x00\x00\x00\x00\x00\x00')
 
 
 @pytest.fixture
-def cxn_wf():
-    c = qvm.Connection()
-    c.post_json = Mock()
-    c.post_json.return_value.content = WAVEFUNCTION_BINARY
-    return c
+def cxn_wf(cxn):
+    cxn.post_json.return_value.content = WAVEFUNCTION_BINARY
+    return cxn
 
 
 @pytest.fixture
@@ -71,24 +81,6 @@ def test_dont_add_rng_seed_to_payload():
     payload = {}
     qvm.add_rng_seed_to_payload(payload, None)
     assert 'rng-seed' not in payload
-
-
-def test_rounding():
-    for i in xrange(8):
-        if 0 == i % 8:
-            assert i == qvm._round_to_next_multiple(i, 8)
-        else:
-            assert 8 == qvm._round_to_next_multiple(i, 8)
-            assert 16 == qvm._round_to_next_multiple(i + 8, 8)
-            assert 24 == qvm._round_to_next_multiple(i + 16, 8)
-
-
-def test_octet_bits():
-    assert [0, 0, 0, 0, 0, 0, 0, 0] == qvm._octet_bits(0b0)
-    assert [1, 0, 0, 0, 0, 0, 0, 0] == qvm._octet_bits(0b1)
-    assert [0, 1, 0, 0, 0, 0, 0, 0] == qvm._octet_bits(0b10)
-    assert [1, 0, 1, 0, 0, 0, 0, 0] == qvm._octet_bits(0b101)
-    assert [1, 1, 1, 1, 1, 1, 1, 1] == qvm._octet_bits(0b11111111)
 
 
 def test_add_noise_to_payload():
@@ -128,6 +120,10 @@ def test_run_and_measure(cxn, prog):
     with pytest.raises(TypeError):
         cxn.run_and_measure(prog, [0, 1], "a")
     assert cxn.run_and_measure(prog, [0, 1], 1) == "Success"
+
+
+def test_expectation(cxn, prog):
+    assert cxn.expectation(prog) == "Success"
 
 
 def test_wavefunction(cxn_wf, prog_wf):

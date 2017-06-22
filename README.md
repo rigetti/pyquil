@@ -42,15 +42,10 @@ contain all the information required to connect to Forest:
 [Rigetti Forest]
 url: <URL to Rigetti Forest or QVM endpoint>
 key: <Rigetti Forest API key>
+user_id: <Rigetti Forest User ID>
 ```
 
-If `url` is not specified, it will default to `https://api.rigetti.com/qvm`. In addition to the
-above, the fields `https_cert` and `https_key` are supported for direct HTTPS connections to QVMs.
-
-```ini
-https_cert: <path to signed HTTPS certificate and key>
-https_key: <path to separate key file, if different from the above>
-```
+If `url` is not specified, it will default to `https://api.rigetti.com/qvm`.
 
 ## Examples using the Rigetti QVM
 
@@ -58,9 +53,9 @@ Here is how to construct a Bell state program and how to compute the amplitudes 
 
 ```python
 >>> import pyquil.quil as pq
->>> import pyquil.forest as forest
+>>> import pyquil.api as api
 >>> from pyquil.gates import *
->>> qvm = forest.Connection()
+>>> qvm = api.SyncConnection()
 >>> p = pq.Program(H(0), CNOT(0,1))
 <pyquil.pyquil.Program object at 0x101ebfb50>
 >>> qvm.wavefunction(p)[0]
@@ -72,9 +67,9 @@ each measurement pair will be `00` or `11`.)
 
 ```python
 >>> import pyquil.quil as pq
->>> import pyquil.forest as forest
+>>> import pyquil.api as api
 >>> from pyquil.gates import *
->>> qvm = forest.Connection()
+>>> qvm = api.SyncConnection()
 >>> p = pq.Program()
 >>> p.inst(H(0),
 ...        CNOT(0, 1),

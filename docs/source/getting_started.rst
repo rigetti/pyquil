@@ -8,14 +8,14 @@ programs.
 .. code:: python
 
     import pyquil.quil as pq
-    import pyquil.forest as forest
+    import pyquil.api as api
     from pyquil.gates import *
-    qvm = forest.Connection()
+    qvm = api.SyncConnection()
     p = pq.Program()
     p.inst(H(0), CNOT(0, 1))
         <pyquil.pyquil.Program object at 0x101ebfb50>
     wvf, _ = qvm.wavefunction(p)
-    print wvf
+    print(wvf)
         (0.7071067812+0j)|00> + (0.7071067812+0j)|11>
 
 It comes with a few parts:
@@ -25,13 +25,16 @@ It comes with a few parts:
    abstract machine, such as the quantum virtual machine (QVM), or on a
    real quantum processing unit (QPU). More details regarding Quil can be
    found in the `whitepaper <https://arxiv.org/abs/1608.03355>`__.
-2. **QVM**: A Quantum Virtual Machine, which is an implementation of the quantum
-   abstract machine on classical hardware. The QVM lets you use a
+2. **QVM**: A `Quantum Virtual Machine <qvm_overview.html>`_, which is an implementation of the
+   quantum abstract machine on classical hardware. The QVM lets you use a
    regular computer to simulate a small quantum computer. You can access
    the Rigetti QVM running in the cloud with your API key.
-   Sign up `here <http://forest.rigetti.com>`_ to get your key.
+   `Sign up here <http://forest.rigetti.com>`_ to get your key.
 3. **pyQuil**: A Python library to help write and run Quil code and
    quantum programs.
+4. **QPUConnection**: pyQuil also includes some a special connection which lets you run experiments
+   on Rigetti's prototype superconducting quantum processors over the cloud.  These experiments are
+   described in more detail `here <qpu.html>`_.
 
 Environment Setup
 -----------------
@@ -40,10 +43,11 @@ Prerequisites
 ~~~~~~~~~~~~~
 
 Before you can start writing quantum programs, you will need Python 2.7
-(version 2.7.10 or greater) and the Python package manager pip. We recommend
-installing `Anaconda <https://www.continuum.io/downloads>`__ for an all-in-one
-installation of Python 2.7. If you don't have pip, it can be installed with
-``easy_install pip``.
+(version 2.7.10 or greater) or Python 3 (version 3.5 or greater) and the
+Python package manager pip. We recommend installing
+`Anaconda <https://www.continuum.io/downloads>`__ for an all-in-one
+installation of Python (2.7 or 3). If you don't have pip, it can be
+installed with ``easy_install pip``.
 
 Installation
 ~~~~~~~~~~~~
@@ -101,13 +105,7 @@ and should contain all the information required to connect to Forest:
 Look `here <http://forest.rigetti.com>`_ to learn more about the Forest toolkit.
 
 If ``url`` is not set, pyQuil will default to looking for a
-local endpoint at ``127.0.0.1:5000``. In addition to the above, the fields ``https_cert``
-and ``https_key`` are supported for direct HTTPS connections to Forest.
-
-::
-
-    https_cert: <path to signed HTTPS certificate and key>
-    https_key: <path to separate key file, if different from the above>
+local endpoint at ``127.0.0.1:5000``.
 
 Alternatively, connection information can be provided in environment variables.
 
@@ -115,6 +113,19 @@ Alternatively, connection information can be provided in environment variables.
 
     export QVM_URL=<URL to Rigetti Forest or QVM endpoint>
     export QVM_API_KEY=<Rigetti Forest API key>
+    export QVM_USER_ID=<Rigetti User ID>
+
+Endpoints
++++++++++
+There are two important endpoints to keep in mind.  You will use different ones for different types
+of jobs.
+
+``https://api.rigetti.com/qvm`` is used for making synchronous calls to the QVM.  You should use
+this for most of the getting started materials unless otherwise instructed.
+
+``https://job.rigetti.com/beta`` is used for large async `QVM jobs <getting_started.html#jobconnections>`_
+or for running `jobs on a QPU <qpu.html>`_.
+
 
 Running your first quantum program
 ----------------------------------
@@ -125,7 +136,7 @@ test your connection to Forest using this script by executing the following on y
 ::
 
     cd examples/
-    run_quil.py hello_world.quil
+    python run_quil.py hello_world.quil
 
 You should see the following output array ``[[1, 0, 0, 0, 0, 0, 0, 0]]``. This indicates that you have
 a good connection to our API.
@@ -146,14 +157,18 @@ gates for pyQuil.
 .. code:: python
 
     import pyquil.quil as pq
-    import pyquil.forest as forest
+    import pyquil.api as api
     from pyquil.gates import *
 
-Next, we want to open a connection to the QVM.
+Next, we want to open a connection to the QVM. Forest supports two types of connections through
+pyQuil.  The first is a synchronous connection that immediately runs requested jobs against the QVM.
+This will time out on longer jobs that run for more than 30 seconds. Synchronous connections are good
+for experimenting interactively as they give quick feedback.
 
 .. code:: python
 
-    qvm = forest.Connection()
+    # open a synchronous connection
+    qvm = api.SyncConnection()
 
 Now we can make a program by adding some Quil instruction using the
 ``inst`` method on a ``Program`` object.
@@ -179,14 +194,14 @@ program simply by printing it.
 
 .. code:: python
 
-    print p
+    print(p)
 
 
 .. parsed-literal::
 
     X 0
     MEASURE 0 [0]
-
+    
 
 
 Most importantly, of course, we can see what happens if we run this
@@ -195,7 +210,7 @@ program on the QVM:
 .. code:: python
 
     classical_regs = [0] # A list of which classical registers to return the values of.
-
+    
     qvm.run(p, classical_regs)
 
 
@@ -288,11 +303,11 @@ quantum state at the conclusion of the program. We can print this object
 
     coin_flip = pq.Program().inst(H(0))
     wvf, _ = qvm.wavefunction(coin_flip)
-    print wvf
+    print(wvf)
 
 .. parsed-literal::
 
-  (0.7071067812+0j)|00> + (0.7071067812+0j)|11>
+  (0.7071067812+0j)|0> + (0.7071067812+0j)|1>
 
 To see the amplitudes listed as a sum of computational basis states. We can index into those
 amplitudes directly or look at a dictionary of associated outcome probabilities.
@@ -301,16 +316,16 @@ amplitudes directly or look at a dictionary of associated outcome probabilities.
 
   assert wvf[0] == 1 / np.sqrt(2)
   # The amplitudes are stored as a numpy array on the Wavefunction object
-  print wvf.amplitudes
+  print(wvf.amplitudes)
   prob_dict = wvf.get_outcome_probs() # extracts the probabilities of outcomes as a dict
-  print prob_dict
+  print(prob_dict)
   prob_dict.keys() # these stores the bitstring outcomes
-  assert len(wvf) == 2 # gives the number of qubits
+  assert len(wvf) == 1 # gives the number of qubits
 
 .. parsed-literal::
 
-  [ 0.70710678+0.j  0.00000000+0.j  0.00000000+0.j  0.70710678+0.j]
-  {'11': 0.49999999999999989, '10': 0.0, '00': 0.49999999999999989, '01': 0.0}
+  [ 0.70710678+0.j  0.70710678+0.j]
+  {'1': 0.49999999999999989, '0': 0.49999999999999989}
 
 The second element returned from a wavefunction call is an optional amount of classical memory to
 check:
@@ -326,12 +341,12 @@ reproduce measurement results for the purpose of testing:
 
 .. code:: python
 
-    seeded_cxn = forest.Connection(random_seed=17)
-    print seeded_cxn.run(pq.Program(H(0)).measure(0, 0), [0], 20)
+    seeded_cxn = api.SyncConnection(random_seed=17)
+    print(seeded_cxn.run(pq.Program(H(0)).measure(0, 0), [0], 20))
 
-    seeded_cxn = forest.Connection(random_seed=17)
+    seeded_cxn = api.SyncConnection(random_seed=17)
     # This will give identical output to the above
-    print seeded_cxn.run(pq.Program(H(0)).measure(0, 0), [0], 20)
+    print(seeded_cxn.run(pq.Program(H(0)).measure(0, 0), [0], 20))
 
 
 It is important to remember that this ``wavefunction`` method is just a useful debugging tool
@@ -346,17 +361,17 @@ following are all valid programs:
 
 .. code:: python
 
-    print "Multiple inst arguments with final measurement:"
-    print pq.Program().inst(X(0), Y(1), Z(0)).measure(0, 1)
-
-    print "Chained inst with explicit MEASURE instruction:"
-    print pq.Program().inst(X(0)).inst(Y(1)).measure(0, 1).inst(MEASURE(1, 2))
-
-    print "A mix of chained inst and measures:"
-    print pq.Program().inst(X(0)).measure(0, 1).inst(Y(1), X(0)).measure(0, 0)
-
-    print "A composition of two programs:"
-    print pq.Program(X(0)) + pq.Program(Y(0))
+    print("Multiple inst arguments with final measurement:")
+    print(pq.Program().inst(X(0), Y(1), Z(0)).measure(0, 1))
+    
+    print("Chained inst with explicit MEASURE instruction:")
+    print(pq.Program().inst(X(0)).inst(Y(1)).measure(0, 1).inst(MEASURE(1, 2)))
+    
+    print("A mix of chained inst and measures:")
+    print(pq.Program().inst(X(0)).measure(0, 1).inst(Y(1), X(0)).measure(0, 0))
+    
+    print("A composition of two programs:")
+    print(pq.Program(X(0)) + pq.Program(Y(0)))
 
 
 .. parsed-literal::
@@ -366,24 +381,24 @@ following are all valid programs:
     Y 1
     Z 0
     MEASURE 0 [1]
-
+    
     Chained inst with explicit MEASURE instruction:
     X 0
     Y 1
     MEASURE 0 [1]
     MEASURE 1 [2]
-
+    
     A mix of chained inst and measures:
     X 0
     MEASURE 0 [1]
     Y 1
     X 0
     MEASURE 0 [0]
-
+    
     A composition of two programs:
     X 0
     Y 0
-
+    
 
 
 Fixing a Mistaken Instruction
@@ -396,16 +411,16 @@ off.
 
     p = pq.Program().inst(X(0))
     p.inst(Y(1))
-    print "Oops! We have added Y 1 by accident:"
-    print p
-
-    print "We can fix by popping:"
+    print("Oops! We have added Y 1 by accident:")
+    print(p)
+    
+    print("We can fix by popping:")
     p.pop()
-    print p
-
-    print "And then add it back:"
+    print(p)
+    
+    print("And then add it back:")
     p += pq.Program(Y(1))
-    print p
+    print(p)
 
 
 .. parsed-literal::
@@ -413,13 +428,14 @@ off.
     Oops! We have added Y 1 by accident:
     X 0
     Y 1
-
+    
     We can fix by popping:
     X 0
-
+    
     And then add it back:
     X 0
     Y 1
+    
 
 
 The Standard Gate Set
@@ -460,31 +476,32 @@ matrix representation of the gate. For example, below we define a
 .. code:: python
 
     import numpy as np
-
+    
     # First we define the new gate from a matrix
     x_gate_matrix = np.array(([0.0, 1.0], [1.0, 0.0]))
     sqrt_x = np.array([[ 0.5+0.5j,  0.5-0.5j],
                        [ 0.5-0.5j,  0.5+0.5j]])
     p = pq.Program().defgate("SQRT-X", sqrt_x)
-
+    
     # Then we can use the new gate,
     p.inst(("SQRT-X", 0))
-    print p
+    print(p)
 
 
 .. parsed-literal::
 
     DEFGATE SQRT-X:
-        0.49999999999999989+0.49999999999999989i, 0.49999999999999989-0.49999999999999989i
-        0.49999999999999989-0.49999999999999989i, 0.49999999999999989+0.49999999999999989i
-
+        0.5+0.5i, 0.5-0.5i
+        0.5-0.5i, 0.5+0.5i
+    
     SQRT-X 0
+    
 
 
 
 .. code:: python
 
-    print qvm.wavefunction(p)[0]
+    print(qvm.wavefunction(p)[0])
 
 
 
@@ -505,14 +522,14 @@ gate.
     # A multi-qubit defgate example
     x_gate_matrix = np.array(([0.0, 1.0], [1.0, 0.0]))
     sqrt_x = np.array([[ 0.5+0.5j,  0.5-0.5j],
-                       [ 0.5-0.5j,  0.5+0.5j]])
+                    [ 0.5-0.5j,  0.5+0.5j]])
     x_sqrt_x = np.kron(x_gate_matrix, sqrt_x)
     p = pq.Program().defgate("X-SQRT-X", x_sqrt_x)
-
+    
     # Then we can use the new gate
     p.inst(("X-SQRT-X", 0, 1))
     wavf, _ = qvm.wavefunction(p)
-    print wavf
+    print(wavf)
 
 
 
@@ -545,7 +562,7 @@ correction at the end consisting of a single SWAP gate.
 .. code:: python
 
     from math import pi
-
+    
     def qft3(q0, q1, q2):
         p = pq.Program()
         p.inst( H(q2),
@@ -566,7 +583,7 @@ the following:
 
 .. code:: python
 
-    print qft3(0, 1, 2)
+    print(qft3(0, 1, 2))
 
 
 .. parsed-literal::
@@ -578,7 +595,7 @@ the following:
     CPHASE(1.5707963267948966) 0 1
     H 0
     SWAP 0 2
-
+    
 
 
 Next, we want to prepare a state that corresponds to the sequence we
@@ -597,7 +614,7 @@ would return a two-element vector.
 
     add_dummy_qubits = pq.Program().inst(I(1), I(2))
     wavf, _ = qvm.wavefunction(state_prep + add_dummy_qubits)
-    print wavf
+    print(wavf)
 
 
 
@@ -614,7 +631,7 @@ after state preparation to get our final result.
 .. code:: python
 
     wavf, _ = qvm.wavefunction(state_prep + qft3(0, 1, 2))
-    print wavf.amplitudes
+    print(wavf.amplitudes)
 
 
 
@@ -668,15 +685,15 @@ Then we construct the loop in the following steps:
 
     # Name our classical registers:
     classical_flag_register = 2
-
+    
     # Write out the loop initialization and body programs:
     init_register = pq.Program(TRUE([classical_flag_register]))
     loop_body = pq.Program(X(0), H(0)).measure(0, classical_flag_register)
-
+    
     # Put it all together in a loop program:
     loop_prog = init_register.while_do(classical_flag_register, loop_body)
-
-    print loop_prog
+    
+    print(loop_prog)
 
 
 .. parsed-literal::
@@ -689,6 +706,7 @@ Then we construct the loop in the following steps:
     MEASURE 0 [2]
     JUMP @START1
     LABEL @END2
+    
 
 
 Notice that the ``init_register`` program applied a Quil instruction directly to a
@@ -713,22 +731,22 @@ method.
     # Name our classical registers:
     test_register = 1
     answer_register = 0
-
+    
     # Construct each branch of our if-statement. We can have empty branches
     # simply by having empty programs.
     then_branch = pq.Program(X(0))
     else_branch = pq.Program()
-
+    
     # Make a program that will put a 0 or 1 in test_register with 50% probability:
     branching_prog = pq.Program(H(1)).measure(1, test_register)
-
+    
     # Add the conditional branching:
     branching_prog.if_then(test_register, then_branch, else_branch)
-
+    
     # Measure qubit 0 into our answer register:
     branching_prog.measure(0, answer_register)
-
-    print branching_prog
+    
+    print(branching_prog)
 
 
 .. parsed-literal::
@@ -741,7 +759,7 @@ method.
     X 0
     LABEL @END4
     MEASURE 0 [0]
-
+    
 
 
 We can run this program a few times to see what we get in the
@@ -785,7 +803,7 @@ probabilities specified.
     # 20% chance of a X gate being applied after gate applications and before measurements.
     gate_noise_probs = [0.2, 0.0, 0.0]
     meas_noise_probs = [0.2, 0.0, 0.0]
-    noisy_qvm = forest.Connection(gate_noise=gate_noise_probs, measurement_noise=meas_noise_probs)
+    noisy_qvm = api.SyncConnection(gate_noise=gate_noise_probs, measurement_noise=meas_noise_probs)
 
 We can test this by applying an :math:`X`-gate and measuring. Nominally,
 we should always measure ``1``.
@@ -793,8 +811,8 @@ we should always measure ``1``.
 .. code:: python
 
     p = pq.Program().inst(X(0)).measure(0, 0)
-    print "Without Noise:", qvm.run(p, [0], 10)
-    print "With Noise   :", noisy_qvm.run(p, [0], 10)
+    print("Without Noise: {}".format(qvm.run(p, [0], 10)))
+    print("With Noise   : {}".format(noisy_qvm.run(p, [0], 10)))
 
 
 .. parsed-literal::
@@ -817,7 +835,7 @@ programs, called ``ParametricPrograms``:
     # This function returns a quantum circuit with different rotation angles on a gate on qubit 0
     def rotator(angle):
         return pq.Program(RX(angle, 0))
-
+    
     from pyquil.parametric import ParametricProgram
     par_p = ParametricProgram(rotator) # This produces a new type of parameterized program object
 
@@ -825,7 +843,7 @@ The parametric program ``par_p`` now takes the same arguments as ``rotator``:
 
 .. code:: python
 
-    print par_p(0.5)
+    print(par_p(0.5))
 
 .. parsed-literal::
 
@@ -847,16 +865,16 @@ The above sum can be constructed as follows:
 .. code:: python
 
     from pyquil.paulis import ID, sX, sY, sZ
-
+    
     # Pauli term takes an operator "X", "Y", "Z", or "I"; a qubit to act on, and
     # an optional coefficient.
     a = 0.5 * ID
     b = -0.75 * sX(0) * sY(1) * sZ(3)
     c = (5-2j) * sZ(1) * sX(2)
-
+    
     # Construct a sum of Pauli terms.
     sigma = a + b + c
-    print "sigma =", sigma
+    print("sigma = {}".format(sigma))
 
 
 .. parsed-literal::
@@ -881,22 +899,22 @@ The following shows an instructive example of all three.
 .. code:: python
 
     import pyquil.paulis as pl
-
+    
     # Simplification
     sigma_cubed = sigma * sigma * sigma
-    print "Simplified  :", sigma_cubed
-    print
-
+    print("Simplified  : {}".format(sigma_cubed))
+    print()
+    
     #Produce Quil code to compute exp[iX]
     H = -1.0 * sX(0)
-    print "Quil to compute exp[iX] on qubit 0:"
-    print pl.exponentiate(H)
+    print("Quil to compute exp[iX] on qubit 0:")
+    print(pl.exponential_map(H)(1.0))
 
 
 .. parsed-literal::
 
     Simplified  : (32.46875-30j)*I + (-16.734375+15j)*X0*Y1*Z3 + (71.5625-144.625j)*Z1*X2
-
+    
     Quil to compute exp[iX] on qubit 0:
     H 0
     RZ(-2.0) 0
@@ -917,6 +935,55 @@ alpha.
 
 This ParametricProgram now acts as a template, caching the result of the ``exponential_map``
 calculation so that it can be used later with new values.
+
+JobConnections
+--------------
+Larger pyQuil programs can take longer than 30 seconds to run.  These jobs can be posted into the
+cloud job queue using a different connection object.  The mode of interactive with the API is
+asynchronous.  This means that there is a seperate query to post a job and to get the result.
+
+::
+
+  from pyquil.quil import Program
+  from pyquil.gates import X, H, I
+  from pyquil.api import JobConnection
+
+  job_qvm = JobConnection(endpoint="https://job.rigetti.com/beta")
+  res = job_qvm.run(Program(X(0)).measure(0, 0), [0])
+
+The `res` is an instance of a ``JobResult`` object.  It has an id and allows you to make queries
+to see if the job result is finished.
+
+::
+
+  zz = res.get()
+  print type(zz), zz
+
+.. parsed-literal::
+
+    <class 'pyquil.job_results.JobResult'> {u'status': u'Submitted', u'jobId': u'BLSLJCBGNP'}
+
+Once the job is finished, then the results can be retrieved from the JobResult object:
+
+::
+
+  import time
+
+  while not res.is_done():
+      res.get()
+      time.sleep(1)
+  print res
+  answer = res.decode()
+  print answer
+
+.. parsed-literal::
+
+  {u'result': u'[[1]]', u'jobId': u'BLSLJCBGNP'}
+
+  <type 'list'> [[1]]
+
+This same pattern applies to the ``wavefunction``, ``expectation``, and ``run_and_measure`` calls
+on the JobConnection object.
 
 Exercises
 ---------
