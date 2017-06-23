@@ -54,9 +54,9 @@ def get_gate_types(program):
     :return: The mapping of gates to their counts within program
     '''
     counts = {}
-    for gate in gates.STANDARD_GATES:
+    for gate in get_all_gate_types():
         counts[gate] = 0
-      
+    
     # Count how many gates there are for each gate type
     for action in program.actions:
         counts[action[1].operator_name] += 1
@@ -65,8 +65,10 @@ def get_gate_types(program):
 
 def get_qubit_num_gates(gate_counts):
     '''
-    Returns a dictionary with the original gate_counts, but with two
-    extra entries, 'Single Qubit Gates' and 'Two Qubit Gates'
+    Returns a dictionary with the original gate_counts, but with
+    extra entries 'Single Qubit Gates', 'Two Qubit Gates',
+    'Control Instructions', 'Classical Instructions',
+    'Three+ Qubit Gates', and 'Elements in DEFGATES'
     '''
     
     results = deepcopy(gate_counts)
@@ -89,9 +91,28 @@ def get_qubit_num_gates(gate_counts):
                 gate_counts['CPHASE10'] + \
                 gate_counts['CPHASE'] + \
                 gate_counts['SWAP'] + \
-                gate_counts['CSWAP'] + \
                 gate_counts['ISWAP'] + \
                 gate_counts['PSWAP']
+    results['Control Instructions'] = \
+                gate_counts['RESET'] + \
+                gate_counts['NOP'] + \
+                gate_counts['WAIT'] + \
+                gate_counts['HALT']
+    results['Classical Instructions'] = \
+                gate_counts['TRUE'] + \
+                gate_counts['FALSE'] + \
+                gate_counts['NOT'] + \
+                gate_counts['AND'] + \
+                gate_counts['OR'] + \
+                gate_counts['MOVE'] + \
+                gate_counts['EXCHANGE'] + \
+                gate_counts['JUMP-WHEN'] + \
+                gate_counts['JUMP-UNLESS']
+    results['Three+ Qubit Gates'] = \
+                gate_counts['CCNOT'] + \
+                gate_counts['CSWAP']
+    results['Elements in DEFGATES'] = \
+                gate_counts['DEFGATE']
     return results
 
 def analyze(program_creator, input_list, should_range=False, to_include=None, remove_zeros=False):
@@ -192,7 +213,6 @@ def plot_analysis(x_points, analysis, title, x_axis, y_axis):
 
     fig = dict(data=data, layout=layout)
     plotly.offline.plot(fig)
-    
 
 def aos_to_soa(aos):
         '''
@@ -212,8 +232,6 @@ def aos_to_soa(aos):
                 result[item].append(val)
                 
         return result
-    
-
 
 def get_runtime_approximate(x, y):
     
@@ -227,7 +245,17 @@ def get_runtime_approximate(x, y):
         if coeff > cutoff:
             return 8 - degree
     
-
+    
+def get_all_gate_types():
+    '''
+    Simply returns a set of all possible Quil gate types
+    '''
+    return gates.STANDARD_GATES.keys() + \
+            ['RESET', 'NOP', 'WAIT', 'HALT', 'TRUE', \
+             'FALSE', 'NOT', 'AND', 'OR', 'WAIT', 'MOVE', \
+             'EXCHANGE', 'JUMP-WHEN', 'JUMP-UNLESS', 'DEFGATE']
+    
+    
 if __name__ == "__main__":
     
     tests = range(1, 150)
