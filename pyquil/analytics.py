@@ -173,13 +173,16 @@ def analyze(program_creator, input_list, should_range=False, to_include=None, re
     
     return (input_list, results)
 
-def plot_analysis(x_points, analysis, title, x_axis, y_axis):
+def plot_analysis(x_points, analysis, title, x_axis, y_axis, bounds=None):
     '''
     Takes results from the analyze function and plots them using plotly
     :param analysis: The analysis gathered by the analyze function
     :param title: The title to display on the plotted graph
     :param x_axis: A label for the x axis
     :param y_axis: A label for the y axis
+    :param bounds: An optional dictionary of names to functions, which will
+                   be plotted against the given x points. This is useful
+                   for comparing your gate growth to the requested growth
     :param x_points: A list of x points to use for your data (i.e. input
                      for your programs, "n")
     '''
@@ -193,17 +196,35 @@ def plot_analysis(x_points, analysis, title, x_axis, y_axis):
         # Create the graph
         this_data = analysis[val]
         trace = go.Scatter(
-            x = tests,
+            x = x_points,
             y = this_data,
             name = val,
             line = dict(
                 color = ('rgb(%d, %d, %d)' % (r(), r(), r())),
-                width = 4,)
+                width = 4)
         )
         data.append(trace)
         
         # Find the polynomial runtime
-        runtime[val] = get_runtime_approximate(tests, this_data)
+        runtime[val] = get_runtime_approximate(x_points, this_data)
+        #print str(val) + ": " + str(runtime[val][0]) + "n^" + str(runtime[val][1])
+        
+    if bounds is not None:
+        for name in bounds.keys():
+            # Create the graph
+            function = bounds[name]
+            this_data = [function(i) for i in x_points]
+            trace = go.Scatter(
+                x = x_points,
+                y = this_data,
+                name = name,
+                line = dict(
+                    color = ('rgb(%d, %d, %d)' % (r(), r(), r())),
+                    width = 4,
+                    dash = 'dash')
+            )
+            data.append(trace)
+        
 
     # Edit the layout
     layout = dict(title = title,
@@ -234,16 +255,28 @@ def aos_to_soa(aos):
         return result
 
 def get_runtime_approximate(x, y):
+    '''
+    Given x and y points, determines an approximate running
+    time for the given points using fitting
+    '''
     
     # Check if this is polynomial
-    cutoff = 0.30
-    poly_result = np.polyfit(x, y, 8)
-    degree = 9
+    current_max = 0
+    poly_result = np.polyfit(x, y, 10)
+    degree = 10
+    polynomial_degree = (None, None)
     while degree > 0:
         degree -= 1
         coeff = poly_result[degree]
-        if coeff > cutoff:
-            return 8 - degree
+        if coeff > current_max:
+            current_max = coeff
+            polynomial_degree = (coeff, 10 - degree)
+            
+    return polynomial_degree
+        
+    # Check if this is exponential
+    
+    # Check if this is logarithmic
     
     
 def get_all_gate_types():
@@ -260,6 +293,11 @@ if __name__ == "__main__":
     
     tests = range(1, 150)
     results = analyze(qft, tests, should_range=True, remove_zeros=True)
-    plot_analysis(results[0], results[1], "QFT Implementation", "Number of Qubits Operated On", "Num Gates / Runtime (us)")
+    estimate = {"Total Gate Bound": lambda n: n*np.log2(n)**2} # From http://algassert.com/2016/06/14/qft-by-multiply.html
+    plot_analysis(results[0], results[1], 
+                  "QFT Implementation", 
+                  "Number of Qubits Operated On", 
+                  "Num Gates / Runtime (us)",
+                  bounds=estimate)
     
     
