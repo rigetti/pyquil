@@ -13,6 +13,8 @@ them using pyQuil.
 
     You will also need to use the following URL endpoint: https://job.rigetti.com/beta
 
+    For QPU plots, please install the lmfit==0.9.7 package.
+
 
 Before running any experiments, we need to take a look at what devices are available on the
 platform.
