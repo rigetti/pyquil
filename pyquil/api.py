@@ -305,7 +305,7 @@ class JobConnection(object):
         :return: Should get "ok" back.
         :rtype: string
         """
-        res = self.session.get(self.endpoint+"/check")
+        res = requests.get(self.endpoint+"/check", headers=self.text_headers)
         return str(json.loads(res.text)["rc"])
 
     def version(self):
