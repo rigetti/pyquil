@@ -2,9 +2,10 @@ from copy import deepcopy
 import json
 import requests
 
-from pyquil.api import JobConnection, ENDPOINT, USER_ID, API_KEY
+from pyquil.api import JobConnection, USER_ID, API_KEY
 import pyquil.quil as pq
 from pyquil.job_results import RamseyResult, RabiResult, T1Result
+ENDPOINT = "https://job.rigetti.com/beta"
 
 
 class NoParametersFoundException(Exception):
@@ -17,6 +18,8 @@ class QPUConnection(JobConnection):
         super(QPUConnection, self).__init__(*args)
         self.device_name = device_name
         self.machine = "QPU"
+        self.session.headers = self.json_headers
+        self.endpoint = ENDPOINT
 
     def get_qubits(self):
         """
@@ -30,6 +33,7 @@ class QPUConnection(JobConnection):
     def rabi(self, qubit_id):
         """
         Runs a Rabi experiment on the given qubit
+
         :param int qubit_id:
         :return: A RabiResult object
         """
@@ -46,6 +50,7 @@ class QPUConnection(JobConnection):
     def ramsey(self, qubit_id):
         """
          Runs a Ramsey experiment on the given qubit
+
          :param int qubit_id:
          :return: A RamseyResult object
          """
@@ -62,6 +67,7 @@ class QPUConnection(JobConnection):
     def t1(self, qubit_id):
         """
          Runs a T1 experiment on the given qubit
+
          :param int qubit_id:
          :return: A T1Result object
          """
