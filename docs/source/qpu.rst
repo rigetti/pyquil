@@ -9,7 +9,9 @@ them using pyQuil.
 .. note::
 
     In order to run experiments on the QPU you will need a specially upgraded API key.  If you are
-    interested in running these experiments, then email us at support@rigetti.com
+    interested in running these experiments, then email us at support@rigetti.com.
+
+    You will also need to use the following URL enpoint: https://job.rigetti.com/beta
 
 
 Before running any experiments, we need to take a look at what devices are available on the
@@ -210,13 +212,14 @@ amplitude in the resulting periodic function.
 If we fit this data to the a decaying periodic function, then we can extract the T2 decay constant.
 
 ::
+    from pyquil.plots import T2RamseyModel
 
     model = T2RamseyModel()
     x, y = res_ramsey.decode()
     fit_n_data = model.report_fit(np.asarray(x), np.asarray(y))
     fit, data = (fit_n_data[0], fit_n_data[1:])
-    fit.plot()
-    plt.show()
+    fig = fit.plot()
+    fig[0].show()
     print fit.fit_report()
 
 .. image:: images/ramsey_fit.png
