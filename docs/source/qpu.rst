@@ -212,6 +212,7 @@ amplitude in the resulting periodic function.
 If we fit this data to the a decaying periodic function, then we can extract the T2 decay constant.
 
 ::
+
     from pyquil.plots import T2RamseyModel
 
     model = T2RamseyModel()
