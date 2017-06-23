@@ -11,8 +11,6 @@ them using pyQuil.
     In order to run experiments on the QPU you will need a specially upgraded API key.  If you are
     interested in running these experiments, then email us at support@rigetti.com.
 
-    You will also need to use the following URL endpoint: https://job.rigetti.com/beta
-
     For QPU plots, please install the lmfit==0.9.7 package.
 
 
