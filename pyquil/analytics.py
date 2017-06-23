@@ -19,6 +19,7 @@ A collection of methods for analyzing pyquil programs (gate count, etc...)
 """
 
 import pyquil.gates as gates
+from pyquil.quilbase import UnaryClassicalInstruction, BinaryClassicalInstruction, SimpleInstruction, QuilAction
 from grove.qft.fourier import qft
 from grove.unitary_circuit.arbitrary_state import create_arbitrary_state
 import numpy as np
@@ -59,7 +60,13 @@ def get_gate_types(program):
     
     # Count how many gates there are for each gate type
     for action in program.actions:
-        counts[action[1].operator_name] += 1
+        try:
+            counts[action[1].operator_name] += 1
+        except Exception:
+            try:
+                counts[action[1].op] += 1
+            except:
+                pass#print action[1]
         
     return counts
 
@@ -286,7 +293,7 @@ def get_all_gate_types():
     return gates.STANDARD_GATES.keys() + \
             ['RESET', 'NOP', 'WAIT', 'HALT', 'TRUE', \
              'FALSE', 'NOT', 'AND', 'OR', 'WAIT', 'MOVE', \
-             'EXCHANGE', 'JUMP-WHEN', 'JUMP-UNLESS', 'DEFGATE']
+             'EXCHANGE', 'JUMP-WHEN', 'JUMP-UNLESS', 'DEFGATE', 'MEASURE']
     
     
 if __name__ == "__main__":
