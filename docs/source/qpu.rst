@@ -11,6 +11,8 @@ them using pyQuil.
     In order to run experiments on the QPU you will need an upgraded API key.  If you are
     interested in running these experiments, then email us at support@rigetti.com.
 
+    For QPU plots, please install the lmfit>=0.9.7 package.
+
 Once your API key has been upgraded, update your environment to use the QPU endpoint:
 
 ::
@@ -218,6 +220,8 @@ If we fit this data to the a decaying periodic function, then we can extract the
 
 ::
 
+    from pyquil.plots import T2RamseyModel
+
     model = T2RamseyModel()
     x, y = res_ramsey.decode()
     fit_n_data = model.report_fit(np.asarray(x), np.asarray(y))
@@ -225,6 +229,14 @@ If we fit this data to the a decaying periodic function, then we can extract the
     fit.plot()
     plt.show()
     print fit.fit_report()
+
+Note: if you are using a python terminal instead of a notebook, then plot using the following instead:
+
+::
+
+  fig = fit.plot()
+  fig[0].show()
+  print fit.fit_report()
 
 .. image:: images/ramsey_fit.png
 
