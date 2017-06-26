@@ -219,9 +219,17 @@ If we fit this data to the a decaying periodic function, then we can extract the
     x, y = res_ramsey.decode()
     fit_n_data = model.report_fit(np.asarray(x), np.asarray(y))
     fit, data = (fit_n_data[0], fit_n_data[1:])
-    fig = fit.plot()
-    fig[0].show()
+    fit.plot()
+    plt.show()
     print fit.fit_report()
+
+Note: if you are using a python terminal instead of a notebook, then plot using the following instead:
+
+::
+
+  fig = fit.plot()
+  fig[0].show()
+  print fit.fit_report()
 
 .. image:: images/ramsey_fit.png
 
