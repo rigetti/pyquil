@@ -8,7 +8,7 @@ them using pyQuil.
 
 .. note::
 
-    In order to run experiments on the QPU you will need a specially upgraded API key.  If you are
+    In order to run experiments on the QPU you will need an upgraded API key.  If you are
     interested in running these experiments, then email us at support@rigetti.com.
 
 Once your API key has been upgraded, update your environment to use the QPU endpoint:
