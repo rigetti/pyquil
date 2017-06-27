@@ -172,20 +172,23 @@ class Program(InstructionGroup):
 
         :return: The Quil program's inverse
         :rtype: Program
+
         """
 
+        for action in self.actions:
+            assert action[0] == 0, "Program must be valid Protoquil"
+            gate = action[1]
+            assert not isinstance(gate, Measurement), "Program cannot contain measurements"
+            assert not isinstance(gate, While) and not isinstance(gate, If), \
+                "Program cannot contain control flow"
+
         daggered = Program()
+
         for gate in self.defined_gates:
             daggered.defgate(gate.name + "-INV", gate.matrix.T.conj())
 
         for action in self.actions[::-1]:
-            if action[0] != 0:
-                continue
             gate = action[1]
-            assert not isinstance(gate, Measurement), "Program cannot contain measurements"
-            assert not isinstance(gate, While) and not isinstance(gate, If),\
-                "Program cannot contain control flow"
-
             if gate.operator_name in STANDARD_GATES:
                 if gate.operator_name == "S":
                     daggered.inst(STANDARD_GATES["RZ"](-pi / 2, *gate.arguments))
