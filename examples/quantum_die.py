@@ -1,5 +1,3 @@
-from __future__ import print_function
-from builtins import range
 #!/usr/bin/python
 ##############################################################################
 # Copyright 2016-2017 Rigetti Computing
@@ -17,6 +15,8 @@ from builtins import range
 #    limitations under the License.
 ##############################################################################
 
+from __future__ import print_function
+from builtins import range
 import math
 from functools import reduce
 import pyquil.quil as pq

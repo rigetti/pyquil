@@ -1,4 +1,3 @@
-from builtins import object
 #!/usr/bin/python
 ##############################################################################
 # Copyright 2016-2017 Rigetti Computing
@@ -16,7 +15,7 @@ from builtins import object
 #    limitations under the License.
 ##############################################################################
 
-
+from builtins import object
 import pytest
 import json
 from mock import Mock
