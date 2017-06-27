@@ -1,0 +1,31 @@
+language: python
+dist: trusty
+
+env:
+  global:
+    - CI=true
+
+cache:
+    pip: true
+    directories:
+    - $HOME/Library/Caches/Homebrew
+
+matrix:
+  include:
+    - python: "2.7"
+    - os: osx
+      osx_image: xcode8.3
+      sudo: required
+      language: generic
+      before_install:
+      #  Manually install python on osx
+      - brew update
+      - brew install python3
+      - virtualenv env -p python3
+      - source env/bin/activate
+
+install:
+  - pip install .
+
+script:
+  - pytest pyquil/tests
