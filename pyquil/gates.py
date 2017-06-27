@@ -19,10 +19,10 @@ A lovely bunch of gates and instructions for programming with.  This module is u
 Pythonic sugar for Quil instructions.
 """
 
+from builtins import int
 from .quilbase import (Measurement, Gate, Addr, Wait, Reset, Halt, Nop, ClassicalTrue,
                        ClassicalFalse, ClassicalNot, ClassicalAnd, ClassicalOr, ClassicalMove,
                        ClassicalExchange, DirectQubit, AbstractQubit, issubinstance)
-from six import integer_types
 
 def unpack_classical_reg(c):
     """
@@ -31,7 +31,7 @@ def unpack_classical_reg(c):
     :param c: A list of length 1 or an int or an Addr.
     :return: The address as an Addr.
     """
-    if not (isinstance(c, integer_types) or isinstance(c,(list, Addr))):
+    if not (isinstance(c, (int, list, Addr))):
         raise TypeError("c should be an int or list or Addr")
     if isinstance(c, list) and (len(c) != 1 or not isinstance(c[0], int)):
         raise ValueError("if c is a list, it should be of 1 int")
@@ -50,7 +50,7 @@ def unpack_qubit(qubit):
     :param qubit: An int or AbstractQubit.
     :return: An AbstractQubit instance
     """
-    if isinstance(qubit, integer_types):
+    if isinstance(qubit, int):
         return DirectQubit(qubit)
     elif not isinstance(qubit, AbstractQubit):
         raise TypeError("qubit should be an int or AbstractQubit instance")

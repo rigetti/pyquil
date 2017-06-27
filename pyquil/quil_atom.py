@@ -17,6 +17,7 @@
 """
 Contains the base class for Atomic Quil elements.
 """
+from builtins import object
 
 class QuilAtom(object):
     """

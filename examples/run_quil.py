@@ -3,6 +3,7 @@ This module runs basic Quil text files against the Forest QVM API.
 """
 
 from __future__ import print_function
+from builtins import range
 from argparse import ArgumentParser, ArgumentDefaultsHelpFormatter
 from pyquil.quil import Program
 import pyquil.api as forest

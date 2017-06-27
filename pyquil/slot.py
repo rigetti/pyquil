@@ -17,6 +17,10 @@
 """
 Contains Slot pyQuil placeholders for constructing Quil template programs.
 """
+from __future__ import division
+from builtins import str
+from builtins import object
+from past.utils import old_div
 
 class Slot(object):
     """
@@ -65,12 +69,12 @@ class Slot(object):
         return Slot(self, lambda: val * self.value())
 
     def __div__(self, val):
-        return Slot(self, lambda: self.value() / val)
+        return Slot(self, lambda: old_div(self.value(), val))
 
     __truediv__ = __div__
 
     def __rdiv__(self, val):
-        return Slot(self, lambda: val / self.value())
+        return Slot(self, lambda: old_div(val, self.value()))
 
     __rtruediv__ = __rdiv__
 

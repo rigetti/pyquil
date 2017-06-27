@@ -17,10 +17,12 @@
 """
 Module for creating and defining parametric programs.
 """
+from builtins import zip
+from builtins import range
+from builtins import object
 
 import inspect
 from copy import copy
-from six.moves import range
 
 from .quilbase import Slot
 from .quil import Program

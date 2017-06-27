@@ -15,6 +15,11 @@
 #    limitations under the License.
 ##############################################################################
 
+from __future__ import division
+from builtins import str
+from builtins import zip
+from builtins import range
+from past.utils import old_div
 import pytest
 from pyquil.paulis import (PauliTerm, PauliSum, exponential_map, ID, exponentiate,
                            trotterize, is_zero, check_commutation, commuting_sets, sZ, sX
@@ -23,7 +28,6 @@ from pyquil.quil import Program
 from pyquil.gates import RX, RZ, CNOT, H, X, PHASE
 import math
 from itertools import product
-from six.moves import range
 
 
 def isclose(a, b, rel_tol=1e-10, abs_tol=0.0):
@@ -268,25 +272,25 @@ def test_exponentiate():
     generator = PauliTerm("Z", 1, 1.0) * PauliTerm("Y", 0, 1.0)
     para_prog = exponential_map(generator)
     prog = para_prog(1)
-    result_prog = Program().inst([RX(math.pi / 2.0)(0), CNOT(0, 1), RZ(2.0)(1),
-                                  CNOT(0, 1), RX(-math.pi / 2)(0)])
+    result_prog = Program().inst([RX(old_div(math.pi, 2.0))(0), CNOT(0, 1), RZ(2.0)(1),
+                                  CNOT(0, 1), RX(old_div(-math.pi, 2))(0)])
     compare_progs(prog, result_prog)
 
     # testing change of basis position 1
     generator = PauliTerm("Y", 1, 1.0) * PauliTerm("Z", 0, 1.0)
     para_prog = exponential_map(generator)
     prog = para_prog(1)
-    result_prog = Program().inst([RX(math.pi / 2.0)(1), CNOT(0, 1), RZ(2.0)(1),
-                                  CNOT(0, 1), RX(-math.pi / 2.0)(1)])
+    result_prog = Program().inst([RX(old_div(math.pi, 2.0))(1), CNOT(0, 1), RZ(2.0)(1),
+                                  CNOT(0, 1), RX(old_div(-math.pi, 2.0))(1)])
     compare_progs(prog, result_prog)
 
     # testing circuit for 3-terms with change of basis
     generator = PauliTerm("X", 2, 1.0) * PauliTerm("Y", 1, 1.0) * PauliTerm("Z", 0, 1.0)
     para_prog = exponential_map(generator)
     prog = para_prog(1)
-    result_prog = Program().inst([RX(math.pi / 2.0)(1), H(2), CNOT(0, 1),
+    result_prog = Program().inst([RX(old_div(math.pi, 2.0))(1), H(2), CNOT(0, 1),
                                   CNOT(1, 2), RZ(2.0)(2), CNOT(1, 2),
-                                  CNOT(0, 1), RX(-math.pi / 2.0)(1), H(2)])
+                                  CNOT(0, 1), RX(old_div(-math.pi, 2.0))(1), H(2)])
     compare_progs(prog, result_prog)
 
     # testing circuit for 3-terms non-sequential
@@ -295,11 +299,11 @@ def test_exponentiate():
                                                                                              1.0)
     para_prog = exponential_map(generator)
     prog = para_prog(1)
-    result_prog = Program().inst([RX(math.pi / 2.0)(0), RX(math.pi / 2.0)(2),
-                                  RX(math.pi / 2.0)(3), CNOT(0, 2),
+    result_prog = Program().inst([RX(old_div(math.pi, 2.0))(0), RX(old_div(math.pi, 2.0))(2),
+                                  RX(old_div(math.pi, 2.0))(3), CNOT(0, 2),
                                   CNOT(2, 3), RZ(2.0)(3), CNOT(2, 3),
-                                  CNOT(0, 2), RX(-math.pi / 2.0)(0),
-                                  RX(-math.pi / 2.0)(2), RX(-math.pi / 2.0)(3)])
+                                  CNOT(0, 2), RX(old_div(-math.pi, 2.0))(0),
+                                  RX(old_div(-math.pi, 2.0))(2), RX(old_div(-math.pi, 2.0))(3)])
     compare_progs(prog, result_prog)
 
 
@@ -371,9 +375,9 @@ def test_trotterize():
 
     # trotter_order 3 steps 1
     prog = trotterize(term_one, term_two, trotter_order=3, trotter_steps=1)
-    result_prog = Program().inst([H(0), RZ(14.0 / 24)(0), H(0), RZ(4.0 / 3.0)(0),
-                                  H(0), RZ(1.5)(0), H(0), RZ(-4.0 / 3.0)(0),
-                                  H(0), RZ(-2.0 / 24)(0), H(0), RZ(2.0)(0)])
+    result_prog = Program().inst([H(0), RZ(old_div(14.0, 24))(0), H(0), RZ(old_div(4.0, 3.0))(0),
+                                  H(0), RZ(1.5)(0), H(0), RZ(old_div(-4.0, 3.0))(0),
+                                  H(0), RZ(old_div(-2.0, 24))(0), H(0), RZ(2.0)(0)])
     compare_progs(prog, result_prog)
 
 
@@ -401,7 +405,7 @@ def test_check_commutation():
     # more rigorous test.  Get all operators in Pauli group
     p_n_group = ("I", "X", "Y", "Z")
     pauli_list = list(product(p_n_group, repeat=3))
-    pauli_ops = [list(zip(x, range(3))) for x in pauli_list]
+    pauli_ops = [list(zip(x, list(range(3)))) for x in pauli_list]
     pauli_ops_pq = []
     for op in pauli_ops:
         reduced = PauliTerm(op[0][0], op[0][1])

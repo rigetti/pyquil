@@ -28,6 +28,7 @@ setup(
     packages=["pyquil"],
     license="LICENSE",
     install_requires=[
+        'future == 0.16.0',
         'requests >= 2.4.2',
         'numpy >= 1.10',
         'matplotlib >= 1.5',

@@ -1,3 +1,4 @@
+from builtins import range
 from pyquil.resource_manager import *
 import pyquil.quil as pq
 from pyquil.gates import *

@@ -15,6 +15,9 @@
 #    limitations under the License.
 ##############################################################################
 
+from __future__ import division
+from builtins import str
+from past.utils import old_div
 import pyquil.api as qvm_endpoint
 from pyquil.quil import Program, merge_programs
 from pyquil.quilbase import DirectQubit
@@ -280,10 +283,10 @@ def test_define_qft():
     def qft3(q0, q1, q2):
         p = Program()
         p.inst(H(q2),
-               CPHASE(pi / 2.0)(q1, q2),
+               CPHASE(old_div(pi, 2.0))(q1, q2),
                H(1),
-               CPHASE(pi / 4.0)(q0, q2),
-               CPHASE(pi / 2.0)(q0, q1),
+               CPHASE(old_div(pi, 4.0))(q0, q2),
+               CPHASE(old_div(pi, 2.0))(q0, q1),
                H(q0),
                SWAP(q0, q2))
         return p

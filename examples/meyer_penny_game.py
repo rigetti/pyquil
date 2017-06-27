@@ -1,3 +1,4 @@
+from __future__ import print_function
 ##############################################################################
 # Copyright 2016-2017 Rigetti Computing
 #
