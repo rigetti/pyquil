@@ -15,7 +15,7 @@
 ##############################################################################
 
 import pyquil.quil as pq
-from pyquil import forest
+from pyquil import api
 from pyquil.gates import I, H, X
 
 import numpy as np
@@ -24,7 +24,7 @@ import numpy as np
 def meyer_penny_program():
     """
     Returns the program to simulate the Meyer-Penny Game
-    
+
     :return: pyQuil Program
     """
 
@@ -50,7 +50,7 @@ def meyer_penny_program():
 
 if __name__ == "__main__":
     n_trials = 10
-    qvm = forest.Connection()
+    qvm = api.JobConnection()
     outcomes = np.asarray(qvm.run(meyer_penny_program(), [0, 1], trials=n_trials))
 
     print("Number of games: {}".format(n_trials))

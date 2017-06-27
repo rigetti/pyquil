@@ -15,7 +15,7 @@
 #    limitations under the License.
 ##############################################################################
 
-import pyquil.forest as qvm_endpoint
+import pyquil.api as qvm_endpoint
 from pyquil.quil import Program, merge_programs
 from pyquil.quilbase import DirectQubit
 from pyquil.gates import I, X, Y, Z, H, T, S, RX, RY, RZ, CNOT, CCNOT, PHASE, CPHASE00, CPHASE01, \
@@ -30,7 +30,7 @@ from math import pi, sqrt
 
 
 def test_make_connection():
-    qvm_endpoint.Connection()
+    qvm_endpoint.JobConnection()
 
 
 def test_gate():

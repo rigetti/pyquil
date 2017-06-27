@@ -5,9 +5,9 @@ This module runs basic Quil text files against the Forest QVM API.
 from __future__ import print_function
 from argparse import ArgumentParser, ArgumentDefaultsHelpFormatter
 from pyquil.quil import Program
-import pyquil.forest as forest
+import pyquil.api as forest
 
-qvm = forest.Connection()
+qvm = forest.SyncConnection(endpoint='https://api.rigetti.com/qvm')
 
 help_string = "Script takes two arguments. Quil program filename is required as the first " \
               "argument and number of classical registers to return is the optional second " \

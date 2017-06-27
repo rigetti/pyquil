@@ -21,7 +21,7 @@ import json
 from mock import Mock
 import numpy as np
 
-import pyquil.forest as qvm
+import pyquil.api as qvm
 import pyquil.quil as pq
 from pyquil.gates import *
 
@@ -30,14 +30,14 @@ class MockPostJson(object):
     def __init__(self):
         self.return_value = Mock()
 
-    def __call__(self, payload):
+    def __call__(self, payload, route):
         json.dumps(payload)
         return self.return_value
 
 
 @pytest.fixture
 def cxn():
-    c = qvm.Connection()
+    c = qvm.SyncConnection()
     c.post_json = MockPostJson()
     c.post_json.return_value.text = json.dumps("Success")
     c.measurement_noise = 1
@@ -81,24 +81,6 @@ def test_dont_add_rng_seed_to_payload():
     payload = {}
     qvm.add_rng_seed_to_payload(payload, None)
     assert 'rng-seed' not in payload
-
-
-def test_rounding():
-    for i in range(8):
-        if 0 == i % 8:
-            assert i == qvm._round_to_next_multiple(i, 8)
-        else:
-            assert 8 == qvm._round_to_next_multiple(i, 8)
-            assert 16 == qvm._round_to_next_multiple(i + 8, 8)
-            assert 24 == qvm._round_to_next_multiple(i + 16, 8)
-
-
-def test_octet_bits():
-    assert [0, 0, 0, 0, 0, 0, 0, 0] == qvm._octet_bits(0b0)
-    assert [1, 0, 0, 0, 0, 0, 0, 0] == qvm._octet_bits(0b1)
-    assert [0, 1, 0, 0, 0, 0, 0, 0] == qvm._octet_bits(0b10)
-    assert [1, 0, 1, 0, 0, 0, 0, 0] == qvm._octet_bits(0b101)
-    assert [1, 1, 1, 1, 1, 1, 1, 1] == qvm._octet_bits(0b11111111)
 
 
 def test_add_noise_to_payload():
