@@ -1,0 +1,11 @@
+requests>=2.4.2
+numpy >= 1.10
+matplotlib >= 1.5
+
+
+# test dependencies
+tox
+pytest >= 3.0.0
+mock
+pytest-cov
+codeclimate-test-reporter
