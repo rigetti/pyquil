@@ -126,7 +126,7 @@ def get_params(device_name, qcid, func):
         device_config = filter(lambda dd: dd['name'] == device_name, config_dict['devices'])[0]
         device_config = device_config['qubits']
     except (KeyError, IndexError):
-        raise NoParametersFoundException, "Device with name {} not found.".format(device_name)
+        raise NoParametersFoundException("Device with name {} not found.".format(device_name))
     for qc in device_config:
         if qc['num'] == qcid:
             return func(qc)
