@@ -109,7 +109,7 @@ def get_info():
             'x-user-id' : USER_ID,
     }
     res = requests.get(url, headers=headers)
-    config_json = json.loads(res.content.decode("utf-8"))
+    config_json = res.json()
     return config_json
 
 
