@@ -295,7 +295,7 @@ class JobConnection(object):
         """
         url = self.endpoint + ("/job/%s" % (job_result.job_id()))
         res = requests.get(url, headers=self.text_headers)
-        result = json.loads(res.content.decode("utf-8"))
+        result = res.json()
         return job_result._update(res.ok, result)
 
     def ping(self):
@@ -334,7 +334,7 @@ class JobConnection(object):
         :return: A WavefunctionResult with the response data filled in
         :rtype: WavefunctionResult
         """
-        result = json.loads(res.content.decode("utf-8"))
+        result = res.json()
         return WavefunctionResult(self, res.ok, result=result, payload=payload)
 
     def wavefunction(self, quil_program, classical_addresses=None):
