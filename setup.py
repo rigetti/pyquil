@@ -31,6 +31,7 @@ setup(
         'requests >= 2.4.2',
         'numpy >= 1.10',
         'matplotlib >= 1.5',
+        'urllib3 >= 1.21.1',
     ],
     setup_requires=['pytest-runner'],
     tests_require=[
