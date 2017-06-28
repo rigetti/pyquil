@@ -77,7 +77,7 @@ class JobResult(object):
 
     @classmethod
     def load_res(cls, qpu, response):
-        result = json.loads(response.content.decode("utf-8"))
+        result = response.json()
         return cls(qpu, response.ok, result)
 
 
@@ -106,7 +106,7 @@ def recover_complexes(coef_string, classical_addresses):
     # Parse the classical memory
     mem = []
     for i in range(num_memory_octets):
-        octet = struct.unpack('B', coef_string[i])[0]
+        octet = struct.unpack('B', coef_string[i:i+1])[0]
         mem.extend(_octet_bits(octet))
 
     mem = mem[0:num_addresses]
