@@ -214,48 +214,48 @@ The identity Pauli operator on the 0th qubit.
 """
 
 
-def sI(q): return PauliTerm("I", q)
+def sI(q):
+    """
+    A function that returns the identity operator on a particular qubit.
 
-"""
-A function that returns the identity operator on a particular qubit.
-
-:param int qubit_index: The index of the qubit
-:returns: A PauliTerm object
-:rtype: PauliTerm
-"""
-
-
-def sX(q): return PauliTerm("X", q)
-
-"""
-A function that returns the sigma_X operator on a particular qubit.
-
-:param int qubit_index: The index of the qubit
-:returns: A PauliTerm object
-:rtype: PauliTerm
-"""
+    :param int qubit_index: The index of the qubit
+    :returns: A PauliTerm object
+    :rtype: PauliTerm
+    """
+    return PauliTerm("I", q)
 
 
-def sY(q): return PauliTerm("Y", q)
+def sX(q):
+    """
+    A function that returns the sigma_X operator on a particular qubit.
 
-"""
-A function that returns the sigma_Y operator on a particular qubit.
-
-:param int qubit_index: The index of the qubit
-:returns: A PauliTerm object
-:rtype: PauliTerm
-"""
+    :param int qubit_index: The index of the qubit
+    :returns: A PauliTerm object
+    :rtype: PauliTerm
+    """
+    return PauliTerm("X", q)
 
 
-def sZ(q): return PauliTerm("Z", q)
+def sY(q):
+    """
+    A function that returns the sigma_Y operator on a particular qubit.
 
-"""
-A function that returns the sigma_Z operator on a particular qubit.
+    :param int qubit_index: The index of the qubit
+    :returns: A PauliTerm object
+    :rtype: PauliTerm
+    """
+    return PauliTerm("Y", q)
 
-:param int qubit_index: The index of the qubit
-:returns: A PauliTerm object
-:rtype: PauliTerm
-"""
+
+def sZ(q):
+    """
+    A function that returns the sigma_Z operator on a particular qubit.
+
+    :param int qubit_index: The index of the qubit
+    :returns: A PauliTerm object
+    :rtype: PauliTerm
+    """
+    return PauliTerm("Z", q)
 
 
 def term_with_coeff(term, coeff):
