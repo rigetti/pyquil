@@ -592,6 +592,12 @@ class Instr(AbstractInstruction):
     def __eq__(self, other):
         return self.out() == other.out()
 
+    def __ne__(self, other):
+        # x!=y and x<>y call __ne__() instead of negating __eq__
+        # This is only a weirdness in python2 as in python 3 __ne__ defaults to the inversion of
+        # __eq__
+        return not self.__eq__(other)
+
     def __hash__(self):
         return hash(self.out())
 

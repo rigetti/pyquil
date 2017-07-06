@@ -84,6 +84,12 @@ class PauliTerm(object):
     def __eq__(self, other):
         return self.id() == other.id()
 
+    def __ne__(self, other):
+        # x!=y and x<>y call __ne__() instead of negating __eq__
+        # This is only a weirdness in python2 as in python 3 __ne__ defaults to the inversion of
+        # __eq__
+        return not self.__eq__(other)
+
     def __len__(self):
         """
         The length of the PauliTerm is the number of Pauli operators in the term. A term that
