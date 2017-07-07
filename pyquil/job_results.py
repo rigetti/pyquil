@@ -8,10 +8,6 @@ import numpy as np
 
 from pyquil.wavefunction import Wavefunction
 
-OCTETS_PER_DOUBLE_FLOAT = 8
-OCTETS_PER_COMPLEX_DOUBLE = 2 * OCTETS_PER_DOUBLE_FLOAT
-
-
 def wait_for_job(res, ping_time=0.5):
     """
     Blocks execution and waits for an async Forest Job to complete.
@@ -112,13 +108,8 @@ def recover_complexes(coef_string, classical_addresses):
     mem = mem[0:num_addresses]
 
     # Parse the wavefunction
-    wf = np.zeros(num_wavefunction_octets // OCTETS_PER_COMPLEX_DOUBLE, dtype=np.cfloat)
-    for i, p in enumerate(range(num_memory_octets, num_octets, OCTETS_PER_COMPLEX_DOUBLE)):
-        re_be = coef_string[p: p + OCTETS_PER_DOUBLE_FLOAT]
-        im_be = coef_string[p + OCTETS_PER_DOUBLE_FLOAT: p + OCTETS_PER_COMPLEX_DOUBLE]
-        re = struct.unpack('>d', re_be)[0]
-        im = struct.unpack('>d', im_be)[0]
-        wf[i] = complex(re, im)
+    dt = np.dtype("cfloat").newbyteorder(">") # enforce big endian
+    wf = np.fromstring(coef_string[num_memory_octets:], dtype=dt)
 
     return Wavefunction(wf), mem
 
