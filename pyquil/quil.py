@@ -165,7 +165,7 @@ class Program(InstructionGroup):
         branch.Else.inst(else_program)
         return self.inst(branch)
 
-    def dagger(self):
+    def dagger(self, inv_dict=None, suffix="-INV"):
         """
         Creates the conjugate transpose of the Quil program. The program must not
         contain any irreversible actions (measurement, control flow, qubit allocation).
@@ -185,22 +185,27 @@ class Program(InstructionGroup):
         daggered = Program()
 
         for gate in self.defined_gates:
-            daggered.defgate(gate.name + "-INV", gate.matrix.T.conj())
+            if inv_dict == None or gate.name not in inv_dict:
+                daggered.defgate(gate.name + suffix, gate.matrix.T.conj())
 
         for action in self.actions[::-1]:
             gate = action[1]
             if gate.operator_name in STANDARD_GATES:
                 if gate.operator_name == "S":
-                    daggered.inst(STANDARD_GATES["RZ"](-pi / 2, *gate.arguments))
+                    daggered.inst(STANDARD_GATES["PHASE"](-pi / 2, *gate.arguments))
                 elif gate.operator_name == "T":
-                    daggered.inst(STANDARD_GATES["RZ"](-pi / 4, *gate.arguments))
+                    daggered.inst(STANDARD_GATES["RZ"](pi / 4, *gate.arguments))
                 elif gate.operator_name == "ISWAP":
                     daggered.inst(STANDARD_GATES["PSWAP"](pi / 2, *gate.arguments))
                 else:
                     negated_params = map(lambda x : -1*x, gate.parameters)
                     daggered.inst(STANDARD_GATES[gate.operator_name](*(negated_params+gate.arguments)))
             else:
-                gate_inv_name = gate.operator_name + "-INV"
+                if inv_dict == None or gate.operator_name not in inv_dict:
+                    gate_inv_name = gate.operator_name + suffix
+                else:
+                    gate_inv_name = inv_dict[gate.operator_name]
+
                 daggered.inst(tuple([gate_inv_name] + gate.arguments))
 
         return daggered

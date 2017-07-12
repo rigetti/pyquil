@@ -236,8 +236,8 @@ def test_dagger():
     # these gates are special cases
     p = Program().inst(S(0), T(0), ISWAP(0, 1))
     assert p.dagger().out() == 'PSWAP(1.5707963267948966) 0 1\n' \
-                               'RZ(-0.7853981633974483) 0\n' \
-                               'RZ(-1.5707963267948966) 0\n'
+                               'RZ(0.7853981633974483) 0\n' \
+                               'PHASE(-1.5707963267948966) 0\n'
 
     # must invert defined gates
     G = np.array([[0, 1], [0+1j, 0]])
@@ -246,6 +246,11 @@ def test_dagger():
                                '    0.0+-0.0i, 0.0-1.0i\n' \
                                '    1.0+-0.0i, 0.0+-0.0i\n\n' \
                                'G-INV 0\n'
+
+    # can also pass in a list of inverses
+    inv_dict = {"G":"J"}
+    p = Program().defgate("G", G).inst(("G", 0))
+    assert p.dagger(inv_dict=inv_dict).out() == 'J 0\n'
 
 
 def test_construction_syntax():
