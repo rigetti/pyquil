@@ -57,6 +57,12 @@ class DirectQubit(AbstractQubit):
             raise TypeError("Can only compare DirectQubit instances with DirectQubit instances")
         return self.index() == other.index()
 
+    def __ne__(self, other):
+        # x!=y and x<>y call __ne__() instead of negating __eq__
+        # This is only a weirdness in python2 as in python 3 __ne__ defaults to the inversion of
+        # __eq__
+        return not self.__eq__(other)
+
 
 class Qubit(AbstractQubit):
     """
