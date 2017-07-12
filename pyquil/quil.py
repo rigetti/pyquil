@@ -198,7 +198,7 @@ class Program(InstructionGroup):
                 elif gate.operator_name == "ISWAP":
                     daggered.inst(STANDARD_GATES["PSWAP"](pi / 2, *gate.arguments))
                 else:
-                    negated_params = map(lambda x : -1*x, gate.parameters)
+                    negated_params = list(map(lambda x : -1*x, gate.parameters))
                     daggered.inst(STANDARD_GATES[gate.operator_name](*(negated_params+gate.arguments)))
             else:
                 if inv_dict == None or gate.operator_name not in inv_dict:
