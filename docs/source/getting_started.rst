@@ -314,6 +314,8 @@ amplitudes directly or look at a dictionary of associated outcome probabilities.
 
 .. code:: python
 
+  import numpy as np
+  
   assert wvf[0] == 1 / np.sqrt(2)
   # The amplitudes are stored as a numpy array on the Wavefunction object
   print(wvf.amplitudes)
