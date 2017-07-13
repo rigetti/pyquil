@@ -15,7 +15,7 @@ programs.
     p.inst(H(0), CNOT(0, 1))
         <pyquil.pyquil.Program object at 0x101ebfb50>
     wvf, _ = qvm.wavefunction(p)
-    print(wvf)
+    print wvf
         (0.7071067812+0j)|00> + (0.7071067812+0j)|11>
 
 It comes with a few parts:
@@ -194,7 +194,7 @@ program simply by printing it.
 
 .. code:: python
 
-    print(p)
+    print p
 
 
 .. parsed-literal::
@@ -303,7 +303,7 @@ quantum state at the conclusion of the program. We can print this object
 
     coin_flip = pq.Program().inst(H(0))
     wvf, _ = qvm.wavefunction(coin_flip)
-    print(wvf)
+    print wvf
 
 .. parsed-literal::
 
@@ -316,9 +316,9 @@ amplitudes directly or look at a dictionary of associated outcome probabilities.
 
   assert wvf[0] == 1 / np.sqrt(2)
   # The amplitudes are stored as a numpy array on the Wavefunction object
-  print(wvf.amplitudes)
+  print wvf.amplitudes
   prob_dict = wvf.get_outcome_probs() # extracts the probabilities of outcomes as a dict
-  print(prob_dict)
+  print prob_dict
   prob_dict.keys() # these stores the bitstring outcomes
   assert len(wvf) == 1 # gives the number of qubits
 
@@ -342,11 +342,11 @@ reproduce measurement results for the purpose of testing:
 .. code:: python
 
     seeded_cxn = api.SyncConnection(random_seed=17)
-    print(seeded_cxn.run(pq.Program(H(0)).measure(0, 0), [0], 20))
+    print seeded_cxn.run(pq.Program(H(0)).measure(0, 0), [0], 20)
 
     seeded_cxn = api.SyncConnection(random_seed=17)
     # This will give identical output to the above
-    print(seeded_cxn.run(pq.Program(H(0)).measure(0, 0), [0], 20))
+    print seeded_cxn.run(pq.Program(H(0)).measure(0, 0), [0], 20)
 
 
 It is important to remember that this ``wavefunction`` method is just a useful debugging tool
@@ -361,17 +361,17 @@ following are all valid programs:
 
 .. code:: python
 
-    print("Multiple inst arguments with final measurement:")
-    print(pq.Program().inst(X(0), Y(1), Z(0)).measure(0, 1))
+    print "Multiple inst arguments with final measurement:"
+    print pq.Program().inst(X(0), Y(1), Z(0)).measure(0, 1)
     
-    print("Chained inst with explicit MEASURE instruction:")
-    print(pq.Program().inst(X(0)).inst(Y(1)).measure(0, 1).inst(MEASURE(1, 2)))
+    print "Chained inst with explicit MEASURE instruction:" 
+    print pq.Program().inst(X(0)).inst(Y(1)).measure(0, 1).inst(MEASURE(1, 2))
     
-    print("A mix of chained inst and measures:")
-    print(pq.Program().inst(X(0)).measure(0, 1).inst(Y(1), X(0)).measure(0, 0))
+    print "A mix of chained inst and measures:" 
+    print pq.Program().inst(X(0)).measure(0, 1).inst(Y(1), X(0)).measure(0, 0)
     
-    print("A composition of two programs:")
-    print(pq.Program(X(0)) + pq.Program(Y(0)))
+    print "A composition of two programs:" 
+    print pq.Program(X(0)) + pq.Program(Y(0))
 
 
 .. parsed-literal::
@@ -411,16 +411,16 @@ off.
 
     p = pq.Program().inst(X(0))
     p.inst(Y(1))
-    print("Oops! We have added Y 1 by accident:")
-    print(p)
+    print "Oops! We have added Y 1 by accident:"
+    print p
     
-    print("We can fix by popping:")
+    print "We can fix by popping:"
     p.pop()
-    print(p)
+    print p
     
-    print("And then add it back:")
+    print "And then add it back:"
     p += pq.Program(Y(1))
-    print(p)
+    print p
 
 
 .. parsed-literal::
@@ -485,7 +485,7 @@ matrix representation of the gate. For example, below we define a
     
     # Then we can use the new gate,
     p.inst(("SQRT-X", 0))
-    print(p)
+    print p
 
 
 .. parsed-literal::
@@ -501,7 +501,7 @@ matrix representation of the gate. For example, below we define a
 
 .. code:: python
 
-    print(qvm.wavefunction(p)[0])
+    print qvm.wavefunction(p)[0]
 
 
 
@@ -529,7 +529,7 @@ gate.
     # Then we can use the new gate
     p.inst(("X-SQRT-X", 0, 1))
     wavf, _ = qvm.wavefunction(p)
-    print(wavf)
+    print wavf
 
 
 
@@ -583,7 +583,7 @@ the following:
 
 .. code:: python
 
-    print(qft3(0, 1, 2))
+    print qft3(0, 1, 2)
 
 
 .. parsed-literal::
@@ -614,7 +614,7 @@ would return a two-element vector.
 
     add_dummy_qubits = pq.Program().inst(I(1), I(2))
     wavf, _ = qvm.wavefunction(state_prep + add_dummy_qubits)
-    print(wavf)
+    print wavf
 
 
 
@@ -631,7 +631,7 @@ after state preparation to get our final result.
 .. code:: python
 
     wavf, _ = qvm.wavefunction(state_prep + qft3(0, 1, 2))
-    print(wavf.amplitudes)
+    print wavf.amplitudes
 
 
 
@@ -693,7 +693,7 @@ Then we construct the loop in the following steps:
     # Put it all together in a loop program:
     loop_prog = init_register.while_do(classical_flag_register, loop_body)
     
-    print(loop_prog)
+    print loop_prog
 
 
 .. parsed-literal::
@@ -746,7 +746,7 @@ method.
     # Measure qubit 0 into our answer register:
     branching_prog.measure(0, answer_register)
     
-    print(branching_prog)
+    print branching_prog
 
 
 .. parsed-literal::
@@ -811,8 +811,8 @@ we should always measure ``1``.
 .. code:: python
 
     p = pq.Program().inst(X(0)).measure(0, 0)
-    print("Without Noise: {}".format(qvm.run(p, [0], 10)))
-    print("With Noise   : {}".format(noisy_qvm.run(p, [0], 10)))
+    print "Without Noise: {}".format(qvm.run(p, [0], 10))
+    print "With Noise   : {}".format(noisy_qvm.run(p, [0], 10))
 
 
 .. parsed-literal::
@@ -843,7 +843,7 @@ The parametric program ``par_p`` now takes the same arguments as ``rotator``:
 
 .. code:: python
 
-    print(par_p(0.5))
+    print par_p(0.5)
 
 .. parsed-literal::
 
@@ -874,7 +874,7 @@ The above sum can be constructed as follows:
     
     # Construct a sum of Pauli terms.
     sigma = a + b + c
-    print("sigma = {}".format(sigma))
+    print "sigma = {}".format(sigma)
 
 
 .. parsed-literal::
@@ -902,13 +902,12 @@ The following shows an instructive example of all three.
     
     # Simplification
     sigma_cubed = sigma * sigma * sigma
-    print("Simplified  : {}".format(sigma_cubed))
-    print()
+    print "Simplified  : {}".format(sigma_cubed)
     
     #Produce Quil code to compute exp[iX]
     H = -1.0 * sX(0)
-    print("Quil to compute exp[iX] on qubit 0:")
-    print(pl.exponential_map(H)(1.0))
+    print "Quil to compute exp[iX] on qubit 0:"
+    print pl.exponential_map(H)(1.0)
 
 
 .. parsed-literal::
