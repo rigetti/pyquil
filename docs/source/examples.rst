@@ -17,7 +17,7 @@ Enterprise, during one of its deep-space missions, is facing an immediate calami
 appears on the bridge. The alien, named Q, offers to help Picard, the captain of the Enterprise, under the condition
 that Picard beats Q in a simple game of penny flips.
 
-The rules: Picards is to place a penny Heads up into an opaque box. Then Picard and Q take turns to flip or not flip the
+The rules: Picard is to place a penny Heads up into an opaque box. Then Picard and Q take turns to flip or not flip the
 penny without being able to see it; first Q then P then Q again. After this the penny is revealed; Q wins if it shows
 Heads (H), while Tails (T) makes Picard the winner.
 
