@@ -21,8 +21,11 @@ from pyquil.paulis import (PauliTerm, PauliSum, exponential_map, ID, exponentiat
                            )
 from pyquil.quil import Program
 from pyquil.gates import RX, RZ, CNOT, H, X, PHASE
+
 import math
 from itertools import product
+from functools import reduce
+from operator import mul
 from six.moves import range
 
 
@@ -402,12 +405,7 @@ def test_check_commutation():
     p_n_group = ("I", "X", "Y", "Z")
     pauli_list = list(product(p_n_group, repeat=3))
     pauli_ops = [list(zip(x, range(3))) for x in pauli_list]
-    pauli_ops_pq = []
-    for op in pauli_ops:
-        reduced = PauliTerm(op[0][0], op[0][1])
-        for y in op[1:]:
-            reduced *= PauliTerm(y[0], y[1])
-        pauli_ops_pq.append(reduced)
+    pauli_ops_pq = [reduce(mul, (PauliTerm(*x) for x in op) ) for op in pauli_ops]
 
     def commutator(t1, t2):
         return t1 * t2 + -1 * t2 * t1
