@@ -152,13 +152,14 @@ To ensure that your installation is working correctly, try running the
 following Python commands interactively. First, import the ``quil``
 module (which constructs quantum programs) and the ``forest`` module (which
 allows connections to the Rigetti QVM). We will also import some basic
-gates for pyQuil.
+gates for pyQuil as well as numpy.
 
 .. code:: python
 
     import pyquil.quil as pq
     import pyquil.api as api
     from pyquil.gates import *
+    import numpy as np
 
 Next, we want to open a connection to the QVM. Forest supports two types of connections through
 pyQuil.  The first is a synchronous connection that immediately runs requested jobs against the QVM.
