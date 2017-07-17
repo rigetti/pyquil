@@ -21,7 +21,6 @@ def wait_for_job(res, ping_time=0.5):
     :return: The completed JobResult
     """
     while not res.is_done():
-        res.get()
         time.sleep(ping_time)
     return res
 
@@ -40,9 +39,12 @@ class JobResult(object):
 
     def is_done(self):
         """
+        Gets update from API, then checks if job is done.
+
         :return: Returns True if the Job is completed and False otherwise.
         :rtype: bool
         """
+        self.get()
         return 'result' in self.result
 
     def job_id(self):
