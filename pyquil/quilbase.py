@@ -17,6 +17,11 @@
 """
 Contains the core pyQuil objects that correspond to Quil instructions.
 """
+from past.builtins import basestring
+from builtins import map
+from builtins import str
+from builtins import int
+from builtins import object
 
 import numpy as np
 from copy import deepcopy
@@ -24,7 +29,6 @@ from .quil_atom import QuilAtom
 from .slot import Slot
 from .resource_manager import (AbstractQubit, DirectQubit, Qubit,
                                ResourceManager, check_live_qubit, merge_resource_managers)
-from six import integer_types
 
 allow_raw_instructions = True
 """
@@ -59,11 +63,11 @@ def format_matrix_element(element):
     """
     Formats a parameterized matrix element.
 
-    :param element: {int, float, complex, str} The parameterized element to format.
+    :param element: {int, long, float, complex, str} The parameterized element to format.
     """
-    if isinstance(element, integer_types) or isinstance(element, (float, complex)):
+    if isinstance(element, (int, float, complex)):
         return format_parameter(element)
-    elif isinstance(element, str):
+    elif isinstance(element, basestring):
         return element
     else:
         assert False, "Invalid matrix element: %r" % element
@@ -75,7 +79,7 @@ def format_parameter(element):
 
     :param element: {int, float, long, complex, Slot} Formats a parameter for Quil output.
     """
-    if isinstance(element, integer_types) or isinstance(element, float):
+    if isinstance(element, (int, float)):
         return repr(element)
     elif isinstance(element, complex):
         r = element.real
@@ -97,7 +101,7 @@ class Addr(QuilAtom):
     """
 
     def __init__(self, value):
-        if not isinstance(value, integer_types) or value < 0:
+        if not isinstance(value, int) or value < 0:
             raise TypeError("Addr value must be a non-negative int")
         self.address = value
 
@@ -156,7 +160,7 @@ class DefGate(AbstractInstruction):
     """
 
     def __init__(self, name, matrix):
-        assert isinstance(name, str)
+        assert isinstance(name, basestring)
         assert isinstance(matrix, (list, np.ndarray, np.matrix))
         if isinstance(matrix, list):
             rows = len(matrix)
@@ -296,7 +300,7 @@ class InstructionGroup(QuilAction):
                     else:
                         rest = [possible_params] + list(rest)
                     self.actions.append(action_install(Instr(op, params, rest)))
-            elif isinstance(instruction, str):
+            elif isinstance(instruction, basestring):
                 self.actions.append(action_install(RawInstr(instruction)))
             elif issubinstance(instruction, QuilAction):
                 self.actions.append(action_install(instruction))
@@ -551,7 +555,7 @@ class RawInstr(AbstractInstruction):
     """
 
     def __init__(self, instr_str):
-        if not isinstance(instr_str, str):
+        if not isinstance(instr_str, basestring):
             raise TypeError("Raw instructions require a string.")
         if not allow_raw_instructions:
             raise RuntimeError("Raw instructions are not allowed. Consider changing"
@@ -574,7 +578,7 @@ class Instr(AbstractInstruction):
     """
 
     def __init__(self, op, params, args):
-        if not isinstance(op, str):
+        if not isinstance(op, basestring):
             raise TypeError("op must be a string")
         self.operator_name = op
         self.parameters = params

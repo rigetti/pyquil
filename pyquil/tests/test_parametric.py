@@ -15,6 +15,8 @@
 #    limitations under the License.
 ##############################################################################
 
+from __future__ import division
+from past.utils import old_div
 from pyquil.quil import Program
 from pyquil.gates import RX, RY, Z
 from pyquil.parametric import ParametricProgram, parametric
@@ -49,13 +51,13 @@ def test_slot_algebra():
     assert expression.value() == 4.0
 
     x._value = 4.0
-    expression = x/y
+    expression = old_div(x,y)
     assert expression.value() == 2.0
-    expression = x/2.0
+    expression = old_div(x,2.0)
     assert expression.value() == 2.0
-    expression = y/x
+    expression = old_div(y,x)
     assert expression.value() == 0.5
-    expression = 2.0/x
+    expression = old_div(2.0,x)
     assert expression.value() == 0.5
 
     expression = x - y

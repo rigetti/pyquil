@@ -1,9 +1,12 @@
+from __future__ import division
+from __future__ import absolute_import
+from past.utils import old_div
 import matplotlib.pyplot as plt
 import numpy as np
 from lmfit import Model
 from lmfit.models import update_param_vals
 
-from job_results import RabiResult, RamseyResult, T1Result
+from .job_results import RabiResult, RamseyResult, T1Result
 
 
 def analog_plot(job_result):
@@ -35,7 +38,7 @@ def analog_plot(job_result):
 # T1 decay
 ##################################################################
 def fn_T1_decay(x, baseline, amplitude, T1):
-    return baseline + amplitude * np.exp(-x / T1)
+    return baseline + amplitude * np.exp(old_div(-x, T1))
 
 MIN_DATA_POINTS = 5
 
@@ -77,7 +80,7 @@ class T1DecayModel(Model):
         """
         par = self.guess(x, y, **kwargs)
         if errs is not None:
-            fit = self.fit(y, x=x, weights=1.0 / errs, params=par)
+            fit = self.fit(y, x=x, weights=old_div(1.0, errs), params=par)
         else:
             fit = self.fit(y, x=x, params=par)
         return fit
@@ -102,7 +105,7 @@ class T1DecayModel(Model):
 def fn_T2_Ramsey(x, baseline, amplitude, T2, detuning, x0=0.0):
     """Ramsey lineshape.
     """
-    return baseline + amplitude * np.exp(-x / T2) * np.cos(2 * np.pi * detuning * (x - x0))
+    return baseline + amplitude * np.exp(old_div(-x, T2)) * np.cos(2 * np.pi * detuning * (x - x0))
 
 
 class T2RamseyModel(Model):
@@ -139,7 +142,7 @@ class T2RamseyModel(Model):
         """
         par = self.guess(x, y, **kwargs)
         if errs is not None:
-            fit = self.fit(y, x=x, weights=1.0 / errs, params=par, fit_kws={"nan_policy": "omit"})
+            fit = self.fit(y, x=x, weights=old_div(1.0, errs), params=par, fit_kws={"nan_policy": "omit"})
         else:
             fit = self.fit(y, x=x, params=par, fit_kws={"nan_policy": "omit"})
         return fit

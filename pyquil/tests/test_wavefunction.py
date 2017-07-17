@@ -19,7 +19,7 @@ def test_get_bitstring_from_index():
 
 def test_parsers(wvf):
     outcome_probs = wvf.get_outcome_probs()
-    assert len(outcome_probs.keys()) == 4
+    assert len(list(outcome_probs.keys())) == 4
 
     pp_wvf = wvf.pretty_print()
     # this should round out one outcome
@@ -29,9 +29,9 @@ def test_parsers(wvf):
 
     pp_probs = wvf.pretty_print_probabilities()
     # this should round out two outcomes
-    assert len(pp_probs.keys()) == 2
+    assert len(list(pp_probs.keys())) == 2
     pp_probs = wvf.pretty_print_probabilities(5)
-    assert len(pp_probs.keys()) == 3
+    assert len(list(pp_probs.keys())) == 3
 
 
 def test_ground_state():

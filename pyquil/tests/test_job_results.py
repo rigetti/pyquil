@@ -1,3 +1,4 @@
+from builtins import range
 from pyquil.job_results import _round_to_next_multiple, _octet_bits
 
 

@@ -15,11 +15,14 @@
 #    limitations under the License.
 ##############################################################################
 
+from __future__ import division
+from __future__ import print_function
+from builtins import range
+from past.utils import old_div
 import numpy as np
 import pyquil.quil as pq
 from pyquil.gates import X
 from math import floor
-from six.moves import range
 
 
 def changed_bit_pos(a, b):
@@ -116,5 +119,5 @@ def pointer_gate(num_qubits, U):
 
 
 if __name__ == '__main__':
-    H = np.matrix([[1, 1], [1, -1]])/np.sqrt(2)
+    H = old_div(np.matrix([[1, 1], [1, -1]]),np.sqrt(2))
     print(pointer_gate(11, H))

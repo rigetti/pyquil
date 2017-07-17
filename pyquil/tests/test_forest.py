@@ -15,7 +15,7 @@
 #    limitations under the License.
 ##############################################################################
 
-
+from builtins import object
 import pytest
 import json
 from mock import Mock

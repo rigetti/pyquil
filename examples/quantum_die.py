@@ -15,12 +15,13 @@
 #    limitations under the License.
 ##############################################################################
 
+from __future__ import print_function
+from builtins import range
 import math
 from functools import reduce
 import pyquil.quil as pq
 import pyquil.api as forest
 from pyquil.gates import H
-from six.moves import range
 
 def qubits_needed(n):
     """

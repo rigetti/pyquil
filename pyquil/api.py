@@ -19,6 +19,9 @@ Module for facilitating connections to the QVM / QPU.
 """
 
 from __future__ import print_function
+from builtins import str
+from builtins import int
+from builtins import object
 from requests.packages.urllib3.util import Retry
 from requests.adapters import HTTPAdapter
 from copy import deepcopy
@@ -28,8 +31,6 @@ import os
 import os.path
 import sys
 from six.moves.configparser import ConfigParser, NoOptionError, NoSectionError
-from six.moves import range
-from six import integer_types
 
 import pyquil.quil as pq
 from pyquil.job_results import JobResult, WavefunctionResult, recover_complexes
@@ -147,7 +148,7 @@ def _validate_run_items(run_items):
     """
     if not isinstance(run_items, list):
         raise TypeError("run_items must be a list")
-    if any([not isinstance(i, integer_types) for i in run_items]):
+    if any([not isinstance(i, int) for i in run_items]):
         raise TypeError("run_items list must contain integer values")
 
 
@@ -225,10 +226,10 @@ class JobConnection(object):
 
         if random_seed is None:
             self.random_seed = None
-        elif isinstance(random_seed, integer_types) and random_seed >= 0:
+        elif isinstance(random_seed, int) and random_seed >= 0:
             self.random_seed = random_seed
         else:
-            raise TypeError("random_seed should be None or a non-negative int or long.")
+            raise TypeError("random_seed should be None or a non-negative int.")
 
         self.machine = 'QVM' # default to a QVM Machine Connection
 
@@ -414,7 +415,7 @@ class JobConnection(object):
         if not isinstance(quil_program, pq.Program):
             raise TypeError("quil_program must be a Quil program object")
         _validate_run_items(classical_addresses)
-        if not isinstance(trials, integer_types):
+        if not isinstance(trials, int):
             raise TypeError("trials must be an integer")
 
         payload = {"type": TYPE_MULTISHOT,
@@ -441,7 +442,7 @@ class JobConnection(object):
         if not isinstance(quil_program, pq.Program):
             raise TypeError("quil_program must be a Quil program object")
         _validate_run_items(qubits)
-        if not isinstance(trials, integer_types):
+        if not isinstance(trials, int):
             raise TypeError("trials must be an integer")
 
         payload = {"type": TYPE_MULTISHOT_MEASURE,

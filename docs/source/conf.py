@@ -29,6 +29,7 @@
 # Add any Sphinx extension module names here, as strings. They can be
 # extensions coming with Sphinx (named 'sphinx.ext.*') or your custom
 # ones.
+from __future__ import print_function
 extensions = [
     'sphinx.ext.autodoc',
     'sphinx.ext.doctest',
@@ -47,11 +48,11 @@ def remove_secrets(app, what, name, obj, options, signature, return_annotation):
     if what == "class" and name == "pyquil.api.Connection":
         import pyquil.api as pqf
         print("Replacing endpoint secrets in pyquil.api.Connection() signature")
-        print(signature,)
+        print((signature,))
         signature = signature.replace("'{}'".format(pqf.ENDPOINT), "ENDPOINT")
         signature = signature.replace("'{}'".format(pqf.API_KEY), "API_KEY")
         signature = signature.replace("'{}'".format(pqf.USER_ID), "USER_ID")
-        print("--> ", signature)
+        print(("--> ", signature))
         return signature, return_annotation
 
 

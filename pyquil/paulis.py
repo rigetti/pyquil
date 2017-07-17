@@ -19,6 +19,10 @@ Module for working with Pauli algebras.
 """
 
 from __future__ import division
+from builtins import str
+from builtins import int
+from builtins import range
+from builtins import object
 from itertools import product
 import numpy as np
 import copy
@@ -26,8 +30,6 @@ from .quil import Program
 from .gates import H, RZ, RX, CNOT, X, PHASE
 from . import quilbase as pqb
 from numbers import Number
-from six import integer_types
-from six.moves import range
 
 PAULI_OPS = ["X", "Y", "Z", "I"]
 PAULI_PROD = {'ZZ': 'I', 'YY': 'I', 'XX': 'I', 'II': 'I',
@@ -55,7 +57,7 @@ class PauliTerm(object):
         :param float coefficient: The coefficient multiplying the operator, e.g. 1.5 * Z_1
         """
         assert op in PAULI_OPS
-        assert isinstance(index, integer_types) and index >= 0
+        assert isinstance(index, int) and index >= 0
 
         self._ops = {}
         if op != "I":

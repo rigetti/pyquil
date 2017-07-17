@@ -1,9 +1,12 @@
+from builtins import str
+from builtins import int
+from builtins import range
+from builtins import object
 import base64
 import json
 import struct
 import time
 
-from six import integer_types
 import numpy as np
 
 from pyquil.wavefunction import Wavefunction
@@ -154,7 +157,7 @@ def _octet_bits(o):
     :return: The bits as a list in LSB-to-MSB order.
     :rtype: list
     """
-    if not isinstance(o, integer_types):
+    if not isinstance(o, int):
         raise TypeError("o should be an int")
     if not (0 <= o <= 255):
         raise ValueError("o should be between 0 and 255 inclusive")

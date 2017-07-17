@@ -1,6 +1,8 @@
 """
 Module containing the Wavefunction object and methods for working with wavefunctions.
 """
+from builtins import str
+from builtins import object
 
 
 class Wavefunction(object):
