@@ -940,7 +940,7 @@ calculation so that it can be used later with new values.
 JobConnections
 --------------
 Larger pyQuil programs can take longer than 30 seconds to run.  These jobs can be posted into the
-cloud job queue using a different connection object.  The mode of interactive with the API is
+cloud job queue using a different connection object.  The mode of interaction with the API is
 asynchronous.  This means that there is a seperate query to post a job and to get the result.
 
 ::
