@@ -19,12 +19,12 @@ from setuptools import setup
 
 setup(
     name="pyquil",
-    version="1.0.0",
+    version="1.1.0",
     author="Rigetti Computing",
     author_email="softapps@rigetti.com",
     description="A Python library to generate Quantum Instruction Language (Quil) Programs.",
     url="https://github.com/rigetticomputing/pyquil.git",
-    download_url="https://github.com/rigetticomputing/pyquil/tarball/1.0.0",
+    download_url="https://github.com/rigetticomputing/pyquil/tarball/1.1.0",
     packages=["pyquil"],
     license="LICENSE",
     install_requires=[
