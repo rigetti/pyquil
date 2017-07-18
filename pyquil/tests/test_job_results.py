@@ -27,10 +27,7 @@ def test_get_is_called():
     # check that JobResult.is_done() calls .get() on QPU prior to
     # returning result
     qpu_connect = QPUConnection('test')
-    job_result = JobResult(qpu_connect, False)
-    try:
-        with patch.object(job_result, 'get') as mock:
-            job_result.is_done()
-    except:
-        pass
+    job_result = JobResult(qpu_connect, False, result={'result' : 0})
+    with patch.object(job_result, 'get') as mock:
+        job_result.is_done()
     mock.assert_called_with()
