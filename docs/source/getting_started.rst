@@ -964,6 +964,7 @@ to see if the job result is finished.
 
     <class 'pyquil.job_results.JobResult'> {u'status': u'Submitted', u'jobId': u'BLSLJCBGNP'}
 
+`is_done` updates the ``JobResult`` object once, and returns `True` if the job has completed. 
 Once the job is finished, then the results can be retrieved from the JobResult object:
 
 ::
@@ -971,7 +972,6 @@ Once the job is finished, then the results can be retrieved from the JobResult o
   import time
 
   while not res.is_done():
-      res.get()
       time.sleep(1)
   print res
   answer = res.decode()
