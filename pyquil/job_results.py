@@ -39,7 +39,7 @@ class JobResult(object):
 
     def is_done(self):
         """
-        Gets update from API, then checks if job is done.
+        Polls Forest API for status, then returns updated status.
 
         :return: Returns True if the Job is completed and False otherwise.
         :rtype: bool

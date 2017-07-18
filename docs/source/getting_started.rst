@@ -971,7 +971,6 @@ Once the job is finished, then the results can be retrieved from the JobResult o
   import time
 
   while not res.is_done():
-      res.get()
       time.sleep(1)
   print res
   answer = res.decode()
