@@ -45,6 +45,8 @@ def test_defgate():
     test = dg.get_constructor()
     tg = test(DirectQubit(1), DirectQubit(2))
     assert tg.out() == "TEST 1 2"
+    tg = test(1, 2)
+    assert tg.out() == "TEST 1 2"
 
 
 def test_defgate_non_square_should_throw_error():
