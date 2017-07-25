@@ -282,6 +282,12 @@ class PauliSum(object):
     def __str__(self):
         return " + ".join([str(term) for term in self.terms])
 
+    def __len__(self):
+        """
+        The length of the PauliSum is the number of PauliTerms in the sum.
+        """
+        return len(self.terms)
+
     def __getitem__(self, item):
         """
         :param int item: The index of the term in the sum to return
