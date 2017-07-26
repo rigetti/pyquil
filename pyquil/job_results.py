@@ -109,7 +109,7 @@ def recover_complexes(coef_string, classical_addresses):
 
     # Parse the wavefunction
     dt = np.dtype("cfloat").newbyteorder(">") # enforce big endian
-    wf = np.fromstring(coef_string[num_memory_octets:], dtype=dt)
+    wf = np.copy(np.frombuffer(coef_string, dtype=dt, offset=num_memory_octets))
 
     return Wavefunction(wf), mem
 
