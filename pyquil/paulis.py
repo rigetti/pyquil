@@ -218,38 +218,50 @@ ID = PauliTerm("I", 0)
 """
 The identity Pauli operator on the 0th qubit.
 """
-sI = lambda q: PauliTerm("I", q)
-"""
-A function that returns the identity operator on a particular qubit.
 
-:param int qubit_index: The index of the qubit
-:returns: A PauliTerm object
-:rtype: PauliTerm
-"""
-sX = lambda q: PauliTerm("X", q)
-"""
-A function that returns the sigma_X operator on a particular qubit.
 
-:param int qubit_index: The index of the qubit
-:returns: A PauliTerm object
-:rtype: PauliTerm
-"""
-sY = lambda q: PauliTerm("Y", q)
-"""
-A function that returns the sigma_Y operator on a particular qubit.
+def sI(q):
+    """
+    A function that returns the identity operator on a particular qubit.
 
-:param int qubit_index: The index of the qubit
-:returns: A PauliTerm object
-:rtype: PauliTerm
-"""
-sZ = lambda q: PauliTerm("Z", q)
-"""
-A function that returns the sigma_Z operator on a particular qubit.
+    :param int qubit_index: The index of the qubit
+    :returns: A PauliTerm object
+    :rtype: PauliTerm
+    """
+    return PauliTerm("I", q)
 
-:param int qubit_index: The index of the qubit
-:returns: A PauliTerm object
-:rtype: PauliTerm
-"""
+
+def sX(q):
+    """
+    A function that returns the sigma_X operator on a particular qubit.
+
+    :param int qubit_index: The index of the qubit
+    :returns: A PauliTerm object
+    :rtype: PauliTerm
+    """
+    return PauliTerm("X", q)
+
+
+def sY(q):
+    """
+    A function that returns the sigma_Y operator on a particular qubit.
+
+    :param int qubit_index: The index of the qubit
+    :returns: A PauliTerm object
+    :rtype: PauliTerm
+    """
+    return PauliTerm("Y", q)
+
+
+def sZ(q):
+    """
+    A function that returns the sigma_Z operator on a particular qubit.
+
+    :param int qubit_index: The index of the qubit
+    :returns: A PauliTerm object
+    :rtype: PauliTerm
+    """
+    return PauliTerm("Z", q)
 
 
 def term_with_coeff(term, coeff):
@@ -403,7 +415,7 @@ class PauliSum(object):
             for k in sorted(d):
                 term_list = d[k]
                 if (len(term_list) == 1 and not
-                   np.isclose(term_list[0].coefficient, 0.0)):
+                        np.isclose(term_list[0].coefficient, 0.0)):
                     terms.append(term_list[0])
                 else:
                     coeff = sum(t.coefficient for t in term_list)
@@ -517,9 +529,9 @@ def exponential_map(term):
         prog = Program()
         if is_identity(term):
             prog.inst(X(0))
-            prog.inst(PHASE(-param*coeff)(0))
+            prog.inst(PHASE(-param * coeff)(0))
             prog.inst(X(0))
-            prog.inst(PHASE(-param*coeff)(0))
+            prog.inst(PHASE(-param * coeff)(0))
         else:
             prog += _exponentiate_general_case(term, param)
         return prog
@@ -564,8 +576,8 @@ def _exponentiate_general_case(pauli_term, param):
             change_to_original_basis.inst(H(index))
 
         elif 'Y' == op:
-            change_to_z_basis.inst(RX(np.pi/2.0)(index))
-            change_to_original_basis.inst(RX(-np.pi/2.0)(index))
+            change_to_z_basis.inst(RX(np.pi / 2.0)(index))
+            change_to_original_basis.inst(RX(-np.pi / 2.0)(index))
 
         elif 'I' == op:
             continue
@@ -579,7 +591,8 @@ def _exponentiate_general_case(pauli_term, param):
     # building rotation circuit
     quil_prog += change_to_z_basis
     quil_prog += cnot_seq
-    quil_prog.inst(RZ(2.0 * pauli_term.coefficient * param)(highest_target_index))
+    quil_prog.inst(RZ(2.0 * pauli_term.coefficient * param)
+                   (highest_target_index))
     quil_prog += reverse_hack(cnot_seq)
     quil_prog += change_to_original_basis
 
@@ -604,19 +617,20 @@ def suzuki_trotter(trotter_order, trotter_steps):
               type: o=0 is A and o=1 is B.
     :rtype: list
     """
-    p1 = p2 = p4 = p5 = 1.0/(4 - (4**(1./3)))
+    p1 = p2 = p4 = p5 = 1.0 / (4 - (4**(1. / 3)))
     p3 = 1 - 4 * p1
     trotter_dict = {1: [(1, 0), (1, 1)],
                     2: [(0.5, 0), (1, 1), (0.5, 0)],
-                    3: [(7.0/24, 0), (2.0/3.0, 1), (3.0/4.0, 0), (-2.0/3.0, 1),
-                        (-1.0/24, 0), (1.0, 1)],
-                    4: [(p5/2, 0), (p5, 1), (p5/2, 0),
-                        (p4/2, 0), (p4, 1), (p4/2, 0),
-                        (p3/2, 0), (p3, 1), (p3/2, 0),
-                        (p2/2, 0), (p2, 1), (p2/2, 0),
-                        (p1/2, 0), (p1, 1), (p1/2, 0)]}
+                    3: [(7.0 / 24, 0), (2.0 / 3.0, 1), (3.0 / 4.0, 0), (-2.0 / 3.0, 1),
+                        (-1.0 / 24, 0), (1.0, 1)],
+                    4: [(p5 / 2, 0), (p5, 1), (p5 / 2, 0),
+                        (p4 / 2, 0), (p4, 1), (p4 / 2, 0),
+                        (p3 / 2, 0), (p3, 1), (p3 / 2, 0),
+                        (p2 / 2, 0), (p2, 1), (p2 / 2, 0),
+                        (p1 / 2, 0), (p1, 1), (p1 / 2, 0)]}
 
-    order_slices = [(x0 / trotter_steps, x1) for x0, x1 in trotter_dict[trotter_order]]
+    order_slices = [(x0 / trotter_steps, x1)
+                    for x0, x1 in trotter_dict[trotter_order]]
     order_slices = order_slices * trotter_steps
     return order_slices
 
@@ -661,7 +675,8 @@ def trotterize(first_pauli_term, second_pauli_term, trotter_order=1,
     """
 
     if not (1 <= trotter_order < 5):
-        raise ValueError("trotterize only accepts trotter_order in {1, 2, 3, 4}.")
+        raise ValueError(
+            "trotterize only accepts trotter_order in {1, 2, 3, 4}.")
 
     commutator = (first_pauli_term * second_pauli_term) +\
                  (-1 * second_pauli_term * first_pauli_term)
