@@ -282,6 +282,15 @@ def term_with_coeff(term, coeff):
     return new_pauli
 
 
+def iszero(a, atol=1e-8):
+    """
+    Substitute method for np.isclose(a, 0.0) to check that an input complex 'a'
+    is equal to zero to within absolute tolerance 'atol'.
+    """
+    ret = (abs(a.real) < atol) & (abs(a.imag) < atol)
+    return ret
+
+
 class PauliSum(object):
     """A sum of one or more PauliTerms.
     """
@@ -418,13 +427,12 @@ class PauliSum(object):
             terms = []
             for k in sorted(d):
                 term_list = d[k]
-                if (len(term_list) == 1 and not
-                   (term_list[0].coefficient.real == 0 and \
-                    term_list[0].coefficient.imag == 0)):
+                if (len(term_list) == 1 and not \
+                    iszero(term_list[0].coefficient)):
                     terms.append(term_list[0])
                 else:
                     coeff = sum(t.coefficient for t in term_list)
-                    if not (coeff.real == 0 and coeff.imag == 0):
+                    if not iszero(coeff):
                         terms.append(term_with_coeff(term_list[0], coeff))
             return PauliSum(terms)
 
