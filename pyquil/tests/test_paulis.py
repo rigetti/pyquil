@@ -134,7 +134,21 @@ def test_iszero():
 
 
 def test_copy():
-    pass
+    term = PauliTerm('X', 0, 0.5) * PauliTerm('X', 1, 0.5)
+    new_term = term.copy()
+
+    term = term * PauliTerm('X', 2, 0.5)
+    new_term = new_term * PauliTerm('X', 2, 0.5)
+
+    assert term == new_term  # value equality
+    assert not term is new_term  # ref inequality
+    assert not term._ops is new_term._ops
+
+    term = PauliTerm('X', 0, 0.5) * PauliTerm('X', 1, 0.5)
+    new_term = term * PauliTerm('X', 2, 0.5)
+    assert term != new_term
+    assert not term is new_term
+    assert not term._ops is new_term._ops
 
 
 def test_len():

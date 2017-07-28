@@ -102,15 +102,15 @@ class PauliTerm(object):
         Properly creates a new PauliTerm, with a completely new dictionary
         of operators
         """
-        new_term = PauliTerm("I", 0, 0)
-        # coefficient and _id are copied as new refs (numbers, strings immutable)
-        new_term.coefficient = self.coefficient
-        new_term._id = self._id
-        # _ops dict needs to use own copy method
-        new_term._ops = self._ops.copy()
+        new_term = PauliTerm("I", 0, 1.0)  # create new object
+        # manually copy all attributes over
+        for key in self.__dict__.keys():
+            val = self.__dict__[key]
+            if isinstance(val, (dict, list, set)):  # mutable types
+                new_term.__dict__[key] = copy.copy(val)
+            else:  # immutable types
+                new_term.__dict__[key] = val
 
-        assert new_term == self  # check for value equality
-        assert not new_term._ops is self._ops  # check for ref inequality
         return new_term
 
     def get_qubits(self):
