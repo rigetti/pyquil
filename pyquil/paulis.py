@@ -97,6 +97,22 @@ class PauliTerm(object):
         """
         return len(self._ops)
 
+    def copy(self):
+        """
+        Properly creates a new PauliTerm, with a completely new dictionary
+        of operators
+        """
+        new_term = PauliTerm("I", 0, 0)
+        # coefficient and _id are copied as new refs (numbers, strings immutable)
+        new_term.coefficient = self.coefficient
+        new_term._id = self._id
+        # _ops dict needs to use own copy method
+        new_term._ops = self._ops.copy()
+
+        assert new_term == self  # check for value equality
+        assert not new_term._ops is self._ops  # check for ref inequality
+        return new_term
+
     def get_qubits(self):
         """Gets all the qubits that this PauliTerm operates on.
         """
@@ -261,7 +277,7 @@ def term_with_coeff(term, coeff):
     :returns: A new PauliTerm that duplicates term but sets coeff
     :rtype: PauliTerm
     """
-    new_pauli = copy.copy(term)
+    new_pauli = term.copy()
     new_pauli.coefficient = coeff
     return new_pauli
 
@@ -328,7 +344,7 @@ class PauliSum(object):
         :rtype: PauliSum
         """
         assert isinstance(other, Number)
-        new_terms = copy.deepcopy(self.terms)
+        new_terms = [term.copy() for term in self.terms]
         for term in new_terms:
             term.coefficient *= other
         return PauliSum(new_terms).simplify()
@@ -346,7 +362,7 @@ class PauliSum(object):
             other = PauliSum([other])
         elif isinstance(other, Number):
             other = PauliSum([other * ID])
-        new_terms = copy.deepcopy(self.terms)
+        new_terms = [term.copy() for term in self.terms]
         new_terms.extend(other.terms)
         new_sum = PauliSum(new_terms)
         return new_sum.simplify()
@@ -403,11 +419,12 @@ class PauliSum(object):
             for k in sorted(d):
                 term_list = d[k]
                 if (len(term_list) == 1 and not
-                   np.isclose(term_list[0].coefficient, 0.0)):
+                   (term_list[0].coefficient.real == 0 and \
+                    term_list[0].coefficient.imag == 0)):
                     terms.append(term_list[0])
                 else:
                     coeff = sum(t.coefficient for t in term_list)
-                    if not np.isclose(coeff, 0.0):
+                    if not (coeff.real == 0 and coeff.imag == 0):
                         terms.append(term_with_coeff(term_list[0], coeff))
             return PauliSum(terms)
 
