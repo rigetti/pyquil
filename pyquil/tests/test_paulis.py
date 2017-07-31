@@ -129,6 +129,11 @@ def test_len():
     assert len(term) == 2
 
 
+def test_sum_len():
+    pauli_sum = PauliTerm("Z", 0, 1.0) + PauliTerm("Z", 1, 1.0)
+    assert len(pauli_sum) == 2
+
+
 def test_enumerate():
     term = PauliTerm("Z", 0, 1.0) * PauliTerm("Z", 1, 1.0) * PauliTerm("X", 5, 5)
     position_op_pairs = [(0, "Z"), (1, "Z"), (5, "X")]

@@ -34,7 +34,7 @@ Rigetti Quantum Virtual Machine (QVM) or on a real quantum processor (QPU).
 
 Once you have your key, you need to set up configuration in the file `.pyquil_config` which
 pyQuil will attempt to find in your home directory by default. (You can change this location by setting the
-environment variable `PYQUIL_CONFIG` to the path of the file.) Loading the `pyquil.forest` module
+environment variable `PYQUIL_CONFIG` to the path of the file.) Loading the `pyquil.api` module
 will print a warning if this is not found. The configuration file is in INI format and should
 contain all the information required to connect to Forest:
 
@@ -46,6 +46,8 @@ user_id: <Rigetti Forest User ID>
 ```
 
 If `url` is not specified, it will default to `https://api.rigetti.com/qvm`.
+
+You can also use the `config_setup.py` script to assist in creating the configuration file.
 
 ## Examples using the Rigetti QVM
 
@@ -125,6 +127,6 @@ BibTeX:
 
 Text:
 ```
-R. Smith, M. J. Curtis and W. J. Zeng, "A Practical Quantum Instruction Set Architecture," (2016), 
+R. Smith, M. J. Curtis and W. J. Zeng, "A Practical Quantum Instruction Set Architecture," (2016),
   arXiv:1608.03355 [quant-ph], https://arxiv.org/abs/1608.03355
 ```

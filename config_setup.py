@@ -15,28 +15,31 @@
 #    limitations under the License.
 ##############################################################################
 
-from setuptools import setup
-from pyquil import __version__
+from os.path import expanduser
 
-setup(
-    name="pyquil",
-    version=__version__,
-    author="Rigetti Computing",
-    author_email="softapps@rigetti.com",
-    description="A Python library to generate Quantum Instruction Language (Quil) Programs.",
-    url="https://github.com/rigetticomputing/pyquil.git",
-    packages=["pyquil"],
-    license="LICENSE",
-    install_requires=[
-        'requests >= 2.4.2',
-        'numpy >= 1.10',
-        'matplotlib >= 1.5',
-    ],
-    setup_requires=['pytest-runner'],
-    tests_require=[
-        'pytest >= 3.0.0',
-        'mock',
-    ],
-    test_suite='pyquil.tests',
-    keywords='quantum quil programming hybrid'
-)
+print("Welcome to the pyquil config setup!")
+print("Enter the required information below for Forest connections.")
+
+# Input for python2 and python3
+try:
+   input = raw_input
+except NameError:
+   pass
+
+endpoint = input("Forest URL (https://api.rigetti.com/qvm): ")
+if len(endpoint) == 0:
+    endpoint = "https://api.rigetti.com/qvm"
+key = input("Forest API Key: ")
+user = input("User ID: ")
+
+path = expanduser("~/.pyquil_config")
+file = open(path, 'a+')
+contents = "[Rigetti Forest]\n"
+contents += "url: %s\n" % endpoint
+contents += "key: %s\n" % key
+contents += "user id: %s" % user
+file.truncate()
+file.write(contents)
+
+print("File created at '%s' with the following contents:\n" % path)
+print(contents)
