@@ -97,6 +97,22 @@ class PauliTerm(object):
         """
         return len(self._ops)
 
+    def copy(self):
+        """
+        Properly creates a new PauliTerm, with a completely new dictionary
+        of operators
+        """
+        new_term = PauliTerm("I", 0, 1.0)  # create new object
+        # manually copy all attributes over
+        for key in self.__dict__.keys():
+            val = self.__dict__[key]
+            if isinstance(val, (dict, list, set)):  # mutable types
+                new_term.__dict__[key] = copy.copy(val)
+            else:  # immutable types
+                new_term.__dict__[key] = val
+
+        return new_term
+
     def get_qubits(self):
         """Gets all the qubits that this PauliTerm operates on.
         """
@@ -261,10 +277,9 @@ def term_with_coeff(term, coeff):
     :returns: A new PauliTerm that duplicates term but sets coeff
     :rtype: PauliTerm
     """
-    new_pauli = copy.copy(term)
+    new_pauli = term.copy()
     new_pauli.coefficient = coeff
     return new_pauli
-
 
 class PauliSum(object):
     """A sum of one or more PauliTerms.
@@ -328,7 +343,7 @@ class PauliSum(object):
         :rtype: PauliSum
         """
         assert isinstance(other, Number)
-        new_terms = copy.deepcopy(self.terms)
+        new_terms = [term.copy() for term in self.terms]
         for term in new_terms:
             term.coefficient *= other
         return PauliSum(new_terms).simplify()
@@ -346,7 +361,7 @@ class PauliSum(object):
             other = PauliSum([other])
         elif isinstance(other, Number):
             other = PauliSum([other * ID])
-        new_terms = copy.deepcopy(self.terms)
+        new_terms = [term.copy() for term in self.terms]
         new_terms.extend(other.terms)
         new_sum = PauliSum(new_terms)
         return new_sum.simplify()
@@ -402,8 +417,8 @@ class PauliSum(object):
             terms = []
             for k in sorted(d):
                 term_list = d[k]
-                if (len(term_list) == 1 and not
-                   np.isclose(term_list[0].coefficient, 0.0)):
+                if (len(term_list) == 1 and not \
+                    np.isclose(term_list[0].coefficient, 0.0)):
                     terms.append(term_list[0])
                 else:
                     coeff = sum(t.coefficient for t in term_list)

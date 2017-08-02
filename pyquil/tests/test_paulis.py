@@ -16,9 +16,9 @@
 ##############################################################################
 
 import pytest
-from pyquil.paulis import (PauliTerm, PauliSum, exponential_map, ID, exponentiate,
-                           trotterize, is_zero, check_commutation, commuting_sets, sZ, sX
-                           )
+from pyquil.paulis import (PauliTerm, PauliSum, exponential_map, ID,
+                           exponentiate, trotterize, is_zero, check_commutation, 
+                           commuting_sets, sZ, sX)
 from pyquil.quil import Program
 from pyquil.gates import RX, RZ, CNOT, H, X, PHASE
 
@@ -122,6 +122,24 @@ def test_simplify_sum_terms():
     # test the simplify on multiplication
     sum_term = PauliSum([PauliTerm('X', 0, 0.5), PauliTerm('X', 0, 0.5)])
     assert str(sum_term * sum_term) == '1.0*I'
+
+
+def test_copy():
+    term = PauliTerm('X', 0, 0.5) * PauliTerm('X', 1, 0.5)
+    new_term = term.copy()
+
+    term = term * PauliTerm('X', 2, 0.5)
+    new_term = new_term * PauliTerm('X', 2, 0.5)
+
+    assert term == new_term  # value equality
+    assert not term is new_term  # ref inequality
+    assert not term._ops is new_term._ops
+
+    term = PauliTerm('X', 0, 0.5) * PauliTerm('X', 1, 0.5)
+    new_term = term * PauliTerm('X', 2, 0.5)
+    assert term != new_term
+    assert not term is new_term
+    assert not term._ops is new_term._ops
 
 
 def test_len():
