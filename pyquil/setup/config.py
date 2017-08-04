@@ -15,31 +15,31 @@
 #    limitations under the License.
 ##############################################################################
 
-from setuptools import setup
-from pyquil import __version__
+from os.path import expanduser
 
-setup(
-    name="pyquil",
-    version=__version__,
-    author="Rigetti Computing",
-    author_email="softapps@rigetti.com",
-    description="A Python library to generate Quantum Instruction Language (Quil) Programs.",
-    url="https://github.com/rigetticomputing/pyquil.git",
-    packages=["pyquil"],
-    license="LICENSE",
-    install_requires=[
-        'requests >= 2.4.2',
-        'numpy >= 1.10',
-        'matplotlib >= 1.5',
-    ],
-    setup_requires=['pytest-runner'],
-    tests_require=[
-        'pytest >= 3.0.0',
-        'mock',
-    ],
-    test_suite='pyquil.tests',
-    entry_points={
-        'console_scripts': ['pyquil-config-setup=pyquil.setup.config:main']
-    },
-    keywords='quantum quil programming hybrid'
-)
+def main():
+    print("Welcome to the pyquil config setup!")
+    print("Enter the required information below for Forest connections.")
+
+    # Input for python2 and python3
+    try:
+       input = raw_input
+    except NameError:
+       pass
+
+    endpoint = input("Forest URL (https://api.rigetti.com/qvm): ")
+    if len(endpoint) == 0:
+        endpoint = "https://api.rigetti.com/qvm"
+    key = input("Forest API Key: ")
+    user = input("User ID: ")
+
+    path = expanduser("~/.pyquil_config")
+    with open(path, 'a+') as f:
+        f.seek(0)
+        f.truncate()
+        f.write("[Rigetti Forest]\n")
+        f.write("url: %s\n" % endpoint)
+        f.write("key: %s\n" % key)
+        f.write("user id: %s" % user)
+
+    print("File created at '%s'" % path)
