@@ -48,8 +48,8 @@ user_id: <Rigetti Forest User ID>
 If `url` is not specified, it will default to `https://api.rigetti.com/qvm`.
 
 Alternatively, you may create the `.pyquil_config` automatically by running the following command,
-which will prompt you for the required information (URL, key, and user id), and then create the file
-in the correct location:
+which will prompt you for the required information (URL, key, and user id). The script will then create
+a file in the proper location (the root user directory):
 
 ```
 pyquil-config-setup
