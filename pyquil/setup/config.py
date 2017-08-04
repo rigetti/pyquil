@@ -34,14 +34,12 @@ def main():
     user = input("User ID: ")
 
     path = expanduser("~/.pyquil_config")
-    file = open(path, 'a+')
-    contents = "[Rigetti Forest]\n"
-    contents += "url: %s\n" % endpoint
-    contents += "key: %s\n" % key
-    contents += "user id: %s" % user
-    file.seek(0)
-    file.truncate()
-    file.write(contents)
+    with open(path, 'a+') as f:
+        f.seek(0)
+        f.truncate()
+        f.write("[Rigetti Forest]\n")
+        f.write("url: %s\n" % endpoint)
+        f.write("key: %s\n" % key)
+        f.write("user id: %s" % user)
 
-    print("File created at '%s' with the following contents:\n" % path)
-    print(contents)
+    print("File created at '%s'" % path)
