@@ -38,5 +38,8 @@ setup(
         'mock',
     ],
     test_suite='pyquil.tests',
+    entry_points={
+        'console_scripts': ['pyquil-config-setup=pyquil.setup.config:main']
+    },
     keywords='quantum quil programming hybrid'
 )
