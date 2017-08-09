@@ -50,7 +50,7 @@ def meyer_penny_program():
 
 if __name__ == "__main__":
     n_trials = 10
-    qvm = api.JobConnection()
+    qvm = api.SyncConnection()
     outcomes = np.asarray(qvm.run(meyer_penny_program(), [0, 1], trials=n_trials))
 
     print("Number of games: {}".format(n_trials))
