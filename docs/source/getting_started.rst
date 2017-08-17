@@ -115,6 +115,7 @@ a file in the proper location (the user's root directory):
 
     pyquil-config-setup
 
+
 Alternatively, connection information can be provided in environment variables.
 
 ::
