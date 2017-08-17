@@ -107,6 +107,15 @@ Look `here <http://forest.rigetti.com>`_ to learn more about the Forest toolkit.
 If ``url`` is not set, pyQuil will default to looking for a
 local endpoint at ``127.0.0.1:5000``.
 
+You may also create the ``.pyquil_config`` automatically by running the following command,
+which will prompt you for the required information (URL, key, and user id). The script will then create
+a file in the proper location (the user's root directory):
+
+::
+
+    pyquil-config-setup
+
+
 Alternatively, connection information can be provided in environment variables.
 
 ::
@@ -202,7 +211,7 @@ program simply by printing it.
 
     X 0
     MEASURE 0 [0]
-    
+
 
 
 Most importantly, of course, we can see what happens if we run this
@@ -211,7 +220,7 @@ program on the QVM:
 .. code:: python
 
     classical_regs = [0] # A list of which classical registers to return the values of.
-    
+
     qvm.run(p, classical_regs)
 
 
@@ -364,13 +373,13 @@ following are all valid programs:
 
     print("Multiple inst arguments with final measurement:")
     print(pq.Program().inst(X(0), Y(1), Z(0)).measure(0, 1))
-    
+
     print("Chained inst with explicit MEASURE instruction:")
     print(pq.Program().inst(X(0)).inst(Y(1)).measure(0, 1).inst(MEASURE(1, 2)))
-    
+
     print("A mix of chained inst and measures:")
     print(pq.Program().inst(X(0)).measure(0, 1).inst(Y(1), X(0)).measure(0, 0))
-    
+
     print("A composition of two programs:")
     print(pq.Program(X(0)) + pq.Program(Y(0)))
 
@@ -382,24 +391,24 @@ following are all valid programs:
     Y 1
     Z 0
     MEASURE 0 [1]
-    
+
     Chained inst with explicit MEASURE instruction:
     X 0
     Y 1
     MEASURE 0 [1]
     MEASURE 1 [2]
-    
+
     A mix of chained inst and measures:
     X 0
     MEASURE 0 [1]
     Y 1
     X 0
     MEASURE 0 [0]
-    
+
     A composition of two programs:
     X 0
     Y 0
-    
+
 
 
 Fixing a Mistaken Instruction
@@ -414,11 +423,11 @@ off.
     p.inst(Y(1))
     print("Oops! We have added Y 1 by accident:")
     print(p)
-    
+
     print("We can fix by popping:")
     p.pop()
     print(p)
-    
+
     print("And then add it back:")
     p += pq.Program(Y(1))
     print(p)
@@ -429,14 +438,14 @@ off.
     Oops! We have added Y 1 by accident:
     X 0
     Y 1
-    
+
     We can fix by popping:
     X 0
-    
+
     And then add it back:
     X 0
     Y 1
-    
+
 
 
 The Standard Gate Set
@@ -477,13 +486,13 @@ matrix representation of the gate. For example, below we define a
 .. code:: python
 
     import numpy as np
-    
+
     # First we define the new gate from a matrix
     x_gate_matrix = np.array(([0.0, 1.0], [1.0, 0.0]))
     sqrt_x = np.array([[ 0.5+0.5j,  0.5-0.5j],
                        [ 0.5-0.5j,  0.5+0.5j]])
     p = pq.Program().defgate("SQRT-X", sqrt_x)
-    
+
     # Then we can use the new gate,
     p.inst(("SQRT-X", 0))
     print(p)
@@ -494,9 +503,9 @@ matrix representation of the gate. For example, below we define a
     DEFGATE SQRT-X:
         0.5+0.5i, 0.5-0.5i
         0.5-0.5i, 0.5+0.5i
-    
+
     SQRT-X 0
-    
+
 
 
 
@@ -526,7 +535,7 @@ gate.
                     [ 0.5-0.5j,  0.5+0.5j]])
     x_sqrt_x = np.kron(x_gate_matrix, sqrt_x)
     p = pq.Program().defgate("X-SQRT-X", x_sqrt_x)
-    
+
     # Then we can use the new gate
     p.inst(("X-SQRT-X", 0, 1))
     wavf, _ = qvm.wavefunction(p)
@@ -563,7 +572,7 @@ correction at the end consisting of a single SWAP gate.
 .. code:: python
 
     from math import pi
-    
+
     def qft3(q0, q1, q2):
         p = pq.Program()
         p.inst( H(q2),
@@ -596,7 +605,7 @@ the following:
     CPHASE(1.5707963267948966) 0 1
     H 0
     SWAP 0 2
-    
+
 
 
 Next, we want to prepare a state that corresponds to the sequence we
@@ -686,14 +695,14 @@ Then we construct the loop in the following steps:
 
     # Name our classical registers:
     classical_flag_register = 2
-    
+
     # Write out the loop initialization and body programs:
     init_register = pq.Program(TRUE([classical_flag_register]))
     loop_body = pq.Program(X(0), H(0)).measure(0, classical_flag_register)
-    
+
     # Put it all together in a loop program:
     loop_prog = init_register.while_do(classical_flag_register, loop_body)
-    
+
     print(loop_prog)
 
 
@@ -707,7 +716,7 @@ Then we construct the loop in the following steps:
     MEASURE 0 [2]
     JUMP @START1
     LABEL @END2
-    
+
 
 
 Notice that the ``init_register`` program applied a Quil instruction directly to a
@@ -732,21 +741,21 @@ method.
     # Name our classical registers:
     test_register = 1
     answer_register = 0
-    
+
     # Construct each branch of our if-statement. We can have empty branches
     # simply by having empty programs.
     then_branch = pq.Program(X(0))
     else_branch = pq.Program()
-    
+
     # Make a program that will put a 0 or 1 in test_register with 50% probability:
     branching_prog = pq.Program(H(1)).measure(1, test_register)
-    
+
     # Add the conditional branching:
     branching_prog.if_then(test_register, then_branch, else_branch)
-    
+
     # Measure qubit 0 into our answer register:
     branching_prog.measure(0, answer_register)
-    
+
     print(branching_prog)
 
 
@@ -760,7 +769,7 @@ method.
     X 0
     LABEL @END4
     MEASURE 0 [0]
-    
+
 
 
 We can run this program a few times to see what we get in the
@@ -836,7 +845,7 @@ programs, called ``ParametricPrograms``:
     # This function returns a quantum circuit with different rotation angles on a gate on qubit 0
     def rotator(angle):
         return pq.Program(RX(angle, 0))
-    
+
     from pyquil.parametric import ParametricProgram
     par_p = ParametricProgram(rotator) # This produces a new type of parameterized program object
 
@@ -866,13 +875,13 @@ The above sum can be constructed as follows:
 .. code:: python
 
     from pyquil.paulis import ID, sX, sY, sZ
-    
+
     # Pauli term takes an operator "X", "Y", "Z", or "I"; a qubit to act on, and
     # an optional coefficient.
     a = 0.5 * ID
     b = -0.75 * sX(0) * sY(1) * sZ(3)
     c = (5-2j) * sZ(1) * sX(2)
-    
+
     # Construct a sum of Pauli terms.
     sigma = a + b + c
     print("sigma = {}".format(sigma))
@@ -900,12 +909,12 @@ The following shows an instructive example of all three.
 .. code:: python
 
     import pyquil.paulis as pl
-    
+
     # Simplification
     sigma_cubed = sigma * sigma * sigma
     print("Simplified  : {}".format(sigma_cubed))
     print()
-    
+
     #Produce Quil code to compute exp[iX]
     H = -1.0 * sX(0)
     print("Quil to compute exp[iX] on qubit 0:")
@@ -915,12 +924,12 @@ The following shows an instructive example of all three.
 .. parsed-literal::
 
     Simplified  : (32.46875-30j)*I + (-16.734375+15j)*X0*Y1*Z3 + (71.5625-144.625j)*Z1*X2
-    
+
     Quil to compute exp[iX] on qubit 0:
     H 0
     RZ(-2.0) 0
     H 0
-    
+
 A more sophisticated feature of pyQuil is that it can create templates of Quil programs in
 ParametricProgram objects.  An example use of these templates is in exponentiating a Hamiltonian
 that is parametrized by a constant.  This commonly occurs in variational algorithms. The function
@@ -964,7 +973,7 @@ to see if the job result is finished.
 
     <class 'pyquil.job_results.JobResult'> {u'status': u'Submitted', u'jobId': u'BLSLJCBGNP'}
 
-`is_done` updates the ``JobResult`` object once, and returns `True` if the job has completed. 
+`is_done` updates the ``JobResult`` object once, and returns `True` if the job has completed.
 Once the job is finished, then the results can be retrieved from the JobResult object:
 
 ::
