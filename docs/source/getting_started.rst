@@ -107,6 +107,14 @@ Look `here <http://forest.rigetti.com>`_ to learn more about the Forest toolkit.
 If ``url`` is not set, pyQuil will default to looking for a
 local endpoint at ``127.0.0.1:5000``.
 
+You may also create the ``.pyquil_config`` automatically by running the following command,
+which will prompt you for the required information (URL, key, and user id). The script will then create
+a file in the proper location (the user's root directory):
+
+::
+
+    pyquil-config-setup
+
 Alternatively, connection information can be provided in environment variables.
 
 ::
