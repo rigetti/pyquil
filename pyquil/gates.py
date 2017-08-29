@@ -175,6 +175,17 @@ Produces a PHASE instruction. This is the same as the RZ gate.
 :returns: A Gate object.
 """
 
+CZ = _make_gate("CZ", 2)()
+"""
+Produces a CZ instruction.
+This gate applies to two qubit arguments to produce the controlled-Z gate instruction.
+
+:param control: The control qubit.
+:param target: The target qubit. The target qubit has an Z-gate applied to it if the control qubit is in
+               the excited state.
+:returns: A Gate object.
+"""
+
 CNOT = _make_gate("CNOT", 2)()
 """
 Produces a CNOT instruction.
@@ -406,6 +417,7 @@ STANDARD_GATES = {'I': I,
                   'RX': RX,
                   'RY': RY,
                   'RZ': RZ,
+                  'CZ': CZ,
                   'CNOT': CNOT,
                   'CCNOT': CCNOT,
                   'CPHASE00': CPHASE00,
