@@ -2,7 +2,7 @@ from copy import deepcopy
 import json
 import requests
 
-from pyquil.api import JobConnection, USER_ID, API_KEY
+from pyquil.api import JobConnection, USER_ID, API_KEY, _validate_run_items
 import pyquil.quil as pq
 from pyquil.job_results import RamseyResult, RabiResult, T1Result
 ENDPOINT = "https://job.rigetti.com/beta"
@@ -85,7 +85,31 @@ class QPUConnection(JobConnection):
         return NotImplementedError
 
     def run(self, quil_program, classical_addresses, trials=1):
-        return NotImplementedError
+        """
+        Run a pyQuil program on the QPU.
+
+        :param Program quil_program: Quil program
+        :param list classical_addresses: Unused
+        :param int trials: Unused
+        :return: A job result
+        :rtype: JobResult
+        """
+        if not isinstance(quil_program, pq.Program):
+            raise TypeError("quil_program must be a Quil program object")
+        _validate_run_items(classical_addresses)
+        if not isinstance(trials, int):
+            raise TypeError("trials must be an integer")
+
+        payload = {"type": 'multishot',
+                   "addresses": classical_addresses,
+                   "trials": trials,
+                   "quil-instructions": quil_program.out(),
+                   'device_id': self.device_name,
+                   'qcid': 0,
+                   'experiment': 'quil'}
+
+        res = self.post_job(payload, headers=self.json_headers)
+        return self.process_response(res)
 
     def run_and_measure(self, quil_program, qubits, trials=1):
         return NotImplementedError
