@@ -311,7 +311,7 @@ class PauliSum(object):
         """
         :param list terms: A list of PauliTerms.
         """
-        if not isinstance(terms, list):
+        if not (isinstance(terms, list) and all([isinstance(term, PauliTerm) for term in terms])):
             raise ValueError("PauliSum's are currently constructed from lists of PauliTerms.")
         if len(terms) == 0:
             self.terms = [0.0 * ID]

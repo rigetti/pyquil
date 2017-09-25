@@ -205,6 +205,11 @@ def test_pauli_sum():
     assert len(term_strings) == 2
     assert len(the_sum.terms) == 2
 
+    with pytest.raises(ValueError):
+        _ = PauliSum(sI(0))
+    with pytest.raises(ValueError):
+        _ = PauliSum([1, 1, 1, 1])
+
 
 def test_ps_adds_pt_1():
     term = ID
@@ -491,3 +496,12 @@ def test_sum_power():
     print PauliSum([sI(0)]), pauli_sum ** 2
     assert pauli_sum ** 2 == PauliSum([sI(0)])
 
+
+def test_sum_equality():
+    pauli_sum = sY(0) - sX(0)
+    assert pauli_sum != 2 * pauli_sum
+    assert pauli_sum != pauli_sum + sZ(0)
+    assert pauli_sum + sZ(0) != pauli_sum
+    assert pauli_sum != sY(1) - sX(1)
+    assert pauli_sum == -1.0 * sX(0) + sY(0)
+    assert pauli_sum == pauli_sum * 1.0
