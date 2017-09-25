@@ -60,14 +60,15 @@ class PauliTerm(object):
         self._ops = {}
         if op != "I":
             self._ops[index] = op
-
-        self.coefficient = coefficient
+        if not isinstance(coefficient, Number):
+            raise ValueError("coefficient of PauliTerm must be a Number.")
+        self.coefficient = complex(coefficient)
         self._id = None
 
     def id(self):
         """
-        Returns the unique identifier string for the PauliTerm.  Used in the
-        simplify method of PauliSum.
+        Returns the unique identifier string for the PauliTerm (ignoring the coefficient).
+         Used in the simplify method of PauliSum.
 
         :return: The unique identifier for this term.
         :rtype: string
@@ -82,7 +83,10 @@ class PauliTerm(object):
             return s
 
     def __eq__(self, other):
-        return self.id() == other.id()
+        if not isinstance(other, PauliTerm):
+            return False
+        print self.coefficient, other.coefficient
+        return self.id() == other.id() and np.isclose(self.coefficient, other.coefficient)
 
     def __ne__(self, other):
         # x!=y and x<>y call __ne__() instead of negating __eq__
@@ -182,13 +186,13 @@ class PauliTerm(object):
         :return: The power-fold product of power.
         :rtype: PauliTerm
         """
-        if not isinstance(power, int) and power >= 0:
+        if not isinstance(power, int) or power < 0:
             raise ValueError("The power must be a natural number.")
         if power == 0:
             identities = [PauliTerm('I', qubit) for qubit in self.get_qubits()]
             if not identities:
                 # There weren't any nontrivial operators
-                return self
+                return term_with_coeff(self, 1)
             result = 1
             for identity in identities:
                 result *= identity
@@ -294,12 +298,14 @@ def term_with_coeff(term, coeff):
     Change the coefficient of a PauliTerm.
 
     :param PauliTerm term: A PauliTerm object
-    :param float coeff: The coefficient to set on the PauliTerm
+    :param Number coeff: The coefficient to set on the PauliTerm
     :returns: A new PauliTerm that duplicates term but sets coeff
     :rtype: PauliTerm
     """
+    if not isinstance(coeff, Number):
+        raise ValueError("coeff must be a Number")
     new_pauli = term.copy()
-    new_pauli.coefficient = coeff
+    new_pauli.coefficient = complex(coeff)
     return new_pauli
 
 
@@ -330,6 +336,15 @@ class PauliSum(object):
         elif len(self.terms) != len(other.terms):
             return False
         return all([term == other.terms[i] for i, term in enumerate(self.terms)])
+
+    def __ne__(self, other):
+        """Inequality testing to see if two PauliSum's are not equivalent.
+
+        :param PauliSum other: The PauliSum to compare this PauliSum with.
+        :return: False if other is equivalent to this PauliSum, True otherwise.
+        :rtype: bool
+        """
+        return not self == other
 
     def __str__(self):
         return " + ".join([str(term) for term in self.terms])
@@ -395,16 +410,19 @@ class PauliSum(object):
         :return: The power-th power of this PauliSum.
         :rtype: PauliSum
         """
-        if not isinstance(power, int) and power >= 0:
+        if not isinstance(power, int) or power < 0:
             raise ValueError("The power must be a natural number.")
         elif power == 0:
+            result = 1
             if not self.get_qubits():
                 # There aren't any nontrivial operators
-                return self
-            result = 1
-            for term in self.terms:
-                for qubit_id in term.get_qubits():
-                    result *= PauliTerm("I", qubit_id)
+                terms = [term_with_coeff(term, 1) for term in self.terms]
+                for term in terms:
+                    result *= term
+            else:
+                for term in self.terms:
+                    for qubit_id in term.get_qubits():
+                        result *= PauliTerm("I", qubit_id)
             return result
         else:
             return self * self ** (power - 1)

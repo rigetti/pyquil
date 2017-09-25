@@ -18,7 +18,7 @@
 import pytest
 from pyquil.paulis import (PauliTerm, PauliSum, exponential_map, ID,
                            exponentiate, trotterize, is_zero, check_commutation, 
-                           commuting_sets, sI, sX, sY, sZ)
+                           commuting_sets, term_with_coeff, sI, sX, sY, sZ)
 from pyquil.quil import Program
 from pyquil.gates import RX, RZ, CNOT, H, X, PHASE
 
@@ -54,13 +54,18 @@ def compare_progs(test, reference):
             assert tinstr[idx][1].arguments[aa] == rinstr[idx][1].arguments[aa]
 
 
+def test_init_pauli_term():
+    with pytest.raises(ValueError):
+        PauliTerm('X', 0, 'a')
+
+
 def test_simplify_terms():
     term = PauliTerm('Z', 0) * -1.0 * PauliTerm('Z', 0)
     assert term.id() == ''
     assert term.coefficient == -1.0
 
     term = PauliTerm('Z', 0) + PauliTerm('Z', 0, 1.0)
-    assert str(term) == '2.0*Z0'
+    assert str(term) == '(2+0j)*Z0'
 
 
 def test_get_qubits():
@@ -116,13 +121,13 @@ def test_simplify_term_multindex():
 def test_simplify_sum_terms():
     sum_term = PauliSum([PauliTerm('X', 0, 0.5), PauliTerm('Z', 0, 0.5j)])
     str_sum_term = str(sum_term + sum_term)
-    assert str_sum_term == '1.0*X0 + 1j*Z0' or str_sum_term == '1j*Z0 + 1.0*X0'
+    assert str_sum_term == '(1+0j)*X0 + 1j*Z0' or str_sum_term == '1j*Z0 + (1+0j)*X0'
     sum_term = PauliSum([PauliTerm('X', 0, 0.5), PauliTerm('X', 0, 0.5)])
-    assert str(sum_term.simplify()) == '1.0*X0'
+    assert str(sum_term.simplify()) == '(1+0j)*X0'
 
     # test the simplify on multiplication
     sum_term = PauliSum([PauliTerm('X', 0, 0.5), PauliTerm('X', 0, 0.5)])
-    assert str(sum_term * sum_term) == '1.0*I'
+    assert str(sum_term * sum_term) == '(1+0j)*I'
 
 
 def test_copy():
@@ -186,21 +191,21 @@ def test_pauli_sum():
     q_plus = 0.5 * PauliTerm('X', 0) + 0.5j * PauliTerm('Y', 0)
     the_sum = q_plus * PauliSum([PauliTerm('X', 0)])
     term_strings = [str(x) for x in the_sum.terms]
-    assert '0.5*I' in term_strings
+    assert '(0.5+0j)*I' in term_strings
     assert '(0.5+0j)*Z0' in term_strings
     assert len(term_strings) == 2
     assert len(the_sum.terms) == 2
 
     the_sum = q_plus * PauliTerm('X', 0)
     term_strings = [str(x) for x in the_sum.terms]
-    assert '0.5*I' in term_strings
+    assert '(0.5+0j)*I' in term_strings
     assert '(0.5+0j)*Z0' in term_strings
     assert len(term_strings) == 2
     assert len(the_sum.terms) == 2
 
     the_sum = PauliTerm('X', 0) * q_plus
     term_strings = [str(x) for x in the_sum.terms]
-    assert '0.5*I' in term_strings
+    assert '(0.5+0j)*I' in term_strings
     assert '(-0.5+0j)*Z0' in term_strings
     assert len(term_strings) == 2
     assert len(the_sum.terms) == 2
@@ -209,22 +214,24 @@ def test_pauli_sum():
         _ = PauliSum(sI(0))
     with pytest.raises(ValueError):
         _ = PauliSum([1, 1, 1, 1])
+    with pytest.raises(ValueError):
+        _ = the_sum * []
 
 
 def test_ps_adds_pt_1():
     term = ID
     b = term + term
-    assert str(b) == "2.0*I"
-    assert str(b + term) == "3.0*I"
-    assert str(term + b) == "3.0*I"
+    assert str(b) == "(2+0j)*I"
+    assert str(b + term) == "(3+0j)*I"
+    assert str(term + b) == "(3+0j)*I"
 
 
 def test_ps_adds_pt_2():
     term = ID
     b = term + 1.0
-    assert str(b) == "2.0*I"
-    assert str(b + 1.0) == "3.0*I"
-    assert str(1.0 + b) == "3.0*I"
+    assert str(b) == "(2+0j)*I"
+    assert str(b + 1.0) == "(3+0j)*I"
+    assert str(1.0 + b) == "(3+0j)*I"
 
 
 def test_pauliterm_sub():
@@ -235,34 +242,34 @@ def test_pauliterm_sub():
 def test_ps_sub():
     term = 3 * ID
     b = term - 1.0
-    assert str(b) == "2.0*I"
-    assert str(b - 1.0) == "1.0*I"
-    assert str(1.0 - b) == "-1.0*I"
+    assert str(b) == "(2+0j)*I"
+    assert str(b - 1.0) == "(1+0j)*I"
+    assert str(1.0 - b) == "(-1+0j)*I"
 
 
 def test_zero_terms():
     term = PauliTerm("X", 0, 1.0) + PauliTerm("X", 0, -1.0) + \
            PauliTerm("Y", 0, 0.5)
-    assert str(term) == "0.5*Y0"
+    assert str(term) == "(0.5+0j)*Y0"
 
     term = PauliTerm("X", 0, 1.0) + PauliTerm("X", 0, -1.0)
-    assert str(term) == "0.0*I"
+    assert str(term) == "0j*I"
     assert len(term.terms) == 1
 
     term2 = term * PauliTerm("Z", 2, 0.5)
-    assert str(term2) == "0.0*I"
+    assert str(term2) == "0j*I"
 
     term3 = PauliTerm("Z", 2, 0.5) + term
-    assert str(term3) == "0.5*Z2"
+    assert str(term3) == "(0.5+0j)*Z2"
 
     term4 = PauliSum([])
-    assert str(term4) == "0.0*I"
+    assert str(term4) == "0j*I"
 
     term = PauliSum([PauliTerm("X", 0, 0.0), PauliTerm("Y", 1, 1.0) *
                      PauliTerm("Z", 2)])
-    assert str(term) == "0.0*X0 + 1.0*Y1*Z2"
+    assert str(term) == "0j*X0 + (1+0j)*Y1*Z2"
     term = term.simplify()
-    assert str(term) == "1.0*Y1*Z2"
+    assert str(term) == "(1+0j)*Y1*Z2"
 
 
 def test_exponentiate():
@@ -489,12 +496,33 @@ def test_term_powers():
             assert pauli_term ** 1 == pauli_term
             assert pauli_term ** 2 == sI(qubit_id)
             assert pauli_term ** 3 == pauli_term
+    with pytest.raises(ValueError):
+        pauli_terms[0] ** -1
 
 
 def test_sum_power():
     pauli_sum = (sY(0) - sX(0)) * (1.0 / np.sqrt(2))
     print PauliSum([sI(0)]), pauli_sum ** 2
     assert pauli_sum ** 2 == PauliSum([sI(0)])
+    with pytest.raises(ValueError):
+        _ = pauli_sum ** -1
+    pauli_sum = sI(0) + sI(1)
+    import pdb
+    pdb.set_trace()
+    assert pauli_sum ** 0 == sI(0)
+
+
+def test_term_equality():
+    assert sI(0) != 0
+    assert sI(0) == sI(0)
+    assert PauliTerm('X', 10, 1+1.j) == PauliTerm('X', 10, 1+1.j)
+
+
+def test_term_with_coeff():
+    assert PauliTerm('X', 0, 1.j) == term_with_coeff(sX(0), 1.j)
+    assert PauliTerm('X', 0, -1.0) == term_with_coeff(sX(0), -1)
+    with pytest.raises(ValueError):
+        term_with_coeff(sI(0), None)
 
 
 def test_sum_equality():
@@ -505,3 +533,4 @@ def test_sum_equality():
     assert pauli_sum != sY(1) - sX(1)
     assert pauli_sum == -1.0 * sX(0) + sY(0)
     assert pauli_sum == pauli_sum * 1.0
+    assert pauli_sum != 0
