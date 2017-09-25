@@ -175,6 +175,27 @@ class PauliTerm(object):
         assert isinstance(other, Number)
         return self * other
 
+    def __pow__(self, power):
+        """Raises this PauliTerm to power.
+
+        :param int power: The power to raise this PauliTerm to.
+        :return: The power-fold product of power.
+        :rtype: PauliTerm
+        """
+        if not isinstance(power, int) and power >= 0:
+            raise ValueError("The power must be a natural number.")
+        if power == 0:
+            identities = [PauliTerm('I', qubit) for qubit in self.get_qubits()]
+            if not identities:
+                # There weren't any nontrivial operators
+                return self
+            result = 1
+            for identity in identities:
+                result *= identity
+            return result
+        else:
+            return self * self ** (power - 1)
+
     def __add__(self, other):
         """Adds this PauliTerm with another one.
 
@@ -281,6 +302,7 @@ def term_with_coeff(term, coeff):
     new_pauli.coefficient = coeff
     return new_pauli
 
+
 class PauliSum(object):
     """A sum of one or more PauliTerms.
     """
@@ -289,10 +311,25 @@ class PauliSum(object):
         """
         :param list terms: A list of PauliTerms.
         """
+        if not isinstance(terms, list):
+            raise ValueError("PauliSum's are currently constructed from lists of PauliTerms.")
         if len(terms) == 0:
             self.terms = [0.0 * ID]
         else:
             self.terms = terms
+
+    def __eq__(self, other):
+        """Equality testing to see if two PauliSum's are equivalent.
+
+        :param PauliSum other: The PauliSum to compare this PauliSum with.
+        :return: True if other is equivalent to this PauliSum, False otherwise.
+        :rtype: bool
+        """
+        if not isinstance(other, PauliSum):
+            return False
+        elif len(self.terms) != len(other.terms):
+            return False
+        return all([term == other.terms[i] for i, term in enumerate(self.terms)])
 
     def __str__(self):
         return " + ".join([str(term) for term in self.terms])
@@ -323,10 +360,13 @@ class PauliSum(object):
         :return: A new PauliSum object given by the multiplication.
         :rtype: PauliSum
         """
-        if isinstance(other, PauliTerm):
-            other_terms = [other]
+        if not any([isinstance(other, allowed) for allowed in (Number, PauliTerm, PauliSum)]):
+            raise ValueError("Cannot multiply PauliSum by term that is not a Number, PauliTerm, or"
+                             "PauliSum")
         elif isinstance(other, PauliSum):
             other_terms = other.terms
+        else:
+            other_terms = [other]
         new_terms = []
         for lterm, rterm in product(self.terms, other_terms):
             new_terms.append(lterm * rterm)
@@ -347,6 +387,27 @@ class PauliSum(object):
         for term in new_terms:
             term.coefficient *= other
         return PauliSum(new_terms).simplify()
+
+    def __pow__(self, power):
+        """Raises this PauliSum to power.
+
+        :param int power: The power to raise this PauliSum to.
+        :return: The power-th power of this PauliSum.
+        :rtype: PauliSum
+        """
+        if not isinstance(power, int) and power >= 0:
+            raise ValueError("The power must be a natural number.")
+        elif power == 0:
+            if not self.get_qubits():
+                # There aren't any nontrivial operators
+                return self
+            result = 1
+            for term in self.terms:
+                for qubit_id in term.get_qubits():
+                    result *= PauliTerm("I", qubit_id)
+            return result
+        else:
+            return self * self ** (power - 1)
 
     def __add__(self, other):
         """

@@ -18,7 +18,7 @@
 import pytest
 from pyquil.paulis import (PauliTerm, PauliSum, exponential_map, ID,
                            exponentiate, trotterize, is_zero, check_commutation, 
-                           commuting_sets, sZ, sX)
+                           commuting_sets, sI, sX, sY, sZ)
 from pyquil.quil import Program
 from pyquil.gates import RX, RZ, CNOT, H, X, PHASE
 
@@ -27,6 +27,7 @@ from itertools import product
 from functools import reduce
 from operator import mul
 from six.moves import range
+import numpy as np
 
 
 def isclose(a, b, rel_tol=1e-10, abs_tol=0.0):
@@ -473,3 +474,20 @@ def test_paulisum_indexing():
     assert pauli_sum[0] == 0.5 * sX(0)
     for ii, term in enumerate(pauli_sum.terms):
         assert pauli_sum[ii] == term
+
+
+def test_term_powers():
+    for qubit_id in xrange(2):
+        pauli_terms = [sI(qubit_id), sX(qubit_id), sY(qubit_id), sZ(qubit_id)]
+        for pauli_term in pauli_terms:
+            assert pauli_term ** 0 == sI(qubit_id)
+            assert pauli_term ** 1 == pauli_term
+            assert pauli_term ** 2 == sI(qubit_id)
+            assert pauli_term ** 3 == pauli_term
+
+
+def test_sum_power():
+    pauli_sum = (sY(0) - sX(0)) * (1.0 / np.sqrt(2))
+    print PauliSum([sI(0)]), pauli_sum ** 2
+    assert pauli_sum ** 2 == PauliSum([sI(0)])
+
