@@ -507,8 +507,6 @@ def test_sum_power():
     with pytest.raises(ValueError):
         _ = pauli_sum ** -1
     pauli_sum = sI(0) + sI(1)
-    import pdb
-    pdb.set_trace()
     assert pauli_sum ** 0 == sI(0)
 
 
