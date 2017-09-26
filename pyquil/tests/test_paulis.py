@@ -502,7 +502,6 @@ def test_term_powers():
 
 def test_sum_power():
     pauli_sum = (sY(0) - sX(0)) * (1.0 / np.sqrt(2))
-    print PauliSum([sI(0)]), pauli_sum ** 2
     assert pauli_sum ** 2 == PauliSum([sI(0)])
     with pytest.raises(ValueError):
         _ = pauli_sum ** -1

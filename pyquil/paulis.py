@@ -85,7 +85,6 @@ class PauliTerm(object):
     def __eq__(self, other):
         if not isinstance(other, PauliTerm):
             return False
-        print self.coefficient, other.coefficient
         return self.id() == other.id() and np.isclose(self.coefficient, other.coefficient)
 
     def __ne__(self, other):
