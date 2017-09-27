@@ -506,6 +506,8 @@ def test_term_powers():
             assert pauli_term ** 3 == pauli_term
     with pytest.raises(ValueError):
         pauli_terms[0] ** -1
+    # Test to make sure large powers can be computed
+    (PauliTerm('X', 0, 2) * PauliTerm('Y', 0, 2)) ** 400
 
 
 def test_sum_power():
@@ -515,6 +517,8 @@ def test_sum_power():
         _ = pauli_sum ** -1
     pauli_sum = sI(0) + sI(1)
     assert pauli_sum ** 0 == sI(0)
+    # Test to make sure large powers can be computed
+    pauli_sum ** 400
 
 
 def test_term_equality():
