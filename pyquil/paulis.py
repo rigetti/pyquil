@@ -27,6 +27,7 @@ from .gates import H, RZ, RX, CNOT, X, PHASE
 from . import quilbase as pqb
 from numbers import Number
 from collections import Sequence
+import warnings
 from six import integer_types
 from six.moves import range
 
@@ -346,7 +347,7 @@ class PauliSum(object):
         elif isinstance(other, PauliTerm):
             return self == PauliSum(other)
         elif len(self.terms) != len(other.terms):
-            raise UnequalLengthWarning("These PauliSums have a different number of terms.")
+            warnings.warn(UnequalLengthWarning("These PauliSums have a different number of terms."))
             return False
         return all([term == other.terms[i] for i, term in enumerate(self.terms)])
 
