@@ -196,17 +196,17 @@ class PauliTerm(object):
         """
         if not isinstance(power, int) or power < 0:
             raise ValueError("The power must be a non-negative integer.")
-        if power == 0:
-            identities = [PauliTerm('I', qubit) for qubit in self.get_qubits()]
-            if not identities:
-                # There weren't any nontrivial operators
-                return term_with_coeff(self, 1)
-            result = 1
-            for identity in identities:
-                result *= identity
-            return result
-        else:
-            return self * self ** (power - 1)
+        result = 1
+        
+        identities = [PauliTerm('I', qubit) for qubit in self.get_qubits()]
+        if not identities:
+            # There weren't any nontrivial operators
+            return term_with_coeff(self, 1)
+        for identity in identities:
+            result *= identity
+        for _ in range(power):
+            result *= self
+        return result
 
     def __add__(self, other):
         """Adds this PauliTerm with another one.
@@ -423,20 +423,21 @@ class PauliSum(object):
         """
         if not isinstance(power, int) or power < 0:
             raise ValueError("The power must be a non-negative integer.")
-        elif power == 0:
-            result = 1
-            if not self.get_qubits():
-                # There aren't any nontrivial operators
-                terms = [term_with_coeff(term, 1) for term in self.terms]
-                for term in terms:
-                    result *= term
-            else:
-                for term in self.terms:
-                    for qubit_id in term.get_qubits():
-                        result *= PauliTerm("I", qubit_id)
-            return result
+        result = 1
+
+        if not self.get_qubits():
+            # There aren't any nontrivial operators
+            terms = [term_with_coeff(term, 1) for term in self.terms]
+            for term in terms:
+                result *= term
         else:
-            return self * self ** (power - 1)
+            for term in self.terms:
+                for qubit_id in term.get_qubits():
+                    result *= PauliTerm("I", qubit_id)
+
+        for _ in range(power):
+            result *= self
+        return result
 
     def __add__(self, other):
         """
