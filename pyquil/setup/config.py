@@ -17,15 +17,13 @@
 
 from os.path import expanduser
 
+import six
+input = six.moves.input
+
+
 def main():
     print("Welcome to the pyquil config setup!")
     print("Enter the required information below for Forest connections.")
-
-    # Input for python2 and python3
-    try:
-       input = raw_input
-    except NameError:
-       pass
 
     endpoint = input("Forest URL (https://api.rigetti.com/qvm): ")
     if len(endpoint) == 0:
