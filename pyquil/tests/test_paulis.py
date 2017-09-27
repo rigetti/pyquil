@@ -538,9 +538,9 @@ def test_term_with_coeff():
 def test_sum_equality():
     pauli_sum = sY(0) - sX(0)
     assert pauli_sum != 2 * pauli_sum
-    with pytest.raises(UnequalLengthWarning):
+    with pytest.warns(UnequalLengthWarning):
         assert pauli_sum != pauli_sum + sZ(0)
-    with pytest.raises(UnequalLengthWarning):
+    with pytest.warns(UnequalLengthWarning):
         assert pauli_sum + sZ(0) != pauli_sum
     assert pauli_sum != sY(1) - sX(1)
     assert pauli_sum == -1.0 * sX(0) + sY(0)
