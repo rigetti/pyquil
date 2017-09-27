@@ -16,7 +16,7 @@
 ##############################################################################
 
 import pytest
-from pyquil.paulis import (PauliTerm, PauliSum, exponential_map, ID,
+from pyquil.paulis import (PauliTerm, PauliSum, exponential_map, ID, UnequalLengthWarning,
                            exponentiate, trotterize, is_zero, check_commutation, 
                            commuting_sets, term_with_coeff, sI, sX, sY, sZ)
 from pyquil.quil import Program
@@ -232,6 +232,10 @@ def test_ps_adds_pt_2():
     assert str(b) == "(2+0j)*I"
     assert str(b + 1.0) == "(3+0j)*I"
     assert str(1.0 + b) == "(3+0j)*I"
+    b = sX(0) + 1.0
+    assert str(b) == "(1+0j)*I + (1+0j)*X0"
+    b = 1.0 + sX(0)
+    assert str(b) == "(1+0j)*I + (1+0j)*X0"
 
 
 def test_pauliterm_sub():
@@ -245,6 +249,10 @@ def test_ps_sub():
     assert str(b) == "(2+0j)*I"
     assert str(b - 1.0) == "(1+0j)*I"
     assert str(1.0 - b) == "(-1+0j)*I"
+    b = 1.0 - sX(0)
+    assert str(b) == "(1+0j)*I + (-1+0j)*X0"
+    b = sX(0) - 1.0
+    assert str(b) == "(-1+0j)*I + (1+0j)*X0"
 
 
 def test_zero_terms():
@@ -489,7 +497,7 @@ def test_paulisum_indexing():
 
 
 def test_term_powers():
-    for qubit_id in xrange(2):
+    for qubit_id in range(2):
         pauli_terms = [sI(qubit_id), sX(qubit_id), sY(qubit_id), sZ(qubit_id)]
         for pauli_term in pauli_terms:
             assert pauli_term ** 0 == sI(qubit_id)
@@ -510,7 +518,8 @@ def test_sum_power():
 
 
 def test_term_equality():
-    assert sI(0) != 0
+    with pytest.raises(TypeError):
+        sI(0) != 0
     assert sI(0) == sI(0)
     assert PauliTerm('X', 10, 1+1.j) == PauliTerm('X', 10, 1+1.j)
 
@@ -525,9 +534,12 @@ def test_term_with_coeff():
 def test_sum_equality():
     pauli_sum = sY(0) - sX(0)
     assert pauli_sum != 2 * pauli_sum
-    assert pauli_sum != pauli_sum + sZ(0)
-    assert pauli_sum + sZ(0) != pauli_sum
+    with pytest.raises(UnequalLengthWarning):
+        assert pauli_sum != pauli_sum + sZ(0)
+    with pytest.raises(UnequalLengthWarning):
+        assert pauli_sum + sZ(0) != pauli_sum
     assert pauli_sum != sY(1) - sX(1)
     assert pauli_sum == -1.0 * sX(0) + sY(0)
     assert pauli_sum == pauli_sum * 1.0
-    assert pauli_sum != 0
+    with pytest.raises(TypeError):
+        assert pauli_sum != 0

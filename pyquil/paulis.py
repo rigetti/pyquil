@@ -26,6 +26,7 @@ from .quil import Program
 from .gates import H, RZ, RX, CNOT, X, PHASE
 from . import quilbase as pqb
 from numbers import Number
+from collections import Sequence
 from six import integer_types
 from six.moves import range
 
@@ -40,6 +41,11 @@ PAULI_COEFF = {'ZZ': 1.0, 'YY': 1.0, 'XX': 1.0, 'II': 1.0,
                'ZY': -1.0j, 'IX': 1.0, 'IY': 1.0, 'IZ': 1.0, 'ZI': 1.0,
                'YI': 1.0, 'XI': 1.0,
                'X': 1.0, 'Y': 1.0, 'Z': 1.0, 'I': 1.0}
+
+
+class UnequalLengthWarning(Warning):
+    def __init__(self, *args, **kwargs):
+        super(UnequalLengthWarning, self).__init__(*args, **kwargs)
 
 
 class PauliTerm(object):
@@ -83,9 +89,12 @@ class PauliTerm(object):
             return s
 
     def __eq__(self, other):
-        if not isinstance(other, PauliTerm):
-            return False
-        return self.id() == other.id() and np.isclose(self.coefficient, other.coefficient)
+        if not isinstance(other, (PauliTerm, PauliSum)):
+            raise TypeError("Can't compare PauliTerm with object of type {}.".format(type(other)))
+        elif isinstance(other, PauliSum):
+            return other == self
+        else:
+            return self.id() == other.id() and np.isclose(self.coefficient, other.coefficient)
 
     def __ne__(self, other):
         # x!=y and x<>y call __ne__() instead of negating __eq__
@@ -186,7 +195,7 @@ class PauliTerm(object):
         :rtype: PauliTerm
         """
         if not isinstance(power, int) or power < 0:
-            raise ValueError("The power must be a natural number.")
+            raise ValueError("The power must be a non-negative integer.")
         if power == 0:
             identities = [PauliTerm('I', qubit) for qubit in self.get_qubits()]
             if not identities:
@@ -304,6 +313,7 @@ def term_with_coeff(term, coeff):
     if not isinstance(coeff, Number):
         raise ValueError("coeff must be a Number")
     new_pauli = term.copy()
+    # We cast to a complex number to ensure that internally the coefficients remain compatible.
     new_pauli.coefficient = complex(coeff)
     return new_pauli
 
@@ -314,10 +324,11 @@ class PauliSum(object):
 
     def __init__(self, terms):
         """
-        :param list terms: A list of PauliTerms.
+        :param Sequence terms: A Sequence of PauliTerms.
         """
-        if not (isinstance(terms, list) and all([isinstance(term, PauliTerm) for term in terms])):
-            raise ValueError("PauliSum's are currently constructed from lists of PauliTerms.")
+        if not (isinstance(terms, Sequence) and
+                all([isinstance(term, PauliTerm) for term in terms])):
+            raise ValueError("PauliSum's are currently constructed from Sequences of PauliTerms.")
         if len(terms) == 0:
             self.terms = [0.0 * ID]
         else:
@@ -330,9 +341,12 @@ class PauliSum(object):
         :return: True if other is equivalent to this PauliSum, False otherwise.
         :rtype: bool
         """
-        if not isinstance(other, PauliSum):
-            return False
+        if not isinstance(other, (PauliTerm, PauliSum)):
+            raise TypeError("Can't compare PauliSum with object of type {}.".format(type(other)))
+        elif isinstance(other, PauliTerm):
+            return self == PauliSum(other)
         elif len(self.terms) != len(other.terms):
+            raise UnequalLengthWarning("These PauliSums have a different number of terms.")
             return False
         return all([term == other.terms[i] for i, term in enumerate(self.terms)])
 
@@ -374,16 +388,14 @@ class PauliSum(object):
         :return: A new PauliSum object given by the multiplication.
         :rtype: PauliSum
         """
-        if not any([isinstance(other, allowed) for allowed in (Number, PauliTerm, PauliSum)]):
+        if not isinstance(other, (Number, PauliTerm, PauliSum)):
             raise ValueError("Cannot multiply PauliSum by term that is not a Number, PauliTerm, or"
                              "PauliSum")
         elif isinstance(other, PauliSum):
             other_terms = other.terms
         else:
             other_terms = [other]
-        new_terms = []
-        for lterm, rterm in product(self.terms, other_terms):
-            new_terms.append(lterm * rterm)
+        new_terms = [lterm * rterm for lterm, rterm in product(self.terms, other_terms)]
         new_sum = PauliSum(new_terms)
         return new_sum.simplify()
 
@@ -410,7 +422,7 @@ class PauliSum(object):
         :rtype: PauliSum
         """
         if not isinstance(power, int) or power < 0:
-            raise ValueError("The power must be a natural number.")
+            raise ValueError("The power must be a non-negative integer.")
         elif power == 0:
             result = 1
             if not self.get_qubits():
