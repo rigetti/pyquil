@@ -21,7 +21,7 @@ Pythonic sugar for Quil instructions.
 
 from .quilbase import (Measurement, Gate, Addr, Wait, Reset, Halt, Nop, ClassicalTrue,
                        ClassicalFalse, ClassicalNot, ClassicalAnd, ClassicalOr, ClassicalMove,
-                       ClassicalExchange, DirectQubit, AbstractQubit, issubinstance)
+                       ClassicalExchange, DirectQubit, AbstractQubit, issubinstance, unpack_qubit)
 from six import integer_types
 
 def unpack_classical_reg(c):
@@ -41,21 +41,6 @@ def unpack_classical_reg(c):
         return Addr(c[0])
     else:
         return Addr(c)
-
-
-def unpack_qubit(qubit):
-    """
-    Get a qubit from an object.
-
-    :param qubit: An int or AbstractQubit.
-    :return: An AbstractQubit instance
-    """
-    if isinstance(qubit, integer_types):
-        return DirectQubit(qubit)
-    elif not isinstance(qubit, AbstractQubit):
-        raise TypeError("qubit should be an int or AbstractQubit instance")
-    else:
-        return qubit
 
 
 def _make_gate(name, num_qubits, num_params=0):
