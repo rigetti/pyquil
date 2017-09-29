@@ -526,6 +526,8 @@ def test_term_equality():
         sI(0) != 0
     assert sI(0) == sI(0)
     assert PauliTerm('X', 10, 1+1.j) == PauliTerm('X', 10, 1+1.j)
+    assert PauliTerm('X', 10, 1 + 1.j) + PauliTerm('X', 10, 1 + 1.j) != PauliTerm('X', 10, 1 + 1.j)
+    assert PauliTerm('X', 10, 1 + 1.j) != PauliTerm('X', 10, 1 + 1.j) + PauliTerm('X', 10, 1 + 1.j)
 
 
 def test_term_with_coeff():

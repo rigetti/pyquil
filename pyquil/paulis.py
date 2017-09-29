@@ -345,7 +345,7 @@ class PauliSum(object):
         if not isinstance(other, (PauliTerm, PauliSum)):
             raise TypeError("Can't compare PauliSum with object of type {}.".format(type(other)))
         elif isinstance(other, PauliTerm):
-            return self == PauliSum(other)
+            return self == PauliSum([other])
         elif len(self.terms) != len(other.terms):
             warnings.warn(UnequalLengthWarning("These PauliSums have a different number of terms."))
             return False
