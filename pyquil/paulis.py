@@ -264,9 +264,13 @@ class PauliTerm(object):
 
 
 # For convenience, a shorthand for several operators.
-ID = PauliTerm("I", 0)
+ID = PauliTerm("I", 0, 1)
 """
-The identity Pauli operator on the 0th qubit.
+The identity Pauli Term.
+"""
+ZERO = PauliTerm("I", 0, 0)
+"""
+The zero Pauli Term.
 """
 sI = lambda q: PauliTerm("I", q)
 """
