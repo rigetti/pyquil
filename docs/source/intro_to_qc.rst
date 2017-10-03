@@ -261,15 +261,18 @@ multiple qubits to grow exponentially in size, as their vectors are tensored tog
 
     # Multiple qubits also produce the expected scaling of the state.
     p = Program(I(0), I(1))
-    print "The quantum state is of dimension:", len(quantum_simulator.wavefunction(p)[0])
+    wvf, _ = quantum_simulator.wavefunction(p)
+    print "The quantum state is of dimension:", len(wvf.amplitudes)
 
     p = Program(I(0), I(1), I(2), I(3))
-    print "The quantum state is of dimension:", len(quantum_simulator.wavefunction(p)[0])
+    wvf, _ = quantum_simulator.wavefunction(p)
+    print "The quantum state is of dimension:", len(wvf.amplitudes)
 
     p = Program()
     for x in range(10):
         p.inst(I(x))
-    print "The quantum state is of dimension:", len(quantum_simulator.wavefunction(p)[0])
+    wvf, _ = quantum_simulator.wavefunction(p)
+    print "The quantum state is of dimension:", len(wvf.amplitudes)  
 
 
 .. parsed-literal::

@@ -33,3 +33,18 @@ def test_add_resource_managers():
     summed_program = p + q
     assert (set(summed_program.resource_manager.live_qubits)
             == set.union(set(p_qubits), set(q_qubits)))
+
+
+def test_direct_qubit_comparison():
+    q0 = DirectQubit(0)
+    q1 = DirectQubit(0)
+
+    assert q0 == q1
+    if q0 != q1:
+        # This is a weird behavior in python2. x!=y and x<>y call __ne__() instead of negating
+        # __eq__(). In python 3 __ne__ defaults to the inversion of__eq__
+        raise AssertionError("Should never have gotten here! Python2 bites again")
+
+    q2 = DirectQubit(2)
+
+    assert q0 != q2

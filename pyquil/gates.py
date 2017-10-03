@@ -21,7 +21,7 @@ Pythonic sugar for Quil instructions.
 
 from .quilbase import (Measurement, Gate, Addr, Wait, Reset, Halt, Nop, ClassicalTrue,
                        ClassicalFalse, ClassicalNot, ClassicalAnd, ClassicalOr, ClassicalMove,
-                       ClassicalExchange, DirectQubit, AbstractQubit, issubinstance)
+                       ClassicalExchange, DirectQubit, AbstractQubit, issubinstance, unpack_qubit)
 from six import integer_types
 
 def unpack_classical_reg(c):
@@ -41,21 +41,6 @@ def unpack_classical_reg(c):
         return Addr(c[0])
     else:
         return Addr(c)
-
-
-def unpack_qubit(qubit):
-    """
-    Get a qubit from an object.
-
-    :param qubit: An int or AbstractQubit.
-    :return: An AbstractQubit instance
-    """
-    if isinstance(qubit, integer_types):
-        return DirectQubit(qubit)
-    elif not isinstance(qubit, AbstractQubit):
-        raise TypeError("qubit should be an int or AbstractQubit instance")
-    else:
-        return qubit
 
 
 def _make_gate(name, num_qubits, num_params=0):
@@ -172,6 +157,17 @@ Produces a PHASE instruction. This is the same as the RZ gate.
 
 :param angle: The angle to rotate around the z-axis on the bloch sphere.
 :param qubit: The qubit apply the gate to.
+:returns: A Gate object.
+"""
+
+CZ = _make_gate("CZ", 2)()
+"""
+Produces a CZ instruction.
+This gate applies to two qubit arguments to produce the controlled-Z gate instruction.
+
+:param control: The control qubit.
+:param target: The target qubit. The target qubit has an Z-gate applied to it if the control qubit is in
+               the excited state.
 :returns: A Gate object.
 """
 
@@ -406,6 +402,7 @@ STANDARD_GATES = {'I': I,
                   'RX': RX,
                   'RY': RY,
                   'RZ': RZ,
+                  'CZ': CZ,
                   'CNOT': CNOT,
                   'CCNOT': CCNOT,
                   'CPHASE00': CPHASE00,

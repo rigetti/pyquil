@@ -89,6 +89,21 @@ def format_parameter(element):
     assert False, "Invalid parameter: %r" % element
 
 
+def unpack_qubit(qubit):
+    """
+    Get a qubit from an object.
+
+    :param qubit: An int or AbstractQubit.
+    :return: An AbstractQubit instance
+    """
+    if isinstance(qubit, integer_types):
+        return DirectQubit(qubit)
+    elif isinstance(qubit, AbstractQubit):
+        return qubit
+    else:
+        raise TypeError("qubit should be an int or AbstractQubit instance")
+
+
 class Addr(QuilAtom):
     """
     Representation of a classical bit address.
@@ -198,7 +213,7 @@ class DefGate(AbstractInstruction):
         :returns: A function that constructs this gate on variable qubit indices. E.g.
                   `mygate.get_constructor()(1) applies the gate to qubit 1.`
         """
-        return lambda *qubits: Gate(name=self.name, params=[], qubits=qubits)
+        return lambda *qubits: Gate(name=self.name, params=[], qubits=list(map(unpack_qubit, qubits)))
 
     def num_args(self):
         """
@@ -591,6 +606,12 @@ class Instr(AbstractInstruction):
 
     def __eq__(self, other):
         return self.out() == other.out()
+
+    def __ne__(self, other):
+        # x!=y and x<>y call __ne__() instead of negating __eq__
+        # This is only a weirdness in python2 as in python 3 __ne__ defaults to the inversion of
+        # __eq__
+        return not self.__eq__(other)
 
     def __hash__(self):
         return hash(self.out())

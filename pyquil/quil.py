@@ -27,7 +27,8 @@ from .quilbase import (InstructionGroup,
                        Measurement,
                        merge_resource_managers)
 
-from .gates import MEASURE
+from .gates import MEASURE, STANDARD_GATES
+from math import pi
 
 
 class Program(InstructionGroup):
@@ -164,6 +165,51 @@ class Program(InstructionGroup):
         branch.Else.inst(else_program)
         return self.inst(branch)
 
+    def dagger(self, inv_dict=None, suffix="-INV"):
+        """
+        Creates the conjugate transpose of the Quil program. The program must not
+        contain any irreversible actions (measurement, control flow, qubit allocation).
+
+        :return: The Quil program's inverse
+        :rtype: Program
+
+        """
+
+        for action in self.actions:
+            assert action[0] == 0, "Program must be valid Protoquil"
+            gate = action[1]
+            assert not isinstance(gate, Measurement), "Program cannot contain measurements"
+            assert not isinstance(gate, While) and not isinstance(gate, If), \
+                "Program cannot contain control flow"
+
+        daggered = Program()
+
+        for gate in self.defined_gates:
+            if inv_dict == None or gate.name not in inv_dict:
+                daggered.defgate(gate.name + suffix, gate.matrix.T.conj())
+
+        for action in self.actions[::-1]:
+            gate = action[1]
+            if gate.operator_name in STANDARD_GATES:
+                if gate.operator_name == "S":
+                    daggered.inst(STANDARD_GATES["PHASE"](-pi / 2, *gate.arguments))
+                elif gate.operator_name == "T":
+                    daggered.inst(STANDARD_GATES["RZ"](pi / 4, *gate.arguments))
+                elif gate.operator_name == "ISWAP":
+                    daggered.inst(STANDARD_GATES["PSWAP"](pi / 2, *gate.arguments))
+                else:
+                    negated_params = list(map(lambda x : -1*x, gate.parameters))
+                    daggered.inst(STANDARD_GATES[gate.operator_name](*(negated_params+gate.arguments)))
+            else:
+                if inv_dict == None or gate.operator_name not in inv_dict:
+                    gate_inv_name = gate.operator_name + suffix
+                else:
+                    gate_inv_name = inv_dict[gate.operator_name]
+
+                daggered.inst(tuple([gate_inv_name] + gate.arguments))
+
+        return daggered
+
     def out(self):
         """
         Converts the Quil program to a readable string.
@@ -177,7 +223,6 @@ class Program(InstructionGroup):
             s += "\n"
         s += super(Program, self).out()
         return s
-
 
 def merge_programs(prog_list):
     """

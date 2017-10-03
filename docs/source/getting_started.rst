@@ -107,6 +107,14 @@ Look `here <http://forest.rigetti.com>`_ to learn more about the Forest toolkit.
 If ``url`` is not set, pyQuil will default to looking for a
 local endpoint at ``127.0.0.1:5000``.
 
+You may also create the ``.pyquil_config`` automatically by running the following command,
+which will prompt you for the required information (URL, key, and user id). The script will then create
+a file in the proper location (the user's root directory):
+
+::
+
+    pyquil-config-setup
+
 Alternatively, connection information can be provided in environment variables.
 
 ::
@@ -152,13 +160,14 @@ To ensure that your installation is working correctly, try running the
 following Python commands interactively. First, import the ``quil``
 module (which constructs quantum programs) and the ``forest`` module (which
 allows connections to the Rigetti QVM). We will also import some basic
-gates for pyQuil.
+gates for pyQuil as well as numpy.
 
 .. code:: python
 
     import pyquil.quil as pq
     import pyquil.api as api
     from pyquil.gates import *
+    import numpy as np
 
 Next, we want to open a connection to the QVM. Forest supports two types of connections through
 pyQuil.  The first is a synchronous connection that immediately runs requested jobs against the QVM.
@@ -939,7 +948,7 @@ calculation so that it can be used later with new values.
 JobConnections
 --------------
 Larger pyQuil programs can take longer than 30 seconds to run.  These jobs can be posted into the
-cloud job queue using a different connection object.  The mode of interactive with the API is
+cloud job queue using a different connection object.  The mode of interaction with the API is
 asynchronous.  This means that there is a seperate query to post a job and to get the result.
 
 ::
@@ -963,6 +972,7 @@ to see if the job result is finished.
 
     <class 'pyquil.job_results.JobResult'> {u'status': u'Submitted', u'jobId': u'BLSLJCBGNP'}
 
+`is_done` updates the ``JobResult`` object once, and returns `True` if the job has completed. 
 Once the job is finished, then the results can be retrieved from the JobResult object:
 
 ::
@@ -970,7 +980,6 @@ Once the job is finished, then the results can be retrieved from the JobResult o
   import time
 
   while not res.is_done():
-      res.get()
       time.sleep(1)
   print res
   answer = res.decode()
