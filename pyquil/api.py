@@ -19,7 +19,7 @@ Module for facilitating connections to the QVM / QPU.
 """
 
 from __future__ import print_function
-from requests.packages.urllib3.util import Retry
+from urllib3.util.retry import Retry
 from requests.adapters import HTTPAdapter
 from copy import deepcopy
 import requests

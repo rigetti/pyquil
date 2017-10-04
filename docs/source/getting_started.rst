@@ -85,7 +85,7 @@ pyQuil can be used to build and manipulate Quil programs without restriction. Ho
 programs (e.g., to get wavefunctions, get multishot experiment data), you will need an API key
 for Rigetti Forest. This will allow you to run your programs on the Rigetti QVM or QPU.
 
-Once you have your key, you need to set up configuration in the file ``.pyquil_config``
+Once you have your key, you need to create a configuration file called ``.pyquil_config``
 which pyQuil will attempt to find in your home directory by default. You can change this location by setting the
 environment variable ``PYQUIL_CONFIG`` to the path of the file.
 

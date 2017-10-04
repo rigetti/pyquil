@@ -288,7 +288,8 @@ those outcomes as values.
 .. code:: python
 
     # wavefunction(Program) returns a coefficient array that corresponds to outcomes in the following order
-    print quantum_simulator.bit_string_probabilities(Program(I(0), I(1)))
+    wvf, _ = quantum_simulator.wavefunction(Program(I(0), I(1)))
+    print wvf.get_outcome_probs()
 
 
 .. parsed-literal::

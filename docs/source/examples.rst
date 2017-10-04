@@ -52,7 +52,7 @@ First we import all the necessary tools:
 .. code-block:: python
 
     import pyquil.quil as pq
-    from pyquil import forest
+    import pyquil.api as forest
 
     from pyquil.gates import I, H, X
     qvm = forest.Connection()
