@@ -1,7 +1,7 @@
-pyquil.forest
--------------
+pyquil.api
+----------
 
-.. automodule:: pyquil.forest
+.. automodule:: pyquil.api
     :members:
     :undoc-members:
     :show-inheritance:
