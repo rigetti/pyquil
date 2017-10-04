@@ -262,6 +262,35 @@ class PauliTerm(object):
         out = "%s*%s" % (self.coefficient, '*'.join(term_strs))
         return out
 
+    @classmethod
+    def from_list(cls, terms_list, coefficient=1.0):
+        """
+        Allocates a Pauli Term from a list of operators and indices. This is more efficient than
+        multiplying together individual terms.
+
+        :param list terms_list: A list of tuples, e.g. [("X", 0), ("Y", 1)]
+        :return: PauliTerm
+        """
+        pterm = PauliTerm("I", 0)
+        assert all([op[0] in PAULI_OPS for op in terms_list])
+
+        indices = [op[1] for op in terms_list]
+        assert all([isinstance(index, integer_types) and index >= 0 for index in indices])
+
+        # this is because from_list doesn't call simplify in order to be more efficient.
+        if len(set(indices)) != len(indices):
+            raise ValueError("Elements of PauliTerm that are allocated using from_list must " \
+                              "be on disjoint qubits. Use PauliTerm multiplication to simplify " \
+                              "terms instead.")
+
+        for op, index in terms_list:
+            if op != "I":
+                pterm._ops[index] = op
+        if not isinstance(coefficient, Number):
+            raise ValueError("coefficient of PauliTerm must be a Number.")
+        pterm.coefficient = complex(coefficient)
+        return pterm
+
 
 # For convenience, a shorthand for several operators.
 ID = PauliTerm("I", 0, 1)

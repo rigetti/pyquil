@@ -550,6 +550,7 @@ def test_sum_equality():
     with pytest.raises(TypeError):
         assert pauli_sum != 0
 
+
 def test_zero_term():
     qubit_id = 0
     coefficient = 10
@@ -560,3 +561,15 @@ def test_zero_term():
     assert ZERO + ID == ID
     assert ZERO + ps == ps
     assert ps + ZERO == ps
+    
+
+def test_from_list():
+    terms_list = [("X", 0), ("Y", 1), ("Z", 5)]
+    term = reduce(lambda x, y: x * y, [PauliTerm(*x) for x in terms_list])
+
+    pterm = PauliTerm.from_list(terms_list)
+    assert pterm == term
+
+    with pytest.raises(ValueError):
+        # terms are not on disjoint qubits
+        pterm = PauliTerm.from_list([("X", 0), ("Y", 0)])
