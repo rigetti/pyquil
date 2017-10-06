@@ -33,7 +33,7 @@ class NoParametersFoundException(Exception):
 
 class QPUConnection(JobConnection):
 
-    def __init__(self, device_name, **kwargs):
+    def __init__(self, device_name='Device', **kwargs):
         """
         :param str device_name: Unique identifier of the device in question
         """
@@ -126,9 +126,7 @@ class QPUConnection(JobConnection):
                    'addresses': classical_addresses,
                    'trials': trials,
                    'quil-instructions': quil_program.out(),
-                   'device_id': self.device_name,
-                   'qcid': 0,
-                   'experiment': 'quil'}
+                   'device_id': self.device_name}
 
         res = self.post_job(payload, headers=self.headers)
         return self.process_response(res)
