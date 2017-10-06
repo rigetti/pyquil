@@ -18,16 +18,16 @@ Module for facilitating connections to the QVM / QPU.
 """
 
 from __future__ import print_function
-from urllib3.util.retry import Retry
 from requests.adapters import HTTPAdapter
-import requests
-import json
-import sys
 from six import integer_types
+from urllib3.util.retry import Retry
+import json
+import requests
+import sys
 
-import pyquil.quil as pq
 from pyquil.config import PyquilConfig
 from pyquil.job_results import JobResult, WavefunctionResult, recover_complexes
+from pyquil.quil import Program
 
 
 def add_noise_to_payload(payload, gate_noise, measurement_noise):
@@ -75,7 +75,7 @@ def _validate_noise_probabilities(noise_parameter):
         raise ValueError("noise_parameter values should all be non-negative")
 
 
-def _validate_run_items(run_items):
+def validate_run_items(run_items):
     """
     Check the validity of classical addresses / qubits for the payload.
 
@@ -162,7 +162,7 @@ class JobConnection(object):
         else:
             raise TypeError("random_seed should be None or a non-negative int or long.")
 
-        self.machine = 'QVM' # default to a QVM Machine Connection
+        self.machine = 'QVM'  # default to a QVM Machine Connection
 
     def post_json(self, jd, headers=None, route=""):
         """
@@ -170,7 +170,7 @@ class JobConnection(object):
 
         :param dict jd: JSON.
         :param dict headers: The headers for the post request.
-        :param: str route: The route to append to the endpoint, e.g. "/job"
+        :param str route: The route to append to the endpoint, e.g. "/job"
         :return: A non-error response.
         """
         if headers is None:
@@ -256,8 +256,7 @@ class JobConnection(object):
         """
         Query the QVM version.
 
-        :return: The current version of the QVM.
-        :rtype: string
+        :return: None
         """
         raise DeprecationWarning("Version checks have been deprecated.")
 
@@ -294,9 +293,9 @@ class JobConnection(object):
         if classical_addresses is None:
             classical_addresses = []
 
-        if not isinstance(quil_program, pq.Program):
+        if not isinstance(quil_program, Program):
             raise TypeError("quil_program must be a Quil program object")
-        _validate_run_items(classical_addresses)
+        validate_run_items(classical_addresses)
 
         payload = {'type': TYPE_WAVEFUNCTION,
                    'quil-instructions': quil_program.out(),
@@ -313,14 +312,14 @@ class JobConnection(object):
         prep_program.
 
         :param Program prep_prog: Quil program for state preparation.
-        :param list operators: A list of PauliTerms. Default is Identity operator.
+        :param list operator_programs: A list of PauliTerms. Default is Identity operator.
         :returns: Expectation value of the operators.
         :rtype: float
         """
         if operator_programs is None:
-            operator_programs = [pq.Program()]
+            operator_programs = [Program()]
 
-        if not isinstance(prep_prog, pq.Program):
+        if not isinstance(prep_prog, Program):
             raise TypeError("prep_prog variable must be a Quil program object")
 
         payload = {'type': TYPE_EXPECTATION,
@@ -354,9 +353,9 @@ class JobConnection(object):
                  in `classical_addresses`.
         :rtype: list
         """
-        if not isinstance(quil_program, pq.Program):
+        if not isinstance(quil_program, Program):
             raise TypeError("quil_program must be a Quil program object")
-        _validate_run_items(classical_addresses)
+        validate_run_items(classical_addresses)
         if not isinstance(trials, integer_types):
             raise TypeError("trials must be an integer")
 
@@ -381,9 +380,9 @@ class JobConnection(object):
         :return: A list of a list of bits.
         :rtype: list
         """
-        if not isinstance(quil_program, pq.Program):
+        if not isinstance(quil_program, Program):
             raise TypeError("quil_program must be a Quil program object")
-        _validate_run_items(qubits)
+        validate_run_items(qubits)
         if not isinstance(trials, integer_types):
             raise TypeError("trials must be an integer")
 

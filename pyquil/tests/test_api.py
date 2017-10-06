@@ -16,14 +16,15 @@
 ##############################################################################
 
 
-import pytest
-import json
 from mock import Mock
+import json
 import numpy as np
+import pytest
 
-import pyquil.api as qvm
-import pyquil.quil as pq
-from pyquil.gates import *
+from pyquil.api import (add_noise_to_payload, add_rng_seed_to_payload, SyncConnection,
+                        _validate_noise_probabilities, validate_run_items)
+from pyquil.quil import Program
+from pyquil.gates import CNOT, H, MEASURE
 
 
 class MockPostJson(object):
@@ -37,9 +38,9 @@ class MockPostJson(object):
 
 @pytest.fixture
 def cxn():
-    c = qvm.SyncConnection()
+    c = SyncConnection()
     c.post_json = MockPostJson()
-    c.post_json.return_value.text = json.dumps("Success")
+    c.post_json.return_value.text = json.dumps('Success')
     c.measurement_noise = 1
     return c
 
@@ -58,14 +59,14 @@ def cxn_wf(cxn):
 
 @pytest.fixture
 def prog():
-    p = pq.Program()
+    p = Program()
     p.inst(H(0), CNOT(0, 1), MEASURE(0, 0), MEASURE(1, 1))
     return p
 
 
 @pytest.fixture
 def prog_wf():
-    p = pq.Program()
+    p = Program()
     p.inst(H(0)).inst(CNOT(0, 1)).measure(0, 0)
     p.inst(H(0))
     return p
@@ -73,57 +74,57 @@ def prog_wf():
 
 def test_add_rng_seed_to_payload():
     payload = {}
-    qvm.add_rng_seed_to_payload(payload, 1)
+    add_rng_seed_to_payload(payload, 1)
     assert payload['rng-seed'] == 1
 
 
 def test_dont_add_rng_seed_to_payload():
     payload = {}
-    qvm.add_rng_seed_to_payload(payload, None)
+    add_rng_seed_to_payload(payload, None)
     assert 'rng-seed' not in payload
 
 
 def test_add_noise_to_payload():
     payload = {}
-    qvm.add_noise_to_payload(payload, 1, None)
-    assert payload["gate-noise"] == 1
-    assert "measurement-noise" not in payload
+    add_noise_to_payload(payload, 1, None)
+    assert payload['gate-noise'] == 1
+    assert 'measurement-noise' not in payload
 
 
 def test_validate_noise_probabilities():
     with pytest.raises(TypeError):
-        qvm._validate_noise_probabilities(1)
+        _validate_noise_probabilities(1)
     with pytest.raises(TypeError):
-        qvm._validate_noise_probabilities(['a', 'b', 'c'])
+        _validate_noise_probabilities(['a', 'b', 'c'])
     with pytest.raises(ValueError):
-        qvm._validate_noise_probabilities([0.0, 0.0, 0.0, 0.0])
+        _validate_noise_probabilities([0.0, 0.0, 0.0, 0.0])
     with pytest.raises(ValueError):
-        qvm._validate_noise_probabilities([0.5, 0.5, 0.5])
+        _validate_noise_probabilities([0.5, 0.5, 0.5])
     with pytest.raises(ValueError):
-        qvm._validate_noise_probabilities([-0.5, -0.5, -0.5])
+        _validate_noise_probabilities([-0.5, -0.5, -0.5])
 
 
 def test_validate_run_items():
     with pytest.raises(TypeError):
-        qvm._validate_run_items(-1, 1)
+        validate_run_items(-1, 1)
     with pytest.raises(TypeError):
-        qvm._validate_run_items(["a", 0], 1)
+        validate_run_items(['a', 0], 1)
 
 
 def test_run(cxn, prog):
     with pytest.raises(TypeError):
-        cxn.run(prog, [0, 1], "a")
-    assert cxn.run(prog, [0, 1], 1) == "Success"
+        cxn.run(prog, [0, 1], 'a')
+    assert cxn.run(prog, [0, 1], 1) == 'Success'
 
 
 def test_run_and_measure(cxn, prog):
     with pytest.raises(TypeError):
-        cxn.run_and_measure(prog, [0, 1], "a")
-    assert cxn.run_and_measure(prog, [0, 1], 1) == "Success"
+        cxn.run_and_measure(prog, [0, 1], 'a')
+    assert cxn.run_and_measure(prog, [0, 1], 1) == 'Success'
 
 
 def test_expectation(cxn, prog):
-    assert cxn.expectation(prog) == "Success"
+    assert cxn.expectation(prog) == 'Success'
 
 
 def test_wavefunction(cxn_wf, prog_wf):

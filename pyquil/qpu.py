@@ -1,9 +1,30 @@
+#!/usr/bin/python
+##############################################################################
+# Copyright 2016-2017 Rigetti Computing
+#
+#    Licensed under the Apache License, Version 2.0 (the "License");
+#    you may not use this file except in compliance with the License.
+#    You may obtain a copy of the License at
+#
+#        http://www.apache.org/licenses/LICENSE-2.0
+#
+#    Unless required by applicable law or agreed to in writing, software
+#    distributed under the License is distributed on an "AS IS" BASIS,
+#    WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+#    See the License for the specific language governing permissions and
+#    limitations under the License.
+##############################################################################
+"""
+Module for facilitating connections to the QPU.
+"""
+
 import requests
 
-from pyquil.api import JobConnection, _validate_run_items
-import pyquil.quil as pq
+from pyquil.api import JobConnection, TYPE_MULTISHOT, TYPE_MULTISHOT_MEASURE, validate_run_items
 from pyquil.job_results import RamseyResult, RabiResult, T1Result
-ENDPOINT = "https://job.rigetti.com/beta"
+from pyquil.quil import Program
+
+ENDPOINT = 'https://job.rigetti.com/beta'
 
 
 class NoParametersFoundException(Exception):
@@ -13,9 +34,12 @@ class NoParametersFoundException(Exception):
 class QPUConnection(JobConnection):
 
     def __init__(self, device_name, **kwargs):
+        """
+        :param str device_name: Unique identifier of the device in question
+        """
         super(QPUConnection, self).__init__(**kwargs)
         self.device_name = device_name
-        self.machine = "QPU"
+        self.machine = 'QPU'
         self.session.headers = self.headers
         self.endpoint = ENDPOINT
 
@@ -30,9 +54,9 @@ class QPUConnection(JobConnection):
 
     def rabi(self, qubit_id):
         """
-        Runs a Rabi experiment on the given qubit
+        Runs a Rabi experiment on the given qubit.
 
-        :param int qubit_id:
+        :param int qubit_id: Unique identifier of the qubit in question
         :return: A RabiResult object
         """
         payload = self.get_rabi_params(qubit_id)
@@ -47,11 +71,11 @@ class QPUConnection(JobConnection):
 
     def ramsey(self, qubit_id):
         """
-         Runs a Ramsey experiment on the given qubit
+        Runs a Ramsey experiment on the given qubit.
 
-         :param int qubit_id:
-         :return: A RamseyResult object
-         """
+        :param int qubit_id: Unique identifier of the qubit in question
+        :return: A RamseyResult object
+        """
         payload = self.get_ramsey_params(qubit_id)
         payload.update({
             'type': 'pyquillow',
@@ -64,11 +88,11 @@ class QPUConnection(JobConnection):
 
     def t1(self, qubit_id):
         """
-         Runs a T1 experiment on the given qubit
+        Runs a T1 experiment on the given qubit.
 
-         :param int qubit_id:
-         :return: A T1Result object
-         """
+        :param int qubit_id: Unique identifier of the qubit in question
+        :return: A T1Result object
+        """
         payload = self.get_t1_params(qubit_id)
         payload.update({
             'type': 'pyquillow',
@@ -84,24 +108,24 @@ class QPUConnection(JobConnection):
 
     def run(self, quil_program, classical_addresses, trials=1):
         """
-        Run a pyQuil program on the QPU.
+        Run a pyQuil program on the QPU. This functionality is in beta.
 
-        :param Program quil_program: Quil program
-        :param list classical_addresses: Unused
-        :param int trials: Unused
+        :param Program quil_program: Quil program to run on the QPU
+        :param list classical_addresses: Currently unused
+        :param int trials: Number of shots to take
         :return: A job result
         :rtype: JobResult
         """
-        if not isinstance(quil_program, pq.Program):
-            raise TypeError("quil_program must be a Quil program object")
-        _validate_run_items(classical_addresses)
+        if not isinstance(quil_program, Program):
+            raise TypeError('quil_program must be a Quil program object')
+        validate_run_items(classical_addresses)
         if not isinstance(trials, int):
-            raise TypeError("trials must be an integer")
+            raise TypeError('trials must be an integer')
 
-        payload = {"type": 'multishot',
-                   "addresses": classical_addresses,
-                   "trials": trials,
-                   "quil-instructions": quil_program.out(),
+        payload = {'type': TYPE_MULTISHOT,
+                   'addresses': classical_addresses,
+                   'trials': trials,
+                   'quil-instructions': quil_program.out(),
                    'device_id': self.device_name,
                    'qcid': 0,
                    'experiment': 'quil'}
@@ -112,7 +136,7 @@ class QPUConnection(JobConnection):
     def run_and_measure(self, quil_program, qubits, trials=1):
         return NotImplementedError
 
-    def expectation(self, prep_prog, operator_programs=[pq.Program()]):
+    def expectation(self, prep_prog, operator_programs=[Program()]):
         return NotImplementedError
 
     def bit_string_probabilities(self, quil_program):
@@ -121,13 +145,15 @@ class QPUConnection(JobConnection):
     def get_info(self):
         """
         Gets information about what devices are currently available through the Forest API.
+
         :return: A JSON dictionary with configuration information.
+        :rtype: dict
         """
-        url = self.endpoint + "/config"
+        url = self.endpoint + '/config'
         headers = {
-                'Content-Type' : 'application/json; charset=utf-8',
-                'x-api-key' : self.api_key,
-                'x-user-id' : self.user_id,
+                'Content-Type': 'application/json; charset=utf-8',
+                'x-api-key': self.api_key,
+                'x-user-id': self.user_id,
         }
         res = requests.get(url, headers=headers)
         config_json = res.json()
@@ -136,16 +162,18 @@ class QPUConnection(JobConnection):
     def get_params(self, qcid, func):
         """
         Get and parse the configuration information from the Forest API.
-        :param int qcid: The qubit number to look at
+
+        :param int qcid: Unique identifier of the qubit in question
         :param func: A function to apply to the qubit specific JSON dictionary of config info
-        :return:
+        :return: A dictionary with the parameter info
+        :rtype: dict
         """
         config_dict = self.get_info()
         try:
-            device_config = [dd for dd in config_dict['devices'] if dd['name'] == self.device_name][0]
+            device_config = [d for d in config_dict['devices'] if d['name'] == self.device_name][0]
             device_config = device_config['qubits']
         except (KeyError, IndexError):
-            raise NoParametersFoundException("Device with name {} not found.".format(self.device_name))
+            raise NoParametersFoundException('Device {} not found.'.format(self.device_name))
         for qc in device_config:
             if qc['num'] == qcid:
                 return func(qc)
@@ -153,8 +181,9 @@ class QPUConnection(JobConnection):
 
     def get_rabi_params(self, qcid):
         """
-        Gets the current Rabi experiment parameters for a specific qubit on a specific device
-        :param int qcid:
+        Gets the current Rabi experiment parameters for a specific qubit on a specific device.
+
+        :param int qcid: Unique identifier of the qubit in question
         :return: A dictionary with the parameter info
         :rtype: dict
         """
@@ -170,8 +199,9 @@ class QPUConnection(JobConnection):
 
     def get_ramsey_params(self, qcid):
         """
-        Gets the current Ramsey experiment parameters for a specific qubit on a specific device
-        :param int qcid:
+        Gets the current Ramsey experiment parameters for a specific qubit on a specific device.
+
+        :param int qcid: Unique identifier of the qubit in question
         :return: A dictionary with the parameter info
         :rtype: dict
         """
@@ -187,8 +217,9 @@ class QPUConnection(JobConnection):
 
     def get_t1_params(self, qcid):
         """
-        Gets the current T1 experiment parameters for a specific qubit on a specific device
-        :param int qcid:
+        Gets the current T1 experiment parameters for a specific qubit on a specific device.
+
+        :param int qcid: Unique identifier of the qubit in question
         :return: A dictionary with the parameter info
         :rtype: dict
         """
