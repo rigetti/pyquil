@@ -293,9 +293,13 @@ class PauliTerm(object):
 
 
 # For convenience, a shorthand for several operators.
-ID = PauliTerm("I", 0)
+ID = PauliTerm("I", 0, 1)
 """
-The identity Pauli operator on the 0th qubit.
+The identity Pauli Term.
+"""
+ZERO = PauliTerm("I", 0, 0)
+"""
+The zero Pauli Term.
 """
 sI = lambda q: PauliTerm("I", q)
 """
@@ -374,7 +378,7 @@ class PauliSum(object):
         if not isinstance(other, (PauliTerm, PauliSum)):
             raise TypeError("Can't compare PauliSum with object of type {}.".format(type(other)))
         elif isinstance(other, PauliTerm):
-            return self == PauliSum(other)
+            return self == PauliSum([other])
         elif len(self.terms) != len(other.terms):
             warnings.warn(UnequalLengthWarning("These PauliSums have a different number of terms."))
             return False

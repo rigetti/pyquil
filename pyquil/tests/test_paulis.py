@@ -18,7 +18,7 @@
 import pytest
 from pyquil.paulis import (PauliTerm, PauliSum, exponential_map, ID, UnequalLengthWarning,
                            exponentiate, trotterize, is_zero, check_commutation, 
-                           commuting_sets, term_with_coeff, sI, sX, sY, sZ)
+                           commuting_sets, term_with_coeff, sI, sX, sY, sZ, ZERO)
 from pyquil.quil import Program
 from pyquil.gates import RX, RZ, CNOT, H, X, PHASE
 
@@ -526,6 +526,8 @@ def test_term_equality():
         sI(0) != 0
     assert sI(0) == sI(0)
     assert PauliTerm('X', 10, 1+1.j) == PauliTerm('X', 10, 1+1.j)
+    assert PauliTerm('X', 10, 1 + 1.j) + PauliTerm('X', 10, 1 + 1.j) != PauliTerm('X', 10, 1 + 1.j)
+    assert PauliTerm('X', 10, 1 + 1.j) != PauliTerm('X', 10, 1 + 1.j) + PauliTerm('X', 10, 1 + 1.j)
 
 
 def test_term_with_coeff():
@@ -548,6 +550,18 @@ def test_sum_equality():
     with pytest.raises(TypeError):
         assert pauli_sum != 0
 
+
+def test_zero_term():
+    qubit_id = 0
+    coefficient = 10
+    ps = sI(qubit_id) + sX(qubit_id)
+    assert coefficient * ZERO == ZERO
+    assert ZERO * coefficient == ZERO
+    assert ZERO * ID == ZERO
+    assert ZERO + ID == ID
+    assert ZERO + ps == ps
+    assert ps + ZERO == ps
+    
 
 def test_from_list():
     terms_list = [("X", 0), ("Y", 1), ("Z", 5)]
