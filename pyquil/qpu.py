@@ -132,7 +132,30 @@ class QPUConnection(JobConnection):
         return self.process_response(res)
 
     def run_and_measure(self, quil_program, qubits, trials=1):
-        return NotImplementedError
+        """
+        Run a pyQuil program on the QPU multiple times, measuring all the qubits in the QPU
+        simultaneously at the end of the program each time. This functionality is in beta.
+
+        :param Program quil_program: Quil program to run on the QPU
+        :param list qubits: The list of qubits to return results for
+        :param int trials: Number of shots to take
+        :return: A job result
+        :rtype: JobResult
+        """
+        if not isinstance(quil_program, Program):
+            raise TypeError('quil_program must be a Quil program object')
+        validate_run_items(qubits)
+        if not isinstance(trials, int):
+            raise TypeError('trials must be an integer')
+
+        payload = {'type': TYPE_MULTISHOT_MEASURE,
+                   'qubits': qubits,
+                   'trials': trials,
+                   'quil-instructions': quil_program.out(),
+                   'device_id': self.device_name}
+
+        res = self.post_job(payload, headers=self.json_headers)
+        return self.process_response(res)
 
     def expectation(self, prep_prog, operator_programs=[Program()]):
         return NotImplementedError
