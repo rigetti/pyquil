@@ -72,7 +72,10 @@ class JobResult(object):
         Decodes the result of the job.
         :return: Depends on the type of job. A JSON object.
         """
-        return json.loads(self.result['result'])
+        outcome = self.result['result']
+        if isinstance(outcome, basestring):
+            return json.loads(self.result['result'])
+        return outcome
 
     def __str__(self):
         return str(self.result)
