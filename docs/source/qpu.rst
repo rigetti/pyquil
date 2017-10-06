@@ -1,6 +1,6 @@
 
-Quantum Processor Unit
-======================
+Quantum Processing Unit
+=======================
 pyQuil allows some basic single-qubit experiments to be run on a multi-qubit superconducting quantum
 processor.  These three types of experiments are some of the basic building blocks for calibrating
 qubits.  This documentation will cover the basics of each experiment, as well as show you how to run
@@ -264,6 +264,22 @@ Note: if you are using a python terminal instead of a notebook, then plot using 
 
 From this we can extract that the T2 decoherence for this qubit is about 14.4 microseconds.
 
+Running PyQuil Programs
+-----------------------
+
+Run a pyQuil program on the QPU. Only certain operations are currently supported; please
+contact support@rigetti.com for more information.
+
+::
+
+    from pyquil.quil import Program
+    from pyquil.gates import I, X, Y, Z, H, RX, RY, RZ, CZ
+    pq = Program(H(0), H(1), CZ(0, 1), H(1))
+    qubits = [0, 1]
+    num_shots = 1000
+    quil_res =  qpu.run_and_measure(pq, qubits, num_shots)
+    wait_for_job(quil_res)
+    print quil_res.result['result']
 
 pyquil.qpu
 ----------
