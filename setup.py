@@ -1,4 +1,4 @@
-#!/usr/bin/python
+#!/usr/bin/env python
 ##############################################################################
 # Copyright 2016-2017 Rigetti Computing
 #
@@ -25,7 +25,7 @@ setup(
     author_email="softapps@rigetti.com",
     description="A Python library to generate Quantum Instruction Language (Quil) Programs.",
     url="https://github.com/rigetticomputing/pyquil.git",
-    packages=["pyquil"],
+    package_dir={"pyquil": "pyquil"},
     license="LICENSE",
     install_requires=[
         'requests >= 2.4.2',
