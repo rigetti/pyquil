@@ -14,29 +14,30 @@
 #    limitations under the License.
 ##############################################################################
 
-from os.path import expanduser
-
 import six
+
+from pyquil.config import PyquilConfig
+
 input = six.moves.input
 
 
 def main():
-    print("Welcome to the pyquil config setup!")
+    print("Welcome to PyQuil!")
     print("Enter the required information below for Forest connections.")
+    print("If you haven't signed up yet you will need to do so first at https://forest.rigetti.com")
 
-    endpoint = input("Forest URL (https://api.rigetti.com/qvm): ")
+    endpoint = input("Forest URL (" + PyquilConfig.DEFAULT_ENDPOINT + "): ")
     if len(endpoint) == 0:
-        endpoint = "https://api.rigetti.com/qvm"
+        endpoint = PyquilConfig.DEFAULT_ENDPOINT
     key = input("Forest API Key: ")
     user = input("User ID: ")
 
-    path = expanduser("~/.pyquil_config")
-    with open(path, 'a+') as f:
-        f.seek(0)
-        f.truncate()
-        f.write("[Rigetti Forest]\n")
-        f.write("url: %s\n" % endpoint)
-        f.write("key: %s\n" % key)
-        f.write("user id: %s" % user)
+    path = PyquilConfig.DEFAULT_PYQUIL_CONFIG_PATH
+    with open(path, 'w') as f:
+        f.write("[" + PyquilConfig.SECTION + "]\n")
+        f.write(PyquilConfig.ENDPOINT + ": " + endpoint + "\n")
+        f.write(PyquilConfig.API_KEY + ": " + key + "\n")
+        f.write(PyquilConfig.USER_ID + ": " + user + "\n")
 
-    print("File created at '%s'" % path)
+    print("Pyquil config file created at '%s'" % path)
+    print("If you experience any problems see the guide at https://go.rigetti.com/getting-started")

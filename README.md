@@ -32,28 +32,26 @@ programs (e.g., to get wavefunctions, get multishot experiment data), you will n
 for [Rigetti Forest](http://forest.rigetti.com). This will allow you to run your programs on the
 Rigetti Quantum Virtual Machine (QVM) or on a real quantum processor (QPU).
 
-Once you have your key, you need to set up configuration in the file `.pyquil_config` which
-pyQuil will attempt to find in your home directory by default. (You can change this location by setting the
-environment variable `PYQUIL_CONFIG` to the path of the file.) Loading the `pyquil.api` module
-will print a warning if this is not found. The configuration file is in INI format and should
-contain all the information required to connect to Forest:
-
-```ini
-[Rigetti Forest]
-url: <URL to Rigetti Forest or QVM endpoint>
-key: <Rigetti Forest API key>
-user_id: <Rigetti Forest User ID>
-```
-
-If `url` is not specified, it will default to `https://api.rigetti.com/qvm`.
-
-Alternatively, you may create the `.pyquil_config` automatically by running the following command,
-which will prompt you for the required information (URL, key, and user id). The script will then create
-a file in the proper location (the user's root directory):
-
+Once you have your key, run the following command to automatically set up your config:
 ```
 pyquil-config-setup
 ```
+
+You can also create the configuration file manually if you'd like and place it at `~/.pyquil_config`.
+The configuration file is in INI format and should contain all the information required to connect to Forest:
+
+```
+[Rigetti Forest]
+url: <URL to Rigetti Forest or QVM endpoint>
+key: <Rigetti Forest API key>
+user_id: <Rigetti User ID>
+```
+
+If `url` is not specified, it will default to `https://api.rigetti.com/qvm`.
+You can change the location of this file by setting the `PYQUIL_CONFIG` environment variable.
+
+If you encounter errors or warnings trying to connect to Forest then see the full
+[Getting Started Guide](https://go.rigetti.com/getting-started)
 
 ## Examples using the Rigetti QVM
 

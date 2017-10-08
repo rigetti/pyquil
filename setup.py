@@ -40,7 +40,7 @@ setup(
     ],
     test_suite='pyquil.tests',
     entry_points={
-        'console_scripts': ['pyquil-config-setup=pyquil.setup.config:main']
+        'console_scripts': ['pyquil-config-setup=pyquil.setup.pyquil_config_setup:main']
     },
     keywords='quantum quil programming hybrid'
 )

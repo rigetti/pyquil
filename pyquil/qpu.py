@@ -1,8 +1,6 @@
-from copy import deepcopy
-import json
 import requests
 
-from pyquil.api import JobConnection, USER_ID, API_KEY, _validate_run_items
+from pyquil.api import JobConnection, _validate_run_items
 import pyquil.quil as pq
 from pyquil.job_results import RamseyResult, RabiResult, T1Result
 ENDPOINT = "https://job.rigetti.com/beta"
@@ -14,11 +12,11 @@ class NoParametersFoundException(Exception):
 
 class QPUConnection(JobConnection):
 
-    def __init__(self, device_name, *args):
-        super(QPUConnection, self).__init__(*args)
+    def __init__(self, device_name, **kwargs):
+        super(QPUConnection, self).__init__(**kwargs)
         self.device_name = device_name
         self.machine = "QPU"
-        self.session.headers = self.json_headers
+        self.session.headers = self.headers
         self.endpoint = ENDPOINT
 
     def get_qubits(self):
@@ -26,7 +24,7 @@ class QPUConnection(JobConnection):
         :return: A list of active qubit ids on this device.
         :rtype: list
         """
-        config_dict = get_info()
+        config_dict = self.get_info()
         device_config = config_dict[self.device_name]
         return [qq['num'] for qq in device_config['qubits']]
 
@@ -37,7 +35,7 @@ class QPUConnection(JobConnection):
         :param int qubit_id:
         :return: A RabiResult object
         """
-        payload = get_rabi_params(self.device_name, qubit_id)
+        payload = self.get_rabi_params(qubit_id)
         payload.update({
             'type': 'pyquillow',
             'experiment': 'rabi',
@@ -54,7 +52,7 @@ class QPUConnection(JobConnection):
          :param int qubit_id:
          :return: A RamseyResult object
          """
-        payload = get_ramsey_params(self.device_name, qubit_id)
+        payload = self.get_ramsey_params(qubit_id)
         payload.update({
             'type': 'pyquillow',
             'experiment': 'ramsey',
@@ -71,7 +69,7 @@ class QPUConnection(JobConnection):
          :param int qubit_id:
          :return: A T1Result object
          """
-        payload = get_t1_params(self.device_name, qubit_id)
+        payload = self.get_t1_params(qubit_id)
         payload.update({
             'type': 'pyquillow',
             'experiment': 't1',
@@ -108,7 +106,7 @@ class QPUConnection(JobConnection):
                    'qcid': 0,
                    'experiment': 'quil'}
 
-        res = self.post_job(payload, headers=self.json_headers)
+        res = self.post_job(payload, headers=self.headers)
         return self.process_response(res)
 
     def run_and_measure(self, quil_program, qubits, trials=1):
@@ -120,94 +118,85 @@ class QPUConnection(JobConnection):
     def bit_string_probabilities(self, quil_program):
         return NotImplementedError
 
-
-def get_info():
-    """
-    Gets information about what devices are currently available through the Forest API.
-    :return: A JSON dictionary with configuration information.
-    """
-    url = ENDPOINT + "/config"
-    headers = {
-            'Content-Type' : 'application/json; charset=utf-8',
-            'x-api-key' : API_KEY,
-            'x-user-id' : USER_ID,
-    }
-    res = requests.get(url, headers=headers)
-    config_json = res.json()
-    return config_json
-
-
-def get_params(device_name, qcid, func):
-    """
-    Get and parse the configuration information from the Forest API.
-    :param str device_name: The device to get info for
-    :param int qcid: The qubit number to look at
-    :param func: A function to apply to the qubit specific JSON dictionary of config info
-    :return:
-    """
-    config_dict = get_info()
-    try:
-        device_config = [dd for dd in config_dict['devices'] if dd['name'] == device_name][0]
-        device_config = device_config['qubits']
-    except (KeyError, IndexError):
-        raise NoParametersFoundException("Device with name {} not found.".format(device_name))
-    for qc in device_config:
-        if qc['num'] == qcid:
-            return func(qc)
-    raise NoParametersFoundException
-
-
-def get_rabi_params(device_name, qcid):
-    """
-    Gets the current Rabi experiment parameters for a specific qubit on a specific device
-    :param str device_name:
-    :param int qcid:
-    :return: A dictionary with the parameter info
-    :rtype: dict
-    """
-    def rabi_parse(qc):
-        rabi_params = qc['rabi_params']
-        return {
-            'start': rabi_params['start'],
-            'stop': rabi_params['stop'],
-            'step': rabi_params['step'],
-            'time': rabi_params['time'],
+    def get_info(self):
+        """
+        Gets information about what devices are currently available through the Forest API.
+        :return: A JSON dictionary with configuration information.
+        """
+        url = self.endpoint + "/config"
+        headers = {
+                'Content-Type' : 'application/json; charset=utf-8',
+                'x-api-key' : self.api_key,
+                'x-user-id' : self.user_id,
         }
-    return get_params(device_name, qcid, rabi_parse)
+        res = requests.get(url, headers=headers)
+        config_json = res.json()
+        return config_json
 
+    def get_params(self, qcid, func):
+        """
+        Get and parse the configuration information from the Forest API.
+        :param int qcid: The qubit number to look at
+        :param func: A function to apply to the qubit specific JSON dictionary of config info
+        :return:
+        """
+        config_dict = self.get_info()
+        try:
+            device_config = [dd for dd in config_dict['devices'] if dd['name'] == self.device_name][0]
+            device_config = device_config['qubits']
+        except (KeyError, IndexError):
+            raise NoParametersFoundException("Device with name {} not found.".format(self.device_name))
+        for qc in device_config:
+            if qc['num'] == qcid:
+                return func(qc)
+        raise NoParametersFoundException
 
-def get_ramsey_params(device_name, qcid):
-    """
-    Gets the current Ramsey experiment parameters for a specific qubit on a specific device
-    :param str device_name:
-    :param int qcid:
-    :return: A dictionary with the parameter info
-    :rtype: dict
-    """
-    def ramsey_parse(qc):
-        ramsey_params = qc['ramsey_params']
-        return {
-            'start': ramsey_params['start'],
-            'stop': ramsey_params['stop'],
-            'step': ramsey_params['step'],
-            'detuning': ramsey_params['detuning'],
-        }
-    return get_params(device_name, qcid, ramsey_parse)
+    def get_rabi_params(self, qcid):
+        """
+        Gets the current Rabi experiment parameters for a specific qubit on a specific device
+        :param int qcid:
+        :return: A dictionary with the parameter info
+        :rtype: dict
+        """
+        def rabi_parse(qc):
+            rabi_params = qc['rabi_params']
+            return {
+                'start': rabi_params['start'],
+                'stop': rabi_params['stop'],
+                'step': rabi_params['step'],
+                'time': rabi_params['time'],
+            }
+        return self.get_params(qcid, rabi_parse)
 
+    def get_ramsey_params(self, qcid):
+        """
+        Gets the current Ramsey experiment parameters for a specific qubit on a specific device
+        :param int qcid:
+        :return: A dictionary with the parameter info
+        :rtype: dict
+        """
+        def ramsey_parse(qc):
+            ramsey_params = qc['ramsey_params']
+            return {
+                'start': ramsey_params['start'],
+                'stop': ramsey_params['stop'],
+                'step': ramsey_params['step'],
+                'detuning': ramsey_params['detuning'],
+            }
+        return self.get_params(qcid, ramsey_parse)
 
-def get_t1_params(device_name, qcid):
-    """
-    Gets the current T1 experiment parameters for a specific qubit on a specific device
-    :param str device_name:
-    :param int qcid:
-    :return: A dictionary with the parameter info
-    :rtype: dict
-    """
-    def t1_parse(qc):
-        t1_params = qc['t1_params']
-        return {
-            'start': t1_params['start'],
-            'stop': t1_params['stop'],
-            'num_pts': t1_params['num_pts'],
-        }
-    return get_params(device_name, qcid, t1_parse)
+    def get_t1_params(self, qcid):
+        """
+        Gets the current T1 experiment parameters for a specific qubit on a specific device
+        :param int qcid:
+        :return: A dictionary with the parameter info
+        :rtype: dict
+        """
+        def t1_parse(qc):
+            t1_params = qc['t1_params']
+            return {
+                'start': t1_params['start'],
+                'stop': t1_params['stop'],
+                'num_pts': t1_params['num_pts'],
+            }
+        return self.get_params(qcid, t1_parse)
