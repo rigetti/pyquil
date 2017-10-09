@@ -14,13 +14,15 @@
 #    limitations under the License.
 ##############################################################################
 """
-Contains the base class for Atomic Quil elements.
+Module for parsing Quil programs from text into PyQuil objects
 """
+import sys
+
+if sys.version_info.major == 3:
+    from ._parser.PyQuilListener import run_parser
+else:
+    pass
 
 
-class QuilAtom(object):
-    """
-    Abstract class for atomic elements of Quil.
-    """
-    def __eq__(self, other):
-        return isinstance(other, self.__class__) and self.__dict__ == other.__dict__
+def parse(quil):
+    return run_parser(quil)
