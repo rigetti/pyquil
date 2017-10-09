@@ -42,6 +42,7 @@ setup(
     tests_require=[
         'pytest >= 3.0.0',
         'mock',
+        'typing == 3.6.2',
     ],
     test_suite='pyquil.tests',
     entry_points={
