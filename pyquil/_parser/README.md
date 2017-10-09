@@ -2,8 +2,8 @@
 
 ## Introduction
 
-This package contains a number of items useful for parsing Quil programs, both with or without PyQuil. It uses ANTLR4
-which is a parser generator framework.
+This package contains a number of items useful for parsing Quil programs, both with or without PyQuil. It uses the 
+ANTLR4 parser generator framework.
 
 `Quil.g4` - This is the definitive reference grammar for Quil as described in the Quil paper. It is used to generate
 the Python parser as well as parsers in other programming languages.
@@ -18,3 +18,9 @@ encountering different parts of the AST (gates, expressions, etc). This is the c
 1. Install ANTLR4 and alias it to `antlr4`
 2. cd to this directory
 3. Generate the Python 3 parser code: `antlr4 -Dlanguage=Python3 -o gen Quil.g4` 
+
+## References
+
+Excellent ANTLR tutorial: https://tomassetti.me/antlr-mega-tutorial
+
+ANTLR download: http://www.antlr.org/
