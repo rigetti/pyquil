@@ -46,8 +46,7 @@ DEFGATE HADAMARD:
     1/sqrt(2), -1/sqrt(2)
     """.strip())
 
-    assert sqrt_x.out() == actual[0].out()
-    assert hadamard.out() == actual[1].out()
+    assert actual == [sqrt_x, hadamard]
 
 
 def test_parameters():

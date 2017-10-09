@@ -131,7 +131,6 @@ def _param(param: QuilParser.ParamContext):
 
 
 def _matrix(matrix: QuilParser.MatrixContext):
-    # TODO: Bug in PyQuil: matrices of all integers are invalid
     out = []
     for row in matrix.matrixRow():
         out.append(list(map(_expression, row.expression())))
@@ -193,7 +192,6 @@ def _apply_function(func: QuilParser.FunctionContext, arg):
 
 
 def _number(number: QuilParser.NumberContext):
-    # TODO: Bug in PyQuil: print ints in complex numbers as ints not floats
     if number.realN():
         return _real(number.realN())
     elif number.imaginaryN():
