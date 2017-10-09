@@ -14,6 +14,7 @@
 #    limitations under the License.
 ##############################################################################
 import numpy as np
+import sys
 
 from pyquil.gates import *
 from pyquil.parser import parse
@@ -36,7 +37,7 @@ def test_def_gate():
                                          [0.5 - 0.5j, 0.5 + 0.5j]]))
     hadamard = DefGate("HADAMARD", np.array([[1/np.sqrt(2), 1/np.sqrt(2)],
                                              [1/np.sqrt(2), -1/np.sqrt(2)]]))
-    actual = parse("""
+    defgates = """
 DEFGATE SQRT-X:
     0.5+0.5i, 0.5-0.5i
     0.5-0.5i, 0.5+0.5i
@@ -44,9 +45,9 @@ DEFGATE SQRT-X:
 DEFGATE HADAMARD:
     1/sqrt(2), 1/sqrt(2)
     1/sqrt(2), -1/sqrt(2)
-    """.strip())
+    """.strip()
 
-    assert actual == [sqrt_x, hadamard]
+    _test(defgates, sqrt_x, hadamard)
 
 
 def test_parameters():
@@ -132,4 +133,7 @@ def test_pragma():
 
 
 def _test(quil_string, *instructions):
+    # Currently doesn't support Python 2
+    if sys.version_info.major == 2:
+        return
     assert parse(quil_string) == list(instructions)

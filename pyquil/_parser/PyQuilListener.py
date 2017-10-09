@@ -7,7 +7,6 @@ from pyquil.gates import STANDARD_GATES
 from .gen3.QuilLexer import QuilLexer
 from .gen3.QuilListener import QuilListener
 from .gen3.QuilParser import QuilParser
-from pyquil.quil import Program
 from pyquil.quilbase import Gate, DefGate, Measurement, Addr, JumpTarget, Label, Halt, Jump, JumpWhen, JumpUnless, \
     Reset, Wait, ClassicalTrue, ClassicalFalse, ClassicalNot, ClassicalAnd, ClassicalOr, ClassicalMove, \
     ClassicalExchange, Nop, RawInstr
@@ -15,6 +14,12 @@ from pyquil.resource_manager import DirectQubit
 
 
 def run_parser(quil: str):
+    """
+    Run the ANTLR parser.
+
+    :param str quil: a single or multiline Quil program
+    :return: list of instructions that were parsed
+    """
     input_stream = InputStream(quil)
     lexer = QuilLexer(input_stream)
     stream = CommonTokenStream(lexer)
@@ -29,6 +34,9 @@ def run_parser(quil: str):
 
 
 class PyQuilListener(QuilListener):
+    """
+    Functions are invoked when the parser reaches the various different constructs in Quil.
+    """
     def __init__(self):
         self.result = []
 
@@ -45,19 +53,18 @@ class PyQuilListener(QuilListener):
     def exitGate(self, ctx: QuilParser.GateContext):
         gate_name = ctx.name().getText()
         params = list(map(_param, ctx.param()))
+        qubits = list(map(_qubit, ctx.qubit()))
 
         if gate_name in STANDARD_GATES:
-            qubits = list(map(_qubit, ctx.qubit()))
             if params:
                 self.result.append(STANDARD_GATES[gate_name](*params)(*qubits))
             else:
                 self.result.append(STANDARD_GATES[gate_name](*qubits))
         else:
-            qubits = list(map(_direct_qubit, ctx.qubit()))
             self.result.append(Gate(gate_name, params, qubits))
 
     def exitMeasure(self, ctx: QuilParser.MeasureContext):
-        qubit = _direct_qubit(ctx.qubit())
+        qubit = _qubit(ctx.qubit())
         classical = None
         if ctx.addr():
             classical = _addr(ctx.addr())
@@ -113,11 +120,12 @@ class PyQuilListener(QuilListener):
         self.result.append(RawInstr(ctx.PRAGMA().getText() + ' ' + pragma_names + ' ' + ctx.STRING().getText()))
 
 
+"""
+Helper functions for converting from ANTLR internals to PyQuil objects
+"""
+
+
 def _qubit(qubit: QuilParser.QubitContext):
-    return int(qubit.getText())
-
-
-def _direct_qubit(qubit: QuilParser.QubitContext):
     return DirectQubit(int(qubit.getText()))
 
 
@@ -146,6 +154,9 @@ def _label(label: QuilParser.LabelContext):
 
 
 def _expression(expression):
+    """
+    NB: Order of operations is already dealt with by the grammar. Here we can simply match on the type.
+    """
     if type(expression) is QuilParser.ParenthesisExpContext:
         return _expression(expression.expression())
     elif type(expression) is QuilParser.PowerExpContext:
@@ -172,6 +183,9 @@ def _expression(expression):
 
 
 def _binary_exp(expression, op):
+    """
+    Apply an operator to two expressions. Start by evaluating both sides of the operator.
+    """
     [arg1, arg2] = expression.expression()
     return op(_expression(arg1), _expression(arg2))
 
