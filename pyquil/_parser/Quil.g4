@@ -35,7 +35,7 @@ name                : IDENTIFIER ;
 qubit               : UNSIGNED_INT ;
 
 param               : dynamicParam | expression ;
-dynamicParam        : LBRACKET qubit (MINUS qubit)? RBRACKET ;
+dynamicParam        : LBRACKET UNSIGNED_INT (MINUS UNSIGNED_INT)? RBRACKET ;
 
 // D. Gate Definitions
 
@@ -111,13 +111,16 @@ expression          : LPAREN expression RPAREN                  #parenthesisExp
 function            : SIN | COS | SQRT | EXP | CIS ;
 
 // Numbers
+// We suffix -N onto these names so they don't conflict with already defined Python types
 
 number              : realN | imaginaryN | I ;
 imaginaryN          : realN I ;
 realN               : floatN | intN ;
 
-floatN              : (PLUS | MINUS)? UNSIGNED_FLOAT ;
-intN                : (PLUS | MINUS)? UNSIGNED_INT ;
+floatN              : sign? UNSIGNED_FLOAT ;
+intN                : sign? UNSIGNED_INT ;
+
+sign                : PLUS | MINUS ;
 
 ////////////////////
 // LEXER
@@ -151,6 +154,7 @@ EXCHANGE            : 'EXCHANGE' ;
 
 PI                  : 'pi' ;
 I                   : 'i' ;
+
 SIN                 : 'sin' ;
 COS                 : 'cos' ;
 SQRT                : 'sqrt' ;
@@ -167,16 +171,16 @@ POWER               : '^' ;
 
 // Identifiers
 
-IDENTIFIER          : [A-Za-z] [A-Za-z0-9\-_]* ;
+IDENTIFIER          : [A-Za-z_] [A-Za-z0-9\-_]* ;
 
 // Numbers
 
-UNSIGNED_FLOAT      : UNSIGNED_INT PERIOD UNSIGNED_INT ;
 UNSIGNED_INT        : [0-9]+ ;
+UNSIGNED_FLOAT      : [0-9]+ ('.' [0-9]+)? ('e' [0-9]+)? ;
 
 // String
 
-STRING              : QUOTE ~('\n' | '\r')* QUOTE;
+STRING              : '"' ~('\n' | '\r')* '"';
 
 // Punctuation
 

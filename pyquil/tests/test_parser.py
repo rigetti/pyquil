@@ -69,6 +69,10 @@ def test_expressions():
     _expr("+123.456", 123.456)
     _expr("-123.456", -123.456)
 
+    # Exponential
+    _expr("1e3", 1000.0)
+    _expr("1.5e2", 150.0)
+
     # Complex
     _expr("123.456i", complex(0, 123.456))
     _expr("+123.456i", complex(0, 123.456))

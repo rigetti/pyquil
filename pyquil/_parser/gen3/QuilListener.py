@@ -431,3 +431,12 @@ class QuilListener(ParseTreeListener):
         pass
 
 
+    # Enter a parse tree produced by QuilParser#sign.
+    def enterSign(self, ctx:QuilParser.SignContext):
+        pass
+
+    # Exit a parse tree produced by QuilParser#sign.
+    def exitSign(self, ctx:QuilParser.SignContext):
+        pass
+
+
