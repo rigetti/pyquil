@@ -14,7 +14,7 @@ Welcome to the Documentation for Forest and pyQuil!
    getting_started
    next_steps
    qvm_overview
-   qpu
+   qpu_overview
    examples
    source_docs
 
