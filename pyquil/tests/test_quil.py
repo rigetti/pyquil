@@ -204,6 +204,7 @@ def test_measurement_calls():
            MEASURE(0, Addr(1)))
     assert p.out() == 'MEASURE 0 [1]\n' * 2
 
+
 def test_measure_all():
     p = Program()
     p.measure_all((0, 0), (1, 1), (2, 3))
@@ -211,14 +212,15 @@ def test_measure_all():
                       'MEASURE 1 [1]\n' \
                       'MEASURE 2 [3]\n'
 
+
 def test_dagger():
     # these gates are their own inverses
     p = Program().inst(I(0), X(0), Y(0), Z(0),
-                       H(0), CNOT(0,1), CCNOT(0,1,2),
-                       SWAP(0,1), CSWAP(0,1,2))
+                       H(0), CNOT(0, 1), CCNOT(0, 1, 2),
+                       SWAP(0, 1), CSWAP(0, 1, 2))
     assert p.dagger().out() == 'CSWAP 0 1 2\nSWAP 0 1\n' \
-                      'CCNOT 0 1 2\nCNOT 0 1\nH 0\n' \
-                      'Z 0\nY 0\nX 0\nI 0\n'
+        'CCNOT 0 1 2\nCNOT 0 1\nH 0\n' \
+        'Z 0\nY 0\nX 0\nI 0\n'
 
     # these gates require negating a parameter
     p = Program().inst(PHASE(pi, 0), RX(pi, 0), RY(pi, 0),
@@ -242,7 +244,7 @@ def test_dagger():
                                'PHASE(-1.5707963267948966) 0\n'
 
     # must invert defined gates
-    G = np.array([[0, 1], [0+1j, 0]])
+    G = np.array([[0, 1], [0 + 1j, 0]])
     p = Program().defgate("G", G).inst(("G", 0))
     assert p.dagger().out() == 'DEFGATE G-INV:\n' \
                                '    0.0+-0.0i, 0.0-1.0i\n' \
@@ -250,7 +252,7 @@ def test_dagger():
                                'G-INV 0\n'
 
     # can also pass in a list of inverses
-    inv_dict = {"G":"J"}
+    inv_dict = {"G": "J"}
     p = Program().defgate("G", G).inst(("G", 0))
     assert p.dagger(inv_dict=inv_dict).out() == 'J 0\n'
 
@@ -296,19 +298,20 @@ def test_swaps():
 def test_def_gate():
     # First we define the new gate from a matrix
     x_gate_matrix = np.array(([0.0, 1.0], [1.0, 0.0]))
-    sqrt_x = np.array([[ 0.5+0.5j,  0.5-0.5j],
-                       [ 0.5-0.5j,  0.5+0.5j]])
+    sqrt_x = np.array([[0.5 + 0.5j, 0.5 - 0.5j],
+                       [0.5 - 0.5j, 0.5 + 0.5j]])
     p = Program().defgate("SQRT-X", sqrt_x)
 
     # Then we can use the new gate
     p.inst(("SQRT-X", 0))
     assert p.out() == 'DEFGATE SQRT-X:\n    0.5+0.5i, 0.5-0.5i\n    0.5-0.5i, 0.5+0.5i\n\nSQRT-X 0\n'
 
+
 def test_multiqubit_gate():
     # A multi-qubit defgate example
     x_gate_matrix = np.array(([0.0, 1.0], [1.0, 0.0]))
-    sqrt_x = np.array([[ 0.5+0.5j,  0.5-0.5j],
-                       [ 0.5-0.5j,  0.5+0.5j]])
+    sqrt_x = np.array([[0.5 + 0.5j, 0.5 - 0.5j],
+                       [0.5 - 0.5j, 0.5 + 0.5j]])
     x_sqrt_x = np.kron(sqrt_x, x_gate_matrix)
     p = Program().defgate("X-SQRT-X", x_sqrt_x)
 

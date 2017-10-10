@@ -17,7 +17,7 @@
 
 import pytest
 from pyquil.paulis import (PauliTerm, PauliSum, exponential_map, ID, UnequalLengthWarning,
-                           exponentiate, trotterize, is_zero, check_commutation, 
+                           exponentiate, trotterize, is_zero, check_commutation,
                            commuting_sets, term_with_coeff, sI, sX, sY, sZ, ZERO)
 from pyquil.quil import Program
 from pyquil.gates import RX, RZ, CNOT, H, X, PHASE
@@ -113,7 +113,7 @@ def test_simplify_term_xz():
 
 def test_simplify_term_multindex():
     term = PauliTerm('X', 0, coefficient=-0.5) * PauliTerm('Z', 0, coefficient=-1.0) \
-           * PauliTerm('X', 2, 0.5)
+        * PauliTerm('X', 2, 0.5)
     assert term.id() == 'Y0X2'
     assert term.coefficient == -0.25j
 
@@ -138,14 +138,14 @@ def test_copy():
     new_term = new_term * PauliTerm('X', 2, 0.5)
 
     assert term == new_term  # value equality
-    assert not term is new_term  # ref inequality
-    assert not term._ops is new_term._ops
+    assert term is not new_term  # ref inequality
+    assert term._ops is not new_term._ops
 
     term = PauliTerm('X', 0, 0.5) * PauliTerm('X', 1, 0.5)
     new_term = term * PauliTerm('X', 2, 0.5)
     assert term != new_term
-    assert not term is new_term
-    assert not term._ops is new_term._ops
+    assert term is not new_term
+    assert term._ops is not new_term._ops
 
 
 def test_len():
@@ -257,7 +257,7 @@ def test_ps_sub():
 
 def test_zero_terms():
     term = PauliTerm("X", 0, 1.0) + PauliTerm("X", 0, -1.0) + \
-           PauliTerm("Y", 0, 0.5)
+        PauliTerm("Y", 0, 0.5)
     assert str(term) == "(0.5+0j)*Y0"
 
     term = PauliTerm("X", 0, 1.0) + PauliTerm("X", 0, -1.0)
@@ -397,13 +397,13 @@ def test_trotterize():
     compare_progs(prog, result_prog)
 
     # trotter_order 1 steps 2
-    prog  = trotterize(term_one, term_two, trotter_steps=2)
+    prog = trotterize(term_one, term_two, trotter_steps=2)
     result_prog = Program().inst([H(0), RZ(1.0)(0), H(0), RZ(1.0)(0),
                                   H(0), RZ(1.0)(0), H(0), RZ(1.0)(0)])
     compare_progs(prog, result_prog)
 
     # trotter_order 2 steps 1
-    prog  = trotterize(term_one, term_two, trotter_order=2)
+    prog = trotterize(term_one, term_two, trotter_order=2)
     result_prog = Program().inst([H(0), RZ(1.0)(0), H(0), RZ(2.0)(0),
                                   H(0), RZ(1.0)(0), H(0)])
     compare_progs(prog, result_prog)
@@ -449,7 +449,7 @@ def test_check_commutation():
     p_n_group = ("I", "X", "Y", "Z")
     pauli_list = list(product(p_n_group, repeat=3))
     pauli_ops = [list(zip(x, range(3))) for x in pauli_list]
-    pauli_ops_pq = [reduce(mul, (PauliTerm(*x) for x in op) ) for op in pauli_ops]
+    pauli_ops_pq = [reduce(mul, (PauliTerm(*x) for x in op)) for op in pauli_ops]
 
     def commutator(t1, t2):
         return t1 * t2 + -1 * t2 * t1
@@ -525,7 +525,7 @@ def test_term_equality():
     with pytest.raises(TypeError):
         sI(0) != 0
     assert sI(0) == sI(0)
-    assert PauliTerm('X', 10, 1+1.j) == PauliTerm('X', 10, 1+1.j)
+    assert PauliTerm('X', 10, 1 + 1.j) == PauliTerm('X', 10, 1 + 1.j)
     assert PauliTerm('X', 10, 1 + 1.j) + PauliTerm('X', 10, 1 + 1.j) != PauliTerm('X', 10, 1 + 1.j)
     assert PauliTerm('X', 10, 1 + 1.j) != PauliTerm('X', 10, 1 + 1.j) + PauliTerm('X', 10, 1 + 1.j)
 
@@ -561,7 +561,7 @@ def test_zero_term():
     assert ZERO + ID == ID
     assert ZERO + ps == ps
     assert ps + ZERO == ps
-    
+
 
 def test_from_list():
     terms_list = [("X", 0), ("Y", 1), ("Z", 5)]

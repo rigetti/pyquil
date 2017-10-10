@@ -4,6 +4,7 @@ import json
 
 from pyquil.qpu import NoParametersFoundException, QPUConnection
 
+
 @pytest.fixture()
 def sample_config():
     return {'devices': [
@@ -90,7 +91,7 @@ def test_qpu_t1(sample_config):
             qpu.t1(2)
             message = {'machine': 'QPU',
                        'program': {'start': 0.01, 'experiment': 't1', 'type': 'pyquillow',
-                                   'qcid': 2, 'stop': 20, 'num_pts': 25, 'device_id':device_name}}
+                                   'qcid': 2, 'stop': 20, 'num_pts': 25, 'device_id': device_name}}
             # userIds are passed in the message, but shouldn't be tested against
             assert message == anon_message(m_post.call_args[0][0])
 
@@ -106,9 +107,9 @@ def test_get_params(sample_config):
         device_name = "Z12-13-C4a2"
         qpu = QPUConnection(device_name)
         assert qpu.get_rabi_params(2) == {'start': 0.01, 'stop': 20, 'step': 0.2,
-                                                     'time': 160.}
+                                          'time': 160.}
         assert qpu.get_ramsey_params(2) == {'start': 0.01, 'stop': 20, 'step': 0.2,
-                                                       'detuning': 0.5}
+                                            'detuning': 0.5}
         assert qpu.get_t1_params(3) == {'start': 0.01, 'stop': 20, 'num_pts': 25}
 
         getters = [qpu.get_rabi_params, qpu.get_ramsey_params, qpu.get_t1_params]

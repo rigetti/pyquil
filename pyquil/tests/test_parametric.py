@@ -42,20 +42,20 @@ def test_slot_algebra():
     # slot slot algebra
     x._value = 0
     y = Slot(2)
-    expression = x*y
+    expression = x * y
     assert isinstance(expression, Slot)
     assert expression.value() == 0.0
     x._value = 2.0
     assert expression.value() == 4.0
 
     x._value = 4.0
-    expression = x/y
+    expression = x / y
     assert expression.value() == 2.0
-    expression = x/2.0
+    expression = x / 2.0
     assert expression.value() == 2.0
-    expression = y/x
+    expression = y / x
     assert expression.value() == 0.5
-    expression = 2.0/x
+    expression = 2.0 / x
     assert expression.value() == 0.5
 
     expression = x - y
@@ -160,7 +160,7 @@ def test_parametric_arith():
 
 
 def test_exponentiate_paraprog():
-    xterm = PauliTerm("X", 2)*PauliTerm("X", 1)
+    xterm = PauliTerm("X", 2) * PauliTerm("X", 1)
     paraprog = exponential_map(xterm)
     prog = paraprog(1)
     assert prog.out() == "H 1\nH 2\nCNOT 1 2\nRZ(2.0) 2\nCNOT 1 2\nH 1\nH 2\n"

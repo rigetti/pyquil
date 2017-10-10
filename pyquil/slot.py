@@ -17,6 +17,7 @@
 Contains Slot pyQuil placeholders for constructing Quil template programs.
 """
 
+
 class Slot(object):
     """
     A placeholder for a parameter value.

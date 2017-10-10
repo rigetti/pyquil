@@ -23,6 +23,7 @@ from .quil_atom import QuilAtom
 from copy import copy
 from six import integer_types
 
+
 class AbstractQubit(QuilAtom):
     """
     Representation of a qubit.

@@ -37,7 +37,9 @@ def analog_plot(job_result):
 def fn_T1_decay(x, baseline, amplitude, T1):
     return baseline + amplitude * np.exp(-x / T1)
 
+
 MIN_DATA_POINTS = 5
+
 
 class T1DecayModel(Model):
     __doc__ = """Class for T1 decay model"""
@@ -99,6 +101,8 @@ class T1DecayModel(Model):
 ##################################################################
 # T2 Ramsey
 ##################################################################
+
+
 def fn_T2_Ramsey(x, baseline, amplitude, T2, detuning, x0=0.0):
     """Ramsey lineshape.
     """

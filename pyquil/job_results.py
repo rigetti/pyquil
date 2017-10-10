@@ -108,7 +108,7 @@ def recover_complexes(coef_string, classical_addresses):
     # Parse the classical memory
     mem = []
     for i in range(num_memory_octets):
-        octet = struct.unpack('B', coef_string[i:i+1])[0]
+        octet = struct.unpack('B', coef_string[i:i + 1])[0]
         mem.extend(_octet_bits(octet))
 
     mem = mem[0:num_addresses]

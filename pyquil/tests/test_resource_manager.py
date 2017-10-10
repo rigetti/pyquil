@@ -1,6 +1,6 @@
-from pyquil.resource_manager import *
+from pyquil.resource_manager import check_live_qubit, instantiated
 import pyquil.quil as pq
-from pyquil.gates import *
+from pyquil.gates import H, DirectQubit
 import pytest
 
 
@@ -31,8 +31,8 @@ def test_add_resource_managers():
     p, p_qubits = five_qubit_prog()
     q, q_qubits = five_qubit_prog()
     summed_program = p + q
-    assert (set(summed_program.resource_manager.live_qubits)
-            == set.union(set(p_qubits), set(q_qubits)))
+    assert (set(summed_program.resource_manager.live_qubits) ==
+            set.union(set(p_qubits), set(q_qubits)))
 
 
 def test_direct_qubit_comparison():

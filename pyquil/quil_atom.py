@@ -17,6 +17,7 @@
 Contains the base class for Atomic Quil elements.
 """
 
+
 class QuilAtom(object):
     """
     Abstract class for atomic elements of Quil.
