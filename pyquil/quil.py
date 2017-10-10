@@ -184,7 +184,7 @@ class Program(InstructionGroup):
         daggered = Program()
 
         for gate in self.defined_gates:
-            if inv_dict == None or gate.name not in inv_dict:
+            if inv_dict is None or gate.name not in inv_dict:
                 daggered.defgate(gate.name + suffix, gate.matrix.T.conj())
 
         for action in self.actions[::-1]:
@@ -200,7 +200,7 @@ class Program(InstructionGroup):
                     negated_params = list(map(lambda x: -1 * x, gate.parameters))
                     daggered.inst(STANDARD_GATES[gate.operator_name](*(negated_params + gate.arguments)))
             else:
-                if inv_dict == None or gate.operator_name not in inv_dict:
+                if inv_dict is None or gate.operator_name not in inv_dict:
                     gate_inv_name = gate.operator_name + suffix
                 else:
                     gate_inv_name = inv_dict[gate.operator_name]
