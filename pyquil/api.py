@@ -249,7 +249,7 @@ class JobConnection(object):
         :return: Should get "ok" back.
         :rtype: string
         """
-        res = self.session.get(self.endpoint+"/check")
+        res = self.session.get(self.endpoint + "/check")
         return str(json.loads(res.text)["rc"])
 
     def version(self):

@@ -197,8 +197,8 @@ class Program(InstructionGroup):
                 elif gate.operator_name == "ISWAP":
                     daggered.inst(STANDARD_GATES["PSWAP"](pi / 2, *gate.arguments))
                 else:
-                    negated_params = list(map(lambda x : -1*x, gate.parameters))
-                    daggered.inst(STANDARD_GATES[gate.operator_name](*(negated_params+gate.arguments)))
+                    negated_params = list(map(lambda x: -1 * x, gate.parameters))
+                    daggered.inst(STANDARD_GATES[gate.operator_name](*(negated_params + gate.arguments)))
             else:
                 if inv_dict == None or gate.operator_name not in inv_dict:
                     gate_inv_name = gate.operator_name + suffix
@@ -222,6 +222,7 @@ class Program(InstructionGroup):
             s += "\n"
         s += super(Program, self).out()
         return s
+
 
 def merge_programs(prog_list):
     """

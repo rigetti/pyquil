@@ -23,6 +23,7 @@ from .quilbase import (Measurement, Gate, Addr, Wait, Reset, Halt, Nop, Classica
                        ClassicalExchange, DirectQubit, AbstractQubit, issubinstance, unpack_qubit)
 from six import integer_types
 
+
 def unpack_classical_reg(c):
     """
     Get the address for a classical register.
@@ -30,7 +31,7 @@ def unpack_classical_reg(c):
     :param c: A list of length 1 or an int or an Addr.
     :return: The address as an Addr.
     """
-    if not (isinstance(c, integer_types) or isinstance(c,(list, Addr))):
+    if not (isinstance(c, integer_types) or isinstance(c, (list, Addr))):
         raise TypeError("c should be an int or list or Addr")
     if isinstance(c, list) and (len(c) != 1 or not isinstance(c[0], int)):
         raise ValueError("if c is a list, it should be of 1 int")
@@ -49,7 +50,7 @@ def _make_gate(name, num_qubits, num_params=0):
         if len(params) < num_params:
             raise ValueError(
                 "Wrong number of params for {}. {} given, require {}."
-                    .format(name, len(params), num_params)
+                .format(name, len(params), num_params)
             )
         elif len(params) > num_params:
             stray_qubits = params[num_params:]
@@ -60,7 +61,7 @@ def _make_gate(name, num_qubits, num_params=0):
             if len(qubits) != num_qubits:
                 raise ValueError(
                     "Wrong number of qubits for {}. {} given, require {}."
-                        .format(name, len(qubits), num_qubits)
+                    .format(name, len(qubits), num_qubits)
                 )
             return Gate(name, params, [unpack_qubit(q) for q in qubits])
 

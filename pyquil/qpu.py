@@ -171,9 +171,9 @@ class QPUConnection(JobConnection):
         """
         url = self.endpoint + '/config'
         headers = {
-                'Content-Type': 'application/json; charset=utf-8',
-                'x-api-key': self.api_key,
-                'x-user-id': self.user_id,
+            'Content-Type': 'application/json; charset=utf-8',
+            'x-api-key': self.api_key,
+            'x-user-id': self.user_id,
         }
         res = requests.get(url, headers=headers)
         config_json = res.json()

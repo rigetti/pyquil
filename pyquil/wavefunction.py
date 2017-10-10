@@ -79,7 +79,7 @@ class Wavefunction(object):
         for index, amplitude in enumerate(self):
             outcome = get_bitstring_from_index(index, qubit_num)
             amplitude = round(amplitude.real, decimal_digits) + \
-                        round(amplitude.imag, decimal_digits) * 1.j
+                round(amplitude.imag, decimal_digits) * 1.j
             if amplitude != 0.:
                 outcome_dict[outcome] = amplitude
                 pp_string += str(amplitude) + "|{}> + ".format(outcome)

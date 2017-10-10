@@ -191,7 +191,6 @@ class DefGate(AbstractInstruction):
         if not is_unitary:
             raise AssertionError("Matrix must be unitary.")
 
-
     def out(self):
         """
         Prints a readable Quil string representation of this gate.
@@ -673,6 +672,7 @@ class Gate(Instr):
     """
     This is the pyQuil object for a quantum gate instruction.
     """
+
     def __init__(self, name, params, qubits):
         for qubit in qubits:
             check_live_qubit(qubit)
@@ -689,6 +689,7 @@ class Measurement(Instr):
     """
     This is the pyQuil object for a Quil measurement instruction.
     """
+
     def __init__(self, qubit, classical_reg=None):
         check_live_qubit(qubit)
 
