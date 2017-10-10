@@ -85,43 +85,51 @@ pyQuil can be used to build and manipulate Quil programs without restriction. Ho
 programs (e.g., to get wavefunctions, get multishot experiment data), you will need an API key
 for Rigetti Forest. This will allow you to run your programs on the Rigetti QVM or QPU.
 
-Once you have your key, you need to create a configuration file called ``.pyquil_config``
-which pyQuil will attempt to find in your home directory by default. You can change this location by setting the
-environment variable ``PYQUIL_CONFIG`` to the path of the file.
+`Sign up here <http://forest.rigetti.com>`_ to get a Forest API key, it's free and only takes a few seconds.
 
-.. note::
-  When setting the environment variable make sure to use the full path or include the HOME variable.
-  E.g. ``export PYQUIL_CONFIG=$HOME/<CONFIG_NAME>``
+Run the following command to automatically set up the config. This will prompt you for the required information
+(URL, key, and user id). It will then create a file in the proper location (the user's root directory):
 
-Loading the ``pyquil.forest`` module will print a warning if this is not found. The configuration file is in INI format
-and should contain all the information required to connect to Forest:
+::
+
+    pyquil-config-setup
+
+If the setup completed successfully then you can skip to the next section.
+
+You can also create the configuration file manually if you'd like and place it at ``~/.pyquil_config``.
+The configuration file is in INI format and should contain all the information required to connect to Forest:
 
 ::
 
     [Rigetti Forest]
     url: <URL to Rigetti Forest or QVM endpoint>
     key: <Rigetti Forest API key>
+    user_id: <Rigetti User ID>
 
-Look `here <http://forest.rigetti.com>`_ to learn more about the Forest toolkit.
+Alternatively, you can place the file at your own chosen location and then set the ``PYQUIL_CONFIG`` environment
+variable to the path of the file.
 
-If ``url`` is not set, pyQuil will default to looking for a
-local endpoint at ``127.0.0.1:5000``.
+.. note::
+  You may specify an absolute path or use the ~ to indicate your home directory.
+  On Linux, this points to ``/users/username``.
+  On Mac, this points to ``/Users/Username``.
+  On Windows, this points to ``C:\Users\Username``
 
-You may also create the ``.pyquil_config`` automatically by running the following command,
-which will prompt you for the required information (URL, key, and user id). The script will then create
-a file in the proper location (the user's root directory):
+.. note::
+  Windows users may find it easier to name the file ``pyquil.ini`` and open it using notepad. Then, set the
+  ``PYQUIL_CONFIG`` environment variable by opening up a command prompt and running:
+  ``setenv PYQUIL_CONFIG=C:\Users\Username\pyquil.ini``
 
-::
-
-    pyquil-config-setup
-
-Alternatively, connection information can be provided in environment variables.
+As a last resort, connection information can be provided via environment variables.
 
 ::
 
     export QVM_URL=<URL to Rigetti Forest or QVM endpoint>
     export QVM_API_KEY=<Rigetti Forest API key>
     export QVM_USER_ID=<Rigetti User ID>
+
+If you are still seeing errors or warnings then file a bug using
+`Github Issues <https://github.com/rigetticomputing/pyquil/issues>`_.
 
 Endpoints
 +++++++++
@@ -158,7 +166,7 @@ Basic pyQuil Usage
 
 To ensure that your installation is working correctly, try running the
 following Python commands interactively. First, import the ``quil``
-module (which constructs quantum programs) and the ``forest`` module (which
+module (which constructs quantum programs) and the ``api`` module (which
 allows connections to the Rigetti QVM). We will also import some basic
 gates for pyQuil as well as numpy.
 
@@ -970,7 +978,7 @@ to see if the job result is finished.
 
 .. parsed-literal::
 
-    <class 'pyquil.job_results.JobResult'> {u'status': u'Submitted', u'jobId': u'BLSLJCBGNP'}
+    <class 'pyquil.job_results.JobResult'> {u'status': u'QUEUED', u'jobId': u'BLSLJCBGNP'}
 
 `is_done` updates the ``JobResult`` object once, and returns `True` if the job has completed. 
 Once the job is finished, then the results can be retrieved from the JobResult object:

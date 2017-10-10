@@ -20,77 +20,14 @@ Module for facilitating connections to the QVM / QPU.
 from __future__ import print_function
 from urllib3.util.retry import Retry
 from requests.adapters import HTTPAdapter
-from copy import deepcopy
 import requests
 import json
-import os
-import os.path
 import sys
-from six.moves.configparser import ConfigParser, NoOptionError, NoSectionError
-from six.moves import range
 from six import integer_types
 
 import pyquil.quil as pq
+from pyquil.config import PyquilConfig
 from pyquil.job_results import JobResult, WavefunctionResult, recover_complexes
-
-USER_HOMEDIR = os.path.expanduser("~")
-
-PYQUIL_CONFIG_PATH = os.getenv('PYQUIL_CONFIG', os.path.join(USER_HOMEDIR, ".pyquil_config"))
-PYQUIL_CONFIG = ConfigParser()
-
-try:
-    if "~" in PYQUIL_CONFIG_PATH:
-        raise RuntimeError("PYQUIL_CONFIG enviroment variable contains `~`. Use $HOME instead.")
-    if len(PYQUIL_CONFIG.read(PYQUIL_CONFIG_PATH)) == 0:
-        raise RuntimeError("Error locating config file")
-except:
-    print("! WARNING:\n"
-          "!   There was an error reading your pyQuil config file.\n"
-          "!   Make sure you have a .pyquil_config file either in\n"
-          "!   your home directory, or you have the environment\n"
-          "!   variable PYQUIL_CONFIG set to a valid path. You must\n"
-          "!   have permissions to read this file.", file=sys.stderr)
-
-
-def config_value(name, default=None):
-    """
-    Get a config file value for a particular name
-
-    :param name: The key.
-    :param default: A default if it's not found.
-    :return: The value.
-    """
-    SECTION = "Rigetti Forest"
-    try:
-        return PYQUIL_CONFIG.get(SECTION, name)
-    except (NoSectionError, NoOptionError, KeyError):
-        return default
-
-
-def env_or_config(env, name, default=None):
-    """
-    Get the value of the environment variable or config file value.
-    The environment variable takes precedence.
-
-    :param env: The environment variable name.
-    :param name: The config file key.
-    :param default: The default value to use.
-    :return: The value.
-    """
-    env_val = os.getenv(env, None)
-    if env_val is not None:
-        return env_val
-
-    config_val = config_value(name, default=None)
-    if config_val is not None:
-        return config_val
-
-    return default
-
-# Set up the configuration.
-ENDPOINT = env_or_config('QVM_URL', 'url', default='https://api.rigetti.com/qvm')
-API_KEY = env_or_config('QVM_API_KEY', 'key')
-USER_ID = env_or_config("QVM_USER_ID", 'user_id')
 
 
 def add_noise_to_payload(payload, gate_noise, measurement_noise):
@@ -167,15 +104,15 @@ class JobConnection(object):
     #    for people like you to join our team: https://jobs.lever.co/rigetti
     #################################################################################
 
-    def __init__(self, endpoint=ENDPOINT, api_key=API_KEY, user_id=USER_ID, gate_noise=None,
+    def __init__(self, endpoint=None, api_key=None, user_id=None, gate_noise=None,
                  measurement_noise=None, num_retries=3, random_seed=None):
         """
         Constructor for JobConnection. Sets up any necessary security, and establishes the noise
         model to use.
 
-        :param endpoint: The endpoint of the server (default ENDPOINT)
-        :param api_key: The key to the Forest API Gateway (default QVM_API_KEY)
-        :param user_id: Your userid for Forest (default QVM_USER_ID)
+        :param endpoint: The endpoint of the server (default behavior is to read from config file)
+        :param api_key: The key to the Forest API Gateway (default behavior is to read from config file)
+        :param user_id: Your userid for Forest (default behavior is to read from config file)
         :param gate_noise: A list of three numbers [Px, Py, Pz] indicating the probability of an X,
                            Y, or Z gate getting applied to each qubit after a gate application or
                            reset. (default None)
@@ -208,19 +145,15 @@ class JobConnection(object):
         self.session.mount("http://", retry_adapter)
         self.session.mount("https://", retry_adapter)
 
-        self.endpoint = endpoint
-        self.api_key = api_key
-        self.user_id = user_id
-        self.json_headers = None
-        self.text_headers = None
-        if self.api_key or self.user_id:
-            self.json_headers = {
-                'Content-Type': 'application/json; charset=utf-8',
-                'x-api-key': self.api_key,
-                'x-user-id': self.user_id,
-            }
-            self.text_headers = deepcopy(self.json_headers)
-            self.text_headers['Content-Type'] = 'application/text; charset=utf-8'
+        config = PyquilConfig()
+        self.endpoint = endpoint if endpoint else config.endpoint
+        self.api_key = api_key if api_key else config.api_key
+        self.user_id = user_id if user_id else config.user_id
+        self.headers = {
+            'Content-Type': 'application/json; charset=utf-8',
+            'x-api-key': self.api_key,
+            'x-user-id': self.user_id,
+        }
 
         if random_seed is None:
             self.random_seed = None
@@ -241,15 +174,29 @@ class JobConnection(object):
         :return: A non-error response.
         """
         if headers is None:
-            headers = self.json_headers
+            headers = self.headers
         url = self.endpoint + route
         res = self.session.post(url, json=jd, headers=headers)
 
-        # Print some nice info for internal server errors.
-        if res.status_code == 500:
-            print("! Server caught an error. This could be due to a bug in the server\n"
-                  "! or a bug in your code. The server came back with the following\n"
-                  "! information:\n"
+        # Print some nice info for unauthorized/permission errors.
+        if res.status_code == 401 or res.status_code == 403:
+            print("! ERROR:\n"
+                  "!   There was an issue validating your forest account.\n"
+                  "!   Have you run the pyquil-config-setup command yet?\n"
+                  "! The server came back with the following information:\n"
+                  "%s\n%s\n%s" % ("=" * 80, res.text, "=" * 80),
+                  file=sys.stderr)
+            print("! If you suspect this to be a bug in pyQuil or Rigetti Forest,\n"
+                  "! then please describe the problem in a GitHub issue at:\n!\n"
+                  "!      https://github.com/rigetticomputing/pyquil/issues\n",
+                  file=sys.stderr)
+
+        # Print some nice info for invalid input or internal server errors.
+        if res.status_code == 400 or res.status_code >= 500:
+            print("! ERROR:\n"
+                  "!   Server caught an error. This could be due to a bug in the server\n"
+                  "!   or a bug in your code. The server came back with the following\n"
+                  "!   information:\n"
                   "%s\n%s\n%s" % ("=" * 80, res.text, "=" * 80),
                   file=sys.stderr)
             print("! If you suspect this to be a bug in pyQuil or Rigetti Forest,\n"
@@ -271,8 +218,6 @@ class JobConnection(object):
             'machine': self.machine,
             'program': payload,
             'userId': self.user_id,
-            'jobId': '',
-            'results': '',
         }
         return message
 
@@ -293,7 +238,7 @@ class JobConnection(object):
         :return: fills in the result in the JobResult object
         """
         url = self.endpoint + ("/job/%s" % (job_result.job_id()))
-        res = requests.get(url, headers=self.text_headers)
+        res = requests.get(url, headers=self.headers)
         result = res.json()
         return job_result._update(res.ok, result)
 
@@ -315,7 +260,6 @@ class JobConnection(object):
         :rtype: string
         """
         raise DeprecationWarning("Version checks have been deprecated.")
-        return None
 
     def process_response(self, res):
         """
@@ -360,7 +304,7 @@ class JobConnection(object):
         add_noise_to_payload(payload, self.gate_noise, self.measurement_noise)
         add_rng_seed_to_payload(payload, self.random_seed)
 
-        res = self.post_job(payload, headers=self.json_headers)
+        res = self.post_job(payload, headers=self.headers)
         return self.process_wavefunction_response(res, payload)
 
     def expectation(self, prep_prog, operator_programs=None):
@@ -385,7 +329,7 @@ class JobConnection(object):
 
         add_rng_seed_to_payload(payload, self.random_seed)
 
-        res = self.post_job(payload, headers=self.json_headers)
+        res = self.post_job(payload, headers=self.headers)
         return self.process_response(res)
 
     def bit_string_probabilities(self, quil_program):
@@ -424,7 +368,7 @@ class JobConnection(object):
         add_noise_to_payload(payload, self.gate_noise, self.measurement_noise)
         add_rng_seed_to_payload(payload, self.random_seed)
 
-        res = self.post_job(payload, headers=self.json_headers)
+        res = self.post_job(payload, headers=self.headers)
         return self.process_response(res)
 
     def run_and_measure(self, quil_program, qubits, trials=1):
@@ -451,7 +395,7 @@ class JobConnection(object):
         add_noise_to_payload(payload, self.gate_noise, self.measurement_noise)
         add_rng_seed_to_payload(payload, self.random_seed)
 
-        res = self.post_job(payload, headers=self.json_headers)
+        res = self.post_job(payload, headers=self.headers)
         return self.process_response(res)
 
 
