@@ -35,8 +35,8 @@ def test_standard_gates():
 def test_def_gate():
     sqrt_x = DefGate("SQRT-X", np.array([[0.5 + 0.5j, 0.5 - 0.5j],
                                          [0.5 - 0.5j, 0.5 + 0.5j]]))
-    hadamard = DefGate("HADAMARD", np.array([[1/np.sqrt(2), 1/np.sqrt(2)],
-                                             [1/np.sqrt(2), -1/np.sqrt(2)]]))
+    hadamard = DefGate("HADAMARD", np.array([[1 / np.sqrt(2), 1 / np.sqrt(2)],
+                                             [1 / np.sqrt(2), -1 / np.sqrt(2)]]))
     defgates = """
 DEFGATE SQRT-X:
     0.5+0.5i, 0.5-0.5i
