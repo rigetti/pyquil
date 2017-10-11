@@ -153,7 +153,7 @@ class QPUConnection(JobConnection):
                    'quil-instructions': quil_program.out(),
                    'device_id': self.device_name}
 
-        res = self.post_job(payload, headers=self.json_headers)
+        res = self.post_job(payload, headers=self.headers)
         return self.process_response(res)
 
     def expectation(self, prep_prog, operator_programs=[Program()]):
