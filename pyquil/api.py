@@ -279,7 +279,7 @@ class JobConnection(object):
         result = res.json()
         return WavefunctionResult(self, res.ok, result=result, payload=payload)
 
-    def wavefunction(self, quil_program, classical_addresses=None):
+    def wavefunction(self, quil_program, classical_addresses=list()):
         """
         Simulate a Quil program and get the wavefunction back.
 
@@ -290,16 +290,13 @@ class JobConnection(object):
                  to the classical addresses.
         :rtype: tuple
         """
-        if classical_addresses is None:
-            classical_addresses = []
-
         if not isinstance(quil_program, Program):
             raise TypeError("quil_program must be a Quil program object")
         validate_run_items(classical_addresses)
 
         payload = {'type': TYPE_WAVEFUNCTION,
                    'quil-instructions': quil_program.out(),
-                   'addresses': classical_addresses}
+                   'addresses': list(classical_addresses)}
         add_noise_to_payload(payload, self.gate_noise, self.measurement_noise)
         add_rng_seed_to_payload(payload, self.random_seed)
 
