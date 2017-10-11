@@ -401,7 +401,7 @@ class SyncConnection(JobConnection):
     """
 
     def __init__(self, endpoint='https://api.rigetti.com/qvm', **kwargs):
-        super(__class__, self).__init__(endpoint=endpoint, **kwargs)
+        super(self.__class__, self).__init__(endpoint=endpoint, **kwargs)
 
     def ping(self):
         """
