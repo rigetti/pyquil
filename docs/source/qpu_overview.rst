@@ -13,12 +13,6 @@ them using pyQuil.
 
     For QPU plots, please install the lmfit>=0.9.7 package.
 
-Once your API key has been upgraded, update your environment to use the QPU endpoint:
-
-::
-
-    export QVM_URL=https://job.rigetti.com/beta
-
 .. parsed-literal::
 
 Before running any experiments, we need to take a look at what devices are available on the
