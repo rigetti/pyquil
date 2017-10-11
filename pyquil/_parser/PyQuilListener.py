@@ -1,19 +1,27 @@
 import operator
+from typing import Any, List
 
+import sys
 from antlr4 import *
 from numpy.ma import sin, cos, sqrt, exp
 
 from pyquil.gates import STANDARD_GATES
-from .gen3.QuilLexer import QuilLexer
-from .gen3.QuilListener import QuilListener
-from .gen3.QuilParser import QuilParser
 from pyquil.quilbase import Gate, DefGate, Measurement, Addr, JumpTarget, Label, Halt, Jump, JumpWhen, JumpUnless, \
     Reset, Wait, ClassicalTrue, ClassicalFalse, ClassicalNot, ClassicalAnd, ClassicalOr, ClassicalMove, \
     ClassicalExchange, Nop, RawInstr
 from pyquil.resource_manager import DirectQubit
 
+if sys.version_info.major == 2:
+    from .gen2.QuilLexer import QuilLexer
+    from .gen2.QuilListener import QuilListener
+    from .gen2 .QuilParser import QuilParser
+elif sys.version_info.major == 3:
+    from .gen3.QuilLexer import QuilLexer
+    from .gen3.QuilListener import QuilListener
+    from .gen3.QuilParser import QuilParser
 
-def run_parser(quil: str):
+
+def run_parser(quil):
     """
     Run the ANTLR parser.
 
@@ -40,17 +48,20 @@ class PyQuilListener(QuilListener):
     def __init__(self):
         self.result = []
 
-    def exitDefGate(self, ctx: QuilParser.DefGateContext):
+    def exitDefGate(self, ctx):
+        # type: (QuilParser.DefGateContext) -> None
         gate_name = ctx.name().getText()
         if ctx.variable():
             raise NotImplementedError("%variables are not supported yet")
         matrix = _matrix(ctx.matrix())
         self.result.append(DefGate(gate_name, matrix))
 
-    def exitDefCircuit(self, ctx: QuilParser.DefCircuitContext):
+    def exitDefCircuit(self, ctx):
+        # type: (QuilParser.DefCircuitContext) -> None
         raise NotImplementedError("circuits are not supported yet")
 
-    def exitGate(self, ctx: QuilParser.GateContext):
+    def exitGate(self, ctx):
+        # type: (QuilParser.GateContext) -> None
         gate_name = ctx.name().getText()
         params = list(map(_param, ctx.param()))
         qubits = list(map(_qubit, ctx.qubit()))
@@ -63,35 +74,44 @@ class PyQuilListener(QuilListener):
         else:
             self.result.append(Gate(gate_name, params, qubits))
 
-    def exitMeasure(self, ctx: QuilParser.MeasureContext):
+    def exitMeasure(self, ctx):
+        # type: (QuilParser.MeasureContext) -> None
         qubit = _qubit(ctx.qubit())
         classical = None
         if ctx.addr():
             classical = _addr(ctx.addr())
         self.result.append(Measurement(qubit, classical))
 
-    def exitDefLabel(self, ctx: QuilParser.DefLabelContext):
+    def exitDefLabel(self, ctx):
+        # type: (QuilParser.DefLabelContext) -> None
         self.result.append(JumpTarget(_label(ctx.label())))
 
-    def exitHalt(self, ctx: QuilParser.HaltContext):
+    def exitHalt(self, ctx):
+        # type: (QuilParser.HaltContext) -> None
         self.result.append(Halt())
 
-    def exitJump(self, ctx: QuilParser.JumpContext):
+    def exitJump(self, ctx):
+        # type: (QuilParser.JumpContext) -> None
         self.result.append(Jump(_label(ctx.label())))
 
-    def exitJumpWhen(self, ctx: QuilParser.JumpWhenContext):
+    def exitJumpWhen(self, ctx):
+        # type: (QuilParser.JumpWhenContext) -> None
         self.result.append(JumpWhen(_label(ctx.label()), _addr(ctx.addr())))
 
-    def exitJumpUnless(self, ctx: QuilParser.JumpUnlessContext):
+    def exitJumpUnless(self, ctx):
+        # type: (QuilParser.JumpUnlessContext) -> None
         self.result.append(JumpUnless(_label(ctx.label()), _addr(ctx.addr())))
 
-    def exitResetState(self, ctx: QuilParser.ResetStateContext):
+    def exitResetState(self, ctx):
+        # type: (QuilParser.ResetStateContext) -> None
         self.result.append(Reset())
 
-    def exitWait(self, ctx: QuilParser.WaitContext):
+    def exitWait(self, ctx):
+        # type: (QuilParser.WaitContext) -> None
         self.result.append(Wait())
 
-    def exitClassicalUnary(self, ctx: QuilParser.ClassicalUnaryContext):
+    def exitClassicalUnary(self, ctx):
+        # type: (QuilParser.ClassicalUnaryContext) -> None
         if ctx.TRUE():
             self.result.append(ClassicalTrue(_addr(ctx.addr())))
         elif ctx.FALSE():
@@ -99,7 +119,8 @@ class PyQuilListener(QuilListener):
         elif ctx.NOT():
             self.result.append(ClassicalNot(_addr(ctx.addr())))
 
-    def exitClassicalBinary(self, ctx: QuilParser.ClassicalBinaryContext):
+    def exitClassicalBinary(self, ctx):
+        # type: (QuilParser.ClassicalBinaryContext) -> None
         if ctx.AND():
             self.result.append(ClassicalAnd(_addr(ctx.addr(0)), _addr(ctx.addr(1))))
         elif ctx.OR():
@@ -109,13 +130,16 @@ class PyQuilListener(QuilListener):
         elif ctx.EXCHANGE():
             self.result.append(ClassicalExchange(_addr(ctx.addr(0)), _addr(ctx.addr(1))))
 
-    def exitNop(self, ctx: QuilParser.NopContext):
+    def exitNop(self, ctx):
+        # type: (QuilParser.NopContext) -> None
         self.result.append(Nop())
 
-    def exitInclude(self, ctx: QuilParser.IncludeContext):
+    def exitInclude(self, ctx):
+        # type: (QuilParser.IncludeContext) -> None
         self.result.append(RawInstr(ctx.INCLUDE().getText() + ' ' + ctx.STRING().getText()))
 
-    def exitPragma(self, ctx: QuilParser.PragmaContext):
+    def exitPragma(self, ctx):
+        # type: (QuilParser.PragmaContext) -> None
         pragma_names = ' '.join(map(lambda x: x.getText(), ctx.IDENTIFIER()))
         self.result.append(RawInstr(ctx.PRAGMA().getText() + ' ' + pragma_names + ' ' + ctx.STRING().getText()))
 
@@ -125,11 +149,13 @@ Helper functions for converting from ANTLR internals to PyQuil objects
 """
 
 
-def _qubit(qubit: QuilParser.QubitContext):
+def _qubit(qubit):
+    # type: (QuilParser.QubitContext) -> DirectQubit
     return DirectQubit(int(qubit.getText()))
 
 
-def _param(param: QuilParser.ParamContext):
+def _param(param):
+    # type: (QuilParser.ParamContext) -> Any
     if param.dynamicParam():
         raise NotImplementedError("dynamic parameters not supported yet")
     elif param.expression():
@@ -138,45 +164,49 @@ def _param(param: QuilParser.ParamContext):
         raise RuntimeError("Unexpected param: " + str(param))
 
 
-def _matrix(matrix: QuilParser.MatrixContext):
+def _matrix(matrix):
+    # type: (QuilParser.MatrixContext) -> List[List[Any]]
     out = []
     for row in matrix.matrixRow():
         out.append(list(map(_expression, row.expression())))
     return out
 
 
-def _addr(classical: QuilParser.AddrContext):
+def _addr(classical):
+    # type: (QuilParser.AddrContext) -> Addr
     return Addr(int(classical.classicalBit().getText()))
 
 
-def _label(label: QuilParser.LabelContext):
+def _label(label):
+    # type: (QuilParser.LabelContext) -> Label
     return Label(label.IDENTIFIER().getText())
 
 
 def _expression(expression):
+    # type: (QuilParser.ExpressionContext) -> Any
     """
     NB: Order of operations is already dealt with by the grammar. Here we can simply match on the type.
     """
-    if type(expression) is QuilParser.ParenthesisExpContext:
+    if isinstance(expression, QuilParser.ParenthesisExpContext):
         return _expression(expression.expression())
-    elif type(expression) is QuilParser.PowerExpContext:
+    elif isinstance(expression, QuilParser.PowerExpContext):
         if expression.POWER():
             return _binary_exp(expression, operator.pow)
-    elif type(expression) is QuilParser.MulDivExpContext:
+    elif isinstance(expression, QuilParser.MulDivExpContext):
         if expression.TIMES():
             return _binary_exp(expression, operator.mul)
         elif expression.DIVIDE():
             return _binary_exp(expression, operator.truediv)
-    elif type(expression) is QuilParser.AddSubExpContext:
+    elif isinstance(expression, QuilParser.AddSubExpContext):
         if expression.PLUS():
             return _binary_exp(expression, operator.add)
         elif expression.MINUS():
             return _binary_exp(expression, operator.sub)
-    elif type(expression) is QuilParser.FunctionExpContext:
+    elif isinstance(expression, QuilParser.FunctionExpContext):
         return _apply_function(expression.function(), _expression(expression.expression()))
-    elif type(expression) is QuilParser.NumberExpContext:
+    elif isinstance(expression, QuilParser.NumberExpContext):
         return _number(expression.number())
-    elif type(expression) is QuilParser.VariableContext:
+    elif isinstance(expression, QuilParser.VariableContext):
         raise NotImplementedError("%variables are not supported yet")
 
     raise RuntimeError("Unexpected expression type: " + str(expression))
@@ -190,7 +220,8 @@ def _binary_exp(expression, op):
     return op(_expression(arg1), _expression(arg2))
 
 
-def _apply_function(func: QuilParser.FunctionContext, arg):
+def _apply_function(func, arg):
+    # type: (QuilParser.FunctionContext, Any) -> Any
     if func.SIN():
         return sin(arg)
     elif func.COS():
@@ -205,7 +236,8 @@ def _apply_function(func: QuilParser.FunctionContext, arg):
         raise RuntimeError("Unexpected function to apply: " + str(func))
 
 
-def _number(number: QuilParser.NumberContext):
+def _number(number):
+    # type: (QuilParser.NumberContext) -> Any
     if number.realN():
         return _real(number.realN())
     elif number.imaginaryN():
@@ -216,7 +248,8 @@ def _number(number: QuilParser.NumberContext):
         raise RuntimeError("Unexpected number: " + str(number))
 
 
-def _real(real: QuilParser.RealNContext):
+def _real(real):
+    # type: (QuilParser.RealNContext) -> Any
     if real.floatN():
         return float(real.getText())
     elif real.intN():

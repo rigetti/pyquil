@@ -16,12 +16,9 @@
 """
 Module for parsing Quil programs from text into PyQuil objects
 """
-import sys
-
 from pyquil.quil import Program
 
-if sys.version_info.major == 3:
-    from ._parser.PyQuilListener import run_parser
+from ._parser.PyQuilListener import run_parser
 
 
 def parse_program(quil):
@@ -41,6 +38,4 @@ def parse(quil):
     :param str quil: a single or multiline Quil program
     :return: list of instructions
     """
-    if sys.version_info.major == 2:
-        raise NotImplementedError("Parser is not implemented for Python 2 yet")
     return run_parser(quil)
