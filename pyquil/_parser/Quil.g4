@@ -205,3 +205,7 @@ NEWLINE             : ('\r'? '\n' | '\r')+ ;
 
 COMMENT             : '#' ~('\n' | '\r')* -> skip ;
 SPACE               : ' ' -> skip ;
+
+// Error
+
+INVALID             : . ;

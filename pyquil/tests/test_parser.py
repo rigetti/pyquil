@@ -16,6 +16,8 @@
 import numpy as np
 import sys
 
+import pytest
+
 from pyquil.gates import *
 from pyquil.parser import parse
 from pyquil.quilbase import Label, JumpTarget, Jump, JumpWhen, JumpUnless, RawInstr, DefGate
@@ -134,6 +136,12 @@ def test_classical():
 
 def test_pragma():
     _test('PRAGMA gate_time H "10 ns"', RawInstr('PRAGMA gate_time H "10 ns"'))
+
+
+def test_invalid():
+    with pytest.raises(RuntimeError):
+        parse("H X")
+    parse("H X")
 
 
 def _test(quil_string, *instructions):

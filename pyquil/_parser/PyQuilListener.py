@@ -3,6 +3,10 @@ from typing import Any, List
 
 import sys
 from antlr4 import *
+from antlr4.IntervalSet import IntervalSet
+from antlr4.Token import CommonToken
+from antlr4.error.ErrorListener import ErrorListener
+from antlr4.error.Errors import InputMismatchException
 from numpy.ma import sin, cos, sqrt, exp
 
 from pyquil.gates import STANDARD_GATES
@@ -28,17 +32,49 @@ def run_parser(quil):
     :param str quil: a single or multiline Quil program
     :return: list of instructions that were parsed
     """
+    # Step 1: Run the Lexer
     input_stream = InputStream(quil)
     lexer = QuilLexer(input_stream)
     stream = CommonTokenStream(lexer)
+
+    # Step 2: Run the Parser
     parser = QuilParser(stream)
+    parser.removeErrorListeners()
+    parser.addErrorListener(CustomErrorListener())
     tree = parser.quil()
 
+    # Step 3: Run the Listener
     pyquil_listener = PyQuilListener()
     walker = ParseTreeWalker()
     walker.walk(pyquil_listener, tree)
 
     return pyquil_listener.result
+
+
+class CustomErrorListener(ErrorListener):
+    def syntaxError(self, recognizer, offendingSymbol, line, column, msg, e):
+        # type: (QuilParser, CommonToken, int, int, str, InputMismatchException) -> None
+        expected_tokens = self.get_expected_tokens(recognizer, e.getExpectedTokens())
+
+        raise RuntimeError(
+            "Error encountered while parsing the quil program at line {} and column {}\n".format(line, column + 1) +
+            "Received an '{}' but was expected one of [{}]".format(offendingSymbol.text, ', '.join(expected_tokens))
+        )
+
+    def get_expected_tokens(self, parser, interval_set):
+        """
+        Like the default getExpectedTokens method except that it will fallback to the rule name if the token isn't a
+        literal. For instance, instead of <INVALID> for an unsigned integer it will return the rule name: UNSIGNED_INT
+        """
+        # type: (QuilParser, IntervalSet) -> list
+        for tok in interval_set:
+            literal_name = parser.literalNames[tok]
+            symbolic_name = parser.symbolicNames[tok]
+
+            if literal_name != '<INVALID>':
+                yield literal_name
+            else:
+                yield symbolic_name
 
 
 class PyQuilListener(QuilListener):
