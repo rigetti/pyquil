@@ -141,7 +141,6 @@ def test_pragma():
 def test_invalid():
     with pytest.raises(RuntimeError):
         parse("H X")
-    parse("H X")
 
 
 def _test(quil_string, *instructions):
