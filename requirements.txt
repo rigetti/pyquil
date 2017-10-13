@@ -1,5 +1,5 @@
-antlr4-python2-runtime==4.7
-antlr4-python3-runtime==4.7
+antlr4-python2-runtime==4.7; python_version < '3'
+antlr4-python3-runtime==4.7; python_version >= '3'
 certifi==2017.7.27.1
 chardet==3.0.4
 codeclimate-test-reporter==0.2.3
