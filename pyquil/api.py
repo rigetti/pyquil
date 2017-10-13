@@ -299,7 +299,7 @@ class JobConnection(object):
 
         payload = {'type': TYPE_WAVEFUNCTION,
                    'quil-instructions': quil_program.out(),
-                   'addresses': classical_addresses}
+                   'addresses': list(classical_addresses)}
         add_noise_to_payload(payload, self.gate_noise, self.measurement_noise)
         add_rng_seed_to_payload(payload, self.random_seed)
 
