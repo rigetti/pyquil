@@ -43,7 +43,7 @@ defGate             : DEFGATE name (LPAREN variable (COMMA variable)* RPAREN)? C
 
 variable            : PERCENTAGE IDENTIFIER ;
 
-matrix              : (matrixRow NEWLINE) matrixRow ;
+matrix              : (matrixRow NEWLINE)* matrixRow ;
 matrixRow           : TAB expression (COMMA expression)* ;
 
 // E. Circuits
