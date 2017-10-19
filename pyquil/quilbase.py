@@ -163,6 +163,9 @@ class AbstractInstruction(QuilAction):
     def __eq__(self, other):
         return isinstance(other, self.__class__) and self.out() == other.out()
 
+    def __ne__(self, other):
+        return not self.__eq__(other)
+
 
 class DefGate(AbstractInstruction):
     """

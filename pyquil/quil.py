@@ -73,6 +73,12 @@ class Program(InstructionGroup):
         """
         return self.actions.__iter__()
 
+    def __eq__(self, other):
+        return isinstance(other, self.__class__) and self.out() == other.out()
+
+    def __ne__(self, other):
+        return not self.__eq__(other)
+
     def get_qubits(self):
         """
         :return: a set of all the qubit indices allocated in this program, synthesizing freely
