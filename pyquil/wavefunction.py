@@ -4,6 +4,7 @@ Module containing the Wavefunction object and methods for working with wavefunct
 
 import matplotlib.pyplot as plt
 
+
 class Wavefunction(object):
 
     def __init__(self, amplitude_vector):
@@ -106,8 +107,7 @@ class Wavefunction(object):
         Plots a bar chart with bitstring on the x axis and probability on the y axis.
 
         :param list qubit_subset: Optional parameter used for plotting a subset of the Hilbert space.
-        """
-    
+        """    
         prob_dict = self.get_outcome_probs()
         if not qubit_subset:
             plt.bar(range(len(prob_dict)), prob_dict.values(), align='center')
@@ -125,6 +125,7 @@ class Wavefunction(object):
             plt.xticks(range(len(sub_dict)), sub_dict.keys())
             plt.show()
 
+            
 def get_bitstring_from_index(index, qubit_num):
     """
     Returns the bitstring in lexical order that corresponds to the given index in 0 to 2^(qubit_num)
