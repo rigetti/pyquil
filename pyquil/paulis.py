@@ -292,14 +292,18 @@ class PauliTerm(object):
 
 
 # For convenience, a shorthand for several operators.
-ID = PauliTerm("I", 0, 1)
-"""
-The identity Pauli Term.
-"""
-ZERO = PauliTerm("I", 0, 0)
-"""
-The zero Pauli Term.
-"""
+def ID():
+    """
+    The identity Pauli Term.
+    """
+    return PauliTerm("I", 0, 1)
+
+
+def ZERO():
+    """
+    The zero Pauli Term.
+    """
+    return PauliTerm("I", 0, 0)
 
 
 def sI(q):
@@ -375,7 +379,7 @@ class PauliSum(object):
                 all([isinstance(term, PauliTerm) for term in terms])):
             raise ValueError("PauliSum's are currently constructed from Sequences of PauliTerms.")
         if len(terms) == 0:
-            self.terms = [0.0 * ID]
+            self.terms = [0.0 * ID()]
         else:
             self.terms = terms
 
@@ -496,7 +500,7 @@ class PauliSum(object):
         if isinstance(other, PauliTerm):
             other = PauliSum([other])
         elif isinstance(other, Number):
-            other = PauliSum([other * ID])
+            other = PauliSum([other * ID()])
         new_terms = [term.copy() for term in self.terms]
         new_terms.extend(other.terms)
         new_sum = PauliSum(new_terms)
