@@ -100,7 +100,7 @@ class Program(InstructionGroup):
             elif isinstance(action, Instr):
                 qubit_indices = set()
                 for arg in action.arguments:
-                    if isinstance(int):
+                    if isinstance(arg, int):
                         qubit_indices.add(arg)
                     else:
                         qubit_indices.add(arg.index())
