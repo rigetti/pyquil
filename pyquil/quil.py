@@ -105,7 +105,7 @@ class Program(InstructionGroup):
                 for arg in action.arguments:
                     if isinstance(arg, integer_types):
                         qubit_indices.add(arg)
-                    elif issubinstance(arg, AbstractQubit):
+                    elif isinstance(arg, AbstractQubit):
                         qubit_indices.add(arg.index())
             else:
                 continue
