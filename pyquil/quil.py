@@ -100,10 +100,10 @@ class Program(InstructionGroup):
             elif isinstance(action, Instr):
                 qubit_indices = set()
                 for arg in action.arguments:
-                    try:
-                        qubit_indices.add(arg.index())
-                    except AttributeError:
+                    if isinstance(int):
                         qubit_indices.add(arg)
+                    else:
+                        qubit_indices.add(arg.index())
             else:
                 continue
             qubits = set.union(qubits, qubit_indices)
