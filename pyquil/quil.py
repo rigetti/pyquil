@@ -18,6 +18,7 @@ Module for creating and defining Quil programs.
 """
 
 from .quilbase import (InstructionGroup,
+                       Instr,
                        Addr,
                        While,
                        If,
@@ -75,21 +76,38 @@ class Program(InstructionGroup):
 
     def get_qubits(self):
         """
-        :return: a set of all the qubit indices allocated in this program, synthesizing freely
-        allocated qubits if neccessary.
+        Returns all of the qubit indices used in this program, including gate applications and
+        allocated qubits. e.g.
+            >>> p = Program()
+            >>> p.inst(("H", 1))
+            >>> p.get_qubits()
+            {1}
+            >>> q = p.alloc()
+            >>> len(p.get_qubits())
+            2
+
+        :return: A set of all the qubit indices used in this program, synthesizing freely
+         allocated qubits if neccessary.
         :rtype: set
         """
-        allocated_qubits = set()
+        qubits = set()
         self.synthesize()
         for ii, action in self:
             if isinstance(action, Gate):
                 qubit_indices = {qq.index() for qq in action.arguments}
             elif isinstance(action, Measurement):
                 qubit_indices = {action.arguments[0].index()}
+            elif isinstance(action, Instr):
+                qubit_indices = set()
+                for arg in action.arguments:
+                    try:
+                        qubit_indices.add(arg.index())
+                    except AttributeError:
+                        qubit_indices.add(arg)
             else:
                 continue
-            allocated_qubits = set.union(allocated_qubits, qubit_indices)
-        return allocated_qubits
+            qubits = set.union(qubits, qubit_indices)
+        return qubits
 
     def defgate(self, name, matrix):
         """
