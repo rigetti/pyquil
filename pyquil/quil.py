@@ -16,6 +16,7 @@
 """
 Module for creating and defining Quil programs.
 """
+from six import integer_types
 
 from .quilbase import (InstructionGroup,
                        Instr,
@@ -25,6 +26,8 @@ from .quilbase import (InstructionGroup,
                        DefGate,
                        Gate,
                        Measurement,
+                       issubinstance,
+                       AbstractQubit,
                        merge_resource_managers)
 
 from .gates import MEASURE, STANDARD_GATES
@@ -100,9 +103,9 @@ class Program(InstructionGroup):
             elif isinstance(action, Instr):
                 qubit_indices = set()
                 for arg in action.arguments:
-                    if isinstance(arg, int):
+                    if isinstance(arg, integer_types):
                         qubit_indices.add(arg)
-                    else:
+                    elif issubinstance(arg, AbstractQubit):
                         qubit_indices.add(arg.index())
             else:
                 continue
