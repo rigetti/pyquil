@@ -14,11 +14,9 @@
 #    limitations under the License.
 ##############################################################################
 
-import six
+from six.moves import input
 
 from pyquil.config import PyquilConfig
-
-input = six.moves.input
 
 
 def main():
@@ -26,16 +24,12 @@ def main():
     print("Enter the required information below for Forest connections.")
     print("If you haven't signed up yet you will need to do so first at https://forest.rigetti.com")
 
-    endpoint = input("Forest URL (" + PyquilConfig.DEFAULT_ENDPOINT + "): ")
-    if len(endpoint) == 0:
-        endpoint = PyquilConfig.DEFAULT_ENDPOINT
     key = input("Forest API Key: ")
     user = input("User ID: ")
 
     path = PyquilConfig.DEFAULT_PYQUIL_CONFIG_PATH
     with open(path, 'w') as f:
         f.write("[" + PyquilConfig.SECTION + "]\n")
-        f.write(PyquilConfig.ENDPOINT + ": " + endpoint + "\n")
         f.write(PyquilConfig.API_KEY + ": " + key + "\n")
         f.write(PyquilConfig.USER_ID + ": " + user + "\n")
 
