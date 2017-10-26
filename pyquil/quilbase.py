@@ -160,6 +160,9 @@ class AbstractInstruction(QuilAction):
     def out(self):
         return NotImplementedError()
 
+    def __eq__(self, other):
+        return isinstance(other, self.__class__) and self.out() == other.out()
+
 
 class DefGate(AbstractInstruction):
     """
@@ -665,6 +668,8 @@ class Instr(AbstractInstruction):
         for arg in self.arguments:
             if issubinstance(arg, AbstractQubit):
                 qubits.add(arg.index())
+            elif isinstance(arg, int):
+                qubits.add(arg)
         return qubits
 
 

@@ -462,3 +462,11 @@ def test_get_qubits():
     qq = pq.alloc()
     pq.inst(Y(2), X(qq))
     assert pq.get_qubits() == {0, 1, 2, 4, 5}  # this synthesizes the allocation
+
+    qubit_index = 1
+    p = Program(("H", qubit_index))
+    assert p.get_qubits() == {qubit_index}
+    q1 = p.alloc()
+    q2 = p.alloc()
+    p.inst(("CNOT", q1, q2))
+    assert p.get_qubits() == {qubit_index, q1.index(), q2.index()}
