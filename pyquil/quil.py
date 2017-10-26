@@ -77,6 +77,12 @@ class Program(InstructionGroup):
         """
         return self.actions.__iter__()
 
+    def __eq__(self, other):
+        return isinstance(other, self.__class__) and self.out() == other.out()
+
+    def __ne__(self, other):
+        return not self.__eq__(other)
+
     def get_qubits(self):
         """
         Returns all of the qubit indices used in this program, including gate applications and
