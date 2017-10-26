@@ -671,6 +671,8 @@ class Instr(AbstractInstruction):
         for arg in self.arguments:
             if issubinstance(arg, AbstractQubit):
                 qubits.add(arg.index())
+            elif isinstance(arg, int):
+                qubits.add(arg)
         return qubits
 
 
