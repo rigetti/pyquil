@@ -102,7 +102,6 @@ The configuration file is in INI format and should contain all the information r
 ::
 
     [Rigetti Forest]
-    url: <URL to Rigetti Forest or QVM endpoint>
     key: <Rigetti Forest API key>
     user_id: <Rigetti User ID>
 
@@ -124,7 +123,6 @@ As a last resort, connection information can be provided via environment variabl
 
 ::
 
-    export QVM_URL=<URL to Rigetti Forest or QVM endpoint>
     export QVM_API_KEY=<Rigetti Forest API key>
     export QVM_USER_ID=<Rigetti User ID>
 

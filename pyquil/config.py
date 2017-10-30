@@ -31,11 +31,8 @@ class PyquilConfig(object):
     PYQUIL_CONFIG_PATH = getenv('PYQUIL_CONFIG', DEFAULT_PYQUIL_CONFIG_PATH)
 
     SECTION = "Rigetti Forest"
-    ENDPOINT = "url"
     API_KEY = "key"
     USER_ID = "user_id"
-
-    DEFAULT_ENDPOINT = "https://api.rigetti.com/qvm"
 
     def __init__(self):
         self.configparser = ConfigParser()
@@ -46,11 +43,6 @@ class PyquilConfig(object):
                   "!   Have you run the pyquil-config-setup command yet?\n"
                   "! See the getting started guide at https://go.rigetti.com/getting-started",
                   file=sys.stderr)
-
-    @property
-    def endpoint(self):
-        endpoint = self._env_or_config('QVM_URL', self.ENDPOINT)
-        return endpoint if endpoint else self.DEFAULT_ENDPOINT
 
     @property
     def api_key(self):

@@ -42,12 +42,10 @@ The configuration file is in INI format and should contain all the information r
 
 ```
 [Rigetti Forest]
-url: <URL to Rigetti Forest or QVM endpoint>
 key: <Rigetti Forest API key>
 user_id: <Rigetti User ID>
 ```
 
-If `url` is not specified, it will default to `https://api.rigetti.com/qvm`.
 You can change the location of this file by setting the `PYQUIL_CONFIG` environment variable.
 
 If you encounter errors or warnings trying to connect to Forest then see the full
