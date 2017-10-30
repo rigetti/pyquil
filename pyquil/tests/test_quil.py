@@ -470,3 +470,16 @@ def test_get_qubits():
     q2 = p.alloc()
     p.inst(("CNOT", q1, q2))
     assert p.get_qubits() == {qubit_index, q1.index(), q2.index()}
+
+
+def test_eq():
+    p1 = Program()
+    q1 = p1.alloc()
+    q2 = p1.alloc()
+    p1.inst([H(q1), CNOT(q1, q2)])
+
+    p2 = Program()
+    p2.inst([H(0), CNOT(0, 1)])
+
+    assert p1 == p2
+    assert not p1 != p2
