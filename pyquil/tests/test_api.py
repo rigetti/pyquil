@@ -119,8 +119,8 @@ def test_run(cxn, prog):
 
 def test_run_and_measure(cxn, prog):
     with pytest.raises(TypeError):
-        cxn.run_and_measure(prog, [0, 1], 'a')
-    assert cxn.run_and_measure(prog, [0, 1], 1) == 'Success'
+        cxn.run_and_measure(prog, trials='a')
+    assert cxn.run_and_measure(prog, trials=1) == 'Success'
 
 
 def test_expectation(cxn, prog):

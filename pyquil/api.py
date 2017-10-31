@@ -18,6 +18,9 @@ Module for facilitating connections to the QVM / QPU.
 """
 
 from __future__ import print_function
+
+import warnings
+
 from requests.adapters import HTTPAdapter
 from six import integer_types
 from urllib3.util.retry import Retry
@@ -370,24 +373,27 @@ class JobConnection(object):
         res = self.post_job(payload, headers=self.headers)
         return self.process_response(res)
 
-    def run_and_measure(self, quil_program, qubits, trials=1):
+    def run_and_measure(self, quil_program, qubits=None, trials=1):
         """
         Run a Quil program once to determine the final wavefunction, and measure multiple times.
 
         :param Program quil_program: A Quil program.
-        :param list qubits: A list of qubits.
         :param int trials: Number of shots to collect.
         :return: A list of a list of bits.
         :rtype: list
         """
+        if qubits:
+            warnings.warn(
+                "The qubits parameter in run_and_measure is ignored and all qubits are measured instead. "
+                "This parameter will be removed in a future release.", DeprecationWarning)
+            validate_run_items(qubits)
+
         if not isinstance(quil_program, Program):
             raise TypeError("quil_program must be a Quil program object")
-        validate_run_items(qubits)
         if not isinstance(trials, integer_types):
             raise TypeError("trials must be an integer")
 
         payload = {"type": TYPE_MULTISHOT_MEASURE,
-                   "qubits": qubits,
                    "trials": trials,
                    "quil-instructions": quil_program.out()}
 
