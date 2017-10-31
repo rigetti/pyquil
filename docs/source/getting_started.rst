@@ -33,8 +33,7 @@ It comes with a few parts:
 3. **pyQuil**: A Python library to help write and run Quil code and
    quantum programs.
 4. **QPUConnection**: pyQuil also includes some a special connection which lets you run experiments
-   on Rigetti's prototype superconducting quantum processors over the cloud.  These experiments are
-   described in more detail `here <qpu.html>`_.
+   on Rigetti's prototype superconducting quantum processors over the cloud.
 
 Environment Setup
 -----------------
@@ -141,7 +140,7 @@ of jobs.
 this for most of the getting started materials unless otherwise instructed.
 
 ``https://job.rigetti.com/beta`` is used for large async `QVM jobs <getting_started.html#jobconnections>`_
-or for running `jobs on a QPU <qpu.html>`_.
+or for running jobs on a QPU.
 
 
 Running your first quantum program
