@@ -22,9 +22,9 @@ class Slot(object):
     """
     A placeholder for a parameter value.
 
-    Arithmetic operations: ``+-*/``
-    Logical: abs, max, <, >, <=, >=, !=, ==
-    Arbitrary functions are not supported
+    | Arithmetic operations: ``+-*/``
+    | Logical: abs, max, <, >, <=, >=, !=, ==
+    | Arbitrary functions are not supported
 
     :param float value: A value to initialize to. Defaults to 0.0
     :param function func: An initial function to determine the final parameterized value.
