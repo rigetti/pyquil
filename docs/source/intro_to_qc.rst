@@ -219,9 +219,9 @@ Each of the code snippets below will be immediately followed by its output.
     wavefunc, _ = quantum_simulator.wavefunction(p)
     # wavefunc is a Wavefunction object that stores a quantum state as a list of amplitudes
     alpha, beta = wavefunc
-    print "Our qubit is in the state alpha={} and beta={}".format(alpha, beta)
-    print "The probability of measuring the qubit in outcome 0 is {}".format(abs(alpha)**2)
-    print "The probability of measuring the qubit in outcome 1 is {}".format(abs(beta)**2)
+    print("Our qubit is in the state alpha={} and beta={}".format(alpha, beta))
+    print("The probability of measuring the qubit in outcome 0 is {}".format(abs(alpha)**2))
+    print("The probability of measuring the qubit in outcome 1 is {}".format(abs(beta)**2))
 
 
 .. parsed-literal::
@@ -242,9 +242,9 @@ Applying an operation to our qubit affects the probability of each outcome.
 
     wavefunc, _ = quantum_simulator.wavefunction(p)
     alpha, beta = wavefunc
-    print "Our qubit is in the state alpha={} and beta={}".format(alpha, beta)
-    print "The probability of measuring the qubit in outcome 0 is {}".format(abs(alpha)**2)
-    print "The probability of measuring the qubit in outcome 1 is {}".format(abs(beta)**2)
+    print("Our qubit is in the state alpha={} and beta={}".format(alpha, beta))
+    print("The probability of measuring the qubit in outcome 0 is {}".format(abs(alpha)**2))
+    print("The probability of measuring the qubit in outcome 1 is {}".format(abs(beta)**2))
 
 
 .. parsed-literal::
@@ -262,17 +262,17 @@ multiple qubits to grow exponentially in size, as their vectors are tensored tog
     # Multiple qubits also produce the expected scaling of the state.
     p = Program(I(0), I(1))
     wvf, _ = quantum_simulator.wavefunction(p)
-    print "The quantum state is of dimension:", len(wvf.amplitudes)
+    print("The quantum state is of dimension:", len(wvf.amplitudes))
 
     p = Program(I(0), I(1), I(2), I(3))
     wvf, _ = quantum_simulator.wavefunction(p)
-    print "The quantum state is of dimension:", len(wvf.amplitudes)
+    print("The quantum state is of dimension:", len(wvf.amplitudes))
 
     p = Program()
     for x in range(10):
         p.inst(I(x))
     wvf, _ = quantum_simulator.wavefunction(p)
-    print "The quantum state is of dimension:", len(wvf.amplitudes)  
+    print("The quantum state is of dimension:", len(wvf.amplitudes)  )
 
 
 .. parsed-literal::
@@ -289,7 +289,7 @@ those outcomes as values.
 
     # wavefunction(Program) returns a coefficient array that corresponds to outcomes in the following order
     wvf, _ = quantum_simulator.wavefunction(Program(I(0), I(1)))
-    print wvf.get_outcome_probs()
+    print(wvf.get_outcome_probs())
 
 
 .. parsed-literal::
@@ -340,7 +340,7 @@ so the program that applies this operation to the zero state is just
 .. code:: python
 
     p = Program(I(0))
-    print quantum_simulator.wavefunction(p)[0]
+    print(quantum_simulator.wavefunction(p)[0])
 
 .. parsed-literal::
 
@@ -373,17 +373,17 @@ Let's revisit the X gate introduced above. It is one of three important single-q
 
     from pyquil.gates import X, Y, Z
     p = Program(X(0))
-    print "X|0> = ", quantum_simulator.wavefunction(p)[0]
-    print "The outcome probabilities are", quantum_simulator.bit_string_probabilities(p)
-    print "This looks like a bit flip.\n"
+    print("X|0> = ", quantum_simulator.wavefunction(p)[0])
+    print("The outcome probabilities are", quantum_simulator.bit_string_probabilities(p))
+    print("This looks like a bit flip.\n")
     p = Program(Y(0))
-    print "Y|0> = ", quantum_simulator.wavefunction(p)[0]
-    print "The outcome probabilities are", quantum_simulator.bit_string_probabilities(p)
-    print "This also looks like a bit flip.\n"
+    print("Y|0> = ", quantum_simulator.wavefunction(p)[0])
+    print("The outcome probabilities are", quantum_simulator.bit_string_probabilities(p))
+    print("This also looks like a bit flip.\n")
     p = Program(Z(0))
-    print "Z|0> = ", quantum_simulator.wavefunction(p)[0]
-    print "The outcome probabilities are", quantum_simulator.bit_string_probabilities(p)
-    print "This state looks unchanged."
+    print("Z|0> = ", quantum_simulator.wavefunction(p)[0])
+    print("The outcome probabilities are", quantum_simulator.bit_string_probabilities(p))
+    print("This state looks unchanged.")
 
 
 .. parsed-literal::
@@ -417,8 +417,8 @@ Quantum programs are built by applying successive gate operations:
 
     # Composing qubit operations is the same as multiplying matrices sequentially
     p = Program(X(0), Y(0), Z(0))
-    print "ZYX|0> = ", quantum_simulator.wavefunction(p)[0]
-    print "With outcome probabilities\n", quantum_simulator.bit_string_probabilities(p)
+    print("ZYX|0> = ", quantum_simulator.wavefunction(p)[0])
+    print("With outcome probabilities\n", quantum_simulator.bit_string_probabilities(p))
 
 
 .. parsed-literal::
@@ -452,17 +452,17 @@ Let's take a look at how we could use a CNOT gate in pyQuil.
     from pyquil.gates import CNOT
 
     p = Program(CNOT(0, 1))
-    print "CNOT|00> = ", quantum_simulator.wavefunction(p)[0]
-    print "With outcome probabilities\n", quantum_simulator.bit_string_probabilities(p)
+    print("CNOT|00> = ", quantum_simulator.wavefunction(p)[0])
+    print("With outcome probabilities\n", quantum_simulator.bit_string_probabilities(p))
     p = Program(X(0), CNOT(0, 1))
-    print "CNOT|01> = ", quantum_simulator.wavefunction(p)[0]
-    print "With outcome probabilities\n", quantum_simulator.bit_string_probabilities(p)
+    print("CNOT|01> = ", quantum_simulator.wavefunction(p)[0])
+    print("With outcome probabilities\n", quantum_simulator.bit_string_probabilities(p))
     p = Program(X(1), CNOT(0, 1))
-    print "CNOT|10> = ", quantum_simulator.wavefunction(p)[0]
-    print "With outcome probabilities\n", quantum_simulator.bit_string_probabilities(p)
+    print("CNOT|10> = ", quantum_simulator.wavefunction(p)[0])
+    print("With outcome probabilities\n", quantum_simulator.bit_string_probabilities(p))
     p = Program(X(0), X(1), CNOT(0, 1))
-    print "CNOT|11> = ", quantum_simulator.wavefunction(p)[0]
-    print "With outcome probabilities\n", quantum_simulator.bit_string_probabilities(p)
+    print("CNOT|11> = ", quantum_simulator.wavefunction(p)[0])
+    print("With outcome probabilities\n", quantum_simulator.bit_string_probabilities(p))
 
 
 .. parsed-literal::
@@ -502,8 +502,8 @@ and \\(\|10\\rangle \\) states:
     from pyquil.gates import SWAP
     p = Program(X(0), SWAP(0,1))
 
-    print "SWAP|01> = ", quantum_simulator.wavefunction(p)[0]
-    print "With outcome probabilities\n", quantum_simulator.bit_string_probabilities(p)
+    print("SWAP|01> = ", quantum_simulator.wavefunction(p)[0])
+    print("With outcome probabilities\n", quantum_simulator.bit_string_probabilities(p))
 
 
 .. parsed-literal::
@@ -601,7 +601,7 @@ times then we always get the same outcome:
 
     classical_regs = [0]
     trials = 10
-    print quantum_simulator.run(p, classical_regs, trials)
+    print(quantum_simulator.run(p, classical_regs, trials))
 
 
 .. parsed-literal::
@@ -631,8 +631,8 @@ The following pyQuil code shows how we can use the Hadamard gate:
 
     # The Hadamard produces what is called a superposition state
     coin_program = Program(H(0))
-    print "H|0> = ", quantum_simulator.wavefunction(coin_program)[0]
-    print "With outcome probabilities\n", quantum_simulator.bit_string_probabilities(coin_program)
+    print("H|0> = ", quantum_simulator.wavefunction(coin_program)[0])
+    print("With outcome probabilities\n", quantum_simulator.bit_string_probabilities(coin_program))
 
 
 .. parsed-literal::
@@ -682,10 +682,10 @@ pyQuil allows us to look at the wavefunction **after** a measurement as well:
 
     classical_reg = 0
     coin_program = Program(H(0))
-    print "Before measurement: H|0> = ", quantum_simulator.wavefunction(coin_program)[0]
+    print("Before measurement: H|0> = ", quantum_simulator.wavefunction(coin_program)[0])
     coin_program.measure(0, classical_reg)
     for x in range(5):
-        print "After measurement: ", quantum_simulator.wavefunction(coin_program)[0]
+        print("After measurement: ", quantum_simulator.wavefunction(coin_program)[0])
 
 
 .. parsed-literal::
@@ -714,10 +714,10 @@ the obtained outcome and subsequently rescaled to unit norm.
 
     # This program prepares something called a Bell state (a special kind of "entangled state")
     bell_program = Program(H(0), CNOT(0, 1))
-    print "Before measurement: H|0> = ", quantum_simulator.wavefunction(bell_program)[0]
+    print("Before measurement: H|0> = ", quantum_simulator.wavefunction(bell_program)[0])
     bell_program.measure(0, classical_reg)
     for x in range(5):
-        print "After measurement: ", quantum_simulator.bit_string_probabilities(bell_program)
+        print("After measurement: ", quantum_simulator.bit_string_probabilities(bell_program))
 
 
 .. parsed-literal::
@@ -749,7 +749,7 @@ quantum operations to run.
     false_branch = Program(I(7)) # else branch
     p = Program(X(0)).measure(0, 1).if_then(1, true_branch, false_branch) # Branch on classical reg [1]
     p.measure(7, 7) # Measure qubit #7 into classical register [7]
-    print quantum_simulator.run(p, [7]) # Run and check register [7]
+    print(quantum_simulator.run(p, [7])) # Run and check register [7]
 
 
 .. parsed-literal::
@@ -771,7 +771,7 @@ increasing chance of halting, but that may run forever!
     inside_loop = Program(H(0)).measure(0, 1)
 
     p = Program().inst(X(0)).while_do(1, inside_loop)
-    print quantum_simulator.run(p, [1]) # Run and check register [1]
+    print(quantum_simulator.run(p, [1])) # Run and check register [1]
 
 
 .. parsed-literal::

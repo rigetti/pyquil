@@ -10,8 +10,6 @@ Here you can find documentation for the different submodules in pyQuil.
     job_results
     paulis
     parametric
-    plots
-    qpu
     quil
     quil_atom
     quilbase
