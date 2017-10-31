@@ -254,6 +254,9 @@ class InstructionGroup(QuilAction):
 
         return synthesized
 
+    def __len__(self):
+        return len(self.synthesize())
+
     def __str__(self):
         return self.out()
 
