@@ -89,6 +89,9 @@ for Rigetti Forest. This will allow you to run your programs on the Rigetti QVM 
 
 `Sign up here <http://forest.rigetti.com>`_ to get a Forest API key, it's free and only takes a few seconds.
 
+It's also highly recommended to join our `public slack channel <http://slack.rigetti.com>`_ where you can
+connect with other users and Rigetti members for support.
+
 Run the following command to automatically set up the config. This will prompt you for the required information
 (URL, key, and user id). It will then create a file in the proper location (the user's root directory):
 
