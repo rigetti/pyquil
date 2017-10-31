@@ -108,6 +108,23 @@ def test_program_pop():
     assert Program(instruction).out() == "X 1\n"
 
 
+def test_len_zero():
+    prog = Program()
+    assert len(prog) == 0
+
+
+def test_len_one():
+    prog = Program(X(0))
+    assert len(prog) == 1
+
+
+def test_len_nested():
+    p = Program(H(0)).measure(0, 0)
+    q = Program(H(0), CNOT(0, 1))
+    p.if_then(0, q)
+    assert len(p) == 8
+
+
 def test_plus_operator():
     p = Program()
     p += H(0)
