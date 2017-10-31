@@ -345,6 +345,7 @@ class InstructionGroup(QuilAction):
     def extract_qubits(self):
         """
         Return all qubit addresses involved in the instruction group.
+
         :return: Set of qubits.
         :rtype: set
         """
