@@ -176,8 +176,11 @@ class PyQuilListener(QuilListener):
 
     def exitPragma(self, ctx):
         # type: (QuilParser.PragmaContext) -> None
-        pragma_names = ' '.join(map(lambda x: x.getText(), ctx.IDENTIFIER()))
-        self.result.append(RawInstr(ctx.PRAGMA().getText() + ' ' + pragma_names + ' ' + ctx.STRING().getText()))
+        pragma_names = ' '.join(map(lambda x: x.getText(), [ctx.IDENTIFIER()] + ctx.pragma_name()))
+        if ctx.STRING():
+            self.result.append(RawInstr(ctx.PRAGMA().getText() + ' ' + pragma_names + ' ' + ctx.STRING().getText()))
+        else:
+            self.result.append(RawInstr(ctx.PRAGMA().getText() + ' ' + pragma_names))
 
 
 """

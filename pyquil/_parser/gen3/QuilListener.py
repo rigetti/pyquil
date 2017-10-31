@@ -314,6 +314,15 @@ class QuilListener(ParseTreeListener):
         pass
 
 
+    # Enter a parse tree produced by QuilParser#pragma_name.
+    def enterPragma_name(self, ctx:QuilParser.Pragma_nameContext):
+        pass
+
+    # Exit a parse tree produced by QuilParser#pragma_name.
+    def exitPragma_name(self, ctx:QuilParser.Pragma_nameContext):
+        pass
+
+
     # Enter a parse tree produced by QuilParser#numberExp.
     def enterNumberExp(self, ctx:QuilParser.NumberExpContext):
         pass

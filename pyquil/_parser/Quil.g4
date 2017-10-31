@@ -95,7 +95,8 @@ include             : INCLUDE STRING ;
 
 // M. Pragma Support
 
-pragma              : PRAGMA IDENTIFIER+ STRING? ;
+pragma              : PRAGMA IDENTIFIER pragma_name* STRING? ;
+pragma_name         : IDENTIFIER | UNSIGNED_INT ;
 
 // Expressions (in order of precedence)
 

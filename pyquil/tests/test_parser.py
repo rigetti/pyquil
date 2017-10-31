@@ -136,6 +136,7 @@ def test_classical():
 
 def test_pragma():
     _test('PRAGMA gate_time H "10 ns"', RawInstr('PRAGMA gate_time H "10 ns"'))
+    _test('PRAGMA qubit 0', RawInstr('PRAGMA qubit 0'))
 
 
 def test_invalid():
