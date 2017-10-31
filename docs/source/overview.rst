@@ -21,16 +21,11 @@ belief is that in the near term quantum computers will operate as coprocessors, 
 concert with traditional CPUs.  This means that Quil is designed to execute on a Quantum Abstract
 Machine that has a shared classical/quantum architecture at its core.
 
-pyQuil currently allows you to do quantum computing in two ways:
-1.  Quil programs can be executed on a local or cloud-based Quantum Virtual Machine.  This is a
+Quil programs can be executed on a local or cloud-based Quantum Virtual Machine.  This is a
 classical simulation of a quantum processor that can simulate up to 36 qubits.  The default access
-key allows you to run simulations of up to 25 qubits.  These simulations can be run through either
+key allows you to run simulations of up to 26 qubits.  These simulations can be run through either
 synchronous API calls, or through an asynchronous job queue for larger programs.  More information
 about the QVM can be found at `Overview of the Quantum Virtual Machine <qvm_overview.html>`_.
-2.  pyQuil also runs some select single qubit experiments on Rigetti's superconducting quantum
-processors.  This functionality will be expanded over time, and currently allows for Rabi, Ramsey,
-and T1 experiments to be run on a multi-qubit chip using the QPUConnection object. More information
-about these features are available at `Experimenting with a QPU <qpu.html>`_.
 
 If you are already familiar with quantum computing, then feel free to proceed to
 `Installation and Getting Started <getting_started.html>`_.

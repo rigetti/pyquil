@@ -33,8 +33,7 @@ It comes with a few parts:
 3. **pyQuil**: A Python library to help write and run Quil code and
    quantum programs.
 4. **QPUConnection**: pyQuil also includes some a special connection which lets you run experiments
-   on Rigetti's prototype superconducting quantum processors over the cloud.  These experiments are
-   described in more detail `here <qpu.html>`_.
+   on Rigetti's prototype superconducting quantum processors over the cloud.
 
 Environment Setup
 -----------------
@@ -44,10 +43,13 @@ Prerequisites
 
 Before you can start writing quantum programs, you will need Python 2.7
 (version 2.7.10 or greater) or Python 3.6 and the
-Python package manager pip. We recommend installing
-`Anaconda <https://www.continuum.io/downloads>`__ for an all-in-one
-installation of Python (2.7). If you don't have pip, it can be
-installed with ``easy_install pip``.
+Python package manager pip.
+
+.. note::
+PyQuil works on both Python 2 and 3. However, Rigetti **strongly** recommends
+using Python 3 if possible. Future feature developments in PyQuil may support
+Python 3 only.
+
 
 Installation
 ~~~~~~~~~~~~
@@ -73,7 +75,7 @@ errors, then instead run:
 
     sudo pip install -e .
 
-This will also install pyQuil's dependencies (requests >= 2.4.2 and NumPy >= 1.10) if you do not already
+This will also install pyQuil's dependencies (numpy, requests, etc.) if you do not already
 have them.
 
 The library will now be available globally.
@@ -86,6 +88,9 @@ programs (e.g., to get wavefunctions, get multishot experiment data), you will n
 for Rigetti Forest. This will allow you to run your programs on the Rigetti QVM or QPU.
 
 `Sign up here <http://forest.rigetti.com>`_ to get a Forest API key, it's free and only takes a few seconds.
+
+It's also highly recommended to join our `public slack channel <http://slack.rigetti.com>`_ where you can
+connect with other users and Rigetti members for support.
 
 Run the following command to automatically set up the config. This will prompt you for the required information
 (URL, key, and user id). It will then create a file in the proper location (the user's root directory):
@@ -102,7 +107,6 @@ The configuration file is in INI format and should contain all the information r
 ::
 
     [Rigetti Forest]
-    url: <URL to Rigetti Forest or QVM endpoint>
     key: <Rigetti Forest API key>
     user_id: <Rigetti User ID>
 
@@ -124,7 +128,6 @@ As a last resort, connection information can be provided via environment variabl
 
 ::
 
-    export QVM_URL=<URL to Rigetti Forest or QVM endpoint>
     export QVM_API_KEY=<Rigetti Forest API key>
     export QVM_USER_ID=<Rigetti User ID>
 
@@ -140,7 +143,7 @@ of jobs.
 this for most of the getting started materials unless otherwise instructed.
 
 ``https://job.rigetti.com/beta`` is used for large async `QVM jobs <getting_started.html#jobconnections>`_
-or for running `jobs on a QPU <qpu.html>`_.
+or for running jobs on a QPU.
 
 
 Running your first quantum program
@@ -466,7 +469,7 @@ The following gates methods come standard with Quil and ``gates.py``:
 
 -  Phase gates: ``PHASE(``\ :math:`\theta`\ ``)``, ``S``, ``T``
 
--  Controlled phase gates: ``CPHASE00(`` :math:`\alpha` ``)``,
+-  Controlled phase gates: ``CZ``, ``CPHASE00(`` :math:`\alpha` ``)``,
    ``CPHASE01(`` :math:`\alpha` ``)``, ``CPHASE10(`` :math:`\alpha`
    ``)``, ``CPHASE(`` :math:`\alpha` ``)``
 
@@ -946,9 +949,9 @@ alpha.
 .. code:: python
 
     parametric_prog = pl.exponential_map(H)
-    print parametric_prog(0.0)
-    print parametric_prog(1.0)
-    print parametric_prog(2.0)
+    print(parametric_prog(0.0))
+    print(parametric_prog(1.0))
+    print(parametric_prog(2.0))
 
 This ParametricProgram now acts as a template, caching the result of the ``exponential_map``
 calculation so that it can be used later with new values.
@@ -974,7 +977,7 @@ to see if the job result is finished.
 ::
 
   zz = res.get()
-  print type(zz), zz
+  print(type(zz), zz)
 
 .. parsed-literal::
 
@@ -989,9 +992,9 @@ Once the job is finished, then the results can be retrieved from the JobResult o
 
   while not res.is_done():
       time.sleep(1)
-  print res
+  print(res)
   answer = res.decode()
-  print answer
+  print(answer)
 
 .. parsed-literal::
 

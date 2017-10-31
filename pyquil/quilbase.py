@@ -163,6 +163,9 @@ class AbstractInstruction(QuilAction):
     def __eq__(self, other):
         return isinstance(other, self.__class__) and self.out() == other.out()
 
+    def __ne__(self, other):
+        return not self.__eq__(other)
+
 
 class DefGate(AbstractInstruction):
     """
@@ -250,6 +253,9 @@ class InstructionGroup(QuilAction):
                 raise RuntimeError("encountered invalid action")
 
         return synthesized
+
+    def __len__(self):
+        return len(self.synthesize())
 
     def __str__(self):
         return self.out()
@@ -342,6 +348,7 @@ class InstructionGroup(QuilAction):
     def extract_qubits(self):
         """
         Return all qubit addresses involved in the instruction group.
+
         :return: Set of qubits.
         :rtype: set
         """
@@ -668,6 +675,8 @@ class Instr(AbstractInstruction):
         for arg in self.arguments:
             if issubinstance(arg, AbstractQubit):
                 qubits.add(arg.index())
+            elif isinstance(arg, int):
+                qubits.add(arg)
         return qubits
 
 

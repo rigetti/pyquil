@@ -104,7 +104,7 @@ class JobConnection(object):
     #    for people like you to join our team: https://jobs.lever.co/rigetti
     #################################################################################
 
-    def __init__(self, endpoint=None, api_key=None, user_id=None, gate_noise=None,
+    def __init__(self, endpoint='https://job.rigetti.com/beta', api_key=None, user_id=None, gate_noise=None,
                  measurement_noise=None, num_retries=3, random_seed=None):
         """
         Constructor for JobConnection. Sets up any necessary security, and establishes the noise
@@ -146,7 +146,7 @@ class JobConnection(object):
         self.session.mount("https://", retry_adapter)
 
         config = PyquilConfig()
-        self.endpoint = endpoint if endpoint else config.endpoint
+        self.endpoint = endpoint
         self.api_key = api_key if api_key else config.api_key
         self.user_id = user_id if user_id else config.user_id
         self.headers = {
@@ -402,6 +402,9 @@ class SyncConnection(JobConnection):
     """
     The SyncConnection makes a synchronous connection to the Forest API.
     """
+
+    def __init__(self, endpoint='https://api.rigetti.com/qvm', **kwargs):
+        super(self.__class__, self).__init__(endpoint=endpoint, **kwargs)
 
     def ping(self):
         """

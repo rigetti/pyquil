@@ -108,6 +108,23 @@ def test_program_pop():
     assert Program(instruction).out() == "X 1\n"
 
 
+def test_len_zero():
+    prog = Program()
+    assert len(prog) == 0
+
+
+def test_len_one():
+    prog = Program(X(0))
+    assert len(prog) == 1
+
+
+def test_len_nested():
+    p = Program(H(0)).measure(0, 0)
+    q = Program(H(0), CNOT(0, 1))
+    p.if_then(0, q)
+    assert len(p) == 8
+
+
 def test_plus_operator():
     p = Program()
     p += H(0)
@@ -462,3 +479,24 @@ def test_get_qubits():
     qq = pq.alloc()
     pq.inst(Y(2), X(qq))
     assert pq.get_qubits() == {0, 1, 2, 4, 5}  # this synthesizes the allocation
+
+    qubit_index = 1
+    p = Program(("H", qubit_index))
+    assert p.get_qubits() == {qubit_index}
+    q1 = p.alloc()
+    q2 = p.alloc()
+    p.inst(("CNOT", q1, q2))
+    assert p.get_qubits() == {qubit_index, q1.index(), q2.index()}
+
+
+def test_eq():
+    p1 = Program()
+    q1 = p1.alloc()
+    q2 = p1.alloc()
+    p1.inst([H(q1), CNOT(q1, q2)])
+
+    p2 = Program()
+    p2.inst([H(0), CNOT(0, 1)])
+
+    assert p1 == p2
+    assert not p1 != p2

@@ -125,18 +125,6 @@ def recover_complexes(coef_string, classical_addresses):
     return Wavefunction(wf), mem
 
 
-class RamseyResult(JobResult):
-    pass
-
-
-class RabiResult(JobResult):
-    pass
-
-
-class T1Result(JobResult):
-    pass
-
-
 def _round_to_next_multiple(n, m):
     """
     Round up the the next multiple.

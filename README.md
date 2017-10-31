@@ -22,9 +22,6 @@ To instead install pyQuil from source, clone this repository, `cd` into it, and 
 pip install -e .
 ```
 
-This will also install pyQuil's dependencies (requests >= 2.4.2 and NumPy >= 1.10)
-if you do not already have them.
-
 ## Connecting to the Rigetti Forest
 
 pyQuil can be used to build and manipulate Quil programs without restriction. However, to run
@@ -33,6 +30,7 @@ for [Rigetti Forest](http://forest.rigetti.com). This will allow you to run your
 Rigetti Quantum Virtual Machine (QVM) or on a real quantum processor (QPU).
 
 Once you have your key, run the following command to automatically set up your config:
+
 ```
 pyquil-config-setup
 ```
@@ -42,12 +40,10 @@ The configuration file is in INI format and should contain all the information r
 
 ```
 [Rigetti Forest]
-url: <URL to Rigetti Forest or QVM endpoint>
 key: <Rigetti Forest API key>
 user_id: <Rigetti User ID>
 ```
 
-If `url` is not specified, it will default to `https://api.rigetti.com/qvm`.
 You can change the location of this file by setting the `PYQUIL_CONFIG` environment variable.
 
 If you encounter errors or warnings trying to connect to Forest then see the full
@@ -92,28 +88,22 @@ MEASURE 1 [1]
 [[0, 0], [1, 1], [1, 1], [0, 0], [0, 0], [1, 1], [0, 0], [0, 0], [0, 0], [0, 0]]
 ```
 
-## Building the Docs
+## Community
 
-We use sphinx to build the documentation. To do this, navigate into pyQuil's top-level directory and run:
+Join the public Forest Slack channel at [http://slack.rigetti.com](http://slack.rigetti.com).
 
-```
-sphinx-build -b html docs/source docs/_build
-```
-To view the docs navigate to the newly-created `docs/_build` directory and open
-the `index.html` file in a browser. Note that we use the Read the Docs theme for
-our documentation, so this may need to be installed using `pip install sphinx_rtd_theme`.
+The following projects have been contributed by community members:
 
-## Development and Testing
+- [Syntax Highlighting for Quil](https://github.com/JavaFXpert/quil-syntax-highlighter)
+  contributed by [James Weaver](https://github.com/JavaFXpert)
+- [Web Based Circuit Simulator](https://github.com/rasa97/quil-sim/tree/master)
+  contributed by [Ravisankar A V](https://github.com/rasa97)
+- [Quil in Javascript](https://github.com/mapmeld/jsquil)
+  contributed by [Nick Doiron](https://github.com/mapmeld)
 
-We use pytest (version > 3.0) and mock for testing. Tests can be run from the top-level directory using:
-```
-python setup.py test
-```
-If you want to test in multiple enviornments, such as Python 2.7 and Python 3.6, then you can use `tox`. This is done with:
-```
-pip install tox
-tox
-```
+## Developing PyQuil
+
+To make changes to PyQuil itself see [DEVELOPMENT.md](DEVELOPMENT.md) for instructions on development and testing.
 
 ## How to cite pyQuil and Forest
 
