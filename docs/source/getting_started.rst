@@ -44,10 +44,13 @@ Prerequisites
 
 Before you can start writing quantum programs, you will need Python 2.7
 (version 2.7.10 or greater) or Python 3.6 and the
-Python package manager pip. We recommend installing
-`Anaconda <https://www.continuum.io/downloads>`__ for an all-in-one
-installation of Python (2.7). If you don't have pip, it can be
-installed with ``easy_install pip``.
+Python package manager pip.
+
+.. note::
+PyQuil works on both Python 2 and 3. However, Rigetti **strongly** recommends
+using Python 3 if possible. Future feature developments in PyQuil may support
+Python 3 only.
+
 
 Installation
 ~~~~~~~~~~~~
@@ -73,7 +76,7 @@ errors, then instead run:
 
     sudo pip install -e .
 
-This will also install pyQuil's dependencies (requests >= 2.4.2 and NumPy >= 1.10) if you do not already
+This will also install pyQuil's dependencies (numpy, requests, etc.) if you do not already
 have them.
 
 The library will now be available globally.
@@ -464,7 +467,7 @@ The following gates methods come standard with Quil and ``gates.py``:
 
 -  Phase gates: ``PHASE(``\ :math:`\theta`\ ``)``, ``S``, ``T``
 
--  Controlled phase gates: ``CPHASE00(`` :math:`\alpha` ``)``,
+-  Controlled phase gates: ``CZ``, ``CPHASE00(`` :math:`\alpha` ``)``,
    ``CPHASE01(`` :math:`\alpha` ``)``, ``CPHASE10(`` :math:`\alpha`
    ``)``, ``CPHASE(`` :math:`\alpha` ``)``
 
@@ -944,9 +947,9 @@ alpha.
 .. code:: python
 
     parametric_prog = pl.exponential_map(H)
-    print parametric_prog(0.0)
-    print parametric_prog(1.0)
-    print parametric_prog(2.0)
+    print(parametric_prog(0.0))
+    print(parametric_prog(1.0))
+    print(parametric_prog(2.0))
 
 This ParametricProgram now acts as a template, caching the result of the ``exponential_map``
 calculation so that it can be used later with new values.
@@ -972,7 +975,7 @@ to see if the job result is finished.
 ::
 
   zz = res.get()
-  print type(zz), zz
+  print(type(zz), zz)
 
 .. parsed-literal::
 
@@ -987,9 +990,9 @@ Once the job is finished, then the results can be retrieved from the JobResult o
 
   while not res.is_done():
       time.sleep(1)
-  print res
+  print(res)
   answer = res.decode()
-  print answer
+  print(answer)
 
 .. parsed-literal::
 
