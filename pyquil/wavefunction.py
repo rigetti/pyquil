@@ -1,7 +1,6 @@
 """
 Module containing the Wavefunction object and methods for working with wavefunctions.
 """
-import matplotlib.pyplot as plt
 
 
 class Wavefunction(object):
@@ -107,6 +106,7 @@ class Wavefunction(object):
 
         :param list qubit_subset: Optional parameter used for plotting a subset of the Hilbert space.
         """
+        import matplotlib.pyplot as plt
         prob_dict = self.get_outcome_probs()
         if not qubit_subset:
             plt.bar(range(len(prob_dict)), prob_dict.values(), align='center')
