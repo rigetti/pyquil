@@ -108,11 +108,7 @@ class Wavefunction(object):
         """
         import matplotlib.pyplot as plt
         prob_dict = self.get_outcome_probs()
-        if not qubit_subset:
-            plt.bar(range(len(prob_dict)), prob_dict.values(), align='center')
-            plt.xticks(range(len(prob_dict)), prob_dict.keys())
-            plt.show()
-        else:
+        if qubit_subset:
             sub_dict = {}
             qubit_num = len(self)
             for i in qubit_subset:
@@ -120,9 +116,10 @@ class Wavefunction(object):
                     raise IndexError("Index {} too large for {} qubits.".format(i, qubit_num))
                 else:
                     sub_dict[get_bitstring_from_index(i, qubit_num)] = prob_dict[get_bitstring_from_index(i, qubit_num)]
-            plt.bar(range(len(sub_dict)), sub_dict.values(), align='center')
-            plt.xticks(range(len(sub_dict)), sub_dict.keys())
-            plt.show()
+            prob_dict = sub_dict
+        plt.bar(range(len(prob_dict)), prob_dict.values(), align='center', color='#6CAFB7')
+        plt.xticks(range(len(prob_dict)), prob_dict.keys())
+        plt.show()
 
 
 def get_bitstring_from_index(index, qubit_num):
