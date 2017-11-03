@@ -32,12 +32,9 @@ setup(
         'numpy >= 1.10',
         'matplotlib >= 1.5',
         'urllib3 >= 1.21.1',
+        "antlr4-python2-runtime>=4.7; python_version < '3'",
+        "antlr4-python3-runtime>=4.7; python_version >= '3'",
     ],
-    extras_requires={
-        # See this blog post: https://hynek.me/articles/conditional-python-dependencies/
-        ":python_version<'3'": ['antlr4-python2-runtime>=4.7'],
-        ":python_version>='3'": ['antlr4-python3-runtime>=4.7']
-    },
     setup_requires=['pytest-runner'],
     tests_require=[
         'pytest >= 3.0.0',
