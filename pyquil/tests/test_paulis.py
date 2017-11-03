@@ -83,13 +83,13 @@ def test_simplify_term_id_1():
 
 
 def test_simplify_term_id_2():
-    term = 0.5 * ID
+    term = 0.5 * ID()
     assert term.id() == ''
     assert term.coefficient == 0.5
 
 
 def test_simplify_term_id_3():
-    s = 0.25 + 0.25 * ID
+    s = 0.25 + 0.25 * ID()
     terms = s.terms
     assert len(terms) == 1
     assert terms[0].id() == ''
@@ -219,7 +219,7 @@ def test_pauli_sum():
 
 
 def test_ps_adds_pt_1():
-    term = ID
+    term = ID()
     b = term + term
     assert str(b) == "(2+0j)*I"
     assert str(b + term) == "(3+0j)*I"
@@ -227,7 +227,7 @@ def test_ps_adds_pt_1():
 
 
 def test_ps_adds_pt_2():
-    term = ID
+    term = ID()
     b = term + 1.0
     assert str(b) == "(2+0j)*I"
     assert str(b + 1.0) == "(3+0j)*I"
@@ -244,7 +244,7 @@ def test_pauliterm_sub():
 
 
 def test_ps_sub():
-    term = 3 * ID
+    term = 3 * ID()
     b = term - 1.0
     assert str(b) == "(2+0j)*I"
     assert str(b - 1.0) == "(1+0j)*I"
@@ -555,12 +555,12 @@ def test_zero_term():
     qubit_id = 0
     coefficient = 10
     ps = sI(qubit_id) + sX(qubit_id)
-    assert coefficient * ZERO == ZERO
-    assert ZERO * coefficient == ZERO
-    assert ZERO * ID == ZERO
-    assert ZERO + ID == ID
-    assert ZERO + ps == ps
-    assert ps + ZERO == ps
+    assert coefficient * ZERO() == ZERO()
+    assert ZERO() * coefficient == ZERO()
+    assert ZERO() * ID() == ZERO()
+    assert ZERO() + ID() == ID()
+    assert ZERO() + ps == ps
+    assert ps + ZERO() == ps
 
 
 def test_from_list():
