@@ -18,7 +18,7 @@ Module for parsing Quil programs from text into PyQuil objects
 """
 from pyquil.quil import Program
 
-from ._parser.PyQuilListener import run_parser
+from pyquil._parser.PyQuilListener import run_parser
 
 
 def parse_program(quil):
