@@ -88,6 +88,10 @@ def test_expressions():
     _expr("2i", complex(0, 2))
     _expr("1 ^ 2", 1)
 
+    # Pi
+    _expr("pi", np.pi)
+    _expr("pi / 2", np.pi / 2)
+
     # Expressions
     _expr("1+2", 3)
     _expr("1-2", -1)
