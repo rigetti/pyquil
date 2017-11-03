@@ -16,8 +16,12 @@
 """
 Module for creating and defining Quil programs.
 """
+from math import pi
+
 from six import integer_types
 
+from pyquil.kraus import _check_kraus_ops, _create_kraus_pragmas
+from .gates import MEASURE, STANDARD_GATES
 from .quilbase import (InstructionGroup,
                        Instr,
                        Addr,
@@ -26,12 +30,9 @@ from .quilbase import (InstructionGroup,
                        DefGate,
                        Gate,
                        Measurement,
-                       issubinstance,
                        AbstractQubit,
-                       merge_resource_managers)
-
-from .gates import MEASURE, STANDARD_GATES
-from math import pi
+                       merge_resource_managers, Pragma)
+import numpy as np
 
 
 class Program(InstructionGroup):
@@ -128,6 +129,31 @@ class Program(InstructionGroup):
         :rtype: Program
         """
         self.defined_gates.append(DefGate(name, matrix))
+        return self
+
+    def define_noisy_gate(self, name, qubit_indices, kraus_ops):
+        """
+        Overload a static ideal gate with a noisy one defined in terms of a Kraus map.
+
+        :param str name: The name of the gate.
+        :param tuple|list qubit_indices: The qubits it acts on.
+        :param tuple|list kraus_ops: The Kraus operators.
+        :return: The Program instance
+        :rtype: Program
+        """
+        kraus_ops = [np.asarray(k, dtype=np.complex128) for k in kraus_ops]
+        _check_kraus_ops(len(qubit_indices), kraus_ops)
+        self.inst(*_create_kraus_pragmas(name, tuple(qubit_indices), kraus_ops))
+        return self
+
+    def no_noise(self):
+        """
+        Prevent a noisy gate definition from being applied to the immediately following Gate
+        instruction.
+
+        :return: Program
+        """
+        self.inst(Pragma("NO-NOISE"))
         return self
 
     def measure(self, qubit_index, classical_reg):
