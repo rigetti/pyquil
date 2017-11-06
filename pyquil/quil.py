@@ -143,7 +143,7 @@ class Program(InstructionGroup):
         """
         kraus_ops = [np.asarray(k, dtype=np.complex128) for k in kraus_ops]
         _check_kraus_ops(len(qubit_indices), kraus_ops)
-        self.inst(*_create_kraus_pragmas(name, tuple(qubit_indices), kraus_ops))
+        self.inst(_create_kraus_pragmas(name, tuple(qubit_indices), kraus_ops))
         return self
 
     def no_noise(self):

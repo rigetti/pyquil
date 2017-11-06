@@ -14,7 +14,7 @@
 #    limitations under the License.
 ##############################################################################
 """
-Module for creating and defining Quil programs.
+Module for creating and verifying noisy gate definitions in terms of Kraus maps.
 """
 import numpy as np
 

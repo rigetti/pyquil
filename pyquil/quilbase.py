@@ -616,9 +616,9 @@ class Pragma(AbstractInstruction):
 
     def out(self):
         ret = "PRAGMA {}".format(self.command)
-        if len(self.args):
+        if self.args:
             ret += " {}".format(" ".join(str(a) for a in self.args))
-        if len(self.freeform_string):
+        if self.freeform_string:
             ret += " \"{}\"".format(self.freeform_string)
         return ret
 
