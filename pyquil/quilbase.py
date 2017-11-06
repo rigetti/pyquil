@@ -591,6 +591,44 @@ class RawInstr(AbstractInstruction):
         return self.instr
 
 
+class Pragma(AbstractInstruction):
+    """
+    A PRAGMA instruction.
+
+    This is printed in QUIL as::
+
+        PRAGMA <command> <arg1> <arg2> ... <argn> "<freeform_string>"
+
+    """
+
+    def __init__(self, command, args=(), freeform_string=""):
+        if not isinstance(command, str):
+            raise TypeError("Pragma's require an identifier.")
+        for a in args:
+            if not isinstance(a, (str, int)):
+                raise TypeError("Pragma arguments must be strings or integers: {}".format(a))
+        if not isinstance(freeform_string, str):
+            raise TypeError("The freeform string argument must be a string: {}".format(
+                freeform_string))
+        self.command = command
+        self.args = args
+        self.freeform_string = freeform_string
+
+    def out(self):
+        ret = "PRAGMA {}".format(self.command)
+        if self.args:
+            ret += " {}".format(" ".join(str(a) for a in self.args))
+        if self.freeform_string:
+            ret += " \"{}\"".format(self.freeform_string)
+        return ret
+
+    def __repr__(self):
+        return '<PRAGMA {}>'.format(self.command)
+
+    def __str__(self):
+        return self.out
+
+
 class Instr(AbstractInstruction):
     """
     Representation of an instruction represented by an operator, parameters, and arguments.

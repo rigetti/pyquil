@@ -500,3 +500,71 @@ def test_eq():
 
     assert p1 == p2
     assert not p1 != p2
+
+
+def test_kraus():
+    pq = Program(X(0))
+    pq.define_noisy_gate("X", (0,), [
+        [[0., 1.],
+         [1., 0.]],
+        [[0., 0.],
+         [0., 0.]]
+    ])
+    pq.inst(X(1))
+    pq.define_noisy_gate("X", (1,), [
+        [[0., 1.],
+         [1., 0.]],
+        [[0., 0.],
+         [0., 0.]]
+    ])
+
+    ret = pq.out()
+    assert ret == """X 0
+PRAGMA ADD-KRAUS 0 "(0.0+0.0i 1.0+0.0i 1.0+0.0i 0.0+0.0i)"
+PRAGMA ADD-KRAUS 0 "(0.0+0.0i 0.0+0.0i 0.0+0.0i 0.0+0.0i)"
+X 1
+PRAGMA ADD-KRAUS 1 "(0.0+0.0i 1.0+0.0i 1.0+0.0i 0.0+0.0i)"
+PRAGMA ADD-KRAUS 1 "(0.0+0.0i 0.0+0.0i 0.0+0.0i 0.0+0.0i)"
+"""
+    # test error due to bad normalization
+    with pytest.raises(ValueError):
+        pq.define_noisy_gate("X", (0,), [
+            [[0., 1.],
+             [1., 0.]],
+            [[0., 1.],
+             [1., 0.]]
+        ])
+    # test error due to bad shape of kraus op
+    with pytest.raises(ValueError):
+        pq.define_noisy_gate("X", (0,), [
+            [[0., 1., 0.],
+             [1., 0., 0.]],
+            [[0., 1.],
+             [1., 0.]]
+        ])
+
+    pq1 = Program(X(0))
+    pq1.define_noisy_gate("X", (0,), [
+        [[0., 1.],
+         [1., 0.]],
+        [[0., 0.],
+         [0., 0.]]
+    ])
+    pq2 = Program(X(1))
+    pq2.define_noisy_gate("X", (1,), [
+        [[0., 1.],
+         [1., 0.]],
+        [[0., 0.],
+         [0., 0.]]
+    ])
+
+    assert pq1 + pq2 == pq
+
+    pq_nn = Program(X(0))
+    pq_nn.no_noise()
+    pq_nn.inst(X(1))
+
+    assert pq_nn.out() == """X 0
+PRAGMA NO-NOISE
+X 1
+"""
