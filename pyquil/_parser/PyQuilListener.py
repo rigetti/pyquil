@@ -2,6 +2,8 @@ import operator
 from typing import Any, List
 
 import sys
+
+import numpy as np
 from antlr4 import *
 from antlr4.IntervalSet import IntervalSet
 from antlr4.Token import CommonToken
@@ -283,6 +285,8 @@ def _number(number):
         return complex(0, _real(number.imaginaryN().realN()))
     elif number.I():
         return complex(0, 1)
+    elif number.PI():
+        return np.pi
     else:
         raise RuntimeError("Unexpected number: " + str(number))
 

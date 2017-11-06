@@ -4,7 +4,7 @@ grammar Quil;
 // PARSER
 ////////////////////
 
-quil                : allInstr (NEWLINE+ allInstr)* NEWLINE* EOF ;
+quil                : allInstr (NEWLINE+ allInstr)* EOF ;
 
 allInstr            : defGate
                     | defCircuit
@@ -114,7 +114,7 @@ function            : SIN | COS | SQRT | EXP | CIS ;
 // Numbers
 // We suffix -N onto these names so they don't conflict with already defined Python types
 
-number              : realN | imaginaryN | I ;
+number              : realN | imaginaryN | I | PI ;
 imaginaryN          : realN I ;
 realN               : floatN | intN ;
 

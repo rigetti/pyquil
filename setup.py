@@ -25,19 +25,16 @@ setup(
     author_email="softapps@rigetti.com",
     description="A Python library to generate Quantum Instruction Language (Quil) Programs.",
     url="https://github.com/rigetticomputing/pyquil.git",
-    packages=['pyquil', 'pyquil.setup'],
+    packages=['pyquil', 'pyquil._parser', 'pyquil.setup'],
     license="LICENSE",
     install_requires=[
         'requests >= 2.4.2',
         'numpy >= 1.10',
         'matplotlib >= 1.5',
         'urllib3 >= 1.21.1',
+        "antlr4-python2-runtime>=4.7; python_version < '3'",
+        "antlr4-python3-runtime>=4.7; python_version >= '3'",
     ],
-    extras_requires={
-        # See this blog post: https://hynek.me/articles/conditional-python-dependencies/
-        ":python_version<'3'": ['antlr4-python2-runtime>=4.7'],
-        ":python_version>='3'": ['antlr4-python3-runtime>=4.7']
-    },
     setup_requires=['pytest-runner'],
     tests_require=[
         'pytest >= 3.0.0',
