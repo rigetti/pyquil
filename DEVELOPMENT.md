@@ -20,3 +20,11 @@ sphinx-build -b html docs/source docs/_build
 To view the docs navigate to the newly-created `docs/_build` directory and open
 the `index.html` file in a browser. Note that we use the Read the Docs theme for
 our documentation, so this may need to be installed using `pip install sphinx_rtd_theme`.
+
+## Working with the parser
+
+Working with the ANTLR parser involves some extra steps, 
+see [pyquil/_parser/README.md](pyquil/_parser/README.md).
+
+Note that you only need to install ANTLR if you want to change the grammar, simply running the parser involves no extra
+steps beyond installing PyQuil as usual.
