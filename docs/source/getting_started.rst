@@ -46,9 +46,10 @@ Before you can start writing quantum programs, you will need Python 2.7
 Python package manager pip.
 
 .. note::
-PyQuil works on both Python 2 and 3. However, Rigetti **strongly** recommends
-using Python 3 if possible. Future feature developments in PyQuil may support
-Python 3 only.
+
+    PyQuil works on both Python 2 and 3. However, Rigetti **strongly** recommends
+    using Python 3 if possible. Future feature developments in PyQuil may support
+    Python 3 only.
 
 
 Installation
@@ -1002,8 +1003,29 @@ Once the job is finished, then the results can be retrieved from the JobResult o
 
   <type 'list'> [[1]]
 
-This same pattern applies to the ``wavefunction``, ``expectation``, and ``run_and_measure`` calls
-on the JobConnection object.
+
+Optimized Calls
+---------------
+
+This same pattern as above applies to the :meth:`~pyquil.api.JobConnection.wavefunction`,
+:meth:`~pyquil.api.JobConnection.expectation` and
+:meth:`~pyquil.api.JobConnection.run_and_measure`
+calls on any :class:`~pyquil.api.JobConnection` or :class:`~pyquil.api.SyncConnection` object.
+These are very useful if used appropriately: They all execute a given program *once and only once*
+and then either return the final wavefunction or use it to generate expectation values or a
+specified number of random bitstring samples.
+
+.. warning::
+
+    This behavior can have unexpected consequences if the program that prepares the final state
+    is non-deterministic, e.g., if it contains measurements and/or noisy gate applications.
+    In this case, the final state after the program execution is itself a random variable
+    and a single call to these functions therefore **cannot** sample the full space of outcomes.
+    Therefore, if the program is non-deterministic and sampling the full program output distribution
+    is important for the application at hand, we recommend using the basic
+    :meth:`~pyquil.api.JobConnection.run` API function as this re-runs the full program for every
+    requested trial.
+
 
 Exercises
 ---------
