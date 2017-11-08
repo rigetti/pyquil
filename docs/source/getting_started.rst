@@ -1002,8 +1002,23 @@ Once the job is finished, then the results can be retrieved from the JobResult o
 
   <type 'list'> [[1]]
 
-This same pattern applies to the ``wavefunction``, ``expectation``, and ``run_and_measure`` calls
-on the JobConnection object.
+
+Optimized Calls
+~~~~~~~~~~~~~~~
+
+This same pattern as above applies to the ``wavefunction``, ``expectation``, and ``run_and_measure``
+calls on the JobConnection object.
+These are very useful if used appropriately: They all function by executing a given program once
+and then either returning the final wavefunction or using it to generate
+expectation values or a specified number bitstring samples.
+
+.. warning::
+
+    This behavior can have unexpected consequences if the program that prepares the final state
+    is non-deterministic, e.g., if it contains measurements and/or noisy gate applications.
+    In this case, the final state after the program execution is itself a random variable
+    and a single call to these functions therefore **cannot** sample the full space of outcomes.
+
 
 Exercises
 ---------
