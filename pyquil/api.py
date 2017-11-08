@@ -283,6 +283,12 @@ class JobConnection(object):
         """
         Simulate a Quil program and get the wavefunction back.
 
+        :note: If the execution of ``quil_program`` is **non-deterministic**, i.e., if it includes
+            measurements and/or noisy quantum gates, then the final wavefunction from which the
+            returned bitstrings are sampled itself only represents a stochastically generated sample
+            and the wavefunctions returned by *different* ``wavefunction`` calls *will generally be
+            different*.
+
         :param Program quil_program: A Quil program.
         :param list classical_addresses: An optional list of classical addresses.
         :return: A tuple whose first element is a Wavefunction object,
