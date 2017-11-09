@@ -50,9 +50,8 @@ def _create_kraus_pragmas(name, qubit_indices, kraus_ops):
     :rtype: str
     """
 
-    prefix = "PRAGMA ADD-KRAUS {} {}".format(name, " ".join(map(str, qubit_indices)))
     pragmas = [Pragma("ADD-KRAUS",
-                      qubit_indices,
+                      [name] + list(qubit_indices),
                       "({})".format(" ".join(map(format_parameter, np.ravel(k)))))
                for k in kraus_ops]
     return pragmas

@@ -520,11 +520,11 @@ def test_kraus():
 
     ret = pq.out()
     assert ret == """X 0
-PRAGMA ADD-KRAUS 0 "(0.0+0.0i 1.0+0.0i 1.0+0.0i 0.0+0.0i)"
-PRAGMA ADD-KRAUS 0 "(0.0+0.0i 0.0+0.0i 0.0+0.0i 0.0+0.0i)"
+PRAGMA ADD-KRAUS X 0 "(0.0+0.0i 1.0+0.0i 1.0+0.0i 0.0+0.0i)"
+PRAGMA ADD-KRAUS X 0 "(0.0+0.0i 0.0+0.0i 0.0+0.0i 0.0+0.0i)"
 X 1
-PRAGMA ADD-KRAUS 1 "(0.0+0.0i 1.0+0.0i 1.0+0.0i 0.0+0.0i)"
-PRAGMA ADD-KRAUS 1 "(0.0+0.0i 0.0+0.0i 0.0+0.0i 0.0+0.0i)"
+PRAGMA ADD-KRAUS X 1 "(0.0+0.0i 1.0+0.0i 1.0+0.0i 0.0+0.0i)"
+PRAGMA ADD-KRAUS X 1 "(0.0+0.0i 0.0+0.0i 0.0+0.0i 0.0+0.0i)"
 """
     # test error due to bad normalization
     with pytest.raises(ValueError):
