@@ -25,7 +25,7 @@ setup(
     author_email="softapps@rigetti.com",
     description="A Python library to generate Quantum Instruction Language (Quil) Programs.",
     url="https://github.com/rigetticomputing/pyquil.git",
-    packages=['pyquil', 'pyquil._parser', 'pyquil.setup'],
+    packages=['pyquil', 'pyquil._parser', 'pyquil._parser.gen2', 'pyquil._parser.gen3', 'pyquil.setup'],
     license="LICENSE",
     install_requires=[
         'requests >= 2.4.2',
