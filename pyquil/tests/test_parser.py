@@ -74,6 +74,7 @@ def test_expressions():
     # Exponential
     _expr("1e3", 1000.0)
     _expr("1.5e2", 150.0)
+    _expr("3.5919865395417361e-05", 3.5919865395417361e-05)
 
     # Complex
     _expr("123.456i", complex(0, 123.456))

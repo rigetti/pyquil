@@ -177,7 +177,7 @@ IDENTIFIER          : [A-Za-z_] [A-Za-z0-9\-_]* ;
 // Numbers
 
 UNSIGNED_INT        : [0-9]+ ;
-UNSIGNED_FLOAT      : [0-9]+ ('.' [0-9]+)? ('e' [0-9]+)? ;
+UNSIGNED_FLOAT      : [0-9]+ ('.' [0-9]+)? ('e' ('+' | '-')? [0-9]+)? ;
 
 // String
 

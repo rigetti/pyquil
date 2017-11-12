@@ -56,7 +56,7 @@ def run_parser(quil):
 class CustomErrorListener(ErrorListener):
     def syntaxError(self, recognizer, offendingSymbol, line, column, msg, e):
         # type: (QuilParser, CommonToken, int, int, str, InputMismatchException) -> None
-        expected_tokens = self.get_expected_tokens(recognizer, e.getExpectedTokens())
+        expected_tokens = self.get_expected_tokens(recognizer, e.getExpectedTokens()) if e else []
 
         raise RuntimeError(
             "Error encountered while parsing the quil program at line {} and column {}\n".format(line, column + 1) +
