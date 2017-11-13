@@ -14,8 +14,7 @@ from numpy.ma import sin, cos, sqrt, exp
 from pyquil.gates import STANDARD_GATES
 from pyquil.quilbase import Gate, DefGate, Measurement, Addr, JumpTarget, Label, Halt, Jump, JumpWhen, JumpUnless, \
     Reset, Wait, ClassicalTrue, ClassicalFalse, ClassicalNot, ClassicalAnd, ClassicalOr, ClassicalMove, \
-    ClassicalExchange, Nop, RawInstr
-from pyquil.resource_manager import DirectQubit
+    ClassicalExchange, Nop, RawInstr, Qubit
 
 if sys.version_info.major == 2:
     from .gen2.QuilLexer import QuilLexer
@@ -191,8 +190,8 @@ Helper functions for converting from ANTLR internals to PyQuil objects
 
 
 def _qubit(qubit):
-    # type: (QuilParser.QubitContext) -> DirectQubit
-    return DirectQubit(int(qubit.getText()))
+    # type: (QuilParser.QubitContext) -> Qubit
+    return Qubit(int(qubit.getText()))
 
 
 def _param(param):

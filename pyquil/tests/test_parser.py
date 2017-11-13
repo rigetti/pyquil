@@ -20,12 +20,12 @@ import pytest
 
 from pyquil.gates import *
 from pyquil.parser import parse
-from pyquil.quilbase import Label, JumpTarget, Jump, JumpWhen, JumpUnless, RawInstr, DefGate
+from pyquil.quilbase import Label, JumpTarget, Jump, JumpWhen, JumpUnless, RawInstr, DefGate, Qubit
 
 
 def test_simple_gate():
-    _test("A 0", Gate("A", [], [DirectQubit(0)]))
-    _test("A 1 10 100", Gate("A", [], [DirectQubit(1), DirectQubit(10), DirectQubit(100)]))
+    _test("A 0", Gate("A", [], [Qubit(0)]))
+    _test("A 1 10 100", Gate("A", [], [Qubit(1), Qubit(10), Qubit(100)]))
 
 
 def test_standard_gates():
@@ -55,8 +55,8 @@ DEFGATE HADAMARD:
 def test_parameters():
     _test("RX(123) 0", RX(123)(0))
     _test("CPHASE00(0) 0 1", CPHASE00(0)(0, 1))
-    _test("A(8,9) 0", Gate("A", [8, 9], [DirectQubit(0)]))
-    _test("A(8, 9) 0", Gate("A", [8, 9], [DirectQubit(0)]))
+    _test("A(8,9) 0", Gate("A", [8, 9], [Qubit(0)]))
+    _test("A(8, 9) 0", Gate("A", [8, 9], [Qubit(0)]))
 
 
 def test_expressions():

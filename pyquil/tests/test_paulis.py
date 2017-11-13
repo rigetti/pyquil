@@ -34,26 +34,6 @@ def isclose(a, b, rel_tol=1e-10, abs_tol=0.0):
     return abs(a - b) <= max(rel_tol * max(abs(a), abs(b)), abs_tol)
 
 
-def compare_progs(test, reference):
-    """
-    compares two programs gate by gate, param by param
-    """
-    tinstr = test.actions
-    rinstr = reference.actions
-    assert len(tinstr) == len(rinstr)
-    for idx in range(len(tinstr)):
-        # check each field of the instruction object
-        assert tinstr[idx][1].operator_name == rinstr[idx][1].operator_name
-        assert len(tinstr[idx][1].parameters) == len(rinstr[idx][1].parameters)
-        for pp in range(len(tinstr[idx][1].parameters)):
-            cmp_val = isclose(tinstr[idx][1].parameters[pp], rinstr[idx][1].parameters[pp])
-            assert cmp_val
-
-        assert len(tinstr[idx][1].arguments) == len(rinstr[idx][1].arguments)
-        for aa in range(len(tinstr[idx][1].arguments)):
-            assert tinstr[idx][1].arguments[aa] == rinstr[idx][1].arguments[aa]
-
-
 def test_init_pauli_term():
     with pytest.raises(ValueError):
         PauliTerm('X', 0, 'a')
@@ -286,14 +266,14 @@ def test_exponentiate():
     para_prog = exponential_map(generator)
     prog = para_prog(1)
     result_prog = Program().inst(RZ(2.0)(0))
-    compare_progs(prog, result_prog)
+    assert prog == result_prog
 
     # testing general 2-circuit
     generator = PauliTerm("Z", 1, 1.0) * PauliTerm("Z", 0, 1.0)
     para_prog = exponential_map(generator)
     prog = para_prog(1)
     result_prog = Program().inst(CNOT(0, 1)).inst(RZ(2.0)(1)).inst(CNOT(0, 1))
-    compare_progs(prog, result_prog)
+    assert prog == result_prog
 
     # testing change of basis position 0
     generator = PauliTerm("Z", 1, 1.0) * PauliTerm("X", 0, 1.0)
@@ -301,7 +281,7 @@ def test_exponentiate():
     prog = param_prog(1)
     result_prog = Program().inst([H(0), CNOT(0, 1), RZ(2.0)(1), CNOT(0, 1),
                                   H(0)])
-    compare_progs(prog, result_prog)
+    assert prog == result_prog
 
     # testing change of basis position 1
     generator = PauliTerm("X", 1, 1.0) * PauliTerm("Z", 0, 1.0)
@@ -309,7 +289,7 @@ def test_exponentiate():
     prog = para_prog(1)
     result_prog = Program().inst([H(1), CNOT(0, 1), RZ(2.0)(1), CNOT(0, 1),
                                   H(1)])
-    compare_progs(prog, result_prog)
+    assert prog == result_prog
 
     # testing change of basis position 0
     generator = PauliTerm("Z", 1, 1.0) * PauliTerm("Y", 0, 1.0)
@@ -317,7 +297,7 @@ def test_exponentiate():
     prog = para_prog(1)
     result_prog = Program().inst([RX(math.pi / 2.0)(0), CNOT(0, 1), RZ(2.0)(1),
                                   CNOT(0, 1), RX(-math.pi / 2)(0)])
-    compare_progs(prog, result_prog)
+    assert prog == result_prog
 
     # testing change of basis position 1
     generator = PauliTerm("Y", 1, 1.0) * PauliTerm("Z", 0, 1.0)
@@ -325,7 +305,7 @@ def test_exponentiate():
     prog = para_prog(1)
     result_prog = Program().inst([RX(math.pi / 2.0)(1), CNOT(0, 1), RZ(2.0)(1),
                                   CNOT(0, 1), RX(-math.pi / 2.0)(1)])
-    compare_progs(prog, result_prog)
+    assert prog == result_prog
 
     # testing circuit for 3-terms with change of basis
     generator = PauliTerm("X", 2, 1.0) * PauliTerm("Y", 1, 1.0) * PauliTerm("Z", 0, 1.0)
@@ -334,7 +314,7 @@ def test_exponentiate():
     result_prog = Program().inst([RX(math.pi / 2.0)(1), H(2), CNOT(0, 1),
                                   CNOT(1, 2), RZ(2.0)(2), CNOT(1, 2),
                                   CNOT(0, 1), RX(-math.pi / 2.0)(1), H(2)])
-    compare_progs(prog, result_prog)
+    assert prog == result_prog
 
     # testing circuit for 3-terms non-sequential
     generator = PauliTerm("Y", 3, 1.0) * PauliTerm("Y", 2, 1.0) * PauliTerm("I", 1,
@@ -347,34 +327,34 @@ def test_exponentiate():
                                   CNOT(2, 3), RZ(2.0)(3), CNOT(2, 3),
                                   CNOT(0, 2), RX(-math.pi / 2.0)(0),
                                   RX(-math.pi / 2.0)(2), RX(-math.pi / 2.0)(3)])
-    compare_progs(prog, result_prog)
+    assert prog == result_prog
 
 
 def test_exponentiate_prog():
     ham = PauliTerm("Z", 0)
     result_prog = Program(RZ(2.0, 0))
     prog = exponentiate(ham)
-    compare_progs(result_prog, prog)
+    assert prog == result_prog
 
 
 def test_exponentiate_identity():
     generator = PauliTerm("I", 1, 0.0)
     para_prog = exponential_map(generator)
     prog = para_prog(1)
-    result_prog = Program().inst([X(0), PHASE(0)(0), X(0), PHASE(0)(0)])
-    compare_progs(prog, result_prog)
+    result_prog = Program().inst([X(0), PHASE(-0.0)(0), X(0), PHASE(-0.0)(0)])
+    assert prog == result_prog
 
     generator = PauliTerm("I", 1, 1.0)
     para_prog = exponential_map(generator)
     prog = para_prog(1)
     result_prog = Program().inst([X(0), PHASE(-1.0)(0), X(0), PHASE(-1.0)(0)])
-    compare_progs(prog, result_prog)
+    assert prog == result_prog
 
     generator = PauliTerm("I", 10, 0.08)
     para_prog = exponential_map(generator)
     prog = para_prog(1)
     result_prog = Program().inst([X(0), PHASE(-0.08)(0), X(0), PHASE(-0.08)(0)])
-    compare_progs(prog, result_prog)
+    assert prog == result_prog
 
 
 def test_trotterize():
@@ -389,24 +369,24 @@ def test_trotterize():
     prog = trotterize(term_one, term_one)
     result_prog = Program().inst([H(0), RZ(2.0)(0), H(0), H(0),
                                   RZ(2.0)(0), H(0)])
-    compare_progs(prog, result_prog)
+    assert prog == result_prog
 
     # trotter_order 1 steps 1
     prog = trotterize(term_one, term_two, trotter_steps=1)
     result_prog = Program().inst([H(0), RZ(2.0)(0), H(0), RZ(2.0)(0)])
-    compare_progs(prog, result_prog)
+    assert prog == result_prog
 
     # trotter_order 1 steps 2
     prog = trotterize(term_one, term_two, trotter_steps=2)
     result_prog = Program().inst([H(0), RZ(1.0)(0), H(0), RZ(1.0)(0),
                                   H(0), RZ(1.0)(0), H(0), RZ(1.0)(0)])
-    compare_progs(prog, result_prog)
+    assert prog == result_prog
 
     # trotter_order 2 steps 1
     prog = trotterize(term_one, term_two, trotter_order=2)
     result_prog = Program().inst([H(0), RZ(1.0)(0), H(0), RZ(2.0)(0),
                                   H(0), RZ(1.0)(0), H(0)])
-    compare_progs(prog, result_prog)
+    assert prog == result_prog
 
     # trotter_order 2 steps 2
     prog = trotterize(term_one, term_two, trotter_order=2, trotter_steps=2)
@@ -414,14 +394,14 @@ def test_trotterize():
                                   H(0), RZ(0.5)(0), H(0),
                                   H(0), RZ(0.5)(0), H(0), RZ(1.0)(0),
                                   H(0), RZ(0.5)(0), H(0)])
-    compare_progs(prog, result_prog)
+    assert prog == result_prog
 
     # trotter_order 3 steps 1
     prog = trotterize(term_one, term_two, trotter_order=3, trotter_steps=1)
     result_prog = Program().inst([H(0), RZ(14.0 / 24)(0), H(0), RZ(4.0 / 3.0)(0),
                                   H(0), RZ(1.5)(0), H(0), RZ(-4.0 / 3.0)(0),
                                   H(0), RZ(-2.0 / 24)(0), H(0), RZ(2.0)(0)])
-    compare_progs(prog, result_prog)
+    assert prog == result_prog
 
 
 def test_is_zeron():

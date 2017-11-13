@@ -178,7 +178,7 @@ class Measurement(AbstractInstruction):
     def __init__(self, qubit, classical_reg=None):
         if not isinstance(qubit, Qubit):
             raise TypeError("qubit should be a Qubit")
-        if not isinstance(classical_reg, Addr):
+        if classical_reg and not isinstance(classical_reg, Addr):
             raise TypeError("classical_reg should be None or an Addr instance")
 
         self.qubit = qubit
