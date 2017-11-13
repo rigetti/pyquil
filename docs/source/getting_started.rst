@@ -183,7 +183,7 @@ gates for pyQuil as well as numpy.
 
 Next, we want to open a connection to the QVM. Forest supports two types of connections through
 pyQuil.  The first is a synchronous connection that immediately runs requested jobs against the QVM.
-This will time out on longer jobs that run for more than 30 seconds. Synchronous connections are good
+This will time out on longer jobs that run for more than 5 seconds. Synchronous connections are good
 for experimenting interactively as they give quick feedback.
 
 .. code:: python
@@ -959,7 +959,7 @@ calculation so that it can be used later with new values.
 
 JobConnections
 --------------
-Larger pyQuil programs can take longer than 30 seconds to run.  These jobs can be posted into the
+Larger pyQuil programs can take longer than 5 seconds to run.  These jobs can be posted into the
 cloud job queue using a different connection object.  The mode of interaction with the API is
 asynchronous.  This means that there is a seperate query to post a job and to get the result.
 
