@@ -1,6 +1,6 @@
 #!/usr/bin/python
 ##############################################################################
-# Copyrpht 2016-2017 Rpetti Computing
+# Copyright 2016-2017 Rigetti Computing
 #
 #    Licensed under the Apache License, Version 2.0 (the "License");
 #    you may not use this file except in compliance with the License.
@@ -49,14 +49,14 @@ def test_defgate():
 
 
 def test_defgate_non_square_should_throw_error():
-    with pytest.raises(AssertionError) as error_info:
+    with pytest.raises(ValueError) as error_info:
         DefGate("TEST", np.array([[0 + 0.5j, 0.5, 1],
                                   [0.5, 0 - 0.5j, 1]]))
     assert str(error_info.value) == "Matrix must be square."
 
 
 def test_defgate_non_unitary_should_throw_error():
-    with pytest.raises(AssertionError) as error_info:
+    with pytest.raises(ValueError) as error_info:
         DefGate("TEST", np.array([[0, 1],
                                   [2, 3]]))
     assert str(error_info.value) == "Matrix must be unitary."
@@ -164,7 +164,7 @@ def test_program_string():
     p.inst("Y 0",
            "X 1", )
     assert len(p.instructions) == 2
-    assert all(isinstance(i, RawInstr) for i in p.instructions)
+    assert p.instructions == [Y(0), X(1)]
     assert p.out() == "Y 0\nX 1\n"
 
 

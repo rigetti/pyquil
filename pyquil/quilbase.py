@@ -144,6 +144,12 @@ class AbstractInstruction(object):
         return hash(self.out())
 
 
+RESERVED_WORDS = ['DEFGATE', 'DEFCIRCUIT', 'MEASURE',
+                  'LABEL', 'HALT', 'JUMP', 'JUMP-WHEN', 'JUMP-UNLESS',
+                  'RESET', 'WAIT', 'NOP', 'INCLUDE', 'PRAGMA',
+                  'FALSE', 'TRUE', 'NOT', 'AND', 'OR', 'MOVE', 'EXCHANGE']
+
+
 class Gate(AbstractInstruction):
     """
     This is the pyQuil object for a quantum gate instruction.
@@ -152,6 +158,9 @@ class Gate(AbstractInstruction):
     def __init__(self, name, params, qubits):
         if not isinstance(name, str):
             raise TypeError("Gate name must be a string")
+
+        if name in RESERVED_WORDS:
+            raise ValueError("Cannot use {} for a gate name since it's a reserved word".format(name))
 
         if not isinstance(params, list):
             raise TypeError("Gate params must be a list")
@@ -212,26 +221,31 @@ class DefGate(AbstractInstruction):
     """
 
     def __init__(self, name, matrix):
-        assert isinstance(name, str)
-        assert isinstance(matrix, (list, np.ndarray, np.matrix))
+        if not isinstance(name, str):
+            raise TypeError("Gate name must be a string")
+
+        if name in RESERVED_WORDS:
+            raise ValueError("Cannot use {} for a gate name since it's a reserved word".format(name))
+
         if isinstance(matrix, list):
             rows = len(matrix)
-            assert all([len(row) == rows for row in matrix]), "Matrix must be square."
+            if not all([len(row) == rows for row in matrix]):
+                raise ValueError("Matrix must be square.")
         elif isinstance(matrix, (np.ndarray, np.matrix)):
             rows, cols = matrix.shape
-            assert rows == cols, "Matrix must be square."
+            if rows != cols:
+                raise ValueError("Matrix must be square.")
         else:
             raise TypeError("Matrix argument must be a list or NumPy array/matrix")
 
         if 0 != rows & (rows - 1):
-            raise AssertionError("Dimension of matrix must be a power of 2, got {0}"
-                                 .format(rows))
+            raise ValueError("Dimension of matrix must be a power of 2, got {0}".format(rows))
         self.name = name
         self.matrix = np.asarray(matrix)
 
         is_unitary = np.allclose(np.eye(rows), self.matrix.dot(self.matrix.T.conj()))
         if not is_unitary:
-            raise AssertionError("Matrix must be unitary.")
+            raise ValueError("Matrix must be unitary.")
 
     def out(self):
         """

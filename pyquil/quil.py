@@ -21,6 +21,7 @@ from math import pi
 
 import numpy as np
 
+from pyquil._parser.PyQuilListener import run_parser
 from pyquil.kraus import _check_kraus_ops, _create_kraus_pragmas
 from .gates import MEASURE, STANDARD_GATES, H
 from .quilbase import (DefGate, Gate, Measurement, Pragma, RawInstr, AbstractInstruction, Qubit,
@@ -82,16 +83,22 @@ class Program(object):
                     self.inst(instruction[0])
                 else:
                     op = instruction[0]
-                    params = []
-                    possible_params = instruction[1]
-                    rest = instruction[2:]
-                    if isinstance(possible_params, list):
-                        params = possible_params
+                    if op == "MEASURE":
+                        if len(instruction) == 2:
+                            self.measure(instruction[1])
+                        else:
+                            self.measure(instruction[1], instruction[2])
                     else:
-                        rest = [possible_params] + list(rest)
-                    self.gate(op, params, rest)
+                        params = []
+                        possible_params = instruction[1]
+                        rest = instruction[2:]
+                        if isinstance(possible_params, list):
+                            params = possible_params
+                        else:
+                            rest = [possible_params] + list(rest)
+                        self.gate(op, params, rest)
             elif isinstance(instruction, str):
-                self._instructions.append(RawInstr(instruction))
+                self.inst(run_parser(instruction.strip()))
             elif isinstance(instruction, DefGate):
                 self._defined_gates.append(instruction)
             elif isinstance(instruction, AbstractInstruction):
@@ -154,7 +161,7 @@ class Program(object):
         """
         return self.inst(Pragma("NO-NOISE"))
 
-    def measure(self, qubit_index, classical_reg):
+    def measure(self, qubit_index, classical_reg=None):
         """
         Measures a qubit at qubit_index and puts the result in classical_reg
 
@@ -186,21 +193,22 @@ class Program(object):
         """
         While a classical register at index classical_reg is 1, loop q_program
 
+        Equivalent to the following construction:
+
+        WHILE [c]:
+           instr...
+        =>
+          LABEL @START
+          JUMP-UNLESS @END [c]
+          instr...
+          JUMP @START
+          LABEL @END
+
         :param int classical_reg: The classical register to check
         :param Program q_program: The Quil program to loop.
         :return: The Quil Program with the loop instructions added.
         :rtype: Program
         """
-        # WHILE [c]:
-        #    instr...
-        #
-        # =>
-        #
-        #   LABEL @START
-        #   JUMP-UNLESS @END [c]
-        #   instr...
-        #   JUMP @START
-        #   LABEL @END
         label_start = LabelPlaceholder("START")
         label_end = LabelPlaceholder("END")
         self.inst(JumpTarget(label_start))
@@ -215,6 +223,19 @@ class Program(object):
         If the classical register at index classical reg is 1, run if_program, else run
         else_program.
 
+        Equivalent to the following construction:
+        IF [c]:
+           instrA...
+        ELSE:
+           instrB...
+        =>
+          JUMP-WHEN @THEN [c]
+          instrB...
+          JUMP @END
+          LABEL @THEN
+          instrA...
+          LABEL @END
+
         :param int classical_reg: The classical register to check as the condition
         :param Program if_program: A Quil program to execute if classical_reg is 1
         :param Program else_program: A Quil program to execute if classical_reg is 0. This
@@ -224,19 +245,6 @@ class Program(object):
         """
         else_program = else_program if else_program is not None else Program()
 
-        # IF [c]:
-        #    instrA...
-        # ELSE:
-        #    instrB...
-        #
-        # =>
-        #
-        #   JUMP-WHEN @THEN [c]
-        #   instrB...
-        #   JUMP @END
-        #   LABEL @THEN
-        #   instrA...
-        #   LABEL @END
         label_then = LabelPlaceholder("THEN")
         label_end = LabelPlaceholder("END")
         self.inst(JumpWhen(target=label_then, condition=Addr(classical_reg)))
@@ -280,6 +288,7 @@ class Program(object):
             >>> p.get_qubits()
             {1}
             >>> q = p.alloc()
+            >>> p.inst(H(q))
             >>> len(p.get_qubits())
             2
 
@@ -455,6 +464,7 @@ class Program(object):
     def __getitem__(self, index):
         """
         Allows indexing into the program to get an action.
+
         :param index: The action at the specified index.
         :return:
         """
@@ -463,6 +473,7 @@ class Program(object):
     def __iter__(self):
         """
         Allow built in iteration through a program's instructions, e.g. [a for a in Program(X(0))]
+
         :return:
         """
         return self.instructions.__iter__()
