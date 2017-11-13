@@ -117,8 +117,7 @@ class Program(object):
         :return: The Program instance
         :rtype: Program
         """
-        self._instructions.append(Gate(name, params, [unpack_qubit(q) for q in qubits]))
-        return self
+        return self.inst(Gate(name, params, [unpack_qubit(q) for q in qubits]))
 
     def defgate(self, name, matrix):
         """
@@ -144,8 +143,7 @@ class Program(object):
         """
         kraus_ops = [np.asarray(k, dtype=np.complex128) for k in kraus_ops]
         _check_kraus_ops(len(qubit_indices), kraus_ops)
-        self.inst(_create_kraus_pragmas(name, tuple(qubit_indices), kraus_ops))
-        return self
+        return self.inst(_create_kraus_pragmas(name, tuple(qubit_indices), kraus_ops))
 
     def no_noise(self):
         """
@@ -154,8 +152,7 @@ class Program(object):
 
         :return: Program
         """
-        self.inst(Pragma("NO-NOISE"))
-        return self
+        return self.inst(Pragma("NO-NOISE"))
 
     def measure(self, qubit_index, classical_reg):
         """
@@ -335,7 +332,7 @@ class Program(object):
             if inv_dict is None or gate.name not in inv_dict:
                 daggered.defgate(gate.name + suffix, gate.matrix.T.conj())
 
-        for gate in self.instructions[::-1]:
+        for gate in reversed(self.instructions):
             if gate.name in STANDARD_GATES:
                 if gate.name == "S":
                     daggered.inst(STANDARD_GATES["PHASE"](-pi / 2, *gate.qubits))
@@ -452,7 +449,8 @@ class Program(object):
         """
         p = Program()
         p.inst(self)
-        return p.inst(other)
+        p.inst(other)
+        return p
 
     def __getitem__(self, index):
         """
