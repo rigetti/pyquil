@@ -14,13 +14,11 @@
 #    limitations under the License.
 ##############################################################################
 import numpy as np
-import sys
-
 import pytest
 
 from pyquil.gates import *
 from pyquil.parser import parse
-from pyquil.quilbase import Label, JumpTarget, Jump, JumpWhen, JumpUnless, RawInstr, DefGate, Qubit, Pragma
+from pyquil.quilbase import Label, JumpTarget, Jump, JumpWhen, JumpUnless, DefGate, Qubit, Pragma
 
 
 def test_simple_gate():
@@ -142,6 +140,7 @@ def test_classical():
 def test_pragma():
     _test('PRAGMA gate_time H "10 ns"', Pragma('gate_time', ['H'], '10 ns'))
     _test('PRAGMA qubit 0', Pragma('qubit', [0]))
+    _test('PRAGMA NO-NOISE', Pragma('NO-NOISE'))
 
 
 def test_invalid():
@@ -150,7 +149,4 @@ def test_invalid():
 
 
 def _test(quil_string, *instructions):
-    # Currently doesn't support Python 2
-    if sys.version_info.major == 2:
-        return
     assert parse(quil_string) == list(instructions)

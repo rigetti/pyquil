@@ -20,6 +20,7 @@ from itertools import count
 from math import pi
 
 import numpy as np
+from six import string_types
 
 from pyquil._parser.PyQuilListener import run_parser
 from pyquil.kraus import _check_kraus_ops, _create_kraus_pragmas
@@ -97,7 +98,7 @@ class Program(object):
                         else:
                             rest = [possible_params] + list(rest)
                         self.gate(op, params, rest)
-            elif isinstance(instruction, str):
+            elif isinstance(instruction, string_types):
                 self.inst(run_parser(instruction.strip()))
             elif isinstance(instruction, DefGate):
                 self._defined_gates.append(instruction)

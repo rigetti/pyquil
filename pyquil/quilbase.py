@@ -19,7 +19,7 @@ Contains the core pyQuil objects that correspond to Quil instructions.
 
 import numpy as np
 from .slot import Slot
-from six import integer_types
+from six import integer_types, string_types
 
 
 class QuilAtom(object):
@@ -156,7 +156,7 @@ class Gate(AbstractInstruction):
     """
 
     def __init__(self, name, params, qubits):
-        if not isinstance(name, str):
+        if not isinstance(name, string_types):
             raise TypeError("Gate name must be a string")
 
         if name in RESERVED_WORDS:
@@ -221,7 +221,7 @@ class DefGate(AbstractInstruction):
     """
 
     def __init__(self, name, matrix):
-        if not isinstance(name, str):
+        if not isinstance(name, string_types):
             raise TypeError("Gate name must be a string")
 
         if name in RESERVED_WORDS:
@@ -262,7 +262,7 @@ class DefGate(AbstractInstruction):
             """
             if isinstance(element, integer_types) or isinstance(element, (float, complex)):
                 return format_parameter(element)
-            elif isinstance(element, str):
+            elif isinstance(element, string_types):
                 return element
             else:
                 raise TypeError("Invalid matrix element: %r" % element)
@@ -460,16 +460,16 @@ class Pragma(AbstractInstruction):
     """
 
     def __init__(self, command, args=(), freeform_string=""):
-        if not isinstance(command, str):
+        if not isinstance(command, string_types):
             raise TypeError("Pragma's require an identifier.")
 
         if not isinstance(args, (tuple, list)):
             raise TypeError("Pragma arguments must be a list: {}".format(args))
         for a in args:
-            if not isinstance(a, (str, int)):
+            if not (isinstance(a, string_types) or isinstance(a, integer_types)):
                 raise TypeError("Pragma arguments must be strings or integers: {}".format(a))
 
-        if not isinstance(freeform_string, str):
+        if not isinstance(freeform_string, string_types):
             raise TypeError("The freeform string argument must be a string: {}".format(
                 freeform_string))
 
@@ -495,7 +495,7 @@ class RawInstr(AbstractInstruction):
     """
 
     def __init__(self, instr_str):
-        if not isinstance(instr_str, str):
+        if not isinstance(instr_str, string_types):
             raise TypeError("Raw instructions require a string.")
         self.instr = instr_str
 
