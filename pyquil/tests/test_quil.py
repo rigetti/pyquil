@@ -1,6 +1,6 @@
 #!/usr/bin/python
 ##############################################################################
-# Copyright 2016-2017 Rigetti Computing
+# Copyrpht 2016-2017 Rpetti Computing
 #
 #    Licensed under the Apache License, Version 2.0 (the "License");
 #    you may not use this file except in compliance with the License.
@@ -15,18 +15,17 @@
 #    limitations under the License.
 ##############################################################################
 
+from math import pi
+
+import numpy as np
+import pytest
+
 import pyquil.api as qvm_endpoint
-from pyquil.quil import Program, merge_programs
-from pyquil.quilbase import DirectQubit
 from pyquil.gates import I, X, Y, Z, H, T, S, RX, RY, RZ, CNOT, CCNOT, PHASE, CPHASE00, CPHASE01, \
     CPHASE10, CPHASE, SWAP, CSWAP, ISWAP, PSWAP, MEASURE, HALT, WAIT, NOP, RESET, \
     TRUE, FALSE, NOT, AND, OR, MOVE, EXCHANGE
-from pyquil.quilbase import InstructionGroup, DefGate, Gate, reset_label_counter, RawInstr, Addr
-
-import pytest
-
-import numpy as np
-from math import pi, sqrt
+from pyquil.quil import Program, merge_programs
+from pyquil.quilbase import DefGate, Gate, RawInstr, Addr, Qubit
 
 
 def test_make_connection():
@@ -34,7 +33,7 @@ def test_make_connection():
 
 
 def test_gate():
-    tg = Gate("TEST", qubits=(DirectQubit(1), DirectQubit(2)), params=[])
+    tg = Gate("TEST", qubits=[Qubit(1), Qubit(2)], params=[])
     assert tg.out() == "TEST 1 2"
 
 
@@ -43,7 +42,7 @@ def test_defgate():
                                    [0., 1.]]))
     assert dg.out() == "DEFGATE TEST:\n    1.0, 0.0\n    0.0, 1.0\n"
     test = dg.get_constructor()
-    tg = test(DirectQubit(1), DirectQubit(2))
+    tg = test(Qubit(1), Qubit(2))
     assert tg.out() == "TEST 1 2"
     tg = test(1, 2)
     assert tg.out() == "TEST 1 2"
@@ -67,43 +66,36 @@ def test_defgate_param():
     dgp = DefGate("TEST", [[1., 0.], [0., 1.]])
     assert dgp.out() == "DEFGATE TEST:\n    1.0, 0.0\n    0.0, 1.0\n"
     test = dgp.get_constructor()
-    tg = test(DirectQubit(1))
+    tg = test(Qubit(1))
     assert tg.out() == "TEST 1"
 
 
-def test_instruction_group_gates():
-    ig = InstructionGroup()
-    ig.inst(H(0), X(1))
-    assert len(ig.actions) == 2
-    assert ig.out() == "H 0\nX 1\n"
+def test_inst_gates():
+    p = Program()
+    p.inst(H(0), X(1))
+    assert len(p) == 2
+    assert p.out() == "H 0\nX 1\n"
 
 
-def test_instruction_group_tuple():
-    ig = InstructionGroup()
-    ig.inst(("Y", 0),
-            ("X", 1))
-    assert len(ig.actions) == 2
-    assert ig.out() == "Y 0\nX 1\n"
+def test_inst_tuple():
+    p = Program()
+    p.inst(("Y", 0),
+           ("X", 1))
+    assert len(p) == 2
+    assert p.out() == "Y 0\nX 1\n"
 
 
-def test_instruction_group_string():
-    ig = InstructionGroup()
-    ig.inst("Y 0",
-            "X 1", )
-    assert len(ig.actions) == 2
-    assert ig.out() == "Y 0\nX 1\n"
-
-
-def test_program_gates():
-    ig = Program()
-    ig.inst(H(0), X(1))
-    assert len(ig.actions) == 2
-    assert ig.out() == "H 0\nX 1\n"
+def test_inst_string():
+    p = Program()
+    p.inst("Y 0",
+           "X 1", )
+    assert len(p) == 2
+    assert p.out() == "Y 0\nX 1\n"
 
 
 def test_program_pop():
     prog = Program(X(0), X(1))
-    _, instruction = prog.pop()
+    instruction = prog.pop()
     assert prog.out() == "X 0\n"
     assert Program(instruction).out() == "X 1\n"
 
@@ -129,51 +121,51 @@ def test_plus_operator():
     p = Program()
     p += H(0)
     p += [X(0), Y(0), Z(0)]
-    assert len(p.actions) == 4
+    assert len(p) == 4
     assert p.out() == "H 0\nX 0\nY 0\nZ 0\n"
 
 
 def test_indexing():
     program = Program(H(0), Y(1), CNOT(0, 1)).measure(0, 0).if_then(0, Program(X(0)), Program())
-    assert program[0] == (0, H(0))
-    for ii, action in enumerate(program.actions):
-        assert program[ii] == action
+    assert program[0] == H(0)
+    for ii, instr in enumerate(program.instructions):
+        assert program[ii] == instr
 
 
 def test_iteration():
     gate_list = [H(0), Y(1), CNOT(0, 1)]
     program = Program(gate_list)
-    for ii, action in enumerate(program):
-        assert action[1] == gate_list[ii]
+    for ii, instruction in enumerate(program):
+        assert instruction == gate_list[ii]
 
 
 def test_program_plus_program():
     p = Program().inst(X(0))
     q = Program().inst(Y(0))
     r = p + q
-    assert len(p.actions) == 1
-    assert len(q.actions) == 1
-    assert len(r.actions) == 2
+    assert len(p.instructions) == 1
+    assert len(q.instructions) == 1
+    assert len(r.instructions) == 2
     assert p.out() == "X 0\n"
     assert q.out() == "Y 0\n"
     assert r.out() == "X 0\nY 0\n"
 
 
 def test_program_tuple():
-    ig = Program()
-    ig.inst(("Y", 0),
-            ("X", 1))
-    assert len(ig.actions) == 2
-    assert ig.out() == "Y 0\nX 1\n"
+    p = Program()
+    p.inst(("Y", 0),
+           ("X", 1))
+    assert len(p) == 2
+    assert p.out() == "Y 0\nX 1\n"
 
 
 def test_program_string():
-    ig = Program()
-    ig.inst("Y 0",
-            "X 1", )
-    assert len(ig.actions) == 2
-    assert all(isinstance(i[1], RawInstr) for i in ig.actions)
-    assert ig.out() == "Y 0\nX 1\n"
+    p = Program()
+    p.inst("Y 0",
+           "X 1", )
+    assert len(p.instructions) == 2
+    assert all(isinstance(i, RawInstr) for i in p.instructions)
+    assert p.out() == "Y 0\nX 1\n"
 
 
 def test_prog_init():
@@ -363,7 +355,6 @@ def test_define_qft():
 
 
 def test_control_flows():
-    reset_label_counter()
     classical_flag_register = 2
     p = Program(X(0), H(0)).measure(0, classical_flag_register)
 
@@ -377,30 +368,17 @@ def test_control_flows():
     x_prog = Program(X(0))
     z_prog = Program()
     branch = Program(H(1)).measure(1, 1).if_then(1, x_prog, z_prog).measure(0, 0)
-    assert branch.out() == 'H 1\nMEASURE 1 [1]\nJUMP-WHEN @THEN3 [1]\nJUMP @END4\nLABEL ' \
-                           '@THEN3\nX 0\nLABEL @END4\nMEASURE 0 [0]\n'
+    assert branch.out() == 'H 1\nMEASURE 1 [1]\nJUMP-WHEN @THEN1 [1]\nJUMP @END2\nLABEL ' \
+                           '@THEN1\nX 0\nLABEL @END2\nMEASURE 0 [0]\n'
 
 
 def test_if_option():
-    reset_label_counter()
     p = Program(X(0)).measure(0, 0).if_then(0, Program(X(1)))
     assert p.out() == 'X 0\nMEASURE 0 [0]\nJUMP-WHEN @THEN1 [0]\nJUMP @END2\n' \
                       'LABEL @THEN1\nX 1\nLABEL @END2\n'
 
 
-def test_alloc_free():
-    p = Program()
-    q1 = p.alloc()
-    p.inst(H(q1))
-    p.free(q1)
-    q2 = p.alloc()
-    p.inst(H(q2))
-    p.free(q2)
-    assert p.resource_manager.live_qubits == []
-    assert p.out() == "H 0\nH 0\n"
-
-
-def test_alloc_free():
+def test_alloc():
     p = Program()
 
     p.inst(H(0))  # H 0
@@ -416,54 +394,28 @@ def test_alloc_free():
 
     p.inst(X(q3))  # X 4
 
-    p.free(q1)  # remove 1
-
-    q4 = p.alloc()  # q4 = 1
-
-    p.inst(Y(q4))  # Y 1
-
-    p.free(q2)
-    p.free(q3)
-    p.free(q4)
-
-    assert p.resource_manager.live_qubits == []
     assert p.out() == "H 0\n" \
                       "CNOT 1 3\n" \
                       "H 2\n" \
-                      "X 4\n" \
-                      "Y 1\n"
+                      "X 4\n"
 
 
 def test_multiple_instantiate():
     p = Program()
     q = p.alloc()
     p.inst(H(q))
-    p.free(q)
     assert p.out() == 'H 0\n'
     assert p.out() == 'H 0\n'
 
 
-def test_alloc_no_free():
+def test_reuse_alloc():
     p = Program()
     q1 = p.alloc()
     q2 = p.alloc()
     p.inst(H(q1))
     p.inst(H(q2))
-    assert p.out() == 'H 0\nH 1\n'
-    assert p.out() == 'H 0\nH 1\n'
-
-
-def test_extract_qubits():
-    p = Program(RX(0.5)(0), RY(0.1)(1), RZ(1.4)(2))
-    assert p.extract_qubits() == set([0, 1, 2])
-    p.if_then(0, X(4), H(5)).measure(6, 2)
-    assert p.extract_qubits() == set([0, 1, 2, 4, 5, 6])
-    p.while_do(0, Program(X(3)).measure(3, 0))
-    assert p.extract_qubits() == set([0, 1, 2, 3, 4, 5, 6])
-    new_qubit = p.alloc()
-    p.inst(X(new_qubit))
-    p.synthesize()
-    assert p.extract_qubits() == set([0, 1, 2, 3, 4, 5, 6, new_qubit.index()])
+    p.inst(CNOT(q1, q2))
+    assert p.out() == 'H 0\nH 1\nCNOT 0 1\n'
 
 
 def test_prog_merge():
@@ -486,7 +438,7 @@ def test_get_qubits():
     q1 = p.alloc()
     q2 = p.alloc()
     p.inst(("CNOT", q1, q2))
-    assert p.get_qubits() == {qubit_index, q1.index(), q2.index()}
+    assert p.get_qubits() == {qubit_index, 0, 2}
 
 
 def test_eq():
