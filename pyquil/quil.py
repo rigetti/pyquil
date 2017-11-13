@@ -332,7 +332,7 @@ class Program(object):
             if inv_dict is None or gate.name not in inv_dict:
                 daggered.defgate(gate.name + suffix, gate.matrix.T.conj())
 
-        for gate in reversed(self.instructions):
+        for gate in reversed(self._instructions):
             if gate.name in STANDARD_GATES:
                 if gate.name == "S":
                     daggered.inst(STANDARD_GATES["PHASE"](-pi / 2, *gate.qubits))
