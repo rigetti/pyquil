@@ -31,6 +31,8 @@ from .quilbase import (DefGate, Gate, Measurement, Pragma, RawInstr, AbstractIns
 class Program(object):
     def __init__(self, *instructions):
         self._defined_gates = []
+        # Implementation note: the key difference between the private _instructions and the public instructions
+        # property below is that the private _instructions list may contain placeholder values
         self._instructions = []
 
         self.inst(*instructions)
