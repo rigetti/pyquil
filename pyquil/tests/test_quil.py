@@ -520,3 +520,57 @@ PRAGMA ADD-KRAUS X 1 "(0.0+0.0i 0.0+0.0i 0.0+0.0i 0.0+0.0i)"
 PRAGMA NO-NOISE
 X 1
 """
+
+
+# https://github.com/rigetticomputing/pyquil/issues/72
+def test_if_then_inherits_defined_gates():
+    p1 = Program()
+    p1.inst(H(0))
+    p1.measure(0, 0)
+
+    p2 = Program()
+    p2.defgate("A", np.array([[1., 0.], [0., 1.]]))
+    p2.inst(("A", 0))
+
+    p3 = Program()
+    p3.defgate("B", np.array([[0., 1.], [1., 0.]]))
+    p3.inst(("B", 0))
+
+    p1.if_then(0, p2, p3)
+    assert p2.defined_gates[0] in p1.defined_gates
+    assert p3.defined_gates[0] in p1.defined_gates
+
+
+# https://github.com/rigetticomputing/pyquil/issues/124
+def test_allocating_qubits_on_multiple_programs():
+    p = Program()
+    qubit0 = p.alloc()
+    p.inst(X(qubit0))
+
+    q = Program()
+    qubit1 = q.alloc()
+    q.inst(X(qubit1))
+
+    assert (p + q).out() == "X 0\nX 1\n"
+
+
+# https://github.com/rigetticomputing/pyquil/issues/163
+def test_installing_programs_inside_other_programs():
+    p = Program()
+    q = Program()
+    p.inst(q)
+    assert len(p) == 0
+
+
+# https://github.com/rigetticomputing/pyquil/issues/168
+def test_nesting_a_program_inside_itself():
+    p = Program(H(0)).measure(0, 0)
+    with pytest.raises(ValueError):
+        p.if_then(0, p)
+
+
+# https://github.com/rigetticomputing/pyquil/issues/170
+def test_inline_alloc():
+    p = Program()
+    p += H(p.alloc())
+    assert p.out() == "H 0\n"

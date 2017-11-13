@@ -20,7 +20,6 @@ from itertools import count
 from math import pi
 
 import numpy as np
-from six import integer_types
 
 from pyquil.kraus import _check_kraus_ops, _create_kraus_pragmas
 from .gates import MEASURE, STANDARD_GATES
@@ -31,10 +30,14 @@ from .quilbase import (DefGate, Gate, Measurement, Pragma, RawInstr, AbstractIns
 
 class Program(object):
     def __init__(self, *instructions):
-        self._instructions = []
         self._defined_gates = []
+        self._instructions = []
 
         self.inst(*instructions)
+
+    @property
+    def defined_gates(self):
+        return self._defined_gates
 
     @property
     def instructions(self):
@@ -75,6 +78,9 @@ class Program(object):
             elif isinstance(instruction, AbstractInstruction):
                 self._instructions.append(instruction)
             elif isinstance(instruction, Program):
+                if id(self) == id(instruction):
+                    raise ValueError("Nesting a program inside itself is not supported")
+
                 self._defined_gates.extend(list(instruction._defined_gates))
                 self._instructions.extend(list(instruction._instructions))
             else:
@@ -392,7 +398,7 @@ class Program(object):
         if isinstance(other, Program):
             p = Program()
             p._instructions = self._instructions + other._instructions
-            p.defined_gates = self._defined_gates + other._defined_gates
+            p._defined_gates = self._defined_gates + other._defined_gates
             return p
         else:
             p = Program()
