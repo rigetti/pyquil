@@ -65,6 +65,12 @@ class QubitPlaceholder(Qubit):
     def index(self):
         raise RuntimeError("Qubit has not been assigned an index")
 
+    def __str__(self):
+        return repr(self)
+
+    def __repr__(self):
+        return "<QubitPlaceholder {}>".format(id(self))
+
 
 class Addr(QuilAtom):
     """
@@ -109,6 +115,12 @@ class LabelPlaceholder(Label):
     @property
     def name(self):
         raise RuntimeError("Label has not been assigned a name")
+
+    def __str__(self):
+        return repr(self)
+
+    def __repr__(self):
+        return "<LabelPlaceholder {} {}>".format(self.prefix, id(self))
 
 
 class AbstractInstruction(object):
