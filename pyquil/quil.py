@@ -75,6 +75,8 @@ class Program(object):
                     self.gate(op, params, rest)
             elif isinstance(instruction, str):
                 self._instructions.append(RawInstr(instruction))
+            elif isinstance(instruction, DefGate):
+                self._defined_gates.append(instruction)
             elif isinstance(instruction, AbstractInstruction):
                 self._instructions.append(instruction)
             elif isinstance(instruction, Program):
@@ -90,6 +92,7 @@ class Program(object):
 
     def gate(self, name, params, qubits):
         self._instructions.append(Gate(name, params, [unpack_qubit(q) for q in qubits]))
+        return self
 
     def defgate(self, name, matrix):
         """
@@ -395,16 +398,9 @@ class Program(object):
         :return: A newly concatenated program.
         :rtype: Program
         """
-        if isinstance(other, Program):
-            p = Program()
-            p._instructions = self._instructions + other._instructions
-            p._defined_gates = self._defined_gates + other._defined_gates
-            return p
-        else:
-            p = Program()
-            p._instructions = list(self._instructions)
-            p._defined_gates = list(self._defined_gates)
-            return p.inst(other)
+        p = Program()
+        p.inst(self)
+        return p.inst(other)
 
     def __getitem__(self, index):
         """
