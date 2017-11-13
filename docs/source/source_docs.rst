@@ -11,8 +11,6 @@ Here you can find documentation for the different submodules in pyQuil.
     paulis
     parametric
     quil
-    quil_atom
     quilbase
-    resource_manager
     slot
     wavefunction

@@ -51,7 +51,7 @@ First we import all the necessary tools:
 
 .. code-block:: python
 
-    import pyquil.quil as pq
+    from pyquil.quil import Program
     import pyquil.api as forest
 
     from pyquil.gates import I, H, X
@@ -70,15 +70,15 @@ flow as:
 
 .. code-block:: python
 
-    then_branch = pq.Program(X(0))
-    else_branch = pq.Program(I(0))
+    then_branch = Program(X(0))
+    else_branch = Program(I(0))
 
 
 and then wire it all up into the overall measurement circuit:
 
 .. code-block:: python
 
-   prog = (pq.Program()
+   prog = (Program()
        # Prepare Qubits in Heads state or superposition, respectively
        .inst(X(0), H(1))
        # Q puts the penny into a superposition

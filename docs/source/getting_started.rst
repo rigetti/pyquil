@@ -7,11 +7,11 @@ programs.
 
 .. code:: python
 
-    import pyquil.quil as pq
+    from pyquil.quil import Program
     import pyquil.api as api
     from pyquil.gates import *
     qvm = api.SyncConnection()
-    p = pq.Program()
+    p = Program()
     p.inst(H(0), CNOT(0, 1))
         <pyquil.pyquil.Program object at 0x101ebfb50>
     wvf, _ = qvm.wavefunction(p)
@@ -176,7 +176,7 @@ gates for pyQuil as well as numpy.
 
 .. code:: python
 
-    import pyquil.quil as pq
+    from pyquil.quil import Program
     import pyquil.api as api
     from pyquil.gates import *
     import numpy as np
@@ -196,7 +196,7 @@ Now we can make a program by adding some Quil instruction using the
 
 .. code:: python
 
-    p = pq.Program()
+    p = Program()
     p.inst(X(0)).measure(0, 0)
 
 
@@ -267,7 +267,7 @@ different classical register we would obtain:
 
 .. code:: python
 
-    p = pq.Program()   # clear the old program
+    p = Program()   # clear the old program
     p.inst(X(0)).measure(0, 1)
     qvm.run(p, [0, 1, 2])
 
@@ -285,7 +285,7 @@ in a single list.
 
 .. code:: python
 
-    coin_flip = pq.Program().inst(H(0)).measure(0, 0)
+    coin_flip = Program().inst(H(0)).measure(0, 0)
     num_flips = 5
     qvm.run(coin_flip, [0], num_flips)
 
@@ -306,7 +306,7 @@ a program directly, even without measurements:
 
 .. code:: python
 
-    coin_flip = pq.Program().inst(H(0))
+    coin_flip = Program().inst(H(0))
     qvm.wavefunction(coin_flip)
 
 
@@ -322,7 +322,7 @@ quantum state at the conclusion of the program. We can print this object
 
 .. code:: python
 
-    coin_flip = pq.Program().inst(H(0))
+    coin_flip = Program().inst(H(0))
     wvf, _ = qvm.wavefunction(coin_flip)
     print(wvf)
 
@@ -353,7 +353,7 @@ check:
 
 .. code:: python
 
-    coin_flip = pq.Program().inst(H(0)).measure(0,0)
+    coin_flip = Program().inst(H(0)).measure(0,0)
     wavf, classical_mem = qvm.wavefunction(coin_flip, classical_addresses=range(9))
 
 
@@ -363,11 +363,11 @@ reproduce measurement results for the purpose of testing:
 .. code:: python
 
     seeded_cxn = api.SyncConnection(random_seed=17)
-    print(seeded_cxn.run(pq.Program(H(0)).measure(0, 0), [0], 20))
+    print(seeded_cxn.run(Program(H(0)).measure(0, 0), [0], 20))
 
     seeded_cxn = api.SyncConnection(random_seed=17)
     # This will give identical output to the above
-    print(seeded_cxn.run(pq.Program(H(0)).measure(0, 0), [0], 20))
+    print(seeded_cxn.run(Program(H(0)).measure(0, 0), [0], 20))
 
 
 It is important to remember that this ``wavefunction`` method is just a useful debugging tool
@@ -383,16 +383,16 @@ following are all valid programs:
 .. code:: python
 
     print("Multiple inst arguments with final measurement:")
-    print(pq.Program().inst(X(0), Y(1), Z(0)).measure(0, 1))
+    print(Program().inst(X(0), Y(1), Z(0)).measure(0, 1))
     
     print("Chained inst with explicit MEASURE instruction:")
-    print(pq.Program().inst(X(0)).inst(Y(1)).measure(0, 1).inst(MEASURE(1, 2)))
+    print(Program().inst(X(0)).inst(Y(1)).measure(0, 1).inst(MEASURE(1, 2)))
     
     print("A mix of chained inst and measures:")
-    print(pq.Program().inst(X(0)).measure(0, 1).inst(Y(1), X(0)).measure(0, 0))
+    print(Program().inst(X(0)).measure(0, 1).inst(Y(1), X(0)).measure(0, 0))
     
     print("A composition of two programs:")
-    print(pq.Program(X(0)) + pq.Program(Y(0)))
+    print(Program(X(0)) + Program(Y(0)))
 
 
 .. parsed-literal::
@@ -430,7 +430,7 @@ off.
 
 .. code:: python
 
-    p = pq.Program().inst(X(0))
+    p = Program().inst(X(0))
     p.inst(Y(1))
     print("Oops! We have added Y 1 by accident:")
     print(p)
@@ -440,7 +440,7 @@ off.
     print(p)
     
     print("And then add it back:")
-    p += pq.Program(Y(1))
+    p += Program(Y(1))
     print(p)
 
 
@@ -502,7 +502,7 @@ matrix representation of the gate. For example, below we define a
     x_gate_matrix = np.array(([0.0, 1.0], [1.0, 0.0]))
     sqrt_x = np.array([[ 0.5+0.5j,  0.5-0.5j],
                        [ 0.5-0.5j,  0.5+0.5j]])
-    p = pq.Program().defgate("SQRT-X", sqrt_x)
+    p = Program().defgate("SQRT-X", sqrt_x)
     
     # Then we can use the new gate,
     p.inst(("SQRT-X", 0))
@@ -545,7 +545,7 @@ gate.
     sqrt_x = np.array([[ 0.5+0.5j,  0.5-0.5j],
                     [ 0.5-0.5j,  0.5+0.5j]])
     x_sqrt_x = np.kron(x_gate_matrix, sqrt_x)
-    p = pq.Program().defgate("X-SQRT-X", x_sqrt_x)
+    p = Program().defgate("X-SQRT-X", x_sqrt_x)
     
     # Then we can use the new gate
     p.inst(("X-SQRT-X", 0, 1))
@@ -585,7 +585,7 @@ correction at the end consisting of a single SWAP gate.
     from math import pi
     
     def qft3(q0, q1, q2):
-        p = pq.Program()
+        p = Program()
         p.inst( H(q2),
                 CPHASE(pi/2.0, q1, q2),
                 H(q1),
@@ -625,7 +625,7 @@ easy, we just apply an :math:`X`-gate to the zeroth qubit.
 
 .. code:: python
 
-    state_prep = pq.Program().inst(X(0))
+    state_prep = Program().inst(X(0))
 
 We can verify that this works by computing its wavefunction. However, we
 need to add some "dummy" qubits, because otherwise ``wavefunction``
@@ -633,7 +633,7 @@ would return a two-element vector.
 
 .. code:: python
 
-    add_dummy_qubits = pq.Program().inst(I(1), I(2))
+    add_dummy_qubits = Program().inst(I(1), I(2))
     wavf, _ = qvm.wavefunction(state_prep + add_dummy_qubits)
     print(wavf)
 
@@ -708,8 +708,8 @@ Then we construct the loop in the following steps:
     classical_flag_register = 2
     
     # Write out the loop initialization and body programs:
-    init_register = pq.Program(TRUE([classical_flag_register]))
-    loop_body = pq.Program(X(0), H(0)).measure(0, classical_flag_register)
+    init_register = Program(TRUE([classical_flag_register]))
+    loop_body = Program(X(0), H(0)).measure(0, classical_flag_register)
     
     # Put it all together in a loop program:
     loop_prog = init_register.while_do(classical_flag_register, loop_body)
@@ -755,11 +755,11 @@ method.
     
     # Construct each branch of our if-statement. We can have empty branches
     # simply by having empty programs.
-    then_branch = pq.Program(X(0))
-    else_branch = pq.Program()
+    then_branch = Program(X(0))
+    else_branch = Program()
     
     # Make a program that will put a 0 or 1 in test_register with 50% probability:
-    branching_prog = pq.Program(H(1)).measure(1, test_register)
+    branching_prog = Program(H(1)).measure(1, test_register)
     
     # Add the conditional branching:
     branching_prog.if_then(test_register, then_branch, else_branch)
@@ -831,7 +831,7 @@ we should always measure ``1``.
 
 .. code:: python
 
-    p = pq.Program().inst(X(0)).measure(0, 0)
+    p = Program().inst(X(0)).measure(0, 0)
     print("Without Noise: {}".format(qvm.run(p, [0], 10)))
     print("With Noise   : {}".format(noisy_qvm.run(p, [0], 10)))
 
@@ -855,7 +855,7 @@ programs, called ``ParametricPrograms``:
 
     # This function returns a quantum circuit with different rotation angles on a gate on qubit 0
     def rotator(angle):
-        return pq.Program(RX(angle, 0))
+        return Program(RX(angle, 0))
     
     from pyquil.parametric import ParametricProgram
     par_p = ParametricProgram(rotator) # This produces a new type of parameterized program object

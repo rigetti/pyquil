@@ -22,7 +22,7 @@ from math import pi
 import numpy as np
 
 from pyquil.kraus import _check_kraus_ops, _create_kraus_pragmas
-from .gates import MEASURE, STANDARD_GATES
+from .gates import MEASURE, STANDARD_GATES, H
 from .quilbase import (DefGate, Gate, Measurement, Pragma, RawInstr, AbstractInstruction, Qubit,
                        unpack_qubit, Jump, LabelPlaceholder, Label, JumpConditional, JumpTarget, JumpUnless, JumpWhen,
                        QubitPlaceholder, Addr)
@@ -37,14 +37,15 @@ class Program(object):
 
     @property
     def defined_gates(self):
+        """
+        A list of defined gates on the program.
+        """
         return self._defined_gates
 
     @property
     def instructions(self):
         """
-        Fill in any placeholders and return a list of quil instructions
-
-        :return: list of AbstractInstruction
+        Fill in any placeholders and return a list of quil AbstractInstructions.
         """
         return self._synthesize()
 
@@ -52,8 +53,22 @@ class Program(object):
         """
         Mutates the Program object by appending new instructions.
 
+        This function accepts a number of different valid forms, e.g.
+            >>> p = Program()
+            >>> p.inst(H(0)) # A single instruction
+            >>> p.inst(H(0), H(1)) # Multiple instructions
+            >>> p.inst([H(0), H(1)]) # A list of instructions
+            >>> p.inst(("H", 1)) # A tuple representing an instruction
+            >>> p.inst("H 0") # A string representing an instruction
+            >>> q = Program()
+            >>> p.inst(q) # Another program
+
+        It can also be chained:
+            >>> p = Program()
+            >>> p.inst(H(0)).inst(H(1))
+
         :param instructions: A list of Instruction objects, e.g. Gates
-        :return: self
+        :return: self for method chaining
         """
         for instruction in instructions:
             if isinstance(instruction, list):
@@ -91,6 +106,15 @@ class Program(object):
         return self
 
     def gate(self, name, params, qubits):
+        """
+        Add a gate to the program.
+
+        :param string name: The name of the gate.
+        :param list params: Parameters to send to the gate.
+        :param list qubits: Qubits that the gate operates on.
+        :return: The Program instance
+        :rtype: Program
+        """
         self._instructions.append(Gate(name, params, [unpack_qubit(q) for q in qubits]))
         return self
 
@@ -272,6 +296,11 @@ class Program(object):
         return qubits
 
     def is_protoquil(self):
+        """
+        Protoquil programs may only contain gates, no classical instructions and no jumps.
+
+        :return: True if the Program is Protoquil, False otherwise
+        """
         for instr in self._instructions:
             if not isinstance(instr, Gate):
                 return False
@@ -326,6 +355,22 @@ class Program(object):
         return daggered
 
     def _synthesize(self):
+        """
+        Takes a program which may contain placeholders and assigns them all defined values.
+
+        For qubit placeholders:
+        1. We look through the program to find all the known indexes of qubits and add them to a set
+        2. We create a mapping from undefined qubits to their newly assigned index
+        3. For every qubit placeholder in the program, if it's not already been assigned then look through the set of
+            known indexes and find the lowest available one
+
+        For label placeholders:
+        1. Start a counter at 1
+        2. For every label placeholder in the program, replace it with a defined label using the counter and increment
+            the counter
+
+        :return: List of AbstractInstructions with all placeholders removed
+        """
         used_indexes = set()
         for instr in self._instructions:
             if isinstance(instr, Gate):
@@ -369,11 +414,14 @@ class Program(object):
 
         result = []
         for instr in self._instructions:
+            # Remap qubits on Gate and Measurement instructions
             if isinstance(instr, Gate):
                 remapped_qubits = [remap_qubit(q) for q in instr.qubits]
                 result.append(Gate(instr.name, instr.params, remapped_qubits))
             elif isinstance(instr, Measurement):
                 result.append(Measurement(remap_qubit(instr.qubit), instr.classical_reg))
+
+            # Remap any label placeholders on jump or target instructions
             elif isinstance(instr, Jump) and isinstance(instr.target, LabelPlaceholder):
                 result.append(Jump(remap_label(instr.target)))
                 label_counter += 1
@@ -385,6 +433,8 @@ class Program(object):
                 new_jump.op = instr.op
                 result.append(new_jump)
                 label_counter += 1
+
+            # Otherwise simply add it to the result
             else:
                 result.append(instr)
 
