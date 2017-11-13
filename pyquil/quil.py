@@ -24,7 +24,7 @@ import numpy as np
 from pyquil._parser.PyQuilListener import run_parser
 from pyquil.kraus import _check_kraus_ops, _create_kraus_pragmas
 from .gates import MEASURE, STANDARD_GATES, H
-from .quilbase import (DefGate, Gate, Measurement, Pragma, RawInstr, AbstractInstruction, Qubit,
+from .quilbase import (DefGate, Gate, Measurement, Pragma, AbstractInstruction, Qubit,
                        unpack_qubit, Jump, LabelPlaceholder, Label, JumpConditional, JumpTarget, JumpUnless, JumpWhen,
                        QubitPlaceholder, Addr)
 

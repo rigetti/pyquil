@@ -25,7 +25,7 @@ from pyquil.gates import I, X, Y, Z, H, T, S, RX, RY, RZ, CNOT, CCNOT, PHASE, CP
     CPHASE10, CPHASE, SWAP, CSWAP, ISWAP, PSWAP, MEASURE, HALT, WAIT, NOP, RESET, \
     TRUE, FALSE, NOT, AND, OR, MOVE, EXCHANGE
 from pyquil.quil import Program, merge_programs
-from pyquil.quilbase import DefGate, Gate, RawInstr, Addr, Qubit
+from pyquil.quilbase import DefGate, Gate, Addr, Qubit
 
 
 def test_make_connection():

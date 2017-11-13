@@ -20,7 +20,7 @@ import pytest
 
 from pyquil.gates import *
 from pyquil.parser import parse
-from pyquil.quilbase import Label, JumpTarget, Jump, JumpWhen, JumpUnless, RawInstr, DefGate, Qubit
+from pyquil.quilbase import Label, JumpTarget, Jump, JumpWhen, JumpUnless, RawInstr, DefGate, Qubit, Pragma
 
 
 def test_simple_gate():
@@ -140,8 +140,8 @@ def test_classical():
 
 
 def test_pragma():
-    _test('PRAGMA gate_time H "10 ns"', RawInstr('PRAGMA gate_time H "10 ns"'))
-    _test('PRAGMA qubit 0', RawInstr('PRAGMA qubit 0'))
+    _test('PRAGMA gate_time H "10 ns"', Pragma('gate_time', ['H'], '10 ns'))
+    _test('PRAGMA qubit 0', Pragma('qubit', [0]))
 
 
 def test_invalid():

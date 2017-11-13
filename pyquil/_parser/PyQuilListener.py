@@ -14,7 +14,7 @@ from numpy.ma import sin, cos, sqrt, exp
 from pyquil.gates import STANDARD_GATES
 from pyquil.quilbase import Gate, DefGate, Measurement, Addr, JumpTarget, Label, Halt, Jump, JumpWhen, JumpUnless, \
     Reset, Wait, ClassicalTrue, ClassicalFalse, ClassicalNot, ClassicalAnd, ClassicalOr, ClassicalMove, \
-    ClassicalExchange, Nop, RawInstr, Qubit
+    ClassicalExchange, Nop, RawInstr, Qubit, Pragma
 
 if sys.version_info.major == 2:
     from .gen2.QuilLexer import QuilLexer
@@ -177,11 +177,12 @@ class PyQuilListener(QuilListener):
 
     def exitPragma(self, ctx):
         # type: (QuilParser.PragmaContext) -> None
-        pragma_names = ' '.join(map(lambda x: x.getText(), [ctx.IDENTIFIER()] + ctx.pragma_name()))
+        args = list(map(lambda x: x.getText(), ctx.pragma_name()))
         if ctx.STRING():
-            self.result.append(RawInstr(ctx.PRAGMA().getText() + ' ' + pragma_names + ' ' + ctx.STRING().getText()))
+            # [1:-1] is used to strip the quotes from the parsed string
+            self.result.append(Pragma(ctx.IDENTIFIER().getText(), args, ctx.STRING().getText()[1:-1]))
         else:
-            self.result.append(RawInstr(ctx.PRAGMA().getText() + ' ' + pragma_names))
+            self.result.append(Pragma(ctx.IDENTIFIER().getText(), args))
 
 
 """
