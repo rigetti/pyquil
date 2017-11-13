@@ -125,7 +125,7 @@ class LabelPlaceholder(Label):
 
 class AbstractInstruction(object):
     """
-    Abstract class for representing single instructionos.
+    Abstract class for representing single instructions.
     """
 
     def out(self):
