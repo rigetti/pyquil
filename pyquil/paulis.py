@@ -694,16 +694,8 @@ def _exponentiate_general_case(pauli_term, param):
     """
     def reverse_hack(p):
         # A hack to produce a *temporary* program which reverses p.
-        def translate(tup):
-            action, obj = tup
-            if tup == pqb.ACTION_RELEASE_QUBIT:
-                return (pqb.ACTION_INSTANTIATE_QUBIT, obj)
-            elif tup == pqb.ACTION_INSTANTIATE_QUBIT:
-                return (pqb.ACTION_RELEASE_QUBIT, obj)
-            else:
-                return tup
         revp = Program()
-        revp.actions = [translate(action) for action in reversed(p.actions)]
+        revp.inst(list(reversed(p.instructions)))
         return revp
 
     quil_prog = Program()

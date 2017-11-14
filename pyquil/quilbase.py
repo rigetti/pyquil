@@ -18,89 +18,58 @@ Contains the core pyQuil objects that correspond to Quil instructions.
 """
 
 import numpy as np
-from copy import deepcopy
-from .quil_atom import QuilAtom
 from .slot import Slot
-from .resource_manager import (AbstractQubit, DirectQubit, Qubit,
-                               ResourceManager, check_live_qubit, merge_resource_managers)
-from six import integer_types
-
-allow_raw_instructions = True
-"""
-Allow constructing programs containing raw instructions.
-"""
+from six import integer_types, string_types
 
 
-def issubinstance(x, cls):
+class QuilAtom(object):
     """
-    Checks if class x is an instance or subclass of cls.
+    Abstract class for atomic elements of Quil.
     """
-    return isinstance(x, cls) or issubclass(x.__class__, cls)
+    def out(self):
+        pass
+
+    def __str__(self):
+        return self.out()
+
+    def __eq__(self, other):
+        return isinstance(other, self.__class__) and self.out() == other.out()
+
+    def __ne__(self, other):
+        return not self.__eq__(other)
 
 
-# These are the first values to a 2-tuple.
-# This indicates all regular Quil instructions except resource management.
-ACTION_INSTALL_INSTRUCTION = 0
-# These are for resource management.
-ACTION_INSTANTIATE_QUBIT = 1
-ACTION_RELEASE_QUBIT = 2
-
-
-def action(type, obj):
-    return (type, obj)
-
-
-def action_install(obj):
-    return action(ACTION_INSTALL_INSTRUCTION, obj)
-
-
-def format_matrix_element(element):
+class Qubit(QuilAtom):
     """
-    Formats a parameterized matrix element.
+    Representation of a qubit.
 
-    :param element: {int, float, complex, str} The parameterized element to format.
+    :param int index: Index of the qubit.
     """
-    if isinstance(element, integer_types) or isinstance(element, (float, complex)):
-        return format_parameter(element)
-    elif isinstance(element, str):
-        return element
-    else:
-        assert False, "Invalid matrix element: %r" % element
+    def __init__(self, index):
+        if not (isinstance(index, integer_types) and index >= 0):
+            raise TypeError("Addr index must be a non-negative int")
+        self.index = index
+
+    def out(self):
+        return str(self.index)
+
+    def __repr__(self):
+        return "<Qubit {0}>".format(self.index)
 
 
-def format_parameter(element):
-    """
-    Formats a particular parameter.
+class QubitPlaceholder(Qubit):
+    def __init__(self):
+        pass
 
-    :param element: {int, float, long, complex, Slot} Formats a parameter for Quil output.
-    """
-    if isinstance(element, integer_types) or isinstance(element, float):
-        return repr(element)
-    elif isinstance(element, complex):
-        r = element.real
-        i = element.imag
-        if i < 0:
-            return repr(r) + "-" + repr(abs(i)) + "i"
-        else:
-            return repr(r) + "+" + repr(i) + "i"
-    elif isinstance(element, Slot):
-        return format_parameter(element.value())
-    assert False, "Invalid parameter: %r" % element
+    @property
+    def index(self):
+        raise RuntimeError("Qubit has not been assigned an index")
 
+    def __str__(self):
+        return repr(self)
 
-def unpack_qubit(qubit):
-    """
-    Get a qubit from an object.
-
-    :param qubit: An int or AbstractQubit.
-    :return: An AbstractQubit instance
-    """
-    if isinstance(qubit, integer_types):
-        return DirectQubit(qubit)
-    elif isinstance(qubit, AbstractQubit):
-        return qubit
-    else:
-        raise TypeError("qubit should be an int or AbstractQubit instance")
+    def __repr__(self):
+        return "<QubitPlaceholder {}>".format(id(self))
 
 
 class Addr(QuilAtom):
@@ -115,11 +84,11 @@ class Addr(QuilAtom):
             raise TypeError("Addr value must be a non-negative int")
         self.address = value
 
+    def out(self):
+        return "[{0}]".format(self.address)
+
     def __repr__(self):
         return "<Addr {0}>".format(self.address)
-
-    def __str__(self):
-        return "[{0}]".format(self.address)
 
 
 class Label(QuilAtom):
@@ -132,39 +101,115 @@ class Label(QuilAtom):
     def __init__(self, label_name):
         self.name = label_name
 
+    def out(self):
+        return "@" + str(self.name)
+
     def __repr__(self):
         return "<Label {0}>".format(repr(self.name))
 
+
+class LabelPlaceholder(Label):
+    def __init__(self, prefix="L"):
+        self.prefix = prefix
+
+    @property
+    def name(self):
+        raise RuntimeError("Label has not been assigned a name")
+
     def __str__(self):
-        return "@" + self.name
+        return repr(self)
+
+    def __repr__(self):
+        return "<LabelPlaceholder {} {}>".format(self.prefix, id(self))
 
 
-class QuilAction(object):
+class AbstractInstruction(object):
     """
-    Representation of some executable code, i.e., something that can be
-    synthesized into final Quil instructions.
+    Abstract class for representing single instructions.
     """
-
-    def synthesize(self, resource_manager=None):
-        raise NotImplementedError()
-
-
-class AbstractInstruction(QuilAction):
-    """
-    Abstract class for representing single instructionos.
-    """
-
-    def synthesize(self, resource_manager=None):
-        return [self]
 
     def out(self):
-        return NotImplementedError()
+        pass
+
+    def __str__(self):
+        return self.out()
 
     def __eq__(self, other):
         return isinstance(other, self.__class__) and self.out() == other.out()
 
     def __ne__(self, other):
         return not self.__eq__(other)
+
+    def __hash__(self):
+        return hash(self.out())
+
+
+RESERVED_WORDS = ['DEFGATE', 'DEFCIRCUIT', 'MEASURE',
+                  'LABEL', 'HALT', 'JUMP', 'JUMP-WHEN', 'JUMP-UNLESS',
+                  'RESET', 'WAIT', 'NOP', 'INCLUDE', 'PRAGMA',
+                  'FALSE', 'TRUE', 'NOT', 'AND', 'OR', 'MOVE', 'EXCHANGE']
+
+
+class Gate(AbstractInstruction):
+    """
+    This is the pyQuil object for a quantum gate instruction.
+    """
+
+    def __init__(self, name, params, qubits):
+        if not isinstance(name, string_types):
+            raise TypeError("Gate name must be a string")
+
+        if name in RESERVED_WORDS:
+            raise ValueError("Cannot use {} for a gate name since it's a reserved word".format(name))
+
+        if not isinstance(params, list):
+            raise TypeError("Gate params must be a list")
+
+        if not isinstance(qubits, list) or not qubits:
+            raise TypeError("Gate arguments must be a non-empty list")
+        for qubit in qubits:
+            if not isinstance(qubit, Qubit):
+                raise TypeError("Gate arguments must all be Qubits")
+
+        self.name = name
+        self.params = params
+        self.qubits = qubits
+
+    def out(self):
+        def format_params(params):
+            return "(" + ",".join(map(format_parameter, params)) + ")"
+
+        def format_qubits(qubits):
+            return " ".join([str(qubit) for qubit in qubits])
+
+        if self.params:
+            return "{}{} {}".format(self.name, format_params(self.params), format_qubits(self.qubits))
+        else:
+            return "{} {}".format(self.name, format_qubits(self.qubits))
+
+    def __repr__(self):
+        return "<Gate " + self.out() + ">"
+
+
+class Measurement(AbstractInstruction):
+    """
+    This is the pyQuil object for a Quil measurement instruction.
+    """
+
+    def __init__(self, qubit, classical_reg=None):
+        if not isinstance(qubit, Qubit):
+            raise TypeError("qubit should be a Qubit")
+        if classical_reg and not isinstance(classical_reg, Addr):
+            raise TypeError("classical_reg should be None or an Addr instance")
+
+        self.qubit = qubit
+        self.classical_reg = classical_reg
+
+    def out(self):
+        if self.classical_reg:
+            return "MEASURE {} {}".format(self.qubit, self.classical_reg)
+        else:
+            return "MEASURE {}".format(self.qubit)
 
 
 class DefGate(AbstractInstruction):
@@ -176,26 +221,31 @@ class DefGate(AbstractInstruction):
     """
 
     def __init__(self, name, matrix):
-        assert isinstance(name, str)
-        assert isinstance(matrix, (list, np.ndarray, np.matrix))
+        if not isinstance(name, string_types):
+            raise TypeError("Gate name must be a string")
+
+        if name in RESERVED_WORDS:
+            raise ValueError("Cannot use {} for a gate name since it's a reserved word".format(name))
+
         if isinstance(matrix, list):
             rows = len(matrix)
-            assert all([len(row) == rows for row in matrix]), "Matrix must be square."
+            if not all([len(row) == rows for row in matrix]):
+                raise ValueError("Matrix must be square.")
         elif isinstance(matrix, (np.ndarray, np.matrix)):
             rows, cols = matrix.shape
-            assert rows == cols, "Matrix must be square."
+            if rows != cols:
+                raise ValueError("Matrix must be square.")
         else:
             raise TypeError("Matrix argument must be a list or NumPy array/matrix")
 
         if 0 != rows & (rows - 1):
-            raise AssertionError("Dimension of matrix must be a power of 2, got {0}"
-                                 .format(rows))
+            raise ValueError("Dimension of matrix must be a power of 2, got {0}".format(rows))
         self.name = name
         self.matrix = np.asarray(matrix)
 
         is_unitary = np.allclose(np.eye(rows), self.matrix.dot(self.matrix.T.conj()))
         if not is_unitary:
-            raise AssertionError("Matrix must be unitary.")
+            raise ValueError("Matrix must be unitary.")
 
     def out(self):
         """
@@ -204,7 +254,20 @@ class DefGate(AbstractInstruction):
         :returns: String representation of a gate
         :rtype: string
         """
-        result = "DEFGATE %s:\n" % (self.name)
+        def format_matrix_element(element):
+            """
+            Formats a parameterized matrix element.
+
+            :param element: {int, float, complex, str} The parameterized element to format.
+            """
+            if isinstance(element, integer_types) or isinstance(element, (float, complex)):
+                return format_parameter(element)
+            elif isinstance(element, string_types):
+                return element
+            else:
+                raise TypeError("Invalid matrix element: %r" % element)
+
+        result = "DEFGATE %s:\n" % self.name
         for row in self.matrix:
             result += "    "
             fcols = [format_matrix_element(col) for col in row]
@@ -226,152 +289,6 @@ class DefGate(AbstractInstruction):
         """
         rows = len(self.matrix)
         return int(np.log2(rows))
-
-
-class InstructionGroup(QuilAction):
-    """
-    Representation of a sequence of instructions that can be synthesized into a Quil program.
-    """
-
-    def __init__(self, resource_manager=None):
-        self.actions = []
-        if resource_manager is None:
-            self.resource_manager = ResourceManager()
-        else:
-            self.resource_manager = resource_manager
-
-    def synthesize(self, resource_manager=None):
-        synthesized = []
-        for action_type, obj in self.actions:
-            if action_type == ACTION_INSTALL_INSTRUCTION:
-                synthesized.extend(obj.synthesize(self.resource_manager))
-            elif action_type == ACTION_INSTANTIATE_QUBIT:
-                self.resource_manager.instantiate(obj)
-            elif action_type == ACTION_RELEASE_QUBIT:
-                self.resource_manager.uninstantiate_index(obj.assignment)
-            else:
-                raise RuntimeError("encountered invalid action")
-
-        return synthesized
-
-    def __len__(self):
-        return len(self.synthesize())
-
-    def __str__(self):
-        return self.out()
-
-    def out(self):
-        instrs = self.synthesize()
-        s = ""
-        for instr in instrs:
-            s += instr.out() + "\n"
-        return s
-
-    def alloc(self):
-        """
-        Get a new qubit.
-
-        :return: A qubit.
-        :rtype: Qubit
-        """
-        qubit = self.resource_manager.allocate_qubit()
-        self.actions.append(action(ACTION_INSTANTIATE_QUBIT, qubit))
-
-        return qubit
-
-    def free(self, qubit):
-        """
-        Free a qubit.
-
-        :param AbstractQubit q: An AbstractQubit instance.
-        """
-        check_live_qubit(qubit)
-
-        if qubit.resource_manager != self.resource_manager:
-            raise RuntimeError("qubit is managed by a different instruction group")
-
-        self.actions.append(action(ACTION_RELEASE_QUBIT, qubit))
-        self.resource_manager.free_qubit(qubit)
-
-    def inst(self, *instructions):
-        """
-        Mutates the Program object by appending new instructions.
-
-        :param instructions: A list of Instruction objects, e.g. Gates
-        :return: self
-        """
-        for instruction in instructions:
-            if isinstance(instruction, list):
-                self.inst(*instruction)
-            elif isinstance(instruction, tuple):
-                if len(instruction) == 0:
-                    raise ValueError("tuple should have at least one element")
-                elif len(instruction) == 1:
-                    self.actions.append(action_install(Instr(instruction[0], [], [])))
-                else:
-                    op = instruction[0]
-                    params = []
-                    possible_params = instruction[1]
-                    rest = instruction[2:]
-                    if isinstance(possible_params, list):
-                        params = possible_params
-                    else:
-                        rest = [possible_params] + list(rest)
-                    self.actions.append(action_install(Instr(op, params, rest)))
-            elif isinstance(instruction, str):
-                self.actions.append(action_install(RawInstr(instruction)))
-            elif issubinstance(instruction, QuilAction):
-                self.actions.append(action_install(instruction))
-            elif issubinstance(instruction, InstructionGroup):
-                self.resource_manager = merge_resource_managers(self.resource_manager,
-                                                                instruction.resource_manager)
-                self.actions.extend(list(instruction.actions))
-            else:
-                raise TypeError("Invalid instruction: {}".format(instruction))
-        # Return self for method chaining.
-        return self
-
-    def __add__(self, instruction):
-        p = deepcopy(self)
-        return p.inst(instruction)
-
-    def pop(self):
-        """
-        Pops off the last instruction.
-
-        :return: The (action, instruction) pair for the instruction that was popped.
-        :rtype: tuple
-        """
-        if 0 != len(self.actions):
-            return self.actions.pop()
-
-    def extract_qubits(self):
-        """
-        Return all qubit addresses involved in the instruction group.
-
-        :return: Set of qubits.
-        :rtype: set
-        """
-        qubits = set()
-        for jj, act_jj in self.actions:
-            if jj == ACTION_INSTALL_INSTRUCTION:
-                if isinstance(act_jj, Instr):
-                    qubits = qubits | act_jj.qubits()
-                elif isinstance(act_jj, If):
-                    qubits = qubits | act_jj.Then.extract_qubits() | act_jj.Else.extract_qubits()
-                elif isinstance(act_jj, While):
-                    qubits = qubits | act_jj.Body.extract_qubits()
-                elif isinstance(act_jj, InstructionGroup):
-                    qubits = qubits | act_jj.extract_qubits()
-                elif isinstance(act_jj, (JumpTarget, JumpConditional, SimpleInstruction,
-                                         UnaryClassicalInstruction, BinaryClassicalInstruction,
-                                         Jump)):
-                    continue
-                else:
-                    raise ValueError(type(act_jj))
-            elif jj in (ACTION_INSTANTIATE_QUBIT, ACTION_RELEASE_QUBIT):
-                continue
-        return qubits
 
 
 class JumpTarget(AbstractInstruction):
@@ -404,9 +321,6 @@ class JumpConditional(AbstractInstruction):
         self.target = target
         self.condition = condition
 
-    def __str__(self):
-        return self.out()
-
     def out(self):
         return "%s %s %s" % (self.op, self.target, self.condition)
 
@@ -429,9 +343,6 @@ class SimpleInstruction(AbstractInstruction):
     """
     Abstract class for simple instructions with no arguments.
     """
-
-    def __str__(self):
-        return self.out()
 
     def out(self):
         return self.op
@@ -475,9 +386,6 @@ class UnaryClassicalInstruction(AbstractInstruction):
             raise TypeError("target operand should be an Addr")
         self.target = target
 
-    def __str__(self):
-        return self.out()
-
     def out(self):
         return "%s %s" % (self.op, self.target)
 
@@ -506,9 +414,6 @@ class BinaryClassicalInstruction(AbstractInstruction):
             raise TypeError("right operand should be an Addr")
         self.left = left
         self.right = right
-
-    def __str__(self):
-        return self.out()
 
     def out(self):
         return "%s %s %s" % (self.op, self.left, self.right)
@@ -540,55 +445,8 @@ class Jump(AbstractInstruction):
             raise TypeError("target should be a Label")
         self.target = target
 
-    def __str__(self):
-        return self.out()
-
     def out(self):
         return "JUMP %s" % self.target
-
-
-label_counter = 0
-
-
-def reset_label_counter():
-    global label_counter
-    label_counter = 0
-
-
-def gen_label(prefix="L"):
-    """
-    Generate a fresh label.
-
-    :param string prefix: An optional prefix for the label name.
-    :return: A new Label instance.
-    :rtype: Label
-    """
-    global label_counter
-    label_counter += 1
-    return Label(prefix + str(label_counter))
-
-
-class RawInstr(AbstractInstruction):
-    """
-    A raw instruction represented as a string.
-    """
-
-    def __init__(self, instr_str):
-        if not isinstance(instr_str, str):
-            raise TypeError("Raw instructions require a string.")
-        if not allow_raw_instructions:
-            raise RuntimeError("Raw instructions are not allowed. Consider changing"
-                               "the variable `allow_raw_instructions` to `True`.")
-        self.instr = instr_str
-
-    def out(self):
-        return self.instr
-
-    def __repr__(self):
-        return '<RawInstr>'
-
-    def __str__(self):
-        return self.instr
 
 
 class Pragma(AbstractInstruction):
@@ -602,14 +460,19 @@ class Pragma(AbstractInstruction):
     """
 
     def __init__(self, command, args=(), freeform_string=""):
-        if not isinstance(command, str):
+        if not isinstance(command, string_types):
             raise TypeError("Pragma's require an identifier.")
+
+        if not isinstance(args, (tuple, list)):
+            raise TypeError("Pragma arguments must be a list: {}".format(args))
         for a in args:
-            if not isinstance(a, (str, int)):
+            if not (isinstance(a, string_types) or isinstance(a, integer_types)):
                 raise TypeError("Pragma arguments must be strings or integers: {}".format(a))
-        if not isinstance(freeform_string, str):
+
+        if not isinstance(freeform_string, string_types):
             raise TypeError("The freeform string argument must be a string: {}".format(
                 freeform_string))
+
         self.command = command
         self.args = args
         self.freeform_string = freeform_string
@@ -625,210 +488,55 @@ class Pragma(AbstractInstruction):
     def __repr__(self):
         return '<PRAGMA {}>'.format(self.command)
 
-    def __str__(self):
-        return self.out
 
-
-class Instr(AbstractInstruction):
+class RawInstr(AbstractInstruction):
     """
-    Representation of an instruction represented by an operator, parameters, and arguments.
+    A raw instruction represented as a string.
     """
 
-    def __init__(self, op, params, args):
-        if not isinstance(op, str):
-            raise TypeError("op must be a string")
-        self.operator_name = op
-        self.parameters = params
-        self.arguments = []
-        if 0 != len(args):
-            if isinstance(args[0], list):
-                self.parameters = None if 0 == len(args[0]) else args[0]
-                self.arguments = args[1:]
-            else:
-                self.arguments = args
-
-    def __str__(self):
-        return "<Instr {0}>".format(self.operator_name)
-
-    def __eq__(self, other):
-        return self.out() == other.out()
-
-    def __ne__(self, other):
-        # x!=y and x<>y call __ne__() instead of negating __eq__
-        # This is only a weirdness in python2 as in python 3 __ne__ defaults to the inversion of
-        # __eq__
-        return not self.__eq__(other)
-
-    def __hash__(self):
-        return hash(self.out())
-
-    def synthesize(self, resource_manager=None):
-        if resource_manager is not None:
-            self.make_qubits_known(resource_manager)
-        return [self]
+    def __init__(self, instr_str):
+        if not isinstance(instr_str, string_types):
+            raise TypeError("Raw instructions require a string.")
+        self.instr = instr_str
 
     def out(self):
-        def format_params(params):
-            if not params:
-                return ""
-            else:
-                return "(" + ",".join(map(format_parameter, params)) + ")"
-
-        def format_args(args):
-            if 0 == len(args):
-                return ""
-            else:
-                return " " + " ".join([str(arg) for arg in args])
-
-        if self.parameters:
-            return self.operator_name + format_params(self.parameters) + format_args(self.arguments)
-        else:
-            return self.operator_name + format_args(self.arguments)
-
-    def make_qubits_known(self, rm):
-        """
-        Make the qubits involved with this instruction known to a ResourceManager.
-
-        :param ResourceManager rm: A ResourceManager object.
-        """
-        if not isinstance(rm, ResourceManager):
-            raise TypeError("rm should be a ResourceManager")
-
-        for arg in self.arguments:
-            if isinstance(arg, DirectQubit):
-                current = rm.in_use.get(arg.index(), False)
-                rm.in_use[arg.index()] = arg
-                # re-instantiate the qubit
-                if current and isinstance(current, Qubit):
-                    rm.instantiate(current)
-
-    def qubits(self):
-        """
-        The qubits this instruction affects.
-
-        :return: Set of qubit indexes.
-        :rtype: set
-        """
-        qubits = set()
-        for arg in self.arguments:
-            if issubinstance(arg, AbstractQubit):
-                qubits.add(arg.index())
-            elif isinstance(arg, int):
-                qubits.add(arg)
-        return qubits
-
-
-class Gate(Instr):
-    """
-    This is the pyQuil object for a quantum gate instruction.
-    """
-
-    def __init__(self, name, params, qubits):
-        for qubit in qubits:
-            check_live_qubit(qubit)
-        super(Gate, self).__init__(name, params, qubits)
+        return self.instr
 
     def __repr__(self):
-        return "<Gate: " + self.out() + ">"
-
-    def __str__(self):
-        return self.out()
+        return '<RawInstr>'
 
 
-class Measurement(Instr):
+def format_parameter(element):
     """
-    This is the pyQuil object for a Quil measurement instruction.
+    Formats a particular parameter. Essentially the same as built-in formatting except using 'i' instead of 'j' for
+    the imaginary number.
+
+    :param element: {int, float, long, complex, Slot} Formats a parameter for Quil output.
     """
-
-    def __init__(self, qubit, classical_reg=None):
-        check_live_qubit(qubit)
-
-        if classical_reg is None:
-            args = (qubit,)
-        elif isinstance(classical_reg, Addr):
-            args = (qubit, classical_reg)
+    if isinstance(element, integer_types) or isinstance(element, float):
+        return repr(element)
+    elif isinstance(element, complex):
+        r = element.real
+        i = element.imag
+        if i < 0:
+            return repr(r) + "-" + repr(abs(i)) + "i"
         else:
-            raise TypeError("classical_reg should be None or an Addr instance")
-
-        super(Measurement, self).__init__("MEASURE",
-                                          params=None,
-                                          args=args)
-
-        self.classical_reg = classical_reg
+            return repr(r) + "+" + repr(i) + "i"
+    elif isinstance(element, Slot):
+        return format_parameter(element.value())
+    assert False, "Invalid parameter: %r" % element
 
 
-class While(QuilAction):
+def unpack_qubit(qubit):
     """
-    Representation of a ``while`` construct. To use, initialize with an
-    address to branch on, and use ``self.Body.inst()`` to add instructions to
-    the body of the loop.
+    Get a qubit from an object.
+
+    :param qubit: An int or Qubit.
+    :return: A Qubit instance
     """
-
-    def __init__(self, condition):
-        if not isinstance(condition, Addr):
-            raise TypeError("condition must be an Addr")
-        super(While, self).__init__()
-        self.condition = condition
-        self.Body = InstructionGroup()
-
-    def synthesize(self, resource_manager=None):
-        # WHILE [c]:
-        #    instr...
-        #
-        # =>
-        #
-        #   LABEL @START
-        #   JUMP-UNLESS @END [c]
-        #   instr...
-        #   JUMP @START
-        #   LABEL @END
-        label_start = gen_label("START")
-        label_end = gen_label("END")
-        insts = list()
-        insts.append(JumpTarget(label_start))
-        insts.append(JumpUnless(target=label_end, condition=self.condition))
-        insts.extend(self.Body.synthesize())
-        insts.append(Jump(target=label_start))
-        insts.append(JumpTarget(label_end))
-        return insts
-
-
-class If(QuilAction):
-    """
-    Representation of an ``if`` construct. To use, initialize with an address
-    to be branched on, and add instructions to ``self.Then`` and ``self.Else``
-    for the corresponding branches.
-    """
-
-    def __init__(self, condition):
-        if not isinstance(condition, Addr):
-            raise TypeError("condition must be an Addr")
-        super(If, self).__init__()
-        self.condition = condition
-        self.Then = InstructionGroup()
-        self.Else = InstructionGroup()
-
-    def synthesize(self, resource_manager=None):
-        # IF [c]:
-        #    instrA...
-        # ELSE:
-        #    instrB...
-        #
-        # =>
-        #
-        #   JUMP-WHEN @THEN [c]
-        #   instrB...
-        #   JUMP @END
-        #   LABEL @THEN
-        #   instrA...
-        #   LABEL @END
-        label_then = gen_label("THEN")
-        label_end = gen_label("END")
-        insts = list()
-        insts.append(JumpWhen(target=label_then, condition=self.condition))
-        insts.extend(self.Else.synthesize())
-        insts.append(Jump(target=label_end))
-        insts.append(JumpTarget(label_then))
-        insts.extend(self.Then.synthesize())
-        insts.append(JumpTarget(label_end))
-        return insts
+    if isinstance(qubit, integer_types):
+        return Qubit(qubit)
+    elif isinstance(qubit, Qubit):
+        return qubit
+    else:
+        raise TypeError("qubit should be an int or Qubit instance")

@@ -20,7 +20,7 @@ Pythonic sugar for Quil instructions.
 
 from .quilbase import (Measurement, Gate, Addr, Wait, Reset, Halt, Nop, ClassicalTrue,
                        ClassicalFalse, ClassicalNot, ClassicalAnd, ClassicalOr, ClassicalMove,
-                       ClassicalExchange, DirectQubit, AbstractQubit, issubinstance, unpack_qubit)
+                       ClassicalExchange, unpack_qubit)
 from six import integer_types
 
 

@@ -15,7 +15,7 @@
 #    limitations under the License.
 ##############################################################################
 
-from setuptools import setup
+from setuptools import setup, find_packages
 from pyquil import __version__
 
 setup(
@@ -25,7 +25,7 @@ setup(
     author_email="softapps@rigetti.com",
     description="A Python library to generate Quantum Instruction Language (Quil) Programs.",
     url="https://github.com/rigetticomputing/pyquil.git",
-    packages=['pyquil', 'pyquil._parser', 'pyquil._parser.gen2', 'pyquil._parser.gen3', 'pyquil.setup'],
+    packages=find_packages(exclude=["*.tests", "*.tests.*", "tests.*", "tests"]),
     license="LICENSE",
     install_requires=[
         'requests >= 2.4.2',
