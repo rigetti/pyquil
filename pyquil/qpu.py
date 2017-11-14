@@ -16,6 +16,7 @@
 """
 Module for facilitating connections to the QPU.
 """
+import warnings
 
 from pyquil.api import JobConnection, TYPE_MULTISHOT, TYPE_MULTISHOT_MEASURE, validate_run_items
 from pyquil.quil import Program
@@ -64,25 +65,29 @@ class QPUConnection(JobConnection):
         res = self.post_job(payload, headers=self.headers)
         return self.process_response(res)
 
-    def run_and_measure(self, quil_program, qubits, trials=1):
+    def run_and_measure(self, quil_program, qubits=None, trials=1):
         """
         Run a pyQuil program on the QPU multiple times, measuring all the qubits in the QPU
         simultaneously at the end of the program each time. This functionality is in beta.
 
         :param Program quil_program: Quil program to run on the QPU
-        :param list qubits: The list of qubits to return results for
         :param int trials: Number of shots to take
         :return: A job result
         :rtype: JobResult
         """
+        if qubits:
+            warnings.warn(
+                "The qubits parameter in run_and_measure is ignored and all qubits are measured instead. "
+                "This parameter will be removed in a future release.", DeprecationWarning)
+            validate_run_items(qubits)
+
         if not isinstance(quil_program, Program):
             raise TypeError('quil_program must be a Quil program object')
-        validate_run_items(qubits)
         if not isinstance(trials, int):
             raise TypeError('trials must be an integer')
 
         payload = {'type': TYPE_MULTISHOT_MEASURE,
-                   'qubits': qubits,
+                   'qubits': sorted(quil_program.get_qubits()),
                    'trials': trials,
                    'quil-instructions': quil_program.out(),
                    'device_id': self.device_name}
