@@ -14,17 +14,151 @@
 #    See the License for the specific language governing permissions and
 #    limitations under the License.
 ##############################################################################
+import base64
 
-
+import requests_mock
 from mock import Mock
 import json
 import numpy as np
 import pytest
 
 from pyquil.api import (add_noise_to_payload, add_rng_seed_to_payload, SyncConnection,
-                        _validate_noise_probabilities, validate_run_items)
+                        _validate_noise_probabilities, validate_run_items, JobConnection)
+from pyquil.job_results import wait_for_job
 from pyquil.quil import Program
 from pyquil.gates import CNOT, H, MEASURE
+
+BELL_STATE = Program(H(0), CNOT(0, 1))
+
+qvm = SyncConnection(api_key='api_key', user_id='user_id')
+job_qvm = JobConnection(api_key='api_key', user_id='user_id')
+
+
+def test_ping():
+    def mock_response(request, context):
+        assert json.loads(request.text) == {"type": "ping"}
+        return 'pong'
+
+    with requests_mock.Mocker() as m:
+        m.post('https://api.rigetti.com/qvm', text=mock_response)
+        assert qvm.ping() == 'pong'
+
+
+def test_sync_run():
+    def mock_response(request, context):
+        assert json.loads(request.text) == {
+            "type": "multishot",
+            "addresses": [0, 1],
+            "trials": 2,
+            "quil-instructions": "H 0\nCNOT 0 1\n"
+        }
+        return '[[0,0],[1,1]]'
+
+    with requests_mock.Mocker() as m:
+        m.post('https://api.rigetti.com/qvm', text=mock_response)
+        assert qvm.run(BELL_STATE, [0, 1], trials=2) == [[0, 0], [1, 1]]
+
+
+def test_sync_run_and_measure():
+    def mock_response(request, context):
+        assert json.loads(request.text) == {
+            "type": "multishot-measure",
+            "qubits": [0, 1],
+            "trials": 2,
+            "quil-instructions": "H 0\nCNOT 0 1\n"
+        }
+        return '[[0,0],[1,1]]'
+
+    with requests_mock.Mocker() as m:
+        m.post('https://api.rigetti.com/qvm', text=mock_response)
+        assert qvm.run_and_measure(BELL_STATE, [0, 1], trials=2) == [[0, 0], [1, 1]]
+
+
+WAVEFUNCTION_BINARY = (b'\x01\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00'
+                       b'\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00?\xe6'
+                       b'\xa0\x9ef\x7f;\xcc\x00\x00\x00\x00\x00\x00\x00\x00\xbf\xe6\xa0\x9ef'
+                       b'\x7f;\xcc\x00\x00\x00\x00\x00\x00\x00\x00')
+WAVEFUNCTION_PROGRAM = Program(H(0), CNOT(0, 1), MEASURE(0, 0), H(0))
+
+
+def test_sync_wavefunction():
+    def mock_response(request, context):
+        assert json.loads(request.text) == {
+            "type": "wavefunction",
+            "quil-instructions": "H 0\nCNOT 0 1\nMEASURE 0 [0]\nH 0\n",
+            "addresses": [0, 1]
+        }
+        return WAVEFUNCTION_BINARY
+
+    with requests_mock.Mocker() as m:
+        m.post('https://api.rigetti.com/qvm', content=mock_response)
+        result = qvm.wavefunction(WAVEFUNCTION_PROGRAM, [0, 1])
+        wf_expected = np.array([0. + 0.j, 0. + 0.j, 0.70710678 + 0.j, -0.70710678 + 0.j])
+        assert np.all(np.isclose(result[0].amplitudes, wf_expected))
+        assert result[1] == [1, 0]
+
+
+JOB_ID = 'abc'
+
+
+def test_async_run():
+    def mock_queued_response(request, context):
+        assert json.loads(request.text) == {
+            "machine": "QVM",
+            "userId": "user_id",
+            "program": {
+                "type": "multishot",
+                "addresses": [0, 1],
+                "trials": 2,
+                "quil-instructions": "H 0\nCNOT 0 1\n"
+            }
+        }
+        return json.dumps({"jobId": JOB_ID, "status": "QUEUED"})
+
+    with requests_mock.Mocker() as m:
+        m.post('https://job.rigetti.com/beta/job', text=mock_queued_response)
+        result = job_qvm.run(BELL_STATE, [0, 1], trials=2)
+        assert result.job_id() == JOB_ID
+
+        m.get('https://job.rigetti.com/beta/job/' + JOB_ID, [
+            {'text': json.dumps({"jobId": JOB_ID, "status": "RUNNING"})},
+            {'text': json.dumps({"jobId": JOB_ID, "status": "FINISHED", "result": [[0, 0], [1, 1]]})}
+        ])
+        assert not result.is_done()
+        assert result.is_done()
+        assert result.decode() == [[0, 0], [1, 1]]
+
+
+def test_async_wavefunction():
+    def mock_queued_response(request, context):
+        assert json.loads(request.text) == {
+            "machine": "QVM",
+            "userId": "user_id",
+            "program": {
+                "type": "wavefunction",
+                "quil-instructions": "H 0\nCNOT 0 1\nMEASURE 0 [0]\nH 0\n",
+                "addresses": [0, 1]
+            }
+        }
+        return json.dumps({"jobId": JOB_ID, "status": "QUEUED"})
+
+    with requests_mock.Mocker() as m:
+        m.post('https://job.rigetti.com/beta/job', text=mock_queued_response)
+        result = job_qvm.wavefunction(WAVEFUNCTION_PROGRAM, [0, 1])
+
+        m.get('https://job.rigetti.com/beta/job/' + JOB_ID, text=json.dumps({
+            "jobId": JOB_ID,
+            "status": "FINISHED",
+            "result": base64.b64encode(WAVEFUNCTION_BINARY).decode()
+        }))
+        wait_for_job(result)
+
+        wf_expected = np.array([0. + 0.j, 0. + 0.j, 0.70710678 + 0.j, -0.70710678 + 0.j])
+        assert np.all(np.isclose(result.decode()[0].amplitudes, wf_expected))
+        assert result.decode()[1] == [1, 0]
+
+
+########################################################################################################################
 
 
 class MockPostJson(object):
