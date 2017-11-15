@@ -345,4 +345,3 @@ class QVMConnection(QVMSyncConnection):
             time.sleep(0.1)
             job = self.get_job(job_id)
         return job
-

@@ -22,6 +22,7 @@ pytest-cov==2.5.1
 python-dateutil==2.6.1
 pytz==2017.2
 requests==2.18.4
+requests-mock==1.3.0
 six==1.11.0
 tox==2.9.1
 typing==3.6.2

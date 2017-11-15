@@ -21,7 +21,7 @@ Module for facilitating connections to the QPU.
 class QPUConnection(object):
     def __init__(self, *args, **kwargs):
         raise DeprecationWarning("""
-        The pyquil.qpu.QPUConnection has been moved and will be deleted in a future version. 
+        The pyquil.qpu.QPUConnection has been moved and will be deleted in a future version.
         Use pyquil.api.QPUConnection instead.
 
         Note that the new QPUConnection behaves differently than the current QPUConnection did.

@@ -1,3 +1,5 @@
+from __future__ import print_function
+
 import requests
 import sys
 from requests.adapters import HTTPAdapter
@@ -69,12 +71,10 @@ class BaseConnection(object):
                   "!   There was an issue validating your forest account.\n"
                   "!   Have you run the pyquil-config-setup command yet?\n"
                   "! The server came back with the following information:\n"
-                  "%s\n%s\n%s" % ("=" * 80, res.text, "=" * 80),
-                  file=sys.stderr)
+                  "%s\n%s\n%s" % ("=" * 80, res.text, "=" * 80), file=sys.stderr)
             print("! If you suspect this to be a bug in pyQuil or Rigetti Forest,\n"
                   "! then please describe the problem in a GitHub issue at:\n!\n"
-                  "!      https://github.com/rigetticomputing/pyquil/issues\n",
-                  file=sys.stderr)
+                  "!      https://github.com/rigetticomputing/pyquil/issues\n", file=sys.stderr)
 
         # Print some nice info for invalid input or internal server errors.
         if res.status_code == 400 or res.status_code >= 500:
@@ -82,12 +82,10 @@ class BaseConnection(object):
                   "!   Server caught an error. This could be due to a bug in the server\n"
                   "!   or a bug in your code. The server came back with the following\n"
                   "!   information:\n"
-                  "%s\n%s\n%s" % ("=" * 80, res.text, "=" * 80),
-                  file=sys.stderr)
+                  "%s\n%s\n%s" % ("=" * 80, res.text, "=" * 80), file=sys.stderr)
             print("! If you suspect this to be a bug in pyQuil or Rigetti Forest,\n"
                   "! then please describe the problem in a GitHub issue at:\n!\n"
-                  "!      https://github.com/rigetticomputing/pyquil/issues\n",
-                  file=sys.stderr)
+                  "!      https://github.com/rigetticomputing/pyquil/issues\n", file=sys.stderr)
 
         res.raise_for_status()
         return res
