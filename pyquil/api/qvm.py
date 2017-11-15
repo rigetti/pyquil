@@ -1,13 +1,11 @@
 import json
 
-import time
 from six import integer_types
 
-from pyquil.api import Job
 from pyquil.quil import Program
 from pyquil.wavefunction import Wavefunction
 from ._base_connection import BaseConnection, validate_noise_probabilities, validate_run_items, TYPE_MULTISHOT, \
-    TYPE_MULTISHOT_MEASURE, TYPE_WAVEFUNCTION, TYPE_EXPECTATION
+    TYPE_MULTISHOT_MEASURE, TYPE_WAVEFUNCTION, TYPE_EXPECTATION, get_job_id, AsyncConnection
 
 
 class QVMSyncConnection(BaseConnection):
@@ -38,7 +36,7 @@ class QVMSyncConnection(BaseConnection):
         :rtype: string
         """
         payload = {"type": "ping"}
-        res = self.post_json(payload, route="")
+        res = self._post_json(payload, route="")
         return str(res.text)
 
     def run(self, quil_program, classical_addresses, trials=1):
@@ -54,7 +52,7 @@ class QVMSyncConnection(BaseConnection):
         :rtype: list
         """
         payload = self._run_payload(quil_program, classical_addresses, trials)
-        response = self.post_json(payload, route="")
+        response = self._post_json(payload, route="")
         return response.json()
 
     def _run_payload(self, quil_program, classical_addresses, trials):
@@ -91,7 +89,7 @@ class QVMSyncConnection(BaseConnection):
         :rtype: list
         """
         payload = self._run_and_measure_payload(quil_program, qubits, trials)
-        response = self.post_json(payload, route="")
+        response = self._post_json(payload, route="")
         return response.json()
 
     def _run_and_measure_payload(self, quil_program, qubits, trials):
@@ -129,7 +127,7 @@ class QVMSyncConnection(BaseConnection):
         :rtype: Wavefunction
         """
         payload = self._wavefunction_payload(quil_program, classical_addresses)
-        response = self.post_json(payload, route="")
+        response = self._post_json(payload, route="")
         return Wavefunction.from_bit_packed_string(response.content, classical_addresses)
 
     def _wavefunction_payload(self, quil_program, classical_addresses):
@@ -166,7 +164,7 @@ class QVMSyncConnection(BaseConnection):
         :rtype: float
         """
         payload = self._expectation_payload(prep_prog, operator_programs)
-        response = self.post_json(payload, route="")
+        response = self._post_json(payload, route="")
         return response.json()
 
     def _expectation_payload(self, prep_prog, operator_programs=None):
@@ -181,6 +179,8 @@ class QVMSyncConnection(BaseConnection):
                    'operators': [x.out() for x in operator_programs]}
 
         self._add_rng_seed_to_payload(payload)
+
+        return payload
 
     def _add_noise_to_payload(self, payload):
         """
@@ -199,7 +199,7 @@ class QVMSyncConnection(BaseConnection):
             payload['rng-seed'] = self.random_seed
 
 
-class QVMConnection(QVMSyncConnection):
+class QVMConnection(QVMSyncConnection, AsyncConnection):
     """
     Represents a connection to the QVM.
     """
@@ -249,14 +249,14 @@ class QVMConnection(QVMSyncConnection):
         :rtype: list
         """
         payload = self._run_payload(quil_program, classical_addresses, trials)
-        response = self.post_json({"machine": "QVM", "program": payload}, route="/job")
-        job = self._wait_for_result(self._get_job_id(response))
+        response = self._post_json({"machine": "QVM", "program": payload}, route="/job")
+        job = self.wait_for_job(get_job_id(response))
         return job.result()
 
     def run_async(self, quil_program, classical_addresses, trials=1):
         payload = self._run_payload(quil_program, classical_addresses, trials)
-        response = self.post_json({"machine": "QVM", "program": payload}, route="/job")
-        return self._get_job_id(response)
+        response = self._post_json({"machine": "QVM", "program": payload}, route="/job")
+        return get_job_id(response)
 
     def run_and_measure(self, quil_program, qubits, trials=1):
         """
@@ -275,14 +275,14 @@ class QVMConnection(QVMSyncConnection):
         :rtype: list
         """
         payload = self._run_and_measure_payload(quil_program, qubits, trials)
-        response = self.post_json({"machine": "QVM", "program": payload}, route="/job")
-        job = self._wait_for_result(self._get_job_id(response))
+        response = self._post_json({"machine": "QVM", "program": payload}, route="/job")
+        job = self.wait_for_job(get_job_id(response))
         return job.result()
 
     def run_and_measure_async(self, quil_program, qubits, trials=1):
         payload = self._run_and_measure_payload(quil_program, qubits, trials)
-        response = self.post_json({"machine": "QVM", "program": payload}, route="/job")
-        return self._get_job_id(response)
+        response = self._post_json({"machine": "QVM", "program": payload}, route="/job")
+        return get_job_id(response)
 
     def wavefunction(self, quil_program, classical_addresses=None):
         """
@@ -302,14 +302,14 @@ class QVMConnection(QVMSyncConnection):
         :rtype: Wavefunction
         """
         payload = self._wavefunction_payload(quil_program, classical_addresses)
-        response = self.post_json({"machine": "QVM", "program": payload}, route="/job")
-        job = self._wait_for_result(self._get_job_id(response))
+        response = self._post_json({"machine": "QVM", "program": payload}, route="/job")
+        job = self.wait_for_job(get_job_id(response))
         return job.result()
 
     def wavefunction_async(self, quil_program, classical_addresses=None):
         payload = self._wavefunction_payload(quil_program, classical_addresses)
-        response = self.post_json({"machine": "QVM", "program": payload}, route="/job")
-        return self._get_job_id(response)
+        response = self._post_json({"machine": "QVM", "program": payload}, route="/job")
+        return get_job_id(response)
 
     def expectation(self, prep_prog, operator_programs=None):
         """
@@ -328,20 +328,6 @@ class QVMConnection(QVMSyncConnection):
         :rtype: float
         """
         payload = self._expectation_payload(prep_prog, operator_programs)
-        response = self.post_json({"machine": "QVM", "program": payload}, route="/job")
-        job = self._wait_for_result(self._get_job_id(response))
+        response = self._post_json({"machine": "QVM", "program": payload}, route="/job")
+        job = self.wait_for_job(get_job_id(response))
         return job.result()
-
-    def get_job(self, job_id):
-        response = self.get_json(route="/job/" + job_id)
-        return Job(response.json())
-
-    def _get_job_id(self, response):
-        return response.json()['jobId']
-
-    def _wait_for_result(self, job_id):
-        job = self.get_job(job_id)
-        while not job.is_done():
-            time.sleep(0.1)
-            job = self.get_job(job_id)
-        return job

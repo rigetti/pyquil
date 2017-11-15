@@ -2,11 +2,14 @@ from __future__ import print_function
 
 import requests
 import sys
+
+import time
 from requests.adapters import HTTPAdapter
 from six import integer_types
 from urllib3 import Retry
 
-from pyquil.api.config import PyquilConfig
+from .job import Job
+from .config import PyquilConfig
 
 TYPE_EXPECTATION = "expectation"
 TYPE_MULTISHOT = "multishot"
@@ -34,22 +37,7 @@ class BaseConnection(object):
         self.api_key = api_key if api_key else config.api_key
         self.user_id = user_id if user_id else config.user_id
 
-    def get_json(self, route):
-        """
-        Get JSON from a Forest endpoint.
-
-        :param str route: The route to append to the endpoint, e.g. "/job"
-        :return: Response object
-        """
-        headers = {
-            'X-Api-Key': self.api_key,
-            'X-User-Id': self.user_id,
-            'Content-Type': 'application/json; charset=utf-8'
-        }
-        url = self.endpoint + route
-        return requests.get(url, headers=headers)
-
-    def post_json(self, json, route):
+    def _post_json(self, json, route):
         """
         Post JSON to the Forest endpoint.
 
@@ -91,6 +79,51 @@ class BaseConnection(object):
         return res
 
 
+class AsyncConnection(BaseConnection):
+    def _get_json(self, route):
+        """
+        Get JSON from a Forest endpoint.
+
+        :param str route: The route to append to the endpoint, e.g. "/job"
+        :return: Response object
+        """
+        headers = {
+            'X-Api-Key': self.api_key,
+            'X-User-Id': self.user_id,
+            'Content-Type': 'application/json; charset=utf-8'
+        }
+        url = self.endpoint + route
+        return requests.get(url, headers=headers)
+
+    def get_job(self, job_id):
+        response = self._get_json(route="/job/" + job_id)
+        return Job(response.json())
+
+    def wait_for_job(self, job_id, ping_time=0.1, status_time=2):
+        """
+        Wait for the results of a job and periodically print status
+
+        :param job_id: Job id
+        :param ping_time: How often to poll the server
+        :param status_time: How often to print status, set to False to never print status
+        :return: Completed Job
+        """
+        count = 0
+        while True:
+            time.sleep(ping_time)
+            job = self.get_job(job_id)
+            if job.is_done():
+                break
+
+            if status_time and count % int(status_time / ping_time) == 0:
+                if job.is_queued():
+                    print("job {} is currently queued at position {}".format(job.job_id, job.position_in_queue()))
+                elif job.is_running():
+                    print("job {} is currently running".format(job.job_id))
+
+        return job
+
+
 def validate_noise_probabilities(noise_parameter):
     """
     Is noise_parameter a valid specification of noise probabilities for depolarizing noise?
@@ -121,3 +154,7 @@ def validate_run_items(run_items):
         raise TypeError("run_items must be a list")
     if any([not isinstance(i, integer_types) for i in run_items]):
         raise TypeError("run_items list must contain integer values")
+
+
+def get_job_id(response):
+    return response.json()['jobId']
