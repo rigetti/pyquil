@@ -28,10 +28,6 @@ from pyquil.quil import Program, merge_programs
 from pyquil.quilbase import DefGate, Gate, Addr, Qubit
 
 
-def test_make_connection():
-    qvm_endpoint.JobConnection()
-
-
 def test_gate():
     tg = Gate("TEST", qubits=[Qubit(1), Qubit(2)], params=[])
     assert tg.out() == "TEST 1 2"

@@ -1,0 +1,125 @@
+import requests
+import sys
+from requests.adapters import HTTPAdapter
+from six import integer_types
+from urllib3 import Retry
+
+from pyquil.api.config import PyquilConfig
+
+TYPE_EXPECTATION = "expectation"
+TYPE_MULTISHOT = "multishot"
+TYPE_MULTISHOT_MEASURE = "multishot-measure"
+TYPE_WAVEFUNCTION = "wavefunction"
+
+
+class BaseConnection(object):
+    def __init__(self, endpoint, api_key=None, user_id=None):
+        self._session = requests.Session()
+        retry_adapter = HTTPAdapter(max_retries=Retry(total=3,
+                                                      method_whitelist=['POST'],
+                                                      status_forcelist=[502, 503, 504, 521, 523],
+                                                      backoff_factor=0.2,
+                                                      raise_on_status=False))
+
+        # We need this to get binary payload for the wavefunction call.
+        self._session.headers.update({"Accept": "application/octet-stream"})
+
+        self._session.mount("http://", retry_adapter)
+        self._session.mount("https://", retry_adapter)
+
+        config = PyquilConfig()
+        self.endpoint = endpoint
+        self.api_key = api_key if api_key else config.api_key
+        self.user_id = user_id if user_id else config.user_id
+
+    def get_json(self, route):
+        """
+        Get JSON from a Forest endpoint.
+
+        :param str route: The route to append to the endpoint, e.g. "/job"
+        :return: Response object
+        """
+        headers = {
+            'X-Api-Key': self.api_key,
+            'X-User-Id': self.user_id,
+            'Content-Type': 'application/json; charset=utf-8'
+        }
+        url = self.endpoint + route
+        return requests.get(url, headers=headers)
+
+    def post_json(self, json, route):
+        """
+        Post JSON to the Forest endpoint.
+
+        :param dict json: JSON.
+        :param str route: The route to append to the endpoint, e.g. "/job"
+        :return: A non-error response.
+        """
+        headers = {
+            'X-Api-Key': self.api_key,
+            'X-User-Id': self.user_id,
+            'Content-Type': 'application/json; charset=utf-8'
+        }
+        url = self.endpoint + route
+        res = self._session.post(url, json=json, headers=headers)
+
+        # Print some nice info for unauthorized/permission errors.
+        if res.status_code == 401 or res.status_code == 403:
+            print("! ERROR:\n"
+                  "!   There was an issue validating your forest account.\n"
+                  "!   Have you run the pyquil-config-setup command yet?\n"
+                  "! The server came back with the following information:\n"
+                  "%s\n%s\n%s" % ("=" * 80, res.text, "=" * 80),
+                  file=sys.stderr)
+            print("! If you suspect this to be a bug in pyQuil or Rigetti Forest,\n"
+                  "! then please describe the problem in a GitHub issue at:\n!\n"
+                  "!      https://github.com/rigetticomputing/pyquil/issues\n",
+                  file=sys.stderr)
+
+        # Print some nice info for invalid input or internal server errors.
+        if res.status_code == 400 or res.status_code >= 500:
+            print("! ERROR:\n"
+                  "!   Server caught an error. This could be due to a bug in the server\n"
+                  "!   or a bug in your code. The server came back with the following\n"
+                  "!   information:\n"
+                  "%s\n%s\n%s" % ("=" * 80, res.text, "=" * 80),
+                  file=sys.stderr)
+            print("! If you suspect this to be a bug in pyQuil or Rigetti Forest,\n"
+                  "! then please describe the problem in a GitHub issue at:\n!\n"
+                  "!      https://github.com/rigetticomputing/pyquil/issues\n",
+                  file=sys.stderr)
+
+        res.raise_for_status()
+        return res
+
+
+def validate_noise_probabilities(noise_parameter):
+    """
+    Is noise_parameter a valid specification of noise probabilities for depolarizing noise?
+
+    :param list noise_parameter: List of noise parameter values to be validated.
+    """
+    if not noise_parameter:
+        return
+    if not isinstance(noise_parameter, list):
+        raise TypeError("noise_parameter must be a list")
+    if any([not isinstance(value, float) for value in noise_parameter]):
+        raise TypeError("noise_parameter values should all be floats")
+    if len(noise_parameter) != 3:
+        raise ValueError("noise_parameter lists must be of length 3")
+    if sum(noise_parameter) > 1 or sum(noise_parameter) < 0:
+        raise ValueError("sum of entries in noise_parameter must be between 0 and 1 (inclusive)")
+    if any([value < 0 for value in noise_parameter]):
+        raise ValueError("noise_parameter values should all be non-negative")
+
+
+def validate_run_items(run_items):
+    """
+    Check the validity of classical addresses / qubits for the payload.
+
+    :param list run_items: List of classical addresses or qubits to be validated.
+    """
+    if not isinstance(run_items, list):
+        raise TypeError("run_items must be a list")
+    if any([not isinstance(i, integer_types) for i in run_items]):
+        raise TypeError("run_items list must contain integer values")

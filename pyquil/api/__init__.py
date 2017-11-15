@@ -14,29 +14,33 @@
 #    limitations under the License.
 ##############################################################################
 """
-Module for facilitating connections to the QPU.
+Module for facilitating connections to the QVM / QPU.
 """
 
+__all__ = ['SyncConnection', 'QVMConnection', 'QPUConnection']
 
-class QPUConnection(object):
+from pyquil.api.job import Job
+from pyquil.api.qvm import QVMSyncConnection as SyncConnection
+from pyquil.api.qvm import QVMConnection
+from pyquil.api.qpu import QPUConnection
+
+
+class JobConnection(object):
     def __init__(self, *args, **kwargs):
         raise DeprecationWarning("""
-        The pyquil.qpu.QPUConnection has been moved and will be deleted in a future version. 
-        Use pyquil.api.QPUConnection instead.
+        JobConnection has been deprecated and will be removed in a future version. Use QVMConnection instead.
 
-        Note that the new QPUConnection behaves differently than the current QPUConnection did.
-        run(), run_and_measure() all now directly return the result of the program
+        Note that QVMConnection behaves differently than JobConnection did.
+        run(), run_and_measure(), wavefunction(), and expectation() all now directly return the result of the program
         instead of returning a JobResult object.
 
         This means you need to replace constructs like this:
-            from pyquil.qpu import QPUConnection
-            qvm = QPUConnection()
+            qvm = JobConnection()
             job = qvm.run(program, ...)
             wait_for_job(job)
             result = job.result()
         with just this:
-            from pyquil.api import QPUConneciton
-            qvm = QPUConnection()
+            qvm = JobConnection()
             result = qvm.run(program, ...)
 
         For more information see https://go.rigetti.com/connections
