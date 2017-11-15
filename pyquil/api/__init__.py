@@ -28,20 +28,20 @@ from pyquil.api.qpu import QPUConnection
 class JobConnection(object):
     def __init__(self, *args, **kwargs):
         raise DeprecationWarning("""
-        JobConnection has been deprecated and will be removed in a future version. Use QVMConnection instead.
+JobConnection has been deprecated and will be removed in a future version.
+Use QVMConnection instead.
 
-        Note that QVMConnection behaves differently than JobConnection did.
-        run(), run_and_measure(), wavefunction(), and expectation() all now directly return the result of the program
-        instead of returning a JobResult object.
+Note that QVMConnection behaves differently than JobConnection did:
+run(), run_and_measure(), wavefunction(), and expectation() all now directly 
+return the result of the program instead of returning a JobResult object.
 
-        This means you need to replace constructs like this:
-            qvm = JobConnection()
-            job = qvm.run(program, ...)
-            wait_for_job(job)
-            result = job.result()
-        with just this:
-            qvm = JobConnection()
-            result = qvm.run(program, ...)
+This means you need to replace constructs like this:
+    qvm = JobConnection()
+    job = qvm.run(program, ...)
+    wait_for_job(job)
+    result = job.result()
+with just this:
+    qvm = JobConnection()
+    result = qvm.run(program, ...)
 
-        For more information see https://go.rigetti.com/connections
-        """)
+For more information see https://go.rigetti.com/connections\n""")

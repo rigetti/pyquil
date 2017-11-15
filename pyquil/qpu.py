@@ -21,23 +21,22 @@ Module for facilitating connections to the QPU.
 class QPUConnection(object):
     def __init__(self, *args, **kwargs):
         raise DeprecationWarning("""
-        The pyquil.qpu.QPUConnection has been moved and will be deleted in a future version.
-        Use pyquil.api.QPUConnection instead.
+The pyquil.qpu.QPUConnection has been moved and will be deleted in the future.
+Use pyquil.api.QPUConnection instead.
 
-        Note that the new QPUConnection behaves differently than the current QPUConnection did.
-        run(), run_and_measure() all now directly return the result of the program
-        instead of returning a JobResult object.
+Note that the new QPUConnection behaves differently:
+run(), run_and_measure() all now directly return the result of the program
+instead of returning a JobResult object.
 
-        This means you need to replace constructs like this:
-            from pyquil.qpu import QPUConnection
-            qvm = QPUConnection()
-            job = qvm.run(program, ...)
-            wait_for_job(job)
-            result = job.result()
-        with just this:
-            from pyquil.api import QPUConneciton
-            qvm = QPUConnection()
-            result = qvm.run(program, ...)
+This means you need to replace constructs like this:
+    from pyquil.qpu import QPUConnection
+    qvm = QPUConnection()
+    job = qvm.run(program, ...)
+    wait_for_job(job)
+    result = job.result()
+with just this:
+    from pyquil.api import QPUConneciton
+    qvm = QPUConnection()
+    result = qvm.run(program, ...)
 
-        For more information see https://go.rigetti.com/connections
-        """)
+For more information see https://go.rigetti.com/connections\n""")
