@@ -16,7 +16,7 @@
 
 from six.moves import input
 
-from pyquil.api.config import PyquilConfig
+from pyquil.api._config import PyquilConfig
 
 
 def main():
