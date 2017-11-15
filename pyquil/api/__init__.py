@@ -32,7 +32,7 @@ JobConnection has been deprecated and will be removed in a future version.
 Use QVMConnection instead.
 
 Note that QVMConnection behaves differently than JobConnection did:
-run(), run_and_measure(), wavefunction(), and expectation() all now directly 
+run(), run_and_measure(), wavefunction(), and expectation() all now directly
 return the result of the program instead of returning a JobResult object.
 
 This means you need to replace constructs like this:

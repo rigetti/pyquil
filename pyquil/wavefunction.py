@@ -75,8 +75,8 @@ class Wavefunction(object):
 
     def __iter__(self):
         warnings.warn(DeprecationWarning("""
-Previously, qvm.wavefunction returned both classical memory and wavefunction 
-as a pair. Now it just returns a Wavefunction object. 
+Previously, qvm.wavefunction returned both classical memory and wavefunction
+as a pair. Now it just returns a Wavefunction object.
 You likely need to change this:
     wf, _ = qvm.wavefunction(program, ...)
 To this:
@@ -85,8 +85,8 @@ To this:
 
     def __getitem__(self, index):
         warnings.warn(DeprecationWarning("""
-Previously, qvm.wavefunction returned both classical memory and wavefunction 
-as a pair. Now it just returns a Wavefunction object. 
+Previously, qvm.wavefunction returned both classical memory and wavefunction
+as a pair. Now it just returns a Wavefunction object.
 You likely need to change this:
     wf, _ = qvm.wavefunction(program, ...)
 To this:
