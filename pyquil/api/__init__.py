@@ -16,13 +16,20 @@
 """
 Module for facilitating connections to the QVM / QPU.
 """
+import warnings
 
-__all__ = ['SyncConnection', 'QVMConnection', 'QPUConnection']
+__all__ = ['QVMConnection', 'QPUConnection']
 
 from pyquil.api.job import Job
-from pyquil.api.qvm import QVMSyncConnection as SyncConnection
 from pyquil.api.qvm import QVMConnection
 from pyquil.api.qpu import QPUConnection
+
+
+class SyncConnection(QVMConnection):
+    def __init__(self, *args, **kwargs):
+        warnings.warn(DeprecationWarning(
+            "SyncConnection has been renamed to QVMConnection and will be removed in the future"))
+        super(SyncConnection, self).__init__(*args, **kwargs)
 
 
 class JobConnection(object):

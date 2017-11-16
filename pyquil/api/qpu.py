@@ -18,10 +18,10 @@ from six import integer_types
 
 from pyquil.api import Job
 from pyquil.quil import Program
-from ._base_connection import validate_run_items, TYPE_MULTISHOT, TYPE_MULTISHOT_MEASURE, get_job_id, AsyncConnection
+from ._base_connection import validate_run_items, TYPE_MULTISHOT, TYPE_MULTISHOT_MEASURE, get_job_id, BaseConnection
 
 
-class QPUConnection(AsyncConnection):
+class QPUConnection(BaseConnection):
 
     def __init__(self, endpoint='https://job.rigetti.com/beta', api_key=None, user_id=None):
         super(QPUConnection, self).__init__(endpoint=endpoint, api_key=api_key, user_id=user_id)

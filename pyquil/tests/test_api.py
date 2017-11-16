@@ -29,7 +29,7 @@ from pyquil.gates import CNOT, H, MEASURE
 BELL_STATE = Program(H(0), CNOT(0, 1))
 
 sync = SyncConnection(api_key='api_key', user_id='user_id')
-qvm = QVMConnection(api_key='api_key', user_id='user_id')
+qvm = QVMConnection(api_key='api_key', user_id='user_id', skip_queue=False)
 
 
 def test_ping():
@@ -39,7 +39,7 @@ def test_ping():
 
     with requests_mock.Mocker() as m:
         m.post('https://api.rigetti.com/qvm', text=mock_response)
-        assert sync.ping() == 'pong'
+        assert sync.ping()
 
 
 def test_sync_run():

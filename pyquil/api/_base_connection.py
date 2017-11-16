@@ -53,6 +53,34 @@ class BaseConnection(object):
         self.api_key = api_key if api_key else config.api_key
         self.user_id = user_id if user_id else config.user_id
 
+    def get_job(self, job_id):
+        response = self._get_json(route="/job/" + job_id)
+        return Job(response.json())
+
+    def wait_for_job(self, job_id, ping_time=0.1, status_time=2):
+        """
+        Wait for the results of a job and periodically print status
+
+        :param job_id: Job id
+        :param ping_time: How often to poll the server
+        :param status_time: How often to print status, set to False to never print status
+        :return: Completed Job
+        """
+        count = 0
+        while True:
+            time.sleep(ping_time)
+            job = self.get_job(job_id)
+            if job.is_done():
+                break
+
+            if status_time and count % int(status_time / ping_time) == 0:
+                if job.is_queued():
+                    print("job {} is currently queued at position {}".format(job.job_id, job.position_in_queue()))
+                elif job.is_running():
+                    print("job {} is currently running".format(job.job_id))
+
+        return job
+
     def _post_json(self, json, route):
         """
         Post JSON to the Forest endpoint.
@@ -94,8 +122,6 @@ class BaseConnection(object):
         res.raise_for_status()
         return res
 
-
-class AsyncConnection(BaseConnection):
     def _get_json(self, route):
         """
         Get JSON from a Forest endpoint.
@@ -110,34 +136,6 @@ class AsyncConnection(BaseConnection):
         }
         url = self.endpoint + route
         return requests.get(url, headers=headers)
-
-    def get_job(self, job_id):
-        response = self._get_json(route="/job/" + job_id)
-        return Job(response.json())
-
-    def wait_for_job(self, job_id, ping_time=0.1, status_time=2):
-        """
-        Wait for the results of a job and periodically print status
-
-        :param job_id: Job id
-        :param ping_time: How often to poll the server
-        :param status_time: How often to print status, set to False to never print status
-        :return: Completed Job
-        """
-        count = 0
-        while True:
-            time.sleep(ping_time)
-            job = self.get_job(job_id)
-            if job.is_done():
-                break
-
-            if status_time and count % int(status_time / ping_time) == 0:
-                if job.is_queued():
-                    print("job {} is currently queued at position {}".format(job.job_id, job.position_in_queue()))
-                elif job.is_running():
-                    print("job {} is currently running".format(job.job_id))
-
-        return job
 
 
 def validate_noise_probabilities(noise_parameter):
