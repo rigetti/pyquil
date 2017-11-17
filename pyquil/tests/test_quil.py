@@ -580,8 +580,8 @@ def test_inline_alloc():
 def test_pretty_print_pi():
     p = Program()
     p += [RZ(0., 0), RZ(pi, 1), RZ(-pi, 2)]
-    p += [RZ(2*pi/3., 3), RZ(pi/9., 4), RZ(pi/8., 5)]
-    p += CPHASE00(-90*pi/2., 0, 1)
+    p += [RZ(2 * pi / 3., 3), RZ(pi / 9., 4), RZ(pi / 8., 5)]
+    p += CPHASE00(-90 * pi / 2., 0, 1)
     assert p.out() == 'RZ(0) 0\nRZ(pi) 1\nRZ(-pi) 2\nRZ(2*pi/3) 3\n' \
                       'RZ(0.3490658503988659) 4\n' \
                       'RZ(pi/8) 5\nCPHASE00(-45*pi) 0 1\n'

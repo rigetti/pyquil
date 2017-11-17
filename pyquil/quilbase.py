@@ -539,17 +539,17 @@ def check_for_pi(element):
     :param element: float
     :return element: pretty print string if true, else standard representation.
     """
-    frac = Fraction(element/np.pi).limit_denominator(8)
+    frac = Fraction(element / np.pi).limit_denominator(8)
     num, den = frac.numerator, frac.denominator
     sign = "-" if num < 0 else ""
-    if np.isclose(num/float(den), element/np.pi):
+    if np.isclose(num / float(den), element / np.pi):
         if num == 0:
             return "0"
-        elif not abs(num) - 1 and den - 1:
+        elif abs(num) == 1 and not den == 1:
             return sign + "pi/" + repr(den)
-        elif abs(num) - 1 and not den-1:
+        elif not abs(num) == 1 and den == 1:
             return repr(num) + "*pi"
-        elif not abs(num) - 1 and not den - 1:
+        elif abs(num) == 1 and den == 1:
             return sign + "pi"
         else:
             return repr(num) + "*pi/" + repr(den)
