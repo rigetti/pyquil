@@ -54,6 +54,13 @@ class BaseConnection(object):
         self.user_id = user_id if user_id else config.user_id
 
     def get_job(self, job_id):
+        """
+        Given a job id, return information about the status of the job
+
+        :param str job_id: job id
+        :return: Job object with the status and potentially results of the job
+        :rtype: Job
+        """
         response = self._get_json(route="/job/" + job_id)
         return Job(response.json())
 

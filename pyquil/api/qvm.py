@@ -108,6 +108,10 @@ class QVMConnection(BaseConnection):
             return job.result()
 
     def run_async(self, quil_program, classical_addresses, trials=1):
+        """
+        Similar to run except that it returns a job id and doesn't wait for the program to be executed.
+        See https://go.rigetti.com/connections for reasons to use this method.
+        """
         payload = self._run_payload(quil_program, classical_addresses, trials)
         response = self._post_json({"machine": "QVM", "program": payload}, route="/job")
         return get_job_id(response)
@@ -156,6 +160,10 @@ class QVMConnection(BaseConnection):
             return job.result()
 
     def run_and_measure_async(self, quil_program, qubits, trials=1):
+        """
+        Similar to run_and_measure except that it returns a job id and doesn't wait for the program to be executed.
+        See https://go.rigetti.com/connections for reasons to use this method.
+        """
         payload = self._run_and_measure_payload(quil_program, qubits, trials)
         response = self._post_json({"machine": "QVM", "program": payload}, route="/job")
         return get_job_id(response)
@@ -205,6 +213,10 @@ class QVMConnection(BaseConnection):
             return job.result()
 
     def wavefunction_async(self, quil_program, classical_addresses=None):
+        """
+        Similar to wavefunction except that it returns a job id and doesn't wait for the program to be executed.
+        See https://go.rigetti.com/connections for reasons to use this method.
+        """
         payload = self._wavefunction_payload(quil_program, classical_addresses)
         response = self._post_json({"machine": "QVM", "program": payload}, route="/job")
         return get_job_id(response)
@@ -253,6 +265,10 @@ class QVMConnection(BaseConnection):
             return job.result()
 
     def expectation_async(self, prep_prog, operator_programs=None):
+        """
+        Similar to expectation except that it returns a job id and doesn't wait for the program to be executed.
+        See https://go.rigetti.com/connections for reasons to use this method.
+        """
         payload = self._expectation_payload(prep_prog, operator_programs)
         response = self._post_json({"machine": "QVM", "program": payload}, route="/job")
         return get_job_id(response)

@@ -21,17 +21,34 @@ from pyquil.wavefunction import Wavefunction
 
 
 class Job(object):
+    """
+    Represents the current status of a Job in the Forest queue.
+
+    Job statuses are initially QUEUED when QVM/QPU resources are not available
+    They transition to RUNNING when they have been started
+    Finally they are marked as FINISHED or ERROR once completed
+    """
     def __init__(self, raw):
         self.raw = raw
 
     @property
     def job_id(self):
+        """
+        Job id
+        :rtype: str
+        """
         return self.raw['jobId']
 
     def is_done(self):
+        """
+        Has the job completed yet?
+        """
         return self.raw['status'] in ('FINISHED', 'ERROR')
 
     def result(self):
+        """
+        The result of the job if available, ValueError otherwise
+        """
         if not self.is_done():
             raise ValueError("Cannot get a result for a program that isn't completed.")
 
@@ -42,12 +59,22 @@ class Job(object):
             return self.raw['result']
 
     def is_queued(self):
+        """
+        Is the job still in the Forest queue?
+        """
         return self.raw['status'] == 'QUEUED'
 
     def is_running(self):
+        """
+        Is the job currently running?
+        """
         return self.raw['status'] == 'RUNNING'
 
     def position_in_queue(self):
+        """
+        If the job is queued, this will return how many other jobs are ahead of it.
+        If the job is not queued, this will return None
+        """
         if self.is_queued():
             return int(self.raw['position_in_queue'])
         else:

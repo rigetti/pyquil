@@ -22,6 +22,9 @@ from ._base_connection import validate_run_items, TYPE_MULTISHOT, TYPE_MULTISHOT
 
 
 class QPUConnection(BaseConnection):
+    """
+    Represents a connection to the QPU (Quantum Processing Unit)
+    """
 
     def __init__(self, endpoint='https://job.rigetti.com/beta', api_key=None, user_id=None):
         super(QPUConnection, self).__init__(endpoint=endpoint, api_key=api_key, user_id=user_id)
@@ -33,8 +36,9 @@ class QPUConnection(BaseConnection):
         :param Program quil_program: Quil program to run on the QPU
         :param list classical_addresses: Currently unused
         :param int trials: Number of shots to take
-        :return: A job result
-        :rtype: JobResult
+        :return: A list of lists of bits. Each sublist corresponds to the values
+                 in `classical_addresses`.
+        :rtype: list
         """
         payload = self._run_payload(quil_program, classical_addresses, trials)
 
@@ -43,6 +47,10 @@ class QPUConnection(BaseConnection):
         return job.result()
 
     def run_async(self, quil_program, classical_addresses, trials=1):
+        """
+        Similar to run except that it returns a job id and doesn't wait for the program to be executed.
+        See https://go.rigetti.com/connections for reasons to use this method.
+        """
         payload = self._run_payload(quil_program, classical_addresses, trials)
         response = self._post_json({"machine": "QPU", "program": payload}, route="/job")
         return get_job_id(response)
@@ -66,11 +74,11 @@ class QPUConnection(BaseConnection):
         Run a pyQuil program on the QPU multiple times, measuring all the qubits in the QPU
         simultaneously at the end of the program each time. This functionality is in beta.
 
-        :param Program quil_program: Quil program to run on the QPU
-        :param list qubits: The list of qubits to return results for
-        :param int trials: Number of shots to take
-        :return: A job result
-        :rtype: JobResult
+        :param Program quil_program: A Quil program.
+        :param list qubits: The list of qubits to measure
+        :param int trials: Number of shots to collect.
+        :return: A list of a list of bits.
+        :rtype: list
         """
         payload = self._run_and_measure_payload(quil_program, qubits, trials)
 
@@ -79,6 +87,10 @@ class QPUConnection(BaseConnection):
         return job.result()
 
     def run_and_measure_async(self, quil_program, qubits, trials):
+        """
+        Similar to run_and_measure except that it returns a job id and doesn't wait for the program to be executed.
+        See https://go.rigetti.com/connections for reasons to use this method.
+        """
         payload = self._run_and_measure_payload(quil_program, qubits, trials)
         response = self._post_json({"machine": "QPU", "program": payload}, route="/job")
         return get_job_id(response)
@@ -96,7 +108,3 @@ class QPUConnection(BaseConnection):
                    'quil-instructions': quil_program.out()}
 
         return payload
-
-    def get_job(self, job_id):
-        response = self._get_json(route="/job/" + job_id)
-        return Job(response.json())
