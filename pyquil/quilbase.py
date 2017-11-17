@@ -545,12 +545,12 @@ def check_for_pi(element):
     if np.isclose(num / float(den), element / np.pi):
         if num == 0:
             return "0"
-        elif abs(num) == 1 and not den == 1:
-            return sign + "pi/" + repr(den)
-        elif not abs(num) == 1 and den == 1:
-            return repr(num) + "*pi"
         elif abs(num) == 1 and den == 1:
             return sign + "pi"
+        elif abs(num) == 1:
+            return sign + "pi/" + repr(den)
+        elif den == 1:
+            return repr(num) + "*pi"
         else:
             return repr(num) + "*pi/" + repr(den)
     else:
