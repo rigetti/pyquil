@@ -65,7 +65,7 @@ class CustomErrorListener(ErrorListener):
     def get_expected_tokens(self, parser, interval_set):
         """
         Like the default getExpectedTokens method except that it will fallback to the rule name if the token isn't a
-        literal. For instance, instead of <INVALID> for an unsigned integer it will return the rule name: UNSIGNED_INT
+        literal. For instance, instead of <INVALID> for  integer it will return the rule name: INT
         """
         # type: (QuilParser, IntervalSet) -> iter
         for tok in interval_set:
@@ -243,6 +243,11 @@ def _expression(expression):
             return _binary_exp(expression, operator.add)
         elif expression.MINUS():
             return _binary_exp(expression, operator.sub)
+    elif isinstance(expression, QuilParser.SignedExpContext):
+        if expression.sign().PLUS():
+            return _expression(expression.expression())
+        elif expression.sign().MINUS():
+            return -1 * _expression(expression.expression())
     elif isinstance(expression, QuilParser.FunctionExpContext):
         return _apply_function(expression.function(), _expression(expression.expression()))
     elif isinstance(expression, QuilParser.NumberExpContext):
@@ -293,9 +298,9 @@ def _number(number):
 
 def _real(real):
     # type: (QuilParser.RealNContext) -> Any
-    if real.floatN():
+    if real.FLOAT():
         return float(real.getText())
-    elif real.intN():
+    elif real.INT():
         return int(real.getText())
     else:
         raise RuntimeError("Unexpected real: " + str(real))

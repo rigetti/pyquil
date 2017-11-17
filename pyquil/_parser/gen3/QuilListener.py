@@ -368,6 +368,15 @@ class QuilListener(ParseTreeListener):
         pass
 
 
+    # Enter a parse tree produced by QuilParser#signedExp.
+    def enterSignedExp(self, ctx:QuilParser.SignedExpContext):
+        pass
+
+    # Exit a parse tree produced by QuilParser#signedExp.
+    def exitSignedExp(self, ctx:QuilParser.SignedExpContext):
+        pass
+
+
     # Enter a parse tree produced by QuilParser#addSubExp.
     def enterAddSubExp(self, ctx:QuilParser.AddSubExpContext):
         pass
@@ -395,6 +404,15 @@ class QuilListener(ParseTreeListener):
         pass
 
 
+    # Enter a parse tree produced by QuilParser#sign.
+    def enterSign(self, ctx:QuilParser.SignContext):
+        pass
+
+    # Exit a parse tree produced by QuilParser#sign.
+    def exitSign(self, ctx:QuilParser.SignContext):
+        pass
+
+
     # Enter a parse tree produced by QuilParser#number.
     def enterNumber(self, ctx:QuilParser.NumberContext):
         pass
@@ -419,33 +437,6 @@ class QuilListener(ParseTreeListener):
 
     # Exit a parse tree produced by QuilParser#realN.
     def exitRealN(self, ctx:QuilParser.RealNContext):
-        pass
-
-
-    # Enter a parse tree produced by QuilParser#floatN.
-    def enterFloatN(self, ctx:QuilParser.FloatNContext):
-        pass
-
-    # Exit a parse tree produced by QuilParser#floatN.
-    def exitFloatN(self, ctx:QuilParser.FloatNContext):
-        pass
-
-
-    # Enter a parse tree produced by QuilParser#intN.
-    def enterIntN(self, ctx:QuilParser.IntNContext):
-        pass
-
-    # Exit a parse tree produced by QuilParser#intN.
-    def exitIntN(self, ctx:QuilParser.IntNContext):
-        pass
-
-
-    # Enter a parse tree produced by QuilParser#sign.
-    def enterSign(self, ctx:QuilParser.SignContext):
-        pass
-
-    # Exit a parse tree produced by QuilParser#sign.
-    def exitSign(self, ctx:QuilParser.SignContext):
         pass
 
 

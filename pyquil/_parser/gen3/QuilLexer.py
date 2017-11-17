@@ -205,8 +205,8 @@ class QuilLexer(Lexer):
     DIVIDE = 31
     POWER = 32
     IDENTIFIER = 33
-    UNSIGNED_INT = 34
-    UNSIGNED_FLOAT = 35
+    INT = 34
+    FLOAT = 35
     STRING = 36
     PERIOD = 37
     COMMA = 38
@@ -243,20 +243,20 @@ class QuilLexer(Lexer):
             "JUMPWHEN", "JUMPUNLESS", "RESET", "WAIT", "NOP", "INCLUDE", 
             "PRAGMA", "FALSE", "TRUE", "NOT", "AND", "OR", "MOVE", "EXCHANGE", 
             "PI", "I", "SIN", "COS", "SQRT", "EXP", "CIS", "PLUS", "MINUS", 
-            "TIMES", "DIVIDE", "POWER", "IDENTIFIER", "UNSIGNED_INT", "UNSIGNED_FLOAT", 
-            "STRING", "PERIOD", "COMMA", "LPAREN", "RPAREN", "LBRACKET", 
-            "RBRACKET", "COLON", "PERCENTAGE", "AT", "QUOTE", "UNDERSCORE", 
-            "TAB", "NEWLINE", "COMMENT", "SPACE", "INVALID" ]
+            "TIMES", "DIVIDE", "POWER", "IDENTIFIER", "INT", "FLOAT", "STRING", 
+            "PERIOD", "COMMA", "LPAREN", "RPAREN", "LBRACKET", "RBRACKET", 
+            "COLON", "PERCENTAGE", "AT", "QUOTE", "UNDERSCORE", "TAB", "NEWLINE", 
+            "COMMENT", "SPACE", "INVALID" ]
 
     ruleNames = [ "DEFGATE", "DEFCIRCUIT", "MEASURE", "LABEL", "HALT", "JUMP", 
                   "JUMPWHEN", "JUMPUNLESS", "RESET", "WAIT", "NOP", "INCLUDE", 
                   "PRAGMA", "FALSE", "TRUE", "NOT", "AND", "OR", "MOVE", 
                   "EXCHANGE", "PI", "I", "SIN", "COS", "SQRT", "EXP", "CIS", 
                   "PLUS", "MINUS", "TIMES", "DIVIDE", "POWER", "IDENTIFIER", 
-                  "UNSIGNED_INT", "UNSIGNED_FLOAT", "STRING", "PERIOD", 
-                  "COMMA", "LPAREN", "RPAREN", "LBRACKET", "RBRACKET", "COLON", 
-                  "PERCENTAGE", "AT", "QUOTE", "UNDERSCORE", "TAB", "NEWLINE", 
-                  "COMMENT", "SPACE", "INVALID" ]
+                  "INT", "FLOAT", "STRING", "PERIOD", "COMMA", "LPAREN", 
+                  "RPAREN", "LBRACKET", "RBRACKET", "COLON", "PERCENTAGE", 
+                  "AT", "QUOTE", "UNDERSCORE", "TAB", "NEWLINE", "COMMENT", 
+                  "SPACE", "INVALID" ]
 
     grammarFileName = "Quil.g4"
 

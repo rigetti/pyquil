@@ -209,8 +209,8 @@ class QuilLexer(Lexer):
     DIVIDE = 31
     POWER = 32
     IDENTIFIER = 33
-    UNSIGNED_INT = 34
-    UNSIGNED_FLOAT = 35
+    INT = 34
+    FLOAT = 35
     STRING = 36
     PERIOD = 37
     COMMA = 38
@@ -249,8 +249,8 @@ class QuilLexer(Lexer):
             u"PRAGMA", u"FALSE", u"TRUE", u"NOT", u"AND", u"OR", u"MOVE", 
             u"EXCHANGE", u"PI", u"I", u"SIN", u"COS", u"SQRT", u"EXP", u"CIS", 
             u"PLUS", u"MINUS", u"TIMES", u"DIVIDE", u"POWER", u"IDENTIFIER", 
-            u"UNSIGNED_INT", u"UNSIGNED_FLOAT", u"STRING", u"PERIOD", u"COMMA", 
-            u"LPAREN", u"RPAREN", u"LBRACKET", u"RBRACKET", u"COLON", u"PERCENTAGE", 
+            u"INT", u"FLOAT", u"STRING", u"PERIOD", u"COMMA", u"LPAREN", 
+            u"RPAREN", u"LBRACKET", u"RBRACKET", u"COLON", u"PERCENTAGE", 
             u"AT", u"QUOTE", u"UNDERSCORE", u"TAB", u"NEWLINE", u"COMMENT", 
             u"SPACE", u"INVALID" ]
 
@@ -259,7 +259,7 @@ class QuilLexer(Lexer):
                   u"NOP", u"INCLUDE", u"PRAGMA", u"FALSE", u"TRUE", u"NOT", 
                   u"AND", u"OR", u"MOVE", u"EXCHANGE", u"PI", u"I", u"SIN", 
                   u"COS", u"SQRT", u"EXP", u"CIS", u"PLUS", u"MINUS", u"TIMES", 
-                  u"DIVIDE", u"POWER", u"IDENTIFIER", u"UNSIGNED_INT", u"UNSIGNED_FLOAT", 
+                  u"DIVIDE", u"POWER", u"IDENTIFIER", u"INT", u"FLOAT", 
                   u"STRING", u"PERIOD", u"COMMA", u"LPAREN", u"RPAREN", 
                   u"LBRACKET", u"RBRACKET", u"COLON", u"PERCENTAGE", u"AT", 
                   u"QUOTE", u"UNDERSCORE", u"TAB", u"NEWLINE", u"COMMENT", 
