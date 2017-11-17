@@ -364,6 +364,15 @@ class QuilListener(ParseTreeListener):
         pass
 
 
+    # Enter a parse tree produced by QuilParser#signedExp.
+    def enterSignedExp(self, ctx):
+        pass
+
+    # Exit a parse tree produced by QuilParser#signedExp.
+    def exitSignedExp(self, ctx):
+        pass
+
+
     # Enter a parse tree produced by QuilParser#addSubExp.
     def enterAddSubExp(self, ctx):
         pass
@@ -391,6 +400,15 @@ class QuilListener(ParseTreeListener):
         pass
 
 
+    # Enter a parse tree produced by QuilParser#sign.
+    def enterSign(self, ctx):
+        pass
+
+    # Exit a parse tree produced by QuilParser#sign.
+    def exitSign(self, ctx):
+        pass
+
+
     # Enter a parse tree produced by QuilParser#number.
     def enterNumber(self, ctx):
         pass
@@ -415,33 +433,6 @@ class QuilListener(ParseTreeListener):
 
     # Exit a parse tree produced by QuilParser#realN.
     def exitRealN(self, ctx):
-        pass
-
-
-    # Enter a parse tree produced by QuilParser#floatN.
-    def enterFloatN(self, ctx):
-        pass
-
-    # Exit a parse tree produced by QuilParser#floatN.
-    def exitFloatN(self, ctx):
-        pass
-
-
-    # Enter a parse tree produced by QuilParser#intN.
-    def enterIntN(self, ctx):
-        pass
-
-    # Exit a parse tree produced by QuilParser#intN.
-    def exitIntN(self, ctx):
-        pass
-
-
-    # Enter a parse tree produced by QuilParser#sign.
-    def enterSign(self, ctx):
-        pass
-
-    # Exit a parse tree produced by QuilParser#sign.
-    def exitSign(self, ctx):
         pass
 
 
