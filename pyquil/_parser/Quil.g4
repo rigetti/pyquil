@@ -32,10 +32,10 @@ instr               : gate
 gate                : name (LPAREN param (COMMA param)* RPAREN)? qubit+ ;
 
 name                : IDENTIFIER ;
-qubit               : UNSIGNED_INT ;
+qubit               : INT ;
 
 param               : dynamicParam | expression ;
-dynamicParam        : LBRACKET UNSIGNED_INT (MINUS UNSIGNED_INT)? RBRACKET ;
+dynamicParam        : LBRACKET INT (MINUS INT)? RBRACKET ;
 
 // D. Gate Definitions
 
@@ -61,7 +61,7 @@ circuit             : (TAB circuitInstr NEWLINE)* TAB circuitInstr ;
 
 measure             : MEASURE qubit addr? ;
 addr                : LBRACKET classicalBit RBRACKET ;
-classicalBit        : UNSIGNED_INT+ ;
+classicalBit        : INT+ ;
 
 // G. Program control
 
@@ -96,7 +96,7 @@ include             : INCLUDE STRING ;
 // M. Pragma Support
 
 pragma              : PRAGMA IDENTIFIER pragma_name* STRING? ;
-pragma_name         : IDENTIFIER | UNSIGNED_INT ;
+pragma_name         : IDENTIFIER | INT ;
 
 // Expressions (in order of precedence)
 
@@ -104,24 +104,21 @@ expression          : LPAREN expression RPAREN                  #parenthesisExp
                     | <assoc=right> expression POWER expression #powerExp
                     | expression (TIMES | DIVIDE) expression    #mulDivExp
                     | expression (PLUS | MINUS) expression      #addSubExp
+                    | sign expression                           #signedExp
                     | function LPAREN expression RPAREN         #functionExp
                     | number                                    #numberExp
                     | variable                                  #variableExp
                     ;
 
 function            : SIN | COS | SQRT | EXP | CIS ;
+sign                : PLUS | MINUS ;
 
 // Numbers
 // We suffix -N onto these names so they don't conflict with already defined Python types
 
 number              : realN | imaginaryN | I | PI ;
 imaginaryN          : realN I ;
-realN               : floatN | intN ;
-
-floatN              : sign? UNSIGNED_FLOAT ;
-intN                : sign? UNSIGNED_INT ;
-
-sign                : PLUS | MINUS ;
+realN               : FLOAT | INT ;
 
 ////////////////////
 // LEXER
@@ -176,8 +173,8 @@ IDENTIFIER          : [A-Za-z_] [A-Za-z0-9\-_]* ;
 
 // Numbers
 
-UNSIGNED_INT        : [0-9]+ ;
-UNSIGNED_FLOAT      : [0-9]+ ('.' [0-9]+)? ('e' ('+' | '-')? [0-9]+)? ;
+INT                 : [0-9]+ ;
+FLOAT               : [0-9]+ ('.' [0-9]+)? ('e' ('+' | '-')? [0-9]+)? ;
 
 // String
 

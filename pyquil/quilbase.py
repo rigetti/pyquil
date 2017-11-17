@@ -20,6 +20,7 @@ Contains the core pyQuil objects that correspond to Quil instructions.
 import numpy as np
 from .slot import Slot
 from six import integer_types, string_types
+from fractions import Fraction
 
 
 class QuilAtom(object):
@@ -513,8 +514,10 @@ def format_parameter(element):
 
     :param element: {int, float, long, complex, Slot} Formats a parameter for Quil output.
     """
-    if isinstance(element, integer_types) or isinstance(element, float):
+    if isinstance(element, integer_types):
         return repr(element)
+    elif isinstance(element, float):
+        return check_for_pi(element)
     elif isinstance(element, complex):
         r = element.real
         i = element.imag
@@ -525,6 +528,33 @@ def format_parameter(element):
     elif isinstance(element, Slot):
         return format_parameter(element.value())
     assert False, "Invalid parameter: %r" % element
+
+
+def check_for_pi(element):
+    """
+    Check to see if there exists a rational number r = p/q
+    in reduced form for which the difference between element/np.pi
+    and r is small and q <= 8.
+
+    :param element: float
+    :return element: pretty print string if true, else standard representation.
+    """
+    frac = Fraction(element / np.pi).limit_denominator(8)
+    num, den = frac.numerator, frac.denominator
+    sign = "-" if num < 0 else ""
+    if np.isclose(num / float(den), element / np.pi):
+        if num == 0:
+            return "0"
+        elif abs(num) == 1 and den == 1:
+            return sign + "pi"
+        elif abs(num) == 1:
+            return sign + "pi/" + repr(den)
+        elif den == 1:
+            return repr(num) + "*pi"
+        else:
+            return repr(num) + "*pi/" + repr(den)
+    else:
+        return repr(element)
 
 
 def unpack_qubit(qubit):
