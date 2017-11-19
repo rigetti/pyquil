@@ -75,7 +75,6 @@ class BaseConnection(object):
         """
         count = 0
         while True:
-            time.sleep(ping_time)
             job = self.get_job(job_id)
             if job.is_done():
                 break
@@ -85,6 +84,9 @@ class BaseConnection(object):
                     print("job {} is currently queued at position {}".format(job.job_id, job.position_in_queue()))
                 elif job.is_running():
                     print("job {} is currently running".format(job.job_id))
+
+            time.sleep(ping_time)
+            count += 1
 
         return job
 

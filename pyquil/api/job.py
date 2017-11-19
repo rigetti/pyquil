@@ -76,16 +76,18 @@ class Job(object):
         If the job is not queued, this will return None
         """
         if self.is_queued():
-            return int(self.raw['position_in_queue'])
-        else:
-            return None
+            # TODO: Remove once name of field is changed on server
+            if 'position_in_queue' in self.raw:
+                return int(self.raw['position_in_queue'])
+            elif 'positionInQueue' in self.raw:
+                return int(self.raw['positionInQueue'])
 
     def get(self):
-        warnings.warn(DeprecationWarning("""
+        warnings.warn("""
         Running get() on a Job is now a no-op.
         To query for updated results, use .get_job(job.job_id) on a QVMConnection/QPUConnection instead
-        """))
+        """, stacklevel=2)
 
     def decode(self):
-        warnings.warn(DeprecationWarning(""".decode() on a Job result is deprecated in favor of .result()"""))
+        warnings.warn(""".decode() on a Job result is deprecated in favor of .result()""", stacklevel=2)
         return self.result()

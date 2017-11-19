@@ -37,7 +37,7 @@ def test_parsers(wvf):
 def test_ground_state():
     ground = Wavefunction.ground(2)
     assert len(ground) == 2
-    assert ground[0] == 1.0
+    assert ground.amplitudes[0] == 1.0
 
 
 def test_rounding():

@@ -27,8 +27,8 @@ from pyquil.api.qpu import QPUConnection
 
 class SyncConnection(QVMConnection):
     def __init__(self, *args, **kwargs):
-        warnings.warn(DeprecationWarning(
-            "SyncConnection has been renamed to QVMConnection and will be removed in the future"))
+        warnings.warn("SyncConnection has been renamed to QVMConnection and will be removed in the future",
+                      stacklevel=2)
         super(SyncConnection, self).__init__(*args, **kwargs)
 
 

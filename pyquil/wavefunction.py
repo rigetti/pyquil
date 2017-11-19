@@ -74,23 +74,23 @@ class Wavefunction(object):
         return len(self.amplitudes).bit_length() - 1
 
     def __iter__(self):
-        warnings.warn(DeprecationWarning("""
+        warnings.warn("""
 Previously, qvm.wavefunction returned both classical memory and wavefunction
 as a pair. Now it just returns a Wavefunction object.
 You likely need to change this:
     wf, _ = qvm.wavefunction(program, ...)
-To this:
-    wf = qvm.wavefunction(program, ...)\n"""))
+To just this:
+    wf = qvm.wavefunction(program, ...)\n""", stacklevel=2)
         return self.amplitudes.__iter__()
 
     def __getitem__(self, index):
-        warnings.warn(DeprecationWarning("""
+        warnings.warn("""
 Previously, qvm.wavefunction returned both classical memory and wavefunction
 as a pair. Now it just returns a Wavefunction object.
 You likely need to change this:
     wf, _ = qvm.wavefunction(program, ...)
-To this:
-    wf = qvm.wavefunction(program, ...)\n"""))
+To just this:
+    wf = qvm.wavefunction(program, ...)\n""", stacklevel=2)
         return self.amplitudes[index]
 
     def __setitem__(self, key, value):
@@ -109,7 +109,7 @@ To this:
         """
         outcome_dict = {}
         qubit_num = len(self)
-        for index, amplitude in enumerate(self):
+        for index, amplitude in enumerate(self.amplitudes):
             outcome = get_bitstring_from_index(index, qubit_num)
             outcome_dict[outcome] = abs(amplitude) ** 2
         return outcome_dict
@@ -125,7 +125,7 @@ To this:
         """
         outcome_dict = {}
         qubit_num = len(self)
-        for index, amplitude in enumerate(self):
+        for index, amplitude in enumerate(self.amplitudes):
             outcome = get_bitstring_from_index(index, qubit_num)
             prob = round(abs(amplitude) ** 2, decimal_digits)
             if prob != 0.:
@@ -145,7 +145,7 @@ To this:
         outcome_dict = {}
         qubit_num = len(self)
         pp_string = ""
-        for index, amplitude in enumerate(self):
+        for index, amplitude in enumerate(self.amplitudes):
             outcome = get_bitstring_from_index(index, qubit_num)
             amplitude = round(amplitude.real, decimal_digits) + \
                 round(amplitude.imag, decimal_digits) * 1.j
