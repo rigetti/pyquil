@@ -35,7 +35,7 @@ def test_gate():
 def test_defgate():
     dg = DefGate("TEST", np.array([[1., 0.],
                                    [0., 1.]]))
-    assert dg.out() == "DEFGATE TEST:\n    1.0, 0.0\n    0.0, 1.0\n"
+    assert dg.out() == "DEFGATE TEST:\n    1.0, 0\n    0, 1.0\n"
     test = dg.get_constructor()
     tg = test(Qubit(1), Qubit(2))
     assert tg.out() == "TEST 1 2"
@@ -59,7 +59,7 @@ def test_defgate_non_unitary_should_throw_error():
 
 def test_defgate_param():
     dgp = DefGate("TEST", [[1., 0.], [0., 1.]])
-    assert dgp.out() == "DEFGATE TEST:\n    1.0, 0.0\n    0.0, 1.0\n"
+    assert dgp.out() == "DEFGATE TEST:\n    1.0, 0\n    0, 1.0\n"
     test = dgp.get_constructor()
     tg = test(Qubit(1))
     assert tg.out() == "TEST 1"
@@ -231,21 +231,21 @@ def test_dagger():
                        RZ(pi, 0), CPHASE(pi, 0, 1),
                        CPHASE00(pi, 0, 1), CPHASE01(pi, 0, 1),
                        CPHASE10(pi, 0, 1), PSWAP(pi, 0, 1))
-    assert p.dagger().out() == 'PSWAP(-3.141592653589793) 0 1\n' \
-                               'CPHASE10(-3.141592653589793) 0 1\n' \
-                               'CPHASE01(-3.141592653589793) 0 1\n' \
-                               'CPHASE00(-3.141592653589793) 0 1\n' \
-                               'CPHASE(-3.141592653589793) 0 1\n' \
-                               'RZ(-3.141592653589793) 0\n' \
-                               'RY(-3.141592653589793) 0\n' \
-                               'RX(-3.141592653589793) 0\n' \
-                               'PHASE(-3.141592653589793) 0\n'
+    assert p.dagger().out() == 'PSWAP(-pi) 0 1\n' \
+                               'CPHASE10(-pi) 0 1\n' \
+                               'CPHASE01(-pi) 0 1\n' \
+                               'CPHASE00(-pi) 0 1\n' \
+                               'CPHASE(-pi) 0 1\n' \
+                               'RZ(-pi) 0\n' \
+                               'RY(-pi) 0\n' \
+                               'RX(-pi) 0\n' \
+                               'PHASE(-pi) 0\n'
 
     # these gates are special cases
     p = Program().inst(S(0), T(0), ISWAP(0, 1))
-    assert p.dagger().out() == 'PSWAP(1.5707963267948966) 0 1\n' \
-                               'RZ(0.7853981633974483) 0\n' \
-                               'PHASE(-1.5707963267948966) 0\n'
+    assert p.dagger().out() == 'PSWAP(pi/2) 0 1\n' \
+                               'RZ(pi/4) 0\n' \
+                               'PHASE(-pi/2) 0\n'
 
     # must invert defined gates
     G = np.array([[0, 1], [0 + 1j, 0]])
@@ -289,14 +289,14 @@ def test_phases():
     p = Program(PHASE(np.pi)(1), CPHASE00(np.pi)(0, 1), CPHASE01(np.pi)(0, 1),
                 CPHASE10(np.pi)(0, 1),
                 CPHASE(np.pi)(0, 1))
-    assert p.out() == 'PHASE(3.141592653589793) 1\nCPHASE00(3.141592653589793) 0 1\n' \
-                      'CPHASE01(3.141592653589793) 0 1\nCPHASE10(3.141592653589793) 0 1\n' \
-                      'CPHASE(3.141592653589793) 0 1\n'
+    assert p.out() == 'PHASE(pi) 1\nCPHASE00(pi) 0 1\n' \
+                      'CPHASE01(pi) 0 1\nCPHASE10(pi) 0 1\n' \
+                      'CPHASE(pi) 0 1\n'
 
 
 def test_swaps():
     p = Program(SWAP(0, 1), CSWAP(0, 1, 2), ISWAP(0, 1), PSWAP(np.pi)(0, 1))
-    assert p.out() == 'SWAP 0 1\nCSWAP 0 1 2\nISWAP 0 1\nPSWAP(3.141592653589793) 0 1\n'
+    assert p.out() == 'SWAP 0 1\nCSWAP 0 1 2\nISWAP 0 1\nPSWAP(pi) 0 1\n'
 
 
 def test_def_gate():
@@ -345,8 +345,8 @@ def test_define_qft():
 
     prog = state_prep + qft3(0, 1, 2)
     output = prog.out()
-    assert output == 'X 0\nH 2\nCPHASE(1.5707963267948966) 1 2\nH 1\nCPHASE(0.7853981633974483) 0 ' \
-                     '2\nCPHASE(1.5707963267948966) 0 1\nH 0\nSWAP 0 2\n'
+    assert output == 'X 0\nH 2\nCPHASE(pi/2) 1 2\nH 1\nCPHASE(pi/4) 0 ' \
+                     '2\nCPHASE(pi/2) 0 1\nH 0\nSWAP 0 2\n'
 
 
 def test_control_flows():
@@ -569,3 +569,14 @@ def test_inline_alloc():
     p = Program()
     p += H(p.alloc())
     assert p.out() == "H 0\n"
+
+
+# https://github.com/rigetticomputing/pyquil/issues/184
+def test_pretty_print_pi():
+    p = Program()
+    p += [RZ(0., 0), RZ(pi, 1), RZ(-pi, 2)]
+    p += [RZ(2 * pi / 3., 3), RZ(pi / 9., 4), RZ(pi / 8., 5)]
+    p += CPHASE00(-90 * pi / 2., 0, 1)
+    assert p.out() == 'RZ(0) 0\nRZ(pi) 1\nRZ(-pi) 2\nRZ(2*pi/3) 3\n' \
+                      'RZ(0.3490658503988659) 4\n' \
+                      'RZ(pi/8) 5\nCPHASE00(-45*pi) 0 1\n'

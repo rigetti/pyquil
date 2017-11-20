@@ -77,7 +77,8 @@ def test_expressions():
     # Complex
     _expr("123.456i", complex(0, 123.456))
     _expr("+123.456i", complex(0, 123.456))
-    _expr("-123.456i", complex(0, -123.456))
+    # Edge case: making the whole complex number negative makes the real part -0.0
+    _expr("-123.456i", complex(-0., -123.456))
     _expr("777+123.456i", complex(777, 123.456))
     _expr("777-123.456i", complex(777, -123.456))
     _expr("+777-123.456i", complex(777, -123.456))
@@ -90,6 +91,7 @@ def test_expressions():
     # Pi
     _expr("pi", np.pi)
     _expr("pi / 2", np.pi / 2)
+    _expr("-pi / 2", np.pi / -2)
 
     # Expressions
     _expr("1+2", 3)
