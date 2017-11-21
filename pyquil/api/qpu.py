@@ -16,7 +16,6 @@
 
 from six import integer_types
 
-from pyquil.api import Job
 from pyquil.quil import Program
 from ._base_connection import validate_run_items, TYPE_MULTISHOT, TYPE_MULTISHOT_MEASURE, get_job_id, BaseConnection
 
@@ -26,8 +25,8 @@ class QPUConnection(BaseConnection):
     Represents a connection to the QPU (Quantum Processing Unit)
     """
 
-    def __init__(self, endpoint='https://job.rigetti.com/beta', api_key=None, user_id=None):
-        super(QPUConnection, self).__init__(endpoint=endpoint, api_key=api_key, user_id=user_id)
+    def __init__(self, async_endpoint='https://job.rigetti.com/beta', api_key=None, user_id=None):
+        super(QPUConnection, self).__init__(async_endpoint=async_endpoint, api_key=api_key, user_id=user_id)
 
     def run(self, quil_program, classical_addresses, trials=1):
         """
@@ -42,7 +41,7 @@ class QPUConnection(BaseConnection):
         """
         payload = self._run_payload(quil_program, classical_addresses, trials)
 
-        response = self._post_json({"machine": "QPU", "program": payload}, route="/job")
+        response = self._post_json(self.async_endpoint + "/job", {"machine": "QPU", "program": payload})
         job = self.wait_for_job(get_job_id(response))
         return job.result()
 
@@ -52,7 +51,7 @@ class QPUConnection(BaseConnection):
         See https://go.rigetti.com/connections for reasons to use this method.
         """
         payload = self._run_payload(quil_program, classical_addresses, trials)
-        response = self._post_json({"machine": "QPU", "program": payload}, route="/job")
+        response = self._post_json(self.async_endpoint + "/job", {"machine": "QPU", "program": payload})
         return get_job_id(response)
 
     def _run_payload(self, quil_program, classical_addresses, trials):
@@ -82,7 +81,7 @@ class QPUConnection(BaseConnection):
         """
         payload = self._run_and_measure_payload(quil_program, qubits, trials)
 
-        response = self._post_json({"machine": "QPU", "program": payload}, route="/job")
+        response = self._post_json(self.async_endpoint + "/job", {"machine": "QPU", "program": payload})
         job = self.wait_for_job(get_job_id(response))
         return job.result()
 
@@ -92,7 +91,7 @@ class QPUConnection(BaseConnection):
         See https://go.rigetti.com/connections for reasons to use this method.
         """
         payload = self._run_and_measure_payload(quil_program, qubits, trials)
-        response = self._post_json({"machine": "QPU", "program": payload}, route="/job")
+        response = self._post_json(self.async_endpoint + "/job", {"machine": "QPU", "program": payload})
         return get_job_id(response)
 
     def _run_and_measure_payload(self, quil_program, qubits, trials):

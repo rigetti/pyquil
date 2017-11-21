@@ -21,7 +21,7 @@ import json
 import numpy as np
 import pytest
 
-from pyquil.api import (SyncConnection, QVMConnection)
+from pyquil.api import QVMConnection, QPUConnection
 from pyquil.api._base_connection import validate_noise_probabilities, validate_run_items
 from pyquil.quil import Program
 from pyquil.gates import CNOT, H, MEASURE
@@ -142,6 +142,35 @@ def test_async_wavefunction():
         wf_expected = np.array([0. + 0.j, 0. + 0.j, 0.70710678 + 0.j, -0.70710678 + 0.j])
         assert np.all(np.isclose(result.amplitudes, wf_expected))
         assert result.classical_memory == [1, 0]
+
+
+def test_qpu_connection():
+    qpu = QPUConnection()
+
+    program = {
+        "type": "multishot",
+        "addresses": [0, 1],
+        "trials": 2,
+        "quil-instructions": "H 0\nCNOT 0 1\n"
+    }
+
+    def mock_queued_response(request, context):
+        assert json.loads(request.text) == {
+            "machine": "QPU",
+            "program": program
+        }
+        return json.dumps({"jobId": JOB_ID, "status": "QUEUED"})
+
+    with requests_mock.Mocker() as m:
+        m.post('https://job.rigetti.com/beta/job', text=mock_queued_response)
+        m.get('https://job.rigetti.com/beta/job/' + JOB_ID, [
+            {'text': json.dumps({"jobId": JOB_ID, "status": "RUNNING"})},
+            {'text': json.dumps({"jobId": JOB_ID, "status": "FINISHED",
+                                 "result": [[0, 0], [1, 1]], "program": program})}
+        ])
+
+        result = qpu.run(BELL_STATE, [0, 1], trials=2)
+        assert result == [[0, 0], [1, 1]]
 
 
 def test_validate_noise_probabilities():
