@@ -52,10 +52,10 @@ First we import all the necessary tools:
 .. code-block:: python
 
     from pyquil.quil import Program
-    import pyquil.api as forest
+    import pyquil.api as api
 
     from pyquil.gates import I, H, X
-    qvm = forest.Connection()
+    qvm = api.QVMConnection()
 
 Then we need to define two registers that will be used for the measurement of Picard's decision bit and the final answer
 of the penny tossing game.

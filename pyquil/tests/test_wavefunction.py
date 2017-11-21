@@ -1,7 +1,7 @@
 import pytest
 import numpy as np
 
-from pyquil.wavefunction import get_bitstring_from_index, Wavefunction
+from pyquil.wavefunction import get_bitstring_from_index, Wavefunction, _round_to_next_multiple, _octet_bits
 
 
 @pytest.fixture()
@@ -35,6 +35,24 @@ def test_parsers(wvf):
 
 
 def test_ground_state():
-    ground = Wavefunction.ground(2)
+    ground = Wavefunction.zeros(2)
     assert len(ground) == 2
-    assert ground[0] == 1.0
+    assert ground.amplitudes[0] == 1.0
+
+
+def test_rounding():
+    for i in range(8):
+        if 0 == i % 8:
+            assert i == _round_to_next_multiple(i, 8)
+        else:
+            assert 8 == _round_to_next_multiple(i, 8)
+            assert 16 == _round_to_next_multiple(i + 8, 8)
+            assert 24 == _round_to_next_multiple(i + 16, 8)
+
+
+def test_octet_bits():
+    assert [0, 0, 0, 0, 0, 0, 0, 0] == _octet_bits(0b0)
+    assert [1, 0, 0, 0, 0, 0, 0, 0] == _octet_bits(0b1)
+    assert [0, 1, 0, 0, 0, 0, 0, 0] == _octet_bits(0b10)
+    assert [1, 0, 1, 0, 0, 0, 0, 0] == _octet_bits(0b101)
+    assert [1, 1, 1, 1, 1, 1, 1, 1] == _octet_bits(0b11111111)

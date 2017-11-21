@@ -14,94 +14,176 @@
 #    See the License for the specific language governing permissions and
 #    limitations under the License.
 ##############################################################################
+import base64
 
-
-from mock import Mock
+import requests_mock
 import json
 import numpy as np
 import pytest
 
-from pyquil.api import (add_noise_to_payload, add_rng_seed_to_payload, SyncConnection,
-                        _validate_noise_probabilities, validate_run_items)
+from pyquil.api import QVMConnection, QPUConnection
+from pyquil.api._base_connection import validate_noise_probabilities, validate_run_items
 from pyquil.quil import Program
 from pyquil.gates import CNOT, H, MEASURE
 
+BELL_STATE = Program(H(0), CNOT(0, 1))
 
-class MockPostJson(object):
-    def __init__(self):
-        self.return_value = Mock()
-
-    def __call__(self, payload, route):
-        json.dumps(payload)
-        return self.return_value
+qvm = QVMConnection(api_key='api_key', user_id='user_id')
 
 
-@pytest.fixture
-def cxn():
-    c = SyncConnection()
-    c.post_json = MockPostJson()
-    c.post_json.return_value.text = json.dumps('Success')
-    c.measurement_noise = 1
-    return c
+def test_sync_run():
+    def mock_response(request, context):
+        assert json.loads(request.text) == {
+            "type": "multishot",
+            "addresses": [0, 1],
+            "trials": 2,
+            "quil-instructions": "H 0\nCNOT 0 1\n"
+        }
+        return '[[0,0],[1,1]]'
+
+    with requests_mock.Mocker() as m:
+        m.post('https://api.rigetti.com/qvm', text=mock_response)
+        assert qvm.run(BELL_STATE, [0, 1], trials=2) == [[0, 0], [1, 1]]
+
+
+def test_sync_run_and_measure():
+    def mock_response(request, context):
+        assert json.loads(request.text) == {
+            "type": "multishot-measure",
+            "qubits": [0, 1],
+            "trials": 2,
+            "quil-instructions": "H 0\nCNOT 0 1\n"
+        }
+        return '[[0,0],[1,1]]'
+
+    with requests_mock.Mocker() as m:
+        m.post('https://api.rigetti.com/qvm', text=mock_response)
+        assert qvm.run_and_measure(BELL_STATE, [0, 1], trials=2) == [[0, 0], [1, 1]]
 
 
 WAVEFUNCTION_BINARY = (b'\x01\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00'
                        b'\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00?\xe6'
                        b'\xa0\x9ef\x7f;\xcc\x00\x00\x00\x00\x00\x00\x00\x00\xbf\xe6\xa0\x9ef'
                        b'\x7f;\xcc\x00\x00\x00\x00\x00\x00\x00\x00')
+WAVEFUNCTION_PROGRAM = Program(H(0), CNOT(0, 1), MEASURE(0, 0), H(0))
 
 
-@pytest.fixture
-def cxn_wf(cxn):
-    cxn.post_json.return_value.content = WAVEFUNCTION_BINARY
-    return cxn
+def test_sync_wavefunction():
+    def mock_response(request, context):
+        assert json.loads(request.text) == {
+            "type": "wavefunction",
+            "quil-instructions": "H 0\nCNOT 0 1\nMEASURE 0 [0]\nH 0\n",
+            "addresses": [0, 1]
+        }
+        return WAVEFUNCTION_BINARY
+
+    with requests_mock.Mocker() as m:
+        m.post('https://api.rigetti.com/qvm', content=mock_response)
+        result = qvm.wavefunction(WAVEFUNCTION_PROGRAM, [0, 1])
+        wf_expected = np.array([0. + 0.j, 0. + 0.j, 0.70710678 + 0.j, -0.70710678 + 0.j])
+        assert np.all(np.isclose(result.amplitudes, wf_expected))
+        assert result.classical_memory == [1, 0]
 
 
-@pytest.fixture
-def prog():
-    p = Program()
-    p.inst(H(0), CNOT(0, 1), MEASURE(0, 0), MEASURE(1, 1))
-    return p
+JOB_ID = 'abc'
 
 
-@pytest.fixture
-def prog_wf():
-    p = Program()
-    p.inst(H(0)).inst(CNOT(0, 1)).measure(0, 0)
-    p.inst(H(0))
-    return p
+def test_job_run():
+    program = {
+        "type": "multishot",
+        "addresses": [0, 1],
+        "trials": 2,
+        "quil-instructions": "H 0\nCNOT 0 1\n"
+    }
+
+    def mock_queued_response(request, context):
+        assert json.loads(request.text) == {
+            "machine": "QVM",
+            "program": program
+        }
+        return json.dumps({"jobId": JOB_ID, "status": "QUEUED"})
+
+    with requests_mock.Mocker() as m:
+        m.post('https://job.rigetti.com/beta/job', text=mock_queued_response)
+        m.get('https://job.rigetti.com/beta/job/' + JOB_ID, [
+            {'text': json.dumps({"jobId": JOB_ID, "status": "RUNNING"})},
+            {'text': json.dumps({"jobId": JOB_ID, "status": "FINISHED",
+                                 "result": [[0, 0], [1, 1]], "program": program})}
+        ])
+
+        result = qvm.run(BELL_STATE, [0, 1], trials=2, use_queue=True)
+        assert result == [[0, 0], [1, 1]]
 
 
-def test_add_rng_seed_to_payload():
-    payload = {}
-    add_rng_seed_to_payload(payload, 1)
-    assert payload['rng-seed'] == 1
+def test_async_wavefunction():
+    program = {
+        "type": "wavefunction",
+        "quil-instructions": "H 0\nCNOT 0 1\nMEASURE 0 [0]\nH 0\n",
+        "addresses": [0, 1]
+    }
+
+    def mock_queued_response(request, context):
+        assert json.loads(request.text) == {
+            "machine": "QVM",
+            "program": program
+        }
+        return json.dumps({"jobId": JOB_ID, "status": "QUEUED"})
+
+    with requests_mock.Mocker() as m:
+        m.post('https://job.rigetti.com/beta/job', text=mock_queued_response)
+        m.get('https://job.rigetti.com/beta/job/' + JOB_ID, text=json.dumps({
+            "jobId": JOB_ID,
+            "status": "FINISHED",
+            "result": base64.b64encode(WAVEFUNCTION_BINARY).decode(),
+            "program": program
+        }))
+        result = qvm.wavefunction(WAVEFUNCTION_PROGRAM, [0, 1], use_queue=True)
+
+        wf_expected = np.array([0. + 0.j, 0. + 0.j, 0.70710678 + 0.j, -0.70710678 + 0.j])
+        assert np.all(np.isclose(result.amplitudes, wf_expected))
+        assert result.classical_memory == [1, 0]
 
 
-def test_dont_add_rng_seed_to_payload():
-    payload = {}
-    add_rng_seed_to_payload(payload, None)
-    assert 'rng-seed' not in payload
+def test_qpu_connection():
+    qpu = QPUConnection()
 
+    program = {
+        "type": "multishot",
+        "addresses": [0, 1],
+        "trials": 2,
+        "quil-instructions": "H 0\nCNOT 0 1\n"
+    }
 
-def test_add_noise_to_payload():
-    payload = {}
-    add_noise_to_payload(payload, 1, None)
-    assert payload['gate-noise'] == 1
-    assert 'measurement-noise' not in payload
+    def mock_queued_response(request, context):
+        assert json.loads(request.text) == {
+            "machine": "QPU",
+            "program": program
+        }
+        return json.dumps({"jobId": JOB_ID, "status": "QUEUED"})
+
+    with requests_mock.Mocker() as m:
+        m.post('https://job.rigetti.com/beta/job', text=mock_queued_response)
+        m.get('https://job.rigetti.com/beta/job/' + JOB_ID, [
+            {'text': json.dumps({"jobId": JOB_ID, "status": "RUNNING"})},
+            {'text': json.dumps({"jobId": JOB_ID, "status": "FINISHED",
+                                 "result": [[0, 0], [1, 1]], "program": program})}
+        ])
+
+        result = qpu.run(BELL_STATE, [0, 1], trials=2)
+        assert result == [[0, 0], [1, 1]]
 
 
 def test_validate_noise_probabilities():
     with pytest.raises(TypeError):
-        _validate_noise_probabilities(1)
+        validate_noise_probabilities(1)
     with pytest.raises(TypeError):
-        _validate_noise_probabilities(['a', 'b', 'c'])
+        validate_noise_probabilities(['a', 'b', 'c'])
     with pytest.raises(ValueError):
-        _validate_noise_probabilities([0.0, 0.0, 0.0, 0.0])
+        validate_noise_probabilities([0.0, 0.0, 0.0, 0.0])
     with pytest.raises(ValueError):
-        _validate_noise_probabilities([0.5, 0.5, 0.5])
+        validate_noise_probabilities([0.5, 0.5, 0.5])
     with pytest.raises(ValueError):
-        _validate_noise_probabilities([-0.5, -0.5, -0.5])
+        validate_noise_probabilities([-0.5, -0.5, -0.5])
 
 
 def test_validate_run_items():
@@ -109,28 +191,3 @@ def test_validate_run_items():
         validate_run_items(-1, 1)
     with pytest.raises(TypeError):
         validate_run_items(['a', 0], 1)
-
-
-def test_run(cxn, prog):
-    with pytest.raises(TypeError):
-        cxn.run(prog, [0, 1], 'a')
-    assert cxn.run(prog, [0, 1], 1) == 'Success'
-
-
-def test_run_and_measure(cxn, prog):
-    with pytest.raises(TypeError):
-        cxn.run_and_measure(prog, [0, 1], 'a')
-    assert cxn.run_and_measure(prog, [0, 1], 1) == 'Success'
-
-
-def test_expectation(cxn, prog):
-    assert cxn.expectation(prog) == 'Success'
-
-
-def test_wavefunction(cxn_wf, prog_wf):
-    wf, mem = cxn_wf.wavefunction(prog_wf, [0, 1])
-    wf_expected = np.array(
-        [0.00000000 + 0.j, 0.00000000 + 0.j, 0.70710678 + 0.j, -0.70710678 + 0.j])
-    mem_expected = [1, 0]
-    assert np.all(np.isclose(wf.amplitudes, wf_expected))
-    assert mem == mem_expected

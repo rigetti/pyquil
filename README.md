@@ -57,7 +57,7 @@ Here is how to construct a Bell state program and how to compute the amplitudes 
 >>> import pyquil.quil as pq
 >>> import pyquil.api as api
 >>> from pyquil.gates import *
->>> qvm = api.SyncConnection()
+>>> qvm = api.QVMConnection()
 >>> p = pq.Program(H(0), CNOT(0,1))
 <pyquil.pyquil.Program object at 0x101ebfb50>
 >>> qvm.wavefunction(p)[0]
@@ -71,7 +71,7 @@ each measurement pair will be `00` or `11`.)
 >>> import pyquil.quil as pq
 >>> import pyquil.api as api
 >>> from pyquil.gates import *
->>> qvm = api.SyncConnection()
+>>> qvm = api.QVMConnection()
 >>> p = pq.Program()
 >>> p.inst(H(0),
 ...        CNOT(0, 1),

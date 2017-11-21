@@ -10,11 +10,11 @@ programs.
     from pyquil.quil import Program
     import pyquil.api as api
     from pyquil.gates import *
-    qvm = api.SyncConnection()
+    qvm = api.QVMConnection()
     p = Program()
     p.inst(H(0), CNOT(0, 1))
         <pyquil.pyquil.Program object at 0x101ebfb50>
-    wvf, _ = qvm.wavefunction(p)
+    wvf = qvm.wavefunction(p)
     print(wvf)
         (0.7071067812+0j)|00> + (0.7071067812+0j)|11>
 
@@ -135,18 +135,6 @@ As a last resort, connection information can be provided via environment variabl
 If you are still seeing errors or warnings then file a bug using
 `Github Issues <https://github.com/rigetticomputing/pyquil/issues>`_.
 
-Endpoints
-+++++++++
-There are two important endpoints to keep in mind.  You will use different ones for different types
-of jobs.
-
-``https://api.rigetti.com/qvm`` is used for making synchronous calls to the QVM.  You should use
-this for most of the getting started materials unless otherwise instructed.
-
-``https://job.rigetti.com/beta`` is used for large async `QVM jobs <getting_started.html#jobconnections>`_
-or for running jobs on a QPU.
-
-
 Running your first quantum program
 ----------------------------------
 pyQuil is a Python library that helps you write programs in the Quantum Instruction Language (Quil).
@@ -181,15 +169,11 @@ gates for pyQuil as well as numpy.
     from pyquil.gates import *
     import numpy as np
 
-Next, we want to open a connection to the QVM. Forest supports two types of connections through
-pyQuil.  The first is a synchronous connection that immediately runs requested jobs against the QVM.
-This will time out on longer jobs that run for more than 5 seconds. Synchronous connections are good
-for experimenting interactively as they give quick feedback.
+Next, we want to open a connection to the QVM.
 
 .. code:: python
 
-    # open a synchronous connection
-    qvm = api.SyncConnection()
+    qvm = api.QVMConnection()
 
 Now we can make a program by adding some Quil instruction using the
 ``inst`` method on a ``Program`` object.
@@ -314,16 +298,16 @@ a program directly, even without measurements:
 
 .. parsed-literal::
 
-    (<pyquil.wavefunction.Wavefunction at 0x1088a2c10>, [])
+    <pyquil.wavefunction.Wavefunction at 0x1088a2c10>
 
 
-The first element in the returned tuple is a Wavefunction object that stores the amplitudes of the
+The return value is a Wavefunction object that stores the amplitudes of the
 quantum state at the conclusion of the program. We can print this object
 
 .. code:: python
 
     coin_flip = Program().inst(H(0))
-    wvf, _ = qvm.wavefunction(coin_flip)
+    wvf = qvm.wavefunction(coin_flip)
     print(wvf)
 
 .. parsed-literal::
@@ -348,13 +332,14 @@ amplitudes directly or look at a dictionary of associated outcome probabilities.
   [ 0.70710678+0.j  0.70710678+0.j]
   {'1': 0.49999999999999989, '0': 0.49999999999999989}
 
-The second element returned from a wavefunction call is an optional amount of classical memory to
+The result from a wavefunction call also contains an optional amount of classical memory to
 check:
 
 .. code:: python
 
     coin_flip = Program().inst(H(0)).measure(0,0)
-    wavf, classical_mem = qvm.wavefunction(coin_flip, classical_addresses=range(9))
+    wavf = qvm.wavefunction(coin_flip, classical_addresses=range(9))
+    classical_mem = wavf.classical_memory
 
 
 Additionally, we can pass a random seed to the Connection object. This allows us to reliably
@@ -362,10 +347,10 @@ reproduce measurement results for the purpose of testing:
 
 .. code:: python
 
-    seeded_cxn = api.SyncConnection(random_seed=17)
+    seeded_cxn = api.QVMConnection(random_seed=17)
     print(seeded_cxn.run(Program(H(0)).measure(0, 0), [0], 20))
 
-    seeded_cxn = api.SyncConnection(random_seed=17)
+    seeded_cxn = api.QVMConnection(random_seed=17)
     # This will give identical output to the above
     print(seeded_cxn.run(Program(H(0)).measure(0, 0), [0], 20))
 
@@ -522,7 +507,7 @@ matrix representation of the gate. For example, below we define a
 
 .. code:: python
 
-    print(qvm.wavefunction(p)[0])
+    print(qvm.wavefunction(p))
 
 
 
@@ -549,7 +534,7 @@ gate.
     
     # Then we can use the new gate
     p.inst(("X-SQRT-X", 0, 1))
-    wavf, _ = qvm.wavefunction(p)
+    wavf = qvm.wavefunction(p)
     print(wavf)
 
 
@@ -634,7 +619,7 @@ would return a two-element vector.
 .. code:: python
 
     add_dummy_qubits = Program().inst(I(1), I(2))
-    wavf, _ = qvm.wavefunction(state_prep + add_dummy_qubits)
+    wavf = qvm.wavefunction(state_prep + add_dummy_qubits)
     print(wavf)
 
 
@@ -651,7 +636,7 @@ after state preparation to get our final result.
 
 .. code:: python
 
-    wavf, _ = qvm.wavefunction(state_prep + qft3(0, 1, 2))
+    wavf = qvm.wavefunction(state_prep + qft3(0, 1, 2))
     print(wavf.amplitudes)
 
 
@@ -824,7 +809,7 @@ probabilities specified.
     # 20% chance of a X gate being applied after gate applications and before measurements.
     gate_noise_probs = [0.2, 0.0, 0.0]
     meas_noise_probs = [0.2, 0.0, 0.0]
-    noisy_qvm = api.SyncConnection(gate_noise=gate_noise_probs, measurement_noise=meas_noise_probs)
+    noisy_qvm = api.QVMConnection(gate_noise=gate_noise_probs, measurement_noise=meas_noise_probs)
 
 We can test this by applying an :math:`X`-gate and measuring. Nominally,
 we should always measure ``1``.
@@ -957,60 +942,68 @@ alpha.
 This ParametricProgram now acts as a template, caching the result of the ``exponential_map``
 calculation so that it can be used later with new values.
 
-JobConnections
---------------
-Larger pyQuil programs can take longer than 5 seconds to run.  These jobs can be posted into the
-cloud job queue using a different connection object.  The mode of interaction with the API is
-asynchronous.  This means that there is a seperate query to post a job and to get the result.
+Connections
+-----------
+Larger pyQuil programs can involve more qubits and take a longer time to run. Instead of running the
+program immediately, you can insert your programs into a queue. This is done with the ``use_queue``
+parameter to QVMConnection functions. By default, this parameter is set to False which means it skips
+the queue and runs it immediately. However, the QVM will reject programs that are more than
+16 qubits or take longer than 5 seconds to run. Therefore, to run programs of this size you must
+set the ``use_queue`` parameter to True which has more overhead.
+
+.. code:: python
+
+  from pyquil.quil import Program
+  from pyquil.api import QVMConnection
+
+  qvm = QVMConnection()
+  qvm.run(Program(X(0).measure(0, 0), [0], use_queue=True)
+
+The Forest queue also allows an asynchronous mode of interaction with methods postfixed with `_async`.
+This means that there is a seperate query to post a job and to get the result.
 
 ::
 
   from pyquil.quil import Program
   from pyquil.gates import X, H, I
-  from pyquil.api import JobConnection
+  from pyquil.api import QVMConnection
 
-  job_qvm = JobConnection(endpoint="https://job.rigetti.com/beta")
-  res = job_qvm.run(Program(X(0)).measure(0, 0), [0])
+  qvm = QVMConnection()
+  job_id = qvm.run_async(Program(X(0)).measure(0, 0), [0])
 
-The `res` is an instance of a ``JobResult`` object.  It has an id and allows you to make queries
-to see if the job result is finished.
-
-::
-
-  zz = res.get()
-  print(type(zz), zz)
-
-.. parsed-literal::
-
-    <class 'pyquil.job_results.JobResult'> {u'status': u'QUEUED', u'jobId': u'BLSLJCBGNP'}
-
-`is_done` updates the ``JobResult`` object once, and returns `True` if the job has completed. 
-Once the job is finished, then the results can be retrieved from the JobResult object:
+The `job_id` is a string that uniquely identifies the job in Forest. You can use the
+`.get_job` method on QVMConnection to get the current status.
 
 ::
 
-  import time
-
-  while not res.is_done():
-      time.sleep(1)
-  print(res)
-  answer = res.decode()
-  print(answer)
+  job = qvm.get_job(job_id)
+  if not job.is_done():
+    time.sleep(1)
+    job = qvm.get_job(job_id)
+  print(job.result())
 
 .. parsed-literal::
 
-  {u'result': u'[[1]]', u'jobId': u'BLSLJCBGNP'}
+  [[1]]
 
-  <type 'list'> [[1]]
+The `wait_for_job` method periodically checks for updates and prints the job's position
+in the queue, similar to the above code.
+
+::
+
+  job = qvm.wait_for_job(job_id)
+  print(job.result())
+
+.. parsed-literal::
+
+  [[1]]
 
 
 Optimized Calls
 ---------------
 
-This same pattern as above applies to the :meth:`~pyquil.api.JobConnection.wavefunction`,
-:meth:`~pyquil.api.JobConnection.expectation` and
-:meth:`~pyquil.api.JobConnection.run_and_measure`
-calls on any :class:`~pyquil.api.JobConnection` or :class:`~pyquil.api.SyncConnection` object.
+This same pattern as above applies to the :meth:`~pyquil.api.QVMConnection.wavefunction`,
+:meth:`~pyquil.api.QVMConnection.expectation` and :meth:`~pyquil.api.QVMConnection.run_and_measure`.
 These are very useful if used appropriately: They all execute a given program *once and only once*
 and then either return the final wavefunction or use it to generate expectation values or a
 specified number of random bitstring samples.
@@ -1023,7 +1016,7 @@ specified number of random bitstring samples.
     and a single call to these functions therefore **cannot** sample the full space of outcomes.
     Therefore, if the program is non-deterministic and sampling the full program output distribution
     is important for the application at hand, we recommend using the basic
-    :meth:`~pyquil.api.JobConnection.run` API function as this re-runs the full program for every
+    :meth:`~pyquil.api.QVMConnection.run` API function as this re-runs the full program for every
     requested trial.
 
 
