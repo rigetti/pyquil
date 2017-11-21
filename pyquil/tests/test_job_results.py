@@ -31,3 +31,14 @@ def test_get_is_called():
     with patch.object(job_result, 'get') as mock:
         job_result.is_done()
     mock.assert_called_with()
+
+
+def test_blocking_call():
+    # check that JobResult.resolve() calls .is_done() on QPU prior to
+    # returning result
+    qpu_connect = QPUConnection('test')
+    job_result = JobResult(qpu_connect, False, result={'result': 0})
+    with patch.object(job_result, 'is_done') as mock:
+        res = job_result.resolve()
+    mock.assert_called_with()
+    assert res == 0

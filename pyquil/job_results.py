@@ -1,5 +1,4 @@
 import base64
-import json
 import struct
 import time
 
@@ -46,6 +45,25 @@ class JobResult(object):
         """
         self.get()
         return 'result' in self.result
+
+    def resolve(self, timeout=30, poll_time=0.1):
+        """
+        Blocking call to resolve the underlying result of the JobResult. Returns when the QPU
+        returns the results.
+
+        :param timeout: (Optional) time in sec until the blocking operation raises a TimeoutError.
+         Defaults to 30 sec
+        :param poll_time: (Optional) poll interval in seconds. Defaults to 0.1 sec.
+        :return: the results of of the computation.
+        """
+        start = time.time()
+        if timeout is None:
+            timeout = np.inf
+        while time.time() - start < timeout:
+            if self.is_done():
+                return self.result['result']
+            time.sleep(poll_time)
+        raise TimeoutError("JobExecution exceeded timeout of {} sec".format(timeout))
 
     def job_id(self):
         """
