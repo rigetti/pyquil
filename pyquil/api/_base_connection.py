@@ -34,7 +34,7 @@ TYPE_WAVEFUNCTION = "wavefunction"
 
 
 class BaseConnection(object):
-    def __init__(self, endpoint, api_key=None, user_id=None):
+    def __init__(self, async_endpoint=None, api_key=None, user_id=None):
         self._session = requests.Session()
         retry_adapter = HTTPAdapter(max_retries=Retry(total=3,
                                                       method_whitelist=['POST'],
@@ -49,9 +49,10 @@ class BaseConnection(object):
         self._session.mount("https://", retry_adapter)
 
         config = PyquilConfig()
-        self.endpoint = endpoint
         self.api_key = api_key if api_key else config.api_key
         self.user_id = user_id if user_id else config.user_id
+
+        self.async_endpoint = async_endpoint
 
     def get_job(self, job_id):
         """
@@ -61,7 +62,7 @@ class BaseConnection(object):
         :return: Job object with the status and potentially results of the job
         :rtype: Job
         """
-        response = self._get_json(route="/job/" + job_id)
+        response = self._get_json(self.async_endpoint + "/job/" + job_id)
         return Job(response.json())
 
     def wait_for_job(self, job_id, ping_time=0.1, status_time=2):
@@ -90,12 +91,12 @@ class BaseConnection(object):
 
         return job
 
-    def _post_json(self, json, route):
+    def _post_json(self, url, json):
         """
         Post JSON to the Forest endpoint.
 
+        :param str url: The full url to post to
         :param dict json: JSON.
-        :param str route: The route to append to the endpoint, e.g. "/job"
         :return: A non-error response.
         """
         headers = {
@@ -103,7 +104,6 @@ class BaseConnection(object):
             'X-User-Id': self.user_id,
             'Content-Type': 'application/json; charset=utf-8'
         }
-        url = self.endpoint + route
         res = self._session.post(url, json=json, headers=headers)
 
         # Print some nice info for unauthorized/permission errors.
@@ -131,11 +131,11 @@ class BaseConnection(object):
         res.raise_for_status()
         return res
 
-    def _get_json(self, route):
+    def _get_json(self, url):
         """
         Get JSON from a Forest endpoint.
 
-        :param str route: The route to append to the endpoint, e.g. "/job"
+        :param str url: The full url to fetch
         :return: Response object
         """
         headers = {
@@ -143,7 +143,6 @@ class BaseConnection(object):
             'X-User-Id': self.user_id,
             'Content-Type': 'application/json; charset=utf-8'
         }
-        url = self.endpoint + route
         return requests.get(url, headers=headers)
 
 

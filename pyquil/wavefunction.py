@@ -27,6 +27,11 @@ class Wavefunction(object):
 
     @staticmethod
     def ground(qubit_num):
+        warnings.warn("ground() has been deprecated in favor of zeros()", stacklevel=2)
+        return Wavefunction.zeros(qubit_num)
+
+    @staticmethod
+    def zeros(qubit_num):
         """
         Constructs the groundstate wavefunction for a given number of qubits.
 

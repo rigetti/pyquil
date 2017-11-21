@@ -28,18 +28,7 @@ from pyquil.gates import CNOT, H, MEASURE
 
 BELL_STATE = Program(H(0), CNOT(0, 1))
 
-sync = SyncConnection(api_key='api_key', user_id='user_id')
-qvm = QVMConnection(api_key='api_key', user_id='user_id', skip_queue=False)
-
-
-def test_ping():
-    def mock_response(request, context):
-        assert json.loads(request.text) == {"type": "ping"}
-        return 'pong'
-
-    with requests_mock.Mocker() as m:
-        m.post('https://api.rigetti.com/qvm', text=mock_response)
-        assert sync.ping()
+qvm = QVMConnection(api_key='api_key', user_id='user_id')
 
 
 def test_sync_run():
@@ -54,7 +43,7 @@ def test_sync_run():
 
     with requests_mock.Mocker() as m:
         m.post('https://api.rigetti.com/qvm', text=mock_response)
-        assert sync.run(BELL_STATE, [0, 1], trials=2) == [[0, 0], [1, 1]]
+        assert qvm.run(BELL_STATE, [0, 1], trials=2) == [[0, 0], [1, 1]]
 
 
 def test_sync_run_and_measure():
@@ -69,7 +58,7 @@ def test_sync_run_and_measure():
 
     with requests_mock.Mocker() as m:
         m.post('https://api.rigetti.com/qvm', text=mock_response)
-        assert sync.run_and_measure(BELL_STATE, [0, 1], trials=2) == [[0, 0], [1, 1]]
+        assert qvm.run_and_measure(BELL_STATE, [0, 1], trials=2) == [[0, 0], [1, 1]]
 
 
 WAVEFUNCTION_BINARY = (b'\x01\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00'
@@ -90,7 +79,7 @@ def test_sync_wavefunction():
 
     with requests_mock.Mocker() as m:
         m.post('https://api.rigetti.com/qvm', content=mock_response)
-        result = sync.wavefunction(WAVEFUNCTION_PROGRAM, [0, 1])
+        result = qvm.wavefunction(WAVEFUNCTION_PROGRAM, [0, 1])
         wf_expected = np.array([0. + 0.j, 0. + 0.j, 0.70710678 + 0.j, -0.70710678 + 0.j])
         assert np.all(np.isclose(result.amplitudes, wf_expected))
         assert result.classical_memory == [1, 0]
@@ -122,7 +111,7 @@ def test_job_run():
                                  "result": [[0, 0], [1, 1]], "program": program})}
         ])
 
-        result = qvm.run(BELL_STATE, [0, 1], trials=2)
+        result = qvm.run(BELL_STATE, [0, 1], trials=2, use_queue=True)
         assert result == [[0, 0], [1, 1]]
 
 
@@ -148,7 +137,7 @@ def test_async_wavefunction():
             "result": base64.b64encode(WAVEFUNCTION_BINARY).decode(),
             "program": program
         }))
-        result = qvm.wavefunction(WAVEFUNCTION_PROGRAM, [0, 1])
+        result = qvm.wavefunction(WAVEFUNCTION_PROGRAM, [0, 1], use_queue=True)
 
         wf_expected = np.array([0. + 0.j, 0. + 0.j, 0.70710678 + 0.j, -0.70710678 + 0.j])
         assert np.all(np.isclose(result.amplitudes, wf_expected))
