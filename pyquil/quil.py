@@ -438,9 +438,14 @@ class Program(object):
                 result.append(JumpTarget(remap_label(instr.label)))
                 label_counter += 1
             elif isinstance(instr, JumpConditional) and isinstance(instr.target, LabelPlaceholder):
-                new_jump = JumpConditional(remap_label(instr.target), instr.condition)
-                new_jump.op = instr.op
-                result.append(new_jump)
+                new_label = remap_label(instr.target)
+                if isinstance(instr, JumpWhen):
+                    result.append(JumpWhen(new_label, instr.condition))
+                elif isinstance(instr, JumpUnless):
+                    result.append(JumpUnless(new_label, instr.condition))
+                else:
+                    raise TypeError("Encountered a JumpConditional that wasn't JumpWhen or JumpUnless: {} {}"
+                                    .format(type(instr), instr))
                 label_counter += 1
 
             # Otherwise simply add it to the result

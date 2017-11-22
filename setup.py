@@ -31,6 +31,7 @@ setup(
         'requests >= 2.4.2',
         'numpy >= 1.10',
         'matplotlib >= 1.5',
+        'typing >= 3.6',
         'urllib3 >= 1.21.1',
         "antlr4-python2-runtime>=4.7; python_version < '3'",
         "antlr4-python3-runtime>=4.7; python_version >= '3'",

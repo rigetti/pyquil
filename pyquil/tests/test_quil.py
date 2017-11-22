@@ -24,7 +24,7 @@ from pyquil.gates import I, X, Y, Z, H, T, S, RX, RY, RZ, CNOT, CCNOT, PHASE, CP
     CPHASE10, CPHASE, SWAP, CSWAP, ISWAP, PSWAP, MEASURE, HALT, WAIT, NOP, RESET, \
     TRUE, FALSE, NOT, AND, OR, MOVE, EXCHANGE
 from pyquil.quil import Program, merge_programs
-from pyquil.quilbase import DefGate, Gate, Addr, Qubit
+from pyquil.quilbase import DefGate, Gate, Addr, Qubit, JumpWhen
 
 
 def test_gate():
@@ -371,6 +371,8 @@ def test_if_option():
     p = Program(X(0)).measure(0, 0).if_then(0, Program(X(1)))
     assert p.out() == 'X 0\nMEASURE 0 [0]\nJUMP-WHEN @THEN1 [0]\nJUMP @END2\n' \
                       'LABEL @THEN1\nX 1\nLABEL @END2\n'
+
+    assert isinstance(p.instructions[2], JumpWhen)
 
 
 def test_alloc():
