@@ -37,6 +37,11 @@ class Program(object):
         # property below is that the private _instructions list may contain placeholder values
         self._instructions = []
 
+        # Performance optimization: as stated above _instructions may contain placeholder values so the program must
+        # first be synthesized. _synthesized_instructions is simply a cache on the result of the _synthesize() method.
+        # It is marked as None whenever new instructions are added.
+        self._synthesized_instructions = None
+
         self.inst(*instructions)
 
     @property
@@ -51,7 +56,10 @@ class Program(object):
         """
         Fill in any placeholders and return a list of quil AbstractInstructions.
         """
-        return self._synthesize()
+        if self._synthesized_instructions is None:
+            self._synthesized_instructions = self._synthesize()
+
+        return self._synthesized_instructions
 
     def inst(self, *instructions):
         """
@@ -104,12 +112,14 @@ class Program(object):
                 self._defined_gates.append(instruction)
             elif isinstance(instruction, AbstractInstruction):
                 self._instructions.append(instruction)
+                self._synthesized_instructions = None
             elif isinstance(instruction, Program):
                 if id(self) == id(instruction):
                     raise ValueError("Nesting a program inside itself is not supported")
 
                 self._defined_gates.extend(list(instruction._defined_gates))
                 self._instructions.extend(list(instruction._instructions))
+                self._synthesized_instructions = None
             else:
                 raise TypeError("Invalid instruction: {}".format(instruction))
 
@@ -322,7 +332,9 @@ class Program(object):
         :return: The instruction that was popped.
         :rtype: tuple
         """
-        return self._instructions.pop()
+        res = self._instructions.pop()
+        self._synthesized_instructions = None
+        return res
 
     def dagger(self, inv_dict=None, suffix="-INV"):
         """
@@ -491,7 +503,7 @@ class Program(object):
         return not self.__eq__(other)
 
     def __len__(self):
-        return len(self.instructions)
+        return len(self._instructions)
 
     def __str__(self):
         return self.out()
