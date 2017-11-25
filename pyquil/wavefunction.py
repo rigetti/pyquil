@@ -47,8 +47,8 @@ class Wavefunction(object):
     def from_bit_packed_string(coef_string, classical_addresses):
         """
         From a bit packed string, unpacks to get the wavefunction and classical measurement results
-        :param coef_string:
-        :param classical_addresses:
+        :param bytes coef_string:
+        :param list classical_addresses:
         :return:
         """
         num_octets = len(coef_string)

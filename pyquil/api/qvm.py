@@ -80,6 +80,7 @@ class QVMConnection(BaseConnection):
         :param int trials: Number of shots to collect.
         :param bool use_queue: Disabling this parameter may improve performance for small, quick programs.
                                To support larger programs, set it to True. (default: False)
+                               See https://go.rigetti.com/connections for more information.
         :return: A list of lists of bits. Each sublist corresponds to the values
                  in `classical_addresses`.
         :rtype: list
@@ -133,6 +134,9 @@ class QVMConnection(BaseConnection):
         :param Program quil_program: A Quil program.
         :param list qubits: A list of qubits.
         :param int trials: Number of shots to collect.
+        :param bool use_queue: Disabling this parameter may improve performance for small, quick programs.
+                               To support larger programs, set it to True. (default: False)
+                               See https://go.rigetti.com/connections for more information.
         :return: A list of a list of bits.
         :rtype: list
         """
@@ -184,11 +188,17 @@ class QVMConnection(BaseConnection):
 
         :param Program quil_program: A Quil program.
         :param list classical_addresses: An optional list of classical addresses.
+        :param bool use_queue: Disabling this parameter may improve performance for small, quick programs.
+                               To support larger programs, set it to True. (default: False)
+                               See https://go.rigetti.com/connections for more information.
         :return: A tuple whose first element is a Wavefunction object,
                  and whose second element is the list of classical bits corresponding
                  to the classical addresses.
         :rtype: Wavefunction
         """
+        if classical_addresses is None:
+            classical_addresses = []
+
         if use_queue:
             payload = self._wavefunction_payload(quil_program, classical_addresses)
             response = self._post_json(self.async_endpoint + "/job", {"machine": "QVM", "program": payload})
@@ -204,14 +214,14 @@ class QVMConnection(BaseConnection):
         Similar to wavefunction except that it returns a job id and doesn't wait for the program to be executed.
         See https://go.rigetti.com/connections for reasons to use this method.
         """
+        if classical_addresses is None:
+            classical_addresses = []
+
         payload = self._wavefunction_payload(quil_program, classical_addresses)
         response = self._post_json(self.async_endpoint + "/job", {"machine": "QVM", "program": payload})
         return get_job_id(response)
 
     def _wavefunction_payload(self, quil_program, classical_addresses):
-        if classical_addresses is None:
-            classical_addresses = []
-
         if not isinstance(quil_program, Program):
             raise TypeError("quil_program must be a Quil program object")
         validate_run_items(classical_addresses)
@@ -238,6 +248,9 @@ class QVMConnection(BaseConnection):
 
         :param Program prep_prog: Quil program for state preparation.
         :param list operator_programs: A list of PauliTerms. Default is Identity operator.
+        :param bool use_queue: Disabling this parameter may improve performance for small, quick programs.
+                               To support larger programs, set it to True. (default: False)
+                               See https://go.rigetti.com/connections for more information.
         :returns: Expectation value of the operators.
         :rtype: float
         """
