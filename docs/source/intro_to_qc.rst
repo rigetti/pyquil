@@ -294,7 +294,7 @@ those outcomes as values.
 
 .. parsed-literal::
 
-    {'11': 0.0, '10': 0.0, '00': 1.0, '01': 0.0}
+    {'00': 1.0, '01': 0.0, '10': 0.0, '11': 0.0}
 
 
 Qubit Operations
@@ -344,7 +344,7 @@ so the program that applies this operation to the zero state is just
 
 .. parsed-literal::
 
-    [ 1.+0.j  0.+0.j]
+    (1+0j)|0>
 
 Pauli Operators
 ^^^^^^^^^^^^^^^
@@ -373,30 +373,33 @@ Let's revisit the X gate introduced above. It is one of three important single-q
 
     from pyquil.gates import X, Y, Z
     p = Program(X(0))
-    print("X|0> = ", quantum_simulator.wavefunction(p))
-    print("The outcome probabilities are", quantum_simulator.bit_string_probabilities(p))
+    wavefunction = quantum_simulator.wavefunction(p)
+    print("X|0> = ", wavefunction)
+    print("The outcome probabilities are", wavefunction.get_outcome_probs())
     print("This looks like a bit flip.\n")
     p = Program(Y(0))
-    print("Y|0> = ", quantum_simulator.wavefunction(p))
-    print("The outcome probabilities are", quantum_simulator.bit_string_probabilities(p))
+    wavefunction = quantum_simulator.wavefunction(p)
+    print("Y|0> = ", wavefunction)
+    print("The outcome probabilities are", wavefunction.get_outcome_probs())
     print("This also looks like a bit flip.\n")
     p = Program(Z(0))
-    print("Z|0> = ", quantum_simulator.wavefunction(p))
-    print("The outcome probabilities are", quantum_simulator.bit_string_probabilities(p))
+    wavefunction = quantum_simulator.wavefunction(p)
+    print("Z|0> = ", wavefunction)
+    print("The outcome probabilities are", wavefunction.get_outcome_probs())
     print("This state looks unchanged.")
 
 
 .. parsed-literal::
 
-    X|0> =  [ 0.+0.j  1.+0.j]
+    X|0> =  (1+0j)|1>
     The outcome probabilities are {'1': 1.0, '0': 0.0}
     This looks like a bit flip.
 
-    Y|0> =  [ 0.+0.j  0.+1.j]
+    Y|0> =  1j|1>
     The outcome probabilities are {'1': 1.0, '0': 0.0}
     This also looks like a bit flip.
 
-    Z|0> =  [ 1.+0.j  0.+0.j]
+    Z|0> =  (1+0j)|0>
     The outcome probabilities are {'1': 0.0, '0': 1.0}
     This state looks unchanged.
 
@@ -417,15 +420,16 @@ Quantum programs are built by applying successive gate operations:
 
     # Composing qubit operations is the same as multiplying matrices sequentially
     p = Program(X(0), Y(0), Z(0))
-    print("ZYX|0> = ", quantum_simulator.wavefunction(p))
-    print("With outcome probabilities\n", quantum_simulator.bit_string_probabilities(p))
+    wavefunction = quantum_simulator.wavefunction(p)
+    print("ZYX|0> = ", wavefunction)
+    print("With outcome probabilities\n", wavefunction.get_outcome_probs())
 
 
 .. parsed-literal::
 
     ZYX|0> =  [ 0.-1.j  0.+0.j]
     With outcome probabilities
-    {'1': 0.0, '0': 1.0}
+    {'0': 1.0, '1': 0.0}
 
 
 Multi-Qubit Operations
@@ -452,33 +456,37 @@ Let's take a look at how we could use a CNOT gate in pyQuil.
     from pyquil.gates import CNOT
 
     p = Program(CNOT(0, 1))
-    print("CNOT|00> = ", quantum_simulator.wavefunction(p))
-    print("With outcome probabilities\n", quantum_simulator.bit_string_probabilities(p))
+    wavefunction = quantum_simulator.wavefunction(p)
+    print("CNOT|00> = ", wavefunction)
+    print("With outcome probabilities\n", wavefunction.get_outcome_probs())
     p = Program(X(0), CNOT(0, 1))
-    print("CNOT|01> = ", quantum_simulator.wavefunction(p))
-    print("With outcome probabilities\n", quantum_simulator.bit_string_probabilities(p))
+    wavefunction = quantum_simulator.wavefunction(p)
+    print("CNOT|01> = ", wavefunction)
+    print("With outcome probabilities\n", wavefunction.get_outcome_probs())
     p = Program(X(1), CNOT(0, 1))
-    print("CNOT|10> = ", quantum_simulator.wavefunction(p))
-    print("With outcome probabilities\n", quantum_simulator.bit_string_probabilities(p))
+    wavefunction = quantum_simulator.wavefunction(p)
+    print("CNOT|10> = ", wavefunction)
+    print("With outcome probabilities\n", wavefunction.get_outcome_probs())
     p = Program(X(0), X(1), CNOT(0, 1))
-    print("CNOT|11> = ", quantum_simulator.wavefunction(p))
-    print("With outcome probabilities\n", quantum_simulator.bit_string_probabilities(p))
+    wavefunction = quantum_simulator.wavefunction(p)
+    print("CNOT|11> = ", wavefunction)
+    print("With outcome probabilities\n", wavefunction.get_outcome_probs())
 
 
 .. parsed-literal::
 
-    CNOT|00> =  [ 1.+0.j  0.+0.j  0.+0.j  0.+0.j]
+    CNOT|00> =  (1+0j)|00>
     With outcome probabilities
-    {'11': 0.0, '10': 0.0, '00': 1.0, '01': 0.0}
-    CNOT|01> =  [ 0.+0.j  0.+0.j  0.+0.j  1.+0.j]
+     {'00': 1.0, '01': 0.0, '10': 0.0, '11': 0.0}
+    CNOT|01> =  (1+0j)|11>
     With outcome probabilities
-    {'11': 1.0, '10': 0.0, '00': 0.0, '01': 0.0}
-    CNOT|10> =  [ 0.+0.j  0.+0.j  1.+0.j  0.+0.j]
+     {'00': 0.0, '01': 0.0, '10': 0.0, '11': 1.0}
+    CNOT|10> =  (1+0j)|10>
     With outcome probabilities
-    {'11': 0.0, '10': 1.0, '00': 0.0, '01': 0.0}
-    CNOT|11> =  [ 0.+0.j  1.+0.j  0.+0.j  0.+0.j]
+     {'00': 0.0, '01': 0.0, '10': 1.0, '11': 0.0}
+    CNOT|11> =  (1+0j)|01>
     With outcome probabilities
-    {'11': 0.0, '10': 0.0, '00': 0.0, '01': 1.0}
+     {'00': 0.0, '01': 1.0, '10': 0.0, '11': 0.0}
 
 
 The CNOT gate does what its name implies: the state of the second qubit is flipped
@@ -501,16 +509,16 @@ and \\(\|10\\rangle \\) states:
 
     from pyquil.gates import SWAP
     p = Program(X(0), SWAP(0,1))
-
-    print("SWAP|01> = ", quantum_simulator.wavefunction(p))
-    print("With outcome probabilities\n", quantum_simulator.bit_string_probabilities(p))
+    wavefunction = quantum_simulator.wavefunction(p)
+    print("SWAP|01> = ", wavefunction)
+    print("With outcome probabilities\n", wavefunction.get_outcome_probs())
 
 
 .. parsed-literal::
 
-    SWAP|01> =  [ 0.+0.j  0.+0.j  1.+0.j  0.+0.j]
+    SWAP|01> =  (1+0j)|10>
     With outcome probabilities
-    {'11': 0.0, '01': 0.0, '00': 0.0, '10': 1.0}
+     {'00': 0.0, '01': 0.0, '10': 1.0, '11': 0.0}
 
 In summary, quantum computing operations are composed of a series of
 complex matrices applied to complex vectors. These matrices must be unitary (meaning that
@@ -564,7 +572,7 @@ measurements. This functionality is emulated by the ``run`` command.
 
     # Choose which classical registers to look in at the end of the computation
     classical_regs = [0, 1]
-    quantum_simulator.run(p, classical_regs)
+    print(quantum_simulator.run(p, classical_regs))
 
 
 .. parsed-literal::
@@ -582,7 +590,7 @@ qubit before measurement then we obtain:
     p.measure(0, classical_register_index) # measure the qubit
 
     classical_regs = [0, 1]
-    quantum_simulator.run(p, classical_regs)
+    print(quantum_simulator.run(p, classical_regs))
 
 
 .. parsed-literal::
@@ -631,15 +639,16 @@ The following pyQuil code shows how we can use the Hadamard gate:
 
     # The Hadamard produces what is called a superposition state
     coin_program = Program(H(0))
-    print("H|0> = ", quantum_simulator.wavefunction(coin_program))
-    print("With outcome probabilities\n", quantum_simulator.bit_string_probabilities(coin_program))
+    wavefunction = quantum_simulator.wavefunction(coin_program)
+    print("H|0> = ", wavefunction)
+    print("With outcome probabilities\n", wavefunction.get_outcome_probs())
 
 
 .. parsed-literal::
 
-    H|0> =  [ 0.70710678+0.j  0.70710678+0.j]
+    H|0> =  (0.7071067812+0j)|0> + (0.7071067812+0j)|1>
     With outcome probabilities
-    {'1': 0.49999999999999989, '0': 0.49999999999999989}
+    {'0': 0.49999999999999989, '1': 0.49999999999999989}
 
 
 A qubit in this state will be measured half of the time in the \\( \|0\\rangle \\) state,
@@ -665,7 +674,7 @@ extra power over regular bits.
     trials = 10
 
     # We see probabilistic results of about half 1's and half 0's
-    quantum_simulator.run(coin_program, [0], trials)
+    print(quantum_simulator.run(coin_program, [0], trials))
 
 
 
@@ -691,11 +700,11 @@ pyQuil allows us to look at the wavefunction **after** a measurement as well:
 .. parsed-literal::
 
     Before measurement: H|0> =  [ 0.70710678+0.j  0.70710678+0.j]
-    After measurement:  [ 0.+0.j  1.+0.j]
-    After measurement:  [ 1.+0.j  0.+0.j]
-    After measurement:  [ 1.+0.j  0.+0.j]
-    After measurement:  [ 0.+0.j  1.+0.j]
-    After measurement:  [ 0.+0.j  1.+0.j]
+    After measurement:  (1+0j)|1>
+    After measurement:  (1+0j)|0>
+    After measurement:  (1+0j)|0>
+    After measurement:  (1+0j)|1>
+    After measurement:  (1+0j)|1>
 
 
 We can clearly see that measurement has an effect on the quantum state
@@ -714,20 +723,22 @@ the obtained outcome and subsequently rescaled to unit norm.
 
     # This program prepares something called a Bell state (a special kind of "entangled state")
     bell_program = Program(H(0), CNOT(0, 1))
-    print("Before measurement: H|0> = ", quantum_simulator.wavefunction(bell_program))
+    wavefunction = quantum_simulator.wavefunction(bell_program)
+    print("Before measurement: H|0> = ", wavefunction)
     bell_program.measure(0, classical_reg)
     for x in range(5):
-        print("After measurement: ", quantum_simulator.bit_string_probabilities(bell_program))
+        wavefunction = quantum_simulator.wavefunction(bell_program)
+        print("After measurement: ", wavefunction.get_outcome_probs())
 
 
 .. parsed-literal::
 
-    Before measurement: H|0> =  [ 0.70710678+0.j  0.00000000+0.j  0.00000000+0.j  0.70710678+0.j]
-    After measurement:  {'11': 1.0, '10': 0.0, '00': 0.0, '01': 0.0}
-    After measurement:  {'11': 0.0, '10': 0.0, '00': 1.0, '01': 0.0}
-    After measurement:  {'11': 0.0, '10': 0.0, '00': 1.0, '01': 0.0}
-    After measurement:  {'11': 1.0, '10': 0.0, '00': 0.0, '01': 0.0}
-    After measurement:  {'11': 1.0, '10': 0.0, '00': 0.0, '01': 0.0}
+    Before measurement: H|0> =  (0.7071067812+0j)|00> + (0.7071067812+0j)|11>
+    After measurement:  {'00': 1.0, '01': 0.0, '10': 0.0, '11': 0.0}
+    After measurement:  {'00': 0.0, '01': 0.0, '10': 0.0, '11': 1.0}
+    After measurement:  {'00': 1.0, '01': 0.0, '10': 0.0, '11': 0.0}
+    After measurement:  {'00': 1.0, '01': 0.0, '10': 0.0, '11': 0.0}
+    After measurement:  {'00': 0.0, '01': 0.0, '10': 0.0, '11': 1.0}
 
 
 The above program prepares **entanglement** because, even though there are
