@@ -261,7 +261,7 @@ class DefGate(AbstractInstruction):
 
             :param element: {int, float, complex, str} The parameterized element to format.
             """
-            if isinstance(element, integer_types) or isinstance(element, (float, complex)):
+            if isinstance(element, integer_types) or isinstance(element, (float, complex, np.int_)):
                 return format_parameter(element)
             elif isinstance(element, string_types):
                 return element
@@ -514,7 +514,7 @@ def format_parameter(element):
 
     :param element: {int, float, long, complex, Slot} Formats a parameter for Quil output.
     """
-    if isinstance(element, integer_types):
+    if isinstance(element, integer_types) or isinstance(element, np.int_):
         return repr(element)
     elif isinstance(element, float):
         return check_for_pi(element)
