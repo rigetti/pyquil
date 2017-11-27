@@ -14,8 +14,8 @@ programs.
     p = Program()
     p.inst(H(0), CNOT(0, 1))
         <pyquil.pyquil.Program object at 0x101ebfb50>
-    wvf = qvm.wavefunction(p)
-    print(wvf)
+    wavefunction = qvm.wavefunction(p)
+    print(wavefunction)
         (0.7071067812+0j)|00> + (0.7071067812+0j)|11>
 
 It comes with a few parts:
@@ -307,8 +307,8 @@ quantum state at the conclusion of the program. We can print this object
 .. code:: python
 
     coin_flip = Program().inst(H(0))
-    wvf = qvm.wavefunction(coin_flip)
-    print(wvf)
+    wavefunction = qvm.wavefunction(coin_flip)
+    print(wavefunction)
 
 .. parsed-literal::
 
@@ -319,13 +319,13 @@ amplitudes directly or look at a dictionary of associated outcome probabilities.
 
 .. code:: python
 
-  assert wvf[0] == 1 / np.sqrt(2)
+  assert wavefunction[0] == 1 / np.sqrt(2)
   # The amplitudes are stored as a numpy array on the Wavefunction object
-  print(wvf.amplitudes)
-  prob_dict = wvf.get_outcome_probs() # extracts the probabilities of outcomes as a dict
+  print(wavefunction.amplitudes)
+  prob_dict = wavefunction.get_outcome_probs() # extracts the probabilities of outcomes as a dict
   print(prob_dict)
   prob_dict.keys() # these stores the bitstring outcomes
-  assert len(wvf) == 1 # gives the number of qubits
+  assert len(wavefunction) == 1 # gives the number of qubits
 
 .. parsed-literal::
 
@@ -338,8 +338,8 @@ check:
 .. code:: python
 
     coin_flip = Program().inst(H(0)).measure(0,0)
-    wavf = qvm.wavefunction(coin_flip, classical_addresses=range(9))
-    classical_mem = wavf.classical_memory
+    wavefunction = qvm.wavefunction(coin_flip, classical_addresses=range(9))
+    classical_mem = wavefunction.classical_memory
 
 
 Additionally, we can pass a random seed to the Connection object. This allows us to reliably
@@ -534,8 +534,8 @@ gate.
     
     # Then we can use the new gate
     p.inst(("X-SQRT-X", 0, 1))
-    wavf = qvm.wavefunction(p)
-    print(wavf)
+    wavefunction = qvm.wavefunction(p)
+    print(wavefunction)
 
 
 
@@ -619,8 +619,8 @@ would return a two-element vector.
 .. code:: python
 
     add_dummy_qubits = Program().inst(I(1), I(2))
-    wavf = qvm.wavefunction(state_prep + add_dummy_qubits)
-    print(wavf)
+    wavefunction = qvm.wavefunction(state_prep + add_dummy_qubits)
+    print(wavefunction)
 
 
 
@@ -636,8 +636,8 @@ after state preparation to get our final result.
 
 .. code:: python
 
-    wavf = qvm.wavefunction(state_prep + qft3(0, 1, 2))
-    print(wavf.amplitudes)
+    wavefunction = qvm.wavefunction(state_prep + qft3(0, 1, 2))
+    print(wavefunction.amplitudes)
 
 
 
