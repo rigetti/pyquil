@@ -216,9 +216,9 @@ Each of the code snippets below will be immediately followed by its output.
     # We can run this basic program on our connection to the simulator.
     # This call will return the state of our qubits after we run program p.
     # This api call returns a tuple, but we'll ignore the second value for now.
-    wavefunc = quantum_simulator.wavefunction(p)
-    # wavefunc is a Wavefunction object that stores a quantum state as a list of amplitudes
-    alpha, beta = wavefunc
+    wavefunction = quantum_simulator.wavefunction(p)
+    # wavefunction is a Wavefunction object that stores a quantum state as a list of amplitudes
+    alpha, beta = wavefunction
     print("Our qubit is in the state alpha={} and beta={}".format(alpha, beta))
     print("The probability of measuring the qubit in outcome 0 is {}".format(abs(alpha)**2))
     print("The probability of measuring the qubit in outcome 1 is {}".format(abs(beta)**2))
@@ -261,18 +261,18 @@ multiple qubits to grow exponentially in size, as their vectors are tensored tog
 
     # Multiple qubits also produce the expected scaling of the state.
     p = Program(I(0), I(1))
-    wvf = quantum_simulator.wavefunction(p)
-    print("The quantum state is of dimension:", len(wvf.amplitudes))
+    wavefunction = quantum_simulator.wavefunction(p)
+    print("The quantum state is of dimension:", len(wavefunction.amplitudes))
 
     p = Program(I(0), I(1), I(2), I(3))
-    wvf = quantum_simulator.wavefunction(p)
-    print("The quantum state is of dimension:", len(wvf.amplitudes))
+    wavefunction = quantum_simulator.wavefunction(p)
+    print("The quantum state is of dimension:", len(wavefunction.amplitudes))
 
     p = Program()
     for x in range(10):
         p.inst(I(x))
-    wvf = quantum_simulator.wavefunction(p)
-    print("The quantum state is of dimension:", len(wvf.amplitudes)  )
+    wavefunction = quantum_simulator.wavefunction(p)
+    print("The quantum state is of dimension:", len(wavefunction.amplitudes)  )
 
 
 .. parsed-literal::
@@ -288,8 +288,8 @@ those outcomes as values.
 .. code:: python
 
     # wavefunction(Program) returns a coefficient array that corresponds to outcomes in the following order
-    wvf = quantum_simulator.wavefunction(Program(I(0), I(1)))
-    print(wvf.get_outcome_probs())
+    wavefunction = quantum_simulator.wavefunction(Program(I(0), I(1)))
+    print(wavefunction.get_outcome_probs())
 
 
 .. parsed-literal::
