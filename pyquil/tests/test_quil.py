@@ -582,3 +582,10 @@ def test_pretty_print_pi():
     assert p.out() == 'RZ(0) 0\nRZ(pi) 1\nRZ(-pi) 2\nRZ(2*pi/3) 3\n' \
                       'RZ(0.3490658503988659) 4\n' \
                       'RZ(pi/8) 5\nCPHASE00(-45*pi) 0 1\n'
+
+
+# https://github.com/rigetticomputing/pyquil/issues/138
+def test_defgate_integer_input():
+    dg = DefGate("TEST", np.array([[1, 0],
+                                   [0, 1]]))
+    assert dg.out() == "DEFGATE TEST:\n    1, 0\n    0, 1\n"
