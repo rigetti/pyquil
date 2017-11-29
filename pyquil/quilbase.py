@@ -18,110 +18,10 @@ Contains the core pyQuil objects that correspond to Quil instructions.
 """
 
 import numpy as np
-from .slot import Slot
 from six import integer_types, string_types
-from fractions import Fraction
 
-
-class QuilAtom(object):
-    """
-    Abstract class for atomic elements of Quil.
-    """
-    def out(self):
-        pass
-
-    def __str__(self):
-        return self.out()
-
-    def __eq__(self, other):
-        return isinstance(other, self.__class__) and self.out() == other.out()
-
-    def __ne__(self, other):
-        return not self.__eq__(other)
-
-
-class Qubit(QuilAtom):
-    """
-    Representation of a qubit.
-
-    :param int index: Index of the qubit.
-    """
-    def __init__(self, index):
-        if not (isinstance(index, integer_types) and index >= 0):
-            raise TypeError("Addr index must be a non-negative int")
-        self.index = index
-
-    def out(self):
-        return str(self.index)
-
-    def __repr__(self):
-        return "<Qubit {0}>".format(self.index)
-
-
-class QubitPlaceholder(Qubit):
-    def __init__(self):
-        pass
-
-    @property
-    def index(self):
-        raise RuntimeError("Qubit has not been assigned an index")
-
-    def __str__(self):
-        return repr(self)
-
-    def __repr__(self):
-        return "<QubitPlaceholder {}>".format(id(self))
-
-
-class Addr(QuilAtom):
-    """
-    Representation of a classical bit address.
-
-    :param int value: The classical address.
-    """
-
-    def __init__(self, value):
-        if not isinstance(value, integer_types) or value < 0:
-            raise TypeError("Addr value must be a non-negative int")
-        self.address = value
-
-    def out(self):
-        return "[{0}]".format(self.address)
-
-    def __repr__(self):
-        return "<Addr {0}>".format(self.address)
-
-
-class Label(QuilAtom):
-    """
-    Representation of a label.
-
-    :param string label_name: The label name.
-    """
-
-    def __init__(self, label_name):
-        self.name = label_name
-
-    def out(self):
-        return "@" + str(self.name)
-
-    def __repr__(self):
-        return "<Label {0}>".format(repr(self.name))
-
-
-class LabelPlaceholder(Label):
-    def __init__(self, prefix="L"):
-        self.prefix = prefix
-
-    @property
-    def name(self):
-        raise RuntimeError("Label has not been assigned a name")
-
-    def __str__(self):
-        return repr(self)
-
-    def __repr__(self):
-        return "<LabelPlaceholder {} {}>".format(self.prefix, id(self))
+from pyquil.parameters import Expression, _contained_parameters, format_parameter
+from pyquil.quilatom import Qubit, Addr, Label, unpack_qubit
 
 
 class AbstractInstruction(object):
@@ -219,9 +119,10 @@ class DefGate(AbstractInstruction):
 
     :param string name: The name of the newly defined gate.
     :param array-like matrix: {list, nparray, np.matrix} The matrix defining this gate.
+    :param list parameters: list of parameters that are used in this gate
     """
 
-    def __init__(self, name, matrix):
+    def __init__(self, name, matrix, parameters=None):
         if not isinstance(name, string_types):
             raise TypeError("Gate name must be a string")
 
@@ -244,9 +145,22 @@ class DefGate(AbstractInstruction):
         self.name = name
         self.matrix = np.asarray(matrix)
 
-        is_unitary = np.allclose(np.eye(rows), self.matrix.dot(self.matrix.T.conj()))
-        if not is_unitary:
-            raise ValueError("Matrix must be unitary.")
+        if parameters:
+            if not isinstance(parameters, list):
+                raise TypeError("Paramaters must be a list")
+
+            expressions = [elem for row in self.matrix for elem in row if isinstance(elem, Expression)]
+            used_params = {param for exp in expressions for param in _contained_parameters(exp)}
+
+            if set(parameters) != used_params:
+                raise ValueError("Parameters list does not match parameters actually used in gate matrix:\n"
+                                 "Parameters in argument: {}, Parameters in matrix: {}".format(parameters, used_params))
+        else:
+            is_unitary = np.allclose(np.eye(rows), self.matrix.dot(self.matrix.T.conj()))
+            if not is_unitary:
+                raise ValueError("Matrix must be unitary.")
+
+        self.parameters = parameters
 
     def out(self):
         """
@@ -265,10 +179,16 @@ class DefGate(AbstractInstruction):
                 return format_parameter(element)
             elif isinstance(element, string_types):
                 return element
+            elif isinstance(element, Expression):
+                return str(element)
             else:
                 raise TypeError("Invalid matrix element: %r" % element)
 
-        result = "DEFGATE %s:\n" % self.name
+        if self.parameters:
+            result = "DEFGATE {}({}):\n".format(self.name, ', '.join(map(str, self.parameters)))
+        else:
+            result = "DEFGATE {}:\n".format(self.name)
+
         for row in self.matrix:
             result += "    "
             fcols = [format_matrix_element(col) for col in row]
@@ -281,7 +201,11 @@ class DefGate(AbstractInstruction):
         :returns: A function that constructs this gate on variable qubit indices. E.g.
                   `mygate.get_constructor()(1) applies the gate to qubit 1.`
         """
-        return lambda *qubits: Gate(name=self.name, params=[], qubits=list(map(unpack_qubit, qubits)))
+        if self.parameters:
+            return lambda *params: lambda *qubits: \
+                Gate(name=self.name, params=list(params), qubits=list(map(unpack_qubit, qubits)))
+        else:
+            return lambda *qubits: Gate(name=self.name, params=[], qubits=list(map(unpack_qubit, qubits)))
 
     def num_args(self):
         """
@@ -505,68 +429,3 @@ class RawInstr(AbstractInstruction):
 
     def __repr__(self):
         return '<RawInstr>'
-
-
-def format_parameter(element):
-    """
-    Formats a particular parameter. Essentially the same as built-in formatting except using 'i' instead of 'j' for
-    the imaginary number.
-
-    :param element: {int, float, long, complex, Slot} Formats a parameter for Quil output.
-    """
-    if isinstance(element, integer_types) or isinstance(element, np.int_):
-        return repr(element)
-    elif isinstance(element, float):
-        return check_for_pi(element)
-    elif isinstance(element, complex):
-        r = element.real
-        i = element.imag
-        if i < 0:
-            return repr(r) + "-" + repr(abs(i)) + "i"
-        else:
-            return repr(r) + "+" + repr(i) + "i"
-    elif isinstance(element, Slot):
-        return format_parameter(element.value())
-    assert False, "Invalid parameter: %r" % element
-
-
-def check_for_pi(element):
-    """
-    Check to see if there exists a rational number r = p/q
-    in reduced form for which the difference between element/np.pi
-    and r is small and q <= 8.
-
-    :param element: float
-    :return element: pretty print string if true, else standard representation.
-    """
-    frac = Fraction(element / np.pi).limit_denominator(8)
-    num, den = frac.numerator, frac.denominator
-    sign = "-" if num < 0 else ""
-    if np.isclose(num / float(den), element / np.pi):
-        if num == 0:
-            return "0"
-        elif abs(num) == 1 and den == 1:
-            return sign + "pi"
-        elif abs(num) == 1:
-            return sign + "pi/" + repr(den)
-        elif den == 1:
-            return repr(num) + "*pi"
-        else:
-            return repr(num) + "*pi/" + repr(den)
-    else:
-        return repr(element)
-
-
-def unpack_qubit(qubit):
-    """
-    Get a qubit from an object.
-
-    :param qubit: An int or Qubit.
-    :return: A Qubit instance
-    """
-    if isinstance(qubit, integer_types):
-        return Qubit(qubit)
-    elif isinstance(qubit, Qubit):
-        return qubit
-    else:
-        raise TypeError("qubit should be an int or Qubit instance")
