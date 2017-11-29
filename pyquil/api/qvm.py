@@ -29,13 +29,14 @@ class QVMConnection(BaseConnection):
     Represents a connection to the QVM.
     """
 
-    def __init__(self, sync_endpoint=None, async_endpoint=None, api_key=None, user_id=None,
-                 gate_noise=None, measurement_noise=None, random_seed=None):
+    def __init__(self, sync_endpoint='https://api.rigetti.com', async_endpoint='https://job.rigetti.com/beta',
+                 api_key=None, user_id=None, gate_noise=None, measurement_noise=None, random_seed=None):
         """
         Constructor for QVMConnection. Sets up any necessary security, and establishes the noise
         model to use.
 
-        :param endpoint: The endpoint of the server (default behavior is to read from config file)
+        :param sync_endpoint: The endpoint of the server for running small jobs
+        :param async_endpoint: The endpoint of the server for running large jobs
         :param api_key: The key to the Forest API Gateway (default behavior is to read from config file)
         :param user_id: Your userid for Forest (default behavior is to read from config file)
         :param gate_noise: A list of three numbers [Px, Py, Pz] indicating the probability of an X,
@@ -47,11 +48,6 @@ class QVMConnection(BaseConnection):
         :param random_seed: A seed for the QVM's random number generators. Either None (for an
                             automatically generated seed) or a non-negative integer.
         """
-        if not sync_endpoint:
-            sync_endpoint = 'https://api.rigetti.com'
-        if not async_endpoint:
-            async_endpoint = 'https://job.rigetti.com/beta'
-
         super(QVMConnection, self).__init__(async_endpoint=async_endpoint, api_key=api_key, user_id=user_id)
         self.sync_endpoint = sync_endpoint
 
