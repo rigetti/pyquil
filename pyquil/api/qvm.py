@@ -30,7 +30,8 @@ class QVMConnection(BaseConnection):
     """
 
     def __init__(self, sync_endpoint='https://api.rigetti.com', async_endpoint='https://job.rigetti.com/beta',
-                 api_key=None, user_id=None, gate_noise=None, measurement_noise=None, random_seed=None):
+                 api_key=None, user_id=None, use_queue=False,
+                 gate_noise=None, measurement_noise=None, random_seed=None):
         """
         Constructor for QVMConnection. Sets up any necessary security, and establishes the noise
         model to use.
@@ -39,6 +40,10 @@ class QVMConnection(BaseConnection):
         :param async_endpoint: The endpoint of the server for running large jobs
         :param api_key: The key to the Forest API Gateway (default behavior is to read from config file)
         :param user_id: Your userid for Forest (default behavior is to read from config file)
+        :param bool use_queue: Disabling this parameter may improve performance for small, quick programs.
+                               To support larger programs, set it to True. (default: False)
+                               *_async methods will always use the queue
+                               See https://go.rigetti.com/connections for more information.
         :param gate_noise: A list of three numbers [Px, Py, Pz] indicating the probability of an X,
                            Y, or Z gate getting applied to each qubit after a gate application or
                            reset. (default None)
@@ -50,6 +55,7 @@ class QVMConnection(BaseConnection):
         """
         super(QVMConnection, self).__init__(async_endpoint=async_endpoint, api_key=api_key, user_id=user_id)
         self.sync_endpoint = sync_endpoint
+        self.use_queue = use_queue
 
         validate_noise_probabilities(gate_noise)
         validate_noise_probabilities(measurement_noise)
@@ -66,7 +72,7 @@ class QVMConnection(BaseConnection):
     def ping(self):
         raise DeprecationWarning("ping() function is deprecated")
 
-    def run(self, quil_program, classical_addresses, trials=1, use_queue=False):
+    def run(self, quil_program, classical_addresses, trials=1):
         """
         Run a Quil program multiple times, accumulating the values deposited in
         a list of classical addresses.
@@ -74,15 +80,12 @@ class QVMConnection(BaseConnection):
         :param Program quil_program: A Quil program.
         :param list classical_addresses: A list of addresses.
         :param int trials: Number of shots to collect.
-        :param bool use_queue: Disabling this parameter may improve performance for small, quick programs.
-                               To support larger programs, set it to True. (default: False)
-                               See https://go.rigetti.com/connections for more information.
         :return: A list of lists of bits. Each sublist corresponds to the values
                  in `classical_addresses`.
         :rtype: list
         """
         payload = self._run_payload(quil_program, classical_addresses, trials)
-        if use_queue:
+        if self.use_queue:
             response = self._post_json(self.async_endpoint + "/job", {"machine": "QVM", "program": payload})
             job = self.wait_for_job(get_job_id(response))
             return job.result()
@@ -117,7 +120,7 @@ class QVMConnection(BaseConnection):
 
         return payload
 
-    def run_and_measure(self, quil_program, qubits, trials=1, use_queue=False):
+    def run_and_measure(self, quil_program, qubits, trials=1):
         """
         Run a Quil program once to determine the final wavefunction, and measure multiple times.
 
@@ -130,14 +133,11 @@ class QVMConnection(BaseConnection):
         :param Program quil_program: A Quil program.
         :param list qubits: A list of qubits.
         :param int trials: Number of shots to collect.
-        :param bool use_queue: Disabling this parameter may improve performance for small, quick programs.
-                               To support larger programs, set it to True. (default: False)
-                               See https://go.rigetti.com/connections for more information.
         :return: A list of a list of bits.
         :rtype: list
         """
         payload = self._run_and_measure_payload(quil_program, qubits, trials)
-        if use_queue:
+        if self.use_queue:
             response = self._post_json(self.async_endpoint + "/job", {"machine": "QVM", "program": payload})
             job = self.wait_for_job(get_job_id(response))
             return job.result()
@@ -172,7 +172,7 @@ class QVMConnection(BaseConnection):
 
         return payload
 
-    def wavefunction(self, quil_program, classical_addresses=None, use_queue=False):
+    def wavefunction(self, quil_program, classical_addresses=None):
         """
         Simulate a Quil program and get the wavefunction back.
 
@@ -184,9 +184,6 @@ class QVMConnection(BaseConnection):
 
         :param Program quil_program: A Quil program.
         :param list classical_addresses: An optional list of classical addresses.
-        :param bool use_queue: Disabling this parameter may improve performance for small, quick programs.
-                               To support larger programs, set it to True. (default: False)
-                               See https://go.rigetti.com/connections for more information.
         :return: A tuple whose first element is a Wavefunction object,
                  and whose second element is the list of classical bits corresponding
                  to the classical addresses.
@@ -195,7 +192,7 @@ class QVMConnection(BaseConnection):
         if classical_addresses is None:
             classical_addresses = []
 
-        if use_queue:
+        if self.use_queue:
             payload = self._wavefunction_payload(quil_program, classical_addresses)
             response = self._post_json(self.async_endpoint + "/job", {"machine": "QVM", "program": payload})
             job = self.wait_for_job(get_job_id(response))
@@ -231,7 +228,7 @@ class QVMConnection(BaseConnection):
 
         return payload
 
-    def expectation(self, prep_prog, operator_programs=None, use_queue=False):
+    def expectation(self, prep_prog, operator_programs=None):
         """
         Calculate the expectation value of operators given a state prepared by
         prep_program.
@@ -244,13 +241,10 @@ class QVMConnection(BaseConnection):
 
         :param Program prep_prog: Quil program for state preparation.
         :param list operator_programs: A list of PauliTerms. Default is Identity operator.
-        :param bool use_queue: Disabling this parameter may improve performance for small, quick programs.
-                               To support larger programs, set it to True. (default: False)
-                               See https://go.rigetti.com/connections for more information.
         :returns: Expectation value of the operators.
         :rtype: float
         """
-        if use_queue:
+        if self.use_queue:
             payload = self._expectation_payload(prep_prog, operator_programs)
             response = self._post_json(self.async_endpoint + "/job", {"machine": "QVM", "program": payload})
             job = self.wait_for_job(get_job_id(response))
