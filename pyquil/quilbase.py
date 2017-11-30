@@ -539,9 +539,6 @@ def check_for_pi(element):
     :param element: float
     :return element: pretty print string if true, else standard representation.
     """
-    # TODO: Temporary fix to disable pretty pi printing until cloud backend fully supports this
-    return repr(element)
-
     frac = Fraction(element / np.pi).limit_denominator(8)
     num, den = frac.numerator, frac.denominator
     sign = "-" if num < 0 else ""
