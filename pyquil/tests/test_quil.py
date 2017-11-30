@@ -35,7 +35,7 @@ def test_gate():
 def test_defgate():
     dg = DefGate("TEST", np.array([[1., 0.],
                                    [0., 1.]]))
-    assert dg.out() == "DEFGATE TEST:\n    1.0, 0.0\n    0.0, 1.0\n"
+    assert dg.out() == "DEFGATE TEST:\n    1.0, 0\n    0, 1.0\n"
     test = dg.get_constructor()
     tg = test(Qubit(1), Qubit(2))
     assert tg.out() == "TEST 1 2"
@@ -59,7 +59,7 @@ def test_defgate_non_unitary_should_throw_error():
 
 def test_defgate_param():
     dgp = DefGate("TEST", [[1., 0.], [0., 1.]])
-    assert dgp.out() == "DEFGATE TEST:\n    1.0, 0.0\n    0.0, 1.0\n"
+    assert dgp.out() == "DEFGATE TEST:\n    1.0, 0\n    0, 1.0\n"
     test = dgp.get_constructor()
     tg = test(Qubit(1))
     assert tg.out() == "TEST 1"
@@ -217,7 +217,6 @@ def test_measure_all():
                       'MEASURE 2 [3]\n'
 
 
-@pytest.mark.skip("Disabled pi pretty printing temporarily")
 def test_dagger():
     # these gates are their own inverses
     p = Program().inst(I(0), X(0), Y(0), Z(0),
@@ -286,7 +285,6 @@ def test_controlled_gates():
     assert p.out() == 'CNOT 0 1\nCCNOT 0 1 2\n'
 
 
-@pytest.mark.skip("Disabled pi pretty printing temporarily")
 def test_phases():
     p = Program(PHASE(np.pi)(1), CPHASE00(np.pi)(0, 1), CPHASE01(np.pi)(0, 1),
                 CPHASE10(np.pi)(0, 1),
@@ -296,7 +294,6 @@ def test_phases():
                       'CPHASE(pi) 0 1\n'
 
 
-@pytest.mark.skip("Disabled pi pretty printing temporarily")
 def test_swaps():
     p = Program(SWAP(0, 1), CSWAP(0, 1, 2), ISWAP(0, 1), PSWAP(np.pi)(0, 1))
     assert p.out() == 'SWAP 0 1\nCSWAP 0 1 2\nISWAP 0 1\nPSWAP(pi) 0 1\n'
@@ -331,7 +328,6 @@ def test_multiqubit_gate():
                       '0.5-0.5i, 0.0+0.0i, 0.5+0.5i, 0.0+0.0i\n\nX-SQRT-X 0 1\n'
 
 
-@pytest.mark.skip("Disabled pi pretty printing temporarily")
 def test_define_qft():
     def qft3(q0, q1, q2):
         p = Program()
@@ -578,7 +574,6 @@ def test_inline_alloc():
 
 
 # https://github.com/rigetticomputing/pyquil/issues/184
-@pytest.mark.skip("Disabled pi pretty printing temporarily")
 def test_pretty_print_pi():
     p = Program()
     p += [RZ(0., 0), RZ(pi, 1), RZ(-pi, 2)]
