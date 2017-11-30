@@ -946,7 +946,7 @@ Connections
 -----------
 Larger pyQuil programs can involve more qubits and take a longer time to run. Instead of running the
 program immediately, you can insert your programs into a queue. This is done with the ``use_queue``
-parameter to QVMConnection functions. By default, this parameter is set to False which means it skips
+parameter to QVMConnection.  By default, this parameter is set to False which means it skips
 the queue and runs it immediately. However, the QVM will reject programs that are more than
 16 qubits or take longer than 5 seconds to run. Therefore, to run programs of this size you must
 set the ``use_queue`` parameter to True which has more overhead.
@@ -956,8 +956,8 @@ set the ``use_queue`` parameter to True which has more overhead.
   from pyquil.quil import Program
   from pyquil.api import QVMConnection
 
-  qvm = QVMConnection()
-  qvm.run(Program(X(0).measure(0, 0), [0], use_queue=True)
+  qvm = QVMConnection(use_queue=True)
+  qvm.run(Program(X(0).measure(0, 0), [0])
 
 The Forest queue also allows an asynchronous mode of interaction with methods postfixed with `_async`.
 This means that there is a seperate query to post a job and to get the result.

@@ -29,6 +29,7 @@ from pyquil.gates import CNOT, H, MEASURE
 BELL_STATE = Program(H(0), CNOT(0, 1))
 
 qvm = QVMConnection(api_key='api_key', user_id='user_id')
+async_qvm = QVMConnection(api_key='api_key', user_id='user_id', use_queue=True)
 
 
 def test_sync_run():
@@ -111,7 +112,7 @@ def test_job_run():
                                  "result": [[0, 0], [1, 1]], "program": program})}
         ])
 
-        result = qvm.run(BELL_STATE, [0, 1], trials=2, use_queue=True)
+        result = async_qvm.run(BELL_STATE, [0, 1], trials=2)
         assert result == [[0, 0], [1, 1]]
 
 
@@ -137,7 +138,7 @@ def test_async_wavefunction():
             "result": base64.b64encode(WAVEFUNCTION_BINARY).decode(),
             "program": program
         }))
-        result = qvm.wavefunction(WAVEFUNCTION_PROGRAM, [0, 1], use_queue=True)
+        result = async_qvm.wavefunction(WAVEFUNCTION_PROGRAM, [0, 1])
 
         wf_expected = np.array([0. + 0.j, 0. + 0.j, 0.70710678 + 0.j, -0.70710678 + 0.j])
         assert np.all(np.isclose(result.amplitudes, wf_expected))

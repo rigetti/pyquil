@@ -26,6 +26,13 @@ class QPUConnection(BaseConnection):
     """
 
     def __init__(self, async_endpoint='https://job.rigetti.com/beta', api_key=None, user_id=None):
+        """
+        Constructor for QPUConnection. Sets up necessary security.
+
+        :param async_endpoint: The endpoint of the server for running QPU jobs
+        :param api_key: The key to the Forest API Gateway (default behavior is to read from config file)
+        :param user_id: Your userid for Forest (default behavior is to read from config file)
+        """
         super(QPUConnection, self).__init__(async_endpoint=async_endpoint, api_key=api_key, user_id=user_id)
 
     def run(self, quil_program, classical_addresses, trials=1):

@@ -26,7 +26,7 @@ class Job(object):
 
     Job statuses are initially QUEUED when QVM/QPU resources are not available
     They transition to RUNNING when they have been started
-    Finally they are marked as FINISHED or ERROR once completed
+    Finally they are marked as FINISHED, ERROR, or CANCELLED once completed
     """
     def __init__(self, raw):
         self.raw = raw
@@ -43,14 +43,22 @@ class Job(object):
         """
         Has the job completed yet?
         """
-        return self.raw['status'] in ('FINISHED', 'ERROR')
+        return self.raw['status'] in ('FINISHED', 'ERROR', 'CANCELLED')
 
     def result(self):
         """
-        The result of the job if available, ValueError otherwise
+        The result of the job if available
+        throws ValueError is result is not available yet
+        throws RuntimeError if server returned an error indicating program execution was not successful
+            or if the job was cancelled
         """
         if not self.is_done():
             raise ValueError("Cannot get a result for a program that isn't completed.")
+
+        if self.raw['status'] == 'CANCELLED':
+            raise RuntimeError("Job was cancelled: {}".format(self.raw['result']))
+        elif self.raw['status'] == 'ERROR':
+            raise RuntimeError("Server returned an error: {}".format(self.raw['result']))
 
         if self.raw['program']['type'] == 'wavefunction':
             return Wavefunction.from_bit_packed_string(
@@ -76,11 +84,7 @@ class Job(object):
         If the job is not queued, this will return None
         """
         if self.is_queued():
-            # TODO: Remove once name of field is changed on server
-            if 'position_in_queue' in self.raw:
-                return int(self.raw['position_in_queue'])
-            elif 'positionInQueue' in self.raw:
-                return int(self.raw['positionInQueue'])
+            return int(self.raw['position_in_queue'])
 
     def get(self):
         warnings.warn("""
