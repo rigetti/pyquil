@@ -38,4 +38,4 @@ def parse(quil):
     :param str quil: a single or multiline Quil program
     :return: list of instructions
     """
-    return run_parser(quil.strip())
+    return run_parser(quil)

@@ -4,7 +4,7 @@ grammar Quil;
 // PARSER
 ////////////////////
 
-quil                : allInstr (NEWLINE+ allInstr)* EOF ;
+quil                : allInstr? (NEWLINE+ allInstr)* NEWLINE* EOF ;
 
 allInstr            : defGate
                     | defCircuit

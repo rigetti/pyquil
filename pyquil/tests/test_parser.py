@@ -150,5 +150,9 @@ def test_invalid():
         parse("H X")
 
 
+def test_empty_program():
+    _test("")
+
+
 def _test(quil_string, *instructions):
     assert parse(quil_string) == list(instructions)
