@@ -18,11 +18,12 @@ Module for facilitating connections to the QVM / QPU.
 """
 import warnings
 
-__all__ = ['QVMConnection', 'QPUConnection']
+__all__ = ['QVMConnection', 'QPUConnection', 'Job', 'get_devices']
 
 from pyquil.api.job import Job
 from pyquil.api.qvm import QVMConnection
 from pyquil.api.qpu import QPUConnection
+from pyquil.api.qpu import get_devices
 
 
 class SyncConnection(QVMConnection):

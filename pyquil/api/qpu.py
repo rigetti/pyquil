@@ -13,11 +13,64 @@
 #    See the License for the specific language governing permissions and
 #    limitations under the License.
 ##############################################################################
+import warnings
 
+import requests
 from six import integer_types
 
 from pyquil.quil import Program
 from ._base_connection import validate_run_items, TYPE_MULTISHOT, TYPE_MULTISHOT_MEASURE, get_job_id, BaseConnection
+from ._config import PyquilConfig
+
+
+def get_devices(async_endpoint='https://job.rigetti.com/beta', api_key=None, user_id=None):
+    """
+    Get a list of currently available devices. The arguments for this method are the same as those for QPUConnection.
+    Note that this method will only work for accounts that have QPU access.
+
+    :return: list of online and offline devices
+    :rtype: list
+    """
+    config = PyquilConfig()
+    api_key = api_key if api_key else config.api_key
+    user_id = user_id if user_id else config.user_id
+
+    headers = {
+        'X-Api-Key': api_key,
+        'X-User-Id': user_id,
+        'Content-Type': 'application/json; charset=utf-8'
+    }
+
+    response = requests.get(async_endpoint + '/devices', headers=headers)
+    return {Device(name, device) for (name, device) in response.json()['devices'].items()}
+
+
+class Device(object):
+    """
+    A device (quantum chip) that can accept programs. Only devices that are online will actively be accepting new
+    programs.
+    """
+    def __init__(self, name, raw):
+        """
+        :param name: name of the device
+        :param raw: raw JSON response from the server with additional information about this device
+        """
+        self.name = name
+        self.raw = raw
+
+    def is_online(self):
+        """
+        Whether or not the device is online and accepting new programs.
+        :rtype: bool
+        """
+        return self.raw['is_online']
+
+    def __str__(self):
+        online_offline = 'online' if self.is_online() else 'offline'
+        return '<Device {} {}>'.format(self.name, online_offline)
+
+    def __repr__(self):
+        return str(self)
 
 
 class QPUConnection(BaseConnection):
@@ -25,7 +78,7 @@ class QPUConnection(BaseConnection):
     Represents a connection to the QPU (Quantum Processing Unit)
     """
 
-    def __init__(self, async_endpoint='https://job.rigetti.com/beta', api_key=None, user_id=None):
+    def __init__(self, device_name=None, async_endpoint='https://job.rigetti.com/beta', api_key=None, user_id=None):
         """
         Constructor for QPUConnection. Sets up necessary security.
 
@@ -33,7 +86,26 @@ class QPUConnection(BaseConnection):
         :param api_key: The key to the Forest API Gateway (default behavior is to read from config file)
         :param user_id: Your userid for Forest (default behavior is to read from config file)
         """
+        if not device_name:
+            warnings.warn("""
+You created a QPUConnection without specificying a device name. This means that
+your program will be sent to a random, online device. This is probably not what
+you want. Instead, pass a device name to the constructor of QPUConnection:
+
+    qpu = QPUConnection('the_name')
+
+To get a list of available devices, use the get_devices method, for instance:
+
+    from pyquil.api import get_devices
+    for device in get_devices():
+        if device.is_online():
+            print('Device {} is online'.format(device.name)
+
+To suppress this warning, see Python's warning module.
+""")
+
         super(QPUConnection, self).__init__(async_endpoint=async_endpoint, api_key=api_key, user_id=user_id)
+        self.device_name = device_name
 
     def run(self, quil_program, classical_addresses, trials=1):
         """
@@ -48,7 +120,7 @@ class QPUConnection(BaseConnection):
         """
         payload = self._run_payload(quil_program, classical_addresses, trials)
 
-        response = self._post_json(self.async_endpoint + "/job", {"machine": "QPU", "program": payload})
+        response = self._post_json(self.async_endpoint + "/job", self._wrap_program(payload))
         job = self.wait_for_job(get_job_id(response))
         return job.result()
 
@@ -58,7 +130,7 @@ class QPUConnection(BaseConnection):
         See https://go.rigetti.com/connections for reasons to use this method.
         """
         payload = self._run_payload(quil_program, classical_addresses, trials)
-        response = self._post_json(self.async_endpoint + "/job", {"machine": "QPU", "program": payload})
+        response = self._post_json(self.async_endpoint + "/job", self._wrap_program(payload))
         return get_job_id(response)
 
     def _run_payload(self, quil_program, classical_addresses, trials):
@@ -88,7 +160,7 @@ class QPUConnection(BaseConnection):
         """
         payload = self._run_and_measure_payload(quil_program, qubits, trials)
 
-        response = self._post_json(self.async_endpoint + "/job", {"machine": "QPU", "program": payload})
+        response = self._post_json(self.async_endpoint + "/job", self._wrap_program(payload))
         job = self.wait_for_job(get_job_id(response))
         return job.result()
 
@@ -98,7 +170,7 @@ class QPUConnection(BaseConnection):
         See https://go.rigetti.com/connections for reasons to use this method.
         """
         payload = self._run_and_measure_payload(quil_program, qubits, trials)
-        response = self._post_json(self.async_endpoint + "/job", {"machine": "QPU", "program": payload})
+        response = self._post_json(self.async_endpoint + "/job", self._wrap_program(payload))
         return get_job_id(response)
 
     def _run_and_measure_payload(self, quil_program, qubits, trials):
@@ -114,3 +186,10 @@ class QPUConnection(BaseConnection):
                    'quil-instructions': quil_program.out()}
 
         return payload
+
+    def _wrap_program(self, program):
+        return {
+            "machine": "QPU",
+            "program": program,
+            "device": self.device_name
+        }

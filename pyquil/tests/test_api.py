@@ -146,7 +146,7 @@ def test_async_wavefunction():
 
 
 def test_qpu_connection():
-    qpu = QPUConnection()
+    qpu = QPUConnection(device_name='fake_device')
 
     program = {
         "type": "multishot",
@@ -158,7 +158,8 @@ def test_qpu_connection():
     def mock_queued_response(request, context):
         assert json.loads(request.text) == {
             "machine": "QPU",
-            "program": program
+            "program": program,
+            "device": "fake_device"
         }
         return json.dumps({"jobId": JOB_ID, "status": "QUEUED"})
 
