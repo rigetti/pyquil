@@ -28,8 +28,8 @@ def get_devices(async_endpoint='https://job.rigetti.com/beta', api_key=None, use
     Get a list of currently available devices. The arguments for this method are the same as those for QPUConnection.
     Note that this method will only work for accounts that have QPU access.
 
-    :return: list of online and offline devices
-    :rtype: list
+    :return: set of online and offline devices
+    :rtype: set
     """
     config = PyquilConfig()
     api_key = api_key if api_key else config.api_key
@@ -61,6 +61,7 @@ class Device(object):
     def is_online(self):
         """
         Whether or not the device is online and accepting new programs.
+
         :rtype: bool
         """
         return self.raw['is_online']
@@ -80,8 +81,10 @@ class QPUConnection(BaseConnection):
 
     def __init__(self, device_name=None, async_endpoint='https://job.rigetti.com/beta', api_key=None, user_id=None):
         """
-        Constructor for QPUConnection. Sets up necessary security.
+        Constructor for QPUConnection. Sets up necessary security and picks a device to run on.
 
+        :param str device_name: Name of the device to send programs too, should be one of the devices returned from
+                                a call to get_devices()
         :param async_endpoint: The endpoint of the server for running QPU jobs
         :param api_key: The key to the Forest API Gateway (default behavior is to read from config file)
         :param user_id: Your userid for Forest (default behavior is to read from config file)
@@ -100,6 +103,9 @@ To get a list of available devices, use the get_devices method, for instance:
     for device in get_devices():
         if device.is_online():
             print('Device {} is online'.format(device.name)
+
+Note that in order to use QPUConnection or get_devices() you must have a valid
+API key with QPU access. See https://forest.rigetti.com for more details.
 
 To suppress this warning, see Python's warning module.
 """)

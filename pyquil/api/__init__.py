@@ -22,8 +22,7 @@ __all__ = ['QVMConnection', 'QPUConnection', 'Job', 'get_devices']
 
 from pyquil.api.job import Job
 from pyquil.api.qvm import QVMConnection
-from pyquil.api.qpu import QPUConnection
-from pyquil.api.qpu import get_devices
+from pyquil.api.qpu import QPUConnection, get_devices
 
 
 class SyncConnection(QVMConnection):
