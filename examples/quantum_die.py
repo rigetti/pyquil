@@ -71,5 +71,6 @@ def roll_die(n):
                 return x
 
 if __name__ == '__main__':
+    number_of_sides = int(input("Please enter number of sides: "))
     while True:
-        print(roll_die(16384))
+        print(roll_die(number_of_sides))
