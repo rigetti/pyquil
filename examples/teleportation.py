@@ -16,7 +16,7 @@
 ##############################################################################
 
 from pyquil.quil import Program
-import pyquil.api as forest
+from pyquil import api
 from pyquil.gates import X, Z, H, CNOT
 
 
@@ -48,7 +48,7 @@ def teleport(start_index, end_index, ancilla_index):
 
 
 if __name__ == '__main__':
-    qvm = forest.SyncConnection()
+    qvm = api.QVMConnection()
 
     # initialize qubit 0 in |1>
     teleport_demo = Program(X(0))

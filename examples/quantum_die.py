@@ -18,7 +18,7 @@
 import math
 from functools import reduce
 import pyquil.quil as pq
-import pyquil.api as forest
+from pyquil import api
 from pyquil.gates import H
 from six.moves import range
 
@@ -52,7 +52,7 @@ BATCH_SIZE = 10
 
 dice = {}
 
-CXN = forest.SyncConnection()
+qvm = api.QVMConnection()
 
 def roll_die(n):
     """
@@ -64,7 +64,7 @@ def roll_die(n):
     die = dice[n]
     # Generate results and do rejection sampling.
     while True:
-        results = CXN.run(die, addresses, BATCH_SIZE)
+        results = qvm.run(die, addresses, BATCH_SIZE)
         for r in results:
             x = process_result(r)
             if 0 < x <= n:
