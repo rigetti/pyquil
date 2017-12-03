@@ -25,12 +25,12 @@ def parse():
 def main(filepath, classical_register_num):
     with open(filepath) as file:
         quil_prog = file.read()
-        p = Program(quil_prog)
+        program = Program(quil_prog)
 
     print("Running Quil Program from: ", filepath)
     print("---------------------------")
     print("Output: ")
-    print(qvm.run(p, list(range(classical_register_num))))
+    print(qvm.run(program, list(range(classical_register_num))))
 
 if __name__ == '__main__':
     parse()

@@ -94,25 +94,25 @@ def pointer_gate(num_qubits, U):
     ptr_state = 0
     assert ptr_bits > 0
 
-    p = pq.Program()
+    program = pq.Program()
 
-    p.defgate("CU", controlled(ptr_bits, U))
+    program.defgate("CU", controlled(ptr_bits, U))
 
     for _, target_qubit, changed in gray(ptr_bits):
         if changed is None:
             for ptr_qubit in range(num_qubits - ptr_bits, num_qubits):
-                p.inst(X(ptr_qubit))
+                program.inst(X(ptr_qubit))
                 ptr_state ^= 1 << (ptr_qubit - data_bits)
         else:
-            p.inst(X(data_bits + changed))
+            program.inst(X(data_bits + changed))
             ptr_state ^= 1 << changed
 
         if target_qubit < data_bits:
             control_qubits = tuple(data_bits + i for i in range(ptr_bits))
-            p.inst(("CU",) + control_qubits + (target_qubit,))
+            program.inst(("CU",) + control_qubits + (target_qubit,))
 
-    fixup(p, data_bits, ptr_bits, ptr_state)
-    return p
+    fixup(program, data_bits, ptr_bits, ptr_state)
+    return program
 
 
 if __name__ == '__main__':
