@@ -24,6 +24,7 @@ import numpy as np
 def meyer_penny_program():
     """
     Returns the program to simulate the Meyer-Penny Game
+    The full description is available in docs/source/examples.rst
 
     :return: pyQuil Program
     """
@@ -50,7 +51,7 @@ def meyer_penny_program():
 
 if __name__ == "__main__":
     n_trials = 10
-    qvm = api.SyncConnection()
+    qvm = api.QVMConnection()
     outcomes = np.asarray(qvm.run(meyer_penny_program(), [0, 1], trials=n_trials))
 
     print("Number of games: {}".format(n_trials))
