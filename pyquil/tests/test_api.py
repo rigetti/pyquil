@@ -46,6 +46,10 @@ def test_sync_run():
         m.post('https://api.rigetti.com/qvm', text=mock_response)
         assert qvm.run(BELL_STATE, [0, 1], trials=2) == [[0, 0], [1, 1]]
 
+        # Test range as well
+        m.post('https://api.rigetti.com/qvm', text=mock_response)
+        assert qvm.run(BELL_STATE, range(2), trials=2) == [[0, 0], [1, 1]]
+
 
 def test_sync_run_and_measure():
     def mock_response(request, context):

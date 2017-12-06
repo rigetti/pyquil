@@ -170,9 +170,9 @@ def validate_run_items(run_items):
     """
     Check the validity of classical addresses / qubits for the payload.
 
-    :param list run_items: List of classical addresses or qubits to be validated.
+    :param list|range run_items: List of classical addresses or qubits to be validated.
     """
-    if not isinstance(run_items, list):
+    if not isinstance(run_items, (list, range)):
         raise TypeError("run_items must be a list")
     if any([not isinstance(i, integer_types) for i in run_items]):
         raise TypeError("run_items list must contain integer values")

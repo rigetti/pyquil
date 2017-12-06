@@ -78,7 +78,7 @@ class QVMConnection(BaseConnection):
         a list of classical addresses.
 
         :param Program quil_program: A Quil program.
-        :param list classical_addresses: A list of addresses.
+        :param list|range classical_addresses: A list of addresses.
         :param int trials: Number of shots to collect.
         :return: A list of lists of bits. Each sublist corresponds to the values
                  in `classical_addresses`.
@@ -111,7 +111,7 @@ class QVMConnection(BaseConnection):
             raise TypeError("trials must be an integer")
 
         payload = {"type": TYPE_MULTISHOT,
-                   "addresses": classical_addresses,
+                   "addresses": list(classical_addresses),
                    "trials": trials,
                    "quil-instructions": quil_program.out()}
 
@@ -131,7 +131,7 @@ class QVMConnection(BaseConnection):
             different bitstring distributions*.
 
         :param Program quil_program: A Quil program.
-        :param list qubits: A list of qubits.
+        :param list|range qubits: A list of qubits.
         :param int trials: Number of shots to collect.
         :return: A list of a list of bits.
         :rtype: list
@@ -163,7 +163,7 @@ class QVMConnection(BaseConnection):
             raise TypeError("trials must be an integer")
 
         payload = {"type": TYPE_MULTISHOT_MEASURE,
-                   "qubits": qubits,
+                   "qubits": list(qubits),
                    "trials": trials,
                    "quil-instructions": quil_program.out()}
 
@@ -183,7 +183,7 @@ class QVMConnection(BaseConnection):
             different*.
 
         :param Program quil_program: A Quil program.
-        :param list classical_addresses: An optional list of classical addresses.
+        :param list|range classical_addresses: An optional list of classical addresses.
         :return: A tuple whose first element is a Wavefunction object,
                  and whose second element is the list of classical bits corresponding
                  to the classical addresses.

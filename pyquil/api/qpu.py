@@ -118,7 +118,7 @@ To suppress this warning, see Python's warning module.
         Run a pyQuil program on the QPU. This functionality is in beta.
 
         :param Program quil_program: Quil program to run on the QPU
-        :param list classical_addresses: Currently unused
+        :param list|range classical_addresses: Currently unused
         :param int trials: Number of shots to take
         :return: A list of lists of bits. Each sublist corresponds to the values
                  in `classical_addresses`.
@@ -147,7 +147,7 @@ To suppress this warning, see Python's warning module.
             raise TypeError("trials must be an integer")
 
         payload = {"type": TYPE_MULTISHOT,
-                   "addresses": classical_addresses,
+                   "addresses": list(classical_addresses),
                    "trials": trials,
                    "quil-instructions": quil_program.out()}
 
@@ -159,7 +159,7 @@ To suppress this warning, see Python's warning module.
         simultaneously at the end of the program each time. This functionality is in beta.
 
         :param Program quil_program: A Quil program.
-        :param list qubits: The list of qubits to measure
+        :param list|range qubits: The list of qubits to measure
         :param int trials: Number of shots to collect.
         :return: A list of a list of bits.
         :rtype: list
@@ -187,7 +187,7 @@ To suppress this warning, see Python's warning module.
             raise TypeError('trials must be an integer')
 
         payload = {'type': TYPE_MULTISHOT_MEASURE,
-                   'qubits': qubits,
+                   'qubits': list(qubits),
                    'trials': trials,
                    'quil-instructions': quil_program.out()}
 
