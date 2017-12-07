@@ -34,7 +34,7 @@ TYPE_WAVEFUNCTION = "wavefunction"
 
 
 class BaseConnection(object):
-    def __init__(self, async_endpoint=None, api_key=None, user_id=None):
+    def __init__(self, async_endpoint, api_key, user_id, ping_time, status_time):
         self._session = requests.Session()
         retry_adapter = HTTPAdapter(max_retries=Retry(total=3,
                                                       method_whitelist=['POST'],
@@ -54,6 +54,9 @@ class BaseConnection(object):
 
         self.async_endpoint = async_endpoint
 
+        self.ping_time = ping_time
+        self.status_time = status_time
+
     def get_job(self, job_id):
         """
         Given a job id, return information about the status of the job
@@ -65,15 +68,22 @@ class BaseConnection(object):
         response = self._get_json(self.async_endpoint + "/job/" + job_id)
         return Job(response.json())
 
-    def wait_for_job(self, job_id, ping_time=0.1, status_time=2):
+    def wait_for_job(self, job_id, ping_time=None, status_time=None):
         """
         Wait for the results of a job and periodically print status
 
         :param job_id: Job id
-        :param ping_time: How often to poll the server
-        :param status_time: How often to print status, set to False to never print status
+        :param ping_time: How often to poll the server.
+                          Defaults to the value specified in the constructor. (0.1 seconds)
+        :param status_time: How often to print status, set to False to never print status.
+                            Defaults to the value specified in the constructor (2 seconds)
         :return: Completed Job
         """
+        if ping_time is None:
+            ping_time = self.ping_time
+        if status_time is None:
+            status_time = self.status_time
+
         count = 0
         while True:
             job = self.get_job(job_id)

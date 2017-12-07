@@ -30,7 +30,7 @@ class QVMConnection(BaseConnection):
     """
 
     def __init__(self, sync_endpoint='https://api.rigetti.com', async_endpoint='https://job.rigetti.com/beta',
-                 api_key=None, user_id=None, use_queue=False,
+                 api_key=None, user_id=None, use_queue=False, ping_time=0.1, status_time=2,
                  gate_noise=None, measurement_noise=None, random_seed=None):
         """
         Constructor for QVMConnection. Sets up any necessary security, and establishes the noise
@@ -44,6 +44,11 @@ class QVMConnection(BaseConnection):
                                To support larger programs, set it to True. (default: False)
                                *_async methods will always use the queue
                                See https://go.rigetti.com/connections for more information.
+        :param int ping_time: Time in seconds for how long to wait between polling the server for updated status
+                              information on a job. Note that this parameter doesn't matter if use_queue is False.
+        :param int status_time: Time in seconds for how long to wait between printing status information.
+                                To disable printing of status entirely then set status_time to False.
+                                Note that this parameter doesn't matter if use_queue is False.
         :param gate_noise: A list of three numbers [Px, Py, Pz] indicating the probability of an X,
                            Y, or Z gate getting applied to each qubit after a gate application or
                            reset. (default None)
@@ -53,7 +58,8 @@ class QVMConnection(BaseConnection):
         :param random_seed: A seed for the QVM's random number generators. Either None (for an
                             automatically generated seed) or a non-negative integer.
         """
-        super(QVMConnection, self).__init__(async_endpoint=async_endpoint, api_key=api_key, user_id=user_id)
+        super(QVMConnection, self).__init__(async_endpoint=async_endpoint, api_key=api_key, user_id=user_id,
+                                            ping_time=ping_time, status_time=status_time)
         self.sync_endpoint = sync_endpoint
         self.use_queue = use_queue
 
