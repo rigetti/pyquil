@@ -79,7 +79,8 @@ class QPUConnection(BaseConnection):
     Represents a connection to the QPU (Quantum Processing Unit)
     """
 
-    def __init__(self, device_name=None, async_endpoint='https://job.rigetti.com/beta', api_key=None, user_id=None):
+    def __init__(self, device_name=None, async_endpoint='https://job.rigetti.com/beta', api_key=None, user_id=None,
+                 ping_time=0.1, status_time=2):
         """
         Constructor for QPUConnection. Sets up necessary security and picks a device to run on.
 
@@ -88,6 +89,10 @@ class QPUConnection(BaseConnection):
         :param async_endpoint: The endpoint of the server for running QPU jobs
         :param api_key: The key to the Forest API Gateway (default behavior is to read from config file)
         :param user_id: Your userid for Forest (default behavior is to read from config file)
+        :param int ping_time: Time in seconds for how long to wait between polling the server for updated status
+                              information on a job.
+        :param int status_time: Time in seconds for how long to wait between printing status information.
+                                To disable printing of status entirely then set status_time to False.
         """
         if not device_name:
             warnings.warn("""
@@ -110,7 +115,8 @@ API key with QPU access. See https://forest.rigetti.com for more details.
 To suppress this warning, see Python's warning module.
 """)
 
-        super(QPUConnection, self).__init__(async_endpoint=async_endpoint, api_key=api_key, user_id=user_id)
+        super(QPUConnection, self).__init__(async_endpoint=async_endpoint, api_key=api_key, user_id=user_id,
+                                            ping_time=ping_time, status_time=status_time)
         self.device_name = device_name
 
     def run(self, quil_program, classical_addresses, trials=1):
