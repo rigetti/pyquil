@@ -16,6 +16,7 @@ Welcome to the Documentation for Forest and pyQuil!
    qvm_overview
    noise_models
    qpu_usage
+   devices
    examples
    source_docs
 
@@ -26,4 +27,3 @@ Indices and Tables
 * :ref:`genindex`
 * :ref:`modindex`
 * :ref:`search`
-
