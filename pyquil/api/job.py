@@ -104,7 +104,7 @@ class Job(object):
 
         :param key: Metadata key, e.g., "gate_depth"
         :return: The associated metadata.
-        :rtype: dict
+        :rtype: Optional[Any]
         """
         if not self.is_done():
             raise ValueError("Cannot get metadata for a program that isn't completed.")
@@ -117,7 +117,7 @@ class Job(object):
         The gate depth is a measure of how long a quantum program takes. On a non-fault-tolerant
         QPU programs with a low gate depth have a higher chance of succeeding.
 
-        :rtype: int or NoneType
+        :rtype: Optional[int]
         """
         return self._get_metadata("gate_depth")
 
@@ -126,7 +126,7 @@ class Job(object):
         If the Quil program associated with the Job was compiled (e.g., to translate it to the
         QPU's natural gateset) return this compiled program.
 
-        :rtype: Program or NoneType
+        :rtype: Optional[Program]
         """
         prog = self._get_metadata("compiled_quil")
         if prog is not None:
@@ -138,6 +138,6 @@ class Job(object):
         two-qubit gate connectivity graph, the compiler must insert topological swap gates.
         Return the number of such topological swaps.
 
-        :rtype: int or NoneType
+        :rtype: Optional[int]
         """
         return self._get_metadata("topological_swaps")
