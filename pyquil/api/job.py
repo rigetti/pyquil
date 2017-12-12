@@ -56,7 +56,6 @@ class Job(object):
         if not self.is_done():
             raise ValueError("Cannot get a result for a program that isn't completed.")
 
-
         if self._raw['status'] == 'CANCELLED':
             raise RuntimeError("Job was cancelled: {}".format(self._raw['result']))
         elif self._raw['status'] == 'ERROR':
@@ -98,13 +97,14 @@ class Job(object):
         warnings.warn(""".decode() on a Job result is deprecated in favor of .result()""", stacklevel=2)
         return self.result()
 
-    def _get_meta_data(self, key):
+    def _get_metadata(self, key):
         """
         If the server returned a metadata dictionary, retrieve a particular key from it. If no
         metadata exists, or the key does not exist, return None.
 
         :param key: Metadata key, e.g., "gate_depth"
         :return: The associated metadata.
+        :rtype: dict
         """
         if not self.is_done():
             raise ValueError("Cannot get metadata for a program that isn't completed.")
@@ -116,24 +116,28 @@ class Job(object):
         If the job has metadata and this contains the gate depth, return this, otherwise None.
         The gate depth is a measure of how long a quantum program takes. On a non-fault-tolerant
         QPU programs with a low gate depth have a higher chance of succeeding.
+
+        :rtype: int or NoneType
         """
-        return self._get_meta_data("gate_depth")
+        return self._get_metadata("gate_depth")
 
     def compiled_quil(self):
         """
         If the Quil program associated with the Job was compiled (e.g., to translate it to the
         QPU's natural gateset) return this compiled program.
+
+        :rtype: Program or NoneType
         """
-        prog = self._get_meta_data("compiled_quil")
+        prog = self._get_metadata("compiled_quil")
         if prog is not None:
             return parse_program(prog)
-        else:
-            return None
 
     def topological_swaps(self):
         """
         If the program could not be mapped directly to the QPU because of missing links in the
         two-qubit gate connectivity graph, the compiler must insert topological swap gates.
         Return the number of such topological swaps.
+
+        :rtype: int or NoneType
         """
-        return self._get_meta_data("topological_swaps")
+        return self._get_metadata("topological_swaps")
