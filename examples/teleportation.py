@@ -16,7 +16,7 @@
 ##############################################################################
 
 from pyquil.quil import Program
-import pyquil.api as forest
+from pyquil import api
 from pyquil.gates import X, Z, H, CNOT
 
 
@@ -29,26 +29,26 @@ def make_bell_pair(q1, q2):
 def teleport(start_index, end_index, ancilla_index):
     """Teleport a qubit from start to end using an ancilla qubit
     """
-    p = make_bell_pair(end_index, ancilla_index)
+    program = make_bell_pair(end_index, ancilla_index)
 
     # do the teleportation
-    p.inst(CNOT(start_index, ancilla_index))
-    p.inst(H(start_index))
+    program.inst(CNOT(start_index, ancilla_index))
+    program.inst(H(start_index))
 
     # measure the results and store them in classical registers [0] and [1]
-    p.measure(start_index, 0)
-    p.measure(ancilla_index, 1)
+    program.measure(start_index, 0)
+    program.measure(ancilla_index, 1)
 
-    p.if_then(1, X(2))
-    p.if_then(0, Z(2))
+    program.if_then(1, X(2))
+    program.if_then(0, Z(2))
 
-    p.measure(end_index, 2)
+    program.measure(end_index, 2)
 
-    return p
+    return program
 
 
 if __name__ == '__main__':
-    qvm = forest.SyncConnection()
+    qvm = api.QVMConnection()
 
     # initialize qubit 0 in |1>
     teleport_demo = Program(X(0))

@@ -23,6 +23,7 @@ import pytest
 
 from pyquil.api import QVMConnection, QPUConnection
 from pyquil.api._base_connection import validate_noise_probabilities, validate_run_items
+from pyquil.job_results import wait_for_job
 from pyquil.quil import Program
 from pyquil.gates import CNOT, H, MEASURE
 
@@ -45,6 +46,10 @@ def test_sync_run():
     with requests_mock.Mocker() as m:
         m.post('https://api.rigetti.com/qvm', text=mock_response)
         assert qvm.run(BELL_STATE, [0, 1], trials=2) == [[0, 0], [1, 1]]
+
+        # Test range as well
+        m.post('https://api.rigetti.com/qvm', text=mock_response)
+        assert qvm.run(BELL_STATE, range(2), trials=2) == [[0, 0], [1, 1]]
 
 
 def test_sync_run_and_measure():
@@ -146,7 +151,7 @@ def test_async_wavefunction():
 
 
 def test_qpu_connection():
-    qpu = QPUConnection()
+    qpu = QPUConnection(device_name='fake_device')
 
     program = {
         "type": "multishot",
@@ -158,7 +163,8 @@ def test_qpu_connection():
     def mock_queued_response(request, context):
         assert json.loads(request.text) == {
             "machine": "QPU",
-            "program": program
+            "program": program,
+            "device": "fake_device"
         }
         return json.dumps({"jobId": JOB_ID, "status": "QUEUED"})
 
@@ -172,6 +178,39 @@ def test_qpu_connection():
 
         result = qpu.run(BELL_STATE, [0, 1], trials=2)
         assert result == [[0, 0], [1, 1]]
+
+    with requests_mock.Mocker() as m:
+        m.post('https://job.rigetti.com/beta/job', text=mock_queued_response)
+        m.get('https://job.rigetti.com/beta/job/' + JOB_ID, [
+            {'text': json.dumps({"jobId": JOB_ID, "status": "RUNNING"})},
+            {'text': json.dumps({"jobId": JOB_ID, "status": "FINISHED",
+                                 "result": [[0, 0], [1, 1]], "program": program,
+                                 "metadata": {
+                                     "compiled_quil": "H 0\nCNOT 0 1\n",
+                                     "topological_swaps": 0,
+                                     "gate_depth": 2
+                                 }})}
+        ])
+
+        job = qpu.wait_for_job(qpu.run_async(BELL_STATE, [0, 1], trials=2))
+        assert job.result() == [[0, 0], [1, 1]]
+        assert job.compiled_quil() == Program(H(0), CNOT(0, 1))
+        assert job.topological_swaps() == 0
+        assert job.gate_depth() == 2
+
+    with requests_mock.Mocker() as m:
+        m.post('https://job.rigetti.com/beta/job', text=mock_queued_response)
+        m.get('https://job.rigetti.com/beta/job/' + JOB_ID, [
+            {'text': json.dumps({"jobId": JOB_ID, "status": "RUNNING"})},
+            {'text': json.dumps({"jobId": JOB_ID, "status": "FINISHED",
+                                 "result": [[0, 0], [1, 1]], "program": program})}
+        ])
+
+        job = qpu.wait_for_job(qpu.run_async(BELL_STATE, [0, 1], trials=2))
+        assert job.result() == [[0, 0], [1, 1]]
+        assert job.compiled_quil() is None
+        assert job.topological_swaps() is None
+        assert job.gate_depth() is None
 
 
 def test_validate_noise_probabilities():

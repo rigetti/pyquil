@@ -17,6 +17,7 @@
 import base64
 import warnings
 
+from pyquil.parser import parse_program
 from pyquil.wavefunction import Wavefunction
 
 
@@ -29,7 +30,7 @@ class Job(object):
     Finally they are marked as FINISHED, ERROR, or CANCELLED once completed
     """
     def __init__(self, raw):
-        self.raw = raw
+        self._raw = raw
 
     @property
     def job_id(self):
@@ -37,13 +38,13 @@ class Job(object):
         Job id
         :rtype: str
         """
-        return self.raw['jobId']
+        return self._raw['jobId']
 
     def is_done(self):
         """
         Has the job completed yet?
         """
-        return self.raw['status'] in ('FINISHED', 'ERROR', 'CANCELLED')
+        return self._raw['status'] in ('FINISHED', 'ERROR', 'CANCELLED')
 
     def result(self):
         """
@@ -55,28 +56,28 @@ class Job(object):
         if not self.is_done():
             raise ValueError("Cannot get a result for a program that isn't completed.")
 
-        if self.raw['status'] == 'CANCELLED':
-            raise RuntimeError("Job was cancelled: {}".format(self.raw['result']))
-        elif self.raw['status'] == 'ERROR':
-            raise RuntimeError("Server returned an error: {}".format(self.raw['result']))
+        if self._raw['status'] == 'CANCELLED':
+            raise RuntimeError("Job was cancelled: {}".format(self._raw['result']))
+        elif self._raw['status'] == 'ERROR':
+            raise RuntimeError("Server returned an error: {}".format(self._raw['result']))
 
-        if self.raw['program']['type'] == 'wavefunction':
+        if self._raw['program']['type'] == 'wavefunction':
             return Wavefunction.from_bit_packed_string(
-                base64.b64decode(self.raw['result']), self.raw['program']['addresses'])
+                base64.b64decode(self._raw['result']), self._raw['program']['addresses'])
         else:
-            return self.raw['result']
+            return self._raw['result']
 
     def is_queued(self):
         """
         Is the job still in the Forest queue?
         """
-        return self.raw['status'] == 'QUEUED'
+        return self._raw['status'] == 'QUEUED'
 
     def is_running(self):
         """
         Is the job currently running?
         """
-        return self.raw['status'] == 'RUNNING'
+        return self._raw['status'] == 'RUNNING'
 
     def position_in_queue(self):
         """
@@ -84,7 +85,7 @@ class Job(object):
         If the job is not queued, this will return None
         """
         if self.is_queued():
-            return int(self.raw['position_in_queue'])
+            return int(self._raw['position_in_queue'])
 
     def get(self):
         warnings.warn("""
@@ -95,3 +96,48 @@ class Job(object):
     def decode(self):
         warnings.warn(""".decode() on a Job result is deprecated in favor of .result()""", stacklevel=2)
         return self.result()
+
+    def _get_metadata(self, key):
+        """
+        If the server returned a metadata dictionary, retrieve a particular key from it. If no
+        metadata exists, or the key does not exist, return None.
+
+        :param key: Metadata key, e.g., "gate_depth"
+        :return: The associated metadata.
+        :rtype: Optional[Any]
+        """
+        if not self.is_done():
+            raise ValueError("Cannot get metadata for a program that isn't completed.")
+
+        return self._raw.get("metadata", {}).get(key, None)
+
+    def gate_depth(self):
+        """
+        If the job has metadata and this contains the gate depth, return this, otherwise None.
+        The gate depth is a measure of how long a quantum program takes. On a non-fault-tolerant
+        QPU programs with a low gate depth have a higher chance of succeeding.
+
+        :rtype: Optional[int]
+        """
+        return self._get_metadata("gate_depth")
+
+    def compiled_quil(self):
+        """
+        If the Quil program associated with the Job was compiled (e.g., to translate it to the
+        QPU's natural gateset) return this compiled program.
+
+        :rtype: Optional[Program]
+        """
+        prog = self._get_metadata("compiled_quil")
+        if prog is not None:
+            return parse_program(prog)
+
+    def topological_swaps(self):
+        """
+        If the program could not be mapped directly to the QPU because of missing links in the
+        two-qubit gate connectivity graph, the compiler must insert topological swap gates.
+        Return the number of such topological swaps.
+
+        :rtype: Optional[int]
+        """
+        return self._get_metadata("topological_swaps")
