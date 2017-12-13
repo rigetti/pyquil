@@ -97,7 +97,7 @@ class Expression(object):
         return Pow(other, self)
 
     def __neg__(self):
-        pass
+        return Mul(-1, self)
 
 
 class Parameter(QuilAtom, Expression):
@@ -258,7 +258,7 @@ def _check_for_pi(element):
     frac = Fraction(element / np.pi).limit_denominator(8)
     num, den = frac.numerator, frac.denominator
     sign = "-" if num < 0 else ""
-    if np.isclose(num / float(den), element / np.pi):
+    if num / float(den) == element / np.pi:
         if num == 0:
             return "0"
         elif abs(num) == 1 and den == 1:
