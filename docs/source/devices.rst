@@ -1,6 +1,12 @@
 
-Devices
-=======
+Rigetti QPU
+===========
+
+A quantum processor unit (QPU) is a physical device that can be used to run quantum algorithms.
+This documentation presents technical details and average performance of Rigetti QPU.
+This device has been designed fabricated and packaged at Rigetti Computing.
+
+
 
 The quantum processor consists of 20 superconducting
 transmon qubits with fixed
