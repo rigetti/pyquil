@@ -17,7 +17,9 @@ import numpy as np
 import pytest
 
 from pyquil.gates import *
+from pyquil.parameters import Parameter, cos, sin
 from pyquil.parser import parse
+from pyquil.quilatom import Addr
 from pyquil.quilbase import Label, JumpTarget, Jump, JumpWhen, JumpUnless, DefGate, Qubit, Pragma
 
 
@@ -48,6 +50,20 @@ DEFGATE HADAMARD:
     """.strip()
 
     _test(defgates, sqrt_x, hadamard)
+
+
+def test_def_gate_with_variables():
+    # Note that technically the RX gate includes -i instead of just i but this messes a bit with the test since
+    # it's not smart enough to figure out that -1*i == -i
+    theta = Parameter('theta')
+    rx = np.array([[cos(theta / 2), 1j * sin(theta / 2)],
+                   [1j * sin(theta / 2), cos(theta / 2)]])
+
+    defgate = 'DEFGATE RX(%theta):\n' \
+              '    cos(%theta/2), i*sin(%theta/2)\n' \
+              '    i*sin(%theta/2), cos(%theta/2)\n\n'
+
+    _test(defgate, DefGate('RX', rx, [theta]))
 
 
 def test_parameters():

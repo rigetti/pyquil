@@ -27,7 +27,9 @@ from antlr4.error.ErrorListener import ErrorListener
 from antlr4.error.Errors import InputMismatchException
 from numpy.ma import sin, cos, sqrt, exp
 
+from pyquil import parameters
 from pyquil.gates import STANDARD_GATES
+from pyquil.parameters import Parameter, Expression
 from pyquil.quilbase import Gate, DefGate, Measurement, Addr, JumpTarget, Label, Halt, Jump, JumpWhen, JumpUnless, \
     Reset, Wait, ClassicalTrue, ClassicalFalse, ClassicalNot, ClassicalAnd, ClassicalOr, ClassicalMove, \
     ClassicalExchange, Nop, RawInstr, Qubit, Pragma
@@ -104,14 +106,13 @@ class PyQuilListener(QuilListener):
     def exitDefGate(self, ctx):
         # type: (QuilParser.DefGateContext) -> None
         gate_name = ctx.name().getText()
-        if ctx.variable():
-            raise NotImplementedError("%variables are not supported yet")
         matrix = _matrix(ctx.matrix())
-        self.result.append(DefGate(gate_name, matrix))
+        parameters = list(map(_variable, ctx.variable()))
+        self.result.append(DefGate(gate_name, matrix, parameters))
 
     def exitDefCircuit(self, ctx):
         # type: (QuilParser.DefCircuitContext) -> None
-        raise NotImplementedError("circuits are not supported yet")
+        self.result.append(RawInstr(ctx.getText()))
 
     def exitGate(self, ctx):
         # type: (QuilParser.GateContext) -> None
@@ -218,7 +219,12 @@ def _param(param):
     elif param.expression():
         return _expression(param.expression())
     else:
-        raise RuntimeError("Unexpected param: " + str(param))
+        raise RuntimeError("Unexpected param: " + param.getText())
+
+
+def _variable(variable):
+    # type: (QuilParser.VariableContext) -> Parameter
+    return Parameter(variable.IDENTIFIER().getText())
 
 
 def _matrix(matrix):
@@ -268,10 +274,10 @@ def _expression(expression):
         return _apply_function(expression.function(), _expression(expression.expression()))
     elif isinstance(expression, QuilParser.NumberExpContext):
         return _number(expression.number())
-    elif isinstance(expression, QuilParser.VariableContext):
-        raise NotImplementedError("%variables are not supported yet")
+    elif isinstance(expression, QuilParser.VariableExpContext):
+        return _variable(expression.variable())
 
-    raise RuntimeError("Unexpected expression type: " + str(expression))
+    raise RuntimeError("Unexpected expression type:" + expression.getText())
 
 
 def _binary_exp(expression, op):
@@ -284,18 +290,32 @@ def _binary_exp(expression, op):
 
 def _apply_function(func, arg):
     # type: (QuilParser.FunctionContext, Any) -> Any
-    if func.SIN():
-        return sin(arg)
-    elif func.COS():
-        return cos(arg)
-    elif func.SQRT():
-        return sqrt(arg)
-    elif func.EXP():
-        return exp(arg)
-    elif func.CIS():
-        return cos(arg) + complex(0, 1) * sin(arg)
+    if isinstance(arg, Expression):
+        if func.SIN():
+            return parameters.sin(arg)
+        elif func.COS():
+            return parameters.cos(arg)
+        elif func.SQRT():
+            return parameters.sqrt(arg)
+        elif func.EXP():
+            return parameters.exp(arg)
+        elif func.CIS():
+            return parameters.cis(arg)
+        else:
+            raise RuntimeError("Unexpected function to apply: " + func.getText())
     else:
-        raise RuntimeError("Unexpected function to apply: " + str(func))
+        if func.SIN():
+            return sin(arg)
+        elif func.COS():
+            return cos(arg)
+        elif func.SQRT():
+            return sqrt(arg)
+        elif func.EXP():
+            return exp(arg)
+        elif func.CIS():
+            return cos(arg) + complex(0, 1) * sin(arg)
+        else:
+            raise RuntimeError("Unexpected function to apply: " + func.getText())
 
 
 def _number(number):
@@ -309,7 +329,7 @@ def _number(number):
     elif number.PI():
         return np.pi
     else:
-        raise RuntimeError("Unexpected number: " + str(number))
+        raise RuntimeError("Unexpected number: " + number.getText())
 
 
 def _real(real):
@@ -319,4 +339,4 @@ def _real(real):
     elif real.INT():
         return int(real.getText())
     else:
-        raise RuntimeError("Unexpected real: " + str(real))
+        raise RuntimeError("Unexpected real: " + real.getText())

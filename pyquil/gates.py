@@ -18,29 +18,10 @@ A lovely bunch of gates and instructions for programming with.  This module is u
 Pythonic sugar for Quil instructions.
 """
 
-from .quilbase import (Measurement, Gate, Addr, Wait, Reset, Halt, Nop, ClassicalTrue,
+from pyquil.quilatom import unpack_qubit, unpack_classical_reg
+from .quilbase import (Measurement, Gate, Wait, Reset, Halt, Nop, ClassicalTrue,
                        ClassicalFalse, ClassicalNot, ClassicalAnd, ClassicalOr, ClassicalMove,
-                       ClassicalExchange, unpack_qubit)
-from six import integer_types
-
-
-def unpack_classical_reg(c):
-    """
-    Get the address for a classical register.
-
-    :param c: A list of length 1 or an int or an Addr.
-    :return: The address as an Addr.
-    """
-    if not (isinstance(c, integer_types) or isinstance(c, (list, Addr))):
-        raise TypeError("c should be an int or list or Addr")
-    if isinstance(c, list) and (len(c) != 1 or not isinstance(c[0], int)):
-        raise ValueError("if c is a list, it should be of 1 int")
-    if isinstance(c, Addr):
-        return c
-    elif isinstance(c, list):
-        return Addr(c[0])
-    else:
-        return Addr(c)
+                       ClassicalExchange)
 
 
 def _make_gate(name, num_qubits, num_params=0):

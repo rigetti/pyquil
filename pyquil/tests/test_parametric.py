@@ -18,7 +18,7 @@
 from pyquil.quil import Program
 from pyquil.gates import RX, RY, Z
 from pyquil.parametric import ParametricProgram, parametric
-from pyquil.quilbase import Slot
+from pyquil.slot import Slot
 from pyquil.paulis import PauliTerm, exponential_map
 import pytest
 

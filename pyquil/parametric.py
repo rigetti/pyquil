@@ -21,7 +21,7 @@ import inspect
 from copy import copy
 from six.moves import range
 
-from .quilbase import Slot
+from .slot import Slot
 from .quil import Program
 
 

@@ -16,6 +16,7 @@
 """
 Module for creating and defining Quil programs.
 """
+import warnings
 from itertools import count
 from math import pi
 
@@ -24,10 +25,10 @@ from six import string_types
 
 from pyquil._parser.PyQuilListener import run_parser
 from pyquil.kraus import _check_kraus_ops, _create_kraus_pragmas
+from pyquil.quilatom import LabelPlaceholder, QubitPlaceholder, unpack_qubit
 from .gates import MEASURE, STANDARD_GATES, H
 from .quilbase import (DefGate, Gate, Measurement, Pragma, AbstractInstruction, Qubit,
-                       unpack_qubit, Jump, LabelPlaceholder, Label, JumpConditional, JumpTarget, JumpUnless, JumpWhen,
-                       QubitPlaceholder, Addr)
+                       Jump, Label, JumpConditional, JumpTarget, JumpUnless, JumpWhen, Addr)
 
 
 class Program(object):
@@ -108,17 +109,25 @@ class Program(object):
                         self.gate(op, params, rest)
             elif isinstance(instruction, string_types):
                 self.inst(run_parser(instruction.strip()))
-            elif isinstance(instruction, DefGate):
-                self._defined_gates.append(instruction)
-            elif isinstance(instruction, AbstractInstruction):
-                self._instructions.append(instruction)
-                self._synthesized_instructions = None
             elif isinstance(instruction, Program):
                 if id(self) == id(instruction):
                     raise ValueError("Nesting a program inside itself is not supported")
 
-                self._defined_gates.extend(list(instruction._defined_gates))
-                self._instructions.extend(list(instruction._instructions))
+                for defgate in instruction._defined_gates:
+                    self.inst(defgate)
+                for instr in instruction._instructions:
+                    self.inst(instr)
+
+            # Implementation note: these two base cases are the only ones which modify the program
+
+            elif isinstance(instruction, DefGate):
+                defined_gate_names = [gate.name for gate in self._defined_gates]
+                if instruction.name in defined_gate_names:
+                    warnings.warn("Gate {} has already been defined in this program".format(instruction.name))
+
+                self._defined_gates.append(instruction)
+            elif isinstance(instruction, AbstractInstruction):
+                self._instructions.append(instruction)
                 self._synthesized_instructions = None
             else:
                 raise TypeError("Invalid instruction: {}".format(instruction))
@@ -137,17 +146,17 @@ class Program(object):
         """
         return self.inst(Gate(name, params, [unpack_qubit(q) for q in qubits]))
 
-    def defgate(self, name, matrix):
+    def defgate(self, name, matrix, parameters=None):
         """
         Define a new static gate.
 
         :param string name: The name of the gate.
         :param array-like matrix: List of lists or Numpy 2d array.
+        :param list parameters: list of parameters that are used in this gate
         :return: The Program instance.
         :rtype: Program
         """
-        self._defined_gates.append(DefGate(name, matrix))
-        return self
+        return self.inst(DefGate(name, matrix, parameters))
 
     def define_noisy_gate(self, name, qubit_indices, kraus_ops):
         """

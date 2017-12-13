@@ -23,6 +23,7 @@ import pytest
 from pyquil.gates import I, X, Y, Z, H, T, S, RX, RY, RZ, CNOT, CCNOT, PHASE, CPHASE00, CPHASE01, \
     CPHASE10, CPHASE, SWAP, CSWAP, ISWAP, PSWAP, MEASURE, HALT, WAIT, NOP, RESET, \
     TRUE, FALSE, NOT, AND, OR, MOVE, EXCHANGE
+from pyquil.parameters import Parameter, cos, sin
 from pyquil.quil import Program, merge_programs
 from pyquil.quilbase import DefGate, Gate, Addr, Qubit, JumpWhen
 
@@ -251,8 +252,8 @@ def test_dagger():
     G = np.array([[0, 1], [0 + 1j, 0]])
     p = Program().defgate("G", G).inst(("G", 0))
     assert p.dagger().out() == 'DEFGATE G-INV:\n' \
-                               '    0.0+-0.0i, 0.0-1.0i\n' \
-                               '    1.0+-0.0i, 0.0+-0.0i\n\n' \
+                               '    0.0, -i\n' \
+                               '    1.0, 0.0\n\n' \
                                'G-INV 0\n'
 
     # can also pass in a list of inverses
@@ -301,7 +302,6 @@ def test_swaps():
 
 def test_def_gate():
     # First we define the new gate from a matrix
-    x_gate_matrix = np.array(([0.0, 1.0], [1.0, 0.0]))
     sqrt_x = np.array([[0.5 + 0.5j, 0.5 - 0.5j],
                        [0.5 - 0.5j, 0.5 + 0.5j]])
     p = Program().defgate("SQRT-X", sqrt_x)
@@ -309,6 +309,22 @@ def test_def_gate():
     # Then we can use the new gate
     p.inst(("SQRT-X", 0))
     assert p.out() == 'DEFGATE SQRT-X:\n    0.5+0.5i, 0.5-0.5i\n    0.5-0.5i, 0.5+0.5i\n\nSQRT-X 0\n'
+
+
+def test_def_gate_with_parameters():
+    theta = Parameter('theta')
+    rx = np.array([[cos(theta / 2), -1j * sin(theta / 2)],
+                   [-1j * sin(theta / 2), cos(theta / 2)]])
+
+    p = Program().defgate("RX", rx, [theta])
+    assert p.out() == 'DEFGATE RX(%theta):\n' \
+                      '    cos(%theta/2), -i*sin(%theta/2)\n' \
+                      '    -i*sin(%theta/2), cos(%theta/2)\n\n'
+
+    dg = DefGate('MY_RX', rx, [theta])
+    MY_RX = dg.get_constructor()
+    p = Program().inst(MY_RX(np.pi)(0))
+    assert p.out() == 'MY_RX(pi) 0\n'
 
 
 def test_multiqubit_gate():
@@ -322,10 +338,10 @@ def test_multiqubit_gate():
     # Then we can use the new gate
     p.inst(("X-SQRT-X", 0, 1))
 
-    assert p.out() == 'DEFGATE X-SQRT-X:\n    0.0+0.0i, 0.5+0.5i, 0.0+0.0i, 0.5-0.5i\n    ' \
-                      '0.5+0.5i, 0.0+0.0i, 0.5-0.5i, 0.0+0.0i\n    ' \
-                      '0.0+0.0i, 0.5-0.5i, 0.0+0.0i, 0.5+0.5i\n    ' \
-                      '0.5-0.5i, 0.0+0.0i, 0.5+0.5i, 0.0+0.0i\n\nX-SQRT-X 0 1\n'
+    assert p.out() == 'DEFGATE X-SQRT-X:\n    0.0, 0.5+0.5i, 0.0, 0.5-0.5i\n    ' \
+                      '0.5+0.5i, 0.0, 0.5-0.5i, 0.0\n    ' \
+                      '0.0, 0.5-0.5i, 0.0, 0.5+0.5i\n    ' \
+                      '0.5-0.5i, 0.0, 0.5+0.5i, 0.0\n\nX-SQRT-X 0 1\n'
 
 
 def test_define_qft():
@@ -469,11 +485,11 @@ def test_kraus():
 
     ret = pq.out()
     assert ret == """X 0
-PRAGMA ADD-KRAUS X 0 "(0.0+0.0i 1.0+0.0i 1.0+0.0i 0.0+0.0i)"
-PRAGMA ADD-KRAUS X 0 "(0.0+0.0i 0.0+0.0i 0.0+0.0i 0.0+0.0i)"
+PRAGMA ADD-KRAUS X 0 "(0.0 1.0 1.0 0.0)"
+PRAGMA ADD-KRAUS X 0 "(0.0 0.0 0.0 0.0)"
 X 1
-PRAGMA ADD-KRAUS X 1 "(0.0+0.0i 1.0+0.0i 1.0+0.0i 0.0+0.0i)"
-PRAGMA ADD-KRAUS X 1 "(0.0+0.0i 0.0+0.0i 0.0+0.0i 0.0+0.0i)"
+PRAGMA ADD-KRAUS X 1 "(0.0 1.0 1.0 0.0)"
+PRAGMA ADD-KRAUS X 1 "(0.0 0.0 0.0 0.0)"
 """
     # test error due to bad normalization
     with pytest.raises(ValueError):
@@ -571,17 +587,6 @@ def test_inline_alloc():
     p = Program()
     p += H(p.alloc())
     assert p.out() == "H 0\n"
-
-
-# https://github.com/rigetticomputing/pyquil/issues/184
-def test_pretty_print_pi():
-    p = Program()
-    p += [RZ(0., 0), RZ(pi, 1), RZ(-pi, 2)]
-    p += [RZ(2 * pi / 3., 3), RZ(pi / 9., 4), RZ(pi / 8., 5)]
-    p += CPHASE00(-90 * pi / 2., 0, 1)
-    assert p.out() == 'RZ(0) 0\nRZ(pi) 1\nRZ(-pi) 2\nRZ(2*pi/3) 3\n' \
-                      'RZ(0.3490658503988659) 4\n' \
-                      'RZ(pi/8) 5\nCPHASE00(-45*pi) 0 1\n'
 
 
 # https://github.com/rigetticomputing/pyquil/issues/138
