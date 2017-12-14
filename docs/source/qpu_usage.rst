@@ -111,7 +111,18 @@ To ameliorate these limitations, the QPU execution stack contains an optimizing 
 translates arbitrary ProtoQuil to QPU-executable Quil.  The compiler is designed to avoid changing
 even non-semantic details of input Quil code, except to make it shorter when possible.  For
 instance, it will not readdress Quil code that is already appropriately addressed to physically
-realizable hardware objects on the QPU.
+realizable hardware objects on the QPU.  The following figure illustrates the layout and addressing
+of the Rigetti 19Q-Acorn QPU.
+
+.. figure:: figures/qubit-connectivity.png
+    :width: 540px
+    :align: center
+    :height: 300px
+    :alt: alternate text
+    :figclass: align-center
+
+    Qubit adjacency schematic for the Rigetti 19Q-Acorn QPU. In particular, notice that qubit 3 is
+    disabled.
 
 .. note::
 
@@ -127,10 +138,12 @@ follow:
 + ``! ! ! Error: Failed to select a SWAP instruction. Perhaps the qubit graph is disconnected?``
   This error indicates a readdressing failure: some non-native Quil could not be reassigned to lie
   on native devices.  Two common reasons for this failure are:
+
     + It is possible for the readdressing problem to be too difficult for the compiler to sort out,
       causing deadlock.
     + If a qubit-qubit gate is requested to act on two qubit resources that lie on disconnected
       regions of the qubit graph, the addresser will fail.
+
 + ``! ! ! Error: Matrices do not lie in the same projective class.`` The compiler attempted to
   decompose an operator as native Quil instructions, and the resulting instructions do not match the
   original operator.  This can happen when the original operator is not a unitary matrix, and could
