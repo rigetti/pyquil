@@ -397,7 +397,7 @@ diagonal, therefore we can get the combined map of dephasing and the CZ
 gate simply by composing :math:`U_{\rm CZ}` the unitary representation
 of CZ with each Kraus operator
 
-.. raw:: latex
+.. math::
 
    \begin{align}
    K^{\rm CZ}_1(p,q) = K_1(p)\otimes K_1(q)U_{\rm CZ} \\
