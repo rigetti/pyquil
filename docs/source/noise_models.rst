@@ -122,7 +122,7 @@ environmental degrees of freedom to obtain
 
 where the coefficient in front of the second part is by our initial
 assumption very small
-:math:`\gamma := \frac{\epsilon t^2}{2\hbar^2}\tr V_E^2 \rho_{E,0} \ll 1`.
+:math:`\gamma := \frac{\epsilon t^2}{2\hbar^2}\tr{V_E^2 \rho_{E,0}} \ll 1`.
 This evolution happens to be approximately equal to a Kraus map with
 operators
 :math:`K_1 := I - \frac{\gamma}{2} V_S^2, K_2:= \sqrt{\gamma} V_S`:
