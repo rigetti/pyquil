@@ -1,21 +1,22 @@
+..  _qpu_overview:
 
-The Rigetti QPU: Technical Overview
-===================================
+The Rigetti QPU
+===============
 
-A quantum processor unit (QPU) is a physical device that contains a number of interconnected qubits
-which are made available to run quantum algorithms. This page presents technical details and
-average performance of Acorn, the 19Q Rigetti QPU device that is made available for quantum
-computation through the cloud. This device has been designed, fabricated and packaged at Rigetti
-Computing.
+A quantum processor unit (QPU) is a physical device that contains a number of interconnected qubits.
+This page presents technical details and average performance of *Acorn*, the 19Q Rigetti QPU device
+that is made available for quantum computation through the cloud. This device has been designed,
+fabricated and packaged at Rigetti Computing.
+
 
 Acorn QPU properties
 ~~~~~~~~~~~~~~~~~~~~
 
 The quantum processor consists of 20 superconducting transmon qubits with fixed capacitive coupling
-in the planar lattice shown in Fig. 1. The resonance frequencies of qubits 0–4 and 10–14 are tunable
-while qubits 5–9 and 15–19 are fixed. The former have two Josephson junctions in an asymmetric
-SQUID geometry to provide roughly 1 GHz of frequency tunability, and flux-insensitive “sweet spots”
-near
+in the planar lattice design shown in Fig. 1. The resonance frequencies of qubits 0–4 and 10–14 are
+tunable while qubits 5–9 and 15–19 are fixed. The former have two Josephson junctions in an
+asymmetric SQUID geometry to provide roughly 1 GHz of frequency tunability, and flux-insensitive
+“sweet spots” near
 
 :math:`\omega^{\textrm{max}}_{01}/2\pi\approx 4.5 \, \textrm{GHz}`
 
@@ -44,6 +45,10 @@ parametric gate described below between qubit 3 and its neighbors. Consequently,
     (blue circles). :math:`\textbf{b}`, Optical chip image. Note that some couplers have
     been dropped to produce a lattice with three-fold, rather than four-fold
     connectivity.
+
+
+1-Qubit Gate Performance
+~~~~~~~~~~~~~~~~~~~~~~~~
 
 The device is characterized by several parameters:
 
@@ -102,9 +107,13 @@ assignment fidelity is given by expression :math:`\mathsf{F}_\textrm{RO} = [p(0|
    19,5108,3574,-228,**24.7** :math:`\pm` 2.8,**9.8** :math:`\pm` 0.8,0.9942,0.930
 
 
-The coupling strength between two qubits can be extracted from a
-precise measurement of the qubit frequency shift when the neighboring
-qubit is in the excited state. This protocol consists of two steps: a
+
+Qubit-Qubit Coupling
+~~~~~~~~~~~~~~~~~~~~
+
+The coupling strength between two qubits can be extracted from a precise measurement of the shift
+in qubit frequency after the neighboring qubit is in the excited state. This protocol consists of
+two steps: a
 :math:`\pi` is applied to the first qubit, followed by a Ramsey fringe
 experiment on the second qubit which precisely determines its
 transition frequency (see Fig. 3a). The effective shift is denoted by
@@ -131,21 +140,19 @@ time of our parametric entangling gates.
     :math:`\textbf{b,}` Capacitive coupling between neighboring qubits expressed in MHz.
 
 
-Table 2 shows the two-qubit gate performance
-of Rigetti 19Q. These parameters refer to parametric CZ gates
-performed on one pair at a time. We
-analyze these CZ gates through quantum process tomography (QPT). This
-procedure starts by applying local rotations to the two qubits taken
-from the set :math:`\{\mathbb{I},R_x(\pi/2),R_y(\pi/2),R_x(\pi)\}`,
-followed by a CZ gate and post-rotations that bring the qubit states
-back to the computational basis. QPT involves the analysis of
-:math:`16\times16 =256` different experiments, each of which we repeat
-:math:`500` times. The reported process tomography fidelity
-:math:`\mathsf{F}^\textrm{cptp}_\textrm{PT}` indicates the fidelity
-between the ideal process and the measured process imposing complete
+2-Qubit Gate Performance
+~~~~~~~~~~~~~~~~~~~~~~~~
+
+Table 2 shows the two-qubit gate performance of Rigetti 19Q. These parameters refer to parametric
+CZ gates performed on one pair at a time. We analyze these CZ gates through quantum process
+tomography (QPT). This procedure starts by applying local rotations to the two qubits taken from
+the set :math:`\{I,R_x(\pi/2),R_y(\pi/2),R_x(\pi)\}`, followed by a CZ gate and
+post-rotations that bring the qubit states back to the computational basis. QPT involves the
+analysis of :math:`16\times16 =256` different experiments, each of which we repeat :math:`500`
+times. The reported process tomography fidelity :math:`\mathsf{F}^\textrm{cptp}_\textrm{PT}`
+indicates the fidelity between the ideal process and the measured process imposing complete
 positivity (cp) and trace preservation (tp) constraints. The quantity
-:math:`\mathsf{F}_\textrm{PT}` instead is extracted without cptp
-constraints on the estimated map.
+:math:`\mathsf{F}_\textrm{PT}` is instead extracted without cptp constraints on the estimated map.
 
 .. csv-table:: :math:`\textbf{Table 2 | Rigetti 19Q two-qubit gate performance}`
    :widths: 10, 10, 10, 10, 10, 10
@@ -177,7 +184,9 @@ constraints on the estimated map.
    14 - 19,0.59,188.1,142,0.797,0.906
 
 
-The interested user can have access to this quantum machine by submitting a request on
-:math:`\textsf{rigetti.com}`. Single-qubit and two-qubit gates are retuned every hour. The retuning
-approximately takes 10 minutes to complete. After retuning, the user can submit new jobs to the
-quantum machine.
+Using the QPU
+~~~~~~~~~~~~~
+
+To maintain above performance levels, Rigetti Forest periodically takes the QPU offline to retune
+single-qubit and two-qubit gates. To access Acorn for running quantum algorithms, see
+:ref:`qpu_usage` for a tutorial.
