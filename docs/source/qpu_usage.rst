@@ -153,7 +153,7 @@ follow:
   classical control in a program submission (including the manual inclusion of ``MEASURE``
   instructions), which is legal Quil but falls outside of the domain of ProtoQuil.
 
-After being passed through the compiler, gates are applied to qubits at the earliest available time. As$
+After being passed through the compiler, gates are applied to qubits at the earliest available time. As a simple example, considering the following:
 
 .. code:: python
 
