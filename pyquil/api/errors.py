@@ -1,5 +1,5 @@
 
-class ApiError(Exception):
+class ApiError(RuntimeError):
     def __init__(self, server_status, explanation):
         super(ApiError, self).__init__(self, server_status)
         self.server_status = server_status
