@@ -4,14 +4,15 @@ The Rigetti QPU: Technical Overview
 
 A quantum processor unit (QPU) is a physical device that contains a number of interconnected qubits
 which are made available to run quantum algorithms. This page presents technical details and
-average performance of the Rigetti QPU device. This device has been designed, fabricated and
-packaged at Rigetti Computing.
+average performance of Acorn, the 19Q Rigetti QPU device that is made available for quantum
+computation through the cloud. This device has been designed, fabricated and packaged at Rigetti
+Computing.
 
-QPU properties
-~~~~~~~~~~~~~~
+Acorn QPU properties
+~~~~~~~~~~~~~~~~~~~~
 
 The quantum processor consists of 20 superconducting transmon qubits with fixed capacitive coupling
-in the lattice shown in Fig. 1. The resonance frequency of Qubits 0–4 and 10–14 are flux-tunable
+in the planar lattice shown in Fig. 1. The resonance frequencies of qubits 0–4 and 10–14 are tunable
 while qubits 5–9 and 15–19 are fixed. The former have two Josephson junctions in an asymmetric
 SQUID geometry to provide roughly 1 GHz of frequency tunability, and flux-insensitive “sweet spots”
 near
@@ -23,14 +24,12 @@ and
 :math:`\omega^{\textrm{min}}_{01}/2\pi\approx 3.0 \, \textrm{GHz}`.
 
 These tunable devices are coupled to bias lines for AC and DC flux delivery. Each qubit is
-capacitively coupled to a quasi-lumped element resonator for dispersive readout of the qubit
-state. Single-qubit control is effected by applying microwave drives at the
-resonator ports. Two-qubit gates are activated via RF
-drives on the flux bias lines.
-Due to a fabrication defect, qubit 3
-is not tunable, which prohibits operation of the two-qubit
-parametric gate described below between qubit 3 and
-its neighbors. Consequently, we treat this as a
+capacitively coupled to a quasi-lumped element resonator for dispersive readout of the qubit state.
+Single-qubit control is effected by applying microwave drives at the resonator ports. Two-qubit
+gates are activated via RF drives on the flux bias lines.
+
+Due to a fabrication defect, qubit 3 is not tunable, which prohibits operation of the two-qubit
+parametric gate described below between qubit 3 and its neighbors. Consequently, we treat this as a
 19-qubit processor.
 
 .. figure:: figures/figure1-1.png
@@ -46,44 +45,6 @@ its neighbors. Consequently, we treat this as a
     been dropped to produce a lattice with three-fold, rather than four-fold
     connectivity.
 
-.. Rigetti :math:`\textsf{Acorn}` is a quantum device with 20 superconducting qubits,
-  designed, fabricated and packaged at Rigetti Computing.
-  Figure 1 shows the connectivity of the device:
-  qubits 5-9 and 15-19 are fixed-frequency transmon qubits; qubits 0-4
-  and 10-14 are tunable transmon qubits. The latter are comprised of a
-  SQUID loop (two Josephson junctions in parallel) inductively coupled
-  to a bias line for AC and DC flux delivery. The junctions in the SQUID
-  loop are asymmetric. This feature provides an energy spectrum with two
-  flux-insensitive points at  :math:`\omega^{\textrm{max}}_{01}/2\pi\approx 4.5 \, \textrm{GHz}`
-  and :math:`\omega^{\textrm{min}}_{01}/2\pi\approx 3.0 \, \textrm{GHz}`
-  where the dephasing rate is significantly reduced. The qubit state is
-  inferred from the dispersive shift of a quasi-lumped-element resonator
-  capacitively coupled to the qubit. These superconducting microwave
-  resonators consist of a :math:`10 \, \mu\textrm{m}` wide meander line
-  shunted by a capacitance and their nominal frequency ranges between
-  :math:`5.1 - 5.8 \, \textrm{GHz}`. Single-qubit gates are driven through the
-  resonators.
-
-.. A quantum mechanical description of Rigetti 19Q is provided by the
-  generalized Jaynes-Cummings Hamiltonian, where each transmon qubit is
-  capacitively coupled to a resonator and to one or more qubits:
-..
-  .. math::
-
-     \begin{aligned}
-         \hat H = \sum_{i=0}^{19} \left[ \hat{H}^{(i)}_\textrm{r} + \hat{H}^{(i)}_\textrm{q} + \hat{H}^{(i)}_\textrm{r-q} \right] + \sum_{(l,m)\in A}\!\! \hat{H}^{(l,m)}_\textrm{q-q} \label{eq:1}\end{aligned}
-.. with:
-  .. math::
-
-   \begin{aligned}
-          \hat{H}^{(i)}_\textrm{r} &= \hbar \omega^{(i)}_\textrm{r}  \hat{a}_i^\dagger \hat{a}_i\\
-          \hat{H}^{(i)}_\textrm{q} &= \hbar\sum_{j}  \omega^{(i)}_j  | j \rangle_{i\,i} \langle j |\\
-           \hat{H}^{(i)}_\textrm{r-q} &= \hbar\sum_{jk}  g^{(i)}_{jk} |j \rangle_{i\,i}\langle k|  (\hat{a}_i + \hat{a}_i^\dagger)\\
-                \hat{H}^{(l,m)}_\textrm{q-q} &= \hbar\sum_{jk} \lambda_{jk}^{(l,m)}
-     \Big[ |j+1 \rangle_{l\,l}\langle j |  + |j \rangle_{l\,l}\langle j + 1 |  \Big]
-     \otimes\Big[  |k+1 \rangle_{m\,m}\langle k |  + |k \rangle_{m\,m}\langle k + 1 |  \Big],\end{aligned}
-
-
 The device is characterized by several parameters:
 
 - :math:`\omega_\textrm{01}/2\pi` is the qubit transition frequency
@@ -92,93 +53,26 @@ The device is characterized by several parameters:
 - :math:`g/2\pi` is the coupling strength between a qubit and a resonator
 - :math:`\lambda/2\pi` is the coupling strength between two neighboring qubits
 
-In Rigetti 19Q, each tunable qubit is capacitively coupled to one-to-three fixed-frequency qubits. We use a parametric flux modulation to activate a controlled Z
-gate between tunable and fixed qubits. The typical time-scale of these entangling gates is in the range
-100–250 ns.
+In Rigetti 19Q, each tunable qubit is capacitively coupled to one-to-three fixed-frequency qubits.
+We use a parametric flux modulation to activate a controlled Z gate between tunable and fixed
+qubits. The typical time-scale of these entangling gates is in the range 100–250 ns.
 
-
-.. In Rigetti 19Q, each tunable qubit is capacitively coupled
-  to one-to-three fixed-frequency qubits. The DC flux
-  biases are set close to zero flux such that each tunable
-  qubits is at its maximum frequency :math:`\omega^{\textrm{max}}_\textrm{T}`.
-  Two-qubit parametric CZ gates are activated in the
-  :math:`|11\rangle \leftrightarrow |20\rangle`
-  sub-manifolds by applying an RF flux pulse
-  with amplitude :math:`A_0`, frequency :math:`\omega_\textrm{m}` and duration :math:`t_\textrm{CZ}` to the
-  tunable qubit. For RF flux modulation about the
-  qubit extremal frequency, the oscillation frequency is doubled
-  to :math:`2\omega_\textrm{m}` and the mean effective qubit frequency shifts
-  to :math:`\bar{\omega}_\textrm{T}`. Note that the frequency shift increases with larger
-  flux pulse amplitude. The effective detuning between
-  neighboring qubits becomes :math:`\Delta = \bar{\omega}_\textrm{T} - \omega_\textrm{F}`. The resonant
-  condition for a CZ gate is achieved when :math:`\Delta = 2\omega_\textrm{m} - \eta_\textrm{T}`
-  or :math:`\Delta = 2\omega_\textrm{m} + \eta_\textrm{F}`, where :math:`\eta_\textrm{T}`, :math:`\eta_\textrm{F}` are the anharmonicities
-  of the tunable and fixed qubit, respectively. An effective
-  rotation angle of :math:`2\pi` on these transitions imparts a minus
-  sign to the :math:`|11\rangle` state, implementing an effective CZ gate.
-  The time-scale of these entangling gates is in the range
-  100–250 ns. Due to finite bandwidth constraints of our
-  control electronics, the applied flux pulse is shaped as a
-  square pulse with linear rise and fall time of 30 ns.
-
-.. In Rigetti 19Q, each tunable qubit is capacitively coupled to
-  one-to-three fixed-frequency qubits. The DC flux biases are set close
-  to zero flux such that the frequency of the tunable qubits is at its
-  maximum value :math:`f^{\textrm{max}}_\textrm{T}`. Our two qubit gates
-  are parametric CZ gates performed in the :math:`11\leftrightarrow 20`
-  and/or :math:`11\leftrightarrow 02` sub-manifolds. These entangling
-  gates are activated by applying a RF flux pulse (with amplitude
-  :math:`A_0`, frequency :math:`f_\textrm{m}` and duration
-  :math:`t_\textrm{CZ}`) to the tunable qubits. During the flux pulse,
-  the tunable qubit frequency oscillates at :math:`2f_\textrm{m}` and
-  the effective qubit frequency shifts down to
-  :math:`\bar{f}_\textrm{T}`. The frequency shift depends on the flux
-  pulse amplitude. The detuning between the effective qubit frequency
-  :math:`\bar{f}_\textrm{T}` and the frequency of the neighboring qubit
-  is defined as :math:`\Delta = \bar{f}_\textrm{T} - f_\textrm{F}`. The
-  resonant condition for a CZ gate is achieved when the detuning is
-  equal to :math:`\Delta = 2 f_\textrm{m} - \eta_\textrm{T}` or
-  :math:`\Delta = 2 f_\textrm{m} + \eta_\textrm{F}`, where
-  :math:`\eta_\textrm{T}`, :math:`\eta_\textrm{F}` are the
-  anharmonicities of the tunable and fixed qubit, respectively. The
-  time-scale of these entangling gates is in the range
-  :math:`100-250 \, \textrm{ns}`.
-
-
-.. This device is fabricated on a high-resistivity silicon substrate with
-  through-silicon via technology to improve
-  isolation and prevent chip resonances from interfering with qubit and
-  resonator modes. The superconducting components are patterned on top
-  of the silicon substrate with standard lithographic tech- niques. The
-  circuitry is made of aluminum with critical temperature of $T_\textrm{c} \approx 1.2\,\textrm{K}$.
-  The nominal thickness of the aluminum layer is 100 nm. The Josephson
-  junctions are fabricated with double-angle evaporation bridge-free
-  techniques.
-
-Table 1 summarizes the main performance
-parameters of Rigetti 19Q. The resonator and qubit frequencies are
-measured with standard spectroscopic techniques. The relaxation time
-:math:`T_1` is extracted from repeated inversion recovery experiments.
-Similarly, the coherence time :math:`T^*_2` is measured with repeated
-Ramsey fringe experiments. Single-qubit gate fidelities are estimated
-with randomized benchmarking protocols in which a sequence of
-:math:`m` Clifford gates is applied to the qubit followed by a
-measurement on the computational basis. The sequence of Clifford gates
-are such that the first :math:`m-1` gates are chosen uniformly at
-random from the Clifford group, while the last Clifford gate is chosen
-to bring the state of the system back to the initial state. This
-protocol is repeated for different values of
-:math:`m\in \{2,4,8,16,32,64,128\}`. The reported single-qubit gate
-fidelity is related to the randomized benchmarking decay constant
-:math:`p` in the following way:
-:math:`\mathsf{F}_\textrm{1q} = p +(1-p)/2`. Finally, the readout
-assignment fidelities are extracted with dispersive readouts combined
-with a linear classifier trained on :math:`|0\rangle` and
-:math:`|1\rangle` state preparation for each qubit. The reported
-readout assignment fidelity is given by expression
-:math:`\mathsf{F}_\textrm{RO} = [p(0|0)+p(1|1)]/2`, where
-:math:`p(b|a)` is the probability of measuring the qubit in state
-:math:`b` when prepared in state :math:`a`.
+Table 1 summarizes the main performance parameters of Rigetti 19Q. The resonator and qubit
+frequencies are measured with standard spectroscopic techniques. The relaxation time :math:`T_1` is
+extracted from repeated inversion recovery experiments. Similarly, the coherence time :math:`T^*_2`
+is measured with repeated Ramsey fringe experiments. Single-qubit gate fidelities are estimated
+with randomized benchmarking protocols in which a sequence of :math:`m` Clifford gates is applied
+to the qubit followed by a measurement on the computational basis. The sequence of Clifford gates
+are such that the first :math:`m-1` gates are chosen uniformly at random from the Clifford group,
+while the last Clifford gate is chosen to bring the state of the system back to the initial state.
+This protocol is repeated for different values of :math:`m\in \{2,4,8,16,32,64,128\}`. The reported
+single-qubit gate fidelity is related to the randomized benchmarking decay constant :math:`p` in
+the following way: :math:`\mathsf{F}_\textrm{1q} = p +(1-p)/2`. Finally, the readout assignment
+fidelities are extracted with dispersive readouts combined with a linear classifier trained on
+:math:`|0\rangle` and :math:`|1\rangle` state preparation for each qubit. The reported readout
+assignment fidelity is given by expression :math:`\mathsf{F}_\textrm{RO} = [p(0|0)+p(1|1)]/2`, where
+:math:`p(b|a)` is the probability of measuring the qubit in state :math:`b` when prepared in state
+:math:`a`.
 
 .. csv-table:: :math:`\textbf{Table 1 | Rigetti 19Q performance}`
    :widths: 10, 10, 10, 10, 10, 10, 10, 10
@@ -222,8 +116,8 @@ can be calculated in the following way:
 
      \lambda^{(1,2)} = \sqrt{\left|\frac{\chi^{(1,2)}_\textrm{qq} \left[\,f^\textrm{(1)}_{01}-f^\textrm{(2)}_{12}\right]\left[\,f^\textrm{(1)}_{12}-f^\textrm{(2)}_{01}\right]}{2(\eta_1+\eta_2)}\right|}
 
-Figure 3b shows the coupling strength for our device. This quantity is crucial to predict the gate time
-of our parametric entangling gates.
+Figure 3b shows the coupling strength for our device. This quantity is crucial to predict the gate
+time of our parametric entangling gates.
 
 .. figure:: figures/figure3-2.png
     :width: 500px
@@ -236,20 +130,6 @@ of our parametric entangling gates.
     implemented to measure the qubit-qubit effective frequency shift.
     :math:`\textbf{b,}` Capacitive coupling between neighboring qubits expressed in MHz.
 
-..   Table 2 shows the two-qubit gate performance
-    of Rigetti 19Q. These parameters refer to parametric CZ gates
-    performed on one pair at a time. The flux pulse that activates these
-    entangling gates is a square pulse with linear rise time and fall down
-    time of :math:`30 \, \textrm{ns}`. The amplitude of the flux pulse
-    :math:`A_0` is expressed in terms of flux quanta. When
-    :math:`A_0 = 1 \, \Phi_0`, the qubit performs complete
-    oscillations between maximum sweet spots. The parameter
-    :math:`f_\textrm{m}` is the modulation frequency of the applied flux
-    pulse and its optimal value is estimated by fitting a vertical slice
-    of a two-qubit chevron interaction with a sinc function model. The
-    gate time is calibrated by fitting sinusoidal oscillations of coherent
-    population exchange between the
-    :math:`|20\rangle \leftrightarrow |11\rangle` states.
 
 Table 2 shows the two-qubit gate performance
 of Rigetti 19Q. These parameters refer to parametric CZ gates
@@ -266,10 +146,6 @@ between the ideal process and the measured process imposing complete
 positivity (cp) and trace preservation (tp) constraints. The quantity
 :math:`\mathsf{F}_\textrm{PT}` instead is extracted without cptp
 constraints on the estimated map.
-
-.. The fidelities reported in
-   Table 2 are averaged values from four
-   tomography experiments.
 
 .. csv-table:: :math:`\textbf{Table 2 | Rigetti 19Q two-qubit gate performance}`
    :widths: 10, 10, 10, 10, 10, 10
@@ -301,6 +177,7 @@ constraints on the estimated map.
    14 - 19,0.59,188.1,142,0.797,0.906
 
 
-The interested user can have access to this quantum machine by submitting a request on :math:`\textsf{rigetti.com}`.
-Single-qubit and two-qubit gates are retuned every hour. The retuning approximately takes 10 minutes to complete.
-After retuning, the user can submit new jobs to the quantum machine.
+The interested user can have access to this quantum machine by submitting a request on
+:math:`\textsf{rigetti.com}`. Single-qubit and two-qubit gates are retuned every hour. The retuning
+approximately takes 10 minutes to complete. After retuning, the user can submit new jobs to the
+quantum machine.
