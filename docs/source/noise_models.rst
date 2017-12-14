@@ -273,7 +273,7 @@ How do I get started?
 
 **Scroll down for some examples!**
 
-.. code:: ipython3
+.. code:: python
 
     from __future__ import print_function
     import numpy as np
@@ -282,7 +282,7 @@ How do I get started?
     import matplotlib.colors as colors
     %matplotlib inline
 
-.. code:: ipython3
+.. code:: python
 
     from pyquil.quil import Program, MEASURE
     from pyquil.api.qvm import QVMConnection
@@ -290,7 +290,7 @@ How do I get started?
     from pyquil.gates import CZ, H, I, X
     from scipy.linalg import expm
 
-.. code:: ipython3
+.. code:: python
 
     cxn = QVMConnection()
 
@@ -315,7 +315,7 @@ operators
 where :math:`p` is the probability that a qubit in the :math:`\ket{1}`
 state decays to the :math:`\ket{0}` state.
 
-.. code:: ipython3
+.. code:: python
 
    def damping_channel(damp_prob=.1):
        """
@@ -355,7 +355,7 @@ state decays to the :math:`\ket{0}` state.
        """
        return append_kraus_to_gate(damping_channel(damp_prob), gate)
 
-.. code:: ipython3
+.. code:: python
 
     %%time
     
@@ -393,20 +393,20 @@ state decays to the :math:`\ket{0}` state.
     Wall time: 6.4 s
 
 
-.. code:: ipython3
+.. code:: python
 
     dense_lengths = np.arange(0, lengths.max()+1, .2)
     survival_probs = (1-damping_per_I)**dense_lengths
     logpmf = binom.logpmf(np.arange(trials+1)[np.newaxis, :], trials, survival_probs[:, np.newaxis])/np.log(10)
 
-.. code:: ipython3
+.. code:: python
 
     DARK_TEAL = '#48737F'
     FUSCHIA = "#D6619E"
     BEIGE = '#EAE8C6'
     cm = colors.LinearSegmentedColormap.from_list('anglemap', ["white", FUSCHIA, BEIGE], N=256, gamma=1.5)
 
-.. code:: ipython3
+.. code:: python
 
     plt.figure(figsize=(14, 6))
     plt.pcolor(dense_lengths, np.arange(trials+1)/trials, logpmf.T, cmap=cm, vmin=-4, vmax=logpmf.max())
@@ -484,7 +484,7 @@ achieved through non-diagonal interaction Hamiltonians! However, for
 sufficiently small dephasing probabilities it should always provide a
 good starting point.**
 
-.. code:: ipython3
+.. code:: python
 
     def dephasing_kraus_map(p=.1):
         """
@@ -519,7 +519,7 @@ good starting point.**
         return [kj.dot(g) for kj in kraus_ops]
 
 
-.. code:: ipython3
+.. code:: python
 
     %%time
     # single step damping probabilities
@@ -563,7 +563,7 @@ good starting point.**
     Wall time: 1min 49s
 
 
-.. code:: ipython3
+.. code:: python
 
     Z1s = (2*results[:,:,0]-1.)
     Z2s = (2*results[:,:,1]-1.)
@@ -573,7 +573,7 @@ good starting point.**
     Z2m = np.mean(Z2s, axis=1)
     Z1Z2m = np.mean(Z1Z2s, axis=1)
 
-.. code:: ipython3
+.. code:: python
 
     plt.figure(figsize=(14, 6))
     plt.axhline(y=1.0, color=FUSCHIA, alpha=.5, label="Bell state")
@@ -605,7 +605,7 @@ without noise). We will again assume a very simple noise model in which
 the ideal gate is followed by the application of first dephasing and
 then damping noise.
 
-.. code:: ipython2
+.. code:: python
 
     def combine_kraus_maps(k1, k2):
         """
@@ -631,7 +631,7 @@ then damping noise.
         """
         return combine_kraus_maps(damping_channel(t_gate/T1), dephasing_kraus_map(t_gate/T2))
 
-.. code:: ipython2
+.. code:: python
 
     # Can only apply gate-noise to non-parametrized gates, so we need to define placeholders for RX(+/- pi/2)
     # Feel free to modify these to experiment with other gate sets.
@@ -713,7 +713,7 @@ then damping noise.
 
         return header
 
-.. code:: ipython2
+.. code:: python
 
     ngs = make_noisy_gate_set(
         [0, 1],
