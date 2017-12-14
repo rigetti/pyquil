@@ -114,8 +114,7 @@ Qubit-Qubit Coupling
 
 The coupling strength between two qubits can be extracted from a precise measurement of the shift
 in qubit frequency after the neighboring qubit is in the excited state. This protocol consists of
-two steps: a
-:math:`\pi` is applied to the first qubit, followed by a Ramsey fringe
+two steps: a :math:`\pi` pulse is applied to the first qubit, followed by a Ramsey fringe
 experiment on the second qubit which precisely determines its
 transition frequency (see Fig. 3a). The effective shift is denoted by
 :math:`\chi_\textrm{qq}` and typical values are in the range
