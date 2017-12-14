@@ -79,23 +79,9 @@ class Wavefunction(object):
         return len(self.amplitudes).bit_length() - 1
 
     def __iter__(self):
-        warnings.warn("""
-Previously, qvm.wavefunction returned both classical memory and wavefunction
-as a pair. Now it just returns a Wavefunction object.
-You likely need to change this:
-    wf, _ = qvm.wavefunction(program, ...)
-To just this:
-    wf = qvm.wavefunction(program, ...)\n""", stacklevel=2)
         return self.amplitudes.__iter__()
 
     def __getitem__(self, index):
-        warnings.warn("""
-Previously, qvm.wavefunction returned both classical memory and wavefunction
-as a pair. Now it just returns a Wavefunction object.
-You likely need to change this:
-    wf, _ = qvm.wavefunction(program, ...)
-To just this:
-    wf = qvm.wavefunction(program, ...)\n""", stacklevel=2)
         return self.amplitudes[index]
 
     def __setitem__(self, key, value):
