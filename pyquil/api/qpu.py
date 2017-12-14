@@ -57,9 +57,23 @@ class Device(object):
         """
         return self.raw['is_online']
 
+    def is_retuning(self):
+        """
+        Whether or not the device is currently retuning.
+
+        :rtype: bool
+        """
+        return self.raw['is_retuning']
+
     def __str__(self):
-        online_offline = 'online' if self.is_online() else 'offline'
-        return '<Device {} {}>'.format(self.name, online_offline)
+        if self.is_online():
+            status = 'online'
+        elif self.is_retuning():
+            status = 'retuning'
+        else:
+            status = 'offline'
+
+        return '<Device {} {}>'.format(self.name, status)
 
     def __repr__(self):
         return str(self)
