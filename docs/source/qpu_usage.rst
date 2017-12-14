@@ -133,5 +133,10 @@ follow:
 Retune interruptions
 --------------------
 
-Because the QPU is an analog device, it is occasionally taken offline for recalibration.  This offline period typically lasts 10-40 minutes, depending upon QPU characteristics and other external factors.  During this period, the QPU will be listed as offline, and it will reject new jobs (but pending jobs will remain queued).  When the QPU resumes activity, its performance characteristics may be slightly different (in that different gates may enjoy different process fidelities).
+Because the QPU is a physical device, it is occasionally taken offline for recalibration.
+This offline period typically lasts 10-40 minutes, depending upon QPU characteristics and other
+external factors.  During this period, the QPU will be listed as offline, and it will reject
+new jobs (but pending jobs will remain queued).  When the QPU resumes activity, its performance
+characteristics may be slightly different (in that different gates may enjoy different process
+fidelities).
 
