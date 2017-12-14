@@ -16,6 +16,8 @@
 
 from __future__ import print_function
 
+import re
+
 import requests
 import sys
 
@@ -24,6 +26,8 @@ from requests.adapters import HTTPAdapter
 from six import integer_types
 from urllib3 import Retry
 
+from pyquil.api.errors import QVMError, DeviceOfflineError, DeviceRetuningError, InvalidInputError, InvalidUserError, \
+    JobNotFoundError, MissingPermissionsError, error_mapping, UnknownApiError, TooManyQubitsError
 from .job import Job
 from ._config import PyquilConfig
 
@@ -33,127 +37,102 @@ TYPE_MULTISHOT_MEASURE = "multishot-measure"
 TYPE_WAVEFUNCTION = "wavefunction"
 
 
-class BaseConnection(object):
-    def __init__(self, async_endpoint, api_key, user_id, ping_time, status_time):
-        self._session = requests.Session()
-        retry_adapter = HTTPAdapter(max_retries=Retry(total=3,
-                                                      method_whitelist=['POST'],
-                                                      status_forcelist=[502, 503, 504, 521, 523],
-                                                      backoff_factor=0.2,
-                                                      raise_on_status=False))
+def wait_for_job(session, async_endpoint, job_id, ping_time=None, status_time=None):
+    """
+    Wait for job logic
+    """
+    count = 0
+    while True:
+        job = get_job(session, async_endpoint, job_id)
+        if job.is_done():
+            break
 
-        # We need this to get binary payload for the wavefunction call.
-        self._session.headers.update({"Accept": "application/octet-stream"})
+        if status_time and count % int(status_time / ping_time) == 0:
+            if job.is_queued():
+                print("job {} is currently queued at position {}".format(job.job_id, job.position_in_queue()))
+            elif job.is_running():
+                print("job {} is currently running".format(job.job_id))
 
-        self._session.mount("http://", retry_adapter)
-        self._session.mount("https://", retry_adapter)
+        time.sleep(ping_time)
+        count += 1
 
-        config = PyquilConfig()
-        self.api_key = api_key if api_key else config.api_key
-        self.user_id = user_id if user_id else config.user_id
+    return job
 
-        self.async_endpoint = async_endpoint
 
-        self.ping_time = ping_time
-        self.status_time = status_time
+def get_json(session, url):
+    """
+    Get JSON from a Forest endpoint.
+    """
+    res = session.get(url)
+    if res.status_code >= 400:
+        raise parse_error(res)
+    return res
 
-    def get_job(self, job_id):
-        """
-        Given a job id, return information about the status of the job
 
-        :param str job_id: job id
-        :return: Job object with the status and potentially results of the job
-        :rtype: Job
-        """
-        response = self._get_json(self.async_endpoint + "/job/" + job_id)
-        return Job(response.json())
+def post_json(session, url, json):
+    """
+    Post JSON to the Forest endpoint.
+    """
+    res = session.post(url, json=json)
+    if res.status_code >= 400:
+        raise parse_error(res)
+    return res
 
-    def wait_for_job(self, job_id, ping_time=None, status_time=None):
-        """
-        Wait for the results of a job and periodically print status
 
-        :param job_id: Job id
-        :param ping_time: How often to poll the server.
-                          Defaults to the value specified in the constructor. (0.1 seconds)
-        :param status_time: How often to print status, set to False to never print status.
-                            Defaults to the value specified in the constructor (2 seconds)
-        :return: Completed Job
-        """
-        if ping_time is None:
-            ping_time = self.ping_time
-        if status_time is None:
-            status_time = self.status_time
+def parse_error(res):
+    """
+    Every server error should contain a "status" field with a human readable explanation of what went wrong as well as
+    a "error_type" field indicating the kind of error that can be mappen to a Python type.
 
-        count = 0
-        while True:
-            job = self.get_job(job_id)
-            if job.is_done():
-                break
+    There's a fallback error UnknownError for other types of exceptions (network issues, api gateway problems, etc.)
+    """
+    body = res.json()
 
-            if status_time and count % int(status_time / ping_time) == 0:
-                if job.is_queued():
-                    print("job {} is currently queued at position {}".format(job.job_id, job.position_in_queue()))
-                elif job.is_running():
-                    print("job {} is currently running".format(job.job_id))
+    if body is None:
+        raise UnknownApiError(res.text)
+    elif 'error_type' not in body:
+        raise UnknownApiError(body)
 
-            time.sleep(ping_time)
-            count += 1
+    error_type = body['error_type']
+    status = body['status']
 
-        return job
+    if re.search(r"[0-9]+ qubits were requested, but the QVM is limited to [0-9]+ qubits.", status):
+        return TooManyQubitsError(status)
 
-    def _post_json(self, url, json):
-        """
-        Post JSON to the Forest endpoint.
+    error_cls = error_mapping.get(error_type, UnknownApiError)
+    return error_cls(status)
 
-        :param str url: The full url to post to
-        :param dict json: JSON.
-        :return: A non-error response.
-        """
-        headers = {
-            'X-Api-Key': self.api_key,
-            'X-User-Id': self.user_id,
-            'Content-Type': 'application/json; charset=utf-8'
-        }
-        res = self._session.post(url, json=json, headers=headers)
 
-        # Print some nice info for unauthorized/permission errors.
-        if res.status_code == 401 or res.status_code == 403:
-            print("! ERROR:\n"
-                  "!   There was an issue validating your forest account.\n"
-                  "!   Have you run the pyquil-config-setup command yet?\n"
-                  "! The server came back with the following information:\n"
-                  "%s\n%s\n%s" % ("=" * 80, res.text, "=" * 80), file=sys.stderr)
-            print("! If you suspect this to be a bug in pyQuil or Rigetti Forest,\n"
-                  "! then please describe the problem in a GitHub issue at:\n!\n"
-                  "!      https://github.com/rigetticomputing/pyquil/issues\n", file=sys.stderr)
+def get_session(api_key, user_id):
+    """
+    Create a requests session to access the cloud API with the proper authentication
 
-        # Print some nice info for invalid input or internal server errors.
-        if res.status_code == 400 or res.status_code >= 500:
-            print("! ERROR:\n"
-                  "!   Server caught an error. This could be due to a bug in the server\n"
-                  "!   or a bug in your code. The server came back with the following\n"
-                  "!   information:\n"
-                  "%s\n%s\n%s" % ("=" * 80, res.text, "=" * 80), file=sys.stderr)
-            print("! If you suspect this to be a bug in pyQuil or Rigetti Forest,\n"
-                  "! then please describe the problem in a GitHub issue at:\n!\n"
-                  "!      https://github.com/rigetticomputing/pyquil/issues\n", file=sys.stderr)
+    :param str api_key: custom api key, if None will fallback to reading from the config
+    :param str user_id: custom user id, if None will fallback to reading from the config
+    :return: requests session
+    :rtype: Session
+    """
+    session = requests.Session()
+    retry_adapter = HTTPAdapter(max_retries=Retry(total=3,
+                                                  method_whitelist=['POST'],
+                                                  status_forcelist=[502, 503, 504, 521, 523],
+                                                  backoff_factor=0.2,
+                                                  raise_on_status=False))
 
-        res.raise_for_status()
-        return res
+    session.mount("http://", retry_adapter)
+    session.mount("https://", retry_adapter)
 
-    def _get_json(self, url):
-        """
-        Get JSON from a Forest endpoint.
+    # We need this to get binary payload for the wavefunction call.
+    session.headers.update({"Accept": "application/octet-stream"})
 
-        :param str url: The full url to fetch
-        :return: Response object
-        """
-        headers = {
-            'X-Api-Key': self.api_key,
-            'X-User-Id': self.user_id,
-            'Content-Type': 'application/json; charset=utf-8'
-        }
-        return requests.get(url, headers=headers)
+    config = PyquilConfig()
+    session.headers.update({
+        'X-Api-Key': api_key if api_key else config.api_key,
+        'X-User-Id': user_id if user_id else config.user_id,
+        'Content-Type': 'application/json; charset=utf-8'
+    })
+
+    return session
 
 
 def validate_noise_probabilities(noise_parameter):
