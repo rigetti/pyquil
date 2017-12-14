@@ -84,8 +84,8 @@ The compiler itself is subject to some limitations, and some of the more commonl
 * ``! ! ! Error: Failed to select a SWAP instruction. Perhaps the qubit graph is disconnected?`` This error indicates a readdressing failure: some non-native Quil could not be reassigned to lie on native devices.  Two common reasons for this failure are:
     * It is possible for the readdressing problem to be too difficult for the compiler to sort out, causing deadlock.
     * If a qubit-qubit gate is requested to act on two qubit resources that lie on disconnected regions of the qubit graph, the addresser will fail.
-* ``! ! ! Error: The assertion (CL-QUIL::DOUBLE= ...) failed with ...`` The compiler attempted to decompose an operator as native Quil instructions, and the resulting instructions do not match the original operator.  This can happen when the original operator is not a unitary matrix, and could indicate an invalid ``DEFGATE`` block.
-* ``! ! ! Error: There is no applicable method for the generic function ...`` The compiler inspected an instruction that it does not understand.  The most common cause of this error is the inclusion of classical control in a program submission (including the manual inclusion of ``MEASURE`` instructions), which is legal Quil but falls outside of the domain of ProtoQuil.
+* ``! ! ! Error: Matrices do not lie in the same projective class.`` The compiler attempted to decompose an operator as native Quil instructions, and the resulting instructions do not match the original operator.  This can happen when the original operator is not a unitary matrix, and could indicate an invalid ``DEFGATE`` block.
+* ``! ! ! Error: Addresser loop only supports pure quantum instructions.`` The compiler inspected an instruction that it does not understand.  The most common cause of this error is the inclusion of classical control in a program submission (including the manual inclusion of ``MEASURE`` instructions), which is legal Quil but falls outside of the domain of ProtoQuil.
 
 Retune interruptions
 --------------------
