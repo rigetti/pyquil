@@ -1,7 +1,7 @@
 
 class ApiError(Exception):
     def __init__(self, server_status, explanation):
-        Exception.__init__(self, server_status)
+        super(ApiError, self).__init__(self, server_status)
         self.server_status = server_status
         self.explanation = explanation
 
@@ -15,7 +15,7 @@ class ApiError(Exception):
 class CancellationError(ApiError):
     def __init__(self, server_status):
         explanation = "Please try resubmitting the job again."
-        ApiError.__init__(self, server_status, explanation)
+        super(CancellationError, self).__init__(server_status, explanation)
 
 
 class DeviceOfflineError(ApiError):
@@ -26,7 +26,7 @@ currently available devices:
 
     from pyquil.api import get_devices
     print(get_devices())"""
-        ApiError.__init__(self, server_status, explanation)
+        super(DeviceOfflineError, self).__init__(server_status, explanation)
 
 
 class DeviceRetuningError(ApiError):
@@ -37,6 +37,7 @@ code to check for the currently available devices:
 
     from pyquil.api import get_devices
     print(get_devices())"""
+        super(DeviceRetuningError, self).__init__(server_status, explanation)
         ApiError.__init__(self, server_status, explanation)
 
 
@@ -48,6 +49,7 @@ request sent to it. This could be due to a bug in the server or a bug in your
 code. If you suspect this to be a bug in pyQuil or Rigetti Forest, then please
 describe the problem in a GitHub issue at:
     https://github.com/rigetticomputing/pyquil/issues"""
+        super(InvalidInputError, self).__init__(server_status, explanation)
         ApiError.__init__(self, server_status, explanation)
 
 
@@ -59,6 +61,7 @@ Have you run the `pyquil-config-setup` command yet?
 
 If you do not yet have a Forest account then sign up for one at:
     https://forest.rigetti.com"""
+        super(InvalidUserError, self).__init__(server_status, explanation)
         ApiError.__init__(self, server_status, explanation)
 
 
@@ -69,6 +72,7 @@ The above job may have been deleted manually or due to some bug in the server.
 If you suspect this to be a bug then please describe the problem in a Github
 issue at:
     https://github.com/rigetticomputing/pyquil/issues"""
+        super(JobNotFoundError, self).__init__(server_status, explanation)
         ApiError.__init__(self, server_status, explanation)
 
 
@@ -78,6 +82,7 @@ class MissingPermissionsError(ApiError):
 Your account may not be whitelisted for QPU access. To request the appropriate
 permissions please read the information located at:
     https://forest.rigetti.com"""
+        super(MissingPermissionsError, self).__init__(server_status, explanation)
         ApiError.__init__(self, server_status, explanation)
 
 
@@ -88,7 +93,7 @@ The QPU returned the above error. This could be due to a bug in the server or a
 bug in your code. If you suspect this to be a bug in pyQuil or Rigetti Forest,
 then please describe the problem in a GitHub issue at:
     https://github.com/rigetticomputing/pyquil/issues"""
-        ApiError.__init__(self, server_status, explanation)
+        super(QPUError, self).__init__(server_status, explanation)
 
 
 class QVMError(ApiError):
@@ -98,7 +103,7 @@ The QVM returned the above error. This could be due to a bug in the server or a
 bug in your code. If you suspect this to be a bug in pyQuil or Rigetti Forest,
 then please describe the problem in a GitHub issue at:
     https://github.com/rigetticomputing/pyquil/issues"""
-        ApiError.__init__(self, server_status, explanation)
+        super(QVMError, self).__init__(server_status, explanation)
 
 
 class TooManyQubitsError(ApiError):
@@ -112,7 +117,7 @@ qubits (however, each program will take longer to run). For example:
     qvm.run(twenty_qubit_program)
 
 See https://go.rigetti.com/connections for more info."""
-        ApiError.__init__(self, server_status, explanation)
+        super(TooManyQubitsError, self).__init__(server_status, explanation)
 
 
 class UnknownApiError(ApiError):
@@ -121,7 +126,7 @@ class UnknownApiError(ApiError):
 The server has failed to return a proper response. Please describe the problem
 and copy the above message into a GitHub issue at:
     https://github.com/rigetticomputing/pyquil/issues"""
-        ApiError.__init__(self, server_status, explanation)
+        super(UnknownApiError, self).__init__(server_status, explanation)
 
 
 # NB: Some errors are not included here if they are only returned by async endpoints
