@@ -150,38 +150,36 @@ the set :math:`\{I,R_x(\pi/2),R_y(\pi/2),R_x(\pi)\}`, followed by a CZ gate and
 post-rotations that bring the qubit states back to the computational basis. QPT involves the
 analysis of :math:`16\times16 =256` different experiments, each of which we repeat :math:`500`
 times. The reported process tomography fidelity :math:`\mathsf{F}^\textrm{cptp}_\textrm{PT}`
-indicates the fidelity between the ideal process and the measured process imposing complete
-positivity (cp) and trace preservation (tp) constraints. The quantity
-:math:`\mathsf{F}_\textrm{PT}` is instead extracted without cptp constraints on the estimated map.
+is the fidelity of the measured process compared with the ideal process, computed imposing complete positivity (cp) and trace preservation (tp) constraints.
 
 .. csv-table:: :math:`\textbf{Table 2 | Rigetti 19Q two-qubit gate performance}`
-   :widths: 10, 10, 10, 10, 10, 10
+   :widths: 10, 10, 10, 10, 10
    :stub-columns: 1
 
 
-   ,:math:`A_0`,:math:`f_\textrm{m}`,:math:`t_\textrm{CZ}`,:math:`\mathsf{F}^\textrm{cptp}_{\textrm{PT}}`,:math:`\mathsf{F}_{\textrm{PT}}`
+   ,:math:`A_0`,:math:`f_\textrm{m}`,:math:`t_\textrm{CZ}`,:math:`\mathsf{F}^\textrm{cptp}_{\textrm{PT}}`
    ,:math:`\Phi/\Phi_0`,:math:`\textrm{MHz}`,ns
-   0 - 5 ,0.27,94.5,168,0.936,0.966
-   0 - 6 ,0.36,123.9,197,0.889,0.900
-   1 - 6 ,0.37,137.1,173,0.888,0.948
-   1 - 7 ,0.59,137.9,179,0.919,0.974
-   2 - 7 ,0.62,87.4,160,0.817,0.860
-   2 - 8, 0.23,55.6,189,0.906,0.918
-   4 - 9, 0.43,183.6,122,0.854,0.876
-   5 - 10,0.60,152.9,145,0.870,0.902
-   6 - 11 ,0.38,142.4,180,0.838,0.927
-   7 - 12 ,0.60,241.9,214,0.87,0.890
-   8 - 13,0.40,152.0,185,0.881,0.895
-   9 - 14,0.62,130.8,139,0.872,0.937
-   10 - 15,0.53,142.1,154,0.854,0.875
-   10 - 16,0.43,170.3,180,0.838,0.847
-   11 - 16,0.38,160.6,155,0.891,0.903
-   11 - 17,0.29,85.7,207,0.844,0.875
-   12 - 17,0.36,177.1,184,0.876,0.908
-   12 - 18,0.28,113.9,203,0.886,0.923
-   13 - 18,0.24,66.2,152,0.936,0.975
-   13 - 19,0.62,109.6,181,0.921,0.941
-   14 - 19,0.59,188.1,142,0.797,0.906
+   0 - 5 ,0.27,94.5,168,0.936
+   0 - 6 ,0.36,123.9,197,0.889
+   1 - 6 ,0.37,137.1,173,0.888
+   1 - 7 ,0.59,137.9,179,0.919
+   2 - 7 ,0.62,87.4,160,0.817
+   2 - 8, 0.23,55.6,189,0.906
+   4 - 9, 0.43,183.6,122,0.854
+   5 - 10,0.60,152.9,145,0.870
+   6 - 11 ,0.38,142.4,180,0.838
+   7 - 12 ,0.60,241.9,214,0.87
+   8 - 13,0.40,152.0,185,0.881
+   9 - 14,0.62,130.8,139,0.872
+   10 - 15,0.53,142.1,154,0.854
+   10 - 16,0.43,170.3,180,0.838
+   11 - 16,0.38,160.6,155,0.891
+   11 - 17,0.29,85.7,207,0.844
+   12 - 17,0.36,177.1,184,0.876
+   12 - 18,0.28,113.9,203,0.886
+   13 - 18,0.24,66.2,152,0.936
+   13 - 19,0.62,109.6,181,0.921
+   14 - 19,0.59,188.1,142,0.797
 
 
 Using the QPU
