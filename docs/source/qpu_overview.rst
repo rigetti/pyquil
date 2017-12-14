@@ -1,27 +1,29 @@
 
-Rigetti QPU
-===========
+The Rigetti QPU: Technical Overview
+===================================
 
-A quantum processor unit (QPU) is a physical device that can be used to run quantum algorithms.
-This documentation presents technical details and average performance of Rigetti QPU.
-This device has been designed fabricated and packaged at Rigetti Computing.
+A quantum processor unit (QPU) is a physical device that contains a number of interconnected qubits
+which are made available to run quantum algorithms. This page presents technical details and
+average performance of the Rigetti QPU device. This device has been designed, fabricated and
+packaged at Rigetti Computing.
 
+QPU properties
+~~~~~~~~~~~~~~
 
+The quantum processor consists of 20 superconducting transmon qubits with fixed capacitive coupling
+in the lattice shown in Fig. 1. The resonance frequency of Qubits 0–4 and 10–14 are flux-tunable
+while qubits 5–9 and 15–19 are fixed. The former have two Josephson junctions in an asymmetric
+SQUID geometry to provide roughly 1 GHz of frequency tunability, and flux-insensitive “sweet spots”
+near
 
-The quantum processor consists of 20 superconducting
-transmon qubits with fixed
-capacitive coupling in the lattice shown in Fig. 1. Qubits
-0–4 and 10–14 are tunable while qubits 5–9 and 15–19 are
-fixed-frequency devices. The former have two Josephson
-junctions in an asymmetric SQUID geometry to provide
-roughly 1 GHz of frequency tunability, and flux-insensitive
-“sweet spots” near
 :math:`\omega^{\textrm{max}}_{01}/2\pi\approx 4.5 \, \textrm{GHz}`
+
 and
+
 :math:`\omega^{\textrm{min}}_{01}/2\pi\approx 3.0 \, \textrm{GHz}`.
-These tunable devices are coupled to bias lines for AC and DC flux delivery.
-Each qubit is capacitively coupled to a quasi-lumped element
-resonator for dispersive readout of the qubit
+
+These tunable devices are coupled to bias lines for AC and DC flux delivery. Each qubit is
+capacitively coupled to a quasi-lumped element resonator for dispersive readout of the qubit
 state. Single-qubit control is effected by applying microwave drives at the
 resonator ports. Two-qubit gates are activated via RF
 drives on the flux bias lines.
