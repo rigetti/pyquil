@@ -191,7 +191,7 @@ derive the `Lindblad master
 equation <https://en.wikipedia.org/wiki/Lindblad_equation>`__.
 
 Support for noisy gates on the Rigetti QVM
-==========================================
+------------------------------------------
 
 As of today, users of our Forest API can annotate their QUIL programs by
 certain pragma statements that inform the QVM that a particular gate on
@@ -199,7 +199,7 @@ specific target qubits should be replaced by an imperfect realization
 given by a Kraus map.
 
 But the QVM propagates *pure states*: How does it simulate noisy gates?
------------------------------------------------------------------------
+~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
 
 It does so by yielding the correct outcomes **in the average over many
 executions of the QUIL program**: When the noisy version of a gate
@@ -251,7 +251,7 @@ must generally be repeated many times to obtain representative
 results**.
 
 How do I get started?
----------------------
+~~~~~~~~~~~~~~~~~~~~~
 
 1. Come up with a good model for your noise. We will provide some
    examples below and may add more such examples to our public
@@ -294,7 +294,7 @@ How do I get started?
     cxn = QVMConnection()
 
 Example 1: Amplitude damping
-============================
+~~~~~~~~~~~~~~~~~~~~~~~~~~~~
 
 Amplitude damping channels are imperfect identity maps with Kraus
 operators
@@ -404,7 +404,7 @@ state decays to the :math:`\ket{0}` state.
 
 
 Example 2: dephased CZ-gate
-===========================
+~~~~~~~~~~~~~~~~~~~~~~~~~~~
 
 Dephasing is usually characterized through a qubit's :math:`T_2` time.
 For a single qubit the dephasing Kraus operators are
@@ -572,4 +572,271 @@ good starting point.**
 
 
 .. image:: images/GateNoiseModels_20_1.png
+
+Adding T1 and T2 type noise to all your gates
+---------------------------------------------
+
+Here we will provide some simple tools to define gate models for a full
+gate set (excluding :math:`RZ(\theta)` rotations, which can be executed
+without noise). We will again assume a very simple noise model in which
+the ideal gate is followed by the application of first dephasing and
+then damping noise.
+
+.. code:: ipython2
+
+    def combine_kraus_maps(k1, k2):
+        """
+        Generate the Kraus map corresponding to the composition
+        of two maps on the same qubits with k1 being applied to the state
+        after k2.
+
+        :param list k1: The list of Kraus operators that are applied second.
+        :param list k2: The list of Kraus operators that are applied first.
+        :return: A combinatorially generated list of composed Kraus operators.
+        """
+        return [np.dot(k1j, k2l) for k1j in k1 for k2l in k2]
+
+    def damping_after_dephasing(T1=30e-6, T2=30e-6, t_gate=50e-9):
+        """
+        Generate the Kraus map corresponding to the composition
+        of a dephasing channel followed by an amplitude damping channel.
+
+        :param float T1: The amplitude damping time
+        :param float T2: The dephasing time
+        :param flaot t_gate: The gate duration.
+        :return: A list of Kraus operators.
+        """
+        return combine_kraus_maps(damping_channel(t_gate/T1), dephasing_kraus_map(t_gate/T2))
+
+.. code:: ipython2
+
+    # Can only apply gate-noise to non-parametrized gates, so we need to define placeholders for RX(+/- pi/2)
+    # Feel free to modify these to experiment with other gate sets.
+    SINGLE_Q = {
+        "X-PLUS-90": expm(-1j*np.pi/4 * np.array([[0, 1],
+                                               [1, 0]])),
+        "X-MINUS-90": expm(+1j*np.pi/4 * np.array([[0, 1],
+                                                [1, 0]])),
+        "H": np.array([[1., 1.],
+                       [1., -1.]]) / np.sqrt(2),
+        "I": np.eye(2)
+    }
+
+    TWO_Q = {
+         "CZ": np.diag([1, 1, 1, -1]),
+    }
+
+    SWAP = np.array([[1, 0, 0, 0],
+                     [0, 0, 1, 0],
+                     [0, 1, 0, 0],
+                     [0, 0, 0, 1]])
+
+
+    def make_noisy_gate_set(qubits, edges, T1s, T2s, gate_time_1q=50e-9, gate_time_2q=150e-9):
+        """
+        Generate the kraus maps for a full gate set.
+
+        :param list|tuple qubits: The qubits in the gate set.
+        :param list|tuple edges: A sequence of triplets (GATE, q0, q1) for which the
+        two qubit gate `GATE q0 q1` exists as a natural member of the gate set.
+        :param dict T1s: A dictionary mapping qubit id's to the respective T1 damping time
+        :param dict T2s: A dictionary mapping qubit id's to the respective T2 dephasing time
+        :param float gate_time_1q: The duration of a single qubit gate.
+        :param float gate_time_2q: The duration of a two qubit gate.
+        :return: A dictionary with keys (GATE, (target_1[, target_2)) and values given by
+        a list of Kraus operators for that gate.
+        :rtype: dict
+        """
+        noisy_gate_set = {}
+        for q in qubits:
+            for g, m in SINGLE_Q.items():
+                noisy_gate_set[(g, (q,))] = append_kraus_to_gate(
+                    damping_after_dephasing(T1s[q], T2s[q], gate_time_1q),
+                    m
+                )
+        for g, q1,q2 in edges:
+            m = TWO_Q[g]
+
+            # above matrix definition assumes q1 < q2
+            if q2 < q1:
+                m = SWAP.dot(m).dot(SWAP)
+            k1 = damping_after_dephasing(T1s[q1], T2s[q1], gate_time_1q)
+            k2 = damping_after_dephasing(T1s[q2], T2s[q2], gate_time_1q)
+            k = tensor_kraus_maps(k1, k2)
+            noisy_gate_set[(g, (q1, q2))] = append_kraus_to_gate(k, m)
+        return noisy_gate_set
+
+
+    def noisy_gate_set_header(noisy_gate_set, add_defgates=True):
+        """
+        Given a noisy gate set as generated by ``make_noisy_gate_set``, produce a
+        Quil program that consists purely of (noisy) gate definitions.
+        Optionally, the standard defgates are added, as well.
+
+        :param dict noisy_gate_set: A dictionary with keys (GATE, (target_1[, target_2)) and values given by
+        a list of Kraus operators for that gate.
+        :param bool add_defgates: If True, also generate the `DEFGATE` statements.
+        :return: A Quil program with the DEFGATES and ``PRAGMA ADD-KRAUS`` statements.
+        :rtype: Program
+        """
+        header = Program()
+        if add_defgates:
+            for name, matrix in SINGLE_Q.items():
+                header.defgate(name, matrix)
+            for name, matrix in TWO_Q.items():
+                header.defgate(name, matrix)
+        for (name, targets), kraus_ops in noisy_gate_set.items():
+            header.define_noisy_gate(name, targets, kraus_ops)
+
+        return header
+
+.. code:: ipython2
+
+    ngs = make_noisy_gate_set(
+        [0, 1],
+        [
+            ("CZ", 0, 1),
+            ("CZ", 1, 0)
+        ],
+        {
+            0: 35e-6,
+            1:33e-6
+        },
+        {
+            0: 20e-6,
+            1: 25e-6
+        }
+    )
+
+Example: Making a Bell state
+~~~~~~~~~~~~~~~~~~~~~~~~~~~~
+
+.. code:: ipython2
+
+    p_bell = Program(H(0), H(1), CZ(0, 1), H(1))
+    p_bell_noisy = noisy_gate_set_header(ngs) + p_bell
+
+.. code:: ipython2
+
+    print(p_bell_noisy)
+
+
+.. parsed-literal::
+
+    DEFGATE X-PLUS-90:
+        0.70710678118654757, -0.70710678118654746i
+        -0.70710678118654746i, 0.70710678118654757
+
+    DEFGATE X-MINUS-90:
+        0.70710678118654757, +0.70710678118654746i
+        +0.70710678118654746i, 0.70710678118654757
+
+    DEFGATE I:
+        1.0, 0
+        0, 1.0
+
+    DEFGATE H:
+        0.70710678118654746, 0.70710678118654746
+        0.70710678118654746, -0.70710678118654746
+
+    DEFGATE CZ:
+        1, 0, 0, 0
+        0, 1, 0, 0
+        0, 0, 1, 0
+        0, 0, 0, -1
+
+    PRAGMA ADD-KRAUS I 0 "(0.99874921777190895 0.0 0.0 0.99803557050838621)"
+    PRAGMA ADD-KRAUS I 0 "(0.049999999999999996 0.0 0.0 -0.049964272950064739)"
+    PRAGMA ADD-KRAUS I 0 "(0.0 0.037749172176353749 0.0 0.0)"
+    PRAGMA ADD-KRAUS I 0 "(0.0 -0.0018898223650461359 0.0 0.0)"
+    PRAGMA ADD-KRAUS H 0 "(0.70622234459127664 0.70622234459127664 0.70571771977186448 -0.70571771977186448)"
+    PRAGMA ADD-KRAUS H 0 "(0.035355339059327369 0.035355339059327369 -0.035330076220046358 0.035330076220046358)"
+    PRAGMA ADD-KRAUS H 0 "(0.026692695630078277 -0.026692695630078277 0.0 0.0)"
+    PRAGMA ADD-KRAUS H 0 "(-0.0013363062095621216 0.0013363062095621216 0.0 0.0)"
+    PRAGMA ADD-KRAUS H 1 "(0.70639932049797438 0.70639932049797438 0.70586396663517215 -0.70586396663517215)"
+    PRAGMA ADD-KRAUS H 1 "(0.031622776601683784 0.031622776601683784 -0.031598810871373756 0.031598810871373756)"
+    PRAGMA ADD-KRAUS H 1 "(0.027496556258204519 -0.027496556258204519 0.0 0.0)"
+    PRAGMA ADD-KRAUS H 1 "(-0.0012309149097933271 0.0012309149097933271 0.0 0.0)"
+    PRAGMA ADD-KRAUS CZ 0 1 "(0.99774996867952848 0.0 0.0 0.0 0.0 0.99699381095918005 0.0 0.0 0.0 0.0 0.99703703542045019 0.0 0.0 0.0 0.0 -0.99628141800579439)"
+    PRAGMA ADD-KRAUS CZ 0 1 "(0.044665422868254583 0.0 0.0 0.0 0.0 -0.044631572599755795 0.0 0.0 0.0 0.0 0.044633507592390709 0.0 0.0 0.0 0.0 0.044599681511296584)"
+    PRAGMA ADD-KRAUS CZ 0 1 "(0.0 0.038837364857710277 0.0 0.0 0.0 0.0 0.0 0.0 0.0 0.0 0.0 -0.038809613968237774 0.0 0.0 0.0 0.0)"
+    PRAGMA ADD-KRAUS CZ 0 1 "(0.0 -0.0017385992271732066 0.0 0.0 0.0 0.0 0.0 0.0 0.0 0.0 0.0 0.0017373569267450744 0.0 0.0 0.0 0.0)"
+    PRAGMA ADD-KRAUS CZ 0 1 "(0.049949974974968704 0.0 0.0 0.0 0.0 0.049912119740296516 0.0 0.0 0.0 0.0 -0.049914283669964796 0.0 0.0 0.0 0.0 0.04987645548440979)"
+    PRAGMA ADD-KRAUS CZ 0 1 "(0.002236067977499789 0.0 0.0 0.0 0.0 -0.0022343733444579583 0.0 0.0 0.0 0.0 -0.0022344702152539741 0.0 0.0 0.0 0.0 -0.002232776793096929)"
+    PRAGMA ADD-KRAUS CZ 0 1 "(0.0 0.0019443001389453816 0.0 0.0 0.0 0.0 0.0 0.0 0.0 0.0 0.0 0.0019429108567823171 0.0 0.0 0.0 0.0)"
+    PRAGMA ADD-KRAUS CZ 0 1 "(0.0 -8.7038827977848897e-05 0.0 0.0 0.0 0.0 0.0 0.0 0.0 0.0 0.0 -8.6976635166779485e-05 0.0 0.0 0.0 0.0)"
+    PRAGMA ADD-KRAUS CZ 0 1 "(0.0 0.0 0.037711404110693098 0.0 0.0 0.0 0.0 -0.03768282403526476 0.0 0.0 0.0 0.0 0.0 0.0 0.0 0.0)"
+    PRAGMA ADD-KRAUS CZ 0 1 "(0.0 0.0 0.0016881943016134129 0.0 0.0 0.0 0.0 0.0016869148817239765 0.0 0.0 0.0 0.0 0.0 0.0 0.0 0.0)"
+    PRAGMA ADD-KRAUS CZ 0 1 "(0.0 0.0 0.0 -0.0014679144141511546 0.0 0.0 0.0 0.0 0.0 0.0 0.0 0.0 0.0 0.0 0.0 0.0)"
+    PRAGMA ADD-KRAUS CZ 0 1 "(0.0 0.0 0.0 6.5712874067277077e-05 0.0 0.0 0.0 0.0 0.0 0.0 0.0 0.0 0.0 0.0 0.0 0.0)"
+    PRAGMA ADD-KRAUS CZ 0 1 "(0.0 0.0 -0.0018879315968238133 0.0 0.0 0.0 0.0 0.0018865008034414617 0.0 0.0 0.0 0.0 0.0 0.0 0.0 0.0)"
+    PRAGMA ADD-KRAUS CZ 0 1 "(0.0 0.0 -8.4515425472851639e-05 0.0 0.0 0.0 0.0 -8.4451374364391668e-05 0.0 0.0 0.0 0.0 0.0 0.0 0.0 0.0)"
+    PRAGMA ADD-KRAUS CZ 0 1 "(0.0 0.0 0.0 7.3487637738825842e-05 0.0 0.0 0.0 0.0 0.0 0.0 0.0 0.0 0.0 0.0 0.0 0.0)"
+    PRAGMA ADD-KRAUS CZ 0 1 "(0.0 0.0 0.0 -3.2897584747988441e-06 0.0 0.0 0.0 0.0 0.0 0.0 0.0 0.0 0.0 0.0 0.0 0.0)"
+    PRAGMA ADD-KRAUS X-MINUS-90 0 "(0.70622234459127675 +0.70622234459127664i +0.70571771977186448i 0.70571771977186459)"
+    PRAGMA ADD-KRAUS X-MINUS-90 0 "(0.035355339059327376 +0.035355339059327369i -0.035330076220046358i -0.035330076220046365)"
+    PRAGMA ADD-KRAUS X-MINUS-90 0 "(+0.026692695630078277i 0.02669269563007828 0.0 0.0)"
+    PRAGMA ADD-KRAUS X-MINUS-90 0 "(-0.0013363062095621216i -0.0013363062095621218 0.0 0.0)"
+    PRAGMA ADD-KRAUS X-PLUS-90 1 "(0.70639932049797449 -0.70639932049797438i -0.70586396663517215i 0.70586396663517226)"
+    PRAGMA ADD-KRAUS X-PLUS-90 1 "(0.031622776601683791 -0.031622776601683784i +0.031598810871373756i -0.031598810871373763)"
+    PRAGMA ADD-KRAUS X-PLUS-90 1 "(-0.027496556258204519i 0.027496556258204522 0.0 0.0)"
+    PRAGMA ADD-KRAUS X-PLUS-90 1 "(+0.0012309149097933271i -0.0012309149097933273 0.0 0.0)"
+    PRAGMA ADD-KRAUS CZ 1 0 "(0.99774996867952848 0.0 0.0 0.0 0.0 0.99703703542045019 0.0 0.0 0.0 0.0 0.99699381095918005 0.0 0.0 0.0 0.0 -0.99628141800579439)"
+    PRAGMA ADD-KRAUS CZ 1 0 "(0.049949974974968704 0.0 0.0 0.0 0.0 -0.049914283669964796 0.0 0.0 0.0 0.0 0.049912119740296516 0.0 0.0 0.0 0.0 0.04987645548440979)"
+    PRAGMA ADD-KRAUS CZ 1 0 "(0.0 0.037711404110693098 0.0 0.0 0.0 0.0 0.0 0.0 0.0 0.0 0.0 -0.03768282403526476 0.0 0.0 0.0 0.0)"
+    PRAGMA ADD-KRAUS CZ 1 0 "(0.0 -0.0018879315968238133 0.0 0.0 0.0 0.0 0.0 0.0 0.0 0.0 0.0 0.0018865008034414617 0.0 0.0 0.0 0.0)"
+    PRAGMA ADD-KRAUS CZ 1 0 "(0.044665422868254583 0.0 0.0 0.0 0.0 0.044633507592390709 0.0 0.0 0.0 0.0 -0.044631572599755795 0.0 0.0 0.0 0.0 0.044599681511296584)"
+    PRAGMA ADD-KRAUS CZ 1 0 "(0.002236067977499789 0.0 0.0 0.0 0.0 -0.0022344702152539741 0.0 0.0 0.0 0.0 -0.0022343733444579583 0.0 0.0 0.0 0.0 -0.002232776793096929)"
+    PRAGMA ADD-KRAUS CZ 1 0 "(0.0 0.0016881943016134129 0.0 0.0 0.0 0.0 0.0 0.0 0.0 0.0 0.0 0.0016869148817239765 0.0 0.0 0.0 0.0)"
+    PRAGMA ADD-KRAUS CZ 1 0 "(0.0 -8.4515425472851639e-05 0.0 0.0 0.0 0.0 0.0 0.0 0.0 0.0 0.0 -8.4451374364391668e-05 0.0 0.0 0.0 0.0)"
+    PRAGMA ADD-KRAUS CZ 1 0 "(0.0 0.0 0.038837364857710277 0.0 0.0 0.0 0.0 -0.038809613968237774 0.0 0.0 0.0 0.0 0.0 0.0 0.0 0.0)"
+    PRAGMA ADD-KRAUS CZ 1 0 "(0.0 0.0 0.0019443001389453816 0.0 0.0 0.0 0.0 0.0019429108567823171 0.0 0.0 0.0 0.0 0.0 0.0 0.0 0.0)"
+    PRAGMA ADD-KRAUS CZ 1 0 "(0.0 0.0 0.0 -0.0014679144141511546 0.0 0.0 0.0 0.0 0.0 0.0 0.0 0.0 0.0 0.0 0.0 0.0)"
+    PRAGMA ADD-KRAUS CZ 1 0 "(0.0 0.0 0.0 7.3487637738825842e-05 0.0 0.0 0.0 0.0 0.0 0.0 0.0 0.0 0.0 0.0 0.0 0.0)"
+    PRAGMA ADD-KRAUS CZ 1 0 "(0.0 0.0 -0.0017385992271732066 0.0 0.0 0.0 0.0 0.0017373569267450744 0.0 0.0 0.0 0.0 0.0 0.0 0.0 0.0)"
+    PRAGMA ADD-KRAUS CZ 1 0 "(0.0 0.0 -8.7038827977848897e-05 0.0 0.0 0.0 0.0 -8.6976635166779485e-05 0.0 0.0 0.0 0.0 0.0 0.0 0.0 0.0)"
+    PRAGMA ADD-KRAUS CZ 1 0 "(0.0 0.0 0.0 6.5712874067277077e-05 0.0 0.0 0.0 0.0 0.0 0.0 0.0 0.0 0.0 0.0 0.0 0.0)"
+    PRAGMA ADD-KRAUS CZ 1 0 "(0.0 0.0 0.0 -3.2897584747988441e-06 0.0 0.0 0.0 0.0 0.0 0.0 0.0 0.0 0.0 0.0 0.0 0.0)"
+    PRAGMA ADD-KRAUS I 1 "(0.99899949949937417 0.0 0.0 0.99824239480593036)"
+    PRAGMA ADD-KRAUS I 1 "(0.044721359549995787 0.0 0.0 -0.044687466889159165)"
+    PRAGMA ADD-KRAUS I 1 "(0.0 0.038886002778907636 0.0 0.0)"
+    PRAGMA ADD-KRAUS I 1 "(0.0 -0.0017407765595569781 0.0 0.0)"
+    PRAGMA ADD-KRAUS X-PLUS-90 0 "(0.70622234459127675 -0.70622234459127664i -0.70571771977186448i 0.70571771977186459)"
+    PRAGMA ADD-KRAUS X-PLUS-90 0 "(0.035355339059327376 -0.035355339059327369i +0.035330076220046358i -0.035330076220046365)"
+    PRAGMA ADD-KRAUS X-PLUS-90 0 "(-0.026692695630078277i 0.02669269563007828 0.0 0.0)"
+    PRAGMA ADD-KRAUS X-PLUS-90 0 "(+0.0013363062095621216i -0.0013363062095621218 0.0 0.0)"
+    PRAGMA ADD-KRAUS X-MINUS-90 1 "(0.70639932049797449 +0.70639932049797438i +0.70586396663517215i 0.70586396663517226)"
+    PRAGMA ADD-KRAUS X-MINUS-90 1 "(0.031622776601683791 +0.031622776601683784i -0.031598810871373756i -0.031598810871373763)"
+    PRAGMA ADD-KRAUS X-MINUS-90 1 "(+0.027496556258204519i 0.027496556258204522 0.0 0.0)"
+    PRAGMA ADD-KRAUS X-MINUS-90 1 "(-0.0012309149097933271i -0.0012309149097933273 0.0 0.0)"
+    H 0
+    H 1
+    CZ 0 1
+    H 1
+
+
+
+.. code:: ipython2
+
+    for prog in (p_bell, p_bell_noisy):
+        bell_result = cxn.run(prog.measure_all((0, 0), (1, 1)), [0, 1], trials=5000)
+        bell_result = np.array(bell_result)
+
+        Z0 = 2*bell_result[:,0] - 1.
+        Z1 = 2*bell_result[:,1] - 1.
+        Z0Z1 = Z0 * Z1
+
+        print("<Z0>={}, <Z1>={}, <Z0Z1>={}".format(Z0.mean(), Z1.mean(), Z0Z1.mean()))
+
+
+
+
+.. parsed-literal::
+
+    <Z0>=-0.0052, <Z1>=-0.0052, <Z0Z1>=1.0
+    <Z0>=0.0024, <Z1>=0.0, <Z0Z1>=0.9896
+
+
+We see that the :math:`\langle Z_0Z_1 \rangle` moment is slightly
+reduced for the noisy execution. 
 
