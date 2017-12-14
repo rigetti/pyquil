@@ -28,7 +28,7 @@ The expectation value of an operator for a mixed state is given by
 
    \langle X \rangle_\rho = \tr{X \rho}
 
-where :math:`\tr{A}` is the trace of an operator, which is the sum of its diagonal elements
+where :math:`\tr{\cdot}` is the trace of an operator, which is the sum of its diagonal elements
 which is independent of choice of basis.
 Pure state density matrices satisfy
 
@@ -288,6 +288,7 @@ How do I get started?
     from pyquil.api.qvm import QVMConnection
     from pyquil.job_results import wait_for_job
     from pyquil.gates import CZ, H, I, X
+    from scipy.linalg import expm
 
 .. code:: ipython3
 
@@ -316,21 +317,43 @@ state decays to the :math:`\ket{0}` state.
 
 .. code:: ipython3
 
-    def append_damping_to_gate(gate, damp_prob=.1):
-        """
-        Generate the Kraus operators corresponding to a given unitary 
-        single qubit gate followed by an amplitude damping noise channel.
-        
-        :params np.ndarray|list gate: The 2x2 unitary gate matrix.
-        :params float damp_prob: The one-step damping probability.
-        :return: A list [k1, k2] of the Kraus operators that parametrize the map.
-        :rtype: list
-        """
-        damping_op = np.sqrt(damp_prob) * np.array([[0, 1],
-                                                    [0, 0]])
-        
-        residual_kraus = np.diag([1, np.sqrt(1-damp_prob)])
-        return [residual_kraus.dot(gate), damping_op.dot(gate)]
+   def damping_channel(damp_prob=.1):
+       """
+       Generate the Kraus operators corresponding to an amplitude damping
+       noise channel.
+
+       :params float damp_prob: The one-step damping probability.
+       :return: A list [k1, k2] of the Kraus operators that parametrize the map.
+       :rtype: list
+       """
+       damping_op = np.sqrt(damp_prob) * np.array([[0, 1],
+                                                   [0, 0]])
+
+       residual_kraus = np.diag([1, np.sqrt(1-damp_prob)])
+       return [residual_kraus, damping_op]
+
+   def append_kraus_to_gate(kraus_ops, g):
+       """
+       Follow a gate `g` by a Kraus map described by `kraus_ops`.
+
+       :param list kraus_ops: The Kraus operators.
+       :param numpy.ndarray g: The unitary gate.
+       :return: A list of transformed Kraus operators.
+       """
+       return [kj.dot(g) for kj in kraus_ops]
+
+
+   def append_damping_to_gate(gate, damp_prob=.1):
+       """
+       Generate the Kraus operators corresponding to a given unitary
+       single qubit gate followed by an amplitude damping noise channel.
+
+       :params np.ndarray|list gate: The 2x2 unitary gate matrix.
+       :params float damp_prob: The one-step damping probability.
+       :return: A list [k1, k2] of the Kraus operators that parametrize the map.
+       :rtype: list
+       """
+       return append_kraus_to_gate(damping_channel(damp_prob), gate)
 
 .. code:: ipython3
 
@@ -603,7 +626,7 @@ then damping noise.
 
         :param float T1: The amplitude damping time
         :param float T2: The dephasing time
-        :param flaot t_gate: The gate duration.
+        :param float t_gate: The gate duration.
         :return: A list of Kraus operators.
         """
         return combine_kraus_maps(damping_channel(t_gate/T1), dephasing_kraus_map(t_gate/T2))
@@ -838,5 +861,5 @@ Example: Making a Bell state
 
 
 We see that the :math:`\langle Z_0Z_1 \rangle` moment is slightly
-reduced for the noisy execution. 
+reduced for the noisy execution.
 
