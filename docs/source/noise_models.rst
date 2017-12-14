@@ -110,22 +110,24 @@ We can insert the initially factorizable state
 :math:`\rho = \rho_{S,0} \otimes \rho_{E,0}` and trace over the
 environmental degrees of freedom to obtain
 
-.. raw:: latex
+
+.. math::
+
 
    \begin{align}
-   \rho_S' := \tr_E \rho' & = \rho_{S,0}  \underbrace{\tr \rho_{E,0}}_{1} - \frac{i\sqrt{\epsilon} t}{\hbar} \underbrace{\left[ V_S \rho_{S,0} \underbrace{\tr V_E\rho_{E,0}}_{\bra{\psi}_{E,0} V_E\ket{\psi}_{E,0} = 0} - \rho_{S,0}V_S  \underbrace{\tr \rho_{E,0}V_E}_{\bra{\psi}_{E,0} V_E\ket{\psi}_{E,0} = 0} \right]}_0 \\
-   & \qquad - \frac{\epsilon t^2}{2\hbar^2} \left[ V_S^2\rho_{S,0}\tr V_E^2 \rho_{E,0} + \rho_{S,0} V_S^2 \tr \rho_{E,0}V_E^2 - 2 V_S\rho_{S,0}V_S\tr V_E \rho_{E,0}V_E\right] \\
+   \rho_S' := \tr{\rho'}_E & = \rho_{S,0}  \underbrace{\tr{\rho_{E,0}}_{1}} - \frac{i\sqrt{\epsilon} t}{\hbar} \underbrace{\left[ V_S \rho_{S,0} \underbrace{\tr{V_E\rho_{E,0}}}_{\bra{\psi}_{E,0} V_E\ket{\psi}_{E,0} = 0} - \rho_{S,0}V_S  \underbrace{\tr{\rho_{E,0}V_E}}_{\bra{\psi}_{E,0} V_E\ket{\psi}_{E,0} = 0} \right]}_0 \\
+   & - \frac{\epsilon t^2}{2\hbar^2} \left[ V_S^2\rho_{S,0}\tr{V_E^2 \rho_{E,0}} + \rho_{S,0} V_S^2 \tr{\rho_{E,0}V_E^2} - 2 V_S\rho_{S,0}V_S\tr{V_E \rho_{E,0}V_E}\right] \\
    & = \rho_{S,0} - \frac{\gamma}{2} \left[ V_S^2\rho_{S,0} + \rho_{S,0} V_S^2  - 2 V_S\rho_{S,0}V_S\right]
    \end{align}
 
 where the coefficient in front of the second part is by our initial
 assumption very small
-:math:`\gamma := \frac{\epsilon t^2}{2\hbar^2}\tr V_E^2 \rho_{E,0} \ll 1`.
+:math:`\gamma := \frac{\epsilon t^2}{2\hbar^2}\tr{V_E^2 \rho_{E,0}} \ll 1`.
 This evolution happens to be approximately equal to a Kraus map with
 operators
 :math:`K_1 := I - \frac{\gamma}{2} V_S^2, K_2:= \sqrt{\gamma} V_S`:
 
-.. raw:: latex
+.. math::
 
    \begin{align}
    \rho_S \to \rho_S' &= K_1\rho K_1^\dagger + K_2\rho K_2^\dagger
@@ -166,7 +168,7 @@ with probability
 :math:`p_j:= \bra{\psi}_S K_j^\dagger K_j \ket{\psi}_S`. In the average
 over many execution :math:`N \gg 1` we therefore find that
 
-.. raw:: latex
+.. math::
 
    \begin{align}
    \overline{\rho_S'} & = \frac{1}{N} \sum_{n=1}^N \ket{\psi'_n}_S\bra{\psi'_n}_S \\
@@ -177,7 +179,7 @@ where :math:`j_n` is the chosen Kraus operator label in the :math:`n`-th
 trial. This is clearly a Kraus map itself! And we can group identical
 terms and rewrite it as
 
-.. raw:: latex
+.. math::
 
    \begin{align}
    \overline{\rho_S'} & = 
@@ -188,7 +190,7 @@ where :math:`N_{\ell}` is the number of times that Kraus operator label
 :math:`\ell` was selected. For large enough :math:`N` we know that
 :math:`N_{\ell} \approx N p_\ell` and therefore
 
-.. raw:: latex
+.. math::
 
    \begin{align}
    \overline{\rho_S'} \approx \sum_{\ell=1}^n K_{\ell}\ket{\psi'}_S \bra{\psi'}_SK_{\ell}^\dagger
@@ -395,7 +397,7 @@ diagonal, therefore we can get the combined map of dephasing and the CZ
 gate simply by composing :math:`U_{\rm CZ}` the unitary representation
 of CZ with each Kraus operator
 
-.. raw:: latex
+.. math::
 
    \begin{align}
    K^{\rm CZ}_1(p,q) = K_1(p)\otimes K_1(q)U_{\rm CZ} \\
