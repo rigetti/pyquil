@@ -309,7 +309,9 @@ class QVMConnection(object):
                             Defaults to the value specified in the constructor (2 seconds)
         :return: Completed Job
         """
-        return wait_for_job(self.session, self.async_endpoint, job_id,
+        def get_job_fn():
+            return self.get_job(job_id)
+        return wait_for_job(get_job_fn,
                             ping_time if ping_time else self.ping_time,
                             status_time if status_time else self.status_time)
 

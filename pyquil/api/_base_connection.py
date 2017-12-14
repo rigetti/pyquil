@@ -37,13 +37,13 @@ TYPE_MULTISHOT_MEASURE = "multishot-measure"
 TYPE_WAVEFUNCTION = "wavefunction"
 
 
-def wait_for_job(session, async_endpoint, job_id, ping_time=None, status_time=None):
+def wait_for_job(get_job_fn, ping_time=None, status_time=None):
     """
     Wait for job logic
     """
     count = 0
     while True:
-        job = get_job(session, async_endpoint, job_id)
+        job = get_job_fn()
         if job.is_done():
             break
 

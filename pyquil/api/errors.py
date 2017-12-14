@@ -32,7 +32,7 @@ currently available devices:
 class DeviceRetuningError(ApiError):
     def __init__(self, server_status):
         explanation = """
-The device you requested is temporarily down for retuning. Use the following 
+The device you requested is temporarily down for retuning. Use the following
 code to check for the currently available devices:
 
     from pyquil.api import get_devices
@@ -43,9 +43,9 @@ code to check for the currently available devices:
 class InvalidInputError(ApiError):
     def __init__(self, server_status):
         explanation = """
-The server returned the above error because something was wrong with the HTTP 
-request sent to it. This could be due to a bug in the server or a bug in your 
-code. If you suspect this to be a bug in pyQuil or Rigetti Forest, then please 
+The server returned the above error because something was wrong with the HTTP
+request sent to it. This could be due to a bug in the server or a bug in your
+code. If you suspect this to be a bug in pyQuil or Rigetti Forest, then please
 describe the problem in a GitHub issue at:
     https://github.com/rigetticomputing/pyquil/issues"""
         ApiError.__init__(self, server_status, explanation)
@@ -84,8 +84,8 @@ permissions please read the information located at:
 class QPUError(ApiError):
     def __init__(self, server_status):
         explanation = """
-The QPU returned the above error. This could be due to a bug in the server or a 
-bug in your code. If you suspect this to be a bug in pyQuil or Rigetti Forest, 
+The QPU returned the above error. This could be due to a bug in the server or a
+bug in your code. If you suspect this to be a bug in pyQuil or Rigetti Forest,
 then please describe the problem in a GitHub issue at:
     https://github.com/rigetticomputing/pyquil/issues"""
         ApiError.__init__(self, server_status, explanation)
@@ -94,8 +94,8 @@ then please describe the problem in a GitHub issue at:
 class QVMError(ApiError):
     def __init__(self, server_status):
         explanation = """
-The QVM returned the above error. This could be due to a bug in the server or a 
-bug in your code. If you suspect this to be a bug in pyQuil or Rigetti Forest, 
+The QVM returned the above error. This could be due to a bug in the server or a
+bug in your code. If you suspect this to be a bug in pyQuil or Rigetti Forest,
 then please describe the problem in a GitHub issue at:
     https://github.com/rigetticomputing/pyquil/issues"""
         ApiError.__init__(self, server_status, explanation)
@@ -118,7 +118,7 @@ See https://go.rigetti.com/connections for more info."""
 class UnknownApiError(ApiError):
     def __init__(self, server_status):
         explanation = """
-The server has failed to return a proper response. Please describe the problem 
+The server has failed to return a proper response. Please describe the problem
 and copy the above message into a GitHub issue at:
     https://github.com/rigetticomputing/pyquil/issues"""
         ApiError.__init__(self, server_status, explanation)
