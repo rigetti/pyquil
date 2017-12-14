@@ -154,8 +154,8 @@ def test_qpu_connection():
     qpu = QPUConnection(device_name='fake_device')
 
     program = {
-        "type": "multishot",
-        "addresses": [0, 1],
+        "type": "multishot-measure",
+        "qubits": [0, 1],
         "trials": 2,
         "quil-instructions": "H 0\nCNOT 0 1\n"
     }
@@ -176,7 +176,7 @@ def test_qpu_connection():
                                  "result": [[0, 0], [1, 1]], "program": program})}
         ])
 
-        result = qpu.run(BELL_STATE, [0, 1], trials=2)
+        result = qpu.run_and_measure(BELL_STATE, [0, 1], trials=2)
         assert result == [[0, 0], [1, 1]]
 
     with requests_mock.Mocker() as m:
@@ -192,7 +192,7 @@ def test_qpu_connection():
                                  }})}
         ])
 
-        job = qpu.wait_for_job(qpu.run_async(BELL_STATE, [0, 1], trials=2))
+        job = qpu.wait_for_job(qpu.run_and_measure_async(BELL_STATE, [0, 1], trials=2))
         assert job.result() == [[0, 0], [1, 1]]
         assert job.compiled_quil() == Program(H(0), CNOT(0, 1))
         assert job.topological_swaps() == 0
@@ -206,7 +206,7 @@ def test_qpu_connection():
                                  "result": [[0, 0], [1, 1]], "program": program})}
         ])
 
-        job = qpu.wait_for_job(qpu.run_async(BELL_STATE, [0, 1], trials=2))
+        job = qpu.wait_for_job(qpu.run_and_measure_async(BELL_STATE, [0, 1], trials=2))
         assert job.result() == [[0, 0], [1, 1]]
         assert job.compiled_quil() is None
         assert job.topological_swaps() is None

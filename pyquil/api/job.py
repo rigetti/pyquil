@@ -17,6 +17,7 @@
 import base64
 import warnings
 
+from pyquil.api.errors import CancellationError, QVMError, QPUError
 from pyquil.parser import parse_program
 from pyquil.wavefunction import Wavefunction
 
@@ -29,8 +30,9 @@ class Job(object):
     They transition to RUNNING when they have been started
     Finally they are marked as FINISHED, ERROR, or CANCELLED once completed
     """
-    def __init__(self, raw):
+    def __init__(self, raw, machine):
         self._raw = raw
+        self._machine = machine
 
     @property
     def job_id(self):
@@ -50,16 +52,19 @@ class Job(object):
         """
         The result of the job if available
         throws ValueError is result is not available yet
-        throws RuntimeError if server returned an error indicating program execution was not successful
+        throws ApiError if server returned an error indicating program execution was not successful
             or if the job was cancelled
         """
         if not self.is_done():
             raise ValueError("Cannot get a result for a program that isn't completed.")
 
         if self._raw['status'] == 'CANCELLED':
-            raise RuntimeError("Job was cancelled: {}".format(self._raw['result']))
+            raise CancellationError(self._raw['result'])
         elif self._raw['status'] == 'ERROR':
-            raise RuntimeError("Server returned an error: {}".format(self._raw['result']))
+            if self._machine == 'QVM':
+                raise QVMError(self._raw['result'])
+            else:  # self._machine == 'QPU'
+                raise QPUError(self._raw['result'])
 
         if self._raw['program']['type'] == 'wavefunction':
             return Wavefunction.from_bit_packed_string(

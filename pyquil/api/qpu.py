@@ -15,12 +15,12 @@
 ##############################################################################
 import warnings
 
-import requests
 from six import integer_types
 
+from pyquil.api import Job
 from pyquil.quil import Program
-from ._base_connection import validate_run_items, TYPE_MULTISHOT, TYPE_MULTISHOT_MEASURE, get_job_id, BaseConnection
-from ._config import PyquilConfig
+from ._base_connection import validate_run_items, TYPE_MULTISHOT, TYPE_MULTISHOT_MEASURE, get_job_id, \
+    get_session, wait_for_job, post_json, get_json
 
 
 def get_devices(async_endpoint='https://job.rigetti.com/beta', api_key=None, user_id=None):
@@ -31,17 +31,8 @@ def get_devices(async_endpoint='https://job.rigetti.com/beta', api_key=None, use
     :return: set of online and offline devices
     :rtype: set
     """
-    config = PyquilConfig()
-    api_key = api_key if api_key else config.api_key
-    user_id = user_id if user_id else config.user_id
-
-    headers = {
-        'X-Api-Key': api_key,
-        'X-User-Id': user_id,
-        'Content-Type': 'application/json; charset=utf-8'
-    }
-
-    response = requests.get(async_endpoint + '/devices', headers=headers)
+    session = get_session(api_key, user_id)
+    response = session.get(async_endpoint + '/devices')
     return {Device(name, device) for (name, device) in response.json()['devices'].items()}
 
 
@@ -74,7 +65,7 @@ class Device(object):
         return str(self)
 
 
-class QPUConnection(BaseConnection):
+class QPUConnection(object):
     """
     Represents a connection to the QPU (Quantum Processing Unit)
     """
@@ -114,9 +105,12 @@ API key with QPU access. See https://forest.rigetti.com for more details.
 
 To suppress this warning, see Python's warning module.
 """)
+        self.async_endpoint = async_endpoint
+        self.session = get_session(api_key, user_id)
 
-        super(QPUConnection, self).__init__(async_endpoint=async_endpoint, api_key=api_key, user_id=user_id,
-                                            ping_time=ping_time, status_time=status_time)
+        self.ping_time = ping_time
+        self.status_time = status_time
+
         self.device_name = device_name
 
     def run(self, quil_program, classical_addresses, trials=1):
@@ -130,20 +124,17 @@ To suppress this warning, see Python's warning module.
                  in `classical_addresses`.
         :rtype: list
         """
-        payload = self._run_payload(quil_program, classical_addresses, trials)
-
-        response = self._post_json(self.async_endpoint + "/job", self._wrap_program(payload))
-        job = self.wait_for_job(get_job_id(response))
-        return job.result()
+        raise DeprecationWarning("""
+The QPU does not currently support arbitrary measure operations. For now, the
+only supported operation on the QPU is run_and_measure.""")
 
     def run_async(self, quil_program, classical_addresses, trials=1):
         """
         Similar to run except that it returns a job id and doesn't wait for the program to be executed.
         See https://go.rigetti.com/connections for reasons to use this method.
         """
-        payload = self._run_payload(quil_program, classical_addresses, trials)
-        response = self._post_json(self.async_endpoint + "/job", self._wrap_program(payload))
-        return get_job_id(response)
+        # NB: Throw the same deprecation warning as in run
+        return self.run(quil_program, classical_addresses, trials)
 
     def _run_payload(self, quil_program, classical_addresses, trials):
         if not isinstance(quil_program, Program):
@@ -172,7 +163,7 @@ To suppress this warning, see Python's warning module.
         """
         payload = self._run_and_measure_payload(quil_program, qubits, trials)
 
-        response = self._post_json(self.async_endpoint + "/job", self._wrap_program(payload))
+        response = post_json(self.session, self.async_endpoint + "/job", self._wrap_program(payload))
         job = self.wait_for_job(get_job_id(response))
         return job.result()
 
@@ -182,7 +173,7 @@ To suppress this warning, see Python's warning module.
         See https://go.rigetti.com/connections for reasons to use this method.
         """
         payload = self._run_and_measure_payload(quil_program, qubits, trials)
-        response = self._post_json(self.async_endpoint + "/job", self._wrap_program(payload))
+        response = post_json(self.session, self.async_endpoint + "/job", self._wrap_program(payload))
         return get_job_id(response)
 
     def _run_and_measure_payload(self, quil_program, qubits, trials):
@@ -198,6 +189,34 @@ To suppress this warning, see Python's warning module.
                    'quil-instructions': quil_program.out()}
 
         return payload
+
+    def get_job(self, job_id):
+        """
+        Given a job id, return information about the status of the job
+
+        :param str job_id: job id
+        :return: Job object with the status and potentially results of the job
+        :rtype: Job
+        """
+        response = get_json(self.session, self.async_endpoint + "/job/" + job_id)
+        return Job(response.json(), 'QPU')
+
+    def wait_for_job(self, job_id, ping_time=None, status_time=None):
+        """
+        Wait for the results of a job and periodically print status
+
+        :param job_id: Job id
+        :param ping_time: How often to poll the server.
+                          Defaults to the value specified in the constructor. (0.1 seconds)
+        :param status_time: How often to print status, set to False to never print status.
+                            Defaults to the value specified in the constructor (2 seconds)
+        :return: Completed Job
+        """
+        def get_job_fn():
+            return self.get_job(job_id)
+        return wait_for_job(get_job_fn,
+                            ping_time if ping_time else self.ping_time,
+                            status_time if status_time else self.status_time)
 
     def _wrap_program(self, program):
         return {

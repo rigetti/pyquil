@@ -14,17 +14,17 @@
 #    limitations under the License.
 ##############################################################################
 
-import json
-
 from six import integer_types
 
+from pyquil.api import Job
 from pyquil.quil import Program
 from pyquil.wavefunction import Wavefunction
-from ._base_connection import BaseConnection, validate_noise_probabilities, validate_run_items, TYPE_MULTISHOT, \
-    TYPE_MULTISHOT_MEASURE, TYPE_WAVEFUNCTION, TYPE_EXPECTATION, get_job_id
+from ._base_connection import validate_noise_probabilities, validate_run_items, TYPE_MULTISHOT, \
+    TYPE_MULTISHOT_MEASURE, TYPE_WAVEFUNCTION, TYPE_EXPECTATION, get_job_id, get_session, wait_for_job, \
+    post_json, get_json
 
 
-class QVMConnection(BaseConnection):
+class QVMConnection(object):
     """
     Represents a connection to the QVM.
     """
@@ -58,10 +58,13 @@ class QVMConnection(BaseConnection):
         :param random_seed: A seed for the QVM's random number generators. Either None (for an
                             automatically generated seed) or a non-negative integer.
         """
-        super(QVMConnection, self).__init__(async_endpoint=async_endpoint, api_key=api_key, user_id=user_id,
-                                            ping_time=ping_time, status_time=status_time)
+        self.async_endpoint = async_endpoint
         self.sync_endpoint = sync_endpoint
+        self.session = get_session(api_key, user_id)
+
         self.use_queue = use_queue
+        self.ping_time = ping_time
+        self.status_time = status_time
 
         validate_noise_probabilities(gate_noise)
         validate_noise_probabilities(measurement_noise)
@@ -92,12 +95,12 @@ class QVMConnection(BaseConnection):
         """
         payload = self._run_payload(quil_program, classical_addresses, trials)
         if self.use_queue:
-            response = self._post_json(self.async_endpoint + "/job", {"machine": "QVM", "program": payload})
+            response = post_json(self.session, self.async_endpoint + "/job", {"machine": "QVM", "program": payload})
             job = self.wait_for_job(get_job_id(response))
             return job.result()
         else:
             payload = self._run_payload(quil_program, classical_addresses, trials)
-            response = self._post_json(self.sync_endpoint + "/qvm", payload)
+            response = post_json(self.session, self.sync_endpoint + "/qvm", payload)
             return response.json()
 
     def run_async(self, quil_program, classical_addresses, trials=1):
@@ -106,7 +109,7 @@ class QVMConnection(BaseConnection):
         See https://go.rigetti.com/connections for reasons to use this method.
         """
         payload = self._run_payload(quil_program, classical_addresses, trials)
-        response = self._post_json(self.async_endpoint + "/job", {"machine": "QVM", "program": payload})
+        response = post_json(self.session, self.async_endpoint + "/job", {"machine": "QVM", "program": payload})
         return get_job_id(response)
 
     def _run_payload(self, quil_program, classical_addresses, trials):
@@ -144,12 +147,12 @@ class QVMConnection(BaseConnection):
         """
         payload = self._run_and_measure_payload(quil_program, qubits, trials)
         if self.use_queue:
-            response = self._post_json(self.async_endpoint + "/job", {"machine": "QVM", "program": payload})
+            response = post_json(self.session, self.async_endpoint + "/job", {"machine": "QVM", "program": payload})
             job = self.wait_for_job(get_job_id(response))
             return job.result()
         else:
             payload = self._run_and_measure_payload(quil_program, qubits, trials)
-            response = self._post_json(self.sync_endpoint + "/qvm", payload)
+            response = post_json(self.session, self.sync_endpoint + "/qvm", payload)
             return response.json()
 
     def run_and_measure_async(self, quil_program, qubits, trials=1):
@@ -158,7 +161,7 @@ class QVMConnection(BaseConnection):
         See https://go.rigetti.com/connections for reasons to use this method.
         """
         payload = self._run_and_measure_payload(quil_program, qubits, trials)
-        response = self._post_json(self.async_endpoint + "/job", {"machine": "QVM", "program": payload})
+        response = post_json(self.session, self.async_endpoint + "/job", {"machine": "QVM", "program": payload})
         return get_job_id(response)
 
     def _run_and_measure_payload(self, quil_program, qubits, trials):
@@ -200,12 +203,12 @@ class QVMConnection(BaseConnection):
 
         if self.use_queue:
             payload = self._wavefunction_payload(quil_program, classical_addresses)
-            response = self._post_json(self.async_endpoint + "/job", {"machine": "QVM", "program": payload})
+            response = post_json(self.session, self.async_endpoint + "/job", {"machine": "QVM", "program": payload})
             job = self.wait_for_job(get_job_id(response))
             return job.result()
         else:
             payload = self._wavefunction_payload(quil_program, classical_addresses)
-            response = self._post_json(self.sync_endpoint + "/qvm", payload)
+            response = post_json(self.session, self.sync_endpoint + "/qvm", payload)
             return Wavefunction.from_bit_packed_string(response.content, classical_addresses)
 
     def wavefunction_async(self, quil_program, classical_addresses=None):
@@ -217,7 +220,7 @@ class QVMConnection(BaseConnection):
             classical_addresses = []
 
         payload = self._wavefunction_payload(quil_program, classical_addresses)
-        response = self._post_json(self.async_endpoint + "/job", {"machine": "QVM", "program": payload})
+        response = post_json(self.session, self.async_endpoint + "/job", {"machine": "QVM", "program": payload})
         return get_job_id(response)
 
     def _wavefunction_payload(self, quil_program, classical_addresses):
@@ -252,12 +255,12 @@ class QVMConnection(BaseConnection):
         """
         if self.use_queue:
             payload = self._expectation_payload(prep_prog, operator_programs)
-            response = self._post_json(self.async_endpoint + "/job", {"machine": "QVM", "program": payload})
+            response = post_json(self.session, self.async_endpoint + "/job", {"machine": "QVM", "program": payload})
             job = self.wait_for_job(get_job_id(response))
             return job.result()
         else:
             payload = self._expectation_payload(prep_prog, operator_programs)
-            response = self._post_json(self.sync_endpoint + "/qvm", payload)
+            response = post_json(self.session, self.sync_endpoint + "/qvm", payload)
             return response.json()
 
     def expectation_async(self, prep_prog, operator_programs=None):
@@ -266,7 +269,7 @@ class QVMConnection(BaseConnection):
         See https://go.rigetti.com/connections for reasons to use this method.
         """
         payload = self._expectation_payload(prep_prog, operator_programs)
-        response = self._post_json(self.async_endpoint + "/job", {"machine": "QVM", "program": payload})
+        response = post_json(self.session, self.async_endpoint + "/job", {"machine": "QVM", "program": payload})
         return get_job_id(response)
 
     def _expectation_payload(self, prep_prog, operator_programs):
@@ -283,6 +286,34 @@ class QVMConnection(BaseConnection):
         self._add_rng_seed_to_payload(payload)
 
         return payload
+
+    def get_job(self, job_id):
+        """
+        Given a job id, return information about the status of the job
+
+        :param str job_id: job id
+        :return: Job object with the status and potentially results of the job
+        :rtype: Job
+        """
+        response = get_json(self.session, self.async_endpoint + "/job/" + job_id)
+        return Job(response.json(), 'QVM')
+
+    def wait_for_job(self, job_id, ping_time=None, status_time=None):
+        """
+        Wait for the results of a job and periodically print status
+
+        :param job_id: Job id
+        :param ping_time: How often to poll the server.
+                          Defaults to the value specified in the constructor. (0.1 seconds)
+        :param status_time: How often to print status, set to False to never print status.
+                            Defaults to the value specified in the constructor (2 seconds)
+        :return: Completed Job
+        """
+        def get_job_fn():
+            return self.get_job(job_id)
+        return wait_for_job(get_job_fn,
+                            ping_time if ping_time else self.ping_time,
+                            status_time if status_time else self.status_time)
 
     def _add_noise_to_payload(self, payload):
         """
