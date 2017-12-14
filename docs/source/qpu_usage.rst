@@ -12,7 +12,7 @@ the receipt of job results, encoded as bitstring lists.
 
     User permissions for QPU access must be enabled by a Forest administrator.  ``QPUConnection``
     calls will automatically fail without these user permissions.  Speak to a Forest administrator
-     for information about upgrading your access plan.
+    for information about upgrading your access plan.
 
 Detecting the available QPUs and their structure
 ------------------------------------------------
@@ -40,12 +40,12 @@ The user-facing interface to running Quil programs on the QPU is nearly identica
 QVM.  A ``QPUConnection`` object provides the following methods:
 
 * ``.run_and_measure(quil_program, qubits, trials=1)``: This method sends the ``Program`` object
-``quil_program`` to the QPU for execution, which runs the program ``trials`` many times.  After
-each run on the QPU, the qubits listed in ``qubits`` are simultaneously measured, and this method
-returns a list of all of the measurement tuples so obtained.  This call is blocking: it will wait
-until the QPU returns its results for inspection.
+  ``quil_program`` to the QPU for execution, which runs the program ``trials`` many times.  After
+  each run on the QPU, the qubits listed in ``qubits`` are simultaneously measured, and this method
+  returns a list of all of the measurement tuples so obtained.  This call is blocking: it will wait
+  until the QPU returns its results for inspection.
 * ``.run_and_measure_async(quil_program, qubits, trials=1)``: This method has identical behavior
-to ``.run_and_measure`` except that it is **nonblocking**, and it instead returns a job ID string.
+  to ``.run_and_measure`` except that it is **nonblocking**, and it instead returns a job ID string.
 
 .. note::
 
@@ -55,7 +55,7 @@ to ``.run_and_measure`` except that it is **nonblocking**, and it instead return
     producing a (potentially) different outcome each time, whereas ``run_and_measure`` executes a
     program only once and uses the QVM's unique ability to perform wavefunction inspection to
     multiply sample the same distribution.  The QPU **does not** have this ability, and its
-``run_and_measure`` call behaves as the QVM's ``run``.
+    ``run_and_measure`` call behaves as the QVM's ``run``.
 
 For example, the following Python snippet demonstrates the execution of a small job on the QPU
 identified as "19Q-Acorn":
@@ -124,11 +124,21 @@ realizable hardware objects on the QPU.
 The compiler itself is subject to some limitations, and some of the more commonly observed errors
 follow:
 
-* ``! ! ! Error: Failed to select a SWAP instruction. Perhaps the qubit graph is disconnected?`` This error indicates a readdressing failure: some non-native Quil could not be reassigned to lie on native devices.  Two common reasons for this failure are:
-    * It is possible for the readdressing problem to be too difficult for the compiler to sort out, causing deadlock.
-    * If a qubit-qubit gate is requested to act on two qubit resources that lie on disconnected regions of the qubit graph, the addresser will fail.
-* ``! ! ! Error: Matrices do not lie in the same projective class.`` The compiler attempted to decompose an operator as native Quil instructions, and the resulting instructions do not match the original operator.  This can happen when the original operator is not a unitary matrix, and could indicate an invalid ``DEFGATE`` block.
-* ``! ! ! Error: Addresser loop only supports pure quantum instructions.`` The compiler inspected an instruction that it does not understand.  The most common cause of this error is the inclusion of classical control in a program submission (including the manual inclusion of ``MEASURE`` instructions), which is legal Quil but falls outside of the domain of ProtoQuil.
++ ``! ! ! Error: Failed to select a SWAP instruction. Perhaps the qubit graph is disconnected?``
+  This error indicates a readdressing failure: some non-native Quil could not be reassigned to lie
+  on native devices.  Two common reasons for this failure are:
+    + It is possible for the readdressing problem to be too difficult for the compiler to sort out,
+      causing deadlock.
+    + If a qubit-qubit gate is requested to act on two qubit resources that lie on disconnected
+      regions of the qubit graph, the addresser will fail.
++ ``! ! ! Error: Matrices do not lie in the same projective class.`` The compiler attempted to
+  decompose an operator as native Quil instructions, and the resulting instructions do not match the
+  original operator.  This can happen when the original operator is not a unitary matrix, and could
+  indicate an invalid ``DEFGATE`` block.
++ ``! ! ! Error: Addresser loop only supports pure quantum instructions.`` The compiler inspected an
+  instruction that it does not understand.  The most common cause of this error is the inclusion of
+  classical control in a program submission (including the manual inclusion of ``MEASURE``
+  instructions), which is legal Quil but falls outside of the domain of ProtoQuil.
 
 Retune interruptions
 --------------------
