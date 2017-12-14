@@ -15,6 +15,7 @@ Welcome to the Documentation for Forest and pyQuil!
    next_steps
    qvm_overview
    noise_models
+   qpu_usage
    examples
    source_docs
 
