@@ -34,14 +34,14 @@ The user-facing interface to running Quil programs on the QPU is nearly identica
 
     These calls are the only way to send jobs to the QPU at present, and their behavior **does not match** their ``QVMConnection`` counterparts (cf. `Optimized Calls <getting_started.html#optimized-calls>`_).  The ``QVMConnection`` version of ``run`` repeats the execution of a program many times, producing a (potentially) different outcome each time, whereas ``run_and_measure`` executes a program only once and uses the QVM's unique ability to perform wavefunction inspection to multiply sample the same distribution.  The QPU **does not** have this ability, and its ``run_and_measure`` call behaves as the QVM's ``run``.
 
-For example, the following Python snippet demonstrates the execution of a small job on the QPU identified as "8Q-Agave":
+For example, the following Python snippet demonstrates the execution of a small job on the QPU identified as "19Q-Acorn":
 
 .. code:: python
 
     from pyquil.quil import Program
     import pyquil.api as api
     from pyquil.gates import *
-    qpu = api.QPUConnection('8Q-Agave')
+    qpu = api.QPUConnection('19Q-Acorn')
     p = Program()
     p.inst(H(0), CNOT(0, 1))
     qpu.run_and_measure(p, [0, 1], 1000)
@@ -55,7 +55,7 @@ For example, consider the following Python snippet:
     from pyquil.quil import Program
     import pyquil.api as api
     from pyquil.gates import *
-    qpu = api.QPUConnection('8Q-Agave')
+    qpu = api.QPUConnection('19Q-Acorn')
     p = Program()
     p.inst(H(0), CNOT(0, 1))
     job_id = qpu.run_and_measure_async(p, [0, 1], 1000)
