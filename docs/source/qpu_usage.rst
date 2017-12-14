@@ -153,6 +153,15 @@ follow:
   classical control in a program submission (including the manual inclusion of ``MEASURE``
   instructions), which is legal Quil but falls outside of the domain of ProtoQuil.
 
+After being passed through the compiler, gates are applied to qubits at the earliest available time. As$
+
+.. code:: python
+
+    p = Program()
+    p.inst(X(0), H(0), H(1))
+
+In this example, ``X(0)`` and ``H(1)`` will be applied simultaneously, followed by `H(0)`.
+
 Retune interruptions
 --------------------
 
