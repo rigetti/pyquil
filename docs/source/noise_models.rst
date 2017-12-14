@@ -605,7 +605,7 @@ without noise). We will again assume a very simple noise model in which
 the ideal gate is followed by the application of first dephasing and
 then damping noise.
 
-.. code:: ipython2
+.. code:: ipython3
 
     def combine_kraus_maps(k1, k2):
         """
@@ -631,7 +631,7 @@ then damping noise.
         """
         return combine_kraus_maps(damping_channel(t_gate/T1), dephasing_kraus_map(t_gate/T2))
 
-.. code:: ipython2
+.. code:: ipython3
 
     # Can only apply gate-noise to non-parametrized gates, so we need to define placeholders for RX(+/- pi/2)
     # Feel free to modify these to experiment with other gate sets.
@@ -713,7 +713,7 @@ then damping noise.
 
         return header
 
-.. code:: ipython2
+.. code:: ipython3
 
     ngs = make_noisy_gate_set(
         [0, 1],
