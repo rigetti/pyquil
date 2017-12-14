@@ -34,7 +34,7 @@ parametric gate described below between qubit 3 and its neighbors. Consequently,
 as a 19-qubit processor. This also means that **qubit 3 is not accessible** for quantum computation
 through Forest.
 
-.. figure:: figures/figure1-1.png
+.. figure:: images/acorn.png
     :width: 540px
     :align: center
     :height: 300px
@@ -116,7 +116,7 @@ The coupling strength between two qubits can be extracted from a precise measure
 in qubit frequency after the neighboring qubit is in the excited state. This protocol consists of
 two steps: a :math:`\pi` pulse is applied to the first qubit, followed by a Ramsey fringe
 experiment on the second qubit which precisely determines its
-transition frequency (see Fig. 3a). The effective shift is denoted by
+transition frequency (see Fig. 2a). The effective shift is denoted by
 :math:`\chi_\textrm{qq}` and typical values are in the range
 :math:`\approx 100 \, \textrm{kHz}`. The coupling strength :math:`\lambda` between the two qubits
 can be calculated in the following way:
@@ -125,17 +125,17 @@ can be calculated in the following way:
 
      \lambda^{(1,2)} = \sqrt{\left|\frac{\chi^{(1,2)}_\textrm{qq} \left[\,f^\textrm{(1)}_{01}-f^\textrm{(2)}_{12}\right]\left[\,f^\textrm{(1)}_{12}-f^\textrm{(2)}_{01}\right]}{2(\eta_1+\eta_2)}\right|}
 
-Figure 3b shows the coupling strength for our device. This quantity is crucial to predict the gate
+Figure 2b shows the coupling strength for our device. This quantity is crucial to predict the gate
 time of our parametric entangling gates.
 
-.. figure:: figures/figure3-2.png
+.. figure:: images/acorn_coupling.png
     :width: 500px
     :align: center
     :height: 300px
     :alt: alternate text
     :figclass: align-center
 
-    :math:`\textbf{Figure 3 $|$ Coupling strength. a,}` Quantum circuit
+    :math:`\textbf{Figure 2 $|$ Coupling strength. a,}` Quantum circuit
     implemented to measure the qubit-qubit effective frequency shift.
     :math:`\textbf{b,}` Capacitive coupling between neighboring qubits expressed in MHz.
 
