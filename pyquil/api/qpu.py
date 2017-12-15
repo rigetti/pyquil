@@ -20,7 +20,7 @@ from six import integer_types
 from pyquil.api import Job
 from pyquil.quil import Program
 from ._base_connection import validate_run_items, TYPE_MULTISHOT, TYPE_MULTISHOT_MEASURE, get_job_id, \
-    get_session, wait_for_job, post_json, get_json
+    get_session, wait_for_job, post_json, get_json, parse_error
 
 
 def get_devices(async_endpoint='https://job.rigetti.com/beta', api_key=None, user_id=None):
@@ -33,6 +33,8 @@ def get_devices(async_endpoint='https://job.rigetti.com/beta', api_key=None, use
     """
     session = get_session(api_key, user_id)
     response = session.get(async_endpoint + '/devices')
+    if response.status_code >= 400:
+        raise parse_error(response)
     return {Device(name, device) for (name, device) in response.json()['devices'].items()}
 
 
