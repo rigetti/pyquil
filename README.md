@@ -54,25 +54,25 @@ If you encounter errors or warnings trying to connect to Forest then see the ful
 Here is how to construct a Bell state program and how to compute the amplitudes of its wavefunction:
 
 ```python
->>> import pyquil.quil as pq
->>> import pyquil.api as api
+>>> from pyquil.quil import Program
+>>> from pyquil.api import QVMConnection
 >>> from pyquil.gates import *
->>> qvm = api.QVMConnection()
->>> p = pq.Program(H(0), CNOT(0,1))
+>>> qvm = QVMConnection()
+>>> p = Program(H(0), CNOT(0,1))
 <pyquil.pyquil.Program object at 0x101ebfb50>
->>> qvm.wavefunction(p)[0]
-[(0.7071067811865475+0j), 0j, 0j, (0.7071067811865475+0j)]
+>>> qvm.wavefunction(p).amplitudes
+array([0.7071067811865475+0j, 0j, 0j, 0.7071067811865475+0j])
 ```
 
 How to do a simulated multishot experiment measuring qubits 0 and 1 of a Bell state. (Of course,
 each measurement pair will be `00` or `11`.)
 
 ```python
->>> import pyquil.quil as pq
->>> import pyquil.api as api
+>>> from pyquil.quil import Program
+>>> from pyquil.api import QVMConnection
 >>> from pyquil.gates import *
->>> qvm = api.QVMConnection()
->>> p = pq.Program()
+>>> qvm = QVMConnection()
+>>> p = Program()
 >>> p.inst(H(0),
 ...        CNOT(0, 1),
 ...        MEASURE(0, 0),
