@@ -67,6 +67,7 @@ class Program(object):
         Mutates the Program object by appending new instructions.
 
         This function accepts a number of different valid forms, e.g.
+
             >>> p = Program()
             >>> p.inst(H(0)) # A single instruction
             >>> p.inst(H(0), H(1)) # Multiple instructions
@@ -223,9 +224,13 @@ class Program(object):
 
         :param Tuple qubit_reg_pairs: Tuples of qubit indices paired with classical bits.
         :return: The Quil Program with the appropriate measure instructions appended, e.g.
+
+        .. code::
+
                   MEASURE 0 [1]
                   MEASURE 1 [2]
                   MEASURE 2 [3]
+
         :rtype: Program
         """
         for qubit_index, classical_reg in qubit_reg_pairs:
@@ -238,14 +243,16 @@ class Program(object):
 
         Equivalent to the following construction:
 
-        WHILE [c]:
-           instr...
-        =>
-          LABEL @START
-          JUMP-UNLESS @END [c]
-          instr...
-          JUMP @START
-          LABEL @END
+        .. code::
+
+            WHILE [c]:
+               instr...
+            =>
+              LABEL @START
+              JUMP-UNLESS @END [c]
+              instr...
+              JUMP @START
+              LABEL @END
 
         :param int classical_reg: The classical register to check
         :param Program q_program: The Quil program to loop.
@@ -267,17 +274,20 @@ class Program(object):
         else_program.
 
         Equivalent to the following construction:
-        IF [c]:
-           instrA...
-        ELSE:
-           instrB...
-        =>
-          JUMP-WHEN @THEN [c]
-          instrB...
-          JUMP @END
-          LABEL @THEN
-          instrA...
-          LABEL @END
+
+        .. code::
+
+            IF [c]:
+               instrA...
+            ELSE:
+               instrB...
+            =>
+              JUMP-WHEN @THEN [c]
+              instrB...
+              JUMP @END
+              LABEL @THEN
+              instrA...
+              LABEL @END
 
         :param int classical_reg: The classical register to check as the condition
         :param Program if_program: A Quil program to execute if classical_reg is 1
@@ -326,6 +336,7 @@ class Program(object):
         """
         Returns all of the qubit indices used in this program, including gate applications and
         allocated qubits. e.g.
+
             >>> p = Program()
             >>> p.inst(("H", 1))
             >>> p.get_qubits()
