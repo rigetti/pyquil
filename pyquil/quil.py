@@ -138,6 +138,13 @@ class Program(object):
         """
         Add a gate to the program.
 
+        .. note::
+
+            The matrix elements along each axis are ordered by bitstring. For two qubits the order
+            is ``00, 01, 10, 11``, where the the bits **are ordered in reverse** by the qubit index,
+            i.e., for qubits 0 and 1 the bitstring ``01`` indicates that qubit 0 is in the state 1.
+            See also :ref:`the related documentation section in the QVM Overview <basis-ordering>`.
+
         :param string name: The name of the gate.
         :param list params: Parameters to send to the gate.
         :param list qubits: Qubits that the gate operates on.
@@ -150,6 +157,14 @@ class Program(object):
         """
         Define a new static gate.
 
+        .. note::
+
+            The matrix elements along each axis are ordered by bitstring. For two qubits the order
+            is ``00, 01, 10, 11``, where the the bits **are ordered in reverse** by the qubit index,
+            i.e., for qubits 0 and 1 the bitstring ``01`` indicates that qubit 0 is in the state 1.
+            See also :ref:`the related documentation section in the QVM Overview <basis-ordering>`.
+
+
         :param string name: The name of the gate.
         :param array-like matrix: List of lists or Numpy 2d array.
         :param list parameters: list of parameters that are used in this gate
@@ -161,6 +176,14 @@ class Program(object):
     def define_noisy_gate(self, name, qubit_indices, kraus_ops):
         """
         Overload a static ideal gate with a noisy one defined in terms of a Kraus map.
+
+        .. note::
+
+            The matrix elements along each axis are ordered by bitstring. For two qubits the order
+            is ``00, 01, 10, 11``, where the the bits **are ordered in reverse** by the qubit index,
+            i.e., for qubits 0 and 1 the bitstring ``01`` indicates that qubit 0 is in the state 1.
+            See also :ref:`the related documentation section in the QVM Overview <basis-ordering>`.
+
 
         :param str name: The name of the gate.
         :param tuple|list qubit_indices: The qubits it acts on.

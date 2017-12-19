@@ -16,16 +16,38 @@ or help running larger jobs, then contact us at support@rigetti.com. On request 
 provide access to a QVM that allows persistent wavefunction memory between different programs as
 well as direct access to the wavefunction memory (wrapped as a ``numpy`` array) from python.
 
+.. _basis-ordering:
 
 Multi-qubit basis enumeration on the QVM
 ----------------------------------------
 
 The Rigetti QVM enumerates bitstrings such that qubit `0` is the least significant bit (LSB)
-and therefore on the right end of a bitstring.
-For example for the bitstring ``0101``, qubit `0` has the value `1`, qubit `1` has the value `0`,
-qubit `2` has the value `1` and qubit `3` has the value `0`.
+and therefore on the right end of a bitstring as shown in the table below which contains some
+examples.
+
+=============== ============= ===== ========= ========= =========
+ bitstring       qubit_(n-1)   ...   qubit_2   qubit_1   qubit_0
+=============== ============= ===== ========= ========= =========
+  1...101                  1   ...         1         0         1
+  0...110                  0   ...         1         1         0
+=============== ============= ===== ========= ========= =========
+
+
+
 This convention is counter to that often found in the quantum computing literature where
 bitstrings are often ordered such that the lowest-index qubit is on the left.
+The vector representation of a wavefunction assumes the "canonical" ordering of basis elements.
+I.e., for two qubits this order is ``00, 01, 10, 11``.
+In the typical Dirac notation for quantum states, the tensor product of two different degrees of
+freedom is not always explicitly understood as having a fixed order of those degrees of freedom.
+This is in contrast to the kronecker product between matrices which uses the same mathematical
+symbol and is clearly not commutative.
+This, however, becomes important when writing things down as coefficient vectors or matrices:
+
+.. math::
+
+    \ket{0}_0 \otimes \ket{1}_1 = \ket{1}_1 \otimes \ket{0}_0
+    = \ket{10}_{1,0} \equiv \begin{pmatrix} 0 \\ 0 \\ 1 \\ 0 \end{pmatrix}
 
 As a consequence there arise some subtle but important differences in the ordering of wavefunction
 and multi-qubit gate matrix coefficients.
@@ -33,6 +55,7 @@ According to our conventions the matrix
 
 .. math::
 
+    U_{\rm CNOT(1,0)} \equiv
     \begin{pmatrix}
         1 & 0 & 0 & 0 \\
         0 & 1 & 0 & 0 \\
@@ -46,6 +69,7 @@ In this convention ``CNOT(0, 1)`` is given by
 
 .. math::
 
+    U_{\rm CNOT(0,1)} \equiv
     \begin{pmatrix}
         1 & 0 & 0 & 0 \\
         0 & 0 & 0 & 1 \\
