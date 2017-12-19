@@ -683,8 +683,8 @@ then damping noise.
             # above matrix definition assumes q1 < q2
             if q2 < q1:
                 m = SWAP.dot(m).dot(SWAP)
-            k1 = damping_after_dephasing(T1s[q1], T2s[q1], gate_time_1q)
-            k2 = damping_after_dephasing(T1s[q2], T2s[q2], gate_time_1q)
+            k1 = damping_after_dephasing(T1s[q1], T2s[q1], gate_time_2q)
+            k2 = damping_after_dephasing(T1s[q2], T2s[q2], gate_time_2q)
             k = tensor_kraus_maps(k1, k2)
             noisy_gate_set[(g, (q1, q2))] = append_kraus_to_gate(k, m)
         return noisy_gate_set
