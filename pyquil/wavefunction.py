@@ -12,10 +12,21 @@ OCTETS_PER_COMPLEX_DOUBLE = 2 * OCTETS_PER_DOUBLE_FLOAT
 
 
 class Wavefunction(object):
+    """
+    Encapsulate a wavefunction representing a quantum state as returned by the QVM.
+
+    .. note::
+
+        The elements of the wavefunction are ordered by bitstring. E.g., for two qubits the order
+        is ``00, 01, 10, 11``, where the the bits **are ordered in reverse** by the qubit index,
+        i.e., for qubits 0 and 1 the bitstring ``01`` indicates that qubit 0 is in the state 1.
+        See also :ref:`the related documentation section in the QVM Overview <basis-ordering>`.
+    """
 
     def __init__(self, amplitude_vector, classical_memory=None):
         """
         Initializes a wavefunction
+
         :param amplitude_vector: A numpy array of complex amplitudes
         :param classical_memory: Any classical memory associated with this wavefunction result
         """

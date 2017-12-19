@@ -67,6 +67,7 @@ class Program(object):
         Mutates the Program object by appending new instructions.
 
         This function accepts a number of different valid forms, e.g.
+
             >>> p = Program()
             >>> p.inst(H(0)) # A single instruction
             >>> p.inst(H(0), H(1)) # Multiple instructions
@@ -138,6 +139,13 @@ class Program(object):
         """
         Add a gate to the program.
 
+        .. note::
+
+            The matrix elements along each axis are ordered by bitstring. For two qubits the order
+            is ``00, 01, 10, 11``, where the the bits **are ordered in reverse** by the qubit index,
+            i.e., for qubits 0 and 1 the bitstring ``01`` indicates that qubit 0 is in the state 1.
+            See also :ref:`the related documentation section in the QVM Overview <basis-ordering>`.
+
         :param string name: The name of the gate.
         :param list params: Parameters to send to the gate.
         :param list qubits: Qubits that the gate operates on.
@@ -150,6 +158,14 @@ class Program(object):
         """
         Define a new static gate.
 
+        .. note::
+
+            The matrix elements along each axis are ordered by bitstring. For two qubits the order
+            is ``00, 01, 10, 11``, where the the bits **are ordered in reverse** by the qubit index,
+            i.e., for qubits 0 and 1 the bitstring ``01`` indicates that qubit 0 is in the state 1.
+            See also :ref:`the related documentation section in the QVM Overview <basis-ordering>`.
+
+
         :param string name: The name of the gate.
         :param array-like matrix: List of lists or Numpy 2d array.
         :param list parameters: list of parameters that are used in this gate
@@ -161,6 +177,14 @@ class Program(object):
     def define_noisy_gate(self, name, qubit_indices, kraus_ops):
         """
         Overload a static ideal gate with a noisy one defined in terms of a Kraus map.
+
+        .. note::
+
+            The matrix elements along each axis are ordered by bitstring. For two qubits the order
+            is ``00, 01, 10, 11``, where the the bits **are ordered in reverse** by the qubit index,
+            i.e., for qubits 0 and 1 the bitstring ``01`` indicates that qubit 0 is in the state 1.
+            See also :ref:`the related documentation section in the QVM Overview <basis-ordering>`.
+
 
         :param str name: The name of the gate.
         :param tuple|list qubit_indices: The qubits it acts on.
@@ -200,9 +224,13 @@ class Program(object):
 
         :param Tuple qubit_reg_pairs: Tuples of qubit indices paired with classical bits.
         :return: The Quil Program with the appropriate measure instructions appended, e.g.
+
+        .. code::
+
                   MEASURE 0 [1]
                   MEASURE 1 [2]
                   MEASURE 2 [3]
+
         :rtype: Program
         """
         for qubit_index, classical_reg in qubit_reg_pairs:
@@ -215,14 +243,16 @@ class Program(object):
 
         Equivalent to the following construction:
 
-        WHILE [c]:
-           instr...
-        =>
-          LABEL @START
-          JUMP-UNLESS @END [c]
-          instr...
-          JUMP @START
-          LABEL @END
+        .. code::
+
+            WHILE [c]:
+               instr...
+            =>
+              LABEL @START
+              JUMP-UNLESS @END [c]
+              instr...
+              JUMP @START
+              LABEL @END
 
         :param int classical_reg: The classical register to check
         :param Program q_program: The Quil program to loop.
@@ -244,17 +274,20 @@ class Program(object):
         else_program.
 
         Equivalent to the following construction:
-        IF [c]:
-           instrA...
-        ELSE:
-           instrB...
-        =>
-          JUMP-WHEN @THEN [c]
-          instrB...
-          JUMP @END
-          LABEL @THEN
-          instrA...
-          LABEL @END
+
+        .. code::
+
+            IF [c]:
+               instrA...
+            ELSE:
+               instrB...
+            =>
+              JUMP-WHEN @THEN [c]
+              instrB...
+              JUMP @END
+              LABEL @THEN
+              instrA...
+              LABEL @END
 
         :param int classical_reg: The classical register to check as the condition
         :param Program if_program: A Quil program to execute if classical_reg is 1
@@ -303,6 +336,7 @@ class Program(object):
         """
         Returns all of the qubit indices used in this program, including gate applications and
         allocated qubits. e.g.
+
             >>> p = Program()
             >>> p.inst(("H", 1))
             >>> p.get_qubits()
