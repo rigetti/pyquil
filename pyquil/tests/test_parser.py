@@ -126,6 +126,13 @@ def test_expressions():
     _expr("sqrt(4)", 2.0)
     _expr("cis(0)", complex(1, 0))
 
+    # Unary precedence
+    # https://github.com/rigetticomputing/pyquil/issues/246
+    _expr("-3+4", 1)
+    _expr("-(3+4)", -7)
+    _expr("-(3-4)", 1)
+    _expr("-0.1423778799706841+0.5434363975682295i", complex(-0.1423778799706841, 0.5434363975682295))
+
 
 def test_measure():
     _test("MEASURE 0", MEASURE(0))
@@ -171,4 +178,4 @@ def test_empty_program():
 
 
 def _test(quil_string, *instructions):
-    assert parse(quil_string) == list(instructions)
+    assert list(instructions) == parse(quil_string)

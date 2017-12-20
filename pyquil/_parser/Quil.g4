@@ -101,10 +101,10 @@ pragma_name         : IDENTIFIER | INT ;
 // Expressions (in order of precedence)
 
 expression          : LPAREN expression RPAREN                  #parenthesisExp
+                    | sign expression                           #signedExp
                     | <assoc=right> expression POWER expression #powerExp
                     | expression (TIMES | DIVIDE) expression    #mulDivExp
                     | expression (PLUS | MINUS) expression      #addSubExp
-                    | sign expression                           #signedExp
                     | function LPAREN expression RPAREN         #functionExp
                     | number                                    #numberExp
                     | variable                                  #variableExp

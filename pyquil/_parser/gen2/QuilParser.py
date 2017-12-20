@@ -153,15 +153,15 @@ def serializedATN():
         buf.write(u"E\3\2\2\2\u0149\u014a\t\4\2\2\u014aG\3\2\2\2\u014b\u014c")
         buf.write(u"\b%\1\2\u014c\u014d\7)\2\2\u014d\u014e\5H%\2\u014e\u014f")
         buf.write(u"\7*\2\2\u014f\u015b\3\2\2\2\u0150\u0151\5L\'\2\u0151")
-        buf.write(u"\u0152\5H%\6\u0152\u015b\3\2\2\2\u0153\u0154\5J&\2\u0154")
+        buf.write(u"\u0152\5H%\t\u0152\u015b\3\2\2\2\u0153\u0154\5J&\2\u0154")
         buf.write(u"\u0155\7)\2\2\u0155\u0156\5H%\2\u0156\u0157\7*\2\2\u0157")
         buf.write(u"\u015b\3\2\2\2\u0158\u015b\5N(\2\u0159\u015b\5\24\13")
         buf.write(u"\2\u015a\u014b\3\2\2\2\u015a\u0150\3\2\2\2\u015a\u0153")
         buf.write(u"\3\2\2\2\u015a\u0158\3\2\2\2\u015a\u0159\3\2\2\2\u015b")
-        buf.write(u"\u0167\3\2\2\2\u015c\u015d\f\t\2\2\u015d\u015e\7\"\2")
-        buf.write(u"\2\u015e\u0166\5H%\t\u015f\u0160\f\b\2\2\u0160\u0161")
-        buf.write(u"\t\5\2\2\u0161\u0166\5H%\t\u0162\u0163\f\7\2\2\u0163")
-        buf.write(u"\u0164\t\6\2\2\u0164\u0166\5H%\b\u0165\u015c\3\2\2\2")
+        buf.write(u"\u0167\3\2\2\2\u015c\u015d\f\b\2\2\u015d\u015e\7\"\2")
+        buf.write(u"\2\u015e\u0166\5H%\b\u015f\u0160\f\7\2\2\u0160\u0161")
+        buf.write(u"\t\5\2\2\u0161\u0166\5H%\b\u0162\u0163\f\6\2\2\u0163")
+        buf.write(u"\u0164\t\6\2\2\u0164\u0166\5H%\7\u0165\u015c\3\2\2\2")
         buf.write(u"\u0165\u015f\3\2\2\2\u0165\u0162\3\2\2\2\u0166\u0169")
         buf.write(u"\3\2\2\2\u0167\u0165\3\2\2\2\u0167\u0168\3\2\2\2\u0168")
         buf.write(u"I\3\2\2\2\u0169\u0167\3\2\2\2\u016a\u016b\t\7\2\2\u016b")
@@ -2754,7 +2754,7 @@ class QuilParser ( Parser ):
                 self.state = 334
                 self.sign()
                 self.state = 335
-                self.expression(4)
+                self.expression(7)
                 pass
             elif token in [QuilParser.SIN, QuilParser.COS, QuilParser.SQRT, QuilParser.EXP, QuilParser.CIS]:
                 localctx = QuilParser.FunctionExpContext(self, localctx)
@@ -2802,22 +2802,22 @@ class QuilParser ( Parser ):
                         localctx = QuilParser.PowerExpContext(self, QuilParser.ExpressionContext(self, _parentctx, _parentState))
                         self.pushNewRecursionContext(localctx, _startState, self.RULE_expression)
                         self.state = 346
-                        if not self.precpred(self._ctx, 7):
+                        if not self.precpred(self._ctx, 6):
                             from antlr4.error.Errors import FailedPredicateException
-                            raise FailedPredicateException(self, "self.precpred(self._ctx, 7)")
+                            raise FailedPredicateException(self, "self.precpred(self._ctx, 6)")
                         self.state = 347
                         self.match(QuilParser.POWER)
                         self.state = 348
-                        self.expression(7)
+                        self.expression(6)
                         pass
 
                     elif la_ == 2:
                         localctx = QuilParser.MulDivExpContext(self, QuilParser.ExpressionContext(self, _parentctx, _parentState))
                         self.pushNewRecursionContext(localctx, _startState, self.RULE_expression)
                         self.state = 349
-                        if not self.precpred(self._ctx, 6):
+                        if not self.precpred(self._ctx, 5):
                             from antlr4.error.Errors import FailedPredicateException
-                            raise FailedPredicateException(self, "self.precpred(self._ctx, 6)")
+                            raise FailedPredicateException(self, "self.precpred(self._ctx, 5)")
                         self.state = 350
                         _la = self._input.LA(1)
                         if not(_la==QuilParser.TIMES or _la==QuilParser.DIVIDE):
@@ -2826,16 +2826,16 @@ class QuilParser ( Parser ):
                             self._errHandler.reportMatch(self)
                             self.consume()
                         self.state = 351
-                        self.expression(7)
+                        self.expression(6)
                         pass
 
                     elif la_ == 3:
                         localctx = QuilParser.AddSubExpContext(self, QuilParser.ExpressionContext(self, _parentctx, _parentState))
                         self.pushNewRecursionContext(localctx, _startState, self.RULE_expression)
                         self.state = 352
-                        if not self.precpred(self._ctx, 5):
+                        if not self.precpred(self._ctx, 4):
                             from antlr4.error.Errors import FailedPredicateException
-                            raise FailedPredicateException(self, "self.precpred(self._ctx, 5)")
+                            raise FailedPredicateException(self, "self.precpred(self._ctx, 4)")
                         self.state = 353
                         _la = self._input.LA(1)
                         if not(_la==QuilParser.PLUS or _la==QuilParser.MINUS):
@@ -2844,7 +2844,7 @@ class QuilParser ( Parser ):
                             self._errHandler.reportMatch(self)
                             self.consume()
                         self.state = 354
-                        self.expression(6)
+                        self.expression(5)
                         pass
 
              
@@ -3147,15 +3147,15 @@ class QuilParser ( Parser ):
 
     def expression_sempred(self, localctx, predIndex):
             if predIndex == 0:
-                return self.precpred(self._ctx, 7)
-         
-
-            if predIndex == 1:
                 return self.precpred(self._ctx, 6)
          
 
-            if predIndex == 2:
+            if predIndex == 1:
                 return self.precpred(self._ctx, 5)
+         
+
+            if predIndex == 2:
+                return self.precpred(self._ctx, 4)
          
 
 
