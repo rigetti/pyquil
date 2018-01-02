@@ -18,7 +18,6 @@ Module for creating and verifying noisy gate definitions in terms of Kraus maps.
 """
 
 import numpy as np
-from scipy.linalg import expm
 
 from pyquil.parameters import format_parameter
 from pyquil.quilbase import Pragma, Gate
@@ -141,10 +140,10 @@ def damping_after_dephasing(T1, T2, gate_time):
 # You can only apply gate-noise to non-parametrized gates,
 # so we need to define placeholders for RX(+/- pi/2)
 SINGLE_Q = {
-    "noisy-x-plus90": expm(-1j * np.pi / 4 * np.array([[0, 1],
-                                                       [1, 0]])),
-    "noisy-x-minus90": expm(+1j * np.pi / 4 * np.array([[0, 1],
-                                                        [1, 0]])),
+    "noisy-x-plus90": (np.array([[1, -1j],
+                                 [-1j, 1]]) / np.sqrt(2)),
+    "noisy-x-minus90": (np.array([[1, 1j],
+                                  [1j, 1]]) / np.sqrt(2)),
 }
 
 TWO_Q = {
