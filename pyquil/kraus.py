@@ -118,7 +118,7 @@ def combine_kraus_maps(k1, k2):
 
     :param list k1: The list of Kraus operators that are applied second.
     :param list k2: The list of Kraus operators that are applied first.
-    :return: A combinatorically generated list of composed Kraus operators.
+    :return: A combinatorially generated list of composed Kraus operators.
     """
     return [np.dot(k1j, k2l) for k1j in k1 for k2l in k2]
 
