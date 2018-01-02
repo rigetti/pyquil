@@ -152,6 +152,19 @@ TWO_Q = {
 
 
 def noisy_instruction(instruction):
+    """
+    Translate an ordinary gate instruction into its noisy version, where applicable.
+
+    In an attempt to closely model the QPU, noisy versions of RX(+-pi/2) and CZ are supported;
+    I and parametric RZ are returned as-is (noiseless), and other gates are not allowed.
+    Pragmas are returned as-is.
+
+    Note: this function doesn't actually define the noisy gates. Please see
+    :py:func`add_noise_to_program` for a full solution.
+
+    :param instruction: The instruction
+    :return: A noisy version of the instruction
+    """
     if isinstance(instruction, Pragma):
         return instruction
 
