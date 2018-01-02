@@ -165,10 +165,9 @@ def noisy_instruction(instruction):
     if instruction.name == 'RX':
         assert len(instruction.params) == 1
         assert len(instruction.qubits) == 1
-        param_str = format_parameter(instruction.params[0])
-        if param_str == 'pi/2':
+        if instruction.params[0] == np.pi / 2.0:
             return Gate('noisy-x-plus90', [], instruction.qubits)
-        if param_str == '-pi/2':
+        if instruction.params[0] == -np.pi / 2.0:
             return Gate('noisy-x-minus90', [], instruction.qubits)
         raise ValueError("Can't add noise to a parametric gate. "
                          "Try compiling to RX(pi/2) or RX(-pi/2)")
