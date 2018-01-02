@@ -948,7 +948,7 @@ Larger pyQuil programs can involve more qubits and take a longer time to run. In
 program immediately, you can insert your programs into a queue. This is done with the ``use_queue``
 parameter to QVMConnection.  By default, this parameter is set to False which means it skips
 the queue and runs it immediately. However, the QVM will reject programs that are more than
-16 qubits or take longer than 5 seconds to run. Therefore, to run programs of this size you must
+19 qubits or take longer than 10 seconds to run. Therefore, to run programs of a larger size you must
 set the ``use_queue`` parameter to True which has more overhead.
 
 .. code:: python

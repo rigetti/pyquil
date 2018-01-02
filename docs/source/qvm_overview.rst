@@ -11,7 +11,7 @@ designed to execute on a Quantum Abstract Machine that has a shared classical/qu
 at its core. The QVM is a wavefunction simulation of unitary evolution with classical control flow
 and shared quantum classical memory.
 
-Most API keys give access to the QVM with up to 26 qubits. If you would like access to more qubits
+Most API keys give access to the QVM with up to 30 qubits. If you would like access to more qubits
 or help running larger jobs, then contact us at support@rigetti.com. On request we may also
 provide access to a QVM that allows persistent wavefunction memory between different programs as
 well as direct access to the wavefunction memory (wrapped as a ``numpy`` array) from python.
