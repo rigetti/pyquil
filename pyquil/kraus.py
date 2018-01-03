@@ -132,8 +132,8 @@ def damping_after_dephasing(T1, T2, gate_time):
     :param float gate_time: The gate duration.
     :return: A list of Kraus operators.
     """
-    damping = damping_kraus_map(p=gate_time / T1)
-    dephasing = dephasing_kraus_map(p=gate_time / T2)
+    damping = damping_kraus_map(p=gate_time / float(T1))
+    dephasing = dephasing_kraus_map(p=gate_time / float(T2))
     return combine_kraus_maps(damping, dephasing)
 
 
