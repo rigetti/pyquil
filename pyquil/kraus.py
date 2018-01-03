@@ -227,10 +227,10 @@ def add_noise_to_program(prog, T1=30e-6, T2=None, gate_time_1q=50e-9, gate_time_
 
     The default noise parameters
 
-        T1 = 30 us
-        T2 = T1 / 2
-        1q gate time = 50 ns
-        2q gate time = 150 ns
+    - T1 = 30 us
+    - T2 = T1 / 2
+    - 1q gate time = 50 ns
+    - 2q gate time = 150 ns
 
     are currently typical for near-term devices.
 
