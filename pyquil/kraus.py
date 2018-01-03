@@ -165,7 +165,7 @@ def noisy_instruction(instruction):
     :param instruction: The instruction
     :return: A noisy version of the instruction
     """
-    if isinstance(instruction, Pragma):
+    if not isinstance(instruction, Gate):
         return instruction
 
     if instruction.name == 'RZ':
@@ -201,7 +201,7 @@ def _get_program_topology(prog):
     qubits = set()
     edges = set()
     for instruction in prog:
-        if isinstance(instruction, Pragma):
+        if not isinstance(instruction, Gate):
             continue
         qb = [q.index for q in instruction.qubits]
         qubits.update(qb)
