@@ -3,7 +3,7 @@ import pytest
 
 from pyquil.gates import CZ, RZ, RX, I, H
 from pyquil.kraus import damping_kraus_map, dephasing_kraus_map, tensor_kraus_maps, \
-    combine_kraus_maps, damping_after_dephasing, noisy_instruction
+    combine_kraus_maps, damping_after_dephasing, _noisy_instruction
 from pyquil.quil import Pragma
 
 
@@ -52,18 +52,18 @@ def test_damping_after_dephasing():
 
 def test_noisy_instruction():
     # Unaffected
-    assert I(0) == noisy_instruction(I(0))
-    assert RZ(.234)(0) == noisy_instruction(RZ(.234)(0))
-    assert Pragma('lalala') == noisy_instruction(Pragma('lalala'))
+    assert I(0) == _noisy_instruction(I(0))
+    assert RZ(.234)(0) == _noisy_instruction(RZ(.234)(0))
+    assert Pragma('lalala') == _noisy_instruction(Pragma('lalala'))
 
     # Noisified
-    assert noisy_instruction(CZ(0, 1)).out() == 'noisy-cz 0 1'
-    assert noisy_instruction(RX(np.pi / 2)(0)).out() == 'noisy-x-plus90 0'
-    assert noisy_instruction(RX(-np.pi / 2)(23)).out() == 'noisy-x-minus90 23'
+    assert _noisy_instruction(CZ(0, 1)).out() == 'noisy-cz 0 1'
+    assert _noisy_instruction(RX(np.pi / 2)(0)).out() == 'noisy-x-plus90 0'
+    assert _noisy_instruction(RX(-np.pi / 2)(23)).out() == 'noisy-x-minus90 23'
 
     # Unsupported
     with pytest.raises(ValueError):
-        noisy_instruction(H(0))
+        _noisy_instruction(H(0))
 
     with pytest.raises(ValueError):
-        noisy_instruction(RX(2 * np.pi / 3)(0))
+        _noisy_instruction(RX(2 * np.pi / 3)(0))

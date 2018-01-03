@@ -151,7 +151,7 @@ TWO_Q = {
 }
 
 
-def noisy_instruction(instruction):
+def _noisy_instruction(instruction):
     """
     Translate an ordinary gate instruction into its noisy version, where applicable.
 
@@ -273,7 +273,7 @@ def add_noise_to_program(prog, T1=30e-6, T2=None, gate_time_1q=50e-9, gate_time_
             new_prog.define_noisy_gate(name, (q1, q2), k_total)
 
     # Translate noiseless gates to noisy gates.
-    new_instrs = [noisy_instruction(instruction) for instruction in prog]
+    new_instrs = [_noisy_instruction(instruction) for instruction in prog]
     new_prog.inst(new_instrs)
 
     return new_prog
