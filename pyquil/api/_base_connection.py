@@ -17,6 +17,7 @@
 from __future__ import print_function
 
 import re
+from json import JSONDecodeError
 
 import requests
 import sys
@@ -82,15 +83,16 @@ def post_json(session, url, json):
 def parse_error(res):
     """
     Every server error should contain a "status" field with a human readable explanation of what went wrong as well as
-    a "error_type" field indicating the kind of error that can be mappen to a Python type.
+    a "error_type" field indicating the kind of error that can be mapped to a Python type.
 
     There's a fallback error UnknownError for other types of exceptions (network issues, api gateway problems, etc.)
     """
-    body = res.json()
-
-    if body is None:
+    try:
+        body = res.json()
+    except JSONDecodeError:
         raise UnknownApiError(res.text)
-    elif 'error_type' not in body:
+
+    if 'error_type' not in body:
         raise UnknownApiError(body)
 
     error_type = body['error_type']
