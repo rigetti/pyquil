@@ -17,20 +17,22 @@
 from __future__ import print_function
 
 import re
-from json import JSONDecodeError
+import time
 
 import requests
-import sys
-
-import time
 from requests.adapters import HTTPAdapter
 from six import integer_types
 from urllib3 import Retry
 
-from pyquil.api.errors import QVMError, DeviceOfflineError, DeviceRetuningError, InvalidInputError, InvalidUserError, \
-    JobNotFoundError, MissingPermissionsError, error_mapping, UnknownApiError, TooManyQubitsError
-from .job import Job
+from pyquil.api.errors import error_mapping, UnknownApiError, TooManyQubitsError
 from ._config import PyquilConfig
+
+# Deal with JSONDecodeError across Python 2 and 3
+# Ref: https://www.peterbe.com/plog/jsondecodeerror-in-requests.get.json-python-2-and-3
+try:
+    from json.decoder import JSONDecodeError
+except ImportError:
+    JSONDecodeError = ValueError
 
 TYPE_EXPECTATION = "expectation"
 TYPE_MULTISHOT = "multishot"
