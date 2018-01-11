@@ -563,9 +563,9 @@ def merge_programs(prog_list):
     return sum(prog_list, Program())
 
 
-def shift_program(program, shift_offset):
+def shift_quantum_gates(program, shift_offset):
     """
-    Shifts a quil program so that all qubit indices for gates change by a certain offset
+    Shifts a quantum gates in a quil program so that all qubit indices change by a certain offset
     :param program: a pyquil Program
     :param shift_offset: integer
     :return: pyquil Program with shifted qubit indices

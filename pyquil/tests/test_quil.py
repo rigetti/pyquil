@@ -24,7 +24,7 @@ from pyquil.gates import I, X, Y, Z, H, T, S, RX, RY, RZ, CNOT, CCNOT, PHASE, CP
     CPHASE10, CPHASE, SWAP, CSWAP, ISWAP, PSWAP, MEASURE, HALT, WAIT, NOP, RESET, \
     TRUE, FALSE, NOT, AND, OR, MOVE, EXCHANGE
 from pyquil.parameters import Parameter, cos, sin
-from pyquil.quil import Program, merge_programs, shift_program
+from pyquil.quil import Program, merge_programs, shift_quantum_gates
 from pyquil.quilbase import DefGate, Gate, Addr, Qubit, JumpWhen
 
 
@@ -437,9 +437,9 @@ def test_prog_merge():
     assert merge_programs([prog_0, prog_1]).out() == (prog_0 + prog_1).out()
 
 
-def test_prog_shift():
+def test_quantum_gate_shift():
     prog = Program(X(0), CNOT(0, 4), MEASURE(5, [5]))
-    assert shift_program(prog, 5) == Program(X(5), CNOT(5, 9), MEASURE(5, [5]))
+    assert shift_quantum_gates(prog, 5) == Program(X(5), CNOT(5, 9), MEASURE(5, [5]))
 
 
 def test_get_qubits():
