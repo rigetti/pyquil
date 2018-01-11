@@ -22,8 +22,7 @@ from itertools import product
 import numpy as np
 import copy
 from .quil import Program
-from .gates import H, RZ, RX, CNOT, X, PHASE
-from . import quilbase as pqb
+from .gates import H, RZ, RX, CNOT, X, PHASE, STANDARD_GATES
 from numbers import Number
 from collections import Sequence
 import warnings
@@ -124,6 +123,10 @@ class PauliTerm(object):
                 new_term.__dict__[key] = val
 
         return new_term
+
+    @property
+    def program(self):
+        return Program([STANDARD_GATES[gate](q) for q, gate in self])
 
     def get_qubits(self):
         """Gets all the qubits that this PauliTerm operates on.
@@ -575,6 +578,17 @@ class PauliSum(object):
                 like_terms[id] = like_terms[id] + [term]
 
         return coalesce(like_terms)
+
+    def get_programs(self):
+        """
+        Get a Pyquil Program corresponding to each term in the PauliSum and a coefficient
+        for each program
+
+        :return: (programs, coefficients)
+        """
+        programs = [term.program for term in self.terms]
+        coefficients = np.array([term.coefficient for term in self.terms])
+        return programs, coefficients
 
 
 def check_commutation(pauli_list, pauli_two):
