@@ -15,10 +15,12 @@
 ##############################################################################
 
 from six import integer_types
+import numpy as np
 
 from pyquil.api import Job
 from pyquil.quil import Program
 from pyquil.wavefunction import Wavefunction
+from pyquil.paulis import PauliSum, PauliTerm
 from ._base_connection import validate_noise_probabilities, validate_run_items, TYPE_MULTISHOT, \
     TYPE_MULTISHOT_MEASURE, TYPE_WAVEFUNCTION, TYPE_EXPECTATION, get_job_id, get_session, wait_for_job, \
     post_json, get_json
@@ -253,15 +255,34 @@ class QVMConnection(object):
         :returns: Expectation value of the operators.
         :rtype: float
         """
+        coefs = None
+
+        try:
+            is_pauli_terms = all(isinstance(p, PauliTerm) for p in operator_programs)
+        except TypeError:
+            # Not iterable
+            is_pauli_terms = False
+
+        if is_pauli_terms:
+            # Turn to a PauliSum
+            operator_programs = sum(operator_programs)
+
+        if isinstance(operator_programs, PauliSum):
+            operator_programs, coefs = operator_programs.get_programs()
+
         if self.use_queue:
             payload = self._expectation_payload(prep_prog, operator_programs)
             response = post_json(self.session, self.async_endpoint + "/job", {"machine": "QVM", "program": payload})
             job = self.wait_for_job(get_job_id(response))
-            return job.result()
+            result = job.result()
         else:
             payload = self._expectation_payload(prep_prog, operator_programs)
             response = post_json(self.session, self.sync_endpoint + "/qvm", payload)
-            return response.json()
+            result = response.json()
+
+        if coefs is not None:
+            result = np.array(result)
+            return np.real_if_close(np.dot(result, coefs))
 
     def expectation_async(self, prep_prog, operator_programs=None):
         """
