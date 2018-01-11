@@ -696,6 +696,24 @@ def exponential_map(term):
     return exp_wrap
 
 
+def exponentiate_pauli_sum(pauli_sum):
+    """
+    Returns a function that maps all substituent PauliTerms and sums them into a program. NOTE: Use
+    this function with care if substituent PauliTerms do not commute.
+
+    :param PauliSum pauli_sum: Pauli terms to exponentiate.
+    :returns: A function that parametrizes the exponential.
+    :rtype: function
+    """
+    if not isinstance(pauli_sum, PauliSum):
+        raise TypeError("Argument 'pauli_sum' must be a PauliSum.")
+
+    fns = [exponential_map(term) for term in pauli_sum]
+    def combined_exp_wrap(param):
+        return sum([f(param) for f in fns], Program())
+    return combined_exp_wrap
+
+
 def _exponentiate_general_case(pauli_term, param):
     """
     Returns a Quil (Program()) object corresponding to the exponential of

@@ -16,9 +16,10 @@
 ##############################################################################
 
 import pytest
-from pyquil.paulis import (PauliTerm, PauliSum, exponential_map, ID, UnequalLengthWarning,
-                           exponentiate, trotterize, is_zero, check_commutation,
-                           commuting_sets, term_with_coeff, sI, sX, sY, sZ, ZERO)
+from pyquil.paulis import (PauliTerm, PauliSum, exponential_map, exponentiate_pauli_sum,
+                           ID, UnequalLengthWarning, exponentiate, trotterize, is_zero,
+                           check_commutation, commuting_sets, term_with_coeff, sI, sX, sY,
+                           sZ, ZERO)
 from pyquil.quil import Program
 from pyquil.gates import RX, RZ, CNOT, H, X, PHASE
 
@@ -327,6 +328,13 @@ def test_exponentiate():
                                   CNOT(2, 3), RZ(2.0)(3), CNOT(2, 3),
                                   CNOT(0, 2), RX(-math.pi / 2.0)(0),
                                   RX(-math.pi / 2.0)(2), RX(-math.pi / 2.0)(3)])
+    assert prog == result_prog
+
+
+def test_exponentiate_pauli_sum():
+    pauli_sum = PauliSum([PauliTerm('X', 0, 0.5), PauliTerm('Z', 0, 0.5)])
+    prog = Program().inst(H(0)).inst(RZ(1.)(0)).inst(H(0)).inst(RZ(1.)(0))
+    result_prog = exponentiate_pauli_sum(pauli_sum)(1.)
     assert prog == result_prog
 
 
