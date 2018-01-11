@@ -709,8 +709,10 @@ def exponentiate_pauli_sum(pauli_sum):
         raise TypeError("Argument 'pauli_sum' must be a PauliSum.")
 
     fns = [exponential_map(term) for term in pauli_sum]
+
     def combined_exp_wrap(param):
         return sum([f(param) for f in fns], Program())
+
     return combined_exp_wrap
 
 
