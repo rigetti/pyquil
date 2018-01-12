@@ -711,7 +711,7 @@ def exponentiate_commuting_pauli_sum(pauli_sum):
     fns = [exponential_map(term) for term in pauli_sum]
 
     def combined_exp_wrap(param):
-        return sum([f(param) for f in fns], Program())
+        return Program([f(param) for f in fns])
 
     return combined_exp_wrap
 
