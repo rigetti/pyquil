@@ -16,7 +16,7 @@
 ##############################################################################
 
 import pytest
-from pyquil.paulis import (PauliTerm, PauliSum, exponential_map, exponentiate_pauli_sum,
+from pyquil.paulis import (PauliTerm, PauliSum, exponential_map, exponentiate_commuting_pauli_sum,
                            ID, UnequalLengthWarning, exponentiate, trotterize, is_zero,
                            check_commutation, commuting_sets, term_with_coeff, sI, sX, sY,
                            sZ, ZERO)
@@ -331,10 +331,10 @@ def test_exponentiate():
     assert prog == result_prog
 
 
-def test_exponentiate_pauli_sum():
-    pauli_sum = PauliSum([PauliTerm('X', 0, 0.5), PauliTerm('Z', 0, 0.5)])
-    prog = Program().inst(H(0)).inst(RZ(1.)(0)).inst(H(0)).inst(RZ(1.)(0))
-    result_prog = exponentiate_pauli_sum(pauli_sum)(1.)
+def test_exponentiate_commuting_pauli_sum():
+    pauli_sum = PauliSum([PauliTerm('Z', 0, 0.5), PauliTerm('Z', 1, 0.5)])
+    prog = Program().inst(RZ(1.)(0)).inst(RZ(1.)(1))
+    result_prog = exponentiate_commuting_pauli_sum(pauli_sum)(1.)
     assert prog == result_prog
 
 

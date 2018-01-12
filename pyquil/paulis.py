@@ -696,12 +696,12 @@ def exponential_map(term):
     return exp_wrap
 
 
-def exponentiate_pauli_sum(pauli_sum):
+def exponentiate_commuting_pauli_sum(pauli_sum):
     """
     Returns a function that maps all substituent PauliTerms and sums them into a program. NOTE: Use
-    this function with care if substituent PauliTerms do not commute.
+    this function with care. Substituent PauliTerms should commute.
 
-    :param PauliSum pauli_sum: Pauli terms to exponentiate.
+    :param PauliSum pauli_sum: PauliSum to exponentiate.
     :returns: A function that parametrizes the exponential.
     :rtype: function
     """
