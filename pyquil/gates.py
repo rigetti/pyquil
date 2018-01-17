@@ -225,7 +225,7 @@ Produces a SWAP instruction. This gate swaps the state of two qubits.
 """
 CSWAP = _make_gate("CSWAP", 3)()
 """
-Produces a SWAP instruction. This gate swaps the state of two qubits.
+Produces a CSWAP instruction. This gate swaps the state of two qubits.
 
 :param control: The control qubit.
 :param target-1: The first target qubit.
