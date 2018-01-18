@@ -69,6 +69,13 @@ class Device(object):
 
     @property
     def status(self):
+        """Returns a string describing the device's status
+
+            - online: The device is online and ready for use
+            - retuning : The device is not accepting new jobs because it is re-calibrating
+            - offline: The device is not available for use, potentially because you don't
+              have the right permissions.
+        """
         if self.is_online():
             return 'online'
         elif self.is_retuning():
