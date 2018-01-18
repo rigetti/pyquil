@@ -561,3 +561,23 @@ def merge_programs(prog_list):
     :rtype: Program
     """
     return sum(prog_list, Program())
+
+
+def shift_quantum_gates(program, shift_offset):
+    """
+    Shifts a quantum gates in a quil program so that all qubit indices change by a certain offset
+    :param program: a pyquil Program
+    :param shift_offset: integer
+    :return: pyquil Program with shifted qubit indices
+    """
+    if not isinstance(shift_offset, int):
+        raise ValueError("shift_offset must be an integer")
+    if not isinstance(program, Program):
+        raise ValueError("Program must be a pyquil Program instance")
+    shifted_program = Program()
+    shifted_program.inst(program)
+    for instruct in shifted_program:
+        if isinstance(instruct, Gate):
+            for qubit in instruct.qubits:
+                qubit.index += shift_offset
+    return shifted_program

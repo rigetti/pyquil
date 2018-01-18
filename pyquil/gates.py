@@ -225,11 +225,11 @@ Produces a SWAP instruction. This gate swaps the state of two qubits.
 """
 CSWAP = _make_gate("CSWAP", 3)()
 """
-Produces a SWAP instruction. This gate swaps the state of two qubits.
+Produces a CSWAP instruction. This gate swaps the state of two qubits.
 
-:param q1: Qubit 1.
-:param q2: Qubit 2.
-:returns: A Gate object.
+:param control: The control qubit.
+:param target-1: The first target qubit.
+:param target-2: The second target qubit. The two target states are swapped if the control is in the excited state.
 """
 ISWAP = _make_gate("ISWAP", 2)()
 """
@@ -253,7 +253,8 @@ Produces a PSWAP instruction. This is a parameterized swap gate.
 
 WAIT = Wait()
 """
-This instruction tells the quantum computation to halt. Typically these is used while classical memory is being manipulated by a CPU in a hybrid classical/quantum algorithm.
+This instruction tells the quantum computation to halt. Typically these is used while classical memory is being
+manipulated by a CPU in a hybrid classical/quantum algorithm.
 
 :returns: A Wait object.
 """
