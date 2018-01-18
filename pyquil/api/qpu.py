@@ -67,15 +67,24 @@ class Device(object):
         """
         return self.raw['is_retuning']
 
-    def __str__(self):
-        if self.is_online():
-            status = 'online'
-        elif self.is_retuning():
-            status = 'retuning'
-        else:
-            status = 'offline'
+    @property
+    def status(self):
+        """Returns a string describing the device's status
 
-        return '<Device {} {}>'.format(self.name, status)
+            - online: The device is online and ready for use
+            - retuning : The device is not accepting new jobs because it is re-calibrating
+            - offline: The device is not available for use, potentially because you don't
+              have the right permissions.
+        """
+        if self.is_online():
+            return 'online'
+        elif self.is_retuning():
+            return 'retuning'
+        else:
+            return 'offline'
+
+    def __str__(self):
+        return '<Device {} {}>'.format(self.name, self.status)
 
     def __repr__(self):
         return str(self)
