@@ -67,15 +67,17 @@ class Device(object):
         """
         return self.raw['is_retuning']
 
-    def __str__(self):
+    @property
+    def status(self):
         if self.is_online():
-            status = 'online'
+            return 'online'
         elif self.is_retuning():
-            status = 'retuning'
+            return 'retuning'
         else:
-            status = 'offline'
+            return 'offline'
 
-        return '<Device {} {}>'.format(self.name, status)
+    def __str__(self):
+        return '<Device {} {}>'.format(self.name, self.status)
 
     def __repr__(self):
         return str(self)
