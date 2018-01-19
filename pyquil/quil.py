@@ -205,11 +205,11 @@ class Program(object):
 
         :param int qubit_index: The qubit with noisy readout.
         :param float p00: The probability of obtaining the measurement result 0 given that the qubit
-        is in state 0.
+          is in state 0.
         :param float p11: The probability of obtaining the measurement result 1 given that the qubit
-        is in state 1.
+          is in state 1.
         :return: The Program with an appended READOUT-POVM Pragma.
-        :rtype: Program.
+        :rtype: Program
         """
         if not 0. <= p00 <= 1.:
             raise ValueError("p00 must be in the interval [0,1].")
