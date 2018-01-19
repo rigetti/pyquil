@@ -549,9 +549,9 @@ def test_define_noisy_readout():
 
     ret = pq.out()
     assert ret == """X 0
-PRAGMA READOUT-POVM 0 "(0.8 0.1 0.2 0.9)"
+PRAGMA READOUT-POVM 0 "(0.8 0.09999999999999998 0.19999999999999996 0.9)"
 X 1
-PRAGMA READOUT-POVM 1 "(0.9 0.2 0.1 0.8)"
+PRAGMA READOUT-POVM 1 "(0.9 0.19999999999999996 0.09999999999999998 0.8)"
 """
     # test error due to bad normalization
     with pytest.raises(ValueError):
