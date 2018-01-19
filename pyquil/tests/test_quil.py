@@ -540,6 +540,39 @@ X 1
 """
 
 
+def test_define_noisy_readout():
+    pq = Program(X(0))
+    pq.define_noisy_readout(0, .8, .9)
+
+    pq.inst(X(1))
+    pq.define_noisy_readout(1, .9, .8)
+
+    ret = pq.out()
+    assert ret == """X 0
+PRAGMA READOUT-POVM 0 "(0.8 0.09999999999999998 0.19999999999999996 0.9)"
+X 1
+PRAGMA READOUT-POVM 1 "(0.9 0.19999999999999996 0.09999999999999998 0.8)"
+"""
+    # test error due to bad normalization
+    with pytest.raises(ValueError):
+        pq.define_noisy_readout(0, 1.1, .5)
+    # test error due to bad normalization
+    with pytest.raises(ValueError):
+        pq.define_noisy_readout(0, .5, 1.5)
+    # test error due to negative probability
+    with pytest.raises(ValueError):
+        pq.define_noisy_readout(0, -0.1, .5)
+    # test error due to negative probability
+    with pytest.raises(ValueError):
+        pq.define_noisy_readout(0, .5, -1.)
+    # test error due to bad qubit_index value
+    with pytest.raises(ValueError):
+        pq.define_noisy_readout(-1, .5, .5)
+    # test error due to bad qubit_index type
+    with pytest.raises(TypeError):
+        pq.define_noisy_readout(1., .5, .5)
+
+
 # https://github.com/rigetticomputing/pyquil/issues/72
 def test_if_then_inherits_defined_gates():
     p1 = Program()
