@@ -19,7 +19,7 @@ relevant error mechanisms on the Rigetti QPU right now are:
    collapse to something resembling a 0-state. We will call this
    **T1-readout error**. This type of readout error can be reduced by
    achieving shorter readout pulses relative to the T1 time, i.e., one
-   can try to reduce both the readout pulse length, or increase the T1
+   can try to reduce the readout pulse length, or increase the T1
    time or both.
 
 Qubit measurements
@@ -124,27 +124,27 @@ necessarily imply that the post measurement state is truly
 :math:`\Pi_{0} \rho \Pi_{0} / p(x=0)`. Instead, the post measurement
 state given a noisy outcome :math:`x'` must be
 
-.. raw:: latex
+.. math::
 
-   \begin{align}
+   \begin{aligned}
    \rho_{x'} & = \sum_{x\in \mathcal{O}} p(x|x') \rho_x \\
              & = \sum_{x\in \mathcal{O}} p(x'|x)\frac{p(x)}{p(x')} \rho_x \\
              & = \frac{1}{p(x')}\sum_{x\in \mathcal{O}} p(x'|x) \Pi_x \rho \Pi_x
-   \end{align}
+   \end{aligned}
 
 where
 
-.. raw:: latex
+.. math::
 
-   \begin{align}
+   \begin{aligned}
    p(x') & = \sum_{x\in\mathcal{O}} p(x'|x) p(x)  \\
    & = \tr{\sum_{x\in \mathcal{O}} p(x'|x) \Pi_x \rho \Pi_x} \\
    & = \tr{\rho \sum_{x\in \mathcal{O}} p(x'|x)\Pi_x} \\
    & = \tr{\rho E_x'}.
-   \end{align}
+   \end{aligned}
 
 where we have exploited the cyclical property of the trace
-:math:`\tr{ABC}=\tr{CBA}` and the projection property
+:math:`\tr{ABC}=\tr{BCA}` and the projection property
 :math:`\Pi_x^2 = \Pi_x`. This has allowed us to derive the noisy outcome
 probabilities from a set of positive operators
 
@@ -161,10 +161,11 @@ that must sum to 1:
    \sum_{x'\in\mathcal{O}'} E_x' = \sum_{x\in\mathcal{O}}\underbrace{\left[\sum_{x'\in\mathcal{O}'} p(x'|x)\right]}_{1}\Pi_x = \sum_{x\in\mathcal{O}}\Pi_x = 1.
 
 The above result is a type of generalized **Bayes' theorem** that is
-extremely useful for this type of (slightly) generalized measurement and
-the family of operators :math:`\{E_{x'}| x' \in \mathcal{O}'\}` whose
-expectations give the probabilities is called a **positive operator
-valued measure** (POVM). These operators are not generally orthogonal
+extremely useful for this type of (slightly) generalized measurement.
+The family of operators :math:`\{E_{x'}| x' \in \mathcal{O}'\}` is called
+a **positive operator valued measure** (POVM) and their
+expectations give the noisy outcome probabilities.
+These operators are not generally orthogonal
 nor valid projection operators but they naturally arise in this
 scenario. This is not yet the most general type of measurement, but it
 will get us pretty far.
@@ -221,19 +222,13 @@ probability matrix directly from a QPU.
     import matplotlib.pyplot as plt
     %matplotlib inline
 
-.. code:: python
-
     from pyquil.quil import Program, MEASURE, Pragma
     from pyquil.api.qvm import QVMConnection
     from pyquil.gates import I, X, RX
 
-.. code:: python
-
     DARK_TEAL = '#48737F'
     FUSCHIA = '#D6619E'
     BEIGE = '#EAE8C6'
-
-.. code:: python
 
     cxn = QVMConnection()
 
@@ -261,7 +256,7 @@ Example 1: Rabi sequence with noisy readout
             cxn.random_seed = hash((jj, kk))
             p = Program(RX(theta)(0))
             # assume symmetric noise p11 = p00
-            p.define_noisy_readout(0, p00, p00)
+            p.define_noisy_readout(0, p00=p00, p11=p00)
             p.measure(0, 0)
             res = cxn.run(p, [0], trials=trials)
             results[jj, kk] = np.sum(res)
