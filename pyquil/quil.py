@@ -25,6 +25,7 @@ from six import string_types
 
 from pyquil._parser.PyQuilListener import run_parser
 from pyquil.kraus import _check_kraus_ops, _create_kraus_pragmas
+from pyquil.parameters import format_parameter
 from pyquil.quilatom import LabelPlaceholder, QubitPlaceholder, unpack_qubit
 from .gates import MEASURE, STANDARD_GATES, H
 from .quilbase import (DefGate, Gate, Measurement, Pragma, AbstractInstruction, Qubit,
@@ -195,6 +196,35 @@ class Program(object):
         kraus_ops = [np.asarray(k, dtype=np.complex128) for k in kraus_ops]
         _check_kraus_ops(len(qubit_indices), kraus_ops)
         return self.inst(_create_kraus_pragmas(name, tuple(qubit_indices), kraus_ops))
+
+    def define_noisy_readout(self, qubit_index, p00, p11):
+        """
+        For this program define a classical bit flip readout error channel parametrized by
+        ``p00`` and ``p11``. This models the effect of thermal noise that corrupts the readout
+        signal **after** it has interrogated the qubit.
+
+        :param int qubit_index: The qubit with noisy readout.
+        :param float p00: The probability of obtaining the measurement result 0 given that the qubit
+        is in state 0.
+        :param float p11: The probability of obtaining the measurement result 1 given that the qubit
+        is in state 1.
+        :return: The Program with an appended READOUT-POVM Pragma.
+        :rtype: Program.
+        """
+        if not 0. <= p00 <= 1.:
+            raise ValueError("p00 must be in the interval [0,1].")
+        if not 0. <= p11 <= 1.:
+            raise ValueError("p11 must be in the interval [0,1].")
+        if not isinstance(qubit_index, int):
+            raise TypeError("qubit_index must be a non-negative integer.")
+        if not qubit_index >= 0:
+            raise ValueError("qubit_index must be a non-negative integer.")
+        p00 = float(p00)
+        p11 = float(p11)
+        aprobs = [p00, 1. - p11, 1. - p00, p11]
+        aprobs_str = "({})".format(" ".join(format_parameter(p) for p in aprobs))
+        pragma = Pragma("READOUT-POVM", [qubit_index], aprobs_str)
+        return self.inst(pragma)
 
     def no_noise(self):
         """
