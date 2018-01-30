@@ -18,9 +18,11 @@ import warnings
 from six import integer_types
 
 from pyquil.api import Job
+from pyquil.device import Device
 from pyquil.quil import Program
-from ._base_connection import validate_run_items, TYPE_MULTISHOT, TYPE_MULTISHOT_MEASURE, get_job_id, \
-    get_session, wait_for_job, post_json, get_json, parse_error
+from ._base_connection import (validate_run_items, TYPE_MULTISHOT, TYPE_MULTISHOT_MEASURE,
+                               get_job_id, get_session, wait_for_job, post_json, get_json,
+                               parse_error)
 
 
 def get_devices(async_endpoint='https://job.rigetti.com/beta', api_key=None, user_id=None):
@@ -36,58 +38,6 @@ def get_devices(async_endpoint='https://job.rigetti.com/beta', api_key=None, use
     if response.status_code >= 400:
         raise parse_error(response)
     return {Device(name, device) for (name, device) in response.json()['devices'].items()}
-
-
-class Device(object):
-    """
-    A device (quantum chip) that can accept programs. Only devices that are online will actively be accepting new
-    programs.
-    """
-    def __init__(self, name, raw):
-        """
-        :param name: name of the device
-        :param raw: raw JSON response from the server with additional information about this device
-        """
-        self.name = name
-        self.raw = raw
-
-    def is_online(self):
-        """
-        Whether or not the device is online and accepting new programs.
-
-        :rtype: bool
-        """
-        return self.raw['is_online']
-
-    def is_retuning(self):
-        """
-        Whether or not the device is currently retuning.
-
-        :rtype: bool
-        """
-        return self.raw['is_retuning']
-
-    @property
-    def status(self):
-        """Returns a string describing the device's status
-
-            - online: The device is online and ready for use
-            - retuning : The device is not accepting new jobs because it is re-calibrating
-            - offline: The device is not available for use, potentially because you don't
-              have the right permissions.
-        """
-        if self.is_online():
-            return 'online'
-        elif self.is_retuning():
-            return 'retuning'
-        else:
-            return 'offline'
-
-    def __str__(self):
-        return '<Device {} {}>'.format(self.name, self.status)
-
-    def __repr__(self):
-        return str(self)
 
 
 class QPUConnection(object):
