@@ -16,6 +16,9 @@
 """
 Module for creating and verifying noisy gate definitions in terms of Kraus maps.
 """
+import warnings
+
+warnings.warn("pyquil.kraus is deprecated, please use pyquil.noise instead.", DeprecationWarning)
 
 
 # for backwards compatibility
