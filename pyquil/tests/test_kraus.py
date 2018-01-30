@@ -2,8 +2,8 @@ import numpy as np
 import pytest
 
 from pyquil.gates import CZ, RZ, RX, I, H
-from pyquil.kraus import damping_kraus_map, dephasing_kraus_map, tensor_kraus_maps, \
-    combine_kraus_maps, damping_after_dephasing, _noisy_instruction
+from pyquil.noise import (damping_kraus_map, dephasing_kraus_map, tensor_kraus_maps,
+                          combine_kraus_maps, damping_after_dephasing, _noisy_instruction)
 from pyquil.quil import Pragma
 
 
