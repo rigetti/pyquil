@@ -27,16 +27,17 @@ class ISA(_ISA):
     """
     Basic Instruction Set Architecture specification.
 
-    :ivar str name: The QPU ISA name
-    :ivar str version: The version of the ISA
-    :ivar int|float timestamp: A timestamp of when the ISA was defined.
-    :ivar Sequence[Qubit] qubits: The qubits associated with the ISA
+    :ivar str name: The QPU ISA name.
+    :ivar str version: The version of the ISA.
+    :ivar Union[int,float] timestamp: A timestamp of when the ISA was defined.
+    :ivar Sequence[Qubit] qubits: The qubits associated with the ISA.
     :ivar Sequence[Edge] edges: The multi-qubit gates.
     """
 
     def to_dict(self):
         """
         Create a JSON serializable representation of the ISA.
+
         The dictionary representation is of the form::
 
             {
@@ -92,8 +93,8 @@ class ISA(_ISA):
             ]
         }
 
-    @classmethod
-    def from_dict(cls, d):
+    @staticmethod
+    def from_dict(d):
         """
         Re-create the ISA from a dictionary representation.
 
@@ -101,7 +102,7 @@ class ISA(_ISA):
         :return: The restored ISA.
         :rtype: ISA
         """
-        return cls(
+        return ISA(
             name=d["id"]["name"],
             version=d["id"].get("version", "0.0"),
             timestamp=d["id"].get("timestamp"),
@@ -119,7 +120,7 @@ class KrausModel(_KrausModel):
     """
     Encapsulate a single gate's noise model.
 
-    :ivar str gate: The name of the gate
+    :ivar str gate: The name of the gate.
     :ivar Sequence[float] params: Optional parameters for the gate.
     :ivar Sequence[int] targets: The target qubit ids.
     :ivar Sequence[np.array] kraus_ops: The Kraus operators (must be square complex numpy arrays).
@@ -173,21 +174,24 @@ class KrausModel(_KrausModel):
         res['kraus_ops'] = [[k.real.tolist(), k.imag.tolist()] for k in self.kraus_ops]
         return res
 
-    @classmethod
-    def from_dict(cls, d):
+    @staticmethod
+    def from_dict(d):
         """
-        Recreate a KrausModel from the dictionary representation. See `to_dict` for an
-        example.
+        Recreate a KrausModel from the dictionary representation.
 
-        :param dict d:
+        :param dict d: The dictionary representing the KrausModel. See `to_dict` for an
+            example.
         :return: The deserialized KrausModel.
         :rtype: KrausModel
         """
         kraus_ops = [KrausModel.unpack_kraus_matrix(k) for k in d['kraus_ops']]
-        return cls(d['gate'], d['params'], d['targets'], kraus_ops, d['fidelity'])
+        return KrausModel(d['gate'], d['params'], d['targets'], kraus_ops, d['fidelity'])
 
     def __eq__(self, other):
         return isinstance(other, KrausModel) and self.to_dict() == other.to_dict()
+
+    def __neq__(self, other):
+        return not self.__eq__(other)
 
 
 _NoiseModel = namedtuple("_NoiseModel", ["isa_name", "gates", "assignment_probs"])
@@ -195,10 +199,7 @@ _NoiseModel = namedtuple("_NoiseModel", ["isa_name", "gates", "assignment_probs"
 
 class NoiseModel(_NoiseModel):
     """
-    Encapsulate the QPU noise model containing information about the noisy identity gates,
-    RX(pi/2) gates and CZ gates on the defined graph edges.
-    The tomographies and assignment probabilities are ordered in the same way as they appear
-    in the ISA.
+    Encapsulate the QPU noise model containing information about the noisy gates.
 
     :ivar str isa_name: The name of the instruction set architecture for the QPU.
     :ivar Sequence[KrausModel] gates: The tomographic estimates of all gates.
@@ -234,8 +235,8 @@ class NoiseModel(_NoiseModel):
             "assignment_probs": {str(qid): a.tolist() for qid, a in self.assignment_probs.items()},
         }
 
-    @classmethod
-    def from_dict(cls, d):
+    @staticmethod
+    def from_dict(d):
         """
         Re-create the noise model from a dictionary representation.
 
@@ -243,7 +244,7 @@ class NoiseModel(_NoiseModel):
         :return: The restored noise model.
         :rtype: NoiseModel
         """
-        return cls(
+        return NoiseModel(
             isa_name=d["isa_name"],
             gates=[KrausModel.from_dict(t) for t in d["gates"]],
             assignment_probs={int(qid): np.array(a) for qid, a in d["assignment_probs"].items()},
@@ -253,7 +254,7 @@ class NoiseModel(_NoiseModel):
         """
         Return all defined noisy gates of a particular gate name.
 
-        :param str name: The gate name
+        :param str name: The gate name.
         :return: A list of noise models representing that gate.
         :rtype: Sequence[KrausModel]
         """
@@ -261,6 +262,9 @@ class NoiseModel(_NoiseModel):
 
     def __eq__(self, other):
         return isinstance(other, NoiseModel) and self.to_dict() == other.to_dict()
+
+    def __neq__(self, other):
+        return not self.__eq__(other)
 
 
 class Device(object):

@@ -21,8 +21,8 @@ from pyquil.api import Job
 from pyquil.device import Device
 from pyquil.quil import Program
 from ._base_connection import (validate_run_items, TYPE_MULTISHOT, TYPE_MULTISHOT_MEASURE,
-                               get_job_id,
-                               get_session, wait_for_job, post_json, get_json, parse_error)
+                               get_job_id, get_session, wait_for_job, post_json, get_json,
+                               parse_error)
 
 
 def get_devices(async_endpoint='https://job.rigetti.com/beta', api_key=None, user_id=None):
