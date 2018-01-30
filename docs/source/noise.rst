@@ -1,7 +1,7 @@
-pyquil.kraus
+pyquil.noise
 ------------
 
-.. automodule:: pyquil.kraus
+.. automodule:: pyquil.noise
     :members:
     :undoc-members:
     :show-inheritance:

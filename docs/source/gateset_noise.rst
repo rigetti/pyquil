@@ -4,11 +4,11 @@ Adding T1 and T2 type noise to all your gates
 
 In this example, we investigate how a program might behave on a
 near-term device that is subject to noise using the convenience function
-:py:func:`pyquil.kraus.add_noise_to_program`. The same module also contains some other useful
+:py:func:`pyquil.noise.add_decoherence_noise`. The same module also contains some other useful
 functions to define your own types of noise models, e.g.,
-:py:func:`pyquil.kraus.tensor_kraus_maps` for generating multi-qubit noise processes,
-:py:func:`pyquil.kraus.combine_kraus_maps` for describing the succession of two noise processes and
-:py:func:`pyquil.kraus.append_kraus_to_gate` which allows appending a noise process to a unitary
+:py:func:`pyquil.noise.tensor_kraus_maps` for generating multi-qubit noise processes,
+:py:func:`pyquil.noise.combine_kraus_maps` for describing the succession of two noise processes and
+:py:func:`pyquil.noise.append_kraus_to_gate` which allows appending a noise process to a unitary
 gate.
 
 .. code:: python
@@ -117,12 +117,12 @@ gate noise, respectively.
 
 .. code:: python
 
-    from pyquil.kraus import add_noise_to_program
+    from pyquil.noise import add_decoherence_noise
     records = []
     for theta in thetas:
         for t1 in t1s:
             prog = get_compiled_prog(theta)
-            noisy = add_noise_to_program(prog, T1=t1).inst([
+            noisy = add_decoherence_noise(prog, T1=t1).inst([
                 MEASURE(0, 0),
                 MEASURE(1, 1),
             ])

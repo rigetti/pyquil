@@ -1,9 +1,11 @@
-from collections import OrderedDict
-
 import numpy as np
 import pytest
 
-from pyquil.device import Device, KrausModel, ISA, Qubit, Edge, NoiseModel
+from pyquil.device import Device, ISA, Qubit, Edge, THETA, gates_in_isa
+from pyquil.noise import NoiseModel, KrausModel
+from pyquil.gates import RZ, RX, I, CZ, ISWAP, CPHASE
+from collections import OrderedDict
+
 
 DEVICE_FIXTURE_NAME = 'mixed_architecture_chip'
 
@@ -27,6 +29,10 @@ def isa_dict():
                 },
                 {
                     'qubit-id': 2
+                },
+                {
+                    'qubit-id': 3,
+                    'dead': True
                 }
             ],
             [
@@ -41,11 +47,15 @@ def isa_dict():
                 {
                     'action-qubits': [2, 0],
                     'type': 'CPHASE'
+                },
+                {
+                    'action-qubits': [0, 3],
+                    'type': 'CZ',
+                    'dead': True
                 }
             ]
         ]
     }
-
 
 @pytest.fixture
 def kraus_model_I_dict():
@@ -100,11 +110,13 @@ def test_isa(isa_dict):
             Qubit(id=0, type='Xhalves', dead=None),
             Qubit(id=1, type=None, dead=None),
             Qubit(id=2, type=None, dead=None),
+            Qubit(id=3, type=None, dead=True),
         ],
         edges=[
             Edge(targets=[0, 1], type='CZ', dead=None),
             Edge(targets=[1, 2], type='ISWAP', dead=None),
             Edge(targets=[2, 0], type='CPHASE', dead=None),
+            Edge(targets=[0, 3], type='CZ', dead=True),
         ])
     d = isa.to_dict()
     assert d == isa_dict
@@ -164,3 +176,18 @@ def test_device(isa_dict, noise_model_dict):
     assert device.isa == isa
     assert isinstance(device.noise_model, NoiseModel)
     assert device.noise_model == noise_model
+
+
+def test_gates_in_isa(isa_dict):
+    isa = ISA.from_dict(isa_dict)
+    gates = gates_in_isa(isa)
+    for q in [0, 1, 2]:
+        for g in [I, RX(np.pi / 2), RX(-np.pi / 2), RZ(THETA)]:
+            assert g(q) in gates
+
+    assert CZ(0, 1) in gates
+    assert CZ(1, 0) in gates
+    assert ISWAP(1, 2) in gates
+    assert ISWAP(2, 1) in gates
+    assert CPHASE(THETA)(2, 0) in gates
+    assert CPHASE(THETA)(0, 2) in gates

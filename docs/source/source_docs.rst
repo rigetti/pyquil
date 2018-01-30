@@ -8,7 +8,7 @@ Here you can find documentation for the different submodules in pyQuil.
     api
     device
     gates
-    kraus
+    noise
     parametric
     paulis
     quil
