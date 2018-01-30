@@ -2,7 +2,7 @@ from collections import OrderedDict
 
 import numpy as np
 
-from pyquil.device_info import KrausModel, ISA, Qubit, Edge, NoiseModel
+from pyquil.device import KrausModel, ISA, Qubit, Edge, NoiseModel
 
 ARCH_QPU = {
     "id": {

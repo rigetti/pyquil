@@ -37,6 +37,36 @@ class ISA(_ISA):
     def to_dict(self):
         """
         Create a JSON serializable representation of the ISA.
+        The dictionary representation is of the form::
+
+            {
+                "id": {
+                    "name": "example_qpu",
+                    "version": "0.1",
+                    "timestamp": "23423423"
+                },
+                "logical-hardware": [
+                    [
+                        {
+                            "qubit-id": 0,
+                            "type": "Xhalves",
+                            "dead": False
+                        },
+                        {
+                            "qubit-id": 1,
+                            "type": "Xhalves",
+                            "dead": False
+                        }
+                    ],
+                    [
+                        {
+                            "action-qubits": [0, 1],
+                            "type": "CZ",
+                            "dead": False
+                        }
+                    ]
+                ]
+            }
 
         :return: A dictionary representation of self.
         :rtype: Dict[str,Any]
@@ -108,12 +138,41 @@ class KrausModel(_KrausModel):
         return m
 
     def to_dict(self):
+        """
+        Create a dictionary representation of a KrausModel.
+
+        For example:
+
+            {
+                "gate": "RX",
+                "params": np.pi,
+                "targets": [0],
+                "kraus_ops": [            # In this example single Kraus op = ideal RX(pi) gate
+                    [[[0,   0],           # element-wise real part of matrix
+                      [0,   0]],
+                      [[0, -1],           # element-wise imaginary part of matrix
+                      [-1, 0]]]
+                ],
+                "fidelity": 1.0
+            }
+
+        :return: A JSON compatible dictionary representation.
+        :rtype: Dict[str,Any]
+        """
         res = self._asdict()
         res['kraus_ops'] = [[k.real.tolist(), k.imag.tolist()] for k in self.kraus_ops]
         return res
 
     @classmethod
     def from_dict(cls, d):
+        """
+        Recreate a KrausModel from the dictionary representation. See `to_dict` for an
+        example.
+
+        :param dict d:
+        :return: The deserialized KrausModel.
+        :rtype: KrausModel
+        """
         kraus_ops = [KrausModel.unpack_kraus_matrix(k) for k in d['kraus_ops']]
         return cls(d['gate'], d['params'], d['targets'], kraus_ops, d['fidelity'])
 
@@ -141,13 +200,28 @@ class NoiseModel(_NoiseModel):
         """
         Create a JSON serializable representation of the noise model.
 
+        For example:
+
+            {
+                "isa_name": "example_qpu",
+                "gates": [
+                    # list of embedded dictionary representations of KrausModels here [...]
+                ]
+                "assignment_probs": {
+                    "0": [[.8, .1],
+                          [.2, .9]],
+                    "1": [[.9, .4],
+                          [.1, .6]],
+                }
+            }
+
         :return: A dictionary representation of self.
         :rtype: Dict[str,Any]
         """
         return {
             "isa_name": self.isa_name,
             "gates": [km.to_dict() for km in self.gates],
-            "assignment_probs": {qid: a.tolist() for qid, a in self.assignment_probs.items()},
+            "assignment_probs": {str(qid): a.tolist() for qid, a in self.assignment_probs.items()},
         }
 
     @classmethod
@@ -162,7 +236,7 @@ class NoiseModel(_NoiseModel):
         return cls(
             isa_name=d["isa_name"],
             gates=[KrausModel.from_dict(t) for t in d["gates"]],
-            assignment_probs={qid: np.array(a) for qid, a in d["assignment_probs"].items()},
+            assignment_probs={int(qid): np.array(a) for qid, a in d["assignment_probs"].items()},
         )
 
     def gates_by_name(self, name):
@@ -177,3 +251,55 @@ class NoiseModel(_NoiseModel):
 
     def __eq__(self, other):
         return isinstance(other, NoiseModel) and self.to_dict() == other.to_dict()
+
+
+class Device(object):
+    """
+    A device (quantum chip) that can accept programs. Only devices that are online will actively be
+    accepting new programs.
+    """
+    def __init__(self, name, raw):
+        """
+        :param name: name of the device
+        :param raw: raw JSON response from the server with additional information about this device
+        """
+        self.name = name
+        self.raw = raw
+
+    def is_online(self):
+        """
+        Whether or not the device is online and accepting new programs.
+
+        :rtype: bool
+        """
+        return self.raw['is_online']
+
+    def is_retuning(self):
+        """
+        Whether or not the device is currently retuning.
+
+        :rtype: bool
+        """
+        return self.raw['is_retuning']
+
+    @property
+    def status(self):
+        """Returns a string describing the device's status
+
+            - online: The device is online and ready for use
+            - retuning : The device is not accepting new jobs because it is re-calibrating
+            - offline: The device is not available for use, potentially because you don't
+              have the right permissions.
+        """
+        if self.is_online():
+            return 'online'
+        elif self.is_retuning():
+            return 'retuning'
+        else:
+            return 'offline'
+
+    def __str__(self):
+        return '<Device {} {}>'.format(self.name, self.status)
+
+    def __repr__(self):
+        return str(self)
