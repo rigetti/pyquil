@@ -116,15 +116,25 @@ _KrausModel = namedtuple("_KrausModel", ["gate", "params", "targets", "kraus_ops
 
 
 class KrausModel(_KrausModel):
+    """
+    Encapsulate a single gate's noise model.
+
+    :ivar str gate: The name of the gate
+    :ivar Sequence[float] params: Optional parameters for the gate.
+    :ivar Sequence[int] targets: The target qubit ids.
+    :ivar Sequence[np.array] kraus_ops: The Kraus operators (must be square complex numpy arrays).
+    :ivar float fidelity: The average gate fidelity associated with the Kraus map relative to the
+        ideal operation.
+    """
 
     @staticmethod
     def unpack_kraus_matrix(m):
         """
         Helper to optionally unpack a JSON compatible representation of a complex Kraus matrix.
 
-        :param list|np.array m: The representation of a Kraus operator. Either a complex square
-        matrix (as numpy array or nested lists) or a pair of real square matrices (as numpy arrays
-        or nested lists) representing the element-wise real and imaginary part of m.
+        :param Union[list,np.array] m: The representation of a Kraus operator. Either a complex
+            square matrix (as numpy array or nested lists) or a pair of real matrices (as numpy
+            arrays or nested lists) representing the element-wise real and imaginary part of m.
         :return: A complex square numpy array representing the Kraus operator.
         :rtype: np.array
         """
@@ -141,7 +151,7 @@ class KrausModel(_KrausModel):
         """
         Create a dictionary representation of a KrausModel.
 
-        For example:
+        For example::
 
             {
                 "gate": "RX",
@@ -193,14 +203,14 @@ class NoiseModel(_NoiseModel):
     :ivar str isa_name: The name of the instruction set architecture for the QPU.
     :ivar Sequence[KrausModel] gates: The tomographic estimates of all gates.
     :ivar Dict[int,np.array] assignment_probs: The single qubit readout assignment
-    probability matrices keyed by qubit id.
+        probability matrices keyed by qubit id.
     """
 
     def to_dict(self):
         """
         Create a JSON serializable representation of the noise model.
 
-        For example:
+        For example::
 
             {
                 "isa_name": "example_qpu",
