@@ -17,16 +17,16 @@
 from pyquil.api import Job
 from pyquil.quil import Program
 from ._base_connection import TYPE_MULTISHOT, get_job_id, get_session, \
-	wait_for_job, post_json, get_json
+    wait_for_job, post_json, get_json
 
 class CompilerConnection(object):
-	"""
-	Represents a connection to the Quil compiler.
-	"""
+    """
+    Represents a connection to the Quil compiler.
+    """
 
-	def __init__(self, sync_endpoint='https://api.rigetti.com',
-				 async_endpoint='https://job.rigetti.com/beta', api_key=None,
-				 user_id=None, use_queue=False, ping_time=0.1, status_time=2,
+    def __init__(self, sync_endpoint='https://api.rigetti.com',
+                 async_endpoint='https://job.rigetti.com/beta', api_key=None,
+                 user_id=None, use_queue=False, ping_time=0.1, status_time=2,
                  default_isa=None):
         """
         Constructor for CompilerConnection. Sets up any necessary security.
@@ -34,26 +34,26 @@ class CompilerConnection(object):
         :param sync_endpoint: The endpoint of the server for running small jobs
         :param async_endpoint: The endpoint of the server for running large jobs
         :param api_key: The key to the Forest API Gateway (default behavior is
-        				to read from config file)
+                        to read from config file)
         :param user_id: Your userid for Forest (default behavior is to read from
-        				config file)
+                        config file)
         :param bool use_queue: Disabling this parameter may improve performance
-        					   for small, quick programs. To support larger
-        					   programs, set it to True. (default: False)
+                               for small, quick programs. To support larger
+                               programs, set it to True. (default: False)
                                NOTE: *_async methods will always use the queue.
                                See https://go.rigetti.com/connections for more
                                information.
         :param int ping_time: Time in seconds for how long to wait between
-        					  polling the server for updated status information
-        					  on a job. Note that this parameter doesn't matter
-        					  if use_queue is False.
+                              polling the server for updated status information
+                              on a job. Note that this parameter doesn't matter
+                              if use_queue is False.
         :param int status_time: Time in seconds for how long to wait between
-        						printing status information. To disable printing
-        						of status entirely then set status_time to
-        						False. Note that this parameter doesn't matter
-        						if use_queue is False.
+                                printing status information. To disable printing
+                                of status entirely then set status_time to
+                                False. Note that this parameter doesn't matter
+                                if use_queue is False.
         :param default_isa: A default ISA object to target when one is not
-        					provided to the 
+                            provided to the 
         """
         self.async_endpoint = async_endpoint
         self.sync_endpoint = sync_endpoint
@@ -66,48 +66,53 @@ class CompilerConnection(object):
         self.default_isa = default_isa
 
     def compile(self, quil_program, isa=None):
-    	"""
-    	Sends a Quil program to the Forest compiler and returns the resulting compiled Program.
+        """
+        Sends a Quil program to the Forest compiler and returns the resulting
+        compiled Program.
 
-    	:param quil_program: Quil program to be compiled.
-    	:param isa: ISA to target.
-    	:returns: The compiled Program object.
-    	:rtype: Program
-    	"""
-    	if not isa:
-    		isa = self.default_isa
+        :param quil_program: Quil program to be compiled.
+        :param isa: ISA to target.
+        :returns: The compiled Program object.
+        :rtype: Program
+        """
+        if not isa:
+            isa = self.default_isa
 
-    	payload = self._compile_payload(quil_program, isa)
-    	if self.use_queue:
-    		response = post_json(self.session, self.async_endpoint + "/job", {"machine": "QUILC", "program": payload})
-    		job = self.wait_for_job(get_job_id(response))
-    		return job.result()
-    	else:
-    		response = post_json(self.session, self.sync_endpoint + "/quilc", payload)
-    		return response.json()
+        payload = self._compile_payload(quil_program, isa)
+        if self.use_queue:
+            response = post_json(self.session, self.async_endpoint + "/job",
+                {"machine": "QUILC", "program": payload})
+            job = self.wait_for_job(get_job_id(response))
+            return job.result()
+        else:
+            response = post_json(self.session, self.sync_endpoint + "/quilc",
+                payload)
+            return response.json()
 
     def compile_async(self, quil_program, isa=None):
-    	"""
-        Similar to compile except that it returns a job id and doesn't wait for the program to be executed.
+        """
+        Similar to compile except that it returns a job id and doesn't wait for
+        the program to be executed.
         See https://go.rigetti.com/connections for reasons to use this method.
         """
-    	if not isa:
-    		isa = self.default_isa
+        if not isa:
+            isa = self.default_isa
 
-    	payload = self._compile_payload(quil_program, isa)
-    	response = post_json(self.session, self.async_endpoint + "/job", {"machine" : "QUILC", "program": payload})
-    	return get_job_id(response)
+        payload = self._compile_payload(quil_program, isa)
+        response = post_json(self.session, self.async_endpoint + "/job",
+            {"machine" : "QUILC", "program": payload})
+        return get_job_id(response)
     
     def _compile_payload(self, quil_program, isa):
-    	if not isa:
-    		raise TypeError("Compilation requires a target ISA.")
+        if not isa:
+            raise TypeError("Compilation requires a target ISA.")
 
-    	payload = {"type": TYPE_MULTISHOT,
-    		       "qubits": []
-    			   "uncompiled-quil": quil_program.out(),
-    			   "isa": isa.to_dict()}
+        payload = {"type": TYPE_MULTISHOT,
+                   "qubits": [],
+                   "uncompiled-quil": quil_program.out(),
+                   "isa": isa.to_dict()}
 
-    	return payload
+        return payload
 
     def get_job(self, job_id):
         """
@@ -126,9 +131,12 @@ class CompilerConnection(object):
 
         :param job_id: Job id
         :param ping_time: How often to poll the server.
-                          Defaults to the value specified in the constructor. (0.1 seconds)
-        :param status_time: How often to print status, set to False to never print status.
-                            Defaults to the value specified in the constructor (2 seconds)
+                          Defaults to the value specified in the constructor.
+                          (0.1 seconds)
+        :param status_time: How often to print status, set to False to never
+                            print status.
+                            Defaults to the value specified in the constructor
+                            (2 seconds)
         :return: Completed Job
         """
         def get_job_fn():
