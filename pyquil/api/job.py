@@ -86,6 +86,18 @@ class Job(object):
         """
         return self._raw['status'] == 'RUNNING'
 
+    def is_queued_for_compilation(self):
+        """
+        Is the job still in the Forest compilation queue?
+        """
+        return self._raw['status'] == 'QUEUED_FOR_COMPILATION'
+
+    def is_compiling(self):
+        """
+        Is the job actively compiling?
+        """
+        return self._raw['status'] == 'COMPILING'
+
     def position_in_queue(self):
         """
         If the job is queued, this will return how many other jobs are ahead of it.
@@ -143,7 +155,7 @@ class Job(object):
 
         :rtype: Optional[Program]
         """
-        prog = self._get_metadata("compiled_quil")
+        prog = self._raw.get("program", {}).get("compiled-quil", None)
         if prog is not None:
             return parse_program(prog)
 

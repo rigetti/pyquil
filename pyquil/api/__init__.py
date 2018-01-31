@@ -18,7 +18,7 @@ Module for facilitating connections to the QVM / QPU.
 """
 import warnings
 
-__all__ = ['QVMConnection', 'QPUConnection', 'Job', 'get_devices', 'errors']
+__all__ = ['QVMConnection', 'QPUConnection', 'CompilerConnection', 'Job', 'get_devices', 'errors']
 
 from pyquil.api.job import Job
 from pyquil.api.qvm import QVMConnection
