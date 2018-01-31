@@ -1,7 +1,9 @@
 from math import pi
+
 import numpy as np
-from pyquil.parameters import (Parameter, sin, _contained_parameters, format_parameter, Expression,
-                               sqrt, cis, exp, cos)
+
+from pyquil.parameters import (Parameter, sin, _contained_parameters, format_parameter, sqrt, cis,
+                               exp, cos, substitute, substitute_array)
 
 
 def test_format_parameter():
@@ -72,18 +74,18 @@ def test_contained_parameters():
 
 def test_eval():
     x = Parameter('x')
-    assert Expression.eval(x, {x: 5}) == 5
+    assert substitute(x, {x: 5}) == 5
 
     y = Parameter('y')
-    assert Expression.eval(x + y, {x: 5, y: 6}) == 11
-    assert Expression.eval(x + y, {x: 5}) == 5 + y
-    assert Expression.eval(exp(x), {y: 5}) != exp(5)
-    assert Expression.eval(exp(x), {x: 5}) == np.exp(5)
+    assert substitute(x + y, {x: 5, y: 6}) == 11
+    assert substitute(x + y, {x: 5}) == 5 + y
+    assert substitute(exp(x), {y: 5}) != exp(5)
+    assert substitute(exp(x), {x: 5}) == np.exp(5)
 
-    assert np.isclose(Expression.eval(sin(x * x ** 2 / y), {x: 5.0, y: 10.0}), np.sin(12.5))
-    assert np.isclose(Expression.eval(sqrt(x), {x: 5.0, y: 10.0}), np.sqrt(5.0))
-    assert np.isclose(Expression.eval(cis(x), {x: 5.0, y: 10.0}), np.exp(1j * 5.0))
-    assert np.isclose(Expression.eval(x - y, {x: 5.0, y: 10.0}), -5.)
+    assert np.isclose(substitute(sin(x * x ** 2 / y), {x: 5.0, y: 10.0}), np.sin(12.5))
+    assert np.isclose(substitute(sqrt(x), {x: 5.0, y: 10.0}), np.sqrt(5.0))
+    assert np.isclose(substitute(cis(x), {x: 5.0, y: 10.0}), np.exp(1j * 5.0))
+    assert np.isclose(substitute(x - y, {x: 5.0, y: 10.0}), -5.)
 
-    assert Expression.eval(cis(x), {y: 5}) == cis(x)
-    assert np.allclose(Expression.eval_array([sin(x), cos(x)], {x: 5}), [np.sin(5), np.cos(5)])
+    assert substitute(cis(x), {y: 5}) == cis(x)
+    assert np.allclose(substitute_array([sin(x), cos(x)], {x: 5}), [np.sin(5), np.cos(5)])

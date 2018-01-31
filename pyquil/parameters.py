@@ -1,5 +1,5 @@
 from fractions import Fraction
-import math
+
 import numpy as np
 from six import integer_types
 
@@ -99,20 +99,37 @@ class Expression(object):
     def __neg__(self):
         return Mul(-1, self)
 
-    def _eval(self, d):
+    def _substitute(self, d):
         return self
 
-    @staticmethod
-    def eval(expr, d):
-        try:
-            return expr._eval(d)
-        except AttributeError:
-            return expr
 
-    @staticmethod
-    def eval_array(a, d):
-        a = np.asarray(a, order="C")
-        return np.array([Expression.eval(v, d) for v in a.flat]).reshape(a.shape)
+def substitute(expr, d):
+    """
+    Using a dictionary of substitutions ``d`` try and explicitly evaluate as much of ``expr`` as
+    possible.
+
+    :param Expression expr: The expression whose parameters are substituted.
+    :param Dict[Parameter,Union[int,float]] d: Numerical substitutions for parameters.
+    :return: A partially simplified Expression or a number.
+    :rtype: Union[Expression,int,float]
+    """
+    try:
+        return expr._substitute(d)
+    except AttributeError:
+        return expr
+
+
+def substitute_array(a, d):
+    """
+    Apply ``substitute`` to all elements of an array ``a`` and return the resulting array.
+
+    :param Union[np.array,List] a: The expression array to substitute.
+    :param Dict[Parameter,Union[int,float]] d: Numerical substitutions for parameters.
+    :return: An array of partially substituted Expressions or numbers.
+    :rtype: np.array
+    """
+    a = np.asarray(a, order="C")
+    return np.array([substitute(v, d) for v in a.flat]).reshape(a.shape)
 
 
 class Parameter(QuilAtom, Expression):
@@ -125,7 +142,7 @@ class Parameter(QuilAtom, Expression):
     def out(self):
         return '%' + self.name
 
-    def _eval(self, d):
+    def _substitute(self, d):
         return d.get(self, self)
 
 
@@ -138,8 +155,11 @@ class Function(Expression):
         self.expression = expression
         self.fn = fn
 
-    def _eval(self, d):
-        return self.fn(Expression.eval(self.expression, d))
+    def _substitute(self, d):
+        sop = substitute(self.expression, d)
+        if isinstance(sop, Expression):
+            return Function(self.name, sop, self.fn)
+        return self.fn(sop)
 
     def __eq__(self, other):
         return (isinstance(other, Function) and
@@ -183,8 +203,9 @@ class BinaryExp(Expression):
         self.op1 = op1
         self.op2 = op2
 
-    def _eval(self, d):
-        return self.fn(Expression.eval(self.op1, d), Expression.eval(self.op2, d))
+    def _substitute(self, d):
+        sop1, sop2 = substitute(self.op1, d), substitute(self.op2, d)
+        return self.fn(sop1, sop2)
 
     def __eq__(self, other):
         return (isinstance(other, type(self)) and
