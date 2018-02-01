@@ -551,6 +551,23 @@ def add_decoherence_noise(prog, T1=30e-6, T2=None, gate_time_1q=50e-9, gate_time
     return apply_noise_model(prog, noise_model)
 
 
+def _bitstring_probs_by_qubit(p):
+    """
+    Ensure that an array ``p`` with bitstring probabilities has a separate axis for each qubit such
+    that ``p[i,j,...,k]`` gives the estimated probability of bitstring ``ij...k``.
+
+    This should not allocate much memory if ``p`` is already in ``C``-contiguous order (row-major).
+
+    :param np.array p: An array that enumerates bitstring probabilities. When flattened out
+        ``p = [p_00...0, p_00...1, ...,p_11...1]``. The total number of elements must therefore be a
+        power of 2.
+    :return: A reshaped view of ``p`` with a separate length-2 axis for each bit.
+    """
+    p = np.asarray(p, order="C")
+    num_qubits = int(round(np.log2(p.size)))
+    return p.reshape((2,) * num_qubits)
+
+
 def estimate_bitstring_probs(results):
     """
     Given an array of single shot results estimate the probability distribution over all bitstrings.
@@ -561,23 +578,59 @@ def estimate_bitstring_probs(results):
         ``p[i,j,...,k]`` gives the estimated probability of bitstring ``ij...k``.
     :rtype: np.array
     """
-    nshots, nq = np.shape(results)[1]
-    outcomes = np.packbits(results, axis=1)
-    probs = np.histogram(outcomes, bins=np.arange(-.5, 2 ** nq, 1)) / float(nshots)
-    return probs.reshape((2,) * nq)
+    nshots, nq = np.shape(results)
+    outcomes = np.array([int("".join(map(str, r)), 2) for r in results])
+    probs = np.histogram(outcomes, bins=np.arange(-.5, 2 ** nq, 1))[0] / float(nshots)
+    return _bitstring_probs_by_qubit(probs)
 
 
-def correct_readout_probs(bitstring_probs, assignment_probabilities):
+def correct_bitstring_probs(p, assignment_probabilities):
     """
     Given a 2d array of single shot results (outer axis iterates over shots, inner axis over bits)
     and a list of assignment probability matrices (one for each bit in the readout, ordered like
     the inner axis of results) estimate the
 
-    :param results:
-    :param assignment_probabilities:
-    :return:
+    :param np.array p: An array that enumerates bitstring probabilities. When
+        flattened out ``p = [p_00...0, p_00...1, ...,p_11...1]``. The total number of elements must
+        therefore be a power of 2. The canonical shape has a separate axis for each qubit, such that
+        ``p[i,j,...,k]`` gives the estimated probability of bitstring ``ij...k``.
+    :param List[np.array] assignment_probabilities: A list of assignment probability matrices
+        per qubit. Each assignment probability matrix is expected to be of the form::
+
+            [[p00 p01]
+             [p10 p11]]
+
+    :return: ``p_corrected`` an array with as many dimensions as there are qubits that contains
+        the noisy-readout-corrected estimated probabilities for each measured bitstring, i.e.,
+        ``p[i,j,...,k]`` gives the estimated probability of bitstring ``ij...k``.
+    :rtype: np.array
     """
-    output_probs = bitstring_probs
+    p_corrected = _bitstring_probs_by_qubit(p)
     for jj, apjj in enumerate(assignment_probabilities):
-        output_probs = np.tensordot(np.inv(apjj),  output_probs, axes=[(1,), (jj,)])
-    return output_probs
+        p_corrected = np.tensordot(np.linalg.inv(apjj),  p_corrected, axes=[(1,), (jj,)])
+    return p_corrected
+
+
+def bitstring_probs_to_z_moments(p):
+    """
+    Convert between bitstring probabilities and joint Z moment expectations.
+
+    :param np.array p: An array that enumerates bitstring probabilities. When
+        flattened out ``p = [p_00...0, p_00...1, ...,p_11...1]``. The total number of elements must
+        therefore be a power of 2. The canonical shape has a separate axis for each qubit, such that
+        ``p[i,j,...,k]`` gives the estimated probability of bitstring ``ij...k``.
+    :return: ``z_moments``, an np.array with one length-2 axis per qubit which contains the
+        expectations of all monomials in ``{I, Z_0, Z_1, ..., Z_{n-1}}``. The expectations of each
+        monomial can be accessed via::
+
+            <Z_0^j_0 Z_1^j_1 ... Z_m^j_m> = z_moments[j_0,j_1,...,j_m]
+    :rtype: np.array
+    """
+    p = _bitstring_probs_by_qubit(p)
+    nq = p.ndim
+    z_moments = p
+    zmat = np.array([[1, 1],
+                     [1, -1]])
+    for jj in range(nq):
+        z_moments = np.tensordot(zmat,  z_moments, axes=[(1,), (jj,)])
+    return z_moments
