@@ -145,3 +145,4 @@ class CompilerConnection(object):
         return wait_for_job(get_job_fn,
                             ping_time if ping_time else self.ping_time,
                             status_time if status_time else self.status_time)
+
