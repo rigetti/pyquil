@@ -141,11 +141,12 @@ def gates_in_isa(isa):
 
     :param ISA isa: The instruction set architecture for a QPU.
     :return: A sequence of Gate objects encapsulating all gates compatible with the ISA.
-    :rtype: Sequece[Gate]
+    :rtype: Sequence[Gate]
     """
     gates = []
     for q in isa.qubits:
         if q.dead:
+            # TODO: dead qubits may in the future lead to some implicit re-indexing
             continue
         if q.type in ["Xhalves"]:
             gates.extend([

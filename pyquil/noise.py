@@ -48,8 +48,8 @@ class KrausModel(_KrausModel):
         Helper to optionally unpack a JSON compatible representation of a complex Kraus matrix.
 
         :param Union[list,np.array] m: The representation of a Kraus operator. Either a complex
-            square matrix (as numpy array or nested lists) or a pair of real matrices (as numpy
-            arrays or nested lists) representing the element-wise real and imaginary part of m.
+            square matrix (as numpy array or nested lists) or a JSON-able pair of real matrices
+            (as nested lists) representing the element-wise real and imaginary part of m.
         :return: A complex square numpy array representing the Kraus operator.
         :rtype: np.array
         """
@@ -345,8 +345,8 @@ def _get_noisy_names(gates):
     return ret
 
 
-def decoherence_noise_model(gates, T1=30e-6, T2=30e-6, gate_time_1q=50e-9,
-                            gate_time_2q=150e-09, ro_fidelity=0.95):
+def _decoherence_noise_model(gates, T1=30e-6, T2=30e-6, gate_time_1q=50e-9,
+                             gate_time_2q=150e-09, ro_fidelity=0.95):
     """
     The default noise parameters
 
@@ -448,7 +448,7 @@ def _noise_model_program_header(noise_model, name_translator):
     return p
 
 
-def apply_noise_model(prog, noise_model):
+def _apply_noise_model(prog, noise_model):
     """
     Apply a noise model to a program and generated a 'noisy-fied' version of the program.
 
@@ -470,7 +470,7 @@ def apply_noise_model(prog, noise_model):
     return new_prog
 
 
-def add_decoherence_noise(prog, T1=30e-6, T2=None, gate_time_1q=50e-9, gate_time_2q=150e-09,
+def add_decoherence_noise(prog, T1=30e-6, T2=30e-6, gate_time_1q=50e-9, gate_time_2q=150e-09,
                           ro_fidelity=0.95):
     """
     Add generic damping and dephasing noise to a program.
@@ -486,7 +486,7 @@ def add_decoherence_noise(prog, T1=30e-6, T2=None, gate_time_1q=50e-9, gate_time
     The default noise parameters
 
     - T1 = 30 us
-    - T2 = T1 / 2
+    - T2 = 30 us
     - 1q gate time = 50 ns
     - 2q gate time = 150 ns
 
@@ -498,8 +498,8 @@ def add_decoherence_noise(prog, T1=30e-6, T2=None, gate_time_1q=50e-9, gate_time
     :param prog: A pyquil program consisting of I, RZ, CZ, and RX(+-pi/2) instructions
     :param Union[Dict[int,float],float] T1: The T1 amplitude damping time either globally or in a
         dictionary indexed by qubit id. By default, this is 30 us.
-    :param Optional[Union[Dict[int,float],float]] T2: The T2 dephasing time either globally or in a
-        dictionary indexed by qubit id. By default, this is one-half of the T1 time.
+    :param Union[Dict[int,float],float] T2: The T2 dephasing time either globally or in a
+        dictionary indexed by qubit id. By default, this is also 30 us.
     :param float gate_time_1q: The duration of the one-qubit gates, namely RX(+pi/2) and RX(-pi/2).
         By default, this is 50 ns.
     :param float gate_time_2q: The duration of the two-qubit gates, namely CZ.
@@ -509,7 +509,7 @@ def add_decoherence_noise(prog, T1=30e-6, T2=None, gate_time_1q=50e-9, gate_time
     :return: A new program with noisy operators.
     """
     gates = _get_program_gates(prog)
-    noise_model = decoherence_noise_model(
+    noise_model = _decoherence_noise_model(
         gates,
         T1=T1,
         T2=T2,
@@ -517,4 +517,4 @@ def add_decoherence_noise(prog, T1=30e-6, T2=None, gate_time_1q=50e-9, gate_time
         gate_time_2q=gate_time_2q,
         ro_fidelity=ro_fidelity
     )
-    return apply_noise_model(prog, noise_model)
+    return _apply_noise_model(prog, noise_model)

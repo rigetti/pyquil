@@ -5,9 +5,9 @@ import pytest
 
 from pyquil.gates import CZ, RZ, RX, I, H
 from pyquil.noise import (damping_kraus_map, dephasing_kraus_map, tensor_kraus_maps,
-                          _get_noisy_names, _get_program_gates, decoherence_noise_model,
+                          _get_noisy_names, _get_program_gates, _decoherence_noise_model,
                           add_decoherence_noise, combine_kraus_maps, damping_after_dephasing, INFTY,
-                          apply_noise_model, _noise_model_program_header, KrausModel, NoiseModel)
+                          _apply_noise_model, _noise_model_program_header, KrausModel, NoiseModel)
 from pyquil.quil import Pragma, Program
 
 
@@ -69,7 +69,7 @@ def test_noise_helpers():
 def test_decoherence_noise():
     prog = Program(RX(np.pi / 2)(0), CZ(0, 1), RZ(np.pi)(0))
     gates = _get_program_gates(prog)
-    m1 = decoherence_noise_model(gates, T1=INFTY, T2=INFTY, ro_fidelity=1.)
+    m1 = _decoherence_noise_model(gates, T1=INFTY, T2=INFTY, ro_fidelity=1.)
 
     # with no readout error, assignment_probs = identity matrix
     assert np.allclose(m1.assignment_probs[0], np.eye(2))
@@ -83,7 +83,7 @@ def test_decoherence_noise():
         assert np.allclose(k0dk0, np.eye(k0dk0.shape[0]))
 
     # verify that selective (by qubit) dephasing and readout infidelity is working
-    m2 = decoherence_noise_model(gates, T1=INFTY, T2={0: 30e-6}, ro_fidelity={0: .95, 1: 1.0})
+    m2 = _decoherence_noise_model(gates, T1=INFTY, T2={0: 30e-6}, ro_fidelity={0: .95, 1: 1.0})
     assert np.allclose(m2.assignment_probs[0], [[.95, 0.05],
                                                 [.05, .95]])
     assert np.allclose(m2.assignment_probs[1], np.eye(2))
@@ -95,7 +95,7 @@ def test_decoherence_noise():
             assert len(g.kraus_ops) == 1
 
     # verify that combined T1 and T2 will lead to 4 outcome Kraus map.
-    m3 = decoherence_noise_model(gates, T1={0: 30e-6}, T2={0: 30e-6})
+    m3 = _decoherence_noise_model(gates, T1={0: 30e-6}, T2={0: 30e-6})
     for g in m3.gates:
         if 0 in g.targets:
             # damping (implies dephasing) channel on qc 0, no noise on qc1 -> 4 Kraus ops
@@ -104,7 +104,7 @@ def test_decoherence_noise():
             assert len(g.kraus_ops) == 1
 
     # verify that gate names are translated
-    new_prog = apply_noise_model(prog, m3)
+    new_prog = _apply_noise_model(prog, m3)
     new_gates = _get_program_gates(new_prog)
     noisy_names = _get_noisy_names(gates)
     assert set(noisy_names.values()) == {g.name for g in new_gates}
