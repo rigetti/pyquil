@@ -304,7 +304,7 @@ class QVMConnection(object):
         """
         if needs_compilation:
             raise TypeError("Expectation QVM programs do not support compilation preprocessing.  Make a separate CompilerConnection job first.")
-        
+
         payload = self._expectation_payload(prep_prog, operator_programs)
         response = post_json(self.session, self.async_endpoint + "/job", {"machine": "QVM", "program": payload})
         return get_job_id(response)
@@ -312,7 +312,7 @@ class QVMConnection(object):
     def _expectation_payload(self, prep_prog, operator_programs):
         if operator_programs is None:
             operator_programs = [Program()]
-        
+
         if not isinstance(prep_prog, Program):
             raise TypeError("prep_prog variable must be a Quil program object")
 

@@ -19,6 +19,7 @@ from pyquil.quil import Program
 from ._base_connection import TYPE_MULTISHOT, get_job_id, get_session, \
     wait_for_job, post_json, get_json
 
+
 class CompilerConnection(object):
     """
     Represents a connection to the Quil compiler.
@@ -53,7 +54,7 @@ class CompilerConnection(object):
                                 False. Note that this parameter doesn't matter
                                 if use_queue is False.
         :param default_isa: A default ISA object to target when one is not
-                            provided to the 
+                            expressly provided to the compile method.
         """
         self.async_endpoint = async_endpoint
         self.sync_endpoint = sync_endpoint
@@ -81,12 +82,12 @@ class CompilerConnection(object):
         payload = self._compile_payload(quil_program, isa)
         if self.use_queue:
             response = post_json(self.session, self.async_endpoint + "/job",
-                {"machine": "QUILC", "program": payload})
+                                 {"machine": "QUILC", "program": payload})
             job = self.wait_for_job(get_job_id(response))
             return job.compiled_quil()
         else:
             response = post_json(self.session, self.sync_endpoint + "/quilc",
-                payload)
+                                 payload)
             return response.json()
 
     def compile_async(self, quil_program, isa=None):
@@ -100,9 +101,9 @@ class CompilerConnection(object):
 
         payload = self._compile_payload(quil_program, isa)
         response = post_json(self.session, self.async_endpoint + "/job",
-            {"machine" : "QUILC", "program": payload})
+                             {"machine": "QUILC", "program": payload})
         return get_job_id(response)
-    
+
     def _compile_payload(self, quil_program, isa):
         if not isa:
             raise TypeError("Compilation requires a target ISA.")
@@ -144,27 +145,3 @@ class CompilerConnection(object):
         return wait_for_job(get_job_fn,
                             ping_time if ping_time else self.ping_time,
                             status_time if status_time else self.status_time)
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
