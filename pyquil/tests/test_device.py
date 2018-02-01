@@ -90,7 +90,7 @@ def noise_model_dict():
                        'fidelity': 1.0}],
             'assignment_probs': {'1': [[1.0, 0.0], [0.0, 1.0]],
                                  '0': [[1.0, 0.0], [0.0, 1.0]]},
-            'isa_name': DEVICE_FIXTURE_NAME}
+            }
 
 
 @pytest.fixture
@@ -146,13 +146,12 @@ def test_noise_model(kraus_model_I_dict, kraus_model_RX90_dict):
                                   kraus_model_RX90_dict],
                         'assignment_probs': {'1': [[1.0, 0.0], [0.0, 1.0]],
                                              '0': [[1.0, 0.0], [0.0, 1.0]]},
-                        'isa_name': DEVICE_FIXTURE_NAME}
+                        }
 
     nm = NoiseModel.from_dict(noise_model_dict)
     km1 = KrausModel.from_dict(kraus_model_I_dict)
     km2 = KrausModel.from_dict(kraus_model_RX90_dict)
-    assert nm == NoiseModel(isa_name=DEVICE_FIXTURE_NAME,
-                            gates=[km1, km2],
+    assert nm == NoiseModel(gates=[km1, km2],
                             assignment_probs={0: np.eye(2), 1: np.eye(2)})
     assert nm.gates_by_name('I') == [km1]
     assert nm.gates_by_name('RX') == [km2]

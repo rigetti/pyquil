@@ -108,14 +108,13 @@ class KrausModel(_KrausModel):
         return not self.__eq__(other)
 
 
-_NoiseModel = namedtuple("_NoiseModel", ["isa_name", "gates", "assignment_probs"])
+_NoiseModel = namedtuple("_NoiseModel", ["gates", "assignment_probs"])
 
 
 class NoiseModel(_NoiseModel):
     """
     Encapsulate the QPU noise model containing information about the noisy gates.
 
-    :ivar str isa_name: The name of the instruction set architecture for the QPU.
     :ivar Sequence[KrausModel] gates: The tomographic estimates of all gates.
     :ivar Dict[int,np.array] assignment_probs: The single qubit readout assignment
         probability matrices keyed by qubit id.
@@ -128,7 +127,6 @@ class NoiseModel(_NoiseModel):
         For example::
 
             {
-                "isa_name": "example_qpu",
                 "gates": [
                     # list of embedded dictionary representations of KrausModels here [...]
                 ]
@@ -144,7 +142,6 @@ class NoiseModel(_NoiseModel):
         :rtype: Dict[str,Any]
         """
         return {
-            "isa_name": self.isa_name,
             "gates": [km.to_dict() for km in self.gates],
             "assignment_probs": {str(qid): a.tolist() for qid, a in self.assignment_probs.items()},
         }
@@ -159,7 +156,6 @@ class NoiseModel(_NoiseModel):
         :rtype: NoiseModel
         """
         return NoiseModel(
-            isa_name=d["isa_name"],
             gates=[KrausModel.from_dict(t) for t in d["gates"]],
             assignment_probs={int(qid): np.array(a) for qid, a in d["assignment_probs"].items()},
         )
@@ -426,8 +422,7 @@ def _decoherence_noise_model(gates, T1=30e-6, T2=30e-6, gate_time_1q=50e-9,
         aprobs[q] = np.array([[f_ro, 1. - f_ro],
                               [1. - f_ro, f_ro]])
 
-    # FIXME (Nik): decide on whether isa_name is set to something more useful
-    return NoiseModel("DECOHERENCE_ISA", kraus_maps, aprobs)
+    return NoiseModel(kraus_maps, aprobs)
 
 
 def _noise_model_program_header(noise_model, name_translator):

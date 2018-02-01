@@ -136,7 +136,7 @@ def test_kraus_model():
 def test_noise_model():
     km1 = KrausModel('I', (5.,), (0, 1), [np.array([[1 + 1j]])], 1.0)
     km2 = KrausModel('RX', (np.pi / 2,), (0,), [np.array([[1 + 1j]])], 1.0)
-    nm = NoiseModel("my_qpu", [km1, km2], {0: np.eye(2), 1: np.eye(2)})
+    nm = NoiseModel([km1, km2], {0: np.eye(2), 1: np.eye(2)})
 
     assert nm == NoiseModel.from_dict(nm.to_dict())
     assert nm.gates_by_name("I") == [km1]
