@@ -24,6 +24,9 @@ from pyquil.quilbase import Gate
 THETA = Parameter("theta")
 "Used as the symbolic parameter in RZ, CPHASE gates."
 
+DEFAULT_QUBIT_TYPE = "Xhalves"
+DEFAULT_EDGE_TYPE = "CZ"
+
 Qubit = namedtuple("Qubit", ["id", "type", "dead"])
 Edge = namedtuple("Edge", ["targets", "type", "dead"])
 _ISA = namedtuple("_ISA", ["name", "version", "timestamp", "qubits", "edges"])
@@ -79,9 +82,17 @@ class ISA(_ISA):
         :rtype: Dict[str,Any]
         """
 
-        def _maybe_configure(d, o):
-            # type: (dict, Union[Qubit,Edge]) -> dict
-            if o.type:
+        def _maybe_configure(d, o, t):
+            """
+            Exclude default values from generated dictionary.
+
+            :param dict d: The dictionary (which is also modified in place!).
+            :param Union[Qubit,Edge] o: The object to serialize
+            :param str t: The default value for ``o.type``.
+            :return: d
+            """
+            # type: (dict, Union[Qubit,Edge], str) -> dict
+            if o.type != t:
                 d["type"] = o.type
             if o.dead:
                 d["dead"] = o.dead
@@ -94,8 +105,9 @@ class ISA(_ISA):
                 "timestamp": self.timestamp,
             },
             "logical-hardware": [
-                [_maybe_configure({"qubit-id": q.id}, q) for q in self.qubits],
-                [_maybe_configure({"action-qubits": a.targets}, a) for a in self.edges],
+                [_maybe_configure({"qubit-id": q.id}, q, DEFAULT_QUBIT_TYPE) for q in self.qubits],
+                [_maybe_configure({"action-qubits": a.targets}, a, DEFAULT_EDGE_TYPE)
+                 for a in self.edges],
             ]
         }
 
@@ -112,9 +124,13 @@ class ISA(_ISA):
             name=d["id"]["name"],
             version=d["id"].get("version", "0.0"),
             timestamp=d["id"].get("timestamp"),
-            qubits=[Qubit(id=q["qubit-id"], type=q.get("type"), dead=q.get("dead"))
+            qubits=[Qubit(id=q["qubit-id"],
+                          type=q.get("type", DEFAULT_QUBIT_TYPE),
+                          dead=q.get("dead", False))
                     for q in d["logical-hardware"][0]],
-            edges=[Edge(targets=e["action-qubits"], type=e.get("type"), dead=e.get("dead"))
+            edges=[Edge(targets=e["action-qubits"],
+                        type=e.get("type", DEFAULT_EDGE_TYPE),
+                        dead=e.get("dead", False))
                    for e in d["logical-hardware"][1]],
         )
 
@@ -131,7 +147,7 @@ def gates_in_isa(isa):
     for q in isa.qubits:
         if q.dead:
             continue
-        if q.type in [None, "Xhalves"]:
+        if q.type in ["Xhalves"]:
             gates.extend([
                 Gate("I", [], [unpack_qubit(q.id)]),
                 Gate("RX", [np.pi / 2], [unpack_qubit(q.id)]),
@@ -145,7 +161,7 @@ def gates_in_isa(isa):
         if e.dead:
             continue
         targets = [unpack_qubit(t) for t in e.targets]
-        if e.type in [None, "CZ", "ISWAP"]:
+        if e.type in ["CZ", "ISWAP"]:
             gates.append(Gate(e.type, [], targets))
             gates.append(Gate(e.type, [], targets[::-1]))
         elif e.type in ["CPHASE"]:

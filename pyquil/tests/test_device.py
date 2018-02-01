@@ -108,19 +108,18 @@ def test_isa(isa_dict):
         version=isa_dict['id']['version'],
         timestamp=isa_dict['id']['timestamp'],
         qubits=[
-            Qubit(id=0, type='Xhalves', dead=None),
-            Qubit(id=1, type=None, dead=None),
-            Qubit(id=2, type=None, dead=None),
-            Qubit(id=3, type=None, dead=True),
+            Qubit(id=0, type='Xhalves', dead=False),
+            Qubit(id=1, type='Xhalves', dead=False),
+            Qubit(id=2, type='Xhalves', dead=False),
+            Qubit(id=3, type='Xhalves', dead=True),
         ],
         edges=[
-            Edge(targets=[0, 1], type='CZ', dead=None),
-            Edge(targets=[1, 2], type='ISWAP', dead=None),
-            Edge(targets=[2, 0], type='CPHASE', dead=None),
+            Edge(targets=[0, 1], type='CZ', dead=False),
+            Edge(targets=[1, 2], type='ISWAP', dead=False),
+            Edge(targets=[2, 0], type='CPHASE', dead=False),
             Edge(targets=[0, 3], type='CZ', dead=True),
         ])
-    d = isa.to_dict()
-    assert d == isa_dict
+    assert isa == ISA.from_dict(isa.to_dict())
 
 
 def test_kraus_model(kraus_model_I_dict):
