@@ -51,12 +51,12 @@ def wait_for_job(get_job_fn, ping_time=None, status_time=None):
             break
 
         if status_time and count % int(status_time / ping_time) == 0:
-            if job.is_queued():
+            if job.is_queued() or job.is_queued_for_compilation():
                 print("job {} is currently queued at position {}. "
                       "Estimated time until execution: {} seconds."
                       .format(job.job_id, job.position_in_queue(),
                               job.estimated_time_left_in_queue()))
-            elif job.is_running():
+            elif job.is_running() or job.is_compiling():
                 print("job {} is currently running".format(job.job_id))
 
         time.sleep(ping_time)
