@@ -607,7 +607,7 @@ def correct_bitstring_probs(p, assignment_probabilities):
     """
     p_corrected = _bitstring_probs_by_qubit(p)
     for jj, apjj in enumerate(assignment_probabilities):
-        p_corrected = np.tensordot(np.linalg.inv(apjj),  p_corrected, axes=[(1,), (jj,)])
+        p_corrected = np.tensordot(np.linalg.inv(apjj), p_corrected, axes=[(1,), (jj,)])
     return p_corrected
 
 
@@ -632,5 +632,5 @@ def bitstring_probs_to_z_moments(p):
     zmat = np.array([[1, 1],
                      [1, -1]])
     for jj in range(nq):
-        z_moments = np.tensordot(zmat,  z_moments, axes=[(1,), (jj,)])
+        z_moments = np.tensordot(zmat, z_moments, axes=[(1,), (jj,)])
     return z_moments
