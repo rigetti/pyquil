@@ -270,15 +270,25 @@ class NoiseModel(_NoiseModel):
 class Device(object):
     """
     A device (quantum chip) that can accept programs. Only devices that are online will actively be
-    accepting new programs.
+    accepting new programs. In addition to the ``self._raw`` attribute, two other attributes are
+    optionally constructed from the entries in ``self._raw`` -- ``isa`` and ``noise_model`` -- which
+    should conform to the dictionary format required by the ``.from_dict()`` methods for ``ISA``
+    and ``NoiseModel``, respectively.
+
+    :ivar dict _raw: Raw JSON response from the server with additional information about the device.
+    :ivar ISA isa: The instruction set architecture (ISA) for the device.
+    :ivar NoiseModel noise_model: The noise model for the device.
     """
     def __init__(self, name, raw):
         """
         :param name: name of the device
-        :param raw: raw JSON response from the server with additional information about this device
+        :param raw: raw JSON response from the server with additional information about this device.
         """
         self.name = name
-        self.raw = raw
+        self._raw = raw
+        self.isa = ISA.from_dict(raw['isa']) if 'isa' in raw and raw['isa'] != {} else None
+        self.noise_model = NoiseModel.from_dict(raw['noise_model']) if 'noise_model' in raw \
+            and raw['noise_model'] != {} else None
 
     def is_online(self):
         """
@@ -286,7 +296,7 @@ class Device(object):
 
         :rtype: bool
         """
-        return self.raw['is_online']
+        return self._raw['is_online']
 
     def is_retuning(self):
         """
@@ -294,15 +304,15 @@ class Device(object):
 
         :rtype: bool
         """
-        return self.raw['is_retuning']
+        return self._raw['is_retuning']
 
     @property
     def status(self):
         """Returns a string describing the device's status
 
-            - online: The device is online and ready for use
-            - retuning : The device is not accepting new jobs because it is re-calibrating
-            - offline: The device is not available for use, potentially because you don't
+            - **online**: The device is online and ready for use
+            - **retuning** : The device is not accepting new jobs because it is re-calibrating
+            - **offline**: The device is not available for use, potentially because you don't
               have the right permissions.
         """
         if self.is_online():
