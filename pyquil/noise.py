@@ -23,7 +23,7 @@ import numpy as np
 from pyquil.parameters import format_parameter
 from pyquil.quilbase import Pragma, Gate
 
-INFTY = float("inf")
+INFINITY = float("inf")
 "Used for infinite coherence times."
 
 
@@ -286,8 +286,8 @@ def damping_after_dephasing(T1, T2, gate_time):
     :param float gate_time: The gate duration.
     :return: A list of Kraus operators.
     """
-    damping = damping_kraus_map(p=gate_time / float(T1)) if T1 != INFTY else [np.eye(2)]
-    dephasing = dephasing_kraus_map(p=gate_time / float(T2)) if T2 != INFTY else [np.eye(2)]
+    damping = damping_kraus_map(p=gate_time / float(T1)) if T1 != INFINITY else [np.eye(2)]
+    dephasing = dephasing_kraus_map(p=gate_time / float(T2)) if T2 != INFINITY else [np.eye(2)]
     return combine_kraus_maps(damping, dephasing)
 
 
@@ -387,11 +387,11 @@ def _decoherence_noise_model(gates, T1=30e-6, T2=30e-6, gate_time_1q=50e-9,
         ro_fidelity = {q: ro_fidelity for q in all_qubits}
 
     noisy_identities_1q = {
-        q: damping_after_dephasing(T1.get(q, INFTY), T2.get(q, INFTY), gate_time_1q)
+        q: damping_after_dephasing(T1.get(q, INFINITY), T2.get(q, INFINITY), gate_time_1q)
         for q in all_qubits
     }
     noisy_identities_2q = {
-        q: damping_after_dephasing(T1.get(q, INFTY), T2.get(q, INFTY), gate_time_2q)
+        q: damping_after_dephasing(T1.get(q, INFINITY), T2.get(q, INFINITY), gate_time_2q)
         for q in all_qubits
     }
     kraus_maps = []
