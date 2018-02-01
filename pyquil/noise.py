@@ -347,13 +347,13 @@ def _get_noisy_names(gates):
     return ret
 
 
-def decoherence_noise_model(gates, T1=30e-6, T2=None, gate_time_1q=50e-9,
+def decoherence_noise_model(gates, T1=30e-6, T2=30e-6, gate_time_1q=50e-9,
                             gate_time_2q=150e-09, ro_fidelity=0.95):
     """
     The default noise parameters
 
     - T1 = 30 us
-    - T2 = T1 / 2
+    - T2 = 30 us
     - 1q gate time = 50 ns
     - 2q gate time = 150 ns
 
@@ -365,9 +365,8 @@ def decoherence_noise_model(gates, T1=30e-6, T2=None, gate_time_1q=50e-9,
     :param Sequence[Gate] gates: The gates to provide the noise model for.
     :param Union[Dict[int,float],float] T1: The T1 amplitude damping time either globally or in a
         dictionary indexed by qubit id. By default, this is 30 us.
-    :param Optional[Union[Dict[int,float],float]] T2: The T2 dephasing time either globally or in a
-        dictionary indexed by qubit id. If None, this defaults to one-half of the T1 time.
-        T2 is also constrained to not exceed T1/2.
+    :param Union[Dict[int,float],float] T2: The T2 dephasing time either globally or in a
+        dictionary indexed by qubit id. By default, this is also 30 us.
     :param float gate_time_1q: The duration of the one-qubit gates, namely RX(+pi/2) and RX(-pi/2).
         By default, this is 50 ns.
     :param float gate_time_2q: The duration of the two-qubit gates, namely CZ.
@@ -387,13 +386,8 @@ def decoherence_noise_model(gates, T1=30e-6, T2=None, gate_time_1q=50e-9,
     if not isinstance(T1, dict):
         T1 = {q: T1 for q in all_qubits}
 
-    if T2 is None:
-        T2 = {q: T1 / 2. for q, T1 in T1.items()}
-    elif not isinstance(T2, dict):
+    if not isinstance(T2, dict):
         T2 = {q: T2 for q in all_qubits}
-
-    # T2 can be at most T1/2
-    T2 = {q: min(qT2, T1.get(q, INFTY) / 2.) for q, qT2 in T2.items()}
 
     if not isinstance(ro_fidelity, dict):
         ro_fidelity = {q: ro_fidelity for q in all_qubits}

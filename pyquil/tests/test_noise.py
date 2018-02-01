@@ -94,8 +94,8 @@ def test_decoherence_noise():
         else:
             assert len(g.kraus_ops) == 1
 
-    # verify that T1 damping implies T2 dephasing
-    m3 = decoherence_noise_model(gates, T1={0: 30e-6}, T2=None)
+    # verify that combined T1 and T2 will lead to 4 outcome Kraus map.
+    m3 = decoherence_noise_model(gates, T1={0: 30e-6}, T2={0: 30e-6})
     for g in m3.gates:
         if 0 in g.targets:
             # damping (implies dephasing) channel on qc 0, no noise on qc1 -> 4 Kraus ops
@@ -116,7 +116,7 @@ def test_decoherence_noise():
     assert headers.out() in new_prog.out()
 
     # verify that high-level add_decoherence_noise reproduces new_prog
-    new_prog2 = add_decoherence_noise(prog, T1={0: 30e-6}, T2=None)
+    new_prog2 = add_decoherence_noise(prog, T1={0: 30e-6}, T2={0: 30e-6})
     assert new_prog == new_prog2
 
 
