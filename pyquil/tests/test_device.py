@@ -57,6 +57,7 @@ def isa_dict():
         ]
     }
 
+
 @pytest.fixture
 def kraus_model_I_dict():
     return {'gate': 'I',
