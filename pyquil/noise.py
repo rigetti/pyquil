@@ -26,7 +26,7 @@ from pyquil.quilbase import Pragma, Gate, Qubit as QuilQubit
 
 
 INFTY = float("inf")
-
+"Used for infinite coherence times."
 
 
 _KrausModel = namedtuple("_KrausModel", ["gate", "params", "targets", "kraus_ops", "fidelity"])
@@ -192,7 +192,6 @@ class NoiseModel(_NoiseModel):
         return not self.__eq__(other)
 
 
-
 def _check_kraus_ops(n, kraus_ops):
     """
     Verify that the Kraus operators are of the correct shape and satisfy the correct normalization.
@@ -311,10 +310,12 @@ def damping_after_dephasing(T1, T2, gate_time):
 NO_NOISE = ["RZ"]
 SINGLE_Q = {
     ("I", ()): (np.eye(2), "NOISY-I"),
-    ("RX", (np.pi/2,)): (np.array([[1, -1j],
-                                   [-1j, 1]]) / np.sqrt(2), "NOISY-RX-PLUS-90"),
-    ("RX", (-np.pi/2,)): (np.array([[1, 1j],
-                                    [1j, 1]]) / np.sqrt(2), "NOISY-RX-MINUS-90"),
+    ("RX", (np.pi / 2,)): (np.array([[1, -1j],
+                                     [-1j, 1]]) / np.sqrt(2),
+                           "NOISY-RX-PLUS-90"),
+    ("RX", (-np.pi / 2,)): (np.array([[1, 1j],
+                                      [1j, 1]]) / np.sqrt(2),
+                            "NOISY-RX-MINUS-90"),
 }
 TWO_Q = {
     ("CZ", ()): (np.diag([1, 1, 1, -1]), "NOISY-CZ"),
@@ -356,7 +357,7 @@ def _get_noisy_names(gates):
 
 
 def decoherence_noise_model(gates, T1=30e-6, T2=None, gate_time_1q=50e-9,
-                             gate_time_2q=150e-09, ro_fidelity=0.95):
+                            gate_time_2q=150e-09, ro_fidelity=0.95):
     """
     The default noise parameters
 
@@ -439,8 +440,8 @@ def decoherence_noise_model(gates, T1=30e-6, T2=None, gate_time_1q=50e-9,
                                      1.0))
     aprobs = {}
     for q, f_ro in ro_fidelity.items():
-        aprobs[q] = np.array([[f_ro, 1.-f_ro],
-                              [1.-f_ro, f_ro]])
+        aprobs[q] = np.array([[f_ro, 1. - f_ro],
+                              [1. - f_ro, f_ro]])
 
     # FIXME (Nik): decide on whether isa_name is set to something more useful
     return NoiseModel("DECOHERENCE_ISA", kraus_maps, aprobs)

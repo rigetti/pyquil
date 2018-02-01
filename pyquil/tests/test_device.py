@@ -75,7 +75,7 @@ def test_gates_in_isa():
     isa = ISA.from_dict(ARCH_QPU)
     gates = gates_in_isa(isa)
     for q in [0, 1, 2]:
-        for g in [I, RX(np.pi/2), RX(-np.pi/2), RZ(THETA)]:
+        for g in [I, RX(np.pi / 2), RX(-np.pi / 2), RZ(THETA)]:
             assert g(q) in gates
 
     assert CZ(0, 1) in gates

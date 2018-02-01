@@ -134,8 +134,8 @@ def gates_in_isa(isa):
         if q.type in [None, "Xhalves"]:
             gates.extend([
                 Gate("I", [], [unpack_qubit(q.id)]),
-                Gate("RX", [np.pi/2], [unpack_qubit(q.id)]),
-                Gate("RX", [-np.pi/2], [unpack_qubit(q.id)]),
+                Gate("RX", [np.pi / 2], [unpack_qubit(q.id)]),
+                Gate("RX", [-np.pi / 2], [unpack_qubit(q.id)]),
                 Gate("RZ", [THETA], [unpack_qubit(q.id)]),
             ])
         else:  # pragma no coverage

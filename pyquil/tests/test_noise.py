@@ -67,7 +67,7 @@ def test_noise_helpers():
 
 
 def test_decoherence_noise():
-    prog = Program(RX(np.pi/2)(0),  CZ(0, 1), RZ(np.pi)(0))
+    prog = Program(RX(np.pi / 2)(0), CZ(0, 1), RZ(np.pi)(0))
     gates = _get_program_gates(prog)
     m1 = decoherence_noise_model(gates, T1=INFTY, T2=INFTY, ro_fidelity=1.)
 
@@ -77,7 +77,7 @@ def test_decoherence_noise():
     for g in m1.gates:
         # with infinite coherence time all kraus maps should only have a single, unitary kraus op
         assert len(g.kraus_ops) == 1
-        k0,  = g.kraus_ops
+        k0, = g.kraus_ops
         # check unitarity
         k0dk0 = k0.dot(k0.conjugate().transpose())
         assert np.allclose(k0dk0, np.eye(k0dk0.shape[0]))
