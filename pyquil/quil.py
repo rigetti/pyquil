@@ -24,7 +24,7 @@ import numpy as np
 from six import string_types
 
 from pyquil._parser.PyQuilListener import run_parser
-from pyquil.kraus import _check_kraus_ops, _create_kraus_pragmas
+from pyquil.noise import _check_kraus_ops, _create_kraus_pragmas
 from pyquil.parameters import format_parameter
 from pyquil.quilatom import LabelPlaceholder, QubitPlaceholder, unpack_qubit
 from .gates import MEASURE, STANDARD_GATES, H

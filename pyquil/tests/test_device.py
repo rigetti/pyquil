@@ -1,9 +1,11 @@
-from collections import OrderedDict
-
 import numpy as np
 import pytest
 
-from pyquil.device import Device, KrausModel, ISA, Qubit, Edge, NoiseModel
+from pyquil.device import Device, ISA, Qubit, Edge, THETA, gates_in_isa
+from pyquil.noise import NoiseModel, KrausModel
+from pyquil.gates import RZ, RX, I, CZ, ISWAP, CPHASE
+from collections import OrderedDict
+
 
 DEVICE_FIXTURE_NAME = 'mixed_architecture_chip'
 
@@ -27,6 +29,10 @@ def isa_dict():
                 },
                 {
                     'qubit-id': 2
+                },
+                {
+                    'qubit-id': 3,
+                    'dead': True
                 }
             ],
             [
@@ -41,6 +47,11 @@ def isa_dict():
                 {
                     'action-qubits': [2, 0],
                     'type': 'CPHASE'
+                },
+                {
+                    'action-qubits': [0, 3],
+                    'type': 'CZ',
+                    'dead': True
                 }
             ]
         ]
@@ -79,7 +90,7 @@ def noise_model_dict():
                        'fidelity': 1.0}],
             'assignment_probs': {'1': [[1.0, 0.0], [0.0, 1.0]],
                                  '0': [[1.0, 0.0], [0.0, 1.0]]},
-            'isa_name': DEVICE_FIXTURE_NAME}
+            }
 
 
 @pytest.fixture
@@ -97,17 +108,18 @@ def test_isa(isa_dict):
         version=isa_dict['id']['version'],
         timestamp=isa_dict['id']['timestamp'],
         qubits=[
-            Qubit(id=0, type='Xhalves', dead=None),
-            Qubit(id=1, type=None, dead=None),
-            Qubit(id=2, type=None, dead=None),
+            Qubit(id=0, type='Xhalves', dead=False),
+            Qubit(id=1, type='Xhalves', dead=False),
+            Qubit(id=2, type='Xhalves', dead=False),
+            Qubit(id=3, type='Xhalves', dead=True),
         ],
         edges=[
-            Edge(targets=[0, 1], type='CZ', dead=None),
-            Edge(targets=[1, 2], type='ISWAP', dead=None),
-            Edge(targets=[2, 0], type='CPHASE', dead=None),
+            Edge(targets=[0, 1], type='CZ', dead=False),
+            Edge(targets=[1, 2], type='ISWAP', dead=False),
+            Edge(targets=[2, 0], type='CPHASE', dead=False),
+            Edge(targets=[0, 3], type='CZ', dead=True),
         ])
-    d = isa.to_dict()
-    assert d == isa_dict
+    assert isa == ISA.from_dict(isa.to_dict())
 
 
 def test_kraus_model(kraus_model_I_dict):
@@ -134,13 +146,12 @@ def test_noise_model(kraus_model_I_dict, kraus_model_RX90_dict):
                                   kraus_model_RX90_dict],
                         'assignment_probs': {'1': [[1.0, 0.0], [0.0, 1.0]],
                                              '0': [[1.0, 0.0], [0.0, 1.0]]},
-                        'isa_name': DEVICE_FIXTURE_NAME}
+                        }
 
     nm = NoiseModel.from_dict(noise_model_dict)
     km1 = KrausModel.from_dict(kraus_model_I_dict)
     km2 = KrausModel.from_dict(kraus_model_RX90_dict)
-    assert nm == NoiseModel(isa_name=DEVICE_FIXTURE_NAME,
-                            gates=[km1, km2],
+    assert nm == NoiseModel(gates=[km1, km2],
                             assignment_probs={0: np.eye(2), 1: np.eye(2)})
     assert nm.gates_by_name('I') == [km1]
     assert nm.gates_by_name('RX') == [km2]
@@ -164,3 +175,18 @@ def test_device(isa_dict, noise_model_dict):
     assert device.isa == isa
     assert isinstance(device.noise_model, NoiseModel)
     assert device.noise_model == noise_model
+
+
+def test_gates_in_isa(isa_dict):
+    isa = ISA.from_dict(isa_dict)
+    gates = gates_in_isa(isa)
+    for q in [0, 1, 2]:
+        for g in [I, RX(np.pi / 2), RX(-np.pi / 2), RZ(THETA)]:
+            assert g(q) in gates
+
+    assert CZ(0, 1) in gates
+    assert CZ(1, 0) in gates
+    assert ISWAP(1, 2) in gates
+    assert ISWAP(2, 1) in gates
+    assert CPHASE(THETA)(2, 0) in gates
+    assert CPHASE(THETA)(0, 2) in gates
