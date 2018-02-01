@@ -549,3 +549,35 @@ def add_decoherence_noise(prog, T1=30e-6, T2=None, gate_time_1q=50e-9, gate_time
         ro_fidelity=ro_fidelity
     )
     return apply_noise_model(prog, noise_model)
+
+
+def estimate_bitstring_probs(results):
+    """
+    Given an array of single shot results estimate the probability distribution over all bitstrings.
+
+    :param np.array results: A 2d array where the outer axis iterates over shots
+        and the inner axis over bits.
+    :return: An array with as many axes as there are qubit and normalized such that it sums to one.
+        ``p[i,j,...,k]`` gives the estimated probability of bitstring ``ij...k``.
+    :rtype: np.array
+    """
+    nshots, nq = np.shape(results)[1]
+    outcomes = np.packbits(results, axis=1)
+    probs = np.histogram(outcomes, bins=np.arange(-.5, 2 ** nq, 1)) / float(nshots)
+    return probs.reshape((2,) * nq)
+
+
+def correct_readout_probs(bitstring_probs, assignment_probabilities):
+    """
+    Given a 2d array of single shot results (outer axis iterates over shots, inner axis over bits)
+    and a list of assignment probability matrices (one for each bit in the readout, ordered like
+    the inner axis of results) estimate the
+
+    :param results:
+    :param assignment_probabilities:
+    :return:
+    """
+    output_probs = bitstring_probs
+    for jj, apjj in enumerate(assignment_probabilities):
+        output_probs = np.tensordot(np.inv(apjj),  output_probs, axes=[(1,), (jj,)])
+    return output_probs
