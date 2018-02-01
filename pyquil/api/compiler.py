@@ -83,7 +83,7 @@ class CompilerConnection(object):
             response = post_json(self.session, self.async_endpoint + "/job",
                 {"machine": "QUILC", "program": payload})
             job = self.wait_for_job(get_job_id(response))
-            return job.result()
+            return job.compiled_quil()
         else:
             response = post_json(self.session, self.sync_endpoint + "/quilc",
                 payload)
