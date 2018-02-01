@@ -26,7 +26,35 @@ from pyquil.noise import (
     dephasing_kraus_map,
     tensor_kraus_maps,
     combine_kraus_maps,
-    damping_after_dephasing,
-    add_noise_to_program)
+    damping_after_dephasing, add_decoherence_noise)
 
 warnings.warn("pyquil.kraus is deprecated, please use pyquil.noise instead.", DeprecationWarning)
+
+
+def add_noise_to_program(prog, T1=30e-6, T2=None, gate_time_1q=50e-9, gate_time_2q=150e-09,
+                         ro_fidelity=0.95):
+    """
+    Add generic damping and dephasing noise to a program.
+
+    .. warning::
+
+        This function is deprecated. Please use :py:func:`add_decoherence_noise` instead.
+
+    :param prog: A pyquil program consisting of I, RZ, CZ, and RX(+-pi/2) instructions
+    :param Union[Dict[int,float],float] T1: The T1 amplitude damping time either globally or in a
+        dictionary indexed by qubit id. By default, this is 30 us.
+    :param Optional[Union[Dict[int,float],float]] T2: The T2 dephasing time either globally or in a
+        dictionary indexed by qubit id. By default, this is one-half of the T1 time.
+    :param float gate_time_1q: The duration of the one-qubit gates, namely RX(+pi/2) and RX(-pi/2).
+        By default, this is 50 ns.
+    :param float gate_time_2q: The duration of the two-qubit gates, namely CZ.
+        By default, this is 150 ns.
+    :param Union[Dict[int,float],float] ro_fidelity: The readout assignment fidelity
+        :math:`F = (p(0|0) + p(1|1))/2` either globally or in a dictionary indexed by qubit id.
+    :return: A new program with noisy operators.
+    """
+    warnings.warn("pyquil.kraus.add_noise_to_program is deprecated, please use "
+                  "pyquil.noise.add_decoherence_noise instead.",
+                  DeprecationWarning)
+    return add_decoherence_noise(prog, T1=T1, T2=T2, gate_time_1q=gate_time_1q,
+                                 gate_time_2q=gate_time_2q, ro_fidelity=ro_fidelity)
