@@ -16,11 +16,181 @@
 """
 Module for creating and verifying noisy gate and readout definitions.
 """
+import warnings
+from collections import namedtuple
 
 import numpy as np
 
 from pyquil.parameters import format_parameter
-from pyquil.quilbase import Pragma, Gate
+from pyquil.quilbase import Pragma, Gate, Qubit as QuilQubit
+
+
+INFTY = float("inf")
+
+
+
+_KrausModel = namedtuple("_KrausModel", ["gate", "params", "targets", "kraus_ops", "fidelity"])
+
+
+class KrausModel(_KrausModel):
+    """
+    Encapsulate a single gate's noise model.
+
+    :ivar str gate: The name of the gate.
+    :ivar Sequence[float] params: Optional parameters for the gate.
+    :ivar Sequence[int] targets: The target qubit ids.
+    :ivar Sequence[np.array] kraus_ops: The Kraus operators (must be square complex numpy arrays).
+    :ivar float fidelity: The average gate fidelity associated with the Kraus map relative to the
+        ideal operation.
+    """
+
+    @staticmethod
+    def unpack_kraus_matrix(m):
+        """
+        Helper to optionally unpack a JSON compatible representation of a complex Kraus matrix.
+
+        :param Union[list,np.array] m: The representation of a Kraus operator. Either a complex
+            square matrix (as numpy array or nested lists) or a pair of real matrices (as numpy
+            arrays or nested lists) representing the element-wise real and imaginary part of m.
+        :return: A complex square numpy array representing the Kraus operator.
+        :rtype: np.array
+        """
+        m = np.asarray(m, dtype=complex)
+        if m.ndim == 3:
+            m = m[0] + 1j * m[1]
+        if not m.ndim == 2:  # pragma no coverage
+            raise ValueError("Need 2d array.")
+        if not m.shape[0] == m.shape[1]:  # pragma no coverage
+            raise ValueError("Need square matrix.")
+        return m
+
+    def to_dict(self):
+        """
+        Create a dictionary representation of a KrausModel.
+
+        For example::
+
+            {
+                "gate": "RX",
+                "params": np.pi,
+                "targets": [0],
+                "kraus_ops": [            # In this example single Kraus op = ideal RX(pi) gate
+                    [[[0,   0],           # element-wise real part of matrix
+                      [0,   0]],
+                      [[0, -1],           # element-wise imaginary part of matrix
+                      [-1, 0]]]
+                ],
+                "fidelity": 1.0
+            }
+
+        :return: A JSON compatible dictionary representation.
+        :rtype: Dict[str,Any]
+        """
+        res = self._asdict()
+        res['kraus_ops'] = [[k.real.tolist(), k.imag.tolist()] for k in self.kraus_ops]
+        return res
+
+    @staticmethod
+    def from_dict(d):
+        """
+        Recreate a KrausModel from the dictionary representation.
+
+        :param dict d: The dictionary representing the KrausModel. See `to_dict` for an
+            example.
+        :return: The deserialized KrausModel.
+        :rtype: KrausModel
+        """
+        kraus_ops = [KrausModel.unpack_kraus_matrix(k) for k in d['kraus_ops']]
+        return KrausModel(d['gate'], d['params'], d['targets'], kraus_ops, d['fidelity'])
+
+    # def gate(self):
+    #     """
+    #     Generate the corresponding Quil Gate application that the Kraus map implements.
+    #
+    #     :return: A pyquil.quilbase.Gate object.
+    #     :rtype: Gate
+    #     """
+    #     return Gate(self.gate, self.params, [QuilQubit(q) for q in self.targets])
+
+    def __eq__(self, other):
+        return isinstance(other, KrausModel) and self.to_dict() == other.to_dict()
+
+    def __neq__(self, other):
+        return not self.__eq__(other)
+
+
+_NoiseModel = namedtuple("_NoiseModel", ["isa_name", "gates", "assignment_probs"])
+
+
+class NoiseModel(_NoiseModel):
+    """
+    Encapsulate the QPU noise model containing information about the noisy gates.
+
+    :ivar str isa_name: The name of the instruction set architecture for the QPU.
+    :ivar Sequence[KrausModel] gates: The tomographic estimates of all gates.
+    :ivar Dict[int,np.array] assignment_probs: The single qubit readout assignment
+        probability matrices keyed by qubit id.
+    """
+
+    def to_dict(self):
+        """
+        Create a JSON serializable representation of the noise model.
+
+        For example::
+
+            {
+                "isa_name": "example_qpu",
+                "gates": [
+                    # list of embedded dictionary representations of KrausModels here [...]
+                ]
+                "assignment_probs": {
+                    "0": [[.8, .1],
+                          [.2, .9]],
+                    "1": [[.9, .4],
+                          [.1, .6]],
+                }
+            }
+
+        :return: A dictionary representation of self.
+        :rtype: Dict[str,Any]
+        """
+        return {
+            "isa_name": self.isa_name,
+            "gates": [km.to_dict() for km in self.gates],
+            "assignment_probs": {str(qid): a.tolist() for qid, a in self.assignment_probs.items()},
+        }
+
+    @staticmethod
+    def from_dict(d):
+        """
+        Re-create the noise model from a dictionary representation.
+
+        :param Dict[str,Any] d: The dictionary representation.
+        :return: The restored noise model.
+        :rtype: NoiseModel
+        """
+        return NoiseModel(
+            isa_name=d["isa_name"],
+            gates=[KrausModel.from_dict(t) for t in d["gates"]],
+            assignment_probs={int(qid): np.array(a) for qid, a in d["assignment_probs"].items()},
+        )
+
+    def gates_by_name(self, name):
+        """
+        Return all defined noisy gates of a particular gate name.
+
+        :param str name: The gate name.
+        :return: A list of noise models representing that gate.
+        :rtype: Sequence[KrausModel]
+        """
+        return [g for g in self.gates if g.gate == name]
+
+    def __eq__(self, other):
+        return isinstance(other, NoiseModel) and self.to_dict() == other.to_dict()
+
+    def __neq__(self, other):
+        return not self.__eq__(other)
+
 
 
 def _check_kraus_ops(n, kraus_ops):
@@ -132,88 +302,61 @@ def damping_after_dephasing(T1, T2, gate_time):
     :param float gate_time: The gate duration.
     :return: A list of Kraus operators.
     """
-    damping = damping_kraus_map(p=gate_time / float(T1))
-    dephasing = dephasing_kraus_map(p=gate_time / float(T2))
+    damping = damping_kraus_map(p=gate_time / float(T1)) if T1 != INFTY else [np.eye(2)]
+    dephasing = dephasing_kraus_map(p=gate_time / float(T2)) if T2 != INFTY else [np.eye(2)]
     return combine_kraus_maps(damping, dephasing)
 
 
-# You can only apply gate-noise to non-parametrized gates,
-# so we need to define placeholders for RX(+/- pi/2)
+# You can only apply gate-noise to non-parametrized gates or parametrized gates at fixed parameters.
+NO_NOISE = ["RZ"]
 SINGLE_Q = {
-    "noisy-x-plus90": (np.array([[1, -1j],
-                                 [-1j, 1]]) / np.sqrt(2)),
-    "noisy-x-minus90": (np.array([[1, 1j],
-                                  [1j, 1]]) / np.sqrt(2)),
+    ("I", ()): (np.eye(2), "NOISY-I"),
+    ("RX", (np.pi/2,)): (np.array([[1, -1j],
+                                   [-1j, 1]]) / np.sqrt(2), "NOISY-RX-PLUS-90"),
+    ("RX", (-np.pi/2,)): (np.array([[1, 1j],
+                                    [1j, 1]]) / np.sqrt(2), "NOISY-RX-MINUS-90"),
 }
 TWO_Q = {
-    "noisy-cz": np.diag([1, 1, 1, -1]),
+    ("CZ", ()): (np.diag([1, 1, 1, -1]), "NOISY-CZ"),
 }
 
 
-def _noisy_instruction(instruction):
+def _get_program_gates(prog):
     """
-    Translate an ordinary gate instruction into its noisy version, where applicable.
+    Get all gate applications appearing in prog.
 
-    In an attempt to closely model the QPU, noisy versions of RX(+-pi/2) and CZ are supported;
-    I and parametric RZ are returned as-is (noiseless), and other gates are not allowed.
-    Pragmas are returned as-is.
-
-    Note: this function doesn't actually define the noisy gates. Please see
-    :py:func`add_noise_to_program` for a full solution.
-
-    :param instruction: The instruction
-    :return: A noisy version of the instruction
+    :param Program prog: The program
+    :return: A list of all Gates in prog (without duplicates).
+    :rtype: List[Gate]
     """
-    if not isinstance(instruction, Gate):
-        return instruction
-
-    if instruction.name == 'RZ':
-        return instruction
-
-    if instruction.name == 'I':
-        return instruction
-
-    if instruction.name == 'RX':
-        assert len(instruction.params) == 1
-        assert len(instruction.qubits) == 1
-        if instruction.params[0] == np.pi / 2.0:
-            return Gate('noisy-x-plus90', [], instruction.qubits)
-        if instruction.params[0] == -np.pi / 2.0:
-            return Gate('noisy-x-minus90', [], instruction.qubits)
-        raise ValueError("Can't add noise to a parametric gate. "
-                         "Try compiling to RX(pi/2) or RX(-pi/2)")
-
-    if instruction.name == 'CZ':
-        return Gate('noisy-cz', [], instruction.qubits)
-
-    raise ValueError('Gate {} is not in the native instruction set'.format(instruction))
+    return sorted({i for i in prog if isinstance(i, Gate)}, key=lambda g: g.out())
 
 
-def _get_program_topology(prog):
+def _get_noisy_names(gates):
     """
-    Get the graph of two-qubit gates used in a program.
+    Generate new gate names for noisy gates.
 
-    :param prog: The program
-    :return: (qubits, edges). ``qubits`` is a set of all integer qubits.
-        ``edges`` is a set of tuples of two-qubit pairings.
+    :param Sequence[Gate] gates: A list of Gate objects.
+    :return: A dictionary with keys given by the input ``gates`` and values given by new gate name
+        strings.
+    :rtype: Dict[Gate,str]
     """
-    qubits = set()
-    edges = set()
-    for instruction in prog:
-        if not isinstance(instruction, Gate):
-            continue
-        qb = [q.index for q in instruction.qubits]
-        qubits.update(qb)
-        if len(qb) == 2:
-            edges.add(tuple(sorted(qb)))
-        if len(qb) > 2:
-            raise ValueError("Encountered a >2 qubit instruction")
+    ret = {}
+    for g in gates:
+        key = g.name, tuple(g.params)
+        if g.name in NO_NOISE:
+            ret[g] = g.name
+        elif key in SINGLE_Q:
+            ret[g] = SINGLE_Q[key][1]
+        elif key in TWO_Q:
+            ret[g] = TWO_Q[key][1]
+        else:
+            raise ValueError("Noise model for {} not yet supported".format(g))
+    return ret
 
-    return qubits, edges
 
-
-def _decoherence_noise_model(qubits, edges, T1=30e-6, T2=None, gate_time_1q=50e-9,
-                             gate_time_2q=150e-09):
+def decoherence_noise_model(gates, T1=30e-6, T2=None, gate_time_1q=50e-9,
+                             gate_time_2q=150e-09, ro_fidelity=0.95):
     """
     The default noise parameters
 
@@ -226,19 +369,154 @@ def _decoherence_noise_model(qubits, edges, T1=30e-6, T2=None, gate_time_1q=50e-
 
     This function will define new gates and add Kraus noise to these gates. It will translate
     the input program to use the noisy version of the gates.
-    :param Sequence[int]
-    :param T1: The T1 amplitude damping time. By default, this is 30 us
-    :param T2: The T2 dephasing time. By default, this is one-half of the T1 time.
-    :param gate_time_1q: The duration of the one-qubit gates, namely RX(+pi/2) and RX(-pi/2).
+
+    :param Sequence[Gate] gates: The gates to provide the noise model for.
+    :param Union[Dict[int,float],float] T1: The T1 amplitude damping time either globally or in a
+        dictionary indexed by qubit id. By default, this is 30 us.
+    :param Optional[Union[Dict[int,float],float]] T2: The T2 dephasing time either globally or in a
+        dictionary indexed by qubit id. If None, this defaults to one-half of the T1 time.
+        T2 is also constrained to not exceed T1/2.
+    :param float gate_time_1q: The duration of the one-qubit gates, namely RX(+pi/2) and RX(-pi/2).
         By default, this is 50 ns.
-    :param gate_time_2q: The duration of the two-qubit gates, namely CZ.
+    :param float gate_time_2q: The duration of the two-qubit gates, namely CZ.
         By default, this is 150 ns.
-    :return: A NoiseModel with the
-
+    :param Union[Dict[int,float],float] ro_fidelity: The readout assignment fidelity
+        :math:`F = (p(0|0) + p(1|1))/2` either globally or in a dictionary indexed by qubit id.
+    :return: A NoiseModel with the appropriate Kraus operators defined.
     """
+    all_qubits = set(sum(([t.index for t in g.qubits] for g in gates), []))
+    if isinstance(T1, dict):
+        all_qubits.update(T1.keys())
+    if isinstance(T2, dict):
+        all_qubits.update(T2.keys())
+    if isinstance(ro_fidelity, dict):
+        all_qubits.update(ro_fidelity.keys())
+
+    if not isinstance(T1, dict):
+        T1 = {q: T1 for q in all_qubits}
+
+    if T2 is None:
+        T2 = {q: T1 / 2. for q, T1 in T1.items()}
+    elif not isinstance(T2, dict):
+        T2 = {q: T2 for q in all_qubits}
+
+    # T2 can be at most T1/2
+    T2 = {q: min(qT2, T1.get(q, INFTY) / 2.) for q, qT2 in T2.items()}
+
+    if not isinstance(ro_fidelity, dict):
+        ro_fidelity = {q: ro_fidelity for q in all_qubits}
+
+    noisy_identities_1q = {
+        q: damping_after_dephasing(T1.get(q, INFTY), T2.get(q, INFTY), gate_time_1q)
+        for q in all_qubits
+    }
+    noisy_identities_2q = {
+        q: damping_after_dephasing(T1.get(q, INFTY), T2.get(q, INFTY), gate_time_2q)
+        for q in all_qubits
+    }
+    kraus_maps = []
+    for g in gates:
+        targets = tuple(t.index for t in g.qubits)
+        key = (g.name, tuple(g.params))
+        if g.name in NO_NOISE:
+            continue
+        if key in SINGLE_Q:
+            matrix, _ = SINGLE_Q[key]
+            noisy_I = noisy_identities_1q[targets[0]]
+        elif key in TWO_Q:
+            matrix, _ = TWO_Q[key]
+            # note this ordering of the tensor factors is necessary due to how the QVM orders
+            # the wavefunction basis
+            noisy_I = tensor_kraus_maps(noisy_identities_2q[targets[1]],
+                                        noisy_identities_2q[targets[0]])
+        else:
+            raise ValueError("Cannot create noisy version of {}. ".format(g) +
+                             "Please restrict yourself to CZ, RX(+/-pi/2), I, RZ(theta)")
+        kraus_maps.append(KrausModel(g.name, tuple(g.params), targets,
+                                     combine_kraus_maps(noisy_I, [matrix]),
+                                     # FIXME (Nik): compute actual avg gate fidelity for this simple
+                                     # noise model
+                                     1.0))
+    aprobs = {}
+    for q, f_ro in ro_fidelity.items():
+        aprobs[q] = np.array([[f_ro, 1.-f_ro],
+                              [1.-f_ro, f_ro]])
+
+    # FIXME (Nik): decide on whether isa_name is set to something more useful
+    return NoiseModel("DECOHERENCE_ISA", kraus_maps, aprobs)
 
 
-def add_noise_to_program(prog, T1=30e-6, T2=None, gate_time_1q=50e-9, gate_time_2q=150e-09):
+def _noise_model_program_header(noise_model, name_translator):
+    """
+    Generate the header for a pyquil Program that uses ``noise_model`` to overload noisy gates.
+
+    :param NoiseModel noise_model: The assumed noise model.
+    :return: A quil Program with the noise pragmas.
+    :rtype: pyquil.quil.Program
+    """
+    from pyquil.quil import Program
+    p = Program()
+    for k in noise_model.gates:
+        name = name_translator(k.gate)
+        p.define_noisy_gate(name, k.targets, k.kraus_ops)
+    for q, ap in noise_model.assignment_probs.items():
+        p.define_noisy_readout(q, p00=ap[0, 0], p11=ap[1, 1])
+    return p
+
+
+def apply_noise_model(prog, noise_model):
+    """
+    Apply a noise model to a program and generated a 'noisy-fied' version of the program.
+
+    :param Program prog: A Quil Program object.
+    :param NoiseModel noise_model: A NoiseModel, either generated from an ISA or
+        from a simple decoherence model.
+    :return: A new program translated to a noisy gateset and with noisy readout as described by the
+        noisemodel.
+    :rtype: Program
+    """
+    gates = _get_program_gates(prog)
+    noisy_names = _get_noisy_names(gates)
+    new_prog = _noise_model_program_header(noise_model, lambda g: noisy_names.get(g, g))
+    for i in prog:
+        if isinstance(i, Gate):
+            new_prog += Gate(noisy_names[i], i.params, i.qubits)
+        else:
+            new_prog += i
+    return new_prog
+
+
+def add_noise_to_program(prog, T1=30e-6, T2=None, gate_time_1q=50e-9, gate_time_2q=150e-09,
+                         ro_fidelity=0.95):
+    """
+    Add generic damping and dephasing noise to a program.
+
+    .. warning::
+
+        This function is deprecated. Please use :py:func:`add_decoherence_noise` instead.
+
+    :param prog: A pyquil program consisting of I, RZ, CZ, and RX(+-pi/2) instructions
+    :param Union[Dict[int,float],float] T1: The T1 amplitude damping time either globally or in a
+        dictionary indexed by qubit id. By default, this is 30 us.
+    :param Optional[Union[Dict[int,float],float]] T2: The T2 dephasing time either globally or in a
+        dictionary indexed by qubit id. By default, this is one-half of the T1 time.
+    :param float gate_time_1q: The duration of the one-qubit gates, namely RX(+pi/2) and RX(-pi/2).
+        By default, this is 50 ns.
+    :param float gate_time_2q: The duration of the two-qubit gates, namely CZ.
+        By default, this is 150 ns.
+    :param Union[Dict[int,float],float] ro_fidelity: The readout assignment fidelity
+        :math:`F = (p(0|0) + p(1|1))/2` either globally or in a dictionary indexed by qubit id.
+    :return: A new program with noisy operators.
+    """
+    warnings.warn("pyquil.noise.add_noise_to_program is deprecated, please use "
+                  "pyquil.noise.add_decoherence_noise instead.",
+                  DeprecationWarning)
+    return add_decoherence_noise(prog, T1=T1, T2=T2, gate_time_1q=gate_time_1q,
+                                 gate_time_2q=gate_time_2q, ro_fidelity=ro_fidelity)
+
+
+def add_decoherence_noise(prog, T1=30e-6, T2=None, gate_time_1q=50e-9, gate_time_2q=150e-09,
+                          ro_fidelity=0.95):
     """
     Add generic damping and dephasing noise to a program.
 
@@ -263,42 +541,25 @@ def add_noise_to_program(prog, T1=30e-6, T2=None, gate_time_1q=50e-9, gate_time_
     the input program to use the noisy version of the gates.
 
     :param prog: A pyquil program consisting of I, RZ, CZ, and RX(+-pi/2) instructions
-    :param T1: The T1 amplitude damping time. By default, this is 30 us
-    :param T2: The T2 dephasing time. By default, this is one-half of the T1 time.
-    :param gate_time_1q: The duration of the one-qubit gates, namely RX(+pi/2) and RX(-pi/2).
+    :param Union[Dict[int,float],float] T1: The T1 amplitude damping time either globally or in a
+        dictionary indexed by qubit id. By default, this is 30 us.
+    :param Optional[Union[Dict[int,float],float]] T2: The T2 dephasing time either globally or in a
+        dictionary indexed by qubit id. By default, this is one-half of the T1 time.
+    :param float gate_time_1q: The duration of the one-qubit gates, namely RX(+pi/2) and RX(-pi/2).
         By default, this is 50 ns.
-    :param gate_time_2q: The duration of the two-qubit gates, namely CZ.
+    :param float gate_time_2q: The duration of the two-qubit gates, namely CZ.
         By default, this is 150 ns.
+    :param Union[Dict[int,float],float] ro_fidelity: The readout assignment fidelity
+        :math:`F = (p(0|0) + p(1|1))/2` either globally or in a dictionary indexed by qubit id.
     :return: A new program with noisy operators.
     """
-
-    if T2 is None:
-        T2 = T1 / 2.0
-
-    from pyquil.quil import Program  # Avoid circular dependency
-    qubits, edges = _get_program_topology(prog)
-    new_prog = Program()
-
-    # Define noisy 1q gates
-    for name, matrix in SINGLE_Q.items():
-        new_prog.defgate(name, matrix)
-        k_ops = append_kraus_to_gate(damping_after_dephasing(T1=T1, T2=T2, gate_time=gate_time_1q),
-                                     gate_matrix=matrix)
-        for qubit in qubits:
-            new_prog.define_noisy_gate(name, (qubit,), k_ops)
-
-    # Define noisy 2q gates
-    for name, matrix in TWO_Q.items():
-        new_prog.defgate(name, matrix)
-        k1q = damping_after_dephasing(T1=T1, T2=T2, gate_time=gate_time_2q)
-        k_total = append_kraus_to_gate(tensor_kraus_maps(k1q, k1q), gate_matrix=matrix)
-        for q1, q2 in edges:
-            # Note! q1 must be less than q2. This is done in _get_program_topology
-            assert q1 < q2
-            new_prog.define_noisy_gate(name, (q1, q2), k_total)
-
-    # Translate noiseless gates to noisy gates.
-    new_instrs = [_noisy_instruction(instruction) for instruction in prog]
-    new_prog.inst(new_instrs)
-
-    return new_prog
+    gates = _get_program_gates(prog)
+    noise_model = decoherence_noise_model(
+        gates,
+        T1=T1,
+        T2=T2,
+        gate_time_1q=gate_time_1q,
+        gate_time_2q=gate_time_2q,
+        ro_fidelity=ro_fidelity
+    )
+    return apply_noise_model(prog, noise_model)

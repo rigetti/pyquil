@@ -14,9 +14,15 @@
 #    limitations under the License.
 ##############################################################################
 from collections import namedtuple
-
+from typing import Union
 import numpy as np
-from typing import Union, Sequence
+
+from pyquil.parameters import Parameter
+from pyquil.quilatom import unpack_qubit
+from pyquil.quilbase import Gate
+
+THETA = Parameter("theta")
+"Used as the symbolic parameter in RZ, CPHASE gates."
 
 Qubit = namedtuple("Qubit", ["id", "type", "dead"])
 Edge = namedtuple("Edge", ["targets", "type", "dead"])
@@ -113,158 +119,41 @@ class ISA(_ISA):
         )
 
 
-_KrausModel = namedtuple("_KrausModel", ["gate", "params", "targets", "kraus_ops", "fidelity"])
-
-
-class KrausModel(_KrausModel):
+def gates_in_isa(isa):
     """
-    Encapsulate a single gate's noise model.
+    Generate the full gateset associated with an ISA.
 
-    :ivar str gate: The name of the gate.
-    :ivar Sequence[float] params: Optional parameters for the gate.
-    :ivar Sequence[int] targets: The target qubit ids.
-    :ivar Sequence[np.array] kraus_ops: The Kraus operators (must be square complex numpy arrays).
-    :ivar float fidelity: The average gate fidelity associated with the Kraus map relative to the
-        ideal operation.
+    :param ISA isa: The instruction set architecture for a QPU.
+    :return: A sequence of Gate objects encapsulating all gates compatible with the ISA.
+    :rtype: Sequece[Gate]
     """
+    gates = []
+    for q in isa.qubits:
+        if q.dead:
+            continue
+        if q.type in [None, "Xhalves"]:
+            gates.extend([
+                Gate("I", [], [unpack_qubit(q.id)]),
+                Gate("RX", [np.pi/2], [unpack_qubit(q.id)]),
+                Gate("RX", [-np.pi/2], [unpack_qubit(q.id)]),
+                Gate("RZ", [THETA], [unpack_qubit(q.id)]),
+            ])
+        else:  # pragma no coverage
+            raise ValueError("Unknown qubit type: {}".format(q.type))
 
-    @staticmethod
-    def unpack_kraus_matrix(m):
-        """
-        Helper to optionally unpack a JSON compatible representation of a complex Kraus matrix.
-
-        :param Union[list,np.array] m: The representation of a Kraus operator. Either a complex
-            square matrix (as numpy array or nested lists) or a pair of real matrices (as numpy
-            arrays or nested lists) representing the element-wise real and imaginary part of m.
-        :return: A complex square numpy array representing the Kraus operator.
-        :rtype: np.array
-        """
-        m = np.asarray(m, dtype=complex)
-        if m.ndim == 3:
-            m = m[0] + 1j * m[1]
-        if not m.ndim == 2:  # pragma no coverage
-            raise ValueError("Need 2d array.")
-        if not m.shape[0] == m.shape[1]:  # pragma no coverage
-            raise ValueError("Need square matrix.")
-        return m
-
-    def to_dict(self):
-        """
-        Create a dictionary representation of a KrausModel.
-
-        For example::
-
-            {
-                "gate": "RX",
-                "params": np.pi,
-                "targets": [0],
-                "kraus_ops": [            # In this example single Kraus op = ideal RX(pi) gate
-                    [[[0,   0],           # element-wise real part of matrix
-                      [0,   0]],
-                      [[0, -1],           # element-wise imaginary part of matrix
-                      [-1, 0]]]
-                ],
-                "fidelity": 1.0
-            }
-
-        :return: A JSON compatible dictionary representation.
-        :rtype: Dict[str,Any]
-        """
-        res = self._asdict()
-        res['kraus_ops'] = [[k.real.tolist(), k.imag.tolist()] for k in self.kraus_ops]
-        return res
-
-    @staticmethod
-    def from_dict(d):
-        """
-        Recreate a KrausModel from the dictionary representation.
-
-        :param dict d: The dictionary representing the KrausModel. See `to_dict` for an
-            example.
-        :return: The deserialized KrausModel.
-        :rtype: KrausModel
-        """
-        kraus_ops = [KrausModel.unpack_kraus_matrix(k) for k in d['kraus_ops']]
-        return KrausModel(d['gate'], d['params'], d['targets'], kraus_ops, d['fidelity'])
-
-    def __eq__(self, other):
-        return isinstance(other, KrausModel) and self.to_dict() == other.to_dict()
-
-    def __neq__(self, other):
-        return not self.__eq__(other)
-
-
-_NoiseModel = namedtuple("_NoiseModel", ["isa_name", "gates", "assignment_probs"])
-
-
-class NoiseModel(_NoiseModel):
-    """
-    Encapsulate the QPU noise model containing information about the noisy gates.
-
-    :ivar str isa_name: The name of the instruction set architecture for the QPU.
-    :ivar Sequence[KrausModel] gates: The tomographic estimates of all gates.
-    :ivar Dict[int,np.array] assignment_probs: The single qubit readout assignment
-        probability matrices keyed by qubit id.
-    """
-
-    def to_dict(self):
-        """
-        Create a JSON serializable representation of the noise model.
-
-        For example::
-
-            {
-                "isa_name": "example_qpu",
-                "gates": [
-                    # list of embedded dictionary representations of KrausModels here [...]
-                ]
-                "assignment_probs": {
-                    "0": [[.8, .1],
-                          [.2, .9]],
-                    "1": [[.9, .4],
-                          [.1, .6]],
-                }
-            }
-
-        :return: A dictionary representation of self.
-        :rtype: Dict[str,Any]
-        """
-        return {
-            "isa_name": self.isa_name,
-            "gates": [km.to_dict() for km in self.gates],
-            "assignment_probs": {str(qid): a.tolist() for qid, a in self.assignment_probs.items()},
-        }
-
-    @staticmethod
-    def from_dict(d):
-        """
-        Re-create the noise model from a dictionary representation.
-
-        :param Dict[str,Any] d: The dictionary representation.
-        :return: The restored noise model.
-        :rtype: NoiseModel
-        """
-        return NoiseModel(
-            isa_name=d["isa_name"],
-            gates=[KrausModel.from_dict(t) for t in d["gates"]],
-            assignment_probs={int(qid): np.array(a) for qid, a in d["assignment_probs"].items()},
-        )
-
-    def gates_by_name(self, name):
-        """
-        Return all defined noisy gates of a particular gate name.
-
-        :param str name: The gate name.
-        :return: A list of noise models representing that gate.
-        :rtype: Sequence[KrausModel]
-        """
-        return [g for g in self.gates if g.gate == name]
-
-    def __eq__(self, other):
-        return isinstance(other, NoiseModel) and self.to_dict() == other.to_dict()
-
-    def __neq__(self, other):
-        return not self.__eq__(other)
+    for e in isa.edges:
+        if e.dead:
+            continue
+        targets = [unpack_qubit(t) for t in e.targets]
+        if e.type in [None, "CZ", "ISWAP"]:
+            gates.append(Gate(e.type, [], targets))
+            gates.append(Gate(e.type, [], targets[::-1]))
+        elif e.type in ["CPHASE"]:
+            gates.append(Gate(e.type, [THETA], targets))
+            gates.append(Gate(e.type, [THETA], targets[::-1]))
+        else:  # pragma no coverage
+            raise ValueError("Unknown edge type: {}".format(e.type))
+    return gates
 
 
 class Device(object):
