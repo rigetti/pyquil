@@ -103,15 +103,6 @@ class KrausModel(_KrausModel):
         kraus_ops = [KrausModel.unpack_kraus_matrix(k) for k in d['kraus_ops']]
         return KrausModel(d['gate'], d['params'], d['targets'], kraus_ops, d['fidelity'])
 
-    # def gate(self):
-    #     """
-    #     Generate the corresponding Quil Gate application that the Kraus map implements.
-    #
-    #     :return: A pyquil.quilbase.Gate object.
-    #     :rtype: Gate
-    #     """
-    #     return Gate(self.gate, self.params, [QuilQubit(q) for q in self.targets])
-
     def __eq__(self, other):
         return isinstance(other, KrausModel) and self.to_dict() == other.to_dict()
 
