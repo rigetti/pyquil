@@ -16,6 +16,7 @@
 
 from pyquil.api import Job
 from pyquil.quil import Program
+from pyquil.parser import parse_program
 from ._base_connection import TYPE_MULTISHOT, get_job_id, get_session, \
     wait_for_job, post_json, get_json
 
@@ -88,7 +89,7 @@ class CompilerConnection(object):
         else:
             response = post_json(self.session, self.sync_endpoint + "/quilc",
                                  payload)
-            return response.json()
+            return parse_program(response.json()['compiled-quil'])
 
     def compile_async(self, quil_program, isa=None):
         """
@@ -145,4 +146,3 @@ class CompilerConnection(object):
         return wait_for_job(get_job_fn,
                             ping_time if ping_time else self.ping_time,
                             status_time if status_time else self.status_time)
-
