@@ -33,8 +33,8 @@ class Wavefunction(object):
         if len(amplitude_vector) == 0 or len(amplitude_vector) & (len(amplitude_vector) - 1) != 0:
             raise TypeError("Amplitude vector must have a length that is a power of two")
 
-        self.amplitudes = amplitude_vector
-        self.classical_memory = classical_memory
+        self.amplitudes = np.asarray(amplitude_vector)
+        self.classical_memory = np.asarray(classical_memory)
 
     @staticmethod
     def ground(qubit_num):
@@ -100,6 +100,10 @@ class Wavefunction(object):
 
     def __str__(self):
         return self.pretty_print(decimal_digits=10)
+
+    def probabilities(self):
+        """Returns an array of probabilities in lexicographical order"""
+        return np.abs(self.amplitudes ** 2)
 
     def get_outcome_probs(self):
         """
