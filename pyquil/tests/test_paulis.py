@@ -467,7 +467,7 @@ def test_commuting_sets():
     term2 = PauliTerm("Y", 0) * PauliTerm("Y", 1)
     term3 = PauliTerm("Y", 0) * PauliTerm("Z", 2)
     pauli_sum = term1 + term2 + term3
-    commuting_sets(pauli_sum, 3)
+    commuting_sets(pauli_sum)
 
 
 def test_paulisum_iteration():

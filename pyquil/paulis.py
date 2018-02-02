@@ -617,7 +617,7 @@ def check_commutation(pauli_list, pauli_two):
     return True
 
 
-def commuting_sets(pauli_terms, nqubits):
+def commuting_sets(pauli_terms):
     """Gather the Pauli terms of pauli_terms variable into commuting sets
 
     Uses algorithm defined in (Raeisi, Wiebe, Sanders, arXiv:1108.4318, 2011)
