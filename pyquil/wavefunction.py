@@ -34,7 +34,7 @@ class Wavefunction(object):
             raise TypeError("Amplitude vector must have a length that is a power of two")
 
         self.amplitudes = np.asarray(amplitude_vector)
-        self.classical_memory = np.asarray(classical_memory)
+        self.classical_memory = classical_memory
 
     @staticmethod
     def ground(qubit_num):
