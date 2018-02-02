@@ -548,11 +548,47 @@ def estimate_bitstring_probs(results):
     return _bitstring_probs_by_qubit(probs)
 
 
-def correct_bitstring_probs(p, assignment_probabilities):
+_CHARS = 'klmnopqrstuvwxyzabcdefgh'
+
+
+def _apply_local_trafos(p, trafos):
     """
     Given a 2d array of single shot results (outer axis iterates over shots, inner axis over bits)
     and a list of assignment probability matrices (one for each bit in the readout, ordered like
-    the inner axis of results) estimate the
+    the inner axis of results) apply local 2x2 matrices to each bit index.
+
+    :param np.array p: An array that enumerates a function indexed by bitstrings::
+
+            f(ijk...) = p[i,j,k,...]
+
+    :param List[np.array] trafos: A list of 2x2 matrices, one per bit.
+    :return: ``p_transformed`` an array with as many dimensions as there are bits with the result of
+        contracting p along each axis by the corresponding bit transformation.
+
+            p_transformed[ijk...] = f'(ijk...) = sum_lmn... t0_il t1_jm t2_kn f(lmn...)
+
+    :rtype: np.array
+    """
+    p_corrected = _bitstring_probs_by_qubit(p)
+    nq = p_corrected.ndim
+    for idx, trafo_idx in enumerate(trafos):
+
+        # this contraction pattern looks like
+        # 'ij,abcd...jklm...->abcd...iklm...' so it properly applies a "local"
+        # transformation to a single tensor-index without changing the order of
+        # indices
+        einsum_pat = ('ij,' + _CHARS[:idx] + 'j' + _CHARS[idx:nq - 1] +
+                      '->' + _CHARS[:idx] + 'i' + _CHARS[idx:nq - 1])
+        p_corrected = np.einsum(einsum_pat, trafo_idx, p_corrected)
+
+    return p_corrected
+
+
+def corrupt_bitstring_probs(p, assignment_probabilities):
+    """
+    Given a 2d array of true bitstring probabilities (outer axis iterates over shots, inner axis
+    over bits) and a list of assignment probability matrices (one for each bit in the readout,
+    ordered like the inner axis of results) compute the corrupted probabilities.
 
     :param np.array p: An array that enumerates bitstring probabilities. When
         flattened out ``p = [p_00...0, p_00...1, ...,p_11...1]``. The total number of elements must
@@ -569,10 +605,31 @@ def correct_bitstring_probs(p, assignment_probabilities):
         ``p[i,j,...,k]`` gives the estimated probability of bitstring ``ij...k``.
     :rtype: np.array
     """
-    p_corrected = _bitstring_probs_by_qubit(p)
-    for jj, apjj in enumerate(assignment_probabilities):
-        p_corrected = np.tensordot(np.linalg.inv(apjj), p_corrected, axes=[(1,), (jj,)])
-    return p_corrected
+    return _apply_local_trafos(p, assignment_probabilities)
+
+
+def correct_bitstring_probs(p, assignment_probabilities):
+    """
+    Given a 2d array of corrupted bitstring probabilities (outer axis iterates over shots, inner
+    axis over bits) and a list of assignment probability matrices (one for each bit in the readout)
+    compute the corrected probabilities.
+
+    :param np.array p: An array that enumerates bitstring probabilities. When
+        flattened out ``p = [p_00...0, p_00...1, ...,p_11...1]``. The total number of elements must
+        therefore be a power of 2. The canonical shape has a separate axis for each qubit, such that
+        ``p[i,j,...,k]`` gives the estimated probability of bitstring ``ij...k``.
+    :param List[np.array] assignment_probabilities: A list of assignment probability matrices
+        per qubit. Each assignment probability matrix is expected to be of the form::
+
+            [[p00 p01]
+             [p10 p11]]
+
+    :return: ``p_corrected`` an array with as many dimensions as there are qubits that contains
+        the noisy-readout-corrected estimated probabilities for each measured bitstring, i.e.,
+        ``p[i,j,...,k]`` gives the estimated probability of bitstring ``ij...k``.
+    :rtype: np.array
+    """
+    return _apply_local_trafos(p, (np.linalg.inv(ap) for ap in assignment_probabilities))
 
 
 def bitstring_probs_to_z_moments(p):
@@ -588,13 +645,9 @@ def bitstring_probs_to_z_moments(p):
         monomial can be accessed via::
 
             <Z_0^j_0 Z_1^j_1 ... Z_m^j_m> = z_moments[j_0,j_1,...,j_m]
+
     :rtype: np.array
     """
-    p = _bitstring_probs_by_qubit(p)
-    nq = p.ndim
-    z_moments = p
     zmat = np.array([[1, 1],
                      [1, -1]])
-    for jj in range(nq):
-        z_moments = np.tensordot(zmat, z_moments, axes=[(1,), (jj,)])
-    return z_moments
+    return _apply_local_trafos(p, (zmat for _ in range(p.ndim)))

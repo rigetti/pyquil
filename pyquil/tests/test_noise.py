@@ -6,8 +6,10 @@ import pytest
 from pyquil.gates import CZ, RZ, RX, I, H
 from pyquil.noise import (damping_kraus_map, dephasing_kraus_map, tensor_kraus_maps,
                           _get_noisy_names, _get_program_gates, _decoherence_noise_model,
-                          add_decoherence_noise, combine_kraus_maps, damping_after_dephasing, INFINITY,
-                          _apply_noise_model, _noise_model_program_header, KrausModel, NoiseModel)
+                          add_decoherence_noise, combine_kraus_maps, damping_after_dephasing,
+                          INFINITY, _apply_noise_model, _noise_model_program_header, KrausModel,
+                          NoiseModel, corrupt_bitstring_probs, correct_bitstring_probs,
+                          estimate_bitstring_probs, bitstring_probs_to_z_moments)
 from pyquil.quil import Pragma, Program
 
 
@@ -141,3 +143,37 @@ def test_noise_model():
     assert nm == NoiseModel.from_dict(nm.to_dict())
     assert nm.gates_by_name("I") == [km1]
     assert nm.gates_by_name("RX") == [km2]
+
+
+def test_readout_compensation():
+    np.random.seed(1234124)
+    p = np.random.rand(2, 2, 2, 2, 2, 2)
+    p /= p.sum()
+
+    aps = [np.eye(2) + .2 * (np.random.rand(2, 2) - 1) for _ in range(p.ndim)]
+    for ap in aps:
+        ap.flat[ap.flat < 0] = 0.
+        ap /= ap.sum()
+        assert np.alltrue(ap >= 0)
+
+    assert np.alltrue(p >= 0)
+
+    p_corrupted = corrupt_bitstring_probs(p, aps)
+    p_restored = correct_bitstring_probs(p_corrupted, aps)
+    assert np.allclose(p, p_restored)
+
+    results = [[0, 0, 0]] * 100 + [[0, 1, 1]] * 200
+    p1 = estimate_bitstring_probs(results)
+    assert np.isclose(p1[0, 0, 0], 1. / 3.)
+    assert np.isclose(p1[0, 1, 1], 2. / 3.)
+    assert np.isclose(p1.sum(), 1.)
+
+    zm = bitstring_probs_to_z_moments(p1)
+    assert np.isclose(zm[0, 0, 0], 1)
+    assert np.isclose(zm[1, 0, 0], 1)
+    assert np.isclose(zm[0, 1, 0], -1. / 3)
+    assert np.isclose(zm[0, 0, 1], -1. / 3)
+    assert np.isclose(zm[0, 1, 1], 1.)
+    assert np.isclose(zm[1, 1, 0], -1. / 3)
+    assert np.isclose(zm[1, 0, 1], -1. / 3)
+    assert np.isclose(zm[1, 1, 1], 1.)
