@@ -321,11 +321,11 @@ def test_sync_compile():
             "isa": DUMMY_ISA_DICT
         }
         return json.dumps({
-                "type": "multishot",
-                "qubits": [],
-                "uncompiled-quil": "H 0\nCNOT 0 1\n",
-                "compiled-quil": "H 0\nCNOT 0 1\n",
-                "isa": DUMMY_ISA_DICT})
+            "type": "multishot",
+            "qubits": [],
+            "uncompiled-quil": "H 0\nCNOT 0 1\n",
+            "compiled-quil": "H 0\nCNOT 0 1\n",
+            "isa": DUMMY_ISA_DICT})
 
     with requests_mock.Mocker() as m:
         m.post('https://api.rigetti.com/quilc', text=mock_response)
