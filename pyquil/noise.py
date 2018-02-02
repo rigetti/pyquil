@@ -548,10 +548,10 @@ def estimate_bitstring_probs(results):
     return _bitstring_probs_by_qubit(probs)
 
 
-_CHARS = 'klmnopqrstuvwxyzabcdefgh'
+_CHARS = 'klmnopqrstuvwxyzabcdefgh0123456789'
 
 
-def _apply_local_trafos(p, trafos):
+def _apply_local_transforms(p, ts):
     """
     Given a 2d array of single shot results (outer axis iterates over shots, inner axis over bits)
     and a list of assignment probability matrices (one for each bit in the readout, ordered like
@@ -561,17 +561,17 @@ def _apply_local_trafos(p, trafos):
 
             f(ijk...) = p[i,j,k,...]
 
-    :param List[np.array] trafos: A list of 2x2 matrices, one per bit.
+    :param Sequence[np.array] ts: A sequence of 2x2 transform-matrices, one for each bit.
     :return: ``p_transformed`` an array with as many dimensions as there are bits with the result of
         contracting p along each axis by the corresponding bit transformation.
 
-            p_transformed[ijk...] = f'(ijk...) = sum_lmn... t0_il t1_jm t2_kn f(lmn...)
+            p_transformed[ijk...] = f'(ijk...) = sum_lmn... ts[0][il] ts[1][jm] ts[2][kn] f(lmn...)
 
     :rtype: np.array
     """
     p_corrected = _bitstring_probs_by_qubit(p)
     nq = p_corrected.ndim
-    for idx, trafo_idx in enumerate(trafos):
+    for idx, trafo_idx in enumerate(ts):
 
         # this contraction pattern looks like
         # 'ij,abcd...jklm...->abcd...iklm...' so it properly applies a "local"
@@ -605,7 +605,7 @@ def corrupt_bitstring_probs(p, assignment_probabilities):
         ``p[i,j,...,k]`` gives the estimated probability of bitstring ``ij...k``.
     :rtype: np.array
     """
-    return _apply_local_trafos(p, assignment_probabilities)
+    return _apply_local_transforms(p, assignment_probabilities)
 
 
 def correct_bitstring_probs(p, assignment_probabilities):
@@ -629,7 +629,7 @@ def correct_bitstring_probs(p, assignment_probabilities):
         ``p[i,j,...,k]`` gives the estimated probability of bitstring ``ij...k``.
     :rtype: np.array
     """
-    return _apply_local_trafos(p, (np.linalg.inv(ap) for ap in assignment_probabilities))
+    return _apply_local_transforms(p, (np.linalg.inv(ap) for ap in assignment_probabilities))
 
 
 def bitstring_probs_to_z_moments(p):
@@ -650,4 +650,4 @@ def bitstring_probs_to_z_moments(p):
     """
     zmat = np.array([[1, 1],
                      [1, -1]])
-    return _apply_local_trafos(p, (zmat for _ in range(p.ndim)))
+    return _apply_local_transforms(p, (zmat for _ in range(p.ndim)))
