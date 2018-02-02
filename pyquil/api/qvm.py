@@ -225,12 +225,12 @@ class QVMConnection(object):
             classical_addresses = []
 
         if self.use_queue:
-            payload = self._wavefunction_payload(quil_program, classical_addresses)
+            payload = self._wavefunction_payload(quil_program, classical_addresses, needs_compilation, isa)
             response = post_json(self.session, self.async_endpoint + "/job", {"machine": "QVM", "program": payload})
             job = self.wait_for_job(get_job_id(response))
             return job.result()
         else:
-            payload = self._wavefunction_payload(quil_program, classical_addresses)
+            payload = self._wavefunction_payload(quil_program, classical_addresses, needs_compilation, isa)
             response = post_json(self.session, self.sync_endpoint + "/qvm", payload)
             return Wavefunction.from_bit_packed_string(response.content, classical_addresses)
 
