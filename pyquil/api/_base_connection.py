@@ -58,7 +58,7 @@ def wait_for_job(get_job_fn, ping_time=None, status_time=None):
                       "Estimated time until execution: {} seconds."
                       .format(job.job_id, job.position_in_queue(),
                               job.estimated_time_left_in_queue()))
-            elif job.is_running() or job.is_compiling():
+            elif job.is_running():
                 print("job {} is currently running".format(job.job_id))
             elif job.is_compiling():
                 print("job {} is currently compiling".format(job.job_id))
