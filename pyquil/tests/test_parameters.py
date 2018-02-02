@@ -1,6 +1,9 @@
 from math import pi
 
-from pyquil.parameters import Parameter, sin, _contained_parameters, format_parameter
+import numpy as np
+
+from pyquil.parameters import (Parameter, sin, _contained_parameters, format_parameter, sqrt, cis,
+                               exp, cos, substitute, substitute_array)
 
 
 def test_format_parameter():
@@ -67,3 +70,22 @@ def test_contained_parameters():
     assert _contained_parameters(x + y) == {x, y}
 
     assert _contained_parameters(x ** y ** sin(x * y * 4)) == {x, y}
+
+
+def test_eval():
+    x = Parameter('x')
+    assert substitute(x, {x: 5}) == 5
+
+    y = Parameter('y')
+    assert substitute(x + y, {x: 5, y: 6}) == 11
+    assert substitute(x + y, {x: 5}) == 5 + y
+    assert substitute(exp(x), {y: 5}) != exp(5)
+    assert substitute(exp(x), {x: 5}) == np.exp(5)
+
+    assert np.isclose(substitute(sin(x * x ** 2 / y), {x: 5.0, y: 10.0}), np.sin(12.5))
+    assert np.isclose(substitute(sqrt(x), {x: 5.0, y: 10.0}), np.sqrt(5.0))
+    assert np.isclose(substitute(cis(x), {x: 5.0, y: 10.0}), np.exp(1j * 5.0))
+    assert np.isclose(substitute(x - y, {x: 5.0, y: 10.0}), -5.)
+
+    assert substitute(cis(x), {y: 5}) == cis(x)
+    assert np.allclose(substitute_array([sin(x), cos(x)], {x: 5}), [np.sin(5), np.cos(5)])

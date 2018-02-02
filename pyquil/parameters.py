@@ -99,6 +99,38 @@ class Expression(object):
     def __neg__(self):
         return Mul(-1, self)
 
+    def _substitute(self, d):
+        return self
+
+
+def substitute(expr, d):
+    """
+    Using a dictionary of substitutions ``d`` try and explicitly evaluate as much of ``expr`` as
+    possible.
+
+    :param Expression expr: The expression whose parameters are substituted.
+    :param Dict[Parameter,Union[int,float]] d: Numerical substitutions for parameters.
+    :return: A partially simplified Expression or a number.
+    :rtype: Union[Expression,int,float]
+    """
+    try:
+        return expr._substitute(d)
+    except AttributeError:
+        return expr
+
+
+def substitute_array(a, d):
+    """
+    Apply ``substitute`` to all elements of an array ``a`` and return the resulting array.
+
+    :param Union[np.array,List] a: The expression array to substitute.
+    :param Dict[Parameter,Union[int,float]] d: Numerical substitutions for parameters.
+    :return: An array of partially substituted Expressions or numbers.
+    :rtype: np.array
+    """
+    a = np.asarray(a, order="C")
+    return np.array([substitute(v, d) for v in a.flat]).reshape(a.shape)
+
 
 class Parameter(QuilAtom, Expression):
     """
@@ -110,34 +142,52 @@ class Parameter(QuilAtom, Expression):
     def out(self):
         return '%' + self.name
 
+    def _substitute(self, d):
+        return d.get(self, self)
+
 
 class Function(Expression):
     """
     Supported functions in Quil are sin, cos, sqrt, exp, and cis
     """
-    def __init__(self, name, expression):
+    def __init__(self, name, expression, fn):
         self.name = name
         self.expression = expression
+        self.fn = fn
+
+    def _substitute(self, d):
+        sop = substitute(self.expression, d)
+        if isinstance(sop, Expression):
+            return Function(self.name, sop, self.fn)
+        return self.fn(sop)
+
+    def __eq__(self, other):
+        return (isinstance(other, Function) and
+                self.name == other.name and
+                self.expression == other.expression)
+
+    def __neq__(self, other):
+        return not self.__eq__(other)
 
 
 def sin(expression):
-    return Function('sin', expression)
+    return Function('sin', expression, np.sin)
 
 
 def cos(expression):
-    return Function('cos', expression)
+    return Function('cos', expression, np.cos)
 
 
 def sqrt(expression):
-    return Function('sqrt', expression)
+    return Function('sqrt', expression, np.sqrt)
 
 
 def exp(expression):
-    return Function('exp', expression)
+    return Function('exp', expression, np.exp)
 
 
 def cis(expression):
-    return Function('cis', expression)
+    return Function('cis', expression, lambda x: np.exp(1j * x))
 
 
 class BinaryExp(Expression):
@@ -145,15 +195,35 @@ class BinaryExp(Expression):
     precedence = None
     associates = None
 
+    @staticmethod
+    def fn(a, b):
+        raise NotImplementedError
+
     def __init__(self, op1, op2):
         self.op1 = op1
         self.op2 = op2
+
+    def _substitute(self, d):
+        sop1, sop2 = substitute(self.op1, d), substitute(self.op2, d)
+        return self.fn(sop1, sop2)
+
+    def __eq__(self, other):
+        return (isinstance(other, type(self)) and
+                self.op1 == other.op1 and
+                self.op2 == other.op2)
+
+    def __neq__(self, other):
+        return not self.__eq__(other)
 
 
 class Add(BinaryExp):
     operator = '+'
     precedence = 1
     associates = 'both'
+
+    @staticmethod
+    def fn(a, b):
+        return a + b
 
     def __init__(self, op1, op2):
         super(Add, self).__init__(op1, op2)
@@ -164,6 +234,10 @@ class Sub(BinaryExp):
     precedence = 1
     associates = 'left'
 
+    @staticmethod
+    def fn(a, b):
+        return a - b
+
     def __init__(self, op1, op2):
         super(Sub, self).__init__(op1, op2)
 
@@ -172,6 +246,10 @@ class Mul(BinaryExp):
     operator = '*'
     precedence = 2
     associates = 'both'
+
+    @staticmethod
+    def fn(a, b):
+        return a * b
 
     def __init__(self, op1, op2):
         super(Mul, self).__init__(op1, op2)
@@ -182,6 +260,10 @@ class Div(BinaryExp):
     precedence = 2
     associates = 'left'
 
+    @staticmethod
+    def fn(a, b):
+        return a / b
+
     def __init__(self, op1, op2):
         super(Div, self).__init__(op1, op2)
 
@@ -190,6 +272,10 @@ class Pow(BinaryExp):
     operator = '^'
     precedence = 3
     associates = 'right'
+
+    @staticmethod
+    def fn(a, b):
+        return a ** b
 
     def __init__(self, op1, op2):
         super(Pow, self).__init__(op1, op2)
