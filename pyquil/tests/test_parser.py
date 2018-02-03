@@ -17,7 +17,7 @@ import numpy as np
 import pytest
 
 from pyquil.gates import *
-from pyquil.parameters import Parameter, cos, sin
+from pyquil.parameters import Parameter, quil_sin, quil_cos
 from pyquil.parser import parse
 from pyquil.quilatom import Addr
 from pyquil.quilbase import Label, JumpTarget, Jump, JumpWhen, JumpUnless, DefGate, Qubit, Pragma
@@ -56,8 +56,8 @@ def test_def_gate_with_variables():
     # Note that technically the RX gate includes -i instead of just i but this messes a bit with the test since
     # it's not smart enough to figure out that -1*i == -i
     theta = Parameter('theta')
-    rx = np.array([[cos(theta / 2), 1j * sin(theta / 2)],
-                   [1j * sin(theta / 2), cos(theta / 2)]])
+    rx = np.array([[quil_cos(theta / 2), 1j * quil_sin(theta / 2)],
+                   [1j * quil_sin(theta / 2), quil_cos(theta / 2)]])
 
     defgate = 'DEFGATE RX(%theta):\n' \
               '    cos(%theta/2), i*sin(%theta/2)\n' \
@@ -124,6 +124,7 @@ def test_expressions():
     _expr("sin(0)", 0.0)
     _expr("cos(0)", 1.0)
     _expr("sqrt(4)", 2.0)
+    _expr("exp(0)", 1.0)
     _expr("cis(0)", complex(1, 0))
 
     # Unary precedence

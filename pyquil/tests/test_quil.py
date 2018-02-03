@@ -23,7 +23,7 @@ import pytest
 from pyquil.gates import I, X, Y, Z, H, T, S, RX, RY, RZ, CNOT, CCNOT, PHASE, CPHASE00, CPHASE01, \
     CPHASE10, CPHASE, SWAP, CSWAP, ISWAP, PSWAP, MEASURE, HALT, WAIT, NOP, RESET, \
     TRUE, FALSE, NOT, AND, OR, MOVE, EXCHANGE
-from pyquil.parameters import Parameter, cos, sin
+from pyquil.parameters import Parameter, quil_sin, quil_cos
 from pyquil.quil import Program, merge_programs, shift_quantum_gates
 from pyquil.quilbase import DefGate, Gate, Addr, Qubit, JumpWhen
 
@@ -313,8 +313,8 @@ def test_def_gate():
 
 def test_def_gate_with_parameters():
     theta = Parameter('theta')
-    rx = np.array([[cos(theta / 2), -1j * sin(theta / 2)],
-                   [-1j * sin(theta / 2), cos(theta / 2)]])
+    rx = np.array([[quil_cos(theta / 2), -1j * quil_sin(theta / 2)],
+                   [-1j * quil_sin(theta / 2), quil_cos(theta / 2)]])
 
     p = Program().defgate("RX", rx, [theta])
     assert p.out() == 'DEFGATE RX(%theta):\n' \

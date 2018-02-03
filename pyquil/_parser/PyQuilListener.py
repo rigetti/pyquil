@@ -292,15 +292,15 @@ def _apply_function(func, arg):
     # type: (QuilParser.FunctionContext, Any) -> Any
     if isinstance(arg, Expression):
         if func.SIN():
-            return parameters.sin(arg)
+            return parameters.quil_sin(arg)
         elif func.COS():
-            return parameters.cos(arg)
+            return parameters.quil_cos(arg)
         elif func.SQRT():
-            return parameters.sqrt(arg)
+            return parameters.quil_sqrt(arg)
         elif func.EXP():
-            return parameters.exp(arg)
+            return parameters.quil_exp(arg)
         elif func.CIS():
-            return parameters.cis(arg)
+            return parameters.quil_cis(arg)
         else:
             raise RuntimeError("Unexpected function to apply: " + func.getText())
     else:
