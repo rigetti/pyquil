@@ -50,9 +50,9 @@ class Wavefunction(object):
         :return: A Wavefunction in the ground state
         :rtype: Wavefunction
         """
-        container = [0] * (2**qubit_num)
-        container[0] = 1.0
-        return Wavefunction(container)
+        amplitude_vector = np.zeros(2**qubit_num)
+        amplitude_vector[0] = 1.0
+        return Wavefunction(amplitude_vector)
 
     @staticmethod
     def from_bit_packed_string(coef_string, classical_addresses):
