@@ -550,6 +550,7 @@ It is also possible to define parametric gates using pyQuil.
 Let's say we want to have a controlled RX gate. Since RX is a parametric gate, we need a slightly different way of defining it than in the previous section.
 
 .. code:: python
+
     from pyquil.parameters import Parameter, quil_sin, quil_cos
     from pyquil.quilbase import DefGate
     import numpy as np
@@ -561,9 +562,9 @@ Let's say we want to have a controlled RX gate. Since RX is a parametric gate, w
     CRX = dg.get_constructor()
 
     p = Program()
-    p.defgate('CRX', crx, [theta])
+    p.inst(dg)
     p.inst(H(0))
-    p.inst(CRX(np.pi/2)(0))
+    p.inst(CRX(np.pi/2)(0, 1))
 
     wavefunction = qvm.wavefunction(p)
     print(wavefunction)
