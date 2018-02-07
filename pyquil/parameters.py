@@ -6,7 +6,7 @@ from six import integer_types
 from pyquil.quilatom import QuilAtom
 from pyquil.slot import Slot
 
-__all__ = ['Parameter', 'sin', 'cos', 'sqrt', 'exp', 'cis']
+__all__ = ['Parameter', 'quil_sin', 'quil_cos', 'quil_sqrt', 'quil_exp', 'quil_cis']
 
 
 def format_parameter(element):
@@ -170,23 +170,23 @@ class Function(Expression):
         return not self.__eq__(other)
 
 
-def sin(expression):
+def quil_sin(expression):
     return Function('sin', expression, np.sin)
 
 
-def cos(expression):
+def quil_cos(expression):
     return Function('cos', expression, np.cos)
 
 
-def sqrt(expression):
+def quil_sqrt(expression):
     return Function('sqrt', expression, np.sqrt)
 
 
-def exp(expression):
+def quil_exp(expression):
     return Function('exp', expression, np.exp)
 
 
-def cis(expression):
+def quil_cis(expression):
     return Function('cis', expression, lambda x: np.exp(1j * x))
 
 
