@@ -513,3 +513,141 @@ def add_decoherence_noise(prog, T1=30e-6, T2=30e-6, gate_time_1q=50e-9, gate_tim
         ro_fidelity=ro_fidelity
     )
     return _apply_noise_model(prog, noise_model)
+
+
+def _bitstring_probs_by_qubit(p):
+    """
+    Ensure that an array ``p`` with bitstring probabilities has a separate axis for each qubit such
+    that ``p[i,j,...,k]`` gives the estimated probability of bitstring ``ij...k``.
+
+    This should not allocate much memory if ``p`` is already in ``C``-contiguous order (row-major).
+
+    :param np.array p: An array that enumerates bitstring probabilities. When flattened out
+        ``p = [p_00...0, p_00...1, ...,p_11...1]``. The total number of elements must therefore be a
+        power of 2.
+    :return: A reshaped view of ``p`` with a separate length-2 axis for each bit.
+    """
+    p = np.asarray(p, order="C")
+    num_qubits = int(round(np.log2(p.size)))
+    return p.reshape((2,) * num_qubits)
+
+
+def estimate_bitstring_probs(results):
+    """
+    Given an array of single shot results estimate the probability distribution over all bitstrings.
+
+    :param np.array results: A 2d array where the outer axis iterates over shots
+        and the inner axis over bits.
+    :return: An array with as many axes as there are qubit and normalized such that it sums to one.
+        ``p[i,j,...,k]`` gives the estimated probability of bitstring ``ij...k``.
+    :rtype: np.array
+    """
+    nshots, nq = np.shape(results)
+    outcomes = np.array([int("".join(map(str, r)), 2) for r in results])
+    probs = np.histogram(outcomes, bins=np.arange(-.5, 2 ** nq, 1))[0] / float(nshots)
+    return _bitstring_probs_by_qubit(probs)
+
+
+_CHARS = 'klmnopqrstuvwxyzabcdefgh0123456789'
+
+
+def _apply_local_transforms(p, ts):
+    """
+    Given a 2d array of single shot results (outer axis iterates over shots, inner axis over bits)
+    and a list of assignment probability matrices (one for each bit in the readout, ordered like
+    the inner axis of results) apply local 2x2 matrices to each bit index.
+
+    :param np.array p: An array that enumerates a function indexed by bitstrings::
+
+            f(ijk...) = p[i,j,k,...]
+
+    :param Sequence[np.array] ts: A sequence of 2x2 transform-matrices, one for each bit.
+    :return: ``p_transformed`` an array with as many dimensions as there are bits with the result of
+        contracting p along each axis by the corresponding bit transformation.
+
+            p_transformed[ijk...] = f'(ijk...) = sum_lmn... ts[0][il] ts[1][jm] ts[2][kn] f(lmn...)
+
+    :rtype: np.array
+    """
+    p_corrected = _bitstring_probs_by_qubit(p)
+    nq = p_corrected.ndim
+    for idx, trafo_idx in enumerate(ts):
+
+        # this contraction pattern looks like
+        # 'ij,abcd...jklm...->abcd...iklm...' so it properly applies a "local"
+        # transformation to a single tensor-index without changing the order of
+        # indices
+        einsum_pat = ('ij,' + _CHARS[:idx] + 'j' + _CHARS[idx:nq - 1] +
+                      '->' + _CHARS[:idx] + 'i' + _CHARS[idx:nq - 1])
+        p_corrected = np.einsum(einsum_pat, trafo_idx, p_corrected)
+
+    return p_corrected
+
+
+def corrupt_bitstring_probs(p, assignment_probabilities):
+    """
+    Given a 2d array of true bitstring probabilities (outer axis iterates over shots, inner axis
+    over bits) and a list of assignment probability matrices (one for each bit in the readout,
+    ordered like the inner axis of results) compute the corrupted probabilities.
+
+    :param np.array p: An array that enumerates bitstring probabilities. When
+        flattened out ``p = [p_00...0, p_00...1, ...,p_11...1]``. The total number of elements must
+        therefore be a power of 2. The canonical shape has a separate axis for each qubit, such that
+        ``p[i,j,...,k]`` gives the estimated probability of bitstring ``ij...k``.
+    :param List[np.array] assignment_probabilities: A list of assignment probability matrices
+        per qubit. Each assignment probability matrix is expected to be of the form::
+
+            [[p00 p01]
+             [p10 p11]]
+
+    :return: ``p_corrected`` an array with as many dimensions as there are qubits that contains
+        the noisy-readout-corrected estimated probabilities for each measured bitstring, i.e.,
+        ``p[i,j,...,k]`` gives the estimated probability of bitstring ``ij...k``.
+    :rtype: np.array
+    """
+    return _apply_local_transforms(p, assignment_probabilities)
+
+
+def correct_bitstring_probs(p, assignment_probabilities):
+    """
+    Given a 2d array of corrupted bitstring probabilities (outer axis iterates over shots, inner
+    axis over bits) and a list of assignment probability matrices (one for each bit in the readout)
+    compute the corrected probabilities.
+
+    :param np.array p: An array that enumerates bitstring probabilities. When
+        flattened out ``p = [p_00...0, p_00...1, ...,p_11...1]``. The total number of elements must
+        therefore be a power of 2. The canonical shape has a separate axis for each qubit, such that
+        ``p[i,j,...,k]`` gives the estimated probability of bitstring ``ij...k``.
+    :param List[np.array] assignment_probabilities: A list of assignment probability matrices
+        per qubit. Each assignment probability matrix is expected to be of the form::
+
+            [[p00 p01]
+             [p10 p11]]
+
+    :return: ``p_corrected`` an array with as many dimensions as there are qubits that contains
+        the noisy-readout-corrected estimated probabilities for each measured bitstring, i.e.,
+        ``p[i,j,...,k]`` gives the estimated probability of bitstring ``ij...k``.
+    :rtype: np.array
+    """
+    return _apply_local_transforms(p, (np.linalg.inv(ap) for ap in assignment_probabilities))
+
+
+def bitstring_probs_to_z_moments(p):
+    """
+    Convert between bitstring probabilities and joint Z moment expectations.
+
+    :param np.array p: An array that enumerates bitstring probabilities. When
+        flattened out ``p = [p_00...0, p_00...1, ...,p_11...1]``. The total number of elements must
+        therefore be a power of 2. The canonical shape has a separate axis for each qubit, such that
+        ``p[i,j,...,k]`` gives the estimated probability of bitstring ``ij...k``.
+    :return: ``z_moments``, an np.array with one length-2 axis per qubit which contains the
+        expectations of all monomials in ``{I, Z_0, Z_1, ..., Z_{n-1}}``. The expectations of each
+        monomial can be accessed via::
+
+            <Z_0^j_0 Z_1^j_1 ... Z_m^j_m> = z_moments[j_0,j_1,...,j_m]
+
+    :rtype: np.array
+    """
+    zmat = np.array([[1, 1],
+                     [1, -1]])
+    return _apply_local_transforms(p, (zmat for _ in range(p.ndim)))

@@ -1,4 +1,4 @@
-# Generated from Quil.g4 by ANTLR 4.7
+# Generated from Quil.g4 by ANTLR 4.7.1
 # encoding: utf-8
 from __future__ import print_function
 from antlr4 import *
@@ -318,7 +318,7 @@ class QuilParser ( Parser ):
 
     def __init__(self, input, output=sys.stdout):
         super(QuilParser, self).__init__(input, output=output)
-        self.checkVersion("4.7")
+        self.checkVersion("4.7.1")
         self._interp = ParserATNSimulator(self, self.atn, self.decisionsToDFA, self.sharedContextCache)
         self._predicates = None
 
