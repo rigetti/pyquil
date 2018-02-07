@@ -196,7 +196,7 @@ class QuilParser ( Parser ):
                      u"'*'", u"'/'", u"'^'", u"<INVALID>", u"<INVALID>", 
                      u"<INVALID>", u"<INVALID>", u"'.'", u"','", u"'('", 
                      u"')'", u"'['", u"']'", u"':'", u"'%'", u"'@'", u"'\"'", 
-                     u"'_'", u"'    '", u"<INVALID>", u"<INVALID>", u"' '" ]
+                     u"'_'", u"'    '" ]
 
     symbolicNames = [ u"<INVALID>", u"DEFGATE", u"DEFCIRCUIT", u"MEASURE", 
                       u"LABEL", u"HALT", u"JUMP", u"JUMPWHEN", u"JUMPUNLESS", 

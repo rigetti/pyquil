@@ -202,7 +202,7 @@ NEWLINE             : ('\r'? '\n' | '\r')+ ;
 // Skips
 
 COMMENT             : '#' ~('\n' | '\r')* -> skip ;
-SPACE               : ' ' -> skip ;
+SPACE               : (' '|TAB)+ -> skip ;
 
 // Error
 

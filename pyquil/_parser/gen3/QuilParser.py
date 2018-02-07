@@ -192,8 +192,7 @@ class QuilParser ( Parser ):
                      "'exp'", "'cis'", "'+'", "'-'", "'*'", "'/'", "'^'", 
                      "<INVALID>", "<INVALID>", "<INVALID>", "<INVALID>", 
                      "'.'", "','", "'('", "')'", "'['", "']'", "':'", "'%'", 
-                     "'@'", "'\"'", "'_'", "'    '", "<INVALID>", "<INVALID>", 
-                     "' '" ]
+                     "'@'", "'\"'", "'_'", "'    '" ]
 
     symbolicNames = [ "<INVALID>", "DEFGATE", "DEFCIRCUIT", "MEASURE", "LABEL", 
                       "HALT", "JUMP", "JUMPWHEN", "JUMPUNLESS", "RESET", 
