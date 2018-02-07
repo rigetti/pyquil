@@ -33,7 +33,7 @@ class Wavefunction(object):
         if len(amplitude_vector) == 0 or len(amplitude_vector) & (len(amplitude_vector) - 1) != 0:
             raise TypeError("Amplitude vector must have a length that is a power of two")
 
-        self.amplitudes = amplitude_vector
+        self.amplitudes = np.asarray(amplitude_vector)
         self.classical_memory = classical_memory
 
     @staticmethod
@@ -50,9 +50,9 @@ class Wavefunction(object):
         :return: A Wavefunction in the ground state
         :rtype: Wavefunction
         """
-        container = [0] * (2**qubit_num)
-        container[0] = 1.0
-        return Wavefunction(container)
+        amplitude_vector = np.zeros(2**qubit_num)
+        amplitude_vector[0] = 1.0
+        return Wavefunction(amplitude_vector)
 
     @staticmethod
     def from_bit_packed_string(coef_string, classical_addresses):
@@ -100,6 +100,10 @@ class Wavefunction(object):
 
     def __str__(self):
         return self.pretty_print(decimal_digits=10)
+
+    def probabilities(self):
+        """Returns an array of probabilities in lexicographical order"""
+        return np.abs(self.amplitudes) ** 2
 
     def get_outcome_probs(self):
         """

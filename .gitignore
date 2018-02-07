@@ -171,3 +171,7 @@ fabric.properties
 # modules.xml
 # .idea/misc.xml
 # *.ipr
+
+### Antlr ###
+# Antlr generated files that we don't need
+*.interp

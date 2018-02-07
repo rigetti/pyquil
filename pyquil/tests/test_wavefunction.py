@@ -1,5 +1,6 @@
 import pytest
 import numpy as np
+import itertools
 
 from pyquil.wavefunction import get_bitstring_from_index, Wavefunction, _round_to_next_multiple, _octet_bits
 
@@ -56,3 +57,13 @@ def test_octet_bits():
     assert [0, 1, 0, 0, 0, 0, 0, 0] == _octet_bits(0b10)
     assert [1, 0, 1, 0, 0, 0, 0, 0] == _octet_bits(0b101)
     assert [1, 1, 1, 1, 1, 1, 1, 1] == _octet_bits(0b11111111)
+
+
+def test_probabilities(wvf):
+    n_qubits = 2
+    bitstrings = [list(x) for x in itertools.product((0, 1), repeat=n_qubits)]
+    prob_keys = [''.join(str(b) for b in bs) for bs in bitstrings]
+    prob_dict = wvf.get_outcome_probs()
+    probs1 = np.array([prob_dict[x] for x in prob_keys])
+    probs2 = wvf.probabilities()
+    np.testing.assert_array_equal(probs1, probs2)
