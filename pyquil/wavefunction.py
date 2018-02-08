@@ -190,7 +190,8 @@ class Wavefunction(object):
         plt.show()
 
     def sample_bitstrings(self, n_samples):
-        """Sample bitstrings from the distribution defined by the wavefunction.
+        """
+        Sample bitstrings from the distribution defined by the wavefunction.
 
         :param n_samples: The number of bitstrings to sample
         :return: An array of shape (n_samples, n_qubits)
