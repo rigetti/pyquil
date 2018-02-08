@@ -21,7 +21,8 @@ from pyquil.api.errors import CancellationError, QVMError, QPUError
 from pyquil.parser import parse_program
 from pyquil.wavefunction import Wavefunction
 
-ROUND_TRIP_JOB_TIME = 3. # 3 second average round trip job time.
+ROUND_TRIP_JOB_TIME = 3.  # 3 second average round trip job time.
+
 
 class Job(object):
     """
