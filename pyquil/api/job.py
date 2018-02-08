@@ -21,6 +21,7 @@ from pyquil.api.errors import CancellationError, QVMError, QPUError
 from pyquil.parser import parse_program
 from pyquil.wavefunction import Wavefunction
 
+ROUND_TRIP_JOB_TIME = 3. # 3 second average round trip job time.
 
 class Job(object):
     """
@@ -91,6 +92,14 @@ class Job(object):
         """
         if self.is_queued():
             return int(self._raw['position_in_queue'])
+
+    def estimated_time_left_in_queue(self):
+        """
+        If the job is queued, this will return how much time left is estimated
+        before execution.
+        """
+        if self.is_queued():
+            return ROUND_TRIP_JOB_TIME * self.position_in_queue()
 
     def get(self):
         warnings.warn("""
