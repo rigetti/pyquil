@@ -3,6 +3,7 @@ Module containing the Wavefunction object and methods for working with wavefunct
 """
 import struct
 import warnings
+import itertools
 
 import numpy as np
 from six import integer_types
@@ -34,6 +35,11 @@ class Wavefunction(object):
             raise TypeError("Amplitude vector must have a length that is a power of two")
 
         self.amplitudes = np.asarray(amplitude_vector)
+        sumprob = np.sum(self.probabilities())
+        if not np.isclose(sumprob, 1.0):
+            raise ValueError("The wavefunction is not normalized. "
+                             "The probabilities sum to {} instead of 1".format(sumprob))
+
         self.classical_memory = classical_memory
 
     @staticmethod
@@ -182,6 +188,17 @@ class Wavefunction(object):
         plt.bar(range(len(prob_dict)), prob_dict.values(), align='center', color='#6CAFB7')
         plt.xticks(range(len(prob_dict)), prob_dict.keys())
         plt.show()
+
+    def sample_bitstrings(self, n_samples):
+        """Sample bitstrings from the distribution defined by the wavefunction.
+
+        :param n_samples: The number of bitstrings to sample
+        :return: An array of shape (n_samples, n_qubits)
+        """
+        possible_bitstrings = np.array(list(itertools.product((0, 1), repeat=len(self))))
+        inds = np.random.choice(2 ** len(self), n_samples, p=self.probabilities())
+        bitstrings = possible_bitstrings[inds, :]
+        return bitstrings
 
 
 def get_bitstring_from_index(index, qubit_num):

@@ -7,7 +7,9 @@ from pyquil.wavefunction import get_bitstring_from_index, Wavefunction, _round_t
 
 @pytest.fixture()
 def wvf():
-    return Wavefunction(np.array([1.0, 1.j, 0.000005, 0.02]))
+    amps = np.array([1.0, 1.j, 0.000005, 0.02])
+    amps /= np.sqrt(np.sum(np.abs(amps)**2))
+    return Wavefunction(amps)
 
 
 def test_get_bitstring_from_index():
@@ -24,9 +26,9 @@ def test_parsers(wvf):
 
     pp_wvf = wvf.pretty_print()
     # this should round out one outcome
-    assert pp_wvf == "(1+0j)|00> + 1j|01> + (0.02+0j)|11>"
+    assert pp_wvf == "(0.71+0j)|00> + 0.71j|01> + (0.01+0j)|11>"
     pp_wvf = wvf.pretty_print(1)
-    assert pp_wvf == "(1+0j)|00> + 1j|01>"
+    assert pp_wvf == "(0.7+0j)|00> + 0.7j|01>"
 
     pp_probs = wvf.pretty_print_probabilities()
     # this should round out two outcomes
@@ -67,3 +69,11 @@ def test_probabilities(wvf):
     probs1 = np.array([prob_dict[x] for x in prob_keys])
     probs2 = wvf.probabilities()
     np.testing.assert_array_equal(probs1, probs2)
+
+    assert np.sum(probs2) == 1.0
+
+
+def test_sample(wvf):
+    bitstrings = wvf.sample_bitstrings(n_samples=100)
+    assert bitstrings.shape == (100, 2)
+    assert [0, 0] in bitstrings
