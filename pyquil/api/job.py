@@ -96,7 +96,7 @@ class Job(object):
 
     def estimated_time_left_in_queue(self):
         """
-        If the job is queued, this will return how much time left is estimated
+        If the job is queued, this will return how much time left (in seconds) is estimated
         before execution.
         """
         if self.is_queued():
