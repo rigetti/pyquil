@@ -39,23 +39,23 @@ dynamicParam        : LBRACKET INT (MINUS INT)? RBRACKET ;
 
 // D. Gate Definitions
 
-defGate             : DEFGATE name (LPAREN variable (COMMA variable)* RPAREN)? COLON NEWLINE matrix ;
+defGate             : DEFGATE name (LPAREN variable (COMMA variable)* RPAREN)? COLON matrix ;
 
 variable            : PERCENTAGE IDENTIFIER ;
 
-matrix              : (matrixRow NEWLINE)* matrixRow ;
+matrix              : (matrixRow)* matrixRow ;
 matrixRow           : TAB expression (COMMA expression)* ;
 
 // E. Circuits
 
-defCircuit          : DEFCIRCUIT name (LPAREN variable (COMMA variable)* RPAREN)? qubitVariable* COLON NEWLINE circuit ;
+defCircuit          : DEFCIRCUIT name (LPAREN variable (COMMA variable)* RPAREN)? qubitVariable* COLON circuit ;
 
 qubitVariable       : IDENTIFIER ;
 
 circuitQubit        : qubit | qubitVariable ;
 circuitGate         : name (LPAREN param (COMMA param)* RPAREN)? circuitQubit+ ;
 circuitInstr        : circuitGate | instr ;
-circuit             : (TAB circuitInstr NEWLINE)* TAB circuitInstr ;
+circuit             : (TAB circuitInstr)* TAB circuitInstr ;
 
 // F. Measurement
 
@@ -196,13 +196,14 @@ UNDERSCORE          : '_' ;
 
 // Whitespace
 
-TAB                 : '    ' ;
+TAB                 : NEWLINE '    ' ;
 NEWLINE             : ('\r'? '\n' | '\r')+ ;
 
 // Skips
 
-COMMENT             : '#' ~('\n' | '\r')* -> skip ;
-SPACE               : ' ' -> skip ;
+BLANKLINE           : TAB? ' '* -> skip;
+COMMENT             : TAB? ' '* '#' ~('\n' | '\r')* -> skip ;
+SPACE               : ' '+ -> skip ;
 
 // Error
 

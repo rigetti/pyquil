@@ -179,5 +179,9 @@ def test_empty_program():
     _test("")
 
 
+def test_extra_spaces():
+    _test("TRUE     [0]", TRUE(0))
+
+
 def _test(quil_string, *instructions):
     assert list(instructions) == parse(quil_string)
