@@ -179,5 +179,13 @@ def test_empty_program():
     _test("")
 
 
+def test_extra_spaces():
+    _test("TRUE     [0]", TRUE(0))
+    _test("TRUE     [0]\n    # Tabbed comment", TRUE(0))
+    parse("DEFCIRCUIT FOO:\n    TRUE [0]")
+    parse("DEFCIRCUIT FOO:\n    #Comment \n    TRUE [0]\n")
+    parse("DEFCIRCUIT FOO:\n             \n    TRUE [0]\n")  # Blank line
+
+
 def _test(quil_string, *instructions):
     assert list(instructions) == parse(quil_string)
