@@ -83,6 +83,7 @@ class ISA(_ISA):
         """
 
         def _maybe_configure(d, o, t):
+            # type: (dict, Union[Qubit,Edge], str) -> dict
             """
             Exclude default values from generated dictionary.
 
@@ -91,7 +92,6 @@ class ISA(_ISA):
             :param str t: The default value for ``o.type``.
             :return: d
             """
-            # type: (dict, Union[Qubit,Edge], str) -> dict
             if o.type != t:
                 d["type"] = o.type
             if o.dead:
