@@ -17,7 +17,7 @@ import warnings
 
 from six import integer_types
 
-from pyquil.api import Job
+from pyquil.api.job import Job
 from pyquil.device import Device
 from pyquil.quil import Program
 from ._base_connection import (validate_run_items, TYPE_MULTISHOT, TYPE_MULTISHOT_MEASURE,

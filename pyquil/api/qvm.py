@@ -16,7 +16,7 @@
 
 from six import integer_types
 
-from pyquil.api import Job
+from pyquil.api.job import Job
 from pyquil.quil import Program
 from pyquil.wavefunction import Wavefunction
 from ._base_connection import validate_noise_probabilities, validate_run_items, TYPE_MULTISHOT, \
