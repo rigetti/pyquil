@@ -168,8 +168,8 @@ DIVIDE              : '/' ;
 POWER               : '^' ;
 
 // Identifiers
-
-IDENTIFIER          : [A-Za-z_] ([A-Za-z0-9_] | '-' [A-Za-z]) * ;
+// Idenfifiers can contain hypens, but hypens must be followed by a letter
+IDENTIFIER          : [A-Za-z_] ([A-Za-z0-9_] | '-' [A-Za-z])* ;
 
 // Numbers
 

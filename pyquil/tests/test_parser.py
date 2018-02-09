@@ -202,11 +202,28 @@ def test_empty_program():
 
 def test_parse_variables():
     parse('RX(%x) 1')
-    parse('RX(%x+%Y) 1')
-    parse('RX(%x-%Y) 1')
-    parse('RX(%x*%Y) 1')
-    parse('RX(%x/%Y) 1')
-    parse('RX(%x^%Y) 1')
+    parse('RX(%x+%y) 1')
+    parse('RX(%x-%y) 1')
+    parse('RX(%x*%y) 1')
+    parse('RX(%x/%y) 1')
+    parse('RX(%x^%y) 1')
+
+    # Hypen in middle of identifier is OK.
+    assert parse('RX(%x-y-x-%y) 1') == parse('RX(%x-y-x - %y) 1')
+
+    # No hypens at end of identifier
+    with pytest.raises(RuntimeError):
+        parse('RX(%x-) 1')
+
+    # Can't start with a number
+    with pytest.raises(RuntimeError):
+        parse('RX(%0123) 1')
+
+    # Underscores
+    parse('RX(%x_) 0')
+    parse('RX(%_) 0')
+    parse('RX(%x____XXX_______) 0')
+    parse('RX(%x____XXX_______-A) 0')
 
 
 def test_defcircuit():
