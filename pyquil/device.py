@@ -29,7 +29,7 @@ DEFAULT_EDGE_TYPE = "CZ"
 
 Qubit = namedtuple("Qubit", ["id", "type", "dead"])
 Edge = namedtuple("Edge", ["targets", "type", "dead"])
-_ISA = namedtuple("_ISA", ["name", "version", "timestamp", "qubits", "edges"])
+_ISA = namedtuple("_ISA", ["qubits", "edges"])
 
 
 class ISA(_ISA):
@@ -49,67 +49,56 @@ class ISA(_ISA):
 
         The dictionary representation is of the form::
 
-            {
-                "id": {
-                    "name": "example_qpu",
-                    "version": "0.1",
-                    "timestamp": "23423423"
+            [
+                {
+                    "0": {
+                        "type": "Xhalves",
+                        "dead": False
+                    },
+                    "1": {
+                        "type": "Xhalves",
+                        "dead": False
+                    },
+                    ...
                 },
-                "logical-hardware": [
-                    [
-                        {
-                            "qubit-id": 0,
-                            "type": "Xhalves",
-                            "dead": False
-                        },
-                        {
-                            "qubit-id": 1,
-                            "type": "Xhalves",
-                            "dead": False
-                        }
-                    ],
-                    [
-                        {
-                            "action-qubits": [0, 1],
-                            "type": "CZ",
-                            "dead": False
-                        }
-                    ]
-                ]
-            }
+                {
+                    "1-4": {
+                        "type": "CZ",
+                        "dead": False
+                    },
+                    "1-5": {
+                        "type": "CZ",
+                        "dead": False
+                    },
+                    ...
+                }
+            ]
 
         :return: A dictionary representation of self.
         :rtype: Dict[str,Any]
         """
 
-        def _maybe_configure(d, o, t):
+        def _maybe_configure(o, t):
             # type: (dict, Union[Qubit,Edge], str) -> dict
             """
             Exclude default values from generated dictionary.
 
-            :param dict d: The dictionary (which is also modified in place!).
             :param Union[Qubit,Edge] o: The object to serialize
             :param str t: The default value for ``o.type``.
             :return: d
             """
+            d = {}
             if o.type != t:
                 d["type"] = o.type
             if o.dead:
                 d["dead"] = o.dead
             return d
 
-        return {
-            "id": {
-                "name": self.name,
-                "version": self.version,
-                "timestamp": self.timestamp,
-            },
-            "logical-hardware": [
-                [_maybe_configure({"qubit-id": q.id}, q, DEFAULT_QUBIT_TYPE) for q in self.qubits],
-                [_maybe_configure({"action-qubits": a.targets}, a, DEFAULT_EDGE_TYPE)
-                 for a in self.edges],
-            ]
-        }
+        return [
+            {"{}".format(q.id): _maybe_configure(q, DEFAULT_QUBIT_TYPE) for q in self.qubits},
+            {"{}-{}".format(*edge.targets): _maybe_configure(edge, DEFAULT_EDGE_TYPE)
+             for edge in self.edges}
+        ]
 
     @staticmethod
     def from_dict(d):
@@ -121,17 +110,16 @@ class ISA(_ISA):
         :rtype: ISA
         """
         return ISA(
-            name=d["id"]["name"],
-            version=d["id"].get("version", "0.0"),
-            timestamp=d["id"].get("timestamp"),
-            qubits=[Qubit(id=q["qubit-id"],
-                          type=q.get("type", DEFAULT_QUBIT_TYPE),
-                          dead=q.get("dead", False))
-                    for q in d["logical-hardware"][0]],
-            edges=[Edge(targets=e["action-qubits"],
-                        type=e.get("type", DEFAULT_EDGE_TYPE),
-                        dead=e.get("dead", False))
-                   for e in d["logical-hardware"][1]],
+            qubits=sorted([Qubit(id=int(qid),
+                                 type=q.get("type", DEFAULT_QUBIT_TYPE),
+                                 dead=q.get("dead", False))
+                           for qid, q in d[0].items()],
+                          key=lambda qubit: qubit.id),
+            edges=sorted([Edge(targets=[int(q) for q in eid.split('-')],
+                               type=e.get("type", DEFAULT_EDGE_TYPE),
+                               dead=e.get("dead", False))
+                          for eid, e in d[1].items()],
+                         key=lambda edge: edge.targets),
         )
 
 
