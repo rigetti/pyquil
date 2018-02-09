@@ -81,11 +81,11 @@ class CustomErrorListener(ErrorListener):
         )
 
     def get_expected_tokens(self, parser, interval_set):
+        # type: (QuilParser, IntervalSet) -> iter
         """
         Like the default getExpectedTokens method except that it will fallback to the rule name if the token isn't a
         literal. For instance, instead of <INVALID> for  integer it will return the rule name: INT
         """
-        # type: (QuilParser, IntervalSet) -> iter
         for tok in interval_set:
             literal_name = parser.literalNames[tok]
             symbolic_name = parser.symbolicNames[tok]

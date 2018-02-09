@@ -175,3 +175,7 @@ fabric.properties
 ### Antlr ###
 # Antlr generated files that we don't need
 *.interp
+
+### MyPi ###
+.mypy_cache
+
