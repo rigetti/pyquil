@@ -34,11 +34,11 @@ from pyquil.quilbase import Gate, DefGate, Measurement, Addr, JumpTarget, Label,
     Reset, Wait, ClassicalTrue, ClassicalFalse, ClassicalNot, ClassicalAnd, ClassicalOr, ClassicalMove, \
     ClassicalExchange, Nop, RawInstr, Qubit, Pragma
 
-if sys.version_info.major == 2:
+if sys.version_info.major == 2:   # pragma: no cover  # python2to3 hack
     from .gen2.QuilLexer import QuilLexer
     from .gen2.QuilListener import QuilListener
     from .gen2 .QuilParser import QuilParser
-elif sys.version_info.major == 3:
+elif sys.version_info.major == 3:   # pragma: no cover  # python2to3 hack
     from .gen3.QuilLexer import QuilLexer
     from .gen3.QuilListener import QuilListener
     from .gen3.QuilParser import QuilParser
@@ -219,7 +219,7 @@ def _param(param):
     elif param.expression():
         return _expression(param.expression())
     else:
-        raise RuntimeError("Unexpected param: " + param.getText())
+        raise RuntimeError("Unexpected param: " + param.getText())  # pragma: no cover
 
 
 def _variable(variable):
@@ -277,7 +277,7 @@ def _expression(expression):
     elif isinstance(expression, QuilParser.VariableExpContext):
         return _variable(expression.variable())
 
-    raise RuntimeError("Unexpected expression type:" + expression.getText())
+    raise RuntimeError("Unexpected expression type:" + expression.getText())  # pragma: no cover
 
 
 def _binary_exp(expression, op):
@@ -302,7 +302,7 @@ def _apply_function(func, arg):
         elif func.CIS():
             return parameters.quil_cis(arg)
         else:
-            raise RuntimeError("Unexpected function to apply: " + func.getText())
+            raise RuntimeError("Unexpected function to apply: " + func.getText())  # pragma: no cover
     else:
         if func.SIN():
             return sin(arg)
@@ -315,7 +315,7 @@ def _apply_function(func, arg):
         elif func.CIS():
             return cos(arg) + complex(0, 1) * sin(arg)
         else:
-            raise RuntimeError("Unexpected function to apply: " + func.getText())
+            raise RuntimeError("Unexpected function to apply: " + func.getText())  # pragma: no cover
 
 
 def _number(number):
@@ -329,7 +329,7 @@ def _number(number):
     elif number.PI():
         return np.pi
     else:
-        raise RuntimeError("Unexpected number: " + number.getText())
+        raise RuntimeError("Unexpected number: " + number.getText())  # pragma: no cover
 
 
 def _real(real):
@@ -339,4 +339,4 @@ def _real(real):
     elif real.INT():
         return int(real.getText())
     else:
-        raise RuntimeError("Unexpected real: " + real.getText())
+        raise RuntimeError("Unexpected real: " + real.getText())  # pragma: no cover

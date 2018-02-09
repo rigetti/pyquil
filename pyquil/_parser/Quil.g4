@@ -169,7 +169,7 @@ POWER               : '^' ;
 
 // Identifiers
 
-IDENTIFIER          : [A-Za-z_] [A-Za-z0-9\-_]* ;
+IDENTIFIER          : [A-Za-z_] ([A-Za-z0-9_] | '-' [A-Za-z]) * ;
 
 // Numbers
 

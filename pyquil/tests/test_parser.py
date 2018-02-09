@@ -152,6 +152,7 @@ def test_others():
     _test("RESET", RESET)
     _test("WAIT", WAIT)
     _test("NOP", NOP)
+    _test("HALT", HALT)
 
 
 def test_classical():
@@ -170,13 +171,46 @@ def test_pragma():
     _test('PRAGMA NO-NOISE', Pragma('NO-NOISE'))
 
 
+def test_include():
+    parse('INCLUDE "somefile"')
+
+
+def test_expression_functions():
+    parse('RX(cos(%x)) 1')
+    parse('RX(sin(%x)) 1')
+    parse('RX(exp(%x)) 1')
+    parse('RX(cis(%x)) 1')
+    parse('RX(sqrt(%x)) 1')
+
+
 def test_invalid():
     with pytest.raises(RuntimeError):
         parse("H X")
 
 
+def test_dynamic_parameter():
+    with pytest.raises(NotImplementedError):
+        parse("RX([1]) 2")
+
+    with pytest.raises(NotImplementedError):
+        parse("RX([1-10]) 2")
+
+
 def test_empty_program():
     _test("")
+
+
+def test_parse_variables():
+    parse('RX(%x) 1')
+    parse('RX(%x+%Y) 1')
+    parse('RX(%x-%Y) 1')
+    parse('RX(%x*%Y) 1')
+    parse('RX(%x/%Y) 1')
+    parse('RX(%x^%Y) 1')
+
+
+def test_defcircuit():
+    parse("DEFCIRCUIT FOO:\n    TRUE [0]")
 
 
 def _test(quil_string, *instructions):
