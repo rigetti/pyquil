@@ -23,7 +23,7 @@ import pytest
 
 from pyquil.api import QVMConnection, QPUConnection
 from pyquil.api._base_connection import validate_noise_probabilities, validate_run_items
-from pyquil.job_results import wait_for_job
+from pyquil.api.qpu import append_measures_to_program
 from pyquil.quil import Program
 from pyquil.gates import CNOT, H, MEASURE
 
@@ -157,7 +157,7 @@ def test_qpu_connection():
         "type": "multishot-measure",
         "qubits": [0, 1],
         "trials": 2,
-        "quil-instructions": "H 0\nCNOT 0 1\n"
+        "quil-instructions": "H 0\nCNOT 0 1\nMEASURE 0 [0]\nMEASURE 1 [1]\n"
     }
 
     def mock_queued_response(request, context):
@@ -186,7 +186,7 @@ def test_qpu_connection():
             {'text': json.dumps({"jobId": JOB_ID, "status": "FINISHED",
                                  "result": [[0, 0], [1, 1]], "program": program,
                                  "metadata": {
-                                     "compiled_quil": "H 0\nCNOT 0 1\n",
+                                     "compiled_quil": "H 0\nCNOT 0 1\nMEASURE 0 [0]\nMEASURE 1 [1]\n",
                                      "topological_swaps": 0,
                                      "gate_depth": 2
                                  }})}
@@ -194,7 +194,7 @@ def test_qpu_connection():
 
         job = qpu.wait_for_job(qpu.run_and_measure_async(BELL_STATE, [0, 1], trials=2))
         assert job.result() == [[0, 0], [1, 1]]
-        assert job.compiled_quil() == Program(H(0), CNOT(0, 1))
+        assert job.compiled_quil() == Program(H(0), CNOT(0, 1), MEASURE(0, 0), MEASURE(1, 1))
         assert job.topological_swaps() == 0
         assert job.gate_depth() == 2
 
@@ -231,3 +231,9 @@ def test_validate_run_items():
         validate_run_items(-1, 1)
     with pytest.raises(TypeError):
         validate_run_items(['a', 0], 1)
+
+
+def test_append_measures_to_program():
+    gate_program = Program()
+    meas_program = Program(MEASURE(0, 0), MEASURE(1, 1))
+    assert gate_program + meas_program == append_measures_to_program(gate_program, [0, 1])
