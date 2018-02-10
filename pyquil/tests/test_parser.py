@@ -179,6 +179,16 @@ def test_empty_program():
     _test("")
 
 
+def test_comments():
+    parse('#Comment')
+    parse('#Comment\n#more comments')
+    parse('#Comment\n  #more comments')
+    parse('#Comment\n    #more comments')
+    parse('TRUE     [0]      #more comments')
+    _test("TRUE     [0]\n    # Tabbed comment", TRUE(0))
+    parse("DEFCIRCUIT FOO:\n    #Comment \n    TRUE [0]\n")
+
+
 def test_extra_spaces():
     _test("TRUE     [0]", TRUE(0))
     _test("TRUE     [0]\n    # Tabbed comment", TRUE(0))
