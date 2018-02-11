@@ -105,26 +105,35 @@ To suppress this warning, see Python's warning module.
 
     def run(self, quil_program, classical_addresses, trials=1):
         """
-        Run a pyQuil program on the QPU. This functionality is in beta.
+        Run a pyQuil program on the QPU and return the values stored in the classical registers
+        designated by the classical_addresses parameter. The program is repeated according to
+        the number of trials provided to the run method. This functionality is in beta.
 
-        :param Program quil_program: Quil program to run on the QPU
-        :param list|range classical_addresses: Currently unused
-        :param int trials: Number of shots to take
-        :return: A list of lists of bits. Each sublist corresponds to the values
-                 in `classical_addresses`.
+        It is important to note that our QPUs currently only allow a single set of simultaneous
+        readout pulses on all qubits in the QPU at the end of the program. This means that
+        missing or duplicate MEASURE instructions do not change the pulse program, but instead
+        only contribute to making a less rich or richer mapping, respectively, between classical
+        and qubit addresses.
+
+        :param Program quil_program: Pyquil program to run on the QPU
+        :param list|range classical_addresses: Classical register addresses to return
+        :param int trials: Number of times to run the program (a.k.a. number of shots)
+        :return: A list of a list of classical registers (each register contains a bit)
         :rtype: list
         """
-        raise DeprecationWarning("""
-The QPU does not currently support arbitrary measure operations. For now, the
-only supported operation on the QPU is run_and_measure.""")
+        payload = self._run_payload(quil_program, classical_addresses, trials)
+        response = post_json(self.session, self.async_endpoint + "/job", self._wrap_program(payload))
+        job = self.wait_for_job(get_job_id(response))
+        return job.result()
 
     def run_async(self, quil_program, classical_addresses, trials=1):
         """
-        Similar to run except that it returns a job id and doesn't wait for the program to be executed.
-        See https://go.rigetti.com/connections for reasons to use this method.
+        Similar to run except that it returns a job id and doesn't wait for the program to
+        be executed. See https://go.rigetti.com/connections for reasons to use this method.
         """
-        # NB: Throw the same deprecation warning as in run
-        return self.run(quil_program, classical_addresses, trials)
+        payload = self._run_payload(quil_program, classical_addresses, trials)
+        response = post_json(self.session, self.async_endpoint + "/job", self._wrap_program(payload))
+        return get_job_id(response)
 
     def _run_payload(self, quil_program, classical_addresses, trials):
         if not isinstance(quil_program, Program):
@@ -142,13 +151,16 @@ only supported operation on the QPU is run_and_measure.""")
 
     def run_and_measure(self, quil_program, qubits, trials=1):
         """
-        Run a pyQuil program on the QPU multiple times, measuring all the qubits in the QPU
-        simultaneously at the end of the program each time. This functionality is in beta.
+        Similar to run, except for how MEASURE operations are dealt with. With run, users are
+        expected to include MEASURE operations in the program if they want results back. With
+        run_and_measure, users provide a pyquil program that does not have MEASURE instructions,
+        and also provide a list of qubits to measure. All qubits in this list will be measured
+        at the end of the program, and their results stored in corresponding classical registers.
 
-        :param Program quil_program: A Quil program.
+        :param Program quil_program: Pyquil program to run on the QPU
         :param list|range qubits: The list of qubits to measure
-        :param int trials: Number of shots to collect.
-        :return: A list of a list of bits.
+        :param int trials: Number of times to run the program (a.k.a. number of shots)
+        :return: A list of a list of classical registers (each register contains a bit)
         :rtype: list
         """
         full_program = append_measures_to_program(quil_program, qubits)
@@ -159,8 +171,8 @@ only supported operation on the QPU is run_and_measure.""")
 
     def run_and_measure_async(self, quil_program, qubits, trials):
         """
-        Similar to run_and_measure except that it returns a job id and doesn't wait for the program to be executed.
-        See https://go.rigetti.com/connections for reasons to use this method.
+        Similar to run_and_measure except that it returns a job id and doesn't wait for the program
+        to be executed. See https://go.rigetti.com/connections for reasons to use this method.
         """
         full_program = append_measures_to_program(quil_program, qubits)
         payload = self._run_and_measure_payload(full_program, qubits, trials)
