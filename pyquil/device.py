@@ -36,9 +36,6 @@ class ISA(_ISA):
     """
     Basic Instruction Set Architecture specification.
 
-    :ivar str name: The QPU ISA name.
-    :ivar str version: The version of the ISA.
-    :ivar Union[int,float] timestamp: A timestamp of when the ISA was defined.
     :ivar Sequence[Qubit] qubits: The qubits associated with the ISA.
     :ivar Sequence[Edge] edges: The multi-qubit gates.
     """
