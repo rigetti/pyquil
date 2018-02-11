@@ -19,6 +19,7 @@ from six import integer_types
 
 from pyquil.api import Job
 from pyquil.device import Device
+from pyquil.gates import MEASURE
 from pyquil.quil import Program
 from ._base_connection import (validate_run_items, TYPE_MULTISHOT, TYPE_MULTISHOT_MEASURE,
                                get_job_id, get_session, wait_for_job, post_json, get_json,
@@ -38,6 +39,20 @@ def get_devices(async_endpoint='https://job.rigetti.com/beta', api_key=None, use
     if response.status_code >= 400:
         raise parse_error(response)
     return {Device(name, device) for (name, device) in response.json()['devices'].items()}
+
+
+def append_measures_to_program(gate_program, qubits):
+    """
+    For run_and_measure programs, append MEASURE instructions to the
+    program, on all provided qubits.
+
+    :param Program gate_program: Program without MEASURE instructions
+    :param list qubits: Qubits to measure
+    :return: Full pyquil program with MEASUREs
+    :rtype: Program
+    """
+    meas_program = Program([MEASURE(q, q) for q in qubits])
+    return gate_program + meas_program
 
 
 class QPUConnection(object):
@@ -136,8 +151,8 @@ only supported operation on the QPU is run_and_measure.""")
         :return: A list of a list of bits.
         :rtype: list
         """
-        payload = self._run_and_measure_payload(quil_program, qubits, trials)
-
+        full_program = append_measures_to_program(quil_program, qubits)
+        payload = self._run_and_measure_payload(full_program, qubits, trials)
         response = post_json(self.session, self.async_endpoint + "/job", self._wrap_program(payload))
         job = self.wait_for_job(get_job_id(response))
         return job.result()
@@ -147,7 +162,8 @@ only supported operation on the QPU is run_and_measure.""")
         Similar to run_and_measure except that it returns a job id and doesn't wait for the program to be executed.
         See https://go.rigetti.com/connections for reasons to use this method.
         """
-        payload = self._run_and_measure_payload(quil_program, qubits, trials)
+        full_program = append_measures_to_program(quil_program, qubits)
+        payload = self._run_and_measure_payload(full_program, qubits, trials)
         response = post_json(self.session, self.async_endpoint + "/job", self._wrap_program(payload))
         return get_job_id(response)
 
