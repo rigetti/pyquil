@@ -51,9 +51,7 @@ def append_measures_to_program(gate_program, qubits):
     :return: Full pyquil program with MEASUREs
     :rtype: Program
     """
-    meas_program = Program()
-    for q in qubits:
-        meas_program.inst(MEASURE(q, q))
+    meas_program = Program([MEASURE(q, q) for q in qubits])
     return gate_program + meas_program
 
 
