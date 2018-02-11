@@ -75,7 +75,7 @@ class ISA(_ISA):
             ]
 
         :return: A dictionary representation of self.
-        :rtype: Dict[str,Any]
+        :rtype: List[Dict[str, Any]]
         """
 
         def _maybe_configure(o, t):
