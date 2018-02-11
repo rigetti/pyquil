@@ -183,7 +183,7 @@ To suppress this warning, see Python's warning module.
         if not isinstance(quil_program, Program):
             raise TypeError('quil_program must be a Quil program object')
         validate_run_items(qubits)
-        if not isinstance(trials, int):
+        if not isinstance(trials, integer_types):
             raise TypeError('trials must be an integer')
 
         payload = {'type': TYPE_MULTISHOT_MEASURE,
