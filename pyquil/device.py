@@ -102,7 +102,7 @@ class ISA(_ISA):
         """
         Re-create the ISA from a dictionary representation.
 
-        :param Dict[str,Any] d: The dictionary representation.
+        :param List[Dict[str,Any]] d: The dictionary representation.
         :return: The restored ISA.
         :rtype: ISA
         """
