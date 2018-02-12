@@ -28,6 +28,7 @@ from pyquil.quil import Program
 from pyquil.gates import CNOT, H, MEASURE
 
 BELL_STATE = Program(H(0), CNOT(0, 1))
+BELL_STATE_MEASURE = Program(H(0), CNOT(0, 1), MEASURE(0, 0), MEASURE(1, 1))
 
 qvm = QVMConnection(api_key='api_key', user_id='user_id')
 async_qvm = QVMConnection(api_key='api_key', user_id='user_id', use_queue=True)
@@ -153,38 +154,97 @@ def test_async_wavefunction():
 def test_qpu_connection():
     qpu = QPUConnection(device_name='fake_device')
 
-    program = {
+    run_program = {
+        "type": "multishot",
+        "addresses": [0, 1],
+        "trials": 2,
+        "quil-instructions": "H 0\nCNOT 0 1\nMEASURE 0 [0]\nMEASURE 1 [1]\n"
+    }
+
+    def mock_queued_response_run(request, context):
+        assert json.loads(request.text) == {
+            "machine": "QPU",
+            "program": run_program,
+            "device": "fake_device"
+        }
+        return json.dumps({"jobId": JOB_ID, "status": "QUEUED"})
+
+    with requests_mock.Mocker() as m:
+        m.post('https://job.rigetti.com/beta/job', text=mock_queued_response_run)
+        m.get('https://job.rigetti.com/beta/job/' + JOB_ID, [
+            {'text': json.dumps({"jobId": JOB_ID, "status": "RUNNING"})},
+            {'text': json.dumps({"jobId": JOB_ID, "status": "FINISHED",
+                                 "result": [[0, 0], [1, 1]], "program": run_program})}
+        ])
+
+        result = qpu.run(BELL_STATE_MEASURE, [0, 1], trials=2)
+        assert result == [[0, 0], [1, 1]]
+
+    with requests_mock.Mocker() as m:
+        m.post('https://job.rigetti.com/beta/job', text=mock_queued_response_run)
+        m.get('https://job.rigetti.com/beta/job/' + JOB_ID, [
+            {'text': json.dumps({"jobId": JOB_ID, "status": "RUNNING"})},
+            {'text': json.dumps({"jobId": JOB_ID, "status": "FINISHED",
+                                 "result": [[0, 0], [1, 1]], "program": run_program,
+                                 "metadata": {
+                                     "compiled_quil": "H 0\nCNOT 0 1\nMEASURE 0 [0]\nMEASURE 1 [1]\n",
+                                     "topological_swaps": 0,
+                                     "gate_depth": 2
+                                 }})}
+        ])
+
+        job = qpu.wait_for_job(qpu.run_async(BELL_STATE_MEASURE, [0, 1], trials=2))
+        assert job.result() == [[0, 0], [1, 1]]
+        assert job.compiled_quil() == Program(H(0), CNOT(0, 1), MEASURE(0, 0), MEASURE(1, 1))
+        assert job.topological_swaps() == 0
+        assert job.gate_depth() == 2
+
+    with requests_mock.Mocker() as m:
+        m.post('https://job.rigetti.com/beta/job', text=mock_queued_response_run)
+        m.get('https://job.rigetti.com/beta/job/' + JOB_ID, [
+            {'text': json.dumps({"jobId": JOB_ID, "status": "RUNNING"})},
+            {'text': json.dumps({"jobId": JOB_ID, "status": "FINISHED",
+                                 "result": [[0, 0], [1, 1]], "program": run_program})}
+        ])
+
+        job = qpu.wait_for_job(qpu.run_async(BELL_STATE_MEASURE, [0, 1], trials=2))
+        assert job.result() == [[0, 0], [1, 1]]
+        assert job.compiled_quil() is None
+        assert job.topological_swaps() is None
+        assert job.gate_depth() is None
+
+    run_and_measure_program = {
         "type": "multishot-measure",
         "qubits": [0, 1],
         "trials": 2,
         "quil-instructions": "H 0\nCNOT 0 1\nMEASURE 0 [0]\nMEASURE 1 [1]\n"
     }
 
-    def mock_queued_response(request, context):
+    def mock_queued_response_run_and_measure(request, context):
         assert json.loads(request.text) == {
             "machine": "QPU",
-            "program": program,
+            "program": run_and_measure_program,
             "device": "fake_device"
         }
         return json.dumps({"jobId": JOB_ID, "status": "QUEUED"})
 
     with requests_mock.Mocker() as m:
-        m.post('https://job.rigetti.com/beta/job', text=mock_queued_response)
+        m.post('https://job.rigetti.com/beta/job', text=mock_queued_response_run_and_measure)
         m.get('https://job.rigetti.com/beta/job/' + JOB_ID, [
             {'text': json.dumps({"jobId": JOB_ID, "status": "RUNNING"})},
             {'text': json.dumps({"jobId": JOB_ID, "status": "FINISHED",
-                                 "result": [[0, 0], [1, 1]], "program": program})}
+                                 "result": [[0, 0], [1, 1]], "program": run_and_measure_program})}
         ])
 
         result = qpu.run_and_measure(BELL_STATE, [0, 1], trials=2)
         assert result == [[0, 0], [1, 1]]
 
     with requests_mock.Mocker() as m:
-        m.post('https://job.rigetti.com/beta/job', text=mock_queued_response)
+        m.post('https://job.rigetti.com/beta/job', text=mock_queued_response_run_and_measure)
         m.get('https://job.rigetti.com/beta/job/' + JOB_ID, [
             {'text': json.dumps({"jobId": JOB_ID, "status": "RUNNING"})},
             {'text': json.dumps({"jobId": JOB_ID, "status": "FINISHED",
-                                 "result": [[0, 0], [1, 1]], "program": program,
+                                 "result": [[0, 0], [1, 1]], "program": run_and_measure_program,
                                  "metadata": {
                                      "compiled_quil": "H 0\nCNOT 0 1\nMEASURE 0 [0]\nMEASURE 1 [1]\n",
                                      "topological_swaps": 0,
@@ -199,11 +259,11 @@ def test_qpu_connection():
         assert job.gate_depth() == 2
 
     with requests_mock.Mocker() as m:
-        m.post('https://job.rigetti.com/beta/job', text=mock_queued_response)
+        m.post('https://job.rigetti.com/beta/job', text=mock_queued_response_run_and_measure)
         m.get('https://job.rigetti.com/beta/job/' + JOB_ID, [
             {'text': json.dumps({"jobId": JOB_ID, "status": "RUNNING"})},
             {'text': json.dumps({"jobId": JOB_ID, "status": "FINISHED",
-                                 "result": [[0, 0], [1, 1]], "program": program})}
+                                 "result": [[0, 0], [1, 1]], "program": run_and_measure_program})}
         ])
 
         job = qpu.wait_for_job(qpu.run_and_measure_async(BELL_STATE, [0, 1], trials=2))
