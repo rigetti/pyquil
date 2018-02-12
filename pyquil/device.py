@@ -163,8 +163,8 @@ class Specs(_Specs):
     """
     Basic specifications for the device, such as gate fidelities and coherence times.
 
-    :ivar Sequence[QubitSpecs] qubits_specs: The specifications associated with individual qubits.
-    :ivar Sequence[EdgesSpecs] edges_specs: The specifications associated with edges, or qubit-qubit
+    :ivar List[QubitSpecs] qubits_specs: The specifications associated with individual qubits.
+    :ivar List[EdgesSpecs] edges_specs: The specifications associated with edges, or qubit-qubit
     pairs.
     """
     def f1QRBs(self):
@@ -313,7 +313,7 @@ class Device(object):
         self._raw = raw
         self.isa = ISA.from_dict(raw['isa']) if 'isa' in raw and raw['isa'] != {} else None
         self.specs = Specs.from_dict(raw['specs']) \
-            if 'specs' in raw and raw['specs'] != {} else None
+            if raw.get('specs', None) and raw['specs'] != {} else None
         self.noise_model = NoiseModel.from_dict(raw['noise_model']) if 'noise_model' in raw \
             and raw['noise_model'] != {} else None
 
