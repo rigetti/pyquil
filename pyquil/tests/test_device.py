@@ -13,48 +13,28 @@ DEVICE_FIXTURE_NAME = 'mixed_architecture_chip'
 @pytest.fixture
 def isa_dict():
     return {
-        'id': {
-            'name': DEVICE_FIXTURE_NAME,
-            'version': '0.0',
-            'timestamp': '20180104103600'
+        "1Q": {
+            "0": {
+                'type': 'Xhalves'
+            },
+            "1": {},
+            "2": {},
+            "3": {
+                "dead": True
+            }
         },
-        'logical-hardware': [
-            [
-                {
-                    'qubit-id': 0,
-                    'type': 'Xhalves'
-                },
-                {
-                    'qubit-id': 1
-                },
-                {
-                    'qubit-id': 2
-                },
-                {
-                    'qubit-id': 3,
-                    'dead': True
-                }
-            ],
-            [
-                {
-                    'action-qubits': [0, 1],
-                    'type': 'CZ'
-                },
-                {
-                    'action-qubits': [1, 2],
-                    'type': 'ISWAP'
-                },
-                {
-                    'action-qubits': [2, 0],
-                    'type': 'CPHASE'
-                },
-                {
-                    'action-qubits': [0, 3],
-                    'type': 'CZ',
-                    'dead': True
-                }
-            ]
-        ]
+        "2Q": {
+            "0-1": {},
+            "1-2": {
+                "type": "ISWAP"
+            },
+            "2-0": {
+                "type": "CPHASE"
+            },
+            "0-3": {
+                "dead": True
+            }
+        }
     }
 
 
@@ -104,9 +84,6 @@ def device_raw(isa_dict, noise_model_dict):
 def test_isa(isa_dict):
     isa = ISA.from_dict(isa_dict)
     assert isa == ISA(
-        name=isa_dict['id']['name'],
-        version=isa_dict['id']['version'],
-        timestamp=isa_dict['id']['timestamp'],
         qubits=[
             Qubit(id=0, type='Xhalves', dead=False),
             Qubit(id=1, type='Xhalves', dead=False),
@@ -115,9 +92,9 @@ def test_isa(isa_dict):
         ],
         edges=[
             Edge(targets=[0, 1], type='CZ', dead=False),
+            Edge(targets=[0, 3], type='CZ', dead=True),
             Edge(targets=[1, 2], type='ISWAP', dead=False),
             Edge(targets=[2, 0], type='CPHASE', dead=False),
-            Edge(targets=[0, 3], type='CZ', dead=True),
         ])
     assert isa == ISA.from_dict(isa.to_dict())
 
