@@ -30,6 +30,9 @@ DEFAULT_EDGE_TYPE = "CZ"
 Qubit = namedtuple("Qubit", ["id", "type", "dead"])
 Edge = namedtuple("Edge", ["targets", "type", "dead"])
 _ISA = namedtuple("_ISA", ["qubits", "edges"])
+QubitSpecs = namedtuple("_QubitSpecs", ["id", "fRO", "f1QRB", "T1", "T2"])
+EdgeSpecs = namedtuple("_QubitQubitSpecs", ["targets", "fBellState"])
+_Specs = namedtuple("_Specs", ["qubits_specs", "edges_specs"])
 
 
 class ISA(_ISA):
@@ -42,7 +45,7 @@ class ISA(_ISA):
 
     def to_dict(self):
         """
-        Create a JSON serializable representation of the ISA.
+        Create a JSON-serializable representation of the ISA.
 
         The dictionary representation is of the form::
 
@@ -156,6 +159,137 @@ def gates_in_isa(isa):
     return gates
 
 
+class Specs(_Specs):
+    """
+    Basic specifications for the device, such as gate fidelities and coherence times.
+
+    :ivar List[QubitSpecs] qubits_specs: The specifications associated with individual qubits.
+    :ivar List[EdgesSpecs] edges_specs: The specifications associated with edges, or qubit-qubit
+    pairs.
+    """
+    def f1QRBs(self):
+        """
+        Get a dictionary of single-qubit randomized benchmarking fidelities (normalized to unity)
+        from the specs, keyed by qubit index.
+
+        :return: A dictionary of 1QRBs, normalized to unity.
+        :rtype: Dict[int, float]
+        """
+        return {qs.id: qs.f1QRB for qs in self.qubits_specs}
+
+    def fROs(self):
+        """
+        Get a dictionary of single-qubit readout fidelities (normalized to unity)
+        from the specs, keyed by qubit index.
+
+        :return: A dictionary of RO fidelities, normalized to unity.
+        :rtype: Dict[int, float]
+        """
+        return {qs.id: qs.fRO for qs in self.qubits_specs}
+
+    def T1s(self):
+        """
+        Get a dictionary of T1s (in seconds) from the specs, keyed by qubit index.
+
+        :return: A dictionary of T1s, in seconds.
+        :rtype: Dict[int, float]
+        """
+        return {qs.id: qs.T1 for qs in self.qubits_specs}
+
+    def T2s(self):
+        """
+        Get a dictionary of T2s (in seconds) from the specs, keyed by qubit index.
+
+        :return: A dictionary of T2s, in seconds.
+        :rtype: Dict[int, float]
+        """
+        return {qs.id: qs.T2 for qs in self.qubits_specs}
+
+    def fBellStates(self):
+        """
+        Get a dictionary of two-qubit Bell state fidelities (normalized to unity)
+        from the specs, keyed by targets (qubit-qubit pairs).
+
+        :return: A dictionary of Bell state fidelities, normalized to unity.
+        :rtype: Dict[tuple(int, int), float]
+        """
+        return {tuple(es.targets): es.fBellState for es in self.edges_specs}
+
+    def to_dict(self):
+        """
+        Create a JSON-serializable representation of the device Specs.
+
+        The dictionary representation is of the form:
+
+            {
+                '1Q': {
+                    "0": {
+                        "f1QRB": 0.99,
+                        "T1": 20e-6,
+                        ...
+                    },
+                    "1": {
+                        "f1QRB": 0.989,
+                        "T1": 19e-6,
+                        ...
+                    },
+                    ...
+                },
+                '2Q': {
+                    "1-4": {
+                        "fBellState": 0.93
+                    },
+                    "1-5": {
+                        "fBellState": 0.9
+                    },
+                    ...
+                },
+                ...
+            }
+
+        :return: A dctionary representation of self.
+        :rtype: Dict[str, Any]
+        """
+        return {
+            '1Q': {
+                "{}".format(qs.id): {
+                    'f1QRB': qs.f1QRB,
+                    'fRO': qs.fRO,
+                    'T1': qs.T1,
+                    'T2': qs.T2
+                } for qs in self.qubits_specs
+            },
+            '2Q': {
+                "{}-{}".format(*es.targets): {
+                    'fBellState': es.fBellState
+                } for es in self.edges_specs
+            }
+        }
+
+    @staticmethod
+    def from_dict(d):
+        """
+        Re-create the Specs from a dictionary representation.
+
+        :param Dict[str, Any] d: The dictionary representation.
+        :return: The restored Specs.
+        :rtype: Specs
+        """
+        return Specs(
+            qubits_specs=sorted([QubitSpecs(id=int(q),
+                                            fRO=qspecs.get('fRO'),
+                                            f1QRB=qspecs.get('f1QRB'),
+                                            T1=qspecs.get('T1'),
+                                            T2=qspecs.get('T2'))
+                                 for q, qspecs in d["1Q"].items()],
+                                key=lambda qubit_specs: qubit_specs.id),
+            edges_specs=sorted([EdgeSpecs(targets=[int(q) for q in e.split('-')],
+                                          fBellState=especs.get('fBellState'))
+                                for e, especs in d["2Q"].items()],
+                               key=lambda edge_specs: edge_specs.targets)
+        )
+
+
 class Device(object):
     """
     A device (quantum chip) that can accept programs. Only devices that are online will actively be
@@ -178,8 +312,9 @@ class Device(object):
         self.name = name
         self._raw = raw
         self.isa = ISA.from_dict(raw['isa']) if 'isa' in raw and raw['isa'] != {} else None
-        self.noise_model = NoiseModel.from_dict(raw['noise_model']) if 'noise_model' in raw \
-            and raw['noise_model'] != {} else None
+        self.specs = Specs.from_dict(raw['specs']) if raw.get('specs') else None
+        self.noise_model = NoiseModel.from_dict(raw['noise_model']) \
+            if raw.get('noise_model') else None
 
     def is_online(self):
         """

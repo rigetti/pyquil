@@ -1,7 +1,8 @@
 import numpy as np
 import pytest
 
-from pyquil.device import Device, ISA, Qubit, Edge, THETA, gates_in_isa
+from pyquil.device import (Device, ISA, Qubit, Edge, Specs, QubitSpecs,
+                           EdgeSpecs, THETA, gates_in_isa)
 from pyquil.noise import NoiseModel, KrausModel
 from pyquil.gates import RZ, RX, I, CZ, ISWAP, CPHASE
 from collections import OrderedDict
@@ -34,6 +35,44 @@ def isa_dict():
             "0-3": {
                 "dead": True
             }
+        }
+    }
+
+
+@pytest.fixture
+def specs_dict():
+    return {
+        '1Q': {
+            "0": {
+                "f1QRB": 0.99,
+                "fRO": 0.93,
+                "T1": 20e-6,
+                "T2": 15e-6
+            },
+            "1": {
+                "f1QRB": 0.989,
+                "fRO": 0.92,
+                "T1": 19e-6,
+                "T2": 12e-6
+            },
+            "2": {
+                "f1QRB": 0.983,
+                "fRO": 0.95,
+                "T1": 21e-6,
+                "T2": 16e-6
+            },
+            "3": {
+                "f1QRB": 0.988,
+                "fRO": 0.94,
+                "T1": 18e-6,
+                "T2": 11e-6
+            }
+        },
+        '2Q': {
+            "0-1": {"fBellState": 0.90},
+            "1-2": {"fBellState": 0.91},
+            "2-0": {"fBellState": 0.92},
+            "0-3": {"fBellState": 0.89}
         }
     }
 
@@ -97,6 +136,32 @@ def test_isa(isa_dict):
             Edge(targets=[2, 0], type='CPHASE', dead=False),
         ])
     assert isa == ISA.from_dict(isa.to_dict())
+
+
+def test_specs(specs_dict):
+    specs = Specs.from_dict(specs_dict)
+    assert specs == Specs(
+        qubits_specs=[
+            QubitSpecs(id=0, f1QRB=0.99, fRO=0.93, T1=20e-6, T2=15e-6),
+            QubitSpecs(id=1, f1QRB=0.989, fRO=0.92, T1=19e-6, T2=12e-6),
+            QubitSpecs(id=2, f1QRB=0.983, fRO=0.95, T1=21e-6, T2=16e-6),
+            QubitSpecs(id=3, f1QRB=0.988, fRO=0.94, T1=18e-6, T2=11e-6)
+        ],
+        edges_specs=[
+            EdgeSpecs(targets=[0, 1], fBellState=0.90),
+            EdgeSpecs(targets=[0, 3], fBellState=0.89),
+            EdgeSpecs(targets=[1, 2], fBellState=0.91),
+            EdgeSpecs(targets=[2, 0], fBellState=0.92)
+        ])
+
+    assert specs == Specs.from_dict(specs.to_dict())
+
+    assert specs.f1QRBs() == {0: 0.99, 1: 0.989, 2: 0.983, 3: 0.988}
+    assert specs.fROs() == {0: 0.93, 1: 0.92, 2: 0.95, 3: 0.94}
+    assert specs.T1s() == {0: 20e-6, 1: 19e-6, 2: 21e-6, 3: 18e-6}
+    assert specs.T2s() == {0: 15e-6, 1: 12e-6, 2: 16e-6, 3: 11e-6}
+
+    assert specs.fBellStates() == {(0, 1): 0.90, (0, 3): 0.89, (1, 2): 0.91, (2, 0): 0.92}
 
 
 def test_kraus_model(kraus_model_I_dict):
