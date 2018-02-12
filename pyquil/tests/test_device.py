@@ -41,8 +41,8 @@ def isa_dict():
 
 @pytest.fixture
 def specs_dict():
-    return [
-        {
+    return {
+        '1Q': {
             "0": {
                 "f1QRB": 0.99,
                 "fRO": 0.93,
@@ -68,13 +68,13 @@ def specs_dict():
                 "T2": 11e-6
             }
         },
-        {
+        '2Q': {
             "0-1": {"fBellState": 0.90},
             "1-2": {"fBellState": 0.91},
             "2-0": {"fBellState": 0.92},
             "0-3": {"fBellState": 0.89}
         }
-    ]
+    }
 
 
 @pytest.fixture

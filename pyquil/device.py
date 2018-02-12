@@ -221,8 +221,8 @@ class Specs(_Specs):
 
         The dictionary representation is of the form:
 
-            [
-                {
+            {
+                '1Q': {
                     "0": {
                         "f1QRB": 0.99,
                         "T1": 20e-6,
@@ -235,7 +235,7 @@ class Specs(_Specs):
                     },
                     ...
                 },
-                {
+                '2Q': {
                     "1-4": {
                         "fBellState": 0.93
                     },
@@ -243,23 +243,28 @@ class Specs(_Specs):
                         "fBellState": 0.9
                     },
                     ...
-                }
-            ]
+                },
+                ...
+            }
 
         :return: A dctionary representation of self.
         :rtype: List[Dict[str, Any]]
         """
-        return [
-            {"{}".format(qs.id): {
-                'f1QRB': qs.f1QRB,
-                'fRO': qs.fRO,
-                'T1': qs.T1,
-                'T2': qs.T2
-            } for qs in self.qubits_specs},
-            {"{}-{}".format(*es.targets): {
-                'fBellState': es.fBellState
-            } for es in self.edges_specs}
-        ]
+        return {
+            '1Q': {
+                "{}".format(qs.id): {
+                    'f1QRB': qs.f1QRB,
+                    'fRO': qs.fRO,
+                    'T1': qs.T1,
+                    'T2': qs.T2
+                } for qs in self.qubits_specs
+            },
+            '2Q': {
+                "{}-{}".format(*es.targets): {
+                    'fBellState': es.fBellState
+                } for es in self.edges_specs
+            }
+        }
 
     @staticmethod
     def from_dict(d):
@@ -276,11 +281,11 @@ class Specs(_Specs):
                                             f1QRB=qspecs.get('f1QRB'),
                                             T1=qspecs.get('T1'),
                                             T2=qspecs.get('T2'))
-                                 for q, qspecs in d[0].items()],
+                                 for q, qspecs in d["1Q"].items()],
                                 key=lambda qubit_specs: qubit_specs.id),
             edges_specs=sorted([EdgeSpecs(targets=[int(q) for q in e.split('-')],
                                           fBellState=especs.get('fBellState'))
-                                for e, especs in d[1].items()],
+                                for e, especs in d["2Q"].items()],
                                key=lambda edge_specs: edge_specs.targets)
         )
 
