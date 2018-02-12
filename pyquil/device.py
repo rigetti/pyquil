@@ -52,7 +52,8 @@ class ISA(_ISA):
                         "type": "Xhalves"
                     },
                     "1": {
-                        "type": "Xhalves"
+                        "type": "Xhalves",
+                        "dead": True
                     },
                     ...
                 },
