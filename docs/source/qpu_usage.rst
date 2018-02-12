@@ -39,23 +39,32 @@ Execution on the QPU
 The user-facing interface to running Quil programs on the QPU is nearly identical to that of the
 QVM.  A ``QPUConnection`` object provides the following methods:
 
+* ``.run(quil_program, classical_addresses, trials=1)``: This method sends the ``Program`` object
+  ``quil_program`` to the QPU for execution, which runs the program ``trials`` many times.  After
+  each run on the QPU, all the qubits in the QPU are simultaneously measured and their results are
+  stored in classical registers according to the MEASURE instructions provided. Then, a list of
+  registers listed in ``classical_addresses`` is returned to the user for each trial. This call is
+  blocking: it will wait until the QPU returns its results for inspection.
+* ``.run_async(quil_program, classical_addresses, trials=1)``: This method has identical behavior
+  to ``.run`` except that it is **nonblocking**, and it instead returns a job ID string.
 * ``.run_and_measure(quil_program, qubits, trials=1)``: This method sends the ``Program`` object
   ``quil_program`` to the QPU for execution, which runs the program ``trials`` many times.  After
-  each run on the QPU, the qubits listed in ``qubits`` are simultaneously measured, and this method
-  returns a list of all of the measurement tuples so obtained.  This call is blocking: it will wait
-  until the QPU returns its results for inspection.
+  each run on the QPU, the all the qubits in the QPU are simultaneously measured, and the results
+  from those listed in ``qubits`` are returned to the user for each trial. This call is blocking:
+  it will wait until the QPU returns its results for inspection.
 * ``.run_and_measure_async(quil_program, qubits, trials=1)``: This method has identical behavior
   to ``.run_and_measure`` except that it is **nonblocking**, and it instead returns a job ID string.
 
 .. note::
 
-    These calls are the only way to send jobs to the QPU at present, and their behavior **does not
-    match** their ``QVMConnection`` counterparts (cf. `Optimized Calls <getting_started.html#optimized-calls>`_).
-    The ``QVMConnection`` version of ``run`` repeats the execution of a program many times,
-    producing a (potentially) different outcome each time, whereas ``run_and_measure`` executes a
-    program only once and uses the QVM's unique ability to perform wavefunction inspection to
-    multiply sample the same distribution.  The QPU **does not** have this ability, and its
-    ``run_and_measure`` call behaves as the QVM's ``run``.
+    The QPU's ``run`` functionality matches that of the QVM's ``run`` functionality, but the
+    behavior of ``run_and_measure`` **does not match** its ``QVMConnection`` counterpart (cf.
+    `Optimized Calls <getting_started.html#optimized-calls>`_). The ``QVMConnection`` version of
+    ``run`` repeats the execution of a program many times, producing a (potentially) different
+    outcome each time, whereas ``run_and_measure`` executes a program only once and uses the QVM's
+    unique ability to perform wavefunction inspection to multiply sample the same distribution.
+    The QPU **does not** have this ability, and thus its ``run_and_measure`` call behaves as the
+    QVM's ``run``.
 
 For example, the following Python snippet demonstrates the execution of a small job on the QPU
 identified as "19Q-Acorn":
@@ -66,13 +75,12 @@ identified as "19Q-Acorn":
     import pyquil.api as api
     from pyquil.gates import *
     qpu = api.QPUConnection('19Q-Acorn')
-    p = Program()
-    p.inst(H(0), CNOT(0, 1))
-    qpu.run_and_measure(p, [0, 1], 1000)
+    p = Program(H(0), CNOT(0, 1), MEASURE(0, 0), MEASURE(1, 1))
+    qpu.run(p, [0, 1], 1000)
 
 When the QPU execution time is expected to be long and there is classical computation that the
 program would like to accomplish in the meantime, the ``QPUConnection`` object allows for an
-asynchronous ``run_and_measure_async`` call to be placed instead.  By storing the resulting job ID,
+asynchronous ``run_async`` call to be placed instead.  By storing the resulting job ID,
 the state of the job and be queried later and its results obtained then.  The mechanism for
 querying the state of a job is also through the ``QPUConnection`` object: a job ID string can be
 transformed to a ``pyquil.api.Job`` object via the method ``.get_job(job_id)``; the state of a
@@ -87,9 +95,8 @@ For example, consider the following Python snippet:
     import pyquil.api as api
     from pyquil.gates import *
     qpu = api.QPUConnection('19Q-Acorn')
-    p = Program()
-    p.inst(H(0), CNOT(0, 1))
-    job_id = qpu.run_and_measure_async(p, [0, 1], 1000)
+    p = Program(H(0), CNOT(0, 1), MEASURE(0, 0), MEASURE(1, 1))
+    job_id = qpu.run_async(p, [0, 1], 1000)
     while not qpu.get_job(job_id).is_done():
         ## get some other work done while we wait
         ...
@@ -102,7 +109,7 @@ For example, consider the following Python snippet:
 The Quil compiler and expectations for program contents
 -------------------------------------------------------
 
-The QPU have much more limited natural gate sets than the standard gate set offered by pyQuil: the
+The QPUs have much more limited natural gate sets than the standard gate set offered by pyQuil: the
 gate operators are constrained to lie in ``RZ(θ)``, ``RX(±π/2)``, and ``CZ``; and the gates are
 required to act on physically available hardware (for single-qubit gates, this means acting only on
 live qubits, and for qubit-pair gates, this means acting on neighboring qubits).
