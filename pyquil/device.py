@@ -248,7 +248,7 @@ class Specs(_Specs):
             }
 
         :return: A dctionary representation of self.
-        :rtype: List[Dict[str, Any]]
+        :rtype: Dict[str, Any]
         """
         return {
             '1Q': {
@@ -271,7 +271,7 @@ class Specs(_Specs):
         """
         Re-create the Specs from a dictionary representation.
 
-        :param List[Dict[str, Any]] d: The dictionary representation.
+        :param Dict[str, Any] d: The dictionary representation.
         :return: The restored Specs.
         :rtype: Specs
         """
