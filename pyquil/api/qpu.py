@@ -121,9 +121,7 @@ To suppress this warning, see Python's warning module.
         :return: A list of a list of classical registers (each register contains a bit)
         :rtype: list
         """
-        payload = self._run_payload(quil_program, classical_addresses, trials)
-        response = post_json(self.session, self.async_endpoint + "/job", self._wrap_program(payload))
-        job = self.wait_for_job(get_job_id(response))
+        job = self.wait_for_job(self.run_async(quil_program, classical_addresses, trials))
         return job.result()
 
     def run_async(self, quil_program, classical_addresses, trials=1):
@@ -163,10 +161,7 @@ To suppress this warning, see Python's warning module.
         :return: A list of a list of classical registers (each register contains a bit)
         :rtype: list
         """
-        full_program = append_measures_to_program(quil_program, qubits)
-        payload = self._run_and_measure_payload(full_program, qubits, trials)
-        response = post_json(self.session, self.async_endpoint + "/job", self._wrap_program(payload))
-        job = self.wait_for_job(get_job_id(response))
+        job = self.wait_for_job(self.run_and_measure_async(quil_program, qubits, trials))
         return job.result()
 
     def run_and_measure_async(self, quil_program, qubits, trials):
