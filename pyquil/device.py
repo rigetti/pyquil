@@ -49,23 +49,19 @@ class ISA(_ISA):
             {
                 "1Q": {
                     "0": {
-                        "type": "Xhalves",
-                        "dead": False
+                        "type": "Xhalves"
                     },
                     "1": {
-                        "type": "Xhalves",
-                        "dead": False
+                        "type": "Xhalves"
                     },
                     ...
                 },
                 "2Q": {
                     "1-4": {
-                        "type": "CZ",
-                        "dead": False
+                        "type": "CZ"
                     },
                     "1-5": {
-                        "type": "CZ",
-                        "dead": False
+                        "type": "CZ"
                     },
                     ...
                 },
