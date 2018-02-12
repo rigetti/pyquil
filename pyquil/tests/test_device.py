@@ -12,8 +12,8 @@ DEVICE_FIXTURE_NAME = 'mixed_architecture_chip'
 
 @pytest.fixture
 def isa_dict():
-    return [
-        {
+    return {
+        "1Q": {
             "0": {
                 'type': 'Xhalves'
             },
@@ -23,7 +23,7 @@ def isa_dict():
                 "dead": True
             }
         },
-        {
+        "2Q": {
             "0-1": {},
             "1-2": {
                 "type": "ISWAP"
@@ -35,7 +35,7 @@ def isa_dict():
                 "dead": True
             }
         }
-    ]
+    }
 
 
 @pytest.fixture

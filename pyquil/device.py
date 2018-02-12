@@ -73,7 +73,7 @@ class ISA(_ISA):
             }
 
         :return: A dictionary representation of self.
-        :rtype: List[Dict[str, Any]]
+        :rtype: Dict[str, Any]
         """
 
         def _maybe_configure(o, t):
@@ -103,7 +103,7 @@ class ISA(_ISA):
         """
         Re-create the ISA from a dictionary representation.
 
-        :param List[Dict[str,Any]] d: The dictionary representation.
+        :param Dict[str,Any] d: The dictionary representation.
         :return: The restored ISA.
         :rtype: ISA
         """
@@ -111,12 +111,12 @@ class ISA(_ISA):
             qubits=sorted([Qubit(id=int(qid),
                                  type=q.get("type", DEFAULT_QUBIT_TYPE),
                                  dead=q.get("dead", False))
-                           for qid, q in d[0].items()],
+                           for qid, q in d["1Q"].items()],
                           key=lambda qubit: qubit.id),
             edges=sorted([Edge(targets=[int(q) for q in eid.split('-')],
                                type=e.get("type", DEFAULT_EDGE_TYPE),
                                dead=e.get("dead", False))
-                          for eid, e in d[1].items()],
+                          for eid, e in d["2Q"].items()],
                          key=lambda edge: edge.targets),
         )
 
