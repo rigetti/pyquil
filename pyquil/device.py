@@ -46,8 +46,8 @@ class ISA(_ISA):
 
         The dictionary representation is of the form::
 
-            [
-                {
+            {
+                "1Q": {
                     "0": {
                         "type": "Xhalves",
                         "dead": False
@@ -58,7 +58,7 @@ class ISA(_ISA):
                     },
                     ...
                 },
-                {
+                "2Q": {
                     "1-4": {
                         "type": "CZ",
                         "dead": False
@@ -68,8 +68,9 @@ class ISA(_ISA):
                         "dead": False
                     },
                     ...
-                }
-            ]
+                },
+                ...
+            }
 
         :return: A dictionary representation of self.
         :rtype: List[Dict[str, Any]]
@@ -91,11 +92,11 @@ class ISA(_ISA):
                 d["dead"] = o.dead
             return d
 
-        return [
-            {"{}".format(q.id): _maybe_configure(q, DEFAULT_QUBIT_TYPE) for q in self.qubits},
-            {"{}-{}".format(*edge.targets): _maybe_configure(edge, DEFAULT_EDGE_TYPE)
-             for edge in self.edges}
-        ]
+        return {
+            "1Q": {"{}".format(q.id): _maybe_configure(q, DEFAULT_QUBIT_TYPE) for q in self.qubits},
+            "2Q": {"{}-{}".format(*edge.targets): _maybe_configure(edge, DEFAULT_EDGE_TYPE)
+                   for edge in self.edges}
+        }
 
     @staticmethod
     def from_dict(d):
