@@ -312,8 +312,7 @@ class Device(object):
         self.name = name
         self._raw = raw
         self.isa = ISA.from_dict(raw['isa']) if 'isa' in raw and raw['isa'] != {} else None
-        self.specs = Specs.from_dict(raw['specs']) \
-            if raw.get('specs', None) and raw['specs'] != {} else None
+        self.specs = Specs.from_dict(raw['specs']) if raw.get('specs', None) else None
         self.noise_model = NoiseModel.from_dict(raw['noise_model']) if 'noise_model' in raw \
             and raw['noise_model'] != {} else None
 
