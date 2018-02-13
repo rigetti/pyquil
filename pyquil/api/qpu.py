@@ -60,13 +60,13 @@ class QPUConnection(object):
     Represents a connection to the QPU (Quantum Processing Unit)
     """
 
-    def __init__(self, device_name=None, async_endpoint='https://job.rigetti.com/beta', api_key=None, user_id=None,
+    def __init__(self, device=None, async_endpoint='https://job.rigetti.com/beta', api_key=None, user_id=None,
                  ping_time=0.1, status_time=2):
         """
         Constructor for QPUConnection. Sets up necessary security and picks a device to run on.
 
-        :param str device_name: Name of the device to send programs too, should be one of the devices returned from
-                                a call to get_devices()
+        :param Device device: The device to send programs to, should be one of the devices returned
+                              from a call to get_devices()
         :param async_endpoint: The endpoint of the server for running QPU jobs
         :param api_key: The key to the Forest API Gateway (default behavior is to read from config file)
         :param user_id: Your userid for Forest (default behavior is to read from config file)
@@ -75,7 +75,7 @@ class QPUConnection(object):
         :param int status_time: Time in seconds for how long to wait between printing status information.
                                 To disable printing of status entirely then set status_time to False.
         """
-        if not device_name:
+        if not device or not device.name:
             warnings.warn("""
 You created a QPUConnection without specificying a device name. This means that
 your program will be sent to a random, online device. This is probably not what
@@ -101,7 +101,7 @@ To suppress this warning, see Python's warning module.
         self.ping_time = ping_time
         self.status_time = status_time
 
-        self.device_name = device_name
+        self.device_name = device.name if device else None
 
     def run(self, quil_program, classical_addresses, trials=1, needs_compilation=True, isa=None):
         """

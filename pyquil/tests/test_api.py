@@ -156,8 +156,8 @@ def test_async_wavefunction():
         assert result.classical_memory == [1, 0]
 
 
-def test_qpu_connection():
-    qpu = QPUConnection(device_name='fake_device')
+def test_qpu_connection(test_device):
+    qpu = QPUConnection(device=test_device)
 
     run_program = {
         "type": "multishot",
@@ -185,7 +185,7 @@ def test_qpu_connection():
         assert json.loads(request.text) == {
             "machine": "QPU",
             "program": run_program,
-            "device": "fake_device"
+            "device": "test_device"
         }
         return json.dumps({"jobId": JOB_ID, "status": "QUEUED"})
 
@@ -223,7 +223,7 @@ def test_qpu_connection():
         assert json.loads(request.text) == {
             "machine": "QPU",
             "program": run_and_measure_program,
-            "device": "fake_device"
+            "device": "test_device"
         }
         return json.dumps({"jobId": JOB_ID, "status": "QUEUED"})
 
