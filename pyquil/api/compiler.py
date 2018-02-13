@@ -29,8 +29,7 @@ class CompilerConnection(object):
 
     def __init__(self, isa_source=None, sync_endpoint='https://api.rigetti.com',
                  async_endpoint='https://job.rigetti.com/beta', api_key=None,
-                 user_id=None, use_queue=False, ping_time=0.1, status_time=2,
-                 custom_isa=None):
+                 user_id=None, use_queue=False, ping_time=0.1, status_time=2):
         """
         Constructor for CompilerConnection. Sets up any necessary security.
 
