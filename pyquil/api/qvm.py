@@ -89,8 +89,8 @@ class QVMConnection(object):
         :param Program quil_program: A Quil program.
         :param list|range classical_addresses: A list of addresses.
         :param int trials: Number of shots to collect.
-        :param needs_compilation: If True, preprocesses the job with the compiler.
-        :param isa: If set, compiles to this target ISA.
+        :param bool needs_compilation: If True, preprocesses the job with the compiler.
+        :param ISA isa: If set, compiles to this target ISA.
         :return: A list of lists of bits. Each sublist corresponds to the values
                  in `classical_addresses`.
         :rtype: list
@@ -151,8 +151,8 @@ class QVMConnection(object):
         :param Program quil_program: A Quil program.
         :param list|range qubits: A list of qubits.
         :param int trials: Number of shots to collect.
-        :param needs_compilation: If True, preprocesses the job with the compiler.
-        :param isa: If set, compiles to this target ISA.
+        :param bool needs_compilation: If True, preprocesses the job with the compiler.
+        :param ISA isa: If set, compiles to this target ISA.
         :return: A list of a list of bits.
         :rtype: list
         """
@@ -280,8 +280,8 @@ class QVMConnection(object):
 
         :param Program prep_prog: Quil program for state preparation.
         :param list operator_programs: A list of PauliTerms. Default is Identity operator.
-        :param needs_compilation: If True, preprocesses the job with the compiler.
-        :param isa: If set, compiles to this target ISA.
+        :param bool needs_compilation: If True, preprocesses the job with the compiler.
+        :param ISA isa: If set, compiles to this target ISA.
         :returns: Expectation value of the operators.
         :rtype: float
         """

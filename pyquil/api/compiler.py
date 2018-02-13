@@ -54,7 +54,7 @@ class CompilerConnection(object):
                                 of status entirely then set status_time to
                                 False. Note that this parameter doesn't matter
                                 if use_queue is False.
-        :param default_isa: A default ISA object to target when one is not
+        :param ISA default_isa: A default ISA object to target when one is not
                             expressly provided to the compile method.
         """
         self.async_endpoint = async_endpoint
@@ -72,8 +72,8 @@ class CompilerConnection(object):
         Sends a Quil program to the Forest compiler and returns the resulting
         compiled Program.
 
-        :param quil_program: Quil program to be compiled.
-        :param isa: ISA to target.
+        :param Program quil_program: Quil program to be compiled.
+        :param ISA isa: ISA to target.
         :returns: The compiled Program object.
         :rtype: Program
         """

@@ -118,8 +118,8 @@ To suppress this warning, see Python's warning module.
         :param Program quil_program: Pyquil program to run on the QPU
         :param list|range classical_addresses: Classical register addresses to return
         :param int trials: Number of times to run the program (a.k.a. number of shots)
-        :param needs_compilation: If True, preprocesses the job with the compiler.
-        :param isa: If set, specifies a custom ISA to compile to. If left unset,
+        :param bool needs_compilation: If True, preprocesses the job with the compiler.
+        :param ISA isa: If set, specifies a custom ISA to compile to. If left unset,
                     Forest uses the default ISA associated to this QPU device.
         :return: A list of a list of classical registers (each register contains a bit)
         :rtype: list
@@ -167,7 +167,9 @@ To suppress this warning, see Python's warning module.
         :param Program quil_program: Pyquil program to run on the QPU
         :param list|range qubits: The list of qubits to measure
         :param int trials: Number of times to run the program (a.k.a. number of shots)
-        :param needs_compilation: If True, preprocesses the job with the compiler.
+        :param bool needs_compilation: If True, preprocesses the job with the compiler.
+        :param ISA isa: If set, specifies a custom ISA to compile to. If left unset,
+                    Forest uses the default ISA associated to this QPU device.
         :return: A list of a list of classical registers (each register contains a bit)
         :rtype: list
         """
