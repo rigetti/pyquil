@@ -30,7 +30,7 @@ from pyquil.device import ISA
 
 BELL_STATE = Program(H(0), CNOT(0, 1))
 BELL_STATE_MEASURE = Program(H(0), CNOT(0, 1), MEASURE(0, 0), MEASURE(1, 1))
-DUMMY_ISA_DICT = {"id": {"name": "miniQPU", "version": "0.0", "timestamp": "20180119143300"}, "logical-hardware": [[{"qubit-id": 0}, {"qubit-id": 1}], [{"action-qubits": [0, 1]}]]}
+DUMMY_ISA_DICT = {"1Q": {"0": {}, "1": {}}, "2Q": {"0-1": {}}}
 DUMMY_ISA = ISA.from_dict(DUMMY_ISA_DICT)
 
 qvm = QVMConnection(api_key='api_key', user_id='user_id')
@@ -163,7 +163,22 @@ def test_qpu_connection():
         "type": "multishot",
         "addresses": [0, 1],
         "trials": 2,
-        "quil-instructions": "H 0\nCNOT 0 1\nMEASURE 0 [0]\nMEASURE 1 [1]\n"
+        "uncompiled-quil": "H 0\nCNOT 0 1\nMEASURE 0 [0]\nMEASURE 1 [1]\n"
+    }
+
+    run_and_measure_program = {
+        "type": "multishot-measure",
+        "qubits": [0, 1],
+        "trials": 2,
+        "uncompiled-quil": "H 0\nCNOT 0 1\n"
+    }
+
+    reply_program = {
+        "type": "multishot-measure",
+        "qubits": [0, 1],
+        "trials": 2,
+        "uncompiled-quil": "H 0\nCNOT 0 1\nMEASURE 0 [0]\nMEASURE 1 [1]\n",
+        "compiled-quil": "H 0\nCNOT 0 1\nMEASURE 0 [0]\nMEASURE 1 [1]\n"
     }
 
     def mock_queued_response_run(request, context):
@@ -179,7 +194,7 @@ def test_qpu_connection():
         m.get('https://job.rigetti.com/beta/job/' + JOB_ID, [
             {'text': json.dumps({"jobId": JOB_ID, "status": "RUNNING"})},
             {'text': json.dumps({"jobId": JOB_ID, "status": "FINISHED",
-                                 "result": [[0, 0], [1, 1]], "program": run_program})}
+                                 "result": [[0, 0], [1, 1]], "program": reply_program})}
         ])
 
         result = qpu.run(BELL_STATE_MEASURE, [0, 1], trials=2)
@@ -190,7 +205,7 @@ def test_qpu_connection():
         m.get('https://job.rigetti.com/beta/job/' + JOB_ID, [
             {'text': json.dumps({"jobId": JOB_ID, "status": "RUNNING"})},
             {'text': json.dumps({"jobId": JOB_ID, "status": "FINISHED",
-                                 "result": [[0, 0], [1, 1]], "program": run_program,
+                                 "result": [[0, 0], [1, 1]], "program": reply_program,
                                  "metadata": {
                                      "compiled_quil": "H 0\nCNOT 0 1\nMEASURE 0 [0]\nMEASURE 1 [1]\n",
                                      "topological_swaps": 0,
@@ -203,36 +218,6 @@ def test_qpu_connection():
         assert job.compiled_quil() == Program(H(0), CNOT(0, 1), MEASURE(0, 0), MEASURE(1, 1))
         assert job.topological_swaps() == 0
         assert job.gate_depth() == 2
-
-    with requests_mock.Mocker() as m:
-        m.post('https://job.rigetti.com/beta/job', text=mock_queued_response_run)
-        m.get('https://job.rigetti.com/beta/job/' + JOB_ID, [
-            {'text': json.dumps({"jobId": JOB_ID, "status": "RUNNING"})},
-            {'text': json.dumps({"jobId": JOB_ID, "status": "FINISHED",
-                                 "result": [[0, 0], [1, 1]], "program": run_program})}
-        ])
-
-        job = qpu.wait_for_job(qpu.run_async(BELL_STATE_MEASURE, [0, 1], trials=2))
-        assert job.result() == [[0, 0], [1, 1]]
-        assert job.compiled_quil() is None
-        assert job.topological_swaps() is None
-        assert job.gate_depth() is None
-
-    run_and_measure_program = {
-        "type": "multishot-measure",
-        "qubits": [0, 1],
-        "trials": 2,
-        "quil-instructions": "H 0\nCNOT 0 1\nMEASURE 0 [0]\nMEASURE 1 [1]\n"
-        "uncompiled-quil": "H 0\nCNOT 0 1\nMEASURE 0 [0]\nMEASURE 1 [1]\n"
-    }
-
-    reply_program = {
-        "type": "multishot-measure",
-        "qubits": [0, 1],
-        "trials": 2,
-        "uncompiled-quil": "H 0\nCNOT 0 1\nMEASURE 0 [0]\nMEASURE 1 [1]\n",
-        "compiled-quil": "H 0\nCNOT 0 1\nMEASURE 0 [0]\nMEASURE 1 [1]\n"
-    }
 
     def mock_queued_response_run_and_measure(request, context):
         assert json.loads(request.text) == {
@@ -247,7 +232,7 @@ def test_qpu_connection():
         m.get('https://job.rigetti.com/beta/job/' + JOB_ID, [
             {'text': json.dumps({"jobId": JOB_ID, "status": "RUNNING"})},
             {'text': json.dumps({"jobId": JOB_ID, "status": "FINISHED",
-                                 "result": [[0, 0], [1, 1]], "program": run_and_measure_program})}
+                                 "result": [[0, 0], [1, 1]], "program": reply_program})}
         ])
 
         result = qpu.run_and_measure(BELL_STATE, [0, 1], trials=2)
@@ -271,20 +256,6 @@ def test_qpu_connection():
         assert job.compiled_quil() == Program(H(0), CNOT(0, 1), MEASURE(0, 0), MEASURE(1, 1))
         assert job.topological_swaps() == 0
         assert job.gate_depth() == 2
-
-    with requests_mock.Mocker() as m:
-        m.post('https://job.rigetti.com/beta/job', text=mock_queued_response_run_and_measure)
-        m.get('https://job.rigetti.com/beta/job/' + JOB_ID, [
-            {'text': json.dumps({"jobId": JOB_ID, "status": "RUNNING"})},
-            {'text': json.dumps({"jobId": JOB_ID, "status": "FINISHED",
-                                 "result": [[0, 0], [1, 1]], "program": run_and_measure_program})}
-        ])
-
-        job = qpu.wait_for_job(qpu.run_and_measure_async(BELL_STATE, [0, 1], trials=2))
-        assert job.result() == [[0, 0], [1, 1]]
-        assert job.compiled_quil() is None
-        assert job.topological_swaps() is None
-        assert job.gate_depth() is None
 
 
 def test_validate_noise_probabilities():
@@ -312,20 +283,21 @@ def test_append_measures_to_program():
     meas_program = Program(MEASURE(0, 0), MEASURE(1, 1))
     assert gate_program + meas_program == append_measures_to_program(gate_program, [0, 1])
 
+
 def test_sync_compile():
     def mock_response(request, context):
         assert json.loads(request.text) == {
             "type": "multishot",
             "qubits": [],
             "uncompiled-quil": "H 0\nCNOT 0 1\n",
-            "isa": DUMMY_ISA_DICT
+            "target-device": {"isa": DUMMY_ISA_DICT}
         }
         return json.dumps({
             "type": "multishot",
             "qubits": [],
             "uncompiled-quil": "H 0\nCNOT 0 1\n",
             "compiled-quil": "H 0\nCNOT 0 1\n",
-            "isa": DUMMY_ISA_DICT})
+            "target-device": {"isa": DUMMY_ISA_DICT}})
 
     with requests_mock.Mocker() as m:
         m.post('https://api.rigetti.com/quilc', text=mock_response)
@@ -337,14 +309,14 @@ def test_job_compile():
         "type": "multishot",
         "qubits": [],
         "uncompiled-quil": "H 0\nCNOT 0 1\n",
-        "isa": DUMMY_ISA_DICT
+        "target-device": {"isa": DUMMY_ISA_DICT}
     }
     postprocessed_program = {
         "type": "multishot",
         "qubits": [],
         "uncompiled-quil": "H 0\nCNOT 0 1\n",
         "compiled-quil": "H 0\nCNOT 0 1\n",
-        "isa": DUMMY_ISA_DICT
+        "target-device": {"isa": DUMMY_ISA_DICT}
     }
 
     def mock_queued_response(request, context):

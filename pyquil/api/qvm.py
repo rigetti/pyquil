@@ -129,7 +129,7 @@ class QVMConnection(object):
                    "trials": trials}
         if needs_compilation:
             payload["uncompiled-quil"] = quil_program.out()
-            payload["isa"] = isa.to_dict()
+            payload["target-device"] = {"isa": isa.to_dict()}
         else:
             payload["compiled-quil"] = quil_program.out()
 
@@ -190,7 +190,7 @@ class QVMConnection(object):
                    "trials": trials}
         if needs_compilation:
             payload["uncompiled-quil"] = quil_program.out()
-            payload["isa"] = isa.to_dict()
+            payload["target-device"] = {"isa": isa.to_dict()}
         else:
             payload["compiled-quil"] = quil_program.out()
 
@@ -258,7 +258,7 @@ class QVMConnection(object):
 
         if needs_compilation:
             payload['uncompiled-quil'] = quil_program.out()
-            payload['isa'] = isa.to_dict()
+            payload['target-device'] = {"isa": isa.to_dict()}
         else:
             payload['compiled-quil'] = quil_program.out()
 

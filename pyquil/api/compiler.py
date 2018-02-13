@@ -112,7 +112,7 @@ class CompilerConnection(object):
         payload = {"type": TYPE_MULTISHOT,
                    "qubits": [],
                    "uncompiled-quil": quil_program.out(),
-                   "isa": isa.to_dict()}
+                   "target-device": {"isa": isa.to_dict()}}
 
         return payload
 

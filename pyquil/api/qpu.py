@@ -132,7 +132,7 @@ To suppress this warning, see Python's warning module.
         Similar to run except that it returns a job id and doesn't wait for the program to
         be executed. See https://go.rigetti.com/connections for reasons to use this method.
         """
-        payload = self.run(quil_program, classical_addresses, trials, needs_compilation=needs_compilation, isa=isa)
+        payload = self._run_payload(quil_program, classical_addresses, trials, needs_compilation=needs_compilation, isa=isa)
         response = post_json(self.session, self.async_endpoint + "/job", self._wrap_program(payload))
         return get_job_id(response)
 
@@ -150,7 +150,7 @@ To suppress this warning, see Python's warning module.
         if needs_compilation:
             payload["uncompiled-quil"] = quil_program.out()
             if isa:
-                payload["isa"] = isa.to_dict()
+                payload["target-device"] = {"isa": isa.to_dict()}
         else:
             payload["compiled-quil"] = quil_program.out()
 
@@ -200,7 +200,7 @@ To suppress this warning, see Python's warning module.
         if needs_compilation:
             payload['uncompiled-quil'] = quil_program.out()
             if isa:
-                payload['isa'] = isa.to_dict()
+                payload['target-device'] = {"isa": isa.to_dict()}
         else:
             payload['compiled-quil'] = quil_program.out()
 
