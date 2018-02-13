@@ -168,3 +168,13 @@ class Job(object):
         :rtype: Optional[int]
         """
         return self._get_metadata("topological_swaps")
+
+    def program_fidelity(self):
+        """
+        If the job has metadata and this contains a job program fidelity
+        estimate, return this, otherwise None.  This is a number between 0 and 1;
+        a higher value means more likely odds of a meaningful answer.
+
+        :rtype: Optional[float]
+        """
+        return self._get_metadata["program_fidelity"]
