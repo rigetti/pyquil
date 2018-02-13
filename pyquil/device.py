@@ -31,7 +31,7 @@ Qubit = namedtuple("Qubit", ["id", "type", "dead"])
 Edge = namedtuple("Edge", ["targets", "type", "dead"])
 _ISA = namedtuple("_ISA", ["qubits", "edges"])
 QubitSpecs = namedtuple("_QubitSpecs", ["id", "fRO", "f1QRB", "T1", "T2"])
-EdgeSpecs = namedtuple("_QubitQubitSpecs", ["targets", "fBellState"])
+EdgeSpecs = namedtuple("_QubitQubitSpecs", ["targets", "fBellState", "fCZ", "fCPHASE"])
 _Specs = namedtuple("_Specs", ["qubits_specs", "edges_specs"])
 
 
@@ -215,6 +215,26 @@ class Specs(_Specs):
         """
         return {tuple(es.targets): es.fBellState for es in self.edges_specs}
 
+    def fCZs(self):
+        """
+        Get a dictionary of CZ fidelities (normalized to unity) from the specs,
+        keyed by targets (qubit-qubit pairs).
+
+        :return: A dictionary of CZ fidelities, normalized to unity.
+        :rtype: Dict[tuple(int, int), float]
+        """
+        return {tuple(es.targets): es.fCZ for es in self.edges_specs}
+
+    def fCPHASEs(self):
+        """
+        Get a dictionary of CPHASE fidelities (normalized to unity) from the specs,
+        keyed by targets (qubit-qubit pairs).
+
+        :return: A dictionary of CPHASE fidelities, normalized to unity.
+        :rtype: Dict[tuple(int, int), float]
+        """
+        return {tuple(es.targets): es.fCPHASE for es in self.edges_specs}
+
     def to_dict(self):
         """
         Create a JSON-serializable representation of the device Specs.
@@ -261,7 +281,9 @@ class Specs(_Specs):
             },
             '2Q': {
                 "{}-{}".format(*es.targets): {
-                    'fBellState': es.fBellState
+                    'fBellState': es.fBellState,
+                    'fCZ': es.fCZ,
+                    'fCPHASE': es.fCPHASE
                 } for es in self.edges_specs
             }
         }
@@ -284,7 +306,9 @@ class Specs(_Specs):
                                  for q, qspecs in d["1Q"].items()],
                                 key=lambda qubit_specs: qubit_specs.id),
             edges_specs=sorted([EdgeSpecs(targets=[int(q) for q in e.split('-')],
-                                          fBellState=especs.get('fBellState'))
+                                          fBellState=especs.get('fBellState'),
+                                          fCZ=especs.get('fCZ'),
+                                          fCPHASE=especs.get('fCPHASE'))
                                 for e, especs in d["2Q"].items()],
                                key=lambda edge_specs: edge_specs.targets)
         )
