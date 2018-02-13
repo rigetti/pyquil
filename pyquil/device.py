@@ -257,10 +257,14 @@ class Specs(_Specs):
                 },
                 '2Q': {
                     "1-4": {
-                        "fBellState": 0.93
+                        "fBellState": 0.93,
+                        "fCZ": 0.92,
+                        "fCPHASE": 0.91
                     },
                     "1-5": {
-                        "fBellState": 0.9
+                        "fBellState": 0.9,
+                        "fCZ": 0.89,
+                        "fCPHASE": 0.88
                     },
                     ...
                 },
