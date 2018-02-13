@@ -35,8 +35,8 @@ DUMMY_ISA = ISA.from_dict(DUMMY_ISA_DICT)
 
 qvm = QVMConnection(api_key='api_key', user_id='user_id')
 async_qvm = QVMConnection(api_key='api_key', user_id='user_id', use_queue=True)
-compiler = CompilerConnection(api_key='api_key', user_id='user_id')
-async_compiler = CompilerConnection(api_key='api_key', user_id='user_id', use_queue=True)
+compiler = CompilerConnection(isa_source=DUMMY_ISA, api_key='api_key', user_id='user_id')
+async_compiler = CompilerConnection(isa_source=DUMMY_ISA, api_key='api_key', user_id='user_id', use_queue=True)
 
 
 def test_sync_run():
@@ -301,7 +301,7 @@ def test_sync_compile():
 
     with requests_mock.Mocker() as m:
         m.post('https://api.rigetti.com/quilc', text=mock_response)
-        assert compiler.compile(BELL_STATE, DUMMY_ISA) == BELL_STATE
+        assert compiler.compile(BELL_STATE) == BELL_STATE
 
 
 def test_job_compile():
@@ -334,5 +334,5 @@ def test_job_compile():
                                  "program": postprocessed_program, "metadata": {}})}
         ])
 
-        result = async_compiler.compile(BELL_STATE, DUMMY_ISA)
+        result = async_compiler.compile(BELL_STATE)
         assert result == BELL_STATE
