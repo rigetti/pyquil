@@ -29,15 +29,20 @@ from ._base_connection import validate_noise_probabilities, validate_run_items, 
 class QVMConnection(object):
     """
     Represents a connection to the QVM.
+
+    :ivar NoiseModel noise_model: NoiseModel for the QVM, if received from an input Device instance.
     """
 
-    def __init__(self, sync_endpoint='https://api.rigetti.com', async_endpoint='https://job.rigetti.com/beta',
-                 api_key=None, user_id=None, use_queue=False, ping_time=0.1, status_time=2,
-                 gate_noise=None, measurement_noise=None, random_seed=None, default_isa=None):
+    def __init__(self, device=None, sync_endpoint='https://api.rigetti.com',
+                 async_endpoint='https://job.rigetti.com/beta', api_key=None, user_id=None,
+                 use_queue=False, ping_time=0.1, status_time=2, gate_noise=None,
+                 measurement_noise=None, random_seed=None):
         """
         Constructor for QVMConnection. Sets up any necessary security, and establishes the noise
         model to use.
 
+        :param Device device: The optional device. from which noise will be added by default to all
+                              programs run on this instance.
         :param sync_endpoint: The endpoint of the server for running small jobs
         :param async_endpoint: The endpoint of the server for running large jobs
         :param api_key: The key to the Forest API Gateway (default behavior is to read from config file)
@@ -60,6 +65,8 @@ class QVMConnection(object):
         :param random_seed: A seed for the QVM's random number generators. Either None (for an
                             automatically generated seed) or a non-negative integer.
         """
+        self.noise_model = device.noise_model if device and device.noise_model else None
+
         self.async_endpoint = async_endpoint
         self.sync_endpoint = sync_endpoint
         self.session = get_session(api_key, user_id)
