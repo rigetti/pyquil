@@ -148,6 +148,17 @@ class Job(object):
         """
         return self._get_metadata("gate_depth")
 
+    def gate_volume(self):
+        """
+        If the job has metadata and this contains the gate volume, return this,
+        otherwise None. On a non-fault-tolerant QPU programs with a low gate
+        volume have a higher chance of succeeding. This is a less sensitive
+        measure than gate depth.
+
+        :rtype: Optional[int]
+        """
+        return self._get_metadata("gate_volume")
+
     def compiled_quil(self):
         """
         If the Quil program associated with the Job was compiled (e.g., to translate it to the
