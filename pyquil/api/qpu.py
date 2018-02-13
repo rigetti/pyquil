@@ -31,14 +31,14 @@ def get_devices(async_endpoint='https://job.rigetti.com/beta', api_key=None, use
     Get a list of currently available devices. The arguments for this method are the same as those for QPUConnection.
     Note that this method will only work for accounts that have QPU access.
 
-    :return: set of online and offline devices
-    :rtype: set
+    :return: dictionary of online and offline devices, keyed by device name
+    :rtype: Dict
     """
     session = get_session(api_key, user_id)
     response = session.get(async_endpoint + '/devices')
     if response.status_code >= 400:
         raise parse_error(response)
-    return {Device(name, device) for (name, device) in response.json()['devices'].items()}
+    return {name:Device(name, device) for (name, device) in response.json()['devices'].items()}
 
 
 def append_measures_to_program(gate_program, qubits):
