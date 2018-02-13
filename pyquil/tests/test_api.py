@@ -97,6 +97,11 @@ def test_sync_wavefunction():
         assert result.classical_memory == [1, 0]
 
 
+def test_seeded_qvm(test_device):
+    qvm = QVMConnection(test_device)
+    assert qvm.noise_model == test_device.noise_model
+
+
 JOB_ID = 'abc'
 
 
