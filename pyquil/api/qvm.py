@@ -21,6 +21,7 @@ from six import integer_types
 from pyquil.api import Job
 from pyquil.quil import Program
 from pyquil.wavefunction import Wavefunction
+from pyquil.noise import _apply_noise_model
 from ._base_connection import validate_noise_probabilities, validate_run_items, TYPE_MULTISHOT, \
     TYPE_MULTISHOT_MEASURE, TYPE_WAVEFUNCTION, TYPE_EXPECTATION, get_job_id, get_session, wait_for_job, \
     post_json, get_json
@@ -134,6 +135,9 @@ class QVMConnection(object):
         if needs_compilation and not isa:
             raise TypeError("ISA cannot be None if program needs compilation preprocessing.")
 
+        if self.noise_model is not None:
+            quil_program = self._add_kraus_noise_to_program(quil_program)
+
         payload = {"type": TYPE_MULTISHOT,
                    "addresses": list(classical_addresses),
                    "trials": trials}
@@ -195,6 +199,9 @@ class QVMConnection(object):
             raise TypeError("trials must be an integer")
         if needs_compilation and not isa:
             raise TypeError("ISA cannot be None if QVM program needs compilation preprocessing.")
+
+        if self.noise_model is not None:
+            quil_program = self._add_kraus_noise_to_program(quil_program)
 
         payload = {"type": TYPE_MULTISHOT_MEASURE,
                    "qubits": list(qubits),
@@ -378,3 +385,12 @@ class QVMConnection(object):
         """
         if self.random_seed is not None:
             payload['rng-seed'] = self.random_seed
+
+    def _add_kraus_noise_to_program(self, program):
+        """
+        Couple program to a Kraus noise model if available.
+        """
+        if self.noise_model is not None:
+            return _apply_noise_model(program, self.noise_model)
+        else:
+            return program
