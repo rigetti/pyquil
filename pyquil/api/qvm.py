@@ -66,6 +66,16 @@ class QVMConnection(object):
         :param random_seed: A seed for the QVM's random number generators. Either None (for an
                             automatically generated seed) or a non-negative integer.
         """
+        # Assert that it is not the case that both device.noise_model is supplied, and gate_/measurement_noise.
+        if ((device is not None and device.noise_model is not None) and
+                (gate_noise is not None or measurement_noise is not None)):
+            raise ValueError("""
+You have attempted to supply the QVM with both a device noise model
+(by having supplied a device argument), as well as either gate_noise
+or measurement_noise. At this time, only one may be supplied.
+
+To read more about supplying noise to the QVM, see http://pyquil.readthedocs.io/en/latest/noise_models.html#support-for-noisy-gates-on-the-rigetti-qvm.
+""")
         self.noise_model = device.noise_model if device and device.noise_model else None
 
         self.async_endpoint = async_endpoint
