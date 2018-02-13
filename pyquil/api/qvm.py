@@ -42,7 +42,7 @@ class QVMConnection(object):
         Constructor for QVMConnection. Sets up any necessary security, and establishes the noise
         model to use.
 
-        :param Device device: The optional device. from which noise will be added by default to all
+        :param Device device: The optional device, from which noise will be added by default to all
                               programs run on this instance.
         :param sync_endpoint: The endpoint of the server for running small jobs
         :param async_endpoint: The endpoint of the server for running large jobs
@@ -66,9 +66,8 @@ class QVMConnection(object):
         :param random_seed: A seed for the QVM's random number generators. Either None (for an
                             automatically generated seed) or a non-negative integer.
         """
-        # Assert that it is not the case that both device.noise_model is supplied, and gate_/measurement_noise.
-        if ((device is not None and device.noise_model is not None) and
-                (gate_noise is not None or measurement_noise is not None)):
+        if (device is not None and device.noise_model is not None) and \
+                (gate_noise is not None or measurement_noise is not None):
             raise ValueError("""
 You have attempted to supply the QVM with both a device noise model
 (by having supplied a device argument), as well as either gate_noise
@@ -398,7 +397,7 @@ To read more about supplying noise to the QVM, see http://pyquil.readthedocs.io/
 
     def _add_kraus_noise_to_program(self, program):
         """
-        Couple program to a Kraus noise model if available.
+        Couple each gate in the program to a Kraus noise model, if available for that gate.
         """
         if self.noise_model is not None:
             return _apply_noise_model(program, self.noise_model)

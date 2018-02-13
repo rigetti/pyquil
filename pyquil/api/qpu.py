@@ -38,7 +38,7 @@ def get_devices(async_endpoint='https://job.rigetti.com/beta', api_key=None, use
     response = session.get(async_endpoint + '/devices')
     if response.status_code >= 400:
         raise parse_error(response)
-    return {name:Device(name, device) for (name, device) in response.json()['devices'].items()}
+    return {name: Device(name, device) for (name, device) in response.json()['devices'].items()}
 
 
 def append_measures_to_program(gate_program, qubits):
@@ -65,8 +65,8 @@ class QPUConnection(object):
         """
         Constructor for QPUConnection. Sets up necessary security and picks a device to run on.
 
-        :param Device device: The device to send programs to, should be one of the devices returned
-                              from a call to get_devices()
+        :param Device device: The device to send programs to. It should be one of the values in the
+                              dictionary returned from get_devices().
         :param async_endpoint: The endpoint of the server for running QPU jobs
         :param api_key: The key to the Forest API Gateway (default behavior is to read from config file)
         :param user_id: Your userid for Forest (default behavior is to read from config file)
@@ -75,9 +75,9 @@ class QPUConnection(object):
         :param int status_time: Time in seconds for how long to wait between printing status information.
                                 To disable printing of status entirely then set status_time to False.
         """
-        if not device or not device.name:
+        if device is None or device.name is None:
             warnings.warn("""
-You created a QPUConnection without specificying a device name. This means that
+You created a QPUConnection without specifying a device name. This means that
 your program will be sent to a random, online device. This is probably not what
 you want. Instead, pass a device name to the constructor of QPUConnection:
 
@@ -101,7 +101,7 @@ To suppress this warning, see Python's warning module.
         self.ping_time = ping_time
         self.status_time = status_time
 
-        self.device_name = device.name if device else None
+        self.device_name = device.name if device is not None else None
 
     def run(self, quil_program, classical_addresses, trials=1, needs_compilation=True, isa=None):
         """
