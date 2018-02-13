@@ -178,3 +178,15 @@ class Job(object):
         :rtype: Optional[float]
         """
         return self._get_metadata["program_fidelity"]
+
+    def multiqubit_gate_depth(self):
+        """
+        If the job has metadata and this contains the multiqubit gate depth,
+        return this, otherwise None.  The multiqubit gate depth is a measure of
+        how inaccurately a quantum program will behave on nonideal hardware. On
+        a non-fault-tolerant QPU programs with a low gate depth have a higher
+        chance of succeeding.
+
+        :rtype: Optional[int]
+        """
+        return self._get_metadata("multiqubit_gate_depth")
