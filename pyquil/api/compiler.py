@@ -15,6 +15,7 @@
 ##############################################################################
 
 from pyquil.api import Job
+from pyquil.device import Device
 from pyquil.quil import Program
 from pyquil.parser import parse_program
 from ._base_connection import TYPE_MULTISHOT, get_job_id, get_session, \
@@ -26,13 +27,14 @@ class CompilerConnection(object):
     Represents a connection to the Quil compiler.
     """
 
-    def __init__(self, sync_endpoint='https://api.rigetti.com',
+    def __init__(self, device=None, sync_endpoint='https://api.rigetti.com',
                  async_endpoint='https://job.rigetti.com/beta', api_key=None,
                  user_id=None, use_queue=False, ping_time=0.1, status_time=2,
                  default_isa=None):
         """
         Constructor for CompilerConnection. Sets up any necessary security.
 
+        :param Device device: A Device object to pull a default_isa from.
         :param sync_endpoint: The endpoint of the server for running small jobs
         :param async_endpoint: The endpoint of the server for running large jobs
         :param api_key: The key to the Forest API Gateway (default behavior is
@@ -54,8 +56,9 @@ class CompilerConnection(object):
                                 of status entirely then set status_time to
                                 False. Note that this parameter doesn't matter
                                 if use_queue is False.
-        :param ISA default_isa: A default ISA object to target when one is not
-                            expressly provided to the compile method.
+        :param ISA default_isa: A default ISA object to target when a device
+                                field is not provided, nor is one expressly
+                                provided to the compile method.
         """
         self.async_endpoint = async_endpoint
         self.sync_endpoint = sync_endpoint
@@ -66,6 +69,9 @@ class CompilerConnection(object):
         self.status_time = status_time
 
         self.default_isa = default_isa
+        # deliberately overwrite the default_isa field
+        if device is not None:
+            self.default_isa = device.raw["isa"]
 
     def compile(self, quil_program, isa=None):
         """

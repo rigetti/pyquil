@@ -14,6 +14,8 @@
 #    limitations under the License.
 ##############################################################################
 
+import warnings
+
 from six import integer_types
 
 from pyquil.api import Job
@@ -95,10 +97,11 @@ class QVMConnection(object):
                  in `classical_addresses`.
         :rtype: list
         """
-        if needs_compilation and not self.use_queue:
-            raise TypeError("Synchronous endpoint does not support compilation preprocessing.  Use run_async instead.")
         payload = self._run_payload(quil_program, classical_addresses, trials, needs_compilation, isa)
-        if self.use_queue:
+        if self.use_queue or needs_compilation:
+            if needs_compilation and not self.use_queue:
+                warnings.warn('Synchronous QVM connection does not support compilation preprocessing. Running this job over the asynchronous endpoint, as if use_queue were set to True.')
+
             response = post_json(self.session, self.async_endpoint + "/job", {"machine": "QVM", "program": payload})
             job = self.wait_for_job(get_job_id(response))
             return job.result()
@@ -156,10 +159,11 @@ class QVMConnection(object):
         :return: A list of a list of bits.
         :rtype: list
         """
-        if needs_compilation and not self.use_queue:
-            raise TypeError("Synchronous endpoint does not support compilation preprocessing.  Use run_and_measure_async instead.")
         payload = self._run_and_measure_payload(quil_program, qubits, trials, needs_compilation, isa)
-        if self.use_queue:
+        if self.use_queue or needs_compilation:
+            if needs_compilation and not self.use_queue:
+                warnings.warn('Synchronous QVM connection does not support compilation preprocessing. Running this job over the asynchronous endpoint, as if use_queue were set to True.')
+
             response = post_json(self.session, self.async_endpoint + "/job", {"machine": "QVM", "program": payload})
             job = self.wait_for_job(get_job_id(response))
             return job.result()
@@ -218,13 +222,13 @@ class QVMConnection(object):
                  to the classical addresses.
         :rtype: Wavefunction
         """
-        if needs_compilation:
-            raise TypeError("Synchronous calls do not support compilation preprocessing. Use wavefunction_async instead.")
-
         if classical_addresses is None:
             classical_addresses = []
 
-        if self.use_queue:
+        if self.use_queue or needs_compilation:
+            if needs_compilation and not self.use_queue:
+                warnings.warn('Synchronous QVM connection does not support compilation preprocessing. Running this job over the asynchronous endpoint, as if use_queue were set to True.')
+
             payload = self._wavefunction_payload(quil_program, classical_addresses, needs_compilation, isa)
             response = post_json(self.session, self.async_endpoint + "/job", {"machine": "QVM", "program": payload})
             job = self.wait_for_job(get_job_id(response))
