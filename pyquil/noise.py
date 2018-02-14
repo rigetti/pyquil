@@ -20,6 +20,7 @@ from collections import namedtuple
 
 import numpy as np
 
+from pyquil.gates import I, MEASURE, X
 from pyquil.parameters import format_parameter
 from pyquil.quilbase import Pragma, Gate
 
@@ -651,3 +652,30 @@ def bitstring_probs_to_z_moments(p):
     zmat = np.array([[1, 1],
                      [1, -1]])
     return _apply_local_transforms(p, (zmat for _ in range(p.ndim)))
+
+
+def estimate_assignment_probs(q, trials, cxn, p0=None):
+    """
+    Estimate the readout assignment probabilities for a given qubit ``q``.
+    The returned matrix is of the form::
+
+            [[p00 p01]
+             [p10 p11]]
+
+    :param int q: The index of the qubit.
+    :param int trials: The number of samples for each state preparation.
+    :param Union[QVMConnection,QPUConnection] cxn: The quantum abstract machine to sample from.
+    :param Program p0: A header program to prepend to the state preparation programs.
+    :return: The assignment probability matrix
+    :rtype: np.array
+    """
+    from pyquil.quil import Program
+    if p0 is None:  # pragma no coverage
+        p0 = Program()
+    results_i = np.sum(cxn.run(p0 + Program(I(q), MEASURE(q, 0)), [0], trials))
+    results_x = np.sum(cxn.run(p0 + Program(X(q), MEASURE(q, 0)), [0], trials))
+
+    p00 = 1. - results_i / float(trials)
+    p11 = results_x / float(trials)
+    return np.array([[p00, 1 - p11],
+                     [1 - p00, p11]])

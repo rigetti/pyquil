@@ -1,7 +1,8 @@
 import numpy as np
 import pytest
 
-from pyquil.device import Device, ISA, Qubit, Edge, THETA, gates_in_isa
+from pyquil.device import (Device, ISA, Qubit, Edge, Specs, QubitSpecs,
+                           EdgeSpecs, THETA, gates_in_isa)
 from pyquil.noise import NoiseModel, KrausModel
 from pyquil.gates import RZ, RX, I, CZ, ISWAP, CPHASE
 from collections import OrderedDict
@@ -13,48 +14,82 @@ DEVICE_FIXTURE_NAME = 'mixed_architecture_chip'
 @pytest.fixture
 def isa_dict():
     return {
-        'id': {
-            'name': DEVICE_FIXTURE_NAME,
-            'version': '0.0',
-            'timestamp': '20180104103600'
+        "1Q": {
+            "0": {
+                'type': 'Xhalves'
+            },
+            "1": {},
+            "2": {},
+            "3": {
+                "dead": True
+            }
         },
-        'logical-hardware': [
-            [
-                {
-                    'qubit-id': 0,
-                    'type': 'Xhalves'
-                },
-                {
-                    'qubit-id': 1
-                },
-                {
-                    'qubit-id': 2
-                },
-                {
-                    'qubit-id': 3,
-                    'dead': True
-                }
-            ],
-            [
-                {
-                    'action-qubits': [0, 1],
-                    'type': 'CZ'
-                },
-                {
-                    'action-qubits': [1, 2],
-                    'type': 'ISWAP'
-                },
-                {
-                    'action-qubits': [2, 0],
-                    'type': 'CPHASE'
-                },
-                {
-                    'action-qubits': [0, 3],
-                    'type': 'CZ',
-                    'dead': True
-                }
-            ]
-        ]
+        "2Q": {
+            "0-1": {},
+            "1-2": {
+                "type": "ISWAP"
+            },
+            "2-0": {
+                "type": "CPHASE"
+            },
+            "0-3": {
+                "dead": True
+            }
+        }
+    }
+
+
+@pytest.fixture
+def specs_dict():
+    return {
+        '1Q': {
+            "0": {
+                "f1QRB": 0.99,
+                "fRO": 0.93,
+                "T1": 20e-6,
+                "T2": 15e-6
+            },
+            "1": {
+                "f1QRB": 0.989,
+                "fRO": 0.92,
+                "T1": 19e-6,
+                "T2": 12e-6
+            },
+            "2": {
+                "f1QRB": 0.983,
+                "fRO": 0.95,
+                "T1": 21e-6,
+                "T2": 16e-6
+            },
+            "3": {
+                "f1QRB": 0.988,
+                "fRO": 0.94,
+                "T1": 18e-6,
+                "T2": 11e-6
+            }
+        },
+        '2Q': {
+            "0-1": {
+                "fBellState": 0.90,
+                "fCZ": 0.89,
+                "fCPHASE": 0.88
+            },
+            "1-2": {
+                "fBellState": 0.91,
+                "fCZ": 0.90,
+                "fCPHASE": 0.89
+            },
+            "2-0": {
+                "fBellState": 0.92,
+                "fCZ": 0.91,
+                "fCPHASE": 0.90
+            },
+            "0-3": {
+                "fBellState": 0.89,
+                "fCZ": 0.88,
+                "fCPHASE": 0.87
+            }
+        }
     }
 
 
@@ -104,9 +139,6 @@ def device_raw(isa_dict, noise_model_dict):
 def test_isa(isa_dict):
     isa = ISA.from_dict(isa_dict)
     assert isa == ISA(
-        name=isa_dict['id']['name'],
-        version=isa_dict['id']['version'],
-        timestamp=isa_dict['id']['timestamp'],
         qubits=[
             Qubit(id=0, type='Xhalves', dead=False),
             Qubit(id=1, type='Xhalves', dead=False),
@@ -115,11 +147,39 @@ def test_isa(isa_dict):
         ],
         edges=[
             Edge(targets=[0, 1], type='CZ', dead=False),
+            Edge(targets=[0, 3], type='CZ', dead=True),
             Edge(targets=[1, 2], type='ISWAP', dead=False),
             Edge(targets=[2, 0], type='CPHASE', dead=False),
-            Edge(targets=[0, 3], type='CZ', dead=True),
         ])
     assert isa == ISA.from_dict(isa.to_dict())
+
+
+def test_specs(specs_dict):
+    specs = Specs.from_dict(specs_dict)
+    assert specs == Specs(
+        qubits_specs=[
+            QubitSpecs(id=0, f1QRB=0.99, fRO=0.93, T1=20e-6, T2=15e-6),
+            QubitSpecs(id=1, f1QRB=0.989, fRO=0.92, T1=19e-6, T2=12e-6),
+            QubitSpecs(id=2, f1QRB=0.983, fRO=0.95, T1=21e-6, T2=16e-6),
+            QubitSpecs(id=3, f1QRB=0.988, fRO=0.94, T1=18e-6, T2=11e-6)
+        ],
+        edges_specs=[
+            EdgeSpecs(targets=[0, 1], fBellState=0.90, fCZ=0.89, fCPHASE=0.88),
+            EdgeSpecs(targets=[0, 3], fBellState=0.89, fCZ=0.88, fCPHASE=0.87),
+            EdgeSpecs(targets=[1, 2], fBellState=0.91, fCZ=0.90, fCPHASE=0.89),
+            EdgeSpecs(targets=[2, 0], fBellState=0.92, fCZ=0.91, fCPHASE=0.90)
+        ])
+
+    assert specs == Specs.from_dict(specs.to_dict())
+
+    assert specs.f1QRBs() == {0: 0.99, 1: 0.989, 2: 0.983, 3: 0.988}
+    assert specs.fROs() == {0: 0.93, 1: 0.92, 2: 0.95, 3: 0.94}
+    assert specs.T1s() == {0: 20e-6, 1: 19e-6, 2: 21e-6, 3: 18e-6}
+    assert specs.T2s() == {0: 15e-6, 1: 12e-6, 2: 16e-6, 3: 11e-6}
+
+    assert specs.fBellStates() == {(0, 1): 0.90, (0, 3): 0.89, (1, 2): 0.91, (2, 0): 0.92}
+    assert specs.fCZs() == {(0, 1): 0.89, (0, 3): 0.88, (1, 2): 0.90, (2, 0): 0.91}
+    assert specs.fCPHASEs() == {(0, 1): 0.88, (0, 3): 0.87, (1, 2): 0.89, (2, 0): 0.90}
 
 
 def test_kraus_model(kraus_model_I_dict):
