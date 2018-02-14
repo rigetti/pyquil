@@ -15,8 +15,6 @@
 ##############################################################################
 import warnings
 
-import warnings
-
 from six import integer_types
 
 from pyquil.api import Job, CompilerConnection

@@ -26,7 +26,8 @@ from ._base_connection import (validate_run_items, TYPE_MULTISHOT, TYPE_MULTISHO
                                parse_error)
 
 
-def get_devices(async_endpoint='https://job.rigetti.com/beta', api_key=None, user_id=None):
+def get_devices(async_endpoint='https://job.rigetti.com/beta', api_key=None, user_id=None,
+                as_dict=False):
     """
     Get a list of currently available devices. The arguments for this method are the same as those for QPUConnection.
     Note that this method will only work for accounts that have QPU access.
@@ -38,6 +39,21 @@ def get_devices(async_endpoint='https://job.rigetti.com/beta', api_key=None, use
     response = session.get(async_endpoint + '/devices')
     if response.status_code >= 400:
         raise parse_error(response)
+
+    if not as_dict:
+        warnings.warn("""
+Warning: The return type Set for get_devices() is being deprecated for Dict. This will eventually
+return the following:
+
+    get_devices()
+    # {'19Q-Acorn': <Device 19Q-Acorn online>, '8Q-Agave': <Device 8Q-Agave offline>}
+    acorn = get_devices()['19Q-Acorn']
+
+To use this Dict return type now, you may optionally pass the flag get_devices(as_dict=True). This
+will become the default behavior in a future pyQuil release.
+""", DeprecationWarning, stacklevel=2)
+        return {Device(name, device) for (name, device) in response.json()['devices'].items()}
+
     return {name: Device(name, device) for (name, device) in response.json()['devices'].items()}
 
 
