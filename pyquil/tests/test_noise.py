@@ -2,14 +2,17 @@ from collections import OrderedDict
 
 import numpy as np
 import pytest
+from mock import Mock
 
+from pyquil.api import QPUConnection
 from pyquil.gates import CZ, RZ, RX, I, H
 from pyquil.noise import (damping_kraus_map, dephasing_kraus_map, tensor_kraus_maps,
                           _get_noisy_names, _get_program_gates, _decoherence_noise_model,
                           add_decoherence_noise, combine_kraus_maps, damping_after_dephasing,
                           INFINITY, _apply_noise_model, _noise_model_program_header, KrausModel,
                           NoiseModel, corrupt_bitstring_probs, correct_bitstring_probs,
-                          estimate_bitstring_probs, bitstring_probs_to_z_moments)
+                          estimate_bitstring_probs, bitstring_probs_to_z_moments,
+                          estimate_assignment_probs)
 from pyquil.quil import Pragma, Program
 
 
@@ -177,3 +180,24 @@ def test_readout_compensation():
     assert np.isclose(zm[1, 1, 0], -1. / 3)
     assert np.isclose(zm[1, 0, 1], -1. / 3)
     assert np.isclose(zm[1, 1, 1], 1.)
+
+
+def test_estimate_assignment_probs():
+    cxn = Mock(spec=QPUConnection)
+    trials = 100
+    p00 = .8
+    p11 = .75
+    cxn.run.side_effect = [
+        [[0]] * int(round(p00 * trials)) + [[1]] * int(round((1 - p00) * trials)),
+        [[1]] * int(round(p11 * trials)) + [[0]] * int(round((1 - p11) * trials))
+    ]
+    ap_target = np.array([[p00, 1 - p11],
+                          [1 - p00, p11]])
+
+    povm_pragma = Pragma("READOUT-POVM", (0, "({} {} {} {})".format(*ap_target.flatten())))
+    ap = estimate_assignment_probs(0, trials, cxn, Program(povm_pragma))
+    assert np.allclose(ap, ap_target)
+    for call in cxn.run.call_args_list:
+        args, kwargs = call
+        prog = args[0]
+        assert prog._instructions[0] == povm_pragma
