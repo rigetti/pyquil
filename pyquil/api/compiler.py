@@ -15,7 +15,7 @@
 ##############################################################################
 
 from pyquil.api import Job
-from pyquil.device import Device, ISA
+from pyquil.device import Device, ISA, Specs
 from pyquil.quil import Program
 from pyquil.parser import parse_program
 from ._base_connection import TYPE_MULTISHOT, get_job_id, get_session, \
@@ -27,13 +27,14 @@ class CompilerConnection(object):
     Represents a connection to the Quil compiler.
     """
 
-    def __init__(self, isa_source=None, sync_endpoint='https://api.rigetti.com',
+    def __init__(self, device=None, sync_endpoint='https://api.rigetti.com',
                  async_endpoint='https://job.rigetti.com/beta', api_key=None,
-                 user_id=None, use_queue=False, ping_time=0.1, status_time=2):
+                 user_id=None, use_queue=False, ping_time=0.1, status_time=2,
+                 isa_source=None, specs_source=None):
         """
         Constructor for CompilerConnection. Sets up any necessary security.
 
-        :param isa_source: Either a Device or an ISA object to compile against.
+        :param Device device: A Device object to pull the ISA and Specs from.
         :param sync_endpoint: The endpoint of the server for running small jobs
         :param async_endpoint: The endpoint of the server for running large jobs
         :param api_key: The key to the Forest API Gateway (default behavior is
@@ -55,6 +56,8 @@ class CompilerConnection(object):
                                 of status entirely then set status_time to
                                 False. Note that this parameter doesn't matter
                                 if use_queue is False.
+        :param ISA isa_source: An ISA object to compile against (overwrites device ISA).
+        :param Specs specs_source: A Specs object for program fidelity (overwrites device Specs).
         """
         self.async_endpoint = async_endpoint
         self.sync_endpoint = sync_endpoint
@@ -64,12 +67,27 @@ class CompilerConnection(object):
         self.ping_time = ping_time
         self.status_time = status_time
 
-        if isinstance(isa_source, Device):
-            self.custom_isa = isa_source.isa
-        elif isinstance(isa_source, ISA):
+        self.specs = None
+        if device is None and isa_source is None:
+            raise ValueError('Must provide at least one of device and isa_source arguments.')
+
+        if isinstance(device, Device):
+            self.custom_isa = device.isa
+            self.specs = device.specs
+        elif device is not None:
+            raise TypeError('device argument must be a Device.')
+
+        # this will overwrite the ISA from device if both are provided
+        if isinstance(isa_source, ISA):
             self.custom_isa = isa_source
-        else:
-            raise TypeError('isa_source argument must be either a Device or an ISA.')
+        elif isa_source is not None:
+            raise TypeError('isa_source argument must be an ISA.')
+
+        # this will overwrite the specs from device if both are provided
+        if isinstance(specs_source, Specs):
+            self.specs = specs_source
+        elif specs_source is not None:
+            raise TypeError('specs_source argument must be a Specs.')
 
     def compile(self, quil_program):
         """
