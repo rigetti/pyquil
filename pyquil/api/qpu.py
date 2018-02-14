@@ -32,8 +32,8 @@ def get_devices(async_endpoint='https://job.rigetti.com/beta', api_key=None, use
     Get a list of currently available devices. The arguments for this method are the same as those for QPUConnection.
     Note that this method will only work for accounts that have QPU access.
 
-    :return: dictionary of online and offline devices, keyed by device name
-    :rtype: Dict
+    :return: Set or Dictionary (keyed by device name) of all available devices.
+    :rtype: Set|Dict
     """
     session = get_session(api_key, user_id)
     response = session.get(async_endpoint + '/devices')
