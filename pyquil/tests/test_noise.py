@@ -9,7 +9,7 @@ from pyquil.gates import CZ, RZ, RX, I, H
 from pyquil.noise import (damping_kraus_map, dephasing_kraus_map, tensor_kraus_maps,
                           _get_noisy_names, _get_program_gates, _decoherence_noise_model,
                           add_decoherence_noise, combine_kraus_maps, damping_after_dephasing,
-                          INFINITY, _apply_noise_model, _noise_model_program_header, KrausModel,
+                          INFINITY, apply_noise_model, _noise_model_program_header, KrausModel,
                           NoiseModel, corrupt_bitstring_probs, correct_bitstring_probs,
                           estimate_bitstring_probs, bitstring_probs_to_z_moments,
                           estimate_assignment_probs)
@@ -109,7 +109,7 @@ def test_decoherence_noise():
             assert len(g.kraus_ops) == 1
 
     # verify that gate names are translated
-    new_prog = _apply_noise_model(prog, m3)
+    new_prog = apply_noise_model(prog, m3)
     new_gates = _get_program_gates(new_prog)
     noisy_names = _get_noisy_names(gates)
     assert set(noisy_names.values()) == {g.name for g in new_gates}

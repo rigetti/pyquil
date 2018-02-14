@@ -13,15 +13,16 @@
 #    See the License for the specific language governing permissions and
 #    limitations under the License.
 ##############################################################################
+import warnings
 
 import warnings
 
 from six import integer_types
 
-from pyquil.api import Job
+from pyquil.api import Job, CompilerConnection
 from pyquil.quil import Program
 from pyquil.wavefunction import Wavefunction
-from pyquil.noise import _apply_noise_model
+from pyquil.noise import apply_noise_model
 from ._base_connection import validate_noise_probabilities, validate_run_items, TYPE_MULTISHOT, \
     TYPE_MULTISHOT_MEASURE, TYPE_WAVEFUNCTION, TYPE_EXPECTATION, get_job_id, get_session, wait_for_job, \
     post_json, get_json
@@ -32,6 +33,8 @@ class QVMConnection(object):
     Represents a connection to the QVM.
 
     :ivar NoiseModel noise_model: NoiseModel for the QVM, if received from an input Device instance.
+    :ivar CompilerConnection compiler: If the QVM is seeded with a device, programs must be compiled
+        to the natural gateset, using the CompilerConnection, before noise may be added.
     """
 
     def __init__(self, device=None, sync_endpoint='https://api.rigetti.com',
@@ -75,7 +78,16 @@ or measurement_noise. At this time, only one may be supplied.
 
 To read more about supplying noise to the QVM, see http://pyquil.readthedocs.io/en/latest/noise_models.html#support-for-noisy-gates-on-the-rigetti-qvm.
 """)
-        self.noise_model = device.noise_model if device and device.noise_model else None
+
+        if device is not None and device.noise_model is None:
+            warnings.warn("""
+You have supplied the QVM with a device that does not have a noise model. No noise will be added to
+programs run on this QVM.
+""")
+
+        self.noise_model = device.noise_model if device is not None and \
+            device.noise_model is not None else None
+        self.compiler = CompilerConnection(isa_source=device) if device is not None else None
 
         self.async_endpoint = async_endpoint
         self.sync_endpoint = sync_endpoint
@@ -145,7 +157,8 @@ To read more about supplying noise to the QVM, see http://pyquil.readthedocs.io/
             raise TypeError("ISA cannot be None if program needs compilation preprocessing.")
 
         if self.noise_model is not None:
-            quil_program = self._add_kraus_noise_to_program(quil_program)
+            compiled_program = self.compiler.compile(quil_program)
+            quil_program = apply_noise_model(compiled_program, self.noise_model)
 
         payload = {"type": TYPE_MULTISHOT,
                    "addresses": list(classical_addresses),
@@ -156,7 +169,7 @@ To read more about supplying noise to the QVM, see http://pyquil.readthedocs.io/
         else:
             payload["compiled-quil"] = quil_program.out()
 
-        self._add_noise_to_payload(payload)
+        self._maybe_add_noise_to_payload(payload)
         self._add_rng_seed_to_payload(payload)
 
         return payload
@@ -210,7 +223,8 @@ To read more about supplying noise to the QVM, see http://pyquil.readthedocs.io/
             raise TypeError("ISA cannot be None if QVM program needs compilation preprocessing.")
 
         if self.noise_model is not None:
-            quil_program = self._add_kraus_noise_to_program(quil_program)
+            compiled_program = self.compiler.compile(quil_program)
+            quil_program = apply_noise_model(compiled_program, self.noise_model)
 
         payload = {"type": TYPE_MULTISHOT_MEASURE,
                    "qubits": list(qubits),
@@ -395,11 +409,8 @@ To read more about supplying noise to the QVM, see http://pyquil.readthedocs.io/
         if self.random_seed is not None:
             payload['rng-seed'] = self.random_seed
 
-    def _add_kraus_noise_to_program(self, program):
-        """
-        Couple each gate in the program to a Kraus noise model, if available for that gate.
-        """
-        if self.noise_model is not None:
-            return _apply_noise_model(program, self.noise_model)
-        else:
-            return program
+# def _add_kraus_noise_to_program(self, program, noise_model):
+#     """
+#     Couple each gate in the program to a Kraus noise model, if available for that gate.
+#     """
+#     return apply_noise_model(program, noise_model)
