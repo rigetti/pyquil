@@ -144,7 +144,7 @@ where
    \end{aligned}
 
 where we have exploited the cyclical property of the trace
-:math:`\tr{ABC}=\tr{CBA}` and the projection property
+:math:`\tr{ABC}=\tr{BCA}` and the projection property
 :math:`\Pi_x^2 = \Pi_x`. This has allowed us to derive the noisy outcome
 probabilities from a set of positive operators
 
