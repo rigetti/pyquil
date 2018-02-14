@@ -127,6 +127,9 @@ class CompilerConnection(object):
                    "uncompiled-quil": quil_program.out(),
                    "target-device": {"isa": self.custom_isa.to_dict()}}
 
+        if self.specs is not None:
+            payload["target-device"]["specs"] = self.specs.to_dict()
+
         return payload
 
     def get_job(self, job_id):
