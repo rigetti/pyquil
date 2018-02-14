@@ -76,8 +76,8 @@ class QPUConnection(object):
     Represents a connection to the QPU (Quantum Processing Unit)
     """
 
-    def __init__(self, device=None, async_endpoint='https://job.rigetti.com/beta', api_key=None, user_id=None,
-                 ping_time=0.1, status_time=2):
+    def __init__(self, device=None, async_endpoint='https://job.rigetti.com/beta', api_key=None,
+                 user_id=None, ping_time=0.1, status_time=2, device_name=None):
         """
         Constructor for QPUConnection. Sets up necessary security and picks a device to run on.
 
@@ -91,7 +91,14 @@ class QPUConnection(object):
         :param int status_time: Time in seconds for how long to wait between printing status information.
                                 To disable printing of status entirely then set status_time to False.
         """
-        if device is None or device.name is None:
+        if isinstance(device, Device):
+            device_dot_name = device.name
+        elif isinstance(device, str):
+            device_dot_name = device
+        else:
+            device_dot_name = None
+
+        if device_dot_name is None and device_name is None:
             warnings.warn("""
 You created a QPUConnection without specifying a device name. This means that
 your program will be sent to a random, online device. This is probably not what
@@ -111,13 +118,41 @@ API key with QPU access. See https://forest.rigetti.com for more details.
 
 To suppress this warning, see Python's warning module.
 """)
+
+        if device_name is not None:
+            warnings.warn("""
+Warning: The keyword argument device_name is being deprecated in favor of the keyword argument
+device, which may take either a Device object or a string. For example:
+
+    acorn = get_devices(as_dict=True)['19Q-Acorn']
+    # Alternative, correct implementations
+    qpu = QPUConnection(device=acorn)
+    qpu = QPUConnection(device='19Q-Acorn')
+    qpu = QPUConnection(acorn)
+    qpu = QPUConnection('19Q-Acorn')
+
+The device_name kwarg implementation, qpu = QPUConnection(device_name='19Q-Acorn'), will eventually
+be removed in a future release of pyQuil.
+""", DeprecationWarning, stacklevel=2)
+
+        if device_dot_name and device_name is not None:
+            warnings.warn("""
+Warning: You have supplied both a device ({}) and a device_name ({}). The QPU is being initialized
+with the former, the device.
+""".format(str(device), device_name))
+
+        if device_dot_name is not None:
+            self.device_name = device_dot_name
+        elif device_name is not None:
+            self.device_name = device_name
+        else:
+            self.device_name = None
+
         self.async_endpoint = async_endpoint
         self.session = get_session(api_key, user_id)
 
         self.ping_time = ping_time
         self.status_time = status_time
-
-        self.device_name = device.name if device is not None else None
 
     def run(self, quil_program, classical_addresses, trials=1, needs_compilation=True, isa=None):
         """

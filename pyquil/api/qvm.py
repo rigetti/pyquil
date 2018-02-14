@@ -406,9 +406,3 @@ programs run on this QVM.
         """
         if self.random_seed is not None:
             payload['rng-seed'] = self.random_seed
-
-# def _add_kraus_noise_to_program(self, program, noise_model):
-#     """
-#     Couple each gate in the program to a Kraus noise model, if available for that gate.
-#     """
-#     return apply_noise_model(program, noise_model)
