@@ -188,7 +188,7 @@ class Job(object):
 
         :rtype: Optional[float]
         """
-        return self._get_metadata["program_fidelity"]
+        return self._get_metadata("program_fidelity")
 
     def multiqubit_gate_depth(self):
         """
