@@ -285,7 +285,6 @@ Example 1: Rabi sequence with noisy readout
 
 .. image:: images/ReadoutNoise_13_1.png
 
-
 Example 2: Estimate the assignment probabilities
 ------------------------------------------------
 
@@ -302,7 +301,6 @@ The following code is actually borrowed from
         :param int q: The index of the qubit
         :return: A pair of programs I(q), X(q) to sample
         """
-
         results_I = np.sum(cxn.run(p0 + Program(I(q), MEASURE(q, 0)), [0], trials))
         results_X = np.sum(cxn.run(p0 + Program(X(q), MEASURE(q, 0)), [0], trials))
 
@@ -310,9 +308,6 @@ The following code is actually borrowed from
         p11 = results_X / trials
         return np.array([[p00, 1 - p11],
                          [1 - p00, p11]])
-
-
-
 
 Estimate assignment probabilities for a perfect quantum computer
 ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
@@ -336,14 +331,196 @@ Re-Estimate assignment probabilities for an imperfect quantum computer
 
 .. code:: python
 
-    estimate_assignment_progs(0, 10000, cxn, Program().define_noisy_readout(0, .8, .9))
+    cxn.seed = None
+    header0 = Program().define_noisy_readout(0, .85, .95)
+    header1 = Program().define_noisy_readout(1, .8, .9)
+    header2 = Program().define_noisy_readout(2, .9, .85)
+
+    ap0 = estimate_assignment_progs(0, 100000, cxn, header0)
+    ap1 = estimate_assignment_progs(1, 100000, cxn, header1)
+    ap2 = estimate_assignment_progs(2, 100000, cxn, header2)
+
+.. code:: python
+
+    print(ap0, ap1, ap2, sep="\n")
+
+
+.. parsed-literal::
+
+    [[ 0.84967  0.04941]
+     [ 0.15033  0.95059]]
+    [[ 0.80058  0.09993]
+     [ 0.19942  0.90007]]
+    [[ 0.90048  0.14988]
+     [ 0.09952  0.85012]]
+
+
+Example 3: Use ``pyquil.noise.correct_bitstring_probs`` to correct for noisy readout
+------------------------------------------------------------------------------------
+
+In this example we will create a GHZ state
+:math:`\frac{1}{\sqrt{2}}\left[\left|000\right\rangle + \left|111\right\rangle \right]`
+and measure its outcome probabilities with and without the above noise
+model. We will then see how the Pauli-Z moments that indicate the qubit
+correlations are corrupted (and corrected) using our API.
+
+.. code:: python
+
+    ghz_prog = Program(H(0), CNOT(0, 1), CNOT(1, 2),
+                                MEASURE(0, 0), MEASURE(1, 1), MEASURE(2, 2))
+    print(ghz_prog)
+    results = cxn.run(ghz_prog, [0, 1, 2], trials=10000)
+
+
+.. parsed-literal::
+
+    H 0
+    CNOT 0 1
+    CNOT 1 2
+    MEASURE 0 [0]
+    MEASURE 1 [1]
+    MEASURE 2 [2]
+
+
+
+.. code:: python
+
+    header = header0 + header1 + header2
+    noisy_ghz = header + ghz_prog
+    print(noisy_ghz)
+    noisy_results = cxn.run(noisy_ghz, [0, 1, 2], trials=10000)
+
+
+.. parsed-literal::
+
+    PRAGMA READOUT-POVM 0 "(0.85 0.050000000000000044 0.15000000000000002 0.95)"
+    PRAGMA READOUT-POVM 1 "(0.8 0.09999999999999998 0.19999999999999996 0.9)"
+    PRAGMA READOUT-POVM 2 "(0.9 0.15000000000000002 0.09999999999999998 0.85)"
+    H 0
+    CNOT 0 1
+    CNOT 1 2
+    MEASURE 0 [0]
+    MEASURE 1 [1]
+    MEASURE 2 [2]
+
+
+
+Uncorrupted probability for :math:`\left|000\right\rangle` and :math:`\left|111\right\rangle`
+~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
+
+.. code:: python
+
+    probs = estimate_bitstring_probs(results)
+    probs[0, 0, 0], probs[1, 1, 1]
 
 
 
 
 .. parsed-literal::
 
-    array([[ 0.8042,  0.0989],
-           [ 0.1958,  0.9011]])
+    (0.50419999999999998, 0.49580000000000002)
 
 
+
+Corrupted probability for :math:`\left|011\right\rangle` and :math:`\left|100\right\rangle`
+~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
+
+.. code:: python
+
+    noisy_probs = estimate_bitstring_probs(noisy_results)
+    noisy_probs[0, 0, 0], noisy_probs[1, 1, 1]
+
+
+
+
+.. parsed-literal::
+
+    (0.30869999999999997, 0.3644)
+
+
+
+Corrected probability for :math:`\left|011\right\rangle` and :math:`\left|100\right\rangle`
+~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
+
+.. code:: python
+
+    corrected_probs = correct_bitstring_probs(noisy_probs, [ap0, ap1, ap2])
+    corrected_probs[0, 0, 0], corrected_probs[1, 1, 1]
+
+
+
+
+.. parsed-literal::
+
+    (0.50397601453064977, 0.49866843912900716)
+
+
+
+Estimate :math:`\langle Z_0^{j} Z_1^{k} Z_2^{\ell}\rangle` for :math:`jkl=100, 010, 001` from non-noisy data
+~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
+
+.. code:: python
+
+    zmoments = bitstring_probs_to_z_moments(probs)
+    zmoments[1, 0, 0], zmoments[0, 1, 0], zmoments[0, 0, 1]
+
+
+
+
+.. parsed-literal::
+
+    (0.0083999999999999631, 0.0083999999999999631, 0.0083999999999999631)
+
+
+
+Estimate :math:`\langle Z_0^{j} Z_1^{k} Z_2^{\ell}\rangle` for :math:`jkl=110, 011, 101` from non-noisy data
+~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
+
+.. code:: python
+
+    zmoments[1, 1, 0], zmoments[0, 1, 1], zmoments[1, 0, 1]
+
+
+
+
+.. parsed-literal::
+
+    (1.0, 1.0, 1.0)
+
+
+
+Estimate :math:`\langle Z_0^{j} Z_1^{k} Z_2^{\ell}\rangle` for :math:`jkl=100, 010, 001` from noise-corrected data
+~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
+
+.. code:: python
+
+    zmoments_corr = bitstring_probs_to_z_moments(corrected_probs)
+    zmoments_corr[1, 0, 0], zmoments_corr[0, 1, 0], zmoments_corr[0, 0, 1]
+
+
+
+
+.. parsed-literal::
+
+    (0.0071476770049732075, -0.0078641261685578612, 0.0088462563282706852)
+
+
+
+Estimate :math:`\langle Z_0^{j} Z_1^{k} Z_2^{\ell}\rangle` for :math:`jkl=110, 011, 101` from noise-corrected data
+~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
+
+.. code:: python
+
+    zmoments_corr[1, 1, 0], zmoments_corr[0, 1, 1], zmoments_corr[1, 0, 1]
+
+
+
+
+.. parsed-literal::
+
+    (0.99477496902638118, 1.0008376440216553, 1.0149652015905912)
+
+
+
+We see that the correction can lead to slightly non-physical expectations. This effect is reduced the more samples we take.
+'''''''''''''''''''''''''''''''''''''''''''''''''''''''''''''''''''''''''''''''''''''''''''''''''''''''''''''''''''''''''''
