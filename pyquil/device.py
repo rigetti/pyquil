@@ -163,9 +163,8 @@ class Specs(_Specs):
     """
     Basic specifications for the device, such as gate fidelities and coherence times.
 
-    :ivar List[QubitSpecs] qubits_specs: The specifications associated with individual qubits.
-    :ivar List[EdgesSpecs] edges_specs: The specifications associated with edges, or qubit-qubit
-    pairs.
+    :ivar List[QubitSpecs] qubits_specs: The specs associated with individual qubits.
+    :ivar List[EdgesSpecs] edges_specs: The specs associated with edges, or qubit-qubit pairs.
     """
     def f1QRBs(self):
         """
@@ -239,7 +238,7 @@ class Specs(_Specs):
         """
         Create a JSON-serializable representation of the device Specs.
 
-        The dictionary representation is of the form:
+        The dictionary representation is of the form::
 
             {
                 '1Q': {

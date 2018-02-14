@@ -19,6 +19,7 @@ Welcome to the Documentation for Forest and pyQuil!
    readout_noise
    qpu_overview
    qpu_usage
+   compiler_usage
    examples
    source_docs
 
