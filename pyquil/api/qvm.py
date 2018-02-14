@@ -233,7 +233,7 @@ programs run on this QVM.
         else:
             payload["compiled-quil"] = quil_program.out()
 
-        self._add_noise_to_payload(payload)
+        self._maybe_add_noise_to_payload(payload)
         self._add_rng_seed_to_payload(payload)
 
         return payload
@@ -301,7 +301,7 @@ programs run on this QVM.
         else:
             payload['compiled-quil'] = quil_program.out()
 
-        self._add_noise_to_payload(payload)
+        self._maybe_add_noise_to_payload(payload)
         self._add_rng_seed_to_payload(payload)
 
         return payload
@@ -391,7 +391,7 @@ programs run on this QVM.
                             ping_time if ping_time else self.ping_time,
                             status_time if status_time else self.status_time)
 
-    def _add_noise_to_payload(self, payload):
+    def _maybe_add_noise_to_payload(self, payload):
         """
         Set the gate noise and measurement noise of a payload.
         """
