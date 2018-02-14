@@ -55,7 +55,7 @@ class Job(object):
         The result of the job if available
         throws ValueError is result is not available yet
         throws ApiError if server returned an error indicating program execution was not successful
-            or if the job was cancelled
+        or if the job was cancelled
         """
         if not self.is_done():
             raise ValueError("Cannot get a result for a program that isn't completed.")
