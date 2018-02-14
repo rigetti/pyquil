@@ -85,7 +85,7 @@ programs run on this QVM.
 
         self.noise_model = device.noise_model if device is not None and \
             device.noise_model is not None else None
-        self.compiler = CompilerConnection(isa_source=device) if device is not None else None
+        self.compiler = CompilerConnection(device=device) if device is not None else None
 
         self.async_endpoint = async_endpoint
         self.sync_endpoint = sync_endpoint
