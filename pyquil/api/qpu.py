@@ -182,7 +182,7 @@ To suppress this warning, see Python's warning module.
         to be executed. See https://go.rigetti.com/connections for reasons to use this method.
         """
         full_program = append_measures_to_program(quil_program, qubits)
-        payload = self._run_and_measure_payload(quil_program, qubits, trials, needs_compilation=needs_compilation, isa=isa)
+        payload = self._run_and_measure_payload(full_program, qubits, trials, needs_compilation=needs_compilation, isa=isa)
         response = post_json(self.session, self.async_endpoint + "/job", self._wrap_program(payload))
         return get_job_id(response)
 
