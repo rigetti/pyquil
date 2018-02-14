@@ -191,7 +191,7 @@ def _check_kraus_ops(n, kraus_ops):
                 "Kraus operators for {0} qubits must have shape {1}x{1}: {2}".format(n, 2 ** n, k))
 
     kdk_sum = sum(np.transpose(k).conjugate().dot(k) for k in kraus_ops)
-    if not np.allclose(kdk_sum, np.eye(2 ** n), atol=1e-5):
+    if not np.allclose(kdk_sum, np.eye(2 ** n), atol=1e-3):
         raise ValueError(
             "Kraus operator not correctly normalized: sum_j K_j^*K_j == {}".format(kdk_sum))
 
