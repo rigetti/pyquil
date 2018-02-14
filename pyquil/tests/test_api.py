@@ -170,7 +170,7 @@ def test_qpu_connection():
         "type": "multishot-measure",
         "qubits": [0, 1],
         "trials": 2,
-        "uncompiled-quil": "H 0\nCNOT 0 1\n"
+        "uncompiled-quil": "H 0\nCNOT 0 1\nMEASURE 0 [0]\nMEASURE 1 [1]\n"
     }
 
     reply_program = {
