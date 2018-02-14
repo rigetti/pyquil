@@ -19,8 +19,8 @@ relevant error mechanisms on the Rigetti QPU right now are:
    collapse to something resembling a 0-state. We will call this
    **T1-readout error**. This type of readout error can be reduced by
    achieving shorter readout pulses relative to the T1 time, i.e., one
-   can try to reduce the readout pulse length, or increase the T1
-   time or both.
+   can try to reduce the readout pulse length, or increase the T1 time
+   or both.
 
 Qubit measurements
 ------------------
@@ -161,11 +161,10 @@ that must sum to 1:
    \sum_{x'\in\mathcal{O}'} E_x' = \sum_{x\in\mathcal{O}}\underbrace{\left[\sum_{x'\in\mathcal{O}'} p(x'|x)\right]}_{1}\Pi_x = \sum_{x\in\mathcal{O}}\Pi_x = 1.
 
 The above result is a type of generalized **Bayes' theorem** that is
-extremely useful for this type of (slightly) generalized measurement.
-The family of operators :math:`\{E_{x'}| x' \in \mathcal{O}'\}` is called
-a **positive operator valued measure** (POVM) and their
-expectations give the noisy outcome probabilities.
-These operators are not generally orthogonal
+extremely useful for this type of (slightly) generalized measurement and
+the family of operators :math:`\{E_{x'}| x' \in \mathcal{O}'\}` whose
+expectations give the probabilities is called a **positive operator
+valued measure** (POVM). These operators are not generally orthogonal
 nor valid projection operators but they naturally arise in this
 scenario. This is not yet the most general type of measurement, but it
 will get us pretty far.
@@ -224,7 +223,9 @@ probability matrix directly from a QPU.
 
     from pyquil.quil import Program, MEASURE, Pragma
     from pyquil.api.qvm import QVMConnection
-    from pyquil.gates import I, X, RX
+    from pyquil.gates import I, X, RX, H, CNOT
+    from pyquil.noise import (estimate_bitstring_probs, correct_bitstring_probs,
+                              bitstring_probs_to_z_moments, estimate_assignment_probs)
 
     DARK_TEAL = '#48737F'
     FUSCHIA = '#D6619E'
@@ -249,7 +250,7 @@ Example 1: Rabi sequence with noisy readout
 
     p00s = [1., 0.95, 0.9, 0.8]
 
-    results = np.zeros((num_theta, len(p00s)))
+    results_rabi = np.zeros((num_theta, len(p00s)))
 
     for jj, theta in enumerate(thetas):
         for kk, p00 in enumerate(p00s):
@@ -259,13 +260,13 @@ Example 1: Rabi sequence with noisy readout
             p.define_noisy_readout(0, p00=p00, p11=p00)
             p.measure(0, 0)
             res = cxn.run(p, [0], trials=trials)
-            results[jj, kk] = np.sum(res)
+            results_rabi[jj, kk] = np.sum(res)
 
 
 
 .. parsed-literal::
 
-    CPU times: user 1.25 s, sys: 77.2 ms, total: 1.32 s
+    CPU times: user 1.2 s, sys: 73.6 ms, total: 1.27 s
     Wall time: 3.97 s
 
 
@@ -273,7 +274,7 @@ Example 1: Rabi sequence with noisy readout
 
     plt.figure(figsize=(14, 6))
     for jj, (p00, c) in enumerate(zip(p00s, [DARK_TEAL, FUSCHIA, "k", "gray"])):
-        plt.plot(thetas, results[:, jj]/trials, c=c, label=r"$p(0|0)=p(1|1)={:g}$".format(p00))
+        plt.plot(thetas, results_rabi[:, jj]/trials, c=c, label=r"$p(0|0)=p(1|1)={:g}$".format(p00))
     plt.legend(loc="best")
     plt.xlim(*thetas[[0,-1]])
     plt.ylim(-.1, 1.1)
@@ -283,38 +284,27 @@ Example 1: Rabi sequence with noisy readout
     plt.title("Effect of classical readout noise on Rabi contrast.", size=18)
 
 
-.. image:: images/ReadoutNoise_13_1.png
+
+
+.. parsed-literal::
+
+    <matplotlib.text.Text at 0x104314250>
+
+
+
+
+.. image:: images/ReadoutNoise_10_1.png
+
 
 Example 2: Estimate the assignment probabilities
 ------------------------------------------------
-
-The following code is actually borrowed from
-`grove <https://github.com/rigetticomputing/grove/blob/f9747211b34592db72b2e80f6f27624ca5c7becd/grove/tomography/utils.py#L346>`__
-
-.. code:: python
-
-    def estimate_assignment_progs(q, trials, cxn, p0=Program()):
-        """
-        Return a pair of quantum programs that allows estimating the readout
-        assignment probabilities for a given qubit ``q``
-
-        :param int q: The index of the qubit
-        :return: A pair of programs I(q), X(q) to sample
-        """
-        results_I = np.sum(cxn.run(p0 + Program(I(q), MEASURE(q, 0)), [0], trials))
-        results_X = np.sum(cxn.run(p0 + Program(X(q), MEASURE(q, 0)), [0], trials))
-
-        p00 = 1. - results_I / trials
-        p11 = results_X / trials
-        return np.array([[p00, 1 - p11],
-                         [1 - p00, p11]])
 
 Estimate assignment probabilities for a perfect quantum computer
 ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
 
 .. code:: python
 
-    estimate_assignment_progs(0, 1000, cxn, Program())
+    estimate_assignment_probs(0, 1000, cxn, Program())
 
 
 
@@ -336,9 +326,9 @@ Re-Estimate assignment probabilities for an imperfect quantum computer
     header1 = Program().define_noisy_readout(1, .8, .9)
     header2 = Program().define_noisy_readout(2, .9, .85)
 
-    ap0 = estimate_assignment_progs(0, 100000, cxn, header0)
-    ap1 = estimate_assignment_progs(1, 100000, cxn, header1)
-    ap2 = estimate_assignment_progs(2, 100000, cxn, header2)
+    ap0 = estimate_assignment_probs(0, 100000, cxn, header0)
+    ap1 = estimate_assignment_probs(1, 100000, cxn, header1)
+    ap2 = estimate_assignment_probs(2, 100000, cxn, header2)
 
 .. code:: python
 
@@ -358,16 +348,55 @@ Re-Estimate assignment probabilities for an imperfect quantum computer
 Example 3: Use ``pyquil.noise.correct_bitstring_probs`` to correct for noisy readout
 ------------------------------------------------------------------------------------
 
-In this example we will create a GHZ state
-:math:`\frac{1}{\sqrt{2}}\left[\left|000\right\rangle + \left|111\right\rangle \right]`
-and measure its outcome probabilities with and without the above noise
-model. We will then see how the Pauli-Z moments that indicate the qubit
-correlations are corrupted (and corrected) using our API.
+3a) Correcting the Rabi signal from above
+~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
+
+.. code:: python
+
+    ap_last = np.array([[p00s[-1], 1 - p00s[-1]],
+                        [1 - p00s[-1], p00s[-1]]])
+    corrected_last_result = [correct_bitstring_probs([1-p, p], [ap_last])[1] for p in results_rabi[:, -1] / trials]
+
+.. code:: python
+
+    plt.figure(figsize=(14, 6))
+    for jj, (p00, c) in enumerate(zip(p00s, [DARK_TEAL, FUSCHIA, "k", "gray"])):
+        if jj not in [0, 3]:
+            continue
+        plt.plot(thetas, results_rabi[:, jj]/trials, c=c, label=r"$p(0|0)=p(1|1)={:g}$".format(p00), alpha=.3)
+    plt.plot(thetas, corrected_last_result, c="red", label=r"Corrected $p(0|0)=p(1|1)={:g}$".format(p00s[-1]))
+    plt.legend(loc="best")
+    plt.xlim(*thetas[[0,-1]])
+    plt.ylim(-.1, 1.1)
+    plt.grid(alpha=.5)
+    plt.xlabel(r"RX angle $\theta$ [radian]", size=16)
+    plt.ylabel(r"Excited state fraction $n_1/n_{\rm trials}$", size=16)
+    plt.title("Corrected contrast", size=18)
+
+
+
+
+.. parsed-literal::
+
+    <matplotlib.text.Text at 0x1055e7310>
+
+
+
+
+.. image:: images/ReadoutNoise_19_1.png
+
+
+We find that the corrected signal is fairly noisy (and sometimes
+exceeds the allowed interval :math:`[0,1]`) due to the overall very
+small number of samples :math:`n=200`.
+
+3b) In this example we will create a GHZ state :math:`\frac{1}{\sqrt{2}}\left[\left|000\right\rangle + \left|111\right\rangle \right]` and measure its outcome probabilities with and without the above noise model. We will then see how the Pauli-Z moments that indicate the qubit correlations are corrupted (and corrected) using our API.
+~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
 
 .. code:: python
 
     ghz_prog = Program(H(0), CNOT(0, 1), CNOT(1, 2),
-                                MEASURE(0, 0), MEASURE(1, 1), MEASURE(2, 2))
+                       MEASURE(0, 0), MEASURE(1, 1), MEASURE(2, 2))
     print(ghz_prog)
     results = cxn.run(ghz_prog, [0, 1, 2], trials=10000)
 
@@ -422,6 +451,9 @@ Uncorrupted probability for :math:`\left|000\right\rangle` and :math:`\left|111\
 
 
 
+As expected the outcomes ``000`` and ``111`` each have roughly
+probability :math:`1/2`.
+
 Corrupted probability for :math:`\left|011\right\rangle` and :math:`\left|100\right\rangle`
 ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
 
@@ -438,6 +470,9 @@ Corrupted probability for :math:`\left|011\right\rangle` and :math:`\left|100\ri
     (0.30869999999999997, 0.3644)
 
 
+
+The noise-corrupted outcome probabilities deviate significantly from
+their ideal values!
 
 Corrected probability for :math:`\left|011\right\rangle` and :math:`\left|100\right\rangle`
 ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
@@ -456,8 +491,12 @@ Corrected probability for :math:`\left|011\right\rangle` and :math:`\left|100\ri
 
 
 
+The corrected outcome probabilities are much closer to the ideal value.
+
 Estimate :math:`\langle Z_0^{j} Z_1^{k} Z_2^{\ell}\rangle` for :math:`jkl=100, 010, 001` from non-noisy data
 ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
+
+*We expect these to all be very small*
 
 .. code:: python
 
@@ -475,6 +514,8 @@ Estimate :math:`\langle Z_0^{j} Z_1^{k} Z_2^{\ell}\rangle` for :math:`jkl=100, 0
 
 Estimate :math:`\langle Z_0^{j} Z_1^{k} Z_2^{\ell}\rangle` for :math:`jkl=110, 011, 101` from non-noisy data
 ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
+
+*We expect these to all be close to 1.*
 
 .. code:: python
 
@@ -522,5 +563,5 @@ Estimate :math:`\langle Z_0^{j} Z_1^{k} Z_2^{\ell}\rangle` for :math:`jkl=110, 0
 
 
 
-We see that the correction can lead to slightly non-physical expectations. This effect is reduced the more samples we take.
-'''''''''''''''''''''''''''''''''''''''''''''''''''''''''''''''''''''''''''''''''''''''''''''''''''''''''''''''''''''''''''
+Overall the correction can restore the contrast in our multi-qubit observables, though we also see that the correction can lead to slightly non-physical expectations. This effect is reduced the more samples we take.
+'''''''''''''''''''''''''''''''''''''''''''''''''''''''''''''''''''''''''''''''''''''''''''''''''''''''''''''''''''''''''''''''''''''''''''''''''''''''''''''''''''''''''''''''''''''''''''''''''''''''''''''''''''''''
