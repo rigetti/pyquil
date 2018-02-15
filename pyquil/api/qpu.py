@@ -222,6 +222,7 @@ with the former, the device.
         :param bool needs_compilation: If True, preprocesses the job with the compiler.
         :param ISA isa: If set, specifies a custom ISA to compile to. If left unset,
                     Forest uses the default ISA associated to this QPU device.
+        :param int priority: Sets a desired priority for the job. Larger numbers are lower priority, default is 0 (highest priority available to average user).
         :return: A list of a list of classical registers (each register contains a bit)
         :rtype: list
         """
