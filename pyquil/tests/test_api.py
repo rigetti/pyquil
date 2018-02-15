@@ -20,6 +20,7 @@ import requests_mock
 import json
 import numpy as np
 import pytest
+from mock import patch
 
 from pyquil.api import QVMConnection, QPUConnection, CompilerConnection
 from pyquil.api._base_connection import validate_noise_probabilities, validate_run_items
@@ -98,8 +99,40 @@ def test_sync_wavefunction():
 
 
 def test_seeded_qvm(test_device):
-    qvm = QVMConnection(test_device)
-    assert qvm.noise_model == test_device.noise_model
+    def mock_response(request, context):
+        assert json.loads(request.text) == {
+            "type": "multishot-measure",
+            "qubits": [0, 1],
+            "trials": 2,
+            "compiled-quil": "H 0\nCNOT 0 1\n"
+        }
+        return '[[0,0],[1,1]]'
+
+    with patch.object(CompilerConnection, "compile") as m_compile,\
+        patch('pyquil.api.qvm.apply_noise_model') as m_anm,\
+        requests_mock.Mocker() as m:
+        m.post('https://api.rigetti.com/qvm', text=mock_response)
+        m_compile.side_effect = [BELL_STATE]
+        m_anm.side_effect = [BELL_STATE]
+
+        qvm = QVMConnection(test_device)
+        assert qvm.noise_model == test_device.noise_model
+        qvm.run_and_measure(BELL_STATE, qubits=[0, 1], trials=2)
+        assert m_compile.call_count == 1
+        assert m_anm.call_count == 1
+
+        test_device.noise_model = None
+        qvm = QVMConnection(test_device)
+        assert qvm.noise_model is None
+        qvm.run_and_measure(BELL_STATE, qubits=[0, 1], trials=2)
+        assert m_compile.call_count == 1
+        assert m_anm.call_count == 1
+
+        qvm = QVMConnection()
+        assert qvm.noise_model is None
+        qvm.run_and_measure(BELL_STATE, qubits=[0, 1], trials=2)
+        assert m_compile.call_count == 1
+        assert m_anm.call_count == 1
 
 
 JOB_ID = 'abc'
