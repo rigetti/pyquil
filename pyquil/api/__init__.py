@@ -21,6 +21,7 @@ import warnings
 __all__ = ['QVMConnection', 'QPUConnection', 'CompilerConnection', 'Job', 'get_devices', 'errors']
 
 from pyquil.api.job import Job
+from pyquil.api.compiler import CompilerConnection
 from pyquil.api.qvm import QVMConnection
 from pyquil.api.qpu import QPUConnection, get_devices
 from pyquil.api.compiler import CompilerConnection

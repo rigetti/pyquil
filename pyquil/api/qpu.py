@@ -26,19 +26,35 @@ from ._base_connection import (validate_run_items, TYPE_MULTISHOT, TYPE_MULTISHO
                                parse_error)
 
 
-def get_devices(async_endpoint='https://job.rigetti.com/beta', api_key=None, user_id=None):
+def get_devices(async_endpoint='https://job.rigetti.com/beta', api_key=None, user_id=None,
+                as_dict=False):
     """
     Get a list of currently available devices. The arguments for this method are the same as those for QPUConnection.
     Note that this method will only work for accounts that have QPU access.
 
-    :return: set of online and offline devices
-    :rtype: set
+    :return: Set or Dictionary (keyed by device name) of all available devices.
+    :rtype: Set|Dict
     """
     session = get_session(api_key, user_id)
     response = session.get(async_endpoint + '/devices')
     if response.status_code >= 400:
         raise parse_error(response)
-    return {Device(name, device) for (name, device) in response.json()['devices'].items()}
+
+    if not as_dict:
+        warnings.warn("""
+Warning: The return type Set for get_devices() is being deprecated for Dict. This will eventually
+return the following:
+
+    get_devices()
+    # {'19Q-Acorn': <Device 19Q-Acorn online>, '8Q-Agave': <Device 8Q-Agave offline>}
+    acorn = get_devices()['19Q-Acorn']
+
+To use this Dict return type now, you may optionally pass the flag get_devices(as_dict=True). This
+will become the default behavior in a future pyQuil release.
+""", DeprecationWarning, stacklevel=2)
+        return {Device(name, device) for (name, device) in response.json()['devices'].items()}
+
+    return {name: Device(name, device) for (name, device) in response.json()['devices'].items()}
 
 
 def append_measures_to_program(gate_program, qubits):
@@ -60,13 +76,13 @@ class QPUConnection(object):
     Represents a connection to the QPU (Quantum Processing Unit)
     """
 
-    def __init__(self, device_name=None, async_endpoint='https://job.rigetti.com/beta', api_key=None, user_id=None,
-                 ping_time=0.1, status_time=2):
+    def __init__(self, device=None, async_endpoint='https://job.rigetti.com/beta', api_key=None,
+                 user_id=None, ping_time=0.1, status_time=2, device_name=None):
         """
         Constructor for QPUConnection. Sets up necessary security and picks a device to run on.
 
-        :param str device_name: Name of the device to send programs too, should be one of the devices returned from
-                                a call to get_devices()
+        :param Device device: The device to send programs to. It should be one of the values in the
+                              dictionary returned from get_devices().
         :param async_endpoint: The endpoint of the server for running QPU jobs
         :param api_key: The key to the Forest API Gateway (default behavior is to read from config file)
         :param user_id: Your userid for Forest (default behavior is to read from config file)
@@ -75,9 +91,16 @@ class QPUConnection(object):
         :param int status_time: Time in seconds for how long to wait between printing status information.
                                 To disable printing of status entirely then set status_time to False.
         """
-        if not device_name:
+        if isinstance(device, Device):
+            device_dot_name = device.name
+        elif isinstance(device, str):
+            device_dot_name = device
+        else:
+            device_dot_name = None
+
+        if device_dot_name is None and device_name is None:
             warnings.warn("""
-You created a QPUConnection without specificying a device name. This means that
+You created a QPUConnection without specifying a device name. This means that
 your program will be sent to a random, online device. This is probably not what
 you want. Instead, pass a device name to the constructor of QPUConnection:
 
@@ -95,13 +118,41 @@ API key with QPU access. See https://forest.rigetti.com for more details.
 
 To suppress this warning, see Python's warning module.
 """)
+
+        if device_name is not None:
+            warnings.warn("""
+Warning: The keyword argument device_name is being deprecated in favor of the keyword argument
+device, which may take either a Device object or a string. For example:
+
+    acorn = get_devices(as_dict=True)['19Q-Acorn']
+    # Alternative, correct implementations
+    qpu = QPUConnection(device=acorn)
+    qpu = QPUConnection(device='19Q-Acorn')
+    qpu = QPUConnection(acorn)
+    qpu = QPUConnection('19Q-Acorn')
+
+The device_name kwarg implementation, qpu = QPUConnection(device_name='19Q-Acorn'), will eventually
+be removed in a future release of pyQuil.
+""", DeprecationWarning, stacklevel=2)
+
+        if device_dot_name and device_name is not None:
+            warnings.warn("""
+Warning: You have supplied both a device ({}) and a device_name ({}). The QPU is being initialized
+with the former, the device.
+""".format(str(device), device_name))
+
+        if device_dot_name is not None:
+            self.device_name = device_dot_name
+        elif device_name is not None:
+            self.device_name = device_name
+        else:
+            self.device_name = None
+
         self.async_endpoint = async_endpoint
         self.session = get_session(api_key, user_id)
 
         self.ping_time = ping_time
         self.status_time = status_time
-
-        self.device_name = device_name
 
     def run(self, quil_program, classical_addresses, trials=1, needs_compilation=True, isa=None):
         """
