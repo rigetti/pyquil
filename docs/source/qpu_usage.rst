@@ -111,7 +111,7 @@ Simulating the QPU using the QVM
 --------------------------------
 
 The QVM is a powerful tool for testing quantum programs before executing them on the QPU. In
-addition to the ``noise.py`` library for generating custom noise models for simulating noise on the
+addition to the ``noise.py`` module for generating custom noise models for simulating noise on the
 QVM, pyQuil provides a simple interface for loading the QVM with noise models tailored to Rigetti's
 available QPUs, in just one modified line of code. This is made possible via the ``Device`` class,
 which holds hardware specification information, noise model information, and instruction set
