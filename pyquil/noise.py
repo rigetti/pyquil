@@ -444,7 +444,7 @@ def _noise_model_program_header(noise_model, name_translator):
     return p
 
 
-def _apply_noise_model(prog, noise_model):
+def apply_noise_model(prog, noise_model):
     """
     Apply a noise model to a program and generated a 'noisy-fied' version of the program.
 
@@ -513,7 +513,7 @@ def add_decoherence_noise(prog, T1=30e-6, T2=30e-6, gate_time_1q=50e-9, gate_tim
         gate_time_2q=gate_time_2q,
         ro_fidelity=ro_fidelity
     )
-    return _apply_noise_model(prog, noise_model)
+    return apply_noise_model(prog, noise_model)
 
 
 def _bitstring_probs_by_qubit(p):
