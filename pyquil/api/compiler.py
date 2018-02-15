@@ -89,20 +89,21 @@ class CompilerConnection(object):
         elif specs_source is not None:
             raise TypeError('specs_source argument must be a Specs.')
 
-    def compile(self, quil_program):
+    def compile(self, quil_program, priority=0):
         """
         Sends a Quil program to the Forest compiler and returns the resulting
         compiled Program.
 
         :param Program quil_program: Quil program to be compiled.
         :param ISA isa: ISA to target.
+        :param int priority: Sets a desired priority for the job. Larger numbers are lower priority, default is 0 (highest priority available to average user).
         :returns: The compiled Program object.
         :rtype: Program
         """
         payload = self._compile_payload(quil_program)
         if self.use_queue:
             response = post_json(self.session, self.async_endpoint + "/job",
-                                 {"machine": "QUILC", "program": payload})
+                                 {"machine": "QUILC", "program": payload, "priority": priority})
             job = self.wait_for_job(get_job_id(response))
             return job.compiled_quil()
         else:
@@ -110,7 +111,7 @@ class CompilerConnection(object):
                                  payload)
             return parse_program(response.json()['compiled-quil'])
 
-    def compile_async(self, quil_program):
+    def compile_async(self, quil_program, priority=0):
         """
         Similar to compile except that it returns a job id and doesn't wait for
         the program to be executed.
@@ -118,7 +119,7 @@ class CompilerConnection(object):
         """
         payload = self._compile_payload(quil_program)
         response = post_json(self.session, self.async_endpoint + "/job",
-                             {"machine": "QUILC", "program": payload})
+                             {"machine": "QUILC", "program": payload, "priority": priority})
         return get_job_id(response)
 
     def _compile_payload(self, quil_program):

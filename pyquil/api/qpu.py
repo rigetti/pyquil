@@ -154,7 +154,7 @@ with the former, the device.
         self.ping_time = ping_time
         self.status_time = status_time
 
-    def run(self, quil_program, classical_addresses, trials=1, needs_compilation=True, isa=None):
+    def run(self, quil_program, classical_addresses, trials=1, needs_compilation=True, isa=None, priority=0):
         """
         Run a pyQuil program on the QPU and return the values stored in the classical registers
         designated by the classical_addresses parameter. The program is repeated according to
@@ -172,19 +172,20 @@ with the former, the device.
         :param bool needs_compilation: If True, preprocesses the job with the compiler.
         :param ISA isa: If set, specifies a custom ISA to compile to. If left unset,
                     Forest uses the default ISA associated to this QPU device.
+        :param int priority: Sets a desired priority for the job. Larger numbers are lower priority, default is 0 (highest priority available to average user).
         :return: A list of a list of classical registers (each register contains a bit)
         :rtype: list
         """
-        job = self.wait_for_job(self.run_async(quil_program, classical_addresses, trials, needs_compilation, isa))
+        job = self.wait_for_job(self.run_async(quil_program, classical_addresses, trials, needs_compilation, isa, priority))
         return job.result()
 
-    def run_async(self, quil_program, classical_addresses, trials=1, needs_compilation=True, isa=None):
+    def run_async(self, quil_program, classical_addresses, trials=1, needs_compilation=True, isa=None, priority=0):
         """
         Similar to run except that it returns a job id and doesn't wait for the program to
         be executed. See https://go.rigetti.com/connections for reasons to use this method.
         """
         payload = self._run_payload(quil_program, classical_addresses, trials, needs_compilation=needs_compilation, isa=isa)
-        response = post_json(self.session, self.async_endpoint + "/job", self._wrap_program(payload))
+        response = post_json(self.session, self.async_endpoint + "/job", self._wrap_program(payload, priority))
         return get_job_id(response)
 
     def _run_payload(self, quil_program, classical_addresses, trials, needs_compilation, isa):
@@ -207,7 +208,7 @@ with the former, the device.
 
         return payload
 
-    def run_and_measure(self, quil_program, qubits, trials=1, needs_compilation=True, isa=None):
+    def run_and_measure(self, quil_program, qubits, trials=1, needs_compilation=True, isa=None, priority=0):
         """
         Similar to run, except for how MEASURE operations are dealt with. With run, users are
         expected to include MEASURE operations in the program if they want results back. With
@@ -224,17 +225,17 @@ with the former, the device.
         :return: A list of a list of classical registers (each register contains a bit)
         :rtype: list
         """
-        job = self.wait_for_job(self.run_and_measure_async(quil_program, qubits, trials, needs_compilation, isa))
+        job = self.wait_for_job(self.run_and_measure_async(quil_program, qubits, trials, needs_compilation, isa, priority))
         return job.result()
 
-    def run_and_measure_async(self, quil_program, qubits, trials, needs_compilation=True, isa=None):
+    def run_and_measure_async(self, quil_program, qubits, trials, needs_compilation=True, isa=None, priority=0):
         """
         Similar to run_and_measure except that it returns a job id and doesn't wait for the program
         to be executed. See https://go.rigetti.com/connections for reasons to use this method.
         """
         full_program = append_measures_to_program(quil_program, qubits)
         payload = self._run_and_measure_payload(full_program, qubits, trials, needs_compilation=needs_compilation, isa=isa)
-        response = post_json(self.session, self.async_endpoint + "/job", self._wrap_program(payload))
+        response = post_json(self.session, self.async_endpoint + "/job", self._wrap_program(payload, priority))
         return get_job_id(response)
 
     def _run_and_measure_payload(self, quil_program, qubits, trials, needs_compilation, isa):
@@ -285,9 +286,10 @@ with the former, the device.
                             ping_time if ping_time else self.ping_time,
                             status_time if status_time else self.status_time)
 
-    def _wrap_program(self, program):
+    def _wrap_program(self, program, priority=0):
         return {
             "machine": "QPU",
             "program": program,
-            "device": self.device_name
+            "device": self.device_name,
+            "priority": priority
         }
