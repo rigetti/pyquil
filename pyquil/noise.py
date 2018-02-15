@@ -307,7 +307,7 @@ NOISY_GATES = {
                        "NOISY-RX-PLUS-180"),
     ("RX", (-np.pi,)): (np.array([[0, 1j],
                                   [1j, 0]]),
-                       "NOISY-RX-MINUS-180"),
+                        "NOISY-RX-MINUS-180"),
     ("CZ", ()): (np.diag([1, 1, 1, -1]), "NOISY-CZ"),
 }
 
