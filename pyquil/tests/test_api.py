@@ -20,6 +20,7 @@ import requests_mock
 import json
 import numpy as np
 import pytest
+from mock import patch
 
 from pyquil.api import QVMConnection, QPUConnection, CompilerConnection
 from pyquil.api._base_connection import validate_noise_probabilities, validate_run_items
@@ -97,6 +98,43 @@ def test_sync_wavefunction():
         assert result.classical_memory == [1, 0]
 
 
+def test_seeded_qvm(test_device):
+    def mock_response(request, context):
+        assert json.loads(request.text) == {
+            "type": "multishot-measure",
+            "qubits": [0, 1],
+            "trials": 2,
+            "compiled-quil": "H 0\nCNOT 0 1\n"
+        }
+        return '[[0,0],[1,1]]'
+
+    with patch.object(CompilerConnection, "compile") as m_compile,\
+            patch('pyquil.api.qvm.apply_noise_model') as m_anm,\
+            requests_mock.Mocker() as m:
+        m.post('https://api.rigetti.com/qvm', text=mock_response)
+        m_compile.side_effect = [BELL_STATE]
+        m_anm.side_effect = [BELL_STATE]
+
+        qvm = QVMConnection(test_device)
+        assert qvm.noise_model == test_device.noise_model
+        qvm.run_and_measure(BELL_STATE, qubits=[0, 1], trials=2)
+        assert m_compile.call_count == 1
+        assert m_anm.call_count == 1
+
+        test_device.noise_model = None
+        qvm = QVMConnection(test_device)
+        assert qvm.noise_model is None
+        qvm.run_and_measure(BELL_STATE, qubits=[0, 1], trials=2)
+        assert m_compile.call_count == 1
+        assert m_anm.call_count == 1
+
+        qvm = QVMConnection()
+        assert qvm.noise_model is None
+        qvm.run_and_measure(BELL_STATE, qubits=[0, 1], trials=2)
+        assert m_compile.call_count == 1
+        assert m_anm.call_count == 1
+
+
 JOB_ID = 'abc'
 
 
@@ -156,8 +194,8 @@ def test_async_wavefunction():
         assert result.classical_memory == [1, 0]
 
 
-def test_qpu_connection():
-    qpu = QPUConnection(device_name='fake_device')
+def test_qpu_connection(test_device):
+    qpu = QPUConnection(device=test_device)
 
     run_program = {
         "type": "multishot",
@@ -170,7 +208,7 @@ def test_qpu_connection():
         "type": "multishot-measure",
         "qubits": [0, 1],
         "trials": 2,
-        "uncompiled-quil": "H 0\nCNOT 0 1\n"
+        "uncompiled-quil": "H 0\nCNOT 0 1\nMEASURE 0 [0]\nMEASURE 1 [1]\n"
     }
 
     reply_program = {
@@ -185,7 +223,7 @@ def test_qpu_connection():
         assert json.loads(request.text) == {
             "machine": "QPU",
             "program": run_program,
-            "device": "fake_device"
+            "device": "test_device"
         }
         return json.dumps({"jobId": JOB_ID, "status": "QUEUED"})
 
@@ -223,7 +261,7 @@ def test_qpu_connection():
         assert json.loads(request.text) == {
             "machine": "QPU",
             "program": run_and_measure_program,
-            "device": "fake_device"
+            "device": "test_device"
         }
         return json.dumps({"jobId": JOB_ID, "status": "QUEUED"})
 

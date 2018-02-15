@@ -12,34 +12,6 @@ DEVICE_FIXTURE_NAME = 'mixed_architecture_chip'
 
 
 @pytest.fixture
-def isa_dict():
-    return {
-        "1Q": {
-            "0": {
-                'type': 'Xhalves'
-            },
-            "1": {},
-            "2": {},
-            "3": {
-                "dead": True
-            }
-        },
-        "2Q": {
-            "0-1": {},
-            "1-2": {
-                "type": "ISWAP"
-            },
-            "2-0": {
-                "type": "CPHASE"
-            },
-            "0-3": {
-                "dead": True
-            }
-        }
-    }
-
-
-@pytest.fixture
 def specs_dict():
     return {
         '1Q': {
@@ -109,31 +81,6 @@ def kraus_model_RX90_dict():
             'kraus_ops': [[[[1.]], [[1.0]]]],
             'targets': (0,),
             'params': (np.pi / 2.,)}
-
-
-@pytest.fixture
-def noise_model_dict():
-    return {'gates': [{'gate': 'I',
-                       'params': (5.0,),
-                       'targets': (0, 1),
-                       'kraus_ops': [[[[1.]], [[1.0]]]],
-                       'fidelity': 1.0},
-                      {'gate': 'RX',
-                       'params': (np.pi / 2.,),
-                       'targets': (0,),
-                       'kraus_ops': [[[[1.]], [[1.0]]]],
-                       'fidelity': 1.0}],
-            'assignment_probs': {'1': [[1.0, 0.0], [0.0, 1.0]],
-                                 '0': [[1.0, 0.0], [0.0, 1.0]]},
-            }
-
-
-@pytest.fixture
-def device_raw(isa_dict, noise_model_dict):
-    return {'isa': isa_dict,
-            'noise_model': noise_model_dict,
-            'is_online': True,
-            'is_retuning': False}
 
 
 def test_isa(isa_dict):

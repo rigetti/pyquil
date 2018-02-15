@@ -13,14 +13,14 @@
 #    See the License for the specific language governing permissions and
 #    limitations under the License.
 ##############################################################################
-
 import warnings
 
 from six import integer_types
 
-from pyquil.api import Job
+from pyquil.api import Job, CompilerConnection
 from pyquil.quil import Program
 from pyquil.wavefunction import Wavefunction
+from pyquil.noise import apply_noise_model
 from ._base_connection import validate_noise_probabilities, validate_run_items, TYPE_MULTISHOT, \
     TYPE_MULTISHOT_MEASURE, TYPE_WAVEFUNCTION, TYPE_EXPECTATION, get_job_id, get_session, wait_for_job, \
     post_json, get_json
@@ -31,13 +31,16 @@ class QVMConnection(object):
     Represents a connection to the QVM.
     """
 
-    def __init__(self, sync_endpoint='https://api.rigetti.com', async_endpoint='https://job.rigetti.com/beta',
-                 api_key=None, user_id=None, use_queue=False, ping_time=0.1, status_time=2,
-                 gate_noise=None, measurement_noise=None, random_seed=None, default_isa=None):
+    def __init__(self, device=None, sync_endpoint='https://api.rigetti.com',
+                 async_endpoint='https://job.rigetti.com/beta', api_key=None, user_id=None,
+                 use_queue=False, ping_time=0.1, status_time=2, gate_noise=None,
+                 measurement_noise=None, random_seed=None):
         """
         Constructor for QVMConnection. Sets up any necessary security, and establishes the noise
         model to use.
 
+        :param Device device: The optional device, from which noise will be added by default to all
+                              programs run on this instance.
         :param sync_endpoint: The endpoint of the server for running small jobs
         :param async_endpoint: The endpoint of the server for running large jobs
         :param api_key: The key to the Forest API Gateway (default behavior is to read from config file)
@@ -60,6 +63,25 @@ class QVMConnection(object):
         :param random_seed: A seed for the QVM's random number generators. Either None (for an
                             automatically generated seed) or a non-negative integer.
         """
+        if (device is not None and device.noise_model is not None) and \
+                (gate_noise is not None or measurement_noise is not None):
+            raise ValueError("""
+You have attempted to supply the QVM with both a device noise model
+(by having supplied a device argument), as well as either gate_noise
+or measurement_noise. At this time, only one may be supplied.
+
+To read more about supplying noise to the QVM, see http://pyquil.readthedocs.io/en/latest/noise_models.html#support-for-noisy-gates-on-the-rigetti-qvm.
+""")
+
+        if device is not None and device.noise_model is None:
+            warnings.warn("""
+You have supplied the QVM with a device that does not have a noise model. No noise will be added to
+programs run on this QVM.
+""")
+
+        self.noise_model = device.noise_model if device is not None else None
+        self.compiler = CompilerConnection(device=device) if device is not None else None
+
         self.async_endpoint = async_endpoint
         self.sync_endpoint = sync_endpoint
         self.session = get_session(api_key, user_id)
@@ -127,6 +149,10 @@ class QVMConnection(object):
         if needs_compilation and not isa:
             raise TypeError("ISA cannot be None if program needs compilation preprocessing.")
 
+        if self.noise_model is not None:
+            compiled_program = self.compiler.compile(quil_program)
+            quil_program = apply_noise_model(compiled_program, self.noise_model)
+
         payload = {"type": TYPE_MULTISHOT,
                    "addresses": list(classical_addresses),
                    "trials": trials}
@@ -136,7 +162,7 @@ class QVMConnection(object):
         else:
             payload["compiled-quil"] = quil_program.out()
 
-        self._add_noise_to_payload(payload)
+        self._maybe_add_noise_to_payload(payload)
         self._add_rng_seed_to_payload(payload)
 
         return payload
@@ -189,6 +215,10 @@ class QVMConnection(object):
         if needs_compilation and not isa:
             raise TypeError("ISA cannot be None if QVM program needs compilation preprocessing.")
 
+        if self.noise_model is not None:
+            compiled_program = self.compiler.compile(quil_program)
+            quil_program = apply_noise_model(compiled_program, self.noise_model)
+
         payload = {"type": TYPE_MULTISHOT_MEASURE,
                    "qubits": list(qubits),
                    "trials": trials}
@@ -198,7 +228,7 @@ class QVMConnection(object):
         else:
             payload["compiled-quil"] = quil_program.out()
 
-        self._add_noise_to_payload(payload)
+        self._maybe_add_noise_to_payload(payload)
         self._add_rng_seed_to_payload(payload)
 
         return payload
@@ -266,7 +296,7 @@ class QVMConnection(object):
         else:
             payload['compiled-quil'] = quil_program.out()
 
-        self._add_noise_to_payload(payload)
+        self._maybe_add_noise_to_payload(payload)
         self._add_rng_seed_to_payload(payload)
 
         return payload
@@ -356,7 +386,7 @@ class QVMConnection(object):
                             ping_time if ping_time else self.ping_time,
                             status_time if status_time else self.status_time)
 
-    def _add_noise_to_payload(self, payload):
+    def _maybe_add_noise_to_payload(self, payload):
         """
         Set the gate noise and measurement noise of a payload.
         """
