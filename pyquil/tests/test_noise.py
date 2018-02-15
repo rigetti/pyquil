@@ -7,13 +7,14 @@ from mock import Mock
 from pyquil.api import QPUConnection
 from pyquil.gates import CZ, RZ, RX, I, H
 from pyquil.noise import (damping_kraus_map, dephasing_kraus_map, tensor_kraus_maps,
-                          _get_noisy_names, _get_program_gates, _decoherence_noise_model,
+                          _get_program_gates, _decoherence_noise_model,
                           add_decoherence_noise, combine_kraus_maps, damping_after_dephasing,
                           INFINITY, apply_noise_model, _noise_model_program_header, KrausModel,
                           NoiseModel, corrupt_bitstring_probs, correct_bitstring_probs,
                           estimate_bitstring_probs, bitstring_probs_to_z_moments,
                           estimate_assignment_probs)
 from pyquil.quil import Pragma, Program
+from pyquil.quilbase import DefGate
 
 
 def test_damping_kraus_map():
@@ -60,15 +61,10 @@ def test_damping_after_dephasing():
 
 
 def test_noise_helpers():
-    rx90_0, rxm90_1, i_1, cz_01 = gates = RX(np.pi / 2)(0), RX(-np.pi / 2)(1), I(1), CZ(0, 1)
+    gates = RX(np.pi / 2)(0), RX(-np.pi / 2)(1), I(1), CZ(0, 1)
     prog = Program(*gates)
     inferred_gates = _get_program_gates(prog)
     assert set(inferred_gates) == set(gates)
-    noisy_names = _get_noisy_names(gates)
-    assert noisy_names[rx90_0] == "NOISY-RX-PLUS-90"
-    assert noisy_names[rxm90_1] == "NOISY-RX-MINUS-90"
-    assert noisy_names[i_1] == "NOISY-I"
-    assert noisy_names[cz_01] == "NOISY-CZ"
 
 
 def test_decoherence_noise():
@@ -111,13 +107,11 @@ def test_decoherence_noise():
     # verify that gate names are translated
     new_prog = apply_noise_model(prog, m3)
     new_gates = _get_program_gates(new_prog)
-    noisy_names = _get_noisy_names(gates)
-    assert set(noisy_names.values()) == {g.name for g in new_gates}
 
     # check that headers have been embedded
-    headers = _noise_model_program_header(m3, lambda g: noisy_names.get(g, g))
-    assert all(isinstance(i, Pragma) and i.command in ["ADD-KRAUS", "READOUT-POVM"]
-               for i in headers)
+    headers = _noise_model_program_header(m3)
+    assert all((isinstance(i, Pragma) and i.command in ["ADD-KRAUS", "READOUT-POVM"]) or
+               isinstance(i, DefGate) for i in headers)
     assert headers.out() in new_prog.out()
 
     # verify that high-level add_decoherence_noise reproduces new_prog

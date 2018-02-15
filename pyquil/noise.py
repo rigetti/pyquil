@@ -294,7 +294,7 @@ def damping_after_dephasing(T1, T2, gate_time):
 
 # You can only apply gate-noise to non-parametrized gates or parametrized gates at fixed parameters.
 NO_NOISE = ["RZ"]
-SINGLE_Q = {
+NOISY_GATES = {
     ("I", ()): (np.eye(2), "NOISY-I"),
     ("RX", (np.pi / 2,)): (np.array([[1, -1j],
                                      [-1j, 1]]) / np.sqrt(2),
@@ -302,8 +302,9 @@ SINGLE_Q = {
     ("RX", (-np.pi / 2,)): (np.array([[1, 1j],
                                       [1j, 1]]) / np.sqrt(2),
                             "NOISY-RX-MINUS-90"),
-}
-TWO_Q = {
+    ("RX", (np.pi,)): (np.array([[0, -1j],
+                                 [-1j, 0]]),
+                            "NOISY-RX-PLUS-180"),
     ("CZ", ()): (np.diag([1, 1, 1, -1]), "NOISY-CZ"),
 }
 
@@ -317,29 +318,6 @@ def _get_program_gates(prog):
     :rtype: List[Gate]
     """
     return sorted({i for i in prog if isinstance(i, Gate)}, key=lambda g: g.out())
-
-
-def _get_noisy_names(gates):
-    """
-    Generate new gate names for noisy gates.
-
-    :param Sequence[Gate] gates: A list of Gate objects.
-    :return: A dictionary with keys given by the input ``gates`` and values given by new gate name
-        strings.
-    :rtype: Dict[Gate,str]
-    """
-    ret = {}
-    for g in gates:
-        key = g.name, tuple(g.params)
-        if g.name in NO_NOISE:
-            ret[g] = g.name
-        elif key in SINGLE_Q:
-            ret[g] = SINGLE_Q[key][1]
-        elif key in TWO_Q:
-            ret[g] = TWO_Q[key][1]
-        else:
-            raise ValueError("Noise model for {} not yet supported".format(g))
-    return ret
 
 
 def _decoherence_noise_model(gates, T1=30e-6, T2=30e-6, gate_time_1q=50e-9,
@@ -401,15 +379,18 @@ def _decoherence_noise_model(gates, T1=30e-6, T2=30e-6, gate_time_1q=50e-9,
         key = (g.name, tuple(g.params))
         if g.name in NO_NOISE:
             continue
-        if key in SINGLE_Q:
-            matrix, _ = SINGLE_Q[key]
-            noisy_I = noisy_identities_1q[targets[0]]
-        elif key in TWO_Q:
-            matrix, _ = TWO_Q[key]
-            # note this ordering of the tensor factors is necessary due to how the QVM orders
-            # the wavefunction basis
-            noisy_I = tensor_kraus_maps(noisy_identities_2q[targets[1]],
-                                        noisy_identities_2q[targets[0]])
+        if key in NOISY_GATES:
+            matrix, _ = NOISY_GATES[key]
+            if len(targets) == 1:
+                noisy_I = noisy_identities_1q[targets[0]]
+            else:
+                if len(targets) != 2:
+                    raise ValueError("Noisy gates on more than 2Q not currently supported")
+
+                # note this ordering of the tensor factors is necessary due to how the QVM orders
+                # the wavefunction basis
+                noisy_I = tensor_kraus_maps(noisy_identities_2q[targets[1]],
+                                            noisy_identities_2q[targets[0]])
         else:
             raise ValueError("Cannot create noisy version of {}. ".format(g) +
                              "Please restrict yourself to CZ, RX(+/-pi/2), I, RZ(theta)")
@@ -426,7 +407,7 @@ def _decoherence_noise_model(gates, T1=30e-6, T2=30e-6, gate_time_1q=50e-9,
     return NoiseModel(kraus_maps, aprobs)
 
 
-def _noise_model_program_header(noise_model, name_translator):
+def _noise_model_program_header(noise_model):
     """
     Generate the header for a pyquil Program that uses ``noise_model`` to overload noisy gates.
 
@@ -436,9 +417,14 @@ def _noise_model_program_header(noise_model, name_translator):
     """
     from pyquil.quil import Program
     p = Program()
+    defgates = set()
     for k in noise_model.gates:
-        name = name_translator(k.gate)
-        p.define_noisy_gate(name, k.targets, k.kraus_ops)
+        ideal_gate, new_name = NOISY_GATES.get((k.gate, tuple(k.params)), (None, k.gate))
+        if ideal_gate is not None:
+            if new_name not in defgates:
+                p.defgate(new_name, ideal_gate)
+                defgates.add(new_name)
+        p.define_noisy_gate(new_name, k.targets, k.kraus_ops)
     for q, ap in noise_model.assignment_probs.items():
         p.define_noisy_readout(q, p00=ap[0, 0], p11=ap[1, 1])
     return p
@@ -455,12 +441,11 @@ def apply_noise_model(prog, noise_model):
         noisemodel.
     :rtype: Program
     """
-    gates = _get_program_gates(prog)
-    noisy_names = _get_noisy_names(gates)
-    new_prog = _noise_model_program_header(noise_model, lambda g: noisy_names.get(g, g))
+    new_prog = _noise_model_program_header(noise_model)
     for i in prog:
         if isinstance(i, Gate):
-            new_prog += Gate(noisy_names[i], i.params, i.qubits)
+            _, new_name = NOISY_GATES.get((i.name, tuple(i.params)), (None, i.name))
+            new_prog += Gate(new_name, i.params, i.qubits)
         else:
             new_prog += i
     return new_prog
