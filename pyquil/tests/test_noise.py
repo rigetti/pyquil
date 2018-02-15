@@ -12,9 +12,9 @@ from pyquil.noise import (damping_kraus_map, dephasing_kraus_map, tensor_kraus_m
                           INFINITY, apply_noise_model, _noise_model_program_header, KrausModel,
                           NoiseModel, corrupt_bitstring_probs, correct_bitstring_probs,
                           estimate_bitstring_probs, bitstring_probs_to_z_moments,
-                          estimate_assignment_probs)
+                          estimate_assignment_probs, NO_NOISE)
 from pyquil.quil import Pragma, Program
-from pyquil.quilbase import DefGate
+from pyquil.quilbase import DefGate, Gate
 
 
 def test_damping_kraus_map():
@@ -195,3 +195,16 @@ def test_estimate_assignment_probs():
         args, kwargs = call
         prog = args[0]
         assert prog._instructions[0] == povm_pragma
+
+
+def test_apply_noise_model():
+    p = Program(RX(np.pi / 2)(0), RX(np.pi / 2)(1), CZ(0, 1), RX(np.pi / 2)(1))
+    noise_model = _decoherence_noise_model(_get_program_gates(p))
+    pnoisy = apply_noise_model(p, noise_model)
+    for i in pnoisy:
+        if isinstance(i, DefGate):
+            pass
+        elif isinstance(i, Pragma):
+            assert i.command in ['ADD-KRAUS', 'READOUT-POVM']
+        elif isinstance(i, Gate):
+            assert i.name in NO_NOISE or not i.params

@@ -16,9 +16,11 @@
 """
 Module for creating and verifying noisy gate and readout definitions.
 """
+from __future__ import print_function
 from collections import namedtuple
 
 import numpy as np
+import sys
 
 from pyquil.gates import I, MEASURE, X
 from pyquil.parameters import format_parameter
@@ -413,6 +415,13 @@ def _decoherence_noise_model(gates, T1=30e-6, T2=30e-6, gate_time_1q=50e-9,
 def _noise_model_program_header(noise_model):
     """
     Generate the header for a pyquil Program that uses ``noise_model`` to overload noisy gates.
+    The program header consists of 3 sections:
+
+        - The ``DEFGATE`` statements that define the meaning of the newly introduced "noisy" gate
+          names.
+        - The ``PRAGMA ADD-KRAUS`` statements to overload these noisy gates on specific qubit
+          targets with their noisy implementation.
+        - THe ``PRAGMA READOUT-POVM`` statements that define the noisy readout per qubit.
 
     :param NoiseModel noise_model: The assumed noise model.
     :return: A quil Program with the noise pragmas.
@@ -422,12 +431,24 @@ def _noise_model_program_header(noise_model):
     p = Program()
     defgates = set()
     for k in noise_model.gates:
-        ideal_gate, new_name = NOISY_GATES.get((k.gate, tuple(k.params)), (None, k.gate))
-        if ideal_gate is not None:
+
+        # obtain ideal gate matrix and new, noisy name by looking it up in the NOISY_GATES dict
+        try:
+            ideal_gate, new_name = NOISY_GATES[k.gate, tuple(k.params)]
+
+            # if ideal version of gate has not yet been DEFGATE'd, do this
             if new_name not in defgates:
                 p.defgate(new_name, ideal_gate)
                 defgates.add(new_name)
+        except KeyError:
+            print("WARNING: Could not find ideal gate definition for gate {}".format(k.gate),
+                  file=sys.stderr)
+            new_name = k.gate
+
+        # define noisy version of gate on specific targets
         p.define_noisy_gate(new_name, k.targets, k.kraus_ops)
+
+    # define noisy readouts
     for q, ap in noise_model.assignment_probs.items():
         p.define_noisy_readout(q, p00=ap[0, 0], p11=ap[1, 1])
     return p
@@ -447,8 +468,12 @@ def apply_noise_model(prog, noise_model):
     new_prog = _noise_model_program_header(noise_model)
     for i in prog:
         if isinstance(i, Gate):
-            _, new_name = NOISY_GATES.get((i.name, tuple(i.params)), (None, i.name))
-            new_prog += Gate(new_name, i.params, i.qubits)
+            key = (i.name, tuple(i.params))
+            if key in NOISY_GATES:
+                _, new_name = NOISY_GATES[key]
+                new_prog += Gate(new_name, [], i.qubits)
+            else:
+                new_prog += i
         else:
             new_prog += i
     return new_prog
