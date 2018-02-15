@@ -29,10 +29,6 @@ from ._base_connection import validate_noise_probabilities, validate_run_items, 
 class QVMConnection(object):
     """
     Represents a connection to the QVM.
-
-    :ivar NoiseModel noise_model: NoiseModel for the QVM, if received from an input Device instance.
-    :ivar CompilerConnection compiler: If the QVM is seeded with a device, programs must be compiled
-        to the natural gateset, using the CompilerConnection, before noise may be added.
     """
 
     def __init__(self, device=None, sync_endpoint='https://api.rigetti.com',
@@ -83,8 +79,7 @@ You have supplied the QVM with a device that does not have a noise model. No noi
 programs run on this QVM.
 """)
 
-        self.noise_model = device.noise_model if device is not None and \
-            device.noise_model is not None else None
+        self.noise_model = device.noise_model if device is not None else None
         self.compiler = CompilerConnection(device=device) if device is not None else None
 
         self.async_endpoint = async_endpoint
