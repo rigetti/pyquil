@@ -105,6 +105,25 @@ For example, consider the following Python snippet:
     job_result = qpu.get_job(job_id).result()
 
 
+.. _qvm_with_device:
+
+Simulating the QPU using the QVM
+--------------------------------
+
+The QVM is a powerful tool for testing quantum programs before executing them on the QPU. In addition to the flexible noise models library available for simulating noise on the QVM, pyQuil provides a simple interface for loading the QVM with noise models tailored to Rigetti's available QPUs, in just one modified line of code. This is made possible via the `Device` class, which holds hardware specification information, noise model information, and instruction set architecture (ISA) information regarding connectivity, in the `Specs` and `ISA` and `NoiseModel` attributes of the Device class, respectively. To read more about the Device class, see here: :ref:`device_class`.
+
+Specifically, to load a QVM with the NoiseModel information from a device, all that is required is to provide a device object to the QVM during initialization:
+
+.. code:: python
+
+    from pyquil.api import get_devices, QVMConnection
+
+    acorn = get_devices(as_dict=True)['19Q-Acorn']
+    qvm = QVMConnection(acorn)
+
+
+By simply providing a device during QVM initialization, all programs executed on this QVM will, by default, have noise applied that is characteristic of the Rigetti QPU in question (in the case above, the `Acorn` device). One may then efficiently test realistic quantum algorithms on the QVM, in advance of running those programs on the QPU.
+
 Retune interruptions
 --------------------
 
