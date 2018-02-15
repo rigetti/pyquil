@@ -544,7 +544,7 @@ Below we show how we can define :math:`X_0\otimes \sqrt{X_1}` as a single gate.
 
 
 Defining Parametric Gates
-~~~~~~~~~~~~~~~~~~
+~~~~~~~~~~~~~~~~~~~~~~~~~
 
 It is also possible to define parametric gates using pyQuil.
 Let's say we want to have a controlled RX gate. Since RX is a parametric gate, we need a slightly different way of defining it than in the previous section.
