@@ -109,8 +109,8 @@ def test_seeded_qvm(test_device):
         return '[[0,0],[1,1]]'
 
     with patch.object(CompilerConnection, "compile") as m_compile,\
-        patch('pyquil.api.qvm.apply_noise_model') as m_anm,\
-        requests_mock.Mocker() as m:
+            patch('pyquil.api.qvm.apply_noise_model') as m_anm,\
+            requests_mock.Mocker() as m:
         m.post('https://api.rigetti.com/qvm', text=mock_response)
         m_compile.side_effect = [BELL_STATE]
         m_anm.side_effect = [BELL_STATE]
