@@ -3,7 +3,8 @@
 The Device class
 ================
 
-The pyQuil Device class provides useful information for learning about, and working with, Rigetti's available QPUs. One may query for available devices using the ``get_devices`` function:
+The pyQuil ``Device`` class provides useful information for learning about, and working with,
+Rigetti's available QPUs. One may query for available devices using the ``get_devices`` function:
 
 .. code:: python
 
@@ -15,7 +16,8 @@ The pyQuil Device class provides useful information for learning about, and work
     acorn = devices['19Q-Acorn']
 
 
-The ``acorn`` Device object holds useful information regarding the QPU, including
+The variable ``acorn`` points to a ``Device`` object that holds useful information regarding the
+QPU, including:
 
 1. Connectivity via its instruction set architecture (``acorn.isa`` of class ``ISA``).
 2. Hardware specifications such as coherence times and fidelities (``acorn.specs`` of class ``Specs``).
@@ -84,7 +86,8 @@ These 3 attributes are accessed in the following ways:
     # NoiseModel(gates=[KrausModel(...) ...] ...)
 
 
-Additionally, the ``Specs`` class provides methods for access specs info across the chip in a more succinct manner:
+Additionally, the ``Specs`` class provides methods for access specs info across the chip in a more
+succinct manner:
 
 
 .. code:: python
@@ -96,4 +99,7 @@ Additionally, the ``Specs`` class provides methods for access specs info across 
 	# {(0, 5): 0.888, (0, 6): 0.8, (1, 6): 0.837, (1, 7): 0.87, ...}
 
 
-With these tools provided by the ``Device`` class, users may learn more about Rigetti hardware, and construct programs tailored specifically to that hardware. In addition, the ``Device`` class serves as a powerful tool for seeding a QVM with characteristics of the device. For more information on this, see here: :ref:`qvm_with_device`.
+With these tools provided by the ``Device`` class, users may learn more about Rigetti hardware, and
+construct programs tailored specifically to that hardware. In addition, the ``Device`` class serves
+as a powerful tool for seeding a QVM with characteristics of the device. For more information on
+this, see here: :ref:`qvm_with_device`.
