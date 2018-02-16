@@ -15,12 +15,12 @@
 ##############################################################################
 
 import operator
-from typing import Any, List
-
+from typing import Any, List, Iterator, Callable
+from numbers import Number
 import sys
 
 import numpy as np
-from antlr4 import *
+from antlr4 import InputStream, CommonTokenStream, ParseTreeWalker
 from antlr4.IntervalSet import IntervalSet
 from antlr4.Token import CommonToken
 from antlr4.error.ErrorListener import ErrorListener
@@ -32,7 +32,7 @@ from pyquil.gates import STANDARD_GATES
 from pyquil.parameters import Parameter, Expression
 from pyquil.quilbase import Gate, DefGate, Measurement, Addr, JumpTarget, Label, Halt, Jump, JumpWhen, JumpUnless, \
     Reset, Wait, ClassicalTrue, ClassicalFalse, ClassicalNot, ClassicalAnd, ClassicalOr, ClassicalMove, \
-    ClassicalExchange, Nop, RawInstr, Qubit, Pragma
+    ClassicalExchange, Nop, RawInstr, Qubit, Pragma, AbstractInstruction
 
 if sys.version_info.major == 2:
     from .gen2.QuilLexer import QuilLexer
@@ -45,6 +45,7 @@ elif sys.version_info.major == 3:
 
 
 def run_parser(quil):
+    # type: (str) -> List[AbstractInstruction]
     """
     Run the ANTLR parser.
 
@@ -81,7 +82,7 @@ class CustomErrorListener(ErrorListener):
         )
 
     def get_expected_tokens(self, parser, interval_set):
-        # type: (QuilParser, IntervalSet) -> iter
+        # type: (QuilParser, IntervalSet) -> Iterator
         """
         Like the default getExpectedTokens method except that it will fallback to the rule name if the token isn't a
         literal. For instance, instead of <INVALID> for  integer it will return the rule name: INT
@@ -101,7 +102,8 @@ class PyQuilListener(QuilListener):
     Functions are invoked when the parser reaches the various different constructs in Quil.
     """
     def __init__(self):
-        self.result = []
+        # type: () -> None
+        self.result = []    # type: List[AbstractInstruction]
 
     def exitDefGate(self, ctx):
         # type: (QuilParser.DefGateContext) -> None
@@ -281,6 +283,7 @@ def _expression(expression):
 
 
 def _binary_exp(expression, op):
+    # type: (QuilParser.ExpressionContext, Callable) -> Number
     """
     Apply an operator to two expressions. Start by evaluating both sides of the operator.
     """

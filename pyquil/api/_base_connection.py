@@ -32,7 +32,7 @@ from ._config import PyquilConfig
 try:
     from json.decoder import JSONDecodeError
 except ImportError:
-    JSONDecodeError = ValueError
+    JSONDecodeError = ValueError    # type: ignore  # python2to3 hack)
 
 TYPE_EXPECTATION = "expectation"
 TYPE_MULTISHOT = "multishot"

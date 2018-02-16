@@ -191,9 +191,9 @@ def quil_cis(expression):
 
 
 class BinaryExp(Expression):
-    operator = None
-    precedence = None
-    associates = None
+    operator = None     # type: str
+    precedence = None   # type: int
+    associates = None   # type: str
 
     @staticmethod
     def fn(a, b):

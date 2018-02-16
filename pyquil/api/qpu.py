@@ -17,7 +17,7 @@ import warnings
 
 from six import integer_types
 
-from pyquil.api import Job
+from pyquil.api.job import Job
 from pyquil.device import Device
 from pyquil.gates import MEASURE
 from pyquil.quil import Program
