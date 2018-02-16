@@ -17,7 +17,8 @@ import warnings
 
 from six import integer_types
 
-from pyquil.api import Job, CompilerConnection
+from pyquil.api.job import Job
+from pyquil.api.compiler import CompilerConnection
 from pyquil.quil import Program
 from pyquil.wavefunction import Wavefunction
 from pyquil.noise import apply_noise_model

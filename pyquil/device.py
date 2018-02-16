@@ -77,7 +77,7 @@ class ISA(_ISA):
         """
 
         def _maybe_configure(o, t):
-            # type: (dict, Union[Qubit,Edge], str) -> dict
+            # type: (Union[Qubit,Edge], str) -> dict
             """
             Exclude default values from generated dictionary.
 
