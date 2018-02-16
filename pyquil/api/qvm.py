@@ -115,7 +115,7 @@ programs run on this QVM.
         :param int trials: Number of shots to collect.
         :param bool needs_compilation: If True, preprocesses the job with the compiler.
         :param ISA isa: If set, compiles to this target ISA.
-        :param int priority: Sets a desired priority for the job. Larger numbers are lower priority, default is 0 (highest priority available to average user).
+        :param int priority: Sets a desired priority for the job. Larger numbers are higher priority, default is 0 (highest priority available to average user).
         :return: A list of lists of bits. Each sublist corresponds to the values
                  in `classical_addresses`.
         :rtype: list
@@ -183,7 +183,7 @@ programs run on this QVM.
         :param int trials: Number of shots to collect.
         :param bool needs_compilation: If True, preprocesses the job with the compiler.
         :param ISA isa: If set, compiles to this target ISA.
-        :param int priority: Sets a desired priority for the job. Larger numbers are lower priority, default is 0 (highest priority available to average user).
+        :param int priority: Sets a desired priority for the job. Larger numbers are higher priority, default is 0 (highest priority available to average user).
         :return: A list of a list of bits.
         :rtype: list
         """
@@ -249,7 +249,7 @@ programs run on this QVM.
         :param list|range classical_addresses: An optional list of classical addresses.
         :param needs_compilation: If True, preprocesses the job with the compiler.
         :param isa: If set, compiles to this target ISA.
-        :param int priority: Sets a desired priority for the job. Larger numbers are lower priority, default is 0 (highest priority available to average user).
+        :param int priority: Sets a desired priority for the job. Larger numbers are higher priority, default is 0 (highest priority available to average user).
         :return: A tuple whose first element is a Wavefunction object,
                  and whose second element is the list of classical bits corresponding
                  to the classical addresses.
@@ -319,7 +319,7 @@ programs run on this QVM.
         :param list operator_programs: A list of PauliTerms. Default is Identity operator.
         :param bool needs_compilation: If True, preprocesses the job with the compiler.
         :param ISA isa: If set, compiles to this target ISA.
-        :param int priority: Sets a desired priority for the job. Larger numbers are lower priority, default is 0 (highest priority available to average user).
+        :param int priority: Sets a desired priority for the job. Larger numbers are higher priority, default is 0 (highest priority available to average user).
         :returns: Expectation value of the operators.
         :rtype: float
         """
