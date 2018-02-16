@@ -1,7 +1,7 @@
 # top-level pyquil Makefile
 
 PACKAGENAME = pyquil
-
+FILES = pyquil/*.py pyquil/api/*.py pyquil/latex/*.py pyquil/_parser/*.py
 # Kudos: Adapted from Auto-documenting default target 
 # https://marmelab.com/blog/2016/02/29/auto-documented-makefile.html
 help:
@@ -20,10 +20,10 @@ lint:		## Delint python source
 	@flake8 $(PACKAGENAME)
 
 typecheck:	## Static typechecking 
-	@mypy pyquil/*.py pyquil/*/*.py  --ignore-missing-imports --follow-imports=skip
+	@mypy $(FILES)  --ignore-missing-imports --follow-imports=skip
 
 untyped:	## Report type errors and untyped functions
-	@mypy pyquil/*.py pyquil/api/*.py pyquil/latex/*.py pyquil/_parser/*.py --ignore-missing-imports --follow-imports=skip --disallow-untyped-defs
+	@mypy $(FILES) --ignore-missing-imports --follow-imports=skip --disallow-untyped-defs
 
 docs:		## Build documentation
 	$(MAKE) -C docs html

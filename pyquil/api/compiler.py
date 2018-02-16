@@ -14,7 +14,7 @@
 #    limitations under the License.
 ##############################################################################
 
-from pyquil.api import Job
+from pyquil.api.job import Job
 from pyquil.device import Device, ISA, Specs
 from pyquil.quil import Program
 from pyquil.parser import parse_program
