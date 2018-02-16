@@ -608,6 +608,7 @@ def shift_quantum_gates(program, shift_offset):
     shifted_program.inst(program)
     for instruct in shifted_program:
         if isinstance(instruct, Gate):
-            for qubit in instruct.qubits:
-                qubit.index += shift_offset
+            # Make a copy to avoid weird behavior
+            new_qubs = [Qubit(q.index + shift_offset) for q in instruct.qubits]
+            instruct.qubits = new_qubs
     return shifted_program
