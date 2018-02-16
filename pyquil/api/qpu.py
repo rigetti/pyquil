@@ -26,19 +26,35 @@ from ._base_connection import (validate_run_items, TYPE_MULTISHOT, TYPE_MULTISHO
                                parse_error)
 
 
-def get_devices(async_endpoint='https://job.rigetti.com/beta', api_key=None, user_id=None):
+def get_devices(async_endpoint='https://job.rigetti.com/beta', api_key=None, user_id=None,
+                as_dict=False):
     """
     Get a list of currently available devices. The arguments for this method are the same as those for QPUConnection.
     Note that this method will only work for accounts that have QPU access.
 
-    :return: set of online and offline devices
-    :rtype: set
+    :return: Set or Dictionary (keyed by device name) of all available devices.
+    :rtype: Set|Dict
     """
     session = get_session(api_key, user_id)
     response = session.get(async_endpoint + '/devices')
     if response.status_code >= 400:
         raise parse_error(response)
-    return {Device(name, device) for (name, device) in response.json()['devices'].items()}
+
+    if not as_dict:
+        warnings.warn("""
+Warning: The return type Set for get_devices() is being deprecated for Dict. This will eventually
+return the following:
+
+    get_devices()
+    # {'19Q-Acorn': <Device 19Q-Acorn online>, '8Q-Agave': <Device 8Q-Agave offline>}
+    acorn = get_devices()['19Q-Acorn']
+
+To use this Dict return type now, you may optionally pass the flag get_devices(as_dict=True). This
+will become the default behavior in a future pyQuil release.
+""", DeprecationWarning, stacklevel=2)
+        return {Device(name, device) for (name, device) in response.json()['devices'].items()}
+
+    return {name: Device(name, device) for (name, device) in response.json()['devices'].items()}
 
 
 def append_measures_to_program(gate_program, qubits):
@@ -60,13 +76,13 @@ class QPUConnection(object):
     Represents a connection to the QPU (Quantum Processing Unit)
     """
 
-    def __init__(self, device_name=None, async_endpoint='https://job.rigetti.com/beta', api_key=None, user_id=None,
-                 ping_time=0.1, status_time=2):
+    def __init__(self, device=None, async_endpoint='https://job.rigetti.com/beta', api_key=None,
+                 user_id=None, ping_time=0.1, status_time=2, device_name=None):
         """
         Constructor for QPUConnection. Sets up necessary security and picks a device to run on.
 
-        :param str device_name: Name of the device to send programs too, should be one of the devices returned from
-                                a call to get_devices()
+        :param Device device: The device to send programs to. It should be one of the values in the
+                              dictionary returned from get_devices().
         :param async_endpoint: The endpoint of the server for running QPU jobs
         :param api_key: The key to the Forest API Gateway (default behavior is to read from config file)
         :param user_id: Your userid for Forest (default behavior is to read from config file)
@@ -75,9 +91,16 @@ class QPUConnection(object):
         :param int status_time: Time in seconds for how long to wait between printing status information.
                                 To disable printing of status entirely then set status_time to False.
         """
-        if not device_name:
+        if isinstance(device, Device):
+            device_dot_name = device.name
+        elif isinstance(device, str):
+            device_dot_name = device
+        else:
+            device_dot_name = None
+
+        if device_dot_name is None and device_name is None:
             warnings.warn("""
-You created a QPUConnection without specificying a device name. This means that
+You created a QPUConnection without specifying a device name. This means that
 your program will be sent to a random, online device. This is probably not what
 you want. Instead, pass a device name to the constructor of QPUConnection:
 
@@ -95,38 +118,77 @@ API key with QPU access. See https://forest.rigetti.com for more details.
 
 To suppress this warning, see Python's warning module.
 """)
+
+        if device_name is not None:
+            warnings.warn("""
+Warning: The keyword argument device_name is being deprecated in favor of the keyword argument
+device, which may take either a Device object or a string. For example:
+
+    acorn = get_devices(as_dict=True)['19Q-Acorn']
+    # Alternative, correct implementations
+    qpu = QPUConnection(device=acorn)
+    qpu = QPUConnection(device='19Q-Acorn')
+    qpu = QPUConnection(acorn)
+    qpu = QPUConnection('19Q-Acorn')
+
+The device_name kwarg implementation, qpu = QPUConnection(device_name='19Q-Acorn'), will eventually
+be removed in a future release of pyQuil.
+""", DeprecationWarning, stacklevel=2)
+
+        if device_dot_name and device_name is not None:
+            warnings.warn("""
+Warning: You have supplied both a device ({}) and a device_name ({}). The QPU is being initialized
+with the former, the device.
+""".format(str(device), device_name))
+
+        if device_dot_name is not None:
+            self.device_name = device_dot_name
+        elif device_name is not None:
+            self.device_name = device_name
+        else:
+            self.device_name = None
+
         self.async_endpoint = async_endpoint
         self.session = get_session(api_key, user_id)
 
         self.ping_time = ping_time
         self.status_time = status_time
 
-        self.device_name = device_name
-
-    def run(self, quil_program, classical_addresses, trials=1):
+    def run(self, quil_program, classical_addresses, trials=1, needs_compilation=True, isa=None, priority=0):
         """
-        Run a pyQuil program on the QPU. This functionality is in beta.
+        Run a pyQuil program on the QPU and return the values stored in the classical registers
+        designated by the classical_addresses parameter. The program is repeated according to
+        the number of trials provided to the run method. This functionality is in beta.
 
-        :param Program quil_program: Quil program to run on the QPU
-        :param list|range classical_addresses: Currently unused
-        :param int trials: Number of shots to take
-        :return: A list of lists of bits. Each sublist corresponds to the values
-                 in `classical_addresses`.
+        It is important to note that our QPUs currently only allow a single set of simultaneous
+        readout pulses on all qubits in the QPU at the end of the program. This means that
+        missing or duplicate MEASURE instructions do not change the pulse program, but instead
+        only contribute to making a less rich or richer mapping, respectively, between classical
+        and qubit addresses.
+
+        :param Program quil_program: Pyquil program to run on the QPU
+        :param list|range classical_addresses: Classical register addresses to return
+        :param int trials: Number of times to run the program (a.k.a. number of shots)
+        :param bool needs_compilation: If True, preprocesses the job with the compiler.
+        :param ISA isa: If set, specifies a custom ISA to compile to. If left unset,
+                    Forest uses the default ISA associated to this QPU device.
+        :param int priority: Sets a desired priority for the job. Larger numbers are higher priority, default is 0 (highest priority available to average user).
+        :return: A list of a list of classical registers (each register contains a bit)
         :rtype: list
         """
-        raise DeprecationWarning("""
-The QPU does not currently support arbitrary measure operations. For now, the
-only supported operation on the QPU is run_and_measure.""")
+        job = self.wait_for_job(self.run_async(quil_program, classical_addresses, trials, needs_compilation, isa, priority))
+        return job.result()
 
-    def run_async(self, quil_program, classical_addresses, trials=1):
+    def run_async(self, quil_program, classical_addresses, trials=1, needs_compilation=True, isa=None, priority=0):
         """
-        Similar to run except that it returns a job id and doesn't wait for the program to be executed.
-        See https://go.rigetti.com/connections for reasons to use this method.
+        Similar to run except that it returns a job id and doesn't wait for the program to
+        be executed. See https://go.rigetti.com/connections for reasons to use this method.
         """
-        # NB: Throw the same deprecation warning as in run
-        return self.run(quil_program, classical_addresses, trials)
+        payload = self._run_payload(quil_program, classical_addresses, trials, needs_compilation=needs_compilation, isa=isa)
+        response = post_json(self.session, self.async_endpoint + "/job", self._wrap_program(payload, priority))
+        return get_job_id(response)
 
-    def _run_payload(self, quil_program, classical_addresses, trials):
+    def _run_payload(self, quil_program, classical_addresses, trials, needs_compilation, isa):
         if not isinstance(quil_program, Program):
             raise TypeError("quil_program must be a Quil program object")
         validate_run_items(classical_addresses)
@@ -135,49 +197,65 @@ only supported operation on the QPU is run_and_measure.""")
 
         payload = {"type": TYPE_MULTISHOT,
                    "addresses": list(classical_addresses),
-                   "trials": trials,
-                   "quil-instructions": quil_program.out()}
+                   "trials": trials}
+
+        if needs_compilation:
+            payload["uncompiled-quil"] = quil_program.out()
+            if isa:
+                payload["target-device"] = {"isa": isa.to_dict()}
+        else:
+            payload["compiled-quil"] = quil_program.out()
 
         return payload
 
-    def run_and_measure(self, quil_program, qubits, trials=1):
+    def run_and_measure(self, quil_program, qubits, trials=1, needs_compilation=True, isa=None, priority=0):
         """
-        Run a pyQuil program on the QPU multiple times, measuring all the qubits in the QPU
-        simultaneously at the end of the program each time. This functionality is in beta.
+        Similar to run, except for how MEASURE operations are dealt with. With run, users are
+        expected to include MEASURE operations in the program if they want results back. With
+        run_and_measure, users provide a pyquil program that does not have MEASURE instructions,
+        and also provide a list of qubits to measure. All qubits in this list will be measured
+        at the end of the program, and their results stored in corresponding classical registers.
 
-        :param Program quil_program: A Quil program.
+        :param Program quil_program: Pyquil program to run on the QPU
         :param list|range qubits: The list of qubits to measure
-        :param int trials: Number of shots to collect.
-        :return: A list of a list of bits.
+        :param int trials: Number of times to run the program (a.k.a. number of shots)
+        :param bool needs_compilation: If True, preprocesses the job with the compiler.
+        :param ISA isa: If set, specifies a custom ISA to compile to. If left unset,
+                    Forest uses the default ISA associated to this QPU device.
+        :param int priority: Sets a desired priority for the job. Larger numbers are higher priority, default is 0 (highest priority available to average user).
+        :return: A list of a list of classical registers (each register contains a bit)
         :rtype: list
         """
-        full_program = append_measures_to_program(quil_program, qubits)
-        payload = self._run_and_measure_payload(full_program, qubits, trials)
-        response = post_json(self.session, self.async_endpoint + "/job", self._wrap_program(payload))
-        job = self.wait_for_job(get_job_id(response))
+        job = self.wait_for_job(self.run_and_measure_async(quil_program, qubits, trials, needs_compilation, isa, priority))
         return job.result()
 
-    def run_and_measure_async(self, quil_program, qubits, trials):
+    def run_and_measure_async(self, quil_program, qubits, trials, needs_compilation=True, isa=None, priority=0):
         """
-        Similar to run_and_measure except that it returns a job id and doesn't wait for the program to be executed.
-        See https://go.rigetti.com/connections for reasons to use this method.
+        Similar to run_and_measure except that it returns a job id and doesn't wait for the program
+        to be executed. See https://go.rigetti.com/connections for reasons to use this method.
         """
         full_program = append_measures_to_program(quil_program, qubits)
-        payload = self._run_and_measure_payload(full_program, qubits, trials)
-        response = post_json(self.session, self.async_endpoint + "/job", self._wrap_program(payload))
+        payload = self._run_and_measure_payload(full_program, qubits, trials, needs_compilation=needs_compilation, isa=isa)
+        response = post_json(self.session, self.async_endpoint + "/job", self._wrap_program(payload, priority))
         return get_job_id(response)
 
-    def _run_and_measure_payload(self, quil_program, qubits, trials):
+    def _run_and_measure_payload(self, quil_program, qubits, trials, needs_compilation, isa):
         if not isinstance(quil_program, Program):
             raise TypeError('quil_program must be a Quil program object')
         validate_run_items(qubits)
-        if not isinstance(trials, int):
+        if not isinstance(trials, integer_types):
             raise TypeError('trials must be an integer')
 
         payload = {'type': TYPE_MULTISHOT_MEASURE,
                    'qubits': list(qubits),
-                   'trials': trials,
-                   'quil-instructions': quil_program.out()}
+                   'trials': trials}
+
+        if needs_compilation:
+            payload['uncompiled-quil'] = quil_program.out()
+            if isa:
+                payload['target-device'] = {"isa": isa.to_dict()}
+        else:
+            payload['compiled-quil'] = quil_program.out()
 
         return payload
 
@@ -209,9 +287,10 @@ only supported operation on the QPU is run_and_measure.""")
                             ping_time if ping_time else self.ping_time,
                             status_time if status_time else self.status_time)
 
-    def _wrap_program(self, program):
+    def _wrap_program(self, program, priority=0):
         return {
             "machine": "QPU",
             "program": program,
-            "device": self.device_name
+            "device": self.device_name,
+            "priority": priority
         }

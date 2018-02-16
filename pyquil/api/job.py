@@ -55,7 +55,7 @@ class Job(object):
         The result of the job if available
         throws ValueError is result is not available yet
         throws ApiError if server returned an error indicating program execution was not successful
-            or if the job was cancelled
+        or if the job was cancelled
         """
         if not self.is_done():
             raise ValueError("Cannot get a result for a program that isn't completed.")
@@ -85,6 +85,18 @@ class Job(object):
         Is the job currently running?
         """
         return self._raw['status'] == 'RUNNING'
+
+    def is_queued_for_compilation(self):
+        """
+        Is the job still in the Forest compilation queue?
+        """
+        return self._raw['status'] == 'QUEUED_FOR_COMPILATION'
+
+    def is_compiling(self):
+        """
+        Is the job actively compiling?
+        """
+        return self._raw['status'] == 'COMPILING'
 
     def position_in_queue(self):
         """
@@ -136,6 +148,17 @@ class Job(object):
         """
         return self._get_metadata("gate_depth")
 
+    def gate_volume(self):
+        """
+        If the job has metadata and this contains the gate volume, return this,
+        otherwise None. On a non-fault-tolerant QPU programs with a low gate
+        volume have a higher chance of succeeding. This is a less sensitive
+        measure than gate depth.
+
+        :rtype: Optional[int]
+        """
+        return self._get_metadata("gate_volume")
+
     def compiled_quil(self):
         """
         If the Quil program associated with the Job was compiled (e.g., to translate it to the
@@ -143,7 +166,7 @@ class Job(object):
 
         :rtype: Optional[Program]
         """
-        prog = self._get_metadata("compiled_quil")
+        prog = self._raw.get("program", {}).get("compiled-quil", None)
         if prog is not None:
             return parse_program(prog)
 
@@ -156,3 +179,25 @@ class Job(object):
         :rtype: Optional[int]
         """
         return self._get_metadata("topological_swaps")
+
+    def program_fidelity(self):
+        """
+        If the job has metadata and this contains a job program fidelity
+        estimate, return this, otherwise None.  This is a number between 0 and 1;
+        a higher value means more likely odds of a meaningful answer.
+
+        :rtype: Optional[float]
+        """
+        return self._get_metadata("program_fidelity")
+
+    def multiqubit_gate_depth(self):
+        """
+        If the job has metadata and this contains the multiqubit gate depth,
+        return this, otherwise None.  The multiqubit gate depth is a measure of
+        how inaccurately a quantum program will behave on nonideal hardware. On
+        a non-fault-tolerant QPU programs with a low gate depth have a higher
+        chance of succeeding.
+
+        :rtype: Optional[int]
+        """
+        return self._get_metadata("multiqubit_gate_depth")

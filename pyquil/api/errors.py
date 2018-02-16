@@ -9,7 +9,7 @@ class ApiError(RuntimeError):
         return repr(str(self))
 
     def __str__(self):
-        return self.server_status + "\n" + self.explanation
+        return "{}\n{}".format(self.server_status, self.explanation)
 
 
 class CancellationError(ApiError):

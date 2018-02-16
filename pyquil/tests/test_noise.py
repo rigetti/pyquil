@@ -2,15 +2,19 @@ from collections import OrderedDict
 
 import numpy as np
 import pytest
+from mock import Mock
 
+from pyquil.api import QPUConnection
 from pyquil.gates import CZ, RZ, RX, I, H
 from pyquil.noise import (damping_kraus_map, dephasing_kraus_map, tensor_kraus_maps,
-                          _get_noisy_names, _get_program_gates, _decoherence_noise_model,
+                          _get_program_gates, _decoherence_noise_model,
                           add_decoherence_noise, combine_kraus_maps, damping_after_dephasing,
-                          INFINITY, _apply_noise_model, _noise_model_program_header, KrausModel,
+                          INFINITY, apply_noise_model, _noise_model_program_header, KrausModel,
                           NoiseModel, corrupt_bitstring_probs, correct_bitstring_probs,
-                          estimate_bitstring_probs, bitstring_probs_to_z_moments)
+                          estimate_bitstring_probs, bitstring_probs_to_z_moments,
+                          estimate_assignment_probs, NO_NOISE)
 from pyquil.quil import Pragma, Program
+from pyquil.quilbase import DefGate, Gate
 
 
 def test_damping_kraus_map():
@@ -57,15 +61,10 @@ def test_damping_after_dephasing():
 
 
 def test_noise_helpers():
-    rx90_0, rxm90_1, i_1, cz_01 = gates = RX(np.pi / 2)(0), RX(-np.pi / 2)(1), I(1), CZ(0, 1)
+    gates = RX(np.pi / 2)(0), RX(-np.pi / 2)(1), I(1), CZ(0, 1)
     prog = Program(*gates)
     inferred_gates = _get_program_gates(prog)
     assert set(inferred_gates) == set(gates)
-    noisy_names = _get_noisy_names(gates)
-    assert noisy_names[rx90_0] == "NOISY-RX-PLUS-90"
-    assert noisy_names[rxm90_1] == "NOISY-RX-MINUS-90"
-    assert noisy_names[i_1] == "NOISY-I"
-    assert noisy_names[cz_01] == "NOISY-CZ"
 
 
 def test_decoherence_noise():
@@ -106,15 +105,13 @@ def test_decoherence_noise():
             assert len(g.kraus_ops) == 1
 
     # verify that gate names are translated
-    new_prog = _apply_noise_model(prog, m3)
+    new_prog = apply_noise_model(prog, m3)
     new_gates = _get_program_gates(new_prog)
-    noisy_names = _get_noisy_names(gates)
-    assert set(noisy_names.values()) == {g.name for g in new_gates}
 
     # check that headers have been embedded
-    headers = _noise_model_program_header(m3, lambda g: noisy_names.get(g, g))
-    assert all(isinstance(i, Pragma) and i.command in ["ADD-KRAUS", "READOUT-POVM"]
-               for i in headers)
+    headers = _noise_model_program_header(m3)
+    assert all((isinstance(i, Pragma) and i.command in ["ADD-KRAUS", "READOUT-POVM"]) or
+               isinstance(i, DefGate) for i in headers)
     assert headers.out() in new_prog.out()
 
     # verify that high-level add_decoherence_noise reproduces new_prog
@@ -177,3 +174,37 @@ def test_readout_compensation():
     assert np.isclose(zm[1, 1, 0], -1. / 3)
     assert np.isclose(zm[1, 0, 1], -1. / 3)
     assert np.isclose(zm[1, 1, 1], 1.)
+
+
+def test_estimate_assignment_probs():
+    cxn = Mock(spec=QPUConnection)
+    trials = 100
+    p00 = .8
+    p11 = .75
+    cxn.run.side_effect = [
+        [[0]] * int(round(p00 * trials)) + [[1]] * int(round((1 - p00) * trials)),
+        [[1]] * int(round(p11 * trials)) + [[0]] * int(round((1 - p11) * trials))
+    ]
+    ap_target = np.array([[p00, 1 - p11],
+                          [1 - p00, p11]])
+
+    povm_pragma = Pragma("READOUT-POVM", (0, "({} {} {} {})".format(*ap_target.flatten())))
+    ap = estimate_assignment_probs(0, trials, cxn, Program(povm_pragma))
+    assert np.allclose(ap, ap_target)
+    for call in cxn.run.call_args_list:
+        args, kwargs = call
+        prog = args[0]
+        assert prog._instructions[0] == povm_pragma
+
+
+def test_apply_noise_model():
+    p = Program(RX(np.pi / 2)(0), RX(np.pi / 2)(1), CZ(0, 1), RX(np.pi / 2)(1))
+    noise_model = _decoherence_noise_model(_get_program_gates(p))
+    pnoisy = apply_noise_model(p, noise_model)
+    for i in pnoisy:
+        if isinstance(i, DefGate):
+            pass
+        elif isinstance(i, Pragma):
+            assert i.command in ['ADD-KRAUS', 'READOUT-POVM']
+        elif isinstance(i, Gate):
+            assert i.name in NO_NOISE or not i.params
