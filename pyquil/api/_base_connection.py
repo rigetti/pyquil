@@ -102,7 +102,7 @@ def parse_error(res):
         raise UnknownApiError(res.text)
 
     if 'error_type' not in body:
-        raise UnknownApiError(body)
+        raise UnknownApiError(str(body))
 
     error_type = body['error_type']
     status = body['status']
