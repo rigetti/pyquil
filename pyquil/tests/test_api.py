@@ -149,6 +149,7 @@ def test_job_run():
     def mock_queued_response(request, context):
         assert json.loads(request.text) == {
             "machine": "QVM",
+            "priority": 0,
             "program": program
         }
         return json.dumps({"jobId": JOB_ID, "status": "QUEUED"})
@@ -175,6 +176,7 @@ def test_async_wavefunction():
     def mock_queued_response(request, context):
         assert json.loads(request.text) == {
             "machine": "QVM",
+            "priority": 0,
             "program": program
         }
         return json.dumps({"jobId": JOB_ID, "status": "QUEUED"})
@@ -222,6 +224,7 @@ def test_qpu_connection(test_device):
     def mock_queued_response_run(request, context):
         assert json.loads(request.text) == {
             "machine": "QPU",
+            "priority": 0,
             "program": run_program,
             "device": "test_device"
         }
@@ -260,6 +263,7 @@ def test_qpu_connection(test_device):
     def mock_queued_response_run_and_measure(request, context):
         assert json.loads(request.text) == {
             "machine": "QPU",
+            "priority": 0,
             "program": run_and_measure_program,
             "device": "test_device"
         }
@@ -360,6 +364,7 @@ def test_job_compile():
     def mock_queued_response(request, context):
         assert json.loads(request.text) == {
             "machine": "QUILC",
+            "priority": 0,
             "program": processed_program
         }
         return json.dumps({"jobId": JOB_ID, "status": "QUEUED"})
