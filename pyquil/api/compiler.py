@@ -96,7 +96,7 @@ class CompilerConnection(object):
 
         :param Program quil_program: Quil program to be compiled.
         :param ISA isa: ISA to target.
-        :param int priority: Sets a desired priority for the job. Larger numbers are higher priority, default is 0 (highest priority available to average user).
+        :param int priority: Sets a desired priority for the job. Larger numbers are lower priority, default is 0 (highest priority available to average user).
         :returns: The compiled Program object.
         :rtype: Program
         """
