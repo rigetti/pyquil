@@ -106,7 +106,7 @@ programs run on this QVM.
     def ping(self):
         raise DeprecationWarning("ping() function is deprecated")
 
-    def run(self, quil_program, classical_addresses, trials=1, needs_compilation=False, isa=None, priority=0):
+    def run(self, quil_program, classical_addresses, trials=1, needs_compilation=False, isa=None):
         """
         Run a Quil program multiple times, accumulating the values deposited in
         a list of classical addresses.
@@ -116,7 +116,6 @@ programs run on this QVM.
         :param int trials: Number of shots to collect.
         :param bool needs_compilation: If True, preprocesses the job with the compiler.
         :param ISA isa: If set, compiles to this target ISA.
-        :param int priority: Sets a desired priority for the job. Larger numbers are lower priority, default is 0 (highest priority available to average user).
         :return: A list of lists of bits. Each sublist corresponds to the values
                  in `classical_addresses`.
         :rtype: list
@@ -126,20 +125,20 @@ programs run on this QVM.
             if needs_compilation and not self.use_queue:
                 warnings.warn('Synchronous QVM connection does not support compilation preprocessing. Running this job over the asynchronous endpoint, as if use_queue were set to True.')
 
-            response = post_json(self.session, self.async_endpoint + "/job", {"machine": "QVM", "program": payload, "priority": priority})
+            response = post_json(self.session, self.async_endpoint + "/job", {"machine": "QVM", "program": payload})
             job = self.wait_for_job(get_job_id(response))
             return job.result()
         else:
             response = post_json(self.session, self.sync_endpoint + "/qvm", payload)
             return response.json()
 
-    def run_async(self, quil_program, classical_addresses, trials=1, needs_compilation=False, isa=None, priority=0):
+    def run_async(self, quil_program, classical_addresses, trials=1, needs_compilation=False, isa=None):
         """
         Similar to run except that it returns a job id and doesn't wait for the program to be executed.
         See https://go.rigetti.com/connections for reasons to use this method.
         """
         payload = self._run_payload(quil_program, classical_addresses, trials, needs_compilation, isa)
-        response = post_json(self.session, self.async_endpoint + "/job", {"machine": "QVM", "program": payload, "priority": priority})
+        response = post_json(self.session, self.async_endpoint + "/job", {"machine": "QVM", "program": payload})
         return get_job_id(response)
 
     def _run_payload(self, quil_program, classical_addresses, trials, needs_compilation, isa):
@@ -169,7 +168,7 @@ programs run on this QVM.
 
         return payload
 
-    def run_and_measure(self, quil_program, qubits, trials=1, needs_compilation=False, isa=None, priority=0):
+    def run_and_measure(self, quil_program, qubits, trials=1, needs_compilation=False, isa=None):
         """
         Run a Quil program once to determine the final wavefunction, and measure multiple times.
 
@@ -184,7 +183,6 @@ programs run on this QVM.
         :param int trials: Number of shots to collect.
         :param bool needs_compilation: If True, preprocesses the job with the compiler.
         :param ISA isa: If set, compiles to this target ISA.
-        :param int priority: Sets a desired priority for the job. Larger numbers are lower priority, default is 0 (highest priority available to average user).
         :return: A list of a list of bits.
         :rtype: list
         """
@@ -193,20 +191,20 @@ programs run on this QVM.
             if needs_compilation and not self.use_queue:
                 warnings.warn('Synchronous QVM connection does not support compilation preprocessing. Running this job over the asynchronous endpoint, as if use_queue were set to True.')
 
-            response = post_json(self.session, self.async_endpoint + "/job", {"machine": "QVM", "program": payload, "priority": priority})
+            response = post_json(self.session, self.async_endpoint + "/job", {"machine": "QVM", "program": payload})
             job = self.wait_for_job(get_job_id(response))
             return job.result()
         else:
             response = post_json(self.session, self.sync_endpoint + "/qvm", payload)
             return response.json()
 
-    def run_and_measure_async(self, quil_program, qubits, trials=1, needs_compilation=False, isa=None, priority=0):
+    def run_and_measure_async(self, quil_program, qubits, trials=1, needs_compilation=False, isa=None):
         """
         Similar to run_and_measure except that it returns a job id and doesn't wait for the program to be executed.
         See https://go.rigetti.com/connections for reasons to use this method.
         """
         payload = self._run_and_measure_payload(quil_program, qubits, trials, needs_compilation, isa)
-        response = post_json(self.session, self.async_endpoint + "/job", {"machine": "QVM", "program": payload, "priority": priority})
+        response = post_json(self.session, self.async_endpoint + "/job", {"machine": "QVM", "program": payload})
         return get_job_id(response)
 
     def _run_and_measure_payload(self, quil_program, qubits, trials, needs_compilation, isa):
@@ -236,7 +234,7 @@ programs run on this QVM.
 
         return payload
 
-    def wavefunction(self, quil_program, classical_addresses=None, needs_compilation=False, isa=None, priority=0):
+    def wavefunction(self, quil_program, classical_addresses=None, needs_compilation=False, isa=None):
         """
         Simulate a Quil program and get the wavefunction back.
 
@@ -250,7 +248,6 @@ programs run on this QVM.
         :param list|range classical_addresses: An optional list of classical addresses.
         :param needs_compilation: If True, preprocesses the job with the compiler.
         :param isa: If set, compiles to this target ISA.
-        :param int priority: Sets a desired priority for the job. Larger numbers are lower priority, default is 0 (highest priority available to average user).
         :return: A tuple whose first element is a Wavefunction object,
                  and whose second element is the list of classical bits corresponding
                  to the classical addresses.
@@ -264,7 +261,7 @@ programs run on this QVM.
                 warnings.warn('Synchronous QVM connection does not support compilation preprocessing. Running this job over the asynchronous endpoint, as if use_queue were set to True.')
 
             payload = self._wavefunction_payload(quil_program, classical_addresses, needs_compilation, isa)
-            response = post_json(self.session, self.async_endpoint + "/job", {"machine": "QVM", "program": payload, "priority": priority})
+            response = post_json(self.session, self.async_endpoint + "/job", {"machine": "QVM", "program": payload})
             job = self.wait_for_job(get_job_id(response))
             return job.result()
         else:
@@ -272,7 +269,7 @@ programs run on this QVM.
             response = post_json(self.session, self.sync_endpoint + "/qvm", payload)
             return Wavefunction.from_bit_packed_string(response.content, classical_addresses)
 
-    def wavefunction_async(self, quil_program, classical_addresses=None, needs_compilation=False, isa=None, priority=0):
+    def wavefunction_async(self, quil_program, classical_addresses=None, needs_compilation=False, isa=None):
         """
         Similar to wavefunction except that it returns a job id and doesn't wait for the program to be executed.
         See https://go.rigetti.com/connections for reasons to use this method.
@@ -281,7 +278,7 @@ programs run on this QVM.
             classical_addresses = []
 
         payload = self._wavefunction_payload(quil_program, classical_addresses, needs_compilation, isa)
-        response = post_json(self.session, self.async_endpoint + "/job", {"machine": "QVM", "program": payload, "priority": priority})
+        response = post_json(self.session, self.async_endpoint + "/job", {"machine": "QVM", "program": payload})
         return get_job_id(response)
 
     def _wavefunction_payload(self, quil_program, classical_addresses, needs_compilation, isa):
@@ -305,7 +302,7 @@ programs run on this QVM.
 
         return payload
 
-    def expectation(self, prep_prog, operator_programs=None, needs_compilation=False, isa=None, priority=0):
+    def expectation(self, prep_prog, operator_programs=None, needs_compilation=False, isa=None):
         """
         Calculate the expectation value of operators given a state prepared by
         prep_program.
@@ -320,7 +317,6 @@ programs run on this QVM.
         :param list operator_programs: A list of PauliTerms. Default is Identity operator.
         :param bool needs_compilation: If True, preprocesses the job with the compiler.
         :param ISA isa: If set, compiles to this target ISA.
-        :param int priority: Sets a desired priority for the job. Larger numbers are lower priority, default is 0 (highest priority available to average user).
         :returns: Expectation value of the operators.
         :rtype: float
         """
@@ -328,7 +324,7 @@ programs run on this QVM.
             raise TypeError("Expectation QVM programs do not support compilation preprocessing.  Make a separate CompilerConnection job first.")
         if self.use_queue:
             payload = self._expectation_payload(prep_prog, operator_programs)
-            response = post_json(self.session, self.async_endpoint + "/job", {"machine": "QVM", "program": payload, "priority": priority})
+            response = post_json(self.session, self.async_endpoint + "/job", {"machine": "QVM", "program": payload})
             job = self.wait_for_job(get_job_id(response))
             return job.result()
         else:
@@ -336,7 +332,7 @@ programs run on this QVM.
             response = post_json(self.session, self.sync_endpoint + "/qvm", payload)
             return response.json()
 
-    def expectation_async(self, prep_prog, operator_programs=None, needs_compilation=False, isa=None, priority=0):
+    def expectation_async(self, prep_prog, operator_programs=None, needs_compilation=False, isa=None):
         """
         Similar to expectation except that it returns a job id and doesn't wait for the program to be executed.
         See https://go.rigetti.com/connections for reasons to use this method.
@@ -345,7 +341,7 @@ programs run on this QVM.
             raise TypeError("Expectation QVM programs do not support compilation preprocessing.  Make a separate CompilerConnection job first.")
 
         payload = self._expectation_payload(prep_prog, operator_programs)
-        response = post_json(self.session, self.async_endpoint + "/job", {"machine": "QVM", "program": payload, "priority": priority})
+        response = post_json(self.session, self.async_endpoint + "/job", {"machine": "QVM", "program": payload})
         return get_job_id(response)
 
     def _expectation_payload(self, prep_prog, operator_programs):
