@@ -1,3 +1,4 @@
+.. _intro:
 
 Introduction to Quantum Computing
 =================================

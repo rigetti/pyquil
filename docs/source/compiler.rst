@@ -1,4 +1,4 @@
-.. _compiler_usage:
+.. _compiler:
 
 Using the Quil Compiler
 =======================

@@ -1,3 +1,5 @@
+.. _noise:
+
 Noise and Quantum Computation
 =============================
 
