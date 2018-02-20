@@ -147,8 +147,8 @@ As a last resort, connection information can be provided via environment variabl
 If you are still seeing errors or warnings then file a bug using
 `Github Issues <https://github.com/rigetticomputing/pyquil/issues>`_.
 
-Running your First Quantum Program
-----------------------------------
+Your First Quantum Program
+--------------------------
 pyQuil is a Python library that helps you write programs in the Quantum Instruction Language (Quil).
 It also ships with a simple script ``examples/run_quil.py`` that runs Quil code directly. You can
 test your connection to Forest using this script by executing the following on your command line
@@ -165,8 +165,8 @@ You can continue to write more Quil code in files and run them using the ``run_q
 The following sections describe how to use the pyQuil library directly to build quantum programs in
 Python.
 
-Basic pyQuil Usage
-------------------
+The Basics
+----------
 
 To ensure that your installation is working correctly, try running the
 following Python commands interactively. First, import the ``quil``
@@ -901,7 +901,8 @@ This ParametricProgram now acts as a template, caching the result of the ``expon
 calculation so that it can be used later with new values.
 
 Connections
------------
+~~~~~~~~~~~
+
 Larger pyQuil programs can involve more qubits and take a longer time to run. Instead of running the
 program immediately, you can insert your programs into a queue. This is done with the ``use_queue``
 parameter to QVMConnection.  By default, this parameter is set to False which means it skips
@@ -958,7 +959,7 @@ in the queue, similar to the above code.
 
 
 Optimized Calls
----------------
+~~~~~~~~~~~~~~~
 
 This same pattern as above applies to the :meth:`~pyquil.api.QVMConnection.wavefunction`,
 :meth:`~pyquil.api.QVMConnection.expectation` and :meth:`~pyquil.api.QVMConnection.run_and_measure`.
@@ -981,8 +982,8 @@ specified number of random bitstring samples.
 Exercises
 ---------
 
-Exercise 1 - Quantum Dice
-~~~~~~~~~~~~~~~~~~~~~~~~~
+Exercise 1: Quantum Dice
+~~~~~~~~~~~~~~~~~~~~~~~~
 
 Write a quantum program to simulate throwing an 8-sided die. The Python
 function you should produce is:
@@ -999,8 +1000,8 @@ Next, extend the program to work for any kind of fair die:
     def throw_polyhedral_die(num_sides):
         # return the result of throwing a num_sides sided die by running a quantum program
 
-Exercise 2 - Controlled Gates
-~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
+Exercise 2: Controlled Gates
+~~~~~~~~~~~~~~~~~~~~~~~~~~~~
 
 We can use the full generality of NumPy to construct new gate matrices.
 
@@ -1013,8 +1014,8 @@ We can use the full generality of NumPy to construct new gate matrices.
    manner. Find the wavefunction when applying this gate to qubit 1
    controlled by qubit 0.
 
-Exercise 3 - Grover's Algorithm
-~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
+Exercise 3: Grover's Algorithm
+~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
 
 Write a quantum program for the single-shot Grover's algorithm. The
 Python function you should produce is:

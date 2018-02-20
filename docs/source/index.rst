@@ -16,7 +16,6 @@ Welcome to the Docs for Forest and pyQuil!
    qpu
    compiler_usage
    noise_models
-   examples
    source_docs
 
 

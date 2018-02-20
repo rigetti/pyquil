@@ -1,4 +1,3 @@
-
 Overview
 ========
 
@@ -24,8 +23,7 @@ Quil programs can be executed on a cloud-based **Quantum Virtual Machine** (QVM)
 classical simulation of a quantum processor that can simulate various qubit operations.
 The default access key allows you to run simulations of up to 26 qubits. These simulations
 can be run through either synchronous API calls, or through an asynchronous job queue for
-larger programs. More information about the QVM can be found in the
-`Overview of the Quantum Virtual Machine <qvm_overview.html>`_.
+larger programs. More information about the QVM can be found in the :ref:`qvm`.
 
 In addition to the QVM, we offer the ability to run programs on the physical qubits,
 or **Quantum Processing Units** (QPUs), at our lab in Berkeley, California. To request upgraded
