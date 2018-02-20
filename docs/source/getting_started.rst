@@ -8,15 +8,18 @@ programs.
 .. code:: python
 
     from pyquil.quil import Program
-    import pyquil.api as api
-    from pyquil.gates import *
-    qvm = api.QVMConnection()
-    p = Program()
-    p.inst(H(0), CNOT(0, 1))
-        <pyquil.pyquil.Program object at 0x101ebfb50>
-    wavefunction = qvm.wavefunction(p)
-    print(wavefunction)
-        (0.7071067812+0j)|00> + (0.7071067812+0j)|11>
+    from pyquil.api import QVMConnection
+    from pyquil.gates import CNOT, H
+
+    qvm = QVMConnection()
+    p = Program(H(0), CNOT(0, 1))
+
+    wf = qvm.wavefunction(p)
+    print(wf)
+
+::
+
+    (0.7071067812+0j)|00> + (0.7071067812+0j)|11>
 
 It comes with a few parts:
 
@@ -25,15 +28,18 @@ It comes with a few parts:
    abstract machine, such as the quantum virtual machine (QVM), or on a
    real quantum processing unit (QPU). More details regarding Quil can be
    found in the `whitepaper <https://arxiv.org/abs/1608.03355>`__.
-2. **QVM**: A `Quantum Virtual Machine <qvm_overview.html>`_, which is an implementation of the
+2. **pyQuil**: A Python library to help write and run Quil code and
+   quantum programs.
+3. **QVM**: A `Quantum Virtual Machine <qvm_overview.html>`_, which is an implementation of the
    quantum abstract machine on classical hardware. The QVM lets you use a
    regular computer to simulate a small quantum computer. You can access
    the Rigetti QVM running in the cloud with your API key.
    `Sign up here <http://forest.rigetti.com>`_ to get your key.
-3. **pyQuil**: A Python library to help write and run Quil code and
-   quantum programs.
-4. **QPUConnection**: pyQuil also includes some a special connection which lets you run experiments
+4. **QPU**: pyQuil also includes some a special connection which lets you run experiments
    on Rigetti's prototype superconducting quantum processors over the cloud.
+5. **Quilc**: In addition to running on the QVM or the QPU, users can directly use
+   the Quil compiler, to investigate how arbitrary quantum programs can be compiled
+   to target specific physical instruction set architectures (ISAs).
 
 Environment Setup
 -----------------
@@ -43,7 +49,7 @@ Prerequisites
 
 Before you can start writing quantum programs, you will need Python 2.7
 (version 2.7.10 or greater) or Python 3.6 and the
-Python package manager pip.
+Python package manager ``pip``.
 
 .. note::
 
@@ -55,7 +61,9 @@ Python package manager pip.
 Installation
 ~~~~~~~~~~~~
 
-You can install pyQuil directly from the Python package manager pip using:
+You can install pyQuil directly from the Python package manager ``pip``. We
+recommend that you use a virtual environment when dealing with python.
+From inside a virtual environment, run:
 
 ::
 
@@ -69,32 +77,33 @@ navigate into its directory in a terminal, and run:
 
     pip install -e .
 
-On Mac/Linux, if this command does not succeed because of permissions
-errors, then instead run:
+On Mac/Linux, if you choose not to use a virtual environment and this
+command does not succeed because of permissions errors, then instead run
+the following to make the library available system-wide:
 
 ::
 
     sudo pip install -e .
 
-This will also install pyQuil's dependencies (numpy, requests, etc.) if you do not already
+This will also install pyQuil's dependencies (NumPy, requests, etc.) if you do not already
 have them.
-
-The library will now be available globally.
 
 Connecting to the Rigetti Forest
 ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
 
-pyQuil can be used to build and manipulate Quil programs without restriction. However, to run
-programs (e.g., to get wavefunctions, get multishot experiment data), you will need an API key
-for Rigetti Forest. This will allow you to run your programs on the Rigetti QVM or QPU.
+pyQuil can be used to build and manipulate Quil programs without restriction.
+However, to run programs (e.g., to get wavefunctions, get multishot experiment data),
+you will need an API key for Rigetti Forest. This will allow you to run your programs
+on the Rigetti QVM or QPU.
 
-`Sign up here <http://forest.rigetti.com>`_ to get a Forest API key, it's free and only takes a few seconds.
-
-It's also highly recommended to join our `public slack channel <http://slack.rigetti.com>`_ where you can
+`Sign up here <http://forest.rigetti.com>`_ to get a Forest API key, it's free
+and only takes a few seconds. We also highly recommend that you join our
+`public slack channel <http://slack.rigetti.com>`_ where you can
 connect with other users and Rigetti members for support.
 
-Run the following command to automatically set up the config. This will prompt you for the required information
-(URL, key, and user id). It will then create a file in the proper location (the user's root directory):
+Run the following command to automatically set up the config. This will prompt you for
+the required information (URL, key, and user id). It will then create a file in the
+proper location (the user's root directory):
 
 ::
 
@@ -102,8 +111,9 @@ Run the following command to automatically set up the config. This will prompt y
 
 If the setup completed successfully then you can skip to the next section.
 
-You can also create the configuration file manually if you'd like and place it at ``~/.pyquil_config``.
-The configuration file is in INI format and should contain all the information required to connect to Forest:
+You can also create the configuration file manually if you'd like and place
+it at ``~/.pyquil_config``. The configuration file is in INI format and should
+contain all the information required to connect to Forest:
 
 ::
 
@@ -111,19 +121,21 @@ The configuration file is in INI format and should contain all the information r
     key: <Rigetti Forest API key>
     user_id: <Rigetti User ID>
 
-Alternatively, you can place the file at your own chosen location and then set the ``PYQUIL_CONFIG`` environment
-variable to the path of the file.
+Alternatively, you can place the file at your own chosen location and then set
+the ``PYQUIL_CONFIG`` environment variable to the path of the file.
 
 .. note::
+
   You may specify an absolute path or use the ~ to indicate your home directory.
   On Linux, this points to ``/users/username``.
   On Mac, this points to ``/Users/Username``.
   On Windows, this points to ``C:\Users\Username``
 
 .. note::
-  Windows users may find it easier to name the file ``pyquil.ini`` and open it using notepad. Then, set the
-  ``PYQUIL_CONFIG`` environment variable by opening up a command prompt and running:
-  ``setenv PYQUIL_CONFIG=C:\Users\Username\pyquil.ini``
+
+  Windows users may find it easier to name the file ``pyquil.ini`` and open it using notepad.
+  Then, set the ``PYQUIL_CONFIG`` environment variable by opening up a command prompt and
+  running: ``setenv PYQUIL_CONFIG=C:\Users\Username\pyquil.ini``
 
 As a last resort, connection information can be provided via environment variables.
 
@@ -135,7 +147,7 @@ As a last resort, connection information can be provided via environment variabl
 If you are still seeing errors or warnings then file a bug using
 `Github Issues <https://github.com/rigetticomputing/pyquil/issues>`_.
 
-Running your first quantum program
+Running your First Quantum Program
 ----------------------------------
 pyQuil is a Python library that helps you write programs in the Quantum Instruction Language (Quil).
 It also ships with a simple script ``examples/run_quil.py`` that runs Quil code directly. You can
@@ -146,11 +158,11 @@ test your connection to Forest using this script by executing the following on y
     cd examples/
     python run_quil.py hello_world.quil
 
-You should see the following output array ``[[1, 0, 0, 0, 0, 0, 0, 0]]``. This indicates that you have
-a good connection to our API.
+You should see the following output array ``[[1, 0, 0, 0, 0, 0, 0, 0]]``.
+This indicates that you have successfully interacted with our API.
 
-You can continue to write more Quil code in files and run them using the ``run_quil.py`` script. The
-following sections describe how to use the pyQuil library directly to build quantum programs in
+You can continue to write more Quil code in files and run them using the ``run_quil.py`` script.
+The following sections describe how to use the pyQuil library directly to build quantum programs in
 Python.
 
 Basic pyQuil Usage
@@ -165,7 +177,7 @@ gates for pyQuil as well as numpy.
 .. code:: python
 
     from pyquil.quil import Program
-    import pyquil.api as api
+    from pyquil.api import QVMConnection
     from pyquil.gates import *
     import numpy as np
 
@@ -173,7 +185,7 @@ Next, we want to open a connection to the QVM.
 
 .. code:: python
 
-    qvm = api.QVMConnection()
+    qvm = QVMConnection()
 
 Now we can make a program by adding some Quil instruction using the
 ``inst`` method on a ``Program`` object.
@@ -183,13 +195,9 @@ Now we can make a program by adding some Quil instruction using the
     p = Program()
     p.inst(X(0)).measure(0, 0)
 
-
-
-
 .. parsed-literal::
 
     <pyquil.quil.Program at 0x101d45a90>
-
 
 
 This program simply applies the :math:`X`-gate to the zeroth qubit,
@@ -201,13 +209,10 @@ program simply by printing it.
 
     print(p)
 
-
 .. parsed-literal::
 
     X 0
     MEASURE 0 [0]
-    
-
 
 Most importantly, of course, we can see what happens if we run this
 program on the QVM:
@@ -218,14 +223,9 @@ program on the QVM:
     
     qvm.run(p, classical_regs)
 
-
-
-
 .. parsed-literal::
 
     [[1]]
-
-
 
 We see that the result of this program is that the classical register
 ``[0]`` now stores the state of qubit 0, which should be
@@ -236,14 +236,9 @@ course ask for more classical registers:
 
     qvm.run(p, [0, 1, 2])
 
-
-
-
 .. parsed-literal::
 
     [[1, 0, 0]]
-
-
 
 The classical registers are initialized to zero, so registers ``[1]``
 and ``[2]`` come out as zero. If we stored the measurement in a
@@ -255,14 +250,9 @@ different classical register we would obtain:
     p.inst(X(0)).measure(0, 1)
     qvm.run(p, [0, 1, 2])
 
-
-
-
 .. parsed-literal::
 
     [[0, 1, 0]]
-
-
 
 We can also run programs multiple times and accumulate all the results
 in a single list.
@@ -273,14 +263,9 @@ in a single list.
     num_flips = 5
     qvm.run(coin_flip, [0], num_flips)
 
-
-
-
 .. parsed-literal::
 
     [[0], [1], [0], [1], [0]]
-
-
 
 Try running the above code several times. You will see that you will,
 with very high probability, get different results each time.
@@ -293,13 +278,9 @@ a program directly, even without measurements:
     coin_flip = Program().inst(H(0))
     qvm.wavefunction(coin_flip)
 
-
-
-
 .. parsed-literal::
 
     <pyquil.wavefunction.Wavefunction at 0x1088a2c10>
-
 
 The return value is a Wavefunction object that stores the amplitudes of the
 quantum state at the conclusion of the program. We can print this object
@@ -341,7 +322,6 @@ check:
     wavefunction = qvm.wavefunction(coin_flip, classical_addresses=range(9))
     classical_mem = wavefunction.classical_memory
 
-
 Additionally, we can pass a random seed to the Connection object. This allows us to reliably
 reproduce measurement results for the purpose of testing:
 
@@ -353,7 +333,6 @@ reproduce measurement results for the purpose of testing:
     seeded_cxn = api.QVMConnection(random_seed=17)
     # This will give identical output to the above
     print(seeded_cxn.run(Program(H(0)).measure(0, 0), [0], 20))
-
 
 It is important to remember that this ``wavefunction`` method is just a useful debugging tool
 for small quantum systems, and it cannot be feasibly obtained on a
@@ -379,7 +358,6 @@ following are all valid programs:
     print("A composition of two programs:")
     print(Program(X(0)) + Program(Y(0)))
 
-
 .. parsed-literal::
 
     Multiple inst arguments with final measurement:
@@ -404,8 +382,6 @@ following are all valid programs:
     A composition of two programs:
     X 0
     Y 0
-    
-
 
 Fixing a Mistaken Instruction
 ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
@@ -428,7 +404,6 @@ off.
     p += Program(Y(1))
     print(p)
 
-
 .. parsed-literal::
 
     Oops! We have added Y 1 by accident:
@@ -441,8 +416,6 @@ off.
     And then add it back:
     X 0
     Y 1
-    
-
 
 The Standard Gate Set
 ~~~~~~~~~~~~~~~~~~~~~
@@ -470,8 +443,6 @@ The following gates methods come standard with Quil and ``gates.py``:
 The parameterized gates take a real or complex floating point
 number as an argument.
 
-
-
 Defining New Gates
 ~~~~~~~~~~~~~~~~~~
 
@@ -493,7 +464,6 @@ matrix representation of the gate. For example, below we define a
     p.inst(("SQRT-X", 0))
     print(p)
 
-
 .. parsed-literal::
 
     DEFGATE SQRT-X:
@@ -501,22 +471,14 @@ matrix representation of the gate. For example, below we define a
         0.5-0.5i, 0.5+0.5i
     
     SQRT-X 0
-    
-
-
 
 .. code:: python
 
     print(qvm.wavefunction(p))
 
-
-
-
 .. parsed-literal::
 
     (0.5+0.5j)|0> + (0.5-0.5j)|1>
-
-
 
 Below we show how we can define :math:`X_0\otimes \sqrt{X_1}` as a single gate.
 
@@ -534,14 +496,9 @@ Below we show how we can define :math:`X_0\otimes \sqrt{X_1}` as a single gate.
     wavefunction = qvm.wavefunction(p)
     print(wavefunction)
 
-
-
-
 .. parsed-literal::
 
     (0.5+0.5j)|01> + (0.5-0.5j)|11>
-
-
 
 Defining Parametric Gates
 ~~~~~~~~~~~~~~~~~~~~~~~~~
@@ -568,7 +525,6 @@ Let's say we want to have a controlled RX gate. Since RX is a parametric gate, w
 
     wavefunction = qvm.wavefunction(p)
     print(wavefunction)
-
 
 .. parsed-literal::
 
@@ -623,7 +579,6 @@ the following:
 
     print(qft3(0, 1, 2))
 
-
 .. parsed-literal::
 
     H 2
@@ -633,8 +588,6 @@ the following:
     CPHASE(1.5707963267948966) 0 1
     H 0
     SWAP 0 2
-    
-
 
 Next, we want to prepare a state that corresponds to the sequence we
 want to compute the discrete Fourier transform of. Fortunately, this is
@@ -654,13 +607,9 @@ would return a two-element vector.
     wavefunction = qvm.wavefunction(state_prep + add_dummy_qubits)
     print(wavefunction)
 
-
-
 .. parsed-literal::
 
     (1+0j)|001>
-
-
 
 If we have two quantum programs ``a`` and ``b``, we can concatenate them
 by doing ``a + b``. Using this, all we need to do is compute the QFT
@@ -671,16 +620,12 @@ after state preparation to get our final result.
     wavefunction = qvm.wavefunction(state_prep + qft3(0, 1, 2))
     print(wavefunction.amplitudes)
 
-
-
 .. parsed-literal::
 
     array([  3.53553391e-01+0.j        ,   2.50000000e-01+0.25j      ,
              2.16489014e-17+0.35355339j,  -2.50000000e-01+0.25j      ,
             -3.53553391e-01+0.j        ,  -2.50000000e-01-0.25j      ,
             -2.16489014e-17-0.35355339j,   2.50000000e-01-0.25j      ])
-
-
 
 We can verify this works by computing the (inverse) FFT from NumPy.
 
@@ -689,17 +634,12 @@ We can verify this works by computing the (inverse) FFT from NumPy.
     from numpy.fft import ifft
     ifft([0,1,0,0,0,0,0,0], norm="ortho")
 
-
-
-
 .. parsed-literal::
 
     array([ 0.35355339+0.j        ,  0.25000000+0.25j      ,
             0.00000000+0.35355339j, -0.25000000+0.25j      ,
            -0.35355339+0.j        , -0.25000000-0.25j      ,
             0.00000000-0.35355339j,  0.25000000-0.25j      ])
-
-
 
 Classical Control Flow
 ~~~~~~~~~~~~~~~~~~~~~~
@@ -733,7 +673,6 @@ Then we construct the loop in the following steps:
     
     print(loop_prog)
 
-
 .. parsed-literal::
 
     TRUE [2]
@@ -744,8 +683,6 @@ Then we construct the loop in the following steps:
     MEASURE 0 [2]
     JUMP @START1
     LABEL @END2
-    
-
 
 Notice that the ``init_register`` program applied a Quil instruction directly to a
 classical register.  There are several classical commands that can be used in this fashion:
@@ -786,7 +723,6 @@ method.
     
     print(branching_prog)
 
-
 .. parsed-literal::
 
     H 1
@@ -797,8 +733,6 @@ method.
     X 0
     LABEL @END4
     MEASURE 0 [0]
-    
-
 
 We can run this program a few times to see what we get in the
 ``answer_register``.
@@ -806,9 +740,6 @@ We can run this program a few times to see what we get in the
 .. code:: python
 
     qvm.run(branching_prog, [answer_register], 10)
-
-
-
 
 .. parsed-literal::
 
@@ -852,12 +783,10 @@ we should always measure ``1``.
     print("Without Noise: {}".format(qvm.run(p, [0], 10)))
     print("With Noise   : {}".format(noisy_qvm.run(p, [0], 10)))
 
-
 .. parsed-literal::
 
     Without Noise: [[1], [1], [1], [1], [1], [1], [1], [1], [1], [1]]
     With Noise   : [[0], [0], [0], [0], [0], [1], [1], [1], [1], [0]]
-
 
 Parametric Programs
 ~~~~~~~~~~~~~~~~~~~
@@ -914,11 +843,9 @@ The above sum can be constructed as follows:
     sigma = a + b + c
     print("sigma = {}".format(sigma))
 
-
 .. parsed-literal::
 
     sigma = 0.5*I + -0.75*X0*Y1*Z3 + (5-2j)*Z1*X2
-
 
 Right now, the primary thing one can do with Pauli terms and sums is to construct the
 exponential of the Pauli term, i.e., :math:`\exp[-i\beta\sigma]`.  This is
@@ -947,7 +874,6 @@ The following shows an instructive example of all three.
     H = -1.0 * sX(0)
     print("Quil to compute exp[iX] on qubit 0:")
     print(pl.exponential_map(H)(1.0))
-
 
 .. parsed-literal::
 
@@ -1105,7 +1031,6 @@ As an example: ``single_shot_grovers([0,0,1,0])`` should return 2.
 **HINT** - Remember that the Grover's diffusion operator is:
 
 .. math::
-
 
    \begin{pmatrix}
    2/N - 1 & 2/N & \cdots & 2/N \\
