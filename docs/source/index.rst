@@ -10,7 +10,7 @@ Overview
 --------
 
 pyQuil is part of the Rigetti Forest `toolkit <http://forest.rigetti.com>`_ for
-**quantum programming in the cloud**, which is currently in public beta. If you are
+**quantum programming in the cloud**. If you are
 interested in obtaining an API key for the beta, please reach out by signing up
 `here <http://forest.rigetti.com>`_. We look forward to hearing from you.
 
