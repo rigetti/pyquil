@@ -12,7 +12,6 @@ Welcome to the Documentation for Forest and pyQuil!
    overview
    intro_to_qc
    getting_started
-   next_steps
    qvm_overview
    noise_models
    gateset_noise
