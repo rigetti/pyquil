@@ -31,7 +31,7 @@ In addition to the QVM, we offer the ability to run programs on the physical qub
 or **Quantum Processing Units** (QPUs), at our lab in Berkeley, California. To request upgraded
 access to our 19Q QPU, please fill out the `request form <https://www.rigetti.com/qpu-request>`_
 with a brief summary of what you hope to use it for. For more information on the QPU, check out
-the `QPU Overview <qpu_overview.html>`_ and `Using the QPU-based stack <qpu_usage.html>`_.
+:ref:`qpu`.
 
 If you are already familiar with quantum computing, then feel free to proceed to
 `Installation and Getting Started <getting_started.html>`_. Otherwise, take a look at our

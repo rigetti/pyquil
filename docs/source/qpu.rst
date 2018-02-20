@@ -1,4 +1,4 @@
-..  _qpu_overview:
+..  _qpu:
 
 The Rigetti QPU
 ===============
