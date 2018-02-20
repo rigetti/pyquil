@@ -16,9 +16,7 @@ Welcome to the Documentation for Forest and pyQuil!
    noise_models
    gateset_noise
    readout_noise
-   device_class
-   qpu_overview
-   qpu_usage
+   qpu
    compiler_usage
    examples
    source_docs

@@ -394,8 +394,7 @@ QVM, pyQuil provides a simple interface for loading the QVM with noise models ta
 available QPUs, in just one modified line of code. This is made possible via the ``Device`` class,
 which holds hardware specification information, noise model information, and instruction set
 architecture (ISA) information regarding connectivity. This information is held in the ``Specs``,
-``ISA`` and ``NoiseModel`` attributes of the ``Device`` class, respectively. To read more about the
-``Device`` class, see here: :ref:`device_class`.
+``ISA`` and ``NoiseModel`` attributes of the ``Device`` class, respectively.
 
 Specifically, to load a QVM with the ``NoiseModel`` information from a ``Device``, all that is
 required is to provide a ``Device`` object to the QVM during initialization:
