@@ -1,11 +1,11 @@
 .. _compiler_usage:
 
-Using quilc, the Quil compiler
-==============================
+Using the Quil Compiler
+=======================
 
 
-The Quil compiler and expectations for program contents
--------------------------------------------------------
+Expectations for Program Contents
+---------------------------------
 
 The QPUs have much more limited natural gate sets than the standard gate set offered by pyQuil: the
 gate operators are constrained to lie in ``RZ(θ)``, ``RX(kπ/2)``, ``CZ``, and ``CPHASE(θ)``; and the
@@ -30,7 +30,7 @@ of the Rigetti 19Q-Acorn QPU.
     15 are disabled.
 
 
-Interacting with the compiler
+Interacting with the Compiler
 -----------------------------
 
 The ``QVMConnection`` and ``QPUConnection`` classes in pyQuil offer indirect support for interacting
@@ -68,7 +68,7 @@ The Quil compiler can also be communicated with through ``PRAGMA`` commands embe
     PRAGMA END_COMMUTING_BLOCKS
 
 
-Common error messages
+Common Error Messages
 ---------------------
 
 The compiler itself is subject to some limitations, and some of the more commonly observed errors
