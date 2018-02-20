@@ -1,6 +1,6 @@
 
-Brief Introduction to Quantum Computing
-=======================================
+Introduction to Quantum Computing
+=================================
 
 With every breakthrough in science there is the potential for new
 technology. For over twenty years, researchers have done inspiring work
@@ -19,9 +19,9 @@ and impactful in two major ways:
 Quantum computing has come a long way, and in the next few years there
 will be significant breakthroughs in the field. To get here, however,
 we have needed to change our intuition for computation in many ways. As with
-other paradigms - such as object-oriented programming, functional programming,
+other paradigms --- such as object-oriented programming, functional programming,
 distributed programming, or any of the other marvelous ways of thinking that have
-been expressed in code over the years - even the basic tenants of quantum computing
+been expressed in code over the years --- even the basic tenants of quantum computing
 opens up vast new potential for computation.
 
 However, unlike other paradigms, quantum computing goes further. It requires an extension
@@ -54,6 +54,7 @@ probabilistic bit) is a two-dimensional real vector space and a
 
     import numpy as np
     import matplotlib.pyplot as plt
+
     outcome_0 = np.array([1.0, 0.0])
     outcome_1 = np.array([0.0, 1.0])
     a = 0.75
@@ -160,8 +161,8 @@ outcome of 0 is represented by:
 
 .. image:: images/bloch_1.png
 
-Notice that the two axes in the horizontal plane have been labeled x
-and y, implying that z is the vertical axis (not labeled). Physicists
+Notice that the two axes in the horizontal plane have been labeled \\(x\\)
+and \\(y\\), implying that \\(z\\) is the vertical axis (not labeled). Physicists
 use the convention that a qubit's \\(\\{\|\\,0\\rangle,
 \|\\,1\\rangle\\}\\) states are the
 positive and negative unit vectors along the z axis, respectively. These
@@ -179,8 +180,8 @@ and the quantum case is that probabilistic states may just mask out
 ignorance. For example a coin is physically only 0 or 1 and the
 probabilistic view merely represents our ignorance about which it actually
 is. **This is not the case in quantum mechanics**. Assuming events cannot instantaneously
-influence one another, the quantum states -
-as far as we know - cannot mask any underlying state. This is what
+influence one another, the quantum states ---
+as far as we know --- cannot mask any underlying state. This is what
 people mean when they say that there is no `local hidden variable theory
 <https://en.wikipedia.org/wiki/Bell's_theorem>`_ for
 quantum mechanics. These probabilistic quantum states are as real as it
@@ -201,8 +202,8 @@ Each of the code snippets below will be immediately followed by its output.
     # Imports for pyQuil (ignore for now)
     import numpy as np
     from pyquil.quil import Program
-    import pyquil.api as api
-    quantum_simulator = api.QVMConnection()
+    from pyquil.api import QVMConnection
+    quantum_simulator = QVMConnection()
 
     # pyQuil is based around operations (or gates) so we will start with the most
     # basic one: the identity operation, called I. I takes one argument, the index
@@ -217,8 +218,10 @@ Each of the code snippets below will be immediately followed by its output.
     # This call will return the state of our qubits after we run program p.
     # This api call returns a tuple, but we'll ignore the second value for now.
     wavefunction = quantum_simulator.wavefunction(p)
+
     # wavefunction is a Wavefunction object that stores a quantum state as a list of amplitudes
     alpha, beta = wavefunction
+
     print("Our qubit is in the state alpha={} and beta={}".format(alpha, beta))
     print("The probability of measuring the qubit in outcome 0 is {}".format(abs(alpha)**2))
     print("The probability of measuring the qubit in outcome 1 is {}".format(abs(beta)**2))
@@ -238,10 +241,12 @@ Applying an operation to our qubit affects the probability of each outcome.
     # We can import the qubit "flip" operation, called X, and see what it does.
     # We will learn more about this operation in the next section.
     from pyquil.gates import X
+
     p = Program(X(0))
 
     wavefunc = quantum_simulator.wavefunction(p)
     alpha, beta = wavefunc
+
     print("Our qubit is in the state alpha={} and beta={}".format(alpha, beta))
     print("The probability of measuring the qubit in outcome 0 is {}".format(abs(alpha)**2))
     print("The probability of measuring the qubit in outcome 1 is {}".format(abs(beta)**2))
@@ -300,8 +305,8 @@ those outcomes as values.
 Qubit Operations
 ----------------
 
-In the previous section we introduced our first two **operations**: the I
-(or identity) operation and the X operation. In this section we will get into some
+In the previous section we introduced our first two **operations**: the ``I``
+(or identity) operation and the ``X`` operation. In this section we will get into some
 more details on what these operations are.
 
 Quantum states are complex vectors on the Bloch sphere, and quantum operations are matrices with two properties:
@@ -349,7 +354,8 @@ so the program that applies this operation to the zero state is just
 Pauli Operators
 ^^^^^^^^^^^^^^^
 
-Let's revisit the X gate introduced above. It is one of three important single-qubit gates, called the Pauli operators:
+Let's revisit the ``X`` gate introduced above. It is one of three important single-qubit gates,
+called the Pauli operators:
 
 .. math::
 
@@ -372,16 +378,19 @@ Let's revisit the X gate introduced above. It is one of three important single-q
 .. code:: python
 
     from pyquil.gates import X, Y, Z
+
     p = Program(X(0))
     wavefunction = quantum_simulator.wavefunction(p)
     print("X|0> = ", wavefunction)
     print("The outcome probabilities are", wavefunction.get_outcome_probs())
     print("This looks like a bit flip.\n")
+
     p = Program(Y(0))
     wavefunction = quantum_simulator.wavefunction(p)
     print("Y|0> = ", wavefunction)
     print("The outcome probabilities are", wavefunction.get_outcome_probs())
     print("This also looks like a bit flip.\n")
+
     p = Program(Z(0))
     wavefunction = quantum_simulator.wavefunction(p)
     print("Z|0> = ", wavefunction)
@@ -403,15 +412,15 @@ Let's revisit the X gate introduced above. It is one of three important single-q
     The outcome probabilities are {'1': 0.0, '0': 1.0}
     This state looks unchanged.
 
-The Pauli matrices have a visual interpretation: they perform 180 degree rotations of
+The Pauli matrices have a visual interpretation: they perform 180-degree rotations of
 qubit state vectors on the Bloch sphere. They operate about their respective axes
-as shown in the Bloch sphere depicted above. For example, the X gate performs a 180 degree rotation *about*
-the x axis. This explains the results of our code above: for a state vector initially in the
-+z direction, both X and Y gates will rotate it to -z, and the Z gate will leave it
-unchanged.
+as shown in the Bloch sphere depicted above. For example, the ``X`` gate performs a 180-degree
+rotation **about** the \\(x\\) axis. This explains the results of our code above: for a state vector
+initially in the +\\(z\\) direction, both ``X`` and ``Y`` gates will rotate it to -\\(z\\),
+and the ``Z`` gate will leave it unchanged.
 
-However, notice that while the X and Y gates produce the same outcome probabilities, they
-actually produce different states.  These states are not distinguished if they are measured
+However, notice that while the ``X`` and ``Y`` gates produce the same outcome probabilities, they
+actually produce different states. These states are not distinguished if they are measured
 immediately, but they produce different results in larger programs.
 
 Quantum programs are built by applying successive gate operations:
@@ -421,6 +430,7 @@ Quantum programs are built by applying successive gate operations:
     # Composing qubit operations is the same as multiplying matrices sequentially
     p = Program(X(0), Y(0), Z(0))
     wavefunction = quantum_simulator.wavefunction(p)
+
     print("ZYX|0> = ", wavefunction)
     print("With outcome probabilities\n", wavefunction.get_outcome_probs())
 
@@ -436,7 +446,7 @@ Multi-Qubit Operations
 ^^^^^^^^^^^^^^^^^^^^^^
 
 Operations can also be applied to composite states of multiple qubits.
-One common example is the controlled-not or CNOT gate that works on two
+One common example is the controlled-NOT or ``CNOT`` gate that works on two
 qubits. Its matrix form is:
 
 .. math::
@@ -449,7 +459,7 @@ qubits. Its matrix form is:
    0 & 0 & 1 & 0 \\
    \end{matrix}\right)
 
-Let's take a look at how we could use a CNOT gate in pyQuil.
+Let's take a look at how we could use a ``CNOT`` gate in pyQuil.
 
 .. code:: python
 
@@ -459,14 +469,17 @@ Let's take a look at how we could use a CNOT gate in pyQuil.
     wavefunction = quantum_simulator.wavefunction(p)
     print("CNOT|00> = ", wavefunction)
     print("With outcome probabilities\n", wavefunction.get_outcome_probs())
+
     p = Program(X(0), CNOT(0, 1))
     wavefunction = quantum_simulator.wavefunction(p)
     print("CNOT|01> = ", wavefunction)
     print("With outcome probabilities\n", wavefunction.get_outcome_probs())
+
     p = Program(X(1), CNOT(0, 1))
     wavefunction = quantum_simulator.wavefunction(p)
     print("CNOT|10> = ", wavefunction)
     print("With outcome probabilities\n", wavefunction.get_outcome_probs())
+
     p = Program(X(0), X(1), CNOT(0, 1))
     wavefunction = quantum_simulator.wavefunction(p)
     print("CNOT|11> = ", wavefunction)
@@ -478,21 +491,24 @@ Let's take a look at how we could use a CNOT gate in pyQuil.
     CNOT|00> =  (1+0j)|00>
     With outcome probabilities
      {'00': 1.0, '01': 0.0, '10': 0.0, '11': 0.0}
+
     CNOT|01> =  (1+0j)|11>
     With outcome probabilities
      {'00': 0.0, '01': 0.0, '10': 0.0, '11': 1.0}
+
     CNOT|10> =  (1+0j)|10>
     With outcome probabilities
      {'00': 0.0, '01': 0.0, '10': 1.0, '11': 0.0}
+
     CNOT|11> =  (1+0j)|01>
     With outcome probabilities
      {'00': 0.0, '01': 1.0, '10': 0.0, '11': 0.0}
 
 
-The CNOT gate does what its name implies: the state of the second qubit is flipped
+The ``CNOT`` gate does what its name implies: the state of the second qubit is flipped
 (negated) if and only if the state of the first qubit is 1 (true).
 
-Another two-qubit gate example is the SWAP gate, which swaps the \\( \|01\\rangle \\)
+Another two-qubit gate example is the ``SWAP`` gate, which swaps the \\( \|01\\rangle \\)
 and \\(\|10\\rangle \\) states:
 
 .. math::
@@ -510,6 +526,7 @@ and \\(\|10\\rangle \\) states:
     from pyquil.gates import SWAP
     p = Program(X(0), SWAP(0,1))
     wavefunction = quantum_simulator.wavefunction(p)
+
     print("SWAP|01> = ", wavefunction)
     print("With outcome probabilities\n", wavefunction.get_outcome_probs())
 
@@ -562,7 +579,7 @@ Here's a simple example:
     classical_register_index = 0
     p = Program(I(0)).measure(0, classical_register_index)
 
-Up until this point we have used the quantum simulator to cheat a little bit - we have
+Up until this point we have used the quantum simulator to cheat a little bit --- we have
 actually looked at the wavefunction that comes back. However, on real
 quantum hardware, we are unable to directly look at the wavefunction.
 Instead we only have access to the classical bits that are affected by
@@ -586,8 +603,8 @@ qubit before measurement then we obtain:
 .. code:: python
 
     classical_register_index = 0
-    p = Program(X(0)) # flip the qubit
-    p.measure(0, classical_register_index) # measure the qubit
+    p = Program(X(0)) # Flip the qubit
+    p.measure(0, classical_register_index) # Measure the qubit
 
     classical_regs = [0, 1]
     print(quantum_simulator.run(p, classical_regs))
@@ -619,7 +636,7 @@ times then we always get the same outcome:
 Classical/Quantum Interaction
 ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
 
-However this is not the case in general - measurements can affect the quantum
+However this is not the case in general --- measurements can affect the quantum
 state as well. In fact, measurements act like projections onto
 the outcome basis states. To show how this works, we first introduce a new single-qubit gate,
 the Hadamard gate. The matrix form of the Hadamard gate is:
@@ -640,6 +657,7 @@ The following pyQuil code shows how we can use the Hadamard gate:
     # The Hadamard produces what is called a superposition state
     coin_program = Program(H(0))
     wavefunction = quantum_simulator.wavefunction(coin_program)
+
     print("H|0> = ", wavefunction)
     print("With outcome probabilities\n", wavefunction.get_outcome_probs())
 
@@ -677,12 +695,9 @@ extra power over regular bits.
     print(quantum_simulator.run(coin_program, [0], trials))
 
 
-
-
 .. parsed-literal::
 
     [[0], [1], [1], [0], [1], [0], [0], [1], [0], [0]]
-
 
 
 pyQuil allows us to look at the wavefunction **after** a measurement as well:
@@ -692,6 +707,7 @@ pyQuil allows us to look at the wavefunction **after** a measurement as well:
     classical_reg = 0
     coin_program = Program(H(0))
     print("Before measurement: H|0> = ", quantum_simulator.wavefunction(coin_program))
+
     coin_program.measure(0, classical_reg)
     for x in range(5):
         print("After measurement: ", quantum_simulator.wavefunction(coin_program))
@@ -700,6 +716,7 @@ pyQuil allows us to look at the wavefunction **after** a measurement as well:
 .. parsed-literal::
 
     Before measurement: H|0> =  [ 0.70710678+0.j  0.70710678+0.j]
+
     After measurement:  (1+0j)|1>
     After measurement:  (1+0j)|0>
     After measurement:  (1+0j)|0>
@@ -725,6 +742,7 @@ the obtained outcome and subsequently rescaled to unit norm.
     bell_program = Program(H(0), CNOT(0, 1))
     wavefunction = quantum_simulator.wavefunction(bell_program)
     print("Before measurement: H|0> = ", wavefunction)
+
     bell_program.measure(0, classical_reg)
     for x in range(5):
         wavefunction = quantum_simulator.wavefunction(bell_program)
@@ -734,6 +752,7 @@ the obtained outcome and subsequently rescaled to unit norm.
 .. parsed-literal::
 
     Before measurement: H|0> =  (0.7071067812+0j)|00> + (0.7071067812+0j)|11>
+
     After measurement:  {'00': 1.0, '01': 0.0, '10': 0.0, '11': 0.0}
     After measurement:  {'00': 0.0, '01': 0.0, '10': 0.0, '11': 1.0}
     After measurement:  {'00': 1.0, '01': 0.0, '10': 0.0, '11': 0.0}
@@ -758,9 +777,15 @@ quantum operations to run.
 
     true_branch = Program(X(7)) # if branch
     false_branch = Program(I(7)) # else branch
-    p = Program(X(0)).measure(0, 1).if_then(1, true_branch, false_branch) # Branch on classical reg [1]
-    p.measure(7, 7) # Measure qubit #7 into classical register [7]
-    print(quantum_simulator.run(p, [7])) # Run and check register [7]
+
+    # Branch on classical reg [1]
+    p = Program(X(0)).measure(0, 1).if_then(1, true_branch, false_branch)
+
+    # Measure qubit #7 into classical register [7]
+    p.measure(7, 7)
+
+    # Run and check register [7]
+    print(quantum_simulator.run(p, [7]))
 
 
 .. parsed-literal::
@@ -782,7 +807,9 @@ increasing chance of halting, but that may run forever!
     inside_loop = Program(H(0)).measure(0, 1)
 
     p = Program().inst(X(0)).while_do(1, inside_loop)
-    print(quantum_simulator.run(p, [1])) # Run and check register [1]
+
+    # Run and check register [1]
+    print(quantum_simulator.run(p, [1]))
 
 
 .. parsed-literal::
@@ -792,6 +819,16 @@ increasing chance of halting, but that may run forever!
 .. image:: images/loop.png
 
 
+Next Steps
+----------
+
+We hope that you have enjoyed your whirlwind tour of quantum computing.
 You are now ready to check out the `Installation and Getting Started <getting_started.html>`_ guide!
-Feel free to look at `Next Steps <next_steps.html>`_ for further information and references
-on quantum computing.
+
+If you would like to learn more, Nielsen and Chuang's
+*Quantum Computation and Quantum Information* is a particularly excellent resource for
+newcomers to the field.
+
+If you're interested in learning about the software behind quantum computing, take a look
+at our blog posts on `The Quantum Software
+Challenge <https://medium.com/@rigetticomputing/the-quantum-software-challenge-1a86eec1ce47>`_.

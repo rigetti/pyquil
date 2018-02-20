@@ -35,7 +35,7 @@ the `QPU Overview <qpu_overview.html>`_ and `Using the QPU-based stack <qpu_usag
 
 If you are already familiar with quantum computing, then feel free to proceed to
 `Installation and Getting Started <getting_started.html>`_. Otherwise, take a look at our
-`Brief Introduction to Quantum Computing <intro_to_qc.html>`_, where we use Quil
+`Introduction to Quantum Computing <intro_to_qc.html>`_, where we use Quil
 introduce the basics of quantum computing and the Quantum Abstract Machine on which it runs.
 
 .. [1] https://arxiv.org/abs/1608.03355
