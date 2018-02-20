@@ -31,10 +31,10 @@ The default access key allows you to run simulations of up to 26 qubits. These s
 can be run through either synchronous API calls, or through an asynchronous job queue for
 larger programs. More information about the QVM can be found in the :ref:`qvm`.
 
-In addition to the QVM, we offer the ability to run programs on the physical qubits,
+In addition to the QVM, we offer the ability to run programs on our superconducting quantum processors,
 or **Quantum Processing Units** (QPUs), at our lab in Berkeley, California. To request upgraded
 access to our 19Q QPU, please fill out the `request form <https://www.rigetti.com/qpu-request>`_
-with a brief summary of what you hope to use it for. For more information on the QPU, check out
+with a brief summary of what you hope to use it for. For more information on QPUs, check out
 :ref:`qpu`.
 
 If you are already familiar with quantum computing, then feel free to proceed to
