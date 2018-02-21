@@ -13,7 +13,14 @@ been designed, fabricated and packaged at Rigetti Computing.
 ~~~~~~~~~~~~~~~~~~~~~~~~
 
 The quantum processor consists of 20 superconducting transmon qubits with fixed capacitive coupling
-in the planar lattice design shown in Fig. 1. The resonant frequencies of qubits 0–4 and 10–14 are
+in the planar lattice design shown in Fig. 1. 
+
+.. note::
+
+  While this chip was fabricated with 20 qubits, 18 are currently available for programming. 
+  Qubit 3 and qubit 15 are disabled.
+
+The resonant frequencies of qubits 0–4 and 10–14 are
 tunable while qubits 5–9 and 15–19 are fixed. The former have two Josephson junctions in an
 asymmetric SQUID geometry to provide roughly 1 GHz of frequency tunability, and flux-insensitive
 “sweet spots” near
@@ -31,8 +38,9 @@ gates are activated via RF drives on the flux bias lines.
 
 Due to a fabrication defect, qubit 3 is not tunable, which prohibits operation of the two-qubit
 parametric gate described below between qubit 3 and its neighbors. Consequently, we will treat this
-as a 19-qubit processor. In addition, we recently have disabled qubit 15. This means that
-**qubits 3 and 15 are not accessible** for quantum computation through Forest.
+as a 19-qubit processor. In addition, we recently have disabled qubit 15 as it did not meet
+performance requirements. This means that
+qubits 3 and 15 are not accessible for quantum computation through Forest.
 
 .. figure:: images/acorn.png
     :width: 540px
