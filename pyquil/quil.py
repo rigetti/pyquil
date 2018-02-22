@@ -19,6 +19,7 @@ Module for creating and defining Quil programs.
 import warnings
 from itertools import count
 from math import pi
+import types
 
 import numpy as np
 from six import string_types
@@ -73,6 +74,7 @@ class Program(object):
             >>> p.inst(H(0)) # A single instruction
             >>> p.inst(H(0), H(1)) # Multiple instructions
             >>> p.inst([H(0), H(1)]) # A list of instructions
+            >>> p.inst(H(i) for i in range(4)) # A generator of instructions
             >>> p.inst(("H", 1)) # A tuple representing an instruction
             >>> p.inst("H 0") # A string representing an instruction
             >>> q = Program()
@@ -87,6 +89,8 @@ class Program(object):
         """
         for instruction in instructions:
             if isinstance(instruction, list):
+                self.inst(*instruction)
+            elif isinstance(instruction, types.GeneratorType):
                 self.inst(*instruction)
             elif isinstance(instruction, tuple):
                 if len(instruction) == 0:
