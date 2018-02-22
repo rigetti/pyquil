@@ -135,7 +135,7 @@ def test_iteration():
         assert instruction == gate_list[ii]
     gate_generator = (gate_list[ii] for ii in range(3))   # https://github.com/rigetticomputing/pyquil/issues/265
     program = Program(gate_generator)
-    for ii, instruction in enumerate(program):         
+    for ii, instruction in enumerate(program):
         assert instruction == gate_list[ii]
 
 
@@ -636,4 +636,3 @@ def test_defgate_integer_input():
     dg = DefGate("TEST", np.array([[1, 0],
                                    [0, 1]]))
     assert dg.out() == "DEFGATE TEST:\n    1, 0\n    0, 1\n"
-
