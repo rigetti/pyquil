@@ -69,12 +69,10 @@ The ``QVMConnection`` and ``QPUConnection`` objects have their compiler interact
 same way: the ``.run`` and ``.run_and_measure`` methods take the optional arguments
 ``needs_compilation`` and ``isa`` that respectively toggle the compilation preprocessing step and
 provide the compiler with a target instruction set architecture, specified as a pyQuil ``ISA``
-object.  If the ``isa`` named argument is not set, then the ``default_isa`` property on the
-connection object is used instead. The compiler can be bypassed by passing the method parameter
-``needs_compilation=False`` to the relevant ``.run`` or ``.run_and_measure`` call. The compiled program
-can be accessed after a job has been submitted to the QPU by using the ``.compiled_quil()`` accessor method
-on the resulting ``Job`` object instance. The ``.compiled_quil`` method on the ``Job`` instance will return
-the compiled Quil after the QPU execution has finished.
+object. The compiler can be bypassed by passing the method parameter ``needs_compilation=False``.
+If the ``isa`` named argument is not set, then the ``default_isa`` property on the
+connection object is used instead. The compiled program can be accessed after a job has been submitted
+to the QPU by using the ``.compiled_quil()`` accessor method on the resulting ``Job`` object instance.
 
 The Quil compiler can also be communicated with through ``PRAGMA`` commands embedded in the Quil program.
 
