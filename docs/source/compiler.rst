@@ -38,15 +38,41 @@ with the compiler: they are both capable of submitting jobs to the compiler for 
 the job is forwarded to the execution target.  This behavior is disabled by default for the QVM and
 enabled by default for the QPU.  PyQuil also offers the ``CompilerConnection`` class for direct
 access to the compiler, which returns compiled Program jobs to the user without executing them.
+``CompilerConnection`` can be used to learn about the properties of the program,
+like gate volume, single qubit gate depth, topological swaps, program fidelity and multiqubit gate depth.
 In all cases, the user's Forest plan must have compiler access enabled to use these features.
+
+Here’s an example of using ``CompilerConnection`` to compile a program that targets the 19Q-Acorn QPU, separately from
+sending a program to the QPU/QVM.
+
+.. code:: python
+	  
+	  from pyquil.api import CompilerConnection, get_devices
+	  from pyquil.quil import Pragma, Program
+	  from pyquil.gates import CNOT, H
+	  
+	  devices = get_devices(as_dict=True)
+	  acorn = devices['19Q-Acorn']
+	  compiler = CompilerConnection(acorn)
+
+	  job_id = compiler.compile_async(Program(H(0), CNOT(0,1), CNOT(1,2))
+	  job = compiler.wait_for_job(job_id)
+
+	  print('compiled quil', job.compiled_quil())
+	  print('gate volume', job.gate_volume())
+	  print('gate depth', job.gate_depth())
+	  print('topological swaps', job.topological_swaps())
+	  print('program fidelity', job.program_fidelity())
+	  print('multiqubit gate depth', job.multiqubit_gate_depth())
 
 The ``QVMConnection`` and ``QPUConnection`` objects have their compiler interactions set up in the
 same way: the ``.run`` and ``.run_and_measure`` methods take the optional arguments
 ``needs_compilation`` and ``isa`` that respectively toggle the compilation preprocessing step and
 provide the compiler with a target instruction set architecture, specified as a pyQuil ``ISA``
-object.  If the ``isa`` named argument is not set, then the ``default_isa`` property on the
-connection object is used instead.
-
+object. The compiler can be bypassed by passing the method parameter ``needs_compilation=False``.
+If the ``isa`` named argument is not set, then the ``default_isa`` property on the
+connection object is used instead. The compiled program can be accessed after a job has been submitted
+to the QPU by using the ``.compiled_quil()`` accessor method on the resulting ``Job`` object instance.
 
 The Quil compiler can also be communicated with through ``PRAGMA`` commands embedded in the Quil program.
 
