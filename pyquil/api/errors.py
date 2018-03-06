@@ -38,7 +38,6 @@ code to check for the currently available devices:
     from pyquil.api import get_devices
     print(get_devices())"""
         super(DeviceRetuningError, self).__init__(server_status, explanation)
-        ApiError.__init__(self, server_status, explanation)
 
 
 class InvalidInputError(ApiError):
@@ -50,7 +49,6 @@ code. If you suspect this to be a bug in pyQuil or Rigetti Forest, then please
 describe the problem in a GitHub issue at:
     https://github.com/rigetticomputing/pyquil/issues"""
         super(InvalidInputError, self).__init__(server_status, explanation)
-        ApiError.__init__(self, server_status, explanation)
 
 
 class InvalidUserError(ApiError):
@@ -62,7 +60,6 @@ Have you run the `pyquil-config-setup` command yet?
 If you do not yet have a Forest account then sign up for one at:
     https://forest.rigetti.com"""
         super(InvalidUserError, self).__init__(server_status, explanation)
-        ApiError.__init__(self, server_status, explanation)
 
 
 class JobNotFoundError(ApiError):
@@ -73,7 +70,6 @@ If you suspect this to be a bug then please describe the problem in a Github
 issue at:
     https://github.com/rigetticomputing/pyquil/issues"""
         super(JobNotFoundError, self).__init__(server_status, explanation)
-        ApiError.__init__(self, server_status, explanation)
 
 
 class MissingPermissionsError(ApiError):
@@ -83,7 +79,6 @@ Your account may not be whitelisted for QPU access. To request the appropriate
 permissions please read the information located at:
     https://forest.rigetti.com"""
         super(MissingPermissionsError, self).__init__(server_status, explanation)
-        ApiError.__init__(self, server_status, explanation)
 
 
 class QPUError(ApiError):
