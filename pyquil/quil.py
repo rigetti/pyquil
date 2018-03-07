@@ -60,7 +60,7 @@ class Program(object):
         Fill in any placeholders and return a list of quil AbstractInstructions.
         """
         if self._synthesized_instructions is None:
-            self._synthesized_instructions = self._synthesize()
+            self._synthesize()
 
         return self._synthesized_instructions
 
@@ -452,44 +452,44 @@ class Program(object):
 
         return daggered
 
-    def _synthesize(self, qubit_mapping=None):
+    def _synthesize(self):
         """
         Takes a program which may contain placeholders and assigns them all defined values.
 
-        For qubit placeholders:
-        1. We look through the program to find all the known indexes of qubits and add them to a set
-        2. We create a mapping from undefined qubits to their newly assigned index
-        3. For every qubit placeholder in the program, if it's not already been assigned then look through the set of
-            known indexes and find the lowest available one
+        Changed in 1.9: Either all qubits must be defined or all undefined. If qubits are
+        undefined, you are required to provide a qubit mapping via :py:func:`synthesize()`.
+        All labels must be defined. These restrictions will be relaxed in future versions of
+        pyQuil if necessary.
 
-        For label placeholders:
-        1. Start a counter at 1
-        2. For every label placeholder in the program, replace it with a defined label using the counter and increment
-            the counter
+        Changed in 1.9: This function now returns ``self`` and updates
+        ``self._synthesized_instructions``. See :py:func:`synthesize_program` for the old behavior.
 
-        :return: List of AbstractInstructions with all placeholders removed
+        :return: This object with the ``_synthesized_instructions`` member set.
         """
-        return synthesize_program(self._instructions, qubit_mapping)
+        self._synthesized_instructions = synthesize_program(self._instructions, qubit_mapping=None)
+        return self
 
     def synthesize(self, qubit_mapping=None):
         """
-        Takes a program which may contain placeholders and assigns them all defined values.
+        Takes a program which contains placeholders and assigns them all defined values.
 
-        For qubit placeholders:
-        1. We look through the program to find all the known indexes of qubits and add them to a set
-        2. We create a mapping from undefined qubits to their newly assigned index
-        3. For every qubit placeholder in the program, if it's not already been assigned then look through the set of
-            known indexes and find the lowest available one
+        Either all qubits must be defined or all undefined. If qubits are
+        undefined, you are required to provide a qubit mapping. This will be done automatically
+        in future versions of pyQuil if necessary.
 
-        For label placeholders:
-        1. Start a counter at 1
-        2. For every label placeholder in the program, replace it with a defined label using the counter and increment
-            the counter
+        All labels for classical control must be defined. These restrictions will be relaxed in
+        future versions of pyQuil if necessary.
 
-        :return: List of AbstractInstructions with all placeholders removed
+        This function will throw an error if the program was previously synthesized, as this
+        indicates this function is being used incorrectly.
+
+        :param qubit_mapping: A dictionary-like object that maps from :py:class:`QubitPlaceholder`
+            to :py:class:`Qubit` or ``int`` (but not both).
+        :return: This object with the ``_synthesized_instructions`` member set.
         """
-        assert self._synthesized_instructions is None, "Program was already synthesized. " \
-                                                       "Are you doing this right?"
+        if self._synthesized_instructions is not None:
+            raise RuntimeError("The program was already synthesized! "
+                               "Make sure you haven't previously synthesized the program.")
         self._synthesized_instructions = synthesize_program(self._instructions, qubit_mapping)
         return self
 
@@ -610,27 +610,26 @@ def _what_type_of_label_does_it_use(instructions):
 
 def synthesize_program(instructions, qubit_mapping=None):
     """
-    Takes a program which may contain placeholders and assigns them all defined values.
+    Takes a program which contains placeholders and assigns them all defined values.
 
-    For qubit placeholders:
-    1. We look through the program to find all the known indexes of qubits and add them to a set
-    2. We create a mapping from undefined qubits to their newly assigned index
-    3. For every qubit placeholder in the program, if it's not already been assigned then look through the set of
-        known indexes and find the lowest available one
+    Either all qubits must be defined or all undefined. If qubits are
+    undefined, you are required to provide a qubit mapping. This will be done automatically
+    in future versions of pyQuil if necessary.
 
-    For label placeholders:
-    1. Start a counter at 1
-    2. For every label placeholder in the program, replace it with a defined label using the counter and increment
-        the counter
+    All labels for classical control must be defined. These restrictions will be relaxed in
+    future versions of pyQuil if necessary.
 
-    :return: List of AbstractInstructions with all placeholders removed
+    :param qubit_mapping: A dictionary-like object that maps from :py:class:`QubitPlaceholder`
+        to :py:class:`Qubit` or ``int`` (but not both).
+    :return: list of instructions with all qubit placeholders assigned to real qubits.
     """
     fake_qubits, real_qubits, n_qubits = _what_type_of_qubit_does_it_use(instructions)
     if real_qubits:
         return instructions
 
     if qubit_mapping is None:
-        raise NotImplementedError("TODO")
+        raise NotImplementedError("Please specify a qubit mapping. "
+                                  "At some point this may happen automatically")
     else:
         if all(isinstance(v, Qubit) for v in qubit_mapping.values()):
             pass  # we good
