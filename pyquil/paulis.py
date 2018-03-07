@@ -21,6 +21,9 @@ from __future__ import division
 from itertools import product
 import numpy as np
 import copy
+
+from pyquil.quilatom import QubitPlaceholder
+
 from .quil import Program
 from .gates import H, RZ, RX, CNOT, X, PHASE, STANDARD_GATES
 from numbers import Number
@@ -60,7 +63,8 @@ class PauliTerm(object):
         :param float coefficient: The coefficient multiplying the operator, e.g. 1.5 * Z_1
         """
         assert op in PAULI_OPS
-        assert isinstance(index, integer_types) and index >= 0
+        assert ((isinstance(index, integer_types) and index >= 0)
+                or isinstance(index, QubitPlaceholder))
 
         self._ops = {}
         if op != "I":
@@ -729,7 +733,7 @@ def _exponentiate_general_case(pauli_term, param):
     def reverse_hack(p):
         # A hack to produce a *temporary* program which reverses p.
         revp = Program()
-        revp.inst(list(reversed(p.instructions)))
+        revp.inst(list(reversed(p._instructions)))
         return revp
 
     quil_prog = Program()
