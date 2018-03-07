@@ -535,6 +535,7 @@ class Program(object):
     def __str__(self):
         return self.out()
 
+
 def _what_type_of_qubit_does_it_use(instructions):
     has_placeholders = False
     has_real_qubits = False
@@ -656,6 +657,7 @@ def synthesize_program(instructions, qubit_mapping=None):
             result.append(instr)
 
     return result
+
 
 def merge_programs(prog_list):
     """
