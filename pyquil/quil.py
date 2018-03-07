@@ -452,7 +452,7 @@ class Program(object):
 
         return daggered
 
-    def _synthesize(self):
+    def _synthesize(self, qubit_mapping=None):
         """
         Takes a program which may contain placeholders and assigns them all defined values.
 
@@ -469,7 +469,29 @@ class Program(object):
 
         :return: List of AbstractInstructions with all placeholders removed
         """
-        return synthesize_program(self._instructions)
+        return synthesize_program(self._instructions, qubit_mapping)
+
+    def synthesize(self, qubit_mapping=None):
+        """
+        Takes a program which may contain placeholders and assigns them all defined values.
+
+        For qubit placeholders:
+        1. We look through the program to find all the known indexes of qubits and add them to a set
+        2. We create a mapping from undefined qubits to their newly assigned index
+        3. For every qubit placeholder in the program, if it's not already been assigned then look through the set of
+            known indexes and find the lowest available one
+
+        For label placeholders:
+        1. Start a counter at 1
+        2. For every label placeholder in the program, replace it with a defined label using the counter and increment
+            the counter
+
+        :return: List of AbstractInstructions with all placeholders removed
+        """
+        assert self._synthesized_instructions is None, "Program was already synthesized. " \
+                                                       "Are you doing this right?"
+        self._synthesized_instructions = synthesize_program(self._instructions, qubit_mapping)
+        return self
 
     def __add__(self, other):
         """
@@ -513,7 +535,80 @@ class Program(object):
     def __str__(self):
         return self.out()
 
-def synthesize_program(instructions):
+def _what_type_of_qubit_does_it_use(instructions):
+    has_placeholders = False
+    has_real_qubits = False
+    qubits = set()
+
+    for instr in instructions:
+        if isinstance(instr, Gate):
+            for q in instr.qubits:
+                qubits.add(q)
+                if isinstance(q, QubitPlaceholder):
+                    has_placeholders = True
+                elif isinstance(q, Qubit):
+                    has_real_qubits = True
+                else:
+                    raise ValueError("Unknown qubit type {}".format(q))
+        elif isinstance(instr, Measurement):
+            qubits.add(instr.qubit)
+            if isinstance(instr.qubit, QubitPlaceholder):
+                has_placeholders = True
+            elif isinstance(instr.qubit, Qubit):
+                has_real_qubits = True
+            else:
+                raise ValueError("Unknown qubit type {}".format(instr.qubit))
+
+    if not (has_placeholders or has_real_qubits):
+        warnings.warn("Your program doesn't use any qubits")
+
+    if has_placeholders and has_real_qubits:
+        raise ValueError("Your program mixes instatiated qubits with placeholders")
+
+    return has_placeholders, has_real_qubits, len(qubits)
+
+
+def _what_type_of_label_does_it_use(instructions):
+    has_placeholders = False
+    has_real_labels = False
+
+    labels = set()
+
+    for instr in instructions:
+        if isinstance(instr, Jump):
+            labels.add(instr.target)
+            if isinstance(instr.target, LabelPlaceholder):
+                has_placeholders = True
+            elif isinstance(instr.target, Label):
+                has_real_labels = True
+            else:
+                raise ValueError("Unknown label type {}".format(instr.target))
+
+        elif isinstance(instr, JumpTarget):
+            labels.add(instr.label)
+            if isinstance(instr.label, LabelPlaceholder):
+                has_placeholders = True
+            elif isinstance(instr.label, Label):
+                has_real_labels = True
+            else:
+                raise ValueError("Unknown label type {}".format(instr.label))
+
+        elif isinstance(instr, JumpConditional) and isinstance(instr.target, LabelPlaceholder):
+            labels.add(instr.target)
+            if isinstance(instr.target, LabelPlaceholder):
+                has_placeholders = True
+            elif isinstance(instr.target, Label):
+                has_real_labels = True
+            else:
+                raise ValueError("Unknown label type {}".format(instr.target))
+
+    if has_placeholders and has_real_labels:
+        raise ValueError("Your program mixes instantiated labels with placeholders")
+
+    return has_placeholders, has_real_labels, len(labels)
+
+
+def synthesize_program(instructions, qubit_mapping=None):
     """
     Takes a program which may contain placeholders and assigns them all defined values.
 
@@ -530,73 +625,32 @@ def synthesize_program(instructions):
 
     :return: List of AbstractInstructions with all placeholders removed
     """
-    used_indexes = set()
-    for instr in instructions:
-        if isinstance(instr, Gate):
-            for q in instr.qubits:
-                if not isinstance(q, QubitPlaceholder):
-                    used_indexes.add(q.index)
-        elif isinstance(instr, Measurement):
-            if not isinstance(instr.qubit, QubitPlaceholder):
-                used_indexes.add(instr.qubit.index)
+    fake_qubits, real_qubits, n_qubits = _what_type_of_qubit_does_it_use(instructions)
+    if real_qubits:
+        return instructions
 
-    def find_available_index():
-        # Just do a linear search.
-        for i in count(start=0, step=1):
-            if i not in used_indexes:
-                return i
-
-    qubit_mapping = dict()
-
-    def remap_qubit(qubit):
-        if not isinstance(qubit, QubitPlaceholder):
-            return qubit
-        if id(qubit) in qubit_mapping:
-            return qubit_mapping[id(qubit)]
+    if qubit_mapping is None:
+        raise NotImplementedError("TODO")
+    else:
+        if all(isinstance(v, Qubit) for v in qubit_mapping.values()):
+            pass  # we good
+        elif all(isinstance(v, int) for v in qubit_mapping.values()):
+            qubit_mapping = {k: Qubit(v) for k, v in qubit_mapping.items()}
         else:
-            available_index = find_available_index()
-            used_indexes.add(available_index)
-            remapped_qubit = Qubit(available_index)
-            qubit_mapping[id(qubit)] = remapped_qubit
-            return remapped_qubit
+            raise ValueError("Qubit mapping must map to type Qubit or int (but not both)")
 
-    label_mapping = dict()
-    label_counter = 1
-
-    def remap_label(placeholder):
-        if id(placeholder) in label_mapping:
-            return label_mapping[id(placeholder)]
-        else:
-            label = Label(placeholder.prefix + str(label_counter))
-            label_mapping[id(placeholder)] = label
-            return label
+    fake_labels, _, _ = _what_type_of_label_does_it_use(instructions)
+    if fake_labels:
+        raise NotImplementedError("Please use explicit labels for the time being")
 
     result = []
     for instr in instructions:
         # Remap qubits on Gate and Measurement instructions
         if isinstance(instr, Gate):
-            remapped_qubits = [remap_qubit(q) for q in instr.qubits]
+            remapped_qubits = [qubit_mapping[q] for q in instr.qubits]
             result.append(Gate(instr.name, instr.params, remapped_qubits))
         elif isinstance(instr, Measurement):
-            result.append(Measurement(remap_qubit(instr.qubit), instr.classical_reg))
-
-        # Remap any label placeholders on jump or target instructions
-        elif isinstance(instr, Jump) and isinstance(instr.target, LabelPlaceholder):
-            result.append(Jump(remap_label(instr.target)))
-            label_counter += 1
-        elif isinstance(instr, JumpTarget) and isinstance(instr.label, LabelPlaceholder):
-            result.append(JumpTarget(remap_label(instr.label)))
-            label_counter += 1
-        elif isinstance(instr, JumpConditional) and isinstance(instr.target, LabelPlaceholder):
-            new_label = remap_label(instr.target)
-            if isinstance(instr, JumpWhen):
-                result.append(JumpWhen(new_label, instr.condition))
-            elif isinstance(instr, JumpUnless):
-                result.append(JumpUnless(new_label, instr.condition))
-            else:
-                raise TypeError("Encountered a JumpConditional that wasn't JumpWhen or JumpUnless: {} {}"
-                                .format(type(instr), instr))
-            label_counter += 1
+            result.append(Measurement(qubit_mapping[instr.qubit], instr.classical_reg))
 
         # Otherwise simply add it to the result
         else:
