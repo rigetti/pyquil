@@ -561,3 +561,10 @@ def test_from_list():
     with pytest.raises(ValueError):
         # terms are not on disjoint qubits
         pterm = PauliTerm.from_list([("X", 0), ("Y", 0)])
+
+
+def test_numpy_integer_types():
+    idx_np, = np.arange(1, dtype=np.int64)
+    assert isinstance(idx_np, np.int64)
+    # on python 3 this fails unless explicitly allowing for numpy integer types
+    PauliTerm("X", idx_np)
