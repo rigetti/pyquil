@@ -349,6 +349,8 @@ class Program(object):
         :return: A qubit.
         :rtype: Qubit
         """
+        warnings.warn("`alloc` is deprecated and will be removed in a future version of pyQuil. "
+                      "Please create a `QubitPlaceholder` directly", DeprecationWarning)
         return QubitPlaceholder()
 
     def out(self):
