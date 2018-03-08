@@ -18,6 +18,7 @@ Module for creating and defining Quil programs.
 """
 import warnings
 from itertools import count
+import itertools
 from math import pi
 import types
 
@@ -360,13 +361,11 @@ class Program(object):
         :return: String form of a program
         :rtype: string
         """
-        s = ""
-        for dg in self._defined_gates:
-            s += dg.out()
-            s += "\n"
-        for instr in self.instructions:
-            s += instr.out() + "\n"
-        return s
+        return '\n'.join(itertools.chain(
+            (dg.out() for dg in self._defined_gates),
+            (instr.out() for instr in self.instructions),
+            [''],
+        ))
 
     def get_qubits(self):
         """
@@ -468,7 +467,7 @@ class Program(object):
 
         :return: This object with the ``_synthesized_instructions`` member set.
         """
-        self._synthesized_instructions = synthesize_program(self._instructions, qubit_mapping=None)
+        self._synthesized_instructions = instantiate_labels(self._instructions)
         return self
 
     def synthesize(self, qubit_mapping=None):
@@ -655,6 +654,54 @@ def synthesize_program(instructions, qubit_mapping=None):
             result.append(Measurement(qubit_mapping[instr.qubit], instr.classical_reg))
 
         # Otherwise simply add it to the result
+        else:
+            result.append(instr)
+
+    return result
+
+
+def _get_label(placeholder, label_mapping, label_i):
+    if placeholder in label_mapping:
+        return label_mapping[placeholder], label_mapping, label_i
+
+    new_target = Label("{}{}".format(placeholder.prefix, label_i))
+    label_i += 1
+    label_mapping[placeholder] = new_target
+    return new_target, label_mapping, label_i
+
+
+def instantiate_labels(instructions):
+    """
+    Takes a program which contains placeholders and assigns them all defined values.
+
+    Either all qubits must be defined or all undefined. If qubits are
+    undefined, you are required to provide a qubit mapping. This will be done automatically
+    in future versions of pyQuil if necessary.
+
+    All labels for classical control must be defined. These restrictions will be relaxed in
+    future versions of pyQuil if necessary.
+
+    :param qubit_mapping: A dictionary-like object that maps from :py:class:`QubitPlaceholder`
+        to :py:class:`Qubit` or ``int`` (but not both).
+    :return: list of instructions with all qubit placeholders assigned to real qubits.
+    """
+    has_target_label = (Jump, JumpConditional)
+    has_label_label = (JumpTarget,)
+
+    label_i = 1
+    result = []
+    label_mapping = dict()
+    for instr in instructions:
+        if isinstance(instr, Jump) and isinstance(instr.target, LabelPlaceholder):
+            new_target, label_mapping, label_i = _get_label(instr.target, label_mapping, label_i)
+            result.append(Jump(new_target))
+        elif isinstance(instr, JumpConditional) and isinstance(instr.target, LabelPlaceholder):
+            new_target, label_mapping, label_i = _get_label(instr.target, label_mapping, label_i)
+            cls = instr.__class__  # Make the correct subclass
+            result.append(cls(new_target, instr.condition))
+        elif isinstance(instr, JumpTarget) and isinstance(instr.label, LabelPlaceholder):
+            new_label, label_mapping, label_i = _get_label(instr.label, label_mapping, label_i)
+            result.append(JumpTarget(new_label))
         else:
             result.append(instr)
 
