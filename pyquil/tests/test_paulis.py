@@ -94,7 +94,7 @@ def test_simplify_term_xz():
 
 def test_simplify_term_multindex():
     term = PauliTerm('X', 0, coefficient=-0.5) * PauliTerm('Z', 0, coefficient=-1.0) \
-        * PauliTerm('X', 2, 0.5)
+           * PauliTerm('X', 2, 0.5)
     assert term.id() == 'Y0X2'
     assert term.coefficient == -0.25j
 
@@ -238,7 +238,7 @@ def test_ps_sub():
 
 def test_zero_terms():
     term = PauliTerm("X", 0, 1.0) + PauliTerm("X", 0, -1.0) + \
-        PauliTerm("Y", 0, 0.5)
+           PauliTerm("Y", 0, 0.5)
     assert str(term) == "(0.5+0j)*Y0"
 
     term = PauliTerm("X", 0, 1.0) + PauliTerm("X", 0, -1.0)
@@ -261,7 +261,7 @@ def test_zero_terms():
     assert str(term) == "(1+0j)*Y1*Z2"
 
 
-def test_exponentiate():
+def test_exponentiate_1():
     # test rotation of single qubit
     generator = PauliTerm("Z", 0, 1.0)
     para_prog = exponential_map(generator)
@@ -269,6 +269,8 @@ def test_exponentiate():
     result_prog = Program().inst(RZ(2.0)(0))
     assert prog == result_prog
 
+
+def test_exponentiate_2():
     # testing general 2-circuit
     generator = PauliTerm("Z", 1, 1.0) * PauliTerm("Z", 0, 1.0)
     para_prog = exponential_map(generator)
@@ -276,22 +278,26 @@ def test_exponentiate():
     result_prog = Program().inst(CNOT(0, 1)).inst(RZ(2.0)(1)).inst(CNOT(0, 1))
     assert prog == result_prog
 
+
+def test_exponentiate_bp0_ZX():
     # testing change of basis position 0
     generator = PauliTerm("Z", 1, 1.0) * PauliTerm("X", 0, 1.0)
     param_prog = exponential_map(generator)
     prog = param_prog(1)
-    result_prog = Program().inst([H(0), CNOT(0, 1), RZ(2.0)(1), CNOT(0, 1),
-                                  H(0)])
+    result_prog = Program().inst([H(0), CNOT(0, 1), RZ(2.0)(1), CNOT(0, 1), H(0)])
     assert prog == result_prog
 
+
+def test_exponentiate_bp1_XZ():
     # testing change of basis position 1
     generator = PauliTerm("X", 1, 1.0) * PauliTerm("Z", 0, 1.0)
     para_prog = exponential_map(generator)
     prog = para_prog(1)
-    result_prog = Program().inst([H(1), CNOT(0, 1), RZ(2.0)(1), CNOT(0, 1),
-                                  H(1)])
+    result_prog = Program().inst([H(1), CNOT(0, 1), RZ(2.0)(1), CNOT(0, 1), H(1)])
     assert prog == result_prog
 
+
+def test_exponentiate_bp0_ZY():
     # testing change of basis position 0
     generator = PauliTerm("Z", 1, 1.0) * PauliTerm("Y", 0, 1.0)
     para_prog = exponential_map(generator)
@@ -300,14 +306,18 @@ def test_exponentiate():
                                   CNOT(0, 1), RX(-math.pi / 2)(0)])
     assert prog == result_prog
 
+
+def test_exponentiate_bp1_YZ():
     # testing change of basis position 1
     generator = PauliTerm("Y", 1, 1.0) * PauliTerm("Z", 0, 1.0)
     para_prog = exponential_map(generator)
     prog = para_prog(1)
-    result_prog = Program().inst([RX(math.pi / 2.0)(1), CNOT(0, 1), RZ(2.0)(1),
-                                  CNOT(0, 1), RX(-math.pi / 2.0)(1)])
+    result_prog = Program().inst([RX(math.pi / 2.0)(1), CNOT(0, 1),
+                                  RZ(2.0)(1), CNOT(0, 1), RX(-math.pi / 2.0)(1)])
     assert prog == result_prog
 
+
+def test_exponentiate_3cob():
     # testing circuit for 3-terms with change of basis
     generator = PauliTerm("X", 2, 1.0) * PauliTerm("Y", 1, 1.0) * PauliTerm("Z", 0, 1.0)
     para_prog = exponential_map(generator)
@@ -317,10 +327,11 @@ def test_exponentiate():
                                   CNOT(0, 1), RX(-math.pi / 2.0)(1), H(2)])
     assert prog == result_prog
 
+
+def test_exponentiate_3ns():
     # testing circuit for 3-terms non-sequential
-    generator = PauliTerm("Y", 3, 1.0) * PauliTerm("Y", 2, 1.0) * PauliTerm("I", 1,
-                                                                            1.0) * PauliTerm("Y", 0,
-                                                                                             1.0)
+    generator = (PauliTerm("Y", 3, 1.0) * PauliTerm("Y", 2, 1.0)
+                 * PauliTerm("I", 1, 1.0) * PauliTerm("Y", 0, 1.0))
     para_prog = exponential_map(generator)
     prog = para_prog(1)
     result_prog = Program().inst([RX(math.pi / 2.0)(0), RX(math.pi / 2.0)(2),
@@ -564,7 +575,7 @@ def test_from_list():
 
 
 def test_ordered():
-    term = sZ(3)*sZ(2)*sZ(1)
+    term = sZ(3) * sZ(2) * sZ(1)
     prog = exponential_map(term)(0.5)
     assert prog.out() == "CNOT 3 2\n" \
                          "CNOT 2 1\n" \
