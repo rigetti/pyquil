@@ -93,8 +93,8 @@ def test_simplify_term_xz():
 
 
 def test_simplify_term_multindex():
-    term = PauliTerm('X', 0, coefficient=-0.5) * PauliTerm('Z', 0, coefficient=-1.0) \
-           * PauliTerm('X', 2, 0.5)
+    term = (PauliTerm('X', 0, coefficient=-0.5) * PauliTerm('Z', 0, coefficient=-1.0)
+            * PauliTerm('X', 2, 0.5))
     assert term.id() == 'Y0X2'
     assert term.coefficient == -0.25j
 
@@ -237,8 +237,7 @@ def test_ps_sub():
 
 
 def test_zero_terms():
-    term = PauliTerm("X", 0, 1.0) + PauliTerm("X", 0, -1.0) + \
-           PauliTerm("Y", 0, 0.5)
+    term = PauliTerm("X", 0, 1.0) + PauliTerm("X", 0, -1.0) + PauliTerm("Y", 0, 0.5)
     assert str(term) == "(0.5+0j)*Y0"
 
     term = PauliTerm("X", 0, 1.0) + PauliTerm("X", 0, -1.0)
@@ -254,8 +253,7 @@ def test_zero_terms():
     term4 = PauliSum([])
     assert str(term4) == "0j*I"
 
-    term = PauliSum([PauliTerm("X", 0, 0.0), PauliTerm("Y", 1, 1.0) *
-                     PauliTerm("Z", 2)])
+    term = PauliSum([PauliTerm("X", 0, 0.0), PauliTerm("Y", 1, 1.0) * PauliTerm("Z", 2)])
     assert str(term) == "0j*X0 + (1+0j)*Y1*Z2"
     term = term.simplify()
     assert str(term) == "(1+0j)*Y1*Z2"
