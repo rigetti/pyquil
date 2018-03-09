@@ -571,3 +571,10 @@ def test_ordered():
                          "RZ(1.0) 1\n" \
                          "CNOT 2 1\n" \
                          "CNOT 3 2\n"
+
+
+def test_numpy_integer_types():
+    idx_np, = np.arange(1, dtype=np.int64)
+    assert isinstance(idx_np, np.int64)
+    # on python 3 this fails unless explicitly allowing for numpy integer types
+    PauliTerm("X", idx_np)

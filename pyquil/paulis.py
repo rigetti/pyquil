@@ -29,7 +29,7 @@ from .gates import H, RZ, RX, CNOT, X, PHASE, STANDARD_GATES
 from numbers import Number
 from collections import Sequence, OrderedDict
 import warnings
-from six import integer_types
+from six import integer_types as six_integer_types
 from six.moves import range
 
 PAULI_OPS = ["X", "Y", "Z", "I"]
@@ -48,6 +48,10 @@ PAULI_COEFF = {'ZZ': 1.0, 'YY': 1.0, 'XX': 1.0, 'II': 1.0,
 class UnequalLengthWarning(Warning):
     def __init__(self, *args, **kwargs):
         super(UnequalLengthWarning, self).__init__(*args, **kwargs)
+
+
+integer_types = six_integer_types + (np.int64, np.int32, np.int16, np.int8)
+"""Explicitly include numpy integer dtypes (for python 3)."""
 
 
 class PauliTerm(object):
