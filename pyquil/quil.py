@@ -16,12 +16,11 @@
 """
 Module for creating and defining Quil programs.
 """
+import itertools
+import types
 import warnings
 from collections import OrderedDict
-from itertools import count
-import itertools
 from math import pi
-import types
 
 import numpy as np
 from six import string_types
@@ -30,21 +29,23 @@ from pyquil._parser.PyQuilListener import run_parser
 from pyquil.noise import _check_kraus_ops, _create_kraus_pragmas
 from pyquil.parameters import format_parameter
 from pyquil.quilatom import LabelPlaceholder, QubitPlaceholder, unpack_qubit
-from .gates import MEASURE, STANDARD_GATES, H
-from .quilbase import (DefGate, Gate, Measurement, Pragma, AbstractInstruction, Qubit,
-                       Jump, Label, JumpConditional, JumpTarget, JumpUnless, JumpWhen, Addr)
+from pyquil.gates import MEASURE, STANDARD_GATES, H
+from pyquil.quilbase import (DefGate, Gate, Measurement, Pragma, AbstractInstruction, Qubit,
+                             Jump, Label, JumpConditional, JumpTarget, JumpUnless, JumpWhen, Addr)
 
 
 class Program(object):
     def __init__(self, *instructions):
         self._defined_gates = []
-        # Implementation note: the key difference between the private _instructions and the public instructions
-        # property below is that the private _instructions list may contain placeholder values
+        # Implementation note: the key difference between the private _instructions and
+        # the public instructions property below is that the private _instructions list
+        # may contain placeholder labels.
         self._instructions = []
 
-        # Performance optimization: as stated above _instructions may contain placeholder values so the program must
-        # first be synthesized. _synthesized_instructions is simply a cache on the result of the _synthesize() method.
-        # It is marked as None whenever new instructions are added.
+        # Performance optimization: as stated above _instructions may contain placeholder
+        # labels so the program must first be have its labels instantiated.
+        # _synthesized_instructions is simply a cache on the result of the _synthesize()
+        # method.  It is marked as None whenever new instructions are added.
         self._synthesized_instructions = None
 
         self.inst(*instructions)
@@ -131,7 +132,8 @@ class Program(object):
             elif isinstance(instruction, DefGate):
                 defined_gate_names = [gate.name for gate in self._defined_gates]
                 if instruction.name in defined_gate_names:
-                    warnings.warn("Gate {} has already been defined in this program".format(instruction.name))
+                    warnings.warn(
+                        "Gate {} has already been defined in this program".format(instruction.name))
 
                 self._defined_gates.append(instruction)
             elif isinstance(instruction, AbstractInstruction):
@@ -456,43 +458,18 @@ class Program(object):
 
     def _synthesize(self):
         """
-        Takes a program which may contain placeholders and assigns them all defined values.
+        Assigns all placeholder labels to actual values.
 
         Changed in 1.9: Either all qubits must be defined or all undefined. If qubits are
-        undefined, you are required to provide a qubit mapping via :py:func:`synthesize()`.
-        All labels must be defined. These restrictions will be relaxed in future versions of
-        pyQuil if necessary.
+        undefined, this method will not help you. You must explicitly call `address_qubits`
+        which will return a new Program.
 
         Changed in 1.9: This function now returns ``self`` and updates
-        ``self._synthesized_instructions``. See :py:func:`synthesize_program` for the old behavior.
+        ``self._synthesized_instructions``.
 
         :return: This object with the ``_synthesized_instructions`` member set.
         """
         self._synthesized_instructions = instantiate_labels(self._instructions)
-        return self
-
-    def synthesize(self, qubit_mapping=None):
-        """
-        Takes a program which contains placeholders and assigns them all defined values.
-
-        Either all qubits must be defined or all undefined. If qubits are
-        undefined, you are required to provide a qubit mapping. This will be done automatically
-        in future versions of pyQuil if necessary.
-
-        All labels for classical control must be defined. These restrictions will be relaxed in
-        future versions of pyQuil if necessary.
-
-        This function will throw an error if the program was previously synthesized, as this
-        indicates this function is being used incorrectly.
-
-        :param qubit_mapping: A dictionary-like object that maps from :py:class:`QubitPlaceholder`
-            to :py:class:`Qubit` or ``int`` (but not both).
-        :return: This object with the ``_synthesized_instructions`` member set.
-        """
-        if self._synthesized_instructions is not None:
-            raise RuntimeError("The program was already synthesized! "
-                               "Make sure you haven't previously synthesized the program.")
-        self._synthesized_instructions = synthesize_program(self._instructions, qubit_mapping)
         return self
 
     def __add__(self, other):
@@ -539,6 +516,15 @@ class Program(object):
 
 
 def _what_type_of_qubit_does_it_use(program):
+    """Helper function to peruse through a program's qubits.
+
+    This function will also enforce the condition that a Program uses either all placeholders
+    or all instantiated qubits to avoid accidentally mixing the two. This function will warn
+    if your program doesn't use any qubits.
+
+    :return: tuple of (whether the program uses placeholder qubits, whether the program uses
+        real qubits, a list of qubits ordered by their first appearance in the program)
+    """
     has_placeholders = False
     has_real_qubits = False
 
@@ -580,19 +566,21 @@ def address_qubits(program, qubit_mapping=None):
     Takes a program which contains placeholders and assigns them all defined values.
 
     Either all qubits must be defined or all undefined. If qubits are
-    undefined, you are required to provide a qubit mapping. This will be done automatically
-    in future versions of pyQuil if necessary.
+    undefined, you may provide a qubit mapping to specify how placeholders get mapped
+    to actual qubits. If a mapping is not provided, integers 0 through N are used.
 
-    All labels for classical control must be defined. These restrictions will be relaxed in
-    future versions of pyQuil if necessary.
+    This function will also instantiate any label placeholders.
 
     :param program: The program.
     :param qubit_mapping: A dictionary-like object that maps from :py:class:`QubitPlaceholder`
         to :py:class:`Qubit` or ``int`` (but not both).
-    :return: list of instructions with all qubit placeholders assigned to real qubits.
+    :return: A new Program with all qubit and label placeholders assigned to real qubits and labels.
     """
     fake_qubits, real_qubits, qubits = _what_type_of_qubit_does_it_use(program)
     if real_qubits:
+        if qubit_mapping is not None:
+            warnings.warn("A qubit mapping was provided but the program does not "
+                          "contain any placeholders to map!")
         return program
 
     if qubit_mapping is None:
@@ -622,6 +610,9 @@ def address_qubits(program, qubit_mapping=None):
 
 
 def _get_label(placeholder, label_mapping, label_i):
+    """Helper function to either get the appropriate label for a given placeholder or generate
+    a new label and update the mapping.
+    """
     if placeholder in label_mapping:
         return label_mapping[placeholder], label_mapping, label_i
 
@@ -633,22 +624,11 @@ def _get_label(placeholder, label_mapping, label_i):
 
 def instantiate_labels(instructions):
     """
-    Takes a program which contains placeholders and assigns them all defined values.
+    Takes an iterable of instructions which may contain label placeholders and assigns
+    them all defined values.
 
-    Either all qubits must be defined or all undefined. If qubits are
-    undefined, you are required to provide a qubit mapping. This will be done automatically
-    in future versions of pyQuil if necessary.
-
-    All labels for classical control must be defined. These restrictions will be relaxed in
-    future versions of pyQuil if necessary.
-
-    :param qubit_mapping: A dictionary-like object that maps from :py:class:`QubitPlaceholder`
-        to :py:class:`Qubit` or ``int`` (but not both).
-    :return: list of instructions with all qubit placeholders assigned to real qubits.
+    :return: list of instructions with all label placeholders assigned to real labels.
     """
-    has_target_label = (Jump, JumpConditional)
-    has_label_label = (JumpTarget,)
-
     label_i = 1
     result = []
     label_mapping = dict()
