@@ -17,6 +17,7 @@
 Module for creating and defining Quil programs.
 """
 import warnings
+from collections import OrderedDict
 from itertools import count
 import itertools
 from math import pi
@@ -540,12 +541,16 @@ class Program(object):
 def _what_type_of_qubit_does_it_use(program):
     has_placeholders = False
     has_real_qubits = False
-    qubits = set()
+
+    # We probably want to index qubits in the order they are encountered in the program
+    # so an ordered set would be nice. Python doesn't *have* an ordered set. Use the keys
+    # of an ordered dictionary instead
+    qubits = OrderedDict()
 
     for instr in program:
         if isinstance(instr, Gate):
             for q in instr.qubits:
-                qubits.add(q)
+                qubits[q] = 1
                 if isinstance(q, QubitPlaceholder):
                     has_placeholders = True
                 elif isinstance(q, Qubit):
@@ -553,7 +558,7 @@ def _what_type_of_qubit_does_it_use(program):
                 else:
                     raise ValueError("Unknown qubit type {}".format(q))
         elif isinstance(instr, Measurement):
-            qubits.add(instr.qubit)
+            qubits[instr.qubit] = 1
             if isinstance(instr.qubit, QubitPlaceholder):
                 has_placeholders = True
             elif isinstance(instr.qubit, Qubit):
@@ -567,7 +572,7 @@ def _what_type_of_qubit_does_it_use(program):
     if has_placeholders and has_real_qubits:
         raise ValueError("Your program mixes instantiated qubits with placeholders")
 
-    return has_placeholders, has_real_qubits, qubits
+    return has_placeholders, has_real_qubits, list(qubits.keys())
 
 
 def address_qubits(program, qubit_mapping=None):
@@ -591,7 +596,7 @@ def address_qubits(program, qubit_mapping=None):
         return program
 
     if qubit_mapping is None:
-        qubit_mapping = {qp: Qubit(i) for i, qp in enumerate(sorted(qubits))}
+        qubit_mapping = {qp: Qubit(i) for i, qp in enumerate(qubits)}
     else:
         if all(isinstance(v, Qubit) for v in qubit_mapping.values()):
             pass  # we good

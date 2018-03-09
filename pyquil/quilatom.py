@@ -53,9 +53,6 @@ class QubitPlaceholder(Qubit):
     def __repr__(self):
         return "<QubitPlaceholder {}>".format(id(self))
 
-    def __lt__(self, other):
-        return id(self) < id(other)
-
 
 def unpack_qubit(qubit):
     """

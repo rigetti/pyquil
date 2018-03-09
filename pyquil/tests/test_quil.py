@@ -691,7 +691,7 @@ def test_allocating_qubits_on_multiple_programs():
     qubit1 = q.alloc()
     q.inst(X(qubit1))
 
-    assert (p + q).out() == "X 0\nX 1\n"
+    assert address_qubits(p+q).out() == "X 0\nX 1\n"
 
 
 # https://github.com/rigetticomputing/pyquil/issues/163
@@ -713,7 +713,7 @@ def test_nesting_a_program_inside_itself():
 def test_inline_alloc():
     p = Program()
     p += H(p.alloc())
-    assert p.out() == "H 0\n"
+    assert address_qubits(p).out() == "H 0\n"
 
 
 # https://github.com/rigetticomputing/pyquil/issues/138
