@@ -135,7 +135,9 @@ def test_iteration():
     program = Program(gate_list)
     for ii, instruction in enumerate(program):
         assert instruction == gate_list[ii]
-    gate_generator = (gate_list[ii] for ii in range(3))   # https://github.com/rigetticomputing/pyquil/issues/265
+
+    # https://github.com/rigetticomputing/pyquil/issues/265
+    gate_generator = (gate_list[ii] for ii in range(3))
     program = Program(gate_generator)
     for ii, instruction in enumerate(program):
         assert instruction == gate_list[ii]
@@ -230,8 +232,8 @@ def test_dagger():
                        H(0), CNOT(0, 1), CCNOT(0, 1, 2),
                        SWAP(0, 1), CSWAP(0, 1, 2))
     assert p.dagger().out() == 'CSWAP 0 1 2\nSWAP 0 1\n' \
-        'CCNOT 0 1 2\nCNOT 0 1\nH 0\n' \
-        'Z 0\nY 0\nX 0\nI 0\n'
+                               'CCNOT 0 1 2\nCNOT 0 1\nH 0\n' \
+                               'Z 0\nY 0\nX 0\nI 0\n'
 
     # these gates require negating a parameter
     p = Program().inst(PHASE(pi, 0), RX(pi, 0), RY(pi, 0),
@@ -477,10 +479,10 @@ def test_alloc_new():
 def test_multiaddress():
     p = Program()
     q0, q1 = [QubitPlaceholder() for _ in range(2)]
-    p += exponential_map(sZ(q0)*sZ(q1))(0.5)
+    p += exponential_map(sZ(q0) * sZ(q1))(0.5)
 
-    map1 = {q0:0, q1:1}
-    map2 = {q0:9, q1:10}
+    map1 = {q0: 0, q1: 1}
+    map2 = {q0: 9, q1: 10}
 
     p1 = address_qubits(p, map1)
 
@@ -691,7 +693,7 @@ def test_allocating_qubits_on_multiple_programs():
     qubit1 = q.alloc()
     q.inst(X(qubit1))
 
-    assert address_qubits(p+q).out() == "X 0\nX 1\n"
+    assert address_qubits(p + q).out() == "X 0\nX 1\n"
 
 
 # https://github.com/rigetticomputing/pyquil/issues/163
