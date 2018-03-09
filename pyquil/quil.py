@@ -128,12 +128,11 @@ class Program(object):
                     self.inst(instr)
 
             # Implementation note: these two base cases are the only ones which modify the program
-
             elif isinstance(instruction, DefGate):
                 defined_gate_names = [gate.name for gate in self._defined_gates]
                 if instruction.name in defined_gate_names:
-                    warnings.warn(
-                        "Gate {} has already been defined in this program".format(instruction.name))
+                    warnings.warn("Gate {} has already been defined in this program"
+                                  .format(instruction.name))
 
                 self._defined_gates.append(instruction)
             elif isinstance(instruction, AbstractInstruction):
