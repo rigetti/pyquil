@@ -561,3 +561,13 @@ def test_from_list():
     with pytest.raises(ValueError):
         # terms are not on disjoint qubits
         pterm = PauliTerm.from_list([("X", 0), ("Y", 0)])
+
+
+def test_ordered():
+    term = sZ(3)*sZ(2)*sZ(1)
+    prog = exponential_map(term)(0.5)
+    assert prog.out() == "CNOT 3 2\n" \
+                         "CNOT 2 1\n" \
+                         "RZ(1.0) 1\n" \
+                         "CNOT 2 1\n" \
+                         "CNOT 3 2\n"

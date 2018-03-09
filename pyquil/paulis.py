@@ -27,7 +27,7 @@ from pyquil.quilatom import QubitPlaceholder
 from .quil import Program
 from .gates import H, RZ, RX, CNOT, X, PHASE, STANDARD_GATES
 from numbers import Number
-from collections import Sequence
+from collections import Sequence, OrderedDict
 import warnings
 from six import integer_types
 from six.moves import range
@@ -66,7 +66,7 @@ class PauliTerm(object):
         assert ((isinstance(index, integer_types) and index >= 0)
                 or isinstance(index, QubitPlaceholder))
 
-        self._ops = {}
+        self._ops = OrderedDict()
         if op != "I":
             self._ops[index] = op
         if not isinstance(coefficient, Number):
@@ -86,7 +86,7 @@ class PauliTerm(object):
             return self._id
         else:
             s = ""
-            for index in sorted(self._ops.keys()):
+            for index in self._ops.keys():
                 s += "%s%s" % (self[index], index)
             self._id = s
             return s
@@ -135,8 +135,7 @@ class PauliTerm(object):
     def get_qubits(self):
         """Gets all the qubits that this PauliTerm operates on.
         """
-        # sort the keys to get a deterministic iteration order over qubits
-        return sorted(self._ops.keys())
+        return list(self._ops.keys())
 
     def __getitem__(self, i):
         return self._ops.get(i, "I")
@@ -260,7 +259,7 @@ class PauliTerm(object):
 
     def __str__(self):
         term_strs = []
-        for index in sorted(self._ops.keys()):
+        for index in self._ops.keys():
             term_strs.append("%s%s" % (self[index], index))
 
         if len(term_strs) == 0:

@@ -24,7 +24,9 @@ from pyquil.gates import I, X, Y, Z, H, T, S, RX, RY, RZ, CNOT, CCNOT, PHASE, CP
     CPHASE10, CPHASE, SWAP, CSWAP, ISWAP, PSWAP, MEASURE, HALT, WAIT, NOP, RESET, \
     TRUE, FALSE, NOT, AND, OR, MOVE, EXCHANGE
 from pyquil.parameters import Parameter, quil_sin, quil_cos
-from pyquil.quil import Program, merge_programs, shift_quantum_gates
+from pyquil.paulis import exponential_map, sZ
+from pyquil.quil import Program, merge_programs, address_qubits
+from pyquil.quilatom import QubitPlaceholder
 from pyquil.quilbase import DefGate, Gate, Addr, Qubit, JumpWhen
 
 
@@ -411,16 +413,98 @@ def test_alloc():
 
     p.inst(X(q3))  # X 4
 
+    with pytest.raises(RuntimeError) as e:
+        _ = p.out()
+    assert e.match(r'Qubit <QubitPlaceholder \d+> has not been assigned an index')
+
+
+def test_alloc_2():
+    p = Program()
+
+    p.inst(H(0))  # H 0
+
+    q1 = p.alloc()  # q1 = 1
+    q2 = p.alloc()  # q2 = 3
+
+    p.inst(CNOT(q1, q2))  # CNOT 1 3
+
+    p.inst(H(2))
+
+    q3 = p.alloc()  # q3 = 4
+
+    p.inst(X(q3))  # X 4
+    with pytest.raises(ValueError) as e:
+        _ = address_qubits(p, {
+            q1: 1,
+            q2: 3,
+            q3: 4,
+        })
+
+    assert e.match('Your program mixes instantiated qubits with placeholders')
+
+
+def test_alloc_new():
+    p = Program()
+
+    q0 = QubitPlaceholder()
+    p.inst(H(q0))  # H 0
+
+    q1 = QubitPlaceholder()
+    q2 = QubitPlaceholder()
+
+    p.inst(CNOT(q1, q2))  # CNOT 1 3
+
+    qxxx = QubitPlaceholder()
+    p.inst(H(qxxx))
+
+    q3 = QubitPlaceholder()
+
+    p.inst(X(q3))  # X 4
+    p = address_qubits(p, {
+        q1: 1,
+        q2: 3,
+        q3: 4,
+        q0: 0,
+        qxxx: 2,
+    })
+
     assert p.out() == "H 0\n" \
                       "CNOT 1 3\n" \
                       "H 2\n" \
                       "X 4\n"
 
 
+def test_multiaddress():
+    p = Program()
+    q0, q1 = [QubitPlaceholder() for _ in range(2)]
+    p += exponential_map(sZ(q0)*sZ(q1))(0.5)
+
+    map1 = {q0:0, q1:1}
+    map2 = {q0:9, q1:10}
+
+    p1 = address_qubits(p, map1)
+
+    with pytest.raises(RuntimeError):
+        _ = p.out()  # make sure the original isn't affected
+
+    assert p1.out() == "CNOT 0 1\n" \
+                       "RZ(1.0) 1\n" \
+                       "CNOT 0 1\n"
+
+    p2 = address_qubits(p, map2)
+    assert p1.out() == "CNOT 0 1\n" \
+                       "RZ(1.0) 1\n" \
+                       "CNOT 0 1\n"
+    assert p2.out() == "CNOT 9 10\n" \
+                       "RZ(1.0) 10\n" \
+                       "CNOT 9 10\n"
+
+
 def test_multiple_instantiate():
     p = Program()
     q = p.alloc()
     p.inst(H(q))
+    p = address_qubits(p)
     assert p.out() == 'H 0\n'
     assert p.out() == 'H 0\n'
 
@@ -432,6 +516,7 @@ def test_reuse_alloc():
     p.inst(H(q1))
     p.inst(H(q2))
     p.inst(CNOT(q1, q2))
+    p = address_qubits(p)
     assert p.out() == 'H 0\nH 1\nCNOT 0 1\n'
 
 
@@ -441,18 +526,15 @@ def test_prog_merge():
     assert merge_programs([prog_0, prog_1]).out() == (prog_0 + prog_1).out()
 
 
-def test_quantum_gate_shift():
-    prog = Program(X(0), CNOT(0, 4), MEASURE(5, [5]))
-    assert shift_quantum_gates(prog, 5) == Program(X(5), CNOT(5, 9), MEASURE(5, [5]))
-
-
 def test_get_qubits():
     pq = Program(X(0), CNOT(0, 4), MEASURE(5, [5]))
     assert pq.get_qubits() == {0, 4, 5}
 
+    q = [QubitPlaceholder() for _ in range(6)]
+    pq = Program(X(q[0]), CNOT(q[0], q[4]), MEASURE(q[5], [5]))
     qq = pq.alloc()
-    pq.inst(Y(2), X(qq))
-    assert pq.get_qubits() == {0, 1, 2, 4, 5}  # this synthesizes the allocation
+    pq.inst(Y(q[2]), X(qq))
+    assert address_qubits(pq).get_qubits() == {0, 1, 2, 3, 4}
 
     qubit_index = 1
     p = Program(("H", qubit_index))
@@ -460,7 +542,9 @@ def test_get_qubits():
     q1 = p.alloc()
     q2 = p.alloc()
     p.inst(("CNOT", q1, q2))
-    assert p.get_qubits() == {qubit_index, 0, 2}
+    with pytest.raises(ValueError) as e:
+        _ = address_qubits(p).get_qubits()
+    assert e.match('Your program mixes instantiated qubits with placeholders')
 
 
 def test_eq():
@@ -468,6 +552,7 @@ def test_eq():
     q1 = p1.alloc()
     q2 = p1.alloc()
     p1.inst([H(q1), CNOT(q1, q2)])
+    p1 = address_qubits(p1)
 
     p2 = Program()
     p2.inst([H(0), CNOT(0, 1)])

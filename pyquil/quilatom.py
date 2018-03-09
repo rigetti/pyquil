@@ -45,7 +45,7 @@ class QubitPlaceholder(Qubit):
 
     @property
     def index(self):
-        raise RuntimeError("Qubit has not been assigned an index")
+        raise RuntimeError("Qubit {} has not been assigned an index".format(self))
 
     def __str__(self):
         return repr(self)

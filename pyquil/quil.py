@@ -537,12 +537,12 @@ class Program(object):
         return self.out()
 
 
-def _what_type_of_qubit_does_it_use(instructions):
+def _what_type_of_qubit_does_it_use(program):
     has_placeholders = False
     has_real_qubits = False
     qubits = set()
 
-    for instr in instructions:
+    for instr in program:
         if isinstance(instr, Gate):
             for q in instr.qubits:
                 qubits.add(q)
@@ -565,52 +565,12 @@ def _what_type_of_qubit_does_it_use(instructions):
         warnings.warn("Your program doesn't use any qubits")
 
     if has_placeholders and has_real_qubits:
-        raise ValueError("Your program mixes instatiated qubits with placeholders")
+        raise ValueError("Your program mixes instantiated qubits with placeholders")
 
-    return has_placeholders, has_real_qubits, len(qubits)
-
-
-def _what_type_of_label_does_it_use(instructions):
-    has_placeholders = False
-    has_real_labels = False
-
-    labels = set()
-
-    for instr in instructions:
-        if isinstance(instr, Jump):
-            labels.add(instr.target)
-            if isinstance(instr.target, LabelPlaceholder):
-                has_placeholders = True
-            elif isinstance(instr.target, Label):
-                has_real_labels = True
-            else:
-                raise ValueError("Unknown label type {}".format(instr.target))
-
-        elif isinstance(instr, JumpTarget):
-            labels.add(instr.label)
-            if isinstance(instr.label, LabelPlaceholder):
-                has_placeholders = True
-            elif isinstance(instr.label, Label):
-                has_real_labels = True
-            else:
-                raise ValueError("Unknown label type {}".format(instr.label))
-
-        elif isinstance(instr, JumpConditional) and isinstance(instr.target, LabelPlaceholder):
-            labels.add(instr.target)
-            if isinstance(instr.target, LabelPlaceholder):
-                has_placeholders = True
-            elif isinstance(instr.target, Label):
-                has_real_labels = True
-            else:
-                raise ValueError("Unknown label type {}".format(instr.target))
-
-    if has_placeholders and has_real_labels:
-        raise ValueError("Your program mixes instantiated labels with placeholders")
-
-    return has_placeholders, has_real_labels, len(labels)
+    return has_placeholders, has_real_qubits, qubits
 
 
-def synthesize_program(instructions, qubit_mapping=None):
+def address_qubits(program, qubit_mapping=None):
     """
     Takes a program which contains placeholders and assigns them all defined values.
 
@@ -621,17 +581,17 @@ def synthesize_program(instructions, qubit_mapping=None):
     All labels for classical control must be defined. These restrictions will be relaxed in
     future versions of pyQuil if necessary.
 
+    :param program: The program.
     :param qubit_mapping: A dictionary-like object that maps from :py:class:`QubitPlaceholder`
         to :py:class:`Qubit` or ``int`` (but not both).
     :return: list of instructions with all qubit placeholders assigned to real qubits.
     """
-    fake_qubits, real_qubits, n_qubits = _what_type_of_qubit_does_it_use(instructions)
+    fake_qubits, real_qubits, qubits = _what_type_of_qubit_does_it_use(program)
     if real_qubits:
-        return instructions
+        return program
 
     if qubit_mapping is None:
-        raise NotImplementedError("Please specify a qubit mapping. "
-                                  "At some point this may happen automatically")
+        qubit_mapping = {qp: Qubit(i) for i, qp in enumerate(sorted(qubits))}
     else:
         if all(isinstance(v, Qubit) for v in qubit_mapping.values()):
             pass  # we good
@@ -640,12 +600,8 @@ def synthesize_program(instructions, qubit_mapping=None):
         else:
             raise ValueError("Qubit mapping must map to type Qubit or int (but not both)")
 
-    fake_labels, _, _ = _what_type_of_label_does_it_use(instructions)
-    if fake_labels:
-        raise NotImplementedError("Please use explicit labels for the time being")
-
     result = []
-    for instr in instructions:
+    for instr in program:
         # Remap qubits on Gate and Measurement instructions
         if isinstance(instr, Gate):
             remapped_qubits = [qubit_mapping[q] for q in instr.qubits]
@@ -657,7 +613,7 @@ def synthesize_program(instructions, qubit_mapping=None):
         else:
             result.append(instr)
 
-    return result
+    return Program(result)
 
 
 def _get_label(placeholder, label_mapping, label_i):
@@ -717,23 +673,3 @@ def merge_programs(prog_list):
     :rtype: Program
     """
     return sum(prog_list, Program())
-
-
-def shift_quantum_gates(program, shift_offset):
-    """
-    Shifts a quantum gates in a quil program so that all qubit indices change by a certain offset
-    :param program: a pyquil Program
-    :param shift_offset: integer
-    :return: pyquil Program with shifted qubit indices
-    """
-    if not isinstance(shift_offset, int):
-        raise ValueError("shift_offset must be an integer")
-    if not isinstance(program, Program):
-        raise ValueError("Program must be a pyquil Program instance")
-    shifted_program = Program()
-    shifted_program.inst(program)
-    for instruct in shifted_program:
-        if isinstance(instruct, Gate):
-            for qubit in instruct.qubits:
-                qubit.index += shift_offset
-    return shifted_program
