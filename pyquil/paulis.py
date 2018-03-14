@@ -564,24 +564,8 @@ class PauliSum(object):
         """
         Simplifies the sum of Pauli operators according to Pauli algebra rules.
         """
+        return simplify_pauli_sum(self)
 
-        def coalesce(like_terms):
-            terms = []
-            for k in sorted(like_terms):
-                term_list = like_terms[k]
-                if len(term_list) == 1 and not np.isclose(term_list[0].coefficient, 0.0):
-                    terms.append(term_list[0])
-                else:
-                    coeff = sum(t.coefficient for t in term_list)
-                    if not np.isclose(coeff, 0.0):
-                        terms.append(term_with_coeff(term_list[0], coeff))
-            return PauliSum(terms)
-
-        like_terms = defaultdict(list)
-        for term in self.terms:
-            like_terms[term.id()].append(term)
-
-        return coalesce(like_terms)
 
     def get_programs(self):
         """
@@ -593,6 +577,26 @@ class PauliSum(object):
         programs = [term.program for term in self.terms]
         coefficients = np.array([term.coefficient for term in self.terms])
         return programs, coefficients
+
+
+def simplify_pauli_sum(pauli_sum):
+    def coalesce(like_terms):
+        terms = []
+        for k in sorted(like_terms):
+            term_list = like_terms[k]
+            if len(term_list) == 1 and not np.isclose(term_list[0].coefficient, 0.0):
+                terms.append(term_list[0])
+            else:
+                coeff = sum(t.coefficient for t in term_list)
+                if not np.isclose(coeff, 0.0):
+                    terms.append(term_with_coeff(term_list[0], coeff))
+        return PauliSum(terms)
+
+    like_terms = defaultdict(list)
+    for term in pauli_sum.terms:
+        like_terms[term.id()].append(term)
+
+    return coalesce(like_terms)
 
 
 def check_commutation(pauli_list, pauli_two):
