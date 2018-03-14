@@ -163,6 +163,13 @@ def test_ids():
     assert term_1.id() == term_2.id()
 
 
+def test_ids_no_sort():
+    term_1 = PauliTerm("Z", 0, 1.0) * PauliTerm("Z", 1, 1.0) * PauliTerm("X", 5, 5)
+    term_2 = PauliTerm("X", 5, 5) * PauliTerm("Z", 0, 1.0) * PauliTerm("Z", 1, 1.0)
+    assert term_1.id(sort_ops=False) == 'Z0Z1X5'
+    assert term_2.id(sort_ops=False) == 'X5Z0Z1'
+
+
 def test_pauliop_inputs():
     with pytest.raises(AssertionError):
         PauliTerm('X', -2)
