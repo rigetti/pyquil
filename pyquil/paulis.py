@@ -86,7 +86,7 @@ class PauliTerm(object):
         Don't use this to compare terms. This function will not work with qubits that
         aren't sortable.
 
-        :param sort_ops: Whether to sort to operations by qubit. This is True by default for
+        :param sort_ops: Whether to sort operations by qubit. This is True by default for
             backwards compatibility but will change in pyQuil 2.0. Callers should never rely
             on comparing id's for testing equality. See ``operations_as_set`` instead.
         :return: A string representation of this term's operations.
