@@ -160,8 +160,7 @@ def test_getitem():
 def test_ids():
     term_1 = PauliTerm("Z", 0, 1.0) * PauliTerm("Z", 1, 1.0) * PauliTerm("X", 5, 5)
     term_2 = PauliTerm("X", 5, 5) * PauliTerm("Z", 0, 1.0) * PauliTerm("Z", 1, 1.0)
-    assert term_1.id() == "Z0Z1X5"
-    assert term_2.id() == "X5Z0Z1"
+    assert term_1.id() == term_2.id()
 
 
 def test_pauliop_inputs():
@@ -215,7 +214,7 @@ def test_ps_adds_pt_2():
     assert str(b + 1.0) == "(3+0j)*I"
     assert str(1.0 + b) == "(3+0j)*I"
     b = sX(0) + 1.0
-    assert str(b) == "(1+0j)*I + (1+0j)*X0"
+    assert str(b) == "(1+0j)*X0 + (1+0j)*I"
     b = 1.0 + sX(0)
     assert str(b) == "(1+0j)*I + (1+0j)*X0"
 
