@@ -16,10 +16,11 @@
 """
 Module for creating and defining Quil programs.
 """
-import warnings
-from itertools import count
-from math import pi
+import itertools
 import types
+import warnings
+from collections import OrderedDict
+from math import pi
 
 import numpy as np
 from six import string_types

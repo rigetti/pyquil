@@ -15,20 +15,20 @@
 #    limitations under the License.
 ##############################################################################
 
-import pytest
-from pyquil.paulis import (PauliTerm, PauliSum, exponential_map, exponentiate_commuting_pauli_sum,
-                           ID, UnequalLengthWarning, exponentiate, trotterize, is_zero,
-                           check_commutation, commuting_sets, term_with_coeff, sI, sX, sY,
-                           sZ, ZERO)
-from pyquil.quil import Program
-from pyquil.gates import RX, RZ, CNOT, H, X, PHASE
-
 import math
-from itertools import product
 from functools import reduce
+from itertools import product
 from operator import mul
-from six.moves import range
+
 import numpy as np
+import pytest
+from six.moves import range
+
+from pyquil.gates import RX, RZ, CNOT, H, X, PHASE
+from pyquil.paulis import PauliTerm, PauliSum, exponential_map, exponentiate_commuting_pauli_sum, \
+    ID, UnequalLengthWarning, exponentiate, trotterize, is_zero, check_commutation, commuting_sets, \
+    term_with_coeff, sI, sX, sY, sZ, ZERO
+from pyquil.quil import Program
 
 
 def isclose(a, b, rel_tol=1e-10, abs_tol=0.0):
@@ -93,8 +93,8 @@ def test_simplify_term_xz():
 
 
 def test_simplify_term_multindex():
-    term = PauliTerm('X', 0, coefficient=-0.5) * PauliTerm('Z', 0, coefficient=-1.0) \
-        * PauliTerm('X', 2, 0.5)
+    term = (PauliTerm('X', 0, coefficient=-0.5) * PauliTerm('Z', 0, coefficient=-1.0)
+            * PauliTerm('X', 2, 0.5))
     assert term.id() == 'Y0X2'
     assert term.coefficient == -0.25j
 
@@ -160,7 +160,8 @@ def test_getitem():
 def test_ids():
     term_1 = PauliTerm("Z", 0, 1.0) * PauliTerm("Z", 1, 1.0) * PauliTerm("X", 5, 5)
     term_2 = PauliTerm("X", 5, 5) * PauliTerm("Z", 0, 1.0) * PauliTerm("Z", 1, 1.0)
-    assert term_1.id() == term_2.id()
+    assert term_1.id() == "Z0Z1X5"
+    assert term_2.id() == "X5Z0Z1"
 
 
 def test_pauliop_inputs():
@@ -237,8 +238,7 @@ def test_ps_sub():
 
 
 def test_zero_terms():
-    term = PauliTerm("X", 0, 1.0) + PauliTerm("X", 0, -1.0) + \
-        PauliTerm("Y", 0, 0.5)
+    term = PauliTerm("X", 0, 1.0) + PauliTerm("X", 0, -1.0) + PauliTerm("Y", 0, 0.5)
     assert str(term) == "(0.5+0j)*Y0"
 
     term = PauliTerm("X", 0, 1.0) + PauliTerm("X", 0, -1.0)
@@ -254,14 +254,13 @@ def test_zero_terms():
     term4 = PauliSum([])
     assert str(term4) == "0j*I"
 
-    term = PauliSum([PauliTerm("X", 0, 0.0), PauliTerm("Y", 1, 1.0) *
-                     PauliTerm("Z", 2)])
+    term = PauliSum([PauliTerm("X", 0, 0.0), PauliTerm("Y", 1, 1.0) * PauliTerm("Z", 2)])
     assert str(term) == "0j*X0 + (1+0j)*Y1*Z2"
     term = term.simplify()
     assert str(term) == "(1+0j)*Y1*Z2"
 
 
-def test_exponentiate():
+def test_exponentiate_1():
     # test rotation of single qubit
     generator = PauliTerm("Z", 0, 1.0)
     para_prog = exponential_map(generator)
@@ -269,47 +268,57 @@ def test_exponentiate():
     result_prog = Program().inst(RZ(2.0)(0))
     assert prog == result_prog
 
+
+def test_exponentiate_2():
     # testing general 2-circuit
-    generator = PauliTerm("Z", 1, 1.0) * PauliTerm("Z", 0, 1.0)
+    generator = PauliTerm("Z", 0, 1.0) * PauliTerm("Z", 1, 1.0)
     para_prog = exponential_map(generator)
     prog = para_prog(1)
     result_prog = Program().inst(CNOT(0, 1)).inst(RZ(2.0)(1)).inst(CNOT(0, 1))
     assert prog == result_prog
 
+
+def test_exponentiate_bp0_ZX():
     # testing change of basis position 0
-    generator = PauliTerm("Z", 1, 1.0) * PauliTerm("X", 0, 1.0)
+    generator = PauliTerm("X", 0, 1.0) * PauliTerm("Z", 1, 1.0)
     param_prog = exponential_map(generator)
     prog = param_prog(1)
-    result_prog = Program().inst([H(0), CNOT(0, 1), RZ(2.0)(1), CNOT(0, 1),
-                                  H(0)])
+    result_prog = Program().inst([H(0), CNOT(0, 1), RZ(2.0)(1), CNOT(0, 1), H(0)])
     assert prog == result_prog
 
+
+def test_exponentiate_bp1_XZ():
     # testing change of basis position 1
-    generator = PauliTerm("X", 1, 1.0) * PauliTerm("Z", 0, 1.0)
+    generator = PauliTerm("Z", 0, 1.0) * PauliTerm("X", 1, 1.0)
     para_prog = exponential_map(generator)
     prog = para_prog(1)
-    result_prog = Program().inst([H(1), CNOT(0, 1), RZ(2.0)(1), CNOT(0, 1),
-                                  H(1)])
+    result_prog = Program().inst([H(1), CNOT(0, 1), RZ(2.0)(1), CNOT(0, 1), H(1)])
     assert prog == result_prog
 
+
+def test_exponentiate_bp0_ZY():
     # testing change of basis position 0
-    generator = PauliTerm("Z", 1, 1.0) * PauliTerm("Y", 0, 1.0)
+    generator = PauliTerm("Y", 0, 1.0) * PauliTerm("Z", 1, 1.0)
     para_prog = exponential_map(generator)
     prog = para_prog(1)
     result_prog = Program().inst([RX(math.pi / 2.0)(0), CNOT(0, 1), RZ(2.0)(1),
                                   CNOT(0, 1), RX(-math.pi / 2)(0)])
     assert prog == result_prog
 
+
+def test_exponentiate_bp1_YZ():
     # testing change of basis position 1
-    generator = PauliTerm("Y", 1, 1.0) * PauliTerm("Z", 0, 1.0)
+    generator = PauliTerm("Z", 0, 1.0) * PauliTerm("Y", 1, 1.0)
     para_prog = exponential_map(generator)
     prog = para_prog(1)
-    result_prog = Program().inst([RX(math.pi / 2.0)(1), CNOT(0, 1), RZ(2.0)(1),
-                                  CNOT(0, 1), RX(-math.pi / 2.0)(1)])
+    result_prog = Program().inst([RX(math.pi / 2.0)(1), CNOT(0, 1),
+                                  RZ(2.0)(1), CNOT(0, 1), RX(-math.pi / 2.0)(1)])
     assert prog == result_prog
 
+
+def test_exponentiate_3cob():
     # testing circuit for 3-terms with change of basis
-    generator = PauliTerm("X", 2, 1.0) * PauliTerm("Y", 1, 1.0) * PauliTerm("Z", 0, 1.0)
+    generator = PauliTerm("Z", 0, 1.0) * PauliTerm("Y", 1, 1.0) * PauliTerm("X", 2, 1.0)
     para_prog = exponential_map(generator)
     prog = para_prog(1)
     result_prog = Program().inst([RX(math.pi / 2.0)(1), H(2), CNOT(0, 1),
@@ -317,10 +326,15 @@ def test_exponentiate():
                                   CNOT(0, 1), RX(-math.pi / 2.0)(1), H(2)])
     assert prog == result_prog
 
+
+def test_exponentiate_3ns():
     # testing circuit for 3-terms non-sequential
-    generator = PauliTerm("Y", 3, 1.0) * PauliTerm("Y", 2, 1.0) * PauliTerm("I", 1,
-                                                                            1.0) * PauliTerm("Y", 0,
-                                                                                             1.0)
+    generator = (
+            PauliTerm("Y", 0, 1.0)
+            * PauliTerm("I", 1, 1.0)
+            * PauliTerm("Y", 2, 1.0)
+            * PauliTerm("Y", 3, 1.0)
+    )
     para_prog = exponential_map(generator)
     prog = para_prog(1)
     result_prog = Program().inst([RX(math.pi / 2.0)(0), RX(math.pi / 2.0)(2),
@@ -563,8 +577,40 @@ def test_from_list():
         pterm = PauliTerm.from_list([("X", 0), ("Y", 0)])
 
 
+def test_ordered():
+    term = sZ(3) * sZ(2) * sZ(1)
+    prog = exponential_map(term)(0.5)
+    assert prog.out() == "CNOT 3 2\n" \
+                         "CNOT 2 1\n" \
+                         "RZ(1.0) 1\n" \
+                         "CNOT 2 1\n" \
+                         "CNOT 3 2\n"
+
+
 def test_numpy_integer_types():
     idx_np, = np.arange(1, dtype=np.int64)
     assert isinstance(idx_np, np.int64)
     # on python 3 this fails unless explicitly allowing for numpy integer types
     PauliTerm("X", idx_np)
+
+
+def test_simplify():
+    t1 = sZ(0) * sZ(1)
+    t2 = sZ(0) * sZ(1)
+    assert (t1 + t2) == 2 * sZ(0) * sZ(1)
+
+
+def test_dont_simplify():
+    t1 = sZ(0) * sZ(1)
+    t2 = sZ(2) * sZ(3)
+    assert (t1 + t2) != 2 * sZ(0) * sZ(1)
+
+
+def test_simplify_warning():
+    t1 = sZ(0) * sZ(1)
+    t2 = sZ(1) * sZ(0)
+    with pytest.warns(UserWarning) as e:
+        tsum = t1 + t2
+
+    assert tsum == 2 * sZ(0) * sZ(1)
+    assert str(e[0].message).startswith('The term Z1Z0 will be combined with Z0Z1')
