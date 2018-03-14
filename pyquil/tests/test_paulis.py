@@ -233,7 +233,7 @@ def test_ps_sub():
     b = 1.0 - sX(0)
     assert str(b) == "(1+0j)*I + (-1+0j)*X0"
     b = sX(0) - 1.0
-    assert str(b) == "(-1+0j)*I + (1+0j)*X0"
+    assert str(b) == "(1+0j)*X0 + (-1+0j)*I"
 
 
 def test_zero_terms():

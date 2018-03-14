@@ -50,6 +50,12 @@ class UnequalLengthWarning(Warning):
 integer_types = six_integer_types + (np.int64, np.int32, np.int16, np.int8)
 """Explicitly include numpy integer dtypes (for python 3)."""
 
+HASH_PRECISION = 1e6
+"""The precision used when hashing terms to check equality. The simplify() method
+uses np.isclose() for coefficient comparisons to 0 which has its own default precision. We
+can't use np.isclose() for hashing terms though.
+"""
+
 
 class PauliTerm(object):
     """A term is a product of Pauli operators operating on different qubits.
@@ -115,7 +121,11 @@ class PauliTerm(object):
                     and np.isclose(self.coefficient, other.coefficient))
 
     def __hash__(self):
-        return hash((self.coefficient, self.operations_as_set()))
+        return hash((
+            round(self.coefficient.real * HASH_PRECISION),
+            round(self.coefficient.imag * HASH_PRECISION),
+            self.operations_as_set()
+        ))
 
     def __ne__(self, other):
         # x!=y and x<>y call __ne__() instead of negating __eq__
@@ -255,7 +265,7 @@ class PauliTerm(object):
         :rtype: PauliTerm
         """
         assert isinstance(other, Number)
-        return self + other
+        return PauliTerm("I", 0, other) + self
 
     def __sub__(self, other):
         """Subtracts a PauliTerm from this one.
