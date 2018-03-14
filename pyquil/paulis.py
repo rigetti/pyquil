@@ -82,7 +82,9 @@ class PauliTerm(object):
         """
         Returns the unique identifier string for the PauliTerm (ignoring the coefficient).
 
-        Used in the simplify method of PauliSum.
+        Changed in 1.9: Qubit indices will not be in sorted order. They will be in the order
+        in which the term was constructed. If you want to check position independent equality,
+        please see :py:func:`operations_as_set`
 
         :return: The unique identifier for this term.
         :rtype: string
@@ -96,13 +98,25 @@ class PauliTerm(object):
             self._id = s
             return s
 
+    def operations_as_set(self):
+        """
+        Return a frozenset of operations in this term.
+
+        Use this in place of :py:func:`id` if the order of operations in the term does not
+        matter.
+
+        :return: frozenset of strings representing Pauli operations
+        """
+        return frozenset(self._ops.items())
+
     def __eq__(self, other):
         if not isinstance(other, (PauliTerm, PauliSum)):
             raise TypeError("Can't compare PauliTerm with object of type {}.".format(type(other)))
         elif isinstance(other, PauliSum):
             return other == self
         else:
-            return self.id() == other.id() and np.isclose(self.coefficient, other.coefficient)
+            return (self.operations_as_set() == other.operations_as_set()
+                    and np.isclose(self.coefficient, other.coefficient))
 
     def __ne__(self, other):
         # x!=y and x<>y call __ne__() instead of negating __eq__
@@ -582,15 +596,23 @@ class PauliSum(object):
 def simplify_pauli_sum(pauli_sum):
     like_terms = defaultdict(list)
     for term in pauli_sum.terms:
-        like_terms[term.id()].append(term)
+        like_terms[term.operations_as_set()].append(term)
 
     terms = []
     for k in sorted(like_terms):
         term_list = like_terms[k]
-        if len(term_list) == 1 and not np.isclose(term_list[0].coefficient, 0.0):
-            terms.append(term_list[0])
+        first_term = term_list[0]
+        if len(term_list) == 1 and not np.isclose(first_term.coefficient, 0.0):
+            terms.append(first_term)
         else:
             coeff = sum(t.coefficient for t in term_list)
+            for t in term_list:
+                if t.id() != first_term.id():
+                    warnings.warn("The term {} will be combined with {}, but they have different "
+                                  "orders of operations. This doesn't matter for QVM or "
+                                  "wavefunction simulation but may be important when "
+                                  "running on an actual device.".format(t.id(), first_term.id()))
+
             if not np.isclose(coeff, 0.0):
                 terms.append(term_with_coeff(term_list[0], coeff))
     return PauliSum(terms)
