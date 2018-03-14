@@ -29,3 +29,5 @@ v1.9
    as there were several edge cases which would cause the shift to be applied incorrectly resulting
    in badly-addressed qubits.
  - :py:class:`PauliTerm` can now accept :py:class:`QubitPlaceholder` in addition to integers.
+ - :py:class:`QubitPlaceholder` is no longer a subclass of :py:class:`Qubit`.
+ - :py:class:`QuilAtom` subclasses' hash functions have changed.
