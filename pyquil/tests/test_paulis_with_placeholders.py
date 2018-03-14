@@ -51,3 +51,95 @@ def test_get_qubits():
     assert sum_term.get_qubits() == [q[0], q10]
 
 
+def test_simplify_term_single():
+    q0, q1, q2 = QubitPlaceholder.register(3)
+    term = (PauliTerm('Z', q0) * PauliTerm('I', q1)
+            * PauliTerm('X', q2, 0.5j) * PauliTerm('Z', q0, 1.0))
+    assert term.id() == 'X{}'.format(q2)
+    assert term.coefficient == 0.5j
+
+
+def test_simplify_term_xz():
+    q0 = QubitPlaceholder()
+    term1 = (-0.5 * PauliTerm('X', q0)) * (-1.0 * PauliTerm('Z', q0))
+    term2 = -0.5 * PauliTerm('X', q0) * (-1.0) * PauliTerm('Z', q0)
+    term3 = 0.5 * PauliTerm('X', q0) * PauliTerm('Z', q0)
+    for term in [term1, term2, term3]:
+        assert term.id() == 'Y{}'.format(q0)
+        assert term.coefficient == -0.5j
+
+
+def test_simplify_term_multindex():
+    q0, q2 = QubitPlaceholder.register(2)
+    term = (PauliTerm('X', q0, coefficient=-0.5) * PauliTerm('Z', q0, coefficient=-1.0)
+            * PauliTerm('X', q2, 0.5))
+    assert term.id(sort_ops=False) == 'Y{q0}X{q2}'.format(q0=q0, q2=q2)
+    assert term.coefficient == -0.25j
+
+
+def test_simplify_sum_terms():
+    q0 = QubitPlaceholder()
+    sum_term = PauliSum([PauliTerm('X', q0, 0.5), PauliTerm('Z', q0, 0.5j)])
+    str_sum_term = str(sum_term + sum_term)
+    assert (str_sum_term == '(1+0j)*X{q0} + 1j*Z{q0}'.format(q0=q0)
+            or str_sum_term == '1j*Z{q0} + (1+0j)*X{q0}'.format(q0=q0))
+    sum_term = PauliSum([PauliTerm('X', q0, 0.5), PauliTerm('X', q0, 0.5)])
+    assert str(sum_term.simplify()) == '(1+0j)*X{q0}'.format(q0=q0)
+
+    # test the simplify on multiplication
+    sum_term = PauliSum([PauliTerm('X', q0, 0.5), PauliTerm('X', q0, 0.5)])
+    assert str(sum_term * sum_term) == '(1+0j)*I'
+
+
+def test_copy():
+    q0, q1 = QubitPlaceholder.register(2)
+    term = PauliTerm('X', q0, 0.5) * PauliTerm('X', q1, 0.5)
+    new_term = term.copy()
+
+    q2 = QubitPlaceholder()
+    term = term * PauliTerm('X', q2, 0.5)
+    new_term = new_term * PauliTerm('X', q2, 0.5)
+
+    assert term == new_term  # value equality
+    assert term is not new_term  # ref inequality
+    assert term._ops is not new_term._ops
+
+    term = PauliTerm('X', q0, 0.5) * PauliTerm('X', q1, 0.5)
+    new_term = term * PauliTerm('X', q2, 0.5)
+    assert term != new_term
+    assert term is not new_term
+    assert term._ops is not new_term._ops
+
+
+def test_len():
+    q0, q1 = QubitPlaceholder.register(2)
+    term = PauliTerm("Z", q0, 1.0) * PauliTerm("Z", q1, 1.0)
+    assert len(term) == 2
+
+
+def test_sum_len():
+    q0, q1 = QubitPlaceholder.register(2)
+    pauli_sum = PauliTerm("Z", q0, 1.0) + PauliTerm("Z", q1, 1.0)
+    assert len(pauli_sum) == 2
+
+
+def test_enumerate():
+    q0, q1, q5 = QubitPlaceholder.register(3)
+    term = PauliTerm("Z", q0, 1.0) * PauliTerm("Z", q1, 1.0) * PauliTerm("X", q5, 5)
+    position_op_pairs = [(q0, "Z"), (q1, "Z"), (q5, "X")]
+    for key, val in term:
+        assert (key, val) in position_op_pairs
+
+
+def test_getitem():
+    q = QubitPlaceholder.register(6)
+    term = PauliTerm("Z", q[0], 1.0) * PauliTerm("Z", q[1], 1.0) * PauliTerm("X", q[5], 5)
+    assert term[q[0]] == "Z"
+    assert term[q[1]] == "Z"
+    assert term[q[2]] == "I"
+    assert term[q[3]] == "I"
+    assert term[q[4]] == "I"
+    assert term[q[5]] == "X"
+    assert len(term) == 3
+
+
