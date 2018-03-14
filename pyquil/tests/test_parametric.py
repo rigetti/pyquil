@@ -163,4 +163,10 @@ def test_exponentiate_paraprog():
     xterm = PauliTerm("X", 2) * PauliTerm("X", 1)
     paraprog = exponential_map(xterm)
     prog = paraprog(1)
-    assert prog.out() == "H 1\nH 2\nCNOT 1 2\nRZ(2.0) 2\nCNOT 1 2\nH 1\nH 2\n"
+    assert prog.out() == ("H 2\n"
+                          "H 1\n"
+                          "CNOT 2 1\n"
+                          "RZ(2.0) 1\n"
+                          "CNOT 2 1\n"
+                          "H 2\n"
+                          "H 1\n")
