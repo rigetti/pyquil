@@ -115,17 +115,6 @@ class PauliTerm(object):
         """
         return frozenset(self._ops.items())
 
-    def operations_as_set(self):
-        """
-        Return a frozenset of operations in this term.
-
-        Use this in place of :py:func:`id` if the order of operations in the term does not
-        matter.
-
-        :return: frozenset of strings representing Pauli operations
-        """
-        return frozenset(self._ops.items())
-
     def __eq__(self, other):
         if not isinstance(other, (PauliTerm, PauliSum)):
             raise TypeError("Can't compare PauliTerm with object of type {}.".format(type(other)))
