@@ -160,7 +160,8 @@ def test_getitem():
 def test_ids():
     term_1 = PauliTerm("Z", 0, 1.0) * PauliTerm("Z", 1, 1.0) * PauliTerm("X", 5, 5)
     term_2 = PauliTerm("X", 5, 5) * PauliTerm("Z", 0, 1.0) * PauliTerm("Z", 1, 1.0)
-    assert term_1.id() == term_2.id()
+    assert term_1.id() == "Z0Z1X5"
+    assert term_2.id() == "X5Z0Z1"
 
 
 def test_pauliop_inputs():

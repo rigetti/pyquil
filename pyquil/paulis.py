@@ -81,7 +81,8 @@ class PauliTerm(object):
     def id(self):
         """
         Returns the unique identifier string for the PauliTerm (ignoring the coefficient).
-         Used in the simplify method of PauliSum.
+
+        Used in the simplify method of PauliSum.
 
         :return: The unique identifier for this term.
         :rtype: string
