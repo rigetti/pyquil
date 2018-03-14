@@ -170,6 +170,12 @@ def test_ids_no_sort():
     assert term_2.id(sort_ops=False) == 'X5Z0Z1'
 
 
+def test_operations_as_set():
+    term_1 = PauliTerm("Z", 0, 1.0) * PauliTerm("Z", 1, 1.0) * PauliTerm("X", 5, 5)
+    term_2 = PauliTerm("X", 5, 5) * PauliTerm("Z", 0, 1.0) * PauliTerm("Z", 1, 1.0)
+    assert term_1.operations_as_set() == term_2.operations_as_set()
+
+
 def test_pauliop_inputs():
     with pytest.raises(AssertionError):
         PauliTerm('X', -2)
