@@ -53,6 +53,12 @@ class UnequalLengthWarning(Warning):
 integer_types = six_integer_types + (np.int64, np.int32, np.int16, np.int8)
 """Explicitly include numpy integer dtypes (for python 3)."""
 
+HASH_PRECISION = 1e6
+"""The precision used when hashing terms to check equality. The simplify() method
+uses np.isclose() for coefficient comparisons to 0 which has its own default precision. We
+can't use np.isclose() for hashing terms though.
+"""
+
 
 class PauliTerm(object):
     """A term is a product of Pauli operators operating on different qubits.
@@ -76,27 +82,38 @@ class PauliTerm(object):
         if not isinstance(coefficient, Number):
             raise ValueError("coefficient of PauliTerm must be a Number.")
         self.coefficient = complex(coefficient)
-        self._id = None
 
-    def id(self):
+    def id(self, sort_ops=True):
         """
-        Returns the unique identifier string for the PauliTerm (ignoring the coefficient).
+        Returns an identifier string for the PauliTerm (ignoring the coefficient).
 
-        Changed in 1.9: Qubit indices will not be in sorted order. They will be in the order
-        in which the term was constructed. If you want to check position independent equality,
-        please see :py:func:`operations_as_set`
+        Don't use this to compare terms. This function will not work with qubits that
+        aren't sortable.
 
-        :return: The unique identifier for this term.
+        :param sort_ops: Whether to sort operations by qubit. This is True by default for
+            backwards compatibility but will change in pyQuil 2.0. Callers should never rely
+            on comparing id's for testing equality. See ``operations_as_set`` instead.
+        :return: A string representation of this term's operations.
         :rtype: string
         """
-        if self._id is not None:
-            return self._id
+        if sort_ops:
+            warnings.warn("This function will not work on PauliTerms where the qubits are not "
+                          "sortable and should be avoided in favor of `operations_as_set`.",
+                          FutureWarning)
+            return ''.join("{}{}".format(self._ops[q], q) for q in sorted(self._ops.keys()))
         else:
-            s = ""
-            for index in self._ops.keys():
-                s += "%s%s" % (self[index], index)
-            self._id = s
-            return s
+            return ''.join("{}{}".format(p, q) for q, p in self._ops.items())
+
+    def operations_as_set(self):
+        """
+        Return a frozenset of operations in this term.
+
+        Use this in place of :py:func:`id` if the order of operations in the term does not
+        matter.
+
+        :return: frozenset of strings representing Pauli operations
+        """
+        return frozenset(self._ops.items())
 
     def operations_as_set(self):
         """
@@ -117,6 +134,13 @@ class PauliTerm(object):
         else:
             return (self.operations_as_set() == other.operations_as_set()
                     and np.isclose(self.coefficient, other.coefficient))
+
+    def __hash__(self):
+        return hash((
+            round(self.coefficient.real * HASH_PRECISION),
+            round(self.coefficient.imag * HASH_PRECISION),
+            self.operations_as_set()
+        ))
 
     def __ne__(self, other):
         # x!=y and x<>y call __ne__() instead of negating __eq__
@@ -256,7 +280,7 @@ class PauliTerm(object):
         :rtype: PauliTerm
         """
         assert isinstance(other, Number)
-        return self + other
+        return PauliTerm("I", 0, other) + self
 
     def __sub__(self, other):
         """Subtracts a PauliTerm from this one.
@@ -422,7 +446,8 @@ class PauliSum(object):
         elif len(self.terms) != len(other.terms):
             warnings.warn(UnequalLengthWarning("These PauliSums have a different number of terms."))
             return False
-        return all([term == other.terms[i] for i, term in enumerate(self.terms)])
+
+        return set(self.terms) == set(other.terms)
 
     def __ne__(self, other):
         """Inequality testing to see if two PauliSum's are not equivalent.
@@ -598,24 +623,20 @@ def simplify_pauli_sum(pauli_sum):
     for term in pauli_sum.terms:
         like_terms[term.operations_as_set()].append(term)
 
-    sorted_term_keys = [(k, like_terms[k][0].id()) for k in like_terms]
-    sorted_term_keys = sorted(sorted_term_keys, key=lambda x: x[1])
-    sorted_term_keys = [k for k, _ in sorted_term_keys]
-
     terms = []
-    for k in sorted_term_keys:
-        term_list = like_terms[k]
+    for term_list in like_terms.values():
         first_term = term_list[0]
         if len(term_list) == 1 and not np.isclose(first_term.coefficient, 0.0):
             terms.append(first_term)
         else:
             coeff = sum(t.coefficient for t in term_list)
             for t in term_list:
-                if t.id() != first_term.id():
+                if list(t._ops.items()) != list(first_term._ops.items()):
                     warnings.warn("The term {} will be combined with {}, but they have different "
                                   "orders of operations. This doesn't matter for QVM or "
                                   "wavefunction simulation but may be important when "
-                                  "running on an actual device.".format(t.id(), first_term.id()))
+                                  "running on an actual device."
+                                  .format(t.id(sort_ops=False), first_term.id(sort_ops=False)))
 
             if not np.isclose(coeff, 0.0):
                 terms.append(term_with_coeff(term_list[0], coeff))

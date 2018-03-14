@@ -164,6 +164,19 @@ def test_ids():
     assert term_2.id() == "X5Z0Z1"
 
 
+def test_ids_no_sort():
+    term_1 = PauliTerm("Z", 0, 1.0) * PauliTerm("Z", 1, 1.0) * PauliTerm("X", 5, 5)
+    term_2 = PauliTerm("X", 5, 5) * PauliTerm("Z", 0, 1.0) * PauliTerm("Z", 1, 1.0)
+    assert term_1.id(sort_ops=False) == 'Z0Z1X5'
+    assert term_2.id(sort_ops=False) == 'X5Z0Z1'
+
+
+def test_operations_as_set():
+    term_1 = PauliTerm("Z", 0, 1.0) * PauliTerm("Z", 1, 1.0) * PauliTerm("X", 5, 5)
+    term_2 = PauliTerm("X", 5, 5) * PauliTerm("Z", 0, 1.0) * PauliTerm("Z", 1, 1.0)
+    assert term_1.operations_as_set() == term_2.operations_as_set()
+
+
 def test_pauliop_inputs():
     with pytest.raises(AssertionError):
         PauliTerm('X', -2)
@@ -215,7 +228,7 @@ def test_ps_adds_pt_2():
     assert str(b + 1.0) == "(3+0j)*I"
     assert str(1.0 + b) == "(3+0j)*I"
     b = sX(0) + 1.0
-    assert str(b) == "(1+0j)*I + (1+0j)*X0"
+    assert str(b) == "(1+0j)*X0 + (1+0j)*I"
     b = 1.0 + sX(0)
     assert str(b) == "(1+0j)*I + (1+0j)*X0"
 
@@ -234,7 +247,7 @@ def test_ps_sub():
     b = 1.0 - sX(0)
     assert str(b) == "(1+0j)*I + (-1+0j)*X0"
     b = sX(0) - 1.0
-    assert str(b) == "(-1+0j)*I + (1+0j)*X0"
+    assert str(b) == "(1+0j)*X0 + (-1+0j)*I"
 
 
 def test_zero_terms():
