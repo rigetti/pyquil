@@ -27,7 +27,7 @@ from pyquil.quilatom import QubitPlaceholder
 from .quil import Program
 from .gates import H, RZ, RX, CNOT, X, PHASE, STANDARD_GATES
 from numbers import Number
-from collections import Sequence, OrderedDict
+from collections import Sequence, OrderedDict, defaultdict
 import warnings
 from six import integer_types as six_integer_types
 from six.moves import range
@@ -564,12 +564,12 @@ class PauliSum(object):
         """
         Simplifies the sum of Pauli operators according to Pauli algebra rules.
         """
-        def coalesce(d):
+
+        def coalesce(like_terms):
             terms = []
-            for k in sorted(d):
-                term_list = d[k]
-                if (len(term_list) == 1 and not
-                        np.isclose(term_list[0].coefficient, 0.0)):
+            for k in sorted(like_terms):
+                term_list = like_terms[k]
+                if len(term_list) == 1 and not np.isclose(term_list[0].coefficient, 0.0):
                     terms.append(term_list[0])
                 else:
                     coeff = sum(t.coefficient for t in term_list)
@@ -577,13 +577,9 @@ class PauliSum(object):
                         terms.append(term_with_coeff(term_list[0], coeff))
             return PauliSum(terms)
 
-        like_terms = {}
+        like_terms = defaultdict(list)
         for term in self.terms:
-            id = term.id()
-            if id not in like_terms:
-                like_terms[id] = [term]
-            else:
-                like_terms[id] = like_terms[id] + [term]
+            like_terms[term.id()].append(term)
 
         return coalesce(like_terms)
 
