@@ -588,3 +588,24 @@ def test_numpy_integer_types():
     assert isinstance(idx_np, np.int64)
     # on python 3 this fails unless explicitly allowing for numpy integer types
     PauliTerm("X", idx_np)
+
+
+def test_simplify():
+    t1 = sZ(0) * sZ(1)
+    t2 = sZ(0) * sZ(1)
+    assert (t1 + t2) == 2 * sZ(0) * sZ(1)
+
+def test_dont_simplify():
+    t1 = sZ(0) * sZ(1)
+    t2 = sZ(2) * sZ(3)
+    assert (t1 + t2) != 2 * sZ(0) * sZ(1)
+
+
+def test_simplify_warning():
+    t1 = sZ(0) * sZ(1)
+    t2 = sZ(1) * sZ(0)
+    with pytest.warns(UserWarning) as e:
+        tsum = t1 + t2
+
+    assert tsum == 2 * sZ(0) * sZ(1)
+    assert str(e[0].message).startswith('The term Z1Z0 will be combined with Z0Z1')

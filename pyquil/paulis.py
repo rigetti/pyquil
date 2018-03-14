@@ -598,8 +598,12 @@ def simplify_pauli_sum(pauli_sum):
     for term in pauli_sum.terms:
         like_terms[term.operations_as_set()].append(term)
 
+    sorted_term_keys = [(k, like_terms[k][0].id()) for k in like_terms]
+    sorted_term_keys = sorted(sorted_term_keys, key=lambda x: x[1])
+    sorted_term_keys = [k for k, _ in sorted_term_keys]
+
     terms = []
-    for k in sorted(like_terms):
+    for k in sorted_term_keys:
         term_list = like_terms[k]
         first_term = term_list[0]
         if len(term_list) == 1 and not np.isclose(first_term.coefficient, 0.0):
