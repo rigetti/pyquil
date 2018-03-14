@@ -590,7 +590,6 @@ class PauliSum(object):
         """
         return simplify_pauli_sum(self)
 
-
     def get_programs(self):
         """
         Get a Pyquil Program corresponding to each term in the PauliSum and a coefficient
