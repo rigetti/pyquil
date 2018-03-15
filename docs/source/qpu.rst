@@ -399,8 +399,9 @@ uses:
 
 * The ISA associated to Acorn can be modified by the user to target ``CPHASE`` rather than ``CZ`` on
   any collection of qubit-qubit links not including 1-6.  Passing such a customized ISA to Forest as
-  part of a call to ``.run`` or ``.run_and_measure`` will both enable compilation utilizing ``CPHASE``
-  as a native gate and will disable compilation from ``CPHASE`` to ``CZ``.
+  part of a call to ``.run`` or ``.run_and_measure`` will enable compilation utilizing ``CPHASE``
+  as a native gate (although the compiler will continue to prefer ``CZ`` to ``CPHASE(π)`` specifically,
+  due to its generally higher fidelity on 19Q-Acorn).
 * It can be used to seed a QVM with characteristics of the device, supporting noisy simulation. For
   more information on this, see the next section.
 
