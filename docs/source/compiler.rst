@@ -55,7 +55,7 @@ sending a program to the QPU/QVM.
 	  acorn = devices['19Q-Acorn']
 	  compiler = CompilerConnection(acorn)
 
-	  job_id = compiler.compile_async(Program(H(0), CNOT(0,1), CNOT(1,2))
+	  job_id = compiler.compile_async(Program(H(0), CNOT(0,1), CNOT(1,2)))
 	  job = compiler.wait_for_job(job_id)
 
 	  print('compiled quil', job.compiled_quil())
