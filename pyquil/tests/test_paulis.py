@@ -95,7 +95,7 @@ def test_simplify_term_xz():
 def test_simplify_term_multindex():
     term = (PauliTerm('X', 0, coefficient=-0.5) *
             PauliTerm('Z', 0, coefficient=-1.0) * PauliTerm('X', 2, 0.5))
-    assert term.id() == 'Y0X2'
+    assert term.id(sort_ops=False) == 'Y0X2'
     assert term.coefficient == -0.25j
 
 
