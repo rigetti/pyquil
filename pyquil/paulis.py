@@ -92,7 +92,7 @@ class PauliTerm(object):
         :return: A string representation of this term's operations.
         :rtype: string
         """
-        if sort_ops:
+        if sort_ops and len(self._ops) > 1:
             warnings.warn("This function will not work on PauliTerms where the qubits are not "
                           "sortable and should be avoided in favor of `operations_as_set`.",
                           FutureWarning)
@@ -638,6 +638,7 @@ def check_commutation(pauli_list, pauli_two):
     :returns: True if pauli_two object commutes with pauli_list, False otherwise
     :rtype: bool
     """
+
     def coincident_parity(p1, p2):
         non_similar = 0
         p1_indices = set(p1._ops.keys())
@@ -762,6 +763,7 @@ def _exponentiate_general_case(pauli_term, param):
     :returns: A Quil program object
     :rtype: Program
     """
+
     def reverse_hack(p):
         # A hack to produce a *temporary* program which reverses p.
         revp = Program()
@@ -821,7 +823,7 @@ def suzuki_trotter(trotter_order, trotter_steps):
               type: o=0 is A and o=1 is B.
     :rtype: list
     """
-    p1 = p2 = p4 = p5 = 1.0 / (4 - (4**(1. / 3)))
+    p1 = p2 = p4 = p5 = 1.0 / (4 - (4 ** (1. / 3)))
     p3 = 1 - 4 * p1
     trotter_dict = {1: [(1, 0), (1, 1)],
                     2: [(0.5, 0), (1, 1), (0.5, 0)],
@@ -880,7 +882,7 @@ def trotterize(first_pauli_term, second_pauli_term, trotter_order=1,
     if not (1 <= trotter_order < 5):
         raise ValueError("trotterize only accepts trotter_order in {1, 2, 3, 4}.")
 
-    commutator = (first_pauli_term * second_pauli_term) +\
+    commutator = (first_pauli_term * second_pauli_term) + \
                  (-1 * second_pauli_term * first_pauli_term)
 
     prog = Program()
