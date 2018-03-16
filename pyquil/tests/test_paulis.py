@@ -16,6 +16,7 @@
 ##############################################################################
 
 import math
+import warnings
 from functools import reduce
 from itertools import product
 from operator import mul
@@ -473,6 +474,15 @@ def test_is_identity_2():
     assert not t.is_identity()
 
 
+def _commutator(t1, t2):
+    with warnings.catch_warnings():
+        warnings.filterwarnings('ignore',
+                                message=r"The term .+ will be combined with .+, "
+                                        r"but they have different orders of operations.*",
+                                category=UserWarning)
+        return t1 * t2 + -1 * t2 * t1
+
+
 def test_check_commutation_rigorous():
     # more rigorous test.  Get all operators in Pauli group
     p_n_group = ("I", "X", "Y", "Z")
@@ -480,15 +490,12 @@ def test_check_commutation_rigorous():
     pauli_ops = [list(zip(x, range(3))) for x in pauli_list]
     pauli_ops_pq = [reduce(mul, (PauliTerm(*x) for x in op)) for op in pauli_ops]
 
-    def commutator(t1, t2):
-        return t1 * t2 + -1 * t2 * t1
-
     non_commuting_pairs = []
     commuting_pairs = []
     for x in range(len(pauli_ops_pq)):
         for y in range(x, len(pauli_ops_pq)):
 
-            tmp_op = commutator(pauli_ops_pq[x], pauli_ops_pq[y])
+            tmp_op = _commutator(pauli_ops_pq[x], pauli_ops_pq[y])
             assert len(tmp_op.terms) == 1
             if tmp_op.terms[0].is_identity():
                 commuting_pairs.append((pauli_ops_pq[x], pauli_ops_pq[y]))
