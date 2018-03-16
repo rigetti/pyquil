@@ -28,7 +28,7 @@ from six.moves import range
 from pyquil.gates import RX, RZ, CNOT, H, X, PHASE
 from pyquil.paulis import PauliTerm, PauliSum, exponential_map, exponentiate_commuting_pauli_sum, \
     ID, UnequalLengthWarning, exponentiate, trotterize, is_zero, check_commutation, commuting_sets, \
-    term_with_coeff, sI, sX, sY, sZ, ZERO
+    term_with_coeff, sI, sX, sY, sZ, ZERO, is_identity
 from pyquil.quil import Program
 
 
@@ -461,19 +461,6 @@ def test_check_commutation():
     assert not check_commutation([term1], term3)
 
 
-def test_is_identity():
-    t = PauliTerm("I", 5, 1.4)
-    assert t.is_identity()
-
-
-def test_is_identity_2():
-    t = sZ(0) * sZ(0)
-    assert t.is_identity()
-
-    t = sZ(0)
-    assert not t.is_identity()
-
-
 def _commutator(t1, t2):
     with warnings.catch_warnings():
         warnings.filterwarnings('ignore',
@@ -497,7 +484,7 @@ def test_check_commutation_rigorous():
 
             tmp_op = _commutator(pauli_ops_pq[x], pauli_ops_pq[y])
             assert len(tmp_op.terms) == 1
-            if tmp_op.terms[0].is_identity():
+            if is_identity(tmp_op.terms[0]):
                 commuting_pairs.append((pauli_ops_pq[x], pauli_ops_pq[y]))
             else:
                 non_commuting_pairs.append((pauli_ops_pq[x], pauli_ops_pq[y]))

@@ -79,9 +79,6 @@ class PauliTerm(object):
             raise ValueError("coefficient of PauliTerm must be a Number.")
         self.coefficient = complex(coefficient)
 
-    def is_identity(self):
-        return len(self._ops) == 0
-
     def id(self, sort_ops=True):
         """
         Returns an identifier string for the PauliTerm (ignoring the coefficient).
