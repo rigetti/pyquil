@@ -93,8 +93,8 @@ def test_simplify_term_xz():
 
 
 def test_simplify_term_multindex():
-    term = (PauliTerm('X', 0, coefficient=-0.5) * PauliTerm('Z', 0, coefficient=-1.0)
-            * PauliTerm('X', 2, 0.5))
+    term = (PauliTerm('X', 0, coefficient=-0.5) *
+            PauliTerm('Z', 0, coefficient=-1.0) * PauliTerm('X', 2, 0.5))
     assert term.id() == 'Y0X2'
     assert term.coefficient == -0.25j
 
@@ -341,10 +341,10 @@ def test_exponentiate_3cob():
 
 def test_exponentiate_3ns():
     # testing circuit for 3-terms non-sequential
-    generator = (PauliTerm("Y", 0, 1.0)
-                 * PauliTerm("I", 1, 1.0)
-                 * PauliTerm("Y", 2, 1.0)
-                 * PauliTerm("Y", 3, 1.0))
+    generator = (PauliTerm("Y", 0, 1.0) *
+                 PauliTerm("I", 1, 1.0) *
+                 PauliTerm("Y", 2, 1.0) *
+                 PauliTerm("Y", 3, 1.0))
     para_prog = exponential_map(generator)
     prog = para_prog(1)
     result_prog = Program().inst([RX(math.pi / 2.0)(0), RX(math.pi / 2.0)(2),

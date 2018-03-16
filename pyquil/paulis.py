@@ -117,8 +117,8 @@ class PauliTerm(object):
         elif isinstance(other, PauliSum):
             return other == self
         else:
-            return (self.operations_as_set() == other.operations_as_set()
-                    and np.isclose(self.coefficient, other.coefficient))
+            return (self.operations_as_set() == other.operations_as_set() and
+                    np.isclose(self.coefficient, other.coefficient))
 
     def __hash__(self):
         return hash((
