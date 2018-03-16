@@ -459,6 +459,21 @@ def test_check_commutation():
     assert check_commutation([term2], term3)
     assert not check_commutation([term1], term3)
 
+
+def test_is_identity():
+    t = PauliTerm("I", 5, 1.4)
+    assert t.is_identity()
+
+
+def test_is_identity_2():
+    t = sZ(0) * sZ(0)
+    assert t.is_identity()
+
+    t = sZ(0)
+    assert not t.is_identity()
+
+
+def test_check_commutation_rigorous():
     # more rigorous test.  Get all operators in Pauli group
     p_n_group = ("I", "X", "Y", "Z")
     pauli_list = list(product(p_n_group, repeat=3))
@@ -475,7 +490,7 @@ def test_check_commutation():
 
             tmp_op = commutator(pauli_ops_pq[x], pauli_ops_pq[y])
             assert len(tmp_op.terms) == 1
-            if tmp_op.terms[0].id() == '':
+            if tmp_op.terms[0].is_identity():
                 commuting_pairs.append((pauli_ops_pq[x], pauli_ops_pq[y]))
             else:
                 non_commuting_pairs.append((pauli_ops_pq[x], pauli_ops_pq[y]))
