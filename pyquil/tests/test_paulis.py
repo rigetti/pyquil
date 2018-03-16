@@ -160,7 +160,9 @@ def test_getitem():
 def test_ids():
     term_1 = PauliTerm("Z", 0, 1.0) * PauliTerm("Z", 1, 1.0) * PauliTerm("X", 5, 5)
     term_2 = PauliTerm("X", 5, 5) * PauliTerm("Z", 0, 1.0) * PauliTerm("Z", 1, 1.0)
-    assert term_1.id() == term_2.id()
+    with pytest.warns(FutureWarning) as w:
+        assert term_1.id() == term_2.id()
+    assert 'should be avoided' in str(w[0])
 
 
 def test_ids_no_sort():
