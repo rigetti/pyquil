@@ -101,6 +101,16 @@ then please describe the problem in a GitHub issue at:
         super(QVMError, self).__init__(server_status, explanation)
 
 
+class QUILCError(ApiError):
+    def __init__(self, server_status):
+        explanation = """
+QUILC returned the above error. This could be due to a bug in the server or a
+bug in your code. If you suspect this to be a bug in pyQuil or Rigetti Forest,
+then please describe the problem in a GitHub issue at:
+    https://github.com/rigetticomputing/pyquil/issues"""
+        super(QUILCError, self).__init__(server_status, explanation)
+
+
 class TooManyQubitsError(ApiError):
     def __init__(self, server_status):
         explanation = """
@@ -133,5 +143,6 @@ error_mapping = {
     'invalid_user': InvalidUserError,
     'job_not_found': JobNotFoundError,
     'missing_permissions': MissingPermissionsError,
+    'quilc_error': QUILCError,
     'qvm_error': QVMError,
 }
