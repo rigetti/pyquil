@@ -17,7 +17,7 @@
 import base64
 import warnings
 
-from pyquil.api.errors import CancellationError, QVMError, QPUError
+from pyquil.api.errors import CancellationError, QVMError, QPUError, QUILCError, UnknownApiError
 from pyquil.parser import parse_program
 from pyquil.wavefunction import Wavefunction
 
@@ -65,8 +65,12 @@ class Job(object):
         elif self._raw['status'] == 'ERROR':
             if self._machine == 'QVM':
                 raise QVMError(self._raw['result'])
-            else:  # self._machine == 'QPU'
+            elif self._machine == 'QPU':
                 raise QPUError(self._raw['result'])
+            elif self._machine == 'QUILC':
+                raise QUILCError(self._raw['result'])
+            else:
+                raise UnknownApiError(self._raw['result'])
 
         if self._raw['program']['type'] == 'wavefunction':
             return Wavefunction.from_bit_packed_string(
