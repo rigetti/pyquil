@@ -95,7 +95,6 @@ class CompilerConnection(object):
         compiled Program.
 
         :param Program quil_program: Quil program to be compiled.
-        :param ISA isa: ISA to target.
         :returns: The compiled Program object.
         :rtype: Program
         """
