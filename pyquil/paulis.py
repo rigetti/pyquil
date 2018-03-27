@@ -603,9 +603,15 @@ class PauliSum(object):
 
 
 def simplify_pauli_sum(pauli_sum):
-    like_terms = defaultdict(list)
+    # You might want to use a defaultdict(list) here, but don't because
+    # we want to do our best to preserve the order of terms.
+    like_terms = OrderedDict()
     for term in pauli_sum.terms:
-        like_terms[term.operations_as_set()].append(term)
+        key = term.operations_as_set()
+        if key in like_terms:
+            like_terms[key].append(term)
+        else:
+            like_terms[key] = [term]
 
     terms = []
     for term_list in like_terms.values():
