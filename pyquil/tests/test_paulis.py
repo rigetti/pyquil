@@ -16,6 +16,7 @@
 ##############################################################################
 
 import math
+import warnings
 from functools import reduce
 from itertools import product
 from operator import mul
@@ -27,7 +28,7 @@ from six.moves import range
 from pyquil.gates import RX, RZ, CNOT, H, X, PHASE
 from pyquil.paulis import PauliTerm, PauliSum, exponential_map, exponentiate_commuting_pauli_sum, \
     ID, UnequalLengthWarning, exponentiate, trotterize, is_zero, check_commutation, commuting_sets, \
-    term_with_coeff, sI, sX, sY, sZ, ZERO
+    term_with_coeff, sI, sX, sY, sZ, ZERO, is_identity
 from pyquil.quil import Program
 
 
@@ -93,9 +94,9 @@ def test_simplify_term_xz():
 
 
 def test_simplify_term_multindex():
-    term = (PauliTerm('X', 0, coefficient=-0.5) * PauliTerm('Z', 0, coefficient=-1.0)
-            * PauliTerm('X', 2, 0.5))
-    assert term.id() == 'Y0X2'
+    term = (PauliTerm('X', 0, coefficient=-0.5) *
+            PauliTerm('Z', 0, coefficient=-1.0) * PauliTerm('X', 2, 0.5))
+    assert term.id(sort_ops=False) == 'Y0X2'
     assert term.coefficient == -0.25j
 
 
@@ -160,7 +161,9 @@ def test_getitem():
 def test_ids():
     term_1 = PauliTerm("Z", 0, 1.0) * PauliTerm("Z", 1, 1.0) * PauliTerm("X", 5, 5)
     term_2 = PauliTerm("X", 5, 5) * PauliTerm("Z", 0, 1.0) * PauliTerm("Z", 1, 1.0)
-    assert term_1.id() == term_2.id()
+    with pytest.warns(FutureWarning) as w:
+        assert term_1.id() == term_2.id()
+    assert 'should be avoided' in str(w[0])
 
 
 def test_ids_no_sort():
@@ -341,12 +344,10 @@ def test_exponentiate_3cob():
 
 def test_exponentiate_3ns():
     # testing circuit for 3-terms non-sequential
-    generator = (
-            PauliTerm("Y", 0, 1.0)
-            * PauliTerm("I", 1, 1.0)
-            * PauliTerm("Y", 2, 1.0)
-            * PauliTerm("Y", 3, 1.0)
-    )
+    generator = (PauliTerm("Y", 0, 1.0) *
+                 PauliTerm("I", 1, 1.0) *
+                 PauliTerm("Y", 2, 1.0) *
+                 PauliTerm("Y", 3, 1.0))
     para_prog = exponential_map(generator)
     prog = para_prog(1)
     result_prog = Program().inst([RX(math.pi / 2.0)(0), RX(math.pi / 2.0)(2),
@@ -459,23 +460,31 @@ def test_check_commutation():
     assert check_commutation([term2], term3)
     assert not check_commutation([term1], term3)
 
+
+def _commutator(t1, t2):
+    with warnings.catch_warnings():
+        warnings.filterwarnings('ignore',
+                                message=r"The term .+ will be combined with .+, "
+                                        r"but they have different orders of operations.*",
+                                category=UserWarning)
+        return t1 * t2 + -1 * t2 * t1
+
+
+def test_check_commutation_rigorous():
     # more rigorous test.  Get all operators in Pauli group
     p_n_group = ("I", "X", "Y", "Z")
     pauli_list = list(product(p_n_group, repeat=3))
     pauli_ops = [list(zip(x, range(3))) for x in pauli_list]
     pauli_ops_pq = [reduce(mul, (PauliTerm(*x) for x in op)) for op in pauli_ops]
 
-    def commutator(t1, t2):
-        return t1 * t2 + -1 * t2 * t1
-
     non_commuting_pairs = []
     commuting_pairs = []
     for x in range(len(pauli_ops_pq)):
         for y in range(x, len(pauli_ops_pq)):
 
-            tmp_op = commutator(pauli_ops_pq[x], pauli_ops_pq[y])
+            tmp_op = _commutator(pauli_ops_pq[x], pauli_ops_pq[y])
             assert len(tmp_op.terms) == 1
-            if tmp_op.terms[0].id() == '':
+            if is_identity(tmp_op.terms[0]):
                 commuting_pairs.append((pauli_ops_pq[x], pauli_ops_pq[y]))
             else:
                 non_commuting_pairs.append((pauli_ops_pq[x], pauli_ops_pq[y]))

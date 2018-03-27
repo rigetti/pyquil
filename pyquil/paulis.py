@@ -96,7 +96,7 @@ class PauliTerm(object):
         :return: A string representation of this term's operations.
         :rtype: string
         """
-        if sort_ops:
+        if sort_ops and len(self._ops) > 1:
             warnings.warn("This function will not work on PauliTerms where the qubits are not "
                           "sortable and should be avoided in favor of `operations_as_set`.",
                           FutureWarning)
@@ -121,8 +121,8 @@ class PauliTerm(object):
         elif isinstance(other, PauliSum):
             return other == self
         else:
-            return (self.operations_as_set() == other.operations_as_set()
-                    and np.isclose(self.coefficient, other.coefficient))
+            return (self.operations_as_set() == other.operations_as_set() and
+                    np.isclose(self.coefficient, other.coefficient))
 
     def __hash__(self):
         return hash((
@@ -594,7 +594,6 @@ class PauliSum(object):
         """
         return simplify_pauli_sum(self)
 
-
     def get_programs(self):
         """
         Get a Pyquil Program corresponding to each term in the PauliSum and a coefficient
@@ -608,9 +607,15 @@ class PauliSum(object):
 
 
 def simplify_pauli_sum(pauli_sum):
-    like_terms = defaultdict(list)
+    # You might want to use a defaultdict(list) here, but don't because
+    # we want to do our best to preserve the order of terms.
+    like_terms = OrderedDict()
     for term in pauli_sum.terms:
-        like_terms[term.operations_as_set()].append(term)
+        key = term.operations_as_set()
+        if key in like_terms:
+            like_terms[key].append(term)
+        else:
+            like_terms[key] = [term]
 
     terms = []
     for term_list in like_terms.values():
@@ -643,6 +648,7 @@ def check_commutation(pauli_list, pauli_two):
     :returns: True if pauli_two object commutes with pauli_list, False otherwise
     :rtype: bool
     """
+
     def coincident_parity(p1, p2):
         non_similar = 0
         p1_indices = set(p1._ops.keys())
@@ -767,6 +773,7 @@ def _exponentiate_general_case(pauli_term, param):
     :returns: A Quil program object
     :rtype: Program
     """
+
     def reverse_hack(p):
         # A hack to produce a *temporary* program which reverses p.
         revp = Program()
@@ -826,7 +833,7 @@ def suzuki_trotter(trotter_order, trotter_steps):
               type: o=0 is A and o=1 is B.
     :rtype: list
     """
-    p1 = p2 = p4 = p5 = 1.0 / (4 - (4**(1. / 3)))
+    p1 = p2 = p4 = p5 = 1.0 / (4 - (4 ** (1. / 3)))
     p3 = 1 - 4 * p1
     trotter_dict = {1: [(1, 0), (1, 1)],
                     2: [(0.5, 0), (1, 1), (0.5, 0)],
@@ -885,7 +892,7 @@ def trotterize(first_pauli_term, second_pauli_term, trotter_order=1,
     if not (1 <= trotter_order < 5):
         raise ValueError("trotterize only accepts trotter_order in {1, 2, 3, 4}.")
 
-    commutator = (first_pauli_term * second_pauli_term) +\
+    commutator = (first_pauli_term * second_pauli_term) + \
                  (-1 * second_pauli_term * first_pauli_term)
 
     prog = Program()
