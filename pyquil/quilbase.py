@@ -21,7 +21,7 @@ import numpy as np
 from six import integer_types, string_types
 
 from pyquil.parameters import Expression, _contained_parameters, format_parameter
-from pyquil.quilatom import Qubit, Addr, Label, unpack_qubit
+from pyquil.quilatom import Qubit, Addr, Label, unpack_qubit, QubitPlaceholder
 
 
 class AbstractInstruction(object):
@@ -69,7 +69,7 @@ class Gate(AbstractInstruction):
         if not isinstance(qubits, list) or not qubits:
             raise TypeError("Gate arguments must be a non-empty list")
         for qubit in qubits:
-            if not isinstance(qubit, Qubit):
+            if not isinstance(qubit, (Qubit, QubitPlaceholder)):
                 raise TypeError("Gate arguments must all be Qubits")
 
         self.name = name

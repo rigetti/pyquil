@@ -82,6 +82,8 @@ def unpack_qubit(qubit):
         return Qubit(qubit)
     elif isinstance(qubit, Qubit):
         return qubit
+    elif isinstance(qubit, QubitPlaceholder):
+        return qubit
     else:
         raise TypeError("qubit should be an int or Qubit instance")
 

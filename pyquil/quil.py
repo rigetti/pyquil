@@ -560,6 +560,24 @@ def _what_type_of_qubit_does_it_use(program):
     return has_placeholders, has_real_qubits, list(qubits.keys())
 
 
+def get_default_qubit_mapping(program):
+    """
+    Takes a program which contains qubit placeholders and provides a mapping to the integers
+    0 through N-1.
+
+    The output of this function is suitable for input to :py:func:`address_qubits`.
+
+    :param program: A program containing qubit placeholders
+    :return: A dictionary mapping qubit placeholder to an addressed qubit from 0 through N-1.
+    """
+    fake_qubits, real_qubits, qubits = _what_type_of_qubit_does_it_use(program)
+    if real_qubits:
+        warnings.warn("This program contains integer qubits, "
+                      "so getting a mapping doesn't make sense.")
+        return {}
+    return {qp: Qubit(i) for i, qp in enumerate(qubits)}
+
+
 def address_qubits(program, qubit_mapping=None):
     """
     Takes a program which contains placeholders and assigns them all defined values.
