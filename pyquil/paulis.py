@@ -203,7 +203,7 @@ class PauliTerm(object):
         """
         if not isinstance(power, int) or power < 0:
             raise ValueError("The power must be a non-negative integer.")
-        result = 1
+        result = ID()
 
         identities = [PauliTerm('I', qubit) for qubit in self.get_qubits()]
         if not identities:
@@ -479,7 +479,7 @@ class PauliSum(object):
         """
         if not isinstance(power, int) or power < 0:
             raise ValueError("The power must be a non-negative integer.")
-        result = 1
+        result = PauliSum([ID()])
 
         if not self.get_qubits():
             # There aren't any nontrivial operators
