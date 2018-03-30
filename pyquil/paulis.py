@@ -688,12 +688,7 @@ def exponential_map(term):
 
     def exp_wrap(param):
         prog = Program()
-        if is_identity(term):
-            prog.inst(X(0))
-            prog.inst(PHASE(-param * coeff)(0))
-            prog.inst(X(0))
-            prog.inst(PHASE(-param * coeff)(0))
-        else:
+        if not is_identity(term):
             prog += _exponentiate_general_case(term, param)
         return prog
 
