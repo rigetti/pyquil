@@ -188,6 +188,11 @@ is the fidelity of the measured process compared with the ideal process, compute
    13 - 19,0.62,109.6,181,0.921
    14 - 19,0.59,188.1,142,0.797
 
+Additionally, native ``CPHASE`` gates are available on all qubit-qubit links except for 1-6,
+under the proviso that they are still under development, and so their performance is typically
+below that of ``CZ``.  Due to the ongoing nature of the work, we decline to quote precise
+performance characteristics here.
+
 
 Using the QPU
 ~~~~~~~~~~~~~
@@ -389,9 +394,16 @@ succinct manner:
     # {(0, 5): 0.888, (0, 6): 0.8, (1, 6): 0.837, (1, 7): 0.87, ...}
 
 With these tools provided by the ``Device`` class, users may learn more about Rigetti hardware, and
-construct programs tailored specifically to that hardware. In addition, the ``Device`` class serves
-as a powerful tool for seeding a QVM with characteristics of the device. For more information on
-this, see the next section.
+construct programs tailored specifically to that hardware. The ``Device`` class serves two additional
+uses:
+
+* The ISA associated to Acorn can be modified by the user to target ``CPHASE`` rather than ``CZ`` on
+  any collection of qubit-qubit links not including 1-6.  Passing such a customized ISA to Forest as
+  part of a call to ``.run`` or ``.run_and_measure`` will enable compilation utilizing ``CPHASE``
+  as a native gate (although the compiler will continue to prefer ``CZ`` to ``CPHASE(π)`` specifically,
+  due to its generally higher fidelity on 19Q-Acorn).
+* It can be used to seed a QVM with characteristics of the device, supporting noisy simulation. For
+  more information on this, see the next section.
 
 Simulating the QPU using the QVM
 --------------------------------

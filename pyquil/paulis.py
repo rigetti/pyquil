@@ -97,7 +97,7 @@ class PauliTerm(object):
         :rtype: string
         """
         if sort_ops and len(self._ops) > 1:
-            warnings.warn("This function will not work on PauliTerms where the qubits are not "
+            warnings.warn("`PauliTerm.id()` will not work on PauliTerms where the qubits are not "
                           "sortable and should be avoided in favor of `operations_as_set`.",
                           FutureWarning)
             return ''.join("{}{}".format(self._ops[q], q) for q in sorted(self._ops.keys()))
@@ -234,7 +234,7 @@ class PauliTerm(object):
         """
         if not isinstance(power, int) or power < 0:
             raise ValueError("The power must be a non-negative integer.")
-        result = 1
+        result = ID()
 
         identities = [PauliTerm('I', qubit) for qubit in self.get_qubits()]
         if not identities:
@@ -511,7 +511,7 @@ class PauliSum(object):
         """
         if not isinstance(power, int) or power < 0:
             raise ValueError("The power must be a non-negative integer.")
-        result = 1
+        result = PauliSum([ID()])
 
         if not self.get_qubits():
             # There aren't any nontrivial operators
