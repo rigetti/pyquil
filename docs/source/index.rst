@@ -56,6 +56,7 @@ Contents
    compiler
    noise
    modules
+   changes
 
 
 Indices and Tables
