@@ -136,6 +136,7 @@ class Parameter(QuilAtom, Expression):
     """
     Parameters in Quil are represented as a label like '%x' for the parameter named 'x'.
     """
+
     def __init__(self, name):
         self.name = name
 
@@ -144,6 +145,15 @@ class Parameter(QuilAtom, Expression):
 
     def _substitute(self, d):
         return d.get(self, self)
+
+    def __str__(self):
+        return '%' + self.name
+
+    def __hash__(self):
+        return hash(self.name)
+
+    def __eq__(self, other):
+        return isinstance(other, Parameter) and other.name == self.name
 
 
 class Function(Expression):

@@ -21,7 +21,7 @@ import numpy as np
 from six import integer_types, string_types
 
 from pyquil.parameters import Expression, _contained_parameters, format_parameter
-from pyquil.quilatom import Qubit, Addr, Label, unpack_qubit, QubitPlaceholder
+from pyquil.quilatom import Qubit, Addr, Label, unpack_qubit, QubitPlaceholder, LabelPlaceholder
 
 
 class AbstractInstruction(object):
@@ -98,7 +98,7 @@ class Measurement(AbstractInstruction):
     """
 
     def __init__(self, qubit, classical_reg=None):
-        if not isinstance(qubit, Qubit):
+        if not isinstance(qubit, (Qubit, QubitPlaceholder)):
             raise TypeError("qubit should be a Qubit")
         if classical_reg and not isinstance(classical_reg, Addr):
             raise TypeError("classical_reg should be None or an Addr instance")
@@ -222,7 +222,7 @@ class JumpTarget(AbstractInstruction):
     """
 
     def __init__(self, label):
-        if not isinstance(label, Label):
+        if not isinstance(label, (Label, LabelPlaceholder)):
             raise TypeError("label must be a Label")
         self.label = label
 
@@ -239,7 +239,7 @@ class JumpConditional(AbstractInstruction):
     """
 
     def __init__(self, target, condition):
-        if not isinstance(target, Label):
+        if not isinstance(target, (Label, LabelPlaceholder)):
             raise TypeError("target should be a Label")
         if not isinstance(condition, Addr):
             raise TypeError("condition should be an Addr")
@@ -366,7 +366,7 @@ class Jump(AbstractInstruction):
     """
 
     def __init__(self, target):
-        if not isinstance(target, Label):
+        if not isinstance(target, (Label, LabelPlaceholder)):
             raise TypeError("target should be a Label")
         self.target = target
 
