@@ -13,8 +13,9 @@ v1.9
    backwards compatibility. However, this function should not be used for comparing term-type like
    it has been used previously. Use :py:func:`PauliTerm.operations_as_set()` instead. In the future,
    ``sort_ops`` will default to False and will eventually be removed.
- - :py:func:`Program.alloc()` has been deprecated. Please instantiate :py:class:`QubitPlaceholder`
-   directly.
+ - :py:func:`Program.alloc()` has been deprecated. Please instantiate :py:class:`QubitPlaceholder()`
+   directly or request a "register" (list) of ``n`` placeholders by using the class constructor
+   :py:func:`QubitPlaceholder.register(n)`.
  - Programs must contain either (1) all instantiated qubits with integer indexes or (2) all
    placeholder qubits of type :py:class:`QubitPlaceholder`. We have found that most users use
    (1) but (2) will become useful with larger and more diverse devices.
