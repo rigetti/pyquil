@@ -30,4 +30,5 @@ v1.9
    in badly-addressed qubits.
  - :py:class:`PauliTerm` can now accept :py:class:`QubitPlaceholder` in addition to integers.
  - :py:class:`QubitPlaceholder` is no longer a subclass of :py:class:`Qubit`.
+   :py:class:`LabelPlaceholder` is no longer a subclass of :py:class:`Label`.
  - :py:class:`QuilAtom` subclasses' hash functions have changed.
