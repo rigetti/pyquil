@@ -742,7 +742,7 @@ the obtained outcome and subsequently rescaled to unit norm.
     # This program prepares something called a Bell state (a special kind of "entangled state")
     bell_program = Program(H(0), CNOT(0, 1))
     wavefunction = quantum_simulator.wavefunction(bell_program)
-    print("Before measurement: H|0> = ", wavefunction)
+    print("Before measurement: Bell state = ", wavefunction)
 
     bell_program.measure(0, classical_reg)
     for x in range(5):
@@ -752,7 +752,7 @@ the obtained outcome and subsequently rescaled to unit norm.
 
 .. parsed-literal::
 
-    Before measurement: H|0> =  (0.7071067812+0j)|00> + (0.7071067812+0j)|11>
+    Before measurement: Bell state =  (0.7071067812+0j)|00> + (0.7071067812+0j)|11>
 
     After measurement:  {'00': 1.0, '01': 0.0, '10': 0.0, '11': 0.0}
     After measurement:  {'00': 0.0, '01': 0.0, '10': 0.0, '11': 1.0}
