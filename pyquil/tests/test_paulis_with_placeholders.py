@@ -169,7 +169,6 @@ def test_operations_as_set():
     assert term_1.operations_as_set() == term_2.operations_as_set()
 
 
-
 def test_pauli_sum():
     q = QubitPlaceholder.register(8)
     q_plus = 0.5 * PauliTerm('X', q[0]) + 0.5j * PauliTerm('Y', q[0])
@@ -199,7 +198,6 @@ def test_pauli_sum():
         _ = the_sum * []
 
 
-
 def test_pauliterm_sub():
     q = QubitPlaceholder.register(8)
     assert str(sX(q[1]) - 2.0) == str(sX(q[1]) + -2.0)
@@ -217,7 +215,6 @@ def test_ps_sub():
     assert re.match(r"\(1\+0j\)\*I \+ \(-1\+0j\)\*X<.+>", str(b))
     b = sX(q0) - 1.0
     assert re.match(r"\(1\+0j\)\*X<.+> \+ \(-1\+0j\)\*I", str(b))
-
 
 
 def test_exponentiate_1():
@@ -248,7 +245,8 @@ def test_exponentiate_bp0_ZX():
     generator = PauliTerm("X", q[0], 1.0) * PauliTerm("Z", q[1], 1.0)
     param_prog = exponential_map(generator)
     prog = param_prog(1)
-    result_prog = Program().inst([H(q[0]), CNOT(q[0], q[1]), RZ(2.0)(q[1]), CNOT(q[0], q[1]), H(q[0])])
+    result_prog = Program().inst(
+        [H(q[0]), CNOT(q[0], q[1]), RZ(2.0)(q[1]), CNOT(q[0], q[1]), H(q[0])])
     assert address_qubits(prog) == address_qubits(result_prog)
 
 
@@ -258,7 +256,8 @@ def test_exponentiate_bp1_XZ():
     generator = PauliTerm("Z", q[0], 1.0) * PauliTerm("X", q[1], 1.0)
     para_prog = exponential_map(generator)
     prog = para_prog(1)
-    result_prog = Program().inst([H(q[1]), CNOT(q[0], q[1]), RZ(2.0)(q[1]), CNOT(q[0], q[1]), H(q[1])])
+    result_prog = Program().inst(
+        [H(q[1]), CNOT(q[0], q[1]), RZ(2.0)(q[1]), CNOT(q[0], q[1]), H(q[1])])
     assert address_qubits(prog) == address_qubits(result_prog)
 
 
@@ -487,7 +486,6 @@ def test_paulisum_indexing():
 
 
 def test_term_powers():
-    q = QubitPlaceholder.register(8)
     for qubit in QubitPlaceholder.register(2):
         pauli_terms = [sI(qubit), sX(qubit), sY(qubit), sZ(qubit)]
         for pauli_term in pauli_terms:
@@ -497,53 +495,63 @@ def test_term_powers():
             assert pauli_term ** 3 == pauli_term
     with pytest.raises(ValueError):
         pauli_terms[0] ** -1
+
+
+def test_term_large_powers():
     # Test to make sure large powers can be computed
-    (PauliTerm('X', 0, 2) * PauliTerm('Y', 0, 2)) ** 400
+    q = QubitPlaceholder.register(2)
+    (PauliTerm('X', q[0], 2) * PauliTerm('Y', q[0], 2)) ** 400
 
 
 def test_sum_power():
-    pauli_sum = (sY(0) - sX(0)) * (1.0 / np.sqrt(2))
-    assert pauli_sum ** 2 == PauliSum([sI(0)])
+    q = QubitPlaceholder.register(8)
+    pauli_sum = (sY(q[0]) - sX(q[0])) * (1.0 / np.sqrt(2))
+    assert pauli_sum ** 2 == PauliSum([sI(q[0])])
     with pytest.raises(ValueError):
         _ = pauli_sum ** -1
-    pauli_sum = sI(0) + sI(1)
-    assert pauli_sum ** 0 == sI(0)
+    pauli_sum = sI(q[0]) + sI(q[1])
+    assert pauli_sum ** 0 == sI(q[0])
     # Test to make sure large powers can be computed
     pauli_sum ** 400
 
 
 def test_term_equality():
+    q0, q10 = QubitPlaceholder.register(2)
     with pytest.raises(TypeError):
-        sI(0) != 0
-    assert sI(0) == sI(0)
-    assert PauliTerm('X', 10, 1 + 1.j) == PauliTerm('X', 10, 1 + 1.j)
-    assert PauliTerm('X', 10, 1 + 1.j) + PauliTerm('X', 10, 1 + 1.j) != PauliTerm('X', 10, 1 + 1.j)
-    assert PauliTerm('X', 10, 1 + 1.j) != PauliTerm('X', 10, 1 + 1.j) + PauliTerm('X', 10, 1 + 1.j)
+        sI(q0) != 0
+    assert sI(q0) == sI(q0)
+    assert PauliTerm('X', q10, 1 + 1.j) == PauliTerm('X', q10, 1 + 1.j)
+    assert PauliTerm('X', q10, 1 + 1.j) + PauliTerm('X', q10, 1 + 1.j) != PauliTerm('X', q10,
+                                                                                    1 + 1.j)
+    assert PauliTerm('X', q10, 1 + 1.j) != PauliTerm('X', q10, 1 + 1.j) + PauliTerm('X', q10,
+                                                                                    1 + 1.j)
 
 
 def test_term_with_coeff():
-    assert PauliTerm('X', 0, 1.j) == term_with_coeff(sX(0), 1.j)
-    assert PauliTerm('X', 0, -1.0) == term_with_coeff(sX(0), -1)
+    q0 = QubitPlaceholder()
+    assert PauliTerm('X', q0, 1.j) == term_with_coeff(sX(q0), 1.j)
+    assert PauliTerm('X', q0, -1.0) == term_with_coeff(sX(q0), -1)
     with pytest.raises(ValueError):
-        term_with_coeff(sI(0), None)
+        term_with_coeff(sI(q0), None)
 
 
 def test_sum_equality():
-    pauli_sum = sY(0) - sX(0)
+    q0, q1 = QubitPlaceholder.register(2)
+    pauli_sum = sY(q0) - sX(q0)
     assert pauli_sum != 2 * pauli_sum
     with pytest.warns(UnequalLengthWarning):
-        assert pauli_sum != pauli_sum + sZ(0)
+        assert pauli_sum != pauli_sum + sZ(q0)
     with pytest.warns(UnequalLengthWarning):
-        assert pauli_sum + sZ(0) != pauli_sum
-    assert pauli_sum != sY(1) - sX(1)
-    assert pauli_sum == -1.0 * sX(0) + sY(0)
+        assert pauli_sum + sZ(q0) != pauli_sum
+    assert pauli_sum != sY(q1) - sX(q1)
+    assert pauli_sum == -1.0 * sX(q0) + sY(q0)
     assert pauli_sum == pauli_sum * 1.0
     with pytest.raises(TypeError):
         assert pauli_sum != 0
 
 
 def test_zero_term():
-    qubit_id = 0
+    qubit_id = QubitPlaceholder()
     coefficient = 10
     ps = sI(qubit_id) + sX(qubit_id)
     assert coefficient * ZERO() == ZERO()
@@ -555,7 +563,8 @@ def test_zero_term():
 
 
 def test_from_list():
-    terms_list = [("X", 0), ("Y", 1), ("Z", 5)]
+    q = QubitPlaceholder.register(8)
+    terms_list = [("X", q[0]), ("Y", q[1]), ("Z", q[5])]
     term = reduce(lambda x, y: x * y, [PauliTerm(*x) for x in terms_list])
 
     pterm = PauliTerm.from_list(terms_list)
@@ -563,12 +572,14 @@ def test_from_list():
 
     with pytest.raises(ValueError):
         # terms are not on disjoint qubits
-        pterm = PauliTerm.from_list([("X", 0), ("Y", 0)])
+        pterm = PauliTerm.from_list([("X", q[0]), ("Y", q[0])])
 
 
 def test_ordered():
-    term = sZ(3) * sZ(2) * sZ(1)
-    prog = exponential_map(term)(0.5)
+    q = QubitPlaceholder.register(8)
+    mapping = {x: i for i, x in enumerate(q)}
+    term = sZ(q[3]) * sZ(q[2]) * sZ(q[1])
+    prog = address_qubits(exponential_map(term)(0.5), mapping)
     assert prog.out() == "CNOT 3 2\n" \
                          "CNOT 2 1\n" \
                          "RZ(1.0) 1\n" \
@@ -576,30 +587,26 @@ def test_ordered():
                          "CNOT 3 2\n"
 
 
-def test_numpy_integer_types():
-    idx_np, = np.arange(1, dtype=np.int64)
-    assert isinstance(idx_np, np.int64)
-    # on python 3 this fails unless explicitly allowing for numpy integer types
-    PauliTerm("X", idx_np)
-
-
 def test_simplify():
-    t1 = sZ(0) * sZ(1)
-    t2 = sZ(0) * sZ(1)
-    assert (t1 + t2) == 2 * sZ(0) * sZ(1)
+    q = QubitPlaceholder.register(8)
+    t1 = sZ(q[0]) * sZ(q[1])
+    t2 = sZ(q[0]) * sZ(q[1])
+    assert (t1 + t2) == 2 * sZ(q[0]) * sZ(q[1])
 
 
 def test_dont_simplify():
-    t1 = sZ(0) * sZ(1)
-    t2 = sZ(2) * sZ(3)
-    assert (t1 + t2) != 2 * sZ(0) * sZ(1)
+    q = QubitPlaceholder.register(8)
+    t1 = sZ(q[0]) * sZ(q[1])
+    t2 = sZ(q[2]) * sZ(q[3])
+    assert (t1 + t2) != 2 * sZ(q[0]) * sZ(q[1])
 
 
 def test_simplify_warning():
-    t1 = sZ(0) * sZ(1)
-    t2 = sZ(1) * sZ(0)
+    q = QubitPlaceholder.register(8)
+    t1 = sZ(q[0]) * sZ(q[1])
+    t2 = sZ(q[1]) * sZ(q[0])
     with pytest.warns(UserWarning) as e:
         tsum = t1 + t2
 
-    assert tsum == 2 * sZ(0) * sZ(1)
-    assert str(e[0].message).startswith('The term Z1Z0 will be combined with Z0Z1')
+    assert tsum == 2 * sZ(q[0]) * sZ(q[1])
+    assert 'will be combined with' in str(e[0].message)
