@@ -55,8 +55,8 @@ def test_get_qubits():
 
 def test_simplify_term_single():
     q0, q1, q2 = QubitPlaceholder.register(3)
-    term = (PauliTerm('Z', q0) * PauliTerm('I', q1)
-            * PauliTerm('X', q2, 0.5j) * PauliTerm('Z', q0, 1.0))
+    term = (PauliTerm('Z', q0) * PauliTerm('I', q1) *
+            PauliTerm('X', q2, 0.5j) * PauliTerm('Z', q0, 1.0))
     assert term.id() == 'X{}'.format(q2)
     assert term.coefficient == 0.5j
 
@@ -73,8 +73,8 @@ def test_simplify_term_xz():
 
 def test_simplify_term_multindex():
     q0, q2 = QubitPlaceholder.register(2)
-    term = (PauliTerm('X', q0, coefficient=-0.5) * PauliTerm('Z', q0, coefficient=-1.0)
-            * PauliTerm('X', q2, 0.5))
+    term = (PauliTerm('X', q0, coefficient=-0.5) * PauliTerm('Z', q0, coefficient=-1.0) *
+            PauliTerm('X', q2, 0.5))
     assert term.id(sort_ops=False) == 'Y{q0}X{q2}'.format(q0=q0, q2=q2)
     assert term.coefficient == -0.25j
 
@@ -83,8 +83,8 @@ def test_simplify_sum_terms():
     q0 = QubitPlaceholder()
     sum_term = PauliSum([PauliTerm('X', q0, 0.5), PauliTerm('Z', q0, 0.5j)])
     str_sum_term = str(sum_term + sum_term)
-    assert (str_sum_term == '(1+0j)*X{q0} + 1j*Z{q0}'.format(q0=q0)
-            or str_sum_term == '1j*Z{q0} + (1+0j)*X{q0}'.format(q0=q0))
+    assert (str_sum_term == '(1+0j)*X{q0} + 1j*Z{q0}'.format(q0=q0) or
+            str_sum_term == '1j*Z{q0} + (1+0j)*X{q0}'.format(q0=q0))
     sum_term = PauliSum([PauliTerm('X', q0, 0.5), PauliTerm('X', q0, 0.5)])
     assert str(sum_term.simplify()) == '(1+0j)*X{q0}'.format(q0=q0)
 
@@ -298,12 +298,10 @@ def test_exponentiate_3cob():
 def test_exponentiate_3ns():
     # testing circuit for 3-terms non-sequential
     q = QubitPlaceholder.register(8)
-    generator = (
-            PauliTerm("Y", q[0], 1.0)
-            * PauliTerm("I", q[1], 1.0)
-            * PauliTerm("Y", q[2], 1.0)
-            * PauliTerm("Y", q[3], 1.0)
-    )
+    generator = (PauliTerm("Y", q[0], 1.0) *
+                 PauliTerm("I", q[1], 1.0) *
+                 PauliTerm("Y", q[2], 1.0) *
+                 PauliTerm("Y", q[3], 1.0))
     para_prog = exponential_map(generator)
     prog = para_prog(1)
     result_prog = Program().inst([RX(math.pi / 2.0)(q[0]), RX(math.pi / 2.0)(q[2]),

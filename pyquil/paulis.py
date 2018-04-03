@@ -61,8 +61,8 @@ can't use np.isclose() for hashing terms though.
 
 
 def _valid_qubit(index):
-    return ((isinstance(index, integer_types) and index >= 0)
-            or isinstance(index, QubitPlaceholder))
+    return ((isinstance(index, integer_types) and index >= 0) or
+            isinstance(index, QubitPlaceholder))
 
 
 class PauliTerm(object):
