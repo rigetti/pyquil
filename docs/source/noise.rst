@@ -777,11 +777,8 @@ Note that to run the code below you will need to install the `pandas` and `seabo
 
 .. image:: images/NoiseInvestigation_14_0.png
 
-Readout Noise Overview
+Modeling Readout Noise
 ----------------------
-
-Theoretical Overview
-~~~~~~~~~~~~~~~~~~~~
 
 Qubit-Readout can be corrupted in a variety of ways. The two most
 relevant error mechanisms on the Rigetti QPU right now are:
@@ -978,12 +975,6 @@ Working with Readout Noise
    where you should replace ``p00`` and ``p11`` with the assumed
    probabilities.
 
-Estimate :math:`P_{x'|x}` Yourself!
-~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
-
-You can also run some simple experiments to estimate the assignment
-probability matrix directly from a QPU.
-
 **Scroll down for some examples!**
 
 .. code:: python
@@ -1061,7 +1052,11 @@ Example 1: Rabi Sequence with Noisy Readout
 Example 2: Estimate the Assignment Probabilities
 ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
 
-**Estimate assignment probabilities for a perfect quantum computer**
+Here we will estimate :math:`P_{x'|x}` ourselves!
+You can run some simple experiments to estimate the assignment
+probability matrix directly from a QPU.
+
+**On a perfect quantum computer**
 
 .. code:: python
 
@@ -1072,7 +1067,7 @@ Example 2: Estimate the Assignment Probabilities
     array([[ 1.,  0.],
            [ 0.,  1.]])
 
-**Re-estimate assignment probabilities for an imperfect quantum computer**
+**On an imperfect quantum computer**
 
 .. code:: python
 
