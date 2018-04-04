@@ -19,7 +19,7 @@ instance, it will not readdress Quil code that is already appropriately addresse
 realizable hardware objects on the QPU.  The following figure illustrates the layout and addressing
 of the Rigetti 19Q-Acorn QPU.
 
-.. figure:: figures/qubit-connectivity.png
+.. figure:: images/acorn_connectivity.png
     :width: 540px
     :align: center
     :height: 300px
