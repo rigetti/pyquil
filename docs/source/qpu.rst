@@ -17,8 +17,8 @@ in the planar lattice design shown in Fig. 1.
 
 .. note::
 
-  While this chip was fabricated with 20 qubits, 18 are currently available for programming. 
-  Qubit 3 and qubit 15 are disabled.
+  While this chip was fabricated with 20 qubits, 19 are currently available for programming.
+  Qubit 3 is disabled.
 
 The resonant frequencies of qubits 0–4 and 10–14 are
 tunable while qubits 5–9 and 15–19 are fixed. The former have two Josephson junctions in an
@@ -38,15 +38,14 @@ gates are activated via RF drives on the flux bias lines.
 
 Due to a fabrication defect, qubit 3 is not tunable, which prohibits operation of the two-qubit
 parametric gate described below between qubit 3 and its neighbors. Consequently, we will treat this
-as a 19-qubit processor. In addition, we recently have disabled qubit 15 as it did not meet
-performance requirements. This means that
-qubits 3 and 15 are not accessible for quantum computation through Forest.
+as a 19-qubit processor. This means that qubit 3 is not accessible for quantum computation through
+Forest.
 
 .. figure:: images/acorn.png
     :width: 540px
     :align: center
     :height: 300px
-    :alt: alternate text
+    :alt: 19Q-Acorn
     :figclass: align-center
 
     :math:`\textbf{Figure 1 $|$ Connectivity of Rigetti 19Q. a,}` Chip schematic showing tunable
