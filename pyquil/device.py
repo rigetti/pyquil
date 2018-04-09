@@ -110,12 +110,12 @@ class ISA(_ISA):
         return ISA(
             qubits=sorted([Qubit(id=int(qid),
                                  type=q.get("type", DEFAULT_QUBIT_TYPE),
-                                 dead=q.get("dead", False))
+                                 dead=True if q.get("dead") else False)
                            for qid, q in d["1Q"].items()],
                           key=lambda qubit: qubit.id),
             edges=sorted([Edge(targets=[int(q) for q in eid.split('-')],
                                type=e.get("type", DEFAULT_EDGE_TYPE),
-                               dead=e.get("dead", False))
+                               dead=True if e.get("dead") else False)
                           for eid, e in d["2Q"].items()],
                          key=lambda edge: edge.targets),
         )
