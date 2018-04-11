@@ -313,8 +313,15 @@ programs run on this QVM.
             sample. The expectations returned from *different* ``expectation`` calls *will then
             generally be different*.
 
+        To measure the expectation of a PauliSum, you probably want to
+        do something like this::
+
+                progs, coefs = hamiltonian.get_programs()
+                expect_coeffs = np.array(cxn.expectation(prep_program, operator_programs=progs))
+                return np.real_if_close(np.dot(coefs, expect_coeffs))
+
         :param Program prep_prog: Quil program for state preparation.
-        :param list operator_programs: A list of PauliTerms. Default is Identity operator.
+        :param list operator_programs: A list of Programs. Default is Identity operator.
         :param bool needs_compilation: If True, preprocesses the job with the compiler.
         :param ISA isa: If set, compiles to this target ISA.
         :returns: Expectation value of the operators.
