@@ -221,6 +221,15 @@ def test_measure_all():
                       'MEASURE 1 [1]\n' \
                       'MEASURE 2 [3]\n'
 
+    p = Program([H(idx) for idx in range(4)])
+    p.measure_all()
+    for idx in range(4):
+        assert p[idx + 4] == MEASURE(idx, idx)
+
+    p = Program()
+    p.measure_all()
+    assert p.out() == ''
+
 
 def test_dagger():
     # these gates are their own inverses
