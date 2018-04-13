@@ -106,7 +106,7 @@ programs run on this QVM.
     def ping(self):
         raise DeprecationWarning("ping() function is deprecated")
 
-    def run(self, quil_program, classical_addresses=[], trials=1, needs_compilation=False, isa=None):
+    def run(self, quil_program, classical_addresses=None, trials=1, needs_compilation=False, isa=None):
         """
         Run a Quil program multiple times, accumulating the values deposited in
         a list of classical addresses.
@@ -120,7 +120,7 @@ programs run on this QVM.
                  in `classical_addresses`.
         :rtype: list
         """
-        if classical_addresses == []:
+        if not classical_addresses:
             classical_addresses = get_classical_addresses_from_program(quil_program)
 
         payload = self._run_payload(quil_program, classical_addresses, trials, needs_compilation, isa)
@@ -135,12 +135,12 @@ programs run on this QVM.
             response = post_json(self.session, self.sync_endpoint + "/qvm", payload)
             return response.json()
 
-    def run_async(self, quil_program, classical_addresses=[], trials=1, needs_compilation=False, isa=None):
+    def run_async(self, quil_program, classical_addresses=None, trials=1, needs_compilation=False, isa=None):
         """
         Similar to run except that it returns a job id and doesn't wait for the program to be executed.
         See https://go.rigetti.com/connections for reasons to use this method.
         """
-        if classical_addresses == []:
+        if not classical_addresses:
             classical_addresses = get_classical_addresses_from_program(quil_program)
 
         payload = self._run_payload(quil_program, classical_addresses, trials, needs_compilation, isa)

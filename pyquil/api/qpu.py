@@ -154,7 +154,7 @@ with the former, the device.
         self.ping_time = ping_time
         self.status_time = status_time
 
-    def run(self, quil_program, classical_addresses=[], trials=1, needs_compilation=True, isa=None):
+    def run(self, quil_program, classical_addresses=None, trials=1, needs_compilation=True, isa=None):
         """
         Run a pyQuil program on the QPU and return the values stored in the classical registers
         designated by the classical_addresses parameter. The program is repeated according to
@@ -175,18 +175,18 @@ with the former, the device.
         :return: A list of a list of classical registers (each register contains a bit)
         :rtype: list
         """
-        if classical_addresses == []:
+        if not classical_addresses:
             classical_addresses = get_classical_addresses_from_program(quil_program)
 
         job = self.wait_for_job(self.run_async(quil_program, classical_addresses, trials, needs_compilation, isa))
         return job.result()
 
-    def run_async(self, quil_program, classical_addresses=[], trials=1, needs_compilation=True, isa=None):
+    def run_async(self, quil_program, classical_addresses=None, trials=1, needs_compilation=True, isa=None):
         """
         Similar to run except that it returns a job id and doesn't wait for the program to
         be executed. See https://go.rigetti.com/connections for reasons to use this method.
         """
-        if classical_addresses == []:
+        if not classical_addresses:
             classical_addresses = get_classical_addresses_from_program(quil_program)
 
         payload = self._run_payload(quil_program, classical_addresses, trials, needs_compilation=needs_compilation, isa=isa)
