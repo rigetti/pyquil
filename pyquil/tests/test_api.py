@@ -46,17 +46,21 @@ def test_sync_run():
             "type": "multishot",
             "addresses": [0, 1],
             "trials": 2,
-            "compiled-quil": "H 0\nCNOT 0 1\n"
+            "compiled-quil": "H 0\nCNOT 0 1\nMEASURE 0 [0]\nMEASURE 1 [1]\n"
         }
         return '[[0,0],[1,1]]'
 
     with requests_mock.Mocker() as m:
         m.post('https://api.rigetti.com/qvm', text=mock_response)
-        assert qvm.run(BELL_STATE, [0, 1], trials=2) == [[0, 0], [1, 1]]
+        assert qvm.run(BELL_STATE_MEASURE, [0, 1], trials=2) == [[0, 0], [1, 1]]
 
         # Test range as well
         m.post('https://api.rigetti.com/qvm', text=mock_response)
-        assert qvm.run(BELL_STATE, range(2), trials=2) == [[0, 0], [1, 1]]
+        assert qvm.run(BELL_STATE_MEASURE, range(2), trials=2) == [[0, 0], [1, 1]]
+
+        # Test no classical addresses
+        m.post('https://api.rigetti.com/qvm', text=mock_response)
+        assert qvm.run(BELL_STATE_MEASURE, trials=2) == [[0, 0], [1, 1]]
 
 
 def test_sync_run_and_measure():

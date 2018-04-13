@@ -24,7 +24,8 @@ from pyquil.gates import I, X, Y, Z, H, T, S, RX, RY, RZ, CNOT, CCNOT, PHASE, CP
     CPHASE10, CPHASE, SWAP, CSWAP, ISWAP, PSWAP, MEASURE, HALT, WAIT, NOP, RESET, \
     TRUE, FALSE, NOT, AND, OR, MOVE, EXCHANGE
 from pyquil.parameters import Parameter, quil_sin, quil_cos
-from pyquil.quil import Program, merge_programs, shift_quantum_gates
+from pyquil.quil import Program, merge_programs, shift_quantum_gates, \
+    get_classical_addresses_from_program
 from pyquil.quilbase import DefGate, Gate, Addr, Qubit, JumpWhen
 
 
@@ -645,3 +646,11 @@ def test_defgate_integer_input():
     dg = DefGate("TEST", np.array([[1, 0],
                                    [0, 1]]))
     assert dg.out() == "DEFGATE TEST:\n    1, 0\n    0, 1\n"
+
+
+def test_get_classical_addresses_from_program():
+    p = Program([H(i) for i in range(4)])
+    assert get_classical_addresses_from_program(p) == []
+
+    p += [MEASURE(i, i) for i in [0, 3, 1]]
+    assert get_classical_addresses_from_program(p) == [0, 1, 3]
