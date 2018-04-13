@@ -20,7 +20,7 @@ from six import integer_types
 from pyquil.api.job import Job
 from pyquil.device import Device
 from pyquil.gates import MEASURE
-from pyquil.quil import Program
+from pyquil.quil import Program, get_classical_addresses_from_program
 from ._base_connection import (validate_run_items, TYPE_MULTISHOT, TYPE_MULTISHOT_MEASURE,
                                get_job_id, get_session, wait_for_job, post_json, get_json,
                                parse_error)
@@ -154,7 +154,7 @@ with the former, the device.
         self.ping_time = ping_time
         self.status_time = status_time
 
-    def run(self, quil_program, classical_addresses, trials=1, needs_compilation=True, isa=None):
+    def run(self, quil_program, classical_addresses=None, trials=1, needs_compilation=True, isa=None):
         """
         Run a pyQuil program on the QPU and return the values stored in the classical registers
         designated by the classical_addresses parameter. The program is repeated according to
@@ -175,14 +175,20 @@ with the former, the device.
         :return: A list of a list of classical registers (each register contains a bit)
         :rtype: list
         """
+        if not classical_addresses:
+            classical_addresses = get_classical_addresses_from_program(quil_program)
+
         job = self.wait_for_job(self.run_async(quil_program, classical_addresses, trials, needs_compilation, isa))
         return job.result()
 
-    def run_async(self, quil_program, classical_addresses, trials=1, needs_compilation=True, isa=None):
+    def run_async(self, quil_program, classical_addresses=None, trials=1, needs_compilation=True, isa=None):
         """
         Similar to run except that it returns a job id and doesn't wait for the program to
         be executed. See https://go.rigetti.com/connections for reasons to use this method.
         """
+        if not classical_addresses:
+            classical_addresses = get_classical_addresses_from_program(quil_program)
+
         payload = self._run_payload(quil_program, classical_addresses, trials, needs_compilation=needs_compilation, isa=isa)
         response = post_json(self.session, self.async_endpoint + "/job", self._wrap_program(payload))
         return get_job_id(response)

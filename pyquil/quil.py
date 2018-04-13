@@ -619,3 +619,17 @@ def shift_quantum_gates(program, shift_offset):
             for qubit in instruct.qubits:
                 qubit.index += shift_offset
     return shifted_program
+
+
+def get_classical_addresses_from_program(program):
+    """
+    Returns a sorted list of classical addresses found in the MEASURE instructions in the program.
+
+    :param Program program: The program from which to get the classical addresses.
+    :return: A list of integer classical addresses.
+    :rtype: list
+    """
+    # Required to use the `classical_reg.address` int attribute.
+    # See https://github.com/rigetticomputing/pyquil/issues/388.
+    return sorted(set([instr.classical_reg.address for instr in program
+                       if isinstance(instr, Measurement)]))

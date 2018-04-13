@@ -19,7 +19,7 @@ from six import integer_types
 
 from pyquil.api.job import Job
 from pyquil.api.compiler import CompilerConnection
-from pyquil.quil import Program
+from pyquil.quil import Program, get_classical_addresses_from_program
 from pyquil.wavefunction import Wavefunction
 from pyquil.noise import apply_noise_model
 from ._base_connection import validate_noise_probabilities, validate_run_items, TYPE_MULTISHOT, \
@@ -106,7 +106,7 @@ programs run on this QVM.
     def ping(self):
         raise DeprecationWarning("ping() function is deprecated")
 
-    def run(self, quil_program, classical_addresses, trials=1, needs_compilation=False, isa=None):
+    def run(self, quil_program, classical_addresses=None, trials=1, needs_compilation=False, isa=None):
         """
         Run a Quil program multiple times, accumulating the values deposited in
         a list of classical addresses.
@@ -120,6 +120,9 @@ programs run on this QVM.
                  in `classical_addresses`.
         :rtype: list
         """
+        if not classical_addresses:
+            classical_addresses = get_classical_addresses_from_program(quil_program)
+
         payload = self._run_payload(quil_program, classical_addresses, trials, needs_compilation, isa)
         if self.use_queue or needs_compilation:
             if needs_compilation and not self.use_queue:
@@ -132,11 +135,14 @@ programs run on this QVM.
             response = post_json(self.session, self.sync_endpoint + "/qvm", payload)
             return response.json()
 
-    def run_async(self, quil_program, classical_addresses, trials=1, needs_compilation=False, isa=None):
+    def run_async(self, quil_program, classical_addresses=None, trials=1, needs_compilation=False, isa=None):
         """
         Similar to run except that it returns a job id and doesn't wait for the program to be executed.
         See https://go.rigetti.com/connections for reasons to use this method.
         """
+        if not classical_addresses:
+            classical_addresses = get_classical_addresses_from_program(quil_program)
+
         payload = self._run_payload(quil_program, classical_addresses, trials, needs_compilation, isa)
         response = post_json(self.session, self.async_endpoint + "/job", {"machine": "QVM", "program": payload})
         return get_job_id(response)
