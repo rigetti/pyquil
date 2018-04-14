@@ -268,14 +268,13 @@ def test_dagger():
     # defined parameterized gates cannot auto generate daggered version https://github.com/rigetticomputing/pyquil/issues/304
     theta = Parameter('theta')
     gparam_matrix = np.array([[quil_cos(theta / 2), -1j * quil_sin(theta / 2)],
-                   [-1j * quil_sin(theta / 2), quil_cos(theta / 2)]])
+                             [-1j * quil_sin(theta / 2), quil_cos(theta / 2)]])
     g_param_def = DefGate('GPARAM', gparam_matrix, [theta])
     p = Program(g_param_def)
     with pytest.raises(TypeError):
         p.dagger()
 
     # defined parameterized gates should passback parameters https://github.com/rigetticomputing/pyquil/issues/304
-
     GPARAM = g_param_def.get_constructor()
     p = Program(GPARAM(pi)(1, 2))
     assert p.dagger().out() == 'GPARAM-INV(pi) 1 2\n'
