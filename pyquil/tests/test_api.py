@@ -26,7 +26,8 @@ from pyquil.api import QVMConnection, QPUConnection, CompilerConnection
 from pyquil.api._base_connection import validate_noise_probabilities, validate_run_items
 from pyquil.api.qpu import append_measures_to_program
 from pyquil.quil import Program
-from pyquil.gates import CNOT, H, MEASURE
+from pyquil.paulis import PauliTerm
+from pyquil.gates import CNOT, H, MEASURE, PHASE
 from pyquil.device import ISA
 
 BELL_STATE = Program(H(0), CNOT(0, 1))
@@ -46,17 +47,21 @@ def test_sync_run():
             "type": "multishot",
             "addresses": [0, 1],
             "trials": 2,
-            "compiled-quil": "H 0\nCNOT 0 1\n"
+            "compiled-quil": "H 0\nCNOT 0 1\nMEASURE 0 [0]\nMEASURE 1 [1]\n"
         }
         return '[[0,0],[1,1]]'
 
     with requests_mock.Mocker() as m:
         m.post('https://api.rigetti.com/qvm', text=mock_response)
-        assert qvm.run(BELL_STATE, [0, 1], trials=2) == [[0, 0], [1, 1]]
+        assert qvm.run(BELL_STATE_MEASURE, [0, 1], trials=2) == [[0, 0], [1, 1]]
 
         # Test range as well
         m.post('https://api.rigetti.com/qvm', text=mock_response)
-        assert qvm.run(BELL_STATE, range(2), trials=2) == [[0, 0], [1, 1]]
+        assert qvm.run(BELL_STATE_MEASURE, range(2), trials=2) == [[0, 0], [1, 1]]
+
+        # Test no classical addresses
+        m.post('https://api.rigetti.com/qvm', text=mock_response)
+        assert qvm.run(BELL_STATE_MEASURE, trials=2) == [[0, 0], [1, 1]]
 
 
 def test_sync_run_and_measure():
@@ -374,3 +379,38 @@ def test_job_compile():
 
         result = async_compiler.compile(BELL_STATE)
         assert result == BELL_STATE
+
+
+def test_compiler_without_isa():
+    with pytest.raises(ValueError):
+        CompilerConnection().compile(Program())
+
+
+def test_rb_sequence():
+    num_qubits = 1
+    gateset = [PHASE(np.pi, 0), H(0)]
+    depth = 2
+    # Random sequences corresponding to sampling H(0) and PHASE(0, 0), then inverting them.
+    sampled_sequence = [[1, 1], [0, 0]]
+
+    def mock_queued_response(_, __):
+        return json.dumps(sampled_sequence)
+
+    with requests_mock.Mocker() as m:
+        m.post('https://api.rigetti.com/rb', text=mock_queued_response)
+        result = async_compiler.generate_rb_sequence(depth, num_qubits, gateset)
+        assert result == [Program().inst([gateset[i] for i in clifford]) for clifford in sampled_sequence]
+
+
+def test_apply_clifford_to_pauli():
+    clifford = Program().inst("H 0")
+    pauli = PauliTerm("X", 0)
+    # The first element should be the power of i that is the phase, and the second should be the pauli from conjugation.
+    response = [0, "Z"]
+
+    def mock_queued_response(_, __):
+        return json.dumps(response)
+    with requests_mock.Mocker() as m:
+        m.post('https://api.rigetti.com/apply-clifford', text=mock_queued_response)
+        result = async_compiler.apply_clifford_to_pauli(clifford, pauli)
+        assert result == PauliTerm("Z", 0)

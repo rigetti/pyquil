@@ -635,3 +635,12 @@ def test_simplify_warning():
 
     assert tsum == 2 * sZ(0) * sZ(1)
     assert str(e[0].message).startswith('The term Z1Z0 will be combined with Z0Z1')
+
+
+def test_pauli_string():
+    p = PauliTerm("X", 1) * PauliTerm("Z", 5)
+    assert p.pauli_string([1, 5]) == "XZ"
+    assert p.pauli_string([1]) == "X"
+    assert p.pauli_string([5]) == "Z"
+    assert p.pauli_string([5, 6]) == "ZI"
+    assert p.pauli_string([0, 1]) == "IX"
