@@ -433,6 +433,8 @@ class Program(object):
 
         for gate in self._defined_gates:
             if inv_dict is None or gate.name not in inv_dict:
+                if gate.parameters:
+                    raise TypeError("Cannot auto define daggered version of parameterized gates")
                 daggered.defgate(gate.name + suffix, gate.matrix.T.conj())
 
         for gate in reversed(self._instructions):
@@ -452,7 +454,7 @@ class Program(object):
                 else:
                     gate_inv_name = inv_dict[gate.name]
 
-                daggered.inst(tuple([gate_inv_name] + gate.qubits))
+                daggered.inst(Gate(gate_inv_name, gate.params, gate.qubits))
 
         return daggered
 
