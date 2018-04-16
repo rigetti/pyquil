@@ -320,14 +320,19 @@ programs run on this QVM.
             generally be different*.
 
         :param Program prep_prog: Quil program for state preparation.
-        :param list operator_programs: A list of PauliTerms. Default is Identity operator.
+        :param list operator_programs: A list of Programs, each specifying an operator whose expectation to compute.
+         Default is a list containing only the empty Program.
         :param bool needs_compilation: If True, preprocesses the job with the compiler.
         :param ISA isa: If set, compiles to this target ISA.
         :returns: Expectation value of the operators.
         :rtype: float
         """
+        if isinstance(operator_programs, Program):
+            warnings.warn("You have provided a Program rather than a list of Programs. The results from expectation "
+                          "will be line-wise expectation values of the operator_programs.", SyntaxWarning)
         if needs_compilation:
-            raise TypeError("Expectation QVM programs do not support compilation preprocessing.  Make a separate CompilerConnection job first.")
+            raise TypeError("Expectation QVM programs do not support compilation preprocessing."
+                            "  Make a separate CompilerConnection job first.")
         if self.use_queue:
             payload = self._expectation_payload(prep_prog, operator_programs)
             response = post_json(self.session, self.async_endpoint + "/job", {"machine": "QVM", "program": payload})
