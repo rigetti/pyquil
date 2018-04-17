@@ -332,7 +332,6 @@ programs run on this QVM.
             Default is a list containing only the empty Program.
         :param bool needs_compilation: If True, preprocesses the job with the compiler.
         :param ISA isa: If set, compiles to this target ISA.
-
         :return: Expectation values of the operators.
         :rtype: List[float]
         """
