@@ -19,6 +19,7 @@ from six import integer_types
 
 from pyquil.api.job import Job
 from pyquil.api.compiler import CompilerConnection
+from pyquil.paulis import PauliSum
 from pyquil.quil import Program, get_classical_addresses_from_program
 from pyquil.wavefunction import Wavefunction
 from pyquil.noise import apply_noise_model
@@ -331,8 +332,8 @@ programs run on this QVM.
             Default is a list containing only the empty Program.
         :param bool needs_compilation: If True, preprocesses the job with the compiler.
         :param ISA isa: If set, compiles to this target ISA.
-        :returns: Expectation value of the operators.
-        :rtype: float
+        :return: Expectation values of the operators.
+        :rtype: List[float]
         """
         if isinstance(operator_programs, Program):
             warnings.warn("You have provided a Program rather than a list of Programs. The results from expectation "
@@ -349,6 +350,41 @@ programs run on this QVM.
             payload = self._expectation_payload(prep_prog, operator_programs)
             response = post_json(self.session, self.sync_endpoint + "/qvm", payload)
             return response.json()
+
+    def pauli_expectation(self, prep_prog, pauli_terms):
+        """
+        Calculate the expectation value of Pauli operators given a state prepared by prep_program.
+
+        If ``pauli_terms`` is a ``PauliSum`` then the returned value is a single ``float``,
+        otherwise the returned value is a list of ``float``s, one for each ``PauliTerm`` in the
+        list.
+
+        :note: If the execution of ``quil_program`` is **non-deterministic**, i.e., if it includes
+            measurements and/or noisy quantum gates, then the final wavefunction from which the
+            expectation values are computed itself only represents a stochastically generated
+            sample. The expectations returned from *different* ``expectation`` calls *will then
+            generally be different*.
+
+        :param Program prep_prog: Quil program for state preparation.
+        :param Sequence[PauliTerm]|PauliSum pauli_terms: A list of PauliTerms or a PauliSum.
+        :return: If ``pauli_terms`` is a PauliSum return its expectation value. Otherwise return
+          a list of expectation values.
+        :rtype: float|List[float]
+        """
+
+        is_pauli_sum = False
+        if isinstance(pauli_terms, PauliSum):
+            progs, coeffs = pauli_terms.get_programs()
+            is_pauli_sum = True
+        else:
+            coeffs = [pt.coefficient for pt in pauli_terms]
+            progs = [pt.program for pt in pauli_terms]
+
+        bare_results = self.expectation(prep_prog, progs, needs_compilation=False, isa=False)
+        results = [c * r for c, r in zip(coeffs, bare_results)]
+        if is_pauli_sum:
+            return sum(results)
+        return results
 
     def expectation_async(self, prep_prog, operator_programs=None, needs_compilation=False, isa=None):
         """
