@@ -332,7 +332,7 @@ programs run on this QVM.
             Default is a list containing only the empty Program.
         :param bool needs_compilation: If True, preprocesses the job with the compiler.
         :param ISA isa: If set, compiles to this target ISA.
-        :returns: Expectation values of the operators.
+        :return: Expectation values of the operators.
         :rtype: List[float]
         """
         if isinstance(operator_programs, Program):
@@ -367,8 +367,9 @@ programs run on this QVM.
 
         :param Program prep_prog: Quil program for state preparation.
         :param Sequence[PauliTerm]|PauliSum pauli_terms: A list of PauliTerms or a PauliSum.
-        :returns: Expectation value of the operators.
-        :rtype: float
+        :return: If ``pauli_terms`` is a PauliSum return its expectation value. Otherwise return
+          a list of expectation values.
+        :rtype: float|List[float]
         """
 
         is_pauli_sum = False
