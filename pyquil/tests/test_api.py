@@ -27,7 +27,7 @@ from pyquil.api._base_connection import validate_noise_probabilities, validate_r
 from pyquil.api.qpu import append_measures_to_program
 from pyquil.quil import Program
 from pyquil.paulis import PauliTerm
-from pyquil.gates import CNOT, H, MEASURE, PHASE
+from pyquil.gates import CNOT, H, MEASURE, PHASE, Z
 from pyquil.device import ISA
 
 BELL_STATE = Program(H(0), CNOT(0, 1))
@@ -84,6 +84,50 @@ WAVEFUNCTION_BINARY = (b'\x01\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00\x0
                        b'\xa0\x9ef\x7f;\xcc\x00\x00\x00\x00\x00\x00\x00\x00\xbf\xe6\xa0\x9ef'
                        b'\x7f;\xcc\x00\x00\x00\x00\x00\x00\x00\x00')
 WAVEFUNCTION_PROGRAM = Program(H(0), CNOT(0, 1), MEASURE(0, 0), H(0))
+
+
+def test_sync_expectation():
+    def mock_response(request, context):
+        assert json.loads(request.text) == {
+            "type": "expectation",
+            "state-preparation": BELL_STATE.out(),
+            "operators": ["Z 0\n", "Z 1\n", "Z 0\nZ 1\n"]
+        }
+        return b'[0.0, 0.0, 1.0]'
+
+    with requests_mock.Mocker() as m:
+        m.post('https://api.rigetti.com/qvm', content=mock_response)
+        result = qvm.expectation(BELL_STATE, [Program(Z(0)), Program(Z(1)), Program(Z(0), Z(1))])
+        exp_expected = [0.0, 0.0, 1.0]
+        assert np.allclose(result, exp_expected)
+
+    with requests_mock.Mocker() as m:
+        m.post('https://api.rigetti.com/qvm', content=mock_response)
+        z0 = PauliTerm("Z", 0)
+        z1 = PauliTerm("Z", 1)
+        z01 = z0 * z1
+        result = qvm.pauli_expectation(BELL_STATE, [z0, z1, z01])
+        exp_expected = [0.0, 0.0, 1.0]
+        assert np.allclose(result, exp_expected)
+
+
+def test_sync_paulisum_expectation():
+    def mock_response(request, context):
+        assert json.loads(request.text) == {
+            "type": "expectation",
+            "state-preparation": BELL_STATE.out(),
+            "operators": ["Z 0\nZ 1\n", "Z 0\n", "Z 1\n"]
+        }
+        return b'[1.0, 0.0, 0.0]'
+
+    with requests_mock.Mocker() as m:
+        m.post('https://api.rigetti.com/qvm', content=mock_response)
+        z0 = PauliTerm("Z", 0)
+        z1 = PauliTerm("Z", 1)
+        z01 = z0 * z1
+        result = qvm.pauli_expectation(BELL_STATE, 1j * z01 + z0 + z1)
+        exp_expected = 1j
+        assert np.allclose(result, exp_expected)
 
 
 def test_sync_wavefunction():
