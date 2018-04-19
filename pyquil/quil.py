@@ -648,6 +648,8 @@ def address_qubits(program, qubit_mapping=None):
 def _get_label(placeholder, label_mapping, label_i):
     """Helper function to either get the appropriate label for a given placeholder or generate
     a new label and update the mapping.
+
+    See :py:func:`instantiate_labels` for usage.
     """
     if placeholder in label_mapping:
         return label_mapping[placeholder], label_mapping, label_i
