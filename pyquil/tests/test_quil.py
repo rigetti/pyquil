@@ -14,7 +14,7 @@
 #    See the License for the specific language governing permissions and
 #    limitations under the License.
 ##############################################################################
-
+import re
 from math import pi
 
 import numpy as np
@@ -734,3 +734,16 @@ def test_defgate_integer_input():
     dg = DefGate("TEST", np.array([[1, 0],
                                    [0, 1]]))
     assert dg.out() == "DEFGATE TEST:\n    1, 0\n    0, 1\n"
+
+
+def test_out_vs_str():
+    qs = QubitPlaceholder.register(6)
+    pq = Program(X(qs[0]), CNOT(qs[0], qs[4]), MEASURE(qs[5], [5]))
+
+    with pytest.raises(RuntimeError) as e:
+        pq.out()
+    assert e.match(r'Qubit <.*> has not been assigned an index')
+
+    string_version = str(pq)
+    should_be_re = (r'X <.*>\nCNOT <.*> <.*>\nMEASURE <.*> \[5\]\n')
+    assert re.fullmatch(should_be_re, string_version, flags=re.MULTILINE)

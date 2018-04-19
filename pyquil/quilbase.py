@@ -98,7 +98,19 @@ class Gate(AbstractInstruction):
             return "{} {}".format(self.name, format_qubits(self.qubits))
 
     def __repr__(self):
-        return "<Gate " + self.out() + ">"
+        return "<Gate " + str(self) + ">"
+
+    def __str__(self):
+        def format_params(params):
+            return "(" + ",".join(map(format_parameter, params)) + ")"
+
+        def format_qubits(qubits):
+            return " ".join([str(qubit) for qubit in qubits])
+
+        if self.params:
+            return "{}{} {}".format(self.name, format_params(self.params), format_qubits(self.qubits))
+        else:
+            return "{} {}".format(self.name, format_qubits(self.qubits))
 
 
 class Measurement(AbstractInstruction):

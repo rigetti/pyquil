@@ -356,12 +356,21 @@ class Program(object):
                       "Please create a `QubitPlaceholder` directly", DeprecationWarning)
         return QubitPlaceholder()
 
-    def out(self):
+    def _out(self, allow_placeholders):
         """
         Converts the Quil program to a readable string.
 
-        :return: String form of a program
-        :rtype: string
+        :param allow_placeholders: Whether to complain if the program contains placeholders.
+        """
+        return '\n'.join(itertools.chain(
+            (dg.out() for dg in self._defined_gates),
+            (instr.out(allow_placeholders=allow_placeholders) for instr in self.instructions),
+            [''],
+        ))
+
+    def out(self):
+        """
+        Serializes the Quil program to a string suitable for submitting to the QVM or QPU.
         """
         return '\n'.join(itertools.chain(
             (dg.out() for dg in self._defined_gates),
@@ -511,7 +520,17 @@ class Program(object):
         return len(self._instructions)
 
     def __str__(self):
-        return self.out()
+        """
+        A string representation of the Quil program for inspection.
+
+        This may not be suitable for submission to a QPU or QVM for example if
+        your program contains unaddressed QubitPlaceholders
+        """
+        return '\n'.join(itertools.chain(
+            (str(dg) for dg in self._defined_gates),
+            (str(instr) for instr in self.instructions),
+            [''],
+        ))
 
 
 def _what_type_of_qubit_does_it_use(program):
