@@ -51,6 +51,12 @@ RESERVED_WORDS = ['DEFGATE', 'DEFCIRCUIT', 'MEASURE',
                   'FALSE', 'TRUE', 'NOT', 'AND', 'OR', 'MOVE', 'EXCHANGE']
 
 
+def _extract_qubit_index(qubit, index=True):
+    if (not index) or isinstance(qubit, QubitPlaceholder):
+        return qubit
+    return qubit.index
+
+
 class Gate(AbstractInstruction):
     """
     This is the pyQuil object for a quantum gate instruction.
@@ -75,6 +81,9 @@ class Gate(AbstractInstruction):
         self.name = name
         self.params = params
         self.qubits = qubits
+
+    def get_qubits(self, indices=True):
+        return {_extract_qubit_index(q, indices) for q in self.qubits}
 
     def out(self):
         def format_params(params):
@@ -111,6 +120,9 @@ class Measurement(AbstractInstruction):
             return "MEASURE {} {}".format(self.qubit, self.classical_reg)
         else:
             return "MEASURE {}".format(self.qubit)
+
+    def get_qubits(self, indices=True):
+        return {_extract_qubit_index(self.qubit, indices)}
 
 
 class DefGate(AbstractInstruction):

@@ -549,6 +549,17 @@ def test_get_qubits():
     assert e.match('Your program mixes instantiated qubits with placeholders')
 
 
+def test_get_qubit_placeholders():
+    qs = QubitPlaceholder.register(8)
+    pq = Program(X(qs[0]), CNOT(qs[0], qs[4]), MEASURE(qs[5], [5]))
+    assert pq.get_qubits() == {qs[i] for i in [0, 4, 5]}
+
+
+def test_get_qubits_not_as_indices():
+    pq = Program(X(0), CNOT(0, 4), MEASURE(5, [5]))
+    assert pq.get_qubits(indices=False) == {Qubit(i) for i in [0, 4, 5]}
+
+
 def test_eq():
     p1 = Program()
     q1 = p1.alloc()

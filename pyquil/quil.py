@@ -369,7 +369,7 @@ class Program(object):
             [''],
         ))
 
-    def get_qubits(self):
+    def get_qubits(self, indices=True):
         """
         Returns all of the qubit indices used in this program, including gate applications and
         allocated qubits. e.g.
@@ -383,15 +383,15 @@ class Program(object):
             >>> len(p.get_qubits())
             2
 
+        :param indices: Return qubit indices as integers intead of the
+            wrapping :py:class:`Qubit` object
         :return: A set of all the qubit indices used in this program
         :rtype: set
         """
         qubits = set()
         for instr in self.instructions:
-            if isinstance(instr, Gate):
-                qubits |= {q.index for q in instr.qubits}
-            elif isinstance(instr, Measurement):
-                qubits.add(instr.qubit.index)
+            if isinstance(instr, (Gate, Measurement)):
+                qubits |= instr.get_qubits(indices=indices)
         return qubits
 
     def is_protoquil(self):
