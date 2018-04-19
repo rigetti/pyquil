@@ -68,6 +68,21 @@ class QubitPlaceholder(QuilAtom):
 
     @classmethod
     def register(cls, n):
+        """Return a 'register' of ``n`` QubitPlaceholders.
+
+        >>> qs = QubitPlaceholder.register(8) # a qubyte
+        >>> prog = Program(H(q) for q in qs)
+        >>> address_qubits(prog).out()
+        H 0
+        H 1
+        ...
+        >>>
+
+        The returned register is a Python list of QubitPlaceholder objects, so all
+        normal list semantics apply.
+
+        :param n: The number of qubits in the register
+        """
         return [cls() for _ in range(n)]
 
 
