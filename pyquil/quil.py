@@ -445,6 +445,8 @@ class Program(object):
 
         for gate in self._defined_gates:
             if inv_dict is None or gate.name not in inv_dict:
+                if gate.parameters:
+                    raise TypeError("Cannot auto define daggered version of parameterized gates")
                 daggered.defgate(gate.name + suffix, gate.matrix.T.conj())
 
         for gate in reversed(self._instructions):
@@ -464,7 +466,7 @@ class Program(object):
                 else:
                     gate_inv_name = inv_dict[gate.name]
 
-                daggered.inst(tuple([gate_inv_name] + gate.qubits))
+                daggered.inst(Gate(gate_inv_name, gate.params, gate.qubits))
 
         return daggered
 
@@ -700,3 +702,17 @@ def merge_programs(prog_list):
     :rtype: Program
     """
     return sum(prog_list, Program())
+
+
+def get_classical_addresses_from_program(program):
+    """
+    Returns a sorted list of classical addresses found in the MEASURE instructions in the program.
+
+    :param Program program: The program from which to get the classical addresses.
+    :return: A list of integer classical addresses.
+    :rtype: list
+    """
+    # Required to use the `classical_reg.address` int attribute.
+    # See https://github.com/rigetticomputing/pyquil/issues/388.
+    return sorted(set([instr.classical_reg.address for instr in program
+                       if isinstance(instr, Measurement)]))

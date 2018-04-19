@@ -19,7 +19,8 @@ from six import integer_types
 
 from pyquil.api.job import Job
 from pyquil.api.compiler import CompilerConnection
-from pyquil.quil import Program
+from pyquil.paulis import PauliSum
+from pyquil.quil import Program, get_classical_addresses_from_program
 from pyquil.wavefunction import Wavefunction
 from pyquil.noise import apply_noise_model
 from ._base_connection import validate_noise_probabilities, validate_run_items, TYPE_MULTISHOT, \
@@ -106,7 +107,7 @@ programs run on this QVM.
     def ping(self):
         raise DeprecationWarning("ping() function is deprecated")
 
-    def run(self, quil_program, classical_addresses, trials=1, needs_compilation=False, isa=None):
+    def run(self, quil_program, classical_addresses=None, trials=1, needs_compilation=False, isa=None):
         """
         Run a Quil program multiple times, accumulating the values deposited in
         a list of classical addresses.
@@ -120,6 +121,9 @@ programs run on this QVM.
                  in `classical_addresses`.
         :rtype: list
         """
+        if not classical_addresses:
+            classical_addresses = get_classical_addresses_from_program(quil_program)
+
         payload = self._run_payload(quil_program, classical_addresses, trials, needs_compilation, isa)
         if self.use_queue or needs_compilation:
             if needs_compilation and not self.use_queue:
@@ -132,11 +136,14 @@ programs run on this QVM.
             response = post_json(self.session, self.sync_endpoint + "/qvm", payload)
             return response.json()
 
-    def run_async(self, quil_program, classical_addresses, trials=1, needs_compilation=False, isa=None):
+    def run_async(self, quil_program, classical_addresses=None, trials=1, needs_compilation=False, isa=None):
         """
         Similar to run except that it returns a job id and doesn't wait for the program to be executed.
         See https://go.rigetti.com/connections for reasons to use this method.
         """
+        if not classical_addresses:
+            classical_addresses = get_classical_addresses_from_program(quil_program)
+
         payload = self._run_payload(quil_program, classical_addresses, trials, needs_compilation, isa)
         response = post_json(self.session, self.async_endpoint + "/job", {"machine": "QVM", "program": payload})
         return get_job_id(response)
@@ -313,15 +320,27 @@ programs run on this QVM.
             sample. The expectations returned from *different* ``expectation`` calls *will then
             generally be different*.
 
+        To measure the expectation of a PauliSum, you probably want to
+        do something like this::
+
+                progs, coefs = hamiltonian.get_programs()
+                expect_coeffs = np.array(cxn.expectation(prep_program, operator_programs=progs))
+                return np.real_if_close(np.dot(coefs, expect_coeffs))
+
         :param Program prep_prog: Quil program for state preparation.
-        :param list operator_programs: A list of PauliTerms. Default is Identity operator.
+        :param list operator_programs: A list of Programs, each specifying an operator whose expectation to compute.
+            Default is a list containing only the empty Program.
         :param bool needs_compilation: If True, preprocesses the job with the compiler.
         :param ISA isa: If set, compiles to this target ISA.
-        :returns: Expectation value of the operators.
-        :rtype: float
+        :return: Expectation values of the operators.
+        :rtype: List[float]
         """
+        if isinstance(operator_programs, Program):
+            warnings.warn("You have provided a Program rather than a list of Programs. The results from expectation "
+                          "will be line-wise expectation values of the operator_programs.", SyntaxWarning)
         if needs_compilation:
-            raise TypeError("Expectation QVM programs do not support compilation preprocessing.  Make a separate CompilerConnection job first.")
+            raise TypeError("Expectation QVM programs do not support compilation preprocessing."
+                            "  Make a separate CompilerConnection job first.")
         if self.use_queue:
             payload = self._expectation_payload(prep_prog, operator_programs)
             response = post_json(self.session, self.async_endpoint + "/job", {"machine": "QVM", "program": payload})
@@ -331,6 +350,41 @@ programs run on this QVM.
             payload = self._expectation_payload(prep_prog, operator_programs)
             response = post_json(self.session, self.sync_endpoint + "/qvm", payload)
             return response.json()
+
+    def pauli_expectation(self, prep_prog, pauli_terms):
+        """
+        Calculate the expectation value of Pauli operators given a state prepared by prep_program.
+
+        If ``pauli_terms`` is a ``PauliSum`` then the returned value is a single ``float``,
+        otherwise the returned value is a list of ``float``s, one for each ``PauliTerm`` in the
+        list.
+
+        :note: If the execution of ``quil_program`` is **non-deterministic**, i.e., if it includes
+            measurements and/or noisy quantum gates, then the final wavefunction from which the
+            expectation values are computed itself only represents a stochastically generated
+            sample. The expectations returned from *different* ``expectation`` calls *will then
+            generally be different*.
+
+        :param Program prep_prog: Quil program for state preparation.
+        :param Sequence[PauliTerm]|PauliSum pauli_terms: A list of PauliTerms or a PauliSum.
+        :return: If ``pauli_terms`` is a PauliSum return its expectation value. Otherwise return
+          a list of expectation values.
+        :rtype: float|List[float]
+        """
+
+        is_pauli_sum = False
+        if isinstance(pauli_terms, PauliSum):
+            progs, coeffs = pauli_terms.get_programs()
+            is_pauli_sum = True
+        else:
+            coeffs = [pt.coefficient for pt in pauli_terms]
+            progs = [pt.program for pt in pauli_terms]
+
+        bare_results = self.expectation(prep_prog, progs, needs_compilation=False, isa=False)
+        results = [c * r for c, r in zip(coeffs, bare_results)]
+        if is_pauli_sum:
+            return sum(results)
+        return results
 
     def expectation_async(self, prep_prog, operator_programs=None, needs_compilation=False, isa=None):
         """

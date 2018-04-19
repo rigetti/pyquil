@@ -18,8 +18,15 @@ from pyquil.api.job import Job
 from pyquil.device import Device, ISA, Specs
 from pyquil.quil import Program
 from pyquil.parser import parse_program
+from pyquil.paulis import PauliTerm
 from ._base_connection import TYPE_MULTISHOT, get_job_id, get_session, \
     wait_for_job, post_json, get_json
+
+
+class CompilerConnectionError(ValueError):
+    def __init__(self):
+        super().__init__("You must provide at least either device or isa_source when constructing the compiler"
+                         " connection to use this method")
 
 
 class CompilerConnection(object):
@@ -66,10 +73,8 @@ class CompilerConnection(object):
         self.use_queue = use_queue
         self.ping_time = ping_time
         self.status_time = status_time
-
         self.specs = None
-        if device is None and isa_source is None:
-            raise ValueError('Must provide at least one of device and isa_source arguments.')
+        self.custom_isa = None
 
         if isinstance(device, Device):
             self.custom_isa = device.isa
@@ -98,6 +103,9 @@ class CompilerConnection(object):
         :returns: The compiled Program object.
         :rtype: Program
         """
+        if self.specs is None and self.custom_isa is None:
+            raise CompilerConnectionError()
+
         payload = self._compile_payload(quil_program)
         if self.use_queue:
             response = post_json(self.session, self.async_endpoint + "/job",
@@ -115,6 +123,9 @@ class CompilerConnection(object):
         the program to be executed.
         See https://go.rigetti.com/connections for reasons to use this method.
         """
+        if self.specs is None and self.custom_isa is None:
+            raise CompilerConnectionError()
+
         payload = self._compile_payload(quil_program)
         response = post_json(self.session, self.async_endpoint + "/job",
                              {"machine": "QUILC", "program": payload})
@@ -161,3 +172,72 @@ class CompilerConnection(object):
         return wait_for_job(get_job_fn,
                             ping_time if ping_time else self.ping_time,
                             status_time if status_time else self.status_time)
+
+    def _clifford_application_payload(self, clifford, pauli):
+        """
+        Prepares a JSON payload for conjugating a Pauli by a Clifford - see apply_clifford_to_pauli.
+
+        :param Program clifford: A Program that consists only of Clifford operations.
+        :param PauliTerm pauli: A PauliTerm to be acted on by clifford via conjugation.
+        :return: The JSON payload, with keys "clifford" and "pauli".
+        """
+        indices_and_terms = zip(*list(pauli.operations_as_set()))
+        payload = {"clifford": clifford.out(),
+                   "pauli": list(indices_and_terms)}
+        return payload
+
+    def apply_clifford_to_pauli(self, clifford, pauli_in):
+        """
+        Given a circuit that consists only of elements of the Clifford group, return its action on a PauliTerm.
+
+        In particular, for Clifford C, and Pauli P, this returns the PauliTerm representing PCP^{\dagger}.
+
+        :param Program clifford: A Program that consists only of Clifford operations.
+        :param PauliTerm pauli_in: A PauliTerm to be acted on by clifford via conjugation.
+        :return: A PauliTerm corresponding to pauli_in * clifford * pauli_in^{\dagger}
+        """
+        payload = self._clifford_application_payload(clifford, pauli_in)
+        phase_factor, paulis = post_json(self.session, self.sync_endpoint + "/apply-clifford", payload).json()
+        pauli_out = PauliTerm("I", 0, 1.j ** phase_factor)
+        clifford_qubits = clifford.get_qubits()
+        pauli_qubits = pauli_in.get_qubits()
+        all_qubits = sorted(set(pauli_qubits).union(set(clifford_qubits)))
+        # The returned pauli will have specified its value on all_qubits, sorted by index. This is maximal set of
+        # qubits that can be affected by this conjugation.
+        for i, pauli in enumerate(paulis):
+            pauli_out *= PauliTerm(pauli, all_qubits[i])
+        return pauli_out * pauli_in.coefficient
+
+    def _rb_sequence_payload(self, depth, qubits, gateset):
+        """
+        Prepares a JSON payload for generating a randomized benchmarking sequence - see generate_rb_sequence.
+
+        :param int depth: The number of cliffords per rb sequences to generate.
+        :param int qubits: The number of qubits to perform rb on.
+        :param list gateset: A list of Gate objects that make up the gateset to decompose the Cliffords into.
+        :return: The JSON payload, with keys "depth", "qubits", and "gateset".
+        """
+        payload = {"depth": depth,
+                   "qubits": qubits,
+                   "gateset": [gate.out() for gate in gateset]}
+        return payload
+
+    def generate_rb_sequence(self, depth, qubits, gateset):
+        """
+        Construct a randomized benchmarking experiment on the given qubits, decomposing into gateset.
+
+        The JSON payload that is parsed is a list of lists of indices, or Nones. In the former case, they are the index
+         of the gate in the gateset.
+        :param int depth: The number of Clifford gates to include in the randomized benchmarking experiement.
+        :param int qubits: The number of qubits to generate a randomized benchmarking sequence for.
+        :param list gateset: A list of pyquil gates to decompose the Clifford elements into.
+        """
+        payload = self._rb_sequence_payload(depth, qubits, gateset)
+        response = post_json(self.session, self.sync_endpoint + "/rb", payload).json()
+        programs = []
+        for clifford in response:
+            clifford_program = Program()
+            for index in clifford:
+                clifford_program.inst(gateset[index])
+            programs.append(clifford_program)
+        return programs

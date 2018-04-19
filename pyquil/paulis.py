@@ -332,6 +332,34 @@ class PauliTerm(object):
         pterm.coefficient = complex(coefficient)
         return pterm
 
+    def pauli_string(self, qubits=None):
+        """
+        Return a string representation of this PauliTerm mod its phase, as a concatenation of the string representation
+        of the
+        >>> p = PauliTerm("X", 0) * PauliTerm("Y", 1, 1.j)
+        >>> p.pauli_string()
+        "XY"
+        >>> p.pauli_string([0])
+        "X"
+        >>> p.pauli_string([0, 2])
+        "XI"
+
+        :param list qubits: The list of qubits to represent, given as ints. If None, defaults to all qubits in this
+         PauliTerm.
+        :return: The string representation of this PauliTerm, modulo its phase.
+        :rtype: String
+        """
+        qubit_term_mapping = dict(self.operations_as_set())
+        if qubits is None:
+            qubits = [qubit for qubit, _ in qubit_term_mapping.items()]
+        ps = ""
+        for qubit in qubits:
+            try:
+                ps += qubit_term_mapping[qubit]
+            except KeyError:
+                ps += "I"
+        return ps
+
 
 # For convenience, a shorthand for several operators.
 def ID():

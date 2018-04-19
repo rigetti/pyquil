@@ -25,7 +25,8 @@ from pyquil.gates import I, X, Y, Z, H, T, S, RX, RY, RZ, CNOT, CCNOT, PHASE, CP
     TRUE, FALSE, NOT, AND, OR, MOVE, EXCHANGE
 from pyquil.parameters import Parameter, quil_sin, quil_cos
 from pyquil.paulis import exponential_map, sZ
-from pyquil.quil import Program, merge_programs, address_qubits
+from pyquil.quil import Program, merge_programs, address_qubits, \
+    get_classical_addresses_from_program
 from pyquil.quilatom import QubitPlaceholder
 from pyquil.quilbase import DefGate, Gate, Addr, Qubit, JumpWhen
 
@@ -277,6 +278,20 @@ def test_dagger():
     inv_dict = {"G": "J"}
     p = Program().defgate("G", G).inst(("G", 0))
     assert p.dagger(inv_dict=inv_dict).out() == 'J 0\n'
+
+    # defined parameterized gates cannot auto generate daggered version https://github.com/rigetticomputing/pyquil/issues/304
+    theta = Parameter('theta')
+    gparam_matrix = np.array([[quil_cos(theta / 2), -1j * quil_sin(theta / 2)],
+                             [-1j * quil_sin(theta / 2), quil_cos(theta / 2)]])
+    g_param_def = DefGate('GPARAM', gparam_matrix, [theta])
+    p = Program(g_param_def)
+    with pytest.raises(TypeError):
+        p.dagger()
+
+    # defined parameterized gates should passback parameters https://github.com/rigetticomputing/pyquil/issues/304
+    GPARAM = g_param_def.get_constructor()
+    p = Program(GPARAM(pi)(1, 2))
+    assert p.dagger().out() == 'GPARAM-INV(pi) 1 2\n'
 
 
 def test_construction_syntax():
@@ -756,3 +771,11 @@ def test_out_vs_str():
     string_version = str(pq)
     should_be_re = (r'X <.*>\nCNOT <.*> <.*>\nMEASURE <.*> \[5\]\n')
     assert re.fullmatch(should_be_re, string_version, flags=re.MULTILINE)
+
+
+def test_get_classical_addresses_from_program():
+    p = Program([H(i) for i in range(4)])
+    assert get_classical_addresses_from_program(p) == []
+
+    p += [MEASURE(i, i) for i in [0, 3, 1]]
+    assert get_classical_addresses_from_program(p) == [0, 1, 3]
