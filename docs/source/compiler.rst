@@ -19,15 +19,15 @@ instance, it will not readdress Quil code that is already appropriately addresse
 realizable hardware objects on the QPU.  The following figure illustrates the layout and addressing
 of the Rigetti 19Q-Acorn QPU.
 
-.. figure:: figures/qubit-connectivity.png
+.. figure:: images/acorn_connectivity.png
     :width: 540px
     :align: center
     :height: 300px
-    :alt: alternate text
+    :alt: 19Q connectivity
     :figclass: align-center
 
-    Qubit adjacency schematic for the Rigetti 19Q-Acorn QPU. In particular, notice that qubits 3 and
-    15 are disabled.
+    Qubit adjacency schematic for the Rigetti 19Q-Acorn QPU.
+    In particular, notice that qubit 3 is disabled.
 
 
 Interacting with the Compiler
@@ -39,31 +39,31 @@ the job is forwarded to the execution target.  This behavior is disabled by defa
 enabled by default for the QPU.  PyQuil also offers the ``CompilerConnection`` class for direct
 access to the compiler, which returns compiled Program jobs to the user without executing them.
 ``CompilerConnection`` can be used to learn about the properties of the program,
-like gate volume, single qubit gate depth, topological swaps, program fidelity and multiqubit gate depth.
-In all cases, the user's Forest plan must have compiler access enabled to use these features.
+like gate volume, single qubit gate depth, topological swaps, program fidelity and multiqubit gate
+depth. In all cases, the user's Forest plan must have compiler access enabled to use these features.
 
-Here’s an example of using ``CompilerConnection`` to compile a program that targets the 19Q-Acorn QPU, separately from
-sending a program to the QPU/QVM.
+Here’s an example of using ``CompilerConnection`` to compile a program that targets the 19Q-Acorn
+QPU, separately from sending a program to the QPU/QVM.
 
 .. code:: python
-	  
-	  from pyquil.api import CompilerConnection, get_devices
-	  from pyquil.quil import Pragma, Program
-	  from pyquil.gates import CNOT, H
-	  
-	  devices = get_devices(as_dict=True)
-	  acorn = devices['19Q-Acorn']
-	  compiler = CompilerConnection(acorn)
 
-	  job_id = compiler.compile_async(Program(H(0), CNOT(0,1), CNOT(1,2)))
-	  job = compiler.wait_for_job(job_id)
+    from pyquil.api import CompilerConnection, get_devices
+    from pyquil.quil import Pragma, Program
+    from pyquil.gates import CNOT, H
 
-	  print('compiled quil', job.compiled_quil())
-	  print('gate volume', job.gate_volume())
-	  print('gate depth', job.gate_depth())
-	  print('topological swaps', job.topological_swaps())
-	  print('program fidelity', job.program_fidelity())
-	  print('multiqubit gate depth', job.multiqubit_gate_depth())
+    devices = get_devices(as_dict=True)
+    acorn = devices['19Q-Acorn']
+    compiler = CompilerConnection(acorn)
+
+    job_id = compiler.compile_async(Program(H(0), CNOT(0,1), CNOT(1,2)))
+    job = compiler.wait_for_job(job_id)
+
+    print('compiled quil', job.compiled_quil())
+    print('gate volume', job.gate_volume())
+    print('gate depth', job.gate_depth())
+    print('topological swaps', job.topological_swaps())
+    print('program fidelity', job.program_fidelity())
+    print('multiqubit gate depth', job.multiqubit_gate_depth())
 
 The ``QVMConnection`` and ``QPUConnection`` objects have their compiler interactions set up in the
 same way: the ``.run`` and ``.run_and_measure`` methods take the optional arguments
@@ -71,13 +71,21 @@ same way: the ``.run`` and ``.run_and_measure`` methods take the optional argume
 provide the compiler with a target instruction set architecture, specified as a pyQuil ``ISA``
 object. The compiler can be bypassed by passing the method parameter ``needs_compilation=False``.
 If the ``isa`` named argument is not set, then the ``default_isa`` property on the
-connection object is used instead. The compiled program can be accessed after a job has been submitted
-to the QPU by using the ``.compiled_quil()`` accessor method on the resulting ``Job`` object instance.
+connection object is used instead. The compiled program can be accessed after a job has been
+submitted to the QPU by using the ``.compiled_quil()`` accessor method on the resulting ``Job``
+object instance.
 
-The Quil compiler can also be communicated with through ``PRAGMA`` commands embedded in the Quil program.
+The Quil compiler can also be communicated with through ``PRAGMA`` commands embedded in the Quil
+program.
 
-    + It can be circumvented in user-specified regions. The start of such a region is denoted by ``PRAGMA PRESERVE_BLOCK``, and the end is denoted by ``PRAGMA END_PRESERVE_BLOCK``.  The Quil compiler promises not to modify any instructions contained in such a region.
-    + It can sometimes arrange gate sequences more cleverly if the user gives it hints about sequences of gates that commute.  A region containing commuting sequences is bookended by ``PRAGMA COMMUTING_BLOCKS`` and ``PRAGMA END_COMMUTING_BLOCKS``; within such a region, a given commuting sequence is bookended by ``PRAGMA BLOCK`` and ``PRAGMA END_BLOCK``.  The following snippet demonstrates this hinting syntax:
+    + It can be circumvented in user-specified regions. The start of such a region is denoted by
+      ``PRAGMA PRESERVE_BLOCK``, and the end is denoted by ``PRAGMA END_PRESERVE_BLOCK``.
+      The Quil compiler promises not to modify any instructions contained in such a region.
+    + It can sometimes arrange gate sequences more cleverly if the user gives it hints about
+      sequences of gates that commute.  A region containing commuting sequences is bookended by
+      ``PRAGMA COMMUTING_BLOCKS`` and ``PRAGMA END_COMMUTING_BLOCKS``; within such a region, a
+      given commuting sequence is bookended by ``PRAGMA BLOCK`` and ``PRAGMA END_BLOCK``.
+      The following snippet demonstrates this hinting syntax:
 
 .. code:: python
 

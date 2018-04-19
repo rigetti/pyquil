@@ -177,7 +177,7 @@ This gate applies to three qubit arguments to produce the controlled-controlled-
 CPHASE00 = _make_gate("CPHASE00", 2, 1)
 """
 Produces a CPHASE00 instruction.
-This gate applies to two qubit arguments to produce one of the controlled phase instructions.
+This gate applies to two qubit arguments to produce the variant of the controlled phase instruction that affects the state 00.
 
 :param angle: The input phase angle to apply when both qubits are in the ground state.
 :param q1: Qubit 1.
@@ -187,7 +187,7 @@ This gate applies to two qubit arguments to produce one of the controlled phase 
 CPHASE01 = _make_gate("CPHASE01", 2, 1)
 """
 Produces a CPHASE01 instruction.
-This gate applies to two qubit arguments to produce one of the controlled phase instructions.
+This gate applies to two qubit arguments to produce the variant of the controlled phase instruction that affects the state 01.
 
 :param angle: The input phase angle to apply when q1 is in the excited state and q2 is in the ground state.
 :param q1: Qubit 1.
@@ -197,7 +197,7 @@ This gate applies to two qubit arguments to produce one of the controlled phase 
 CPHASE10 = _make_gate("CPHASE10", 2, 1)
 """
 Produces a CPHASE10 instruction.
-This gate applies to two qubit arguments to produce one of the controlled phase instructions.
+This gate applies to two qubit arguments to produce the variant of the controlled phase instruction that affects the state 10.
 
 :param angle: The input phase angle to apply when q2 is in the excited state and q1 is in the ground state.
 :param q1: Qubit 1.
@@ -206,8 +206,8 @@ This gate applies to two qubit arguments to produce one of the controlled phase 
 """
 CPHASE = _make_gate("CPHASE", 2, 1)
 """
-Produces a CPHASE00 instruction.
-This gate applies to two qubit arguments to produce one of the controlled phase instructions.
+Produces a CPHASE instruction, which is a synonym for CPHASE11.
+This gate applies to two qubit arguments to produce the variant of the controlled phase instruction that affects the state 11.
 
 :param angle: The input phase angle to apply when both qubits are in the excited state.
 :param q1: Qubit 1.
