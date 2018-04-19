@@ -781,7 +781,7 @@ def _exponentiate_general_case(pauli_term, param):
     def reverse_hack(p):
         # A hack to produce a *temporary* program which reverses p.
         revp = Program()
-        revp.inst(list(reversed(p._instructions)))
+        revp.inst(list(reversed(p.instructions)))
         return revp
 
     quil_prog = Program()
