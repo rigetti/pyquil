@@ -197,7 +197,7 @@ with the former, the device.
             try:
                 response = post_json(self.session, self.async_endpoint + "/job", self._wrap_program(payload))
             except errors.DeviceRetuningError:
-                print("QPU is retuning. Trying to reconnect...")
+                print("QPU is retuning. Will try to reconnect in 10 seconds...")
                 time.sleep(10)
 
         return get_job_id(response)
