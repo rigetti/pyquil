@@ -173,6 +173,11 @@ class Job(object):
         prog = self._raw.get("program", {}).get("compiled-quil", None)
         if prog is not None:
             return parse_program(prog)
+        else:
+            # if we failed too early to even get a "compiled-quil" field,
+            # then alert the user to that problem instead
+            if self._raw['status'] == 'ERROR':
+                return self.result()
 
     def topological_swaps(self):
         """
