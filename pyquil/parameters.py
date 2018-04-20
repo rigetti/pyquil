@@ -31,9 +31,11 @@ def format_parameter(element):
             out += repr(r)
 
         if i == 1:
-            out += 'i'
+            assert np.isclose(r, 0, atol=1e-14)
+            out = 'i'
         elif i == -1:
-            out += '-i'
+            assert np.isclose(r, 0, atol=1e-14)
+            out = '-i'
         elif i < 0:
             out += repr(i) + 'i'
         else:
