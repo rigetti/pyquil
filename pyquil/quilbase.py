@@ -21,7 +21,7 @@ import numpy as np
 from six import integer_types, string_types
 
 from pyquil.parameters import Expression, _contained_parameters, format_parameter
-from pyquil.quilatom import Qubit, Addr, Label, unpack_qubit
+from pyquil.quilatom import Qubit, Addr, Label, unpack_qubit, QubitPlaceholder, LabelPlaceholder
 
 
 class AbstractInstruction(object):
@@ -51,6 +51,12 @@ RESERVED_WORDS = ['DEFGATE', 'DEFCIRCUIT', 'MEASURE',
                   'FALSE', 'TRUE', 'NOT', 'AND', 'OR', 'MOVE', 'EXCHANGE']
 
 
+def _extract_qubit_index(qubit, index=True):
+    if (not index) or isinstance(qubit, QubitPlaceholder):
+        return qubit
+    return qubit.index
+
+
 class Gate(AbstractInstruction):
     """
     This is the pyQuil object for a quantum gate instruction.
@@ -69,14 +75,32 @@ class Gate(AbstractInstruction):
         if not isinstance(qubits, list) or not qubits:
             raise TypeError("Gate arguments must be a non-empty list")
         for qubit in qubits:
-            if not isinstance(qubit, Qubit):
+            if not isinstance(qubit, (Qubit, QubitPlaceholder)):
                 raise TypeError("Gate arguments must all be Qubits")
 
         self.name = name
         self.params = params
         self.qubits = qubits
 
+    def get_qubits(self, indices=True):
+        return {_extract_qubit_index(q, indices) for q in self.qubits}
+
     def out(self):
+        def format_params(params):
+            return "(" + ",".join(map(format_parameter, params)) + ")"
+
+        def format_qubits(qubits):
+            return " ".join([qubit.out() for qubit in qubits])
+
+        if self.params:
+            return "{}{} {}".format(self.name, format_params(self.params), format_qubits(self.qubits))
+        else:
+            return "{} {}".format(self.name, format_qubits(self.qubits))
+
+    def __repr__(self):
+        return "<Gate " + str(self) + ">"
+
+    def __str__(self):
         def format_params(params):
             return "(" + ",".join(map(format_parameter, params)) + ")"
 
@@ -88,9 +112,6 @@ class Gate(AbstractInstruction):
         else:
             return "{} {}".format(self.name, format_qubits(self.qubits))
 
-    def __repr__(self):
-        return "<Gate " + self.out() + ">"
-
 
 class Measurement(AbstractInstruction):
     """
@@ -98,7 +119,7 @@ class Measurement(AbstractInstruction):
     """
 
     def __init__(self, qubit, classical_reg=None):
-        if not isinstance(qubit, Qubit):
+        if not isinstance(qubit, (Qubit, QubitPlaceholder)):
             raise TypeError("qubit should be a Qubit")
         if classical_reg and not isinstance(classical_reg, Addr):
             raise TypeError("classical_reg should be None or an Addr instance")
@@ -111,6 +132,9 @@ class Measurement(AbstractInstruction):
             return "MEASURE {} {}".format(self.qubit, self.classical_reg)
         else:
             return "MEASURE {}".format(self.qubit)
+
+    def get_qubits(self, indices=True):
+        return {_extract_qubit_index(self.qubit, indices)}
 
 
 class DefGate(AbstractInstruction):
@@ -222,7 +246,7 @@ class JumpTarget(AbstractInstruction):
     """
 
     def __init__(self, label):
-        if not isinstance(label, Label):
+        if not isinstance(label, (Label, LabelPlaceholder)):
             raise TypeError("label must be a Label")
         self.label = label
 
@@ -239,7 +263,7 @@ class JumpConditional(AbstractInstruction):
     """
 
     def __init__(self, target, condition):
-        if not isinstance(target, Label):
+        if not isinstance(target, (Label, LabelPlaceholder)):
             raise TypeError("target should be a Label")
         if not isinstance(condition, Addr):
             raise TypeError("condition should be an Addr")
@@ -366,7 +390,7 @@ class Jump(AbstractInstruction):
     """
 
     def __init__(self, target):
-        if not isinstance(target, Label):
+        if not isinstance(target, (Label, LabelPlaceholder)):
             raise TypeError("target should be a Label")
         self.target = target
 

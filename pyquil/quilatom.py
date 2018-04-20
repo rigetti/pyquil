@@ -5,20 +5,21 @@ class QuilAtom(object):
     """
     Abstract class for atomic elements of Quil.
     """
+
     def out(self):
-        pass
+        raise NotImplementedError()
 
     def __str__(self):
-        return self.out()
+        raise NotImplementedError()
 
     def __eq__(self, other):
-        return isinstance(other, self.__class__) and self.out() == other.out()
+        raise NotImplementedError()
 
     def __ne__(self, other):
         return not self.__eq__(other)
 
     def __hash__(self):
-        return hash(str(self))
+        raise NotImplementedError()
 
 
 class Qubit(QuilAtom):
@@ -27,6 +28,7 @@ class Qubit(QuilAtom):
 
     :param int index: Index of the qubit.
     """
+
     def __init__(self, index):
         if not (isinstance(index, integer_types) and index >= 0):
             raise TypeError("Addr index must be a non-negative int")
@@ -35,23 +37,53 @@ class Qubit(QuilAtom):
     def out(self):
         return str(self.index)
 
+    def __str__(self):
+        return str(self.index)
+
     def __repr__(self):
         return "<Qubit {0}>".format(self.index)
 
+    def __hash__(self):
+        return hash(self.index)
 
-class QubitPlaceholder(Qubit):
-    def __init__(self):
-        pass
+    def __eq__(self, other):
+        return isinstance(other, Qubit) and other.index == self.index
 
-    @property
-    def index(self):
-        raise RuntimeError("Qubit has not been assigned an index")
+
+class QubitPlaceholder(QuilAtom):
+    def out(self):
+        raise RuntimeError("Qubit {} has not been assigned an index".format(self))
 
     def __str__(self):
         return repr(self)
 
     def __repr__(self):
         return "<QubitPlaceholder {}>".format(id(self))
+
+    def __hash__(self):
+        return hash(id(self))
+
+    def __eq__(self, other):
+        return isinstance(other, QubitPlaceholder) and id(other) == id(self)
+
+    @classmethod
+    def register(cls, n):
+        """Return a 'register' of ``n`` QubitPlaceholders.
+
+        >>> qs = QubitPlaceholder.register(8) # a qubyte
+        >>> prog = Program(H(q) for q in qs)
+        >>> address_qubits(prog).out()
+        H 0
+        H 1
+        ...
+        >>>
+
+        The returned register is a Python list of QubitPlaceholder objects, so all
+        normal list semantics apply.
+
+        :param n: The number of qubits in the register
+        """
+        return [cls() for _ in range(n)]
 
 
 def unpack_qubit(qubit):
@@ -64,6 +96,8 @@ def unpack_qubit(qubit):
     if isinstance(qubit, integer_types):
         return Qubit(qubit)
     elif isinstance(qubit, Qubit):
+        return qubit
+    elif isinstance(qubit, QubitPlaceholder):
         return qubit
     else:
         raise TypeError("qubit should be an int or Qubit instance")
@@ -101,10 +135,19 @@ class Addr(QuilAtom):
         self.address = value
 
     def out(self):
-        return "[{0}]".format(self.address)
+        return "[{}]".format(self.address)
+
+    def __str__(self):
+        return "[{}]".format(self.address)
 
     def __repr__(self):
         return "<Addr {0}>".format(self.address)
+
+    def __eq__(self, other):
+        return isinstance(other, Addr) and other.address == self.address
+
+    def __hash__(self):
+        return hash(self.address)
 
 
 class Label(QuilAtom):
@@ -118,18 +161,26 @@ class Label(QuilAtom):
         self.name = label_name
 
     def out(self):
-        return "@" + str(self.name)
+        return "@{name}".format(name=self.name)
+
+    def __str__(self):
+        return "@{name}".format(name=self.name)
 
     def __repr__(self):
         return "<Label {0}>".format(repr(self.name))
 
+    def __eq__(self, other):
+        return isinstance(other, Label) and other.name == self.name
 
-class LabelPlaceholder(Label):
+    def __hash__(self):
+        return hash(self.name)
+
+
+class LabelPlaceholder(QuilAtom):
     def __init__(self, prefix="L"):
         self.prefix = prefix
 
-    @property
-    def name(self):
+    def out(self):
         raise RuntimeError("Label has not been assigned a name")
 
     def __str__(self):
@@ -137,3 +188,9 @@ class LabelPlaceholder(Label):
 
     def __repr__(self):
         return "<LabelPlaceholder {} {}>".format(self.prefix, id(self))
+
+    def __eq__(self, other):
+        return isinstance(other, LabelPlaceholder) and id(other) == id(self)
+
+    def __hash__(self):
+        return hash(id(self))

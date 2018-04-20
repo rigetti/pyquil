@@ -10,4 +10,8 @@ To build the docs, run:
 
 `make docs`
 
-from the `pyquil` root folder.
+from the `pyquil` root folder. Or run:
+
+`make html`
+
+from this folder.

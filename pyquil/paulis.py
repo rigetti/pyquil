@@ -21,6 +21,9 @@ from __future__ import division
 from itertools import product
 import numpy as np
 import copy
+
+from pyquil.quilatom import QubitPlaceholder
+
 from .quil import Program
 from .gates import H, RZ, RX, CNOT, X, PHASE, STANDARD_GATES
 from numbers import Number
@@ -57,6 +60,11 @@ can't use np.isclose() for hashing terms though.
 """
 
 
+def _valid_qubit(index):
+    return ((isinstance(index, integer_types) and index >= 0) or
+            isinstance(index, QubitPlaceholder))
+
+
 class PauliTerm(object):
     """A term is a product of Pauli operators operating on different qubits.
     """
@@ -70,7 +78,7 @@ class PauliTerm(object):
         :param float coefficient: The coefficient multiplying the operator, e.g. 1.5 * Z_1
         """
         assert op in PAULI_OPS
-        assert isinstance(index, integer_types) and index >= 0
+        assert _valid_qubit(index)
 
         self._ops = OrderedDict()
         if op != "I":
@@ -308,7 +316,7 @@ class PauliTerm(object):
         assert all([op[0] in PAULI_OPS for op in terms_list])
 
         indices = [op[1] for op in terms_list]
-        assert all([isinstance(index, integer_types) and index >= 0 for index in indices])
+        assert all(_valid_qubit(index) for index in indices)
 
         # this is because from_list doesn't call simplify in order to be more efficient.
         if len(set(indices)) != len(indices):

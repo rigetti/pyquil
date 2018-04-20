@@ -16,10 +16,11 @@
 """
 Module for creating and defining Quil programs.
 """
-import warnings
-from itertools import count
-from math import pi
+import itertools
 import types
+import warnings
+from collections import OrderedDict
+from math import pi
 
 import numpy as np
 from six import string_types
@@ -28,21 +29,23 @@ from pyquil._parser.PyQuilListener import run_parser
 from pyquil.noise import _check_kraus_ops, _create_kraus_pragmas
 from pyquil.parameters import format_parameter
 from pyquil.quilatom import LabelPlaceholder, QubitPlaceholder, unpack_qubit
-from .gates import MEASURE, STANDARD_GATES, H
-from .quilbase import (DefGate, Gate, Measurement, Pragma, AbstractInstruction, Qubit,
-                       Jump, Label, JumpConditional, JumpTarget, JumpUnless, JumpWhen, Addr)
+from pyquil.gates import MEASURE, STANDARD_GATES, H
+from pyquil.quilbase import (DefGate, Gate, Measurement, Pragma, AbstractInstruction, Qubit,
+                             Jump, Label, JumpConditional, JumpTarget, JumpUnless, JumpWhen, Addr)
 
 
 class Program(object):
     def __init__(self, *instructions):
         self._defined_gates = []
-        # Implementation note: the key difference between the private _instructions and the public instructions
-        # property below is that the private _instructions list may contain placeholder values
+        # Implementation note: the key difference between the private _instructions and
+        # the public instructions property below is that the private _instructions list
+        # may contain placeholder labels.
         self._instructions = []
 
-        # Performance optimization: as stated above _instructions may contain placeholder values so the program must
-        # first be synthesized. _synthesized_instructions is simply a cache on the result of the _synthesize() method.
-        # It is marked as None whenever new instructions are added.
+        # Performance optimization: as stated above _instructions may contain placeholder
+        # labels so the program must first be have its labels instantiated.
+        # _synthesized_instructions is simply a cache on the result of the _synthesize()
+        # method.  It is marked as None whenever new instructions are added.
         self._synthesized_instructions = None
 
         self.inst(*instructions)
@@ -60,7 +63,7 @@ class Program(object):
         Fill in any placeholders and return a list of quil AbstractInstructions.
         """
         if self._synthesized_instructions is None:
-            self._synthesized_instructions = self._synthesize()
+            self._synthesize()
 
         return self._synthesized_instructions
 
@@ -125,11 +128,11 @@ class Program(object):
                     self.inst(instr)
 
             # Implementation note: these two base cases are the only ones which modify the program
-
             elif isinstance(instruction, DefGate):
                 defined_gate_names = [gate.name for gate in self._defined_gates]
                 if instruction.name in defined_gate_names:
-                    warnings.warn("Gate {} has already been defined in this program".format(instruction.name))
+                    warnings.warn("Gate {} has already been defined in this program"
+                                  .format(instruction.name))
 
                 self._defined_gates.append(instruction)
             elif isinstance(instruction, AbstractInstruction):
@@ -353,24 +356,33 @@ class Program(object):
         :return: A qubit.
         :rtype: Qubit
         """
+        warnings.warn("`alloc` is deprecated and will be removed in a future version of pyQuil. "
+                      "Please create a `QubitPlaceholder` directly", DeprecationWarning)
         return QubitPlaceholder()
 
-    def out(self):
+    def _out(self, allow_placeholders):
         """
         Converts the Quil program to a readable string.
 
-        :return: String form of a program
-        :rtype: string
+        :param allow_placeholders: Whether to complain if the program contains placeholders.
         """
-        s = ""
-        for dg in self._defined_gates:
-            s += dg.out()
-            s += "\n"
-        for instr in self.instructions:
-            s += instr.out() + "\n"
-        return s
+        return '\n'.join(itertools.chain(
+            (dg.out() for dg in self._defined_gates),
+            (instr.out(allow_placeholders=allow_placeholders) for instr in self.instructions),
+            [''],
+        ))
 
-    def get_qubits(self):
+    def out(self):
+        """
+        Serializes the Quil program to a string suitable for submitting to the QVM or QPU.
+        """
+        return '\n'.join(itertools.chain(
+            (dg.out() for dg in self._defined_gates),
+            (instr.out() for instr in self.instructions),
+            [''],
+        ))
+
+    def get_qubits(self, indices=True):
         """
         Returns all of the qubit indices used in this program, including gate applications and
         allocated qubits. e.g.
@@ -384,15 +396,15 @@ class Program(object):
             >>> len(p.get_qubits())
             2
 
+        :param indices: Return qubit indices as integers intead of the
+            wrapping :py:class:`Qubit` object
         :return: A set of all the qubit indices used in this program
         :rtype: set
         """
         qubits = set()
         for instr in self.instructions:
-            if isinstance(instr, Gate):
-                qubits |= {q.index for q in instr.qubits}
-            elif isinstance(instr, Measurement):
-                qubits.add(instr.qubit.index)
+            if isinstance(instr, (Gate, Measurement)):
+                qubits |= instr.get_qubits(indices=indices)
         return qubits
 
     def is_protoquil(self):
@@ -460,94 +472,19 @@ class Program(object):
 
     def _synthesize(self):
         """
-        Takes a program which may contain placeholders and assigns them all defined values.
+        Assigns all placeholder labels to actual values.
 
-        For qubit placeholders:
-        1. We look through the program to find all the known indexes of qubits and add them to a set
-        2. We create a mapping from undefined qubits to their newly assigned index
-        3. For every qubit placeholder in the program, if it's not already been assigned then look through the set of
-            known indexes and find the lowest available one
+        Changed in 1.9: Either all qubits must be defined or all undefined. If qubits are
+        undefined, this method will not help you. You must explicitly call `address_qubits`
+        which will return a new Program.
 
-        For label placeholders:
-        1. Start a counter at 1
-        2. For every label placeholder in the program, replace it with a defined label using the counter and increment
-            the counter
+        Changed in 1.9: This function now returns ``self`` and updates
+        ``self._synthesized_instructions``.
 
-        :return: List of AbstractInstructions with all placeholders removed
+        :return: This object with the ``_synthesized_instructions`` member set.
         """
-        used_indexes = set()
-        for instr in self._instructions:
-            if isinstance(instr, Gate):
-                for q in instr.qubits:
-                    if not isinstance(q, QubitPlaceholder):
-                        used_indexes.add(q.index)
-            elif isinstance(instr, Measurement):
-                if not isinstance(instr.qubit, QubitPlaceholder):
-                    used_indexes.add(instr.qubit.index)
-
-        def find_available_index():
-            # Just do a linear search.
-            for i in count(start=0, step=1):
-                if i not in used_indexes:
-                    return i
-
-        qubit_mapping = dict()
-
-        def remap_qubit(qubit):
-            if not isinstance(qubit, QubitPlaceholder):
-                return qubit
-            if id(qubit) in qubit_mapping:
-                return qubit_mapping[id(qubit)]
-            else:
-                available_index = find_available_index()
-                used_indexes.add(available_index)
-                remapped_qubit = Qubit(available_index)
-                qubit_mapping[id(qubit)] = remapped_qubit
-                return remapped_qubit
-
-        label_mapping = dict()
-        label_counter = 1
-
-        def remap_label(placeholder):
-            if id(placeholder) in label_mapping:
-                return label_mapping[id(placeholder)]
-            else:
-                label = Label(placeholder.prefix + str(label_counter))
-                label_mapping[id(placeholder)] = label
-                return label
-
-        result = []
-        for instr in self._instructions:
-            # Remap qubits on Gate and Measurement instructions
-            if isinstance(instr, Gate):
-                remapped_qubits = [remap_qubit(q) for q in instr.qubits]
-                result.append(Gate(instr.name, instr.params, remapped_qubits))
-            elif isinstance(instr, Measurement):
-                result.append(Measurement(remap_qubit(instr.qubit), instr.classical_reg))
-
-            # Remap any label placeholders on jump or target instructions
-            elif isinstance(instr, Jump) and isinstance(instr.target, LabelPlaceholder):
-                result.append(Jump(remap_label(instr.target)))
-                label_counter += 1
-            elif isinstance(instr, JumpTarget) and isinstance(instr.label, LabelPlaceholder):
-                result.append(JumpTarget(remap_label(instr.label)))
-                label_counter += 1
-            elif isinstance(instr, JumpConditional) and isinstance(instr.target, LabelPlaceholder):
-                new_label = remap_label(instr.target)
-                if isinstance(instr, JumpWhen):
-                    result.append(JumpWhen(new_label, instr.condition))
-                elif isinstance(instr, JumpUnless):
-                    result.append(JumpUnless(new_label, instr.condition))
-                else:
-                    raise TypeError("Encountered a JumpConditional that wasn't JumpWhen or JumpUnless: {} {}"
-                                    .format(type(instr), instr))
-                label_counter += 1
-
-            # Otherwise simply add it to the result
-            else:
-                result.append(instr)
-
-        return result
+        self._synthesized_instructions = instantiate_labels(self._instructions)
+        return self
 
     def __add__(self, other):
         """
@@ -589,7 +526,171 @@ class Program(object):
         return len(self._instructions)
 
     def __str__(self):
-        return self.out()
+        """
+        A string representation of the Quil program for inspection.
+
+        This may not be suitable for submission to a QPU or QVM for example if
+        your program contains unaddressed QubitPlaceholders
+        """
+        return '\n'.join(itertools.chain(
+            (str(dg) for dg in self._defined_gates),
+            (str(instr) for instr in self.instructions),
+            [''],
+        ))
+
+
+def _what_type_of_qubit_does_it_use(program):
+    """Helper function to peruse through a program's qubits.
+
+    This function will also enforce the condition that a Program uses either all placeholders
+    or all instantiated qubits to avoid accidentally mixing the two. This function will warn
+    if your program doesn't use any qubits.
+
+    :return: tuple of (whether the program uses placeholder qubits, whether the program uses
+        real qubits, a list of qubits ordered by their first appearance in the program)
+    """
+    has_placeholders = False
+    has_real_qubits = False
+
+    # We probably want to index qubits in the order they are encountered in the program
+    # so an ordered set would be nice. Python doesn't *have* an ordered set. Use the keys
+    # of an ordered dictionary instead
+    qubits = OrderedDict()
+
+    for instr in program:
+        if isinstance(instr, Gate):
+            for q in instr.qubits:
+                qubits[q] = 1
+                if isinstance(q, QubitPlaceholder):
+                    has_placeholders = True
+                elif isinstance(q, Qubit):
+                    has_real_qubits = True
+                else:
+                    raise ValueError("Unknown qubit type {}".format(q))
+        elif isinstance(instr, Measurement):
+            qubits[instr.qubit] = 1
+            if isinstance(instr.qubit, QubitPlaceholder):
+                has_placeholders = True
+            elif isinstance(instr.qubit, Qubit):
+                has_real_qubits = True
+            else:
+                raise ValueError("Unknown qubit type {}".format(instr.qubit))
+
+    if not (has_placeholders or has_real_qubits):
+        warnings.warn("Your program doesn't use any qubits")
+
+    if has_placeholders and has_real_qubits:
+        raise ValueError("Your program mixes instantiated qubits with placeholders")
+
+    return has_placeholders, has_real_qubits, list(qubits.keys())
+
+
+def get_default_qubit_mapping(program):
+    """
+    Takes a program which contains qubit placeholders and provides a mapping to the integers
+    0 through N-1.
+
+    The output of this function is suitable for input to :py:func:`address_qubits`.
+
+    :param program: A program containing qubit placeholders
+    :return: A dictionary mapping qubit placeholder to an addressed qubit from 0 through N-1.
+    """
+    fake_qubits, real_qubits, qubits = _what_type_of_qubit_does_it_use(program)
+    if real_qubits:
+        warnings.warn("This program contains integer qubits, "
+                      "so getting a mapping doesn't make sense.")
+        return {q: q for q in qubits}
+    return {qp: Qubit(i) for i, qp in enumerate(qubits)}
+
+
+def address_qubits(program, qubit_mapping=None):
+    """
+    Takes a program which contains placeholders and assigns them all defined values.
+
+    Either all qubits must be defined or all undefined. If qubits are
+    undefined, you may provide a qubit mapping to specify how placeholders get mapped
+    to actual qubits. If a mapping is not provided, integers 0 through N are used.
+
+    This function will also instantiate any label placeholders.
+
+    :param program: The program.
+    :param qubit_mapping: A dictionary-like object that maps from :py:class:`QubitPlaceholder`
+        to :py:class:`Qubit` or ``int`` (but not both).
+    :return: A new Program with all qubit and label placeholders assigned to real qubits and labels.
+    """
+    fake_qubits, real_qubits, qubits = _what_type_of_qubit_does_it_use(program)
+    if real_qubits:
+        if qubit_mapping is not None:
+            warnings.warn("A qubit mapping was provided but the program does not "
+                          "contain any placeholders to map!")
+        return program
+
+    if qubit_mapping is None:
+        qubit_mapping = {qp: Qubit(i) for i, qp in enumerate(qubits)}
+    else:
+        if all(isinstance(v, Qubit) for v in qubit_mapping.values()):
+            pass  # we good
+        elif all(isinstance(v, int) for v in qubit_mapping.values()):
+            qubit_mapping = {k: Qubit(v) for k, v in qubit_mapping.items()}
+        else:
+            raise ValueError("Qubit mapping must map to type Qubit or int (but not both)")
+
+    result = []
+    for instr in program:
+        # Remap qubits on Gate and Measurement instructions
+        if isinstance(instr, Gate):
+            remapped_qubits = [qubit_mapping[q] for q in instr.qubits]
+            result.append(Gate(instr.name, instr.params, remapped_qubits))
+        elif isinstance(instr, Measurement):
+            result.append(Measurement(qubit_mapping[instr.qubit], instr.classical_reg))
+
+        # Otherwise simply add it to the result
+        else:
+            result.append(instr)
+
+    return Program(result)
+
+
+def _get_label(placeholder, label_mapping, label_i):
+    """Helper function to either get the appropriate label for a given placeholder or generate
+    a new label and update the mapping.
+
+    See :py:func:`instantiate_labels` for usage.
+    """
+    if placeholder in label_mapping:
+        return label_mapping[placeholder], label_mapping, label_i
+
+    new_target = Label("{}{}".format(placeholder.prefix, label_i))
+    label_i += 1
+    label_mapping[placeholder] = new_target
+    return new_target, label_mapping, label_i
+
+
+def instantiate_labels(instructions):
+    """
+    Takes an iterable of instructions which may contain label placeholders and assigns
+    them all defined values.
+
+    :return: list of instructions with all label placeholders assigned to real labels.
+    """
+    label_i = 1
+    result = []
+    label_mapping = dict()
+    for instr in instructions:
+        if isinstance(instr, Jump) and isinstance(instr.target, LabelPlaceholder):
+            new_target, label_mapping, label_i = _get_label(instr.target, label_mapping, label_i)
+            result.append(Jump(new_target))
+        elif isinstance(instr, JumpConditional) and isinstance(instr.target, LabelPlaceholder):
+            new_target, label_mapping, label_i = _get_label(instr.target, label_mapping, label_i)
+            cls = instr.__class__  # Make the correct subclass
+            result.append(cls(new_target, instr.condition))
+        elif isinstance(instr, JumpTarget) and isinstance(instr.label, LabelPlaceholder):
+            new_label, label_mapping, label_i = _get_label(instr.label, label_mapping, label_i)
+            result.append(JumpTarget(new_label))
+        else:
+            result.append(instr)
+
+    return result
 
 
 def merge_programs(prog_list):
@@ -601,26 +702,6 @@ def merge_programs(prog_list):
     :rtype: Program
     """
     return sum(prog_list, Program())
-
-
-def shift_quantum_gates(program, shift_offset):
-    """
-    Shifts a quantum gates in a quil program so that all qubit indices change by a certain offset
-    :param program: a pyquil Program
-    :param shift_offset: integer
-    :return: pyquil Program with shifted qubit indices
-    """
-    if not isinstance(shift_offset, int):
-        raise ValueError("shift_offset must be an integer")
-    if not isinstance(program, Program):
-        raise ValueError("Program must be a pyquil Program instance")
-    shifted_program = Program()
-    shifted_program.inst(program)
-    for instruct in shifted_program:
-        if isinstance(instruct, Gate):
-            for qubit in instruct.qubits:
-                qubit.index += shift_offset
-    return shifted_program
 
 
 def get_classical_addresses_from_program(program):
