@@ -14,6 +14,8 @@ def test_format_parameter():
         (1j, 'i'),
         (0 + 1j, 'i'),
         (-1j, '-i'),
+        (1e-15 + 1j, 'i'),
+        (1e-15 - 1j, '-i')
     ]
 
     for test_case in test_cases:
