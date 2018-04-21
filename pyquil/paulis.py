@@ -753,7 +753,7 @@ def exponential_map(term):
 
     :param PauliTerm term: Tests is a PauliTerm is the identity operator
     :returns: Program
-    :rtype: Program
+    :rtype: Function
     """
     if not np.isclose(np.imag(term.coefficient), 0.0):
         raise TypeError("PauliTerm coefficient must be real")
