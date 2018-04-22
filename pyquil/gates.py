@@ -56,8 +56,8 @@ def _make_gate(name, num_qubits, num_params=0):
 
 I = _make_gate("I", 1)()
 """
-I gate:  [1, 0] 
-         [0, 1]
+I = [1, 0] 
+    [0, 1]
 
 Produces the I instruction. This gate is a single qubit identity gate.
 Note that this gate is different that the NOP instruction as noise channels
