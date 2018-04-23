@@ -49,12 +49,12 @@ Contents
 .. toctree::
    :maxdepth: 3
 
-   intro
    start
    qvm
    qpu
    compiler
    noise
+   intro_to_quantum_information
    modules
    changes
 

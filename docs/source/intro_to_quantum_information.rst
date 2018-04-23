@@ -1,6 +1,6 @@
 .. _intro:
 
-Introduction to Quantum Computing
+Introduction to Quantum Information
 =================================
 
 With every breakthrough in science there is the potential for new
