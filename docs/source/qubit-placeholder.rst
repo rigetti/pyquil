@@ -86,7 +86,7 @@ N.
     
 
 
-The real power comes into play when you provide an explicity mapping
+The real power comes into play when you provide an explicit mapping
 
 .. code:: ipython3
 
