@@ -50,11 +50,13 @@ Contents
    :maxdepth: 3
 
    start
+   Basics
+   Advanced_Usage
+   intro_to_quantum_information
    qvm
+   noise
    qpu
    compiler
-   noise
-   intro_to_quantum_information
    modules
    changes
 
