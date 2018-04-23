@@ -219,7 +219,7 @@ following are all valid programs:
     Y 0
 
 Fixing a Mistaken Instruction
-~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
+-----------------------------
 
 If an instruction was appended to a program incorrectly, one can pop it
 off.
@@ -253,7 +253,7 @@ off.
     Y 1
 
 The Standard Gate Set
-~~~~~~~~~~~~~~~~~~~~~
+---------------------
 
 The following gates methods come standard with Quil and ``gates.py``:
 
@@ -279,7 +279,7 @@ The parameterized gates take a real or complex floating point
 number as an argument.
 
 Defining New Gates
-~~~~~~~~~~~~~~~~~~
+------------------
 
 New gates can be easily added inline to Quil programs. All you need is a
 matrix representation of the gate. For example, below we define a
@@ -336,7 +336,7 @@ Below we show how we can define :math:`X_0\otimes \sqrt{X_1}` as a single gate.
     (0.5+0.5j)|01> + (0.5-0.5j)|11>
 
 Defining Parametric Gates
-~~~~~~~~~~~~~~~~~~~~~~~~~
+-------------------------
 
 It is also possible to define parametric gates using pyQuil.
 Let's say we want to have a controlled RX gate. Since RX is a parametric gate, we need a slightly different way of defining it than in the previous section.

@@ -1,10 +1,10 @@
 .. _exercises:
 
 Exercises
----------
+=========
 
 Exercise 1: Quantum Dice
-~~~~~~~~~~~~~~~~~~~~~~~~
+------------------------
 
 Write a quantum program to simulate throwing an 8-sided die. The Python
 function you should produce is:
@@ -22,7 +22,7 @@ Next, extend the program to work for any kind of fair die:
         # return the result of throwing a num_sides sided die by running a quantum program
 
 Exercise 2: Controlled Gates
-~~~~~~~~~~~~~~~~~~~~~~~~~~~~
+----------------------------
 
 We can use the full generality of NumPy to construct new gate matrices.
 
@@ -36,7 +36,7 @@ We can use the full generality of NumPy to construct new gate matrices.
    controlled by qubit 0.
 
 Exercise 3: Grover's Algorithm
-~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
+------------------------------
 
 Write a quantum program for the single-shot Grover's algorithm. The
 Python function you should produce is:
