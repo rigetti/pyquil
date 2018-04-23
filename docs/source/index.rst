@@ -54,6 +54,7 @@ Contents
    qvm
    qpu
    compiler
+   qubit-placeholder
    noise
    modules
    changes
