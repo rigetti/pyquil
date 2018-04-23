@@ -65,6 +65,37 @@ QPU, separately from sending a program to the QPU/QVM.
     print('program fidelity', job.program_fidelity())
     print('multiqubit gate depth', job.multiqubit_gate_depth())
 
+
+Here's what you should see:
+
+.. code:: python
+
+
+    PRAGMA EXPECTED_REWIRING "#(6 1 7 3 4 5 0 2 8 9 10 11 12 13 14 15 16 17 18 19)"
+    RZ(-pi/2) 1
+    RX(pi/2) 1
+    RZ(-pi/2) 6
+    RX(-pi/2) 6
+    CZ 1 6
+    RX(-pi/2) 1
+    RZ(-pi/2) 7
+    RX(pi/2) 7
+    CZ 7 1
+    RZ(-pi/2) 1
+    RZ(pi/2) 6
+    RX(-pi/2) 7
+    RZ(pi/2) 7
+    PRAGMA CURRENT_REWIRING "#(6 1 7 3 4 5 0 2 8 9 10 11 12 13 14 15 16 17 18 19)"
+    PRAGMA EXPECTED_REWIRING "#(6 1 7 3 4 5 0 2 8 9 10 11 12 13 14 15 16 17 18 19)"
+    PRAGMA CURRENT_REWIRING "#(6 1 7 3 4 5 0 2 8 9 10 11 12 13 14 15 16 17 18 19)"
+
+    gate volume 13
+    gate depth 7
+    topological swaps 0
+    program fidelity 0.872503399848938
+    multiqubit gate depth 2
+
+
 The ``QVMConnection`` and ``QPUConnection`` objects have their compiler interactions set up in the
 same way: the ``.run`` and ``.run_and_measure`` methods take the optional arguments
 ``needs_compilation`` and ``isa`` that respectively toggle the compilation preprocessing step and
