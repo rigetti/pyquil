@@ -86,7 +86,7 @@ program.
 Preserved regions
 ~~~~~~~~~~~~~~~~~
 
-It can be circumvented in user-specified regions. The start of such a region is denoted by
+The compiler can be circumvented in user-specified regions. The start of such a region is denoted by
 ``PRAGMA PRESERVE_BLOCK``, and the end is denoted by ``PRAGMA END_PRESERVE_BLOCK``.  The Quil
 compiler promises not to modify any instructions contained in such a region.
 
@@ -178,14 +178,14 @@ instead execute the blocks in their written order.
 Rewirings
 ~~~~~~~~~
 
-When a Quil program contains instructions that do not admit instantiation (even after rewriting) on
-a target device, the compiler will rearrange the qubits in a program so that execution becomes
-possible.  In order to help the user understand what rearrangement may have been done, the compiler
-emits two forms of ``PRAGMA``: ``PRAGMA EXPECTED_REWIRING`` and ``PRAGMA CURRENT_REWIRING``.  From
-the perspective of the user, both ``PRAGMA`` instructions serve the same purpose:
-``PRAGMA ..._REWIRING "#(n0 n1 ... nk)"`` indicates that the logical qubit labeled ``j`` in the
-program has been assigned to lie on the physical qubit labeled ``nj`` on the device.  User-supplied
-instructions of the form ``PRAGMA ..._REWIRING`` are discarded and have no effect.
+When a Quil program contains multi-qubit instructions that do not name qubit-qubit links present on a
+target device, the compiler will rearrange the qubits so that execution becomes possible.  In order to
+help the user understand what rearrangement may have been done, the compiler emits two forms of
+``PRAGMA``: ``PRAGMA EXPECTED_REWIRING`` and ``PRAGMA CURRENT_REWIRING``.  From the perspective of the
+user, both ``PRAGMA`` instructions serve the same purpose: ``PRAGMA ..._REWIRING "#(n0 n1 ... nk)"``
+indicates that the logical qubit labeled ``j`` in the program has been assigned to lie on the physical
+qubit labeled ``nj`` on the device.  This is strictly for human-readability: user-supplied instructions
+of the form ``PRAGMA ..._REWIRING`` are discarded and have no effect.
 
 .. WARNING::
 
