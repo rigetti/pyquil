@@ -276,7 +276,7 @@ multiple qubits to grow exponentially in size, as their vectors are tensored tog
 
     p = Program()
     for x in range(10):
-        p.inst(I(x))
+        p += I(x)
     wavefunction = quantum_simulator.wavefunction(p)
     print("The quantum state is of dimension:", len(wavefunction.amplitudes)  )
 
