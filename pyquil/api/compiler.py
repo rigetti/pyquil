@@ -224,10 +224,12 @@ class CompilerConnection(object):
 
     def generate_rb_sequence(self, depth, qubits, gateset):
         """
-        Construct a randomized benchmarking experiment on the given qubits, decomposing into gateset.
+        Construct a randomized benchmarking experiment on the given qubits,
+        decomposing into gateset.
 
-        The JSON payload that is parsed is a list of lists of indices, or Nones. In the former case, they are the index
-         of the gate in the gateset.
+        The JSON payload that is parsed is a list of lists of indices, or Nones. In the
+        former case, they are the index of the gate in the gateset.
+
         :param int depth: The number of Clifford gates to include in the randomized benchmarking experiement.
         :param int qubits: The number of qubits to generate a randomized benchmarking sequence for.
         :param list gateset: A list of pyquil gates to decompose the Clifford elements into.

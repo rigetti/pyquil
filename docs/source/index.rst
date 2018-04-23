@@ -51,6 +51,7 @@ Contents
 
    start
    Basics
+   qubit-placeholder
    Advanced_Usage
    intro_to_quantum_information
    qvm
