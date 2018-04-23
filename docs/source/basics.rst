@@ -174,7 +174,7 @@ for small quantum systems, and it cannot be feasibly obtained on a
 quantum processor.
 
 Some Program Construction Features
-~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
+----------------------------------
 
 Multiple instructions can be applied at once or chained together. The
 following are all valid programs:
