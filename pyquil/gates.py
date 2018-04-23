@@ -56,6 +56,9 @@ def _make_gate(name, num_qubits, num_params=0):
 
 I = _make_gate("I", 1)()
 """
+I = [1, 0] 
+    [0, 1]
+
 Produces the I instruction. This gate is a single qubit identity gate.
 Note that this gate is different that the NOP instruction as noise channels
 are typically still applied during the duration of identity gates. Identities will
@@ -66,6 +69,9 @@ also block parallelization like any other gate.
 """
 X = _make_gate("X", 1)()
 """
+X = [[0, 1], 
+     [1, 0]]
+
 Produces the X instruction. This gate is a single qubit X-gate.
 
 :param qubit: The qubit apply the gate to.
@@ -73,6 +79,9 @@ Produces the X instruction. This gate is a single qubit X-gate.
 """
 Y = _make_gate("Y", 1)()
 """
+Y = [[0, 0 - 1j], 
+     [0 + 1j, 0]]
+
 Produces the Y instruction. This gate is a single qubit Y-gate.
 
 :param qubit: The qubit apply the gate to.
@@ -80,6 +89,9 @@ Produces the Y instruction. This gate is a single qubit Y-gate.
 """
 Z = _make_gate("Z", 1)()
 """
+Z = [[1, 0], 
+     [0, -1]]
+
 Produces the Z instruction. This gate is a single qubit Z-gate.
 
 :param qubit: The qubit apply the gate to.
@@ -87,6 +99,9 @@ Produces the Z instruction. This gate is a single qubit Z-gate.
 """
 H = _make_gate("H", 1)()
 """
+H = (1 / sqrt(2)) * [[1, 1], 
+                     [1, -1]]
+
 Produces the H instruction. This gate is a single qubit Hadamard gate.
 
 :param qubit: The qubit apply the gate to.
@@ -94,6 +109,9 @@ Produces the H instruction. This gate is a single qubit Hadamard gate.
 """
 S = _make_gate("S", 1)()
 """
+S = [[1, 0], 
+     [0, 1j]]
+
 Produces the S instruction. This gate is a single qubit S-gate.
 
 :param qubit: The qubit apply the gate to.
@@ -101,6 +119,9 @@ Produces the S instruction. This gate is a single qubit S-gate.
 """
 T = _make_gate("T", 1)()
 """
+T = [[1, 0], 
+     [0, exp(1j * pi / 4)]]
+
 Produces the T instruction. This gate is a single qubit T-gate. It is the same
 as RZ(pi/4).
 
@@ -110,6 +131,9 @@ as RZ(pi/4).
 
 RX = _make_gate("RX", 1, 1)
 """
+RX(phi) = [[cos(phi / 2), -1j * sin(phi / 2)],
+           [-1j * sin(phi / 2), cos(phi / 2)]] 
+
 Produces the RX instruction. This gate is a single qubit X-rotation.
 
 :param angle: The angle to rotate around the x-axis on the bloch sphere.
@@ -118,6 +142,9 @@ Produces the RX instruction. This gate is a single qubit X-rotation.
 """
 RY = _make_gate("RY", 1, 1)
 """
+RY(phi) = [[cos(phi / 2), -sin(phi / 2)],
+           [sin(phi / 2), cos(phi / 2)]]
+
 Produces the RY instruction. This gate is a single qubit Y-rotation.
 
 :param angle: The angle to rotate around the y-axis on the bloch sphere.
@@ -126,6 +153,9 @@ Produces the RY instruction. This gate is a single qubit Y-rotation.
 """
 RZ = _make_gate("RZ", 1, 1)
 """
+RZ(phi) = [[cos(phi / 2) - 1j * sin(phi / 2), 0]
+           [0, cos(phi / 2) + 1j * sin(phi / 2)]]
+
 Produces the RZ instruction. This gate is a single qubit Z-rotation.
 
 :param angle: The angle to rotate around the z-axis on the bloch sphere.
@@ -134,6 +164,9 @@ Produces the RZ instruction. This gate is a single qubit Z-rotation.
 """
 PHASE = _make_gate("PHASE", 1, 1)
 """
+PHASE(phi) = [[1, 0], 
+              [0, exp(1j * phi)]]
+
 Produces a PHASE instruction. This is the same as the RZ gate.
 
 :param angle: The angle to rotate around the z-axis on the bloch sphere.
@@ -143,6 +176,11 @@ Produces a PHASE instruction. This is the same as the RZ gate.
 
 CZ = _make_gate("CZ", 2)()
 """
+CZ = [[1, 0, 0, 0],
+      [0, 1, 0, 0],
+      [0, 0, 1, 0],
+      [0, 0, 0, -1]]
+
 Produces a CZ instruction.
 This gate applies to two qubit arguments to produce the controlled-Z gate instruction.
 
@@ -154,6 +192,11 @@ This gate applies to two qubit arguments to produce the controlled-Z gate instru
 
 CNOT = _make_gate("CNOT", 2)()
 """
+CNOT = [[1, 0, 0, 0],
+        [0, 1, 0, 0],
+        [0, 0, 0, 1],
+        [0, 0, 1, 0]]
+
 Produces a CNOT instruction.
 This gate applies to two qubit arguments to produce the controlled-not gate instruction.
 
@@ -164,6 +207,15 @@ This gate applies to two qubit arguments to produce the controlled-not gate inst
 """
 CCNOT = _make_gate("CCNOT", 3)()
 """
+CCNOT = [[1, 0, 0, 0, 0, 0, 0, 0],
+         [0, 1, 0, 0, 0, 0, 0, 0],
+         [0, 0, 1, 0, 0, 0, 0, 0],
+         [0, 0, 0, 1, 0, 0, 0, 0],
+         [0, 0, 0, 0, 1, 0, 0, 0],
+         [0, 0, 0, 0, 0, 1, 0, 0],
+         [0, 0, 0, 0, 0, 0, 0, 1],
+         [0, 0, 0, 0, 0, 0, 1, 0]]
+
 Produces a CCNOT instruction.
 This gate applies to three qubit arguments to produce the controlled-controlled-not gate instruction.
 
@@ -176,6 +228,8 @@ This gate applies to three qubit arguments to produce the controlled-controlled-
 
 CPHASE00 = _make_gate("CPHASE00", 2, 1)
 """
+CPHASE00(phi) = diag([exp(1j * phi), 1, 1, 1])
+
 Produces a CPHASE00 instruction.
 This gate applies to two qubit arguments to produce the variant of the controlled phase instruction that affects the state 00.
 
@@ -186,6 +240,8 @@ This gate applies to two qubit arguments to produce the variant of the controlle
 """
 CPHASE01 = _make_gate("CPHASE01", 2, 1)
 """
+CPHASE01(phi) = diag([1.0, exp(1j * phi), 1.0, 1.0])
+
 Produces a CPHASE01 instruction.
 This gate applies to two qubit arguments to produce the variant of the controlled phase instruction that affects the state 01.
 
@@ -196,6 +252,8 @@ This gate applies to two qubit arguments to produce the variant of the controlle
 """
 CPHASE10 = _make_gate("CPHASE10", 2, 1)
 """
+CPHASE10(phi) = diag([1, 1, exp(1j * phi), 1])
+
 Produces a CPHASE10 instruction.
 This gate applies to two qubit arguments to produce the variant of the controlled phase instruction that affects the state 10.
 
@@ -206,6 +264,8 @@ This gate applies to two qubit arguments to produce the variant of the controlle
 """
 CPHASE = _make_gate("CPHASE", 2, 1)
 """
+CPHASE(phi) = diag([1, 1, 1, exp(1j * phi)])
+
 Produces a CPHASE instruction, which is a synonym for CPHASE11.
 This gate applies to two qubit arguments to produce the variant of the controlled phase instruction that affects the state 11.
 
@@ -217,6 +277,11 @@ This gate applies to two qubit arguments to produce the variant of the controlle
 
 SWAP = _make_gate("SWAP", 2)()
 """
+SWAP = [[1, 0, 0, 0],
+        [0, 0, 1, 0],
+        [0, 1, 0, 0],
+        [0, 0, 0, 1]]
+
 Produces a SWAP instruction. This gate swaps the state of two qubits.
 
 :param q1: Qubit 1.
@@ -225,6 +290,15 @@ Produces a SWAP instruction. This gate swaps the state of two qubits.
 """
 CSWAP = _make_gate("CSWAP", 3)()
 """
+CSWAP = [[1, 0, 0, 0, 0, 0, 0, 0],
+         [0, 1, 0, 0, 0, 0, 0, 0],
+         [0, 0, 1, 0, 0, 0, 0, 0],
+         [0, 0, 0, 1, 0, 0, 0, 0],
+         [0, 0, 0, 0, 1, 0, 0, 0],
+         [0, 0, 0, 0, 0, 0, 1, 0],
+         [0, 0, 0, 0, 0, 1, 0, 0],
+         [0, 0, 0, 0, 0, 0, 0, 1]]
+
 Produces a CSWAP instruction. This gate swaps the state of two qubits.
 
 :param control: The control qubit.
@@ -233,6 +307,11 @@ Produces a CSWAP instruction. This gate swaps the state of two qubits.
 """
 ISWAP = _make_gate("ISWAP", 2)()
 """
+ISWAP = [[1, 0, 0, 0],
+         [0, 0, 1j, 0],
+         [0, 1j, 0, 0],
+         [0, 0, 0, 1]]
+
 Produces an ISWAP instruction. This gate swaps the state of two qubits, applying a -i phase to q1 when it
 is in the excited state and a -i phase to q2 when it is in the ground state.
 
@@ -242,6 +321,11 @@ is in the excited state and a -i phase to q2 when it is in the ground state.
 """
 PSWAP = _make_gate("PSWAP", 2, 1)
 """
+PSWAP(phi) = [[1, 0, 0, 0],
+              [0, 0, exp(1j * phi), 0],
+              [0, exp(1j * phi), 0, 0],
+              [0, 0, 0, 1]]
+
 Produces a PSWAP instruction. This is a parameterized swap gate.
 
 :param angle: The angle of the phase to apply to the swapped states. This phase is applied to q1 when it is in
