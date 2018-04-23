@@ -49,13 +49,15 @@ Contents
 .. toctree::
    :maxdepth: 3
 
-   intro
    start
+   Basics
+   qubit-placeholder
+   Advanced_Usage
+   intro_to_quantum_information
    qvm
+   noise
    qpu
    compiler
-   qubit-placeholder
-   noise
    modules
    changes
 
