@@ -3,54 +3,15 @@
 Installation and Getting Started
 ================================
 
-This toolkit provides some simple libraries for writing quantum
-programs.
+Make sure you have a current version of Python installed on your computer. We recommend
+installing the `Anaconda Python distribution <https://www.anaconda.com/download/>`_.
 
-.. code:: python
 
-    from pyquil.quil import Program
-    from pyquil.api import QVMConnection
-    from pyquil.gates import CNOT, H
 
-    qvm = QVMConnection()
-    p = Program(H(0), CNOT(0, 1))
+Then, install pyQuil with::
 
-    wf = qvm.wavefunction(p)
-    print(wf)
+    conda install -c rigetti pyquil
 
-::
-
-    (0.7071067812+0j)|00> + (0.7071067812+0j)|11>
-
-It comes with a few parts:
-
-1. **Quil**: The Quantum Instruction Language standard. Instructions
-   written in Quil can be executed on any implementation of a quantum
-   abstract machine, such as the quantum virtual machine (QVM), or on a
-   real quantum processing unit (QPU). More details regarding Quil can be
-   found in the `whitepaper <https://arxiv.org/abs/1608.03355>`__.
-2. **pyQuil**: A Python library to help write and run Quil code and
-   quantum programs.
-3. **QVM**: A `Quantum Virtual Machine <qvm_overview.html>`_, which is an implementation of the
-   quantum abstract machine on classical hardware. The QVM lets you use a
-   regular computer to simulate a small quantum computer. You can access
-   the Rigetti QVM running in the cloud with your API key.
-   `Sign up here <http://forest.rigetti.com>`_ to get your key.
-4. **QPU**: pyQuil also includes some a special connection which lets you run experiments
-   on Rigetti's prototype superconducting quantum processors over the cloud.
-5. **Quilc**: In addition to running on the QVM or the QPU, users can directly use
-   the Quil compiler, to investigate how arbitrary quantum programs can be compiled
-   to target specific physical instruction set architectures (ISAs).
-
-Environment Setup
------------------
-
-Prerequisites
-~~~~~~~~~~~~~
-
-Before you can start writing quantum programs, you will need Python 2.7
-(version 2.7.10 or greater) or Python 3.6 and the
-Python package manager ``pip``.
 
 .. note::
 
@@ -58,39 +19,12 @@ Python package manager ``pip``.
     using Python 3 if possible. Future feature developments in PyQuil may support
     Python 3 only.
 
+.. note::
 
-Installation
-~~~~~~~~~~~~
+    We also support installation via ``pip`` with ``pip install pyquil``
 
-You can install pyQuil directly from the Python package manager ``pip``. We
-recommend that you use a virtual environment when dealing with python.
-From inside a virtual environment, run:
-
-::
-
-    pip install pyquil
-
-To instead install the bleeding-edge version from source, clone the
-`pyquil GitHub repository <https://github.com/rigetticomputing/pyquil>`_,
-navigate into its directory in a terminal, and run:
-
-::
-
-    pip install -e .
-
-On Mac/Linux, if you choose not to use a virtual environment and this
-command does not succeed because of permissions errors, then instead run
-the following to make the library available system-wide:
-
-::
-
-    sudo pip install -e .
-
-This will also install pyQuil's dependencies (NumPy, requests, etc.) if you do not already
-have them.
-
-Connecting to the Rigetti Forest
-~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
+Connecting to Rigetti Forest
+----------------------------
 
 pyQuil can be used to build and manipulate Quil programs without restriction.
 However, to run programs (e.g., to get wavefunctions, get multishot experiment data),
@@ -147,6 +81,49 @@ As a last resort, connection information can be provided via environment variabl
 
 If you are still seeing errors or warnings then file a bug using
 `Github Issues <https://github.com/rigetticomputing/pyquil/issues>`_.
+
+Getting Started
+---------------
+
+This toolkit provides some simple libraries for writing quantum
+programs.
+
+.. code:: python
+
+    from pyquil.quil import Program
+    from pyquil.api import QVMConnection
+    from pyquil.gates import CNOT, H
+
+    qvm = QVMConnection()
+    p = Program(H(0), CNOT(0, 1))
+
+    wf = qvm.wavefunction(p)
+    print(wf)
+
+::
+
+    (0.7071067812+0j)|00> + (0.7071067812+0j)|11>
+
+It comes with a few parts:
+
+1. **Quil**: The Quantum Instruction Language standard. Instructions
+   written in Quil can be executed on any implementation of a quantum
+   abstract machine, such as the quantum virtual machine (QVM), or on a
+   real quantum processing unit (QPU). More details regarding Quil can be
+   found in the `whitepaper <https://arxiv.org/abs/1608.03355>`__.
+2. **pyQuil**: A Python library to help write and run Quil code and
+   quantum programs.
+3. **QVM**: A `Quantum Virtual Machine <qvm_overview.html>`_, which is an implementation of the
+   quantum abstract machine on classical hardware. The QVM lets you use a
+   regular computer to simulate a small quantum computer. You can access
+   the Rigetti QVM running in the cloud with your API key.
+   `Sign up here <http://forest.rigetti.com>`_ to get your key.
+4. **QPU**: pyQuil also includes some a special connection which lets you run experiments
+   on Rigetti's prototype superconducting quantum processors over the cloud.
+5. **Quilc**: In addition to running on the QVM or the QPU, users can directly use
+   the Quil compiler, to investigate how arbitrary quantum programs can be compiled
+   to target specific physical instruction set architectures (ISAs).
+
 
 Your First Quantum Program
 --------------------------
