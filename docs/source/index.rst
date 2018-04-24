@@ -51,6 +51,9 @@ Contents
 
    intro
    start
+   basics
+   advanced_usage
+   exercises
    qvm
    qpu
    compiler
