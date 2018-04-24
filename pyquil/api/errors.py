@@ -132,6 +132,12 @@ The server has failed to return a proper response. Please describe the problem
 and copy the above message into a GitHub issue at:
     https://github.com/rigetticomputing/pyquil/issues"""
         super(UnknownApiError, self).__init__(server_status, explanation)
+        
+
+class EmptyProgramError:
+    def __init__(self, quil_program):
+        if bool(quil_program) == False:
+            raise Exception("Empty program.")
 
 
 # NB: Some errors are not included here if they are only returned by async endpoints
