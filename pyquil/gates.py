@@ -56,7 +56,7 @@ def _make_gate(name, num_qubits, num_params=0):
 
 I = _make_gate("I", 1)()
 """
-I = [1, 0] 
+I = [1, 0]
     [0, 1]
 
 Produces the I instruction. This gate is a single qubit identity gate.
@@ -69,7 +69,7 @@ also block parallelization like any other gate.
 """
 X = _make_gate("X", 1)()
 """
-X = [[0, 1], 
+X = [[0, 1],
      [1, 0]]
 
 Produces the X instruction. This gate is a single qubit X-gate.
@@ -79,7 +79,7 @@ Produces the X instruction. This gate is a single qubit X-gate.
 """
 Y = _make_gate("Y", 1)()
 """
-Y = [[0, 0 - 1j], 
+Y = [[0, 0 - 1j],
      [0 + 1j, 0]]
 
 Produces the Y instruction. This gate is a single qubit Y-gate.
@@ -89,7 +89,7 @@ Produces the Y instruction. This gate is a single qubit Y-gate.
 """
 Z = _make_gate("Z", 1)()
 """
-Z = [[1, 0], 
+Z = [[1, 0],
      [0, -1]]
 
 Produces the Z instruction. This gate is a single qubit Z-gate.
@@ -99,7 +99,7 @@ Produces the Z instruction. This gate is a single qubit Z-gate.
 """
 H = _make_gate("H", 1)()
 """
-H = (1 / sqrt(2)) * [[1, 1], 
+H = (1 / sqrt(2)) * [[1, 1],
                      [1, -1]]
 
 Produces the H instruction. This gate is a single qubit Hadamard gate.
@@ -109,7 +109,7 @@ Produces the H instruction. This gate is a single qubit Hadamard gate.
 """
 S = _make_gate("S", 1)()
 """
-S = [[1, 0], 
+S = [[1, 0],
      [0, 1j]]
 
 Produces the S instruction. This gate is a single qubit S-gate.
@@ -119,7 +119,7 @@ Produces the S instruction. This gate is a single qubit S-gate.
 """
 T = _make_gate("T", 1)()
 """
-T = [[1, 0], 
+T = [[1, 0],
      [0, exp(1j * pi / 4)]]
 
 Produces the T instruction. This gate is a single qubit T-gate. It is the same
@@ -132,7 +132,7 @@ as RZ(pi/4).
 RX = _make_gate("RX", 1, 1)
 """
 RX(phi) = [[cos(phi / 2), -1j * sin(phi / 2)],
-           [-1j * sin(phi / 2), cos(phi / 2)]] 
+           [-1j * sin(phi / 2), cos(phi / 2)]]
 
 Produces the RX instruction. This gate is a single qubit X-rotation.
 
@@ -164,7 +164,7 @@ Produces the RZ instruction. This gate is a single qubit Z-rotation.
 """
 PHASE = _make_gate("PHASE", 1, 1)
 """
-PHASE(phi) = [[1, 0], 
+PHASE(phi) = [[1, 0],
               [0, exp(1j * phi)]]
 
 Produces a PHASE instruction. This is the same as the RZ gate.
