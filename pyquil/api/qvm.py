@@ -217,7 +217,7 @@ programs run on this QVM.
         Similar to run_and_measure except that it returns a job id and doesn't wait for the program to be executed.
         See https://go.rigetti.com/connections for reasons to use this method.
         """
-        EmptyProgramError(quil_program)
+        errors.EmptyProgramError(quil_program)
         
         payload = self._run_and_measure_payload(quil_program, qubits, trials, needs_compilation, isa)
         response = post_json(self.session, self.async_endpoint + "/job", {"machine": "QVM", "program": payload})
