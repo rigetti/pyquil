@@ -17,7 +17,6 @@ import warnings
 
 from six import integer_types
 
-from pyquil.api import errors
 from pyquil.api.job import Job
 from pyquil.api.compiler import CompilerConnection
 from pyquil.paulis import PauliSum
@@ -151,7 +150,8 @@ programs run on this QVM.
 
     def _run_payload(self, quil_program, classical_addresses, trials, needs_compilation, isa):
         if not quil_program:
-            raise ValueError("You have attempted to run an empty program. Please provide gates or measure instructions to your program.")
+            raise ValueError("You have attempted to run an empty program."
+                             " Please provide gates or measure instructions to your program.")
 
         if not isinstance(quil_program, Program):
             raise TypeError("quil_program must be a Quil program object")
@@ -220,7 +220,8 @@ programs run on this QVM.
 
     def _run_and_measure_payload(self, quil_program, qubits, trials, needs_compilation, isa):
         if not quil_program:
-            raise ValueError("You have attempted to run an empty program. Please provide gates or measure instructions to your program.")
+            raise ValueError("You have attempted to run an empty program."
+                             " Please provide gates or measure instructions to your program.")
 
         if not isinstance(quil_program, Program):
             raise TypeError("quil_program must be a Quil program object")

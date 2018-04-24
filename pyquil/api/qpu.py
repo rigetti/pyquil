@@ -204,7 +204,8 @@ with the former, the device.
 
     def _run_payload(self, quil_program, classical_addresses, trials, needs_compilation, isa):
         if not quil_program:
-            raise ValueError("You have attempted to run an empty program. Please provide gates or measure instructions to your program.")
+            raise ValueError("You have attempted to run an empty program."
+                             " Please provide gates or measure instructions to your program.")
 
         if not isinstance(quil_program, Program):
             raise TypeError("quil_program must be a Quil program object")
@@ -257,7 +258,8 @@ with the former, the device.
 
     def _run_and_measure_payload(self, quil_program, qubits, trials, needs_compilation, isa):
         if not quil_program:
-            raise ValueError("You have attempted to run an empty program. Please provide gates or measure instructions to your program.")
+            raise ValueError("You have attempted to run an empty program."
+                             " Please provide gates or measure instructions to your program.")
 
         if not isinstance(quil_program, Program):
             raise TypeError('quil_program must be a Quil program object')
