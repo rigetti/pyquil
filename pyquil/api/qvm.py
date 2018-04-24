@@ -123,7 +123,7 @@ programs run on this QVM.
         :rtype: list
         """
         errors.EmptyProgramError(quil_program)
-        
+
         if not classical_addresses:
             classical_addresses = get_classical_addresses_from_program(quil_program)
 
@@ -145,7 +145,7 @@ programs run on this QVM.
         See https://go.rigetti.com/connections for reasons to use this method.
         """
         errors.EmptyProgramError(quil_program)
-         
+
         if not classical_addresses:
             classical_addresses = get_classical_addresses_from_program(quil_program)
 
@@ -199,7 +199,7 @@ programs run on this QVM.
         :rtype: list
         """
         errors.EmptyProgramError(quil_program)
-        
+
         payload = self._run_and_measure_payload(quil_program, qubits, trials, needs_compilation, isa)
         if self.use_queue or needs_compilation:
             if needs_compilation and not self.use_queue:
@@ -218,7 +218,7 @@ programs run on this QVM.
         See https://go.rigetti.com/connections for reasons to use this method.
         """
         errors.EmptyProgramError(quil_program)
-        
+
         payload = self._run_and_measure_payload(quil_program, qubits, trials, needs_compilation, isa)
         response = post_json(self.session, self.async_endpoint + "/job", {"machine": "QVM", "program": payload})
         return get_job_id(response)
