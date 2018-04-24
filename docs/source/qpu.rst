@@ -12,13 +12,10 @@ This page describes how to use the Forest API for interacting with Rigetti QPUs,
 technical details and average performance of **Acorn**, the 19Q QPU currently available, that has
 been designed, fabricated and packaged by Rigetti.
 
+.. _qpu_use:
+
 Using the QPU
 ~~~~~~~~~~~~~
-
-The broad strokes of working with the QPU-based pyQuil stack are identical to using the QVM-based
-stack: the library ``pyquil.api`` supplies an object class ``QPUConnection`` which mediates the
-transmission of Quil programs to the QPU, encoded as ``pyquil.quil.Program`` objects, as well as
-the receipt of job results, encoded as bitstring lists.
 
 .. note::
 
@@ -26,14 +23,23 @@ the receipt of job results, encoded as bitstring lists.
     calls will automatically fail without these user permissions.  Speak to a Forest administrator
     for information about upgrading your access plan.
 
-Detecting the Available QPUs and Their Structure
-------------------------------------------------
+One establishes a connection to a Rigetti QPU in the same manner as a QVM:
 
-The initialization function for a ``QPUConnection`` object takes a QPU name as its sole argument.
-Devices are typically named according to the convention ``[n]Q-[name]``, where ``n`` is the number
-of active qubits on the device and ``name`` is a human-readable name that designates the device.
-The available QPUs can be inspected via a PyQuil interface, as demonstrated in the following
-snippet:
+.. code:: python
+
+    from pyquil.api import QPUConnection
+    qpu = QPUConnection() # NOTE: This raises a UserWarning!
+
+There is one caveat, however, as shown in the ``UserWarning`` that is raised by the above
+command: You must specify a ``device`` as an argument. This is described in the following section.
+
+Accessing available ``devices`` with ``get_devices()``
+------------------------------------------------------
+
+The initialization function for a ``QPUConnection`` object must be provided a speciffic Rigetti QPU
+as an argument, so that Forest knows on which quantum computer you want to execute your programs.
+The available QPUs, synonymously referred to as ``devices`` in Forest, can be inspected via the
+function ``get_devices`` in the ``api`` module:
 
 .. code:: python
 
@@ -42,14 +48,47 @@ snippet:
         if device.is_online():
             print('Device {} is online'.format(device.name))
 
-The ``Device`` objects returned by ``get_devices`` will capture other characterizing statistics
-about the associated QPU at a later date.
+.. note::
+    The ``Device`` objects returned by ``get_devices`` captures other characteristics about the
+    associated QPU, such as its connectivity, coherence times, single- and two-qubit gate
+    fidelities. For more information on the ``Device`` class, see :ref:`device_class`.
+
+Devices are typically named according to the convention ``[n]Q-[name]``, where ``n`` is the number
+of active qubits on the device and ``name`` is a human-readable name that designates the device.
 
 Execution on the QPU
 --------------------
 
-The user-facing interface to running Quil programs on the QPU is nearly identical to that of the
-QVM.  A ``QPUConnection`` object provides the following methods:
+One may execute Quil programs on the QPU (nearly) identically to the QVM, via the ``.run(...)``
+method (obviously, since the QPU is a real quantum computer, the ``.wavefunction(...)`` method is
+not available). We may fix the above example then by providing a device to the ``QPUConnection``:
+
+.. code:: python
+
+    from pyquil.api import get_devices, QPUConnection
+
+    acorn = get_devices(as_dict=True)['19Q-Acorn']
+    qpu = QPUConnection(acorn)
+    # The device name as a string is also acceptable
+    # qpu = QPUConnection('19Q-Acorn')
+
+You have now established a connection to the ``19Q-Acorn`` QPU. Executing programs is then identical
+to the QVM (we may ommit the ``classical_addresses`` and ``trials`` arguments to use their
+defaults):
+
+.. code:: python
+
+    from pyquil.quil import Program
+    from pyquil.gates import X, MEASURE
+
+    program = Program(X(0), MEASURE(0, 0))
+    qpu.run(program)
+
+.. parse-literal:
+
+    [[1]]
+
+In addition to the ``.run(...)`` method, a ``QPUConnection`` object provides the following methods:
 
 * ``.run(quil_program, classical_addresses, trials=1)``: This method sends the ``Program`` object
   ``quil_program`` to the QPU for execution, which runs the program ``trials`` many times.  After
@@ -115,6 +154,8 @@ For example, consider the following Python snippet:
         ## and eventually yield to recheck the job result
     ## now the job is guaranteed to be finished, so pull the QPU results
     job_result = qpu.get_job(job_id).result()
+
+.. _device_class:
 
 Getting QPU Information from the Device Class
 ---------------------------------------------

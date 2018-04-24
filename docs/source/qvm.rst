@@ -17,6 +17,162 @@ or help running larger jobs, then contact us at support@rigetti.com. On request 
 provide access to a QVM that allows persistent wavefunction memory between different programs as
 well as direct access to the wavefunction memory (wrapped as a ``numpy`` array) from python.
 
+.. _qvm_use:
+
+Using the QVM
+-------------
+The QVM is available in pyQuil via the ``api`` module.
+
+.. code:: python
+
+    from pyquil.api import QVMConnection
+    qvm = QVMConnection()
+
+One executes quantum programs on the QVM using two paradigms: the ``.run(...)`` method, and
+the ``.wavefunction(...)`` method. The former closely mirrors how one will execute programs on a
+real QPU (see :ref:`qpu_use`), while the latter takes advantage of the virtual machine, and allows
+direct access to the wavefunction. These two methods are described in the following two sections.
+(For information on constructing quantum programs, please refer back to :ref:`basics`.)
+
+The ``.run(...)`` method
+~~~~~~~~~~~~~~~~~~~~~~~~
+
+.. code:: python
+
+    program = Program(X(0), MEASURE(0, 0))
+    results = qvm.run(program, trials=1)
+    # results = [[1]]
+
+The ``.run(...)`` method takes numerous arguments, several of which are optional. The most important
+are
+
+1. the ``program`` to be executed on the QVM,
+2. the ``classical_addresses`` which to be returned from the QVM (not included above; by default, these are set to the addresses used in the program's ``MEASURE`` instructions), and
+3. the number of ``trials`` to be executed on the machine.
+
+The results returned are a *list of lists of integers*. In the above case, that's
+
+.. parsed-literal::
+
+    [[1]]
+
+Let's unpack this. The *outer* list is an
+enumeration over the trials; if you set ``trials=1`` then ``len(results)`` should equal ``1``.
+
+The *inner* list, on the other hand, is an enumeration over the results stored in the classical
+addresses. We see that the result of this program is that the classical register ``[0]`` now stores
+the state of qubit 0, which should be ``1`` after an :math:`X`-gate. We
+can of course ask for more classical registers:
+
+.. code:: python
+
+    qvm.run(p, [0, 1, 2])
+
+.. parsed-literal::
+
+    [[1, 0, 0]]
+
+The classical registers are initialized to zero, so registers ``[1]``
+and ``[2]`` come out as zero. If we stored the measurement in a
+different classical register we would obtain:
+
+.. code:: python
+
+    p = Program()   # clear the old program
+    p.inst(X(0)).measure(0, 1)
+    qvm.run(p, [0, 1, 2])
+
+.. parsed-literal::
+
+    [[0, 1, 0]]
+
+We can also run programs multiple times and accumulate all the results
+in a single list.
+
+.. code:: python
+
+    coin_flip = Program().inst(H(0)).measure(0, 0)
+    num_flips = 5
+    qvm.run(coin_flip, [0], num_flips)
+
+.. parsed-literal::
+
+    [[0], [1], [0], [1], [0]]
+
+Try running the above code several times. You will see that you will,
+with very high probability, get different results each time.
+
+The ``.wavefunction(...)`` method
+~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
+
+The QVM is a virtual machine. As such, we can directly inspect the wavefunction of
+a program, even without measurements, using the ``.wavefunction(...)`` method:
+
+.. code:: python
+
+    coin_flip = Program().inst(H(0))
+    qvm.wavefunction(coin_flip)
+
+.. parsed-literal::
+
+    <pyquil.wavefunction.Wavefunction at 0x1088a2c10>
+
+The return value is a Wavefunction object that stores the amplitudes of the
+quantum state at the conclusion of the program. We can print this object
+
+.. code:: python
+
+    coin_flip = Program().inst(H(0))
+    wavefunction = qvm.wavefunction(coin_flip)
+    print(wavefunction)
+
+.. parsed-literal::
+
+  (0.7071067812+0j)|0> + (0.7071067812+0j)|1>
+
+To see the amplitudes listed as a sum of computational basis states. We can index into those
+amplitudes directly or look at a dictionary of associated outcome probabilities.
+
+.. code:: python
+
+  assert wavefunction[0] == 1 / np.sqrt(2)
+  # The amplitudes are stored as a numpy array on the Wavefunction object
+  print(wavefunction.amplitudes)
+  prob_dict = wavefunction.get_outcome_probs() # extracts the probabilities of outcomes as a dict
+  print(prob_dict)
+  prob_dict.keys() # these stores the bitstring outcomes
+  assert len(wavefunction) == 1 # gives the number of qubits
+
+.. parsed-literal::
+
+  [ 0.70710678+0.j  0.70710678+0.j]
+  {'1': 0.49999999999999989, '0': 0.49999999999999989}
+
+The result from a wavefunction call also contains an optional amount of classical memory to
+check:
+
+.. code:: python
+
+    coin_flip = Program().inst(H(0)).measure(0,0)
+    wavefunction = qvm.wavefunction(coin_flip, classical_addresses=range(9))
+    classical_mem = wavefunction.classical_memory
+
+Additionally, we can pass a random seed to the Connection object. This allows us to reliably
+reproduce measurement results for the purpose of testing:
+
+.. code:: python
+
+    seeded_cxn = api.QVMConnection(random_seed=17)
+    print(seeded_cxn.run(Program(H(0)).measure(0, 0), [0], 20))
+
+    seeded_cxn = api.QVMConnection(random_seed=17)
+    # This will give identical output to the above
+    print(seeded_cxn.run(Program(H(0)).measure(0, 0), [0], 20))
+
+It is important to remember that this ``wavefunction`` method is just a useful debugging tool
+for small quantum systems, and it cannot be feasibly obtained on a
+quantum processor.
+
 .. _basis-ordering:
 
 Multi-Qubit Basis Enumeration
