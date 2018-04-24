@@ -136,7 +136,7 @@ and copy the above message into a GitHub issue at:
 
 class EmptyProgramError:
     def __init__(self, quil_program):
-        if bool(quil_program) == False:
+        if bool(quil_program) is False:
             raise Exception("Empty program.")
 
 
