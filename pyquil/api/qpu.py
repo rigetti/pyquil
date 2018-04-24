@@ -177,7 +177,7 @@ with the former, the device.
         :return: A list of a list of classical registers (each register contains a bit)
         :rtype: list
         """
-        EmptyProgramError(quil_program)
+        errors.EmptyProgramError(quil_program)
          
         if not classical_addresses:
             classical_addresses = get_classical_addresses_from_program(quil_program)
@@ -190,7 +190,7 @@ with the former, the device.
         Similar to run except that it returns a job id and doesn't wait for the program to
         be executed. See https://go.rigetti.com/connections for reasons to use this method.
         """
-        EmptyProgramError(quil_program)
+        errors.EmptyProgramError(quil_program)
         
         if not classical_addresses:
             classical_addresses = get_classical_addresses_from_program(quil_program)
@@ -243,6 +243,8 @@ with the former, the device.
         :return: A list of a list of classical registers (each register contains a bit)
         :rtype: list
         """
+        errors.EmptyProgramError(quil_program)
+        
         job = self.wait_for_job(self.run_and_measure_async(quil_program, qubits, trials, needs_compilation, isa))
         return job.result()
 
@@ -251,7 +253,7 @@ with the former, the device.
         Similar to run_and_measure except that it returns a job id and doesn't wait for the program
         to be executed. See https://go.rigetti.com/connections for reasons to use this method.
         """
-        EmptyProgramError(quil_program)
+        errors.EmptyProgramError(quil_program)
         
         full_program = append_measures_to_program(quil_program, qubits)
         payload = self._run_and_measure_payload(full_program, qubits, trials, needs_compilation=needs_compilation, isa=isa)
