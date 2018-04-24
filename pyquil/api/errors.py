@@ -134,12 +134,6 @@ and copy the above message into a GitHub issue at:
         super(UnknownApiError, self).__init__(server_status, explanation)
 
 
-class EmptyProgramError:
-    def __init__(self, quil_program):
-        if bool(quil_program) is False:
-            raise Exception("Empty program.")
-
-
 # NB: Some errors are not included here if they are only returned by async endpoints
 # The source of truth for this mapping is the errors.py file on the server
 error_mapping = {

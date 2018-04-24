@@ -122,8 +122,6 @@ programs run on this QVM.
                  in `classical_addresses`.
         :rtype: list
         """
-        errors.EmptyProgramError(quil_program)
-
         if not classical_addresses:
             classical_addresses = get_classical_addresses_from_program(quil_program)
 
@@ -144,8 +142,6 @@ programs run on this QVM.
         Similar to run except that it returns a job id and doesn't wait for the program to be executed.
         See https://go.rigetti.com/connections for reasons to use this method.
         """
-        errors.EmptyProgramError(quil_program)
-
         if not classical_addresses:
             classical_addresses = get_classical_addresses_from_program(quil_program)
 
@@ -154,6 +150,8 @@ programs run on this QVM.
         return get_job_id(response)
 
     def _run_payload(self, quil_program, classical_addresses, trials, needs_compilation, isa):
+        errors.EmptyProgramError(quil_program)
+
         if not isinstance(quil_program, Program):
             raise TypeError("quil_program must be a Quil program object")
         validate_run_items(classical_addresses)
@@ -198,8 +196,6 @@ programs run on this QVM.
         :return: A list of a list of bits.
         :rtype: list
         """
-        errors.EmptyProgramError(quil_program)
-
         payload = self._run_and_measure_payload(quil_program, qubits, trials, needs_compilation, isa)
         if self.use_queue or needs_compilation:
             if needs_compilation and not self.use_queue:
@@ -217,13 +213,13 @@ programs run on this QVM.
         Similar to run_and_measure except that it returns a job id and doesn't wait for the program to be executed.
         See https://go.rigetti.com/connections for reasons to use this method.
         """
-        errors.EmptyProgramError(quil_program)
-
         payload = self._run_and_measure_payload(quil_program, qubits, trials, needs_compilation, isa)
         response = post_json(self.session, self.async_endpoint + "/job", {"machine": "QVM", "program": payload})
         return get_job_id(response)
 
     def _run_and_measure_payload(self, quil_program, qubits, trials, needs_compilation, isa):
+        errors.EmptyProgramError(quil_program)
+
         if not isinstance(quil_program, Program):
             raise TypeError("quil_program must be a Quil program object")
         validate_run_items(qubits)
