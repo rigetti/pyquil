@@ -4,6 +4,13 @@ Changelog
 v1.9
 ----
 
+ - :py:class:`Program` can be initiated with a generator expression.
+ - :py:func:`Program.measure_all` (with no arguments) will measure all qubits in a program.
+ - ``classical_addresses`` is now optional in QVM and QPU :py:func:`run` methods. By default,
+   any classical addresses targeted by ``MEASURE`` will be returned.
+ - :py:func:`QVMConnection.pauli_expectation` accepts ``PauliSum`` as arguments. This offers
+   a more sensible API compared to :py:func:`QVMConnection.expectation`.
+ - pyQuil will now retry jobs every 10 seconds if the QPU is re-tuning.
  - :py:class:`PauliTerm` now remembers the order of its operations. ``sX(1)*sZ(2)`` will compile
    to different Quil code than ``sZ(2)*sX(1)``, although the terms will still be equal according
    to the ``__eq__`` method. During :py:class:`PauliSum` combination
@@ -33,3 +40,4 @@ v1.9
  - :py:class:`QubitPlaceholder` is no longer a subclass of :py:class:`Qubit`.
    :py:class:`LabelPlaceholder` is no longer a subclass of :py:class:`Label`.
  - :py:class:`QuilAtom` subclasses' hash functions have changed.
+ - Documentation improvements
