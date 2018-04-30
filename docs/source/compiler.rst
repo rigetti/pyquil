@@ -1,7 +1,7 @@
 .. _compiler:
 
-Using the Quil Compiler
-=======================
+The Quil Compiler
+=================
 
 
 Expectations for Program Contents
