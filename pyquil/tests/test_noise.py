@@ -208,3 +208,17 @@ def test_apply_noise_model():
             assert i.command in ['ADD-KRAUS', 'READOUT-POVM']
         elif isinstance(i, Gate):
             assert i.name in NO_NOISE or not i.params
+
+
+def test_apply_noise_model_perturbed_angles():
+    eps = 1e-15
+    p = Program(RX(np.pi / 2 + eps)(0), RX(np.pi / 2 - eps)(1), CZ(0, 1), RX(np.pi / 2 + eps)(1))
+    noise_model = _decoherence_noise_model(_get_program_gates(p))
+    pnoisy = apply_noise_model(p, noise_model)
+    for i in pnoisy:
+        if isinstance(i, DefGate):
+            pass
+        elif isinstance(i, Pragma):
+            assert i.command in ['ADD-KRAUS', 'READOUT-POVM']
+        elif isinstance(i, Gate):
+            assert i.name in NO_NOISE or not i.params
