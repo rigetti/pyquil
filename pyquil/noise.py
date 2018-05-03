@@ -296,22 +296,51 @@ def damping_after_dephasing(T1, T2, gate_time):
 
 # You can only apply gate-noise to non-parametrized gates or parametrized gates at fixed parameters.
 NO_NOISE = ["RZ"]
-NOISY_GATES = {
-    ("I", ()): (np.eye(2), "NOISY-I"),
-    ("RX", (np.pi / 2,)): (np.array([[1, -1j],
-                                     [-1j, 1]]) / np.sqrt(2),
-                           "NOISY-RX-PLUS-90"),
-    ("RX", (-np.pi / 2,)): (np.array([[1, 1j],
-                                      [1j, 1]]) / np.sqrt(2),
-                            "NOISY-RX-MINUS-90"),
-    ("RX", (np.pi,)): (np.array([[0, -1j],
-                                 [-1j, 0]]),
-                       "NOISY-RX-PLUS-180"),
-    ("RX", (-np.pi,)): (np.array([[0, 1j],
-                                  [1j, 0]]),
-                        "NOISY-RX-MINUS-180"),
-    ("CZ", ()): (np.diag([1, 1, 1, -1]), "NOISY-CZ"),
-}
+ANGLE_TOLERANCE = 1e-10
+
+
+class NoisyGateUndefined(Exception):
+    """Raise when user attempts to use noisy gate outside of currently supported set."""
+    pass
+
+
+def get_noisy_gate(gate_name, params):
+    """
+    Look up the numerical gate representation and a proposed 'noisy' name.
+
+    :param str gate_name: The Quil gate name
+    :param Tuple[float] params: The gate parameters.
+    :return: A tuple (matrix, noisy_name) with the representation of the ideal gate matrix
+        and a proposed name for the noisy version.
+    :rtype: Tuple[np.array, str]
+    """
+    params = tuple(params)
+    if gate_name == "I":
+        assert params == ()
+        return np.eye(2), "NOISY-I"
+    if gate_name == "RX":
+        angle, = params
+        if np.isclose(angle, np.pi / 2, atol=ANGLE_TOLERANCE):
+            return (np.array([[1, -1j],
+                              [-1j, 1]]) / np.sqrt(2),
+                    "NOISY-RX-PLUS-90")
+        elif np.isclose(angle, -np.pi / 2, atol=ANGLE_TOLERANCE):
+            return (np.array([[1, 1j],
+                              [1j, 1]]) / np.sqrt(2),
+                    "NOISY-RX-MINUS-90")
+        elif np.isclose(angle, np.pi, atol=ANGLE_TOLERANCE):
+            return (np.array([[0, -1j],
+                              [-1j, 0]]),
+                    "NOISY-RX-PLUS-180")
+        elif np.isclose(angle, -np.pi, atol=ANGLE_TOLERANCE):
+            return (np.array([[0, 1j],
+                              [1j, 0]]),
+                    "NOISY-RX-MINUS-180")
+    elif gate_name == "CZ":
+        assert params == ()
+        return np.diag([1, 1, 1, -1]), "NOISY-CZ"
+    raise NoisyGateUndefined("Undefined gate and params: {}{}\n"
+                             "Please restrict yourself to I, RX(+/-pi), RX(+/-pi/2), CZ")
 
 
 def _get_program_gates(prog):
@@ -384,21 +413,18 @@ def _decoherence_noise_model(gates, T1=30e-6, T2=30e-6, gate_time_1q=50e-9,
         key = (g.name, tuple(g.params))
         if g.name in NO_NOISE:
             continue
-        if key in NOISY_GATES:
-            matrix, _ = NOISY_GATES[key]
-            if len(targets) == 1:
-                noisy_I = noisy_identities_1q[targets[0]]
-            else:
-                if len(targets) != 2:
-                    raise ValueError("Noisy gates on more than 2Q not currently supported")
+        matrix, _ = get_noisy_gate(g.name, g.params)
 
-                # note this ordering of the tensor factors is necessary due to how the QVM orders
-                # the wavefunction basis
-                noisy_I = tensor_kraus_maps(noisy_identities_2q[targets[1]],
-                                            noisy_identities_2q[targets[0]])
+        if len(targets) == 1:
+            noisy_I = noisy_identities_1q[targets[0]]
         else:
-            raise ValueError("Cannot create noisy version of {}. ".format(g) +
-                             "Please restrict yourself to CZ, RX(+/-pi/2), I, RZ(theta)")
+            if len(targets) != 2:
+                raise ValueError("Noisy gates on more than 2Q not currently supported")
+
+            # note this ordering of the tensor factors is necessary due to how the QVM orders
+            # the wavefunction basis
+            noisy_I = tensor_kraus_maps(noisy_identities_2q[targets[1]],
+                                        noisy_identities_2q[targets[0]])
         kraus_maps.append(KrausModel(g.name, tuple(g.params), targets,
                                      combine_kraus_maps(noisy_I, [matrix]),
                                      # FIXME (Nik): compute actual avg gate fidelity for this simple
@@ -434,13 +460,13 @@ def _noise_model_program_header(noise_model):
 
         # obtain ideal gate matrix and new, noisy name by looking it up in the NOISY_GATES dict
         try:
-            ideal_gate, new_name = NOISY_GATES[k.gate, tuple(k.params)]
+            ideal_gate, new_name = get_noisy_gate(k.gate, tuple(k.params))
 
             # if ideal version of gate has not yet been DEFGATE'd, do this
             if new_name not in defgates:
                 p.defgate(new_name, ideal_gate)
                 defgates.add(new_name)
-        except KeyError:
+        except NoisyGateUndefined:
             print("WARNING: Could not find ideal gate definition for gate {}".format(k.gate),
                   file=sys.stderr)
             new_name = k.gate
@@ -468,11 +494,10 @@ def apply_noise_model(prog, noise_model):
     new_prog = _noise_model_program_header(noise_model)
     for i in prog:
         if isinstance(i, Gate):
-            key = (i.name, tuple(i.params))
-            if key in NOISY_GATES:
-                _, new_name = NOISY_GATES[key]
+            try:
+                _, new_name = get_noisy_gate(i.name, tuple(i.params))
                 new_prog += Gate(new_name, [], i.qubits)
-            else:
+            except NoisyGateUndefined:
                 new_prog += i
         else:
             new_prog += i
