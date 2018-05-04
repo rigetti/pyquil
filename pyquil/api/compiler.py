@@ -25,8 +25,8 @@ from ._base_connection import TYPE_MULTISHOT, get_job_id, get_session, \
 
 class CompilerConnectionError(ValueError):
     def __init__(self):
-        super().__init__("You must provide at least either device or isa_source when constructing the compiler"
-                         " connection to use this method")
+        super().__init__("You must provide at least either device or isa_source when constructing "
+                         "the compiler connection to use this method")
 
 
 class CompilerConnection(object):
