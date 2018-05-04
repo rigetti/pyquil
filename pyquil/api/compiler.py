@@ -23,12 +23,6 @@ from ._base_connection import TYPE_MULTISHOT, get_job_id, get_session, \
     wait_for_job, post_json, get_json
 
 
-class CompilerConnectionError(ValueError):
-    def __init__(self):
-        super().__init__("You must provide at least either device or isa_source when constructing "
-                         "the compiler connection to use this method")
-
-
 class CompilerConnection(object):
     """
     Represents a connection to the Quil compiler.
@@ -94,19 +88,19 @@ class CompilerConnection(object):
         elif specs_source is not None:
             raise TypeError('specs_source argument must be a Specs.')
 
-    def compile(self, quil_program):
+    def compile(self, quil_program, isa=None):
         """
         Sends a Quil program to the Forest compiler and returns the resulting
         compiled Program.
 
         :param Program quil_program: Quil program to be compiled.
+        :param ISA isa: An optional ISA to target. This takes precedence over the ``device`` or
+            ``isa_source`` arguments to this object's constructor. If this is not specified,
+            you must have provided one of the aforementioned constructor arguments.
         :returns: The compiled Program object.
         :rtype: Program
         """
-        if self.specs is None and self.custom_isa is None:
-            raise CompilerConnectionError()
-
-        payload = self._compile_payload(quil_program)
+        payload = self._compile_payload(quil_program, isa)
         if self.use_queue:
             response = post_json(self.session, self.async_endpoint + "/job",
                                  {"machine": "QUILC", "program": payload})
@@ -117,25 +111,30 @@ class CompilerConnection(object):
                                  payload)
             return parse_program(response.json()['compiled-quil'])
 
-    def compile_async(self, quil_program):
+    def compile_async(self, quil_program, isa=None):
         """
         Similar to compile except that it returns a job id and doesn't wait for
         the program to be executed.
         See https://go.rigetti.com/connections for reasons to use this method.
         """
-        if self.specs is None and self.custom_isa is None:
-            raise CompilerConnectionError()
-
-        payload = self._compile_payload(quil_program)
+        payload = self._compile_payload(quil_program, isa)
         response = post_json(self.session, self.async_endpoint + "/job",
                              {"machine": "QUILC", "program": payload})
         return get_job_id(response)
 
-    def _compile_payload(self, quil_program):
+    def _compile_payload(self, quil_program, isa):
+        if isa is None and self.custom_isa is None:
+            raise ValueError("You must specify an ISA for the compiler to target. You can provide "
+                             "a `device` or `isa_source` argument when constructing the "
+                             "`CompilerConnection` object or pass an `isa` argument to the "
+                             "compile methods.")
+        if isa is None:
+            isa = self.custom_isa
+
         payload = {"type": TYPE_MULTISHOT,
                    "qubits": [],
                    "uncompiled-quil": quil_program.out(),
-                   "target-device": {"isa": self.custom_isa.to_dict()}}
+                   "target-device": {"isa": isa.to_dict()}}
 
         if self.specs is not None:
             payload["target-device"]["specs"] = self.specs.to_dict()
@@ -167,8 +166,10 @@ class CompilerConnection(object):
                             (2 seconds)
         :return: Completed Job
         """
+
         def get_job_fn():
             return self.get_job(job_id)
+
         return wait_for_job(get_job_fn,
                             ping_time if ping_time else self.ping_time,
                             status_time if status_time else self.status_time)
