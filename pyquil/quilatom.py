@@ -150,43 +150,6 @@ class Addr(QuilAtom):
         return hash(self.address)
 
 
-class Segment(QuilAtom):
-    """
-    Representation of a segment of classical addresses.
-
-    :param int start: The first classical address in the segment.
-    :param int end:   The last classical address in the segment.
-    """
-
-    def __init__(self, start, end):
-        if not isinstance(start, integer_types) or not isinstance(end, integer_types):
-            raise TypeError("Illegal segment address: {} and {} must be integers".format(start, end))
-        elif start < 0:
-            raise TypeError("Illegal segment address: start address {} must be positive".format(start))
-        elif end < start:
-            raise TypeError("Illegal segment address: start address {} must precede end address {}".format(start, end))
-
-        self.start = start
-        self.end = end
-
-    def out(self):
-        return "[{}-{}]".format(self.start, self.end)
-
-    def __str__(self):
-        return "[{}-{}]".format(self.start, self.end)
-
-    def __repr__(self):
-        return "[{}-{}]".format(self.start, self.end)
-
-    def __eq__(self, other):
-        return isinstance(other, Segment) and \
-               other.start == self.start and \
-               other.end == self.end
-
-    def __hash__(self):
-        return hash(self.start) + 17*hash(self.end)
-
-
 class Label(QuilAtom):
     """
     Representation of a label.

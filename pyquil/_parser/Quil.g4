@@ -34,8 +34,7 @@ gate                : name (LPAREN param (COMMA param)* RPAREN)? qubit+ ;
 name                : IDENTIFIER ;
 qubit               : INT ;
 
-param               : dynamicParam | expression ;
-dynamicParam        : LBRACKET INT (MINUS INT)? RBRACKET ;
+param               : expression ;
 
 // D. Gate Definitions
 
@@ -106,10 +105,12 @@ expression          : LPAREN expression RPAREN                  #parenthesisExp
                     | expression (TIMES | DIVIDE) expression    #mulDivExp
                     | expression (PLUS | MINUS) expression      #addSubExp
                     | function LPAREN expression RPAREN         #functionExp
+                    | segment                                   #segmentExp
                     | number                                    #numberExp
                     | variable                                  #variableExp
                     ;
 
+segment             : LBRACKET INT MINUS INT RBRACKET ;
 function            : SIN | COS | SQRT | EXP | CIS ;
 sign                : PLUS | MINUS ;
 

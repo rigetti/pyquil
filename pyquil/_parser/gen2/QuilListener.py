@@ -67,15 +67,6 @@ class QuilListener(ParseTreeListener):
         pass
 
 
-    # Enter a parse tree produced by QuilParser#dynamicParam.
-    def enterDynamicParam(self, ctx):
-        pass
-
-    # Exit a parse tree produced by QuilParser#dynamicParam.
-    def exitDynamicParam(self, ctx):
-        pass
-
-
     # Enter a parse tree produced by QuilParser#defGate.
     def enterDefGate(self, ctx):
         pass
@@ -319,6 +310,15 @@ class QuilListener(ParseTreeListener):
         pass
 
 
+    # Enter a parse tree produced by QuilParser#segmentExp.
+    def enterSegmentExp(self, ctx):
+        pass
+
+    # Exit a parse tree produced by QuilParser#segmentExp.
+    def exitSegmentExp(self, ctx):
+        pass
+
+
     # Enter a parse tree produced by QuilParser#numberExp.
     def enterNumberExp(self, ctx):
         pass
@@ -388,6 +388,15 @@ class QuilListener(ParseTreeListener):
 
     # Exit a parse tree produced by QuilParser#functionExp.
     def exitFunctionExp(self, ctx):
+        pass
+
+
+    # Enter a parse tree produced by QuilParser#segment.
+    def enterSegment(self, ctx):
+        pass
+
+    # Exit a parse tree produced by QuilParser#segment.
+    def exitSegment(self, ctx):
         pass
 
 
