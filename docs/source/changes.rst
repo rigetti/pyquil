@@ -40,4 +40,6 @@ v1.9
  - :py:class:`QubitPlaceholder` is no longer a subclass of :py:class:`Qubit`.
    :py:class:`LabelPlaceholder` is no longer a subclass of :py:class:`Label`.
  - :py:class:`QuilAtom` subclasses' hash functions have changed.
+ - Fixed a bug involving slightly perturbed angles when performing RX gates under a Kraus
+   noise model.
  - Documentation improvements
