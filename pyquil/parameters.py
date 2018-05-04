@@ -3,7 +3,7 @@ from fractions import Fraction
 import numpy as np
 from six import integer_types
 
-from pyquil.quilatom import QuilAtom
+from pyquil.quilatom import QuilAtom, Segment
 from pyquil.slot import Slot
 
 __all__ = ['Parameter', 'quil_sin', 'quil_cos', 'quil_sqrt', 'quil_exp', 'quil_cis']
@@ -16,7 +16,7 @@ def format_parameter(element):
 
     :param element: {int, float, long, complex, Parameter} Formats a parameter for Quil output.
     """
-    if isinstance(element, integer_types) or isinstance(element, np.int_):
+    if isinstance(element, integer_types) or isinstance(element, np.int_) or isinstance(element, Segment):
         return repr(element)
     elif isinstance(element, float):
         return _check_for_pi(element)

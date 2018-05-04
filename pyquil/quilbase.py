@@ -21,7 +21,7 @@ import numpy as np
 from six import integer_types, string_types
 
 from pyquil.parameters import Expression, _contained_parameters, format_parameter
-from pyquil.quilatom import Qubit, Addr, Label, unpack_qubit, QubitPlaceholder, LabelPlaceholder
+from pyquil.quilatom import Qubit, Addr, Label, Segment, unpack_qubit, QubitPlaceholder, LabelPlaceholder
 
 
 class AbstractInstruction(object):

@@ -32,7 +32,7 @@ from pyquil.gates import STANDARD_GATES
 from pyquil.parameters import Parameter, Expression
 from pyquil.quilbase import Gate, DefGate, Measurement, Addr, JumpTarget, Label, Halt, Jump, JumpWhen, JumpUnless, \
     Reset, Wait, ClassicalTrue, ClassicalFalse, ClassicalNot, ClassicalAnd, ClassicalOr, ClassicalMove, \
-    ClassicalExchange, Nop, RawInstr, Qubit, Pragma, AbstractInstruction
+    ClassicalExchange, Nop, RawInstr, Qubit, Pragma, AbstractInstruction, Segment
 
 if sys.version_info.major == 2:
     from .gen2.QuilLexer import QuilLexer
@@ -217,7 +217,7 @@ def _qubit(qubit):
 def _param(param):
     # type: (QuilParser.ParamContext) -> Any
     if param.dynamicParam():
-        raise NotImplementedError("dynamic parameters not supported yet")
+        return _segment(param.dynamicParam())
     elif param.expression():
         return _expression(param.expression())
     else:
@@ -240,6 +240,12 @@ def _matrix(matrix):
 def _addr(classical):
     # type: (QuilParser.AddrContext) -> Addr
     return Addr(int(classical.classicalBit().getText()))
+
+
+def _segment(segment):
+    # type: (QuilParser.DynamicParamContext) -> Segment
+    ints = segment.INT()
+    return Segment(int(ints[0].getText()), int(ints[1].getText()))
 
 
 def _label(label):
