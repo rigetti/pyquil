@@ -209,21 +209,21 @@ class CompilerConnection(object):
             pauli_out *= PauliTerm(pauli, all_qubits[i])
         return pauli_out * pauli_in.coefficient
 
-    def _rb_sequence_payload(self, depth, qubits, gateset):
+    def _rb_sequence_payload(self, depth, n_qubits, gateset):
         """
         Prepares a JSON payload for generating a randomized benchmarking sequence - see generate_rb_sequence.
 
         :param int depth: The number of cliffords per rb sequences to generate.
-        :param int qubits: The number of qubits to perform rb on.
+        :param int n_qubits: The number of qubits to perform rb on.
         :param list gateset: A list of Gate objects that make up the gateset to decompose the Cliffords into.
         :return: The JSON payload, with keys "depth", "qubits", and "gateset".
         """
         payload = {"depth": depth,
-                   "qubits": qubits,
+                   "qubits": n_qubits,
                    "gateset": [gate.out() for gate in gateset]}
         return payload
 
-    def generate_rb_sequence(self, depth, qubits, gateset):
+    def generate_rb_sequence(self, depth, n_qubits, gateset):
         """
         Construct a randomized benchmarking experiment on the given qubits,
         decomposing into gateset.
@@ -232,10 +232,10 @@ class CompilerConnection(object):
         former case, they are the index of the gate in the gateset.
 
         :param int depth: The number of Clifford gates to include in the randomized benchmarking experiement.
-        :param int qubits: The number of qubits to generate a randomized benchmarking sequence for.
+        :param int n_qubits: The number of qubits to generate a randomized benchmarking sequence for.
         :param list gateset: A list of pyquil gates to decompose the Clifford elements into.
         """
-        payload = self._rb_sequence_payload(depth, qubits, gateset)
+        payload = self._rb_sequence_payload(depth, n_qubits, gateset)
         response = post_json(self.session, self.sync_endpoint + "/rb", payload).json()
         programs = []
         for clifford in response:
