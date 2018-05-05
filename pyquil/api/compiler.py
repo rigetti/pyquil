@@ -176,22 +176,25 @@ class CompilerConnection(object):
 
     def _clifford_application_payload(self, clifford, pauli):
         """
-        Prepares a JSON payload for conjugating a Pauli by a Clifford - see apply_clifford_to_pauli.
+        Prepares a JSON payload for conjugating a Pauli by a Clifford.
+
+         See :py:func:`apply_clifford_to_pauli`.
 
         :param Program clifford: A Program that consists only of Clifford operations.
         :param PauliTerm pauli: A PauliTerm to be acted on by clifford via conjugation.
         :return: The JSON payload, with keys "clifford" and "pauli".
         """
         indices_and_terms = zip(*list(pauli.operations_as_set()))
-        payload = {"clifford": clifford.out(),
-                   "pauli": list(indices_and_terms)}
-        return payload
+        return {"clifford": clifford.out(),
+                "pauli": list(indices_and_terms)}
 
     def apply_clifford_to_pauli(self, clifford, pauli_in):
         """
-        Given a circuit that consists only of elements of the Clifford group, return its action on a PauliTerm.
+        Given a circuit that consists only of elements of the Clifford group,
+        return its action on a PauliTerm.
 
-        In particular, for Clifford C, and Pauli P, this returns the PauliTerm representing PCP^{\dagger}.
+        In particular, for Clifford C, and Pauli P, this returns the PauliTerm
+        representing PCP^{\dagger}.
 
         :param Program clifford: A Program that consists only of Clifford operations.
         :param PauliTerm pauli_in: A PauliTerm to be acted on by clifford via conjugation.
@@ -238,6 +241,7 @@ class CompilerConnection(object):
         :param int n_qubits: The number of qubits to perform rb on.
         :param list gateset: A list of Gate objects that make up the gateset to decompose
             the Cliffords into.
+        :return: A list of programs
         """
         payload = self._rb_sequence_payload(depth, n_qubits, gateset)
         response = post_json(self.session, self.sync_endpoint + "/rb", payload).json()
