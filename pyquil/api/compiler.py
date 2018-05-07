@@ -223,8 +223,8 @@ class CompilerConnection(object):
             the Cliffords into.
         :return: The JSON payload, with keys "depth", "qubits", and "gateset".
         """
-        # Support QubitPlaceholders: we index to arbitrary integers. `generate_rb_sequence`
-        # must handle mapping back to the original gateset gates.
+        # Support QubitPlaceholders: we temporarily index to arbitrary integers.
+        # `generate_rb_sequence` handles mapping back to the original gateset gates.
         gateset_as_program = address_qubits(sum(gateset, Program()))
         n_qubits = len(gateset_as_program.get_qubits())
         gateset_for_api = gateset_as_program.out().splitlines()
