@@ -340,7 +340,8 @@ def get_noisy_gate(gate_name, params):
         assert params == ()
         return np.diag([1, 1, 1, -1]), "NOISY-CZ"
     raise NoisyGateUndefined("Undefined gate and params: {}{}\n"
-                             "Please restrict yourself to I, RX(+/-pi), RX(+/-pi/2), CZ")
+                             "Please restrict yourself to I, RX(+/-pi), RX(+/-pi/2), CZ"
+                             .format(gate_name, params))
 
 
 def _get_program_gates(prog):
