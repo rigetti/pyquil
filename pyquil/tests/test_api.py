@@ -431,7 +431,6 @@ def test_compiler_without_isa():
 
 
 def test_rb_sequence():
-    num_qubits = 1
     gateset = [PHASE(np.pi, 0), H(0)]
     depth = 2
     # Random sequences corresponding to sampling H(0) and PHASE(0, 0), then inverting them.
@@ -442,7 +441,7 @@ def test_rb_sequence():
 
     with requests_mock.Mocker() as m:
         m.post('https://api.rigetti.com/rb', text=mock_queued_response)
-        result = async_compiler.generate_rb_sequence(depth, num_qubits, gateset)
+        result = async_compiler.generate_rb_sequence(depth, gateset)
         assert result == [Program().inst([gateset[i] for i in clifford]) for clifford in sampled_sequence]
 
 
