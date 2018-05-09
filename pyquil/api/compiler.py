@@ -201,13 +201,14 @@ class CompilerConnection(object):
         :return: A PauliTerm corresponding to pauli_in * clifford * pauli_in^{\dagger}
         """
         payload = self._clifford_application_payload(clifford, pauli_in)
-        phase_factor, paulis = post_json(self.session, self.sync_endpoint + "/apply-clifford", payload).json()
+        phase_factor, paulis = post_json(self.session, self.sync_endpoint + "/apply-clifford",
+                                         payload).json()
         pauli_out = PauliTerm("I", 0, 1.j ** phase_factor)
         clifford_qubits = clifford.get_qubits()
         pauli_qubits = pauli_in.get_qubits()
         all_qubits = sorted(set(pauli_qubits).union(set(clifford_qubits)))
-        # The returned pauli will have specified its value on all_qubits, sorted by index. This is maximal set of
-        # qubits that can be affected by this conjugation.
+        # The returned pauli will have specified its value on all_qubits, sorted by index.
+        #  This is maximal set of qubits that can be affected by this conjugation.
         for i, pauli in enumerate(paulis):
             pauli_out *= PauliTerm(pauli, all_qubits[i])
         return pauli_out * pauli_in.coefficient
@@ -235,17 +236,24 @@ class CompilerConnection(object):
 
     def generate_rb_sequence(self, depth, gateset):
         """
-        Construct a randomized benchmarking experiment on the given qubits,
-        decomposing into gateset.
+        Construct a randomized benchmarking experiment on the given qubits, decomposing into
+        gateset.
 
         The JSON payload that is parsed is a list of lists of indices, or Nones. In the
         former case, they are the index of the gate in the gateset.
 
-        :param int depth: The number of cliffords per rb sequences to generate.
-        :param list gateset: A list of Gate objects that make up the gateset to decompose
-            the Cliffords into.
-        :return: A list of programs
+        :param int depth: The number of Clifford gates to include in the randomized benchmarking
+         experiment. This is different than the number of gates in the resulting experiment.
+        :param list gateset: A list of pyquil gates to decompose the Clifford elements into. These
+         must generate the clifford group on the qubits of interest. e.g. for one qubit
+         [RZ(np.pi/2), RX(np.pi/2)].
+        :return: A list of pyquil programs. Each pyquil program is a circuit that represents an
+         element of the Clifford group. When these programs are composed, the resulting Program
+         will be the randomized benchmarking experiment of the desired depth. e.g. if the return
+         programs are called cliffords then `sum(cliffords, Program())` will give the randomized
+         benchmarking experiment, which will compose to the identity program.
         """
+
         payload = self._rb_sequence_payload(depth, gateset)
         response = post_json(self.session, self.sync_endpoint + "/rb", payload).json()
         programs = []
@@ -254,4 +262,6 @@ class CompilerConnection(object):
             for index in clifford:
                 clifford_program.inst(gateset[index])
             programs.append(clifford_program)
-        return programs
+        # The programs are returned in "textbook style" right-to-left order. To compose them into
+        #  the correct pyquil program, we reverse the order.
+        return list(reversed(programs))

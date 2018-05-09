@@ -441,14 +441,16 @@ def test_rb_sequence():
 
     with requests_mock.Mocker() as m:
         m.post('https://api.rigetti.com/rb', text=mock_queued_response)
-        result = async_compiler.generate_rb_sequence(depth, gateset)
-        assert result == [Program().inst([gateset[i] for i in clifford]) for clifford in sampled_sequence]
+        result = list(reversed(async_compiler.generate_rb_sequence(depth, gateset)))
+        assert result == [Program().inst([gateset[i] for i in clifford])
+                          for clifford in sampled_sequence]
 
 
 def test_apply_clifford_to_pauli():
     clifford = Program().inst("H 0")
     pauli = PauliTerm("X", 0)
-    # The first element should be the power of i that is the phase, and the second should be the pauli from conjugation.
+    # The first element should be the power of i that is the phase,
+    #  and the second should be the pauli from conjugation.
     response = [0, "Z"]
 
     def mock_queued_response(_, __):
