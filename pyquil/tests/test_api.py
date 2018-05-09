@@ -83,7 +83,7 @@ def test_sync_run_and_measure():
         assert qvm.run_and_measure(BELL_STATE, [0, 1], trials=2) == [[0, 0], [1, 1]]
 
     with pytest.raises(ValueError):
-        qvm.run_and_measure(EMPTY)
+        qvm.run_and_measure(EMPTY, [0])
 
 
 WAVEFUNCTION_BINARY = (b'\x01\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00'
