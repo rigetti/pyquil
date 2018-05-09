@@ -445,8 +445,10 @@ tomography (QPT). This procedure starts by applying local rotations to the two q
 the set :math:`\{I,R_x(\pi/2),R_y(\pi/2),R_x(\pi)\}`, followed by a CZ gate and
 post-rotations that bring the qubit states back to the computational basis. QPT involves the
 analysis of :math:`16\times16 =256` different experiments, each of which we repeat :math:`500`
-times. The reported process tomography fidelity :math:`\mathsf{F}^\textrm{cptp}_\textrm{PT}`
-is the fidelity of the measured process compared with the ideal process, computed imposing complete positivity (cp) and trace preservation (tp) constraints.
+times. The reported fidelity :math:`\mathsf{F}^\textrm{cptp}_\textrm{PT}`
+is the *average gate fidelity* [Nielsen2002]_ of the ideal process and the process matrix inferred via maximum likelihood
+tomography under complete positivity (cp) and trace preservation (tp) constraints
+(cf. supplementary material of [Reagor2018]_).
 
 .. csv-table:: :math:`\textbf{Table 2 | Rigetti 19Q two-qubit gate performance}`
    :widths: 10, 10, 10, 10
@@ -474,3 +476,7 @@ Additionally, native ``CPHASE`` gates are available on some qubit-qubit links,
 under the proviso that they are still under development, and so their performance is typically
 below that of ``CZ``.  Due to the ongoing nature of the work, we decline to quote precise
 performance characteristics here.
+
+
+..  [Nielsen2002] Nielsen, M. A. (2002) ‘A simple formula for the average gate fidelity of a quantum dynamical operation’, http://arxiv.org/abs/quant-ph/0205035
+..  [Reagor2018] Reagor, M. et al. (2018) ‘Demonstration of universal parametric entangling gates on a multi-qubit lattice’, http://advances.sciencemag.org/lookup/doi/10.1126/sciadv.aao3603
