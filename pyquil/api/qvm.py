@@ -149,6 +149,10 @@ programs run on this QVM.
         return get_job_id(response)
 
     def _run_payload(self, quil_program, classical_addresses, trials, needs_compilation, isa):
+        if not quil_program:
+            raise ValueError("You have attempted to run an empty program."
+                             " Please provide gates or measure instructions to your program.")
+
         if not isinstance(quil_program, Program):
             raise TypeError("quil_program must be a Quil program object")
         validate_run_items(classical_addresses)
@@ -215,6 +219,10 @@ programs run on this QVM.
         return get_job_id(response)
 
     def _run_and_measure_payload(self, quil_program, qubits, trials, needs_compilation, isa):
+        if not quil_program:
+            raise ValueError("You have attempted to run an empty program."
+                             " Please provide gates or measure instructions to your program.")
+
         if not isinstance(quil_program, Program):
             raise TypeError("quil_program must be a Quil program object")
         validate_run_items(qubits)

@@ -30,6 +30,7 @@ from pyquil.paulis import PauliTerm
 from pyquil.gates import CNOT, H, MEASURE, PHASE, Z
 from pyquil.device import ISA
 
+EMPTY_PROGRAM = Program()
 BELL_STATE = Program(H(0), CNOT(0, 1))
 BELL_STATE_MEASURE = Program(H(0), CNOT(0, 1), MEASURE(0, 0), MEASURE(1, 1))
 DUMMY_ISA_DICT = {"1Q": {"0": {}, "1": {}}, "2Q": {"0-1": {}}}
@@ -63,6 +64,9 @@ def test_sync_run():
         m.post('https://api.rigetti.com/qvm', text=mock_response)
         assert qvm.run(BELL_STATE_MEASURE, trials=2) == [[0, 0], [1, 1]]
 
+    with pytest.raises(ValueError):
+        qvm.run(EMPTY_PROGRAM)
+
 
 def test_sync_run_and_measure():
     def mock_response(request, context):
@@ -77,6 +81,9 @@ def test_sync_run_and_measure():
     with requests_mock.Mocker() as m:
         m.post('https://api.rigetti.com/qvm', text=mock_response)
         assert qvm.run_and_measure(BELL_STATE, [0, 1], trials=2) == [[0, 0], [1, 1]]
+
+    with pytest.raises(ValueError):
+        qvm.run_and_measure(EMPTY_PROGRAM, [0])
 
 
 WAVEFUNCTION_BINARY = (b'\x01\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00'
