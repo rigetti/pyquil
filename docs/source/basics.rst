@@ -46,7 +46,7 @@ program on the Quantum Virtual Machine, or QVM:
     from pyquil.api import QVMConnection
     qvm = QVMConnection()
 
-    qvm.run(p)
+    print(qvm.run(p, [0]))
 
 Congratulations! You just ran a program on the QVM. The returned value should be:
 
