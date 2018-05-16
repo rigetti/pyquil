@@ -253,7 +253,7 @@ class CompilerConnection(object):
          programs are called cliffords then `sum(cliffords, Program())` will give the randomized
          benchmarking experiment, which will compose to the identity program.
         """
-
+        depth = int(depth)  # needs to be jsonable, no np.int64 please!
         payload = self._rb_sequence_payload(depth, gateset)
         response = post_json(self.session, self.sync_endpoint + "/rb", payload).json()
         programs = []
