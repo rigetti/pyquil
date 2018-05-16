@@ -441,7 +441,7 @@ def test_alloc():
 
     with pytest.raises(RuntimeError) as e:
         _ = p.out()
-    assert e.match(r'Qubit <QubitPlaceholder \d+> has not been assigned an index')
+    assert e.match(r'Qubit q\d+ has not been assigned an index')
 
 
 def test_alloc_2():
@@ -766,10 +766,10 @@ def test_out_vs_str():
 
     with pytest.raises(RuntimeError) as e:
         pq.out()
-    assert e.match(r'Qubit <.*> has not been assigned an index')
+    assert e.match(r'Qubit q\d+ has not been assigned an index')
 
     string_version = str(pq)
-    should_be_re = (r'X <.*>\nCNOT <.*> <.*>\nMEASURE <.*> \[5\]\n')
+    should_be_re = (r'X \{q\d+\}\nCNOT \{q\d+\} \{q\d+\}\nMEASURE \{q\d+\} \[5\]\n')
     assert re.fullmatch(should_be_re, string_version, flags=re.MULTILINE)
 
 
