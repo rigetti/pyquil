@@ -67,12 +67,8 @@ def _format_qubits_str(qubits):
     return " ".join([_format_qubit_str(qubit) for qubit in qubits])
 
 
-def _format_qubit_out(qubit):
-    return qubit.out()
-
-
 def _format_qubits_out(qubits):
-    return " ".join([_format_qubit_out(qubit) for qubit in qubits])
+    return " ".join([qubit.out() for qubit in qubits])
 
 
 def _format_params(params):
@@ -141,9 +137,9 @@ class Measurement(AbstractInstruction):
 
     def out(self):
         if self.classical_reg:
-            return "MEASURE {} {}".format(_format_qubit_out(self.qubit), self.classical_reg.out())
+            return "MEASURE {} {}".format(self.qubit.out(), self.classical_reg.out())
         else:
-            return "MEASURE {}".format(_format_qubit_out(self.qubit))
+            return "MEASURE {}".format(self.qubit.out())
 
     def __str__(self):
         if self.classical_reg:
