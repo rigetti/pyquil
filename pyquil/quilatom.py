@@ -55,7 +55,7 @@ class QubitPlaceholder(QuilAtom):
         raise RuntimeError("Qubit {} has not been assigned an index".format(self))
 
     def __str__(self):
-        return repr(self)
+        return "q{}".format(id(self))
 
     def __repr__(self):
         return "<QubitPlaceholder {}>".format(id(self))

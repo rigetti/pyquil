@@ -57,6 +57,24 @@ def _extract_qubit_index(qubit, index=True):
     return qubit.index
 
 
+def _format_qubit_str(qubit):
+    if isinstance(qubit, QubitPlaceholder):
+        return "{%s}" % str(qubit)
+    return str(qubit)
+
+
+def _format_qubits_str(qubits):
+    return " ".join([_format_qubit_str(qubit) for qubit in qubits])
+
+
+def _format_qubits_out(qubits):
+    return " ".join([qubit.out() for qubit in qubits])
+
+
+def _format_params(params):
+    return "(" + ",".join(format_parameter(param) for param in params) + ")"
+
+
 class Gate(AbstractInstruction):
     """
     This is the pyQuil object for a quantum gate instruction.
@@ -86,31 +104,21 @@ class Gate(AbstractInstruction):
         return {_extract_qubit_index(q, indices) for q in self.qubits}
 
     def out(self):
-        def format_params(params):
-            return "(" + ",".join(map(format_parameter, params)) + ")"
-
-        def format_qubits(qubits):
-            return " ".join([qubit.out() for qubit in qubits])
-
         if self.params:
-            return "{}{} {}".format(self.name, format_params(self.params), format_qubits(self.qubits))
+            return "{}{} {}".format(self.name, _format_params(self.params),
+                                    _format_qubits_out(self.qubits))
         else:
-            return "{} {}".format(self.name, format_qubits(self.qubits))
+            return "{} {}".format(self.name, _format_qubits_out(self.qubits))
 
     def __repr__(self):
         return "<Gate " + str(self) + ">"
 
     def __str__(self):
-        def format_params(params):
-            return "(" + ",".join(map(format_parameter, params)) + ")"
-
-        def format_qubits(qubits):
-            return " ".join([str(qubit) for qubit in qubits])
-
         if self.params:
-            return "{}{} {}".format(self.name, format_params(self.params), format_qubits(self.qubits))
+            return "{}{} {}".format(self.name, _format_params(self.params),
+                                    _format_qubits_str(self.qubits))
         else:
-            return "{} {}".format(self.name, format_qubits(self.qubits))
+            return "{} {}".format(self.name, _format_qubits_str(self.qubits))
 
 
 class Measurement(AbstractInstruction):
@@ -129,9 +137,15 @@ class Measurement(AbstractInstruction):
 
     def out(self):
         if self.classical_reg:
-            return "MEASURE {} {}".format(self.qubit, self.classical_reg)
+            return "MEASURE {} {}".format(self.qubit.out(), self.classical_reg.out())
         else:
-            return "MEASURE {}".format(self.qubit)
+            return "MEASURE {}".format(self.qubit.out())
+
+    def __str__(self):
+        if self.classical_reg:
+            return "MEASURE {} {}".format(_format_qubit_str(self.qubit), str(self.classical_reg))
+        else:
+            return "MEASURE {}".format(_format_qubit_str(self.qubit))
 
     def get_qubits(self, indices=True):
         return {_extract_qubit_index(self.qubit, indices)}

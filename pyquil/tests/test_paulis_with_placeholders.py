@@ -40,7 +40,7 @@ def test_simplify_terms():
     assert term.coefficient == -1.0
 
     term = PauliTerm('Z', q[0]) + PauliTerm('Z', q[0], 1.0)
-    assert str(term).startswith('(2+0j)*Z<QubitPlaceholder ')
+    assert str(term).startswith('(2+0j)*Zq')
 
 
 def test_get_qubits():
@@ -212,9 +212,9 @@ def test_ps_sub():
     assert str(b - 1.0) == "(1+0j)*I"
     assert str(1.0 - b) == "(-1+0j)*I"
     b = 1.0 - sX(q0)
-    assert re.match(r"\(1\+0j\)\*I \+ \(-1\+0j\)\*X<.+>", str(b))
+    assert re.match(r"\(1\+0j\)\*I \+ \(-1\+0j\)\*Xq\d+", str(b))
     b = sX(q0) - 1.0
-    assert re.match(r"\(1\+0j\)\*X<.+> \+ \(-1\+0j\)\*I", str(b))
+    assert re.match(r"\(1\+0j\)\*Xq\d+ \+ \(-1\+0j\)\*I", str(b))
 
 
 def test_exponentiate_1():
