@@ -204,13 +204,13 @@ class Program(object):
         _check_kraus_ops(len(qubit_indices), kraus_ops)
         return self.inst(_create_kraus_pragmas(name, tuple(qubit_indices), kraus_ops))
 
-    def define_noisy_readout(self, qubit_index, p00, p11):
+    def define_noisy_readout(self, qubit, p00, p11):
         """
         For this program define a classical bit flip readout error channel parametrized by
         ``p00`` and ``p11``. This models the effect of thermal noise that corrupts the readout
         signal **after** it has interrogated the qubit.
 
-        :param int qubit_index: The qubit with noisy readout.
+        :param int|QubitPlaceholder qubit: The qubit with noisy readout.
         :param float p00: The probability of obtaining the measurement result 0 given that the qubit
           is in state 0.
         :param float p11: The probability of obtaining the measurement result 1 given that the qubit
@@ -222,15 +222,15 @@ class Program(object):
             raise ValueError("p00 must be in the interval [0,1].")
         if not 0. <= p11 <= 1.:
             raise ValueError("p11 must be in the interval [0,1].")
-        if not isinstance(qubit_index, int):
-            raise TypeError("qubit_index must be a non-negative integer.")
-        if not qubit_index >= 0:
-            raise ValueError("qubit_index must be a non-negative integer.")
+        if not (isinstance(qubit, int) or isinstance(qubit, QubitPlaceholder)):
+            raise TypeError("qubit must be a non-negative integer, or QubitPlaceholder.")
+        if isinstance(qubit, int) and qubit < 0:
+            raise ValueError("qubit cannot be negative.")
         p00 = float(p00)
         p11 = float(p11)
         aprobs = [p00, 1. - p11, 1. - p00, p11]
         aprobs_str = "({})".format(" ".join(format_parameter(p) for p in aprobs))
-        pragma = Pragma("READOUT-POVM", [qubit_index], aprobs_str)
+        pragma = Pragma("READOUT-POVM", [qubit], aprobs_str)
         return self.inst(pragma)
 
     def no_noise(self):
@@ -575,7 +575,14 @@ def _what_type_of_qubit_does_it_use(program):
                 has_real_qubits = True
             else:
                 raise ValueError("Unknown qubit type {}".format(instr.qubit))
-
+        elif isinstance(instr, Pragma):
+            for arg in instr.args:
+                if isinstance(arg, QubitPlaceholder):
+                    qubits[arg] = 1
+                    has_placeholders = True
+                elif isinstance(arg, Qubit):
+                    qubits[arg] = 1
+                    has_real_qubits = True
     if not (has_placeholders or has_real_qubits):
         warnings.warn("Your program doesn't use any qubits")
 
@@ -643,7 +650,16 @@ def address_qubits(program, qubit_mapping=None):
             result.append(Gate(instr.name, instr.params, remapped_qubits))
         elif isinstance(instr, Measurement):
             result.append(Measurement(qubit_mapping[instr.qubit], instr.classical_reg))
-
+        elif isinstance(instr, Pragma):
+            new_args = []
+            for arg in instr.args:
+                # Pragmas can have arguments that represent things besides qubits, so here we
+                # make sure to just look up the QubitPlaceholders.
+                if isinstance(arg, QubitPlaceholder):
+                    new_args.append(qubit_mapping[arg])
+                else:
+                    new_args.append(arg)
+            result.append(Pragma(instr.command, new_args, instr.freeform_string))
         # Otherwise simply add it to the result
         else:
             result.append(instr)

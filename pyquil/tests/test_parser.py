@@ -21,17 +21,18 @@ from pyquil.parameters import Parameter, quil_sin, quil_cos
 from pyquil.parser import parse
 from pyquil.quilatom import Addr
 from pyquil.quilbase import Label, JumpTarget, Jump, JumpWhen, JumpUnless, DefGate, Qubit, Pragma
+from pyquil.tests.utils import parse_equals
 
 
 def test_simple_gate():
-    _test("A 0", Gate("A", [], [Qubit(0)]))
-    _test("A 1 10 100", Gate("A", [], [Qubit(1), Qubit(10), Qubit(100)]))
+    parse_equals("A 0", Gate("A", [], [Qubit(0)]))
+    parse_equals("A 1 10 100", Gate("A", [], [Qubit(1), Qubit(10), Qubit(100)]))
 
 
 def test_standard_gates():
-    _test("H 0", H(0))
-    _test("CNOT 0 1", CNOT(0, 1))
-    _test("SWAP 0 1", SWAP(0, 1))
+    parse_equals("H 0", H(0))
+    parse_equals("CNOT 0 1", CNOT(0, 1))
+    parse_equals("SWAP 0 1", SWAP(0, 1))
 
 
 def test_def_gate():
@@ -49,7 +50,7 @@ DEFGATE HADAMARD:
     1/sqrt(2), -1/sqrt(2)
     """.strip()
 
-    _test(defgates, sqrt_x, hadamard)
+    parse_equals(defgates, sqrt_x, hadamard)
 
 
 def test_def_gate_with_variables():
@@ -63,20 +64,20 @@ def test_def_gate_with_variables():
               '    cos(%theta/2), i*sin(%theta/2)\n' \
               '    i*sin(%theta/2), cos(%theta/2)\n\n'
 
-    _test(defgate, DefGate('RX', rx, [theta]))
+    parse_equals(defgate, DefGate('RX', rx, [theta]))
 
 
 def test_parameters():
-    _test("RX(123) 0", RX(123)(0))
-    _test("CPHASE00(0) 0 1", CPHASE00(0)(0, 1))
-    _test("A(8,9) 0", Gate("A", [8, 9], [Qubit(0)]))
-    _test("A(8, 9) 0", Gate("A", [8, 9], [Qubit(0)]))
+    parse_equals("RX(123) 0", RX(123)(0))
+    parse_equals("CPHASE00(0) 0 1", CPHASE00(0)(0, 1))
+    parse_equals("A(8,9) 0", Gate("A", [8, 9], [Qubit(0)]))
+    parse_equals("A(8, 9) 0", Gate("A", [8, 9], [Qubit(0)]))
 
 
 def test_expressions():
     # Test expressions by wrapping them in an RX gate for convenience
     def _expr(expression, expected):
-        _test("RX(" + expression + ") 0", RX(expected)(0))
+        parse_equals("RX(" + expression + ") 0", RX(expected)(0))
 
     # Decimals
     _expr("+123", 123)
@@ -137,37 +138,37 @@ def test_expressions():
 
 
 def test_measure():
-    _test("MEASURE 0", MEASURE(0))
-    _test("MEASURE 0 [1]", MEASURE(0, 1))
+    parse_equals("MEASURE 0", MEASURE(0))
+    parse_equals("MEASURE 0 [1]", MEASURE(0, 1))
 
 
 def test_jumps():
-    _test("LABEL @test_1", JumpTarget(Label("test_1")))
-    _test("JUMP @test_1", Jump(Label("test_1")))
-    _test("JUMP-WHEN @test_1 [0]", JumpWhen(Label("test_1"), Addr(0)))
-    _test("JUMP-UNLESS @test_1 [1]", JumpUnless(Label("test_1"), Addr(1)))
+    parse_equals("LABEL @test_1", JumpTarget(Label("test_1")))
+    parse_equals("JUMP @test_1", Jump(Label("test_1")))
+    parse_equals("JUMP-WHEN @test_1 [0]", JumpWhen(Label("test_1"), Addr(0)))
+    parse_equals("JUMP-UNLESS @test_1 [1]", JumpUnless(Label("test_1"), Addr(1)))
 
 
 def test_others():
-    _test("RESET", RESET)
-    _test("WAIT", WAIT)
-    _test("NOP", NOP)
+    parse_equals("RESET", RESET)
+    parse_equals("WAIT", WAIT)
+    parse_equals("NOP", NOP)
 
 
 def test_classical():
-    _test("TRUE [0]", TRUE(0))
-    _test("FALSE [0]", FALSE(0))
-    _test("NOT [0]", NOT(0))
-    _test("AND [0] [1]", AND(0, 1))
-    _test("OR [0] [1]", OR(0, 1))
-    _test("MOVE [0] [1]", MOVE(0, 1))
-    _test("EXCHANGE [0] [1]", EXCHANGE(0, 1))
+    parse_equals("TRUE [0]", TRUE(0))
+    parse_equals("FALSE [0]", FALSE(0))
+    parse_equals("NOT [0]", NOT(0))
+    parse_equals("AND [0] [1]", AND(0, 1))
+    parse_equals("OR [0] [1]", OR(0, 1))
+    parse_equals("MOVE [0] [1]", MOVE(0, 1))
+    parse_equals("EXCHANGE [0] [1]", EXCHANGE(0, 1))
 
 
 def test_pragma():
-    _test('PRAGMA gate_time H "10 ns"', Pragma('gate_time', ['H'], '10 ns'))
-    _test('PRAGMA qubit 0', Pragma('qubit', [0]))
-    _test('PRAGMA NO-NOISE', Pragma('NO-NOISE'))
+    parse_equals('PRAGMA gate_time H "10 ns"', Pragma('gate_time', ['H'], '10 ns'))
+    parse_equals('PRAGMA qubit 0', Pragma('qubit', [0]))
+    parse_equals('PRAGMA NO-NOISE', Pragma('NO-NOISE'))
 
 
 def test_invalid():
@@ -176,8 +177,4 @@ def test_invalid():
 
 
 def test_empty_program():
-    _test("")
-
-
-def _test(quil_string, *instructions):
-    assert list(instructions) == parse(quil_string)
+    parse_equals("")

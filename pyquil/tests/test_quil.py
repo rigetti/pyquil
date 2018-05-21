@@ -26,9 +26,10 @@ from pyquil.gates import I, X, Y, Z, H, T, S, RX, RY, RZ, CNOT, CCNOT, PHASE, CP
 from pyquil.parameters import Parameter, quil_sin, quil_cos
 from pyquil.paulis import exponential_map, sZ
 from pyquil.quil import Program, merge_programs, address_qubits, \
-    get_classical_addresses_from_program
+    get_classical_addresses_from_program, Pragma
 from pyquil.quilatom import QubitPlaceholder
 from pyquil.quilbase import DefGate, Gate, Addr, Qubit, JumpWhen
+from pyquil.tests.utils import parse_equals
 
 
 def test_gate():
@@ -779,3 +780,26 @@ def test_get_classical_addresses_from_program():
 
     p += [MEASURE(i, i) for i in [0, 3, 1]]
     assert get_classical_addresses_from_program(p) == [0, 1, 3]
+
+
+def test_pragma_with_placeholders():
+    q = QubitPlaceholder()
+    q2 = QubitPlaceholder()
+    p = Program()
+    p.inst(Pragma('FENCE', [q, q2]))
+    address_map = {q: 0, q2: 1}
+    addressed_pragma = address_qubits(p, address_map)[0]
+    parse_equals('PRAGMA FENCE 0 1\n', addressed_pragma)
+
+    pq = Program(X(q))
+    pq.define_noisy_readout(q, .8, .9)
+
+    pq.inst(X(q2))
+    pq.define_noisy_readout(q2, .9, .8)
+
+    ret = address_qubits(pq, address_map).out()
+    assert ret == """X 0
+PRAGMA READOUT-POVM 0 "(0.8 0.09999999999999998 0.19999999999999996 0.9)"
+X 1
+PRAGMA READOUT-POVM 1 "(0.9 0.19999999999999996 0.09999999999999998 0.8)"
+"""

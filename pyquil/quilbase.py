@@ -429,9 +429,9 @@ class Pragma(AbstractInstruction):
         if not isinstance(args, (tuple, list)):
             raise TypeError("Pragma arguments must be a list: {}".format(args))
         for a in args:
-            if not (isinstance(a, string_types) or isinstance(a, integer_types)):
+            if not (isinstance(a, string_types) or isinstance(a, integer_types) or
+                    isinstance(a, QubitPlaceholder) or isinstance(a, Qubit)):
                 raise TypeError("Pragma arguments must be strings or integers: {}".format(a))
-
         if not isinstance(freeform_string, string_types):
             raise TypeError("The freeform string argument must be a string: {}".format(
                 freeform_string))
