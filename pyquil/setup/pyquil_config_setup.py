@@ -22,7 +22,7 @@ from pyquil.api._config import PyquilConfig
 def main():
     print("Welcome to PyQuil!")
     print("Enter the required information below for Forest connections.")
-    print("If you haven't signed up yet you will need to do so first at https://forest.rigetti.com")
+    print("If you haven't signed up yet you will need to do so first at http://forest.rigetti.com")
 
     key = input("Forest API Key: ")
     user = input("User ID: ")
