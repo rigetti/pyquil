@@ -259,7 +259,9 @@ class CompilerConnection(object):
         programs = []
         for clifford in response:
             clifford_program = Program()
-            for index in clifford:
+            # Like below, we reversed the order because the API currently hands back the Clifford
+            # decomposition right-to-left.
+            for index in reversed(clifford):
                 clifford_program.inst(gateset[index])
             programs.append(clifford_program)
         # The programs are returned in "textbook style" right-to-left order. To compose them into
