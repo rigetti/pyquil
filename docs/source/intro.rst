@@ -824,7 +824,7 @@ Next Steps
 ----------
 
 We hope that you have enjoyed your whirlwind tour of quantum computing.
-You are now ready to check out the `Installation and Getting Started <getting_started.html>`_ guide!
+You are now ready to check out the `Installation and Getting Started <start.html>`_ guide!
 
 If you would like to learn more, Nielsen and Chuang's
 *Quantum Computation and Quantum Information* is a particularly excellent resource for
