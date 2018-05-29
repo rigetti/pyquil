@@ -54,6 +54,7 @@ Contents
    basics
    advanced_usage
    exercises
+   connections
    qvm
    qpu
    compiler
