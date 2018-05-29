@@ -113,7 +113,7 @@ It comes with a few parts:
    found in the `whitepaper <https://arxiv.org/abs/1608.03355>`__.
 2. **pyQuil**: A Python library to help write and run Quil code and
    quantum programs.
-3. **QVM**: A `Quantum Virtual Machine <qvm_overview.html>`_, which is an implementation of the
+3. **QVM**: A `Quantum Virtual Machine <qvm.html>`_, which is an implementation of the
    quantum abstract machine on classical hardware. The QVM lets you use a
    regular computer to simulate a small quantum computer. You can access
    the Rigetti QVM running in the cloud with your API key.
