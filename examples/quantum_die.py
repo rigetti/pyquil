@@ -66,7 +66,7 @@ def roll_die(n):
     while True:
         results = qvm.run(die, addresses, BATCH_SIZE)
         for r in results:
-            x = process_result(r)
+            x = process_result(r) + 1
             if 0 < x <= n:
                 return x
 
