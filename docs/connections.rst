@@ -18,7 +18,7 @@ set the ``use_queue`` parameter to True which has more overhead.
   qvm = QVMConnection(use_queue=True)
   qvm.run(Program(X(0).measure(0, 0), [0])
 
-The Forest queue also allows an asynchronous mode of interaction with methods postfixed with `_async`.
+The Forest queue also allows an asynchronous mode of interaction with methods postfixed with ``_async``.
 This means that there is a seperate query to post a job and to get the result.
 
 ::
