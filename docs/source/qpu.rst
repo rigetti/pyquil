@@ -272,7 +272,7 @@ Agave QPU Properties
 The quantum processor consists of 8 superconducting transmon qubits with fixed capacitive coupling
 in the planar lattice design shown in Fig. 1.
 
-The resonant frequencies of qubits 0, 2, 4, and 6 are fixed while qubits 1, 3, 5, and 7 are tunable. The former set has two Josephson junctions in an asymmetric SQUID geometry to provide roughly 1 GHz of frequency tunability, and flux-insensitive
+The resonant frequencies of qubits 0, 2, 4, and 6 are tunable while qubits 1, 3, 5, and 7 are fixed. The former set has two Josephson junctions in an asymmetric SQUID geometry to provide roughly 1 GHz of frequency tunability, and flux-insensitive
 “sweet spots” near
 
 :math:`\omega^{\textrm{max}}_{01}/2\pi\approx 4.8 \, \textrm{GHz}`
@@ -295,7 +295,7 @@ gates are activated via RF drives on the flux bias lines.
 
     :math:`\textbf{Figure 1 $|$ Connectivity of Rigetti 8Q. a,}` Chip schematic showing tunable
     transmons (green circles) capacitively coupled to fixed-frequency transmons
-    (blue circles). :math:`\textbf{b}`, Optical chip image. 
+    (blue circles). :math:`\textbf{b}`, Optical image of an 8Q chip, representative of Agave. 
 
 1-Qubit Gate Performance
 ------------------------
@@ -398,10 +398,10 @@ tomography under complete positivity (cp) and trace preservation (tp) constraint
    ,:math:`\textrm{MHz}`,ns
    0 - 1, 226,195,0.92
    1 - 2, 153,198,0.91
-   2 - 3, 138,132.25,0.82
+   2 - 3, 138,132,0.82
    3 - 4, 163,160,0.87
    4 - 5, 168,163,0.67
-   5 - 6, 107,186.18,0.93
+   5 - 6, 107,186,0.93
    6 - 7, 123,162,0.93
    7 - 0, 298,118,0.91
 
