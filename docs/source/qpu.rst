@@ -9,7 +9,7 @@ quantum computer, which includes the housing environment for the QPU, the contro
 many other components.
 
 This page describes how to use the Forest API for interacting with Rigetti QPUs, and provides
-technical details and average performance of **Acorn**, the 19Q QPU currently available, that has
+technical details and average performance of **Agave**, the 8Q QPU currently available, that has
 been designed, fabricated and packaged by Rigetti.
 
 .. _qpu_use:
@@ -67,12 +67,12 @@ not available). We may fix the above example then by providing a device to the `
 
     from pyquil.api import get_devices, QPUConnection
 
-    acorn = get_devices(as_dict=True)['19Q-Acorn']
-    qpu = QPUConnection(acorn)
+    agave = get_devices(as_dict=True)['8Q-Agave']
+    qpu = QPUConnection(agave)
     # The device name as a string is also acceptable
-    # qpu = QPUConnection('19Q-Acorn')
+    # qpu = QPUConnection('8Q-Agave')
 
-You have now established a connection to the ``19Q-Acorn`` QPU. Executing programs is then identical
+You have now established a connection to the ``8Q-Agave`` QPU. Executing programs is then identical
 to the QVM (we may ommit the ``classical_addresses`` and ``trials`` arguments to use their
 defaults):
 
@@ -82,7 +82,7 @@ defaults):
     from pyquil.gates import X, MEASURE
 
     program = Program(X(0), MEASURE(0, 0))
-    qpu.run(program)
+    qpu.run(program, [0])
 
 .. parse-literal:
 
@@ -118,14 +118,14 @@ In addition to the ``.run(...)`` method, a ``QPUConnection`` object provides the
     QVM's ``run``.
 
 For example, the following Python snippet demonstrates the execution of a small job on the QPU
-identified as "19Q-Acorn":
+identified as "8Q-Agave":
 
 .. code:: python
 
     from pyquil.quil import Program
     import pyquil.api as api
     from pyquil.gates import *
-    qpu = api.QPUConnection('19Q-Acorn')
+    qpu = api.QPUConnection('8Q-Agave')
     p = Program(H(0), CNOT(0, 1), MEASURE(0, 0), MEASURE(1, 1))
     qpu.run(p, [0, 1], 1000)
 
@@ -145,7 +145,7 @@ For example, consider the following Python snippet:
     from pyquil.quil import Program
     import pyquil.api as api
     from pyquil.gates import *
-    qpu = api.QPUConnection('19Q-Acorn')
+    qpu = api.QPUConnection('8Q-Agave')
     p = Program(H(0), CNOT(0, 1), MEASURE(0, 0), MEASURE(1, 1))
     job_id = qpu.run_async(p, [0, 1], 1000)
     while not qpu.get_job(job_id).is_done():
@@ -168,101 +168,67 @@ Rigetti's available QPUs. One may query for available devices using the ``get_de
     from pyquil.api import get_devices
 
     devices = get_devices(as_dict=True)
-    # E.g. {'19Q-Acorn': <Device 19Q-Acorn online>, '8Q-Agave': <Device 8Q-Agave offline>}
+    # E.g. {'8Q-Agave': <Device 8Q-Agave online>, '19Q-Acorn': <Device 19Q-Acorn offline>}
 
-    acorn = devices['19Q-Acorn']
+    agave = devices['8Q-Agave']
 
-The variable ``acorn`` points to a ``Device`` object that holds useful information regarding the
+The variable ``agave`` points to a ``Device`` object that holds useful information regarding the
 QPU, including:
 
-1. Connectivity via its instruction set architecture (``acorn.isa`` of class ``ISA``).
-2. Hardware specifications such as coherence times and fidelities (``acorn.specs`` of class ``Specs``).
-3. Noise model information (``acorn.noise_model`` of class ``NoiseModel``).
+1. Connectivity via its instruction set architecture (``agave.isa`` of class ``ISA``).
+2. Hardware specifications such as coherence times and fidelities (``agave.specs`` of class ``Specs``).
+3. Noise model information (``agave.noise_model`` of class ``NoiseModel``).
 
 These 3 attributes are accessed in the following ways (note that the specs shown below may be out of date):
 
 .. code:: python
 
-    print(acorn.specs)
+    print(agave.specs)
     # Specs(qubits_specs=..., edges_specs=...)
 
-    print(acorn.specs.qubits_specs)
+    print(agave.specs.qubits_specs)
     """
-    [_QubitSpecs(id=0, fRO=0.938, f1QRB=0.9815, T1=1.52e-05, T2=7.2e-06),
-     _QubitSpecs(id=1, fRO=0.958, f1QRB=0.9907, T1=1.76e-05, T2=7.7e-06),
-     _QubitSpecs(id=2, fRO=0.97, f1QRB=0.9813, T1=1.82e-05, T2=1.08e-05),
-     _QubitSpecs(id=3, fRO=0.886, f1QRB=0.9908, T1=3.1e-05, T2=1.68e-05),
-     _QubitSpecs(id=4, fRO=0.953, f1QRB=0.9887, T1=2.3e-05, T2=5.2e-06),
-     _QubitSpecs(id=5, fRO=0.965, f1QRB=0.9645, T1=2.22e-05, T2=1.11e-05),
-     _QubitSpecs(id=6, fRO=0.84, f1QRB=0.9905, T1=2.68e-05, T2=2.68e-05),
-     _QubitSpecs(id=7, fRO=0.925, f1QRB=0.9916, T1=2.94e-05, T2=1.3e-05),
-     _QubitSpecs(id=8, fRO=0.947, f1QRB=0.9869, T1=2.45e-05, T2=1.38e-05),
-     _QubitSpecs(id=9, fRO=0.927, f1QRB=0.9934, T1=2.08e-05, T2=1.11e-05),
-     _QubitSpecs(id=10, fRO=0.942, f1QRB=0.9916, T1=1.71e-05, T2=1.06e-05),
-     _QubitSpecs(id=11, fRO=0.9, f1QRB=0.9901, T1=1.69e-05, T2=4.9e-06),
-     _QubitSpecs(id=12, fRO=0.942, f1QRB=0.9902, T1=8.2e-06, T2=1.09e-05),
-     _QubitSpecs(id=13, fRO=0.921, f1QRB=0.9933, T1=1.87e-05, T2=1.27e-05),
-     _QubitSpecs(id=14, fRO=0.947, f1QRB=0.9916, T1=1.39e-05, T2=9.4e-06),
-     _QubitSpecs(id=16, fRO=0.948, f1QRB=0.9906, T1=1.67e-05, T2=7.5e-06),
-     _QubitSpecs(id=17, fRO=0.921, f1QRB=0.9895, T1=2.4e-05, T2=8.4e-06),
-     _QubitSpecs(id=18, fRO=0.93, f1QRB=0.9496, T1=1.69e-05, T2=1.29e-05),
-     _QubitSpecs(id=19, fRO=0.93, f1QRB=0.9942, T1=2.47e-05, T2=9.8e-06)]
-    """
+    [_QubitSpecs(id=0, fRO=0.7841, f1QRB=0.9575, T1=1.07e-05, T2=1.06e-05), 
+     _QubitSpecs(id=1, fRO=0.9099, f1QRB=0.9513, T1=1e-05, T2=9.2e-06), 
+     _QubitSpecs(id=2, fRO=0.9427, f1QRB=0.9825, T1=1.55e-05, T2=1.25e-05), 
+     _QubitSpecs(id=3, fRO=0.9122, f1QRB=0.9703, T1=1.42e-05, T2=1.85e-05), 
+     _QubitSpecs(id=4, fRO=0.6777, f1QRB=0.9693, T1=1.46e-05, T2=2.62e-05), 
+     _QubitSpecs(id=5, fRO=0.8319, f1QRB=0.9624, T1=1.49e-05, T2=1.28e-05), 
+     _QubitSpecs(id=6, fRO=0.7526, f1QRB=0.969, T1=1.42e-05, T2=1.29e-05), 
+     _QubitSpecs(id=7, fRO=0.8954, f1QRB=0.9322, T1=1.32e-05, T2=1.77e-05)]
+     """
 
-    print(acorn.isa)
+    print(agave.isa)
     # ISA(qubits=..., edges=...)
 
-    print(acorn.isa.edges)
+    print(agave.isa.edges)
     """
-    [Edge(targets=[0, 5], type='CZ', dead=False),
-     Edge(targets=[0, 6], type='CZ', dead=False),
-     Edge(targets=[1, 6], type='CZ', dead=False),
-     Edge(targets=[1, 7], type='CZ', dead=False),
-     Edge(targets=[2, 7], type='CZ', dead=False),
-     Edge(targets=[2, 8], type='CZ', dead=False),
-     Edge(targets=[4, 9], type='CZ', dead=False),
-     Edge(targets=[5, 10], type='CZ', dead=False),
-     Edge(targets=[6, 11], type='CZ', dead=False),
-     Edge(targets=[7, 12], type='CZ', dead=False),
-     Edge(targets=[8, 13], type='CZ', dead=False),
-     Edge(targets=[9, 14], type='CZ', dead=False),
-     Edge(targets=[10, 15], type='CZ', dead=False),
-     Edge(targets=[10, 16], type='CZ', dead=False),
-     Edge(targets=[11, 16], type='CZ', dead=False),
-     Edge(targets=[11, 17], type='CZ', dead=False),
-     Edge(targets=[12, 17], type='CZ', dead=False),
-     Edge(targets=[12, 18], type='CZ', dead=False),
-     Edge(targets=[13, 18], type='CZ', dead=False),
-     Edge(targets=[13, 19], type='CZ', dead=False),
-     Edge(targets=[14, 19], type='CZ', dead=False)]
+  [Edge(targets=[0, 1], type='CZ', dead=False), 
+   Edge(targets=[0, 7], type='CZ', dead=False), 
+   Edge(targets=[1, 2], type='CZ', dead=False), 
+   Edge(targets=[2, 3], type='CZ', dead=False), 
+   Edge(targets=[3, 4], type='CZ', dead=False), 
+   Edge(targets=[4, 5], type='CZ', dead=False), 
+   Edge(targets=[5, 6], type='CZ', dead=False), 
+   Edge(targets=[6, 7], type='CZ', dead=False)]
     """
 
-    print(acorn.noise_model)
+    print(agave.noise_model)
     # NoiseModel(gates=[KrausModel(...) ...] ...)
-
 
 Additionally, the ``Specs`` class provides methods for access specs info across the chip in a more
 succinct manner:
 
 .. code:: python
 
-    acorn.specs.T1s()
-    # {0: 1.52e-05, 1: 1.76e-05, 2: 1.82e-05, 3: 3.1e-05, ...}
+    agave.specs.T1s()
+    # {0: 1.07e-05, 1: 1e-05, 2: 1.55e-05, 3: 1.42e-05, 4: 1.46e-05, 5: 1.49e-05, 6: 1.42e-05, 7: 1.32e-05}
 
-    acorn.specs.fCZs()
-    # {(0, 5): 0.888, (0, 6): 0.8, (1, 6): 0.837, (1, 7): 0.87, ...}
+    agave.specs.fCZs()
+    # {(0, 1): 0.9176, (0, 7): 0.9095, (1, 2): 0.9065, (2, 3): 0.8191, (3, 4): 0.87, (4, 5): 0.67, (5, 6): 0.9302, (6, 7): 0.9295}
 
 With these tools provided by the ``Device`` class, users may learn more about Rigetti hardware, and
-construct programs tailored specifically to that hardware. The ``Device`` class serves two additional
-uses:
-
-* The ISA associated to Acorn can be modified by the user to target ``CPHASE`` rather than ``CZ`` on
-  any collection of qubit-qubit links not including 1-6.  Passing such a customized ISA to Forest as
-  part of a call to ``.run`` or ``.run_and_measure`` will enable compilation utilizing ``CPHASE``
-  as a native gate (although the compiler will continue to prefer ``CZ`` to ``CPHASE(π)`` specifically,
-  due to its generally higher fidelity on 19Q-Acorn).
-* It can be used to seed a QVM with characteristics of the device, supporting noisy simulation. For
-  more information on this, see the next section.
+construct programs tailored specifically to that hardware. The ``Device`` class can also be used to seed a QVM with characteristics of the device, supporting noisy simulation. For more information on this, see the next section.
 
 Simulating the QPU using the QVM
 --------------------------------
@@ -282,12 +248,12 @@ required is to provide a ``Device`` object to the QVM during initialization:
 
     from pyquil.api import get_devices, QVMConnection
 
-    acorn = get_devices(as_dict=True)['19Q-Acorn']
-    qvm = QVMConnection(acorn)
+    agave = get_devices(as_dict=True)['8Q-Agave']
+    qvm = QVMConnection(agave)
 
 By simply providing a device during QVM initialization, all programs executed on this QVM will, by
 default, have noise applied that is characteristic of the corresponding Rigetti QPU (in the case
-above, the ``acorn`` device). One may then efficiently test realistic quantum algorithms on the QVM,
+above, the ``agave`` device). One may then efficiently test realistic quantum algorithms on the QVM,
 in advance of running those programs on the QPU.
 
 Retune Interruptions
@@ -300,49 +266,36 @@ new jobs (but pending jobs will remain queued).  When the QPU resumes activity, 
 characteristics may be slightly different (in that different gates may enjoy different process
 fidelities).
 
-Acorn QPU Properties
+Agave QPU Properties
 ~~~~~~~~~~~~~~~~~~~~~~~~
 
-The quantum processor consists of 20 superconducting transmon qubits with fixed capacitive coupling
+The quantum processor consists of 8 superconducting transmon qubits with fixed capacitive coupling
 in the planar lattice design shown in Fig. 1.
 
-.. note::
-
-  While this chip was fabricated with 20 qubits, 16 are currently available for programming.
-
-The resonant frequencies of qubits 0–4 and 10–14 are
-tunable while qubits 5–9 and 15–19 are fixed. The former have two Josephson junctions in an
-asymmetric SQUID geometry to provide roughly 1 GHz of frequency tunability, and flux-insensitive
+The resonant frequencies of qubits 0, 2, 4, and 6 are tunable while qubits 1, 3, 5, and 7 are fixed. The former set has two Josephson junctions in an asymmetric SQUID geometry to provide roughly 1 GHz of frequency tunability, and flux-insensitive
 “sweet spots” near
 
-:math:`\omega^{\textrm{max}}_{01}/2\pi\approx 4.5 \, \textrm{GHz}`
+:math:`\omega^{\textrm{max}}_{01}/2\pi\approx 4.8 \, \textrm{GHz}`
 
 and
 
-:math:`\omega^{\textrm{min}}_{01}/2\pi\approx 3.0 \, \textrm{GHz}`.
+:math:`\omega^{\textrm{min}}_{01}/2\pi\approx 3.3 \, \textrm{GHz}`.
 
 These tunable devices are coupled to bias lines for AC and DC flux delivery. Each qubit is
 capacitively coupled to a quasi-lumped element resonator for dispersive readout of the qubit state.
 Single-qubit control is effected by applying microwave drives at the resonator ports. Two-qubit
 gates are activated via RF drives on the flux bias lines.
 
-Due to a fabrication defect, qubit 3 is not tunable, which prohibits operation of the two-qubit
-parametric gate described below between qubit 3 and its neighbors. Additionally, qubits 2, 15, and
-18 are not accessible for quantum computation through Forest. Consequently, we will treat this
-as a 16-qubit processor.
-
-.. figure:: images/acorn.png
+.. figure:: images/agave.png
     :width: 540px
     :align: center
     :height: 300px
-    :alt: 19Q-Acorn
+    :alt: 8Q-Agave
     :figclass: align-center
 
-    :math:`\textbf{Figure 1 $|$ Connectivity of Rigetti 19Q. a,}` Chip schematic showing tunable
+    :math:`\textbf{Figure 1 $|$ Connectivity of Rigetti 8Q. a,}` Chip schematic showing tunable
     transmons (green circles) capacitively coupled to fixed-frequency transmons
-    (blue circles). :math:`\textbf{b}`, Optical chip image. Note that some couplers have
-    been dropped to produce a lattice with three-fold, rather than four-fold
-    connectivity.
+    (blue circles). :math:`\textbf{b}`, Optical image of an 8Q chip, representative of Agave. 
 
 1-Qubit Gate Performance
 ------------------------
@@ -355,11 +308,11 @@ The device is characterized by several parameters:
 - :math:`g/2\pi` is the coupling strength between a qubit and a resonator
 - :math:`\lambda/2\pi` is the coupling strength between two neighboring qubits
 
-In Rigetti 19Q, each tunable qubit is capacitively coupled to one-to-three fixed-frequency qubits.
+In Rigetti 8Q, each tunable qubit is capacitively coupled to two fixed-frequency qubits.
 We use a parametric flux modulation to activate a controlled Z gate between tunable and fixed
 qubits. The typical time-scale of these entangling gates is in the range 100–250 ns.
 
-Table 1 summarizes the main performance parameters of Rigetti 19Q. The resonator and qubit
+Table 1 summarizes the main performance parameters of Rigetti 8Q. The resonator and qubit
 frequencies are measured with standard spectroscopic techniques. The relaxation time :math:`T_1` is
 extracted from repeated inversion recovery experiments. Similarly, the coherence time :math:`T^*_2`
 is measured with repeated Ramsey fringe experiments. Single-qubit gate fidelities are estimated
@@ -376,33 +329,20 @@ assignment fidelity is given by expression :math:`\mathsf{F}_\textrm{RO} = [p(0|
 :math:`p(b|a)` is the probability of measuring the qubit in state :math:`b` when prepared in state
 :math:`a`.
 
-.. csv-table:: :math:`\textbf{Table 1 | Rigetti 19Q performance}`
+.. csv-table:: :math:`\textbf{Table 1 | Rigetti 8Q performance}`
    :widths: 10, 10, 10, 10, 10, 10, 10
    :stub-columns: 1
 
    ,:math:`\omega^{\textrm{max}}_{\textrm{r}}/2\pi`,:math:`\omega^{\textrm{max}}_{01}/2\pi`,:math:`T_1`,:math:`T^*_2`,:math:`\mathsf{F}_{\textrm{1q}}`,:math:`\mathsf{F}_{\textrm{RO}}`
    ,:math:`\textrm{MHz}`,:math:`\textrm{MHz}`,:math:`\mu\textrm{s}`,:math:`\mu\textrm{s}`,,
-   0 ,5592,4372,17.98,7.47,0.982,0.918
-   1 ,5703,4257,24.27,8.17,0.983,0.846
-   2 ,5599,3069,8.5,7.47,0.976,0.78
-   3 ,5708,3829,31.0,16.8,0.9908,0.886
-   4 ,5633,4332,18.01,2.79,0.987,0.962
-   5 ,5178,3658,17.76,10.05,0.973,0.932
-   6 ,5356,3789,14.15,10.18,0.983,0.92
-   7 ,5164,3531,11.94,9.08,0.991,0.803
-   8 ,5367,3681,23.7,11.47,0.987,0.948
-   9 ,5201,3665,17.68,10.43,0.992,0.918
-   10,5801,4564,11.17,4.69,0.983,0.824
-   11,5511,4238,20.31,10.3,0.985,0.878
-   12,5825,4569,13.0,8.0,0.97,0.963
-   13,5523,4384,12.2,8.54,0.980,0.954
-   14,5848,4517,18.83,2.98,0.983,0.959
-   15,5093,3716,22,3.0,0.808,0.705
-   16,5298,3816,21.4,11.22,0.989,0.912
-   17,5097,3428,17.34,8.4,0.991,0.87
-   18,5301,3864,14.0,0.1,0.976,0.893
-   19,5108,3535,22.4,9.13,0.987,0.945
-
+   0 ,5863,4586,10.72,10.6,0.957,0.784
+   1 ,5293,3909,10.04,9.2,0.951,0.910
+   2 ,5713,4524,15.52,12.5,0.982,0.943
+   3 ,5411,4054,14.17,18.5,0.970,0.912
+   4 ,5620,4660,14.58,26.2,0.969,0.678
+   5 ,5171,4081,14.86,12.8,0.962,0.832
+   6 ,5751,4760,14.17,12.9,0.969,0.753
+   7 ,5454,4110,13.19,17.7,0.932,0.895
 
 
 Qubit-Qubit Coupling
@@ -424,7 +364,7 @@ can be calculated in the following way:
 Figure 2b shows the coupling strength for our device. This quantity is crucial to predict the gate
 time of our parametric entangling gates.
 
-.. figure:: images/acorn_coupling.png
+.. figure:: images/agave_coupling.png
     :width: 500px
     :align: center
     :height: 300px
@@ -439,7 +379,7 @@ time of our parametric entangling gates.
 2-Qubit Gate Performance
 ------------------------
 
-Table 2 shows the two-qubit gate performance of Rigetti 19Q. These parameters refer to parametric
+Table 2 shows the two-qubit gate performance of Rigetti 8Q. These parameters refer to parametric
 CZ gates performed on one pair at a time. We analyze these CZ gates through quantum process
 tomography (QPT). This procedure starts by applying local rotations to the two qubits taken from
 the set :math:`\{I,R_x(\pi/2),R_y(\pi/2),R_x(\pi)\}`, followed by a CZ gate and
@@ -450,33 +390,20 @@ is the *average gate fidelity* [Nielsen2002]_ of the ideal process and the proce
 tomography under complete positivity (cp) and trace preservation (tp) constraints
 (cf. supplementary material of [Reagor2018]_).
 
-.. csv-table:: :math:`\textbf{Table 2 | Rigetti 19Q two-qubit gate performance}`
+.. csv-table:: :math:`\textbf{Table 2 | Rigetti 8Q two-qubit gate performance}`
    :widths: 10, 10, 10, 10
    :stub-columns: 1
 
    ,:math:`f_\textrm{m}`,:math:`t_\textrm{CZ}`,:math:`\mathsf{F}^\textrm{cptp}_{\textrm{PT}}`
    ,:math:`\textrm{MHz}`,ns
-   0 - 5, 190,277.35,0.83
-   1 - 6, 129.998,165.99,0.892
-   1 - 7, 92,198.25,0.89
-   4 - 9, 191.8, 190.9,0.871
-   5 - 10, 285.5,131.4,0.813
-   6 - 11, 140,140.18,0.837
-   7 - 12, 235.48,264.12,0.818
-   8 - 13, 167.67,193.11,0.899
-   9 - 14, 221,253.19,0.827
-   10 - 16, 342.5,137.82,0.848
-   11 - 16, 137.37,181.36,0.898
-   11 - 17, 92,200,0.894
-   12 - 17, 214.96,221.41,0.851
-   13 - 19, 163,201.96,0.827
-   14 - 19, 221,253.19,0.8496
-
-Additionally, native ``CPHASE`` gates are available on some qubit-qubit links,
-under the proviso that they are still under development, and so their performance is typically
-below that of ``CZ``.  Due to the ongoing nature of the work, we decline to quote precise
-performance characteristics here.
-
+   0 - 1, 226,195,0.92
+   1 - 2, 153,198,0.91
+   2 - 3, 138,132,0.82
+   3 - 4, 163,160,0.87
+   4 - 5, 168,163,0.67
+   5 - 6, 107,186,0.93
+   6 - 7, 123,162,0.93
+   7 - 0, 298,118,0.91
 
 ..  [Nielsen2002] Nielsen, M. A. (2002) ‘A simple formula for the average gate fidelity of a quantum dynamical operation’, http://arxiv.org/abs/quant-ph/0205035
 ..  [Reagor2018] Reagor, M. et al. (2018) ‘Demonstration of universal parametric entangling gates on a multi-qubit lattice’, http://advances.sciencemag.org/lookup/doi/10.1126/sciadv.aao3603
