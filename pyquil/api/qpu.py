@@ -13,6 +13,7 @@
 #    See the License for the specific language governing permissions and
 #    limitations under the License.
 ##############################################################################
+import copy
 import warnings
 import time
 
@@ -71,6 +72,34 @@ def append_measures_to_program(gate_program, qubits):
     """
     meas_program = Program([MEASURE(q, q) for q in qubits])
     return gate_program + meas_program
+
+
+def create_dummy_device(device_name='19Q-Acorn'):
+    """
+    Create a dummy device based on an existing device's current specs
+    and noise model while ignoring its dead qubits and connections.
+    Can be useful for testing algorithms on the QVM under noisy conditions.
+    
+    :param str device_name: Name of an existing device (e.g. 19Q-Acorn, 8Q-Agave)
+    :return: Dummy device with an existing device's current specs and noise model
+    :rtype: Device
+    """
+    device = get_devices(as_dict=True)[device_name]
+    raw_specs = copy.deepcopy(device._raw)
+
+    # Remove dead qubits
+    for qubit_i in raw_specs['isa']['1Q']:
+        if 'dead' in raw_specs['isa']['1Q'][qubit_i]:
+            raw_specs['isa']['1Q'][qubit_i].pop('dead', 0)
+
+    # Remove dead two-qubit connections
+    for qubit_connection in raw_specs['isa']['2Q']:
+        if 'dead' in raw_specs['isa']['2Q'][qubit_connection]:
+            raw_specs['isa']['2Q'][qubit_connection].pop('dead', 0)
+
+    dummy = Device(name='Dummy-{}'.format(device_name),
+                   raw=raw_specs)
+    return dummy
 
 
 class QPUConnection(object):

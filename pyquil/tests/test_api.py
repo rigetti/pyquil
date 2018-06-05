@@ -22,9 +22,9 @@ import numpy as np
 import pytest
 from mock import patch
 
-from pyquil.api import QVMConnection, QPUConnection, CompilerConnection
+from pyquil.api import get_devices, QVMConnection, QPUConnection, CompilerConnection
 from pyquil.api._base_connection import validate_noise_probabilities, validate_run_items
-from pyquil.api.qpu import append_measures_to_program
+from pyquil.api.qpu import append_measures_to_program, create_dummy_device
 from pyquil.quil import Program
 from pyquil.paulis import PauliTerm
 from pyquil.gates import CNOT, H, MEASURE, PHASE, Z
@@ -466,3 +466,34 @@ def test_apply_clifford_to_pauli():
         m.post('https://api.rigetti.com/apply-clifford', text=mock_queued_response)
         result = async_compiler.apply_clifford_to_pauli(clifford, pauli)
         assert result == PauliTerm("Z", 0)
+
+
+def test_create_dummy_device():
+    device_name = '19Q-Acorn'
+    device = get_devices(as_dict=True)[device_name]
+    dummy = create_dummy_device(device_name)
+
+    # Qubit
+    dummy_qubit_dead_status = []
+    for qubit_info in dummy.isa.qubits:
+        qubit_dead_status = qubit_info.dead
+        dummy_qubit_dead_status.append(qubit_dead_status)
+    # should be all False (no dead qubits for dummy device)
+    assert not any(dummy_qubit_dead_status)
+
+    dummy_edge_dead_status = []
+    for edge_info in dummy.isa.edges:
+        edge_dead_status = edge_info.dead
+        dummy_edge_dead_status.append(edge_dead_status)
+    # should be all False (no dead edges for dummy device)
+    assert not any(dummy_edge_dead_status)
+
+    # Specs should remain the same
+    assert device.specs.f1QRBs() == dummy.specs.f1QRBs()
+    assert device.specs.fROs() == dummy.specs.fROs()
+    assert device.specs.T1s() == dummy.specs.T1s()
+    assert device.specs.T2s() == dummy.specs.T2s()
+    assert device.specs.fBellStates() == dummy.specs.fBellStates()
+    assert device.specs.fBellStates() == dummy.specs.fBellStates()
+    assert device.specs.fCZs() == dummy.specs.fCZs()
+    assert device.specs.fCPHASEs() == dummy.specs.fCPHASEs()
