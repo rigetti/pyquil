@@ -63,6 +63,8 @@ and sensible defaults for ``classical_addresses`` in :py:func:`run` methods.
  - :py:func:`QVMConnection.pauli_expectation` accepts ``PauliSum`` as arguments. This offers
    a more sensible API compared to :py:func:`QVMConnection.expectation`.
  - pyQuil will now retry jobs every 10 seconds if the QPU is re-tuning.
+ - :py:func:`CompilerConnection.compile` now takes an optional argument ``isa`` that allows
+   per-compilation specification of the target ISA.
 
 ## Supported versions of Python
 
