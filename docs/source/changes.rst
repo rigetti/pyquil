@@ -11,7 +11,7 @@ and it’s filled with convenience features, enhancements, bug fixes, and docume
 Special thanks to community members sethuiyer, vtomole, rht, akarazeev, ejdanderson, markf94,
 playadust, and kadora626 for contributing to this release!
 
-## Qubit Placeholders
+## Qubit placeholders
 
 One of the focuses of this release is a re-worked concept of "Qubit Placeholders". These are
 logical qubits that can be used to construct programs. Now, a program containing qubit placeholders
@@ -50,6 +50,12 @@ order they were constructed.
  - :py:class:`QubitPlaceholder` is no longer a subclass of :py:class:`Qubit`.
    :py:class:`LabelPlaceholder` is no longer a subclass of :py:class:`Label`.
  - :py:class:`QuilAtom` subclasses' hash functions have changed.
+
+## Randomized benchmarking sequence generation
+
+Insert paragraph describing the functionality
+
+ - list of new functions
 
 
 ## Ease of Use
