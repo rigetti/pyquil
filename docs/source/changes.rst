@@ -55,9 +55,20 @@ order they were constructed.
 Randomized benchmarking sequence generation
 ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
 
-Insert paragraph describing the functionality
+Pyquil now includes support for performing a simple benchmarking routine - randomized
+benchmarking. There is a new method in the :py:class:`CompilerConnection` that will return
+sequences of pyquil programs, corresponding to elements of the Clifford group. These programs
+are uniformly randomly sampled, and have the property that they compose to the identity. When
+concatenated and run as one program, these programs can be used in a procedure called randomized
+benchmarking to gain insight about the fidelity of operations on a QPU.
 
- - list of new functions
+In addition, the :py:class:`CompilerConnection` has another new method,
+:py:func:`apply_clifford_to_pauli`, which conjugates :py:class:`PauliTerms` by
+:py:class:`Program`s that are composed of Clifford gates. That is to say, given a circuit C,
+that contains only gates corresponding to elements of the Clifford group, and a tensor product of
+elements P, from the Pauli group, this method will compute $PCP^{\dagger}$. Such a procedure can
+be used in various ways. An example is predicting the effect a Clifford circuit will have on an
+input state modeled as a density matrix, which can be written as a sum of Pauli matrices.
 
 
 Ease of Use
