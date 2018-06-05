@@ -8,6 +8,9 @@ We’re happy to announce the release of Pyquil 1.9. Pyquil is Rigetti’s toolk
 and running quantum programs. This release is the latest in our series of regular releases,
 and it’s filled with convenience features, enhancements, bug fixes, and documentation improvements.
 
+Special thanks to community members sethuiyer, vtomole, rht, akarazeev, ejdanderson, markf94,
+playadust, and kadora626 for contributing to this release!
+
 ## Qubit Placeholders
 
 One of the focuses of this release is a re-worked concept of "Qubit Placeholders". These are
@@ -65,6 +68,7 @@ and sensible defaults for ``classical_addresses`` in :py:func:`run` methods.
  - pyQuil will now retry jobs every 10 seconds if the QPU is re-tuning.
  - :py:func:`CompilerConnection.compile` now takes an optional argument ``isa`` that allows
    per-compilation specification of the target ISA.
+ - An empty program will trigger an exception if you try to run it.
 
 ## Supported versions of Python
 
@@ -83,3 +87,4 @@ no longer work without modification for Python 2.
    in badly-addressed qubits.
  - Slightly perturbed angles when performing RX gates under a Kraus noise model could result in
    incorrect behavior.
+ - The quantum die example returned incorrect values when ``n = 2^m``.
