@@ -11,7 +11,8 @@ and it’s filled with convenience features, enhancements, bug fixes, and docume
 Special thanks to community members sethuiyer, vtomole, rht, akarazeev, ejdanderson, markf94,
 playadust, and kadora626 for contributing to this release!
 
-## Qubit placeholders
+Qubit placeholders
+~~~~~~~~~~~~~~~~~~
 
 One of the focuses of this release is a re-worked concept of "Qubit Placeholders". These are
 logical qubits that can be used to construct programs. Now, a program containing qubit placeholders
@@ -51,14 +52,16 @@ order they were constructed.
    :py:class:`LabelPlaceholder` is no longer a subclass of :py:class:`Label`.
  - :py:class:`QuilAtom` subclasses' hash functions have changed.
 
-## Randomized benchmarking sequence generation
+Randomized benchmarking sequence generation
+~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
 
 Insert paragraph describing the functionality
 
  - list of new functions
 
 
-## Ease of Use
+Ease of Use
+~~~~~~~~~~~
 
 This release includes some quality-of-life improvements such as the ability to initialize
 programs with generator expressions, sensible defaults for :py:func:`Program.measure_all`,
@@ -76,7 +79,8 @@ and sensible defaults for ``classical_addresses`` in :py:func:`run` methods.
    per-compilation specification of the target ISA.
  - An empty program will trigger an exception if you try to run it.
 
-## Supported versions of Python
+Supported versions of Python
+~~~~~~~~~~~~~~~~~~~~~~~~~~~~
 
 We strongly support using Python 3 with Pyquil. Although this release works with Python 2,
 we are dropping official support for this legacy language and moving to community support for
@@ -84,7 +88,8 @@ Python 2. The next major release of Pyquil will introduce Python 3.5+ only featu
 no longer work without modification for Python 2.
 
 
-## Bug fixes
+Bug fixes
+~~~~~~~~~
 
  - ``shift_quantum_gates`` has been removed. Users who relied on this
    functionality should use :py:class:`QubitPlaceholder` and :py:func:`address_qubits` to
