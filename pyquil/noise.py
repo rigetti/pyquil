@@ -289,8 +289,10 @@ def damping_after_dephasing(T1, T2, gate_time):
     :param float gate_time: The gate duration.
     :return: A list of Kraus operators.
     """
-    damping = damping_kraus_map(p=gate_time / float(T1)) if T1 != INFINITY else [np.eye(2)]
-    dephasing = dephasing_kraus_map(p=gate_time / float(T2)) if T2 != INFINITY else [np.eye(2)]
+    damping = damping_kraus_map(p=1 - np.exp(-float(gate_time) / float(T1))) \
+        if T1 != INFINITY else [np.eye(2)]
+    dephasing = dephasing_kraus_map(p=.5 * (1 - np.exp(-2 * gate_time / float(T2)))) \
+        if T2 != INFINITY else [np.eye(2)]
     return combine_kraus_maps(damping, dephasing)
 
 
