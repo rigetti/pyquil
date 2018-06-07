@@ -15,8 +15,44 @@
 #    limitations under the License.
 ##############################################################################
 
+import os
+import re
+import sys
+
 from setuptools import setup, find_packages
-from pyquil import __version__
+
+HERE = os.path.abspath(os.path.dirname(__file__))
+
+if sys.version_info < (3,):
+    raise ImportError('\n'.join([
+        'PyQuil 2.0+ requires Python 3'
+        '',
+        'To install the most recent version with support for Python 2, make sure you',
+        'have pip >= 9.0 as well as setuptools >= 24.2:',
+        '',
+        ' $ pip install pip setuptools --upgrade',
+        '',
+        'Then you can either',
+        '',
+        '- install an older version of PyQuil:',
+        '',
+        " $ pip install 'pyquil<2.0'",
+        '',
+        '- Upgrade your system to use Python 3.', ]))
+
+
+def read(*parts):
+    with open(os.path.join(HERE, *parts), 'r') as fp:
+        return fp.read()
+
+
+def find_version(*file_paths):
+    version_file = read(*file_paths)
+    version_match = re.search(r"^__version__ = ['\"]([^'\"]*)['\"]", version_file, re.M)
+    if version_match:
+        return version_match.group(1)
+    raise RuntimeError("Unable to find version string.")
+
 
 setup(
     name="pyquil",
@@ -45,5 +81,6 @@ setup(
     entry_points={
         'console_scripts': ['pyquil-config-setup=pyquil.setup.pyquil_config_setup:main']
     },
-    keywords='quantum quil programming hybrid'
+    keywords='quantum quil programming hybrid',
+    python_requires=">=3.5",
 )
