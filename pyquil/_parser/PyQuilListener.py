@@ -29,7 +29,7 @@ from numpy.ma import sin, cos, sqrt, exp
 
 from pyquil import parameters
 from pyquil.gates import STANDARD_GATES
-from pyquil.parameters import Parameter, Expression
+from pyquil.parameters import Parameter, Expression, Segment
 from pyquil.quilbase import Gate, DefGate, Measurement, Addr, JumpTarget, Label, Halt, Jump, JumpWhen, JumpUnless, \
     Reset, Wait, ClassicalTrue, ClassicalFalse, ClassicalNot, ClassicalAnd, ClassicalOr, ClassicalMove, \
     ClassicalExchange, Nop, RawInstr, Qubit, Pragma, AbstractInstruction
@@ -216,9 +216,7 @@ def _qubit(qubit):
 
 def _param(param):
     # type: (QuilParser.ParamContext) -> Any
-    if param.dynamicParam():
-        raise NotImplementedError("dynamic parameters not supported yet")
-    elif param.expression():
+    if param.expression():
         return _expression(param.expression())
     else:
         raise RuntimeError("Unexpected param: " + param.getText())
@@ -240,6 +238,12 @@ def _matrix(matrix):
 def _addr(classical):
     # type: (QuilParser.AddrContext) -> Addr
     return Addr(int(classical.classicalBit().getText()))
+
+
+def _segment(segment):
+    # type: (QuilParser.SegmentContext) -> Segment
+    ints = segment.INT()
+    return Segment(int(ints[0].getText()), int(ints[1].getText()))
 
 
 def _label(label):
@@ -274,6 +278,8 @@ def _expression(expression):
             return -1 * _expression(expression.expression())
     elif isinstance(expression, QuilParser.FunctionExpContext):
         return _apply_function(expression.function(), _expression(expression.expression()))
+    elif isinstance(expression, QuilParser.SegmentExpContext):
+        return _segment(expression.segment())
     elif isinstance(expression, QuilParser.NumberExpContext):
         return _number(expression.number())
     elif isinstance(expression, QuilParser.VariableExpContext):

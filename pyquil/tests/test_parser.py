@@ -17,7 +17,7 @@ import numpy as np
 import pytest
 
 from pyquil.gates import *
-from pyquil.parameters import Parameter, quil_sin, quil_cos
+from pyquil.parameters import Parameter, quil_sin, quil_cos, Segment, Add
 from pyquil.parser import parse
 from pyquil.quilatom import Addr
 from pyquil.quilbase import Label, JumpTarget, Jump, JumpWhen, JumpUnless, DefGate, Qubit, Pragma
@@ -135,6 +135,10 @@ def test_expressions():
     _expr("-(3+4)", -7)
     _expr("-(3-4)", 1)
     _expr("-0.1423778799706841+0.5434363975682295i", complex(-0.1423778799706841, 0.5434363975682295))
+
+    # Classical memory segments
+    _expr("[0-47]", Segment(0, 47))
+    _expr("[0-47]+3.0", Add(Segment(0, 47), 3.0))
 
 
 def test_measure():

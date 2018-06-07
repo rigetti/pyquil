@@ -8,7 +8,7 @@ import sys
 def serializedATN():
     with StringIO() as buf:
         buf.write(u"\3\u608b\ua72a\u8133\ub9ed\u417c\u3be7\u7786\u5964\3")
-        buf.write(u"\66\u017a\4\2\t\2\4\3\t\3\4\4\t\4\4\5\t\5\4\6\t\6\4\7")
+        buf.write(u"\66\u0177\4\2\t\2\4\3\t\3\4\4\t\4\4\5\t\5\4\6\t\6\4\7")
         buf.write(u"\t\7\4\b\t\b\4\t\t\t\4\n\t\n\4\13\t\13\4\f\t\f\4\r\t")
         buf.write(u"\r\4\16\t\16\4\17\t\17\4\20\t\20\4\21\t\21\4\22\t\22")
         buf.write(u"\4\23\t\23\4\24\t\24\4\25\t\25\4\26\t\26\4\27\t\27\4")
@@ -20,160 +20,158 @@ def serializedATN():
         buf.write(u"n\n\3\3\4\3\4\3\4\3\4\3\4\3\4\3\4\3\4\3\4\3\4\3\4\3\4")
         buf.write(u"\3\4\3\4\5\4~\n\4\3\5\3\5\3\5\3\5\3\5\7\5\u0085\n\5\f")
         buf.write(u"\5\16\5\u0088\13\5\3\5\3\5\5\5\u008c\n\5\3\5\6\5\u008f")
-        buf.write(u"\n\5\r\5\16\5\u0090\3\6\3\6\3\7\3\7\3\b\3\b\5\b\u0099")
-        buf.write(u"\n\b\3\t\3\t\3\t\3\t\5\t\u009f\n\t\3\t\3\t\3\n\3\n\3")
-        buf.write(u"\n\3\n\3\n\3\n\7\n\u00a9\n\n\f\n\16\n\u00ac\13\n\3\n")
-        buf.write(u"\3\n\5\n\u00b0\n\n\3\n\3\n\3\n\3\n\3\13\3\13\3\13\3\f")
-        buf.write(u"\3\f\3\f\7\f\u00bc\n\f\f\f\16\f\u00bf\13\f\3\f\3\f\3")
-        buf.write(u"\r\3\r\3\r\3\r\7\r\u00c7\n\r\f\r\16\r\u00ca\13\r\3\16")
-        buf.write(u"\3\16\3\16\3\16\3\16\3\16\7\16\u00d2\n\16\f\16\16\16")
-        buf.write(u"\u00d5\13\16\3\16\3\16\5\16\u00d9\n\16\3\16\7\16\u00dc")
-        buf.write(u"\n\16\f\16\16\16\u00df\13\16\3\16\3\16\3\16\3\16\3\17")
-        buf.write(u"\3\17\3\20\3\20\5\20\u00e9\n\20\3\21\3\21\3\21\3\21\3")
-        buf.write(u"\21\7\21\u00f0\n\21\f\21\16\21\u00f3\13\21\3\21\3\21")
-        buf.write(u"\5\21\u00f7\n\21\3\21\6\21\u00fa\n\21\r\21\16\21\u00fb")
-        buf.write(u"\3\22\3\22\5\22\u0100\n\22\3\23\3\23\3\23\3\23\7\23\u0106")
-        buf.write(u"\n\23\f\23\16\23\u0109\13\23\3\23\3\23\3\23\3\24\3\24")
-        buf.write(u"\3\24\5\24\u0111\n\24\3\25\3\25\3\25\3\25\3\26\6\26\u0118")
-        buf.write(u"\n\26\r\26\16\26\u0119\3\27\3\27\3\27\3\30\3\30\3\30")
-        buf.write(u"\3\31\3\31\3\32\3\32\3\32\3\33\3\33\3\33\3\33\3\34\3")
-        buf.write(u"\34\3\34\3\34\3\35\3\35\3\36\3\36\3\37\3\37\3\37\3 \3")
-        buf.write(u" \3 \3 \3!\3!\3\"\3\"\3\"\3#\3#\3#\7#\u0142\n#\f#\16")
-        buf.write(u"#\u0145\13#\3#\5#\u0148\n#\3$\3$\3%\3%\3%\3%\3%\3%\3")
-        buf.write(u"%\3%\3%\3%\3%\3%\3%\3%\3%\5%\u015b\n%\3%\3%\3%\3%\3%")
-        buf.write(u"\3%\3%\3%\3%\7%\u0166\n%\f%\16%\u0169\13%\3&\3&\3\'\3")
-        buf.write(u"\'\3(\3(\3(\3(\5(\u0173\n(\3)\3)\3)\3*\3*\3*\2\3H+\2")
-        buf.write(u"\4\6\b\n\f\16\20\22\24\26\30\32\34\36 \"$&(*,.\60\62")
-        buf.write(u"\64\668:<>@BDFHJLNPR\2\t\3\2\20\22\3\2\23\26\3\2#$\3")
-        buf.write(u"\2 !\3\2\36\37\3\2\31\35\3\2$%\2\u0183\2U\3\2\2\2\4m")
-        buf.write(u"\3\2\2\2\6}\3\2\2\2\b\177\3\2\2\2\n\u0092\3\2\2\2\f\u0094")
-        buf.write(u"\3\2\2\2\16\u0098\3\2\2\2\20\u009a\3\2\2\2\22\u00a2\3")
-        buf.write(u"\2\2\2\24\u00b5\3\2\2\2\26\u00bd\3\2\2\2\30\u00c2\3\2")
-        buf.write(u"\2\2\32\u00cb\3\2\2\2\34\u00e4\3\2\2\2\36\u00e8\3\2\2")
-        buf.write(u"\2 \u00ea\3\2\2\2\"\u00ff\3\2\2\2$\u0107\3\2\2\2&\u010d")
-        buf.write(u"\3\2\2\2(\u0112\3\2\2\2*\u0117\3\2\2\2,\u011b\3\2\2\2")
-        buf.write(u".\u011e\3\2\2\2\60\u0121\3\2\2\2\62\u0123\3\2\2\2\64")
-        buf.write(u"\u0126\3\2\2\2\66\u012a\3\2\2\28\u012e\3\2\2\2:\u0130")
-        buf.write(u"\3\2\2\2<\u0132\3\2\2\2>\u0135\3\2\2\2@\u0139\3\2\2\2")
-        buf.write(u"B\u013b\3\2\2\2D\u013e\3\2\2\2F\u0149\3\2\2\2H\u015a")
-        buf.write(u"\3\2\2\2J\u016a\3\2\2\2L\u016c\3\2\2\2N\u0172\3\2\2\2")
-        buf.write(u"P\u0174\3\2\2\2R\u0177\3\2\2\2TV\5\4\3\2UT\3\2\2\2UV")
-        buf.write(u"\3\2\2\2V_\3\2\2\2WY\7\63\2\2XW\3\2\2\2YZ\3\2\2\2ZX\3")
-        buf.write(u"\2\2\2Z[\3\2\2\2[\\\3\2\2\2\\^\5\4\3\2]X\3\2\2\2^a\3")
-        buf.write(u"\2\2\2_]\3\2\2\2_`\3\2\2\2`e\3\2\2\2a_\3\2\2\2bd\7\63")
-        buf.write(u"\2\2cb\3\2\2\2dg\3\2\2\2ec\3\2\2\2ef\3\2\2\2fh\3\2\2")
-        buf.write(u"\2ge\3\2\2\2hi\7\2\2\3i\3\3\2\2\2jn\5\22\n\2kn\5\32\16")
-        buf.write(u"\2ln\5\6\4\2mj\3\2\2\2mk\3\2\2\2ml\3\2\2\2n\5\3\2\2\2")
-        buf.write(u"o~\5\b\5\2p~\5&\24\2q~\5,\27\2r~\5\60\31\2s~\5\62\32")
-        buf.write(u"\2t~\5\64\33\2u~\5\66\34\2v~\58\35\2w~\5:\36\2x~\5<\37")
-        buf.write(u"\2y~\5> \2z~\5@!\2{~\5B\"\2|~\5D#\2}o\3\2\2\2}p\3\2\2")
-        buf.write(u"\2}q\3\2\2\2}r\3\2\2\2}s\3\2\2\2}t\3\2\2\2}u\3\2\2\2")
-        buf.write(u"}v\3\2\2\2}w\3\2\2\2}x\3\2\2\2}y\3\2\2\2}z\3\2\2\2}{")
-        buf.write(u"\3\2\2\2}|\3\2\2\2~\7\3\2\2\2\177\u008b\5\n\6\2\u0080")
-        buf.write(u"\u0081\7)\2\2\u0081\u0086\5\16\b\2\u0082\u0083\7(\2\2")
-        buf.write(u"\u0083\u0085\5\16\b\2\u0084\u0082\3\2\2\2\u0085\u0088")
-        buf.write(u"\3\2\2\2\u0086\u0084\3\2\2\2\u0086\u0087\3\2\2\2\u0087")
-        buf.write(u"\u0089\3\2\2\2\u0088\u0086\3\2\2\2\u0089\u008a\7*\2\2")
-        buf.write(u"\u008a\u008c\3\2\2\2\u008b\u0080\3\2\2\2\u008b\u008c")
-        buf.write(u"\3\2\2\2\u008c\u008e\3\2\2\2\u008d\u008f\5\f\7\2\u008e")
-        buf.write(u"\u008d\3\2\2\2\u008f\u0090\3\2\2\2\u0090\u008e\3\2\2")
-        buf.write(u"\2\u0090\u0091\3\2\2\2\u0091\t\3\2\2\2\u0092\u0093\7")
-        buf.write(u"#\2\2\u0093\13\3\2\2\2\u0094\u0095\7$\2\2\u0095\r\3\2")
-        buf.write(u"\2\2\u0096\u0099\5\20\t\2\u0097\u0099\5H%\2\u0098\u0096")
-        buf.write(u"\3\2\2\2\u0098\u0097\3\2\2\2\u0099\17\3\2\2\2\u009a\u009b")
-        buf.write(u"\7+\2\2\u009b\u009e\7$\2\2\u009c\u009d\7\37\2\2\u009d")
-        buf.write(u"\u009f\7$\2\2\u009e\u009c\3\2\2\2\u009e\u009f\3\2\2\2")
-        buf.write(u"\u009f\u00a0\3\2\2\2\u00a0\u00a1\7,\2\2\u00a1\21\3\2")
-        buf.write(u"\2\2\u00a2\u00a3\7\3\2\2\u00a3\u00af\5\n\6\2\u00a4\u00a5")
-        buf.write(u"\7)\2\2\u00a5\u00aa\5\24\13\2\u00a6\u00a7\7(\2\2\u00a7")
-        buf.write(u"\u00a9\5\24\13\2\u00a8\u00a6\3\2\2\2\u00a9\u00ac\3\2")
-        buf.write(u"\2\2\u00aa\u00a8\3\2\2\2\u00aa\u00ab\3\2\2\2\u00ab\u00ad")
-        buf.write(u"\3\2\2\2\u00ac\u00aa\3\2\2\2\u00ad\u00ae\7*\2\2\u00ae")
-        buf.write(u"\u00b0\3\2\2\2\u00af\u00a4\3\2\2\2\u00af\u00b0\3\2\2")
-        buf.write(u"\2\u00b0\u00b1\3\2\2\2\u00b1\u00b2\7-\2\2\u00b2\u00b3")
-        buf.write(u"\7\63\2\2\u00b3\u00b4\5\26\f\2\u00b4\23\3\2\2\2\u00b5")
-        buf.write(u"\u00b6\7.\2\2\u00b6\u00b7\7#\2\2\u00b7\25\3\2\2\2\u00b8")
-        buf.write(u"\u00b9\5\30\r\2\u00b9\u00ba\7\63\2\2\u00ba\u00bc\3\2")
-        buf.write(u"\2\2\u00bb\u00b8\3\2\2\2\u00bc\u00bf\3\2\2\2\u00bd\u00bb")
-        buf.write(u"\3\2\2\2\u00bd\u00be\3\2\2\2\u00be\u00c0\3\2\2\2\u00bf")
-        buf.write(u"\u00bd\3\2\2\2\u00c0\u00c1\5\30\r\2\u00c1\27\3\2\2\2")
-        buf.write(u"\u00c2\u00c3\7\62\2\2\u00c3\u00c8\5H%\2\u00c4\u00c5\7")
-        buf.write(u"(\2\2\u00c5\u00c7\5H%\2\u00c6\u00c4\3\2\2\2\u00c7\u00ca")
-        buf.write(u"\3\2\2\2\u00c8\u00c6\3\2\2\2\u00c8\u00c9\3\2\2\2\u00c9")
-        buf.write(u"\31\3\2\2\2\u00ca\u00c8\3\2\2\2\u00cb\u00cc\7\4\2\2\u00cc")
-        buf.write(u"\u00d8\5\n\6\2\u00cd\u00ce\7)\2\2\u00ce\u00d3\5\24\13")
-        buf.write(u"\2\u00cf\u00d0\7(\2\2\u00d0\u00d2\5\24\13\2\u00d1\u00cf")
-        buf.write(u"\3\2\2\2\u00d2\u00d5\3\2\2\2\u00d3\u00d1\3\2\2\2\u00d3")
-        buf.write(u"\u00d4\3\2\2\2\u00d4\u00d6\3\2\2\2\u00d5\u00d3\3\2\2")
-        buf.write(u"\2\u00d6\u00d7\7*\2\2\u00d7\u00d9\3\2\2\2\u00d8\u00cd")
-        buf.write(u"\3\2\2\2\u00d8\u00d9\3\2\2\2\u00d9\u00dd\3\2\2\2\u00da")
-        buf.write(u"\u00dc\5\34\17\2\u00db\u00da\3\2\2\2\u00dc\u00df\3\2")
-        buf.write(u"\2\2\u00dd\u00db\3\2\2\2\u00dd\u00de\3\2\2\2\u00de\u00e0")
-        buf.write(u"\3\2\2\2\u00df\u00dd\3\2\2\2\u00e0\u00e1\7-\2\2\u00e1")
-        buf.write(u"\u00e2\7\63\2\2\u00e2\u00e3\5$\23\2\u00e3\33\3\2\2\2")
-        buf.write(u"\u00e4\u00e5\7#\2\2\u00e5\35\3\2\2\2\u00e6\u00e9\5\f")
-        buf.write(u"\7\2\u00e7\u00e9\5\34\17\2\u00e8\u00e6\3\2\2\2\u00e8")
-        buf.write(u"\u00e7\3\2\2\2\u00e9\37\3\2\2\2\u00ea\u00f6\5\n\6\2\u00eb")
-        buf.write(u"\u00ec\7)\2\2\u00ec\u00f1\5\16\b\2\u00ed\u00ee\7(\2\2")
-        buf.write(u"\u00ee\u00f0\5\16\b\2\u00ef\u00ed\3\2\2\2\u00f0\u00f3")
-        buf.write(u"\3\2\2\2\u00f1\u00ef\3\2\2\2\u00f1\u00f2\3\2\2\2\u00f2")
-        buf.write(u"\u00f4\3\2\2\2\u00f3\u00f1\3\2\2\2\u00f4\u00f5\7*\2\2")
-        buf.write(u"\u00f5\u00f7\3\2\2\2\u00f6\u00eb\3\2\2\2\u00f6\u00f7")
-        buf.write(u"\3\2\2\2\u00f7\u00f9\3\2\2\2\u00f8\u00fa\5\36\20\2\u00f9")
-        buf.write(u"\u00f8\3\2\2\2\u00fa\u00fb\3\2\2\2\u00fb\u00f9\3\2\2")
-        buf.write(u"\2\u00fb\u00fc\3\2\2\2\u00fc!\3\2\2\2\u00fd\u0100\5 ")
-        buf.write(u"\21\2\u00fe\u0100\5\6\4\2\u00ff\u00fd\3\2\2\2\u00ff\u00fe")
-        buf.write(u"\3\2\2\2\u0100#\3\2\2\2\u0101\u0102\7\62\2\2\u0102\u0103")
-        buf.write(u"\5\"\22\2\u0103\u0104\7\63\2\2\u0104\u0106\3\2\2\2\u0105")
-        buf.write(u"\u0101\3\2\2\2\u0106\u0109\3\2\2\2\u0107\u0105\3\2\2")
-        buf.write(u"\2\u0107\u0108\3\2\2\2\u0108\u010a\3\2\2\2\u0109\u0107")
-        buf.write(u"\3\2\2\2\u010a\u010b\7\62\2\2\u010b\u010c\5\"\22\2\u010c")
-        buf.write(u"%\3\2\2\2\u010d\u010e\7\5\2\2\u010e\u0110\5\f\7\2\u010f")
-        buf.write(u"\u0111\5(\25\2\u0110\u010f\3\2\2\2\u0110\u0111\3\2\2")
-        buf.write(u"\2\u0111\'\3\2\2\2\u0112\u0113\7+\2\2\u0113\u0114\5*")
-        buf.write(u"\26\2\u0114\u0115\7,\2\2\u0115)\3\2\2\2\u0116\u0118\7")
-        buf.write(u"$\2\2\u0117\u0116\3\2\2\2\u0118\u0119\3\2\2\2\u0119\u0117")
-        buf.write(u"\3\2\2\2\u0119\u011a\3\2\2\2\u011a+\3\2\2\2\u011b\u011c")
-        buf.write(u"\7\6\2\2\u011c\u011d\5.\30\2\u011d-\3\2\2\2\u011e\u011f")
-        buf.write(u"\7/\2\2\u011f\u0120\7#\2\2\u0120/\3\2\2\2\u0121\u0122")
-        buf.write(u"\7\7\2\2\u0122\61\3\2\2\2\u0123\u0124\7\b\2\2\u0124\u0125")
-        buf.write(u"\5.\30\2\u0125\63\3\2\2\2\u0126\u0127\7\t\2\2\u0127\u0128")
-        buf.write(u"\5.\30\2\u0128\u0129\5(\25\2\u0129\65\3\2\2\2\u012a\u012b")
-        buf.write(u"\7\n\2\2\u012b\u012c\5.\30\2\u012c\u012d\5(\25\2\u012d")
-        buf.write(u"\67\3\2\2\2\u012e\u012f\7\13\2\2\u012f9\3\2\2\2\u0130")
-        buf.write(u"\u0131\7\f\2\2\u0131;\3\2\2\2\u0132\u0133\t\2\2\2\u0133")
-        buf.write(u"\u0134\5(\25\2\u0134=\3\2\2\2\u0135\u0136\t\3\2\2\u0136")
-        buf.write(u"\u0137\5(\25\2\u0137\u0138\5(\25\2\u0138?\3\2\2\2\u0139")
-        buf.write(u"\u013a\7\r\2\2\u013aA\3\2\2\2\u013b\u013c\7\16\2\2\u013c")
-        buf.write(u"\u013d\7&\2\2\u013dC\3\2\2\2\u013e\u013f\7\17\2\2\u013f")
-        buf.write(u"\u0143\7#\2\2\u0140\u0142\5F$\2\u0141\u0140\3\2\2\2\u0142")
-        buf.write(u"\u0145\3\2\2\2\u0143\u0141\3\2\2\2\u0143\u0144\3\2\2")
-        buf.write(u"\2\u0144\u0147\3\2\2\2\u0145\u0143\3\2\2\2\u0146\u0148")
-        buf.write(u"\7&\2\2\u0147\u0146\3\2\2\2\u0147\u0148\3\2\2\2\u0148")
-        buf.write(u"E\3\2\2\2\u0149\u014a\t\4\2\2\u014aG\3\2\2\2\u014b\u014c")
-        buf.write(u"\b%\1\2\u014c\u014d\7)\2\2\u014d\u014e\5H%\2\u014e\u014f")
-        buf.write(u"\7*\2\2\u014f\u015b\3\2\2\2\u0150\u0151\5L\'\2\u0151")
-        buf.write(u"\u0152\5H%\t\u0152\u015b\3\2\2\2\u0153\u0154\5J&\2\u0154")
-        buf.write(u"\u0155\7)\2\2\u0155\u0156\5H%\2\u0156\u0157\7*\2\2\u0157")
-        buf.write(u"\u015b\3\2\2\2\u0158\u015b\5N(\2\u0159\u015b\5\24\13")
-        buf.write(u"\2\u015a\u014b\3\2\2\2\u015a\u0150\3\2\2\2\u015a\u0153")
-        buf.write(u"\3\2\2\2\u015a\u0158\3\2\2\2\u015a\u0159\3\2\2\2\u015b")
-        buf.write(u"\u0167\3\2\2\2\u015c\u015d\f\b\2\2\u015d\u015e\7\"\2")
-        buf.write(u"\2\u015e\u0166\5H%\b\u015f\u0160\f\7\2\2\u0160\u0161")
-        buf.write(u"\t\5\2\2\u0161\u0166\5H%\b\u0162\u0163\f\6\2\2\u0163")
-        buf.write(u"\u0164\t\6\2\2\u0164\u0166\5H%\7\u0165\u015c\3\2\2\2")
-        buf.write(u"\u0165\u015f\3\2\2\2\u0165\u0162\3\2\2\2\u0166\u0169")
-        buf.write(u"\3\2\2\2\u0167\u0165\3\2\2\2\u0167\u0168\3\2\2\2\u0168")
-        buf.write(u"I\3\2\2\2\u0169\u0167\3\2\2\2\u016a\u016b\t\7\2\2\u016b")
-        buf.write(u"K\3\2\2\2\u016c\u016d\t\6\2\2\u016dM\3\2\2\2\u016e\u0173")
-        buf.write(u"\5R*\2\u016f\u0173\5P)\2\u0170\u0173\7\30\2\2\u0171\u0173")
-        buf.write(u"\7\27\2\2\u0172\u016e\3\2\2\2\u0172\u016f\3\2\2\2\u0172")
-        buf.write(u"\u0170\3\2\2\2\u0172\u0171\3\2\2\2\u0173O\3\2\2\2\u0174")
-        buf.write(u"\u0175\5R*\2\u0175\u0176\7\30\2\2\u0176Q\3\2\2\2\u0177")
-        buf.write(u"\u0178\t\b\2\2\u0178S\3\2\2\2\"UZ_em}\u0086\u008b\u0090")
-        buf.write(u"\u0098\u009e\u00aa\u00af\u00bd\u00c8\u00d3\u00d8\u00dd")
-        buf.write(u"\u00e8\u00f1\u00f6\u00fb\u00ff\u0107\u0110\u0119\u0143")
-        buf.write(u"\u0147\u015a\u0165\u0167\u0172")
+        buf.write(u"\n\5\r\5\16\5\u0090\3\6\3\6\3\7\3\7\3\b\3\b\3\t\3\t\3")
+        buf.write(u"\t\3\t\3\t\3\t\7\t\u009f\n\t\f\t\16\t\u00a2\13\t\3\t")
+        buf.write(u"\3\t\5\t\u00a6\n\t\3\t\3\t\3\t\3\t\3\n\3\n\3\n\3\13\3")
+        buf.write(u"\13\3\13\7\13\u00b2\n\13\f\13\16\13\u00b5\13\13\3\13")
+        buf.write(u"\3\13\3\f\3\f\3\f\3\f\7\f\u00bd\n\f\f\f\16\f\u00c0\13")
+        buf.write(u"\f\3\r\3\r\3\r\3\r\3\r\3\r\7\r\u00c8\n\r\f\r\16\r\u00cb")
+        buf.write(u"\13\r\3\r\3\r\5\r\u00cf\n\r\3\r\7\r\u00d2\n\r\f\r\16")
+        buf.write(u"\r\u00d5\13\r\3\r\3\r\3\r\3\r\3\16\3\16\3\17\3\17\5\17")
+        buf.write(u"\u00df\n\17\3\20\3\20\3\20\3\20\3\20\7\20\u00e6\n\20")
+        buf.write(u"\f\20\16\20\u00e9\13\20\3\20\3\20\5\20\u00ed\n\20\3\20")
+        buf.write(u"\6\20\u00f0\n\20\r\20\16\20\u00f1\3\21\3\21\5\21\u00f6")
+        buf.write(u"\n\21\3\22\3\22\3\22\3\22\7\22\u00fc\n\22\f\22\16\22")
+        buf.write(u"\u00ff\13\22\3\22\3\22\3\22\3\23\3\23\3\23\5\23\u0107")
+        buf.write(u"\n\23\3\24\3\24\3\24\3\24\3\25\6\25\u010e\n\25\r\25\16")
+        buf.write(u"\25\u010f\3\26\3\26\3\26\3\27\3\27\3\27\3\30\3\30\3\31")
+        buf.write(u"\3\31\3\31\3\32\3\32\3\32\3\32\3\33\3\33\3\33\3\33\3")
+        buf.write(u"\34\3\34\3\35\3\35\3\36\3\36\3\36\3\37\3\37\3\37\3\37")
+        buf.write(u"\3 \3 \3!\3!\3!\3\"\3\"\3\"\7\"\u0138\n\"\f\"\16\"\u013b")
+        buf.write(u"\13\"\3\"\5\"\u013e\n\"\3#\3#\3$\3$\3$\3$\3$\3$\3$\3")
+        buf.write(u"$\3$\3$\3$\3$\3$\3$\3$\3$\5$\u0152\n$\3$\3$\3$\3$\3$")
+        buf.write(u"\3$\3$\3$\3$\7$\u015d\n$\f$\16$\u0160\13$\3%\3%\3%\3")
+        buf.write(u"%\3%\3%\3&\3&\3\'\3\'\3(\3(\3(\3(\5(\u0170\n(\3)\3)\3")
+        buf.write(u")\3*\3*\3*\2\3F+\2\4\6\b\n\f\16\20\22\24\26\30\32\34")
+        buf.write(u"\36 \"$&(*,.\60\62\64\668:<>@BDFHJLNPR\2\t\3\2\20\22")
+        buf.write(u"\3\2\23\26\3\2#$\3\2 !\3\2\36\37\3\2\31\35\3\2$%\2\u017f")
+        buf.write(u"\2U\3\2\2\2\4m\3\2\2\2\6}\3\2\2\2\b\177\3\2\2\2\n\u0092")
+        buf.write(u"\3\2\2\2\f\u0094\3\2\2\2\16\u0096\3\2\2\2\20\u0098\3")
+        buf.write(u"\2\2\2\22\u00ab\3\2\2\2\24\u00b3\3\2\2\2\26\u00b8\3\2")
+        buf.write(u"\2\2\30\u00c1\3\2\2\2\32\u00da\3\2\2\2\34\u00de\3\2\2")
+        buf.write(u"\2\36\u00e0\3\2\2\2 \u00f5\3\2\2\2\"\u00fd\3\2\2\2$\u0103")
+        buf.write(u"\3\2\2\2&\u0108\3\2\2\2(\u010d\3\2\2\2*\u0111\3\2\2\2")
+        buf.write(u",\u0114\3\2\2\2.\u0117\3\2\2\2\60\u0119\3\2\2\2\62\u011c")
+        buf.write(u"\3\2\2\2\64\u0120\3\2\2\2\66\u0124\3\2\2\28\u0126\3\2")
+        buf.write(u"\2\2:\u0128\3\2\2\2<\u012b\3\2\2\2>\u012f\3\2\2\2@\u0131")
+        buf.write(u"\3\2\2\2B\u0134\3\2\2\2D\u013f\3\2\2\2F\u0151\3\2\2\2")
+        buf.write(u"H\u0161\3\2\2\2J\u0167\3\2\2\2L\u0169\3\2\2\2N\u016f")
+        buf.write(u"\3\2\2\2P\u0171\3\2\2\2R\u0174\3\2\2\2TV\5\4\3\2UT\3")
+        buf.write(u"\2\2\2UV\3\2\2\2V_\3\2\2\2WY\7\63\2\2XW\3\2\2\2YZ\3\2")
+        buf.write(u"\2\2ZX\3\2\2\2Z[\3\2\2\2[\\\3\2\2\2\\^\5\4\3\2]X\3\2")
+        buf.write(u"\2\2^a\3\2\2\2_]\3\2\2\2_`\3\2\2\2`e\3\2\2\2a_\3\2\2")
+        buf.write(u"\2bd\7\63\2\2cb\3\2\2\2dg\3\2\2\2ec\3\2\2\2ef\3\2\2\2")
+        buf.write(u"fh\3\2\2\2ge\3\2\2\2hi\7\2\2\3i\3\3\2\2\2jn\5\20\t\2")
+        buf.write(u"kn\5\30\r\2ln\5\6\4\2mj\3\2\2\2mk\3\2\2\2ml\3\2\2\2n")
+        buf.write(u"\5\3\2\2\2o~\5\b\5\2p~\5$\23\2q~\5*\26\2r~\5.\30\2s~")
+        buf.write(u"\5\60\31\2t~\5\62\32\2u~\5\64\33\2v~\5\66\34\2w~\58\35")
+        buf.write(u"\2x~\5:\36\2y~\5<\37\2z~\5> \2{~\5@!\2|~\5B\"\2}o\3\2")
+        buf.write(u"\2\2}p\3\2\2\2}q\3\2\2\2}r\3\2\2\2}s\3\2\2\2}t\3\2\2")
+        buf.write(u"\2}u\3\2\2\2}v\3\2\2\2}w\3\2\2\2}x\3\2\2\2}y\3\2\2\2")
+        buf.write(u"}z\3\2\2\2}{\3\2\2\2}|\3\2\2\2~\7\3\2\2\2\177\u008b\5")
+        buf.write(u"\n\6\2\u0080\u0081\7)\2\2\u0081\u0086\5\16\b\2\u0082")
+        buf.write(u"\u0083\7(\2\2\u0083\u0085\5\16\b\2\u0084\u0082\3\2\2")
+        buf.write(u"\2\u0085\u0088\3\2\2\2\u0086\u0084\3\2\2\2\u0086\u0087")
+        buf.write(u"\3\2\2\2\u0087\u0089\3\2\2\2\u0088\u0086\3\2\2\2\u0089")
+        buf.write(u"\u008a\7*\2\2\u008a\u008c\3\2\2\2\u008b\u0080\3\2\2\2")
+        buf.write(u"\u008b\u008c\3\2\2\2\u008c\u008e\3\2\2\2\u008d\u008f")
+        buf.write(u"\5\f\7\2\u008e\u008d\3\2\2\2\u008f\u0090\3\2\2\2\u0090")
+        buf.write(u"\u008e\3\2\2\2\u0090\u0091\3\2\2\2\u0091\t\3\2\2\2\u0092")
+        buf.write(u"\u0093\7#\2\2\u0093\13\3\2\2\2\u0094\u0095\7$\2\2\u0095")
+        buf.write(u"\r\3\2\2\2\u0096\u0097\5F$\2\u0097\17\3\2\2\2\u0098\u0099")
+        buf.write(u"\7\3\2\2\u0099\u00a5\5\n\6\2\u009a\u009b\7)\2\2\u009b")
+        buf.write(u"\u00a0\5\22\n\2\u009c\u009d\7(\2\2\u009d\u009f\5\22\n")
+        buf.write(u"\2\u009e\u009c\3\2\2\2\u009f\u00a2\3\2\2\2\u00a0\u009e")
+        buf.write(u"\3\2\2\2\u00a0\u00a1\3\2\2\2\u00a1\u00a3\3\2\2\2\u00a2")
+        buf.write(u"\u00a0\3\2\2\2\u00a3\u00a4\7*\2\2\u00a4\u00a6\3\2\2\2")
+        buf.write(u"\u00a5\u009a\3\2\2\2\u00a5\u00a6\3\2\2\2\u00a6\u00a7")
+        buf.write(u"\3\2\2\2\u00a7\u00a8\7-\2\2\u00a8\u00a9\7\63\2\2\u00a9")
+        buf.write(u"\u00aa\5\24\13\2\u00aa\21\3\2\2\2\u00ab\u00ac\7.\2\2")
+        buf.write(u"\u00ac\u00ad\7#\2\2\u00ad\23\3\2\2\2\u00ae\u00af\5\26")
+        buf.write(u"\f\2\u00af\u00b0\7\63\2\2\u00b0\u00b2\3\2\2\2\u00b1\u00ae")
+        buf.write(u"\3\2\2\2\u00b2\u00b5\3\2\2\2\u00b3\u00b1\3\2\2\2\u00b3")
+        buf.write(u"\u00b4\3\2\2\2\u00b4\u00b6\3\2\2\2\u00b5\u00b3\3\2\2")
+        buf.write(u"\2\u00b6\u00b7\5\26\f\2\u00b7\25\3\2\2\2\u00b8\u00b9")
+        buf.write(u"\7\62\2\2\u00b9\u00be\5F$\2\u00ba\u00bb\7(\2\2\u00bb")
+        buf.write(u"\u00bd\5F$\2\u00bc\u00ba\3\2\2\2\u00bd\u00c0\3\2\2\2")
+        buf.write(u"\u00be\u00bc\3\2\2\2\u00be\u00bf\3\2\2\2\u00bf\27\3\2")
+        buf.write(u"\2\2\u00c0\u00be\3\2\2\2\u00c1\u00c2\7\4\2\2\u00c2\u00ce")
+        buf.write(u"\5\n\6\2\u00c3\u00c4\7)\2\2\u00c4\u00c9\5\22\n\2\u00c5")
+        buf.write(u"\u00c6\7(\2\2\u00c6\u00c8\5\22\n\2\u00c7\u00c5\3\2\2")
+        buf.write(u"\2\u00c8\u00cb\3\2\2\2\u00c9\u00c7\3\2\2\2\u00c9\u00ca")
+        buf.write(u"\3\2\2\2\u00ca\u00cc\3\2\2\2\u00cb\u00c9\3\2\2\2\u00cc")
+        buf.write(u"\u00cd\7*\2\2\u00cd\u00cf\3\2\2\2\u00ce\u00c3\3\2\2\2")
+        buf.write(u"\u00ce\u00cf\3\2\2\2\u00cf\u00d3\3\2\2\2\u00d0\u00d2")
+        buf.write(u"\5\32\16\2\u00d1\u00d0\3\2\2\2\u00d2\u00d5\3\2\2\2\u00d3")
+        buf.write(u"\u00d1\3\2\2\2\u00d3\u00d4\3\2\2\2\u00d4\u00d6\3\2\2")
+        buf.write(u"\2\u00d5\u00d3\3\2\2\2\u00d6\u00d7\7-\2\2\u00d7\u00d8")
+        buf.write(u"\7\63\2\2\u00d8\u00d9\5\"\22\2\u00d9\31\3\2\2\2\u00da")
+        buf.write(u"\u00db\7#\2\2\u00db\33\3\2\2\2\u00dc\u00df\5\f\7\2\u00dd")
+        buf.write(u"\u00df\5\32\16\2\u00de\u00dc\3\2\2\2\u00de\u00dd\3\2")
+        buf.write(u"\2\2\u00df\35\3\2\2\2\u00e0\u00ec\5\n\6\2\u00e1\u00e2")
+        buf.write(u"\7)\2\2\u00e2\u00e7\5\16\b\2\u00e3\u00e4\7(\2\2\u00e4")
+        buf.write(u"\u00e6\5\16\b\2\u00e5\u00e3\3\2\2\2\u00e6\u00e9\3\2\2")
+        buf.write(u"\2\u00e7\u00e5\3\2\2\2\u00e7\u00e8\3\2\2\2\u00e8\u00ea")
+        buf.write(u"\3\2\2\2\u00e9\u00e7\3\2\2\2\u00ea\u00eb\7*\2\2\u00eb")
+        buf.write(u"\u00ed\3\2\2\2\u00ec\u00e1\3\2\2\2\u00ec\u00ed\3\2\2")
+        buf.write(u"\2\u00ed\u00ef\3\2\2\2\u00ee\u00f0\5\34\17\2\u00ef\u00ee")
+        buf.write(u"\3\2\2\2\u00f0\u00f1\3\2\2\2\u00f1\u00ef\3\2\2\2\u00f1")
+        buf.write(u"\u00f2\3\2\2\2\u00f2\37\3\2\2\2\u00f3\u00f6\5\36\20\2")
+        buf.write(u"\u00f4\u00f6\5\6\4\2\u00f5\u00f3\3\2\2\2\u00f5\u00f4")
+        buf.write(u"\3\2\2\2\u00f6!\3\2\2\2\u00f7\u00f8\7\62\2\2\u00f8\u00f9")
+        buf.write(u"\5 \21\2\u00f9\u00fa\7\63\2\2\u00fa\u00fc\3\2\2\2\u00fb")
+        buf.write(u"\u00f7\3\2\2\2\u00fc\u00ff\3\2\2\2\u00fd\u00fb\3\2\2")
+        buf.write(u"\2\u00fd\u00fe\3\2\2\2\u00fe\u0100\3\2\2\2\u00ff\u00fd")
+        buf.write(u"\3\2\2\2\u0100\u0101\7\62\2\2\u0101\u0102\5 \21\2\u0102")
+        buf.write(u"#\3\2\2\2\u0103\u0104\7\5\2\2\u0104\u0106\5\f\7\2\u0105")
+        buf.write(u"\u0107\5&\24\2\u0106\u0105\3\2\2\2\u0106\u0107\3\2\2")
+        buf.write(u"\2\u0107%\3\2\2\2\u0108\u0109\7+\2\2\u0109\u010a\5(\25")
+        buf.write(u"\2\u010a\u010b\7,\2\2\u010b\'\3\2\2\2\u010c\u010e\7$")
+        buf.write(u"\2\2\u010d\u010c\3\2\2\2\u010e\u010f\3\2\2\2\u010f\u010d")
+        buf.write(u"\3\2\2\2\u010f\u0110\3\2\2\2\u0110)\3\2\2\2\u0111\u0112")
+        buf.write(u"\7\6\2\2\u0112\u0113\5,\27\2\u0113+\3\2\2\2\u0114\u0115")
+        buf.write(u"\7/\2\2\u0115\u0116\7#\2\2\u0116-\3\2\2\2\u0117\u0118")
+        buf.write(u"\7\7\2\2\u0118/\3\2\2\2\u0119\u011a\7\b\2\2\u011a\u011b")
+        buf.write(u"\5,\27\2\u011b\61\3\2\2\2\u011c\u011d\7\t\2\2\u011d\u011e")
+        buf.write(u"\5,\27\2\u011e\u011f\5&\24\2\u011f\63\3\2\2\2\u0120\u0121")
+        buf.write(u"\7\n\2\2\u0121\u0122\5,\27\2\u0122\u0123\5&\24\2\u0123")
+        buf.write(u"\65\3\2\2\2\u0124\u0125\7\13\2\2\u0125\67\3\2\2\2\u0126")
+        buf.write(u"\u0127\7\f\2\2\u01279\3\2\2\2\u0128\u0129\t\2\2\2\u0129")
+        buf.write(u"\u012a\5&\24\2\u012a;\3\2\2\2\u012b\u012c\t\3\2\2\u012c")
+        buf.write(u"\u012d\5&\24\2\u012d\u012e\5&\24\2\u012e=\3\2\2\2\u012f")
+        buf.write(u"\u0130\7\r\2\2\u0130?\3\2\2\2\u0131\u0132\7\16\2\2\u0132")
+        buf.write(u"\u0133\7&\2\2\u0133A\3\2\2\2\u0134\u0135\7\17\2\2\u0135")
+        buf.write(u"\u0139\7#\2\2\u0136\u0138\5D#\2\u0137\u0136\3\2\2\2\u0138")
+        buf.write(u"\u013b\3\2\2\2\u0139\u0137\3\2\2\2\u0139\u013a\3\2\2")
+        buf.write(u"\2\u013a\u013d\3\2\2\2\u013b\u0139\3\2\2\2\u013c\u013e")
+        buf.write(u"\7&\2\2\u013d\u013c\3\2\2\2\u013d\u013e\3\2\2\2\u013e")
+        buf.write(u"C\3\2\2\2\u013f\u0140\t\4\2\2\u0140E\3\2\2\2\u0141\u0142")
+        buf.write(u"\b$\1\2\u0142\u0143\7)\2\2\u0143\u0144\5F$\2\u0144\u0145")
+        buf.write(u"\7*\2\2\u0145\u0152\3\2\2\2\u0146\u0147\5L\'\2\u0147")
+        buf.write(u"\u0148\5F$\n\u0148\u0152\3\2\2\2\u0149\u014a\5J&\2\u014a")
+        buf.write(u"\u014b\7)\2\2\u014b\u014c\5F$\2\u014c\u014d\7*\2\2\u014d")
+        buf.write(u"\u0152\3\2\2\2\u014e\u0152\5H%\2\u014f\u0152\5N(\2\u0150")
+        buf.write(u"\u0152\5\22\n\2\u0151\u0141\3\2\2\2\u0151\u0146\3\2\2")
+        buf.write(u"\2\u0151\u0149\3\2\2\2\u0151\u014e\3\2\2\2\u0151\u014f")
+        buf.write(u"\3\2\2\2\u0151\u0150\3\2\2\2\u0152\u015e\3\2\2\2\u0153")
+        buf.write(u"\u0154\f\t\2\2\u0154\u0155\7\"\2\2\u0155\u015d\5F$\t")
+        buf.write(u"\u0156\u0157\f\b\2\2\u0157\u0158\t\5\2\2\u0158\u015d")
+        buf.write(u"\5F$\t\u0159\u015a\f\7\2\2\u015a\u015b\t\6\2\2\u015b")
+        buf.write(u"\u015d\5F$\b\u015c\u0153\3\2\2\2\u015c\u0156\3\2\2\2")
+        buf.write(u"\u015c\u0159\3\2\2\2\u015d\u0160\3\2\2\2\u015e\u015c")
+        buf.write(u"\3\2\2\2\u015e\u015f\3\2\2\2\u015fG\3\2\2\2\u0160\u015e")
+        buf.write(u"\3\2\2\2\u0161\u0162\7+\2\2\u0162\u0163\7$\2\2\u0163")
+        buf.write(u"\u0164\7\37\2\2\u0164\u0165\7$\2\2\u0165\u0166\7,\2\2")
+        buf.write(u"\u0166I\3\2\2\2\u0167\u0168\t\7\2\2\u0168K\3\2\2\2\u0169")
+        buf.write(u"\u016a\t\6\2\2\u016aM\3\2\2\2\u016b\u0170\5R*\2\u016c")
+        buf.write(u"\u0170\5P)\2\u016d\u0170\7\30\2\2\u016e\u0170\7\27\2")
+        buf.write(u"\2\u016f\u016b\3\2\2\2\u016f\u016c\3\2\2\2\u016f\u016d")
+        buf.write(u"\3\2\2\2\u016f\u016e\3\2\2\2\u0170O\3\2\2\2\u0171\u0172")
+        buf.write(u"\5R*\2\u0172\u0173\7\30\2\2\u0173Q\3\2\2\2\u0174\u0175")
+        buf.write(u"\t\b\2\2\u0175S\3\2\2\2 UZ_em}\u0086\u008b\u0090\u00a0")
+        buf.write(u"\u00a5\u00b3\u00be\u00c9\u00ce\u00d3\u00de\u00e7\u00ec")
+        buf.write(u"\u00f1\u00f5\u00fd\u0106\u010f\u0139\u013d\u0151\u015c")
+        buf.write(u"\u015e\u016f")
         return buf.getvalue()
 
 
@@ -217,35 +215,35 @@ class QuilParser ( Parser ):
     RULE_name = 4
     RULE_qubit = 5
     RULE_param = 6
-    RULE_dynamicParam = 7
-    RULE_defGate = 8
-    RULE_variable = 9
-    RULE_matrix = 10
-    RULE_matrixRow = 11
-    RULE_defCircuit = 12
-    RULE_qubitVariable = 13
-    RULE_circuitQubit = 14
-    RULE_circuitGate = 15
-    RULE_circuitInstr = 16
-    RULE_circuit = 17
-    RULE_measure = 18
-    RULE_addr = 19
-    RULE_classicalBit = 20
-    RULE_defLabel = 21
-    RULE_label = 22
-    RULE_halt = 23
-    RULE_jump = 24
-    RULE_jumpWhen = 25
-    RULE_jumpUnless = 26
-    RULE_resetState = 27
-    RULE_wait = 28
-    RULE_classicalUnary = 29
-    RULE_classicalBinary = 30
-    RULE_nop = 31
-    RULE_include = 32
-    RULE_pragma = 33
-    RULE_pragma_name = 34
-    RULE_expression = 35
+    RULE_defGate = 7
+    RULE_variable = 8
+    RULE_matrix = 9
+    RULE_matrixRow = 10
+    RULE_defCircuit = 11
+    RULE_qubitVariable = 12
+    RULE_circuitQubit = 13
+    RULE_circuitGate = 14
+    RULE_circuitInstr = 15
+    RULE_circuit = 16
+    RULE_measure = 17
+    RULE_addr = 18
+    RULE_classicalBit = 19
+    RULE_defLabel = 20
+    RULE_label = 21
+    RULE_halt = 22
+    RULE_jump = 23
+    RULE_jumpWhen = 24
+    RULE_jumpUnless = 25
+    RULE_resetState = 26
+    RULE_wait = 27
+    RULE_classicalUnary = 28
+    RULE_classicalBinary = 29
+    RULE_nop = 30
+    RULE_include = 31
+    RULE_pragma = 32
+    RULE_pragma_name = 33
+    RULE_expression = 34
+    RULE_segment = 35
     RULE_function = 36
     RULE_sign = 37
     RULE_number = 38
@@ -253,14 +251,14 @@ class QuilParser ( Parser ):
     RULE_realN = 40
 
     ruleNames =  [ u"quil", u"allInstr", u"instr", u"gate", u"name", u"qubit", 
-                   u"param", u"dynamicParam", u"defGate", u"variable", u"matrix", 
-                   u"matrixRow", u"defCircuit", u"qubitVariable", u"circuitQubit", 
-                   u"circuitGate", u"circuitInstr", u"circuit", u"measure", 
-                   u"addr", u"classicalBit", u"defLabel", u"label", u"halt", 
-                   u"jump", u"jumpWhen", u"jumpUnless", u"resetState", u"wait", 
-                   u"classicalUnary", u"classicalBinary", u"nop", u"include", 
-                   u"pragma", u"pragma_name", u"expression", u"function", 
-                   u"sign", u"number", u"imaginaryN", u"realN" ]
+                   u"param", u"defGate", u"variable", u"matrix", u"matrixRow", 
+                   u"defCircuit", u"qubitVariable", u"circuitQubit", u"circuitGate", 
+                   u"circuitInstr", u"circuit", u"measure", u"addr", u"classicalBit", 
+                   u"defLabel", u"label", u"halt", u"jump", u"jumpWhen", 
+                   u"jumpUnless", u"resetState", u"wait", u"classicalUnary", 
+                   u"classicalBinary", u"nop", u"include", u"pragma", u"pragma_name", 
+                   u"expression", u"segment", u"function", u"sign", u"number", 
+                   u"imaginaryN", u"realN" ]
 
     EOF = Token.EOF
     DEFGATE=1
@@ -836,10 +834,6 @@ class QuilParser ( Parser ):
             super(QuilParser.ParamContext, self).__init__(parent, invokingState)
             self.parser = parser
 
-        def dynamicParam(self):
-            return self.getTypedRuleContext(QuilParser.DynamicParamContext,0)
-
-
         def expression(self):
             return self.getTypedRuleContext(QuilParser.ExpressionContext,0)
 
@@ -863,88 +857,9 @@ class QuilParser ( Parser ):
         localctx = QuilParser.ParamContext(self, self._ctx, self.state)
         self.enterRule(localctx, 12, self.RULE_param)
         try:
-            self.state = 150
-            self._errHandler.sync(self)
-            token = self._input.LA(1)
-            if token in [QuilParser.LBRACKET]:
-                self.enterOuterAlt(localctx, 1)
-                self.state = 148
-                self.dynamicParam()
-                pass
-            elif token in [QuilParser.PI, QuilParser.I, QuilParser.SIN, QuilParser.COS, QuilParser.SQRT, QuilParser.EXP, QuilParser.CIS, QuilParser.PLUS, QuilParser.MINUS, QuilParser.INT, QuilParser.FLOAT, QuilParser.LPAREN, QuilParser.PERCENTAGE]:
-                self.enterOuterAlt(localctx, 2)
-                self.state = 149
-                self.expression(0)
-                pass
-            else:
-                raise NoViableAltException(self)
-
-        except RecognitionException as re:
-            localctx.exception = re
-            self._errHandler.reportError(self, re)
-            self._errHandler.recover(self, re)
-        finally:
-            self.exitRule()
-        return localctx
-
-    class DynamicParamContext(ParserRuleContext):
-
-        def __init__(self, parser, parent=None, invokingState=-1):
-            super(QuilParser.DynamicParamContext, self).__init__(parent, invokingState)
-            self.parser = parser
-
-        def LBRACKET(self):
-            return self.getToken(QuilParser.LBRACKET, 0)
-
-        def INT(self, i=None):
-            if i is None:
-                return self.getTokens(QuilParser.INT)
-            else:
-                return self.getToken(QuilParser.INT, i)
-
-        def RBRACKET(self):
-            return self.getToken(QuilParser.RBRACKET, 0)
-
-        def MINUS(self):
-            return self.getToken(QuilParser.MINUS, 0)
-
-        def getRuleIndex(self):
-            return QuilParser.RULE_dynamicParam
-
-        def enterRule(self, listener):
-            if hasattr(listener, "enterDynamicParam"):
-                listener.enterDynamicParam(self)
-
-        def exitRule(self, listener):
-            if hasattr(listener, "exitDynamicParam"):
-                listener.exitDynamicParam(self)
-
-
-
-
-    def dynamicParam(self):
-
-        localctx = QuilParser.DynamicParamContext(self, self._ctx, self.state)
-        self.enterRule(localctx, 14, self.RULE_dynamicParam)
-        self._la = 0 # Token type
-        try:
             self.enterOuterAlt(localctx, 1)
-            self.state = 152
-            self.match(QuilParser.LBRACKET)
-            self.state = 153
-            self.match(QuilParser.INT)
-            self.state = 156
-            self._errHandler.sync(self)
-            _la = self._input.LA(1)
-            if _la==QuilParser.MINUS:
-                self.state = 154
-                self.match(QuilParser.MINUS)
-                self.state = 155
-                self.match(QuilParser.INT)
-
-
-            self.state = 158
-            self.match(QuilParser.RBRACKET)
+            self.state = 148
+            self.expression(0)
         except RecognitionException as re:
             localctx.exception = re
             self._errHandler.reportError(self, re)
@@ -1012,43 +927,43 @@ class QuilParser ( Parser ):
     def defGate(self):
 
         localctx = QuilParser.DefGateContext(self, self._ctx, self.state)
-        self.enterRule(localctx, 16, self.RULE_defGate)
+        self.enterRule(localctx, 14, self.RULE_defGate)
         self._la = 0 # Token type
         try:
             self.enterOuterAlt(localctx, 1)
-            self.state = 160
+            self.state = 150
             self.match(QuilParser.DEFGATE)
-            self.state = 161
+            self.state = 151
             self.name()
-            self.state = 173
+            self.state = 163
             self._errHandler.sync(self)
             _la = self._input.LA(1)
             if _la==QuilParser.LPAREN:
-                self.state = 162
+                self.state = 152
                 self.match(QuilParser.LPAREN)
-                self.state = 163
+                self.state = 153
                 self.variable()
-                self.state = 168
+                self.state = 158
                 self._errHandler.sync(self)
                 _la = self._input.LA(1)
                 while _la==QuilParser.COMMA:
-                    self.state = 164
+                    self.state = 154
                     self.match(QuilParser.COMMA)
-                    self.state = 165
+                    self.state = 155
                     self.variable()
-                    self.state = 170
+                    self.state = 160
                     self._errHandler.sync(self)
                     _la = self._input.LA(1)
 
-                self.state = 171
+                self.state = 161
                 self.match(QuilParser.RPAREN)
 
 
-            self.state = 175
+            self.state = 165
             self.match(QuilParser.COLON)
-            self.state = 176
+            self.state = 166
             self.match(QuilParser.NEWLINE)
-            self.state = 177
+            self.state = 167
             self.matrix()
         except RecognitionException as re:
             localctx.exception = re
@@ -1087,12 +1002,12 @@ class QuilParser ( Parser ):
     def variable(self):
 
         localctx = QuilParser.VariableContext(self, self._ctx, self.state)
-        self.enterRule(localctx, 18, self.RULE_variable)
+        self.enterRule(localctx, 16, self.RULE_variable)
         try:
             self.enterOuterAlt(localctx, 1)
-            self.state = 179
+            self.state = 169
             self.match(QuilParser.PERCENTAGE)
-            self.state = 180
+            self.state = 170
             self.match(QuilParser.IDENTIFIER)
         except RecognitionException as re:
             localctx.exception = re
@@ -1138,23 +1053,23 @@ class QuilParser ( Parser ):
     def matrix(self):
 
         localctx = QuilParser.MatrixContext(self, self._ctx, self.state)
-        self.enterRule(localctx, 20, self.RULE_matrix)
+        self.enterRule(localctx, 18, self.RULE_matrix)
         try:
             self.enterOuterAlt(localctx, 1)
-            self.state = 187
+            self.state = 177
             self._errHandler.sync(self)
-            _alt = self._interp.adaptivePredict(self._input,13,self._ctx)
+            _alt = self._interp.adaptivePredict(self._input,11,self._ctx)
             while _alt!=2 and _alt!=ATN.INVALID_ALT_NUMBER:
                 if _alt==1:
-                    self.state = 182
+                    self.state = 172
                     self.matrixRow()
-                    self.state = 183
+                    self.state = 173
                     self.match(QuilParser.NEWLINE) 
-                self.state = 189
+                self.state = 179
                 self._errHandler.sync(self)
-                _alt = self._interp.adaptivePredict(self._input,13,self._ctx)
+                _alt = self._interp.adaptivePredict(self._input,11,self._ctx)
 
-            self.state = 190
+            self.state = 180
             self.matrixRow()
         except RecognitionException as re:
             localctx.exception = re
@@ -1203,23 +1118,23 @@ class QuilParser ( Parser ):
     def matrixRow(self):
 
         localctx = QuilParser.MatrixRowContext(self, self._ctx, self.state)
-        self.enterRule(localctx, 22, self.RULE_matrixRow)
+        self.enterRule(localctx, 20, self.RULE_matrixRow)
         self._la = 0 # Token type
         try:
             self.enterOuterAlt(localctx, 1)
-            self.state = 192
+            self.state = 182
             self.match(QuilParser.TAB)
-            self.state = 193
+            self.state = 183
             self.expression(0)
-            self.state = 198
+            self.state = 188
             self._errHandler.sync(self)
             _la = self._input.LA(1)
             while _la==QuilParser.COMMA:
-                self.state = 194
+                self.state = 184
                 self.match(QuilParser.COMMA)
-                self.state = 195
+                self.state = 185
                 self.expression(0)
-                self.state = 200
+                self.state = 190
                 self._errHandler.sync(self)
                 _la = self._input.LA(1)
 
@@ -1297,53 +1212,53 @@ class QuilParser ( Parser ):
     def defCircuit(self):
 
         localctx = QuilParser.DefCircuitContext(self, self._ctx, self.state)
-        self.enterRule(localctx, 24, self.RULE_defCircuit)
+        self.enterRule(localctx, 22, self.RULE_defCircuit)
         self._la = 0 # Token type
         try:
             self.enterOuterAlt(localctx, 1)
-            self.state = 201
+            self.state = 191
             self.match(QuilParser.DEFCIRCUIT)
-            self.state = 202
+            self.state = 192
             self.name()
-            self.state = 214
+            self.state = 204
             self._errHandler.sync(self)
             _la = self._input.LA(1)
             if _la==QuilParser.LPAREN:
-                self.state = 203
+                self.state = 193
                 self.match(QuilParser.LPAREN)
-                self.state = 204
+                self.state = 194
                 self.variable()
-                self.state = 209
+                self.state = 199
                 self._errHandler.sync(self)
                 _la = self._input.LA(1)
                 while _la==QuilParser.COMMA:
-                    self.state = 205
+                    self.state = 195
                     self.match(QuilParser.COMMA)
-                    self.state = 206
+                    self.state = 196
                     self.variable()
-                    self.state = 211
+                    self.state = 201
                     self._errHandler.sync(self)
                     _la = self._input.LA(1)
 
-                self.state = 212
+                self.state = 202
                 self.match(QuilParser.RPAREN)
 
 
-            self.state = 219
+            self.state = 209
             self._errHandler.sync(self)
             _la = self._input.LA(1)
             while _la==QuilParser.IDENTIFIER:
-                self.state = 216
+                self.state = 206
                 self.qubitVariable()
-                self.state = 221
+                self.state = 211
                 self._errHandler.sync(self)
                 _la = self._input.LA(1)
 
-            self.state = 222
+            self.state = 212
             self.match(QuilParser.COLON)
-            self.state = 223
+            self.state = 213
             self.match(QuilParser.NEWLINE)
-            self.state = 224
+            self.state = 214
             self.circuit()
         except RecognitionException as re:
             localctx.exception = re
@@ -1379,10 +1294,10 @@ class QuilParser ( Parser ):
     def qubitVariable(self):
 
         localctx = QuilParser.QubitVariableContext(self, self._ctx, self.state)
-        self.enterRule(localctx, 26, self.RULE_qubitVariable)
+        self.enterRule(localctx, 24, self.RULE_qubitVariable)
         try:
             self.enterOuterAlt(localctx, 1)
-            self.state = 226
+            self.state = 216
             self.match(QuilParser.IDENTIFIER)
         except RecognitionException as re:
             localctx.exception = re
@@ -1423,19 +1338,19 @@ class QuilParser ( Parser ):
     def circuitQubit(self):
 
         localctx = QuilParser.CircuitQubitContext(self, self._ctx, self.state)
-        self.enterRule(localctx, 28, self.RULE_circuitQubit)
+        self.enterRule(localctx, 26, self.RULE_circuitQubit)
         try:
-            self.state = 230
+            self.state = 220
             self._errHandler.sync(self)
             token = self._input.LA(1)
             if token in [QuilParser.INT]:
                 self.enterOuterAlt(localctx, 1)
-                self.state = 228
+                self.state = 218
                 self.qubit()
                 pass
             elif token in [QuilParser.IDENTIFIER]:
                 self.enterOuterAlt(localctx, 2)
-                self.state = 229
+                self.state = 219
                 self.qubitVariable()
                 pass
             else:
@@ -1502,43 +1417,43 @@ class QuilParser ( Parser ):
     def circuitGate(self):
 
         localctx = QuilParser.CircuitGateContext(self, self._ctx, self.state)
-        self.enterRule(localctx, 30, self.RULE_circuitGate)
+        self.enterRule(localctx, 28, self.RULE_circuitGate)
         self._la = 0 # Token type
         try:
             self.enterOuterAlt(localctx, 1)
-            self.state = 232
+            self.state = 222
             self.name()
-            self.state = 244
+            self.state = 234
             self._errHandler.sync(self)
             _la = self._input.LA(1)
             if _la==QuilParser.LPAREN:
-                self.state = 233
+                self.state = 223
                 self.match(QuilParser.LPAREN)
-                self.state = 234
+                self.state = 224
                 self.param()
-                self.state = 239
+                self.state = 229
                 self._errHandler.sync(self)
                 _la = self._input.LA(1)
                 while _la==QuilParser.COMMA:
-                    self.state = 235
+                    self.state = 225
                     self.match(QuilParser.COMMA)
-                    self.state = 236
+                    self.state = 226
                     self.param()
-                    self.state = 241
+                    self.state = 231
                     self._errHandler.sync(self)
                     _la = self._input.LA(1)
 
-                self.state = 242
+                self.state = 232
                 self.match(QuilParser.RPAREN)
 
 
-            self.state = 247 
+            self.state = 237 
             self._errHandler.sync(self)
             _la = self._input.LA(1)
             while True:
-                self.state = 246
+                self.state = 236
                 self.circuitQubit()
-                self.state = 249 
+                self.state = 239 
                 self._errHandler.sync(self)
                 _la = self._input.LA(1)
                 if not (_la==QuilParser.IDENTIFIER or _la==QuilParser.INT):
@@ -1583,20 +1498,20 @@ class QuilParser ( Parser ):
     def circuitInstr(self):
 
         localctx = QuilParser.CircuitInstrContext(self, self._ctx, self.state)
-        self.enterRule(localctx, 32, self.RULE_circuitInstr)
+        self.enterRule(localctx, 30, self.RULE_circuitInstr)
         try:
-            self.state = 253
+            self.state = 243
             self._errHandler.sync(self)
-            la_ = self._interp.adaptivePredict(self._input,22,self._ctx)
+            la_ = self._interp.adaptivePredict(self._input,20,self._ctx)
             if la_ == 1:
                 self.enterOuterAlt(localctx, 1)
-                self.state = 251
+                self.state = 241
                 self.circuitGate()
                 pass
 
             elif la_ == 2:
                 self.enterOuterAlt(localctx, 2)
-                self.state = 252
+                self.state = 242
                 self.instr()
                 pass
 
@@ -1651,27 +1566,27 @@ class QuilParser ( Parser ):
     def circuit(self):
 
         localctx = QuilParser.CircuitContext(self, self._ctx, self.state)
-        self.enterRule(localctx, 34, self.RULE_circuit)
+        self.enterRule(localctx, 32, self.RULE_circuit)
         try:
             self.enterOuterAlt(localctx, 1)
-            self.state = 261
+            self.state = 251
             self._errHandler.sync(self)
-            _alt = self._interp.adaptivePredict(self._input,23,self._ctx)
+            _alt = self._interp.adaptivePredict(self._input,21,self._ctx)
             while _alt!=2 and _alt!=ATN.INVALID_ALT_NUMBER:
                 if _alt==1:
-                    self.state = 255
+                    self.state = 245
                     self.match(QuilParser.TAB)
-                    self.state = 256
+                    self.state = 246
                     self.circuitInstr()
-                    self.state = 257
+                    self.state = 247
                     self.match(QuilParser.NEWLINE) 
-                self.state = 263
+                self.state = 253
                 self._errHandler.sync(self)
-                _alt = self._interp.adaptivePredict(self._input,23,self._ctx)
+                _alt = self._interp.adaptivePredict(self._input,21,self._ctx)
 
-            self.state = 264
+            self.state = 254
             self.match(QuilParser.TAB)
-            self.state = 265
+            self.state = 255
             self.circuitInstr()
         except RecognitionException as re:
             localctx.exception = re
@@ -1715,19 +1630,19 @@ class QuilParser ( Parser ):
     def measure(self):
 
         localctx = QuilParser.MeasureContext(self, self._ctx, self.state)
-        self.enterRule(localctx, 36, self.RULE_measure)
+        self.enterRule(localctx, 34, self.RULE_measure)
         self._la = 0 # Token type
         try:
             self.enterOuterAlt(localctx, 1)
-            self.state = 267
+            self.state = 257
             self.match(QuilParser.MEASURE)
-            self.state = 268
+            self.state = 258
             self.qubit()
-            self.state = 270
+            self.state = 260
             self._errHandler.sync(self)
             _la = self._input.LA(1)
             if _la==QuilParser.LBRACKET:
-                self.state = 269
+                self.state = 259
                 self.addr()
 
 
@@ -1772,14 +1687,14 @@ class QuilParser ( Parser ):
     def addr(self):
 
         localctx = QuilParser.AddrContext(self, self._ctx, self.state)
-        self.enterRule(localctx, 38, self.RULE_addr)
+        self.enterRule(localctx, 36, self.RULE_addr)
         try:
             self.enterOuterAlt(localctx, 1)
-            self.state = 272
+            self.state = 262
             self.match(QuilParser.LBRACKET)
-            self.state = 273
+            self.state = 263
             self.classicalBit()
-            self.state = 274
+            self.state = 264
             self.match(QuilParser.RBRACKET)
         except RecognitionException as re:
             localctx.exception = re
@@ -1818,17 +1733,17 @@ class QuilParser ( Parser ):
     def classicalBit(self):
 
         localctx = QuilParser.ClassicalBitContext(self, self._ctx, self.state)
-        self.enterRule(localctx, 40, self.RULE_classicalBit)
+        self.enterRule(localctx, 38, self.RULE_classicalBit)
         self._la = 0 # Token type
         try:
             self.enterOuterAlt(localctx, 1)
-            self.state = 277 
+            self.state = 267 
             self._errHandler.sync(self)
             _la = self._input.LA(1)
             while True:
-                self.state = 276
+                self.state = 266
                 self.match(QuilParser.INT)
-                self.state = 279 
+                self.state = 269 
                 self._errHandler.sync(self)
                 _la = self._input.LA(1)
                 if not (_la==QuilParser.INT):
@@ -1872,12 +1787,12 @@ class QuilParser ( Parser ):
     def defLabel(self):
 
         localctx = QuilParser.DefLabelContext(self, self._ctx, self.state)
-        self.enterRule(localctx, 42, self.RULE_defLabel)
+        self.enterRule(localctx, 40, self.RULE_defLabel)
         try:
             self.enterOuterAlt(localctx, 1)
-            self.state = 281
+            self.state = 271
             self.match(QuilParser.LABEL)
-            self.state = 282
+            self.state = 272
             self.label()
         except RecognitionException as re:
             localctx.exception = re
@@ -1916,12 +1831,12 @@ class QuilParser ( Parser ):
     def label(self):
 
         localctx = QuilParser.LabelContext(self, self._ctx, self.state)
-        self.enterRule(localctx, 44, self.RULE_label)
+        self.enterRule(localctx, 42, self.RULE_label)
         try:
             self.enterOuterAlt(localctx, 1)
-            self.state = 284
+            self.state = 274
             self.match(QuilParser.AT)
-            self.state = 285
+            self.state = 275
             self.match(QuilParser.IDENTIFIER)
         except RecognitionException as re:
             localctx.exception = re
@@ -1957,10 +1872,10 @@ class QuilParser ( Parser ):
     def halt(self):
 
         localctx = QuilParser.HaltContext(self, self._ctx, self.state)
-        self.enterRule(localctx, 46, self.RULE_halt)
+        self.enterRule(localctx, 44, self.RULE_halt)
         try:
             self.enterOuterAlt(localctx, 1)
-            self.state = 287
+            self.state = 277
             self.match(QuilParser.HALT)
         except RecognitionException as re:
             localctx.exception = re
@@ -2000,12 +1915,12 @@ class QuilParser ( Parser ):
     def jump(self):
 
         localctx = QuilParser.JumpContext(self, self._ctx, self.state)
-        self.enterRule(localctx, 48, self.RULE_jump)
+        self.enterRule(localctx, 46, self.RULE_jump)
         try:
             self.enterOuterAlt(localctx, 1)
-            self.state = 289
+            self.state = 279
             self.match(QuilParser.JUMP)
-            self.state = 290
+            self.state = 280
             self.label()
         except RecognitionException as re:
             localctx.exception = re
@@ -2049,14 +1964,14 @@ class QuilParser ( Parser ):
     def jumpWhen(self):
 
         localctx = QuilParser.JumpWhenContext(self, self._ctx, self.state)
-        self.enterRule(localctx, 50, self.RULE_jumpWhen)
+        self.enterRule(localctx, 48, self.RULE_jumpWhen)
         try:
             self.enterOuterAlt(localctx, 1)
-            self.state = 292
+            self.state = 282
             self.match(QuilParser.JUMPWHEN)
-            self.state = 293
+            self.state = 283
             self.label()
-            self.state = 294
+            self.state = 284
             self.addr()
         except RecognitionException as re:
             localctx.exception = re
@@ -2100,14 +2015,14 @@ class QuilParser ( Parser ):
     def jumpUnless(self):
 
         localctx = QuilParser.JumpUnlessContext(self, self._ctx, self.state)
-        self.enterRule(localctx, 52, self.RULE_jumpUnless)
+        self.enterRule(localctx, 50, self.RULE_jumpUnless)
         try:
             self.enterOuterAlt(localctx, 1)
-            self.state = 296
+            self.state = 286
             self.match(QuilParser.JUMPUNLESS)
-            self.state = 297
+            self.state = 287
             self.label()
-            self.state = 298
+            self.state = 288
             self.addr()
         except RecognitionException as re:
             localctx.exception = re
@@ -2143,10 +2058,10 @@ class QuilParser ( Parser ):
     def resetState(self):
 
         localctx = QuilParser.ResetStateContext(self, self._ctx, self.state)
-        self.enterRule(localctx, 54, self.RULE_resetState)
+        self.enterRule(localctx, 52, self.RULE_resetState)
         try:
             self.enterOuterAlt(localctx, 1)
-            self.state = 300
+            self.state = 290
             self.match(QuilParser.RESET)
         except RecognitionException as re:
             localctx.exception = re
@@ -2182,10 +2097,10 @@ class QuilParser ( Parser ):
     def wait(self):
 
         localctx = QuilParser.WaitContext(self, self._ctx, self.state)
-        self.enterRule(localctx, 56, self.RULE_wait)
+        self.enterRule(localctx, 54, self.RULE_wait)
         try:
             self.enterOuterAlt(localctx, 1)
-            self.state = 302
+            self.state = 292
             self.match(QuilParser.WAIT)
         except RecognitionException as re:
             localctx.exception = re
@@ -2231,18 +2146,18 @@ class QuilParser ( Parser ):
     def classicalUnary(self):
 
         localctx = QuilParser.ClassicalUnaryContext(self, self._ctx, self.state)
-        self.enterRule(localctx, 58, self.RULE_classicalUnary)
+        self.enterRule(localctx, 56, self.RULE_classicalUnary)
         self._la = 0 # Token type
         try:
             self.enterOuterAlt(localctx, 1)
-            self.state = 304
+            self.state = 294
             _la = self._input.LA(1)
             if not((((_la) & ~0x3f) == 0 and ((1 << _la) & ((1 << QuilParser.FALSE) | (1 << QuilParser.TRUE) | (1 << QuilParser.NOT))) != 0)):
                 self._errHandler.recoverInline(self)
             else:
                 self._errHandler.reportMatch(self)
                 self.consume()
-            self.state = 305
+            self.state = 295
             self.addr()
         except RecognitionException as re:
             localctx.exception = re
@@ -2294,20 +2209,20 @@ class QuilParser ( Parser ):
     def classicalBinary(self):
 
         localctx = QuilParser.ClassicalBinaryContext(self, self._ctx, self.state)
-        self.enterRule(localctx, 60, self.RULE_classicalBinary)
+        self.enterRule(localctx, 58, self.RULE_classicalBinary)
         self._la = 0 # Token type
         try:
             self.enterOuterAlt(localctx, 1)
-            self.state = 307
+            self.state = 297
             _la = self._input.LA(1)
             if not((((_la) & ~0x3f) == 0 and ((1 << _la) & ((1 << QuilParser.AND) | (1 << QuilParser.OR) | (1 << QuilParser.MOVE) | (1 << QuilParser.EXCHANGE))) != 0)):
                 self._errHandler.recoverInline(self)
             else:
                 self._errHandler.reportMatch(self)
                 self.consume()
-            self.state = 308
+            self.state = 298
             self.addr()
-            self.state = 309
+            self.state = 299
             self.addr()
         except RecognitionException as re:
             localctx.exception = re
@@ -2343,10 +2258,10 @@ class QuilParser ( Parser ):
     def nop(self):
 
         localctx = QuilParser.NopContext(self, self._ctx, self.state)
-        self.enterRule(localctx, 62, self.RULE_nop)
+        self.enterRule(localctx, 60, self.RULE_nop)
         try:
             self.enterOuterAlt(localctx, 1)
-            self.state = 311
+            self.state = 301
             self.match(QuilParser.NOP)
         except RecognitionException as re:
             localctx.exception = re
@@ -2385,12 +2300,12 @@ class QuilParser ( Parser ):
     def include(self):
 
         localctx = QuilParser.IncludeContext(self, self._ctx, self.state)
-        self.enterRule(localctx, 64, self.RULE_include)
+        self.enterRule(localctx, 62, self.RULE_include)
         try:
             self.enterOuterAlt(localctx, 1)
-            self.state = 313
+            self.state = 303
             self.match(QuilParser.INCLUDE)
-            self.state = 314
+            self.state = 304
             self.match(QuilParser.STRING)
         except RecognitionException as re:
             localctx.exception = re
@@ -2439,29 +2354,29 @@ class QuilParser ( Parser ):
     def pragma(self):
 
         localctx = QuilParser.PragmaContext(self, self._ctx, self.state)
-        self.enterRule(localctx, 66, self.RULE_pragma)
+        self.enterRule(localctx, 64, self.RULE_pragma)
         self._la = 0 # Token type
         try:
             self.enterOuterAlt(localctx, 1)
-            self.state = 316
+            self.state = 306
             self.match(QuilParser.PRAGMA)
-            self.state = 317
+            self.state = 307
             self.match(QuilParser.IDENTIFIER)
-            self.state = 321
+            self.state = 311
             self._errHandler.sync(self)
             _la = self._input.LA(1)
             while _la==QuilParser.IDENTIFIER or _la==QuilParser.INT:
-                self.state = 318
+                self.state = 308
                 self.pragma_name()
-                self.state = 323
+                self.state = 313
                 self._errHandler.sync(self)
                 _la = self._input.LA(1)
 
-            self.state = 325
+            self.state = 315
             self._errHandler.sync(self)
             _la = self._input.LA(1)
             if _la==QuilParser.STRING:
-                self.state = 324
+                self.state = 314
                 self.match(QuilParser.STRING)
 
 
@@ -2502,11 +2417,11 @@ class QuilParser ( Parser ):
     def pragma_name(self):
 
         localctx = QuilParser.Pragma_nameContext(self, self._ctx, self.state)
-        self.enterRule(localctx, 68, self.RULE_pragma_name)
+        self.enterRule(localctx, 66, self.RULE_pragma_name)
         self._la = 0 # Token type
         try:
             self.enterOuterAlt(localctx, 1)
-            self.state = 327
+            self.state = 317
             _la = self._input.LA(1)
             if not(_la==QuilParser.IDENTIFIER or _la==QuilParser.INT):
                 self._errHandler.recoverInline(self)
@@ -2534,6 +2449,25 @@ class QuilParser ( Parser ):
      
         def copyFrom(self, ctx):
             super(QuilParser.ExpressionContext, self).copyFrom(ctx)
+
+
+    class SegmentExpContext(ExpressionContext):
+
+        def __init__(self, parser, ctx): # actually a QuilParser.ExpressionContext)
+            super(QuilParser.SegmentExpContext, self).__init__(parser)
+            self.copyFrom(ctx)
+
+        def segment(self):
+            return self.getTypedRuleContext(QuilParser.SegmentContext,0)
+
+
+        def enterRule(self, listener):
+            if hasattr(listener, "enterSegmentExp"):
+                listener.enterSegmentExp(self)
+
+        def exitRule(self, listener):
+            if hasattr(listener, "exitSegmentExp"):
+                listener.exitSegmentExp(self)
 
 
     class NumberExpContext(ExpressionContext):
@@ -2727,12 +2661,12 @@ class QuilParser ( Parser ):
         _parentState = self.state
         localctx = QuilParser.ExpressionContext(self, self._ctx, _parentState)
         _prevctx = localctx
-        _startState = 70
-        self.enterRecursionRule(localctx, 70, self.RULE_expression, _p)
+        _startState = 68
+        self.enterRecursionRule(localctx, 68, self.RULE_expression, _p)
         self._la = 0 # Token type
         try:
             self.enterOuterAlt(localctx, 1)
-            self.state = 344
+            self.state = 335
             self._errHandler.sync(self)
             token = self._input.LA(1)
             if token in [QuilParser.LPAREN]:
@@ -2740,117 +2674,124 @@ class QuilParser ( Parser ):
                 self._ctx = localctx
                 _prevctx = localctx
 
-                self.state = 330
+                self.state = 320
                 self.match(QuilParser.LPAREN)
-                self.state = 331
+                self.state = 321
                 self.expression(0)
-                self.state = 332
+                self.state = 322
                 self.match(QuilParser.RPAREN)
                 pass
             elif token in [QuilParser.PLUS, QuilParser.MINUS]:
                 localctx = QuilParser.SignedExpContext(self, localctx)
                 self._ctx = localctx
                 _prevctx = localctx
-                self.state = 334
+                self.state = 324
                 self.sign()
-                self.state = 335
-                self.expression(7)
+                self.state = 325
+                self.expression(8)
                 pass
             elif token in [QuilParser.SIN, QuilParser.COS, QuilParser.SQRT, QuilParser.EXP, QuilParser.CIS]:
                 localctx = QuilParser.FunctionExpContext(self, localctx)
                 self._ctx = localctx
                 _prevctx = localctx
-                self.state = 337
+                self.state = 327
                 self.function()
-                self.state = 338
+                self.state = 328
                 self.match(QuilParser.LPAREN)
-                self.state = 339
+                self.state = 329
                 self.expression(0)
-                self.state = 340
+                self.state = 330
                 self.match(QuilParser.RPAREN)
+                pass
+            elif token in [QuilParser.LBRACKET]:
+                localctx = QuilParser.SegmentExpContext(self, localctx)
+                self._ctx = localctx
+                _prevctx = localctx
+                self.state = 332
+                self.segment()
                 pass
             elif token in [QuilParser.PI, QuilParser.I, QuilParser.INT, QuilParser.FLOAT]:
                 localctx = QuilParser.NumberExpContext(self, localctx)
                 self._ctx = localctx
                 _prevctx = localctx
-                self.state = 342
+                self.state = 333
                 self.number()
                 pass
             elif token in [QuilParser.PERCENTAGE]:
                 localctx = QuilParser.VariableExpContext(self, localctx)
                 self._ctx = localctx
                 _prevctx = localctx
-                self.state = 343
+                self.state = 334
                 self.variable()
                 pass
             else:
                 raise NoViableAltException(self)
 
             self._ctx.stop = self._input.LT(-1)
-            self.state = 357
+            self.state = 348
             self._errHandler.sync(self)
-            _alt = self._interp.adaptivePredict(self._input,30,self._ctx)
+            _alt = self._interp.adaptivePredict(self._input,28,self._ctx)
             while _alt!=2 and _alt!=ATN.INVALID_ALT_NUMBER:
                 if _alt==1:
                     if self._parseListeners is not None:
                         self.triggerExitRuleEvent()
                     _prevctx = localctx
-                    self.state = 355
+                    self.state = 346
                     self._errHandler.sync(self)
-                    la_ = self._interp.adaptivePredict(self._input,29,self._ctx)
+                    la_ = self._interp.adaptivePredict(self._input,27,self._ctx)
                     if la_ == 1:
                         localctx = QuilParser.PowerExpContext(self, QuilParser.ExpressionContext(self, _parentctx, _parentState))
                         self.pushNewRecursionContext(localctx, _startState, self.RULE_expression)
-                        self.state = 346
-                        if not self.precpred(self._ctx, 6):
+                        self.state = 337
+                        if not self.precpred(self._ctx, 7):
                             from antlr4.error.Errors import FailedPredicateException
-                            raise FailedPredicateException(self, "self.precpred(self._ctx, 6)")
-                        self.state = 347
+                            raise FailedPredicateException(self, "self.precpred(self._ctx, 7)")
+                        self.state = 338
                         self.match(QuilParser.POWER)
-                        self.state = 348
-                        self.expression(6)
+                        self.state = 339
+                        self.expression(7)
                         pass
 
                     elif la_ == 2:
                         localctx = QuilParser.MulDivExpContext(self, QuilParser.ExpressionContext(self, _parentctx, _parentState))
                         self.pushNewRecursionContext(localctx, _startState, self.RULE_expression)
-                        self.state = 349
-                        if not self.precpred(self._ctx, 5):
+                        self.state = 340
+                        if not self.precpred(self._ctx, 6):
                             from antlr4.error.Errors import FailedPredicateException
-                            raise FailedPredicateException(self, "self.precpred(self._ctx, 5)")
-                        self.state = 350
+                            raise FailedPredicateException(self, "self.precpred(self._ctx, 6)")
+                        self.state = 341
                         _la = self._input.LA(1)
                         if not(_la==QuilParser.TIMES or _la==QuilParser.DIVIDE):
                             self._errHandler.recoverInline(self)
                         else:
                             self._errHandler.reportMatch(self)
                             self.consume()
-                        self.state = 351
-                        self.expression(6)
+                        self.state = 342
+                        self.expression(7)
                         pass
 
                     elif la_ == 3:
                         localctx = QuilParser.AddSubExpContext(self, QuilParser.ExpressionContext(self, _parentctx, _parentState))
                         self.pushNewRecursionContext(localctx, _startState, self.RULE_expression)
-                        self.state = 352
-                        if not self.precpred(self._ctx, 4):
+                        self.state = 343
+                        if not self.precpred(self._ctx, 5):
                             from antlr4.error.Errors import FailedPredicateException
-                            raise FailedPredicateException(self, "self.precpred(self._ctx, 4)")
-                        self.state = 353
+                            raise FailedPredicateException(self, "self.precpred(self._ctx, 5)")
+                        self.state = 344
                         _la = self._input.LA(1)
                         if not(_la==QuilParser.PLUS or _la==QuilParser.MINUS):
                             self._errHandler.recoverInline(self)
                         else:
                             self._errHandler.reportMatch(self)
                             self.consume()
-                        self.state = 354
-                        self.expression(5)
+                        self.state = 345
+                        self.expression(6)
                         pass
 
              
-                self.state = 359
+                self.state = 350
                 self._errHandler.sync(self)
-                _alt = self._interp.adaptivePredict(self._input,30,self._ctx)
+                _alt = self._interp.adaptivePredict(self._input,28,self._ctx)
 
         except RecognitionException as re:
             localctx.exception = re
@@ -2858,6 +2799,65 @@ class QuilParser ( Parser ):
             self._errHandler.recover(self, re)
         finally:
             self.unrollRecursionContexts(_parentctx)
+        return localctx
+
+    class SegmentContext(ParserRuleContext):
+
+        def __init__(self, parser, parent=None, invokingState=-1):
+            super(QuilParser.SegmentContext, self).__init__(parent, invokingState)
+            self.parser = parser
+
+        def LBRACKET(self):
+            return self.getToken(QuilParser.LBRACKET, 0)
+
+        def INT(self, i=None):
+            if i is None:
+                return self.getTokens(QuilParser.INT)
+            else:
+                return self.getToken(QuilParser.INT, i)
+
+        def MINUS(self):
+            return self.getToken(QuilParser.MINUS, 0)
+
+        def RBRACKET(self):
+            return self.getToken(QuilParser.RBRACKET, 0)
+
+        def getRuleIndex(self):
+            return QuilParser.RULE_segment
+
+        def enterRule(self, listener):
+            if hasattr(listener, "enterSegment"):
+                listener.enterSegment(self)
+
+        def exitRule(self, listener):
+            if hasattr(listener, "exitSegment"):
+                listener.exitSegment(self)
+
+
+
+
+    def segment(self):
+
+        localctx = QuilParser.SegmentContext(self, self._ctx, self.state)
+        self.enterRule(localctx, 70, self.RULE_segment)
+        try:
+            self.enterOuterAlt(localctx, 1)
+            self.state = 351
+            self.match(QuilParser.LBRACKET)
+            self.state = 352
+            self.match(QuilParser.INT)
+            self.state = 353
+            self.match(QuilParser.MINUS)
+            self.state = 354
+            self.match(QuilParser.INT)
+            self.state = 355
+            self.match(QuilParser.RBRACKET)
+        except RecognitionException as re:
+            localctx.exception = re
+            self._errHandler.reportError(self, re)
+            self._errHandler.recover(self, re)
+        finally:
+            self.exitRule()
         return localctx
 
     class FunctionContext(ParserRuleContext):
@@ -2902,7 +2902,7 @@ class QuilParser ( Parser ):
         self._la = 0 # Token type
         try:
             self.enterOuterAlt(localctx, 1)
-            self.state = 360
+            self.state = 357
             _la = self._input.LA(1)
             if not((((_la) & ~0x3f) == 0 and ((1 << _la) & ((1 << QuilParser.SIN) | (1 << QuilParser.COS) | (1 << QuilParser.SQRT) | (1 << QuilParser.EXP) | (1 << QuilParser.CIS))) != 0)):
                 self._errHandler.recoverInline(self)
@@ -2950,7 +2950,7 @@ class QuilParser ( Parser ):
         self._la = 0 # Token type
         try:
             self.enterOuterAlt(localctx, 1)
-            self.state = 362
+            self.state = 359
             _la = self._input.LA(1)
             if not(_la==QuilParser.PLUS or _la==QuilParser.MINUS):
                 self._errHandler.recoverInline(self)
@@ -3004,30 +3004,30 @@ class QuilParser ( Parser ):
         localctx = QuilParser.NumberContext(self, self._ctx, self.state)
         self.enterRule(localctx, 76, self.RULE_number)
         try:
-            self.state = 368
+            self.state = 365
             self._errHandler.sync(self)
-            la_ = self._interp.adaptivePredict(self._input,31,self._ctx)
+            la_ = self._interp.adaptivePredict(self._input,29,self._ctx)
             if la_ == 1:
                 self.enterOuterAlt(localctx, 1)
-                self.state = 364
+                self.state = 361
                 self.realN()
                 pass
 
             elif la_ == 2:
                 self.enterOuterAlt(localctx, 2)
-                self.state = 365
+                self.state = 362
                 self.imaginaryN()
                 pass
 
             elif la_ == 3:
                 self.enterOuterAlt(localctx, 3)
-                self.state = 366
+                self.state = 363
                 self.match(QuilParser.I)
                 pass
 
             elif la_ == 4:
                 self.enterOuterAlt(localctx, 4)
-                self.state = 367
+                self.state = 364
                 self.match(QuilParser.PI)
                 pass
 
@@ -3073,9 +3073,9 @@ class QuilParser ( Parser ):
         self.enterRule(localctx, 78, self.RULE_imaginaryN)
         try:
             self.enterOuterAlt(localctx, 1)
-            self.state = 370
+            self.state = 367
             self.realN()
-            self.state = 371
+            self.state = 368
             self.match(QuilParser.I)
         except RecognitionException as re:
             localctx.exception = re
@@ -3118,7 +3118,7 @@ class QuilParser ( Parser ):
         self._la = 0 # Token type
         try:
             self.enterOuterAlt(localctx, 1)
-            self.state = 373
+            self.state = 370
             _la = self._input.LA(1)
             if not(_la==QuilParser.INT or _la==QuilParser.FLOAT):
                 self._errHandler.recoverInline(self)
@@ -3138,7 +3138,7 @@ class QuilParser ( Parser ):
     def sempred(self, localctx, ruleIndex, predIndex):
         if self._predicates == None:
             self._predicates = dict()
-        self._predicates[35] = self.expression_sempred
+        self._predicates[34] = self.expression_sempred
         pred = self._predicates.get(ruleIndex, None)
         if pred is None:
             raise Exception("No predicate with index:" + str(ruleIndex))
@@ -3147,15 +3147,15 @@ class QuilParser ( Parser ):
 
     def expression_sempred(self, localctx, predIndex):
             if predIndex == 0:
-                return self.precpred(self._ctx, 6)
+                return self.precpred(self._ctx, 7)
          
 
             if predIndex == 1:
-                return self.precpred(self._ctx, 5)
+                return self.precpred(self._ctx, 6)
          
 
             if predIndex == 2:
-                return self.precpred(self._ctx, 4)
+                return self.precpred(self._ctx, 5)
          
 
 
