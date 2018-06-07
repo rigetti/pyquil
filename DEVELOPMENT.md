@@ -4,7 +4,7 @@ We use pytest (version > 3.0) and mock for testing. Tests can be run from the to
 ```
 python setup.py test
 ```
-If you want to test in multiple enviornments, such as Python 2.7 and Python 3.6, then you can use `tox`. This is done with:
+If you want to test in multiple enviornments, such as Python 3.5 and Python 3.6, then you can use `tox`. This is done with:
 ```
 pip install tox
 tox
