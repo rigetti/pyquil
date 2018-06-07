@@ -55,7 +55,7 @@ order they were constructed.
 Randomized benchmarking sequence generation
 ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
 
-Pyquil now includes support for performing a simple benchmarking routine - randomized
+Pyquil now includes support for performing a simple benchmarking routine called randomized
 benchmarking. There is a new method in the :py:class:`CompilerConnection` that will return
 sequences of pyquil programs, corresponding to elements of the Clifford group. These programs
 are uniformly randomly sampled, and have the property that they compose to the identity. When
