@@ -1,8 +1,8 @@
 Changelog
 =========
 
-v1.9
-----
+v1.9 (June 6, 2018)
+-------------------
 
 We’re happy to announce the release of Pyquil 1.9. Pyquil is Rigetti’s toolkit for constructing
 and running quantum programs. This release is the latest in our series of regular releases,
