@@ -1,6 +1,13 @@
 Changelog
 =========
 
+v2.0 (Development)
+------------------
+
+- Python 2 is no longer supported
+
+
+
 v1.9 (June 6, 2018)
 -------------------
 
