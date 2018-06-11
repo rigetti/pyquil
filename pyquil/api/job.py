@@ -118,6 +118,20 @@ class Job(object):
         if self.is_queued():
             return ROUND_TRIP_JOB_TIME * self.position_in_queue()
 
+    def running_time(self):
+        """
+        For how long was the job running?
+        :rtype: Optional[str]
+        """
+        return self._raw['running_time']
+
+    def time_in_queue(self):
+        """
+        For how long was the job in the Forest queue?
+        :rtype: Optional[str]
+        """
+        return self._raw['time_in_queue']
+
     def get(self):
         warnings.warn("""
         Running get() on a Job is now a no-op.
