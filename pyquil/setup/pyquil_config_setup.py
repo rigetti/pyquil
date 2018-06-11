@@ -29,12 +29,11 @@ def main():
 
     while True:
         key = input("Forest API Key: ")
-        key_ma = re.match(r'^\s*(\w+)\s*$', key)
+        key_ma = re.match(r'^\s*(\w{40})\s*$', key)
         if key_ma:
+            # Looks like a real key
             key = key_ma.group(1)
-            if len(key) == 40:
-                # Looks like a real key
-                break
+            break
 
         print("That doesn't look like a valid API key. Try again or use Ctrl-C to quit")
 
