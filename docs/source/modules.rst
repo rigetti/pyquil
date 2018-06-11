@@ -41,6 +41,14 @@ pyquil.parametric
     :undoc-members:
     :show-inheritance:
 
+pyquil.parser
+-------------
+
+.. automodule:: pyquil.parser
+    :members:
+    :undoc-members:
+    :show-inheritance:
+
 pyquil.paulis
 -------------
 

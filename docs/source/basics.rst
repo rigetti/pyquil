@@ -105,6 +105,23 @@ following are all valid programs:
     X 0
     Y 0
 
+PyQuil can also produce a Program object by interpreting raw Quil text, as in
+the following example:
+
+.. code:: python
+
+    print(Program("X 0\nH 1\nCNOT 0 1"))
+
+.. parsed-literal::
+
+    X 0
+    H 1
+    CNOT 0 1
+
+The ``pyquil.parser`` submodule provides a front-end to other similar parser
+functionality.
+
+
 Fixing a Mistaken Instruction
 -----------------------------
 
