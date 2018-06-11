@@ -29,7 +29,6 @@ docs:		## Build documentation
 	$(MAKE) -C docs html
 
 antlr: 		## Rebuild antlr parser (Run after modification to antlr grammar ./pyquil/_parser/Quil.g4)
-	(cd pyquil/_parser && antlr4 -Dlanguage=Python2 -o gen2 Quil.g4)
 	(cd pyquil/_parser && antlr4 -Dlanguage=Python3 -o gen3 Quil.g4)
 
 

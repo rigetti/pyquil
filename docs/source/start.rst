@@ -15,9 +15,7 @@ Then, install pyQuil with::
 
 .. note::
 
-    PyQuil works on both Python 2 and 3. However, Rigetti **strongly** recommends
-    using Python 3 if possible. Future feature developments in PyQuil may support
-    Python 3 only.
+    PyQuil requires Python 3.
 
 .. note::
 

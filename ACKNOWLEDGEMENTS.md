@@ -10,7 +10,7 @@ Below is a list of software used by this distrubition that we
 acknowledge.
 
 * pyQuil (this software), licensed under the Apache 2.0 License.
-* [Python 2.7](https://www.python.org/)
+* [Python](https://www.python.org/)
 * [NumPy](http://www.numpy.org/)
 * [Requests](http://docs.python-requests.org/en/master/)
 

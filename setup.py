@@ -17,10 +17,28 @@
 
 import os
 import re
+import sys
 
 from setuptools import setup, find_packages
 
 HERE = os.path.abspath(os.path.dirname(__file__))
+
+if sys.version_info < (3, 5):
+    raise ImportError('\n'.join([
+        'PyQuil 2.0+ requires Python 3'
+        '',
+        'To install the most recent version with support for Python 2, make sure you',
+        'have pip >= 9.0 as well as setuptools >= 24.2:',
+        '',
+        ' $ pip install pip setuptools --upgrade',
+        '',
+        'Then you can either',
+        '',
+        '- install an older version of PyQuil:',
+        '',
+        " $ pip install 'pyquil<2.0'",
+        '',
+        '- Upgrade your system to use Python 3.', ]))
 
 
 def read(*parts):
@@ -63,5 +81,6 @@ setup(
     entry_points={
         'console_scripts': ['pyquil-config-setup=pyquil.setup.pyquil_config_setup:main']
     },
-    keywords='quantum quil programming hybrid'
+    keywords='quantum quil programming hybrid',
+    python_requires=">=3.5",
 )
