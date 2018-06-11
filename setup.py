@@ -23,7 +23,7 @@ from setuptools import setup, find_packages
 
 HERE = os.path.abspath(os.path.dirname(__file__))
 
-if sys.version_info < (3,):
+if sys.version_info < (3, 5):
     raise ImportError('\n'.join([
         'PyQuil 2.0+ requires Python 3'
         '',
