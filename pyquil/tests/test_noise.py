@@ -52,8 +52,8 @@ def test_combine_kraus_maps():
 
 
 def test_damping_after_dephasing():
-    damping = damping_kraus_map()
-    dephasing = dephasing_kraus_map()
+    damping = damping_kraus_map(p=1 - np.exp(-.1))
+    dephasing = dephasing_kraus_map(p=.5 * (1 - np.exp(-.2)))
     ks_ref = combine_kraus_maps(damping, dephasing)
 
     ks_actual = damping_after_dephasing(10, 10, 1)

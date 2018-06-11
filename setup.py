@@ -56,7 +56,7 @@ def find_version(*file_paths):
 
 setup(
     name="pyquil",
-    version=__version__,
+    version=find_version('pyquil', '__init__.py'),
     author="Rigetti Computing",
     author_email="softapps@rigetti.com",
     description="A Python library to generate Quantum Instruction Language (Quil) Programs.",
