@@ -118,6 +118,34 @@ class Job(object):
         if self.is_queued():
             return ROUND_TRIP_JOB_TIME * self.position_in_queue()
 
+    def running_time(self):
+        """
+        For how long was the job running?
+        :return: Running time, seconds
+        :rtype: Optional[float]
+        """
+        if not self.is_done():
+            raise ValueError("Cannot get running time for a program that isn't completed.")
+        try:
+            running_time = float(self._raw['running_time'].split()[0])
+        except (ValueError, KeyError, IndexError):
+            raise UnknownApiError(str(self._raw))
+        return running_time
+
+    def time_in_queue(self):
+        """
+        For how long was the job in the Forest queue?
+        :return: Time in queue, seconds
+        :rtype: Optional[float]
+        """
+        if not self.is_done():
+            raise ValueError("Cannot get time in queue for a program that isn't completed.")
+        try:
+            time_in_queue = float(self._raw['time_in_queue'].split()[0])
+        except (ValueError, KeyError, IndexError):
+            raise UnknownApiError(str(self._raw))
+        return time_in_queue
+
     def get(self):
         warnings.warn("""
         Running get() on a Job is now a no-op.
