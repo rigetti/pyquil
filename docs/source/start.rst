@@ -126,12 +126,12 @@ It comes with a few parts:
 Your First Quantum Program
 --------------------------
 pyQuil is a Python library that helps you write programs in the Quantum Instruction Language (Quil).
-It also ships with a simple script ``examples/run_quil.py`` that runs Quil code directly. You can
-test your connection to Forest using this script by executing the following on your command line
+It also ships with a simple script ``run_quil.py`` that runs Quil code directly. The script is located in the `pyQuil repository <https://github.com/rigetticomputing/pyquil>`_. You can
+test your connection to Forest using this script by cloning the pyQuil repository and executing the following on your command line
 
 ::
 
-    cd examples/
+    cd pyquil/examples/
     python run_quil.py hello_world.quil
 
 You should see the following output array ``[[1, 0, 0, 0, 0, 0, 0, 0]]``.
