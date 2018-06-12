@@ -263,9 +263,7 @@ programs run on this QVM.
         :param list|range classical_addresses: An optional list of classical addresses.
         :param needs_compilation: If True, preprocesses the job with the compiler.
         :param isa: If set, compiles to this target ISA.
-        :return: A tuple whose first element is a Wavefunction object,
-                 and whose second element is the list of classical bits corresponding
-                 to the classical addresses.
+        :return: A Wavefunction object representing the state of the QVM.
         :rtype: Wavefunction
         """
         if classical_addresses is None:
