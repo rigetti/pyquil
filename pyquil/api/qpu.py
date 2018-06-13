@@ -13,6 +13,7 @@
 #    See the License for the specific language governing permissions and
 #    limitations under the License.
 ##############################################################################
+import os
 import warnings
 import time
 
@@ -28,7 +29,10 @@ from ._base_connection import (validate_run_items, TYPE_MULTISHOT, TYPE_MULTISHO
                                parse_error)
 
 
-def get_devices(async_endpoint='https://job.rigetti.com/beta', api_key=None, user_id=None,
+ASYNC_ENDPOINT = os.getenv('FOREST_ASYNC_ENDPOINT', 'https://job.rigetti.com/beta')
+
+
+def get_devices(async_endpoint=ASYNC_ENDPOINT, api_key=None, user_id=None,
                 as_dict=False):
     """
     Get a list of currently available devices. The arguments for this method are the same as those for QPUConnection.
@@ -78,7 +82,7 @@ class QPUConnection(object):
     Represents a connection to the QPU (Quantum Processing Unit)
     """
 
-    def __init__(self, device=None, async_endpoint='https://job.rigetti.com/beta', api_key=None,
+    def __init__(self, device=None, async_endpoint=ASYNC_ENDPOINT, api_key=None,
                  user_id=None, ping_time=0.1, status_time=2, device_name=None):
         """
         Constructor for QPUConnection. Sets up necessary security and picks a device to run on.

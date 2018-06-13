@@ -13,6 +13,7 @@
 #    See the License for the specific language governing permissions and
 #    limitations under the License.
 ##############################################################################
+import os
 
 from pyquil.api.job import Job
 from pyquil.device import Device, ISA, Specs
@@ -23,13 +24,17 @@ from ._base_connection import TYPE_MULTISHOT, get_job_id, get_session, \
     wait_for_job, post_json, get_json
 
 
+ASYNC_ENDPOINT = os.getenv('FOREST_ASYNC_ENDPOINT', 'https://job.rigetti.com/beta')
+SYNC_ENDPOINT = os.getenv('FOREST_SYNC_ENDPOINT', 'https://api.rigetti.com')
+
+
 class CompilerConnection(object):
     """
     Represents a connection to the Quil compiler.
     """
 
-    def __init__(self, device=None, sync_endpoint='https://api.rigetti.com',
-                 async_endpoint='https://job.rigetti.com/beta', api_key=None,
+    def __init__(self, device=None, sync_endpoint=SYNC_ENDPOINT,
+                 async_endpoint=ASYNC_ENDPOINT, api_key=None,
                  user_id=None, use_queue=False, ping_time=0.1, status_time=2,
                  isa_source=None, specs_source=None):
         """
