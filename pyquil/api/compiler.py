@@ -27,6 +27,7 @@ from ._base_connection import TYPE_MULTISHOT, get_job_id, get_session, \
 ASYNC_ENDPOINT = os.getenv('FOREST_ASYNC_ENDPOINT', 'https://job.rigetti.com/beta')
 SYNC_ENDPOINT = os.getenv('FOREST_SYNC_ENDPOINT', 'https://api.rigetti.com')
 
+
 class CompilerConnection(object):
     """
     Represents a connection to the Quil compiler.
