@@ -4,7 +4,7 @@ Using Qubit Placeholders
 
 In PyQuil, we typically use integers to identify qubits
 
-.. code:: ipython3
+.. code:: python
 
     from pyquil.quil import Program
     from pyquil.gates import CNOT, H
@@ -23,7 +23,7 @@ particular physical qubits our program will run on. In fact, we may want
 to run the same program on an assortment of different qubits. This is
 where using ``QubitPlaceholder``\ s comes in.
 
-.. code:: ipython3
+.. code:: python
 
     from pyquil.quilatom import QubitPlaceholder
     q0 = QubitPlaceholder()
@@ -34,14 +34,14 @@ where using ``QubitPlaceholder``\ s comes in.
 
 .. parsed-literal::
 
-    H <QubitPlaceholder 4590706304>
-    CNOT <QubitPlaceholder 4590706304> <QubitPlaceholder 4590705912>
+    H {q4402789176}
+    CNOT {q4402789176} {q4402789120}
     
 
 
 If you try to use this program directly, it will not work
 
-.. code:: ipython3
+.. code:: python
 
     print(prog.out())
 
@@ -53,7 +53,7 @@ If you try to use this program directly, it will not work
 
     RuntimeError                              Traceback (most recent call last)
 
-    <ipython-input-4-da474d3af403> in <module>()
+    <ipython-input-3-da474d3af403> in <module>()
     ----> 1 print(prog.out())
     
     ...
@@ -66,14 +66,14 @@ If you try to use this program directly, it will not work
          57     def __str__(self):
 
 
-    RuntimeError: Qubit <QubitPlaceholder 4590706304> has not been assigned an index
+    RuntimeError: Qubit q4402789176 has not been assigned an index
 
 
 Instead, you must explicitly map the placeholders to physical qubits. By
 default, the function ``address_qubits`` will address qubits from 0 to
 N.
 
-.. code:: ipython3
+.. code:: python
 
     from pyquil.quil import address_qubits
     print(address_qubits(prog))
@@ -88,7 +88,7 @@ N.
 
 The real power comes into play when you provide an explicit mapping
 
-.. code:: ipython3
+.. code:: python
 
     print(address_qubits(prog, qubit_mapping={
         q0: 14,
@@ -110,7 +110,7 @@ Usually, your algorithm will use an assortment of qubits. You can use
 the convenience function ``QubitPlaceholder.register()`` to request a
 list of qubits to build your program.
 
-.. code:: ipython3
+.. code:: python
 
     qbyte = QubitPlaceholder.register(8)
     prog2 = Program(H(q) for q in qbyte)
