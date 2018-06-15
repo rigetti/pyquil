@@ -36,13 +36,13 @@ BELL_STATE_MEASURE = Program(H(0), CNOT(0, 1), MEASURE(0, 0), MEASURE(1, 1))
 DUMMY_ISA_DICT = {"1Q": {"0": {}, "1": {}}, "2Q": {"0-1": {}}}
 DUMMY_ISA = ISA.from_dict(DUMMY_ISA_DICT)
 
-qvm = QVMConnection(api_key='api_key', user_id='user_id')
-async_qvm = QVMConnection(api_key='api_key', user_id='user_id', use_queue=True)
-compiler = CompilerConnection(isa_source=DUMMY_ISA, api_key='api_key', user_id='user_id')
-async_compiler = CompilerConnection(isa_source=DUMMY_ISA, api_key='api_key', user_id='user_id', use_queue=True)
+mock_qvm = QVMConnection(api_key='api_key', user_id='user_id')
+mock_async_qvm = QVMConnection(api_key='api_key', user_id='user_id', use_queue=True)
+mock_compiler = CompilerConnection(isa_source=DUMMY_ISA, api_key='api_key', user_id='user_id')
+mock_async_compiler = CompilerConnection(isa_source=DUMMY_ISA, api_key='api_key', user_id='user_id', use_queue=True)
 
 
-def test_sync_run():
+def test_sync_run_mock():
     def mock_response(request, context):
         assert json.loads(request.text) == {
             "type": "multishot",
@@ -54,15 +54,28 @@ def test_sync_run():
 
     with requests_mock.Mocker() as m:
         m.post('https://api.rigetti.com/qvm', text=mock_response)
-        assert qvm.run(BELL_STATE_MEASURE, [0, 1], trials=2) == [[0, 0], [1, 1]]
+        assert mock_qvm.run(BELL_STATE_MEASURE, [0, 1], trials=2) == [[0, 0], [1, 1]]
 
         # Test range as well
         m.post('https://api.rigetti.com/qvm', text=mock_response)
-        assert qvm.run(BELL_STATE_MEASURE, range(2), trials=2) == [[0, 0], [1, 1]]
+        assert mock_qvm.run(BELL_STATE_MEASURE, range(2), trials=2) == [[0, 0], [1, 1]]
 
         # Test no classical addresses
         m.post('https://api.rigetti.com/qvm', text=mock_response)
-        assert qvm.run(BELL_STATE_MEASURE, trials=2) == [[0, 0], [1, 1]]
+        assert mock_qvm.run(BELL_STATE_MEASURE, trials=2) == [[0, 0], [1, 1]]
+
+    with pytest.raises(ValueError):
+        mock_qvm.run(EMPTY_PROGRAM)
+
+
+def test_sync_run(qvm: QVMConnection):
+    assert qvm.run(BELL_STATE_MEASURE, [0, 1], trials=2) == [[0, 0], [1, 1]]
+
+    # Test range as well
+    assert qvm.run(BELL_STATE_MEASURE, range(2), trials=2) == [[0, 0], [1, 1]]
+
+    # Test no classical addresses
+    assert qvm.run(BELL_STATE_MEASURE, trials=2) == [[0, 0], [1, 1]]
 
     with pytest.raises(ValueError):
         qvm.run(EMPTY_PROGRAM)
@@ -80,10 +93,10 @@ def test_sync_run_and_measure():
 
     with requests_mock.Mocker() as m:
         m.post('https://api.rigetti.com/qvm', text=mock_response)
-        assert qvm.run_and_measure(BELL_STATE, [0, 1], trials=2) == [[0, 0], [1, 1]]
+        assert mock_qvm.run_and_measure(BELL_STATE, [0, 1], trials=2) == [[0, 0], [1, 1]]
 
     with pytest.raises(ValueError):
-        qvm.run_and_measure(EMPTY_PROGRAM, [0])
+        mock_qvm.run_and_measure(EMPTY_PROGRAM, [0])
 
 
 WAVEFUNCTION_BINARY = (b'\x01\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00'
@@ -104,7 +117,7 @@ def test_sync_expectation():
 
     with requests_mock.Mocker() as m:
         m.post('https://api.rigetti.com/qvm', content=mock_response)
-        result = qvm.expectation(BELL_STATE, [Program(Z(0)), Program(Z(1)), Program(Z(0), Z(1))])
+        result = mock_qvm.expectation(BELL_STATE, [Program(Z(0)), Program(Z(1)), Program(Z(0), Z(1))])
         exp_expected = [0.0, 0.0, 1.0]
         assert np.allclose(result, exp_expected)
 
@@ -113,7 +126,7 @@ def test_sync_expectation():
         z0 = PauliTerm("Z", 0)
         z1 = PauliTerm("Z", 1)
         z01 = z0 * z1
-        result = qvm.pauli_expectation(BELL_STATE, [z0, z1, z01])
+        result = mock_qvm.pauli_expectation(BELL_STATE, [z0, z1, z01])
         exp_expected = [0.0, 0.0, 1.0]
         assert np.allclose(result, exp_expected)
 
@@ -132,7 +145,7 @@ def test_sync_paulisum_expectation():
         z0 = PauliTerm("Z", 0)
         z1 = PauliTerm("Z", 1)
         z01 = z0 * z1
-        result = qvm.pauli_expectation(BELL_STATE, 1j * z01 + z0 + z1)
+        result = mock_qvm.pauli_expectation(BELL_STATE, 1j * z01 + z0 + z1)
         exp_expected = 1j
         assert np.allclose(result, exp_expected)
 
@@ -148,7 +161,7 @@ def test_sync_wavefunction():
 
     with requests_mock.Mocker() as m:
         m.post('https://api.rigetti.com/qvm', content=mock_response)
-        result = qvm.wavefunction(WAVEFUNCTION_PROGRAM, [0, 1])
+        result = mock_qvm.wavefunction(WAVEFUNCTION_PROGRAM, [0, 1])
         wf_expected = np.array([0. + 0.j, 0. + 0.j, 0.70710678 + 0.j, -0.70710678 + 0.j])
         assert np.all(np.isclose(result.amplitudes, wf_expected))
         assert result.classical_memory == [1, 0]
@@ -217,7 +230,7 @@ def test_job_run():
                                  "result": [[0, 0], [1, 1]], "program": program})}
         ])
 
-        result = async_qvm.run(BELL_STATE, [0, 1], trials=2)
+        result = mock_async_qvm.run(BELL_STATE, [0, 1], trials=2)
         assert result == [[0, 0], [1, 1]]
 
 
@@ -243,7 +256,7 @@ def test_async_wavefunction():
             "result": base64.b64encode(WAVEFUNCTION_BINARY).decode(),
             "program": program
         }))
-        result = async_qvm.wavefunction(WAVEFUNCTION_PROGRAM, [0, 1])
+        result = mock_async_qvm.wavefunction(WAVEFUNCTION_PROGRAM, [0, 1])
 
         wf_expected = np.array([0. + 0.j, 0. + 0.j, 0.70710678 + 0.j, -0.70710678 + 0.j])
         assert np.all(np.isclose(result.amplitudes, wf_expected))
@@ -395,7 +408,7 @@ def test_sync_compile():
 
     with requests_mock.Mocker() as m:
         m.post('https://api.rigetti.com/quilc', text=mock_response)
-        assert compiler.compile(BELL_STATE) == BELL_STATE
+        assert mock_compiler.compile(BELL_STATE) == BELL_STATE
 
 
 def test_job_compile():
@@ -428,7 +441,7 @@ def test_job_compile():
                                  "program": postprocessed_program, "metadata": {}})}
         ])
 
-        result = async_compiler.compile(BELL_STATE)
+        result = mock_async_compiler.compile(BELL_STATE)
         assert result == BELL_STATE
 
 
@@ -448,7 +461,7 @@ def test_rb_sequence():
 
     with requests_mock.Mocker() as m:
         m.post('https://api.rigetti.com/rb', text=mock_queued_response)
-        result = list(reversed(async_compiler.generate_rb_sequence(depth, gateset)))
+        result = list(reversed(mock_async_compiler.generate_rb_sequence(depth, gateset)))
         assert result == [Program().inst([gateset[i] for i in clifford])
                           for clifford in sampled_sequence]
 
@@ -464,5 +477,5 @@ def test_apply_clifford_to_pauli():
         return json.dumps(response)
     with requests_mock.Mocker() as m:
         m.post('https://api.rigetti.com/apply-clifford', text=mock_queued_response)
-        result = async_compiler.apply_clifford_to_pauli(clifford, pauli)
+        result = mock_async_compiler.apply_clifford_to_pauli(clifford, pauli)
         assert result == PauliTerm("Z", 0)
