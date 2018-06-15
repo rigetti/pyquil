@@ -34,8 +34,8 @@ where using ``QubitPlaceholder``\ s comes in.
 
 .. parsed-literal::
 
-    H <QubitPlaceholder 4590706304>
-    CNOT <QubitPlaceholder 4590706304> <QubitPlaceholder 4590705912>
+    H {q4402789176}
+    CNOT {q4402789176} {q4402789120}
     
 
 
@@ -53,7 +53,7 @@ If you try to use this program directly, it will not work
 
     RuntimeError                              Traceback (most recent call last)
 
-    <ipython-input-4-da474d3af403> in <module>()
+    <ipython-input-3-da474d3af403> in <module>()
     ----> 1 print(prog.out())
     
     ...
@@ -66,7 +66,7 @@ If you try to use this program directly, it will not work
          57     def __str__(self):
 
 
-    RuntimeError: Qubit <QubitPlaceholder 4590706304> has not been assigned an index
+    RuntimeError: Qubit q4402789176 has not been assigned an index
 
 
 Instead, you must explicitly map the placeholders to physical qubits. By
