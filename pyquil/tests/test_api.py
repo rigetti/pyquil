@@ -15,6 +15,7 @@
 #    limitations under the License.
 ##############################################################################
 import base64
+from math import pi
 
 import requests_mock
 import json
@@ -27,12 +28,27 @@ from pyquil.api._base_connection import validate_noise_probabilities, validate_r
 from pyquil.api.qpu import append_measures_to_program
 from pyquil.quil import Program
 from pyquil.paulis import PauliTerm
-from pyquil.gates import CNOT, H, MEASURE, PHASE, Z
+from pyquil.gates import CNOT, H, MEASURE, PHASE, Z, RZ, RX, CZ
 from pyquil.device import ISA
+from pyquil.quilbase import Pragma
 
 EMPTY_PROGRAM = Program()
 BELL_STATE = Program(H(0), CNOT(0, 1))
 BELL_STATE_MEASURE = Program(H(0), CNOT(0, 1), MEASURE(0, 0), MEASURE(1, 1))
+COMPILED_BELL_STATE = Program([
+    Pragma("EXPECTED_REWIRING", ('"#(0 1 2 3)"',)),
+    RZ(pi / 2, 0),
+    RX(pi / 2, 0),
+    RZ(-pi / 2, 1),
+    RX(pi / 2, 1),
+    CZ(1, 0),
+    RZ(-pi / 2, 0),
+    RX(-pi / 2, 1),
+    RZ(pi / 2, 1),
+    Pragma("CURRENT_REWIRING", ('"#(0 1 2 3)"',)),
+    Pragma("EXPECTED_REWIRING", ('"#(0 1 2 3)"',)),
+    Pragma("CURRENT_REWIRING", ('"#(0 1 2 3)"',)),
+])
 DUMMY_ISA_DICT = {"1Q": {"0": {}, "1": {}}, "2Q": {"0-1": {}}}
 DUMMY_ISA = ISA.from_dict(DUMMY_ISA_DICT)
 
@@ -391,7 +407,7 @@ def test_append_measures_to_program():
     assert gate_program + meas_program == append_measures_to_program(gate_program, [0, 1])
 
 
-def test_sync_compile():
+def test_sync_compile_mock():
     def mock_response(request, context):
         assert json.loads(request.text) == {
             "type": "multishot",
@@ -409,6 +425,10 @@ def test_sync_compile():
     with requests_mock.Mocker() as m:
         m.post('https://api.rigetti.com/quilc', text=mock_response)
         assert mock_compiler.compile(BELL_STATE) == BELL_STATE
+
+
+def test_sync_compile(compiler):
+    assert compiler.compile(BELL_STATE) == COMPILED_BELL_STATE
 
 
 def test_job_compile():
