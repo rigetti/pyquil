@@ -26,7 +26,7 @@ def isa_dict():
             "1-2": {
                 "type": "ISWAP"
             },
-            "2-0": {
+            "0-2": {
                 "type": "CPHASE"
             },
             "0-3": {
@@ -79,8 +79,8 @@ def qvm():
 @pytest.fixture(scope='session')
 def compiler():
     try:
-        compiler = CompilerConnection()
-        compiler.compile(Program(I(0)), isa=ISA.from_dict(isa_dict))
+        compiler = CompilerConnection(isa_source=ISA.from_dict(isa_dict()))
+        compiler.compile(Program(I(0)))
         return compiler
     except (RequestException, UnknownApiError) as e:
         return pytest.skip("This test requires compiler connection: {}".format(e))
