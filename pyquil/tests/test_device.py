@@ -94,9 +94,9 @@ def test_isa(isa_dict):
         ],
         edges=[
             Edge(targets=[0, 1], type='CZ', dead=False),
+            Edge(targets=[0, 2], type='CPHASE', dead=False),
             Edge(targets=[0, 3], type='CZ', dead=True),
             Edge(targets=[1, 2], type='ISWAP', dead=False),
-            Edge(targets=[2, 0], type='CPHASE', dead=False),
         ])
     assert isa == ISA.from_dict(isa.to_dict())
 
