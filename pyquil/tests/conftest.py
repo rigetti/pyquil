@@ -1,6 +1,7 @@
 import numpy as np
 import pytest
 from pyquil.api import QVMConnection, CompilerConnection
+from pyquil.api.errors import UnknownApiError
 from pyquil.device import Device, ISA
 from pyquil.gates import I
 from pyquil.quil import Program
@@ -71,7 +72,7 @@ def qvm():
         qvm = QVMConnection(random_seed=52)
         qvm.run(Program(I(0)), [0])
         return qvm
-    except RequestException as e:
+    except (RequestException, UnknownApiError) as e:
         return pytest.skip("This test requires QVM connection: {}".format(e))
 
 
@@ -81,5 +82,5 @@ def compiler():
         compiler = CompilerConnection()
         compiler.compile(Program(I(0)), isa=ISA.from_dict(isa_dict))
         return compiler
-    except RequestException as e:
+    except (RequestException, UnknownApiError) as e:
         return pytest.skip("This test requires compiler connection: {}".format(e))
