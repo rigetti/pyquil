@@ -310,7 +310,7 @@ def test_singles():
 
 
 def test_rotations():
-    p = Program(RX(0.5)(0), RY(0.1)(1), RZ(1.4)(2))
+    p = Program(RX(0.5, 0), RY(0.1, 1), RZ(1.4, 2))
     assert p.out() == 'RX(0.5) 0\nRY(0.1) 1\nRZ(1.4) 2\n'
 
 
@@ -320,16 +320,16 @@ def test_controlled_gates():
 
 
 def test_phases():
-    p = Program(PHASE(np.pi)(1), CPHASE00(np.pi)(0, 1), CPHASE01(np.pi)(0, 1),
-                CPHASE10(np.pi)(0, 1),
-                CPHASE(np.pi)(0, 1))
+    p = Program(PHASE(np.pi, 1), CPHASE00(np.pi, 0, 1), CPHASE01(np.pi, 0, 1),
+                CPHASE10(np.pi, 0, 1),
+                CPHASE(np.pi, 0, 1))
     assert p.out() == 'PHASE(pi) 1\nCPHASE00(pi) 0 1\n' \
                       'CPHASE01(pi) 0 1\nCPHASE10(pi) 0 1\n' \
                       'CPHASE(pi) 0 1\n'
 
 
 def test_swaps():
-    p = Program(SWAP(0, 1), CSWAP(0, 1, 2), ISWAP(0, 1), PSWAP(np.pi)(0, 1))
+    p = Program(SWAP(0, 1), CSWAP(0, 1, 2), ISWAP(0, 1), PSWAP(np.pi, 0, 1))
     assert p.out() == 'SWAP 0 1\nCSWAP 0 1 2\nISWAP 0 1\nPSWAP(pi) 0 1\n'
 
 
@@ -381,10 +381,10 @@ def test_define_qft():
     def qft3(q0, q1, q2):
         p = Program()
         p.inst(H(q2),
-               CPHASE(pi / 2.0)(q1, q2),
+               CPHASE(pi / 2.0, q1, q2),
                H(1),
-               CPHASE(pi / 4.0)(q0, q2),
-               CPHASE(pi / 2.0)(q0, q1),
+               CPHASE(pi / 4.0, q0, q2),
+               CPHASE(pi / 2.0, q0, q1),
                H(q0),
                SWAP(q0, q2))
         return p

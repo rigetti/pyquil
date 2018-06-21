@@ -195,5 +195,5 @@ def test_gates_in_isa(isa_dict):
     assert CZ(1, 0) in gates
     assert ISWAP(1, 2) in gates
     assert ISWAP(2, 1) in gates
-    assert CPHASE(THETA)(2, 0) in gates
-    assert CPHASE(THETA)(0, 2) in gates
+    assert CPHASE(THETA, 2, 0) in gates
+    assert CPHASE(THETA, 0, 2) in gates
