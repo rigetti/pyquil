@@ -536,3 +536,5 @@ STANDARD_GATES = {'I': I,
 """
 Dictionary of standard gates. Keys are gate names, values are gate functions.
 """
+
+__all__ = list(STANDARD_GATES.keys())
