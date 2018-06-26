@@ -217,7 +217,7 @@ def CNOT(control, target):
     return Gate(name="CNOT", params=[], qubits=[unpack_qubit(q) for q in (control, target)])
 
 
-def CCNOT(control_1, control_2, target):
+def CCNOT(control1, control2, target):
     """Produces a CCNOT instruction.
 
     CCNOT = [[1, 0, 0, 0, 0, 0, 0, 0],
@@ -232,17 +232,17 @@ def CCNOT(control_1, control_2, target):
     This gate applies to three qubit arguments to produce the controlled-controlled-not gate
     instruction.
 
-    :param control-1: The first control qubit.
-    :param control-2: The second control qubit.
+    :param control1: The first control qubit.
+    :param control2: The second control qubit.
     :param target: The target qubit. The target qubit has an X-gate applied to it if both control
         qubits are in the excited state.
     :returns: A Gate object.
     """
-    qubits = [unpack_qubit(q) for q in (control_1, control_2, target)]
+    qubits = [unpack_qubit(q) for q in (control1, control2, target)]
     return Gate(name="CCNOT", params=[], qubits=qubits)
 
 
-def CPHASE00(angle, q1, q2):
+def CPHASE00(angle, control, target):
     """Produces a CPHASE00 instruction.
 
     CPHASE00(phi) = diag([exp(1j * phi), 1, 1, 1])
@@ -251,15 +251,15 @@ def CPHASE00(angle, q1, q2):
     instruction that affects the state 00.
 
     :param angle: The input phase angle to apply when both qubits are in the ground state.
-    :param q1: Qubit 1.
-    :param q2: Qubit 2.
+    :param control: Qubit 1.
+    :param target: Qubit 2.
     :returns: A Gate object.
     """
-    qubits = [unpack_qubit(q) for q in (q1, q2)]
+    qubits = [unpack_qubit(q) for q in (control, target)]
     return Gate(name="CPHASE00", params=[angle], qubits=qubits)
 
 
-def CPHASE01(angle, q1, q2):
+def CPHASE01(angle, control, target):
     """Produces a CPHASE01 instruction.
 
     CPHASE01(phi) = diag([1.0, exp(1j * phi), 1.0, 1.0])
@@ -269,15 +269,15 @@ def CPHASE01(angle, q1, q2):
 
     :param angle: The input phase angle to apply when q1 is in the excited state and q2 is in
         the ground state.
-    :param q1: Qubit 1.
-    :param q2: Qubit 2.
+    :param control: Qubit 1.
+    :param target: Qubit 2.
     :returns: A Gate object.
     """
-    qubits = [unpack_qubit(q) for q in (q1, q2)]
+    qubits = [unpack_qubit(q) for q in (control, target)]
     return Gate(name="CPHASE01", params=[angle], qubits=qubits)
 
 
-def CPHASE10(angle, q1, q2):
+def CPHASE10(angle, control, target):
     """Produces a CPHASE10 instruction.
 
     CPHASE10(phi) = diag([1, 1, exp(1j * phi), 1])
@@ -287,15 +287,15 @@ def CPHASE10(angle, q1, q2):
 
     :param angle: The input phase angle to apply when q2 is in the excited state and q1 is in
         the ground state.
-    :param q1: Qubit 1.
-    :param q2: Qubit 2.
+    :param control: Qubit 1.
+    :param target: Qubit 2.
     :returns: A Gate object.
     """
-    qubits = [unpack_qubit(q) for q in (q1, q2)]
+    qubits = [unpack_qubit(q) for q in (control, target)]
     return Gate(name="CPHASE10", params=[angle], qubits=qubits)
 
 
-def CPHASE(angle, q1, q2):
+def CPHASE(angle, control, target):
     """Produces a CPHASE instruction, which is a synonym for CPHASE11.
 
     CPHASE(phi) = diag([1, 1, 1, exp(1j * phi)])
@@ -304,11 +304,11 @@ def CPHASE(angle, q1, q2):
     instruction that affects the state 11.
 
     :param angle: The input phase angle to apply when both qubits are in the excited state.
-    :param q1: Qubit 1.
-    :param q2: Qubit 2.
+    :param control: Qubit 1.
+    :param target: Qubit 2.
     :returns: A Gate object.
     """
-    qubits = [unpack_qubit(q) for q in (q1, q2)]
+    qubits = [unpack_qubit(q) for q in (control, target)]
     return Gate(name="CPHASE", params=[angle], qubits=qubits)
 
 

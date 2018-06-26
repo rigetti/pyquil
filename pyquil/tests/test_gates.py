@@ -78,6 +78,12 @@ def test_param_twoq_gate(param_twoq_gate):
 
 
 def test_param_twoq_gate_kwarg(param_twoq_gate):
-    # TODO: CPHASE uses (q1, q2) whereas CZ uses (control, target)
-    g = param_twoq_gate(angle=0.2, q1=234, q2=567)
+    func_name = param_twoq_gate.__name__
+    if func_name.startswith('C'):
+        qubits = {'control': 234, 'target': 567}
+    elif 'SWAP' in func_name:
+        qubits = {'q1': 234, 'q2': 567}
+    else:
+        raise ValueError()
+    g = param_twoq_gate(angle=0.2, **qubits)
     assert g.out() == "{}(0.2) 234 567".format(g.name)
