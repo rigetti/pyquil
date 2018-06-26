@@ -407,3 +407,104 @@ tomography under complete positivity (cp) and trace preservation (tp) constraint
 
 ..  [Nielsen2002] Nielsen, M. A. (2002) ‘A simple formula for the average gate fidelity of a quantum dynamical operation’, http://arxiv.org/abs/quant-ph/0205035
 ..  [Reagor2018] Reagor, M. et al. (2018) ‘Demonstration of universal parametric entangling gates on a multi-qubit lattice’, http://advances.sciencemag.org/lookup/doi/10.1126/sciadv.aao3603
+
+
+
+Acorn QPU Properties -- CURRENTLY UNAVAILABLE
+~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
+
+This quantum processor consists of 20 superconducting transmon qubits with fixed capacitive coupling
+in the planar lattice design shown in Fig. 3.
+
+The resonant frequencies of qubits 0–4 and 10–14 are
+tunable while qubits 5–9 and 15–19 are fixed. The former have two Josephson junctions in an
+asymmetric SQUID geometry to provide roughly 1 GHz of frequency tunability, and flux-insensitive
+“sweet spots” near
+
+:math:`\omega^{\textrm{max}}_{01}/2\pi\approx 4.5 \, \textrm{GHz}`
+
+and
+
+:math:`\omega^{\textrm{min}}_{01}/2\pi\approx 3.0 \, \textrm{GHz}`.
+
+These tunable devices are coupled to bias lines for AC and DC flux delivery. Each qubit is
+capacitively coupled to a quasi-lumped element resonator for dispersive readout of the qubit state.
+Single-qubit control is effected by applying microwave drives at the resonator ports. Two-qubit
+gates are activated via RF drives on the flux bias lines.
+
+Due to a fabrication defect, qubit 3 is not tunable, which prohibits operation of the two-qubit
+parametric gate described below between qubit 3 and its neighbors. Consequently, we will treat this as
+a 19-qubit processor. **However, this chip is currently unavailable.**
+
+.. figure:: images/acorn.png
+    :width: 540px
+    :align: center
+    :height: 300px
+    :alt: 19Q-Acorn
+    :figclass: align-center
+
+    :math:`\textbf{Figure 3 $|$ Connectivity of Rigetti 19Q. a,}` Chip schematic showing tunable
+    transmons (green circles) capacitively coupled to fixed-frequency transmons
+    (blue circles). :math:`\textbf{b}`, Optical chip image. Note that some couplers have
+    been dropped to produce a lattice with three-fold, rather than four-fold
+    connectivity.
+
+Table 3 summarizes the main performance parameters of Rigetti 19Q.
+
+.. csv-table:: :math:`\textbf{Table 3 | Rigetti 19Q performance}`
+   :widths: 10, 10, 10, 10, 10, 10, 10, 10
+   :stub-columns: 1
+
+   ,:math:`\omega^{\textrm{max}}_{\textrm{r}}/2\pi`,:math:`\omega^{\textrm{max}}_{01}/2\pi`,:math:`\eta/2\pi`,:math:`T_1`,:math:`T^*_2`,:math:`\mathsf{F}_{\textrm{1q}}`,:math:`\mathsf{F}_{\textrm{RO}}`
+   ,:math:`\textrm{MHz}`,:math:`\textrm{MHz}`,:math:`\textrm{MHz}`,:math:`\mu\textrm{s}`,:math:`\mu\textrm{s}`,,
+   0 ,5592,4386,-208,**15.2** :math:`\pm` 2.5,**7.2** :math:`\pm` 0.7,0.9815,0.938
+   1 ,5703,4292,-210,**17.6** :math:`\pm` 1.7,**7.7** :math:`\pm` 1.4,0.9907,0.958
+   2 ,5599,4221,-142,**18.2** :math:`\pm` 1.1,**10.8** :math:`\pm` 0.6,0.9813,0.97
+   3 ,5708,3829,-224,**31.0** :math:`\pm` 2.6,**16.8** :math:`\pm` 0.8,0.9908,0.886
+   4 ,5633,4372,-220,**23.0** :math:`\pm` 0.5,**5.2** :math:`\pm` 0.2,0.9887,0.953
+   5 ,5178,3690,-224,**22.2** :math:`\pm` 2.1,**11.1** :math:`\pm` 1.0,0.9645,0.965
+   6 ,5356,3809,-208,**26.8** :math:`\pm` 2.5,**26.8** :math:`\pm` 2.5,0.9905,0.84
+   7 ,5164,3531,-216,**29.4** :math:`\pm` 3.8,**13.0** :math:`\pm` 1.2,0.9916,0.925
+   8 ,5367,3707,-208,**24.5** :math:`\pm` 2.8,**13.8** :math:`\pm` 0.4,0.9869,0.947
+   9 ,5201,3690,-214,**20.8** :math:`\pm` 6.2,**11.1** :math:`\pm` 0.7,0.9934,0.927
+   10,5801,4595,-194,**17.1** :math:`\pm` 1.2,**10.6** :math:`\pm` 0.5,0.9916,0.942
+   11,5511,4275,-204,**16.9** :math:`\pm` 2.0,**4.9** :math:`\pm` 1.0,0.9901,0.900
+   12,5825,4600,-194,**8.2**  :math:`\pm` 0.9,**10.9** :math:`\pm` 1.4,0.9902,0.942
+   13,5523,4434,-196,**18.7** :math:`\pm` 2.0,**12.7** :math:`\pm` 0.4,0.9933,0.921
+   14,5848,4552,-204,**13.9** :math:`\pm` 2.2,**9.4** :math:`\pm` 0.7,0.9916,0.947
+   15,5093,3733,-230,**20.8** :math:`\pm` 3.1,**7.3** :math:`\pm` 0.4,0.9852,0.970
+   16,5298,3854,-218,**16.7** :math:`\pm` 1.2,**7.5** :math:`\pm` 0.5,0.9906,0.948
+   17,5097,3574,-226,**24.0** :math:`\pm` 4.2,**8.4** :math:`\pm` 0.4,0.9895,0.921
+   18,5301,3877,-216,**16.9** :math:`\pm` 2.9,**12.9** :math:`\pm` 1.3,0.9496,0.930
+   19,5108,3574,-228,**24.7** :math:`\pm` 2.8,**9.8** :math:`\pm` 0.8,0.9942,0.930
+
+Table 4 shows the two-qubit gate performance of Rigetti 19Q.
+
+.. csv-table:: :math:`\textbf{Table 4 | Rigetti 19Q two-qubit gate performance}`
+   :widths: 10, 10, 10, 10, 10
+   :stub-columns: 1
+
+
+   ,:math:`A_0`,:math:`f_\textrm{m}`,:math:`t_\textrm{CZ}`,:math:`\mathsf{F}^\textrm{cptp}_{\textrm{PT}}`
+   ,:math:`\Phi/\Phi_0`,:math:`\textrm{MHz}`,ns
+   0 - 5 ,0.27,94.5,168,0.936
+   0 - 6 ,0.36,123.9,197,0.889
+   1 - 6 ,0.37,137.1,173,0.888
+   1 - 7 ,0.59,137.9,179,0.919
+   2 - 7 ,0.62,87.4,160,0.817
+   2 - 8, 0.23,55.6,189,0.906
+   4 - 9, 0.43,183.6,122,0.854
+   5 - 10,0.60,152.9,145,0.870
+   6 - 11 ,0.38,142.4,180,0.838
+   7 - 12 ,0.60,241.9,214,0.87
+   8 - 13,0.40,152.0,185,0.881
+   9 - 14,0.62,130.8,139,0.872
+   10 - 15,0.53,142.1,154,0.854
+   10 - 16,0.43,170.3,180,0.838
+   11 - 16,0.38,160.6,155,0.891
+   11 - 17,0.29,85.7,207,0.844
+   12 - 17,0.36,177.1,184,0.876
+   12 - 18,0.28,113.9,203,0.886
+   13 - 18,0.24,66.2,152,0.936
+   13 - 19,0.62,109.6,181,0.921
+   14 - 19,0.59,188.1,142,0.797
