@@ -433,9 +433,8 @@ Single-qubit control is effected by applying microwave drives at the resonator p
 gates are activated via RF drives on the flux bias lines.
 
 Due to a fabrication defect, qubit 3 is not tunable, which prohibits operation of the two-qubit
-parametric gate described below between qubit 3 and its neighbors. Additionally, qubits 2, 15, and
-18 are not accessible. Consequently, we will treat this as a 16-qubit processor. However this chip is
-currently unavailable.
+parametric gate described below between qubit 3 and its neighbors. Consequently, we will treat this as
+a 19-qubit processor. However this chip is currently unavailable.
 
 .. figure:: images/acorn.png
     :width: 540px
@@ -450,56 +449,62 @@ currently unavailable.
     been dropped to produce a lattice with three-fold, rather than four-fold
     connectivity.
 
-Table 1 summarizes the main performance parameters of Rigetti 19Q.
+Table 3 summarizes the main performance parameters of Rigetti 19Q.
 
-.. csv-table:: :math:`\textbf{Table 1 | Rigetti 19Q performance}`
-   :widths: 10, 10, 10, 10, 10, 10, 10
+.. csv-table:: :math:`\textbf{Table 3 | Rigetti 19Q performance}`
+   :widths: 10, 10, 10, 10, 10, 10, 10, 10
    :stub-columns: 1
 
-   ,:math:`\omega^{\textrm{max}}_{\textrm{r}}/2\pi`,:math:`\omega^{\textrm{max}}_{01}/2\pi`,:math:`T_1`,:math:`T^*_2`,:math:`\mathsf{F}_{\textrm{1q}}`,:math:`\mathsf{F}_{\textrm{RO}}`
-   ,:math:`\textrm{MHz}`,:math:`\textrm{MHz}`,:math:`\mu\textrm{s}`,:math:`\mu\textrm{s}`,,
-   0 ,5592,4372,17.98,7.47,0.982,0.918
-   1 ,5703,4257,24.27,8.17,0.983,0.846
-   2 ,5599,3069,8.5,7.47,0.976,0.78
-   3 ,5708,3829,31.0,16.8,0.9908,0.886
-   4 ,5633,4332,18.01,2.79,0.987,0.962
-   5 ,5178,3658,17.76,10.05,0.973,0.932
-   6 ,5356,3789,14.15,10.18,0.983,0.92
-   7 ,5164,3531,11.94,9.08,0.991,0.803
-   8 ,5367,3681,23.7,11.47,0.987,0.948
-   9 ,5201,3665,17.68,10.43,0.992,0.918
-   10,5801,4564,11.17,4.69,0.983,0.824
-   11,5511,4238,20.31,10.3,0.985,0.878
-   12,5825,4569,13.0,8.0,0.97,0.963
-   13,5523,4384,12.2,8.54,0.980,0.954
-   14,5848,4517,18.83,2.98,0.983,0.959
-   15,5093,3716,22,3.0,0.808,0.705
-   16,5298,3816,21.4,11.22,0.989,0.912
-   17,5097,3428,17.34,8.4,0.991,0.87
-   18,5301,3864,14.0,0.1,0.976,0.893
-   19,5108,3535,22.4,9.13,0.987,0.945
+   ,:math:`\omega^{\textrm{max}}_{\textrm{r}}/2\pi`,:math:`\omega^{\textrm{max}}_{01}/2\pi`,:math:`\eta/2\pi`,:math:`T_1`,:math:`T^*_2`,:math:`\mathsf{F}_{\textrm{1q}}`,:math:`\mathsf{F}_{\textrm{RO}}`
+   ,:math:`\textrm{MHz}`,:math:`\textrm{MHz}`,:math:`\textrm{MHz}`,:math:`\mu\textrm{s}`,:math:`\mu\textrm{s}`,,
+   0 ,5592,4386,-208,**15.2** :math:`\pm` 2.5,**7.2** :math:`\pm` 0.7,0.9815,0.938
+   1 ,5703,4292,-210,**17.6** :math:`\pm` 1.7,**7.7** :math:`\pm` 1.4,0.9907,0.958
+   2 ,5599,4221,-142,**18.2** :math:`\pm` 1.1,**10.8** :math:`\pm` 0.6,0.9813,0.97
+   3 ,5708,3829,-224,**31.0** :math:`\pm` 2.6,**16.8** :math:`\pm` 0.8,0.9908,0.886
+   4 ,5633,4372,-220,**23.0** :math:`\pm` 0.5,**5.2** :math:`\pm` 0.2,0.9887,0.953
+   5 ,5178,3690,-224,**22.2** :math:`\pm` 2.1,**11.1** :math:`\pm` 1.0,0.9645,0.965
+   6 ,5356,3809,-208,**26.8** :math:`\pm` 2.5,**26.8** :math:`\pm` 2.5,0.9905,0.84
+   7 ,5164,3531,-216,**29.4** :math:`\pm` 3.8,**13.0** :math:`\pm` 1.2,0.9916,0.925
+   8 ,5367,3707,-208,**24.5** :math:`\pm` 2.8,**13.8** :math:`\pm` 0.4,0.9869,0.947
+   9 ,5201,3690,-214,**20.8** :math:`\pm` 6.2,**11.1** :math:`\pm` 0.7,0.9934,0.927
+   10,5801,4595,-194,**17.1** :math:`\pm` 1.2,**10.6** :math:`\pm` 0.5,0.9916,0.942
+   11,5511,4275,-204,**16.9** :math:`\pm` 2.0,**4.9** :math:`\pm` 1.0,0.9901,0.900
+   12,5825,4600,-194,**8.2**  :math:`\pm` 0.9,**10.9** :math:`\pm` 1.4,0.9902,0.942
+   13,5523,4434,-196,**18.7** :math:`\pm` 2.0,**12.7** :math:`\pm` 0.4,0.9933,0.921
+   14,5848,4552,-204,**13.9** :math:`\pm` 2.2,**9.4** :math:`\pm` 0.7,0.9916,0.947
+   15,5093,3733,-230,**20.8** :math:`\pm` 3.1,**7.3** :math:`\pm` 0.4,0.9852,0.970
+   16,5298,3854,-218,**16.7** :math:`\pm` 1.2,**7.5** :math:`\pm` 0.5,0.9906,0.948
+   17,5097,3574,-226,**24.0** :math:`\pm` 4.2,**8.4** :math:`\pm` 0.4,0.9895,0.921
+   18,5301,3877,-216,**16.9** :math:`\pm` 2.9,**12.9** :math:`\pm` 1.3,0.9496,0.930
+   19,5108,3574,-228,**24.7** :math:`\pm` 2.8,**9.8** :math:`\pm` 0.8,0.9942,0.930
 
+Table 4 shows the two-qubit gate performance of Rigetti 19Q.
 
-Table 2 shows the two-qubit gate performance of Rigetti 19Q.
-
-.. csv-table:: :math:`\textbf{Table 2 | Rigetti 19Q two-qubit gate performance}`
-   :widths: 10, 10, 10, 10
+.. csv-table:: :math:`\textbf{Table 4 | Rigetti 19Q two-qubit gate performance}`
+   :widths: 10, 10, 10, 10, 10
    :stub-columns: 1
 
-   ,:math:`f_\textrm{m}`,:math:`t_\textrm{CZ}`,:math:`\mathsf{F}^\textrm{cptp}_{\textrm{PT}}`
-   ,:math:`\textrm{MHz}`,ns
-   0 - 5, 190,277.35,0.83
-   1 - 6, 129.998,165.99,0.892
-   1 - 7, 92,198.25,0.89
-   4 - 9, 191.8, 190.9,0.871
-   5 - 10, 285.5,131.4,0.813
-   6 - 11, 140,140.18,0.837
-   7 - 12, 235.48,264.12,0.818
-   8 - 13, 167.67,193.11,0.899
-   9 - 14, 221,253.19,0.827
-   10 - 16, 342.5,137.82,0.848
-   11 - 16, 137.37,181.36,0.898
-   11 - 17, 92,200,0.894
-   12 - 17, 214.96,221.41,0.851
-   13 - 19, 163,201.96,0.827
-   14 - 19, 221,253.19,0.8496
+
+   ,:math:`A_0`,:math:`f_\textrm{m}`,:math:`t_\textrm{CZ}`,:math:`\mathsf{F}^\textrm{cptp}_{\textrm{PT}}`
+   ,:math:`\Phi/\Phi_0`,:math:`\textrm{MHz}`,ns
+   0 - 5 ,0.27,94.5,168,0.936
+   0 - 6 ,0.36,123.9,197,0.889
+   1 - 6 ,0.37,137.1,173,0.888
+   1 - 7 ,0.59,137.9,179,0.919
+   2 - 7 ,0.62,87.4,160,0.817
+   2 - 8, 0.23,55.6,189,0.906
+   4 - 9, 0.43,183.6,122,0.854
+   5 - 10,0.60,152.9,145,0.870
+   6 - 11 ,0.38,142.4,180,0.838
+   7 - 12 ,0.60,241.9,214,0.87
+   8 - 13,0.40,152.0,185,0.881
+   9 - 14,0.62,130.8,139,0.872
+   10 - 15,0.53,142.1,154,0.854
+   10 - 16,0.43,170.3,180,0.838
+   11 - 16,0.38,160.6,155,0.891
+   11 - 17,0.29,85.7,207,0.844
+   12 - 17,0.36,177.1,184,0.876
+   12 - 18,0.28,113.9,203,0.886
+   13 - 18,0.24,66.2,152,0.936
+   13 - 19,0.62,109.6,181,0.921
+   14 - 19,0.59,188.1,142,0.797
