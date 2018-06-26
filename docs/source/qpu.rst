@@ -434,7 +434,7 @@ gates are activated via RF drives on the flux bias lines.
 
 Due to a fabrication defect, qubit 3 is not tunable, which prohibits operation of the two-qubit
 parametric gate described below between qubit 3 and its neighbors. Consequently, we will treat this as
-a 19-qubit processor. However this chip is currently unavailable.
+a 19-qubit processor. **However, this chip is currently unavailable.**
 
 .. figure:: images/acorn.png
     :width: 540px
