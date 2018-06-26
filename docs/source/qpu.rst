@@ -407,3 +407,99 @@ tomography under complete positivity (cp) and trace preservation (tp) constraint
 
 ..  [Nielsen2002] Nielsen, M. A. (2002) ‘A simple formula for the average gate fidelity of a quantum dynamical operation’, http://arxiv.org/abs/quant-ph/0205035
 ..  [Reagor2018] Reagor, M. et al. (2018) ‘Demonstration of universal parametric entangling gates on a multi-qubit lattice’, http://advances.sciencemag.org/lookup/doi/10.1126/sciadv.aao3603
+
+
+
+Acorn QPU Properties -- CURRENTLY UNAVAILABLE
+~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
+
+This quantum processor consists of 20 superconducting transmon qubits with fixed capacitive coupling
+in the planar lattice design shown in Fig. 3.
+
+The resonant frequencies of qubits 0–4 and 10–14 are
+tunable while qubits 5–9 and 15–19 are fixed. The former have two Josephson junctions in an
+asymmetric SQUID geometry to provide roughly 1 GHz of frequency tunability, and flux-insensitive
+“sweet spots” near
+
+:math:`\omega^{\textrm{max}}_{01}/2\pi\approx 4.5 \, \textrm{GHz}`
+
+and
+
+:math:`\omega^{\textrm{min}}_{01}/2\pi\approx 3.0 \, \textrm{GHz}`.
+
+These tunable devices are coupled to bias lines for AC and DC flux delivery. Each qubit is
+capacitively coupled to a quasi-lumped element resonator for dispersive readout of the qubit state.
+Single-qubit control is effected by applying microwave drives at the resonator ports. Two-qubit
+gates are activated via RF drives on the flux bias lines.
+
+Due to a fabrication defect, qubit 3 is not tunable, which prohibits operation of the two-qubit
+parametric gate described below between qubit 3 and its neighbors. Additionally, qubits 2, 15, and
+18 are not accessible. Consequently, we will treat this as a 16-qubit processor. However this chip is
+currently unavailable.
+
+.. figure:: images/acorn.png
+    :width: 540px
+    :align: center
+    :height: 300px
+    :alt: 19Q-Acorn
+    :figclass: align-center
+
+    :math:`\textbf{Figure 3 $|$ Connectivity of Rigetti 19Q. a,}` Chip schematic showing tunable
+    transmons (green circles) capacitively coupled to fixed-frequency transmons
+    (blue circles). :math:`\textbf{b}`, Optical chip image. Note that some couplers have
+    been dropped to produce a lattice with three-fold, rather than four-fold
+    connectivity.
+
+Table 1 summarizes the main performance parameters of Rigetti 19Q.
+
+.. csv-table:: :math:`\textbf{Table 1 | Rigetti 19Q performance}`
+   :widths: 10, 10, 10, 10, 10, 10, 10
+   :stub-columns: 1
+
+   ,:math:`\omega^{\textrm{max}}_{\textrm{r}}/2\pi`,:math:`\omega^{\textrm{max}}_{01}/2\pi`,:math:`T_1`,:math:`T^*_2`,:math:`\mathsf{F}_{\textrm{1q}}`,:math:`\mathsf{F}_{\textrm{RO}}`
+   ,:math:`\textrm{MHz}`,:math:`\textrm{MHz}`,:math:`\mu\textrm{s}`,:math:`\mu\textrm{s}`,,
+   0 ,5592,4372,17.98,7.47,0.982,0.918
+   1 ,5703,4257,24.27,8.17,0.983,0.846
+   2 ,5599,3069,8.5,7.47,0.976,0.78
+   3 ,5708,3829,31.0,16.8,0.9908,0.886
+   4 ,5633,4332,18.01,2.79,0.987,0.962
+   5 ,5178,3658,17.76,10.05,0.973,0.932
+   6 ,5356,3789,14.15,10.18,0.983,0.92
+   7 ,5164,3531,11.94,9.08,0.991,0.803
+   8 ,5367,3681,23.7,11.47,0.987,0.948
+   9 ,5201,3665,17.68,10.43,0.992,0.918
+   10,5801,4564,11.17,4.69,0.983,0.824
+   11,5511,4238,20.31,10.3,0.985,0.878
+   12,5825,4569,13.0,8.0,0.97,0.963
+   13,5523,4384,12.2,8.54,0.980,0.954
+   14,5848,4517,18.83,2.98,0.983,0.959
+   15,5093,3716,22,3.0,0.808,0.705
+   16,5298,3816,21.4,11.22,0.989,0.912
+   17,5097,3428,17.34,8.4,0.991,0.87
+   18,5301,3864,14.0,0.1,0.976,0.893
+   19,5108,3535,22.4,9.13,0.987,0.945
+
+
+Table 2 shows the two-qubit gate performance of Rigetti 19Q.
+
+.. csv-table:: :math:`\textbf{Table 2 | Rigetti 19Q two-qubit gate performance}`
+   :widths: 10, 10, 10, 10
+   :stub-columns: 1
+
+   ,:math:`f_\textrm{m}`,:math:`t_\textrm{CZ}`,:math:`\mathsf{F}^\textrm{cptp}_{\textrm{PT}}`
+   ,:math:`\textrm{MHz}`,ns
+   0 - 5, 190,277.35,0.83
+   1 - 6, 129.998,165.99,0.892
+   1 - 7, 92,198.25,0.89
+   4 - 9, 191.8, 190.9,0.871
+   5 - 10, 285.5,131.4,0.813
+   6 - 11, 140,140.18,0.837
+   7 - 12, 235.48,264.12,0.818
+   8 - 13, 167.67,193.11,0.899
+   9 - 14, 221,253.19,0.827
+   10 - 16, 342.5,137.82,0.848
+   11 - 16, 137.37,181.36,0.898
+   11 - 17, 92,200,0.894
+   12 - 17, 214.96,221.41,0.851
+   13 - 19, 163,201.96,0.827
+   14 - 19, 221,253.19,0.8496
