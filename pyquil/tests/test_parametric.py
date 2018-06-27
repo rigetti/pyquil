@@ -97,7 +97,7 @@ def test_slot_logic():
 def test_pp():
     def rx(alpha):
         p = Program()
-        p += RX(alpha)(0)
+        p += RX(alpha, 0)
         return p
 
     pp = ParametricProgram(rx)
@@ -110,7 +110,7 @@ def test_parametric_decorator():
     @parametric
     def rx(alpha):
         p = Program()
-        p += RX(alpha)(0)
+        p += RX(alpha, 0)
         return p
 
     assert "RX(1.0) 0\n" == rx(1.0).out()
@@ -133,13 +133,13 @@ def test_fuse():
     @parametric
     def rx(alpha):
         p = Program()
-        p += RX(alpha)(0)
+        p += RX(alpha, 0)
         return p
 
     @parametric
     def ry(beta):
         p = Program()
-        p += RY(beta)(1)
+        p += RY(beta, 1)
         return p
 
     z = Program().inst(Z(2))
@@ -152,7 +152,7 @@ def test_parametric_arith():
     @parametric
     def rx(alpha):
         p = Program()
-        p += RX(2.0 * alpha + 1)(0)
+        p += RX(2.0 * alpha + 1, 0)
         return p
 
     assert "RX(3.0) 0\n" == rx(1.0).out()

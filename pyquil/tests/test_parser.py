@@ -68,8 +68,8 @@ def test_def_gate_with_variables():
 
 
 def test_parameters():
-    parse_equals("RX(123) 0", RX(123)(0))
-    parse_equals("CPHASE00(0) 0 1", CPHASE00(0)(0, 1))
+    parse_equals("RX(123) 0", RX(123, 0))
+    parse_equals("CPHASE00(0) 0 1", CPHASE00(0, 0, 1))
     parse_equals("A(8,9) 0", Gate("A", [8, 9], [Qubit(0)]))
     parse_equals("A(8, 9) 0", Gate("A", [8, 9], [Qubit(0)]))
 
@@ -77,7 +77,7 @@ def test_parameters():
 def test_expressions():
     # Test expressions by wrapping them in an RX gate for convenience
     def _expr(expression, expected):
-        parse_equals("RX(" + expression + ") 0", RX(expected)(0))
+        parse_equals("RX(" + expression + ") 0", RX(expected, 0))
 
     # Decimals
     _expr("+123", 123)

@@ -124,7 +124,7 @@ class PyQuilListener(QuilListener):
 
         if gate_name in STANDARD_GATES:
             if params:
-                self.result.append(STANDARD_GATES[gate_name](*params)(*qubits))
+                self.result.append(STANDARD_GATES[gate_name](*params, *qubits))
             else:
                 self.result.append(STANDARD_GATES[gate_name](*qubits))
         else:
