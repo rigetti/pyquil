@@ -243,6 +243,13 @@ def damping_kraus_map(p=0.10):
     return [residual_kraus, damping_op]
 
 
+def depolarizing_kraus_map(p=0.10):
+    x = np.array([[0, 1], [1, 0]])
+    y = np.array([[0, -1.j], [1.j, 0]])
+    z = np.array([[1, 0], [0, -1]])
+    return [np.eye(2)/2, x/2, y/2, z/2]
+
+
 def dephasing_kraus_map(p=0.10):
     """
     Generate the Kraus operators corresponding to a dephasing channel.
@@ -297,7 +304,7 @@ def damping_after_dephasing(T1, T2, gate_time):
 
 
 # You can only apply gate-noise to non-parametrized gates or parametrized gates at fixed parameters.
-NO_NOISE = ["RZ"]
+NO_NOISE = ["RZ", "I"]
 ANGLE_TOLERANCE = 1e-10
 
 
@@ -319,7 +326,7 @@ def get_noisy_gate(gate_name, params):
     params = tuple(params)
     if gate_name == "I":
         assert params == ()
-        return np.eye(2), "NOISY-I"
+        return np.eye(2), "I"
     if gate_name == "RX":
         angle, = params
         if np.isclose(angle, np.pi / 2, atol=ANGLE_TOLERANCE):
@@ -413,7 +420,6 @@ def _decoherence_noise_model(gates, T1=30e-6, T2=30e-6, gate_time_1q=50e-9,
     kraus_maps = []
     for g in gates:
         targets = tuple(t.index for t in g.qubits)
-        key = (g.name, tuple(g.params))
         if g.name in NO_NOISE:
             continue
         matrix, _ = get_noisy_gate(g.name, g.params)
@@ -438,6 +444,79 @@ def _decoherence_noise_model(gates, T1=30e-6, T2=30e-6, gate_time_1q=50e-9,
         aprobs[q] = np.array([[f_ro, 1. - f_ro],
                               [1. - f_ro, f_ro]])
 
+    return NoiseModel(kraus_maps, aprobs)
+
+
+def _depolarizing_noise_model(gates, p=.01, ro_fidelity=0.95):
+    """
+
+    :param Sequence[Gate] gates: The gates to provide the noise model for.
+    :param Union[Dict[int,float],float] T1: The T1 amplitude damping time either globally or in a
+        dictionary indexed by qubit id. By default, this is 30 us.
+    :param Union[Dict[int,float],float] T2: The T2 dephasing time either globally or in a
+        dictionary indexed by qubit id. By default, this is also 30 us.
+    :param float gate_time_1q: The duration of the one-qubit gates, namely RX(+pi/2) and RX(-pi/2).
+        By default, this is 50 ns.
+    :param float gate_time_2q: The duration of the two-qubit gates, namely CZ.
+        By default, this is 150 ns.
+    :param Union[Dict[int,float],float] ro_fidelity: The readout assignment fidelity
+        :math:`F = (p(0|0) + p(1|1))/2` either globally or in a dictionary indexed by qubit id.
+    :return: A NoiseModel with the appropriate Kraus operators defined.
+    """
+    all_qubits = set(sum(([t.index for t in g.qubits] for g in gates), []))
+    if isinstance(p, dict):
+        all_qubits.update(p.keys())
+    if isinstance(ro_fidelity, dict):
+        all_qubits.update(ro_fidelity.keys())
+
+    if not isinstance(p, dict):
+        p = {q: p for q in all_qubits}
+
+    if not isinstance(ro_fidelity, dict):
+        ro_fidelity = {q: ro_fidelity for q in all_qubits}
+
+    noisy_identities_1q = {
+        q: [np.eye(2)*np.sqrt(1-p.get(q, 0))] + [np.sqrt(p.get(q,0)) * k for
+                                                 k in depolarizing_kraus_map(p.get(q, 0))]
+        for q in all_qubits
+    }
+    noisy_identities_2q = {
+        q: depolarizing_kraus_map(p.get(q, 0)) for q in all_qubits
+    }
+    kraus_maps = []
+    for g in gates:
+        targets = tuple(t for t in all_qubits)
+        if g.name in NO_NOISE:
+            continue
+        matrix, _ = get_noisy_gate(g.name, g.params)
+        if len(g.qubits) == 1:
+            if g.qubits[0] == 0:
+                matrix = np.kron(np.eye(2), matrix)
+            else:
+                matrix = np.kron(matrix, np.eye(2))
+        if len(targets) == -1:
+            noisy_I = noisy_identities_1q[targets[0]]
+        else:
+            if not(len(targets) == 2 or len(targets) == 1):
+                raise ValueError("Noisy gates on more than 2Q not currently supported")
+
+            # note this ordering of the tensor factors is necessary due to how the QVM orders
+            # the wavefunction basis
+            noisy_I = ([np.sqrt(p.get(targets[0])) * k for k in
+                                tensor_kraus_maps(noisy_identities_2q[targets[1]],
+                                         noisy_identities_2q[targets[0]])] +
+                       [np.eye(4) * np.sqrt(1-p.get(targets[0], 0))])# Note we're assuming p is
+            # the same for everything.
+
+        kraus_maps.append(KrausModel(g.name, g.params, tuple(all_qubits),
+                                     combine_kraus_maps(noisy_I, [matrix]),
+                                     # FIXME (Nik): compute actual avg gate fidelity for this simple
+                                     # noise model
+                                     1.0))
+    aprobs = {}
+    for q, f_ro in ro_fidelity.items():
+        aprobs[q] = np.array([[f_ro, 1. - f_ro],
+                              [1. - f_ro, f_ro]])
     return NoiseModel(kraus_maps, aprobs)
 
 
@@ -552,6 +631,52 @@ def add_decoherence_noise(prog, T1=30e-6, T2=30e-6, gate_time_1q=50e-9, gate_tim
         T2=T2,
         gate_time_1q=gate_time_1q,
         gate_time_2q=gate_time_2q,
+        ro_fidelity=ro_fidelity
+    )
+    return apply_noise_model(prog, noise_model)
+
+
+def add_depolarizing_noise(prog,p=.01, ro_fidelity=0.95):
+    """
+    Add generic damping and dephasing noise to a program.
+
+    This high-level function is provided as a convenience to investigate the effects of a
+    generic noise model on a program. For more fine-grained control, please investigate
+    the other methods available in the ``pyquil.noise`` module.
+
+    In an attempt to closely model the QPU, noisy versions of RX(+-pi/2) and CZ are provided;
+    I and parametric RZ are noiseless, and other gates are not allowed. To use this function,
+    you need to compile your program to this native gate set.
+
+    The default noise parameters
+
+    - T1 = 30 us
+    - T2 = 30 us
+    - 1q gate time = 50 ns
+    - 2q gate time = 150 ns
+
+    are currently typical for near-term devices.
+
+    This function will define new gates and add Kraus noise to these gates. It will translate
+    the input program to use the noisy version of the gates.
+
+    :param prog: A pyquil program consisting of I, RZ, CZ, and RX(+-pi/2) instructions
+    :param Union[Dict[int,float],float] T1: The T1 amplitude damping time either globally or in a
+        dictionary indexed by qubit id. By default, this is 30 us.
+    :param Union[Dict[int,float],float] T2: The T2 dephasing time either globally or in a
+        dictionary indexed by qubit id. By default, this is also 30 us.
+    :param float gate_time_1q: The duration of the one-qubit gates, namely RX(+pi/2) and RX(-pi/2).
+        By default, this is 50 ns.
+    :param float gate_time_2q: The duration of the two-qubit gates, namely CZ.
+        By default, this is 150 ns.
+    :param Union[Dict[int,float],float] ro_fidelity: The readout assignment fidelity
+        :math:`F = (p(0|0) + p(1|1))/2` either globally or in a dictionary indexed by qubit id.
+    :return: A new program with noisy operators.
+    """
+    gates = _get_program_gates(prog)
+    noise_model = _depolarizing_noise_model(
+        gates,
+        p=p,
         ro_fidelity=ro_fidelity
     )
     return apply_noise_model(prog, noise_model)
