@@ -553,4 +553,6 @@ CUSTOM_GATES = {'WAIT'     : WAIT,
 Dictionary of custom gates. Keys are gate names, values are gate functions.
 """
 
+ALL_GATES = {**STANDARD_GATES, **CUSTOM_GATES}
+
 __all__ = list(STANDARD_GATES.keys()) + list(CUSTOM_GATES.keys()) + ['Gate']
