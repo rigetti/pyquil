@@ -537,6 +537,17 @@ STANDARD_GATES = {'I': I,
 Dictionary of standard gates. Keys are gate names, values are gate functions.
 """
 
-__all__ = list(STANDARD_GATES.keys()) + ['WAIT', 'RESET', 'NOP', 'HALT', 'MEASURE', 'TRUE',
-                                         'FALSE', 'NOT', 'AND', 'OR', 'MOVE', 'EXCHANGE',
-                                         'Gate']
+CUSTOM_GATES = {'WAIT'     : WAIT,
+                'RESET'    : RESET,
+                'NOP'      : NOP,
+                'HALT'     : HALT,
+                'MEASURE'  : MEASURE,
+                'TRUE'     : TRUE,
+                'FALSE'    : FALSE,
+                'NOT'      : NOT,
+                'AND'      : AND,
+                'OR'       : OR,
+                'MOVE'     : MOVE,
+                'EXCHANGE' : EXCHANGE}
+
+__all__ = list(STANDARD_GATES.keys()) + list(CUSTOM_GATES.keys()) + ['Gate']
