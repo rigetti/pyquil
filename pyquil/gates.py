@@ -549,5 +549,8 @@ CUSTOM_GATES = {'WAIT'     : WAIT,
                 'OR'       : OR,
                 'MOVE'     : MOVE,
                 'EXCHANGE' : EXCHANGE}
+"""
+Dictionary of custom gates. Keys are gate names, values are gate functions.
+"""
 
 __all__ = list(STANDARD_GATES.keys()) + list(CUSTOM_GATES.keys()) + ['Gate']
