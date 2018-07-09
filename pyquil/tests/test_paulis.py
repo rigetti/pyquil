@@ -280,7 +280,7 @@ def test_exponentiate_1():
     generator = PauliTerm("Z", 0, 1.0)
     para_prog = exponential_map(generator)
     prog = para_prog(1)
-    result_prog = Program().inst(RZ(2.0)(0))
+    result_prog = Program().inst(RZ(2.0, 0))
     assert prog == result_prog
 
 
@@ -289,7 +289,7 @@ def test_exponentiate_2():
     generator = PauliTerm("Z", 0, 1.0) * PauliTerm("Z", 1, 1.0)
     para_prog = exponential_map(generator)
     prog = para_prog(1)
-    result_prog = Program().inst(CNOT(0, 1)).inst(RZ(2.0)(1)).inst(CNOT(0, 1))
+    result_prog = Program().inst(CNOT(0, 1)).inst(RZ(2.0, 1)).inst(CNOT(0, 1))
     assert prog == result_prog
 
 
@@ -298,7 +298,7 @@ def test_exponentiate_bp0_ZX():
     generator = PauliTerm("X", 0, 1.0) * PauliTerm("Z", 1, 1.0)
     param_prog = exponential_map(generator)
     prog = param_prog(1)
-    result_prog = Program().inst([H(0), CNOT(0, 1), RZ(2.0)(1), CNOT(0, 1), H(0)])
+    result_prog = Program().inst([H(0), CNOT(0, 1), RZ(2.0, 1), CNOT(0, 1), H(0)])
     assert prog == result_prog
 
 
@@ -307,7 +307,7 @@ def test_exponentiate_bp1_XZ():
     generator = PauliTerm("Z", 0, 1.0) * PauliTerm("X", 1, 1.0)
     para_prog = exponential_map(generator)
     prog = para_prog(1)
-    result_prog = Program().inst([H(1), CNOT(0, 1), RZ(2.0)(1), CNOT(0, 1), H(1)])
+    result_prog = Program().inst([H(1), CNOT(0, 1), RZ(2.0, 1), CNOT(0, 1), H(1)])
     assert prog == result_prog
 
 
@@ -316,8 +316,8 @@ def test_exponentiate_bp0_ZY():
     generator = PauliTerm("Y", 0, 1.0) * PauliTerm("Z", 1, 1.0)
     para_prog = exponential_map(generator)
     prog = para_prog(1)
-    result_prog = Program().inst([RX(math.pi / 2.0)(0), CNOT(0, 1), RZ(2.0)(1),
-                                  CNOT(0, 1), RX(-math.pi / 2)(0)])
+    result_prog = Program().inst([RX(math.pi / 2.0, 0), CNOT(0, 1), RZ(2.0, qubit=1),
+                                  CNOT(0, 1), RX(-math.pi / 2, 0)])
     assert prog == result_prog
 
 
@@ -326,8 +326,8 @@ def test_exponentiate_bp1_YZ():
     generator = PauliTerm("Z", 0, 1.0) * PauliTerm("Y", 1, 1.0)
     para_prog = exponential_map(generator)
     prog = para_prog(1)
-    result_prog = Program().inst([RX(math.pi / 2.0)(1), CNOT(0, 1),
-                                  RZ(2.0)(1), CNOT(0, 1), RX(-math.pi / 2.0)(1)])
+    result_prog = Program().inst([RX(math.pi / 2.0, 1), CNOT(0, 1),
+                                  RZ(2.0, 1), CNOT(0, 1), RX(-math.pi / 2.0, 1)])
     assert prog == result_prog
 
 
@@ -336,9 +336,9 @@ def test_exponentiate_3cob():
     generator = PauliTerm("Z", 0, 1.0) * PauliTerm("Y", 1, 1.0) * PauliTerm("X", 2, 1.0)
     para_prog = exponential_map(generator)
     prog = para_prog(1)
-    result_prog = Program().inst([RX(math.pi / 2.0)(1), H(2), CNOT(0, 1),
-                                  CNOT(1, 2), RZ(2.0)(2), CNOT(1, 2),
-                                  CNOT(0, 1), RX(-math.pi / 2.0)(1), H(2)])
+    result_prog = Program().inst([RX(math.pi / 2.0, 1), H(2), CNOT(0, 1),
+                                  CNOT(1, 2), RZ(2.0, 2), CNOT(1, 2),
+                                  CNOT(0, 1), RX(-math.pi / 2.0, 1), H(2)])
     assert prog == result_prog
 
 
@@ -350,17 +350,17 @@ def test_exponentiate_3ns():
                  PauliTerm("Y", 3, 1.0))
     para_prog = exponential_map(generator)
     prog = para_prog(1)
-    result_prog = Program().inst([RX(math.pi / 2.0)(0), RX(math.pi / 2.0)(2),
-                                  RX(math.pi / 2.0)(3), CNOT(0, 2),
-                                  CNOT(2, 3), RZ(2.0)(3), CNOT(2, 3),
-                                  CNOT(0, 2), RX(-math.pi / 2.0)(0),
-                                  RX(-math.pi / 2.0)(2), RX(-math.pi / 2.0)(3)])
+    result_prog = Program().inst([RX(math.pi / 2.0, 0), RX(math.pi / 2.0, 2),
+                                  RX(math.pi / 2.0, 3), CNOT(0, 2),
+                                  CNOT(2, 3), RZ(2.0, 3), CNOT(2, 3),
+                                  CNOT(0, 2), RX(-math.pi / 2.0, 0),
+                                  RX(-math.pi / 2.0, 2), RX(-math.pi / 2.0, 3)])
     assert prog == result_prog
 
 
 def test_exponentiate_commuting_pauli_sum():
     pauli_sum = PauliSum([PauliTerm('Z', 0, 0.5), PauliTerm('Z', 1, 0.5)])
-    prog = Program().inst(RZ(1.)(0)).inst(RZ(1.)(1))
+    prog = Program().inst(RZ(1., 0)).inst(RZ(1., 1))
     result_prog = exponentiate_commuting_pauli_sum(pauli_sum)(1.)
     assert prog == result_prog
 
@@ -376,19 +376,19 @@ def test_exponentiate_identity():
     generator = PauliTerm("I", 1, 0.0)
     para_prog = exponential_map(generator)
     prog = para_prog(1)
-    result_prog = Program().inst([X(0), PHASE(-0.0)(0), X(0), PHASE(-0.0)(0)])
+    result_prog = Program().inst([X(0), PHASE(-0.0, 0), X(0), PHASE(-0.0, 0)])
     assert prog == result_prog
 
     generator = PauliTerm("I", 1, 1.0)
     para_prog = exponential_map(generator)
     prog = para_prog(1)
-    result_prog = Program().inst([X(0), PHASE(-1.0)(0), X(0), PHASE(-1.0)(0)])
+    result_prog = Program().inst([X(0), PHASE(-1.0, 0), X(0), PHASE(-1.0, 0)])
     assert prog == result_prog
 
     generator = PauliTerm("I", 10, 0.08)
     para_prog = exponential_map(generator)
     prog = para_prog(1)
-    result_prog = Program().inst([X(0), PHASE(-0.08)(0), X(0), PHASE(-0.08)(0)])
+    result_prog = Program().inst([X(0), PHASE(-0.08, 0), X(0), PHASE(-0.08, 0)])
     assert prog == result_prog
 
 
@@ -402,40 +402,40 @@ def test_trotterize():
         trotterize(term_one, term_two, trotter_order=5)
 
     prog = trotterize(term_one, term_one)
-    result_prog = Program().inst([H(0), RZ(2.0)(0), H(0), H(0),
-                                  RZ(2.0)(0), H(0)])
+    result_prog = Program().inst([H(0), RZ(2.0, 0), H(0), H(0),
+                                  RZ(2.0, 0), H(0)])
     assert prog == result_prog
 
     # trotter_order 1 steps 1
     prog = trotterize(term_one, term_two, trotter_steps=1)
-    result_prog = Program().inst([H(0), RZ(2.0)(0), H(0), RZ(2.0)(0)])
+    result_prog = Program().inst([H(0), RZ(2.0, 0), H(0), RZ(2.0, 0)])
     assert prog == result_prog
 
     # trotter_order 1 steps 2
     prog = trotterize(term_one, term_two, trotter_steps=2)
-    result_prog = Program().inst([H(0), RZ(1.0)(0), H(0), RZ(1.0)(0),
-                                  H(0), RZ(1.0)(0), H(0), RZ(1.0)(0)])
+    result_prog = Program().inst([H(0), RZ(1.0, 0), H(0), RZ(1.0, 0),
+                                  H(0), RZ(1.0, 0), H(0), RZ(1.0, 0)])
     assert prog == result_prog
 
     # trotter_order 2 steps 1
     prog = trotterize(term_one, term_two, trotter_order=2)
-    result_prog = Program().inst([H(0), RZ(1.0)(0), H(0), RZ(2.0)(0),
-                                  H(0), RZ(1.0)(0), H(0)])
+    result_prog = Program().inst([H(0), RZ(1.0, 0), H(0), RZ(2.0, 0),
+                                  H(0), RZ(1.0, 0), H(0)])
     assert prog == result_prog
 
     # trotter_order 2 steps 2
     prog = trotterize(term_one, term_two, trotter_order=2, trotter_steps=2)
-    result_prog = Program().inst([H(0), RZ(0.5)(0), H(0), RZ(1.0)(0),
-                                  H(0), RZ(0.5)(0), H(0),
-                                  H(0), RZ(0.5)(0), H(0), RZ(1.0)(0),
-                                  H(0), RZ(0.5)(0), H(0)])
+    result_prog = Program().inst([H(0), RZ(0.5, 0), H(0), RZ(1.0, 0),
+                                  H(0), RZ(0.5, 0), H(0),
+                                  H(0), RZ(0.5, 0), H(0), RZ(1.0, 0),
+                                  H(0), RZ(0.5, 0), H(0)])
     assert prog == result_prog
 
     # trotter_order 3 steps 1
     prog = trotterize(term_one, term_two, trotter_order=3, trotter_steps=1)
-    result_prog = Program().inst([H(0), RZ(14.0 / 24)(0), H(0), RZ(4.0 / 3.0)(0),
-                                  H(0), RZ(1.5)(0), H(0), RZ(-4.0 / 3.0)(0),
-                                  H(0), RZ(-2.0 / 24)(0), H(0), RZ(2.0)(0)])
+    result_prog = Program().inst([H(0), RZ(14.0 / 24, 0), H(0), RZ(4.0 / 3.0, 0),
+                                  H(0), RZ(1.5, 0), H(0), RZ(-4.0 / 3.0, 0),
+                                  H(0), RZ(-2.0 / 24, 0), H(0), RZ(2.0, 0)])
     assert prog == result_prog
 
 

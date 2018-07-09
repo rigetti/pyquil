@@ -765,9 +765,9 @@ def exponential_map(term):
         prog = Program()
         if is_identity(term):
             prog.inst(X(0))
-            prog.inst(PHASE(-param * coeff)(0))
+            prog.inst(PHASE(-param * coeff, 0))
             prog.inst(X(0))
-            prog.inst(PHASE(-param * coeff)(0))
+            prog.inst(PHASE(-param * coeff, 0))
         else:
             prog += _exponentiate_general_case(term, param)
         return prog
@@ -825,8 +825,8 @@ def _exponentiate_general_case(pauli_term, param):
             change_to_original_basis.inst(H(index))
 
         elif 'Y' == op:
-            change_to_z_basis.inst(RX(np.pi / 2.0)(index))
-            change_to_original_basis.inst(RX(-np.pi / 2.0)(index))
+            change_to_z_basis.inst(RX(np.pi / 2.0, index))
+            change_to_original_basis.inst(RX(-np.pi / 2.0, index))
 
         elif 'I' == op:
             continue
@@ -840,7 +840,7 @@ def _exponentiate_general_case(pauli_term, param):
     # building rotation circuit
     quil_prog += change_to_z_basis
     quil_prog += cnot_seq
-    quil_prog.inst(RZ(2.0 * pauli_term.coefficient * param)(highest_target_index))
+    quil_prog.inst(RZ(2.0 * pauli_term.coefficient * param, highest_target_index))
     quil_prog += reverse_hack(cnot_seq)
     quil_prog += change_to_original_basis
 

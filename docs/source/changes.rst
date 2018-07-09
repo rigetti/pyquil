@@ -5,6 +5,9 @@ v2.0 (Development)
 ------------------
 
 - Python 2 is no longer supported
+- Parametric gates are now normal functions. You can no longer write ``RX(pi/2)(0)`` to get a
+  Quil ``RX(pi/2) 0`` instruction. Just use ``RX(pi/2, 0)``.
+- Gates support keyword arguments, so you can write ``RX(angle=pi/2, qubit=0)``.
 
 
 

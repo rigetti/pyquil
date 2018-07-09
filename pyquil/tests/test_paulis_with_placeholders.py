@@ -223,7 +223,7 @@ def test_exponentiate_1():
     generator = PauliTerm("Z", q[0], 1.0)
     para_prog = exponential_map(generator)
     prog = para_prog(1)
-    result_prog = Program().inst(RZ(2.0)(q[0]))
+    result_prog = Program().inst(RZ(2.0, q[0]))
     assert address_qubits(prog) == address_qubits(result_prog)
 
 
@@ -233,7 +233,7 @@ def test_exponentiate_2():
     generator = PauliTerm("Z", q[0], 1.0) * PauliTerm("Z", q[1], 1.0)
     para_prog = exponential_map(generator)
     prog = para_prog(1)
-    result_prog = Program().inst(CNOT(q[0], q[1])).inst(RZ(2.0)(q[1])).inst(CNOT(q[0], q[1]))
+    result_prog = Program().inst(CNOT(q[0], q[1])).inst(RZ(2.0, q[1])).inst(CNOT(q[0], q[1]))
 
     mapping = get_default_qubit_mapping(prog)
     assert address_qubits(prog, mapping) == address_qubits(result_prog, mapping)
@@ -246,7 +246,7 @@ def test_exponentiate_bp0_ZX():
     param_prog = exponential_map(generator)
     prog = param_prog(1)
     result_prog = Program().inst(
-        [H(q[0]), CNOT(q[0], q[1]), RZ(2.0)(q[1]), CNOT(q[0], q[1]), H(q[0])])
+        [H(q[0]), CNOT(q[0], q[1]), RZ(2.0, q[1]), CNOT(q[0], q[1]), H(q[0])])
     assert address_qubits(prog) == address_qubits(result_prog)
 
 
@@ -257,7 +257,7 @@ def test_exponentiate_bp1_XZ():
     para_prog = exponential_map(generator)
     prog = para_prog(1)
     result_prog = Program().inst(
-        [H(q[1]), CNOT(q[0], q[1]), RZ(2.0)(q[1]), CNOT(q[0], q[1]), H(q[1])])
+        [H(q[1]), CNOT(q[0], q[1]), RZ(2.0, q[1]), CNOT(q[0], q[1]), H(q[1])])
     assert address_qubits(prog) == address_qubits(result_prog)
 
 
@@ -267,8 +267,8 @@ def test_exponentiate_bp0_ZY():
     generator = PauliTerm("Y", q[0], 1.0) * PauliTerm("Z", q[1], 1.0)
     para_prog = exponential_map(generator)
     prog = para_prog(1)
-    result_prog = Program().inst([RX(math.pi / 2.0)(q[0]), CNOT(q[0], q[1]), RZ(2.0)(q[1]),
-                                  CNOT(q[0], q[1]), RX(-math.pi / 2)(q[0])])
+    result_prog = Program().inst([RX(math.pi / 2.0, q[0]), CNOT(q[0], q[1]), RZ(2.0, q[1]),
+                                  CNOT(q[0], q[1]), RX(-math.pi / 2, q[0])])
     assert address_qubits(prog) == address_qubits(result_prog)
 
 
@@ -278,8 +278,8 @@ def test_exponentiate_bp1_YZ():
     generator = PauliTerm("Z", q[0], 1.0) * PauliTerm("Y", q[1], 1.0)
     para_prog = exponential_map(generator)
     prog = para_prog(1)
-    result_prog = Program().inst([RX(math.pi / 2.0)(q[1]), CNOT(q[0], q[1]),
-                                  RZ(2.0)(q[1]), CNOT(q[0], q[1]), RX(-math.pi / 2.0)(q[1])])
+    result_prog = Program().inst([RX(math.pi / 2.0, q[1]), CNOT(q[0], q[1]),
+                                  RZ(2.0, q[1]), CNOT(q[0], q[1]), RX(-math.pi / 2.0, q[1])])
     assert address_qubits(prog) == address_qubits(result_prog)
 
 
@@ -289,9 +289,9 @@ def test_exponentiate_3cob():
     generator = PauliTerm("Z", q[0], 1.0) * PauliTerm("Y", q[1], 1.0) * PauliTerm("X", q[2], 1.0)
     para_prog = exponential_map(generator)
     prog = para_prog(1)
-    result_prog = Program().inst([RX(math.pi / 2.0)(q[1]), H(q[2]), CNOT(q[0], q[1]),
-                                  CNOT(q[1], q[2]), RZ(2.0)(q[2]), CNOT(q[1], q[2]),
-                                  CNOT(q[0], q[1]), RX(-math.pi / 2.0)(q[1]), H(q[2])])
+    result_prog = Program().inst([RX(math.pi / 2.0, q[1]), H(q[2]), CNOT(q[0], q[1]),
+                                  CNOT(q[1], q[2]), RZ(2.0, q[2]), CNOT(q[1], q[2]),
+                                  CNOT(q[0], q[1]), RX(-math.pi / 2.0, q[1]), H(q[2])])
     assert address_qubits(prog) == address_qubits(result_prog)
 
 
@@ -304,18 +304,18 @@ def test_exponentiate_3ns():
                  PauliTerm("Y", q[3], 1.0))
     para_prog = exponential_map(generator)
     prog = para_prog(1)
-    result_prog = Program().inst([RX(math.pi / 2.0)(q[0]), RX(math.pi / 2.0)(q[2]),
-                                  RX(math.pi / 2.0)(q[3]), CNOT(q[0], q[2]),
-                                  CNOT(q[2], q[3]), RZ(2.0)(q[3]), CNOT(q[2], q[3]),
-                                  CNOT(q[0], q[2]), RX(-math.pi / 2.0)(q[0]),
-                                  RX(-math.pi / 2.0)(q[2]), RX(-math.pi / 2.0)(q[3])])
+    result_prog = Program().inst([RX(math.pi / 2.0, q[0]), RX(math.pi / 2.0, q[2]),
+                                  RX(math.pi / 2.0, q[3]), CNOT(q[0], q[2]),
+                                  CNOT(q[2], q[3]), RZ(2.0, q[3]), CNOT(q[2], q[3]),
+                                  CNOT(q[0], q[2]), RX(-math.pi / 2.0, q[0]),
+                                  RX(-math.pi / 2.0, q[2]), RX(-math.pi / 2.0, q[3])])
     assert address_qubits(prog) == address_qubits(result_prog)
 
 
 def test_exponentiate_commuting_pauli_sum():
     q = QubitPlaceholder.register(8)
     pauli_sum = PauliSum([PauliTerm('Z', q[0], 0.5), PauliTerm('Z', q[1], 0.5)])
-    prog = Program().inst(RZ(1.)(q[0])).inst(RZ(1.)(q[1]))
+    prog = Program().inst(RZ(1., q[0])).inst(RZ(1., q[1]))
     result_prog = exponentiate_commuting_pauli_sum(pauli_sum)(1.)
     assert address_qubits(prog) == address_qubits(result_prog)
 
@@ -334,19 +334,19 @@ def test_exponentiate_identity():
     generator = PauliTerm("I", q[1], 0.0)
     para_prog = exponential_map(generator)
     prog = para_prog(1)
-    result_prog = Program().inst([X(q[0]), PHASE(-0.0)(q[0]), X(q[0]), PHASE(-0.0)(q[0])])
+    result_prog = Program().inst([X(q[0]), PHASE(-0.0, q[0]), X(q[0]), PHASE(-0.0, q[0])])
     assert address_qubits(prog, mapping) == address_qubits(result_prog, mapping)
 
     generator = PauliTerm("I", q[1], 1.0)
     para_prog = exponential_map(generator)
     prog = para_prog(1)
-    result_prog = Program().inst([X(q[0]), PHASE(-1.0)(q[0]), X(q[0]), PHASE(-1.0)(q[0])])
+    result_prog = Program().inst([X(q[0]), PHASE(-1.0, q[0]), X(q[0]), PHASE(-1.0, q[0])])
     assert address_qubits(prog, mapping) == address_qubits(result_prog, mapping)
 
     generator = PauliTerm("I", q[10], 0.08)
     para_prog = exponential_map(generator)
     prog = para_prog(1)
-    result_prog = Program().inst([X(q[0]), PHASE(-0.08)(q[0]), X(q[0]), PHASE(-0.08)(q[0])])
+    result_prog = Program().inst([X(q[0]), PHASE(-0.08, q[0]), X(q[0]), PHASE(-0.08, q[0])])
     assert address_qubits(prog, mapping) == address_qubits(result_prog, mapping)
 
 
@@ -361,40 +361,40 @@ def test_trotterize():
         trotterize(term_one, term_two, trotter_order=5)
 
     prog = trotterize(term_one, term_one)
-    result_prog = Program().inst([H(q[0]), RZ(2.0)(q[0]), H(q[0]), H(q[0]),
-                                  RZ(2.0)(q[0]), H(q[0])])
+    result_prog = Program().inst([H(q[0]), RZ(2.0, q[0]), H(q[0]), H(q[0]),
+                                  RZ(2.0, q[0]), H(q[0])])
     assert address_qubits(prog) == address_qubits(result_prog)
 
     # trotter_order 1 steps 1
     prog = trotterize(term_one, term_two, trotter_steps=1)
-    result_prog = Program().inst([H(q[0]), RZ(2.0)(q[0]), H(q[0]), RZ(2.0)(q[0])])
+    result_prog = Program().inst([H(q[0]), RZ(2.0, q[0]), H(q[0]), RZ(2.0, q[0])])
     assert address_qubits(prog) == address_qubits(result_prog)
 
     # trotter_order 1 steps 2
     prog = trotterize(term_one, term_two, trotter_steps=2)
-    result_prog = Program().inst([H(q[0]), RZ(1.0)(q[0]), H(q[0]), RZ(1.0)(q[0]),
-                                  H(q[0]), RZ(1.0)(q[0]), H(q[0]), RZ(1.0)(q[0])])
+    result_prog = Program().inst([H(q[0]), RZ(1.0, q[0]), H(q[0]), RZ(1.0, q[0]),
+                                  H(q[0]), RZ(1.0, q[0]), H(q[0]), RZ(1.0, q[0])])
     assert address_qubits(prog) == address_qubits(result_prog)
 
     # trotter_order 2 steps 1
     prog = trotterize(term_one, term_two, trotter_order=2)
-    result_prog = Program().inst([H(q[0]), RZ(1.0)(q[0]), H(q[0]), RZ(2.0)(q[0]),
-                                  H(q[0]), RZ(1.0)(q[0]), H(q[0])])
+    result_prog = Program().inst([H(q[0]), RZ(1.0, q[0]), H(q[0]), RZ(2.0, q[0]),
+                                  H(q[0]), RZ(1.0, q[0]), H(q[0])])
     assert address_qubits(prog) == address_qubits(result_prog)
 
     # trotter_order 2 steps 2
     prog = trotterize(term_one, term_two, trotter_order=2, trotter_steps=2)
-    result_prog = Program().inst([H(q[0]), RZ(0.5)(q[0]), H(q[0]), RZ(1.0)(q[0]),
-                                  H(q[0]), RZ(0.5)(q[0]), H(q[0]),
-                                  H(q[0]), RZ(0.5)(q[0]), H(q[0]), RZ(1.0)(q[0]),
-                                  H(q[0]), RZ(0.5)(q[0]), H(q[0])])
+    result_prog = Program().inst([H(q[0]), RZ(0.5, q[0]), H(q[0]), RZ(1.0, q[0]),
+                                  H(q[0]), RZ(0.5, q[0]), H(q[0]),
+                                  H(q[0]), RZ(0.5, q[0]), H(q[0]), RZ(1.0, q[0]),
+                                  H(q[0]), RZ(0.5, q[0]), H(q[0])])
     assert address_qubits(prog) == address_qubits(result_prog)
 
     # trotter_order 3 steps 1
     prog = trotterize(term_one, term_two, trotter_order=3, trotter_steps=1)
-    result_prog = Program().inst([H(q[0]), RZ(14.0 / 24)(q[0]), H(q[0]), RZ(4.0 / 3.0)(q[0]),
-                                  H(q[0]), RZ(1.5)(q[0]), H(q[0]), RZ(-4.0 / 3.0)(q[0]),
-                                  H(q[0]), RZ(-2.0 / 24)(q[0]), H(q[0]), RZ(2.0)(q[0])])
+    result_prog = Program().inst([H(q[0]), RZ(14.0 / 24, q[0]), H(q[0]), RZ(4.0 / 3.0, q[0]),
+                                  H(q[0]), RZ(1.5, q[0]), H(q[0]), RZ(-4.0 / 3.0, q[0]),
+                                  H(q[0]), RZ(-2.0 / 24, q[0]), H(q[0]), RZ(2.0, q[0])])
     assert address_qubits(prog) == address_qubits(result_prog)
 
 

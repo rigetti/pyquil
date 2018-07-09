@@ -1018,7 +1018,7 @@ Example 1: Rabi Sequence with Noisy Readout
     for jj, theta in enumerate(thetas):
         for kk, p00 in enumerate(p00s):
             cxn.random_seed = hash((jj, kk))
-            p = Program(RX(theta)(0))
+            p = Program(RX(theta, 0))
             # assume symmetric noise p11 = p00
             p.define_noisy_readout(0, p00=p00, p11=p00)
             p.measure(0, 0)
