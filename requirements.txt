@@ -8,3 +8,8 @@ six
 # test deps
 pytest
 requests-mock
+flake8
+
+# docs
+sphinx
+sphinx_rtd_theme
