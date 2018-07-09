@@ -74,6 +74,15 @@ setup(
         'Programming Language :: Python :: 3',
         'Operating System :: OS Independent',
     ],
+    install_requires=[
+        # The minimum spec for a working pyquil install.
+        # note to developers: this should be a subset of requirements.txt
+        'numpy',
+        'antlr4-python3-runtime',
+        'requests',
+        'contextvars',
+        'six',
+    ],
     entry_points={
         'console_scripts': ['pyquil-config-setup=pyquil.setup.pyquil_config_setup:main']
     },
