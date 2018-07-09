@@ -498,6 +498,16 @@ class Program(object):
         p.inst(self)
         p.inst(other)
         return p
+    
+    def __iadd__(self, other):
+        """
+        Concatenate two programs together using +=, returning a new one.
+
+        :param Program other: Another program or instruction to concatenate to this one.
+        :return: A newly concatenated program.
+        :rtype: Program
+        """
+        return self.inst(other)
 
     def __getitem__(self, index):
         """
