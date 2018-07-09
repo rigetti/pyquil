@@ -54,12 +54,17 @@ def find_version(*file_paths):
     raise RuntimeError("Unable to find version string.")
 
 
+with open("README.md", "r") as fh:
+    long_description = fh.read()
+
 setup(
     name="pyquil",
     version=find_version('pyquil', '__init__.py'),
     author="Rigetti Computing",
     author_email="softapps@rigetti.com",
     description="A Python library to generate Quantum Instruction Language (Quil) Programs.",
+    long_description=long_description,
+    long_description_content_type="text/markdown",
     url="https://github.com/rigetticomputing/pyquil.git",
     packages=find_packages(exclude=["*.tests", "*.tests.*", "tests.*", "tests"]),
     license="LICENSE",
