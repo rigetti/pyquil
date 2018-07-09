@@ -137,6 +137,12 @@ test your connection to Forest using this script by cloning the pyQuil repositor
 You should see the following output array ``[[1, 0, 0, 0, 0, 0, 0, 0]]``.
 This indicates that you have successfully interacted with our API.
 
+.. note::
+
+    If you installed pyQuil using Anaconda or pip (as explained above), you can find the examples and
+    the `run_quil.py` script in the `pyQuil GitHub repository
+    <https://github.com/rigetticomputing/pyquil/tree/master/examples>`_.
+
 You can continue to write more Quil code in files and run them using the ``run_quil.py`` script.
 The following sections describe how to use the pyQuil library directly to build quantum programs in
 Python.
