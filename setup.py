@@ -67,8 +67,13 @@ setup(
     long_description_content_type="text/markdown",
     url="https://github.com/rigetticomputing/pyquil.git",
     packages=find_packages(exclude=["*.tests", "*.tests.*", "tests.*", "tests"]),
-    license="LICENSE",
-    test_suite='pyquil.tests',
+    license='Apache-2.0',
+    classifiers=[
+        'Development Status :: 5 - Production/Stable',
+        'License :: OSI Approved :: Apache Software License',
+        'Programming Language :: Python :: 3',
+        'Operating System :: OS Independent',
+    ],
     entry_points={
         'console_scripts': ['pyquil-config-setup=pyquil.setup.pyquil_config_setup:main']
     },
