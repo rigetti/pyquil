@@ -740,5 +740,7 @@ def get_classical_addresses_from_program(program):
     """
     # Required to use the `classical_reg.address` int attribute.
     # See https://github.com/rigetticomputing/pyquil/issues/388.
-    return sorted(set([instr.classical_reg.address for instr in program
-                       if isinstance(instr, Measurement)]))
+    return sorted(set([
+        instr.classical_reg.address for instr in program
+        if isinstance(instr, Measurement) and instr.classical_reg is not None
+    ]))
