@@ -62,7 +62,7 @@ program = init_state_prog + qaoa_ansatz([0., 0.5], [0.75, 1.])
 # have privileges to run on the QVM. To run this on your own machine, remove this patch, and replace
 # it with:
 # qvm = QVMConnection()
-from mock import patch
+from unittest.mock import patch
 with patch("pyquil.api.QVMConnection") as qvm:
     qvm.run_and_measure.return_value = [
         [1, 0, 1, 0],
