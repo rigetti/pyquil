@@ -498,7 +498,7 @@ class Program(object):
         p.inst(self)
         p.inst(other)
         return p
-    
+
     def __iadd__(self, other):
         """
         Concatenate two programs together using +=, returning a new one.
