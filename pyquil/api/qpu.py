@@ -15,6 +15,7 @@
 ##############################################################################
 import time
 import warnings
+from typing import Union
 
 from six import integer_types
 
@@ -317,13 +318,13 @@ with the former, the device.
 
 
 class QPU:
-    def __init__(self, connection: ForestConnection, device=None):
+    def __init__(self, connection: ForestConnection, device: Union[Device, str] = None):
         """
         Constructor for QPUConnection. Sets up necessary security and picks a device to run on.
 
         :param connection:
-        :param Device device: The device to send programs to. It should be one of the values in the
-                              dictionary returned from get_devices().
+        :param device: The device to send programs to. It should be one of the values in the
+            dictionary returned from get_devices().
         """
         if isinstance(device, Device):
             device_dot_name = device.name
@@ -335,8 +336,7 @@ class QPU:
         self.device_name = device_dot_name
         self.connection = connection
 
-    def run(self, quil_program, classical_addresses=None, trials=1,
-            needs_compilation=True, isa=None):
+    def run(self, quil_program, classical_addresses=None, trials=1):
         """
         Run a pyQuil program on the QPU and return the values stored in the classical registers
         designated by the classical_addresses parameter. The program is repeated according to
@@ -351,9 +351,6 @@ class QPU:
         :param Program quil_program: Pyquil program to run on the QPU
         :param list|range classical_addresses: Classical register addresses to return
         :param int trials: Number of times to run the program (a.k.a. number of shots)
-        :param bool needs_compilation: If True, preprocesses the job with the compiler.
-        :param ISA isa: If set, specifies a custom ISA to compile to. If left unset,
-                    Forest uses the default ISA associated to this QPU device.
         :return: A list of a list of classical registers (each register contains a bit)
         :rtype: list
         """
@@ -362,11 +359,10 @@ class QPU:
 
         return self.connection.qpu_run(quil_program=quil_program,
                                        classical_addresses=classical_addresses, trials=trials,
-                                       needs_compilation=needs_compilation, isa=isa,
+                                       needs_compilation=False, isa=None,
                                        device_name=self.device_name)
 
-    def run_async(self, quil_program, classical_addresses=None, trials=1,
-                  needs_compilation=True, isa=None):
+    def run_async(self, quil_program, classical_addresses=None, trials=1):
         """
         Similar to run except that it returns a job id and doesn't wait for the program to
         be executed. See https://go.rigetti.com/connections for reasons to use this method.
@@ -376,5 +372,5 @@ class QPU:
 
         return self.connection.qpu_run_async(quil_program=quil_program,
                                              classical_addresses=classical_addresses, trials=trials,
-                                             needs_compilation=needs_compilation, isa=isa,
+                                             needs_compilation=False, isa=None,
                                              device_name=self.device_name)
