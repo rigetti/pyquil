@@ -17,9 +17,11 @@ import time
 import warnings
 from typing import Union
 
+import numpy as np
 from six import integer_types
 
 from pyquil.api import errors
+from pyquil.api._qam import QAM
 from pyquil.api.job import Job
 from pyquil.device import Device
 from pyquil.gates import MEASURE
@@ -317,7 +319,7 @@ with the former, the device.
         }
 
 
-class QPU:
+class QPU(QAM):
     def __init__(self, connection: ForestConnection, device: Union[Device, str] = None):
         """
         Constructor for QPUConnection. Sets up necessary security and picks a device to run on.
@@ -357,10 +359,10 @@ class QPU:
         if not classical_addresses:
             classical_addresses = get_classical_addresses_from_program(quil_program)
 
-        return self.connection.qpu_run(quil_program=quil_program,
-                                       classical_addresses=classical_addresses, trials=trials,
-                                       needs_compilation=False, isa=None,
-                                       device_name=self.device_name)
+        return np.asarray(self.connection.qpu_run(quil_program=quil_program,
+                                                  classical_addresses=classical_addresses,
+                                                  trials=trials, needs_compilation=False, isa=None,
+                                                  device_name=self.device_name))
 
     def run_async(self, quil_program, classical_addresses=None, trials=1):
         """
@@ -374,3 +376,7 @@ class QPU:
                                              classical_addresses=classical_addresses, trials=trials,
                                              needs_compilation=False, isa=None,
                                              device_name=self.device_name)
+
+    def wait_for_job(self, job_id, ping_time=None, status_time=None):
+        return self.connection.wait_for_job(job_id=job_id, ping_time=ping_time,
+                                            status_time=status_time)

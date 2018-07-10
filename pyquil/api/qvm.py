@@ -15,8 +15,10 @@
 ##############################################################################
 import warnings
 
+import numpy as np
 from six import integer_types
 
+from pyquil.api._qam import QAM
 from pyquil.api.compiler import CompilerConnection
 from pyquil.api.job import Job
 from pyquil.noise import apply_noise_model
@@ -464,7 +466,7 @@ programs run on this QVM.
             payload['rng-seed'] = self.random_seed
 
 
-class QVM:
+class QVM(QAM):
     def __init__(self, connection: ForestConnection, noise_model=None, gate_noise=None,
                  measurement_noise=None, random_seed=None):
         """
@@ -525,11 +527,12 @@ To read more about supplying noise to the QVM, see http://pyquil.readthedocs.io/
         if self.noise_model is not None:
             quil_program = apply_noise_model(quil_program, self.noise_model)
 
-        return self.connection.qvm_run(quil_program=quil_program,
-                                       classical_addresses=classical_addresses,
-                                       trials=trials, needs_compilation=False, isa=None,
-                                       measurement_noise=self.measurement_noise,
-                                       gate_noise=self.gate_noise, random_seed=self.random_seed)
+        return np.asarray(self.connection.qvm_run(quil_program=quil_program,
+                                                  classical_addresses=classical_addresses,
+                                                  trials=trials, needs_compilation=False, isa=None,
+                                                  measurement_noise=self.measurement_noise,
+                                                  gate_noise=self.gate_noise,
+                                                  random_seed=self.random_seed))
 
     def run_async(self, quil_program, classical_addresses=None, trials=1):
         """
@@ -548,3 +551,7 @@ To read more about supplying noise to the QVM, see http://pyquil.readthedocs.io/
                                              measurement_noise=self.measurement_noise,
                                              gate_noise=self.gate_noise,
                                              random_seed=self.random_seed)
+
+    def wait_for_job(self, job_id, ping_time=None, status_time=None):
+        return self.connection.wait_for_job(job_id=job_id, ping_time=ping_time,
+                                            status_time=status_time)
