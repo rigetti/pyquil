@@ -26,11 +26,9 @@ from pyquil.wavefunction import Wavefunction
 from pyquil.noise import apply_noise_model
 from ._base_connection import validate_noise_probabilities, validate_run_items, TYPE_MULTISHOT, \
     TYPE_MULTISHOT_MEASURE, TYPE_WAVEFUNCTION, TYPE_EXPECTATION, get_job_id, get_session, wait_for_job, \
-    post_json, get_json
+    post_json, get_json, SYNC_ENDPOINT, ASYNC_ENDPOINT
 
 
-ASYNC_ENDPOINT = os.getenv('FOREST_ASYNC_ENDPOINT', 'https://job.rigetti.com/beta')
-SYNC_ENDPOINT = os.getenv('FOREST_SYNC_ENDPOINT', 'https://api.rigetti.com')
 
 
 class QVMConnection(object):

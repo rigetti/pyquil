@@ -16,8 +16,10 @@
 
 from __future__ import print_function
 
+import os
 import re
 import time
+from json.decoder import JSONDecodeError
 
 import requests
 from requests.adapters import HTTPAdapter
@@ -27,17 +29,13 @@ from urllib3 import Retry
 from pyquil.api.errors import error_mapping, UnknownApiError, TooManyQubitsError
 from ._config import PyquilConfig
 
-# Deal with JSONDecodeError across Python 2 and 3
-# Ref: https://www.peterbe.com/plog/jsondecodeerror-in-requests.get.json-python-2-and-3
-try:
-    from json.decoder import JSONDecodeError
-except ImportError:
-    JSONDecodeError = ValueError    # type: ignore  # python2to3 hack)
-
 TYPE_EXPECTATION = "expectation"
 TYPE_MULTISHOT = "multishot"
 TYPE_MULTISHOT_MEASURE = "multishot-measure"
 TYPE_WAVEFUNCTION = "wavefunction"
+
+ASYNC_ENDPOINT = os.getenv('FOREST_ASYNC_ENDPOINT', 'https://job.rigetti.com/beta')
+SYNC_ENDPOINT = os.getenv('FOREST_SYNC_ENDPOINT', 'https://api.rigetti.com')
 
 
 def wait_for_job(get_job_fn, ping_time=None, status_time=None):

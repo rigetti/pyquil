@@ -26,10 +26,9 @@ from pyquil.gates import MEASURE
 from pyquil.quil import Program, get_classical_addresses_from_program
 from ._base_connection import (validate_run_items, TYPE_MULTISHOT, TYPE_MULTISHOT_MEASURE,
                                get_job_id, get_session, wait_for_job, post_json, get_json,
-                               parse_error)
+                               parse_error, ASYNC_ENDPOINT)
 
 
-ASYNC_ENDPOINT = os.getenv('FOREST_ASYNC_ENDPOINT', 'https://job.rigetti.com/beta')
 
 
 def get_devices(async_endpoint=ASYNC_ENDPOINT, api_key=None, user_id=None,

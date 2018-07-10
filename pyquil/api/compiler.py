@@ -21,11 +21,8 @@ from pyquil.quil import Program, address_qubits
 from pyquil.parser import parse_program
 from pyquil.paulis import PauliTerm
 from ._base_connection import TYPE_MULTISHOT, get_job_id, get_session, \
-    wait_for_job, post_json, get_json
+    wait_for_job, post_json, get_json, ASYNC_ENDPOINT, SYNC_ENDPOINT
 
-
-ASYNC_ENDPOINT = os.getenv('FOREST_ASYNC_ENDPOINT', 'https://job.rigetti.com/beta')
-SYNC_ENDPOINT = os.getenv('FOREST_SYNC_ENDPOINT', 'https://api.rigetti.com')
 
 
 class CompilerConnection(object):
