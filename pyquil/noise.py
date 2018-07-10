@@ -18,6 +18,8 @@ Module for creating and verifying noisy gate and readout definitions.
 """
 from __future__ import print_function
 from collections import namedtuple
+from functools import reduce
+from itertools import product
 
 import numpy as np
 import sys
@@ -28,7 +30,7 @@ from pyquil.quilbase import Pragma, Gate
 
 INFINITY = float("inf")
 "Used for infinite coherence times."
-
+MAX_DEPOLARIZING_QUBITS = 5
 
 _KrausModel = namedtuple("_KrausModel", ["gate", "params", "targets", "kraus_ops", "fidelity"])
 
@@ -297,7 +299,7 @@ def damping_after_dephasing(T1, T2, gate_time):
 
 
 # You can only apply gate-noise to non-parametrized gates or parametrized gates at fixed parameters.
-NO_NOISE = ["RZ"]
+NO_NOISE = ["RZ", "I"]
 ANGLE_TOLERANCE = 1e-10
 
 
@@ -319,7 +321,7 @@ def get_noisy_gate(gate_name, params):
     params = tuple(params)
     if gate_name == "I":
         assert params == ()
-        return np.eye(2), "NOISY-I"
+        return np.eye(2), "I"
     if gate_name == "RX":
         angle, = params
         if np.isclose(angle, np.pi / 2, atol=ANGLE_TOLERANCE):
@@ -413,7 +415,6 @@ def _decoherence_noise_model(gates, T1=30e-6, T2=30e-6, gate_time_1q=50e-9,
     kraus_maps = []
     for g in gates:
         targets = tuple(t.index for t in g.qubits)
-        key = (g.name, tuple(g.params))
         if g.name in NO_NOISE:
             continue
         matrix, _ = get_noisy_gate(g.name, g.params)
@@ -438,6 +439,47 @@ def _decoherence_noise_model(gates, T1=30e-6, T2=30e-6, gate_time_1q=50e-9,
         aprobs[q] = np.array([[f_ro, 1. - f_ro],
                               [1. - f_ro, f_ro]])
 
+    return NoiseModel(kraus_maps, aprobs)
+
+
+def _depolarizing_noise_model(prog, p=.01, ro_fidelity=0.95):
+    """
+    """
+    gates = _get_program_gates(prog)
+
+    all_qubits = sorted(prog.get_qubits())
+    assert len(all_qubits) < MAX_DEPOLARIZING_QUBITS, (
+        f"Currently depolarizing noise is only supported on {MAX_DEPOLARIZING_QUBITS} or "
+        f"fewer. ")
+
+    if not isinstance(ro_fidelity, dict):
+        ro_fidelity = {q: ro_fidelity for q in all_qubits}
+
+    kraus_maps = []
+    for g in gates:
+        targets = tuple(sorted(all_qubits))
+        if g.name in NO_NOISE:
+            continue
+        matrix, _ = get_noisy_gate(g.name, g.params)
+        # We move the operator into a larger Hilbert Space.
+        gate_indices = [q.index for q in g.qubits]
+        matrix = naive_tensor_up(matrix, 0, len(targets) - len(gate_indices))
+        matrix = swap_sort(matrix, gate_indices + [q for q in targets if q not in gate_indices],
+                           all_qubits)
+        x = np.array([[0, 1], [1, 0]])
+        y = np.array([[0, -1.j], [1.j, 0]])
+        z = np.array([[1, 0], [0, -1]])
+        pauli_1q = [np.eye(2) / 2, x / 2, y / 2, z / 2]
+        pauli_nq = product(pauli_1q, repeat=len(all_qubits))
+        noisy_I = ([np.sqrt(p) * reduce(np.kron, k) for k in pauli_nq] +
+                   [np.eye(2**len(all_qubits)) * np.sqrt(1-p)])
+        kraus_maps.append(KrausModel(g.name, g.params, tuple(targets),
+                                     combine_kraus_maps(noisy_I, [matrix]),
+                                     ((1-p)*len(all_qubits)**2 + p)/(len(all_qubits)**2)))
+    aprobs = {}
+    for q, f_ro in ro_fidelity.items():
+        aprobs[q] = np.array([[f_ro, 1. - f_ro],
+                              [1. - f_ro, f_ro]])
     return NoiseModel(kraus_maps, aprobs)
 
 
@@ -552,6 +594,29 @@ def add_decoherence_noise(prog, T1=30e-6, T2=30e-6, gate_time_1q=50e-9, gate_tim
         T2=T2,
         gate_time_1q=gate_time_1q,
         gate_time_2q=gate_time_2q,
+        ro_fidelity=ro_fidelity
+    )
+    return apply_noise_model(prog, noise_model)
+
+
+def add_depolarizing_noise(prog, p=.01, ro_fidelity=0.95):
+    """
+    Add depolarizing noise of 'strength' p to the program prog.
+
+    In particular, the following map is applied after each gate:
+     ``\Lambda(\rho) \rightarrow (1-p)\rho + p\mathbb{I}``, where ``\mathbb{I}`` is the maximally
+     mixed state on all of the qubits.
+     This is a very naive, but easy to predict model.
+
+    :param prog: The Program to add noise to.
+    :param p: The probability with which to depolarize the state after each gate operation.
+    :param Union[Dict[int,float],float] ro_fidelity: The readout assignment fidelity
+        :math:`F = (p(0|0) + p(1|1))/2` either globally or in a dictionary indexed by qubit id.
+    :return: A NoiseModel with the appropriate Kraus operators defined.
+    """
+    noise_model = _depolarizing_noise_model(
+        prog,
+        p=p,
         ro_fidelity=ro_fidelity
     )
     return apply_noise_model(prog, noise_model)
@@ -720,3 +785,66 @@ def estimate_assignment_probs(q, trials, cxn, p0=None):
     p11 = results_x / float(trials)
     return np.array([[p00, 1 - p11],
                      [1 - p00, p11]])
+
+
+def naive_tensor_up(operator, left, right):
+    """
+    Embed operator in a higher dimensional space by prepending left identities to the left,
+    and appending right identities to the right.
+
+    :param operator: The operator to embed in a higher dimensional space.
+    :param left: The number of identities to tensor on the left of operator.
+    :param right: The number of identities to tensor on the right of operator.
+    :return: The operator lifted to a higher dimensional space.
+    """
+    big_operator = 1
+    for _ in range(left):
+        big_operator = np.kron(np.eye(2), big_operator)
+    big_operator = np.kron(big_operator, operator)
+    for _ in range(right):
+        big_operator = np.kron(big_operator, np.eye(2))
+    return big_operator
+
+
+def swap_sort(operator, curr_order, right_order):
+    """
+    Given an operator defined on len(curr_order) qubits in the given curr_order, return the
+    operator transformed into a basis where it operators on the qubits in the order given by
+    right_order.
+
+    :param operator: The operator whose indices we hope to rearrange.
+    :param curr_order: The current ordering of qubits used to define operator.
+    :param right_order: The desired indec ordering.
+    :return:
+    """
+    SWAP = np.array([[1, 0, 0, 0],
+                     [0, 0, 1, 0],
+                     [0, 1, 0, 0],
+                     [0, 0, 0, 1]])
+    swaps = [np.eye(operator.shape[0])]
+    for i, index in enumerate(curr_order):
+        if index != right_order[i]:
+            curr_order.index(right_order[i])
+            while curr_order[i] != right_order[i]:
+                active_index = curr_order.index(right_order[i])
+                curr_order[active_index], curr_order[active_index - 1] = (
+                    curr_order[active_index - 1], curr_order[active_index])
+                swaps.append(naive_tensor_up(SWAP, active_index - 1,
+                                             len(right_order) - active_index - 1))
+    return reduce(np.dot, reversed(swaps)).dot(operator).dot(reduce(np.dot, swaps))
+
+
+def tensor_up(operator, qubits, all_qubits):
+    """
+    Given operator, and the qubits that operator acts on, embed it in a larger space where it
+    acts on all_qubits.
+
+    :param operator: The operator we want to lift to a larger space.
+    :param qubits: The qubtis (in order) that operator currently acts on.
+    :param all_qubits: All of the qubits in the target embedding space.
+    :return: The operator in the larger space, acting on all_qubits.
+    """
+    for _ in range(len(all_qubits) - len(qubits)):
+        operator = np.kron(operator, np.eye(2))
+    curr_order = qubits + [q for q in all_qubits if q not in qubits]
+    return swap_sort(operator, curr_order, all_qubits)

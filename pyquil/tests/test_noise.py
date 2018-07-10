@@ -11,7 +11,7 @@ from pyquil.noise import (damping_kraus_map, dephasing_kraus_map, tensor_kraus_m
                           INFINITY, apply_noise_model, _noise_model_program_header, KrausModel,
                           NoiseModel, corrupt_bitstring_probs, correct_bitstring_probs,
                           estimate_bitstring_probs, bitstring_probs_to_z_moments,
-                          estimate_assignment_probs, NO_NOISE)
+                          estimate_assignment_probs, NO_NOISE, naive_tensor_up, swap_sort)
 from pyquil.quil import Pragma, Program
 from pyquil.quilbase import DefGate, Gate
 
@@ -221,3 +221,22 @@ def test_apply_noise_model_perturbed_angles():
             assert i.command in ['ADD-KRAUS', 'READOUT-POVM']
         elif isinstance(i, Gate):
             assert i.name in NO_NOISE or not i.params
+
+
+def test_swap_sort():
+    operator = np.array([[0, 1] , [0, 1]])
+    xii = naive_tensor_up(operator, 0, 2)
+    iix = naive_tensor_up(operator, 2, 0)
+    assert (swap_sort(xii, [3, 2, 1], [1, 2, 3]) == iix).all()
+
+    ixi = naive_tensor_up(operator, 1, 1)
+    assert (swap_sort(ixi, [3, 2, 1], [1, 2, 3]) == ixi).all()
+
+    xii = naive_tensor_up(operator, 0, 2)
+    iix = naive_tensor_up(operator, 2, 0)
+    assert (swap_sort(xii, [3, 2, 1], [1, 2, 3]) == iix).all()
+
+    ixi = naive_tensor_up(operator, 1, 1)
+    assert (swap_sort(ixi, [3, 2, 1], [1, 2, 3]) == ixi).all()
+
+
