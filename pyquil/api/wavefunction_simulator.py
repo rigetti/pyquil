@@ -109,39 +109,7 @@ class WavefunctionSimulator:
                                                   classical_addresses=classical_addresses,
                                                   random_seed=self.random_seed)
 
-    def expectation(self, prep_prog, operator_programs=None):
-        """
-        Calculate the expectation value of operators given a state prepared by
-        prep_program.
-
-        :note: If the execution of ``quil_program`` is **non-deterministic**, i.e., if it includes
-            measurements and/or noisy quantum gates, then the final wavefunction from which the
-            expectation values are computed itself only represents a stochastically generated
-            sample. The expectations returned from *different* ``expectation`` calls *will then
-            generally be different*.
-
-        This function is deprecated because its API is not very helpful. In particular,
-        To measure the expectation of a PauliSum, you probably want to
-        do something like this::
-
-                progs, coefs = hamiltonian.get_programs()
-                expect_coeffs = np.array(cxn.expectation(prep_program, operator_programs=progs))
-                return np.real_if_close(np.dot(coefs, expect_coeffs))
-
-        Please use :py:func:`pauli_expectation` which takes PauliSums directly.
-
-        :param Program prep_prog: Quil program for state preparation.
-        :param list operator_programs: A list of Programs, each specifying an operator whose expectation to compute.
-            Default is a list containing only the empty Program.
-        :return: Expectation values of the operators.
-        :rtype: List[float]
-        """
-
-        warnings.warn("`expectation()` is deprecated. Use `pauli_expectation`.", DeprecationWarning)
-        return self.connection.expectation(prep_prog=prep_prog, operator_programs=operator_programs,
-                                           random_seed=self.random_seed)
-
-    def pauli_expectation(self, prep_prog, pauli_terms):
+    def expectation(self, prep_prog, pauli_terms):
         """
         Calculate the expectation value of Pauli operators given a state prepared by prep_program.
 
