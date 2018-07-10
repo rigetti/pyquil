@@ -13,8 +13,12 @@
 #    See the License for the specific language governing permissions and
 #    limitations under the License.
 ##############################################################################
+import warnings
+from abc import ABC
 from collections import namedtuple
-from typing import Union
+from typing import Union, List, Tuple
+
+import networkx as nx
 import numpy as np
 
 from pyquil.parameters import Parameter
@@ -319,9 +323,56 @@ class Specs(_Specs):
         )
 
 
-class Device(object):
+def isa_from_graph(graph: nx.Graph, oneq_type='Xhalves', twoq_type='CZ') -> ISA:
     """
-    A device (quantum chip) that can accept programs. Only devices that are online will actively be
+    Generate an ISA object from a NetworkX graph.
+
+    :param graph: The graph
+    :param oneq_type: The type of 1-qubit gate. Currently 'Xhalves'
+    :param twoq_type: The type of 2-qubit gate. One of 'CZ' or 'CPHASE'.
+    """
+    all_qubits = list(range(max(graph.nodes) + 1))
+    qubits = [Qubit(i, type=oneq_type, dead=i not in graph.nodes) for i in all_qubits]
+    edges = [Edge([a, b], type=twoq_type, dead=False) for a, b in graph.edges]
+    return ISA(qubits, edges)
+
+
+def isa_to_graph(isa: ISA) -> nx.Graph:
+    """
+    Construct a NetworkX qubit topology from an ISA object.
+
+    This discards information about supported gates.
+
+    :param isa: The ISA.
+    """
+    return nx.from_edgelist(e.targets for e in isa.edges if not e.dead)
+
+
+class AbstractDevice(ABC):
+
+    def qubit_topology(self) -> nx.Graph:
+        """
+        The connectivity of qubits in this device given as a NetworkX graph.
+        """
+        raise NotImplementedError()
+
+    def get_isa(self, oneq_type='Xhalves', twoq_type='CZ') -> ISA:
+        """
+        Construct an ISA suitable for targeting by compilation.
+
+        This will raise an exception if the requested ISA is not supported by the device.
+
+        :param oneq_type: The family of one-qubit gates to target
+        :param twoq_type: The family of two-qubit gates to target
+        """
+        raise NotImplementedError()
+
+
+class Device(AbstractDevice):
+    """
+    A device (quantum chip) that can accept programs.
+
+    Only devices that are online will actively be
     accepting new programs. In addition to the ``self._raw`` attribute, two other attributes are
     optionally constructed from the entries in ``self._raw`` -- ``isa`` and ``noise_model`` -- which
     should conform to the dictionary format required by the ``.from_dict()`` methods for ``ISA``
@@ -331,6 +382,7 @@ class Device(object):
     :ivar ISA isa: The instruction set architecture (ISA) for the device.
     :ivar NoiseModel noise_model: The noise model for the device.
     """
+
     def __init__(self, name, raw):
         """
         :param name: name of the device
@@ -340,10 +392,17 @@ class Device(object):
         from pyquil.noise import NoiseModel
         self.name = name
         self._raw = raw
-        self.isa = ISA.from_dict(raw['isa']) if 'isa' in raw and raw['isa'] != {} else None
+
+        # TODO: Introduce distinction between supported ISAs and target ISA
+        self._isa = ISA.from_dict(raw['isa']) if 'isa' in raw and raw['isa'] != {} else None
         self.specs = Specs.from_dict(raw['specs']) if raw.get('specs') else None
         self.noise_model = NoiseModel.from_dict(raw['noise_model']) \
             if raw.get('noise_model') else None
+
+    @property
+    def isa(self):
+        warnings.warn("Accessing the static ISA is deprecated. Use `get_isa`", DeprecationWarning)
+        return self._isa
 
     def is_online(self):
         """
@@ -377,8 +436,53 @@ class Device(object):
         else:
             return 'offline'
 
+    def qubit_topology(self) -> nx.Graph:
+        """
+        The connectivity of qubits in this device given as a NetworkX graph.
+        """
+        return isa_to_graph(self._isa)
+
+    def get_isa(self, oneq_type='Xhalves', twoq_type='CZ') -> ISA:
+        """
+        Construct an ISA suitable for targeting by compilation.
+
+        This will raise an exception if the requested ISA is not supported by the device.
+
+        :param oneq_type: The family of one-qubit gates to target
+        :param twoq_type: The family of two-qubit gates to target
+        """
+        qubits = [Qubit(id=q.id, type=oneq_type, dead=q.dead) for q in self._isa.qubits]
+        edges = [Edge(targets=e.targets, type=twoq_type, dead=e.dead) for e in self._isa.edges]
+        return ISA(qubits, edges)
+
     def __str__(self):
         return '<Device {} {}>'.format(self.name, self.status)
 
     def __repr__(self):
         return str(self)
+
+
+class NxDevice(AbstractDevice):
+    """A shim over the AbstractDevice API backed by a NetworkX graph.
+
+    A ``Device`` holds information about the physical device.
+    Specifically, you might want to know about connectivity, available gates, performance specs,
+    and more. This class implements the AbstractDevice API for devices not available via
+    ``get_devices()``. Instead, the user is responsible for constructing a NetworkX
+    graph which represents a chip topology.
+    """
+
+    def __init__(self, topology: nx.Graph):
+        self.topology = topology
+
+    def qubit_topology(self):
+        return self.topology
+
+    def get_isa(self, oneq_type='Xhalves', twoq_type='CZ'):
+        return isa_from_graph(self.topology, oneq_type=oneq_type, twoq_type=twoq_type)
+
+    def qubits(self) -> List[int]:
+        return sorted(self.topology.nodes)
+
+    def edges(self) -> List[Tuple[int, int]]:
+        return sorted(tuple(sorted(pair)) for pair in self.topology.edges)

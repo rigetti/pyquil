@@ -82,6 +82,7 @@ setup(
         'requests',
         'contextvars',
         'six',
+        'networkx',
     ],
     entry_points={
         'console_scripts': ['pyquil-config-setup=pyquil.setup.pyquil_config_setup:main']

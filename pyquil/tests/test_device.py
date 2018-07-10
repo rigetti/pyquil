@@ -1,8 +1,9 @@
+import networkx as nx
 import numpy as np
 import pytest
 
 from pyquil.device import (Device, ISA, Qubit, Edge, Specs, QubitSpecs,
-                           EdgeSpecs, THETA, gates_in_isa)
+                           EdgeSpecs, THETA, gates_in_isa, isa_from_graph)
 from pyquil.noise import NoiseModel, KrausModel
 from pyquil.gates import RZ, RX, I, CZ, ISWAP, CPHASE
 from collections import OrderedDict
@@ -198,3 +199,33 @@ def test_gates_in_isa(isa_dict):
     assert ISWAP(2, 1) in gates
     assert CPHASE(THETA, 2, 0) in gates
     assert CPHASE(THETA, 0, 2) in gates
+
+
+def test_isa_from_graph():
+    fc = nx.complete_graph(3)
+    isa = isa_from_graph(fc)
+    isad = isa.to_dict()
+
+    assert set(isad.keys()) == {'1Q', '2Q'}
+    assert sorted(int(q) for q in isad['1Q'].keys()) == list(range(3))
+    for v in isad['1Q'].values():
+        assert v == {}
+
+    assert sorted(isad['2Q']) == ['0-1', '0-2', '1-2']
+    for v in isad['2Q'].values():
+        assert v == {}
+
+
+def test_isa_from_graph_cphase():
+    fc = nx.complete_graph(3)
+    isa = isa_from_graph(fc, twoq_type='CPHASE')
+    isad = isa.to_dict()
+
+    assert set(isad.keys()) == {'1Q', '2Q'}
+    assert sorted(int(q) for q in isad['1Q'].keys()) == list(range(3))
+    for v in isad['1Q'].values():
+        assert v == {}
+
+    assert sorted(isad['2Q']) == ['0-1', '0-2', '1-2']
+    for v in isad['2Q'].values():
+        assert v == {'type': 'CPHASE'}
