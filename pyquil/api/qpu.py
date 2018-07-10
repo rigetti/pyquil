@@ -13,9 +13,8 @@
 #    See the License for the specific language governing permissions and
 #    limitations under the License.
 ##############################################################################
-import os
-import warnings
 import time
+import warnings
 
 from six import integer_types
 
@@ -26,9 +25,7 @@ from pyquil.gates import MEASURE
 from pyquil.quil import Program, get_classical_addresses_from_program
 from ._base_connection import (validate_run_items, TYPE_MULTISHOT, TYPE_MULTISHOT_MEASURE,
                                get_job_id, get_session, wait_for_job, post_json, get_json,
-                               parse_error, ASYNC_ENDPOINT)
-
-
+                               parse_error, ASYNC_ENDPOINT, ForestConnection)
 
 
 def get_devices(async_endpoint=ASYNC_ENDPOINT, api_key=None, user_id=None,
@@ -317,3 +314,67 @@ with the former, the device.
             "program": program,
             "device": self.device_name
         }
+
+
+class QPU:
+    def __init__(self, connection: ForestConnection, device=None):
+        """
+        Constructor for QPUConnection. Sets up necessary security and picks a device to run on.
+
+        :param connection:
+        :param Device device: The device to send programs to. It should be one of the values in the
+                              dictionary returned from get_devices().
+        """
+        if isinstance(device, Device):
+            device_dot_name = device.name
+        elif isinstance(device, str):
+            device_dot_name = device
+        else:
+            raise ValueError("Unknown device {}".format(device))
+
+        self.device_name = device_dot_name
+        self.connection = connection
+
+    def run(self, quil_program, classical_addresses=None, trials=1,
+            needs_compilation=True, isa=None):
+        """
+        Run a pyQuil program on the QPU and return the values stored in the classical registers
+        designated by the classical_addresses parameter. The program is repeated according to
+        the number of trials provided to the run method. This functionality is in beta.
+
+        It is important to note that our QPUs currently only allow a single set of simultaneous
+        readout pulses on all qubits in the QPU at the end of the program. This means that
+        missing or duplicate MEASURE instructions do not change the pulse program, but instead
+        only contribute to making a less rich or richer mapping, respectively, between classical
+        and qubit addresses.
+
+        :param Program quil_program: Pyquil program to run on the QPU
+        :param list|range classical_addresses: Classical register addresses to return
+        :param int trials: Number of times to run the program (a.k.a. number of shots)
+        :param bool needs_compilation: If True, preprocesses the job with the compiler.
+        :param ISA isa: If set, specifies a custom ISA to compile to. If left unset,
+                    Forest uses the default ISA associated to this QPU device.
+        :return: A list of a list of classical registers (each register contains a bit)
+        :rtype: list
+        """
+        if not classical_addresses:
+            classical_addresses = get_classical_addresses_from_program(quil_program)
+
+        return self.connection.qpu_run(quil_program=quil_program,
+                                       classical_addresses=classical_addresses, trials=trials,
+                                       needs_compilation=needs_compilation, isa=isa,
+                                       device_name=self.device_name)
+
+    def run_async(self, quil_program, classical_addresses=None, trials=1,
+                  needs_compilation=True, isa=None):
+        """
+        Similar to run except that it returns a job id and doesn't wait for the program to
+        be executed. See https://go.rigetti.com/connections for reasons to use this method.
+        """
+        if not classical_addresses:
+            classical_addresses = get_classical_addresses_from_program(quil_program)
+
+        return self.connection.qpu_run_async(quil_program=quil_program,
+                                             classical_addresses=classical_addresses, trials=trials,
+                                             needs_compilation=needs_compilation, isa=isa,
+                                             device_name=self.device_name)

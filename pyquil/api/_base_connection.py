@@ -28,6 +28,7 @@ from six import integer_types
 from urllib3 import Retry
 
 from pyquil import Program
+from pyquil.api import errors
 from pyquil.api.job import Job
 from pyquil.api.errors import error_mapping, UnknownApiError, TooManyQubitsError
 from pyquil.wavefunction import Wavefunction
@@ -273,6 +274,38 @@ def qvm_run_payload(quil_program, classical_addresses, trials, needs_compilation
     return payload
 
 
+def qpu_run_payload(quil_program, classical_addresses, trials, needs_compilation, isa):
+    if not quil_program:
+        raise ValueError("You have attempted to run an empty program."
+                         " Please provide gates or measure instructions to your program.")
+
+    if not isinstance(quil_program, Program):
+        raise TypeError("quil_program must be a Quil program object")
+    validate_run_items(classical_addresses)
+    if not isinstance(trials, integer_types):
+        raise TypeError("trials must be an integer")
+
+    payload = {"type": TYPE_MULTISHOT,
+               "addresses": list(classical_addresses),
+               "trials": trials}
+
+    if needs_compilation:
+        payload["uncompiled-quil"] = quil_program.out()
+        if isa:
+            payload["target-device"] = {"isa": isa.to_dict()}
+    else:
+        payload["compiled-quil"] = quil_program.out()
+
+    def _wrap_program(self, program):
+        return {
+            "machine": "QPU",
+            "program": program,
+            "device": self.device_name
+        }
+
+    return payload
+
+
 class ForestConnection:
     def __init__(self, sync_endpoint=SYNC_ENDPOINT,
                  async_endpoint=ASYNC_ENDPOINT, api_key=None, user_id=None,
@@ -433,6 +466,36 @@ class ForestConnection:
                                   measurement_noise, gate_noise, random_seed)
         response = post_json(self.session, self.async_endpoint + "/job",
                              {"machine": "QVM", "program": payload})
+        return get_job_id(response)
+
+    def qpu_run(self, quil_program, classical_addresses, trials, needs_compilation, isa,
+                device_name):
+        """
+        Run a Forest ``run`` job on a QPU and block.
+
+        Users should use :py:func:`QPU.run` instead of calling this directly.
+        """
+        job = self.wait_for_job(self.qpu_run_async(quil_program, classical_addresses, trials,
+                                                   needs_compilation, isa, device_name))
+        return job.result()
+
+    def qpu_run_async(self, quil_program, classical_addresses, trials, needs_compilation, isa,
+                      device_name):
+        """
+        Run a Forest ``run`` job on a QPU asynchronously.
+
+        Users should use :py:func:`QPU.run_async` instead of calling this directly.
+        """
+        payload = qpu_run_payload(quil_program, classical_addresses, trials, needs_compilation, isa)
+        response = None
+        while response is None:
+            try:
+                response = post_json(self.session, self.async_endpoint + "/job",
+                                     {"machine": "QPU", "program": payload, "device": device_name})
+            except errors.DeviceRetuningError:
+                print("QPU is retuning. Will try to reconnect in 10 seconds...")
+                time.sleep(10)
+
         return get_job_id(response)
 
     def get_job(self, job_id):
