@@ -13,22 +13,19 @@
 #    See the License for the specific language governing permissions and
 #    limitations under the License.
 ##############################################################################
-import os
 import warnings
 
 from six import integer_types
 
-from pyquil.api.job import Job
 from pyquil.api.compiler import CompilerConnection
+from pyquil.api.job import Job
+from pyquil.noise import apply_noise_model
 from pyquil.paulis import PauliSum
 from pyquil.quil import Program, get_classical_addresses_from_program
 from pyquil.wavefunction import Wavefunction
-from pyquil.noise import apply_noise_model
 from ._base_connection import validate_noise_probabilities, validate_run_items, TYPE_MULTISHOT, \
-    TYPE_MULTISHOT_MEASURE, TYPE_WAVEFUNCTION, TYPE_EXPECTATION, get_job_id, get_session, wait_for_job, \
-    post_json, get_json, SYNC_ENDPOINT, ASYNC_ENDPOINT
-
-
+    TYPE_MULTISHOT_MEASURE, TYPE_WAVEFUNCTION, TYPE_EXPECTATION, get_job_id, get_session, \
+    wait_for_job, post_json, get_json, SYNC_ENDPOINT, ASYNC_ENDPOINT, ForestConnection
 
 
 class QVMConnection(object):
@@ -465,3 +462,114 @@ programs run on this QVM.
         """
         if self.random_seed is not None:
             payload['rng-seed'] = self.random_seed
+
+
+class QVM:
+    def __init__(self, connection: ForestConnection, device=None, gate_noise=None,
+                 measurement_noise=None, random_seed=None):
+        """
+        Constructor for QVM. Sets up any necessary security, and establishes the noise
+        model to use.
+
+        :param connection:
+        :param Device device: The optional device, from which noise will be added by default to all
+                              programs run on this instance.
+        :param gate_noise: A list of three numbers [Px, Py, Pz] indicating the probability of an X,
+                           Y, or Z gate getting applied to each qubit after a gate application or
+                           reset. (default None)
+        :param measurement_noise: A list of three numbers [Px, Py, Pz] indicating the probability of
+                                  an X, Y, or Z gate getting applied before a a measurement.
+                                  (default None)
+        :param random_seed: A seed for the QVM's random number generators. Either None (for an
+                            automatically generated seed) or a non-negative integer.
+        """
+        if ((device is not None and device.noise_model is not None) and
+                (gate_noise is not None or measurement_noise is not None)):
+            raise ValueError("""
+You have attempted to supply the QVM with both a device noise model
+(by having supplied a device argument), as well as either gate_noise
+or measurement_noise. At this time, only one may be supplied.
+
+To read more about supplying noise to the QVM, see http://pyquil.readthedocs.io/en/latest/noise_models.html#support-for-noisy-gates-on-the-rigetti-qvm.
+""")
+
+        if device is not None and device.noise_model is None:
+            warnings.warn("""
+You have supplied the QVM with a device that does not have a noise model. No noise will be added to
+programs run on this QVM.
+""")
+
+        self.noise_model = device.noise_model if device is not None else None
+        self.compiler = CompilerConnection(device=device) if device is not None else None
+        self.connection = connection
+
+        validate_noise_probabilities(gate_noise)
+        validate_noise_probabilities(measurement_noise)
+        self.gate_noise = gate_noise
+        self.measurement_noise = measurement_noise
+
+        if random_seed is None:
+            self.random_seed = None
+        elif isinstance(random_seed, integer_types) and random_seed >= 0:
+            self.random_seed = random_seed
+        else:
+            raise TypeError("random_seed should be None or a non-negative int")
+
+    def run(self, quil_program, classical_addresses=None, trials=1,
+            needs_compilation=False, isa=None):
+        """
+        Run a Quil program multiple times, accumulating the values deposited in
+        a list of classical addresses.
+
+        :param Program quil_program: A Quil program.
+        :param list|range classical_addresses: A list of addresses.
+        :param int trials: Number of shots to collect.
+        :param bool needs_compilation: If True, preprocesses the job with the compiler.
+        :param ISA isa: If set, compiles to this target ISA.
+        :return: A list of lists of bits. Each sublist corresponds to the values
+                 in `classical_addresses`.
+        :rtype: list
+        """
+        if not classical_addresses:
+            classical_addresses = get_classical_addresses_from_program(quil_program)
+
+        if self.noise_model is not None:
+            if needs_compilation:
+                compiled_program = self.compiler.compile(quil_program)
+                needs_compilation = False  # turn off compilation for when we submit the job
+            else:
+                compiled_program = quil_program
+
+            quil_program = apply_noise_model(compiled_program, self.noise_model)
+
+        return self.connection.qvm_run(quil_program=quil_program,
+                                       classical_addresses=classical_addresses,
+                                       trials=trials, needs_compilation=needs_compilation, isa=isa,
+                                       measurement_noise=self.measurement_noise,
+                                       gate_noise=self.gate_noise, random_seed=self.random_seed)
+
+    def run_async(self, quil_program, classical_addresses=None, trials=1,
+                  needs_compilation=False, isa=None):
+        """
+        Similar to run except that it returns a job id and doesn't wait for the program to be executed.
+        See https://go.rigetti.com/connections for reasons to use this method.
+        """
+        if not classical_addresses:
+            classical_addresses = get_classical_addresses_from_program(quil_program)
+
+        if self.noise_model is not None:
+            if needs_compilation:
+                compiled_program = self.compiler.compile(quil_program)
+                needs_compilation = False  # turn off compilation for when we submit the job
+            else:
+                compiled_program = quil_program
+
+            quil_program = apply_noise_model(compiled_program, self.noise_model)
+
+        return self.connection.qvm_run_async(quil_program=quil_program,
+                                             classical_addresses=classical_addresses,
+                                             trials=trials, needs_compilation=needs_compilation,
+                                             isa=isa,
+                                             measurement_noise=self.measurement_noise,
+                                             gate_noise=self.gate_noise,
+                                             random_seed=self.random_seed)

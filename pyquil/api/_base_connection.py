@@ -241,6 +241,38 @@ def expectation_payload(prep_prog, operator_programs, random_seed):
     return payload
 
 
+def qvm_run_payload(quil_program, classical_addresses, trials, needs_compilation, isa,
+                    measurement_noise, gate_noise, random_seed):
+    if not quil_program:
+        raise ValueError("You have attempted to run an empty program."
+                         " Please provide gates or measure instructions to your program.")
+    if not isinstance(quil_program, Program):
+        raise TypeError("quil_program must be a Quil program object")
+    validate_run_items(classical_addresses)
+    if not isinstance(trials, integer_types):
+        raise TypeError("trials must be an integer")
+    if needs_compilation and not isa:
+        raise TypeError("ISA cannot be None if program needs compilation preprocessing.")
+
+    payload = {"type": TYPE_MULTISHOT,
+               "addresses": list(classical_addresses),
+               "trials": trials}
+    if needs_compilation:
+        payload["uncompiled-quil"] = quil_program.out()
+        payload["target-device"] = {"isa": isa.to_dict()}
+    else:
+        payload["compiled-quil"] = quil_program.out()
+
+    if measurement_noise is not None:
+        payload["measurement-noise"] = measurement_noise
+    if gate_noise is not None:
+        payload["gate-noise"] = gate_noise
+    if random_seed is not None:
+        payload['rng-seed'] = random_seed
+
+    return payload
+
+
 class ForestConnection:
     def __init__(self, sync_endpoint=SYNC_ENDPOINT,
                  async_endpoint=ASYNC_ENDPOINT, api_key=None, user_id=None,
@@ -363,6 +395,42 @@ class ForestConnection:
         this directly.
         """
         payload = expectation_payload(prep_prog, operator_programs, random_seed)
+        response = post_json(self.session, self.async_endpoint + "/job",
+                             {"machine": "QVM", "program": payload})
+        return get_job_id(response)
+
+    def qvm_run(self, quil_program, classical_addresses, trials, needs_compilation, isa,
+                measurement_noise, gate_noise, random_seed):
+        """
+        Run a Forest ``run`` job on a QVM.
+
+        Users should use :py:func:`QVM.run` instead of calling this directly.
+        """
+        payload = qvm_run_payload(quil_program, classical_addresses, trials, needs_compilation, isa,
+                                  measurement_noise, gate_noise, random_seed)
+        if self.use_queue or needs_compilation:
+            if needs_compilation and not self.use_queue:
+                warnings.warn('Synchronous QVM connection does not support compilation '
+                              'preprocessing. Running this job over the asynchronous endpoint, '
+                              'as if use_queue were set to True.')
+
+            response = post_json(self.session, self.async_endpoint + "/job",
+                                 {"machine": "QVM", "program": payload})
+            job = self.wait_for_job(get_job_id(response))
+            return job.result()
+        else:
+            response = post_json(self.session, self.sync_endpoint + "/qvm", payload)
+            return response.json()
+
+    def qvm_run_async(self, quil_program, classical_addresses, trials, needs_compilation, isa,
+                  measurement_noise, gate_noise, random_seed):
+        """
+        Run a Forest ``run`` job on a QVM asynchronously.
+
+        Users should use :py:func:`QVM.run_async` instead of calling this directly.
+        """
+        payload = qvm_run_payload(quil_program, classical_addresses, trials, needs_compilation, isa,
+                                  measurement_noise, gate_noise, random_seed)
         response = post_json(self.session, self.async_endpoint + "/job",
                              {"machine": "QVM", "program": payload})
         return get_job_id(response)
