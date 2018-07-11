@@ -7,8 +7,8 @@ from pyquil import Program
 
 
 class QAM(ABC):
-    def run(self, quil_program: Program, classical_addresses: Iterable[int] = None,
-            trials: int = 1) -> np.ndarray:
+    def run(self, quil_program: Program, classical_addresses: Iterable[int],
+            trials: int) -> np.ndarray:
         """
         Run a pyQuil program on the QAM and return the values stored in the classical registers
         designated by the classical_addresses parameter. The program is repeated according to
@@ -21,8 +21,7 @@ class QAM(ABC):
         """
         raise NotImplementedError()
 
-    def run_async(self, quil_program: Program, classical_addresses: Iterable[int] = None,
-                  trials: int = 1):
+    def run_async(self, quil_program: Program, classical_addresses: Iterable[int], trials:int ):
         """
         Similar to run except that it returns a job id and doesn't wait for the program to
         be executed. See https://go.rigetti.com/connections for reasons to use this method.

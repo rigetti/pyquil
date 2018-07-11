@@ -6,7 +6,7 @@ import numpy as np
 from pyquil.api._qam import QAM
 from pyquil.device import AbstractDevice
 from pyquil.gates import MEASURE, RX
-from pyquil.quil import Program
+from pyquil.quil import Program, get_classical_addresses_from_program
 from pyquil.quilbase import Measurement, Pragma
 
 
@@ -88,6 +88,9 @@ class QuantumComputer:
         if symmetrize is None:
             symmetrize = self.symmetrize
 
+        if not classical_addresses:
+            classical_addresses = get_classical_addresses_from_program(program)
+
         if symmetrize:
             return self.run_symmetrized(program, classical_addresses, trials)
 
@@ -106,6 +109,9 @@ class QuantumComputer:
         """
         if symmetrize is None:
             symmetrize = self.symmetrize
+
+        if not classical_addresses:
+            classical_addresses = get_classical_addresses_from_program(program)
 
         if symmetrize:
             raise NotImplementedError("Async symmetrized measurement isn't supported")

@@ -338,7 +338,7 @@ class QPU(QAM):
         self.device_name = device_dot_name
         self.connection = connection
 
-    def run(self, quil_program, classical_addresses=None, trials=1):
+    def run(self, quil_program, classical_addresses, trials):
         """
         Run a pyQuil program on the QPU and return the values stored in the classical registers
         designated by the classical_addresses parameter. The program is repeated according to
@@ -356,22 +356,16 @@ class QPU(QAM):
         :return: A list of a list of classical registers (each register contains a bit)
         :rtype: list
         """
-        if not classical_addresses:
-            classical_addresses = get_classical_addresses_from_program(quil_program)
-
         return np.asarray(self.connection.qpu_run(quil_program=quil_program,
                                                   classical_addresses=classical_addresses,
                                                   trials=trials, needs_compilation=False, isa=None,
                                                   device_name=self.device_name))
 
-    def run_async(self, quil_program, classical_addresses=None, trials=1):
+    def run_async(self, quil_program, classical_addresses, trials):
         """
         Similar to run except that it returns a job id and doesn't wait for the program to
         be executed. See https://go.rigetti.com/connections for reasons to use this method.
         """
-        if not classical_addresses:
-            classical_addresses = get_classical_addresses_from_program(quil_program)
-
         return self.connection.qpu_run_async(quil_program=quil_program,
                                              classical_addresses=classical_addresses, trials=trials,
                                              needs_compilation=False, isa=None,

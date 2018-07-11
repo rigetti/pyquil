@@ -509,7 +509,7 @@ To read more about supplying noise to the QVM, see http://pyquil.readthedocs.io/
         else:
             raise TypeError("random_seed should be None or a non-negative int")
 
-    def run(self, quil_program, classical_addresses=None, trials=1):
+    def run(self, quil_program, classical_addresses, trials):
         """
         Run a Quil program multiple times, accumulating the values deposited in
         a list of classical addresses.
@@ -521,9 +521,6 @@ To read more about supplying noise to the QVM, see http://pyquil.readthedocs.io/
                  in `classical_addresses`.
         :rtype: list
         """
-        if not classical_addresses:
-            classical_addresses = get_classical_addresses_from_program(quil_program)
-
         if self.noise_model is not None:
             quil_program = apply_noise_model(quil_program, self.noise_model)
 
@@ -534,14 +531,11 @@ To read more about supplying noise to the QVM, see http://pyquil.readthedocs.io/
                                                   gate_noise=self.gate_noise,
                                                   random_seed=self.random_seed))
 
-    def run_async(self, quil_program, classical_addresses=None, trials=1):
+    def run_async(self, quil_program, classical_addresses, trials):
         """
         Similar to run except that it returns a job id and doesn't wait for the program to be executed.
         See https://go.rigetti.com/connections for reasons to use this method.
         """
-        if not classical_addresses:
-            classical_addresses = get_classical_addresses_from_program(quil_program)
-
         if self.noise_model is not None:
             quil_program = apply_noise_model(quil_program, self.noise_model)
 
