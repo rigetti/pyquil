@@ -154,10 +154,14 @@ with the former, the device.
             self.device_name = None
 
         self.async_endpoint = async_endpoint
-        self.session = get_session(api_key, user_id)
 
         self.ping_time = ping_time
         self.status_time = status_time
+
+        self._connection = ForestConnection(sync_endpoint=None, async_endpoint=async_endpoint,
+                                            api_key=api_key, user_id=user_id, use_queue=True,
+                                            ping_time=ping_time, status_time=status_time)
+        self.session = self._connection.session  # backwards compatibility
 
     def run(self, quil_program, classical_addresses=None, trials=1, needs_compilation=True, isa=None):
         """
@@ -183,8 +187,8 @@ with the former, the device.
         if not classical_addresses:
             classical_addresses = get_classical_addresses_from_program(quil_program)
 
-        job = self.wait_for_job(self.run_async(quil_program, classical_addresses, trials, needs_compilation, isa))
-        return job.result()
+        return self._connection._qpu_run(quil_program, classical_addresses, trials,
+                                         needs_compilation, isa, device_name=self.device_name)
 
     def run_async(self, quil_program, classical_addresses=None, trials=1, needs_compilation=True, isa=None):
         """
@@ -194,40 +198,8 @@ with the former, the device.
         if not classical_addresses:
             classical_addresses = get_classical_addresses_from_program(quil_program)
 
-        payload = self._run_payload(quil_program, classical_addresses, trials, needs_compilation=needs_compilation, isa=isa)
-        response = None
-        while response is None:
-            try:
-                response = post_json(self.session, self.async_endpoint + "/job", self._wrap_program(payload))
-            except errors.DeviceRetuningError:
-                print("QPU is retuning. Will try to reconnect in 10 seconds...")
-                time.sleep(10)
-
-        return get_job_id(response)
-
-    def _run_payload(self, quil_program, classical_addresses, trials, needs_compilation, isa):
-        if not quil_program:
-            raise ValueError("You have attempted to run an empty program."
-                             " Please provide gates or measure instructions to your program.")
-
-        if not isinstance(quil_program, Program):
-            raise TypeError("quil_program must be a Quil program object")
-        validate_run_items(classical_addresses)
-        if not isinstance(trials, integer_types):
-            raise TypeError("trials must be an integer")
-
-        payload = {"type": TYPE_MULTISHOT,
-                   "addresses": list(classical_addresses),
-                   "trials": trials}
-
-        if needs_compilation:
-            payload["uncompiled-quil"] = quil_program.out()
-            if isa:
-                payload["target-device"] = {"isa": isa.to_dict()}
-        else:
-            payload["compiled-quil"] = quil_program.out()
-
-        return payload
+        return self._connection._qpu_run_async(quil_program, classical_addresses, trials,
+                                               needs_compilation, isa, device_name=self.device_name)
 
     def run_and_measure(self, quil_program, qubits, trials=1, needs_compilation=True, isa=None):
         """
@@ -246,6 +218,11 @@ with the former, the device.
         :return: A list of a list of classical registers (each register contains a bit)
         :rtype: list
         """
+        # Developer note: Can't wholesale replace these functions with
+        # ForestConnection equivalents because we've deprecated the run_and_measure web-api
+        # endpoint. Run and measure should be a pyquil-side composition of adding measures
+        # and then calling run.
+
         job = self.wait_for_job(self.run_and_measure_async(quil_program, qubits, trials, needs_compilation, isa))
         return job.result()
 
@@ -254,12 +231,20 @@ with the former, the device.
         Similar to run_and_measure except that it returns a job id and doesn't wait for the program
         to be executed. See https://go.rigetti.com/connections for reasons to use this method.
         """
+        # Developer note: Can't wholesale replace these functions with
+        # ForestConnection equivalents because we've deprecated the run_and_measure web-api
+        # endpoint. Run and measure should be a pyquil-side composition of adding measures
+        # and then calling run.
         full_program = append_measures_to_program(quil_program, qubits)
         payload = self._run_and_measure_payload(full_program, qubits, trials, needs_compilation=needs_compilation, isa=isa)
         response = post_json(self.session, self.async_endpoint + "/job", self._wrap_program(payload))
         return get_job_id(response)
 
     def _run_and_measure_payload(self, quil_program, qubits, trials, needs_compilation, isa):
+        # Developer note: Can't wholesale replace these functions with
+        # ForestConnection equivalents because we've deprecated the run_and_measure web-api
+        # endpoint. Run and measure should be a pyquil-side composition of adding measures
+        # and then calling run.
         if not quil_program:
             raise ValueError("You have attempted to run an empty program."
                              " Please provide gates or measure instructions to your program.")
@@ -305,11 +290,7 @@ with the former, the device.
                             Defaults to the value specified in the constructor (2 seconds)
         :return: Completed Job
         """
-        def get_job_fn():
-            return self.get_job(job_id)
-        return wait_for_job(get_job_fn,
-                            ping_time if ping_time else self.ping_time,
-                            status_time if status_time else self.status_time)
+        return self._connection._wait_for_job(job_id, 'QPU', ping_time, status_time)
 
     def _wrap_program(self, program):
         return {
@@ -373,4 +354,4 @@ class QPU(QAM):
 
     def wait_for_job(self, job_id, ping_time=None, status_time=None):
         return self.connection._wait_for_job(job_id=job_id, ping_time=ping_time,
-                                             status_time=status_time, machine=self.device_name)
+                                             status_time=status_time, machine='QPU')

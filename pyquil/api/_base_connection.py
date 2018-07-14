@@ -479,7 +479,7 @@ class ForestConnection:
         """
         job = self._wait_for_job(self._qpu_run_async(quil_program, classical_addresses, trials,
                                                      needs_compilation, isa, device_name),
-                                 machine=device_name)
+                                 machine='QPU')
         return job.result()
 
     def _qpu_run_async(self, quil_program, classical_addresses, trials, needs_compilation, isa,
