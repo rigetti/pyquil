@@ -356,21 +356,21 @@ class QPU(QAM):
         :return: A list of a list of classical registers (each register contains a bit)
         :rtype: list
         """
-        return np.asarray(self.connection.qpu_run(quil_program=quil_program,
-                                                  classical_addresses=classical_addresses,
-                                                  trials=trials, needs_compilation=False, isa=None,
-                                                  device_name=self.device_name))
+        return np.asarray(self.connection._qpu_run(quil_program=quil_program,
+                                                   classical_addresses=classical_addresses,
+                                                   trials=trials, needs_compilation=False, isa=None,
+                                                   device_name=self.device_name))
 
     def run_async(self, quil_program, classical_addresses, trials):
         """
         Similar to run except that it returns a job id and doesn't wait for the program to
         be executed. See https://go.rigetti.com/connections for reasons to use this method.
         """
-        return self.connection.qpu_run_async(quil_program=quil_program,
-                                             classical_addresses=classical_addresses, trials=trials,
-                                             needs_compilation=False, isa=None,
-                                             device_name=self.device_name)
+        return self.connection._qpu_run_async(quil_program=quil_program,
+                                              classical_addresses=classical_addresses,
+                                              trials=trials, needs_compilation=False, isa=None,
+                                              device_name=self.device_name)
 
     def wait_for_job(self, job_id, ping_time=None, status_time=None):
-        return self.connection.wait_for_job(job_id=job_id, ping_time=ping_time,
-                                            status_time=status_time)
+        return self.connection._wait_for_job(job_id=job_id, ping_time=ping_time,
+                                             status_time=status_time, machine=self.device_name)

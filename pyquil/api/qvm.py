@@ -524,12 +524,12 @@ To read more about supplying noise to the QVM, see http://pyquil.readthedocs.io/
         if self.noise_model is not None:
             quil_program = apply_noise_model(quil_program, self.noise_model)
 
-        return np.asarray(self.connection.qvm_run(quil_program=quil_program,
-                                                  classical_addresses=classical_addresses,
-                                                  trials=trials, needs_compilation=False, isa=None,
-                                                  measurement_noise=self.measurement_noise,
-                                                  gate_noise=self.gate_noise,
-                                                  random_seed=self.random_seed))
+        return np.asarray(self.connection._qvm_run(quil_program=quil_program,
+                                                   classical_addresses=classical_addresses,
+                                                   trials=trials, needs_compilation=False, isa=None,
+                                                   measurement_noise=self.measurement_noise,
+                                                   gate_noise=self.gate_noise,
+                                                   random_seed=self.random_seed))
 
     def run_async(self, quil_program, classical_addresses, trials):
         """
@@ -539,13 +539,13 @@ To read more about supplying noise to the QVM, see http://pyquil.readthedocs.io/
         if self.noise_model is not None:
             quil_program = apply_noise_model(quil_program, self.noise_model)
 
-        return self.connection.qvm_run_async(quil_program=quil_program,
-                                             classical_addresses=classical_addresses,
-                                             trials=trials, needs_compilation=False, isa=None,
-                                             measurement_noise=self.measurement_noise,
-                                             gate_noise=self.gate_noise,
-                                             random_seed=self.random_seed)
+        return self.connection._qvm_run_async(quil_program=quil_program,
+                                              classical_addresses=classical_addresses,
+                                              trials=trials, needs_compilation=False, isa=None,
+                                              measurement_noise=self.measurement_noise,
+                                              gate_noise=self.gate_noise,
+                                              random_seed=self.random_seed)
 
     def wait_for_job(self, job_id, ping_time=None, status_time=None):
-        return self.connection.wait_for_job(job_id=job_id, ping_time=ping_time,
-                                            status_time=status_time)
+        return self.connection._wait_for_job(job_id=job_id, ping_time=ping_time,
+                                             status_time=status_time, machine='QVM')

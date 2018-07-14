@@ -18,7 +18,8 @@ Module for facilitating connections to the QVM / QPU.
 """
 import warnings
 
-__all__ = ['QVMConnection', 'QPUConnection', 'CompilerConnection', 'Job', 'get_devices', 'errors']
+__all__ = ['QVMConnection', 'QPUConnection', 'CompilerConnection', 'Job', 'get_devices', 'errors',
+           'Device', 'ForestConnection']
 
 from pyquil.api.job import Job
 from pyquil.api.compiler import CompilerConnection
@@ -26,6 +27,7 @@ from pyquil.api.qvm import QVMConnection
 from pyquil.api.qpu import QPUConnection, get_devices
 from pyquil.api.compiler import CompilerConnection
 from pyquil.device import Device
+from pyquil.api._base_connection import ForestConnection
 
 
 class SyncConnection(QVMConnection):

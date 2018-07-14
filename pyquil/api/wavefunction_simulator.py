@@ -60,8 +60,8 @@ class WavefunctionSimulator:
         :return: A list of a list of bits.
         :rtype: list
         """
-        return self.connection.run_and_measure(quil_program=quil_program, qubits=qubits,
-                                               trials=trials, random_seed=self.random_seed)
+        return self.connection._run_and_measure(quil_program=quil_program, qubits=qubits,
+                                                trials=trials, random_seed=self.random_seed)
 
     def run_and_measure_async(self, quil_program, qubits, trials=1):
         """
@@ -70,8 +70,8 @@ class WavefunctionSimulator:
 
         See https://go.rigetti.com/connections for reasons to use this method.
         """
-        return self.connection.run_and_measure_async(quil_program=quil_program, qubits=qubits,
-                                                     trials=trials, random_seed=self.random_seed)
+        return self.connection._run_and_measure_async(quil_program=quil_program, qubits=qubits,
+                                                      trials=trials, random_seed=self.random_seed)
 
     def wavefunction(self, quil_program, classical_addresses=None):
         """
@@ -93,9 +93,9 @@ class WavefunctionSimulator:
         if classical_addresses is None:
             classical_addresses = []
 
-        return self.connection.wavefunction(quil_program=quil_program,
-                                            classical_addresses=classical_addresses,
-                                            random_seed=self.random_seed)
+        return self.connection._wavefunction(quil_program=quil_program,
+                                             classical_addresses=classical_addresses,
+                                             random_seed=self.random_seed)
 
     def wavefunction_async(self, quil_program, classical_addresses=None):
         """
@@ -105,9 +105,9 @@ class WavefunctionSimulator:
         if classical_addresses is None:
             classical_addresses = []
 
-        return self.connection.wavefunction_async(quil_program=quil_program,
-                                                  classical_addresses=classical_addresses,
-                                                  random_seed=self.random_seed)
+        return self.connection._wavefunction_async(quil_program=quil_program,
+                                                   classical_addresses=classical_addresses,
+                                                   random_seed=self.random_seed)
 
     def expectation(self, prep_prog, pauli_terms):
         """
@@ -138,7 +138,7 @@ class WavefunctionSimulator:
             coeffs = [pt.coefficient for pt in pauli_terms]
             progs = [pt.program for pt in pauli_terms]
 
-        bare_results = self.connection.expectation(prep_prog, progs, random_seed=self.random_seed)
+        bare_results = self.connection._expectation(prep_prog, progs, random_seed=self.random_seed)
         results = [c * r for c, r in zip(coeffs, bare_results)]
         if is_pauli_sum:
             return sum(results)
@@ -151,6 +151,6 @@ class WavefunctionSimulator:
         """
         warnings.warn("`expectation_async()` is deprecated. Use `pauli_expectation`.",
                       DeprecationWarning)
-        return self.connection.expectation_async(prep_prog=prep_prog,
-                                                 operator_programs=operator_programs,
-                                                 random_seed=self.random_seed)
+        return self.connection._expectation_async(prep_prog=prep_prog,
+                                                  operator_programs=operator_programs,
+                                                  random_seed=self.random_seed)

@@ -186,7 +186,7 @@ def get_job_id(response):
 
 
 def run_and_measure_payload(quil_program, qubits, trials, random_seed):
-    """REST payload for :py:func:`run_and_measure`"""
+    """REST payload for :py:func:`ForestConnection._run_and_measure`"""
     if not quil_program:
         raise ValueError("You have attempted to run an empty program."
                          " Please provide gates or measure instructions to your program.")
@@ -209,7 +209,7 @@ def run_and_measure_payload(quil_program, qubits, trials, random_seed):
 
 
 def wavefunction_payload(quil_program, classical_addresses, random_seed):
-    """REST payload for :py:func:`wavefunction`"""
+    """REST payload for :py:func:`ForestConnection._wavefunction`"""
     if not isinstance(quil_program, Program):
         raise TypeError("quil_program must be a Quil program object")
     validate_run_items(classical_addresses)
@@ -225,7 +225,7 @@ def wavefunction_payload(quil_program, classical_addresses, random_seed):
 
 
 def expectation_payload(prep_prog, operator_programs, random_seed):
-    """REST payload for :py:func:`expectation`"""
+    """REST payload for :py:func:`ForestConnection._expectation`"""
     if operator_programs is None:
         operator_programs = [Program()]
 
@@ -244,6 +244,7 @@ def expectation_payload(prep_prog, operator_programs, random_seed):
 
 def qvm_run_payload(quil_program, classical_addresses, trials, needs_compilation, isa,
                     measurement_noise, gate_noise, random_seed):
+    """REST payload for :py:func:`ForestConnection._qvm_run`"""
     if not quil_program:
         raise ValueError("You have attempted to run an empty program."
                          " Please provide gates or measure instructions to your program.")
@@ -275,6 +276,7 @@ def qvm_run_payload(quil_program, classical_addresses, trials, needs_compilation
 
 
 def qpu_run_payload(quil_program, classical_addresses, trials, needs_compilation, isa):
+    """REST payload for :py:func:`ForestConnection._qpu_run_async`"""
     if not quil_program:
         raise ValueError("You have attempted to run an empty program."
                          " Please provide gates or measure instructions to your program.")
@@ -339,7 +341,7 @@ class ForestConnection:
         self.ping_time = ping_time
         self.status_time = status_time
 
-    def run_and_measure(self, quil_program, qubits, trials, random_seed):
+    def _run_and_measure(self, quil_program, qubits, trials, random_seed):
         """
         Run a Forest ``run_and_measure`` job.
 
@@ -350,13 +352,13 @@ class ForestConnection:
         if self.use_queue:
             response = post_json(self.session, self.async_endpoint + "/job",
                                  {"machine": "QVM", "program": payload})
-            job = self.wait_for_job(get_job_id(response))
+            job = self._wait_for_job(get_job_id(response), machine='QVM')
             return job.result()
         else:
             response = post_json(self.session, self.sync_endpoint + "/qvm", payload)
             return response.json()
 
-    def run_and_measure_async(self, quil_program, qubits, trials, random_seed):
+    def _run_and_measure_async(self, quil_program, qubits, trials, random_seed):
         """
         Run a Forest ``run_and_measure`` job asynchronously.
 
@@ -368,7 +370,7 @@ class ForestConnection:
                              {"machine": "QVM", "program": payload})
         return get_job_id(response)
 
-    def wavefunction(self, quil_program, classical_addresses, random_seed):
+    def _wavefunction(self, quil_program, classical_addresses, random_seed):
         """
         Run a Forest ``wavefunction`` job.
 
@@ -379,14 +381,14 @@ class ForestConnection:
             payload = wavefunction_payload(quil_program, classical_addresses, random_seed)
             response = post_json(self.session, self.async_endpoint + "/job",
                                  {"machine": "QVM", "program": payload})
-            job = self.wait_for_job(get_job_id(response))
+            job = self._wait_for_job(get_job_id(response), machine='QVM')
             return job.result()
         else:
             payload = wavefunction_payload(quil_program, classical_addresses, random_seed)
             response = post_json(self.session, self.sync_endpoint + "/qvm", payload)
             return Wavefunction.from_bit_packed_string(response.content, classical_addresses)
 
-    def wavefunction_async(self, quil_program, classical_addresses, random_seed):
+    def _wavefunction_async(self, quil_program, classical_addresses, random_seed):
         """
         Run a Forest ``wavefunction`` job asynchronously.
 
@@ -398,7 +400,7 @@ class ForestConnection:
                              {"machine": "QVM", "program": payload})
         return get_job_id(response)
 
-    def expectation(self, prep_prog, operator_programs, random_seed):
+    def _expectation(self, prep_prog, operator_programs, random_seed):
         """
         Run a Forest ``expectation`` job.
 
@@ -413,14 +415,14 @@ class ForestConnection:
             payload = expectation_payload(prep_prog, operator_programs, random_seed)
             response = post_json(self.session, self.async_endpoint + "/job",
                                  {"machine": "QVM", "program": payload})
-            job = self.wait_for_job(get_job_id(response))
+            job = self._wait_for_job(get_job_id(response), machine='QVM')
             return job.result()
         else:
             payload = expectation_payload(prep_prog, operator_programs, random_seed)
             response = post_json(self.session, self.sync_endpoint + "/qvm", payload)
             return response.json()
 
-    def expectation_async(self, prep_prog, operator_programs, random_seed):
+    def _expectation_async(self, prep_prog, operator_programs, random_seed):
         """
         Run a Forest ``expectation`` job asynchronously.
 
@@ -432,8 +434,8 @@ class ForestConnection:
                              {"machine": "QVM", "program": payload})
         return get_job_id(response)
 
-    def qvm_run(self, quil_program, classical_addresses, trials, needs_compilation, isa,
-                measurement_noise, gate_noise, random_seed):
+    def _qvm_run(self, quil_program, classical_addresses, trials, needs_compilation, isa,
+                 measurement_noise, gate_noise, random_seed):
         """
         Run a Forest ``run`` job on a QVM.
 
@@ -449,14 +451,14 @@ class ForestConnection:
 
             response = post_json(self.session, self.async_endpoint + "/job",
                                  {"machine": "QVM", "program": payload})
-            job = self.wait_for_job(get_job_id(response))
+            job = self._wait_for_job(get_job_id(response), machine='QVM')
             return job.result()
         else:
             response = post_json(self.session, self.sync_endpoint + "/qvm", payload)
             return response.json()
 
-    def qvm_run_async(self, quil_program, classical_addresses, trials, needs_compilation, isa,
-                  measurement_noise, gate_noise, random_seed):
+    def _qvm_run_async(self, quil_program, classical_addresses, trials, needs_compilation, isa,
+                       measurement_noise, gate_noise, random_seed):
         """
         Run a Forest ``run`` job on a QVM asynchronously.
 
@@ -468,19 +470,20 @@ class ForestConnection:
                              {"machine": "QVM", "program": payload})
         return get_job_id(response)
 
-    def qpu_run(self, quil_program, classical_addresses, trials, needs_compilation, isa,
-                device_name):
+    def _qpu_run(self, quil_program, classical_addresses, trials, needs_compilation, isa,
+                 device_name):
         """
         Run a Forest ``run`` job on a QPU and block.
 
         Users should use :py:func:`QPU.run` instead of calling this directly.
         """
-        job = self.wait_for_job(self.qpu_run_async(quil_program, classical_addresses, trials,
-                                                   needs_compilation, isa, device_name))
+        job = self._wait_for_job(self._qpu_run_async(quil_program, classical_addresses, trials,
+                                                     needs_compilation, isa, device_name),
+                                 machine=device_name)
         return job.result()
 
-    def qpu_run_async(self, quil_program, classical_addresses, trials, needs_compilation, isa,
-                      device_name):
+    def _qpu_run_async(self, quil_program, classical_addresses, trials, needs_compilation, isa,
+                       device_name):
         """
         Run a Forest ``run`` job on a QPU asynchronously.
 
@@ -498,7 +501,7 @@ class ForestConnection:
 
         return get_job_id(response)
 
-    def get_job(self, job_id):
+    def _get_job(self, job_id, machine):
         """
         Given a job id, return information about the status of the job
 
@@ -507,9 +510,9 @@ class ForestConnection:
         :rtype: Job
         """
         response = get_json(self.session, self.async_endpoint + "/job/" + job_id)
-        return Job(response.json(), 'QVM')
+        return Job(response.json(), machine)
 
-    def wait_for_job(self, job_id, ping_time=None, status_time=None):
+    def _wait_for_job(self, job_id, machine, ping_time=None, status_time=None):
         """
         Wait for the results of a job and periodically print status
 
@@ -522,7 +525,7 @@ class ForestConnection:
         """
 
         def get_job_fn():
-            return self.get_job(job_id)
+            return self._get_job(job_id, machine)
 
         return wait_for_job(get_job_fn,
                             ping_time if ping_time else self.ping_time,
