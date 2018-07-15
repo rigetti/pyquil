@@ -298,13 +298,6 @@ def qpu_run_payload(quil_program, classical_addresses, trials, needs_compilation
     else:
         payload["compiled-quil"] = quil_program.out()
 
-    def _wrap_program(self, program):
-        return {
-            "machine": "QPU",
-            "program": program,
-            "device": self.device_name
-        }
-
     return payload
 
 
