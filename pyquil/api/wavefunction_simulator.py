@@ -13,7 +13,7 @@ class WavefunctionSimulator:
     Represents a connection to the QVM.
     """
 
-    def __init__(self, connection: ForestConnection, random_seed=None):
+    def __init__(self, connection: ForestConnection = None, random_seed=None):
         """
         Constructor for wavefunction simulation. Sets up any necessary security.
 
@@ -35,6 +35,9 @@ class WavefunctionSimulator:
         :param random_seed: A seed for the QVM's random number generators. Either None (for an
             automatically generated seed) or a non-negative integer.
         """
+        if connection is None:
+            connection = ForestConnection()
+
         self.connection = connection
 
         if random_seed is None:
