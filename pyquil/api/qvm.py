@@ -454,20 +454,19 @@ class QVM(QAM):
     def __init__(self, connection: ForestConnection, noise_model=None, gate_noise=None,
                  measurement_noise=None, random_seed=None):
         """
-        Constructor for QVM. Sets up any necessary security, and establishes the noise
-        model to use.
+        A virtual machine that classically emulates the execution of Quil programs.
 
-        :param connection:
-        :param Device device: The optional device, from which noise will be added by default to all
-                              programs run on this instance.
+        :param connection: A connection to the Forest web API.
+        :param noise_model: A noise model that describes noise to apply when emulating a program's
+            execution.
         :param gate_noise: A list of three numbers [Px, Py, Pz] indicating the probability of an X,
-                           Y, or Z gate getting applied to each qubit after a gate application or
-                           reset. (default None)
-        :param measurement_noise: A list of three numbers [Px, Py, Pz] indicating the probability of
-                                  an X, Y, or Z gate getting applied before a a measurement.
-                                  (default None)
+           Y, or Z gate getting applied to each qubit after a gate application or reset. The
+           default value of None indicates no noise.
+        :param measurement_noise: A list of three numbers [Px, Py, Pz] indicating the probability
+            of an X, Y, or Z gate getting applied before a measurement. The default value of
+            None indicates no noise.
         :param random_seed: A seed for the QVM's random number generators. Either None (for an
-                            automatically generated seed) or a non-negative integer.
+            automatically generated seed) or a non-negative integer.
         """
         if (noise_model is not None) and (gate_noise is not None or measurement_noise is not None):
             raise ValueError("""

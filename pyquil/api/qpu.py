@@ -303,11 +303,12 @@ with the former, the device.
 class QPU(QAM):
     def __init__(self, connection: ForestConnection, device: Union[Device, str] = None):
         """
-        Constructor for QPUConnection. Sets up necessary security and picks a device to run on.
+        A physical quantum device that can run Quil programs.
 
-        :param connection:
-        :param device: The device to send programs to. It should be one of the values in the
-            dictionary returned from get_devices().
+        :param connection: A connection to the Forest web API.
+        :param device: The name of the device to send programs to. It can be either the
+            string device name or a :py:class:`Device` object, from whence the name
+            will be extracted.
         """
         if isinstance(device, Device):
             device_dot_name = device.name

@@ -15,25 +15,11 @@ class WavefunctionSimulator:
 
     def __init__(self, connection: ForestConnection = None, random_seed=None):
         """
-        Constructor for wavefunction simulation. Sets up any necessary security.
+        A simulator that propagates a wavefunction representation of a quantum state.
 
-        :param sync_endpoint: The endpoint of the server for running small jobs
-        :param async_endpoint: The endpoint of the server for running large jobs
-        :param api_key: The key to the Forest API Gateway (default behavior is to read from
-            config file)
-        :param user_id: Your userid for Forest (default behavior is to read from config file)
-        :param bool use_queue: Disabling this parameter may improve performance for small,
-            quick programs. To support larger programs, set it to True. (default: False)
-            *_async methods will always use the queue; See https://go.rigetti.com/connections
-            for more information.
-        :param int ping_time: Time in seconds for how long to wait between polling the server
-            for updated status information on a job. Note that this parameter doesn't matter if
-            use_queue is False.
-        :param int status_time: Time in seconds for how long to wait between printing status
-            information. To disable printing of status entirely then set status_time to False.
-            Note that this parameter doesn't matter if use_queue is False.
-        :param random_seed: A seed for the QVM's random number generators. Either None (for an
-            automatically generated seed) or a non-negative integer.
+        :param connection: A connection to the Forest web API.
+        :param random_seed: A seed for the simulator's random number generators. Either None (for
+            an automatically generated seed) or a non-negative integer.
         """
         if connection is None:
             connection = ForestConnection()
