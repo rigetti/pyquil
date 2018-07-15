@@ -200,7 +200,7 @@ def run_and_measure_payload(quil_program, qubits, trials, random_seed):
     payload = {"type": TYPE_MULTISHOT_MEASURE,
                "qubits": list(qubits),
                "trials": trials,
-               'compiled-quil': quil_program.out()}
+               "compiled-quil": quil_program.out()}
 
     if random_seed is not None:
         payload['rng-seed'] = random_seed
