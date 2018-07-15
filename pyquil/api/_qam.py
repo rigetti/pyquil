@@ -1,4 +1,4 @@
-from abc import ABC
+from abc import ABC, abstractmethod
 from typing import Iterable
 
 import numpy as np
@@ -7,6 +7,7 @@ from pyquil import Program
 
 
 class QAM(ABC):
+    @abstractmethod
     def run(self, quil_program: Program, classical_addresses: Iterable[int],
             trials: int) -> np.ndarray:
         """
@@ -19,14 +20,16 @@ class QAM(ABC):
         :param int trials: Number of times to run the program (a.k.a. number of shots)
         :return: A list of a list of classical registers (each register contains a bit)
         """
-        raise NotImplementedError()
+        pass
 
+    @abstractmethod
     def run_async(self, quil_program: Program, classical_addresses: Iterable[int], trials:int ):
         """
         Similar to run except that it returns a job id and doesn't wait for the program to
         be executed. See https://go.rigetti.com/connections for reasons to use this method.
         """
-        raise NotImplementedError()
+        pass
 
+    @abstractmethod
     def wait_for_job(self, job_id, ping_time=None, status_time=None):
-        raise NotImplementedError()
+        pass
