@@ -14,7 +14,7 @@
 #    limitations under the License.
 ##############################################################################
 import warnings
-from abc import ABC
+from abc import ABC, abstractmethod
 from collections import namedtuple
 from typing import Union, List, Tuple
 
@@ -350,12 +350,13 @@ def isa_to_graph(isa: ISA) -> nx.Graph:
 
 class AbstractDevice(ABC):
 
+    @abstractmethod
     def qubit_topology(self) -> nx.Graph:
         """
         The connectivity of qubits in this device given as a NetworkX graph.
         """
-        raise NotImplementedError()
 
+    @abstractmethod
     def get_isa(self, oneq_type='Xhalves', twoq_type='CZ') -> ISA:
         """
         Construct an ISA suitable for targeting by compilation.
@@ -365,7 +366,6 @@ class AbstractDevice(ABC):
         :param oneq_type: The family of one-qubit gates to target
         :param twoq_type: The family of two-qubit gates to target
         """
-        raise NotImplementedError()
 
 
 class Device(AbstractDevice):
