@@ -218,11 +218,6 @@ with the former, the device.
         :return: A list of a list of classical registers (each register contains a bit)
         :rtype: list
         """
-        # Developer note: Can't wholesale replace these functions with
-        # ForestConnection equivalents because we've deprecated the run_and_measure web-api
-        # endpoint. Run and measure should be a pyquil-side composition of adding measures
-        # and then calling run.
-
         job = self.wait_for_job(self.run_and_measure_async(quil_program, qubits, trials, needs_compilation, isa))
         return job.result()
 
@@ -231,20 +226,16 @@ with the former, the device.
         Similar to run_and_measure except that it returns a job id and doesn't wait for the program
         to be executed. See https://go.rigetti.com/connections for reasons to use this method.
         """
-        # Developer note: Can't wholesale replace these functions with
-        # ForestConnection equivalents because we've deprecated the run_and_measure web-api
-        # endpoint. Run and measure should be a pyquil-side composition of adding measures
-        # and then calling run.
         full_program = append_measures_to_program(quil_program, qubits)
         payload = self._run_and_measure_payload(full_program, qubits, trials, needs_compilation=needs_compilation, isa=isa)
         response = post_json(self.session, self.async_endpoint + "/job", self._wrap_program(payload))
         return get_job_id(response)
 
     def _run_and_measure_payload(self, quil_program, qubits, trials, needs_compilation, isa):
-        # Developer note: Can't wholesale replace these functions with
-        # ForestConnection equivalents because we've deprecated the run_and_measure web-api
-        # endpoint. Run and measure should be a pyquil-side composition of adding measures
-        # and then calling run.
+        # Developer note: Don't migrate this code to `ForestConnection`. The QPU run_and_measure
+        # web endpoint is deprecated. If run_and_measure-type functionality is desired,
+        # the client (ie PyQuil) should add measure instructions and hit the `run` endpoint. See
+        # `QuantumComputer.run_and_measure` for an example.
         if not quil_program:
             raise ValueError("You have attempted to run an empty program."
                              " Please provide gates or measure instructions to your program.")

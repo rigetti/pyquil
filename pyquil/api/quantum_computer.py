@@ -153,13 +153,16 @@ class QuantumComputer:
 
     def run_and_measure(self, program: Program, qubits: List[int], trials: int, symmetrize=None):
         """
-        Automatically apply MEASURE instructions to each qubit.
+        Run the provided state preparation program and measure all qubits contained in the program.
 
-        I think we should discourage use of this function. ``run`` is much more general.
+        .. note::
 
-        Unlike the old ``run_and_measure`` function, this one works with noise models.
+            In contrast to :py:class:`QVMConnection.run_and_measure`, this method simulates
+            noise correctly for noisy QVMs. However, this method is slower for ``trials > 1``.
+            For faster noise-free simulation, consider
+            :py:class:`WavefunctionSimulator.run_and_measure`.
 
-        :param program: The program to run. We'll put MEASURE instructions at the end.
+        :param program: The state preparation program to run and then measure.
         :param qubits: Qubit indices to measure.
         :param trials: The number of times to run the program.
         :param symmetrize: Whether to apply readout error symmetrization. If not specified,

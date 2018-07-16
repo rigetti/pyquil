@@ -165,7 +165,7 @@ programs run on this QVM.
         :return: A list of a list of bits.
         :rtype: list
         """
-        # Developer note: Can't wholesale replace these functions with
+        # Developer note: This code is for backwards compatibility. It can't be replaced with
         # ForestConnection._run_and_measure because we've turned off the ability to set
         # `needs_compilation` (that usually indicates the user is doing something iffy like
         # using a noise model with this function)
@@ -239,7 +239,7 @@ programs run on this QVM.
         :return: A Wavefunction object representing the state of the QVM.
         :rtype: Wavefunction
         """
-        # Developer note: Can't wholesale replace these functions with
+        # Developer note: This code is for backwards compatibility. It can't be replaced with
         # ForestConnection._wavefunction because we've turned off the ability to set
         # `needs_compilation` (that usually indicates the user is doing something iffy like
         # using a noise model with this function)
@@ -265,7 +265,7 @@ programs run on this QVM.
         Similar to wavefunction except that it returns a job id and doesn't wait for the program to be executed.
         See https://go.rigetti.com/connections for reasons to use this method.
         """
-        # Developer note: Can't wholesale replace these functions with
+        # Developer note: This code is for backwards compatibility. It can't be replaced with
         # ForestConnection._wavefunction because we've turned off the ability to set
         # `needs_compilation` (that usually indicates the user is doing something iffy like
         # using a noise model with this function)
@@ -277,8 +277,8 @@ programs run on this QVM.
         return get_job_id(response)
 
     def _wavefunction_payload(self, quil_program, classical_addresses, needs_compilation, isa):
-        # Developer note: Can't wholesale replace these functions with
-        # ForestConnection._wavefunction because we've turned off the ability to set
+        # Developer note: This code is for backwards compatibility. It can't be replaced with
+        # _base_connection._wavefunction_payload because we've turned off the ability to set
         # `needs_compilation` (that usually indicates the user is doing something iffy like
         # using a noise model with this function)
         if not isinstance(quil_program, Program):
@@ -327,7 +327,7 @@ programs run on this QVM.
         :return: Expectation values of the operators.
         :rtype: List[float]
         """
-        # Developer note: Can't wholesale replace these functions with
+        # Developer note: This code is for backwards compatibility. It can't be replaced with
         # ForestConnection._expectation because we've turned off the ability to set
         # `needs_compilation` (that usually indicates the user is doing something iffy like
         # using a noise model with this function)
