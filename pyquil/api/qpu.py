@@ -292,7 +292,7 @@ with the former, the device.
 
 
 class QPU(QAM):
-    def __init__(self, connection: ForestConnection, device: Union[Device, str] = None):
+    def __init__(self, connection: ForestConnection, device: Union[Device, str]):
         """
         A physical quantum device that can run Quil programs.
 
