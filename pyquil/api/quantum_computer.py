@@ -18,7 +18,7 @@ def _get_flipped_protoquil_program(program: Program):
     """
     program = Program(program.instructions)  # Copy
     to_measure = []
-    while True:
+    while len(program) > 0:
         inst = program.instructions[-1]
         if isinstance(inst, Measurement):
             program.pop()
