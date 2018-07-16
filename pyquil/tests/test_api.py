@@ -20,7 +20,7 @@ import requests_mock
 import json
 import numpy as np
 import pytest
-from mock import patch
+from unittest.mock import patch
 
 from pyquil.api import QVMConnection, QPUConnection, CompilerConnection
 from pyquil.api._base_connection import validate_noise_probabilities, validate_run_items

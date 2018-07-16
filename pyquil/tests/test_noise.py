@@ -1,8 +1,7 @@
 from collections import OrderedDict
 
 import numpy as np
-import pytest
-from mock import Mock
+from unittest.mock import Mock
 
 from pyquil.api import QPUConnection
 from pyquil.gates import CZ, RZ, RX, I, H
