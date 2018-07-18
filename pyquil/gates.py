@@ -536,6 +536,7 @@ QUANTUM_GATES = {'I': I,
 """
 Dictionary of quantum gates. Keys are gate names, values are gate functions.
 """
+STANDARD_GATES = QUANTUM_GATES
 
 STANDARD_INSTRUCTIONS = {'WAIT': WAIT,
                          'RESET': RESET,
