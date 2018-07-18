@@ -510,49 +510,48 @@ def EXCHANGE(classical_reg1, classical_reg2):
     return ClassicalExchange(left, right)
 
 
-STANDARD_GATES = {'I': I,
-                  'X': X,
-                  'Y': Y,
-                  'Z': Z,
-                  'H': H,
-                  'S': S,
-                  'T': T,
-                  'PHASE': PHASE,
-                  'RX': RX,
-                  'RY': RY,
-                  'RZ': RZ,
-                  'CZ': CZ,
-                  'CNOT': CNOT,
-                  'CCNOT': CCNOT,
-                  'CPHASE00': CPHASE00,
-                  'CPHASE01': CPHASE01,
-                  'CPHASE10': CPHASE10,
-                  'CPHASE': CPHASE,
-                  'SWAP': SWAP,
-                  'CSWAP': CSWAP,
-                  'ISWAP': ISWAP,
-                  'PSWAP': PSWAP
-                  }
+QUANTUM_GATES = {'I': I,
+                 'X': X,
+                 'Y': Y,
+                 'Z': Z,
+                 'H': H,
+                 'S': S,
+                 'T': T,
+                 'PHASE': PHASE,
+                 'RX': RX,
+                 'RY': RY,
+                 'RZ': RZ,
+                 'CZ': CZ,
+                 'CNOT': CNOT,
+                 'CCNOT': CCNOT,
+                 'CPHASE00': CPHASE00,
+                 'CPHASE01': CPHASE01,
+                 'CPHASE10': CPHASE10,
+                 'CPHASE': CPHASE,
+                 'SWAP': SWAP,
+                 'CSWAP': CSWAP,
+                 'ISWAP': ISWAP,
+                 'PSWAP': PSWAP
+                 }
 """
-Dictionary of standard gates. Keys are gate names, values are gate functions.
-"""
-
-CUSTOM_GATES = {'WAIT'     : WAIT,
-                'RESET'    : RESET,
-                'NOP'      : NOP,
-                'HALT'     : HALT,
-                'MEASURE'  : MEASURE,
-                'TRUE'     : TRUE,
-                'FALSE'    : FALSE,
-                'NOT'      : NOT,
-                'AND'      : AND,
-                'OR'       : OR,
-                'MOVE'     : MOVE,
-                'EXCHANGE' : EXCHANGE}
-"""
-Dictionary of custom gates. Keys are gate names, values are gate functions.
+Dictionary of quantum gates. Keys are gate names, values are gate functions.
 """
 
-ALL_GATES = {**STANDARD_GATES, **CUSTOM_GATES}
+STANDARD_INSRUCTIONS = {'WAIT' : WAIT,
+                        'RESET' : RESET,
+                        'NOP' : NOP,
+                        'HALT' : HALT,
+                        'MEASURE' : MEASURE,
+                        'TRUE' : TRUE,
+                        'FALSE' : FALSE,
+                        'NOT' : NOT,
+                        'AND' : AND,
+                        'OR' : OR,
+                        'MOVE' : MOVE,
+                        'EXCHANGE' : EXCHANGE,
+                        **QUANTUM_GATES}
+"""
+Dictionary of standard instructions. Keys are instruction names, values are the instruction functions.
+"""
 
-__all__ = list(STANDARD_GATES.keys()) + list(CUSTOM_GATES.keys()) + ['Gate']
+__all__ = list(STANDARD_INSTRUCTIONS.keys()) + ['Gate']
