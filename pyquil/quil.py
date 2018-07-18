@@ -29,7 +29,7 @@ from pyquil._parser.PyQuilListener import run_parser
 from pyquil.noise import _check_kraus_ops, _create_kraus_pragmas
 from pyquil.parameters import format_parameter
 from pyquil.quilatom import LabelPlaceholder, QubitPlaceholder, unpack_qubit
-from pyquil.gates import MEASURE, STANDARD_GATES, H
+from pyquil.gates import MEASURE, QUANTUM_GATES, H
 from pyquil.quilbase import (DefGate, Gate, Measurement, Pragma, AbstractInstruction, Qubit,
                              Jump, Label, JumpConditional, JumpTarget, JumpUnless, JumpWhen, Addr)
 
@@ -450,16 +450,16 @@ class Program(object):
                 daggered.defgate(gate.name + suffix, gate.matrix.T.conj())
 
         for gate in reversed(self._instructions):
-            if gate.name in STANDARD_GATES:
+            if gate.name in QUANTUM_GATES:
                 if gate.name == "S":
-                    daggered.inst(STANDARD_GATES["PHASE"](-pi / 2, *gate.qubits))
+                    daggered.inst(QUANTUM_GATES["PHASE"](-pi / 2, *gate.qubits))
                 elif gate.name == "T":
-                    daggered.inst(STANDARD_GATES["RZ"](pi / 4, *gate.qubits))
+                    daggered.inst(QUANTUM_GATES["RZ"](pi / 4, *gate.qubits))
                 elif gate.name == "ISWAP":
-                    daggered.inst(STANDARD_GATES["PSWAP"](pi / 2, *gate.qubits))
+                    daggered.inst(QUANTUM_GATES["PSWAP"](pi / 2, *gate.qubits))
                 else:
                     negated_params = list(map(lambda x: -1 * x, gate.params))
-                    daggered.inst(STANDARD_GATES[gate.name](*(negated_params + gate.qubits)))
+                    daggered.inst(QUANTUM_GATES[gate.name](*(negated_params + gate.qubits)))
             else:
                 if inv_dict is None or gate.name not in inv_dict:
                     gate_inv_name = gate.name + suffix
