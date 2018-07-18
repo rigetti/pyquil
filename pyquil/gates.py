@@ -537,19 +537,19 @@ QUANTUM_GATES = {'I': I,
 Dictionary of quantum gates. Keys are gate names, values are gate functions.
 """
 
-STANDARD_INSRUCTIONS = {'WAIT' : WAIT,
-                        'RESET' : RESET,
-                        'NOP' : NOP,
-                        'HALT' : HALT,
-                        'MEASURE' : MEASURE,
-                        'TRUE' : TRUE,
-                        'FALSE' : FALSE,
-                        'NOT' : NOT,
-                        'AND' : AND,
-                        'OR' : OR,
-                        'MOVE' : MOVE,
-                        'EXCHANGE' : EXCHANGE,
-                        **QUANTUM_GATES}
+STANDARD_INSTRUCTIONS = {'WAIT' : WAIT,
+                         'RESET' : RESET,
+                         'NOP' : NOP,
+                         'HALT' : HALT,
+                         'MEASURE' : MEASURE,
+                         'TRUE' : TRUE,
+                         'FALSE' : FALSE,
+                         'NOT' : NOT,
+                         'AND' : AND,
+                         'OR' : OR,
+                         'MOVE' : MOVE,
+                         'EXCHANGE' : EXCHANGE,
+                         **QUANTUM_GATES}
 """
 Dictionary of standard instructions. Keys are instruction names, values are the instruction functions.
 """
