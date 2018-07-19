@@ -3,11 +3,10 @@ import numpy as np
 import pytest
 
 from pyquil.device import (Device, ISA, Qubit, Edge, Specs, QubitSpecs,
-                           EdgeSpecs, THETA, gates_in_isa, isa_from_graph)
+                           EdgeSpecs, THETA, gates_in_isa, isa_from_graph, isa_to_graph, NxDevice)
 from pyquil.noise import NoiseModel, KrausModel
 from pyquil.gates import RZ, RX, I, CZ, ISWAP, CPHASE
 from collections import OrderedDict
-
 
 DEVICE_FIXTURE_NAME = 'mixed_architecture_chip'
 
@@ -229,3 +228,24 @@ def test_isa_from_graph_cphase():
     assert sorted(isad['2Q']) == ['0-1', '0-2', '1-2']
     for v in isad['2Q'].values():
         assert v == {'type': 'CPHASE'}
+
+
+def test_isa_to_graph(isa_dict):
+    graph = isa_to_graph(ISA.from_dict(isa_dict))
+    should_be = nx.from_edgelist([(0, 1), (1, 2), (0, 2)])
+    assert nx.is_isomorphic(graph, should_be)
+
+
+def test_NxDevice(isa_dict, noise_model_dict):
+    graph = isa_to_graph(ISA.from_dict(isa_dict))
+    nxdev = NxDevice(graph)
+
+    device_raw = {'isa': isa_dict,
+                  'noise_model': noise_model_dict,
+                  'is_online': True,
+                  'is_retuning': False}
+    dev = Device(DEVICE_FIXTURE_NAME, device_raw)
+
+    nx.is_isomorphic(nxdev.qubit_topology(), dev.qubit_topology())
+    isa = nxdev.get_isa()
+    assert isa.qubits[0].type == 'Xhalves'

@@ -530,6 +530,6 @@ To read more about supplying noise to the QVM, see http://pyquil.readthedocs.io/
                                               gate_noise=self.gate_noise,
                                               random_seed=self.random_seed)
 
-    def wait_for_job(self, job_id, ping_time=None, status_time=None):
+    def wait_for_job(self, job_id, ping_time=None, status_time=None) -> Job:
         return self.connection._wait_for_job(job_id=job_id, ping_time=ping_time,
                                              status_time=status_time, machine='QVM')

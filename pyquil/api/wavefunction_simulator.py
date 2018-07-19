@@ -1,18 +1,16 @@
-import warnings
+from typing import Iterable, List, Union
 
+import numpy as np
 from six import integer_types
 
-from pyquil.paulis import PauliSum
+from pyquil.api import Job
+from pyquil.paulis import PauliSum, PauliTerm
 from pyquil.quil import Program
 from pyquil.wavefunction import Wavefunction
 from ._base_connection import ForestConnection
 
 
 class WavefunctionSimulator:
-    """
-    Represents a connection to the QVM.
-    """
-
     def __init__(self, connection: ForestConnection = None, random_seed=None):
         """
         A simulator that propagates a wavefunction representation of a quantum state.
@@ -33,51 +31,21 @@ class WavefunctionSimulator:
         else:
             raise TypeError("random_seed should be None or a non-negative int")
 
-    def run_and_measure(self, quil_program, qubits, trials=1):
+    def wavefunction(self, quil_program: Program,
+                     classical_addresses: Iterable[int] = None) -> Wavefunction:
         """
-        Run a Quil program once to determine the final wavefunction, and measure multiple times.
+        Simulate a Quil program and return the wavefunction.
 
-        :note: If the execution of ``quil_program`` is **non-deterministic**, i.e., if it includes
-            measurements and/or noisy quantum gates, then the final wavefunction from which the
-            returned bitstrings are sampled itself only represents a stochastically generated sample
-            and the outcomes sampled from *different* ``run_and_measure`` calls *generally sample
-            different bitstring distributions*.
-
-        :param Program quil_program: A Quil program.
-        :param list|range qubits: A list of qubits.
-        :param int trials: Number of shots to collect.
-        :return: A list of a list of bits.
-        :rtype: list
-        """
-        return self.connection._run_and_measure(quil_program=quil_program, qubits=qubits,
-                                                trials=trials, random_seed=self.random_seed)
-
-    def run_and_measure_async(self, quil_program, qubits, trials=1):
-        """
-        Similar to run_and_measure except that it returns a job id and doesn't wait for the
-        program to be executed.
-
-        See https://go.rigetti.com/connections for reasons to use this method.
-        """
-        return self.connection._run_and_measure_async(quil_program=quil_program, qubits=qubits,
-                                                      trials=trials, random_seed=self.random_seed)
-
-    def wavefunction(self, quil_program, classical_addresses=None):
-        """
-        Simulate a Quil program and get the wavefunction back.
-
-        :note: If the execution of ``quil_program`` is **non-deterministic**, i.e., if it includes
-            measurements and/or noisy quantum gates, then the final wavefunction from which the
-            returned bitstrings are sampled itself only represents a stochastically generated sample
-            and the wavefunctions returned by *different* ``wavefunction`` calls *will generally be
+        .. note:: If your program contains measurements or noisy gates, this method may not do what
+            you want. If the execution of ``quil_program`` is **non-deterministic** then the
+            final wavefunction only represents a stochastically generated sample and the
+            wavefunctions returned by *different* ``wavefunction`` calls *will generally be
             different*.
 
-        :param Program quil_program: A Quil program.
-        :param list|range classical_addresses: An optional list of classical addresses.
-        :param needs_compilation: If True, preprocesses the job with the compiler.
-        :param isa: If set, compiles to this target ISA.
+        :param quil_program: A Quil program.
+        :param classical_addresses: An optional list of classical addresses to return in addition
+            of the quantum wavefunction.
         :return: A Wavefunction object representing the state of the QVM.
-        :rtype: Wavefunction
         """
         if classical_addresses is None:
             classical_addresses = []
@@ -88,8 +56,8 @@ class WavefunctionSimulator:
 
     def wavefunction_async(self, quil_program, classical_addresses=None):
         """
-        Similar to wavefunction except that it returns a job id and doesn't wait for the program to be executed.
-        See https://go.rigetti.com/connections for reasons to use this method.
+        Similar to wavefunction except that it returns a job id and doesn't wait for the program
+        to be executed. See https://go.rigetti.com/connections for reasons to use this method.
         """
         if classical_addresses is None:
             classical_addresses = []
@@ -98,7 +66,7 @@ class WavefunctionSimulator:
                                                    classical_addresses=classical_addresses,
                                                    random_seed=self.random_seed)
 
-    def expectation(self, prep_prog, pauli_terms):
+    def expectation(self, prep_prog: Program, pauli_terms: Union[PauliSum, List[PauliTerm]]):
         """
         Calculate the expectation value of Pauli operators given a state prepared by prep_program.
 
@@ -106,17 +74,15 @@ class WavefunctionSimulator:
         otherwise the returned value is a list of ``float``s, one for each ``PauliTerm`` in the
         list.
 
-        :note: If the execution of ``quil_program`` is **non-deterministic**, i.e., if it includes
-            measurements and/or noisy quantum gates, then the final wavefunction from which the
-            expectation values are computed itself only represents a stochastically generated
-            sample. The expectations returned from *different* ``expectation`` calls *will then
-            generally be different*.
+        .. note:: If your program contains measurements or noisy gates, this method may not do what
+            you want. If the execution of ``quil_program`` is **non-deterministic** then the
+            final wavefunction from which the expectation value is calculated only represents
+            a stochastically generated sample and the wavefunctions returned by *different*
+            ``wavefunction`` calls *will generally be different*.
 
-        :param Program prep_prog: Quil program for state preparation.
-        :param Sequence[PauliTerm]|PauliSum pauli_terms: A list of PauliTerms or a PauliSum.
-        :return: If ``pauli_terms`` is a PauliSum return its expectation value. Otherwise return
-          a list of expectation values.
-        :rtype: float|List[float]
+        :param prep_prog: A program that prepares the state on which we measure the expectation.
+        :param pauli_terms: A Pauli representation of a quantum operator.
+        :return: Either a float or list of floats depending on ``pauli_terms``.
         """
 
         is_pauli_sum = False
@@ -133,13 +99,51 @@ class WavefunctionSimulator:
             return sum(results)
         return results
 
-    def expectation_async(self, prep_prog, operator_programs=None):
+    def run_and_measure(self, quil_program: Program, qubits: List[int] = None, trials: int = 1):
         """
-        Similar to expectation except that it returns a job id and doesn't wait for the program to be executed.
+        Run a Quil program once to determine the final wavefunction, and measure multiple times.
+
+        Alternatively, consider using ``wavefunction`` and calling ``sample_bitstrings`` on the
+        resulting object.
+
+        For a large wavefunction and a low-medium number of trials, use this function.
+        On the other hand, if you're sampling a small system many times you might want to
+        use ``Wavefunction.sample_bitstrings``.
+
+        .. note:: If your program contains measurements or noisy gates, this method may not do what
+            you want. If the execution of ``quil_program`` is **non-deterministic** then the
+            final wavefunction from which the returned bitstrings are sampled itself only
+            represents a stochastically generated sample and the outcomes sampled from
+            *different* ``run_and_measure`` calls *generally sample different bitstring
+            distributions*.
+
+        :param quil_program: The program to run and measure
+        :param qubits: An optional list of qubits to measure. The order of this list is
+            respected in the returned bitstrings. If not provided, all qubits used in
+            the program will be measured and returned in their sorted order.
+        :param int trials: Number of times to sample from the prepared wavefunction.
+        :return: An array of measurement results (0 or 1) of shape (trials, len(qubits))
+        """
+        if qubits is None:
+            qubits = sorted(quil_program.get_qubits(indices=True))
+
+        return np.asarray(self.connection._run_and_measure(quil_program=quil_program, qubits=qubits,
+                                                           trials=trials,
+                                                           random_seed=self.random_seed))
+
+    def run_and_measure_async(self, quil_program, qubits=None, trials=1):
+        """
+        Similar to run_and_measure except that it returns a job id and doesn't wait for the
+        program to be executed.
+
         See https://go.rigetti.com/connections for reasons to use this method.
         """
-        warnings.warn("`expectation_async()` is deprecated. Use `pauli_expectation`.",
-                      DeprecationWarning)
-        return self.connection._expectation_async(prep_prog=prep_prog,
-                                                  operator_programs=operator_programs,
-                                                  random_seed=self.random_seed)
+        if qubits is None:
+            qubits = sorted(quil_program.get_qubits(indices=True))
+
+        return self.connection._run_and_measure_async(quil_program=quil_program, qubits=qubits,
+                                                      trials=trials, random_seed=self.random_seed)
+
+    def wait_for_job(self, job_id, ping_time=None, status_time=None) -> Job:
+        return self.connection._wait_for_job(job_id=job_id, ping_time=ping_time,
+                                             status_time=status_time, machine='QVM')

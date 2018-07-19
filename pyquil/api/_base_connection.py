@@ -328,6 +328,8 @@ class ForestConnection:
         """
         self.async_endpoint = async_endpoint
         self.sync_endpoint = sync_endpoint
+        self.api_key = api_key
+        self.user_id = user_id
         self.session = get_session(api_key, user_id)
 
         self.use_queue = use_queue
@@ -505,7 +507,7 @@ class ForestConnection:
         response = get_json(self.session, self.async_endpoint + "/job/" + job_id)
         return Job(response.json(), machine)
 
-    def _wait_for_job(self, job_id, machine, ping_time=None, status_time=None):
+    def _wait_for_job(self, job_id, machine, ping_time=None, status_time=None) -> Job:
         """
         Wait for the results of a job and periodically print status
 
