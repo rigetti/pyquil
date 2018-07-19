@@ -14,7 +14,7 @@
 #    limitations under the License.
 ##############################################################################
 import warnings
-from typing import Union, Iterable
+from typing import Iterable
 
 import numpy as np
 from six import integer_types
@@ -290,23 +290,15 @@ with the former, the device.
 
 
 class QPU(QAM):
-    def __init__(self, connection: ForestConnection, device: Union[Device, str]):
+    def __init__(self, connection: ForestConnection, device_name: str):
         """
         A physical quantum device that can run Quil programs.
 
         :param connection: A connection to the Forest web API.
-        :param device: The name of the device to send programs to. It can be either the
-            string device name or a :py:class:`Device` object, from whence the name
-            will be extracted.
+        :param device_name: The name of the device to send programs to. This uniquely
+            identifies a Rigetti QPU.
         """
-        if isinstance(device, Device):
-            device_dot_name = device.name
-        elif isinstance(device, str):
-            device_dot_name = device
-        else:
-            raise ValueError("Unknown device {}".format(device))
-
-        self.device_name = device_dot_name
+        self.device_name = device_name
         self.connection = connection
 
     def run(self, quil_program: Program, classical_addresses: Iterable[int],
