@@ -14,6 +14,7 @@
 #    limitations under the License.
 ##############################################################################
 import warnings
+from typing import Iterable
 
 import numpy as np
 from six import integer_types
@@ -492,17 +493,17 @@ To read more about supplying noise to the QVM, see http://pyquil.readthedocs.io/
         else:
             raise TypeError("random_seed should be None or a non-negative int")
 
-    def run(self, quil_program, classical_addresses, trials):
+    def run(self, quil_program: Program, classical_addresses: Iterable[int],
+            trials: int) -> np.ndarray:
         """
-        Run a Quil program multiple times, accumulating the values deposited in
-        a list of classical addresses.
+        Run a Quil program on the QVM multiple times and return the values stored in the
+        classical registers designated by the classical_addresses parameter.
 
-        :param Program quil_program: A Quil program.
-        :param list|range classical_addresses: A list of addresses.
-        :param int trials: Number of shots to collect.
-        :return: A list of lists of bits. Each sublist corresponds to the values
-                 in `classical_addresses`.
-        :rtype: list
+        :param quil_program: A program to run
+        :param classical_addresses: Classical register addresses to return
+        :param int trials: Number of times to repeatedly run the program. This is sometimes called
+            the number of shots.
+        :return: An array of bitstrings of shape ``(trials, len(classical_addresses))``
         """
         if self.noise_model is not None:
             quil_program = apply_noise_model(quil_program, self.noise_model)

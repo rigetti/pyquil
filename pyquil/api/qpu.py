@@ -13,21 +13,19 @@
 #    See the License for the specific language governing permissions and
 #    limitations under the License.
 ##############################################################################
-import time
 import warnings
-from typing import Union
+from typing import Union, Iterable
 
 import numpy as np
 from six import integer_types
 
-from pyquil.api import errors
 from pyquil.api._qam import QAM
 from pyquil.api.job import Job
 from pyquil.device import Device
 from pyquil.gates import MEASURE
 from pyquil.quil import Program, get_classical_addresses_from_program
-from ._base_connection import (validate_run_items, TYPE_MULTISHOT, TYPE_MULTISHOT_MEASURE,
-                               get_job_id, get_session, wait_for_job, post_json, get_json,
+from ._base_connection import (validate_run_items, TYPE_MULTISHOT_MEASURE,
+                               get_job_id, get_session, post_json, get_json,
                                parse_error, ASYNC_ENDPOINT, ForestConnection)
 
 
@@ -311,23 +309,24 @@ class QPU(QAM):
         self.device_name = device_dot_name
         self.connection = connection
 
-    def run(self, quil_program, classical_addresses, trials):
+    def run(self, quil_program: Program, classical_addresses: Iterable[int],
+            trials: int) -> np.ndarray:
         """
-        Run a pyQuil program on the QPU and return the values stored in the classical registers
-        designated by the classical_addresses parameter. The program is repeated according to
-        the number of trials provided to the run method. This functionality is in beta.
+        Run a Quil program on the QPU multiple times and return the values stored in the
+        classical registers designated by the classical_addresses parameter.
 
-        It is important to note that our QPUs currently only allow a single set of simultaneous
-        readout pulses on all qubits in the QPU at the end of the program. This means that
-        missing or duplicate MEASURE instructions do not change the pulse program, but instead
-        only contribute to making a less rich or richer mapping, respectively, between classical
-        and qubit addresses.
+        .. note::
+            Currently the QPU only allow a single set of simultaneous readout pulses on all
+            qubits in the QPU at the end of the program. This means that missing or duplicate
+            MEASURE instructions do not change the pulse program, but instead
+            only contribute to making a less rich or richer mapping, respectively, between
+            classical and qubit addresses.
 
-        :param Program quil_program: Pyquil program to run on the QPU
-        :param list|range classical_addresses: Classical register addresses to return
-        :param int trials: Number of times to run the program (a.k.a. number of shots)
-        :return: A list of a list of classical registers (each register contains a bit)
-        :rtype: list
+        :param quil_program: A program to run
+        :param classical_addresses: Classical register addresses to return
+        :param int trials: Number of times to repeatedly run the program. This is sometimes called
+            the number of shots.
+        :return: An array of bitstrings of shape ``(trials, len(classical_addresses))``
         """
         return np.asarray(self.connection._qpu_run(quil_program=quil_program,
                                                    classical_addresses=classical_addresses,
@@ -344,6 +343,6 @@ class QPU(QAM):
                                               trials=trials, needs_compilation=False, isa=None,
                                               device_name=self.device_name)
 
-    def wait_for_job(self, job_id, ping_time=None, status_time=None):
+    def wait_for_job(self, job_id, ping_time=None, status_time=None) -> Job:
         return self.connection._wait_for_job(job_id=job_id, ping_time=ping_time,
                                              status_time=status_time, machine='QPU')

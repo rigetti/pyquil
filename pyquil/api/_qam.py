@@ -11,18 +11,18 @@ class QAM(ABC):
     def run(self, quil_program: Program, classical_addresses: Iterable[int],
             trials: int) -> np.ndarray:
         """
-        Run a pyQuil program on the QAM and return the values stored in the classical registers
-        designated by the classical_addresses parameter. The program is repeated according to
-        the number of trials provided to the run method.
+        Run a Quil program on the QVM multiple times and return the values stored in the
+        classical registers designated by the classical_addresses parameter.
 
-        :param quil_program: Program to run on the QPU
+        :param quil_program: A program to run
         :param classical_addresses: Classical register addresses to return
-        :param int trials: Number of times to run the program (a.k.a. number of shots)
-        :return: A list of a list of classical registers (each register contains a bit)
+        :param int trials: Number of times to repeatedly run the program. This is sometimes called
+            the number of shots.
+        :return: An array of bitstrings of shape ``(trials, len(classical_addresses))``
         """
 
     @abstractmethod
-    def run_async(self, quil_program: Program, classical_addresses: Iterable[int], trials:int ):
+    def run_async(self, quil_program: Program, classical_addresses: Iterable[int], trials: int):
         """
         Similar to run except that it returns a job id and doesn't wait for the program to
         be executed. See https://go.rigetti.com/connections for reasons to use this method.
