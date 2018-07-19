@@ -213,14 +213,23 @@ help the user understand what rearrangement may have been done, the compiler emi
 user, both ``PRAGMA`` instructions serve the same purpose: ``PRAGMA ..._REWIRING "#(n0 n1 ... nk)"``
 indicates that the logical qubit labeled ``j`` in the program has been assigned to lie on the physical
 qubit labeled ``nj`` on the device.  This is strictly for human-readability: user-supplied instructions
-of the form ``PRAGMA ..._REWIRING`` are discarded and have no effect.
+of the form ``PRAGMA [EXPECTED|CURRENT]_REWIRING`` are discarded and have no effect.
 
-.. WARNING::
+In addition, you have some control over how the compiler constructs its
+rewiring. If you include a
+``PRAGMA INITIAL_REWIRING "[NAIVE|RANDOM|PARTIAL|GREEDY]"``
+instruction before any non-pragmas, the compiler will alter its rewiring
+behavior.
 
-    The compiler **will not** rearrange qubits in programs which already map perfectly onto the
-    target device, leaving it entirely up to the user to select high-fidelity configurations of
-    qubits.
-
++ `PARTIAL` (default): the compiler will start with nothing assigned to each
+  physical qubit. Then, it will fill in the logical-to-physical mapping as it
+  encounters new qubits in the program, making its best guess for where they
+  should be placed.
++ `NAIVE`: the compiler will start with an identity mapping as the initial
+  rewiring
++ `RANDOM`: the compiler will start with a random permutation
++ `GREEDY`: the compiler will make a guess for the initial rewiring based on a
+  quick initial scan of the entire program.
 
 Common Error Messages
 ---------------------

@@ -334,7 +334,7 @@ class Reset(SimpleInstruction):
 
 class Nop(SimpleInstruction):
     """
-    The RESET instruction.
+    The NOP instruction.
     """
     op = "NOP"
 

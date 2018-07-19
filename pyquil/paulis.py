@@ -25,7 +25,7 @@ import copy
 from pyquil.quilatom import QubitPlaceholder
 
 from .quil import Program
-from .gates import H, RZ, RX, CNOT, X, PHASE, STANDARD_GATES
+from .gates import H, RZ, RX, CNOT, X, PHASE, QUANTUM_GATES
 from numbers import Number
 from collections import Sequence, OrderedDict, defaultdict
 import warnings
@@ -166,7 +166,7 @@ class PauliTerm(object):
 
     @property
     def program(self):
-        return Program([STANDARD_GATES[gate](q) for q, gate in self])
+        return Program([QUANTUM_GATES[gate](q) for q, gate in self])
 
     def get_qubits(self):
         """Gets all the qubits that this PauliTerm operates on.
