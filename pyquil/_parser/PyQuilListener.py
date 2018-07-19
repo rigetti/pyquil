@@ -28,7 +28,7 @@ from antlr4.error.Errors import InputMismatchException
 from numpy.ma import sin, cos, sqrt, exp
 
 from pyquil import parameters
-from pyquil.gates import STANDARD_GATES
+from pyquil.gates import QUANTUM_GATES
 from pyquil.parameters import Parameter, Expression, Segment
 from pyquil.quilbase import Gate, DefGate, Measurement, Addr, JumpTarget, Label, Halt, Jump, JumpWhen, JumpUnless, \
     Reset, Wait, ClassicalTrue, ClassicalFalse, ClassicalNot, ClassicalAnd, ClassicalOr, ClassicalMove, \
@@ -122,11 +122,11 @@ class PyQuilListener(QuilListener):
         params = list(map(_param, ctx.param()))
         qubits = list(map(_qubit, ctx.qubit()))
 
-        if gate_name in STANDARD_GATES:
+        if gate_name in QUANTUM_GATES:
             if params:
-                self.result.append(STANDARD_GATES[gate_name](*params, *qubits))
+                self.result.append(QUANTUM_GATES[gate_name](*params, *qubits))
             else:
-                self.result.append(STANDARD_GATES[gate_name](*qubits))
+                self.result.append(QUANTUM_GATES[gate_name](*qubits))
         else:
             self.result.append(Gate(gate_name, params, qubits))
 
