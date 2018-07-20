@@ -337,7 +337,7 @@ def test_qpu_connection(test_device):
         ])
 
         job = qpu.wait_for_job(qpu.run_async(BELL_STATE_MEASURE, [0, 1], trials=2))
-        assert job.result() == [[0, 0], [1, 1]]
+        assert job.result().tolist() == [[0, 0], [1, 1]]
         assert job.compiled_quil() == Program(H(0), CNOT(0, 1), MEASURE(0, 0), MEASURE(1, 1))
         assert job.topological_swaps() == 0
         assert job.gate_depth() == 2
@@ -375,7 +375,7 @@ def test_qpu_connection(test_device):
         ])
 
         job = qpu.wait_for_job(qpu.run_and_measure_async(BELL_STATE, [0, 1], trials=2))
-        assert job.result() == [[0, 0], [1, 1]]
+        assert job.result().tolist() == [[0, 0], [1, 1]]
         assert job.compiled_quil() == Program(H(0), CNOT(0, 1), MEASURE(0, 0), MEASURE(1, 1))
         assert job.topological_swaps() == 0
         assert job.gate_depth() == 2

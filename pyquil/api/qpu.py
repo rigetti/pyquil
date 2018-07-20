@@ -13,23 +13,20 @@
 #    See the License for the specific language governing permissions and
 #    limitations under the License.
 ##############################################################################
-import os
 import warnings
-import time
+from typing import Iterable
 
+import numpy as np
 from six import integer_types
 
-from pyquil.api import errors
+from pyquil.api._qam import QAM
 from pyquil.api.job import Job
 from pyquil.device import Device
 from pyquil.gates import MEASURE
 from pyquil.quil import Program, get_classical_addresses_from_program
-from ._base_connection import (validate_run_items, TYPE_MULTISHOT, TYPE_MULTISHOT_MEASURE,
-                               get_job_id, get_session, wait_for_job, post_json, get_json,
-                               parse_error)
-
-
-ASYNC_ENDPOINT = os.getenv('FOREST_ASYNC_ENDPOINT', 'https://job.rigetti.com/beta')
+from ._base_connection import (validate_run_items, TYPE_MULTISHOT_MEASURE,
+                               get_job_id, get_session, post_json, get_json,
+                               parse_error, ASYNC_ENDPOINT, ForestConnection)
 
 
 def get_devices(async_endpoint=ASYNC_ENDPOINT, api_key=None, user_id=None,
@@ -155,10 +152,14 @@ with the former, the device.
             self.device_name = None
 
         self.async_endpoint = async_endpoint
-        self.session = get_session(api_key, user_id)
 
         self.ping_time = ping_time
         self.status_time = status_time
+
+        self._connection = ForestConnection(sync_endpoint=None, async_endpoint=async_endpoint,
+                                            api_key=api_key, user_id=user_id, use_queue=True,
+                                            ping_time=ping_time, status_time=status_time)
+        self.session = self._connection.session  # backwards compatibility
 
     def run(self, quil_program, classical_addresses=None, trials=1, needs_compilation=True, isa=None):
         """
@@ -184,8 +185,9 @@ with the former, the device.
         if not classical_addresses:
             classical_addresses = get_classical_addresses_from_program(quil_program)
 
-        job = self.wait_for_job(self.run_async(quil_program, classical_addresses, trials, needs_compilation, isa))
-        return job.result()
+        return self._connection._qpu_run(quil_program, classical_addresses, trials,
+                                         needs_compilation, isa,
+                                         device_name=self.device_name).tolist()
 
     def run_async(self, quil_program, classical_addresses=None, trials=1, needs_compilation=True, isa=None):
         """
@@ -195,40 +197,8 @@ with the former, the device.
         if not classical_addresses:
             classical_addresses = get_classical_addresses_from_program(quil_program)
 
-        payload = self._run_payload(quil_program, classical_addresses, trials, needs_compilation=needs_compilation, isa=isa)
-        response = None
-        while response is None:
-            try:
-                response = post_json(self.session, self.async_endpoint + "/job", self._wrap_program(payload))
-            except errors.DeviceRetuningError:
-                print("QPU is retuning. Will try to reconnect in 10 seconds...")
-                time.sleep(10)
-
-        return get_job_id(response)
-
-    def _run_payload(self, quil_program, classical_addresses, trials, needs_compilation, isa):
-        if not quil_program:
-            raise ValueError("You have attempted to run an empty program."
-                             " Please provide gates or measure instructions to your program.")
-
-        if not isinstance(quil_program, Program):
-            raise TypeError("quil_program must be a Quil program object")
-        validate_run_items(classical_addresses)
-        if not isinstance(trials, integer_types):
-            raise TypeError("trials must be an integer")
-
-        payload = {"type": TYPE_MULTISHOT,
-                   "addresses": list(classical_addresses),
-                   "trials": trials}
-
-        if needs_compilation:
-            payload["uncompiled-quil"] = quil_program.out()
-            if isa:
-                payload["target-device"] = {"isa": isa.to_dict()}
-        else:
-            payload["compiled-quil"] = quil_program.out()
-
-        return payload
+        return self._connection._qpu_run_async(quil_program, classical_addresses, trials,
+                                               needs_compilation, isa, device_name=self.device_name)
 
     def run_and_measure(self, quil_program, qubits, trials=1, needs_compilation=True, isa=None):
         """
@@ -248,7 +218,7 @@ with the former, the device.
         :rtype: list
         """
         job = self.wait_for_job(self.run_and_measure_async(quil_program, qubits, trials, needs_compilation, isa))
-        return job.result()
+        return job.result().tolist()
 
     def run_and_measure_async(self, quil_program, qubits, trials, needs_compilation=True, isa=None):
         """
@@ -261,6 +231,10 @@ with the former, the device.
         return get_job_id(response)
 
     def _run_and_measure_payload(self, quil_program, qubits, trials, needs_compilation, isa):
+        # Developer note: Don't migrate this code to `ForestConnection`. The QPU run_and_measure
+        # web endpoint is deprecated. If run_and_measure-type functionality is desired,
+        # the client (ie PyQuil) should add measure instructions and hit the `run` endpoint. See
+        # `QuantumComputer.run_and_measure` for an example.
         if not quil_program:
             raise ValueError("You have attempted to run an empty program."
                              " Please provide gates or measure instructions to your program.")
@@ -306,11 +280,7 @@ with the former, the device.
                             Defaults to the value specified in the constructor (2 seconds)
         :return: Completed Job
         """
-        def get_job_fn():
-            return self.get_job(job_id)
-        return wait_for_job(get_job_fn,
-                            ping_time if ping_time else self.ping_time,
-                            status_time if status_time else self.status_time)
+        return self._connection._wait_for_job(job_id, 'QPU', ping_time, status_time)
 
     def _wrap_program(self, program):
         return {
@@ -318,3 +288,62 @@ with the former, the device.
             "program": program,
             "device": self.device_name
         }
+
+
+class QPU(QAM):
+    def __init__(self, connection: ForestConnection, device_name: str):
+        """
+        A physical quantum device that can run Quil programs.
+
+        :param connection: A connection to the Forest web API.
+        :param device_name: The name of the device to send programs to. This uniquely
+            identifies a Rigetti QPU.
+        """
+        self.device_name = device_name
+        self.connection = connection
+
+    def run(self, quil_program: Program, classical_addresses: Iterable[int],
+            trials: int) -> np.ndarray:
+        """
+        Run a Quil program on the QPU multiple times and return the values stored in the
+        classical registers designated by the classical_addresses parameter.
+
+        .. note::
+            Currently the QPU only allow a single set of simultaneous readout pulses on all
+            qubits in the QPU at the end of the program. This means that missing or duplicate
+            MEASURE instructions do not change the pulse program, but instead
+            only contribute to making a less rich or richer mapping, respectively, between
+            classical and qubit addresses.
+
+        :param quil_program: A program to run
+        :param classical_addresses: Classical register addresses to return
+        :param int trials: Number of times to repeatedly run the program. This is sometimes called
+            the number of shots.
+        :return: An array of bitstrings of shape ``(trials, len(classical_addresses))``
+        """
+        return self.connection._qpu_run(quil_program=quil_program,
+                                        classical_addresses=classical_addresses,
+                                        trials=trials, needs_compilation=False, isa=None,
+                                        device_name=self.device_name)
+
+    def run_async(self, quil_program, classical_addresses, trials):
+        """
+        Similar to run except that it returns a job id and doesn't wait for the program to
+        be executed. See https://go.rigetti.com/connections for reasons to use this method.
+        """
+        return self.connection._qpu_run_async(quil_program=quil_program,
+                                              classical_addresses=classical_addresses,
+                                              trials=trials, needs_compilation=False, isa=None,
+                                              device_name=self.device_name)
+
+    def wait_for_job(self, job_id, ping_time=None, status_time=None) -> Job:
+        """
+        For async functions, wait for the specified job to be done and return the completed job.
+
+        :param job_id: The id of the job returned by ``_async`` methods.
+        :param ping_time: An optional time in seconds to poll for job completion.
+        :param status_time: An optional time in seconds to print the status of a job.
+        :return: The completed job.
+        """
+        return self.connection._wait_for_job(job_id=job_id, ping_time=ping_time,
+                                             status_time=status_time, machine='QPU')

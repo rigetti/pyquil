@@ -1,6 +1,6 @@
 import numpy as np
 import pytest
-from pyquil.api import QVMConnection, CompilerConnection
+from pyquil.api import QVMConnection, CompilerConnection, ForestConnection
 from pyquil.api.errors import UnknownApiError
 from pyquil.device import Device, ISA
 from pyquil.gates import I
@@ -84,3 +84,13 @@ def compiler():
         return compiler
     except (RequestException, UnknownApiError) as e:
         return pytest.skip("This test requires compiler connection: {}".format(e))
+
+
+@pytest.fixture(scope='session')
+def forest():
+    try:
+        connection = ForestConnection()
+        connection._wavefunction(Program(I(0)), [], 52)
+        return connection
+    except (RequestException, UnknownApiError) as e:
+        return pytest.skip("This test requires a Forest connection: {}".format(e))

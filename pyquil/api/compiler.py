@@ -13,7 +13,6 @@
 #    See the License for the specific language governing permissions and
 #    limitations under the License.
 ##############################################################################
-import os
 
 from pyquil.api.job import Job
 from pyquil.device import Device, ISA, Specs
@@ -21,11 +20,7 @@ from pyquil.quil import Program, address_qubits
 from pyquil.parser import parse_program
 from pyquil.paulis import PauliTerm
 from ._base_connection import TYPE_MULTISHOT, get_job_id, get_session, \
-    wait_for_job, post_json, get_json
-
-
-ASYNC_ENDPOINT = os.getenv('FOREST_ASYNC_ENDPOINT', 'https://job.rigetti.com/beta')
-SYNC_ENDPOINT = os.getenv('FOREST_SYNC_ENDPOINT', 'https://api.rigetti.com')
+    wait_for_job, post_json, get_json, ASYNC_ENDPOINT, SYNC_ENDPOINT
 
 
 class CompilerConnection(object):

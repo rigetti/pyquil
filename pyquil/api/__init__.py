@@ -18,14 +18,20 @@ Module for facilitating connections to the QVM / QPU.
 """
 import warnings
 
-__all__ = ['QVMConnection', 'QPUConnection', 'CompilerConnection', 'Job', 'get_devices', 'errors']
+__all__ = ['QVMConnection', 'QPUConnection', 'CompilerConnection', 'Job', 'get_devices', 'errors',
+           'Device', 'ForestConnection', 'WavefunctionSimulator', 'QAM', 'QVM', 'QPU',
+           'QuantumComputer']
 
 from pyquil.api.job import Job
 from pyquil.api.compiler import CompilerConnection
-from pyquil.api.qvm import QVMConnection
-from pyquil.api.qpu import QPUConnection, get_devices
+from pyquil.api.qvm import QVMConnection, QVM
+from pyquil.api.qpu import QPUConnection, get_devices, QPU
 from pyquil.api.compiler import CompilerConnection
 from pyquil.device import Device
+from pyquil.api.wavefunction_simulator import WavefunctionSimulator
+from pyquil.api._base_connection import ForestConnection
+from pyquil.api.quantum_computer import QuantumComputer
+from pyquil.api._qam import QAM
 
 
 class SyncConnection(QVMConnection):
