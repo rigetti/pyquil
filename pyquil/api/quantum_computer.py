@@ -80,8 +80,8 @@ class QuantumComputer:
             necessarily correspond to qubit indices; rather they are the second argument to
             any MEASURE instructions you've added to your program
         :param trials: The number of times to run the program.
-        :param symmetrize_readout: Whether to apply readout error symmetrization. If not specified,
-            the class attribute ``symmetrize_readout`` will be used. See
+        :param symmetrize_readout: Whether to apply readout error symmetrization. If not
+            specified, the instance attribute ``symmetrize_readout`` will be used. See
             :py:func:`run_symmetrized_readout` for a complete description.
         :return: A numpy array of shape (trials, len(classical_addresses)) that contains 0s and 1s
         """
