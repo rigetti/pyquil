@@ -13,7 +13,6 @@
 #    See the License for the specific language governing permissions and
 #    limitations under the License.
 ##############################################################################
-import os
 
 from pyquil.api.job import Job
 from pyquil.device import Device, ISA, Specs
@@ -22,7 +21,6 @@ from pyquil.parser import parse_program
 from pyquil.paulis import PauliTerm
 from ._base_connection import TYPE_MULTISHOT, get_job_id, get_session, \
     wait_for_job, post_json, get_json, ASYNC_ENDPOINT, SYNC_ENDPOINT
-
 
 
 class CompilerConnection(object):
