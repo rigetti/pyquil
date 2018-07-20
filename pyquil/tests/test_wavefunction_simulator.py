@@ -65,6 +65,7 @@ def test_expectation(forest: ForestConnection):
         sZ(1),
         sX(0) * sX(1),
     ])
+    assert expects.size == 4
     np.testing.assert_allclose(expects, [1, 0, 0, 1])
 
 

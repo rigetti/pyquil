@@ -67,12 +67,12 @@ class WavefunctionSimulator:
                                                    random_seed=self.random_seed)
 
     def expectation(self, prep_prog: Program,
-                    pauli_terms: Union[PauliSum, List[PauliTerm]]) -> Union[float, List[float]]:
+                    pauli_terms: Union[PauliSum, List[PauliTerm]]) -> Union[float, np.ndarray]:
         """
         Calculate the expectation value of Pauli operators given a state prepared by prep_program.
 
         If ``pauli_terms`` is a ``PauliSum`` then the returned value is a single ``float``,
-        otherwise the returned value is a list of ``float``s, one for each ``PauliTerm`` in the
+        otherwise the returned value is an array of values, one for each ``PauliTerm`` in the
         list.
 
         .. note:: If your program contains measurements or noisy gates, this method may not do what
@@ -83,7 +83,7 @@ class WavefunctionSimulator:
 
         :param prep_prog: A program that prepares the state on which we measure the expectation.
         :param pauli_terms: A Pauli representation of a quantum operator.
-        :return: Either a float or list of floats depending on ``pauli_terms``.
+        :return: Either a float or array floats depending on ``pauli_terms``.
         """
 
         is_pauli_sum = False
@@ -91,13 +91,13 @@ class WavefunctionSimulator:
             progs, coeffs = pauli_terms.get_programs()
             is_pauli_sum = True
         else:
-            coeffs = [pt.coefficient for pt in pauli_terms]
+            coeffs = np.array([pt.coefficient for pt in pauli_terms])
             progs = [pt.program for pt in pauli_terms]
 
         bare_results = self.connection._expectation(prep_prog, progs, random_seed=self.random_seed)
-        results = [c * r for c, r in zip(coeffs, bare_results)]
+        results = coeffs * np.asarray(bare_results)
         if is_pauli_sum:
-            return sum(results)
+            return np.sum(results)
         return results
 
     def run_and_measure(self, quil_program: Program, qubits: List[int] = None,
