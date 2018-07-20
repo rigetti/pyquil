@@ -531,5 +531,13 @@ To read more about supplying noise to the QVM, see http://pyquil.readthedocs.io/
                                               random_seed=self.random_seed)
 
     def wait_for_job(self, job_id, ping_time=None, status_time=None) -> Job:
+        """
+        For async functions, wait for the specified job to be done and return the completed job.
+
+        :param job_id: The id of the job returned by ``_async`` methods.
+        :param ping_time: An optional time in seconds to poll for job completion.
+        :param status_time: An optional time in seconds to print the status of a job.
+        :return: The completed job.
+        """
         return self.connection._wait_for_job(job_id=job_id, ping_time=ping_time,
                                              status_time=status_time, machine='QVM')
