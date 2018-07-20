@@ -186,7 +186,8 @@ with the former, the device.
             classical_addresses = get_classical_addresses_from_program(quil_program)
 
         return self._connection._qpu_run(quil_program, classical_addresses, trials,
-                                         needs_compilation, isa, device_name=self.device_name)
+                                         needs_compilation, isa,
+                                         device_name=self.device_name).tolist()
 
     def run_async(self, quil_program, classical_addresses=None, trials=1, needs_compilation=True, isa=None):
         """
@@ -217,7 +218,7 @@ with the former, the device.
         :rtype: list
         """
         job = self.wait_for_job(self.run_and_measure_async(quil_program, qubits, trials, needs_compilation, isa))
-        return job.result()
+        return job.result().tolist()
 
     def run_and_measure_async(self, quil_program, qubits, trials, needs_compilation=True, isa=None):
         """
@@ -320,10 +321,10 @@ class QPU(QAM):
             the number of shots.
         :return: An array of bitstrings of shape ``(trials, len(classical_addresses))``
         """
-        return np.asarray(self.connection._qpu_run(quil_program=quil_program,
-                                                   classical_addresses=classical_addresses,
-                                                   trials=trials, needs_compilation=False, isa=None,
-                                                   device_name=self.device_name))
+        return self.connection._qpu_run(quil_program=quil_program,
+                                        classical_addresses=classical_addresses,
+                                        trials=trials, needs_compilation=False, isa=None,
+                                        device_name=self.device_name)
 
     def run_async(self, quil_program, classical_addresses, trials):
         """

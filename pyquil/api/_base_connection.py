@@ -22,6 +22,7 @@ import time
 import warnings
 from json.decoder import JSONDecodeError
 
+import numpy as np
 import requests
 from requests.adapters import HTTPAdapter
 from six import integer_types
@@ -336,7 +337,7 @@ class ForestConnection:
         self.ping_time = ping_time
         self.status_time = status_time
 
-    def _run_and_measure(self, quil_program, qubits, trials, random_seed):
+    def _run_and_measure(self, quil_program, qubits, trials, random_seed) -> np.ndarray:
         """
         Run a Forest ``run_and_measure`` job.
 
@@ -351,9 +352,9 @@ class ForestConnection:
             return job.result()
         else:
             response = post_json(self.session, self.sync_endpoint + "/qvm", payload)
-            return response.json()
+            return np.asarray(response.json())
 
-    def _run_and_measure_async(self, quil_program, qubits, trials, random_seed):
+    def _run_and_measure_async(self, quil_program, qubits, trials, random_seed) -> str:
         """
         Run a Forest ``run_and_measure`` job asynchronously.
 
@@ -365,7 +366,7 @@ class ForestConnection:
                              {"machine": "QVM", "program": payload})
         return get_job_id(response)
 
-    def _wavefunction(self, quil_program, classical_addresses, random_seed):
+    def _wavefunction(self, quil_program, classical_addresses, random_seed) -> Wavefunction:
         """
         Run a Forest ``wavefunction`` job.
 
@@ -383,7 +384,7 @@ class ForestConnection:
             response = post_json(self.session, self.sync_endpoint + "/qvm", payload)
             return Wavefunction.from_bit_packed_string(response.content, classical_addresses)
 
-    def _wavefunction_async(self, quil_program, classical_addresses, random_seed):
+    def _wavefunction_async(self, quil_program, classical_addresses, random_seed) -> str:
         """
         Run a Forest ``wavefunction`` job asynchronously.
 
@@ -395,7 +396,7 @@ class ForestConnection:
                              {"machine": "QVM", "program": payload})
         return get_job_id(response)
 
-    def _expectation(self, prep_prog, operator_programs, random_seed):
+    def _expectation(self, prep_prog, operator_programs, random_seed) -> np.ndarray:
         """
         Run a Forest ``expectation`` job.
 
@@ -415,9 +416,9 @@ class ForestConnection:
         else:
             payload = expectation_payload(prep_prog, operator_programs, random_seed)
             response = post_json(self.session, self.sync_endpoint + "/qvm", payload)
-            return response.json()
+            return np.asarray(response.json())
 
-    def _expectation_async(self, prep_prog, operator_programs, random_seed):
+    def _expectation_async(self, prep_prog, operator_programs, random_seed) -> str:
         """
         Run a Forest ``expectation`` job asynchronously.
 
@@ -430,7 +431,7 @@ class ForestConnection:
         return get_job_id(response)
 
     def _qvm_run(self, quil_program, classical_addresses, trials, needs_compilation, isa,
-                 measurement_noise, gate_noise, random_seed):
+                 measurement_noise, gate_noise, random_seed) -> np.ndarray:
         """
         Run a Forest ``run`` job on a QVM.
 
@@ -450,10 +451,10 @@ class ForestConnection:
             return job.result()
         else:
             response = post_json(self.session, self.sync_endpoint + "/qvm", payload)
-            return response.json()
+            return np.asarray(response.json())
 
     def _qvm_run_async(self, quil_program, classical_addresses, trials, needs_compilation, isa,
-                       measurement_noise, gate_noise, random_seed):
+                       measurement_noise, gate_noise, random_seed) -> str:
         """
         Run a Forest ``run`` job on a QVM asynchronously.
 
@@ -466,7 +467,7 @@ class ForestConnection:
         return get_job_id(response)
 
     def _qpu_run(self, quil_program, classical_addresses, trials, needs_compilation, isa,
-                 device_name):
+                 device_name) -> np.ndarray:
         """
         Run a Forest ``run`` job on a QPU and block.
 
@@ -478,7 +479,7 @@ class ForestConnection:
         return job.result()
 
     def _qpu_run_async(self, quil_program, classical_addresses, trials, needs_compilation, isa,
-                       device_name):
+                       device_name) -> str:
         """
         Run a Forest ``run`` job on a QPU asynchronously.
 

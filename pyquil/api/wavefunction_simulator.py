@@ -95,7 +95,7 @@ class WavefunctionSimulator:
             progs = [pt.program for pt in pauli_terms]
 
         bare_results = self.connection._expectation(prep_prog, progs, random_seed=self.random_seed)
-        results = coeffs * np.asarray(bare_results)
+        results = coeffs * bare_results
         if is_pauli_sum:
             return np.sum(results)
         return results
@@ -129,9 +129,9 @@ class WavefunctionSimulator:
         if qubits is None:
             qubits = sorted(quil_program.get_qubits(indices=True))
 
-        return np.asarray(self.connection._run_and_measure(quil_program=quil_program, qubits=qubits,
-                                                           trials=trials,
-                                                           random_seed=self.random_seed))
+        return self.connection._run_and_measure(quil_program=quil_program, qubits=qubits,
+                                                trials=trials,
+                                                random_seed=self.random_seed)
 
     def run_and_measure_async(self, quil_program, qubits=None, trials=1):
         """

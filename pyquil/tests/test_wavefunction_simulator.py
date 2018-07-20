@@ -69,6 +69,19 @@ def test_expectation(forest: ForestConnection):
     np.testing.assert_allclose(expects, [1, 0, 0, 1])
 
 
+def test_expectation_async(forest: ForestConnection):
+    # This tests the private _expectation_async method.
+    # Users shouldn't use this, but lets make sure we're returning the right data type
+    bell = Program(
+        H(0),
+        CNOT(0, 1),
+    )
+    job_id = forest._expectation_async(bell, [Program(X(0)), Program(X(1))], random_seed=52)
+    job = forest._wait_for_job(job_id, machine='QVM')
+    raw_coefs = job.result()
+    assert raw_coefs.shape == (2,)
+
+
 def test_run_and_measure(forest: ForestConnection):
     # The forest fixture (argument) to this test is to ensure this is
     # skipped when a forest web api key is unavailable. You could also

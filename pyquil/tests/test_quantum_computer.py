@@ -78,7 +78,7 @@ def test_run(forest):
 
     assert bitstrings.shape == (1000, 3)
     parity = np.sum(bitstrings, axis=1) % 3
-    assert 0 < np.mean(parity) < 0.1
+    assert 0 < np.mean(parity) < 0.15
 
 
 def decoherance_noise_with_asymettric_ro(isa: ISA):

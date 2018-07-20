@@ -77,7 +77,7 @@ class Job(object):
         if self._raw['program']['type'] == 'wavefunction':
             return Wavefunction.from_bit_packed_string(
                 base64.b64decode(self._raw['result']), self._raw['program']['addresses'])
-        elif self._raw['program']['type'] in ['multishot', 'multishot-measure']:
+        elif self._raw['program']['type'] in ['multishot', 'multishot-measure', 'expectation']:
             return np.asarray(self._raw['result'])
         else:
             return self._raw['result']
