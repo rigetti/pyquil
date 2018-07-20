@@ -66,7 +66,8 @@ class WavefunctionSimulator:
                                                    classical_addresses=classical_addresses,
                                                    random_seed=self.random_seed)
 
-    def expectation(self, prep_prog: Program, pauli_terms: Union[PauliSum, List[PauliTerm]]):
+    def expectation(self, prep_prog: Program,
+                    pauli_terms: Union[PauliSum, List[PauliTerm]]) -> Union[float, List[float]]:
         """
         Calculate the expectation value of Pauli operators given a state prepared by prep_program.
 
