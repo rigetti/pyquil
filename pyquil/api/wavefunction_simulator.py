@@ -100,7 +100,8 @@ class WavefunctionSimulator:
             return sum(results)
         return results
 
-    def run_and_measure(self, quil_program: Program, qubits: List[int] = None, trials: int = 1):
+    def run_and_measure(self, quil_program: Program, qubits: List[int] = None,
+                        trials: int = 1) -> np.ndarray:
         """
         Run a Quil program once to determine the final wavefunction, and measure multiple times.
 
