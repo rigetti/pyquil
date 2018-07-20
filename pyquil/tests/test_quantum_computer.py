@@ -57,8 +57,8 @@ def test_device_stuff():
     assert nx.is_isomorphic(qc.qubit_topology(), topo)
 
     isa = qc.get_isa(twoq_type='CPHASE')
-    assert isa.edges[0].type == 'CPHASE'
-    assert isa.edges[0].targets == [0, 4]
+    assert sorted(isa.edges)[0].type == 'CPHASE'
+    assert sorted(isa.edges)[0].targets == [0, 4]
 
 
 def test_run(forest):
