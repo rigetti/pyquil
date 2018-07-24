@@ -114,7 +114,24 @@ class PyQuilListener(QuilListener):
 
     def exitDefCircuit(self, ctx):
         # type: (QuilParser.DefCircuitContext) -> None
-        self.result.append(RawInstr(ctx.getText()))
+        def flatten_tree(ctx_tree):
+            nodes = []
+
+            def inner(tree):
+                num_children = tree.getChildCount()
+                if num_children == 0:
+                    nodes.append(tree)
+                else:
+                    for i in range(num_children):
+                        inner(tree.getChild(i))
+
+            inner(ctx_tree)
+            return nodes
+
+        token_list = flatten_tree(ctx)
+        raw_string = ' '.join([xx.getText() for xx in token_list])
+
+        self.result.append(RawInstr(raw_string))
 
     def exitGate(self, ctx):
         # type: (QuilParser.GateContext) -> None
