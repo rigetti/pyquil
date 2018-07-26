@@ -17,7 +17,6 @@
 import operator
 from typing import Any, List, Iterator, Callable
 from numbers import Number
-import sys
 
 import numpy as np
 from antlr4 import InputStream, CommonTokenStream, ParseTreeWalker
@@ -34,14 +33,9 @@ from pyquil.quilbase import Gate, DefGate, Measurement, Addr, JumpTarget, Label,
     Reset, Wait, ClassicalTrue, ClassicalFalse, ClassicalNot, ClassicalAnd, ClassicalOr, ClassicalMove, \
     ClassicalExchange, Nop, RawInstr, Qubit, Pragma, AbstractInstruction
 
-if sys.version_info.major == 2:
-    from .gen2.QuilLexer import QuilLexer
-    from .gen2.QuilListener import QuilListener
-    from .gen2 .QuilParser import QuilParser
-elif sys.version_info.major == 3:
-    from .gen3.QuilLexer import QuilLexer
-    from .gen3.QuilListener import QuilListener
-    from .gen3.QuilParser import QuilParser
+from .gen3.QuilLexer import QuilLexer
+from .gen3.QuilListener import QuilListener
+from .gen3.QuilParser import QuilParser
 
 
 def run_parser(quil):
@@ -102,22 +96,42 @@ class PyQuilListener(QuilListener):
     Functions are invoked when the parser reaches the various different constructs in Quil.
     """
     def __init__(self):
-        # type: () -> None
-        self.result = []    # type: List[AbstractInstruction]
+        self.result: List[AbstractInstruction] = []
+        self.previous_result: List[AbstractInstruction] = None
 
-    def exitDefGate(self, ctx):
-        # type: (QuilParser.DefGateContext) -> None
+    def exitDefGate(self, ctx: QuilParser.DefGateContext):
         gate_name = ctx.name().getText()
         matrix = _matrix(ctx.matrix())
         parameters = list(map(_variable, ctx.variable()))
         self.result.append(DefGate(gate_name, matrix, parameters))
 
-    def exitDefCircuit(self, ctx):
-        # type: (QuilParser.DefCircuitContext) -> None
-        self.result.append(RawInstr(ctx.getText()))
+    # DEFCIRCUIT parsing:
+    # When we enter a circuit definition we create a backup of the instructions seen up to that point. Then, when the
+    # listener continues walking through the circuit instructions it will add to an empty list. Once we leave the
+    # circuit we then take all those instructions, shove them into a RawInstr (since PyQuil has no support for circuit
+    # definitions yet), recover the backup, and then continue on our way.
 
-    def exitGate(self, ctx):
-        # type: (QuilParser.GateContext) -> None
+    def enterDefCircuit(self, ctx: QuilParser.DefCircuitContext) -> None:
+        self.previous_result = self.result
+        self.result = []
+
+    def exitDefCircuit(self, ctx: QuilParser.DefCircuitContext):
+        circuit_name = ctx.name().getText()
+        variables = [variable.getText() for variable in ctx.variable()]
+        qubitVariables = [qubitVariable.getText() for qubitVariable in ctx.qubitVariable()]
+
+        if variables:
+            raw_defcircuit = 'DEFCIRCUIT {}({}) {}:'.format(circuit_name, ', '.join(variables), ' '.join(qubitVariables))
+        else:
+            raw_defcircuit = 'DEFCIRCUIT {} {}:'.format(circuit_name, ' '.join(qubitVariables))
+
+        raw_defcircuit += '\n    '.join([''] + [instr.out() for instr in self.result])
+        self.previous_result.append(RawInstr(raw_defcircuit))
+
+        self.result = self.previous_result
+        self.previous_result = None
+
+    def exitGate(self, ctx: QuilParser.GateContext):
         gate_name = ctx.name().getText()
         params = list(map(_param, ctx.param()))
         qubits = list(map(_qubit, ctx.qubit()))
@@ -130,8 +144,20 @@ class PyQuilListener(QuilListener):
         else:
             self.result.append(Gate(gate_name, params, qubits))
 
-    def exitMeasure(self, ctx):
-        # type: (QuilParser.MeasureContext) -> None
+    def exitCircuitGate(self, ctx: QuilParser.CircuitGateContext):
+        """
+        PyQuil has no constructs yet for representing gate definitions within a DEFCIRCUIT (ie. gates where the qubits
+        are inputs to the call to the circuit). Therefore we parse them as a raw instructions.
+        """
+        gate_name = ctx.name().getText()
+        params = [param.getText() for param in ctx.param()]
+        qubits = [qubit.getText() for qubit in ctx.circuitQubit()]
+        if params:
+            self.result.append(RawInstr('{}({}) {}'.format(gate_name, ', '.join(params), ' '.join(qubits))))
+        else:
+            self.result.append(RawInstr('{} {}'.format(gate_name, ' '.join(qubits))))
+
+    def exitMeasure(self, ctx: QuilParser.MeasureContext):
         qubit = _qubit(ctx.qubit())
         classical = None
         if ctx.addr():

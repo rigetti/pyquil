@@ -20,7 +20,7 @@ from pyquil.gates import *
 from pyquil.parameters import Parameter, quil_sin, quil_cos, Segment, Add
 from pyquil.parser import parse
 from pyquil.quilatom import Addr
-from pyquil.quilbase import Label, JumpTarget, Jump, JumpWhen, JumpUnless, DefGate, Qubit, Pragma
+from pyquil.quilbase import Label, JumpTarget, Jump, JumpWhen, JumpUnless, DefGate, Qubit, Pragma, RawInstr
 from pyquil.tests.utils import parse_equals
 
 
@@ -182,3 +182,12 @@ def test_invalid():
 
 def test_empty_program():
     parse_equals("")
+
+
+def test_def_circuit():
+    defcircuit = """
+DEFCIRCUIT bell a b:
+    H a
+    CNOT a b
+""".strip()
+    parse_equals(defcircuit, RawInstr(defcircuit))
