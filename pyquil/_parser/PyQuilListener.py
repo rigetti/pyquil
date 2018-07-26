@@ -96,8 +96,8 @@ class PyQuilListener(QuilListener):
     Functions are invoked when the parser reaches the various different constructs in Quil.
     """
     def __init__(self):
-        self.result: List[AbstractInstruction] = []
-        self.previous_result: List[AbstractInstruction] = None
+        self.result = []  # type: List[AbstractInstruction]
+        self.previous_result = None  # type: List[AbstractInstruction]
 
     def exitDefGate(self, ctx: QuilParser.DefGateContext):
         gate_name = ctx.name().getText()
