@@ -368,7 +368,7 @@ state decays to the :math:`\ket{0}` state.
     
     results = []
     outcomes = []
-    lengths = np.arange(0, 201, 10, dtype=int)
+    lengths = np.arange(1, 201, 10, dtype=int)
     for jj, num_I in enumerate(lengths):
         
         print("{}/{}, ".format(jj, len(lengths)), end="")
