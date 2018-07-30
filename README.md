@@ -78,7 +78,7 @@ each measurement pair will be `00` or `11`.)
 ...        MEASURE(0, 0),
 ...        MEASURE(1, 1))
 <pyquil.pyquil.Program object at 0x101ebfc50>
->>> print p
+>>> print(p)
 H 0
 CNOT 0 1
 MEASURE 0 [0]
@@ -100,6 +100,8 @@ The following projects have been contributed by community members:
   contributed by [Ravisankar A V](https://github.com/rasa97)
 - [Quil in Javascript](https://github.com/mapmeld/jsquil)
   contributed by [Nick Doiron](https://github.com/mapmeld)
+- [Quil in Java](https://github.com/QCHackers/jquil)
+  contributed by [Victory Omole](https://github.com/vtomole)
 
 ## Developing PyQuil
 
