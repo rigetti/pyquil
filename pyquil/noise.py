@@ -22,6 +22,7 @@ from collections import namedtuple
 import numpy as np
 import sys
 
+from pyquil.device import ISA, gates_in_isa
 from pyquil.gates import I, MEASURE, X
 from pyquil.parameters import format_parameter
 from pyquil.quilbase import Pragma, Gate
@@ -439,6 +440,20 @@ def _decoherence_noise_model(gates, T1=30e-6, T2=30e-6, gate_time_1q=50e-9,
                               [1. - f_ro, f_ro]])
 
     return NoiseModel(kraus_maps, aprobs)
+
+
+def decoherance_noise_with_asymettric_ro(isa: ISA, p00=0.975, p11=0.911):
+    """Similar to :py:func`_decoherance_noise_model`, but with asymmetric readout.
+
+    For simplicity, we use the default values for T1, T2, gate times, et al. and only allow
+    the specification of readout fidelities.
+    """
+    gates = gates_in_isa(isa)
+    noise_model = _decoherence_noise_model(gates)
+    aprobs = np.array([[p00, 1 - p00],
+                       [1 - p11, p11]])
+    aprobs = {q: aprobs for q in noise_model.assignment_probs.keys()}
+    return NoiseModel(noise_model.gates, aprobs)
 
 
 def _noise_model_program_header(noise_model):
