@@ -2,10 +2,9 @@ import networkx as nx
 import numpy as np
 import pytest
 
-from pyquil import Program
+from pyquil import Program, get_qc, list_quantum_computers
 from pyquil.api import QVM
-from pyquil.api.quantum_computer import _get_flipped_protoquil_program, QuantumComputer, \
-    list_quantum_computers, _parse_name, get_qc
+from pyquil.api.quantum_computer import _get_flipped_protoquil_program, QuantumComputer, _parse_name
 from pyquil.device import NxDevice
 from pyquil.gates import *
 from pyquil.noise import decoherance_noise_with_asymmetric_ro
@@ -99,14 +98,12 @@ def test_readout_symmetrization(forest):
     avg0_us = np.mean(bs1[:, 0])
     avg1_us = 1 - np.mean(bs1[:, 1])
     diff_us = avg1_us - avg0_us
-    print(avg0_us, avg1_us, diff_us)
     assert diff_us > 0.03
 
     bs2 = qc.run_symmetrized_readout(prog, [0, 1], 1000)
     avg0_s = np.mean(bs2[:, 0])
     avg1_s = 1 - np.mean(bs2[:, 1])
     diff_s = avg1_s - avg0_s
-    print(avg0_s, avg1_s, diff_s)
     assert diff_s < 0.05
 
 
