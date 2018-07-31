@@ -319,7 +319,7 @@ def get_qc(name: str, *, as_qvm: bool = None, noisy: bool = None,
         if not as_qvm:
             raise ValueError("The device '9q-generic' is only available as a QVM")
 
-        nineq_square = nx.convert_node_labels_to_integers(nx.grid_2d_graph(3,3))
+        nineq_square = nx.convert_node_labels_to_integers(nx.grid_2d_graph(3, 3))
         nineq_device = NxDevice(topology=nineq_square)
         if noisy:
             noise_model = decoherance_noise_with_asymettric_ro(nineq_device.get_isa())
