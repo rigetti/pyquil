@@ -146,7 +146,7 @@ class PyQuilListener(QuilListener):
 
     def exitCircuitGate(self, ctx: QuilParser.CircuitGateContext):
         """
-        PyQuil has no constructs yet for representing gate definitions within a DEFCIRCUIT (ie. gates where the qubits
+        PyQuil has no constructs yet for representing gate instructions within a DEFCIRCUIT (ie. gates where the qubits
         are inputs to the call to the circuit). Therefore we parse them as a raw instructions.
         """
         gate_name = ctx.name().getText()
