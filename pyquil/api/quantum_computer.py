@@ -9,7 +9,7 @@ from pyquil.api import get_devices, QPU, ForestConnection, QVM
 from pyquil.api._qam import QAM
 from pyquil.device import AbstractDevice, NxDevice
 from pyquil.gates import MEASURE, RX
-from pyquil.noise import decoherance_noise_with_asymettric_ro
+from pyquil.noise import decoherance_noise_with_asymmetric_ro
 from pyquil.quil import Program, get_classical_addresses_from_program
 from pyquil.quilbase import Measurement, Pragma
 
@@ -322,7 +322,7 @@ def get_qc(name: str, *, as_qvm: bool = None, noisy: bool = None,
         nineq_square = nx.convert_node_labels_to_integers(nx.grid_2d_graph(3, 3))
         nineq_device = NxDevice(topology=nineq_square)
         if noisy:
-            noise_model = decoherance_noise_with_asymettric_ro(nineq_device.get_isa())
+            noise_model = decoherance_noise_with_asymmetric_ro(nineq_device.get_isa())
         else:
             noise_model = None
 

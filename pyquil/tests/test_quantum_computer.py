@@ -8,7 +8,7 @@ from pyquil.api.quantum_computer import _get_flipped_protoquil_program, QuantumC
     list_quantum_computers, _parse_name, get_qc
 from pyquil.device import NxDevice
 from pyquil.gates import *
-from pyquil.noise import decoherance_noise_with_asymettric_ro
+from pyquil.noise import decoherance_noise_with_asymmetric_ro
 
 
 def test_get_flipped_program():
@@ -84,7 +84,7 @@ def test_run(forest):
 
 def test_readout_symmetrization(forest):
     device = NxDevice(nx.complete_graph(3))
-    noise_model = decoherance_noise_with_asymettric_ro(device.get_isa())
+    noise_model = decoherance_noise_with_asymmetric_ro(device.get_isa())
     qc = QuantumComputer(
         name='testy!',
         qam=QVM(connection=forest, noise_model=noise_model),

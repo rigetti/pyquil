@@ -442,7 +442,7 @@ def _decoherence_noise_model(gates, T1=30e-6, T2=30e-6, gate_time_1q=50e-9,
     return NoiseModel(kraus_maps, aprobs)
 
 
-def decoherance_noise_with_asymettric_ro(isa: ISA, p00=0.975, p11=0.911):
+def decoherance_noise_with_asymmetric_ro(isa: ISA, p00=0.975, p11=0.911):
     """Similar to :py:func`_decoherance_noise_model`, but with asymmetric readout.
 
     For simplicity, we use the default values for T1, T2, gate times, et al. and only allow
