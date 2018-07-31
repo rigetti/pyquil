@@ -176,6 +176,15 @@ def test_parse_qc_conflicting():
     assert e.match(r'.*but you have specified `noisy=False`')
 
 
+def test_parse_qc_strip():
+    # Originally used `str.strip` to remove the suffixes. This is not correct!
+    name, _, _ = _parse_name("mvq-qvm", None, None)
+    assert name == 'mvq'
+
+    name, _, _ = _parse_name("mvq-noisy-qvm", None, None)
+    assert name == 'mvq'
+
+
 def test_qc(forest):
     qc = get_qc('9q-generic-noisy-qvm', connection=forest)
     assert isinstance(qc, QuantumComputer)

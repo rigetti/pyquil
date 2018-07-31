@@ -236,7 +236,7 @@ def _parse_name(name, as_qvm, noisy):
 
         as_qvm = True
         noisy = True
-        prefix = name.strip('-noisy-qvm')
+        prefix = name[:-len('-noisy-qvm')]
         return prefix, as_qvm, noisy
 
     if name.endswith('-qvm'):
@@ -246,7 +246,7 @@ def _parse_name(name, as_qvm, noisy):
         as_qvm = True
         if noisy is not None:
             noisy = False
-        prefix = name.strip('-qvm')
+        prefix = name[:-len('-qvm')]
         return prefix, as_qvm, noisy
 
     if as_qvm is None:
