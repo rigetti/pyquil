@@ -303,7 +303,10 @@ def get_qc(name: str, *, as_qvm: bool = None, noisy: bool = None,
         of the name's suffix
     :param noisy: An optional flag to force inclusion of a noise model. If
         specified and set to ``True``, a quantum computer with a noise model will be returned
-        regardless of the name's suffix
+        regardless of the name's suffix. The noise model for QVM's based on a real QPU
+        is an empirically parameterized model based on real device noise characteristics.
+        The generic QVM noise model is simple T1 and T2 noise plus readout error. See
+        :py:func:`decoherance_noise_with_asymmetric_ro`.
     :param connection: An optional :py:class:ForestConnection` object. If not specified,
         the default values for URL endpoints, ping time, and status time will be used. Your
         user id and API key will be read from ~/.pyquil_config. If you deign to change any
