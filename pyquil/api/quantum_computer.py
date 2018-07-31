@@ -311,7 +311,7 @@ def get_qc(name: str, *, as_qvm: bool = None, noisy: bool = None,
     :return:
     """
     if connection is None:
-        connection = ForestConnection(sync_endpoint='http://localhost:5000')
+        connection = ForestConnection()
 
     name, as_qvm, noisy = _parse_name(name, as_qvm, noisy)
 
