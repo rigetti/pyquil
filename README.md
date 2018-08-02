@@ -12,7 +12,14 @@ Documentation is hosted at [http://pyquil.readthedocs.io/en/latest/](http://pyqu
 
 ## Installation
 
-You can install pyQuil directly from the Python package manager `pip` using:
+You can install pyQuil as a conda package (recommended):
+
+```bash
+conda install -c rigetti pyquil
+```
+
+or using `pip`:
+
 ```
 pip install pyquil
 ```
@@ -22,7 +29,7 @@ To instead install pyQuil from source, clone this repository, `cd` into it, and 
 pip install -e .
 ```
 
-## Connecting to the Rigetti Forest
+## Connecting to Rigetti Forest
 
 pyQuil can be used to build and manipulate Quil programs without restriction. However, to run
 programs (e.g., to get wavefunctions, get multishot experiment data), you will need an API key
