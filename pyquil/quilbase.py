@@ -466,4 +466,4 @@ class RawInstr(AbstractInstruction):
         return self.instr
 
     def __repr__(self):
-        return '<RawInstr>'
+        return '<RawInstr {}>'.format(self.instr)

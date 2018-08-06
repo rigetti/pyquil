@@ -12,7 +12,14 @@ Documentation is hosted at [http://pyquil.readthedocs.io/en/latest/](http://pyqu
 
 ## Installation
 
-You can install pyQuil directly from the Python package manager `pip` using:
+You can install pyQuil as a conda package (recommended):
+
+```bash
+conda install -c rigetti pyquil
+```
+
+or using `pip`:
+
 ```
 pip install pyquil
 ```
@@ -22,7 +29,7 @@ To instead install pyQuil from source, clone this repository, `cd` into it, and 
 pip install -e .
 ```
 
-## Connecting to the Rigetti Forest
+## Connecting to Rigetti Forest
 
 pyQuil can be used to build and manipulate Quil programs without restriction. However, to run
 programs (e.g., to get wavefunctions, get multishot experiment data), you will need an API key
@@ -78,7 +85,7 @@ each measurement pair will be `00` or `11`.)
 ...        MEASURE(0, 0),
 ...        MEASURE(1, 1))
 <pyquil.pyquil.Program object at 0x101ebfc50>
->>> print p
+>>> print(p)
 H 0
 CNOT 0 1
 MEASURE 0 [0]
@@ -100,6 +107,8 @@ The following projects have been contributed by community members:
   contributed by [Ravisankar A V](https://github.com/rasa97)
 - [Quil in Javascript](https://github.com/mapmeld/jsquil)
   contributed by [Nick Doiron](https://github.com/mapmeld)
+- [Quil in Java](https://github.com/QCHackers/jquil)
+  contributed by [Victory Omole](https://github.com/vtomole)
 
 ## Developing PyQuil
 

@@ -2,9 +2,10 @@
 
 We use pytest (version > 3.0) and mock for testing. Tests can be run from the top-level directory using:
 ```
-python setup.py test
+pytest
 ```
-If you want to test in multiple enviornments, such as Python 3.5 and Python 3.6, then you can use `tox`. This is done with:
+
+To run the complete suite of tests in their own environment, you can use `tox`. This is done with:
 ```
 pip install tox
 tox
@@ -15,7 +16,7 @@ tox
 We use sphinx to build the documentation. To do this, navigate into pyQuil's top-level directory and run:
 
 ```
-sphinx-build -b html docs/source docs/_build
+make html
 ```
 To view the docs navigate to the newly-created `docs/_build` directory and open
 the `index.html` file in a browser. Note that we use the Read the Docs theme for

@@ -10,6 +10,7 @@ networkx
 pytest
 requests-mock
 flake8
+tox
 
 # docs
 sphinx

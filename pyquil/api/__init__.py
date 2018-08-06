@@ -29,7 +29,7 @@ from pyquil.api.qpu import QPUConnection, get_devices, QPU
 from pyquil.device import Device
 from pyquil.api.wavefunction_simulator import WavefunctionSimulator
 from pyquil.api._base_connection import ForestConnection
-from pyquil.api.quantum_computer import QuantumComputer
+from pyquil.api.quantum_computer import QuantumComputer, list_quantum_computers, get_qc
 from pyquil.api._qam import QAM
 
 
