@@ -721,13 +721,35 @@ def instantiate_labels(instructions):
 
 def merge_programs(prog_list):
     """
-    Merges a list of pyQuil programs into a single one by appending them in sequence
+    Merges a list of pyQuil programs into a single one by appending them in sequence.
+    If multiple programs in the list contain the same gate and/or noisy gate definition
+    with identical name, this definition will only be applied once. If different definitions
+    with the same name appear multiple times in the program list, each will be applied once
+    in the order of last occurrence.
 
     :param list prog_list: A list of pyquil programs
     :return: a single pyQuil program
     :rtype: Program
     """
-    return sum(prog_list, Program())
+    definitions = [gate for prog in prog_list for gate in prog.defined_gates]
+    seen = {}
+    # Collect definitions in reverse order and reapply definitions in reverse
+    # collected order to ensure that the last occurrence of a definition is applied last.
+    for definition in reversed(definitions):
+        name = definition.name
+        if name in seen.keys():
+            if definition not in seen[name]:
+                seen[name] += [definition]
+        else:
+            seen[name] = [definition]
+    new_definitions = [gate for key in seen.keys() for gate in reversed(seen[key])]
+
+    p = sum([[*prog] for prog in prog_list], Program())  # Combine programs without gate definitions
+
+    for definition in new_definitions:
+        p.defgate(definition.name, definition.matrix, definition.parameters)
+
+    return p
 
 
 def get_classical_addresses_from_program(program):
