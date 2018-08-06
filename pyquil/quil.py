@@ -719,6 +719,28 @@ def instantiate_labels(instructions):
     return result
 
 
+# def insert_pauli_noise(iterable, probabilities, qubits):
+#     """
+#     Insert pauli noise channels between each item in the iterable.
+#     This noise channel is implemented as a single noisy gate acting on the provided qubits.
+#
+#     :param iterable: an iterable such as a program or a list of programs.
+#     If a program is provided, a single noise gate will be applied after each gate in the program.
+#     If a list of programs is provided, the noise gate will be applied after each program.
+#     :param list|floats probabilities: The 4^num_qubits list of probabilities specifying the desired pauli channel.
+#     There should be either 4 or 16 probabilities specified in the order I,X,Y,Z or II, IX, IY, IZ, XI, XX, XY, etc
+#     :param list qubits: a list of the qubits that the noisy gate should act on.
+#     :return: A single program with noisy gates inserted between the elements of the iterable
+#     :rtype: Program
+#     """
+#     p = Program()
+#     p.defgate("pauli_noise", np.eye(2 ** len(qubits)))
+#     p.define_noisy_gate("pauli_noise", qubits, pauli_kraus_map(probabilities))
+#     for elem in iterable:
+#         p.inst(Program(elem)).inst(("pauli_noise", *qubits))
+#     return p
+
+
 def merge_programs(prog_list):
     """
     Merges a list of pyQuil programs into a single one by appending them in sequence.
