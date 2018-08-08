@@ -298,7 +298,6 @@ The above sum can be constructed as follows:
 
 .. code:: python
 
-    from pyquil.paulis import ID, sX, sY, sZ
 
     # Pauli term takes an operator "X", "Y", "Z", or "I"; a qubit to act on, and
     # an optional coefficient.
