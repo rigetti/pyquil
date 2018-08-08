@@ -302,7 +302,7 @@ The above sum can be constructed as follows:
 
     # Pauli term takes an operator "X", "Y", "Z", or "I"; a qubit to act on, and
     # an optional coefficient.
-    a = 0.5 * ID
+    a = 0.5 * ID()
     b = -0.75 * sX(0) * sY(1) * sZ(3)
     c = (5-2j) * sZ(1) * sX(2)
 
