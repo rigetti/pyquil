@@ -18,6 +18,7 @@ Module for creating and defining Quil programs.
 """
 import itertools
 import types
+from typing import Iterable, List
 import warnings
 from collections import OrderedDict
 from math import pi
@@ -719,7 +720,7 @@ def instantiate_labels(instructions):
     return result
 
 
-def merge_with_pauli_noise(prog_list, probabilities, qubits):
+def merge_with_pauli_noise(prog_list: Iterable, probabilities: List, qubits: List):
     """
     Insert pauli noise channels between each item in the list of programs.
     This noise channel is implemented as a single noisy gate acting on the provided qubits.
@@ -727,9 +728,9 @@ def merge_with_pauli_noise(prog_list, probabilities, qubits):
     :param prog_list: an iterable such as a program or a list of programs.
     If a program is provided, a single noise gate will be applied after each gate in the program.
     If a list of programs is provided, the noise gate will be applied after each program.
-    :param list|floats probabilities: The 4^num_qubits list of probabilities specifying the desired pauli channel.
+    :param probabilities: The 4^num_qubits list of probabilities specifying the desired pauli channel.
     There should be either 4 or 16 probabilities specified in the order I,X,Y,Z or II, IX, IY, IZ, XI, XX, XY, etc
-    :param list qubits: a list of the qubits that the noisy gate should act on.
+    :param qubits: a list of the qubits that the noisy gate should act on.
     :return: A single program with noisy gates inserted between each element of the program list.
     :rtype: Program
     """

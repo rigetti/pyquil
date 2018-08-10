@@ -247,7 +247,8 @@ def pauli_kraus_map(probabilities):
     :rtype: list
     """
     if len(probabilities) not in [4, 16]:
-        raise ValueError("Provided list of probabilities must have length 4 or 16.")
+        raise ValueError("Currently we only support one or two qubits, "
+                         "so the provided list of probabilities must have length 4 or 16.")
     if not np.allclose(sum(probabilities), 1.0, atol=1e-3):
         raise ValueError("Probabilities must sum to one.")
 
