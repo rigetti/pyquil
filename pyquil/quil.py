@@ -723,13 +723,14 @@ def instantiate_labels(instructions):
 def merge_with_pauli_noise(prog_list: Iterable, probabilities: List, qubits: List):
     """
     Insert pauli noise channels between each item in the list of programs.
-    This noise channel is implemented as a single noisy gate acting on the provided qubits.
+    This noise channel is implemented as a single noisy identity gate acting on the provided qubits.
 
     :param prog_list: an iterable such as a program or a list of programs.
-    If a program is provided, a single noise gate will be applied after each gate in the program.
-    If a list of programs is provided, the noise gate will be applied after each program.
+        If a program is provided, a single noise gate will be applied after each gate in the program.
+        If a list of programs is provided, the noise gate will be applied after each program.
     :param probabilities: The 4^num_qubits list of probabilities specifying the desired pauli channel.
-    There should be either 4 or 16 probabilities specified in the order I,X,Y,Z or II, IX, IY, IZ, XI, XX, XY, etc
+        There should be either 4 or 16 probabilities specified in the order
+        I, X, Y, Z or II, IX, IY, IZ, XI, XX, XY, etc respectively.
     :param qubits: a list of the qubits that the noisy gate should act on.
     :return: A single program with noisy gates inserted between each element of the program list.
     :rtype: Program
@@ -762,7 +763,7 @@ def merge_programs(prog_list):
         name = definition.name
         if name in seen.keys():
             if definition not in seen[name]:
-                seen[name] += [definition]
+                seen[name].append(definition)
         else:
             seen[name] = [definition]
     new_definitions = [gate for key in seen.keys() for gate in reversed(seen[key])]

@@ -233,7 +233,7 @@ def pauli_kraus_map(probabilities):
     Generate the Kraus operators corresponding to a pauli channel.
 
     :params list|floats probabilities: The 4^num_qubits list of probabilities specifying the desired pauli channel.
-    There should be either 4 or 16 probabilities specified in the order I,X,Y,Z for 1 qubit
+    There should be either 4 or 16 probabilities specified in the order I, X, Y, Z for 1 qubit
     or II, IX, IY, IZ, XI, XX, XY, etc for 2 qubits.
 
             For example::
