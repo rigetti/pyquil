@@ -30,6 +30,7 @@ def test_pauli_kraus_map():
     tensor_kmaps = tensor_kraus_maps(q1_pauli_kmaps, q2_pauli_kmaps)
     assert np.allclose(two_q_pauli_kmaps, tensor_kmaps)
 
+
 def test_damping_kraus_map():
     p = 0.05
     k1, k2 = damping_kraus_map(p=p)
