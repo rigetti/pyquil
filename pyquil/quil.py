@@ -760,7 +760,7 @@ def merge_programs(prog_list):
     :return: a single pyQuil program
     :rtype: Program
     """
-    definitions = [gate for prog in prog_list for gate in prog.defined_gates]
+    definitions = [gate for prog in prog_list for gate in Program(prog).defined_gates]
     seen = {}
     # Collect definitions in reverse order and reapply definitions in reverse
     # collected order to ensure that the last occurrence of a definition is applied last.
@@ -776,7 +776,7 @@ def merge_programs(prog_list):
             seen[name] = [definition]
     new_definitions = [gate for key in seen.keys() for gate in reversed(seen[key])]
 
-    p = sum([prog.instructions for prog in prog_list], Program())  # Combine programs without gate definitions
+    p = sum([Program(prog).instructions for prog in prog_list], Program())  # Combine programs without gate definitions
 
     for definition in new_definitions:
         p.defgate(definition.name, definition.matrix, definition.parameters)
