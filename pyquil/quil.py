@@ -724,6 +724,8 @@ def merge_with_pauli_noise(prog_list: Iterable, probabilities: List, qubits: Lis
     """
     Insert pauli noise channels between each item in the list of programs.
     This noise channel is implemented as a single noisy identity gate acting on the provided qubits.
+    This method does not rely on merge_programs and so avoids the inclusion of redundant Kraus Pragmas
+    that would occur if merge_programs was called directly on programs with distinct noisy gate definitions.
 
     :param prog_list: an iterable such as a program or a list of programs.
         If a program is provided, a single noise gate will be applied after each gate in the program.
@@ -739,7 +741,10 @@ def merge_with_pauli_noise(prog_list: Iterable, probabilities: List, qubits: Lis
     p.defgate("pauli_noise", np.eye(2 ** len(qubits)))
     p.define_noisy_gate("pauli_noise", qubits, pauli_kraus_map(probabilities))
     for elem in prog_list:
-        p.inst(Program(elem)).inst(("pauli_noise", *qubits))
+        p.inst(Program(elem))
+        if isinstance(elem, Measurement):
+            continue  # do not apply noise after measurement
+        p.inst(("pauli_noise", *qubits))
     return p
 
 
@@ -762,13 +767,16 @@ def merge_programs(prog_list):
     for definition in reversed(definitions):
         name = definition.name
         if name in seen.keys():
+            # Do not add truly identical definitions with the same name
+            # If two different definitions share a name, we include each definition so as to provide
+            # a waring to the user when the contradictory defgate is called.
             if definition not in seen[name]:
                 seen[name].append(definition)
         else:
             seen[name] = [definition]
     new_definitions = [gate for key in seen.keys() for gate in reversed(seen[key])]
 
-    p = sum([[*prog] for prog in prog_list], Program())  # Combine programs without gate definitions
+    p = sum([prog.instructions for prog in prog_list], Program())  # Combine programs without gate definitions
 
     for definition in new_definitions:
         p.defgate(definition.name, definition.matrix, definition.parameters)
