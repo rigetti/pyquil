@@ -266,6 +266,13 @@ new jobs (but pending jobs will remain queued).  When the QPU resumes activity, 
 characteristics may be slightly different (in that different gates may enjoy different process
 fidelities).
 
+Agave QPU
+~~~~~~~~~
+
+8Q-AGAVE UPDATE
+---------------
+After a full thermal cycle, we have temporarily disabled qubits 4 and 5, and qubit pairs 3_4, 4_5, 5_6 due to performance degradation.
+
 Agave QPU Properties
 ~~~~~~~~~~~~~~~~~~~~~~~~
 
@@ -335,14 +342,14 @@ assignment fidelity is given by expression :math:`\mathsf{F}_\textrm{RO} = [p(0|
 
    ,:math:`\omega^{\textrm{max}}_{\textrm{r}}/2\pi`,:math:`\omega^{\textrm{max}}_{01}/2\pi`,:math:`T_1`,:math:`T^*_2`,:math:`\mathsf{F}_{\textrm{1q}}`,:math:`\mathsf{F}_{\textrm{RO}}`
    ,:math:`\textrm{MHz}`,:math:`\textrm{MHz}`,:math:`\mu\textrm{s}`,:math:`\mu\textrm{s}`,,
-   0 ,5863,4586,10.72,10.6,0.957,0.784
-   1 ,5293,3909,10.04,9.2,0.951,0.910
-   2 ,5713,4524,15.52,12.5,0.982,0.943
-   3 ,5411,4054,14.17,18.5,0.970,0.912
-   4 ,5620,4660,14.58,26.2,0.969,0.678
-   5 ,5171,4081,14.86,12.8,0.962,0.832
-   6 ,5751,4760,14.17,12.9,0.969,0.753
-   7 ,5454,4110,13.19,17.7,0.932,0.895
+   0 ,5863,4586,10.7,10.6,0.9740,0.7841
+   1 ,5293,3909,10.0,9.2,0.9764,0.8830
+   2 ,5713,4524,15.5,12.5,0.9820,0.9296
+   3 ,5411,4054,14.2,18.5,0.9676,0.9054
+   4
+   5
+   6 ,5751,4760,14.2,12.9,0.9715,0.9156
+   7 ,5454,4110,13.2,17.7,0.9464,0.8807
 
 
 Qubit-Qubit Coupling
@@ -396,14 +403,14 @@ tomography under complete positivity (cp) and trace preservation (tp) constraint
 
    ,:math:`f_\textrm{m}`,:math:`t_\textrm{CZ}`,:math:`\mathsf{F}^\textrm{cptp}_{\textrm{PT}}`
    ,:math:`\textrm{MHz}`,ns
-   0 - 1, 226,195,0.92
-   1 - 2, 153,198,0.91
-   2 - 3, 138,132,0.82
-   3 - 4, 163,160,0.87
-   4 - 5, 168,163,0.67
-   5 - 6, 107,186,0.93
-   6 - 7, 123,162,0.93
-   7 - 0, 298,118,0.91
+   0 - 1, 226,195,0.859
+   1 - 2, 153,198,0.8077
+   2 - 3, 138,132,0.9054
+   3 - 4, CURRENTLY UNAVAILABLE
+   4 - 5, CURRENTLY UNAVAILABLE
+   5 - 6, CURRENTLY UNAVAILABLE
+   6 - 7, 123,162,0.8965
+   7 - 0, 298,118,0.9327
 
 ..  [Nielsen2002] Nielsen, M. A. (2002) ‘A simple formula for the average gate fidelity of a quantum dynamical operation’, http://arxiv.org/abs/quant-ph/0205035
 ..  [Reagor2018] Reagor, M. et al. (2018) ‘Demonstration of universal parametric entangling gates on a multi-qubit lattice’, http://advances.sciencemag.org/lookup/doi/10.1126/sciadv.aao3603
