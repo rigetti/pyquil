@@ -271,7 +271,7 @@ Agave QPU
 
 8Q-AGAVE UPDATE
 ---------------
-After a full thermal cycle, we have temporarily disabled qubits 4 and 5, and qubit pairs 3_4, 4_5, 5_6 due to performance degradation.
+After a full thermal cycle, we have temporarily disabled qubit pairs 3_4, 4_5, 5_6, and 6_7 due to performance degradation.
 
 Agave QPU Properties
 ~~~~~~~~~~~~~~~~~~~~~~~~
@@ -349,7 +349,7 @@ assignment fidelity is given by expression :math:`\mathsf{F}_\textrm{RO} = [p(0|
    4
    5
    6 ,5751,4760,14.2,12.9,0.9715,0.9156
-   7 ,5454,4110,13.2,17.7,0.9464,0.8807
+   7
 
 
 Qubit-Qubit Coupling
@@ -409,8 +409,8 @@ tomography under complete positivity (cp) and trace preservation (tp) constraint
    3 - 4, CURRENTLY UNAVAILABLE
    4 - 5, CURRENTLY UNAVAILABLE
    5 - 6, CURRENTLY UNAVAILABLE
-   6 - 7, 123,162,0.8965
-   7 - 0, 298,118,0.9327
+   6 - 7, CURRENTLY UNAVAILABLE
+   7 - 0, CURRENTLY UNAVAILABLE
 
 ..  [Nielsen2002] Nielsen, M. A. (2002) ‘A simple formula for the average gate fidelity of a quantum dynamical operation’, http://arxiv.org/abs/quant-ph/0205035
 ..  [Reagor2018] Reagor, M. et al. (2018) ‘Demonstration of universal parametric entangling gates on a multi-qubit lattice’, http://advances.sciencemag.org/lookup/doi/10.1126/sciadv.aao3603
