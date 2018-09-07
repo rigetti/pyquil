@@ -25,7 +25,7 @@ from pyquil.gates import I, X, Y, Z, H, T, S, RX, RY, RZ, CNOT, CCNOT, PHASE, CP
     TRUE, FALSE, NOT, AND, OR, MOVE, EXCHANGE
 from pyquil.parameters import Parameter, quil_sin, quil_cos
 from pyquil.paulis import exponential_map, sZ
-from pyquil.quil import Program, merge_programs, address_qubits, \
+from pyquil.quil import Program, merge_programs, merge_with_pauli_noise, address_qubits, \
     get_classical_addresses_from_program, Pragma
 from pyquil.quilatom import QubitPlaceholder
 from pyquil.quilbase import DefGate, Gate, Addr, Qubit, JumpWhen
@@ -551,6 +551,38 @@ def test_prog_merge():
     prog_0 = Program(X(0))
     prog_1 = Program(Y(0))
     assert merge_programs([prog_0, prog_1]).out() == (prog_0 + prog_1).out()
+    prog_0.defgate("test", np.eye(2))
+    prog_0.inst(("test", 0))
+    prog_1.defgate("test", np.eye(2))
+    prog_1.inst(("test", 0))
+    assert merge_programs([prog_0, prog_1]).out() == """DEFGATE test:
+    1.0, 0
+    0, 1.0
+
+X 0
+test 0
+Y 0
+test 0
+"""
+
+
+def test_merge_with_pauli_noise():
+    p = Program(X(0)).inst(Z(0))
+    probs = [0., 1., 0., 0.]
+    merged = merge_with_pauli_noise(p, probs, [0])
+    assert merged.out() == """DEFGATE pauli_noise:
+    1.0, 0
+    0, 1.0
+
+PRAGMA ADD-KRAUS pauli_noise 0 "(0.0 0.0 0.0 0.0)"
+PRAGMA ADD-KRAUS pauli_noise 0 "(0.0 1.0 1.0 0.0)"
+PRAGMA ADD-KRAUS pauli_noise 0 "(0.0 0.0 0.0 0.0)"
+PRAGMA ADD-KRAUS pauli_noise 0 "(0.0 0.0 0.0 -0.0)"
+X 0
+pauli_noise 0
+Z 0
+pauli_noise 0
+"""
 
 
 def test_get_qubits():

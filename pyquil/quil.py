@@ -18,6 +18,7 @@ Module for creating and defining Quil programs.
 """
 import itertools
 import types
+from typing import Iterable, List
 import warnings
 from collections import OrderedDict
 from math import pi
@@ -26,7 +27,7 @@ import numpy as np
 from six import string_types
 
 from pyquil._parser.PyQuilListener import run_parser
-from pyquil.noise import _check_kraus_ops, _create_kraus_pragmas
+from pyquil.noise import _check_kraus_ops, _create_kraus_pragmas, pauli_kraus_map
 from pyquil.parameters import format_parameter
 from pyquil.quilatom import LabelPlaceholder, QubitPlaceholder, unpack_qubit
 from pyquil.gates import MEASURE, QUANTUM_GATES, H
@@ -719,15 +720,68 @@ def instantiate_labels(instructions):
     return result
 
 
+def merge_with_pauli_noise(prog_list: Iterable, probabilities: List, qubits: List):
+    """
+    Insert pauli noise channels between each item in the list of programs.
+    This noise channel is implemented as a single noisy identity gate acting on the provided qubits.
+    This method does not rely on merge_programs and so avoids the inclusion of redundant Kraus Pragmas
+    that would occur if merge_programs was called directly on programs with distinct noisy gate definitions.
+
+    :param prog_list: an iterable such as a program or a list of programs.
+        If a program is provided, a single noise gate will be applied after each gate in the program.
+        If a list of programs is provided, the noise gate will be applied after each program.
+    :param probabilities: The 4^num_qubits list of probabilities specifying the desired pauli channel.
+        There should be either 4 or 16 probabilities specified in the order
+        I, X, Y, Z or II, IX, IY, IZ, XI, XX, XY, etc respectively.
+    :param qubits: a list of the qubits that the noisy gate should act on.
+    :return: A single program with noisy gates inserted between each element of the program list.
+    :rtype: Program
+    """
+    p = Program()
+    p.defgate("pauli_noise", np.eye(2 ** len(qubits)))
+    p.define_noisy_gate("pauli_noise", qubits, pauli_kraus_map(probabilities))
+    for elem in prog_list:
+        p.inst(Program(elem))
+        if isinstance(elem, Measurement):
+            continue  # do not apply noise after measurement
+        p.inst(("pauli_noise", *qubits))
+    return p
+
+
 def merge_programs(prog_list):
     """
-    Merges a list of pyQuil programs into a single one by appending them in sequence
+    Merges a list of pyQuil programs into a single one by appending them in sequence.
+    If multiple programs in the list contain the same gate and/or noisy gate definition
+    with identical name, this definition will only be applied once. If different definitions
+    with the same name appear multiple times in the program list, each will be applied once
+    in the order of last occurrence.
 
     :param list prog_list: A list of pyquil programs
     :return: a single pyQuil program
     :rtype: Program
     """
-    return sum(prog_list, Program())
+    definitions = [gate for prog in prog_list for gate in Program(prog).defined_gates]
+    seen = {}
+    # Collect definitions in reverse order and reapply definitions in reverse
+    # collected order to ensure that the last occurrence of a definition is applied last.
+    for definition in reversed(definitions):
+        name = definition.name
+        if name in seen.keys():
+            # Do not add truly identical definitions with the same name
+            # If two different definitions share a name, we include each definition so as to provide
+            # a waring to the user when the contradictory defgate is called.
+            if definition not in seen[name]:
+                seen[name].append(definition)
+        else:
+            seen[name] = [definition]
+    new_definitions = [gate for key in seen.keys() for gate in reversed(seen[key])]
+
+    p = sum([Program(prog).instructions for prog in prog_list], Program())  # Combine programs without gate definitions
+
+    for definition in new_definitions:
+        p.defgate(definition.name, definition.matrix, definition.parameters)
+
+    return p
 
 
 def get_classical_addresses_from_program(program):

@@ -228,6 +228,40 @@ def append_kraus_to_gate(kraus_ops, gate_matrix):
     return [kj.dot(gate_matrix) for kj in kraus_ops]
 
 
+def pauli_kraus_map(probabilities):
+    """
+    Generate the Kraus operators corresponding to a pauli channel.
+
+    :params list|floats probabilities: The 4^num_qubits list of probabilities specifying the desired pauli channel.
+    There should be either 4 or 16 probabilities specified in the order I, X, Y, Z for 1 qubit
+    or II, IX, IY, IZ, XI, XX, XY, etc for 2 qubits.
+
+            For example::
+
+                The d-dimensional depolarazing channel \Delta parameterized as
+                \Delta(\rho) = p \rho + [(1-p)/d] I
+                is specfiied by the list of probabilities
+                [p + (1-p)/d, (1-p)/d,  (1-p)/d), ... , (1-p)/d)]
+
+    :return: A list of the 4^num_qubits Kraus operators that parametrize the map.
+    :rtype: list
+    """
+    if len(probabilities) not in [4, 16]:
+        raise ValueError("Currently we only support one or two qubits, "
+                         "so the provided list of probabilities must have length 4 or 16.")
+    if not np.allclose(sum(probabilities), 1.0, atol=1e-3):
+        raise ValueError("Probabilities must sum to one.")
+
+    paulis = [np.eye(2), np.array([[0, 1], [1, 0]]), np.array([[0, -1j], [1j, 0]]), np.array([[1, 0], [0, -1]])]
+
+    if len(probabilities) == 4:
+        operators = paulis
+    else:
+        operators = np.kron(paulis, paulis)
+
+    return [coeff * op for coeff, op in zip(np.sqrt(probabilities), operators)]
+
+
 def damping_kraus_map(p=0.10):
     """
     Generate the Kraus operators corresponding to an amplitude damping

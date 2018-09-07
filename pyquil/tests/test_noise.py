@@ -5,7 +5,7 @@ from unittest.mock import Mock
 
 from pyquil.api import QPUConnection
 from pyquil.gates import CZ, RZ, RX, I, H
-from pyquil.noise import (damping_kraus_map, dephasing_kraus_map, tensor_kraus_maps,
+from pyquil.noise import (pauli_kraus_map, damping_kraus_map, dephasing_kraus_map, tensor_kraus_maps,
                           _get_program_gates, _decoherence_noise_model,
                           add_decoherence_noise, combine_kraus_maps, damping_after_dephasing,
                           INFINITY, apply_noise_model, _noise_model_program_header, KrausModel,
@@ -14,6 +14,21 @@ from pyquil.noise import (damping_kraus_map, dephasing_kraus_map, tensor_kraus_m
                           estimate_assignment_probs, NO_NOISE)
 from pyquil.quil import Pragma, Program
 from pyquil.quilbase import DefGate, Gate
+
+
+def test_pauli_kraus_map():
+    probabilities = [.1, .2, .3, .4]
+    k1, k2, k3, k4 = pauli_kraus_map(probabilities)
+    assert np.allclose(k1, np.sqrt(.1) * np.eye(2), atol=1 * 10 ** -8)
+    assert np.allclose(k2, np.sqrt(.2) * np.array([[0, 1.], [1., 0]]), atol=1 * 10 ** -8)
+    assert np.allclose(k3, np.sqrt(.3) * np.array([[0, -1.j], [1.j, 0]]), atol=1 * 10 ** -8)
+    assert np.allclose(k4, np.sqrt(.4) * np.array([[1, 0], [0, -1]]), atol=1 * 10 ** -8)
+
+    two_q_pauli_kmaps = pauli_kraus_map(np.kron(probabilities, list(reversed(probabilities))))
+    q1_pauli_kmaps = [k1, k2, k3, k4]
+    q2_pauli_kmaps = pauli_kraus_map(list(reversed(probabilities)))
+    tensor_kmaps = tensor_kraus_maps(q1_pauli_kmaps, q2_pauli_kmaps)
+    assert np.allclose(two_q_pauli_kmaps, tensor_kmaps)
 
 
 def test_damping_kraus_map():
