@@ -1,12 +1,12 @@
+import networkx as nx
 import numpy as np
 import pytest
 
 from pyquil.device import (Device, ISA, Qubit, Edge, Specs, QubitSpecs,
-                           EdgeSpecs, THETA, gates_in_isa)
+                           EdgeSpecs, THETA, gates_in_isa, isa_from_graph, isa_to_graph, NxDevice)
 from pyquil.noise import NoiseModel, KrausModel
 from pyquil.gates import RZ, RX, I, CZ, ISWAP, CPHASE
 from collections import OrderedDict
-
 
 DEVICE_FIXTURE_NAME = 'mixed_architecture_chip'
 
@@ -94,9 +94,9 @@ def test_isa(isa_dict):
         ],
         edges=[
             Edge(targets=[0, 1], type='CZ', dead=False),
+            Edge(targets=[0, 2], type='CPHASE', dead=False),
             Edge(targets=[0, 3], type='CZ', dead=True),
             Edge(targets=[1, 2], type='ISWAP', dead=False),
-            Edge(targets=[2, 0], type='CPHASE', dead=False),
         ])
     assert isa == ISA.from_dict(isa.to_dict())
 
@@ -198,3 +198,54 @@ def test_gates_in_isa(isa_dict):
     assert ISWAP(2, 1) in gates
     assert CPHASE(THETA, 2, 0) in gates
     assert CPHASE(THETA, 0, 2) in gates
+
+
+def test_isa_from_graph():
+    fc = nx.complete_graph(3)
+    isa = isa_from_graph(fc)
+    isad = isa.to_dict()
+
+    assert set(isad.keys()) == {'1Q', '2Q'}
+    assert sorted(int(q) for q in isad['1Q'].keys()) == list(range(3))
+    for v in isad['1Q'].values():
+        assert v == {}
+
+    assert sorted(isad['2Q']) == ['0-1', '0-2', '1-2']
+    for v in isad['2Q'].values():
+        assert v == {}
+
+
+def test_isa_from_graph_cphase():
+    fc = nx.complete_graph(3)
+    isa = isa_from_graph(fc, twoq_type='CPHASE')
+    isad = isa.to_dict()
+
+    assert set(isad.keys()) == {'1Q', '2Q'}
+    assert sorted(int(q) for q in isad['1Q'].keys()) == list(range(3))
+    for v in isad['1Q'].values():
+        assert v == {}
+
+    assert sorted(isad['2Q']) == ['0-1', '0-2', '1-2']
+    for v in isad['2Q'].values():
+        assert v == {'type': 'CPHASE'}
+
+
+def test_isa_to_graph(isa_dict):
+    graph = isa_to_graph(ISA.from_dict(isa_dict))
+    should_be = nx.from_edgelist([(0, 1), (1, 2), (0, 2)])
+    assert nx.is_isomorphic(graph, should_be)
+
+
+def test_NxDevice(isa_dict, noise_model_dict):
+    graph = isa_to_graph(ISA.from_dict(isa_dict))
+    nxdev = NxDevice(graph)
+
+    device_raw = {'isa': isa_dict,
+                  'noise_model': noise_model_dict,
+                  'is_online': True,
+                  'is_retuning': False}
+    dev = Device(DEVICE_FIXTURE_NAME, device_raw)
+
+    nx.is_isomorphic(nxdev.qubit_topology(), dev.qubit_topology())
+    isa = nxdev.get_isa()
+    assert isa.qubits[0].type == 'Xhalves'

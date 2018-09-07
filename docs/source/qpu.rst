@@ -271,7 +271,11 @@ Agave QPU
 
 8Q-AGAVE UPDATE
 ---------------
+<<<<<<< HEAD
 After a full thermal cycle, we have temporarily disabled qubit pairs 3_4, 4_5, 5_6, and 6_7 due to performance degradation.
+=======
+After a full thermal cycle, we have temporarily disabled qubits 4 and 5, and qubit pairs 3_4, 4_5, 5_6 due to performance degradation.
+>>>>>>> origin/master
 
 Agave QPU Properties
 ~~~~~~~~~~~~~~~~~~~~~~~~

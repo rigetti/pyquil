@@ -334,7 +334,7 @@ class Reset(SimpleInstruction):
 
 class Nop(SimpleInstruction):
     """
-    The RESET instruction.
+    The NOP instruction.
     """
     op = "NOP"
 
@@ -466,4 +466,4 @@ class RawInstr(AbstractInstruction):
         return self.instr
 
     def __repr__(self):
-        return '<RawInstr>'
+        return '<RawInstr {}>'.format(self.instr)

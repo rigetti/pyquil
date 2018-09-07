@@ -54,30 +54,36 @@ def find_version(*file_paths):
     raise RuntimeError("Unable to find version string.")
 
 
+with open("README.md", "r") as fh:
+    long_description = fh.read()
+
 setup(
     name="pyquil",
     version=find_version('pyquil', '__init__.py'),
     author="Rigetti Computing",
     author_email="softapps@rigetti.com",
     description="A Python library to generate Quantum Instruction Language (Quil) Programs.",
+    long_description=long_description,
+    long_description_content_type="text/markdown",
     url="https://github.com/rigetticomputing/pyquil.git",
     packages=find_packages(exclude=["*.tests", "*.tests.*", "tests.*", "tests"]),
-    license="LICENSE",
+    license='Apache-2.0',
+    classifiers=[
+        'Development Status :: 5 - Production/Stable',
+        'License :: OSI Approved :: Apache Software License',
+        'Programming Language :: Python :: 3',
+        'Operating System :: OS Independent',
+    ],
     install_requires=[
-        'contextvars == 2.2',
-        'numpy >= 1.10',
-        'matplotlib >= 1.5',
-        'requests >= 2.4.2',
-        'typing >= 3.6',
-        'urllib3 >= 1.21.1',
-        "antlr4-python3-runtime>=4.7",
+        # The minimum spec for a working pyquil install.
+        # note to developers: this should be a subset of requirements.txt
+        'numpy',
+        'antlr4-python3-runtime',
+        'requests',
+        'contextvars',
+        'six',
+        'networkx',
     ],
-    setup_requires=['pytest-runner'],
-    tests_require=[
-        'pytest >= 3.0.0',
-        'mock',
-    ],
-    test_suite='pyquil.tests',
     entry_points={
         'console_scripts': ['pyquil-config-setup=pyquil.setup.pyquil_config_setup:main']
     },

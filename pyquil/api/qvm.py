@@ -13,24 +13,22 @@
 #    See the License for the specific language governing permissions and
 #    limitations under the License.
 ##############################################################################
-import os
 import warnings
+from typing import Iterable
 
+import numpy as np
 from six import integer_types
 
-from pyquil.api.job import Job
+from pyquil.api._qam import QAM
 from pyquil.api.compiler import CompilerConnection
+from pyquil.api.job import Job
+from pyquil.noise import apply_noise_model
 from pyquil.paulis import PauliSum
 from pyquil.quil import Program, get_classical_addresses_from_program
 from pyquil.wavefunction import Wavefunction
-from pyquil.noise import apply_noise_model
 from ._base_connection import validate_noise_probabilities, validate_run_items, TYPE_MULTISHOT, \
-    TYPE_MULTISHOT_MEASURE, TYPE_WAVEFUNCTION, TYPE_EXPECTATION, get_job_id, get_session, wait_for_job, \
-    post_json, get_json
-
-
-ASYNC_ENDPOINT = os.getenv('FOREST_ASYNC_ENDPOINT', 'https://job.rigetti.com/beta')
-SYNC_ENDPOINT = os.getenv('FOREST_SYNC_ENDPOINT', 'https://api.rigetti.com')
+    TYPE_MULTISHOT_MEASURE, TYPE_WAVEFUNCTION, TYPE_EXPECTATION, get_job_id, get_session, \
+    wait_for_job, post_json, get_json, SYNC_ENDPOINT, ASYNC_ENDPOINT, ForestConnection
 
 
 class QVMConnection(object):
@@ -91,7 +89,6 @@ programs run on this QVM.
 
         self.async_endpoint = async_endpoint
         self.sync_endpoint = sync_endpoint
-        self.session = get_session(api_key, user_id)
 
         self.use_queue = use_queue
         self.ping_time = ping_time
@@ -108,6 +105,12 @@ programs run on this QVM.
             self.random_seed = random_seed
         else:
             raise TypeError("random_seed should be None or a non-negative int")
+
+        self._connection = ForestConnection(sync_endpoint=sync_endpoint,
+                                            async_endpoint=async_endpoint,
+                                            api_key=api_key, user_id=user_id, use_queue=use_queue,
+                                            ping_time=ping_time, status_time=status_time)
+        self.session = self._connection.session  # backwards compatibility
 
     def ping(self):
         raise DeprecationWarning("ping() function is deprecated")
@@ -129,17 +132,9 @@ programs run on this QVM.
         if not classical_addresses:
             classical_addresses = get_classical_addresses_from_program(quil_program)
 
-        payload = self._run_payload(quil_program, classical_addresses, trials, needs_compilation, isa)
-        if self.use_queue or needs_compilation:
-            if needs_compilation and not self.use_queue:
-                warnings.warn('Synchronous QVM connection does not support compilation preprocessing. Running this job over the asynchronous endpoint, as if use_queue were set to True.')
-
-            response = post_json(self.session, self.async_endpoint + "/job", {"machine": "QVM", "program": payload})
-            job = self.wait_for_job(get_job_id(response))
-            return job.result()
-        else:
-            response = post_json(self.session, self.sync_endpoint + "/qvm", payload)
-            return response.json()
+        return self._connection._qvm_run(quil_program, classical_addresses, trials,
+                                         needs_compilation, isa, self.measurement_noise,
+                                         self.gate_noise, self.random_seed).tolist()
 
     def run_async(self, quil_program, classical_addresses=None, trials=1, needs_compilation=False, isa=None):
         """
@@ -149,40 +144,9 @@ programs run on this QVM.
         if not classical_addresses:
             classical_addresses = get_classical_addresses_from_program(quil_program)
 
-        payload = self._run_payload(quil_program, classical_addresses, trials, needs_compilation, isa)
-        response = post_json(self.session, self.async_endpoint + "/job", {"machine": "QVM", "program": payload})
-        return get_job_id(response)
-
-    def _run_payload(self, quil_program, classical_addresses, trials, needs_compilation, isa):
-        if not quil_program:
-            raise ValueError("You have attempted to run an empty program."
-                             " Please provide gates or measure instructions to your program.")
-
-        if not isinstance(quil_program, Program):
-            raise TypeError("quil_program must be a Quil program object")
-        validate_run_items(classical_addresses)
-        if not isinstance(trials, integer_types):
-            raise TypeError("trials must be an integer")
-        if needs_compilation and not isa:
-            raise TypeError("ISA cannot be None if program needs compilation preprocessing.")
-
-        if self.noise_model is not None:
-            compiled_program = self.compiler.compile(quil_program)
-            quil_program = apply_noise_model(compiled_program, self.noise_model)
-
-        payload = {"type": TYPE_MULTISHOT,
-                   "addresses": list(classical_addresses),
-                   "trials": trials}
-        if needs_compilation:
-            payload["uncompiled-quil"] = quil_program.out()
-            payload["target-device"] = {"isa": isa.to_dict()}
-        else:
-            payload["compiled-quil"] = quil_program.out()
-
-        self._maybe_add_noise_to_payload(payload)
-        self._add_rng_seed_to_payload(payload)
-
-        return payload
+        return self._connection._qvm_run_async(quil_program, classical_addresses, trials,
+                                               needs_compilation, isa, self.measurement_noise,
+                                               self.gate_noise, self.random_seed)
 
     def run_and_measure(self, quil_program, qubits, trials=1, needs_compilation=False, isa=None):
         """
@@ -202,6 +166,11 @@ programs run on this QVM.
         :return: A list of a list of bits.
         :rtype: list
         """
+        # Developer note: This code is for backwards compatibility. It can't be replaced with
+        # ForestConnection._run_and_measure because we've turned off the ability to set
+        # `needs_compilation` (that usually indicates the user is doing something iffy like
+        # using a noise model with this function)
+
         payload = self._run_and_measure_payload(quil_program, qubits, trials, needs_compilation, isa)
         if self.use_queue or needs_compilation:
             if needs_compilation and not self.use_queue:
@@ -209,7 +178,7 @@ programs run on this QVM.
 
             response = post_json(self.session, self.async_endpoint + "/job", {"machine": "QVM", "program": payload})
             job = self.wait_for_job(get_job_id(response))
-            return job.result()
+            return job.result().tolist()
         else:
             response = post_json(self.session, self.sync_endpoint + "/qvm", payload)
             return response.json()
@@ -271,6 +240,11 @@ programs run on this QVM.
         :return: A Wavefunction object representing the state of the QVM.
         :rtype: Wavefunction
         """
+        # Developer note: This code is for backwards compatibility. It can't be replaced with
+        # ForestConnection._wavefunction because we've turned off the ability to set
+        # `needs_compilation` (that usually indicates the user is doing something iffy like
+        # using a noise model with this function)
+
         if classical_addresses is None:
             classical_addresses = []
 
@@ -292,6 +266,10 @@ programs run on this QVM.
         Similar to wavefunction except that it returns a job id and doesn't wait for the program to be executed.
         See https://go.rigetti.com/connections for reasons to use this method.
         """
+        # Developer note: This code is for backwards compatibility. It can't be replaced with
+        # ForestConnection._wavefunction because we've turned off the ability to set
+        # `needs_compilation` (that usually indicates the user is doing something iffy like
+        # using a noise model with this function)
         if classical_addresses is None:
             classical_addresses = []
 
@@ -300,6 +278,10 @@ programs run on this QVM.
         return get_job_id(response)
 
     def _wavefunction_payload(self, quil_program, classical_addresses, needs_compilation, isa):
+        # Developer note: This code is for backwards compatibility. It can't be replaced with
+        # _base_connection._wavefunction_payload because we've turned off the ability to set
+        # `needs_compilation` (that usually indicates the user is doing something iffy like
+        # using a noise model with this function)
         if not isinstance(quil_program, Program):
             raise TypeError("quil_program must be a Quil program object")
         validate_run_items(classical_addresses)
@@ -346,6 +328,11 @@ programs run on this QVM.
         :return: Expectation values of the operators.
         :rtype: List[float]
         """
+        # Developer note: This code is for backwards compatibility. It can't be replaced with
+        # ForestConnection._expectation because we've turned off the ability to set
+        # `needs_compilation` (that usually indicates the user is doing something iffy like
+        # using a noise model with this function)
+
         if isinstance(operator_programs, Program):
             warnings.warn("You have provided a Program rather than a list of Programs. The results from expectation "
                           "will be line-wise expectation values of the operator_programs.", SyntaxWarning)
@@ -356,7 +343,7 @@ programs run on this QVM.
             payload = self._expectation_payload(prep_prog, operator_programs)
             response = post_json(self.session, self.async_endpoint + "/job", {"machine": "QVM", "program": payload})
             job = self.wait_for_job(get_job_id(response))
-            return job.result()
+            return job.result().tolist()
         else:
             payload = self._expectation_payload(prep_prog, operator_programs)
             response = post_json(self.session, self.sync_endpoint + "/qvm", payload)
@@ -432,8 +419,7 @@ programs run on this QVM.
         :return: Job object with the status and potentially results of the job
         :rtype: Job
         """
-        response = get_json(self.session, self.async_endpoint + "/job/" + job_id)
-        return Job(response.json(), 'QVM')
+        return self._connection._get_job(job_id, machine='QVM')
 
     def wait_for_job(self, job_id, ping_time=None, status_time=None):
         """
@@ -446,11 +432,7 @@ programs run on this QVM.
                             Defaults to the value specified in the constructor (2 seconds)
         :return: Completed Job
         """
-        def get_job_fn():
-            return self.get_job(job_id)
-        return wait_for_job(get_job_fn,
-                            ping_time if ping_time else self.ping_time,
-                            status_time if status_time else self.status_time)
+        return self._connection._wait_for_job(job_id, 'QVM', ping_time, status_time)
 
     def _maybe_add_noise_to_payload(self, payload):
         """
@@ -467,3 +449,95 @@ programs run on this QVM.
         """
         if self.random_seed is not None:
             payload['rng-seed'] = self.random_seed
+
+
+class QVM(QAM):
+    def __init__(self, connection: ForestConnection, noise_model=None, gate_noise=None,
+                 measurement_noise=None, random_seed=None):
+        """
+        A virtual machine that classically emulates the execution of Quil programs.
+
+        :param connection: A connection to the Forest web API.
+        :param noise_model: A noise model that describes noise to apply when emulating a program's
+            execution.
+        :param gate_noise: A list of three numbers [Px, Py, Pz] indicating the probability of an X,
+           Y, or Z gate getting applied to each qubit after a gate application or reset. The
+           default value of None indicates no noise.
+        :param measurement_noise: A list of three numbers [Px, Py, Pz] indicating the probability
+            of an X, Y, or Z gate getting applied before a measurement. The default value of
+            None indicates no noise.
+        :param random_seed: A seed for the QVM's random number generators. Either None (for an
+            automatically generated seed) or a non-negative integer.
+        """
+        if (noise_model is not None) and (gate_noise is not None or measurement_noise is not None):
+            raise ValueError("""
+You have attempted to supply the QVM with both a Kraus noise model
+(by supplying a `noise_model` argument), as well as either `gate_noise`
+or `measurement_noise`. At this time, only one may be supplied.
+
+To read more about supplying noise to the QVM, see http://pyquil.readthedocs.io/en/latest/noise_models.html#support-for-noisy-gates-on-the-rigetti-qvm.
+""")
+
+        self.noise_model = noise_model
+        self.connection = connection
+
+        validate_noise_probabilities(gate_noise)
+        validate_noise_probabilities(measurement_noise)
+        self.gate_noise = gate_noise
+        self.measurement_noise = measurement_noise
+
+        if random_seed is None:
+            self.random_seed = None
+        elif isinstance(random_seed, integer_types) and random_seed >= 0:
+            self.random_seed = random_seed
+        else:
+            raise TypeError("random_seed should be None or a non-negative int")
+
+    def run(self, quil_program: Program, classical_addresses: Iterable[int],
+            trials: int) -> np.ndarray:
+        """
+        Run a Quil program on the QVM multiple times and return the values stored in the
+        classical registers designated by the classical_addresses parameter.
+
+        :param quil_program: A program to run
+        :param classical_addresses: Classical register addresses to return
+        :param int trials: Number of times to repeatedly run the program. This is sometimes called
+            the number of shots.
+        :return: An array of bitstrings of shape ``(trials, len(classical_addresses))``
+        """
+        if self.noise_model is not None:
+            quil_program = apply_noise_model(quil_program, self.noise_model)
+
+        return self.connection._qvm_run(quil_program=quil_program,
+                                        classical_addresses=classical_addresses,
+                                        trials=trials, needs_compilation=False, isa=None,
+                                        measurement_noise=self.measurement_noise,
+                                        gate_noise=self.gate_noise,
+                                        random_seed=self.random_seed)
+
+    def run_async(self, quil_program, classical_addresses, trials):
+        """
+        Similar to run except that it returns a job id and doesn't wait for the program to be executed.
+        See https://go.rigetti.com/connections for reasons to use this method.
+        """
+        if self.noise_model is not None:
+            quil_program = apply_noise_model(quil_program, self.noise_model)
+
+        return self.connection._qvm_run_async(quil_program=quil_program,
+                                              classical_addresses=classical_addresses,
+                                              trials=trials, needs_compilation=False, isa=None,
+                                              measurement_noise=self.measurement_noise,
+                                              gate_noise=self.gate_noise,
+                                              random_seed=self.random_seed)
+
+    def wait_for_job(self, job_id, ping_time=None, status_time=None) -> Job:
+        """
+        For async functions, wait for the specified job to be done and return the completed job.
+
+        :param job_id: The id of the job returned by ``_async`` methods.
+        :param ping_time: An optional time in seconds to poll for job completion.
+        :param status_time: An optional time in seconds to print the status of a job.
+        :return: The completed job.
+        """
+        return self.connection._wait_for_job(job_id=job_id, ping_time=ping_time,
+                                             status_time=status_time, machine='QVM')

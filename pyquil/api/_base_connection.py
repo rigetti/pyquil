@@ -16,28 +16,32 @@
 
 from __future__ import print_function
 
+import os
 import re
 import time
+import warnings
+from json.decoder import JSONDecodeError
 
+import numpy as np
 import requests
 from requests.adapters import HTTPAdapter
 from six import integer_types
 from urllib3 import Retry
 
+from pyquil import Program
+from pyquil.api import errors
+from pyquil.api.job import Job
 from pyquil.api.errors import error_mapping, UnknownApiError, TooManyQubitsError
+from pyquil.wavefunction import Wavefunction
 from ._config import PyquilConfig
-
-# Deal with JSONDecodeError across Python 2 and 3
-# Ref: https://www.peterbe.com/plog/jsondecodeerror-in-requests.get.json-python-2-and-3
-try:
-    from json.decoder import JSONDecodeError
-except ImportError:
-    JSONDecodeError = ValueError    # type: ignore  # python2to3 hack)
 
 TYPE_EXPECTATION = "expectation"
 TYPE_MULTISHOT = "multishot"
 TYPE_MULTISHOT_MEASURE = "multishot-measure"
 TYPE_WAVEFUNCTION = "wavefunction"
+
+ASYNC_ENDPOINT = os.getenv('FOREST_ASYNC_ENDPOINT', 'https://job.rigetti.com/beta')
+SYNC_ENDPOINT = os.getenv('FOREST_SYNC_ENDPOINT', 'https://api.rigetti.com')
 
 
 def wait_for_job(get_job_fn, ping_time=None, status_time=None):
@@ -180,3 +184,345 @@ def validate_run_items(run_items):
 
 def get_job_id(response):
     return response.json()['jobId']
+
+
+def run_and_measure_payload(quil_program, qubits, trials, random_seed):
+    """REST payload for :py:func:`ForestConnection._run_and_measure`"""
+    if not quil_program:
+        raise ValueError("You have attempted to run an empty program."
+                         " Please provide gates or measure instructions to your program.")
+
+    if not isinstance(quil_program, Program):
+        raise TypeError("quil_program must be a Quil program object")
+    validate_run_items(qubits)
+    if not isinstance(trials, integer_types):
+        raise TypeError("trials must be an integer")
+
+    payload = {"type": TYPE_MULTISHOT_MEASURE,
+               "qubits": list(qubits),
+               "trials": trials,
+               "compiled-quil": quil_program.out()}
+
+    if random_seed is not None:
+        payload['rng-seed'] = random_seed
+
+    return payload
+
+
+def wavefunction_payload(quil_program, classical_addresses, random_seed):
+    """REST payload for :py:func:`ForestConnection._wavefunction`"""
+    if not isinstance(quil_program, Program):
+        raise TypeError("quil_program must be a Quil program object")
+    validate_run_items(classical_addresses)
+
+    payload = {'type': TYPE_WAVEFUNCTION,
+               'addresses': list(classical_addresses),
+               'compiled-quil': quil_program.out()}
+
+    if random_seed is not None:
+        payload['rng-seed'] = random_seed
+
+    return payload
+
+
+def expectation_payload(prep_prog, operator_programs, random_seed):
+    """REST payload for :py:func:`ForestConnection._expectation`"""
+    if operator_programs is None:
+        operator_programs = [Program()]
+
+    if not isinstance(prep_prog, Program):
+        raise TypeError("prep_prog variable must be a Quil program object")
+
+    payload = {'type': TYPE_EXPECTATION,
+               'state-preparation': prep_prog.out(),
+               'operators': [x.out() for x in operator_programs]}
+
+    if random_seed is not None:
+        payload['rng-seed'] = random_seed
+
+    return payload
+
+
+def qvm_run_payload(quil_program, classical_addresses, trials, needs_compilation, isa,
+                    measurement_noise, gate_noise, random_seed):
+    """REST payload for :py:func:`ForestConnection._qvm_run`"""
+    if not quil_program:
+        raise ValueError("You have attempted to run an empty program."
+                         " Please provide gates or measure instructions to your program.")
+    if not isinstance(quil_program, Program):
+        raise TypeError("quil_program must be a Quil program object")
+    validate_run_items(classical_addresses)
+    if not isinstance(trials, integer_types):
+        raise TypeError("trials must be an integer")
+    if needs_compilation and not isa:
+        raise TypeError("ISA cannot be None if program needs compilation preprocessing.")
+
+    payload = {"type": TYPE_MULTISHOT,
+               "addresses": list(classical_addresses),
+               "trials": trials}
+    if needs_compilation:
+        payload["uncompiled-quil"] = quil_program.out()
+        payload["target-device"] = {"isa": isa.to_dict()}
+    else:
+        payload["compiled-quil"] = quil_program.out()
+
+    if measurement_noise is not None:
+        payload["measurement-noise"] = measurement_noise
+    if gate_noise is not None:
+        payload["gate-noise"] = gate_noise
+    if random_seed is not None:
+        payload['rng-seed'] = random_seed
+
+    return payload
+
+
+def qpu_run_payload(quil_program, classical_addresses, trials, needs_compilation, isa):
+    """REST payload for :py:func:`ForestConnection._qpu_run_async`"""
+    if not quil_program:
+        raise ValueError("You have attempted to run an empty program."
+                         " Please provide gates or measure instructions to your program.")
+
+    if not isinstance(quil_program, Program):
+        raise TypeError("quil_program must be a Quil program object")
+    validate_run_items(classical_addresses)
+    if not isinstance(trials, integer_types):
+        raise TypeError("trials must be an integer")
+
+    payload = {"type": TYPE_MULTISHOT,
+               "addresses": list(classical_addresses),
+               "trials": trials}
+
+    if needs_compilation:
+        payload["uncompiled-quil"] = quil_program.out()
+        if isa:
+            payload["target-device"] = {"isa": isa.to_dict()}
+    else:
+        payload["compiled-quil"] = quil_program.out()
+
+    return payload
+
+
+class ForestConnection:
+    def __init__(self, sync_endpoint=SYNC_ENDPOINT,
+                 async_endpoint=ASYNC_ENDPOINT, api_key=None, user_id=None,
+                 use_queue=False, ping_time=0.1, status_time=2):
+        """
+        Represents a connection to Forest containing methods to wrap all possible API endpoints.
+
+        Users should not use methods from this class directly.
+
+        :param sync_endpoint: The endpoint of the server for running small jobs
+        :param async_endpoint: The endpoint of the server for running large jobs
+        :param api_key: The key to the Forest API Gateway (default behavior is to read from
+            config file)
+        :param user_id: Your userid for Forest (default behavior is to read from config file)
+        :param bool use_queue: Disabling this parameter may improve performance for small,
+            quick programs. To support larger programs, set it to True. (default: False)
+            *_async methods will always use the queue; See https://go.rigetti.com/connections
+            for more information.
+        :param int ping_time: Time in seconds for how long to wait between polling the server
+            for updated status information on a job. Note that this parameter doesn't matter if
+            use_queue is False.
+        :param int status_time: Time in seconds for how long to wait between printing status
+            information. To disable printing of status entirely then set status_time to False.
+            Note that this parameter doesn't matter if use_queue is False.
+        """
+        self.async_endpoint = async_endpoint
+        self.sync_endpoint = sync_endpoint
+        self.api_key = api_key
+        self.user_id = user_id
+        self.session = get_session(api_key, user_id)
+
+        self.use_queue = use_queue
+        self.ping_time = ping_time
+        self.status_time = status_time
+
+    def _run_and_measure(self, quil_program, qubits, trials, random_seed) -> np.ndarray:
+        """
+        Run a Forest ``run_and_measure`` job.
+
+        Users should use :py:func:`WavefunctionSimulator.run_and_measure` instead of calling
+        this directly.
+        """
+        payload = run_and_measure_payload(quil_program, qubits, trials, random_seed)
+        if self.use_queue:
+            response = post_json(self.session, self.async_endpoint + "/job",
+                                 {"machine": "QVM", "program": payload})
+            job = self._wait_for_job(get_job_id(response), machine='QVM')
+            return job.result()
+        else:
+            response = post_json(self.session, self.sync_endpoint + "/qvm", payload)
+            return np.asarray(response.json())
+
+    def _run_and_measure_async(self, quil_program, qubits, trials, random_seed) -> str:
+        """
+        Run a Forest ``run_and_measure`` job asynchronously.
+
+        Users should use :py:func:`WavefunctionSimulator.run_and_measure_async` instead of calling
+        this directly.
+        """
+        payload = run_and_measure_payload(quil_program, qubits, trials, random_seed)
+        response = post_json(self.session, self.async_endpoint + "/job",
+                             {"machine": "QVM", "program": payload})
+        return get_job_id(response)
+
+    def _wavefunction(self, quil_program, classical_addresses, random_seed) -> Wavefunction:
+        """
+        Run a Forest ``wavefunction`` job.
+
+        Users should use :py:func:`WavefunctionSimulator.wavefunction` instead of calling
+        this directly.
+        """
+        if self.use_queue:
+            payload = wavefunction_payload(quil_program, classical_addresses, random_seed)
+            response = post_json(self.session, self.async_endpoint + "/job",
+                                 {"machine": "QVM", "program": payload})
+            job = self._wait_for_job(get_job_id(response), machine='QVM')
+            return job.result()
+        else:
+            payload = wavefunction_payload(quil_program, classical_addresses, random_seed)
+            response = post_json(self.session, self.sync_endpoint + "/qvm", payload)
+            return Wavefunction.from_bit_packed_string(response.content, classical_addresses)
+
+    def _wavefunction_async(self, quil_program, classical_addresses, random_seed) -> str:
+        """
+        Run a Forest ``wavefunction`` job asynchronously.
+
+        Users should use :py:func:`WavefunctionSimulator.wavefunction_async` instead of calling
+        this directly.
+        """
+        payload = wavefunction_payload(quil_program, classical_addresses, random_seed)
+        response = post_json(self.session, self.async_endpoint + "/job",
+                             {"machine": "QVM", "program": payload})
+        return get_job_id(response)
+
+    def _expectation(self, prep_prog, operator_programs, random_seed) -> np.ndarray:
+        """
+        Run a Forest ``expectation`` job.
+
+        Users should use :py:func:`WavefunctionSimulator.expectation` instead of calling
+        this directly.
+        """
+        if isinstance(operator_programs, Program):
+            warnings.warn("You have provided a Program rather than a list of Programs. The results "
+                          "from expectation will be line-wise expectation values of the "
+                          "operator_programs.", SyntaxWarning)
+        if self.use_queue:
+            payload = expectation_payload(prep_prog, operator_programs, random_seed)
+            response = post_json(self.session, self.async_endpoint + "/job",
+                                 {"machine": "QVM", "program": payload})
+            job = self._wait_for_job(get_job_id(response), machine='QVM')
+            return job.result()
+        else:
+            payload = expectation_payload(prep_prog, operator_programs, random_seed)
+            response = post_json(self.session, self.sync_endpoint + "/qvm", payload)
+            return np.asarray(response.json())
+
+    def _expectation_async(self, prep_prog, operator_programs, random_seed) -> str:
+        """
+        Run a Forest ``expectation`` job asynchronously.
+
+        Users should use :py:func:`WavefunctionSimulator.expectation_async` instead of calling
+        this directly.
+        """
+        payload = expectation_payload(prep_prog, operator_programs, random_seed)
+        response = post_json(self.session, self.async_endpoint + "/job",
+                             {"machine": "QVM", "program": payload})
+        return get_job_id(response)
+
+    def _qvm_run(self, quil_program, classical_addresses, trials, needs_compilation, isa,
+                 measurement_noise, gate_noise, random_seed) -> np.ndarray:
+        """
+        Run a Forest ``run`` job on a QVM.
+
+        Users should use :py:func:`QVM.run` instead of calling this directly.
+        """
+        payload = qvm_run_payload(quil_program, classical_addresses, trials, needs_compilation, isa,
+                                  measurement_noise, gate_noise, random_seed)
+        if self.use_queue or needs_compilation:
+            if needs_compilation and not self.use_queue:
+                warnings.warn('Synchronous QVM connection does not support compilation '
+                              'preprocessing. Running this job over the asynchronous endpoint, '
+                              'as if use_queue were set to True.')
+
+            response = post_json(self.session, self.async_endpoint + "/job",
+                                 {"machine": "QVM", "program": payload})
+            job = self._wait_for_job(get_job_id(response), machine='QVM')
+            return job.result()
+        else:
+            response = post_json(self.session, self.sync_endpoint + "/qvm", payload)
+            return np.asarray(response.json())
+
+    def _qvm_run_async(self, quil_program, classical_addresses, trials, needs_compilation, isa,
+                       measurement_noise, gate_noise, random_seed) -> str:
+        """
+        Run a Forest ``run`` job on a QVM asynchronously.
+
+        Users should use :py:func:`QVM.run_async` instead of calling this directly.
+        """
+        payload = qvm_run_payload(quil_program, classical_addresses, trials, needs_compilation, isa,
+                                  measurement_noise, gate_noise, random_seed)
+        response = post_json(self.session, self.async_endpoint + "/job",
+                             {"machine": "QVM", "program": payload})
+        return get_job_id(response)
+
+    def _qpu_run(self, quil_program, classical_addresses, trials, needs_compilation, isa,
+                 device_name) -> np.ndarray:
+        """
+        Run a Forest ``run`` job on a QPU and block.
+
+        Users should use :py:func:`QPU.run` instead of calling this directly.
+        """
+        job = self._wait_for_job(self._qpu_run_async(quil_program, classical_addresses, trials,
+                                                     needs_compilation, isa, device_name),
+                                 machine='QPU')
+        return job.result()
+
+    def _qpu_run_async(self, quil_program, classical_addresses, trials, needs_compilation, isa,
+                       device_name) -> str:
+        """
+        Run a Forest ``run`` job on a QPU asynchronously.
+
+        Users should use :py:func:`QPU.run_async` instead of calling this directly.
+        """
+        payload = qpu_run_payload(quil_program, classical_addresses, trials, needs_compilation, isa)
+        response = None
+        while response is None:
+            try:
+                response = post_json(self.session, self.async_endpoint + "/job",
+                                     {"machine": "QPU", "program": payload, "device": device_name})
+            except errors.DeviceRetuningError:
+                print("QPU is retuning. Will try to reconnect in 10 seconds...")
+                time.sleep(10)
+
+        return get_job_id(response)
+
+    def _get_job(self, job_id, machine):
+        """
+        Given a job id, return information about the status of the job
+
+        :param str job_id: job id
+        :return: Job object with the status and potentially results of the job
+        :rtype: Job
+        """
+        response = get_json(self.session, self.async_endpoint + "/job/" + job_id)
+        return Job(response.json(), machine)
+
+    def _wait_for_job(self, job_id, machine, ping_time=None, status_time=None) -> Job:
+        """
+        Wait for the results of a job and periodically print status
+
+        :param job_id: Job id
+        :param ping_time: How often to poll the server.
+                          Defaults to the value specified in the constructor. (0.1 seconds)
+        :param status_time: How often to print status, set to False to never print status.
+                            Defaults to the value specified in the constructor (2 seconds)
+        :return: Completed Job
+        """
+
+        def get_job_fn():
+            return self._get_job(job_id, machine)
+
+        return wait_for_job(get_job_fn,
+                            ping_time if ping_time else self.ping_time,
+                            status_time if status_time else self.status_time)

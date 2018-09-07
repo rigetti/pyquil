@@ -782,6 +782,25 @@ def test_get_classical_addresses_from_program():
     assert get_classical_addresses_from_program(p) == [0, 1, 3]
 
 
+def test_get_classical_addresses_from_quil_program():
+    """
+    Tests that can get_classical_addresses_from_program can handle both MEASURE
+    quil instructions with and without explicit classical registers.
+    """
+
+    p = Program('\n'.join([
+        'X 0',
+        'MEASURE 0'
+    ]))
+    assert get_classical_addresses_from_program(p) == []
+
+    p = Program('\n'.join([
+        'X 0',
+        'MEASURE 0 [1]'
+    ]))
+    assert get_classical_addresses_from_program(p) == [1]
+
+
 def test_pragma_with_placeholders():
     q = QubitPlaceholder()
     q2 = QubitPlaceholder()

@@ -13,7 +13,6 @@
 #    See the License for the specific language governing permissions and
 #    limitations under the License.
 ##############################################################################
-import os
 
 from pyquil.api.job import Job
 from pyquil.device import Device, ISA, Specs
@@ -21,11 +20,7 @@ from pyquil.quil import Program, address_qubits
 from pyquil.parser import parse_program
 from pyquil.paulis import PauliTerm
 from ._base_connection import TYPE_MULTISHOT, get_job_id, get_session, \
-    wait_for_job, post_json, get_json
-
-
-ASYNC_ENDPOINT = os.getenv('FOREST_ASYNC_ENDPOINT', 'https://job.rigetti.com/beta')
-SYNC_ENDPOINT = os.getenv('FOREST_SYNC_ENDPOINT', 'https://api.rigetti.com')
+    wait_for_job, post_json, get_json, ASYNC_ENDPOINT, SYNC_ENDPOINT
 
 
 class CompilerConnection(object):
@@ -218,7 +213,7 @@ class CompilerConnection(object):
             pauli_out *= PauliTerm(pauli, all_qubits[i])
         return pauli_out * pauli_in.coefficient
 
-    def _rb_sequence_payload(self, depth, gateset):
+    def _rb_sequence_payload(self, depth, gateset, seed=None):
         """
         Prepares a JSON payload for generating a randomized benchmarking sequence.
 
@@ -227,6 +222,7 @@ class CompilerConnection(object):
         :param int depth: The number of cliffords per rb sequences to generate.
         :param list gateset: A list of Gate objects that make up the gateset to decompose
             the Cliffords into.
+        :param int seed: A positive integer that seeds the random generation of the gate sequence.
         :return: The JSON payload, with keys "depth", "qubits", and "gateset".
         """
         # Support QubitPlaceholders: we temporarily index to arbitrary integers.
@@ -236,10 +232,11 @@ class CompilerConnection(object):
         gateset_for_api = gateset_as_program.out().splitlines()
         payload = {"depth": depth,
                    "qubits": n_qubits,
-                   "gateset": gateset_for_api}
+                   "gateset": gateset_for_api,
+                   "seed": seed}
         return payload
 
-    def generate_rb_sequence(self, depth, gateset):
+    def generate_rb_sequence(self, depth, gateset, seed=None):
         """
         Construct a randomized benchmarking experiment on the given qubits, decomposing into
         gateset.
@@ -252,6 +249,7 @@ class CompilerConnection(object):
         :param list gateset: A list of pyquil gates to decompose the Clifford elements into. These
          must generate the clifford group on the qubits of interest. e.g. for one qubit
          [RZ(np.pi/2), RX(np.pi/2)].
+        :param int seed: A positive integer that seeds the random generation of the gate sequence.
         :return: A list of pyquil programs. Each pyquil program is a circuit that represents an
          element of the Clifford group. When these programs are composed, the resulting Program
          will be the randomized benchmarking experiment of the desired depth. e.g. if the return
@@ -259,7 +257,7 @@ class CompilerConnection(object):
          benchmarking experiment, which will compose to the identity program.
         """
         depth = int(depth)  # needs to be jsonable, no np.int64 please!
-        payload = self._rb_sequence_payload(depth, gateset)
+        payload = self._rb_sequence_payload(depth, gateset, seed)
         response = post_json(self.session, self.sync_endpoint + "/rb", payload).json()
         programs = []
         for clifford in response:
