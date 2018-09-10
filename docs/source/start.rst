@@ -29,7 +29,7 @@ However, to run programs (e.g., to get wavefunctions, get multishot experiment d
 you will need an API key for Rigetti Forest. This will allow you to run your programs
 on the Rigetti QVM or QPU.
 
-`Sign up here <http://forest.rigetti.com>`_ to get a Forest API key, it's free
+`Sign up here <https://rigetti.com/forest-api>`_ to get a Forest API key, it's free
 and only takes a few seconds. We also highly recommend that you join our
 `public slack channel <http://slack.rigetti.com>`_ where you can
 connect with other users and Rigetti members for support.
