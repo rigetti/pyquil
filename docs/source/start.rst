@@ -3,140 +3,185 @@
 Installation and Getting Started
 ================================
 
-Make sure you have a current version of Python installed on your computer. We recommend
-installing the `Anaconda Python distribution <https://www.anaconda.com/download/>`_.
+Download the Forest SDK `here <http://rigetti.com/forest>`_. The SDK will pre-package pyQuil v2.0/Quil 1.1, a compatible
+downloadable QVM, and Quil Compiler. You'll need to download these resources before constructing and executing pyQuil
+programs.
+
+We recommend installing pyQuil using package manager pip.
 
 
+.. code::
 
-Then, install pyQuil with::
+    `pip install pyquil`
 
-    conda install -c rigetti pyquil
+will install pyQuil you can install requirements directly by typing
 
+.. code::
+
+    `pip install -r requirements.txt`
+
+in your pyquil folder.
+
+For those of you that already have pyQuil, you can upgrade by typing
+
+.. code::
+
+    `pip install --upgrade pyquil`
+
+in your pyquil folder.
 
 .. note::
 
     PyQuil requires Python 3.
 
-.. note::
-
-    We also support installation via ``pip`` with ``pip install pyquil``
-
 Connecting to Rigetti Forest
 ----------------------------
 
-pyQuil can be used to build and manipulate Quil programs without restriction.
-However, to run programs (e.g., to get wavefunctions, get multishot experiment data),
-you will need an API key for Rigetti Forest. This will allow you to run your programs
-on the Rigetti QVM or QPU.
+The expected locations of the QVM and Compiler endpoints are
+configurable in pyQuil. When running on a QMI, these configuration
+values are automatically managed so as to point to the relevant
+Rigetti-internal endpoints. When running locally, these default to
+values reasonable for a user running local instances of the Rigetti
+toolchain on their laptop. Ideally, little-to-no work will be required
+for setting up this configuration environment locally or remotely, or
+for transferring functioning code from one configured environment to
+another.
 
-`Sign up here <https://rigetti.com/forest-api>`_ to get a Forest API key, it's free
-and only takes a few seconds. We also highly recommend that you join our
-`public slack channel <http://slack.rigetti.com>`_ where you can
-connect with other users and Rigetti members for support.
+.. note::
+    A config file is not necessary to run locally, though it may be useful in configuring your local set-up.
 
-Run the following command to automatically set up the config. This will prompt you for
-the required information (URL, key, and user id). It will then create a file in the
-proper location (the user's root directory):
-
-::
-
-    pyquil-config-setup
-
-If the setup completed successfully then you can skip to the next section.
-
-You can also create the configuration file manually if you'd like and place
-it at ``~/.pyquil_config``. The configuration file is in INI format and should
-contain all the information required to connect to Forest:
+In general, these values are read out of a pair of configuration files
+(stored at the location described by the environment variables
+``FOREST_CONFIG`` and ``QCS_CONFIG``, or else at the respective default
+locations ``~/.forest_config`` and ``~/.qcs_config``), which by default
+have the following respective contents:
 
 ::
 
     [Rigetti Forest]
-    key: <Rigetti Forest API key>
-    user_id: <Rigetti User ID>
+    url = https://api.rigetti.com/
+    key = None
+    user_id = None
 
-Alternatively, you can place the file at your own chosen location and then set
-the ``PYQUIL_CONFIG`` environment variable to the path of the file.
-
-.. note::
-
-  You may specify an absolute path or use the ~ to indicate your home directory.
-  On Linux, this points to ``/users/username``.
-  On Mac, this points to ``/Users/Username``.
-  On Windows, this points to ``C:\Users\Username``
-
-.. note::
-
-  Windows users may find it easier to name the file ``pyquil.ini`` and open it using notepad.
-  Then, set the ``PYQUIL_CONFIG`` environment variable by opening up a command prompt and
-  running: ``setenv PYQUIL_CONFIG=C:\Users\Username\pyquil.ini``
-
-As a last resort, connection information can be provided via environment variables.
+    [QPU]
+    exec_on_engage = :
 
 ::
 
-    export QVM_API_KEY=<Rigetti Forest API key>
-    export QVM_USER_ID=<Rigetti User ID>
+    [Rigetti Forest]
+    qpu_endpoint_address = None
+    qvm_address = http://localhost:5000
+    compiler_server_address = http://localhost:6000
 
-If you are still seeing errors or warnings then file a bug using
-`Github Issues <https://github.com/rigetticomputing/pyquil/issues>`_.
+These values control the following behaviors:
+
+-  ``Rigetti Forest``: This section contains network endpoint
+   information about the entire Rigetti Forest infrastructure, e.g.,
+   where to find information about which QPU devices are available.
+-  ``url``: This is the endpoint where pyQuil looks for device
+   information and for the 2.0 endpoints.
+-  ``key``: This stores the pre-2.0 API key.
+-  ``user_id``: This stores a 2.0 user ID.
+-  ``qpu_endpoint_address``: This is the endpoint where pyQuil will try to
+   communicate with the QPU orchestrating service during QPU-engagement.
+-  ``qvm_address``: This is the endpoint where pyQuil will try to
+   communicate with the Rigetti Quantum Virtual Machine. On a QMI, this
+   points to the provided QVM instance. On a local installation, this
+   should be set to the server endpoint for a locally running QVM
+   instance.
+-  ``compiler_server_address``: This is the endpoint where pyQuil will
+   try to communicate with the compiler server. On a QMI, this points to
+   a provided compiler server instance. On a local installation, this
+   should be set to the server endpoint for a locally running quilc
+   instance.
+-  ``QPU``: This section contains configuration information pertaining
+   to QPU access.
+-  ``exec_on_engage``: This is the shell command that the QMI will
+   launch when the QMI becomes QPU-engaged.
+
+    **NOTE:** PyQuil itself reads these values out using the helper
+    class ``pyquil._config.PyquilConfig``. PyQuil users should not ever
+    need to touch this class directly.
+
 
 Getting Started
 ---------------
 
-This toolkit provides some simple libraries for writing quantum
-programs.
+This toolkit provides some simple libraries for writing quantum programs. Before we learn about pyQuil, let's try to run
+something on the simulator.
+
+First, initialize a localQVM instance on your laptop. You should have two consoles open in your terminal to run in the
+background.
 
 .. code:: python
 
-    from pyquil.quil import Program
-    from pyquil.api import QVMConnection
-    from pyquil.gates import CNOT, H
+    ### CONSOLE 1
+    $ quilc -S
+    port triggered: 6000.
+    [2018-09-19 11:22:37] Starting server: 0.0.0.0 : 6000.
 
-    qvm = QVMConnection()
+    ### CONSOLE 2
+    $ qvm -S
+    Welcome to the Rigetti QVM
+    (Configured with 2048 MiB of workspace and 8 workers.)
+    [2018-09-20 15:39:50] Starting server on port 5000.
+
+
+Now that our local endpoints are up and running, we can start running pyQuil programs! Open a jupyter notebook (type
+..code::`jupyter notebook` in your terminal), or launch python in your terminal (type ..code::`python3`).
+
+Now that you're in python, we can import a few things from pyquil.
+
+.. code:: python
+
+    from pyquil import Program, get_qc
+    from pyquil.gates import *
+
+We've imported the Program object, which allows us to specify a pyquil program. `get-qc` allows us to connect to a
+"quantum computer" object, which allows us to specify something for our program to run on. We've also imported all (*)
+gates from the pyquil.gates module, which allows us to construct a program.
+
+Let's construct a basic program. A Bell State, for example, is a simple entangled state, where two qubits are entangled
+in a superposition state, such that they will be in identical states when measured.
+
+.. code:: python
+
+    # construct a Bell State program
     p = Program(H(0), CNOT(0, 1))
 
-    wf = qvm.wavefunction(p)
-    print(wf)
+We've accomplished this by driving qubit 0 into a superposition state (that's what the "H" gate does), and then created
+an entangled state between qubits 0 and 1 (that's what the "CNOT" gate does). Next, we'll want to run our program:
 
-::
+.. code:: python
 
-    (0.7071067812+0j)|00> + (0.7071067812+0j)|11>
+    # run the program on a QVM
+    qvm = get_qc('9q-generic-qvm')
+    result = qvm.run_and_measure(p, trials=10)
+    print(result)
 
-It comes with a few parts:
-
-1. **Quil**: The Quantum Instruction Language standard. Instructions
-   written in Quil can be executed on any implementation of a quantum
-   abstract machine, such as the quantum virtual machine (QVM), or on a
-   real quantum processing unit (QPU). More details regarding Quil can be
-   found in the `whitepaper <https://arxiv.org/abs/1608.03355>`__.
-2. **pyQuil**: A Python library to help write and run Quil code and
-   quantum programs.
-3. **QVM**: A `Quantum Virtual Machine <qvm.html>`_, which is an implementation of the
-   quantum abstract machine on classical hardware. The QVM lets you use a
-   regular computer to simulate a small quantum computer. You can access
-   the Rigetti QVM running in the cloud with your API key.
-   `Sign up here <http://forest.rigetti.com>`_ to get your key.
-4. **QPU**: pyQuil also includes some a special connection which lets you run experiments
-   on Rigetti's prototype superconducting quantum processors over the cloud.
-5. **Quilc**: In addition to running on the QVM or the QPU, users can directly use
-   the Quil compiler, to investigate how arbitrary quantum programs can be compiled
-   to target specific physical instruction set architectures (ISAs).
+The QVM object above is a simulated quantum computer. It's what you can connect to, using the downloadable Forest SDK.
+By specifying we want to `.run_and_measure`, we've told our QVM to run the program specified above, and to collapse the
+state with a measurement. A measurement will give us the state of the qubits. "trials" refers to the number of times we
+run the program- a Bell State will give you both (0,0) and (1, 1); see how many times you get each output.
 
 
-Your First Quantum Program
---------------------------
-pyQuil is a Python library that helps you write programs in the Quantum Instruction Language (Quil).
-It also ships with a simple script ``run_quil.py`` that runs Quil code directly. The script is located in the `pyQuil repository <https://github.com/rigetticomputing/pyquil>`_. You can
-test your connection to Forest using this script by cloning the pyQuil repository and executing the following on your command line
+Our Forest SDK comes with a few parts:
 
-::
+1. **Quil**: The Quantum Instruction Language standard. Instructions written in Quil can be executed on any
+implementation of a quantum abstract machine, such as the quantum virtual machine (QVM), or on a real quantum processing
+unit (QPU). More details regarding Quil can be found in the `whitepaper <https://arxiv.org/abs/1608.03355>`__.
 
-    cd pyquil/examples/
-    python run_quil.py hello_world.quil
+2. **pyQuil**: A Python library to help write and run Quil code and quantum programs.
 
-You should see the following output array ``[[1, 0, 0, 0, 0, 0, 0, 0]]``.
-This indicates that you have successfully interacted with our API.
+3. **QVM**: A `Quantum Virtual Machine <qvm.html>`_, which is an implementation of the quantum abstract machine on
+classical hardware. The QVM lets you use a regular computer to simulate a small quantum computer.
 
-You can continue to write more Quil code in files and run them using the ``run_quil.py`` script.
-The following sections describe how to use the pyQuil library directly to build quantum programs in
-Python.
+4. **Quilc**: In addition to running on the QVM or the QPU, users can directly use the Quil compiler, to investigate how
+arbitrary quantum programs can be compiled to target specific physical instruction set architectures (ISAs).
+
+5. **QPU**: pyQuil also includes some a special connection which lets you run experiments on Rigetti's prototype
+superconducting quantum processors over the cloud.
+
+
+In the following sections, we'll cover gates, program construction & execution, and go into detail about our Quantum
+Virtual Machine, our QPUs, noise models and more.

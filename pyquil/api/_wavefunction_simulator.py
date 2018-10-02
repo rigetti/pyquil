@@ -1,16 +1,33 @@
-from typing import Iterable, List, Union
+##############################################################################
+# Copyright 2018 Rigetti Computing
+#
+#    Licensed under the Apache License, Version 2.0 (the "License");
+#    you may not use this file except in compliance with the License.
+#    You may obtain a copy of the License at
+#
+#        http://www.apache.org/licenses/LICENSE-2.0
+#
+#    Unless required by applicable law or agreed to in writing, software
+#    distributed under the License is distributed on an "AS IS" BASIS,
+#    WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+#    See the License for the specific language governing permissions and
+#    limitations under the License.
+##############################################################################
+from typing import List, Union
 
 import numpy as np
 from six import integer_types
 
-from pyquil.api import Job
+from pyquil.api._base_connection import ForestConnection
+from pyquil.api._error_reporting import _record_call
+from pyquil.api._job import Job
 from pyquil.paulis import PauliSum, PauliTerm
 from pyquil.quil import Program
 from pyquil.wavefunction import Wavefunction
-from ._base_connection import ForestConnection
 
 
 class WavefunctionSimulator:
+    @_record_call
     def __init__(self, connection: ForestConnection = None, random_seed=None):
         """
         A simulator that propagates a wavefunction representation of a quantum state.
@@ -31,8 +48,8 @@ class WavefunctionSimulator:
         else:
             raise TypeError("random_seed should be None or a non-negative int")
 
-    def wavefunction(self, quil_program: Program,
-                     classical_addresses: Iterable[int] = None) -> Wavefunction:
+    @_record_call
+    def wavefunction(self, quil_program: Program) -> Wavefunction:
         """
         Simulate a Quil program and return the wavefunction.
 
@@ -43,29 +60,22 @@ class WavefunctionSimulator:
             different*.
 
         :param quil_program: A Quil program.
-        :param classical_addresses: An optional list of classical addresses to return in addition
-            of the quantum wavefunction.
         :return: A Wavefunction object representing the state of the QVM.
         """
-        if classical_addresses is None:
-            classical_addresses = []
 
         return self.connection._wavefunction(quil_program=quil_program,
-                                             classical_addresses=classical_addresses,
                                              random_seed=self.random_seed)
 
-    def wavefunction_async(self, quil_program, classical_addresses=None):
+    @_record_call
+    def wavefunction_async(self, quil_program):
         """
         Similar to wavefunction except that it returns a job id and doesn't wait for the program
         to be executed. See https://go.rigetti.com/connections for reasons to use this method.
         """
-        if classical_addresses is None:
-            classical_addresses = []
-
         return self.connection._wavefunction_async(quil_program=quil_program,
-                                                   classical_addresses=classical_addresses,
                                                    random_seed=self.random_seed)
 
+    @_record_call
     def expectation(self, prep_prog: Program,
                     pauli_terms: Union[PauliSum, List[PauliTerm]]) -> Union[float, np.ndarray]:
         """
@@ -100,6 +110,7 @@ class WavefunctionSimulator:
             return np.sum(results)
         return results
 
+    @_record_call
     def run_and_measure(self, quil_program: Program, qubits: List[int] = None,
                         trials: int = 1) -> np.ndarray:
         """
@@ -133,6 +144,7 @@ class WavefunctionSimulator:
                                                 trials=trials,
                                                 random_seed=self.random_seed)
 
+    @_record_call
     def run_and_measure_async(self, quil_program, qubits=None, trials=1):
         """
         Similar to run_and_measure except that it returns a job id and doesn't wait for the
@@ -146,6 +158,7 @@ class WavefunctionSimulator:
         return self.connection._run_and_measure_async(quil_program=quil_program, qubits=qubits,
                                                       trials=trials, random_seed=self.random_seed)
 
+    @_record_call
     def wait_for_job(self, job_id, ping_time=None, status_time=None) -> Job:
         """
         For async functions, wait for the specified job to be done and return the completed job.

@@ -1,13 +1,24 @@
+import itertools
+
 import networkx as nx
 import numpy as np
 import pytest
 
 from pyquil import Program, get_qc, list_quantum_computers
-from pyquil.api import QVM
-from pyquil.api.quantum_computer import _get_flipped_protoquil_program, QuantumComputer, _parse_name
-from pyquil.device import NxDevice
+from pyquil.api import QVM, QuantumComputer
+from pyquil.api._qac import AbstractCompiler
+from pyquil.api._quantum_computer import _get_flipped_protoquil_program, _parse_name
+from pyquil.device import NxDevice, gates_in_isa
 from pyquil.gates import *
-from pyquil.noise import decoherance_noise_with_asymmetric_ro
+from pyquil.noise import decoherence_noise_with_asymmetric_ro
+
+
+class DummyCompiler(AbstractCompiler):
+    def quil_to_native_quil(self, program: Program):
+        return program
+
+    def native_quil_to_executable(self, nq_program: Program):
+        return nq_program
 
 
 def test_get_flipped_program():
@@ -25,8 +36,8 @@ def test_get_flipped_program():
         'RX(pi) 0',
         'RX(pi) 1',
         'PRAGMA END_PRESERVE_BLOCK',
-        'MEASURE 0 [0]',
-        'MEASURE 1 [1]',
+        'MEASURE 0 ro[0]',
+        'MEASURE 1 ro[1]',
     ]
 
 
@@ -38,12 +49,13 @@ def test_get_flipped_program_only_measure():
 
     flipped_program = _get_flipped_protoquil_program(program)
     assert flipped_program.out().splitlines() == [
+        'DECLARE ro BIT[2]',
         'PRAGMA PRESERVE_BLOCK',
         'RX(pi) 0',
         'RX(pi) 1',
         'PRAGMA END_PRESERVE_BLOCK',
-        'MEASURE 0 [0]',
-        'MEASURE 1 [1]',
+        'MEASURE 0 ro[0]',
+        'MEASURE 1 ro[1]',
     ]
 
 
@@ -53,6 +65,7 @@ def test_device_stuff():
         name='testy!',
         qam=None,  # not necessary for this test
         device=NxDevice(topo),
+        compiler=DummyCompiler()
     )
     assert nx.is_isomorphic(qc.qubit_topology(), topo)
 
@@ -62,10 +75,12 @@ def test_device_stuff():
 
 
 def test_run(forest):
+    device = NxDevice(nx.complete_graph(3))
     qc = QuantumComputer(
         name='testy!',
         qam=QVM(connection=forest, gate_noise=[0.01] * 3),
-        device=NxDevice(nx.complete_graph(3)),
+        device=device,
+        compiler=DummyCompiler()
     )
     bitstrings = qc.run(Program(
         H(0),
@@ -73,8 +88,8 @@ def test_run(forest):
         CNOT(1, 2),
         MEASURE(0, 0),
         MEASURE(1, 1),
-        MEASURE(2, 2),
-    ), classical_addresses=[0, 1, 2], trials=1000)
+        MEASURE(2, 2)).wrap_in_numshots_loop(1000),
+                        classical_addresses=None)
 
     assert bitstrings.shape == (1000, 3)
     parity = np.sum(bitstrings, axis=1) % 3
@@ -83,24 +98,26 @@ def test_run(forest):
 
 def test_readout_symmetrization(forest):
     device = NxDevice(nx.complete_graph(3))
-    noise_model = decoherance_noise_with_asymmetric_ro(device.get_isa())
+    noise_model = decoherence_noise_with_asymmetric_ro(gates=gates_in_isa(device.get_isa()))
     qc = QuantumComputer(
         name='testy!',
         qam=QVM(connection=forest, noise_model=noise_model),
-        device=device
+        device=device,
+        compiler=DummyCompiler()
     )
 
     prog = Program(I(0), X(1),
                    MEASURE(0, 0),
                    MEASURE(1, 1))
+    prog.wrap_in_numshots_loop(1000)
 
-    bs1 = qc.run(prog, [0, 1], 1000)
+    bs1 = qc.run(prog, True)
     avg0_us = np.mean(bs1[:, 0])
     avg1_us = 1 - np.mean(bs1[:, 1])
     diff_us = avg1_us - avg0_us
     assert diff_us > 0.03
 
-    bs2 = qc.run_symmetrized_readout(prog, [0, 1], 1000)
+    bs2 = qc.run_symmetrized_readout(prog, 1000, None)
     avg0_s = np.mean(bs2[:, 0])
     avg1_s = 1 - np.mean(bs2[:, 1])
     diff_s = avg1_s - avg0_s
@@ -109,9 +126,8 @@ def test_readout_symmetrization(forest):
 
 def test_list_qc():
     qc_names = list_quantum_computers()
-    assert qc_names == ['8Q-Agave', '8Q-Agave-qvm', '8Q-Agave-noisy-qvm',
-                        '19Q-Acorn', '19Q-Acorn-qvm', '19Q-Acorn-noisy-qvm',
-                        '9q-generic-qvm', '9q-generic-noisy-qvm']
+    # TODO: update with deployed qpus
+    assert qc_names == ['9q-generic-qvm', '9q-generic-noisy-qvm']
 
 
 def test_parse_qc_name():
@@ -185,8 +201,32 @@ def test_parse_qc_strip():
     assert name == 'mvq'
 
 
-def test_qc(forest):
-    qc = get_qc('9q-generic-noisy-qvm', connection=forest)
+def test_parse_qc_no_prefix():
+    prefix, as_qvm, noisy = _parse_name('qvm', None, None)
+    assert as_qvm
+    assert not noisy
+    assert prefix == ''
+
+    prefix, as_qvm, noisy = _parse_name('', True, None)
+    assert as_qvm
+    assert not noisy
+    assert prefix == ''
+
+
+def test_parse_qc_no_prefix_2():
+    prefix, as_qvm, noisy = _parse_name('noisy-qvm', None, None)
+    assert as_qvm
+    assert noisy
+    assert prefix == ''
+
+    prefix, as_qvm, noisy = _parse_name('', True, True)
+    assert as_qvm
+    assert noisy
+    assert prefix == ''
+
+
+def test_qc(qvm, compiler):
+    qc = get_qc('9q-generic-noisy-qvm')
     assert isinstance(qc, QuantumComputer)
     assert isinstance(qc.qam, QVM)
     assert qc.qam.noise_model is not None
@@ -194,6 +234,11 @@ def test_qc(forest):
     assert qc.qubit_topology().degree[0] == 2
     assert qc.qubit_topology().degree[4] == 4
 
-    # TODO: have `qubits` default to all device qubits?
-    bs = qc.run_and_measure(Program(X(0)), qubits=[0], trials=1)
-    np.testing.assert_array_equal(bs, [[1]])
+    bs = qc.run_and_measure(Program(X(0)), trials=3)
+    assert bs.shape == (3, 9)
+
+
+def test_fully_connected_qvm_qc():
+    qc = get_qc('qvm')
+    for q1, q2 in itertools.permutations(range(34), r=2):
+        assert (q1, q2) in qc.qubit_topology().edges

@@ -1,26 +1,50 @@
+##############################################################################
+# Copyright 2018 Rigetti Computing
+#
+#    Licensed under the Apache License, Version 2.0 (the "License");
+#    you may not use this file except in compliance with the License.
+#    You may obtain a copy of the License at
+#
+#        http://www.apache.org/licenses/LICENSE-2.0
+#
+#    Unless required by applicable law or agreed to in writing, software
+#    distributed under the License is distributed on an "AS IS" BASIS,
+#    WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+#    See the License for the specific language governing permissions and
+#    limitations under the License.
+##############################################################################
 import warnings
 from math import pi
 from typing import List
 
 import networkx as nx
 import numpy as np
+from pidgin.core_messages import BinaryExecutableResponse
 
-from pyquil.api import get_devices, QPU, ForestConnection, QVM
+from pyquil.api._compiler import QVMCompiler, QPUCompiler, LocalQVMCompiler
+from pyquil.api._config import PyquilConfig
+from pyquil.api._devices import get_device
+from pyquil.api._error_reporting import _record_call
+from pyquil.api._qac import AbstractCompiler
 from pyquil.api._qam import QAM
-from pyquil.device import AbstractDevice, NxDevice
-from pyquil.gates import MEASURE, RX
-from pyquil.noise import decoherance_noise_with_asymmetric_ro
-from pyquil.quil import Program, get_classical_addresses_from_program
-from pyquil.quilbase import Measurement, Pragma
+from pyquil.api._qpu import QPU
+from pyquil.api._qvm import ForestConnection, QVM
+from pyquil.device import AbstractDevice, NxDevice, gates_in_isa
+from pyquil.gates import RX, MEASURE
+from pyquil.noise import decoherence_noise_with_asymmetric_ro
+from pyquil.quil import Program
+from pyquil.quilbase import Measurement, Pragma, Gate, Reset
+
+pyquil_config = PyquilConfig()
 
 
-def _get_flipped_protoquil_program(program: Program):
+def _get_flipped_protoquil_program(program: Program) -> Program:
     """For symmetrization, generate a program where X gates are added before measurement.
 
     Forest 1.3 is really picky about where the measure instructions happen. It has to be
     at the end!
     """
-    program = Program(program.instructions)  # Copy
+    program = program.copy()
     to_measure = []
     while len(program) > 0:
         inst = program.instructions[-1]
@@ -42,7 +66,9 @@ def _get_flipped_protoquil_program(program: Program):
 
 
 class QuantumComputer:
-    def __init__(self, *, name: str, qam: QAM, device: AbstractDevice, symmetrize_readout=False):
+    @_record_call
+    def __init__(self, *, name: str, qam: QAM, device: AbstractDevice, compiler: AbstractCompiler,
+                 symmetrize_readout: bool = False):
         """
         A quantum computer for running quantum programs.
 
@@ -64,6 +90,7 @@ class QuantumComputer:
         self.name = name
         self.qam = qam
         self.device = device
+        self.compiler = compiler
 
         self.symmetrize_readout = symmetrize_readout
 
@@ -73,56 +100,32 @@ class QuantumComputer:
     def get_isa(self, oneq_type='Xhalves', twoq_type='CZ'):
         return self.device.get_isa(oneq_type=oneq_type, twoq_type=twoq_type)
 
-    def run(self, program, classical_addresses, trials, symmetrize_readout=None) -> np.ndarray:
+    @_record_call
+    def run(self, executable: BinaryExecutableResponse, classical_addresses=None) -> np.ndarray:
         """
-        Run a quil program.
+        Run a quil executable.
 
-        :param program: The program to run. You probably want to put MEASURE instructions
-            in your program somewhere (like at the end) because qubits are not automatically
-            measured
-        :param classical_addresses: The addresses of the classical bits to return. These don't
-            necessarily correspond to qubit indices; rather they are the second argument to
-            any MEASURE instructions you've added to your program
-        :param trials: The number of times to run the program.
-        :param symmetrize_readout: Whether to apply readout error symmetrization. If not
-            specified, the instance attribute ``symmetrize_readout`` will be used. See
-            :py:func:`run_symmetrized_readout` for a complete description.
+        :param executable: The program to run. You are responsible for compiling this first.
+        :param classical_addresses: The indices within regions of classical memory to report.
+            These don't necessarily correspond to qubit indices; rather they are the second
+            argument to any MEASURE instructions you've added to your program. If you don't
+            provide a specific collection, we will automatically report on all the locations
+            mentioned in your program.
         :return: A numpy array of shape (trials, len(classical_addresses)) that contains 0s and 1s
         """
-        if symmetrize_readout is None:
-            symmetrize_readout = self.symmetrize_readout
+        # shim old API to new `read_from_memory_region`
+        if classical_addresses is None:
+            offsets = True
+        else:
+            offsets = classical_addresses
 
-        if not classical_addresses:
-            classical_addresses = get_classical_addresses_from_program(program)
+        return self.qam.load(executable) \
+            .run() \
+            .wait() \
+            .read_from_memory_region(region_name="ro", offsets=offsets)
 
-        if symmetrize_readout:
-            return self.run_symmetrized_readout(program, classical_addresses, trials)
-
-        return self.qam.run(program, classical_addresses, trials)
-
-    def run_async(self, program, classical_addresses, trials, symmetrize_readout=None) -> str:
-        """
-        Queue a quil program for running, but return immediately with a job id.
-
-        Use :py:func:`QuantumComputer.wait_for_job` to get the actual job results, probably
-        after queueing up a whole batch of jobs.
-
-        See :py:func:`run` for this function's parameter descriptions.
-
-        :returns: a job id
-        """
-        if symmetrize_readout is None:
-            symmetrize_readout = self.symmetrize_readout
-
-        if not classical_addresses:
-            classical_addresses = get_classical_addresses_from_program(program)
-
-        if symmetrize_readout:
-            raise NotImplementedError("Async symmetrized readout isn't supported")
-
-        return self.qam.run_async(program, classical_addresses, trials)
-
-    def run_symmetrized_readout(self, program, classical_addresses, trials):
+    @_record_call
+    def run_symmetrized_readout(self, program, trials, classical_addresses):
         """
         Run a quil program in such a way that the readout error is made collectively symmetric
 
@@ -146,19 +149,21 @@ class QuantumComputer:
             raise ValueError("Using symmetrized measurement functionality requires that you "
                              "take an even number of trials.")
         half_trials = trials // 2
+        flipped_program = flipped_program.wrap_in_numshots_loop(shots=half_trials)
+        flipped_executable = self.compile(flipped_program)
 
-        samples = self.run(program, classical_addresses, half_trials, symmetrize_readout=False)
-        flipped_samples = self.run(flipped_program, classical_addresses, half_trials,
-                                   symmetrize_readout=False)
+        executable = self.compile(program.wrap_in_numshots_loop(half_trials))
+        samples = self.run(executable, classical_addresses=classical_addresses)
+        flipped_samples = self.run(flipped_executable, classical_addresses=classical_addresses)
         double_flipped_samples = np.logical_not(flipped_samples).astype(int)
         results = np.concatenate((samples, double_flipped_samples), axis=0)
         np.random.shuffle(results)
         return results
 
-    def run_and_measure(self, program: Program, qubits: List[int], trials: int,
-                        symmetrize_readout=None):
+    @_record_call
+    def run_and_measure(self, program: Program, trials: int):
         """
-        Run the provided state preparation program and measure all qubits contained in the program.
+        Run the provided state preparation program and measure all qubits.
 
         .. note::
 
@@ -168,29 +173,38 @@ class QuantumComputer:
             :py:class:`WavefunctionSimulator.run_and_measure`.
 
         :param program: The state preparation program to run and then measure.
-        :param qubits: Qubit indices to measure.
         :param trials: The number of times to run the program.
-        :param symmetrize_readout: Whether to apply readout error symmetrization. If not specified,
-            the class attribute ``symmetrize_readout`` will be used. See
-            :py:func:`run_symmetrized_readout` for a complete description.
-        :return: A numpy array of shape (trials, len(qubits)) that contains 0s and 1s
+        :return: A numpy array of shape (trials, n_device_qubits) that contains 0s and 1s
         """
-        new_prog = Program().inst(program)  # make a copy?
+        program = program.copy()
+        for instr in program.instructions:
+            if not isinstance(instr, Gate) and not isinstance(instr, Reset):
+                raise ValueError("run_and_measure programs must consist only of quantum gates.")
+        ro = program.declare('ro', 'BIT', max(self.device.qubit_topology().nodes) + 1)
+        for q in sorted(self.device.qubit_topology().nodes):
+            program.inst(MEASURE(q, ro[q]))
+        program.wrap_in_numshots_loop(trials)
+        executable = self.compile(program)
+        return self.run(executable=executable)
 
-        classical_addrs = list(range(len(qubits)))
-        for q, i in zip(qubits, classical_addrs):
-            new_prog += MEASURE(q, i)
+    @_record_call
+    def compile(self, program, to_native_gates=True, optimize=True):
+        flags = [to_native_gates, optimize]
+        assert all(flags) or all(not f for f in flags), "Must turn quilc all on or all off"
+        quilc = all(flags)
 
-        return self.run(program=new_prog, classical_addresses=classical_addrs,
-                        trials=trials, symmetrize_readout=symmetrize_readout)
-
-    def wait_for_job(self, job_id):
-        return self.qam.wait_for_job(job_id)
+        if quilc:
+            nq_program = self.compiler.quil_to_native_quil(program)
+        else:
+            nq_program = program
+        binary = self.compiler.native_quil_to_executable(nq_program)
+        return binary
 
     def __str__(self):
         return self.name
 
 
+@_record_call
 def list_quantum_computers(connection: ForestConnection = None, qpus=True, qvms=True) -> List[str]:
     """
     List the names of available quantum computers
@@ -208,10 +222,8 @@ def list_quantum_computers(connection: ForestConnection = None, qpus=True, qvms=
 
     qc_names = []
     if qpus:
-        for qpu_name in ['8Q-Agave', '19Q-Acorn']:
-            qc_names += [qpu_name]
-            if qvms:
-                qc_names += ["{}-qvm".format(qpu_name), "{}-noisy-qvm".format(qpu_name)]
+        # TODO: add deployed QPUs from web endpoint
+        pass
 
     if qvms:
         qc_names += ['9q-generic-qvm', '9q-generic-noisy-qvm']
@@ -225,7 +237,7 @@ def _parse_name(name, as_qvm, noisy):
 
     See :py:func:`get_qc` for examples of valid names + flags.
     """
-    if name.endswith('-noisy-qvm'):
+    if name.endswith('noisy-qvm'):
         if as_qvm is not None and (not as_qvm):
             raise ValueError("The provided qc name indicates you are getting a noisy QVM, "
                              "but you have specified `as_qvm=False`")
@@ -239,7 +251,7 @@ def _parse_name(name, as_qvm, noisy):
         prefix = name[:-len('-noisy-qvm')]
         return prefix, as_qvm, noisy
 
-    if name.endswith('-qvm'):
+    if name.endswith('qvm'):
         if as_qvm is not None and (not as_qvm):
             raise ValueError("The provided qc name indicates you are getting a QVM, "
                              "but you have specified `as_qvm=False`")
@@ -258,6 +270,77 @@ def _parse_name(name, as_qvm, noisy):
     return name, as_qvm, noisy
 
 
+def _get_qvm_compiler_based_on_endpoint(endpoint=None, device=None):
+    if endpoint.startswith("http"):
+        return LocalQVMCompiler(endpoint=endpoint, device=device)
+    elif endpoint.startswith("tcp"):
+        return QVMCompiler(endpoint=endpoint, device=device)
+    else:
+        raise ValueError("Protocol for QVM compiler endpoints must be HTTP or TCP.")
+
+
+def _get_9q_generic_qvm(connection: ForestConnection, noisy: bool):
+    """
+    A nine-qubit 3x3 square lattice.
+
+    This uses a "generic" lattice not tied to any specific device. 9 qubits is large enough
+    to do vaguely interesting algorithms and small enough to simulate quickly.
+
+    Users interested in building their own QuantumComputer from parts may wish to look
+    to this function for inspiration, but should not use this private function directly.
+
+    :param connection: The connection to use to talk to external services
+    :param noisy: Whether to construct a noisy quantum computer
+    :return: A pre-configured QuantumComputer
+    """
+    nineq_square = nx.convert_node_labels_to_integers(nx.grid_2d_graph(3, 3))
+    nineq_device = NxDevice(topology=nineq_square)
+    if noisy:
+        noise_model = decoherence_noise_with_asymmetric_ro(
+            gates=gates_in_isa(nineq_device.get_isa()))
+    else:
+        noise_model = None
+
+    return QuantumComputer(name='9q-generic-qvm',
+                           qam=QVM(connection=connection, noise_model=noise_model),
+                           device=nineq_device,
+                           compiler=_get_qvm_compiler_based_on_endpoint(
+                               device=nineq_device,
+                               endpoint=connection.compiler_endpoint))
+
+
+def _get_unrestricted_qvm(connection: ForestConnection, noisy: bool, n_qubits: int = 34):
+    """
+    A qvm with a fully-connected topology.
+
+    This is obviously the least realistic QVM, but who am I to tell users what they want.
+
+    Users interested in building their own QuantumComputer from parts may wish to look
+    to this function for inspiration, but should not use this private function directly.
+
+    :param connection: The connection to use to talk to external services
+    :param noisy: Whether to construct a noisy quantum computer
+    :param n_qubits: 34 qubits ought to be enough for anybody.
+    :return: A pre-configured QuantumComputer
+    """
+    fully_connected_device = NxDevice(topology=nx.complete_graph(n_qubits))
+    if noisy:
+        # note to developers: the noise model specifies noise for each possible gate. In a fully
+        # connected topology, there are a lot.
+        noise_model = decoherence_noise_with_asymmetric_ro(
+            gates=gates_in_isa(fully_connected_device.get_isa()))
+    else:
+        noise_model = None
+
+    return QuantumComputer(name='9q-generic-qvm',
+                           qam=QVM(connection=connection, noise_model=noise_model),
+                           device=fully_connected_device,
+                           compiler=_get_qvm_compiler_based_on_endpoint(
+                               device=fully_connected_device,
+                               endpoint=connection.compiler_endpoint))
+
+
+@_record_call
 def get_qc(name: str, *, as_qvm: bool = None, noisy: bool = None,
            connection: ForestConnection = None):
     """
@@ -279,6 +362,11 @@ def get_qc(name: str, *, as_qvm: bool = None, noisy: bool = None,
 
         >>> qc = get_qc("9q-generic-qvm")
         >>> qc = get_qc("9q-generic", as_qvm=True)
+
+    Finally, you can get request a QVM with "no" topology (technically: a fully connected graph
+    among the maximum possible number of qubits you can simulate) with::
+
+        >>> qc = get_qc("qvm")
 
     Redundant flags are acceptable, but conflicting flags will raise an exception::
 
@@ -318,31 +406,26 @@ def get_qc(name: str, *, as_qvm: bool = None, noisy: bool = None,
 
     name, as_qvm, noisy = _parse_name(name, as_qvm, noisy)
 
+    if name == '':
+        if not as_qvm:
+            raise ValueError("Please name a valid device or run as a QVM")
+        return _get_unrestricted_qvm(connection=connection, noisy=noisy)
+
     if name == '9q-generic':
         if not as_qvm:
             raise ValueError("The device '9q-generic' is only available as a QVM")
+        return _get_9q_generic_qvm(connection=connection, noisy=noisy)
 
-        nineq_square = nx.convert_node_labels_to_integers(nx.grid_2d_graph(3, 3))
-        nineq_device = NxDevice(topology=nineq_square)
-        if noisy:
-            noise_model = decoherance_noise_with_asymmetric_ro(nineq_device.get_isa())
-        else:
-            noise_model = None
-
-        return QuantumComputer(name='9q-generic-qvm',
-                               qam=QVM(connection=connection, noise_model=noise_model),
-                               device=nineq_device)
-
-    # At least based off a real device.
-    device = get_devices(as_dict=True)[name]
-
+    device = get_device(name)
     if not as_qvm:
         if noisy is not None and noisy:
             warnings.warn("You have specified `noisy=True`, but you're getting a QPU. This flag "
                           "is meant for controling noise models on QVMs.")
         return QuantumComputer(name=name,
-                               qam=QPU(device_name=name, connection=connection),
-                               device=device)
+                               qam=QPU(endpoint=pyquil_config.qpu_url),
+                               device=device,
+                               compiler=QPUCompiler(endpoint=pyquil_config.compiler_url,
+                                                    device=device))
 
     if noisy:
         noise_model = device.noise_model
@@ -353,4 +436,7 @@ def get_qc(name: str, *, as_qvm: bool = None, noisy: bool = None,
 
     return QuantumComputer(name=name,
                            qam=QVM(connection=connection, noise_model=noise_model),
-                           device=device)
+                           device=device,
+                           compiler=_get_qvm_compiler_based_on_endpoint(
+                               device=device,
+                               endpoint=connection.compiler_endpoint))

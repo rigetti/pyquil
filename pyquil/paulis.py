@@ -1,5 +1,5 @@
 ##############################################################################
-# Copyright 2016-2017 Rigetti Computing
+# Copyright 2016-2018 Rigetti Computing
 #
 #    Licensed under the Apache License, Version 2.0 (the "License");
 #    you may not use this file except in compliance with the License.
@@ -27,7 +27,7 @@ from pyquil.quilatom import QubitPlaceholder
 from .quil import Program
 from .gates import H, RZ, RX, CNOT, X, PHASE, QUANTUM_GATES
 from numbers import Number
-from collections import Sequence, OrderedDict, defaultdict
+from collections import Sequence, OrderedDict
 import warnings
 from six import integer_types as six_integer_types
 from six.moves import range

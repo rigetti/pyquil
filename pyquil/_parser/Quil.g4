@@ -4,7 +4,7 @@ grammar Quil;
 // PARSER
 ////////////////////
 
-quil                : allInstr? (NEWLINE+ allInstr)* NEWLINE* EOF ;
+quil                : allInstr? ( NEWLINE+ allInstr )* NEWLINE* EOF ;
 
 allInstr            : defGate
                     | defCircuit
@@ -22,14 +22,18 @@ instr               : gate
                     | wait
                     | classicalUnary
                     | classicalBinary
+                    | classicalComparison
+                    | load
+                    | store
                     | nop
                     | include
                     | pragma
+                    | memoryDescriptor
                     ;
 
 // C. Static and Parametric Gates
 
-gate                : name (LPAREN param (COMMA param)* RPAREN)? qubit+ ;
+gate                : name ( LPAREN param ( COMMA param )* RPAREN )? qubit+ ;
 
 name                : IDENTIFIER ;
 qubit               : INT ;
@@ -38,29 +42,28 @@ param               : expression ;
 
 // D. Gate Definitions
 
-defGate             : DEFGATE name (LPAREN variable (COMMA variable)* RPAREN)? COLON NEWLINE matrix ;
+defGate             : DEFGATE name ( LPAREN variable ( COMMA variable )* RPAREN )? COLON NEWLINE matrix ;
 
 variable            : PERCENTAGE IDENTIFIER ;
 
-matrix              : (matrixRow NEWLINE)* matrixRow ;
-matrixRow           : TAB expression (COMMA expression)* ;
+matrix              : ( matrixRow NEWLINE )* matrixRow ;
+matrixRow           : TAB expression ( COMMA expression )* ;
 
 // E. Circuits
 
-defCircuit          : DEFCIRCUIT name (LPAREN variable (COMMA variable)* RPAREN)? qubitVariable* COLON NEWLINE circuit ;
+defCircuit          : DEFCIRCUIT name ( LPAREN variable ( COMMA variable )* RPAREN )? qubitVariable* COLON NEWLINE circuit ;
 
 qubitVariable       : IDENTIFIER ;
 
 circuitQubit        : qubit | qubitVariable ;
-circuitGate         : name (LPAREN param (COMMA param)* RPAREN)? circuitQubit+ ;
+circuitGate         : name ( LPAREN param ( COMMA param )* RPAREN )? circuitQubit+ ;
 circuitInstr        : circuitGate | instr ;
-circuit             : (TAB circuitInstr NEWLINE)* TAB circuitInstr ;
+circuit             : ( TAB circuitInstr NEWLINE )* TAB circuitInstr ;
 
 // F. Measurement
 
 measure             : MEASURE qubit addr? ;
-addr                : LBRACKET classicalBit RBRACKET ;
-classicalBit        : INT+ ;
+addr                : IDENTIFIER | ( IDENTIFIER? LBRACKET INT RBRACKET );
 
 // G. Program control
 
@@ -73,7 +76,7 @@ jumpUnless          : JUMPUNLESS label addr ;
 
 // H. Zeroing the Quantum State
 
-resetState          : RESET ; // NB: cannot be named "reset" due to conflict with Antlr implementation
+resetState          : RESET qubit? ; // NB: cannot be named "reset" due to conflict with Antlr implementation
 
 // I. Classical/Quantum Synchronization
 
@@ -81,8 +84,19 @@ wait                : WAIT ;
 
 // J. Classical Instructions
 
-classicalUnary      : (TRUE | FALSE | NOT) addr ;
-classicalBinary     : (AND | OR | MOVE | EXCHANGE) addr addr ;
+memoryDescriptor    : DECLARE IDENTIFIER IDENTIFIER ( LBRACKET INT RBRACKET )? ( SHARING IDENTIFIER ( offsetDescriptor )* )? ;
+offsetDescriptor    : OFFSET INT IDENTIFIER ;
+
+classicalUnary      : ( NEG | NOT | TRUE | FALSE ) addr ;
+classicalBinary     : logicalBinaryOp | arithmeticBinaryOp | move | exchange | convert ;
+logicalBinaryOp     : ( AND | OR | IOR | XOR ) addr ( addr | INT ) ;
+arithmeticBinaryOp  : ( ADD | SUB | MUL | DIV ) addr ( addr | number ) ;
+move                : MOVE addr ( addr | number );
+exchange            : EXCHANGE addr addr ;
+convert             : CONVERT addr addr ;
+load                : LOAD addr IDENTIFIER addr ;
+store               : STORE IDENTIFIER addr ( addr | number );
+classicalComparison : ( EQ | GT | GE | LT | LE ) addr addr ( addr | number );
 
 // K. The No-Operation Instruction
 
@@ -102,15 +116,14 @@ pragma_name         : IDENTIFIER | INT ;
 expression          : LPAREN expression RPAREN                  #parenthesisExp
                     | sign expression                           #signedExp
                     | <assoc=right> expression POWER expression #powerExp
-                    | expression (TIMES | DIVIDE) expression    #mulDivExp
-                    | expression (PLUS | MINUS) expression      #addSubExp
+                    | expression ( TIMES | DIVIDE ) expression  #mulDivExp
+                    | expression ( PLUS | MINUS ) expression    #addSubExp
                     | function LPAREN expression RPAREN         #functionExp
-                    | segment                                   #segmentExp
                     | number                                    #numberExp
                     | variable                                  #variableExp
+                    | addr                                      #addrExp
                     ;
 
-segment             : LBRACKET INT MINUS INT RBRACKET ;
 function            : SIN | COS | SQRT | EXP | CIS ;
 sign                : PLUS | MINUS ;
 
@@ -143,13 +156,37 @@ NOP                 : 'NOP' ;
 INCLUDE             : 'INCLUDE' ;
 PRAGMA              : 'PRAGMA' ;
 
-FALSE               : 'FALSE' ;
-TRUE                : 'TRUE' ;
+DECLARE             : 'DECLARE' ;
+SHARING             : 'SHARING' ;
+OFFSET              : 'OFFSET' ;
+
+NEG                 : 'NEG' ;
 NOT                 : 'NOT' ;
+TRUE                : 'TRUE' ; // Deprecated
+FALSE               : 'FALSE' ; // Deprecated
+
 AND                 : 'AND' ;
-OR                  : 'OR' ;
+IOR                 : 'IOR' ;
+XOR                 : 'XOR' ;
+OR                  : 'OR' ;   // Deprecated
+
+ADD                 : 'ADD' ;
+SUB                 : 'SUB' ;
+MUL                 : 'MUL' ;
+DIV                 : 'DIV' ;
+
 MOVE                : 'MOVE' ;
 EXCHANGE            : 'EXCHANGE' ;
+CONVERT             : 'CONVERT' ;
+
+EQ                  : 'EQ';
+GT                  : 'GT';
+GE                  : 'GE';
+LT                  : 'LT';
+LE                  : 'LE';
+
+LOAD                : 'LOAD' ;
+STORE               : 'STORE' ;
 
 PI                  : 'pi' ;
 I                   : 'i' ;
@@ -163,23 +200,23 @@ CIS                 : 'cis' ;
 // Operators
 
 PLUS                : '+' ;
-MINUS               : '-' ; // Also serves as range in expressions like [8-71]
+MINUS               : '-' ;
 TIMES               : '*' ;
 DIVIDE              : '/' ;
 POWER               : '^' ;
 
 // Identifiers
 
-IDENTIFIER          : [A-Za-z_] [A-Za-z0-9\-_]* ;
+IDENTIFIER          : ( ( [A-Za-z_] ) | ( [A-Za-z_] [A-Za-z0-9\-_]* [A-Za-z0-9_] ) ) ;
 
 // Numbers
 
 INT                 : [0-9]+ ;
-FLOAT               : [0-9]+ ('.' [0-9]+)? (('e'|'E') ('+' | '-')? [0-9]+)? ;
+FLOAT               : [0-9]+ ( '.' [0-9]+ )? ( ( 'e'|'E' ) ( '+' | '-' )? [0-9]+ )? ;
 
 // String
 
-STRING              : '"' ~('\n' | '\r')* '"';
+STRING              : '"' ~( '\n' | '\r' )* '"';
 
 // Punctuation
 
@@ -198,11 +235,11 @@ UNDERSCORE          : '_' ;
 // Whitespace
 
 TAB                 : '    ' ;
-NEWLINE             : ('\r'? '\n' | '\r')+ ;
+NEWLINE             : ( '\r'? '\n' | '\r' )+ ;
 
 // Skips
 
-COMMENT             : '#' ~('\n' | '\r')* -> skip ;
+COMMENT             : '#' ~( '\n' | '\r' )* -> skip ;
 SPACE               : ' ' -> skip ;
 
 // Error

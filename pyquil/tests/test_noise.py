@@ -3,7 +3,6 @@ from collections import OrderedDict
 import numpy as np
 from unittest.mock import Mock
 
-from pyquil.api import QPUConnection
 from pyquil.gates import CZ, RZ, RX, I, H
 from pyquil.noise import (pauli_kraus_map, damping_kraus_map, dephasing_kraus_map, tensor_kraus_maps,
                           _get_program_gates, _decoherence_noise_model,
@@ -14,6 +13,7 @@ from pyquil.noise import (pauli_kraus_map, damping_kraus_map, dephasing_kraus_ma
                           estimate_assignment_probs, NO_NOISE)
 from pyquil.quil import Pragma, Program
 from pyquil.quilbase import DefGate, Gate
+from pyquil.api import QVMConnection
 
 
 def test_pauli_kraus_map():
@@ -191,7 +191,7 @@ def test_readout_compensation():
 
 
 def test_estimate_assignment_probs():
-    cxn = Mock(spec=QPUConnection)
+    cxn = Mock(spec=QVMConnection)
     trials = 100
     p00 = .8
     p11 = .75

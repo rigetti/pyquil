@@ -6,6 +6,8 @@ contextvars
 six
 networkx
 
+pidgin-external == 1.7.0
+
 # test deps
 pytest
 requests-mock

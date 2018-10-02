@@ -12,25 +12,31 @@ designed to execute on a Quantum Abstract Machine that has a shared classical/qu
 at its core. The QVM is a wavefunction simulation of unitary evolution with classical control flow
 and shared quantum classical memory.
 
-Most API keys give access to the QVM with up to 30 qubits. If you would like access to more qubits
-or help running larger jobs, then contact us at support@rigetti.com. On request we may also
-provide access to a QVM that allows persistent wavefunction memory between different programs as
-well as direct access to the wavefunction memory (wrapped as a ``numpy`` array) from python.
-
 .. _qvm_use:
 
 Using the QVM
 -------------
-The QVM is available in pyQuil via the ``api`` module.
+The QVM is available on your local machine. You can initialize a localQVM instance by doing the following:
+
 
 .. code:: python
 
-    from pyquil.api import QVMConnection
-    qvm = QVMConnection()
+    ### CONSOLE 1
+    $ qvm -S
+    Configured with 2048 MiB of workspace and 8 workers.)
+    [2018-09-20 15:39:50] Starting server on port 5000.
+
+
+.. code:: python
+
+    from pyquil import get_qc, Program
+    from pyquil.gates import *
+    qvm = get_qc('9q-generic-qvm')
+
 
 One executes quantum programs on the QVM using two paradigms: the ``.run(...)`` method, and
 the ``.wavefunction(...)`` method. The former closely mirrors how one will execute programs on a
-real QPU (see :ref:`qpu_use`), while the latter takes advantage of the virtual machine, and allows
+real QPU (see `our QPU docs <rigetti.com/qpu>`_, while the latter takes advantage of the virtual machine, and allows
 direct access to the wavefunction. These two methods are described in the following two sections.
 (For information on constructing quantum programs, please refer back to :ref:`basics`.)
 
@@ -110,8 +116,10 @@ a program, even without measurements, using the ``.wavefunction(...)`` method:
 
 .. code:: python
 
+    from pyquil.api import WavefunctionSimulator
+    make_wf = WavefunctionSimulator()
     coin_flip = Program().inst(H(0))
-    qvm.wavefunction(coin_flip)
+    make_wf.wavefunction(coin_flip)
 
 .. parsed-literal::
 
@@ -123,7 +131,7 @@ quantum state at the conclusion of the program. We can print this object
 .. code:: python
 
     coin_flip = Program().inst(H(0))
-    wavefunction = qvm.wavefunction(coin_flip)
+    wavefunction = make_wf.wavefunction(coin_flip)
     print(wavefunction)
 
 .. parsed-literal::
@@ -162,12 +170,12 @@ reproduce measurement results for the purpose of testing:
 
 .. code:: python
 
-    seeded_cxn = api.QVMConnection(random_seed=17)
-    print(seeded_cxn.run(Program(H(0)).measure(0, 0), [0], 20))
+    seeded_cxn = WavefunctionSimulator(random_seed=17)
+    print(seeded_cxn.run_and_measure(Program(H(0)), [0], 20))
 
-    seeded_cxn = api.QVMConnection(random_seed=17)
+    seeded_cxn = WavefunctionSimulator(random_seed=17)
     # This will give identical output to the above
-    print(seeded_cxn.run(Program(H(0)).measure(0, 0), [0], 20))
+    print(seeded_cxn.run_and_measure(Program(H(0)), [0], 20))
 
 It is important to remember that this ``wavefunction`` method is just a useful debugging tool
 for small quantum systems, and it cannot be feasibly obtained on a
@@ -240,6 +248,37 @@ For additional information why we decided on this basis ordering check out our n
 .. [1] https://arxiv.org/abs/1608.03355
 .. [2] https://arxiv.org/abs/1711.02086
 
+Simulating the QPU using the QVM
+--------------------------------
+
+The QVM is a powerful tool for testing quantum programs before executing them on the QPU. In
+addition to the ``noise.py`` module for generating custom noise models for simulating noise on the
+QVM, pyQuil provides a simple interface for loading the QVM with noise models tailored to Rigetti's
+available QPUs, in just one modified line of code. This is made possible via the ``Device`` class,
+which holds hardware specification information, noise model information, and instruction set
+architecture (ISA) information regarding connectivity. This information is held in the ``Specs``,
+``ISA`` and ``NoiseModel`` attributes of the ``Device`` class, respectively.
+
+Specifically, to load a QVM with the ``NoiseModel`` information from a ``Device``, all that is
+required is to provide a ``Device`` object to the QVM during initialization:
+
+.. note::
+
+    This feature is currently deprecated, in advance of a new QPU (with new noise models). For users interested in
+    creating noise models for the QVM, you can do so by following the instructions in :ref:`noise`.
+
+.. code:: python
+
+    from pyquil.api import get_devices, QVMConnection
+
+    device_name = get_device('quantum_device_name')
+    qvm = QVMConnection(device_name)
+
+By simply providing a device during QVM initialization, all programs executed on this QVM will, by
+default, have noise applied that is characteristic of the corresponding Rigetti QPU (in the case
+above, the ``agave`` device). One may then efficiently test realistic quantum algorithms on the QVM,
+in advance of running those programs on the QPU.
+
 Examples of Quantum Programs
 ----------------------------
 
@@ -292,19 +331,23 @@ First we import all the necessary tools:
 
 .. code-block:: python
 
-    from pyquil.quil import Program
-    import pyquil.api as api
-
+    from pyquil import get_qc
     from pyquil.gates import I, H, X
-    qvm = api.QVMConnection()
+    from pyquil import Program
+    from pyquil.api import WavefunctionSimulator
+    prog = Program()
+    ro = prog.declare('classical_register', 'BIT', 2)
+    qvm = get_qc('9q-generic-qvm')
 
 Then we need to define two registers that will be used for the measurement of Picard's decision bit and the final answer
 of the penny tossing game.
 
 .. code-block:: python
 
-    picard_register = 1
-    answer_register = 0
+    prog = Program()
+    ro = prog.declare('classical_register', 'BIT', 2)
+    picard_register = ["1"]
+    answer_register = ["0"]
 
 Moreover we need to encode the two different actions of Picard, which conceptually is equivalent to an `if-else` control
 flow as:
@@ -337,7 +380,7 @@ Finally we play the game several times
 
 .. code-block:: python
 
-   qvm.run(prog, [0, 1], trials=10)
+   qvm.run_and_measure(prog, [0, 1], 10)
 
 
 and record the register outputs as
