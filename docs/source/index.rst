@@ -198,7 +198,7 @@ classical address targets must be modified to fit the new framework. In terms of
 values to be read in from classical memory.
 
 Parametric programs
-^^^^^^^^^^^^^^^^^^^
+~~~~~~~~~~~~~~~~~~~
 
 The main benefit for users of declared memory regions in Quil is that angle values for parametric gates can be loaded at
 execution time on the QPU. Consider the following simple QAOA instance:
