@@ -704,4 +704,4 @@ QVM
 
 .. note::
 
-    The QVM uses a legacy HTTP interface which will be replaced by a ``pidgin`` interface in a future release.
+    The QVM uses a legacy HTTP interface which will be replaced by a ``rpcq`` interface in a future release.

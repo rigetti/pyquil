@@ -13,10 +13,10 @@
 #    See the License for the specific language governing permissions and
 #    limitations under the License.
 ##############################################################################
-import pidgin
-from pidgin.core_messages import (RandomizedBenchmarkingRequest, RandomizedBenchmarkingResponse,
+import rpcq
+from rpcq.core_messages import (RandomizedBenchmarkingRequest, RandomizedBenchmarkingResponse,
                                   ConjugateByCliffordRequest, ConjugateByCliffordResponse)
-from pidgin.json_rpc import Shim
+from rpcq.json_rpc import Shim
 
 from pyquil.api._base_connection import get_session, post_json
 from pyquil.api._config import PyquilConfig
@@ -58,7 +58,7 @@ class BenchmarkConnection(AbstractBenchmarker):
         indices_and_terms = list(zip(*list(pauli_in.operations_as_set())))
 
         payload = ConjugateByCliffordRequest(clifford=clifford.out(),
-                                             pauli=pidgin.core_messages.PauliTerm(indices=list(indices_and_terms[0]),
+                                             pauli=rpcq.core_messages.PauliTerm(indices=list(indices_and_terms[0]),
                                                                                   symbols=list(indices_and_terms[1])))
         response = self.shim.call('conjugate_pauli_by_clifford', payload) # type: ConjugateByCliffordResponse
         phase_factor, paulis = response.phase, response.pauli

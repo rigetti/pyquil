@@ -27,11 +27,11 @@ import networkx as nx
 import numpy as np
 import pytest
 import requests_mock
-from pidgin.core_messages import (BinaryExecutableRequest, BinaryExecutableResponse,
+from rpcq.core_messages import (BinaryExecutableRequest, BinaryExecutableResponse,
                                   NativeQuilRequest, NativeQuilResponse, NativeQuilMetadata,
                                   ConjugateByCliffordRequest, ConjugateByCliffordResponse,
                                   RandomizedBenchmarkingRequest, RandomizedBenchmarkingResponse)
-from pidgin.json_rpc.server import Server
+from rpcq.json_rpc.server import Server
 
 from pyquil.api import (QVMConnection, QPUCompiler, BenchmarkConnection,
                         get_qc, LocalQVMCompiler, QVMCompiler, LocalBenchmarkConnection)

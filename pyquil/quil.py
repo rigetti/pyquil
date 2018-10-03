@@ -24,7 +24,7 @@ from collections import OrderedDict, defaultdict
 from math import pi
 
 import numpy as np
-from pidgin.core_messages import NativeQuilMetadata
+from rpcq.core_messages import NativeQuilMetadata
 from six import string_types
 from typing import List, Dict
 

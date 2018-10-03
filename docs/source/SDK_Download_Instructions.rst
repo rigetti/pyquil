@@ -195,7 +195,7 @@ Next, run the command:
 
 ::
 
-    pip install pidgin-external-1.7.0.tar.gz
+    pip install rpcq-external-1.7.0.tar.gz
     pip install pyquil-2.0.0b1.tar.gz
 
 Note that both now require at least Python 3.0.
