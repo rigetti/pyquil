@@ -197,7 +197,6 @@ In the following sections, we'll cover gates, program construction & execution, 
 Virtual Machine, our QPUs, noise models and more.
 
 
-
 .. _quickstart:
 
 
