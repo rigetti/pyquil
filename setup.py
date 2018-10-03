@@ -83,6 +83,7 @@ setup(
         'contextvars',
         'six',
         'networkx',
+        'rpcq==1.0.0.dev0'
     ],
     keywords='quantum quil programming hybrid',
     python_requires=">=3.5",

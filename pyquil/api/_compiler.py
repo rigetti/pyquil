@@ -16,10 +16,10 @@
 import warnings
 from typing import Dict, Any, List, Union
 
-from pidgin.core_messages import (BinaryExecutableRequest, BinaryExecutableResponse,
+from rpcq.core_messages import (BinaryExecutableRequest, BinaryExecutableResponse,
                                   NativeQuilRequest, TargetDevice,
                                   PyQuilExecutableResponse, ParameterSpec)
-from pidgin.json_rpc import Shim
+from rpcq.json_rpc import Shim
 
 from pyquil.api._base_connection import ForestConnection
 from pyquil.api._qac import AbstractCompiler
@@ -47,7 +47,7 @@ def _extract_attribute_dictionary_from_program(program: Program) -> Dict[str, An
 
 def _extract_program_from_pyquil_executable_response(response: PyQuilExecutableResponse) -> Program:
     """
-    Unpacks a pidgin PyQuilExecutableResponse object into a pyQuil Program object.
+    Unpacks a rpcq PyQuilExecutableResponse object into a pyQuil Program object.
 
     :param response: PyQuilExecutableResponse object to be unpacked.
     :return: Resulting pyQuil Program object.

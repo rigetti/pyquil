@@ -17,8 +17,8 @@ import uuid
 from typing import Dict
 
 import numpy as np
-from pidgin.core_messages import QPURequest
-from pidgin.json_rpc import Shim
+from rpcq.core_messages import QPURequest
+from rpcq.json_rpc import Shim
 
 from pyquil.api._qam import QAM
 from pyquil.api._error_reporting import _record_call
