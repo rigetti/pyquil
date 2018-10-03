@@ -1,7 +1,7 @@
 .. _basics:
 
-The Basics: Programs and Gates
-==============================
+Programs and Gates
+==================
 
 First, initialize a localQVM instance on your laptop. You should have two consoles open in your terminal to run in the
 background.

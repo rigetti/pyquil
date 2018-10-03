@@ -1,9 +1,17 @@
 .. _start:
 
-Installation and Getting Started
-================================
+Getting Started with the Forest 2.0 SDK
+=======================================
 
-Download the Forest SDK `here <http://rigetti.com/forest>`_. The SDK will pre-package pyQuil v2.0/Quil 1.1, a compatible
+Introduction
+------------
+
+This is a preview of the upcoming release of the Forest 2.0 SDK for Rigetti Quantum Cloud Services. The Rigetti Forest
+SDK 2.0 Preview is currently supported on macOS 10.12+ and Linux. Microsoft Windows is currently *not* supported.
+
+To join our user community, connect to the Rigetti Slack workspace at https://rigetti-forest.slack.com.
+
+`Download the Forest SDK <http://rigetti.com/forest>`_. The SDK will pre-package pyQuil v2.0/Quil 2, a compatible
 downloadable QVM, and Quil Compiler. You'll need to download these resources before constructing and executing pyQuil
 programs.
 
@@ -12,27 +20,26 @@ We recommend installing pyQuil using package manager pip.
 
 .. code::
 
-    `pip install pyquil`
+    pip install pyquil --pre
 
-will install pyQuil you can install requirements directly by typing
-
-.. code::
-
-    `pip install -r requirements.txt`
-
-in your pyquil folder.
-
-For those of you that already have pyQuil, you can upgrade by typing
+will install pyQuil. You can install requirements directly by typing
 
 .. code::
 
-    `pip install --upgrade pyquil`
+    pip install -r requirements.txt
+
+in your pyquil folder. For those of you that already have pyQuil, you can upgrade by typing
+
+.. code::
+
+    pip install --upgrade pyquil --pre
 
 in your pyquil folder.
 
 .. note::
 
-    PyQuil requires Python 3.
+    PyQuil requires Python 3.6 or higher.
+
 
 Connecting to Rigetti Forest
 ----------------------------
