@@ -202,14 +202,14 @@ Virtual Machine, our QPUs, noise models and more.
 
 
 Forest 2.0: Quick-Start & Migration Guide (CURRENT USERS)
-=========================================================
+---------------------------------------------------------
 
 In this section, we'll go over how to get set up, what's changed, and go through an example migration of a VQE program
 from Forest 1.3 (pyQuil 1.9, Quil 1.0) to be able to run on the new Forest SDK (pyQuil 2.0, Quil 2).
 
 
 Registration, Installation & Setup
-----------------------------------
+~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
 Download the Forest SDK `here <http://rigetti.com/forest>`_. The SDK will pre-package pyQuil v2.0/Quil 2, a compatible
 downloadable QVM, and Quil Compiler.
 
