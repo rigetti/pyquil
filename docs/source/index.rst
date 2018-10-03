@@ -15,7 +15,7 @@ and the Quantum Virtual Machine (qvm).
 QVM. Second, the SDK contains pyQuil 2.0, with significant updates to previous versions. As a result, programs written
 using previous versions of the Forest toolkit will need to be updated to pyQuil 2.0 to be compatible with the QVM or compiler.
 
-See :ref:`quickstart` to get caught up on what's new!
+See :ref:`start` to get caught up on what's new!
 
 Quantum Cloud Services will provide users with a dedicated Quantum Machine Image, which will come prepackaged with the
 Forest SDK. We’re releasing a Preview to the Forest SDK now, so current users can begin migrating code (and share feedback
@@ -61,7 +61,6 @@ Contents
 .. toctree::
    :maxdepth: 3
 
-   quickstart
    start
    basics
    advanced_usage
