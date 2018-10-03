@@ -13,13 +13,7 @@ Install pyQuil using package manager pip.
 
     `pip install pyquil`
 
-will install pyQuil you can install requirements directly by typing
-
-.. code::
-
-    `pip install -r requirements.txt`
-
-in your pyquil folder.
+will install pyQuil.
 
 For those of you that already have pyQuil, you can upgrade by typing
 
@@ -27,14 +21,13 @@ For those of you that already have pyQuil, you can upgrade by typing
 
     `pip install --upgrade pyquil`
 
-in your pyquil folder.
-
 .. note::
 
-    PyQuil requires Python 3.
+    PyQuil requires Python 3.6 or later.
 
 
-**Installing the QVM and Compiler on macOS**
+Installing the QVM and Compiler on macOS
+~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
 
 Download the Forest SDK `here <http://rigetti.com/forest>`_. The Forest Downloadable SDK 2.0 Preview currently contains:
 
@@ -67,7 +60,8 @@ To uninstall, delete the following files:
     /usr/local/share/man/man1/quilc.1
 
 
-**Installing the QVM and Compiler on Linux (deb)**
+Installing the QVM and Compiler on Linux (deb)
+~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
 
 First, unpack the tarball and change to that directory by doing:
 
@@ -96,7 +90,8 @@ To uninstall, type:
 
     sudo apt remove forest-sdk
 
-**Installing the QVM and Compiler on Linux (rpm)**
+Installing the QVM and Compiler on Linux (rpm)
+~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
 
 First, unpack the tarball and change to that directory by doing:
 
@@ -127,7 +122,8 @@ To uninstall, type:
     # or
     sudo yum uninstall forest-sdk
 
-**Installing the QVM and Compiler on Linux (bare-bones)**
+Installing the QVM and Compiler on Linux (bare-bones)
+~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
 
 The bare-bones installation only contains the executable binaries and
 manual pages, and doesn't contain any of the requisite dynamic
