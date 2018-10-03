@@ -11,7 +11,7 @@ Install pyQuil using package manager pip.
 
 .. code::
 
-    `pip install pyquil`
+    pip install --pre pyquil
 
 will install pyQuil.
 
@@ -19,7 +19,7 @@ For those of you that already have pyQuil, you can upgrade by typing
 
 .. code::
 
-    `pip install --upgrade pyquil`
+    pip install --upgrade --pre pyquil
 
 .. note::
 
@@ -157,19 +157,14 @@ To uninstall, remove the directory ``~/rigetti``.
 
 
 Using the SDK
--------------
+~~~~~~~~~~~~~
 
-The SDK may either be used directly from the command line, or through PyQuil.
+The SDK may either be used directly from the command line, or through PyQuil. Refer to the manual pages for the QVM and
+compiler for information on how to use them directly. One can read the manual pages by open a new terminal window and
+typing ``man qvm`` (for the QVM) or ``man quilc`` (for the compiler). One can quit out of the manual page by typing ``q``.
 
-Using the QVM and Compiler Directly
-~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
-
-Refer to the manual pages for the QVM and compiler for information on how to use them directly. One can read the manual
-pages by open a new terminal window and typing ``man qvm`` (for the QVM) or ``man quilc`` (for the compiler). One can quit
-out of the manual page by typing ``q``.
-
-Connecting to Rigetti Forest
-----------------------------
+Connecting to the SDK
+~~~~~~~~~~~~~~~~~~~~~
 
 The expected locations of the QVM and Compiler endpoints are configurable in pyQuil. When running on a QMI, these
 configuration values are automatically managed so as to point to the relevant Rigetti-internal endpoints. When running
@@ -305,7 +300,7 @@ superconducting quantum processors over the cloud.
 
 
 In the following sections, we'll cover gates, program construction & execution, and go into detail about our Quantum
-Virtual Machine, our QPUs, noise models and more.
+Virtual Machine, our QPUs, noise models and more. Jump to :ref:`basics` to continue.
 
 
 .. _quickstart:
@@ -313,106 +308,23 @@ Virtual Machine, our QPUs, noise models and more.
 
 Forest 2.0: Quick-Start & Migration Guide
 -----------------------------------------
+We'll go over how to get set up, what's changed, and go through an example migration of a VQE program from Forest 1.3
+(pyQuil 1.9, Quil 1.0) to be able to run on the new Forest SDK (pyQuil 2.0, Quil 2).
 
-In this section, we'll go over how to get set up, what's changed, and go through an example migration of a VQE program
-from Forest 1.3 (pyQuil 1.9, Quil 1.0) to be able to run on the new Forest SDK (pyQuil 2.0, Quil 2).
-
-
-Registration, Installation & Setup
-~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
-Download the Forest SDK `here <http://rigetti.com/forest>`_. The SDK will pre-package a downloadable QVM, and a Quil Compiler.
-
-You can install pyQuil using package manager pip. You can upgrade by typing ``pip install --upgrade --pre pyquil`` in your
-pyquil folder.
 
 .. note::
 
-    pyQuil requires Python 3.6 or later.
-
-
-Complete descriptions on the usage of the `qvm` and `quilc` command line applications can be found in their manual pages
-by typing in your terminal `man qvm` or `man quilc` respectively.
+    For installation & setup, follow the download instructions in the section :ref:`start:` at the top of the page.
 
 
 What's changed
---------------
+~~~~~~~~~~~~~~
+With the new Forest SDK, users will be able to run pyQuil programs on a downloadable QVM and Quil Compiler!
 
-Local development environment
-~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
-
-The expected locations of the QVM and Compiler endpoints are configurable in pyQuil. When running on a QMI, these
-configuration values are automatically managed so as to point to the relevant Rigetti-internal endpoints.
-
-When running locally, these default to values reasonable for a user running local instances of the Rigetti toolchain on
-their laptop. Ideally, little-to-no work will be required for setting up this configuration environment locally or
-remotely, or for transferring functioning code from one configured environment to another.
-
-.. note::
-
-    A config file is not necessary to run locally, though it may be useful in configuring your local set-up.
-
-In general, these values are read out of a pair of configuration files
-(stored at the location described by the environment variables
-``FOREST_CONFIG`` and ``QCS_CONFIG``, or else at the respective default
-locations ``~/.forest_config`` and ``~/.qcs_config``), which by default
-have the following respective contents:
-
-::
-
-    [Rigetti Forest]
-    url = https://api.rigetti.com/
-    key = None
-    user_id = None
-
-    [QPU]
-    exec_on_engage = :
-
-::
-
-    [Rigetti Forest]
-    qpu_endpoint_address = None
-    qvm_address = http://localhost:5000
-    compiler_server_address = http://localhost:6000
-
-These values control the following behaviors:
-
--  ``Rigetti Forest``: This section contains network endpoint
-   information about the entire Rigetti Forest infrastructure, e.g.,
-   where to find information about which QPU devices are available.
--  ``url``: This is the endpoint where pyQuil looks for device
-   information and for the 2.0 endpoints.
--  ``key``: This stores the pre-2.0 API key.
--  ``user_id``: This stores a 2.0 user ID.
--  ``qpu_endpoint_address``: This is the endpoint where pyQuil will try to
-   communicate with the QPU orchestrating service during QPU-engagement.
--  ``qvm_address``: This is the endpoint where pyQuil will try to
-   communicate with the Rigetti Quantum Virtual Machine. On a QMI, this
-   points to the provided QVM instance. On a local installation, this
-   should be set to the server endpoint for a locally running QVM
-   instance.
--  ``compiler_server_address``: This is the endpoint where pyQuil will
-   try to communicate with the compiler server. On a QMI, this points to
-   a provided compiler server instance. On a local installation, this
-   should be set to the server endpoint for a locally running quilc
-   instance.
--  ``QPU``: This section contains configuration information pertaining
-   to QPU access.
--  ``exec_on_engage``: This is the shell command that the QMI will
-   launch when the QMI becomes QPU-engaged.
-
-    **NOTE:** PyQuil itself reads these values out using the helper
-    class ``pyquil._config.PyquilConfig``. PyQuil users should not ever
-    need to touch this class directly.
-
-
-Support
-~~~~~~~
-
-For support issues, please email ``support@rigetti.com``.
-
+In this section, we'll cover the main changes to pyQuil, Quil, the Quil Compiler, and the QVM.
 
 Overview of updates to Quil and pyQuil
---------------------------------------
+~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
 
 The primary differences in the programming language Quil 1.0 (as appearing in pyQuil 1.3) and Quil 2 (as appearing in
 2.0) amount to an enhanced memory model. Whereas the classical memory model in Quil 1.0 amounted to an flat bit array of
@@ -530,7 +442,8 @@ Backwards compatibility
 
 Quil 1.0 is not compatible with Quil 2 in the following ways:
 
--  The unnamed memory references ``[n]`` and ``[n-m]`` have no direct equivalent in Quil 2 and must be replaced by named memory references. (This primarily affects ``MEASURE`` instructions.)
+-  The unnamed memory references ``[n]`` and ``[n-m]`` have no direct equivalent in Quil 2 and must be replaced by named
+    memory references. (This primarily affects ``MEASURE`` instructions.)
 
 -  The classical memory manipulation instructions have been modified: the operands of ``AND`` have been reversed (so that
     in Quil 2, the left operand is the target address) and ``OR`` has been replaced by ``IOR`` and its operands reversed (so
