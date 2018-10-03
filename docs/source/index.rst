@@ -98,15 +98,15 @@ Registration, Installation & Setup
 Download the Forest SDK `here <http://rigetti.com/forest>`_. The SDK will pre-package pyQuil v2.0/Quil 2, a compatible
 downloadable QVM, and Quil Compiler.
 
-You can also install pyQuil using package manager pip.  ``pip install pyquil`` will install pyQuil; you can
+You can also install pyQuil using package manager pip.  ``pip install --pre pyquil`` will install pyQuil; you can
 install requirements directly by typing ``pip install -r requirements.txt`` in your pyquil folder.
 
-For those of you that already have pyQuil, you can upgrade by typing ``pip install --upgrade pyquil`` in your
+For those of you that already have pyQuil, you can upgrade by typing ``pip install --upgrade --pre pyquil`` in your
 pyquil folder.
 
 .. note::
 
-    pyQuil requires Python 3.
+    pyQuil requires Python 3.6 or later.
 
 
 What's changed

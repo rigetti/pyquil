@@ -20,7 +20,7 @@ We recommend installing pyQuil using package manager pip.
 
 .. code::
 
-    pip install pyquil --pre
+    pip install --pre pyquil
 
 will install pyQuil. You can install requirements directly by typing
 
@@ -32,7 +32,7 @@ in your pyquil folder. For those of you that already have pyQuil, you can upgrad
 
 .. code::
 
-    pip install --upgrade pyquil --pre
+    pip install --upgrade --pre --pyquil
 
 in your pyquil folder.
 
