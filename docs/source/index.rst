@@ -23,8 +23,8 @@ with us early and often!). Longtime Forest users should start with the Migration
 SDK Preview release.
 
 If you’re new to Forest, we hope this documentation will provide everything you need to get up and running with the toolkit.
-Once you’ve oriented yourself here, proceed to the section :ref:`start` to get started. Once you’ve installed the SDK,
-take a look at our section on :ref:`intro`. There, you’ll learn the basic concepts needed to write quantum software. You
+Once you’ve oriented yourself here, proceed to the section :ref:`start` to get started. If you're new to quantum computing,
+you also go to our section on :ref:`intro`. There, you’ll learn the basic concepts needed to write quantum software. You
 can also work through an introduction to quantum computing in a jupyter notebook; launch the notebook from the source folder
 in pyquil's docs:
 
