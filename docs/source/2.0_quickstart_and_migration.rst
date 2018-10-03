@@ -20,7 +20,7 @@ pyquil folder.
 
 .. note::
 
-    pyQuil requires Python 3.
+    pyQuil requires Python 3.6.
 
 What's changed
 --------------
@@ -89,7 +89,7 @@ These values control the following behaviors:
    launch when the QMI becomes QPU-engaged.
 
     **NOTE:** PyQuil itself reads these values out using the helper
-    class ``pyquil._config.PyquilConfig``. PyQuil users should not ever
+    class ``pyquil.api._config.PyquilConfig``. PyQuil users should not ever
     need to touch this class directly.
 
 
