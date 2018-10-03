@@ -1,0 +1,7 @@
+[Rigetti Forest]
+url = http://dummy_forest_url
+key = pyquil_user_key
+user_id = pyquil_user_token
+
+[QPU]
+exec_on_engage = dummy_command

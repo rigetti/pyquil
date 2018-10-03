@@ -179,15 +179,6 @@ class QuilListener(ParseTreeListener):
         pass
 
 
-    # Enter a parse tree produced by QuilParser#classicalBit.
-    def enterClassicalBit(self, ctx:QuilParser.ClassicalBitContext):
-        pass
-
-    # Exit a parse tree produced by QuilParser#classicalBit.
-    def exitClassicalBit(self, ctx:QuilParser.ClassicalBitContext):
-        pass
-
-
     # Enter a parse tree produced by QuilParser#defLabel.
     def enterDefLabel(self, ctx:QuilParser.DefLabelContext):
         pass
@@ -260,6 +251,24 @@ class QuilListener(ParseTreeListener):
         pass
 
 
+    # Enter a parse tree produced by QuilParser#memoryDescriptor.
+    def enterMemoryDescriptor(self, ctx:QuilParser.MemoryDescriptorContext):
+        pass
+
+    # Exit a parse tree produced by QuilParser#memoryDescriptor.
+    def exitMemoryDescriptor(self, ctx:QuilParser.MemoryDescriptorContext):
+        pass
+
+
+    # Enter a parse tree produced by QuilParser#offsetDescriptor.
+    def enterOffsetDescriptor(self, ctx:QuilParser.OffsetDescriptorContext):
+        pass
+
+    # Exit a parse tree produced by QuilParser#offsetDescriptor.
+    def exitOffsetDescriptor(self, ctx:QuilParser.OffsetDescriptorContext):
+        pass
+
+
     # Enter a parse tree produced by QuilParser#classicalUnary.
     def enterClassicalUnary(self, ctx:QuilParser.ClassicalUnaryContext):
         pass
@@ -275,6 +284,78 @@ class QuilListener(ParseTreeListener):
 
     # Exit a parse tree produced by QuilParser#classicalBinary.
     def exitClassicalBinary(self, ctx:QuilParser.ClassicalBinaryContext):
+        pass
+
+
+    # Enter a parse tree produced by QuilParser#logicalBinaryOp.
+    def enterLogicalBinaryOp(self, ctx:QuilParser.LogicalBinaryOpContext):
+        pass
+
+    # Exit a parse tree produced by QuilParser#logicalBinaryOp.
+    def exitLogicalBinaryOp(self, ctx:QuilParser.LogicalBinaryOpContext):
+        pass
+
+
+    # Enter a parse tree produced by QuilParser#arithmeticBinaryOp.
+    def enterArithmeticBinaryOp(self, ctx:QuilParser.ArithmeticBinaryOpContext):
+        pass
+
+    # Exit a parse tree produced by QuilParser#arithmeticBinaryOp.
+    def exitArithmeticBinaryOp(self, ctx:QuilParser.ArithmeticBinaryOpContext):
+        pass
+
+
+    # Enter a parse tree produced by QuilParser#move.
+    def enterMove(self, ctx:QuilParser.MoveContext):
+        pass
+
+    # Exit a parse tree produced by QuilParser#move.
+    def exitMove(self, ctx:QuilParser.MoveContext):
+        pass
+
+
+    # Enter a parse tree produced by QuilParser#exchange.
+    def enterExchange(self, ctx:QuilParser.ExchangeContext):
+        pass
+
+    # Exit a parse tree produced by QuilParser#exchange.
+    def exitExchange(self, ctx:QuilParser.ExchangeContext):
+        pass
+
+
+    # Enter a parse tree produced by QuilParser#convert.
+    def enterConvert(self, ctx:QuilParser.ConvertContext):
+        pass
+
+    # Exit a parse tree produced by QuilParser#convert.
+    def exitConvert(self, ctx:QuilParser.ConvertContext):
+        pass
+
+
+    # Enter a parse tree produced by QuilParser#load.
+    def enterLoad(self, ctx:QuilParser.LoadContext):
+        pass
+
+    # Exit a parse tree produced by QuilParser#load.
+    def exitLoad(self, ctx:QuilParser.LoadContext):
+        pass
+
+
+    # Enter a parse tree produced by QuilParser#store.
+    def enterStore(self, ctx:QuilParser.StoreContext):
+        pass
+
+    # Exit a parse tree produced by QuilParser#store.
+    def exitStore(self, ctx:QuilParser.StoreContext):
+        pass
+
+
+    # Enter a parse tree produced by QuilParser#classicalComparison.
+    def enterClassicalComparison(self, ctx:QuilParser.ClassicalComparisonContext):
+        pass
+
+    # Exit a parse tree produced by QuilParser#classicalComparison.
+    def exitClassicalComparison(self, ctx:QuilParser.ClassicalComparisonContext):
         pass
 
 
@@ -311,15 +392,6 @@ class QuilListener(ParseTreeListener):
 
     # Exit a parse tree produced by QuilParser#pragma_name.
     def exitPragma_name(self, ctx:QuilParser.Pragma_nameContext):
-        pass
-
-
-    # Enter a parse tree produced by QuilParser#segmentExp.
-    def enterSegmentExp(self, ctx:QuilParser.SegmentExpContext):
-        pass
-
-    # Exit a parse tree produced by QuilParser#segmentExp.
-    def exitSegmentExp(self, ctx:QuilParser.SegmentExpContext):
         pass
 
 
@@ -368,6 +440,15 @@ class QuilListener(ParseTreeListener):
         pass
 
 
+    # Enter a parse tree produced by QuilParser#addrExp.
+    def enterAddrExp(self, ctx:QuilParser.AddrExpContext):
+        pass
+
+    # Exit a parse tree produced by QuilParser#addrExp.
+    def exitAddrExp(self, ctx:QuilParser.AddrExpContext):
+        pass
+
+
     # Enter a parse tree produced by QuilParser#signedExp.
     def enterSignedExp(self, ctx:QuilParser.SignedExpContext):
         pass
@@ -392,15 +473,6 @@ class QuilListener(ParseTreeListener):
 
     # Exit a parse tree produced by QuilParser#functionExp.
     def exitFunctionExp(self, ctx:QuilParser.FunctionExpContext):
-        pass
-
-
-    # Enter a parse tree produced by QuilParser#segment.
-    def enterSegment(self, ctx:QuilParser.SegmentContext):
-        pass
-
-    # Exit a parse tree produced by QuilParser#segment.
-    def exitSegment(self, ctx:QuilParser.SegmentContext):
         pass
 
 

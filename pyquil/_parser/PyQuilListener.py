@@ -15,8 +15,8 @@
 ##############################################################################
 
 import operator
-from typing import Any, List, Iterator, Callable
 from numbers import Number
+from typing import Any, List, Iterator, Callable
 
 import numpy as np
 from antlr4 import InputStream, CommonTokenStream, ParseTreeWalker
@@ -28,11 +28,20 @@ from numpy.ma import sin, cos, sqrt, exp
 
 from pyquil import parameters
 from pyquil.gates import QUANTUM_GATES
-from pyquil.parameters import Parameter, Expression, Segment
-from pyquil.quilbase import Gate, DefGate, Measurement, Addr, JumpTarget, Label, Halt, Jump, JumpWhen, JumpUnless, \
-    Reset, Wait, ClassicalTrue, ClassicalFalse, ClassicalNot, ClassicalAnd, ClassicalOr, ClassicalMove, \
-    ClassicalExchange, Nop, RawInstr, Qubit, Pragma, AbstractInstruction
-
+from pyquil.parameters import Parameter
+from pyquil.quilatom import MemoryReference, Addr
+from pyquil.quilbase import (Gate, DefGate, Measurement, JumpTarget, Label, Expression,
+                             Nop, Halt, Jump, JumpWhen, JumpUnless, Reset, Wait,
+                             ClassicalNot, ClassicalNeg, ClassicalAnd, ClassicalInclusiveOr,
+                             ClassicalExclusiveOr,
+                             ClassicalMove, ClassicalConvert, ClassicalExchange, ClassicalLoad,
+                             ClassicalStore,
+                             ClassicalEqual, ClassicalGreaterEqual, ClassicalGreaterThan,
+                             ClassicalLessEqual,
+                             ClassicalLessThan, ClassicalAdd, ClassicalSub, ClassicalMul,
+                             ClassicalDiv,
+                             RawInstr, Qubit, Pragma, Declare, AbstractInstruction,
+                             ClassicalTrue, ClassicalFalse, ClassicalOr, ResetQubit)
 from .gen3.QuilLexer import QuilLexer
 from .gen3.QuilListener import QuilListener
 from .gen3.QuilParser import QuilParser
@@ -186,7 +195,10 @@ class PyQuilListener(QuilListener):
 
     def exitResetState(self, ctx):
         # type: (QuilParser.ResetStateContext) -> None
-        self.result.append(Reset())
+        if ctx.qubit():
+            self.result.append(ResetQubit(_qubit(ctx.qubit())))
+        else:
+            self.result.append(Reset())
 
     def exitWait(self, ctx):
         # type: (QuilParser.WaitContext) -> None
@@ -200,21 +212,96 @@ class PyQuilListener(QuilListener):
             self.result.append(ClassicalFalse(_addr(ctx.addr())))
         elif ctx.NOT():
             self.result.append(ClassicalNot(_addr(ctx.addr())))
+        elif ctx.NEG():
+            self.result.append(ClassicalNeg(_addr(ctx.addr())))
 
-    def exitClassicalBinary(self, ctx):
-        # type: (QuilParser.ClassicalBinaryContext) -> None
+    def exitLogicalBinaryOp(self, ctx):
+        # type: (QuilParser.LogicalBinaryOpContext) -> None
+        left = _addr(ctx.addr(0))
+        if ctx.INT():
+            right = int(ctx.INT().getText())
+        else:
+            right = _addr(ctx.addr(1))
+
         if ctx.AND():
-            self.result.append(ClassicalAnd(_addr(ctx.addr(0)), _addr(ctx.addr(1))))
+            self.result.append(ClassicalAnd(left, right))
         elif ctx.OR():
-            self.result.append(ClassicalOr(_addr(ctx.addr(0)), _addr(ctx.addr(1))))
-        elif ctx.MOVE():
-            self.result.append(ClassicalMove(_addr(ctx.addr(0)), _addr(ctx.addr(1))))
-        elif ctx.EXCHANGE():
-            self.result.append(ClassicalExchange(_addr(ctx.addr(0)), _addr(ctx.addr(1))))
+            self.result.append(ClassicalOr(left, right))
+        elif ctx.IOR():
+            self.result.append(ClassicalInclusiveOr(left, right))
+        elif ctx.XOR():
+            self.result.append(ClassicalExclusiveOr(left, right))
+
+    def exitArithmeticBinaryOp(self, ctx):
+        # type : (QuilParser.ArithmeticBinaryOpContext) -> None
+        left = _addr(ctx.addr(0))
+        if ctx.number():
+            right = _number(ctx.number())
+        else:
+            right = _addr(ctx.addr(1))
+
+        if ctx.ADD():
+            self.result.append(ClassicalAdd(left, right))
+        elif ctx.SUB():
+            self.result.append(ClassicalSub(left, right))
+        elif ctx.MUL():
+            self.result.append(ClassicalMul(left, right))
+        elif ctx.DIV():
+            self.result.append(ClassicalDiv(left, right))
+
+    def exitMove(self, ctx):
+        # type: (QuilParser.MoveContext) -> None
+        target = _addr(ctx.addr(0))
+        if ctx.number():
+            source = _number(ctx.number())
+        else:
+            source = _addr(ctx.addr(1))
+
+        self.result.append(ClassicalMove(target, source))
+
+    def exitExchange(self, ctx):
+        # type: (QuilParser.ExchangeContext) -> None
+        self.result.append(ClassicalExchange(_addr(ctx.addr(0)), _addr(ctx.addr(1))))
+
+    def exitConvert(self, ctx):
+        # type: (QuilParser.ConvertContext) -> None
+        self.result.append(ClassicalConvert(_addr(ctx.addr(0)), _addr(ctx.addr(1))))
+
+    def exitLoad(self, ctx):
+        # type: (QuilParser.LoadContext) -> None
+        self.result.append(ClassicalLoad(_addr(ctx.addr(0)), ctx.IDENTIFIER(), _addr(ctx.addr(1))))
+
+    def exitStore(self, ctx):
+        # type: (QuilParser.StoreContext) -> None
+        if ctx.number():
+            right = _number(ctx.number())
+        else:
+            right = _addr(ctx.addr(1))
+        self.result.append(ClassicalStore(ctx.IDENTIFIER(), _addr(ctx.addr(0)), right))
 
     def exitNop(self, ctx):
         # type: (QuilParser.NopContext) -> None
         self.result.append(Nop())
+
+    def exitClassicalComparison(self, ctx):
+        # type: (QuilParser.ClassicalComparisonContext) -> None
+        target = _addr(ctx.addr(0))
+        left = _addr(ctx.addr(1))
+        if ctx.number():
+            right = _number(ctx.number())
+        else:
+            right = _addr(ctx.addr(2))
+
+        if ctx.EQ():
+            self.result.append(ClassicalEqual(target, left, right))
+        elif ctx.GT():
+            self.result.append(ClassicalGreaterThan(target, left, right))
+        elif ctx.GE():
+            self.result.append(ClassicalGreaterEqual(target, left, right))
+        elif ctx.LT():
+            self.result.append(ClassicalLessThan(target, left, right))
+        elif ctx.LE():
+            self.result.append(ClassicalLessEqual(target, left, right))
 
     def exitInclude(self, ctx):
         # type: (QuilParser.IncludeContext) -> None
@@ -228,6 +315,24 @@ class PyQuilListener(QuilListener):
             self.result.append(Pragma(ctx.IDENTIFIER().getText(), args, ctx.STRING().getText()[1:-1]))
         else:
             self.result.append(Pragma(ctx.IDENTIFIER().getText(), args))
+
+    def exitMemoryDescriptor(self, ctx):
+        # type: (QuilParser.MemoryDescriptorContext) -> None
+        name = ctx.IDENTIFIER(0).getText()
+        memory_type = ctx.IDENTIFIER(1).getText()
+        if ctx.INT():
+            memory_size = int(ctx.INT().getText())
+        else:
+            memory_size = 1
+        if ctx.SHARING():
+            shared_region = ctx.IDENTIFIER(2).getText()
+            offsets = [(int(offset_ctx.INT().getText()), offset_ctx.IDENTIFIER().getText())
+                       for offset_ctx in ctx.offsetDescriptor()]
+        else:
+            shared_region = None
+            offsets = []
+        self.result.append(Declare(name, memory_type, memory_size,
+                                   shared_region=shared_region, offsets=offsets))
 
 
 """
@@ -263,13 +368,13 @@ def _matrix(matrix):
 
 def _addr(classical):
     # type: (QuilParser.AddrContext) -> Addr
-    return Addr(int(classical.classicalBit().getText()))
-
-
-def _segment(segment):
-    # type: (QuilParser.SegmentContext) -> Segment
-    ints = segment.INT()
-    return Segment(int(ints[0].getText()), int(ints[1].getText()))
+    if classical.IDENTIFIER() is not None:
+        if classical.INT() is not None:
+            return MemoryReference(str(classical.IDENTIFIER()), int(classical.INT().getText()))
+        else:
+            return MemoryReference(str(classical.IDENTIFIER()), 0)
+    else:
+        return Addr(int(classical.INT().getText()))
 
 
 def _label(label):
@@ -304,8 +409,8 @@ def _expression(expression):
             return -1 * _expression(expression.expression())
     elif isinstance(expression, QuilParser.FunctionExpContext):
         return _apply_function(expression.function(), _expression(expression.expression()))
-    elif isinstance(expression, QuilParser.SegmentExpContext):
-        return _segment(expression.segment())
+    elif isinstance(expression, QuilParser.AddrExpContext):
+        return _addr(expression.addr())
     elif isinstance(expression, QuilParser.NumberExpContext):
         return _number(expression.number())
     elif isinstance(expression, QuilParser.VariableExpContext):

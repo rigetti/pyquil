@@ -3,23 +3,22 @@
 Noise and Quantum Computation
 =============================
 
+
 Modeling Noisy Quantum Gates
 ----------------------------
 
 Pure States vs. Mixed States
 ~~~~~~~~~~~~~~~~~~~~~~~~~~~~
 
-Errors in quantum computing can introduce classical uncertainty in what the underlying state is.
-When this happens we sometimes need to consider not only wavefunctions but also probabilistic sums of
-wavefunctions when we are uncertain as to which one we have. For example, if we think that an X gate
-was accidentally applied to a qubit with a 50-50 chance then we would say that there is a 50% chance
-we have the :math:`\ket{0}` state and a 50% chance that we have a :math:`\ket{1}` state.
-This is called an "impure" or
-"mixed"state in that it isn't just a wavefunction (which is pure) but instead a distribution over
-wavefunctions. We describe this with something called a density matrix, which is generally an
-operator. Pure states have very simple density matrices that we can write as an outer product of a
-ket vector :math:`\ket{\psi}` with its own bra version :math:`\bra{\psi}=\ket{\psi}^\dagger`.
-For a pure state the density matrix is simply
+Errors in quantum computing can introduce classical uncertainty in what the underlying state is. When this happens we
+sometimes need to consider not only wavefunctions but also probabilistic sums of wavefunctions when we are uncertain as
+to which one we have. For example, if we think that an X gate was accidentally applied to a qubit with a 50-50 chance
+then we would say that there is a 50% chance we have the :math:`\ket{0}` state and a 50% chance that we have a
+:math:`\ket{1}` state. This is called an "impure" or "mixed"state in that it isn't just a wavefunction (which is pure)
+but instead a distribution over wavefunctions. We describe this with something called a density matrix, which is
+generally an operator. Pure states have very simple density matrices that we can write as an outer product of a ket
+vector :math:`\ket{\psi}` with its own bra version :math:`\bra{\psi}=\ket{\psi}^\dagger`. For a pure state the density
+matrix is simply
 
 .. math::
 
@@ -31,17 +30,15 @@ The expectation value of an operator for a mixed state is given by
 
    \langle X \rangle_\rho = \tr{X \rho}
 
-where :math:`\tr{\cdot}` is the trace of an operator, which is the sum of its diagonal elements
-which is independent of choice of basis.
-Pure state density matrices satisfy
+where :math:`\tr{\cdot}` is the trace of an operator, which is the sum of its diagonal elements, which is independent of
+choice of basis. Pure state density matrices satisfy
 
 .. math::
 
    \rho \text{ is pure } \Leftrightarrow \rho^2 = \rho
 
-which you can easily verify for :math:`\rho_\psi` assuming that the state is normalized.
-If we want to describe a situation with classical uncertainty between states :math:`\rho_1` and
-:math:`\rho_2`, then we can take their weighted sum
+which you can easily verify for :math:`\rho_\psi` assuming that the state is normalized. If we want to describe a
+situation with classical uncertainty between states :math:`\rho_1` and :math:`\rho_2`, then we can take their weighted sum
 
 .. math::
 
@@ -49,20 +46,18 @@ If we want to describe a situation with classical uncertainty between states :ma
 
 where :math:`p\in [0,1]` gives the classical probability that the state is :math:`\rho_1`.
 
-Note that classical uncertainty in the wavefunction is markedly different from superpositions.
-We can represent superpositions using wavefunctions, but use density matrices to describe
-distributions over wavefunctions. You can read more about density matrices here
-[DensityMatrix]_.
+Note that classical uncertainty in the wavefunction is markedly different from superpositions. We can represent
+superpositions using wavefunctions, but use density matrices to describe distributions over wavefunctions. You can read
+more about density matrices here [DensityMatrix]_.
 
 .. [DensityMatrix] https://en.wikipedia.org/wiki/Density_matrix
 
 Quantum Gate Errors
 ~~~~~~~~~~~~~~~~~~~
 
-For a quantum gate given by its unitary operator :math:`U`, a "quantum
-gate error" describes the scenario in which the actually induces
-transformation deviates from :math:`\ket{\psi} \mapsto U\ket{\psi}`.
-There are two basic types of quantum gate errors:
+For a quantum gate given by its unitary operator :math:`U`, a "quantum gate error" describes the scenario in which the
+actually induces transformation deviates from :math:`\ket{\psi} \mapsto U\ket{\psi}`. There are two basic types of
+quantum gate errors:
 
 1. **coherent errors** are those that preserve the purity of the input
    state, i.e., instead of the above mapping we carry out a perturbed,
@@ -196,7 +191,7 @@ equation <https://en.wikipedia.org/wiki/Lindblad_equation>`__.
 Noisy Gates on the Rigetti QVM
 ------------------------------
 
-As of today, users of our Forest API can annotate their QUIL programs by
+As of today, users of our Forest SDK can annotate their QUIL programs by
 certain pragma statements that inform the QVM that a particular gate on
 specific target qubits should be replaced by an imperfect realization
 given by a Kraus map.
@@ -286,8 +281,7 @@ Getting Started
 .. code:: python
 
     from pyquil.quil import Program, MEASURE
-    from pyquil.api.qvm import QVMConnection
-    from pyquil.job_results import wait_for_job
+    from pyquil.api import QVMConnection
     from pyquil.gates import CZ, H, I, X
     from scipy.linalg import expm
 

@@ -18,11 +18,11 @@ Module for creating and verifying noisy gate and readout definitions.
 """
 from __future__ import print_function
 from collections import namedtuple
+from typing import Sequence
 
 import numpy as np
 import sys
 
-from pyquil.device import ISA, gates_in_isa
 from pyquil.gates import I, MEASURE, X
 from pyquil.parameters import format_parameter
 from pyquil.quilbase import Pragma, Gate
@@ -476,13 +476,12 @@ def _decoherence_noise_model(gates, T1=30e-6, T2=30e-6, gate_time_1q=50e-9,
     return NoiseModel(kraus_maps, aprobs)
 
 
-def decoherance_noise_with_asymmetric_ro(isa: ISA, p00=0.975, p11=0.911):
-    """Similar to :py:func`_decoherance_noise_model`, but with asymmetric readout.
+def decoherence_noise_with_asymmetric_ro(gates: Sequence[Gate], p00=0.975, p11=0.911):
+    """Similar to :py:func`_decoherence_noise_model`, but with asymmetric readout.
 
     For simplicity, we use the default values for T1, T2, gate times, et al. and only allow
     the specification of readout fidelities.
     """
-    gates = gates_in_isa(isa)
     noise_model = _decoherence_noise_model(gates)
     aprobs = np.array([[p00, 1 - p00],
                        [1 - p11, p11]])

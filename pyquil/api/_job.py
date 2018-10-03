@@ -1,5 +1,5 @@
 ##############################################################################
-# Copyright 2016-2017 Rigetti Computing
+# Copyright 2016-2018 Rigetti Computing
 #
 #    Licensed under the Apache License, Version 2.0 (the "License");
 #    you may not use this file except in compliance with the License.
@@ -13,13 +13,12 @@
 #    See the License for the specific language governing permissions and
 #    limitations under the License.
 ##############################################################################
-
 import base64
 import warnings
 
 import numpy as np
 
-from pyquil.api.errors import CancellationError, QVMError, QPUError, QUILCError, UnknownApiError
+from pyquil.api._errors import CancellationError, QVMError, QPUError, QUILCError, UnknownApiError
 from pyquil.parser import parse_program
 from pyquil.wavefunction import Wavefunction
 

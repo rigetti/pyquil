@@ -14,28 +14,41 @@
 #    See the License for the specific language governing permissions and
 #    limitations under the License.
 ##############################################################################
-import base64
-from math import pi
-
-import requests_mock
+import asyncio
 import json
-import numpy as np
-import pytest
+import os
+import signal
+import time
+from math import pi
+from multiprocessing import Process
 from unittest.mock import patch
 
-from pyquil.api import QVMConnection, QPUConnection, CompilerConnection
-from pyquil.api._base_connection import validate_noise_probabilities, validate_run_items
-from pyquil.api.qpu import append_measures_to_program
-from pyquil.quil import Program
-from pyquil.paulis import PauliTerm
+import networkx as nx
+import numpy as np
+import pytest
+import requests_mock
+from rpcq.core_messages import (BinaryExecutableRequest, BinaryExecutableResponse,
+                                NativeQuilRequest, NativeQuilResponse, NativeQuilMetadata,
+                                ConjugateByCliffordRequest, ConjugateByCliffordResponse,
+                                RandomizedBenchmarkingRequest, RandomizedBenchmarkingResponse)
+from rpcq.json_rpc.server import Server
+
+from pyquil.api import (QVMConnection, QPUCompiler, BenchmarkConnection,
+                        get_qc, LocalQVMCompiler, QVMCompiler, LocalBenchmarkConnection)
+from pyquil.api._base_connection import validate_noise_probabilities, validate_qubit_list, \
+    prepare_register_list
+from pyquil.api._config import PyquilConfig
+from pyquil.device import ISA, NxDevice
 from pyquil.gates import CNOT, H, MEASURE, PHASE, Z, RZ, RX, CZ
-from pyquil.device import ISA
-from pyquil.quilbase import Pragma
+from pyquil.paulis import PauliTerm
+from pyquil.quil import Program
+from pyquil.quilbase import Pragma, Declare
 
 EMPTY_PROGRAM = Program()
 BELL_STATE = Program(H(0), CNOT(0, 1))
 BELL_STATE_MEASURE = Program(H(0), CNOT(0, 1), MEASURE(0, 0), MEASURE(1, 1))
 COMPILED_BELL_STATE = Program([
+    Declare("ro", "BIT", 2),
     Pragma("EXPECTED_REWIRING", ('"#(0 1 2 3)"',)),
     RZ(pi / 2, 0),
     RX(pi / 2, 0),
@@ -52,32 +65,31 @@ COMPILED_BELL_STATE = Program([
 DUMMY_ISA_DICT = {"1Q": {"0": {}, "1": {}}, "2Q": {"0-1": {}}}
 DUMMY_ISA = ISA.from_dict(DUMMY_ISA_DICT)
 
-mock_qvm = QVMConnection(api_key='api_key', user_id='user_id')
-mock_async_qvm = QVMConnection(api_key='api_key', user_id='user_id', use_queue=True)
-mock_compiler = CompilerConnection(isa_source=DUMMY_ISA, api_key='api_key', user_id='user_id')
-mock_async_compiler = CompilerConnection(isa_source=DUMMY_ISA, api_key='api_key', user_id='user_id', use_queue=True)
+COMPILED_BYTES_ARRAY = b'SUPER SECRET PACKAGE'
+RB_ENCODED_REPLY = [[0, 0], [1, 1]]
+RB_REPLY = [Program("H 0\nH 0\n"), Program("PHASE(pi/2) 0\nPHASE(pi/2) 0\n")]
+
+mock_qvm = QVMConnection()
 
 
 def test_sync_run_mock():
     def mock_response(request, context):
         assert json.loads(request.text) == {
             "type": "multishot",
-            "addresses": [0, 1],
+            "addresses": {'ro': [0, 1]},
             "trials": 2,
-            "compiled-quil": "H 0\nCNOT 0 1\nMEASURE 0 [0]\nMEASURE 1 [1]\n"
+            "compiled-quil": "DECLARE ro BIT[2]\nH 0\nCNOT 0 1\nMEASURE 0 ro[0]\nMEASURE 1 ro[1]\n"
         }
-        return '[[0,0],[1,1]]'
+        return '{"ro": [[0,0],[1,1]]}'
 
     with requests_mock.Mocker() as m:
-        m.post('https://api.rigetti.com/qvm', text=mock_response)
-        assert mock_qvm.run(BELL_STATE_MEASURE, [0, 1], trials=2) == [[0, 0], [1, 1]]
-
-        # Test range as well
-        m.post('https://api.rigetti.com/qvm', text=mock_response)
-        assert mock_qvm.run(BELL_STATE_MEASURE, range(2), trials=2) == [[0, 0], [1, 1]]
+        m.post('http://localhost:5000/qvm', text=mock_response)
+        assert mock_qvm.run(BELL_STATE_MEASURE,
+                            [0, 1],
+                            trials=2) == [[0, 0], [1, 1]]
 
         # Test no classical addresses
-        m.post('https://api.rigetti.com/qvm', text=mock_response)
+        m.post('http://localhost:5000/qvm', text=mock_response)
         assert mock_qvm.run(BELL_STATE_MEASURE, trials=2) == [[0, 0], [1, 1]]
 
     with pytest.raises(ValueError):
@@ -90,6 +102,9 @@ def test_sync_run(qvm: QVMConnection):
     # Test range as well
     assert qvm.run(BELL_STATE_MEASURE, range(2), trials=2) == [[0, 0], [1, 1]]
 
+    # Test numpy ints
+    assert qvm.run(BELL_STATE_MEASURE, np.arange(2), trials=2) == [[0, 0], [1, 1]]
+
     # Test no classical addresses
     assert qvm.run(BELL_STATE_MEASURE, trials=2) == [[0, 0], [1, 1]]
 
@@ -97,7 +112,7 @@ def test_sync_run(qvm: QVMConnection):
         qvm.run(EMPTY_PROGRAM)
 
 
-def test_sync_run_and_measure():
+def test_sync_run_and_measure_mock():
     def mock_response(request, context):
         assert json.loads(request.text) == {
             "type": "multishot-measure",
@@ -108,21 +123,29 @@ def test_sync_run_and_measure():
         return '[[0,0],[1,1]]'
 
     with requests_mock.Mocker() as m:
-        m.post('https://api.rigetti.com/qvm', text=mock_response)
+        m.post('http://localhost:5000/qvm', text=mock_response)
         assert mock_qvm.run_and_measure(BELL_STATE, [0, 1], trials=2) == [[0, 0], [1, 1]]
 
     with pytest.raises(ValueError):
         mock_qvm.run_and_measure(EMPTY_PROGRAM, [0])
 
 
-WAVEFUNCTION_BINARY = (b'\x01\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00'
-                       b'\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00?\xe6'
-                       b'\xa0\x9ef\x7f;\xcc\x00\x00\x00\x00\x00\x00\x00\x00\xbf\xe6\xa0\x9ef'
-                       b'\x7f;\xcc\x00\x00\x00\x00\x00\x00\x00\x00')
+def test_sync_run_and_measure(qvm):
+    assert qvm.run_and_measure(BELL_STATE, [0, 1], trials=2) == [[1, 1], [0, 0]]
+    assert qvm.run_and_measure(BELL_STATE, [0, 1]) == [[1, 1]]
+
+    with pytest.raises(ValueError):
+        qvm.run_and_measure(EMPTY_PROGRAM, [0])
+
+
+WAVEFUNCTION_BINARY = (b'\x01\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00'
+                       b'\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00?\xe6\xa0\x9ef'
+                       b'\x7f;\xcc\x00\x00\x00\x00\x00\x00\x00\x00\xbf\xe6\xa0\x9ef\x7f;\xcc\x00'
+                       b'\x00\x00\x00\x00\x00\x00\x00')
 WAVEFUNCTION_PROGRAM = Program(H(0), CNOT(0, 1), MEASURE(0, 0), H(0))
 
 
-def test_sync_expectation():
+def test_sync_expectation_mock():
     def mock_response(request, context):
         assert json.loads(request.text) == {
             "type": "expectation",
@@ -132,19 +155,34 @@ def test_sync_expectation():
         return b'[0.0, 0.0, 1.0]'
 
     with requests_mock.Mocker() as m:
-        m.post('https://api.rigetti.com/qvm', content=mock_response)
+        m.post('http://localhost:5000/qvm', content=mock_response)
         result = mock_qvm.expectation(BELL_STATE, [Program(Z(0)), Program(Z(1)), Program(Z(0), Z(1))])
         exp_expected = [0.0, 0.0, 1.0]
-        assert np.allclose(result, exp_expected)
+        np.testing.assert_allclose(exp_expected, result)
 
     with requests_mock.Mocker() as m:
-        m.post('https://api.rigetti.com/qvm', content=mock_response)
+        m.post('http://localhost:5000/qvm', content=mock_response)
         z0 = PauliTerm("Z", 0)
         z1 = PauliTerm("Z", 1)
         z01 = z0 * z1
         result = mock_qvm.pauli_expectation(BELL_STATE, [z0, z1, z01])
         exp_expected = [0.0, 0.0, 1.0]
-        assert np.allclose(result, exp_expected)
+        np.testing.assert_allclose(exp_expected, result)
+
+
+def test_sync_expectation(qvm):
+    result = qvm.expectation(BELL_STATE, [Program(Z(0)), Program(Z(1)), Program(Z(0), Z(1))])
+    exp_expected = [0.0, 0.0, 1.0]
+    np.testing.assert_allclose(exp_expected, result)
+
+
+def test_sync_expectation_2(qvm):
+    z0 = PauliTerm("Z", 0)
+    z1 = PauliTerm("Z", 1)
+    z01 = z0 * z1
+    result = mock_qvm.pauli_expectation(BELL_STATE, [z0, z1, z01])
+    exp_expected = [0.0, 0.0, 1.0]
+    np.testing.assert_allclose(exp_expected, result)
 
 
 def test_sync_paulisum_expectation():
@@ -157,30 +195,20 @@ def test_sync_paulisum_expectation():
         return b'[1.0, 0.0, 0.0]'
 
     with requests_mock.Mocker() as m:
-        m.post('https://api.rigetti.com/qvm', content=mock_response)
+        m.post('http://localhost:5000/qvm', content=mock_response)
         z0 = PauliTerm("Z", 0)
         z1 = PauliTerm("Z", 1)
         z01 = z0 * z1
         result = mock_qvm.pauli_expectation(BELL_STATE, 1j * z01 + z0 + z1)
         exp_expected = 1j
-        assert np.allclose(result, exp_expected)
+        np.testing.assert_allclose(exp_expected, result)
 
 
-def test_sync_wavefunction():
-    def mock_response(request, context):
-        assert json.loads(request.text) == {
-            "type": "wavefunction",
-            "compiled-quil": "H 0\nCNOT 0 1\nMEASURE 0 [0]\nH 0\n",
-            "addresses": [0, 1]
-        }
-        return WAVEFUNCTION_BINARY
-
-    with requests_mock.Mocker() as m:
-        m.post('https://api.rigetti.com/qvm', content=mock_response)
-        result = mock_qvm.wavefunction(WAVEFUNCTION_PROGRAM, [0, 1])
-        wf_expected = np.array([0. + 0.j, 0. + 0.j, 0.70710678 + 0.j, -0.70710678 + 0.j])
-        assert np.all(np.isclose(result.amplitudes, wf_expected))
-        assert result.classical_memory == [1, 0]
+def test_sync_wavefunction(qvm):
+    qvm.random_seed = 0  # this test uses a stochastic program and assumes we measure 0
+    result = qvm.wavefunction(WAVEFUNCTION_PROGRAM)
+    wf_expected = np.array([0. + 0.j, 0. + 0.j, 0.70710678 + 0.j, -0.70710678 + 0.j])
+    np.testing.assert_allclose(result.amplitudes, wf_expected)
 
 
 def test_seeded_qvm(test_device):
@@ -193,10 +221,10 @@ def test_seeded_qvm(test_device):
         }
         return '[[0,0],[1,1]]'
 
-    with patch.object(CompilerConnection, "compile") as m_compile,\
-            patch('pyquil.api.qvm.apply_noise_model') as m_anm,\
+    with patch.object(LocalQVMCompiler, "quil_to_native_quil") as m_compile,\
+            patch('pyquil.api._qvm.apply_noise_model') as m_anm,\
             requests_mock.Mocker() as m:
-        m.post('https://api.rigetti.com/qvm', text=mock_response)
+        m.post('http://localhost:5000/qvm', text=mock_response)
         m_compile.side_effect = [BELL_STATE]
         m_anm.side_effect = [BELL_STATE]
 
@@ -220,167 +248,6 @@ def test_seeded_qvm(test_device):
         assert m_anm.call_count == 1
 
 
-JOB_ID = 'abc'
-
-
-def test_job_run():
-    program = {
-        "type": "multishot",
-        "addresses": [0, 1],
-        "trials": 2,
-        "compiled-quil": "H 0\nCNOT 0 1\n"
-    }
-
-    def mock_queued_response(request, context):
-        assert json.loads(request.text) == {
-            "machine": "QVM",
-            "program": program
-        }
-        return json.dumps({"jobId": JOB_ID, "status": "QUEUED"})
-
-    with requests_mock.Mocker() as m:
-        m.post('https://job.rigetti.com/beta/job', text=mock_queued_response)
-        m.get('https://job.rigetti.com/beta/job/' + JOB_ID, [
-            {'text': json.dumps({"jobId": JOB_ID, "status": "RUNNING"})},
-            {'text': json.dumps({"jobId": JOB_ID, "status": "FINISHED",
-                                 "result": [[0, 0], [1, 1]], "program": program})}
-        ])
-
-        result = mock_async_qvm.run(BELL_STATE, [0, 1], trials=2)
-        assert result == [[0, 0], [1, 1]]
-
-
-def test_async_wavefunction():
-    program = {
-        "type": "wavefunction",
-        "compiled-quil": "H 0\nCNOT 0 1\nMEASURE 0 [0]\nH 0\n",
-        "addresses": [0, 1]
-    }
-
-    def mock_queued_response(request, context):
-        assert json.loads(request.text) == {
-            "machine": "QVM",
-            "program": program
-        }
-        return json.dumps({"jobId": JOB_ID, "status": "QUEUED"})
-
-    with requests_mock.Mocker() as m:
-        m.post('https://job.rigetti.com/beta/job', text=mock_queued_response)
-        m.get('https://job.rigetti.com/beta/job/' + JOB_ID, text=json.dumps({
-            "jobId": JOB_ID,
-            "status": "FINISHED",
-            "result": base64.b64encode(WAVEFUNCTION_BINARY).decode(),
-            "program": program
-        }))
-        result = mock_async_qvm.wavefunction(WAVEFUNCTION_PROGRAM, [0, 1])
-
-        wf_expected = np.array([0. + 0.j, 0. + 0.j, 0.70710678 + 0.j, -0.70710678 + 0.j])
-        assert np.all(np.isclose(result.amplitudes, wf_expected))
-        assert result.classical_memory == [1, 0]
-
-
-def test_qpu_connection(test_device):
-    qpu = QPUConnection(device=test_device)
-
-    run_program = {
-        "type": "multishot",
-        "addresses": [0, 1],
-        "trials": 2,
-        "uncompiled-quil": "H 0\nCNOT 0 1\nMEASURE 0 [0]\nMEASURE 1 [1]\n"
-    }
-
-    run_and_measure_program = {
-        "type": "multishot-measure",
-        "qubits": [0, 1],
-        "trials": 2,
-        "uncompiled-quil": "H 0\nCNOT 0 1\nMEASURE 0 [0]\nMEASURE 1 [1]\n"
-    }
-
-    reply_program = {
-        "type": "multishot-measure",
-        "qubits": [0, 1],
-        "trials": 2,
-        "uncompiled-quil": "H 0\nCNOT 0 1\nMEASURE 0 [0]\nMEASURE 1 [1]\n",
-        "compiled-quil": "H 0\nCNOT 0 1\nMEASURE 0 [0]\nMEASURE 1 [1]\n"
-    }
-
-    def mock_queued_response_run(request, context):
-        assert json.loads(request.text) == {
-            "machine": "QPU",
-            "program": run_program,
-            "device": "test_device"
-        }
-        return json.dumps({"jobId": JOB_ID, "status": "QUEUED"})
-
-    with requests_mock.Mocker() as m:
-        m.post('https://job.rigetti.com/beta/job', text=mock_queued_response_run)
-        m.get('https://job.rigetti.com/beta/job/' + JOB_ID, [
-            {'text': json.dumps({"jobId": JOB_ID, "status": "RUNNING"})},
-            {'text': json.dumps({"jobId": JOB_ID, "status": "FINISHED",
-                                 "result": [[0, 0], [1, 1]], "program": reply_program})}
-        ])
-
-        result = qpu.run(BELL_STATE_MEASURE, [0, 1], trials=2)
-        assert result == [[0, 0], [1, 1]]
-
-    with requests_mock.Mocker() as m:
-        m.post('https://job.rigetti.com/beta/job', text=mock_queued_response_run)
-        m.get('https://job.rigetti.com/beta/job/' + JOB_ID, [
-            {'text': json.dumps({"jobId": JOB_ID, "status": "RUNNING"})},
-            {'text': json.dumps({"jobId": JOB_ID, "status": "FINISHED",
-                                 "result": [[0, 0], [1, 1]], "program": reply_program,
-                                 "metadata": {
-                                     "compiled_quil": "H 0\nCNOT 0 1\nMEASURE 0 [0]\nMEASURE 1 [1]\n",
-                                     "topological_swaps": 0,
-                                     "gate_depth": 2
-                                 }})}
-        ])
-
-        job = qpu.wait_for_job(qpu.run_async(BELL_STATE_MEASURE, [0, 1], trials=2))
-        assert job.result().tolist() == [[0, 0], [1, 1]]
-        assert job.compiled_quil() == Program(H(0), CNOT(0, 1), MEASURE(0, 0), MEASURE(1, 1))
-        assert job.topological_swaps() == 0
-        assert job.gate_depth() == 2
-
-    def mock_queued_response_run_and_measure(request, context):
-        assert json.loads(request.text) == {
-            "machine": "QPU",
-            "program": run_and_measure_program,
-            "device": "test_device"
-        }
-        return json.dumps({"jobId": JOB_ID, "status": "QUEUED"})
-
-    with requests_mock.Mocker() as m:
-        m.post('https://job.rigetti.com/beta/job', text=mock_queued_response_run_and_measure)
-        m.get('https://job.rigetti.com/beta/job/' + JOB_ID, [
-            {'text': json.dumps({"jobId": JOB_ID, "status": "RUNNING"})},
-            {'text': json.dumps({"jobId": JOB_ID, "status": "FINISHED",
-                                 "result": [[0, 0], [1, 1]], "program": reply_program})}
-        ])
-
-        result = qpu.run_and_measure(BELL_STATE, [0, 1], trials=2)
-        assert result == [[0, 0], [1, 1]]
-
-    with requests_mock.Mocker() as m:
-        m.post('https://job.rigetti.com/beta/job', text=mock_queued_response_run_and_measure)
-        m.get('https://job.rigetti.com/beta/job/' + JOB_ID, [
-            {'text': json.dumps({"jobId": JOB_ID, "status": "RUNNING"})},
-            {'text': json.dumps({"jobId": JOB_ID, "status": "FINISHED",
-                                 "result": [[0, 0], [1, 1]],
-                                 "program": reply_program,
-                                 "metadata": {
-                                     "topological_swaps": 0,
-                                     "gate_depth": 2
-                                 }})}
-        ])
-
-        job = qpu.wait_for_job(qpu.run_and_measure_async(BELL_STATE, [0, 1], trials=2))
-        assert job.result().tolist() == [[0, 0], [1, 1]]
-        assert job.compiled_quil() == Program(H(0), CNOT(0, 1), MEASURE(0, 0), MEASURE(1, 1))
-        assert job.topological_swaps() == 0
-        assert job.gate_depth() == 2
-
-
 def test_validate_noise_probabilities():
     with pytest.raises(TypeError):
         validate_noise_probabilities(1)
@@ -394,108 +261,153 @@ def test_validate_noise_probabilities():
         validate_noise_probabilities([-0.5, -0.5, -0.5])
 
 
-def test_validate_run_items():
+def test_validate_qubit_list():
     with pytest.raises(TypeError):
-        validate_run_items(-1, 1)
+        validate_qubit_list([-1, 1])
     with pytest.raises(TypeError):
-        validate_run_items(['a', 0], 1)
+        validate_qubit_list(['a', 0], 1)
 
 
-def test_append_measures_to_program():
-    gate_program = Program()
-    meas_program = Program(MEASURE(0, 0), MEASURE(1, 1))
-    assert gate_program + meas_program == append_measures_to_program(gate_program, [0, 1])
+def test_prepare_register_list():
+    with pytest.raises(TypeError):
+        prepare_register_list({'ro': [-1, 1]})
 
 
-def test_sync_compile_mock():
-    def mock_response(request, context):
-        assert json.loads(request.text) == {
-            "type": "multishot",
-            "qubits": [],
-            "uncompiled-quil": "H 0\nCNOT 0 1\n",
-            "target-device": {"isa": DUMMY_ISA_DICT}
-        }
-        return json.dumps({
-            "type": "multishot",
-            "qubits": [],
-            "uncompiled-quil": "H 0\nCNOT 0 1\n",
-            "compiled-quil": "H 0\nCNOT 0 1\n",
-            "target-device": {"isa": DUMMY_ISA_DICT}})
-
-    with requests_mock.Mocker() as m:
-        m.post('https://api.rigetti.com/quilc', text=mock_response)
-        assert mock_compiler.compile(BELL_STATE) == BELL_STATE
+def test_config_parsing():
+    with patch.dict('os.environ', {"FOREST_CONFIG": os.path.join(os.path.dirname(__file__),
+                                                                 "data/forest_config.test"),
+                                   "QCS_CONFIG": os.path.join(os.path.dirname(__file__),
+                                                              "data/qcs_config.test")}):
+        pq_config = PyquilConfig()
+        assert pq_config.forest_url == "http://dummy_forest_url"
+        assert pq_config.api_key == "pyquil_user_key"
+        assert pq_config.user_id == "pyquil_user_token"
+        assert pq_config.engage_cmd == "dummy_command"
+        assert pq_config.qpu_url == "tcp://dummy_qpu_url"
+        assert pq_config.qvm_url == "http://dummy_qvm_url"
+        assert pq_config.compiler_url == "tcp://dummy_compiler_server_url"
 
 
-def test_sync_compile(compiler):
-    assert compiler.compile(BELL_STATE) == COMPILED_BELL_STATE
+# ---------------------
+# compiler-server tests
+# ---------------------
 
 
-def test_job_compile():
-    processed_program = {
-        "type": "multishot",
-        "qubits": [],
-        "uncompiled-quil": "H 0\nCNOT 0 1\n",
-        "target-device": {"isa": DUMMY_ISA_DICT}
-    }
-    postprocessed_program = {
-        "type": "multishot",
-        "qubits": [],
-        "uncompiled-quil": "H 0\nCNOT 0 1\n",
-        "compiled-quil": "H 0\nCNOT 0 1\n",
-        "target-device": {"isa": DUMMY_ISA_DICT}
-    }
-
-    def mock_queued_response(request, context):
-        assert json.loads(request.text) == {
-            "machine": "QUILC",
-            "program": processed_program
-        }
-        return json.dumps({"jobId": JOB_ID, "status": "QUEUED"})
-
-    with requests_mock.Mocker() as m:
-        m.post('https://job.rigetti.com/beta/job', text=mock_queued_response)
-        m.get('https://job.rigetti.com/beta/job/' + JOB_ID, [
-            {'text': json.dumps({"jobId": JOB_ID, "status": "COMPILING"})},
-            {'text': json.dumps({"jobId": JOB_ID, "status": "FINISHED",
-                                 "program": postprocessed_program, "metadata": {}})}
-        ])
-
-        result = mock_async_compiler.compile(BELL_STATE)
-        assert result == BELL_STATE
+def test_get_qc_returns_local_qvm_compiler():
+    with patch.dict('os.environ', {"COMPILER_URL": "http://localhost:7000"}):
+        qc = get_qc("9q-generic-qvm")
+        assert isinstance(qc.compiler, LocalQVMCompiler)
 
 
-def test_compiler_without_isa():
-    with pytest.raises(ValueError):
-        CompilerConnection().compile(Program())
+def test_get_qc_returns_remote_qvm_compiler():
+    with patch.dict('os.environ', {"COMPILER_URL": "tcp://192.168.0.0:5555"}):
+        qc = get_qc("9q-generic-qvm")
+        assert isinstance(qc.compiler, QVMCompiler)
 
 
-def test_rb_sequence():
-    gateset = [PHASE(np.pi, 0), H(0)]
-    depth = 2
-    # Random sequences corresponding to sampling H(0) and PHASE(0, 0), then inverting them.
-    sampled_sequence = [[1, 1], [0, 0]]
-
-    def mock_queued_response(_, __):
-        return json.dumps(sampled_sequence)
-
-    with requests_mock.Mocker() as m:
-        m.post('https://api.rigetti.com/rb', text=mock_queued_response)
-        result = list(reversed(mock_async_compiler.generate_rb_sequence(depth, gateset)))
-        assert result == [Program().inst([gateset[i] for i in clifford])
-                          for clifford in sampled_sequence]
+mock_compiler_server = Server()
 
 
-def test_apply_clifford_to_pauli():
-    clifford = Program().inst("H 0")
-    pauli = PauliTerm("X", 0)
-    # The first element should be the power of i that is the phase,
-    #  and the second should be the pauli from conjugation.
-    response = [0, "Z"]
+@mock_compiler_server.rpc_handler
+def quil_to_native_quil(payload: NativeQuilRequest) -> NativeQuilResponse:
+    assert payload.quil == BELL_STATE.out()
+    time.sleep(0.1)
+    return NativeQuilResponse(quil=COMPILED_BELL_STATE.out(),
+                              metadata=NativeQuilMetadata(final_rewiring=[],
+                                                          gate_depth=0,
+                                                          gate_volume=0,
+                                                          multiqubit_gate_depth=0,
+                                                          program_duration=0.0,
+                                                          program_fidelity=0.0,
+                                                          topological_swaps=0))
 
-    def mock_queued_response(_, __):
-        return json.dumps(response)
-    with requests_mock.Mocker() as m:
-        m.post('https://api.rigetti.com/apply-clifford', text=mock_queued_response)
-        result = mock_async_compiler.apply_clifford_to_pauli(clifford, pauli)
-        assert result == PauliTerm("Z", 0)
+
+@mock_compiler_server.rpc_handler
+def native_quil_to_binary(payload: BinaryExecutableRequest) -> BinaryExecutableResponse:
+    assert payload.quil == COMPILED_BELL_STATE.out()
+    time.sleep(0.1)
+    return BinaryExecutableResponse(program=COMPILED_BYTES_ARRAY)
+
+
+@mock_compiler_server.rpc_handler
+def generate_rb_sequence(payload: RandomizedBenchmarkingRequest) -> RandomizedBenchmarkingResponse:
+    assert payload.depth == 2
+    time.sleep(0.1)
+    return RandomizedBenchmarkingResponse(sequence=RB_ENCODED_REPLY)
+
+
+@mock_compiler_server.rpc_handler
+def conjugate_pauli_by_clifford(payload: ConjugateByCliffordRequest) -> ConjugateByCliffordResponse:
+    time.sleep(0.1)
+    return ConjugateByCliffordResponse(phase=0, pauli="Z")
+
+
+@pytest.fixture
+def m_endpoints():
+    return "tcp://localhost:5555", "tcp://*:5555"
+
+
+def run_mock(_, endpoint):
+    # Need a new event loop for a new process
+    mock_compiler_server.run(endpoint, loop=asyncio.new_event_loop())
+
+
+@pytest.fixture
+def server(request, m_endpoints):
+    proc = Process(target=run_mock, args=m_endpoints)
+    proc.start()
+    yield proc
+    os.kill(proc.pid, signal.SIGINT)
+
+
+@pytest.fixture
+def mock_compiler(request, m_endpoints):
+    return QPUCompiler(endpoint=m_endpoints[0],
+                       device=NxDevice(nx.Graph([(0, 1)])))
+
+
+@pytest.fixture
+def mock_rb_cxn(request, m_endpoints):
+    return BenchmarkConnection(endpoint=m_endpoints[0])
+
+
+def test_quil_to_native_quil(server, mock_compiler):
+    response = mock_compiler.quil_to_native_quil(BELL_STATE)
+    assert response.out() == COMPILED_BELL_STATE.out()
+
+
+def test_native_quil_to_binary(server, mock_compiler):
+    p = COMPILED_BELL_STATE.copy()
+    p.wrap_in_numshots_loop(10)
+    response = mock_compiler.native_quil_to_executable(p)
+    assert response.program == COMPILED_BYTES_ARRAY
+
+
+def test_rb_sequence(server, mock_rb_cxn):
+    response = mock_rb_cxn.generate_rb_sequence(2, [PHASE(np.pi / 2, 0), H(0)])
+    assert [prog.out() for prog in response] == [prog.out() for prog in RB_REPLY]
+
+
+def test_conjugate_request(server, mock_rb_cxn):
+    response = mock_rb_cxn.apply_clifford_to_pauli(Program("H 0"), PauliTerm("X", 0, 1.0))
+    assert isinstance(response, PauliTerm)
+    assert str(response) == "(1+0j)*Z0"
+
+
+def test_local_rb_sequence(benchmarker):
+    config = PyquilConfig()
+    if config.compiler_url is not None:
+        cxn = LocalBenchmarkConnection(endpoint=config.compiler_url)
+        response = cxn.generate_rb_sequence(2, [PHASE(np.pi / 2, 0), H(0)], seed=52)
+        assert [prog.out() for prog in response] == \
+               ["H 0\nPHASE(pi/2) 0\nH 0\nPHASE(pi/2) 0\nPHASE(pi/2) 0\n",
+                "H 0\nPHASE(pi/2) 0\nH 0\nPHASE(pi/2) 0\nPHASE(pi/2) 0\n"]
+
+
+def test_local_conjugate_request(benchmarker):
+    config = PyquilConfig()
+    if config.compiler_url is not None:
+        cxn = LocalBenchmarkConnection(endpoint=config.compiler_url)
+        response = cxn.apply_clifford_to_pauli(Program("H 0"), PauliTerm("X", 0, 1.0))
+        assert isinstance(response, PauliTerm)
+        assert str(response) == "(1+0j)*Z0"

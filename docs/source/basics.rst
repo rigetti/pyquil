@@ -1,14 +1,30 @@
 .. _basics:
 
-The Basics: Programs and Gates
-==============================
+Programs and Gates
+==================
+
+First, initialize a localQVM instance on your laptop. You should have two consoles open in your terminal to run in the
+background.
+
+.. code:: python
+
+    ### CONSOLE 1
+    $ quilc -S
+    port triggered: 6000.
+    [2018-09-19 11:22:37] Starting server: 0.0.0.0 : 6000.
+
+    ### CONSOLE 2
+    $ qvm -S
+    Welcome to the Rigetti QVM
+    (Configured with 2048 MiB of workspace and 8 workers.)
+    [2018-09-20 15:39:50] Starting server on port 5000.
 
 Quantum programs are written in Forest using the ``Program`` object from the ``quil`` module.
 
 .. code:: python
 
-    from pyquil.quil import Program
-    p = Program()
+    from pyquil import Program, get_qc
+    from pyquil.gates import *
 
 Programs are then constructed from quantum gates, which can be found in the ``gates`` module. We can
 add quantum gates to programs in numerous ways, including using the ``.inst(...)`` method. We use
@@ -16,7 +32,7 @@ the ``.measure(...)`` method to measure qubits into classical registers:
 
 .. code:: python
 
-    from pyquil.gates import X
+    p = Program()
     p.inst(X(0)).measure(0, 0)
 
 .. parsed-literal::
@@ -43,10 +59,9 @@ program on the Quantum Virtual Machine, or QVM:
 
 .. code:: python
 
-    from pyquil.api import QVMConnection
-    qvm = QVMConnection()
-
-    print(qvm.run(p, [0]))
+    qvm = get_qc('9q-generic-qvm')
+    result = qvm.run_and_measure(p, trials=10)
+    print(result)
 
 Congratulations! You just ran a program on the QVM. The returned value should be:
 

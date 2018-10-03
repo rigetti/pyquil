@@ -17,10 +17,13 @@ import numpy as np
 import pytest
 
 from pyquil.gates import *
-from pyquil.parameters import Parameter, quil_sin, quil_cos, Segment, Add
+from pyquil.parameters import Parameter, quil_sin, quil_cos
 from pyquil.parser import parse
 from pyquil.quilatom import Addr
-from pyquil.quilbase import Label, JumpTarget, Jump, JumpWhen, JumpUnless, DefGate, Qubit, Pragma, RawInstr
+from pyquil.quilatom import MemoryReference
+from pyquil.quilbase import Declare, Reset, ResetQubit
+from pyquil.quilbase import Label, JumpTarget, Jump, JumpWhen, JumpUnless, DefGate, Qubit, Pragma, \
+    RawInstr
 from pyquil.tests.utils import parse_equals
 
 
@@ -136,37 +139,57 @@ def test_expressions():
     _expr("-(3-4)", 1)
     _expr("-0.1423778799706841+0.5434363975682295i", complex(-0.1423778799706841, 0.5434363975682295))
 
-    # Classical memory segments
-    _expr("[0-47]", Segment(0, 47))
-    _expr("[0-47]+3.0", Add(Segment(0, 47), 3.0))
-
 
 def test_measure():
     parse_equals("MEASURE 0", MEASURE(0))
-    parse_equals("MEASURE 0 [1]", MEASURE(0, 1))
+    parse_equals("MEASURE 0 ro[1]", MEASURE(0, 1))
 
 
 def test_jumps():
     parse_equals("LABEL @test_1", JumpTarget(Label("test_1")))
     parse_equals("JUMP @test_1", Jump(Label("test_1")))
-    parse_equals("JUMP-WHEN @test_1 [0]", JumpWhen(Label("test_1"), Addr(0)))
-    parse_equals("JUMP-UNLESS @test_1 [1]", JumpUnless(Label("test_1"), Addr(1)))
+    parse_equals("JUMP-WHEN @test_1 ro[0]", JumpWhen(Label("test_1"), Addr(0)))
+    parse_equals("JUMP-UNLESS @test_1 ro[1]", JumpUnless(Label("test_1"), Addr(1)))
 
 
 def test_others():
-    parse_equals("RESET", RESET)
+    parse_equals("RESET", RESET())
     parse_equals("WAIT", WAIT)
     parse_equals("NOP", NOP)
 
 
+def test_memory_commands():
+    parse_equals("DECLARE mem OCTET[32] SHARING mem2 OFFSET 16 REAL OFFSET 32 REAL",
+                 Declare("mem", "OCTET", 32, shared_region="mem2", offsets=[(16, "REAL"), (32, "REAL")]))
+    parse_equals("STORE mem ro[2] ro[0]", STORE("mem", MemoryReference("ro", 2), MemoryReference("ro", 0)))
+    parse_equals("LOAD ro[8] mem mem[4]", LOAD(MemoryReference("ro", 8), "mem", MemoryReference("mem", 4)))
+    parse_equals("CONVERT ro[1] ro[2]", CONVERT(MemoryReference("ro", 1), MemoryReference("ro", 2)))
+    parse_equals("EXCHANGE ro[0] ro[1]", EXCHANGE(MemoryReference("ro", 0), MemoryReference("ro", 1)))
+    parse_equals("MOVE mem[2] 4", MOVE(MemoryReference("mem", 2), 4))
+
+
 def test_classical():
-    parse_equals("TRUE [0]", TRUE(0))
-    parse_equals("FALSE [0]", FALSE(0))
-    parse_equals("NOT [0]", NOT(0))
-    parse_equals("AND [0] [1]", AND(0, 1))
-    parse_equals("OR [0] [1]", OR(0, 1))
-    parse_equals("MOVE [0] [1]", MOVE(0, 1))
-    parse_equals("EXCHANGE [0] [1]", EXCHANGE(0, 1))
+    parse_equals("MOVE ro[0] 1", TRUE(0))
+    parse_equals("MOVE ro[0] 0", FALSE(0))
+    parse_equals("NOT ro[0]", NOT(Addr(0)))
+    parse_equals("AND ro[0] 1", AND(MemoryReference("ro", 0), 1))
+    parse_equals("IOR ro[0] 1", OR(1, MemoryReference("ro", 0)))
+    parse_equals("MOVE ro[0] 1", MOVE(MemoryReference("ro", 0), 1))
+    parse_equals("XOR ro[0] 1", XOR(MemoryReference("ro", 0), 1))
+    parse_equals("ADD mem[0] 1.2", ADD(MemoryReference("mem", 0), 1.2))
+    parse_equals("SUB mem[0] 1.2", SUB(MemoryReference("mem", 0), 1.2))
+    parse_equals("MUL mem[0] 1.2", MUL(MemoryReference("mem", 0), 1.2))
+    parse_equals("DIV mem[0] 1.2", DIV(MemoryReference("mem", 0), 1.2))
+    parse_equals("EQ comp[1] ro[3] ro[2]",
+                 EQ(MemoryReference("comp", 1), MemoryReference("ro", 3), MemoryReference("ro", 2)))
+    parse_equals("LT comp[1] ro[3] ro[2]",
+                 LT(MemoryReference("comp", 1), MemoryReference("ro", 3), MemoryReference("ro", 2)))
+    parse_equals("LE comp[1] ro[3] ro[2]",
+                 LE(MemoryReference("comp", 1), MemoryReference("ro", 3), MemoryReference("ro", 2)))
+    parse_equals("GT comp[1] ro[3] ro[2]",
+                 GT(MemoryReference("comp", 1), MemoryReference("ro", 3), MemoryReference("ro", 2)))
+    parse_equals("GE comp[1] ro[3] ro[2]",
+                 GE(MemoryReference("comp", 1), MemoryReference("ro", 3), MemoryReference("ro", 2)))
 
 
 def test_pragma():
@@ -191,3 +214,15 @@ DEFCIRCUIT bell a b:
     CNOT a b
 """.strip()
     parse_equals(defcircuit, RawInstr(defcircuit))
+
+
+def test_parse_reset_qubit():
+    reset = """
+RESET
+    """.strip()
+    parse_equals(reset, Reset())
+
+    reset_qubit = """
+RESET 5
+    """.strip()
+    parse_equals(reset_qubit, ResetQubit(Qubit(5)))

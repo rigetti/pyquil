@@ -1,3 +1,19 @@
+##############################################################################
+# Copyright 2018 Rigetti Computing
+#
+#    Licensed under the Apache License, Version 2.0 (the "License");
+#    you may not use this file except in compliance with the License.
+#    You may obtain a copy of the License at
+#
+#        http://www.apache.org/licenses/LICENSE-2.0
+#
+#    Unless required by applicable law or agreed to in writing, software
+#    distributed under the License is distributed on an "AS IS" BASIS,
+#    WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+#    See the License for the specific language governing permissions and
+#    limitations under the License.
+##############################################################################
+
 
 class ApiError(RuntimeError):
     def __init__(self, server_status, explanation):
@@ -135,7 +151,7 @@ and copy the above message into a GitHub issue at:
 
 
 # NB: Some errors are not included here if they are only returned by async endpoints
-# The source of truth for this mapping is the errors.py file on the server
+# The source of truth for this mapping is the _errors.py file on the server
 error_mapping = {
     'device_offline': DeviceOfflineError,
     'device_retuning': DeviceRetuningError,

@@ -12,60 +12,6 @@ DEVICE_FIXTURE_NAME = 'mixed_architecture_chip'
 
 
 @pytest.fixture
-def specs_dict():
-    return {
-        '1Q': {
-            "0": {
-                "f1QRB": 0.99,
-                "fRO": 0.93,
-                "T1": 20e-6,
-                "T2": 15e-6
-            },
-            "1": {
-                "f1QRB": 0.989,
-                "fRO": 0.92,
-                "T1": 19e-6,
-                "T2": 12e-6
-            },
-            "2": {
-                "f1QRB": 0.983,
-                "fRO": 0.95,
-                "T1": 21e-6,
-                "T2": 16e-6
-            },
-            "3": {
-                "f1QRB": 0.988,
-                "fRO": 0.94,
-                "T1": 18e-6,
-                "T2": 11e-6
-            }
-        },
-        '2Q': {
-            "0-1": {
-                "fBellState": 0.90,
-                "fCZ": 0.89,
-                "fCPHASE": 0.88
-            },
-            "1-2": {
-                "fBellState": 0.91,
-                "fCZ": 0.90,
-                "fCPHASE": 0.89
-            },
-            "2-0": {
-                "fBellState": 0.92,
-                "fCZ": 0.91,
-                "fCPHASE": 0.90
-            },
-            "0-3": {
-                "fBellState": 0.89,
-                "fCZ": 0.88,
-                "fCPHASE": 0.87
-            }
-        }
-    }
-
-
-@pytest.fixture
 def kraus_model_I_dict():
     return {'gate': 'I',
             'fidelity': 1.0,
@@ -105,10 +51,10 @@ def test_specs(specs_dict):
     specs = Specs.from_dict(specs_dict)
     assert specs == Specs(
         qubits_specs=[
-            QubitSpecs(id=0, f1QRB=0.99, fRO=0.93, T1=20e-6, T2=15e-6),
-            QubitSpecs(id=1, f1QRB=0.989, fRO=0.92, T1=19e-6, T2=12e-6),
-            QubitSpecs(id=2, f1QRB=0.983, fRO=0.95, T1=21e-6, T2=16e-6),
-            QubitSpecs(id=3, f1QRB=0.988, fRO=0.94, T1=18e-6, T2=11e-6)
+            QubitSpecs(id=0, f1QRB=0.99, fRO=0.93, T1=20e-6, T2=15e-6, fActiveReset=None),
+            QubitSpecs(id=1, f1QRB=0.989, fRO=0.92, T1=19e-6, T2=12e-6, fActiveReset=None),
+            QubitSpecs(id=2, f1QRB=0.983, fRO=0.95, T1=21e-6, T2=16e-6, fActiveReset=None),
+            QubitSpecs(id=3, f1QRB=0.988, fRO=0.94, T1=18e-6, T2=11e-6, fActiveReset=None)
         ],
         edges_specs=[
             EdgeSpecs(targets=[0, 1], fBellState=0.90, fCZ=0.89, fCPHASE=0.88),
@@ -173,8 +119,6 @@ def test_device(isa_dict, noise_model_dict):
 
     device = Device(DEVICE_FIXTURE_NAME, device_raw)
     assert device.name == DEVICE_FIXTURE_NAME
-    assert device.is_online()
-    assert not device.is_retuning()
 
     isa = ISA.from_dict(isa_dict)
     noise_model = NoiseModel.from_dict(noise_model_dict)
@@ -213,6 +157,17 @@ def test_isa_from_graph():
     assert sorted(isad['2Q']) == ['0-1', '0-2', '1-2']
     for v in isad['2Q'].values():
         assert v == {}
+
+
+def test_isa_from_graph_order():
+    # since node 16 appears first, even though we ask for the edge (15,16) the networkx internal
+    # representation will have it as (16,15)
+    fc = nx.from_edgelist([(16, 17), (15, 16)])
+    isa = isa_from_graph(fc)
+    isad = isa.to_dict()
+    for k in isad['2Q']:
+        q1, q2 = k.split('-')
+        assert q1 < q2
 
 
 def test_isa_from_graph_cphase():
