@@ -45,7 +45,7 @@ Below are installation instructions for the Rigetti Forest SDK 2.0
 Preview. The main goals of installation are
 
 1. to install the ``qvm`` and ``quilc`` command line programs, and
-2. to install the Python library PyQuil 2.0 Preview.
+2. to install the Python library pyQuil 2.0 Preview.
 
 All installation mechanisms, except the bare-bones package, require
 administrative privileges to install. The bare-bones package just
@@ -172,33 +172,16 @@ install shared libraries for BLAS, LAPACK, and libffi. On a Debian-derivative sy
 To uninstall, remove the directory ``~/rigetti``.
 
 
-Installing PyQuil 2.0 Preview on All Platforms
+Installing pyQuil 2.0 Preview on All Platforms
 ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
 
-.. ATTENTION::
-
-   This section will change once PyQuil 2.0 is released to GitHub.
-
-On a Mac, change to the mounted directory
+From within your desired Python environment, run the command:
 
 ::
 
-    cd /Volumes/ForestSDK
+    pip install --pre pyquil==2.0.0.dev1
 
-and on Linux change to the extracted directory
-
-::
-
-    cd forest-sdk-2.0rc2-linux-{deb, rpm, barebones}
-
-Next, run the command:
-
-::
-
-    pip install rpcq-external-1.7.0.tar.gz
-    pip install pyquil-2.0.0b1.tar.gz
-
-Note that both now require at least Python 3.0.
+Note that this requires at least Python 3.6.
 
 Using the SDK
 -------------
@@ -214,7 +197,7 @@ how to use them directly. One can read the manual pages by open a new
 terminal window and typing ``man qvm`` (for the QVM) or ``man quilc``
 (for the compiler). One can quit out of the manual page by typing ``q``.
 
-Using PyQuil 2.0 Preview with the SDK Locally
+Using pyQuil 2.0 Preview with the SDK Locally
 ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
 
 PyQuil as provided through Rigetti Forest SDK 2.0 Preview is
@@ -343,7 +326,7 @@ These values control the following behaviors:
    launch when the QMI becomes QPU-engaged.
 
     **NOTE:** PyQuil itself reads these values out using the helper
-    class ``pyquil._config.PyquilConfig``. PyQuil users should not ever
+    class ``pyquil.api._config.PyquilConfig``. PyQuil users should not ever
     need to touch this class directly.
 
 Support
