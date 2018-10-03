@@ -305,25 +305,26 @@ Virtual Machine, our QPUs, noise models and more. Jump to :ref:`basics` to conti
 
 .. _quickstart:
 
-
 Forest 2.0: Quick-Start & Migration Guide
 -----------------------------------------
-We'll go over how to get set up, what's changed, and go through an example migration of a VQE program from Forest 1.3
-(pyQuil 1.9, Quil 1.0) to be able to run on the new Forest SDK (pyQuil 2.0, Quil 2).
+
+The goals of this guide are to cover changes to the Forest SDK (containing pyquil 2.0, new Quil, Quil Compiler, and QVM),
+and to go through an example of migrating a VQE program from Forest 1.3 (pyQuil 1.9, Quil 1.0) to be able to run on the
+new Forest SDK.
 
 
 .. note::
 
-    For installation & setup, follow the download instructions in the section :ref:`start:` at the top of the page.
-
+    For installation & setup, follow the download instructions in the section :ref:`start` at the top of the page.
 
 What's changed
-~~~~~~~~~~~~~~
+--------------
+
 With the new Forest SDK, users will be able to run pyQuil programs on a downloadable QVM and Quil Compiler!
 
-In this section, we'll cover the main changes to pyQuil, Quil, the Quil Compiler, and the QVM.
+In the following section, we'll cover the main changes to pyQuil, Quil, the Quil Compiler, and the QVM.
 
-Overview of updates to Quil and pyQuil
+Overview of Updates to Quil and pyQuil
 ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
 
 The primary differences in the programming language Quil 1.0 (as appearing in pyQuil 1.3) and Quil 2 (as appearing in
@@ -395,10 +396,8 @@ can be sent to the compiler, which returns a nativized Quil program that still h
 referencing the classical memory regions ``beta`` and ``gamma``. This program can then be loaded onto the QPU for
 repeated execution with different values of ``beta`` and ``gamma``, without recompilation in between.
 
-
-
 Details of updates to Quil
---------------------------
+~~~~~~~~~~~~~~~~~~~~~~~~~~
 
 Classical memory regions must be explicitly requested and named by a Quil program using ``DECLARE`` directive. A generic
 ``DECLARE`` directive has the following syntax:
@@ -455,12 +454,10 @@ When confronted with program text conforming to Quil 1.0, pyQuil 2.0 will automa
 ``MEASURE q ro[n]`` and insert a ``DECLARE`` statement which allocates a ``BIT``-array of the appropriate size named
 ``ro``.
 
-
 Details of pyQuil and Forest updates
-------------------------------------
+~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
 
-Updates to Forest
-~~~~~~~~~~~~~~~~~
+**Updates to Forest**
 
 -  In Forest 1.3, job submission to the QPU was done from your workstation and the ability was gated by on user ID. In
     Forest 2.0, job submission to the QPU must be done from your remote virtual machine, called a QMI (*Quantum Machine Image*).
@@ -470,8 +467,7 @@ Updates to Forest
     on their QMI.
 
 
-Updates to pyQuil
-~~~~~~~~~~~~~~~~~
+**Updates to pyQuil**
 
 -  In pyQuil 1.9, API calls were organized by endpoint (e.g., all simulation calls were passed to a ``QVMConnection``
     object). In pyQuil 2.0, API calls are organized by type (e.g., ``run`` calls are sent to a ``QuantumComputer`` but
@@ -509,7 +505,7 @@ easily swapped. These API objects fall into two groups:
 
 
 Example: Computing the bond energy of molecular hydrogen, pyQuil 1.9 vs 2.0
-^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+---------------------------------------------------------------------------
 
 By way of example, let's consider the following pyQuil 1.9 program,
 which computes the natural bond distance in molecular hydrogen using a
@@ -810,6 +806,19 @@ Overall, the resulting program looks like this:
 
     min_energy, relaxed_length = min_energies[min_index], min_index * bond_step
 
+Miscellanea
+-----------
+Quil promises that a BIT is 1 bit and that an OCTET is 8 bits. Quil does not promise, however, the size or layout of
+INTEGER or REAL. These are implementation-dependent.
+
+On the QPU, ``INTEGER`` refers to an unsigned integer stored in a 48-bit wide little-endian word, and ``REAL`` refers to
+a 48-bit wide little-endian fixed point number of type <0.48>. In general, these datatypes are implementation-dependent.
+``OCTET`` always refers to an 8-bit wide unsigned integer and is independent of implementation.
+
+Memory regions are all "global": ``DECLARE`` directives cannot appear in the body of a ``DEFCIRCUIT``.
+
+On the QVM, INTEGER is a two's complement signed 64-bit integer. REAL is an IEEE-754 double-precision floating-point number.
+
 Error reporting
 ~~~~~~~~~~~~~~~
 
@@ -929,20 +938,6 @@ location:
     }
 
 Please attach such a logfile to any request for support.
-
-
-Miscellanea
-^^^^^^^^^^^
-Quil promises that a BIT is 1 bit and that an OCTET is 8 bits. Quil does not promise, however, the size or layout of
-INTEGER or REAL. These are implementation-dependent.
-
-On the QPU, ``INTEGER`` refers to an unsigned integer stored in a 48-bit wide little-endian word, and ``REAL`` refers to
-a 48-bit wide little-endian fixed point number of type <0.48>. In general, these datatypes are implementation-dependent.
-``OCTET`` always refers to an 8-bit wide unsigned integer and is independent of implementation.
-
-Memory regions are all "global": ``DECLARE`` directives cannot appear in the body of a ``DEFCIRCUIT``.
-
-On the QVM, INTEGER is a two's complement signed 64-bit integer. REAL is an IEEE-754 double-precision floating-point number.
 
 
 QPU-allowable Quil: "ProtoQuil"
