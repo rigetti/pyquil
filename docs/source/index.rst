@@ -8,8 +8,8 @@
 Welcome to the Docs for the Forest SDK!
 =======================================
 
-The Rigetti Forest `Software Development Kit <http://rigetti.com/forest>`_ includes pyQuil, the Quil Compiler (quilc),
-and the Quantum Virtual Machine (qvm).
+The Rigetti Forest `Software Development Kit <http://rigetti.com/forest>`_ includes pyQuil, the Rigetti Quil Compiler
+(quilc), and the Quantum Virtual Machine (qvm).
 
 **Longtime users of Rigetti Forest will notice a few changes.** First, the SDK now contains a downloadable compiler and a
 QVM. Second, the SDK contains pyQuil 2.0, with significant updates to previous versions. As a result, programs written
@@ -40,20 +40,23 @@ in pyquil's docs:
   The source is hosted on `github <http://github.com/rigetticomputing/pyquil>`_.
 - Quil, the Quantum Instruction Language, is the lower-level code that pyQuil gets compiled into. A full description of
   Quil can be found in our whitepaper, `A Practical Quantum Instruction Set Architecture <https://arxiv.org/abs/1608.03355>`_.
-- quilc is the Quil Compiler that compiles pyQuil into Quil. The SDK includes quilc, which will enable you to compile your
-  pyQuil programs into executable Quil code.
+- quilc is the Rigetti Quil Compiler that compiles pyQuil into Quil. The SDK includes quilc, which will enable you to
+  compile your pyQuil programs into executable Quil code.
 - The QVM is a simulator of our quantum computers. When you download the SDK, you’ll install the QVM and you will execute
   Quil programs against it.
 - Forest is our software development kit, optimized for near-term quantum computers that operate as coprocessors, working in
   concert with traditional processors to run hybrid quantum-classical algorithms. For references on problems addressable
   with near-term quantum computers, see `Quantum Computing in the NISQ era and beyond <https://arxiv.org/abs/1801.00862>`_.
 
-Our flagship product, `Quantum Cloud Services <http://rigetti.com/qcs>`_ offers users an on-premise, dedicated access
-point to our quantum computers, and to a powerful 34-qubit Quantum Virtual Machine. This access point sits in a Virtual
-Machine, which we call a Quantum Machine Image. A QMI is bundled with the same downloadable SDK mentioned above, and a
-Command Line Interface (CLI), which is used for scheduling compute time on our quantum computers. To sign up for our
+Our flagship product `Quantum Cloud Services <http://rigetti.com/qcs>`_ offers users an on-premise, dedicated access
+point to our quantum computers, and to a powerful 34-qubit Quantum Virtual Machine. This access point is a fully-configured
+OS, which we call a Quantum Machine Image. A QMI is bundled with the same downloadable SDK mentioned above, and an admin
+command line interface (CLI), which is used for scheduling compute time on our quantum computers. To sign up for our
 waitlist, please click the link above. If need access to our quantum computers for research, please email support@rigetti.com.
 
+.. note::
+
+    To join our user community, connect to the Rigetti Slack workspace at https://rigetti-forest.slack.com.
 
 Contents
 --------

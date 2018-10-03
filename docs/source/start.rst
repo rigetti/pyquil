@@ -5,43 +5,34 @@ Getting Started with the Forest 2.0 SDK
 
 
 This is a preview of the upcoming release of the Forest 2.0 SDK for Rigetti Quantum Cloud Services. The Rigetti Forest
-SDK 2.0 Preview is currently supported on macOS 10.12+ and Linux. Microsoft Windows is currently *not* supported.
+SDK 2.0 Preview is currently supported on macOS 10.12+ and Linux. Support for Windows OS is currently under development.
 
 .. note::
 
-    If you are a current user, please scroll down to :ref:`quickstart` to get quickly get started.
-
-
-To join our user community, connect to the Rigetti Slack workspace at https://rigetti-forest.slack.com.
+    If you are a current user, please scroll down to :ref:`quickstart` to get caught up on changes.
 
 `Download the Forest SDK <http://rigetti.com/forest>`_. The SDK will pre-package pyQuil v2.0/Quil 2, a compatible
 downloadable QVM, and Quil Compiler. You'll need to download these resources before constructing and executing pyQuil
 programs.
 
-We recommend installing pyQuil using package manager pip.
-
+We recommend installing pyQuil using package manager pip. Running
 
 .. code::
 
     pip install --pre pyquil
 
-will install pyQuil. You can install requirements directly by typing
-
-.. code::
-
-    pip install -r requirements.txt
-
-in your pyquil folder. For those of you that already have pyQuil, you can upgrade by typing
+will install pyQuil. For those of you that already have pyQuil, you can upgrade by running
 
 .. code::
 
     pip install --upgrade --pre --pyquil
 
-in your pyquil folder.
-
 .. note::
 
     PyQuil requires Python 3.6 or higher.
+
+Complete descriptions on the usage of the `qvm` and `quilc` command line applications can be found in their manual pages
+by typing in your terminal `man qvm` or `man quilc` respectively.
 
 
 Connecting to Rigetti Forest
@@ -186,8 +177,9 @@ unit (QPU). More details regarding Quil can be found in the `whitepaper <https:/
 3. **QVM**: A `Quantum Virtual Machine <qvm.html>`_, which is an implementation of the quantum abstract machine on
 classical hardware. The QVM lets you use a regular computer to simulate a small quantum computer.
 
-4. **Quilc**: In addition to running on the QVM or the QPU, users can directly use the Quil compiler, to investigate how
-arbitrary quantum programs can be compiled to target specific physical instruction set architectures (ISAs).
+4. **Quil Compiler**: In addition to running on the QVM or the QPU, users can directly use the Rigetti Quil
+compiler, to investigate how arbitrary quantum programs can be compiled to target specific physical instruction set
+architectures (ISAs).
 
 5. **QPU**: pyQuil also includes some a special connection which lets you run experiments on Rigetti's prototype
 superconducting quantum processors over the cloud.
@@ -200,8 +192,8 @@ Virtual Machine, our QPUs, noise models and more.
 .. _quickstart:
 
 
-Forest 2.0: Quick-Start & Migration Guide (CURRENT USERS)
----------------------------------------------------------
+Forest 2.0: Quick-Start & Migration Guide
+-----------------------------------------
 
 In this section, we'll go over how to get set up, what's changed, and go through an example migration of a VQE program
 from Forest 1.3 (pyQuil 1.9, Quil 1.0) to be able to run on the new Forest SDK (pyQuil 2.0, Quil 2).
@@ -209,18 +201,18 @@ from Forest 1.3 (pyQuil 1.9, Quil 1.0) to be able to run on the new Forest SDK (
 
 Registration, Installation & Setup
 ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
-Download the Forest SDK `here <http://rigetti.com/forest>`_. The SDK will pre-package pyQuil v2.0/Quil 2, a compatible
-downloadable QVM, and Quil Compiler.
+Download the Forest SDK `here <http://rigetti.com/forest>`_. The SDK will pre-package a downloadable QVM, and a Quil Compiler.
 
-You can install pyQuil using package manager pip. ``pip install --pre pyquil`` will install pyQuil; you can install
-requirements directly by typing ``pip install -r requirements.txt`` in your pyquil folder.
-
-For those of you that already have pyQuil, you can upgrade by typing ``pip install --upgrade --pre pyquil`` in your
+You can install pyQuil using package manager pip. You can upgrade by typing ``pip install --upgrade --pre pyquil`` in your
 pyquil folder.
 
 .. note::
 
     pyQuil requires Python 3.6 or later.
+
+
+Complete descriptions on the usage of the `qvm` and `quilc` command line applications can be found in their manual pages
+by typing in your terminal `man qvm` or `man quilc` respectively.
 
 
 What's changed
@@ -310,6 +302,34 @@ indefinite size, the memory model in  Quil 2 is segmented into typed, sized, nam
 In terms of compatibility with Quil 1.0, this primarily changes how ``MEASURE`` instructions are formulated, since their
 classical address targets must be modified to fit the new framework. In terms of new functionality, this allows angle
 values to be read in from classical memory.
+
+Quil 2 also introduces easier ways to manipulate gates by using gate modifiers. Two gate modifiers are supported currently,
+`DAGGER` and `CONTROLLED`.
+
+`DAGGER` can be written before a gate to refer to its inverse. For instance
+
+.. code::
+
+    DAGGER RX(pi/3) 0
+
+would have the same effect as
+
+.. code::
+
+    RX(-pi/3) 0
+
+`DAGGER` can be applied to any gate, but also circuits defined with `DEFCIRCUIT`. This allows for easy reversal of unitary circuits:
+
+.. code::
+
+    DEFCIRCUIT BELL:
+        H 0
+        CNOT 0 1
+
+    # construct a Bell state
+    BELL
+    # disentangle, bringing us back to identity
+    DAGGER BELL
 
 Parametric programs
 ~~~~~~~~~~~~~~~~~~~
@@ -881,15 +901,16 @@ Please attach such a logfile to any request for support.
 
 Miscellanea
 ^^^^^^^^^^^
+Quil promises that a BIT is 1 bit and that an OCTET is 8 bits. Quil does not promise, however, the size or layout of
+INTEGER or REAL. These are implementation-dependent.
 
-On both the QVM and the QPU, ``INTEGER`` refers to an unsigned integer
-stored in a 48-bit wide little-endian word, and ``REAL`` refers to a
-48-bit wide little-endian fixed point number of type <0.48>. In general,
-these datatypes are implementation-dependent. ``OCTET`` always refers to
-an 8-bit wide unsigned integer and is independent of implementation.
+On the QPU, ``INTEGER`` refers to an unsigned integer stored in a 48-bit wide little-endian word, and ``REAL`` refers to
+a 48-bit wide little-endian fixed point number of type <0.48>. In general, these datatypes are implementation-dependent.
+``OCTET`` always refers to an 8-bit wide unsigned integer and is independent of implementation.
 
-Memory regions are all "global": ``DECLARE`` directives cannot appear in
-the body of a ``DEFCIRCUIT``.
+Memory regions are all "global": ``DECLARE`` directives cannot appear in the body of a ``DEFCIRCUIT``.
+
+On the QVM, INTEGER is a two's complement signed 64-bit integer. REAL is an IEEE-754 double-precision floating-point number.
 
 
 QPU-allowable Quil: "ProtoQuil"
