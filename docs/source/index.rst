@@ -8,8 +8,8 @@
 Welcome to the Docs for the Forest SDK!
 =======================================
 
-The Rigetti Forest `Software Development Kit <http://rigetti.com/forest>`_ includes pyQuil, our Quil Compiler (quilc),
-and our QVM.
+The Rigetti Forest `Software Development Kit <http://rigetti.com/forest>`_ includes pyQuil, the Quil Compiler (quilc),
+and the Quantum Virtual Machine (qvm).
 
 **Longtime users of Rigetti Forest will notice a few changes.** First, the SDK now contains a downloadable compiler and a
 QVM. Second, the SDK contains pyQuil 2.0, with significant updates to previous versions. As a result, programs written
