@@ -597,9 +597,8 @@ class MemoryReference(QuilAtom, Expression):
         return "<MRef {}[{}]>".format(self.name, self.offset)
 
     def __eq__(self, other):
-        return isinstance(other, MemoryReference) and \
-               other.name == self.name and \
-               other.offset == self.offset
+        return (isinstance(other, MemoryReference) and
+                other.name == self.name and other.offset == self.offset)
 
     def __hash__(self):
         return hash((self.name, self.offset))

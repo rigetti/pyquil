@@ -28,9 +28,9 @@ import numpy as np
 import pytest
 import requests_mock
 from rpcq.core_messages import (BinaryExecutableRequest, BinaryExecutableResponse,
-                                  NativeQuilRequest, NativeQuilResponse, NativeQuilMetadata,
-                                  ConjugateByCliffordRequest, ConjugateByCliffordResponse,
-                                  RandomizedBenchmarkingRequest, RandomizedBenchmarkingResponse)
+                                NativeQuilRequest, NativeQuilResponse, NativeQuilMetadata,
+                                ConjugateByCliffordRequest, ConjugateByCliffordResponse,
+                                RandomizedBenchmarkingRequest, RandomizedBenchmarkingResponse)
 from rpcq.json_rpc.server import Server
 
 from pyquil.api import (QVMConnection, QPUCompiler, BenchmarkConnection,
@@ -363,7 +363,7 @@ def server(request, m_endpoints):
 @pytest.fixture
 def mock_compiler(request, m_endpoints):
     return QPUCompiler(endpoint=m_endpoints[0],
-                             device=NxDevice(nx.Graph([(0, 1)])))
+                       device=NxDevice(nx.Graph([(0, 1)])))
 
 
 @pytest.fixture
@@ -384,7 +384,7 @@ def test_native_quil_to_binary(server, mock_compiler):
 
 
 def test_rb_sequence(server, mock_rb_cxn):
-    response = mock_rb_cxn.generate_rb_sequence(2, [PHASE(np.pi/2, 0), H(0)])
+    response = mock_rb_cxn.generate_rb_sequence(2, [PHASE(np.pi / 2, 0), H(0)])
     assert [prog.out() for prog in response] == [prog.out() for prog in RB_REPLY]
 
 

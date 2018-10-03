@@ -968,7 +968,7 @@ def test_reset():
 def test_copy():
     prog1 = Program(
         H(0),
-        CNOT(0,1),
+        CNOT(0, 1),
     )
     prog2 = prog1.copy().measure_all()
     assert prog1.out() == '\n'.join([

@@ -82,14 +82,15 @@ def test_run(forest):
         device=device,
         compiler=DummyCompiler()
     )
-    bitstrings = qc.run(Program(
-        H(0),
-        CNOT(0, 1),
-        CNOT(1, 2),
-        MEASURE(0, 0),
-        MEASURE(1, 1),
-        MEASURE(2, 2)).wrap_in_numshots_loop(1000),
-                        classical_addresses=None)
+    bitstrings = qc.run(
+        Program(
+            H(0),
+            CNOT(0, 1),
+            CNOT(1, 2),
+            MEASURE(0, 0),
+            MEASURE(1, 1),
+            MEASURE(2, 2)).wrap_in_numshots_loop(1000),
+        classical_addresses=None)
 
     assert bitstrings.shape == (1000, 3)
     parity = np.sum(bitstrings, axis=1) % 3

@@ -33,47 +33,61 @@ CONFIG_PATHS = {"QCS_CONFIG": "~/.qcs_config",
 
 
 class PyquilConfig(object):
-    FOREST_URL   = {"env": "FOREST_SERVER_URL",
-                    "file": QCS_CONFIG,
-                    "section": "Rigetti Forest",
-                    "name": "url",
-                    "default": None}
+    FOREST_URL = {
+        "env": "FOREST_SERVER_URL",
+        "file": QCS_CONFIG,
+        "section": "Rigetti Forest",
+        "name": "url",
+        "default": None
+    }
 
-    API_KEY      = {"env": "FOREST_API_KEY",
-                    "file": QCS_CONFIG,
-                    "section": "Rigetti Forest",
-                    "name": "key",
-                    "default": None}
+    API_KEY = {
+        "env": "FOREST_API_KEY",
+        "file": QCS_CONFIG,
+        "section": "Rigetti Forest",
+        "name": "key",
+        "default": None
+    }
 
-    USER_ID      = {"env": "FOREST_USER_ID",
-                    "file": QCS_CONFIG,
-                    "section": "Rigetti Forest",
-                    "name": "user_id",
-                    "default": None}
+    USER_ID = {
+        "env": "FOREST_USER_ID",
+        "file": QCS_CONFIG,
+        "section": "Rigetti Forest",
+        "name": "user_id",
+        "default": None
+    }
 
-    ENGAGE_CMD   = {"env": "QMI_ENGAGE_CMD",
-                    "file": QCS_CONFIG,
-                    "section": "QPU",
-                    "name": "exec_on_engage",
-                    "default": ""}
+    ENGAGE_CMD = {
+        "env": "QMI_ENGAGE_CMD",
+        "file": QCS_CONFIG,
+        "section": "QPU",
+        "name": "exec_on_engage",
+        "default": ""
+    }
 
-    QPU_URL      = {"env": "QPU_URL",
-                    "file": FOREST_CONFIG,
-                    "section": "Rigetti Forest",
-                    "name": "qpu_endpoint_address",
-                    "default": None}
+    QPU_URL = {
+        "env": "QPU_URL",
+        "file": FOREST_CONFIG,
+        "section": "Rigetti Forest",
+        "name": "qpu_endpoint_address",
+        "default": None
+    }
 
-    QVM_URL      = {"env": "QVM_URL",
-                    "file": FOREST_CONFIG,
-                    "section": "Rigetti Forest",
-                    "name": "qvm_address",
-                    "default": "http://localhost:5000"}
+    QVM_URL = {
+        "env": "QVM_URL",
+        "file": FOREST_CONFIG,
+        "section": "Rigetti Forest",
+        "name": "qvm_address",
+        "default": "http://localhost:5000"
+    }
 
-    COMPILER_URL = {"env": "COMPILER_URL",
-                    "file": FOREST_CONFIG,
-                    "section": "Rigetti Forest",
-                    "name": "compiler_server_address",
-                    "default": "http://localhost:6000"}
+    COMPILER_URL = {
+        "env": "COMPILER_URL",
+        "file": FOREST_CONFIG,
+        "section": "Rigetti Forest",
+        "name": "compiler_server_address",
+        "default": "http://localhost:6000"
+    }
 
     def __init__(self):
         self.configparsers = {}

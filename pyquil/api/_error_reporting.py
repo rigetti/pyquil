@@ -46,7 +46,7 @@ class ErrorReport:
     stack_trace: list
     timestamp: datetime.date
     call_log: dict
-    exception: Exception
+    exception: Exception  # noqa: E701
     system_info: dict
 
 
@@ -78,7 +78,7 @@ class CallLogKey:
         return hash(finger_print)
 
     def __repr__(self):
-        ret = self.name+"("
+        ret = self.name + "("
         for item in self.args:
             ret += repr(item) + ", "
         for k, v in self.kwargs.items():

@@ -15,7 +15,7 @@
 ##############################################################################
 import rpcq
 from rpcq.core_messages import (RandomizedBenchmarkingRequest, RandomizedBenchmarkingResponse,
-                                  ConjugateByCliffordRequest, ConjugateByCliffordResponse)
+                                ConjugateByCliffordRequest, ConjugateByCliffordResponse)
 from rpcq.json_rpc import Shim
 
 from pyquil.api._base_connection import get_session, post_json
@@ -57,10 +57,12 @@ class BenchmarkConnection(AbstractBenchmarker):
 
         indices_and_terms = list(zip(*list(pauli_in.operations_as_set())))
 
-        payload = ConjugateByCliffordRequest(clifford=clifford.out(),
-                                             pauli=rpcq.core_messages.PauliTerm(indices=list(indices_and_terms[0]),
-                                                                                  symbols=list(indices_and_terms[1])))
-        response = self.shim.call('conjugate_pauli_by_clifford', payload) # type: ConjugateByCliffordResponse
+        payload = ConjugateByCliffordRequest(
+            clifford=clifford.out(),
+            pauli=rpcq.core_messages.PauliTerm(
+                indices=list(indices_and_terms[0]), symbols=list(indices_and_terms[1])))
+        response: ConjugateByCliffordResponse = self.shim.call(
+            'conjugate_pauli_by_clifford', payload)
         phase_factor, paulis = response.phase, response.pauli
 
         pauli_out = PauliTerm("I", 0, 1.j ** phase_factor)

@@ -17,8 +17,8 @@ import warnings
 from typing import Dict, Any, List, Union
 
 from rpcq.core_messages import (BinaryExecutableRequest, BinaryExecutableResponse,
-                                  NativeQuilRequest, TargetDevice,
-                                  PyQuilExecutableResponse, ParameterSpec)
+                                NativeQuilRequest, TargetDevice,
+                                PyQuilExecutableResponse, ParameterSpec)
 from rpcq.json_rpc import Shim
 
 from pyquil.api._base_connection import ForestConnection
