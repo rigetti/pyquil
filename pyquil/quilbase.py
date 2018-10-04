@@ -304,6 +304,7 @@ class JumpConditional(AbstractInstruction):
     """
     Abstract representation of an conditional jump instruction.
     """
+    op = NotImplemented
 
     def __init__(self, target, condition):
         if not isinstance(target, (Label, LabelPlaceholder)):
@@ -400,6 +401,7 @@ class LogicalBinaryOp(AbstractInstruction):
     """
     The abstract class for binary logical classical instructions.
     """
+    op = NotImplemented
 
     def __init__(self, left, right):
         if not isinstance(left, MemoryReference):

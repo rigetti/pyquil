@@ -837,4 +837,5 @@ STANDARD_INSTRUCTIONS = {'WAIT': WAIT,
 Dictionary of standard instructions. Keys are instruction names, values are the instruction functions.
 """
 
-__all__ = list(QUANTUM_GATES.keys()) + list(STANDARD_INSTRUCTIONS.keys()) + ['Gate']
+__all__ = list(QUANTUM_GATES.keys()) + list(STANDARD_INSTRUCTIONS.keys()) + \
+          ['Gate', 'QUANTUM_GATES', 'STANDARD_GATES', 'STANDARD_INSTRUCTIONS']

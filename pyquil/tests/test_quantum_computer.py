@@ -132,64 +132,64 @@ def test_list_qc():
 
 
 def test_parse_qc_name():
-    name, as_qvm, noisy = _parse_name('9q-generic', None, None)
+    name, qvm_type, noisy = _parse_name('9q-generic', None, None)
     assert name == '9q-generic'
-    assert not as_qvm
+    assert qvm_type is None
     assert not noisy
 
-    name, as_qvm, noisy = _parse_name('9q-generic-qvm', None, None)
+    name, qvm_type, noisy = _parse_name('9q-generic-qvm', None, None)
     assert name == '9q-generic'
-    assert as_qvm
+    assert qvm_type == 'qvm'
     assert not noisy
 
-    name, as_qvm, noisy = _parse_name('9q-generic-noisy-qvm', None, None)
+    name, qvm_type, noisy = _parse_name('9q-generic-noisy-qvm', None, None)
     assert name == '9q-generic'
-    assert as_qvm
+    assert qvm_type == 'qvm'
     assert noisy
 
 
 def test_parse_qc_flags():
-    name, as_qvm, noisy = _parse_name('9q-generic', False, False)
+    name, qvm_type, noisy = _parse_name('9q-generic', False, False)
     assert name == '9q-generic'
-    assert not as_qvm
+    assert qvm_type is None
     assert not noisy
 
-    name, as_qvm, noisy = _parse_name('9q-generic', True, None)
+    name, qvm_type, noisy = _parse_name('9q-generic', True, None)
     assert name == '9q-generic'
-    assert as_qvm
+    assert qvm_type == 'qvm'
     assert not noisy
 
-    name, as_qvm, noisy = _parse_name('9q-generic', True, True)
+    name, qvm_type, noisy = _parse_name('9q-generic', True, True)
     assert name == '9q-generic'
-    assert as_qvm
+    assert qvm_type == 'qvm'
     assert noisy
 
 
 def test_parse_qc_redundant():
-    name, as_qvm, noisy = _parse_name('9q-generic', False, False)
+    name, qvm_type, noisy = _parse_name('9q-generic', False, False)
     assert name == '9q-generic'
-    assert not as_qvm
+    assert qvm_type is None
     assert not noisy
 
-    name, as_qvm, noisy = _parse_name('9q-generic-qvm', True, False)
+    name, qvm_type, noisy = _parse_name('9q-generic-qvm', True, False)
     assert name == '9q-generic'
-    assert as_qvm
+    assert qvm_type == 'qvm'
     assert not noisy
 
-    name, as_qvm, noisy = _parse_name('9q-generic-noisy-qvm', True, True)
+    name, qvm_type, noisy = _parse_name('9q-generic-noisy-qvm', True, True)
     assert name == '9q-generic'
-    assert as_qvm
+    assert qvm_type == 'qvm'
     assert noisy
 
 
 def test_parse_qc_conflicting():
     with pytest.raises(ValueError) as e:
-        name, as_qvm, noisy = _parse_name('9q-generic-qvm', False, False)
+        name, qvm_type, noisy = _parse_name('9q-generic-qvm', False, False)
 
     assert e.match(r'.*but you have specified `as_qvm=False`')
 
     with pytest.raises(ValueError) as e:
-        name, as_qvm, noisy = _parse_name('9q-generic-noisy-qvm', True, False)
+        name, qvm_type, noisy = _parse_name('9q-generic-noisy-qvm', True, False)
     assert e.match(r'.*but you have specified `noisy=False`')
 
 
@@ -203,27 +203,49 @@ def test_parse_qc_strip():
 
 
 def test_parse_qc_no_prefix():
-    prefix, as_qvm, noisy = _parse_name('qvm', None, None)
-    assert as_qvm
+    prefix, qvm_type, noisy = _parse_name('qvm', None, None)
+    assert qvm_type == 'qvm'
     assert not noisy
     assert prefix == ''
 
-    prefix, as_qvm, noisy = _parse_name('', True, None)
-    assert as_qvm
+    prefix, qvm_type, noisy = _parse_name('', True, None)
+    assert qvm_type == 'qvm'
     assert not noisy
     assert prefix == ''
 
 
 def test_parse_qc_no_prefix_2():
-    prefix, as_qvm, noisy = _parse_name('noisy-qvm', None, None)
-    assert as_qvm
+    prefix, qvm_type, noisy = _parse_name('noisy-qvm', None, None)
+    assert qvm_type == 'qvm'
     assert noisy
     assert prefix == ''
 
-    prefix, as_qvm, noisy = _parse_name('', True, True)
-    assert as_qvm
+    prefix, qvm_type, noisy = _parse_name('', True, True)
+    assert qvm_type == 'qvm'
     assert noisy
     assert prefix == ''
+
+
+def test_parse_qc_pyqvm():
+    prefix, qvm_type, noisy = _parse_name('9q-generic-pyqvm', None, None)
+    assert prefix == '9q-generic'
+    assert qvm_type == 'pyqvm'
+    assert not noisy
+
+
+def test_qc_name():
+    qc = get_qc("qvm")
+    assert qc.name == 'qvm'
+
+
+def test_qc_name_2():
+    qc = get_qc("noisy-qvm")
+    assert qc.name == 'noisy-qvm'
+
+
+def test_qc_name_3():
+    qc = get_qc("9q-generic-noisy-qvm")
+    assert qc.name == '9q-generic-noisy-qvm'
 
 
 def test_qc(qvm, compiler):

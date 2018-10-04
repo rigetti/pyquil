@@ -113,16 +113,10 @@ class QuantumComputer:
             mentioned in your program.
         :return: A numpy array of shape (trials, len(classical_addresses)) that contains 0s and 1s
         """
-        # shim old API to new `read_from_memory_region`
-        if classical_addresses is None:
-            offsets = True
-        else:
-            offsets = classical_addresses
-
         return self.qam.load(executable) \
             .run() \
             .wait() \
-            .read_from_memory_region(region_name="ro", offsets=offsets)
+            .read_from_memory_region(region_name="ro", offsets=classical_addresses)
 
     @_record_call
     def run_symmetrized_readout(self, program, trials, classical_addresses):
@@ -237,7 +231,8 @@ def _parse_name(name, as_qvm, noisy):
 
     See :py:func:`get_qc` for examples of valid names + flags.
     """
-    if name.endswith('noisy-qvm'):
+    parts = name.split('-')
+    if len(parts) >= 2 and parts[-2] == 'noisy' and parts[-1] in ['qvm', 'pyqvm']:
         if as_qvm is not None and (not as_qvm):
             raise ValueError("The provided qc name indicates you are getting a noisy QVM, "
                              "but you have specified `as_qvm=False`")
@@ -246,31 +241,36 @@ def _parse_name(name, as_qvm, noisy):
             raise ValueError("The provided qc name indicates you are getting a noisy QVM, "
                              "but you have specified `noisy=False`")
 
-        as_qvm = True
+        qvm_type = parts[-1]
         noisy = True
-        prefix = name[:-len('-noisy-qvm')]
-        return prefix, as_qvm, noisy
+        prefix = '-'.join(parts[:-2])
+        return prefix, qvm_type, noisy
 
-    if name.endswith('qvm'):
+    if len(parts) >= 1 and parts[-1] in ['qvm', 'pyqvm']:
         if as_qvm is not None and (not as_qvm):
             raise ValueError("The provided qc name indicates you are getting a QVM, "
                              "but you have specified `as_qvm=False`")
-        as_qvm = True
+        qvm_type = parts[-1]
         if noisy is not None:
             noisy = False
-        prefix = name[:-len('-qvm')]
-        return prefix, as_qvm, noisy
+        prefix = '-'.join(parts[:-1])
+        return prefix, qvm_type, noisy
 
-    if as_qvm is None:
-        as_qvm = False
+    if as_qvm is not None and as_qvm:
+        qvm_type = 'qvm'
+    else:
+        qvm_type = None
 
     if noisy is None:
         noisy = False
 
-    return name, as_qvm, noisy
+    return name, qvm_type, noisy
 
 
-def _get_qvm_compiler_based_on_endpoint(endpoint=None, device=None):
+def _get_qvm_compiler(qvm_type, endpoint, device):
+    if qvm_type not in ['pyqvm', 'qvm']:
+        raise ValueError("Unknown qvm type {}".format(qvm_type))
+
     if endpoint.startswith("http"):
         return LocalQVMCompiler(endpoint=endpoint, device=device)
     elif endpoint.startswith("tcp"):
@@ -279,7 +279,17 @@ def _get_qvm_compiler_based_on_endpoint(endpoint=None, device=None):
         raise ValueError("Protocol for QVM compiler endpoints must be HTTP or TCP.")
 
 
-def _get_9q_generic_qvm(connection: ForestConnection, noisy: bool):
+def _get_qvm_or_pyqvm(qvm_type, connection, noise_model=None, device=None):
+    if qvm_type == 'qvm':
+        return QVM(connection=connection, noise_model=noise_model)
+    elif qvm_type == 'pyqvm':
+        from pyquil.reference_simulator import ReferenceQAM
+        return ReferenceQAM(n_qubits=device.qubit_topology().number_of_nodes())
+
+    raise ValueError("Unknown qvm type {}".format(qvm_type))
+
+
+def _get_9q_generic_qvm(name: str, qvm_type: str, connection: ForestConnection, noisy: bool):
     """
     A nine-qubit 3x3 square lattice.
 
@@ -289,27 +299,30 @@ def _get_9q_generic_qvm(connection: ForestConnection, noisy: bool):
     Users interested in building their own QuantumComputer from parts may wish to look
     to this function for inspiration, but should not use this private function directly.
 
+    :param qvm_type: Whether to construct a QVM or a PyQVM
     :param connection: The connection to use to talk to external services
     :param noisy: Whether to construct a noisy quantum computer
     :return: A pre-configured QuantumComputer
     """
     nineq_square = nx.convert_node_labels_to_integers(nx.grid_2d_graph(3, 3))
-    nineq_device = NxDevice(topology=nineq_square)
+    device = NxDevice(topology=nineq_square)
     if noisy:
         noise_model = decoherence_noise_with_asymmetric_ro(
-            gates=gates_in_isa(nineq_device.get_isa()))
+            gates=gates_in_isa(device.get_isa()))
     else:
         noise_model = None
 
-    return QuantumComputer(name='9q-generic-qvm',
-                           qam=QVM(connection=connection, noise_model=noise_model),
-                           device=nineq_device,
-                           compiler=_get_qvm_compiler_based_on_endpoint(
-                               device=nineq_device,
+    return QuantumComputer(name=name,
+                           qam=_get_qvm_or_pyqvm(qvm_type, connection, noise_model, device),
+                           device=device,
+                           compiler=_get_qvm_compiler(
+                               qvm_type=qvm_type,
+                               device=device,
                                endpoint=connection.compiler_endpoint))
 
 
-def _get_unrestricted_qvm(connection: ForestConnection, noisy: bool, n_qubits: int = 34):
+def _get_unrestricted_qvm(name: str, qvm_type: str, connection: ForestConnection, noisy: bool,
+                          n_qubits: int = 34):
     """
     A qvm with a fully-connected topology.
 
@@ -318,25 +331,43 @@ def _get_unrestricted_qvm(connection: ForestConnection, noisy: bool, n_qubits: i
     Users interested in building their own QuantumComputer from parts may wish to look
     to this function for inspiration, but should not use this private function directly.
 
+    :param qvm_type: Whether to construct a QVM or a PyQVM
     :param connection: The connection to use to talk to external services
     :param noisy: Whether to construct a noisy quantum computer
     :param n_qubits: 34 qubits ought to be enough for anybody.
     :return: A pre-configured QuantumComputer
     """
-    fully_connected_device = NxDevice(topology=nx.complete_graph(n_qubits))
+    device = NxDevice(topology=nx.complete_graph(n_qubits))
     if noisy:
         # note to developers: the noise model specifies noise for each possible gate. In a fully
         # connected topology, there are a lot.
         noise_model = decoherence_noise_with_asymmetric_ro(
-            gates=gates_in_isa(fully_connected_device.get_isa()))
+            gates=gates_in_isa(device.get_isa()))
     else:
         noise_model = None
 
-    return QuantumComputer(name='9q-generic-qvm',
-                           qam=QVM(connection=connection, noise_model=noise_model),
-                           device=fully_connected_device,
-                           compiler=_get_qvm_compiler_based_on_endpoint(
-                               device=fully_connected_device,
+    return QuantumComputer(name=name,
+                           qam=_get_qvm_or_pyqvm(qvm_type, connection, noise_model, device),
+                           device=device,
+                           compiler=_get_qvm_compiler(
+                               qvm_type=qvm_type,
+                               device=device,
+                               endpoint=connection.compiler_endpoint))
+
+
+def _get_qvm_based_on_real_device(name: str, qvm_type: str, device: AbstractDevice, noisy: bool,
+                                  connection: ForestConnection):
+    if noisy:
+        noise_model = device.noise_model
+    else:
+        noise_model = None
+
+    return QuantumComputer(name=name,
+                           qam=_get_qvm_or_pyqvm(qvm_type, connection, noise_model, device),
+                           device=device,
+                           compiler=_get_qvm_compiler(
+                               qvm_type=qvm_type,
+                               device=device,
                                endpoint=connection.compiler_endpoint))
 
 
@@ -404,17 +435,23 @@ def get_qc(name: str, *, as_qvm: bool = None, noisy: bool = None,
     if connection is None:
         connection = ForestConnection()
 
-    name, as_qvm, noisy = _parse_name(name, as_qvm, noisy)
+    prefix, qvm_type, noisy = _parse_name(name, as_qvm, noisy)
+    _prefix_with_dash = f'{prefix}-' if prefix != '' else prefix
+    if noisy:
+        name = '{prefix}noisy-{qvm_type}'.format(prefix=_prefix_with_dash, qvm_type=qvm_type)
+    else:
+        name = '{prefix}{qvm_type}'.format(prefix=_prefix_with_dash, qvm_type=qvm_type)
 
-    if name == '':
-        if not as_qvm:
-            raise ValueError("Please name a valid device or run as a QVM")
-        return _get_unrestricted_qvm(connection=connection, noisy=noisy)
+    if prefix == '':
+        if qvm_type is None:
+            raise ValueError("Please prefix a valid device or run as a QVM")
+        return _get_unrestricted_qvm(name=name, qvm_type=qvm_type, connection=connection,
+                                     noisy=noisy)
 
-    if name == '9q-generic':
-        if not as_qvm:
+    if prefix == '9q-generic':
+        if qvm_type is None:
             raise ValueError("The device '9q-generic' is only available as a QVM")
-        return _get_9q_generic_qvm(connection=connection, noisy=noisy)
+        return _get_9q_generic_qvm(name=name, qvm_type=qvm_type, connection=connection, noisy=noisy)
 
     device = get_device(name)
     if not as_qvm:
@@ -427,16 +464,4 @@ def get_qc(name: str, *, as_qvm: bool = None, noisy: bool = None,
                                compiler=QPUCompiler(endpoint=pyquil_config.compiler_url,
                                                     device=device))
 
-    if noisy:
-        noise_model = device.noise_model
-        name = "{name}-noisy-qvm".format(name=name)
-    else:
-        noise_model = None
-        name = "{name}-qvm".format(name=name)
-
-    return QuantumComputer(name=name,
-                           qam=QVM(connection=connection, noise_model=noise_model),
-                           device=device,
-                           compiler=_get_qvm_compiler_based_on_endpoint(
-                               device=device,
-                               endpoint=connection.compiler_endpoint))
+    return _get_qvm_based_on_real_device(prefix, qvm_type, device, noisy, connection)
