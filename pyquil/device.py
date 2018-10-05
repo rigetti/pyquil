@@ -21,6 +21,7 @@ from typing import Union, List, Tuple
 import networkx as nx
 import numpy as np
 
+from pyquil.noise import NoiseModel
 from pyquil.parameters import Parameter
 from pyquil.quilatom import unpack_qubit
 from pyquil.quilbase import Gate
@@ -34,7 +35,7 @@ DEFAULT_EDGE_TYPE = "CZ"
 Qubit = namedtuple("Qubit", ["id", "type", "dead"])
 Edge = namedtuple("Edge", ["targets", "type", "dead"])
 _ISA = namedtuple("_ISA", ["qubits", "edges"])
-QubitSpecs = namedtuple("_QubitSpecs", ["id", "fRO", "f1QRB", "T1", "T2"])
+QubitSpecs = namedtuple("_QubitSpecs", ["id", "fRO", "f1QRB", "T1", "T2", "fActiveReset"])
 EdgeSpecs = namedtuple("_QubitQubitSpecs", ["targets", "fBellState", "fCZ", "fCPHASE"])
 _Specs = namedtuple("_Specs", ["qubits_specs", "edges_specs"])
 
@@ -192,6 +193,15 @@ class Specs(_Specs):
         """
         return {qs.id: qs.fRO for qs in self.qubits_specs}
 
+    def fActiveResets(self):
+        """
+        Get a dictionary of single-qubit active reset fidelities (normalized to unity) from the
+        specs, keyed by qubit index.
+
+        :return: A dictionary of reset fidelities, normalized to unity.
+        """
+        return {qs.id: qs.fActiveReset for qs in self.qubits_specs}
+
     def T1s(self):
         """
         Get a dictionary of T1s (in seconds) from the specs, keyed by qubit index.
@@ -285,7 +295,8 @@ class Specs(_Specs):
                     'f1QRB': qs.f1QRB,
                     'fRO': qs.fRO,
                     'T1': qs.T1,
-                    'T2': qs.T2
+                    'T2': qs.T2,
+                    'fActiveReset': qs.fActiveReset
                 } for qs in self.qubits_specs
             },
             '2Q': {
@@ -311,7 +322,8 @@ class Specs(_Specs):
                                             fRO=qspecs.get('fRO'),
                                             f1QRB=qspecs.get('f1QRB'),
                                             T1=qspecs.get('T1'),
-                                            T2=qspecs.get('T2'))
+                                            T2=qspecs.get('T2'),
+                                            fActiveReset=qspecs.get('fActiveReset'))
                                  for q, qspecs in d["1Q"].items()],
                                 key=lambda qubit_specs: qubit_specs.id),
             edges_specs=sorted([EdgeSpecs(targets=[int(q) for q in e.split('-')],
@@ -333,8 +345,21 @@ def isa_from_graph(graph: nx.Graph, oneq_type='Xhalves', twoq_type='CZ') -> ISA:
     """
     all_qubits = list(range(max(graph.nodes) + 1))
     qubits = [Qubit(i, type=oneq_type, dead=i not in graph.nodes) for i in all_qubits]
-    edges = [Edge([a, b], type=twoq_type, dead=False) for a, b in graph.edges]
+    edges = [Edge(sorted((a, b)), type=twoq_type, dead=False) for a, b in graph.edges]
     return ISA(qubits, edges)
+
+
+def specs_from_graph(graph: nx.Graph):
+    """
+    Generate a Specs object from a NetworkX graph with placeholder values for the actual specs.
+
+    :param graph: The graph
+    """
+    qspecs = [QubitSpecs(id=q, fRO=0.90, f1QRB=0.99, T1=30e-6, T2=30e-6, fActiveReset=0.99)
+              for q in graph.nodes]
+    especs = [EdgeSpecs(targets=(q1, q2), fBellState=0.90, fCZ=0.90, fCPHASE=0.80)
+              for q1, q2 in graph.edges]
+    return Specs(qspecs, especs)
 
 
 def isa_to_graph(isa: ISA) -> nx.Graph:
@@ -367,6 +392,12 @@ class AbstractDevice(ABC):
         :param twoq_type: The family of two-qubit gates to target
         """
 
+    @abstractmethod
+    def get_specs(self) -> Specs:
+        """
+        Construct a Specs object required by compilation
+        """
+
 
 class Device(AbstractDevice):
     """
@@ -388,8 +419,6 @@ class Device(AbstractDevice):
         :param name: name of the device
         :param raw: raw JSON response from the server with additional information about this device.
         """
-        # avoid circular imports
-        from pyquil.noise import NoiseModel
         self.name = name
         self._raw = raw
 
@@ -403,38 +432,6 @@ class Device(AbstractDevice):
     def isa(self):
         warnings.warn("Accessing the static ISA is deprecated. Use `get_isa`", DeprecationWarning)
         return self._isa
-
-    def is_online(self):
-        """
-        Whether or not the device is online and accepting new programs.
-
-        :rtype: bool
-        """
-        return self._raw['is_online']
-
-    def is_retuning(self):
-        """
-        Whether or not the device is currently retuning.
-
-        :rtype: bool
-        """
-        return self._raw['is_retuning']
-
-    @property
-    def status(self):
-        """Returns a string describing the device's status
-
-            - **online**: The device is online and ready for use
-            - **retuning** : The device is not accepting new jobs because it is re-calibrating
-            - **offline**: The device is not available for use, potentially because you don't
-              have the right permissions.
-        """
-        if self.is_online():
-            return 'online'
-        elif self.is_retuning():
-            return 'retuning'
-        else:
-            return 'offline'
 
     def qubit_topology(self) -> nx.Graph:
         """
@@ -455,8 +452,11 @@ class Device(AbstractDevice):
         edges = [Edge(targets=e.targets, type=twoq_type, dead=e.dead) for e in self._isa.edges]
         return ISA(qubits, edges)
 
+    def get_specs(self):
+        return self.specs
+
     def __str__(self):
-        return '<Device {} {}>'.format(self.name, self.status)
+        return '<Device {}>'.format(self.name)
 
     def __repr__(self):
         return str(self)
@@ -480,6 +480,9 @@ class NxDevice(AbstractDevice):
 
     def get_isa(self, oneq_type='Xhalves', twoq_type='CZ'):
         return isa_from_graph(self.topology, oneq_type=oneq_type, twoq_type=twoq_type)
+
+    def get_specs(self):
+        return specs_from_graph(self.topology)
 
     def qubits(self) -> List[int]:
         return sorted(self.topology.nodes)

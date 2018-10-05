@@ -22,13 +22,14 @@ import pytest
 
 from pyquil.gates import I, X, Y, Z, H, T, S, RX, RY, RZ, CNOT, CCNOT, PHASE, CPHASE00, CPHASE01, \
     CPHASE10, CPHASE, SWAP, CSWAP, ISWAP, PSWAP, MEASURE, HALT, WAIT, NOP, RESET, \
-    TRUE, FALSE, NOT, AND, OR, MOVE, EXCHANGE
+    TRUE, FALSE, NOT, AND, OR, MOVE, EXCHANGE, \
+    LOAD, CONVERT, STORE, XOR, IOR, NEG, ADD, SUB, MUL, DIV, EQ, GT, GE, LT, LE
 from pyquil.parameters import Parameter, quil_sin, quil_cos
 from pyquil.paulis import exponential_map, sZ
-from pyquil.quil import Program, merge_programs, address_qubits, \
+from pyquil.quil import Program, merge_programs, merge_with_pauli_noise, address_qubits, \
     get_classical_addresses_from_program, Pragma
-from pyquil.quilatom import QubitPlaceholder
-from pyquil.quilbase import DefGate, Gate, Addr, Qubit, JumpWhen
+from pyquil.quilatom import QubitPlaceholder, Addr, MemoryReference
+from pyquil.quilbase import DefGate, Gate, Qubit, JumpWhen, Declare
 from pyquil.tests.utils import parse_equals
 
 
@@ -113,7 +114,7 @@ def test_len_one():
 def test_len_nested():
     p = Program(H(0)).measure(0, 0)
     q = Program(H(0), CNOT(0, 1))
-    p.if_then(0, q)
+    p.if_then(MemoryReference("ro", 0), q)
     assert len(p) == 8
 
 
@@ -126,8 +127,10 @@ def test_plus_operator():
 
 
 def test_indexing():
-    program = Program(H(0), Y(1), CNOT(0, 1)).measure(0, 0).if_then(0, Program(X(0)), Program())
-    assert program[0] == H(0)
+    program = Program(Declare('ro', 'BIT'), H(0), Y(1), CNOT(0, 1)) \
+        .measure(0, 0) \
+        .if_then(MemoryReference("ro", 0), Program(X(0)), Program())
+    assert program[1] == H(0)
     for ii, instr in enumerate(program.instructions):
         assert program[ii] == instr
 
@@ -177,17 +180,21 @@ def test_program_string():
 def test_prog_init():
     p = Program()
     p.inst(X(0)).measure(0, 0)
-    assert p.out() == 'X 0\nMEASURE 0 [0]\n'
+    assert p.out() == ('DECLARE ro BIT[1]\n'
+                       'X 0\n'
+                       'MEASURE 0 ro[0]\n')
 
 
 def test_classical_regs():
     p = Program()
     p.inst(X(0)).measure(0, 1)
-    assert p.out() == 'X 0\nMEASURE 0 [1]\n'
+    assert p.out() == ('DECLARE ro BIT[2]\n'
+                       'X 0\n'
+                       'MEASURE 0 ro[1]\n')
 
 
 def test_simple_instructions():
-    p = Program().inst(HALT, WAIT, RESET, NOP)
+    p = Program().inst(HALT, WAIT, RESET(), NOP)
     assert p.out() == 'HALT\nWAIT\nRESET\nNOP\n'
 
 
@@ -195,42 +202,79 @@ def test_unary_classicals():
     p = Program()
     p.inst(TRUE(0),
            FALSE(Addr(1)),
-           NOT(2))
-    assert p.out() == 'TRUE [0]\n' \
-                      'FALSE [1]\n' \
-                      'NOT [2]\n'
+           NOT(Addr(2)),
+           NEG(Addr(3)))
+    assert p.out() == 'MOVE ro[0] 1\n' \
+                      'MOVE ro[1] 0\n' \
+                      'NOT ro[2]\n' \
+                      'NEG ro[3]\n'
 
 
 def test_binary_classicals():
     p = Program()
-    p.inst(AND(0, 1),
-           OR(Addr(0), Addr(1)),
-           MOVE(0, 1),
-           EXCHANGE(0, Addr(1)))
-    assert p.out() == 'AND [0] [1]\n' \
-                      'OR [0] [1]\n' \
-                      'MOVE [0] [1]\n' \
-                      'EXCHANGE [0] [1]\n'
+    p.inst(AND(Addr(0), Addr(1)),
+           OR(Addr(1), Addr(0)),
+           MOVE(Addr(0), Addr(1)),
+           CONVERT(Addr(0), Addr(1)),
+           IOR(Addr(0), Addr(1)),
+           XOR(Addr(0), Addr(1)),
+           ADD(Addr(0), Addr(1)),
+           SUB(Addr(0), Addr(1)),
+           MUL(Addr(0), Addr(1)),
+           DIV(Addr(0), Addr(1)),
+           EXCHANGE(Addr(0), Addr(1)))
+    assert p.out() == 'AND ro[0] ro[1]\n' \
+                      'IOR ro[0] ro[1]\n' \
+                      'MOVE ro[0] ro[1]\n' \
+                      'CONVERT ro[0] ro[1]\n' \
+                      'IOR ro[0] ro[1]\n' \
+                      'XOR ro[0] ro[1]\n' \
+                      'ADD ro[0] ro[1]\n' \
+                      'SUB ro[0] ro[1]\n'\
+                      'MUL ro[0] ro[1]\n' \
+                      'DIV ro[0] ro[1]\n' \
+                      'EXCHANGE ro[0] ro[1]\n'
+
+
+def test_ternary_classicals():
+    p = Program()
+    p.inst(LOAD(MemoryReference("ro", 0), "ro", MemoryReference("n", 0)),
+           STORE("ro", MemoryReference("n", 0), MemoryReference("ro", 0)),
+           EQ(MemoryReference("ro", 0), MemoryReference("ro", 1), MemoryReference("ro", 2)),
+           GT(MemoryReference("ro", 0), MemoryReference("ro", 1), MemoryReference("ro", 2)),
+           GE(MemoryReference("ro", 0), MemoryReference("ro", 1), MemoryReference("ro", 2)),
+           LE(MemoryReference("ro", 0), MemoryReference("ro", 1), MemoryReference("ro", 2)),
+           LT(MemoryReference("ro", 0), MemoryReference("ro", 1), MemoryReference("ro", 2)))
+    assert p.out() == 'LOAD ro[0] ro n[0]\n' \
+                      'STORE ro n[0] ro[0]\n' \
+                      'EQ ro[0] ro[1] ro[2]\n' \
+                      'GT ro[0] ro[1] ro[2]\n' \
+                      'GE ro[0] ro[1] ro[2]\n' \
+                      'LE ro[0] ro[1] ro[2]\n' \
+                      'LT ro[0] ro[1] ro[2]\n'
 
 
 def test_measurement_calls():
     p = Program()
     p.inst(MEASURE(0, 1),
            MEASURE(0, Addr(1)))
-    assert p.out() == 'MEASURE 0 [1]\n' * 2
+    assert p.out() == ('DECLARE ro BIT[2]\n'
+                       'MEASURE 0 ro[1]\n'
+                       'MEASURE 0 ro[1]\n')
 
 
 def test_measure_all():
     p = Program()
     p.measure_all((0, 0), (1, 1), (2, 3))
-    assert p.out() == 'MEASURE 0 [0]\n' \
-                      'MEASURE 1 [1]\n' \
-                      'MEASURE 2 [3]\n'
+    assert p.out() == 'DECLARE ro BIT[4]\n' \
+                      'MEASURE 0 ro[0]\n' \
+                      'MEASURE 1 ro[1]\n' \
+                      'MEASURE 2 ro[3]\n'
 
     p = Program([H(idx) for idx in range(4)])
     p.measure_all()
     for idx in range(4):
-        assert p[idx + 4] == MEASURE(idx, idx)
+        assert p[idx + 5] == MEASURE(idx, idx)
 
     p = Program()
     p.measure_all()
@@ -297,11 +341,24 @@ def test_dagger():
 
 def test_construction_syntax():
     p = Program().inst(X(0), Y(1), Z(0)).measure(0, 1)
-    assert p.out() == 'X 0\nY 1\nZ 0\nMEASURE 0 [1]\n'
+    assert p.out() == ('DECLARE ro BIT[2]\n'
+                       'X 0\n'
+                       'Y 1\n'
+                       'Z 0\n'
+                       'MEASURE 0 ro[1]\n')
     p = Program().inst(X(0)).inst(Y(1)).measure(0, 1).inst(MEASURE(1, 2))
-    assert p.out() == 'X 0\nY 1\nMEASURE 0 [1]\nMEASURE 1 [2]\n'
+    assert p.out() == ('DECLARE ro BIT[3]\n'
+                       'X 0\n'
+                       'Y 1\n'
+                       'MEASURE 0 ro[1]\n'
+                       'MEASURE 1 ro[2]\n')
     p = Program().inst(X(0)).measure(0, 1).inst(Y(1), X(0)).measure(0, 0)
-    assert p.out() == 'X 0\nMEASURE 0 [1]\nY 1\nX 0\nMEASURE 0 [0]\n'
+    assert p.out() == ('DECLARE ro BIT[2]\n'
+                       'X 0\n'
+                       'MEASURE 0 ro[1]\n'
+                       'Y 1\n'
+                       'X 0\n'
+                       'MEASURE 0 ro[0]\n')
 
 
 def test_singles():
@@ -405,23 +462,48 @@ def test_control_flows():
     # run p in a loop until classical_flag_register is 0
     loop_prog = Program(X(0)).measure(0, classical_flag_register)
     loop_prog.while_do(classical_flag_register, p)
-    assert loop_prog.out() == 'X 0\nMEASURE 0 [2]\nLABEL @START1\nJUMP-UNLESS @END2 [2]\nX ' \
-                              '0\nH 0\nMEASURE 0 [2]\nJUMP @START1\nLABEL @END2\n'
+    assert loop_prog.out() == ('DECLARE ro BIT[3]\n'
+                               'X 0\n'
+                               'MEASURE 0 ro[2]\n'
+                               'LABEL @START1\n'
+                               'JUMP-UNLESS @END2 ro[2]\n'
+                               'X 0\n'
+                               'H 0\n'
+                               'MEASURE 0 ro[2]\n'
+                               'JUMP @START1\n'
+                               'LABEL @END2\n')
 
+
+def test_control_flows_2():
     # create a program that branches based on the value of a classical register
     x_prog = Program(X(0))
     z_prog = Program()
-    branch = Program(H(1)).measure(1, 1).if_then(1, x_prog, z_prog).measure(0, 0)
-    assert branch.out() == 'H 1\nMEASURE 1 [1]\nJUMP-WHEN @THEN1 [1]\nJUMP @END2\nLABEL ' \
-                           '@THEN1\nX 0\nLABEL @END2\nMEASURE 0 [0]\n'
+    branch = Program(H(1)).measure(1, 1) \
+        .if_then(MemoryReference("ro", 1), x_prog, z_prog) \
+        .measure(0, 0)
+    assert branch.out() == ('DECLARE ro BIT[2]\n'
+                            'H 1\n'
+                            'MEASURE 1 ro[1]\n'
+                            'JUMP-WHEN @THEN1 ro[1]\n'
+                            'JUMP @END2\n'
+                            'LABEL @THEN1\n'
+                            'X 0\n'
+                            'LABEL @END2\n'
+                            'MEASURE 0 ro[0]\n')
 
 
 def test_if_option():
-    p = Program(X(0)).measure(0, 0).if_then(0, Program(X(1)))
-    assert p.out() == 'X 0\nMEASURE 0 [0]\nJUMP-WHEN @THEN1 [0]\nJUMP @END2\n' \
-                      'LABEL @THEN1\nX 1\nLABEL @END2\n'
+    p = Program(X(0)).measure(0, 0).if_then(MemoryReference("ro", 0), Program(X(1)))
+    assert p.out() == ('DECLARE ro BIT[1]\n'
+                       'X 0\n'
+                       'MEASURE 0 ro[0]\n'
+                       'JUMP-WHEN @THEN1 ro[0]\n'
+                       'JUMP @END2\n'
+                       'LABEL @THEN1\n'
+                       'X 1\n'
+                       'LABEL @END2\n')
 
-    assert isinstance(p.instructions[2], JumpWhen)
+    assert isinstance(p.instructions[3], JumpWhen)
 
 
 def test_alloc():
@@ -551,14 +633,46 @@ def test_prog_merge():
     prog_0 = Program(X(0))
     prog_1 = Program(Y(0))
     assert merge_programs([prog_0, prog_1]).out() == (prog_0 + prog_1).out()
+    prog_0.defgate("test", np.eye(2))
+    prog_0.inst(("test", 0))
+    prog_1.defgate("test", np.eye(2))
+    prog_1.inst(("test", 0))
+    assert merge_programs([prog_0, prog_1]).out() == """DEFGATE test:
+    1.0, 0
+    0, 1.0
+
+X 0
+test 0
+Y 0
+test 0
+"""
+
+
+def test_merge_with_pauli_noise():
+    p = Program(X(0)).inst(Z(0))
+    probs = [0., 1., 0., 0.]
+    merged = merge_with_pauli_noise(p, probs, [0])
+    assert merged.out() == """DEFGATE pauli_noise:
+    1.0, 0
+    0, 1.0
+
+PRAGMA ADD-KRAUS pauli_noise 0 "(0.0 0.0 0.0 0.0)"
+PRAGMA ADD-KRAUS pauli_noise 0 "(0.0 1.0 1.0 0.0)"
+PRAGMA ADD-KRAUS pauli_noise 0 "(0.0 0.0 0.0 0.0)"
+PRAGMA ADD-KRAUS pauli_noise 0 "(0.0 0.0 0.0 -0.0)"
+X 0
+pauli_noise 0
+Z 0
+pauli_noise 0
+"""
 
 
 def test_get_qubits():
-    pq = Program(X(0), CNOT(0, 4), MEASURE(5, [5]))
+    pq = Program(X(0), CNOT(0, 4), MEASURE(5, 5))
     assert pq.get_qubits() == {0, 4, 5}
 
     q = [QubitPlaceholder() for _ in range(6)]
-    pq = Program(X(q[0]), CNOT(q[0], q[4]), MEASURE(q[5], [5]))
+    pq = Program(X(q[0]), CNOT(q[0], q[4]), MEASURE(q[5], 5))
     qq = pq.alloc()
     pq.inst(Y(q[2]), X(qq))
     assert address_qubits(pq).get_qubits() == {0, 1, 2, 3, 4}
@@ -576,12 +690,12 @@ def test_get_qubits():
 
 def test_get_qubit_placeholders():
     qs = QubitPlaceholder.register(8)
-    pq = Program(X(qs[0]), CNOT(qs[0], qs[4]), MEASURE(qs[5], [5]))
+    pq = Program(X(qs[0]), CNOT(qs[0], qs[4]), MEASURE(qs[5], 5))
     assert pq.get_qubits() == {qs[i] for i in [0, 4, 5]}
 
 
 def test_get_qubits_not_as_indices():
-    pq = Program(X(0), CNOT(0, 4), MEASURE(5, [5]))
+    pq = Program(X(0), CNOT(0, 4), MEASURE(5, 5))
     assert pq.get_qubits(indices=False) == {Qubit(i) for i in [0, 4, 5]}
 
 
@@ -714,7 +828,7 @@ def test_if_then_inherits_defined_gates():
     p3.defgate("B", np.array([[0., 1.], [1., 0.]]))
     p3.inst(("B", 0))
 
-    p1.if_then(0, p2, p3)
+    p1.if_then(MemoryReference("ro", 0), p2, p3)
     assert p2.defined_gates[0] in p1.defined_gates
     assert p3.defined_gates[0] in p1.defined_gates
 
@@ -744,7 +858,7 @@ def test_installing_programs_inside_other_programs():
 def test_nesting_a_program_inside_itself():
     p = Program(H(0)).measure(0, 0)
     with pytest.raises(ValueError):
-        p.if_then(0, p)
+        p.if_then(MemoryReference("ro", 0), p)
 
 
 # https://github.com/rigetticomputing/pyquil/issues/170
@@ -763,23 +877,23 @@ def test_defgate_integer_input():
 
 def test_out_vs_str():
     qs = QubitPlaceholder.register(6)
-    pq = Program(X(qs[0]), CNOT(qs[0], qs[4]), MEASURE(qs[5], [5]))
+    pq = Program(X(qs[0]), CNOT(qs[0], qs[4]), MEASURE(qs[5], 5))
 
     with pytest.raises(RuntimeError) as e:
         pq.out()
     assert e.match(r'Qubit q\d+ has not been assigned an index')
 
     string_version = str(pq)
-    should_be_re = (r'X \{q\d+\}\nCNOT \{q\d+\} \{q\d+\}\nMEASURE \{q\d+\} \[5\]\n')
+    should_be_re = (r'DECLARE ro BIT\[6\]\nX \{q\d+\}\nCNOT \{q\d+\} \{q\d+\}\nMEASURE \{q\d+\} ro\[5\]\n')
     assert re.fullmatch(should_be_re, string_version, flags=re.MULTILINE)
 
 
 def test_get_classical_addresses_from_program():
     p = Program([H(i) for i in range(4)])
-    assert get_classical_addresses_from_program(p) == []
+    assert get_classical_addresses_from_program(p) == {}
 
     p += [MEASURE(i, i) for i in [0, 3, 1]]
-    assert get_classical_addresses_from_program(p) == [0, 1, 3]
+    assert get_classical_addresses_from_program(p) == {"ro": [0, 1, 3]}
 
 
 def test_get_classical_addresses_from_quil_program():
@@ -792,13 +906,13 @@ def test_get_classical_addresses_from_quil_program():
         'X 0',
         'MEASURE 0'
     ]))
-    assert get_classical_addresses_from_program(p) == []
+    assert get_classical_addresses_from_program(p) == {}
 
     p = Program('\n'.join([
         'X 0',
-        'MEASURE 0 [1]'
+        'MEASURE 0 ro[1]'
     ]))
-    assert get_classical_addresses_from_program(p) == [1]
+    assert get_classical_addresses_from_program(p) == {"ro": [1]}
 
 
 def test_pragma_with_placeholders():
@@ -822,3 +936,67 @@ PRAGMA READOUT-POVM 0 "(0.8 0.09999999999999998 0.19999999999999996 0.9)"
 X 1
 PRAGMA READOUT-POVM 1 "(0.9 0.19999999999999996 0.09999999999999998 0.8)"
 """
+
+
+def test_implicit_declare():
+    program = Program(MEASURE(0, 0))
+    assert program.out() == ('DECLARE ro BIT[1]\n'
+                             'MEASURE 0 ro[0]\n')
+
+
+def test_no_implicit_declare():
+    program = Program(
+        Declare("read_out", "BIT", 5),
+        MEASURE(0, MemoryReference("read_out", 4)))
+    assert program.out() == ('DECLARE read_out BIT[5]\n'
+                             'MEASURE 0 read_out[4]\n')
+
+
+def test_no_implicit_declare_2():
+    program = Program(
+        MEASURE(0, MemoryReference("asdf", 4)))
+    assert program.out() == 'MEASURE 0 asdf[4]\n'
+
+
+def test_reset():
+    p = Program()
+    p.reset(0)
+    p.reset()
+    assert p.out() == "RESET 0\nRESET\n"
+
+
+def test_copy():
+    prog1 = Program(
+        H(0),
+        CNOT(0, 1),
+    )
+    prog2 = prog1.copy().measure_all()
+    assert prog1.out() == '\n'.join([
+        'H 0',
+        'CNOT 0 1',
+        ''
+    ])
+    assert prog2.out() == '\n'.join([
+        'H 0',
+        'CNOT 0 1',
+        'DECLARE ro BIT[2]',
+        'MEASURE 0 ro[0]',
+        'MEASURE 1 ro[1]',
+        '',
+    ])
+
+
+def test_measure_all_noncontig():
+    prog = Program(
+        H(0),
+        H(10),
+    )
+    prog.measure_all()
+    assert prog.out() == '\n'.join([
+        'H 0',
+        'H 10',
+        'DECLARE ro BIT[11]',
+        'MEASURE 0 ro[0]',
+        'MEASURE 10 ro[10]',
+        '',
+    ])

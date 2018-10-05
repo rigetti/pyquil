@@ -1,5 +1,5 @@
 ##############################################################################
-# Copyright 2016-2017 Rigetti Computing
+# Copyright 2016-2018 Rigetti Computing
 #
 #    Licensed under the Apache License, Version 2.0 (the "License");
 #    you may not use this file except in compliance with the License.
@@ -13,11 +13,54 @@
 #    See the License for the specific language governing permissions and
 #    limitations under the License.
 ##############################################################################
+from warnings import warn
+from pyquil.quilatom import unpack_qubit, unpack_classical_reg, MemoryReference, Addr, Qubit
+from pyquil.quilbase import (Measurement, Gate, Wait, Reset, Halt, Nop,
+                             ClassicalNeg, ClassicalNot,
+                             ClassicalAnd, ClassicalInclusiveOr, ClassicalExclusiveOr,
+                             ClassicalEqual, ClassicalGreaterEqual, ClassicalGreaterThan,
+                             ClassicalLessEqual, ClassicalLessThan,
+                             ClassicalMove, ClassicalExchange, ClassicalConvert,
+                             ClassicalLoad, ClassicalStore,
+                             ClassicalAdd, ClassicalSub, ClassicalMul, ClassicalDiv, ResetQubit)
 
-from pyquil.quilatom import unpack_qubit, unpack_classical_reg
-from pyquil.quilbase import (Measurement, Gate, Wait, Reset, Halt, Nop, ClassicalTrue,
-                             ClassicalFalse, ClassicalNot, ClassicalAnd, ClassicalOr, ClassicalMove,
-                             ClassicalExchange)
+
+def unpack_reg_val_pair(classical_reg1, classical_reg2):
+    """
+    Helper function for typechecking / type-coercing arguments to constructors for binary classical operators.
+
+    :param classical_reg1: Specifier for the classical memory address to be modified.
+    :param classical_reg2: Specifier for the second argument: a classical memory address or an immediate value.
+    :return: A pair of pyQuil objects suitable for use as operands.
+    """
+    left = unpack_classical_reg(classical_reg1)
+    if isinstance(classical_reg2, int) or isinstance(classical_reg2, float):
+        right = classical_reg2
+    else:
+        right = unpack_classical_reg(classical_reg2)
+
+    return left, right
+
+
+def prepare_ternary_operands(classical_reg1, classical_reg2, classical_reg3):
+    """
+    Helper function for typechecking / type-coercing arguments to constructors for ternary classical operators.
+
+    :param classical_reg1: Specifier for the classical memory address to be modified.
+    :param classical_reg2: Specifier for the left operand: a classical memory address.
+    :param classical_reg3: Specifier for the right operand: a classical memory address or an immediate value.
+    :return: A triple of pyQuil objects suitable for use as operands.
+    """
+    if isinstance(classical_reg1, int):
+        raise TypeError("Target operand of comparison must be a memory address")
+    classical_reg1 = unpack_classical_reg(classical_reg1)
+    if isinstance(classical_reg2, int):
+        raise TypeError("Left operand of comparison must be a memory address")
+    classical_reg2 = unpack_classical_reg(classical_reg2)
+    if not isinstance(classical_reg3, int):
+        classical_reg3 = unpack_classical_reg(classical_reg3)
+
+    return classical_reg1, classical_reg2, classical_reg3
 
 
 def I(qubit):
@@ -395,18 +438,31 @@ manipulated by a CPU in a hybrid classical/quantum algorithm.
 
 :returns: A Wait object.
 """
-RESET = Reset()
-"""
-This instruction resets all the qubits to the ground state.
 
-:returns: A Reset object.
-"""
+
+def RESET(qubit_index=None):
+    """
+    Reset all qubits or just a specific qubit at qubit_index.
+
+    :param Optional[int] qubit_index: The address of the qubit to reset.
+        If None, reset all qubits.
+    :returns: A Reset or ResetQubit Quil AST expression corresponding to a global or targeted
+        reset, respectively.
+    :rtype: Union[Reset, ResetQubit]
+    """
+    if qubit_index is not None:
+        return ResetQubit(Qubit(qubit_index))
+    else:
+        return Reset()
+
+
 NOP = Nop()
 """
 This instruction applies no operation at that timestep. Typically these are ignored in error-models.
 
 :returns: A Nop object.
 """
+
 HALT = Halt()
 """
 This instruction ends the program.
@@ -424,7 +480,14 @@ def MEASURE(qubit, classical_reg=None):
     :return: A Measurement instance.
     """
     qubit = unpack_qubit(qubit)
-    address = None if classical_reg is None else unpack_classical_reg(classical_reg)
+    if classical_reg is None:
+        address = None
+    elif isinstance(classical_reg, int):
+        warn("Indexing measurement addresses by integers is deprecated. " +
+             "Replacing this with the MemoryReference ro[i] instead.")
+        address = MemoryReference("ro", classical_reg)
+    else:
+        address = unpack_classical_reg(classical_reg)
     return Measurement(qubit, address)
 
 
@@ -433,9 +496,12 @@ def TRUE(classical_reg):
     Produce a TRUE instruction.
 
     :param classical_reg: A classical register to modify.
-    :return: A ClassicalTrue instance.
+    :return: An instruction object representing the equivalent MOVE.
     """
-    return ClassicalTrue(unpack_classical_reg(classical_reg))
+    warn("`TRUE a` has been deprecated. Use `MOVE a 1` instead.")
+    if isinstance(classical_reg, int):
+        classical_reg = Addr(classical_reg)
+    return MOVE(classical_reg, 1)
 
 
 def FALSE(classical_reg):
@@ -443,9 +509,22 @@ def FALSE(classical_reg):
     Produce a FALSE instruction.
 
     :param classical_reg: A classical register to modify.
-    :return: A ClassicalFalse instance.
+    :return: An instruction object representing the equivalent MOVE.
     """
-    return ClassicalFalse(unpack_classical_reg(classical_reg))
+    warn("`FALSE a` has been deprecated. Use `MOVE a 0` instead.")
+    if isinstance(classical_reg, int):
+        classical_reg = Addr(classical_reg)
+    return MOVE(classical_reg, 0)
+
+
+def NEG(classical_reg):
+    """
+    Produce a NEG instruction.
+
+    :param classical_reg: A classical memory address to modify.
+    :return: A ClassicalNeg instance.
+    """
+    return ClassicalNeg(unpack_classical_reg(classical_reg))
 
 
 def NOT(classical_reg):
@@ -462,12 +541,13 @@ def AND(classical_reg1, classical_reg2):
     """
     Produce an AND instruction.
 
-    :param classical_reg1: The first classical register.
-    :param classical_reg2: The second classical register, which gets modified.
+    NOTE: The order of operands was reversed in pyQuil <=1.9 .
+
+    :param classical_reg1: The first classical register, which gets modified.
+    :param classical_reg2: The second classical register or immediate value.
     :return: A ClassicalAnd instance.
     """
-    left = unpack_classical_reg(classical_reg1)
-    right = unpack_classical_reg(classical_reg2)
+    left, right = unpack_reg_val_pair(classical_reg1, classical_reg2)
     return ClassicalAnd(left, right)
 
 
@@ -475,25 +555,49 @@ def OR(classical_reg1, classical_reg2):
     """
     Produce an OR instruction.
 
+    NOTE: Deprecated. Use IOR instead.
+
     :param classical_reg1: The first classical register.
     :param classical_reg2: The second classical register, which gets modified.
     :return: A ClassicalOr instance.
     """
-    left = unpack_classical_reg(classical_reg1)
-    right = unpack_classical_reg(classical_reg2)
-    return ClassicalOr(left, right)
+    warn("OR has been deprecated. Use IOR, inclusive OR, instead.")
+    return IOR(classical_reg2, classical_reg1)
+
+
+def IOR(classical_reg1, classical_reg2):
+    """
+    Produce an inclusive OR instruction.
+
+    :param classical_reg1: The first classical register, which gets modified.
+    :param classical_reg2: The second classical register or immediate value.
+    :return: A ClassicalOr instance.
+    """
+    left, right = unpack_reg_val_pair(classical_reg1, classical_reg2)
+    return ClassicalInclusiveOr(left, right)
+
+
+def XOR(classical_reg1, classical_reg2):
+    """
+    Produce an exclusive OR instruction.
+
+    :param classical_reg1: The first classical register, which gets modified.
+    :param classical_reg2: The second classical register or immediate value.
+    :return: A ClassicalOr instance.
+    """
+    left, right = unpack_reg_val_pair(classical_reg1, classical_reg2)
+    return ClassicalExclusiveOr(left, right)
 
 
 def MOVE(classical_reg1, classical_reg2):
     """
     Produce a MOVE instruction.
 
-    :param classical_reg1: The first classical register.
-    :param classical_reg2: The second classical register, which gets modified.
+    :param classical_reg1: The first classical register, which gets modified.
+    :param classical_reg2: The second classical register or immediate value.
     :return: A ClassicalMove instance.
     """
-    left = unpack_classical_reg(classical_reg1)
-    right = unpack_classical_reg(classical_reg2)
+    left, right = unpack_reg_val_pair(classical_reg1, classical_reg2)
     return ClassicalMove(left, right)
 
 
@@ -508,6 +612,165 @@ def EXCHANGE(classical_reg1, classical_reg2):
     left = unpack_classical_reg(classical_reg1)
     right = unpack_classical_reg(classical_reg2)
     return ClassicalExchange(left, right)
+
+
+def LOAD(target_reg, region_name, offset_reg):
+    """
+    Produce a LOAD instruction.
+
+    :param target_reg: LOAD storage target.
+    :param region_name: Named region of memory to load from.
+    :param offset_reg: Offset into region of memory to load from. Must be a MemoryReference.
+    :return: A ClassicalLoad instance.
+    """
+    return ClassicalLoad(unpack_classical_reg(target_reg), region_name, unpack_classical_reg(offset_reg))
+
+
+def STORE(region_name, offset_reg, source):
+    """
+    Produce a STORE instruction.
+
+    :param region_name: Named region of memory to store to.
+    :param offset_reg: Offset into memory region. Must be a MemoryReference.
+    :param source: Source data. Can be either a MemoryReference or a constant.
+    :return: A ClassicalStore instance.
+    """
+    return ClassicalStore(region_name, unpack_classical_reg(offset_reg), source)
+
+
+def CONVERT(classical_reg1, classical_reg2):
+    """
+    Produce a CONVERT instruction.
+
+    :param classical_reg1: MemoryReference to store to.
+    :param classical_reg2: MemoryReference to read from.
+    :return: A ClassicalCONVERT instance.
+    """
+    return ClassicalConvert(classical_reg1, classical_reg2)
+
+
+def ADD(classical_reg, right):
+    """
+    Produce an ADD instruction.
+
+    :param classical_reg: Left operand for the arithmetic operation. Also serves as the store target.
+    :param right: Right operand for the arithmetic operation.
+    :return: A ClassicalAdd instance.
+    """
+    left, right = unpack_reg_val_pair(classical_reg, right)
+    return ClassicalAdd(left, right)
+
+
+def SUB(classical_reg, right):
+    """
+    Produce a SUB instruction.
+
+    :param classical_reg: Left operand for the arithmetic operation. Also serves as the store target.
+    :param right: Right operand for the arithmetic operation.
+    :return: A ClassicalSub instance.
+    """
+    left, right = unpack_reg_val_pair(classical_reg, right)
+    return ClassicalSub(left, right)
+
+
+def MUL(classical_reg, right):
+    """
+    Produce a MUL instruction.
+
+    :param classical_reg: Left operand for the arithmetic operation. Also serves as the store target.
+    :param right: Right operand for the arithmetic operation.
+    :return: A ClassicalMul instance.
+    """
+    left, right = unpack_reg_val_pair(classical_reg, right)
+    return ClassicalMul(left, right)
+
+
+def DIV(classical_reg, right):
+    """
+    Produce an DIV instruction.
+
+    :param classical_reg: Left operand for the arithmetic operation. Also serves as the store target.
+    :param right: Right operand for the arithmetic operation.
+    :return: A ClassicalDiv instance.
+    """
+    left, right = unpack_reg_val_pair(classical_reg, right)
+    return ClassicalDiv(left, right)
+
+
+def EQ(classical_reg1, classical_reg2, classical_reg3):
+    """
+    Produce an EQ instruction.
+
+    :param classical_reg1: Memory address to which to store the comparison result.
+    :param classical_reg2: Left comparison operand.
+    :param classical_reg3: Right comparison operand.
+    :return: A ClassicalEqual instance.
+    """
+    classical_reg1, classical_reg2, classical_reg3 = prepare_ternary_operands(classical_reg1,
+                                                                              classical_reg2,
+                                                                              classical_reg3)
+
+    return ClassicalEqual(classical_reg1, classical_reg2, classical_reg3)
+
+
+def LT(classical_reg1, classical_reg2, classical_reg3):
+    """
+    Produce an LT instruction.
+
+    :param classical_reg1: Memory address to which to store the comparison result.
+    :param classical_reg2: Left comparison operand.
+    :param classical_reg3: Right comparison operand.
+    :return: A ClassicalLessThan instance.
+    """
+    classical_reg1, classical_reg2, classical_reg3 = prepare_ternary_operands(classical_reg1,
+                                                                              classical_reg2,
+                                                                              classical_reg3)
+    return ClassicalLessThan(classical_reg1, classical_reg2, classical_reg3)
+
+
+def LE(classical_reg1, classical_reg2, classical_reg3):
+    """
+    Produce an LE instruction.
+
+    :param classical_reg1: Memory address to which to store the comparison result.
+    :param classical_reg2: Left comparison operand.
+    :param classical_reg3: Right comparison operand.
+    :return: A ClassicalLessEqual instance.
+    """
+    classical_reg1, classical_reg2, classical_reg3 = prepare_ternary_operands(classical_reg1,
+                                                                              classical_reg2,
+                                                                              classical_reg3)
+    return ClassicalLessEqual(classical_reg1, classical_reg2, classical_reg3)
+
+
+def GT(classical_reg1, classical_reg2, classical_reg3):
+    """
+    Produce an GT instruction.
+
+    :param classical_reg1: Memory address to which to store the comparison result.
+    :param classical_reg2: Left comparison operand.
+    :param classical_reg3: Right comparison operand.
+    :return: A ClassicalGreaterThan instance.
+    """
+    classical_reg1, classical_reg2, classical_reg3 = prepare_ternary_operands(classical_reg1,
+                                                                              classical_reg2,
+                                                                              classical_reg3)
+    return ClassicalGreaterThan(classical_reg1, classical_reg2, classical_reg3)
+
+
+def GE(classical_reg1, classical_reg2, classical_reg3):
+    """
+    Produce an GE instruction.
+
+    :param classical_reg1: Memory address to which to store the comparison result.
+    :param classical_reg2: Left comparison operand.
+    :param classical_reg3: Right comparison operand.
+    :return: A ClassicalGreaterEqual instance.
+    """
+    classical_reg1, classical_reg2, classical_reg3 = prepare_ternary_operands(classical_reg1,
+                                                                              classical_reg2,
+                                                                              classical_reg3)
+    return ClassicalGreaterEqual(classical_reg1, classical_reg2, classical_reg3)
 
 
 QUANTUM_GATES = {'I': I,
@@ -554,9 +817,24 @@ STANDARD_INSTRUCTIONS = {'WAIT': WAIT,
                          'OR': OR,
                          'MOVE': MOVE,
                          'EXCHANGE': EXCHANGE,
-                         **QUANTUM_GATES}
+                         'IOR': IOR,
+                         'XOR': XOR,
+                         'NEG': NEG,
+                         'ADD': ADD,
+                         'SUB': SUB,
+                         'MUL': MUL,
+                         'DIV': DIV,
+                         'EQ': EQ,
+                         'GT': GT,
+                         'GE': GE,
+                         'LE': LE,
+                         'LT': LT,
+                         'LOAD': LOAD,
+                         'STORE': STORE,
+                         'CONVERT': CONVERT,
+                         }
 """
 Dictionary of standard instructions. Keys are instruction names, values are the instruction functions.
 """
 
-__all__ = list(STANDARD_INSTRUCTIONS.keys()) + ['Gate']
+__all__ = list(QUANTUM_GATES.keys()) + list(STANDARD_INSTRUCTIONS.keys()) + ['Gate']

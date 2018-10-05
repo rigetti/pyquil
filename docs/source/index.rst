@@ -3,45 +3,60 @@
    You can adapt this file completely to your liking, but it should at least
    contain the root `toctree` directive.
 
-Welcome to the Docs for Forest and pyQuil!
-==========================================
+.. role:: red
 
-Overview
---------
+Welcome to the Docs for the Forest SDK!
+=======================================
 
-pyQuil is part of the Rigetti Forest `toolkit <http://forest.rigetti.com>`_ for
-**quantum programming in the cloud**. If you are
-interested in obtaining an API key for the beta, please reach out by signing up
-`here <http://forest.rigetti.com>`_. We look forward to hearing from you.
+The Rigetti Forest `Software Development Kit <http://rigetti.com/forest>`_ includes pyQuil, the Rigetti Quil Compiler
+(quilc), and the Quantum Virtual Machine (qvm).
 
-pyQuil is an open source Python library developed at `Rigetti Computing <http://rigetti.com>`_
-that constructs programs for quantum computers. The source is hosted on
-`GitHub <https://github.com/rigetticomputing/pyquil>`_. More concretely,
-pyQuil produces programs in the **Quantum Instruction Language** (Quil).
-For a full description of Quil, please refer to the whitepaper
-*A Practical Quantum Instruction Set Architecture*. [1]_  Quil is an opinionated quantum
-instruction language --- its basic belief is that in the near term quantum computers
-will operate as coprocessors, working in concert with traditional CPUs. This means that
-Quil is designed to execute on a Quantum Abstract Machine that has a shared classical/quantum
-architecture at its core.
+**Longtime users of Rigetti Forest will notice a few changes.** First, the SDK now contains a downloadable compiler and a
+QVM. Second, the SDK contains pyQuil 2.0, with significant updates to previous versions. As a result, programs written
+using previous versions of the Forest toolkit will need to be updated to pyQuil 2.0 to be compatible with the QVM or compiler.
 
-Quil programs can be executed on a cloud-based **Quantum Virtual Machine** (QVM). This is a
-classical simulation of a quantum processor that can simulate various qubit operations.
-The default access key allows you to run simulations of up to 26 qubits. These simulations
-can be run through either synchronous API calls, or through an asynchronous job queue for
-larger programs. More information about the QVM can be found in the :ref:`qvm`.
+After installing the SDK and updating pyQuil in :ref:`start`, see :ref:`quickstart` to get caught up on what's new!
 
-In addition to the QVM, we offer the ability to run programs on our superconducting quantum processors,
-or **Quantum Processing Units** (QPUs), at our lab in Berkeley, California. To request upgraded
-access to our 19Q QPU, please fill out the `request form <https://www.rigetti.com/qpu-request>`_
-with a brief summary of what you hope to use it for. For more information on QPUs, check out
-:ref:`qpu`.
+Quantum Cloud Services will provide users with a dedicated Quantum Machine Image, which will come prepackaged with the
+Forest SDK. We’re releasing a Preview to the Forest SDK now, so current users can begin migrating code (and share feedback
+with us early and often!). Longtime Forest users should start with the Migration Guide which outlines key changes in this
+SDK Preview release.
 
-If you are already familiar with quantum computing, then feel free to proceed to
-:ref:`start`. Otherwise, take a look at our :ref:`intro`, where we use Quil
-introduce the basics of quantum computing and the Quantum Abstract Machine on which it runs.
+If you’re new to Forest, we hope this documentation will provide everything you need to get up and running with the toolkit.
+Once you’ve oriented yourself here, proceed to the section :ref:`start` to get started. If you're new to quantum computing,
+you also go to our section on :ref:`intro`. There, you’ll learn the basic concepts needed to write quantum software. You
+can also work through an introduction to quantum computing in a jupyter notebook; launch the notebook from the source folder
+in pyquil's docs:
 
-.. [1] https://arxiv.org/abs/1608.03355
+.. code::
+
+    cd pyquil/docs/source
+    jupyter notebook intro_to_qc.ipynb
+
+
+**A few terms to orient you as you get started with Forest:**
+
+- pyQuil is an open source Python library developed at Rigetti Computing that allows you to write programs for quantum computers.
+  The source is hosted on `github <http://github.com/rigetticomputing/pyquil>`_.
+- Quil, the Quantum Instruction Language, is the lower-level code that pyQuil gets compiled into. A full description of
+  Quil can be found in our whitepaper, `A Practical Quantum Instruction Set Architecture <https://arxiv.org/abs/1608.03355>`_.
+- quilc is the Rigetti Quil Compiler that compiles pyQuil into Quil. The SDK includes quilc, which will enable you to
+  compile your pyQuil programs into executable Quil code.
+- The QVM is a simulator of our quantum computers. When you download the SDK, you’ll install the QVM and you will execute
+  Quil programs against it.
+- Forest is our software development kit, optimized for near-term quantum computers that operate as coprocessors, working in
+  concert with traditional processors to run hybrid quantum-classical algorithms. For references on problems addressable
+  with near-term quantum computers, see `Quantum Computing in the NISQ era and beyond <https://arxiv.org/abs/1801.00862>`_.
+
+Our flagship product `Quantum Cloud Services <http://rigetti.com/qcs>`_ offers users an on-premise, dedicated access
+point to our quantum computers, and to a powerful 34-qubit Quantum Virtual Machine. This access point is a fully-configured
+OS, which we call a Quantum Machine Image. A QMI is bundled with the same downloadable SDK mentioned above, and an admin
+command line interface (CLI), which is used for scheduling compute time on our quantum computers. To sign up for our
+waitlist, please click the link above. If need access to our quantum computers for research, please email support@rigetti.com.
+
+.. note::
+
+    To join our user community, connect to the Rigetti Slack workspace at https://rigetti-forest.slack.com.
 
 Contents
 --------
@@ -49,18 +64,17 @@ Contents
 .. toctree::
    :maxdepth: 3
 
-   intro
    start
    basics
    advanced_usage
    exercises
    qvm
-   qpu
    compiler
    qubit-placeholder
    noise
    modules
    changes
+   intro
 
 
 Indices and Tables
@@ -69,3 +83,4 @@ Indices and Tables
 * :ref:`genindex`
 * :ref:`modindex`
 * :ref:`search`
+

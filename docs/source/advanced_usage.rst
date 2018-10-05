@@ -3,6 +3,32 @@
 Advanced Usage
 ==============
 
+First, initialize a localQVM instance on your laptop. You should have two consoles open in your terminal to run in the
+background.
+
+.. code:: python
+
+    ### CONSOLE 1
+    $ quilc -S
+    port triggered: 6000.
+    [2018-09-19 11:22:37] Starting server: 0.0.0.0 : 6000.
+
+    ### CONSOLE 2
+    $ qvm -S
+    Welcome to the Rigetti QVM
+    (Configured with 2048 MiB of workspace and 8 workers.)
+    [2018-09-20 15:39:50] Starting server on port 5000.
+
+.. code:: python
+
+    from pyquil import Program, get_qc
+    from pyquil.gates import *
+    qvm = get_qc('9q-generic-qvm')
+
+
+Now that our local endpoints are up and running, we can start running pyQuil programs! Open a jupyter notebook (type
+..code::`jupyter notebook` in your terminal), or launch python in your terminal (type ..code::`python3`).
+
 Quantum Fourier Transform (QFT)
 ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
 
@@ -239,7 +265,7 @@ probabilities specified.
     # 20% chance of a X gate being applied after gate applications and before measurements.
     gate_noise_probs = [0.2, 0.0, 0.0]
     meas_noise_probs = [0.2, 0.0, 0.0]
-    noisy_qvm = api.QVMConnection(gate_noise=gate_noise_probs, measurement_noise=meas_noise_probs)
+    noisy_qvm = qvm(gate_noise=gate_noise_probs, measurement_noise=meas_noise_probs)
 
 We can test this by applying an :math:`X`-gate and measuring. Nominally,
 we should always measure ``1``.
@@ -354,7 +380,7 @@ The following shows an instructive example of all three.
 A more sophisticated feature of pyQuil is that it can create templates of Quil programs in
 ParametricProgram objects.  An example use of these templates is in exponentiating a Hamiltonian
 that is parametrized by a constant.  This commonly occurs in variational algorithms. The function
-``exponential_map`` is used to compute exp[i * alpha * H] without explicitly filling in a value for
+``exponential_map`` is used to compute exp[-i * alpha * H] without explicitly filling in a value for
 alpha.
 
 .. code:: python

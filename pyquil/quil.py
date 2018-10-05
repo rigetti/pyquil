@@ -1,5 +1,5 @@
 ##############################################################################
-# Copyright 2016-2017 Rigetti Computing
+# Copyright 2016-2018 Rigetti Computing
 #
 #    Licensed under the Apache License, Version 2.0 (the "License");
 #    you may not use this file except in compliance with the License.
@@ -18,20 +18,25 @@ Module for creating and defining Quil programs.
 """
 import itertools
 import types
+from typing import Iterable
 import warnings
-from collections import OrderedDict
+from collections import OrderedDict, defaultdict
 from math import pi
 
 import numpy as np
+from rpcq.core_messages import NativeQuilMetadata
 from six import string_types
+from typing import List, Dict
 
 from pyquil._parser.PyQuilListener import run_parser
-from pyquil.noise import _check_kraus_ops, _create_kraus_pragmas
+from pyquil.noise import _check_kraus_ops, _create_kraus_pragmas, pauli_kraus_map
 from pyquil.parameters import format_parameter
-from pyquil.quilatom import LabelPlaceholder, QubitPlaceholder, unpack_qubit
-from pyquil.gates import MEASURE, QUANTUM_GATES, H
+from pyquil.quilatom import (LabelPlaceholder, QubitPlaceholder, unpack_qubit, Addr,
+                             unpack_classical_reg, MemoryReference)
+from pyquil.gates import MEASURE, QUANTUM_GATES, H, RESET
 from pyquil.quilbase import (DefGate, Gate, Measurement, Pragma, AbstractInstruction, Qubit,
-                             Jump, Label, JumpConditional, JumpTarget, JumpUnless, JumpWhen, Addr)
+                             Jump, Label, JumpConditional, JumpTarget, JumpUnless, JumpWhen,
+                             Declare)
 
 
 class Program(object):
@@ -49,6 +54,32 @@ class Program(object):
         self._synthesized_instructions = None
 
         self.inst(*instructions)
+
+        # Filled in with quil_to_native_quil
+        self.native_quil_metadata = None  # type: NativeQuilMetadata
+
+        # default number of shots to loop through
+        self.num_shots = 1
+
+        # Note to developers: Have you changed this method? Have you change the fields which
+        # live on `Program`? Please update `Program.copy()`!
+
+    def copy(self):
+        """
+        Perform a shallow copy of this program.
+
+        QuilAtom and AbstractInstruction objects should be treated as immutable to avoid
+        strange behavior when performing a copy.
+
+        :return: a new Program
+        """
+        new_prog = Program()
+        new_prog._defined_gates = self._defined_gates.copy()
+        new_prog._instructions = self._instructions.copy()
+        if self.native_quil_metadata is not None:
+            new_prog.native_quil_metadata = self.native_quil_metadata.copy()
+        new_prog.num_shots = self.num_shots
+        return new_prog
 
     @property
     def defined_gates(self):
@@ -254,6 +285,18 @@ class Program(object):
         """
         return self.inst(MEASURE(qubit_index, classical_reg))
 
+    def reset(self, qubit_index=None):
+        """
+        Reset all qubits or just a specific qubit at qubit_index.
+
+        :param Optional[int] qubit_index: The address of the qubit to reset.
+            If None, reset all qubits.
+        :returns: The Quil Program with the appropriate reset instruction appended, e.g.
+                  RESET 0
+        :rtype: Program
+        """
+        return self.inst(RESET(qubit_index))
+
     def measure_all(self, *qubit_reg_pairs):
         """
         Measures many qubits into their specified classical bits, in the order
@@ -272,7 +315,12 @@ class Program(object):
         :rtype: Program
         """
         if qubit_reg_pairs == ():
-            [self.inst(MEASURE(qubit_index, qubit_index)) for qubit_index in self.get_qubits()]
+            qubit_inds = self.get_qubits(indices=True)
+            if len(qubit_inds) == 0:
+                return self
+            ro = self.declare('ro', 'BIT', max(qubit_inds) + 1)
+            for qi in qubit_inds:
+                self.inst(MEASURE(qi, ro[qi]))
         else:
             for qubit_index, classical_reg in qubit_reg_pairs:
                 self.inst(MEASURE(qubit_index, classical_reg))
@@ -341,7 +389,7 @@ class Program(object):
 
         label_then = LabelPlaceholder("THEN")
         label_end = LabelPlaceholder("END")
-        self.inst(JumpWhen(target=label_then, condition=Addr(classical_reg)))
+        self.inst(JumpWhen(target=label_then, condition=unpack_classical_reg(classical_reg)))
         self.inst(else_program)
         self.inst(Jump(label_end))
         self.inst(JumpTarget(label_then))
@@ -359,6 +407,49 @@ class Program(object):
         warnings.warn("`alloc` is deprecated and will be removed in a future version of pyQuil. "
                       "Please create a `QubitPlaceholder` directly", DeprecationWarning)
         return QubitPlaceholder()
+
+    def declare(self, name, memory_type, memory_size=1, shared_region=None, offsets=None):
+        """DECLARE a quil variable
+
+        This adds the declaration to the current program and returns a MemoryReference to the
+        base (offset = 0) of the declared memory.
+
+        .. note::
+            This function returns a MemoryReference and cannot be chained like some
+            of the other Program methods. Consider using ``inst(DECLARE(...))`` if you
+            would like to chain methods, but please be aware that you must create your
+            own MemoryReferences later on.
+
+        :param name: Name of the declared variable
+        :param memory_type: Type of the declared variable
+        :param memory_size: Number of array elements in the declared memory.
+        :param shared_region: You can declare a variable that shares its underlying memory
+            with another region. This allows aliasing. For example, you can interpret an array
+            of measured bits as an integer.
+        :param offsets: If you are using ``shared_region``, this allows you to share only
+            a part of the parent region. The offset is given by an array type and the number
+            of elements of that type. For example,
+            ``DECLARE target-bit BIT SHARING real-region OFFSET 1 REAL 4 BIT`` will let you use
+            target-bit to poke into the fourth bit of the second real from the leading edge of
+            real-region.
+        :return: a MemoryReference to the start of the declared memory region, ie a memory
+            reference to ``name[0]``.
+        """
+        self.inst(Declare(name=name, memory_type=memory_type, memory_size=memory_size,
+                          shared_region=shared_region, offsets=offsets))
+        return MemoryReference(name=name, declared_size=memory_size)
+
+    def wrap_in_numshots_loop(self, shots: int):
+        """
+        Wraps a Quil program in a loop that re-runs the same program many times.
+
+        Note: this function is a prototype of what will exist in the future when users will
+        be responsible for writing this loop instead of having it happen automatically.
+
+        :param shots: Number of iterations to loop through.
+        """
+        self.num_shots = shots
+        return self
 
     def _out(self, allow_placeholders):
         """
@@ -472,7 +563,8 @@ class Program(object):
 
     def _synthesize(self):
         """
-        Assigns all placeholder labels to actual values.
+        Assigns all placeholder labels to actual values and implicitly declares the ``ro``
+        register for backwards compatibility.
 
         Changed in 1.9: Either all qubits must be defined or all undefined. If qubits are
         undefined, this method will not help you. You must explicitly call `address_qubits`
@@ -481,9 +573,14 @@ class Program(object):
         Changed in 1.9: This function now returns ``self`` and updates
         ``self._synthesized_instructions``.
 
+        Changed in 2.0: This function will add an instruction to the top of the program
+        to declare a register of bits called ``ro`` if and only if there are no other
+        declarations in the program.
+
         :return: This object with the ``_synthesized_instructions`` member set.
         """
         self._synthesized_instructions = instantiate_labels(self._instructions)
+        self._synthesized_instructions = implicitly_declare_ro(self._synthesized_instructions)
         return self
 
     def __add__(self, other):
@@ -719,28 +816,168 @@ def instantiate_labels(instructions):
     return result
 
 
+def implicitly_declare_ro(instructions: List[AbstractInstruction]):
+    """
+    Implicitly declare a register named ``ro`` for backwards compatibility with Quil 1.
+
+    There used to be one un-named hunk of classical memory. Now there are variables with
+    declarations. Instead of::
+
+        MEASURE 0 [0]
+
+    You must now measure into a named register, idiomatically::
+
+        MEASURE 0 ro[0]
+
+    The ``MEASURE`` instruction will emit this (with a deprecation warning) if you're still
+    using bare integers for classical addresses. However, you must also declare memory in the
+    new scheme::
+
+        DECLARE ro BIT[8]
+        MEASURE 0 ro[0]
+
+    This method will determine if you are in "backwards compatibility mode" and will declare
+    a read-out ``ro`` register for you. If you program contains any DECLARE commands or if it
+    does not have any MEASURE x ro[x], this will not do anything.
+
+    This behavior is included for backwards compatibility and will be removed in future releases
+    of PyQuil. Please DECLARE all memory including ``ro``.
+    """
+    ro_addrs = []
+    for instr in instructions:
+        if isinstance(instr, Declare):
+            # The user has declared their own memory
+            # so they are responsible for all declarations and memory references.
+            return instructions
+
+        if isinstance(instr, Measurement):
+            if instr.classical_reg is None:
+                continue
+
+            if instr.classical_reg.name == 'ro':
+                ro_addrs += [instr.classical_reg.offset]
+            else:
+                # The user has used a classical register named something other than "ro"
+                # so they are responsible for all declarations and memory references.
+                return instructions
+
+    if len(ro_addrs) == 0:
+        return instructions
+
+    warnings.warn("Please DECLARE all memory. I'm adding a declaration for the `ro` register, "
+                  "but I won't do this for you in the future.")
+
+    new_instr = instructions.copy()
+    new_instr.insert(0, Declare(name='ro', memory_type='BIT', memory_size=max(ro_addrs) + 1))
+    return new_instr
+
+
+def merge_with_pauli_noise(prog_list: Iterable, probabilities: List, qubits: List):
+    """
+    Insert pauli noise channels between each item in the list of programs.
+    This noise channel is implemented as a single noisy identity gate acting on the provided qubits.
+    This method does not rely on merge_programs and so avoids the inclusion of redundant Kraus Pragmas
+    that would occur if merge_programs was called directly on programs with distinct noisy gate definitions.
+
+    :param prog_list: an iterable such as a program or a list of programs.
+        If a program is provided, a single noise gate will be applied after each gate in the program.
+        If a list of programs is provided, the noise gate will be applied after each program.
+    :param probabilities: The 4^num_qubits list of probabilities specifying the desired pauli channel.
+        There should be either 4 or 16 probabilities specified in the order
+        I, X, Y, Z or II, IX, IY, IZ, XI, XX, XY, etc respectively.
+    :param qubits: a list of the qubits that the noisy gate should act on.
+    :return: A single program with noisy gates inserted between each element of the program list.
+    :rtype: Program
+    """
+    p = Program()
+    p.defgate("pauli_noise", np.eye(2 ** len(qubits)))
+    p.define_noisy_gate("pauli_noise", qubits, pauli_kraus_map(probabilities))
+    for elem in prog_list:
+        p.inst(Program(elem))
+        if isinstance(elem, Measurement):
+            continue  # do not apply noise after measurement
+        p.inst(("pauli_noise", *qubits))
+    return p
+
+
 def merge_programs(prog_list):
     """
-    Merges a list of pyQuil programs into a single one by appending them in sequence
+    Merges a list of pyQuil programs into a single one by appending them in sequence.
+    If multiple programs in the list contain the same gate and/or noisy gate definition
+    with identical name, this definition will only be applied once. If different definitions
+    with the same name appear multiple times in the program list, each will be applied once
+    in the order of last occurrence.
 
     :param list prog_list: A list of pyquil programs
     :return: a single pyQuil program
     :rtype: Program
     """
-    return sum(prog_list, Program())
+    definitions = [gate for prog in prog_list for gate in Program(prog).defined_gates]
+    seen = {}
+    # Collect definitions in reverse order and reapply definitions in reverse
+    # collected order to ensure that the last occurrence of a definition is applied last.
+    for definition in reversed(definitions):
+        name = definition.name
+        if name in seen.keys():
+            # Do not add truly identical definitions with the same name
+            # If two different definitions share a name, we include each definition so as to provide
+            # a waring to the user when the contradictory defgate is called.
+            if definition not in seen[name]:
+                seen[name].append(definition)
+        else:
+            seen[name] = [definition]
+    new_definitions = [gate for key in seen.keys() for gate in reversed(seen[key])]
+
+    p = sum([Program(prog).instructions for prog in prog_list], Program())  # Combine programs without gate definitions
+
+    for definition in new_definitions:
+        p.defgate(definition.name, definition.matrix, definition.parameters)
+
+    return p
 
 
-def get_classical_addresses_from_program(program):
+def get_classical_addresses_from_program(program) -> Dict[str, List[int]]:
     """
     Returns a sorted list of classical addresses found in the MEASURE instructions in the program.
 
     :param Program program: The program from which to get the classical addresses.
-    :return: A list of integer classical addresses.
-    :rtype: list
+    :return: A mapping from memory region names to lists of offsets appearing in the program.
     """
+    addresses = defaultdict(list)
+    flattened_addresses = {}
+
     # Required to use the `classical_reg.address` int attribute.
     # See https://github.com/rigetticomputing/pyquil/issues/388.
-    return sorted(set([
-        instr.classical_reg.address for instr in program
-        if isinstance(instr, Measurement) and instr.classical_reg is not None
-    ]))
+    for instr in program:
+        if isinstance(instr, Measurement) and instr.classical_reg:
+            addresses[instr.classical_reg.name].append(instr.classical_reg.offset)
+
+    # flatten duplicates
+    for k, v in addresses.items():
+        reduced_list = list(set(v))
+        reduced_list.sort()
+        flattened_addresses[k] = reduced_list
+
+    return flattened_addresses
+
+
+def percolate_declares(program: Program) -> Program:
+    """
+    Move all the DECLARE statements to the top of the program. Return a fresh obejct.
+
+    :param program: Perhaps jumbled program.
+    :return: Program with DECLAREs all at the top and otherwise the same sorted contents.
+    """
+    declare_program = Program()
+    instrs_program = Program()
+
+    for instr in program:
+        if isinstance(instr, Declare):
+            declare_program += instr
+        else:
+            instrs_program += instr
+
+    p = declare_program + instrs_program
+    p._defined_gates = program._defined_gates
+
+    return p

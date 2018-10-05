@@ -18,11 +18,11 @@ Module for creating and verifying noisy gate and readout definitions.
 """
 from __future__ import print_function
 from collections import namedtuple
+from typing import Sequence
 
 import numpy as np
 import sys
 
-from pyquil.device import ISA, gates_in_isa
 from pyquil.gates import I, MEASURE, X
 from pyquil.parameters import format_parameter
 from pyquil.quilbase import Pragma, Gate
@@ -226,6 +226,40 @@ def append_kraus_to_gate(kraus_ops, gate_matrix):
     :return: A list of transformed Kraus operators.
     """
     return [kj.dot(gate_matrix) for kj in kraus_ops]
+
+
+def pauli_kraus_map(probabilities):
+    """
+    Generate the Kraus operators corresponding to a pauli channel.
+
+    :params list|floats probabilities: The 4^num_qubits list of probabilities specifying the desired pauli channel.
+    There should be either 4 or 16 probabilities specified in the order I, X, Y, Z for 1 qubit
+    or II, IX, IY, IZ, XI, XX, XY, etc for 2 qubits.
+
+            For example::
+
+                The d-dimensional depolarazing channel \Delta parameterized as
+                \Delta(\rho) = p \rho + [(1-p)/d] I
+                is specfiied by the list of probabilities
+                [p + (1-p)/d, (1-p)/d,  (1-p)/d), ... , (1-p)/d)]
+
+    :return: A list of the 4^num_qubits Kraus operators that parametrize the map.
+    :rtype: list
+    """
+    if len(probabilities) not in [4, 16]:
+        raise ValueError("Currently we only support one or two qubits, "
+                         "so the provided list of probabilities must have length 4 or 16.")
+    if not np.allclose(sum(probabilities), 1.0, atol=1e-3):
+        raise ValueError("Probabilities must sum to one.")
+
+    paulis = [np.eye(2), np.array([[0, 1], [1, 0]]), np.array([[0, -1j], [1j, 0]]), np.array([[1, 0], [0, -1]])]
+
+    if len(probabilities) == 4:
+        operators = paulis
+    else:
+        operators = np.kron(paulis, paulis)
+
+    return [coeff * op for coeff, op in zip(np.sqrt(probabilities), operators)]
 
 
 def damping_kraus_map(p=0.10):
@@ -442,13 +476,12 @@ def _decoherence_noise_model(gates, T1=30e-6, T2=30e-6, gate_time_1q=50e-9,
     return NoiseModel(kraus_maps, aprobs)
 
 
-def decoherance_noise_with_asymmetric_ro(isa: ISA, p00=0.975, p11=0.911):
-    """Similar to :py:func`_decoherance_noise_model`, but with asymmetric readout.
+def decoherence_noise_with_asymmetric_ro(gates: Sequence[Gate], p00=0.975, p11=0.911):
+    """Similar to :py:func`_decoherence_noise_model`, but with asymmetric readout.
 
     For simplicity, we use the default values for T1, T2, gate times, et al. and only allow
     the specification of readout fidelities.
     """
-    gates = gates_in_isa(isa)
     noise_model = _decoherence_noise_model(gates)
     aprobs = np.array([[p00, 1 - p00],
                        [1 - p11, p11]])

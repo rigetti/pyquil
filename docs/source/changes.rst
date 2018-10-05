@@ -73,8 +73,8 @@ concatenated and run as one program, these programs can be used in a procedure c
 benchmarking to gain insight about the fidelity of operations on a QPU.
 
 In addition, the :py:class:`CompilerConnection` has another new method,
-:py:func:`apply_clifford_to_pauli`, which conjugates :py:class:`PauliTerms` by
-:py:class:`Program`s that are composed of Clifford gates. That is to say, given a circuit C,
+:py:func:`apply_clifford_to_pauli` which conjugates :py:class:`PauliTerms` by
+:py:class:`Program` that are composed of Clifford gates. That is to say, given a circuit C,
 that contains only gates corresponding to elements of the Clifford group, and a tensor product of
 elements P, from the Pauli group, this method will compute $PCP^{\dagger}$. Such a procedure can
 be used in various ways. An example is predicting the effect a Clifford circuit will have on an

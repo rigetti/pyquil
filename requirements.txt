@@ -6,6 +6,9 @@ contextvars
 six
 networkx
 
+# rigetti packages
+rpcq == 1.0.0.dev0
+
 # test deps
 pytest
 requests-mock

@@ -1,5 +1,5 @@
 ##############################################################################
-# Copyright 2016-2017 Rigetti Computing
+# Copyright 2016-2018 Rigetti Computing
 #
 #    Licensed under the Apache License, Version 2.0 (the "License");
 #    you may not use this file except in compliance with the License.
@@ -16,12 +16,13 @@
 """
 Contains the core pyQuil objects that correspond to Quil instructions.
 """
-
 import numpy as np
 from six import integer_types, string_types
+from warnings import warn
 
 from pyquil.parameters import Expression, _contained_parameters, format_parameter
-from pyquil.quilatom import Qubit, Addr, Label, unpack_qubit, QubitPlaceholder, LabelPlaceholder
+from pyquil.quilatom import (Qubit, MemoryReference, Label, unpack_qubit, QubitPlaceholder,
+                             LabelPlaceholder)
 
 
 class AbstractInstruction(object):
@@ -48,7 +49,15 @@ class AbstractInstruction(object):
 RESERVED_WORDS = ['DEFGATE', 'DEFCIRCUIT', 'MEASURE',
                   'LABEL', 'HALT', 'JUMP', 'JUMP-WHEN', 'JUMP-UNLESS',
                   'RESET', 'WAIT', 'NOP', 'INCLUDE', 'PRAGMA',
-                  'FALSE', 'TRUE', 'NOT', 'AND', 'OR', 'MOVE', 'EXCHANGE']
+                  'DECLARE',
+                  'NEG', 'NOT', 'AND', 'IOR', 'XOR',
+                  'MOVE', 'EXCHANGE', 'CONVERT',
+                  'ADD', 'SUB', 'MUL', 'DIV',
+                  'EQ', 'GT', 'GE', 'LT', 'LE',
+                  'LOAD', 'STORE',
+                  # to be removed:
+                  'TRUE', 'FALSE', 'OR'
+                  ]
 
 
 def _extract_qubit_index(qubit, index=True):
@@ -129,8 +138,8 @@ class Measurement(AbstractInstruction):
     def __init__(self, qubit, classical_reg=None):
         if not isinstance(qubit, (Qubit, QubitPlaceholder)):
             raise TypeError("qubit should be a Qubit")
-        if classical_reg and not isinstance(classical_reg, Addr):
-            raise TypeError("classical_reg should be None or an Addr instance")
+        if classical_reg and not isinstance(classical_reg, MemoryReference):
+            raise TypeError("classical_reg should be None or a MemoryReference instance")
 
         self.qubit = qubit
         self.classical_reg = classical_reg
@@ -146,6 +155,26 @@ class Measurement(AbstractInstruction):
             return "MEASURE {} {}".format(_format_qubit_str(self.qubit), str(self.classical_reg))
         else:
             return "MEASURE {}".format(_format_qubit_str(self.qubit))
+
+    def get_qubits(self, indices=True):
+        return {_extract_qubit_index(self.qubit, indices)}
+
+
+class ResetQubit(AbstractInstruction):
+    """
+    This is the pyQuil object for a Quil targeted reset instruction.
+    """
+
+    def __init__(self, qubit):
+        if not isinstance(qubit, (Qubit, QubitPlaceholder)):
+            raise TypeError("qubit should be a Qubit")
+        self.qubit = qubit
+
+    def out(self):
+        return "RESET {}".format(self.qubit.out())
+
+    def __str__(self):
+        return "RESET {}".format(_format_qubit_str(self.qubit))
 
     def get_qubits(self, indices=True):
         return {_extract_qubit_index(self.qubit, indices)}
@@ -279,8 +308,8 @@ class JumpConditional(AbstractInstruction):
     def __init__(self, target, condition):
         if not isinstance(target, (Label, LabelPlaceholder)):
             raise TypeError("target should be a Label")
-        if not isinstance(condition, Addr):
-            raise TypeError("condition should be an Addr")
+        if not isinstance(condition, MemoryReference):
+            raise TypeError("condition should be an MemoryReference")
         self.target = target
         self.condition = condition
 
@@ -345,36 +374,38 @@ class UnaryClassicalInstruction(AbstractInstruction):
     """
 
     def __init__(self, target):
-        if not isinstance(target, Addr):
-            raise TypeError("target operand should be an Addr")
+        if not isinstance(target, MemoryReference):
+            raise TypeError("target operand should be an MemoryReference")
         self.target = target
 
     def out(self):
         return "%s %s" % (self.op, self.target)
 
 
-class ClassicalTrue(UnaryClassicalInstruction):
-    op = "TRUE"
-
-
-class ClassicalFalse(UnaryClassicalInstruction):
-    op = "FALSE"
+class ClassicalNeg(UnaryClassicalInstruction):
+    """
+    The NEG instruction.
+    """
+    op = "NEG"
 
 
 class ClassicalNot(UnaryClassicalInstruction):
+    """
+    The NOT instruction.
+    """
     op = "NOT"
 
 
-class BinaryClassicalInstruction(AbstractInstruction):
+class LogicalBinaryOp(AbstractInstruction):
     """
-    The abstract class for binary classical instructions.
+    The abstract class for binary logical classical instructions.
     """
 
     def __init__(self, left, right):
-        if not isinstance(left, Addr):
-            raise TypeError("left operand should be an Addr")
-        if not isinstance(right, Addr):
-            raise TypeError("right operand should be an Addr")
+        if not isinstance(left, MemoryReference):
+            raise TypeError("left operand should be an MemoryReference")
+        if not isinstance(right, MemoryReference) and not isinstance(right, int):
+            raise TypeError("right operand should be an MemoryReference or an Int")
         self.left = left
         self.right = right
 
@@ -382,20 +413,270 @@ class BinaryClassicalInstruction(AbstractInstruction):
         return "%s %s %s" % (self.op, self.left, self.right)
 
 
-class ClassicalAnd(BinaryClassicalInstruction):
+class ClassicalAnd(LogicalBinaryOp):
+    """
+    WARNING: The operand order for ClassicalAnd has changed.  In pyQuil versions <= 1.9, AND had signature
+
+        AND %source %target
+
+    Now, AND has signature
+
+        AND %target %source
+    """
+
     op = "AND"
 
 
-class ClassicalOr(BinaryClassicalInstruction):
-    op = "OR"
+class ClassicalInclusiveOr(LogicalBinaryOp):
+    """
+    The IOR instruction.
+    """
+    op = "IOR"
 
 
-class ClassicalMove(BinaryClassicalInstruction):
+class ClassicalExclusiveOr(LogicalBinaryOp):
+    """
+    The XOR instruction.
+    """
+    op = "XOR"
+
+
+class ClassicalOr(ClassicalInclusiveOr):
+    """
+    Deprecated class.
+    """
+
+    def __init__(self, left, right):
+        warn("ClassicalOr has been deprecated. Replacing with ClassicalInclusiveOr. " +
+             "Use ClassicalInclusiveOr instead. " +
+             "NOTE: The operands to ClassicalInclusiveOr are inverted from ClassicalOr.")
+        super().__init__(right, left)
+
+
+class ArithmeticBinaryOp(AbstractInstruction):
+    """
+    The abstract class for binary arithmetic classical instructions.
+    """
+
+    def __init__(self, left, right):
+        if not isinstance(left, MemoryReference):
+            raise TypeError("left operand should be an MemoryReference")
+        if not isinstance(right, MemoryReference) and not isinstance(right, int) and not isinstance(right, float):
+            raise TypeError("right operand should be an MemoryReference or a numeric literal")
+        self.left = left
+        self.right = right
+
+    def out(self):
+        return "%s %s %s" % (self.op, self.left, self.right)
+
+
+class ClassicalAdd(ArithmeticBinaryOp):
+    """
+    The ADD instruction.
+    """
+    op = "ADD"
+
+
+class ClassicalSub(ArithmeticBinaryOp):
+    """
+    The SUB instruction.
+    """
+    op = "SUB"
+
+
+class ClassicalMul(ArithmeticBinaryOp):
+    """
+    The MUL instruction.
+    """
+    op = "MUL"
+
+
+class ClassicalDiv(ArithmeticBinaryOp):
+    """
+    The DIV instruction.
+    """
+    op = "DIV"
+
+
+class ClassicalMove(AbstractInstruction):
+    """
+    The MOVE instruction.
+
+    WARNING: In pyQuil 2.0, the order of operands is as MOVE <target> <source>.
+             In pyQuil 1.9, the order of operands was MOVE <source> <target>.
+             These have reversed.
+    """
     op = "MOVE"
 
+    def __init__(self, left, right):
+        if not isinstance(left, MemoryReference):
+            raise TypeError("Left operand of MOVE should be an MemoryReference.  "
+                            "Note that the order of the operands in pyQuil 2.0 has reversed from "
+                            "the order of pyQuil 1.9 .")
+        if not isinstance(right, MemoryReference) and not isinstance(right, int) and not isinstance(right, float):
+            raise TypeError("Right operand of MOVE should be an MemoryReference "
+                            "or a numeric literal")
+        self.left = left
+        self.right = right
 
-class ClassicalExchange(BinaryClassicalInstruction):
+    def out(self):
+        return "%s %s %s" % (self.op, self.left, self.right)
+
+
+class ClassicalFalse(ClassicalMove):
+    """
+    Deprecated class.
+    """
+
+    def __init__(self, target):
+        super().__init__(target, 0)
+        warn("ClassicalFalse is deprecated in favor of ClassicalMove.")
+
+
+class ClassicalTrue(ClassicalMove):
+    """
+    Deprecated class.
+    """
+
+    def __init__(self, target):
+        super().__init__(target, 1)
+        warn("ClassicalTrue is deprecated in favor of ClassicalMove.")
+
+
+class ClassicalExchange(AbstractInstruction):
+    """
+    The EXCHANGE instruction.
+    """
+
     op = "EXCHANGE"
+
+    def __init__(self, left, right):
+        if not isinstance(left, MemoryReference):
+            raise TypeError("left operand should be an MemoryReference")
+        if not isinstance(right, MemoryReference):
+            raise TypeError("right operand should be an MemoryReference")
+        self.left = left
+        self.right = right
+
+    def out(self):
+        return "%s %s %s" % (self.op, self.left, self.right)
+
+
+class ClassicalConvert(AbstractInstruction):
+    """
+    The CONVERT instruction.
+    """
+
+    op = "CONVERT"
+
+    def __init__(self, left, right):
+        if not isinstance(left, MemoryReference):
+            raise TypeError("left operand should be an MemoryReference")
+        if not isinstance(right, MemoryReference):
+            raise TypeError("right operand should be an MemoryReference")
+        self.left = left
+        self.right = right
+
+    def out(self):
+        return "%s %s %s" % (self.op, self.left, self.right)
+
+
+class ClassicalLoad(AbstractInstruction):
+    """
+    The LOAD instruction.
+    """
+
+    op = "LOAD"
+
+    def __init__(self, target, left, right):
+        if not isinstance(target, MemoryReference):
+            raise TypeError("target operand should be an MemoryReference")
+        if not isinstance(right, MemoryReference):
+            raise TypeError("right operand should be an MemoryReference")
+        self.target = target
+        self.left = left
+        self.right = right
+
+    def out(self):
+        return "%s %s %s %s" % (self.op, self.target, self.left, self.right)
+
+
+class ClassicalStore(AbstractInstruction):
+    """
+    The STORE instruction.
+    """
+
+    op = "STORE"
+
+    def __init__(self, target, left, right):
+        if not isinstance(left, MemoryReference):
+            raise TypeError("left operand should be an MemoryReference")
+        if not isinstance(right, MemoryReference):
+            raise TypeError("right operand should be an MemoryReference")
+        self.target = target
+        self.left = left
+        self.right = right
+
+    def out(self):
+        return "%s %s %s %s" % (self.op, self.target, self.left, self.right)
+
+
+class ClassicalComparison(AbstractInstruction):
+    """
+    Abstract class for ternary comparison instructions.
+    """
+
+    def __init__(self, target, left, right):
+        if not isinstance(target, MemoryReference):
+            raise TypeError("target operand should be an MemoryReference")
+        if not isinstance(left, MemoryReference):
+            raise TypeError("left operand should be an MemoryReference")
+        self.target = target
+        self.left = left
+        self.right = right
+
+    def out(self):
+        return "%s %s %s %s" % (self.op, self.target, self.left, self.right)
+
+
+class ClassicalEqual(ClassicalComparison):
+    """
+    The EQ comparison instruction.
+    """
+
+    op = "EQ"
+
+
+class ClassicalLessThan(ClassicalComparison):
+    """
+    The LT comparison instruction.
+    """
+
+    op = "LT"
+
+
+class ClassicalLessEqual(ClassicalComparison):
+    """
+    The LE comparison instruction.
+    """
+
+    op = "LE"
+
+
+class ClassicalGreaterThan(ClassicalComparison):
+    """
+    The GT comparison instruction.
+    """
+
+    op = "GT"
+
+
+class ClassicalGreaterEqual(ClassicalComparison):
+    """
+    The GE comparison instruction.
+    """
+
+    op = "GE"
 
 
 class Jump(AbstractInstruction):
@@ -450,6 +731,48 @@ class Pragma(AbstractInstruction):
 
     def __repr__(self):
         return '<PRAGMA {}>'.format(self.command)
+
+
+class Declare(AbstractInstruction):
+    """
+    A DECLARE directive.
+
+    This is printed in Quil as::
+
+        DECLARE <name> <memory-type> (SHARING <other-name> (OFFSET <amount> <type>)* )?
+
+    """
+
+    def __init__(self, name, memory_type, memory_size=1, shared_region=None, offsets=None):
+        self.name = name
+        self.memory_type = memory_type
+        self.memory_size = memory_size
+        self.shared_region = shared_region
+
+        if offsets is None:
+            offsets = []
+        self.offsets = offsets
+
+    def asdict(self):
+        return {
+            'name': self.name,
+            'memory_type': self.memory_type,
+            'memory_size': self.memory_size,
+            'shared_region': self.shared_region,
+            'offsets': self.offsets,
+        }
+
+    def out(self):
+        ret = "DECLARE {} {}[{}]".format(self.name, self.memory_type, self.memory_size)
+        if self.shared_region:
+            ret += " SHARING {}".format(self.shared_region)
+            for offset in self.offsets:
+                ret += " OFFSET {} {}".format(offset[0], offset[1])
+
+        return ret
+
+    def __repr__(self):
+        return '<DECLARE {}>'.format(self.name)
 
 
 class RawInstr(AbstractInstruction):

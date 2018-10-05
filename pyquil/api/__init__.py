@@ -18,19 +18,23 @@ Module for facilitating connections to the QVM / QPU.
 """
 import warnings
 
-__all__ = ['QVMConnection', 'QPUConnection', 'CompilerConnection', 'Job', 'get_devices', 'errors',
-           'Device', 'ForestConnection', 'WavefunctionSimulator', 'QAM', 'QVM', 'QPU',
-           'QuantumComputer']
+__all__ = ['QVMConnection', 'LocalQVMCompiler', 'QVMCompiler', 'QPUCompiler',
+           'Job', 'get_devices', 'Device', 'ForestConnection', 'pyquil_protect',
+           'WavefunctionSimulator', 'QuantumComputer', 'list_quantum_computers', 'get_qc',
+           'QAM', 'QVM', 'QPU',
+           'BenchmarkConnection', 'LocalBenchmarkConnection', 'get_benchmarker']
 
-from pyquil.api.job import Job
-from pyquil.api.compiler import CompilerConnection
-from pyquil.api.qvm import QVMConnection, QVM
-from pyquil.api.qpu import QPUConnection, get_devices, QPU
-from pyquil.device import Device
-from pyquil.api.wavefunction_simulator import WavefunctionSimulator
 from pyquil.api._base_connection import ForestConnection
-from pyquil.api.quantum_computer import QuantumComputer, list_quantum_computers, get_qc
+from pyquil.api._benchmark import BenchmarkConnection, LocalBenchmarkConnection, get_benchmarker
+from pyquil.api._compiler import QVMCompiler, QPUCompiler, LocalQVMCompiler
+from pyquil.api._error_reporting import pyquil_protect
+from pyquil.api._job import Job
 from pyquil.api._qam import QAM
+from pyquil.api._qpu import get_devices, QPU
+from pyquil.api._quantum_computer import QuantumComputer, list_quantum_computers, get_qc
+from pyquil.api._qvm import QVMConnection, QVM
+from pyquil.api._wavefunction_simulator import WavefunctionSimulator
+from pyquil.device import Device
 
 
 class SyncConnection(QVMConnection):
