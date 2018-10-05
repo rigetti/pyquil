@@ -14,6 +14,7 @@
 #    limitations under the License.
 ##############################################################################
 from warnings import warn
+from typing import Callable, Dict
 from pyquil.quilatom import unpack_qubit, unpack_classical_reg, MemoryReference, Addr, Qubit
 from pyquil.quilbase import (Measurement, Gate, Wait, Reset, Halt, Nop,
                              ClassicalNeg, ClassicalNot,
@@ -773,29 +774,29 @@ def GE(classical_reg1, classical_reg2, classical_reg3):
     return ClassicalGreaterEqual(classical_reg1, classical_reg2, classical_reg3)
 
 
-QUANTUM_GATES = {'I': I,
-                 'X': X,
-                 'Y': Y,
-                 'Z': Z,
-                 'H': H,
-                 'S': S,
-                 'T': T,
-                 'PHASE': PHASE,
-                 'RX': RX,
-                 'RY': RY,
-                 'RZ': RZ,
-                 'CZ': CZ,
-                 'CNOT': CNOT,
-                 'CCNOT': CCNOT,
-                 'CPHASE00': CPHASE00,
-                 'CPHASE01': CPHASE01,
-                 'CPHASE10': CPHASE10,
-                 'CPHASE': CPHASE,
-                 'SWAP': SWAP,
-                 'CSWAP': CSWAP,
-                 'ISWAP': ISWAP,
-                 'PSWAP': PSWAP
-                 }
+QUANTUM_GATES: Dict[str, Callable[..., Gate]] = {'I': I,
+                                                 'X': X,
+                                                 'Y': Y,
+                                                 'Z': Z,
+                                                 'H': H,
+                                                 'S': S,
+                                                 'T': T,
+                                                 'PHASE': PHASE,
+                                                 'RX': RX,
+                                                 'RY': RY,
+                                                 'RZ': RZ,
+                                                 'CZ': CZ,
+                                                 'CNOT': CNOT,
+                                                 'CCNOT': CCNOT,
+                                                 'CPHASE00': CPHASE00,
+                                                 'CPHASE01': CPHASE01,
+                                                 'CPHASE10': CPHASE10,
+                                                 'CPHASE': CPHASE,
+                                                 'SWAP': SWAP,
+                                                 'CSWAP': CSWAP,
+                                                 'ISWAP': ISWAP,
+                                                 'PSWAP': PSWAP
+                                                 }
 """
 Dictionary of quantum gates. Keys are gate names, values are gate functions.
 """
