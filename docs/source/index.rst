@@ -5,58 +5,58 @@
 
 .. role:: red
 
-Welcome to the Docs for Forest and pyQuil!
-==========================================
+Welcome to the Docs for the Forest SDK!
+=======================================
+
+The Rigetti Forest `Software Development Kit <http://rigetti.com/forest>`_ includes pyQuil, the Rigetti Quil Compiler
+(quilc), and the Quantum Virtual Machine (qvm).
+
+**Longtime users of Rigetti Forest will notice a few changes.** First, the SDK now contains a downloadable compiler and a
+QVM. Second, the SDK contains pyQuil 2.0, with significant updates to previous versions. As a result, programs written
+using previous versions of the Forest toolkit will need to be updated to pyQuil 2.0 to be compatible with the QVM or compiler.
+
+After installing the SDK and updating pyQuil in :ref:`start`, see :ref:`quickstart` to get caught up on what's new!
+
+Quantum Cloud Services will provide users with a dedicated Quantum Machine Image, which will come prepackaged with the
+Forest SDK. We’re releasing a Preview to the Forest SDK now, so current users can begin migrating code (and share feedback
+with us early and often!). Longtime Forest users should start with the Migration Guide which outlines key changes in this
+SDK Preview release.
+
+If you’re new to Forest, we hope this documentation will provide everything you need to get up and running with the toolkit.
+Once you’ve oriented yourself here, proceed to the section :ref:`start` to get started. If you're new to quantum computing,
+you also go to our section on :ref:`intro`. There, you’ll learn the basic concepts needed to write quantum software. You
+can also work through an introduction to quantum computing in a jupyter notebook; launch the notebook from the source folder
+in pyquil's docs:
+
+.. code::
+
+    cd pyquil/docs/source
+    jupyter notebook intro_to_qc.ipynb
 
 
-PLEASE READ: A NOTE FROM RIGETTI COMPUTING
-==========================================
+**A few terms to orient you as you get started with Forest:**
+
+- pyQuil is an open source Python library developed at Rigetti Computing that allows you to write programs for quantum computers.
+  The source is hosted on `github <http://github.com/rigetticomputing/pyquil>`_.
+- Quil, the Quantum Instruction Language, is the lower-level code that pyQuil gets compiled into. A full description of
+  Quil can be found in our whitepaper, `A Practical Quantum Instruction Set Architecture <https://arxiv.org/abs/1608.03355>`_.
+- quilc is the Rigetti Quil Compiler that compiles pyQuil into Quil. The SDK includes quilc, which will enable you to
+  compile your pyQuil programs into executable Quil code.
+- The QVM is a simulator of our quantum computers. When you download the SDK, you’ll install the QVM and you will execute
+  Quil programs against it.
+- Forest is our software development kit, optimized for near-term quantum computers that operate as coprocessors, working in
+  concert with traditional processors to run hybrid quantum-classical algorithms. For references on problems addressable
+  with near-term quantum computers, see `Quantum Computing in the NISQ era and beyond <https://arxiv.org/abs/1801.00862>`_.
+
+Our flagship product `Quantum Cloud Services <http://rigetti.com/qcs>`_ offers users an on-premise, dedicated access
+point to our quantum computers, and to a powerful 34-qubit Quantum Virtual Machine. This access point is a fully-configured
+OS, which we call a Quantum Machine Image. A QMI is bundled with the same downloadable SDK mentioned above, and an admin
+command line interface (CLI), which is used for scheduling compute time on our quantum computers. To sign up for our
+waitlist, please click the link above. If need access to our quantum computers for research, please email support@rigetti.com.
+
 .. note::
-      Our forthcoming flagship product, `Quantum Cloud Services <http://rigetti.com/qcs>`_, is an overhaul of pyQuil,
-      Quil, compilation, access, and execution. Due to the significance of the changes, programs written in pyQuil v1.9
-      will need refactoring before they will run on the new QVM, Quil Compiler or QPU. Our 1.3-based QPUs are now
-      offline; the QPUs that replace them will only be compatible with pyQuil v2.0 and beyond. For now, you will still
-      be able to run programs against our cloud-based QVM, but we encourage that you transition to our SDK, which
-      includes a downloadable QVM and QUILC (thus eliminating the need for you to send jobs to a cloud queue just to run
-      programs). To download our new SDK Preview, see the :ref:`sdk`. Current users: please refer to the :ref:`quickstart`
-      after downloading to get caught up on changes.
 
-
-Overview
---------
-
-pyQuil is part of the Rigetti Forest `Software Development Kit <http://rigetti.com/forest>`_.
-
-pyQuil is an open source Python library developed at `Rigetti Computing <http://rigetti.com>`_ that constructs programs
-for quantum computers. The source is hosted on `GitHub <https://github.com/rigetticomputing/pyquil>`_. pyQuil produces
-programs in the **Quantum Instruction Language** (Quil). For a full description of Quil, please refer to the whitepaper
-*A Practical Quantum Instruction Set Architecture*. [1]_  Quil is an opinionated quantum instruction language --- its
-basic belief is that in the near term quantum computers will operate as coprocessors, working in concert with traditional
-CPUs. This means that Quil is designed to execute on a Quantum Abstract Machine that has a shared classical/quantum
-architecture at its core.
-
-Quil programs can be executed on a downloadable **Quantum Virtual Machine** (QVM). This is a classical simulation of a
-quantum processor that can simulate various qubit operations. The Forest SDK comes with a QVM that you can run on your
-local machine. More information about the QVM can be found in the :ref:`qvm`.
-
-Our flagship product, `Quantum Cloud Services <http://rigetti.com/qcs>`_ offers users an on-premise, dedicated access
-point to our quantum computers, and to a powerful 34-qubit Quantum Virtual Machine. This access point sits in a Virtual
-Machine, which we call a Quantum Machine Image. A QMI is bundled with the same downloadable SDK mentioned above, and a
-Command Line Interface (CLI), which is used for scheduling compute time on our quantum computers. To sign up for our
-waitlist, please click the link above. If need access to our quantum computers for research, please email
-support@rigetti.com.
-
-If you are already familiar with quantum computing, then feel free to proceed to :ref:`start`. If you're just getting
-started, try out our Introduction to Quantum Programming juypter notebook, and take a look at our :ref:`intro`, where we
-use Quil, and introduce the basics of quantum computing and the Quantum Abstract Machine on which it runs. You can run
-this notebook by going into your pyQuil directory and finding the source folder in docs. Then run
-
-.. code::`jupyter notebook intro_to_qc.ipynb`.
-
-
-Try it out!
-
-.. [1] https://arxiv.org/abs/1608.03355
+    To join our user community, connect to the Rigetti Slack workspace at https://rigetti-forest.slack.com.
 
 Contents
 --------
@@ -64,8 +64,6 @@ Contents
 .. toctree::
    :maxdepth: 3
 
-   SDK_Download_Instructions
-   2.0_quickstart_and_migration
    start
    basics
    advanced_usage
@@ -85,3 +83,4 @@ Indices and Tables
 * :ref:`genindex`
 * :ref:`modindex`
 * :ref:`search`
+
