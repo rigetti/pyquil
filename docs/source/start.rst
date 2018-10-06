@@ -511,7 +511,7 @@ By way of example, let's consider the following pyQuil 1.9 program,
 which computes the natural bond distance in molecular hydrogen using a
 VQE-type algorithm:
 
-::
+.. code:: python
 
     from pyquil.api import QVMConnection
     from pyquil.quil import Program
@@ -597,7 +597,7 @@ VQE-type algorithm:
 In order to port this code to pyQuil 2.0, we need change only one thing: the part referencing ``QVMConnection`` should be replaced by an equivalent part referencing a ``QuantumComputer`` connected to a ``QVM``. Specifically, the following
 snippet
 
-::
+.. code:: python
 
     from pyquil.api import QVMConnection
 
@@ -607,7 +607,7 @@ snippet
 
 can be changed to
 
-::
+.. code:: python
 
     from pyquil.api import get_qc
 
@@ -625,7 +625,7 @@ function ``build_wf_ansatz_prep``, with the intention of letting the QPU fill it
 program itself to have a ``REAL`` memory parameter named ``theta``. We also declare a few ``BIT``\ s for our ``MEASURE``
 instructions to target.
 
-::
+.. code:: python
 
     def build_wf_ansatz_prep():
         program = Program("""
@@ -670,7 +670,7 @@ between us and the quantum device.
 
 More specifically, the old execution loop
 
-::
+.. code:: python
 
     # get all the unweighted expectations for all the sample wavefunctions
     occupations = list(range(angle_min, angle_max))
@@ -688,7 +688,7 @@ More specifically, the old execution loop
 
 becomes
 
-::
+.. code:: python
 
     # set up the Program object, ONLY ONCE
     program = build_wf_ansatz_prep()
@@ -714,7 +714,7 @@ becomes
 
 Overall, the resulting program looks like this:
 
-::
+.. code:: python
 
     from pyquil.api import get_qc
     from pyquil.quil import Program
@@ -853,7 +853,7 @@ nonsense code block
 
 causes the following error to be printed:
 
-::
+:: code:: python
 
     >>> PYQUIL_PROTECT <<<
     An uncaught exception was raised in a function wrapped in pyquil_protect.  We are writing out a
