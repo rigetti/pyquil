@@ -513,13 +513,14 @@ VQE-type algorithm:
 
 ::
 
-
-    from pyquil.quil import Program
     from pyquil.api import QVMConnection
+    from pyquil.quil import Program
+
 
     def setup_forest_objects():
-        qvm = QVMConnection(sync_endpoint="http://localhost:5000")
+        qvm = QVMConnection()
         return qvm
+
 
     def build_wf_ansatz_prep(theta):
         program = Program(f"""
@@ -553,44 +554,44 @@ VQE-type algorithm:
     MEASURE 3 [3]""")
         return program
 
-    def get_convolution_coefficients(bond_length):
-        return [0.1698845197777728, 0.16988451977777283, -0.2188630663199042, -0.2188630663199042]
-
 
     # some constants
     bond_step, bond_min, bond_max = 0.05, 0, 200
     angle_step, angle_min, angle_max = 0.1, 0, 63
+    convolution_coefficients = [0.1698845197777728, 0.16988451977777283, -0.2188630663199042,
+                                -0.2188630663199042]
     shots = 1000
 
-
+    # set up the Forest object
     qvm = setup_forest_objects()
 
-
-    # get all the unweighted expectations for all the sample wavefunctions.
-    #
-    # in a more elaborate example, you'd want to interleave this with the loop below
-    # and intelligently query the QPU for wavefunctions along some path of descent.
+    # get all the unweighted expectations for all the sample wavefunctions
     occupations = list(range(angle_min, angle_max))
-    for offset in range(len(occupations)):
-        program = build_wf_ansatz_prep(angle_min + offset*angle_step)
-        bitstrings = qvm.run(program, [0,1,2,3])
-        totals = [0,0,0,0]
-        for array in bitstrings:
-            totals[0] += array[0]
-            totals[1] += array[1]
-            totals[2] += array[2]
-            totals[3] += array[3]
-        occupations[offset] = [t/shots for t in totals]
+    indices = list(range(4))
+    for offset in occupations:
+        # set up the Program object, each time we have a new parameter
+        program = build_wf_ansatz_prep(angle_min + offset * angle_step)
+        bitstrings = qvm.run(program, indices, trials=shots)
 
+        totals = [0, 0, 0, 0]
+        for bitstring in bitstrings:
+            for index in indices:
+                totals[index] += bitstring[index]
+        occupations[offset] = [t / shots for t in totals]
+
+    # compute minimum energy as a function of bond length
     min_energies = list(range(bond_min, bond_max))
-    for bond_length in range(len(min_energies)):
-        coeffs = get_convolution_coefficients(bond_min + bond_length*bond_step)
-        min_energies[bond_length] = min([sum([occupations[offset][j] * coeffs[j]
-                                              for j in range(0, 4)])
-                                         for offset in range(angle_min, angle_max)])
+    for bond_length in min_energies:
+        energies = []
+        for offset in range(angle_min, angle_max):
+            energy = 0
+            for j in range(4):
+                energy += occupations[offset][j] * convolution_coefficients[j]
+            energies.append(energy)
 
-    min_index = min(range(len(min_energies)), key=lambda x: min_energies[x])
+        min_energies[bond_length] = min(energies)
 
+    min_index = min_energies.index(min(min_energies))
     min_energy, relaxed_length = min_energies[min_index], min_index * bond_step
 
 In order to port this code to pyQuil 2.0, we need change only one thing: the part referencing ``QVMConnection`` should be replaced by an equivalent part referencing a ``QuantumComputer`` connected to a ``QVM``. Specifically, the following
@@ -598,8 +599,10 @@ snippet
 
 ::
 
+    from pyquil.api import QVMConnection
+
     def setup_forest_objects():
-        qvm = QVMConnection(sync_endpoint="http://localhost:5000")
+        qvm = QVMConnection()
         return qvm
 
 can be changed to
@@ -626,6 +629,7 @@ instructions to target.
 
     def build_wf_ansatz_prep():
         program = Program("""
+    # set up memory
     DECLARE ro BIT[4]
     DECLARE theta REAL
 
@@ -668,60 +672,58 @@ More specifically, the old execution loop
 
 ::
 
-    # get all the unweighted expectations for all the sample wavefunctions.
-    #
-    # in a more elaborate example, you'd want to interleave this with the loop below
-    # and intelligently query the QPU for wavefunctions along some path of descent.
+    # get all the unweighted expectations for all the sample wavefunctions
     occupations = list(range(angle_min, angle_max))
-    for offset in range(len(occupations)):
+    indices = list(range(4))
+    for offset in occupations:
+        # set up the Program object, each time we have a new parameter
         program = build_wf_ansatz_prep(angle_min + offset * angle_step)
-        bitstrings = qvm.run(program, [0,1,2,3])
-        totals = [0,0,0,0]
-        for array in bitstrings:
-            totals[0] += array[0]
-            totals[1] += array[1]
-            totals[2] += array[2]
-            totals[3] += array[3]
-        occupations[offset] = [t/shots for t in totals]
+        bitstrings = qvm.run(program, indices, trials=shots)
+
+        totals = [0, 0, 0, 0]
+        for bitstring in bitstrings:
+            for index in indices:
+                totals[index] += bitstring[index]
+        occupations[offset] = [t / shots for t in totals]
 
 becomes
 
 ::
 
+    # set up the Program object, ONLY ONCE
     program = build_wf_ansatz_prep()
-
     program.wrap_in_numshots_loop(shots=shots)
     nq_program = qc.compiler.quil_to_native_quil(program)
     binary = qc.compiler.native_quil_to_executable(nq_program)
     qc.qam.load(binary)
 
-    # get all the unweighted expectations for all the sample wavefunctions.
-    #
-    # in a more elaborate example, you'd want to interleave this with the loop below
-    # and intelligently query the QPU for wavefunctions along some path of descent.
+    # get all the unweighted expectations for all the sample wavefunctions
     occupations = list(range(angle_min, angle_max))
-    for offset in range(len(occupations)):
+    indices = list(range(4))
+    for offset in occupations:
         qc.qam.write_memory(region_name='theta', value=angle_min + offset * angle_step)
         qc.qam.run()
         qc.qam.wait()
-        totals = [0,0,0,0]
-        for array in qc.qam.read_from_memory_region(region_name="ro", offsets=True):
-            totals[0] += array[0]
-            totals[1] += array[1]
-            totals[2] += array[2]
-            totals[3] += array[3]
-        occupations[offset] = [t/shots for t in totals]
+        bitstrings = qc.qam.read_from_memory_region(region_name="ro", offsets=True)
+
+        totals = [0, 0, 0, 0]
+        for bitstring in bitstrings:
+            for index in indices:
+                totals[index] += bitstring[index]
+        occupations[offset] = [t / shots for t in totals]
 
 Overall, the resulting program looks like this:
 
 ::
 
-    from pyquil.quil import Program
     from pyquil.api import get_qc
+    from pyquil.quil import Program
+
 
     def setup_forest_objects():
         qc = get_qc("9q-generic-qvm")
         return qc
+
 
     def build_wf_ansatz_prep():
         program = Program("""
@@ -759,55 +761,58 @@ Overall, the resulting program looks like this:
     MEASURE 3 ro[3]""")
         return program
 
-    def get_convolution_coefficients(bond_length):
-        return [0.1698845197777728, 0.16988451977777283, -0.2188630663199042, -0.2188630663199042]
-
 
     # some constants
     bond_step, bond_min, bond_max = 0.05, 0, 200
     angle_step, angle_min, angle_max = 0.1, 0, 63
+    convolution_coefficients = [0.1698845197777728, 0.16988451977777283, -0.2188630663199042,
+                                -0.2188630663199042]
     shots = 1000
 
     # set up the Forest object
     qc = setup_forest_objects()
 
-    # set up the Program object, once and for all
+    # set up the Program object, ONLY ONCE
     program = build_wf_ansatz_prep()
     program.wrap_in_numshots_loop(shots=shots)
     nq_program = qc.compiler.quil_to_native_quil(program)
     binary = qc.compiler.native_quil_to_executable(nq_program)
     qc.qam.load(binary)
 
-    # get all the unweighted expectations for all the sample wavefunctions.
-    #
-    # in a more elaborate example, you'd want to interleave this with the loop below
-    # and intelligently query the QPU for wavefunctions along some path of descent.
+    # get all the unweighted expectations for all the sample wavefunctions
     occupations = list(range(angle_min, angle_max))
-    for offset in range(len(occupations)):
+    indices = list(range(4))
+    for offset in occupations:
         qc.qam.write_memory(region_name='theta', value=angle_min + offset * angle_step)
         qc.qam.run()
         qc.qam.wait()
-        totals = [0,0,0,0]
-        for array in qc.qam.read_from_memory_region(region_name="ro", offsets=True):
-            totals[0] += array[0]
-            totals[1] += array[1]
-            totals[2] += array[2]
-            totals[3] += array[3]
-        occupations[offset] = [t/shots for t in totals]
+        bitstrings = qc.qam.read_from_memory_region(region_name="ro", offsets=True)
 
+        totals = [0, 0, 0, 0]
+        for bitstring in bitstrings:
+            for index in indices:
+                totals[index] += bitstring[index]
+        occupations[offset] = [t / shots for t in totals]
+
+    # compute minimum energy as a function of bond length
     min_energies = list(range(bond_min, bond_max))
-    for bond_length in range(len(min_energies)):
-        coeffs = get_convolution_coefficients(bond_min + bond_length*bond_step)
-        min_energies[bond_length] = min([sum([occupations[offset][j] * coeffs[j]
-                                              for j in range(0, 4)])
-                                         for offset in range(angle_min, angle_max)])
+    for bond_length in min_energies:
+        energies = []
+        for offset in range(angle_min, angle_max):
+            energy = 0
+            for j in range(4):
+                energy += occupations[offset][j] * convolution_coefficients[j]
+            energies.append(energy)
 
-    min_index = min(range(len(min_energies)), key=lambda x: min_energies[x])
+        min_energies[bond_length] = min(energies)
 
+    min_index = min_energies.index(min(min_energies))
     min_energy, relaxed_length = min_energies[min_index], min_index * bond_step
+
 
 Miscellanea
 -----------
+
 Quil promises that a BIT is 1 bit and that an OCTET is 8 bits. Quil does not promise, however, the size or layout of
 INTEGER or REAL. These are implementation-dependent.
 
@@ -818,6 +823,7 @@ a 48-bit wide little-endian fixed point number of type <0.48>. In general, these
 Memory regions are all "global": ``DECLARE`` directives cannot appear in the body of a ``DEFCIRCUIT``.
 
 On the QVM, INTEGER is a two's complement signed 64-bit integer. REAL is an IEEE-754 double-precision floating-point number.
+
 
 Error reporting
 ~~~~~~~~~~~~~~~
