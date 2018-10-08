@@ -71,21 +71,24 @@ def _collect_classical_memory_write_locations(program: Program) -> List[Union[No
         `ro` address `addr`. A value of `None` means nothing was measured into `ro` address
         `addr`.
     """
+    ro_size = None
     for instr in program:
         if isinstance(instr, Declare) and (instr.name == "ro" or instr.name == "ro_table"):
             ro_size = instr.memory_size
             break
-    else:
-        raise ValueError("No readout locations found.")
 
-    ro_sources = [None for i in range(ro_size)]
+    ro_sources = {}
 
     for instr in program:
         if isinstance(instr, Measurement) and instr.classical_reg:
             assert (instr.classical_reg.name == "ro" or instr.classical_reg.name == "ro_table")
             ro_sources[instr.classical_reg.offset] = instr.qubit.index
-
-    return ro_sources
+    if ro_size:
+        return [ro_sources.get(i) for i in range(ro_size)]
+    else:
+        if ro_sources:
+            raise ValueError("Found MEASURE instructions, but no 'ro' or 'ro_table' "
+                             "region was declared.")
 
 
 def _collect_memory_descriptors(program: Program) -> Dict[str, ParameterSpec]:
