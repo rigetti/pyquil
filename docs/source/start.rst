@@ -853,7 +853,7 @@ nonsense code block
 
 causes the following error to be printed:
 
-:: code:: python
+::
 
     >>> PYQUIL_PROTECT <<<
     An uncaught exception was raised in a function wrapped in pyquil_protect.  We are writing out a
