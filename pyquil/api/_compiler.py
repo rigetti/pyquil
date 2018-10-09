@@ -13,6 +13,8 @@
 #    See the License for the specific language governing permissions and
 #    limitations under the License.
 ##############################################################################
+import logging
+
 import warnings
 from typing import Dict, Any, List, Union
 
@@ -27,6 +29,9 @@ from pyquil.api._error_reporting import _record_call
 from pyquil.device import AbstractDevice
 from pyquil.parser import parse_program
 from pyquil.quil import Program, Measurement, Declare
+
+
+_log = logging.getLogger(__name__)
 
 PYQUIL_PROGRAM_PROPERTIES = ["native_quil_metadata", "num_shots"]
 
@@ -82,13 +87,18 @@ def _collect_classical_memory_write_locations(program: Program) -> List[Union[No
     for instr in program:
         if isinstance(instr, Measurement) and instr.classical_reg:
             assert (instr.classical_reg.name == "ro" or instr.classical_reg.name == "ro_table")
+            if instr.classical_reg.offset in ro_sources:
+                _log.warning(f"Overwriting the measured result in register {instr.classical_reg} "
+                             f"from qubit {ro_sources[instr.classical_reg.offset]} "
+                             f"to qubit {instr.qubit.index}")
             ro_sources[instr.classical_reg.offset] = instr.qubit.index
     if ro_size:
         return [ro_sources.get(i) for i in range(ro_size)]
+    elif ro_sources:
+        raise ValueError("Found MEASURE instructions, but no 'ro' or 'ro_table' "
+                         "region was declared.")
     else:
-        if ro_sources:
-            raise ValueError("Found MEASURE instructions, but no 'ro' or 'ro_table' "
-                             "region was declared.")
+        return []
 
 
 def _collect_memory_descriptors(program: Program) -> Dict[str, ParameterSpec]:
