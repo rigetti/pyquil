@@ -472,7 +472,7 @@ class NxDevice(AbstractDevice):
     graph which represents a chip topology.
     """
 
-    def __init__(self, topology: nx.Graph):
+    def __init__(self, topology: nx.Graph) -> None:
         self.topology = topology
 
     def qubit_topology(self):
@@ -488,4 +488,4 @@ class NxDevice(AbstractDevice):
         return sorted(self.topology.nodes)
 
     def edges(self) -> List[Tuple[int, int]]:
-        return sorted(tuple(sorted(pair)) for pair in self.topology.edges)
+        return sorted(tuple(sorted(pair)) for pair in self.topology.edges)  # type: ignore

@@ -60,7 +60,7 @@ def decode_buffer(buffer: dict) -> np.ndarray:
 
 class QPU(QAM):
     @_record_call
-    def __init__(self, endpoint: str, user: str = "pyquil-user"):
+    def __init__(self, endpoint: str, user: str = "pyquil-user") -> None:
         """
         A connection to the QPU.
 
@@ -70,7 +70,7 @@ class QPU(QAM):
         super().__init__()
         self.shim = Shim(endpoint)
         self.user = user
-        self._last_results = {}
+        self._last_results: Dict[str, np.ndarray] = {}
 
     @_record_call
     def run(self):

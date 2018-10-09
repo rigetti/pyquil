@@ -16,7 +16,7 @@
 
 import operator
 from numbers import Number
-from typing import Any, List, Iterator, Callable
+from typing import Any, List, Iterator, Callable, Union
 
 import numpy as np
 from antlr4 import InputStream, CommonTokenStream, ParseTreeWalker
@@ -218,6 +218,7 @@ class PyQuilListener(QuilListener):
     def exitLogicalBinaryOp(self, ctx):
         # type: (QuilParser.LogicalBinaryOpContext) -> None
         left = _addr(ctx.addr(0))
+        right: Union[int, MemoryReference]
         if ctx.INT():
             right = int(ctx.INT().getText())
         else:
@@ -367,7 +368,7 @@ def _matrix(matrix):
 
 
 def _addr(classical):
-    # type: (QuilParser.AddrContext) -> Addr
+    # type: (QuilParser.AddrContext) -> MemoryReference
     if classical.IDENTIFIER() is not None:
         if classical.INT() is not None:
             return MemoryReference(str(classical.IDENTIFIER()), int(classical.INT().getText()))

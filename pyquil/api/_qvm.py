@@ -21,8 +21,9 @@ from six import integer_types
 from pyquil.api._base_connection import (validate_qubit_list, validate_noise_probabilities,
                                          TYPE_MULTISHOT_MEASURE, TYPE_WAVEFUNCTION,
                                          TYPE_EXPECTATION, post_json, ForestConnection)
-from pyquil.api._compiler import (LocalQVMCompiler, PyQuilExecutableResponse,
+from pyquil.api._compiler import (LocalQVMCompiler,
                                   _extract_program_from_pyquil_executable_response)
+from rpcq.core_messages import PyQuilExecutableResponse
 from pyquil.api._config import PyquilConfig
 from pyquil.api._error_reporting import _record_call
 from pyquil.api._qam import QAM
@@ -122,12 +123,12 @@ programs run on this QVM.
         :rtype: list
         """
         if classical_addresses is None:
-            classical_addresses = get_classical_addresses_from_program(quil_program)
+            caddresses = get_classical_addresses_from_program(quil_program)
 
         else:
-            classical_addresses = {'ro': classical_addresses}
+            caddresses = {'ro': classical_addresses}
 
-        buffers = self._connection._qvm_run(quil_program, classical_addresses, trials,
+        buffers = self._connection._qvm_run(quil_program, caddresses, trials,
                                             self.measurement_noise, self.gate_noise,
                                             self.random_seed)
 
@@ -348,7 +349,7 @@ class QVM(QAM):
                  gate_noise=None,
                  measurement_noise=None,
                  random_seed=None,
-                 **kwargs):
+                 **kwargs) -> None:
         """
         A virtual machine that classically emulates the execution of Quil programs.
 

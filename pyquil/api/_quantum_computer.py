@@ -68,7 +68,7 @@ def _get_flipped_protoquil_program(program: Program) -> Program:
 class QuantumComputer:
     @_record_call
     def __init__(self, *, name: str, qam: QAM, device: AbstractDevice, compiler: AbstractCompiler,
-                 symmetrize_readout: bool = False):
+                 symmetrize_readout: bool = False) -> None:
         """
         A quantum computer for running quantum programs.
 
@@ -220,7 +220,7 @@ def list_quantum_computers(connection: ForestConnection = None, qpus=True, qvms=
         # TODO: Use this to list devices?
         connection = ForestConnection()
 
-    qc_names = []
+    qc_names: List[str] = []
     if qpus:
         # TODO: add deployed QPUs from web endpoint
         pass

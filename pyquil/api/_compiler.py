@@ -16,7 +16,7 @@
 import logging
 
 import warnings
-from typing import Dict, Any, List, Union
+from typing import Dict, Any, List, Union, Optional
 
 from rpcq.core_messages import (BinaryExecutableRequest, BinaryExecutableResponse,
                                 NativeQuilRequest, TargetDevice,
@@ -82,7 +82,7 @@ def _collect_classical_memory_write_locations(program: Program) -> List[Union[No
             ro_size = instr.memory_size
             break
 
-    ro_sources = {}
+    ro_sources: Dict[int, int] = {}
 
     for instr in program:
         if isinstance(instr, Measurement) and instr.classical_reg:
@@ -117,7 +117,7 @@ def _collect_memory_descriptors(program: Program) -> Dict[str, ParameterSpec]:
 
 class QPUCompiler(AbstractCompiler):
     @_record_call
-    def __init__(self, endpoint: str, device: AbstractDevice):
+    def __init__(self, endpoint: str, device: AbstractDevice) -> None:
         """
         Client to communicate with the Compiler Server.
 
@@ -158,7 +158,7 @@ class QPUCompiler(AbstractCompiler):
 
 class QVMCompiler(AbstractCompiler):
     @_record_call
-    def __init__(self, endpoint: str, device: AbstractDevice):
+    def __init__(self, endpoint: str, device: AbstractDevice) -> None:
         """
         Client to communicate with the Compiler Server.
 
@@ -186,7 +186,7 @@ class QVMCompiler(AbstractCompiler):
 
 
 class LocalQVMCompiler(AbstractCompiler):
-    def __init__(self, endpoint: str, device: AbstractDevice):
+    def __init__(self, endpoint: str, device: AbstractDevice) -> None:
         """
         Client to communicate with a locally executing quilc instance.
 
