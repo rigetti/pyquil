@@ -1,4 +1,4 @@
-__version__ = "2.0.0b2.dev0"
+__version__ = "2.0.0b3"
 
 from pyquil.quil import Program
 from pyquil.api import list_quantum_computers, get_qc
