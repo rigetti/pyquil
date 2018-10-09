@@ -171,7 +171,7 @@ def prepare_register_list(register_dict: Dict[str, Union[bool, Sequence[int]]]):
             assert v    # If boolean v must be True
             continue
 
-        indices = list(int(x) for x in v)  # support ranges, numpy, ...
+        indices = [int(x) for x in v]  # support ranges, numpy, ...
 
         if not all(x >= 0 for x in indices):
             raise TypeError("Negative indices into classical arrays are not allowed.")
