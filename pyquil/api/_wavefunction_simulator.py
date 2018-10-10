@@ -13,7 +13,7 @@
 #    See the License for the specific language governing permissions and
 #    limitations under the License.
 ##############################################################################
-from typing import List, Union
+from typing import List, Union, Optional
 
 import numpy as np
 from six import integer_types
@@ -28,7 +28,8 @@ from pyquil.wavefunction import Wavefunction
 
 class WavefunctionSimulator:
     @_record_call
-    def __init__(self, connection: ForestConnection = None, random_seed=None):
+    def __init__(self, connection: ForestConnection = None,
+                 random_seed: Optional[int] = None) -> None:
         """
         A simulator that propagates a wavefunction representation of a quantum state.
 

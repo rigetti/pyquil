@@ -843,7 +843,7 @@ def implicitly_declare_ro(instructions: List[AbstractInstruction]):
     This behavior is included for backwards compatibility and will be removed in future releases
     of PyQuil. Please DECLARE all memory including ``ro``.
     """
-    ro_addrs = []
+    ro_addrs: List[int] = []
     for instr in instructions:
         if isinstance(instr, Declare):
             # The user has declared their own memory
@@ -943,7 +943,7 @@ def get_classical_addresses_from_program(program) -> Dict[str, List[int]]:
     :param Program program: The program from which to get the classical addresses.
     :return: A mapping from memory region names to lists of offsets appearing in the program.
     """
-    addresses = defaultdict(list)
+    addresses: Dict[str, List[int]] = defaultdict(list)
     flattened_addresses = {}
 
     # Required to use the `classical_reg.address` int attribute.

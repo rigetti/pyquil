@@ -18,7 +18,7 @@ from __future__ import print_function
 import re
 import warnings
 from json.decoder import JSONDecodeError
-from typing import Dict, Union, List
+from typing import Dict, Union, Sequence
 
 import numpy as np
 import requests
@@ -149,7 +149,7 @@ def validate_qubit_list(qubit_list):
     return qubit_list
 
 
-def prepare_register_list(register_dict: Dict[str, Union[bool, List[int]]]):
+def prepare_register_list(register_dict: Dict[str, Union[bool, Sequence[int]]]):
     """
     Canonicalize classical addresses for the payload and ready MemoryReference instances
     for serialization.
@@ -167,14 +167,15 @@ def prepare_register_list(register_dict: Dict[str, Union[bool, List[int]]]):
         raise TypeError("register_dict must be a dict but got " + repr(register_dict))
 
     for k, v in register_dict.items():
-        if isinstance(v, bool) and v:
+        if isinstance(v, bool):
+            assert v    # If boolean v must be True
             continue
 
-        register_dict[k] = list(int(x) for x in v)  # support ranges, numpy, ...
+        indices = [int(x) for x in v]  # support ranges, numpy, ...
 
-        for x in register_dict[k]:
-            if x < 0:
-                raise TypeError("Negative indices into classical arrays are not allowed.")
+        if not all(x >= 0 for x in indices):
+            raise TypeError("Negative indices into classical arrays are not allowed.")
+        register_dict[k] = indices
 
     return register_dict
 

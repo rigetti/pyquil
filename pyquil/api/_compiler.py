@@ -13,8 +13,10 @@
 #    See the License for the specific language governing permissions and
 #    limitations under the License.
 ##############################################################################
+import logging
+
 import warnings
-from typing import Dict, Any, List, Union
+from typing import Dict, Any, List, Union, Optional
 
 from rpcq.core_messages import (BinaryExecutableRequest, BinaryExecutableResponse,
                                 NativeQuilRequest, TargetDevice,
@@ -27,6 +29,9 @@ from pyquil.api._error_reporting import _record_call
 from pyquil.device import AbstractDevice
 from pyquil.parser import parse_program
 from pyquil.quil import Program, Measurement, Declare
+
+
+_log = logging.getLogger(__name__)
 
 PYQUIL_PROGRAM_PROPERTIES = ["native_quil_metadata", "num_shots"]
 
@@ -71,21 +76,29 @@ def _collect_classical_memory_write_locations(program: Program) -> List[Union[No
         `ro` address `addr`. A value of `None` means nothing was measured into `ro` address
         `addr`.
     """
+    ro_size = None
     for instr in program:
         if isinstance(instr, Declare) and (instr.name == "ro" or instr.name == "ro_table"):
             ro_size = instr.memory_size
             break
-    else:
-        raise ValueError("No readout locations found.")
 
-    ro_sources = [None for i in range(ro_size)]
+    ro_sources: Dict[int, int] = {}
 
     for instr in program:
         if isinstance(instr, Measurement) and instr.classical_reg:
             assert (instr.classical_reg.name == "ro" or instr.classical_reg.name == "ro_table")
+            if instr.classical_reg.offset in ro_sources:
+                _log.warning(f"Overwriting the measured result in register {instr.classical_reg} "
+                             f"from qubit {ro_sources[instr.classical_reg.offset]} "
+                             f"to qubit {instr.qubit.index}")
             ro_sources[instr.classical_reg.offset] = instr.qubit.index
-
-    return ro_sources
+    if ro_size:
+        return [ro_sources.get(i) for i in range(ro_size)]
+    elif ro_sources:
+        raise ValueError("Found MEASURE instructions, but no 'ro' or 'ro_table' "
+                         "region was declared.")
+    else:
+        return []
 
 
 def _collect_memory_descriptors(program: Program) -> Dict[str, ParameterSpec]:
@@ -104,7 +117,7 @@ def _collect_memory_descriptors(program: Program) -> Dict[str, ParameterSpec]:
 
 class QPUCompiler(AbstractCompiler):
     @_record_call
-    def __init__(self, endpoint: str, device: AbstractDevice):
+    def __init__(self, endpoint: str, device: AbstractDevice) -> None:
         """
         Client to communicate with the Compiler Server.
 
@@ -145,7 +158,7 @@ class QPUCompiler(AbstractCompiler):
 
 class QVMCompiler(AbstractCompiler):
     @_record_call
-    def __init__(self, endpoint: str, device: AbstractDevice):
+    def __init__(self, endpoint: str, device: AbstractDevice) -> None:
         """
         Client to communicate with the Compiler Server.
 
@@ -173,7 +186,7 @@ class QVMCompiler(AbstractCompiler):
 
 
 class LocalQVMCompiler(AbstractCompiler):
-    def __init__(self, endpoint: str, device: AbstractDevice):
+    def __init__(self, endpoint: str, device: AbstractDevice) -> None:
         """
         Client to communicate with a locally executing quilc instance.
 

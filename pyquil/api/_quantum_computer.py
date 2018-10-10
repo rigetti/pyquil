@@ -23,7 +23,7 @@ from rpcq.core_messages import BinaryExecutableResponse
 
 from pyquil.api._compiler import QVMCompiler, QPUCompiler, LocalQVMCompiler
 from pyquil.api._config import PyquilConfig
-from pyquil.api._devices import get_device
+from pyquil.api._devices import get_device, get_lattice
 from pyquil.api._error_reporting import _record_call
 from pyquil.api._qac import AbstractCompiler
 from pyquil.api._qam import QAM
@@ -68,7 +68,7 @@ def _get_flipped_protoquil_program(program: Program) -> Program:
 class QuantumComputer:
     @_record_call
     def __init__(self, *, name: str, qam: QAM, device: AbstractDevice, compiler: AbstractCompiler,
-                 symmetrize_readout: bool = False):
+                 symmetrize_readout: bool = False) -> None:
         """
         A quantum computer for running quantum programs.
 
@@ -214,7 +214,7 @@ def list_quantum_computers(connection: ForestConnection = None, qpus=True, qvms=
         # TODO: Use this to list devices?
         connection = ForestConnection()
 
-    qc_names = []
+    qc_names: List[str] = []
     if qpus:
         # TODO: add deployed QPUs from web endpoint
         pass
@@ -453,7 +453,7 @@ def get_qc(name: str, *, as_qvm: bool = None, noisy: bool = None,
             raise ValueError("The device '9q-generic' is only available as a QVM")
         return _get_9q_generic_qvm(name=name, qvm_type=qvm_type, connection=connection, noisy=noisy)
 
-    device = get_device(name)
+    device = get_lattice(name)
     if not as_qvm:
         if noisy is not None and noisy:
             warnings.warn("You have specified `noisy=True`, but you're getting a QPU. This flag "
