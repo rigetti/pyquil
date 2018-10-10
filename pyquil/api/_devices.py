@@ -76,5 +76,5 @@ def _get_raw_lattice_data(lattice_name: str = None):
     session = get_session()
     config = PyquilConfig()
 
-    res = get_json(session, f"{config.forest_url}/plaquettes/{lattice_name}")
-    return res["plaquette"]
+    res = get_json(session, f"{config.forest_url}/lattices/{lattice_name}")
+    return res["lattice"]
