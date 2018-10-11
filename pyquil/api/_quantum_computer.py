@@ -207,7 +207,6 @@ class QuantumComputer:
             program.inst(MEASURE(q, ro[i]))
         program.wrap_in_numshots_loop(trials)
         executable = self.compile(program)
-        print(executable)
         bitstring_array = self.run(executable=executable)
         bitstring_dict = {}
         for i, q in enumerate(self.qubits()):
