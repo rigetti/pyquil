@@ -83,8 +83,7 @@ class QPU(QAM):
         only do measurements where there is a 1-to-1 mapping between qubits and classical
         addresses.
 
-        :return: A numpy array of classified (0/1) measurement results of
-            shape (trials, size of "ro")
+        :return: The QPU object itself.
         """
         super().run()
 
@@ -96,7 +95,10 @@ class QPU(QAM):
         results = self._get_buffers(job_id)
         ro_sources = self.binary.ro_sources
 
-        bitstrings = self._extract_bitstrings(ro_sources, results)
+        if results:
+            bitstrings = self._extract_bitstrings(ro_sources, results)
+        else:
+            bitstrings = None
 
         self.bitstrings = bitstrings
         self._last_results = results
