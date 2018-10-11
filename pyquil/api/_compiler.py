@@ -16,7 +16,8 @@
 import logging
 
 import warnings
-from typing import Dict, Any, List, Union, Optional
+from typing import Dict, Any, List, Union, Optional, Tuple
+from collections import Counter
 
 from rpcq.core_messages import (BinaryExecutableRequest, BinaryExecutableResponse,
                                 NativeQuilRequest, TargetDevice,
@@ -63,7 +64,7 @@ def _extract_program_from_pyquil_executable_response(response: PyQuilExecutableR
     return p
 
 
-def _collect_classical_memory_write_locations(program: Program) -> List[Union[None, int]]:
+def _collect_classical_memory_write_locations(program: Program) -> List[Optional[Tuple[int, int]]]:
     """Collect classical memory locations that are the destination of MEASURE instructions
 
     These locations are important for munging output buffers returned from the QPU
@@ -72,9 +73,9 @@ def _collect_classical_memory_write_locations(program: Program) -> List[Union[No
     This is secretly stored on BinaryExecutableResponse. We're careful to make sure
     these objects are json serializable.
 
-    :return: list whose value `q` at index `addr` records that qubit `q` was measured into
-        `ro` address `addr`. A value of `None` means nothing was measured into `ro` address
-        `addr`.
+    :return: list whose value `(q, m)` at index `addr` records that the `m`-th measurement of
+        qubit `q` was measured into `ro` address `addr`. A value of `None` means nothing was
+        measured into `ro` address `addr`.
     """
     ro_size = None
     for instr in program:
@@ -82,16 +83,22 @@ def _collect_classical_memory_write_locations(program: Program) -> List[Union[No
             ro_size = instr.memory_size
             break
 
+    measures_by_qubit = Counter()
     ro_sources: Dict[int, int] = {}
 
     for instr in program:
-        if isinstance(instr, Measurement) and instr.classical_reg:
-            assert (instr.classical_reg.name == "ro" or instr.classical_reg.name == "ro_table")
-            if instr.classical_reg.offset in ro_sources:
-                _log.warning(f"Overwriting the measured result in register {instr.classical_reg} "
-                             f"from qubit {ro_sources[instr.classical_reg.offset]} "
-                             f"to qubit {instr.qubit.index}")
-            ro_sources[instr.classical_reg.offset] = instr.qubit.index
+        if isinstance(instr, Measurement):
+            q = instr.qubit.index
+            if instr.classical_reg:
+                offset = instr.classical_reg.offset
+                assert (instr.classical_reg.name == "ro" or instr.classical_reg.name == "ro_table")
+                if offset in ro_sources:
+                    _log.warning(f"Overwriting the measured result in register "
+                                 f"{instr.classical_reg} from qubit {ro_sources[offset]} "
+                                 f"to qubit {q}")
+                # we track
+                ro_sources[offset] = (q, measures_by_qubit[q])
+            measures_by_qubit[q] += 1
     if ro_size:
         return [ro_sources.get(i) for i in range(ro_size)]
     elif ro_sources:

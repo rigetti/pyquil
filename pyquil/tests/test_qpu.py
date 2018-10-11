@@ -3,6 +3,7 @@ import numpy as np
 import pytest
 
 from pyquil import Program
+from pyquil.api._compiler import _collect_classical_memory_write_locations
 from pyquil.api._config import PyquilConfig
 from pyquil.api import QuantumComputer, QPU, QPUCompiler
 from pyquil.device import NxDevice
@@ -30,3 +31,54 @@ def test_qpu_run():
         assert np.mean(bitstrings) > 0.8
     else:
         pytest.skip("QPU or compiler-server not available; skipping QPU run test.")
+
+
+def test_readout_demux():
+    p = Program("""DECLARE ro BIT[6]
+RESET
+RX(pi/2) 0
+RX(pi/2) 1
+RX(pi/2) 2
+RX(pi/2) 3
+MEASURE 0 ro[0]
+MEASURE 1 ro[1]
+MEASURE 2
+RX(pi/2) 0
+RX(pi/2) 1
+RX(pi/2) 2
+RX(pi/2) 3
+MEASURE 0 ro[2]
+MEASURE 1 ro[3]
+MEASURE 2 ro[4]
+MEASURE 3 ro[5]
+""")
+    ro_sources = _collect_classical_memory_write_locations(p)
+
+    assert ro_sources == [
+        (0, 0),
+        (1, 0),
+        (0, 1),
+        (1, 1),
+        (2, 1),
+        (3, 0)
+    ]
+
+    num_shots = 1000
+    buffers = {
+        # 0 measured, stored twice
+        "q0": np.random.randint(0, 1, size=(num_shots, 2)),
+        # 1 measured, stored twice
+        "q1": np.random.randint(0, 1, size=(num_shots, 2)),
+        # 2 measured twice, stored once
+        "q2": np.random.randint(0, 1, size=(num_shots, 2)),
+        # 3 measured once
+        "q3": np.random.randint(0, 1, size=num_shots),
+    }
+
+    bitstrings = QPU._extract_bitstrings(ro_sources, buffers=buffers)
+    assert np.allclose(bitstrings[:, 0], buffers["q0"][:, 0])
+    assert np.allclose(bitstrings[:, 1], buffers["q1"][:, 0])
+    assert np.allclose(bitstrings[:, 2], buffers["q0"][:, 1])
+    assert np.allclose(bitstrings[:, 3], buffers["q1"][:, 1])
+    assert np.allclose(bitstrings[:, 4], buffers["q2"][:, 1])
+    assert np.allclose(bitstrings[:, 5], buffers["q3"])

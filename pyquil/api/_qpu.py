@@ -14,7 +14,7 @@
 #    limitations under the License.
 ##############################################################################
 import uuid
-from typing import Dict
+from typing import Dict, List, Optional, Tuple
 
 import numpy as np
 from rpcq.core_messages import QPURequest
@@ -94,11 +94,42 @@ class QPU(QAM):
 
         job_id = self.shim.call('execute_qpu_request', request=request, user=self.user)
         results = self._get_buffers(job_id)
+        ro_sources = self.binary.ro_sources
 
-        # reorder the results and zip them up
-        self.bitstrings = np.vstack([results[f"q{qubit}"] for qubit in self.binary.ro_sources]).T
+        bitstrings = self._extract_bitstrings(ro_sources, results)
+
+        self.bitstrings = bitstrings
         self._last_results = results
         return self
+
+    @staticmethod
+    def _extract_bitstrings(
+            ro_sources: List[Optional[Tuple[int, int]]],
+            buffers: Dict[str, np.ndarray]
+    ) -> np.ndarray:
+        """
+        De-mux qubit readout results and assemble them into the ro-bitstrings in the correct order.
+
+        :param ro_sources: Specification of the ro_sources, cf
+            :py:func:`pyquil.api._compiler._collect_classical_memory_write_locations`.
+            It is a list whose value `(q, m)` at index `addr` records that the `m`-th measurement of
+            qubit `q` was measured into `ro` address `addr`. A value of `None` means nothing was
+            measured into `ro` address `addr`.
+        :param buffers: A dictionary of readout results returned from the qpu.
+        :return: A numpy array of shape ``(num_shots, len(ro_sources))`` with the readout bits.
+        """
+        # hack to extract num_shots indirectly from the shape of the returned data
+        first, *rest = buffers.values()
+        num_shots = first.shape[0]
+        bitstrings = np.zeros((num_shots, len(ro_sources)))
+        for col_idx, src in enumerate(ro_sources):
+            if src:
+                qubit, meas_idx = src
+                buf = buffers[f"q{qubit}"]
+                if buf.ndim == 1:
+                    buf = buf.reshape((num_shots, 1))
+                bitstrings[:, col_idx] = buf[:, meas_idx]
+        return bitstrings
 
     def _get_buffers(self, job_id: str) -> Dict[str, np.ndarray]:
         """
