@@ -173,6 +173,7 @@ class Specs(_Specs):
     :ivar List[QubitSpecs] qubits_specs: The specs associated with individual qubits.
     :ivar List[EdgesSpecs] edges_specs: The specs associated with edges, or qubit-qubit pairs.
     """
+
     def f1QRBs(self):
         """
         Get a dictionary of single-qubit randomized benchmarking fidelities (normalized to unity)
@@ -376,6 +377,12 @@ def isa_to_graph(isa: ISA) -> nx.Graph:
 class AbstractDevice(ABC):
 
     @abstractmethod
+    def qubits(self):
+        """
+        A sorted list of qubits in the device topology.
+        """
+
+    @abstractmethod
     def qubit_topology(self) -> nx.Graph:
         """
         The connectivity of qubits in this device given as a NetworkX graph.
@@ -433,6 +440,9 @@ class Device(AbstractDevice):
         warnings.warn("Accessing the static ISA is deprecated. Use `get_isa`", DeprecationWarning)
         return self._isa
 
+    def qubits(self):
+        return sorted(q.id for q in self._isa.qubits if not q.dead)
+
     def qubit_topology(self) -> nx.Graph:
         """
         The connectivity of qubits in this device given as a NetworkX graph.
@@ -474,6 +484,9 @@ class NxDevice(AbstractDevice):
 
     def __init__(self, topology: nx.Graph) -> None:
         self.topology = topology
+
+    def qubits(self):
+        return sorted(self.topology.nodes)
 
     def qubit_topology(self):
         return self.topology
