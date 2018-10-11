@@ -66,13 +66,13 @@ MEASURE 3 ro[5]
     num_shots = 1000
     buffers = {
         # 0 measured, stored twice
-        "q0": np.random.randint(0, 1, size=(num_shots, 2)),
+        "q0": np.random.randint(0, 2, size=(num_shots, 2)),
         # 1 measured, stored twice
-        "q1": np.random.randint(0, 1, size=(num_shots, 2)),
+        "q1": np.random.randint(0, 2, size=(num_shots, 2)),
         # 2 measured twice, stored once
-        "q2": np.random.randint(0, 1, size=(num_shots, 2)),
+        "q2": np.random.randint(0, 2, size=(num_shots, 2)),
         # 3 measured once
-        "q3": np.random.randint(0, 1, size=num_shots),
+        "q3": np.random.randint(0, 2, size=num_shots),
     }
 
     bitstrings = QPU._extract_bitstrings(ro_sources, buffers=buffers)

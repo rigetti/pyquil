@@ -96,7 +96,8 @@ def _collect_classical_memory_write_locations(program: Program) -> List[Optional
                     _log.warning(f"Overwriting the measured result in register "
                                  f"{instr.classical_reg} from qubit {ro_sources[offset]} "
                                  f"to qubit {q}")
-                # we track
+                # we track how often each qubit is measured (per shot) and into which register it is
+                # measured in its n-th measurement.
                 ro_sources[offset] = (q, measures_by_qubit[q])
             measures_by_qubit[q] += 1
     if ro_size:
