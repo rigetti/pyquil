@@ -87,13 +87,13 @@ class QPU(QAM):
         """
         super().run()
 
-        request = QPURequest(program=self.binary.program,
+        request = QPURequest(program=self._executable.program,
                              patch_values=self._build_patch_values(),
                              id=str(uuid.uuid4()))
 
         job_id = self.shim.call('execute_qpu_request', request=request, user=self.user)
         results = self._get_buffers(job_id)
-        ro_sources = self.binary.ro_sources
+        ro_sources = self._executable.ro_sources
 
         if results:
             bitstrings = self._extract_bitstrings(ro_sources, results)
@@ -146,13 +146,13 @@ class QPU(QAM):
     def _build_patch_values(self) -> dict:
         patch_table = {}
 
-        for name, spec in self.binary.memory_descriptors.items():
+        for name, spec in self._executable.memory_descriptors.items():
             # NOTE: right now we fake reading out measurement values into classical memory
             if name == "ro":
                 continue
             patch_table[name] = [0] * spec.length
 
-        for k, v in self.variables_shim.items():
+        for k, v in self._variables_shim.items():
             # NOTE: right now we fake reading out measurement values into classical memory
             if k.name == "ro":
                 continue

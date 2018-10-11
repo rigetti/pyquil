@@ -101,28 +101,17 @@ class QuantumComputer:
         return self.device.get_isa(oneq_type=oneq_type, twoq_type=twoq_type)
 
     @_record_call
-    def run(self, executable: BinaryExecutableResponse, classical_addresses=None) -> np.ndarray:
+    def run(self, executable: BinaryExecutableResponse) -> np.ndarray:
         """
         Run a quil executable.
 
         :param executable: The program to run. You are responsible for compiling this first.
-        :param classical_addresses: The indices within regions of classical memory to report.
-            These don't necessarily correspond to qubit indices; rather they are the second
-            argument to any MEASURE instructions you've added to your program. If you don't
-            provide a specific collection, we will automatically report on all the locations
-            mentioned in your program.
-        :return: A numpy array of shape (trials, len(classical_addresses)) that contains 0s and 1s
+        :return: A numpy array of shape (trials, len(ro-register)) that contains 0s and 1s
         """
-        # shim old API to new `read_from_memory_region`
-        if classical_addresses is None:
-            offsets = True
-        else:
-            offsets = classical_addresses
-
         return self.qam.load(executable) \
             .run() \
             .wait() \
-            .read_from_memory_region(region_name="ro", offsets=offsets)
+            .read_from_memory_region(region_name="ro")
 
     @_record_call
     def run_symmetrized_readout(self, program, trials, classical_addresses):
