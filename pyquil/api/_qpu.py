@@ -100,7 +100,7 @@ class QPU(QAM):
         else:
             bitstrings = None
 
-        self.bitstrings = bitstrings
+        self._bitstrings = bitstrings
         self._last_results = results
         return self
 
