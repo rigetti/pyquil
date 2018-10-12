@@ -34,28 +34,29 @@ class QAM(ABC):
     and so the undignified job of this class is to collect enough state that it can convincingly
     pretend to be a QPI-compliant quantum computer.
     """
+
     @_record_call
     def __init__(self):
-        self.variables_shim = {}
-        self.n_shots = None
-        self.n_bits = None
-        self.binary = None
-        self.bitstrings = None
+        self._variables_shim = {}
+        self._n_shots = None
+        self._n_bits = None
+        self._executable = None
+        self._bitstrings = None
 
         self.status = 'connected'
 
     @_record_call
-    def load(self, binary):
+    def load(self, executable):
         """
         Initialize a QAM into a fresh state.
 
-        :param binary: Load a compiled executable onto the QAM.
+        :param executable: Load a compiled executable onto the QAM.
         """
         assert self.status in ['connected', 'done']
 
-        self.variables_shim = {}
-        self.binary = binary
-        self.bitstrings = None
+        self._variables_shim = {}
+        self._executable = executable
+        self._bitstrings = None
         self.status = 'loaded'
         return self
 
@@ -71,7 +72,7 @@ class QAM(ABC):
         assert self.status in ['loaded', 'done']
 
         aref = ParameterAref(name=region_name, index=offset)
-        self.variables_shim[aref] = value
+        self._variables_shim[aref] = value
 
         return self
 
@@ -94,22 +95,20 @@ class QAM(ABC):
         return self
 
     @_record_call
-    def read_from_memory_region(self, *, region_name: str, offsets=None):
+    def read_from_memory_region(self, *, region_name: str):
         """
-        Inspects a memory region named region_name on the QAM and extracts the values stored at
-        locations indicated by offsets.
+        Reads from a memory region named region_name on the QAM.
+
+        This is a shim over the eventual API and only can return memory from a region named
+        "ro" of type ``BIT``.
 
         :param region_name: The string naming the declared memory region.
-        :param offsets: Either a list of offset indices or the value True for the entire region.
         :return: A list of values of the appropriate type.
         """
         assert self.status == 'done'
         if region_name != "ro":
             raise QAMError("Currently only allowed to read measurement data from ro.")
-        if self.bitstrings is None:
+        if self._bitstrings is None:
             raise QAMError("Bitstrings have not yet been populated. Something has gone wrong.")
 
-        if isinstance(offsets, list):
-            raise ValueError("Reading out a subset of addresses is not currently supported.")
-        else:
-            return self.bitstrings
+        return self._bitstrings

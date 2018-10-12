@@ -402,10 +402,10 @@ To read more about supplying noise to the QVM, see http://pyquil.readthedocs.io/
 
         super().run()
 
-        if isinstance(self.binary, PyQuilExecutableResponse):
-            quil_program = _extract_program_from_pyquil_executable_response(self.binary)
-        elif isinstance(self.binary, Program):
-            quil_program = self.binary
+        if isinstance(self._executable, PyQuilExecutableResponse):
+            quil_program = _extract_program_from_pyquil_executable_response(self._executable)
+        elif isinstance(self._executable, Program):
+            quil_program = self._executable
         else:
             raise TypeError("quil_binary argument must be a PyQuilExecutableResponse or a Program."
                             "This error is typically triggered by forgetting to pass (nativized)"
@@ -431,7 +431,7 @@ To read more about supplying noise to the QVM, see http://pyquil.readthedocs.io/
     def augment_program_with_memory_values(self, quil_program):
         p = Program()
 
-        for k, v in self.variables_shim.items():
+        for k, v in self._variables_shim.items():
             p += MOVE(MemoryReference(name=k.name, offset=k.index), v)
 
         p += quil_program
