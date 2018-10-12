@@ -419,12 +419,12 @@ To read more about supplying noise to the QVM, see http://pyquil.readthedocs.io/
             quil_program = apply_noise_model(quil_program, self.noise_model)
 
         quil_program = self.augment_program_with_memory_values(quil_program)
-        self.bitstrings = self.connection._qvm_run(quil_program=quil_program,
-                                                   classical_addresses=classical_addresses,
-                                                   trials=trials,
-                                                   measurement_noise=self.measurement_noise,
-                                                   gate_noise=self.gate_noise,
-                                                   random_seed=self.random_seed)['ro']
+        self._bitstrings = self.connection._qvm_run(quil_program=quil_program,
+                                                    classical_addresses=classical_addresses,
+                                                    trials=trials,
+                                                    measurement_noise=self.measurement_noise,
+                                                    gate_noise=self.gate_noise,
+                                                    random_seed=self.random_seed)['ro']
 
         return self
 
