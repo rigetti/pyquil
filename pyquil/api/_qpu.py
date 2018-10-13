@@ -17,8 +17,8 @@ import uuid
 from typing import Dict, List, Optional, Tuple
 
 import numpy as np
-from rpcq.core_messages import QPURequest
-from rpcq.json_rpc import Shim
+from rpcq import Client
+from rpcq.messages import QPURequest
 
 from pyquil.api._qam import QAM
 from pyquil.api._error_reporting import _record_call
@@ -68,7 +68,7 @@ class QPU(QAM):
         :param user: A string identifying who's running jobs.
         """
         super().__init__()
-        self.shim = Shim(endpoint)
+        self.client = Client(endpoint)
         self.user = user
         self._last_results: Dict[str, np.ndarray] = {}
 
@@ -91,7 +91,7 @@ class QPU(QAM):
                              patch_values=self._build_patch_values(),
                              id=str(uuid.uuid4()))
 
-        job_id = self.shim.call('execute_qpu_request', request=request, user=self.user)
+        job_id = self.client.call('execute_qpu_request', request=request, user=self.user)
         results = self._get_buffers(job_id)
         ro_sources = self._executable.ro_sources
 
@@ -140,7 +140,7 @@ class QPU(QAM):
         :param job_id: Unique identifier for the job in question
         :return: Decoded buffers or throw an error
         """
-        buffers = self.shim.call('get_buffers', job_id, wait=True)
+        buffers = self.client.call('get_buffers', job_id, wait=True)
         return {k: decode_buffer(v) for k, v in buffers.items()}
 
     def _build_patch_values(self) -> dict:

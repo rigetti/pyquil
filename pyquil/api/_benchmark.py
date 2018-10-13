@@ -14,9 +14,9 @@
 #    limitations under the License.
 ##############################################################################
 import rpcq
-from rpcq.core_messages import (RandomizedBenchmarkingRequest, RandomizedBenchmarkingResponse,
-                                ConjugateByCliffordRequest, ConjugateByCliffordResponse)
-from rpcq.json_rpc import Shim
+from rpcq import Client
+from rpcq.messages import (RandomizedBenchmarkingRequest, RandomizedBenchmarkingResponse,
+                           ConjugateByCliffordRequest, ConjugateByCliffordResponse)
 
 from pyquil.api._base_connection import get_session, post_json
 from pyquil.api._config import PyquilConfig
@@ -39,7 +39,7 @@ class BenchmarkConnection(AbstractBenchmarker):
         :param endpoint: TCP or IPC endpoint of the Compiler Server
         """
 
-        self.shim = Shim(endpoint)
+        self.client = Client(endpoint)
 
     @_record_call
     def apply_clifford_to_pauli(self, clifford, pauli_in):
@@ -59,9 +59,9 @@ class BenchmarkConnection(AbstractBenchmarker):
 
         payload = ConjugateByCliffordRequest(
             clifford=clifford.out(),
-            pauli=rpcq.core_messages.PauliTerm(
+            pauli=rpcq.messages.PauliTerm(
                 indices=list(indices_and_terms[0]), symbols=list(indices_and_terms[1])))
-        response: ConjugateByCliffordResponse = self.shim.call(
+        response: ConjugateByCliffordResponse = self.client.call(
             'conjugate_pauli_by_clifford', payload)
         phase_factor, paulis = response.phase, response.pauli
 
@@ -106,7 +106,7 @@ class BenchmarkConnection(AbstractBenchmarker):
         depth = int(depth)  # needs to be jsonable, no np.int64 please!
 
         payload = RandomizedBenchmarkingRequest(depth=depth, qubits=qubits, gateset=gateset_for_api, seed=seed)
-        response = self.shim.call('generate_rb_sequence', payload)  # type: RandomizedBenchmarkingResponse
+        response = self.client.call('generate_rb_sequence', payload)  # type: RandomizedBenchmarkingResponse
 
         programs = []
         for clifford in response.sequence:

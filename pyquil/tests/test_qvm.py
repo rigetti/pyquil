@@ -1,7 +1,7 @@
 import networkx as nx
 import numpy as np
 
-from rpcq.core_messages import PyQuilExecutableResponse
+from rpcq.messages import PyQuilExecutableResponse
 
 from pyquil import Program
 from pyquil.api import QVM, ForestConnection, LocalQVMCompiler

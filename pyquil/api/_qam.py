@@ -15,7 +15,7 @@
 ##############################################################################
 from abc import ABC, abstractmethod
 
-from rpcq.core_messages import ParameterAref
+from rpcq.messages import ParameterAref
 
 from pyquil.api._error_reporting import _record_call
 
