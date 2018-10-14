@@ -16,6 +16,7 @@
 import warnings
 from typing import List
 
+from rpcq.messages import PyQuilExecutableResponse
 from six import integer_types
 
 from pyquil.api._base_connection import (validate_qubit_list, validate_noise_probabilities,
@@ -23,7 +24,6 @@ from pyquil.api._base_connection import (validate_qubit_list, validate_noise_pro
                                          TYPE_EXPECTATION, post_json, ForestConnection)
 from pyquil.api._compiler import (LocalQVMCompiler,
                                   _extract_program_from_pyquil_executable_response)
-from rpcq.core_messages import PyQuilExecutableResponse
 from pyquil.api._config import PyquilConfig
 from pyquil.api._error_reporting import _record_call
 from pyquil.api._qam import QAM

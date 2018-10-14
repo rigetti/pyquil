@@ -19,7 +19,7 @@ from typing import List
 
 import networkx as nx
 import numpy as np
-from rpcq.core_messages import BinaryExecutableResponse
+from rpcq.messages import BinaryExecutableResponse
 
 from pyquil.api._compiler import QVMCompiler, QPUCompiler, LocalQVMCompiler
 from pyquil.api._config import PyquilConfig

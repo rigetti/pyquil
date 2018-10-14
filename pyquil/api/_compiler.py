@@ -16,13 +16,13 @@
 import logging
 
 import warnings
-from typing import Dict, Any, List, Union, Optional, Tuple
+from typing import Dict, Any, List, Optional, Tuple
 from collections import Counter
 
-from rpcq.core_messages import (BinaryExecutableRequest, BinaryExecutableResponse,
-                                NativeQuilRequest, TargetDevice,
-                                PyQuilExecutableResponse, ParameterSpec)
-from rpcq.json_rpc import Shim
+from rpcq import Client
+from rpcq.messages import (BinaryExecutableRequest, BinaryExecutableResponse,
+                           NativeQuilRequest, TargetDevice,
+                           PyQuilExecutableResponse, ParameterSpec)
 
 from pyquil.api._base_connection import ForestConnection
 from pyquil.api._qac import AbstractCompiler
@@ -133,14 +133,14 @@ class QPUCompiler(AbstractCompiler):
         :param device: PyQuil Device object to use as compilation target
         """
 
-        self.shim = Shim(endpoint)
+        self.client = Client(endpoint)
         self.target_device = TargetDevice(isa=device.get_isa().to_dict(),
                                           specs=device.get_specs().to_dict())
 
     @_record_call
     def quil_to_native_quil(self, program: Program) -> Program:
         request = NativeQuilRequest(quil=program.out(), target_device=self.target_device)
-        response = self.shim.call('quil_to_native_quil', request).asdict()  # type: Dict
+        response = self.client.call('quil_to_native_quil', request).asdict()  # type: Dict
         nq_program = parse_program(response['quil'])
         nq_program.native_quil_metadata = response['metadata']
         nq_program.num_shots = program.num_shots
@@ -155,7 +155,7 @@ class QPUCompiler(AbstractCompiler):
                           "but be careful!")
 
         request = BinaryExecutableRequest(quil=nq_program.out(), num_shots=nq_program.num_shots)
-        response = self.shim.call('native_quil_to_binary', request)
+        response = self.client.call('native_quil_to_binary', request)
         # hack! we're storing a little extra info in the executable binary that we don't want to
         # expose to anyone outside of our own private lives: not the user, not the Forest server,
         # not anyone.
@@ -173,14 +173,14 @@ class QVMCompiler(AbstractCompiler):
         :param endpoint: TCP or IPC endpoint of the Compiler Server
         :param device: PyQuil Device object to use as compilation target
         """
-        self.shim = Shim(endpoint)
+        self.client = Client(endpoint)
         self.target_device = TargetDevice(isa=device.get_isa().to_dict(),
                                           specs=device.get_specs().to_dict())
 
     @_record_call
     def quil_to_native_quil(self, program: Program) -> Program:
         request = NativeQuilRequest(quil=program.out(), target_device=self.target_device)
-        response = self.shim.call('quil_to_native_quil', request).asdict()  # type: Dict
+        response = self.client.call('quil_to_native_quil', request).asdict()  # type: Dict
         nq_program = parse_program(response['quil'])
         nq_program.native_quil_metadata = response['metadata']
         nq_program.num_shots = program.num_shots
