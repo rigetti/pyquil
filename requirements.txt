@@ -5,6 +5,7 @@ requests
 contextvars
 six
 networkx
+dataclasses
 
 # rigetti packages
 rpcq == 1.0.0.dev0

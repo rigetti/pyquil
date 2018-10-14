@@ -83,6 +83,7 @@ setup(
         'contextvars',
         'six',
         'networkx',
+        'dataclasses',
         'rpcq==1.0.0.dev0'
     ],
     keywords='quantum quil programming hybrid',
