@@ -32,6 +32,23 @@ class ReferenceWavefunctionSimulator(AbstractQuantumSimulator):
         self.wf = np.zeros(2 ** n_qubits, dtype=np.complex128)
         self.wf[0] = complex(1.0, 0)
 
+    def sample_bitstrings(self, n_samples):
+        """
+        Sample bitstrings from the distribution defined by the wavefunction.
+
+        Qubit 0 is at ``out[:, 0]``.
+
+        :param n_samples: The number of bitstrings to sample
+        :return: An array of shape (n_samples, n_qubits)
+        """
+        # TODO: port to AbstractQuantumSimulator abstraction
+        probabilities = np.abs(self.wf)**2
+        possible_bitstrings = _all_bitstrings(self.n_qubits)
+        inds = self.rs.choice(2 ** self.n_qubits, n_samples, p=probabilities)
+        bitstrings = possible_bitstrings[inds, :]
+        bitstrings = np.flip(bitstrings, axis=1)  # qubit ordering: 0 on the left.
+        return bitstrings
+
     def do_gate(self, gate: Gate):
         """
         Perform a gate.
@@ -78,7 +95,26 @@ class ReferenceWavefunctionSimulator(AbstractQuantumSimulator):
         return self
 
     def do_post_gate_noise(self, noise_type: str, noise_prob: float):
-        raise NotImplementedError("Reference simulator can't do noise.")
+        kraus_ops = KRAUS_OPS[noise_type](p=noise_prob)
+        if np.isclose(noise_prob, 1.0):
+            warnings.warn(f"Skipping {noise_type} post-gate noise because noise_prob is close to 1")
+
+        # TODO: pick qubits
+        for qubit in range(self.n_qubits):
+            # Pick which kraus op to apply based on p_j = <psi|K_j^t K_j|psi>
+            r = self.rs.uniform()
+            summed_p = 0.0  # add probability until we exceed the random value r
+            for k_op in kraus_ops:
+                big_k_op = lifted_gate_matrix(matrix=k_op, qubit_inds=[qubit],
+                                              n_qubits=self.n_qubits)
+                potential_new_wf = big_k_op @ self.wf
+                summed_p += np.conj(potential_new_wf.T) @ potential_new_wf
+                if summed_p >= r:
+                    break
+
+            self.wf = potential_new_wf
+            self.wf /= np.conj(self.wf.T) @ self.wf
+        return self
 
 
 class ReferenceDensitySimulator(AbstractQuantumSimulator):
@@ -143,3 +179,4 @@ class ReferenceDensitySimulator(AbstractQuantumSimulator):
                                                      n_qubits=self.n_qubits)
                 new_density += lifted_kraus_op.dot(self.density).dot(np.conj(lifted_kraus_op.T))
             self.density = new_density
+        return self
