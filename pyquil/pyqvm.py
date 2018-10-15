@@ -32,6 +32,10 @@ from pyquil.quilbase import Gate, Measurement, ResetQubit, DefGate, JumpTarget, 
     ClassicalGreaterEqual, Jump, Pragma, Declare, RawInstr
 from pyquil.quilatom import Label, MemoryReference
 
+import logging
+
+log = logging.getLogger(__name__)
+
 QUIL_TO_NUMPY_DTYPE = {
     'INT': np.int_,
     'REAL': np.float_,
@@ -75,6 +79,7 @@ class AbstractQuantumSimulator(ABC):
         :return: ``self`` to support method chaining.
         """
 
+    @abstractmethod
     def do_post_gate_noise(self, noise_type: str, noise_prob: float) -> 'AbstractQuantumSimulator':
         """
         Apply noise that happens after each gate application
@@ -133,13 +138,21 @@ class PyQVM(QAM):
         ReferenceWavefunctionSimulator, ReferenceDensitySimulator, and NumpyWavefunctionSimulator
 
         :param quantum_simulator_type: A class that can be instantiated to handle the quantum
-            aspects of this QVM.
+            aspects of this QVM. If not specified, the default will be either
+            NumpyWavefunctionSimulator (no noise) or ReferenceDensitySimulator (noise)
+        :param post_gate_noise_probabilities: A specification of noise model given by
+            probabilities of certain types of noise. The dictionary keys are from "relaxation",
+            "dephasing", "depolarizing", "phase_flip", "bit_flip", and "bitphase_flip".
         :param seed: An optional random seed for performing stochastic aspects of the QVM.
         """
         if quantum_simulator_type is None:
-            # Watch out for circular imports
-            from pyquil.numpy_simulator import NumpyWavefunctionSimulator
-            quantum_simulator_type = NumpyWavefunctionSimulator
+            if post_gate_noise_probabilities is None:
+                from pyquil.numpy_simulator import NumpyWavefunctionSimulator
+                quantum_simulator_type = NumpyWavefunctionSimulator
+            else:
+                from pyquil.reference_simulator import ReferenceDensitySimulator
+                log.info("Using ReferenceDensitySimulator as the backend for PyQVM")
+                quantum_simulator_type = ReferenceDensitySimulator
 
         self.n_qubits = n_qubits
         self.ram = {}

@@ -11,6 +11,7 @@ from pyquil.api._quantum_computer import _get_flipped_protoquil_program, _parse_
 from pyquil.device import NxDevice, gates_in_isa
 from pyquil.gates import *
 from pyquil.noise import decoherence_noise_with_asymmetric_ro
+from pyquil.pyqvm import PyQVM
 
 
 class DummyCompiler(AbstractCompiler):
@@ -79,6 +80,52 @@ def test_run(forest):
     qc = QuantumComputer(
         name='testy!',
         qam=QVM(connection=forest, gate_noise=[0.01] * 3),
+        device=device,
+        compiler=DummyCompiler()
+    )
+    bitstrings = qc.run(
+        Program(
+            H(0),
+            CNOT(0, 1),
+            CNOT(1, 2),
+            MEASURE(0, 0),
+            MEASURE(1, 1),
+            MEASURE(2, 2)).wrap_in_numshots_loop(1000)
+    )
+
+    assert bitstrings.shape == (1000, 3)
+    parity = np.sum(bitstrings, axis=1) % 3
+    assert 0 < np.mean(parity) < 0.15
+
+
+def test_run_pyqvm_noiseless():
+    device = NxDevice(nx.complete_graph(3))
+    qc = QuantumComputer(
+        name='testy!',
+        qam=PyQVM(n_qubits=3),
+        device=device,
+        compiler=DummyCompiler()
+    )
+    bitstrings = qc.run(
+        Program(
+            H(0),
+            CNOT(0, 1),
+            CNOT(1, 2),
+            MEASURE(0, 0),
+            MEASURE(1, 1),
+            MEASURE(2, 2)).wrap_in_numshots_loop(1000)
+    )
+
+    assert bitstrings.shape == (1000, 3)
+    parity = np.sum(bitstrings, axis=1) % 3
+    assert np.mean(parity) == 0
+
+
+def test_run_pyqvm_noisy():
+    device = NxDevice(nx.complete_graph(3))
+    qc = QuantumComputer(
+        name='testy!',
+        qam=PyQVM(n_qubits=3, post_gate_noise_probabilities={'relaxation': 0.01}),
         device=device,
         compiler=DummyCompiler()
     )

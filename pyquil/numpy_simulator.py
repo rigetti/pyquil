@@ -22,7 +22,6 @@ from pyquil.gate_matrices import QUANTUM_GATES
 from pyquil.quilbase import Gate
 from pyquil.reference_simulator import AbstractQuantumSimulator
 
-
 # The following function is lovingly copied from the Cirq project
 # https://github.com/quantumlib/Cirq
 #
@@ -40,6 +39,7 @@ from pyquil.reference_simulator import AbstractQuantumSimulator
 # WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
 # See the License for the specific language governing permissions and
 # limitations under the License.
+from pyquil.unitary_tools import _all_bitstrings
 
 
 def targeted_einsum(gate: np.ndarray,
@@ -169,28 +169,6 @@ def _get_gate_tensor_and_qubits(gate: Gate):
     return tensor, qubit_inds
 
 
-def _all_bitstrings(n_bits):
-    """All bitstrings in lexicographical order as a 2d np.ndarray.
-
-    This should be the same as ``np.array(list(itertools.product([0,1], repeat=n_bits)))``
-    but faster.
-    """
-    n_bitstrings = 2 ** n_bits
-    out = np.zeros(shape=(n_bitstrings, n_bits), dtype=np.int8)
-
-    tf = np.array([False, True])
-    for i in range(n_bits):
-        # Lexicographical ordering gives a pattern of 1's
-        # where runs of 1s of length 2**j are tiled 2**i times
-
-        # i indexes from the *left*
-        # j indexes from the *right*
-        j = n_bits - i - 1
-
-        out[np.tile(np.repeat(tf, 2 ** j), 2 ** i), i] = 1
-    return out
-
-
 class NumpyWavefunctionSimulator(AbstractQuantumSimulator):
     def __init__(self, n_qubits, rs: RandomState):
         """
@@ -280,3 +258,6 @@ class NumpyWavefunctionSimulator(AbstractQuantumSimulator):
         """
         self.wf.fill(0)
         self.wf[(0,) * self.n_qubits] = complex(1.0, 0)
+
+    def do_post_gate_noise(self, noise_type: str, noise_prob: float):
+        raise NotImplementedError("The numpy simulator cannot handle noise")

@@ -22,6 +22,28 @@ from pyquil.paulis import PauliSum, PauliTerm
 from pyquil.quilbase import Gate
 
 
+def _all_bitstrings(n_bits):
+    """All bitstrings in lexicographical order as a 2d np.ndarray.
+
+    This should be the same as ``np.array(list(itertools.product([0,1], repeat=n_bits)))``
+    but faster.
+    """
+    n_bitstrings = 2 ** n_bits
+    out = np.zeros(shape=(n_bitstrings, n_bits), dtype=np.int8)
+
+    tf = np.array([False, True])
+    for i in range(n_bits):
+        # Lexicographical ordering gives a pattern of 1's
+        # where runs of 1s of length 2**j are tiled 2**i times
+
+        # i indexes from the *left*
+        # j indexes from the *right*
+        j = n_bits - i - 1
+
+        out[np.tile(np.repeat(tf, 2 ** j), 2 ** i), i] = 1
+    return out
+
+
 def qubit_adjacent_lifted_gate(i, matrix, n_qubits):
     """
     Lifts input k-qubit gate on adjacent qubits starting from qubit i
