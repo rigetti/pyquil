@@ -18,7 +18,7 @@ def test_qvm_run(forest: ForestConnection):
     qvm.load(nq)
     qvm.run()
     qvm.wait()
-    bitstrings = qvm.read_from_memory_region(region_name="ro", offsets=True)
+    bitstrings = qvm.read_from_memory_region(region_name="ro")
     assert bitstrings.shape == (1000, 1)
     assert np.mean(bitstrings) > 0.8
 
