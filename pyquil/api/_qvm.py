@@ -106,6 +106,15 @@ programs run on this QVM.
         self.session = self._connection.session  # backwards compatibility
 
     @_record_call
+    def get_version_info(self):
+        """
+        Return version information for the QVM.
+
+        :return: Dictionary with version information
+        """
+        return self._connection._qvm_get_version_info()
+
+    @_record_call
     def run(self, quil_program, classical_addresses: List[int] = None,
             trials=1):
         """
@@ -390,6 +399,15 @@ To read more about supplying noise to the QVM, see http://pyquil.readthedocs.io/
             self.random_seed = random_seed
         else:
             raise TypeError("random_seed should be None or a non-negative int")
+
+    @_record_call
+    def get_version_info(self):
+        """
+        Return version information for the QVM.
+
+        :return: Dictionary with version information
+        """
+        return self.connection._qvm_get_version_info()
 
     @_record_call
     def run(self):
