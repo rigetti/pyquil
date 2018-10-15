@@ -89,8 +89,8 @@ def test_run(forest):
             CNOT(1, 2),
             MEASURE(0, 0),
             MEASURE(1, 1),
-            MEASURE(2, 2)).wrap_in_numshots_loop(1000),
-        classical_addresses=None)
+            MEASURE(2, 2)).wrap_in_numshots_loop(1000)
+    )
 
     assert bitstrings.shape == (1000, 3)
     parity = np.sum(bitstrings, axis=1) % 3
@@ -112,13 +112,13 @@ def test_readout_symmetrization(forest):
                    MEASURE(1, 1))
     prog.wrap_in_numshots_loop(1000)
 
-    bs1 = qc.run(prog, True)
+    bs1 = qc.run(prog)
     avg0_us = np.mean(bs1[:, 0])
     avg1_us = 1 - np.mean(bs1[:, 1])
     diff_us = avg1_us - avg0_us
     assert diff_us > 0.03
 
-    bs2 = qc.run_symmetrized_readout(prog, 1000, None)
+    bs2 = qc.run_symmetrized_readout(prog, 1000)
     avg0_s = np.mean(bs2[:, 0])
     avg1_s = 1 - np.mean(bs2[:, 1])
     diff_s = avg1_s - avg0_s
