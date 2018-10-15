@@ -14,11 +14,11 @@
 #    limitations under the License.
 ##############################################################################
 import uuid
-from typing import Dict
+from typing import Dict, List, Optional, Tuple
 
 import numpy as np
-from rpcq.core_messages import QPURequest
-from rpcq.json_rpc import Shim
+from rpcq import Client
+from rpcq.messages import QPURequest
 
 from pyquil.api._qam import QAM
 from pyquil.api._error_reporting import _record_call
@@ -68,7 +68,7 @@ class QPU(QAM):
         :param user: A string identifying who's running jobs.
         """
         super().__init__()
-        self.shim = Shim(endpoint)
+        self.client = Client(endpoint)
         self.user = user
         self._last_results: Dict[str, np.ndarray] = {}
 
@@ -83,22 +83,55 @@ class QPU(QAM):
         only do measurements where there is a 1-to-1 mapping between qubits and classical
         addresses.
 
-        :return: A numpy array of classified (0/1) measurement results of
-            shape (trials, size of "ro")
+        :return: The QPU object itself.
         """
         super().run()
 
-        request = QPURequest(program=self.binary.program,
+        request = QPURequest(program=self._executable.program,
                              patch_values=self._build_patch_values(),
                              id=str(uuid.uuid4()))
 
-        job_id = self.shim.call('execute_qpu_request', request=request, user=self.user)
+        job_id = self.client.call('execute_qpu_request', request=request, user=self.user)
         results = self._get_buffers(job_id)
+        ro_sources = self._executable.ro_sources
 
-        # reorder the results and zip them up
-        self.bitstrings = np.vstack([results[f"q{qubit}"] for qubit in self.binary.ro_sources]).T
+        if results:
+            bitstrings = self._extract_bitstrings(ro_sources, results)
+        else:
+            bitstrings = None
+
+        self._bitstrings = bitstrings
         self._last_results = results
         return self
+
+    @staticmethod
+    def _extract_bitstrings(
+            ro_sources: List[Optional[Tuple[int, int]]],
+            buffers: Dict[str, np.ndarray]
+    ) -> np.ndarray:
+        """
+        De-mux qubit readout results and assemble them into the ro-bitstrings in the correct order.
+
+        :param ro_sources: Specification of the ro_sources, cf
+            :py:func:`pyquil.api._compiler._collect_classical_memory_write_locations`.
+            It is a list whose value `(q, m)` at index `addr` records that the `m`-th measurement of
+            qubit `q` was measured into `ro` address `addr`. A value of `None` means nothing was
+            measured into `ro` address `addr`.
+        :param buffers: A dictionary of readout results returned from the qpu.
+        :return: A numpy array of shape ``(num_shots, len(ro_sources))`` with the readout bits.
+        """
+        # hack to extract num_shots indirectly from the shape of the returned data
+        first, *rest = buffers.values()
+        num_shots = first.shape[0]
+        bitstrings = np.zeros((num_shots, len(ro_sources)))
+        for col_idx, src in enumerate(ro_sources):
+            if src:
+                qubit, meas_idx = src
+                buf = buffers[f"q{qubit}"]
+                if buf.ndim == 1:
+                    buf = buf.reshape((num_shots, 1))
+                bitstrings[:, col_idx] = buf[:, meas_idx]
+        return bitstrings
 
     def _get_buffers(self, job_id: str) -> Dict[str, np.ndarray]:
         """
@@ -107,19 +140,19 @@ class QPU(QAM):
         :param job_id: Unique identifier for the job in question
         :return: Decoded buffers or throw an error
         """
-        buffers = self.shim.call('get_buffers', job_id, wait=True)
+        buffers = self.client.call('get_buffers', job_id, wait=True)
         return {k: decode_buffer(v) for k, v in buffers.items()}
 
     def _build_patch_values(self) -> dict:
         patch_table = {}
 
-        for name, spec in self.binary.memory_descriptors.items():
+        for name, spec in self._executable.memory_descriptors.items():
             # NOTE: right now we fake reading out measurement values into classical memory
             if name == "ro":
                 continue
             patch_table[name] = [0] * spec.length
 
-        for k, v in self.variables_shim.items():
+        for k, v in self._variables_shim.items():
             # NOTE: right now we fake reading out measurement values into classical memory
             if k.name == "ro":
                 continue

@@ -16,12 +16,13 @@
 import logging
 
 import warnings
-from typing import Dict, Any, List, Union, Optional
+from typing import Dict, Any, List, Optional, Tuple
+from collections import Counter
 
-from rpcq.core_messages import (BinaryExecutableRequest, BinaryExecutableResponse,
-                                NativeQuilRequest, TargetDevice,
-                                PyQuilExecutableResponse, ParameterSpec)
-from rpcq.json_rpc import Shim
+from rpcq import Client
+from rpcq.messages import (BinaryExecutableRequest, BinaryExecutableResponse,
+                           NativeQuilRequest, TargetDevice,
+                           PyQuilExecutableResponse, ParameterSpec)
 
 from pyquil.api._base_connection import ForestConnection
 from pyquil.api._qac import AbstractCompiler
@@ -63,7 +64,7 @@ def _extract_program_from_pyquil_executable_response(response: PyQuilExecutableR
     return p
 
 
-def _collect_classical_memory_write_locations(program: Program) -> List[Union[None, int]]:
+def _collect_classical_memory_write_locations(program: Program) -> List[Optional[Tuple[int, int]]]:
     """Collect classical memory locations that are the destination of MEASURE instructions
 
     These locations are important for munging output buffers returned from the QPU
@@ -72,9 +73,9 @@ def _collect_classical_memory_write_locations(program: Program) -> List[Union[No
     This is secretly stored on BinaryExecutableResponse. We're careful to make sure
     these objects are json serializable.
 
-    :return: list whose value `q` at index `addr` records that qubit `q` was measured into
-        `ro` address `addr`. A value of `None` means nothing was measured into `ro` address
-        `addr`.
+    :return: list whose value `(q, m)` at index `addr` records that the `m`-th measurement of
+        qubit `q` was measured into `ro` address `addr`. A value of `None` means nothing was
+        measured into `ro` address `addr`.
     """
     ro_size = None
     for instr in program:
@@ -82,16 +83,23 @@ def _collect_classical_memory_write_locations(program: Program) -> List[Union[No
             ro_size = instr.memory_size
             break
 
+    measures_by_qubit = Counter()
     ro_sources: Dict[int, int] = {}
 
     for instr in program:
-        if isinstance(instr, Measurement) and instr.classical_reg:
-            assert (instr.classical_reg.name == "ro" or instr.classical_reg.name == "ro_table")
-            if instr.classical_reg.offset in ro_sources:
-                _log.warning(f"Overwriting the measured result in register {instr.classical_reg} "
-                             f"from qubit {ro_sources[instr.classical_reg.offset]} "
-                             f"to qubit {instr.qubit.index}")
-            ro_sources[instr.classical_reg.offset] = instr.qubit.index
+        if isinstance(instr, Measurement):
+            q = instr.qubit.index
+            if instr.classical_reg:
+                offset = instr.classical_reg.offset
+                assert (instr.classical_reg.name == "ro" or instr.classical_reg.name == "ro_table")
+                if offset in ro_sources:
+                    _log.warning(f"Overwriting the measured result in register "
+                                 f"{instr.classical_reg} from qubit {ro_sources[offset]} "
+                                 f"to qubit {q}")
+                # we track how often each qubit is measured (per shot) and into which register it is
+                # measured in its n-th measurement.
+                ro_sources[offset] = (q, measures_by_qubit[q])
+            measures_by_qubit[q] += 1
     if ro_size:
         return [ro_sources.get(i) for i in range(ro_size)]
     elif ro_sources:
@@ -125,14 +133,14 @@ class QPUCompiler(AbstractCompiler):
         :param device: PyQuil Device object to use as compilation target
         """
 
-        self.shim = Shim(endpoint)
+        self.client = Client(endpoint)
         self.target_device = TargetDevice(isa=device.get_isa().to_dict(),
                                           specs=device.get_specs().to_dict())
 
     @_record_call
     def quil_to_native_quil(self, program: Program) -> Program:
         request = NativeQuilRequest(quil=program.out(), target_device=self.target_device)
-        response = self.shim.call('quil_to_native_quil', request).asdict()  # type: Dict
+        response = self.client.call('quil_to_native_quil', request).asdict()  # type: Dict
         nq_program = parse_program(response['quil'])
         nq_program.native_quil_metadata = response['metadata']
         nq_program.num_shots = program.num_shots
@@ -147,7 +155,7 @@ class QPUCompiler(AbstractCompiler):
                           "but be careful!")
 
         request = BinaryExecutableRequest(quil=nq_program.out(), num_shots=nq_program.num_shots)
-        response = self.shim.call('native_quil_to_binary', request)
+        response = self.client.call('native_quil_to_binary', request)
         # hack! we're storing a little extra info in the executable binary that we don't want to
         # expose to anyone outside of our own private lives: not the user, not the Forest server,
         # not anyone.
@@ -165,14 +173,14 @@ class QVMCompiler(AbstractCompiler):
         :param endpoint: TCP or IPC endpoint of the Compiler Server
         :param device: PyQuil Device object to use as compilation target
         """
-        self.shim = Shim(endpoint)
+        self.client = Client(endpoint)
         self.target_device = TargetDevice(isa=device.get_isa().to_dict(),
                                           specs=device.get_specs().to_dict())
 
     @_record_call
     def quil_to_native_quil(self, program: Program) -> Program:
         request = NativeQuilRequest(quil=program.out(), target_device=self.target_device)
-        response = self.shim.call('quil_to_native_quil', request).asdict()  # type: Dict
+        response = self.client.call('quil_to_native_quil', request).asdict()  # type: Dict
         nq_program = parse_program(response['quil'])
         nq_program.native_quil_metadata = response['metadata']
         nq_program.num_shots = program.num_shots
