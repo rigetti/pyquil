@@ -126,7 +126,7 @@ class QuantumComputer:
             .read_from_memory_region(region_name="ro")
 
     @_record_call
-    def run_symmetrized_readout(self, program, trials, classical_addresses):
+    def run_symmetrized_readout(self, program, trials):
         """
         Run a quil program in such a way that the readout error is made collectively symmetric
 
@@ -154,8 +154,8 @@ class QuantumComputer:
         flipped_executable = self.compile(flipped_program)
 
         executable = self.compile(program.wrap_in_numshots_loop(half_trials))
-        samples = self.run(executable, classical_addresses=classical_addresses)
-        flipped_samples = self.run(flipped_executable, classical_addresses=classical_addresses)
+        samples = self.run(executable)
+        flipped_samples = self.run(flipped_executable)
         double_flipped_samples = np.logical_not(flipped_samples).astype(int)
         results = np.concatenate((samples, double_flipped_samples), axis=0)
         np.random.shuffle(results)
