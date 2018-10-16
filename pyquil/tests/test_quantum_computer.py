@@ -269,6 +269,29 @@ def test_qc_error():
         get_qc('', as_qvm=False)
 
 
+def test_qc_noisy():
+    qc = get_qc('', as_qvm=True, noisy=True)
+    assert isinstance(qc, QuantumComputer)
+
+
+def test_qc_compile():
+    qc = get_qc('', as_qvm=True, noisy=True)
+    qc.compiler = DummyCompiler()
+    prog = Program()
+    prog += H(0)
+    prog1 = qc.compile(prog)
+    assert prog1 == prog
+
+
+def test_qc_error():
+    # QVM is not a QPU
+    with pytest.raises(ValueError):
+        get_qc('9q-generic-noisy-qvm', as_qvm=False)
+
+    with pytest.raises(ValueError):
+        get_qc('', as_qvm=False)
+
+
 def test_fully_connected_qvm_qc():
     qc = get_qc('qvm')
     for q1, q2 in itertools.permutations(range(34), r=2):

@@ -21,6 +21,7 @@ import networkx as nx
 import numpy as np
 from rpcq.messages import BinaryExecutableResponse, Message
 
+
 from pyquil.api._compiler import AbstractCompiler
 from pyquil.api._compiler import QVMCompiler, QPUCompiler, LocalQVMCompiler
 from pyquil.api._config import PyquilConfig
