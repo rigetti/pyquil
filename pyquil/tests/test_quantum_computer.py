@@ -323,5 +323,5 @@ def test_run_and_measure_concat(qvm, compiler):
     # note to devs: this is included as an example in the run_and_measure docstrings
     # so if you change it here ... change it there!
     bitstrings = qc.run_and_measure(prog, trials)
-    bitstring_array = np.vstack(bitstrings[q] for q in sorted(qc.qubits())).T
+    bitstring_array = np.vstack(bitstrings[q] for q in qc.qubits()).T
     assert bitstring_array.shape == (trials, len(qc.qubits()))
