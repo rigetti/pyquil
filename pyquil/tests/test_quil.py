@@ -115,7 +115,7 @@ def test_len_nested():
     p = Program(H(0)).measure(0, 0)
     q = Program(H(0), CNOT(0, 1))
     p.if_then(MemoryReference("ro", 0), q)
-    assert len(p) == 8
+    assert len(p) == 9
 
 
 def test_plus_operator():
@@ -456,22 +456,28 @@ def test_define_qft():
 
 
 def test_control_flows():
-    classical_flag_register = 2
-    p = Program(X(0), H(0)).measure(0, classical_flag_register)
+    outer_loop = Program()
+    classical_flag_register = outer_loop.declare('classical_flag_register', 'BIT')
+    outer_loop += MOVE(classical_flag_register, 1)  # initialize
 
-    # run p in a loop until classical_flag_register is 0
-    loop_prog = Program(X(0)).measure(0, classical_flag_register)
-    loop_prog.while_do(classical_flag_register, p)
-    assert loop_prog.out() == ('DECLARE ro BIT[3]\n'
-                               'X 0\n'
-                               'MEASURE 0 ro[2]\n'
-                               'LABEL @START1\n'
-                               'JUMP-UNLESS @END2 ro[2]\n'
-                               'X 0\n'
-                               'H 0\n'
-                               'MEASURE 0 ro[2]\n'
-                               'JUMP @START1\n'
-                               'LABEL @END2\n')
+    inner_loop = Program()
+    inner_loop += Program(X(0), H(0))
+    inner_loop += MEASURE(0, classical_flag_register)
+
+    # run inner_loop in a loop until classical_flag_register is 0
+    outer_loop.while_do(classical_flag_register, inner_loop)
+    assert outer_loop.out() == '\n'.join([
+        "DECLARE classical_flag_register BIT[1]",
+        "MOVE classical_flag_register 1",
+        "LABEL @START1",
+        "JUMP-UNLESS @END2 classical_flag_register",
+        "X 0",
+        "H 0",
+        "MEASURE 0 classical_flag_register",
+        "JUMP @START1",
+        "LABEL @END2",
+        ""
+    ])
 
 
 def test_control_flows_2():
