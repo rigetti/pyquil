@@ -15,12 +15,13 @@
 ##############################################################################
 import warnings
 from math import pi
-from typing import List
+from typing import List, Tuple, Sequence, Union
 
 import networkx as nx
 import numpy as np
-from rpcq.core_messages import BinaryExecutableResponse
+from rpcq.core_messages import BinaryExecutableResponse, Message
 
+from pyquil.api._compiler import AbstractCompiler
 from pyquil.api._compiler import QVMCompiler, QPUCompiler, LocalQVMCompiler
 from pyquil.api._config import PyquilConfig
 from pyquil.api._devices import get_device, get_lattice
@@ -29,7 +30,7 @@ from pyquil.api._qac import AbstractCompiler
 from pyquil.api._qam import QAM
 from pyquil.api._qpu import QPU
 from pyquil.api._qvm import ForestConnection, QVM
-from pyquil.device import AbstractDevice, NxDevice, gates_in_isa
+from pyquil.device import AbstractDevice, NxDevice, gates_in_isa, ISA
 from pyquil.gates import RX, MEASURE
 from pyquil.noise import decoherence_noise_with_asymmetric_ro
 from pyquil.quil import Program
@@ -94,14 +95,16 @@ class QuantumComputer:
 
         self.symmetrize_readout = symmetrize_readout
 
-    def qubit_topology(self):
+    def qubit_topology(self) -> nx.graph:
         return self.device.qubit_topology()
 
-    def get_isa(self, oneq_type='Xhalves', twoq_type='CZ'):
+    def get_isa(self, oneq_type: str = 'Xhalves',
+                twoq_type: str = 'CZ') -> ISA:
         return self.device.get_isa(oneq_type=oneq_type, twoq_type=twoq_type)
 
     @_record_call
-    def run(self, executable: BinaryExecutableResponse, classical_addresses=None) -> np.ndarray:
+    def run(self, executable: BinaryExecutableResponse,
+            classical_addresses: Sequence[int] = None) -> np.ndarray:
         """
         Run a quil executable.
 
@@ -114,6 +117,7 @@ class QuantumComputer:
         :return: A numpy array of shape (trials, len(classical_addresses)) that contains 0s and 1s
         """
         # shim old API to new `read_from_memory_region`
+        offsets: Union[bool, Sequence[int]]
         if classical_addresses is None:
             offsets = True
         else:
@@ -125,7 +129,9 @@ class QuantumComputer:
             .read_from_memory_region(region_name="ro", offsets=offsets)
 
     @_record_call
-    def run_symmetrized_readout(self, program, trials, classical_addresses):
+    def run_symmetrized_readout(self, program: Program,
+                                trials: int,
+                                classical_addresses: Sequence[int]) -> np.ndarray:
         """
         Run a quil program in such a way that the readout error is made collectively symmetric
 
@@ -161,7 +167,7 @@ class QuantumComputer:
         return results
 
     @_record_call
-    def run_and_measure(self, program: Program, trials: int):
+    def run_and_measure(self, program: Program, trials: int) -> np.ndarray:
         """
         Run the provided state preparation program and measure all qubits.
 
@@ -188,7 +194,9 @@ class QuantumComputer:
         return self.run(executable=executable)
 
     @_record_call
-    def compile(self, program, to_native_gates=True, optimize=True):
+    def compile(self, program: Program,
+                to_native_gates: bool = True,
+                optimize: bool = True) -> Message:
         flags = [to_native_gates, optimize]
         assert all(flags) or all(not f for f in flags), "Must turn quilc all on or all off"
         quilc = all(flags)
@@ -200,12 +208,14 @@ class QuantumComputer:
         binary = self.compiler.native_quil_to_executable(nq_program)
         return binary
 
-    def __str__(self):
+    def __str__(self) -> str:
         return self.name
 
 
 @_record_call
-def list_quantum_computers(connection: ForestConnection = None, qpus=True, qvms=True) -> List[str]:
+def list_quantum_computers(connection: ForestConnection = None,
+                           qpus: bool = True,
+                           qvms: bool = True) -> List[str]:
     """
     List the names of available quantum computers
 
@@ -231,7 +241,7 @@ def list_quantum_computers(connection: ForestConnection = None, qpus=True, qvms=
     return qc_names
 
 
-def _parse_name(name, as_qvm, noisy):
+def _parse_name(name: str, as_qvm: bool, noisy: bool) -> Tuple[str, bool, bool]:
     """
     Try to figure out whether we're getting a (noisy) qvm, and the associated qpu name.
 
@@ -270,7 +280,7 @@ def _parse_name(name, as_qvm, noisy):
     return name, as_qvm, noisy
 
 
-def _get_qvm_compiler_based_on_endpoint(endpoint=None, device=None):
+def _get_qvm_compiler_based_on_endpoint(endpoint: str = None, device: NxDevice = None) -> AbstractCompiler:
     if endpoint.startswith("http"):
         return LocalQVMCompiler(endpoint=endpoint, device=device)
     elif endpoint.startswith("tcp"):
@@ -279,7 +289,7 @@ def _get_qvm_compiler_based_on_endpoint(endpoint=None, device=None):
         raise ValueError("Protocol for QVM compiler endpoints must be HTTP or TCP.")
 
 
-def _get_9q_generic_qvm(connection: ForestConnection, noisy: bool):
+def _get_9q_generic_qvm(connection: ForestConnection, noisy: bool) -> QuantumComputer:
     """
     A nine-qubit 3x3 square lattice.
 
@@ -301,7 +311,9 @@ def _get_9q_generic_qvm(connection: ForestConnection, noisy: bool):
     else:
         noise_model = None
 
-    return QuantumComputer(name='9q-generic-qvm',
+    name = '9q-generic-noisy-qvm' if noisy else '9q-generic-qvm'
+
+    return QuantumComputer(name=name,
                            qam=QVM(connection=connection, noise_model=noise_model),
                            device=nineq_device,
                            compiler=_get_qvm_compiler_based_on_endpoint(
@@ -309,7 +321,7 @@ def _get_9q_generic_qvm(connection: ForestConnection, noisy: bool):
                                endpoint=connection.compiler_endpoint))
 
 
-def _get_unrestricted_qvm(connection: ForestConnection, noisy: bool, n_qubits: int = 34):
+def _get_unrestricted_qvm(connection: ForestConnection, noisy: bool, n_qubits: int = 34) -> QuantumComputer:
     """
     A qvm with a fully-connected topology.
 
@@ -332,7 +344,9 @@ def _get_unrestricted_qvm(connection: ForestConnection, noisy: bool, n_qubits: i
     else:
         noise_model = None
 
-    return QuantumComputer(name='9q-generic-qvm',
+    name = '9q-generic-noisy-qvm' if noisy else '9q-generic-qvm'
+
+    return QuantumComputer(name=name,
                            qam=QVM(connection=connection, noise_model=noise_model),
                            device=fully_connected_device,
                            compiler=_get_qvm_compiler_based_on_endpoint(
@@ -342,7 +356,7 @@ def _get_unrestricted_qvm(connection: ForestConnection, noisy: bool, n_qubits: i
 
 @_record_call
 def get_qc(name: str, *, as_qvm: bool = None, noisy: bool = None,
-           connection: ForestConnection = None):
+           connection: ForestConnection = None) -> QuantumComputer:
     """
     Get a quantum computer.
 
@@ -404,6 +418,7 @@ def get_qc(name: str, *, as_qvm: bool = None, noisy: bool = None,
     if connection is None:
         connection = ForestConnection()
 
+    full_name = name
     name, as_qvm, noisy = _parse_name(name, as_qvm, noisy)
 
     if name == '':
@@ -412,16 +427,14 @@ def get_qc(name: str, *, as_qvm: bool = None, noisy: bool = None,
         return _get_unrestricted_qvm(connection=connection, noisy=noisy)
 
     if name == '9q-generic':
-        if not as_qvm:
-            raise ValueError("The device '9q-generic' is only available as a QVM")
         return _get_9q_generic_qvm(connection=connection, noisy=noisy)
 
     device = get_lattice(name)
     if not as_qvm:
         if noisy is not None and noisy:
             warnings.warn("You have specified `noisy=True`, but you're getting a QPU. This flag "
-                          "is meant for controling noise models on QVMs.")
-        return QuantumComputer(name=name,
+                          "is meant for controlling noise models on QVMs.")
+        return QuantumComputer(name=full_name,
                                qam=QPU(endpoint=pyquil_config.qpu_url),
                                device=device,
                                compiler=QPUCompiler(endpoint=pyquil_config.compiler_url,
@@ -434,8 +447,9 @@ def get_qc(name: str, *, as_qvm: bool = None, noisy: bool = None,
         noise_model = None
         name = "{name}-qvm".format(name=name)
 
-    return QuantumComputer(name=name,
-                           qam=QVM(connection=connection, noise_model=noise_model),
+    return QuantumComputer(name=full_name,
+                           qam=QVM(connection=connection,
+                                   noise_model=noise_model),
                            device=device,
                            compiler=_get_qvm_compiler_based_on_endpoint(
                                device=device,
