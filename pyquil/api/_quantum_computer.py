@@ -13,6 +13,7 @@
 #    See the License for the specific language governing permissions and
 #    limitations under the License.
 ##############################################################################
+import re
 import warnings
 from math import pi
 from typing import List, Dict
@@ -368,26 +369,26 @@ def get_qc(name: str, *, as_qvm: bool = None, noisy: bool = None,
     You can choose the quantum computer to target through a combination of its name and optional
     flags. There are multiple ways to get the same quantum computer. The following are equivalent::
 
-        >>> qc = get_qc("8Q-Agave-noisy-qvm")
-        >>> qc = get_qc("8Q-Agave", as_qvm=True, noisy=True)
+        >>> qc = get_qc("Aspen-0-12Q-A-noisy-qvm")
+        >>> qc = get_qc("Aspen-0-12Q-A", as_qvm=True, noisy=True)
 
     and will construct a simulator of the 8q-agave chip with a noise model based on device
     characteristics. We also provide a means for constructing generic quantum simulators that
     are not related to a given piece of Rigetti hardware::
 
-        >>> qc = get_qc("9q-generic-qvm")
-        >>> qc = get_qc("9q-generic", as_qvm=True)
+        >>> qc = get_qc("9q-square-qvm")
+        >>> qc = get_qc("9q-square", as_qvm=True)
 
-    Finally, you can get request a QVM with "no" topology (technically: a fully connected graph
-    among the maximum possible number of qubits you can simulate) with::
+    Finally, you can get request a QVM with "no" topology of a given number of qubits
+    (technically, it's a fully connected graph among the given number of qubits) with::
 
-        >>> qc = get_qc("qvm")
+        >>> qc = get_qc("5q-qvm") # or "6q-qvm", or "34q-qvm", ...
 
     Redundant flags are acceptable, but conflicting flags will raise an exception::
 
-        >>> qc = get_qc("9q-generic-qvm") # qc is fully specified by its name
-        >>> qc = get_qc("9q-generic-qvm", as_qvm=True) # redundant, but ok
-        >>> qc = get_qc("9q-generic-qvm", as_qvm=False) # Error!
+        >>> qc = get_qc("9q-square-qvm") # qc is fully specified by its name
+        >>> qc = get_qc("9q-square-qvm", as_qvm=True) # redundant, but ok
+        >>> qc = get_qc("9q-square-qvm", as_qvm=False) # Error!
 
     Use :py:func:`list_quantum_computers` to retrieve a list of known qc names.
 
@@ -421,19 +422,19 @@ def get_qc(name: str, *, as_qvm: bool = None, noisy: bool = None,
 
     name, as_qvm, noisy = _parse_name(name, as_qvm, noisy)
 
-    if name[-1] == 'q':
-        try:
-            n_qubits = int(name[:-1])
-            if not as_qvm:
-                raise ValueError("Please name a valid device or run as a QVM")
-            return _get_unrestricted_qvm(connection=connection, noisy=noisy, n_qubits=n_qubits)
-        except ValueError: # TODO: what goes here
-            pass
+    ma = re.fullmatch(r'(\d+)q', name)
+    if ma is not None:
+        n_qubits = int(ma.group(1))
+        if not as_qvm:
+            raise ValueError("Please name a valid device or run as a QVM")
+        return _get_unrestricted_qvm(connection=connection, noisy=noisy, n_qubits=n_qubits)
 
     if name == '9q-generic' or name == '9q-square':
-        # TODO: deprecate '9q-generic'
+        if name == '9q-generic':
+            warnings.warn("Please prefer '9q-square' instead of '9q-generic'", DeprecationWarning)
+
         if not as_qvm:
-            raise ValueError("The device '9q-generic' is only available as a QVM")
+            raise ValueError("The device '9q-square' is only available as a QVM")
         return _get_9q_generic_qvm(connection=connection, noisy=noisy)
 
     device = get_lattice(name)
