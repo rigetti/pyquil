@@ -133,7 +133,6 @@ def test_vs_ref_simulator(n_qubits, prog_length, include_measures):
     for _ in range(10):
         prog = _generate_random_program(n_qubits=n_qubits, length=prog_length,
                                         include_measures=include_measures)
-        print(prog)
         ref_qam = PyQVM(n_qubits=n_qubits, seed=seed,
                         quantum_simulator_type=ReferenceWavefunctionSimulator)
         ref_qam.execute(prog)

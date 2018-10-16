@@ -94,26 +94,7 @@ class ReferenceWavefunctionSimulator(AbstractQuantumSimulator):
         return self
 
     def do_post_gate_noise(self, noise_type: str, noise_prob: float):
-        kraus_ops = KRAUS_OPS[noise_type](p=noise_prob)
-        if np.isclose(noise_prob, 1.0):
-            warnings.warn(f"Skipping {noise_type} post-gate noise because noise_prob is close to 1")
-
-        # TODO: pick qubits
-        for qubit in range(self.n_qubits):
-            # Pick which kraus op to apply based on p_j = <psi|K_j^t K_j|psi>
-            r = self.rs.uniform()
-            summed_p = 0.0  # add probability until we exceed the random value r
-            for k_op in kraus_ops:
-                big_k_op = lifted_gate_matrix(matrix=k_op, qubit_inds=[qubit],
-                                              n_qubits=self.n_qubits)
-                potential_new_wf = big_k_op @ self.wf
-                summed_p += np.conj(potential_new_wf.T) @ potential_new_wf
-                if summed_p >= r:
-                    break
-
-            self.wf = potential_new_wf
-            self.wf /= np.conj(self.wf.T) @ self.wf
-        return self
+        raise NotImplementedError("The reference wavefunction simulator cannot handle noise")
 
 
 class ReferenceDensitySimulator(AbstractQuantumSimulator):
@@ -170,6 +151,7 @@ class ReferenceDensitySimulator(AbstractQuantumSimulator):
         if np.isclose(noise_prob, 1.0):
             warnings.warn(f"Skipping {noise_type} post-gate noise because noise_prob is close to 1")
 
+        # TODO: figure out which qubits
         for q in range(self.n_qubits):
             new_density = np.zeros_like(self.density)
             for kraus_op in kraus_ops:

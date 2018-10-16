@@ -1,4 +1,5 @@
 import numpy as np
+import pytest
 
 import pyquil.gate_matrices as qmats
 from pyquil import Program
@@ -191,6 +192,7 @@ def test_kraus_compound_T1T2_application():
     np.testing.assert_allclose(final_density, qam.wf_simulator.density)
 
 
+@pytest.mark.xfail(reason="We don't support different noise parameters for 2q vs 1q gates!")
 def test_multiqubit_decay_bellstate():
     program = Program(
         RY(np.pi / 3, 0),
@@ -253,38 +255,3 @@ def test_multiqubit_decay_bellstate():
     qam.execute(program)
 
     assert np.allclose(qam.wf_simulator.density, state)
-
-
-def test_noise():
-    program = Program(
-        RY(np.pi / 2, 0),
-        CNOT(0, 1)
-    )
-
-    noise = {'relaxation': 0.05, 'dephasing': 0.03}
-    wfsim = PyQVM(n_qubits=2, quantum_simulator_type=ReferenceWavefunctionSimulator,
-                  post_gate_noise_probabilities=noise)
-    densim = PyQVM(n_qubits=2, quantum_simulator_type=ReferenceDensitySimulator,
-                   post_gate_noise_probabilities=noise)
-
-    densim.execute(program)
-
-    n_samples = 10000
-    den_strings = densim.wf_simulator.sample_bitstrings(n_samples)
-    to_base_10 = np.asarray([2**1, 1])
-    den_strings = np.sum(to_base_10*den_strings, axis=1)
-    den_hist = np.bincount(den_strings)
-
-    wf_strings = np.zeros((n_samples, 2), dtype=int)
-    for n_shot in range(n_samples):
-        wfsim.execute(program)
-        wfsim.execute(Program(MEASURE(0, 0), MEASURE(1,1), RESET()))
-        wf_strings[n_shot] = wfsim.ram['ro']
-
-    wf_strings = np.sum(to_base_10*wf_strings, axis=1)
-    wf_hist = np.bincount(wf_strings)
-
-    for i in range(2**2):
-        print(i, wf_hist[i], den_hist[i])
-
-    np.testing.assert_allclose(den_hist, wf_hist, rtol=0.05, atol=5)

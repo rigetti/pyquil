@@ -91,7 +91,9 @@ class AbstractQuantumSimulator(ABC):
     @abstractmethod
     def do_post_gate_noise(self, noise_type: str, noise_prob: float) -> 'AbstractQuantumSimulator':
         """
-        Apply noise that happens after each gate application
+        Apply noise that happens after each gate application.
+
+        WARNING! This is experimental and the signature of this interface will likely change.
 
         :param noise_type: The name of the noise type
         :param noise_prob: The probability of that noise happening
@@ -152,6 +154,7 @@ class PyQVM(QAM):
         :param post_gate_noise_probabilities: A specification of noise model given by
             probabilities of certain types of noise. The dictionary keys are from "relaxation",
             "dephasing", "depolarizing", "phase_flip", "bit_flip", and "bitphase_flip".
+            WARNING: experimental. This interface will likely change.
         :param seed: An optional random seed for performing stochastic aspects of the QVM.
         """
         if quantum_simulator_type is None:
