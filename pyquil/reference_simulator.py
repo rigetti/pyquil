@@ -41,8 +41,7 @@ class ReferenceWavefunctionSimulator(AbstractQuantumSimulator):
         :param n_samples: The number of bitstrings to sample
         :return: An array of shape (n_samples, n_qubits)
         """
-        # TODO: port to AbstractQuantumSimulator abstraction
-        probabilities = np.abs(self.wf)**2
+        probabilities = np.abs(self.wf) ** 2
         possible_bitstrings = all_bitstrings(self.n_qubits)
         inds = self.rs.choice(2 ** self.n_qubits, n_samples, p=probabilities)
         bitstrings = possible_bitstrings[inds, :]
@@ -133,7 +132,6 @@ class ReferenceDensitySimulator(AbstractQuantumSimulator):
         :param n_samples: The number of bitstrings to sample
         :return: An array of shape (n_samples, n_qubits)
         """
-        # TODO: port to AbstractQuantumSimulator abstraction
         probabilities = np.real_if_close(np.diagonal(self.density))
         possible_bitstrings = all_bitstrings(self.n_qubits)
         inds = self.rs.choice(2 ** self.n_qubits, n_samples, p=probabilities)

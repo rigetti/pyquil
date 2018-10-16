@@ -80,6 +80,15 @@ class AbstractQuantumSimulator(ABC):
         """
 
     @abstractmethod
+    def sample_bitstrings(self, n_samples) -> np.ndarray:
+        """
+        Sample bitstrings from the current state.
+
+        :param n_samples: The number of bitstrings to sample
+        :return: A numpy array of shape (n_samples, n_qubits)
+        """
+
+    @abstractmethod
     def do_post_gate_noise(self, noise_type: str, noise_prob: float) -> 'AbstractQuantumSimulator':
         """
         Apply noise that happens after each gate application

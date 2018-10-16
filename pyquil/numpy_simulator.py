@@ -196,13 +196,11 @@ class NumpyWavefunctionSimulator(AbstractQuantumSimulator):
         """
         Sample bitstrings from the distribution defined by the wavefunction.
 
-        Qubit 0 is at ``out[:, 0]``. This is the opposite of QVMConnection().
+        Qubit 0 is at ``out[:, 0]``.
 
         :param n_samples: The number of bitstrings to sample
         :return: An array of shape (n_samples, n_qubits)
         """
-        # TODO: port to AbstractQuantumSimulator abstraction
-
         # note on reshape: it puts bitstrings in lexicographical order.
         # would you look at that .. _all_bitstrings returns things in lexicographical order!
         # reminder: qubit 0 is on the left in einsum simulator.
