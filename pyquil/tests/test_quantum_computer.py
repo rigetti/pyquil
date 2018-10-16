@@ -305,10 +305,23 @@ def test_qc(qvm, compiler):
     assert qc.qubit_topology().degree[4] == 4
 
     bs = qc.run_and_measure(Program(X(0)), trials=3)
-    assert bs.shape == (3, 9)
+    assert len(bs) == 9
+    for q, bits in bs.items():
+        assert bits.shape == (3,)
 
 
 def test_fully_connected_qvm_qc():
     qc = get_qc('qvm')
     for q1, q2 in itertools.permutations(range(34), r=2):
         assert (q1, q2) in qc.qubit_topology().edges
+
+
+def test_run_and_measure_concat(qvm, compiler):
+    qc = get_qc("9q-generic-qvm")
+    prog = Program(I(8))
+    trials = 11
+    # note to devs: this is included as an example in the run_and_measure docstrings
+    # so if you change it here ... change it there!
+    bitstrings = qc.run_and_measure(prog, trials)
+    bitstring_array = np.vstack(bitstrings[q] for q in sorted(qc.qubits())).T
+    assert bitstring_array.shape == (trials, len(qc.qubits()))

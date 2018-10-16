@@ -15,7 +15,7 @@
 ##############################################################################
 import warnings
 from math import pi
-from typing import List
+from typing import List, Dict
 
 import networkx as nx
 import numpy as np
@@ -65,6 +65,15 @@ def _get_flipped_protoquil_program(program: Program) -> Program:
     return program
 
 
+def _validate_run_and_measure_program(program):
+    for instr in program.instructions:
+        if not isinstance(instr, Gate) and not isinstance(instr, Reset):
+            raise ValueError("run_and_measure programs must consist only of quantum gates.")
+
+    # TODO: more logic here?
+    return program
+
+
 class QuantumComputer:
     @_record_call
     def __init__(self, *, name: str, qam: QAM, device: AbstractDevice, compiler: AbstractCompiler,
@@ -93,6 +102,9 @@ class QuantumComputer:
         self.compiler = compiler
 
         self.symmetrize_readout = symmetrize_readout
+
+    def qubits(self):
+        return self.device.qubits()
 
     def qubit_topology(self):
         return self.device.qubit_topology()
@@ -150,9 +162,20 @@ class QuantumComputer:
         return results
 
     @_record_call
-    def run_and_measure(self, program: Program, trials: int):
+    def run_and_measure(self, program: Program, trials: int) -> Dict[int, np.ndarray]:
         """
         Run the provided state preparation program and measure all qubits.
+
+        This will measure all the qubits on this QuantumComputer, not just qubits
+        that are used in the program.
+
+        The returned data is a dictionary keyed by qubit index because qubits for a given
+        QuantumComputer may be non-contiguous and non-zero-indexed. To turn this dictionary
+        into a 2d numpy array of bitstrings, consider::
+
+            bitstrings = qc.run_and_measure(...)
+            bitstring_array = np.vstack(bitstrings[q] for q in sorted(qc.qubits())).T
+            bitstring_array.shape  # (trials, len(qc.qubits()))
 
         .. note::
 
@@ -163,18 +186,21 @@ class QuantumComputer:
 
         :param program: The state preparation program to run and then measure.
         :param trials: The number of times to run the program.
-        :return: A numpy array of shape (trials, n_device_qubits) that contains 0s and 1s
+        :return: A dictionary keyed by qubit index where the corresponding value is a 1D array of
+            measured bits.
         """
         program = program.copy()
-        for instr in program.instructions:
-            if not isinstance(instr, Gate) and not isinstance(instr, Reset):
-                raise ValueError("run_and_measure programs must consist only of quantum gates.")
-        ro = program.declare('ro', 'BIT', max(self.device.qubit_topology().nodes) + 1)
-        for q in sorted(self.device.qubit_topology().nodes):
-            program.inst(MEASURE(q, ro[q]))
+        program = _validate_run_and_measure_program(program)
+        ro = program.declare('ro', 'BIT', len(self.qubits()))
+        for i, q in enumerate(self.qubits()):
+            program.inst(MEASURE(q, ro[i]))
         program.wrap_in_numshots_loop(trials)
         executable = self.compile(program)
-        return self.run(executable=executable)
+        bitstring_array = self.run(executable=executable)
+        bitstring_dict = {}
+        for i, q in enumerate(self.qubits()):
+            bitstring_dict[q] = bitstring_array[:, i]
+        return bitstring_dict
 
     @_record_call
     def compile(self, program, to_native_gates=True, optimize=True):
