@@ -78,7 +78,7 @@ class PyquilConfig(object):
         "file": FOREST_CONFIG,
         "section": "Rigetti Forest",
         "name": "qvm_address",
-        "default": "http://127.0.0.1:5000"
+        "default": "http://localhost:5000"
     }
 
     COMPILER_URL = {
@@ -86,7 +86,7 @@ class PyquilConfig(object):
         "file": FOREST_CONFIG,
         "section": "Rigetti Forest",
         "name": "compiler_server_address",
-        "default": "http://127.0.0.1:6000"
+        "default": "http://localhost:6000"
     }
 
     def __init__(self):
