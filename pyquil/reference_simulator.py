@@ -6,7 +6,7 @@ from numpy.random.mtrand import RandomState
 from pyquil.gate_matrices import P0, P1, KRAUS_OPS
 from pyquil.pyqvm import AbstractQuantumSimulator
 from pyquil.quilbase import Gate
-from pyquil.unitary_tools import lifted_gate_matrix, lifted_gate, _all_bitstrings
+from pyquil.unitary_tools import lifted_gate_matrix, lifted_gate, all_bitstrings
 
 
 class ReferenceWavefunctionSimulator(AbstractQuantumSimulator):
@@ -43,7 +43,7 @@ class ReferenceWavefunctionSimulator(AbstractQuantumSimulator):
         """
         # TODO: port to AbstractQuantumSimulator abstraction
         probabilities = np.abs(self.wf)**2
-        possible_bitstrings = _all_bitstrings(self.n_qubits)
+        possible_bitstrings = all_bitstrings(self.n_qubits)
         inds = self.rs.choice(2 ** self.n_qubits, n_samples, p=probabilities)
         bitstrings = possible_bitstrings[inds, :]
         bitstrings = np.flip(bitstrings, axis=1)  # qubit ordering: 0 on the left.
@@ -135,7 +135,7 @@ class ReferenceDensitySimulator(AbstractQuantumSimulator):
         """
         # TODO: port to AbstractQuantumSimulator abstraction
         probabilities = np.real_if_close(np.diagonal(self.density))
-        possible_bitstrings = _all_bitstrings(self.n_qubits)
+        possible_bitstrings = all_bitstrings(self.n_qubits)
         inds = self.rs.choice(2 ** self.n_qubits, n_samples, p=probabilities)
         bitstrings = possible_bitstrings[inds, :]
         bitstrings = np.flip(bitstrings, axis=1)  # qubit ordering: 0 on the left.

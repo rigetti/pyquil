@@ -2,7 +2,6 @@ import numpy as np
 import pytest
 from requests import RequestException
 
-from pyquil import get_qc
 from pyquil.api import QVMConnection, LocalQVMCompiler, ForestConnection, get_benchmarker
 from pyquil.api._config import PyquilConfig
 from pyquil.api._errors import UnknownApiError
@@ -164,8 +163,3 @@ def benchmarker():
     except RequestException as e:
         return pytest.skip("This test requires a running local benchmarker endpoint (ie quilc): {}"
                            .format(e))
-
-
-@pytest.fixture()
-def qc():
-    return get_qc('9q-generic-pyqvm')

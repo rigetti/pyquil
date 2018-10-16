@@ -22,7 +22,7 @@ from pyquil.paulis import PauliSum, PauliTerm
 from pyquil.quilbase import Gate
 
 
-def _all_bitstrings(n_bits):
+def all_bitstrings(n_bits):
     """All bitstrings in lexicographical order as a 2d np.ndarray.
 
     This should be the same as ``np.array(list(itertools.product([0,1], repeat=n_bits)))``

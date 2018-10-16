@@ -39,7 +39,7 @@ from pyquil.reference_simulator import AbstractQuantumSimulator
 # WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
 # See the License for the specific language governing permissions and
 # limitations under the License.
-from pyquil.unitary_tools import _all_bitstrings
+from pyquil.unitary_tools import all_bitstrings
 
 
 def targeted_einsum(gate: np.ndarray,
@@ -207,7 +207,7 @@ class NumpyWavefunctionSimulator(AbstractQuantumSimulator):
         # would you look at that .. _all_bitstrings returns things in lexicographical order!
         # reminder: qubit 0 is on the left in einsum simulator.
         probabilities = np.abs(self.wf.reshape(-1)) ** 2
-        possible_bitstrings = _all_bitstrings(self.n_qubits)
+        possible_bitstrings = all_bitstrings(self.n_qubits)
         inds = self.rs.choice(2 ** self.n_qubits, n_samples, p=probabilities)
         return possible_bitstrings[inds, :]
 

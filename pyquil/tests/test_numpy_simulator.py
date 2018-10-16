@@ -7,7 +7,7 @@ from pyquil import Program
 from pyquil.gate_matrices import QUANTUM_GATES as GATES
 from pyquil.gates import *
 from pyquil.numpy_simulator import targeted_einsum, NumpyWavefunctionSimulator, \
-    _all_bitstrings, targeted_tensordot
+    all_bitstrings, targeted_tensordot
 from pyquil.pyqvm import PyQVM
 from pyquil.reference_simulator import ReferenceWavefunctionSimulator
 from pyquil.tests.test_reference_wavefunction_simulator import _generate_random_program
@@ -153,7 +153,7 @@ def test_vs_ref_simulator(n_qubits, prog_length, include_measures):
 def test_all_bitstrings():
     for n_bits in range(2, 10):
         bitstrings_ref = np.array(list(itertools.product((0, 1), repeat=n_bits)))
-        bitstrings_new = _all_bitstrings(n_bits)
+        bitstrings_new = all_bitstrings(n_bits)
         np.testing.assert_array_equal(bitstrings_ref, bitstrings_new)
 
 

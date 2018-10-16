@@ -92,7 +92,6 @@ def test_run(forest):
             MEASURE(1, 1),
             MEASURE(2, 2)).wrap_in_numshots_loop(1000)
     )
-<<<<<<< HEAD
 
     assert bitstrings.shape == (1000, 3)
     parity = np.sum(bitstrings, axis=1) % 3
@@ -139,8 +138,6 @@ def test_run_pyqvm_noisy():
             MEASURE(1, 1),
             MEASURE(2, 2)).wrap_in_numshots_loop(1000)
     )
-=======
->>>>>>> origin/master
 
     assert bitstrings.shape == (1000, 3)
     parity = np.sum(bitstrings, axis=1) % 3
