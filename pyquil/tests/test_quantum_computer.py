@@ -5,6 +5,7 @@ import numpy as np
 import pytest
 
 from pyquil import Program, get_qc, list_quantum_computers
+from pyquil.gates import H
 from pyquil.api import QVM, QuantumComputer
 from pyquil.api._qac import AbstractCompiler
 from pyquil.api._quantum_computer import _get_flipped_protoquil_program, _parse_name
@@ -226,7 +227,7 @@ def test_parse_qc_no_prefix_2():
     assert prefix == ''
 
 
-def test_qc(qvm, compiler):
+def test_qc():
     qc = get_qc('9q-generic-noisy-qvm')
     assert isinstance(qc, QuantumComputer)
     assert isinstance(qc.qam, QVM)
@@ -234,11 +235,61 @@ def test_qc(qvm, compiler):
     assert qc.qubit_topology().number_of_nodes() == 9
     assert qc.qubit_topology().degree[0] == 2
     assert qc.qubit_topology().degree[4] == 4
+    assert str(qc) == "9q-generic-noisy-qvm"
 
+
+def test_qc_run(qvm, compiler):
+    qc = get_qc('9q-generic-noisy-qvm')
     bs = qc.run_and_measure(Program(X(0)), trials=3)
     assert len(bs) == 9
     for q, bits in bs.items():
         assert bits.shape == (3,)
+
+
+def test_qc_noisy():
+    qc = get_qc('', as_qvm=True, noisy=True)
+    assert isinstance(qc, QuantumComputer)
+
+
+def test_qc_compile():
+    qc = get_qc('', as_qvm=True, noisy=True)
+    qc.compiler = DummyCompiler()
+    prog = Program()
+    prog += H(0)
+    prog1 = qc.compile(prog)
+    assert prog1 == prog
+
+
+def test_qc_error():
+    # QVM is not a QPU
+    with pytest.raises(ValueError):
+        get_qc('9q-generic-noisy-qvm', as_qvm=False)
+
+    with pytest.raises(ValueError):
+        get_qc('', as_qvm=False)
+
+
+def test_qc_noisy():
+    qc = get_qc('', as_qvm=True, noisy=True)
+    assert isinstance(qc, QuantumComputer)
+
+
+def test_qc_compile():
+    qc = get_qc('', as_qvm=True, noisy=True)
+    qc.compiler = DummyCompiler()
+    prog = Program()
+    prog += H(0)
+    prog1 = qc.compile(prog)
+    assert prog1 == prog
+
+
+def test_qc_error():
+    # QVM is not a QPU
+    with pytest.raises(ValueError):
+        get_qc('9q-generic-noisy-qvm', as_qvm=False)
+
+    with pytest.raises(ValueError):
+        get_qc('', as_qvm=False)
 
 
 def test_fully_connected_qvm_qc():
