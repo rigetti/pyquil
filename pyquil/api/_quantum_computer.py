@@ -347,7 +347,7 @@ def _get_unrestricted_qvm(connection: ForestConnection, noisy: bool, n_qubits: i
     else:
         noise_model = None
 
-    return QuantumComputer(name='9q-generic-qvm',
+    return QuantumComputer(name='9q-generic-qvm', # TODO: fix
                            qam=QVM(connection=connection, noise_model=noise_model),
                            device=fully_connected_device,
                            compiler=_get_qvm_compiler_based_on_endpoint(
@@ -421,12 +421,17 @@ def get_qc(name: str, *, as_qvm: bool = None, noisy: bool = None,
 
     name, as_qvm, noisy = _parse_name(name, as_qvm, noisy)
 
-    if name == '':
-        if not as_qvm:
-            raise ValueError("Please name a valid device or run as a QVM")
-        return _get_unrestricted_qvm(connection=connection, noisy=noisy)
+    if name[-1] == 'q':
+        try:
+            n_qubits = int(name[:-1])
+            if not as_qvm:
+                raise ValueError("Please name a valid device or run as a QVM")
+            return _get_unrestricted_qvm(connection=connection, noisy=noisy, n_qubits=n_qubits)
+        except ValueError: # TODO: what goes here
+            pass
 
-    if name == '9q-generic':
+    if name == '9q-generic' or name == '9q-square':
+        # TODO: deprecate '9q-generic'
         if not as_qvm:
             raise ValueError("The device '9q-generic' is only available as a QVM")
         return _get_9q_generic_qvm(connection=connection, noisy=noisy)

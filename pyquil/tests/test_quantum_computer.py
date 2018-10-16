@@ -241,10 +241,11 @@ def test_qc(qvm, compiler):
         assert bits.shape == (3,)
 
 
-def test_fully_connected_qvm_qc():
-    qc = get_qc('qvm')
-    for q1, q2 in itertools.permutations(range(34), r=2):
-        assert (q1, q2) in qc.qubit_topology().edges
+def test_nq_qvm_qc():
+    for n_qubits in [2, 4, 7, 19]:
+        qc = get_qc(f'{n_qubits}q-qvm')
+        for q1, q2 in itertools.permutations(range(n_qubits), r=2):
+            assert (q1, q2) in qc.qubit_topology().edges
 
 
 def test_run_and_measure_concat(qvm, compiler):
