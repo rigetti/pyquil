@@ -246,6 +246,7 @@ def test_nq_qvm_qc():
         qc = get_qc(f'{n_qubits}q-qvm')
         for q1, q2 in itertools.permutations(range(n_qubits), r=2):
             assert (q1, q2) in qc.qubit_topology().edges
+        assert qc.name == f'{n_qubits}q-qvm'
 
 
 def test_run_and_measure_concat(qvm, compiler):

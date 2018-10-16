@@ -347,7 +347,7 @@ def _get_unrestricted_qvm(connection: ForestConnection, noisy: bool, n_qubits: i
     else:
         noise_model = None
 
-    return QuantumComputer(name='9q-generic-qvm', # TODO: fix
+    return QuantumComputer(name=f'{n_qubits}q-qvm',
                            qam=QVM(connection=connection, noise_model=noise_model),
                            device=fully_connected_device,
                            compiler=_get_qvm_compiler_based_on_endpoint(
