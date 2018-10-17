@@ -306,7 +306,7 @@ def _get_qvm_compiler_based_on_endpoint(endpoint: str = None,
         raise ValueError("Protocol for QVM compiler endpoints must be HTTP or TCP.")
 
 
-def _get_9q_generic_qvm(connection: ForestConnection, noisy: bool) -> QuantumComputer:
+def _get_9q_square_qvm(connection: ForestConnection, noisy: bool) -> QuantumComputer:
     """
     A nine-qubit 3x3 square lattice.
 
@@ -450,7 +450,7 @@ def get_qc(name: str, *, as_qvm: bool = None, noisy: bool = None,
 
         if not as_qvm:
             raise ValueError("The device '9q-square' is only available as a QVM")
-        return _get_9q_generic_qvm(connection=connection, noisy=noisy)
+        return _get_9q_square_qvm(connection=connection, noisy=noisy)
 
     device = get_lattice(name)
     if not as_qvm:
