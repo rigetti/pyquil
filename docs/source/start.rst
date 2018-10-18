@@ -271,7 +271,7 @@ an entangled state between qubits 0 and 1 (that's what the "CNOT" gate does). Ne
 .. code:: python
 
     # run the program on a QVM
-    qvm = get_qc('9q-generic-qvm')
+    qvm = get_qc('9q-square-qvm')
     result = qvm.run_and_measure(p, trials=10)
     print(result)
 
@@ -612,7 +612,7 @@ can be changed to
     from pyquil.api import get_qc
 
     def setup_forest_objects():
-        qc = get_qc("9q-generic-qvm")
+        qc = get_qc("9q-square-qvm")
         return qc
 
 and the references to ``qvm`` in the main body are changed to ``qc`` instead. Since the ``QuantumComputer`` object also
@@ -721,7 +721,7 @@ Overall, the resulting program looks like this:
 
 
     def setup_forest_objects():
-        qc = get_qc("9q-generic-qvm")
+        qc = get_qc("9q-square-qvm")
         return qc
 
 
