@@ -78,6 +78,7 @@ Contents
    exercises
    changes
    intro
+   Migration
 
 .. toctree::
    :maxdepth: 1
