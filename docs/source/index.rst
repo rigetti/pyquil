@@ -79,6 +79,7 @@ Contents
    changes
    intro
    Migration
+   Migration2
 
 .. toctree::
    :maxdepth: 1
