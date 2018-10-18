@@ -28,7 +28,7 @@ using the instance method ``.compile()``, as in the following:
     from pyquil.api import get_qc
     from pyquil.gates import CNOT, H
 
-    qc = get_qc("9q-generic-qvm")
+    qc = get_qc("9q-square-qvm")
 
     ep = qc.compile(Program(H(0), CNOT(0,1), CNOT(1,2)))
 
@@ -79,7 +79,7 @@ the previous example snippet is identical to the following:
     from pyquil.api import get_qc
     from pyquil.gates import CNOT, H
 
-    qc = get_qc("9q-generic-qvm")
+    qc = get_qc("9q-square-qvm")
 
     p = Program(H(0), CNOT(0,1), CNOT(1,2))
     np = qc.compiler.quil_to_native_quil(p)

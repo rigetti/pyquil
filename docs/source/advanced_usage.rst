@@ -23,7 +23,7 @@ background.
 
     from pyquil import Program, get_qc
     from pyquil.gates import *
-    qvm = get_qc('9q-generic-qvm')
+    qvm = get_qc('9q-square-qvm')
 
 
 Now that our local endpoints are up and running, we can start running pyQuil programs! Open a jupyter notebook (type
