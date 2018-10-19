@@ -59,7 +59,7 @@ program on the Quantum Virtual Machine, or QVM:
 
 .. code:: python
 
-    qvm = get_qc('9q-generic-qvm')
+    qvm = get_qc('9q-square-qvm')
     result = qvm.run_and_measure(p, trials=10)
     print(result)
 
