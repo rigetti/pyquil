@@ -23,7 +23,7 @@ from pyquil import gates
 from pyquil.quil import Program
 from pyquil.quilatom import Addr
 
-_program_context = ContextVar('program')
+_program_context: ContextVar[Program] = ContextVar('program')
 
 
 def program_context() -> Program:

@@ -15,6 +15,7 @@ pytest
 requests-mock
 flake8
 tox
+mypy
 
 # docs
 sphinx
