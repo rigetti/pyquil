@@ -83,8 +83,8 @@ def _collect_classical_memory_write_locations(program: Program) -> List[Optional
             ro_size = instr.memory_size
             break
 
-    measures_by_qubit = Counter()
-    ro_sources: Dict[int, int] = {}
+    measures_by_qubit: Dict[int, int]  = Counter()
+    ro_sources: Dict[int, Tuple[int, int]] = {}
 
     for instr in program:
         if isinstance(instr, Measurement):
