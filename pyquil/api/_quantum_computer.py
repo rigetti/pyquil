@@ -16,7 +16,9 @@
 import re
 import warnings
 from math import pi
-from typing import List, Dict, Tuple
+from typing import List, Dict, Tuple, Iterator
+import subprocess
+from contextlib import contextmanager
 
 import networkx as nx
 import numpy as np
@@ -474,3 +476,48 @@ def get_qc(name: str, *, as_qvm: bool = None, noisy: bool = None,
                            compiler=_get_qvm_compiler_based_on_endpoint(
                                device=device,
                                endpoint=connection.compiler_endpoint))
+
+
+@contextmanager
+def local_qvm() -> Iterator[Tuple[subprocess.Popen, subprocess.Popen]]:
+    """A context manager for the Rigetti local QVM and QUIL compiler.
+
+    You must first have installed the `qvm` and `quilc` executables from
+    the forest SDK. [https://www.rigetti.com/forest]
+
+    This context manager will start up external processes for both the
+    compiler and virtual machine, and then terminate them when the context
+    is exited.
+
+    If `qvm` (or `quilc`) is already running, then the existing process will
+    be used, and will not terminated at exit.
+
+    >>> from pyquil import get_qc, Program
+    >>> from pyquil.gates import CNOT, Z
+    >>> from pyquil.api import local_qvm
+    >>>
+    >>> qvm = get_qc('9q-generic-qvm')
+    >>> prog = Program(Z(0), CNOT(0, 1))
+    >>>
+    >>> with local_qvm():
+    >>>     results = qvm.run_and_measure(prog, trials=10)
+
+    :raises: FileNotFoundError: If either executable is not installed.
+    """
+    # Enter. Acquire resource
+    qvm = subprocess.Popen(['qvm', '-S'],
+                           stdout=subprocess.PIPE,
+                           stderr=subprocess.PIPE)
+
+    quilc = subprocess.Popen(['quilc', '-S'],
+                             stdout=subprocess.PIPE,
+                             stderr=subprocess.PIPE)
+
+    # Return context
+    try:
+        yield (qvm, quilc)
+
+    finally:
+        # Exit. Release resource
+        qvm.terminate()
+        quilc.terminate()

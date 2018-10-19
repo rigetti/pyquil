@@ -31,7 +31,7 @@ from pyquil.api._error_reporting import pyquil_protect
 from pyquil.api._job import Job
 from pyquil.api._qam import QAM
 from pyquil.api._qpu import get_devices, QPU
-from pyquil.api._quantum_computer import QuantumComputer, list_quantum_computers, get_qc
+from pyquil.api._quantum_computer import QuantumComputer, list_quantum_computers, get_qc, local_qvm
 from pyquil.api._qvm import QVMConnection, QVM
 from pyquil.api._wavefunction_simulator import WavefunctionSimulator
 from pyquil.device import Device
