@@ -1031,7 +1031,7 @@ def test_validate_protoquil_measure_last():
     assert not prog.is_protoquil()
 
 
-def test_validate_valid_protoquil():
+def test_validate_protoquil_with_pragma():
     prog = Program(
         RESET(),
         H(1),
@@ -1039,3 +1039,80 @@ def test_validate_valid_protoquil():
         MEASURE(1)
     )
     assert prog.is_protoquil()
+
+
+def test_validate_protoquil_suite():
+    validate_protoquil(Program("""
+RESET
+DECLARE ro BIT[3]
+RX(-pi/4) 2
+RZ(4*pi) 3
+I 0
+CZ 2 3
+MEASURE 2 ro[2]
+MEASURE 3 ro[3]
+"""))
+
+    validate_protoquil(Program("""
+RESET
+DECLARE ro BIT[3]
+RX(-pi/4) 2
+RZ(4*pi) 3
+I 0
+CZ 2 3
+MEASURE 2 ro[2]
+MEASURE 3 ro[3]
+HALT
+"""))
+    validate_protoquil(Program("""
+RESET
+DECLARE ro BIT[3]
+RX(-pi/4) 2
+RZ(4*pi) 3
+I 0
+MEASURE 0
+CZ 2 3
+MEASURE 2 ro[2]
+X 3
+MEASURE 3 ro[3]
+HALT
+"""))
+
+    with pytest.raises(ValueError):
+        validate_protoquil(Program("""
+RESET
+DECLARE ro BIT[3]
+RX(-pi/4) 2
+RZ(4*pi) 3
+RESET
+I 0
+CZ 2 3
+MEASURE 2 ro[2]
+MEASURE 3 ro[3]
+"""))
+
+    with pytest.raises(ValueError):
+        validate_protoquil(Program("""
+RESET
+DECLARE ro BIT[3]
+RX(-pi/4) 2
+RZ(4*pi) 3
+MEASURE 2
+I 0
+CZ 2 3
+MEASURE 2 ro[2]
+MEASURE 3 ro[3]
+"""))
+
+    with pytest.raises(ValueError):
+        validate_protoquil(Program("""
+RESET
+DECLARE ro BIT[3]
+RX(-pi/4) 2
+RZ(4*pi) 3
+HALT
+I 0
+CZ 2 3
+MEASURE 2 ro[2]
+MEASURE 3 ro[3]
+"""))

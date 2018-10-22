@@ -997,7 +997,7 @@ def validate_protoquil(program: Program) -> None:
     halted = False
     measured_qubits = set()
     for instr in program.instructions:
-        if isinstance(instr, Pragma):
+        if isinstance(instr, Pragma) or isinstance(instr, Declare):
             continue
         elif isinstance(instr, Halt):
             halted = True
