@@ -371,6 +371,12 @@ def mock_rb_cxn(request, m_endpoints):
     return BenchmarkConnection(endpoint=m_endpoints[0])
 
 
+def test_get_version_info(server, mock_compiler: QPUCompiler):
+    response = mock_compiler.get_version_info()
+    assert isinstance(response, dict)
+    assert 'compiler_server' in response
+
+
 def test_quil_to_native_quil(server, mock_compiler):
     response = mock_compiler.quil_to_native_quil(BELL_STATE)
     assert response.out() == COMPILED_BELL_STATE.out()

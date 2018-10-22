@@ -14,6 +14,9 @@ from pyquil.noise import decoherence_noise_with_asymmetric_ro
 
 
 class DummyCompiler(AbstractCompiler):
+    def get_version_info(self):
+        return {}
+
     def quil_to_native_quil(self, program: Program):
         return program
 
