@@ -1,8 +1,12 @@
+
+import shutil
+
 import numpy as np
 import pytest
 from requests import RequestException
 
-from pyquil.api import QVMConnection, LocalQVMCompiler, ForestConnection, get_benchmarker
+from pyquil.api import (QVMConnection, LocalQVMCompiler, ForestConnection,
+                        get_benchmarker, local_qvm)
 from pyquil.api._config import PyquilConfig
 from pyquil.api._errors import UnknownApiError
 from pyquil.device import Device
@@ -163,3 +167,14 @@ def benchmarker():
     except RequestException as e:
         return pytest.skip("This test requires a running local benchmarker endpoint (ie quilc): {}"
                            .format(e))
+
+
+@pytest.fixture(scope='session')
+def local_qvm_quilc():
+    """Execute test with local qvm and quilc running"""
+    if shutil.which('qvm') is None or shutil.which('quilc') is None:
+        return pytest.skip("This test requires 'qvm' and 'quilc' "
+                           "executables to be installed locally.")
+
+    with local_qvm() as context:
+        yield context

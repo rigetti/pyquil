@@ -5,7 +5,7 @@ import numpy as np
 import pytest
 
 from pyquil import Program, get_qc, list_quantum_computers
-from pyquil.api import QVM, QuantumComputer
+from pyquil.api import QVM, QuantumComputer, local_qvm
 from pyquil.api._qac import AbstractCompiler
 from pyquil.api._quantum_computer import _get_flipped_protoquil_program, _parse_name
 from pyquil.device import NxDevice, gates_in_isa
@@ -276,12 +276,21 @@ def test_qc_error():
         get_qc('5q', as_qvm=False)
 
 
-def test_run_and_measure_concat(qvm, compiler):
+def test_run_and_measure(local_qvm_quilc):
     qc = get_qc("9q-generic-qvm")
     prog = Program(I(8))
     trials = 11
-    # note to devs: this is included as an example in the run_and_measure docstrings
-    # so if you change it here ... change it there!
-    bitstrings = qc.run_and_measure(prog, trials)
+    with local_qvm():   # Redundant with test fixture.
+        bitstrings = qc.run_and_measure(prog, trials)
     bitstring_array = np.vstack(bitstrings[q] for q in sorted(qc.qubits())).T
     assert bitstring_array.shape == (trials, len(qc.qubits()))
+
+
+def test_run_symmetrized_readout_error(local_qvm_quilc):
+    qc = get_qc("9q-generic-qvm")
+    trials = 11
+    prog = Program(I(8))
+
+    # Trials not even
+    with pytest.raises(ValueError):
+        bitstrings = qc.run_symmetrized_readout(prog, trials)
