@@ -80,6 +80,7 @@ Contents
    intro
    Migration
    Migration2
+   Migration3
 
 .. toctree::
    :maxdepth: 1
