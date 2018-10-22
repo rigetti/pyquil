@@ -485,9 +485,6 @@ class NxDevice(AbstractDevice):
     def __init__(self, topology: nx.Graph) -> None:
         self.topology = topology
 
-    def qubits(self):
-        return sorted(self.topology.nodes)
-
     def qubit_topology(self):
         return self.topology
 
