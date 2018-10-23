@@ -13,38 +13,97 @@
 #    See the License for the specific language governing permissions and
 #    limitations under the License.
 ##############################################################################
-from pyquil.api._base_connection import get_session, get_json
+from pyquil.api._base_connection import get_session, get_json, ForestConnection
 from pyquil.api._config import PyquilConfig
 from pyquil.device import Device
+from pyquil.api._errors import UnknownApiError
 
 
 def list_devices():
     """
-    Query the Forest 2.0 server for its knowledge of QPUs.
+    Query the Forest 2.0 server for a list of underlying QPU devices.
 
-    :return: A dictionary, keyed on device names. Each value is a dictionary of the form
-    {
-        "is_online":   a boolean indicating the availability of the device,
-        "is_retuning": a boolean indicating whether the device is busy retuning,
-        "specs":       a Specs object describing the entire device, serialized as a dictionary,
-        "isa":         an ISA object describing the entire device, serialized as a dictionary,
-        "noise_model": a NoiseModel object describing the entire device, serialized as a dictionary
-    }
+    NOTE: These can't directly be used to manufacture pyQuil Device objects, but this gives a list
+          of legal values that can be supplied to list_lattices to filter its (potentially very
+          noisy) output.
+
+    :return: A list of device names.
     """
+    # For the record, the dictionary stored in "devices" that we're getting back is keyed on device
+    # names and has this structure in its values:
+    #
+    # {
+    #   "is_online":   a boolean indicating the availability of the device,
+    #   "is_retuning": a boolean indicating whether the device is busy retuning,
+    #   "specs":       a Specs object describing the entire device, serialized as a dictionary,
+    #   "isa":         an ISA object describing the entire device, serialized as a dictionary,
+    #   "noise_model": a NoiseModel object describing the entire device, serialized as a dictionary
+    # }
+
     session = get_session()
     config = PyquilConfig()
 
-    return get_json(session, config.forest_url + "/devices")["devices"]
+    return sorted(get_json(session, config.forest_url + "/devices")["devices"].keys())
 
 
-def get_device(name: str):
+def list_lattices(device_name: str = None, num_qubits: int = None,
+                  connection: ForestConnection = None):
     """
-    Construct a Device object from a QCS-available device.
+    Query the Forest 2.0 server for its knowledge of lattices.  Optionally filters by underlying
+    device name and lattice qubit count.
 
-    :param name: Name of the desired device.
-    :return: A Device object.
+    :return: A dictionary keyed on lattice names and valued in dictionaries of the form
+             {
+               "device_name": device_name,
+               "qubits": num_qubits
+             }
     """
-    raise NotImplementedError('QPU devices will be available at a later date, please use the QVM')
+    if connection and connection.session:
+        session = connection.session
+    else:
+        session = get_session()
+
+    if connection:
+        url = connection.sync_endpoint + "/lattices"
+    else:
+        config = PyquilConfig()
+        url = config.forest_url + "/lattices",
+
+    try:
+        response = get_json(session, url,
+                            params={"device_name": device_name,
+                                    "num_qubits": num_qubits})
+
+        return response["lattices"]
+    except Exception as e:
+        raise ValueError("""
+        list_lattices encountered an error when querying the Forest 2.0 endpoint.
+
+        Some common causes for this error include:
+
+        * You don't have valid user authentication information.  Very likely this is because you
+          haven't yet been invited to try QCS.  We plan on making our device information publicly
+          accessible soon, but in the meanwhile, you'll have to use default QVM configurations and
+          to use `list_quantum_computers` with `qpus = False`.
+
+        * You do have user authentication information, but it is missing or modified.  You can find
+          this either in the environment variables FOREST_API_KEY and FOREST_USER_ID or in the
+          config file (stored by default at ~/.qcs_config, but with location settable through the
+          environment variable QCS_CONFIG), which contains the subsection
+
+          [Rigetti Forest]
+          user_id = your_user_id
+          key = your_api_key
+
+        * You're missing an address for the Forest 2.0 server endpoint, or the address is invalid.
+          This too can be set through the environment variable FOREST_URL or by changing the
+          following lines in the QCS config file:
+
+          [Rigetti Forest]
+          url = https://rigetti.com/valid/forest/url
+
+        For the record, here's the original exception: {}
+        """.format(repr(e)))
 
 
 def get_lattice(lattice_name: str = None):

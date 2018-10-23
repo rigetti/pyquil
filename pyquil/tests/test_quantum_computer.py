@@ -126,9 +126,9 @@ def test_readout_symmetrization(forest):
 
 
 def test_list_qc():
-    qc_names = list_quantum_computers()
+    qc_names = list_quantum_computers(qpus=False)
     # TODO: update with deployed qpus
-    assert qc_names == ['9q-generic-qvm', '9q-generic-noisy-qvm']
+    assert qc_names == ['9q-square-qvm', '9q-square-noisy-qvm']
 
 
 def test_parse_qc_name():

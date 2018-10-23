@@ -26,27 +26,6 @@ from pyquil.api._error_reporting import _record_call
 DEVICES_ENDPOINT = 'todo'
 
 
-def get_devices(async_endpoint=DEVICES_ENDPOINT):
-    """
-    Get a list of currently available devices. The arguments for this method are the same as those
-    for QPUConnection.
-
-    Note that this method will only work for accounts that have QPU access.
-
-    :return: Set or Dictionary (keyed by device name) of all available devices.
-    :rtype: Set|Dict
-    """
-    # TODO: implement
-    return {}
-
-    # session = get_session()
-    # response = session.get(async_endpoint + '/devices')
-    # if response.status_code >= 400:
-    #     raise parse_error(response)
-    #
-    # return {name: Device(name, device) for (name, device) in response.json()['devices'].items()}
-
-
 def decode_buffer(buffer: dict) -> np.ndarray:
     """
     Translate a DataBuffer into a numpy array.
