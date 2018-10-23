@@ -27,7 +27,7 @@ from pyquil.gates import I, X, Y, Z, H, T, S, RX, RY, RZ, CNOT, CCNOT, PHASE, CP
 from pyquil.parameters import Parameter, quil_sin, quil_cos
 from pyquil.paulis import exponential_map, sZ
 from pyquil.quil import Program, merge_programs, merge_with_pauli_noise, address_qubits, \
-    get_classical_addresses_from_program, Pragma
+    get_classical_addresses_from_program, Pragma, validate_protoquil
 from pyquil.quilatom import QubitPlaceholder, Addr, MemoryReference
 from pyquil.quilbase import DefGate, Gate, Qubit, JumpWhen, Declare
 from pyquil.tests.utils import parse_equals
@@ -1000,3 +1000,119 @@ def test_measure_all_noncontig():
         'MEASURE 10 ro[10]',
         '',
     ])
+
+
+def test_validate_protoquil_reset_first():
+    prog = Program(
+        H(0),
+        RESET(),
+    )
+    with pytest.raises(ValueError):
+        validate_protoquil(prog)
+    assert not prog.is_protoquil()
+
+
+def test_validate_protoquil_reset_qubit():
+    prog = Program(
+        RESET(2),
+    )
+    with pytest.raises(ValueError):
+        validate_protoquil(prog)
+    assert not prog.is_protoquil()
+
+
+def test_validate_protoquil_measure_last():
+    prog = Program(
+        MEASURE(0),
+        H(0),
+    )
+    with pytest.raises(ValueError):
+        validate_protoquil(prog)
+    assert not prog.is_protoquil()
+
+
+def test_validate_protoquil_with_pragma():
+    prog = Program(
+        RESET(),
+        H(1),
+        Pragma('DELAY'),
+        MEASURE(1)
+    )
+    assert prog.is_protoquil()
+
+
+def test_validate_protoquil_suite():
+    validate_protoquil(Program("""
+RESET
+DECLARE ro BIT[3]
+RX(-pi/4) 2
+RZ(4*pi) 3
+I 0
+CZ 2 3
+MEASURE 2 ro[2]
+MEASURE 3 ro[3]
+"""))
+
+    validate_protoquil(Program("""
+RESET
+DECLARE ro BIT[3]
+RX(-pi/4) 2
+RZ(4*pi) 3
+I 0
+CZ 2 3
+MEASURE 2 ro[2]
+MEASURE 3 ro[3]
+HALT
+"""))
+    validate_protoquil(Program("""
+RESET
+DECLARE ro BIT[3]
+RX(-pi/4) 2
+RZ(4*pi) 3
+I 0
+MEASURE 0
+CZ 2 3
+MEASURE 2 ro[2]
+X 3
+MEASURE 3 ro[3]
+HALT
+"""))
+
+    with pytest.raises(ValueError):
+        validate_protoquil(Program("""
+RESET
+DECLARE ro BIT[3]
+RX(-pi/4) 2
+RZ(4*pi) 3
+RESET
+I 0
+CZ 2 3
+MEASURE 2 ro[2]
+MEASURE 3 ro[3]
+"""))
+
+    with pytest.raises(ValueError):
+        validate_protoquil(Program("""
+RESET
+DECLARE ro BIT[3]
+RX(-pi/4) 2
+RZ(4*pi) 3
+MEASURE 2
+I 0
+CZ 2 3
+MEASURE 2 ro[2]
+MEASURE 3 ro[3]
+"""))
+
+    with pytest.raises(ValueError):
+        validate_protoquil(Program("""
+RESET
+DECLARE ro BIT[3]
+RX(-pi/4) 2
+RZ(4*pi) 3
+HALT
+I 0
+CZ 2 3
+MEASURE 2 ro[2]
+MEASURE 3 ro[3]
+"""))
