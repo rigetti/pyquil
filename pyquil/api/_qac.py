@@ -44,7 +44,7 @@ class AbstractCompiler(ABC):
 class AbstractBenchmarker(ABC):
     @abstractmethod
     def apply_clifford_to_pauli(self, clifford: Program, pauli_in: PauliTerm) -> PauliTerm:
-        """
+        r"""
         Given a circuit that consists only of elements of the Clifford group,
         return its action on a PauliTerm.
 

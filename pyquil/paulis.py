@@ -61,8 +61,8 @@ can't use np.isclose() for hashing terms though.
 
 
 def _valid_qubit(index):
-    return ((isinstance(index, integer_types) and index >= 0) or
-            isinstance(index, QubitPlaceholder))
+    return ((isinstance(index, integer_types) and index >= 0)
+            or isinstance(index, QubitPlaceholder))
 
 
 class PauliTerm(object):
@@ -125,8 +125,8 @@ class PauliTerm(object):
         elif isinstance(other, PauliSum):
             return other == self
         else:
-            return (self.operations_as_set() == other.operations_as_set() and
-                    np.isclose(self.coefficient, other.coefficient))
+            return (self.operations_as_set() == other.operations_as_set()
+                    and np.isclose(self.coefficient, other.coefficient))
 
     def __hash__(self):
         return hash((
@@ -445,8 +445,8 @@ class PauliSum(object):
         """
         :param Sequence terms: A Sequence of PauliTerms.
         """
-        if not (isinstance(terms, Sequence) and
-                all([isinstance(term, PauliTerm) for term in terms])):
+        if not (isinstance(terms, Sequence)
+                and all([isinstance(term, PauliTerm) for term in terms])):
             raise ValueError("PauliSum's are currently constructed from Sequences of PauliTerms.")
         if len(terms) == 0:
             self.terms = [0.0 * ID()]

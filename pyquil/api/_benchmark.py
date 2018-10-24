@@ -43,7 +43,7 @@ class BenchmarkConnection(AbstractBenchmarker):
 
     @_record_call
     def apply_clifford_to_pauli(self, clifford, pauli_in):
-        """
+        r"""
         Given a circuit that consists only of elements of the Clifford group,
         return its action on a PauliTerm.
 
@@ -149,7 +149,7 @@ class LocalBenchmarkConnection(AbstractBenchmarker):
 
     @_record_call
     def apply_clifford_to_pauli(self, clifford, pauli_in):
-        """
+        r"""
         Given a circuit that consists only of elements of the Clifford group,
         return its action on a PauliTerm.
 
