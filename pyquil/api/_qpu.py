@@ -45,9 +45,9 @@ def _extract_bitstrings(ro_sources: List[Optional[Tuple[int, int]]],
 
     :param ro_sources: Specification of the ro_sources, cf
         :py:func:`pyquil.api._compiler._collect_classical_memory_write_locations`.
-        It is a list whose value `(q, m)` at index `addr` records that the `m`-th measurement of
-        qubit `q` was measured into `ro` address `addr`. A value of `None` means nothing was
-        measured into `ro` address `addr`.
+        It is a list whose value ``(q, m)`` at index ``addr`` records that the ``m``-th measurement
+        of qubit ``q`` was measured into ``ro`` address ``addr``. A value of `None` means nothing
+        was measured into ``ro`` address ``addr``.
     :param buffers: A dictionary of readout results returned from the qpu.
     :return: A numpy array of shape ``(num_shots, len(ro_sources))`` with the readout bits.
     """
