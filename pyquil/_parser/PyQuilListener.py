@@ -80,8 +80,8 @@ class CustomErrorListener(ErrorListener):
         expected_tokens = self.get_expected_tokens(recognizer, e.getExpectedTokens()) if e else []
 
         raise RuntimeError(
-            "Error encountered while parsing the quil program at line {} and column {}\n".format(line, column + 1) +
-            "Received an '{}' but was expecting one of [ {} ]".format(offendingSymbol.text, ', '.join(expected_tokens))
+            "Error encountered while parsing the quil program at line {} and column {}\n".format(line, column + 1)
+            + "Received an '{}' but was expecting one of [ {} ]".format(offendingSymbol.text, ', '.join(expected_tokens))
         )
 
     def get_expected_tokens(self, parser, interval_set):

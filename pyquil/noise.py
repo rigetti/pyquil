@@ -667,8 +667,8 @@ def _apply_local_transforms(p, ts):
         # 'ij,abcd...jklm...->abcd...iklm...' so it properly applies a "local"
         # transformation to a single tensor-index without changing the order of
         # indices
-        einsum_pat = ('ij,' + _CHARS[:idx] + 'j' + _CHARS[idx:nq - 1] +
-                      '->' + _CHARS[:idx] + 'i' + _CHARS[idx:nq - 1])
+        einsum_pat = ('ij,' + _CHARS[:idx] + 'j' + _CHARS[idx:nq - 1]
+                      + '->' + _CHARS[:idx] + 'i' + _CHARS[idx:nq - 1])
         p_corrected = np.einsum(einsum_pat, trafo_idx, p_corrected)
 
     return p_corrected
