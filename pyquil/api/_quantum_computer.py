@@ -26,7 +26,7 @@ from rpcq.messages import BinaryExecutableResponse, Message
 
 from pyquil.api._compiler import QVMCompiler, QPUCompiler, LocalQVMCompiler
 from pyquil.api._config import PyquilConfig
-from pyquil.api._devices import get_device, get_lattice
+from pyquil.api._devices import get_lattice, list_lattices
 from pyquil.api._error_reporting import _record_call
 from pyquil.api._qac import AbstractCompiler
 from pyquil.api._qam import QAM
@@ -244,16 +244,14 @@ def list_quantum_computers(connection: ForestConnection = None,
     :param qvms: Whether to include QVM's in the list.
     """
     if connection is None:
-        # TODO: Use this to list devices?
         connection = ForestConnection()
 
     qc_names: List[str] = []
     if qpus:
-        # TODO: add deployed QPUs from web endpoint
-        pass
+        qc_names += list(list_lattices(connection=connection).keys())
 
     if qvms:
-        qc_names += ['9q-generic-qvm', '9q-generic-noisy-qvm']
+        qc_names += ['9q-square-qvm', '9q-square-noisy-qvm']
 
     return qc_names
 
