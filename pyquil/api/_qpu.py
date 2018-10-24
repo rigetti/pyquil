@@ -54,7 +54,7 @@ def _extract_bitstrings(ro_sources: List[Optional[Tuple[int, int]]],
     # hack to extract num_shots indirectly from the shape of the returned data
     first, *rest = buffers.values()
     num_shots = first.shape[0]
-    bitstrings = np.zeros((num_shots, len(ro_sources)))
+    bitstrings = np.zeros((num_shots, len(ro_sources)), dtype=np.int64)
     for col_idx, src in enumerate(ro_sources):
         if src:
             qubit, meas_idx = src
