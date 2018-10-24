@@ -427,13 +427,9 @@ To read more about supplying noise to the QVM, see http://pyquil.readthedocs.io/
 
         :param executable: An executable. See the above note for acceptable types.
         """
-        assert self.status in ['connected', 'done']
-
-        self._variables_shim = {}
-        self._bitstrings = None
         if self.requires_executable:
             if isinstance(executable, PyQuilExecutableResponse):
-                self._executable = _extract_program_from_pyquil_executable_response(executable)
+                executable = _extract_program_from_pyquil_executable_response(executable)
             else:
                 raise TypeError("`executable` argument must be a `PyQuilExecutableResponse`. Make "
                                 "sure you have explicitly compiled your program via `qc.compile` "
@@ -442,15 +438,14 @@ To read more about supplying noise to the QVM, see http://pyquil.readthedocs.io/
                                 "on a QPU.")
         else:
             if isinstance(executable, PyQuilExecutableResponse):
-                self._executable = _extract_program_from_pyquil_executable_response(executable)
+                executable = _extract_program_from_pyquil_executable_response(executable)
             elif isinstance(executable, Program):
-                self._executable = executable
+                pass
             else:
                 raise TypeError("`executable` argument must be a `PyQuilExecutableResponse` or a "
                                 "`Program`. You provided {}".format(type(executable)))
 
-        self.status = 'loaded'
-        return self
+        return super().load(executable)
 
     @_record_call
     def run(self):
