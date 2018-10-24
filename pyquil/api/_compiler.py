@@ -137,6 +137,9 @@ class QPUCompiler(AbstractCompiler):
         self.target_device = TargetDevice(isa=device.get_isa().to_dict(),
                                           specs=device.get_specs().to_dict())
 
+    def get_version_info(self) -> dict:
+        return self.client.call('get_version_info')
+
     @_record_call
     def quil_to_native_quil(self, program: Program) -> Program:
         request = NativeQuilRequest(quil=program.out(), target_device=self.target_device)
@@ -177,6 +180,9 @@ class QVMCompiler(AbstractCompiler):
         self.target_device = TargetDevice(isa=device.get_isa().to_dict(),
                                           specs=device.get_specs().to_dict())
 
+    def get_version_info(self) -> dict:
+        return self.client.call('get_version_info')
+
     @_record_call
     def quil_to_native_quil(self, program: Program) -> Program:
         request = NativeQuilRequest(quil=program.out(), target_device=self.target_device)
@@ -207,6 +213,9 @@ class LocalQVMCompiler(AbstractCompiler):
 
         self._connection = ForestConnection(sync_endpoint=endpoint)
         self.session = self._connection.session  # backwards compatibility
+
+    def get_version_info(self) -> dict:
+        return self._connection._quilc_get_version_info()
 
     def quil_to_native_quil(self, program: Program) -> Program:
         response = self._connection._quilc_compile(program, self.isa, self.specs)

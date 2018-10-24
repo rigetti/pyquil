@@ -51,6 +51,14 @@ class QPU(QAM):
         self.user = user
         self._last_results: Dict[str, np.ndarray] = {}
 
+    def get_version_info(self) -> dict:
+        """
+        Return version information for this QPU's execution engine and its dependencies.
+
+        :return: Dictionary of version information.
+        """
+        return self.client.call('get_version_info')
+
     @_record_call
     def run(self):
         """
