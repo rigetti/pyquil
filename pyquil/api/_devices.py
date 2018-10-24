@@ -67,7 +67,17 @@ def list_lattices(device_name: str = None, num_qubits: int = None,
         url = connection.sync_endpoint + "/lattices"
     else:
         config = PyquilConfig()
-        url = config.forest_url + "/lattices",
+        try:
+            url = config.forest_url + "/lattices"
+        except TypeError:
+            raise ValueError("""Encountered an error when querying the Forest 2.0 endpoint.
+
+    Most likely, you're missing an address for the Forest 2.0 server endpoint. This can
+    be set through the environment variable FOREST_URL or by changing the following lines
+    in the QCS config file:
+
+      [Rigetti Forest]
+      url = https://rigetti.com/valid/forest/url""")
 
     try:
         response = get_json(session, url,
@@ -132,8 +142,20 @@ def _get_raw_lattice_data(lattice_name: str = None):
     }
     """
     from pyquil.api._base_connection import get_session, get_json
+    from requests.exceptions import MissingSchema
     session = get_session()
     config = PyquilConfig()
 
-    res = get_json(session, f"{config.forest_url}/lattices/{lattice_name}")
+    try:
+        res = get_json(session, f"{config.forest_url}/lattices/{lattice_name}")
+    except MissingSchema:
+        raise ValueError(f"Error finding lattice `{lattice_name}` at Forest 2.0 server "
+                         f"""endpoint `{config.forest_url}`.
+
+    Most likely, you're missing an address for the Forest 2.0 server endpoint, or the
+    address is invalid. This can be set through the environment variable FOREST_URL or
+    by changing the following lines in the QCS config file (by default, at ~/.qcs_config):
+
+      [Rigetti Forest]
+      url = https://rigetti.com/valid/forest/url""")
     return res["lattice"]
