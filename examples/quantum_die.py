@@ -18,8 +18,8 @@
 
 import math
 from functools import reduce
-import pyquil.quil as pq
-from pyquil import api
+import pyquil
+from pyquil import Program, get_qc
 from pyquil.gates import H
 from six.moves import range
 
@@ -30,14 +30,22 @@ def qubits_needed(n):
     """
     return int(math.ceil(math.log(n, 2)))
 
+def qvm(n):
+    """
+    Connect to a QVM that simulates n sides.
+    """
+    if qubits_needed(n) == 9:
+        return qvm = get_qc('9q-square-qvm')
+    else:
+        return qvm = get_qc('%(qubits)dq-qvm' % {"qubits": qubits_needed(n)})
 
 def die_program(n):
     """
     Generate a quantum program to roll a die of n faces.
     """
-    prog = pq.Program()
-    ro = prog.declare('ro')
+    prog = Program()
     qubits = qubits_needed(n)
+    ro = prog.declare('ro', 'BIT', qubits)
     # Hadamard initialize.
     for q in range(qubits):
         prog.inst(H(q))
@@ -49,7 +57,7 @@ def die_program(n):
 
 def process_result(r):
     """
-    Convert a list of measurements to a die value.
+    Roll an n-sided quantum die.
     """
     return reduce(lambda s, x: 2 * s + x, r, 0)
 
@@ -61,7 +69,7 @@ qvm = api.QVMConnection()
 
 def roll_die(n):
     """
-    Roll an n-sided quantum die.
+    Convert a list of measurements to a die value.
     """
     addresses = list(range(qubits_needed(n)))
     if n not in dice:
@@ -74,7 +82,6 @@ def roll_die(n):
             x = process_result(r) + 1
             if 0 < x <= n:
                 return x
-
 
 if __name__ == '__main__':
     number_of_sides = int(input("Please enter number of sides: "))
