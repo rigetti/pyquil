@@ -76,6 +76,7 @@ MEASURE 3 ro[5]
     }
 
     bitstrings = QPU._extract_bitstrings(ro_sources, buffers=buffers)
+    assert bitstrings.dtype == np.int64
     assert np.allclose(bitstrings[:, 0], buffers["q0"][:, 0])
     assert np.allclose(bitstrings[:, 1], buffers["q1"][:, 0])
     assert np.allclose(bitstrings[:, 2], buffers["q0"][:, 1])
