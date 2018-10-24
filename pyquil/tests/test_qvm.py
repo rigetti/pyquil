@@ -82,4 +82,3 @@ def test_qvm_version(forest: ForestConnection):
 
     assert is_a_version_string(version_info['qvm-app'])
     assert is_a_version_string(version_info['qvm-lib'])
-
