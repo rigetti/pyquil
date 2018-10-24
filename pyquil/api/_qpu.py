@@ -72,6 +72,9 @@ class QPU(QAM):
         self.user = user
         self._last_results: Dict[str, np.ndarray] = {}
 
+    def get_version_info(self) -> dict:
+        return self.client.call('get_version_info')
+
     @_record_call
     def run(self):
         """
