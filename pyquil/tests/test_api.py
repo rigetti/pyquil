@@ -309,6 +309,12 @@ mock_compiler_server = Server()
 
 
 @mock_compiler_server.rpc_handler
+def get_version_info() -> dict:
+    time.sleep(0.1)
+    return {'compiler_server': '1.0.0'}
+
+
+@mock_compiler_server.rpc_handler
 def quil_to_native_quil(payload: NativeQuilRequest) -> NativeQuilResponse:
     assert payload.quil == BELL_STATE.out()
     time.sleep(0.1)
