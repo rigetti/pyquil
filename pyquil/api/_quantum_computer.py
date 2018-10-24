@@ -16,13 +16,13 @@
 import re
 import warnings
 from math import pi
-from typing import List, Dict, Tuple, Iterator
+from typing import List, Dict, Tuple, Iterator, Union
 import subprocess
 from contextlib import contextmanager
 
 import networkx as nx
 import numpy as np
-from rpcq.messages import BinaryExecutableResponse, Message
+from rpcq.messages import BinaryExecutableResponse, Message, PyQuilExecutableResponse
 
 from pyquil.api._compiler import QVMCompiler, QPUCompiler, LocalQVMCompiler
 from pyquil.api._config import PyquilConfig
@@ -39,6 +39,8 @@ from pyquil.quil import Program
 from pyquil.quilbase import Measurement, Pragma, Gate, Reset
 
 pyquil_config = PyquilConfig()
+
+Executable = Union[BinaryExecutableResponse, PyQuilExecutableResponse]
 
 
 def _get_flipped_protoquil_program(program: Program) -> Program:
@@ -121,7 +123,7 @@ class QuantumComputer:
         return self.device.get_isa(oneq_type=oneq_type, twoq_type=twoq_type)
 
     @_record_call
-    def run(self, executable: BinaryExecutableResponse) -> np.ndarray:
+    def run(self, executable: Executable) -> np.ndarray:
         """
         Run a quil executable.
 

@@ -441,7 +441,7 @@ To read more about supplying noise to the QVM, see http://pyquil.readthedocs.io/
                                 "fine-grained control. This explicit step is required for running "
                                 "on a QPU.")
         else:
-            if isinstance(self._executable, PyQuilExecutableResponse):
+            if isinstance(executable, PyQuilExecutableResponse):
                 self._executable = _extract_program_from_pyquil_executable_response(executable)
             elif isinstance(executable, Program):
                 self._executable = executable
