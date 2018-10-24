@@ -126,4 +126,4 @@ def footer():
     :return: LaTeX document footer.
     :rtype: string
     """
-    return "\end{tikzpicture}\n\end{document}"
+    return "\\end{tikzpicture}\n\\end{document}"

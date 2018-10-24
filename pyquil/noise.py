@@ -229,7 +229,7 @@ def append_kraus_to_gate(kraus_ops, gate_matrix):
 
 
 def pauli_kraus_map(probabilities):
-    """
+    r"""
     Generate the Kraus operators corresponding to a pauli channel.
 
     :params list|floats probabilities: The 4^num_qubits list of probabilities specifying the desired pauli channel.
@@ -238,9 +238,9 @@ def pauli_kraus_map(probabilities):
 
             For example::
 
-                The d-dimensional depolarazing channel \Delta parameterized as
+                The d-dimensional depolarizing channel \Delta parameterized as
                 \Delta(\rho) = p \rho + [(1-p)/d] I
-                is specfiied by the list of probabilities
+                is specified by the list of probabilities
                 [p + (1-p)/d, (1-p)/d,  (1-p)/d), ... , (1-p)/d)]
 
     :return: A list of the 4^num_qubits Kraus operators that parametrize the map.
