@@ -119,7 +119,6 @@ class QPU(QAM):
         self._last_results = results
         return self
 
-
     def _get_buffers(self, job_id: str) -> Dict[str, np.ndarray]:
         """
         Return the decoded result buffers for particular job_id.
