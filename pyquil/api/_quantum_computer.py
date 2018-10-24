@@ -332,7 +332,9 @@ def _get_9q_square_qvm(connection: ForestConnection, noisy: bool) -> QuantumComp
 
     name = '9q-square-noisy-qvm' if noisy else '9q-square-qvm'
     return QuantumComputer(name=name,
-                           qam=QVM(connection=connection, noise_model=noise_model),
+                           qam=QVM(connection=connection,
+                                   noise_model=noise_model,
+                                   requires_executable=True),
                            device=nineq_device,
                            compiler=_get_qvm_compiler_based_on_endpoint(
                                device=nineq_device,
@@ -399,6 +401,11 @@ def get_qc(name: str, *, as_qvm: bool = None, noisy: bool = None,
     (technically, it's a fully connected graph among the given number of qubits) with::
 
         >>> qc = get_qc("5q-qvm") # or "6q-qvm", or "34q-qvm", ...
+
+    These less-realistic, fully-connected QVMs will also be more lenient on what types of programs
+    they will ``run``. Specifically, you do not need to do any compilation. For the other, realistic
+    QVMs you must use :py:func:`qc.compile` or :py:func:`qc.compiler.native_quil_to_executable`
+    prior to :py:func:`qc.run`.
 
     Redundant flags are acceptable, but conflicting flags will raise an exception::
 
@@ -471,7 +478,9 @@ def get_qc(name: str, *, as_qvm: bool = None, noisy: bool = None,
         noise_model = None
 
     return QuantumComputer(name=full_name,
-                           qam=QVM(connection=connection, noise_model=noise_model),
+                           qam=QVM(connection=connection,
+                                   noise_model=noise_model,
+                                   requires_executable=True),
                            device=device,
                            compiler=_get_qvm_compiler_based_on_endpoint(
                                device=device,
@@ -496,7 +505,7 @@ def local_qvm() -> Iterator[Tuple[subprocess.Popen, subprocess.Popen]]:
     >>> from pyquil.gates import CNOT, Z
     >>> from pyquil.api import local_qvm
     >>>
-    >>> qvm = get_qc('9q-generic-qvm')
+    >>> qvm = get_qc('9q-square-qvm')
     >>> prog = Program(Z(0), CNOT(0, 1))
     >>>
     >>> with local_qvm():
