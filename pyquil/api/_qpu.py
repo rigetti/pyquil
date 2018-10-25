@@ -23,8 +23,6 @@ from rpcq.messages import QPURequest
 from pyquil.api._qam import QAM
 from pyquil.api._error_reporting import _record_call
 
-DEVICES_ENDPOINT = 'todo'
-
 
 def decode_buffer(buffer: dict) -> np.ndarray:
     """
@@ -111,7 +109,7 @@ class QPU(QAM):
         ro_sources = self._executable.ro_sources
 
         if results:
-            bitstrings = self._extract_bitstrings(ro_sources, results)
+            bitstrings = _extract_bitstrings(ro_sources, results)
         else:
             bitstrings = None
 
