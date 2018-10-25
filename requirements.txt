@@ -8,7 +8,7 @@ networkx
 dataclasses
 
 # rigetti packages
-rpcq == 2.0.0
+rpcq == 2.1.0
 
 # test deps
 pytest
