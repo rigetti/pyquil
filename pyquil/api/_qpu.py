@@ -37,6 +37,34 @@ def decode_buffer(buffer: dict) -> np.ndarray:
     return buf.reshape(buffer['shape'])
 
 
+def _extract_bitstrings(ro_sources: List[Optional[Tuple[int, int]]],
+                        buffers: Dict[str, np.ndarray]
+                        ) -> np.ndarray:
+    """
+    De-mux qubit readout results and assemble them into the ro-bitstrings in the correct order.
+
+    :param ro_sources: Specification of the ro_sources, cf
+        :py:func:`pyquil.api._compiler._collect_classical_memory_write_locations`.
+        It is a list whose value ``(q, m)`` at index ``addr`` records that the ``m``-th measurement
+        of qubit ``q`` was measured into ``ro`` address ``addr``. A value of `None` means nothing
+        was measured into ``ro`` address ``addr``.
+    :param buffers: A dictionary of readout results returned from the qpu.
+    :return: A numpy array of shape ``(num_shots, len(ro_sources))`` with the readout bits.
+    """
+    # hack to extract num_shots indirectly from the shape of the returned data
+    first, *rest = buffers.values()
+    num_shots = first.shape[0]
+    bitstrings = np.zeros((num_shots, len(ro_sources)), dtype=np.int64)
+    for col_idx, src in enumerate(ro_sources):
+        if src:
+            qubit, meas_idx = src
+            buf = buffers[f"q{qubit}"]
+            if buf.ndim == 1:
+                buf = buf.reshape((num_shots, 1))
+            bitstrings[:, col_idx] = buf[:, meas_idx]
+    return bitstrings
+
+
 class QPU(QAM):
     @_record_call
     def __init__(self, endpoint: str, user: str = "pyquil-user") -> None:
@@ -90,35 +118,6 @@ class QPU(QAM):
         self._bitstrings = bitstrings
         self._last_results = results
         return self
-
-    @staticmethod
-    def _extract_bitstrings(
-            ro_sources: List[Optional[Tuple[int, int]]],
-            buffers: Dict[str, np.ndarray]
-    ) -> np.ndarray:
-        """
-        De-mux qubit readout results and assemble them into the ro-bitstrings in the correct order.
-
-        :param ro_sources: Specification of the ro_sources, cf
-            :py:func:`pyquil.api._compiler._collect_classical_memory_write_locations`.
-            It is a list whose value `(q, m)` at index `addr` records that the `m`-th measurement of
-            qubit `q` was measured into `ro` address `addr`. A value of `None` means nothing was
-            measured into `ro` address `addr`.
-        :param buffers: A dictionary of readout results returned from the qpu.
-        :return: A numpy array of shape ``(num_shots, len(ro_sources))`` with the readout bits.
-        """
-        # hack to extract num_shots indirectly from the shape of the returned data
-        first, *rest = buffers.values()
-        num_shots = first.shape[0]
-        bitstrings = np.zeros((num_shots, len(ro_sources)))
-        for col_idx, src in enumerate(ro_sources):
-            if src:
-                qubit, meas_idx = src
-                buf = buffers[f"q{qubit}"]
-                if buf.ndim == 1:
-                    buf = buf.reshape((num_shots, 1))
-                bitstrings[:, col_idx] = buf[:, meas_idx]
-        return bitstrings
 
     def _get_buffers(self, job_id: str) -> Dict[str, np.ndarray]:
         """

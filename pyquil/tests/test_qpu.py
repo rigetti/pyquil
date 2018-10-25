@@ -6,6 +6,7 @@ from pyquil import Program
 from pyquil.api._compiler import _collect_classical_memory_write_locations
 from pyquil.api._config import PyquilConfig
 from pyquil.api import QuantumComputer, QPU, QPUCompiler
+from pyquil.api._qpu import _extract_bitstrings
 from pyquil.device import NxDevice
 from pyquil.gates import X
 
@@ -75,7 +76,8 @@ MEASURE 3 ro[5]
         "q3": np.random.randint(0, 2, size=num_shots),
     }
 
-    bitstrings = QPU._extract_bitstrings(ro_sources, buffers=buffers)
+    bitstrings = _extract_bitstrings(ro_sources, buffers=buffers)
+    assert bitstrings.dtype == np.int64
     assert np.allclose(bitstrings[:, 0], buffers["q0"][:, 0])
     assert np.allclose(bitstrings[:, 1], buffers["q1"][:, 0])
     assert np.allclose(bitstrings[:, 2], buffers["q0"][:, 1])
