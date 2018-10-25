@@ -1,3 +1,5 @@
+#!/usr/bin/env python
+
 """
 A script appropriate for featuring on rigetti.com to show how easy it is to get started!
 

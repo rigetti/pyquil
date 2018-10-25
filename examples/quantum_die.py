@@ -1,4 +1,5 @@
 #!/usr/bin/env python
+
 ##############################################################################
 # Copyright 2016-2017 Rigetti Computing
 #
@@ -22,44 +23,48 @@ from pyquil import api
 from pyquil.gates import H
 from six.moves import range
 
+
 def qubits_needed(n):
     """
     The number of qubits needed for a die of n faces.
     """
     return int(math.ceil(math.log(n, 2)))
 
+
 def die_program(n):
     """
     Generate a quantum program to roll a die of n faces.
     """
     prog = pq.Program()
+    ro = prog.declare('ro')
     qubits = qubits_needed(n)
     # Hadamard initialize.
     for q in range(qubits):
         prog.inst(H(q))
     # Measure everything.
     for q in range(qubits):
-        prog.measure(q, [q])
+        prog.measure(q, ro[q])
     return prog
+
 
 def process_result(r):
     """
     Convert a list of measurements to a die value.
     """
-    return reduce(lambda s, x: 2*s + x, r, 0)
+    return reduce(lambda s, x: 2 * s + x, r, 0)
+
 
 BATCH_SIZE = 10
-
 dice = {}
-
 qvm = api.QVMConnection()
+
 
 def roll_die(n):
     """
     Roll an n-sided quantum die.
     """
     addresses = list(range(qubits_needed(n)))
-    if not n in dice:
+    if n not in dice:
         dice[n] = die_program(n)
     die = dice[n]
     # Generate results and do rejection sampling.
@@ -70,7 +75,7 @@ def roll_die(n):
             if 0 < x <= n:
                 return x
 
+
 if __name__ == '__main__':
     number_of_sides = int(input("Please enter number of sides: "))
-    while True:
-        print(roll_die(number_of_sides))
+    print('Quantum die roll:', roll_die(number_of_sides))

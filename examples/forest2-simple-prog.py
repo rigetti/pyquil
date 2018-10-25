@@ -1,3 +1,5 @@
+#!/usr/bin/env python
+
 import numpy as np
 
 from pyquil import Program, get_qc
@@ -16,7 +18,10 @@ def run_bell_high_level(n_shots=1000):
     )
 
     # Step 3. Run
-    bitstrings = qc.run_and_measure(program, trials=n_shots)
+    res = qc.run_and_measure(program, trials=n_shots)
+    bitstrings = np.zeros(shape=(n_shots, 2), dtype=int)
+    bitstrings[:, 0] = np.asarray(res[q[0]])
+    bitstrings[:, 1] = np.asarray(res[q[1]])
 
     # Bincount bitstrings
     basis = np.array([2 ** i for i in range(len(q))])
@@ -88,7 +93,7 @@ def run_bell_low_level(n_shots=1000):
     bitstrings = qam.load(executable) \
         .run() \
         .wait() \
-        .read_from_memory_region(region_name="ro", offsets=True)
+        .read_from_memory_region(region_name="ro")
 
     # Bincount bitstrings
     basis = np.array([2 ** i for i in range(len(q))])

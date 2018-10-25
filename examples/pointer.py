@@ -1,4 +1,5 @@
 #!/usr/bin/env python
+
 ##############################################################################
 # Copyright 2016-2017 Rigetti Computing
 #
@@ -45,7 +46,7 @@ def gray(num_bits):
     x = 0
     n = 1 << num_bits
     while n > x:
-        bit_string = bin(n + x ^ x//2)[3:]
+        bit_string = bin(n + x ^ x // 2)[3:]
         value = int(bit_string, 2)
         yield bit_string, value, changed_bit_pos(last, value)
         last = value
@@ -59,7 +60,7 @@ def controlled(num_ptr_bits, U):
     """
     d = 2 ** (1 + num_ptr_bits)
     m = np.eye(d)
-    m[d-2:, d-2:] = U
+    m[d - 2:, d - 2:] = U
     return m
 
 
@@ -116,5 +117,5 @@ def pointer_gate(num_qubits, U):
 
 
 if __name__ == '__main__':
-    H = np.matrix([[1, 1], [1, -1]])/np.sqrt(2)
+    H = np.matrix([[1, 1], [1, -1]]) / np.sqrt(2)
     print(pointer_gate(11, H))
