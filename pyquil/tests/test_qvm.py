@@ -23,6 +23,15 @@ def test_qvm_run(forest: ForestConnection):
     assert np.mean(bitstrings) > 0.8
 
 
+def test_qvm_run_no_measure(forest: ForestConnection):
+    qvm = QVM(connection=forest)
+    p = Program(X(0))
+    nq = PyQuilExecutableResponse(program=p.out(), attributes={'num_shots': 100})
+    qvm.load(nq).run().wait()
+    bitstrings = qvm.read_from_memory_region(region_name="ro")
+    assert bitstrings.shape == (100, 0)
+
+
 def test_roundtrip_pyquilexecutableresponse():
     p = Program(H(10), CNOT(10, 11))
     lcqvm = LocalQVMCompiler(endpoint=None, device=NxDevice(nx.complete_graph(3)))
