@@ -11,6 +11,7 @@ from pyquil.api._quantum_computer import _get_flipped_protoquil_program, _parse_
 from pyquil.device import NxDevice, gates_in_isa
 from pyquil.gates import *
 from pyquil.noise import decoherence_noise_with_asymmetric_ro
+from rpcq.messages import PyQuilExecutableResponse
 
 
 class DummyCompiler(AbstractCompiler):
@@ -297,3 +298,24 @@ def test_run_symmetrized_readout_error(local_qvm_quilc):
     # Trials not even
     with pytest.raises(ValueError):
         bitstrings = qc.run_symmetrized_readout(prog, trials)
+
+
+def test_qvm_compile_pickiness(forest):
+    p = Program(X(0), MEASURE(0, 0))
+    p.wrap_in_numshots_loop(1000)
+    nq = PyQuilExecutableResponse(program=p.out(), attributes={'num_shots': 1000})
+
+    # Ok, non-realistic
+    qc = get_qc('9q-qvm')
+    qc.run(p)
+
+    # Also ok
+    qc.run(nq)
+
+    # Not ok
+    qc = get_qc('9q-square-qvm')
+    with pytest.raises(TypeError):
+        qc.run(p)
+
+    # Yot ok
+    qc.run(nq)

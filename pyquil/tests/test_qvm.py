@@ -1,5 +1,6 @@
 import networkx as nx
 import numpy as np
+import pytest
 
 from rpcq.messages import PyQuilExecutableResponse
 
@@ -10,10 +11,42 @@ from pyquil.device import NxDevice
 from pyquil.gates import MEASURE, X, CNOT, H
 
 
-def test_qvm_run(forest: ForestConnection):
+def test_qvm_run_pqer(forest: ForestConnection):
     qvm = QVM(connection=forest, gate_noise=[0.01] * 3)
     p = Program(X(0), MEASURE(0, 0))
     p.wrap_in_numshots_loop(1000)
+    nq = PyQuilExecutableResponse(program=p.out(), attributes={'num_shots': 1000})
+    qvm.load(nq)
+    qvm.run()
+    qvm.wait()
+    bitstrings = qvm.read_from_memory_region(region_name="ro")
+    assert bitstrings.shape == (1000, 1)
+    assert np.mean(bitstrings) > 0.8
+
+
+def test_qvm_run_just_program(forest: ForestConnection):
+    qvm = QVM(connection=forest, gate_noise=[0.01] * 3)
+    p = Program(X(0), MEASURE(0, 0))
+    p.wrap_in_numshots_loop(1000)
+    qvm.load(p)
+    qvm.run()
+    qvm.wait()
+    bitstrings = qvm.read_from_memory_region(region_name="ro")
+    assert bitstrings.shape == (1000, 1)
+    assert np.mean(bitstrings) > 0.8
+
+
+def test_qvm_run_only_pqer(forest: ForestConnection):
+    qvm = QVM(connection=forest, gate_noise=[0.01] * 3, requires_executable=True)
+    p = Program(X(0), MEASURE(0, 0))
+    p.wrap_in_numshots_loop(1000)
+
+    with pytest.raises(TypeError) as e:
+        qvm.load(p)
+        qvm.run()
+        qvm.wait()
+    assert e.match(r'.*Make sure you have explicitly compiled your program.*')
+
     nq = PyQuilExecutableResponse(program=p.out(), attributes={'num_shots': 1000})
     qvm.load(nq)
     qvm.run()
