@@ -167,18 +167,19 @@ Connecting to the SDK
 ~~~~~~~~~~~~~~~~~~~~~
 
 The expected locations of the QVM and Compiler endpoints are configurable in pyQuil. When running on a QMI, these
-configuration values are automatically managed so as to point to the relevant Rigetti-internal endpoints. When running
+configuration values are automatically managed so as to point to the correct endpoints. When running
 locally, these default to values reasonable for a user running local instances of the Rigetti toolchain on their laptop.
-Ideally, little-to-no work will be required for setting up this configuration environment locally or remotely, or for
+Ideally, little-to-no work will be required for setting up this configuration environment locally or from your QMI, or for
 transferring functioning code from one configured environment to another.
 
 .. note::
     A config file is not necessary to run locally, though it may be useful in configuring your local set-up.
 
-In general, these values are read out of a pair of configuration files (stored at the location described by the environment
-variables ``FOREST_CONFIG`` and ``QCS_CONFIG``, or else at the respective default locations ``~/.forest_config`` and
-``~/.qcs_config``), which by default have the following respective contents:
+In general, these values are read out of a pair of configuration files which are stored at the location described by the environment
+variables ``QCS_CONFIG`` and ``FOREST_CONFIG``, or else at the respective default locations ``~/.qcs_config`` and
+``~/.forest_config``. By default, they contain the following on a local installation:
 
+QCS Config
 ::
 
     [Rigetti Forest]
@@ -189,6 +190,7 @@ variables ``FOREST_CONFIG`` and ``QCS_CONFIG``, or else at the respective defaul
     [QPU]
     exec_on_engage = :
 
+Forest Config
 ::
 
     [Rigetti Forest]
@@ -196,13 +198,15 @@ variables ``FOREST_CONFIG`` and ``QCS_CONFIG``, or else at the respective defaul
     qvm_address = http://localhost:5000
     compiler_server_address = http://localhost:6000
 
-These values control the following behaviors:
+These values in QCS config specify the following information:
 
--  ``Rigetti Forest``: This section contains network endpoint information about the entire Rigetti Forest infrastructure, e.g.,
-   where to find information about which QPU devices are available.
 -  ``url``: This is the endpoint where pyQuil looks for device information and for the 2.0 endpoints.
 -  ``key``: This stores the pre-2.0 API key.
 -  ``user_id``: This stores a 2.0 user ID.
+-  ``exec_on_engage``: This is the shell command that the QMI will launch when the QMI becomes QPU-engaged.
+
+The values in Forest config specify the following information:
+
 -  ``qpu_endpoint_address``: This is the endpoint where pyQuil will try to communicate with the QPU orchestrating service
    during QPU-engagement.
 -  ``qvm_address``: This is the endpoint where pyQuil will try to communicate with the Rigetti Quantum Virtual Machine.
@@ -211,8 +215,6 @@ These values control the following behaviors:
 -  ``compiler_server_address``: This is the endpoint where pyQuil will try to communicate with the compiler server. On a
    QMI, this points to a provided compiler server instance. On a local installation, this should be set to the server
    endpoint for a locally running quilc instance.
--  ``QPU``: This section contains configuration information pertaining to QPU access.
--  ``exec_on_engage``: This is the shell command that the QMI will launch when the QMI becomes QPU-engaged.
 
 .. note::
 
