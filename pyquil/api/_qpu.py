@@ -14,6 +14,7 @@
 #    limitations under the License.
 ##############################################################################
 import uuid
+import warnings
 from typing import Dict, List, Optional, Tuple
 
 import numpy as np
@@ -110,6 +111,11 @@ class QPU(QAM):
 
         if results:
             bitstrings = _extract_bitstrings(ro_sources, results)
+        elif not ro_sources:
+            warnings.warn("You are running a QPU program with no MEASURE instructions. "
+                          "The result of this program will always be an empty array. Are "
+                          "you sure you didn't mean to measure some of your qubits?")
+            bitstrings = np.zeros((0, 0), dtype=np.int64)
         else:
             bitstrings = None
 

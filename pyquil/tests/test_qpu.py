@@ -25,11 +25,13 @@ def test_qpu_run():
                              compiler=QPUCompiler(endpoint=config.compiler_url,
                                                   device=device))
         bitstrings = qc.run_and_measure(
-            quil_program=Program(X(0)),
+            program=Program(X(0)),
             trials=1000,
         )
-        assert bitstrings.shape == (1000, 1)
-        assert np.mean(bitstrings) > 0.8
+        assert bitstrings[0].shape == (1000,)
+        assert np.mean(bitstrings[0]) > 0.8
+        bitstrings = qc.run(qc.compile(Program(X(0))))
+        assert bitstrings.shape == (0, 0)
     else:
         pytest.skip("QPU or compiler-server not available; skipping QPU run test.")
 
