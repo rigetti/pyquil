@@ -18,7 +18,7 @@ Module for creating and defining Quil programs.
 """
 import itertools
 import types
-from typing import Iterable
+from typing import Iterable, Set
 import warnings
 from collections import OrderedDict, defaultdict
 from math import pi
@@ -995,7 +995,7 @@ def validate_protoquil(program: Program) -> None:
     """
     gates_seen = False
     halted = False
-    measured_qubits = set()
+    measured_qubits: Set[int] = set()
     for instr in program.instructions:
         if isinstance(instr, Pragma) or isinstance(instr, Declare):
             continue
