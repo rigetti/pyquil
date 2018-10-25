@@ -26,7 +26,7 @@ from rpcq.messages import BinaryExecutableResponse, Message, PyQuilExecutableRes
 
 from pyquil.api._compiler import QVMCompiler, QPUCompiler, LocalQVMCompiler
 from pyquil.api._config import PyquilConfig
-from pyquil.api._devices import get_device, get_lattice
+from pyquil.api._devices import get_lattice, list_lattices
 from pyquil.api._error_reporting import _record_call
 from pyquil.api._qac import AbstractCompiler
 from pyquil.api._qam import QAM
@@ -246,16 +246,14 @@ def list_quantum_computers(connection: ForestConnection = None,
     :param qvms: Whether to include QVM's in the list.
     """
     if connection is None:
-        # TODO: Use this to list devices?
         connection = ForestConnection()
 
     qc_names: List[str] = []
     if qpus:
-        # TODO: add deployed QPUs from web endpoint
-        pass
+        qc_names += list(list_lattices(connection=connection).keys())
 
     if qvms:
-        qc_names += ['9q-generic-qvm', '9q-generic-noisy-qvm']
+        qc_names += ['9q-square-qvm', '9q-square-noisy-qvm']
 
     return qc_names
 
@@ -469,7 +467,7 @@ def get_qc(name: str, *, as_qvm: bool = None, noisy: bool = None,
             warnings.warn("You have specified `noisy=True`, but you're getting a QPU. This flag "
                           "is meant for controlling noise models on QVMs.")
         return QuantumComputer(name=full_name,
-                               qam=QPU(endpoint=pyquil_config.qpu_url),
+                               qam=QPU(endpoint=pyquil_config.qpu_url, user=pyquil_config.user_id),
                                device=device,
                                compiler=QPUCompiler(endpoint=pyquil_config.compiler_url,
                                                     device=device))

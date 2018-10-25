@@ -309,6 +309,12 @@ mock_compiler_server = Server()
 
 
 @mock_compiler_server.rpc_handler
+def get_version_info() -> dict:
+    time.sleep(0.1)
+    return {'compiler_server': '1.0.0'}
+
+
+@mock_compiler_server.rpc_handler
 def quil_to_native_quil(payload: NativeQuilRequest) -> NativeQuilResponse:
     assert payload.quil == BELL_STATE.out()
     time.sleep(0.1)
@@ -369,6 +375,12 @@ def mock_compiler(request, m_endpoints):
 @pytest.fixture
 def mock_rb_cxn(request, m_endpoints):
     return BenchmarkConnection(endpoint=m_endpoints[0])
+
+
+def test_get_version_info(server, mock_compiler: QPUCompiler):
+    response = mock_compiler.get_version_info()
+    assert isinstance(response, dict)
+    assert 'compiler_server' in response
 
 
 def test_quil_to_native_quil(server, mock_compiler):

@@ -13,6 +13,8 @@
 #    See the License for the specific language governing permissions and
 #    limitations under the License.
 ##############################################################################
+import warnings
+
 from abc import ABC, abstractmethod
 
 from rpcq.messages import ParameterAref
@@ -52,7 +54,9 @@ class QAM(ABC):
 
         :param executable: Load a compiled executable onto the QAM.
         """
-        assert self.status in ['connected', 'done']
+        if self.status == 'loaded':
+            warnings.warn("Overwriting previously loaded executable.")
+        assert self.status in ['connected', 'done', 'loaded']
 
         self._variables_shim = {}
         self._executable = executable
