@@ -24,28 +24,23 @@ from pyquil.gates import H
 from six.moves import range
 
 
-def qubits_needed(n):
+def qubits_needed(number_of_sides):
     """
     The number of qubits needed for a die of n faces.
     """
-    return int(math.ceil(math.log(n, 2)))
+    return int(math.ceil(math.log(number_of_sides, 2)))
 
-def qvm(n):
-    """
-    Connect to a QVM that simulates n sides.
-    """
-    if qubits_needed(n) == 9:
-        return qvm = get_qc('9q-square-qvm')
-    else:
-        return qvm = get_qc('%(qubits)dq-qvm' % {"qubits": qubits_needed(n)})
 
-def die_program(n):
+qvm = get_qc('f"{qubits_needed(number_of_sides)}q-qvm")
+
+
+def die_program(number_of_sides):
     """
     Generate a quantum program to roll a die of n faces.
     """
     prog = Program()
-    qubits = qubits_needed(n)
-    ro = prog.declare('ro', 'BIT', qubits)
+    n_qubits = qubits_needed(number_of_sides)
+    ro = prog.declare('ro', 'BIT', n_qubits)
     # Hadamard initialize.
     for q in range(qubits):
         prog.inst(H(q))
@@ -54,35 +49,29 @@ def die_program(n):
         prog.measure(q, ro[q])
     return prog
 
-
-def process_result(r):
-    """
-    Roll an n-sided quantum die.
-    """
-    return reduce(lambda s, x: 2 * s + x, r, 0)
-
-
-BATCH_SIZE = 10
-dice = {}
-qvm = api.QVMConnection()
-
-
-def roll_die(n):
+             
+def process_results(results):
     """
     Convert a list of measurements to a die value.
     """
-    addresses = list(range(qubits_needed(n)))
-    if n not in dice:
-        dice[n] = die_program(n)
-    die = dice[n]
-    # Generate results and do rejection sampling.
-    while True:
-        results = qvm.run(die, addresses, BATCH_SIZE)
-        for r in results:
-            x = process_result(r) + 1
-            if 0 < x <= n:
-                return x
-
+    raw_results = results[0]
+    print(raw_results)
+    processing_result = 0
+    for each_qubit_measurement in raw_results:
+        processing_result = 2*processing_result + each_qubit_measurement
+    # Convert from 0 indexed to 1 indexed
+    die_value = processing_result + 1
+    return die_value
+             
+             
+def roll_die(number_of_sides):
+    """
+    Roll an n-sided quantum die.
+    """
+    die_compiled = qvm.compile(die_program(number_of_sides))
+    return process_results(qvm.run(die_compiled))
+             
+             
 if __name__ == '__main__':
     number_of_sides = int(input("Please enter number of sides: "))
     print('Quantum die roll:', roll_die(number_of_sides))
