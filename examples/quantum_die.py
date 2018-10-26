@@ -17,8 +17,6 @@
 ##############################################################################
 
 import math
-from functools import reduce
-import pyquil
 from pyquil import Program, get_qc
 from pyquil.gates import H
 from six.moves import range
