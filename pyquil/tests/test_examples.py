@@ -16,7 +16,7 @@ def examples_dir(scope="module"):
 
 def _call_script(path, script, *args):
     # As bare minimum test that all example scripts run without error
-    rval = subprocess.call([os.path.join('.', script), *args], cwd=path)
+    rval = subprocess.call([os.path.join(path, script), *args])
     return rval
 
 
@@ -25,7 +25,8 @@ def test_meyer_penny_game(forest, examples_dir):
 
 
 def test_run_quil(forest, examples_dir):
-    assert 0 == _call_script(examples_dir, 'run_quil.py', 'hello_world.quil')
+    assert 0 == _call_script(examples_dir, 'run_quil.py', 
+                             os.path.join(examples_dir, 'hello_world.quil'))
 
 
 def test_forest2_simple_prog(forest, examples_dir):
@@ -41,10 +42,10 @@ def test_qaoa_ansatz(forest, examples_dir):
 
 
 def test_quantum_die(forest, examples_dir):
-    p = Popen(['./quantum_die.py'],
+    p = Popen(['examples/quantum_die.py'],
               stdout=PIPE, stdin=PIPE, stderr=STDOUT,
               universal_newlines=True,
-              cwd=examples_dir)
+              )
     p.communicate('6')
     assert p.returncode == 0
 
