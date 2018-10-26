@@ -18,18 +18,14 @@ def run_bell_high_level(n_shots=1000):
     )
 
     # Step 3. Run
-    res = qc.run_and_measure(program, trials=n_shots)
-    bitstrings = np.zeros(shape=(n_shots, 2), dtype=int)
-    bitstrings[:, 0] = np.asarray(res[q[0]])
-    bitstrings[:, 1] = np.asarray(res[q[1]])
+    results = qc.run_and_measure(program, trials=n_shots)
 
     # Bincount bitstrings
-    basis = np.array([2 ** i for i in range(len(q))])
-    ints = np.sum(bitstrings * basis, axis=1)
+    ints = sum(results[q[i]] * 2 ** i for i in range(len(q)))
     print('bincounts', np.bincount(ints))
 
     # Check parity
-    parities = np.sum(bitstrings, axis=1) % 2
+    parities = (results[q[0]] + results[q[1]]) % 2
     print('avg parity', np.mean(parities))
 
 

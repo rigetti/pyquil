@@ -22,8 +22,7 @@ implementation of QAOA, refer to the grove example and docs:
 http://grove-docs.readthedocs.io/en/latest/qaoa.html
 """
 
-from unittest.mock import patch
-
+from pyquil import get_qc
 from pyquil.quil import Program
 from pyquil.gates import H
 from pyquil.paulis import sI, sX, sZ, exponentiate_commuting_pauli_sum
@@ -64,16 +63,6 @@ def qaoa_ansatz(gammas, betas):
 program = init_state_prog + qaoa_ansatz([0., 0.5], [0.75, 1.])
 
 # Initialize the QVM and run the program.
+qc = get_qc('9q-generic-qvm')
 
-# NOTE: We patch out the qvm.run_and_measure method, since our automated testing environment may not
-# have privileges to run on the QVM. To run this on your own machine, remove this patch, and replace
-# it with:
-# qvm = QVMConnection()
-
-with patch("pyquil.api.QVMConnection") as qvm:
-    qvm.run_and_measure.return_value = [
-        [1, 0, 1, 0],
-        [1, 0, 1, 0]
-    ]
-
-results = qvm.run_and_measure(program, qubits=nodes, trials=2)
+results = qc.run_and_measure(program, trials=2)
