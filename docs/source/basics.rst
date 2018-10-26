@@ -254,34 +254,3 @@ Below we show how we can define :math:`X_0\otimes \sqrt{X_1}` as a single gate.
 
     (0.5+0.5j)|01> + (0.5-0.5j)|11>
 
-Defining Parametric Gates
--------------------------
-
-It is also possible to define parametric gates using pyQuil.
-Let's say we want to have a controlled RX gate. Since RX is a parametric gate, we need a slightly different way of defining it than in the previous section.
-
-.. code:: python
-
-    from pyquil.parameters import Parameter, quil_sin, quil_cos
-    from pyquil.quilbase import DefGate
-    import numpy as np
-
-    theta = Parameter('theta')
-    crx = np.array([[1, 0, 0, 0], [0, 1, 0, 0], [0, 0, quil_cos(theta / 2), -1j * quil_sin(theta / 2)], [0, 0, -1j * quil_sin(theta / 2), quil_cos(theta / 2)]])
-
-    dg = DefGate('CRX', crx, [theta])
-    CRX = dg.get_constructor()
-
-    p = Program()
-    p.inst(dg)
-    p.inst(H(0))
-    p.inst(CRX(np.pi/2)(0, 1))
-
-    wavefunction = qvm.wavefunction(p)
-    print(wavefunction)
-
-.. parsed-literal::
-
-    (0.7071067812+0j)|00> + (0.5+0j)|01> + -0.5j|11>
-
-``quil_sin`` and ``quil_cos`` work as the regular sinus and cosinus, but they support the parametrization. Parametrized functions you can use with pyQuil are: ``quil_sin``, ``quil_cos``, ``quil_sqrt``, ``quil_exp``, and ``quil_cis``.

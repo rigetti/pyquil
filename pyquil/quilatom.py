@@ -18,8 +18,6 @@ from six import integer_types
 from warnings import warn
 from fractions import Fraction
 
-from pyquil.slot import Slot
-
 
 class QuilAtom(object):
     """
@@ -235,8 +233,6 @@ def format_parameter(element):
         return _expression_to_string(element)
     elif isinstance(element, MemoryReference):
         return element.out()
-    elif isinstance(element, Slot):
-        return format_parameter(element.value())
     assert False, "Invalid parameter: %r" % element
 
 
