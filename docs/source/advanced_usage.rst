@@ -346,7 +346,7 @@ The following shows an instructive example of all three.
     RZ(-2.0) 0
     H 0
 
-The ``exponential_map`` function returns a function allowing you to fill in a multiplicative
+``exponential_map`` returns a function allowing you to fill in a multiplicative
 constant later. This commonly occurs in variational algorithms. The function
 ``exponential_map`` is used to compute exp[-i * alpha * H] without explicitly filling in a
 value for alpha.
