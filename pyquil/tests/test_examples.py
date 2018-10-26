@@ -6,8 +6,8 @@ from subprocess import Popen, PIPE, STDOUT
 import pytest
 
 
-@pytest.fixture
-def examples_dir(scope="module"):
+@pytest.fixture(scope="module")
+def examples_dir():
     path = os.path.dirname(__file__)
     path = os.path.join(path, '..', '..', 'examples')
     path = os.path.abspath(path)
