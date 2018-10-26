@@ -1,54 +1,61 @@
 
+import os
 import subprocess
 from subprocess import Popen, PIPE, STDOUT
 
-
-# As bare minimum test that all example scripts run without error
-
-def test_meyer_penny_game(forest):
-    rval = subprocess.call(['examples/meyer_penny_game.py'])
-    assert rval == 0
+import pytest
 
 
-def test_run_quil(forest):
-    rval = subprocess.call(['examples/run_quil.py',
-                            'examples/hello_world.quil'])
-    assert rval == 0
+@pytest.fixture
+def examples_dir(scope="module"):
+    path = os.path.dirname(__file__)
+    path = os.path.join(path, '..', '..', 'examples')
+    path = os.path.abspath(path)
+    return path
 
 
-def test_forest2_simple_prog(forest):
-    rval = subprocess.call(['examples/forest2-simple-prog.py'])
-    assert rval == 0
+def _call_script(path, script, *args):
+    # As bare minimum test that all example scripts run without error
+    rval = subprocess.call([os.path.join('.', script), *args], cwd=path)
+    return rval
 
 
-def test_pointer():
-    rval = subprocess.call(['examples/pointer.py'])
-    assert rval == 0
+def test_meyer_penny_game(forest, examples_dir):
+    assert 0 == _call_script(examples_dir, 'meyer_penny_game.py')
 
 
-def test_qaoa_ansatz(forest):
-    rval = subprocess.call(['examples/qaoa_ansatz.py'])
-    assert rval == 0
+def test_run_quil(forest, examples_dir):
+    assert 0 == _call_script(examples_dir, 'run_quil.py', 'hello_world.quil')
 
 
-def test_quantum_die(forest):
-    p = Popen(['examples/quantum_die.py'],
+def test_forest2_simple_prog(forest, examples_dir):
+    assert 0 == _call_script(examples_dir, 'forest2-simple-prog.py')
+
+
+def test_pointer(examples_dir):
+    assert 0 == _call_script(examples_dir, 'pointer.py')
+
+
+def test_qaoa_ansatz(forest, examples_dir):
+    assert 0 == _call_script(examples_dir, 'qaoa_ansatz.py')
+
+
+def test_quantum_die(forest, examples_dir):
+    p = Popen(['./quantum_die.py'],
               stdout=PIPE, stdin=PIPE, stderr=STDOUT,
-              universal_newlines=True)
+              universal_newlines=True,
+              cwd=examples_dir)
     p.communicate('6')
     assert p.returncode == 0
 
 
-def test_teleportation(forest):
-    rval = subprocess.call(['examples/teleportation.py'])
-    assert rval == 0
+def test_teleportation(forest, examples_dir):
+    assert 0 == _call_script(examples_dir, 'teleportation.py')
 
 
-def test_website(forest):
-    rval = subprocess.call(['examples/website-script.py'])
-    assert rval == 0
+def test_website_old(forest, examples_dir):
+    assert 0 == _call_script(examples_dir, 'old-website-script.py')
 
 
-def test_website2(forest):
-    rval = subprocess.call(['examples/website-script2.py'])
-    assert rval == 0
+def test_website(forest, examples_dir):
+    assert 0 == _call_script(examples_dir, 'website-script.py')
