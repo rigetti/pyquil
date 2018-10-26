@@ -25,7 +25,7 @@ def test_meyer_penny_game(forest, examples_dir):
 
 
 def test_run_quil(forest, examples_dir):
-    assert 0 == _call_script(examples_dir, 'run_quil.py', 
+    assert 0 == _call_script(examples_dir, 'run_quil.py',
                              os.path.join(examples_dir, 'hello_world.quil'))
 
 
