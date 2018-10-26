@@ -31,7 +31,11 @@ def qubits_needed(number_of_sides):
     return int(math.ceil(math.log(number_of_sides, 2)))
 
 
-qvm = get_qc('f"{qubits_needed(number_of_sides)}q-qvm")
+def get_qvm(number_of_sides):
+    """
+    Get a QVM to simulate the requested number of sides.
+    """
+    return get_qc(f"{qubits_needed(number_of_sides)}q-qvm")
 
 
 def die_program(number_of_sides):
@@ -49,29 +53,29 @@ def die_program(number_of_sides):
         prog.measure(q, ro[q])
     return prog
 
-             
+
 def process_results(results):
     """
-    Convert a list of measurements to a die value.
+    Convert n digit binary result from the QVM to a value on a die.
     """
     raw_results = results[0]
-    print(raw_results)
     processing_result = 0
     for each_qubit_measurement in raw_results:
         processing_result = 2*processing_result + each_qubit_measurement
     # Convert from 0 indexed to 1 indexed
     die_value = processing_result + 1
     return die_value
-             
-             
-def roll_die(number_of_sides):
+
+
+def roll_die(qvm, number_of_sides):
     """
     Roll an n-sided quantum die.
     """
     die_compiled = qvm.compile(die_program(number_of_sides))
     return process_results(qvm.run(die_compiled))
-             
-             
+
+
 if __name__ == '__main__':
     number_of_sides = int(input("Please enter number of sides: "))
-    print('Quantum die roll:', roll_die(number_of_sides))
+    qvm = get_qvm(number_of_sides)
+    print(f"The result is: {roll_die(qvm, number_of_sides)}")
