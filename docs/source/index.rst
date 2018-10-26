@@ -49,10 +49,10 @@ in pyquil's docs:
   with near-term quantum computers, see `Quantum Computing in the NISQ era and beyond <https://arxiv.org/abs/1801.00862>`_.
 
 Our flagship product `Quantum Cloud Services <http://rigetti.com/qcs>`_ offers users an on-premise, dedicated access
-point to our quantum computers, and to a powerful 34-qubit Quantum Virtual Machine. This access point is a fully-configured
-OS, which we call a Quantum Machine Image. A QMI is bundled with the same downloadable SDK mentioned above, and an admin
-command line interface (CLI), which is used for scheduling compute time on our quantum computers. To sign up for our
-waitlist, please click the link above. If need access to our quantum computers for research, please email support@rigetti.com.
+point to our quantum computers. This access point is a fully-configured VM, which we call a Quantum Machine Image. A QMI
+is bundled with the same downloadable SDK mentioned above, and an admin command line interface (CLI), which is used for
+scheduling compute time on our quantum computers. To sign up for our waitlist, please click the link above. If you'd like
+to access to our quantum computers for research, please email support@rigetti.com.
 
 .. note::
 
