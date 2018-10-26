@@ -408,7 +408,7 @@ class Program(object):
                       "Please create a `QubitPlaceholder` directly", DeprecationWarning)
         return QubitPlaceholder()
 
-    def declare(self, name, memory_type, memory_size=1, shared_region=None, offsets=None):
+    def declare(self, name, memory_type='BIT', memory_size=1, shared_region=None, offsets=None):
         """DECLARE a quil variable
 
         This adds the declaration to the current program and returns a MemoryReference to the

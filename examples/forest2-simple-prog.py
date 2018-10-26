@@ -1,3 +1,5 @@
+#!/usr/bin/env python
+
 import numpy as np
 
 from pyquil import Program, get_qc
@@ -16,15 +18,14 @@ def run_bell_high_level(n_shots=1000):
     )
 
     # Step 3. Run
-    bitstrings = qc.run_and_measure(program, trials=n_shots)
+    results = qc.run_and_measure(program, trials=n_shots)
 
     # Bincount bitstrings
-    basis = np.array([2 ** i for i in range(len(q))])
-    ints = np.sum(bitstrings * basis, axis=1)
+    ints = sum(results[q[i]] * 2 ** i for i in range(len(q)))
     print('bincounts', np.bincount(ints))
 
     # Check parity
-    parities = np.sum(bitstrings, axis=1) % 2
+    parities = (results[q[0]] + results[q[1]]) % 2
     print('avg parity', np.mean(parities))
 
 
@@ -88,7 +89,7 @@ def run_bell_low_level(n_shots=1000):
     bitstrings = qam.load(executable) \
         .run() \
         .wait() \
-        .read_from_memory_region(region_name="ro", offsets=True)
+        .read_from_memory_region(region_name="ro")
 
     # Bincount bitstrings
     basis = np.array([2 ** i for i in range(len(q))])
