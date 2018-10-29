@@ -35,7 +35,8 @@ The QVM is available on your local machine. You can initialize a localQVM instan
 
 
 One executes quantum programs on the QVM using a ``.run(...)`` method, intended to closely mirror how one will execute programs on a
-real QPU (check out `our website to see current and legacy QPUs <rigetti.com/qpu>`_. These two methods are described in the following two
+real QPU (check out `our website to see current and legacy QPUs <rigetti.com/qpu>`_. We also offer a Wavefunction Simulator,
+which allows users to contruct and inspect wavefunctions of quantum programs. These two methods are described in the following two
 sections. (For information on constructing quantum programs, please refer back to :ref:`basics`.)
 
 The ``.run(...)`` method
