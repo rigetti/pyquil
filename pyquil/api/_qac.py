@@ -22,13 +22,13 @@ from pyquil.paulis import PauliTerm
 
 
 class AbstractCompiler(ABC):
-    @abstractmethod
     def get_version_info(self) -> dict:
         """
         Return version information for this compiler and its dependencies.
 
         :return: Dictionary of version information.
         """
+        raise NotImplementedError
 
     @abstractmethod
     def quil_to_native_quil(self, program: Program) -> Program:
