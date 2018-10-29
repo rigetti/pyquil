@@ -1,3 +1,5 @@
+#!/usr/bin/env python
+
 """
 This module runs basic Quil text files against the Forest QVM API.
 """
@@ -22,6 +24,7 @@ def parse():
     args = parser.parse_args()
     main(args.filepath, args.classical_register_num)
 
+
 def main(filepath, classical_register_num):
     with open(filepath) as file:
         quil_prog = file.read()
@@ -31,6 +34,7 @@ def main(filepath, classical_register_num):
     print("---------------------------")
     print("Output: ")
     print(qvm.run(program, list(range(classical_register_num))))
+
 
 if __name__ == '__main__':
     parse()

@@ -27,11 +27,11 @@ import networkx as nx
 import numpy as np
 import pytest
 import requests_mock
-from rpcq.core_messages import (BinaryExecutableRequest, BinaryExecutableResponse,
-                                NativeQuilRequest, NativeQuilResponse, NativeQuilMetadata,
-                                ConjugateByCliffordRequest, ConjugateByCliffordResponse,
-                                RandomizedBenchmarkingRequest, RandomizedBenchmarkingResponse)
-from rpcq.json_rpc.server import Server
+from rpcq import Server
+from rpcq.messages import (BinaryExecutableRequest, BinaryExecutableResponse,
+                           NativeQuilRequest, NativeQuilResponse, NativeQuilMetadata,
+                           ConjugateByCliffordRequest, ConjugateByCliffordResponse,
+                           RandomizedBenchmarkingRequest, RandomizedBenchmarkingResponse)
 
 from pyquil.api import (QVMConnection, QPUCompiler, BenchmarkConnection,
                         get_qc, LocalQVMCompiler, QVMCompiler, LocalBenchmarkConnection)
@@ -83,13 +83,13 @@ def test_sync_run_mock():
         return '{"ro": [[0,0],[1,1]]}'
 
     with requests_mock.Mocker() as m:
-        m.post('http://localhost:5000/qvm', text=mock_response)
+        m.post('http://127.0.0.1:5000/qvm', text=mock_response)
         assert mock_qvm.run(BELL_STATE_MEASURE,
                             [0, 1],
                             trials=2) == [[0, 0], [1, 1]]
 
         # Test no classical addresses
-        m.post('http://localhost:5000/qvm', text=mock_response)
+        m.post('http://127.0.0.1:5000/qvm', text=mock_response)
         assert mock_qvm.run(BELL_STATE_MEASURE, trials=2) == [[0, 0], [1, 1]]
 
     with pytest.raises(ValueError):
@@ -123,7 +123,7 @@ def test_sync_run_and_measure_mock():
         return '[[0,0],[1,1]]'
 
     with requests_mock.Mocker() as m:
-        m.post('http://localhost:5000/qvm', text=mock_response)
+        m.post('http://127.0.0.1:5000/qvm', text=mock_response)
         assert mock_qvm.run_and_measure(BELL_STATE, [0, 1], trials=2) == [[0, 0], [1, 1]]
 
     with pytest.raises(ValueError):
@@ -155,13 +155,13 @@ def test_sync_expectation_mock():
         return b'[0.0, 0.0, 1.0]'
 
     with requests_mock.Mocker() as m:
-        m.post('http://localhost:5000/qvm', content=mock_response)
+        m.post('http://127.0.0.1:5000/qvm', content=mock_response)
         result = mock_qvm.expectation(BELL_STATE, [Program(Z(0)), Program(Z(1)), Program(Z(0), Z(1))])
         exp_expected = [0.0, 0.0, 1.0]
         np.testing.assert_allclose(exp_expected, result)
 
     with requests_mock.Mocker() as m:
-        m.post('http://localhost:5000/qvm', content=mock_response)
+        m.post('http://127.0.0.1:5000/qvm', content=mock_response)
         z0 = PauliTerm("Z", 0)
         z1 = PauliTerm("Z", 1)
         z01 = z0 * z1
@@ -195,7 +195,7 @@ def test_sync_paulisum_expectation():
         return b'[1.0, 0.0, 0.0]'
 
     with requests_mock.Mocker() as m:
-        m.post('http://localhost:5000/qvm', content=mock_response)
+        m.post('http://127.0.0.1:5000/qvm', content=mock_response)
         z0 = PauliTerm("Z", 0)
         z1 = PauliTerm("Z", 1)
         z01 = z0 * z1
@@ -224,7 +224,7 @@ def test_seeded_qvm(test_device):
     with patch.object(LocalQVMCompiler, "quil_to_native_quil") as m_compile,\
             patch('pyquil.api._qvm.apply_noise_model') as m_anm,\
             requests_mock.Mocker() as m:
-        m.post('http://localhost:5000/qvm', text=mock_response)
+        m.post('http://127.0.0.1:5000/qvm', text=mock_response)
         m_compile.side_effect = [BELL_STATE]
         m_anm.side_effect = [BELL_STATE]
 
@@ -294,7 +294,7 @@ def test_config_parsing():
 
 
 def test_get_qc_returns_local_qvm_compiler():
-    with patch.dict('os.environ', {"COMPILER_URL": "http://localhost:7000"}):
+    with patch.dict('os.environ', {"COMPILER_URL": "http://127.0.0.1:7000"}):
         qc = get_qc("9q-generic-qvm")
         assert isinstance(qc.compiler, LocalQVMCompiler)
 
@@ -306,6 +306,12 @@ def test_get_qc_returns_remote_qvm_compiler():
 
 
 mock_compiler_server = Server()
+
+
+@mock_compiler_server.rpc_handler
+def get_version_info() -> dict:
+    time.sleep(0.1)
+    return {'compiler_server': '1.0.0'}
 
 
 @mock_compiler_server.rpc_handler
@@ -344,7 +350,7 @@ def conjugate_pauli_by_clifford(payload: ConjugateByCliffordRequest) -> Conjugat
 
 @pytest.fixture
 def m_endpoints():
-    return "tcp://localhost:5555", "tcp://*:5555"
+    return "tcp://127.0.0.1:5555", "tcp://*:5555"
 
 
 def run_mock(_, endpoint):
@@ -369,6 +375,12 @@ def mock_compiler(request, m_endpoints):
 @pytest.fixture
 def mock_rb_cxn(request, m_endpoints):
     return BenchmarkConnection(endpoint=m_endpoints[0])
+
+
+def test_get_version_info(server, mock_compiler: QPUCompiler):
+    response = mock_compiler.get_version_info()
+    assert isinstance(response, dict)
+    assert 'compiler_server' in response
 
 
 def test_quil_to_native_quil(server, mock_compiler):

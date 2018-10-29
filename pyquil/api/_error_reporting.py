@@ -24,10 +24,10 @@ import os
 import sys
 import json
 import inspect
-from datetime import datetime
+from datetime import datetime, date
 from dataclasses import dataclass
 import dataclasses
-from typing import List, Dict
+from typing import List, Dict, Any
 import logging
 from functools import wraps
 
@@ -44,7 +44,7 @@ class ErrorReport:
     """
 
     stack_trace: list
-    timestamp: datetime.date
+    timestamp: date
     call_log: dict
     exception: Exception  # noqa: E701
     system_info: dict
@@ -70,7 +70,7 @@ class CallLogKey:
 
     name: str
     args: List[str]
-    kwargs: Dict[str, any]
+    kwargs: Dict[str, Any]
 
     def __hash__(self):
         finger_print = (self.name,) + tuple(self.args) + tuple(
@@ -94,8 +94,8 @@ class CallLogValue:
     Entry in the call log list, suitable for JSON export.
     """
 
-    timestamp_in: datetime.date
-    timestamp_out: datetime.date
+    timestamp_in: date
+    timestamp_out: date
     return_value: str
 
 
@@ -135,7 +135,7 @@ class ErrorContext(object):
     Tracks information relevant to error reporting.
     """
 
-    log = {}
+    log: Dict[CallLogKey, CallLogValue] = {}
     filename = "pyquil_error.log"
 
     def generate_report(self, exception, trace):

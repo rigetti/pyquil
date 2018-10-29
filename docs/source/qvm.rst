@@ -31,7 +31,7 @@ The QVM is available on your local machine. You can initialize a localQVM instan
 
     from pyquil import get_qc, Program
     from pyquil.gates import *
-    qvm = get_qc('9q-generic-qvm')
+    qvm = get_qc('9q-square-qvm')
 
 
 One executes quantum programs on the QVM using a ``.run(...)`` method, intended to closely mirror how one will execute programs on a
