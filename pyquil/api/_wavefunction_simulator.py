@@ -20,7 +20,6 @@ from six import integer_types
 
 from pyquil.api._base_connection import ForestConnection
 from pyquil.api._error_reporting import _record_call
-from pyquil.api._job import Job
 from pyquil.paulis import PauliSum, PauliTerm
 from pyquil.quil import Program
 from pyquil.wavefunction import Wavefunction
@@ -66,15 +65,6 @@ class WavefunctionSimulator:
 
         return self.connection._wavefunction(quil_program=quil_program,
                                              random_seed=self.random_seed)
-
-    @_record_call
-    def wavefunction_async(self, quil_program):
-        """
-        Similar to wavefunction except that it returns a job id and doesn't wait for the program
-        to be executed. See https://go.rigetti.com/connections for reasons to use this method.
-        """
-        return self.connection._wavefunction_async(quil_program=quil_program,
-                                                   random_seed=self.random_seed)
 
     @_record_call
     def expectation(self, prep_prog: Program,
@@ -144,30 +134,3 @@ class WavefunctionSimulator:
         return self.connection._run_and_measure(quil_program=quil_program, qubits=qubits,
                                                 trials=trials,
                                                 random_seed=self.random_seed)
-
-    @_record_call
-    def run_and_measure_async(self, quil_program, qubits=None, trials=1):
-        """
-        Similar to run_and_measure except that it returns a job id and doesn't wait for the
-        program to be executed.
-
-        See https://go.rigetti.com/connections for reasons to use this method.
-        """
-        if qubits is None:
-            qubits = sorted(quil_program.get_qubits(indices=True))
-
-        return self.connection._run_and_measure_async(quil_program=quil_program, qubits=qubits,
-                                                      trials=trials, random_seed=self.random_seed)
-
-    @_record_call
-    def wait_for_job(self, job_id, ping_time=None, status_time=None) -> Job:
-        """
-        For async functions, wait for the specified job to be done and return the completed job.
-
-        :param job_id: The id of the job returned by ``_async`` methods.
-        :param ping_time: An optional time in seconds to poll for job completion.
-        :param status_time: An optional time in seconds to print the status of a job.
-        :return: The completed job.
-        """
-        return self.connection._wait_for_job(job_id=job_id, ping_time=ping_time,
-                                             status_time=status_time, machine='QVM')

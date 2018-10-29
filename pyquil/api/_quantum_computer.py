@@ -16,15 +16,17 @@
 import re
 import warnings
 from math import pi
-from typing import List, Dict, Tuple
+from typing import List, Dict, Tuple, Iterator, Union
+import subprocess
+from contextlib import contextmanager
 
 import networkx as nx
 import numpy as np
-from rpcq.messages import BinaryExecutableResponse, Message
+from rpcq.messages import BinaryExecutableResponse, Message, PyQuilExecutableResponse
 
 from pyquil.api._compiler import QVMCompiler, QPUCompiler, LocalQVMCompiler
 from pyquil.api._config import PyquilConfig
-from pyquil.api._devices import get_device, get_lattice
+from pyquil.api._devices import get_lattice, list_lattices
 from pyquil.api._error_reporting import _record_call
 from pyquil.api._qac import AbstractCompiler
 from pyquil.api._qam import QAM
@@ -37,6 +39,8 @@ from pyquil.quil import Program
 from pyquil.quilbase import Measurement, Pragma, Gate, Reset
 
 pyquil_config = PyquilConfig()
+
+Executable = Union[BinaryExecutableResponse, PyQuilExecutableResponse]
 
 
 def _get_flipped_protoquil_program(program: Program) -> Program:
@@ -119,7 +123,7 @@ class QuantumComputer:
         return self.device.get_isa(oneq_type=oneq_type, twoq_type=twoq_type)
 
     @_record_call
-    def run(self, executable: BinaryExecutableResponse) -> np.ndarray:
+    def run(self, executable: Executable) -> np.ndarray:
         """
         Run a quil executable.
 
@@ -242,16 +246,14 @@ def list_quantum_computers(connection: ForestConnection = None,
     :param qvms: Whether to include QVM's in the list.
     """
     if connection is None:
-        # TODO: Use this to list devices?
         connection = ForestConnection()
 
     qc_names: List[str] = []
     if qpus:
-        # TODO: add deployed QPUs from web endpoint
-        pass
+        qc_names += list(list_lattices(connection=connection).keys())
 
     if qvms:
-        qc_names += ['9q-generic-qvm', '9q-generic-noisy-qvm']
+        qc_names += ['9q-square-qvm', '9q-square-noisy-qvm']
 
     return qc_names
 
@@ -310,9 +312,11 @@ def _get_qvm_compiler(qvm_type, endpoint: str, device: AbstractDevice) -> Abstra
         raise ValueError("Protocol for QVM compiler endpoints must be HTTP or TCP.")
 
 
-def _get_qvm_or_pyqvm(qvm_type, connection, noise_model=None, device=None):
+def _get_qvm_or_pyqvm(qvm_type, connection, noise_model=None, device=None,
+                      requires_executable=False):
     if qvm_type == 'qvm':
-        return QVM(connection=connection, noise_model=noise_model)
+        return QVM(connection=connection, noise_model=noise_model,
+                   requires_executable=requires_executable)
     elif qvm_type == 'pyqvm':
         from pyquil.reference_simulator import ReferenceQAM
         return ReferenceQAM(n_qubits=device.qubit_topology().number_of_nodes())
@@ -345,7 +349,8 @@ def _get_9q_square_qvm(name: str, qvm_type: str, connection: ForestConnection,
         noise_model = None
 
     return QuantumComputer(name=name,
-                           qam=_get_qvm_or_pyqvm(qvm_type, connection, noise_model, device),
+                           qam=_get_qvm_or_pyqvm(qvm_type, connection, noise_model, device,
+                                                 requires_executable=True),
                            device=device,
                            compiler=_get_qvm_compiler(
                                qvm_type=qvm_type,
@@ -379,7 +384,8 @@ def _get_unrestricted_qvm(name: str, qvm_type: str, connection: ForestConnection
         noise_model = None
 
     return QuantumComputer(name=name,
-                           qam=_get_qvm_or_pyqvm(qvm_type, connection, noise_model, device),
+                           qam=_get_qvm_or_pyqvm(qvm_type, connection, noise_model, device,
+                                                 requires_executable=False),
                            device=device,
                            compiler=_get_qvm_compiler(
                                qvm_type=qvm_type,
@@ -395,7 +401,8 @@ def _get_qvm_based_on_real_device(name: str, qvm_type: str, device: AbstractDevi
         noise_model = None
 
     return QuantumComputer(name=name,
-                           qam=_get_qvm_or_pyqvm(qvm_type, connection, noise_model, device),
+                           qam=_get_qvm_or_pyqvm(qvm_type, connection, noise_model, device,
+                                                 requires_executable=True),
                            device=device,
                            compiler=_get_qvm_compiler(
                                qvm_type=qvm_type,
@@ -430,6 +437,11 @@ def get_qc(name: str, *, as_qvm: bool = None, noisy: bool = None,
     (technically, it's a fully connected graph among the given number of qubits) with::
 
         >>> qc = get_qc("5q-qvm") # or "6q-qvm", or "34q-qvm", ...
+
+    These less-realistic, fully-connected QVMs will also be more lenient on what types of programs
+    they will ``run``. Specifically, you do not need to do any compilation. For the other, realistic
+    QVMs you must use :py:func:`qc.compile` or :py:func:`qc.compiler.native_quil_to_executable`
+    prior to :py:func:`qc.run`.
 
     Redundant flags are acceptable, but conflicting flags will raise an exception::
 
@@ -468,36 +480,82 @@ def get_qc(name: str, *, as_qvm: bool = None, noisy: bool = None,
         connection = ForestConnection()
 
     prefix, qvm_type, noisy = _parse_name(name, as_qvm, noisy)
+    del as_qvm  # check qvm_type instead
     if noisy:
         name = f'{prefix}-noisy-{qvm_type}'
     else:
         name = f'{prefix}-{qvm_type}'
 
-    ma = re.fullmatch(r'(\d+)q', name)
+    ma = re.fullmatch(r'(\d+)q', prefix)
     if ma is not None:
         n_qubits = int(ma.group(1))
-        if not as_qvm:
+        if qvm_type is None:
             raise ValueError("Please name a valid device or run as a QVM")
         return _get_unrestricted_qvm(name=name, qvm_type=qvm_type, connection=connection,
                                      noisy=noisy, n_qubits=n_qubits)
 
-    if name == '9q-generic' or name == '9q-square':
-        if name == '9q-generic':
+    if prefix == '9q-generic' or prefix == '9q-square':
+        if prefix == '9q-generic':
             warnings.warn("Please prefer '9q-square' instead of '9q-generic'", DeprecationWarning)
 
-        if not as_qvm:
+        if qvm_type is None:
             raise ValueError("The device '9q-square' is only available as a QVM")
         return _get_9q_square_qvm(name=name, qvm_type=qvm_type, connection=connection, noisy=noisy)
 
-    device = get_lattice(name)
-    if not as_qvm:
+    device = get_lattice(prefix)
+    if qvm_type is None:
         if noisy is not None and noisy:
             warnings.warn("You have specified `noisy=True`, but you're getting a QPU. This flag "
                           "is meant for controlling noise models on QVMs.")
         return QuantumComputer(name=name,
-                               qam=QPU(endpoint=pyquil_config.qpu_url),
+                               qam=QPU(endpoint=pyquil_config.qpu_url, user=pyquil_config.user_id),
                                device=device,
                                compiler=QPUCompiler(endpoint=pyquil_config.compiler_url,
                                                     device=device))
 
     return _get_qvm_based_on_real_device(prefix, qvm_type, device, noisy, connection)
+
+
+@contextmanager
+def local_qvm() -> Iterator[Tuple[subprocess.Popen, subprocess.Popen]]:
+    """A context manager for the Rigetti local QVM and QUIL compiler.
+
+    You must first have installed the `qvm` and `quilc` executables from
+    the forest SDK. [https://www.rigetti.com/forest]
+
+    This context manager will start up external processes for both the
+    compiler and virtual machine, and then terminate them when the context
+    is exited.
+
+    If `qvm` (or `quilc`) is already running, then the existing process will
+    be used, and will not terminated at exit.
+
+    >>> from pyquil import get_qc, Program
+    >>> from pyquil.gates import CNOT, Z
+    >>> from pyquil.api import local_qvm
+    >>>
+    >>> qvm = get_qc('9q-square-qvm')
+    >>> prog = Program(Z(0), CNOT(0, 1))
+    >>>
+    >>> with local_qvm():
+    >>>     results = qvm.run_and_measure(prog, trials=10)
+
+    :raises: FileNotFoundError: If either executable is not installed.
+    """
+    # Enter. Acquire resource
+    qvm = subprocess.Popen(['qvm', '-S'],
+                           stdout=subprocess.PIPE,
+                           stderr=subprocess.PIPE)
+
+    quilc = subprocess.Popen(['quilc', '-S'],
+                             stdout=subprocess.PIPE,
+                             stderr=subprocess.PIPE)
+
+    # Return context
+    try:
+        yield (qvm, quilc)
+
+    finally:
+        # Exit. Release resource
+        qvm.terminate()
+        quilc.terminate()

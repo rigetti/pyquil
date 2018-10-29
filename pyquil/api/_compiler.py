@@ -79,19 +79,21 @@ def _collect_classical_memory_write_locations(program: Program) -> List[Optional
     """
     ro_size = None
     for instr in program:
-        if isinstance(instr, Declare) and (instr.name == "ro" or instr.name == "ro_table"):
+        if isinstance(instr, Declare) and instr.name == "ro":
+            if ro_size is not None:
+                raise ValueError("I found multiple places where a register named `ro` is declared! "
+                                 "Please only declare one register named `ro`.")
             ro_size = instr.memory_size
-            break
 
-    measures_by_qubit = Counter()
-    ro_sources: Dict[int, int] = {}
+    measures_by_qubit: Dict[int, int] = Counter()
+    ro_sources: Dict[int, Tuple[int, int]] = {}
 
     for instr in program:
         if isinstance(instr, Measurement):
             q = instr.qubit.index
             if instr.classical_reg:
                 offset = instr.classical_reg.offset
-                assert (instr.classical_reg.name == "ro" or instr.classical_reg.name == "ro_table")
+                assert instr.classical_reg.name == "ro", instr.classical_reg.name
                 if offset in ro_sources:
                     _log.warning(f"Overwriting the measured result in register "
                                  f"{instr.classical_reg} from qubit {ro_sources[offset]} "
@@ -137,6 +139,9 @@ class QPUCompiler(AbstractCompiler):
         self.target_device = TargetDevice(isa=device.get_isa().to_dict(),
                                           specs=device.get_specs().to_dict())
 
+    def get_version_info(self) -> dict:
+        return self.client.call('get_version_info')
+
     @_record_call
     def quil_to_native_quil(self, program: Program) -> Program:
         request = NativeQuilRequest(quil=program.out(), target_device=self.target_device)
@@ -177,6 +182,9 @@ class QVMCompiler(AbstractCompiler):
         self.target_device = TargetDevice(isa=device.get_isa().to_dict(),
                                           specs=device.get_specs().to_dict())
 
+    def get_version_info(self) -> dict:
+        return self.client.call('get_version_info')
+
     @_record_call
     def quil_to_native_quil(self, program: Program) -> Program:
         request = NativeQuilRequest(quil=program.out(), target_device=self.target_device)
@@ -207,6 +215,9 @@ class LocalQVMCompiler(AbstractCompiler):
 
         self._connection = ForestConnection(sync_endpoint=endpoint)
         self.session = self._connection.session  # backwards compatibility
+
+    def get_version_info(self) -> dict:
+        return self._connection._quilc_get_version_info()
 
     def quil_to_native_quil(self, program: Program) -> Program:
         response = self._connection._quilc_compile(program, self.isa, self.specs)

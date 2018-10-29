@@ -5,16 +5,20 @@ import numpy as np
 import pytest
 
 from pyquil import Program, get_qc, list_quantum_computers
-from pyquil.api import QVM, QuantumComputer
+from pyquil.api import QVM, QuantumComputer, local_qvm
 from pyquil.api._qac import AbstractCompiler
 from pyquil.api._quantum_computer import _get_flipped_protoquil_program, _parse_name
 from pyquil.device import NxDevice, gates_in_isa
 from pyquil.gates import *
 from pyquil.noise import decoherence_noise_with_asymmetric_ro
 from pyquil.pyqvm import PyQVM
+from rpcq.messages import PyQuilExecutableResponse
 
 
 class DummyCompiler(AbstractCompiler):
+    def get_version_info(self):
+        return {}
+
     def quil_to_native_quil(self, program: Program):
         return program
 
@@ -173,9 +177,9 @@ def test_readout_symmetrization(forest):
 
 
 def test_list_qc():
-    qc_names = list_quantum_computers()
+    qc_names = list_quantum_computers(qpus=False)
     # TODO: update with deployed qpus
-    assert qc_names == ['9q-generic-qvm', '9q-generic-noisy-qvm']
+    assert qc_names == ['9q-square-qvm', '9q-square-noisy-qvm']
 
 
 def test_parse_qc_name():
@@ -273,27 +277,11 @@ def test_parse_qc_no_prefix_2():
     assert prefix == ''
 
 
-<<<<<<< HEAD
 def test_parse_qc_pyqvm():
     prefix, qvm_type, noisy = _parse_name('9q-generic-pyqvm', None, None)
     assert prefix == '9q-generic'
     assert qvm_type == 'pyqvm'
     assert not noisy
-
-
-def test_qc_name():
-    qc = get_qc("qvm")
-    assert qc.name == 'qvm'
-
-
-def test_qc_name_2():
-    qc = get_qc("noisy-qvm")
-    assert qc.name == 'noisy-qvm'
-
-
-def test_qc_name_3():
-    qc = get_qc("9q-generic-noisy-qvm")
-    assert qc.name == '9q-generic-noisy-qvm'
 
 
 def test_qc(qvm, compiler):
@@ -346,12 +334,44 @@ def test_qc_error():
         get_qc('5q', as_qvm=False)
 
 
-def test_run_and_measure_concat(qvm, compiler):
+def test_run_and_measure(local_qvm_quilc):
     qc = get_qc("9q-generic-qvm")
     prog = Program(I(8))
     trials = 11
     # note to devs: this is included as an example in the run_and_measure docstrings
     # so if you change it here ... change it there!
-    bitstrings = qc.run_and_measure(prog, trials)
+    with local_qvm():  # Redundant with test fixture.
+        bitstrings = qc.run_and_measure(prog, trials)
     bitstring_array = np.vstack(bitstrings[q] for q in qc.qubits()).T
     assert bitstring_array.shape == (trials, len(qc.qubits()))
+
+
+def test_run_symmetrized_readout_error(local_qvm_quilc):
+    qc = get_qc("9q-generic-qvm")
+    trials = 11
+    prog = Program(I(8))
+
+    # Trials not even
+    with pytest.raises(ValueError):
+        bitstrings = qc.run_symmetrized_readout(prog, trials)
+
+
+def test_qvm_compile_pickiness(forest):
+    p = Program(X(0), MEASURE(0, 0))
+    p.wrap_in_numshots_loop(1000)
+    nq = PyQuilExecutableResponse(program=p.out(), attributes={'num_shots': 1000})
+
+    # Ok, non-realistic
+    qc = get_qc('9q-qvm')
+    qc.run(p)
+
+    # Also ok
+    qc.run(nq)
+
+    # Not ok
+    qc = get_qc('9q-square-qvm')
+    with pytest.raises(TypeError):
+        qc.run(p)
+
+    # Yot ok
+    qc.run(nq)

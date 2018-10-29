@@ -39,11 +39,11 @@ TYPE_MULTISHOT_MEASURE = "multishot-measure"
 TYPE_WAVEFUNCTION = "wavefunction"
 
 
-def get_json(session, url):
+def get_json(session, url, params: dict = None):
     """
     Get JSON from a Forest endpoint.
     """
-    res = session.get(url)
+    res = session.get(url, params=params)
     if res.status_code >= 400:
         raise parse_error(res)
     return res.json()
@@ -393,3 +393,11 @@ class ForestConnection:
         response = post_json(self.session, self.sync_endpoint + "/quilc", payload)
         unpacked_response = response.json()
         return unpacked_response
+
+    def _quilc_get_version_info(self) -> dict:
+        """
+        Return version information for quilc.
+
+        :return: Dictionary with version information
+        """
+        return get_json(self.session, self.sync_endpoint + '/version')

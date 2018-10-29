@@ -484,8 +484,8 @@ def MEASURE(qubit, classical_reg=None):
     if classical_reg is None:
         address = None
     elif isinstance(classical_reg, int):
-        warn("Indexing measurement addresses by integers is deprecated. " +
-             "Replacing this with the MemoryReference ro[i] instead.")
+        warn("Indexing measurement addresses by integers is deprecated. "
+             + "Replacing this with the MemoryReference ro[i] instead.")
         address = MemoryReference("ro", classical_reg)
     else:
         address = unpack_classical_reg(classical_reg)
