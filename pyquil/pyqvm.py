@@ -313,6 +313,9 @@ class PyQVM(QAM):
             self.program_counter += 1
 
         elif isinstance(instruction, Declare):
+            if instruction.shared_region is not None:
+                raise NotImplementedError("SHARING is not (yet) implemented.")
+
             self.ram[instruction.name] = np.zeros(instruction.memory_size,
                                                   dtype=QUIL_TO_NUMPY_DTYPE[
                                                       instruction.memory_type])
