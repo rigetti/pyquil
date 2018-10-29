@@ -374,8 +374,8 @@ value for alpha.
 
 .. code:: python
 
-    parametric_prog = pl.exponential_map(H)
-    print(parametric_prog(0.0))
-    print(parametric_prog(1.0))
-    print(parametric_prog(2.0))
+    expH = pl.exponential_map(H)
+    print(expH(0.0))
+    print(expH(1.0))
+    print(expH(2.0))
 
