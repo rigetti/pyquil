@@ -293,7 +293,8 @@ In PyQuil 1.x, there was an object named ``ParametricProgram``::
     from pyquil.parametric import ParametricProgram
     par_p = ParametricProgram(rotator) # This produces a new type of parameterized program object
 
-Please consider simply using a Python function for the above functionality::
+This object has been removed from PyQuil 2. Please consider simply using a Python function for
+the above functionality::
 
     par_p = rotator
 
