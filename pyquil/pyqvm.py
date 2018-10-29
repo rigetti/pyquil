@@ -105,23 +105,43 @@ class NotRunAndMeasureProgramError(ValueError):
     pass
 
 
-def _verify_ram_program(program):
+def _make_ram_program(program):
+    """
+    Check that this program is a series of quantum gates with terminal MEASURE instructions; pop
+    MEASURE instructions.
+
+    :param program: The program
+    :return: A new program with MEASURE instructions removed.
+    """
+    new_prog = program.copy_everything_except_instructions()
     last_qubit_operation = {}
     times_qubit_measured = defaultdict(lambda: 0)
-    last_measure_program_loc = 0
+    ro_size = None
+    qubit_to_ram = {}
 
-    for i, instr in enumerate(program):
+    for instr in program:
         if isinstance(instr, Pragma):
-            pass
+            new_prog += instr
         elif isinstance(instr, Declare):
-            pass
+            if instr.name == 'ro':
+                if instr.memory_type != 'BIT':
+                    raise NotRunAndMeasureProgramError("The readout register `ro` "
+                                                       "must be of type BIT")
+                ro_size = instr.memory_size
+            new_prog += instr
         elif isinstance(instr, Gate):
             for qubit in instr.qubits:
                 last_qubit_operation[qubit.index] = 'gate'
+            new_prog += instr
         elif isinstance(instr, Measurement):
+            if instr.classical_reg is None:
+                raise NotRunAndMeasureProgramError("No measure-for-effect allowed")
+            if instr.classical_reg.name != 'ro':
+                raise NotRunAndMeasureProgramError("The readout register must be named `ro`, "
+                                                   "not {}".format(instr.classical_reg.name))
             last_qubit_operation[instr.qubit.index] = 'measure'
             times_qubit_measured[instr.qubit.index] += 1
-            last_measure_program_loc = i
+            qubit_to_ram[instr.qubit.index] = instr.classical_reg.offset
         else:
             raise NotRunAndMeasureProgramError(f"Unsupported r_a_m instruction {instr}")
 
@@ -133,7 +153,10 @@ def _verify_ram_program(program):
         if tqm > 1:
             raise NotRunAndMeasureProgramError(f"Qubit {q} is measured {tqm} times")
 
-    return last_measure_program_loc
+    if ro_size is None:
+        raise NotRunAndMeasureProgramError("Please declare a readout register")
+
+    return new_prog, qubit_to_ram, ro_size
 
 
 class PyQVM(QAM):
@@ -179,7 +202,11 @@ class PyQVM(QAM):
 
         self.program = None  # type: Program
         self.program_counter = None  # type: int
-        self._ram_measure_mapping = None  # type: Dict[int, Tuple[str, int]]
+
+        # private implementation details
+        self._qubit_to_ram = None  # type: Dict[int, int]
+        self._ro_size = None  # type :int
+        self._bitstrings = None  # type: np.ndarray
 
         self.rs = np.random.RandomState(seed=seed)
         self.wf_simulator = quantum_simulator_type(n_qubits=n_qubits, rs=self.rs)
@@ -190,8 +217,7 @@ class PyQVM(QAM):
             raise ValueError("PyQVM does not support defined gates")
 
         try:
-            self._last_measure_program_loc = _verify_ram_program(program)
-            self._ram_measure_mapping = {}
+            program, self._qubit_to_ram, self._ro_size = _make_ram_program(program)
         except NotRunAndMeasureProgramError as e:
             raise ValueError("PyQVM can only run run-and-measure style programs: {}"
                              .format(e))
@@ -199,6 +225,7 @@ class PyQVM(QAM):
         # initialize program counter
         self.program = program
         self.program_counter = 0
+        self._bitstrings = None
 
         # clear RAM, although it's not strictly clear if this should happen here
         self.ram = {}
@@ -208,16 +235,31 @@ class PyQVM(QAM):
 
     def write_memory(self, *, region_name: str, offset: int = 0, value=None):
         assert self.status in ['loaded', 'done']
+        assert region_name != 'ro'
         self.ram[region_name][offset] = value
         return self
 
     def run(self):
         self.status = 'running'
-        assert self._last_measure_program_loc is not None
+        assert self._qubit_to_ram is not None
+        assert self._ro_size is not None
 
         halted = len(self.program) == 0
         while not halted:
-            halted = self.transition(run_and_measure=True)
+            halted = self.transition()
+
+        bitstrings = self.wf_simulator.sample_bitstrings(self.program.num_shots)
+
+        n_shots = self.program.num_shots
+        self.ram['ro'] = np.zeros((n_shots, self._ro_size), dtype=int)
+        for q in range(bitstrings.shape[1]):
+            if q in self._qubit_to_ram:
+                ram_offset = self._qubit_to_ram[q]
+                self.ram['ro'][:, ram_offset] = bitstrings[:, q]
+
+        # Finally, we RESET the system because it isn't mandated yet that programs
+        # contain RESET instructions.
+        self.wf_simulator.reset()
         return self
 
     def wait(self):
@@ -225,10 +267,7 @@ class PyQVM(QAM):
         self.status = 'done'
         return self
 
-    def read_from_memory_region(self, *, region_name: str, offsets=None):
-        if offsets is not None:
-            raise NotImplementedError("Can't handle offsets")
-
+    def read_from_memory_region(self, *, region_name: str):
         return self.ram[region_name]
 
     def find_label(self, label: Label):
@@ -247,7 +286,7 @@ class PyQVM(QAM):
         raise RuntimeError("Improper program - Jump Target not found in the "
                            "input program!")
 
-    def transition(self, run_and_measure=False):
+    def transition(self):
         """
         Implements a QAM-like transition.
 
@@ -255,11 +294,6 @@ class PyQVM(QAM):
         appropriately, and that the wavefunction simulator and classical memory ``ram`` instance
         variables are in the desired QAM input state.
 
-        :param run_and_measure: A sneaky feature whereby you can certify that the loaded
-            program follows the conventions for a "run and measure"-style program. The
-            wavefunction will be prepared once, and bitstrings will be sampled from it.
-            This requires self._last_measure_program_loc to be the program_counter index of the
-            final measure instruction
         :return: whether the QAM should halt after this transition.
         """
         instruction = self.program[self.program_counter]
@@ -273,48 +307,9 @@ class PyQVM(QAM):
             self.program_counter += 1
 
         elif isinstance(instruction, Measurement):
-            if not run_and_measure:
-                measured_val = self.wf_simulator.do_measurement(qubit=instruction.qubit.index)
-                x = instruction.classical_reg  # type: MemoryReference
-                self.ram[x.name][x.offset] = measured_val
-            else:
-                # Hacky code to speed up run-and-measure programs
-                # Don't actually do the measurement, just make a note of where in ram the bits
-                # will go
-                x = instruction.classical_reg  # type: MemoryReference
-                self._ram_measure_mapping[instruction.qubit.index] = (x.name, x.offset)
-
-                if self.program_counter == self._last_measure_program_loc:
-                    # We've reached the last measure instruction. Time to sample from our
-                    # wavefunction
-                    bitstrings = self.wf_simulator.sample_bitstrings(self.program.num_shots)
-
-                    # Quil2 doesn't support defining multidimensional arrays, and its typical
-                    # to allocate a readout register of size n_bits and assume "the stack" will
-                    # do the right thing and give you an array of shape (n_shots, n_bits) instead.
-                    # Here we resize all of our readout registers to be this extended 2d array shape
-                    ro_registers = sorted(set(ram_name for ram_name, ram_offset
-                                              in self._ram_measure_mapping.values()))
-                    for ro_register in ro_registers:
-                        assert np.sum(self.ram[ro_register]) == 0, 'reading out into a parameter?'
-                        prev_shape = self.ram[ro_register].shape
-                        assert len(prev_shape) == 1, prev_shape
-                        prev_shape = prev_shape[0]
-                        prev_dtype = self.ram[ro_register].dtype
-                        assert prev_dtype == QUIL_TO_NUMPY_DTYPE['BIT'], prev_dtype
-                        self.ram[ro_register] = np.zeros((self.program.num_shots, prev_shape),
-                                                         dtype=prev_dtype)
-
-                    # Penultimately, we use our collected qubit-to-ram mappings to fill in our newly
-                    # reshaped ram arrays
-                    for q in range(bitstrings.shape[1]):
-                        if q in self._ram_measure_mapping:
-                            ram_name, ram_offset = self._ram_measure_mapping[q]
-                            self.ram[ram_name][:, ram_offset] = bitstrings[:, q]
-
-                    # Finally, we RESET the system because it isn't mandated yet that programs
-                    # contain RESET instructions.
-                    self.wf_simulator.reset()
+            measured_val = self.wf_simulator.do_measurement(qubit=instruction.qubit.index)
+            x = instruction.classical_reg  # type: MemoryReference
+            self.ram[x.name][x.offset] = measured_val
             self.program_counter += 1
 
         elif isinstance(instruction, Declare):
