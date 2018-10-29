@@ -34,11 +34,9 @@ The QVM is available on your local machine. You can initialize a localQVM instan
     qvm = get_qc('9q-generic-qvm')
 
 
-One executes quantum programs on the QVM using two paradigms: the ``.run(...)`` method, and
-the ``.wavefunction(...)`` method. The former closely mirrors how one will execute programs on a
-real QPU (see `our QPU docs <rigetti.com/qpu>`_, while the latter takes advantage of the virtual machine, and allows
-direct access to the wavefunction. These two methods are described in the following two sections.
-(For information on constructing quantum programs, please refer back to :ref:`basics`.)
+One executes quantum programs on the QVM using a ``.run(...)`` method, intended to closely mirror how one will execute programs on a
+real QPU (check out `our website to see current and legacy QPUs <rigetti.com/qpu>`_. These two methods are described in the following two
+sections. (For information on constructing quantum programs, please refer back to :ref:`basics`.)
 
 The ``.run(...)`` method
 ~~~~~~~~~~~~~~~~~~~~~~~~
@@ -111,8 +109,7 @@ with very high probability, get different results each time.
 The ``.wavefunction(...)`` method
 ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
 
-The QVM is a virtual machine. As such, we can directly inspect the wavefunction of
-a program, even without measurements, using the ``.wavefunction(...)`` method:
+We can directly inspect the wavefunction of a program, even without measurements, using the ``.wavefunction(...)`` method:
 
 .. code:: python
 
@@ -282,7 +279,7 @@ in advance of running those programs on the QPU.
 Examples of Quantum Programs
 ----------------------------
 
-To create intuition for a new class of algorithms, that will run on Quantum Virtual Machines (QVM), it is useful (and
+To create intuition for a new class of algorithms, that will run on the Quantum Virtual Machine (QVM), it is useful (and
 fun) to play with the abstraction that the software provides.
 
 A broad class of programs that can easily be implemented on a QVM are generalizations of
