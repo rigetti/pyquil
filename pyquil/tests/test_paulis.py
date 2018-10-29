@@ -28,7 +28,7 @@ from six.moves import range
 from pyquil.gates import RX, RZ, CNOT, H, X, PHASE
 from pyquil.paulis import PauliTerm, PauliSum, exponential_map, exponentiate_commuting_pauli_sum, \
     ID, UnequalLengthWarning, exponentiate, trotterize, is_zero, check_commutation, commuting_sets, \
-    term_with_coeff, sI, sX, sY, sZ, ZERO, is_identity
+    term_with_coeff, sI, sX, sY, sZ, ZERO, is_identity, relabel_PauliSum
 from pyquil.quil import Program
 
 
@@ -644,3 +644,21 @@ def test_pauli_string():
     assert p.pauli_string([5]) == "Z"
     assert p.pauli_string([5, 6]) == "ZI"
     assert p.pauli_string([0, 1]) == "IX"
+
+
+def test_paulisum_relabel():
+    pauli_sum = 0.2324352140112518 * sI(0) + 0.33976903955554577 * sZ(0) + \
+                -0.4377261326398085 * sZ(1) + \
+                0.09088576838157725 * sY(0) * sY(1) + \
+                0.09088576838157725 * sX(0) * sX(1) + \
+                0.5710914905263441 * sZ(0) * sZ(1)
+
+    new_pauli_term = 0.2324352140112518 * sI(0) + 0.33976903955554577 * sZ(5) + \
+                     -0.4377261326398085 * sZ(16) + \
+                     0.09088576838157725 * sY(5) * sY(16) + \
+                     0.09088576838157725 * sX(5) * sX(16) + \
+                     0.5710914905263441 * sZ(5) * sZ(16)
+
+    test_psum = relabel_PauliSum(pauli_sum, {0: 5, 1: 16})
+
+    assert test_psum == new_pauli_term

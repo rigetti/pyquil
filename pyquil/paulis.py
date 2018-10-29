@@ -669,6 +669,29 @@ def simplify_pauli_sum(pauli_sum):
     return PauliSum(terms)
 
 
+def relabel_PauliSum(pauli_sum, qubit_map):
+    """
+    Relabel the terms in a PauliSum
+
+    This is very useful for mapping to a lattice with labels different from
+    those one might want to simulate on
+
+    :param pauli_sum: pyquil.paulis.PauliSum object
+    :param qubit_map: dictionary that should map every qubit to a new label
+    :return: A relabeld pyquil.paulis.PauliSum
+    """
+    new_paulisum_terms = []
+    for term in pauli_sum:
+        if is_identity(term):
+            new_paulisum_terms.append(sI(0) * term.coefficient)
+        else:
+            new_pauli_term_list = [(value, qubit_map[key]) for key, value in term._ops.items()]
+            new_pauli_term = PauliTerm.from_list(new_pauli_term_list,
+                                                 coefficient=term.coefficient)
+            new_paulisum_terms.append(new_pauli_term)
+    return sum(new_paulisum_terms)
+
+
 def check_commutation(pauli_list, pauli_two):
     """
     Check if commuting a PauliTerm commutes with a list of other terms by natural calculation.
