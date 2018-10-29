@@ -84,7 +84,7 @@ setup(
         'six',
         'networkx',
         'dataclasses',
-        'rpcq==2.0.0'
+        'rpcq>=2.0.0'
     ],
     keywords='quantum quil programming hybrid',
     python_requires=">=3.5",
