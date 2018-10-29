@@ -1013,6 +1013,8 @@ def validate_protoquil(program: Program) -> None:
         elif isinstance(instr, ResetQubit):
             raise ValueError("ProtoQuil only allows for global RESET.")
         elif isinstance(instr, Measurement):
+            if instr.qubit.index in measured_qubits:
+                raise ValueError("ProtoQuil currently disallows multiple measurements per qubit.")
             measured_qubits.add(instr.qubit.index)
         else:
             raise ValueError(f"Unhandled instruction type in ProtoQuil validation: {instr}")
