@@ -284,13 +284,7 @@ we should always measure ``1``.
 Parametric Programs
 ~~~~~~~~~~~~~~~~~~~
 
-A big advantage of working in pyQuil is that you are able to leverage all the functionality of
-Python to generate Quil programs.  In quantum/classical hybrid algorithms this often leads to
-situations where complex classical functions are used to generate Quil programs. pyQuil provides
-a convenient construction to allow you to use Python functions to generate templates of Quil
-programs, called ``ParametricPrograms``:
-
-.. code:: python
+In PyQuil 1.x, there was an object named ``ParametricProgram``::
 
     # This function returns a quantum circuit with different rotation angles on a gate on qubit 0
     def rotator(angle):
@@ -299,19 +293,16 @@ programs, called ``ParametricPrograms``:
     from pyquil.parametric import ParametricProgram
     par_p = ParametricProgram(rotator) # This produces a new type of parameterized program object
 
-The parametric program ``par_p`` now takes the same arguments as ``rotator``:
+This object has been removed from PyQuil 2. Please consider simply using a Python function for
+the above functionality::
 
-.. code:: python
+    par_p = rotator
 
-    print(par_p(0.5))
+Or using declared classical memory::
 
-.. parsed-literal::
-
-    RX(0.5) 0
-
-We can think of ``ParametricPrograms`` as a sort of template for Quil programs.  They cache computations
-that happen in Python functions so that templates in Quil can be efficiently substituted.
-
+    p = Program()
+    angle = p.declare('angle', 'REAL')
+    p += RX(angle, 0)
 
 Pauli Operator Algebra
 ~~~~~~~~~~~~~~~~~~~~~~
@@ -377,18 +368,15 @@ The following shows an instructive example of all three.
     RZ(-2.0) 0
     H 0
 
-A more sophisticated feature of pyQuil is that it can create templates of Quil programs in
-ParametricProgram objects.  An example use of these templates is in exponentiating a Hamiltonian
-that is parametrized by a constant.  This commonly occurs in variational algorithms. The function
-``exponential_map`` is used to compute exp[-i * alpha * H] without explicitly filling in a value for
-alpha.
+``exponential_map`` returns a function allowing you to fill in a multiplicative
+constant later. This commonly occurs in variational algorithms. The function
+``exponential_map`` is used to compute exp[-i * alpha * H] without explicitly filling in a
+value for alpha.
 
 .. code:: python
 
-    parametric_prog = pl.exponential_map(H)
-    print(parametric_prog(0.0))
-    print(parametric_prog(1.0))
-    print(parametric_prog(2.0))
+    expH = pl.exponential_map(H)
+    print(expH(0.0))
+    print(expH(1.0))
+    print(expH(2.0))
 
-This ParametricProgram now acts as a template, caching the result of the ``exponential_map``
-calculation so that it can be used later with new values.

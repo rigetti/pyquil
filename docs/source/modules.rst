@@ -33,14 +33,6 @@ pyquil.noise
     :undoc-members:
     :show-inheritance:
 
-pyquil.parametric
------------------
-
-.. automodule:: pyquil.parametric
-    :members:
-    :undoc-members:
-    :show-inheritance:
-
 pyquil.parser
 -------------
 
@@ -69,14 +61,6 @@ pyquil.quilbase
 ---------------
 
 .. automodule:: pyquil.quilbase
-    :members:
-    :undoc-members:
-    :show-inheritance:
-
-pyquil.slot
------------
-
-.. automodule:: pyquil.slot
     :members:
     :undoc-members:
     :show-inheritance:
