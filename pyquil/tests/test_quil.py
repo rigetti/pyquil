@@ -1116,3 +1116,15 @@ CZ 2 3
 MEASURE 2 ro[2]
 MEASURE 3 ro[3]
 """))
+
+
+def test_validate_protoquil_multiple_measures():
+    prog = Program(
+        RESET(),
+        H(1),
+        Pragma('DELAY'),
+        MEASURE(1),
+        MEASURE(1)
+    )
+    with pytest.raises(ValueError):
+        validate_protoquil(prog)
