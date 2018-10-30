@@ -137,11 +137,11 @@ Backwards compatibility
 Quil 1.0 is not compatible with Quil 2 in the following ways:
 
 -  The unnamed memory references ``[n]`` and ``[n-m]`` have no direct equivalent in Quil 2 and must be replaced by named
-    memory references. (This primarily affects ``MEASURE`` instructions.)
+   memory references. (This primarily affects ``MEASURE`` instructions.)
 
 -  The classical memory manipulation instructions have been modified: the operands of ``AND`` have been reversed (so that
-    in Quil 2, the left operand is the target address) and ``OR`` has been replaced by ``IOR`` and its operands reversed (so
-    that, again, in Quil 2 the left operand is the target address).
+   in Quil 2, the left operand is the target address) and ``OR`` has been replaced by ``IOR`` and its operands reversed (so
+   that, again, in Quil 2 the left operand is the target address).
 
 In all other instances, Quil 1.0 will operate identically with Quil 2.
 
@@ -155,21 +155,21 @@ Details of pyQuil and Forest updates
 **Updates to Forest**
 
 -  In Forest 1.3, job submission to the QPU was done from your workstation and the ability was gated by on user ID. In
-    Forest 2.0, job submission to the QPU must be done from your remote virtual machine, called a QMI (*Quantum Machine Image*).
+   Forest 2.0, job submission to the QPU must be done from your remote virtual machine, called a QMI (*Quantum Machine Image*).
 
 -  In Forest 1.3, user data persisted indefinitely in cloud storage and could be accessed using the assigned job ID. In
-    Forest 2.0, user data is stored only transiently, and it is the user's responsibility to handle long-term data storage
-    on their QMI.
+   Forest 2.0, user data is stored only transiently, and it is the user's responsibility to handle long-term data storage
+   on their QMI.
 
 
 **Updates to pyQuil**
 
 -  In pyQuil 1.9, API calls were organized by endpoint (e.g., all simulation calls were passed to a ``QVMConnection``
-    object). In pyQuil 2.0, API calls are organized by type (e.g., ``run`` calls are sent to a ``QuantumComputer`` but
-    ``wavefunction`` calls are sent to a ``WavefunctionSimulator``).
+   object). In pyQuil 2.0, API calls are organized by type (e.g., ``run`` calls are sent to a ``QuantumComputer`` but
+   ``wavefunction`` calls are sent to a ``WavefunctionSimulator``).
 
 -  In pyQuil 1.9, quantum program evaluation was asynchronous on the QPU and a mix of synchronuous or asynchronous on
-    the QVM. In pyQuil 2.0, all quantum program evaluation is synchronous.
+   the QVM. In pyQuil 2.0, all quantum program evaluation is synchronous.
 
 -  In pyQuil 1.9, each quantum program execution call started from scratch. In pyQuil 2.0, compiled program objects can be reused.
 
