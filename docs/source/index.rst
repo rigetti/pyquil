@@ -65,6 +65,7 @@ Contents
    :maxdepth: 3
 
    start
+   migration
    basics
    advanced_usage
    exercises
