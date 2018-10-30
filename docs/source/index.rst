@@ -65,6 +65,7 @@ Contents
    :maxdepth: 3
 
    start
+   migration
    basics
    qvm
    compiler
