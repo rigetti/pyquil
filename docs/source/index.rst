@@ -66,12 +66,11 @@ Contents
 
    start
    basics
-   advanced_usage
-   exercises
    qvm
    compiler
-   qubit-placeholder
    noise
+   advanced_usage
+   exercises
    modules
    changes
    intro
