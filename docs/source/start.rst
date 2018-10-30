@@ -3,7 +3,8 @@
 Installation and Getting Started
 ================================
 To make full use of the Rigetti Forest SDK, you will need pyQuil, the QVM, and the Quil Compiler. On this page, we will
-take you through the process of installing all three of these.
+take you through the process of installing all three of these. We also step you through
+:ref:`running a basic pyQuil program <exampleprogram>`.
 
 Upgrading or Installing pyQuil
 ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
@@ -17,7 +18,7 @@ Before you install, we recommend that you activate a Python 3.6+ virtual environ
     pip install --pre pyquil
 
 
-For those of you that already have pyQuil, you can upgrade by typing
+For those of you that already have pyQuil, you can upgrade with:
 
 ::
 
@@ -30,6 +31,8 @@ source `here <https://github.com/rigetticomputing/pyquil>`__.
 
     PyQuil requires Python 3.6 or later.
 
+.. _sdkinstall:
+
 Downloading the QVM and Compiler
 ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
 The Forest 2.0 Downloadable SDK Preview currently contains:
@@ -38,10 +41,9 @@ The Forest 2.0 Downloadable SDK Preview currently contains:
 -  The Rigetti Quil Compiler (``quilc``) which allows compilation and optimization of Quil programs to native gate sets
 
 The QVM and the compiler are packed as program binaries that are accessed through the command line. Both of them provide
-support for direct command-line interaction, as well as a server mode. The server mode is required for use with pyQuil
-(see section :ref:`server` for more information).
+support for direct command-line interaction, as well as a server mode. The :ref:`server mode <server>` is required for use with pyQuil.
 
-Request the Forest SDK `here <http://rigetti.com/forest>`__. You'll receive an email right away with the download links
+`Request the Forest SDK here <http://rigetti.com/forest>`__. You'll receive an email right away with the download links
 for macOS, Linux (.deb), Linux (.rpm), and Linux (bare-bones).
 
 All installation mechanisms, except the bare-bones package, require administrative privileges to install. To use the QVM
@@ -165,16 +167,16 @@ libffi. On a Debian-derivative system, this could be accomplished with
 
 To uninstall, remove the directory ``~/rigetti``.
 
+.. _exampleprogram:
+
 Getting Started
 ~~~~~~~~~~~~~~~
 To get started using the SDK, you can either interact with the QVM and the compiler directly from the command line,
-or you can run them in server mode and use them with pyQuil.
+or you can run them in server mode and use them with pyQuil. In this section, we're going to explain how to do the latter.
 
-Using the QVM and Compiler
---------------------------
-Refer to the manual pages for information on how to use the QVM and compiler directly. After installation, you can read
-the manual pages by opening a new terminal window and typing ``man qvm`` (for the QVM) or ``man quilc`` (for the
-compiler). Quit out of the manual page by typing ``q``.
+For more information about directly interacting with the QVM and the compiler, refer to their respective manual pages.
+After :ref:`installation <sdkinstall>`, you can read the manual pages by opening a new terminal window and typing ``man qvm`` (for the QVM)
+or ``man quilc`` (for the compiler). Quit out of the manual page by typing ``q``.
 
 .. _server:
 
@@ -201,68 +203,67 @@ terminal.
     [2018-09-19 11:22:37] Starting server: 0.0.0.0 : 6000.
 
 
-You're all set up to run pyQuil locally, which will make requests to these server endpoints to compile your Quil
+That's it! You're all set up to run pyQuil locally. Your programs will make requests to these server endpoints to compile your Quil
 programs to native Quil, and to simulate those programs on the QVM.
 
-Example Program
----------------
-Now that our local endpoints are up and running, we can start running pyQuil programs! Open a jupyter notebook (type
-``jupyter notebook`` in your terminal), or launch python in your terminal (type ``python3``).
+Run Your First Program
+----------------------
+Now that our local endpoints are up and running, we can start running pyQuil programs!
+We will run a simple program on the Quantum Virtual Machine (QVM).
 
-Now that you're in python, we can import a few things from pyQuil.
+The program we will create prepares a fully entangled state between two qubits, called a Bell State. This state is in an equal
+superposition between |00⟩ and |11⟩, meaning that it is equally likely that a measurement will result in measuring
+both qubits in the ground state or both qubits in the excited state. For more details about the physics behind these
+concepts, see :ref:`intro`.
+
+To begin, start up python however you like. You can open a jupyter notebook (type ``jupyter notebook`` in your terminal),
+open an interactive python notebook in your terminal (with ``ipython3``), or simply launch python in your terminal
+(type ``python3``). Recall that you need Python 3.6+ to use pyQuil.
+
+Import a few things from pyQuil:
 
 .. code:: python
 
     from pyquil import Program, get_qc
     from pyquil.gates import *
 
-We've imported the ``Program`` object, which allows us to specify a Quil program. ``get-qc`` allows us to connect to a
-``QuantumComputer`` object, which allows us to specify what our program should run on. We've also imported all (``*``)
-gates from the ``pyquil.gates`` module, which allows us to add operations to our program.
+The ``Program`` object allows us to build up a Quil program. ``get-qc`` connects us to a
+``QuantumComputer`` object, which specifies what our program should run on (see: :ref:`qvm`). We've also imported all (``*``)
+gates from the ``pyquil.gates`` module, which allows us to add operations to our program (:ref:`basics`).
 
-Let's construct a basic program. A Bell State, for example, is a simple entangled state, where two qubits are entangled
-in a superposition state. We will construct a Bell state such that the two qubits will be in identical states when
-measured.
+Next, let's construct our Bell State.
 
 .. code:: python
 
     # construct a Bell State program
     p = Program(H(0), CNOT(0, 1))
 
-We've accomplished this by driving qubit 0 into a superposition state (that's what the "H" gate does), and then created
-an entangled state between qubits 0 and 1 (that's what the "CNOT" gate does). Next, we'll want to run our program:
+We've accomplished this by driving qubit 0 into a superposition state (that's what the "H" gate does), and then creating
+an entangled state between qubits 0 and 1 (that's what the "CNOT" gate does). Finally, we'll want to run our program:
 
 .. code:: python
 
     # run the program on a QVM
-    qvm = get_qc('9q-square-qvm')
-    result = qvm.run_and_measure(p, trials=10)
-    print(result)
+    qc = get_qc('9q-square-qvm')
+    result = qc.run_and_measure(p, trials=10)
+    print(result[0])
+    print(result[1])
 
-The QVM object above is a simulated quantum computer. It's what you can connect to, using the downloadable Forest SDK.
-By specifying we want to ``.run_and_measure``, we've told our QVM to run the program specified above, and to collapse the
-state with a measurement. A measurement will give us the state of the qubits. "trials" refers to the number of times we
-run the program- a Bell State will give you both (0,0) and (1, 1); see how many times you get each output.
+Compare the two arrays of measurement results. The results will be correlated between the qubits and random from shot
+to shot.
 
-Our Forest SDK comes with a few parts:
+The ``qc`` is a simulated quantum computer. By specifying we want to ``.run_and_measure``, we've told our QVM to run
+the program specified above, collapse the state with a measurement, and return the results to us. ``trials`` refers to
+the number of times we run the whole program.
 
-1. **Quil**: The Quantum Instruction Language standard. Instructions written in Quil can be executed on any
-implementation of a quantum abstract machine, such as the quantum virtual machine (QVM), or on a real quantum processing
-unit (QPU). More details regarding Quil can be found in the `whitepaper <https://arxiv.org/abs/1608.03355>`__.
-
-2. **pyQuil**: A Python library to help write and run Quil code and quantum programs.
-
-3. **QVM**: A `Quantum Virtual Machine <qvm.html>`_, which is an implementation of the quantum abstract machine on
-classical hardware. The QVM lets you use a regular computer to simulate a small quantum computer.
-
-4. **Quil Compiler**: In addition to running on the QVM or the QPU, users can directly use the Rigetti Quil
-compiler, to investigate how arbitrary quantum programs can be compiled to target specific physical instruction set
-architectures (ISAs).
-
-5. **QPU**: pyQuil also includes some a special connection which lets you run experiments on Rigetti's prototype
-superconducting quantum processors over the cloud.
+The call to ``run_and_measure`` will make a request to the two servers we
+started up in the previous section: first, to the ``quilc`` server
+instance to compile the Quil program into native Quil, and then to the ``qvm`` server
+instance to simulate and return measurement results of the program 10 times. If you open up the terminal windows where your servers
+are running, you should see output printed to the console regarding the requests you just made.
 
 
 In the following sections, we'll cover gates, program construction & execution, and go into detail about our Quantum
-Virtual Machine, our QPUs, noise models and more. Jump to :ref:`basics` to continue.
+Virtual Machine, our QPUs, noise models and more. If you've used pyQuil before, continue on to our :ref:`quickstart`.
+Once you're set with that, jump to :ref:`basics` to continue.
 
