@@ -4,9 +4,9 @@ The Wavefunction Simulator
 ==========================
 
 Formerly a part of the QVM object in pyQuil, the Wavefunction Simulator allows you to directly inspect the wavefunction
-of a program. Because of the probabilistic nature of quantum information, the programs you'll be running on the QPU (or
-on your QVM) can give a distribution of outputs. When running on the QPU or QVM, you would aggregate results (anywhere from
-tens of trials to 100k+!) that you can sample (to get back a distribution).
+of a quantum state prepared by your program. Because of the probabilistic nature of quantum information, the programs you'll
+be running on the QPU can give a distribution of outputs. When running on the QPU or QVM, you would aggregate results
+(anywhere from tens of trials to 100k+!) that you can sample to get back a distribution.
 
 With the Wavefunction Simulator, you can look at the distribution without having to collect samples from your program.
 This can save a lot of time for small programs. Let's walk through a basic example of using WavefunctionSimulator:
@@ -36,7 +36,7 @@ The return value is a Wavefunction object that stores the amplitudes of the quan
 
   (0.7071067812+0j)|0> + (0.7071067812+0j)|1>
 
-To see the amplitudes listed as a sum of computational basis states. We can index into those
+to see the amplitudes listed as a sum of computational basis states. We can index into those
 amplitudes directly or look at a dictionary of associated outcome probabilities.
 
 .. code:: python
