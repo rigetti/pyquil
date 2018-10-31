@@ -1,3 +1,5 @@
+.. _wavefunction_simulator:
+
 The Wavefunction Simulator
 ==========================
 
