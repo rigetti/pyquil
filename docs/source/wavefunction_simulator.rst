@@ -16,9 +16,9 @@ This can save a lot of time for small programs. Let's walk through a basic examp
     from pyquil import Program
     from pyquil.gates import *
     from pyquil.api import WavefunctionSimulator
-    make_wf = WavefunctionSimulator()
+    wf_sim = WavefunctionSimulator()
     coin_flip = Program((H(0))
-    make_wf.wavefunction(coin_flip)
+    wf_sim.wavefunction(coin_flip)
 
 .. parsed-literal::
 
@@ -29,7 +29,7 @@ The return value is a Wavefunction object that stores the amplitudes of the quan
 .. code:: python
 
     coin_flip = Program(H(0))
-    wavefunction = make_wf.wavefunction(coin_flip)
+    wavefunction = wf_sim.wavefunction(coin_flip)
     print(wavefunction)
 
 .. parsed-literal::
@@ -108,7 +108,7 @@ We first import the necessary tools
     from pyquil.api import WavefunctionSimulator
     from pyquil.gates import *
 
-    make_wavefunction = WavefunctionSimulator()
+    wf_sim = WavefunctionSimulator()
     prog = Program()
     ro = prog.declare('ro', 'BIT', 2)
 
@@ -143,7 +143,7 @@ Finally we play the game several times
 
 .. code:: python
 
-    make_wavefunction.run_and_measure(prog, [0, 1], 10)
+    wf_sim.run_and_measure(prog, [0, 1], 10)
 
 Remember that the first number is the outcome of the game (value of the answer_register) whereas the second number is the
 outcome of Picard’s decision (value of the picard_register).
