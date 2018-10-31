@@ -187,6 +187,10 @@ or ``man quilc`` (for the compiler). Quit out of the manual page by typing ``q``
 
 Setting Up Server Mode for PyQuil
 ---------------------------------
+
+.. note::
+    This set up is only necessary to run pyQuil locally. If you're running in a QMI, this has already been done for you.
+
 It's easy to start up local servers for the QVM and quilc on your laptop. You should have two terminal windows open
 to run in the background. We recommend using a resource such as ``tmux`` for running and managing multiple programs in one
 terminal.
