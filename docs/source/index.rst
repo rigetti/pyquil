@@ -69,6 +69,7 @@ Contents
    advanced_usage
    exercises
    qvm
+   wavefunction_simulator
    compiler
    qubit-placeholder
    noise
