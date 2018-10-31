@@ -16,7 +16,8 @@ and shared quantum classical memory.
 
 Using the QVM
 -------------
-The QVM is available on your local machine. You can initialize a local QVM instance by doing the following:
+After `downloading the SDK <rigetti.com/forest>`_,the QVM is available on your local machine. You can initialize a local
+QVM instance by doing the following:
 
 
 .. code:: python
@@ -35,7 +36,7 @@ The QVM is available on your local machine. You can initialize a local QVM insta
 
 
 One executes quantum programs on the QVM using a ``.run(...)`` method, intended to closely mirror how one will execute programs on a
-real QPU (check out `our website to see current and legacy QPUs <rigetti.com/qpu>`_. We also offer a Wavefunction Simulator
+real QPU (check out `our website to see current and legacy QPUs <rigetti.com/qpu>`_). We also offer a Wavefunction Simulator
 (formerly a part of the QVM object), which allows users to contruct and inspect wavefunctions of quantum programs. Learn more
 about :ref:`wavefunction_simulator`.
 
@@ -47,7 +48,7 @@ The ``.run(...)`` method
 .. code:: python
 
     program = Program(X(0), MEASURE(0, 0))
-    results = qvm.run(program, trials=1)
+    results = qvm.run(program)
     # results = [[1]]
 
 The ``.run(...)`` method takes numerous arguments, several of which are optional. The most important
