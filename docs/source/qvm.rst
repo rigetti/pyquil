@@ -16,7 +16,7 @@ and shared quantum classical memory.
 
 Using the QVM
 -------------
-The QVM is available on your local machine. You can initialize a localQVM instance by doing the following:
+The QVM is available on your local machine. You can initialize a local QVM instance by doing the following:
 
 
 .. code:: python
