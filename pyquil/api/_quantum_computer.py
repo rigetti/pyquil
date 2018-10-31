@@ -133,7 +133,7 @@ class QuantumComputer:
         return self.qam.load(executable) \
             .run() \
             .wait() \
-            .read_from_memory_region(region_name="ro")
+            .read_memory(region_name="ro")
 
     @_record_call
     def run_symmetrized_readout(self, program: Program, trials: int) -> np.ndarray:

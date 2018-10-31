@@ -99,7 +99,7 @@ class QAM(ABC):
         return self
 
     @_record_call
-    def read_from_memory_region(self, *, region_name: str):
+    def read_memory(self, *, region_name: str):
         """
         Reads from a memory region named region_name on the QAM.
 
