@@ -6,6 +6,11 @@ To make full use of the Rigetti Forest SDK, you will need pyQuil, the QVM, and t
 take you through the process of installing all three of these. We also step you through
 :ref:`running a basic pyQuil program <exampleprogram>`.
 
+.. note::
+
+    If you're running from a Quantum Machine Image, installation has been completed for you. Continue to
+    :ref:`exampleprogram`.
+
 Upgrading or Installing pyQuil
 ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
 PyQuil 2.0 is our library for generating and executing Quil programs on the Rigetti Forest platform.
