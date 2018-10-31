@@ -46,7 +46,7 @@ amplitudes directly or look at a dictionary of associated outcome probabilities.
   print(wavefunction.amplitudes)
   prob_dict = wavefunction.get_outcome_probs() # extracts the probabilities of outcomes as a dict
   print(prob_dict)
-  prob_dict.keys() # these stores the bitstring outcomes
+  prob_dict.keys() # these store the bitstring outcomes
   assert len(wavefunction) == 1 # gives the number of qubits
 
 .. parsed-literal::
