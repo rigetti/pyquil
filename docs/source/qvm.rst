@@ -16,7 +16,8 @@ and shared quantum classical memory.
 
 Using the QVM
 -------------
-The QVM is available on your local machine. You can initialize a localQVM instance by doing the following:
+After `downloading the SDK <rigetti.com/forest>`_,the QVM is available on your local machine. You can initialize a local
+QVM instance by doing the following:
 
 
 .. code:: python
@@ -34,10 +35,11 @@ The QVM is available on your local machine. You can initialize a localQVM instan
     qvm = get_qc('9q-square-qvm')
 
 
-One executes quantum programs on the QVM using two paradigms: the ``.run(...)`` method, and
-the ``.wavefunction(...)`` method. The former closely mirrors how one will execute programs on a
-real QPU (see `our QPU docs <rigetti.com/qpu>`_, while the latter takes advantage of the virtual machine, and allows
-direct access to the wavefunction. These two methods are described in the following two sections.
+One executes quantum programs on the QVM using a ``.run(...)`` method, intended to closely mirror how one will execute programs on a
+real QPU (check out `our website to see current and legacy QPUs <rigetti.com/qpu>`_). We also offer a Wavefunction Simulator
+(formerly a part of the QVM object), which allows users to contruct and inspect wavefunctions of quantum programs. Learn more
+about :ref:`wavefunction_simulator`.
+
 (For information on constructing quantum programs, please refer back to :ref:`basics`.)
 
 The ``.run(...)`` method
@@ -46,7 +48,7 @@ The ``.run(...)`` method
 .. code:: python
 
     program = Program(X(0), MEASURE(0, 0))
-    results = qvm.run(program, trials=1)
+    results = qvm.run(program)
     # results = [[1]]
 
 The ``.run(...)`` method takes numerous arguments, several of which are optional. The most important
@@ -107,81 +109,6 @@ in a single list.
 
 Try running the above code several times. You will see that you will,
 with very high probability, get different results each time.
-
-The ``.wavefunction(...)`` method
-~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
-
-The QVM is a virtual machine. As such, we can directly inspect the wavefunction of
-a program, even without measurements, using the ``.wavefunction(...)`` method:
-
-.. code:: python
-
-    from pyquil.api import WavefunctionSimulator
-    make_wf = WavefunctionSimulator()
-    coin_flip = Program().inst(H(0))
-    make_wf.wavefunction(coin_flip)
-
-.. parsed-literal::
-
-    <pyquil.wavefunction.Wavefunction at 0x1088a2c10>
-
-The return value is a Wavefunction object that stores the amplitudes of the
-quantum state at the conclusion of the program. We can print this object
-
-.. code:: python
-
-    coin_flip = Program().inst(H(0))
-    wavefunction = make_wf.wavefunction(coin_flip)
-    print(wavefunction)
-
-.. parsed-literal::
-
-  (0.7071067812+0j)|0> + (0.7071067812+0j)|1>
-
-To see the amplitudes listed as a sum of computational basis states. We can index into those
-amplitudes directly or look at a dictionary of associated outcome probabilities.
-
-.. code:: python
-
-  assert wavefunction[0] == 1 / np.sqrt(2)
-  # The amplitudes are stored as a numpy array on the Wavefunction object
-  print(wavefunction.amplitudes)
-  prob_dict = wavefunction.get_outcome_probs() # extracts the probabilities of outcomes as a dict
-  print(prob_dict)
-  prob_dict.keys() # these stores the bitstring outcomes
-  assert len(wavefunction) == 1 # gives the number of qubits
-
-.. parsed-literal::
-
-  [ 0.70710678+0.j  0.70710678+0.j]
-  {'1': 0.49999999999999989, '0': 0.49999999999999989}
-
-The result from a wavefunction call also contains an optional amount of classical memory to
-check:
-
-.. code:: python
-
-    coin_flip = Program().inst(H(0)).measure(0,0)
-    wavefunction = qvm.wavefunction(coin_flip, classical_addresses=range(9))
-    classical_mem = wavefunction.classical_memory
-
-Additionally, we can pass a random seed to the Connection object. This allows us to reliably
-reproduce measurement results for the purpose of testing:
-
-.. code:: python
-
-    seeded_cxn = WavefunctionSimulator(random_seed=17)
-    print(seeded_cxn.run_and_measure(Program(H(0)), [0], 20))
-
-    seeded_cxn = WavefunctionSimulator(random_seed=17)
-    # This will give identical output to the above
-    print(seeded_cxn.run_and_measure(Program(H(0)), [0], 20))
-
-It is important to remember that this ``wavefunction`` method is just a useful debugging tool
-for small quantum systems, and it cannot be feasibly obtained on a
-quantum processor.
-
-.. _basis-ordering:
 
 Multi-Qubit Basis Enumeration
 -----------------------------
@@ -282,7 +209,7 @@ in advance of running those programs on the QPU.
 Examples of Quantum Programs
 ----------------------------
 
-To create intuition for a new class of algorithms, that will run on Quantum Virtual Machines (QVM), it is useful (and
+To create intuition for a new class of algorithms, that will run on the Quantum Virtual Machine (QVM), it is useful (and
 fun) to play with the abstraction that the software provides.
 
 A broad class of programs that can easily be implemented on a QVM are generalizations of
