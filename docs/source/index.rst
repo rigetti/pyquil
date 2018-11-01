@@ -86,6 +86,7 @@ Contents
 
    apidocs/quantum_computer
    apidocs/compilers
+   apidocs/qam
 
 
 Indices and Tables
