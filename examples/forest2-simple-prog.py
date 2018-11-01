@@ -89,7 +89,7 @@ def run_bell_low_level(n_shots=1000):
     bitstrings = qam.load(executable) \
         .run() \
         .wait() \
-        .read_from_memory_region(region_name="ro")
+        .read_memory(region_name="ro")
 
     # Bincount bitstrings
     basis = np.array([2 ** i for i in range(len(q))])

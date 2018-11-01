@@ -399,7 +399,7 @@ becomes
         qc.qam.write_memory(region_name='theta', value=angle_min + offset * angle_step)
         qc.qam.run()
         qc.qam.wait()
-        bitstrings = qc.qam.read_from_memory_region(region_name="ro", offsets=True)
+        bitstrings = qc.qam.read_memory(region_name="ro")
 
         totals = [0, 0, 0, 0]
         for bitstring in bitstrings:
@@ -481,7 +481,7 @@ Overall, the resulting program looks like this:
         qc.qam.write_memory(region_name='theta', value=angle_min + offset * angle_step)
         qc.qam.run()
         qc.qam.wait()
-        bitstrings = qc.qam.read_from_memory_region(region_name="ro", offsets=True)
+        bitstrings = qc.qam.read_memory(region_name="ro")
 
         totals = [0, 0, 0, 0]
         for bitstring in bitstrings:
