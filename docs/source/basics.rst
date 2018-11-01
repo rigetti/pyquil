@@ -139,7 +139,7 @@ and break down each argument:
  -  ``name`` is any name you want to give this memory region.
  -  ``memory_type`` is one of ``'REAL'``, ``'BIT'``, ``'OCTET'``, or ``'INTEGER'`` (given as a string). Only ``BIT`` and
     ``OCTET`` always have a determined size, which is 1 bit and 8 bits respectively.
- -  ``memory_size`` is the number of that memory type to allocate.
+ -  ``memory_size`` is the number of elements of that type to reserve.
  -  ``shared_region`` and ``offsets`` allow you to alias memory regions. For example,
     you might want to name the third bit in your readout array as ``q3_ro``. ``SHARING`` is currently disallowed for
     our QPUs, so we won't focus on this here.
