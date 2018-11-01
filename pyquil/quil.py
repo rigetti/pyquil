@@ -421,7 +421,7 @@ class Program(object):
             own MemoryReferences later on.
 
         :param name: Name of the declared variable
-        :param memory_type: Type of the declared variable
+        :param memory_type: Type of the declared variable, 'BIT', 'REAL', 'OCTET' or 'INTEGER'
         :param memory_size: Number of array elements in the declared memory.
         :param shared_region: You can declare a variable that shares its underlying memory
             with another region. This allows aliasing. For example, you can interpret an array
