@@ -42,7 +42,7 @@ An incomplete list of significant changes:
 v1.9 (June 6, 2018)
 -------------------
 
-We’re happy to announce the release of PyQuil 1.9. PyQuil is Rigetti’s toolkit for constructing
+We’re happy to announce the release of pyQuil 1.9. PyQuil is Rigetti’s toolkit for constructing
 and running quantum programs. This release is the latest in our series of regular releases,
 and it’s filled with convenience features, enhancements, bug fixes, and documentation improvements.
 
