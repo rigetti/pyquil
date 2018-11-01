@@ -29,7 +29,7 @@ An incomplete list of significant changes:
 - Gates support keyword arguments, so you can write ``RX(angle=pi/2, qubit=0)``.
 - All ``async`` methods have been removed from ``QVMConnection`` and ``QVMConnection`` is
   deprecated. ``QPUConnection`` has been removed in accordance with the QCS access model.
-  use :py:func:`pyquil.get_qc` as the primary means of interacting with the QVM or QPU.
+  Use :py:func:`pyquil.get_qc` as the primary means of interacting with the QVM or QPU.
 - ``WavefunctionSimulator`` allows unfettered access to wavefunction properties and routines.
   These methods and properties previously lived on ``QVMConnection``, and have been deprecated
   there.
