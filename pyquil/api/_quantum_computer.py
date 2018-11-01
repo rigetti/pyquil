@@ -471,7 +471,7 @@ def get_qc(name: str, *, as_qvm: bool = None, noisy: bool = None,
         the default values for URL endpoints, ping time, and status time will be used. Your
         user id and API key will be read from ~/.pyquil_config. If you deign to change any
         of these parameters, pass your own :py:class:`ForestConnection` object.
-    :return:
+    :return: A pre-configured QuantumComputer
     """
     if connection is None:
         connection = ForestConnection()
