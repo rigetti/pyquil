@@ -640,19 +640,3 @@ location:
 
 Please attach such a logfile to any request for support.
 
-
-QPU-allowable Quil
-~~~~~~~~~~~~~~~~~~
-
-Apart from ``DECLARE`` and ``PRAGMA`` directives, a program must break into the following three regions, each optional:
-
-1. A ``RESET`` command.
-2. A sequence of quantum gate applications.
-3. A sequence of ``MEASURE`` commands.
-
-The only memory that is writeable is the region named ``ro``, and only through ``MEASURE`` instructions. All other
-memory is read-only.
-
-The keyword ``SHARING`` is disallowed.
-
-Compilation is unavailable for invocations of ``DEFGATE``\ s with parameters read from classical memory.
