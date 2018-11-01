@@ -36,17 +36,20 @@ in pyquil's docs:
 
 **A few terms to orient you as you get started with Forest:**
 
-- pyQuil is an open source Python library developed at Rigetti Computing that allows you to write programs for quantum computers.
-  The source is hosted on `github <http://github.com/rigetticomputing/pyquil>`_.
-- Quil, the Quantum Instruction Language, is the lower-level code that pyQuil gets compiled into. A full description of
-  Quil can be found in our whitepaper, `A Practical Quantum Instruction Set Architecture <https://arxiv.org/abs/1608.03355>`_.
-- quilc is the Rigetti Quil Compiler that compiles pyQuil into Quil. The SDK includes quilc, which will enable you to
-  compile your pyQuil programs into executable Quil code.
-- The QVM is a simulator of our quantum computers. When you download the SDK, you’ll install the QVM and you will execute
-  Quil programs against it.
-- Forest is our software development kit, optimized for near-term quantum computers that operate as coprocessors, working in
-  concert with traditional processors to run hybrid quantum-classical algorithms. For references on problems addressable
-  with near-term quantum computers, see `Quantum Computing in the NISQ era and beyond <https://arxiv.org/abs/1801.00862>`_.
+1. **pyQuil**: An open source Python library to help you write and run quantum programs.
+   The source is hosted on `github <http://github.com/rigetticomputing/pyquil>`_.
+2. **Quil**: The Quantum Instruction Language standard. Instructions written in Quil can be executed on any
+   implementation of a quantum abstract machine, such as the quantum virtual machine (QVM), or on a real quantum processing
+   unit (QPU). More details regarding Quil can be found in the whitepaper,
+   `A Practical Quantum Instruction Set Architecture <https://arxiv.org/abs/1608.03355>`__.
+3. **QVM**: The `Quantum Virtual Machine <qvm.html>`_ is an implementation of a quantum abstract machine on
+   classical hardware. The QVM lets you use a regular computer to simulate a small quantum computer and execute Quil programs.
+4. **QPU**: Quantum processing unit. This refers to the physical hardware chip which we run quantum programs on.
+5. **Quil Compiler**: The compiler, ``quilc``, compiles Quil written for one quantum abstract machine (QAM) to another. Our
+   compiler will take arbitrary Quil and compile it for the given QAM, according to its supported instruction set architecture.
+6. **Forest SDK**: Our software development kit, optimized for near-term quantum computers that operate as coprocessors, working in
+   concert with traditional processors to run hybrid quantum-classical algorithms. For references on problems addressable
+   with near-term quantum computers, see `Quantum Computing in the NISQ era and beyond <https://arxiv.org/abs/1801.00862>`_.
 
 Our flagship product `Quantum Cloud Services <http://rigetti.com/qcs>`_ offers users an on-premise, dedicated access
 point to our quantum computers. This access point is a fully-configured VM, which we call a Quantum Machine Image. A QMI
@@ -65,14 +68,14 @@ Contents
    :maxdepth: 3
 
    start
+   migration
    basics
-   advanced_usage
-   exercises
    qvm
    wavefunction_simulator
    compiler
-   qubit-placeholder
    noise
+   advanced_usage
+   exercises
    modules
    changes
    intro

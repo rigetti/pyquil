@@ -99,6 +99,25 @@ class QAM(ABC):
         return self
 
     @_record_call
+    def read_memory(self, *, region_name: str):
+        """
+        Reads from a memory region named region_name on the QAM.
+
+        This is a shim over the eventual API and only can return memory from a region named
+        "ro" of type ``BIT``.
+
+        :param region_name: The string naming the declared memory region.
+        :return: A list of values of the appropriate type.
+        """
+        assert self.status == 'done'
+        if region_name != "ro":
+            raise QAMError("Currently only allowed to read measurement data from ro.")
+        if self._bitstrings is None:
+            raise QAMError("Bitstrings have not yet been populated. Something has gone wrong.")
+
+        return self._bitstrings
+
+    @_record_call
     def read_from_memory_region(self, *, region_name: str):
         """
         Reads from a memory region named region_name on the QAM.
@@ -109,6 +128,9 @@ class QAM(ABC):
         :param region_name: The string naming the declared memory region.
         :return: A list of values of the appropriate type.
         """
+        warnings.warn("pyquil.api._qam.QAM.read_from_memory_region is deprecated, please use "
+                      "pyquil.api._qam.QAM.read_memory instead.",
+                      DeprecationWarning)
         assert self.status == 'done'
         if region_name != "ro":
             raise QAMError("Currently only allowed to read measurement data from ro.")

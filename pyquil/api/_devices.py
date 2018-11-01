@@ -13,13 +13,12 @@
 #    See the License for the specific language governing permissions and
 #    limitations under the License.
 ##############################################################################
-from pyquil.api._base_connection import get_session, get_json, ForestConnection
+from pyquil.api._base_connection import get_json, ForestConnection
 from pyquil.api._config import PyquilConfig
 from pyquil.device import Device
-from pyquil.api._errors import UnknownApiError
 
 
-def list_devices():
+def list_devices(connection: ForestConnection = None):
     """
     Query the Forest 2.0 server for a list of underlying QPU devices.
 
@@ -39,11 +38,12 @@ def list_devices():
     #   "isa":         an ISA object describing the entire device, serialized as a dictionary,
     #   "noise_model": a NoiseModel object describing the entire device, serialized as a dictionary
     # }
+    if connection is None:
+        connection = ForestConnection()
 
-    session = get_session()
-    config = PyquilConfig()
-
-    return sorted(get_json(session, config.forest_url + "/devices")["devices"].keys())
+    session = connection.session
+    url = connection.forest_cloud_endpoint + '/devices'
+    return sorted(get_json(session, url)["devices"].keys())
 
 
 def list_lattices(device_name: str = None, num_qubits: int = None,
@@ -58,27 +58,10 @@ def list_lattices(device_name: str = None, num_qubits: int = None,
                "qubits": num_qubits
              }
     """
-    if connection and connection.session:
-        session = connection.session
-    else:
-        session = get_session()
-
-    if connection:
-        url = connection.sync_endpoint + "/lattices"
-    else:
-        config = PyquilConfig()
-        try:
-            url = config.forest_url + "/lattices"
-        except TypeError:
-            raise ValueError("""Encountered an error when querying the Forest 2.0 endpoint.
-
-    Most likely, you're missing an address for the Forest 2.0 server endpoint. This can
-    be set through the environment variable FOREST_URL or by changing the following lines
-    in the QCS config file:
-
-      [Rigetti Forest]
-      url = https://rigetti.com/valid/forest/url""")
-
+    if connection is None:
+        connection = ForestConnection()
+    session = connection.session
+    url = connection.forest_cloud_endpoint + "/lattices"
     try:
         response = get_json(session, url,
                             params={"device_name": device_name,
@@ -110,7 +93,7 @@ def list_lattices(device_name: str = None, num_qubits: int = None,
           following lines in the QCS config file:
 
           [Rigetti Forest]
-          url = https://rigetti.com/valid/forest/url
+          url = https://forest-server.qcs.rigetti.com
 
         For the record, here's the original exception: {}
         """.format(repr(e)))
