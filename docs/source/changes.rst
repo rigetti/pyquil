@@ -1,20 +1,48 @@
 Changelog
 =========
 
-v2.0 (Development)
-------------------
+v2.0 (November 1, 2018)
+-----------------------
 
-- Python 2 is no longer supported
+PyQuil 2.0 is a major release of pyQuil: Rigetti's toolkit for constructing and running quantum
+programs. This release contains many major changes reflecting:
+
+1. The introduction of `Quantum Cloud Services <https://www.rigetti.com/qcs>`_. Access
+   Rigetti's QPUs from co-located classical compute resources for minimal latency. The
+   web API for running QVM and QPU jobs has been deprecated and cannot be accessed with
+   pyQuil 2.0
+2. Advances in classical control systems and compilation allowing the pre-compilation of
+   parametric binary executables for rapid hybrid algorithm iteration.
+3. Changes to Quil---our quantum instruction language---to provide easier ways of
+   interacting with classical memory.
+
+The new QCS access model and features will allow you to execute hybrid quantum algorithms
+several orders of magnitude (!) faster than the previous web endpoint. However, to fully
+exploit these speed increases you must update your programs to use the latest pyQuil features
+and APIs. Please read :ref:`quickstart` for a comprehensive migration guide.
+
+An incomplete list of significant changes:
+
+- Python 2 is no longer supported. Please use Python 3.6+
 - Parametric gates are now normal functions. You can no longer write ``RX(pi/2)(0)`` to get a
   Quil ``RX(pi/2) 0`` instruction. Just use ``RX(pi/2, 0)``.
 - Gates support keyword arguments, so you can write ``RX(angle=pi/2, qubit=0)``.
-
+- All ``async`` methods have been removed from ``QVMConnection`` and ``QVMConnection`` is
+  deprecated. ``QPUConnection`` has been removed in accordance with the QCS access model.
+  use :py:func:`pyquil.get_qc` as the primary means of interacting with the QVM or QPU.
+- ``WavefunctionSimulator`` allows unfettered access to wavefunction properties and routines.
+  These methods and properties previously lived on ``QVMConnection``, and have been deprecated
+  there.
+- Classical memory in Quil must be declared with a name and type. Please read :ref:`quickstart`
+  for more.
+- Compilation has changed. There are now different ``Compiler`` objects that target either the
+  QPU or QVM. You **must** explicitly compile your programs to run on a QPU or a realistic QVM.
 
 
 v1.9 (June 6, 2018)
 -------------------
 
-We’re happy to announce the release of Pyquil 1.9. Pyquil is Rigetti’s toolkit for constructing
+We’re happy to announce the release of PyQuil 1.9. PyQuil is Rigetti’s toolkit for constructing
 and running quantum programs. This release is the latest in our series of regular releases,
 and it’s filled with convenience features, enhancements, bug fixes, and documentation improvements.
 
