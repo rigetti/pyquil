@@ -91,6 +91,8 @@ can be sent to the compiler, which returns a nativized Quil program that still h
 referencing the classical memory regions ``beta`` and ``gamma``. This program can then be loaded onto the QPU for
 repeated execution with different values of ``beta`` and ``gamma``, without recompilation in between.
 
+.. _declare:
+
 Details of updates to Quil
 ~~~~~~~~~~~~~~~~~~~~~~~~~~
 
