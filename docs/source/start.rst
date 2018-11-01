@@ -272,13 +272,12 @@ an entangled state between qubits 0 and 1 (that's what the "CNOT" gate does). Ne
 
     # run the program on a QVM
     qvm = get_qc('9q-square-qvm')
-    result = qvm.run_and_measure(p, trials=10)
+    result = qvm.run_and_measure(p)
     print(result)
 
 The QVM object above is a simulated quantum computer. It's what you can connect to, using the downloadable Forest SDK.
 By specifying we want to `.run_and_measure`, we've told our QVM to run the program specified above, and to collapse the
-state with a measurement. A measurement will give us the state of the qubits. "trials" refers to the number of times we
-run the program- a Bell State will give you both (0,0) and (1, 1); see how many times you get each output.
+state with a measurement. A measurement will give us the state of the qubits.
 
 Our Forest SDK comes with a few parts:
 
