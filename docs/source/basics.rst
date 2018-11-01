@@ -119,10 +119,27 @@ The parameterized gates take a real or complex floating point
 number as an argument.
 
 
-Using Parametric Gates
-~~~~~~~~~~~~~~~~~~~~~~
+Declaring Memory
+~~~~~~~~~~~~~~~~
+*Coming soon*
+
+
+Measurement
+~~~~~~~~~~~
 
 *Coming soon*
+
+
+Specifying the number of trials
+-------------------------------
+
+*Coming soon*
+
+
+Parametric Compilation
+~~~~~~~~~~~~~~~~~~~~~~
+*Coming soon*
+
 
 
 Defining New Gates
@@ -231,11 +248,6 @@ functions you can use with pyQuil are: ``quil_sin``, ``quil_cos``, ``quil_sqrt``
     the :ref:`Wavefunction Simulator <wavefunction_simulator>`
     (e.g. ``print(WavefunctionSimulator().wavefunction(p))``).
 
-Measuring Qubits
-~~~~~~~~~~~~~~~~
-
-*Coming soon*
-
 
 Pragmas
 ~~~~~~~
@@ -249,12 +261,6 @@ Asking for a Delay
 ------------------
 *Coming soon*
 (Note: time limit)
-
-
-Specifying the number of trials
-~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
-
-*Coming soon*
 
 
 Ways to Construct Programs
