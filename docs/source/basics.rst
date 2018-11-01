@@ -154,6 +154,9 @@ Now we can get into an example.
     ro = p.declare('ro', 'BIT', 16)
     theta = p.declare('theta', 'REAL')
 
+.. warning::
+    ``.declare`` cannot be chained, since it doesn't return a modified ``Program`` object.
+
 Notice that the ``.declare`` method returns a reference to the memory we've just declared. We will need this reference
 to make use of these memory spaces again. Let's see how the Quil is looking so far:
 
