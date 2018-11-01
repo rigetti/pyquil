@@ -44,7 +44,7 @@ We can print our pyQuil program (``print(p)``) to see the equivalent Quil repres
 
 
 This isn't going to be very useful to us without measurements. In pyQuil 2.0, we have to ``DECLARE`` a memory space
-to read measurement results, which we call "readout results" and abbreviate ``ro``. With measurement, our whole program
+to read measurement results, which we call "readout results" and abbreviate as ``ro``. With measurement, our whole program
 looks like this:
 
 .. code:: python
@@ -69,7 +69,7 @@ We've instantiated a program, declared a memory space named ``ro`` with one sing
 an ``X`` gate on qubit 0, and finally measured qubit 0 into the zeroth index of the memory space named ``ro``.
 
 Awesome! That's all we need to get results back. Now we can actually see what happens if we run this
-program on the QVM. We just have to add a few lines to do this.
+program on the Quantum Virtual Machine (QVM). We just have to add a few lines to do this.
 
 .. code:: python
 
