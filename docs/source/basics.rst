@@ -191,7 +191,24 @@ Parametric Compilation
 
 Gate Modifiers
 ~~~~~~~~~~~~~~
-`DAGGER` `CONTROLLED`
+Gate applications in Quil can be preceded by a `gate modifier`. There are two supported modifiers:
+``DAGGER`` and ``CONTROLLED``. The ``DAGGER`` modifier represents the dagger of the gate. For instance,
+.. parsed-literal::
+
+    DAGGER RX(pi/3) 0
+
+would have an equivalent effect to ``RX(-pi/3) 0``.
+
+The ``CONTROLLED`` modifier takes a gate and makes it a controlled gate. For instance, one could write the Toffoli gate in any of the three following ways:
+
+.. parsed-literal::
+
+    CCNOT 0 1 2
+    CONTROLLED CNOT 0 1 2
+    CONTROLLED CONTROLLED X 0 1 2
+
+.. note::
+    The letter ``C`` in the gate name has no semantic significance in Quil. To make a controlled ``Y`` gate, one `cannot` write ``CY``, but rather one has to write ``CONTROLLED Y``.
 
 Defining New Gates
 ~~~~~~~~~~~~~~~~~~
