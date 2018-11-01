@@ -1,8 +1,8 @@
 Changelog
 =========
 
-v2.0 (November 1, 2018)
------------------------
+v2.0.0 (November 1, 2018)
+-------------------------
 
 PyQuil 2.0 is a major release of pyQuil, Rigetti's toolkit for constructing and running quantum
 programs. This release contains many major changes including:
