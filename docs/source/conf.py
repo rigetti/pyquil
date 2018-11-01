@@ -43,7 +43,7 @@ extensions = [
 ]
 
 autosummary_generate = True
-autoclass_content = "init"
+autoclass_content = "both"
 
 import sphinx_rtd_theme
 from pyquil import __version__

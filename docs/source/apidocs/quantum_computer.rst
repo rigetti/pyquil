@@ -11,7 +11,7 @@ Quantum Computer
    .. rubric:: Methods
 
    .. autosummary::
-        :toctree: QuantumComputer
+        :toctree: autogen
         :template: autosumm.rst
 
         ~QuantumComputer.run

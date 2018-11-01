@@ -85,6 +85,7 @@ Contents
    :caption: API Reference
 
    apidocs/quantum_computer
+   apidocs/compilers
 
 
 Indices and Tables
