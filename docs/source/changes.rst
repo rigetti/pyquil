@@ -31,7 +31,7 @@ An incomplete list of significant changes:
   deprecated. ``QPUConnection`` has been removed in accordance with the QCS access model.
   Use :py:func:`pyquil.get_qc` as the primary means of interacting with the QVM or QPU.
 - ``WavefunctionSimulator`` allows unfettered access to wavefunction properties and routines.
-  These methods and properties previously lived on ``QVMConnection``, and have been deprecated
+  These methods and properties previously lived on ``QVMConnection`` and have been deprecated
   there.
 - Classical memory in Quil must be declared with a name and type. Please read :ref:`quickstart`
   for more.
