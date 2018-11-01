@@ -121,8 +121,57 @@ number as an argument.
 
 Declaring Memory
 ~~~~~~~~~~~~~~~~
-*Coming soon*
 
+Classical memory regions must be explicitly requested and named by a Quil program using the ``DECLARE`` directive.
+Details about the Quil directive can be found in :ref:`declare`.
+
+In pyQuil, we declare memory with the ``.declare`` method on a ``Program``. Let's inspect the function signature
+
+.. code:: python
+
+    # pyquil.quil.Program
+
+    def declare(self, name, memory_type='BIT', memory_size=1, shared_region=None, offsets=None):
+
+
+and break down each argument:
+
+ -  ``name`` is any name you want to give this memory region.
+ -  ``memory_type`` is one of ``'REAL'``, ``'BIT'``, ``'OCTET'``, or ``'INTEGER'`` (given as a string). Only ``BIT`` and
+    ``OCTET`` always have a determined size, which is 1 bit and 8 bits respectively.
+ -  ``memory_size`` is the number of elements of that type to reserve.
+ -  ``shared_region`` and ``offsets`` allow you to alias memory regions. For example,
+    you might want to name the third bit in your readout array as ``q3_ro``. ``SHARING`` is currently disallowed for
+    our QPUs, so we won't focus on this here.
+
+Now we can get into an example.
+
+.. code:: python
+
+    from pyquil import Program
+
+    p = Program()
+    ro = p.declare('ro', 'BIT', 16)
+    theta = p.declare('theta', 'REAL')
+
+.. warning::
+    ``.declare`` cannot be chained, since it doesn't return a modified ``Program`` object.
+
+Notice that the ``.declare`` method returns a reference to the memory we've just declared. We will need this reference
+to make use of these memory spaces again. Let's see how the Quil is looking so far:
+
+.. parsed-literal::
+
+    DECLARE ro BIT[16]
+    DECLARE theta REAL[1]
+
+
+That's all we have to do to declare the memory. Continue to the next section on :ref:`measurement` to learn more about
+using ``ro`` to store measured readout results. Check out :ref:`parametric_compilation` to see how you might use
+``theta`` to compile gate parameters dynamically.
+
+
+.. _measurement:
 
 Measurement
 ~~~~~~~~~~~
@@ -135,12 +184,34 @@ Specifying the number of trials
 
 *Coming soon*
 
+.. _parametric_compilation:
 
 Parametric Compilation
 ~~~~~~~~~~~~~~~~~~~~~~
 *Coming soon*
 
 
+
+Gate Modifiers
+~~~~~~~~~~~~~~
+Gate applications in Quil can be preceded by a `gate modifier`. There are two supported modifiers:
+``DAGGER`` and ``CONTROLLED``. The ``DAGGER`` modifier represents the dagger of the gate. For instance,
+.. parsed-literal::
+
+    DAGGER RX(pi/3) 0
+
+would have an equivalent effect to ``RX(-pi/3) 0``.
+
+The ``CONTROLLED`` modifier takes a gate and makes it a controlled gate. For instance, one could write the Toffoli gate in any of the three following ways:
+
+.. parsed-literal::
+
+    CCNOT 0 1 2
+    CONTROLLED CNOT 0 1 2
+    CONTROLLED CONTROLLED X 0 1 2
+
+.. note::
+    The letter ``C`` in the gate name has no semantic significance in Quil. To make a controlled ``Y`` gate, one `cannot` write ``CY``, but rather one has to write ``CONTROLLED Y``.
 
 Defining New Gates
 ~~~~~~~~~~~~~~~~~~
