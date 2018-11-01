@@ -173,6 +173,42 @@ using ``ro`` to store measured readout results. Check out :ref:`parametric_compi
 
 .. _measurement:
 
+and break down each argument:
+
+ -  ``name`` is any name you want to give this memory region.
+ -  ``memory_type`` is one of ``'REAL'``, ``'BIT'``, ``'OCTET'``, or ``'INTEGER'`` (given as a string). Only ``BIT`` and
+    ``OCTET`` always have a determined size, which is 1 bit and 8 bits, respectively.
+ -  ``memory_size`` is the number of that memory type to allocate.
+ -  ``shared_region`` and ``offsets`` allow you to alias memory regions. For example,
+    you might want to name the third bit in your readout array as ``q3_ro``. ``SHARING`` is currently disallowed for
+    our QPUs, so we won't focus on this here.
+
+Now we can get into an example.
+
+.. code:: python
+
+    from pyquil import Program
+
+    p = Program()
+    ro = p.declare('ro', 'BIT', 16)
+    theta = p.declare('theta', 'REAL')
+
+Notice that the ``.declare`` method returns a reference to the memory we've just declared. We will need this reference
+to make use of these memory spaces again. Let's see how the Quil is looking so far:
+
+.. parsed-literal::
+
+    DECLARE ro BIT[16]
+    DECLARE theta REAL[1]
+
+
+That's all we have to do to declare the memory. Continue to the next section on :ref:`measurement` to learn more about
+using ``ro`` to store measured readout results. Check out :ref:`parametric_compilation` to see how you might use
+``theta`` to compile gate parameters dynamically.
+
+
+.. _measurement:
+
 Measurement
 ~~~~~~~~~~~
 
