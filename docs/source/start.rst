@@ -20,14 +20,14 @@ Before you install, we recommend that you activate a Python 3.6+ virtual environ
 
 ::
 
-    pip install --pre pyquil
+    pip install pyquil
 
 
 For those of you that already have pyQuil, you can upgrade with:
 
 ::
 
-    pip install --upgrade --pre pyquil
+    pip install --upgrade pyquil
 
 If you would like to stay up to date with the latest changes and bug fixes, you can also opt to install pyQuil from the
 source `here <https://github.com/rigetticomputing/pyquil>`__.
