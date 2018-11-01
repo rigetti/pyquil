@@ -80,6 +80,12 @@ Contents
    changes
    intro
 
+.. toctree::
+   :maxdepth: 3
+   :caption: API Reference
+
+   apidocs/quantum_computer
+
 
 Indices and Tables
 ------------------

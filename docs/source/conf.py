@@ -31,6 +31,7 @@
 # ones.
 extensions = [
     'sphinx.ext.autodoc',
+    'sphinx.ext.autosummary',
     'sphinx.ext.doctest',
     'sphinx.ext.intersphinx',
     'sphinx.ext.todo',
@@ -38,27 +39,14 @@ extensions = [
     'sphinx.ext.mathjax',
     'sphinx.ext.ifconfig',
     'sphinx.ext.viewcode',
+    'sphinx_autodoc_typehints',
 ]
+
+autosummary_generate = True
+autoclass_content = "init"
 
 import sphinx_rtd_theme
 from pyquil import __version__
-
-
-def remove_secrets(app, what, name, obj, options, signature, return_annotation):
-    if what == "class" and name == "pyquil.api.Connection":
-        import pyquil.api as pqf
-        print("Replacing endpoint secrets in pyquil.api.Connection() signature")
-        print(signature,)
-        signature = signature.replace("'{}'".format(pqf.ENDPOINT), "ENDPOINT")
-        signature = signature.replace("'{}'".format(pqf.API_KEY), "API_KEY")
-        signature = signature.replace("'{}'".format(pqf.USER_ID), "USER_ID")
-        print("--> ", signature)
-        return signature, return_annotation
-
-
-def setup(app):
-    app.connect("autodoc-process-signature", remove_secrets)
-
 
 # Add any paths that contain templates here, relative to this directory.
 templates_path = ['_templates']
@@ -141,7 +129,6 @@ pygments_style = 'sphinx'
 
 # If true, `todo` and `todoList` produce output, else they produce nothing.
 todo_include_todos = True
-
 
 # -- Options for HTML output ----------------------------------------------
 
@@ -267,21 +254,21 @@ htmlhelp_basename = 'pyQuildoc'
 # -- Options for LaTeX output ---------------------------------------------
 
 latex_elements = {
-     # The paper size ('letterpaper' or 'a4paper').
-     #
-     # 'papersize': 'letterpaper',
+    # The paper size ('letterpaper' or 'a4paper').
+    #
+    # 'papersize': 'letterpaper',
 
-     # The font size ('10pt', '11pt' or '12pt').
-     #
-     # 'pointsize': '10pt',
+    # The font size ('10pt', '11pt' or '12pt').
+    #
+    # 'pointsize': '10pt',
 
-     # Additional stuff for the LaTeX preamble.
-     #
-     # 'preamble': '',
+    # Additional stuff for the LaTeX preamble.
+    #
+    # 'preamble': '',
 
-     # Latex figure (float) alignment
-     #
-     # 'figure_align': 'htbp',
+    # Latex figure (float) alignment
+    #
+    # 'figure_align': 'htbp',
 }
 
 # Grouping the document tree into LaTeX files. List of tuples
