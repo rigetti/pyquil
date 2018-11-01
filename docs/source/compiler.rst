@@ -19,7 +19,7 @@ Interacting with the Compiler
 -----------------------------
 
 A ``QuantumComputer`` object supplied by the function ``pyquil.api.get_qc()`` comes equipped with a
-connection to a Rigetti Quil compiler.  If the object is called ``qc``, then this can be accessed
+connection to a Rigetti Quil compiler.  This can be accessed
 using the instance method ``.compile()``, as in the following:
 
 .. code:: python
