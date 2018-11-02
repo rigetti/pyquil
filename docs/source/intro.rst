@@ -175,13 +175,13 @@ An important distinction between the probabilistic case described above
 and the quantum case is that probabilistic states may just mask out
 ignorance. For example a coin is physically only 0 or 1 and the
 probabilistic view merely represents our ignorance about which it actually
-is. **This is not the case in quantum mechanics**. Assuming events cannot instantaneously
-influence one another, the quantum states ---
+is. **This is not the case in quantum mechanics**. Assuming events occuring at a distance from one another cannot instantaneously
+influence each other, the quantum states ---
 as far as we know --- cannot mask any underlying state. This is what
 people mean when they say that there is no `local hidden variable theory
 <https://en.wikipedia.org/wiki/Bell's_theorem>`_ for
 quantum mechanics. These probabilistic quantum states are as real as it
-gets: they don't describe our knowledge of the quantum system, they
+gets: they don't just describe our knowledge of the quantum system, they
 describe the physical reality of the system.
 
 Some Code
@@ -190,7 +190,7 @@ Some Code
 Let us take a look at some code in pyQuil to see how these quantum states
 play out. We will dive deeper into quantum operations and pyQuil in
 the following sections. Note that in order to run these examples you will need
-to `install pyQuil and set up a connection to the Forest API <getting_started.html#getting-started>`_.
+to `install pyQuil and download the QVM and Compiler <https://pyquil.readthedocs.io/en/stable/start.html>`_.
 Each of the code snippets below will be immediately followed by its output.
 
 .. code:: python
