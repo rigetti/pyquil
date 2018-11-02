@@ -248,7 +248,7 @@ gate. When we prepare a superposition state, we expect probabilistic outcomes, s
 The number of `shots` (also called `trials`) is the number of times to execute a program at once.
 This determines the length of the results that are returned.
 
-As we saw above, the ``.run_and_measure`` method of the ``QuantumComputer`` object can handle adding trials for us.
+As we saw above, the ``.run_and_measure`` method of the ``QuantumComputer`` object can handle multiple executions of a program.
 If you would like more explicit control for representing multi-shot execution, another way to do this is
 with ``.wrap_in_numshots_loop``. This puts the number of shots to be run in the representation of the program itself,
 as opposed to in the arguments list of the execution method itself. Below, we specify that our program should
@@ -259,6 +259,14 @@ be executed 1000 times.
     p = Program()
     ...   # build up your program here...
     p.wrap_in_numshots_loop(1000)
+
+
+.. note::
+
+    Did You Know?
+
+    The word “shot” comes from experimental physics where an experiment is
+    performed many times, and each result is called a shot.
 
 
 .. _parametric_compilation:
