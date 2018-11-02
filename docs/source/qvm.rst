@@ -1,7 +1,13 @@
 .. _qvm:
 
+The Quantum Computer
+====================
+
+fdsfds
+fdssdds
+
 The Quantum Virtual Machine (QVM)
-=================================
+~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
 
 The Rigetti Quantum Virtual Machine is an implementation of the Quantum Abstract Machine from
 *A Practical Quantum Instruction Set Architecture*. [1]_  It is implemented in ANSI Common LISP and
@@ -334,7 +340,7 @@ Exercises
 ~~~~~~~~~
 
 Prisoner's Dilemma
-__________________
+------------------
 
 A classic strategy game is the `prisoner's dilemma <https://en.wikipedia.org/wiki/Prisoner%27s_dilemma>`_ where two
 prisoners get the minimal penalty if they collaborate and stay silent, get zero penalty if one of them defects and the
