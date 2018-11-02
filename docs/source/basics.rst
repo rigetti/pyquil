@@ -181,12 +181,13 @@ the ``QuantumComputer`` abstraction do it for us.
 .. code:: python
 
     from pyquil import Program, get_qc
+    from pyquil.gates import *
 
     # Get our QuantumComputer instance, with a Quantum Virutal Machine (QVM) backend
     qc = get_qc("8q-qvm")
 
     # Construct a simple Bell State
-    p = Program("H 0", "CNOT 0 1")
+    p = Program(H(0), CNOT(0, 1))
 
     results = qc.run_and_measure(p, trials=10)
     print(results)
