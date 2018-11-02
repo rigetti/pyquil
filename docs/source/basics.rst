@@ -249,8 +249,10 @@ The number of `shots` (also called `trials`) is the number of times to execute a
 This determines the length of the results that are returned.
 
 As we saw above, the ``.run_and_measure`` method of the ``QuantumComputer`` object can handle adding trials for us.
-If you would like more explicit control for representing multi-shot execution, another way to do this is with ``.wrap_in_numshots_loop``. This puts the number of shots to be run in the representation of the program itself, as opposed to in the arguments list of the execution method itself. Below, we specify that our program should be executed 1000
-times.
+If you would like more explicit control for representing multi-shot execution, another way to do this is
+with ``.wrap_in_numshots_loop``. This puts the number of shots to be run in the representation of the program itself,
+as opposed to in the arguments list of the execution method itself. Below, we specify that our program should
+be executed 1000 times.
 
 .. code:: python
 
