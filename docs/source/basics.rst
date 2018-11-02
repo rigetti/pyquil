@@ -206,7 +206,7 @@ The method ``.run_and_measure`` will handle declaring memory for readout results
 qubit in the QVM, telling the QVM how many trials to run, running and returning the measurement results.
 
 You might sometimes want finer grained control. In this case, we're probably only interested in the results on
-qubits 0 and 1, but ``.run_and_measure`` returns the results for all 8 qubits in the QVM. We can change our program
+qubits 0 and 1, but ``.run_and_measure`` returns the results for all eight qubits in the QVM. We can change our program
 to be more particular about what we want.
 
 .. code:: python
