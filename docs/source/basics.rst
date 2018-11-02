@@ -408,18 +408,62 @@ functions you can use with pyQuil are: ``quil_sin``, ``quil_cos``, ``quil_sqrt``
 Pragmas
 ~~~~~~~
 
+A ``PRAGMA`` directive tells the compiler how it should do its job. Here, we will cover the basics of two very
+common use cases for including a ``PRAGMA`` in your program: qubit rewiring and delays. For a more comprehensive
+review of what pragmas are and what the compiler supports, check out :ref:`compiler`.
+
 .. _rewiring:
 
 Specifying A Qubit Rewiring Scheme
 ----------------------------------
 
-*Coming soon*
+Qubit rewiring is one of the powerful features of the Quil compiler. We can write a Quil program which is largely
+agnostic to the topology of the chip, and the compiler will smartly relabel our qubits to
+give the best performance.
+
+Most commonly, we are interested in qubit rewiring because we are running on the QPU, and we want to either
+nail down the qubits we are running on, or we don't want to worry about changing the labels for qubits when we
+reserve a lattice with other qubits.
+
+Say that we built the following program.
+
+.. code::
+
+    from pyquil import Program
+    from pyquil.gates import *
+
+    p = Program(X(3))
+
+We've tested this on the QVM, and we've reserved a lattice on the QPU which has qubits 4, 5, and 6, but not qubit 3.
+Rather than rewrite our program for each reservation, we modify our program to tell the compiler to do this for us.
+
+.. code::
+
+    from pyquil.quil import Pragma
+
+    p = Program(Pragma('INITIAL_REWIRING', ['"GREEDY"']))
+    p += X(3)
+
+Now, when we pass our program through the compiler (such as with ``QuantumComputer.compile``) we will get native Quil
+with the qubit reindexed to one of 4, 5, or 6. In the case that qubit 3 is available to us, and we don't want that
+pulse to be applied to any other qubit, we would instead use ``Pragma('INITIAL_REWIRING', ['"NAIVE"']]``. Detailed information
+about the available options is :ref:`here <compiler_rewirings>`.
 
 Asking for a Delay
 ------------------
-*Coming soon*
-(Note: time limit)
 
+At times, we may want to add a delay in our program. Usually this is associated with qubit characterization. Delays
+are not regular gate operations, so they're implemented with ``PRAGMA``.
+
+.. code::
+
+    #  ...
+    # qubit index and time in seconds must be defined and provided
+    p += Pragma('DELAY', [qubit], str(time))
+
+.. warning::
+    Keep in mind, the program duration is currently capped at 15 seconds, and the length of the program is multiplied
+    by the number of shots. If you have a 1000 shot program each with a 100ms delay, you won't be able to execute it.
 
 Ways to Construct Programs
 ~~~~~~~~~~~~~~~~~~~~~~~~~~

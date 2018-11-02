@@ -100,6 +100,8 @@ The QPU is not able to execute all possible Quil programs.  At present, a Quil p
 * This is then followed by a block of ``MEASURE`` instructions.
 
 
+.. _pragma:
+
 Region-specific compiler features through PRAGMA
 ------------------------------------------------
 
@@ -217,6 +219,7 @@ instead execute the blocks in their written order.
     MEASURE 2 ro[2]
     MEASURE 3 ro[3]
 
+.. _compiler_rewirings:
 
 Rewirings
 ~~~~~~~~~
