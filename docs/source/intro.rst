@@ -579,43 +579,46 @@ Here's a simple example:
 .. code:: python
 
     # Create a program that stores the outcome of measuring qubit #0 into classical register [0]
-    classical_register_index = 0
-    p = Program(I(0)).measure(0, classical_register_index)
+    p = Program()
+    classical_register = p.declare('ro', 'BIT', 1)
+    p += Program(I(0)).measure(0, classical_register[0])
 
 Up until this point we have used the quantum simulator to cheat a little bit --- we have
 actually looked at the wavefunction that comes back. However, on real
 quantum hardware, we are unable to directly look at the wavefunction.
 Instead we only have access to the classical bits that are affected by
-measurements. This functionality is emulated by the ``run`` command.
+measurements. This functionality is emulated by the ``run`` command of a QuantumComputer object. Note that the ``run`` command is to be applied on the compiled version of the program.
 
 .. code:: python
 
-    # Choose which classical registers to look in at the end of the computation
-    classical_regs = [0, 1]
-    print(quantum_simulator.run(p, classical_regs))
+    from pyquil import get_qc
+
+
+    qc = get_qc('9q-generic-qvm')
+    print (qc.run(qc.compile(p)))
 
 
 .. parsed-literal::
 
-    [[0, 0]]
+    [[0]]
 
 
-We see that both registers are zero. However, if we had flipped the
+We see that the classical register reports a value of zero. However, if we had flipped the
 qubit before measurement then we obtain:
 
 .. code:: python
 
-    classical_register_index = 0
-    p = Program(X(0)) # Flip the qubit
-    p.measure(0, classical_register_index) # Measure the qubit
+    p = Program()
+    classical_register = p.declare('ro', 'BIT', 1)
+    p += Program(X(0))   # Flip the qubit
+    p.measure(0, classical_register[0])   # Measure the qubit
 
-    classical_regs = [0, 1]
-    print(quantum_simulator.run(p, classical_regs))
+    print (qc.run(qc.compile(p)))
 
 
 .. parsed-literal::
 
-    [[1, 0]]
+    [[1]]
 
 
 These measurements are deterministic, e.g. if we make them multiple
@@ -623,13 +626,15 @@ times then we always get the same outcome:
 
 .. code:: python
 
-    classical_register_index = 0
-    p = Program(X(0)) # Flip the qubit
-    p.measure(0, classical_register_index) # Measure the qubit
+    p = Program()
+    classical_register = p.declare('ro', 'BIT', 1)
+    p += Program(X(0))   # Flip the qubit
+    p.measure(0, classical_register[0])   # Measure the qubit
 
-    classical_regs = [0]
     trials = 10
-    print(quantum_simulator.run(p, classical_regs, trials))
+    p.wrap_in_numshots_loop(shots=trials)
+
+    print (qc.run(qc.compile(p)))
 
 
 .. parsed-literal::
@@ -657,9 +662,10 @@ The following pyQuil code shows how we can use the Hadamard gate:
 
     from pyquil.gates import H
 
+
     # The Hadamard produces what is called a superposition state
     coin_program = Program(H(0))
-    wavefunction = quantum_simulator.wavefunction(coin_program)
+    wavefunction = wavefunction_simulator.wavefunction(coin_program)
 
     print("H|0> = ", wavefunction)
     print("With outcome probabilities\n", wavefunction.get_outcome_probs())
@@ -689,13 +695,18 @@ extra power over regular bits.
 
 .. code:: python
 
-    # Introduce measurement
-    classical_reg = 0
-    coin_program = Program(H(0)).measure(0, classical_reg)
-    trials = 10
+    p = Program()
+    ro = p.declare('ro', 'BIT', 1)
+
+    coin_program = Program(H(0)).measure(0)
+    p += coin_program
+
+    # Measure qubit #0 a number of times
+    p.wrap_in_numshots_loop(shots=10)
+    p.measure(0, ro[0])
 
     # We see probabilistic results of about half 1's and half 0's
-    print(quantum_simulator.run(coin_program, [0], trials))
+    print (qc.run(qc.compile(p)))
 
 
 .. parsed-literal::
@@ -707,22 +718,22 @@ pyQuil allows us to look at the wavefunction **after** a measurement as well:
 
 .. code:: python
 
-    classical_reg = 0
     coin_program = Program(H(0))
-    print("Before measurement: H|0> = ", quantum_simulator.wavefunction(coin_program))
+    print ("Before measurement: H|0> = ", wavefunction_simulator.wavefunction(coin_program), "\n")
 
-    coin_program.measure(0, classical_reg)
-    for x in range(5):
-        print("After measurement: ", quantum_simulator.wavefunction(coin_program))
+    ro = coin_program.declare('ro', 'BIT', 1)
+    coin_program.measure(0, ro[0])
+    for _ in range(5):
+        print ("After measurement: ", wavefunction_simulator.wavefunction(coin_program))
 
 
 .. parsed-literal::
 
-    Before measurement: H|0> =  [ 0.70710678+0.j  0.70710678+0.j]
+    Before measurement: H|0> =  (0.7071067812+0j)|0> + (0.7071067812+0j)|1> 
 
     After measurement:  (1+0j)|1>
-    After measurement:  (1+0j)|0>
-    After measurement:  (1+0j)|0>
+    After measurement:  (1+0j)|1>
+    After measurement:  (1+0j)|1>
     After measurement:  (1+0j)|1>
     After measurement:  (1+0j)|1>
 
@@ -738,28 +749,27 @@ the obtained outcome and subsequently rescaled to unit norm.
 
 .. code:: python
 
-    # This happens with bigger systems too
-    classical_reg = 0
-
-    # This program prepares something called a Bell state (a special kind of "entangled state")
+    # This happens with bigger systems too, as can be seen with this program,
+    # which prepares something called a Bell state (a special kind of "entangled state")
     bell_program = Program(H(0), CNOT(0, 1))
-    wavefunction = quantum_simulator.wavefunction(bell_program)
-    print("Before measurement: Bell state = ", wavefunction)
+    wavefunction = wavefunction_simulator.wavefunction(bell_program)
+    print("Before measurement: Bell state = ", wavefunction, "\n")
 
-    bell_program.measure(0, classical_reg)
-    for x in range(5):
-        wavefunction = quantum_simulator.wavefunction(bell_program)
+    classical_regs = bell_program.declare('ro', 'BIT', 2)
+    bell_program.measure(0, classical_regs[0]).measure(1, classical_regs[1])
+
+    for _ in range(5):
+        wavefunction = wavefunction_simulator.wavefunction(bell_program)
         print("After measurement: ", wavefunction.get_outcome_probs())
-
 
 .. parsed-literal::
 
-    Before measurement: Bell state =  (0.7071067812+0j)|00> + (0.7071067812+0j)|11>
+    Before measurement: Bell state =  (0.7071067812+0j)|00> + (0.7071067812+0j)|11> 
 
-    After measurement:  {'00': 1.0, '01': 0.0, '10': 0.0, '11': 0.0}
     After measurement:  {'00': 0.0, '01': 0.0, '10': 0.0, '11': 1.0}
-    After measurement:  {'00': 1.0, '01': 0.0, '10': 0.0, '11': 0.0}
-    After measurement:  {'00': 1.0, '01': 0.0, '10': 0.0, '11': 0.0}
+    After measurement:  {'00': 0.0, '01': 0.0, '10': 0.0, '11': 1.0}
+    After measurement:  {'00': 0.0, '01': 0.0, '10': 0.0, '11': 1.0}
+    After measurement:  {'00': 0.0, '01': 0.0, '10': 0.0, '11': 1.0}
     After measurement:  {'00': 0.0, '01': 0.0, '10': 0.0, '11': 1.0}
 
 
