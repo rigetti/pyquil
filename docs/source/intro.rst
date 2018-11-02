@@ -125,7 +125,7 @@ individual states, e.g.
 Then, the combined space is simply the space spanned by the tensor products
 of all pairs of basis vectors of the two smaller spaces.
 
-Similarly, the combined state for \\(n\\) such probabilistic bits is a vector of size \\(2^n\\) and is given by \\(\\bigotimes\_{i=0}^{n-1}\|\\,v\_i\\rangle\\). We will talk more about these larger spaces in the quantum case, but it is important to note that not all composite states can be written as tensor products of sub-states (e.g. consider the state \\(\\frac{1}{2}|\\,0\_u0\_v\\rangle + \\frac{1}{2}|\\,1\_u1\_v\\rangle\\)). The most general composite state of \\(n\\) probabilistic bits can be written as \\(\\sum\_{j=0}^{2^n - 1} a\_{j} (\\bigotimes\_{i=0}^{n-1}\|\\,b\_i\\rangle\\)), where each \\(b\_i \\in \\{0, 1\\}\\).
+Similarly, the combined state for \\(n\\) such probabilistic bits is a vector of size \\(2^n\\) and is given by \\(\\bigotimes\_{i=0}^{n-1}\|\\,v\_i\\rangle\\). We will talk more about these larger spaces in the quantum case, but it is important to note that not all composite states can be written as tensor products of sub-states (e.g. consider the state \\(\\frac{1}{2}|\\,0\_u0\_v\\rangle + \\frac{1}{2}|\\,1\_u1\_v\\rangle\\)). The most general composite state of \\(n\\) probabilistic bits can be written as \\(\\sum\_{j=0}^{2^n - 1} a\_{j} (\\bigotimes\_{i=0}^{n-1}\|\\,b\_{ij}\\rangle\\)) where each \\(b\_{ij} \\in \\{0, 1\\}\\) and \\(a_j \\in \\mathbb{R}\\), i.e. as a linear combination (with real coefficients) of tensor products of basis states. Note that this still gives us \\(2^n\\) possible states.
 
 Qubits
 ^^^^^^
@@ -152,7 +152,7 @@ recover acceptable probabilities for outcomes based on our new complex
 vector.
 
 This switch to complex vectors means that rather than representing a
-state vector in a plane, we instead to represent the vector on a
+state vector in a plane, we instead represent the vector on a
 sphere (called the Bloch sphere in quantum mechanics literature).
 From this perspective the quantum state corresponding to an
 outcome of 0 is represented by:
@@ -166,9 +166,7 @@ use the convention that a qubit's \\(\\{\|\\,0\\rangle,
 positive and negative unit vectors along the z axis, respectively. These
 axes will be useful later in this document.
 
-Multiple qubits are represented in precisely the same way, but taking
-tensor products of the spaces and states. Thus \\(n\\) qubits have
-\\(2^n\\) possible states.
+Multiple qubits are represented in precisely the same way, by taking linear combinations (with complex coefficients, now) of tensor products of basis states. Thus \\(n\\) qubits have \\(2^n\\) possible states.
 
 An Important Distinction
 ^^^^^^^^^^^^^^^^^^^^^^^^
