@@ -190,7 +190,7 @@ Some Code
 Let us take a look at some code in pyQuil to see how these quantum states
 play out. We will dive deeper into quantum operations and pyQuil in
 the following sections. Note that in order to run these examples you will need
-to `install pyQuil and download the QVM and Compiler <https://pyquil.readthedocs.io/en/stable/start.html>`_.
+to `install pyQuil and download the QVM and Compiler <start.html>`_.
 Each of the code snippets below will be immediately followed by its output.
 
 .. code:: python
@@ -791,21 +791,23 @@ quantum operations to run.
     true_branch = Program(X(7)) # if branch
     false_branch = Program(I(7)) # else branch
 
-    # Branch on classical reg [1]
-    p = Program(X(0)).measure(0, 1).if_then(1, true_branch, false_branch)
+    # Branch on ro[1]
+    p = Program()
+    ro = p.declare('ro', 'BIT', 8)
+    p += Program(X(0)).measure(0, ro[1]).if_then(ro[1], true_branch, false_branch)
 
-    # Measure qubit #7 into classical register [7]
-    p.measure(7, 7)
+    # Measure qubit #7 into ro[7]
+    p.measure(7, ro[7])
 
     # Run and check register [7]
-    print(quantum_simulator.run(p, [7]))
+    print (qc.run(qc.compile(p)))
 
 
 .. parsed-literal::
 
-    [[1]]
+    [[1 1]]
 
-A [1] here means that qubit 7 was indeed flipped.
+The second [1] here means that qubit 7 was indeed flipped.
 
 .. image:: images/branch.png
 
@@ -817,12 +819,13 @@ increasing chance of halting, but that may run forever!
 
 .. code:: python
 
-    inside_loop = Program(H(0)).measure(0, 1)
+    p = Program()
+    ro = p.declare('ro', 'BIT', 1)
+    inside_loop = Program(H(0)).measure(0, ro[0])
+    p.inst(X(0)).while_do(0, inside_loop)
 
-    p = Program().inst(X(0)).while_do(1, inside_loop)
-
-    # Run and check register [1]
-    print(quantum_simulator.run(p, [1]))
+    qc = get_qc('9q-generic-qvm')
+    print (qc.run(qc.compile(p)))
 
 
 .. parsed-literal::
