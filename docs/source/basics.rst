@@ -244,7 +244,7 @@ Quantum computing is inherently probabilistic. We often have to repeat the same 
 results we need. Sometimes we expect the results to all be the same, such as when we apply no gates, or only an ``X``
 gate. When we prepare a superposition state, we expect probabilistic outcomes, such as a 50% probability measuring 0 or 1.
 
-Trials, or equivalently, the number of shots, is the number of times to execute a program at once.
+The number of `shots` (also called `trials`) is the number of times to execute a program at once.
 This determines the length of the results that are returned.
 
 As we saw above, the ``.run_and_measure`` method of the ``QuantumComputer`` object can handle adding trials for us.
