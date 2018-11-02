@@ -198,8 +198,11 @@ Each of the code snippets below will be immediately followed by its output.
     # Imports for pyQuil (ignore for now)
     import numpy as np
     from pyquil.quil import Program
-    from pyquil.api import QVMConnection
-    quantum_simulator = QVMConnection()
+    from pyquil.api import WavefunctionSimulator
+
+
+    # create a WavefunctionSimulator object
+    wavefunction_simulator = WavefunctionSimulator()
 
     # pyQuil is based around operations (or gates) so we will start with the most
     # basic one: the identity operation, called I. I takes one argument, the index
@@ -213,7 +216,7 @@ Each of the code snippets below will be immediately followed by its output.
     # We can run this basic program on our connection to the simulator.
     # This call will return the state of our qubits after we run program p.
     # This api call returns a tuple, but we'll ignore the second value for now.
-    wavefunction = quantum_simulator.wavefunction(p)
+    wavefunction = wavefunction_simulator.wavefunction(p)
 
     # wavefunction is a Wavefunction object that stores a quantum state as a list of amplitudes
     alpha, beta = wavefunction
@@ -240,7 +243,7 @@ Applying an operation to our qubit affects the probability of each outcome.
 
     p = Program(X(0))
 
-    wavefunc = quantum_simulator.wavefunction(p)
+    wavefunc = wavefunction_simulator.wavefunction(p)
     alpha, beta = wavefunc
 
     print("Our qubit is in the state alpha={} and beta={}".format(alpha, beta))
@@ -262,18 +265,18 @@ multiple qubits to grow exponentially in size, as their vectors are tensored tog
 
     # Multiple qubits also produce the expected scaling of the state.
     p = Program(I(0), I(1))
-    wavefunction = quantum_simulator.wavefunction(p)
+    wavefunction = wavefunction_simulator.wavefunction(p)
     print("The quantum state is of dimension:", len(wavefunction.amplitudes))
 
     p = Program(I(0), I(1), I(2), I(3))
-    wavefunction = quantum_simulator.wavefunction(p)
+    wavefunction = wavefunction_simulator.wavefunction(p)
     print("The quantum state is of dimension:", len(wavefunction.amplitudes))
 
     p = Program()
     for x in range(10):
         p += I(x)
-    wavefunction = quantum_simulator.wavefunction(p)
-    print("The quantum state is of dimension:", len(wavefunction.amplitudes)  )
+    wavefunction = wavefunction_simulator.wavefunction(p)
+    print("The quantum state is of dimension:", len(wavefunction.amplitudes))
 
 
 .. parsed-literal::
@@ -289,7 +292,7 @@ those outcomes as values.
 .. code:: python
 
     # wavefunction(Program) returns a coefficient array that corresponds to outcomes in the following order
-    wavefunction = quantum_simulator.wavefunction(Program(I(0), I(1)))
+    wavefunction = wavefunction_simulator.wavefunction(Program(I(0), I(1)))
     print(wavefunction.get_outcome_probs())
 
 
@@ -302,7 +305,7 @@ Qubit Operations
 ----------------
 
 In the previous section we introduced our first two **operations**: the ``I``
-(or identity) operation and the ``X`` operation. In this section we will get into some
+(or Identity) operation and the ``X`` (or NOT) operation. In this section we will get into some
 more details on what these operations are.
 
 Quantum states are complex vectors on the Bloch sphere, and quantum operations are matrices with two properties:
@@ -341,7 +344,7 @@ so the program that applies this operation to the zero state is just
 .. code:: python
 
     p = Program(I(0))
-    print(quantum_simulator.wavefunction(p))
+    print(wavefunction_simulator.wavefunction(p))
 
 .. parsed-literal::
 
@@ -375,20 +378,21 @@ called the Pauli operators:
 
     from pyquil.gates import X, Y, Z
 
+
     p = Program(X(0))
-    wavefunction = quantum_simulator.wavefunction(p)
+    wavefunction = wavefunction_simulator.wavefunction(p)
     print("X|0> = ", wavefunction)
     print("The outcome probabilities are", wavefunction.get_outcome_probs())
     print("This looks like a bit flip.\n")
 
     p = Program(Y(0))
-    wavefunction = quantum_simulator.wavefunction(p)
+    wavefunction = wavefunction_simulator.wavefunction(p)
     print("Y|0> = ", wavefunction)
     print("The outcome probabilities are", wavefunction.get_outcome_probs())
     print("This also looks like a bit flip.\n")
 
     p = Program(Z(0))
-    wavefunction = quantum_simulator.wavefunction(p)
+    wavefunction = wavefunction_simulator.wavefunction(p)
     print("Z|0> = ", wavefunction)
     print("The outcome probabilities are", wavefunction.get_outcome_probs())
     print("This state looks unchanged.")
@@ -425,7 +429,7 @@ Quantum programs are built by applying successive gate operations:
 
     # Composing qubit operations is the same as multiplying matrices sequentially
     p = Program(X(0), Y(0), Z(0))
-    wavefunction = quantum_simulator.wavefunction(p)
+    wavefunction = wavefunction_simulator.wavefunction(p)
 
     print("ZYX|0> = ", wavefunction)
     print("With outcome probabilities\n", wavefunction.get_outcome_probs())
