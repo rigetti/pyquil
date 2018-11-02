@@ -594,7 +594,7 @@ measurements. This functionality is emulated by the ``run`` command of a Quantum
     from pyquil import get_qc
 
 
-    qc = get_qc('9q-generic-qvm')
+    qc = get_qc('9q-square-qvm')
     print (qc.run(qc.compile(p)))
 
 
@@ -824,7 +824,7 @@ increasing chance of halting, but that may run forever!
     inside_loop = Program(H(0)).measure(0, ro[0])
     p.inst(X(0)).while_do(0, inside_loop)
 
-    qc = get_qc('9q-generic-qvm')
+    qc = get_qc('9q-square-qvm')
     print (qc.run(qc.compile(p)))
 
 
