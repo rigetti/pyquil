@@ -125,7 +125,7 @@ individual states, e.g.
 Then, the combined space is simply the space spanned by the tensor products
 of all pairs of basis vectors of the two smaller spaces.
 
-In general, the combined state for \\(n\\) probabilistic bits is a vector of size \\(2^n\\) and is given by \\(\\bigotimes\_{i=0}^{n-1}\|\\,v\_i\\rangle\\). We will talk more about these larger spaces in the quantum case, but it is important to note that not all composite states can be written as tensor products of sub-states (e.g. consider the state \\(\\frac{1}{2}|\\,0\_u0\_v\\rangle + \\frac{1}{2}|\\,1\_u1\_v\\rangle\\)).
+Similarly, the combined state for \\(n\\) such probabilistic bits is a vector of size \\(2^n\\) and is given by \\(\\bigotimes\_{i=0}^{n-1}\|\\,v\_i\\rangle\\). We will talk more about these larger spaces in the quantum case, but it is important to note that not all composite states can be written as tensor products of sub-states (e.g. consider the state \\(\\frac{1}{2}|\\,0\_u0\_v\\rangle + \\frac{1}{2}|\\,1\_u1\_v\\rangle\\)). The most general composite state of \\(n\\) probabilistic bits can be written as \\(\\sum\_{j=0}^{2^n - 1} a\_{j} (\\bigotimes\_{i=0}^{n-1}\|\\,b\_i\\rangle\\)), where each \\(b\_i \\in \\{0, 1\\}\\).
 
 Qubits
 ^^^^^^
