@@ -235,7 +235,7 @@ use the compiler to :ref:`re-index <rewiring>` your qubits):
 
 .. note::
 
-    The QPU can only handle MEASURE final programs. You can't operate gates after measurements.
+    The QPU can only handle ``MEASURE`` final programs. You can't operate gates after measurements.
 
 Specifying the number of trials
 -------------------------------
