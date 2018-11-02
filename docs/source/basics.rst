@@ -243,7 +243,6 @@ Specifying the number of trials
 Quantum computing is inherently probabilistic. We often have to repeat the same experiment many times to get the
 results we need. Sometimes we expect the results to all be the same, such as when we apply no gates, or only an ``X``
 gate. When we prepare a superposition state, we expect probabilistic outcomes, such as a 50% probability measuring 0 or 1.
-equal superposition.
 
 Trials, or equivalently, the number of shots, is the number of times to execute a program at once.
 This determines the length of the results that are returned.
