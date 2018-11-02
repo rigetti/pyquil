@@ -229,7 +229,7 @@ use the compiler to :ref:`re-index <rewiring>` your qubits):
 .. code:: python
 
     qubits = [5, 6, 7]
-    ...
+    # ...
     for i, q in enumerate(qubits):
         p += MEASURE(q, ro[i])
 
