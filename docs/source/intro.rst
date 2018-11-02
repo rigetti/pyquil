@@ -314,7 +314,7 @@ Quantum states are complex vectors on the Bloch sphere, and quantum operations a
 2. When applied to a state vector on the Bloch sphere, the resulting vector
    is also on the Bloch sphere.
 
-Matrices that satisfy these two properties are called unitary matrices. Applying an operation to a quantum state is the same as multiplying a vector by one of these matrices. Such an operation is called a **gate**.
+Matrices that satisfy these two properties are called unitary matrices. Such matrices have the characteristic property that their complex conjugate transpose is equal to their inverse, a property directly linked to the requirement that the probabilities of measuring qubits in any of the allowed states must sum to 1. Applying an operation to a quantum state is the same as multiplying a vector by one of these matrices. Such an operation is called a **gate**.
 
 Since individual qubits are two-dimensional vectors, operations on
 individual qubits are 2x2 matrices. The identity matrix leaves the state vector unchanged:
@@ -465,25 +465,26 @@ Let's take a look at how we could use a ``CNOT`` gate in pyQuil.
 
     from pyquil.gates import CNOT
 
+
     p = Program(CNOT(0, 1))
-    wavefunction = quantum_simulator.wavefunction(p)
+    wavefunction = wavefunction_simulator.wavefunction(p)
     print("CNOT|00> = ", wavefunction)
-    print("With outcome probabilities\n", wavefunction.get_outcome_probs())
+    print("With outcome probabilities\n", wavefunction.get_outcome_probs(), "\n")
 
     p = Program(X(0), CNOT(0, 1))
-    wavefunction = quantum_simulator.wavefunction(p)
+    wavefunction = wavefunction_simulator.wavefunction(p)
     print("CNOT|01> = ", wavefunction)
-    print("With outcome probabilities\n", wavefunction.get_outcome_probs())
+    print("With outcome probabilities\n", wavefunction.get_outcome_probs(), "\n")
 
     p = Program(X(1), CNOT(0, 1))
-    wavefunction = quantum_simulator.wavefunction(p)
+    wavefunction = wavefunction_simulator.wavefunction(p)
     print("CNOT|10> = ", wavefunction)
-    print("With outcome probabilities\n", wavefunction.get_outcome_probs())
+    print("With outcome probabilities\n", wavefunction.get_outcome_probs(), "\n")
 
     p = Program(X(0), X(1), CNOT(0, 1))
-    wavefunction = quantum_simulator.wavefunction(p)
+    wavefunction = wavefunction_simulator.wavefunction(p)
     print("CNOT|11> = ", wavefunction)
-    print("With outcome probabilities\n", wavefunction.get_outcome_probs())
+    print("With outcome probabilities\n", wavefunction.get_outcome_probs(), "\n")
 
 
 .. parsed-literal::
@@ -524,8 +525,10 @@ and \\(\|10\\rangle \\) states:
 .. code:: python
 
     from pyquil.gates import SWAP
+
+
     p = Program(X(0), SWAP(0,1))
-    wavefunction = quantum_simulator.wavefunction(p)
+    wavefunction = wavefunction_simulator.wavefunction(p)
 
     print("SWAP|01> = ", wavefunction)
     print("With outcome probabilities\n", wavefunction.get_outcome_probs())
