@@ -170,19 +170,104 @@ That's all we have to do to declare the memory. Continue to the next section on 
 using ``ro`` to store measured readout results. Check out :ref:`parametric_compilation` to see how you might use
 ``theta`` to compile gate parameters dynamically.
 
-
 .. _measurement:
 
 Measurement
 ~~~~~~~~~~~
 
-*Coming soon*
+There are several ways you can handle measurements in your program. We will start with the simplest method -- letting
+the ``QuantumComputer`` abstraction do it for us.
 
+.. code:: python
+
+    from pyquil import Program, get_qc
+    from pyquil.gates import *
+
+    # Get our QuantumComputer instance, with a Quantum Virutal Machine (QVM) backend
+    qc = get_qc("8q-qvm")
+
+    # Construct a simple Bell State
+    p = Program(H(0), CNOT(0, 1))
+
+    results = qc.run_and_measure(p, trials=10)
+    print(results)
+
+.. parsed-literal::
+
+    {0: array([1, 1, 0, 1, 0, 0, 1, 1, 0, 1]),
+     1: array([1, 1, 0, 1, 0, 0, 1, 1, 0, 1]),
+     2: array([0, 0, 0, 0, 0, 0, 0, 0, 0, 0]),
+     3: array([0, 0, 0, 0, 0, 0, 0, 0, 0, 0]),
+     4: array([0, 0, 0, 0, 0, 0, 0, 0, 0, 0]),
+     5: array([0, 0, 0, 0, 0, 0, 0, 0, 0, 0]),
+     6: array([0, 0, 0, 0, 0, 0, 0, 0, 0, 0]),
+     7: array([0, 0, 0, 0, 0, 0, 0, 0, 0, 0])}
+
+The method ``.run_and_measure`` will handle declaring memory for readout results, adding ``MEASURE`` instructions for each
+qubit in the QVM, telling the QVM how many trials to run, running and returning the measurement results.
+
+You might sometimes want finer grained control. In this case, we're probably only interested in the results on
+qubits 0 and 1, but ``.run_and_measure`` returns the results for all eight qubits in the QVM. We can change our program
+to be more particular about what we want.
+
+.. code:: python
+
+    from pyquil import Program
+    from pyquil.gates import *
+
+    p = Program()
+    ro = p.declare('ro', 'BIT', 2)
+    p += H(0)
+    p += CNOT(0, 1)
+    p += MEASURE(0, ro[0])
+    p += MEASURE(1, ro[1])
+
+In the last two lines, we've added our ``MEASURE`` instructions, saying that we want to store the result of qubit 0
+into the 0th bit of ``ro``, and the result of qubit 1 into the 1st bit of ``ro``. The following snippet could be a
+useful way to measure many qubits, in particular, on a lattice that doesn't start at qubit 0 (although you can
+use the compiler to :ref:`re-index <rewiring>` your qubits):
+
+.. code:: python
+
+    qubits = [5, 6, 7]
+    # ...
+    for i, q in enumerate(qubits):
+        p += MEASURE(q, ro[i])
+
+.. note::
+
+    The QPU can only handle ``MEASURE`` final programs. You can't operate gates after measurements.
 
 Specifying the number of trials
 -------------------------------
 
-*Coming soon*
+Quantum computing is inherently probabilistic. We often have to repeat the same experiment many times to get the
+results we need. Sometimes we expect the results to all be the same, such as when we apply no gates, or only an ``X``
+gate. When we prepare a superposition state, we expect probabilistic outcomes, such as a 50% probability measuring 0 or 1.
+
+The number of `shots` (also called `trials`) is the number of times to execute a program at once.
+This determines the length of the results that are returned.
+
+As we saw above, the ``.run_and_measure`` method of the ``QuantumComputer`` object can handle multiple executions of a program.
+If you would like more explicit control for representing multi-shot execution, another way to do this is
+with ``.wrap_in_numshots_loop``. This puts the number of shots to be run in the representation of the program itself,
+as opposed to in the arguments list of the execution method itself. Below, we specify that our program should
+be executed 1000 times.
+
+.. code:: python
+
+    p = Program()
+    ...   # build up your program here...
+    p.wrap_in_numshots_loop(1000)
+
+
+.. note::
+
+    Did You Know?
+
+    The word “shot” comes from experimental physics where an experiment is
+    performed many times, and each result is called a shot.
+
 
 .. _parametric_compilation:
 
@@ -322,6 +407,8 @@ functions you can use with pyQuil are: ``quil_sin``, ``quil_cos``, ``quil_sqrt``
 
 Pragmas
 ~~~~~~~
+
+.. _rewiring:
 
 Specifying A Qubit Rewiring Scheme
 ----------------------------------
