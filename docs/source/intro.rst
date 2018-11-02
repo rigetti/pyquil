@@ -56,19 +56,20 @@ probabilistic bit) is a two-dimensional real vector space and a
     import numpy as np
     import matplotlib.pyplot as plt
 
+
     outcome_0 = np.array([1.0, 0.0])
     outcome_1 = np.array([0.0, 1.0])
     a = 0.75
     b = 0.25
 
-    prob_bit = a*outcome_0 + b*outcome_1
+    prob_bit = a * outcome_0 + b * outcome_1
 
-    X,Y = prob_bit
+    X, Y = prob_bit
     plt.figure()
     ax = plt.gca()
-    ax.quiver(X,Y,angles='xy',scale_units='xy',scale=1)
-    ax.set_xlim([0,1])
-    ax.set_ylim([0,1])
+    ax.quiver(X, Y, angles='xy', scale_units='xy', scale=1)
+    ax.set_xlim([0, 1])
+    ax.set_ylim([0, 1])
     plt.draw()
     plt.show()
 
@@ -91,11 +92,11 @@ Physicists have introduced a convenient notation for the vector transposes and d
 products we used in the previous example. This notation, called Dirac notation in honor
 of the great theoretical physicist Paul Dirac, allows us to define
 
-.. math::  \vec{v} = |\,v\rangle \\ \vec{v}^T = \langle v\,| \\ \vec{u}^T.\vec{v} = \langle u\,|\,v \rangle.
+.. math::  \vec{v} = \vert v\rangle \\ \vec{v}^T = \langle v \vert \\ \vec{u}^T \cdot \vec{v} = \langle u \vert v \rangle
 
 Thus, we can rewrite our "measurement rule" in this notation as
 
-.. math::  Pr(0) = \langle v\,|\,0 \rangle = a \\ Pr(1) = \langle v\,|\,1 \rangle = b.
+.. math::  Pr(0) = \langle v \vert 0 \rangle = a \\ Pr(1) = \langle v\vert 1 \rangle = b
 
 We will use this notation throughout the rest of this introduction.
 
@@ -112,7 +113,7 @@ programmers). Their states can be represented as
     |\,u\rangle = \frac{1}{2}|\,0_u\rangle + \frac{1}{2}|\,1_u\rangle \\
    |\,v\rangle = \frac{1}{2}|\,0_v\rangle + \frac{1}{2}|\,1_v\rangle,
 
-where \\(1\_u\\) represents the 1 outcome on coin \\(u\\). The
+where \\(1\_u\\) represents the outcome 1 on coin \\(u\\). The
 **combined system** of the two coins has four possible outcomes \\(\\{
 0\_u0\_v,\\;0\_u1\_v,\\;1\_u0\_v,\\;1\_u1\_v \\}\\) that are the basis
 states of a larger four-dimensional vector space. The rule for
@@ -124,11 +125,7 @@ individual states, e.g.
 Then, the combined space is simply the space spanned by the tensor products
 of all pairs of basis vectors of the two smaller spaces.
 
-We will talk more about these larger spaces in the quantum case, but it is
-important to note that not all composite states can be written as tensor
-products of sub-states. (Consider the state \\(\\frac{1}{2}|\\,0\_u0\_v\\rangle + \\frac{1}{2}|\\,1\_u1\_v\\rangle\\).) In general, the combined state for \\(n\\)
-probabilistic bits is a vector of size \\(2^n\\) and is given by
-\\(\\bigotimes\_{i=0}^{n-1}\|\\,v\_i\\rangle\\).
+In general, the combined state for \\(n\\) probabilistic bits is a vector of size \\(2^n\\) and is given by \\(\\bigotimes\_{i=0}^{n-1}\|\\,v\_i\\rangle\\). We will talk more about these larger spaces in the quantum case, but it is important to note that not all composite states can be written as tensor products of sub-states (e.g. consider the state \\(\\frac{1}{2}|\\,0\_u0\_v\\rangle + \\frac{1}{2}|\\,1\_u1\_v\\rangle\\)).
 
 Qubits
 ^^^^^^
