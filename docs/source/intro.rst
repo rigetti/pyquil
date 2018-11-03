@@ -698,12 +698,10 @@ extra power over regular bits.
     p = Program()
     ro = p.declare('ro', 'BIT', 1)
 
-    coin_program = Program(H(0)).measure(0)
-    p += coin_program
+    p += Program(H(0)).measure(0, ro[0])
 
     # Measure qubit #0 a number of times
     p.wrap_in_numshots_loop(shots=10)
-    p.measure(0, ro[0])
 
     # We see probabilistic results of about half 1's and half 0's
     print (qc.run(qc.compile(p)))
