@@ -181,7 +181,7 @@ the ``QuantumComputer`` abstraction do it for us.
 .. code:: python
 
     from pyquil import Program, get_qc
-    from pyquil.gates import *
+    from pyquil.gates import H, CNOT
 
     # Get our QuantumComputer instance, with a Quantum Virutal Machine (QVM) backend
     qc = get_qc("8q-qvm")
@@ -274,15 +274,18 @@ be executed 1000 times.
 Parametric Compilation
 ~~~~~~~~~~~~~~~~~~~~~~
 
-Keri to improve:
-[
-Making use of declared memory regions, we can load values to parametric gates at execution time, after compilation. We
-can specify how we want to patch our compiled executable binaries with updated parameters. For some quantum algorithms,
-it's necessary to run a program repeatedly, but with different parameter values each time.
-Taking the compiler out of the execution loop for programs like this offers a huge performance improvement over compiling
-the whole program each time with those values filled in.
-(Some more details about this and an example are found :ref:`here <parametric>`.)
-]
+Modern quantum algorithms are often parametric, following a hybrid model. In this hybrid
+model, the program ansatz (template of gates) is fixed, and iteratively updated with new
+parameters. These new parameters are often determined by an update given by a classical
+optimizer. Depending on the complexity of algorithm, the problem of interest, and capabilities
+of the classical optimizer, this loop may need to run many times. In order to efficiently operate
+within this hybrid model, parametric compilation can be used.
+
+Parametric compilation allows one to compile the program ansatz just once. Making use of declared
+memory regions, we can load values to the parametric gates at execution time, after compilation.
+Taking the compiler out of the execution loop for programs like this offers a huge performance
+improvement compared to compiling the program each time a parameter update is required.
+(Some more details about this and an example are found :ref:here <parametric>.)
 
 The first step is to build our parametric program, which functions like a template for all the precise programs we will
 run. Below we create a simple example program to illustrate, which puts the qubit onto the equator of the Bloch Sphere and then
@@ -293,7 +296,7 @@ rotates it around the Z axis for some variable angle theta before applying anoth
     import numpy as np
 
     from pyquil import Program
-    from pyquil.gates import *
+    from pyquil.gates import RX, RZ, MEASURE
 
     qubit = 0
 
