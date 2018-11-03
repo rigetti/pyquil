@@ -49,7 +49,7 @@ about :ref:`wavefunction_simulator`.
 (For information on constructing quantum programs, please refer back to :ref:`basics`.)
 
 The ``.run(...)`` method
-~~~~~~~~~~~~~~~~~~~~~~~~
+------------------------
 
 .. code:: python
 
@@ -213,7 +213,7 @@ above, the ``agave`` device). One may then efficiently test realistic quantum al
 in advance of running those programs on the QPU.
 
 Examples of Quantum Programs
-----------------------------
+~~~~~~~~~~~~~~~~~~~~~~~~~~~~
 
 To create intuition for a new class of algorithms, that will run on the Quantum Virtual Machine (QVM), it is useful (and
 fun) to play with the abstraction that the software provides.
@@ -222,7 +222,7 @@ A broad class of programs that can easily be implemented on a QVM are generaliza
 `Game Theory to incorporate Quantum Strategies <https://arxiv.org/abs/quant-ph/0611234>`_.
 
 Meyer-Penny Game
-~~~~~~~~~~~~~~~~
+----------------
 
 A conceptually simple example that falls into this class is the
 `Meyer-Penny Game <https://link.aps.org/doi/10.1103/PhysRevLett.82.1052>`_. The game goes as follows: The Starship
@@ -336,18 +336,3 @@ the outcome of Picard’s decision (value of the `picard_register`).
 
 Indeed, no matter what Picard does, Q will always win!
 
-Exercises
-~~~~~~~~~
-
-Prisoner's Dilemma
-------------------
-
-A classic strategy game is the `prisoner's dilemma <https://en.wikipedia.org/wiki/Prisoner%27s_dilemma>`_ where two
-prisoners get the minimal penalty if they collaborate and stay silent, get zero penalty if one of them defects and the
-other collaborates (incurring maximum penalty) and get intermediate penalty if they both defect. This game has an
-equilibrium where both defect and incur intermediate penalty.
-
-However, things change dramatically when we allow for quantum strategies leading to the
-`Quantum Prisoner's Dilemma <https://arxiv.org/abs/quant-ph/9806088>`_.
-
-Can you design a program that simulates this game?
