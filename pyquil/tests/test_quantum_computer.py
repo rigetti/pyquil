@@ -10,6 +10,7 @@ from pyquil.api._qac import AbstractCompiler
 from pyquil.api._quantum_computer import _get_flipped_protoquil_program, _parse_name
 from pyquil.device import NxDevice, gates_in_isa
 from pyquil.gates import *
+from pyquil.quilbase import Declare, MemoryReference
 from pyquil.noise import decoherence_noise_with_asymmetric_ro
 from rpcq.messages import PyQuilExecutableResponse
 
@@ -319,3 +320,25 @@ def test_qvm_compile_pickiness(forest):
 
     # Yot ok
     qc.run(nq)
+
+
+def test_run_with_parameters(forest):
+    device = NxDevice(nx.complete_graph(3))
+    qc = QuantumComputer(
+        name='testy!',
+        qam=QVM(connection=forest),
+        device=device,
+        compiler=DummyCompiler()
+    )
+    bitstrings = qc.run(
+        executable=Program(
+            Declare(name='theta', memory_type='REAL'),
+            Declare(name='ro', memory_type='BIT'),
+            RX(MemoryReference('theta'), 0),
+            MEASURE(0, MemoryReference('ro'))
+        ).wrap_in_numshots_loop(1000),
+        memory_map={'theta': [np.pi]}
+    )
+
+    assert bitstrings.shape == (1000, 1)
+    assert all([bit == 1 for bit in bitstrings])
