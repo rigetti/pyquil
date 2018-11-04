@@ -388,20 +388,14 @@ becomes
 .. code:: python
 
     # set up the Program object, ONLY ONCE
-    program = build_wf_ansatz_prep()
-    program.wrap_in_numshots_loop(shots=shots)
-    nq_program = qc.compiler.quil_to_native_quil(program)
-    binary = qc.compiler.native_quil_to_executable(nq_program)
-    qc.qam.load(binary)
+    program = build_wf_ansatz_prep().wrap_in_numshots_loop(shots=shots)
+    binary = qc.compile(program)
 
     # get all the unweighted expectations for all the sample wavefunctions
     occupations = list(range(angle_min, angle_max))
     indices = list(range(4))
     for offset in occupations:
-        qc.qam.write_memory(region_name='theta', value=angle_min + offset * angle_step)
-        qc.qam.run()
-        qc.qam.wait()
-        bitstrings = qc.qam.read_memory(region_name="ro")
+        bitstrings = qc.run(binary, {'theta': [angle_min + offset * angle_step]})
 
         totals = [0, 0, 0, 0]
         for bitstring in bitstrings:
@@ -470,20 +464,14 @@ Overall, the resulting program looks like this:
     qc = setup_forest_objects()
 
     # set up the Program object, ONLY ONCE
-    program = build_wf_ansatz_prep()
-    program.wrap_in_numshots_loop(shots=shots)
-    nq_program = qc.compiler.quil_to_native_quil(program)
-    binary = qc.compiler.native_quil_to_executable(nq_program)
-    qc.qam.load(binary)
+    program = build_wf_ansatz_prep().wrap_in_numshots_loop(shots=shots)
+    binary = qc.compile(program)
 
     # get all the unweighted expectations for all the sample wavefunctions
     occupations = list(range(angle_min, angle_max))
     indices = list(range(4))
     for offset in occupations:
-        qc.qam.write_memory(region_name='theta', value=angle_min + offset * angle_step)
-        qc.qam.run()
-        qc.qam.wait()
-        bitstrings = qc.qam.read_memory(region_name="ro")
+        bitstrings = qc.run(binary, {'theta': [angle_min + offset * angle_step]})
 
         totals = [0, 0, 0, 0]
         for bitstring in bitstrings:
