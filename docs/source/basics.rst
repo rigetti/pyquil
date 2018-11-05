@@ -425,7 +425,7 @@ review of what pragmas are and what the compiler supports, check out :ref:`compi
 Specifying A Qubit Rewiring Scheme
 ----------------------------------
 
-Qubit rewiring is one of the powerful features of the Quil compiler. We are able to write Quil programs which are
+Qubit rewiring is one of the most powerful features of the Quil compiler. We are able to write Quil programs which are
 agnostic to the topology of the chip, and the compiler will intelligently relabel our qubits to
 give better performance.
 
