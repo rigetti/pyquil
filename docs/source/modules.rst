@@ -1,14 +1,6 @@
 Source Code Documentation
 =========================
 
-pyquil.api
-----------
-
-.. automodule:: pyquil.api
-    :members:
-    :undoc-members:
-    :show-inheritance:
-
 pyquil.device
 -------------
 
