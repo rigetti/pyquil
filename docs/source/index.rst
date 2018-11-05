@@ -84,6 +84,7 @@ Contents
    :maxdepth: 3
    :caption: API Reference
 
+   apidocs/program
    apidocs/quantum_computer
    apidocs/compilers
    apidocs/qam
