@@ -138,7 +138,7 @@ class QuantumComputer:
         if memory_map:
             for region_name, values_list in memory_map.items():
                 for offset, value in enumerate(values_list):
-                    # TODO (karalekas): have write_memory take a list rather than value + offset
+                    # TODO gh-658: have write_memory take a list rather than value + offset
                     self.qam.write_memory(region_name=region_name, offset=offset, value=value)
         return self.qam.run() \
             .wait() \
