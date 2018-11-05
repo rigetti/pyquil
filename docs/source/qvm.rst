@@ -19,23 +19,22 @@ and shared quantum classical memory.
 
 Using the QVM
 -------------
-After `downloading the SDK <rigetti.com/forest>`_,the QVM is available on your local machine. You can initialize a local
-QVM instance by doing the following:
+After `downloading the SDK <https://www.rigetti.com/forest>`_, the QVM is available on your local machine. You can initialize a local
+QVM server by doing the following:
 
 
 .. code:: python
-
-    ### CONSOLE 1
     $ qvm -S
     Configured with 2048 MiB of workspace and 8 workers.)
     [2018-09-20 15:39:50] Starting server on port 5000.
 
+Once the QVM is serving requests, we can run the following pyQuil program to get a ``QuantumComputer`` object
 
 .. code:: python
 
     from pyquil import get_qc, Program
     from pyquil.gates import *
-    qvm = get_qc('9q-square-qvm')
+    qc = get_qc('9q-square-qvm')
 
 
 One executes quantum programs on the QVM using a ``.run(...)`` method, intended to closely mirror how one will execute programs on a
@@ -48,18 +47,17 @@ about :ref:`wavefunction_simulator`.
 The ``.run(...)`` method
 ------------------------
 
+The ``.run(...)`` method takes in a compiled program. You are responsible for compiling your program before running it.
+
 .. code:: python
 
-    program = Program(X(0), MEASURE(0, 0))
-    results = qvm.run(program)
-    # results = [[1]]
-
-The ``.run(...)`` method takes numerous arguments, several of which are optional. The most important
-are
-
-1. the ``program`` to be executed on the QVM,
-2. the ``classical_addresses`` which to be returned from the QVM (not included above; by default, these are set to the addresses used in the program's ``MEASURE`` instructions), and
-3. the number of ``trials`` to be executed on the machine.
+    p = Program()
+    ro = p.declare('ro', 'BIT', 1)
+    p += X(0)
+    p += MEASURE(0, ro[0])
+    executable = qc.compile(p)
+    results = qvm.run(executable)
+    print(results)
 
 The results returned are a *list of lists of integers*. In the above case, that's
 
@@ -67,81 +65,41 @@ The results returned are a *list of lists of integers*. In the above case, that'
 
     [[1]]
 
+If we had changed the number of shots, like so:
+
+.. code:: python
+
+    # ...
+    p.wrap_in_numshots_loop(10)
+    executable = qc.compile(p)
+    # ...
+
+then in our results, we would see the following:
+
+.. parsed-literal::
+
+    [[1], [1], [1], [1], [1], [1], [1], [1], [1], [1]]
+
 Let's unpack this. The *outer* list is an
-enumeration over the trials; if you set ``trials=1`` then ``len(results)`` should equal ``1``.
+enumeration over the trials; the argument given to ``wrap_in_numshots_loop`` will match the length of ``results``.
 
-The *inner* list, on the other hand, is an enumeration over the results stored in the classical
-addresses. We see that the result of this program is that the classical register ``[0]`` now stores
-the state of qubit 0, which should be ``1`` after an :math:`X`-gate. We
-can of course ask for more classical registers:
-
-.. code:: python
-
-    qvm.run(p, [0, 1, 2])
-
-.. parsed-literal::
-
-    [[1, 0, 0]]
-
-The classical registers are initialized to zero, so registers ``[1]``
-and ``[2]`` come out as zero. If we stored the measurement in a
-different classical register we would obtain:
-
-.. code:: python
-
-    p = Program()   # clear the old program
-    p.inst(X(0)).measure(0, 1)
-    qvm.run(p, [0, 1, 2])
-
-.. parsed-literal::
-
-    [[0, 1, 0]]
-
-We can also run programs multiple times and accumulate all the results
-in a single list.
-
-.. code:: python
-
-    coin_flip = Program().inst(H(0)).measure(0, 0)
-    num_flips = 5
-    qvm.run(coin_flip, [0], num_flips)
-
-.. parsed-literal::
-
-    [[0], [1], [0], [1], [0]]
-
-Try running the above code several times. You will see that you will,
-with very high probability, get different results each time.
+The *inner* list, on the other hand, is an enumeration over the results stored in the memory region named ``ro``, which
+we use as our readout register. We see that the result of this program is that the memory region ``ro[0]`` now stores
+the state of qubit 0, which should be ``1`` after an :math:`X`-gate. See :ref:`declaring_memory` and :ref:`measurement`
+for more details about declaring and accessing classical memory regions.
 
 .. [1] https://arxiv.org/abs/1608.03355
 
 Simulating the QPU using the QVM
 --------------------------------
 
-The QVM is a powerful tool for testing quantum programs before executing them on the QPU. In
-addition to the ``noise.py`` module for generating custom noise models for simulating noise on the
-QVM, pyQuil provides a simple interface for loading the QVM with noise models tailored to Rigetti's
-available QPUs, in just one modified line of code. This is made possible via the ``Device`` class,
-which holds hardware specification information, noise model information, and instruction set
-architecture (ISA) information regarding connectivity. This information is held in the ``Specs``,
-``ISA`` and ``NoiseModel`` attributes of the ``Device`` class, respectively.
-
-Specifically, to load a QVM with the ``NoiseModel`` information from a ``Device``, all that is
-required is to provide a ``Device`` object to the QVM during initialization:
-
-.. note::
-
-    This feature is currently deprecated, in advance of a new QPU (with new noise models). For users interested in
-    creating noise models for the QVM, you can do so by following the instructions in :ref:`noise`.
+The QVM is a powerful tool for testing quantum programs before executing them on the QPU.
 
 .. code:: python
 
-    from pyquil.api import get_devices, QVMConnection
+    qc = get_qc("QuantumComputerName")
+    qc = get_qc("QuantumComputerName-qvm")
 
-    device_name = get_device('quantum_device_name')
-    qvm = QVMConnection(device_name)
-
-By simply providing a device during QVM initialization, all programs executed on this QVM will, by
-default, have noise applied that is characteristic of the corresponding Rigetti QPU (in the case
-above, the ``agave`` device). One may then efficiently test realistic quantum algorithms on the QVM,
-in advance of running those programs on the QPU.
+By simply providing ``-qvm`` in the device name, all programs executed on this QVM will, have the same topology as
+the named QPU. To learn how to add noise models to your virtual ``QuantumComputer`` instance, check out
+:ref:`noise`.

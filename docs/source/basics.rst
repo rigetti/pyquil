@@ -118,6 +118,7 @@ The following gates methods come standard with Quil and ``gates.py``:
 The parameterized gates take a real or complex floating point
 number as an argument.
 
+.. _declaring_memory:
 
 Declaring Memory
 ~~~~~~~~~~~~~~~~
