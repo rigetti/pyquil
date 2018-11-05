@@ -431,7 +431,7 @@ give better performance.
 
 When we intend to run a program on the QPU, sometimes we write programs which use specific qubits targeting a specific
 device topology, perhaps to achieve a high-performance program. Other times, we write programs that are agnostic to the
-underlying topology, thereby making the programs more portable. Qubit rewiring accommodates both use-cases in an
+underlying topology, thereby making the programs more portable. Qubit rewiring accommodates both use cases in an
 automatic way.
 
 Consider the following program.
