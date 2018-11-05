@@ -142,17 +142,26 @@ class QuantumComputer:
         return self.device.get_isa(oneq_type=oneq_type, twoq_type=twoq_type)
 
     @_record_call
-    def run(self, executable: Executable) -> np.ndarray:
+    def run(self, executable: Executable,
+            memory_map: Dict[str, List[Union[int, float]]] = None) -> np.ndarray:
         """
-        Run a quil executable.
+        Run a quil executable. If the executable contains declared parameters, then a memory
+        map must be provided, which defines the runtime values of these parameters.
 
         :param executable: The program to run. You are responsible for compiling this first.
-        :return: A numpy array of shape (trials, len(ro-register)) that contains 0s and 1s
+        :param memory_map: The mapping of declared parameters to their values. The values
+            are a list of floats or integers.
+        :return: A numpy array of shape (trials, len(ro-register)) that contains 0s and 1s.
         """
-        return self.qam.load(executable) \
-            .run() \
+        self.qam.load(executable)
+        if memory_map:
+            for region_name, values_list in memory_map.items():
+                for offset, value in enumerate(values_list):
+                    # TODO gh-658: have write_memory take a list rather than value + offset
+                    self.qam.write_memory(region_name=region_name, offset=offset, value=value)
+        return self.qam.run() \
             .wait() \
-            .read_memory(region_name="ro")
+            .read_memory(region_name='ro')
 
     @_record_call
     def run_symmetrized_readout(self, program: Program, trials: int) -> np.ndarray:
