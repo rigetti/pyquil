@@ -327,7 +327,7 @@ implementation. For simplicity, we will demonstrate with a ``QuantumComputer`` i
     executable = qc.compile(p)
 
 We are able to compile our program, even with ``theta`` still not specified. Now we want to run our program with ``theta``
-filled in for, say, 200 values between 0 and 2 \\pi. We demonstrate this below.
+filled in for, say, 200 values between :math:`0` and :math:`2\pi`. We demonstrate this below.
 
 .. code:: python
 
