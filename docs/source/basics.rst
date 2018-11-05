@@ -277,7 +277,7 @@ Parametric Compilation
 Modern quantum algorithms are often parametric, following a hybrid model. In this hybrid
 model, the program ansatz (template of gates) is fixed, and iteratively updated with new
 parameters. These new parameters are often determined by an update given by a classical
-optimizer. Depending on the complexity of algorithm, the problem of interest, and capabilities
+optimizer. Depending on the complexity of the algorithm, problem of interest, and capabilities
 of the classical optimizer, this loop may need to run many times. In order to efficiently operate
 within this hybrid model, parametric compilation can be used.
 
