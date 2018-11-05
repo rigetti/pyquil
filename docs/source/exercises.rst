@@ -60,3 +60,17 @@ As an example: ``single_shot_grovers([0,0,1,0])`` should return 2.
    \vdots & & \ddots & \\
    2/N & & & 2/N-1
    \end{pmatrix}
+
+
+Exercise 4: Prisoner's Dilemma
+------------------------------
+
+A classic strategy game is the `prisoner's dilemma <https://en.wikipedia.org/wiki/Prisoner%27s_dilemma>`_ where two
+prisoners get the minimal penalty if they collaborate and stay silent, get zero penalty if one of them defects and the
+other collaborates (incurring maximum penalty) and get intermediate penalty if they both defect. This game has an
+equilibrium where both defect and incur intermediate penalty.
+
+However, things change dramatically when we allow for quantum strategies leading to the
+`Quantum Prisoner's Dilemma <https://arxiv.org/abs/quant-ph/9806088>`_.
+
+Can you design a program that simulates this game?
