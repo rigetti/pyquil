@@ -3,9 +3,6 @@
 The Quantum Computer
 ====================
 
-fdsfds
-fdssdds
-
 The Quantum Virtual Machine (QVM)
 ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
 
