@@ -476,7 +476,7 @@ are not regular gate operations, and they do not affect the abstract semantics o
 
 .. warning::
     Keep in mind, the program duration is currently capped at 15 seconds, and the length of the program is multiplied
-    by the number of shots. If you have a 1000 shot program each with a 100ms delay, you won't be able to execute it.
+    by the number of shots. If you have a 1000 shot program, where each shot contains a 100ms delay, you won't be able to execute it.
 
 Ways to Construct Programs
 ~~~~~~~~~~~~~~~~~~~~~~~~~~
