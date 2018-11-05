@@ -459,7 +459,7 @@ any other qubit, we would instead use ``Pragma('INITIAL_REWIRING', ['"NAIVE"']]`
 available options is :ref:`here <compiler_rewirings>`.
 
 .. note::
-    In general, we assume that the qubits you're operating on are also the ones you prefer to
+    In general, we assume that the qubits you're supplying as input are also the ones which you prefer to 
     operate on, and so NAIVE rewiring is the default.
 
 Asking for a Delay
