@@ -247,7 +247,7 @@ class QuantumComputer:
         :param program: A Program
         :param to_native_gates: Whether to compile non-native gates to native gates.
         :param optimize: Whether to optimize programs to reduce the number of operations.
-        :return:
+        :return: An executable binary suitable for passing to :py:func:`QuantumComputer.run`.
         """
         flags = [to_native_gates, optimize]
         assert all(flags) or all(not f for f in flags), "Must turn quilc all on or all off"
