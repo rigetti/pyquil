@@ -331,12 +331,18 @@ filled in for, say, 200 values between :math:`0` and :math:`2\pi`. We demonstrat
 
 .. code:: python
 
+    # Load the executable onto the QVM.
+    # QAM is a quantum abstract machine, which can be a QVM or a QPU
+    qc.qam.load(executable)
+
     # Somewhere to store each list of results
     parametric_measurements = []
 
     for theta in np.linspace(0, 2 * np.pi, 200):
-        # Get the results of the run with the value we want to execute with
-        bitstrings = qc.run(executable, {'theta': [theta]})
+        # Write the value we want to execute with
+        qc.qam.write_memory(region_name='theta', value=theta)
+        # Get the results of the run
+        bitstrings = qc.qam.run().wait().read_memory(region_name='ro')
         # Store our results
         parameteric_measurements.append(bitstrings)
 
