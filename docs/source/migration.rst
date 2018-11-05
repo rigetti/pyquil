@@ -58,6 +58,8 @@ would have the same effect as
     # disentangle, bringing us back to identity
     DAGGER BELL
 
+.. _parametric:
+
 Parametric programs
 ~~~~~~~~~~~~~~~~~~~
 
