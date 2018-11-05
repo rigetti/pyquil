@@ -425,7 +425,7 @@ Most commonly, we are interested in qubit rewiring because we are running on the
 nail down the qubits we are running on, or we don't want to worry about changing the labels for qubits when we
 reserve a lattice with other qubits.
 
-Say that we built the following program.
+Consider the following program.
 
 .. code::
 
