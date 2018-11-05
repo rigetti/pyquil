@@ -78,8 +78,8 @@ program on the Quantum Virtual Machine (QVM). We just have to add a few lines to
     ...
 
     qc = get_qc('1q-qvm')  # You can make any 'nq-qvm' this way for any reasonable 'n'
-    compiled_program = qc.compile(p)
-    result = qc.run(compiled_program)
+    executable = qc.compile(p)
+    result = qc.run(executable)
     print(result)
 
 Congratulations! You just ran your program on the QVM. The returned value should be:
@@ -181,7 +181,7 @@ the ``QuantumComputer`` abstraction do it for us.
 .. code:: python
 
     from pyquil import Program, get_qc
-    from pyquil.gates import *
+    from pyquil.gates import H, CNOT
 
     # Get our QuantumComputer instance, with a Quantum Virutal Machine (QVM) backend
     qc = get_qc("8q-qvm")
@@ -273,14 +273,79 @@ be executed 1000 times.
 
 Parametric Compilation
 ~~~~~~~~~~~~~~~~~~~~~~
-*Coming soon*
 
+Modern quantum algorithms are often parametric, following a hybrid model. In this hybrid
+model, the program ansatz (template of gates) is fixed, and iteratively updated with new
+parameters. These new parameters are often determined by an update given by a classical
+optimizer. Depending on the complexity of the algorithm, problem of interest, and capabilities
+of the classical optimizer, this loop may need to run many times. In order to efficiently operate
+within this hybrid model, parametric compilation can be used.
+
+Parametric compilation allows one to compile the program ansatz just once. Making use of declared
+memory regions, we can load values to the parametric gates at execution time, after compilation.
+Taking the compiler out of the execution loop for programs like this offers a huge performance
+improvement compared to compiling the program each time a parameter update is required.
+(Some more details about this and an example are found :ref:here <parametric>.)
+
+The first step is to build our parametric program, which functions like a template for all the precise programs we will
+run. Below we create a simple example program to illustrate, which puts the qubit onto the equator of the Bloch Sphere and then
+rotates it around the Z axis for some variable angle theta before applying another X pulse and measuring.
+
+.. code:: python
+
+    import numpy as np
+
+    from pyquil import Program
+    from pyquil.gates import RX, RZ, MEASURE
+
+    qubit = 0
+
+    p = Program()
+    ro = p.declare("ro", "BIT", 1)
+    theta_ref = p.declare("theta", "REAL")
+
+    p += RX(np.pi / 2, qubit)
+    p += RZ(theta, qubit)
+    p += RX(-np.pi / 2, qubit)
+
+    p += MEASURE(qubit, ro[0])
+
+.. note::
+
+    The example program, although simple, is actually more than just a toy example. It is similar to an
+    experiment which measures the qubit frequency.
+
+Notice how ``theta`` hasn't been specified yet. The next steps will have to involve a ``QuantumComputer`` or a compiler
+implementation. For simplicity, we will demonstrate with a ``QuantumComputer`` instance.
+
+.. code:: python
+
+    from pyquil import get_qc
+
+    # Get a Quantum Virtual Machine to simulate execution
+    qc = get_qc("1q-qvm")
+    executable = qc.compile(p)
+
+We are able to compile our program, even with ``theta`` still not specified. Now we want to run our program with ``theta``
+filled in for, say, 200 values between :math:`0` and :math:`2\pi`. We demonstrate this below.
+
+.. code:: python
+
+    # Somewhere to store each list of results
+    parametric_measurements = []
+
+    for theta in np.linspace(0, 2 * np.pi, 200):
+        # Get the results of the run with the value we want to execute with
+        bitstrings = qc.run(executable, {'theta': [theta]})
+        # Store our results
+        parameteric_measurements.append(bitstrings)
 
 
 Gate Modifiers
 ~~~~~~~~~~~~~~
 Gate applications in Quil can be preceded by a `gate modifier`. There are two supported modifiers:
 ``DAGGER`` and ``CONTROLLED``. The ``DAGGER`` modifier represents the dagger of the gate. For instance,
+
 .. parsed-literal::
 
     DAGGER RX(pi/3) 0
