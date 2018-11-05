@@ -445,7 +445,7 @@ Rather than rewrite our program for each reservation, we modify our program to t
     p += X(3)
 
 Now, when we pass our program through the compiler (such as with ``QuantumComputer.compile``) we will get native Quil
-with the qubit reindexed to one of 4, 5, or 6. In the case that qubit 3 is available to us, and we don't want that
+with the qubit reindexed to one of 4, 5, or 6. If qubit 3 is available, and we don't want that
 pulse to be applied to any other qubit, we would instead use ``Pragma('INITIAL_REWIRING', ['"NAIVE"']]``. Detailed information
 about the available options is :ref:`here <compiler_rewirings>`.
 
