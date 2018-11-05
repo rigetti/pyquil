@@ -408,7 +408,7 @@ functions you can use with pyQuil are: ``quil_sin``, ``quil_cos``, ``quil_sqrt``
 Pragmas
 ~~~~~~~
 
-``PRAGMA`` directives gives users more control over how Quil programs are processed or simulated, but generally do not
+``PRAGMA`` directives give users more control over how Quil programs are processed or simulated but generally do not
 change the semantics of the Quil program itself. As a general rule of thumb, deleting all ``PRAGMA`` directives in a Quil
 program should leave a valid and semantically equivalent program.
 
