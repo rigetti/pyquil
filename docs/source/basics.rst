@@ -419,7 +419,7 @@ Specifying A Qubit Rewiring Scheme
 
 Qubit rewiring is one of the powerful features of the Quil compiler. We are able to write Quil programs which are
 agnostic to the topology of the chip, and the compiler will intelligently relabel our qubits to
-give the best performance.
+give better performance.
 
 Most commonly, we are interested in qubit rewiring because we are running on the QPU, and we want to either
 nail down the qubits we are running on, or we don't want to worry about changing the labels for qubits when we
