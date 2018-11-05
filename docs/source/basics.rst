@@ -453,7 +453,7 @@ Asking for a Delay
 ------------------
 
 At times, we may want to add a delay in our program. Usually this is associated with qubit characterization. Delays
-are not regular gate operations, so they're implemented with ``PRAGMA``.
+are not regular gate operations, and they do not affect the abstract semantics of the Quil program, so they're implemented with a ``PRAGMA`` directive.
 
 .. code::
 
