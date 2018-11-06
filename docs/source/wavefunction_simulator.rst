@@ -118,4 +118,4 @@ In this convention ``CNOT(0, 1)`` is given by
     \end{pmatrix}
 
 For additional information why we decided on this basis ordering check out our note
-:ref:`*Someone shouts, "|01000>!" Who is Excited?* <https://arxiv.org/abs/1711.02086>`_.
+`Someone shouts, "|01000>!" Who is Excited? <https://arxiv.org/abs/1711.02086>`_.
