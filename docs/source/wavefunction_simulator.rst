@@ -61,7 +61,7 @@ cannot be feasibly obtained on a quantum processor.
 Multi-Qubit Basis Enumeration
 -----------------------------
 
-The Rigetti QVM enumerates bitstrings such that qubit `0` is the least significant bit (LSB)
+The WavefunctionSimulator enumerates bitstrings such that qubit ``0`` is the least significant bit (LSB)
 and therefore on the right end of a bitstring as shown in the table below which contains some
 examples.
 
