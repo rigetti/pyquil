@@ -40,6 +40,14 @@ from pyquil.quilbase import (DefGate, Gate, Measurement, Pragma, AbstractInstruc
 
 
 class Program(object):
+    """A list of pyQuil instructions that comprise a quantum program.
+
+    >>> from pyquil import Program
+    >>> from pyquil.gates import *
+    >>> p = Program()
+    >>> p += H(0)
+    >>> p += CNOT(0, 1)
+    """
     def __init__(self, *instructions):
         self._defined_gates = []
         # Implementation note: the key difference between the private _instructions and
