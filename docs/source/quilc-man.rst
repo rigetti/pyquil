@@ -4,17 +4,17 @@ QUILC Man Page
 ==============
 
 NAME
-====
+~~~~
 
 ``quilc`` - an optimizing, architecture-independent Quil compiler
 
 SYNOPSIS
-========
+~~~~~~~~
 
 ``quilc <options>``
 
 DESCRIPTION
-===========
+~~~~~~~~~~~
 
 The Rigetti Quil compiler, ``quilc``, is an optimizing compiler for Quil. It
 takes a general Quil program along with a qubit architecture, called an
@@ -29,7 +29,7 @@ requests with JSON payloads which are known to the companion library
 pyQuil.
 
 OPTIONS
-=======
+~~~~~~~
 
 ``-S, --server``
       (Server Mode) Run the compiler in Server Mode. This starts an HTTP server.
@@ -108,23 +108,23 @@ OPTIONS
       Perform program optimizations by assuming that the quantum state starts in the zero state.
 
 EXAMPLES
-========
+~~~~~~~~
 
 ``quilc --isa "8Q" < file.quil``
       Compile a Quil file (printing the result to stdout) for an eight qubit ring.
 
 SUPPORT
-=======
+~~~~~~~
 
 Contact <support@rigetti.com>.
 
 COPYRIGHT
-=========
+~~~~~~~~~
 
 Copyright (c) 2018 Rigetti Computing
 
 SEE ALSO
-========
+~~~~~~~~
 
 :ref:`qvm(1) <qvm_man>`
 

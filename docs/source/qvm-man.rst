@@ -4,12 +4,12 @@ QVM Man Page
 ============
 
 NAME
-====
+~~~~
 
 ``qvm`` - a quantum virtual machine for executing Quil
 
 SYNOPSIS
-========
+~~~~~~~~
 
 ``qvm <options> -e`` # Execute Mode
 
@@ -18,7 +18,7 @@ SYNOPSIS
 ``qvm <options> --benchmark [n]`` # Benchmark Mode
 
 DESCRIPTION
-===========
+~~~~~~~~~~~
 
 The Rigetti QVM is a high-performance, classical implementation of a
 quantum abstract machine. Specifically, it is capable of executing Quil
@@ -50,7 +50,7 @@ models. Instead, the Quil program itself specifies PRAGMAs for defining
 Kraus operators and readout POVMs.
 
 OPTIONS
-=======
+~~~~~~~
 
 ``-e, --execute``
       (Execute Mode) Run the QVM in Execute Mode. Execute the Quil program supplied from stdin  and  print  some  information
@@ -104,7 +104,7 @@ OPTIONS
 
 
 EXAMPLES
-========
+~~~~~~~~
 
 ``qvm -e < file.quil``
       Run a Quil file on the QVM.
@@ -119,24 +119,24 @@ EXAMPLES
       Benchmark a 25-qubit quantum Fourier transform in compiled mode.
 
 BUGS
-====
+~~~~
 
 Shared memory mode does not work with QVMs executing noisy programs (i.e., ones where Kraus operators or POVMs are specified).
 
 The WAIT instruction does nothing.
 
 SUPPORT
-=======
+~~~~~~~
 
 Contact <support@rigetti.com>.
 
 COPYRIGHT
-=========
+~~~~~~~~~
 
 Copyright (c) 2018 Rigetti Computing
 
 SEE ALSO
-========
+~~~~~~~~
 
 :ref:`quilc(1) <quilc_man>`
 
