@@ -256,7 +256,7 @@ game. This random choice can be created by putting one qubit into an equal super
 :math:`H`, and then measure its state. The measurement will show heads or tails with equal probability p=0.5.
 
 To simulate the penny flip game we take the second qubit and put it into its excited state
-:math:`|1\rangle` (which is mapped to :math:`|H\rangle)`, heads) by applying the X (or NOT) gate. Q's first move is to
+:math:`|1\rangle` (which is mapped to :math:`|H\rangle`, heads) by applying the X (or NOT) gate. Q's first move is to
 apply the Hadamard gate H. Picard's decision about the flip is simulated as a CNOT operation where the control bit is
 the outcome of the random number generator described above. Finally Q applies a Hadamard gate again, before we measure
 the outcome. The full circuit is shown in the figure below.
