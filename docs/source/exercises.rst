@@ -4,7 +4,7 @@ Exercises
 =========
 
 Exercise 1: Quantum Dice
-------------------------
+~~~~~~~~~~~~~~~~~~~~~~~~
 
 Write a quantum program to simulate throwing an 8-sided die. The Python
 function you should produce is:
@@ -22,7 +22,7 @@ Next, extend the program to work for any kind of fair die:
         # return the result of throwing a num_sides sided die by running a quantum program
 
 Exercise 2: Controlled Gates
-----------------------------
+~~~~~~~~~~~~~~~~~~~~~~~~~~~~
 
 We can use the full generality of NumPy to construct new gate matrices.
 
@@ -36,7 +36,7 @@ We can use the full generality of NumPy to construct new gate matrices.
    controlled by qubit 0.
 
 Exercise 3: Grover's Algorithm
-------------------------------
+~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
 
 Write a quantum program for the single-shot Grover's algorithm. The
 Python function you should produce is:
@@ -63,7 +63,7 @@ As an example: ``single_shot_grovers([0,0,1,0])`` should return 2.
 
 
 Exercise 4: Prisoner's Dilemma
-------------------------------
+~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
 
 A classic strategy game is the `prisoner's dilemma <https://en.wikipedia.org/wiki/Prisoner%27s_dilemma>`_ where two
 prisoners get the minimal penalty if they collaborate and stay silent, get zero penalty if one of them defects and the
@@ -74,6 +74,143 @@ However, things change dramatically when we allow for quantum strategies leading
 `Quantum Prisoner's Dilemma <https://arxiv.org/abs/quant-ph/9806088>`_.
 
 Can you design a program that simulates this game?
+
+Exercise 5: Quantum Fourier Transform
+~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
+
+The quantum Fourier transform (QFT) is a quantum implementation of the discrete Fourier transform. The
+Fourier transform can be used to transform a function from the time domain into the frequency domain.
+
+Compute the discrete Fourier transform of ``[0, 1, 0, 0, 0, 0, 0, 0]``, using pyQuil:
+ a. Write a state preparation quantum program.
+ b. Write a function to make a 3-qubit QFT program, taking qubit indices as arguments.
+ c. Combine your solutions to part a and b into one program and use the ``WavefunctionSimulator`` to get the solution.
+
+.. note:: For a more challenging initial state, try ``01100100``.
+
+Solution
+--------
+
+Part a: Prepare the initial state
+^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+We are going to apply the QFT on the *amplitudes* of the states.
+
+We want to prepare a state that corresponds to the sequence for which we
+want to compute the discrete Fourier transform. As the exercise hinted in part b, we need 3 qubits to transform
+an 8 bit sequence. It is simplest to understand if we think of the qubits as three digits in a binary string
+(aka bitstring). There are 8 possible values the bitstring can have, and in our quantum state, each of these
+possibilities has an amplitude. Our 8 indices in the QFT sequence label each of these states. For clarity:
+
+:math:`|000\rangle` => ``10000000``
+
+:math:`|001\rangle` => ``01000000``
+
+`...`
+
+:math:`|111\rangle` -> ``00000001``
+
+The sequence we want to compute is ``01000000``, so our initial state is simply :math:`|001\rangle`. For a bitstring with more
+than one ``1``, we would want an equal superposition over all the selected states. (E.g. ``01100000`` would be an
+equal superposition of :math:`|001\rangle` and :math:`|010\rangle`).
+
+To set up the :math:`|001\rangle` state, we only have to apply one :math:`X`-gate to the zeroth qubit.
+
+.. code:: python
+
+    from pyquil import Program
+    from pyquil.gates import *
+
+    state_prep = Program(X(0))
+
+We can verify that this works by computing its wavefunction with the
+:ref:`Wavefunction Simulator <wavefunction_simulator>`. However, we need to add some "dummy" qubits,
+because otherwise ``wavefunction`` would return a two-element vector for only qubit 0.
+
+.. code:: python
+
+    from pyquil.api import WavefunctionSimulator
+
+    add_dummy_qubits = Program(I(1), I(2))  # The identity gate I has no affect
+
+    wf_sim = WavefunctionSimulator()
+    wavefunction = wf_sim.wavefunction(state_prep + add_dummy_qubits)
+    print(wavefunction)
+
+.. parsed-literal::
+
+    (1+0j)|001>
+
+We'll need ``wf_sim`` for part c, too.
+
+Part b: Three qubit QFT program
+^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+
+In this part, we define a function, ``qft3``, to make a 3-qubit QFT quantum program. This
+is a mix of Hadamard and CPHASE gates, with a final bit reversal
+correction at the end consisting of a single SWAP gate.
+
+.. code:: python
+
+    from math import pi
+
+    def qft3(q0, q1, q2):
+        p = Program()
+        p += [H(q2),
+              CPHASE(pi / 2.0, q1, q2),
+              H(q1),
+              CPHASE(pi / 4.0, q0, q2),
+              CPHASE(pi / 2.0, q0, q1),
+              H(q0),
+              SWAP(q0, q2)]
+        return p
+
+There is a very important detail to recognize here: The function
+``qft3`` doesn't *compute* the QFT, but rather it *makes a quantum
+program* to compute the QFT on qubits ``q0``, ``q1``, and ``q2``.
+
+We can see what this program looks like in Quil notation with ``print(qft(0, 1, 2))``.
+
+.. parsed-literal::
+
+    H 0
+    CPHASE(pi/2) 1 0
+    H 1
+    CPHASE(pi/4) 2 0
+    CPHASE(pi/2) 2 1
+    H 2
+    SWAP 0 2
+
+Part c: Execute the QFT
+^^^^^^^^^^^^^^^^^^^^^^^
+
+Combining parts a and b:
+
+.. code:: python
+
+    compute_qft_prog = state_prep + qft3(0, 1, 2)
+    wavefunction = wf_sim.wavefunction(compute_qft_prog)
+    print(wavefunction.amplitudes)
+
+.. parsed-literal::
+
+    array([  3.53553391e-01+0.j        ,   2.50000000e-01+0.25j      ,
+             2.16489014e-17+0.35355339j,  -2.50000000e-01+0.25j      ,
+            -3.53553391e-01+0.j        ,  -2.50000000e-01-0.25j      ,
+            -2.16489014e-17-0.35355339j,   2.50000000e-01-0.25j      ])
+
+We can verify this works by computing the (inverse) FFT from NumPy.
+
+.. code:: python
+
+    from numpy.fft import ifft
+    ifft([0,1,0,0,0,0,0,0], norm="ortho")
+
+.. parsed-literal::
+
+    array([ 0.35355339+0.j        ,  0.25      +0.25j      ,
+            0.        +0.35355339j, -0.25      +0.25j      ,
+           -0.35355339+0.j        , -0.25      -0.25j      ,
+            0.        -0.35355339j,  0.25      -0.25j      ])
 
 Examples of Quantum Programs
 ~~~~~~~~~~~~~~~~~~~~~~~~~~~~
@@ -180,3 +317,4 @@ Remember that the first number is the outcome of the game (value of the answer_r
 outcome of Picard’s decision (value of the picard_register).
 
 No matter what Picard does, Q will always win!
+
