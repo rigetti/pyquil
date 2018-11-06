@@ -60,7 +60,7 @@ class of this object changes based on context (e.g., ``QPUCompiler``, ``QVMCompi
 
 * ``compiler.quil_to_native_quil(program)``: This method converts a Quil program into native Quil,
   according to the ISA that the compiler is initialized with.  The input parameter is specified as a
-  ``Program`` object, and the output is given as a new ``Program`` object, equipped with a
+  :py:class:`~pyquil.quil.Program` object, and the output is given as a new ``Program`` object, equipped with a
   ``.metadata`` property that gives extraneous information about the compilation output (e.g., gate
   depth, as well as many others).  This call blocks until Quil compilation finishes.
 * ``compiler.native_quil_to_executable(nq_program)``: This method converts a ProtoQuil program, which

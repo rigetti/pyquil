@@ -11,7 +11,7 @@ Programs and Gates
 Introduction
 ~~~~~~~~~~~~
 
-Quantum programs are written in Forest using the ``Program`` object. This ``Program`` abstraction will help us
+Quantum programs are written in Forest using the :py:class:`~pyquil.quil.Program` object. This ``Program`` abstraction will help us
 compose `Quil programs <https://arxiv.org/abs/1608.03355>`_.
 
 .. code:: python
