@@ -221,11 +221,11 @@ The Meyer-Penny Game
 To create intuition for quantum algorithms, it is useful (and fun) to play with the abstraction that
 the software provides.
 
-A simple example from game theory is the Meyer-Penny Game [1]_. The interested reader may want to read more about
+The Meyer-Penny Game [1]_ is a simple example we'll use from quantum game theory. The interested reader may want to read more about
 quantum game theory in the article *Toward a general theory of quantum games* [2]_. The Meyer-Penny Game goes as follows:
 
-The Starship Enterprise, during one of its deep-space missions, is facing an immediate calamity, when a powerful alien
-suddenly appears on the bridge. The alien, named Q, offers to help Picard, the captain of the Enterprise, under the
+The Starship Enterprise, during one of its deep-space missions, is facing an immediate calamity at the edge of a wormhole,
+when a powerful alien suddenly appears. The alien, named Q, offers to help Picard, the captain of the Enterprise, under the
 condition that Picard beats Q in a simple game of heads or tails.
 
 The rules
@@ -290,7 +290,7 @@ represents Picard's choice.
     p += CNOT(1, 0)
     p += H(0)
 
-We use the quantum mechanics principle of delayed measurement to keep all the measurement logic separate from the gates.
+We use the quantum mechanics principle of deferred measurement to keep all the measurement logic separate from the gates.
 Our method call to the ``WavefunctionSimulator`` will handle measuring for us [4]_.
 
 Finally, we play the game several times.
