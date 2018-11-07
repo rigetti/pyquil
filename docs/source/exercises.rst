@@ -215,8 +215,8 @@ We can verify this works by computing the *inverse* FFT on the output with NumPy
 
 After ignoring the terms that are on the order of ``1e-17``, we get ``[0, 1, 0, 0, 0, 0, 0, 0]``, which was our input!
 
-The Meyer-Penny Game
-~~~~~~~~~~~~~~~~~~~~
+Example: The Meyer-Penny Game
+~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
 
 To create intuition for quantum algorithms, it is useful (and fun) to play with the abstraction that
 the software provides.
@@ -253,7 +253,7 @@ Picard's choice whether or not to flip the penny, and the other to represent the
 is :math:`|0\rangle` (which is mapped to :math:`|T\rangle`, tails). To simulate Picard's decision, we assume that he
 chooses randomly whether or not to flip the coin, in agreement with the optimal strategy for the classic penny-flip
 game. This random choice can be created by putting one qubit into an equal superposition, e.g. with the Hadamard gate
-:math:`H`, and then measure its state. The measurement will show heads or tails with equal probability p=0.5.
+:math:`H`, and then measure its state. The measurement will show heads or tails with equal probability :math:`p_h=p_t=0.5`.
 
 To simulate the penny flip game we take the second qubit and put it into its excited state
 :math:`|1\rangle` (which is mapped to :math:`|H\rangle`, heads) by applying the X (or NOT) gate. Q's first move is to
@@ -293,11 +293,25 @@ represents Picard's choice.
 We use the quantum mechanics principle of deferred measurement to keep all the measurement logic separate from the gates.
 Our method call to the ``WavefunctionSimulator`` will handle measuring for us [4]_.
 
-Finally, we play the game several times.
+Finally, we play the game several times. (Remember to run your :ref:`qvm server <server>`.)
 
 .. code:: python
 
     wf_sim.run_and_measure(p, trials=10)
+
+.. parsed-literal::
+
+    array([[1, 1],
+           [1, 1],
+           [1, 1],
+           [1, 1],
+           [1, 1],
+           [1, 0],
+           [1, 1],
+           [1, 1],
+           [1, 1],
+           [1, 0]])
+
 
 In each trial, the first number is the outcome of the game, whereas the second number represents Picard's choice to flip
 or not flip the penny.
