@@ -24,7 +24,7 @@ If for some reason you want to use an atypical configuration, you may need to mo
 
 .. exec on engage
 
-The QCS config file, by default, looks similar to the following:
+The default QCS config file on any QMI looks similar to the following:
 
 ::
 
@@ -43,12 +43,12 @@ where
  -  ``key`` stores the Forest 1.X API key,
  -  ``user_id`` stores a Forest 2.0 user ID, and
  -  ``exec_on_engage`` specifies the shell command that the QMI will launch when the QMI becomes QPU-engaged. It
-    has no effect if you are running locally, but is important if you are running on the QMI. By default, it runs the
+    would have no effect if you are running locally, but is important if you are running on the QMI. By default, it runs the
     ``exec_on_engage.sh`` shell script. It's best to leave the configuration as is, and edit that script.
     More documentation about ``exec_on_engage.sh`` can be found in the QCS docs
     `here <https://www.rigetti.com/qcs/docs/guides#queuing-programs-for-auto-execution>`_.
 
-The Forest config file, by default, has these contents:
+The Forest config file on any QMI has these contents, with specific IP addresses filled in:
 
 ::
 
@@ -70,7 +70,7 @@ where
  -  ``compiler_server_address``: This is the endpoint where pyQuil will try to communicate with the compiler server. On a
     QMI, this points to a provided compiler server instance. On a local installation, this should be set to the server
     endpoint for a locally running ``quilc`` instance. However, pyQuil will use the default value ``http://localhost:6000``
-    if this value isn't set, which is the correct endpoint when you run ``quilc`` locally with ``quilc -S``.
+    if this isn't set, which is the correct endpoint when you run ``quilc`` locally with ``quilc -S``.
 
 .. note::
 
