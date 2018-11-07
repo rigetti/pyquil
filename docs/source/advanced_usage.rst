@@ -3,37 +3,15 @@
 Advanced Usage
 ==============
 
-First, initialize a localQVM instance on your laptop. You should have two consoles open in your terminal to run in the
-background.
+.. note::
 
-.. code:: python
-
-    ### CONSOLE 1
-    $ quilc -S
-    port triggered: 6000.
-    [2018-09-19 11:22:37] Starting server: 0.0.0.0 : 6000.
-
-    ### CONSOLE 2
-    $ qvm -S
-    Welcome to the Rigetti QVM
-    (Configured with 2048 MiB of workspace and 8 workers.)
-    [2018-09-20 15:39:50] Starting server on port 5000.
-
-.. code:: python
-
-    from pyquil import Program, get_qc
-    from pyquil.gates import *
-    qvm = get_qc('9q-square-qvm')
-
-
-Now that our local endpoints are up and running, we can start running pyQuil programs! Open a jupyter notebook (type
-..code::`jupyter notebook` in your terminal), or launch python in your terminal (type ..code::`python3`).
-
+    If you're running locally, remember set up the QVM and quilc in server mode before trying to use
+    them: :ref:`server`.
 
 Using Qubit Placeholders
 ~~~~~~~~~~~~~~~~~~~~~~~~
 
-In PyQuil, we typically use integers to identify qubits
+In pyQuil, we typically use integers to identify qubits
 
 .. code:: python
 
@@ -41,13 +19,10 @@ In PyQuil, we typically use integers to identify qubits
     from pyquil.gates import CNOT, H
     print(Program(H(0), CNOT(0, 1)))
 
-
 .. parsed-literal::
 
     H 0
     CNOT 0 1
-
-
 
 However, when running on real, near-term QPUs we care about what
 particular physical qubits our program will run on. In fact, we may want
@@ -62,13 +37,10 @@ where using ``QubitPlaceholder``\ s comes in.
     prog = Program(H(q0), CNOT(q0, q1))
     print(prog)
 
-
 .. parsed-literal::
 
     H {q4402789176}
     CNOT {q4402789176} {q4402789120}
-
-
 
 If you try to use this program directly, it will not work
 
@@ -76,9 +48,7 @@ If you try to use this program directly, it will not work
 
     print(prog.out())
 
-
 ::
-
 
     ---------------------------------------------------------------------------
 
@@ -109,13 +79,10 @@ N.
     from pyquil.quil import address_qubits
     print(address_qubits(prog))
 
-
 .. parsed-literal::
 
     H 0
     CNOT 0 1
-
-
 
 The real power comes into play when you provide an explicit mapping
 
@@ -126,12 +93,10 @@ The real power comes into play when you provide an explicit mapping
         q1: 19,
     }))
 
-
 .. parsed-literal::
 
     H 14
     CNOT 14 19
-
 
 
 Register
@@ -158,112 +123,6 @@ list of qubits to build your program.
     H 10
     H 12
     H 14
-
-
-Quantum Fourier Transform (QFT)
-~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
-
-Let us do an example that includes multi-qubit parameterized gates.
-
-Here we wish to compute the discrete Fourier transform of
-``[0, 1, 0, 0, 0, 0, 0, 0]``. We do this in three steps:
-
-1. Write a function called ``qft3`` to make a 3-qubit QFT quantum
-   program.
-2. Write a state preparation quantum program.
-3. Execute state preparation followed by the QFT on the QVM.
-
-First we define a function to make a 3-qubit QFT quantum program. This
-is a mix of Hadamard and CPHASE gates, with a final bit reversal
-correction at the end consisting of a single SWAP gate.
-
-.. code:: python
-
-    from math import pi
-
-    def qft3(q0, q1, q2):
-        p = Program()
-        p.inst( H(q2),
-                CPHASE(pi/2.0, q1, q2),
-                H(q1),
-                CPHASE(pi/4.0, q0, q2),
-                CPHASE(pi/2.0, q0, q1),
-                H(q0),
-                SWAP(q0, q2) )
-        return p
-
-There is a very important detail to recognize here: The function
-``qft3`` doesn't *compute* the QFT, but rather it *makes a quantum
-program* to compute the QFT on qubits ``q0``, ``q1``, and ``q2``.
-
-We can see what this program looks like in Quil notation by doing
-the following:
-
-.. code:: python
-
-    print(qft3(0, 1, 2))
-
-.. parsed-literal::
-
-    H 2
-    CPHASE(1.5707963267948966) 1 2
-    H 1
-    CPHASE(0.7853981633974483) 0 2
-    CPHASE(1.5707963267948966) 0 1
-    H 0
-    SWAP 0 2
-
-Next, we want to prepare a state that corresponds to the sequence we
-want to compute the discrete Fourier transform of. Fortunately, this is
-easy, we just apply an :math:`X`-gate to the zeroth qubit.
-
-.. code:: python
-
-    state_prep = Program().inst(X(0))
-
-We can verify that this works by computing its wavefunction. However, we
-need to add some "dummy" qubits, because otherwise ``wavefunction``
-would return a two-element vector.
-
-.. code:: python
-
-    add_dummy_qubits = Program().inst(I(1), I(2))
-    wavefunction = qvm.wavefunction(state_prep + add_dummy_qubits)
-    print(wavefunction)
-
-.. parsed-literal::
-
-    (1+0j)|001>
-
-If we have two quantum programs ``a`` and ``b``, we can concatenate them
-by doing ``a + b``. Using this, all we need to do is compute the QFT
-after state preparation to get our final result.
-
-.. code:: python
-
-    wavefunction = qvm.wavefunction(state_prep + qft3(0, 1, 2))
-    print(wavefunction.amplitudes)
-
-.. parsed-literal::
-
-    array([  3.53553391e-01+0.j        ,   2.50000000e-01+0.25j      ,
-             2.16489014e-17+0.35355339j,  -2.50000000e-01+0.25j      ,
-            -3.53553391e-01+0.j        ,  -2.50000000e-01-0.25j      ,
-            -2.16489014e-17-0.35355339j,   2.50000000e-01-0.25j      ])
-
-We can verify this works by computing the (inverse) FFT from NumPy.
-
-.. code:: python
-
-    from numpy.fft import ifft
-    ifft([0,1,0,0,0,0,0,0], norm="ortho")
-
-.. parsed-literal::
-
-    array([ 0.35355339+0.j        ,  0.25000000+0.25j      ,
-            0.00000000+0.35355339j, -0.25000000+0.25j      ,
-           -0.35355339+0.j        , -0.25000000-0.25j      ,
-            0.00000000-0.35355339j,  0.25000000-0.25j      ])
 
 Classical Control Flow
 ~~~~~~~~~~~~~~~~~~~~~~
