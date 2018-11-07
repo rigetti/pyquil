@@ -145,9 +145,9 @@ We'll need ``wf_sim`` for part c, too.
 Part b: Three qubit QFT program
 ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
 
-In this part, we define a function, ``qft3``, to make a 3-qubit QFT quantum program. This
-is a mix of Hadamard and CPHASE gates, with a final bit reversal
-correction at the end consisting of a single SWAP gate.
+In this part, we define a function, ``qft3``, to make a 3-qubit QFT quantum program. The algorithm
+is nicely described on `this page <https://algassert.com/quantum/2014/03/07/Building-your-own-Quantum-Fourier-Transform.html>`_.
+It is a mix of Hadamard and CPHASE gates, with a SWAP gate for bit reversal correction.
 
 .. code:: python
 
@@ -155,13 +155,13 @@ correction at the end consisting of a single SWAP gate.
 
     def qft3(q0, q1, q2):
         p = Program()
-        p += [H(q2),
-              CPHASE(pi / 2.0, q1, q2),
-              H(q1),
-              CPHASE(pi / 4.0, q0, q2),
-              CPHASE(pi / 2.0, q0, q1),
+        p += [SWAP(q0, q2),
               H(q0),
-              SWAP(q0, q2)]
+              CPHASE(-pi / 2.0, q0, q1),
+              H(q1),
+              CPHASE(-pi / 4.0, q0, q2),
+              CPHASE(-pi / 2.0, q1, q2),
+              H(q2)]
         return p
 
 There is a very important detail to recognize here: The function
@@ -172,13 +172,13 @@ We can see what this program looks like in Quil notation with ``print(qft(0, 1, 
 
 .. parsed-literal::
 
-    H 0
-    CPHASE(pi/2) 1 0
-    H 1
-    CPHASE(pi/4) 2 0
-    CPHASE(pi/2) 2 1
-    H 2
     SWAP 0 2
+    H 0
+    CPHASE(-pi/2) 0 1
+    H 1
+    CPHASE(-pi/4) 0 2
+    CPHASE(-pi/2) 1 2
+    H 2
 
 Part c: Execute the QFT
 ^^^^^^^^^^^^^^^^^^^^^^^
@@ -193,24 +193,27 @@ Combining parts a and b:
 
 .. parsed-literal::
 
-    array([  3.53553391e-01+0.j        ,   2.50000000e-01+0.25j      ,
-             2.16489014e-17+0.35355339j,  -2.50000000e-01+0.25j      ,
-            -3.53553391e-01+0.j        ,  -2.50000000e-01-0.25j      ,
-            -2.16489014e-17-0.35355339j,   2.50000000e-01-0.25j      ])
+    array([ 3.53553391e-01+0.j        ,  2.50000000e-01-0.25j      ,
+            2.16489014e-17-0.35355339j, -2.50000000e-01-0.25j      ,
+           -3.53553391e-01+0.j        , -2.50000000e-01+0.25j      ,
+           -2.16489014e-17+0.35355339j,  2.50000000e-01+0.25j      ])
 
-We can verify this works by computing the (inverse) FFT from NumPy.
+
+We can verify this works by computing the *inverse* FFT on the output with NumPy and seeing that we get back our input
+(with some floating point error).
 
 .. code:: python
 
     from numpy.fft import ifft
-    ifft([0,1,0,0,0,0,0,0], norm="ortho")
+    ifft(wavefunction.amplitudes, norm="ortho")
 
 .. parsed-literal::
 
-    array([ 0.35355339+0.j        ,  0.25      +0.25j      ,
-            0.        +0.35355339j, -0.25      +0.25j      ,
-           -0.35355339+0.j        , -0.25      -0.25j      ,
-            0.        -0.35355339j,  0.25      -0.25j      ])
+    array([0.+0.00000000e+00j, 1.+9.38127079e-17j, 0.+0.00000000e+00j,
+           0.-1.53080850e-17j, 0.+0.00000000e+00j, 0.-6.31965379e-17j,
+           0.+0.00000000e+00j, 0.-1.53080850e-17j])
+
+After ignoring the terms that are on the order of ``1e-17``, we get ``[0, 1, 0, 0, 0, 0, 0, 0]``, which was our input!
 
 Examples of Quantum Programs
 ~~~~~~~~~~~~~~~~~~~~~~~~~~~~
