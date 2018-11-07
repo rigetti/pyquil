@@ -8,6 +8,75 @@ Advanced Usage
     If you're running locally, remember set up the QVM and quilc in server mode before trying to use
     them: :ref:`server`.
 
+PyQuil Configuration Files
+~~~~~~~~~~~~~~~~~~~~~~~~~~
+
+Network endpoints for the Rigetti Forest infrastructure and information pertaining to QPU access are
+stored in a pair of configuration files. These files are located by default at ``~/.qcs_config`` and ``~/.forest_config``.
+The location can be changed by setting the environment variables ``QCS_CONFIG`` or ``FOREST_CONFIG`` to point to the new
+location.
+
+When running on a QMI, the values in these configuration files are automatically managed so as to
+point to the correct endpoints. When running locally, configuration files are not necessary. Thus, the average
+user will not have to do any work to get their configuration files set up.
+
+If for some reason you want to use an atypical configuration, you may need to modify these files.
+
+.. exec on engage
+
+The QCS config file, by default, looks similar to the following:
+
+::
+
+    # .qcs_config
+    [Rigetti Forest]
+    url = https://forest-server.qcs.rigetti.com
+    key = 4fd12391-11eb-52ec-35c2-262765ae4c4f
+    user_id = 4fd12391-11eb-52ec-35c2-262765ae4c4f
+
+    [QPU]
+    exec_on_engage = bash exec_on_engage.sh
+
+where
+
+ -  ``url`` is the endpoint that pyQuil hits for device information and for the 2.0 endpoints,
+ -  ``key`` stores the Forest 1.X API key,
+ -  ``user_id`` stores a Forest 2.0 user ID, and
+ -  ``exec_on_engage`` specifies the shell command that the QMI will launch when the QMI becomes QPU-engaged. It
+    has no effect if you are running locally, but is important if you are running on the QMI. By default, it runs the
+    ``exec_on_engage.sh`` shell script. It's best to leave the configuration as is, and edit that script.
+    More documentation about ``exec_on_engage.sh`` can be found in the QCS docs
+    `here <https://www.rigetti.com/qcs/docs/guides#queuing-programs-for-auto-execution>`_.
+
+The Forest config file, by default, has these contents:
+
+::
+
+    # .forest_config
+    [Rigetti Forest]
+    qpu_endpoint_address = None
+    qvm_address = http://10.1.165.XX:5000
+    compiler_server_address = tcp://10.1.165.XX:5555
+
+where
+
+ -  ``qpu_endpoint_address`` is the endpoint where pyQuil will try to communicate with the QPU orchestrating service
+    during QPU-engagement. It may not appear until your QMI engages, and furthermore will have no effect if you are
+    running locally. It's best to leave this alone. If you obtain access to one of our QPUs, we will fill it in for you.
+ -  ``qvm_address`` is the endpoint where pyQuil will try to communicate with the Rigetti Quantum Virtual Machine.
+    On a QMI, this points to the provided QVM instance. On a local installation, this should be set to the server endpoint
+    for a locally running QVM instance. However, pyQuil will use the default value ``http://localhost:5000`` if this file
+    isn't found, which is the correct endpoint when you run the QVM locally with ``qvm -S``.
+ -  ``compiler_server_address``: This is the endpoint where pyQuil will try to communicate with the compiler server. On a
+    QMI, this points to a provided compiler server instance. On a local installation, this should be set to the server
+    endpoint for a locally running ``quilc`` instance. However, pyQuil will use the default value ``http://localhost:6000``
+    if this value isn't set, which is the correct endpoint when you run ``quilc`` locally with ``quilc -S``.
+
+.. note::
+
+     PyQuil itself reads these values out using the helper class ``pyquil._config.PyquilConfig``. PyQuil users should not
+     ever need to touch this class directly.
+
 Using Qubit Placeholders
 ~~~~~~~~~~~~~~~~~~~~~~~~
 
