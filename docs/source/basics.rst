@@ -118,6 +118,7 @@ The following gates methods come standard with Quil and ``gates.py``:
 The parameterized gates take a real or complex floating point
 number as an argument.
 
+.. _declaring_memory:
 
 Declaring Memory
 ~~~~~~~~~~~~~~~~
@@ -473,18 +474,75 @@ functions you can use with pyQuil are: ``quil_sin``, ``quil_cos``, ``quil_sqrt``
 Pragmas
 ~~~~~~~
 
+``PRAGMA`` directives give users more control over how Quil programs are processed or simulated but generally do not
+change the semantics of the Quil program itself. As a general rule of thumb, deleting all ``PRAGMA`` directives in a Quil
+program should leave a valid and semantically equivalent program.
+
+In pyQuil, ``PRAGMA`` directives play many roles, such as controlling the behavior of gates in noisy simulations,
+or commanding the Quil compiler to perform actions in a certain way. Here, we will cover the basics of two very
+common use cases for including a ``PRAGMA`` in your program: qubit rewiring and delays. For a more comprehensive
+review of what pragmas are and what the compiler supports, check out :ref:`compiler`. For more information about
+``PRAGMA`` in Quil, see
+`A Practical Quantum ISA <https://arxiv.org/pdf/1608.03355.pdf>`_, and
+`Simulating Quantum Processor Errors <https://www.european-lisp-symposium.org/static/proceedings/2018.pdf>`_.
+
 .. _rewiring:
 
 Specifying A Qubit Rewiring Scheme
 ----------------------------------
 
-*Coming soon*
+Qubit rewiring is one of the most powerful features of the Quil compiler. We are able to write Quil programs which are
+agnostic to the topology of the chip, and the compiler will intelligently relabel our qubits to
+give better performance.
+
+When we intend to run a program on the QPU, sometimes we write programs which use specific qubits targeting a specific
+device topology, perhaps to achieve a high-performance program. Other times, we write programs that are agnostic to the
+underlying topology, thereby making the programs more portable. Qubit rewiring accommodates both use cases in an
+automatic way.
+
+Consider the following program.
+
+.. code::
+
+    from pyquil import Program
+    from pyquil.gates import *
+
+    p = Program(X(3))
+
+We've tested this on the QVM, and we've reserved a lattice on the QPU which has qubits 4, 5, and 6, but not qubit 3.
+Rather than rewrite our program for each reservation, we modify our program to tell the compiler to do this for us.
+
+.. code::
+
+    from pyquil.quil import Pragma
+
+    p = Program(Pragma('INITIAL_REWIRING', ['"GREEDY"']))
+    p += X(3)
+
+Now, when we pass our program through the compiler (such as with :py:func:`QuantumComputer.compile`) we will get native Quil
+with the qubit reindexed to one of 4, 5, or 6. If qubit 3 is available, and we don't want that pulse to be applied to
+any other qubit, we would instead use ``Pragma('INITIAL_REWIRING', ['"NAIVE"']]``. Detailed information about the
+available options is :ref:`here <compiler_rewirings>`.
+
+.. note::
+    In general, we assume that the qubits you're supplying as input are also the ones which you prefer to 
+    operate on, and so NAIVE rewiring is the default.
 
 Asking for a Delay
 ------------------
-*Coming soon*
-(Note: time limit)
 
+At times, we may want to add a delay in our program. Usually this is associated with qubit characterization. Delays
+are not regular gate operations, and they do not affect the abstract semantics of the Quil program, so they're implemented with a ``PRAGMA`` directive.
+
+.. code::
+
+    #  ...
+    # qubit index and time in seconds must be defined and provided
+    p += Pragma('DELAY', [qubit], str(time))
+
+.. warning::
+    Keep in mind, the program duration is currently capped at 15 seconds, and the length of the program is multiplied
+    by the number of shots. If you have a 1000 shot program, where each shot contains a 100ms delay, you won't be able to execute it.
 
 Ways to Construct Programs
 ~~~~~~~~~~~~~~~~~~~~~~~~~~

@@ -18,9 +18,34 @@ hardware.
 Interacting with the Compiler
 -----------------------------
 
+After :ref:`downloading the SDK <sdkinstall>`, the Quil Compiler, ``quilc`` is available on your local machine.
+You can initialize a local ``quilc`` server by typing ``quilc -S`` into your terminal. You should see the following message.
+
+.. code:: python
+
+    $ quilc -S
+    +-----------------+
+    |  W E L C O M E  |
+    |   T O   T H E   |
+    |  R I G E T T I  |
+    |     Q U I L     |
+    | C O M P I L E R |
+    +-----------------+
+    Copyright (c) 2018 Rigetti Computing.
+
+    This is a part of the Forest SDK. By using this program
+    you agree to the End User License Agreement (EULA) supplied
+    with this program. If you did not receive the EULA, please
+    contact <support@rigetti.com>.
+
+    [2018-11-06 10:59:22] Starting server: 0.0.0.0 : 6000.
+
+To get a description of ``quilc``, and options and examples of its command line use, see :ref:`quilc_man`.
+
+
 A ``QuantumComputer`` object supplied by the function ``pyquil.api.get_qc()`` comes equipped with a
-connection to a Rigetti Quil compiler.  This can be accessed
-using the instance method ``.compile()``, as in the following:
+connection to your local Rigetti Quil compiler.  This can be accessed using the instance method ``.compile()``,
+as in the following:
 
 .. code:: python
 
@@ -99,6 +124,8 @@ The QPU is not able to execute all possible Quil programs.  At present, a Quil p
   a pair of qubits participating in a qubit-qubit interaction.
 * This is then followed by a block of ``MEASURE`` instructions.
 
+
+.. _pragma:
 
 Region-specific compiler features through PRAGMA
 ------------------------------------------------
@@ -217,6 +244,7 @@ instead execute the blocks in their written order.
     MEASURE 2 ro[2]
     MEASURE 3 ro[3]
 
+.. _compiler_rewirings:
 
 Rewirings
 ~~~~~~~~~

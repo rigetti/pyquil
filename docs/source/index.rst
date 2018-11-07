@@ -90,6 +90,13 @@ Contents
    apidocs/qam
    apidocs/devices
 
+.. toctree::
+   :caption: Man Pages
+   :maxdepth: 1
+
+   qvm-man
+   quilc-man
+
 
 Indices and Tables
 ------------------
