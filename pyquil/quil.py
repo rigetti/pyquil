@@ -508,7 +508,7 @@ class Program(object):
 
     def is_protoquil(self):
         """
-        Protoquil programs may only contain gates, Pragmas, and final global RESETs. It may not
+        Protoquil programs may only contain gates, Pragmas, and an initial global RESET. It may not
         contain classical instructions or jumps.
 
         :return: True if the Program is Protoquil, False otherwise
