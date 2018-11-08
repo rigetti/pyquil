@@ -3,7 +3,6 @@
 Noise and Quantum Computation
 =============================
 
-
 Modeling Noisy Quantum Gates
 ----------------------------
 
@@ -288,6 +287,50 @@ Getting Started
 .. code:: python
 
     cxn = QVMConnection()
+
+Parametric Depolarizing Noise
+~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
+
+The Rigetti QVM has support for emulating certain types of noise models.
+One such model is *parametric Pauli noise*, which is defined by a
+set of 6 probabilities:
+
+-  The probabilities :math:`P_X`, :math:`P_Y`, and :math:`P_Z` which
+   define respectively the probability of a Pauli :math:`X`, :math:`Y`,
+   or :math:`Z` gate getting applied to *each* qubit after *every* gate
+   application. These probabilities are called the *gate noise
+   probabilities*.
+
+-  The probabilities :math:`P_X'`, :math:`P_Y'`, and :math:`P_Z'` which
+   define respectively the probability of a Pauli :math:`X`, :math:`Y`,
+   or :math:`Z` gate getting applied to the qubit being measured
+   *before* it is measured. These probabilities are called the
+   *measurement noise probabilities*.
+
+We can instantiate a noisy QVM by creating a new connection with these
+probabilities specified.
+
+.. code:: python
+
+    # 20% chance of a X gate being applied after gate applications and before measurements.
+    gate_noise_probs = [0.2, 0.0, 0.0]
+    meas_noise_probs = [0.2, 0.0, 0.0]
+    noisy_qvm = qvm(gate_noise=gate_noise_probs, measurement_noise=meas_noise_probs)
+
+We can test this by applying an :math:`X`-gate and measuring. Nominally,
+we should always measure ``1``.
+
+.. code:: python
+
+    p = Program().inst(X(0)).measure(0, 0)
+    print("Without Noise: {}".format(qvm.run(p, [0], 10)))
+    print("With Noise   : {}".format(noisy_qvm.run(p, [0], 10)))
+
+.. parsed-literal::
+
+    Without Noise: [[1], [1], [1], [1], [1], [1], [1], [1], [1], [1]]
+    With Noise   : [[0], [0], [0], [0], [0], [1], [1], [1], [1], [0]]
+
 
 Example 1: Amplitude Damping
 ~~~~~~~~~~~~~~~~~~~~~~~~~~~~
