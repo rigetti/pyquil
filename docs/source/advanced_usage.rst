@@ -414,7 +414,7 @@ The following shows an instructive example of all three.
     # Produce Quil code to compute exp[iX]
     H = -1.0 * sX(0)
     print(f"Quil to compute exp[iX] on qubit 0:\n"
-           "{exponential_map(H)(1.0)}")
+           f"{exponential_map(H)(1.0)}")
 
 .. parsed-literal::
 
