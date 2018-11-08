@@ -183,6 +183,11 @@ list of qubits to build your program.
 Classical Control Flow
 ~~~~~~~~~~~~~~~~~~~~~~
 
+.. note::
+
+    Classical control flow is not yet supported on the QPU.
+
+
 Here are a couple quick examples that show how much richer a Quil program
 can be with classical control flow. In this first example, we create a while
 loop by following these steps:
