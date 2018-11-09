@@ -167,6 +167,13 @@ class PyQuilListener(QuilListener):
         else:
             self.result.append(RawInstr('{} {}'.format(gate_name, ' '.join(qubits))))
 
+    def exitCircuitMeasure(self, ctx: QuilParser.CircuitMeasureContext):
+        qubit = ctx.circuitQubit().getText()
+        classical = None
+        if ctx.addr():
+            classical = ctx.addr().getText()
+        self.result.append(RawInstr(f'MEASURE {qubit} {classical}' if classical else f'MEASURE {qubit}'))
+
     def exitMeasure(self, ctx: QuilParser.MeasureContext):
         qubit = _qubit(ctx.qubit())
         classical = None
@@ -200,6 +207,10 @@ class PyQuilListener(QuilListener):
             self.result.append(ResetQubit(_qubit(ctx.qubit())))
         else:
             self.result.append(Reset())
+
+    def exitCircuitResetState(self, ctx: QuilParser.ResetStateContext):
+        qubit = ctx.circuitQubit().getText()
+        self.result.append(RawInstr(f'RESET {qubit}'))
 
     def exitWait(self, ctx):
         # type: (QuilParser.WaitContext) -> None
