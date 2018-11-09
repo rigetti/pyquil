@@ -346,29 +346,6 @@ we should always measure ``1``.
     Without Noise: [[1], [1], [1], [1], [1], [1], [1], [1], [1], [1]]
     With Noise   : [[0], [0], [0], [0], [0], [1], [1], [1], [1], [0]]
 
-Parametric Programs
-~~~~~~~~~~~~~~~~~~~
-
-In PyQuil 1.x, there was an object named ``ParametricProgram``::
-
-    # This function returns a quantum circuit with different rotation angles on a gate on qubit 0
-    def rotator(angle):
-        return Program(RX(angle, 0))
-
-    from pyquil.parametric import ParametricProgram
-    par_p = ParametricProgram(rotator) # This produces a new type of parameterized program object
-
-This object has been removed from PyQuil 2. Please consider simply using a Python function for
-the above functionality::
-
-    par_p = rotator
-
-Or using declared classical memory::
-
-    p = Program()
-    angle = p.declare('angle', 'REAL')
-    p += RX(angle, 0)
-
 Pauli Operator Algebra
 ~~~~~~~~~~~~~~~~~~~~~~
 
