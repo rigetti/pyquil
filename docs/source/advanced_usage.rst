@@ -453,6 +453,13 @@ value for :math:`\alpha`.
     RZ(-4.0) 0
     H 0
 
-.. note::
+To take it one step further, you can use :ref:`parametric_compilation` with ``exponential_map``. For instance:
 
-    You can use :ref:`parametric_compilation` to achieve the same output as with ``exponential_map``.
+.. code:: python
+
+    ham = sZ(0) * sZ(1)
+    prog = Program()
+    theta = prog.declare('theta', 'REAL')
+    prog += exponential_map(ham)(theta)
+
+
