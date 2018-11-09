@@ -101,3 +101,8 @@ The QVM is a powerful tool for testing quantum programs before executing them on
 By simply providing ``-qvm`` in the device name, all programs executed on this QVM will, have the same topology as
 the named QPU. To learn how to add noise models to your virtual ``QuantumComputer`` instance, check out
 :ref:`noise`.
+
+The Quantum Processing Unit
+~~~~~~~~~~~~~~~~~~~~~~~~~~~
+
+*Coming soon*: Detailed information about how to use :py:func:`~pyquil.get_qc` to target a QPU.
