@@ -38,6 +38,9 @@ An incomplete list of significant changes:
 - Compilation has changed. There are now different ``Compiler`` objects that target either the
   QPU or QVM. You **must** explicitly compile your programs to run on a QPU or a realistic QVM.
 
+Version 2.0.1 was released on November 9, 2018 and includes documentation changes only. This
+release is only available as a git tag. We have not pushed a new package to PyPI.
+
 
 v1.9 (June 6, 2018)
 -------------------
