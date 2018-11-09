@@ -81,7 +81,7 @@ Contents
    intro
 
 .. toctree::
-   :maxdepth: 3
+   :maxdepth: 1
    :caption: API Reference
 
    apidocs/program
