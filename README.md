@@ -15,7 +15,7 @@ Documentation is hosted at [http://pyquil.readthedocs.io/en/latest/](http://pyqu
 You can install pyQuil as a conda package (recommended):
 
 ```bash
-conda install -c rigetti pyquil
+conda install -c -conda-forge pyquil
 ```
 
 or using `pip`:
@@ -29,75 +29,12 @@ To instead install pyQuil from source, clone this repository, `cd` into it, and 
 pip install -e .
 ```
 
-## Connecting to Rigetti Forest
+See the [Getting Started Guide](https://go.rigetti.com/getting-started) to start writing quantum programs!
 
-pyQuil can be used to build and manipulate Quil programs without restriction. However, to run
-programs (e.g., to get wavefunctions, get multishot experiment data), you will need an API key
-for [Rigetti Forest](http://forest.rigetti.com). This will allow you to run your programs on the
-Rigetti Quantum Virtual Machine (QVM) or on a real quantum processor (QPU).
-
-Once you have your key, run the following command to automatically set up your config:
-
-```
-pyquil-config-setup
-```
-
-You can also create the configuration file manually if you'd like and place it at `~/.pyquil_config`.
-The configuration file is in INI format and should contain all the information required to connect to Forest:
-
-```
-[Rigetti Forest]
-key: <Rigetti Forest API key>
-user_id: <Rigetti User ID>
-```
-
-You can change the location of this file by setting the `PYQUIL_CONFIG` environment variable.
-
-If you encounter errors or warnings trying to connect to Forest then see the full
-[Getting Started Guide](https://go.rigetti.com/getting-started)
-
-## Examples using the Rigetti QVM
-
-Here is how to construct a Bell state program and how to compute the amplitudes of its wavefunction:
-
-```python
->>> from pyquil.quil import Program
->>> from pyquil.api import QVMConnection
->>> from pyquil.gates import *
->>> qvm = QVMConnection()
->>> p = Program(H(0), CNOT(0,1))
-<pyquil.pyquil.Program object at 0x101ebfb50>
->>> qvm.wavefunction(p).amplitudes
-array([0.7071067811865475+0j, 0j, 0j, 0.7071067811865475+0j])
-```
-
-How to do a simulated multishot experiment measuring qubits 0 and 1 of a Bell state. (Of course,
-each measurement pair will be `00` or `11`.)
-
-```python
->>> from pyquil.quil import Program
->>> from pyquil.api import QVMConnection
->>> from pyquil.gates import *
->>> qvm = QVMConnection()
->>> p = Program()
->>> p.inst(H(0),
-...        CNOT(0, 1),
-...        MEASURE(0, 0),
-...        MEASURE(1, 1))
-<pyquil.pyquil.Program object at 0x101ebfc50>
->>> print(p)
-H 0
-CNOT 0 1
-MEASURE 0 [0]
-MEASURE 1 [1]
-
->>> qvm.run(p, [0, 1], 10)
-[[0, 0], [1, 1], [1, 1], [0, 0], [0, 0], [1, 1], [0, 0], [0, 0], [0, 0], [0, 0]]
-```
 
 ## Community
 
-Join the public Forest Slack channel at [http://slack.rigetti.com](http://slack.rigetti.com).
+Join the public Forest Slack channel at [http://slack.rigetti.com](https://join.slack.com/t/rigetti-forest/shared_invite/enQtNDI1MDQzOTk3OTI3LWZlNzVjZWNlMmYxMjAzYTNlZjRhNjlmNWE0MDc1MjNhYTRkODA5Mjg3NTY4YWRmYzJmN2Q1M2M0Nzg3YzhhYzI).
 
 The following projects have been contributed by community members:
 
