@@ -361,17 +361,17 @@ The above sum can be constructed as follows:
 
     # Pauli term takes an operator "X", "Y", "Z", or "I"; a qubit to act on, and
     # an optional coefficient.
-    a = 0.5 * ID
+    a = 0.5 * ID()
     b = -0.75 * sX(0) * sY(1) * sZ(3)
     c = (5-2j) * sZ(1) * sX(2)
 
     # Construct a sum of Pauli terms.
     sigma = a + b + c
-    print("sigma = {}".format(sigma))
+    print(f"sigma = {sigma}")
 
 .. parsed-literal::
 
-    sigma = 0.5*I + -0.75*X0*Y1*Z3 + (5-2j)*Z1*X2
+    sigma = (0.5+0j)*I + (-0.75+0j)*X0*Y1*Z3 + (5-2j)*Z1*X2
 
 Right now, the primary thing one can do with Pauli terms and sums is to construct the
 exponential of the Pauli term, i.e., :math:`\exp[-i\beta\sigma]`.  This is
@@ -389,21 +389,19 @@ The following shows an instructive example of all three.
 
 .. code:: python
 
-    import pyquil.paulis as pl
+    from pyquil.paulis import exponential_map
 
-    # Simplification
     sigma_cubed = sigma * sigma * sigma
-    print("Simplified  : {}".format(sigma_cubed))
-    print()
+    print(f"Simplified: {sigma_cubed}\n")
 
-    #Produce Quil code to compute exp[iX]
+    # Produce Quil code to compute exp[iX]
     H = -1.0 * sX(0)
-    print("Quil to compute exp[iX] on qubit 0:")
-    print(pl.exponential_map(H)(1.0))
+    print(f"Quil to compute exp[iX] on qubit 0:\n"
+           f"{exponential_map(H)(1.0)}")
 
 .. parsed-literal::
 
-    Simplified  : (32.46875-30j)*I + (-16.734375+15j)*X0*Y1*Z3 + (71.5625-144.625j)*Z1*X2
+    Simplified: (32.46875-30j)*I + (-16.734375+15j)*X0*Y1*Z3 + (71.5625-144.625j)*Z1*X2
 
     Quil to compute exp[iX] on qubit 0:
     H 0
@@ -412,13 +410,39 @@ The following shows an instructive example of all three.
 
 ``exponential_map`` returns a function allowing you to fill in a multiplicative
 constant later. This commonly occurs in variational algorithms. The function
-``exponential_map`` is used to compute exp[-i * alpha * H] without explicitly filling in a
-value for alpha.
+``exponential_map`` is used to compute :math:`\exp[-i \alpha H]` without explicitly filling in a
+value for :math:`\alpha`.
 
 .. code:: python
 
-    expH = pl.exponential_map(H)
-    print(expH(0.0))
-    print(expH(1.0))
-    print(expH(2.0))
+    expH = exponential_map(H)
+    print(f"0:\n{expH(0.0)}\n")
+    print(f"1:\n{expH(1.0)}\n")
+    print(f"2:\n{expH(2.0)}")
+
+.. parsed-literal::
+    0:
+    H 0
+    RZ(0) 0
+    H 0
+
+    1:
+    H 0
+    RZ(-2.0) 0
+    H 0
+
+    2:
+    H 0
+    RZ(-4.0) 0
+    H 0
+
+To take it one step further, you can use :ref:`parametric_compilation` with ``exponential_map``. For instance:
+
+.. code:: python
+
+    ham = sZ(0) * sZ(1)
+    prog = Program()
+    theta = prog.declare('theta', 'REAL')
+    prog += exponential_map(ham)(theta)
+
 
