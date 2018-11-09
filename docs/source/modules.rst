@@ -41,14 +41,6 @@ pyquil.paulis
     :undoc-members:
     :show-inheritance:
 
-pyquil.quil
------------
-
-.. automodule:: pyquil.quil
-    :members:
-    :undoc-members:
-    :show-inheritance:
-
 pyquil.quilbase
 ---------------
 
