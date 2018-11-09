@@ -81,9 +81,10 @@ Contents
    intro
 
 .. toctree::
-   :maxdepth: 3
+   :maxdepth: 1
    :caption: API Reference
 
+   apidocs/program
    apidocs/quantum_computer
    apidocs/compilers
    apidocs/qam

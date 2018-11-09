@@ -362,7 +362,7 @@ instructions to target.
     MEASURE 3 ro[3]""")
         return program
 
-Next, we modify the execution loop. Rather than reformulating the ``Program`` object each time, we build and compile it
+Next, we modify the execution loop. Rather than reformulating the :py:class:`~pyquil.quil.Program` object each time, we build and compile it
 once, then use the ``.load()`` method to transfer the parametric program to the (simulated) quantum device. We then set
 only the angle value within the inner loop, and we change to using ``.run()`` and ``.wait()`` methods to manage control
 between us and the quantum device.
