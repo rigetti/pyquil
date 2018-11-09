@@ -351,7 +351,7 @@ class Program(object):
         label_start = LabelPlaceholder("START")
         label_end = LabelPlaceholder("END")
         self.inst(JumpTarget(label_start))
-        self.inst(JumpUnless(target=label_end, condition=Addr(classical_reg)))
+        self.inst(JumpUnless(target=label_end, condition=classical_reg))
         self.inst(q_program)
         self.inst(Jump(label_start))
         self.inst(JumpTarget(label_end))
@@ -632,7 +632,7 @@ class Program(object):
         return not self.__eq__(other)
 
     def __len__(self):
-        return len(self._instructions)
+        return len(self.instructions)
 
     def __str__(self):
         """
