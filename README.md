@@ -6,6 +6,10 @@ pyQuil is licensed under the [Apache 2.0 license](https://github.com/rigetticomp
 [![Build Status](https://semaphoreci.com/api/v1/rigetti/pyquil/branches/master/badge.svg)](https://semaphoreci.com/rigetti/pyquil)
 [![Documentation Status](https://readthedocs.org/projects/pyquil/badge/?version=latest)](http://pyquil.readthedocs.io/en/latest/?badge=latest)
 
+**Please note: in addition to installing pyQuil, you'll need to download [the Forest SDK](rigetti.com/forest), which 
+will allow you to compile and run programs on our simulators on your local machine. 
+If you'd like to run programs on our quantum computers, you'll need to sign up for [Quantum Cloud Services](rigetti.com/qcs).**
+
 ## Documentation
 
 Documentation is hosted at [http://pyquil.readthedocs.io/en/latest/](http://pyquil.readthedocs.io/en/latest/)
