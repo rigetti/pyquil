@@ -18,9 +18,13 @@ Module for working with Pauli algebras.
 """
 
 from __future__ import division
+
+import re
 from itertools import product
 import numpy as np
 import copy
+
+from typing import Union
 
 from pyquil.quilatom import QubitPlaceholder
 
@@ -38,11 +42,11 @@ PAULI_PROD = {'ZZ': 'I', 'YY': 'I', 'XX': 'I', 'II': 'I',
               'ZY': 'X', 'IX': 'X', 'IY': 'Y', 'IZ': 'Z',
               'ZI': 'Z', 'YI': 'Y', 'XI': 'X',
               'X': 'X', 'Y': 'Y', 'Z': 'Z', 'I': 'I'}
-PAULI_COEFF = {'ZZ': 1.0, 'YY': 1.0, 'XX': 1.0, 'II': 1.0,
+PAULI_COEFF = {'ZZ': 1, 'YY': 1, 'XX': 1, 'II': 1,
                'XY': 1.0j, 'XZ': -1.0j, 'YX': -1.0j, 'YZ': 1.0j, 'ZX': 1.0j,
-               'ZY': -1.0j, 'IX': 1.0, 'IY': 1.0, 'IZ': 1.0, 'ZI': 1.0,
-               'YI': 1.0, 'XI': 1.0,
-               'X': 1.0, 'Y': 1.0, 'Z': 1.0, 'I': 1.0}
+               'ZY': -1.0j, 'IX': 1, 'IY': 1, 'IZ': 1, 'ZI': 1,
+               'YI': 1, 'XI': 1,
+               'X': 1, 'Y': 1, 'Z': 1, 'I': 1}
 
 
 class UnequalLengthWarning(Warning):
@@ -69,23 +73,22 @@ class PauliTerm(object):
     """A term is a product of Pauli operators operating on different qubits.
     """
 
-    def __init__(self, op, index, coefficient=1.0):
+    def __init__(self, op: str, index: int, coefficient: Union[int, float, complex] = 1):
         """ Create a new Pauli Term with a Pauli operator at a particular index and a leading
         coefficient.
 
-        :param string op: The Pauli operator as a string "X", "Y", "Z", or "I"
-        :param int index: The qubit index that that operator is applied to.
-        :param float coefficient: The coefficient multiplying the operator, e.g. 1.5 * Z_1
+        :param op: The Pauli operator as a string "X", "Y", "Z", or "I"
+        :param index: The qubit index that that operator is applied to.
+        :param coefficient: The coefficient multiplying the operator, e.g. 1.5 * Z_1
         """
         assert op in PAULI_OPS
-        assert _valid_qubit(index)
 
         self._ops = OrderedDict()
         if op != "I":
+            assert _valid_qubit(index)
             self._ops[index] = op
-        if not isinstance(coefficient, Number):
-            raise ValueError("coefficient of PauliTerm must be a Number.")
-        self.coefficient = complex(coefficient)
+
+        self.coefficient = coefficient
 
     def id(self, sort_ops=True):
         """
@@ -95,7 +98,7 @@ class PauliTerm(object):
         aren't sortable.
 
         :param sort_ops: Whether to sort operations by qubit. This is True by default for
-            backwards compatibility but will change in pyQuil 2.0. Callers should never rely
+            backwards compatibility but will change in a future version. Callers should never rely
             on comparing id's for testing equality. See ``operations_as_set`` instead.
         :return: A string representation of this term's operations.
         :rtype: string
@@ -115,7 +118,7 @@ class PauliTerm(object):
         Use this in place of :py:func:`id` if the order of operations in the term does not
         matter.
 
-        :return: frozenset of strings representing Pauli operations
+        :return: frozenset of (op_str, coefficient) representing Pauli operations
         """
         return frozenset(self._ops.items())
 
@@ -129,9 +132,10 @@ class PauliTerm(object):
                     and np.isclose(self.coefficient, other.coefficient))
 
     def __hash__(self):
+        coef = complex(self.coefficient)
         return hash((
-            round(self.coefficient.real * HASH_PRECISION),
-            round(self.coefficient.imag * HASH_PRECISION),
+            round(coef.real * HASH_PRECISION),
+            round(coef.imag * HASH_PRECISION),
             self.operations_as_set()
         ))
 
@@ -206,18 +210,22 @@ class PauliTerm(object):
         :returns: The product of this PauliTerm and term.
         :rtype: PauliTerm
         """
-        if isinstance(term, Number):
-            return term_with_coeff(self, self.coefficient * term)
-        elif isinstance(term, PauliSum):
+        if isinstance(term, PauliSum):
             return (PauliSum([self]) * term).simplify()
-        else:
-            new_term = PauliTerm("I", 0, 1.0)
+
+        if isinstance(term, PauliTerm):
+            new_term = sI()
             new_term._ops = self._ops.copy()
             new_coeff = self.coefficient * term.coefficient
             for index, op in term:
                 new_term = new_term._multiply_factor(op, index)
 
             return term_with_coeff(new_term, new_term.coefficient * new_coeff)
+
+        # assume it's something numbery
+        self.coefficient *= term
+        return self
+
 
     def __rmul__(self, other):
         """Multiplies this PauliTerm with another object, probably a number.
@@ -294,14 +302,7 @@ class PauliTerm(object):
         return other + -1. * self
 
     def __str__(self):
-        term_strs = []
-        for index in self._ops.keys():
-            term_strs.append("%s%s" % (self[index], index))
-
-        if len(term_strs) == 0:
-            term_strs.append("I")
-        out = "%s*%s" % (self.coefficient, '*'.join(term_strs))
-        return out
+        return f'{self.coefficient}*{self.id(sort_ops=False)}'
 
     @classmethod
     def from_list(cls, terms_list, coefficient=1.0):
@@ -332,33 +333,44 @@ class PauliTerm(object):
         pterm.coefficient = complex(coefficient)
         return pterm
 
+    @classmethod
+    def from_str(cls, str_pauli_term):
+        """Construct a PauliTerm from the result of str(pauli_term)
+        """
+        coef_str, str_pauli_term = str_pauli_term.split('*')
+        try:
+            coef = int(coef_str)
+        except ValueError:
+            try:
+                coef = float(coef_str)
+            except ValueError:
+                coef = complex(coef_str)
+
+        op = sI() * coef
+        for ma in re.finditer(r'([XYZ])(\d+)', str_pauli_term):
+            op *= PauliTerm(ma.group(1), int(ma.group(2)))
+        return op
+
     def pauli_string(self, qubits=None):
         """
-        Return a string representation of this PauliTerm mod its phase, as a concatenation of the string representation
-        of the
+        Return a string representation of this PauliTerm without its coefficient
+
         >>> p = PauliTerm("X", 0) * PauliTerm("Y", 1, 1.j)
         >>> p.pauli_string()
         "XY"
-        >>> p.pauli_string([0])
+        >>> p.pauli_string(qubits=[0])
         "X"
-        >>> p.pauli_string([0, 2])
+        >>> p.pauli_string(qubits=[0, 2])
         "XI"
 
-        :param list qubits: The list of qubits to represent, given as ints. If None, defaults to all qubits in this
-         PauliTerm.
-        :return: The string representation of this PauliTerm, modulo its phase.
-        :rtype: String
+        :param list qubits: The list of qubits to represent, given as ints. If None, defaults to
+            all qubits in this PauliTerm.
+        :return: The string representation of this PauliTerm, sans coefficient
         """
-        qubit_term_mapping = dict(self.operations_as_set())
         if qubits is None:
-            qubits = [qubit for qubit, _ in qubit_term_mapping.items()]
-        ps = ""
-        for qubit in qubits:
-            try:
-                ps += qubit_term_mapping[qubit]
-            except KeyError:
-                ps += "I"
-        return ps
+            qubits = self.get_qubits()
+
+        return ''.join(self[q] for q in qubits)
 
 
 # For convenience, a shorthand for several operators.
@@ -376,11 +388,13 @@ def ZERO():
     return PauliTerm("I", 0, 0)
 
 
-def sI(q):
+def sI(q=None):
     """
-    A function that returns the identity operator on a particular qubit.
+    A function that returns the identity operator, optionally on a particular qubit.
 
-    :param int qubit_index: The index of the qubit
+    This can be specified without a qubit.
+
+    :param int qubit_index: The optional index of a qubit.
     :returns: A PauliTerm object
     :rtype: PauliTerm
     """
@@ -433,7 +447,7 @@ def term_with_coeff(term, coeff):
         raise ValueError("coeff must be a Number")
     new_pauli = term.copy()
     # We cast to a complex number to ensure that internally the coefficients remain compatible.
-    new_pauli.coefficient = complex(coeff)
+    new_pauli.coefficient = coeff
     return new_pauli
 
 
