@@ -215,54 +215,48 @@ We can verify this works by computing the *inverse* FFT on the output with NumPy
 
 After ignoring the terms that are on the order of ``1e-17``, we get ``[0, 1, 0, 0, 0, 0, 0, 0]``, which was our input!
 
-Examples of Quantum Programs
-~~~~~~~~~~~~~~~~~~~~~~~~~~~~
+Example: The Meyer-Penny Game
+~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
 
-To create intuition for a new class of algorithms, that will run on the Quantum Virtual Machine (QVM), it is useful (and
-fun) to play with the abstraction that the software provides.
+To create intuition for quantum algorithms, it is useful (and fun) to play with the abstraction that
+the software provides.
 
-A broad class of programs that can easily be implemented on a QVM are generalizations of
-`Game Theory to incorporate Quantum Strategies <https://arxiv.org/abs/quant-ph/0611234>`_.
+The Meyer-Penny Game [1]_ is a simple example we'll use from quantum game theory. The interested reader may want to read more about
+quantum game theory in the article *Toward a general theory of quantum games* [2]_. The Meyer-Penny Game goes as follows:
 
-Meyer-Penny Game
-----------------
+The Starship Enterprise, during one of its deep-space missions, is facing an immediate calamity at the edge of a wormhole,
+when a powerful alien suddenly appears. The alien, named Q, offers to help Picard, the captain of the Enterprise, under the
+condition that Picard beats Q in a simple game of heads or tails.
 
-A conceptually simple example that falls into this class is the
-`Meyer-Penny Game <https://link.aps.org/doi/10.1103/PhysRevLett.82.1052>`_. The game goes as follows:
-
-The Starship Enterprise, during one of its deep-space missions, is facing an immediate calamity, when a powerful alien
-suddenly appears on the bridge. The alien, named Q, offers to help Picard, the captain of the Enterprise, under the
-condition that Picard beats Q in a simple game of penny flips.
-
-The rules:
-----------
-Picard is to place a penny Heads up into an opaque box. Then Picard and Q take turns to flip or not flip the penny without
-being able to see it; first Q then P then Q again. After this the penny is revealed; Q wins if it shows Heads (H), while
-Tails (T) makes Picard the winner.
+The rules
+---------
+Picard is to place a penny heads up into an opaque box. Then Picard and Q take turns to flip or not flip the penny without
+being able to see it; first Q then P then Q again. After this the penny is revealed; Q wins if it shows heads (H), while
+tails (T) makes Picard the winner.
 
 Picard vs. Q
-~~~~~~~~~~~~
+------------
 
 Picard quickly estimates that his chance of winning is 50% and agrees to play the game. He loses the first round and
 insists on playing again. To his surprise Q agrees, and they continue playing several rounds more, each of which Picard
 loses. How is that possible?
 
 What Picard did not anticipate is that Q has access to quantum tools. Instead of flipping the penny, Q puts the penny
-into a superposition of Heads and Tails proportional to the quantum state :math:`|H\rangle+|T\rangle`. Then no matter
+into a superposition of heads and tails proportional to the quantum state :math:`|H\rangle+|T\rangle`. Then no matter
 whether Picard flips the penny or not, it will stay in a superposition (though the relative sign might change). In the
-third step Q undoes the superposition and always finds the penny to shows Heads.
+third step Q undoes the superposition and always finds the penny to show heads.
 
 Let's see how this works!
 
-To simulate the game we first construct the corresponding quantum circuit, which takes two qubits -- one to simulate
-Picard's choice whether or not to flip the penny and the other to represent the penny. The initial state for all Qubits
+To simulate the game we first construct the corresponding quantum circuit, which takes two qubits: one to simulate
+Picard's choice whether or not to flip the penny, and the other to represent the penny. The initial state for all qubits
 is :math:`|0\rangle` (which is mapped to :math:`|T\rangle`, tails). To simulate Picard's decision, we assume that he
 chooses randomly whether or not to flip the coin, in agreement with the optimal strategy for the classic penny-flip
 game. This random choice can be created by putting one qubit into an equal superposition, e.g. with the Hadamard gate
-:math:`H`, and then measure its state. The measurement will show heads or tails with equal probability p=0.5.
+:math:`H`, and then measure its state. The measurement will show heads or tails with equal probability :math:`p_h=p_t=0.5`.
 
 To simulate the penny flip game we take the second qubit and put it into its excited state
-:math:`|1\rangle` (which is mapped to :math:`|H\rangle)`, heads) by applying the X (or NOT) gate. Q's first move is to
+:math:`|1\rangle` (which is mapped to :math:`|H\rangle`, heads) by applying the X (or NOT) gate. Q's first move is to
 apply the Hadamard gate H. Picard's decision about the flip is simulated as a CNOT operation where the control bit is
 the outcome of the random number generator described above. Finally Q applies a Hadamard gate again, before we measure
 the outcome. The full circuit is shown in the figure below.
@@ -271,7 +265,10 @@ the outcome. The full circuit is shown in the figure below.
     :align: center
     :figwidth: 65%
 
-We first import the necessary tools
+In pyQuil
+---------
+
+We first import and initialize the necessary tools [3]_
 
 .. code:: python
 
@@ -280,44 +277,48 @@ We first import the necessary tools
     from pyquil.gates import *
 
     wf_sim = WavefunctionSimulator()
-    prog = Program()
-    ro = prog.declare('ro', 'BIT', 2)
+    p = Program()
 
-Then we need to define two registers that will be used for the measurement of Picard’s decision bit and the final answer
-of the penny tossing game.
-
-.. code:: python
-
-    picard_register = ro[1]
-    answer_register = ro[0]
-
-We need to encode the two different actions of Picard, which conceptually is equivalent to an if-else control flow as:
+and then wire it all up into the overall measurement circuit; remember that qubit 0 is the penny, and qubit 1
+represents Picard's choice.
 
 .. code:: python
 
-    then_branch = Program(X(0))
-    else_branch = Program(I(0))
+    p += X(0)
+    p += H(0)
+    p += H(1)
+    p += CNOT(1, 0)
+    p += H(0)
 
-and then wire it all up into the overall measurement circuit:
+We use the quantum mechanics principle of deferred measurement to keep all the measurement logic separate from the gates.
+Our method call to the ``WavefunctionSimulator`` will handle measuring for us [4]_.
 
-.. code:: python
-
-    prog.inst(X(0), H(1))
-    prog.inst(H(0))
-    prog.measure(1, picard_register)
-    prog.if_then(picard_register, then_branch, else_branch)
-    prog.inst(H(0))
-    prog.measure(0, answer_register)
-    print(prog)
-
-Finally we play the game several times
+Finally, we play the game several times. (Remember to run your :ref:`qvm server <server>`.)
 
 .. code:: python
 
-    wf_sim.run_and_measure(prog, [0, 1], 10)
+    wf_sim.run_and_measure(p, trials=10)
 
-Remember that the first number is the outcome of the game (value of the answer_register) whereas the second number is the
-outcome of Picard’s decision (value of the picard_register).
+.. parsed-literal::
 
-No matter what Picard does, Q will always win!
+    array([[1, 1],
+           [1, 1],
+           [1, 1],
+           [1, 1],
+           [1, 1],
+           [1, 0],
+           [1, 1],
+           [1, 1],
+           [1, 1],
+           [1, 0]])
 
+
+In each trial, the first number is the outcome of the game, whereas the second number represents Picard's choice to flip
+or not flip the penny.
+
+Inspecting the results, we see that no matter what Picard does, Q will always win!
+
+.. [1] https://link.aps.org/doi/10.1103/PhysRevLett.82.1052
+.. [2] https://arxiv.org/abs/quant-ph/0611234
+.. [3] See more: :ref:`basics`
+.. [4] More about measurements and ``run_and_measure``: :ref:`measurement`

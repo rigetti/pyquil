@@ -8,14 +8,87 @@ Advanced Usage
     If you're running locally, remember set up the QVM and quilc in server mode before trying to use
     them: :ref:`server`.
 
+PyQuil Configuration Files
+~~~~~~~~~~~~~~~~~~~~~~~~~~
+
+Network endpoints for the Rigetti Forest infrastructure and information pertaining to QPU access are
+stored in a pair of configuration files. These files are located by default at ``~/.qcs_config`` and ``~/.forest_config``.
+The location can be changed by setting the environment variables ``QCS_CONFIG`` or ``FOREST_CONFIG`` to point to the new
+location.
+
+When running on a QMI, the values in these configuration files are automatically managed so as to
+point to the correct endpoints. When running locally, configuration files are not necessary. Thus, the average
+user will not have to do any work to get their configuration files set up.
+
+If for some reason you want to use an atypical configuration, you may need to modify these files.
+
+.. exec on engage
+
+The default QCS config file on any QMI looks similar to the following:
+
+::
+
+    # .qcs_config
+    [Rigetti Forest]
+    url = https://forest-server.qcs.rigetti.com
+    key = 4fd12391-11eb-52ec-35c2-262765ae4c4f
+    user_id = 4fd12391-11eb-52ec-35c2-262765ae4c4f
+
+    [QPU]
+    exec_on_engage = bash exec_on_engage.sh
+
+where
+
+ -  ``url`` is the endpoint that pyQuil hits for device information and for the 2.0 endpoints,
+ -  ``key`` stores the Forest 1.X API key,
+ -  ``user_id`` stores a Forest 2.0 user ID, and
+ -  ``exec_on_engage`` specifies the shell command that the QMI will launch when the QMI becomes QPU-engaged. It
+    would have no effect if you are running locally, but is important if you are running on the QMI. By default, it runs the
+    ``exec_on_engage.sh`` shell script. It's best to leave the configuration as is, and edit that script.
+    More documentation about ``exec_on_engage.sh`` can be found in the QCS docs
+    `here <https://www.rigetti.com/qcs/docs/guides#queuing-programs-for-auto-execution>`_.
+
+The Forest config file on any QMI has these contents, with specific IP addresses filled in:
+
+::
+
+    # .forest_config
+    [Rigetti Forest]
+    qpu_endpoint_address = None
+    qvm_address = http://10.1.165.XX:5000
+    compiler_server_address = tcp://10.1.165.XX:5555
+
+where
+
+ -  ``qpu_endpoint_address`` is the endpoint where pyQuil will try to communicate with the QPU orchestrating service
+    during QPU-engagement. It may not appear until your QMI engages, and furthermore will have no effect if you are
+    running locally. It's best to leave this alone. If you obtain access to one of our QPUs, we will fill it in for you.
+ -  ``qvm_address`` is the endpoint where pyQuil will try to communicate with the Rigetti Quantum Virtual Machine.
+    On a QMI, this points to the provided QVM instance. On a local installation, this should be set to the server endpoint
+    for a locally running QVM instance. However, pyQuil will use the default value ``http://localhost:5000`` if this file
+    isn't found, which is the correct endpoint when you run the QVM locally with ``qvm -S``.
+ -  ``compiler_server_address``: This is the endpoint where pyQuil will try to communicate with the compiler server. On a
+    QMI, this points to a provided compiler server instance. On a local installation, this should be set to the server
+    endpoint for a locally running ``quilc`` instance. However, pyQuil will use the default value ``http://localhost:6000``
+    if this isn't set, which is the correct endpoint when you run ``quilc`` locally with ``quilc -S``.
+
+.. note::
+
+     PyQuil itself reads these values out using the helper class ``pyquil._config.PyquilConfig``. PyQuil users should not
+     ever need to touch this class directly.
+
 Using Qubit Placeholders
 ~~~~~~~~~~~~~~~~~~~~~~~~
+
+.. note::
+    The functionality provided inline by ``QubitPlaceholders`` is similar to writing a function which returns a
+    ``Program``, with qubit indices taken as arguments to the function.
 
 In pyQuil, we typically use integers to identify qubits
 
 .. code:: python
 
-    from pyquil.quil import Program
+    from pyquil import Program
     from pyquil.gates import CNOT, H
     print(Program(H(0), CNOT(0, 1)))
 
@@ -34,8 +107,8 @@ where using ``QubitPlaceholder``\ s comes in.
     from pyquil.quilatom import QubitPlaceholder
     q0 = QubitPlaceholder()
     q1 = QubitPlaceholder()
-    prog = Program(H(q0), CNOT(q0, q1))
-    print(prog)
+    p = Program(H(q0), CNOT(q0, q1))
+    print(p)
 
 .. parsed-literal::
 
@@ -46,26 +119,9 @@ If you try to use this program directly, it will not work
 
 .. code:: python
 
-    print(prog.out())
+    print(p.out())
 
 ::
-
-    ---------------------------------------------------------------------------
-
-    RuntimeError                              Traceback (most recent call last)
-
-    <ipython-input-3-da474d3af403> in <module>()
-    ----> 1 print(prog.out())
-
-    ...
-
-    pyquil/pyquil/quilatom.py in out(self)
-         53 class QubitPlaceholder(QuilAtom):
-         54     def out(self):
-    ---> 55         raise RuntimeError("Qubit {} has not been assigned an index".format(self))
-         56
-         57     def __str__(self):
-
 
     RuntimeError: Qubit q4402789176 has not been assigned an index
 
@@ -77,14 +133,14 @@ N.
 .. code:: python
 
     from pyquil.quil import address_qubits
-    print(address_qubits(prog))
+    print(address_qubits(p))
 
 .. parsed-literal::
 
     H 0
     CNOT 0 1
 
-The real power comes into play when you provide an explicit mapping
+The real power comes into play when you provide an explicit mapping:
 
 .. code:: python
 
@@ -109,8 +165,8 @@ list of qubits to build your program.
 .. code:: python
 
     qbyte = QubitPlaceholder.register(8)
-    prog2 = Program(H(q) for q in qbyte)
-    print(address_qubits(prog2, {q: i*2 for i, q in enumerate(qbyte)}))
+    p_evens = Program(H(q) for q in qbyte)
+    print(address_qubits(p_evens, {q: i*2 for i, q in enumerate(qbyte)}))
 
 
 .. parsed-literal::
@@ -127,102 +183,121 @@ list of qubits to build your program.
 Classical Control Flow
 ~~~~~~~~~~~~~~~~~~~~~~
 
-Here are a couple quick examples that show how much richer the classical
-control of a Quil program can be. In this first example, we have a
-register called ``classical_flag_register`` which we use for looping.
-Then we construct the loop in the following steps:
+.. note::
 
-1. We first initialize this register to ``1`` with the ``init_register``
-   program so our while loop will execute. This is often called the
+    Classical control flow is not yet supported on the QPU.
+
+
+Here are a couple quick examples that show how much richer a Quil program
+can be with classical control flow. In this first example, we create a while
+loop by following these steps:
+
+1. Declare a register called ``flag_register`` to use as a boolean test for looping.
+
+2. Initialize this register to ``1`` program so our while loop will execute. This is often called the
    *loop preamble* or *loop initialization*.
 
-2. Next, we write body of the loop in a program itself. This will be a
-   program that computes an :math:`X` followed by an :math:`H` on our
+3. Write the body of the loop in its own :py:class:`~pyquil.quil.Program`. This will be a
+   program that applies an :math:`X` gate followed by a :math:`H` gate on our
    qubit.
 
-3. Lastly, we put it all together using the ``while_do`` method.
+4. Using the :py:func:`~pyquil.quil.Program.while_do` method to add control flow.
 
 .. code:: python
 
-    # Name our classical registers:
-    classical_flag_register = 2
+    from pyquil import Program
+    from pyquil.gates import *
 
-    # Write out the loop initialization and body programs:
-    init_register = Program(TRUE([classical_flag_register]))
-    loop_body = Program(X(0), H(0)).measure(0, classical_flag_register)
+    # Initialize the Program and declare a 1 bit memory space for our boolean flag
+    outer_loop = Program()
+    flag_register = outer_loop.declare('flag_register', 'BIT')
 
-    # Put it all together in a loop program:
-    loop_prog = init_register.while_do(classical_flag_register, loop_body)
+    # Set the initial flag value to 1
+    outer_loop += MOVE(flag_register, 1)
 
-    print(loop_prog)
+    # Define the body of the loop with a new Program
+    inner_loop = Program()
+    inner_loop += Program(X(0), H(0))
+    inner_loop += MEASURE(0, flag_register)
+
+    # Run inner_loop in a loop until flag_register is 0
+    outer_loop.while_do(flag_register, inner_loop)
+
+    print(outer_loop)
 
 .. parsed-literal::
 
-    TRUE [2]
+    DECLARE flag_register BIT[1]
+    MOVE flag_register 1
     LABEL @START1
-    JUMP-UNLESS @END2 [2]
+    JUMP-UNLESS @END2 flag_register
     X 0
     H 0
-    MEASURE 0 [2]
+    MEASURE 0 flag_register
     JUMP @START1
     LABEL @END2
 
-Notice that the ``init_register`` program applied a Quil instruction directly to a
+Notice that the ``outer_loop`` program applied a Quil instruction directly to a
 classical register.  There are several classical commands that can be used in this fashion:
 
-- ``TRUE`` which sets a single classical bit to be 1
-- ``FALSE`` which sets a single classical bit to be 0
 - ``NOT`` which flips a classical bit
 - ``AND`` which operates on two classical bits
-- ``OR`` which operates on two classical bits
+- ``IOR`` which operates on two classical bits
 - ``MOVE`` which moves the value of a classical bit at one classical address into another
 - ``EXCHANGE`` which swaps the value of two classical bits
 
 In this next example, we show how to do conditional branching in the
 form of the traditional ``if`` construct as in many programming
 languages. Much like the last example, we construct programs for each
-branch of the ``if``, and put it all together by using the ``if_then``
+branch of the ``if``, and put it all together by using the :py:func:`~pyquil.quil.Program.if_then`
 method.
 
 .. code:: python
 
-    # Name our classical registers:
-    test_register = 1
-    answer_register = 0
+    # Declare our memory spaces
+    branching_prog = Program()
+    test_register = branching_prog.declare('test_register', 'BIT')
+    ro = branching_prog.declare('ro', 'BIT')
 
     # Construct each branch of our if-statement. We can have empty branches
     # simply by having empty programs.
     then_branch = Program(X(0))
     else_branch = Program()
 
-    # Make a program that will put a 0 or 1 in test_register with 50% probability:
-    branching_prog = Program(H(1)).measure(1, test_register)
+    # Construct our program so that the result in test_register is equally likely to be a 0 or 1
+    branching_prog += H(1)
+    branching_prog += MEASURE(1, test_register)
 
-    # Add the conditional branching:
+    # Add the conditional branching
     branching_prog.if_then(test_register, then_branch, else_branch)
 
-    # Measure qubit 0 into our answer register:
-    branching_prog.measure(0, answer_register)
+    # Measure qubit 0 into our readout register
+    branching_prog += MEASURE(0, ro)
 
     print(branching_prog)
 
 .. parsed-literal::
 
+    DECLARE test_register BIT[1]
+    DECLARE ro BIT[1]
     H 1
-    MEASURE 1 [1]
-    JUMP-WHEN @THEN3 [1]
-    JUMP @END4
-    LABEL @THEN3
+    MEASURE 1 test_register
+    JUMP-WHEN @THEN1 test_register
+    JUMP @END2
+    LABEL @THEN1
     X 0
-    LABEL @END4
-    MEASURE 0 [0]
+    LABEL @END2
+    MEASURE 0 ro
 
-We can run this program a few times to see what we get in the
-``answer_register``.
+We can run this program a few times to see what we get in the readout register ``ro``.
 
 .. code:: python
 
-    qvm.run(branching_prog, [answer_register], 10)
+    from pyquil import get_qc
+
+    qc = get_qc("2q-qvm")
+    branching_prog.wrap_in_numshots_loop(10)
+    qc.run(branching_prog)
 
 .. parsed-literal::
 
@@ -270,29 +345,6 @@ we should always measure ``1``.
 
     Without Noise: [[1], [1], [1], [1], [1], [1], [1], [1], [1], [1]]
     With Noise   : [[0], [0], [0], [0], [0], [1], [1], [1], [1], [0]]
-
-Parametric Programs
-~~~~~~~~~~~~~~~~~~~
-
-In PyQuil 1.x, there was an object named ``ParametricProgram``::
-
-    # This function returns a quantum circuit with different rotation angles on a gate on qubit 0
-    def rotator(angle):
-        return Program(RX(angle, 0))
-
-    from pyquil.parametric import ParametricProgram
-    par_p = ParametricProgram(rotator) # This produces a new type of parameterized program object
-
-This object has been removed from PyQuil 2. Please consider simply using a Python function for
-the above functionality::
-
-    par_p = rotator
-
-Or using declared classical memory::
-
-    p = Program()
-    angle = p.declare('angle', 'REAL')
-    p += RX(angle, 0)
 
 Pauli Operator Algebra
 ~~~~~~~~~~~~~~~~~~~~~~

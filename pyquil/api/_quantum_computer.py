@@ -212,7 +212,7 @@ class QuantumComputer:
         into a 2d numpy array of bitstrings, consider::
 
             bitstrings = qc.run_and_measure(...)
-            bitstring_array = np.vstack(bitstrings[q] for q in sorted(qc.qubits())).T
+            bitstring_array = np.vstack(bitstrings[q] for q in qc.qubits()).T
             bitstring_array.shape  # (trials, len(qc.qubits()))
 
         .. note::

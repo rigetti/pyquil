@@ -285,9 +285,11 @@ def test_run_and_measure(local_qvm_quilc):
     qc = get_qc("9q-generic-qvm")
     prog = Program(I(8))
     trials = 11
-    with local_qvm():   # Redundant with test fixture.
+    # note to devs: this is included as an example in the run_and_measure docstrings
+    # so if you change it here ... change it there!
+    with local_qvm():  # Redundant with test fixture.
         bitstrings = qc.run_and_measure(prog, trials)
-    bitstring_array = np.vstack(bitstrings[q] for q in sorted(qc.qubits())).T
+    bitstring_array = np.vstack(bitstrings[q] for q in qc.qubits()).T
     assert bitstring_array.shape == (trials, len(qc.qubits()))
 
 
