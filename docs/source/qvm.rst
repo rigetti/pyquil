@@ -69,7 +69,7 @@ Remember to also start up a ``quilc`` compiler server, too, with ``quilc -S``.
     p += MEASURE(1, ro[1])
     p.wrap_in_numshots_loop(5)
     executable = qc.compile(p)
-    results = qvm.run(executable)
+    results = qc.run(executable)
     print(results)
 
 The results returned are a *list of lists of integers*. In the above case, that's
