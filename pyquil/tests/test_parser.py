@@ -213,7 +213,13 @@ DEFCIRCUIT bell a b:
     H a
     CNOT a b
 """.strip()
+    defcircuit_no_qubits = """
+DEFCIRCUIT bell:
+    H 0
+    CNOT 0 1
+""".strip()
     parse_equals(defcircuit, RawInstr(defcircuit))
+    parse_equals(defcircuit_no_qubits, RawInstr(defcircuit_no_qubits))
 
 
 def test_parse_reset_qubit():
