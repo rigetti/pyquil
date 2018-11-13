@@ -128,11 +128,12 @@ class PyQuilListener(QuilListener):
         circuit_name = ctx.name().getText()
         variables = [variable.getText() for variable in ctx.variable()]
         qubitVariables = [qubitVariable.getText() for qubitVariable in ctx.qubitVariable()]
+        space = ' ' if qubitVariables else ''
 
         if variables:
-            raw_defcircuit = 'DEFCIRCUIT {}({}) {}:'.format(circuit_name, ', '.join(variables), ' '.join(qubitVariables))
+            raw_defcircuit = 'DEFCIRCUIT {}({}){}{}:'.format(circuit_name, ', '.join(variables), space, ' '.join(qubitVariables))
         else:
-            raw_defcircuit = 'DEFCIRCUIT {} {}:'.format(circuit_name, ' '.join(qubitVariables))
+            raw_defcircuit = 'DEFCIRCUIT {}{}{}:'.format(circuit_name, space, ' '.join(qubitVariables))
 
         raw_defcircuit += '\n    '.join([''] + [instr.out() for instr in self.result])
         self.previous_result.append(RawInstr(raw_defcircuit))
