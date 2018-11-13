@@ -69,7 +69,7 @@ class Program(object):
         # default number of shots to loop through
         self.num_shots = 1
 
-        # Note to developers: Have you changed this method? Have you change the fields which
+        # Note to developers: Have you changed this method? Have you changed the fields which
         # live on `Program`? Please update `Program.copy()`!
 
     def copy(self):
