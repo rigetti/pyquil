@@ -232,3 +232,34 @@ RESET
 RESET 5
     """.strip()
     parse_equals(reset_qubit, ResetQubit(Qubit(5)))
+
+
+def test_defcircuit_measure_qubit():
+    defcircuit_measure_named_qubits = """
+DEFCIRCUIT test_defcirc_measure_named a b:
+    MEASURE a b
+""".strip()
+    defcircuit_measure_qubits = """
+DEFCIRCUIT test_defcirc_measure_qubits:
+    MEASURE 0 ro
+""".strip()
+    defcircuit_measure_qubits_mixed = """
+DEFCIRCUIT test_defcirc_measure_mixed q:
+    MEASURE q ro
+""".strip()
+    parse_equals(defcircuit_measure_named_qubits, RawInstr(defcircuit_measure_named_qubits))
+    parse_equals(defcircuit_measure_qubits, RawInstr(defcircuit_measure_qubits))
+    parse_equals(defcircuit_measure_qubits_mixed, RawInstr(defcircuit_measure_qubits_mixed))
+
+
+def test_defcircuit_reset_named_qubit():
+    defcircuit_reset_named_qubit = """
+DEFCIRCUIT test_defcirc_reset_named_qubit a:
+    RESET a
+""".strip()
+    defcircuit_reset_qubit = """
+DEFCIRCUIT test_defcirc_reset_qubit:
+    RESET 1
+""".strip()
+    parse_equals(defcircuit_reset_named_qubit, RawInstr(defcircuit_reset_named_qubit))
+    parse_equals(defcircuit_reset_qubit, RawInstr(defcircuit_reset_qubit))
