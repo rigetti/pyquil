@@ -1,14 +1,6 @@
 Source Code Documentation
 =========================
 
-pyquil.device
--------------
-
-.. automodule:: pyquil.device
-    :members:
-    :undoc-members:
-    :show-inheritance:
-
 pyquil.gates
 ------------
 
