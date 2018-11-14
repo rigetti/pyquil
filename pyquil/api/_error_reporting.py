@@ -219,26 +219,6 @@ def _record_call(func):
 
     @wraps(func)
     def wrapper(*args, **kwargs):
-        global global_error_context
-
-        # log a call as about to take place
-        key = CallLogKey(name=func.__name__,
-                         args=[serialize_object_for_logging(arg) for arg in args],
-                         kwargs={k: serialize_object_for_logging(v) for k, v in kwargs.items()})
-
-        pre_entry = CallLogValue(timestamp_in=datetime.utcnow(),
-                                 timestamp_out=None,
-                                 return_value=None)
-        global_error_context.log[key] = pre_entry
-
-        val = func(*args, **kwargs)
-
-        # poke the return value of that call in
-        post_entry = CallLogValue(timestamp_in=pre_entry.timestamp_in,
-                                  timestamp_out=datetime.utcnow(),
-                                  return_value=serialize_object_for_logging(val))
-        global_error_context.log[key] = post_entry
-
-        return val
+        return func(*args, **kwargs)
 
     return wrapper
