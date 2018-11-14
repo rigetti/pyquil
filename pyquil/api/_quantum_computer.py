@@ -233,7 +233,7 @@ class QuantumComputer:
         """
         program = program.copy()
         if active_reset:
-            program._instructions.insert(RESET(), 0)
+            program._instructions.insert(0, RESET())
         program = _validate_run_and_measure_program(program)
         ro = program.declare('ro', 'BIT', len(self.qubits()))
         for i, q in enumerate(self.qubits()):
