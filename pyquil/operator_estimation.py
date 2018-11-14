@@ -350,7 +350,7 @@ class ExperimentResult:
 
 
 def measure_observables(qc: QuantumComputer, experiment_suite: ExperimentSuite, n_shots=1000,
-                        progress_callback=None):
+                        progress_callback=None, active_reset=False):
     """
     Measure all the observables in an ExperimentSuite.
 
@@ -380,7 +380,7 @@ def measure_observables(qc: QuantumComputer, experiment_suite: ExperimentSuite, 
                 else:
                     total_prog += _local_pauli_eig_meas(op_str, idx)
                     already_meased[idx] = op_str
-        bitstrings = qc.run_and_measure(total_prog, n_shots)
+        bitstrings = qc.run_and_measure(total_prog, n_shots, active_reset=active_reset)
         obs_strings = {q: 1 - 2 * bitstrings[q] for q in bitstrings}
 
         if progress_callback is not None:

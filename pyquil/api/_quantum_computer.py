@@ -33,7 +33,7 @@ from pyquil.api._qam import QAM
 from pyquil.api._qpu import QPU
 from pyquil.api._qvm import ForestConnection, QVM
 from pyquil.device import AbstractDevice, NxDevice, gates_in_isa, ISA
-from pyquil.gates import RX, MEASURE
+from pyquil.gates import RX, MEASURE, RESET
 from pyquil.noise import decoherence_noise_with_asymmetric_ro
 from pyquil.quil import Program
 from pyquil.quilbase import Measurement, Pragma, Gate, Reset
@@ -200,7 +200,8 @@ class QuantumComputer:
         return results
 
     @_record_call
-    def run_and_measure(self, program: Program, trials: int) -> Dict[int, np.ndarray]:
+    def run_and_measure(self, program: Program, trials: int, active_reset=False) \
+            -> Dict[int, np.ndarray]:
         """
         Run the provided state preparation program and measure all qubits.
 
@@ -224,10 +225,15 @@ class QuantumComputer:
 
         :param program: The state preparation program to run and then measure.
         :param trials: The number of times to run the program.
+        :param active_reset: Whether to actively reset qubits instead of waiting several
+            times the coherence length for qubits to decay to |0> naturally. Setting this
+            to True is much faster but there is a 1% error in the reset operation.
         :return: A dictionary keyed by qubit index where the corresponding value is a 1D array of
             measured bits.
         """
         program = program.copy()
+        if active_reset:
+            program._instructions.insert(RESET(), 0)
         program = _validate_run_and_measure_program(program)
         ro = program.declare('ro', 'BIT', len(self.qubits()))
         for i, q in enumerate(self.qubits()):
@@ -243,7 +249,7 @@ class QuantumComputer:
     @_record_call
     def compile(self, program: Program,
                 to_native_gates: bool = True,
-                optimize: bool = True) -> Message:
+                optimize: bool = True) -> Union[BinaryExecutableResponse, PyQuilExecutableResponse]:
         """
         A high-level interface to program compilation.
 
