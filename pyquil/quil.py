@@ -40,6 +40,14 @@ from pyquil.quilbase import (DefGate, Gate, Measurement, Pragma, AbstractInstruc
 
 
 class Program(object):
+    """A list of pyQuil instructions that comprise a quantum program.
+
+    >>> from pyquil import Program
+    >>> from pyquil.gates import *
+    >>> p = Program()
+    >>> p += H(0)
+    >>> p += CNOT(0, 1)
+    """
     def __init__(self, *instructions):
         self._defined_gates = []
         # Implementation note: the key difference between the private _instructions and
@@ -61,7 +69,7 @@ class Program(object):
         # default number of shots to loop through
         self.num_shots = 1
 
-        # Note to developers: Have you changed this method? Have you change the fields which
+        # Note to developers: Have you changed this method? Have you changed the fields which
         # live on `Program`? Please update `Program.copy()`!
 
     def copy(self):
@@ -351,7 +359,7 @@ class Program(object):
         label_start = LabelPlaceholder("START")
         label_end = LabelPlaceholder("END")
         self.inst(JumpTarget(label_start))
-        self.inst(JumpUnless(target=label_end, condition=Addr(classical_reg)))
+        self.inst(JumpUnless(target=label_end, condition=classical_reg))
         self.inst(q_program)
         self.inst(Jump(label_start))
         self.inst(JumpTarget(label_end))
@@ -421,7 +429,7 @@ class Program(object):
             own MemoryReferences later on.
 
         :param name: Name of the declared variable
-        :param memory_type: Type of the declared variable
+        :param memory_type: Type of the declared memory: 'BIT', 'REAL', 'OCTET' or 'INTEGER'
         :param memory_size: Number of array elements in the declared memory.
         :param shared_region: You can declare a variable that shares its underlying memory
             with another region. This allows aliasing. For example, you can interpret an array
@@ -500,7 +508,7 @@ class Program(object):
 
     def is_protoquil(self):
         """
-        Protoquil programs may only contain gates, Pragmas, and final global RESETs. It may not
+        Protoquil programs may only contain gates, Pragmas, and an initial global RESET. It may not
         contain classical instructions or jumps.
 
         :return: True if the Program is Protoquil, False otherwise
@@ -632,7 +640,7 @@ class Program(object):
         return not self.__eq__(other)
 
     def __len__(self):
-        return len(self._instructions)
+        return len(self.instructions)
 
     def __str__(self):
         """

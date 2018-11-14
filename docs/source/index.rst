@@ -80,6 +80,23 @@ Contents
    changes
    intro
 
+.. toctree::
+   :maxdepth: 1
+   :caption: API Reference
+
+   apidocs/program
+   apidocs/quantum_computer
+   apidocs/compilers
+   apidocs/qam
+   apidocs/devices
+
+.. toctree::
+   :caption: Man Pages
+   :maxdepth: 1
+
+   qvm-man
+   quilc-man
+
 
 Indices and Tables
 ------------------

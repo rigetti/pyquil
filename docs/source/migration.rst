@@ -58,6 +58,8 @@ would have the same effect as
     # disentangle, bringing us back to identity
     DAGGER BELL
 
+.. _parametric:
+
 Parametric programs
 ~~~~~~~~~~~~~~~~~~~
 
@@ -90,6 +92,8 @@ compiled program to the QPU for execution (and hence generate the expectation va
 can be sent to the compiler, which returns a nativized Quil program that still has parametric gates with parameters
 referencing the classical memory regions ``beta`` and ``gamma``. This program can then be loaded onto the QPU for
 repeated execution with different values of ``beta`` and ``gamma``, without recompilation in between.
+
+.. _declare:
 
 Details of updates to Quil
 ~~~~~~~~~~~~~~~~~~~~~~~~~~
@@ -358,7 +362,7 @@ instructions to target.
     MEASURE 3 ro[3]""")
         return program
 
-Next, we modify the execution loop. Rather than reformulating the ``Program`` object each time, we build and compile it
+Next, we modify the execution loop. Rather than reformulating the :py:class:`~pyquil.quil.Program` object each time, we build and compile it
 once, then use the ``.load()`` method to transfer the parametric program to the (simulated) quantum device. We then set
 only the angle value within the inner loop, and we change to using ``.run()`` and ``.wait()`` methods to manage control
 between us and the quantum device.
@@ -386,20 +390,14 @@ becomes
 .. code:: python
 
     # set up the Program object, ONLY ONCE
-    program = build_wf_ansatz_prep()
-    program.wrap_in_numshots_loop(shots=shots)
-    nq_program = qc.compiler.quil_to_native_quil(program)
-    binary = qc.compiler.native_quil_to_executable(nq_program)
-    qc.qam.load(binary)
+    program = build_wf_ansatz_prep().wrap_in_numshots_loop(shots=shots)
+    binary = qc.compile(program)
 
     # get all the unweighted expectations for all the sample wavefunctions
     occupations = list(range(angle_min, angle_max))
     indices = list(range(4))
     for offset in occupations:
-        qc.qam.write_memory(region_name='theta', value=angle_min + offset * angle_step)
-        qc.qam.run()
-        qc.qam.wait()
-        bitstrings = qc.qam.read_memory(region_name="ro")
+        bitstrings = qc.run(binary, {'theta': [angle_min + offset * angle_step]})
 
         totals = [0, 0, 0, 0]
         for bitstring in bitstrings:
@@ -468,20 +466,14 @@ Overall, the resulting program looks like this:
     qc = setup_forest_objects()
 
     # set up the Program object, ONLY ONCE
-    program = build_wf_ansatz_prep()
-    program.wrap_in_numshots_loop(shots=shots)
-    nq_program = qc.compiler.quil_to_native_quil(program)
-    binary = qc.compiler.native_quil_to_executable(nq_program)
-    qc.qam.load(binary)
+    program = build_wf_ansatz_prep().wrap_in_numshots_loop(shots=shots)
+    binary = qc.compile(program)
 
     # get all the unweighted expectations for all the sample wavefunctions
     occupations = list(range(angle_min, angle_max))
     indices = list(range(4))
     for offset in occupations:
-        qc.qam.write_memory(region_name='theta', value=angle_min + offset * angle_step)
-        qc.qam.run()
-        qc.qam.wait()
-        bitstrings = qc.qam.read_memory(region_name="ro")
+        bitstrings = qc.run(binary, {'theta': [angle_min + offset * angle_step]})
 
         totals = [0, 0, 0, 0]
         for bitstring in bitstrings:
@@ -640,19 +632,26 @@ location:
 
 Please attach such a logfile to any request for support.
 
+Parametric Programs
+~~~~~~~~~~~~~~~~~~~
 
-QPU-allowable Quil
-~~~~~~~~~~~~~~~~~~
+In PyQuil 1.x, there was an object named ``ParametricProgram``::
 
-Apart from ``DECLARE`` and ``PRAGMA`` directives, a program must break into the following three regions, each optional:
+    # This function returns a quantum circuit with different rotation angles on a gate on qubit 0
+    def rotator(angle):
+        return Program(RX(angle, 0))
 
-1. A ``RESET`` command.
-2. A sequence of quantum gate applications.
-3. A sequence of ``MEASURE`` commands.
+    from pyquil.parametric import ParametricProgram
+    par_p = ParametricProgram(rotator) # This produces a new type of parameterized program object
 
-The only memory that is writeable is the region named ``ro``, and only through ``MEASURE`` instructions. All other
-memory is read-only.
+This object has been removed from PyQuil 2. Please consider simply using a Python function for
+the above functionality::
 
-The keyword ``SHARING`` is disallowed.
+    par_p = rotator
 
-Compilation is unavailable for invocations of ``DEFGATE``\ s with parameters read from classical memory.
+Or using declared classical memory::
+
+    p = Program()
+    angle = p.declare('angle', 'REAL')
+    p += RX(angle, 0)
+

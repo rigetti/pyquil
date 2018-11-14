@@ -22,6 +22,8 @@ from pyquil.paulis import PauliTerm
 
 
 class AbstractCompiler(ABC):
+    """The abstract interface for a compiler."""
+
     def get_version_info(self) -> dict:
         """
         Return version information for this compiler and its dependencies.

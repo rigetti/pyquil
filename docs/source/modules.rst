@@ -1,14 +1,6 @@
 Source Code Documentation
 =========================
 
-pyquil.api
-----------
-
-.. automodule:: pyquil.api
-    :members:
-    :undoc-members:
-    :show-inheritance:
-
 pyquil.device
 -------------
 
@@ -45,14 +37,6 @@ pyquil.paulis
 -------------
 
 .. automodule:: pyquil.paulis
-    :members:
-    :undoc-members:
-    :show-inheritance:
-
-pyquil.quil
------------
-
-.. automodule:: pyquil.quil
     :members:
     :undoc-members:
     :show-inheritance:

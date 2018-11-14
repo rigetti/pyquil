@@ -6,10 +6,10 @@ The Quil Compiler
 Expectations for Program Contents
 ---------------------------------
 
-The QPUs have much more limited natural gate sets than the standard gate set offered by pyQuil: the
-gate operators are constrained to lie in ``RZ(θ)``, ``RX(kπ/2)``, and ``CZ``; and the
+The QPUs have much more limited natural gate sets than the standard gate set offered by pyQuil: on Rigetti QPUs, the
+gate operators are constrained to lie in ``RZ(θ)``, ``RX(k*π/2)``, and ``CZ``; and the
 gates are required to act on physically available hardware (for single-qubit gates, this means
-acting only on live qubits, and for qubit-pair gates, this means acting on neighboring qubits).
+acting only on live qubits, and for qubit-pair gates, this means acting on neighboring qubits). However, as a programmer, it is often (though not always) desirable to to be able to write programs which don't take these details into account. These generally leads to more portable code if one isn't tied to a specific set of gates or QPU architecture.
 To ameliorate these limitations, the Rigetti software toolkit contains an optimizing compiler that
 translates arbitrary Quil to native Quil and native ProtoQuil to executables suitable for Rigetti
 hardware.
@@ -18,9 +18,34 @@ hardware.
 Interacting with the Compiler
 -----------------------------
 
+After :ref:`downloading the SDK <sdkinstall>`, the Quil Compiler, ``quilc`` is available on your local machine.
+You can initialize a local ``quilc`` server by typing ``quilc -S`` into your terminal. You should see the following message.
+
+.. code:: python
+
+    $ quilc -S
+    +-----------------+
+    |  W E L C O M E  |
+    |   T O   T H E   |
+    |  R I G E T T I  |
+    |     Q U I L     |
+    | C O M P I L E R |
+    +-----------------+
+    Copyright (c) 2018 Rigetti Computing.
+
+    This is a part of the Forest SDK. By using this program
+    you agree to the End User License Agreement (EULA) supplied
+    with this program. If you did not receive the EULA, please
+    contact <support@rigetti.com>.
+
+    [2018-11-06 10:59:22] Starting server: 0.0.0.0 : 6000.
+
+To get a description of ``quilc``, and options and examples of its command line use, see :ref:`quilc_man`.
+
+
 A ``QuantumComputer`` object supplied by the function ``pyquil.api.get_qc()`` comes equipped with a
-connection to a Rigetti quantum compiler.  If the object is called ``qc``, then this can be accessed
-using the instance method ``.compile()``, as in the following:
+connection to your local Rigetti Quil compiler.  This can be accessed using the instance method ``.compile()``,
+as in the following:
 
 .. code:: python
 
@@ -38,23 +63,21 @@ with output
 
 .. code:: python
 
-    PRAGMA EXPECTED_REWIRING "#(7 8 5 0 1 2 3 4 6)"
-    RZ(pi/2) 7
-    RX(pi/2) 7
-    RZ(-pi/2) 8
-    RX(pi/2) 8
-    CZ 8 7
-    RZ(-pi/2) 5
-    RX(pi/2) 5
-    RX(-pi/2) 8
-    CZ 5 8
-    RX(-pi/2) 5
-    RZ(pi/2) 5
-    RZ(-pi/2) 7
-    RZ(-pi/2) 8
-    PRAGMA CURRENT_REWIRING "#(7 8 5 0 1 2 3 4 6)"
-    PRAGMA EXPECTED_REWIRING "#(7 8 5 0 1 2 3 4 6)"
-    PRAGMA CURRENT_REWIRING "#(7 8 5 0 1 2 3 4 6)"
+    PRAGMA EXPECTED_REWIRING "#(0 1 2 3 4 5 6 7)"
+    RZ(pi/2) 0
+    RX(pi/2) 0
+    RZ(-pi/2) 1
+    RX(pi/2) 1
+    CZ 1 0
+    RX(-pi/2) 1
+    RZ(-pi/2) 2
+    RX(pi/2) 2
+    CZ 2 1
+    RZ(-pi/2) 0
+    RZ(-pi/2) 1
+    RX(-pi/2) 2
+    RZ(pi/2) 2
+    PRAGMA CURRENT_REWIRING "#(0 1 2 3 4 5 6 7)"
 
 The compiler connection is also available directly via the property ``qc.compiler``.  The precise
 class of this object changes based on context (e.g., ``QPUCompiler``, ``QVMCompiler``, or
@@ -62,7 +85,7 @@ class of this object changes based on context (e.g., ``QPUCompiler``, ``QVMCompi
 
 * ``compiler.quil_to_native_quil(program)``: This method converts a Quil program into native Quil,
   according to the ISA that the compiler is initialized with.  The input parameter is specified as a
-  ``Program`` object, and the output is given as a new ``Program`` object, equipped with a
+  :py:class:`~pyquil.quil.Program` object, and the output is given as a new ``Program`` object, equipped with a
   ``.metadata`` property that gives extraneous information about the compilation output (e.g., gate
   depth, as well as many others).  This call blocks until Quil compilation finishes.
 * ``compiler.native_quil_to_executable(nq_program)``: This method converts a ProtoQuil program, which
@@ -91,18 +114,18 @@ the previous example snippet is identical to the following:
 Legal compiler input
 --------------------
 
-The QPU is not able to execute all possible Quil programs, and so Quil bound for execution on a QPU
-must conform to the "ProtoQuil" standard.  At present, a Quil program qualifies as ProtoQuil if it
-has the following form:
+The QPU is not able to execute all possible Quil programs.  At present, a Quil program qualifies for execution if has the following form:
 
 * The program may or may not begin with a ``RESET`` instruction.  (If provided, the QPU will actively
   reset the state of the quantum device to the ground state before program execution.  If omitted,
   the QPU will wait for a relaxation period to pass before program execution instead.)
 * This is then followed by a block of native quantum gates.  A gate is native if it is of the form
-  ``RZ(θ)`` for any value ``θ``, ``RX(kπ/2)`` for an integer ``k``, or ``CZ q0 q1`` for ``q0``, ``q1``
+  ``RZ(θ)`` for any value ``θ``, ``RX(k*π/2)`` for an integer ``k``, or ``CZ q0 q1`` for ``q0``, ``q1``
   a pair of qubits participating in a qubit-qubit interaction.
 * This is then followed by a block of ``MEASURE`` instructions.
 
+
+.. _pragma:
 
 Region-specific compiler features through PRAGMA
 ------------------------------------------------
@@ -112,8 +135,7 @@ program.
 
 .. note::
 
-    The pyQuil compiler interface is under construction, and some of the ``PRAGMA`` directives will
-    soon be replaced by finer-grained method calls.
+    The interface to the Quil compiler from pyQuil is under construction, and some of the ``PRAGMA`` directives will soon be replaced by finer-grained method calls.
 
 
 Preserved regions
@@ -122,6 +144,9 @@ Preserved regions
 The compiler can be circumvented in user-specified regions. The start of such a region is denoted by
 ``PRAGMA PRESERVE_BLOCK``, and the end is denoted by ``PRAGMA END_PRESERVE_BLOCK``.  The Quil
 compiler promises not to modify any instructions contained in such a region.
+
+.. warning::
+   If a preserved block is not legal QPU input, then it is not guaranteed to execute or it may produced unexpected results.
 
 The following is an example of a program that prepares a Bell state on qubits 0 and 1, then performs
 a time delay to invite noisy system interaction before measuring the qubits.  The time delay region
@@ -160,6 +185,9 @@ The compiler can sometimes arrange gate sequences more cleverly if the user give
 sequences of gates that commute.  A region containing commuting sequences is bookended by
 ``PRAGMA COMMUTING_BLOCKS`` and ``PRAGMA END_COMMUTING_BLOCKS``; within such a region, a given
 commuting sequence is bookended by ``PRAGMA BLOCK`` and ``PRAGMA END_BLOCK``.
+
+.. warning::
+   Lying to the compiler about what blocks can commute can cause incorrect results.
 
 The following snippet demonstrates this hinting syntax in a context typical of VQE-type algorithms:
 after a first stage of performing some state preparation on individual qubits, there is a second
@@ -216,6 +244,7 @@ instead execute the blocks in their written order.
     MEASURE 2 ro[2]
     MEASURE 3 ro[3]
 
+.. _compiler_rewirings:
 
 Rewirings
 ~~~~~~~~~
@@ -230,22 +259,37 @@ qubit labeled ``nj`` on the device.  This is strictly for human-readability: use
 of the form ``PRAGMA [EXPECTED|CURRENT]_REWIRING`` are discarded and have no effect.
 
 In addition, you have some control over how the compiler constructs its
-rewiring. If you include a
-``PRAGMA INITIAL_REWIRING "[NAIVE|RANDOM|PARTIAL|GREEDY]"``
-instruction before any non-pragmas, the compiler will alter its rewiring
-behavior.
+rewiring, which is controlled by ``PRAGMA INITIAL_REWIRING``. The syntax is as follows.
 
-+ `PARTIAL` (default): The compiler will start with nothing assigned to each
+.. code:: python
+   
+   # <type> can be NAIVE, RANDOM, PARTIAL, or GREEDY
+   #
+   # The double quotes are required.
+   PRAGMA INITIAL_REWIRING "<type>"
+
+Including this `before any non-pragmas` will allow the compiler to alter its rewiring
+behavior. The possible options are:
+
++ ``NAIVE`` (default): The compiler will start with an identity mapping as the initial
+  rewiring.  In particular, qubits will **not** be rewired unless the program
+  requests a qubit-qubit interaction not natively available on the QPU.
++ ``PARTIAL``: The compiler will start with nothing assigned to each
   physical qubit. Then, it will fill in the logical-to-physical mapping as it
   encounters new qubits in the program, making its best guess for where they
   should be placed.
-+ `NAIVE`: The compiler will start with an identity mapping as the initial
-  rewiring.  In particular, qubits will **not** be rewired unless the program
-  requests a qubit-qubit interaction not natively available on the QPU.
-+ `RANDOM`: the compiler will start with a random permutation
-+ `GREEDY`: the compiler will make a guess for the initial rewiring based on a
++ ``RANDOM``: the compiler will start with a random permutation.
++ ``GREEDY``: the compiler will make a guess for the initial rewiring based on a
   quick initial scan of the entire program.
 
+.. note::
+   ``NAIVE`` rewiring is the default, and for the most part, it
+   follows the "Do What I Mean" (DWIM) principle. It is the least
+   sophisticated, but attempts to follow what the user has constructed
+   with their program. Choosing another rewiring, such as ``PARTIAL``,
+   may lead to higher-performing programs because the compiler has
+   more freedom to optimize the layout of the gates on the qubits.
+  
 Common Error Messages
 ---------------------
 
@@ -255,4 +299,5 @@ follow:
 + ``! ! ! Error: Matrices do not lie in the same projective class.`` The compiler attempted to
   decompose an operator as native Quil instructions, and the resulting instructions do not match the
   original operator.  This can happen when the original operator is not a unitary matrix, and could
-  indicate an invalid ``DEFGATE`` block.
+  indicate an invalid ``DEFGATE`` block. In some rare circumstances, it can also happen due to
+  floating point precision issues.
