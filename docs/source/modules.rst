@@ -1,14 +1,6 @@
 Source Code Documentation
 =========================
 
-pyquil.gates
-------------
-
-.. automodule:: pyquil.gates
-    :members:
-    :undoc-members:
-    :show-inheritance:
-
 pyquil.noise
 ------------
 

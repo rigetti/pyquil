@@ -85,6 +85,7 @@ Contents
    :caption: API Reference
 
    apidocs/program
+   apidocs/gates
    apidocs/quantum_computer
    apidocs/compilers
    apidocs/qam
