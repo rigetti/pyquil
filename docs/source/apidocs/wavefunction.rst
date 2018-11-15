@@ -4,7 +4,7 @@ Wavefunction Methods
 .. currentmodule:: pyquil.api
 .. autoclass:: pyquil.api.WavefunctionSimulator
 
-    .. rubric:: Attributes
+    .. rubric:: Methods
     .. autosummary::
         :toctree: autogen
         :template: autosumm.rst
@@ -19,7 +19,7 @@ Wavefunction Methods
 
 .. autoclass:: pyquil.wavefunction.Wavefunction
 
-    .. rubric:: Attributes
+    .. rubric:: Attributes and Methods
     .. autosummary::
         :toctree: autogen
         :template: autosumm.rst

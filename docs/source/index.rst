@@ -86,6 +86,7 @@ Contents
 
    apidocs/program
    apidocs/gates
+   apidocs/pauli
    apidocs/quantum_computer
    apidocs/compilers
    apidocs/qam

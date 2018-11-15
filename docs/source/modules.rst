@@ -16,12 +16,3 @@ pyquil.parser
     :members:
     :undoc-members:
     :show-inheritance:
-
-pyquil.paulis
--------------
-
-.. automodule:: pyquil.paulis
-    :members:
-    :undoc-members:
-    :show-inheritance:
-
