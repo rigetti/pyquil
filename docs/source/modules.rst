@@ -25,14 +25,6 @@ pyquil.paulis
     :undoc-members:
     :show-inheritance:
 
-pyquil.quilbase
----------------
-
-.. automodule:: pyquil.quilbase
-    :members:
-    :undoc-members:
-    :show-inheritance:
-
 pyquil.wavefunction
 -------------------
 
