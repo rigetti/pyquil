@@ -29,7 +29,8 @@ OCTETS_PER_COMPLEX_DOUBLE = 2 * OCTETS_PER_DOUBLE_FLOAT
 
 class Wavefunction(object):
     """
-    Encapsulate a wavefunction representing a quantum state as returned by the QVM.
+    Encapsulate a wavefunction representing a quantum state
+    as returned by :py:class:`~pyquil.api.WavefunctionSimulator`.
 
     .. note::
 

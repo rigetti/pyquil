@@ -90,6 +90,7 @@ Contents
    apidocs/compilers
    apidocs/qam
    apidocs/devices
+   apidocs/wavefunction
 
 .. toctree::
    :caption: Man Pages

@@ -25,10 +25,3 @@ pyquil.paulis
     :undoc-members:
     :show-inheritance:
 
-pyquil.wavefunction
--------------------
-
-.. automodule:: pyquil.wavefunction
-    :members:
-    :undoc-members:
-    :show-inheritance:
