@@ -76,7 +76,6 @@ Contents
    noise
    advanced_usage
    exercises
-   modules
    changes
    intro
 
@@ -92,6 +91,7 @@ Contents
    apidocs/qam
    apidocs/devices
    apidocs/wavefunction
+   apidocs/noise
 
 .. toctree::
    :caption: Man Pages
