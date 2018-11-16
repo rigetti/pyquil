@@ -820,7 +820,7 @@ increasing chance of halting, but that may run forever!
     p = Program()
     ro = p.declare('ro', 'BIT', 1)
     inside_loop = Program(H(0)).measure(0, ro[0])
-    p.inst(X(0)).while_do(0, inside_loop)
+    p.inst(X(0)).while_do(ro[0], inside_loop)
 
     qc = get_qc('9q-square-qvm')
     print (qc.run(qc.compile(p)))
