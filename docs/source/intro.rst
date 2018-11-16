@@ -587,7 +587,7 @@ Up until this point we have used the quantum simulator to cheat a little bit ---
 actually looked at the wavefunction that comes back. However, on real
 quantum hardware, we are unable to directly look at the wavefunction.
 Instead we only have access to the classical bits that are affected by
-measurements. This functionality is emulated by the ``run`` command of a QuantumComputer object. Note that the ``run`` command is to be applied on the compiled version of the program.
+measurements. This functionality is emulated by :py:func:`QuantumComputer.run`. Note that the ``run`` command is to be applied on the compiled version of the program.
 
 .. code:: python
 
