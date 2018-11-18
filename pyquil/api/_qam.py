@@ -39,13 +39,7 @@ class QAM(ABC):
 
     @_record_call
     def __init__(self):
-        self._variables_shim = {}
-        self._n_shots = None
-        self._n_bits = None
-        self._executable = None
-        self._bitstrings = None
-
-        self.status = 'connected'
+        self.reset()
 
     @_record_call
     def load(self, executable):
