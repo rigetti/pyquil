@@ -141,8 +141,6 @@ class QAM(ABC):
         is interrupted in the middle of a run.
         """
         self._variables_shim = {}
-        self._n_shots = None
-        self._n_bits = None
         self._executable = None
         self._bitstrings = None
 
