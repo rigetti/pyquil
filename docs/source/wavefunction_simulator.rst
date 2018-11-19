@@ -17,7 +17,7 @@ This can save a lot of time for small programs. Let's walk through a basic examp
     from pyquil.gates import *
     from pyquil.api import WavefunctionSimulator
     wf_sim = WavefunctionSimulator()
-    coin_flip = Program((H(0))
+    coin_flip = Program(H(0))
     wf_sim.wavefunction(coin_flip)
 
 .. parsed-literal::

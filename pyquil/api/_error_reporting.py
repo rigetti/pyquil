@@ -184,7 +184,7 @@ Rigetti Computing support by email at support@rigetti.com for assistance.
         fh.close()
 
 
-global_error_context = ErrorContext()
+global_error_context = None
 
 
 def pyquil_protect(func, log_filename="pyquil_error.log"):
@@ -195,16 +195,17 @@ def pyquil_protect(func, log_filename="pyquil_error.log"):
     def pyquil_protect_wrapper(*args, **kwargs):
         global global_error_context
 
-        old_filename = global_error_context.filename
+        old_error_context = global_error_context
+        global_error_context = ErrorContext()
         global_error_context.filename = log_filename
 
         try:
             val = func(*args, **kwargs)
-            global_error_context.filename = old_filename
+            global_error_context = old_error_context
             return val
         except Exception as e:
             global_error_context.dump_error(e, inspect.trace())
-            global_error_context.filename = old_filename
+            global_error_context = old_error_context
             raise
 
     return pyquil_protect_wrapper
@@ -219,6 +220,28 @@ def _record_call(func):
 
     @wraps(func)
     def wrapper(*args, **kwargs):
-        return func(*args, **kwargs)
+        global global_error_context
+
+        # log a call as about to take place
+        if global_error_context is not None:
+            key = CallLogKey(name=func.__name__,
+                             args=[serialize_object_for_logging(arg) for arg in args],
+                             kwargs={k: serialize_object_for_logging(v) for k, v in kwargs.items()})
+
+            pre_entry = CallLogValue(timestamp_in=datetime.utcnow(),
+                                     timestamp_out=None,
+                                     return_value=None)
+            global_error_context.log[key] = pre_entry
+
+        val = func(*args, **kwargs)
+
+        # poke the return value of that call in
+        if global_error_context is not None:
+            post_entry = CallLogValue(timestamp_in=pre_entry.timestamp_in,
+                                      timestamp_out=datetime.utcnow(),
+                                      return_value=serialize_object_for_logging(val))
+            global_error_context.log[key] = post_entry
+
+        return val
 
     return wrapper

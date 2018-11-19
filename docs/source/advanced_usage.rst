@@ -80,11 +80,15 @@ where
 Using Qubit Placeholders
 ~~~~~~~~~~~~~~~~~~~~~~~~
 
+.. note::
+    The functionality provided inline by ``QubitPlaceholders`` is similar to writing a function which returns a
+    ``Program``, with qubit indices taken as arguments to the function.
+
 In pyQuil, we typically use integers to identify qubits
 
 .. code:: python
 
-    from pyquil.quil import Program
+    from pyquil import Program
     from pyquil.gates import CNOT, H
     print(Program(H(0), CNOT(0, 1)))
 
@@ -103,8 +107,8 @@ where using ``QubitPlaceholder``\ s comes in.
     from pyquil.quilatom import QubitPlaceholder
     q0 = QubitPlaceholder()
     q1 = QubitPlaceholder()
-    prog = Program(H(q0), CNOT(q0, q1))
-    print(prog)
+    p = Program(H(q0), CNOT(q0, q1))
+    print(p)
 
 .. parsed-literal::
 
@@ -115,26 +119,9 @@ If you try to use this program directly, it will not work
 
 .. code:: python
 
-    print(prog.out())
+    print(p.out())
 
 ::
-
-    ---------------------------------------------------------------------------
-
-    RuntimeError                              Traceback (most recent call last)
-
-    <ipython-input-3-da474d3af403> in <module>()
-    ----> 1 print(prog.out())
-
-    ...
-
-    pyquil/pyquil/quilatom.py in out(self)
-         53 class QubitPlaceholder(QuilAtom):
-         54     def out(self):
-    ---> 55         raise RuntimeError("Qubit {} has not been assigned an index".format(self))
-         56
-         57     def __str__(self):
-
 
     RuntimeError: Qubit q4402789176 has not been assigned an index
 
@@ -146,14 +133,14 @@ N.
 .. code:: python
 
     from pyquil.quil import address_qubits
-    print(address_qubits(prog))
+    print(address_qubits(p))
 
 .. parsed-literal::
 
     H 0
     CNOT 0 1
 
-The real power comes into play when you provide an explicit mapping
+The real power comes into play when you provide an explicit mapping:
 
 .. code:: python
 
@@ -178,8 +165,8 @@ list of qubits to build your program.
 .. code:: python
 
     qbyte = QubitPlaceholder.register(8)
-    prog2 = Program(H(q) for q in qbyte)
-    print(address_qubits(prog2, {q: i*2 for i, q in enumerate(qbyte)}))
+    p_evens = Program(H(q) for q in qbyte)
+    print(address_qubits(p_evens, {q: i*2 for i, q in enumerate(qbyte)}))
 
 
 .. parsed-literal::
@@ -196,172 +183,126 @@ list of qubits to build your program.
 Classical Control Flow
 ~~~~~~~~~~~~~~~~~~~~~~
 
-Here are a couple quick examples that show how much richer the classical
-control of a Quil program can be. In this first example, we have a
-register called ``classical_flag_register`` which we use for looping.
-Then we construct the loop in the following steps:
+.. note::
 
-1. We first initialize this register to ``1`` with the ``init_register``
-   program so our while loop will execute. This is often called the
+    Classical control flow is not yet supported on the QPU.
+
+
+Here are a couple quick examples that show how much richer a Quil program
+can be with classical control flow. In this first example, we create a while
+loop by following these steps:
+
+1. Declare a register called ``flag_register`` to use as a boolean test for looping.
+
+2. Initialize this register to ``1`` program so our while loop will execute. This is often called the
    *loop preamble* or *loop initialization*.
 
-2. Next, we write body of the loop in a program itself. This will be a
-   program that computes an :math:`X` followed by an :math:`H` on our
+3. Write the body of the loop in its own :py:class:`~pyquil.quil.Program`. This will be a
+   program that applies an :math:`X` gate followed by a :math:`H` gate on our
    qubit.
 
-3. Lastly, we put it all together using the ``while_do`` method.
+4. Using the :py:func:`~pyquil.quil.Program.while_do` method to add control flow.
 
 .. code:: python
 
-    # Name our classical registers:
-    classical_flag_register = 2
+    from pyquil import Program
+    from pyquil.gates import *
 
-    # Write out the loop initialization and body programs:
-    init_register = Program(TRUE([classical_flag_register]))
-    loop_body = Program(X(0), H(0)).measure(0, classical_flag_register)
+    # Initialize the Program and declare a 1 bit memory space for our boolean flag
+    outer_loop = Program()
+    flag_register = outer_loop.declare('flag_register', 'BIT')
 
-    # Put it all together in a loop program:
-    loop_prog = init_register.while_do(classical_flag_register, loop_body)
+    # Set the initial flag value to 1
+    outer_loop += MOVE(flag_register, 1)
 
-    print(loop_prog)
+    # Define the body of the loop with a new Program
+    inner_loop = Program()
+    inner_loop += Program(X(0), H(0))
+    inner_loop += MEASURE(0, flag_register)
+
+    # Run inner_loop in a loop until flag_register is 0
+    outer_loop.while_do(flag_register, inner_loop)
+
+    print(outer_loop)
 
 .. parsed-literal::
 
-    TRUE [2]
+    DECLARE flag_register BIT[1]
+    MOVE flag_register 1
     LABEL @START1
-    JUMP-UNLESS @END2 [2]
+    JUMP-UNLESS @END2 flag_register
     X 0
     H 0
-    MEASURE 0 [2]
+    MEASURE 0 flag_register
     JUMP @START1
     LABEL @END2
 
-Notice that the ``init_register`` program applied a Quil instruction directly to a
+Notice that the ``outer_loop`` program applied a Quil instruction directly to a
 classical register.  There are several classical commands that can be used in this fashion:
 
-- ``TRUE`` which sets a single classical bit to be 1
-- ``FALSE`` which sets a single classical bit to be 0
 - ``NOT`` which flips a classical bit
 - ``AND`` which operates on two classical bits
-- ``OR`` which operates on two classical bits
+- ``IOR`` which operates on two classical bits
 - ``MOVE`` which moves the value of a classical bit at one classical address into another
 - ``EXCHANGE`` which swaps the value of two classical bits
 
 In this next example, we show how to do conditional branching in the
 form of the traditional ``if`` construct as in many programming
 languages. Much like the last example, we construct programs for each
-branch of the ``if``, and put it all together by using the ``if_then``
+branch of the ``if``, and put it all together by using the :py:func:`~pyquil.quil.Program.if_then`
 method.
 
 .. code:: python
 
-    # Name our classical registers:
-    test_register = 1
-    answer_register = 0
+    # Declare our memory spaces
+    branching_prog = Program()
+    test_register = branching_prog.declare('test_register', 'BIT')
+    ro = branching_prog.declare('ro', 'BIT')
 
     # Construct each branch of our if-statement. We can have empty branches
     # simply by having empty programs.
     then_branch = Program(X(0))
     else_branch = Program()
 
-    # Make a program that will put a 0 or 1 in test_register with 50% probability:
-    branching_prog = Program(H(1)).measure(1, test_register)
+    # Construct our program so that the result in test_register is equally likely to be a 0 or 1
+    branching_prog += H(1)
+    branching_prog += MEASURE(1, test_register)
 
-    # Add the conditional branching:
+    # Add the conditional branching
     branching_prog.if_then(test_register, then_branch, else_branch)
 
-    # Measure qubit 0 into our answer register:
-    branching_prog.measure(0, answer_register)
+    # Measure qubit 0 into our readout register
+    branching_prog += MEASURE(0, ro)
 
     print(branching_prog)
 
 .. parsed-literal::
 
+    DECLARE test_register BIT[1]
+    DECLARE ro BIT[1]
     H 1
-    MEASURE 1 [1]
-    JUMP-WHEN @THEN3 [1]
-    JUMP @END4
-    LABEL @THEN3
+    MEASURE 1 test_register
+    JUMP-WHEN @THEN1 test_register
+    JUMP @END2
+    LABEL @THEN1
     X 0
-    LABEL @END4
-    MEASURE 0 [0]
+    LABEL @END2
+    MEASURE 0 ro
 
-We can run this program a few times to see what we get in the
-``answer_register``.
+We can run this program a few times to see what we get in the readout register ``ro``.
 
 .. code:: python
 
-    qvm.run(branching_prog, [answer_register], 10)
+    from pyquil import get_qc
+
+    qc = get_qc("2q-qvm")
+    branching_prog.wrap_in_numshots_loop(10)
+    qc.run(branching_prog)
 
 .. parsed-literal::
 
     [[1], [1], [1], [0], [1], [0], [0], [1], [1], [0]]
 
-Parametric Depolarizing Noise
-~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
-
-The Rigetti QVM has support for emulating certain types of noise models.
-One such model is *parametric Pauli noise*, which is defined by a
-set of 6 probabilities:
-
--  The probabilities :math:`P_X`, :math:`P_Y`, and :math:`P_Z` which
-   define respectively the probability of a Pauli :math:`X`, :math:`Y`,
-   or :math:`Z` gate getting applied to *each* qubit after *every* gate
-   application. These probabilities are called the *gate noise
-   probabilities*.
-
--  The probabilities :math:`P_X'`, :math:`P_Y'`, and :math:`P_Z'` which
-   define respectively the probability of a Pauli :math:`X`, :math:`Y`,
-   or :math:`Z` gate getting applied to the qubit being measured
-   *before* it is measured. These probabilities are called the
-   *measurement noise probabilities*.
-
-We can instantiate a noisy QVM by creating a new connection with these
-probabilities specified.
-
-.. code:: python
-
-    # 20% chance of a X gate being applied after gate applications and before measurements.
-    gate_noise_probs = [0.2, 0.0, 0.0]
-    meas_noise_probs = [0.2, 0.0, 0.0]
-    noisy_qvm = qvm(gate_noise=gate_noise_probs, measurement_noise=meas_noise_probs)
-
-We can test this by applying an :math:`X`-gate and measuring. Nominally,
-we should always measure ``1``.
-
-.. code:: python
-
-    p = Program().inst(X(0)).measure(0, 0)
-    print("Without Noise: {}".format(qvm.run(p, [0], 10)))
-    print("With Noise   : {}".format(noisy_qvm.run(p, [0], 10)))
-
-.. parsed-literal::
-
-    Without Noise: [[1], [1], [1], [1], [1], [1], [1], [1], [1], [1]]
-    With Noise   : [[0], [0], [0], [0], [0], [1], [1], [1], [1], [0]]
-
-Parametric Programs
-~~~~~~~~~~~~~~~~~~~
-
-In PyQuil 1.x, there was an object named ``ParametricProgram``::
-
-    # This function returns a quantum circuit with different rotation angles on a gate on qubit 0
-    def rotator(angle):
-        return Program(RX(angle, 0))
-
-    from pyquil.parametric import ParametricProgram
-    par_p = ParametricProgram(rotator) # This produces a new type of parameterized program object
-
-This object has been removed from PyQuil 2. Please consider simply using a Python function for
-the above functionality::
-
-    par_p = rotator
-
-Or using declared classical memory::
-
-    p = Program()
-    angle = p.declare('angle', 'REAL')
-    p += RX(angle, 0)
 
 Pauli Operator Algebra
 ~~~~~~~~~~~~~~~~~~~~~~
@@ -378,17 +319,17 @@ The above sum can be constructed as follows:
 
     # Pauli term takes an operator "X", "Y", "Z", or "I"; a qubit to act on, and
     # an optional coefficient.
-    a = 0.5 * ID
+    a = 0.5 * ID()
     b = -0.75 * sX(0) * sY(1) * sZ(3)
     c = (5-2j) * sZ(1) * sX(2)
 
     # Construct a sum of Pauli terms.
     sigma = a + b + c
-    print("sigma = {}".format(sigma))
+    print(f"sigma = {sigma}")
 
 .. parsed-literal::
 
-    sigma = 0.5*I + -0.75*X0*Y1*Z3 + (5-2j)*Z1*X2
+    sigma = (0.5+0j)*I + (-0.75+0j)*X0*Y1*Z3 + (5-2j)*Z1*X2
 
 Right now, the primary thing one can do with Pauli terms and sums is to construct the
 exponential of the Pauli term, i.e., :math:`\exp[-i\beta\sigma]`.  This is
@@ -406,21 +347,19 @@ The following shows an instructive example of all three.
 
 .. code:: python
 
-    import pyquil.paulis as pl
+    from pyquil.paulis import exponential_map
 
-    # Simplification
     sigma_cubed = sigma * sigma * sigma
-    print("Simplified  : {}".format(sigma_cubed))
-    print()
+    print(f"Simplified: {sigma_cubed}\n")
 
-    #Produce Quil code to compute exp[iX]
+    # Produce Quil code to compute exp[iX]
     H = -1.0 * sX(0)
-    print("Quil to compute exp[iX] on qubit 0:")
-    print(pl.exponential_map(H)(1.0))
+    print(f"Quil to compute exp[iX] on qubit 0:\n"
+           f"{exponential_map(H)(1.0)}")
 
 .. parsed-literal::
 
-    Simplified  : (32.46875-30j)*I + (-16.734375+15j)*X0*Y1*Z3 + (71.5625-144.625j)*Z1*X2
+    Simplified: (32.46875-30j)*I + (-16.734375+15j)*X0*Y1*Z3 + (71.5625-144.625j)*Z1*X2
 
     Quil to compute exp[iX] on qubit 0:
     H 0
@@ -429,13 +368,39 @@ The following shows an instructive example of all three.
 
 ``exponential_map`` returns a function allowing you to fill in a multiplicative
 constant later. This commonly occurs in variational algorithms. The function
-``exponential_map`` is used to compute exp[-i * alpha * H] without explicitly filling in a
-value for alpha.
+``exponential_map`` is used to compute :math:`\exp[-i \alpha H]` without explicitly filling in a
+value for :math:`\alpha`.
 
 .. code:: python
 
-    expH = pl.exponential_map(H)
-    print(expH(0.0))
-    print(expH(1.0))
-    print(expH(2.0))
+    expH = exponential_map(H)
+    print(f"0:\n{expH(0.0)}\n")
+    print(f"1:\n{expH(1.0)}\n")
+    print(f"2:\n{expH(2.0)}")
+
+.. parsed-literal::
+    0:
+    H 0
+    RZ(0) 0
+    H 0
+
+    1:
+    H 0
+    RZ(-2.0) 0
+    H 0
+
+    2:
+    H 0
+    RZ(-4.0) 0
+    H 0
+
+To take it one step further, you can use :ref:`parametric_compilation` with ``exponential_map``. For instance:
+
+.. code:: python
+
+    ham = sZ(0) * sZ(1)
+    prog = Program()
+    theta = prog.declare('theta', 'REAL')
+    prog += exponential_map(ham)(theta)
+
 

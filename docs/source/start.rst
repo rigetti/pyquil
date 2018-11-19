@@ -236,8 +236,8 @@ Import a few things from pyQuil:
     from pyquil import Program, get_qc
     from pyquil.gates import *
 
-The ``Program`` object allows us to build up a Quil program. ``get-qc`` connects us to a
-``QuantumComputer`` object, which specifies what our program should run on (see: :ref:`qvm`). We've also imported all (``*``)
+The :py:class:`~pyquil.quil.Program` object allows us to build up a Quil program. :py:func:`~pyquil.get_qc` connects us to a
+:py:class:`~pyquil.api.QuantumComputer` object, which specifies what our program should run on (see: :ref:`qvm`). We've also imported all (``*``)
 gates from the ``pyquil.gates`` module, which allows us to add operations to our program (:ref:`basics`).
 
 Next, let's construct our Bell State.

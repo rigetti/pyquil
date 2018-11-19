@@ -362,7 +362,7 @@ instructions to target.
     MEASURE 3 ro[3]""")
         return program
 
-Next, we modify the execution loop. Rather than reformulating the ``Program`` object each time, we build and compile it
+Next, we modify the execution loop. Rather than reformulating the :py:class:`~pyquil.quil.Program` object each time, we build and compile it
 once, then use the ``.load()`` method to transfer the parametric program to the (simulated) quantum device. We then set
 only the angle value within the inner loop, and we change to using ``.run()`` and ``.wait()`` methods to manage control
 between us and the quantum device.
@@ -631,4 +631,27 @@ location:
     }
 
 Please attach such a logfile to any request for support.
+
+Parametric Programs
+~~~~~~~~~~~~~~~~~~~
+
+In PyQuil 1.x, there was an object named ``ParametricProgram``::
+
+    # This function returns a quantum circuit with different rotation angles on a gate on qubit 0
+    def rotator(angle):
+        return Program(RX(angle, 0))
+
+    from pyquil.parametric import ParametricProgram
+    par_p = ParametricProgram(rotator) # This produces a new type of parameterized program object
+
+This object has been removed from PyQuil 2. Please consider simply using a Python function for
+the above functionality::
+
+    par_p = rotator
+
+Or using declared classical memory::
+
+    p = Program()
+    angle = p.declare('angle', 'REAL')
+    p += RX(angle, 0)
 

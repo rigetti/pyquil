@@ -376,14 +376,14 @@ class PauliTerm(object):
 # For convenience, a shorthand for several operators.
 def ID():
     """
-    The identity Pauli Term.
+    The identity operator.
     """
     return PauliTerm("I", 0, 1)
 
 
 def ZERO():
     """
-    The zero Pauli Term.
+    The zero operator.
     """
     return PauliTerm("I", 0, 0)
 
@@ -653,6 +653,8 @@ class PauliSum(object):
 
 
 def simplify_pauli_sum(pauli_sum):
+    """Simplify the sum of Pauli operators according to Pauli algebra rules."""
+
     # You might want to use a defaultdict(list) here, but don't because
     # we want to do our best to preserve the order of terms.
     like_terms = OrderedDict()
@@ -750,11 +752,11 @@ def is_identity(term):
     return len(term) == 0
 
 
-def exponentiate(term):
+def exponentiate(term: PauliTerm):
     """
     Creates a pyQuil program that simulates the unitary evolution exp(-1j * term)
 
-    :param PauliTerm term: Tests is a PauliTerm is the identity operator
+    :param term: A pauli term to exponentiate
     :returns: A Program object
     :rtype: Program
     """
@@ -763,10 +765,10 @@ def exponentiate(term):
 
 def exponential_map(term):
     """
-    Creates map alpha -> exp(-1j*alpha*term) represented as a Program.
+    Returns a function f(alpha) that constructs the Program corresponding to exp(-1j*alpha*term).
 
-    :param PauliTerm term: Tests is a PauliTerm is the identity operator
-    :returns: Program
+    :param term: A pauli term to exponentiate
+    :returns: A function that takes an angle parameter and returns a program.
     :rtype: Function
     """
     if not np.isclose(np.imag(term.coefficient), 0.0):

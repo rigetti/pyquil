@@ -11,7 +11,7 @@ Programs and Gates
 Introduction
 ~~~~~~~~~~~~
 
-Quantum programs are written in Forest using the ``Program`` object. This ``Program`` abstraction will help us
+Quantum programs are written in Forest using the :py:class:`~pyquil.quil.Program` object. This ``Program`` abstraction will help us
 compose `Quil programs <https://arxiv.org/abs/1608.03355>`_.
 
 .. code:: python
@@ -286,7 +286,7 @@ Parametric compilation allows one to compile the program ansatz just once. Makin
 memory regions, we can load values to the parametric gates at execution time, after compilation.
 Taking the compiler out of the execution loop for programs like this offers a huge performance
 improvement compared to compiling the program each time a parameter update is required.
-(Some more details about this and an example are found :ref:here <parametric>.)
+(Some more details about this and an example are found :ref:`here <parametric>`.)
 
 The first step is to build our parametric program, which functions like a template for all the precise programs we will
 run. Below we create a simple example program to illustrate, which puts the qubit onto the equator of the Bloch Sphere and then
