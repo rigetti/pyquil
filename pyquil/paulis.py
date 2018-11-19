@@ -47,7 +47,7 @@ PAULI_COEFF = {'ZZ': 1.0, 'YY': 1.0, 'XX': 1.0, 'II': 1.0,
 
 class UnequalLengthWarning(Warning):
     def __init__(self, *args, **kwargs):
-        super(UnequalLengthWarning, self).__init__(*args, **kwargs)
+        super().__init__(*args, **kwargs)
 
 
 integer_types = six_integer_types + (np.int64, np.int32, np.int16, np.int8)
@@ -134,12 +134,6 @@ class PauliTerm(object):
             round(self.coefficient.imag * HASH_PRECISION),
             self.operations_as_set()
         ))
-
-    def __ne__(self, other):
-        # x!=y and x<>y call __ne__() instead of negating __eq__
-        # This is only a weirdness in python2 as in python 3 __ne__ defaults to the inversion of
-        # __eq__
-        return not self.__eq__(other)
 
     def __len__(self):
         """
@@ -469,15 +463,6 @@ class PauliSum(object):
             return False
 
         return set(self.terms) == set(other.terms)
-
-    def __ne__(self, other):
-        """Inequality testing to see if two PauliSum's are not equivalent.
-
-        :param PauliSum other: The PauliSum to compare this PauliSum with.
-        :return: False if other is equivalent to this PauliSum, True otherwise.
-        :rtype: bool
-        """
-        return not self == other
 
     def __str__(self):
         return " + ".join([str(term) for term in self.terms])
