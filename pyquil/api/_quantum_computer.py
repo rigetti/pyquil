@@ -269,6 +269,12 @@ class QuantumComputer:
         binary = self.compiler.native_quil_to_executable(nq_program)
         return binary
 
+    def reset(self):
+        """
+        Reset the QuantumComputer's QAM to its initial state.
+        """
+        self.qam.reset()
+
     def __str__(self) -> str:
         return self.name
 

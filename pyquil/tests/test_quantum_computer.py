@@ -12,7 +12,7 @@ from pyquil.device import NxDevice, gates_in_isa
 from pyquil.gates import *
 from pyquil.quilbase import Declare, MemoryReference
 from pyquil.noise import decoherence_noise_with_asymmetric_ro
-from rpcq.messages import PyQuilExecutableResponse
+from rpcq.messages import ParameterAref, PyQuilExecutableResponse
 
 
 class DummyCompiler(AbstractCompiler):
@@ -344,3 +344,37 @@ def test_run_with_parameters(forest):
 
     assert bitstrings.shape == (1000, 1)
     assert all([bit == 1 for bit in bitstrings])
+
+
+def test_reset(forest):
+    device = NxDevice(nx.complete_graph(3))
+    qc = QuantumComputer(
+        name='testy!',
+        qam=QVM(connection=forest),
+        device=device,
+        compiler=DummyCompiler()
+    )
+    p = Program(
+        Declare(name='theta', memory_type='REAL'),
+        Declare(name='ro', memory_type='BIT'),
+        RX(MemoryReference('theta'), 0),
+        MEASURE(0, MemoryReference('ro'))
+    ).wrap_in_numshots_loop(1000)
+    qc.run(
+        executable=p,
+        memory_map={'theta': [np.pi]}
+    )
+
+    aref = ParameterAref(name='theta', index=0)
+    assert qc.qam._variables_shim[aref] == np.pi
+    assert qc.qam._executable == p
+    assert qc.qam._bitstrings.shape == (1000, 1)
+    assert all([bit == 1 for bit in qc.qam._bitstrings])
+    assert qc.qam.status == 'done'
+
+    qc.reset()
+
+    assert qc.qam._variables_shim == {}
+    assert qc.qam._executable is None
+    assert qc.qam._bitstrings is None
+    assert qc.qam.status == 'connected'
