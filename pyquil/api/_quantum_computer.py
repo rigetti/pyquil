@@ -113,27 +113,55 @@ class QuantumComputer:
         self.symmetrize_readout = symmetrize_readout
 
     def qubits(self) -> List[int]:
+        """
+        Return a sorted list of this QuantumComputer's device's qubits
+
+        See :py:func:`AbstractDevice.qubits` for more.
+        """
         return self.device.qubits()
 
     def qubit_topology(self) -> nx.graph:
+        """
+        Return a NetworkX graph representation of this QuantumComputer's device's qubit
+        connectivity.
+
+        See :py:func:`AbstractDevice.qubit_topology` for more.
+        """
         return self.device.qubit_topology()
 
     def get_isa(self, oneq_type: str = 'Xhalves',
                 twoq_type: str = 'CZ') -> ISA:
+        """
+        Return a target ISA for this QuantumComputer's device.
+
+        See :py:func:`AbstractDevice.get_isa` for more.
+
+        :param oneq_type: The family of one-qubit gates to target
+        :param twoq_type: The family of two-qubit gates to target
+        """
         return self.device.get_isa(oneq_type=oneq_type, twoq_type=twoq_type)
 
     @_record_call
-    def run(self, executable: Executable) -> np.ndarray:
+    def run(self, executable: Executable,
+            memory_map: Dict[str, List[Union[int, float]]] = None) -> np.ndarray:
         """
-        Run a quil executable.
+        Run a quil executable. If the executable contains declared parameters, then a memory
+        map must be provided, which defines the runtime values of these parameters.
 
         :param executable: The program to run. You are responsible for compiling this first.
-        :return: A numpy array of shape (trials, len(ro-register)) that contains 0s and 1s
+        :param memory_map: The mapping of declared parameters to their values. The values
+            are a list of floats or integers.
+        :return: A numpy array of shape (trials, len(ro-register)) that contains 0s and 1s.
         """
-        return self.qam.load(executable) \
-            .run() \
+        self.qam.load(executable)
+        if memory_map:
+            for region_name, values_list in memory_map.items():
+                for offset, value in enumerate(values_list):
+                    # TODO gh-658: have write_memory take a list rather than value + offset
+                    self.qam.write_memory(region_name=region_name, offset=offset, value=value)
+        return self.qam.run() \
             .wait() \
-            .read_from_memory_region(region_name="ro")
+            .read_memory(region_name='ro')
 
     @_record_call
     def run_symmetrized_readout(self, program: Program, trials: int) -> np.ndarray:
@@ -216,6 +244,20 @@ class QuantumComputer:
     def compile(self, program: Program,
                 to_native_gates: bool = True,
                 optimize: bool = True) -> Message:
+        """
+        A high-level interface to program compilation.
+
+        Compilation currently consists of two stages. Please see the :py:class:`AbstractCompiler`
+        docs for more information. This function does all stages of compilation.
+
+        Right now both ``to_native_gates`` and ``optimize`` must be either both set or both
+        unset. More modular compilation passes may be available in the future.
+
+        :param program: A Program
+        :param to_native_gates: Whether to compile non-native gates to native gates.
+        :param optimize: Whether to optimize programs to reduce the number of operations.
+        :return: An executable binary suitable for passing to :py:func:`QuantumComputer.run`.
+        """
         flags = [to_native_gates, optimize]
         assert all(flags) or all(not f for f in flags), "Must turn quilc all on or all off"
         quilc = all(flags)
@@ -474,7 +516,7 @@ def get_qc(name: str, *, as_qvm: bool = None, noisy: bool = None,
         the default values for URL endpoints, ping time, and status time will be used. Your
         user id and API key will be read from ~/.pyquil_config. If you deign to change any
         of these parameters, pass your own :py:class:`ForestConnection` object.
-    :return:
+    :return: A pre-configured QuantumComputer
     """
     if connection is None:
         connection = ForestConnection()

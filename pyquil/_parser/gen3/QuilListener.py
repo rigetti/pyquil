@@ -143,6 +143,24 @@ class QuilListener(ParseTreeListener):
         pass
 
 
+    # Enter a parse tree produced by QuilParser#circuitMeasure.
+    def enterCircuitMeasure(self, ctx:QuilParser.CircuitMeasureContext):
+        pass
+
+    # Exit a parse tree produced by QuilParser#circuitMeasure.
+    def exitCircuitMeasure(self, ctx:QuilParser.CircuitMeasureContext):
+        pass
+
+
+    # Enter a parse tree produced by QuilParser#circuitResetState.
+    def enterCircuitResetState(self, ctx:QuilParser.CircuitResetStateContext):
+        pass
+
+    # Exit a parse tree produced by QuilParser#circuitResetState.
+    def exitCircuitResetState(self, ctx:QuilParser.CircuitResetStateContext):
+        pass
+
+
     # Enter a parse tree produced by QuilParser#circuitInstr.
     def enterCircuitInstr(self, ctx:QuilParser.CircuitInstrContext):
         pass

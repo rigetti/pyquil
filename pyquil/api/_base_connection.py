@@ -284,25 +284,27 @@ def quilc_compile_payload(quil_program, isa, specs):
 
 class ForestConnection:
     @_record_call
-    def __init__(self, sync_endpoint=None, compiler_endpoint=None):
+    def __init__(self, sync_endpoint=None, compiler_endpoint=None, forest_cloud_endpoint=None):
         """
         Represents a connection to Forest containing methods to wrap all possible API endpoints.
 
         Users should not use methods from this class directly.
 
-        :param sync_endpoint: The endpoint of the server for running (small) QVM jobs
-        :param compiler_endpoint: The endpoint of the server for running (small) compiler jobs
+        :param sync_endpoint: The endpoint of the server for running QVM jobs
+        :param compiler_endpoint: The endpoint of the server for running quilc compiler jobs
+        :param forest_cloud_endpoint: The endpoint of the forest cloud server
         """
-
-        if not sync_endpoint:
-            pyquil_config = PyquilConfig()
+        pyquil_config = PyquilConfig()
+        if sync_endpoint is None:
             sync_endpoint = pyquil_config.qvm_url
-        if not compiler_endpoint:
-            pyquil_config = PyquilConfig()
+        if compiler_endpoint is None:
             compiler_endpoint = pyquil_config.compiler_url
+        if forest_cloud_endpoint is None:
+            forest_cloud_endpoint = pyquil_config.forest_url
 
         self.sync_endpoint = sync_endpoint
         self.compiler_endpoint = compiler_endpoint
+        self.forest_cloud_endpoint = forest_cloud_endpoint
         self.session = get_session()
 
     @_record_call

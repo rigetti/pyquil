@@ -19,7 +19,7 @@ def test_qvm_run_pqer(forest: ForestConnection):
     qvm.load(nq)
     qvm.run()
     qvm.wait()
-    bitstrings = qvm.read_from_memory_region(region_name="ro")
+    bitstrings = qvm.read_memory(region_name="ro")
     assert bitstrings.shape == (1000, 1)
     assert np.mean(bitstrings) > 0.8
 
@@ -31,7 +31,7 @@ def test_qvm_run_just_program(forest: ForestConnection):
     qvm.load(p)
     qvm.run()
     qvm.wait()
-    bitstrings = qvm.read_from_memory_region(region_name="ro")
+    bitstrings = qvm.read_memory(region_name="ro")
     assert bitstrings.shape == (1000, 1)
     assert np.mean(bitstrings) > 0.8
 
@@ -51,7 +51,7 @@ def test_qvm_run_only_pqer(forest: ForestConnection):
     qvm.load(nq)
     qvm.run()
     qvm.wait()
-    bitstrings = qvm.read_from_memory_region(region_name="ro")
+    bitstrings = qvm.read_memory(region_name="ro")
     assert bitstrings.shape == (1000, 1)
     assert np.mean(bitstrings) > 0.8
 
@@ -61,7 +61,7 @@ def test_qvm_run_no_measure(forest: ForestConnection):
     p = Program(X(0))
     nq = PyQuilExecutableResponse(program=p.out(), attributes={'num_shots': 100})
     qvm.load(nq).run().wait()
-    bitstrings = qvm.read_from_memory_region(region_name="ro")
+    bitstrings = qvm.read_memory(region_name="ro")
     assert bitstrings.shape == (100, 0)
 
 

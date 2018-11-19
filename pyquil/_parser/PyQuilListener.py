@@ -128,11 +128,12 @@ class PyQuilListener(QuilListener):
         circuit_name = ctx.name().getText()
         variables = [variable.getText() for variable in ctx.variable()]
         qubitVariables = [qubitVariable.getText() for qubitVariable in ctx.qubitVariable()]
+        space = ' ' if qubitVariables else ''
 
         if variables:
-            raw_defcircuit = 'DEFCIRCUIT {}({}) {}:'.format(circuit_name, ', '.join(variables), ' '.join(qubitVariables))
+            raw_defcircuit = 'DEFCIRCUIT {}({}){}{}:'.format(circuit_name, ', '.join(variables), space, ' '.join(qubitVariables))
         else:
-            raw_defcircuit = 'DEFCIRCUIT {} {}:'.format(circuit_name, ' '.join(qubitVariables))
+            raw_defcircuit = 'DEFCIRCUIT {}{}{}:'.format(circuit_name, space, ' '.join(qubitVariables))
 
         raw_defcircuit += '\n    '.join([''] + [instr.out() for instr in self.result])
         self.previous_result.append(RawInstr(raw_defcircuit))
@@ -165,6 +166,13 @@ class PyQuilListener(QuilListener):
             self.result.append(RawInstr('{}({}) {}'.format(gate_name, ', '.join(params), ' '.join(qubits))))
         else:
             self.result.append(RawInstr('{} {}'.format(gate_name, ' '.join(qubits))))
+
+    def exitCircuitMeasure(self, ctx: QuilParser.CircuitMeasureContext):
+        qubit = ctx.circuitQubit().getText()
+        classical = None
+        if ctx.addr():
+            classical = ctx.addr().getText()
+        self.result.append(RawInstr(f'MEASURE {qubit} {classical}' if classical else f'MEASURE {qubit}'))
 
     def exitMeasure(self, ctx: QuilParser.MeasureContext):
         qubit = _qubit(ctx.qubit())
@@ -199,6 +207,10 @@ class PyQuilListener(QuilListener):
             self.result.append(ResetQubit(_qubit(ctx.qubit())))
         else:
             self.result.append(Reset())
+
+    def exitCircuitResetState(self, ctx: QuilParser.ResetStateContext):
+        qubit = ctx.circuitQubit().getText()
+        self.result.append(RawInstr(f'RESET {qubit}'))
 
     def exitWait(self, ctx):
         # type: (QuilParser.WaitContext) -> None

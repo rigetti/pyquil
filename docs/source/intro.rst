@@ -56,19 +56,20 @@ probabilistic bit) is a two-dimensional real vector space and a
     import numpy as np
     import matplotlib.pyplot as plt
 
+
     outcome_0 = np.array([1.0, 0.0])
     outcome_1 = np.array([0.0, 1.0])
     a = 0.75
     b = 0.25
 
-    prob_bit = a*outcome_0 + b*outcome_1
+    prob_bit = a * outcome_0 + b * outcome_1
 
-    X,Y = prob_bit
+    X, Y = prob_bit
     plt.figure()
     ax = plt.gca()
-    ax.quiver(X,Y,angles='xy',scale_units='xy',scale=1)
-    ax.set_xlim([0,1])
-    ax.set_ylim([0,1])
+    ax.quiver(X, Y, angles='xy', scale_units='xy', scale=1)
+    ax.set_xlim([0, 1])
+    ax.set_ylim([0, 1])
     plt.draw()
     plt.show()
 
@@ -91,11 +92,11 @@ Physicists have introduced a convenient notation for the vector transposes and d
 products we used in the previous example. This notation, called Dirac notation in honor
 of the great theoretical physicist Paul Dirac, allows us to define
 
-.. math::  \vec{v} = |\,v\rangle \\ \vec{v}^T = \langle v\,| \\ \vec{u}^T.\vec{v} = \langle u\,|\,v \rangle.
+.. math::  \vec{v} = \vert v\rangle \\ \vec{v}^T = \langle v \vert \\ \vec{u}^T \cdot \vec{v} = \langle u \vert v \rangle
 
 Thus, we can rewrite our "measurement rule" in this notation as
 
-.. math::  Pr(0) = \langle v\,|\,0 \rangle = a \\ Pr(1) = \langle v\,|\,1 \rangle = b.
+.. math::  Pr(0) = \langle v \vert 0 \rangle = a \\ Pr(1) = \langle v\vert 1 \rangle = b
 
 We will use this notation throughout the rest of this introduction.
 
@@ -112,7 +113,7 @@ programmers). Their states can be represented as
     |\,u\rangle = \frac{1}{2}|\,0_u\rangle + \frac{1}{2}|\,1_u\rangle \\
    |\,v\rangle = \frac{1}{2}|\,0_v\rangle + \frac{1}{2}|\,1_v\rangle,
 
-where \\(1\_u\\) represents the 1 outcome on coin \\(u\\). The
+where \\(1\_u\\) represents the outcome 1 on coin \\(u\\). The
 **combined system** of the two coins has four possible outcomes \\(\\{
 0\_u0\_v,\\;0\_u1\_v,\\;1\_u0\_v,\\;1\_u1\_v \\}\\) that are the basis
 states of a larger four-dimensional vector space. The rule for
@@ -124,11 +125,7 @@ individual states, e.g.
 Then, the combined space is simply the space spanned by the tensor products
 of all pairs of basis vectors of the two smaller spaces.
 
-We will talk more about these larger spaces in the quantum case, but it is
-important to note that not all composite states can be written as tensor
-products of sub-states. (Consider the state \\(\\frac{1}{2}|\\,0\_u0\_v\\rangle + \\frac{1}{2}|\\,1\_u1\_v\\rangle\\).) In general, the combined state for \\(n\\)
-probabilistic bits is a vector of size \\(2^n\\) and is given by
-\\(\\bigotimes\_{i=0}^{n-1}\|\\,v\_i\\rangle\\).
+Similarly, the combined state for \\(n\\) such probabilistic bits is a vector of size \\(2^n\\) and is given by \\(\\bigotimes\_{i=0}^{n-1}\|\\,v\_i\\rangle\\). We will talk more about these larger spaces in the quantum case, but it is important to note that not all composite states can be written as tensor products of sub-states (e.g. consider the state \\(\\frac{1}{2}|\\,0\_u0\_v\\rangle + \\frac{1}{2}|\\,1\_u1\_v\\rangle\\)). The most general composite state of \\(n\\) probabilistic bits can be written as \\(\\sum\_{j=0}^{2^n - 1} a\_{j} (\\bigotimes\_{i=0}^{n-1}\|\\,b\_{ij}\\rangle\\)) where each \\(b\_{ij} \\in \\{0, 1\\}\\) and \\(a_j \\in \\mathbb{R}\\), i.e. as a linear combination (with real coefficients) of tensor products of basis states. Note that this still gives us \\(2^n\\) possible states.
 
 Qubits
 ^^^^^^
@@ -155,7 +152,7 @@ recover acceptable probabilities for outcomes based on our new complex
 vector.
 
 This switch to complex vectors means that rather than representing a
-state vector in a plane, we instead to represent the vector on a
+state vector in a plane, we instead represent the vector on a
 sphere (called the Bloch sphere in quantum mechanics literature).
 From this perspective the quantum state corresponding to an
 outcome of 0 is represented by:
@@ -169,9 +166,7 @@ use the convention that a qubit's \\(\\{\|\\,0\\rangle,
 positive and negative unit vectors along the z axis, respectively. These
 axes will be useful later in this document.
 
-Multiple qubits are represented in precisely the same way, but taking
-tensor products of the spaces and states. Thus \\(n\\) qubits have
-\\(2^n\\) possible states.
+Multiple qubits are represented in precisely the same way, by taking linear combinations (with complex coefficients, now) of tensor products of basis states. Thus \\(n\\) qubits have \\(2^n\\) possible states.
 
 An Important Distinction
 ^^^^^^^^^^^^^^^^^^^^^^^^
@@ -180,13 +175,13 @@ An important distinction between the probabilistic case described above
 and the quantum case is that probabilistic states may just mask out
 ignorance. For example a coin is physically only 0 or 1 and the
 probabilistic view merely represents our ignorance about which it actually
-is. **This is not the case in quantum mechanics**. Assuming events cannot instantaneously
-influence one another, the quantum states ---
+is. **This is not the case in quantum mechanics**. Assuming events occuring at a distance from one another cannot instantaneously
+influence each other, the quantum states ---
 as far as we know --- cannot mask any underlying state. This is what
 people mean when they say that there is no `local hidden variable theory
 <https://en.wikipedia.org/wiki/Bell's_theorem>`_ for
 quantum mechanics. These probabilistic quantum states are as real as it
-gets: they don't describe our knowledge of the quantum system, they
+gets: they don't just describe our knowledge of the quantum system, they
 describe the physical reality of the system.
 
 Some Code
@@ -195,7 +190,7 @@ Some Code
 Let us take a look at some code in pyQuil to see how these quantum states
 play out. We will dive deeper into quantum operations and pyQuil in
 the following sections. Note that in order to run these examples you will need
-to `install pyQuil and set up a connection to the Forest API <getting_started.html#getting-started>`_.
+to `install pyQuil and download the QVM and Compiler <start.html>`_.
 Each of the code snippets below will be immediately followed by its output.
 
 .. code:: python
@@ -203,8 +198,11 @@ Each of the code snippets below will be immediately followed by its output.
     # Imports for pyQuil (ignore for now)
     import numpy as np
     from pyquil.quil import Program
-    from pyquil.api import QVMConnection
-    quantum_simulator = QVMConnection()
+    from pyquil.api import WavefunctionSimulator
+
+
+    # create a WavefunctionSimulator object
+    wavefunction_simulator = WavefunctionSimulator()
 
     # pyQuil is based around operations (or gates) so we will start with the most
     # basic one: the identity operation, called I. I takes one argument, the index
@@ -218,7 +216,7 @@ Each of the code snippets below will be immediately followed by its output.
     # We can run this basic program on our connection to the simulator.
     # This call will return the state of our qubits after we run program p.
     # This api call returns a tuple, but we'll ignore the second value for now.
-    wavefunction = quantum_simulator.wavefunction(p)
+    wavefunction = wavefunction_simulator.wavefunction(p)
 
     # wavefunction is a Wavefunction object that stores a quantum state as a list of amplitudes
     alpha, beta = wavefunction
@@ -245,7 +243,7 @@ Applying an operation to our qubit affects the probability of each outcome.
 
     p = Program(X(0))
 
-    wavefunc = quantum_simulator.wavefunction(p)
+    wavefunc = wavefunction_simulator.wavefunction(p)
     alpha, beta = wavefunc
 
     print("Our qubit is in the state alpha={} and beta={}".format(alpha, beta))
@@ -267,18 +265,18 @@ multiple qubits to grow exponentially in size, as their vectors are tensored tog
 
     # Multiple qubits also produce the expected scaling of the state.
     p = Program(I(0), I(1))
-    wavefunction = quantum_simulator.wavefunction(p)
+    wavefunction = wavefunction_simulator.wavefunction(p)
     print("The quantum state is of dimension:", len(wavefunction.amplitudes))
 
     p = Program(I(0), I(1), I(2), I(3))
-    wavefunction = quantum_simulator.wavefunction(p)
+    wavefunction = wavefunction_simulator.wavefunction(p)
     print("The quantum state is of dimension:", len(wavefunction.amplitudes))
 
     p = Program()
     for x in range(10):
         p += I(x)
-    wavefunction = quantum_simulator.wavefunction(p)
-    print("The quantum state is of dimension:", len(wavefunction.amplitudes)  )
+    wavefunction = wavefunction_simulator.wavefunction(p)
+    print("The quantum state is of dimension:", len(wavefunction.amplitudes))
 
 
 .. parsed-literal::
@@ -294,7 +292,7 @@ those outcomes as values.
 .. code:: python
 
     # wavefunction(Program) returns a coefficient array that corresponds to outcomes in the following order
-    wavefunction = quantum_simulator.wavefunction(Program(I(0), I(1)))
+    wavefunction = wavefunction_simulator.wavefunction(Program(I(0), I(1)))
     print(wavefunction.get_outcome_probs())
 
 
@@ -307,7 +305,7 @@ Qubit Operations
 ----------------
 
 In the previous section we introduced our first two **operations**: the ``I``
-(or identity) operation and the ``X`` operation. In this section we will get into some
+(or Identity) operation and the ``X`` (or NOT) operation. In this section we will get into some
 more details on what these operations are.
 
 Quantum states are complex vectors on the Bloch sphere, and quantum operations are matrices with two properties:
@@ -316,7 +314,7 @@ Quantum states are complex vectors on the Bloch sphere, and quantum operations a
 2. When applied to a state vector on the Bloch sphere, the resulting vector
    is also on the Bloch sphere.
 
-Matrices that satisfy these two properties are called unitary matrices. Applying an operation to a quantum state is the same as multiplying a vector by one of these matrices. Such an operation is called a **gate**.
+Matrices that satisfy these two properties are called unitary matrices. Such matrices have the characteristic property that their complex conjugate transpose is equal to their inverse, a property directly linked to the requirement that the probabilities of measuring qubits in any of the allowed states must sum to 1. Applying an operation to a quantum state is the same as multiplying a vector by one of these matrices. Such an operation is called a **gate**.
 
 Since individual qubits are two-dimensional vectors, operations on
 individual qubits are 2x2 matrices. The identity matrix leaves the state vector unchanged:
@@ -346,7 +344,7 @@ so the program that applies this operation to the zero state is just
 .. code:: python
 
     p = Program(I(0))
-    print(quantum_simulator.wavefunction(p))
+    print(wavefunction_simulator.wavefunction(p))
 
 .. parsed-literal::
 
@@ -380,20 +378,21 @@ called the Pauli operators:
 
     from pyquil.gates import X, Y, Z
 
+
     p = Program(X(0))
-    wavefunction = quantum_simulator.wavefunction(p)
+    wavefunction = wavefunction_simulator.wavefunction(p)
     print("X|0> = ", wavefunction)
     print("The outcome probabilities are", wavefunction.get_outcome_probs())
     print("This looks like a bit flip.\n")
 
     p = Program(Y(0))
-    wavefunction = quantum_simulator.wavefunction(p)
+    wavefunction = wavefunction_simulator.wavefunction(p)
     print("Y|0> = ", wavefunction)
     print("The outcome probabilities are", wavefunction.get_outcome_probs())
     print("This also looks like a bit flip.\n")
 
     p = Program(Z(0))
-    wavefunction = quantum_simulator.wavefunction(p)
+    wavefunction = wavefunction_simulator.wavefunction(p)
     print("Z|0> = ", wavefunction)
     print("The outcome probabilities are", wavefunction.get_outcome_probs())
     print("This state looks unchanged.")
@@ -430,7 +429,7 @@ Quantum programs are built by applying successive gate operations:
 
     # Composing qubit operations is the same as multiplying matrices sequentially
     p = Program(X(0), Y(0), Z(0))
-    wavefunction = quantum_simulator.wavefunction(p)
+    wavefunction = wavefunction_simulator.wavefunction(p)
 
     print("ZYX|0> = ", wavefunction)
     print("With outcome probabilities\n", wavefunction.get_outcome_probs())
@@ -466,25 +465,26 @@ Let's take a look at how we could use a ``CNOT`` gate in pyQuil.
 
     from pyquil.gates import CNOT
 
+
     p = Program(CNOT(0, 1))
-    wavefunction = quantum_simulator.wavefunction(p)
+    wavefunction = wavefunction_simulator.wavefunction(p)
     print("CNOT|00> = ", wavefunction)
-    print("With outcome probabilities\n", wavefunction.get_outcome_probs())
+    print("With outcome probabilities\n", wavefunction.get_outcome_probs(), "\n")
 
     p = Program(X(0), CNOT(0, 1))
-    wavefunction = quantum_simulator.wavefunction(p)
+    wavefunction = wavefunction_simulator.wavefunction(p)
     print("CNOT|01> = ", wavefunction)
-    print("With outcome probabilities\n", wavefunction.get_outcome_probs())
+    print("With outcome probabilities\n", wavefunction.get_outcome_probs(), "\n")
 
     p = Program(X(1), CNOT(0, 1))
-    wavefunction = quantum_simulator.wavefunction(p)
+    wavefunction = wavefunction_simulator.wavefunction(p)
     print("CNOT|10> = ", wavefunction)
-    print("With outcome probabilities\n", wavefunction.get_outcome_probs())
+    print("With outcome probabilities\n", wavefunction.get_outcome_probs(), "\n")
 
     p = Program(X(0), X(1), CNOT(0, 1))
-    wavefunction = quantum_simulator.wavefunction(p)
+    wavefunction = wavefunction_simulator.wavefunction(p)
     print("CNOT|11> = ", wavefunction)
-    print("With outcome probabilities\n", wavefunction.get_outcome_probs())
+    print("With outcome probabilities\n", wavefunction.get_outcome_probs(), "\n")
 
 
 .. parsed-literal::
@@ -525,8 +525,10 @@ and \\(\|10\\rangle \\) states:
 .. code:: python
 
     from pyquil.gates import SWAP
+
+
     p = Program(X(0), SWAP(0,1))
-    wavefunction = quantum_simulator.wavefunction(p)
+    wavefunction = wavefunction_simulator.wavefunction(p)
 
     print("SWAP|01> = ", wavefunction)
     print("With outcome probabilities\n", wavefunction.get_outcome_probs())
@@ -577,43 +579,46 @@ Here's a simple example:
 .. code:: python
 
     # Create a program that stores the outcome of measuring qubit #0 into classical register [0]
-    classical_register_index = 0
-    p = Program(I(0)).measure(0, classical_register_index)
+    p = Program()
+    classical_register = p.declare('ro', 'BIT', 1)
+    p += Program(I(0)).measure(0, classical_register[0])
 
 Up until this point we have used the quantum simulator to cheat a little bit --- we have
 actually looked at the wavefunction that comes back. However, on real
 quantum hardware, we are unable to directly look at the wavefunction.
 Instead we only have access to the classical bits that are affected by
-measurements. This functionality is emulated by the ``run`` command.
+measurements. This functionality is emulated by :py:func:`QuantumComputer.run`. Note that the ``run`` command is to be applied on the compiled version of the program.
 
 .. code:: python
 
-    # Choose which classical registers to look in at the end of the computation
-    classical_regs = [0, 1]
-    print(quantum_simulator.run(p, classical_regs))
+    from pyquil import get_qc
+
+
+    qc = get_qc('9q-square-qvm')
+    print (qc.run(qc.compile(p)))
 
 
 .. parsed-literal::
 
-    [[0, 0]]
+    [[0]]
 
 
-We see that both registers are zero. However, if we had flipped the
+We see that the classical register reports a value of zero. However, if we had flipped the
 qubit before measurement then we obtain:
 
 .. code:: python
 
-    classical_register_index = 0
-    p = Program(X(0)) # Flip the qubit
-    p.measure(0, classical_register_index) # Measure the qubit
+    p = Program()
+    classical_register = p.declare('ro', 'BIT', 1)
+    p += Program(X(0))   # Flip the qubit
+    p.measure(0, classical_register[0])   # Measure the qubit
 
-    classical_regs = [0, 1]
-    print(quantum_simulator.run(p, classical_regs))
+    print (qc.run(qc.compile(p)))
 
 
 .. parsed-literal::
 
-    [[1, 0]]
+    [[1]]
 
 
 These measurements are deterministic, e.g. if we make them multiple
@@ -621,13 +626,15 @@ times then we always get the same outcome:
 
 .. code:: python
 
-    classical_register_index = 0
-    p = Program(X(0)) # Flip the qubit
-    p.measure(0, classical_register_index) # Measure the qubit
+    p = Program()
+    classical_register = p.declare('ro', 'BIT', 1)
+    p += Program(X(0))   # Flip the qubit
+    p.measure(0, classical_register[0])   # Measure the qubit
 
-    classical_regs = [0]
     trials = 10
-    print(quantum_simulator.run(p, classical_regs, trials))
+    p.wrap_in_numshots_loop(shots=trials)
+
+    print (qc.run(qc.compile(p)))
 
 
 .. parsed-literal::
@@ -655,9 +662,10 @@ The following pyQuil code shows how we can use the Hadamard gate:
 
     from pyquil.gates import H
 
+
     # The Hadamard produces what is called a superposition state
     coin_program = Program(H(0))
-    wavefunction = quantum_simulator.wavefunction(coin_program)
+    wavefunction = wavefunction_simulator.wavefunction(coin_program)
 
     print("H|0> = ", wavefunction)
     print("With outcome probabilities\n", wavefunction.get_outcome_probs())
@@ -687,13 +695,16 @@ extra power over regular bits.
 
 .. code:: python
 
-    # Introduce measurement
-    classical_reg = 0
-    coin_program = Program(H(0)).measure(0, classical_reg)
-    trials = 10
+    p = Program()
+    ro = p.declare('ro', 'BIT', 1)
+
+    p += Program(H(0)).measure(0, ro[0])
+
+    # Measure qubit #0 a number of times
+    p.wrap_in_numshots_loop(shots=10)
 
     # We see probabilistic results of about half 1's and half 0's
-    print(quantum_simulator.run(coin_program, [0], trials))
+    print (qc.run(qc.compile(p)))
 
 
 .. parsed-literal::
@@ -705,22 +716,22 @@ pyQuil allows us to look at the wavefunction **after** a measurement as well:
 
 .. code:: python
 
-    classical_reg = 0
     coin_program = Program(H(0))
-    print("Before measurement: H|0> = ", quantum_simulator.wavefunction(coin_program))
+    print ("Before measurement: H|0> = ", wavefunction_simulator.wavefunction(coin_program), "\n")
 
-    coin_program.measure(0, classical_reg)
-    for x in range(5):
-        print("After measurement: ", quantum_simulator.wavefunction(coin_program))
+    ro = coin_program.declare('ro', 'BIT', 1)
+    coin_program.measure(0, ro[0])
+    for _ in range(5):
+        print ("After measurement: ", wavefunction_simulator.wavefunction(coin_program))
 
 
 .. parsed-literal::
 
-    Before measurement: H|0> =  [ 0.70710678+0.j  0.70710678+0.j]
+    Before measurement: H|0> =  (0.7071067812+0j)|0> + (0.7071067812+0j)|1> 
 
     After measurement:  (1+0j)|1>
-    After measurement:  (1+0j)|0>
-    After measurement:  (1+0j)|0>
+    After measurement:  (1+0j)|1>
+    After measurement:  (1+0j)|1>
     After measurement:  (1+0j)|1>
     After measurement:  (1+0j)|1>
 
@@ -736,28 +747,27 @@ the obtained outcome and subsequently rescaled to unit norm.
 
 .. code:: python
 
-    # This happens with bigger systems too
-    classical_reg = 0
-
-    # This program prepares something called a Bell state (a special kind of "entangled state")
+    # This happens with bigger systems too, as can be seen with this program,
+    # which prepares something called a Bell state (a special kind of "entangled state")
     bell_program = Program(H(0), CNOT(0, 1))
-    wavefunction = quantum_simulator.wavefunction(bell_program)
-    print("Before measurement: Bell state = ", wavefunction)
+    wavefunction = wavefunction_simulator.wavefunction(bell_program)
+    print("Before measurement: Bell state = ", wavefunction, "\n")
 
-    bell_program.measure(0, classical_reg)
-    for x in range(5):
-        wavefunction = quantum_simulator.wavefunction(bell_program)
+    classical_regs = bell_program.declare('ro', 'BIT', 2)
+    bell_program.measure(0, classical_regs[0]).measure(1, classical_regs[1])
+
+    for _ in range(5):
+        wavefunction = wavefunction_simulator.wavefunction(bell_program)
         print("After measurement: ", wavefunction.get_outcome_probs())
-
 
 .. parsed-literal::
 
-    Before measurement: Bell state =  (0.7071067812+0j)|00> + (0.7071067812+0j)|11>
+    Before measurement: Bell state =  (0.7071067812+0j)|00> + (0.7071067812+0j)|11> 
 
-    After measurement:  {'00': 1.0, '01': 0.0, '10': 0.0, '11': 0.0}
     After measurement:  {'00': 0.0, '01': 0.0, '10': 0.0, '11': 1.0}
-    After measurement:  {'00': 1.0, '01': 0.0, '10': 0.0, '11': 0.0}
-    After measurement:  {'00': 1.0, '01': 0.0, '10': 0.0, '11': 0.0}
+    After measurement:  {'00': 0.0, '01': 0.0, '10': 0.0, '11': 1.0}
+    After measurement:  {'00': 0.0, '01': 0.0, '10': 0.0, '11': 1.0}
+    After measurement:  {'00': 0.0, '01': 0.0, '10': 0.0, '11': 1.0}
     After measurement:  {'00': 0.0, '01': 0.0, '10': 0.0, '11': 1.0}
 
 
@@ -779,21 +789,23 @@ quantum operations to run.
     true_branch = Program(X(7)) # if branch
     false_branch = Program(I(7)) # else branch
 
-    # Branch on classical reg [1]
-    p = Program(X(0)).measure(0, 1).if_then(1, true_branch, false_branch)
+    # Branch on ro[1]
+    p = Program()
+    ro = p.declare('ro', 'BIT', 8)
+    p += Program(X(0)).measure(0, ro[1]).if_then(ro[1], true_branch, false_branch)
 
-    # Measure qubit #7 into classical register [7]
-    p.measure(7, 7)
+    # Measure qubit #7 into ro[7]
+    p.measure(7, ro[7])
 
     # Run and check register [7]
-    print(quantum_simulator.run(p, [7]))
+    print (qc.run(qc.compile(p)))
 
 
 .. parsed-literal::
 
-    [[1]]
+    [[1 1]]
 
-A [1] here means that qubit 7 was indeed flipped.
+The second [1] here means that qubit 7 was indeed flipped.
 
 .. image:: images/branch.png
 
@@ -805,12 +817,13 @@ increasing chance of halting, but that may run forever!
 
 .. code:: python
 
-    inside_loop = Program(H(0)).measure(0, 1)
+    p = Program()
+    ro = p.declare('ro', 'BIT', 1)
+    inside_loop = Program(H(0)).measure(0, ro[0])
+    p.inst(X(0)).while_do(ro[0], inside_loop)
 
-    p = Program().inst(X(0)).while_do(1, inside_loop)
-
-    # Run and check register [1]
-    print(quantum_simulator.run(p, [1]))
+    qc = get_qc('9q-square-qvm')
+    print (qc.run(qc.compile(p)))
 
 
 .. parsed-literal::
