@@ -355,11 +355,11 @@ def test_reset(forest):
         compiler=DummyCompiler()
     )
     p = Program(
-            Declare(name='theta', memory_type='REAL'),
-            Declare(name='ro', memory_type='BIT'),
-            RX(MemoryReference('theta'), 0),
-            MEASURE(0, MemoryReference('ro'))
-        ).wrap_in_numshots_loop(1000)
+        Declare(name='theta', memory_type='REAL'),
+        Declare(name='ro', memory_type='BIT'),
+        RX(MemoryReference('theta'), 0),
+        MEASURE(0, MemoryReference('ro'))
+    ).wrap_in_numshots_loop(1000)
     qc.run(
         executable=p,
         memory_map={'theta': [np.pi]}
@@ -375,6 +375,6 @@ def test_reset(forest):
     qc.reset()
 
     assert qc.qam._variables_shim == {}
-    assert qc.qam._executable == None
-    assert qc.qam._bitstrings == None
+    assert qc.qam._executable is None
+    assert qc.qam._bitstrings is None
     assert qc.qam.status == 'connected'
