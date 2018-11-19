@@ -69,6 +69,9 @@ Contents
 
    start
    migration
+   migration2-qc
+   migration3-declare
+   migration4
    basics
    qvm
    wavefunction_simulator
@@ -78,9 +81,6 @@ Contents
    exercises
    changes
    intro
-   Migration
-   Migration2
-   Migration3
 
 .. toctree::
    :maxdepth: 1

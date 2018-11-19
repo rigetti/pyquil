@@ -1,30 +1,22 @@
 .. _quickstart:
 
-Forest 2.0: Migration Guide
-===========================
+New in Forest 2 - Other
+=======================
 
-The goals of this guide are to cover changes to the Forest SDK (containing pyquil 2.0, new Quil, Quil Compiler, and QVM),
-and to go through an example of migrating a VQE program from Forest 1.3 (pyQuil 1.9, Quil 1.0) to be able to run on the
-new Forest SDK.
-
+There are many other changes to the Forest SDK (comprising pyQuil, Quil, the Quil Compiler, and
+the QVM).
 
 .. note::
 
     For installation & setup, follow the download instructions in the section :ref:`start` at the top of the page.
 
-What's changed
-~~~~~~~~~~~~~~
 
-With the new Forest SDK, users will be able to run pyQuil programs on a downloadable QVM and Quil Compiler!
+Updates to the Quil language
+~~~~~~~~~~~~~~~~~~~~~~~~~~~~
 
-In the following section, we'll cover the main changes to pyQuil, Quil, the Quil Compiler, and the QVM.
-
-Overview of Updates to Quil and pyQuil
-~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
-
-The primary differences in the programming language Quil 1.0 (as appearing in pyQuil 1.3) and Quil 2 (as appearing in
-2.0) amount to an enhanced memory model. Whereas the classical memory model in Quil 1.0 amounted to an flat bit array of
-indefinite size, the memory model in  Quil 2 is segmented into typed, sized, named regions.
+The primary differences in the programming language Quil 1.0 (as appearing in pyQuil 1.x) and Quil 2 (as appearing in
+pyQuil 2) amount to an enhanced memory model. Whereas the classical memory model in Quil 1.0 amounted to an flat bit array of
+indefinite size, the memory model in Quil 2 is segmented into typed, sized, named regions.
 
 In terms of compatibility with Quil 1.0, this primarily changes how ``MEASURE`` instructions are formulated, since their
 classical address targets must be modified to fit the new framework. In terms of new functionality, this allows angle
@@ -33,21 +25,15 @@ values to be read in from classical memory.
 Quil 2 also introduces easier ways to manipulate gates by using gate modifiers. Two gate modifiers are supported currently,
 `DAGGER` and `CONTROLLED`.
 
-`DAGGER` can be written before a gate to refer to its inverse. For instance
-
-.. code::
+`DAGGER` can be written before a gate to refer to its inverse. For instance::
 
     DAGGER RX(pi/3) 0
 
-would have the same effect as
-
-.. code::
+would have the same effect as::
 
     RX(-pi/3) 0
 
-`DAGGER` can be applied to any gate, but also circuits defined with `DEFCIRCUIT`. This allows for easy reversal of unitary circuits:
-
-.. code::
+`DAGGER` can be applied to any gate, but also circuits defined with `DEFCIRCUIT`. This allows for easy reversal of unitary circuits::
 
     DEFCIRCUIT BELL:
         H 0
@@ -58,45 +44,6 @@ would have the same effect as
     # disentangle, bringing us back to identity
     DAGGER BELL
 
-.. _parametric:
-
-Parametric programs
-~~~~~~~~~~~~~~~~~~~
-
-The main benefit for users of declared memory regions in Quil is that angle values for parametric gates can be loaded at
-execution time on the QPU. Consider the following simple QAOA instance:
-
-::
-
-    DECLARE ro BIT[2]
-    DECLARE beta REAL
-    DECLARE gamma REAL
-
-    H 0
-    RZ(beta) 0
-    H 0
-    H 1
-    RZ(beta) 1
-    H 1
-
-    CNOT 0 1
-    RZ(gamma) 1
-    CNOT 0 1
-
-    MEASURE 0 ro[0]
-    MEASURE 1 ro[1]
-
-To generate a "landscape" plot as ``beta`` and ``gamma`` range, it was previously required to generate a different
-program for each possible pair of values, substitute that pair in, send it to the compiler, and send the resulting
-compiled program to the QPU for execution (and hence generate the expectation values). With Quil 2, this exact program
-can be sent to the compiler, which returns a nativized Quil program that still has parametric gates with parameters
-referencing the classical memory regions ``beta`` and ``gamma``. This program can then be loaded onto the QPU for
-repeated execution with different values of ``beta`` and ``gamma``, without recompilation in between.
-
-.. _declare:
-
-Details of updates to Quil
-~~~~~~~~~~~~~~~~~~~~~~~~~~
 
 Classical memory regions must be explicitly requested and named by a Quil program using ``DECLARE`` directive. A generic
 ``DECLARE`` directive has the following syntax:
@@ -115,9 +62,7 @@ The non-keyword items have the following allowable values:
 
 -  ``offset-type``: the same allowable values as ``type``.
 
-Here are some examples:
-
-::
+Here are some examples::
 
     DECLARE beta REAL[32]
     DECLARE ro BIT[128]
@@ -149,58 +94,23 @@ Quil 1.0 is not compatible with Quil 2 in the following ways:
 
 In all other instances, Quil 1.0 will operate identically with Quil 2.
 
-When confronted with program text conforming to Quil 1.0, pyQuil 2.0 will automatically rewrite ``MEASURE q [n]`` to
+When confronted with program text conforming to Quil 1.0, pyQuil 2 will automatically rewrite ``MEASURE q [n]`` to
 ``MEASURE q ro[n]`` and insert a ``DECLARE`` statement which allocates a ``BIT``-array of the appropriate size named
 ``ro``.
 
-Details of pyQuil and Forest updates
-~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
-
-**Updates to Forest**
+Updates to Forest
+~~~~~~~~~~~~~~~~~
 
 -  In Forest 1.3, job submission to the QPU was done from your workstation and the ability was gated by on user ID. In
-   Forest 2.0, job submission to the QPU must be done from your remote virtual machine, called a QMI (*Quantum Machine Image*).
+   Forest 2, job submission to the QPU must be done from your remote virtual machine, called a QMI (*Quantum Machine Image*).
 
 -  In Forest 1.3, user data persisted indefinitely in cloud storage and could be accessed using the assigned job ID. In
-   Forest 2.0, user data is stored only transiently, and it is the user's responsibility to handle long-term data storage
+   Forest 2, user data is stored only transiently, and it is the user's responsibility to handle long-term data storage
    on their QMI.
 
-
-**Updates to pyQuil**
-
--  In pyQuil 1.9, API calls were organized by endpoint (e.g., all simulation calls were passed to a ``QVMConnection``
-   object). In pyQuil 2.0, API calls are organized by type (e.g., ``run`` calls are sent to a ``QuantumComputer`` but
-   ``wavefunction`` calls are sent to a ``WavefunctionSimulator``).
-
--  In pyQuil 1.9, quantum program evaluation was asynchronous on the QPU and a mix of synchronuous or asynchronous on
-   the QVM. In pyQuil 2.0, all quantum program evaluation is synchronous.
-
--  In pyQuil 1.9, each quantum program execution call started from scratch. In pyQuil 2.0, compiled program objects can be reused.
-
-Backwards compatibility and migration
-~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
-
-PyQuil 2.0 is not backwards compatible with pyQuil 1.9. However, the new API objects available in pyQuil 2.0 have
-compatibility methods that make migration to pyQuil 2.0 easier.
-
-.. note::
-    Users writing new programs from scratch are encouraged to use the bare pyQuil 2.0 programming model over the
-    compatibility methods. It is not possible to use the fanciest new features of Forest 2.0 (e.g., parametric execution
-    of parametric programs) from within the compatibility model.
-
-Whereas pyQuil 1.9 organized API calls around "connection objects" (viz., ``CompilerConnection``, ``QPUConnection``, and
-``QVMConnection``), pyQuil 2.0 organizes API calls around function, so that QVM- and QPU-based objects can be more
-easily swapped. These API objects fall into two groups:
-
--  ``QuantumComputer``: This wrapper object houses the typical ingredients for execution of a hybrid classical-quantum algorithm: an interface to a compiler, an interface to a quantum computational device, and some optional wrapper routines. ``QuantumComputer`` objects themselves can be manually initialized with these ingredients, or they can be requested by name from the Forest 2.0 service, which will populate these subfields with the appropriate objects for execution on a particular quantum device, real or simulated.
-
--  ``AbstractCompiler``: An interface to a compiler service. Compilers are responsible for two tasks: converting arbitrary Quil to "native" (or "device-specific") Quil, and converting native Quil to control system binaries.
-
--  ``QAM``: An interface to a quantum computational device. This can be populated by a connection to an actual QPU, or it can be populated by a connection to a QVM (**Quantum Virtual Machine**).
-
--  *Wrapper routines*: Execution of programs in pyQuil 1.9 was typically done with a single API call (e.g., ``.run()``). ``QuantumComputer`` exposes a near-identical interface for single runs of quantum programs, which wraps and hides the more low-level pyQuil 2.0 infrastructure.
-
--  ``WavefunctionSimulator``: This wrapper object houses the typical ingredients used for the debug process of wavefunction inspection. This is inherently **not** a procedure natively available on a quantum computational device, and so this wrapper either calls out to a QVM or functions as a repeated sampling wrapper from a physical quantum computational device.
+- Forest 1.3 refered to the software developer kit (pyQuil, QVM, Quilc) and the cloud platform for submitting jobs.
+  Forest 2 is the SDK which you can install on your own computer or use pre-installed on a QMI. The entire platform
+  is called Quantum Cloud Services (QCS).
 
 
 Example: Computing the bond energy of molecular hydrogen, pyQuil 1.9 vs 2.0
@@ -519,7 +429,7 @@ Because the Forest 2.0 execution model is no longer asynchronous, our error repo
 than writing to technical support with a job ID, users will need to provide all pertinent details to how they produced an
 error.
 
-PyQuil 2.0 makes this task easy with the function decorator ``@pyquil_protect``, found in the module
+PyQuil 2 makes this task easy with the function decorator ``@pyquil_protect``, found in the module
 ``pyquil.api``. By decorating a failing function (or a function that has the potential to fail), any
 unhandled exceptions will cause an error log to be written to disk (at a user-specifiable location). For example, the
 nonsense code block
