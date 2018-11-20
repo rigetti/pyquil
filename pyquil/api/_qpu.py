@@ -21,7 +21,7 @@ import numpy as np
 from rpcq import Client
 from rpcq.messages import QPURequest, ParameterAref
 
-from pyquil import parser
+from pyquil.parser import parse
 from pyquil.api._qam import QAM
 from pyquil.api._error_reporting import _record_call
 from pyquil.quilatom import MemoryReference, BinaryExp, Function, Parameter, Expression
@@ -87,6 +87,28 @@ class QPU(QAM):
         :return: Dictionary of version information.
         """
         return self.client.call('get_version_info')
+
+
+    @_record_call
+    def load(self, executable):
+        """
+        Initialize a QAM into a fresh state. Load the executable and parse the expressions
+        in the recalculation table (if any) into pyQuil Expression objects.
+
+        :param executable: Load a compiled executable onto the QAM.
+        """
+        super().load(executable)
+
+        try:
+            recalculation_table = self._executable.recalculation_table
+            for memory_reference, recalc_rule in recalculation_table.items():
+                # Parse the arithmetic expression
+                expression = parse(f"RZ({recalc_rule}) 0")[0].params[0]
+                recalculation_table[memory_reference] = expression
+        except AttributeError:
+            # No recalculation table, no work to be done here.
+            return self
+
 
     @_record_call
     def run(self):
@@ -191,9 +213,7 @@ class QPU(QAM):
 
         # We only declare one region to hold these values, and we need to add that name to
         memory_reference_name = None
-        for memory_reference, recalc_rule in recalculation_table.items():
-            # Parse the arithmetic expression
-            expression = parser.parse(f"RZ({recalc_rule}) 0")[0].params[0]
+        for memory_reference, expression in recalculation_table.items():
             # Replace the memory references with any values the user has written
             value = self._resolve_memory_references(expression)
             self._variables_shim[memory_reference] = value
