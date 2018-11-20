@@ -657,8 +657,9 @@ def simplify_pauli_sum(pauli_sum):
 def check_commutation(pauli_list, pauli_two):
     """
     Check if commuting a PauliTerm commutes with a list of other terms by natural calculation.
-    Derivation similar to arXiv:1405.5749v2 fo the check_commutation step in
-    the Raesi, Wiebe, Sanders algorithm (arXiv:1108.4318, 2011).
+    Uses the result in Section 3 of arXiv:1405.5749v2, modified slightly here to check for the
+    number of anti-coincidences (which must always be even for commuting PauliTerms)
+    instead of the no. of coincidences, as in the paper.
 
     :param list pauli_list: A list of PauliTerm objects
     :param PauliTerm pauli_two_term: A PauliTerm object
@@ -675,7 +676,7 @@ def check_commutation(pauli_list, pauli_two):
                 non_similar += 1
         return non_similar % 2 == 0
 
-    for i, term in enumerate(pauli_list):
+    for term in pauli_list:
         if not coincident_parity(term, pauli_two):
             return False
     return True
