@@ -232,14 +232,12 @@ class PauliTerm(object):
         """
         if not isinstance(power, int) or power < 0:
             raise ValueError("The power must be a non-negative integer.")
-        result = ID()
 
-        identities = [PauliTerm('I', qubit) for qubit in self.get_qubits()]
-        if not identities:
+        if len(self.get_qubits()) == 0:
             # There weren't any nontrivial operators
             return term_with_coeff(self, 1)
-        for identity in identities:
-            result *= identity
+
+        result = ID()
         for _ in range(power):
             result *= self
         return result
