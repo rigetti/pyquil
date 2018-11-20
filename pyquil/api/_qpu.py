@@ -15,14 +15,15 @@
 ##############################################################################
 import uuid
 import warnings
-from typing import Dict, List, Optional, Tuple
+from typing import Dict, List, Optional, Tuple, Union
 
 import numpy as np
 from rpcq import Client
-from rpcq.messages import QPURequest
+from rpcq.messages import QPURequest, ParameterAref
 
 from pyquil.api._qam import QAM
 from pyquil.api._error_reporting import _record_call
+from pyquil.quilatom import MemoryReference, BinaryExp, Function, Parameter, Expression
 
 
 def decode_buffer(buffer: dict) -> np.ndarray:
@@ -142,6 +143,16 @@ class QPU(QAM):
                 continue
             patch_table[name] = [0] * spec.length
 
+        from pyquil import parser
+        for memory_reference, recalculation_rule in self._executable.recalculation_table.items():
+            # TODO: parse this differently
+            expression = parser.parse(f"RZ({recalculation_rule}) 0")[0].params[0]
+            value = self._resolve_memory_references(expression)
+            self._variables_shim[memory_reference] = value
+            # TODO: maybe get this back from compiler server
+            if memory_reference.name not in patch_table.keys():
+                patch_table[memory_reference.name] = [0] * len(self._executable.recalculation_table)
+
         for k, v in self._variables_shim.items():
             # NOTE: right now we fake reading out measurement values into classical memory
             if k.name == "ro":
@@ -154,3 +165,21 @@ class QPU(QAM):
             patch_table[k.name][k.index] = v
 
         return patch_table
+
+    def _resolve_memory_references(self, expression: Expression) -> Union[float, int]:
+        """
+        :param expression:
+        """
+        if isinstance(expression, BinaryExp):
+            left = self._resolve_memory_references(expression.op1)
+            right = self._resolve_memory_references(expression.op2)
+            return expression.fn(left, right)
+        elif isinstance(expression, Function):
+            return expression.fn(_resolve_memory_references(expression.expression))
+        elif isinstance(expression, Parameter):
+            raise ValueError(f"Unexpected Parameter in gate expression: {expression}")
+        elif isinstance(expression, float) or isinstance(expression, int):
+            return expression
+        else:
+            assert isinstance(expression, MemoryReference)
+            return self._variables_shim.get(ParameterAref(name=expression.name, index=expression.offset), 0)
