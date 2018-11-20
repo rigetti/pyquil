@@ -21,6 +21,7 @@ import numpy as np
 from rpcq import Client
 from rpcq.messages import QPURequest, ParameterAref
 
+from pyquil import parser
 from pyquil.api._qam import QAM
 from pyquil.api._error_reporting import _record_call
 from pyquil.quilatom import MemoryReference, BinaryExp, Function, Parameter, Expression
@@ -143,7 +144,6 @@ class QPU(QAM):
                 continue
             patch_table[name] = [0] * spec.length
 
-        from pyquil import parser
         # Write in the values for arithmetic parameter expressions in the original program
         # For example:
         #     DECLARE theta REAL
@@ -154,8 +154,8 @@ class QPU(QAM):
         #     RZ(__P[0]) 0
         # and the recalculation table gets the entry: __P[0] = '3 * theta'
         for memory_reference, recalculation_rule in self._executable.recalculation_table.items():
-            # TODO: parse this differently
             # Parse the expression given by the recalculation rule
+            # TODO: After #687, we should be able to parse this in a better way
             expression = parser.parse(f"RZ({recalculation_rule}) 0")[0].params[0]
             # Replace the memory references with any values the user has written
             value = self._resolve_memory_references(expression)
