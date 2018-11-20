@@ -44,10 +44,10 @@ def die_program(number_of_sides):
     n_qubits = qubits_needed(number_of_sides)
     ro = prog.declare('ro', 'BIT', n_qubits)
     # Hadamard initialize.
-    for q in range(qubits):
+    for q in range(n_qubits):
         prog.inst(H(q))
     # Measure everything.
-    for q in range(qubits):
+    for q in range(n_qubits):
         prog.measure(q, ro[q])
     return prog
 
