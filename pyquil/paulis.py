@@ -47,7 +47,7 @@ PAULI_COEFF = {'ZZ': 1.0, 'YY': 1.0, 'XX': 1.0, 'II': 1.0,
 
 class UnequalLengthWarning(Warning):
     def __init__(self, *args, **kwargs):
-        super(UnequalLengthWarning, self).__init__(*args, **kwargs)
+        super().__init__(*args, **kwargs)
 
 
 integer_types = six_integer_types + (np.int64, np.int32, np.int16, np.int8)
@@ -134,12 +134,6 @@ class PauliTerm(object):
             round(self.coefficient.imag * HASH_PRECISION),
             self.operations_as_set()
         ))
-
-    def __ne__(self, other):
-        # x!=y and x<>y call __ne__() instead of negating __eq__
-        # This is only a weirdness in python2 as in python 3 __ne__ defaults to the inversion of
-        # __eq__
-        return not self.__eq__(other)
 
     def __len__(self):
         """
@@ -238,14 +232,12 @@ class PauliTerm(object):
         """
         if not isinstance(power, int) or power < 0:
             raise ValueError("The power must be a non-negative integer.")
-        result = ID()
 
-        identities = [PauliTerm('I', qubit) for qubit in self.get_qubits()]
-        if not identities:
+        if len(self.get_qubits()) == 0:
             # There weren't any nontrivial operators
             return term_with_coeff(self, 1)
-        for identity in identities:
-            result *= identity
+
+        result = ID()
         for _ in range(power):
             result *= self
         return result
@@ -364,14 +356,14 @@ class PauliTerm(object):
 # For convenience, a shorthand for several operators.
 def ID():
     """
-    The identity Pauli Term.
+    The identity operator.
     """
     return PauliTerm("I", 0, 1)
 
 
 def ZERO():
     """
-    The zero Pauli Term.
+    The zero operator.
     """
     return PauliTerm("I", 0, 0)
 
@@ -469,15 +461,6 @@ class PauliSum(object):
             return False
 
         return set(self.terms) == set(other.terms)
-
-    def __ne__(self, other):
-        """Inequality testing to see if two PauliSum's are not equivalent.
-
-        :param PauliSum other: The PauliSum to compare this PauliSum with.
-        :return: False if other is equivalent to this PauliSum, True otherwise.
-        :rtype: bool
-        """
-        return not self == other
 
     def __str__(self):
         return " + ".join([str(term) for term in self.terms])
@@ -639,6 +622,8 @@ class PauliSum(object):
 
 
 def simplify_pauli_sum(pauli_sum):
+    """Simplify the sum of Pauli operators according to Pauli algebra rules."""
+
     # You might want to use a defaultdict(list) here, but don't because
     # we want to do our best to preserve the order of terms.
     like_terms = OrderedDict()
@@ -736,11 +721,11 @@ def is_identity(term):
     return len(term) == 0
 
 
-def exponentiate(term):
+def exponentiate(term: PauliTerm):
     """
     Creates a pyQuil program that simulates the unitary evolution exp(-1j * term)
 
-    :param PauliTerm term: Tests is a PauliTerm is the identity operator
+    :param term: A pauli term to exponentiate
     :returns: A Program object
     :rtype: Program
     """
@@ -749,10 +734,10 @@ def exponentiate(term):
 
 def exponential_map(term):
     """
-    Creates map alpha -> exp(-1j*alpha*term) represented as a Program.
+    Returns a function f(alpha) that constructs the Program corresponding to exp(-1j*alpha*term).
 
-    :param PauliTerm term: Tests is a PauliTerm is the identity operator
-    :returns: Program
+    :param term: A pauli term to exponentiate
+    :returns: A function that takes an angle parameter and returns a program.
     :rtype: Function
     """
     if not np.isclose(np.imag(term.coefficient), 0.0):

@@ -70,4 +70,7 @@ Utility Functions
 .. autofunction:: get_classical_addresses_from_program
 .. autofunction:: percolate_declares
 .. autofunction:: validate_protoquil
+.. autofunction:: pyquil.parser.parse
+.. autofunction:: pyquil.parser.parse_program
+
 

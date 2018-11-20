@@ -76,7 +76,6 @@ Contents
    noise
    advanced_usage
    exercises
-   modules
    changes
    intro
 
@@ -85,10 +84,14 @@ Contents
    :caption: API Reference
 
    apidocs/program
+   apidocs/gates
+   apidocs/pauli
    apidocs/quantum_computer
    apidocs/compilers
    apidocs/qam
    apidocs/devices
+   apidocs/wavefunction
+   apidocs/noise
 
 .. toctree::
    :caption: Man Pages

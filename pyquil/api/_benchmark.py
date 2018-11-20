@@ -76,20 +76,30 @@ class BenchmarkConnection(AbstractBenchmarker):
         return pauli_out * pauli_in.coefficient
 
     @_record_call
-    def generate_rb_sequence(self, depth, gateset, seed=None):
+    def generate_rb_sequence(self, depth, gateset, seed=None, interleaver=None):
         """
         Construct a randomized benchmarking experiment on the given qubits, decomposing into
-        gateset.
+        gateset. If interleaver is not provided, the returned sequence will have the form
 
-        The JSON payload that is parsed is a list of lists of indices, or Nones. In the
-        former case, they are the index of the gate in the gateset.
+            C_1 C_2 ... C_(depth-1) C_inv ,
+
+        where each C is a Clifford element drawn from gateset, C_{< depth} are randomly selected,
+        and C_inv is selected so that the entire sequence composes to the identity.  If an
+        interleaver G (which must be a Clifford, and which will be decomposed into the native
+        gateset) is provided, then the sequence instead takes the form
+
+            C_1 G C_2 G ... C_(depth-1) G C_inv .
+
+        The JSON response is a list of lists of indices, or Nones. In the former case, they are the
+        index of the gate in the gateset.
 
         :param int depth: The number of Clifford gates to include in the randomized benchmarking
          experiment. This is different than the number of gates in the resulting experiment.
         :param list gateset: A list of pyquil gates to decompose the Clifford elements into. These
          must generate the clifford group on the qubits of interest. e.g. for one qubit
          [RZ(np.pi/2), RX(np.pi/2)].
-        :param int seed: A positive integer that seeds the random generation of the gate sequence.
+        :param seed: A positive integer used to seed the PRNG.
+        :param interleaver: A Program object that encodes a Clifford element.
         :return: A list of pyquil programs. Each pyquil program is a circuit that represents an
          element of the Clifford group. When these programs are composed, the resulting Program
          will be the randomized benchmarking experiment of the desired depth. e.g. if the return
@@ -102,10 +112,17 @@ class BenchmarkConnection(AbstractBenchmarker):
         gateset_as_program = address_qubits(sum(gateset, Program()))
         qubits = len(gateset_as_program.get_qubits())
         gateset_for_api = gateset_as_program.out().splitlines()
+        if interleaver:
+            assert(isinstance(interleaver, Program))
+            interleaver = interleaver.out()
 
         depth = int(depth)  # needs to be jsonable, no np.int64 please!
 
-        payload = RandomizedBenchmarkingRequest(depth=depth, qubits=qubits, gateset=gateset_for_api, seed=seed)
+        payload = RandomizedBenchmarkingRequest(depth=depth,
+                                                qubits=qubits,
+                                                gateset=gateset_for_api,
+                                                seed=seed,
+                                                interleaver=interleaver)
         response = self.client.call('generate_rb_sequence', payload)  # type: RandomizedBenchmarkingResponse
 
         programs = []
@@ -174,7 +191,7 @@ class LocalBenchmarkConnection(AbstractBenchmarker):
         return pauli_out * pauli_in.coefficient
 
     @staticmethod
-    def _rb_sequence_payload(depth, gateset, seed=None):
+    def _rb_sequence_payload(depth, gateset, seed=None, interleaver=None):
         """
         Prepares a JSON payload for generating a randomized benchmarking sequence.
 
@@ -194,16 +211,30 @@ class LocalBenchmarkConnection(AbstractBenchmarker):
                    "qubits": n_qubits,
                    "gateset": gateset_for_api,
                    "seed": seed}
+
+        if interleaver:
+            assert(isinstance(interleaver, Program))
+            payload["interleaver"] = interleaver.out()
+
         return payload
 
     @_record_call
-    def generate_rb_sequence(self, depth, gateset, seed=None):
+    def generate_rb_sequence(self, depth, gateset, seed=None, interleaver=None):
         """
         Construct a randomized benchmarking experiment on the given qubits, decomposing into
-        gateset.
+        gateset. If interleaver is not provided, the returned sequence will have the form
 
-        The JSON payload that is parsed is a list of lists of indices, or Nones. In the
-        former case, they are the index of the gate in the gateset.
+            C_1 C_2 ... C_(depth-1) C_inv ,
+
+        where each C is a Clifford element drawn from gateset, C_{< depth} are randomly selected,
+        and C_inv is selected so that the entire sequence composes to the identity.  If an
+        interleaver G (which must be a Clifford, and which will be decomposed into the native
+        gateset) is provided, then the sequence instead takes the form
+
+            C_1 G C_2 G ... C_(depth-1) G C_inv .
+
+        The JSON response is a list of lists of indices, or Nones. In the former case, they are the
+        index of the gate in the gateset.
 
         :param int depth: The number of Clifford gates to include in the randomized benchmarking
          experiment. This is different than the number of gates in the resulting experiment.
@@ -211,6 +242,7 @@ class LocalBenchmarkConnection(AbstractBenchmarker):
          must generate the clifford group on the qubits of interest. e.g. for one qubit
          [RZ(np.pi/2), RX(np.pi/2)].
         :param seed: A positive integer used to seed the PRNG.
+        :param interleaver: A Program object that encodes a Clifford element.
         :return: A list of pyquil programs. Each pyquil program is a circuit that represents an
          element of the Clifford group. When these programs are composed, the resulting Program
          will be the randomized benchmarking experiment of the desired depth. e.g. if the return
@@ -218,7 +250,7 @@ class LocalBenchmarkConnection(AbstractBenchmarker):
          benchmarking experiment, which will compose to the identity program.
         """
         depth = int(depth)  # needs to be jsonable, no np.int64 please!
-        payload = self._rb_sequence_payload(depth, gateset, seed=seed)
+        payload = self._rb_sequence_payload(depth, gateset, seed=seed, interleaver=interleaver)
         response = post_json(self.session, self.endpoint + "/rb", payload).json()
         programs = []
         for clifford in response:
