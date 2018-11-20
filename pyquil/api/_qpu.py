@@ -144,12 +144,24 @@ class QPU(QAM):
             patch_table[name] = [0] * spec.length
 
         from pyquil import parser
+        # Write in the values for arithmetic parameter expressions in the original program
+        # For example:
+        #     DECLARE theta REAL
+        #     RZ(3 * theta) 0
+        # gets translated to:
+        #     DECLARE theta REAL
+        #     DECLARE __P REAL[0]
+        #     RZ(__P[0]) 0
+        # and the recalculation table gets the entry: __P[0] = '3 * theta'
         for memory_reference, recalculation_rule in self._executable.recalculation_table.items():
             # TODO: parse this differently
+            # Parse the expression given by the recalculation rule
             expression = parser.parse(f"RZ({recalculation_rule}) 0")[0].params[0]
+            # Replace the memory references with any values the user has written
             value = self._resolve_memory_references(expression)
             self._variables_shim[memory_reference] = value
-            # TODO: maybe get this back from compiler server
+
+            # We only declare one memory region to hold patched arithmetic values
             if memory_reference.name not in patch_table.keys():
                 patch_table[memory_reference.name] = [0] * len(self._executable.recalculation_table)
 
@@ -168,7 +180,11 @@ class QPU(QAM):
 
     def _resolve_memory_references(self, expression: Expression) -> Union[float, int]:
         """
-        :param expression:
+        Traverse the given Expression, and replace any Memory References with whatever values
+        have been so far provided by the user for those memory spaces. Declared memory defaults
+        to zero.
+
+        :param expression: an Expression
         """
         if isinstance(expression, BinaryExp):
             left = self._resolve_memory_references(expression.op1)
@@ -180,6 +196,7 @@ class QPU(QAM):
             raise ValueError(f"Unexpected Parameter in gate expression: {expression}")
         elif isinstance(expression, float) or isinstance(expression, int):
             return expression
-        else:
-            assert isinstance(expression, MemoryReference)
+        elif isinstance(expression, MemoryReference):
             return self._variables_shim.get(ParameterAref(name=expression.name, index=expression.offset), 0)
+        else:
+            raise ValueError(f"Unexpected expression in gate parameter: {expression}")
