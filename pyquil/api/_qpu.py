@@ -88,7 +88,6 @@ class QPU(QAM):
         """
         return self.client.call('get_version_info')
 
-
     @_record_call
     def load(self, executable):
         """
@@ -110,7 +109,6 @@ class QPU(QAM):
         except AttributeError:
             # No recalculation table, no work to be done here.
             return self
-
 
     @_record_call
     def run(self):
@@ -235,7 +233,7 @@ class QPU(QAM):
             right = self._resolve_memory_references(expression.op2)
             return expression.fn(left, right)
         elif isinstance(expression, Function):
-            return expression.fn(_resolve_memory_references(expression.expression))
+            return expression.fn(self._resolve_memory_references(expression.expression))
         elif isinstance(expression, Parameter):
             raise ValueError(f"Unexpected Parameter in gate expression: {expression}")
         elif isinstance(expression, float) or isinstance(expression, int):
