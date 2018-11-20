@@ -102,7 +102,9 @@ class QPU(QAM):
         try:
             recalculation_table = self._executable.recalculation_table
             for memory_reference, recalc_rule in recalculation_table.items():
-                # Parse the arithmetic expression
+                # We can only parse complete lines of Quil, so we wrap the arithmetic expression
+                # in a valid Quil instruction to parse it.
+                # TODO: This hack should be replaced after #687
                 expression = parse(f"RZ({recalc_rule}) 0")[0].params[0]
                 recalculation_table[memory_reference] = expression
         except AttributeError:
