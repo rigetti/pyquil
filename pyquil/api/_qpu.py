@@ -144,26 +144,9 @@ class QPU(QAM):
                 continue
             patch_table[name] = [0] * spec.length
 
-        # Write in the values for arithmetic parameter expressions in the original program
-        # For example:
-        #     DECLARE theta REAL
-        #     RZ(3 * theta) 0
-        # gets translated to:
-        #     DECLARE theta REAL
-        #     DECLARE __P REAL[0]
-        #     RZ(__P[0]) 0
-        # and the recalculation table gets the entry: __P[0] = '3 * theta'
-        for memory_reference, recalculation_rule in self._executable.recalculation_table.items():
-            # Parse the expression given by the recalculation rule
-            # TODO: After #687, we should be able to parse this in a better way
-            expression = parser.parse(f"RZ({recalculation_rule}) 0")[0].params[0]
-            # Replace the memory references with any values the user has written
-            value = self._resolve_memory_references(expression)
-            self._variables_shim[memory_reference] = value
-
-            # We only declare one memory region to hold patched arithmetic values
-            if memory_reference.name not in patch_table.keys():
-                patch_table[memory_reference.name] = [0] * len(self._executable.recalculation_table)
+        mref_name = self._build_arithmetic_patch_values()
+        if mref_name:
+            patch_table[mref_name] = [0] * len(self._executable.recalculation_table)
 
         for k, v in self._variables_shim.items():
             # NOTE: right now we fake reading out measurement values into classical memory
@@ -177,6 +160,45 @@ class QPU(QAM):
             patch_table[k.name][k.index] = v
 
         return patch_table
+
+    def _build_arithmetic_patch_values(self) -> str:
+        """
+        Update the variables shim with the final values to be patched into the gate parameters,
+        according to the arithmetic expressions in the original program.
+
+        For example:
+
+            DECLARE theta REAL
+            RZ(3 * theta) 0
+
+        gets translated to:
+
+            DECLARE theta REAL
+            DECLARE __P REAL[0]
+            RZ(__P[0]) 0
+
+        and the recalculation table gets the entry: __P[0] = '3 * theta'. In our example, we
+        look up the value of 'theta' in the variables shim, multiply that by 3, and then add
+        an entry for __P[0] to the variables shim.
+
+        :return: Name of the region used to patch the parameters.
+        """
+        try:
+            recalculation_table = self._executable.recalculation_table
+        except AttributeError:
+            # No recalculation table, no work to be done here.
+            return ""
+
+        # We only declare one region to hold these values, and we need to add that name to
+        memory_reference_name = None
+        for memory_reference, recalc_rule in recalculation_table.items():
+            # Parse the arithmetic expression
+            expression = parser.parse(f"RZ({recalc_rule}) 0")[0].params[0]
+            # Replace the memory references with any values the user has written
+            value = self._resolve_memory_references(expression)
+            self._variables_shim[memory_reference] = value
+            memory_reference_name = memory_reference.name
+        return memory_reference_name
 
     def _resolve_memory_references(self, expression: Expression) -> Union[float, int]:
         """
