@@ -6,7 +6,7 @@ import pytest
 from requests import RequestException
 
 from pyquil.api import (QVMConnection, LocalQVMCompiler, ForestConnection,
-                        get_benchmarker, local_qvm)
+                        get_benchmarker, local_qvm, QPUCompiler)
 from pyquil.api._config import PyquilConfig
 from pyquil.api._errors import UnknownApiError
 from pyquil.device import Device
@@ -15,7 +15,7 @@ from pyquil.paulis import sI
 from pyquil.quil import Program
 
 
-@pytest.fixture
+@pytest.fixture(scope='session')
 def isa_dict():
     return {
         "1Q": {
@@ -43,7 +43,7 @@ def isa_dict():
     }
 
 
-@pytest.fixture
+@pytest.fixture(scope='session')
 def specs_dict():
     return {
         '1Q': {
@@ -97,7 +97,7 @@ def specs_dict():
     }
 
 
-@pytest.fixture
+@pytest.fixture(scope='session')
 def noise_model_dict():
     return {'gates': [{'gate': 'I',
                        'params': (5.0,),
@@ -114,7 +114,7 @@ def noise_model_dict():
             }
 
 
-@pytest.fixture
+@pytest.fixture(scope='session')
 def device_raw(isa_dict, noise_model_dict, specs_dict):
     return {'isa': isa_dict,
             'noise_model': noise_model_dict,
@@ -123,7 +123,7 @@ def device_raw(isa_dict, noise_model_dict, specs_dict):
             'is_retuning': False}
 
 
-@pytest.fixture
+@pytest.fixture(scope='session')
 def test_device(device_raw):
     return Device('test_device', device_raw)
 
@@ -138,11 +138,22 @@ def qvm():
         return pytest.skip("This test requires QVM connection: {}".format(e))
 
 
-@pytest.fixture()
+@pytest.fixture(scope='session')
 def compiler(test_device):
     try:
         config = PyquilConfig()
         compiler = LocalQVMCompiler(endpoint=config.compiler_url, device=test_device)
+        compiler.quil_to_native_quil(Program(I(0)))
+        return compiler
+    except (RequestException, UnknownApiError) as e:
+        return pytest.skip("This test requires compiler connection: {}".format(e))
+
+
+@pytest.fixture(scope='session')
+def qpu_compiler(test_device):
+    try:
+        config = PyquilConfig()
+        compiler = QPUCompiler(endpoint=config.compiler_url, device=test_device)
         compiler.quil_to_native_quil(Program(I(0)))
         return compiler
     except (RequestException, UnknownApiError) as e:

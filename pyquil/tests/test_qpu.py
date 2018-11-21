@@ -86,3 +86,71 @@ MEASURE 3 ro[5]
     assert np.allclose(bitstrings[:, 3], buffers["q1"][:, 1])
     assert np.allclose(bitstrings[:, 4], buffers["q2"][:, 1])
     assert np.allclose(bitstrings[:, 5], buffers["q3"])
+
+
+GATE_ARITHMETIC_PROGRAMS = [
+    Program("""
+DECLARE theta REAL[1]
+DECLARE beta REAL[1]
+DECLARE ro BIT[3]
+RX(pi/2) 0
+RZ(3*theta) 0
+RZ(beta+theta) 0
+RX(-pi/2) 0
+MEASURE 0 ro[0]
+MEASURE 1 ro[1]
+"""),
+    Program("""
+RX(pi) 0
+"""),
+    Program("""
+RESET
+DECLARE theta REAL[1]
+DECLARE beta REAL[1]
+DECLARE ro BIT[2]
+RX(pi/2) 0
+RZ(theta) 0
+    """),
+    Program("""
+DECLARE theta REAL[1]
+DECLARE beta REAL[1]
+DECLARE ro BIT[3]
+RX(pi/2) 0
+RZ(0.79*theta) 0
+RZ(2*beta+theta*0.5+beta+beta) 0
+RX(-pi/2) 0
+MEASURE 0 ro[0]
+MEASURE 1 ro[1]
+"""),
+]
+
+
+@pytest.fixture(scope='session')
+def qpu():
+    config = PyquilConfig()
+    if config.qpu_url:
+        return QPU(endpoint=config.qpu_url,
+                   user="pyQuil test suite"),
+    else:
+        return pytest.skip(f"Skipping test because QPU not available: {e}.")
+
+
+@pytest.fixture(scope='session')
+def gate_arithmetic_binaries(qpu_compiler: QPUCompiler):
+    return [qpu_compiler.native_quil_to_executable(p) for p in GATE_ARITHMETIC_PROGRAMS]
+
+
+def test_load(gate_arithmetic_binaries):
+    pass
+
+
+def test_build_patch_tables(gate_arithmetic_binaries):
+    pass
+
+
+def test_recalculation(gate_arithmetic_binaries):
+    pass
+
+
+def test_resolve_mem_references(gate_arithmetic_binaries):
+    pass
