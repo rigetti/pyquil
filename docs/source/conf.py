@@ -40,6 +40,7 @@ extensions = [
     'sphinx.ext.ifconfig',
     'sphinx.ext.viewcode',
     'sphinx_autodoc_typehints',
+    'nbsphinx',
 ]
 
 autosummary_generate = True

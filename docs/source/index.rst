@@ -15,7 +15,8 @@ The Rigetti Forest `Software Development Kit <http://rigetti.com/forest>`_ inclu
 QVM. Second, the SDK contains pyQuil 2.0, with significant updates to previous versions. As a result, programs written
 using previous versions of the Forest toolkit will need to be updated to pyQuil 2.0 to be compatible with the QVM or compiler.
 
-After installing the SDK and updating pyQuil in :ref:`start`, see :ref:`quickstart` to get caught up on what's new!
+After installing the SDK and updating pyQuil in :ref:`start`, see the `migration guide <migration.ipynb>`_
+to get caught up on what's new!
 
 Quantum Cloud Services will provide users with a dedicated Quantum Machine Image, which will come prepackaged with the
 Forest SDK. We’re releasing a Preview to the Forest SDK now, so current users can begin migrating code (and share feedback
@@ -69,6 +70,9 @@ Contents
 
    start
    migration
+   migration2-qc
+   migration3-declare
+   migration4
    basics
    qvm
    wavefunction_simulator

@@ -80,7 +80,6 @@ def _validate_run_and_measure_program(program: Program) -> Program:
 
 
 class QuantumComputer:
-    @_record_call
     def __init__(self, *,
                  name: str,
                  qam: QAM,
@@ -277,6 +276,9 @@ class QuantumComputer:
 
     def __str__(self) -> str:
         return self.name
+
+    def __repr__(self):
+        return f'QuantumComputer[name="{self.name}"]'
 
 
 @_record_call
