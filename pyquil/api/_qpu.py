@@ -97,8 +97,7 @@ class QPU(QAM):
         :param executable: Load a compiled executable onto the QAM.
         """
         super().load(executable)
-
-        try:
+        if hasattr(self._executable, "recalculation_table"):
             recalculation_table = self._executable.recalculation_table
             for memory_reference, recalc_rule in recalculation_table.items():
                 # We can only parse complete lines of Quil, so we wrap the arithmetic expression
@@ -106,9 +105,7 @@ class QPU(QAM):
                 # TODO: This hack should be replaced after #687
                 expression = parse(f"RZ({recalc_rule}) 0")[0].params[0]
                 recalculation_table[memory_reference] = expression
-        except AttributeError:
-            # No recalculation table, no work to be done here.
-            return self
+        return self
 
     @_record_call
     def run(self):
@@ -160,16 +157,25 @@ class QPU(QAM):
     def _build_patch_values(self) -> dict:
         patch_table = {}
 
+        # Now that we are about to run, we have to resolve any gate parameter arithmetic that was
+        # saved in the executable's recalculation table, and add those values to the variables shim
+        self._update_variables_shim_with_recalculation_table()
+
+        # Initialize our patch table
+        memory_ref_names = list(set(mr.name for mr in self._executable.recalculation_table.keys()))
+        assert len(memory_ref_names) == 1, ("We expected only one declared memory region for "
+                                                 "the gate parameter arithmetic replacement "
+                                                 "references.")
+        memory_reference_name = memory_ref_names[0]
+        patch_table[memory_reference_name] = [0] * len(self._executable.recalculation_table)
+
         for name, spec in self._executable.memory_descriptors.items():
             # NOTE: right now we fake reading out measurement values into classical memory
             if name == "ro":
                 continue
             patch_table[name] = [0] * spec.length
 
-        mref_name = self._build_arithmetic_patch_values()
-        if mref_name:
-            patch_table[mref_name] = [0] * len(self._executable.recalculation_table)
-
+        # Fill in our patch table
         for k, v in self._variables_shim.items():
             # NOTE: right now we fake reading out measurement values into classical memory
             if k.name == "ro":
@@ -183,42 +189,53 @@ class QPU(QAM):
 
         return patch_table
 
-    def _build_arithmetic_patch_values(self) -> str:
+    def _update_variables_shim_with_recalculation_table(self):
         """
-        Update the variables shim with the final values to be patched into the gate parameters,
+        Update self._variables_shim with the final values to be patched into the gate parameters,
         according to the arithmetic expressions in the original program.
 
         For example:
 
             DECLARE theta REAL
+            DECLARE beta REAL
             RZ(3 * theta) 0
+            RZ(beta+theta) 0
 
         gets translated to:
 
             DECLARE theta REAL
-            DECLARE __P REAL[0]
+            DECLARE __P REAL[2]
             RZ(__P[0]) 0
+            RZ(__P[1]) 0
 
-        and the recalculation table gets the entry: __P[0] = '3 * theta'. In our example, we
-        look up the value of 'theta' in the variables shim, multiply that by 3, and then add
-        an entry for __P[0] to the variables shim.
+        and the recalculation table will contain:
 
-        :return: Name of the region used to patch the parameters.
+        {
+            ParameterAref('__P', 0): Mul(3.0, <MemoryReference theta[0]>),
+            ParameterAref('__P', 1): Add(<MemoryReference beta[0]>, <MemoryReference theta[0]>)
+        }
+
+        Let's say we've made the following two function calls:
+
+            qpu.write_memory(region_name='theta', value=0.5)
+            qpu.write_memory(region_name='beta', value=0.1)
+
+        After executing this function, our self.variables_shim in the above example would contain
+        the following:
+
+        {
+            ParameterAref('theta', 0): 0.5,
+            ParameterAref('beta', 0): 0.1,
+            ParameterAref('__P', 0): 1.5,       # (3.0) * theta[0]
+            ParameterAref('__P', 1): 0.6        # beta[0] + theta[0]
+        }
         """
-        try:
-            recalculation_table = self._executable.recalculation_table
-        except AttributeError:
+        if not hasattr(self._executable, "recalculation_table"):
             # No recalculation table, no work to be done here.
-            return ""
-
-        # We only declare one region to hold these values, and we need to add that name to
-        memory_reference_name = None
-        for memory_reference, expression in recalculation_table.items():
-            # Replace the memory references with any values the user has written
-            value = self._resolve_memory_references(expression)
-            self._variables_shim[memory_reference] = value
-            memory_reference_name = memory_reference.name
-        return memory_reference_name
+            return
+        for memory_reference, expression in self._executable.recalculation_table.items():
+            # Replace the user-declared memory references with any values the user has written
+            self._variables_shim[memory_reference] = self._resolve_memory_references(expression)
 
     def _resolve_memory_references(self, expression: Expression) -> Union[float, int]:
         """
