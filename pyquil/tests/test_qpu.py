@@ -14,6 +14,7 @@ from pyquil.device import NxDevice
 from pyquil.gates import X
 from pyquil.quilatom import Expression
 
+
 def test_qpu_run():
     config = PyquilConfig()
     if config.qpu_url and config.compiler_url:
@@ -191,20 +192,21 @@ def test_recalculation(gate_arithmetic_binaries, mock_qpu):
     for theta in np.linspace(0, 1, 10):
         mock_qpu.write_memory(region_name='theta', value=theta)
         mock_qpu._update_variables_shim_with_recalculation_table()
-        assert any(np.isclose(v, 4*beta + 0.5*theta) for v in mock_qpu._variables_shim.values())
+        assert any(np.isclose(v, 4 * beta + 0.5 * theta) for v in mock_qpu._variables_shim.values())
 
 
 def test_resolve_mem_references(gate_arithmetic_binaries, mock_qpu):
     def expression_test(expression, expected_val):
         expression = parse_expression(expression)
         assert np.isclose(mock_qpu._resolve_memory_references(expression), expected_val)
+
     def test_theta_and_beta(theta, beta):
         mock_qpu.write_memory(region_name='theta', value=theta)
         mock_qpu.write_memory(region_name='beta', value=beta)
         expression_test('sqrt(2) + theta', np.sqrt(2) + theta)
         expression_test('beta*2 + 1', beta * 2 + 1)
         expression_test('(beta + 2) * (1 + theta)', (beta + 2) * (1 + theta))
-        expression_test('cos(beta)*sin(theta)', np.cos(beta)*np.sin(theta))
+        expression_test('cos(beta)*sin(theta)', np.cos(beta) * np.sin(theta))
         expression_test('beta * theta', beta * theta)
         expression_test('theta - beta', theta - beta)
     # We just need the status to be loaded so we can write memory
