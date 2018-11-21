@@ -163,10 +163,11 @@ class QPU(QAM):
 
         # Initialize our patch table
         memory_ref_names = list(set(mr.name for mr in self._executable.recalculation_table.keys()))
-        assert len(memory_ref_names) == 1, ("We expected only one declared memory region for "
-                                            "the gate parameter arithmetic replacement references.")
-        memory_reference_name = memory_ref_names[0]
-        patch_table[memory_reference_name] = [0] * len(self._executable.recalculation_table)
+        if memory_ref_names != []:
+            assert len(memory_ref_names) == 1, ("We expected only one declared memory region for "
+                                                "the gate parameter arithmetic replacement references.")
+            memory_reference_name = memory_ref_names[0]
+            patch_table[memory_reference_name] = [0] * len(self._executable.recalculation_table)
 
         for name, spec in self._executable.memory_descriptors.items():
             # NOTE: right now we fake reading out measurement values into classical memory
