@@ -719,18 +719,10 @@ def is_identity(pauli_object):
     :rtype: bool
     """
     if isinstance(pauli_object, PauliTerm):
-        print ("This is a PauliTerm")
-        if (len(pauli_object) == 0) and (not np.isclose(pauli_object.coefficient, 0)):
-            return True
-        else:
-            return False
+        return (len(pauli_object) == 0) and (not np.isclose(pauli_object.coefficient, 0))
     elif isinstance(pauli_object, PauliSum):
-        print ("This is a PauliSum")
-        if (len(pauli_object.terms) == 1) and (len(pauli_object.terms[0]) == 0) and \
-                (not np.isclose(pauli_object.terms[0].coefficient, 0)):
-            return True
-        else:
-            return False
+        return (len(pauli_object.terms) == 1) and (len(pauli_object.terms[0]) == 0) and \
+                (not np.isclose(pauli_object.terms[0].coefficient, 0))
     else:
         raise TypeError("is_identity only checks PauliTerms and PauliSum objects!")
 
@@ -892,15 +884,9 @@ def is_zero(pauli_object):
     :rtype: bool
     """
     if isinstance(pauli_object, PauliTerm):
-        if np.isclose(pauli_object.coefficient, 0):
-            return True
-        else:
-            return False
+        return np.isclose(pauli_object.coefficient, 0)
     elif isinstance(pauli_object, PauliSum):
-        if len(pauli_object.terms) == 1 and np.isclose(pauli_object.terms[0].coefficient, 0):
-            return True
-        else:
-            return False
+        return len(pauli_object.terms) == 1 and np.isclose(pauli_object.terms[0].coefficient, 0)
     else:
         raise TypeError("is_zero only checks PauliTerms and PauliSum objects!")
 
