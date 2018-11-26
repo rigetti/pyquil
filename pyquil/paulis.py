@@ -718,7 +718,6 @@ def is_identity(pauli_object):
     :returns: True if the PauliTerm or PauliSum is a scalar multiple of identity, False otherwise
     :rtype: bool
     """
-    # return len(pauli_object) == 0
     if isinstance(pauli_object, PauliTerm):
         print ("This is a PauliTerm")
         if (len(pauli_object) == 0) and (not np.isclose(pauli_object.coefficient, 0)):
