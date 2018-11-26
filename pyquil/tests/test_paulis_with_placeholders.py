@@ -334,7 +334,7 @@ def test_exponentiate_identity():
     generator = PauliTerm("I", q[1], 0.0)
     para_prog = exponential_map(generator)
     prog = para_prog(1)
-    result_prog = Program().inst(I(0))
+    result_prog = Program().inst()
     assert address_qubits(prog, mapping) == address_qubits(result_prog, mapping)
 
     generator = PauliTerm("I", q[1], 1.0)

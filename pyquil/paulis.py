@@ -760,7 +760,7 @@ def exponential_map(term):
             prog.inst(X(0))
             prog.inst(PHASE(-param * coeff, 0))
         elif is_zero(term):
-            prog.inst(I(0))
+            pass
         else:
             prog += _exponentiate_general_case(term, param)
         return prog

@@ -376,7 +376,7 @@ def test_exponentiate_identity():
     generator = PauliTerm("I", 1, 0.0)
     para_prog = exponential_map(generator)
     prog = para_prog(1)
-    result_prog = Program().inst(I(0))
+    result_prog = Program()
     assert prog == result_prog
 
     generator = PauliTerm("I", 1, 1.0)
