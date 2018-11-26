@@ -439,16 +439,18 @@ def test_trotterize():
     assert prog == result_prog
 
 
-def test_is_zeron():
+def test_is_zero():
     with pytest.raises(TypeError):
         is_zero(1)
 
     p_term = PauliTerm("X", 0)
     ps_term = p_term + PauliTerm("Z", 1)
+    id_term = PauliTerm("I", 0)
 
     assert not is_zero(p_term)
     assert is_zero(p_term + -1 * p_term)
     assert not is_zero(ps_term)
+    assert not is_zero(id_term)
 
 
 def test_check_commutation():
@@ -484,7 +486,7 @@ def test_check_commutation_rigorous():
 
             tmp_op = _commutator(pauli_ops_pq[x], pauli_ops_pq[y])
             assert len(tmp_op.terms) == 1
-            if is_identity(tmp_op.terms[0]):
+            if is_zero(tmp_op.terms[0]):
                 commuting_pairs.append((pauli_ops_pq[x], pauli_ops_pq[y]))
             else:
                 non_commuting_pairs.append((pauli_ops_pq[x], pauli_ops_pq[y]))
@@ -644,3 +646,13 @@ def test_pauli_string():
     assert p.pauli_string([5]) == "Z"
     assert p.pauli_string([5, 6]) == "ZI"
     assert p.pauli_string([0, 1]) == "IX"
+
+
+def test_is_identity():
+    pt1 = -1.5j * sI(2)
+    pt2 = 1.5 * sX(1) * sZ(2)
+
+    assert is_identity(pt1)
+    assert is_identity(pt2 + (-1 * pt2) + sI(0))
+    assert not is_identity(0 * pt1)
+    assert not is_identity(pt2 + (-1 * pt2))

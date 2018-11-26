@@ -710,15 +710,30 @@ def commuting_sets(pauli_terms):
     return groups
 
 
-def is_identity(term):
+def is_identity(pauli_object):
     """
-    Check if Pauli Term is a scalar multiple of identity
+    Tests to see if a PauliTerm or PauliSum is a scalar multiple of identity
 
-    :param PauliTerm term: A PauliTerm object
-    :returns: True if the PauliTerm is a scalar multiple of identity, false otherwise
+    :param pauli_object: Either a PauliTerm or PauliSum
+    :returns: True if the PauliTerm or PauliSum is a scalar multiple of identity, False otherwise
     :rtype: bool
     """
-    return len(term) == 0
+    # return len(pauli_object) == 0
+    if isinstance(pauli_object, PauliTerm):
+        print ("This is a PauliTerm")
+        if (len(pauli_object) == 0) and (not np.isclose(pauli_object.coefficient, 0)):
+            return True
+        else:
+            return False
+    elif isinstance(pauli_object, PauliSum):
+        print ("This is a PauliSum")
+        if (len(pauli_object.terms) == 1) and (len(pauli_object.terms[0]) == 0) and \
+                (not np.isclose(pauli_object.terms[0].coefficient, 0)):
+            return True
+        else:
+            return False
+    else:
+        raise TypeError("is_identity only checks PauliTerms and PauliSum objects!")
 
 
 def exponentiate(term: PauliTerm):
@@ -876,12 +891,12 @@ def is_zero(pauli_object):
     :rtype: bool
     """
     if isinstance(pauli_object, PauliTerm):
-        if pauli_object.id() == '':
+        if np.isclose(pauli_object.coefficient, 0):
             return True
         else:
             return False
     elif isinstance(pauli_object, PauliSum):
-        if len(pauli_object.terms) == 1 and pauli_object.terms[0].id() == '':
+        if len(pauli_object.terms) == 1 and np.isclose(pauli_object.terms[0].coefficient, 0):
             return True
         else:
             return False
