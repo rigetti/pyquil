@@ -25,7 +25,7 @@ import copy
 from pyquil.quilatom import QubitPlaceholder
 
 from .quil import Program
-from .gates import H, RZ, RX, CNOT, X, PHASE, QUANTUM_GATES
+from .gates import I, H, RZ, RX, CNOT, X, PHASE, QUANTUM_GATES
 from numbers import Number
 from collections import Sequence, OrderedDict
 import warnings
@@ -768,6 +768,8 @@ def exponential_map(term):
             prog.inst(PHASE(-param * coeff, 0))
             prog.inst(X(0))
             prog.inst(PHASE(-param * coeff, 0))
+        elif is_zero(term):
+            prog.inst(I(0))
         else:
             prog += _exponentiate_general_case(term, param)
         return prog

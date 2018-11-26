@@ -25,7 +25,7 @@ import numpy as np
 import pytest
 from six.moves import range
 
-from pyquil.gates import RX, RZ, CNOT, H, X, PHASE
+from pyquil.gates import I, RX, RZ, CNOT, H, X, PHASE
 from pyquil.paulis import PauliTerm, PauliSum, exponential_map, exponentiate_commuting_pauli_sum, \
     ID, UnequalLengthWarning, exponentiate, trotterize, is_zero, check_commutation, commuting_sets, \
     term_with_coeff, sI, sX, sY, sZ, ZERO, is_identity
@@ -376,7 +376,7 @@ def test_exponentiate_identity():
     generator = PauliTerm("I", 1, 0.0)
     para_prog = exponential_map(generator)
     prog = para_prog(1)
-    result_prog = Program().inst([X(0), PHASE(-0.0, 0), X(0), PHASE(-0.0, 0)])
+    result_prog = Program().inst(I(0))
     assert prog == result_prog
 
     generator = PauliTerm("I", 1, 1.0)
