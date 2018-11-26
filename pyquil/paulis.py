@@ -710,19 +710,19 @@ def commuting_sets(pauli_terms):
     return groups
 
 
-def is_identity(pauli_object):
+def is_identity(term):
     """
     Tests to see if a PauliTerm or PauliSum is a scalar multiple of identity
 
-    :param pauli_object: Either a PauliTerm or PauliSum
+    :param term: Either a PauliTerm or PauliSum
     :returns: True if the PauliTerm or PauliSum is a scalar multiple of identity, False otherwise
     :rtype: bool
     """
-    if isinstance(pauli_object, PauliTerm):
-        return (len(pauli_object) == 0) and (not np.isclose(pauli_object.coefficient, 0))
-    elif isinstance(pauli_object, PauliSum):
-        return (len(pauli_object.terms) == 1) and (len(pauli_object.terms[0]) == 0) and \
-               (not np.isclose(pauli_object.terms[0].coefficient, 0))
+    if isinstance(term, PauliTerm):
+        return (len(term) == 0) and (not np.isclose(term.coefficient, 0))
+    elif isinstance(term, PauliSum):
+        return (len(term.terms) == 1) and (len(term.terms[0]) == 0) and \
+               (not np.isclose(term.terms[0].coefficient, 0))
     else:
         raise TypeError("is_identity only checks PauliTerms and PauliSum objects!")
 
