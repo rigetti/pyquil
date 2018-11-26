@@ -722,7 +722,7 @@ def is_identity(pauli_object):
         return (len(pauli_object) == 0) and (not np.isclose(pauli_object.coefficient, 0))
     elif isinstance(pauli_object, PauliSum):
         return (len(pauli_object.terms) == 1) and (len(pauli_object.terms[0]) == 0) and \
-                (not np.isclose(pauli_object.terms[0].coefficient, 0))
+               (not np.isclose(pauli_object.terms[0].coefficient, 0))
     else:
         raise TypeError("is_identity only checks PauliTerms and PauliSum objects!")
 
