@@ -2,15 +2,31 @@ import warnings
 
 import numpy as np
 from numpy.random.mtrand import RandomState
+from typing import Union
 
-from pyquil.gate_matrices import P0, P1, KRAUS_OPS
+from pyquil.gate_matrices import P0, P1, KRAUS_OPS, QUANTUM_GATES
+from pyquil.paulis import PauliTerm, PauliSum
 from pyquil.pyqvm import AbstractQuantumSimulator
 from pyquil.quilbase import Gate
 from pyquil.unitary_tools import lifted_gate_matrix, lifted_gate, all_bitstrings
 
 
+def _term_expectation(wf, term: PauliTerm, n_qubits):
+    # Computes <psi|XYZ..XXZ|psi>
+    wf2 = wf
+    for qubit_i, op_str in term._ops.items():
+        # Re-use QUANTUM_GATES since it has X, Y, Z
+        op_mat = QUANTUM_GATES[op_str]
+        op_mat = lifted_gate_matrix(matrix=op_mat, qubit_inds=[qubit_i], n_qubits=n_qubits)
+        wf2 = op_mat @ wf2
+
+    # `wf2` is XYZ..XXZ|psi>
+    # hit it with a <psi| i.e. `wf.dag`
+    return term.coefficient * (wf.conj().T @ wf2)
+
+
 class ReferenceWavefunctionSimulator(AbstractQuantumSimulator):
-    def __init__(self, n_qubits: int, rs: RandomState):
+    def __init__(self, n_qubits: int, rs: RandomState = None):
         """
         A wavefunction simulator that prioritizes readability over performance.
 
@@ -23,8 +39,8 @@ class ReferenceWavefunctionSimulator(AbstractQuantumSimulator):
         qubit 0 as the rightmost bit. This is the same as the Rigetti Lisp QVM.
 
         :param n_qubits: Number of qubits to simulate.
-        :param rs: a RandomState (shared with the owning :py:class:`PyQVM`) for
-            doing anything stochastic.
+        :param rs: a RandomState (should be shared with the owning :py:class:`PyQVM`) for
+            doing anything stochastic. A value of ``None`` disallows doing anything stochastic.
         """
         self.n_qubits = n_qubits
         self.rs = rs
@@ -41,6 +57,9 @@ class ReferenceWavefunctionSimulator(AbstractQuantumSimulator):
         :param n_samples: The number of bitstrings to sample
         :return: An array of shape (n_samples, n_qubits)
         """
+        if self.rs is None:
+            raise ValueError("You have tried to perform a stochastic operation without setting the "
+                             "random state of the simulator. Might I suggest using a PyQVM object?")
         probabilities = np.abs(self.wf) ** 2
         possible_bitstrings = all_bitstrings(self.n_qubits)
         inds = self.rs.choice(2 ** self.n_qubits, n_samples, p=probabilities)
@@ -65,6 +84,9 @@ class ReferenceWavefunctionSimulator(AbstractQuantumSimulator):
         :param qubit: Index of the qubit to measure.
         :return: measured bit
         """
+        if self.rs is None:
+            raise ValueError("You have tried to perform a stochastic operation without setting the "
+                             "random state of the simulator. Might I suggest using a PyQVM object?")
         # lift projective measure operator to Hilbert space
         # prob(0) = <psi P0 | P0 psi> = psi* . P0* . P0 . psi
         measure_0 = lifted_gate_matrix(matrix=P0, qubit_inds=[qubit], n_qubits=self.n_qubits)
@@ -82,6 +104,22 @@ class ReferenceWavefunctionSimulator(AbstractQuantumSimulator):
             unitary = measure_1 @ (np.eye(2 ** self.n_qubits) / np.sqrt(1 - prob_zero))
             self.wf = unitary.dot(self.wf)
             return 1
+
+    def expectation(self, operator: Union[PauliTerm, PauliSum]):
+        """
+        Compute the expectation of an operator.
+
+        :param operator: The operator
+        :return: The operator's expectation value
+        """
+        if not isinstance(operator, PauliSum):
+            operator = PauliSum([operator])
+
+        sum = 0
+        for term in operator:
+            sum += _term_expectation(self.wf, term, n_qubits=self.n_qubits)
+
+        return sum
 
     def reset(self):
         """
@@ -112,6 +150,7 @@ class ReferenceDensitySimulator(AbstractQuantumSimulator):
     :param rs: a RandomState (shared with the owning :py:class:`PyQVM`) for
         doing anything stochastic.
     """
+
     def __init__(self, n_qubits: int, rs: RandomState):
         self.n_qubits = n_qubits
         self.rs = rs

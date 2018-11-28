@@ -271,23 +271,13 @@ class NumpyWavefunctionSimulator(AbstractQuantumSimulator):
         self.wf = targeted_tensordot(gate=gate_matrix, wf=self.wf, wf_target_inds=qubit_inds)
         return self
 
-    def do_program(self, program: Program):
-        """
-        Compute the wavefunction after executing a given program.
-
-        The Program must consist only of Gates
-
-        :param program:
-        :return: self
-        """
-        for gate in program:
-            if not isinstance(gate, Gate):
-                raise ValueError("Can only compute the wavefuncion for a "
-                                 "program composed of `Gate`s")
-            self.do_gate(gate)
-        return self
-
     def expectation(self, operator: Union[PauliTerm, PauliSum]):
+        """
+        Compute the expectation of an operator.
+
+        :param operator: The operator
+        :return: The operator's expectation value
+        """
         if not isinstance(operator, PauliSum):
             operator = PauliSum([operator])
 

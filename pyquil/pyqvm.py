@@ -16,12 +16,13 @@
 import warnings
 from abc import ABC, abstractmethod
 from collections import defaultdict
-from typing import Type, Dict, Tuple
+from typing import Type, Dict, Tuple, Union
 
 import numpy as np
 from numpy.random.mtrand import RandomState
 
 from pyquil.api import QAM
+from pyquil.paulis import PauliTerm, PauliSum
 from pyquil.quil import Program
 from pyquil.quilbase import Gate, Measurement, ResetQubit, DefGate, JumpTarget, JumpConditional, \
     JumpWhen, JumpUnless, Halt, Wait, Reset, Nop, UnaryClassicalInstruction, ClassicalNeg, \
@@ -63,12 +64,34 @@ class AbstractQuantumSimulator(ABC):
         :return: ``self`` to support method chaining.
         """
 
+    def do_program(self, program: Program) -> 'AbstractQuantumSimulator':
+        """
+        Perform a sequence of gates contained within a program.
+
+        :param program: The program
+        :return: self
+        """
+        for gate in program:
+            if not isinstance(gate, Gate):
+                raise ValueError("Can only compute the simulate a program composed of `Gate`s")
+            self.do_gate(gate)
+        return self
+
     @abstractmethod
     def do_measurement(self, qubit: int) -> int:
         """
         Measure a qubit and collapse the wavefunction
 
         :return: The measurement result. A 1 or a 0.
+        """
+
+    @abstractmethod
+    def expectation(self, operator: Union[PauliTerm, PauliSum]) -> complex:
+        """
+        Compute the expectation of an operator.
+
+        :param operator: The operator
+        :return: The operator's expectation value
         """
 
     @abstractmethod

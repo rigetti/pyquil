@@ -1,13 +1,15 @@
+import functools
 import inspect
 import random
 from math import pi
+from operator import mul
 
 import numpy as np
 import pytest
 
 from pyquil.api import WavefunctionSimulator
 from pyquil.gates import *
-from pyquil.paulis import PauliTerm, exponentiate
+from pyquil.paulis import PauliTerm, exponentiate, sZ, sX, sI, sY
 from pyquil.pyqvm import PyQVM
 from pyquil.quil import Program
 from pyquil.reference_simulator import ReferenceWavefunctionSimulator
@@ -663,3 +665,30 @@ def test_default_wf_simulator():
     qam = PyQVM(n_qubits=2)
     qam.execute(Program(H(0), H(1)))
     assert qam.wf_simulator.wf.reshape(-1).shape == (4,)
+
+
+def test_expectation():
+    wfn = ReferenceWavefunctionSimulator(n_qubits=3)
+    val = wfn.expectation(0.4 * sZ(0) + sX(2))
+    assert val == 0.4
+
+
+def _generate_random_pauli(n_qubits, n_terms):
+    paulis = [sI, sX, sY, sZ]
+    all_op_inds = np.random.randint(len(paulis), size=(n_terms, n_qubits))
+    operator = sI(0)
+    for op_inds in all_op_inds:
+        operator += functools.reduce(mul, (paulis[pi](i) for i, pi in enumerate(op_inds)), sI(0))
+    return operator
+
+
+def test_expectation_vs_lisp_qvm(qvm, n_qubits):
+    for repeat_i in range(20):
+        prog = _generate_random_program(n_qubits=n_qubits, length=10)
+        operator = _generate_random_pauli(n_qubits=n_qubits, n_terms=5)
+        lisp_wf = WavefunctionSimulator()
+        lisp_exp = lisp_wf.expectation(prep_prog=prog, pauli_terms=operator)
+
+        ref_wf = ReferenceWavefunctionSimulator(n_qubits=n_qubits).do_program(prog)
+        ref_exp = ref_wf.expectation(operator=operator)
+        np.testing.assert_allclose(lisp_exp, ref_exp, atol=1e-15)

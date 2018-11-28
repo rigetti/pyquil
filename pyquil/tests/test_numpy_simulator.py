@@ -166,7 +166,7 @@ def test_sample_bitstrings():
     np.testing.assert_allclose([0.5, 0.5, 0], np.mean(bitstrings, axis=0), rtol=1e-2)
 
 
-def test_expectation():
+def test_expectation_helper():
     n_qubits = 3
     wf = np.zeros(shape=((2,) * n_qubits), dtype=np.complex)
     wf[0, 0, 0] = 1
@@ -175,6 +175,12 @@ def test_expectation():
 
     x0 = _term_expectation(wf, sX(2))
     assert x0 == 0
+
+
+def test_expectation():
+    wfn = NumpyWavefunctionSimulator(n_qubits=3)
+    val = wfn.expectation(0.4 * sZ(0) + sX(2))
+    assert val == 0.4
 
 
 # The following tests are lovingly copied with light modification from the Cirq project
