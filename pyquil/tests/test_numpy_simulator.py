@@ -11,7 +11,8 @@ from pyquil.numpy_simulator import targeted_einsum, NumpyWavefunctionSimulator, 
 from pyquil.paulis import sZ, sX
 from pyquil.pyqvm import PyQVM
 from pyquil.reference_simulator import ReferenceWavefunctionSimulator
-from pyquil.tests.test_reference_wavefunction_simulator import _generate_random_program
+from pyquil.tests.test_reference_wavefunction_simulator import _generate_random_program, \
+    _generate_random_pauli
 
 
 def test_H_einsum():
@@ -181,6 +182,21 @@ def test_expectation():
     wfn = NumpyWavefunctionSimulator(n_qubits=3)
     val = wfn.expectation(0.4 * sZ(0) + sX(2))
     assert val == 0.4
+
+
+def test_expectation_vs_ref_qvm(qvm, n_qubits):
+    for repeat_i in range(20):
+        prog = _generate_random_program(n_qubits=n_qubits, length=10)
+        operator = _generate_random_pauli(n_qubits=n_qubits, n_terms=5)
+        print(prog)
+        print(operator)
+
+        ref_wf = ReferenceWavefunctionSimulator(n_qubits=n_qubits).do_program(prog)
+        ref_exp = ref_wf.expectation(operator=operator)
+
+        np_wf = NumpyWavefunctionSimulator(n_qubits=n_qubits).do_program(prog)
+        np_exp = np_wf.expectation(operator=operator)
+        np.testing.assert_allclose(ref_exp, np_exp, atol=1e-15)
 
 
 # The following tests are lovingly copied with light modification from the Cirq project

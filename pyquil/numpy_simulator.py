@@ -181,7 +181,7 @@ def _term_expectation(wf, term: PauliTerm):
 
     # `wf2` is XYZ..XXZ|psi>
     # hit it with a <psi| i.e. `wf.dag`
-    return term.coefficient * np.tensordot(wf.conj().T, wf2, axes=len(wf.shape))
+    return term.coefficient * np.tensordot(wf.conj(), wf2, axes=len(wf.shape))
 
 
 class NumpyWavefunctionSimulator(AbstractQuantumSimulator):

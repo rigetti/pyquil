@@ -678,7 +678,9 @@ def _generate_random_pauli(n_qubits, n_terms):
     all_op_inds = np.random.randint(len(paulis), size=(n_terms, n_qubits))
     operator = sI(0)
     for op_inds in all_op_inds:
-        operator += functools.reduce(mul, (paulis[pi](i) for i, pi in enumerate(op_inds)), sI(0))
+        op = functools.reduce(mul, (paulis[pi](i) for i, pi in enumerate(op_inds)), sI(0))
+        op *= np.random.uniform(-1, 1)
+        operator += op
     return operator
 
 
