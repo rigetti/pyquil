@@ -296,5 +296,6 @@ class NumpyWavefunctionSimulator(AbstractQuantumSimulator):
         self.wf.fill(0)
         self.wf[(0,) * self.n_qubits] = complex(1.0, 0)
 
-    def do_post_gate_noise(self, noise_type: str, noise_prob: float):
+    def do_post_gate_noise(self, noise_type: str, noise_prob: float,
+                           qubits: List[int]) -> 'AbstractQuantumSimulator':
         raise NotImplementedError("The numpy simulator cannot handle noise")

@@ -2,7 +2,7 @@ import warnings
 
 import numpy as np
 from numpy.random.mtrand import RandomState
-from typing import Union
+from typing import Union, List
 
 from pyquil.gate_matrices import P0, P1, KRAUS_OPS, QUANTUM_GATES
 from pyquil.paulis import PauliTerm, PauliSum
@@ -131,7 +131,8 @@ class ReferenceWavefunctionSimulator(AbstractQuantumSimulator):
         self.wf[0] = complex(1.0, 0)
         return self
 
-    def do_post_gate_noise(self, noise_type: str, noise_prob: float):
+    def do_post_gate_noise(self, noise_type: str, noise_prob: float,
+                           qubits: List[int]) -> 'AbstractQuantumSimulator':
         raise NotImplementedError("The reference wavefunction simulator cannot handle noise")
 
 
@@ -147,11 +148,11 @@ class ReferenceDensitySimulator(AbstractQuantumSimulator):
     density matrix.
 
     :param n_qubits: Number of qubits to simulate.
-    :param rs: a RandomState (shared with the owning :py:class:`PyQVM`) for
-        doing anything stochastic.
+    :param rs: a RandomState (should be shared with the owning :py:class:`PyQVM`) for
+        doing anything stochastic. A value of ``None`` disallows doing anything stochastic.
     """
 
-    def __init__(self, n_qubits: int, rs: RandomState):
+    def __init__(self, n_qubits: int, rs: RandomState = None):
         self.n_qubits = n_qubits
         self.rs = rs
         self.density = np.zeros((2 ** n_qubits, 2 ** n_qubits), dtype=np.complex128)
@@ -166,6 +167,9 @@ class ReferenceDensitySimulator(AbstractQuantumSimulator):
         :param n_samples: The number of bitstrings to sample
         :return: An array of shape (n_samples, n_qubits)
         """
+        if self.rs is None:
+            raise ValueError("You have tried to perform a stochastic operation without setting the "
+                             "random state of the simulator. Might I suggest using a PyQVM object?")
         probabilities = np.real_if_close(np.diagonal(self.density))
         possible_bitstrings = all_bitstrings(self.n_qubits)
         inds = self.rs.choice(2 ** self.n_qubits, n_samples, p=probabilities)
@@ -174,11 +178,24 @@ class ReferenceDensitySimulator(AbstractQuantumSimulator):
         return bitstrings
 
     def do_gate(self, gate: Gate) -> 'AbstractQuantumSimulator':
+        """
+        Perform a gate.
+
+        :return: ``self`` to support method chaining.
+        """
         unitary = lifted_gate(gate=gate, n_qubits=self.n_qubits)
         self.density = unitary.dot(self.density).dot(np.conj(unitary).T)
         return self
 
     def do_measurement(self, qubit: int) -> int:
+        """
+        Measure a qubit and collapse the wavefunction
+
+        :return: The measurement result. A 1 or a 0.
+        """
+        if self.rs is None:
+            raise ValueError("You have tried to perform a stochastic operation without setting the "
+                             "random state of the simulator. Might I suggest using a PyQVM object?")
         measure_0 = lifted_gate_matrix(matrix=P0, qubit_inds=[qubit], n_qubits=self.n_qubits)
         prob_zero = np.trace(measure_0 @ self.density)
 
@@ -194,18 +211,20 @@ class ReferenceDensitySimulator(AbstractQuantumSimulator):
             self.density = unitary.dot(self.density).dot(np.conj(unitary.T))
             return 1
 
+    def expectation(self, operator: Union[PauliTerm, PauliSum]):
+        raise NotImplementedError("To implement")
+
     def reset(self) -> 'AbstractQuantumSimulator':
         self.density.fill(0)
         self.density[0, 0] = complex(1.0, 0)
         return self
 
-    def do_post_gate_noise(self, noise_type: str, noise_prob: float):
+    def do_post_gate_noise(self, noise_type: str, noise_prob: float, qubits: List[int]):
         kraus_ops = KRAUS_OPS[noise_type](p=noise_prob)
         if np.isclose(noise_prob, 1.0):
             warnings.warn(f"Skipping {noise_type} post-gate noise because noise_prob is close to 1")
 
-        # TODO: figure out which qubits
-        for q in range(self.n_qubits):
+        for q in qubits:
             new_density = np.zeros_like(self.density)
             for kraus_op in kraus_ops:
                 lifted_kraus_op = lifted_gate_matrix(matrix=kraus_op, qubit_inds=[q],

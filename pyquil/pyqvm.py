@@ -16,7 +16,7 @@
 import warnings
 from abc import ABC, abstractmethod
 from collections import defaultdict
-from typing import Type, Dict, Tuple, Union
+from typing import Type, Dict, Tuple, Union, List
 
 import numpy as np
 from numpy.random.mtrand import RandomState
@@ -112,7 +112,8 @@ class AbstractQuantumSimulator(ABC):
         """
 
     @abstractmethod
-    def do_post_gate_noise(self, noise_type: str, noise_prob: float) -> 'AbstractQuantumSimulator':
+    def do_post_gate_noise(self, noise_type: str, noise_prob: float,
+                           qubits: List[int]) -> 'AbstractQuantumSimulator':
         """
         Apply noise that happens after each gate application.
 
@@ -120,6 +121,7 @@ class AbstractQuantumSimulator(ABC):
 
         :param noise_type: The name of the noise type
         :param noise_prob: The probability of that noise happening
+        :param qubits: Apply noise to these qubits.
         :return: ``self`` to support method chaining
         """
 
@@ -186,7 +188,6 @@ class PyQVM(QAM):
     def __init__(self, n_qubits, quantum_simulator_type: Type[AbstractQuantumSimulator] = None,
                  seed=None,
                  post_gate_noise_probabilities: Dict[str, float] = None,
-                 pre_measure_noise_probabilities: Dict[str, float] = None,
                  ):
         """
         PyQuil's built-in Quil virtual machine.
@@ -204,9 +205,6 @@ class PyQVM(QAM):
             probabilities of certain types of noise. The dictionary keys are from "relaxation",
             "dephasing", "depolarizing", "phase_flip", "bit_flip", and "bitphase_flip".
             WARNING: experimental. This interface will likely change.
-        :param pre_measure_noise_probabilities: A specification of a readout noise model
-            given by probabilities of certain types of noise applied preceding a MEASURE
-            instruction. WARNING: experimental. This interface will likely change.
         :param seed: An optional random seed for performing stochastic aspects of the QVM.
         """
         if quantum_simulator_type is None:
@@ -224,10 +222,6 @@ class PyQVM(QAM):
         if post_gate_noise_probabilities is None:
             post_gate_noise_probabilities = {}
         self.post_gate_noise_probabilities = post_gate_noise_probabilities
-
-        if pre_measure_noise_probabilities is None:
-            pre_measure_noise_probabilities = {}
-        self.pre_measure_noise_probabilities = pre_measure_noise_probabilities
 
         self.program = None  # type: Program
         self.program_counter = None  # type: int
@@ -296,7 +290,7 @@ class PyQVM(QAM):
         self.status = 'done'
         return self
 
-    def read_from_memory_region(self, *, region_name: str):
+    def read_memory(self, *, region_name: str):
         return self.ram[region_name]
 
     def find_label(self, label: Label):
@@ -331,7 +325,8 @@ class PyQVM(QAM):
             self.wf_simulator.do_gate(gate=instruction)
 
             for noise_type, noise_prob in self.post_gate_noise_probabilities.items():
-                self.wf_simulator.do_post_gate_noise(noise_type, noise_prob)
+                self.wf_simulator.do_post_gate_noise(noise_type, noise_prob,
+                                                     qubits=[q.index for q in instruction.qubits])
 
             self.program_counter += 1
 
