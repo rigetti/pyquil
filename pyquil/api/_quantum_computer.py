@@ -437,10 +437,10 @@ def get_qc(name: str, *, as_qvm: bool = None, noisy: bool = None,
     You can choose the quantum computer to target through a combination of its name and optional
     flags. There are multiple ways to get the same quantum computer. The following are equivalent::
 
-        >>> qc = get_qc("Aspen-0-12Q-A-noisy-qvm")
-        >>> qc = get_qc("Aspen-0-12Q-A", as_qvm=True, noisy=True)
+        >>> qc = get_qc("Aspen-1-16Q-A-noisy-qvm")
+        >>> qc = get_qc("Aspen-1-16Q-A", as_qvm=True, noisy=True)
 
-    and will construct a simulator of the 8q-agave chip with a noise model based on device
+    and will construct a simulator of the Aspen-1 lattice with a noise model based on device
     characteristics. We also provide a means for constructing generic quantum simulators that
     are not related to a given piece of Rigetti hardware::
 
@@ -480,11 +480,11 @@ def get_qc(name: str, *, as_qvm: bool = None, noisy: bool = None,
         of the name's suffix
     :param noisy: An optional flag to force inclusion of a noise model. If
         specified and set to ``True``, a quantum computer with a noise model will be returned
-        regardless of the name's suffix. The noise model for QVM's based on a real QPU
+        regardless of the name's suffix. The noise model for QVMs based on a real QPU
         is an empirically parameterized model based on real device noise characteristics.
         The generic QVM noise model is simple T1 and T2 noise plus readout error. See
-        :py:func:`decoherance_noise_with_asymmetric_ro`.
-    :param connection: An optional :py:class:ForestConnection` object. If not specified,
+        :py:func:`~pyquil.noise.decoherence_noise_with_asymmetric_ro`.
+    :param connection: An optional :py:class:`ForestConnection` object. If not specified,
         the default values for URL endpoints, ping time, and status time will be used. Your
         user id and API key will be read from ~/.pyquil_config. If you deign to change any
         of these parameters, pass your own :py:class:`ForestConnection` object.
