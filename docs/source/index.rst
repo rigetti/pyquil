@@ -94,7 +94,7 @@ Contents
    apidocs/compilers
    apidocs/qam
    apidocs/devices
-   apidocs/wavefunction
+   apidocs/simulators
    apidocs/noise
 
 .. toctree::

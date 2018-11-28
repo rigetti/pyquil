@@ -256,6 +256,16 @@ def lifted_gate_matrix(matrix: np.ndarray, qubit_inds: List[int], n_qubits: int)
 
 
 def lifted_gate(gate: Gate, n_qubits: int):
+    """
+    Lift a pyquil :py:class:`Gate` in a full ``n_qubits``-qubit Hilbert space.
+
+    This function looks up the matrix form of the gate and then dispatches to
+    :py:func:`lifted_gate_matrix` with the target qubits.
+
+    :param gate: A gate
+    :param n_qubits: The total number of qubits.
+    :return: A 2^n by 2^n lifted version of the gate acting on its specified qubits.
+    """
     if len(gate.params) > 0:
         matrix = QUANTUM_GATES[gate.name](*gate.params)
     else:
@@ -268,16 +278,10 @@ def lifted_gate(gate: Gate, n_qubits: int):
 
 def program_unitary(program, n_qubits):
     """
-    Return the unitary of a pyquil program
+    Return the unitary of a pyQuil program.
 
-    This method initializes a qvm with a gate_set, protoquil program (expressed
-    as a pyquil program), and then executes the QVM statemachine.
-
-    :param pyquil_program: (pyquil.Program) object containing only protoQuil
-                            instructions.
-
-    :return: a unitary corresponding to the output of the program.
-    :rtype: np.array
+    :param program: A program consisting only of :py:class:`Gate`.:
+    :return: a unitary corresponding to the composition of the program's gates.
     """
     umat = np.eye(2 ** n_qubits)
     for instruction in program:

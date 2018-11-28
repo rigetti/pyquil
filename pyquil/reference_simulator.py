@@ -98,6 +98,20 @@ class ReferenceWavefunctionSimulator(AbstractQuantumSimulator):
 
 
 class ReferenceDensitySimulator(AbstractQuantumSimulator):
+    """
+    A density matrix simulator that prioritizes readability over performance.
+
+    Please consider using
+    :py:class:`PyQVM(..., wf_simulator_type=ReferenceDensitySimulator)` rather
+    than using this class directly.
+
+    This class uses a dense matrix of shape ``(2^n_qubits, 2^n_qubits)`` to store the
+    density matrix.
+
+    :param n_qubits: Number of qubits to simulate.
+    :param rs: a RandomState (shared with the owning :py:class:`PyQVM`) for
+        doing anything stochastic.
+    """
     def __init__(self, n_qubits: int, rs: RandomState):
         self.n_qubits = n_qubits
         self.rs = rs

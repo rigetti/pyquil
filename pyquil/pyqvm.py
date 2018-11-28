@@ -166,11 +166,14 @@ class PyQVM(QAM):
                  pre_measure_noise_probabilities: Dict[str, float] = None,
                  ):
         """
-        A quil virtual machine that implements common control flow and plumbing.
+        PyQuil's built-in Quil virtual machine.
 
-        This class farms out the "actual" work to quantum simulators like
-        ReferenceWavefunctionSimulator, ReferenceDensitySimulator, and NumpyWavefunctionSimulator
+        This class implements common control flow and plumbing and dispatches the "actual" work to
+        quantum simulators like ReferenceWavefunctionSimulator, ReferenceDensitySimulator,
+        and NumpyWavefunctionSimulator
 
+        :param n_qubits: The number of qubits. Typically this results in the allocation of a large
+            ndarray, so be judicious.
         :param quantum_simulator_type: A class that can be instantiated to handle the quantum
             aspects of this QVM. If not specified, the default will be either
             NumpyWavefunctionSimulator (no noise) or ReferenceDensitySimulator (noise)
@@ -178,6 +181,9 @@ class PyQVM(QAM):
             probabilities of certain types of noise. The dictionary keys are from "relaxation",
             "dephasing", "depolarizing", "phase_flip", "bit_flip", and "bitphase_flip".
             WARNING: experimental. This interface will likely change.
+        :param pre_measure_noise_probabilities: A specification of a readout noise model
+            given by probabilities of certain types of noise applied preceding a MEASURE
+            instruction. WARNING: experimental. This interface will likely change.
         :param seed: An optional random seed for performing stochastic aspects of the QVM.
         """
         if quantum_simulator_type is None:

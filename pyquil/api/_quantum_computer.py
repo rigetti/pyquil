@@ -495,6 +495,12 @@ def get_qc(name: str, *, as_qvm: bool = None, noisy: bool = None,
     QVMs you must use :py:func:`qc.compile` or :py:func:`qc.compiler.native_quil_to_executable`
     prior to :py:func:`qc.run`.
 
+    The Rigetti QVM must be downloaded from https://www.rigetti.com/forest and run as a server
+    alongside your python program. To use pyQuil's built-in QVM, replace all ``"-qvm"`` suffixes
+    with ``"-pyqvm"``::
+
+        >>> qc = get_qc("5q-pyqvm")
+
     Redundant flags are acceptable, but conflicting flags will raise an exception::
 
         >>> qc = get_qc("9q-square-qvm") # qc is fully specified by its name
@@ -511,8 +517,8 @@ def get_qc(name: str, *, as_qvm: bool = None, noisy: bool = None,
 
     :param name: The name of the desired quantum computer. This should correspond to a name
         returned by :py:func:`list_quantum_computers`. Names ending in "-qvm" will return
-        a QVM. Names ending in "-noisy-qvm" will return a QVM with a noise model. Otherwise,
-        we will return a QPU with the given name.
+        a QVM. Names ending in "-pyqvm" will return a :py:class:`PyQVM`. Names ending in "-noisy-qvm" will
+        return a QVM with a noise model. Otherwise, we will return a QPU with the given name.
     :param as_qvm: An optional flag to force construction of a QVM (instead of a QPU). If
         specified and set to ``True``, a QVM-backed quantum computer will be returned regardless
         of the name's suffix
