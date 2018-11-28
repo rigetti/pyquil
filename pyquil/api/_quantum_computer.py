@@ -36,6 +36,7 @@ from pyquil.device import AbstractDevice, NxDevice, gates_in_isa, ISA
 from pyquil.gates import RX, MEASURE
 from pyquil.noise import decoherence_noise_with_asymmetric_ro
 from pyquil.quil import Program
+from pyquil.pyqvm import PyQVM
 from pyquil.quilbase import Measurement, Pragma, Gate, Reset
 
 pyquil_config = PyquilConfig()
@@ -368,8 +369,7 @@ def _get_qvm_or_pyqvm(qvm_type, connection, noise_model=None, device=None,
         return QVM(connection=connection, noise_model=noise_model,
                    requires_executable=requires_executable)
     elif qvm_type == 'pyqvm':
-        from pyquil.reference_simulator import ReferenceQAM
-        return ReferenceQAM(n_qubits=device.qubit_topology().number_of_nodes())
+        return PyQVM(n_qubits=device.qubit_topology().number_of_nodes())
 
     raise ValueError("Unknown qvm type {}".format(qvm_type))
 
