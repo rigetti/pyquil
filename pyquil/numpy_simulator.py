@@ -13,12 +13,14 @@
 #    See the License for the specific language governing permissions and
 #    limitations under the License.
 ##############################################################################
-from typing import List
+from typing import List, Union
 
 import numpy as np
 from numpy.random.mtrand import RandomState
 
+from pyquil import Program
 from pyquil.gate_matrices import QUANTUM_GATES
+from pyquil.paulis import PauliTerm, PauliSum
 from pyquil.quilbase import Gate
 from pyquil.reference_simulator import AbstractQuantumSimulator
 
@@ -169,8 +171,21 @@ def _get_gate_tensor_and_qubits(gate: Gate):
     return tensor, qubit_inds
 
 
+def _term_expectation(wf, term: PauliTerm):
+    # Computes <psi|XYZ..XXZ|psi>
+    wf2 = wf
+    for qubit_i, op_str in term._ops.items():
+        # Re-use QUANTUM_GATES since it has X, Y, Z
+        op_mat = QUANTUM_GATES[op_str]
+        wf2 = targeted_tensordot(gate=op_mat, wf=wf2, wf_target_inds=[qubit_i])
+
+    # `wf2` is XYZ..XXZ|psi>
+    # hit it with a <psi| i.e. `wf.dag`
+    return term.coefficient * np.tensordot(wf.conj().T, wf2, axes=len(wf.shape))
+
+
 class NumpyWavefunctionSimulator(AbstractQuantumSimulator):
-    def __init__(self, n_qubits, rs: RandomState):
+    def __init__(self, n_qubits, rs: RandomState = None):
         """
         A wavefunction simulator that uses numpy's tensordot or einsum to update a state vector
 
@@ -183,8 +198,8 @@ class NumpyWavefunctionSimulator(AbstractQuantumSimulator):
         qubit 0 as the leftmost bit. This is the opposite convention of the Rigetti Lisp QVM.
 
         :param n_qubits: Number of qubits to simulate.
-        :param rs: a RandomState (shared with the owning :py:class:`PyQVM`) for
-            doing anything stochastic.
+        :param rs: a RandomState (should be shared with the owning :py:class:`PyQVM`) for
+            doing anything stochastic. A value of ``None`` disallows doing anything stochastic.
         """
         self.n_qubits = n_qubits
         self.rs = rs
@@ -201,6 +216,10 @@ class NumpyWavefunctionSimulator(AbstractQuantumSimulator):
         :param n_samples: The number of bitstrings to sample
         :return: An array of shape (n_samples, n_qubits)
         """
+        if self.rs is None:
+            raise ValueError("You have tried to perform a stochastic operation without setting the "
+                             "random state of the simulator. Might I suggest using a PyQVM object?")
+
         # note on reshape: it puts bitstrings in lexicographical order.
         # would you look at that .. _all_bitstrings returns things in lexicographical order!
         # reminder: qubit 0 is on the left in einsum simulator.
@@ -216,6 +235,10 @@ class NumpyWavefunctionSimulator(AbstractQuantumSimulator):
         :param qubit: Index of the qubit to measure.
         :return: measured bit
         """
+        if self.rs is None:
+            raise ValueError("You have tried to perform a stochastic operation without setting the "
+                             "random state of the simulator. Might I suggest using a PyQVM object?")
+
         # Get probabilities
         measurement_probs = get_measure_probabilities(self.wf, qubit)
 
@@ -247,6 +270,32 @@ class NumpyWavefunctionSimulator(AbstractQuantumSimulator):
         # self.wf = targeted_einsum(gate=gate_matrix, wf=self.wf, wf_target_inds=qubit_inds)
         self.wf = targeted_tensordot(gate=gate_matrix, wf=self.wf, wf_target_inds=qubit_inds)
         return self
+
+    def do_program(self, program: Program):
+        """
+        Compute the wavefunction after executing a given program.
+
+        The Program must consist only of Gates
+
+        :param program:
+        :return: self
+        """
+        for gate in program:
+            if not isinstance(gate, Gate):
+                raise ValueError("Can only compute the wavefuncion for a "
+                                 "program composed of `Gate`s")
+            self.do_gate(gate)
+        return self
+
+    def expectation(self, operator: Union[PauliTerm, PauliSum]):
+        if not isinstance(operator, PauliSum):
+            operator = PauliSum([operator])
+
+        sum = 0
+        for term in operator:
+            sum += _term_expectation(self.wf, term)
+
+        return sum
 
     def reset(self):
         """

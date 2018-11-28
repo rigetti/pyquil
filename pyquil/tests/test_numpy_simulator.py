@@ -7,7 +7,8 @@ from pyquil import Program
 from pyquil.gate_matrices import QUANTUM_GATES as GATES
 from pyquil.gates import *
 from pyquil.numpy_simulator import targeted_einsum, NumpyWavefunctionSimulator, \
-    all_bitstrings, targeted_tensordot
+    all_bitstrings, targeted_tensordot, _term_expectation
+from pyquil.paulis import sZ, sX
 from pyquil.pyqvm import PyQVM
 from pyquil.reference_simulator import ReferenceWavefunctionSimulator
 from pyquil.tests.test_reference_wavefunction_simulator import _generate_random_program
@@ -163,6 +164,17 @@ def test_sample_bitstrings():
     bitstrings = qam.wf_simulator.sample_bitstrings(10000)
     assert bitstrings.shape == (10000, 3)
     np.testing.assert_allclose([0.5, 0.5, 0], np.mean(bitstrings, axis=0), rtol=1e-2)
+
+
+def test_expectation():
+    n_qubits = 3
+    wf = np.zeros(shape=((2,) * n_qubits), dtype=np.complex)
+    wf[0, 0, 0] = 1
+    z0 = _term_expectation(wf, 0.4 * sZ(0))
+    assert z0 == 0.4
+
+    x0 = _term_expectation(wf, sX(2))
+    assert x0 == 0
 
 
 # The following tests are lovingly copied with light modification from the Cirq project
