@@ -440,7 +440,7 @@ def get_qc(name: str, *, as_qvm: bool = None, noisy: bool = None,
         >>> qc = get_qc("Aspen-1-16Q-A-noisy-qvm")
         >>> qc = get_qc("Aspen-1-16Q-A", as_qvm=True, noisy=True)
 
-    and will construct a simulator of the Aspen-1 lattice with a noise model based on device
+    and will construct a simulator of an Aspen-1 lattice with a noise model based on device
     characteristics. We also provide a means for constructing generic quantum simulators that
     are not related to a given piece of Rigetti hardware::
 
