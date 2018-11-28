@@ -385,6 +385,7 @@ def _get_9q_square_qvm(name: str, qvm_type: str, connection: ForestConnection,
     Users interested in building their own QuantumComputer from parts may wish to look
     to this function for inspiration, but should not use this private function directly.
 
+    :param name: The name of the QVM
     :param qvm_type: Whether to construct a QVM or a PyQVM
     :param connection: The connection to use to talk to external services
     :param noisy: Whether to construct a noisy quantum computer
@@ -418,6 +419,7 @@ def _get_unrestricted_qvm(name: str, qvm_type: str, connection: ForestConnection
     Users interested in building their own QuantumComputer from parts may wish to look
     to this function for inspiration, but should not use this private function directly.
 
+    :param name: The name of the QVM
     :param qvm_type: Whether to construct a QVM or a PyQVM
     :param connection: The connection to use to talk to external services
     :param noisy: Whether to construct a noisy quantum computer
