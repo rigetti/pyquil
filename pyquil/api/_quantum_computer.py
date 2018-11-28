@@ -80,7 +80,6 @@ def _validate_run_and_measure_program(program: Program) -> Program:
 
 
 class QuantumComputer:
-    @_record_call
     def __init__(self, *,
                  name: str,
                  qam: QAM,
@@ -269,8 +268,17 @@ class QuantumComputer:
         binary = self.compiler.native_quil_to_executable(nq_program)
         return binary
 
+    def reset(self):
+        """
+        Reset the QuantumComputer's QAM to its initial state.
+        """
+        self.qam.reset()
+
     def __str__(self) -> str:
         return self.name
+
+    def __repr__(self):
+        return f'QuantumComputer[name="{self.name}"]'
 
 
 @_record_call
