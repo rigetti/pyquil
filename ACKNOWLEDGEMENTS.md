@@ -24,7 +24,7 @@ by him, Will Zeng (@willzeng), and Spike Curtis (@spikecurtis).
 The mathematical functionality of pyQuil started with an algebra module for manipulating Pauli
 operators, which was contributed by Nick Rubin (@ncrubin). With this, he authored the first
 larger-scale non-trivial algorithms using pyQuil, such as VQE and QAOA. The algorithms module has
-since been released as a separate project called [Grove](https://github.com/rigetticomputing/grove).
+since been released as a separate project called [Grove](https://github.com/rigetti/grove).
 
 After about 300 commits, the git history was removed for release.
 

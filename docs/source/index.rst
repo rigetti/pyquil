@@ -38,7 +38,7 @@ in pyquil's docs:
 **A few terms to orient you as you get started with Forest:**
 
 1. **pyQuil**: An open source Python library to help you write and run quantum programs.
-   The source is hosted on `github <http://github.com/rigetticomputing/pyquil>`_.
+   The source is hosted on `github <http://github.com/rigetti/pyquil>`_.
 2. **Quil**: The Quantum Instruction Language standard. Instructions written in Quil can be executed on any
    implementation of a quantum abstract machine, such as the quantum virtual machine (QVM), or on a real quantum processing
    unit (QPU). More details regarding Quil can be found in the whitepaper,
