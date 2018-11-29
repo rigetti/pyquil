@@ -141,7 +141,7 @@ def test_iteration():
     for ii, instruction in enumerate(program):
         assert instruction == gate_list[ii]
 
-    # https://github.com/rigetticomputing/pyquil/issues/265
+    # https://github.com/rigetti/pyquil/issues/265
     gate_generator = (gate_list[ii] for ii in range(3))
     program = Program(gate_generator)
     for ii, instruction in enumerate(program):
@@ -324,7 +324,7 @@ def test_dagger():
     p = Program().defgate("G", G).inst(("G", 0))
     assert p.dagger(inv_dict=inv_dict).out() == 'J 0\n'
 
-    # defined parameterized gates cannot auto generate daggered version https://github.com/rigetticomputing/pyquil/issues/304
+    # defined parameterized gates cannot auto generate daggered version https://github.com/rigetti/pyquil/issues/304
     theta = Parameter('theta')
     gparam_matrix = np.array([[quil_cos(theta / 2), -1j * quil_sin(theta / 2)],
                              [-1j * quil_sin(theta / 2), quil_cos(theta / 2)]])
@@ -333,7 +333,7 @@ def test_dagger():
     with pytest.raises(TypeError):
         p.dagger()
 
-    # defined parameterized gates should passback parameters https://github.com/rigetticomputing/pyquil/issues/304
+    # defined parameterized gates should passback parameters https://github.com/rigetti/pyquil/issues/304
     GPARAM = g_param_def.get_constructor()
     p = Program(GPARAM(pi)(1, 2))
     assert p.dagger().out() == 'GPARAM-INV(pi) 1 2\n'
@@ -820,7 +820,7 @@ PRAGMA READOUT-POVM 1 "(0.9 0.19999999999999996 0.09999999999999998 0.8)"
         pq.define_noisy_readout(1., .5, .5)
 
 
-# https://github.com/rigetticomputing/pyquil/issues/72
+# https://github.com/rigetti/pyquil/issues/72
 def test_if_then_inherits_defined_gates():
     p1 = Program()
     p1.inst(H(0))
@@ -839,7 +839,7 @@ def test_if_then_inherits_defined_gates():
     assert p3.defined_gates[0] in p1.defined_gates
 
 
-# https://github.com/rigetticomputing/pyquil/issues/124
+# https://github.com/rigetti/pyquil/issues/124
 def test_allocating_qubits_on_multiple_programs():
     p = Program()
     qubit0 = p.alloc()
@@ -852,7 +852,7 @@ def test_allocating_qubits_on_multiple_programs():
     assert address_qubits(p + q).out() == "X 0\nX 1\n"
 
 
-# https://github.com/rigetticomputing/pyquil/issues/163
+# https://github.com/rigetti/pyquil/issues/163
 def test_installing_programs_inside_other_programs():
     p = Program()
     q = Program()
@@ -860,21 +860,21 @@ def test_installing_programs_inside_other_programs():
     assert len(p) == 0
 
 
-# https://github.com/rigetticomputing/pyquil/issues/168
+# https://github.com/rigetti/pyquil/issues/168
 def test_nesting_a_program_inside_itself():
     p = Program(H(0)).measure(0, 0)
     with pytest.raises(ValueError):
         p.if_then(MemoryReference("ro", 0), p)
 
 
-# https://github.com/rigetticomputing/pyquil/issues/170
+# https://github.com/rigetti/pyquil/issues/170
 def test_inline_alloc():
     p = Program()
     p += H(p.alloc())
     assert address_qubits(p).out() == "H 0\n"
 
 
-# https://github.com/rigetticomputing/pyquil/issues/138
+# https://github.com/rigetti/pyquil/issues/138
 def test_defgate_integer_input():
     dg = DefGate("TEST", np.array([[1, 0],
                                    [0, 1]]))

@@ -65,7 +65,7 @@ setup(
     description="A Python library to generate Quantum Instruction Language (Quil) Programs.",
     long_description=long_description,
     long_description_content_type="text/markdown",
-    url="https://github.com/rigetticomputing/pyquil.git",
+    url="https://github.com/rigetti/pyquil.git",
     packages=find_packages(exclude=["*.tests", "*.tests.*", "tests.*", "tests"]),
     license='Apache-2.0',
     classifiers=[
@@ -84,7 +84,7 @@ setup(
         'six',
         'networkx',
         'dataclasses',
-        'rpcq>=2.1.0'
+        'rpcq>=2.2.1'
     ],
     keywords='quantum quil programming hybrid',
     python_requires=">=3.5",

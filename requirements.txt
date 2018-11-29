@@ -8,7 +8,7 @@ networkx
 dataclasses
 
 # rigetti packages
-rpcq == 2.1.0
+rpcq == 2.2.1
 
 # test deps
 pytest
@@ -20,3 +20,5 @@ tox
 sphinx
 sphinx_rtd_theme
 sphinx_autodoc_typehints
+ipykernel
+nbsphinx

@@ -39,13 +39,7 @@ class QAM(ABC):
 
     @_record_call
     def __init__(self):
-        self._variables_shim = {}
-        self._n_shots = None
-        self._n_bits = None
-        self._executable = None
-        self._bitstrings = None
-
-        self.status = 'connected'
+        self.reset()
 
     @_record_call
     def load(self, executable):
@@ -138,3 +132,16 @@ class QAM(ABC):
             raise QAMError("Bitstrings have not yet been populated. Something has gone wrong.")
 
         return self._bitstrings
+
+    @_record_call
+    def reset(self):
+        """
+        Reset the Quantum Abstract Machine to its initial state, which is particularly useful
+        when it has gotten into an unwanted state. This can happen, for example, if the QAM
+        is interrupted in the middle of a run.
+        """
+        self._variables_shim = {}
+        self._executable = None
+        self._bitstrings = None
+
+        self.status = 'connected'

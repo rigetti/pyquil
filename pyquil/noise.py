@@ -477,7 +477,7 @@ def _decoherence_noise_model(gates, T1=30e-6, T2=30e-6, gate_time_1q=50e-9,
 
 
 def decoherence_noise_with_asymmetric_ro(gates: Sequence[Gate], p00=0.975, p11=0.911):
-    """Similar to :py:func`_decoherence_noise_model`, but with asymmetric readout.
+    """Similar to :py:func:`_decoherence_noise_model`, but with asymmetric readout.
 
     For simplicity, we use the default values for T1, T2, gate times, et al. and only allow
     the specification of readout fidelities.
