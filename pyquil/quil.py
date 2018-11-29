@@ -957,7 +957,7 @@ def get_classical_addresses_from_program(program) -> Dict[str, List[int]]:
     flattened_addresses = {}
 
     # Required to use the `classical_reg.address` int attribute.
-    # See https://github.com/rigetticomputing/pyquil/issues/388.
+    # See https://github.com/rigetti/pyquil/issues/388.
     for instr in program:
         if isinstance(instr, Measurement) and instr.classical_reg:
             addresses[instr.classical_reg.name].append(instr.classical_reg.offset)

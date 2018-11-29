@@ -30,7 +30,7 @@ For those of you that already have pyQuil, you can upgrade with:
     pip install --upgrade pyquil
 
 If you would like to stay up to date with the latest changes and bug fixes, you can also opt to install pyQuil from the
-source `here <https://github.com/rigetticomputing/pyquil>`__.
+source `here <https://github.com/rigetti/pyquil>`__.
 
 .. note::
 
