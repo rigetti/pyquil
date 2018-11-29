@@ -223,7 +223,7 @@ def read_json(fn):
 def _local_pauli_eig_prep(op: str, idx: int):
     """
     Generate gate sequence to prepare a the +1 eigenstate of a Pauli operator, assuming
-    we are starting from the ground state (the +1 eigenstate of Z^{\otimes n}).
+    we are starting from the ground state (the +1 eigenstate of Z^{\\otimes n}).
 
     :param op: A string representation of the Pauli operator whose eigenstate we'd like to prepare.
     :param idx: The index of the qubit that the preparation is acting on
@@ -417,8 +417,8 @@ def measure_observables(qc: QuantumComputer, experiment_suite: ExperimentSuite, 
             bit_vals = (1 + obs_vals) // 2
             n_minus_ones, n_plus_ones = np.bincount(bit_vals, minlength=2)
             bit_mean = n_plus_ones / (n_plus_ones + n_minus_ones)
-            bit_var = ((n_plus_ones * n_minus_ones) /
-                       ((n_plus_ones + n_minus_ones) ** 2 * (n_plus_ones + n_minus_ones + 1)))
+            bit_var = ((n_plus_ones * n_minus_ones)
+                       / ((n_plus_ones + n_minus_ones) ** 2 * (n_plus_ones + n_minus_ones + 1)))
             obs_mean = ((bit_mean * 2) - 1) * coeff
             obs_var = (bit_var * 2 ** 2 * coeff ** 2)
             yield ExperimentResult(
