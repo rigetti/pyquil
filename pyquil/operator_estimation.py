@@ -48,7 +48,7 @@ class Experiment:
     @classmethod
     def from_str(cls, s: str):
         """The opposite of str(exp)"""
-        instr, outstr = s.split('\u2192')  # TODO: does this work with no inpauli?
+        instr, outstr = s.split('\u2192')
         return cls(in_operator=PauliTerm.from_str(instr),
                    out_operator=PauliTerm.from_str(outstr))
 
@@ -88,12 +88,11 @@ class ExperimentSuite:
                  program: Program,
                  qubits: List[int]):
         if len(experiments) == 0:
-            self._experiments = []
-            return
-
-        if isinstance(experiments[0], Experiment):
-            # convenience wrapping in lists of length 1
-            experiments = [[exp] for exp in experiments]
+            experiments = []
+        else:
+            if isinstance(experiments[0], Experiment):
+                # convenience wrapping in lists of length 1
+                experiments = [[exp] for exp in experiments]
 
         self._experiments = experiments  # type: List[List[Experiment]]
         self.program = program
@@ -173,6 +172,11 @@ class ExperimentSuite:
             'qubits': self.qubits,
         }
 
+    def __eq__(self, other):
+        if not isinstance(other, ExperimentSuite):
+            return False
+        return self.serializable() == other.serializable()
+
 
 class OperatorEncoder(JSONEncoder):
     def default(self, o):
@@ -199,6 +203,7 @@ class OperatorEncoder(JSONEncoder):
 def to_json(fn, obj):
     with open(fn, 'w') as f:
         json.dump(obj, f, cls=OperatorEncoder, indent=2)
+    return fn
 
 
 def _operator_object_hook(obj):
