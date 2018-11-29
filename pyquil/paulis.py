@@ -42,11 +42,11 @@ PAULI_PROD = {'ZZ': 'I', 'YY': 'I', 'XX': 'I', 'II': 'I',
               'ZY': 'X', 'IX': 'X', 'IY': 'Y', 'IZ': 'Z',
               'ZI': 'Z', 'YI': 'Y', 'XI': 'X',
               'X': 'X', 'Y': 'Y', 'Z': 'Z', 'I': 'I'}
-PAULI_COEFF = {'ZZ': 1, 'YY': 1, 'XX': 1, 'II': 1,
+PAULI_COEFF = {'ZZ': 1.0, 'YY': 1.0, 'XX': 1.0, 'II': 1.0,
                'XY': 1.0j, 'XZ': -1.0j, 'YX': -1.0j, 'YZ': 1.0j, 'ZX': 1.0j,
-               'ZY': -1.0j, 'IX': 1, 'IY': 1, 'IZ': 1, 'ZI': 1,
-               'YI': 1, 'XI': 1,
-               'X': 1, 'Y': 1, 'Z': 1, 'I': 1}
+               'ZY': -1.0j, 'IX': 1.0, 'IY': 1.0, 'IZ': 1.0, 'ZI': 1.0,
+               'YI': 1.0, 'XI': 1.0,
+               'X': 1.0, 'Y': 1.0, 'Z': 1.0, 'I': 1.0}
 
 
 class UnequalLengthWarning(Warning):
@@ -85,10 +85,11 @@ class PauliTerm(object):
 
         self._ops = OrderedDict()
         if op != "I":
-            assert _valid_qubit(index)
+            assert index is None or _valid_qubit(index)
             self._ops[index] = op
-
-        self.coefficient = coefficient
+        if not isinstance(coefficient, Number):
+            raise ValueError("coefficient of PauliTerm must be a Number.")
+        self.coefficient = complex(coefficient)
 
     def id(self, sort_ops=True):
         """
@@ -140,10 +141,9 @@ class PauliTerm(object):
                     and np.isclose(self.coefficient, other.coefficient))
 
     def __hash__(self):
-        coef = complex(self.coefficient)
         return hash((
-            round(coef.real * HASH_PRECISION),
-            round(coef.imag * HASH_PRECISION),
+            round(self.coefficient.real * HASH_PRECISION),
+            round(self.coefficient.imag * HASH_PRECISION),
             self.operations_as_set()
         ))
 
@@ -212,22 +212,18 @@ class PauliTerm(object):
         :returns: The product of this PauliTerm and term.
         :rtype: PauliTerm
         """
-        if isinstance(term, PauliSum):
+        if isinstance(term, Number):
+            return term_with_coeff(self, self.coefficient * term)
+        elif isinstance(term, PauliSum):
             return (PauliSum([self]) * term).simplify()
-
-        if isinstance(term, PauliTerm):
-            new_term = sI()
+        else:
+            new_term = PauliTerm("I", 0, 1.0)
             new_term._ops = self._ops.copy()
             new_coeff = self.coefficient * term.coefficient
             for index, op in term:
                 new_term = new_term._multiply_factor(op, index)
 
             return term_with_coeff(new_term, new_term.coefficient * new_coeff)
-
-        # assume it's something numbery
-        self.coefficient *= term
-        return self
-
 
     def __rmul__(self, other):
         """Multiplies this PauliTerm with another object, probably a number.
@@ -447,7 +443,7 @@ def term_with_coeff(term, coeff):
         raise ValueError("coeff must be a Number")
     new_pauli = term.copy()
     # We cast to a complex number to ensure that internally the coefficients remain compatible.
-    new_pauli.coefficient = coeff
+    new_pauli.coefficient = complex(coeff)
     return new_pauli
 
 

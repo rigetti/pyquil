@@ -135,8 +135,7 @@ def test_experiment_result():
         expectation=0.9,
         stddev=0.05,
     )
-
-    assert str(er) == '1*X0→1*Z0: 0.9 +- 0.05'
+    assert str(er) == '(1+0j)*X0→(1+0j)*Z0: 0.9 +- 0.05'
 
 
 def test_measure_observables(forest):
