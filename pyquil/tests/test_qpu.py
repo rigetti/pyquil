@@ -129,13 +129,13 @@ RX(pi) 0
 ]
 
 
-@pytest.fixture()
+@pytest.fixture
 def mock_qpu():
     return QPU(endpoint='tcp://not-needed:00000',
                user="pyQuil test suite")
 
 
-@pytest.fixture()
+@pytest.fixture
 def gate_arithmetic_binaries(qpu_compiler: QPUCompiler):
     return [qpu_compiler.native_quil_to_executable(p) for p in GATE_ARITHMETIC_PROGRAMS]
 

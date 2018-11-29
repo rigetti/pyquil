@@ -15,7 +15,7 @@ from pyquil.paulis import sI
 from pyquil.quil import Program
 
 
-@pytest.fixture()
+@pytest.fixture
 def isa_dict():
     return {
         "1Q": {
@@ -43,7 +43,7 @@ def isa_dict():
     }
 
 
-@pytest.fixture()
+@pytest.fixture
 def specs_dict():
     return {
         '1Q': {
@@ -97,7 +97,7 @@ def specs_dict():
     }
 
 
-@pytest.fixture()
+@pytest.fixture
 def noise_model_dict():
     return {'gates': [{'gate': 'I',
                        'params': (5.0,),
@@ -114,7 +114,7 @@ def noise_model_dict():
             }
 
 
-@pytest.fixture()
+@pytest.fixture
 def device_raw(isa_dict, noise_model_dict, specs_dict):
     return {'isa': isa_dict,
             'noise_model': noise_model_dict,
@@ -123,7 +123,7 @@ def device_raw(isa_dict, noise_model_dict, specs_dict):
             'is_retuning': False}
 
 
-@pytest.fixture()
+@pytest.fixture
 def test_device(device_raw):
     return Device('test_device', device_raw)
 
@@ -138,7 +138,7 @@ def qvm():
         return pytest.skip("This test requires QVM connection: {}".format(e))
 
 
-@pytest.fixture()
+@pytest.fixture
 def compiler(test_device):
     try:
         config = PyquilConfig()
@@ -149,7 +149,7 @@ def compiler(test_device):
         return pytest.skip("This test requires compiler connection: {}".format(e))
 
 
-@pytest.fixture()
+@pytest.fixture
 def qpu_compiler(test_device):
     try:
         config = PyquilConfig()
