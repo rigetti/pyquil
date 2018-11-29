@@ -103,6 +103,14 @@ class PauliTerm(object):
         :return: A string representation of this term's operations.
         :rtype: string
         """
+        if len(self._ops) == 0 and not sort_ops:
+            # This is nefariously backwards-compatibility breaking. There's potentially
+            # lots of code floating around that says is_identity = term.id() == ''
+            # Please use `is_identity(term)`!
+            # Therefore, we only return 'I' when sort_ops is set to False, which is the newer
+            # way of calling this function and implies the user knows what they're doing.
+            return 'I'
+
         if sort_ops and len(self._ops) > 1:
             warnings.warn("`PauliTerm.id()` will not work on PauliTerms where the qubits are not "
                           "sortable and should be avoided in favor of `operations_as_set`.",
