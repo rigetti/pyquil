@@ -1,8 +1,25 @@
 Changelog
 =========
 
-v2.0.0 (November 1, 2018)
--------------------------
+v2.1 (November 30, 2018)
+------------------------
+
+PyQuil 2.1 is an incremental release of pyQuil, Rigetti's toolkit for constructing and running
+quantum programs. Changes include:
+
+- Major documentation improvements.
+- ``QuantumComputer.run()`` accepts an optional ``memory_map`` parameter to facilitate running
+  parametric executables (gh-657).
+- ``QuantumComputer.reset()`` will reset the state of a QAM to recover from an error condition
+  (gh-703).
+- Bug fixes (gh-674, gh-696).
+- Quil parser improvements (gh-689, gh-685).
+- Optional interleaver argument when generating RB sequences (gh-673).
+- Our GitHub organization name has changed from ``rigetticomputing`` to ``rigetti`` (gh-713).
+
+
+v2.0 (November 1, 2018)
+-----------------------
 
 PyQuil 2.0 is a major release of pyQuil, Rigetti's toolkit for constructing and running quantum
 programs. This release contains many major changes including:
@@ -37,6 +54,9 @@ An incomplete list of significant changes:
   for more.
 - Compilation has changed. There are now different ``Compiler`` objects that target either the
   QPU or QVM. You **must** explicitly compile your programs to run on a QPU or a realistic QVM.
+
+Version 2.0.1 was released on November 9, 2018 and includes documentation changes only. This
+release is only available as a git tag. We have not pushed a new package to PyPI.
 
 
 v1.9 (June 6, 2018)
