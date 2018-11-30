@@ -23,7 +23,7 @@ from setuptools import setup, find_packages
 
 HERE = os.path.abspath(os.path.dirname(__file__))
 
-if sys.version_info < (3, 5):
+if sys.version_info < (3, 6):
     raise ImportError('\n'.join([
         'PyQuil 2.0+ requires Python 3'
         '',
@@ -83,9 +83,8 @@ setup(
         'contextvars',
         'six',
         'networkx',
-        'dataclasses',
         'rpcq>=2.2.1'
     ],
     keywords='quantum quil programming hybrid',
-    python_requires=">=3.5",
+    python_requires=">=3.6",
 )

@@ -25,14 +25,16 @@ import sys
 import json
 import inspect
 from datetime import datetime, date
-from dataclasses import dataclass
-import dataclasses
 from typing import List, Dict, Any
 import logging
 from functools import wraps
 
 import pyquil
 
+if sys.version_info <= (3, 7):
+    from pyquil.external.dataclasses import dataclass, is_dataclass, asdict
+else:
+    from dataclasses import dataclass, is_dataclass, asdict
 
 _log = logging.getLogger(__name__)
 
@@ -100,8 +102,8 @@ class CallLogValue:
 
 
 def json_serialization_helper(o):
-    if dataclasses.is_dataclass(o):
-        return dataclasses.asdict(o)
+    if is_dataclass(o):
+        return asdict(o)
     elif isinstance(o, datetime):
         return o.isoformat()
     elif isinstance(o, Exception):

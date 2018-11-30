@@ -5,7 +5,6 @@ requests
 contextvars
 six
 networkx
-dataclasses
 
 # rigetti packages
 rpcq == 2.2.1
