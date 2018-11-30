@@ -80,10 +80,12 @@ setup(
         'numpy',
         'antlr4-python3-runtime',
         'requests',
-        'contextvars',
         'six',
         'networkx',
-        'rpcq>=2.2.1'
+        'rpcq>=2.2.1',
+
+        # dependency of contextvars, which we vendor
+        'immutables==0.6',
     ],
     keywords='quantum quil programming hybrid',
     python_requires=">=3.6",
