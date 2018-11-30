@@ -229,7 +229,7 @@ def append_kraus_to_gate(kraus_ops, gate_matrix):
 
 
 def pauli_kraus_map(probabilities):
-    """
+    r"""
     Generate the Kraus operators corresponding to a pauli channel.
 
     :params list|floats probabilities: The 4^num_qubits list of probabilities specifying the desired pauli channel.
@@ -238,9 +238,9 @@ def pauli_kraus_map(probabilities):
 
             For example::
 
-                The d-dimensional depolarazing channel \Delta parameterized as
+                The d-dimensional depolarizing channel \Delta parameterized as
                 \Delta(\rho) = p \rho + [(1-p)/d] I
-                is specfiied by the list of probabilities
+                is specified by the list of probabilities
                 [p + (1-p)/d, (1-p)/d,  (1-p)/d), ... , (1-p)/d)]
 
     :return: A list of the 4^num_qubits Kraus operators that parametrize the map.
@@ -477,7 +477,7 @@ def _decoherence_noise_model(gates, T1=30e-6, T2=30e-6, gate_time_1q=50e-9,
 
 
 def decoherence_noise_with_asymmetric_ro(gates: Sequence[Gate], p00=0.975, p11=0.911):
-    """Similar to :py:func`_decoherence_noise_model`, but with asymmetric readout.
+    """Similar to :py:func:`_decoherence_noise_model`, but with asymmetric readout.
 
     For simplicity, we use the default values for T1, T2, gate times, et al. and only allow
     the specification of readout fidelities.
@@ -667,8 +667,8 @@ def _apply_local_transforms(p, ts):
         # 'ij,abcd...jklm...->abcd...iklm...' so it properly applies a "local"
         # transformation to a single tensor-index without changing the order of
         # indices
-        einsum_pat = ('ij,' + _CHARS[:idx] + 'j' + _CHARS[idx:nq - 1] +
-                      '->' + _CHARS[:idx] + 'i' + _CHARS[idx:nq - 1])
+        einsum_pat = ('ij,' + _CHARS[:idx] + 'j' + _CHARS[idx:nq - 1]
+                      + '->' + _CHARS[:idx] + 'i' + _CHARS[idx:nq - 1])
         p_corrected = np.einsum(einsum_pat, trafo_idx, p_corrected)
 
     return p_corrected

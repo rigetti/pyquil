@@ -22,7 +22,7 @@ def test_format_parameter():
         assert format_parameter(test_case[0]) == test_case[1]
 
 
-# https://github.com/rigetticomputing/pyquil/issues/184
+# https://github.com/rigetti/pyquil/issues/184
 def test_pretty_print_pi():
     test_cases = [
         (0., '0'),

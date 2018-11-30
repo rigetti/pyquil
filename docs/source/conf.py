@@ -31,6 +31,7 @@
 # ones.
 extensions = [
     'sphinx.ext.autodoc',
+    'sphinx.ext.autosummary',
     'sphinx.ext.doctest',
     'sphinx.ext.intersphinx',
     'sphinx.ext.todo',
@@ -38,27 +39,15 @@ extensions = [
     'sphinx.ext.mathjax',
     'sphinx.ext.ifconfig',
     'sphinx.ext.viewcode',
+    'sphinx_autodoc_typehints',
+    'nbsphinx',
 ]
+
+autosummary_generate = True
+autoclass_content = "both"
 
 import sphinx_rtd_theme
 from pyquil import __version__
-
-
-def remove_secrets(app, what, name, obj, options, signature, return_annotation):
-    if what == "class" and name == "pyquil.api.Connection":
-        import pyquil.api as pqf
-        print("Replacing endpoint secrets in pyquil.api.Connection() signature")
-        print(signature,)
-        signature = signature.replace("'{}'".format(pqf.ENDPOINT), "ENDPOINT")
-        signature = signature.replace("'{}'".format(pqf.API_KEY), "API_KEY")
-        signature = signature.replace("'{}'".format(pqf.USER_ID), "USER_ID")
-        print("--> ", signature)
-        return signature, return_annotation
-
-
-def setup(app):
-    app.connect("autodoc-process-signature", remove_secrets)
-
 
 # Add any paths that contain templates here, relative to this directory.
 templates_path = ['_templates']
@@ -142,7 +131,6 @@ pygments_style = 'sphinx'
 # If true, `todo` and `todoList` produce output, else they produce nothing.
 todo_include_todos = True
 
-
 # -- Options for HTML output ----------------------------------------------
 
 # The theme to use for HTML and HTML Help pages.  See the documentation for
@@ -183,6 +171,13 @@ html_theme_path = [sphinx_rtd_theme.get_html_theme_path()]
 # relative to this directory. They are copied after the builtin static files,
 # so a file named "default.css" will overwrite the builtin "default.css".
 html_static_path = ["_static"]
+
+# See https://rackerlabs.github.io/docs-rackspace/tools/rtd-tables.html for details
+html_context = {
+    'css_files': [
+        '_static/theme_overrides.css',  # override wide tables in RTD theme
+    ],
+}
 
 # Add any extra paths that contain custom files (such as robots.txt or
 # .htaccess) here, relative to this directory. These files are copied
@@ -267,21 +262,21 @@ htmlhelp_basename = 'pyQuildoc'
 # -- Options for LaTeX output ---------------------------------------------
 
 latex_elements = {
-     # The paper size ('letterpaper' or 'a4paper').
-     #
-     # 'papersize': 'letterpaper',
+    # The paper size ('letterpaper' or 'a4paper').
+    #
+    # 'papersize': 'letterpaper',
 
-     # The font size ('10pt', '11pt' or '12pt').
-     #
-     # 'pointsize': '10pt',
+    # The font size ('10pt', '11pt' or '12pt').
+    #
+    # 'pointsize': '10pt',
 
-     # Additional stuff for the LaTeX preamble.
-     #
-     # 'preamble': '',
+    # Additional stuff for the LaTeX preamble.
+    #
+    # 'preamble': '',
 
-     # Latex figure (float) alignment
-     #
-     # 'figure_align': 'htbp',
+    # Latex figure (float) alignment
+    #
+    # 'figure_align': 'htbp',
 }
 
 # Grouping the document tree into LaTeX files. List of tuples

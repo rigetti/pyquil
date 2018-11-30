@@ -57,7 +57,9 @@ qubitVariable       : IDENTIFIER ;
 
 circuitQubit        : qubit | qubitVariable ;
 circuitGate         : name ( LPAREN param ( COMMA param )* RPAREN )? circuitQubit+ ;
-circuitInstr        : circuitGate | instr ;
+circuitMeasure      : MEASURE circuitQubit addr? ;
+circuitResetState   : RESET circuitQubit? ;
+circuitInstr        : circuitGate | circuitMeasure | circuitResetState | instr ;
 circuit             : ( TAB circuitInstr NEWLINE )* TAB circuitInstr ;
 
 // F. Measurement

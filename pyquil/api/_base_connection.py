@@ -18,7 +18,7 @@ from __future__ import print_function
 import re
 import warnings
 from json.decoder import JSONDecodeError
-from typing import Dict, Union, List
+from typing import Dict, Union, Sequence
 
 import numpy as np
 import requests
@@ -39,11 +39,11 @@ TYPE_MULTISHOT_MEASURE = "multishot-measure"
 TYPE_WAVEFUNCTION = "wavefunction"
 
 
-def get_json(session, url):
+def get_json(session, url, params: dict = None):
     """
     Get JSON from a Forest endpoint.
     """
-    res = session.get(url)
+    res = session.get(url, params=params)
     if res.status_code >= 400:
         raise parse_error(res)
     return res.json()
@@ -149,7 +149,7 @@ def validate_qubit_list(qubit_list):
     return qubit_list
 
 
-def prepare_register_list(register_dict: Dict[str, Union[bool, List[int]]]):
+def prepare_register_list(register_dict: Dict[str, Union[bool, Sequence[int]]]):
     """
     Canonicalize classical addresses for the payload and ready MemoryReference instances
     for serialization.
@@ -167,14 +167,15 @@ def prepare_register_list(register_dict: Dict[str, Union[bool, List[int]]]):
         raise TypeError("register_dict must be a dict but got " + repr(register_dict))
 
     for k, v in register_dict.items():
-        if isinstance(v, bool) and v:
+        if isinstance(v, bool):
+            assert v    # If boolean v must be True
             continue
 
-        register_dict[k] = list(int(x) for x in v)  # support ranges, numpy, ...
+        indices = [int(x) for x in v]  # support ranges, numpy, ...
 
-        for x in register_dict[k]:
-            if x < 0:
-                raise TypeError("Negative indices into classical arrays are not allowed.")
+        if not all(x >= 0 for x in indices):
+            raise TypeError("Negative indices into classical arrays are not allowed.")
+        register_dict[k] = indices
 
     return register_dict
 
@@ -283,25 +284,27 @@ def quilc_compile_payload(quil_program, isa, specs):
 
 class ForestConnection:
     @_record_call
-    def __init__(self, sync_endpoint=None, compiler_endpoint=None):
+    def __init__(self, sync_endpoint=None, compiler_endpoint=None, forest_cloud_endpoint=None):
         """
         Represents a connection to Forest containing methods to wrap all possible API endpoints.
 
         Users should not use methods from this class directly.
 
-        :param sync_endpoint: The endpoint of the server for running (small) QVM jobs
-        :param compiler_endpoint: The endpoint of the server for running (small) compiler jobs
+        :param sync_endpoint: The endpoint of the server for running QVM jobs
+        :param compiler_endpoint: The endpoint of the server for running quilc compiler jobs
+        :param forest_cloud_endpoint: The endpoint of the forest cloud server
         """
-
-        if not sync_endpoint:
-            pyquil_config = PyquilConfig()
+        pyquil_config = PyquilConfig()
+        if sync_endpoint is None:
             sync_endpoint = pyquil_config.qvm_url
-        if not compiler_endpoint:
-            pyquil_config = PyquilConfig()
+        if compiler_endpoint is None:
             compiler_endpoint = pyquil_config.compiler_url
+        if forest_cloud_endpoint is None:
+            forest_cloud_endpoint = pyquil_config.forest_url
 
         self.sync_endpoint = sync_endpoint
         self.compiler_endpoint = compiler_endpoint
+        self.forest_cloud_endpoint = forest_cloud_endpoint
         self.session = get_session()
 
     @_record_call
@@ -365,6 +368,22 @@ class ForestConnection:
 
         return ram
 
+    @_record_call
+    def _qvm_get_version_info(self) -> dict:
+        """
+        Return version information for the QVM.
+
+        :return: Dictionary with version information
+        """
+        response = post_json(self.session, self.sync_endpoint, {'type': 'version'})
+        split_version_string = response.text.split()
+        try:
+            qvm_app_version = split_version_string[0]
+            qvm_lib_version = split_version_string[2][:-1]
+        except ValueError:
+            raise TypeError(f'Malformed version string returned by the QVM: {response.text}')
+        return {'qvm-app': qvm_app_version, 'qvm-lib': qvm_lib_version}
+
     def _quilc_compile(self, quil_program, isa, specs):
         """
         Sends a quilc job to Forest.
@@ -376,3 +395,11 @@ class ForestConnection:
         response = post_json(self.session, self.sync_endpoint + "/quilc", payload)
         unpacked_response = response.json()
         return unpacked_response
+
+    def _quilc_get_version_info(self) -> dict:
+        """
+        Return version information for quilc.
+
+        :return: Dictionary with version information
+        """
+        return get_json(self.session, self.sync_endpoint + '/version')

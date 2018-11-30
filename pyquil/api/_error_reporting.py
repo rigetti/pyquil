@@ -24,10 +24,10 @@ import os
 import sys
 import json
 import inspect
-from datetime import datetime
+from datetime import datetime, date
 from dataclasses import dataclass
 import dataclasses
-from typing import List, Dict
+from typing import List, Dict, Any
 import logging
 from functools import wraps
 
@@ -44,7 +44,7 @@ class ErrorReport:
     """
 
     stack_trace: list
-    timestamp: datetime.date
+    timestamp: date
     call_log: dict
     exception: Exception  # noqa: E701
     system_info: dict
@@ -70,7 +70,7 @@ class CallLogKey:
 
     name: str
     args: List[str]
-    kwargs: Dict[str, any]
+    kwargs: Dict[str, Any]
 
     def __hash__(self):
         finger_print = (self.name,) + tuple(self.args) + tuple(
@@ -94,8 +94,8 @@ class CallLogValue:
     Entry in the call log list, suitable for JSON export.
     """
 
-    timestamp_in: datetime.date
-    timestamp_out: datetime.date
+    timestamp_in: date
+    timestamp_out: date
     return_value: str
 
 
@@ -135,7 +135,7 @@ class ErrorContext(object):
     Tracks information relevant to error reporting.
     """
 
-    log = {}
+    log: Dict[CallLogKey, CallLogValue] = {}
     filename = "pyquil_error.log"
 
     def generate_report(self, exception, trace):
@@ -184,7 +184,7 @@ Rigetti Computing support by email at support@rigetti.com for assistance.
         fh.close()
 
 
-global_error_context = ErrorContext()
+global_error_context = None
 
 
 def pyquil_protect(func, log_filename="pyquil_error.log"):
@@ -195,16 +195,17 @@ def pyquil_protect(func, log_filename="pyquil_error.log"):
     def pyquil_protect_wrapper(*args, **kwargs):
         global global_error_context
 
-        old_filename = global_error_context.filename
+        old_error_context = global_error_context
+        global_error_context = ErrorContext()
         global_error_context.filename = log_filename
 
         try:
             val = func(*args, **kwargs)
-            global_error_context.filename = old_filename
+            global_error_context = old_error_context
             return val
         except Exception as e:
             global_error_context.dump_error(e, inspect.trace())
-            global_error_context.filename = old_filename
+            global_error_context = old_error_context
             raise
 
     return pyquil_protect_wrapper
@@ -222,22 +223,24 @@ def _record_call(func):
         global global_error_context
 
         # log a call as about to take place
-        key = CallLogKey(name=func.__name__,
-                         args=[serialize_object_for_logging(arg) for arg in args],
-                         kwargs={k: serialize_object_for_logging(v) for k, v in kwargs.items()})
+        if global_error_context is not None:
+            key = CallLogKey(name=func.__name__,
+                             args=[serialize_object_for_logging(arg) for arg in args],
+                             kwargs={k: serialize_object_for_logging(v) for k, v in kwargs.items()})
 
-        pre_entry = CallLogValue(timestamp_in=datetime.utcnow(),
-                                 timestamp_out=None,
-                                 return_value=None)
-        global_error_context.log[key] = pre_entry
+            pre_entry = CallLogValue(timestamp_in=datetime.utcnow(),
+                                     timestamp_out=None,
+                                     return_value=None)
+            global_error_context.log[key] = pre_entry
 
         val = func(*args, **kwargs)
 
         # poke the return value of that call in
-        post_entry = CallLogValue(timestamp_in=pre_entry.timestamp_in,
-                                  timestamp_out=datetime.utcnow(),
-                                  return_value=serialize_object_for_logging(val))
-        global_error_context.log[key] = post_entry
+        if global_error_context is not None:
+            post_entry = CallLogValue(timestamp_in=pre_entry.timestamp_in,
+                                      timestamp_out=datetime.utcnow(),
+                                      return_value=serialize_object_for_logging(val))
+            global_error_context.log[key] = post_entry
 
         return val
 

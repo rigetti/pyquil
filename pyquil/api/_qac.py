@@ -22,6 +22,16 @@ from pyquil.paulis import PauliTerm
 
 
 class AbstractCompiler(ABC):
+    """The abstract interface for a compiler."""
+
+    def get_version_info(self) -> dict:
+        """
+        Return version information for this compiler and its dependencies.
+
+        :return: Dictionary of version information.
+        """
+        raise NotImplementedError
+
     @abstractmethod
     def quil_to_native_quil(self, program: Program) -> Program:
         """
@@ -44,7 +54,7 @@ class AbstractCompiler(ABC):
 class AbstractBenchmarker(ABC):
     @abstractmethod
     def apply_clifford_to_pauli(self, clifford: Program, pauli_in: PauliTerm) -> PauliTerm:
-        """
+        r"""
         Given a circuit that consists only of elements of the Clifford group,
         return its action on a PauliTerm.
 
@@ -58,20 +68,30 @@ class AbstractBenchmarker(ABC):
 
     @abstractmethod
     def generate_rb_sequence(self, depth: int, gateset: List[Gate],
-                             seed: int = None) -> List[Program]:
+                             seed: int = None, interleaver: Program = None) -> List[Program]:
         """
         Construct a randomized benchmarking experiment on the given qubits, decomposing into
-        gateset.
+        gateset. If interleaver is not provided, the returned sequence will have the form
 
-        The JSON payload that is parsed is a list of lists of indices, or Nones. In the
-        former case, they are the index of the gate in the gateset.
+            C_1 C_2 ... C_(depth-1) C_inv ,
 
-        :param depth: The number of Clifford gates to include in the randomized benchmarking
+        where each C is a Clifford element drawn from gateset, C_{< depth} are randomly selected,
+        and C_inv is selected so that the entire sequence composes to the identity.  If an
+        interleaver G (which must be a Clifford, and which will be decomposed into the native
+        gateset) is provided, then the sequence instead takes the form
+
+            C_1 G C_2 G ... C_(depth-1) G C_inv .
+
+        The JSON response is a list of lists of indices, or Nones. In the former case, they are the
+        index of the gate in the gateset.
+
+        :param int depth: The number of Clifford gates to include in the randomized benchmarking
          experiment. This is different than the number of gates in the resulting experiment.
-        :param gateset: A list of pyquil gates to decompose the Clifford elements into. These
+        :param list gateset: A list of pyquil gates to decompose the Clifford elements into. These
          must generate the clifford group on the qubits of interest. e.g. for one qubit
          [RZ(np.pi/2), RX(np.pi/2)].
-        :param seed: A positive integer that seeds the random generation of the gate sequence.
+        :param seed: A positive integer used to seed the PRNG.
+        :param interleaver: A Program object that encodes a Clifford element.
         :return: A list of pyquil programs. Each pyquil program is a circuit that represents an
          element of the Clifford group. When these programs are composed, the resulting Program
          will be the randomized benchmarking experiment of the desired depth. e.g. if the return

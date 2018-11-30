@@ -63,7 +63,7 @@ The server returned the above error because something was wrong with the HTTP
 request sent to it. This could be due to a bug in the server or a bug in your
 code. If you suspect this to be a bug in pyQuil or Rigetti Forest, then please
 describe the problem in a GitHub issue at:
-    https://github.com/rigetticomputing/pyquil/issues"""
+    https://github.com/rigetti/pyquil/issues"""
         super(InvalidInputError, self).__init__(server_status, explanation)
 
 
@@ -84,7 +84,7 @@ class JobNotFoundError(ApiError):
 The above job may have been deleted manually or due to some bug in the server.
 If you suspect this to be a bug then please describe the problem in a Github
 issue at:
-    https://github.com/rigetticomputing/pyquil/issues"""
+    https://github.com/rigetti/pyquil/issues"""
         super(JobNotFoundError, self).__init__(server_status, explanation)
 
 
@@ -103,7 +103,7 @@ class QPUError(ApiError):
 The QPU returned the above error. This could be due to a bug in the server or a
 bug in your code. If you suspect this to be a bug in pyQuil or Rigetti Forest,
 then please describe the problem in a GitHub issue at:
-    https://github.com/rigetticomputing/pyquil/issues"""
+    https://github.com/rigetti/pyquil/issues"""
         super(QPUError, self).__init__(server_status, explanation)
 
 
@@ -113,7 +113,7 @@ class QVMError(ApiError):
 The QVM returned the above error. This could be due to a bug in the server or a
 bug in your code. If you suspect this to be a bug in pyQuil or Rigetti Forest,
 then please describe the problem in a GitHub issue at:
-    https://github.com/rigetticomputing/pyquil/issues"""
+    https://github.com/rigetti/pyquil/issues"""
         super(QVMError, self).__init__(server_status, explanation)
 
 
@@ -123,7 +123,7 @@ class QUILCError(ApiError):
 QUILC returned the above error. This could be due to a bug in the server or a
 bug in your code. If you suspect this to be a bug in pyQuil or Rigetti Forest,
 then please describe the problem in a GitHub issue at:
-    https://github.com/rigetticomputing/pyquil/issues"""
+    https://github.com/rigetti/pyquil/issues"""
         super(QUILCError, self).__init__(server_status, explanation)
 
 
@@ -146,7 +146,7 @@ class UnknownApiError(ApiError):
         explanation = """
 The server has failed to return a proper response. Please describe the problem
 and copy the above message into a GitHub issue at:
-    https://github.com/rigetticomputing/pyquil/issues"""
+    https://github.com/rigetti/pyquil/issues"""
         super(UnknownApiError, self).__init__(server_status, explanation)
 
 

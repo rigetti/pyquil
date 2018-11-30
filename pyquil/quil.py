@@ -24,7 +24,7 @@ from collections import OrderedDict, defaultdict
 from math import pi
 
 import numpy as np
-from rpcq.core_messages import NativeQuilMetadata
+from rpcq.messages import NativeQuilMetadata
 from six import string_types
 from typing import List, Dict
 
@@ -36,10 +36,18 @@ from pyquil.quilatom import (LabelPlaceholder, QubitPlaceholder, unpack_qubit, A
 from pyquil.gates import MEASURE, QUANTUM_GATES, H, RESET
 from pyquil.quilbase import (DefGate, Gate, Measurement, Pragma, AbstractInstruction, Qubit,
                              Jump, Label, JumpConditional, JumpTarget, JumpUnless, JumpWhen,
-                             Declare)
+                             Declare, Halt, Reset, ResetQubit)
 
 
 class Program(object):
+    """A list of pyQuil instructions that comprise a quantum program.
+
+    >>> from pyquil import Program
+    >>> from pyquil.gates import *
+    >>> p = Program()
+    >>> p += H(0)
+    >>> p += CNOT(0, 1)
+    """
     def __init__(self, *instructions):
         self._defined_gates = []
         # Implementation note: the key difference between the private _instructions and
@@ -61,7 +69,7 @@ class Program(object):
         # default number of shots to loop through
         self.num_shots = 1
 
-        # Note to developers: Have you changed this method? Have you change the fields which
+        # Note to developers: Have you changed this method? Have you changed the fields which
         # live on `Program`? Please update `Program.copy()`!
 
     def copy(self):
@@ -351,7 +359,7 @@ class Program(object):
         label_start = LabelPlaceholder("START")
         label_end = LabelPlaceholder("END")
         self.inst(JumpTarget(label_start))
-        self.inst(JumpUnless(target=label_end, condition=Addr(classical_reg)))
+        self.inst(JumpUnless(target=label_end, condition=classical_reg))
         self.inst(q_program)
         self.inst(Jump(label_start))
         self.inst(JumpTarget(label_end))
@@ -408,7 +416,7 @@ class Program(object):
                       "Please create a `QubitPlaceholder` directly", DeprecationWarning)
         return QubitPlaceholder()
 
-    def declare(self, name, memory_type, memory_size=1, shared_region=None, offsets=None):
+    def declare(self, name, memory_type='BIT', memory_size=1, shared_region=None, offsets=None):
         """DECLARE a quil variable
 
         This adds the declaration to the current program and returns a MemoryReference to the
@@ -421,7 +429,7 @@ class Program(object):
             own MemoryReferences later on.
 
         :param name: Name of the declared variable
-        :param memory_type: Type of the declared variable
+        :param memory_type: Type of the declared memory: 'BIT', 'REAL', 'OCTET' or 'INTEGER'
         :param memory_size: Number of array elements in the declared memory.
         :param shared_region: You can declare a variable that shares its underlying memory
             with another region. This allows aliasing. For example, you can interpret an array
@@ -500,14 +508,16 @@ class Program(object):
 
     def is_protoquil(self):
         """
-        Protoquil programs may only contain gates, no classical instructions and no jumps.
+        Protoquil programs may only contain gates, Pragmas, and an initial global RESET. It may not
+        contain classical instructions or jumps.
 
         :return: True if the Program is Protoquil, False otherwise
         """
-        for instr in self._instructions:
-            if not isinstance(instr, Gate):
-                return False
-        return True
+        try:
+            validate_protoquil(self)
+            return True
+        except ValueError:
+            return False
 
     def pop(self):
         """
@@ -630,7 +640,7 @@ class Program(object):
         return not self.__eq__(other)
 
     def __len__(self):
-        return len(self._instructions)
+        return len(self.instructions)
 
     def __str__(self):
         """
@@ -843,7 +853,7 @@ def implicitly_declare_ro(instructions: List[AbstractInstruction]):
     This behavior is included for backwards compatibility and will be removed in future releases
     of PyQuil. Please DECLARE all memory including ``ro``.
     """
-    ro_addrs = []
+    ro_addrs: List[int] = []
     for instr in instructions:
         if isinstance(instr, Declare):
             # The user has declared their own memory
@@ -943,11 +953,11 @@ def get_classical_addresses_from_program(program) -> Dict[str, List[int]]:
     :param Program program: The program from which to get the classical addresses.
     :return: A mapping from memory region names to lists of offsets appearing in the program.
     """
-    addresses = defaultdict(list)
+    addresses: Dict[str, List[int]] = defaultdict(list)
     flattened_addresses = {}
 
     # Required to use the `classical_reg.address` int attribute.
-    # See https://github.com/rigetticomputing/pyquil/issues/388.
+    # See https://github.com/rigetti/pyquil/issues/388.
     for instr in program:
         if isinstance(instr, Measurement) and instr.classical_reg:
             addresses[instr.classical_reg.name].append(instr.classical_reg.offset)
@@ -981,3 +991,38 @@ def percolate_declares(program: Program) -> Program:
     p._defined_gates = program._defined_gates
 
     return p
+
+
+def validate_protoquil(program: Program) -> None:
+    """
+    Ensure that a program is valid ProtoQuil, otherwise raise a ValueError.
+    Protoquil allows a global RESET before any gates, and MEASUREs on each qubit after any gates
+    on that qubit. Pragmas are always allowed, and a final Halt instruction is allowed.
+
+    :param program: The Quil program to validate.
+    """
+    gates_seen = False
+    halted = False
+    measured_qubits = set()
+    for instr in program.instructions:
+        if isinstance(instr, Pragma) or isinstance(instr, Declare):
+            continue
+        elif isinstance(instr, Halt):
+            halted = True
+        elif halted:
+            raise ValueError(f"Cannot have instruction {instr} after HALT")
+        elif isinstance(instr, Gate):
+            gates_seen = True
+            if any(q.index in measured_qubits for q in instr.qubits):
+                raise ValueError("Cannot apply gates to qubits that were already measured.")
+        elif isinstance(instr, Reset):
+            if gates_seen:
+                raise ValueError("ProtoQuil disallows RESET after a gate application.")
+        elif isinstance(instr, ResetQubit):
+            raise ValueError("ProtoQuil only allows for global RESET.")
+        elif isinstance(instr, Measurement):
+            if instr.qubit.index in measured_qubits:
+                raise ValueError("ProtoQuil currently disallows multiple measurements per qubit.")
+            measured_qubits.add(instr.qubit.index)
+        else:
+            raise ValueError(f"Unhandled instruction type in ProtoQuil validation: {instr}")

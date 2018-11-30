@@ -19,9 +19,9 @@ Module for facilitating connections to the QVM / QPU.
 import warnings
 
 __all__ = ['QVMConnection', 'LocalQVMCompiler', 'QVMCompiler', 'QPUCompiler',
-           'Job', 'get_devices', 'Device', 'ForestConnection', 'pyquil_protect',
+           'Job', 'Device', 'ForestConnection', 'pyquil_protect',
            'WavefunctionSimulator', 'QuantumComputer', 'list_quantum_computers', 'get_qc',
-           'QAM', 'QVM', 'QPU',
+           'QAM', 'QVM', 'QPU', 'QPUConnection',
            'BenchmarkConnection', 'LocalBenchmarkConnection', 'get_benchmarker']
 
 from pyquil.api._base_connection import ForestConnection
@@ -30,8 +30,8 @@ from pyquil.api._compiler import QVMCompiler, QPUCompiler, LocalQVMCompiler
 from pyquil.api._error_reporting import pyquil_protect
 from pyquil.api._job import Job
 from pyquil.api._qam import QAM
-from pyquil.api._qpu import get_devices, QPU
-from pyquil.api._quantum_computer import QuantumComputer, list_quantum_computers, get_qc
+from pyquil.api._qpu import QPU
+from pyquil.api._quantum_computer import QuantumComputer, list_quantum_computers, get_qc, local_qvm
 from pyquil.api._qvm import QVMConnection, QVM
 from pyquil.api._wavefunction_simulator import WavefunctionSimulator
 from pyquil.device import Device
@@ -64,3 +64,12 @@ with just this:
     result = qvm.run(program, ...)
 
 For more information see https://go.rigetti.com/connections\n""")
+
+
+class QPUConnection(QPU):
+    def __init__(self, *args, **kwargs):
+        warnings.warn("QPUConnection's semantics have changed for Forest 2. Consider using "
+                      "pyquil.get_qc('...') instead of creating this object directly. "
+                      "Please consult the migration guide for full details.",
+                      DeprecationWarning)
+        super(QPU, self).__init__(*args, **kwargs)

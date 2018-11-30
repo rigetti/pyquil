@@ -16,7 +16,7 @@
 
 import operator
 from numbers import Number
-from typing import Any, List, Iterator, Callable
+from typing import Any, List, Iterator, Callable, Union
 
 import numpy as np
 from antlr4 import InputStream, CommonTokenStream, ParseTreeWalker
@@ -80,8 +80,8 @@ class CustomErrorListener(ErrorListener):
         expected_tokens = self.get_expected_tokens(recognizer, e.getExpectedTokens()) if e else []
 
         raise RuntimeError(
-            "Error encountered while parsing the quil program at line {} and column {}\n".format(line, column + 1) +
-            "Received an '{}' but was expecting one of [ {} ]".format(offendingSymbol.text, ', '.join(expected_tokens))
+            "Error encountered while parsing the quil program at line {} and column {}\n".format(line, column + 1)
+            + "Received an '{}' but was expecting one of [ {} ]".format(offendingSymbol.text, ', '.join(expected_tokens))
         )
 
     def get_expected_tokens(self, parser, interval_set):
@@ -128,11 +128,12 @@ class PyQuilListener(QuilListener):
         circuit_name = ctx.name().getText()
         variables = [variable.getText() for variable in ctx.variable()]
         qubitVariables = [qubitVariable.getText() for qubitVariable in ctx.qubitVariable()]
+        space = ' ' if qubitVariables else ''
 
         if variables:
-            raw_defcircuit = 'DEFCIRCUIT {}({}) {}:'.format(circuit_name, ', '.join(variables), ' '.join(qubitVariables))
+            raw_defcircuit = 'DEFCIRCUIT {}({}){}{}:'.format(circuit_name, ', '.join(variables), space, ' '.join(qubitVariables))
         else:
-            raw_defcircuit = 'DEFCIRCUIT {} {}:'.format(circuit_name, ' '.join(qubitVariables))
+            raw_defcircuit = 'DEFCIRCUIT {}{}{}:'.format(circuit_name, space, ' '.join(qubitVariables))
 
         raw_defcircuit += '\n    '.join([''] + [instr.out() for instr in self.result])
         self.previous_result.append(RawInstr(raw_defcircuit))
@@ -165,6 +166,13 @@ class PyQuilListener(QuilListener):
             self.result.append(RawInstr('{}({}) {}'.format(gate_name, ', '.join(params), ' '.join(qubits))))
         else:
             self.result.append(RawInstr('{} {}'.format(gate_name, ' '.join(qubits))))
+
+    def exitCircuitMeasure(self, ctx: QuilParser.CircuitMeasureContext):
+        qubit = ctx.circuitQubit().getText()
+        classical = None
+        if ctx.addr():
+            classical = ctx.addr().getText()
+        self.result.append(RawInstr(f'MEASURE {qubit} {classical}' if classical else f'MEASURE {qubit}'))
 
     def exitMeasure(self, ctx: QuilParser.MeasureContext):
         qubit = _qubit(ctx.qubit())
@@ -200,6 +208,10 @@ class PyQuilListener(QuilListener):
         else:
             self.result.append(Reset())
 
+    def exitCircuitResetState(self, ctx: QuilParser.ResetStateContext):
+        qubit = ctx.circuitQubit().getText()
+        self.result.append(RawInstr(f'RESET {qubit}'))
+
     def exitWait(self, ctx):
         # type: (QuilParser.WaitContext) -> None
         self.result.append(Wait())
@@ -218,6 +230,7 @@ class PyQuilListener(QuilListener):
     def exitLogicalBinaryOp(self, ctx):
         # type: (QuilParser.LogicalBinaryOpContext) -> None
         left = _addr(ctx.addr(0))
+        right: Union[int, MemoryReference]
         if ctx.INT():
             right = int(ctx.INT().getText())
         else:
@@ -367,7 +380,7 @@ def _matrix(matrix):
 
 
 def _addr(classical):
-    # type: (QuilParser.AddrContext) -> Addr
+    # type: (QuilParser.AddrContext) -> MemoryReference
     if classical.IDENTIFIER() is not None:
         if classical.INT() is not None:
             return MemoryReference(str(classical.IDENTIFIER()), int(classical.INT().getText()))

@@ -5,15 +5,20 @@ import numpy as np
 import pytest
 
 from pyquil import Program, get_qc, list_quantum_computers
-from pyquil.api import QVM, QuantumComputer
+from pyquil.api import QVM, QuantumComputer, local_qvm
 from pyquil.api._qac import AbstractCompiler
 from pyquil.api._quantum_computer import _get_flipped_protoquil_program, _parse_name
 from pyquil.device import NxDevice, gates_in_isa
 from pyquil.gates import *
+from pyquil.quilbase import Declare, MemoryReference
 from pyquil.noise import decoherence_noise_with_asymmetric_ro
+from rpcq.messages import ParameterAref, PyQuilExecutableResponse
 
 
 class DummyCompiler(AbstractCompiler):
+    def get_version_info(self):
+        return {}
+
     def quil_to_native_quil(self, program: Program):
         return program
 
@@ -89,8 +94,8 @@ def test_run(forest):
             CNOT(1, 2),
             MEASURE(0, 0),
             MEASURE(1, 1),
-            MEASURE(2, 2)).wrap_in_numshots_loop(1000),
-        classical_addresses=None)
+            MEASURE(2, 2)).wrap_in_numshots_loop(1000)
+    )
 
     assert bitstrings.shape == (1000, 3)
     parity = np.sum(bitstrings, axis=1) % 3
@@ -112,13 +117,13 @@ def test_readout_symmetrization(forest):
                    MEASURE(1, 1))
     prog.wrap_in_numshots_loop(1000)
 
-    bs1 = qc.run(prog, True)
+    bs1 = qc.run(prog)
     avg0_us = np.mean(bs1[:, 0])
     avg1_us = 1 - np.mean(bs1[:, 1])
     diff_us = avg1_us - avg0_us
     assert diff_us > 0.03
 
-    bs2 = qc.run_symmetrized_readout(prog, 1000, None)
+    bs2 = qc.run_symmetrized_readout(prog, 1000)
     avg0_s = np.mean(bs2[:, 0])
     avg1_s = 1 - np.mean(bs2[:, 1])
     diff_s = avg1_s - avg0_s
@@ -126,9 +131,9 @@ def test_readout_symmetrization(forest):
 
 
 def test_list_qc():
-    qc_names = list_quantum_computers()
+    qc_names = list_quantum_computers(qpus=False)
     # TODO: update with deployed qpus
-    assert qc_names == ['9q-generic-qvm', '9q-generic-noisy-qvm']
+    assert qc_names == ['9q-square-qvm', '9q-square-noisy-qvm']
 
 
 def test_parse_qc_name():
@@ -226,20 +231,150 @@ def test_parse_qc_no_prefix_2():
     assert prefix == ''
 
 
-def test_qc(qvm, compiler):
-    qc = get_qc('9q-generic-noisy-qvm')
+def test_qc():
+    qc = get_qc('9q-square-noisy-qvm')
     assert isinstance(qc, QuantumComputer)
     assert isinstance(qc.qam, QVM)
     assert qc.qam.noise_model is not None
     assert qc.qubit_topology().number_of_nodes() == 9
     assert qc.qubit_topology().degree[0] == 2
     assert qc.qubit_topology().degree[4] == 4
+    assert str(qc) == "9q-square-noisy-qvm"
 
+
+def test_qc_run(qvm, compiler):
+    qc = get_qc('9q-square-noisy-qvm')
     bs = qc.run_and_measure(Program(X(0)), trials=3)
-    assert bs.shape == (3, 9)
+    assert len(bs) == 9
+    for q, bits in bs.items():
+        assert bits.shape == (3,)
 
 
-def test_fully_connected_qvm_qc():
-    qc = get_qc('qvm')
-    for q1, q2 in itertools.permutations(range(34), r=2):
-        assert (q1, q2) in qc.qubit_topology().edges
+def test_nq_qvm_qc():
+    for n_qubits in [2, 4, 7, 19]:
+        qc = get_qc(f'{n_qubits}q-qvm')
+        for q1, q2 in itertools.permutations(range(n_qubits), r=2):
+            assert (q1, q2) in qc.qubit_topology().edges
+        assert qc.name == f'{n_qubits}q-qvm'
+
+
+def test_qc_noisy():
+    qc = get_qc('5q', as_qvm=True, noisy=True)
+    assert isinstance(qc, QuantumComputer)
+
+
+def test_qc_compile():
+    qc = get_qc('5q', as_qvm=True, noisy=True)
+    qc.compiler = DummyCompiler()
+    prog = Program()
+    prog += H(0)
+    prog1 = qc.compile(prog)
+    assert prog1 == prog
+
+
+def test_qc_error():
+    # QVM is not a QPU
+    with pytest.raises(ValueError):
+        get_qc('9q-square-noisy-qvm', as_qvm=False)
+
+    with pytest.raises(ValueError):
+        get_qc('5q', as_qvm=False)
+
+
+def test_run_and_measure(local_qvm_quilc):
+    qc = get_qc("9q-generic-qvm")
+    prog = Program(I(8))
+    trials = 11
+    # note to devs: this is included as an example in the run_and_measure docstrings
+    # so if you change it here ... change it there!
+    with local_qvm():  # Redundant with test fixture.
+        bitstrings = qc.run_and_measure(prog, trials)
+    bitstring_array = np.vstack(bitstrings[q] for q in qc.qubits()).T
+    assert bitstring_array.shape == (trials, len(qc.qubits()))
+
+
+def test_run_symmetrized_readout_error(local_qvm_quilc):
+    qc = get_qc("9q-generic-qvm")
+    trials = 11
+    prog = Program(I(8))
+
+    # Trials not even
+    with pytest.raises(ValueError):
+        bitstrings = qc.run_symmetrized_readout(prog, trials)
+
+
+def test_qvm_compile_pickiness(forest):
+    p = Program(X(0), MEASURE(0, 0))
+    p.wrap_in_numshots_loop(1000)
+    nq = PyQuilExecutableResponse(program=p.out(), attributes={'num_shots': 1000})
+
+    # Ok, non-realistic
+    qc = get_qc('9q-qvm')
+    qc.run(p)
+
+    # Also ok
+    qc.run(nq)
+
+    # Not ok
+    qc = get_qc('9q-square-qvm')
+    with pytest.raises(TypeError):
+        qc.run(p)
+
+    # Yot ok
+    qc.run(nq)
+
+
+def test_run_with_parameters(forest):
+    device = NxDevice(nx.complete_graph(3))
+    qc = QuantumComputer(
+        name='testy!',
+        qam=QVM(connection=forest),
+        device=device,
+        compiler=DummyCompiler()
+    )
+    bitstrings = qc.run(
+        executable=Program(
+            Declare(name='theta', memory_type='REAL'),
+            Declare(name='ro', memory_type='BIT'),
+            RX(MemoryReference('theta'), 0),
+            MEASURE(0, MemoryReference('ro'))
+        ).wrap_in_numshots_loop(1000),
+        memory_map={'theta': [np.pi]}
+    )
+
+    assert bitstrings.shape == (1000, 1)
+    assert all([bit == 1 for bit in bitstrings])
+
+
+def test_reset(forest):
+    device = NxDevice(nx.complete_graph(3))
+    qc = QuantumComputer(
+        name='testy!',
+        qam=QVM(connection=forest),
+        device=device,
+        compiler=DummyCompiler()
+    )
+    p = Program(
+        Declare(name='theta', memory_type='REAL'),
+        Declare(name='ro', memory_type='BIT'),
+        RX(MemoryReference('theta'), 0),
+        MEASURE(0, MemoryReference('ro'))
+    ).wrap_in_numshots_loop(1000)
+    qc.run(
+        executable=p,
+        memory_map={'theta': [np.pi]}
+    )
+
+    aref = ParameterAref(name='theta', index=0)
+    assert qc.qam._variables_shim[aref] == np.pi
+    assert qc.qam._executable == p
+    assert qc.qam._bitstrings.shape == (1000, 1)
+    assert all([bit == 1 for bit in qc.qam._bitstrings])
+    assert qc.qam.status == 'done'
+
+    qc.reset()
+
+    assert qc.qam._variables_shim == {}
+    assert qc.qam._executable is None
+    assert qc.qam._bitstrings is None
+    assert qc.qam.status == 'connected'
