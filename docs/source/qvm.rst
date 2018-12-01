@@ -242,7 +242,7 @@ before running it, nor do you have to specify any ``MEASURE`` instructions; all 
     results = qc.run_and_measure(p, trials=5)
     print(results)
 
-Trials specifies how many times to run this program. Let's see our results:
+``trials`` specifies how many times to run this program. Let's see our results:
 
 .. parsed-literal::
 
