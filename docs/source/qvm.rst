@@ -175,7 +175,7 @@ All of this can be accomplished with :py:func:`~pyquil.api.get_qc`.
     from pyquil import get_qc
 
     # Get a QPU
-    qc = get_qc(QPU_LATTICE_NAME)  # This is just a string naming the device
+    qc = get_qc(QPU_LATTICE_NAME)  # The argument is just a string naming the device
 
     # Get a QVM with the same topology as the QPU lattice
     qc = get_qc(QPU_LATTICE_NAME, as_qvm=True)
