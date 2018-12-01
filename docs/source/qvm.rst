@@ -161,7 +161,7 @@ Typically, you will want a :py:class:`~pyquil.api.QuantumComputer` which either:
 
   - pertains to a real, available QPU device
   - is a QVM but mimics the topology of a QPU
-  - is some a generic QVM
+  - is some generic QVM
 
 All of this can be accomplished with :py:func:`~pyquil.api.get_qc`.
 
