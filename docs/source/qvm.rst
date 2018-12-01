@@ -319,7 +319,7 @@ and specify which edges exist. Here is an example, using the topology of our 16Q
     from pyquil.noise import decoherence_noise_with_asymmetric_ro
 
     qubits = [0, 1, 2, 3, 4, 5, 6, 7, 10, 11, 12, 13, 14, 15, 16, 17]  # qubits are numbered by octagon
-    edges = [(0, 1), (1, 2), (2, 3), (3, 4), (4, 5) (5, 6), (6, 7), (7, 0),  # first octagon
+    edges = [(0, 1), (1, 2), (2, 3), (3, 4), (4, 5), (5, 6), (6, 7), (7, 0),  # first octagon
              (1, 16), (2, 15),  # connections across the square
              (10, 11), (11, 12), (13, 14), (14, 15), (15, 16), (16, 17), (10, 17)] # second octagon
 
