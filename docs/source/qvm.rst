@@ -27,7 +27,7 @@ For information on constructing quantum programs, please refer back to :ref:`bas
 .. _qvm_use:
 
 The Quantum Virtual Machine (QVM)
-~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
+~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
 
 The Rigetti Quantum Virtual Machine is an implementation of the Quantum Abstract Machine from
 *A Practical Quantum Instruction Set Architecture*. [1]_  It is implemented in ANSI Common LISP and
