@@ -269,7 +269,7 @@ The above program would be written in this way to execute with ``run``:
 .. code:: python
 
     from pyquil import Program, get_qc
-    from pyquil.gates import X
+    from pyquil.gates import X, MEASURE
 
     qc = get_qc("8q-qvm")
 
