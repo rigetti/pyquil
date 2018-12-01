@@ -19,7 +19,7 @@ The program execution itself is sent from pyQuil to quantum computer endpoints, 
 Within pyQuil, there is a :py:class:`~pyquil.api.QVM` object and a :py:class:`~pyquil.api.QPU` object which use
 the exposed APIs of the QVM and QPU servers, respectively.
 
-On this page, we'll learn a bit about the :ref:`QVM <qvm_use>` and :ref:`QPU <qpu>`, then we will
+On this page, we'll learn a bit about the :ref:`QVM <qvm_use>` and :ref:`QPU <qpu>`. Then we will
 show you how to use them from pyQuil with a :ref:`quantum_computer`.
 
 For information on constructing quantum programs, please refer back to :ref:`basics`.
