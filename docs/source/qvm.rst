@@ -343,7 +343,7 @@ get reasonable results back. As long as the topology of the devices are the same
 will be able to run on the QPU and visa-versa. Since :py:class:`~pyquil.api.QuantumComputer` is built on the ``QAM``
 abstract class, its methods will also work for both QAM implementations.
 
-This makes the QVM is a powerful tool for testing quantum programs before executing them on the QPU.
+This makes the QVM a powerful tool for testing quantum programs before executing them on the QPU.
 
 .. code:: python
 
