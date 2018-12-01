@@ -8,7 +8,7 @@ quantum instruction language: its basic belief is that in the near term quantum 
 operate as coprocessors, working in concert with traditional CPUs. This means that Quil is designed to execute on
 a Quantum Abstract Machine (QAM) that has a shared classical/quantum architecture at its core.
 
-A QAM must, therefore, implement certain abstract methods to manipulate classical and quantum state, such as loading
+A QAM must, therefore, implement certain abstract methods to manipulate classical and quantum states, such as loading
 programs, writing to shared classical memory, and executing programs.
 
 The program execution itself is sent from pyQuil to quantum computer endpoints, which will be one of two options:
