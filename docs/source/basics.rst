@@ -341,6 +341,11 @@ filled in for, say, 200 values between :math:`0` and :math:`2\pi`. We demonstrat
         # Store our results
         parameteric_measurements.append(bitstrings)
 
+In the example here, if you called ``qc.run(executable)`` and didn't specify ``'theta'``, the program would apply
+``RZ(0, qubit)`` for every execution.
+
+.. note::
+    Classical memory defaults to zero. If you don't specify a value for a declared memory region, it will be zero.
 
 Gate Modifiers
 ~~~~~~~~~~~~~~
