@@ -31,7 +31,7 @@ from functools import wraps
 
 import pyquil
 
-if sys.version_info <= (3, 7):
+if sys.version_info < (3, 7):
     from pyquil.external.dataclasses import dataclass, is_dataclass, asdict
 else:
     from dataclasses import dataclass, is_dataclass, asdict
