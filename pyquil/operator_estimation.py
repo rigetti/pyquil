@@ -47,7 +47,7 @@ class Experiment:
 
     @classmethod
     def from_str(cls, s: str):
-        """The opposite of str(exp)"""
+        """The opposite of str(expt)"""
         instr, outstr = s.split('→')
         return cls(in_operator=PauliTerm.from_str(instr),
                    out_operator=PauliTerm.from_str(outstr))
@@ -106,7 +106,7 @@ class ExperimentSuite:
         else:
             if isinstance(experiments[0], Experiment):
                 # convenience wrapping in lists of length 1
-                experiments = [[exp] for exp in experiments]
+                experiments = [[expt] for expt in experiments]
 
         self._experiments = experiments  # type: List[List[Experiment]]
         self.program = program
@@ -133,26 +133,26 @@ class ExperimentSuite:
     def __contains__(self, item):
         return item in self._experiments
 
-    def append(self, exp):
-        return self._experiments.append(exp)
+    def append(self, expt):
+        return self._experiments.append(expt)
 
-    def count(self, exp):
-        return self._experiments.count(exp)
+    def count(self, expt):
+        return self._experiments.count(expt)
 
-    def index(self, exp, start=None, stop=None):
-        return self._experiments.index(exp, start, stop)
+    def index(self, expt, start=None, stop=None):
+        return self._experiments.index(expt, start, stop)
 
-    def extend(self, exps):
-        return self._experiments.extend(exps)
+    def extend(self, expts):
+        return self._experiments.extend(expts)
 
-    def insert(self, index, exp):
-        return self._experiments.insert(index, exp)
+    def insert(self, index, expt):
+        return self._experiments.insert(index, expt)
 
     def pop(self, index=None):
         return self._experiments.pop(index)
 
-    def remove(self, exp):
-        return self._experiments.remove(exp)
+    def remove(self, expt):
+        return self._experiments.remove(expt)
 
     def reverse(self):
         return self._experiments.reverse()
@@ -161,19 +161,19 @@ class ExperimentSuite:
         return self._experiments.sort(key, reverse)
 
     def experiment_strings(self):
-        yield from ('{i}: {expstr}'.format(i=i, expstr=', '.join(str(e) for e in exps))
-                    for i, exps in enumerate(self._experiments))
+        yield from ('{i}: {exptstr}'.format(i=i, exptstr=', '.join(str(expt) for expt in expts))
+                    for i, expts in enumerate(self._experiments))
 
     def experiments_string(self, abbrev_after=None):
-        expstrs = list(self.experiment_strings())
-        if abbrev_after is not None and len(expstrs) > abbrev_after:
+        exptstrs = list(self.experiment_strings())
+        if abbrev_after is not None and len(exptstrs) > abbrev_after:
             first_n = abbrev_after // 2
             last_n = abbrev_after - first_n
-            excluded = len(expstrs) - abbrev_after
-            expstrs = (expstrs[:first_n] + [f'... {excluded} hidden ...',
+            excluded = len(exptstrs) - abbrev_after
+            exptstrs = (exptstrs[:first_n] + [f'... {excluded} not shown ...',
                                             '... use e.experiments_string() for all ...']
-                       + expstrs[-last_n:])
-        return '\n'.join(expstrs)
+                       + exptstrs[-last_n:])
+        return '\n'.join(exptstrs)
 
     def __str__(self):
         return _abbrev_program(self.program) + '\n' + self.experiments_string(abbrev_after=20)
@@ -222,8 +222,8 @@ def to_json(fn, obj):
 
 def _operator_object_hook(obj):
     if 'type' in obj and obj['type'] == 'ExperimentSuite':
-        return ExperimentSuite([[Experiment.from_str(e) for e in exps]
-                                for exps in obj['experiments']],
+        return ExperimentSuite([[Experiment.from_str(e) for e in expts]
+                                for expts in obj['experiments']],
                                program=Program(obj['program']),
                                qubits=obj['qubits'])
     return obj
@@ -302,25 +302,25 @@ def construct_tpb_graph(experiments: ExperimentSuite):
     Construct a graph where an edge signifies two experiments share a TPB.
     """
     g = nx.Graph()
-    for exp in experiments:
-        assert len(exp) == 1, 'already grouped?'
-        exp = exp[0]
+    for expt in experiments:
+        assert len(expt) == 1, 'already grouped?'
+        expt = expt[0]
 
-        if exp not in g:
-            g.add_node(exp, count=1)
+        if expt not in g:
+            g.add_node(expt, count=1)
         else:
-            g.nodes[exp]['count'] += 1
+            g.nodes[expt]['count'] += 1
 
-    for exp1, exp2 in itertools.combinations(experiments, r=2):
-        exp1 = exp1[0]
-        exp2 = exp2[0]
+    for expt1, expt2 in itertools.combinations(experiments, r=2):
+        expt1 = expt1[0]
+        expt2 = expt2[0]
 
-        if exp1 == exp2:
+        if expt1 == expt2:
             continue
 
-        if (_all_qubits_belong_to_a_tpb(exp1.in_operator, exp2.in_operator)
-                and _all_qubits_belong_to_a_tpb(exp1.out_operator, exp2.out_operator)):
-            g.add_edge(exp1, exp2)
+        if (_all_qubits_belong_to_a_tpb(expt1.in_operator, expt2.in_operator)
+                and _all_qubits_belong_to_a_tpb(expt1.out_operator, expt2.out_operator)):
+            g.add_edge(expt1, expt2)
 
     return g
 
@@ -338,9 +338,9 @@ def group_experiments(experiments: ExperimentSuite) -> ExperimentSuite:
     new_cliqs = []
     for cliq in cliqs:
         new_cliq = []
-        for exp in cliq:
+        for expt in cliq:
             # duplicate `count` times
-            new_cliq += [exp] * g.nodes[exp]['count']
+            new_cliq += [expt] * g.nodes[expt]['count']
 
         new_cliqs += [new_cliq]
 
@@ -392,8 +392,8 @@ def measure_observables(qc: QuantumComputer, experiment_suite: ExperimentSuite, 
         if active_reset:
             total_prog += RESET()
         already_prepped = dict()
-        for exp in experiments:  # todo: find exp with max weight (for in_operator)
-            for idx, op_str in exp.in_operator:
+        for expt in experiments:  # todo: find expt with max weight (for in_operator)
+            for idx, op_str in expt.in_operator:
                 if idx in already_prepped:
                     assert already_prepped[idx] == op_str
                 else:
@@ -402,8 +402,8 @@ def measure_observables(qc: QuantumComputer, experiment_suite: ExperimentSuite, 
         total_prog += experiment_suite.program
 
         already_meased = dict()
-        for exp in experiments:  # todo: find exp with max weight (for out_operator)
-            for idx, op_str in exp.out_operator:
+        for expt in experiments:  # todo: find expt with max weight (for out_operator)
+            for idx, op_str in expt.out_operator:
                 if idx in already_meased:
                     assert already_meased[idx] == op_str
                 else:
@@ -415,14 +415,14 @@ def measure_observables(qc: QuantumComputer, experiment_suite: ExperimentSuite, 
         if progress_callback is not None:
             progress_callback(i, len(experiment_suite))
 
-        for exp in experiments:
+        for expt in experiments:
             measured_qubits = []
-            for idx, op_str in exp.out_operator:
+            for idx, op_str in expt.out_operator:
                 measured_qubits.append(idx)
             measured_qubits = np.array(measured_qubits)
-            log.debug(f"Considering {exp}... 'measuring' qubits {measured_qubits}")
-            assert exp.in_operator.coefficient == 1
-            coeff = exp.out_operator.coefficient
+            log.debug(f"Considering {expt}... 'measuring' qubits {measured_qubits}")
+            assert expt.in_operator.coefficient == 1
+            coeff = expt.out_operator.coefficient
             if isinstance(coeff, complex):
                 if np.isclose(coeff.imag, 0):
                     coeff = coeff.real
@@ -430,7 +430,7 @@ def measure_observables(qc: QuantumComputer, experiment_suite: ExperimentSuite, 
             if len(measured_qubits) == 0:
                 # I->I
                 yield ExperimentResult(
-                    experiment=exp,
+                    experiment=expt,
                     expectation=1.0,
                     stddev=0.0,
                 )
@@ -446,7 +446,7 @@ def measure_observables(qc: QuantumComputer, experiment_suite: ExperimentSuite, 
             obs_mean = ((bit_mean * 2) - 1) * coeff
             obs_var = (bit_var * 2 ** 2 * coeff ** 2)
             yield ExperimentResult(
-                experiment=exp,
+                experiment=expt,
                 expectation=obs_mean,
                 stddev=np.sqrt(obs_var),
             )

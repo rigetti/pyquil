@@ -27,37 +27,37 @@ def test_experiment():
     in_ops = _generate_random_paulis(n_qubits=4, n_terms=7)
     out_ops = _generate_random_paulis(n_qubits=4, n_terms=7)
     for iop, oop in zip(in_ops, out_ops):
-        exp = Experiment(iop, oop)
-        assert str(exp) == exp.serializable()
-        exp2 = Experiment.from_str(str(exp))
-        assert exp == exp2
-        assert exp2.in_operator == iop
-        assert exp2.out_operator == oop
+        expt = Experiment(iop, oop)
+        assert str(expt) == expt.serializable()
+        expt2 = Experiment.from_str(str(expt))
+        assert expt == expt2
+        assert expt2.in_operator == iop
+        assert expt2.out_operator == oop
 
 
 def test_experiment_no_in():
     out_ops = _generate_random_paulis(n_qubits=4, n_terms=7)
     for oop in out_ops:
-        exp = Experiment(sI(), oop)
-        exp2 = Experiment.from_str(str(exp))
-        assert exp == exp2
-        assert exp2.in_operator == sI()
-        assert exp2.out_operator == oop
+        expt = Experiment(sI(), oop)
+        expt2 = Experiment.from_str(str(expt))
+        assert expt == expt2
+        assert expt2.in_operator == sI()
+        assert expt2.out_operator == oop
 
 
 def test_experiment_suite():
-    exps = [
+    expts = [
         Experiment(sI(), sX(0) * sY(1)),
         Experiment(sZ(0), sZ(0)),
     ]
 
     suite = ExperimentSuite(
-        experiments=exps,
+        experiments=expts,
         program=Program(X(0), Y(1)),
         qubits=[0, 1]
     )
     assert len(suite) == 2
-    for e1, e2 in zip(exps, suite):
+    for e1, e2 in zip(expts, suite):
         # experiment suite puts in groups of length 1
         assert len(e2) == 1
         e2 = e2[0]
@@ -67,18 +67,18 @@ def test_experiment_suite():
 
 
 def test_experiment_suite_pre_grouped():
-    exps = [
+    expts = [
         [Experiment(sI(), sX(0) * sI(1)), Experiment(sI(), sI(0) * sX(1))],
         [Experiment(sI(), sZ(0) * sI(1)), Experiment(sI(), sI(0) * sZ(1))],
     ]
 
     suite = ExperimentSuite(
-        experiments=exps,
+        experiments=expts,
         program=Program(X(0), Y(1)),
         qubits=[0, 1]
     )
     assert len(suite) == 2  # number of groups
-    for es1, es2 in zip(exps, suite):
+    for es1, es2 in zip(expts, suite):
         for e1, e2 in zip(es1, es2):
             assert e1 == e2
     prog_str = str(suite).splitlines()[0]
@@ -92,13 +92,13 @@ def test_experiment_suite_empty():
 
 
 def test_suite_deser(tmpdir):
-    exps = [
+    expts = [
         [Experiment(sI(), sX(0) * sI(1)), Experiment(sI(), sI(0) * sX(1))],
         [Experiment(sI(), sZ(0) * sI(1)), Experiment(sI(), sI(0) * sZ(1))],
     ]
 
     suite = ExperimentSuite(
-        experiments=exps,
+        experiments=expts,
         program=Program(X(0), Y(1)),
         qubits=[0, 1]
     )
@@ -108,22 +108,22 @@ def test_suite_deser(tmpdir):
 
 
 def test_all_ops_belong_to_tpb():
-    exps = [
+    expts = [
         [Experiment(sI(), sX(0) * sI(1)), Experiment(sI(), sI(0) * sX(1))],
         [Experiment(sI(), sZ(0) * sI(1)), Experiment(sI(), sI(0) * sZ(1))],
     ]
-    for group in exps:
+    for group in expts:
         for e1, e2 in itertools.combinations(group, 2):
             assert _all_qubits_belong_to_a_tpb(e1.in_operator, e2.in_operator)
             assert _all_qubits_belong_to_a_tpb(e1.out_operator, e2.out_operator)
 
 
 def test_group_experiments():
-    exps = [  # cf above, I removed the inner nesting. Still grouped visually
+    expts = [  # cf above, I removed the inner nesting. Still grouped visually
         Experiment(sI(), sX(0) * sI(1)), Experiment(sI(), sI(0) * sX(1)),
         Experiment(sI(), sZ(0) * sI(1)), Experiment(sI(), sI(0) * sZ(1)),
     ]
-    suite = ExperimentSuite(exps, Program(), qubits=[0, 1])
+    suite = ExperimentSuite(expts, Program(), qubits=[0, 1])
     grouped_suite = group_experiments(suite)
     assert len(suite) == 4
     assert len(grouped_suite) == 2
@@ -139,11 +139,11 @@ def test_experiment_result():
 
 
 def test_measure_observables(forest):
-    exps = [
+    expts = [
         Experiment(sI(), o1 * o2)
         for o1, o2 in itertools.product([sI(0), sX(0), sY(0), sZ(0)], [sI(1), sX(1), sY(1), sZ(1)])
     ]
-    suite = ExperimentSuite(exps, program=Program(X(0), CNOT(0, 1)), qubits=[0, 1])
+    suite = ExperimentSuite(expts, program=Program(X(0), CNOT(0, 1)), qubits=[0, 1])
     assert len(suite) == 4 * 4
     gsuite = group_experiments(suite)
     assert len(gsuite) == 3 * 3  # can get all the terms with I for free in this case
