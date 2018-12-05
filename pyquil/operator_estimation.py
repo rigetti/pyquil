@@ -239,7 +239,7 @@ def read_json(fn):
 def _local_pauli_eig_prep(op: str, idx: int):
     """
     Generate gate sequence to prepare a the +1 eigenstate of a Pauli operator, assuming
-    we are starting from the ground state (the +1 eigenstate of Z^{\\otimes n}).
+    we are starting from the |00..00> ground state.
 
     :param op: A string representation of the Pauli operator whose eigenstate we'd like to prepare.
     :param idx: The index of the qubit that the preparation is acting on
