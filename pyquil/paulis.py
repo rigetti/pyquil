@@ -343,8 +343,15 @@ class PauliTerm(object):
                 coef = complex(coef_str)
 
         op = sI() * coef
-        for ma in re.finditer(r'([XYZ])(\d+)', str_pauli_term):
-            op *= PauliTerm(ma.group(1), int(ma.group(2)))
+        if str_pauli_term == 'I':
+            return op
+
+        ma = re.match(r'(([XYZ])(\d+))+', str_pauli_term)
+        if ma is None:
+            raise ValueError(f"Could not parse pauli string {str_pauli_term}")
+        groups = list(ma.groups())
+        for (_, op_str, op_idx) in zip(groups[::3], groups[1::3], groups[2::3]):
+            op *= PauliTerm(op_str, int(op_idx))
         return op
 
     def pauli_string(self, qubits=None):

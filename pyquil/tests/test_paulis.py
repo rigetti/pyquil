@@ -644,3 +644,8 @@ def test_pauli_string():
     assert p.pauli_string([5]) == "Z"
     assert p.pauli_string([5, 6]) == "ZI"
     assert p.pauli_string([0, 1]) == "IX"
+
+
+def test_from_str():
+    with pytest.raises(ValueError):
+        PauliTerm.from_str('1*A0→1*Z0')
