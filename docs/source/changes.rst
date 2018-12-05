@@ -17,6 +17,9 @@ quantum programs. Changes include:
 - Optional interleaver argument when generating RB sequences (gh-673).
 - Our GitHub organization name has changed from ``rigetticomputing`` to ``rigetti`` (gh-713).
 
+Version 2.1.1 was released on December 4, 2018 and vendors ``dataclasses`` and ``contextvars``
+backports for Python 3.6 to make it easier to build conda packages (gh-724).
+
 
 v2.0 (November 1, 2018)
 -----------------------
