@@ -133,7 +133,9 @@ class ExperimentSuite:
     def __contains__(self, item):
         return item in self._experiments
 
-    def append(self, expt):
+    def append(self, expts):
+        if not isinstance(expts, list):
+            expt = [expts]
         return self._experiments.append(expt)
 
     def count(self, expt):

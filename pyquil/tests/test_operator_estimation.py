@@ -155,3 +155,17 @@ def test_measure_observables(forest):
             assert np.abs(res.expectation) > 0.9
         else:
             assert np.abs(res.expectation) < 0.1
+
+
+def test_append():
+    expts = [
+        [Experiment(sI(), sX(0) * sI(1)), Experiment(sI(), sI(0) * sX(1))],
+        [Experiment(sI(), sZ(0) * sI(1)), Experiment(sI(), sI(0) * sZ(1))],
+    ]
+    suite = ExperimentSuite(
+        experiments=expts,
+        program=Program(X(0), Y(1)),
+        qubits=[0, 1]
+    )
+    suite.append(Experiment(sI(), sY(0) * sX(1)))
+    assert (len(str(suite))) > 0
