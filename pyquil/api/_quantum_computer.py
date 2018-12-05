@@ -199,7 +199,7 @@ class QuantumComputer:
         return results
 
     @_record_call
-    def run_and_measure(self, program: Program, trials: int, active_reset=False) \
+    def run_and_measure(self, program: Program, trials: int) \
             -> Dict[int, np.ndarray]:
         """
         Run the provided state preparation program and measure all qubits.
@@ -224,17 +224,10 @@ class QuantumComputer:
 
         :param program: The state preparation program to run and then measure.
         :param trials: The number of times to run the program.
-        :param active_reset: Whether to actively reset qubits instead of waiting several
-            times the coherence length for qubits to decay to |0> naturally. Setting this
-            to True is much faster but there is a ~1% error per qubit. The thermal error from
-            the traditional (active_reset=False) approach is not routinely characterized but
-            is of the same order.
         :return: A dictionary keyed by qubit index where the corresponding value is a 1D array of
             measured bits.
         """
         program = program.copy()
-        if active_reset:
-            program._instructions.insert(0, RESET())
         program = _validate_run_and_measure_program(program)
         ro = program.declare('ro', 'BIT', len(self.qubits()))
         for i, q in enumerate(self.qubits()):

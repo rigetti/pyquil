@@ -367,6 +367,8 @@ def measure_observables(qc: QuantumComputer, experiment_suite: ExperimentSuite, 
         log.info(f"Collecting bitstrings for the {len(experiments)} experiments: {experiments}")
 
         total_prog = Program()
+        if active_reset:
+            total_prog += RESET()
         already_prepped = dict()
         for exp in experiments:  # todo: find exp with max weight (for in_operator)
             for idx, op_str in exp.in_operator:
@@ -385,7 +387,7 @@ def measure_observables(qc: QuantumComputer, experiment_suite: ExperimentSuite, 
                 else:
                     total_prog += _local_pauli_eig_meas(op_str, idx)
                     already_meased[idx] = op_str
-        bitstrings = qc.run_and_measure(total_prog, n_shots, active_reset=active_reset)
+        bitstrings = qc.run_and_measure(total_prog, n_shots)
         obs_strings = {q: 1 - 2 * bitstrings[q] for q in bitstrings}
 
         if progress_callback is not None:
