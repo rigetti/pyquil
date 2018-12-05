@@ -37,7 +37,7 @@ class Experiment:
     out_operator: PauliTerm
 
     def __str__(self):
-        return f'{self.in_operator}\u2192{self.out_operator}'
+        return f'{self.in_operator}→{self.out_operator}'
 
     def __repr__(self):
         return f'Experiment[{self}]'
@@ -48,7 +48,7 @@ class Experiment:
     @classmethod
     def from_str(cls, s: str):
         """The opposite of str(exp)"""
-        instr, outstr = s.split('\u2192')
+        instr, outstr = s.split('→')
         return cls(in_operator=PauliTerm.from_str(instr),
                    out_operator=PauliTerm.from_str(outstr))
 
