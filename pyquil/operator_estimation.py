@@ -359,9 +359,17 @@ def measure_observables(qc: QuantumComputer, experiment_suite: ExperimentSuite, 
     """
     Measure all the observables in an ExperimentSuite.
 
-    :param qc:
-    :param experiment_suite:
-    :param n_shots:
+    :param qc: A QuantumComputer which can run quantum programs
+    :param experiment_suite: The suite of observables to measure
+    :param n_shots: The number of shots to take per Experiment
+    :param progress_callback: If not None, this function is called each time a group of
+        experiments is run with arguments ``f(i, len(experiment_suite)`` such that the progress
+        is ``i / len(experiment_suite)``.
+    :param active_reset: Whether to actively reset qubits instead of waiting several
+        times the coherence length for qubits to decay to |0> naturally. Setting this
+        to True is much faster but there is a ~1% error per qubit in the reset operation.
+        Thermal noise from "traditional" reset is not routinely characterized but is of the same
+        order.
     """
     for i, experiments in enumerate(experiment_suite):
         log.info(f"Collecting bitstrings for the {len(experiments)} experiments: {experiments}")
