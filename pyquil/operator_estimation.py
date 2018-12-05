@@ -74,9 +74,17 @@ class ExperimentSuite:
     """
     A whole set of tomography-like experiments
 
-    Many near-term quantum algorithms involve measuring an ansatz state with respect to
-    many different observables. This class contains all (in_pauli, out_pauli) pairs for
-    a given ansatz preparation program.
+    Many near-term quantum algorithms involve:
+
+     - some limited state preperation
+     - enacting a quantum process (like in tomography) or preparing a variational ansatz state
+       (like in VQE)
+     - measuring observables of the state.
+
+    Where we typically use a large number of (state_prep, measure) pairs but keep the ansatz
+    program consistent. This class stores the ansatz program as a :py:class:`~pyquil.Program`
+    and maintains a list of :py:class:`Experiment` objects which each represent a
+    (state_prep, measure) pair.
 
     Experiments belonging to a shared tensor product basis (TPB) can (optionally) be estimated
     simultaneously. Therefore, this class is backed by a list of list of Experiments.
@@ -84,8 +92,9 @@ class ExperimentSuite:
     provide a list of length-1-lists. As a convenience, if you pass a 1D list to the constructor
     it will expand it to a list of length-1-lists.
 
-    Please see :py:func:`group_experiments` for a function that will automatically process an
-    ExperimentSuite to group Experiments sharing a TPB.
+    This class will not group experiments for you. Please see :py:func:`group_experiments` for
+    a function that will automatically process an ExperimentSuite to group Experiments sharing
+    a TPB.
     """
 
     def __init__(self,
