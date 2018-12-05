@@ -226,7 +226,9 @@ class QuantumComputer:
         :param trials: The number of times to run the program.
         :param active_reset: Whether to actively reset qubits instead of waiting several
             times the coherence length for qubits to decay to |0> naturally. Setting this
-            to True is much faster but there is a 1% error in the reset operation.
+            to True is much faster but there is a ~1% error per qubit. The thermal error from
+            the traditional (active_reset=False) approach is not routinely characterized but
+            is of the same order.
         :return: A dictionary keyed by qubit index where the corresponding value is a 1D array of
             measured bits.
         """
