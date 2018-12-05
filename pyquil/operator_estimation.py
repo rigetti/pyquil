@@ -53,12 +53,12 @@ class Experiment:
                    out_operator=PauliTerm.from_str(outstr))
 
 
-def _abbrev_program(program: Program, abbrev_after=10):
+def _abbrev_program(program: Program, max_len=10):
     program_lines = program.out().splitlines()
-    if abbrev_after is not None and len(program_lines) > abbrev_after:
-        first_n = abbrev_after // 2
-        last_n = abbrev_after - first_n
-        excluded = len(program_lines) - abbrev_after
+    if max_len is not None and len(program_lines) > max_len:
+        first_n = max_len // 2
+        last_n = max_len - first_n
+        excluded = len(program_lines) - max_len
         program_lines = (program_lines[:first_n] + [f'... {excluded} hidden ...']
                          + program_lines[-last_n:])
 
