@@ -173,8 +173,8 @@ class ExperimentSuite:
             last_n = abbrev_after - first_n
             excluded = len(exptstrs) - abbrev_after
             exptstrs = (exptstrs[:first_n] + [f'... {excluded} not shown ...',
-                                            '... use e.experiments_string() for all ...']
-                       + exptstrs[-last_n:])
+                                              '... use e.experiments_string() for all ...']
+                        + exptstrs[-last_n:])
         return '\n'.join(exptstrs)
 
     def __str__(self):
@@ -277,6 +277,11 @@ def _ops_belong_to_a_tpb(op_code1: str, op_code2: str):
 
     I.e. are they the same or is one of them 'I'.
     """
+    if op_code1 not in ['X', 'Y', 'Z', 'I']:
+        raise ValueError(f"Unknown op_code {op_code1}")
+    if op_code2 not in ['X', 'Y', 'Z', 'I']:
+        raise ValueError(f"Unknown op_code {op_code2}")
+
     if op_code1 == op_code2:
         # Same op
         return True
