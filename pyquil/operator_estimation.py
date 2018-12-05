@@ -263,14 +263,12 @@ def _local_pauli_eig_meas(op, idx):
 
     """
     if op == 'X':
-        gate = RY(-pi / 2, idx)
+        return Program(RY(-pi / 2, idx))
     elif op == 'Y':
-        gate = RX(pi / 2, idx)
+        return Program(RX(pi / 2, idx))
     elif op == 'Z':
         return Program()
-    else:
-        raise ValueError('Unknown gate operation')
-    return Program(gate)
+    raise ValueError(f'Unknown operation {op}')
 
 
 def _ops_belong_to_a_tpb(op_code1: str, op_code2: str):
