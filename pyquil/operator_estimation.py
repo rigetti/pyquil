@@ -241,20 +241,19 @@ def _local_pauli_eig_prep(op: str, idx: int):
     Generate gate sequence to prepare a the +1 eigenstate of a Pauli operator, assuming
     we are starting from the |00..00> ground state.
 
-    :param op: A string representation of the Pauli operator whose eigenstate we'd like to prepare.
+    :param op: A string representation of the Pauli operator whose +1 eigenstate we'd like to
+        prepare.
     :param idx: The index of the qubit that the preparation is acting on
     :return: A program which will prepare the requested state.
     """
     if op == 'X':
-        gate = RY(pi / 2, idx)
+        return Program(RY(pi / 2, idx))
     elif op == 'Y':
-        gate = RX(-pi / 2, idx)
+        return Program(RX(-pi / 2, idx))
     elif op == 'Z':
         return Program()
-    else:
-        raise ValueError('Unknown gate operation')
 
-    return Program(gate)
+    raise ValueError(f'Unknown operation {op}')
 
 
 def _local_pauli_eig_meas(op, idx):
