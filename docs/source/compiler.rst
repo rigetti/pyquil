@@ -19,11 +19,11 @@ Interacting with the Compiler
 -----------------------------
 
 After :ref:`downloading the SDK <sdkinstall>`, the Quil Compiler, ``quilc`` is available on your local machine.
-You can initialize a local ``quilc`` server by typing ``quilc -S`` into your terminal. You should see the following message.
+You can initialize a local ``quilc`` server by typing ``quilc -R`` into your terminal. You should see the following message.
 
 .. code:: python
 
-    $ quilc -S
+    $ quilc -R
     +-----------------+
     |  W E L C O M E  |
     |   T O   T H E   |
@@ -33,12 +33,8 @@ You can initialize a local ``quilc`` server by typing ``quilc -S`` into your ter
     +-----------------+
     Copyright (c) 2018 Rigetti Computing.
 
-    This is a part of the Forest SDK. By using this program
-    you agree to the End User License Agreement (EULA) supplied
-    with this program. If you did not receive the EULA, please
-    contact <support@rigetti.com>.
-
-    [2018-11-06 10:59:22] Starting server: 0.0.0.0 : 6000.
+    ... - Launching quilc.
+    ... - Spawning server at (tcp://*:5555) .
 
 To get a description of ``quilc``, and options and examples of its command line use, see :ref:`quilc_man`.
 
