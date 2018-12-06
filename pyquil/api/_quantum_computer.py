@@ -371,6 +371,17 @@ def _get_qvm_qc(name: str, connection: ForestConnection,
                                endpoint=connection.compiler_endpoint))
 
 
+def _get_qvm_with_topology(name: str, connection: ForestConnection, topology: nx.Graph, noisy: bool,
+                           requires_executable: bool) -> QuantumComputer:
+    device = NxDevice(topology=topology)
+    if noisy:
+        noise_model = decoherence_noise_with_asymmetric_ro(gates=gates_in_isa(device.get_isa()))
+    else:
+        noise_model = None
+    return _get_qvm_qc(name=name, connection=connection, device=device, noise_model=noise_model,
+                       requires_executable=requires_executable)
+
+
 def _get_9q_square_qvm(name: str, connection: ForestConnection, noisy: bool) -> QuantumComputer:
     """
     A nine-qubit 3x3 square lattice.
@@ -386,14 +397,9 @@ def _get_9q_square_qvm(name: str, connection: ForestConnection, noisy: bool) -> 
     :param noisy: Whether to construct a noisy quantum computer
     :return: A pre-configured QuantumComputer
     """
-    device = nx.convert_node_labels_to_integers(nx.grid_2d_graph(3, 3))
-    device = NxDevice(topology=device)
-    if noisy:
-        noise_model = decoherence_noise_with_asymmetric_ro(gates=gates_in_isa(device.get_isa()))
-    else:
-        noise_model = None
-    return _get_qvm_qc(name=name, connection=connection, device=device, noise_model=noise_model,
-                       requires_executable=True)
+    topology = nx.convert_node_labels_to_integers(nx.grid_2d_graph(3, 3))
+    return _get_qvm_with_topology(name=name, connection=connection, topology=topology, noisy=noisy,
+                                  requires_executable=True)
 
 
 def _get_unrestricted_qvm(name: str, connection: ForestConnection, noisy: bool,
@@ -412,16 +418,9 @@ def _get_unrestricted_qvm(name: str, connection: ForestConnection, noisy: bool,
     :param n_qubits: 34 qubits ought to be enough for anybody.
     :return: A pre-configured QuantumComputer
     """
-    device = NxDevice(topology=nx.complete_graph(n_qubits))
-    if noisy:
-        # note to developers: the noise model specifies noise for each possible gate. In a fully
-        # connected topology, there are a lot.
-        noise_model = decoherence_noise_with_asymmetric_ro(
-            gates=gates_in_isa(device.get_isa()))
-    else:
-        noise_model = None
-    return _get_qvm_qc(name=name, connection=connection, device=device, noise_model=noise_model,
-                       requires_executable=False)
+    return _get_qvm_with_topology(name=name, connection=connection,
+                                  topology=nx.complete_graph(n_qubits), noisy=noisy,
+                                  requires_executable=True)
 
 
 def _get_qvm_based_on_real_device(name: str, connection: ForestConnection, device: Device,
