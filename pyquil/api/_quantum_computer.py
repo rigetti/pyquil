@@ -455,7 +455,7 @@ def _get_unrestricted_qvm(name: str, noisy: bool,
     return _get_qvm_with_topology(name=name, connection=connection,
                                   topology=topology,
                                   noisy=noisy,
-                                  requires_executable=True)
+                                  requires_executable=False)
 
 
 def _get_qvm_based_on_real_device(name: str, device: Device,
@@ -477,8 +477,8 @@ def _get_qvm_based_on_real_device(name: str, device: Device,
         noise_model = device.noise_model
     else:
         noise_model = None
-    return _get_qvm_qc(name=name, connection=connection, device=device, noise_model=noise_model,
-                       requires_executable=True)
+    return _get_qvm_qc(name=name, connection=connection, device=device,
+                       noise_model=noise_model, requires_executable=True)
 
 
 @_record_call
