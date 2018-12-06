@@ -402,7 +402,9 @@ def _get_9q_square_qvm(name: str, noisy: bool,
     :return: A pre-configured QuantumComputer
     """
     topology = nx.convert_node_labels_to_integers(nx.grid_2d_graph(3, 3))
-    return _get_qvm_with_topology(name=name, connection=connection, topology=topology, noisy=noisy,
+    return _get_qvm_with_topology(name=name, connection=connection,
+                                  topology=topology,
+                                  noisy=noisy,
                                   requires_executable=True)
 
 
@@ -424,7 +426,8 @@ def _get_unrestricted_qvm(name: str, noisy: bool,
     :return: A pre-configured QuantumComputer
     """
     return _get_qvm_with_topology(name=name, connection=connection,
-                                  topology=nx.complete_graph(n_qubits), noisy=noisy,
+                                  topology=nx.complete_graph(n_qubits),
+                                  noisy=noisy,
                                   requires_executable=True)
 
 
@@ -547,7 +550,7 @@ def get_qc(name: str, *, as_qvm: bool = None, noisy: bool = None,
     device = get_lattice(prefix)
     if as_qvm:
         # 4.1 QVM based on a real device.
-        return _get_qvm_based_on_real_device(name=prefix, device=device,
+        return _get_qvm_based_on_real_device(name=name, device=device,
                                              noisy=noisy, connection=connection)
     if not as_qvm:
         # 4.2 A real device
