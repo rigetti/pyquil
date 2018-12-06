@@ -358,9 +358,11 @@ def _get_qvm_compiler_based_on_endpoint(endpoint: str = None,
         raise ValueError("Protocol for QVM compiler endpoints must be HTTP or TCP.")
 
 
-def _get_qvm_qc(name: str, connection: ForestConnection,
-                device: AbstractDevice, noise_model: Optional[NoiseModel],
-                requires_executable: bool) -> QuantumComputer:
+def _get_qvm_qc(name: str, device: AbstractDevice, noise_model: Optional[NoiseModel],
+                requires_executable: bool, connection: ForestConnection = None) -> QuantumComputer:
+    if connection is None:
+        connection = ForestConnection()
+
     return QuantumComputer(name=name,
                            qam=QVM(connection=connection,
                                    noise_model=noise_model,
@@ -371,8 +373,9 @@ def _get_qvm_qc(name: str, connection: ForestConnection,
                                endpoint=connection.compiler_endpoint))
 
 
-def _get_qvm_with_topology(name: str, connection: ForestConnection, topology: nx.Graph, noisy: bool,
-                           requires_executable: bool) -> QuantumComputer:
+def _get_qvm_with_topology(name: str, topology: nx.Graph, noisy: bool,
+                           requires_executable: bool,
+                           connection: ForestConnection = None) -> QuantumComputer:
     device = NxDevice(topology=topology)
     if noisy:
         noise_model = decoherence_noise_with_asymmetric_ro(gates=gates_in_isa(device.get_isa()))
@@ -382,7 +385,8 @@ def _get_qvm_with_topology(name: str, connection: ForestConnection, topology: nx
                        requires_executable=requires_executable)
 
 
-def _get_9q_square_qvm(name: str, connection: ForestConnection, noisy: bool) -> QuantumComputer:
+def _get_9q_square_qvm(name: str, noisy: bool,
+                       connection: ForestConnection = None) -> QuantumComputer:
     """
     A nine-qubit 3x3 square lattice.
 
@@ -402,8 +406,9 @@ def _get_9q_square_qvm(name: str, connection: ForestConnection, noisy: bool) -> 
                                   requires_executable=True)
 
 
-def _get_unrestricted_qvm(name: str, connection: ForestConnection, noisy: bool,
-                          n_qubits: int = 34) -> QuantumComputer:
+def _get_unrestricted_qvm(name: str, noisy: bool,
+                          n_qubits: int = 34,
+                          connection: ForestConnection = None) -> QuantumComputer:
     """
     A qvm with a fully-connected topology.
 
@@ -423,8 +428,8 @@ def _get_unrestricted_qvm(name: str, connection: ForestConnection, noisy: bool,
                                   requires_executable=True)
 
 
-def _get_qvm_based_on_real_device(name: str, connection: ForestConnection, device: Device,
-                                  noisy: bool):
+def _get_qvm_based_on_real_device(name: str, device: Device,
+                                  noisy: bool, connection: ForestConnection = None):
     """
     A qvm with a based on a real device.
 
@@ -513,9 +518,6 @@ def get_qc(name: str, *, as_qvm: bool = None, noisy: bool = None,
         of these parameters, pass your own :py:class:`ForestConnection` object.
     :return: A pre-configured QuantumComputer
     """
-    if connection is None:
-        connection = ForestConnection()
-
     # 1. Parse name, check for redundant options, canonicalize names.
     prefix, as_qvm, noisy = _parse_name(name, as_qvm, noisy)
     if noisy:
