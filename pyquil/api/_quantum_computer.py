@@ -389,7 +389,8 @@ def _get_qvm_qc(name: str, device: AbstractDevice, noise_model: NoiseModel = Non
                                endpoint=connection.compiler_endpoint))
 
 
-def _get_qvm_with_topology(name: str, topology: nx.Graph, noisy: bool,
+def _get_qvm_with_topology(name: str, topology: nx.Graph,
+                           noisy: bool = False,
                            requires_executable: bool = True,
                            connection: ForestConnection = None) -> QuantumComputer:
     """Construct a QVM with the provided topology.
