@@ -125,7 +125,6 @@ class QPU(QAM):
         request = QPURequest(program=self._executable.program,
                              patch_values=self._build_patch_values(),
                              id=str(uuid.uuid4()))
-
         job_id = self.client.call('execute_qpu_request', request=request, user=self.user)
         results = self._get_buffers(job_id)
         ro_sources = self._executable.ro_sources
@@ -155,7 +154,7 @@ class QPU(QAM):
         return {k: decode_buffer(v) for k, v in buffers.items()}
 
     def _build_patch_values(self) -> dict:
-        patch_table = {}
+        patch_values = {}
 
         # Now that we are about to run, we have to resolve any gate parameter arithmetic that was
         # saved in the executable's recalculation table, and add those values to the variables shim
@@ -168,13 +167,14 @@ class QPU(QAM):
                 assert len(memory_ref_names) == 1, ("We expected only one declared memory region for "
                                                     "the gate parameter arithmetic replacement references.")
                 memory_reference_name = memory_ref_names[0]
-                patch_table[memory_reference_name] = [0] * len(self._executable.recalculation_table)
+                patch_values[memory_reference_name] = [0.0] * len(self._executable.recalculation_table)
 
         for name, spec in self._executable.memory_descriptors.items():
             # NOTE: right now we fake reading out measurement values into classical memory
             if name == "ro":
                 continue
-            patch_table[name] = [0] * spec.length
+            initial_value = 0.0 if spec.type == 'REAL' else 0
+            patch_values[name] = [initial_value] * spec.length
 
         # Fill in our patch table
         for k, v in self._variables_shim.items():
@@ -186,9 +186,9 @@ class QPU(QAM):
             if isinstance(v, float):
                 v /= 2 * np.pi
 
-            patch_table[k.name][k.index] = v
+            patch_values[k.name][k.index] = v
 
-        return patch_table
+        return patch_values
 
     def _update_variables_shim_with_recalculation_table(self):
         """
@@ -237,8 +237,9 @@ class QPU(QAM):
             # No recalculation table, no work to be done here.
             return
         for memory_reference, expression in self._executable.recalculation_table.items():
-            # Replace the user-declared memory references with any values the user has written
-            self._variables_shim[memory_reference] = self._resolve_memory_references(expression)
+            # Replace the user-declared memory references with any values the user has written,
+            # coerced to a float because that is how we declared it.
+            self._variables_shim[memory_reference] = float(self._resolve_memory_references(expression))
 
     def _resolve_memory_references(self, expression: Expression) -> Union[float, int]:
         """
