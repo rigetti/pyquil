@@ -351,7 +351,7 @@ class PauliTerm(object):
             raise ValueError(f"Could not parse pauli string {str_pauli_term}")
         groups = list(ma.groups())
         for (_, op_str, op_idx) in zip(groups[::3], groups[1::3], groups[2::3]):
-            op *= PauliTerm(op_str, int(op_idx))
+            op *= cls(op_str, int(op_idx))
         return op
 
     def pauli_string(self, qubits=None):
