@@ -1,19 +1,24 @@
 import itertools
 import json
 import logging
+import sys
 from json import JSONEncoder
 from math import pi
 from typing import List, Union, Iterable, Dict
 
 import networkx as nx
 import numpy as np
-from dataclasses import dataclass
 from networkx.algorithms.approximation.clique import clique_removal
 
 from pyquil import Program
 from pyquil.api import QuantumComputer
 from pyquil.gates import *
 from pyquil.paulis import PauliTerm, is_identity
+
+if sys.version_info < (3, 7):
+    from pyquil.external.dataclasses import dataclass
+else:
+    from dataclasses import dataclass
 
 log = logging.getLogger(__name__)
 
