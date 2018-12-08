@@ -3,7 +3,7 @@ import json
 import logging
 from json import JSONEncoder
 from math import pi
-from typing import List, Union
+from typing import List, Union, Iterable
 
 import networkx as nx
 import numpy as np
@@ -372,6 +372,20 @@ class ExperimentResult:
         }
 
 
+def _validate_all_share_tpb(ops: Iterable[PauliTerm]) -> Dict[int, str]:
+    """Each non-identity qubit should result in the same op_str among all operations. Return
+    said mapping.
+    """
+    mapping = dict()  # type: Dict[int, str]
+    for op in ops:
+        for idx, op_str in op:
+            if idx in mapping:
+                assert mapping[idx] == op_str, 'Improper grouping of operators'
+            else:
+                mapping[idx] = op_str
+    return mapping
+
+
 def measure_observables(qc: QuantumComputer, experiment_suite: ExperimentSuite, n_shots=1000,
                         progress_callback=None, active_reset=False):
     """
@@ -398,27 +412,17 @@ def measure_observables(qc: QuantumComputer, experiment_suite: ExperimentSuite, 
         total_prog = Program()
         if active_reset:
             total_prog += RESET()
-        already_prepped = dict()
-        for expt in experiments:  # todo: find expt with max weight (for in_operator)
-            for idx, op_str in expt.in_operator:
-                if idx in already_prepped:
-                    assert already_prepped[idx] == op_str
-                else:
-                    total_prog += _local_pauli_eig_prep(op_str, idx)
-                    already_prepped[idx] = op_str
+        in_mapping = _validate_all_share_tpb(expt.in_operator for expt in experiments)
+        for idx, op_str in in_mapping.items():
+            total_prog += _local_pauli_eig_prep(op_str, idx)
 
         # 1.2 Add in the program
         total_prog += experiment_suite.program
 
         # 1.3 Measure the state according to expt.out_operator
-        already_meased = dict()
-        for expt in experiments:  # todo: find expt with max weight (for out_operator)
-            for idx, op_str in expt.out_operator:
-                if idx in already_meased:
-                    assert already_meased[idx] == op_str
-                else:
-                    total_prog += _local_pauli_eig_meas(op_str, idx)
-                    already_meased[idx] = op_str
+        out_mapping = _validate_all_share_tpb(expt.out_operator for expt in experiments)
+        for idx, op_str in out_mapping.items():
+            _local_pauli_eig_meas(op_str, idx)
 
         # 2. Run the experiment
         bitstrings = qc.run_and_measure(total_prog, n_shots)
