@@ -29,7 +29,7 @@ from typing import Union
 from pyquil.quilatom import QubitPlaceholder
 
 from .quil import Program
-from .gates import H, RZ, RX, CNOT, X, PHASE, QUANTUM_GATES
+from .gates import I, H, RZ, RX, CNOT, X, PHASE, QUANTUM_GATES
 from numbers import Number
 from collections import Sequence, OrderedDict
 import warnings
@@ -764,13 +764,19 @@ def commuting_sets(pauli_terms):
 
 def is_identity(term):
     """
-    Check if Pauli Term is a scalar multiple of identity
+    Tests to see if a PauliTerm or PauliSum is a scalar multiple of identity
 
-    :param PauliTerm term: A PauliTerm object
-    :returns: True if the PauliTerm is a scalar multiple of identity, false otherwise
+    :param term: Either a PauliTerm or PauliSum
+    :returns: True if the PauliTerm or PauliSum is a scalar multiple of identity, False otherwise
     :rtype: bool
     """
-    return len(term) == 0
+    if isinstance(term, PauliTerm):
+        return (len(term) == 0) and (not np.isclose(term.coefficient, 0))
+    elif isinstance(term, PauliSum):
+        return (len(term.terms) == 1) and (len(term.terms[0]) == 0) and \
+               (not np.isclose(term.terms[0].coefficient, 0))
+    else:
+        raise TypeError("is_identity only checks PauliTerms and PauliSum objects!")
 
 
 def exponentiate(term: PauliTerm):
@@ -805,6 +811,8 @@ def exponential_map(term):
             prog.inst(PHASE(-param * coeff, 0))
             prog.inst(X(0))
             prog.inst(PHASE(-param * coeff, 0))
+        elif is_zero(term):
+            pass
         else:
             prog += _exponentiate_general_case(term, param)
         return prog
@@ -928,15 +936,9 @@ def is_zero(pauli_object):
     :rtype: bool
     """
     if isinstance(pauli_object, PauliTerm):
-        if pauli_object.id() == '':
-            return True
-        else:
-            return False
+        return np.isclose(pauli_object.coefficient, 0)
     elif isinstance(pauli_object, PauliSum):
-        if len(pauli_object.terms) == 1 and pauli_object.terms[0].id() == '':
-            return True
-        else:
-            return False
+        return len(pauli_object.terms) == 1 and np.isclose(pauli_object.terms[0].coefficient, 0)
     else:
         raise TypeError("is_zero only checks PauliTerms and PauliSum objects!")
 
