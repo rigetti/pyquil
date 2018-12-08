@@ -457,10 +457,7 @@ def measure_observables(qc: QuantumComputer, experiment_suite: ExperimentSuite, 
 
             # 3.4 Pick columns corresponding to qubits with a non-identity out_operation and stack
             #     into an array of shape (n_shots, n_measure_qubits)
-            measured_qubits = []
-            for idx, op_str in expt.out_operator:
-                measured_qubits.append(idx)
-            my_obs_strings = np.vstack(obs_strings[q] for q in measured_qubits).T
+            my_obs_strings = np.vstack(obs_strings[q] for q, op_str in expt.out_operator).T
 
             # 3.6 Multiply row-wise to get operator values. Do statistics. Yield result.
             obs_vals = coeff * np.prod(my_obs_strings, axis=1)
