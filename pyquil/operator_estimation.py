@@ -13,7 +13,7 @@ from networkx.algorithms.approximation.clique import clique_removal
 from pyquil import Program
 from pyquil.api import QuantumComputer
 from pyquil.gates import *
-from pyquil.paulis import PauliTerm
+from pyquil.paulis import PauliTerm, is_identity
 
 log = logging.getLogger(__name__)
 
@@ -390,8 +390,11 @@ def measure_observables(qc: QuantumComputer, experiment_suite: ExperimentSuite, 
         order.
     """
     for i, experiments in enumerate(experiment_suite):
+        # Outer loop over a collection of grouped experiments for which we can simultaneously
+        # estimate.
         log.info(f"Collecting bitstrings for the {len(experiments)} experiments: {experiments}")
 
+        # 1.1 Prepare a state according to expt.in_operator
         total_prog = Program()
         if active_reset:
             total_prog += RESET()
@@ -403,8 +406,11 @@ def measure_observables(qc: QuantumComputer, experiment_suite: ExperimentSuite, 
                 else:
                     total_prog += _local_pauli_eig_prep(op_str, idx)
                     already_prepped[idx] = op_str
+
+        # 1.2 Add in the program
         total_prog += experiment_suite.program
 
+        # 1.3 Measure the state according to expt.out_operator
         already_meased = dict()
         for expt in experiments:  # todo: find expt with max weight (for out_operator)
             for idx, op_str in expt.out_operator:
@@ -413,26 +419,24 @@ def measure_observables(qc: QuantumComputer, experiment_suite: ExperimentSuite, 
                 else:
                     total_prog += _local_pauli_eig_meas(op_str, idx)
                     already_meased[idx] = op_str
-        bitstrings = qc.run_and_measure(total_prog, n_shots)
-        obs_strings = {q: 1 - 2 * bitstrings[q] for q in bitstrings}
 
+        # 2. Run the experiment
+        bitstrings = qc.run_and_measure(total_prog, n_shots)
         if progress_callback is not None:
             progress_callback(i, len(experiment_suite))
 
-        for expt in experiments:
-            measured_qubits = []
-            for idx, op_str in expt.out_operator:
-                measured_qubits.append(idx)
-            measured_qubits = np.array(measured_qubits)
-            log.debug(f"Considering {expt}... 'measuring' qubits {measured_qubits}")
-            assert expt.in_operator.coefficient == 1
-            coeff = expt.out_operator.coefficient
-            if isinstance(coeff, complex):
-                if np.isclose(coeff.imag, 0):
-                    coeff = coeff.real
+        # 3. Post-process
+        # 3.1 First transform bits to eigenvalues; ie (+1, -1)
+        obs_strings = {q: 1 - 2 * bitstrings[q] for q in bitstrings}
 
-            if len(measured_qubits) == 0:
-                # I->I
+        # Inner loop over the grouped experiments. They only differ in which qubits' measurements
+        # we include in the post-processing. For example, if `experiments` is Z1, Z2, Z1Z2 and we
+        # measure (n_shots, n_qubits=2) obs_strings then the full operator value involves selecting
+        # either the first column, second column, or both and multiplying along the row.
+        for expt in experiments:
+            # 3.2 Special case for measuring the "identity" operator, which doesn't make much
+            #     sense but should happen perfectly.
+            if is_identity(expt.out_operator):
                 yield ExperimentResult(
                     experiment=expt,
                     expectation=1.0,
@@ -440,17 +444,30 @@ def measure_observables(qc: QuantumComputer, experiment_suite: ExperimentSuite, 
                 )
                 continue
 
+            # 3.3 Get the term's coefficient so we can multiply it in later.
+            assert expt.in_operator.coefficient == 1, 'in_operator should specify a state and ' \
+                                                      'therefore cannot have a coefficient'
+            coeff = expt.out_operator.coefficient
+            if isinstance(coeff, complex):
+                # Try casting to real
+                if np.isclose(coeff.imag, 0):
+                    coeff = coeff.real
+                # PauliTerms can have complex coefficients, so
+                # it doesn't matter if we fall through this if statement.
+
+            # 3.4 Pick columns corresponding to qubits with a non-identity out_operation and stack
+            #     into an array of shape (n_shots, n_measure_qubits)
+            measured_qubits = []
+            for idx, op_str in expt.out_operator:
+                measured_qubits.append(idx)
             my_obs_strings = np.vstack(obs_strings[q] for q in measured_qubits).T
-            obs_vals = np.prod(my_obs_strings, axis=1)
-            bit_vals = (1 + obs_vals) // 2
-            n_minus_ones, n_plus_ones = np.bincount(bit_vals, minlength=2)
-            bit_mean = n_plus_ones / (n_plus_ones + n_minus_ones)
-            bit_var = ((n_plus_ones * n_minus_ones)
-                       / ((n_plus_ones + n_minus_ones) ** 2 * (n_plus_ones + n_minus_ones + 1)))
-            obs_mean = ((bit_mean * 2) - 1) * coeff
-            obs_var = (bit_var * 2 ** 2 * coeff ** 2)
+
+            # 3.6 Multiply row-wise to get operator values. Do statistics. Yield result.
+            obs_vals = coeff * np.prod(my_obs_strings, axis=1)
+            obs_mean = np.mean(obs_vals)
+            obs_var = np.var(obs_vals) / n_shots
             yield ExperimentResult(
                 experiment=expt,
-                expectation=obs_mean,
-                stddev=np.sqrt(obs_var),
+                expectation=np.asscalar(obs_mean),
+                stddev=np.asscalar(np.sqrt(obs_var)),
             )
