@@ -37,7 +37,7 @@ class Experiment:
     out_operator: PauliTerm
 
     def __str__(self):
-        return f'{self.in_operator}→{self.out_operator}'
+        return f'{self.in_operator.compact_str()}→{self.out_operator.compact_str()}'
 
     def __repr__(self):
         return f'Experiment[{self}]'
@@ -49,8 +49,8 @@ class Experiment:
     def from_str(cls, s: str):
         """The opposite of str(expt)"""
         instr, outstr = s.split('→')
-        return cls(in_operator=PauliTerm.from_str(instr),
-                   out_operator=PauliTerm.from_str(outstr))
+        return cls(in_operator=PauliTerm.from_compact_str(instr),
+                   out_operator=PauliTerm.from_compact_str(outstr))
 
 
 def _abbrev_program(program: Program, max_len=10):
@@ -135,8 +135,8 @@ class ExperimentSuite:
 
     def append(self, expts):
         if not isinstance(expts, list):
-            expt = [expts]
-        return self._experiments.append(expt)
+            expts = [expts]
+        return self._experiments.append(expts)
 
     def count(self, expt):
         return self._experiments.count(expt)

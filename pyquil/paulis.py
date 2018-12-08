@@ -298,6 +298,24 @@ class PauliTerm(object):
         return other + -1. * self
 
     def __str__(self):
+        term_strs = []
+        for index in self._ops.keys():
+            term_strs.append("%s%s" % (self[index], index))
+
+        if len(term_strs) == 0:
+            term_strs.append("I")
+        out = "%s*%s" % (self.coefficient, '*'.join(term_strs))
+        return out
+
+    def compact_str(self):
+        """A string representation of the Pauli term that is more compact than ``str(term)``
+
+        >>> term = 2.0 * sX(1)* sZ(2)
+        >>> str(term)
+        >>> '2.0*X1*X2'
+        >>> term.compact_str()
+        >>> '2.0*X1X2'
+        """
         return f'{self.coefficient}*{self.id(sort_ops=False)}'
 
     @classmethod
@@ -330,7 +348,7 @@ class PauliTerm(object):
         return pterm
 
     @classmethod
-    def from_str(cls, str_pauli_term):
+    def from_compact_str(cls, str_pauli_term):
         """Construct a PauliTerm from the result of str(pauli_term)
         """
         coef_str, str_pauli_term = str_pauli_term.split('*')
@@ -355,7 +373,14 @@ class PauliTerm(object):
 
     def pauli_string(self, qubits=None):
         """
-        Return a string representation of this PauliTerm without its coefficient
+        Return a string representation of this PauliTerm without its coefficient and with
+        implicit qubit indices.
+
+        If a list of qubits is provided, each character in the resulting string represents
+        a Pauli operator on the corresponding qubit. If qubit indices are not provided as input,
+        the returned string will be all non-identity operators in the order. This doesn't make
+        much sense, so please provide a list of qubits. Not providing a list of qubits is
+        deprecated.
 
         >>> p = PauliTerm("X", 0) * PauliTerm("Y", 1, 1.j)
         >>> p.pauli_string()
@@ -370,6 +395,8 @@ class PauliTerm(object):
         :return: The string representation of this PauliTerm, sans coefficient
         """
         if qubits is None:
+            warnings.warn("Please provide a list of qubits when using PauliTerm.pauli_string",
+                          DeprecationWarning)
             qubits = self.get_qubits()
 
         return ''.join(self[q] for q in qubits)

@@ -270,9 +270,9 @@ def test_zero_terms():
     assert str(term4) == "0j*I"
 
     term = PauliSum([PauliTerm("X", 0, 0.0), PauliTerm("Y", 1, 1.0) * PauliTerm("Z", 2)])
-    assert str(term) == "0j*X0 + (1+0j)*Y1Z2"
+    assert str(term) == "0j*X0 + (1+0j)*Y1*Z2"
     term = term.simplify()
-    assert str(term) == "(1+0j)*Y1Z2"
+    assert str(term) == "(1+0j)*Y1*Z2"
 
 
 def test_exponentiate_1():
@@ -646,6 +646,12 @@ def test_pauli_string():
     assert p.pauli_string([0, 1]) == "IX"
 
 
+def test_str():
+    term = 2.0 * sX(1) * sX(2)
+    assert str(term) == '(2+0j)*X1*X2'
+    assert term.compact_str() == '(2+0j)*X1X2'
+
+
 def test_from_str():
     with pytest.raises(ValueError):
-        PauliTerm.from_str('1*A0→1*Z0')
+        PauliTerm.from_compact_str('1*A0→1*Z0')
