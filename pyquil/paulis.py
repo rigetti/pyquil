@@ -345,13 +345,12 @@ class PauliTerm(object):
         op = sI() * coef
         if str_pauli_term == 'I':
             return op
-
-        ma = re.match(r'(([XYZ])(\d+))+', str_pauli_term)
+        ma = re.fullmatch(r'(([XYZ])(\d+))+', str_pauli_term)
         if ma is None:
             raise ValueError(f"Could not parse pauli string {str_pauli_term}")
-        groups = list(ma.groups())
-        for (_, op_str, op_idx) in zip(groups[::3], groups[1::3], groups[2::3]):
-            op *= cls(op_str, int(op_idx))
+        for ma in re.finditer(r'([XYZ])(\d+)', str_pauli_term):
+            op *= cls(ma.group(1), int(ma.group(2)))
+
         return op
 
     def pauli_string(self, qubits=None):
