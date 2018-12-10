@@ -73,7 +73,7 @@ class PauliTerm(object):
     """A term is a product of Pauli operators operating on different qubits.
     """
 
-    def __init__(self, op: str, index: int, coefficient: Union[int, float, complex] = 1):
+    def __init__(self, op: str, index: int, coefficient: Union[int, float, complex] = 1.0):
         """ Create a new Pauli Term with a Pauli operator at a particular index and a leading
         coefficient.
 
