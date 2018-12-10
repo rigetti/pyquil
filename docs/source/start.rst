@@ -170,6 +170,12 @@ libffi. On a Debian-derivative system, this could be accomplished with
 
    sudo apt-get install liblapack-dev libblas-dev libffi-dev
 
+Or on rpm systems (e.g. Amazon Linux) with
+
+::
+
+   sudo yum install -y lapack-devel blas-devel
+
 To uninstall, remove the directory ``~/rigetti``.
 
 .. _exampleprogram:
