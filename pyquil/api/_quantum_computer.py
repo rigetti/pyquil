@@ -199,8 +199,7 @@ class QuantumComputer:
         return results
 
     @_record_call
-    def run_and_measure(self, program: Program, trials: int) \
-            -> Dict[int, np.ndarray]:
+    def run_and_measure(self, program: Program, trials: int) -> Dict[int, np.ndarray]:
         """
         Run the provided state preparation program and measure all qubits.
 
