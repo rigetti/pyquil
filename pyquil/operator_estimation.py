@@ -458,13 +458,10 @@ def measure_observables(qc: QuantumComputer, experiment_suite: ExperimentSuite, 
             # 3.3 Get the term's coefficient so we can multiply it in later.
             assert expt.in_operator.coefficient == 1, 'in_operator should specify a state and ' \
                                                       'therefore cannot have a coefficient'
-            coeff = expt.out_operator.coefficient
-            if isinstance(coeff, complex):
-                # Try casting to real
-                if np.isclose(coeff.imag, 0):
-                    coeff = coeff.real
-                # PauliTerms can have complex coefficients, so
-                # it doesn't matter if we fall through this if statement.
+            coeff = complex(expt.out_operator.coefficient)
+            if not np.isclose(coeff.imag, 0):
+                raise ValueError(f"{expt}'s out_operator has a complex coefficient.")
+            coeff = coeff.real
 
             # 3.4 Pick columns corresponding to qubits with a non-identity out_operation and stack
             #     into an array of shape (n_shots, n_measure_qubits)

@@ -4,6 +4,8 @@ import numpy as np
 import functools
 from operator import mul
 
+import pytest
+
 from pyquil.api import WavefunctionSimulator
 from pyquil.operator_estimation import Experiment, ExperimentSuite, to_json, read_json, \
     _all_qubits_diagonal_in_tpb, group_experiments, ExperimentResult, measure_observables
@@ -169,3 +171,10 @@ def test_append():
     )
     suite.append(Experiment(sI(), sY(0) * sX(1)))
     assert (len(str(suite))) > 0
+
+
+def test_no_complex_coeffs(forest):
+    qc = get_qc('2q-qvm')
+    suite = ExperimentSuite([Experiment(sI(), 1.j * sY(0))], program=Program(X(0), ), qubits=[0])
+    with pytest.raises(ValueError):
+        res = list(measure_observables(qc, suite))
