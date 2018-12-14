@@ -24,9 +24,9 @@ log = logging.getLogger(__name__)
 
 
 @dataclass(frozen=True)
-class Experiment:
+class ExperimentSetting:
     """
-    One tomography-like experiment.
+    Input and output settings for a tomography-like experiment.
 
     Many near-term quantum algorithms take the following form:
         - Start in a pauli state
@@ -35,7 +35,7 @@ class Experiment:
 
     Where we typically use a large number of (start, measure) pairs but keep the ansatz preparation
     program consistent. This class represents the (start, measure) pairs. Typically a large
-    number of these :py:class:`Experiment` objects will be created and grouped into
+    number of these :py:class:`ExperimentSetting` objects will be created and grouped into
     an :py:class:`ExperimentSuite`.
     """
     in_operator: PauliTerm
@@ -45,7 +45,7 @@ class Experiment:
         return f'{self.in_operator.compact_str()}→{self.out_operator.compact_str()}'
 
     def __repr__(self):
-        return f'Experiment[{self}]'
+        return f'ExperimentSetting[{self}]'
 
     def serializable(self):
         return str(self)
@@ -88,7 +88,7 @@ class ExperimentSuite:
 
     Where we typically use a large number of (state_prep, measure) pairs but keep the ansatz
     program consistent. This class stores the ansatz program as a :py:class:`~pyquil.Program`
-    and maintains a list of :py:class:`Experiment` objects which each represent a
+    and maintains a list of :py:class:`ExperimentSetting` objects which each represent a
     (state_prep, measure) pair.
 
     Experiments belonging to a shared tensor product basis (TPB) can (optionally) be estimated
@@ -103,17 +103,17 @@ class ExperimentSuite:
     """
 
     def __init__(self,
-                 experiments: Union[List[Experiment], List[List[Experiment]]],
+                 experiments: Union[List[ExperimentSetting], List[List[ExperimentSetting]]],
                  program: Program,
                  qubits: List[int]):
         if len(experiments) == 0:
             experiments = []
         else:
-            if isinstance(experiments[0], Experiment):
+            if isinstance(experiments[0], ExperimentSetting):
                 # convenience wrapping in lists of length 1
                 experiments = [[expt] for expt in experiments]
 
-        self._experiments = experiments  # type: List[List[Experiment]]
+        self._experiments = experiments  # type: List[List[ExperimentSetting]]
         self.program = program
         self.qubits = qubits
 
@@ -201,7 +201,7 @@ class ExperimentSuite:
 
 class OperatorEncoder(JSONEncoder):
     def default(self, o):
-        if isinstance(o, Experiment):
+        if isinstance(o, ExperimentSetting):
             return str(o)
         if isinstance(o, ExperimentSuite):
             return {
@@ -229,7 +229,7 @@ def to_json(fn, obj):
 
 def _operator_object_hook(obj):
     if 'type' in obj and obj['type'] == 'ExperimentSuite':
-        return ExperimentSuite([[Experiment.from_str(e) for e in expts]
+        return ExperimentSuite([[ExperimentSetting.from_str(e) for e in expts]
                                 for expts in obj['experiments']],
                                program=Program(obj['program']),
                                qubits=obj['qubits'])
@@ -360,7 +360,7 @@ def group_experiments(experiments: ExperimentSuite) -> ExperimentSuite:
 
 @dataclass(frozen=True)
 class ExperimentResult:
-    experiment: Experiment
+    experiment: ExperimentSetting
     expectation: Union[float, complex]
     stddev: float
 
@@ -400,7 +400,7 @@ def measure_observables(qc: QuantumComputer, experiment_suite: ExperimentSuite, 
 
     :param qc: A QuantumComputer which can run quantum programs
     :param experiment_suite: The suite of observables to measure
-    :param n_shots: The number of shots to take per Experiment
+    :param n_shots: The number of shots to take per ExperimentSetting
     :param progress_callback: If not None, this function is called each time a group of
         experiments is run with arguments ``f(i, len(experiment_suite)`` such that the progress
         is ``i / len(experiment_suite)``.

@@ -9,7 +9,7 @@ from operator import mul
 import pytest
 
 from pyquil.api import WavefunctionSimulator
-from pyquil.operator_estimation import Experiment, ExperimentSuite, to_json, read_json, \
+from pyquil.operator_estimation import ExperimentSetting, ExperimentSuite, to_json, read_json, \
     _all_qubits_diagonal_in_tpb, group_experiments, ExperimentResult, measure_observables
 from pyquil.paulis import sI, sX, sY, sZ, PauliSum
 from pyquil import Program, get_qc
@@ -31,9 +31,9 @@ def test_experiment():
     in_ops = _generate_random_paulis(n_qubits=4, n_terms=7)
     out_ops = _generate_random_paulis(n_qubits=4, n_terms=7)
     for iop, oop in zip(in_ops, out_ops):
-        expt = Experiment(iop, oop)
+        expt = ExperimentSetting(iop, oop)
         assert str(expt) == expt.serializable()
-        expt2 = Experiment.from_str(str(expt))
+        expt2 = ExperimentSetting.from_str(str(expt))
         assert expt == expt2
         assert expt2.in_operator == iop
         assert expt2.out_operator == oop
@@ -42,8 +42,8 @@ def test_experiment():
 def test_experiment_no_in():
     out_ops = _generate_random_paulis(n_qubits=4, n_terms=7)
     for oop in out_ops:
-        expt = Experiment(sI(), oop)
-        expt2 = Experiment.from_str(str(expt))
+        expt = ExperimentSetting(sI(), oop)
+        expt2 = ExperimentSetting.from_str(str(expt))
         assert expt == expt2
         assert expt2.in_operator == sI()
         assert expt2.out_operator == oop
@@ -51,8 +51,8 @@ def test_experiment_no_in():
 
 def test_experiment_suite():
     expts = [
-        Experiment(sI(), sX(0) * sY(1)),
-        Experiment(sZ(0), sZ(0)),
+        ExperimentSetting(sI(), sX(0) * sY(1)),
+        ExperimentSetting(sZ(0), sZ(0)),
     ]
 
     suite = ExperimentSuite(
@@ -72,8 +72,8 @@ def test_experiment_suite():
 
 def test_experiment_suite_pre_grouped():
     expts = [
-        [Experiment(sI(), sX(0) * sI(1)), Experiment(sI(), sI(0) * sX(1))],
-        [Experiment(sI(), sZ(0) * sI(1)), Experiment(sI(), sI(0) * sZ(1))],
+        [ExperimentSetting(sI(), sX(0) * sI(1)), ExperimentSetting(sI(), sI(0) * sX(1))],
+        [ExperimentSetting(sI(), sZ(0) * sI(1)), ExperimentSetting(sI(), sI(0) * sZ(1))],
     ]
 
     suite = ExperimentSuite(
@@ -97,8 +97,8 @@ def test_experiment_suite_empty():
 
 def test_suite_deser(tmpdir):
     expts = [
-        [Experiment(sI(), sX(0) * sI(1)), Experiment(sI(), sI(0) * sX(1))],
-        [Experiment(sI(), sZ(0) * sI(1)), Experiment(sI(), sI(0) * sZ(1))],
+        [ExperimentSetting(sI(), sX(0) * sI(1)), ExperimentSetting(sI(), sI(0) * sX(1))],
+        [ExperimentSetting(sI(), sZ(0) * sI(1)), ExperimentSetting(sI(), sI(0) * sZ(1))],
     ]
 
     suite = ExperimentSuite(
@@ -113,8 +113,8 @@ def test_suite_deser(tmpdir):
 
 def test_all_ops_belong_to_tpb():
     expts = [
-        [Experiment(sI(), sX(0) * sI(1)), Experiment(sI(), sI(0) * sX(1))],
-        [Experiment(sI(), sZ(0) * sI(1)), Experiment(sI(), sI(0) * sZ(1))],
+        [ExperimentSetting(sI(), sX(0) * sI(1)), ExperimentSetting(sI(), sI(0) * sX(1))],
+        [ExperimentSetting(sI(), sZ(0) * sI(1)), ExperimentSetting(sI(), sI(0) * sZ(1))],
     ]
     for group in expts:
         for e1, e2 in itertools.combinations(group, 2):
@@ -124,8 +124,8 @@ def test_all_ops_belong_to_tpb():
 
 def test_group_experiments():
     expts = [  # cf above, I removed the inner nesting. Still grouped visually
-        Experiment(sI(), sX(0) * sI(1)), Experiment(sI(), sI(0) * sX(1)),
-        Experiment(sI(), sZ(0) * sI(1)), Experiment(sI(), sI(0) * sZ(1)),
+        ExperimentSetting(sI(), sX(0) * sI(1)), ExperimentSetting(sI(), sI(0) * sX(1)),
+        ExperimentSetting(sI(), sZ(0) * sI(1)), ExperimentSetting(sI(), sI(0) * sZ(1)),
     ]
     suite = ExperimentSuite(expts, Program(), qubits=[0, 1])
     grouped_suite = group_experiments(suite)
@@ -135,7 +135,7 @@ def test_group_experiments():
 
 def test_experiment_result():
     er = ExperimentResult(
-        experiment=Experiment(sX(0), sZ(0)),
+        experiment=ExperimentSetting(sX(0), sZ(0)),
         expectation=0.9,
         stddev=0.05,
     )
@@ -144,7 +144,7 @@ def test_experiment_result():
 
 def test_measure_observables(forest):
     expts = [
-        Experiment(sI(), o1 * o2)
+        ExperimentSetting(sI(), o1 * o2)
         for o1, o2 in itertools.product([sI(0), sX(0), sY(0), sZ(0)], [sI(1), sX(1), sY(1), sZ(1)])
     ]
     suite = ExperimentSuite(expts, program=Program(X(0), CNOT(0, 1)), qubits=[0, 1])
@@ -185,7 +185,7 @@ def _random_2q_programs(n_progs=10):
 
 def test_measure_observables_many_progs(forest):
     expts = [
-        Experiment(sI(), o1 * o2)
+        ExperimentSetting(sI(), o1 * o2)
         for o1, o2 in itertools.product([sI(0), sX(0), sY(0), sZ(0)], [sI(1), sX(1), sY(1), sZ(1)])
     ]
 
@@ -207,20 +207,20 @@ def test_measure_observables_many_progs(forest):
 
 def test_append():
     expts = [
-        [Experiment(sI(), sX(0) * sI(1)), Experiment(sI(), sI(0) * sX(1))],
-        [Experiment(sI(), sZ(0) * sI(1)), Experiment(sI(), sI(0) * sZ(1))],
+        [ExperimentSetting(sI(), sX(0) * sI(1)), ExperimentSetting(sI(), sI(0) * sX(1))],
+        [ExperimentSetting(sI(), sZ(0) * sI(1)), ExperimentSetting(sI(), sI(0) * sZ(1))],
     ]
     suite = ExperimentSuite(
         experiments=expts,
         program=Program(X(0), Y(1)),
         qubits=[0, 1]
     )
-    suite.append(Experiment(sI(), sY(0) * sX(1)))
+    suite.append(ExperimentSetting(sI(), sY(0) * sX(1)))
     assert (len(str(suite))) > 0
 
 
 def test_no_complex_coeffs(forest):
     qc = get_qc('2q-qvm')
-    suite = ExperimentSuite([Experiment(sI(), 1.j * sY(0))], program=Program(X(0), ), qubits=[0])
+    suite = ExperimentSuite([ExperimentSetting(sI(), 1.j * sY(0))], program=Program(X(0), ), qubits=[0])
     with pytest.raises(ValueError):
         res = list(measure_observables(qc, suite))
