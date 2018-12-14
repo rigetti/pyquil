@@ -225,8 +225,8 @@ def to_json(fn, obj):
 
 def _operator_object_hook(obj):
     if 'type' in obj and obj['type'] == 'ExperimentSuite':
-        return ExperimentSuite([[ExperimentSetting.from_str(e) for e in expts]
-                                for expts in obj['experiments']],
+        return ExperimentSuite([[ExperimentSetting.from_str(s) for s in settings]
+                                for settings in obj['settings']],
                                program=Program(obj['program']),
                                qubits=obj['qubits'])
     return obj
