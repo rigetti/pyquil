@@ -81,7 +81,7 @@ class PauliTerm(object):
         :param index: The qubit index that that operator is applied to.
         :param coefficient: The coefficient multiplying the operator, e.g. 1.5 * Z_1
         """
-        if not op in PAULI_OPS:
+        if op not in PAULI_OPS:
             raise ValueError(f"{op} is not a valid Pauli operator")
 
         self._ops = OrderedDict()
