@@ -507,7 +507,7 @@ automatic way.
 
 Consider the following program.
 
-.. code::
+.. code:: python
 
     from pyquil import Program
     from pyquil.gates import *
@@ -517,7 +517,7 @@ Consider the following program.
 We've tested this on the QVM, and we've reserved a lattice on the QPU which has qubits 4, 5, and 6, but not qubit 3.
 Rather than rewrite our program for each reservation, we modify our program to tell the compiler to do this for us.
 
-.. code::
+.. code:: python
 
     from pyquil.quil import Pragma
 
@@ -539,7 +539,7 @@ Asking for a Delay
 At times, we may want to add a delay in our program. Usually this is associated with qubit characterization. Delays
 are not regular gate operations, and they do not affect the abstract semantics of the Quil program, so they're implemented with a ``PRAGMA`` directive.
 
-.. code::
+.. code:: python
 
     #  ...
     # qubit index and time in seconds must be defined and provided
