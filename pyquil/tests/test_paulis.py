@@ -667,3 +667,12 @@ def test_is_identity():
     assert is_identity(pt2 + (-1 * pt2) + sI(0))
     assert not is_identity(0 * pt1)
     assert not is_identity(pt2 + (-1 * pt2))
+
+
+def test_identity_no_qubit():
+    assert is_identity(sI())
+
+
+def test_qubit_validation():
+    with pytest.raises(ValueError):
+        op = sX(None)

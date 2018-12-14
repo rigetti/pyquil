@@ -81,11 +81,13 @@ class PauliTerm(object):
         :param index: The qubit index that that operator is applied to.
         :param coefficient: The coefficient multiplying the operator, e.g. 1.5 * Z_1
         """
-        assert op in PAULI_OPS
+        if not op in PAULI_OPS:
+            raise ValueError(f"{op} is not a valid Pauli operator")
 
         self._ops = OrderedDict()
         if op != "I":
-            assert index is None or _valid_qubit(index)
+            if not _valid_qubit(index):
+                raise ValueError(f"{index} is not a valid qubit")
             self._ops[index] = op
         if not isinstance(coefficient, Number):
             raise ValueError("coefficient of PauliTerm must be a Number.")
