@@ -56,7 +56,7 @@ def test_experiment_suite():
     ]
 
     suite = ExperimentSuite(
-        experiments=expts,
+        settings=expts,
         program=Program(X(0), Y(1)),
         qubits=[0, 1]
     )
@@ -77,7 +77,7 @@ def test_experiment_suite_pre_grouped():
     ]
 
     suite = ExperimentSuite(
-        experiments=expts,
+        settings=expts,
         program=Program(X(0), Y(1)),
         qubits=[0, 1]
     )
@@ -102,7 +102,7 @@ def test_suite_deser(tmpdir):
     ]
 
     suite = ExperimentSuite(
-        experiments=expts,
+        settings=expts,
         program=Program(X(0), Y(1)),
         qubits=[0, 1]
     )
@@ -211,7 +211,7 @@ def test_append():
         [ExperimentSetting(sI(), sZ(0) * sI(1)), ExperimentSetting(sI(), sI(0) * sZ(1))],
     ]
     suite = ExperimentSuite(
-        experiments=expts,
+        settings=expts,
         program=Program(X(0), Y(1)),
         qubits=[0, 1]
     )

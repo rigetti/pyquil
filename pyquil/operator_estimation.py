@@ -77,11 +77,11 @@ def _abbrev_program(program: Program, max_len=10):
 
 class ExperimentSuite:
     """
-    A whole set of tomography-like experiments
+    A tomography-like experiment.
 
     Many near-term quantum algorithms involve:
 
-     - some limited state preperation
+     - some limited state preparation
      - enacting a quantum process (like in tomography) or preparing a variational ansatz state
        (like in VQE)
      - measuring observables of the state.
@@ -91,104 +91,105 @@ class ExperimentSuite:
     and maintains a list of :py:class:`ExperimentSetting` objects which each represent a
     (state_prep, measure) pair.
 
-    Experiments belonging to a shared tensor product basis (TPB) can (optionally) be estimated
-    simultaneously. Therefore, this class is backed by a list of list of Experiments.
-    Experiments sharing an inner list will be estimated simultaneously. If you don't want this,
+    Settings diagonalized by a shared tensor product basis (TPB) can (optionally) be estimated
+    simultaneously. Therefore, this class is backed by a list of list of ExperimentSettings.
+    Settings sharing an inner list will be estimated simultaneously. If you don't want this,
     provide a list of length-1-lists. As a convenience, if you pass a 1D list to the constructor
-    it will expand it to a list of length-1-lists.
+    will expand it to a list of length-1-lists.
 
-    This class will not group experiments for you. Please see :py:func:`group_experiments` for
+    This class will not group settings for you. Please see :py:func:`group_experiments` for
     a function that will automatically process an ExperimentSuite to group Experiments sharing
     a TPB.
     """
 
     def __init__(self,
-                 experiments: Union[List[ExperimentSetting], List[List[ExperimentSetting]]],
+                 settings: Union[List[ExperimentSetting], List[List[ExperimentSetting]]],
                  program: Program,
                  qubits: List[int]):
-        if len(experiments) == 0:
-            experiments = []
+        if len(settings) == 0:
+            settings = []
         else:
-            if isinstance(experiments[0], ExperimentSetting):
+            if isinstance(settings[0], ExperimentSetting):
                 # convenience wrapping in lists of length 1
-                experiments = [[expt] for expt in experiments]
+                settings = [[expt] for expt in settings]
 
-        self._experiments = experiments  # type: List[List[ExperimentSetting]]
+        self._settings = settings  # type: List[List[ExperimentSetting]]
         self.program = program
         self.qubits = qubits
 
     def __len__(self):
-        return len(self._experiments)
+        return len(self._settings)
 
     def __getitem__(self, item):
-        return self._experiments[item]
+        return self._settings[item]
 
     def __setitem__(self, key, value):
-        self._experiments[key] = value
+        self._settings[key] = value
 
     def __delitem__(self, key):
-        self._experiments.__delitem__(key)
+        self._settings.__delitem__(key)
 
     def __iter__(self):
-        yield from self._experiments
+        yield from self._settings
 
     def __reversed__(self):
-        yield from reversed(self._experiments)
+        yield from reversed(self._settings)
 
     def __contains__(self, item):
-        return item in self._experiments
+        return item in self._settings
 
     def append(self, expts):
         if not isinstance(expts, list):
             expts = [expts]
-        return self._experiments.append(expts)
+        return self._settings.append(expts)
 
     def count(self, expt):
-        return self._experiments.count(expt)
+        return self._settings.count(expt)
 
     def index(self, expt, start=None, stop=None):
-        return self._experiments.index(expt, start, stop)
+        return self._settings.index(expt, start, stop)
 
     def extend(self, expts):
-        return self._experiments.extend(expts)
+        return self._settings.extend(expts)
 
     def insert(self, index, expt):
-        return self._experiments.insert(index, expt)
+        return self._settings.insert(index, expt)
 
     def pop(self, index=None):
-        return self._experiments.pop(index)
+        return self._settings.pop(index)
 
     def remove(self, expt):
-        return self._experiments.remove(expt)
+        return self._settings.remove(expt)
 
     def reverse(self):
-        return self._experiments.reverse()
+        return self._settings.reverse()
 
     def sort(self, key=None, reverse=False):
-        return self._experiments.sort(key, reverse)
+        return self._settings.sort(key, reverse)
 
-    def experiment_strings(self):
-        yield from ('{i}: {exptstr}'.format(i=i, exptstr=', '.join(str(expt) for expt in expts))
-                    for i, expts in enumerate(self._experiments))
+    def setting_strings(self):
+        yield from ('{i}: {st_str}'.format(i=i, st_str=', '.join(str(setting)
+                                                                 for setting in settings))
+                    for i, settings in enumerate(self._settings))
 
-    def experiments_string(self, abbrev_after=None):
-        exptstrs = list(self.experiment_strings())
-        if abbrev_after is not None and len(exptstrs) > abbrev_after:
+    def settings_string(self, abbrev_after=None):
+        setting_strs = list(self.setting_strings())
+        if abbrev_after is not None and len(setting_strs) > abbrev_after:
             first_n = abbrev_after // 2
             last_n = abbrev_after - first_n
-            excluded = len(exptstrs) - abbrev_after
-            exptstrs = (exptstrs[:first_n] + [f'... {excluded} not shown ...',
-                                              '... use e.experiments_string() for all ...']
-                        + exptstrs[-last_n:])
-        return '\n'.join(exptstrs)
+            excluded = len(setting_strs) - abbrev_after
+            setting_strs = (setting_strs[:first_n] + [f'... {excluded} not shown ...',
+                                                      '... use e.settings_string() for all ...']
+                            + setting_strs[-last_n:])
+        return '\n'.join(setting_strs)
 
     def __str__(self):
-        return _abbrev_program(self.program) + '\n' + self.experiments_string(abbrev_after=20)
+        return _abbrev_program(self.program) + '\n' + self.settings_string(abbrev_after=20)
 
     def serializable(self):
         return {
             'type': 'ExperimentSuite',
-            'experiments': self._experiments,
+            'settings': self._settings,
             'program': self.program.out(),
             'qubits': self.qubits,
         }
@@ -204,12 +205,7 @@ class OperatorEncoder(JSONEncoder):
         if isinstance(o, ExperimentSetting):
             return str(o)
         if isinstance(o, ExperimentSuite):
-            return {
-                'type': 'ExperimentSuite',
-                'experiments': o._experiments,
-                'program': o.program.out(),
-                'qubits': o.qubits,
-            }
+            return o.serializable()
         if isinstance(o, ExperimentResult):
             return {
                 'type': 'ExperimentResult',
@@ -402,7 +398,7 @@ def measure_observables(qc: QuantumComputer, experiment_suite: ExperimentSuite, 
     :param experiment_suite: The suite of observables to measure
     :param n_shots: The number of shots to take per ExperimentSetting
     :param progress_callback: If not None, this function is called each time a group of
-        experiments is run with arguments ``f(i, len(experiment_suite)`` such that the progress
+        settings is run with arguments ``f(i, len(experiment_suite)`` such that the progress
         is ``i / len(experiment_suite)``.
     :param active_reset: Whether to actively reset qubits instead of waiting several
         times the coherence length for qubits to decay to |0> naturally. Setting this
@@ -410,24 +406,24 @@ def measure_observables(qc: QuantumComputer, experiment_suite: ExperimentSuite, 
         Thermal noise from "traditional" reset is not routinely characterized but is of the same
         order.
     """
-    for i, experiments in enumerate(experiment_suite):
-        # Outer loop over a collection of grouped experiments for which we can simultaneously
+    for i, settings in enumerate(experiment_suite):
+        # Outer loop over a collection of grouped settings for which we can simultaneously
         # estimate.
-        log.info(f"Collecting bitstrings for the {len(experiments)} experiments: {experiments}")
+        log.info(f"Collecting bitstrings for the {len(settings)} settings: {settings}")
 
-        # 1.1 Prepare a state according to expt.in_operator
+        # 1.1 Prepare a state according to setting.in_operator
         total_prog = Program()
         if active_reset:
             total_prog += RESET()
-        in_mapping = _validate_all_diagonal_in_tpb(expt.in_operator for expt in experiments)
+        in_mapping = _validate_all_diagonal_in_tpb(setting.in_operator for setting in settings)
         for idx, op_str in in_mapping.items():
             total_prog += _local_pauli_eig_prep(op_str, idx)
 
         # 1.2 Add in the program
         total_prog += experiment_suite.program
 
-        # 1.3 Measure the state according to expt.out_operator
-        out_mapping = _validate_all_diagonal_in_tpb(expt.out_operator for expt in experiments)
+        # 1.3 Measure the state according to setting.out_operator
+        out_mapping = _validate_all_diagonal_in_tpb(setting.out_operator for setting in settings)
         for idx, op_str in out_mapping.items():
             total_prog += _local_pauli_eig_meas(op_str, idx)
 
@@ -440,39 +436,39 @@ def measure_observables(qc: QuantumComputer, experiment_suite: ExperimentSuite, 
         # 3.1 First transform bits to eigenvalues; ie (+1, -1)
         obs_strings = {q: 1 - 2 * bitstrings[q] for q in bitstrings}
 
-        # Inner loop over the grouped experiments. They only differ in which qubits' measurements
-        # we include in the post-processing. For example, if `experiments` is Z1, Z2, Z1Z2 and we
+        # Inner loop over the grouped settings. They only differ in which qubits' measurements
+        # we include in the post-processing. For example, if `settings` is Z1, Z2, Z1Z2 and we
         # measure (n_shots, n_qubits=2) obs_strings then the full operator value involves selecting
         # either the first column, second column, or both and multiplying along the row.
-        for expt in experiments:
+        for setting in settings:
             # 3.2 Special case for measuring the "identity" operator, which doesn't make much
             #     sense but should happen perfectly.
-            if is_identity(expt.out_operator):
+            if is_identity(setting.out_operator):
                 yield ExperimentResult(
-                    experiment=expt,
+                    experiment=setting,
                     expectation=1.0,
                     stddev=0.0,
                 )
                 continue
 
             # 3.3 Get the term's coefficient so we can multiply it in later.
-            assert expt.in_operator.coefficient == 1, 'in_operator should specify a state and ' \
-                                                      'therefore cannot have a coefficient'
-            coeff = complex(expt.out_operator.coefficient)
+            assert setting.in_operator.coefficient == 1, 'in_operator should specify a state and ' \
+                                                         'therefore cannot have a coefficient'
+            coeff = complex(setting.out_operator.coefficient)
             if not np.isclose(coeff.imag, 0):
-                raise ValueError(f"{expt}'s out_operator has a complex coefficient.")
+                raise ValueError(f"{setting}'s out_operator has a complex coefficient.")
             coeff = coeff.real
 
             # 3.4 Pick columns corresponding to qubits with a non-identity out_operation and stack
             #     into an array of shape (n_shots, n_measure_qubits)
-            my_obs_strings = np.vstack(obs_strings[q] for q, op_str in expt.out_operator).T
+            my_obs_strings = np.vstack(obs_strings[q] for q, op_str in setting.out_operator).T
 
             # 3.6 Multiply row-wise to get operator values. Do statistics. Yield result.
             obs_vals = coeff * np.prod(my_obs_strings, axis=1)
             obs_mean = np.mean(obs_vals)
             obs_var = np.var(obs_vals) / n_shots
             yield ExperimentResult(
-                experiment=expt,
+                experiment=setting,
                 expectation=np.asscalar(obs_mean),
                 stddev=np.asscalar(np.sqrt(obs_var)),
             )
