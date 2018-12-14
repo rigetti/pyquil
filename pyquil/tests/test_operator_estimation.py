@@ -190,6 +190,7 @@ def test_measure_observables_many_progs(forest):
     ]
 
     qc = get_qc('2q-qvm')
+    qc.qam.random_seed = 51
     for prog in _random_2q_programs():
         suite = ExperimentSuite(expts, program=prog, qubits=[0, 1])
         assert len(suite) == 4 * 4
