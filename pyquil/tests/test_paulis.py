@@ -180,7 +180,7 @@ def test_operations_as_set():
 
 
 def test_pauliop_inputs():
-    with pytest.raises(AssertionError):
+    with pytest.raises(ValueError):
         PauliTerm('X', -2)
 
 

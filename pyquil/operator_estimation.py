@@ -429,7 +429,7 @@ def measure_observables(qc: QuantumComputer, experiment_suite: ExperimentSuite, 
         # 1.3 Measure the state according to expt.out_operator
         out_mapping = _validate_all_diagonal_in_tpb(expt.out_operator for expt in experiments)
         for idx, op_str in out_mapping.items():
-            _local_pauli_eig_meas(op_str, idx)
+            total_prog += _local_pauli_eig_meas(op_str, idx)
 
         # 2. Run the experiment
         bitstrings = qc.run_and_measure(total_prog, n_shots)
