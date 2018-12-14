@@ -6,7 +6,7 @@ from operator import mul
 
 from pyquil.api import WavefunctionSimulator
 from pyquil.operator_estimation import Experiment, ExperimentSuite, to_json, read_json, \
-    _all_qubits_belong_to_a_tpb, group_experiments, ExperimentResult, measure_observables
+    _all_qubits_diagonal_in_tpb, group_experiments, ExperimentResult, measure_observables
 from pyquil.paulis import sI, sX, sY, sZ
 from pyquil import Program, get_qc
 from pyquil.gates import *
@@ -114,8 +114,8 @@ def test_all_ops_belong_to_tpb():
     ]
     for group in expts:
         for e1, e2 in itertools.combinations(group, 2):
-            assert _all_qubits_belong_to_a_tpb(e1.in_operator, e2.in_operator)
-            assert _all_qubits_belong_to_a_tpb(e1.out_operator, e2.out_operator)
+            assert _all_qubits_diagonal_in_tpb(e1.in_operator, e2.in_operator)
+            assert _all_qubits_diagonal_in_tpb(e1.out_operator, e2.out_operator)
 
 
 def test_group_experiments():

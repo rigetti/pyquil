@@ -276,9 +276,9 @@ def _local_pauli_eig_meas(op, idx):
     raise ValueError(f'Unknown operation {op}')
 
 
-def _ops_belong_to_a_tpb(op_code1: str, op_code2: str):
+def _ops_diagonal_in_tpb(op_code1: str, op_code2: str):
     """
-    Given two op strings (I, X, Y, or Z) return whether they share a tensor product basis.
+    Given two op strings (I, X, Y, or Z) return whether they are diagonal in a tensor product basis.
 
     I.e. are they the same or is one of them 'I'.
     """
@@ -298,17 +298,18 @@ def _ops_belong_to_a_tpb(op_code1: str, op_code2: str):
         return False
 
 
-def _all_qubits_belong_to_a_tpb(op1: PauliTerm, op2: PauliTerm):
+def _all_qubits_diagonal_in_tpb(op1: PauliTerm, op2: PauliTerm):
     """
-    Compare all qubits between two PauliTerms to see if they share an overall tensor product basis.
+    Compare all qubits between two PauliTerms to see if they are all diagonal in an
+    overall shared tensor product basis.
     """
     all_qubits = set(op1.get_qubits()) | set(op2.get_qubits())
-    return all(_ops_belong_to_a_tpb(op1[q], op2[q]) for q in all_qubits)
+    return all(_ops_diagonal_in_tpb(op1[q], op2[q]) for q in all_qubits)
 
 
 def construct_tpb_graph(experiments: ExperimentSuite):
     """
-    Construct a graph where an edge signifies two experiments share a TPB.
+    Construct a graph where an edge signifies two experiments are diagonal in a TPB.
     """
     g = nx.Graph()
     for expt in experiments:
@@ -327,8 +328,8 @@ def construct_tpb_graph(experiments: ExperimentSuite):
         if expt1 == expt2:
             continue
 
-        if (_all_qubits_belong_to_a_tpb(expt1.in_operator, expt2.in_operator)
-                and _all_qubits_belong_to_a_tpb(expt1.out_operator, expt2.out_operator)):
+        if (_all_qubits_diagonal_in_tpb(expt1.in_operator, expt2.in_operator)
+                and _all_qubits_diagonal_in_tpb(expt1.out_operator, expt2.out_operator)):
             g.add_edge(expt1, expt2)
 
     return g
@@ -336,7 +337,8 @@ def construct_tpb_graph(experiments: ExperimentSuite):
 
 def group_experiments(experiments: ExperimentSuite) -> ExperimentSuite:
     """
-    Group experiments that share a tensor product basis (TPB) to minimize number of QPU runs.
+    Group experiments that are diagonal in a shared tensor product basis (TPB) to minimize number
+    of QPU runs.
 
     :param experiments: an Experiment suite
     :return: an Experiment suite with all the same experiments, just grouped according to shared
@@ -377,7 +379,7 @@ class ExperimentResult:
         }
 
 
-def _validate_all_share_tpb(ops: Iterable[PauliTerm]) -> Dict[int, str]:
+def _validate_all_diagonal_in_tpb(ops: Iterable[PauliTerm]) -> Dict[int, str]:
     """Each non-identity qubit should result in the same op_str among all operations. Return
     said mapping.
     """
@@ -417,7 +419,7 @@ def measure_observables(qc: QuantumComputer, experiment_suite: ExperimentSuite, 
         total_prog = Program()
         if active_reset:
             total_prog += RESET()
-        in_mapping = _validate_all_share_tpb(expt.in_operator for expt in experiments)
+        in_mapping = _validate_all_diagonal_in_tpb(expt.in_operator for expt in experiments)
         for idx, op_str in in_mapping.items():
             total_prog += _local_pauli_eig_prep(op_str, idx)
 
@@ -425,7 +427,7 @@ def measure_observables(qc: QuantumComputer, experiment_suite: ExperimentSuite, 
         total_prog += experiment_suite.program
 
         # 1.3 Measure the state according to expt.out_operator
-        out_mapping = _validate_all_share_tpb(expt.out_operator for expt in experiments)
+        out_mapping = _validate_all_diagonal_in_tpb(expt.out_operator for expt in experiments)
         for idx, op_str in out_mapping.items():
             _local_pauli_eig_meas(op_str, idx)
 
