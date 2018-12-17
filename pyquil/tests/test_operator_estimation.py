@@ -9,7 +9,7 @@ from operator import mul
 import pytest
 
 from pyquil.api import WavefunctionSimulator
-from pyquil.operator_estimation import ExperimentSetting, ExperimentSuite, to_json, read_json, \
+from pyquil.operator_estimation import ExperimentSetting, TomographyExperiment, to_json, read_json, \
     _all_qubits_diagonal_in_tpb, group_experiments, ExperimentResult, measure_observables
 from pyquil.paulis import sI, sX, sY, sZ, PauliSum
 from pyquil import Program, get_qc
@@ -55,7 +55,7 @@ def test_experiment_suite():
         ExperimentSetting(sZ(0), sZ(0)),
     ]
 
-    suite = ExperimentSuite(
+    suite = TomographyExperiment(
         settings=expts,
         program=Program(X(0), Y(1)),
         qubits=[0, 1]
@@ -76,7 +76,7 @@ def test_experiment_suite_pre_grouped():
         [ExperimentSetting(sI(), sZ(0) * sI(1)), ExperimentSetting(sI(), sI(0) * sZ(1))],
     ]
 
-    suite = ExperimentSuite(
+    suite = TomographyExperiment(
         settings=expts,
         program=Program(X(0), Y(1)),
         qubits=[0, 1]
@@ -90,7 +90,7 @@ def test_experiment_suite_pre_grouped():
 
 
 def test_experiment_suite_empty():
-    suite = ExperimentSuite([], program=Program(X(0)), qubits=[0])
+    suite = TomographyExperiment([], program=Program(X(0)), qubits=[0])
     assert len(suite) == 0
     assert str(suite.program) == 'X 0\n'
 
@@ -101,7 +101,7 @@ def test_suite_deser(tmpdir):
         [ExperimentSetting(sI(), sZ(0) * sI(1)), ExperimentSetting(sI(), sI(0) * sZ(1))],
     ]
 
-    suite = ExperimentSuite(
+    suite = TomographyExperiment(
         settings=expts,
         program=Program(X(0), Y(1)),
         qubits=[0, 1]
@@ -127,7 +127,7 @@ def test_group_experiments():
         ExperimentSetting(sI(), sX(0) * sI(1)), ExperimentSetting(sI(), sI(0) * sX(1)),
         ExperimentSetting(sI(), sZ(0) * sI(1)), ExperimentSetting(sI(), sI(0) * sZ(1)),
     ]
-    suite = ExperimentSuite(expts, Program(), qubits=[0, 1])
+    suite = TomographyExperiment(expts, Program(), qubits=[0, 1])
     grouped_suite = group_experiments(suite)
     assert len(suite) == 4
     assert len(grouped_suite) == 2
@@ -147,7 +147,7 @@ def test_measure_observables(forest):
         ExperimentSetting(sI(), o1 * o2)
         for o1, o2 in itertools.product([sI(0), sX(0), sY(0), sZ(0)], [sI(1), sX(1), sY(1), sZ(1)])
     ]
-    suite = ExperimentSuite(expts, program=Program(X(0), CNOT(0, 1)), qubits=[0, 1])
+    suite = TomographyExperiment(expts, program=Program(X(0), CNOT(0, 1)), qubits=[0, 1])
     assert len(suite) == 4 * 4
     gsuite = group_experiments(suite)
     assert len(gsuite) == 3 * 3  # can get all the terms with I for free in this case
@@ -192,7 +192,7 @@ def test_measure_observables_many_progs(forest):
     qc = get_qc('2q-qvm')
     qc.qam.random_seed = 51
     for prog in _random_2q_programs():
-        suite = ExperimentSuite(expts, program=prog, qubits=[0, 1])
+        suite = TomographyExperiment(expts, program=prog, qubits=[0, 1])
         assert len(suite) == 4 * 4
         gsuite = group_experiments(suite)
         assert len(gsuite) == 3 * 3  # can get all the terms with I for free in this case
@@ -211,7 +211,7 @@ def test_append():
         [ExperimentSetting(sI(), sX(0) * sI(1)), ExperimentSetting(sI(), sI(0) * sX(1))],
         [ExperimentSetting(sI(), sZ(0) * sI(1)), ExperimentSetting(sI(), sI(0) * sZ(1))],
     ]
-    suite = ExperimentSuite(
+    suite = TomographyExperiment(
         settings=expts,
         program=Program(X(0), Y(1)),
         qubits=[0, 1]
@@ -222,7 +222,7 @@ def test_append():
 
 def test_no_complex_coeffs(forest):
     qc = get_qc('2q-qvm')
-    suite = ExperimentSuite([ExperimentSetting(sI(), 1.j * sY(0))], program=Program(X(0), ),
-                            qubits=[0])
+    suite = TomographyExperiment([ExperimentSetting(sI(), 1.j * sY(0))], program=Program(X(0), ),
+                                 qubits=[0])
     with pytest.raises(ValueError):
         res = list(measure_observables(qc, suite))

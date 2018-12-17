@@ -36,7 +36,7 @@ class ExperimentSetting:
     Where we typically use a large number of (start, measure) pairs but keep the ansatz preparation
     program consistent. This class represents the (start, measure) pairs. Typically a large
     number of these :py:class:`ExperimentSetting` objects will be created and grouped into
-    an :py:class:`ExperimentSuite`.
+    a :py:class:`TomographyExperiment`.
     """
     in_operator: PauliTerm
     out_operator: PauliTerm
@@ -75,7 +75,7 @@ def _abbrev_program(program: Program, max_len=10):
     return '; '.join(program_lines)
 
 
-class ExperimentSuite:
+class TomographyExperiment:
     """
     A tomography-like experiment.
 
@@ -98,7 +98,7 @@ class ExperimentSuite:
     will expand it to a list of length-1-lists.
 
     This class will not group settings for you. Please see :py:func:`group_experiments` for
-    a function that will automatically process an ExperimentSuite to group Experiments sharing
+    a function that will automatically process a TomographyExperiment to group Experiments sharing
     a TPB.
     """
 
@@ -188,14 +188,14 @@ class ExperimentSuite:
 
     def serializable(self):
         return {
-            'type': 'ExperimentSuite',
+            'type': 'TomographyExperiment',
             'settings': self._settings,
             'program': self.program.out(),
             'qubits': self.qubits,
         }
 
     def __eq__(self, other):
-        if not isinstance(other, ExperimentSuite):
+        if not isinstance(other, TomographyExperiment):
             return False
         return self.serializable() == other.serializable()
 
@@ -204,7 +204,7 @@ class OperatorEncoder(JSONEncoder):
     def default(self, o):
         if isinstance(o, ExperimentSetting):
             return str(o)
-        if isinstance(o, ExperimentSuite):
+        if isinstance(o, TomographyExperiment):
             return o.serializable()
         if isinstance(o, ExperimentResult):
             return o.serializable()
@@ -218,11 +218,11 @@ def to_json(fn, obj):
 
 
 def _operator_object_hook(obj):
-    if 'type' in obj and obj['type'] == 'ExperimentSuite':
-        return ExperimentSuite([[ExperimentSetting.from_str(s) for s in settings]
-                                for settings in obj['settings']],
-                               program=Program(obj['program']),
-                               qubits=obj['qubits'])
+    if 'type' in obj and obj['type'] == 'TomographyExperiment':
+        return TomographyExperiment([[ExperimentSetting.from_str(s) for s in settings]
+                                     for settings in obj['settings']],
+                                    program=Program(obj['program']),
+                                    qubits=obj['qubits'])
     return obj
 
 
@@ -297,7 +297,7 @@ def _all_qubits_diagonal_in_tpb(op1: PauliTerm, op2: PauliTerm):
     return all(_ops_diagonal_in_tpb(op1[q], op2[q]) for q in all_qubits)
 
 
-def construct_tpb_graph(experiments: ExperimentSuite):
+def construct_tpb_graph(experiments: TomographyExperiment):
     """
     Construct a graph where an edge signifies two experiments are diagonal in a TPB.
     """
@@ -325,7 +325,7 @@ def construct_tpb_graph(experiments: ExperimentSuite):
     return g
 
 
-def group_experiments(experiments: ExperimentSuite) -> ExperimentSuite:
+def group_experiments(experiments: TomographyExperiment) -> TomographyExperiment:
     """
     Group experiments that are diagonal in a shared tensor product basis (TPB) to minimize number
     of QPU runs.
@@ -345,7 +345,7 @@ def group_experiments(experiments: ExperimentSuite) -> ExperimentSuite:
 
         new_cliqs += [new_cliq]
 
-    return ExperimentSuite(new_cliqs, program=experiments.program, qubits=experiments.qubits)
+    return TomographyExperiment(new_cliqs, program=experiments.program, qubits=experiments.qubits)
 
 
 @dataclass(frozen=True)
@@ -383,24 +383,24 @@ def _validate_all_diagonal_in_tpb(ops: Iterable[PauliTerm]) -> Dict[int, str]:
     return mapping
 
 
-def measure_observables(qc: QuantumComputer, experiment_suite: ExperimentSuite, n_shots=1000,
+def measure_observables(qc: QuantumComputer, tomo_experiment: TomographyExperiment, n_shots=1000,
                         progress_callback=None, active_reset=False):
     """
-    Measure all the observables in an ExperimentSuite.
+    Measure all the observables in an TomographyExperiment.
 
     :param qc: A QuantumComputer which can run quantum programs
-    :param experiment_suite: The suite of observables to measure
+    :param tomo_experiment: A suite of tomographic observables to measure
     :param n_shots: The number of shots to take per ExperimentSetting
     :param progress_callback: If not None, this function is called each time a group of
-        settings is run with arguments ``f(i, len(experiment_suite)`` such that the progress
-        is ``i / len(experiment_suite)``.
+        settings is run with arguments ``f(i, len(tomo_experiment)`` such that the progress
+        is ``i / len(tomo_experiment)``.
     :param active_reset: Whether to actively reset qubits instead of waiting several
         times the coherence length for qubits to decay to |0> naturally. Setting this
         to True is much faster but there is a ~1% error per qubit in the reset operation.
         Thermal noise from "traditional" reset is not routinely characterized but is of the same
         order.
     """
-    for i, settings in enumerate(experiment_suite):
+    for i, settings in enumerate(tomo_experiment):
         # Outer loop over a collection of grouped settings for which we can simultaneously
         # estimate.
         log.info(f"Collecting bitstrings for the {len(settings)} settings: {settings}")
@@ -414,7 +414,7 @@ def measure_observables(qc: QuantumComputer, experiment_suite: ExperimentSuite, 
             total_prog += _local_pauli_eig_prep(op_str, idx)
 
         # 1.2 Add in the program
-        total_prog += experiment_suite.program
+        total_prog += tomo_experiment.program
 
         # 1.3 Measure the state according to setting.out_operator
         out_mapping = _validate_all_diagonal_in_tpb(setting.out_operator for setting in settings)
@@ -424,7 +424,7 @@ def measure_observables(qc: QuantumComputer, experiment_suite: ExperimentSuite, 
         # 2. Run the experiment
         bitstrings = qc.run_and_measure(total_prog, n_shots)
         if progress_callback is not None:
-            progress_callback(i, len(experiment_suite))
+            progress_callback(i, len(tomo_experiment))
 
         # 3. Post-process
         # 3.1 First transform bits to eigenvalues; ie (+1, -1)
