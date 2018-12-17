@@ -203,7 +203,7 @@ class TomographyExperiment:
 class OperatorEncoder(JSONEncoder):
     def default(self, o):
         if isinstance(o, ExperimentSetting):
-            return str(o)
+            return o.serializable()
         if isinstance(o, TomographyExperiment):
             return o.serializable()
         if isinstance(o, ExperimentResult):
