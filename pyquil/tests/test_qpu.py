@@ -2,16 +2,18 @@ import networkx as nx
 import numpy as np
 import pytest
 
+from requests import RequestException
 from rpcq.messages import ParameterAref
 
 from pyquil.parser import parse
 from pyquil import Program
+from pyquil.api import QuantumComputer, QPU, QPUCompiler
 from pyquil.api._compiler import _collect_classical_memory_write_locations
 from pyquil.api._config import PyquilConfig
-from pyquil.api import QuantumComputer, QPU, QPUCompiler
+from pyquil.api._errors import UnknownApiError
 from pyquil.api._qpu import _extract_bitstrings
 from pyquil.device import NxDevice
-from pyquil.gates import X
+from pyquil.gates import I, X
 from pyquil.quilatom import Expression
 
 
@@ -138,6 +140,17 @@ def mock_qpu():
 @pytest.fixture
 def gate_arithmetic_binaries(qpu_compiler: QPUCompiler):
     return [qpu_compiler.native_quil_to_executable(p) for p in GATE_ARITHMETIC_PROGRAMS]
+
+
+@pytest.fixture
+def qpu_compiler(test_device):
+    try:
+        config = PyquilConfig()
+        compiler = QPUCompiler(endpoint=config.compiler_url, device=test_device)
+        compiler.quil_to_native_quil(Program(I(0)))
+        return compiler
+    except (RequestException, UnknownApiError) as e:
+        return pytest.skip("This test requires compiler connection: {}".format(e))
 
 
 def test_load(gate_arithmetic_binaries, mock_qpu):

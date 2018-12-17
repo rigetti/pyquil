@@ -6,7 +6,7 @@ import pytest
 from requests import RequestException
 
 from pyquil.api import (QVMConnection, LocalQVMCompiler, ForestConnection,
-                        get_benchmarker, local_qvm, QPUCompiler)
+                        get_benchmarker, local_qvm)
 from pyquil.api._config import PyquilConfig
 from pyquil.api._errors import UnknownApiError
 from pyquil.device import Device
@@ -138,22 +138,11 @@ def qvm():
         return pytest.skip("This test requires QVM connection: {}".format(e))
 
 
-@pytest.fixture
+@pytest.fixture()
 def compiler(test_device):
     try:
         config = PyquilConfig()
         compiler = LocalQVMCompiler(endpoint=config.compiler_url, device=test_device)
-        compiler.quil_to_native_quil(Program(I(0)))
-        return compiler
-    except (RequestException, UnknownApiError) as e:
-        return pytest.skip("This test requires compiler connection: {}".format(e))
-
-
-@pytest.fixture
-def qpu_compiler(test_device):
-    try:
-        config = PyquilConfig()
-        compiler = QPUCompiler(endpoint=config.compiler_url, device=test_device)
         compiler.quil_to_native_quil(Program(I(0)))
         return compiler
     except (RequestException, UnknownApiError) as e:
