@@ -207,13 +207,7 @@ class OperatorEncoder(JSONEncoder):
         if isinstance(o, ExperimentSuite):
             return o.serializable()
         if isinstance(o, ExperimentResult):
-            return {
-                'type': 'ExperimentResult',
-                'experiment': o.experiment,
-                'expectation': o.expectation,
-                'stddev': o.stddev,
-            }
-
+            return o.serializable()
         return o
 
 
@@ -356,12 +350,12 @@ def group_experiments(experiments: ExperimentSuite) -> ExperimentSuite:
 
 @dataclass(frozen=True)
 class ExperimentResult:
-    experiment: ExperimentSetting
+    setting: ExperimentSetting
     expectation: Union[float, complex]
     stddev: float
 
     def __str__(self):
-        return f'{self.experiment}: {self.expectation} +- {self.stddev}'
+        return f'{self.setting}: {self.expectation} +- {self.stddev}'
 
     def __repr__(self):
         return f'ExperimentResult[{self}]'
@@ -369,7 +363,7 @@ class ExperimentResult:
     def serializable(self):
         return {
             'type': 'ExperimentResult',
-            'experiment': self.experiment,
+            'setting': self.setting,
             'expectation': self.expectation,
             'stddev': self.stddev,
         }
@@ -445,7 +439,7 @@ def measure_observables(qc: QuantumComputer, experiment_suite: ExperimentSuite, 
             #     sense but should happen perfectly.
             if is_identity(setting.out_operator):
                 yield ExperimentResult(
-                    experiment=setting,
+                    setting=setting,
                     expectation=1.0,
                     stddev=0.0,
                 )
@@ -468,7 +462,7 @@ def measure_observables(qc: QuantumComputer, experiment_suite: ExperimentSuite, 
             obs_mean = np.mean(obs_vals)
             obs_var = np.var(obs_vals) / n_shots
             yield ExperimentResult(
-                experiment=setting,
+                setting=setting,
                 expectation=np.asscalar(obs_mean),
                 stddev=np.asscalar(np.sqrt(obs_var)),
             )

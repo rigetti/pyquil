@@ -135,7 +135,7 @@ def test_group_experiments():
 
 def test_experiment_result():
     er = ExperimentResult(
-        experiment=ExperimentSetting(sX(0), sZ(0)),
+        setting=ExperimentSetting(sX(0), sZ(0)),
         expectation=0.9,
         stddev=0.05,
     )
@@ -154,7 +154,7 @@ def test_measure_observables(forest):
 
     qc = get_qc('2q-qvm')
     for res in measure_observables(qc, gsuite, n_shots=10_000):
-        if res.experiment.out_operator in [sI(), sZ(0), sZ(1), sZ(0) * sZ(1)]:
+        if res.setting.out_operator in [sI(), sZ(0), sZ(1), sZ(0) * sZ(1)]:
             assert np.abs(res.expectation) > 0.9
         else:
             assert np.abs(res.expectation) < 0.1
@@ -203,7 +203,7 @@ def test_measure_observables_many_progs(forest):
             wfn_exps[expt] = wfn.expectation(gsuite.program, PauliSum([expt.out_operator]))
 
         for res in measure_observables(qc, gsuite, n_shots=1_000):
-            np.testing.assert_allclose(wfn_exps[res.experiment], res.expectation, atol=0.1)
+            np.testing.assert_allclose(wfn_exps[res.setting], res.expectation, atol=0.1)
 
 
 def test_append():
@@ -222,6 +222,7 @@ def test_append():
 
 def test_no_complex_coeffs(forest):
     qc = get_qc('2q-qvm')
-    suite = ExperimentSuite([ExperimentSetting(sI(), 1.j * sY(0))], program=Program(X(0), ), qubits=[0])
+    suite = ExperimentSuite([ExperimentSetting(sI(), 1.j * sY(0))], program=Program(X(0), ),
+                            qubits=[0])
     with pytest.raises(ValueError):
         res = list(measure_observables(qc, suite))
