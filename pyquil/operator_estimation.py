@@ -4,7 +4,7 @@ import logging
 import sys
 from json import JSONEncoder
 from math import pi
-from typing import List, Union, Iterable, Dict
+from typing import List, Union, Iterable
 
 import networkx as nx
 import numpy as np
@@ -29,9 +29,10 @@ class ExperimentSetting:
     Input and output settings for a tomography-like experiment.
 
     Many near-term quantum algorithms take the following form:
-        - Start in a pauli state
-        - Prepare some ansatz
-        - Measure it w.r.t. pauli operators
+
+     - Start in a pauli state
+     - Prepare some ansatz
+     - Measure it w.r.t. pauli operators
 
     Where we typically use a large number of (start, measure) pairs but keep the ansatz preparation
     program consistent. This class represents the (start, measure) pairs. Typically a large
@@ -338,8 +339,8 @@ def group_experiments(experiments: TomographyExperiment) -> TomographyExperiment
     Group experiments that are diagonal in a shared tensor product basis (TPB) to minimize number
     of QPU runs.
 
-    :param experiments: an Experiment suite
-    :return: an Experiment suite with all the same experiments, just grouped according to shared
+    :param experiments: an tomography experiment
+    :return: an tomography experiment with all the same settings, just grouped according to shared
         TPBs.
     """
     g = construct_tpb_graph(experiments)
@@ -358,6 +359,10 @@ def group_experiments(experiments: TomographyExperiment) -> TomographyExperiment
 
 @dataclass(frozen=True)
 class ExperimentResult:
+    """An expectation and standard deviation for the measurement of one experiment setting
+    in a tomographic experiment.
+    """
+
     setting: ExperimentSetting
     expectation: Union[float, complex]
     stddev: float
