@@ -54,8 +54,8 @@ class ExperimentSetting:
     def from_str(cls, s: str):
         """The opposite of str(expt)"""
         instr, outstr = s.split('→')
-        return cls(in_operator=PauliTerm.from_compact_str(instr),
-                   out_operator=PauliTerm.from_compact_str(outstr))
+        return ExperimentSetting(in_operator=PauliTerm.from_compact_str(instr),
+                                 out_operator=PauliTerm.from_compact_str(outstr))
 
 
 def _abbrev_program(program: Program, max_len=10):
