@@ -35,7 +35,7 @@ from pyquil.api._qvm import ForestConnection, QVM
 from pyquil.device import AbstractDevice, NxDevice, gates_in_isa, ISA, Device
 from pyquil.gates import RX, MEASURE
 from pyquil.noise import decoherence_noise_with_asymmetric_ro, NoiseModel
-from pyquil.quil import Program
+from pyquil.quil import Program, validate_protoquil
 from pyquil.quilbase import Measurement, Pragma, Gate, Reset
 
 pyquil_config = PyquilConfig()
@@ -67,15 +67,6 @@ def _get_flipped_protoquil_program(program: Program) -> Program:
     for qu, addr in to_measure[::-1]:
         program += Measurement(qubit=qu, classical_reg=addr)
 
-    return program
-
-
-def _validate_run_and_measure_program(program: Program) -> Program:
-    for instr in program.instructions:
-        if not isinstance(instr, Gate) and not isinstance(instr, Reset):
-            raise ValueError("run_and_measure programs must consist only of quantum gates.")
-
-    # TODO: more logic here?
     return program
 
 
@@ -227,7 +218,7 @@ class QuantumComputer:
             measured bits.
         """
         program = program.copy()
-        program = _validate_run_and_measure_program(program)
+        validate_protoquil(program)
         ro = program.declare('ro', 'BIT', len(self.qubits()))
         for i, q in enumerate(self.qubits()):
             program.inst(MEASURE(q, ro[i]))
