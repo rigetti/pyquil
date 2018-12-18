@@ -4,7 +4,7 @@ import logging
 import sys
 from json import JSONEncoder
 from math import pi
-from typing import List, Union, Iterable
+from typing import List, Union, Iterable, Dict
 
 import networkx as nx
 import numpy as np
