@@ -96,6 +96,7 @@ Contents
    apidocs/devices
    apidocs/wavefunction
    apidocs/noise
+   apidocs/operator_estimation
 
 .. toctree::
    :caption: Man Pages

@@ -233,7 +233,7 @@ class QuantumComputer:
     @_record_call
     def compile(self, program: Program,
                 to_native_gates: bool = True,
-                optimize: bool = True) -> Message:
+                optimize: bool = True) -> Union[BinaryExecutableResponse, PyQuilExecutableResponse]:
         """
         A high-level interface to program compilation.
 

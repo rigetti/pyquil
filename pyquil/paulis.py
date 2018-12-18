@@ -18,9 +18,13 @@ Module for working with Pauli algebras.
 """
 
 from __future__ import division
+
+import re
 from itertools import product
 import numpy as np
 import copy
+
+from typing import Union
 
 from pyquil.quilatom import QubitPlaceholder
 
@@ -69,19 +73,21 @@ class PauliTerm(object):
     """A term is a product of Pauli operators operating on different qubits.
     """
 
-    def __init__(self, op, index, coefficient=1.0):
+    def __init__(self, op: str, index: int, coefficient: Union[int, float, complex] = 1.0):
         """ Create a new Pauli Term with a Pauli operator at a particular index and a leading
         coefficient.
 
-        :param string op: The Pauli operator as a string "X", "Y", "Z", or "I"
-        :param int index: The qubit index that that operator is applied to.
-        :param float coefficient: The coefficient multiplying the operator, e.g. 1.5 * Z_1
+        :param op: The Pauli operator as a string "X", "Y", "Z", or "I"
+        :param index: The qubit index that that operator is applied to.
+        :param coefficient: The coefficient multiplying the operator, e.g. 1.5 * Z_1
         """
-        assert op in PAULI_OPS
-        assert _valid_qubit(index)
+        if op not in PAULI_OPS:
+            raise ValueError(f"{op} is not a valid Pauli operator")
 
         self._ops = OrderedDict()
         if op != "I":
+            if not _valid_qubit(index):
+                raise ValueError(f"{index} is not a valid qubit")
             self._ops[index] = op
         if not isinstance(coefficient, Number):
             raise ValueError("coefficient of PauliTerm must be a Number.")
@@ -95,11 +101,19 @@ class PauliTerm(object):
         aren't sortable.
 
         :param sort_ops: Whether to sort operations by qubit. This is True by default for
-            backwards compatibility but will change in pyQuil 2.0. Callers should never rely
+            backwards compatibility but will change in a future version. Callers should never rely
             on comparing id's for testing equality. See ``operations_as_set`` instead.
         :return: A string representation of this term's operations.
         :rtype: string
         """
+        if len(self._ops) == 0 and not sort_ops:
+            # This is nefariously backwards-compatibility breaking. There's potentially
+            # lots of code floating around that says is_identity = term.id() == ''
+            # Please use `is_identity(term)`!
+            # Therefore, we only return 'I' when sort_ops is set to False, which is the newer
+            # way of calling this function and implies the user knows what they're doing.
+            return 'I'
+
         if sort_ops and len(self._ops) > 1:
             warnings.warn("`PauliTerm.id()` will not work on PauliTerms where the qubits are not "
                           "sortable and should be avoided in favor of `operations_as_set`.",
@@ -115,7 +129,7 @@ class PauliTerm(object):
         Use this in place of :py:func:`id` if the order of operations in the term does not
         matter.
 
-        :return: frozenset of strings representing Pauli operations
+        :return: frozenset of (op_str, coefficient) representing Pauli operations
         """
         return frozenset(self._ops.items())
 
@@ -295,6 +309,17 @@ class PauliTerm(object):
         out = "%s*%s" % (self.coefficient, '*'.join(term_strs))
         return out
 
+    def compact_str(self):
+        """A string representation of the Pauli term that is more compact than ``str(term)``
+
+        >>> term = 2.0 * sX(1)* sZ(2)
+        >>> str(term)
+        >>> '2.0*X1*X2'
+        >>> term.compact_str()
+        >>> '2.0*X1X2'
+        """
+        return f'{self.coefficient}*{self.id(sort_ops=False)}'
+
     @classmethod
     def from_list(cls, terms_list, coefficient=1.0):
         """
@@ -324,33 +349,59 @@ class PauliTerm(object):
         pterm.coefficient = complex(coefficient)
         return pterm
 
+    @classmethod
+    def from_compact_str(cls, str_pauli_term):
+        """Construct a PauliTerm from the result of str(pauli_term)
+        """
+        coef_str, str_pauli_term = str_pauli_term.split('*')
+        try:
+            coef = int(coef_str)
+        except ValueError:
+            try:
+                coef = float(coef_str)
+            except ValueError:
+                coef = complex(coef_str)
+
+        op = sI() * coef
+        if str_pauli_term == 'I':
+            return op
+        ma = re.fullmatch(r'(([XYZ])(\d+))+', str_pauli_term)
+        if ma is None:
+            raise ValueError(f"Could not parse pauli string {str_pauli_term}")
+        for ma in re.finditer(r'([XYZ])(\d+)', str_pauli_term):
+            op *= cls(ma.group(1), int(ma.group(2)))
+
+        return op
+
     def pauli_string(self, qubits=None):
         """
-        Return a string representation of this PauliTerm mod its phase, as a concatenation of the string representation
-        of the
+        Return a string representation of this PauliTerm without its coefficient and with
+        implicit qubit indices.
+
+        If a list of qubits is provided, each character in the resulting string represents
+        a Pauli operator on the corresponding qubit. If qubit indices are not provided as input,
+        the returned string will be all non-identity operators in the order. This doesn't make
+        much sense, so please provide a list of qubits. Not providing a list of qubits is
+        deprecated.
+
         >>> p = PauliTerm("X", 0) * PauliTerm("Y", 1, 1.j)
         >>> p.pauli_string()
         "XY"
-        >>> p.pauli_string([0])
+        >>> p.pauli_string(qubits=[0])
         "X"
-        >>> p.pauli_string([0, 2])
+        >>> p.pauli_string(qubits=[0, 2])
         "XI"
 
-        :param list qubits: The list of qubits to represent, given as ints. If None, defaults to all qubits in this
-         PauliTerm.
-        :return: The string representation of this PauliTerm, modulo its phase.
-        :rtype: String
+        :param list qubits: The list of qubits to represent, given as ints. If None, defaults to
+            all qubits in this PauliTerm.
+        :return: The string representation of this PauliTerm, sans coefficient
         """
-        qubit_term_mapping = dict(self.operations_as_set())
         if qubits is None:
-            qubits = [qubit for qubit, _ in qubit_term_mapping.items()]
-        ps = ""
-        for qubit in qubits:
-            try:
-                ps += qubit_term_mapping[qubit]
-            except KeyError:
-                ps += "I"
-        return ps
+            warnings.warn("Please provide a list of qubits when using PauliTerm.pauli_string",
+                          DeprecationWarning)
+            qubits = self.get_qubits()
+
+        return ''.join(self[q] for q in qubits)
 
 
 # For convenience, a shorthand for several operators.
@@ -368,11 +419,13 @@ def ZERO():
     return PauliTerm("I", 0, 0)
 
 
-def sI(q):
+def sI(q=None):
     """
-    A function that returns the identity operator on a particular qubit.
+    A function that returns the identity operator, optionally on a particular qubit.
 
-    :param int qubit_index: The index of the qubit
+    This can be specified without a qubit.
+
+    :param int qubit_index: The optional index of a qubit.
     :returns: A PauliTerm object
     :rtype: PauliTerm
     """

@@ -180,7 +180,7 @@ def test_operations_as_set():
 
 
 def test_pauliop_inputs():
-    with pytest.raises(AssertionError):
+    with pytest.raises(ValueError):
         PauliTerm('X', -2)
 
 
@@ -648,6 +648,17 @@ def test_pauli_string():
     assert p.pauli_string([0, 1]) == "IX"
 
 
+def test_str():
+    term = 2.0 * sX(1) * sX(2)
+    assert str(term) == '(2+0j)*X1*X2'
+    assert term.compact_str() == '(2+0j)*X1X2'
+
+
+def test_from_str():
+    with pytest.raises(ValueError):
+        PauliTerm.from_compact_str('1*A0→1*Z0')
+
+
 def test_is_identity():
     pt1 = -1.5j * sI(2)
     pt2 = 1.5 * sX(1) * sZ(2)
@@ -656,3 +667,12 @@ def test_is_identity():
     assert is_identity(pt2 + (-1 * pt2) + sI(0))
     assert not is_identity(0 * pt1)
     assert not is_identity(pt2 + (-1 * pt2))
+
+
+def test_identity_no_qubit():
+    assert is_identity(sI())
+
+
+def test_qubit_validation():
+    with pytest.raises(ValueError):
+        op = sX(None)
