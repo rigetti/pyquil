@@ -1,0 +1,6 @@
+job:
+    tags:
+        - python
+    script:
+        - pip install tox
+        - tox -e py36
