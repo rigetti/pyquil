@@ -1,6 +1,14 @@
 Changelog
 =========
 
+v2.2 (Development)
+------------------
+
+- Parameter expressions involving addition and subtraction are now converted to Quil with spaces
+  around the operators, e.g. ``theta + 2`` instead of ``theta+2``. This disambiguates subtracting
+  two parameters, e.g. ``alpha - beta`` is not one variable named ``alpha-beta``.
+
+
 v2.1 (November 30, 2018)
 ------------------------
 

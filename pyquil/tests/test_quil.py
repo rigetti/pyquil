@@ -28,7 +28,7 @@ from pyquil.parameters import Parameter, quil_sin, quil_cos
 from pyquil.paulis import exponential_map, sZ
 from pyquil.quil import Program, merge_programs, merge_with_pauli_noise, address_qubits, \
     get_classical_addresses_from_program, Pragma, validate_protoquil
-from pyquil.quilatom import QubitPlaceholder, Addr, MemoryReference
+from pyquil.quilatom import QubitPlaceholder, Addr, MemoryReference, Sub
 from pyquil.quilbase import DefGate, Gate, Qubit, JumpWhen, Declare
 from pyquil.tests.utils import parse_equals
 
@@ -1134,3 +1134,17 @@ def test_validate_protoquil_multiple_measures():
     )
     with pytest.raises(ValueError):
         validate_protoquil(prog)
+
+
+def test_subtracting_memory_regions():
+    # https://github.com/rigetti/pyquil/issues/709
+    p = Program()
+    alpha = p.declare('alpha', 'REAL')
+    beta = p.declare('beta', 'REAL')
+    p += RZ(alpha - beta, 0)
+    p2 = Program(p.out())
+    parsed_rz = p2.pop()  # type: Gate
+    parsed_param = parsed_rz.params[0]
+    assert isinstance(parsed_param, Sub)
+    assert parsed_param.op1 == alpha
+    assert parsed_param.op2 == beta
