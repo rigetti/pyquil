@@ -4,3 +4,4 @@ job:
     script:
         - pip install tox
         - tox -e py36
+        - tox -e flake8
