@@ -152,13 +152,13 @@ First, unpack the tarball and change to that directory by doing:
 ::
 
     tar -xf forest-sdk-linux-barebones.tar.bz2
-    cd forest-sdk-2.0rc2-linux-barebones
+    cd forest-sdk-2.1-linux-barebones
 
 From here, run the following command:
 
 ::
 
-    ./forest-sdk-2.0rc2-linux-barebones.run
+    ./forest-sdk-2.1-linux-barebones.run
 
 Upon successful installation, this will have created a new directory ``rigetti`` in your home directory that contains all
 of the binary and documentation artifacts.
@@ -168,13 +168,14 @@ libffi. On a Debian-derivative system, this could be accomplished with
 
 ::
 
-   sudo apt-get install liblapack-dev libblas-dev libffi-dev
+   sudo apt-get install liblapack-dev libblas-dev libffi-dev libzmq3-dev
 
 Or on any rhel-derivative systems (e.g. Amazon Linux) with
 
 ::
 
-   sudo yum install -y lapack-devel blas-devel
+   sudo yum install -y lapack-devel blas-devel epel-release
+   sudo yum install -y zeromq3-devel
 
 To uninstall, remove the directory ``~/rigetti``.
 
