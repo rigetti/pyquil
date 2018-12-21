@@ -70,7 +70,7 @@ def test_damping_after_dephasing():
     dephasing = dephasing_kraus_map(p=.5 * (1 - np.exp(-.2)))
     ks_ref = combine_kraus_maps(damping, dephasing)
 
-    ks_actual = damping_after_dephasing(10, 20/3., 1)
+    ks_actual = damping_after_dephasing(10, 20 / 3., 1)
     np.testing.assert_allclose(ks_actual, ks_ref)
 
 

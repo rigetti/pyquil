@@ -335,7 +335,7 @@ def damping_after_dephasing(T1, T2, gate_time):
     if T2 != INFINITY:
         gamma_phi = 1 / float(T2)
         if T1 != INFINITY:
-            if T2 > 2*T1:
+            if T2 > 2 * T1:
                 raise ValueError("T2 is upper bounded by 2 * T1")
             gamma_phi -= 1 / float(2 * T1)
 
