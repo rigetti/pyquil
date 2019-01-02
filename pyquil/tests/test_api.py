@@ -341,7 +341,7 @@ def resolve_gate_parameter_arithmetic(payload: RewriteArithmeticRequest) -> Rewr
     time.sleep(0.1)
     return RewriteArithmeticResponse(quil=payload.quil,
                                      recalculation_table={},
-                                     original_memory_descriptors=[])
+                                     original_memory_descriptors={})
 
 
 @mock_compiler_server.rpc_handler

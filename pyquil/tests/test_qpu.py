@@ -138,11 +138,6 @@ def mock_qpu():
 
 
 @pytest.fixture
-def gate_arithmetic_binaries(qpu_compiler: QPUCompiler):
-    return [qpu_compiler.native_quil_to_executable(p) for p in GATE_ARITHMETIC_PROGRAMS]
-
-
-@pytest.fixture
 def qpu_compiler(test_device):
     try:
         config = PyquilConfig()
@@ -153,6 +148,12 @@ def qpu_compiler(test_device):
         return pytest.skip("This test requires compiler connection: {}".format(e))
 
 
+@pytest.fixture
+def gate_arithmetic_binaries(qpu_compiler: QPUCompiler):
+    return [qpu_compiler.native_quil_to_executable(p) for p in GATE_ARITHMETIC_PROGRAMS]
+
+
+@pytest.mark.skip
 def test_load(gate_arithmetic_binaries, mock_qpu):
     def test_binary(binary):
         assert hasattr(binary, "recalculation_table")
@@ -166,6 +167,7 @@ def test_load(gate_arithmetic_binaries, mock_qpu):
         test_binary(bin)
 
 
+@pytest.mark.skip
 def test_build_patch_tables(gate_arithmetic_binaries, mock_qpu):
     for idx, bin in enumerate(gate_arithmetic_binaries[:-1]):
         mock_qpu.load(bin)
@@ -187,6 +189,7 @@ def test_build_patch_tables(gate_arithmetic_binaries, mock_qpu):
                 assert len(values) == 2
 
 
+@pytest.mark.skip
 def test_recalculation(gate_arithmetic_binaries, mock_qpu):
     bin = gate_arithmetic_binaries[0]
     mock_qpu.load(bin)
@@ -208,6 +211,7 @@ def test_recalculation(gate_arithmetic_binaries, mock_qpu):
         assert any(np.isclose(v, 4 * beta + 0.5 * theta) for v in mock_qpu._variables_shim.values())
 
 
+@pytest.mark.skip
 def test_resolve_mem_references(gate_arithmetic_binaries, mock_qpu):
     def expression_test(expression, expected_val):
         expression = parse_expression(expression)
