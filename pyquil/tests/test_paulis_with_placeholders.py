@@ -25,7 +25,7 @@ import pytest
 import re
 from six.moves import range
 
-from pyquil.gates import RX, RZ, CNOT, H, X, PHASE
+from pyquil.gates import I, RX, RZ, CNOT, H, X, PHASE
 from pyquil.paulis import PauliTerm, PauliSum, exponential_map, exponentiate_commuting_pauli_sum, \
     ID, UnequalLengthWarning, exponentiate, trotterize, is_zero, check_commutation, commuting_sets, \
     term_with_coeff, sI, sX, sY, sZ, ZERO, is_identity
@@ -334,7 +334,7 @@ def test_exponentiate_identity():
     generator = PauliTerm("I", q[1], 0.0)
     para_prog = exponential_map(generator)
     prog = para_prog(1)
-    result_prog = Program().inst([X(q[0]), PHASE(-0.0, q[0]), X(q[0]), PHASE(-0.0, q[0])])
+    result_prog = Program().inst()
     assert address_qubits(prog, mapping) == address_qubits(result_prog, mapping)
 
     generator = PauliTerm("I", q[1], 1.0)
@@ -445,7 +445,7 @@ def test_check_commutation_rigorous():
 
             tmp_op = _commutator(pauli_ops_pq[x], pauli_ops_pq[y])
             assert len(tmp_op.terms) == 1
-            if is_identity(tmp_op.terms[0]):
+            if is_zero(tmp_op.terms[0]):
                 commuting_pairs.append((pauli_ops_pq[x], pauli_ops_pq[y]))
             else:
                 non_commuting_pairs.append((pauli_ops_pq[x], pauli_ops_pq[y]))

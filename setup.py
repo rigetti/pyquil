@@ -23,7 +23,7 @@ from setuptools import setup, find_packages
 
 HERE = os.path.abspath(os.path.dirname(__file__))
 
-if sys.version_info < (3, 5):
+if sys.version_info < (3, 6):
     raise ImportError('\n'.join([
         'PyQuil 2.0+ requires Python 3'
         '',
@@ -65,7 +65,7 @@ setup(
     description="A Python library to generate Quantum Instruction Language (Quil) Programs.",
     long_description=long_description,
     long_description_content_type="text/markdown",
-    url="https://github.com/rigetticomputing/pyquil.git",
+    url="https://github.com/rigetti/pyquil.git",
     packages=find_packages(exclude=["*.tests", "*.tests.*", "tests.*", "tests"]),
     license='Apache-2.0',
     classifiers=[
@@ -80,12 +80,13 @@ setup(
         'numpy',
         'antlr4-python3-runtime',
         'requests',
-        'contextvars',
         'six',
         'networkx',
-        'dataclasses',
-        'rpcq>=2.2.1'
+        'rpcq>=2.2.1',
+
+        # dependency of contextvars, which we vendor
+        'immutables==0.6',
     ],
     keywords='quantum quil programming hybrid',
-    python_requires=">=3.5",
+    python_requires=">=3.6",
 )

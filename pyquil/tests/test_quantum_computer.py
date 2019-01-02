@@ -7,7 +7,8 @@ import pytest
 from pyquil import Program, get_qc, list_quantum_computers
 from pyquil.api import QVM, QuantumComputer, local_qvm
 from pyquil.api._qac import AbstractCompiler
-from pyquil.api._quantum_computer import _get_flipped_protoquil_program, _parse_name
+from pyquil.api._quantum_computer import _get_flipped_protoquil_program, _parse_name, \
+    _get_qvm_with_topology
 from pyquil.device import NxDevice, gates_in_isa
 from pyquil.gates import *
 from pyquil.quilbase import Declare, MemoryReference
@@ -432,3 +433,26 @@ def test_reset(forest):
     assert qc.qam._executable is None
     assert qc.qam._bitstrings is None
     assert qc.qam.status == 'connected'
+
+
+def test_get_qvm_with_topology():
+    topo = nx.from_edgelist([
+        (5, 6),
+        (6, 7),
+        (10, 11),
+    ])
+    # Note to developers: perhaps make `get_qvm_with_topology` public in the future
+    qc = _get_qvm_with_topology(name='test-qvm', topology=topo)
+    assert len(qc.qubits()) == 5
+    assert min(qc.qubits()) == 5
+
+
+def test_get_qvm_with_topology_2(forest):
+    topo = nx.from_edgelist([
+        (5, 6),
+        (6, 7),
+    ])
+    qc = _get_qvm_with_topology(name='test-qvm', topology=topo)
+    results = qc.run_and_measure(Program(X(5)), trials=5)
+    assert sorted(results.keys()) == [5, 6, 7]
+    assert all(x == 1 for x in results[5])

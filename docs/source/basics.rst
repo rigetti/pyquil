@@ -341,6 +341,11 @@ filled in for, say, 200 values between :math:`0` and :math:`2\pi`. We demonstrat
         # Store our results
         parameteric_measurements.append(bitstrings)
 
+In the example here, if you called ``qc.run(executable)`` and didn't specify ``'theta'``, the program would apply
+``RZ(0, qubit)`` for every execution.
+
+.. note::
+    Classical memory defaults to zero. If you don't specify a value for a declared memory region, it will be zero.
 
 Gate Modifiers
 ~~~~~~~~~~~~~~
@@ -502,7 +507,7 @@ automatic way.
 
 Consider the following program.
 
-.. code::
+.. code:: python
 
     from pyquil import Program
     from pyquil.gates import *
@@ -512,7 +517,7 @@ Consider the following program.
 We've tested this on the QVM, and we've reserved a lattice on the QPU which has qubits 4, 5, and 6, but not qubit 3.
 Rather than rewrite our program for each reservation, we modify our program to tell the compiler to do this for us.
 
-.. code::
+.. code:: python
 
     from pyquil.quil import Pragma
 
@@ -534,7 +539,7 @@ Asking for a Delay
 At times, we may want to add a delay in our program. Usually this is associated with qubit characterization. Delays
 are not regular gate operations, and they do not affect the abstract semantics of the Quil program, so they're implemented with a ``PRAGMA`` directive.
 
-.. code::
+.. code:: python
 
     #  ...
     # qubit index and time in seconds must be defined and provided

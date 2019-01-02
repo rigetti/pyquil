@@ -133,7 +133,7 @@ def test_expressions():
     _expr("cis(0)", complex(1, 0))
 
     # Unary precedence
-    # https://github.com/rigetticomputing/pyquil/issues/246
+    # https://github.com/rigetti/pyquil/issues/246
     _expr("-3+4", 1)
     _expr("-(3+4)", -7)
     _expr("-(3-4)", 1)
