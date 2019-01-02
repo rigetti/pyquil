@@ -73,7 +73,7 @@ def header(settings):
     :return: Header of the LaTeX document.
     :rtype: string
     """
-    packages = (r"\documentclass{standalone}",
+    packages = (r"\documentclass[convert={density=300,outext=.png}]{standalone}",
                 r"\usepackage[margin=1in]{geometry}",
                 r"\usepackage[hang,small,bf]{caption}",
                 r"\usepackage{tikz}",
