@@ -128,7 +128,7 @@ def _collect_memory_descriptors(program: Program) -> Dict[str, ParameterSpec]:
 
 class QPUCompiler(AbstractCompiler):
     @_record_call
-    def __init__(self, endpoint: str, device: AbstractDevice) -> None:
+    def __init__(self, endpoint: str, device: AbstractDevice, timeout: int = 10) -> None:
         """
         Client to communicate with the Compiler Server.
 
@@ -136,7 +136,7 @@ class QPUCompiler(AbstractCompiler):
         :param device: PyQuil Device object to use as compilation target
         """
 
-        self.client = Client(endpoint)
+        self.client = Client(endpoint, timeout=timeout)
         self.target_device = TargetDevice(isa=device.get_isa().to_dict(),
                                           specs=device.get_specs().to_dict())
 
