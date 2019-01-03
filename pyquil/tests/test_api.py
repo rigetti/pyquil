@@ -180,7 +180,7 @@ def test_sync_expectation_2(qvm):
     z0 = PauliTerm("Z", 0)
     z1 = PauliTerm("Z", 1)
     z01 = z0 * z1
-    result = mock_qvm.pauli_expectation(BELL_STATE, [z0, z1, z01])
+    result = qvm.pauli_expectation(BELL_STATE, [z0, z1, z01])
     exp_expected = [0.0, 0.0, 1.0]
     np.testing.assert_allclose(exp_expected, result)
 
