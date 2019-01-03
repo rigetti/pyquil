@@ -211,43 +211,6 @@ def test_sync_wavefunction(qvm):
     np.testing.assert_allclose(result.amplitudes, wf_expected)
 
 
-def test_seeded_qvm(test_device):
-    def mock_response(request, context):
-        assert json.loads(request.text) == {
-            "type": "multishot-measure",
-            "qubits": [0, 1],
-            "trials": 2,
-            "compiled-quil": "H 0\nCNOT 0 1\n"
-        }
-        return '[[0,0],[1,1]]'
-
-    with patch.object(LocalQVMCompiler, "quil_to_native_quil") as m_compile,\
-            patch('pyquil.api._qvm.apply_noise_model') as m_anm,\
-            requests_mock.Mocker() as m:
-        m.post('http://qvm:5000/qvm', text=mock_response)
-        m_compile.side_effect = [BELL_STATE]
-        m_anm.side_effect = [BELL_STATE]
-
-        qvm = QVMConnection(test_device)
-        assert qvm.noise_model == test_device.noise_model
-        qvm.run_and_measure(BELL_STATE, qubits=[0, 1], trials=2)
-        assert m_compile.call_count == 1
-        assert m_anm.call_count == 1
-
-        test_device.noise_model = None
-        qvm = QVMConnection(test_device)
-        assert qvm.noise_model is None
-        qvm.run_and_measure(BELL_STATE, qubits=[0, 1], trials=2)
-        assert m_compile.call_count == 1
-        assert m_anm.call_count == 1
-
-        qvm = QVMConnection()
-        assert qvm.noise_model is None
-        qvm.run_and_measure(BELL_STATE, qubits=[0, 1], trials=2)
-        assert m_compile.call_count == 1
-        assert m_anm.call_count == 1
-
-
 def test_validate_noise_probabilities():
     with pytest.raises(TypeError):
         validate_noise_probabilities(1)
