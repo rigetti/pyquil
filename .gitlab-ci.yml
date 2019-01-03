@@ -12,6 +12,7 @@ test:
         - docker
         - python:3.6
     script:
+        - export QVM_URL="http://qvm:5000"
         - tox -e py36
 
 style:
