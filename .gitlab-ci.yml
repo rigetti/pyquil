@@ -1,9 +1,11 @@
+before_script:
+    - pip install tox
+
 test:
     tags:
         - docker
         - python:3.6
     script:
-        - pip install tox
         - tox -e py36
         - tox -e flake8
 
@@ -12,7 +14,6 @@ docs:
         - docker
         - python:3.6
     script:
-        - pip install tox
         - apt-get update
         - apt-get install -y pandoc
         - tox -e docs
