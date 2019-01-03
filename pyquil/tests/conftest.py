@@ -131,7 +131,7 @@ def test_device(device_raw):
 @pytest.fixture(scope='session')
 def qvm():
     try:
-        qvm = QVMConnection(random_seed=52)
+        qvm = QVMConnection(random_seed=52, endpoint='http://qvm:5000')
         qvm.run(Program(I(0)), [])
         return qvm
     except (RequestException, UnknownApiError) as e:
