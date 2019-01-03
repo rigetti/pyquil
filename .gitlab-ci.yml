@@ -1,6 +1,7 @@
 job:
     tags:
-        - python
+        - docker
+        - python:3.6
     script:
         - pip install tox
         - tox -e py36
