@@ -282,11 +282,7 @@ class NumpyWavefunctionSimulator(AbstractQuantumSimulator):
         if not isinstance(operator, PauliSum):
             operator = PauliSum([operator])
 
-        sum = 0
-        for term in operator:
-            sum += _term_expectation(self.wf, term)
-
-        return sum
+        return sum(_term_expectation(self.wf, term) for term in operator)
 
     def reset(self):
         """
