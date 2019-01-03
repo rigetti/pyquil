@@ -1,6 +1,12 @@
 before_script:
     - pip install tox
 
+services:
+    - name: rigetticomputing/qvm
+      alias: qvm
+      command: ["-S"]
+
+
 test:
     tags:
         - docker
