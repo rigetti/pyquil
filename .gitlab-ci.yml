@@ -1,4 +1,4 @@
-job:
+test:
     tags:
         - docker
         - python:3.6
@@ -6,3 +6,13 @@ job:
         - pip install tox
         - tox -e py36
         - tox -e flake8
+
+docs:
+    tags:
+        - docker
+        - python:3.6
+    script:
+        - pip install tox
+        - apt-get update
+        - apt-get install -y pandoc
+        - tox -e docs
