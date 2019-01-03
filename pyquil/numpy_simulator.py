@@ -266,7 +266,8 @@ class NumpyWavefunctionSimulator(AbstractQuantumSimulator):
         :return: ``self`` to support method chaining.
         """
         gate_matrix, qubit_inds = _get_gate_tensor_and_qubits(gate=gate)
-        # TODO: choose between einsum and tensordot
+        # Note to developers: you can use either einsum- or tensordot- based functions.
+        # tensordot seems a little faster, but feel free to experiment.
         # self.wf = targeted_einsum(gate=gate_matrix, wf=self.wf, wf_target_inds=qubit_inds)
         self.wf = targeted_tensordot(gate=gate_matrix, wf=self.wf, wf_target_inds=qubit_inds)
         return self
