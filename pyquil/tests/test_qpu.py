@@ -2,7 +2,6 @@ import networkx as nx
 import numpy as np
 import pytest
 
-from requests import RequestException
 from rpcq.messages import ParameterAref
 
 from pyquil.parser import parse
@@ -10,7 +9,6 @@ from pyquil import Program
 from pyquil.api import QuantumComputer, QPU, QPUCompiler
 from pyquil.api._compiler import _collect_classical_memory_write_locations
 from pyquil.api._config import PyquilConfig
-from pyquil.api._errors import UnknownApiError
 from pyquil.api._qpu import _extract_bitstrings
 from pyquil.device import NxDevice
 from pyquil.gates import I, X
@@ -144,8 +142,8 @@ def qpu_compiler(test_device):
         compiler = QPUCompiler(endpoint=config.compiler_url, device=test_device, timeout=0.5)
         compiler.quil_to_native_quil(Program(I(0)))
         return compiler
-    except (TimeoutError, RequestException, UnknownApiError) as e:
-        return pytest.skip("This test requires compiler connection: {}".format(e))
+    except Exception as e:
+        return pytest.skip(f"This test requires compiler connection: {e}")
 
 
 @pytest.fixture
