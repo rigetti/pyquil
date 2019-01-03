@@ -1,11 +1,22 @@
 before_script:
     - pip install tox
 
+services:
+    - name: rigetticomputing/qvm
+      alias: qvm
+      command: ["-S"]
+    - name: rigetticomputing/quilc
+      alias: quilc
+      command: ["-S"]
+
+
 test:
     tags:
         - docker
         - python:3.6
     script:
+        - export QVM_URL="http://qvm:5000"
+        - export COMPILER_URL='http://quilc:6000'
         - tox -e py36
 
 style:
