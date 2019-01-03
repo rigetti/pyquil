@@ -7,6 +7,12 @@ test:
         - python:3.6
     script:
         - tox -e py36
+
+style:
+    tags:
+        - docker
+        - python:3.6
+    script:
         - tox -e flake8
 
 docs:
