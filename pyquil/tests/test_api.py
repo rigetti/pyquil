@@ -69,7 +69,8 @@ COMPILED_BYTES_ARRAY = b'SUPER SECRET PACKAGE'
 RB_ENCODED_REPLY = [[0, 0], [1, 1]]
 RB_REPLY = [Program("H 0\nH 0\n"), Program("PHASE(pi/2) 0\nPHASE(pi/2) 0\n")]
 
-mock_qvm = QVMConnection(endpoint='http://qvm:5000')
+mock_qvm = QVMConnection()
+mock_endpoint = mock_qvm.sync_endpoint
 
 
 def test_sync_run_mock():
@@ -83,13 +84,13 @@ def test_sync_run_mock():
         return '{"ro": [[0,0],[1,1]]}'
 
     with requests_mock.Mocker() as m:
-        m.post('http://qvm:5000/qvm', text=mock_response)
+        m.post(mock_endpoint + '/qvm', text=mock_response)
         assert mock_qvm.run(BELL_STATE_MEASURE,
                             [0, 1],
                             trials=2) == [[0, 0], [1, 1]]
 
         # Test no classical addresses
-        m.post('http://qvm:5000/qvm', text=mock_response)
+        m.post(mock_endpoint + '/qvm', text=mock_response)
         assert mock_qvm.run(BELL_STATE_MEASURE, trials=2) == [[0, 0], [1, 1]]
 
     with pytest.raises(ValueError):
@@ -123,7 +124,7 @@ def test_sync_run_and_measure_mock():
         return '[[0,0],[1,1]]'
 
     with requests_mock.Mocker() as m:
-        m.post('http://qvm:5000/qvm', text=mock_response)
+        m.post(mock_endpoint + '/qvm', text=mock_response)
         assert mock_qvm.run_and_measure(BELL_STATE, [0, 1], trials=2) == [[0, 0], [1, 1]]
 
     with pytest.raises(ValueError):
@@ -155,13 +156,13 @@ def test_sync_expectation_mock():
         return b'[0.0, 0.0, 1.0]'
 
     with requests_mock.Mocker() as m:
-        m.post('http://qvm:5000/qvm', content=mock_response)
+        m.post(mock_endpoint + '/qvm', content=mock_response)
         result = mock_qvm.expectation(BELL_STATE, [Program(Z(0)), Program(Z(1)), Program(Z(0), Z(1))])
         exp_expected = [0.0, 0.0, 1.0]
         np.testing.assert_allclose(exp_expected, result)
 
     with requests_mock.Mocker() as m:
-        m.post('http://qvm:5000/qvm', content=mock_response)
+        m.post(mock_endpoint + '/qvm', content=mock_response)
         z0 = PauliTerm("Z", 0)
         z1 = PauliTerm("Z", 1)
         z01 = z0 * z1
@@ -195,7 +196,7 @@ def test_sync_paulisum_expectation():
         return b'[1.0, 0.0, 0.0]'
 
     with requests_mock.Mocker() as m:
-        m.post('http://qvm:5000/qvm', content=mock_response)
+        m.post(mock_endpoint + '/qvm', content=mock_response)
         z0 = PauliTerm("Z", 0)
         z1 = PauliTerm("Z", 1)
         z01 = z0 * z1
