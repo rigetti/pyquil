@@ -69,7 +69,7 @@ COMPILED_BYTES_ARRAY = b'SUPER SECRET PACKAGE'
 RB_ENCODED_REPLY = [[0, 0], [1, 1]]
 RB_REPLY = [Program("H 0\nH 0\n"), Program("PHASE(pi/2) 0\nPHASE(pi/2) 0\n")]
 
-mock_qvm = QVMConnection()
+mock_qvm = QVMConnection(endpoint='http://qvm:5000')
 
 
 def test_sync_run_mock():
@@ -83,13 +83,13 @@ def test_sync_run_mock():
         return '{"ro": [[0,0],[1,1]]}'
 
     with requests_mock.Mocker() as m:
-        m.post('http://127.0.0.1:5000/qvm', text=mock_response)
+        m.post('http://qvm:5000/qvm', text=mock_response)
         assert mock_qvm.run(BELL_STATE_MEASURE,
                             [0, 1],
                             trials=2) == [[0, 0], [1, 1]]
 
         # Test no classical addresses
-        m.post('http://127.0.0.1:5000/qvm', text=mock_response)
+        m.post('http://qvm:5000/qvm', text=mock_response)
         assert mock_qvm.run(BELL_STATE_MEASURE, trials=2) == [[0, 0], [1, 1]]
 
     with pytest.raises(ValueError):
