@@ -237,21 +237,6 @@ def test_prepare_register_list():
         prepare_register_list({'ro': [-1, 1]})
 
 
-def test_config_parsing():
-    with patch.dict('os.environ', {"FOREST_CONFIG": os.path.join(os.path.dirname(__file__),
-                                                                 "data/forest_config.test"),
-                                   "QCS_CONFIG": os.path.join(os.path.dirname(__file__),
-                                                              "data/qcs_config.test")}):
-        pq_config = PyquilConfig()
-        assert pq_config.forest_url == "http://dummy_forest_url"
-        assert pq_config.api_key == "pyquil_user_key"
-        assert pq_config.user_id == "pyquil_user_token"
-        assert pq_config.engage_cmd == "dummy_command"
-        assert pq_config.qpu_url == "tcp://dummy_qpu_url"
-        assert pq_config.qvm_url == "http://dummy_qvm_url"
-        assert pq_config.compiler_url == "tcp://dummy_compiler_server_url"
-
-
 # ---------------------
 # compiler-server tests
 # ---------------------
