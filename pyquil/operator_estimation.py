@@ -488,16 +488,32 @@ def measure_observables(qc: QuantumComputer, tomo_experiment: TomographyExperime
 
 def diagonal_basis_commutes(pauli_a, pauli_b):
     """
-    Test if `pauli_a` and `pauli_b` share a diagonal basis
-    Example:
-        Check if [A, B] with the constraint that A & B must share a one-qubit
-        diagonalizing basis. If the inputs were [sZ(0), sZ(0) * sZ(1)] then this
-        function would return True.  If the inputs were [sX(5), sZ(4)] this
-        function would return True.  If the inputs were [sX(0), sY(0) * sZ(2)]
-        this function would return False.
-    :param pauli_a: Pauli term to check commutation against `pauli_b`
-    :param pauli_b: Pauli term to check commutation against `pauli_a`
-    :return: Boolean of commutation result
+    Test if `pauli_a` and `pauli_b` are diagonal in the same tensor product basis.
+
+    Elaboration: Given some PauliTerm, the 'natural' tensor product basis (tpb) to
+    diagonalize this term is the one which diagonalizes each Pauli operator in the
+    product term-by-term.
+    
+    For example, X(1) * Z(0) would be diagonal in the 'natural' tensor product basis
+    {(|0> +/- |1>)/Sqrt[2]} * {|0>, |1>}, whereas Z(1) * X(0) would be diagonal
+    in the 'natural' tpb {|0>, |1>} * {(|0> +/- |1>)/Sqrt[2]}. The two operators
+    commute but are not diagonal in each others 'natural' tpb (in fact, they are
+    anti-diagonal in each others 'natural' tpb). This function tests whether two
+    operators given as PauliTerms are both diagonal in each others 'natural' tpb.
+
+    Note that for the given example of X(1) * Z(0) and Z(1) * X(0), we can construct
+    the following basis which simultaneously diagonalizes both operators:
+
+      -- 2 * |0>' = |0> (|0> + |1>) + |1> (|0> - |1>)
+      -- 2 * |1>' = |0> (|0> + |1>) - |1> (|0> - |1>)
+      -- 2 * |2>' = |0> (|0> - |1>) + |1> (|0> + |1>)
+      -- 2 * |3>' = |0> (-|0> + |1>) + |1> (|0> + |1>)
+
+    In this basis, X Z looks like diag(1, -1, 1, -1), and Z X looks like diag(1, 1, -1, -1)
+
+    :param pauli_a: PauliTerm to check diagonality of in the natural tpb of `pauli_b`
+    :param pauli_b: PauliTerm to check diagonality of in the natural tpb of `pauli_a`
+    :return: Boolean of diagonality in each others natural tpb
     """
     overlapping_active_qubits = set(pauli_a.get_qubits()) & set(pauli_b.get_qubits())
     for qubit_index in overlapping_active_qubits:
@@ -521,32 +537,46 @@ def get_diagonalizing_basis(list_of_pauli_terms):
     return PauliTerm.from_list(list(map(lambda x: tuple(reversed(x)), qubit_ops)))
 
 
-def _max_key_overlap_term_pair(tup_pauli_terms, diagonal_sets):
+def _max_key_overlap_term_pair(expt_setting, diagonal_sets):
     """
-    Calculate the max overlap of a tuple of Pauli terms with keys of diagonal_sets.
+    Calculate the max overlap of an ExperimentSetting with keys of diagonal_sets.
     Returns a different key if we find any collisions. If no collisions are found,
-    then the tuple of Pauli terms is added and the key is updated so it has the
+    then the ExperimentSetting is added (as a tuple) and the key is updated so it has the
     largest weight.
-    :param tup_pauli_terms: tuple of Pauli Terms
-    :param diagonal_sets: dictionary with (key, value): (tuple of Pauli Terms, ??? TODO)
-    :return: dictionary where key value pair indicates diagonal basis and list of
-        PauliTerms that share that basis
+    :param expt_setting: ExperimentSetting
+    :param diagonal_sets: dictionary with
+        (key, value): ((diagonal_in_basis, diagonal_out_basis): list of tuples of PauliTerms
+                                                    that are diagonal in those bases)
+    :return: the updated diagonal_sets dictionary updated with the input expt_setting placed
+            appropriately into it
     """
+    # construct a tuple out of the in and out operators of the ExperimentSetting
+    tup_pauli_terms = tuple(([expt_setting.in_operator], [expt_setting.out_operator]))
+    # loop through keys and determine if in_operator is diagonal in the same tpb as in_key,
+    # and out_operator the same with out_key
     for key in list(diagonal_sets.keys()):
+        # obtain the in and out keys
         in_key = key[0]
         out_key = key[1]
-        pauli_in_from_key = pl.PauliTerm.from_list([x[::-1] for x in in_key])
-        pauli_out_from_key = pl.PauliTerm.from_list([x[::-1] for x in out_key])
+        # construct PauliTerms from in and out keys
+        pauli_in_from_key = PauliTerm.from_list([x[::-1] for x in in_key])
+        pauli_out_from_key = PauliTerm.from_list([x[::-1] for x in out_key])
+        # determine if in_operator is diagonal in the same tpb as the PauliTerm constructed
+        # from the in_key; do the same for the out_operator and the out_key
         b_in_commutes = diagonal_basis_commutes(tup_pauli_terms[0][0], pauli_in_from_key)
         b_out_commutes = diagonal_basis_commutes(tup_pauli_terms[1][0], pauli_out_from_key)
+        # update the dict value if both the pairs are diagonal in the same tpb
+        # (note: the two tpbs need not be the same)
         if b_in_commutes and b_out_commutes:
+            # updated the in and out sets comprising the dict's value
             updated_pauli_in_set = diagonal_sets[key][0] + tup_pauli_terms[0]
             updated_pauli_out_set = diagonal_sets[key][1] + tup_pauli_terms[1]
             updated_pauli_set = (updated_pauli_in_set, updated_pauli_out_set)
+            # obtain the diagonalizing bases for both the updated in and out sets
             diagonalizing_in_term = get_diagonalizing_basis(updated_pauli_in_set)
             diagonalizing_out_term = get_diagonalizing_basis(updated_pauli_out_set)
+            # update the diagonalizing basis (key of dict) if necessary
             if len(diagonalizing_in_term) > len(in_key) or len(diagonalizing_out_term) > len(out_key):
-                # NOTE: the above if condition could maybe be broken down into two separate checks
                 del diagonal_sets[key]
                 new_in_key = tuple(sorted(diagonalizing_in_term._ops.items(), key=lambda x: x[0]))
                 new_out_key = tuple(sorted(diagonalizing_out_term._ops.items(), key=lambda x: x[0]))
@@ -567,11 +597,10 @@ def _max_key_overlap_term_pair(tup_pauli_terms, diagonal_sets):
 
 def commuting_sets_by_zbasis_expt_suite(exptsuite):
     diagonal_sets = {}
-    for expt in exptsuite:
-        assert len(expt) == 1, 'already grouped?'
-        expt = expt[0]
-        tup_pts = tuple(([expt.in_operator], [expt.out_operator]))
-        diagonal_sets = _max_key_overlap_term_pair(tup_pts, diagonal_sets)
+    for expt_setting in exptsuite:
+        assert len(expt_setting) == 1, 'already grouped?'
+        expt_setting = expt_setting[0]
+        diagonal_sets = _max_key_overlap_term_pair(expt_setting, diagonal_sets)
     return diagonal_sets
 
 

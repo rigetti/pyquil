@@ -233,6 +233,9 @@ def test_diagonal_basis_commutes():
     assert diagonal_basis_commutes(sZ(0), sZ(0) * sZ(1))
     assert diagonal_basis_commutes(sX(5), sZ(4))
     assert not diagonal_basis_commutes(sX(0), sY(0) * sZ(2))
+    # this last example illustrates that a pair of commuting operators
+    # need not be diagonal in the same tpb
+    assert not diagonal_basis_commutes(sX(1) * sZ(0), sZ(1) * sX(0))
 
 
 def test_get_diagonalizing_basis():
