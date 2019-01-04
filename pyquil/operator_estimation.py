@@ -5,7 +5,7 @@ import sys
 from json import JSONEncoder
 from math import pi
 from typing import List, Union, Iterable, Dict
-
+from functools import reduce
 import networkx as nx
 import numpy as np
 from networkx.algorithms.approximation.clique import clique_removal
@@ -479,3 +479,115 @@ def measure_observables(qc: QuantumComputer, tomo_experiment: TomographyExperime
                 expectation=np.asscalar(obs_mean),
                 stddev=np.asscalar(np.sqrt(obs_var)),
             )
+
+
+##########################################################################
+##### Generalizing functions from Pyrethrum to group ExperimentSuite #####
+##########################################################################
+
+
+def diagonal_basis_commutes(pauli_a, pauli_b):
+    """
+    Test if `pauli_a` and `pauli_b` share a diagonal basis
+    Example:
+        Check if [A, B] with the constraint that A & B must share a one-qubit
+        diagonalizing basis. If the inputs were [sZ(0), sZ(0) * sZ(1)] then this
+        function would return True.  If the inputs were [sX(5), sZ(4)] this
+        function would return True.  If the inputs were [sX(0), sY(0) * sZ(2)]
+        this function would return False.
+    :param pauli_a: Pauli term to check commutation against `pauli_b`
+    :param pauli_b: Pauli term to check commutation against `pauli_a`
+    :return: Boolean of commutation result
+    """
+    overlapping_active_qubits = set(pauli_a.get_qubits()) & set(pauli_b.get_qubits())
+    for qubit_index in overlapping_active_qubits:
+        if (pauli_a[qubit_index] != 'I' and pauli_b[qubit_index] != 'I' and
+           pauli_a[qubit_index] != pauli_b[qubit_index]):
+            return False
+
+    return True
+
+
+def get_diagonalizing_basis(list_of_pauli_terms):
+    """
+    Find the Pauli Term with the most non-identity terms
+    :param list_of_pauli_terms: List of Pauli terms to check
+    :return: The highest weight Pauli Term
+    """
+    qubit_ops = set(reduce(lambda x, y: x + y,
+                       [list(term._ops.items()) for term in list_of_pauli_terms]))
+    qubit_ops = sorted(list(qubit_ops), key=lambda x: x[0])
+
+    return PauliTerm.from_list(list(map(lambda x: tuple(reversed(x)), qubit_ops)))
+
+
+def _max_key_overlap_term_pair(tup_pauli_terms, diagonal_sets):
+    """
+    Calculate the max overlap of a tuple of Pauli terms with keys of diagonal_sets.
+    Returns a different key if we find any collisions. If no collisions are found,
+    then the tuple of Pauli terms is added and the key is updated so it has the
+    largest weight.
+    :param tup_pauli_terms: tuple of Pauli Terms
+    :param diagonal_sets: dictionary with (key, value): (tuple of Pauli Terms, ??? TODO)
+    :return: dictionary where key value pair indicates diagonal basis and list of
+        PauliTerms that share that basis
+    """
+    for key in list(diagonal_sets.keys()):
+        in_key = key[0]
+        out_key = key[1]
+        pauli_in_from_key = pl.PauliTerm.from_list([x[::-1] for x in in_key])
+        pauli_out_from_key = pl.PauliTerm.from_list([x[::-1] for x in out_key])
+        b_in_commutes = diagonal_basis_commutes(tup_pauli_terms[0][0], pauli_in_from_key)
+        b_out_commutes = diagonal_basis_commutes(tup_pauli_terms[1][0], pauli_out_from_key)
+        if b_in_commutes and b_out_commutes:
+            updated_pauli_in_set = diagonal_sets[key][0] + tup_pauli_terms[0]
+            updated_pauli_out_set = diagonal_sets[key][1] + tup_pauli_terms[1]
+            updated_pauli_set = (updated_pauli_in_set, updated_pauli_out_set)
+            diagonalizing_in_term = get_diagonalizing_basis(updated_pauli_in_set)
+            diagonalizing_out_term = get_diagonalizing_basis(updated_pauli_out_set)
+            if len(diagonalizing_in_term) > len(in_key) or len(diagonalizing_out_term) > len(out_key):
+                # NOTE: the above if condition could maybe be broken down into two separate checks
+                del diagonal_sets[key]
+                new_in_key = tuple(sorted(diagonalizing_in_term._ops.items(), key=lambda x: x[0]))
+                new_out_key = tuple(sorted(diagonalizing_out_term._ops.items(), key=lambda x: x[0]))
+                new_key = (new_in_key, new_out_key)
+                diagonal_sets[new_key] = updated_pauli_set
+            else:
+                diagonal_sets[key] = updated_pauli_set
+            return diagonal_sets
+
+    # made it through all keys and sets so need to make a new set
+    # always need to sort because new pauli term functionality
+    new_in_key = tuple(sorted(tup_pauli_terms[0][0]._ops.items(), key=lambda x: x[0]))
+    new_out_key = tuple(sorted(tup_pauli_terms[1][0]._ops.items(), key=lambda x: x[0]))
+    new_key = (new_in_key, new_out_key)
+    diagonal_sets[new_key] = tup_pauli_terms
+    return diagonal_sets
+
+
+def commuting_sets_by_zbasis_expt_suite(exptsuite):
+    diagonal_sets = {}
+    for expt in exptsuite:
+        assert len(expt) == 1, 'already grouped?'
+        expt = expt[0]
+        tup_pts = tuple(([expt.in_operator], [expt.out_operator]))
+        diagonal_sets = _max_key_overlap_term_pair(tup_pts, diagonal_sets)
+    return diagonal_sets
+
+
+def expt_suite_from_diagonal_sets(diagonal_sets, exptsuite):
+    # exptsuite: the original experiment suite, ungrouped by diagonal bases
+    # diagonal_sets: dict containing the diagonal sets of exptsuite
+    l_expts = []
+    for v in diagonal_sets.values():
+        expts = [pyq_oe.Experiment(v[0][i], v[1][i]) for i in range(len(v[0]))]
+        l_expts.append(expts)
+    my_expt_suite = pyq_oe.ExperimentSuite(l_expts, program=exptsuite.program, qubits=exptsuite.qubits)
+
+    return my_expt_suite
+
+
+def group_experiments_greedy(expt_suite):
+    diag_sets = commuting_sets_by_zbasis_expt_suite(expt_suite)
+    grouped_expt_suite = expt_suite_from_diagonal_sets(diag_sets, expt_suite)
+    return grouped_expt_suite

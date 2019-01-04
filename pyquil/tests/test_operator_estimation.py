@@ -10,7 +10,8 @@ import pytest
 
 from pyquil.api import WavefunctionSimulator
 from pyquil.operator_estimation import ExperimentSetting, TomographyExperiment, to_json, read_json, \
-    _all_qubits_diagonal_in_tpb, group_experiments, ExperimentResult, measure_observables
+    _all_qubits_diagonal_in_tpb, group_experiments, ExperimentResult, measure_observables, \
+    diagonal_basis_commutes, get_diagonalizing_basis
 from pyquil.paulis import sI, sX, sY, sZ, PauliSum
 from pyquil import Program, get_qc
 from pyquil.gates import *
@@ -226,3 +227,17 @@ def test_no_complex_coeffs(forest):
                                  qubits=[0])
     with pytest.raises(ValueError):
         res = list(measure_observables(qc, suite))
+
+
+def test_diagonal_basis_commutes():
+    assert diagonal_basis_commutes(sZ(0), sZ(0) * sZ(1))
+    assert diagonal_basis_commutes(sX(5), sZ(4))
+    assert not diagonal_basis_commutes(sX(0), sY(0) * sZ(2))
+
+
+def test_get_diagonalizing_basis():
+    pauli_terms = [sZ(0), sX(1) * sZ(0), sY(2) * sX(1)]
+    assert get_diagonalizing_basis(pauli_terms) == sY(2) * sX(1) * sZ(0)
+    pauli_terms = [sZ(0), sX(1) * sZ(0), sY(2) * sX(1), sZ(5) * sI(3)]
+    assert get_diagonalizing_basis(pauli_terms) == sZ(5) * sY(2) * sX(1) * sZ(0)
+
