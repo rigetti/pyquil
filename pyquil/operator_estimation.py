@@ -504,7 +504,7 @@ def measure_observables(qc: QuantumComputer, tomo_experiment: TomographyExperime
 ##########################################################################
 
 
-def diagonal_basis_commutes(pauli_a, pauli_b):
+def diagonal_basis_commutes(pauli_a: PauliTerm, pauli_b: PauliTerm):
     """
     Test if `pauli_a` and `pauli_b` are diagonal in the same tensor product basis.
 
@@ -542,7 +542,7 @@ def diagonal_basis_commutes(pauli_a, pauli_b):
     return True
 
 
-def get_diagonalizing_basis(list_of_pauli_terms):
+def get_diagonalizing_basis(list_of_pauli_terms: List[PauliTerm]):
     """
     Find the Pauli Term with the most non-identity terms
     :param list_of_pauli_terms: List of Pauli terms to check
@@ -555,7 +555,7 @@ def get_diagonalizing_basis(list_of_pauli_terms):
     return PauliTerm.from_list(list(map(lambda x: tuple(reversed(x)), qubit_ops)))
 
 
-def _max_key_overlap_term_pair(expt_setting, diagonal_sets):
+def _max_key_overlap_term_pair(expt_setting: ExperimentSetting, diagonal_sets: Dict):
     """
     Calculate the max overlap of an ExperimentSetting with keys of diagonal_sets.
     Returns a different key if we find any collisions. If no collisions are found,
@@ -613,7 +613,7 @@ def _max_key_overlap_term_pair(expt_setting, diagonal_sets):
     return diagonal_sets
 
 
-def commuting_sets_by_zbasis_tomo_expt(tomoexpt):
+def commuting_sets_by_zbasis_tomo_expt(tomoexpt: TomographyExperiment):
     """
     Given an input TomographyExperiment, provide a dictionary indicating which ExperimentSettings
     share a tensor product basis
@@ -631,7 +631,7 @@ def commuting_sets_by_zbasis_tomo_expt(tomoexpt):
     return diagonal_sets
 
 
-def tomo_expt_from_diagonal_sets(diagonal_sets, tomoexpt):
+def tomo_expt_from_diagonal_sets(diagonal_sets: Dict, tomoexpt: TomographyExperiment):
     """
     Construct a grouped version of TomographyExperiment, given a dictionary
     that contains the grouping information
@@ -652,7 +652,7 @@ def tomo_expt_from_diagonal_sets(diagonal_sets, tomoexpt):
     return my_tomo_expt
 
 
-def group_experiments_greedy(tomo_expt):
+def group_experiments_greedy(tomo_expt: TomographyExperiment):
     """
     Greedy method to group ExperimentSettings in a given TomographyExperiment
 
