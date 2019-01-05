@@ -531,7 +531,7 @@ def diagonal_basis_commutes(pauli_a: PauliTerm, pauli_b: PauliTerm):
     overlapping_active_qubits = set(pauli_a.get_qubits()) & set(pauli_b.get_qubits())
     for qubit_index in overlapping_active_qubits:
         if (pauli_a[qubit_index] != 'I' and pauli_b[qubit_index] != 'I' and
-           pauli_a[qubit_index] != pauli_b[qubit_index]):
+                pauli_a[qubit_index] != pauli_b[qubit_index]):
             return False
 
     return True
@@ -544,7 +544,7 @@ def get_diagonalizing_basis(list_of_pauli_terms: List[PauliTerm]):
     :return: The highest weight Pauli Term
     """
     qubit_ops = set(reduce(lambda x, y: x + y,
-                       [list(term._ops.items()) for term in list_of_pauli_terms]))
+                           [list(term._ops.items()) for term in list_of_pauli_terms]))
     qubit_ops = sorted(list(qubit_ops), key=lambda x: x[0])
 
     return PauliTerm.from_list(list(map(lambda x: tuple(reversed(x)), qubit_ops)))

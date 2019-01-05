@@ -250,54 +250,61 @@ def test_get_diagonalizing_basis():
 def test_max_key_overlap_term_pair():
     # test adding a new key-value pair
     expt_setting = ExperimentSetting(PauliTerm.from_compact_str('(1+0j)*Z7Y8Z1Y4Z2Y5Y0X6'),
-        PauliTerm.from_compact_str('(1+0j)*Z4X8Y5X3Y7Y1'))
+                                     PauliTerm.from_compact_str('(1+0j)*Z4X8Y5X3Y7Y1'))
     expected_dict = {(((0, 'Y'), (1, 'Z'), (2, 'Z'), (4, 'Y'), (5, 'Y'), (6, 'X'), (7, 'Z'), (8, 'Y')),
-        ((1, 'Y'), (3, 'X'), (4, 'Z'), (5, 'Y'), (7, 'Y'), (8, 'X'))): \
-    ([PauliTerm.from_compact_str('(1+0j)*Z7Y8Z1Y4Z2Y5Y0X6')], [PauliTerm.from_compact_str('(1+0j)*Z4X8Y5X3Y7Y1')])}
+                      ((1, 'Y'), (3, 'X'), (4, 'Z'), (5, 'Y'), (7, 'Y'), (8, 'X'))): \
+                         ([PauliTerm.from_compact_str('(1+0j)*Z7Y8Z1Y4Z2Y5Y0X6')],
+                          [PauliTerm.from_compact_str('(1+0j)*Z4X8Y5X3Y7Y1')])}
     assert _max_key_overlap_term_pair(expt_setting, {}) == expected_dict
     # test adding to an already existing key
     expt_setting2 = ExperimentSetting(sZ(7), sY(1))
     expected_dict2 = {(((0, 'Y'), (1, 'Z'), (2, 'Z'), (4, 'Y'), (5, 'Y'), (6, 'X'), (7, 'Z'), (8, 'Y')),
-        ((1, 'Y'), (3, 'X'), (4, 'Z'), (5, 'Y'), (7, 'Y'), (8, 'X'))): \
-    ([PauliTerm.from_compact_str('(1+0j)*Z7Y8Z1Y4Z2Y5Y0X6'), sZ(7)],
-        [PauliTerm.from_compact_str('(1+0j)*Z4X8Y5X3Y7Y1'), sY(1)])}
+                       ((1, 'Y'), (3, 'X'), (4, 'Z'), (5, 'Y'), (7, 'Y'), (8, 'X'))): \
+                          ([PauliTerm.from_compact_str('(1+0j)*Z7Y8Z1Y4Z2Y5Y0X6'), sZ(7)],
+                           [PauliTerm.from_compact_str('(1+0j)*Z4X8Y5X3Y7Y1'), sY(1)])}
     assert _max_key_overlap_term_pair(expt_setting2, expected_dict) == expected_dict2
 
 
 def test_commuting_sets_by_zbasis_tomo_expt():
     tomo_expt_settings = [ExperimentSetting(sZ(1) * sX(0), sY(2) * sY(1)),
-                         ExperimentSetting(sX(2) * sZ(1), sY(2) * sZ(0))]
+                          ExperimentSetting(sX(2) * sZ(1), sY(2) * sZ(0))]
     tomo_expt_program = Program(H(0), H(1), H(2))
     tomo_expt_qubits = [0, 1, 2]
     tomo_expt = TomographyExperiment(tomo_expt_settings, tomo_expt_program, tomo_expt_qubits)
     expected_dict = {(((0, 'X'), (1, 'Z'), (2, 'X')), ((0, 'Z'), (1, 'Y'), (2, 'Y'))): \
-                    ([sZ(1) * sX(0), sX(2) * sZ(1)], [sY(2) * sY(1), sY(2) * sZ(0)])}
+                         ([sZ(1) * sX(0), sX(2) * sZ(1)], [sY(2) * sY(1), sY(2) * sZ(0)])}
     assert expected_dict == commuting_sets_by_zbasis_tomo_expt(tomo_expt)
 
 
 def test_tomo_expt_from_diagonal_sets():
-    ungrouped_tomo_expt = TomographyExperiment([[ExperimentSetting(PauliTerm.from_compact_str('(1+0j)*Z7Y8Z1Y4Z2Y5Y0X6'),
-        PauliTerm.from_compact_str('(1+0j)*Z4X8Y5X3Y7Y1'))],
-                                                [ExperimentSetting(sZ(7), sY(1))]], program=Program(H(0), H(1), H(2)),
-                                              qubits=[0, 1, 2])
+    ungrouped_tomo_expt = TomographyExperiment(
+        [[ExperimentSetting(PauliTerm.from_compact_str('(1+0j)*Z7Y8Z1Y4Z2Y5Y0X6'),
+                            PauliTerm.from_compact_str('(1+0j)*Z4X8Y5X3Y7Y1'))],
+         [ExperimentSetting(sZ(7), sY(1))]], program=Program(H(0), H(1), H(2)),
+        qubits=[0, 1, 2])
     diag_sets = {(((0, 'Y'), (1, 'Z'), (2, 'Z'), (4, 'Y'), (5, 'Y'), (6, 'X'), (7, 'Z'), (8, 'Y')),
-        ((1, 'Y'), (3, 'X'), (4, 'Z'), (5, 'Y'), (7, 'Y'), (8, 'X'))): \
-    ([PauliTerm.from_compact_str('(1+0j)*Z7Y8Z1Y4Z2Y5Y0X6'), sZ(7)],
-        [PauliTerm.from_compact_str('(1+0j)*Z4X8Y5X3Y7Y1'), sY(1)])}
+                  ((1, 'Y'), (3, 'X'), (4, 'Z'), (5, 'Y'), (7, 'Y'), (8, 'X'))): \
+                     ([PauliTerm.from_compact_str('(1+0j)*Z7Y8Z1Y4Z2Y5Y0X6'), sZ(7)],
+                      [PauliTerm.from_compact_str('(1+0j)*Z4X8Y5X3Y7Y1'), sY(1)])}
     grouped_tomo_expt = tomo_expt_from_diagonal_sets(diag_sets, ungrouped_tomo_expt)
-    expected_grouped_tomo_expt = TomographyExperiment([[ExperimentSetting(PauliTerm.from_compact_str('(1+0j)*Z7Y8Z1Y4Z2Y5Y0X6'),
-    PauliTerm.from_compact_str('(1+0j)*Z4X8Y5X3Y7Y1')), ExperimentSetting(sZ(7), sY(1))]], program=Program(H(0), H(1), H(2)),
-                                          qubits=[0, 1, 2])
+    expected_grouped_tomo_expt = TomographyExperiment(
+        [[ExperimentSetting(PauliTerm.from_compact_str('(1+0j)*Z7Y8Z1Y4Z2Y5Y0X6'),
+                            PauliTerm.from_compact_str('(1+0j)*Z4X8Y5X3Y7Y1')), ExperimentSetting(sZ(7), sY(1))]],
+        program=Program(H(0), H(1), H(2)),
+        qubits=[0, 1, 2])
     assert grouped_tomo_expt == expected_grouped_tomo_expt
 
 
 def test_group_experiments_greedy():
-    ungrouped_tomo_expt = TomographyExperiment([[ExperimentSetting(PauliTerm.from_compact_str('(1+0j)*Z7Y8Z1Y4Z2Y5Y0X6'),
-        PauliTerm.from_compact_str('(1+0j)*Z4X8Y5X3Y7Y1'))],
-                                                [ExperimentSetting(sZ(7), sY(1))]], program=Program(H(0), H(1), H(2)),
-                                              qubits=[0, 1, 2])
+    ungrouped_tomo_expt = TomographyExperiment(
+        [[ExperimentSetting(PauliTerm.from_compact_str('(1+0j)*Z7Y8Z1Y4Z2Y5Y0X6'),
+                            PauliTerm.from_compact_str('(1+0j)*Z4X8Y5X3Y7Y1'))],
+         [ExperimentSetting(sZ(7), sY(1))]], program=Program(H(0), H(1), H(2)),
+        qubits=[0, 1, 2])
     grouped_tomo_expt = group_experiments_greedy(ungrouped_tomo_expt)
-    expected_grouped_tomo_expt = TomographyExperiment([[ExperimentSetting(PauliTerm.from_compact_str('(1+0j)*Z7Y8Z1Y4Z2Y5Y0X6'),
-        PauliTerm.from_compact_str('(1+0j)*Z4X8Y5X3Y7Y1')), ExperimentSetting(sZ(7), sY(1))]], program=Program(H(0), H(1), H(2)),
-                                              qubits=[0, 1, 2])
+    expected_grouped_tomo_expt = TomographyExperiment(
+        [[ExperimentSetting(PauliTerm.from_compact_str('(1+0j)*Z7Y8Z1Y4Z2Y5Y0X6'),
+                            PauliTerm.from_compact_str('(1+0j)*Z4X8Y5X3Y7Y1')), ExperimentSetting(sZ(7), sY(1))]],
+        program=Program(H(0), H(1), H(2)),
+        qubits=[0, 1, 2])
     assert grouped_tomo_expt == expected_grouped_tomo_expt
