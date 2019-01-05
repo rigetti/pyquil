@@ -595,28 +595,53 @@ def _max_key_overlap_term_pair(expt_setting, diagonal_sets):
     return diagonal_sets
 
 
-def commuting_sets_by_zbasis_expt_suite(exptsuite):
+def commuting_sets_by_zbasis_tomo_expt(tomoexpt):
+    """
+    Given an input TomographyExperiment, provide a dictionary indicating which ExperimentSettings
+    share a tensor product basis
+
+    :param tomoexpt: TomographyExperiment, from which to group ExperimentSettings that share a tpb
+        and can be run together
+    :return: dict with (key, value): ((diagonal_in_basis, diagonal_out_basis): list of tuples of PauliTerms
+                                                    that are diagonal in those bases)
+    """
     diagonal_sets = {}
-    for expt_setting in exptsuite:
+    for expt_setting in tomoexpt:
         assert len(expt_setting) == 1, 'already grouped?'
         expt_setting = expt_setting[0]
         diagonal_sets = _max_key_overlap_term_pair(expt_setting, diagonal_sets)
     return diagonal_sets
 
 
-def expt_suite_from_diagonal_sets(diagonal_sets, exptsuite):
-    # exptsuite: the original experiment suite, ungrouped by diagonal bases
-    # diagonal_sets: dict containing the diagonal sets of exptsuite
-    l_expts = []
+def tomo_expt_from_diagonal_sets(diagonal_sets, tomoexpt):
+    """
+    Construct a grouped version of TomographyExperiment, given a dictionary
+    that contains the grouping information
+
+    :param diagonal_sets: dict containing the diagonal sets of tomoexpt, in the form
+        (key, value): ((diagonal_in_basis, diagonal_out_basis): list of tuples of PauliTerms
+                                                    that are diagonal in those bases)
+    :param tomoexpt: the original experiment suite, ungrouped by diagonal bases
+    :return: TomographyExperiment, grouped by ExperimentSettings that are diagonal in the
+        same tensor product basis
+    """
+    l_expt_settings = []
     for v in diagonal_sets.values():
-        expts = [pyq_oe.Experiment(v[0][i], v[1][i]) for i in range(len(v[0]))]
-        l_expts.append(expts)
-    my_expt_suite = pyq_oe.ExperimentSuite(l_expts, program=exptsuite.program, qubits=exptsuite.qubits)
+        expt_settings = [ExperimentSetting(v[0][i], v[1][i]) for i in range(len(v[0]))]
+        l_expt_settings.append(expt_settings)
+    my_tomo_expt = TomographyExperiment(l_expt_settings, program=tomoexpt.program, qubits=tomoexpt.qubits)
 
-    return my_expt_suite
+    return my_tomo_expt
 
 
-def group_experiments_greedy(expt_suite):
-    diag_sets = commuting_sets_by_zbasis_expt_suite(expt_suite)
-    grouped_expt_suite = expt_suite_from_diagonal_sets(diag_sets, expt_suite)
-    return grouped_expt_suite
+def group_experiments_greedy(tomo_expt):
+    """
+    Greedy method to group ExperimentSettings in a given TomographyExperiment
+
+    :param tomo_expt: TomographyExperiment to group ExperimentSettings within
+    :return: TomographyExperiment, with grouped ExperimentSettings according to whether
+        it consists of PauliTerms diagonal in the same tensor product basis
+    """
+    diag_sets = commuting_sets_by_zbasis_tomo_expt(tomo_expt)
+    grouped_tomo_expt = tomo_expt_from_diagonal_sets(diag_sets, tomo_expt)
+    return grouped_tomo_expt
