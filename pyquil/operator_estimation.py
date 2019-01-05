@@ -499,11 +499,6 @@ def measure_observables(qc: QuantumComputer, tomo_experiment: TomographyExperime
             )
 
 
-##########################################################################
-##### Generalizing functions from Pyrethrum to group ExperimentSuite #####
-##########################################################################
-
-
 def diagonal_basis_commutes(pauli_a: PauliTerm, pauli_b: PauliTerm):
     """
     Test if `pauli_a` and `pauli_b` are diagonal in the same tensor product basis.
