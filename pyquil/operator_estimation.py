@@ -334,10 +334,10 @@ def construct_tpb_graph(experiments: TomographyExperiment):
     return g
 
 
-def group_experiments(experiments: TomographyExperiment) -> TomographyExperiment:
+def group_experiments_clique_removal(experiments: TomographyExperiment) -> TomographyExperiment:
     """
     Group experiments that are diagonal in a shared tensor product basis (TPB) to minimize number
-    of QPU runs.
+    of QPU runs, using a graph clique removal algorithm.
 
     :param experiments: an tomography experiment
     :return: an tomography experiment with all the same settings, just grouped according to shared
@@ -355,6 +355,24 @@ def group_experiments(experiments: TomographyExperiment) -> TomographyExperiment
         new_cliqs += [new_cliq]
 
     return TomographyExperiment(new_cliqs, program=experiments.program, qubits=experiments.qubits)
+
+
+def group_experiments(experiments: TomographyExperiment, method='greedy') -> TomographyExperiment:
+    """
+    Group experiments that are diagonal in a shared tensor product basis (TPB) to minimize number
+    of QPU runs, using a specified method (greedy method by default)
+
+    :param experiments: an tomography experiment
+    :param method: method used for grouping
+    :return: an tomography experiment with all the same settings, just grouped according to shared
+        TPBs.
+    """
+    allowed_methods = ['greedy', 'clique-removal']
+    assert method in allowed_methods, f"'method' should be one of {allowed_methods}."
+    if method == 'greedy':
+        return group_experiments_greedy(experiments)
+    elif method == 'clique-removal':
+        return group_experiments_clique_removal(experiments)
 
 
 @dataclass(frozen=True)
