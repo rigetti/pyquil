@@ -506,7 +506,7 @@ def diagonal_basis_commutes(pauli_a: PauliTerm, pauli_b: PauliTerm):
     Elaboration: Given some PauliTerm, the 'natural' tensor product basis (tpb) to
     diagonalize this term is the one which diagonalizes each Pauli operator in the
     product term-by-term.
-    
+
     For example, X(1) * Z(0) would be diagonal in the 'natural' tensor product basis
     {(|0> +/- |1>)/Sqrt[2]} * {|0>, |1>}, whereas Z(1) * X(0) would be diagonal
     in the 'natural' tpb {|0>, |1>} * {(|0> +/- |1>)/Sqrt[2]}. The two operators
@@ -530,8 +530,8 @@ def diagonal_basis_commutes(pauli_a: PauliTerm, pauli_b: PauliTerm):
     """
     overlapping_active_qubits = set(pauli_a.get_qubits()) & set(pauli_b.get_qubits())
     for qubit_index in overlapping_active_qubits:
-        if (pauli_a[qubit_index] != 'I' and pauli_b[qubit_index] != 'I' and
-                pauli_a[qubit_index] != pauli_b[qubit_index]):
+        if (pauli_a[qubit_index] != 'I' and pauli_b[qubit_index] != 'I'
+                and pauli_a[qubit_index] != pauli_b[qubit_index]):
             return False
 
     return True
