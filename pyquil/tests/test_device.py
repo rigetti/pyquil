@@ -57,10 +57,10 @@ def test_specs(specs_dict):
             QubitSpecs(id=3, f1QRB=0.988, fRO=0.94, T1=18e-6, T2=11e-6, fActiveReset=None)
         ],
         edges_specs=[
-            EdgeSpecs(targets=[0, 1], fBellState=0.90, fCZ=0.89, fCPHASE=0.88),
-            EdgeSpecs(targets=[0, 3], fBellState=0.89, fCZ=0.88, fCPHASE=0.87),
-            EdgeSpecs(targets=[1, 2], fBellState=0.91, fCZ=0.90, fCPHASE=0.89),
-            EdgeSpecs(targets=[2, 0], fBellState=0.92, fCZ=0.91, fCPHASE=0.90)
+            EdgeSpecs(targets=[0, 1], fBellState=0.90, fCZ=0.89, fCZ_std_err=0.01, fCPHASE=0.88),
+            EdgeSpecs(targets=[0, 3], fBellState=0.89, fCZ=0.88, fCZ_std_err=0.03, fCPHASE=0.87),
+            EdgeSpecs(targets=[1, 2], fBellState=0.91, fCZ=0.90, fCZ_std_err=0.12, fCPHASE=0.89),
+            EdgeSpecs(targets=[2, 0], fBellState=0.92, fCZ=0.91, fCZ_std_err=0.20, fCPHASE=0.90)
         ])
 
     assert specs == Specs.from_dict(specs.to_dict())
@@ -72,6 +72,7 @@ def test_specs(specs_dict):
 
     assert specs.fBellStates() == {(0, 1): 0.90, (0, 3): 0.89, (1, 2): 0.91, (2, 0): 0.92}
     assert specs.fCZs() == {(0, 1): 0.89, (0, 3): 0.88, (1, 2): 0.90, (2, 0): 0.91}
+    assert specs.fCZ_std_errs() == {(0, 1): 0.01, (0, 3): 0.03, (1, 2): 0.12, (2, 0): 0.20}
     assert specs.fCPHASEs() == {(0, 1): 0.88, (0, 3): 0.87, (1, 2): 0.89, (2, 0): 0.90}
 
 

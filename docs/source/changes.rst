@@ -2,8 +2,10 @@ Changelog
 =========
 
 v2.3 (Development)
-------------------
+-----------------
 
+- The CZ gate fidelity metric available in the Specs object now has its associated standard
+error, which is accessible from the method ``Specs.fCZ_std_errs``.
 
 
 v2.2 (January 4, 2019)
