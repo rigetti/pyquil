@@ -67,7 +67,7 @@ master_doc = 'index'
 
 # General information about the project.
 project = u'pyQuil'
-copyright = u'2018, Rigetti Computing'
+copyright = u'2019, Rigetti Computing'
 author = u'Rigetti Computing'
 
 # The version info for the project you're documenting, acts as replacement for

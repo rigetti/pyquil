@@ -416,7 +416,7 @@ class BinaryExp(Expression):
 
 
 class Add(BinaryExp):
-    operator = '+'
+    operator = ' + '
     precedence = 1
     associates = 'both'
 
@@ -429,7 +429,7 @@ class Add(BinaryExp):
 
 
 class Sub(BinaryExp):
-    operator = '-'
+    operator = ' - '
     precedence = 1
     associates = 'left'
 
