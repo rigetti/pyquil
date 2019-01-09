@@ -22,6 +22,7 @@ import numpy as np
 from numpy.random.mtrand import RandomState
 
 from pyquil.api import QAM
+from pyquil.api._compiler import _extract_program_from_pyquil_executable_response
 from pyquil.paulis import PauliTerm, PauliSum
 from pyquil.quil import Program
 from pyquil.quilbase import Gate, Measurement, ResetQubit, DefGate, JumpTarget, JumpConditional, \
@@ -34,6 +35,8 @@ from pyquil.quilbase import Gate, Measurement, ResetQubit, DefGate, JumpTarget, 
 from pyquil.quilatom import Label, MemoryReference
 
 import logging
+
+from rpcq.messages import PyQuilExecutableResponse
 
 log = logging.getLogger(__name__)
 
@@ -235,7 +238,12 @@ class PyQVM(QAM):
         self.wf_simulator = quantum_simulator_type(n_qubits=n_qubits, rs=self.rs)
         self._last_measure_program_loc = None
 
-    def load(self, program):
+    def load(self, executable):
+        if isinstance(executable, PyQuilExecutableResponse):
+            program = _extract_program_from_pyquil_executable_response(executable)
+        else:
+            program = executable
+
         if len(program.defined_gates) > 0:
             raise ValueError("PyQVM does not support defined gates")
 
