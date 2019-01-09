@@ -134,6 +134,7 @@ class QPUCompiler(AbstractCompiler):
 
         :param endpoint: TCP or IPC endpoint of the Compiler Server
         :param device: PyQuil Device object to use as compilation target
+        :param timeout: Number of seconds to wait for a response from the client.
         """
 
         self.client = Client(endpoint, timeout=timeout)
