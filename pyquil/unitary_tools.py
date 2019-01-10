@@ -293,9 +293,9 @@ def program_unitary(program, n_qubits):
     return umat
 
 
-def lifted_pauli(pauli_sum: Union[PauliSum, PauliTerm], n_qubits: int):
+def lifted_pauli(pauli_sum: Union[PauliSum, PauliTerm], qubits: List[int]):
     """
-    Takes a PauliSum object along with a total number of
+    Takes a PauliSum object along with a list of
     qubits and returns a matrix corresponding the tensor representation of the
     object.
 
@@ -312,18 +312,19 @@ def lifted_pauli(pauli_sum: Union[PauliSum, PauliTerm], n_qubits: int):
         [ 0.+2.j,  0.+0.j,  0.+0.j,  0.+0.j]]
 
     :param pauli_sum: Pauli representation of an operator
-    :param n_qubits: total number of qubits in the system
+    :param qubits: list of qubits in the order they will be represented in the resultant matrix.
     :returns: matrix representation of the pauli_sum operator
     """
     if isinstance(pauli_sum, PauliTerm):
         pauli_sum = PauliSum([pauli_sum])
 
+    n_qubits = len(qubits)
     result_hilbert = np.zeros((2 ** n_qubits, 2 ** n_qubits), dtype=np.complex128)
     # left kronecker product corresponds to the correct basis ordering
     for term in pauli_sum.terms:
         term_hilbert = np.array([1])
-        for index in range(n_qubits):
-            term_hilbert = np.kron(QUANTUM_GATES[term[index]], term_hilbert)
+        for qubit in qubits:
+            term_hilbert = np.kron(QUANTUM_GATES[term[qubit]], term_hilbert)
 
         result_hilbert += term_hilbert * term.coefficient
 
@@ -343,4 +344,4 @@ def tensor_up(pauli_sum: Union[PauliSum, PauliTerm], n_qubits: int):
     :param n_qubits: total number of qubits in the system
     :returns: matrix representation of the pauli_sum operator
     """
-    return lifted_pauli(pauli_sum=pauli_sum, n_qubits=n_qubits)
+    return lifted_pauli(pauli_sum=pauli_sum, qubits=list(range(n_qubits)))
