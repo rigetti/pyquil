@@ -36,7 +36,8 @@ Qubit = namedtuple("Qubit", ["id", "type", "dead"])
 Edge = namedtuple("Edge", ["targets", "type", "dead"])
 _ISA = namedtuple("_ISA", ["qubits", "edges"])
 QubitSpecs = namedtuple("_QubitSpecs", ["id", "fRO", "f1QRB", "T1", "T2", "fActiveReset"])
-EdgeSpecs = namedtuple("_QubitQubitSpecs", ["targets", "fBellState", "fCZ", "fCPHASE"])
+EdgeSpecs = namedtuple("_QubitQubitSpecs", ["targets", "fBellState", "fCZ", "fCZ_std_err",
+                                            "fCPHASE"])
 _Specs = namedtuple("_Specs", ["qubits_specs", "edges_specs"])
 
 
@@ -241,6 +242,16 @@ class Specs(_Specs):
         """
         return {tuple(es.targets): es.fCZ for es in self.edges_specs}
 
+    def fCZ_std_errs(self):
+        """
+        Get a dictionary of the standard errors of the CZ fidelities from the specs,
+        keyed by targets (qubit-qubit pairs).
+
+        :return: A dictionary of CZ fidelities, normalized to unity.
+        :rtype: Dict[tuple(int, int), float]
+        """
+        return {tuple(es.targets): es.fCZ_std_err for es in self.edges_specs}
+
     def fCPHASEs(self):
         """
         Get a dictionary of CPHASE fidelities (normalized to unity) from the specs,
@@ -275,11 +286,13 @@ class Specs(_Specs):
                     "1-4": {
                         "fBellState": 0.93,
                         "fCZ": 0.92,
+                        "fCZ_std_err": 0.03,
                         "fCPHASE": 0.91
                     },
                     "1-5": {
                         "fBellState": 0.9,
                         "fCZ": 0.89,
+                        "fCZ_std_err": 0.05,
                         "fCPHASE": 0.88
                     },
                     ...
@@ -304,6 +317,7 @@ class Specs(_Specs):
                 "{}-{}".format(*es.targets): {
                     'fBellState': es.fBellState,
                     'fCZ': es.fCZ,
+                    'fCZ_std_err': es.fCZ_std_err,
                     'fCPHASE': es.fCPHASE
                 } for es in self.edges_specs
             }
@@ -330,6 +344,7 @@ class Specs(_Specs):
             edges_specs=sorted([EdgeSpecs(targets=[int(q) for q in e.split('-')],
                                           fBellState=especs.get('fBellState'),
                                           fCZ=especs.get('fCZ'),
+                                          fCZ_std_err=especs.get('fCZ_std_err'),
                                           fCPHASE=especs.get('fCPHASE'))
                                 for e, especs in d["2Q"].items()],
                                key=lambda edge_specs: edge_specs.targets)
@@ -358,7 +373,7 @@ def specs_from_graph(graph: nx.Graph):
     """
     qspecs = [QubitSpecs(id=q, fRO=0.90, f1QRB=0.99, T1=30e-6, T2=30e-6, fActiveReset=0.99)
               for q in graph.nodes]
-    especs = [EdgeSpecs(targets=(q1, q2), fBellState=0.90, fCZ=0.90, fCPHASE=0.80)
+    especs = [EdgeSpecs(targets=(q1, q2), fBellState=0.90, fCZ=0.90, fCZ_std_err=0.05, fCPHASE=0.80)
               for q1, q2 in graph.edges]
     return Specs(qspecs, especs)
 

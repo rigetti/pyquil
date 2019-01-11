@@ -22,7 +22,8 @@ from collections import Counter
 from rpcq import Client
 from rpcq.messages import (BinaryExecutableRequest, BinaryExecutableResponse,
                            NativeQuilRequest, TargetDevice,
-                           PyQuilExecutableResponse, ParameterSpec)
+                           PyQuilExecutableResponse, ParameterSpec,
+                           RewriteArithmeticRequest)
 
 from pyquil.api._base_connection import ForestConnection
 from pyquil.api._qac import AbstractCompiler
@@ -127,15 +128,16 @@ def _collect_memory_descriptors(program: Program) -> Dict[str, ParameterSpec]:
 
 class QPUCompiler(AbstractCompiler):
     @_record_call
-    def __init__(self, endpoint: str, device: AbstractDevice) -> None:
+    def __init__(self, endpoint: str, device: AbstractDevice, timeout: int = 10) -> None:
         """
         Client to communicate with the Compiler Server.
 
         :param endpoint: TCP or IPC endpoint of the Compiler Server
         :param device: PyQuil Device object to use as compilation target
+        :param timeout: Number of seconds to wait for a response from the client.
         """
 
-        self.client = Client(endpoint)
+        self.client = Client(endpoint, timeout=timeout)
         self.target_device = TargetDevice(isa=device.get_isa().to_dict(),
                                           specs=device.get_specs().to_dict())
 
@@ -159,11 +161,16 @@ class QPUCompiler(AbstractCompiler):
                           "ok if you've hand-compiled your program to our native gateset, "
                           "but be careful!")
 
-        request = BinaryExecutableRequest(quil=nq_program.out(), num_shots=nq_program.num_shots)
+        arithmetic_request = RewriteArithmeticRequest(quil=nq_program.out())
+        arithmetic_response = self.client.call('resolve_gate_parameter_arithmetic', arithmetic_request)
+
+        request = BinaryExecutableRequest(quil=arithmetic_response.quil, num_shots=nq_program.num_shots)
         response = self.client.call('native_quil_to_binary', request)
+
         # hack! we're storing a little extra info in the executable binary that we don't want to
         # expose to anyone outside of our own private lives: not the user, not the Forest server,
         # not anyone.
+        response.recalculation_table = arithmetic_response.recalculation_table
         response.memory_descriptors = _collect_memory_descriptors(nq_program)
         response.ro_sources = _collect_classical_memory_write_locations(nq_program)
         return response

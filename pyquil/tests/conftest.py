@@ -76,21 +76,25 @@ def specs_dict():
             "0-1": {
                 "fBellState": 0.90,
                 "fCZ": 0.89,
+                "fCZ_std_err": 0.01,
                 "fCPHASE": 0.88
             },
             "1-2": {
                 "fBellState": 0.91,
                 "fCZ": 0.90,
+                "fCZ_std_err": 0.12,
                 "fCPHASE": 0.89
             },
             "2-0": {
                 "fBellState": 0.92,
                 "fCZ": 0.91,
+                "fCZ_std_err": 0.20,
                 "fCPHASE": 0.90
             },
             "0-3": {
                 "fBellState": 0.89,
                 "fCZ": 0.88,
+                "fCZ_std_err": 0.03,
                 "fCPHASE": 0.87
             }
         }
