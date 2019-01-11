@@ -392,7 +392,7 @@ class ForestConnection:
         directly.
         """
         payload = quilc_compile_payload(quil_program, isa, specs)
-        response = post_json(self.session, self.sync_endpoint + "/quilc", payload)
+        response = post_json(self.session, self.sync_endpoint + "/", payload)
         unpacked_response = response.json()
         return unpacked_response
 
