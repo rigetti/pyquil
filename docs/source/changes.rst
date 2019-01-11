@@ -30,6 +30,9 @@ feedback or suggestions as GitHub issues.
 
 We extend thanks to community member petterwittek for their contribution to this release.
 
+Bugfix release 2.2.1 was released January 11 to maintain compatibility with the latest version
+of the quilc compiler (gh-759).
+
 
 v2.1 (November 30, 2018)
 ------------------------
