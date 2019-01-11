@@ -453,7 +453,7 @@ def measure_observables(qc: QuantumComputer, tomo_experiment: TomographyExperime
             if is_identity(setting.out_operator):
                 yield ExperimentResult(
                     setting=setting,
-                    expectation=1.0,
+                    expectation=coeff,
                     stddev=0.0,
                 )
                 continue
