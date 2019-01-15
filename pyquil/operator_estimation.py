@@ -364,7 +364,7 @@ def group_experiments(experiments: TomographyExperiment, method='greedy') -> Tom
 
     :param experiments: an tomography experiment
     :param method: method used for grouping
-    :return: an tomography experiment with all the same settings, just grouped according to shared
+    :return: a tomography experiment with all the same settings, just grouped according to shared
         TPBs.
     """
     allowed_methods = ['greedy', 'clique-removal']
