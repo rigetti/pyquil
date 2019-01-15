@@ -363,7 +363,8 @@ def group_experiments(experiments: TomographyExperiment, method='greedy') -> Tom
     of QPU runs, using a specified method (greedy method by default)
 
     :param experiments: an tomography experiment
-    :param method: method used for grouping
+    :param method: method used for grouping; the allowed methods are one of
+        ['greedy', 'clique-removal']
     :return: a tomography experiment with all the same settings, just grouped according to shared
         TPBs.
     """
