@@ -29,6 +29,7 @@ import pytest
 import requests_mock
 from rpcq import Server
 from rpcq.messages import (BinaryExecutableRequest, BinaryExecutableResponse,
+                           RewriteArithmeticRequest, RewriteArithmeticResponse,
                            NativeQuilRequest, NativeQuilResponse, NativeQuilMetadata,
                            ConjugateByCliffordRequest, ConjugateByCliffordResponse,
                            RandomizedBenchmarkingRequest, RandomizedBenchmarkingResponse)
@@ -282,6 +283,14 @@ def native_quil_to_binary(payload: BinaryExecutableRequest) -> BinaryExecutableR
     assert payload.quil == COMPILED_BELL_STATE.out()
     time.sleep(0.1)
     return BinaryExecutableResponse(program=COMPILED_BYTES_ARRAY)
+
+
+@mock_compiler_server.rpc_handler
+def resolve_gate_parameter_arithmetic(payload: RewriteArithmeticRequest) -> RewriteArithmeticResponse:
+    time.sleep(0.1)
+    return RewriteArithmeticResponse(quil=payload.quil,
+                                     recalculation_table={},
+                                     original_memory_descriptors={})
 
 
 @mock_compiler_server.rpc_handler

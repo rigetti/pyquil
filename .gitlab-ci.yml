@@ -1,36 +1,35 @@
+image: python:3.6
+
 before_script:
-    - pip install tox
+  - pip install tox
 
 services:
-    - name: rigetticomputing/qvm
-      alias: qvm
-      command: ["-S"]
-    - name: rigetticomputing/quilc
-      alias: quilc
-      command: ["-S"]
+  - name: rigetticomputing/qvm
+    alias: qvm
+    command: ["-S"]
+  - name: rigetticomputing/quilc
+    alias: quilc
+    command: ["-S"]
 
 
 test:
-    tags:
-        - docker
-        - python:3.6
-    script:
-        - export QVM_URL="http://qvm:5000"
-        - export COMPILER_URL='http://quilc:6000'
-        - tox -e py36
+  tags:
+    - github
+  script:
+    - export QVM_URL="http://qvm:5000"
+    - export COMPILER_URL='http://quilc:6000'
+    - tox -e py36
 
 style:
-    tags:
-        - docker
-        - python:3.6
-    script:
-        - tox -e flake8
+  tags:
+    - github
+  script:
+    - tox -e flake8
 
 docs:
-    tags:
-        - docker
-        - python:3.6
-    script:
-        - apt-get update
-        - apt-get install -y pandoc
-        - tox -e docs
+  tags:
+    - github
+  script:
+    - apt-get update
+    - apt-get install -y pandoc
+    - tox -e docs

@@ -5,6 +5,7 @@ pyQuil is licensed under the [Apache 2.0 license](https://github.com/rigetti/pyQ
 
 [![Build Status](https://semaphoreci.com/api/v1/rigetti/pyquil/branches/master/badge.svg)](https://semaphoreci.com/rigetti/pyquil)
 [![Documentation Status](https://readthedocs.org/projects/pyquil/badge/?version=latest)](http://pyquil.readthedocs.io/en/latest/?badge=latest)
+[![pipeline status](https://gitlab.com/rigetti/pyquil/badges/master/pipeline.svg)](https://gitlab.com/rigetti/pyquil/commits/master)
 
 **Please note: To make full use of our SDK, in addition to installing pyQuil, you'll need to download [quilc and the QVM](rigetti.com/forest), which 
 will allow you to compile and simulate programs on your local machine. 

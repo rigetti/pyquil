@@ -1,12 +1,41 @@
 Changelog
 =========
 
-v2.2 (Development)
-------------------
+v2.3 (Development)
+-----------------
 
+- The CZ gate fidelity metric available in the Specs object now has its associated standard
+error, which is accessible from the method ``Specs.fCZ_std_errs``.
+
+
+v2.2 (January 4, 2019)
+----------------------
+
+PyQuil 2.2 is the latest release of pyQuil, Rigetti's toolkit for constructing and running
+quantum programs. Bug fixes and improvements include:
+
+- ``pauli.is_zero`` and ``paulis.is_identity`` would sometimes return erroneous answers (gh-710).
 - Parameter expressions involving addition and subtraction are now converted to Quil with spaces
   around the operators, e.g. ``theta + 2`` instead of ``theta+2``. This disambiguates subtracting
-  two parameters, e.g. ``alpha - beta`` is not one variable named ``alpha-beta``.
+  two parameters, e.g. ``alpha - beta`` is not one variable named ``alpha-beta`` (gh-743).
+- T1 is accounted for in T2 noise models (gh-745).
+- Documentation improvements (gh-723, gh-719, gh-720, gh-728, gh-732, gh-742).
+- Support for PNG generation of circuit diagrams via LaTeX (gh-745).
+- We've started transitioning to using Gitlab as our continuous integration provider for
+  pyQuil (gh-741, gh-752).
+
+This release includes a new module for facilitating the estimation of quantum
+observables/operators (gh-682). First-class support for estimating observables should
+make it easier to express near-term algorithms. This release includes:
+
+- data structures for expressing tomography-like experiments and their results
+- grouping of experiment settings that can be simultaneously estimated
+- functionality to executing a tomography-like experiment on a quantum computer
+
+Please look forward to more features and polish in future releases. Don't hesitate to submit
+feedback or suggestions as GitHub issues.
+
+We extend thanks to community member petterwittek for their contribution to this release.
 
 
 v2.1 (November 30, 2018)
