@@ -502,9 +502,9 @@ def measure_observables(qc: QuantumComputer, tomo_experiment: TomographyExperime
 
 def diagonal_basis_commutes(pauli_a: PauliTerm, pauli_b: PauliTerm):
     """
-    Test if `pauli_a` and `pauli_b` are diagonal in the same tensor product basis.
+    Test if ``pauli_a`` and ``pauli_b`` are diagonal in the same tensor product basis.
 
-    Elaboration: Given some PauliTerm, the 'natural' tensor product basis (tpb) to
+    Given some PauliTerm, the 'natural' tensor product basis (tpb) to
     diagonalize this term is the one which diagonalizes each Pauli operator in the
     product term-by-term.
 
