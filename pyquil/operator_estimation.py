@@ -541,6 +541,7 @@ def diagonal_basis_commutes(pauli_a: PauliTerm, pauli_b: PauliTerm):
 def get_diagonalizing_basis(list_of_pauli_terms: List[PauliTerm]):
     """
     Find the Pauli Term with the most non-identity terms
+
     :param list_of_pauli_terms: List of Pauli terms to check
     :return: The highest weight Pauli Term
     """
@@ -557,6 +558,7 @@ def _max_key_overlap_term_pair(expt_setting: ExperimentSetting, diagonal_sets: D
     Returns a different key if we find any collisions. If no collisions are found,
     then the ExperimentSetting is added (as a tuple) and the key is updated so it has the
     largest weight.
+
     :param expt_setting: ExperimentSetting
     :param diagonal_sets: dictionary with
         (key, value): ((diagonal_in_basis, diagonal_out_basis): list of tuples of PauliTerms
