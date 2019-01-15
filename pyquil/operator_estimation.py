@@ -357,7 +357,7 @@ def group_experiments_clique_removal(experiments: TomographyExperiment) -> Tomog
     return TomographyExperiment(new_cliqs, program=experiments.program, qubits=experiments.qubits)
 
 
-def group_experiments(experiments: TomographyExperiment, method='greedy') -> TomographyExperiment:
+def group_experiments(experiments: TomographyExperiment, method: str = 'greedy') -> TomographyExperiment:
     """
     Group experiments that are diagonal in a shared tensor product basis (TPB) to minimize number
     of QPU runs, using a specified method (greedy method by default)
