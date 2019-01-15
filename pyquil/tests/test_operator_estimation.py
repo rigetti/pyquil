@@ -12,7 +12,7 @@ from pyquil.api import WavefunctionSimulator
 from pyquil.operator_estimation import ExperimentSetting, TomographyExperiment, to_json, read_json, \
     _all_qubits_diagonal_in_tpb, group_experiments, ExperimentResult, measure_observables, \
     diagonal_basis_commutes, get_diagonalizing_basis, _max_key_overlap_term_pair, \
-    commuting_sets_by_zbasis_tomo_expt, tomo_expt_from_diagonal_sets, group_experiments_greedy
+    _commuting_sets_by_zbasis_tomo_expt, tomo_expt_from_diagonal_sets, group_experiments_greedy
 from pyquil.paulis import sI, sX, sY, sZ, PauliSum
 from pyquil import Program, get_qc
 from pyquil.gates import *
@@ -265,7 +265,7 @@ def test_max_key_overlap_term_pair():
     assert _max_key_overlap_term_pair(expt_setting2, expected_dict) == expected_dict2
 
 
-def test_commuting_sets_by_zbasis_tomo_expt():
+def test__commuting_sets_by_zbasis_tomo_expt():
     tomo_expt_settings = [ExperimentSetting(sZ(1) * sX(0), sY(2) * sY(1)),
                           ExperimentSetting(sX(2) * sZ(1), sY(2) * sZ(0))]
     tomo_expt_program = Program(H(0), H(1), H(2))
@@ -273,7 +273,7 @@ def test_commuting_sets_by_zbasis_tomo_expt():
     tomo_expt = TomographyExperiment(tomo_expt_settings, tomo_expt_program, tomo_expt_qubits)
     expected_dict = {(((0, 'X'), (1, 'Z'), (2, 'X')), ((0, 'Z'), (1, 'Y'), (2, 'Y'))):
                      ([sZ(1) * sX(0), sX(2) * sZ(1)], [sY(2) * sY(1), sY(2) * sZ(0)])}
-    assert expected_dict == commuting_sets_by_zbasis_tomo_expt(tomo_expt)
+    assert expected_dict == _commuting_sets_by_zbasis_tomo_expt(tomo_expt)
 
 
 def test_tomo_expt_from_diagonal_sets():

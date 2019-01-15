@@ -609,7 +609,7 @@ def _max_key_overlap_term_pair(expt_setting: ExperimentSetting, diagonal_sets: D
     return diagonal_sets
 
 
-def commuting_sets_by_zbasis_tomo_expt(tomo_expt: TomographyExperiment):
+def _commuting_sets_by_zbasis_tomo_expt(tomo_expt: TomographyExperiment):
     """
     Given an input TomographyExperiment, provide a dictionary indicating which ExperimentSettings
     share a tensor product basis
@@ -656,6 +656,6 @@ def group_experiments_greedy(tomo_expt: TomographyExperiment):
     :return: TomographyExperiment, with grouped ExperimentSettings according to whether
         it consists of PauliTerms diagonal in the same tensor product basis
     """
-    diag_sets = commuting_sets_by_zbasis_tomo_expt(tomo_expt)
+    diag_sets = _commuting_sets_by_zbasis_tomo_expt(tomo_expt)
     grouped_tomo_expt = tomo_expt_from_diagonal_sets(diag_sets, tomo_expt)
     return grouped_tomo_expt
