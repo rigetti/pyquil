@@ -222,7 +222,15 @@ def test_append():
 
 def test_no_complex_coeffs(forest):
     qc = get_qc('2q-qvm')
-    suite = TomographyExperiment([ExperimentSetting(sI(), 1.j * sY(0))], program=Program(X(0), ),
+    suite = TomographyExperiment([ExperimentSetting(sI(), 1.j * sY(0))], program=Program(X(0)),
                                  qubits=[0])
     with pytest.raises(ValueError):
         res = list(measure_observables(qc, suite))
+
+
+def test_identity(forest):
+    qc = get_qc('2q-qvm')
+    suite = TomographyExperiment([ExperimentSetting(sI(), 0.123 * sI(0))],
+                                 program=Program(X(0)), qubits=[0])
+    result = list(measure_observables(qc, suite))[0]
+    assert result.expectation == 0.123
