@@ -277,7 +277,8 @@ def _local_pauli_eig_meas(op, idx):
 
 def _ops_diagonal_in_tpb(op_code1: str, op_code2: str):
     """
-    Given two op strings (I, X, Y, or Z) return whether they are diagonal in a tensor product basis.
+    Given two 1q op strings (I, X, Y, or Z) return whether they are diagonal in each others'
+    "natural" tensor product basis (see doc-string for func:terms_diagonal_in_tpb)
 
     I.e. are they the same or is one of them 'I'.
     """
@@ -500,9 +501,9 @@ def measure_observables(qc: QuantumComputer, tomo_experiment: TomographyExperime
             )
 
 
-def diagonal_basis_commutes(pauli_a: PauliTerm, pauli_b: PauliTerm):
+def terms_diagonal_in_tpb(pauli_a: PauliTerm, pauli_b: PauliTerm):
     """
-    Test if ``pauli_a`` and ``pauli_b`` are diagonal in the same tensor product basis.
+    Test if ``pauli_a`` and ``pauli_b`` are diagonal in each others' "natural" tensor product basis.
 
     Given some PauliTerm, the 'natural' tensor product basis (tpb) to
     diagonalize this term is the one which diagonalizes each Pauli operator in the
@@ -579,8 +580,8 @@ def _max_key_overlap_term_pair(expt_setting: ExperimentSetting, diagonal_sets: D
         pauli_out_from_key = PauliTerm.from_list([x[::-1] for x in out_key])
         # determine if in_operator is diagonal in the same tpb as the PauliTerm constructed
         # from the in_key; do the same for the out_operator and the out_key
-        b_in_commutes = diagonal_basis_commutes(tup_pauli_terms[0][0], pauli_in_from_key)
-        b_out_commutes = diagonal_basis_commutes(tup_pauli_terms[1][0], pauli_out_from_key)
+        b_in_commutes = terms_diagonal_in_tpb(tup_pauli_terms[0][0], pauli_in_from_key)
+        b_out_commutes = terms_diagonal_in_tpb(tup_pauli_terms[1][0], pauli_out_from_key)
         # update the dict value if both the pairs are diagonal in the same tpb
         # (note: the two tpbs need not be the same)
         if b_in_commutes and b_out_commutes:

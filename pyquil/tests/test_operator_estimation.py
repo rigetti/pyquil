@@ -11,7 +11,7 @@ import pytest
 from pyquil.api import WavefunctionSimulator
 from pyquil.operator_estimation import ExperimentSetting, TomographyExperiment, to_json, read_json, \
     _all_qubits_diagonal_in_tpb, group_experiments, ExperimentResult, measure_observables, \
-    diagonal_basis_commutes, get_diagonalizing_basis, _max_key_overlap_term_pair, \
+    terms_diagonal_in_tpb, get_diagonalizing_basis, _max_key_overlap_term_pair, \
     _commuting_sets_by_zbasis_tomo_expt, tomo_expt_from_diagonal_sets, group_experiments_greedy
 from pyquil.paulis import sI, sX, sY, sZ, PauliSum
 from pyquil import Program, get_qc
@@ -231,13 +231,13 @@ def test_no_complex_coeffs(forest):
         res = list(measure_observables(qc, suite))
 
 
-def test_diagonal_basis_commutes():
-    assert diagonal_basis_commutes(sZ(0), sZ(0) * sZ(1))
-    assert diagonal_basis_commutes(sX(5), sZ(4))
-    assert not diagonal_basis_commutes(sX(0), sY(0) * sZ(2))
+def test_terms_diagonal_in_tpb():
+    assert terms_diagonal_in_tpb(sZ(0), sZ(0) * sZ(1))
+    assert terms_diagonal_in_tpb(sX(5), sZ(4))
+    assert not terms_diagonal_in_tpb(sX(0), sY(0) * sZ(2))
     # this last example illustrates that a pair of commuting operators
     # need not be diagonal in the same tpb
-    assert not diagonal_basis_commutes(sX(1) * sZ(0), sZ(1) * sX(0))
+    assert not terms_diagonal_in_tpb(sX(1) * sZ(0), sZ(1) * sX(0))
 
 
 def test_get_diagonalizing_basis():
