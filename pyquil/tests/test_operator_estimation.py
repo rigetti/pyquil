@@ -11,7 +11,7 @@ import pytest
 from pyquil.api import WavefunctionSimulator
 from pyquil.operator_estimation import ExperimentSetting, TomographyExperiment, to_json, read_json, \
     _all_qubits_diagonal_in_tpb, group_experiments, ExperimentResult, measure_observables, \
-    terms_diagonal_in_tpb, get_diagonalizing_basis, _max_key_overlap_term_pair, \
+    terms_diagonal_in_tpb, _get_diagonalizing_basis, _max_key_overlap_term_pair, \
     _commuting_sets_by_zbasis_tomo_expt, tomo_expt_from_diagonal_sets, group_experiments_greedy
 from pyquil.paulis import sI, sX, sY, sZ, PauliSum
 from pyquil import Program, get_qc
@@ -240,11 +240,11 @@ def test_terms_diagonal_in_tpb():
     assert not terms_diagonal_in_tpb(sX(1) * sZ(0), sZ(1) * sX(0))
 
 
-def test_get_diagonalizing_basis():
+def test__get_diagonalizing_basis():
     pauli_terms = [sZ(0), sX(1) * sZ(0), sY(2) * sX(1)]
-    assert get_diagonalizing_basis(pauli_terms) == sY(2) * sX(1) * sZ(0)
+    assert _get_diagonalizing_basis(pauli_terms) == sY(2) * sX(1) * sZ(0)
     pauli_terms = [sZ(0), sX(1) * sZ(0), sY(2) * sX(1), sZ(5) * sI(3)]
-    assert get_diagonalizing_basis(pauli_terms) == sZ(5) * sY(2) * sX(1) * sZ(0)
+    assert _get_diagonalizing_basis(pauli_terms) == sZ(5) * sY(2) * sX(1) * sZ(0)
 
 
 def test_max_key_overlap_term_pair():

@@ -539,7 +539,7 @@ def terms_diagonal_in_tpb(pauli_a: PauliTerm, pauli_b: PauliTerm):
     return True
 
 
-def get_diagonalizing_basis(list_of_pauli_terms: List[PauliTerm]):
+def _get_diagonalizing_basis(list_of_pauli_terms: List[PauliTerm]):
     """
     Find the Pauli Term with the most non-identity terms
 
@@ -590,8 +590,8 @@ def _max_key_overlap_term_pair(expt_setting: ExperimentSetting, diagonal_sets: D
             updated_pauli_out_set = diagonal_sets[key][1] + tup_pauli_terms[1]
             updated_pauli_set = (updated_pauli_in_set, updated_pauli_out_set)
             # obtain the diagonalizing bases for both the updated in and out sets
-            diagonalizing_in_term = get_diagonalizing_basis(updated_pauli_in_set)
-            diagonalizing_out_term = get_diagonalizing_basis(updated_pauli_out_set)
+            diagonalizing_in_term = _get_diagonalizing_basis(updated_pauli_in_set)
+            diagonalizing_out_term = _get_diagonalizing_basis(updated_pauli_out_set)
             # update the diagonalizing basis (key of dict) if necessary
             if len(diagonalizing_in_term) > len(in_key) or len(diagonalizing_out_term) > len(out_key):
                 del diagonal_sets[key]
