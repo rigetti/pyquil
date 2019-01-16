@@ -546,11 +546,11 @@ def _get_diagonalizing_basis(list_of_pauli_terms: List[PauliTerm]):
     :param list_of_pauli_terms: List of Pauli terms to check
     :return: The highest weight Pauli Term
     """
-    qubit_ops = set(reduce(lambda x, y: x + y,
+    unsorted_qubit_ops = set(reduce(lambda x, y: x + y,
                            [list(term._ops.items()) for term in list_of_pauli_terms]))
-    qubit_ops = sorted(list(qubit_ops), key=lambda x: x[0])
+    qubit_ops = sorted(list(unsorted_qubit_ops), key=lambda x: x[0])
 
-    return PauliTerm.from_list(list(map(lambda x: tuple(reversed(x)), qubit_ops)))
+    return PauliTerm.from_list([(i[1], i[0]) for i in qubit_ops])
 
 
 def _max_key_overlap_term_pair(expt_setting: ExperimentSetting, diagonal_sets: Dict):
