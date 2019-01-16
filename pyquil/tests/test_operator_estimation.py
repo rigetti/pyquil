@@ -138,6 +138,7 @@ def test_experiment_result():
         setting=ExperimentSetting(sX(0), sZ(0)),
         expectation=0.9,
         stddev=0.05,
+        total_counts=100,
     )
     assert str(er) == '(1+0j)*X0→(1+0j)*Z0: 0.9 +- 0.05'
 
