@@ -484,8 +484,6 @@ def measure_observables(qc: QuantumComputer, tomo_experiment: TomographyExperime
             )
 
 
-STANDARD_NUMSHOTS = 10000
-
 class CommutationError(ValueError):
     """
     Raised error when two items do not commute as promised
@@ -694,13 +692,14 @@ def estimate_pauli_sum(pauli_terms,
     if num_sample_ubound <= 2:
         raise ValueError("Something happened with our calculation of the max sample")
 
+    standard_numshots = 10000
     if symmetrize:
-        if min(STANDARD_NUMSHOTS, num_sample_ubound)//rand_samples == 0:
+        if min(standard_numshots, num_sample_ubound)//rand_samples == 0:
             raise ValueError(f"The number of shots must be larger than {rand_samples}.")
 
-        program = program.wrap_in_numshots_loop(min(STANDARD_NUMSHOTS, num_sample_ubound)//rand_samples)
+        program = program.wrap_in_numshots_loop(min(standard_numshots, num_sample_ubound)//rand_samples)
     else:
-        program = program.wrap_in_numshots_loop(min(STANDARD_NUMSHOTS, num_sample_ubound))
+        program = program.wrap_in_numshots_loop(min(standard_numshots, num_sample_ubound))
 
     compiled_prog = quantum_resource.compiler.quil_to_native_quil(program)
     binary = quantum_resource.compiler.native_quil_to_executable(compiled_prog)
