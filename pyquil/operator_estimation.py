@@ -333,6 +333,21 @@ def _all_qubits_diagonal_in_tpb(op1: PauliTerm, op2: PauliTerm):
     return all(_ops_diagonal_in_tpb(op1[q], op2[q]) for q in all_qubits)
 
 
+def _expt_settings_diagonal_in_tpb(expt_setting1: ExperimentSetting, expt_setting2: ExperimentSetting):
+    """
+    Extends the concept of being diagonal in the same tpb (see :py:func:_all_qubits_diagonal_in_tpb)
+    to ExperimentSettings, by determining if the pairs of in_operators and out_operators are
+    separately diagonal in the same tpb
+
+    :param expt_setting1: ExperimentSetting to check diagonality of in the natural tpb of ``expt_setting2``
+    :param expt_setting2: ExperimentSetting to check diagonality of in the natural tpb of ``expt_setting1``
+    :return: Boolean of diagonality in each others natural tpb
+    """
+    b_in_diagonal_tpb = _all_qubits_diagonal_in_tpb(expt_setting1.in_operator, expt_setting2.in_operator)
+    b_out_diagonal_tpb = _all_qubits_diagonal_in_tpb(expt_setting1.out_operator, expt_setting2.out_operator)
+    return b_in_diagonal_tpb and b_out_diagonal_tpb
+
+
 def construct_tpb_graph(experiments: TomographyExperiment):
     """
     Construct a graph where an edge signifies two experiments are diagonal in a TPB.

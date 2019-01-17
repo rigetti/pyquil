@@ -12,7 +12,7 @@ from pyquil.api import WavefunctionSimulator
 from pyquil.operator_estimation import ExperimentSetting, TomographyExperiment, to_json, read_json, \
     _all_qubits_diagonal_in_tpb, group_experiments, ExperimentResult, measure_observables, \
     _get_diagonalizing_basis, _max_key_overlap_term_pair, _commuting_sets_by_zbasis_tomo_expt, \
-    tomo_expt_from_diagonal_sets, group_experiments_greedy
+    tomo_expt_from_diagonal_sets, group_experiments_greedy, _expt_settings_diagonal_in_tpb
 from pyquil.paulis import sI, sX, sY, sZ, PauliSum
 from pyquil import Program, get_qc
 from pyquil.gates import *
@@ -314,3 +314,13 @@ def test_identity(forest):
                                  program=Program(X(0)), qubits=[0])
     result = list(measure_observables(qc, suite))[0]
     assert result.expectation == 0.123
+
+
+def test_expt_settings_diagonal_in_tpb():
+    expt_setting1 = ExperimentSetting(sZ(1) * sX(0), sY(1) * sZ(0))
+    expt_setting2 = ExperimentSetting(sY(2) * sZ(1), sZ(2) * sY(1))
+    assert _expt_settings_diagonal_in_tpb(expt_setting1, expt_setting2)
+    expt_setting3 = ExperimentSetting(sX(2) * sZ(1), sZ(2) * sY(1))
+    expt_setting4 = ExperimentSetting(sY(2) * sZ(1), sX(2) * sY(1))
+    assert not _expt_settings_diagonal_in_tpb(expt_setting2, expt_setting3)
+    assert not _expt_settings_diagonal_in_tpb(expt_setting2, expt_setting4)
