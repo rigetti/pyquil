@@ -11,7 +11,7 @@ import pytest
 from pyquil.api import WavefunctionSimulator, QVMConnection
 from pyquil.operator_estimation import ExperimentSetting, TomographyExperiment, to_json, read_json, \
     _all_qubits_diagonal_in_tpb, group_experiments, ExperimentResult, measure_observables, \
-    remove_imaginary, get_rotation_program, get_parity, estimate_pauli_sum, CommutationError, \
+    remove_imaginary, get_rotation_program_measure, get_parity, estimate_pauli_sum, CommutationError, \
     remove_identity, estimate_locally_commuting_operator, diagonal_basis_commutes, get_diagonalizing_basis, \
     _max_key_overlap, commuting_sets_by_zbasis
 from pyquil.paulis import sI, sX, sY, sZ, PauliSum, PauliTerm
@@ -268,7 +268,7 @@ def test_rotation_programs():
     """
     test_term = sZ(0) * sX(20) * sI(100) * sY(5)
     rotations_to_do = [RX(np.pi / 2, 5), RY(-np.pi / 2, 20)]
-    test_rotation_program = get_rotation_program(test_term)
+    test_rotation_program = get_rotation_program_measure(test_term)
     # Since the rotations commute, it's sufficient to test membership in the program,
     # without ordering. However, it's true that a more complicated rotation could be performed,
     #  where the elements would not be free to be permuted. We ignore this possibility, for now.
