@@ -11,8 +11,8 @@ import pytest
 from pyquil.api import WavefunctionSimulator
 from pyquil.operator_estimation import ExperimentSetting, TomographyExperiment, to_json, read_json, \
     _all_qubits_diagonal_in_tpb, group_experiments, ExperimentResult, measure_observables, \
-    _get_diagonalizing_basis, _max_key_overlap_term_pair, _commuting_sets_by_zbasis_tomo_expt, \
-    tomo_expt_from_diagonal_sets, group_experiments_greedy, _expt_settings_diagonal_in_tpb
+    _get_diagonalizing_basis, _max_tpb_overlap, _commuting_sets_by_zbasis_tomo_expt, \
+    group_experiments_greedy, _expt_settings_diagonal_in_tpb
 from pyquil.paulis import sI, sX, sY, sZ, PauliSum
 from pyquil import Program, get_qc
 from pyquil.gates import *
@@ -245,52 +245,35 @@ def test__get_diagonalizing_basis():
     assert _get_diagonalizing_basis(pauli_terms) == sZ(5) * sY(2) * sX(1) * sZ(0)
 
 
-def test_max_key_overlap_term_pair():
+def test_max_tpb_overlap():
     # test adding a new key-value pair
     expt_setting = ExperimentSetting(PauliTerm.from_compact_str('(1+0j)*Z7Y8Z1Y4Z2Y5Y0X6'),
                                      PauliTerm.from_compact_str('(1+0j)*Z4X8Y5X3Y7Y1'))
-    expected_dict = {(((0, 'Y'), (1, 'Z'), (2, 'Z'), (4, 'Y'), (5, 'Y'), (6, 'X'), (7, 'Z'), (8, 'Y')),
-                      ((1, 'Y'), (3, 'X'), (4, 'Z'), (5, 'Y'), (7, 'Y'), (8, 'X'))):
-                     ([PauliTerm.from_compact_str('(1+0j)*Z7Y8Z1Y4Z2Y5Y0X6')],
-                      [PauliTerm.from_compact_str('(1+0j)*Z4X8Y5X3Y7Y1')])}
-    assert _max_key_overlap_term_pair(expt_setting, {}) == expected_dict
+    expected_dict = {ExperimentSetting(sY(0) * sZ(1) * sZ(2) * sY(4) * sY(5) * sX(6) * sZ(7) * sY(8),
+                                       sY(1) * sX(3) * sZ(4) * sY(5) * sY(7) * sX(8)):
+                    [ExperimentSetting(sY(0) * sZ(1) * sZ(2) * sY(4) * sY(5) * sX(6) * sZ(7) * sY(8),
+                                       sY(1) * sX(3) * sZ(4) * sY(5) * sY(7) * sX(8))]}
+    assert _max_tpb_overlap(expt_setting, {}) == expected_dict
     # test adding to an already existing key
     expt_setting2 = ExperimentSetting(sZ(7), sY(1))
-    expected_dict2 = {(((0, 'Y'), (1, 'Z'), (2, 'Z'), (4, 'Y'), (5, 'Y'), (6, 'X'), (7, 'Z'), (8, 'Y')),
-                       ((1, 'Y'), (3, 'X'), (4, 'Z'), (5, 'Y'), (7, 'Y'), (8, 'X'))):
-                      ([PauliTerm.from_compact_str('(1+0j)*Z7Y8Z1Y4Z2Y5Y0X6'), sZ(7)],
-                       [PauliTerm.from_compact_str('(1+0j)*Z4X8Y5X3Y7Y1'), sY(1)])}
-    assert _max_key_overlap_term_pair(expt_setting2, expected_dict) == expected_dict2
+    expected_dict2 = {ExperimentSetting(sY(0) * sZ(1) * sZ(2) * sY(4) * sY(5) * sX(6) * sZ(7) * sY(8),
+                                       sY(1) * sX(3) * sZ(4) * sY(5) * sY(7) * sX(8)):
+                    [ExperimentSetting(PauliTerm.from_compact_str('(1+0j)*Z7Y8Z1Y4Z2Y5Y0X6'),
+                                       PauliTerm.from_compact_str('(1+0j)*Z4X8Y5X3Y7Y1')),
+                     ExperimentSetting(sZ(7), sY(1))]}
+    assert _max_tpb_overlap(expt_setting2, expected_dict) == expected_dict2
 
 
-def test__commuting_sets_by_zbasis_tomo_expt():
+def test_commuting_sets_by_zbasis_tomo_expt():
     tomo_expt_settings = [ExperimentSetting(sZ(1) * sX(0), sY(2) * sY(1)),
                           ExperimentSetting(sX(2) * sZ(1), sY(2) * sZ(0))]
     tomo_expt_program = Program(H(0), H(1), H(2))
     tomo_expt_qubits = [0, 1, 2]
     tomo_expt = TomographyExperiment(tomo_expt_settings, tomo_expt_program, tomo_expt_qubits)
-    expected_dict = {(((0, 'X'), (1, 'Z'), (2, 'X')), ((0, 'Z'), (1, 'Y'), (2, 'Y'))):
-                     ([sZ(1) * sX(0), sX(2) * sZ(1)], [sY(2) * sY(1), sY(2) * sZ(0)])}
+    expected_dict = {ExperimentSetting(sX(0) * sZ(1) * sX(2), sZ(0) * sY(1) * sY(2)):
+                     [ExperimentSetting(sZ(1) * sX(0), sY(2) * sY(1)),
+                      ExperimentSetting(sX(2) * sZ(1), sY(2) * sZ(0))]}
     assert expected_dict == _commuting_sets_by_zbasis_tomo_expt(tomo_expt)
-
-
-def test_tomo_expt_from_diagonal_sets():
-    ungrouped_tomo_expt = TomographyExperiment(
-        [[ExperimentSetting(PauliTerm.from_compact_str('(1+0j)*Z7Y8Z1Y4Z2Y5Y0X6'),
-                            PauliTerm.from_compact_str('(1+0j)*Z4X8Y5X3Y7Y1'))],
-         [ExperimentSetting(sZ(7), sY(1))]], program=Program(H(0), H(1), H(2)),
-        qubits=[0, 1, 2])
-    diag_sets = {(((0, 'Y'), (1, 'Z'), (2, 'Z'), (4, 'Y'), (5, 'Y'), (6, 'X'), (7, 'Z'), (8, 'Y')),
-                  ((1, 'Y'), (3, 'X'), (4, 'Z'), (5, 'Y'), (7, 'Y'), (8, 'X'))):
-                 ([PauliTerm.from_compact_str('(1+0j)*Z7Y8Z1Y4Z2Y5Y0X6'), sZ(7)],
-                  [PauliTerm.from_compact_str('(1+0j)*Z4X8Y5X3Y7Y1'), sY(1)])}
-    grouped_tomo_expt = tomo_expt_from_diagonal_sets(diag_sets, ungrouped_tomo_expt)
-    expected_grouped_tomo_expt = TomographyExperiment(
-        [[ExperimentSetting(PauliTerm.from_compact_str('(1+0j)*Z7Y8Z1Y4Z2Y5Y0X6'),
-                            PauliTerm.from_compact_str('(1+0j)*Z4X8Y5X3Y7Y1')), ExperimentSetting(sZ(7), sY(1))]],
-        program=Program(H(0), H(1), H(2)),
-        qubits=[0, 1, 2])
-    assert grouped_tomo_expt == expected_grouped_tomo_expt
 
 
 def test_group_experiments_greedy():

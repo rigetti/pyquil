@@ -558,62 +558,45 @@ def _get_diagonalizing_basis(list_of_pauli_terms: List[PauliTerm]):
     return PauliTerm.from_list([(i[1], i[0]) for i in qubit_ops])
 
 
-def _max_key_overlap_term_pair(expt_setting: ExperimentSetting, diagonal_sets: Dict):
+def _max_tpb_overlap(expt_setting: ExperimentSetting, diagonal_sets: Dict):
     """
-    Calculate the max overlap of an ExperimentSetting with keys of diagonal_sets.
-    Returns a different key if we find any collisions. If no collisions are found,
-    then the ExperimentSetting is added (as a tuple) and the key is updated so it has the
-    largest weight.
+    Calculate the max overlap of an ExperimentSetting with other ExperimentSettings specified
+    by keys of diagonal_sets.
+    Returns a different key if ``expt_setting`` isn't diagonal in the same tpb as any of the keys.
+    If it is diagonal in the same tpb as some key, then the corresponding value (a list of ExperimentSettings)
+    is updated to include ``expt_setting`` and the key is updated so it has the largest weight PauliTerm
+    specifying the tpb.
 
     :param expt_setting: ExperimentSetting
-    :param diagonal_sets: dictionary with
-        (key, value): ((diagonal_in_basis, diagonal_out_basis): list of tuples of PauliTerms
-                                                    that are diagonal in those bases)
+    :param diagonal_sets: dictionary keyed with ExperimentSetting, and with each value being a 
+            list of ExperimentSettings
     :return: the updated diagonal_sets dictionary updated with the input expt_setting placed
             appropriately into it
     """
-    # construct a tuple out of the in and out operators of the ExperimentSetting
-    tup_pauli_terms = tuple(([expt_setting.in_operator], [expt_setting.out_operator]))
-    # loop through keys and determine if in_operator is diagonal in the same tpb as in_key,
-    # and out_operator the same with out_key
-    for key in list(diagonal_sets.keys()):
-        # obtain the in and out keys
-        in_key = key[0]
-        out_key = key[1]
-        # construct PauliTerms from in and out keys
-        pauli_in_from_key = PauliTerm.from_list([x[::-1] for x in in_key])
-        pauli_out_from_key = PauliTerm.from_list([x[::-1] for x in out_key])
-        # determine if in_operator is diagonal in the same tpb as the PauliTerm constructed
-        # from the in_key; do the same for the out_operator and the out_key
-        b_in_commutes = _all_qubits_diagonal_in_tpb(tup_pauli_terms[0][0], pauli_in_from_key)
-        b_out_commutes = _all_qubits_diagonal_in_tpb(tup_pauli_terms[1][0], pauli_out_from_key)
-        # update the dict value if both the pairs are diagonal in the same tpb
-        # (note: the two tpbs need not be the same)
-        if b_in_commutes and b_out_commutes:
-            # updated the in and out sets comprising the dict's value
-            updated_pauli_in_set = diagonal_sets[key][0] + tup_pauli_terms[0]
-            updated_pauli_out_set = diagonal_sets[key][1] + tup_pauli_terms[1]
-            updated_pauli_set = (updated_pauli_in_set, updated_pauli_out_set)
+    # loop through dict items
+    for key, es_list in diagonal_sets.items():
+        # determine if key is diagonal in the same tpb as expt_setting
+        b_diagonal_tpb = _expt_settings_diagonal_in_tpb(key, expt_setting)
+        # update the dict value if so
+        if b_diagonal_tpb:
+            # determine the updated list of ExperimentSettings
+            updated_es_list = es_list + [expt_setting]
             # obtain the diagonalizing bases for both the updated in and out sets
-            diagonalizing_in_term = _get_diagonalizing_basis(updated_pauli_in_set)
-            diagonalizing_out_term = _get_diagonalizing_basis(updated_pauli_out_set)
+            diagonalizing_in_term = _get_diagonalizing_basis([es.in_operator for es in updated_es_list])
+            diagonalizing_out_term = _get_diagonalizing_basis([es.out_operator for es in updated_es_list])
             # update the diagonalizing basis (key of dict) if necessary
-            if len(diagonalizing_in_term) > len(in_key) or len(diagonalizing_out_term) > len(out_key):
+            if len(diagonalizing_in_term) > len(key.in_operator) or len(diagonalizing_out_term) > len(key.out_operator):
                 del diagonal_sets[key]
-                new_in_key = tuple(sorted(diagonalizing_in_term._ops.items(), key=lambda x: x[0]))
-                new_out_key = tuple(sorted(diagonalizing_out_term._ops.items(), key=lambda x: x[0]))
-                new_key = (new_in_key, new_out_key)
-                diagonal_sets[new_key] = updated_pauli_set
+                new_key = ExperimentSetting(diagonalizing_in_term, diagonalizing_out_term)
+                diagonal_sets[new_key] = updated_es_list
             else:
-                diagonal_sets[key] = updated_pauli_set
+                diagonal_sets[key] = updated_es_list
             return diagonal_sets
 
-    # made it through all keys and sets so need to make a new set
-    # always need to sort because new pauli term functionality
-    new_in_key = tuple(sorted(tup_pauli_terms[0][0]._ops.items(), key=lambda x: x[0]))
-    new_out_key = tuple(sorted(tup_pauli_terms[1][0]._ops.items(), key=lambda x: x[0]))
-    new_key = (new_in_key, new_out_key)
-    diagonal_sets[new_key] = tup_pauli_terms
+    # made it through entire dict without finding any ExperimentSetting with shared tpb,
+    # so need to make a new item
+    diagonal_sets[expt_setting] = [expt_setting]
+
     return diagonal_sets
 
 
@@ -631,29 +614,8 @@ def _commuting_sets_by_zbasis_tomo_expt(tomo_expt: TomographyExperiment):
     for expt_setting in tomo_expt:
         assert len(expt_setting) == 1, 'already grouped?'
         expt_setting = expt_setting[0]
-        diagonal_sets = _max_key_overlap_term_pair(expt_setting, diagonal_sets)
+        diagonal_sets = _max_tpb_overlap(expt_setting, diagonal_sets)
     return diagonal_sets
-
-
-def tomo_expt_from_diagonal_sets(diagonal_sets: Dict, tomoexpt: TomographyExperiment):
-    """
-    Construct a grouped version of TomographyExperiment, given a dictionary
-    that contains the grouping information
-
-    :param diagonal_sets: dict containing the diagonal sets of tomoexpt, in the form
-        (key, value): ((diagonal_in_basis, diagonal_out_basis): list of tuples of PauliTerms
-                                                    that are diagonal in those bases)
-    :param tomoexpt: the original experiment suite, ungrouped by diagonal bases
-    :return: TomographyExperiment, grouped by ExperimentSettings that are diagonal in the
-        same tensor product basis
-    """
-    l_expt_settings = []
-    for v in diagonal_sets.values():
-        expt_settings = [ExperimentSetting(v[0][i], v[1][i]) for i in range(len(v[0]))]
-        l_expt_settings.append(expt_settings)
-    my_tomo_expt = TomographyExperiment(l_expt_settings, program=tomoexpt.program, qubits=tomoexpt.qubits)
-
-    return my_tomo_expt
 
 
 def group_experiments_greedy(tomo_expt: TomographyExperiment):
@@ -665,5 +627,6 @@ def group_experiments_greedy(tomo_expt: TomographyExperiment):
         it consists of PauliTerms diagonal in the same tensor product basis
     """
     diag_sets = _commuting_sets_by_zbasis_tomo_expt(tomo_expt)
-    grouped_tomo_expt = tomo_expt_from_diagonal_sets(diag_sets, tomo_expt)
+    grouped_expt_settings_list = list(diag_sets.values())
+    grouped_tomo_expt = TomographyExperiment(grouped_expt_settings_list, program=tomo_expt.program, qubits=tomo_expt.qubits)
     return grouped_tomo_expt
