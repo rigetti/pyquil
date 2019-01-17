@@ -427,28 +427,30 @@ def test_diagonal_basis_commutes():
 
 def test_get_diagonalizing_basis():
     xxxx_terms = sX(1) * sX(2) + sX(2) + sX(3) * sX(4) + sX(4) + \
-                 sX(1) * sX(3) * sX(4) + sX(1) * sX(4) + sX(1) * sX(2) * sX(3)
+        sX(1) * sX(3) * sX(4) + sX(1) * sX(4) + sX(1) * sX(2) * sX(3)
     true_term = sX(1) * sX(2) * sX(3) * sX(4)
     assert get_diagonalizing_basis(xxxx_terms.terms) == true_term
 
     zzzz_terms = sZ(1) * sZ(2) + sZ(3) * sZ(4) + \
-                 sZ(1) * sZ(3) + sZ(1) * sZ(3) * sZ(4)
+        sZ(1) * sZ(3) + sZ(1) * sZ(3) * sZ(4)
     assert get_diagonalizing_basis(zzzz_terms.terms) == sZ(1) * sZ(2) * \
-                                                        sZ(3) * sZ(4)
+        sZ(3) * sZ(4)
 
 
 def test_max_key_overlap():
     # adds to already existing key
     x0_term = sX(0)
     diag_sets = {((0, 'X'), (1, 'Z')): [sX(0) * sZ(1), sZ(1)], ((0, 'Y'), (1, 'Z')): [sY(0), sZ(1), sY(0) * sZ(1)]}
-    d_expected = {((0, 'X'), (1, 'Z')): [sX(0) * sZ(1), sZ(1), sX(0)], ((0, 'Y'), (1, 'Z')): [sY(0), sZ(1), sY(0) * sZ(1)]}
+    d_expected = {((0, 'X'), (1, 'Z')): [sX(0) * sZ(1), sZ(1), sX(0)],
+                  ((0, 'Y'), (1, 'Z')): [sY(0), sZ(1), sY(0) * sZ(1)]}
     assert _max_key_overlap(x0_term, diag_sets) == d_expected
 
     # adds a new key
     x0_term = sX(0)
     diag_sets = {((0, 'Z'), (1, 'Z')): [sZ(0) * sZ(1), sZ(1)], ((0, 'Y'), (1, 'Z')): [sY(0), sZ(1), sY(0) * sZ(1)]}
-    d_expected = d_expected = {((0, 'Z'), (1, 'Z')): [sZ(0) * sZ(1), sZ(1)], ((0, 'Y'), (1, 'Z')): [sY(0), sZ(1), sY(0) * sZ(1)],
-             ((0, 'X'),): [sX(0)]}
+    d_expected = d_expected = {((0, 'Z'), (1, 'Z')): [sZ(0) * sZ(1), sZ(1)],
+                               ((0, 'Y'), (1, 'Z')): [sY(0), sZ(1), sY(0) * sZ(1)],
+                               ((0, 'X'),): [sX(0)]}
     assert _max_key_overlap(x0_term, diag_sets) == d_expected
 
 
@@ -465,7 +467,7 @@ def test_commuting_sets_by_zbasis():
 
     d_result = commuting_sets_by_zbasis(term1 + term2)
     d_expected = {((0, 'Z'), (1, 'X'), (2, 'Z'), (3, 'Y'), (5, 'Y'), (6, 'Z'), (7, 'X')):
-        [coeff1 * sX(1) * sZ(2) * sY(3) * sY(5) * sZ(6) * sX(7), coeff2 * sZ(0) * sZ(6)]}
+                  [coeff1 * sX(1) * sZ(2) * sY(3) * sY(5) * sZ(6) * sX(7), coeff2 * sZ(0) * sZ(6)]}
     assert d_result == d_expected
 
     # clumping terms relevant for H2 into same diagonal bases
@@ -483,11 +485,11 @@ def test_commuting_sets_by_zbasis():
 
     # clumping 4-qubit terms into same diagonal bases
     zzzz_terms = sZ(1) * sZ(2) + sZ(3) * sZ(4) + \
-                 sZ(1) * sZ(3) + sZ(1) * sZ(3) * sZ(4)
+        sZ(1) * sZ(3) + sZ(1) * sZ(3) * sZ(4)
     xzxz_terms = sX(1) * sZ(2) + sX(3) * sZ(4) + \
-                 sX(1) * sZ(2) * sX(3) * sZ(4) + sX(1) * sX(3) * sZ(4)
+        sX(1) * sZ(2) * sX(3) * sZ(4) + sX(1) * sX(3) * sZ(4)
     xxxx_terms = sX(1) * sX(2) + sX(2) + sX(3) * sX(4) + sX(4) + \
-                 sX(1) * sX(3) * sX(4) + sX(1) * sX(4) + sX(1) * sX(2) * sX(3)
+        sX(1) * sX(3) * sX(4) + sX(1) * sX(4) + sX(1) * sX(2) * sX(3)
     yyyy_terms = sY(1) * sY(2) + sY(3) * sY(4) + sY(1) * sY(2) * sY(3) * sY(4)
 
     pauli_sum = zzzz_terms + xzxz_terms + xxxx_terms + yyyy_terms

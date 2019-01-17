@@ -549,7 +549,7 @@ def get_rotation_program(pauli_term):
 
 
 def get_parity(pauli_terms, bitstring_results):
-    """
+    r"""
     Calculate the eigenvalues of Pauli operators given results of projective measurements
 
     The single-qubit projective measurement results (elements of
@@ -587,8 +587,8 @@ def get_parity(pauli_terms, bitstring_results):
         memory_index = np.array(list(map(lambda x: index_mapper[x],
                                          sorted(term.get_qubits()))))
 
-        results[row_idx, :] = [-2 * (sum(x[memory_index]) % 2) +
-                               1 for x in bitstring_results]
+        results[row_idx, :] = [-2 * (sum(x[memory_index]) % 2)
+                               + 1 for x in bitstring_results]
     return results
 
 
@@ -617,7 +617,7 @@ def estimate_pauli_sum(pauli_terms,
                        commutation_check=True,
                        symmetrize=True,
                        rand_samples=16):
-    """
+    r"""
     Estimate the mean of a sum of pauli terms to set variance
 
     The sample variance is calculated by
@@ -678,7 +678,7 @@ def estimate_pauli_sum(pauli_terms,
     if symmetrize:
         theta = program.declare("ro_symmetrize", "REAL", len(qubits))
         for (idx, q) in enumerate(qubits):
-            program += [RZ(np.pi/2, q), RY(theta[idx], q), RZ(-np.pi/2, q)]
+            program += [RZ(np.pi / 2, q), RY(theta[idx], q), RZ(-np.pi / 2, q)]
 
     ro = program.declare("ro", "BIT", memory_size=len(qubits))
     for num, qubit in enumerate(qubits):
@@ -688,16 +688,16 @@ def estimate_pauli_sum(pauli_terms,
         list(map(lambda x: x.coefficient, pauli_terms))).reshape((-1, 1))
 
     # upper bound on samples given by IV of arXiv:1801.03524
-    num_sample_ubound = 10 * int(np.ceil(np.sum(np.abs(coeff_vec))**2 / variance_bound))
+    num_sample_ubound = 10 * int(np.ceil(np.sum(np.abs(coeff_vec)) ** 2 / variance_bound))
     if num_sample_ubound <= 2:
         raise ValueError("Something happened with our calculation of the max sample")
 
     standard_numshots = 10000
     if symmetrize:
-        if min(standard_numshots, num_sample_ubound)//rand_samples == 0:
+        if min(standard_numshots, num_sample_ubound) // rand_samples == 0:
             raise ValueError(f"The number of shots must be larger than {rand_samples}.")
 
-        program = program.wrap_in_numshots_loop(min(standard_numshots, num_sample_ubound)//rand_samples)
+        program = program.wrap_in_numshots_loop(min(standard_numshots, num_sample_ubound) // rand_samples)
     else:
         program = program.wrap_in_numshots_loop(min(standard_numshots, num_sample_ubound))
 
@@ -852,8 +852,8 @@ def estimate_general_psum_symmeterized(program, pauli_sum, variance_bound,
         for term in pauli_sum:
             exp_v, exp_var, exp_shots = \
                 estimate_locally_commuting_operator_symmeterized(
-                program, PauliSum([term]), variance_bound_per_term,
-                quantum_resource, confusion_mat_dict=confusion_mat_dict)
+                    program, PauliSum([term]), variance_bound_per_term,
+                    quantum_resource, confusion_mat_dict=confusion_mat_dict)
             expected_value += exp_v
             estimator_variance += exp_var
             total_shots += exp_shots
@@ -912,9 +912,9 @@ def estimate_locally_commuting_operator_symmeterized(program, pauli_sum,
 
     for qubit_op_key, pset in psets.items():
         results = estimate_pauli_sum_symmeterized(pset, dict(qubit_op_key), program,
-                                     variance_bound_per_set,
-                                     quantum_resource,
-                                     commutation_check=False,
+                                                  variance_bound_per_set,
+                                                  quantum_resource,
+                                                  commutation_check=False,
                                                   confusion_mat_dict=confusion_mat_dict)
 
         assert results.variance < variance_bound_per_set
@@ -941,8 +941,8 @@ def diagonal_basis_commutes(pauli_a, pauli_b):
     """
     overlapping_active_qubits = set(pauli_a.get_qubits()) & set(pauli_b.get_qubits())
     for qubit_index in overlapping_active_qubits:
-        if (pauli_a[qubit_index] != 'I' and pauli_b[qubit_index] != 'I' and
-           pauli_a[qubit_index] != pauli_b[qubit_index]):
+        if (pauli_a[qubit_index] != 'I' and pauli_b[qubit_index] != 'I'
+                and pauli_a[qubit_index] != pauli_b[qubit_index]):
             return False
 
     return True
@@ -956,7 +956,7 @@ def get_diagonalizing_basis(list_of_pauli_terms):
     :rtype: PauliTerm
     """
     qubit_ops = set(reduce(lambda x, y: x + y,
-                       [list(term._ops.items()) for term in list_of_pauli_terms]))
+                           [list(term._ops.items()) for term in list_of_pauli_terms]))
     qubit_ops = sorted(list(qubit_ops), key=lambda x: x[0])
 
     return PauliTerm.from_list(list(map(lambda x: tuple(reversed(x)), qubit_ops)))
