@@ -484,19 +484,6 @@ def measure_observables(qc: QuantumComputer, tomo_experiment: TomographyExperime
             )
 
 
-def _H(q1):
-    """
-    A Hadamard in terms of RX(+-pi/2) and RZ(theta)
-
-    .. note:
-        This introduces a different global phase! Don't control this gate.
-    """
-    p = Program()
-    p.inst(RY(-np.pi / 2, q1))
-    p.inst(RZ(np.pi, q1))
-    return p
-
-
 def _CNOT(q1, q2):
     """
     A CNOT in terms of RX(+-pi/2), RZ(theta), and CZ
@@ -507,9 +494,9 @@ def _CNOT(q1, q2):
 
     """
     p = Program()
-    p.inst(_H(q2))
+    p.inst(H(q2))
     p.inst(CZ(q1, q2))
-    p.inst(_H(q2))
+    p.inst(H(q2))
     return p
 
 
@@ -534,7 +521,7 @@ def basic_compile(program):
             elif inst.name == 'CNOT':
                 new_prog += _CNOT(*inst.qubits)
             elif inst.name == "H":
-                new_prog += _H(inst.qubits[0])
+                new_prog += inst
             elif inst.name == "X":
                 new_prog += inst
             elif inst.name in [gate.name for gate in new_prog.defined_gates]:
