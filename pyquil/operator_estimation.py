@@ -484,22 +484,6 @@ def measure_observables(qc: QuantumComputer, tomo_experiment: TomographyExperime
             )
 
 
-def _CNOT(q1, q2):
-    """
-    A CNOT in terms of RX(+-pi/2), RZ(theta), and CZ
-
-    .. note:
-        This uses two of :py:func:`_H`, so it picks up twice the global phase.
-        Don't control this gate.
-
-    """
-    p = Program()
-    p.inst(H(q2))
-    p.inst(CZ(q1, q2))
-    p.inst(H(q2))
-    return p
-
-
 def is_magic_angle(angle):
     return (np.isclose(np.abs(angle), pi / 2)
             or np.isclose(np.abs(angle), pi)
@@ -519,7 +503,7 @@ def basic_compile(program):
             elif inst.name == 'RY':
                 new_prog += inst
             elif inst.name == 'CNOT':
-                new_prog += _CNOT(*inst.qubits)
+                new_prog += inst
             elif inst.name == "H":
                 new_prog += inst
             elif inst.name == "X":
