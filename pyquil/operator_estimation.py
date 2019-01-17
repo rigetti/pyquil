@@ -275,12 +275,13 @@ def _local_pauli_eig_meas(op, idx):
     raise ValueError(f'Unknown operation {op}')
 
 
-def _ops_diagonal_in_tpb(op_code1: str, op_code2: str):
+def _ops_commute(op_code1: str, op_code2: str):
     """
-    Given two 1q op strings (I, X, Y, or Z) return whether they are diagonal in each others'
-    "natural" tensor product basis (see doc-string for :py:func:`_all_qubits_diagonal_in_tpb`)
+    Given two 1q op strings (I, X, Y, or Z), determine whether they commute
 
-    I.e. are they the same or is one of them 'I'.
+    :param op_code1: First operation
+    :param op_code2: Second operation
+    :return: Boolean specifying whether the two operations commute
     """
     if op_code1 not in ['X', 'Y', 'Z', 'I']:
         raise ValueError(f"Unknown op_code {op_code1}")
@@ -330,7 +331,7 @@ def _all_qubits_diagonal_in_tpb(op1: PauliTerm, op2: PauliTerm):
     :return: Boolean of diagonality in each others natural tpb
     """
     all_qubits = set(op1.get_qubits()) & set(op2.get_qubits())
-    return all(_ops_diagonal_in_tpb(op1[q], op2[q]) for q in all_qubits)
+    return all(_ops_commute(op1[q], op2[q]) for q in all_qubits)
 
 
 def _expt_settings_diagonal_in_tpb(expt_setting1: ExperimentSetting, expt_setting2: ExperimentSetting):
