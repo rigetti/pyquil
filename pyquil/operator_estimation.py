@@ -484,22 +484,6 @@ def measure_observables(qc: QuantumComputer, tomo_experiment: TomographyExperime
             )
 
 
-def _X(q1):
-    """
-    An RX in terms of RX(pi/2)
-
-    .. note:
-        This introduces a global phase! Don't control this gate.
-
-    :param q1:
-    :return:
-    """
-    p = Program()
-    p += RX(np.pi / 2, q1)
-    p += RX(np.pi / 2, q1)
-    return p
-
-
 def _H(q1):
     """
     A Hadamard in terms of RX(+-pi/2) and RZ(theta)
@@ -552,7 +536,7 @@ def basic_compile(program):
             elif inst.name == "H":
                 new_prog += _H(inst.qubits[0])
             elif inst.name == "X":
-                new_prog += _X(inst.qubits[0])
+                new_prog += inst
             elif inst.name in [gate.name for gate in new_prog.defined_gates]:
                 new_prog += inst
             else:
