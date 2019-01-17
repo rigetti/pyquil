@@ -278,7 +278,7 @@ def _local_pauli_eig_meas(op, idx):
 def _ops_diagonal_in_tpb(op_code1: str, op_code2: str):
     """
     Given two 1q op strings (I, X, Y, or Z) return whether they are diagonal in each others'
-    "natural" tensor product basis (see doc-string for func:terms_diagonal_in_tpb)
+    "natural" tensor product basis (see doc-string for :py:func:`_all_qubits_diagonal_in_tpb`)
 
     I.e. are they the same or is one of them 'I'.
     """
@@ -301,9 +301,35 @@ def _ops_diagonal_in_tpb(op_code1: str, op_code2: str):
 def _all_qubits_diagonal_in_tpb(op1: PauliTerm, op2: PauliTerm):
     """
     Compare all qubits between two PauliTerms to see if they are all diagonal in an
-    overall shared tensor product basis.
+    overall shared tensor product basis. More concretely, test if ``op1`` and
+    ``op2`` are diagonal in each others' "natural" tensor product basis.
+
+    Given some PauliTerm, the 'natural' tensor product basis (tpb) to
+    diagonalize this term is the one which diagonalizes each Pauli operator in the
+    product term-by-term.
+
+    For example, X(1) * Z(0) would be diagonal in the 'natural' tensor product basis
+    {(|0> +/- |1>)/Sqrt[2]} * {|0>, |1>}, whereas Z(1) * X(0) would be diagonal
+    in the 'natural' tpb {|0>, |1>} * {(|0> +/- |1>)/Sqrt[2]}. The two operators
+    commute but are not diagonal in each others 'natural' tpb (in fact, they are
+    anti-diagonal in each others 'natural' tpb). This function tests whether two
+    operators given as PauliTerms are both diagonal in each others 'natural' tpb.
+
+    Note that for the given example of X(1) * Z(0) and Z(1) * X(0), we can construct
+    the following basis which simultaneously diagonalizes both operators:
+
+      -- 2 * |0>' = |0> (|0> + |1>) + |1> (|0> - |1>)
+      -- 2 * |1>' = |0> (|0> + |1>) - |1> (|0> - |1>)
+      -- 2 * |2>' = |0> (|0> - |1>) + |1> (|0> + |1>)
+      -- 2 * |3>' = |0> (-|0> + |1>) + |1> (|0> + |1>)
+
+    In this basis, X Z looks like diag(1, -1, 1, -1), and Z X looks like diag(1, 1, -1, -1)
+
+    :param op1: PauliTerm to check diagonality of in the natural tpb of ``op2``
+    :param op2: PauliTerm to check diagonality of in the natural tpb of ``op1``
+    :return: Boolean of diagonality in each others natural tpb
     """
-    all_qubits = set(op1.get_qubits()) | set(op2.get_qubits())
+    all_qubits = set(op1.get_qubits()) & set(op2.get_qubits())
     return all(_ops_diagonal_in_tpb(op1[q], op2[q]) for q in all_qubits)
 
 
@@ -501,44 +527,6 @@ def measure_observables(qc: QuantumComputer, tomo_experiment: TomographyExperime
             )
 
 
-def terms_diagonal_in_tpb(pauli_a: PauliTerm, pauli_b: PauliTerm):
-    """
-    Test if ``pauli_a`` and ``pauli_b`` are diagonal in each others' "natural" tensor product basis.
-
-    Given some PauliTerm, the 'natural' tensor product basis (tpb) to
-    diagonalize this term is the one which diagonalizes each Pauli operator in the
-    product term-by-term.
-
-    For example, X(1) * Z(0) would be diagonal in the 'natural' tensor product basis
-    {(|0> +/- |1>)/Sqrt[2]} * {|0>, |1>}, whereas Z(1) * X(0) would be diagonal
-    in the 'natural' tpb {|0>, |1>} * {(|0> +/- |1>)/Sqrt[2]}. The two operators
-    commute but are not diagonal in each others 'natural' tpb (in fact, they are
-    anti-diagonal in each others 'natural' tpb). This function tests whether two
-    operators given as PauliTerms are both diagonal in each others 'natural' tpb.
-
-    Note that for the given example of X(1) * Z(0) and Z(1) * X(0), we can construct
-    the following basis which simultaneously diagonalizes both operators:
-
-      -- 2 * |0>' = |0> (|0> + |1>) + |1> (|0> - |1>)
-      -- 2 * |1>' = |0> (|0> + |1>) - |1> (|0> - |1>)
-      -- 2 * |2>' = |0> (|0> - |1>) + |1> (|0> + |1>)
-      -- 2 * |3>' = |0> (-|0> + |1>) + |1> (|0> + |1>)
-
-    In this basis, X Z looks like diag(1, -1, 1, -1), and Z X looks like diag(1, 1, -1, -1)
-
-    :param pauli_a: PauliTerm to check diagonality of in the natural tpb of `pauli_b`
-    :param pauli_b: PauliTerm to check diagonality of in the natural tpb of `pauli_a`
-    :return: Boolean of diagonality in each others natural tpb
-    """
-    overlapping_active_qubits = set(pauli_a.get_qubits()) & set(pauli_b.get_qubits())
-    for qubit_index in overlapping_active_qubits:
-        if (pauli_a[qubit_index] != 'I' and pauli_b[qubit_index] != 'I'
-                and pauli_a[qubit_index] != pauli_b[qubit_index]):
-            return False
-
-    return True
-
-
 def _get_diagonalizing_basis(list_of_pauli_terms: List[PauliTerm]):
     """
     Find the Pauli Term with the most non-identity terms
@@ -580,8 +568,8 @@ def _max_key_overlap_term_pair(expt_setting: ExperimentSetting, diagonal_sets: D
         pauli_out_from_key = PauliTerm.from_list([x[::-1] for x in out_key])
         # determine if in_operator is diagonal in the same tpb as the PauliTerm constructed
         # from the in_key; do the same for the out_operator and the out_key
-        b_in_commutes = terms_diagonal_in_tpb(tup_pauli_terms[0][0], pauli_in_from_key)
-        b_out_commutes = terms_diagonal_in_tpb(tup_pauli_terms[1][0], pauli_out_from_key)
+        b_in_commutes = _all_qubits_diagonal_in_tpb(tup_pauli_terms[0][0], pauli_in_from_key)
+        b_out_commutes = _all_qubits_diagonal_in_tpb(tup_pauli_terms[1][0], pauli_out_from_key)
         # update the dict value if both the pairs are diagonal in the same tpb
         # (note: the two tpbs need not be the same)
         if b_in_commutes and b_out_commutes:

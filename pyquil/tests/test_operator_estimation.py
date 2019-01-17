@@ -11,8 +11,8 @@ import pytest
 from pyquil.api import WavefunctionSimulator
 from pyquil.operator_estimation import ExperimentSetting, TomographyExperiment, to_json, read_json, \
     _all_qubits_diagonal_in_tpb, group_experiments, ExperimentResult, measure_observables, \
-    terms_diagonal_in_tpb, _get_diagonalizing_basis, _max_key_overlap_term_pair, \
-    _commuting_sets_by_zbasis_tomo_expt, tomo_expt_from_diagonal_sets, group_experiments_greedy
+    _get_diagonalizing_basis, _max_key_overlap_term_pair, _commuting_sets_by_zbasis_tomo_expt, \
+    tomo_expt_from_diagonal_sets, group_experiments_greedy
 from pyquil.paulis import sI, sX, sY, sZ, PauliSum
 from pyquil import Program, get_qc
 from pyquil.gates import *
@@ -124,6 +124,13 @@ def test_all_ops_belong_to_tpb():
             assert _all_qubits_diagonal_in_tpb(e1.in_operator, e2.in_operator)
             assert _all_qubits_diagonal_in_tpb(e1.out_operator, e2.out_operator)
 
+    assert _all_qubits_diagonal_in_tpb(sZ(0), sZ(0) * sZ(1))
+    assert _all_qubits_diagonal_in_tpb(sX(5), sZ(4))
+    assert not _all_qubits_diagonal_in_tpb(sX(0), sY(0) * sZ(2))
+    # this last example illustrates that a pair of commuting operators
+    # need not be diagonal in the same tpb
+    assert not _all_qubits_diagonal_in_tpb(sX(1) * sZ(0), sZ(1) * sX(0))
+
 
 def test_group_experiments():
     expts = [  # cf above, I removed the inner nesting. Still grouped visually
@@ -229,15 +236,6 @@ def test_no_complex_coeffs(forest):
                                  qubits=[0])
     with pytest.raises(ValueError):
         res = list(measure_observables(qc, suite))
-
-
-def test_terms_diagonal_in_tpb():
-    assert terms_diagonal_in_tpb(sZ(0), sZ(0) * sZ(1))
-    assert terms_diagonal_in_tpb(sX(5), sZ(4))
-    assert not terms_diagonal_in_tpb(sX(0), sY(0) * sZ(2))
-    # this last example illustrates that a pair of commuting operators
-    # need not be diagonal in the same tpb
-    assert not terms_diagonal_in_tpb(sX(1) * sZ(0), sZ(1) * sX(0))
 
 
 def test__get_diagonalizing_basis():
