@@ -266,8 +266,8 @@ def _local_pauli_eig_prep(op: str, idx: int):
 def _local_pauli_eig_meas(op, idx):
     """
     Generate gate sequence to measure in the eigenbasis of a Pauli operator, assuming
-    we are only able to measure in the Z eigenbasis. (Note: This is essentially the Hermitian
-    conjugate of :py:func:`_local_pauli_eig_prep`)
+    we are only able to measure in the Z eigenbasis. (Note: The unitary operations of this
+    Program are essentially the Hermitian conjugates of those in :py:func:`_local_pauli_eig_prep`)
 
     """
     if op == 'X':
@@ -525,9 +525,12 @@ def remove_imaginary(pauli_sum: PauliSum) -> PauliSum:
     return new_term
 
 
-def get_rotation_program(pauli_term: PauliTerm) -> Program:
+def get_rotation_program_measure(pauli_term: PauliTerm) -> Program:
     """
-    Generate a rotation program so that the pauli term is diagonal
+    Generate a rotation program that diagonalizes a PauliTerm in order
+    to measure it out. The unitary operations in this Program correspond to the Hermitian conjugate
+    of change of basis transformation from the computational basis to the "natural"
+    tensor product basis of the given `pauli_term`
 
     :param pauli_term: The Pauli term used to generate diagonalizing
                                  one-qubit rotations.
@@ -664,7 +667,7 @@ def estimate_pauli_sum(pauli_terms,
     pauli_for_rotations = PauliTerm.from_list(
         [(value, key) for key, value in basis_transform_dict.items()])
 
-    program += get_rotation_program(pauli_for_rotations)
+    program += get_rotation_program_measure(pauli_for_rotations)
 
     qubits = sorted(list(basis_transform_dict.keys()))
     if symmetrize:
