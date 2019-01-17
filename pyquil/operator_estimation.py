@@ -534,10 +534,11 @@ def _get_diagonalizing_basis(list_of_pauli_terms: List[PauliTerm]):
     :param list_of_pauli_terms: List of Pauli terms to check
     :return: The highest weight Pauli Term
     """
-    unsorted_qubit_ops = set(reduce(lambda x, y: x + y,
-                                    [list(term._ops.items()) for term in list_of_pauli_terms]))
+    # create an unsorted (frozen)set of tuples of the form (qubit, operation)
+    unsorted_qubit_ops = reduce(lambda x, y: x | y, (pt.operations_as_set() for pt in list_of_pauli_terms))
+    # create a list of tuples of the form (qubit, operation), sorted by qubits
     qubit_ops = sorted(list(unsorted_qubit_ops), key=lambda x: x[0])
-
+    # return a PauliTerm created from a list of tuples of the form (operation, qubit)
     return PauliTerm.from_list([(i[1], i[0]) for i in qubit_ops])
 
 
