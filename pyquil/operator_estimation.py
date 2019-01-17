@@ -484,17 +484,6 @@ def measure_observables(qc: QuantumComputer, tomo_experiment: TomographyExperime
             )
 
 
-def _RY(angle, q):
-    """
-    A RY in terms of RX(+-pi/2) and RZ(theta)
-    """
-    p = Program()
-    p += RX(pi / 2, q)
-    p += RZ(angle, q)
-    p += RX(-pi / 2, q)
-    return p
-
-
 def _X(q1):
     """
     An RX in terms of RX(pi/2)
@@ -519,7 +508,7 @@ def _H(q1):
         This introduces a different global phase! Don't control this gate.
     """
     p = Program()
-    p.inst(_RY(-np.pi / 2, q1))
+    p.inst(RY(-np.pi / 2, q1))
     p.inst(RZ(np.pi, q1))
     return p
 
@@ -557,7 +546,7 @@ def basic_compile(program):
             elif inst.name == 'RX' and is_magic_angle(inst.params[0]):
                 new_prog += inst
             elif inst.name == 'RY':
-                new_prog += _RY(inst.params[0], inst.qubits[0])
+                new_prog += inst
             elif inst.name == 'CNOT':
                 new_prog += _CNOT(*inst.qubits)
             elif inst.name == "H":
