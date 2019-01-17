@@ -266,7 +266,8 @@ def _local_pauli_eig_prep(op: str, idx: int):
 def _local_pauli_eig_meas(op, idx):
     """
     Generate gate sequence to measure in the eigenbasis of a Pauli operator, assuming
-    we are only able to measure in the Z eigenbasis.
+    we are only able to measure in the Z eigenbasis. (Note: This is essentially the Hermitian
+    conjugate of :py:func:`_local_pauli_eig_prep`)
 
     """
     if op == 'X':
@@ -491,12 +492,12 @@ class CommutationError(ValueError):
     pass
 
 
-def remove_identity(psum):
+def remove_identity(psum: PauliSum) -> Tuple[PauliSum]:
     """
     Remove the identity term from a Pauli sum
 
     :param PauliSum psum: PauliSum object to remove identity
-    :return: The new pauli sum and the identity term.
+    :return: The new PauliSum and the identity term.
     """
     new_psum = []
     identity_terms = []
@@ -508,42 +509,33 @@ def remove_identity(psum):
     return sum(new_psum), sum(identity_terms)
 
 
-def remove_imaginary(pauli_sums):
+def remove_imaginary(pauli_sum: PauliSum) -> PauliSum:
     """
     Remove the imaginary component of each term in a Pauli sum
 
-    :param PauliSum pauli_sums: The Pauli sum to process.
-    :return: a purely hermitian Pauli sum.
-    :rtype: PauliSum
+    :param pauli_sum: The Pauli sum to process.
+    :return: a purely Hermitian PauliSum
     """
-    if not isinstance(pauli_sums, PauliSum):
+    if not isinstance(pauli_sum, PauliSum):
         raise TypeError("not a pauli sum. please give me one")
     new_term = sI(0) * 0.0
-    for term in pauli_sums:
+    for term in pauli_sum:
         new_term += term_with_coeff(term, term.coefficient.real)
 
     return new_term
 
 
-def get_rotation_program(pauli_term):
+def get_rotation_program(pauli_term: PauliTerm) -> Program:
     """
     Generate a rotation program so that the pauli term is diagonal
 
-    :param PauliTerm pauli_term: The Pauli term used to generate diagonalizing
+    :param pauli_term: The Pauli term used to generate diagonalizing
                                  one-qubit rotations.
-    :return: The rotation program.
-    :rtype: Program
+    :return: The rotation Program.
     """
     meas_basis_change = Program()
     for index, gate in pauli_term:
-        if gate == 'X':
-            meas_basis_change.inst(RY(-np.pi / 2, index))
-        elif gate == 'Y':
-            meas_basis_change.inst(RX(np.pi / 2, index))
-        elif gate == 'Z':
-            pass
-        else:
-            raise ValueError()
+        meas_basis_change.inst(_local_pauli_eig_meas(gate, index))
 
     return meas_basis_change
 
