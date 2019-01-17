@@ -484,50 +484,6 @@ def measure_observables(qc: QuantumComputer, tomo_experiment: TomographyExperime
             )
 
 
-def is_magic_angle(angle):
-    return (np.isclose(np.abs(angle), pi / 2)
-            or np.isclose(np.abs(angle), pi)
-            or np.isclose(angle, 0.0))
-
-
-def basic_compile(program):
-    new_prog = Program()
-    new_prog.num_shots = program.num_shots
-    new_prog.inst(program.defined_gates)
-    for inst in program:
-        if isinstance(inst, Gate):
-            if inst.name in ['RZ', 'CZ', 'I']:
-                new_prog += inst
-            elif inst.name == 'RX' and is_magic_angle(inst.params[0]):
-                new_prog += inst
-            elif inst.name == 'RY':
-                new_prog += inst
-            elif inst.name == 'CNOT':
-                new_prog += inst
-            elif inst.name == "H":
-                new_prog += inst
-            elif inst.name == "X":
-                new_prog += inst
-            elif inst.name in [gate.name for gate in new_prog.defined_gates]:
-                new_prog += inst
-            else:
-                raise ValueError(f"Unknown gate instruction {inst}")
-
-        else:
-            new_prog += inst
-
-    new_prog.native_quil_metadata = {
-        'final_rewiring': None,
-        'gate_depth': None,
-        'gate_volume': None,
-        'multiqubit_gate_depth': None,
-        'program_duration': None,
-        'program_fidelity': None,
-        'topological_swaps': 0,
-    }
-    return new_prog
-
-
 STANDARD_NUMSHOTS = 10000
 
 class CommutationError(ValueError):
@@ -746,7 +702,8 @@ def estimate_pauli_sum(pauli_terms,
     else:
         program = program.wrap_in_numshots_loop(min(STANDARD_NUMSHOTS, num_sample_ubound))
 
-    binary = quantum_resource.compiler.native_quil_to_executable(basic_compile(program))
+    compiled_prog = quantum_resource.compiler.quil_to_native_quil(program)
+    binary = quantum_resource.compiler.native_quil_to_executable(compiled_prog)
 
     results = None
     sample_variance = np.infty
