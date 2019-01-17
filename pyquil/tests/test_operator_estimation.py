@@ -251,16 +251,16 @@ def test_max_tpb_overlap():
                                      PauliTerm.from_compact_str('(1+0j)*Z4X8Y5X3Y7Y1'))
     expected_dict = {ExperimentSetting(sY(0) * sZ(1) * sZ(2) * sY(4) * sY(5) * sX(6) * sZ(7) * sY(8),
                                        sY(1) * sX(3) * sZ(4) * sY(5) * sY(7) * sX(8)):
-                    [ExperimentSetting(sY(0) * sZ(1) * sZ(2) * sY(4) * sY(5) * sX(6) * sZ(7) * sY(8),
-                                       sY(1) * sX(3) * sZ(4) * sY(5) * sY(7) * sX(8))]}
+                     [ExperimentSetting(sY(0) * sZ(1) * sZ(2) * sY(4) * sY(5) * sX(6) * sZ(7) * sY(8),
+                                        sY(1) * sX(3) * sZ(4) * sY(5) * sY(7) * sX(8))]}
     assert _max_tpb_overlap(expt_setting, {}) == expected_dict
     # test adding to an already existing key
     expt_setting2 = ExperimentSetting(sZ(7), sY(1))
     expected_dict2 = {ExperimentSetting(sY(0) * sZ(1) * sZ(2) * sY(4) * sY(5) * sX(6) * sZ(7) * sY(8),
-                                       sY(1) * sX(3) * sZ(4) * sY(5) * sY(7) * sX(8)):
-                    [ExperimentSetting(PauliTerm.from_compact_str('(1+0j)*Z7Y8Z1Y4Z2Y5Y0X6'),
-                                       PauliTerm.from_compact_str('(1+0j)*Z4X8Y5X3Y7Y1')),
-                     ExperimentSetting(sZ(7), sY(1))]}
+                                        sY(1) * sX(3) * sZ(4) * sY(5) * sY(7) * sX(8)):
+                      [ExperimentSetting(PauliTerm.from_compact_str('(1+0j)*Z7Y8Z1Y4Z2Y5Y0X6'),
+                                         PauliTerm.from_compact_str('(1+0j)*Z4X8Y5X3Y7Y1')),
+                       ExperimentSetting(sZ(7), sY(1))]}
     assert _max_tpb_overlap(expt_setting2, expected_dict) == expected_dict2
 
 

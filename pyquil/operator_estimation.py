@@ -568,7 +568,7 @@ def _max_tpb_overlap(expt_setting: ExperimentSetting, diagonal_sets: Dict):
     specifying the tpb.
 
     :param expt_setting: ExperimentSetting
-    :param diagonal_sets: dictionary keyed with ExperimentSetting, and with each value being a 
+    :param diagonal_sets: dictionary keyed with ExperimentSetting, and with each value being a
             list of ExperimentSettings
     :return: the updated diagonal_sets dictionary updated with the input expt_setting placed
             appropriately into it
@@ -628,5 +628,6 @@ def group_experiments_greedy(tomo_expt: TomographyExperiment):
     """
     diag_sets = _commuting_sets_by_zbasis_tomo_expt(tomo_expt)
     grouped_expt_settings_list = list(diag_sets.values())
-    grouped_tomo_expt = TomographyExperiment(grouped_expt_settings_list, program=tomo_expt.program, qubits=tomo_expt.qubits)
+    grouped_tomo_expt = TomographyExperiment(grouped_expt_settings_list, program=tomo_expt.program,
+                                             qubits=tomo_expt.qubits)
     return grouped_tomo_expt
