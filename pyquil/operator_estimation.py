@@ -5,7 +5,6 @@ import sys
 from json import JSONEncoder
 from math import pi
 from typing import List, Union, Iterable, Dict, Tuple
-from collections import namedtuple
 import networkx as nx
 import numpy as np
 from networkx.algorithms.approximation.clique import clique_removal
@@ -587,21 +586,42 @@ def get_parity(pauli_terms, bitstring_results):
     return results
 
 
-EstimationResult = namedtuple('EstimationResult',
-                              ('expected_value', 'pauli_expectations',
-                               'covariance', 'variance', 'n_shots'))
-EstimationResult.__doc__ = '''\
-A namedtuple describing Monte-Carlo averaging results
+@dataclass(frozen=True)
+class EstimationResult:
+    """
+    A dataclass describing Monte-Carlo averaging results.
 
-:param expected_value: expected value of the PauliSum
-:param pauli_expectations:  individual expected values of elements in the
-                            PauliSum.  These values are scaled by the
-                            coefficients associated with each PauliSum.
-:param covariance: The covariance matrix computed from the shot data.
-:param variance: Sample variance computed from the covariance matrix and
-                 number of shots taken to obtain the data.
-:param n_shots: Number of readouts collected.
-'''
+    :param expected_value: expected value of the PauliSum
+    :param pauli_expectations:  individual expected values of elements in the
+                                PauliSum.  These values are scaled by the
+                                coefficients associated with each PauliSum.
+    :param covariance: The covariance matrix computed from the shot data.
+    :param variance: Sample variance computed from the covariance matrix and
+                     number of shots taken to obtain the data.
+    :param n_shots: Number of readouts collected.
+    """
+
+    expected_value: float
+    pauli_expectations: List[float]
+    covariance: np.array
+    variance: float
+    n_shots: int
+
+    def __str__(self):
+        return f"Expected value: {self.expected_value}, shots: {n_shots}"
+
+    def __repr__(self):
+        return f"EstimationResult[{self}]"
+
+    def serializable(self):
+        return {
+            'type': 'EstimationResult',
+            'expected_value': self.expected_value,
+            'pauli_expectations': self.pauli_expectations,
+            'covariance': self.covariance,
+            'variance': self.variance,
+            'n_shots': self.n_shots
+        }
 
 
 def estimate_pauli_sum(pauli_terms,

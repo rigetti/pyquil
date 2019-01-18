@@ -337,12 +337,13 @@ def test_estimate_pauli_sum():
 
     fakeQVM = Mock(spec=QVMConnection())
     fakeQVM.run = Mock(return_value=two_qubit_measurements)
-    mean, means, cov, estimator_var, shots = estimate_pauli_sum(pauli_terms,
-                                                                {0: 'Z', 1: 'Z'},
-                                                                Program(),
-                                                                1.0E-1,
-                                                                fakeQVM,
-                                                                symmetrize=False)
+    estimation_result = estimate_pauli_sum(pauli_terms, {0: 'Z', 1: 'Z'}, Program(),
+                                           1.0E-1, fakeQVM, symmetrize=False)
+    mean = estimation_result.expected_value
+    means = estimation_result.pauli_expectations
+    cov = estimation_result.covariance
+    estimator_var = estimation_result.variance
+    shots = estimation_result.n_shots
     parity_results = np.zeros((len(pauli_terms), n))
     parity_results[0, :] = [-2 * x[0] + 1 for x in two_qubit_measurements]
     parity_results[1, :] = [-2 * x[1] + 1 for x in two_qubit_measurements]
@@ -358,12 +359,13 @@ def test_estimate_pauli_sum():
 
     # Double the shots by ever so slightly decreasing variance bound
     double_two_q_measurements = two_qubit_measurements + two_qubit_measurements
-    mean, means, cov, estimator_var, shots = estimate_pauli_sum(pauli_terms,
-                                                                {0: 'Z', 1: 'Z'},
-                                                                Program(),
-                                                                variance_to_beat - 1.0E-8,
-                                                                fakeQVM,
-                                                                symmetrize=False)
+    estimation_result = estimate_pauli_sum(pauli_terms, {0: 'Z', 1: 'Z'}, Program(),
+                                           variance_to_beat - 1.0E-8, fakeQVM, symmetrize=False)
+    mean = estimation_result.expected_value
+    means = estimation_result.pauli_expectations
+    cov = estimation_result.covariance
+    estimator_var = estimation_result.variance
+    shots = estimation_result.n_shots
 
     parity_results = np.zeros((len(pauli_terms), 2 * n))
     parity_results[0, :] = [-2 * x[0] + 1 for x in double_two_q_measurements]
