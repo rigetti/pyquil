@@ -1,7 +1,9 @@
 import itertools
 import json
 import logging
+import re
 import sys
+import warnings
 from json import JSONEncoder
 from math import pi
 from typing import List, Union, Iterable, Dict
@@ -24,6 +26,101 @@ log = logging.getLogger(__name__)
 
 
 @dataclass(frozen=True)
+class _OneQState:
+    """
+    A description of a named one-qubit quantum state.
+
+    This can be used to generate pre-rotations for quantum process tomography. For example,
+    X0_14 will generate the +1 eigenstate of the X operator on qubit 14. X1_14 will generate the
+    -1 eigenstate. SIC0_14 will generate the 0th SIC-basis state on qubit 14.
+    """
+    label: str
+    index: int
+    qubit: int
+
+    def __str__(self):
+        return f'{self.label}{self.index}_{self.qubit}'
+
+    @classmethod
+    def from_str(cls, s):
+        ma = re.match(r'(\w+)(\d+)_(\d+)', s)
+        if ma is None:
+            raise ValueError(f"Couln't parse {s}")
+        return _OneQState(
+            label=ma.group(1),
+            index=int(ma.group(2)),
+            qubit=int(ma.group(3)),
+        )
+
+
+@dataclass
+class TensorProductState:
+    """
+    A description of a multi-qubit quantum state that is a tensor product of many _OneQStates
+    states.
+    """
+    states: List[_OneQState]
+
+    def __mul__(self, other):
+        self.states.extend(other.states)
+        return self
+
+    def __str__(self):
+        return ' * '.join(str(s) for s in self.states)
+
+    def __repr__(self):
+        return f'TensorProductState[{self}]'
+
+    @classmethod
+    def from_str(cls, s):
+        return TensorProductState([_OneQState.from_str(x) for x in s.split('*')])
+
+
+def vacuum():
+    return TensorProductState([])
+
+
+def SIC0(q):
+    return TensorProductState([_OneQState('SIC', 0, q)])
+
+
+def SIC1(q):
+    return TensorProductState([_OneQState('SIC', 1, q)])
+
+
+def SIC2(q):
+    return TensorProductState([_OneQState('SIC', 2, q)])
+
+
+def SIC3(q):
+    return TensorProductState([_OneQState('SIC', 3, q)])
+
+
+def plusX(q):
+    return TensorProductState([_OneQState('X', 0, q)])
+
+
+def minusX(q):
+    return TensorProductState([_OneQState('X', 1, q)])
+
+
+def plusY(q):
+    return TensorProductState([_OneQState('Y', 0, q)])
+
+
+def minusY(q):
+    return TensorProductState([_OneQState('Y', 1, q)])
+
+
+def plusZ(q):
+    return TensorProductState([_OneQState('Z', 0, q)])
+
+
+def minusZ(q):
+    return TensorProductState([_OneQState('Z', 1, q)])
+
+
+@dataclass(frozen=True, init=False)
 class ExperimentSetting:
     """
     Input and output settings for a tomography-like experiment.
@@ -39,11 +136,27 @@ class ExperimentSetting:
     number of these :py:class:`ExperimentSetting` objects will be created and grouped into
     a :py:class:`TomographyExperiment`.
     """
-    in_operator: PauliTerm
+    in_state: TensorProductState
     out_operator: PauliTerm
 
+    def __init__(self, in_state: TensorProductState, out_operator: PauliTerm):
+        # For backwards compatibility, handle in_state specified by PauliTerm.
+        if isinstance(in_state, PauliTerm):
+            warnings.warn("Please specify in_state as a TensorProductState", DeprecationWarning)
+
+            if is_identity(in_state):
+                in_state = vacuum()
+            else:
+                in_state = TensorProductState([
+                    _OneQState(label=pauli_label, index=0, qubit=qubit)
+                    for qubit, pauli_label in in_state._ops.items()
+                ])
+
+        object.__setattr__(self, 'in_state', in_state)
+        object.__setattr__(self, 'out_operator', out_operator)
+
     def __str__(self):
-        return f'{self.in_operator.compact_str()}→{self.out_operator.compact_str()}'
+        return f'{self.in_state}→{self.out_operator.compact_str()}'
 
     def __repr__(self):
         return f'ExperimentSetting[{self}]'
@@ -55,7 +168,7 @@ class ExperimentSetting:
     def from_str(cls, s: str):
         """The opposite of str(expt)"""
         instr, outstr = s.split('→')
-        return ExperimentSetting(in_operator=PauliTerm.from_compact_str(instr),
+        return ExperimentSetting(in_state=TensorProductState.from_str(instr),
                                  out_operator=PauliTerm.from_compact_str(outstr))
 
 
@@ -240,24 +353,68 @@ def read_json(fn):
         return json.load(f, object_hook=_operator_object_hook)
 
 
-def _local_pauli_eig_prep(op: str, idx: int):
-    """
-    Generate gate sequence to prepare a the +1 eigenstate of a Pauli operator, assuming
-    we are starting from the |00..00> ground state.
-
-    :param op: A string representation of the Pauli operator whose +1 eigenstate we'd like to
-        prepare.
-    :param idx: The index of the qubit that the preparation is acting on
-    :return: A program which will prepare the requested state.
-    """
-    if op == 'X':
-        return Program(RY(pi / 2, idx))
-    elif op == 'Y':
-        return Program(RX(-pi / 2, idx))
-    elif op == 'Z':
+def _one_q_sic_prep(index, qubit):
+    """Prepare the index-th SIC basis state."""
+    if index == 0:
         return Program()
 
-    raise ValueError(f'Unknown operation {op}')
+    theta = 2 * np.arccos(1 / np.sqrt(3))
+    zx_plane_rotation = Program([
+        RX(-pi / 2, qubit),
+        RZ(theta - pi, qubit),
+        RX(-pi / 2, qubit),
+    ])
+
+    if index == 1:
+        return zx_plane_rotation
+
+    if index == 2:
+        return zx_plane_rotation + RZ(-2 * pi / 3, qubit)
+
+    if index == 3:
+        return zx_plane_rotation + RZ(2 * pi / 3, qubit)
+
+    raise ValueError(f'Bad SIC index: {index}')
+
+
+def _one_q_pauli_prep(label, index, qubit):
+    """Prepare the index-th eigenstate of the pauli operator given by label."""
+    if index not in [0, 1]:
+        raise ValueError(f'Bad Pauli index: {index}')
+
+    if label == 'X':
+        if index == 0:
+            return Program(RY(pi / 2, qubit))
+        else:
+            return Program(RY(-pi / 2, qubit))
+
+    if label == 'Y':
+        if index == 0:
+            return Program(RX(-pi / 2, qubit))
+        else:
+            return Program(RX(pi / 2, qubit))
+
+    if label == 'Z':
+        if index == 0:
+            return Program()
+        else:
+            return Program(RX(pi, qubit))
+
+    raise ValueError(f'Bad Pauli label: {label}')
+
+
+def _one_q_state_prep(oneq_state: _OneQState):
+    """Prepare a one qubit state.
+
+    Either SIC[0-3], X[0-1], Y[0-1], or Z[0-1].
+    """
+    label = oneq_state.label
+    if label == 'SIC':
+        return _one_q_sic_prep(oneq_state.index, oneq_state.qubit)
+    elif label in ['X', 'Y', 'Z']:
+        return _one_q_pauli_prep(label, oneq_state.index, oneq_state.qubit)
+    else:
+        raise ValueError(f"Bad state label: {label}")
 
 
 def _local_pauli_eig_meas(op, idx):
@@ -384,6 +541,20 @@ class ExperimentResult:
         }
 
 
+def _validate_grouped_input_states(states: Iterable[TensorProductState]):
+    """The _OneQState's for each shared qubit should match among all grouped input
+    states. Return a "max weight" quantum state.
+    """
+    mapping = dict()  # type: Dict[int, _OneQState]
+    for state in states:
+        for oneq_state in state.states:
+            if oneq_state.qubit in mapping:
+                assert mapping[oneq_state.qubit] == oneq_state
+            else:
+                mapping[oneq_state.qubit] = oneq_state
+    return TensorProductState(list(mapping.values()))
+
+
 def _validate_all_diagonal_in_tpb(ops: Iterable[PauliTerm]) -> Dict[int, str]:
     """Each non-identity qubit should result in the same op_str among all operations. Return
     said mapping.
@@ -420,13 +591,14 @@ def measure_observables(qc: QuantumComputer, tomo_experiment: TomographyExperime
         # estimate.
         log.info(f"Collecting bitstrings for the {len(settings)} settings: {settings}")
 
-        # 1.1 Prepare a state according to setting.in_operator
+        # 1.1 Prepare a state according to the amalgam of all setting.in_state
         total_prog = Program()
         if active_reset:
             total_prog += RESET()
-        in_mapping = _validate_all_diagonal_in_tpb(setting.in_operator for setting in settings)
-        for idx, op_str in in_mapping.items():
-            total_prog += _local_pauli_eig_prep(op_str, idx)
+        max_weight_in_state = _validate_grouped_input_states(setting.in_state
+                                                             for setting in settings)
+        for oneq_state in max_weight_in_state.states:
+            total_prog += _one_q_state_prep(oneq_state)
 
         # 1.2 Add in the program
         total_prog += tomo_experiment.program
@@ -451,8 +623,6 @@ def measure_observables(qc: QuantumComputer, tomo_experiment: TomographyExperime
         # either the first column, second column, or both and multiplying along the row.
         for setting in settings:
             # 3.2 Get the term's coefficient so we can multiply it in later.
-            assert setting.in_operator.coefficient == 1, 'in_operator should specify a state and ' \
-                                                         'therefore cannot have a coefficient'
             coeff = complex(setting.out_operator.coefficient)
             if not np.isclose(coeff.imag, 0):
                 raise ValueError(f"{setting}'s out_operator has a complex coefficient.")
