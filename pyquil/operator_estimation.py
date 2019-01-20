@@ -366,6 +366,7 @@ class ExperimentResult:
     setting: ExperimentSetting
     expectation: Union[float, complex]
     stddev: float
+    total_counts: int
 
     def __str__(self):
         return f'{self.setting}: {self.expectation} +- {self.stddev}'
@@ -379,6 +380,7 @@ class ExperimentResult:
             'setting': self.setting,
             'expectation': self.expectation,
             'stddev': self.stddev,
+            'total_counts': self.total_counts,
         }
 
 
@@ -463,6 +465,7 @@ def measure_observables(qc: QuantumComputer, tomo_experiment: TomographyExperime
                     setting=setting,
                     expectation=coeff,
                     stddev=0.0,
+                    total_counts=n_shots,
                 )
                 continue
 
@@ -478,4 +481,5 @@ def measure_observables(qc: QuantumComputer, tomo_experiment: TomographyExperime
                 setting=setting,
                 expectation=np.asscalar(obs_mean),
                 stddev=np.asscalar(np.sqrt(obs_var)),
+                total_counts=n_shots,
             )
