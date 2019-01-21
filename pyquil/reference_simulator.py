@@ -2,7 +2,7 @@ import warnings
 
 import numpy as np
 from numpy.random.mtrand import RandomState
-from typing import Union, List
+from typing import Union, List, Sequence
 
 from pyquil.gate_matrices import P0, P1, KRAUS_OPS, QUANTUM_GATES
 from pyquil.paulis import PauliTerm, PauliSum
@@ -74,6 +74,18 @@ class ReferenceWavefunctionSimulator(AbstractQuantumSimulator):
         :return: ``self`` to support method chaining.
         """
         unitary = lifted_gate(gate=gate, n_qubits=self.n_qubits)
+        self.wf = unitary.dot(self.wf)
+        return self
+
+    def do_gate_matrix(self, matrix: np.ndarray, qubits: Sequence[int]):
+        """
+        Apply an arbitrary unitary; not necessarily a named gate.
+
+        :param matrix: The unitary matrix to apply. No checks are done.
+        :param qubits: The qubits to apply the unitary to.
+        :return: ``self`` to support method chaining.
+        """
+        unitary = lifted_gate_matrix(matrix, list(qubits), n_qubits=self.n_qubits)
         self.wf = unitary.dot(self.wf)
         return self
 
@@ -180,6 +192,19 @@ class ReferenceDensitySimulator(AbstractQuantumSimulator):
         :return: ``self`` to support method chaining.
         """
         unitary = lifted_gate(gate=gate, n_qubits=self.n_qubits)
+        self.density = unitary.dot(self.density).dot(np.conj(unitary).T)
+        return self
+
+    def do_gate_matrix(self, matrix: np.ndarray,
+                       qubits: Sequence[int]) -> 'AbstractQuantumSimulator':
+        """
+        Apply an arbitrary unitary; not necessarily a named gate.
+
+        :param matrix: The unitary matrix to apply. No checks are done
+        :param qubits: A list of qubits to apply the unitary to.
+        :return: ``self`` to support method chaining.
+        """
+        unitary = lifted_gate_matrix(matrix=matrix, qubit_inds=qubits, n_qubits=self.n_qubits)
         self.density = unitary.dot(self.density).dot(np.conj(unitary).T)
         return self
 

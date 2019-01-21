@@ -13,7 +13,7 @@
 #    See the License for the specific language governing permissions and
 #    limitations under the License.
 ##############################################################################
-from typing import List, Union
+from typing import List, Union, Sequence
 
 import numpy as np
 from numpy.random.mtrand import RandomState
@@ -94,7 +94,7 @@ def targeted_einsum(gate: np.ndarray,
 
 def targeted_tensordot(gate: np.ndarray,
                        wf: np.ndarray,
-                       wf_target_inds: List[int]
+                       wf_target_inds: Sequence[int]
                        ) -> np.ndarray:
     """Left-multiplies the given axes of the wf tensor by the given gate matrix.
 
@@ -270,6 +270,24 @@ class NumpyWavefunctionSimulator(AbstractQuantumSimulator):
         # tensordot seems a little faster, but feel free to experiment.
         # self.wf = targeted_einsum(gate=gate_matrix, wf=self.wf, wf_target_inds=qubit_inds)
         self.wf = targeted_tensordot(gate=gate_matrix, wf=self.wf, wf_target_inds=qubit_inds)
+        return self
+
+    def do_gate_matrix(self, matrix: np.ndarray,
+                       qubits: Sequence[int]) -> 'AbstractQuantumSimulator':
+        """
+        Apply an arbitrary unitary; not necessarily a named gate.
+
+        :param matrix: The unitary matrix to apply. No checks are done
+        :param qubits: A list of qubits to apply the unitary to.
+        :return: ``self`` to support method chaining.
+        """
+        # e.g. 2-qubit matrix is 4x4; turns into (2,2,2,2) tensor.
+        tensor = np.reshape(matrix, (2,) * len(qubits) * 2)
+
+        # Note to developers: you can use either einsum- or tensordot- based functions.
+        # tensordot seems a little faster, but feel free to experiment.
+        # self.wf = targeted_einsum(gate=gate_matrix, wf=self.wf, wf_target_inds=qubits)
+        self.wf = targeted_tensordot(gate=tensor, wf=self.wf, wf_target_inds=qubits)
         return self
 
     def expectation(self, operator: Union[PauliTerm, PauliSum]):

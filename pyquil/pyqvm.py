@@ -16,7 +16,7 @@
 import warnings
 from abc import ABC, abstractmethod
 from collections import defaultdict
-from typing import Type, Dict, Tuple, Union, List
+from typing import Type, Dict, Tuple, Union, List, Sequence
 
 import numpy as np
 from numpy.random.mtrand import RandomState
@@ -64,6 +64,17 @@ class AbstractQuantumSimulator(ABC):
         """
         Perform a gate.
 
+        :return: ``self`` to support method chaining.
+        """
+
+    @abstractmethod
+    def do_gate_matrix(self, matrix: np.ndarray,
+                       qubits: Sequence[int]) -> 'AbstractQuantumSimulator':
+        """
+        Apply an arbitrary unitary; not necessarily a named gate.
+
+        :param matrix: The unitary matrix to apply. No checks are done
+        :param qubits: A list of qubits to apply the unitary to.
         :return: ``self`` to support method chaining.
         """
 
@@ -228,6 +239,7 @@ class PyQVM(QAM):
 
         self.program = None  # type: Program
         self.program_counter = None  # type: int
+        self.defined_gates = dict()  # type: Dict[str, np.ndarray]
 
         # private implementation details
         self._qubit_to_ram = None  # type: Dict[int, int]
@@ -243,9 +255,6 @@ class PyQVM(QAM):
             program = _extract_program_from_pyquil_executable_response(executable)
         else:
             program = executable
-
-        if len(program.defined_gates) > 0:
-            raise ValueError("PyQVM does not support defined gates")
 
         try:
             program, self._qubit_to_ram, self._ro_size = _make_ram_program(program)
@@ -274,6 +283,12 @@ class PyQVM(QAM):
         self.status = 'running'
         assert self._qubit_to_ram is not None
         assert self._ro_size is not None
+
+        # TODO: why are DEFGATEs not just included in the list of instructions?
+        for dg in self.program.defined_gates:
+            if dg.parameters is not None and len(dg.parameters) > 0:
+                raise NotImplementedError("PyQVM does not support parameterized DEFGATEs")
+            self.defined_gates[dg.name] = dg.matrix
 
         halted = len(self.program) == 0
         while not halted:
@@ -330,7 +345,11 @@ class PyQVM(QAM):
         instruction = self.program[self.program_counter]
 
         if isinstance(instruction, Gate):
-            self.wf_simulator.do_gate(gate=instruction)
+            if instruction.name in self.defined_gates:
+                self.wf_simulator.do_gate_matrix(matrix=self.defined_gates[instruction.name],
+                                                 qubits=[q.index for q in instruction.qubits])
+            else:
+                self.wf_simulator.do_gate(gate=instruction)
 
             for noise_type, noise_prob in self.post_gate_noise_probabilities.items():
                 self.wf_simulator.do_post_gate_noise(noise_type, noise_prob,
@@ -463,7 +482,10 @@ class PyQVM(QAM):
             self.program_counter += 1
 
         elif isinstance(instruction, DefGate):
-            raise NotImplementedError("PyQVM does not support DEFGATE")
+            if instruction.parameters is not None and len(instruction.parameters) > 0:
+                raise NotImplementedError("PyQVM does not support parameterized DEFGATEs")
+            self.defined_gates[instruction.name] = instruction.name
+            self.program_counter += 1
 
         elif isinstance(instruction, RawInstr):
             raise NotImplementedError("PyQVM does not support raw instructions. "
@@ -487,8 +509,11 @@ class PyQVM(QAM):
 
         :return: ``self`` to support method chaining.
         """
-        if len(program.defined_gates) > 0:
-            raise ValueError("PyQVM does not support defined gates")
+        # TODO: why are DEFGATEs not just included in the list of instructions?
+        for dg in program.defined_gates:
+            if dg.parameters is not None:
+                raise NotImplementedError("PyQVM does not support parameterized DEFGATEs")
+            self.defined_gates[dg.name] = dg.matrix
 
         # initialize program counter
         self.program = program
