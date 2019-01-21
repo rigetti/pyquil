@@ -45,7 +45,7 @@ class _OneQState:
     def from_str(cls, s):
         ma = re.match(r'(\w+)(\d+)_(\d+)', s)
         if ma is None:
-            raise ValueError(f"Couln't parse {s}")
+            raise ValueError(f"Couldn't parse '{s}'")
         return _OneQState(
             label=ma.group(1),
             index=int(ma.group(2)),
@@ -73,6 +73,8 @@ class TensorProductState:
 
     @classmethod
     def from_str(cls, s):
+        if s == '':
+            return vacuum()
         return TensorProductState([_OneQState.from_str(x) for x in s.split('*')])
 
 
