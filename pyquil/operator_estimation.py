@@ -6,7 +6,7 @@ import sys
 import warnings
 from json import JSONEncoder
 from math import pi
-from typing import List, Union, Iterable, Dict
+from typing import List, Union, Iterable, Dict, Tuple
 
 import networkx as nx
 import numpy as np
@@ -53,17 +53,16 @@ class _OneQState:
         )
 
 
-@dataclass
+@dataclass(frozen=True)
 class TensorProductState:
     """
     A description of a multi-qubit quantum state that is a tensor product of many _OneQStates
     states.
     """
-    states: List[_OneQState]
+    states: Tuple[_OneQState]
 
     def __mul__(self, other):
-        self.states.extend(other.states)
-        return self
+        return TensorProductState(self.states + other.states)
 
     def __str__(self):
         return ' * '.join(str(s) for s in self.states)
@@ -75,51 +74,51 @@ class TensorProductState:
     def from_str(cls, s):
         if s == '':
             return vacuum()
-        return TensorProductState([_OneQState.from_str(x) for x in s.split('*')])
+        return TensorProductState(tuple(_OneQState.from_str(x) for x in s.split('*')))
 
 
 def vacuum():
-    return TensorProductState([])
+    return TensorProductState(tuple())
 
 
 def SIC0(q):
-    return TensorProductState([_OneQState('SIC', 0, q)])
+    return TensorProductState((_OneQState('SIC', 0, q),))
 
 
 def SIC1(q):
-    return TensorProductState([_OneQState('SIC', 1, q)])
+    return TensorProductState((_OneQState('SIC', 1, q),))
 
 
 def SIC2(q):
-    return TensorProductState([_OneQState('SIC', 2, q)])
+    return TensorProductState((_OneQState('SIC', 2, q),))
 
 
 def SIC3(q):
-    return TensorProductState([_OneQState('SIC', 3, q)])
+    return TensorProductState((_OneQState('SIC', 3, q),))
 
 
 def plusX(q):
-    return TensorProductState([_OneQState('X', 0, q)])
+    return TensorProductState((_OneQState('X', 0, q),))
 
 
 def minusX(q):
-    return TensorProductState([_OneQState('X', 1, q)])
+    return TensorProductState((_OneQState('X', 1, q),))
 
 
 def plusY(q):
-    return TensorProductState([_OneQState('Y', 0, q)])
+    return TensorProductState((_OneQState('Y', 0, q),))
 
 
 def minusY(q):
-    return TensorProductState([_OneQState('Y', 1, q)])
+    return TensorProductState((_OneQState('Y', 1, q),))
 
 
 def plusZ(q):
-    return TensorProductState([_OneQState('Z', 0, q)])
+    return TensorProductState((_OneQState('Z', 0, q),))
 
 
 def minusZ(q):
-    return TensorProductState([_OneQState('Z', 1, q)])
+    return TensorProductState((_OneQState('Z', 1, q),))
 
 
 @dataclass(frozen=True, init=False)
