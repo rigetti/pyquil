@@ -434,6 +434,16 @@ def _local_pauli_eig_meas(op, idx):
     raise ValueError(f'Unknown operation {op}')
 
 
+def _consistent_input_states(state1: TensorProductState, state2: TensorProductState):
+    """Whether the _OneQState's for each shared qubit matches between state1 and state2.
+    """
+    try:
+        _validate_grouped_input_states([state1, state2])
+    except GroupingError:
+        return False
+    return True
+
+
 def _ops_diagonal_in_tpb(op_code1: str, op_code2: str):
     """
     Given two op strings (I, X, Y, or Z) return whether they are diagonal in a tensor product basis.
@@ -486,7 +496,7 @@ def construct_tpb_graph(experiments: TomographyExperiment):
         if expt1 == expt2:
             continue
 
-        if (_all_qubits_diagonal_in_tpb(expt1.in_operator, expt2.in_operator)
+        if (_consistent_input_states(expt1.in_state, expt2.in_state)
                 and _all_qubits_diagonal_in_tpb(expt1.out_operator, expt2.out_operator)):
             g.add_edge(expt1, expt2)
 
@@ -543,6 +553,10 @@ class ExperimentResult:
         }
 
 
+class GroupingError(ValueError):
+    pass
+
+
 def _validate_grouped_input_states(states: Iterable[TensorProductState]):
     """The _OneQState's for each shared qubit should match among all grouped input
     states. Return a "max weight" quantum state.
@@ -551,7 +565,8 @@ def _validate_grouped_input_states(states: Iterable[TensorProductState]):
     for state in states:
         for oneq_state in state.states:
             if oneq_state.qubit in mapping:
-                assert mapping[oneq_state.qubit] == oneq_state
+                if mapping[oneq_state.qubit] != oneq_state:
+                    raise GroupingError()
             else:
                 mapping[oneq_state.qubit] = oneq_state
     return TensorProductState(list(mapping.values()))
@@ -565,7 +580,8 @@ def _validate_all_diagonal_in_tpb(ops: Iterable[PauliTerm]) -> Dict[int, str]:
     for op in ops:
         for idx, op_str in op:
             if idx in mapping:
-                assert mapping[idx] == op_str, 'Improper grouping of operators'
+                if mapping[idx] != op_str:
+                    raise GroupingError()
             else:
                 mapping[idx] = op_str
     return mapping
