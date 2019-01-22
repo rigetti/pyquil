@@ -307,20 +307,21 @@ def test_lifted_gate_two_qubit():
 
 
 def test_lifted_pauli():
+    qubits = [0, 1]
     xy_term = sX(0) * sY(1)
 
     # test correctness
-    trial_matrix = lifted_pauli(xy_term, 2)
+    trial_matrix = lifted_pauli(xy_term, qubits)
     true_matrix = np.kron(mat.Y, mat.X)
     np.testing.assert_allclose(trial_matrix, true_matrix)
 
     x1_term = sX(1)
-    trial_matrix = lifted_pauli(x1_term, 2)
+    trial_matrix = lifted_pauli(x1_term, qubits)
     true_matrix = np.kron(mat.X, mat.I)
     np.testing.assert_allclose(trial_matrix, true_matrix)
 
     zpz_term = sZ(0) + sZ(1)
-    trial_matrix = lifted_pauli(zpz_term, 2)
+    trial_matrix = lifted_pauli(zpz_term, qubits)
     true_matrix = np.zeros((4, 4))
     true_matrix[0, 0] = 2
     true_matrix[-1, -1] = -2

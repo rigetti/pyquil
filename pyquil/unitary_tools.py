@@ -331,9 +331,9 @@ def lifted_pauli(pauli_sum: Union[PauliSum, PauliTerm], qubits: List[int]):
     return result_hilbert
 
 
-def tensor_up(pauli_sum: Union[PauliSum, PauliTerm], n_qubits: int):
+def tensor_up(pauli_sum: Union[PauliSum, PauliTerm], qubits: List[int]):
     """
-    Takes a PauliSum object along with a total number of
+    Takes a PauliSum object along with a list of
     qubits and returns a matrix corresponding the tensor representation of the
     object.
 
@@ -341,7 +341,7 @@ def tensor_up(pauli_sum: Union[PauliSum, PauliTerm], n_qubits: int):
     and really likes the name ``tensor_up``. Who can blame him?
 
     :param pauli_sum: Pauli representation of an operator
-    :param n_qubits: total number of qubits in the system
+    :param qubits: list of qubits in the order they will be represented in the resultant matrix.
     :returns: matrix representation of the pauli_sum operator
     """
-    return lifted_pauli(pauli_sum=pauli_sum, qubits=list(range(n_qubits)))
+    return lifted_pauli(pauli_sum=pauli_sum, qubits=qubits)
