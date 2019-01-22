@@ -143,7 +143,8 @@ class ExperimentSetting:
     def __init__(self, in_state: TensorProductState, out_operator: PauliTerm):
         # For backwards compatibility, handle in_state specified by PauliTerm.
         if isinstance(in_state, PauliTerm):
-            warnings.warn("Please specify in_state as a TensorProductState", DeprecationWarning)
+            warnings.warn("Please specify in_state as a TensorProductState",
+                          DeprecationWarning, stacklevel=2)
 
             if is_identity(in_state):
                 in_state = vacuum()
