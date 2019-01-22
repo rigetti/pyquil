@@ -15,7 +15,7 @@ from networkx.algorithms.approximation.clique import clique_removal
 from pyquil import Program
 from pyquil.api import QuantumComputer
 from pyquil.gates import *
-from pyquil.paulis import PauliTerm, is_identity
+from pyquil.paulis import PauliTerm, is_identity, sI
 
 if sys.version_info < (3, 7):
     from pyquil.external.dataclasses import dataclass
@@ -43,7 +43,7 @@ class _OneQState:
 
     @classmethod
     def from_str(cls, s):
-        ma = re.match(r'(\w+)(\d+)_(\d+)', s)
+        ma = re.match(r'\s*(\w+)(\d+)_(\d+)\s*', s)
         if ma is None:
             raise ValueError(f"Couldn't parse '{s}'")
         return _OneQState(
@@ -60,6 +60,9 @@ class TensorProductState:
     states.
     """
     states: Tuple[_OneQState]
+
+    def __init__(self, states):
+        object.__setattr__(self, 'states', tuple(states))
 
     def __mul__(self, other):
         return TensorProductState(self.states + other.states)
@@ -156,6 +159,23 @@ class ExperimentSetting:
 
         object.__setattr__(self, 'in_state', in_state)
         object.__setattr__(self, 'out_operator', out_operator)
+
+    @property
+    def in_operator(self):
+        warnings.warn("ExperimentSetting.in_operator is deprecated in favor of in_state",
+                      stacklevel=2)
+
+        # Backwards compat
+        pt = sI()
+        for oneq_state in self.in_state.states:
+            if not oneq_state.label in ['X', 'Y', 'Z']:
+                raise ValueError(f"Can't shim {oneq_state.label} into a pauli term. Use in_state.")
+            if oneq_state.index != 0:
+                raise ValueError(f"Can't shim {oneq_state} into a pauli term. Use in_state.")
+
+            pt *= PauliTerm(op=oneq_state.label, index=oneq_state.qubit)
+
+        return pt
 
     def __str__(self):
         return f'{self.in_state}→{self.out_operator.compact_str()}'

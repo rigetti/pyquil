@@ -1,19 +1,29 @@
+import functools
 import itertools
 import random
 from math import pi
-
-import numpy as np
-import functools
 from operator import mul
 
+import numpy as np
 import pytest
 
-from pyquil.api import WavefunctionSimulator
-from pyquil.operator_estimation import ExperimentSetting, TomographyExperiment, to_json, read_json, \
-    _all_qubits_diagonal_in_tpb, group_experiments, ExperimentResult, measure_observables
-from pyquil.paulis import sI, sX, sY, sZ, PauliSum
 from pyquil import Program, get_qc
+from pyquil.api import WavefunctionSimulator
 from pyquil.gates import *
+from pyquil.operator_estimation import ExperimentSetting, TomographyExperiment, to_json, read_json, \
+    _all_qubits_diagonal_in_tpb, group_experiments, ExperimentResult, measure_observables, SIC0, \
+    SIC1, SIC2, SIC3, plusX, minusX, plusY, minusY, plusZ, minusZ, vacuum
+from pyquil.paulis import sI, sX, sY, sZ, PauliSum
+
+
+def _generate_random_states(n_qubits, n_terms):
+    oneq_states = [SIC0, SIC1, SIC2, SIC3, plusX, minusX, plusY, minusY, plusZ, minusZ]
+    all_s_inds = np.random.randint(len(oneq_states), size=(n_terms, n_qubits))
+    states = []
+    for s_inds in all_s_inds:
+        state = functools.reduce(mul, (oneq_states[pi](i) for i, pi in enumerate(s_inds)), vacuum())
+        states += [state]
+    return states
 
 
 def _generate_random_paulis(n_qubits, n_terms):
@@ -28,21 +38,31 @@ def _generate_random_paulis(n_qubits, n_terms):
 
 
 def test_experiment():
-    in_ops = _generate_random_paulis(n_qubits=4, n_terms=7)
+    in_states = _generate_random_states(n_qubits=4, n_terms=7)
     out_ops = _generate_random_paulis(n_qubits=4, n_terms=7)
-    for iop, oop in zip(in_ops, out_ops):
-        expt = ExperimentSetting(iop, oop)
+    for ist, oop in zip(in_states, out_ops):
+        expt = ExperimentSetting(ist, oop)
         assert str(expt) == expt.serializable()
         expt2 = ExperimentSetting.from_str(str(expt))
         assert expt == expt2
-        assert expt2.in_operator == iop
+        assert expt2.in_state == ist
+        assert expt2.out_operator == oop
+
+
+def test_experiment_no_in_back_compat():
+    out_ops = _generate_random_paulis(n_qubits=4, n_terms=7)
+    for oop in out_ops:
+        expt = ExperimentSetting(sI(), oop)
+        expt2 = ExperimentSetting.from_str(str(expt))
+        assert expt == expt2
+        assert expt2.in_operator == sI()
         assert expt2.out_operator == oop
 
 
 def test_experiment_no_in():
     out_ops = _generate_random_paulis(n_qubits=4, n_terms=7)
     for oop in out_ops:
-        expt = ExperimentSetting(sI(), oop)
+        expt = ExperimentSetting(vacuum(), oop)
         expt2 = ExperimentSetting.from_str(str(expt))
         assert expt == expt2
         assert expt2.in_operator == sI()
@@ -133,14 +153,24 @@ def test_group_experiments():
     assert len(grouped_suite) == 2
 
 
-def test_experiment_result():
+def test_experiment_result_compat():
     er = ExperimentResult(
         setting=ExperimentSetting(sX(0), sZ(0)),
         expectation=0.9,
         stddev=0.05,
         total_counts=100,
     )
-    assert str(er) == '(1+0j)*X0→(1+0j)*Z0: 0.9 +- 0.05'
+    assert str(er) == 'X0_0→(1+0j)*Z0: 0.9 +- 0.05'
+
+
+def test_experiment_result():
+    er = ExperimentResult(
+        setting=ExperimentSetting(plusX(0), sZ(0)),
+        expectation=0.9,
+        stddev=0.05,
+        total_counts=100,
+    )
+    assert str(er) == 'X0_0→(1+0j)*Z0: 0.9 +- 0.05'
 
 
 def test_measure_observables(forest):
@@ -235,3 +265,19 @@ def test_identity(forest):
                                  program=Program(X(0)), qubits=[0])
     result = list(measure_observables(qc, suite))[0]
     assert result.expectation == 0.123
+
+
+def test_sic_process_tomo():
+    qc = get_qc('2q-qvm')
+    process = Program(X(0))
+    settings = []
+    for in_state in [SIC0, SIC1, SIC2, SIC3]:
+        for out_op in [sI, sX, sY, sZ]:
+            settings += [ExperimentSetting(
+                in_state=in_state(q=0),
+                out_operator=out_op(q=0)
+            )]
+
+    experiment = TomographyExperiment(settings=settings, program=process, qubits=[0])
+    results = list(measure_observables(qc, experiment))
+    assert len(results) == 4 * 4
