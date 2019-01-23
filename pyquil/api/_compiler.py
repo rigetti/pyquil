@@ -167,7 +167,7 @@ class QPUCompiler(AbstractCompiler):
                           "ok if you've hand-compiled your program to our native gateset, "
                           "but be careful!")
         if self.name is not None:
-            targeted_lattice = self.client.call('get_info')['lattice_name']
+            targeted_lattice = self.client.call('get_config_info')['lattice_name']
             if targeted_lattice and targeted_lattice != self.name:
                 warnings.warn(f'You requested compilation for device {self.name}, '
                               f'but you are engaged on device {targeted_lattice}.')
