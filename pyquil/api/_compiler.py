@@ -166,9 +166,11 @@ class QPUCompiler(AbstractCompiler):
                           "Program that hasn't been compiled via `quil_to_native_quil`. This is "
                           "ok if you've hand-compiled your program to our native gateset, "
                           "but be careful!")
-        if self.name is not None and self.name != self.client.call('get_lattice_name'):
-            warnings.warn(f'You requested compilation for device {self.name}, '
-                          f'but you are engaged on device {targeted_lattice}.')
+        if self.name is not None:
+            targeted_lattice = self.client.call('get_lattice_name')
+            if self.client.call('get_lattice_name') != self.name:
+                warnings.warn(f'You requested compilation for device {self.name}, '
+                              f'but you are engaged on device {targeted_lattice}.')
 
         arithmetic_request = RewriteArithmeticRequest(quil=nq_program.out())
         arithmetic_response = self.client.call('resolve_gate_parameter_arithmetic', arithmetic_request)
