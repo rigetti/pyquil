@@ -193,11 +193,11 @@ STORE               : 'STORE' ;
 PI                  : 'pi' ;
 I                   : 'i' ;
 
-SIN                 : 'sin' ;
-COS                 : 'cos' ;
-SQRT                : 'sqrt' ;
-EXP                 : 'exp' ;
-CIS                 : 'cis' ;
+SIN                 : 'SIN' ;
+COS                 : 'COS' ;
+SQRT                : 'SQRT' ;
+EXP                 : 'EXP' ;
+CIS                 : 'CIS' ;
 
 // Operators
 
