@@ -31,7 +31,7 @@ def meyer_penny_program():
     :return: pyQuil Program
     """
     prog = pq.Program()
-    ro = prog.declare('ro')
+    ro = prog.declare('ro', memory_size=2)
     picard_register = ro[1]
     answer_register = ro[0]
 
