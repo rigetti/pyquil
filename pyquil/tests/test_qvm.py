@@ -76,10 +76,7 @@ def test_roundtrip_pyquilexecutableresponse():
 
 def test_qvm_version(forest: ForestConnection):
     qvm = QVM(connection=forest)
-    version_info = qvm.get_version_info()
-    assert isinstance(version_info, dict)
-    assert 'qvm-app' in version_info
-    assert 'qvm-lib' in version_info
+    version = qvm.get_version_info()
 
     def is_a_version_string(version_string: str):
         parts = version_string.split('.')
@@ -89,5 +86,4 @@ def test_qvm_version(forest: ForestConnection):
             return False
         return True
 
-    assert is_a_version_string(version_info['qvm-app'])
-    assert is_a_version_string(version_info['qvm-lib'])
+    assert is_a_version_string(version)
