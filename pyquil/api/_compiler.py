@@ -168,7 +168,7 @@ class QPUCompiler(AbstractCompiler):
                           "but be careful!")
         if self.name is not None:
             targeted_lattice = self.client.call('get_info')['lattice_name']
-            if self.client.call('get_lattice_name') != self.name:
+            if targeted_lattice and targeted_lattice != self.name:
                 warnings.warn(f'You requested compilation for device {self.name}, '
                               f'but you are engaged on device {targeted_lattice}.')
 
