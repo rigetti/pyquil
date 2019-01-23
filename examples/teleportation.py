@@ -32,7 +32,7 @@ def teleport(start_index, end_index, ancilla_index):
     """
     program = make_bell_pair(end_index, ancilla_index)
 
-    ro = program.declare('ro')
+    ro = program.declare('ro', memory_size=2)
 
     # do the teleportation
     program.inst(CNOT(start_index, ancilla_index))
