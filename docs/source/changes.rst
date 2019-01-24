@@ -34,7 +34,7 @@ Important changes to note:
   protocol. ``LocalQVMCompiler`` and ``LocalBenchmarkConnection`` will be removed in favor of
   a unified ``QVMCompiler`` and ``BenchmarkConnection``. This change should be transparent
   if you use ``get_qc`` and ``get_benchmarker``, respectively. In anticipation of this change
-  we recommend that you upgrade your version of quilc to x.x, released Jan 30, 2019 (gh-730).
+  we recommend that you upgrade your version of quilc to 1.3, released Jan 30, 2019 (gh-730).
 - When using a paramaterized gate, the QPU control electronics only allowed multiplying
   parameters by powers of two. If you only ever multiply a parameter by the same constant,
   this isn't too much of a problem because you can fold the multiplicative constant
