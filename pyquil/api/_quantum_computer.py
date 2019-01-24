@@ -24,7 +24,7 @@ import networkx as nx
 import numpy as np
 from rpcq.messages import BinaryExecutableResponse, Message, PyQuilExecutableResponse
 
-from pyquil.api._compiler import QVMCompiler, QPUCompiler, LocalQVMCompiler
+from pyquil.api._compiler import QPUCompiler, QVMCompiler
 from pyquil.api._config import PyquilConfig
 from pyquil.api._devices import get_lattice, list_lattices
 from pyquil.api._error_reporting import _record_call
@@ -363,17 +363,6 @@ def _canonicalize_name(prefix, qvm_type, noisy):
     return name
 
 
-def _get_qvm_compiler_based_on_endpoint(endpoint: str = None,
-                                        device: AbstractDevice = None) \
-        -> AbstractCompiler:
-    if endpoint.startswith("http"):
-        return LocalQVMCompiler(endpoint=endpoint, device=device)
-    elif endpoint.startswith("tcp"):
-        return QVMCompiler(endpoint=endpoint, device=device)
-    else:
-        raise ValueError("Protocol for QVM compiler endpoints must be HTTP or TCP.")
-
-
 def _get_qvm_or_pyqvm(qvm_type, connection, noise_model=None, device=None,
                       requires_executable=False):
     if qvm_type == 'qvm':
@@ -414,7 +403,7 @@ def _get_qvm_qc(name: str, qvm_type: str, device: AbstractDevice, noise_model: N
                                device=device,
                                requires_executable=requires_executable),
                            device=device,
-                           compiler=_get_qvm_compiler_based_on_endpoint(
+                           compiler=QVMCompiler(
                                device=device,
                                endpoint=connection.compiler_endpoint))
 
@@ -638,6 +627,20 @@ def get_qc(name: str, *, as_qvm: bool = None, noisy: bool = None,
                                    device=device,
                                    name=prefix))
 
+    if noisy:
+        noise_model = device.noise_model
+    else:
+        noise_model = None
+
+    return QuantumComputer(name=name,
+                           qam=QVM(connection=connection,
+                                   noise_model=noise_model,
+                                   requires_executable=True),
+                           device=device,
+                           compiler=QVMCompiler(
+                               device=device,
+                               endpoint=connection.compiler_endpoint))
+
 
 @contextmanager
 def local_qvm() -> Iterator[Tuple[subprocess.Popen, subprocess.Popen]]:
@@ -670,7 +673,7 @@ def local_qvm() -> Iterator[Tuple[subprocess.Popen, subprocess.Popen]]:
                            stdout=subprocess.PIPE,
                            stderr=subprocess.PIPE)
 
-    quilc = subprocess.Popen(['quilc', '-S'],
+    quilc = subprocess.Popen(['quilc', '-RP'],
                              stdout=subprocess.PIPE,
                              stderr=subprocess.PIPE)
 
