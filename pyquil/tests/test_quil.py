@@ -408,8 +408,8 @@ def test_def_gate_with_parameters():
 
     p = Program().defgate("RX", rx, [theta])
     assert p.out() == 'DEFGATE RX(%theta):\n' \
-                      '    cos(%theta/2), -i*sin(%theta/2)\n' \
-                      '    -i*sin(%theta/2), cos(%theta/2)\n\n'
+                      '    COS(%theta/2), -i*SIN(%theta/2)\n' \
+                      '    -i*SIN(%theta/2), COS(%theta/2)\n\n'
 
     dg = DefGate('MY_RX', rx, [theta])
     MY_RX = dg.get_constructor()

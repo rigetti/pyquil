@@ -60,8 +60,8 @@ def test_expression_to_string():
     assert str(x ** (y ** 2)) == '%x^%y^2'
     assert str((x ** y) ** 2) == '(%x^%y)^2'
 
-    assert str(quil_sin(x)) == 'sin(%x)'
-    assert str(3 * quil_sin(x + y)) == '3*sin(%x + %y)'
+    assert str(quil_sin(x)) == 'SIN(%x)'
+    assert str(3 * quil_sin(x + y)) == '3*SIN(%x + %y)'
 
 
 def test_contained_parameters():

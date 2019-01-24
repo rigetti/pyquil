@@ -370,23 +370,23 @@ class Function(Expression):
 
 
 def quil_sin(expression):
-    return Function('sin', expression, np.sin)
+    return Function('SIN', expression, np.sin)
 
 
 def quil_cos(expression):
-    return Function('cos', expression, np.cos)
+    return Function('COS', expression, np.cos)
 
 
 def quil_sqrt(expression):
-    return Function('sqrt', expression, np.sqrt)
+    return Function('SQRT', expression, np.sqrt)
 
 
 def quil_exp(expression):
-    return Function('exp', expression, np.exp)
+    return Function('EXP', expression, np.exp)
 
 
 def quil_cis(expression):
-    return Function('cis', expression, lambda x: np.exp(1j * x))
+    return Function('CIS', expression, lambda x: np.exp(1j * x))
 
 
 class BinaryExp(Expression):
