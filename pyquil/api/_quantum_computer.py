@@ -635,7 +635,8 @@ def get_qc(name: str, *, as_qvm: bool = None, noisy: bool = None,
                                device=device,
                                compiler=QPUCompiler(
                                    endpoint=pyquil_config.compiler_url,
-                                   device=device))
+                                   device=device,
+                                   name=prefix))
 
 
 @contextmanager
