@@ -627,20 +627,6 @@ def get_qc(name: str, *, as_qvm: bool = None, noisy: bool = None,
                                    device=device,
                                    name=prefix))
 
-    if noisy:
-        noise_model = device.noise_model
-    else:
-        noise_model = None
-
-    return QuantumComputer(name=name,
-                           qam=QVM(connection=connection,
-                                   noise_model=noise_model,
-                                   requires_executable=True),
-                           device=device,
-                           compiler=QVMCompiler(
-                               device=device,
-                               endpoint=connection.compiler_endpoint))
-
 
 @contextmanager
 def local_qvm() -> Iterator[Tuple[subprocess.Popen, subprocess.Popen]]:
