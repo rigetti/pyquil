@@ -30,11 +30,11 @@ Important changes to note:
 
 - Quil math functions (like COS, SIN, ...) used to be ambiguous with respect to case sensitivity.
   They are now case-sensitive and should be uppercase (gh-774).
-- Communication with quilc now happens via the rpcq protocol. ``LocalQVMCompiler``
-  and ``LocalBenchmarkConnection`` have been removed in favor of a now-unified ``QVMCompiler``
-  and ``BenchmarkConnection``. This change should be transparent if you were using ``get_qc`` and
-  ``get_benchmarker``, respectively. This change requires that you upgrade your version of
-  quilc to at least x.x (gh-730).
+- In the next release of pyQuil, communication with quilc will happen exclusively via the rpcq
+  protocol. ``LocalQVMCompiler`` and ``LocalBenchmarkConnection`` will be removed in favor of
+  a unified ``QVMCompiler`` and ``BenchmarkConnection``. This change should be transparent
+  if you use ``get_qc`` and ``get_benchmarker``, respectively. In anticipation of this change
+  we recommend that you upgrade your version of quilc to x.x, released Jan 30, 2019 (gh-730).
 - When using a paramaterized gate, the QPU control electronics only allowed multiplying
   parameters by powers of two. If you only ever multiply a parameter by the same constant,
   this isn't too much of a problem because you can fold the multiplicative constant
