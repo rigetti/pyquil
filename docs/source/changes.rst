@@ -12,13 +12,15 @@ quantum programs. A major new feature is the release of a new suite of simulator
   dependencies. Try using it with ``get_qc("9q-square-pyqvm")`` or explore the
   ``pyquil.pyqvm.PyQVM`` object directly. Under-the-hood, there are three quantum simulator
   backends:
-     - ``ReferenceWavefunctionSimulator`` uses standard matrix-vector multiplication to
-       evolve a statevector. This includes a suite of tools in ``pyquil.unitary_tools`` for dealing
-       with unitary matrices.
-     - ``NumpyWavefunctionSimulator`` uses numpy's tensordot functionality to efficiently evolve
-       a statevector. For most simulations, performance is quite good.
-     - ``ReferenceDensitySimulator`` uses matrix-matrix multiplication to evolve a density
-       matrix.
+
+  - ``ReferenceWavefunctionSimulator`` uses standard matrix-vector multiplication to
+    evolve a statevector. This includes a suite of tools in ``pyquil.unitary_tools`` for dealing
+    with unitary matrices.
+  - ``NumpyWavefunctionSimulator`` uses numpy's tensordot functionality to efficiently evolve
+    a statevector. For most simulations, performance is quite good.
+  - ``ReferenceDensitySimulator`` uses matrix-matrix multiplication to evolve a density
+    matrix.
+
 - Matrix representations of Quil standard gates are included in ``pyquil.gate_matrices`` (gh-552).
 - The density simulator has extremely limited support for Kraus-operator based noise models.
   Let us know if you're interested in contributing more robust noise-model support.
