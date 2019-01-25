@@ -23,7 +23,7 @@ from six import integer_types
 from pyquil.api._base_connection import (validate_qubit_list, validate_noise_probabilities,
                                          TYPE_MULTISHOT_MEASURE, TYPE_WAVEFUNCTION,
                                          TYPE_EXPECTATION, post_json, ForestConnection)
-from pyquil.api._compiler import (QVMCompiler,
+from pyquil.api._compiler import (LocalQVMCompiler,
                                   _extract_program_from_pyquil_executable_response)
 from pyquil.api._config import PyquilConfig
 from pyquil.api._error_reporting import _record_call
@@ -86,7 +86,7 @@ programs run on this QVM.
 """)
 
         self.noise_model = device.noise_model if device else None
-        self.compiler = QVMCompiler(endpoint=compiler_endpoint, device=device) if device \
+        self.compiler = LocalQVMCompiler(endpoint=compiler_endpoint, device=device) if device \
             else None
 
         self.sync_endpoint = endpoint

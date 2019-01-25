@@ -35,7 +35,7 @@ from rpcq.messages import (BinaryExecutableRequest, BinaryExecutableResponse,
                            RandomizedBenchmarkingRequest, RandomizedBenchmarkingResponse)
 
 from pyquil.api import (QVMConnection, QPUCompiler, BenchmarkConnection,
-                        get_qc, QVMCompiler)
+                        get_qc, LocalQVMCompiler, QVMCompiler, LocalBenchmarkConnection)
 from pyquil.api._base_connection import validate_noise_probabilities, validate_qubit_list, \
     prepare_register_list
 from pyquil.api._config import PyquilConfig
@@ -50,7 +50,7 @@ BELL_STATE = Program(H(0), CNOT(0, 1))
 BELL_STATE_MEASURE = Program(H(0), CNOT(0, 1), MEASURE(0, 0), MEASURE(1, 1))
 COMPILED_BELL_STATE = Program([
     Declare("ro", "BIT", 2),
-    Pragma("EXPECTED_REWIRING", ('"#(0 1)"',)),
+    Pragma("EXPECTED_REWIRING", ('"#(0 1 2 3)"',)),
     RZ(pi / 2, 0),
     RX(pi / 2, 0),
     RZ(-pi / 2, 1),
@@ -59,9 +59,9 @@ COMPILED_BELL_STATE = Program([
     RZ(-pi / 2, 0),
     RX(-pi / 2, 1),
     RZ(pi / 2, 1),
-    Pragma("CURRENT_REWIRING", ('"#(0 1)"',)),
-    Pragma("EXPECTED_REWIRING", ('"#(0 1)"',)),
-    Pragma("CURRENT_REWIRING", ('"#(0 1)"',)),
+    Pragma("CURRENT_REWIRING", ('"#(0 1 2 3)"',)),
+    Pragma("EXPECTED_REWIRING", ('"#(0 1 2 3)"',)),
+    Pragma("CURRENT_REWIRING", ('"#(0 1 2 3)"',)),
 ])
 DUMMY_ISA_DICT = {"1Q": {"0": {}, "1": {}}, "2Q": {"0-1": {}}}
 DUMMY_ISA = ISA.from_dict(DUMMY_ISA_DICT)
@@ -243,8 +243,14 @@ def test_prepare_register_list():
 # ---------------------
 
 
+def test_get_qc_returns_local_qvm_compiler():
+    with patch.dict('os.environ', {"COMPILER_URL": "http://127.0.0.1:7000"}):
+        qc = get_qc("9q-generic-qvm")
+        assert isinstance(qc.compiler, LocalQVMCompiler)
+
+
 def test_get_qc_returns_remote_qvm_compiler():
-    with patch.dict('os.environ', {"COMPILER_URL": "tcp://192.168.0.0:5550"}):
+    with patch.dict('os.environ', {"COMPILER_URL": "tcp://192.168.0.0:5555"}):
         qc = get_qc("9q-generic-qvm")
         assert isinstance(qc.compiler, QVMCompiler)
 
@@ -302,7 +308,7 @@ def conjugate_pauli_by_clifford(payload: ConjugateByCliffordRequest) -> Conjugat
 
 @pytest.fixture
 def m_endpoints():
-    return "tcp://127.0.0.1:5550", "tcp://*:5550"
+    return "tcp://127.0.0.1:5555", "tcp://*:5555"
 
 
 def run_mock(_, endpoint):
@@ -361,7 +367,7 @@ def test_conjugate_request(server, mock_rb_cxn):
 def test_local_rb_sequence(benchmarker):
     config = PyquilConfig()
     if config.compiler_url is not None:
-        cxn = BenchmarkConnection(endpoint=config.compiler_url)
+        cxn = LocalBenchmarkConnection(endpoint=config.compiler_url)
         response = cxn.generate_rb_sequence(2, [PHASE(np.pi / 2, 0), H(0)], seed=52)
         assert [prog.out() for prog in response] == \
                ["H 0\nPHASE(pi/2) 0\nH 0\nPHASE(pi/2) 0\nPHASE(pi/2) 0\n",
@@ -371,7 +377,7 @@ def test_local_rb_sequence(benchmarker):
 def test_local_conjugate_request(benchmarker):
     config = PyquilConfig()
     if config.compiler_url is not None:
-        cxn = BenchmarkConnection(endpoint=config.compiler_url)
+        cxn = LocalBenchmarkConnection(endpoint=config.compiler_url)
         response = cxn.apply_clifford_to_pauli(Program("H 0"), PauliTerm("X", 0, 1.0))
         assert isinstance(response, PauliTerm)
         assert str(response) == "(1+0j)*Z0"
