@@ -353,7 +353,7 @@ def to_json(fn, obj):
     See :py:func:`read_json`.
     """
     with open(fn, 'w') as f:
-        json.dump(obj, f, cls=OperatorEncoder, indent=2)
+        json.dump(obj, f, cls=OperatorEncoder, indent=2, ensure_ascii=False)
     return fn
 
 

@@ -373,16 +373,15 @@ class ForestConnection:
         """
         Return version information for the QVM.
 
-        :return: Dictionary with version information
+        :return: String of QVM version
         """
         response = post_json(self.session, self.sync_endpoint, {'type': 'version'})
         split_version_string = response.text.split()
         try:
-            qvm_app_version = split_version_string[0]
-            qvm_lib_version = split_version_string[2][:-1]
+            qvm_version = split_version_string[0]
         except ValueError:
             raise TypeError(f'Malformed version string returned by the QVM: {response.text}')
-        return {'qvm-app': qvm_app_version, 'qvm-lib': qvm_lib_version}
+        return qvm_version
 
     def _quilc_compile(self, quil_program, isa, specs):
         """

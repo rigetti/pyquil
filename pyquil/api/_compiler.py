@@ -128,18 +128,24 @@ def _collect_memory_descriptors(program: Program) -> Dict[str, ParameterSpec]:
 
 class QPUCompiler(AbstractCompiler):
     @_record_call
-    def __init__(self, endpoint: str, device: AbstractDevice, timeout: int = 10) -> None:
+    def __init__(self,
+                 endpoint: str,
+                 device: AbstractDevice,
+                 timeout: int = 10,
+                 name: Optional[str] = None) -> None:
         """
         Client to communicate with the Compiler Server.
 
         :param endpoint: TCP or IPC endpoint of the Compiler Server
         :param device: PyQuil Device object to use as compilation target
         :param timeout: Number of seconds to wait for a response from the client.
+        :param name: Name of the lattice being targeted
         """
 
         self.client = Client(endpoint, timeout=timeout)
         self.target_device = TargetDevice(isa=device.get_isa().to_dict(),
                                           specs=device.get_specs().to_dict())
+        self.name = name
 
     def get_version_info(self) -> dict:
         return self.client.call('get_version_info')
@@ -160,6 +166,11 @@ class QPUCompiler(AbstractCompiler):
                           "Program that hasn't been compiled via `quil_to_native_quil`. This is "
                           "ok if you've hand-compiled your program to our native gateset, "
                           "but be careful!")
+        if self.name is not None:
+            targeted_lattice = self.client.call('get_config_info')['lattice_name']
+            if targeted_lattice and targeted_lattice != self.name:
+                warnings.warn(f'You requested compilation for device {self.name}, '
+                              f'but you are engaged on device {targeted_lattice}.')
 
         arithmetic_request = RewriteArithmeticRequest(quil=nq_program.out())
         arithmetic_response = self.client.call('resolve_gate_parameter_arithmetic', arithmetic_request)
