@@ -54,6 +54,7 @@ As always, this release contains bug fixes and improvements:
 - Operator estimation JSON serialization uses utf-8. Please let us know if this
   causes problems (gh-769).
 - The example quantum die program now can roll dice that are not powers of two (gh-749).
+- The teleportation and Meyer penny game examples had a syntax error (gh-778, gh-772).
 - When running on the QPU, you could get into trouble if the QPU name passed to ``get_qc`` did not
   match the lattice you booked. This is now validated (gh-771).
 
