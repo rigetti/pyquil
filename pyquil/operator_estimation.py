@@ -372,8 +372,7 @@ def construct_tpb_graph(experiments: TomographyExperiment):
         if expt1 == expt2:
             continue
 
-        if (_all_qubits_diagonal_in_tpb(expt1.in_operator, expt2.in_operator)
-                and _all_qubits_diagonal_in_tpb(expt1.out_operator, expt2.out_operator)):
+        if _expt_settings_diagonal_in_tpb(expt1, expt2):
             g.add_edge(expt1, expt2)
 
     return g
