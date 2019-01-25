@@ -58,6 +58,8 @@ As always, this release contains bug fixes and improvements:
 - When running on the QPU, you could get into trouble if the QPU name passed to ``get_qc`` did not
   match the lattice you booked. This is now validated (gh-771).
 
+We extend thanks to community member estamm12 for their contribution to this release.
+
 
 v2.2 (January 4, 2019)
 ----------------------
