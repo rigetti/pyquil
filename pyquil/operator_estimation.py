@@ -382,8 +382,8 @@ def group_experiments_clique_removal(experiments: TomographyExperiment) -> Tomog
     Group experiments that are diagonal in a shared tensor product basis (TPB) to minimize number
     of QPU runs, using a graph clique removal algorithm.
 
-    :param experiments: an tomography experiment
-    :return: an tomography experiment with all the same settings, just grouped according to shared
+    :param experiments: a tomography experiment
+    :return: a tomography experiment with all the same settings, just grouped according to shared
         TPBs.
     """
     g = construct_tpb_graph(experiments)
@@ -405,7 +405,7 @@ def group_experiments(experiments: TomographyExperiment, method: str = 'greedy')
     Group experiments that are diagonal in a shared tensor product basis (TPB) to minimize number
     of QPU runs, using a specified method (greedy method by default)
 
-    :param experiments: an tomography experiment
+    :param experiments: a tomography experiment
     :param method: method used for grouping; the allowed methods are one of
         ['greedy', 'clique-removal']
     :return: a tomography experiment with all the same settings, just grouped according to shared
@@ -461,7 +461,7 @@ def _validate_all_diagonal_in_tpb(ops: Iterable[PauliTerm]) -> Dict[int, str]:
 def measure_observables(qc: QuantumComputer, tomo_experiment: TomographyExperiment, n_shots=1000,
                         progress_callback=None, active_reset=False):
     """
-    Measure all the observables in an TomographyExperiment.
+    Measure all the observables in a TomographyExperiment.
 
     :param qc: A QuantumComputer which can run quantum programs
     :param tomo_experiment: A suite of tomographic observables to measure
