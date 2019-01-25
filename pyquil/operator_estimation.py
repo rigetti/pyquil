@@ -319,12 +319,14 @@ def _all_qubits_diagonal_in_tpb(op1: PauliTerm, op2: PauliTerm):
     Note that for the given example of X(1) * Z(0) and Z(1) * X(0), we can construct
     the following basis which simultaneously diagonalizes both operators:
 
-      -- 2 * |0>' = |0> (|0> + |1>) + |1> (|0> - |1>)
-      -- 2 * |1>' = |0> (|0> + |1>) - |1> (|0> - |1>)
-      -- 2 * |2>' = |0> (|0> - |1>) + |1> (|0> + |1>)
-      -- 2 * |3>' = |0> (-|0> + |1>) + |1> (|0> + |1>)
+      -- |0>' = |0> (|+>) + |1> (|->)
+      -- |1>' = |0> (|+>) - |1> (|->)
+      -- |2>' = |0> (|->) + |1> (|+>)
+      -- |3>' = |0> (-|->) + |1> (|+>)
 
-    In this basis, X Z looks like diag(1, -1, 1, -1), and Z X looks like diag(1, 1, -1, -1)
+    In this basis, X Z looks like diag(1, -1, 1, -1), and Z X looks like diag(1, 1, -1, -1).
+    Notice however that this basis cannot be constructed with single-qubit operations, as each
+    of the basis vectors are entangled states.
 
     :param op1: PauliTerm to check diagonality of in the natural tpb of ``op2``
     :param op2: PauliTerm to check diagonality of in the natural tpb of ``op1``
