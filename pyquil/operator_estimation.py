@@ -13,7 +13,7 @@ from networkx.algorithms.approximation.clique import clique_removal
 from pyquil import Program
 from pyquil.api import QuantumComputer
 from pyquil.gates import *
-from pyquil.paulis import PauliTerm, is_identity
+from pyquil.paulis import PauliTerm, is_identity, sI
 
 if sys.version_info < (3, 7):
     from pyquil.external.dataclasses import dataclass
@@ -543,19 +543,20 @@ def measure_observables(qc: QuantumComputer, tomo_experiment: TomographyExperime
             )
 
 
-def _get_diagonalizing_basis(list_of_pauli_terms: List[PauliTerm]):
+def _get_diagonalizing_basis(ops: Iterable[PauliTerm]) -> PauliTerm:
     """
     Find the Pauli Term with the most non-identity terms
 
-    :param list_of_pauli_terms: List of Pauli terms to check
-    :return: The highest weight Pauli Term
+    :param ops: Iterable of PauliTerms to check
+    :return: The highest weight PauliTerm from the input iterable
     """
-    # create an unsorted (frozen)set of tuples of the form (qubit, operation)
-    unsorted_qubit_ops = reduce(lambda x, y: x | y, (pt.operations_as_set() for pt in list_of_pauli_terms))
-    # create a list of tuples of the form (qubit, operation), sorted by qubits
-    qubit_ops = sorted(list(unsorted_qubit_ops), key=lambda x: x[0])
-    # return a PauliTerm created from a list of tuples of the form (operation, qubit)
-    return PauliTerm.from_list([(i[1], i[0]) for i in qubit_ops])
+    # obtain qubit: operation mapping
+    dict_pt = _validate_all_diagonal_in_tpb(ops)
+    # convert this mapping to PauliTerm
+    pt = sI()
+    for q, op in dict_pt.items():
+        pt *= PauliTerm(op, q)
+    return pt
 
 
 def _max_tpb_overlap(expt_setting: ExperimentSetting, diagonal_sets: Dict):
