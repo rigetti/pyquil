@@ -326,7 +326,7 @@ def _parse_name(name: str, as_qvm: bool, noisy: bool) -> Tuple[str, str, bool]:
             raise ValueError("The provided qc name indicates you are getting a QVM, "
                              "but you have specified `as_qvm=False`")
         qvm_type = parts[-1]
-        if noisy is not None:
+        if noisy is None:
             noisy = False
         prefix = '-'.join(parts[:-1])
         return prefix, qvm_type, noisy

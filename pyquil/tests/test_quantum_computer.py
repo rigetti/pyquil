@@ -456,3 +456,17 @@ def test_get_qvm_with_topology_2(forest):
     results = qc.run_and_measure(Program(X(5)), trials=5)
     assert sorted(results.keys()) == [5, 6, 7]
     assert all(x == 1 for x in results[5])
+
+
+def test_parse_mix_qvm_and_noisy_flag():
+    # https://github.com/rigetti/pyquil/issues/764
+    name, qvm_type, noisy = _parse_name('1q-qvm', as_qvm=None, noisy=True)
+    assert noisy
+
+
+def test_noisy():
+    # https://github.com/rigetti/pyquil/issues/764
+    p = Program(X(0))
+    qc = get_qc('1q-qvm', noisy=True)
+    result = qc.run_and_measure(p, trials=10000)
+    assert result[0].mean() < 1.0
