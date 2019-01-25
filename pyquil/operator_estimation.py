@@ -589,12 +589,16 @@ def _max_tpb_overlap(tomo_expt: TomographyExperiment):
                 # determine the updated list of ExperimentSettings
                 updated_es_list = es_list + [expt_setting]
                 # obtain the diagonalizing bases for both the updated in and out sets
-                diagonalizing_in_term = _get_diagonalizing_basis([expst.in_operator for expst in updated_es_list])
-                diagonalizing_out_term = _get_diagonalizing_basis([expst.out_operator for expst in updated_es_list])
+                diag_in_term = _get_diagonalizing_basis([expst.in_operator for expst in updated_es_list])
+                diag_out_term = _get_diagonalizing_basis([expst.out_operator for expst in updated_es_list])
+                assert len(diag_in_term) >= len(es.in_operator), \
+                    "Highest weight in-PauliTerm can't be smaller than the given in-PauliTerm"
+                assert len(diag_out_term) >= len(es.out_operator), \
+                    "Highest weight out-PauliTerm can't be smaller than the given out-PauliTerm"
                 # update the diagonalizing basis (key of dict) if necessary
-                if len(diagonalizing_in_term) > len(es.in_operator) or len(diagonalizing_out_term) > len(es.out_operator):
+                if len(diag_in_term) > len(es.in_operator) or len(diag_out_term) > len(es.out_operator):
                     del diagonal_sets[es]
-                    new_es = ExperimentSetting(diagonalizing_in_term, diagonalizing_out_term)
+                    new_es = ExperimentSetting(diag_in_term, diag_out_term)
                     diagonal_sets[new_es] = updated_es_list
                 else:
                     diagonal_sets[es] = updated_es_list
