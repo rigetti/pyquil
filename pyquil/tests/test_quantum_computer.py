@@ -464,7 +464,7 @@ def test_parse_mix_qvm_and_noisy_flag():
     assert noisy
 
 
-def test_noisy():
+def test_noisy(forest):
     # https://github.com/rigetti/pyquil/issues/764
     p = Program(X(0))
     qc = get_qc('1q-qvm', noisy=True)
