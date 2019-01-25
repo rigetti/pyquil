@@ -73,6 +73,13 @@ class TensorProductState:
     def __repr__(self):
         return f'TensorProductState[{self}]'
 
+    def __getitem__(self, qubit):
+        """Return the _OneQState at the given qubit."""
+        for oneq_state in self.states:
+            if oneq_state.qubit == qubit:
+                return oneq_state
+        raise IndexError()
+
     @classmethod
     def from_str(cls, s):
         if s == '':

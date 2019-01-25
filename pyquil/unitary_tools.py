@@ -17,7 +17,8 @@ from typing import Union, List
 
 import numpy as np
 
-from pyquil.gate_matrices import SWAP, QUANTUM_GATES
+from pyquil.gate_matrices import SWAP, QUANTUM_GATES, STATES
+from pyquil.operator_estimation import TensorProductState
 from pyquil.paulis import PauliSum, PauliTerm
 from pyquil.quilbase import Gate
 
@@ -345,3 +346,20 @@ def tensor_up(pauli_sum: Union[PauliSum, PauliTerm], qubits: List[int]):
     :returns: matrix representation of the pauli_sum operator
     """
     return lifted_pauli(pauli_sum=pauli_sum, qubits=qubits)
+
+
+def lifted_state_operator(state: TensorProductState, qubits: List[int]):
+    """Take a TensorProductState along with a list of qubits and return a matrix
+    corresponding to the tensored-up representation of the states' operator form.
+
+    :param state: The state
+    :param qubits: list of qubits in the order they will be represented in the resultant matrix.
+    """
+    mat = 1.0
+    for qubit in qubits:
+        oneq_state = state[qubit]
+        assert oneq_state.qubit == qubit
+        state_vector = STATES[oneq_state.label][oneq_state.index]
+        state_matrix = state_vector @ state_vector.conj().T
+        mat = np.kron(state_matrix, mat)
+    return mat
