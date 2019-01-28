@@ -1,7 +1,7 @@
 Changelog
 =========
 
-v2.3 (January 30, 2019)
+v2.3 (January 28, 2019)
 -----------------------
 
 PyQuil 2.3 is the latest release of pyQuil, Rigetti's toolkit for constructing and running
