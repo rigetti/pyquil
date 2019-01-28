@@ -1185,15 +1185,17 @@ def get_confusion_matrix_programs(qubit):
     :returns: program that should measure |0>, program that should measure |1>.
     """
     zero_meas = Program()
+    ro = zero_meas.declare('ro', 'BIT', 1)
     zero_meas += I(qubit)
     zero_meas += I(qubit)
-    zero_meas += MEASURE(qubit, 0)
+    zero_meas += MEASURE(qubit, ro[0])
 
     # prepare one and get statistics
     one_meas = Program()
+    ro = one_meas.declare('ro', 'BIT', 1)
     one_meas += I(qubit)
     one_meas += RX(pi, qubit)
-    one_meas += MEASURE(qubit, 0)
+    one_meas += MEASURE(qubit, ro[0])
 
     return zero_meas, one_meas
 
