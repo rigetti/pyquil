@@ -608,7 +608,7 @@ class EstimationResult:
     n_shots: int
 
     def __str__(self):
-        return f"Expected value: {self.expected_value}, shots: {n_shots}"
+        return f"Expected value: {self.expected_value}, shots: {self.n_shots}"
 
     def __repr__(self):
         return f"EstimationResult[{self}]"
@@ -1027,3 +1027,133 @@ def commuting_sets_by_zbasis(pauli_sums):
         diagonal_sets = _max_key_overlap(term, diagonal_sets)
 
     return diagonal_sets
+
+
+def estimate_pauli_sum_symmeterized(pauli_terms,
+                                    basis_transform_dict,
+                                    program,
+                                    variance_bound,
+                                    quantum_resource,
+                                    commutation_check=True,
+                                    confusion_mat_dict=None):
+    r"""
+    Estimate the mean of a sum of pauli terms to set variance with symmeterized
+    readout
+
+    The sample variance is calculated by
+
+    .. math::
+        \begin{align}
+        \mathrm{Var}[\hat{\langle H \rangle}] = \sum_{i, j}h_{i}h_{j}
+        \mathrm{Cov}(\hat{\langle P_{i} \rangle}, \hat{\langle P_{j} \rangle})
+        \end{align}
+
+    The expectation value of each Pauli operator (term and coefficient) is
+    also returned.  It can be accessed through the named-tuple field
+    `pauli_expectations'.
+
+    :param pauli_terms: list of pauli terms to measure simultaneously or a
+                        PauliSum object
+    :param basis_transform_dict: basis transform dictionary where the key is
+                                 the qubit index and the value is the basis to
+                                 rotate into. Valid basis is [I, X, Y, Z].
+    :param program: program generating a state to sample from.  The program
+                    is deep copied to ensure no mutation of gates or program
+                    is perceived by the user.
+    :param variance_bound:  Bound on the variance of the estimator for the
+                            PauliSum. Remember this is the SQUARE of the
+                            standard error!
+    :param quantum_resource: quantum abstract machine object
+    :param Bool commutation_check: Optional flag toggling a safety check
+                                   ensuring all terms in `pauli_terms`
+                                   commute with each other
+    :return: estimated expected value, expected value of each Pauli term in
+             the sum, covariance matrix, variance of the estimator, and the
+             number of shots taken.  The objected returned is a named tuple with
+             field names as follows: expected_value, pauli_expectations,
+             covariance, variance, n_shots.
+             `expected_value' == coef_vec.dot(pauli_expectations)
+    :rtype: EstimationResult
+    """
+    if not isinstance(pauli_terms, (list, PauliSum)):
+        raise TypeError("pauli_terms needs to be a list or a PauliSum")
+
+    if isinstance(pauli_terms, PauliSum):
+        pauli_terms = pauli_terms.terms
+
+    # check if each term commutes with everything
+    if commutation_check:
+        if len(commuting_sets(sum(pauli_terms))) != 1:
+            raise CommutationError("Not all terms commute in the expected way")
+
+    program = program.copy()
+    pauli_for_rotations = PauliTerm.from_list(
+        [(value, key) for key, value in basis_transform_dict.items()])
+
+    program += get_rotation_program(pauli_for_rotations)
+
+    qubits = sorted(list(basis_transform_dict.keys()))
+    ro = program.declare("ro", "BIT", memory_size=len(qubits))
+    for num, qubit in enumerate(qubits):
+        program.inst(MEASURE(qubit, ro[num]))
+
+    coeff_vec = np.array(
+        list(map(lambda x: x.coefficient, pauli_terms))).reshape((-1, 1))
+
+    results = None
+    sample_variance = np.infty
+    number_of_samples = 0
+
+    # get confusion matrices
+    if confusion_mat_dict is None:
+        max_coeff = np.max(np.abs(coeff_vec))
+        num_sample_ubound = max(int(10 * (max_coeff**2) * (len(pauli_terms)**2) / variance_bound), 1000)
+        confusion_mat_dict = get_confusion_matrices(quantum_resource, qubits, num_sample_ubound)
+
+    # create a rescale vector.  the rescale vector would take the expected value
+    # of each pauli operator and rescale by the appropriate symmeterized
+    # measurement adjustment. if perfect readout--i.e. p(0|0) = p(1|1) = 1 then
+    # we should get the identity matrix back
+    meas_adjustments = np.ones(len(pauli_terms))
+    for pidx, term in enumerate(pauli_terms):
+        term_qubits = term.get_qubits()
+        rescale_coeffs = [1 / (confusion_mat_dict[x][0, 0] + confusion_mat_dict[x][1, 1] - 1) for x in term_qubits]
+        meas_adjustments[pidx] *= reduce(lambda x, y: x * y, rescale_coeffs)
+
+    max_coeff = np.max(np.abs(coeff_vec * meas_adjustments))
+    num_sample_ubound = max(int(10 * (max_coeff**2) * (len(pauli_terms)**2) / variance_bound), 1000)
+    if num_sample_ubound <= 2:
+        raise ValueError("Something happened with our calculation of the max sample")
+
+    program = program.wrap_in_numshots_loop(min(STANDARD_NUMSHOTS, num_sample_ubound + (num_sample_ubound % 2)))
+    binary = quantum_resource.compiler.native_quil_to_executable(program)
+
+    while (sample_variance > variance_bound and
+           number_of_samples < num_sample_ubound):
+        tresults = quantum_resource.run(binary)
+        number_of_samples += len(tresults)
+
+        parity_results = get_parity(pauli_terms, tresults)
+
+        # Note: easy improvement would be to update mean and variance on the fly
+        # instead of storing all these results.
+        if results is None:
+            results = parity_results
+        else:
+            results = np.hstack((results, parity_results))
+
+        # calculate the expected values....
+        # this coeff matrix is for Cov(aX, bY) = a * b * Cov(X, Y)
+        # symmeterized readout is rescaling each random variable by a constant
+        # so we need to calculate the adjusted covariance matrix we compute
+        # the hadamard product between the outer product of the coeff adjustement
+        # vector and the covariance matrix
+        coeff_mat_adjusted = np.outer(meas_adjustments, meas_adjustments)
+        covariance_mat = np.cov(results, ddof=1)
+        sample_variance = coeff_vec.T.dot(covariance_mat * coeff_mat_adjusted).dot(coeff_vec) / (results.shape[1] - 1)
+
+    return EstimationResult(expected_value=coeff_vec.T.dot(np.multiply(meas_adjustments, np.mean(results, axis=1))),
+                            pauli_expectations=np.multiply(coeff_vec.flatten(), np.multiply(meas_adjustments, np.mean(results, axis=1))).flatten(),
+                            covariance=np.multiply(covariance_mat, coeff_mat_adjusted),
+                            variance=sample_variance,
+                            n_shots=results.shape[1])
