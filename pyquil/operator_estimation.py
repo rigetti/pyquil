@@ -1125,7 +1125,9 @@ def estimate_pauli_sum_symmeterized(pauli_terms,
     if num_sample_ubound <= 2:
         raise ValueError("Something happened with our calculation of the max sample")
 
-    program = program.wrap_in_numshots_loop(min(STANDARD_NUMSHOTS, num_sample_ubound + (num_sample_ubound % 2)))
+    standard_numshots = 10000
+
+    program = program.wrap_in_numshots_loop(min(standard_numshots, num_sample_ubound + (num_sample_ubound % 2)))
     binary = quantum_resource.compiler.native_quil_to_executable(program)
 
     while (sample_variance > variance_bound and
@@ -1173,3 +1175,47 @@ def get_confusion_matrices(quantum_resource, qubits, num_sample_ubound):
     """
     confusion_mat_dict = {q: estimate_confusion_matrix(quantum_resource, q, num_sample_ubound) for q in qubits}
     return confusion_mat_dict
+
+
+def get_confusion_matrix_programs(qubit):
+    """Construct programs for measuring a confusion matrix.
+
+    This is a fancy way of saying "measure |0>"  and "measure |1>".
+
+    :returns: program that should measure |0>, program that should measure |1>.
+    """
+    zero_meas = Program()
+    zero_meas += I(qubit)
+    zero_meas += I(qubit)
+    zero_meas += MEASURE(qubit, 0)
+
+    # prepare one and get statistics
+    one_meas = Program()
+    one_meas += I(qubit)
+    one_meas += RX(pi, qubit)
+    one_meas += MEASURE(qubit, 0)
+
+    return zero_meas, one_meas
+
+
+def estimate_confusion_matrix(qam: 'QuantumComputer', qubit: int, samples=10000):
+    """Estimate the readout confusion matrix for a given qubit.
+
+    :param qam: The quantum computer to estimate the confusion matrix.
+    :param qubit: The actual physical qubit to measure
+    :param samples: The number of shots to take. This function runs two programs, so
+        the total number of shots taken will be twice this number.
+    """
+    zero_meas, one_meas = get_confusion_matrix_programs(qubit)
+    zero_meas.wrap_in_numshots_loop(samples)
+    should_be_0 = qam.run(zero_meas)
+
+    one_meas.wrap_in_numshots_loop(samples)
+    should_be_1 = qam.run(one_meas) 
+    # should_be_0 = qam.run(zero_meas, [0], samples)
+    # should_be_1 = qam.run(one_meas, [0], samples)
+    p00 = 1 - np.mean(should_be_0)
+    p11 = np.mean(should_be_1)
+
+    return np.array([[p00, 1 - p00],
+                     [1 - p11, p11]])
