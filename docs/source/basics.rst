@@ -306,7 +306,7 @@ rotates it around the Z axis for some variable angle theta before applying anoth
     theta_ref = p.declare("theta", "REAL")
 
     p += RX(np.pi / 2, qubit)
-    p += RZ(theta, qubit)
+    p += RZ(theta_ref, qubit)
     p += RX(-np.pi / 2, qubit)
 
     p += MEASURE(qubit, ro[0])
@@ -339,7 +339,7 @@ filled in for, say, 200 values between :math:`0` and :math:`2\pi`. We demonstrat
         # Get the results of the run with the value we want to execute with
         bitstrings = qc.run(executable, {'theta': [theta]})
         # Store our results
-        parameteric_measurements.append(bitstrings)
+        parametric_measurements.append(bitstrings)
 
 In the example here, if you called ``qc.run(executable)`` and didn't specify ``'theta'``, the program would apply
 ``RZ(0, qubit)`` for every execution.
