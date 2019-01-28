@@ -1,11 +1,64 @@
 Changelog
 =========
 
-v2.3 (Development)
------------------
+v2.3 (January 30, 2019)
+-----------------------
+
+PyQuil 2.3 is the latest release of pyQuil, Rigetti's toolkit for constructing and running
+quantum programs. A major new feature is the release of a new suite of simulators:
+
+- We're proud to introduce the first iteration of a Python-based quantum virtual machine (QVM)
+  called PyQVM. This QVM is completely contained within pyQuil and does not need any external
+  dependencies. Try using it with ``get_qc("9q-square-pyqvm")`` or explore the
+  ``pyquil.pyqvm.PyQVM`` object directly. Under-the-hood, there are three quantum simulator
+  backends:
+
+  - ``ReferenceWavefunctionSimulator`` uses standard matrix-vector multiplication to
+    evolve a statevector. This includes a suite of tools in ``pyquil.unitary_tools`` for dealing
+    with unitary matrices.
+  - ``NumpyWavefunctionSimulator`` uses numpy's tensordot functionality to efficiently evolve
+    a statevector. For most simulations, performance is quite good.
+  - ``ReferenceDensitySimulator`` uses matrix-matrix multiplication to evolve a density
+    matrix.
+
+- Matrix representations of Quil standard gates are included in ``pyquil.gate_matrices`` (gh-552).
+- The density simulator has extremely limited support for Kraus-operator based noise models.
+  Let us know if you're interested in contributing more robust noise-model support.
+- This functionality should be considered experimental and may undergo minor API changes.
+
+Important changes to note:
+
+- Quil math functions (like COS, SIN, ...) used to be ambiguous with respect to case sensitivity.
+  They are now case-sensitive and should be uppercase (gh-774).
+- In the next release of pyQuil, communication with quilc will happen exclusively via the rpcq
+  protocol. ``LocalQVMCompiler`` and ``LocalBenchmarkConnection`` will be removed in favor of
+  a unified ``QVMCompiler`` and ``BenchmarkConnection``. This change should be transparent
+  if you use ``get_qc`` and ``get_benchmarker``, respectively. In anticipation of this change
+  we recommend that you upgrade your version of quilc to 1.3, released Jan 30, 2019 (gh-730).
+- When using a paramaterized gate, the QPU control electronics only allowed multiplying
+  parameters by powers of two. If you only ever multiply a parameter by the same constant,
+  this isn't too much of a problem because you can fold the multiplicative constant
+  into the definition of the parameter. However, if you are multiplying the same variable
+  (e.g. ``gamma`` in QAOA) by different constants (e.g. weighted maxcut edge weights) it doesn't
+  work. PyQuil will now transparently handle the latter case by expanding to a vector of
+  parameters with the constants folded in, allowing you to multiply variables by whatever you
+  want (gh-707).
+
+As always, this release contains bug fixes and improvements:
 
 - The CZ gate fidelity metric available in the Specs object now has its associated standard
-error, which is accessible from the method ``Specs.fCZ_std_errs``.
+  error, which is accessible from the method ``Specs.fCZ_std_errs`` (gh-751).
+- Operator estimation code now correctly handles identity terms with coefficients. Previously,
+  it would always estimate these terms as 1.0 (gh-758).
+- Operator estimation results include the total number of counts (shots) taken.
+- Operator estimation JSON serialization uses utf-8. Please let us know if this
+  causes problems (gh-769).
+- The example quantum die program now can roll dice that are not powers of two (gh-749).
+- The teleportation and Meyer penny game examples had a syntax error (gh-778, gh-772).
+- When running on the QPU, you could get into trouble if the QPU name passed to ``get_qc`` did not
+  match the lattice you booked. This is now validated (gh-771).
+
+We extend thanks to community member estamm12 for their contribution to this release.
 
 
 v2.2 (January 4, 2019)
