@@ -1157,3 +1157,19 @@ def estimate_pauli_sum_symmeterized(pauli_terms,
                             covariance=np.multiply(covariance_mat, coeff_mat_adjusted),
                             variance=sample_variance,
                             n_shots=results.shape[1])
+
+
+def get_confusion_matrices(quantum_resource, qubits, num_sample_ubound):
+    """
+    Get the confusion matrices from the quantum resource given number of samples
+
+    This allows the user to change the accuracy at which they estimate the
+    confusion matrix
+
+    :param quantum_resource: Quantum Abstract Machine connection object
+    :param qubits: qubits to measure 1-qubit readout confusion matrices
+    :return: dictionary of confusion matrices indexed by the qubit label
+    :rtype: dict
+    """
+    confusion_mat_dict = {q: estimate_confusion_matrix(quantum_resource, q, num_sample_ubound) for q in qubits}
+    return confusion_mat_dict
