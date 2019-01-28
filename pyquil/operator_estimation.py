@@ -1090,7 +1090,7 @@ def estimate_pauli_sum_symmeterized(pauli_terms,
     pauli_for_rotations = PauliTerm.from_list(
         [(value, key) for key, value in basis_transform_dict.items()])
 
-    program += get_rotation_program(pauli_for_rotations)
+    program += get_rotation_program_measure(pauli_for_rotations)
 
     qubits = sorted(list(basis_transform_dict.keys()))
     ro = program.declare("ro", "BIT", memory_size=len(qubits))
