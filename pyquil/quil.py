@@ -72,6 +72,19 @@ class Program(object):
         # Note to developers: Have you changed this method? Have you changed the fields which
         # live on `Program`? Please update `Program.copy()`!
 
+    def copy_everything_except_instructions(self):
+        """
+        Copy all the members that live on a Program object.
+
+        :return: a new Program
+        """
+        new_prog = Program()
+        new_prog._defined_gates = self._defined_gates.copy()
+        if self.native_quil_metadata is not None:
+            new_prog.native_quil_metadata = self.native_quil_metadata.copy()
+        new_prog.num_shots = self.num_shots
+        return new_prog
+
     def copy(self):
         """
         Perform a shallow copy of this program.
@@ -81,12 +94,8 @@ class Program(object):
 
         :return: a new Program
         """
-        new_prog = Program()
-        new_prog._defined_gates = self._defined_gates.copy()
+        new_prog = self.copy_everything_except_instructions()
         new_prog._instructions = self._instructions.copy()
-        if self.native_quil_metadata is not None:
-            new_prog.native_quil_metadata = self.native_quil_metadata.copy()
-        new_prog.num_shots = self.num_shots
         return new_prog
 
     @property

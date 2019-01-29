@@ -13,6 +13,7 @@ from pyquil.device import NxDevice, gates_in_isa
 from pyquil.gates import *
 from pyquil.quilbase import Declare, MemoryReference
 from pyquil.noise import decoherence_noise_with_asymmetric_ro
+from pyquil.pyqvm import PyQVM
 from rpcq.messages import ParameterAref, PyQuilExecutableResponse
 
 
@@ -103,6 +104,52 @@ def test_run(forest):
     assert 0 < np.mean(parity) < 0.15
 
 
+def test_run_pyqvm_noiseless():
+    device = NxDevice(nx.complete_graph(3))
+    qc = QuantumComputer(
+        name='testy!',
+        qam=PyQVM(n_qubits=3),
+        device=device,
+        compiler=DummyCompiler()
+    )
+    bitstrings = qc.run(
+        Program(
+            H(0),
+            CNOT(0, 1),
+            CNOT(1, 2),
+            MEASURE(0, 0),
+            MEASURE(1, 1),
+            MEASURE(2, 2)).wrap_in_numshots_loop(1000)
+    )
+
+    assert bitstrings.shape == (1000, 3)
+    parity = np.sum(bitstrings, axis=1) % 3
+    assert np.mean(parity) == 0
+
+
+def test_run_pyqvm_noisy():
+    device = NxDevice(nx.complete_graph(3))
+    qc = QuantumComputer(
+        name='testy!',
+        qam=PyQVM(n_qubits=3, post_gate_noise_probabilities={'relaxation': 0.01}),
+        device=device,
+        compiler=DummyCompiler()
+    )
+    bitstrings = qc.run(
+        Program(
+            H(0),
+            CNOT(0, 1),
+            CNOT(1, 2),
+            MEASURE(0, 0),
+            MEASURE(1, 1),
+            MEASURE(2, 2)).wrap_in_numshots_loop(1000)
+    )
+
+    assert bitstrings.shape == (1000, 3)
+    parity = np.sum(bitstrings, axis=1) % 3
+    assert 0 < np.mean(parity) < 0.15
+
+
 def test_readout_symmetrization(forest):
     device = NxDevice(nx.complete_graph(3))
     noise_model = decoherence_noise_with_asymmetric_ro(gates=gates_in_isa(device.get_isa()))
@@ -138,64 +185,64 @@ def test_list_qc():
 
 
 def test_parse_qc_name():
-    name, as_qvm, noisy = _parse_name('9q-generic', None, None)
+    name, qvm_type, noisy = _parse_name('9q-generic', None, None)
     assert name == '9q-generic'
-    assert not as_qvm
+    assert qvm_type is None
     assert not noisy
 
-    name, as_qvm, noisy = _parse_name('9q-generic-qvm', None, None)
+    name, qvm_type, noisy = _parse_name('9q-generic-qvm', None, None)
     assert name == '9q-generic'
-    assert as_qvm
+    assert qvm_type == 'qvm'
     assert not noisy
 
-    name, as_qvm, noisy = _parse_name('9q-generic-noisy-qvm', None, None)
+    name, qvm_type, noisy = _parse_name('9q-generic-noisy-qvm', None, None)
     assert name == '9q-generic'
-    assert as_qvm
+    assert qvm_type == 'qvm'
     assert noisy
 
 
 def test_parse_qc_flags():
-    name, as_qvm, noisy = _parse_name('9q-generic', False, False)
+    name, qvm_type, noisy = _parse_name('9q-generic', False, False)
     assert name == '9q-generic'
-    assert not as_qvm
+    assert qvm_type is None
     assert not noisy
 
-    name, as_qvm, noisy = _parse_name('9q-generic', True, None)
+    name, qvm_type, noisy = _parse_name('9q-generic', True, None)
     assert name == '9q-generic'
-    assert as_qvm
+    assert qvm_type == 'qvm'
     assert not noisy
 
-    name, as_qvm, noisy = _parse_name('9q-generic', True, True)
+    name, qvm_type, noisy = _parse_name('9q-generic', True, True)
     assert name == '9q-generic'
-    assert as_qvm
+    assert qvm_type == 'qvm'
     assert noisy
 
 
 def test_parse_qc_redundant():
-    name, as_qvm, noisy = _parse_name('9q-generic', False, False)
+    name, qvm_type, noisy = _parse_name('9q-generic', False, False)
     assert name == '9q-generic'
-    assert not as_qvm
+    assert qvm_type is None
     assert not noisy
 
-    name, as_qvm, noisy = _parse_name('9q-generic-qvm', True, False)
+    name, qvm_type, noisy = _parse_name('9q-generic-qvm', True, False)
     assert name == '9q-generic'
-    assert as_qvm
+    assert qvm_type == 'qvm'
     assert not noisy
 
-    name, as_qvm, noisy = _parse_name('9q-generic-noisy-qvm', True, True)
+    name, qvm_type, noisy = _parse_name('9q-generic-noisy-qvm', True, True)
     assert name == '9q-generic'
-    assert as_qvm
+    assert qvm_type == 'qvm'
     assert noisy
 
 
 def test_parse_qc_conflicting():
     with pytest.raises(ValueError) as e:
-        name, as_qvm, noisy = _parse_name('9q-generic-qvm', False, False)
+        name, qvm_type, noisy = _parse_name('9q-generic-qvm', False, False)
 
     assert e.match(r'.*but you have specified `as_qvm=False`')
 
     with pytest.raises(ValueError) as e:
-        name, as_qvm, noisy = _parse_name('9q-generic-noisy-qvm', True, False)
+        name, qvm_type, noisy = _parse_name('9q-generic-noisy-qvm', True, False)
     assert e.match(r'.*but you have specified `noisy=False`')
 
 
@@ -209,30 +256,37 @@ def test_parse_qc_strip():
 
 
 def test_parse_qc_no_prefix():
-    prefix, as_qvm, noisy = _parse_name('qvm', None, None)
-    assert as_qvm
+    prefix, qvm_type, noisy = _parse_name('qvm', None, None)
+    assert qvm_type == 'qvm'
     assert not noisy
     assert prefix == ''
 
-    prefix, as_qvm, noisy = _parse_name('', True, None)
-    assert as_qvm
+    prefix, qvm_type, noisy = _parse_name('', True, None)
+    assert qvm_type == 'qvm'
     assert not noisy
     assert prefix == ''
 
 
 def test_parse_qc_no_prefix_2():
-    prefix, as_qvm, noisy = _parse_name('noisy-qvm', None, None)
-    assert as_qvm
+    prefix, qvm_type, noisy = _parse_name('noisy-qvm', None, None)
+    assert qvm_type == 'qvm'
     assert noisy
     assert prefix == ''
 
-    prefix, as_qvm, noisy = _parse_name('', True, True)
-    assert as_qvm
+    prefix, qvm_type, noisy = _parse_name('', True, True)
+    assert qvm_type == 'qvm'
     assert noisy
     assert prefix == ''
 
 
-def test_qc():
+def test_parse_qc_pyqvm():
+    prefix, qvm_type, noisy = _parse_name('9q-generic-pyqvm', None, None)
+    assert prefix == '9q-generic'
+    assert qvm_type == 'pyqvm'
+    assert not noisy
+
+
+def test_qc(qvm, compiler):
     qc = get_qc('9q-square-noisy-qvm')
     assert isinstance(qc, QuantumComputer)
     assert isinstance(qc.qam, QVM)
@@ -402,3 +456,17 @@ def test_get_qvm_with_topology_2(forest):
     results = qc.run_and_measure(Program(X(5)), trials=5)
     assert sorted(results.keys()) == [5, 6, 7]
     assert all(x == 1 for x in results[5])
+
+
+def test_parse_mix_qvm_and_noisy_flag():
+    # https://github.com/rigetti/pyquil/issues/764
+    name, qvm_type, noisy = _parse_name('1q-qvm', as_qvm=None, noisy=True)
+    assert noisy
+
+
+def test_noisy(forest):
+    # https://github.com/rigetti/pyquil/issues/764
+    p = Program(X(0))
+    qc = get_qc('1q-qvm', noisy=True)
+    result = qc.run_and_measure(p, trials=10000)
+    assert result[0].mean() < 1.0

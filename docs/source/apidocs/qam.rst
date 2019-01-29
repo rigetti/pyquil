@@ -9,10 +9,11 @@ quantum/classical quil programs on either a Quantum Virtual Machine (QVM, a clas
 or a Quantum Processor Unit (QPU, a real quantum device).
 
 
-.. currentmodule:: pyquil.api
 .. autosummary::
     :toctree: autogen
+    :template: autosumm.rst
 
-    _qam.QAM
-    QPU
-    QVM
+    ~pyquil.api._qam.QAM
+    ~pyquil.api.QPU
+    ~pyquil.api.QVM
+    ~pyquil.pyqvm.PyQVM

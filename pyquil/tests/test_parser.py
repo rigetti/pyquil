@@ -49,8 +49,8 @@ DEFGATE SQRT-X:
     0.5-0.5i, 0.5+0.5i
 
 DEFGATE HADAMARD:
-    1/sqrt(2), 1/sqrt(2)
-    1/sqrt(2), -1/sqrt(2)
+    1/SQRT(2), 1/SQRT(2)
+    1/SQRT(2), -1/SQRT(2)
     """.strip()
 
     parse_equals(defgates, sqrt_x, hadamard)
@@ -64,8 +64,8 @@ def test_def_gate_with_variables():
                    [1j * quil_sin(theta / 2), quil_cos(theta / 2)]])
 
     defgate = 'DEFGATE RX(%theta):\n' \
-              '    cos(%theta/2), i*sin(%theta/2)\n' \
-              '    i*sin(%theta/2), cos(%theta/2)\n\n'
+              '    COS(%theta/2), i*SIN(%theta/2)\n' \
+              '    i*SIN(%theta/2), COS(%theta/2)\n\n'
 
     parse_equals(defgate, DefGate('RX', rx, [theta]))
 
@@ -126,11 +126,11 @@ def test_expressions():
     _expr("3 ^ 2 + 5", 14)
 
     # Functions
-    _expr("sin(0)", 0.0)
-    _expr("cos(0)", 1.0)
-    _expr("sqrt(4)", 2.0)
-    _expr("exp(0)", 1.0)
-    _expr("cis(0)", complex(1, 0))
+    _expr("SIN(0)", 0.0)
+    _expr("COS(0)", 1.0)
+    _expr("SQRT(4)", 2.0)
+    _expr("EXP(0)", 1.0)
+    _expr("CIS(0)", complex(1, 0))
 
     # Unary precedence
     # https://github.com/rigetti/pyquil/issues/246
