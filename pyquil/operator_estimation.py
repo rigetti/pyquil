@@ -397,10 +397,10 @@ def _one_q_sic_prep(index, qubit):
     if index == 1:
         return zx_plane_rotation
 
-    if index == 2:
+    elif index == 2:
         return zx_plane_rotation + RZ(-2 * pi / 3, qubit)
 
-    if index == 3:
+    elif index == 3:
         return zx_plane_rotation + RZ(2 * pi / 3, qubit)
 
     raise ValueError(f'Bad SIC index: {index}')
