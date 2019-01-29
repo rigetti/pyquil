@@ -417,13 +417,13 @@ def _one_q_pauli_prep(label, index, qubit):
         else:
             return Program(RY(-pi / 2, qubit))
 
-    if label == 'Y':
+    elif label == 'Y':
         if index == 0:
             return Program(RX(-pi / 2, qubit))
         else:
             return Program(RX(pi / 2, qubit))
 
-    if label == 'Z':
+    elif label == 'Z':
         if index == 0:
             return Program()
         else:
