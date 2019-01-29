@@ -5,7 +5,6 @@ import sys
 from json import JSONEncoder
 from math import pi
 from typing import List, Union, Iterable, Dict
-from functools import reduce
 import networkx as nx
 import numpy as np
 from networkx.algorithms.approximation.clique import clique_removal
