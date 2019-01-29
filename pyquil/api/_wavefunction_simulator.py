@@ -13,7 +13,7 @@
 #    See the License for the specific language governing permissions and
 #    limitations under the License.
 ##############################################################################
-from typing import List, Union, Optional
+from typing import List, Union, Optional, Dict, Any
 
 import numpy as np
 from six import integer_types
@@ -21,7 +21,8 @@ from six import integer_types
 from pyquil.api._base_connection import ForestConnection
 from pyquil.api._error_reporting import _record_call
 from pyquil.paulis import PauliSum, PauliTerm
-from pyquil.quil import Program
+from pyquil.quil import Program, MemoryReference, percolate_declares
+from pyquil.gates import MOVE
 from pyquil.wavefunction import Wavefunction
 
 
@@ -49,7 +50,8 @@ class WavefunctionSimulator:
             raise TypeError("random_seed should be None or a non-negative int")
 
     @_record_call
-    def wavefunction(self, quil_program: Program) -> Wavefunction:
+    def wavefunction(self, quil_program: Program,
+                     memory_map: Dict[MemoryReference, Any] = None) -> Wavefunction:
         """
         Simulate a Quil program and return the wavefunction.
 
@@ -60,15 +62,21 @@ class WavefunctionSimulator:
             different*.
 
         :param quil_program: A Quil program.
+        :param memory_map: An assignment of classical registers to values, representing an initial
+                           state for the QAM's classical memory.
         :return: A Wavefunction object representing the state of the QVM.
         """
+
+        if memory_map is not None:
+            quil_program = self.augment_program_with_memory_values(quil_program, memory_map)
 
         return self.connection._wavefunction(quil_program=quil_program,
                                              random_seed=self.random_seed)
 
     @_record_call
     def expectation(self, prep_prog: Program,
-                    pauli_terms: Union[PauliSum, List[PauliTerm]]) -> Union[float, np.ndarray]:
+                    pauli_terms: Union[PauliSum, List[PauliTerm]],
+                    memory_map: Dict[MemoryReference, Any] = None) -> Union[float, np.ndarray]:
         """
         Calculate the expectation value of Pauli operators given a state prepared by prep_program.
 
@@ -84,6 +92,8 @@ class WavefunctionSimulator:
 
         :param prep_prog: A program that prepares the state on which we measure the expectation.
         :param pauli_terms: A Pauli representation of a quantum operator.
+        :param memory_map: An assignment of classical registers to values, representing an initial
+                           state for the QAM's classical memory.
         :return: Either a float or array floats depending on ``pauli_terms``.
         """
 
@@ -95,6 +105,9 @@ class WavefunctionSimulator:
             coeffs = np.array([pt.coefficient for pt in pauli_terms])
             progs = [pt.program for pt in pauli_terms]
 
+        if memory_map is not None:
+            prep_prog = self.augment_program_with_memory_values(prep_prog, memory_map)
+
         bare_results = self.connection._expectation(prep_prog, progs, random_seed=self.random_seed)
         results = coeffs * bare_results
         if is_pauli_sum:
@@ -102,8 +115,8 @@ class WavefunctionSimulator:
         return results
 
     @_record_call
-    def run_and_measure(self, quil_program: Program, qubits: List[int] = None,
-                        trials: int = 1) -> np.ndarray:
+    def run_and_measure(self, quil_program: Program, qubits: List[int] = None, trials: int = 1,
+                        memory_map: Dict[MemoryReference, Any] = None) -> np.ndarray:
         """
         Run a Quil program once to determine the final wavefunction, and measure multiple times.
 
@@ -126,11 +139,27 @@ class WavefunctionSimulator:
             respected in the returned bitstrings. If not provided, all qubits used in
             the program will be measured and returned in their sorted order.
         :param int trials: Number of times to sample from the prepared wavefunction.
+        :param memory_map: An assignment of classical registers to values, representing an initial
+                           state for the QAM's classical memory.
         :return: An array of measurement results (0 or 1) of shape (trials, len(qubits))
         """
         if qubits is None:
             qubits = sorted(quil_program.get_qubits(indices=True))
 
+        if memory_map is not None:
+            quil_program = self.augment_program_with_memory_values(quil_program, memory_map)
+
         return self.connection._run_and_measure(quil_program=quil_program, qubits=qubits,
                                                 trials=trials,
                                                 random_seed=self.random_seed)
+
+    @staticmethod
+    def augment_program_with_memory_values(quil_program, memory_map):
+        p = Program()
+
+        for k, v in memory_map.items():
+            p += MOVE(k, v)
+
+        p += quil_program
+
+        return percolate_declares(p)
