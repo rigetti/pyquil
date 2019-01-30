@@ -13,10 +13,9 @@ from pyquil.operator_estimation import ExperimentSetting, TomographyExperiment, 
     _all_qubits_diagonal_in_tpb, group_experiments, ExperimentResult, measure_observables, \
     _get_diagonalizing_basis, _max_tpb_overlap, group_experiments_greedy, \
     _expt_settings_diagonal_in_tpb
-from pyquil.paulis import sI, sX, sY, sZ, PauliSum
+from pyquil.paulis import sI, sX, sY, sZ, PauliSum, PauliTerm
 from pyquil import Program, get_qc
 from pyquil.gates import *
-from pyquil.paulis import *
 
 
 def _generate_random_paulis(n_qubits, n_terms):
