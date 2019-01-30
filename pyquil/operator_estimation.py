@@ -200,33 +200,6 @@ class TomographyExperiment:
         return self.serializable() == other.serializable()
 
 
-@dataclass(frozen=True)
-class ExperimentResult:
-    """An expectation and standard deviation for the measurement of one experiment setting
-    in a tomographic experiment.
-    """
-
-    setting: ExperimentSetting
-    expectation: Union[float, complex]
-    stddev: float
-    total_counts: int
-
-    def __str__(self):
-        return f'{self.setting}: {self.expectation} +- {self.stddev}'
-
-    def __repr__(self):
-        return f'ExperimentResult[{self}]'
-
-    def serializable(self):
-        return {
-            'type': 'ExperimentResult',
-            'setting': self.setting,
-            'expectation': self.expectation,
-            'stddev': self.stddev,
-            'total_counts': self.total_counts,
-        }
-
-
 class OperatorEncoder(JSONEncoder):
     def default(self, o):
         if isinstance(o, ExperimentSetting):
@@ -301,6 +274,131 @@ def _local_pauli_eig_meas(op, idx):
     raise ValueError(f'Unknown operation {op}')
 
 
+def _ops_commute(op_code1: str, op_code2: str):
+    """
+    Given two 1q op strings (I, X, Y, or Z), determine whether they commute
+
+    :param op_code1: First operation
+    :param op_code2: Second operation
+    :return: Boolean specifying whether the two operations commute
+    """
+    if op_code1 not in ['X', 'Y', 'Z', 'I']:
+        raise ValueError(f"Unknown op_code {op_code1}")
+    if op_code2 not in ['X', 'Y', 'Z', 'I']:
+        raise ValueError(f"Unknown op_code {op_code2}")
+
+    if op_code1 == op_code2:
+        # Same op
+        return True
+    elif op_code1 == 'I' or op_code2 == 'I':
+        # I commutes with everything
+        return True
+    else:
+        # Otherwise, they do not commute.
+        return False
+
+
+def _all_qubits_diagonal_in_tpb(op1: PauliTerm, op2: PauliTerm):
+    """
+    Compare all qubits between two PauliTerms to see if they are all diagonal in an
+    overall shared tensor product basis. More concretely, test if ``op1`` and
+    ``op2`` are diagonal in each others' "natural" tensor product basis.
+
+    Given some PauliTerm, the 'natural' tensor product basis (tpb) to
+    diagonalize this term is the one which diagonalizes each Pauli operator in the
+    product term-by-term.
+
+    For example, X(1) * Z(0) would be diagonal in the 'natural' tensor product basis
+    {(|0> +/- |1>)/Sqrt[2]} * {|0>, |1>}, whereas Z(1) * X(0) would be diagonal
+    in the 'natural' tpb {|0>, |1>} * {(|0> +/- |1>)/Sqrt[2]}. The two operators
+    commute but are not diagonal in each others 'natural' tpb (in fact, they are
+    anti-diagonal in each others 'natural' tpb). This function tests whether two
+    operators given as PauliTerms are both diagonal in each others 'natural' tpb.
+
+    Note that for the given example of X(1) * Z(0) and Z(1) * X(0), we can construct
+    the following basis which simultaneously diagonalizes both operators:
+
+      -- |0>' = |0> (|+>) + |1> (|->)
+      -- |1>' = |0> (|+>) - |1> (|->)
+      -- |2>' = |0> (|->) + |1> (|+>)
+      -- |3>' = |0> (-|->) + |1> (|+>)
+
+    In this basis, X Z looks like diag(1, -1, 1, -1), and Z X looks like diag(1, 1, -1, -1).
+    Notice however that this basis cannot be constructed with single-qubit operations, as each
+    of the basis vectors are entangled states.
+
+    :param op1: PauliTerm to check diagonality of in the natural tpb of ``op2``
+    :param op2: PauliTerm to check diagonality of in the natural tpb of ``op1``
+    :return: Boolean of diagonality in each others natural tpb
+    """
+    all_qubits = set(op1.get_qubits()) & set(op2.get_qubits())
+    return all(_ops_commute(op1[q], op2[q]) for q in all_qubits)
+
+def _expt_settings_diagonal_in_tpb(es1: ExperimentSetting, es2: ExperimentSetting):
+    """
+    Extends the concept of being diagonal in the same tpb (see :py:func:_all_qubits_diagonal_in_tpb)
+    to ExperimentSettings, by determining if the pairs of in_operators and out_operators are
+    separately diagonal in the same tpb
+
+    :param es1: ExperimentSetting to check diagonality of in the natural tpb of ``es2``
+    :param es2: ExperimentSetting to check diagonality of in the natural tpb of ``es1``
+    :return: Boolean of diagonality in each others natural tpb
+    """
+    in_dtpb = _all_qubits_diagonal_in_tpb(es1.in_operator, es2.in_operator)
+    out_dtpb = _all_qubits_diagonal_in_tpb(es1.out_operator, es2.out_operator)
+    return in_dtpb and out_dtpb
+
+
+def construct_tpb_graph(experiments: TomographyExperiment):
+    """
+    Construct a graph where an edge signifies two experiments are diagonal in a TPB.
+    """
+    g = nx.Graph()
+    for expt in experiments:
+        assert len(expt) == 1, 'already grouped?'
+        expt = expt[0]
+
+        if expt not in g:
+            g.add_node(expt, count=1)
+        else:
+            g.nodes[expt]['count'] += 1
+
+    for expt1, expt2 in itertools.combinations(experiments, r=2):
+        expt1 = expt1[0]
+        expt2 = expt2[0]
+
+        if expt1 == expt2:
+            continue
+
+        if _expt_settings_diagonal_in_tpb(expt1, expt2):
+            g.add_edge(expt1, expt2)
+
+    return g
+
+
+def group_experiments_clique_removal(experiments: TomographyExperiment) -> TomographyExperiment:
+    """
+    Group experiments that are diagonal in a shared tensor product basis (TPB) to minimize number
+    of QPU runs, using a graph clique removal algorithm.
+
+    :param experiments: a tomography experiment
+    :return: a tomography experiment with all the same settings, just grouped according to shared
+        TPBs.
+    """
+    g = construct_tpb_graph(experiments)
+    _, cliqs = clique_removal(g)
+    new_cliqs = []
+    for cliq in cliqs:
+        new_cliq = []
+        for expt in cliq:
+            # duplicate `count` times
+            new_cliq += [expt] * g.nodes[expt]['count']
+
+        new_cliqs += [new_cliq]
+
+    return TomographyExperiment(new_cliqs, program=experiments.program, qubits=experiments.qubits)
+
+
 def _validate_all_diagonal_in_tpb(ops: Iterable[PauliTerm]) -> Dict[int, str]:
     """Each non-identity qubit should result in the same op_str among all operations. Return
     said mapping.
@@ -313,6 +411,135 @@ def _validate_all_diagonal_in_tpb(ops: Iterable[PauliTerm]) -> Dict[int, str]:
             else:
                 mapping[idx] = op_str
     return mapping
+
+
+def _get_diagonalizing_basis(ops: Iterable[PauliTerm]) -> PauliTerm:
+    """
+    Find the Pauli Term with the most non-identity terms
+
+    :param ops: Iterable of PauliTerms to check
+    :return: The highest weight PauliTerm from the input iterable
+    """
+    # obtain qubit: operation mapping
+    dict_pt = _validate_all_diagonal_in_tpb(ops)
+    # convert this mapping to PauliTerm
+    pt = sI()
+    for q, op in dict_pt.items():
+        pt *= PauliTerm(op, q)
+    return pt
+
+
+def _max_tpb_overlap(tomo_expt: TomographyExperiment):
+    """
+    Given an input TomographyExperiment, provide a dictionary indicating which ExperimentSettings
+    share a tensor product basis
+
+    :param tomo_expt: TomographyExperiment, from which to group ExperimentSettings that share a tpb
+        and can be run together
+    :return: dictionary keyed with ExperimentSetting (specifying a tpb), and with each value being a
+            list of ExperimentSettings (diagonal in that tpb)
+    """
+    # initialize empty dictionary
+    diagonal_sets = {}
+    # loop through ExperimentSettings of the TomographyExperiment
+    for expt_setting in tomo_expt:
+        # no need to group already grouped TomographyExperiment
+        assert len(expt_setting) == 1, 'already grouped?'
+        expt_setting = expt_setting[0]
+        # calculate max overlap of expt_setting with keys of diagonal_sets
+        # keep track of whether a shared tpb was found
+        found_tpb = False
+        # loop through dict items
+        for es, es_list in diagonal_sets.items():
+            # update the dict value if es is diagonal in the same tpb as expt_setting
+            if _expt_settings_diagonal_in_tpb(es, expt_setting):
+                # shared tpb was found
+                found_tpb = True
+                # determine the updated list of ExperimentSettings
+                updated_es_list = es_list + [expt_setting]
+                # obtain the diagonalizing bases for both the updated in and out sets
+                diag_in_term = _get_diagonalizing_basis([expst.in_operator for expst in updated_es_list])
+                diag_out_term = _get_diagonalizing_basis([expst.out_operator for expst in updated_es_list])
+                assert len(diag_in_term) >= len(es.in_operator), \
+                    "Highest weight in-PauliTerm can't be smaller than the given in-PauliTerm"
+                assert len(diag_out_term) >= len(es.out_operator), \
+                    "Highest weight out-PauliTerm can't be smaller than the given out-PauliTerm"
+                # update the diagonalizing basis (key of dict) if necessary
+                if len(diag_in_term) > len(es.in_operator) or len(diag_out_term) > len(es.out_operator):
+                    del diagonal_sets[es]
+                    new_es = ExperimentSetting(diag_in_term, diag_out_term)
+                    diagonal_sets[new_es] = updated_es_list
+                else:
+                    diagonal_sets[es] = updated_es_list
+                break
+
+        if not found_tpb:
+            # made it through entire dict without finding any ExperimentSetting with shared tpb,
+            # so need to make a new item
+            diagonal_sets[expt_setting] = [expt_setting]
+
+    return diagonal_sets
+
+
+def group_experiments_greedy(tomo_expt: TomographyExperiment):
+    """
+    Greedy method to group ExperimentSettings in a given TomographyExperiment
+
+    :param tomo_expt: TomographyExperiment to group ExperimentSettings within
+    :return: TomographyExperiment, with grouped ExperimentSettings according to whether
+        it consists of PauliTerms diagonal in the same tensor product basis
+    """
+    diag_sets = _max_tpb_overlap(tomo_expt)
+    grouped_expt_settings_list = list(diag_sets.values())
+    grouped_tomo_expt = TomographyExperiment(grouped_expt_settings_list, program=tomo_expt.program,
+                                             qubits=tomo_expt.qubits)
+    return grouped_tomo_expt
+
+
+def group_experiments(experiments: TomographyExperiment, method: str = 'greedy') -> TomographyExperiment:
+    """
+    Group experiments that are diagonal in a shared tensor product basis (TPB) to minimize number
+    of QPU runs, using a specified method (greedy method by default)
+
+    :param experiments: a tomography experiment
+    :param method: method used for grouping; the allowed methods are one of
+        ['greedy', 'clique-removal']
+    :return: a tomography experiment with all the same settings, just grouped according to shared
+        TPBs.
+    """
+    allowed_methods = ['greedy', 'clique-removal']
+    assert method in allowed_methods, f"'method' should be one of {allowed_methods}."
+    if method == 'greedy':
+        return group_experiments_greedy(experiments)
+    elif method == 'clique-removal':
+        return group_experiments_clique_removal(experiments)
+
+
+@dataclass(frozen=True)
+class ExperimentResult:
+    """An expectation and standard deviation for the measurement of one experiment setting
+    in a tomographic experiment.
+    """
+
+    setting: ExperimentSetting
+    expectation: Union[float, complex]
+    stddev: float
+    total_counts: int
+
+    def __str__(self):
+        return f'{self.setting}: {self.expectation} +- {self.stddev}'
+
+    def __repr__(self):
+        return f'ExperimentResult[{self}]'
+
+    def serializable(self):
+        return {
+            'type': 'ExperimentResult',
+            'setting': self.setting,
+            'expectation': self.expectation,
+            'stddev': self.stddev,
+            'total_counts': self.total_counts,
+        }
 
 
 def measure_observables(qc: QuantumComputer, tomo_experiment: TomographyExperiment, n_shots=1000,
@@ -400,231 +627,3 @@ def measure_observables(qc: QuantumComputer, tomo_experiment: TomographyExperime
                 stddev=np.asscalar(np.sqrt(obs_var)),
                 total_counts=n_shots,
             )
-
-
-def _get_diagonalizing_basis(ops: Iterable[PauliTerm]) -> PauliTerm:
-    """
-    Find the Pauli Term with the most non-identity terms
-
-    :param ops: Iterable of PauliTerms to check
-    :return: The highest weight PauliTerm from the input iterable
-    """
-    # obtain qubit: operation mapping
-    dict_pt = _validate_all_diagonal_in_tpb(ops)
-    # convert this mapping to PauliTerm
-    pt = sI()
-    for q, op in dict_pt.items():
-        pt *= PauliTerm(op, q)
-    return pt
-
-
-def _ops_commute(op_code1: str, op_code2: str):
-    """
-    Given two 1q op strings (I, X, Y, or Z), determine whether they commute
-
-    :param op_code1: First operation
-    :param op_code2: Second operation
-    :return: Boolean specifying whether the two operations commute
-    """
-    if op_code1 not in ['X', 'Y', 'Z', 'I']:
-        raise ValueError(f"Unknown op_code {op_code1}")
-    if op_code2 not in ['X', 'Y', 'Z', 'I']:
-        raise ValueError(f"Unknown op_code {op_code2}")
-
-    if op_code1 == op_code2:
-        # Same op
-        return True
-    elif op_code1 == 'I' or op_code2 == 'I':
-        # I commutes with everything
-        return True
-    else:
-        # Otherwise, they do not commute.
-        return False
-
-
-def _all_qubits_diagonal_in_tpb(op1: PauliTerm, op2: PauliTerm):
-    """
-    Compare all qubits between two PauliTerms to see if they are all diagonal in an
-    overall shared tensor product basis. More concretely, test if ``op1`` and
-    ``op2`` are diagonal in each others' "natural" tensor product basis.
-
-    Given some PauliTerm, the 'natural' tensor product basis (tpb) to
-    diagonalize this term is the one which diagonalizes each Pauli operator in the
-    product term-by-term.
-
-    For example, X(1) * Z(0) would be diagonal in the 'natural' tensor product basis
-    {(|0> +/- |1>)/Sqrt[2]} * {|0>, |1>}, whereas Z(1) * X(0) would be diagonal
-    in the 'natural' tpb {|0>, |1>} * {(|0> +/- |1>)/Sqrt[2]}. The two operators
-    commute but are not diagonal in each others 'natural' tpb (in fact, they are
-    anti-diagonal in each others 'natural' tpb). This function tests whether two
-    operators given as PauliTerms are both diagonal in each others 'natural' tpb.
-
-    Note that for the given example of X(1) * Z(0) and Z(1) * X(0), we can construct
-    the following basis which simultaneously diagonalizes both operators:
-
-      -- |0>' = |0> (|+>) + |1> (|->)
-      -- |1>' = |0> (|+>) - |1> (|->)
-      -- |2>' = |0> (|->) + |1> (|+>)
-      -- |3>' = |0> (-|->) + |1> (|+>)
-
-    In this basis, X Z looks like diag(1, -1, 1, -1), and Z X looks like diag(1, 1, -1, -1).
-    Notice however that this basis cannot be constructed with single-qubit operations, as each
-    of the basis vectors are entangled states.
-
-    :param op1: PauliTerm to check diagonality of in the natural tpb of ``op2``
-    :param op2: PauliTerm to check diagonality of in the natural tpb of ``op1``
-    :return: Boolean of diagonality in each others natural tpb
-    """
-    all_qubits = set(op1.get_qubits()) & set(op2.get_qubits())
-    return all(_ops_commute(op1[q], op2[q]) for q in all_qubits)
-
-
-def _expt_settings_diagonal_in_tpb(es1: ExperimentSetting, es2: ExperimentSetting):
-    """
-    Extends the concept of being diagonal in the same tpb (see :py:func:_all_qubits_diagonal_in_tpb)
-    to ExperimentSettings, by determining if the pairs of in_operators and out_operators are
-    separately diagonal in the same tpb
-
-    :param es1: ExperimentSetting to check diagonality of in the natural tpb of ``es2``
-    :param es2: ExperimentSetting to check diagonality of in the natural tpb of ``es1``
-    :return: Boolean of diagonality in each others natural tpb
-    """
-    in_dtpb = _all_qubits_diagonal_in_tpb(es1.in_operator, es2.in_operator)
-    out_dtpb = _all_qubits_diagonal_in_tpb(es1.out_operator, es2.out_operator)
-    return in_dtpb and out_dtpb
-
-
-def _max_tpb_overlap(tomo_expt: TomographyExperiment):
-    """
-    Given an input TomographyExperiment, provide a dictionary indicating which ExperimentSettings
-    share a tensor product basis
-
-    :param tomo_expt: TomographyExperiment, from which to group ExperimentSettings that share a tpb
-        and can be run together
-    :return: dictionary keyed with ExperimentSetting (specifying a tpb), and with each value being a
-            list of ExperimentSettings (diagonal in that tpb)
-    """
-    # initialize empty dictionary
-    diagonal_sets = {}
-    # loop through ExperimentSettings of the TomographyExperiment
-    for expt_setting in tomo_expt:
-        # no need to group already grouped TomographyExperiment
-        assert len(expt_setting) == 1, 'already grouped?'
-        expt_setting = expt_setting[0]
-        # calculate max overlap of expt_setting with keys of diagonal_sets
-        # keep track of whether a shared tpb was found
-        found_tpb = False
-        # loop through dict items
-        for es, es_list in diagonal_sets.items():
-            # update the dict value if es is diagonal in the same tpb as expt_setting
-            if _expt_settings_diagonal_in_tpb(es, expt_setting):
-                # shared tpb was found
-                found_tpb = True
-                # determine the updated list of ExperimentSettings
-                updated_es_list = es_list + [expt_setting]
-                # obtain the diagonalizing bases for both the updated in and out sets
-                diag_in_term = _get_diagonalizing_basis([expst.in_operator for expst in updated_es_list])
-                diag_out_term = _get_diagonalizing_basis([expst.out_operator for expst in updated_es_list])
-                assert len(diag_in_term) >= len(es.in_operator), \
-                    "Highest weight in-PauliTerm can't be smaller than the given in-PauliTerm"
-                assert len(diag_out_term) >= len(es.out_operator), \
-                    "Highest weight out-PauliTerm can't be smaller than the given out-PauliTerm"
-                # update the diagonalizing basis (key of dict) if necessary
-                if len(diag_in_term) > len(es.in_operator) or len(diag_out_term) > len(es.out_operator):
-                    del diagonal_sets[es]
-                    new_es = ExperimentSetting(diag_in_term, diag_out_term)
-                    diagonal_sets[new_es] = updated_es_list
-                else:
-                    diagonal_sets[es] = updated_es_list
-                break
-
-        if not found_tpb:
-            # made it through entire dict without finding any ExperimentSetting with shared tpb,
-            # so need to make a new item
-            diagonal_sets[expt_setting] = [expt_setting]
-
-    return diagonal_sets
-
-
-def group_experiments_greedy(tomo_expt: TomographyExperiment):
-    """
-    Greedy method to group ExperimentSettings in a given TomographyExperiment
-
-    :param tomo_expt: TomographyExperiment to group ExperimentSettings within
-    :return: TomographyExperiment, with grouped ExperimentSettings according to whether
-        it consists of PauliTerms diagonal in the same tensor product basis
-    """
-    diag_sets = _max_tpb_overlap(tomo_expt)
-    grouped_expt_settings_list = list(diag_sets.values())
-    grouped_tomo_expt = TomographyExperiment(grouped_expt_settings_list, program=tomo_expt.program,
-                                             qubits=tomo_expt.qubits)
-    return grouped_tomo_expt
-
-
-def construct_tpb_graph(experiments: TomographyExperiment):
-    """
-    Construct a graph where an edge signifies two experiments are diagonal in a TPB.
-    """
-    g = nx.Graph()
-    for expt in experiments:
-        assert len(expt) == 1, 'already grouped?'
-        expt = expt[0]
-
-        if expt not in g:
-            g.add_node(expt, count=1)
-        else:
-            g.nodes[expt]['count'] += 1
-
-    for expt1, expt2 in itertools.combinations(experiments, r=2):
-        expt1 = expt1[0]
-        expt2 = expt2[0]
-
-        if expt1 == expt2:
-            continue
-
-        if _expt_settings_diagonal_in_tpb(expt1, expt2):
-            g.add_edge(expt1, expt2)
-
-    return g
-
-
-def group_experiments_clique_removal(experiments: TomographyExperiment) -> TomographyExperiment:
-    """
-    Group experiments that are diagonal in a shared tensor product basis (TPB) to minimize number
-    of QPU runs, using a graph clique removal algorithm.
-
-    :param experiments: a tomography experiment
-    :return: a tomography experiment with all the same settings, just grouped according to shared
-        TPBs.
-    """
-    g = construct_tpb_graph(experiments)
-    _, cliqs = clique_removal(g)
-    new_cliqs = []
-    for cliq in cliqs:
-        new_cliq = []
-        for expt in cliq:
-            # duplicate `count` times
-            new_cliq += [expt] * g.nodes[expt]['count']
-
-        new_cliqs += [new_cliq]
-
-    return TomographyExperiment(new_cliqs, program=experiments.program, qubits=experiments.qubits)
-
-
-def group_experiments(experiments: TomographyExperiment, method: str = 'greedy') -> TomographyExperiment:
-    """
-    Group experiments that are diagonal in a shared tensor product basis (TPB) to minimize number
-    of QPU runs, using a specified method (greedy method by default)
-
-    :param experiments: a tomography experiment
-    :param method: method used for grouping; the allowed methods are one of
-        ['greedy', 'clique-removal']
-    :return: a tomography experiment with all the same settings, just grouped according to shared
-        TPBs.
-    """
-    allowed_methods = ['greedy', 'clique-removal']
-    assert method in allowed_methods, f"'method' should be one of {allowed_methods}."
-    if method == 'greedy':
-        return group_experiments_greedy(experiments)
-    elif method == 'clique-removal':
-        return group_experiments_clique_removal(experiments)
