@@ -29,6 +29,7 @@ else:
 
 _program_context: ContextVar[Program] = ContextVar('program')
 
+    
 def program_context() -> Program:
     """
     Returns the current program in context. Will only work from inside calls to @magicquil.
