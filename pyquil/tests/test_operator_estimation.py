@@ -238,25 +238,29 @@ def test_no_complex_coeffs(forest):
         res = list(measure_observables(qc, suite))
 
 
-def test__get_diagonalizing_basis():
+def test_get_diagonalizing_basis_1():
     pauli_terms = [sZ(0), sX(1) * sZ(0), sY(2) * sX(1)]
     assert _get_diagonalizing_basis(pauli_terms) == sY(2) * sX(1) * sZ(0)
+
+
+def test_get_diagonalizing_basis_2():
     pauli_terms = [sZ(0), sX(1) * sZ(0), sY(2) * sX(1), sZ(5) * sI(3)]
     assert _get_diagonalizing_basis(pauli_terms) == sZ(5) * sY(2) * sX(1) * sZ(0)
 
 
-def test_max_tpb_overlap():
-    # test (i)
+def test_max_tpb_overlap_1():
     tomo_expt_settings = [ExperimentSetting(sZ(1) * sX(0), sY(2) * sY(1)),
                           ExperimentSetting(sX(2) * sZ(1), sY(2) * sZ(0))]
     tomo_expt_program = Program(H(0), H(1), H(2))
     tomo_expt_qubits = [0, 1, 2]
     tomo_expt = TomographyExperiment(tomo_expt_settings, tomo_expt_program, tomo_expt_qubits)
     expected_dict = {ExperimentSetting(sX(0) * sZ(1) * sX(2), sZ(0) * sY(1) * sY(2)):
-                     [ExperimentSetting(sZ(1) * sX(0), sY(2) * sY(1)),
-                      ExperimentSetting(sX(2) * sZ(1), sY(2) * sZ(0))]}
+                         [ExperimentSetting(sZ(1) * sX(0), sY(2) * sY(1)),
+                          ExperimentSetting(sX(2) * sZ(1), sY(2) * sZ(0))]}
     assert expected_dict == _max_tpb_overlap(tomo_expt)
-    # test (ii)
+
+
+def test_max_tpb_overlap_2():
     expt_setting = ExperimentSetting(PauliTerm.from_compact_str('(1+0j)*Z7Y8Z1Y4Z2Y5Y0X6'),
                                      PauliTerm.from_compact_str('(1+0j)*Z4X8Y5X3Y7Y1'))
     p = Program(H(0), H(1), H(2))
@@ -264,8 +268,15 @@ def test_max_tpb_overlap():
     tomo_expt = TomographyExperiment([expt_setting], p, qubits)
     expected_dict = {expt_setting: [expt_setting]}
     assert expected_dict == _max_tpb_overlap(tomo_expt)
-    # test (iii) -- add another ExperimentSetting to the above
+
+
+def test_max_tpb_overlap_3():
+    # add another ExperimentSetting to the above
+    expt_setting = ExperimentSetting(PauliTerm.from_compact_str('(1+0j)*Z7Y8Z1Y4Z2Y5Y0X6'),
+                                     PauliTerm.from_compact_str('(1+0j)*Z4X8Y5X3Y7Y1'))
     expt_setting2 = ExperimentSetting(sZ(7), sY(1))
+    p = Program(H(0), H(1), H(2))
+    qubits = [0, 1, 2]
     tomo_expt2 = TomographyExperiment([expt_setting, expt_setting2], p, qubits)
     expected_dict2 = {expt_setting: [expt_setting, expt_setting2]}
     assert expected_dict2 == _max_tpb_overlap(tomo_expt2)
@@ -280,18 +291,11 @@ def test_group_experiments_greedy():
     grouped_tomo_expt = group_experiments_greedy(ungrouped_tomo_expt)
     expected_grouped_tomo_expt = TomographyExperiment(
         [[ExperimentSetting(PauliTerm.from_compact_str('(1+0j)*Z7Y8Z1Y4Z2Y5Y0X6'),
-                            PauliTerm.from_compact_str('(1+0j)*Z4X8Y5X3Y7Y1')), ExperimentSetting(sZ(7), sY(1))]],
+                            PauliTerm.from_compact_str('(1+0j)*Z4X8Y5X3Y7Y1')),
+          ExperimentSetting(sZ(7), sY(1))]],
         program=Program(H(0), H(1), H(2)),
         qubits=[0, 1, 2])
     assert grouped_tomo_expt == expected_grouped_tomo_expt
-
-
-def test_identity(forest):
-    qc = get_qc('2q-qvm')
-    suite = TomographyExperiment([ExperimentSetting(sI(), 0.123 * sI(0))],
-                                 program=Program(X(0)), qubits=[0])
-    result = list(measure_observables(qc, suite))[0]
-    assert result.expectation == 0.123
 
 
 def test_expt_settings_diagonal_in_tpb():
@@ -302,3 +306,11 @@ def test_expt_settings_diagonal_in_tpb():
     expt_setting4 = ExperimentSetting(sY(2) * sZ(1), sX(2) * sY(1))
     assert not _expt_settings_diagonal_in_tpb(expt_setting2, expt_setting3)
     assert not _expt_settings_diagonal_in_tpb(expt_setting2, expt_setting4)
+
+
+def test_identity(forest):
+    qc = get_qc('2q-qvm')
+    suite = TomographyExperiment([ExperimentSetting(sI(), 0.123 * sI(0))],
+                                 program=Program(X(0)), qubits=[0])
+    result = list(measure_observables(qc, suite))[0]
+    assert result.expectation == 0.123
