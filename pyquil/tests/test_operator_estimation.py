@@ -12,8 +12,9 @@ from pyquil.api import WavefunctionSimulator
 from pyquil.gates import *
 from pyquil.operator_estimation import ExperimentSetting, TomographyExperiment, to_json, read_json, \
     _all_qubits_diagonal_in_tpb, group_experiments, ExperimentResult, measure_observables, SIC0, \
-    SIC1, SIC2, SIC3, plusX, minusX, plusY, minusY, plusZ, minusZ, vacuum
-from pyquil.paulis import sI, sX, sY, sZ, PauliSum
+    SIC1, SIC2, SIC3, plusX, minusX, plusY, minusY, plusZ, minusZ, vacuum, _get_diagonalizing_basis, \
+    _max_tpb_overlap, group_experiments_greedy, _expt_settings_diagonal_in_tpb
+from pyquil.paulis import sI, sX, sY, sZ, PauliSum, PauliTerm
 
 
 def _generate_random_states(n_qubits, n_terms):
@@ -141,6 +142,13 @@ def test_all_ops_belong_to_tpb():
             assert _all_qubits_diagonal_in_tpb(e1.in_operator, e2.in_operator)
             assert _all_qubits_diagonal_in_tpb(e1.out_operator, e2.out_operator)
 
+    assert _all_qubits_diagonal_in_tpb(sZ(0), sZ(0) * sZ(1))
+    assert _all_qubits_diagonal_in_tpb(sX(5), sZ(4))
+    assert not _all_qubits_diagonal_in_tpb(sX(0), sY(0) * sZ(2))
+    # this last example illustrates that a pair of commuting operators
+    # need not be diagonal in the same tpb
+    assert not _all_qubits_diagonal_in_tpb(sX(1) * sZ(0), sZ(1) * sX(0))
+
 
 def test_group_experiments():
     expts = [  # cf above, I removed the inner nesting. Still grouped visually
@@ -257,6 +265,76 @@ def test_no_complex_coeffs(forest):
                                  qubits=[0])
     with pytest.raises(ValueError):
         res = list(measure_observables(qc, suite))
+
+
+def test_get_diagonalizing_basis_1():
+    pauli_terms = [sZ(0), sX(1) * sZ(0), sY(2) * sX(1)]
+    assert _get_diagonalizing_basis(pauli_terms) == sY(2) * sX(1) * sZ(0)
+
+
+def test_get_diagonalizing_basis_2():
+    pauli_terms = [sZ(0), sX(1) * sZ(0), sY(2) * sX(1), sZ(5) * sI(3)]
+    assert _get_diagonalizing_basis(pauli_terms) == sZ(5) * sY(2) * sX(1) * sZ(0)
+
+
+def test_max_tpb_overlap_1():
+    tomo_expt_settings = [ExperimentSetting(sZ(1) * sX(0), sY(2) * sY(1)),
+                          ExperimentSetting(sX(2) * sZ(1), sY(2) * sZ(0))]
+    tomo_expt_program = Program(H(0), H(1), H(2))
+    tomo_expt_qubits = [0, 1, 2]
+    tomo_expt = TomographyExperiment(tomo_expt_settings, tomo_expt_program, tomo_expt_qubits)
+    expected_dict = {ExperimentSetting(sX(0) * sZ(1) * sX(2), sZ(0) * sY(1) * sY(2)):
+                         [ExperimentSetting(sZ(1) * sX(0), sY(2) * sY(1)),
+                          ExperimentSetting(sX(2) * sZ(1), sY(2) * sZ(0))]}
+    assert expected_dict == _max_tpb_overlap(tomo_expt)
+
+
+def test_max_tpb_overlap_2():
+    expt_setting = ExperimentSetting(PauliTerm.from_compact_str('(1+0j)*Z7Y8Z1Y4Z2Y5Y0X6'),
+                                     PauliTerm.from_compact_str('(1+0j)*Z4X8Y5X3Y7Y1'))
+    p = Program(H(0), H(1), H(2))
+    qubits = [0, 1, 2]
+    tomo_expt = TomographyExperiment([expt_setting], p, qubits)
+    expected_dict = {expt_setting: [expt_setting]}
+    assert expected_dict == _max_tpb_overlap(tomo_expt)
+
+
+def test_max_tpb_overlap_3():
+    # add another ExperimentSetting to the above
+    expt_setting = ExperimentSetting(PauliTerm.from_compact_str('(1+0j)*Z7Y8Z1Y4Z2Y5Y0X6'),
+                                     PauliTerm.from_compact_str('(1+0j)*Z4X8Y5X3Y7Y1'))
+    expt_setting2 = ExperimentSetting(sZ(7), sY(1))
+    p = Program(H(0), H(1), H(2))
+    qubits = [0, 1, 2]
+    tomo_expt2 = TomographyExperiment([expt_setting, expt_setting2], p, qubits)
+    expected_dict2 = {expt_setting: [expt_setting, expt_setting2]}
+    assert expected_dict2 == _max_tpb_overlap(tomo_expt2)
+
+
+def test_group_experiments_greedy():
+    ungrouped_tomo_expt = TomographyExperiment(
+        [[ExperimentSetting(PauliTerm.from_compact_str('(1+0j)*Z7Y8Z1Y4Z2Y5Y0X6'),
+                            PauliTerm.from_compact_str('(1+0j)*Z4X8Y5X3Y7Y1'))],
+         [ExperimentSetting(sZ(7), sY(1))]], program=Program(H(0), H(1), H(2)),
+        qubits=[0, 1, 2])
+    grouped_tomo_expt = group_experiments_greedy(ungrouped_tomo_expt)
+    expected_grouped_tomo_expt = TomographyExperiment(
+        [[ExperimentSetting(PauliTerm.from_compact_str('(1+0j)*Z7Y8Z1Y4Z2Y5Y0X6'),
+                            PauliTerm.from_compact_str('(1+0j)*Z4X8Y5X3Y7Y1')),
+          ExperimentSetting(sZ(7), sY(1))]],
+        program=Program(H(0), H(1), H(2)),
+        qubits=[0, 1, 2])
+    assert grouped_tomo_expt == expected_grouped_tomo_expt
+
+
+def test_expt_settings_diagonal_in_tpb():
+    expt_setting1 = ExperimentSetting(sZ(1) * sX(0), sY(1) * sZ(0))
+    expt_setting2 = ExperimentSetting(sY(2) * sZ(1), sZ(2) * sY(1))
+    assert _expt_settings_diagonal_in_tpb(expt_setting1, expt_setting2)
+    expt_setting3 = ExperimentSetting(sX(2) * sZ(1), sZ(2) * sY(1))
+    expt_setting4 = ExperimentSetting(sY(2) * sZ(1), sX(2) * sY(1))
+    assert not _expt_settings_diagonal_in_tpb(expt_setting2, expt_setting3)
+    assert not _expt_settings_diagonal_in_tpb(expt_setting2, expt_setting4)
 
 
 def test_identity(forest):
