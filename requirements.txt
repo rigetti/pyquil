@@ -2,13 +2,11 @@
 numpy
 antlr4-python3-runtime
 requests
-contextvars
 six
 networkx
-dataclasses
 
 # rigetti packages
-rpcq == 2.0.0
+rpcq == 2.2.1
 
 # test deps
 pytest
@@ -20,3 +18,9 @@ mypy
 # docs
 sphinx
 sphinx_rtd_theme
+sphinx_autodoc_typehints
+ipykernel
+nbsphinx
+
+# depdendency of contextvars, which we vendor
+immutables==0.6

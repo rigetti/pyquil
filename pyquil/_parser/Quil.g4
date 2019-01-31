@@ -57,7 +57,9 @@ qubitVariable       : IDENTIFIER ;
 
 circuitQubit        : qubit | qubitVariable ;
 circuitGate         : name ( LPAREN param ( COMMA param )* RPAREN )? circuitQubit+ ;
-circuitInstr        : circuitGate | instr ;
+circuitMeasure      : MEASURE circuitQubit addr? ;
+circuitResetState   : RESET circuitQubit? ;
+circuitInstr        : circuitGate | circuitMeasure | circuitResetState | instr ;
 circuit             : ( TAB circuitInstr NEWLINE )* TAB circuitInstr ;
 
 // F. Measurement
@@ -191,11 +193,11 @@ STORE               : 'STORE' ;
 PI                  : 'pi' ;
 I                   : 'i' ;
 
-SIN                 : 'sin' ;
-COS                 : 'cos' ;
-SQRT                : 'sqrt' ;
-EXP                 : 'exp' ;
-CIS                 : 'cis' ;
+SIN                 : 'SIN' ;
+COS                 : 'COS' ;
+SQRT                : 'SQRT' ;
+EXP                 : 'EXP' ;
+CIS                 : 'CIS' ;
 
 // Operators
 

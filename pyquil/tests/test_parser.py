@@ -49,8 +49,8 @@ DEFGATE SQRT-X:
     0.5-0.5i, 0.5+0.5i
 
 DEFGATE HADAMARD:
-    1/sqrt(2), 1/sqrt(2)
-    1/sqrt(2), -1/sqrt(2)
+    1/SQRT(2), 1/SQRT(2)
+    1/SQRT(2), -1/SQRT(2)
     """.strip()
 
     parse_equals(defgates, sqrt_x, hadamard)
@@ -64,8 +64,8 @@ def test_def_gate_with_variables():
                    [1j * quil_sin(theta / 2), quil_cos(theta / 2)]])
 
     defgate = 'DEFGATE RX(%theta):\n' \
-              '    cos(%theta/2), i*sin(%theta/2)\n' \
-              '    i*sin(%theta/2), cos(%theta/2)\n\n'
+              '    COS(%theta/2), i*SIN(%theta/2)\n' \
+              '    i*SIN(%theta/2), COS(%theta/2)\n\n'
 
     parse_equals(defgate, DefGate('RX', rx, [theta]))
 
@@ -126,14 +126,14 @@ def test_expressions():
     _expr("3 ^ 2 + 5", 14)
 
     # Functions
-    _expr("sin(0)", 0.0)
-    _expr("cos(0)", 1.0)
-    _expr("sqrt(4)", 2.0)
-    _expr("exp(0)", 1.0)
-    _expr("cis(0)", complex(1, 0))
+    _expr("SIN(0)", 0.0)
+    _expr("COS(0)", 1.0)
+    _expr("SQRT(4)", 2.0)
+    _expr("EXP(0)", 1.0)
+    _expr("CIS(0)", complex(1, 0))
 
     # Unary precedence
-    # https://github.com/rigetticomputing/pyquil/issues/246
+    # https://github.com/rigetti/pyquil/issues/246
     _expr("-3+4", 1)
     _expr("-(3+4)", -7)
     _expr("-(3-4)", 1)
@@ -213,7 +213,13 @@ DEFCIRCUIT bell a b:
     H a
     CNOT a b
 """.strip()
+    defcircuit_no_qubits = """
+DEFCIRCUIT bell:
+    H 0
+    CNOT 0 1
+""".strip()
     parse_equals(defcircuit, RawInstr(defcircuit))
+    parse_equals(defcircuit_no_qubits, RawInstr(defcircuit_no_qubits))
 
 
 def test_parse_reset_qubit():
@@ -226,3 +232,34 @@ RESET
 RESET 5
     """.strip()
     parse_equals(reset_qubit, ResetQubit(Qubit(5)))
+
+
+def test_defcircuit_measure_qubit():
+    defcircuit_measure_named_qubits = """
+DEFCIRCUIT test_defcirc_measure_named a b:
+    MEASURE a b
+""".strip()
+    defcircuit_measure_qubits = """
+DEFCIRCUIT test_defcirc_measure_qubits:
+    MEASURE 0 ro
+""".strip()
+    defcircuit_measure_qubits_mixed = """
+DEFCIRCUIT test_defcirc_measure_mixed q:
+    MEASURE q ro
+""".strip()
+    parse_equals(defcircuit_measure_named_qubits, RawInstr(defcircuit_measure_named_qubits))
+    parse_equals(defcircuit_measure_qubits, RawInstr(defcircuit_measure_qubits))
+    parse_equals(defcircuit_measure_qubits_mixed, RawInstr(defcircuit_measure_qubits_mixed))
+
+
+def test_defcircuit_reset_named_qubit():
+    defcircuit_reset_named_qubit = """
+DEFCIRCUIT test_defcirc_reset_named_qubit a:
+    RESET a
+""".strip()
+    defcircuit_reset_qubit = """
+DEFCIRCUIT test_defcirc_reset_qubit:
+    RESET 1
+""".strip()
+    parse_equals(defcircuit_reset_named_qubit, RawInstr(defcircuit_reset_named_qubit))
+    parse_equals(defcircuit_reset_qubit, RawInstr(defcircuit_reset_qubit))

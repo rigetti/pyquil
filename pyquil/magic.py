@@ -14,17 +14,20 @@
 #    limitations under the License.
 ##############################################################################
 import ast
+import sys
 import functools
 import inspect
-
-from contextvars import ContextVar
 
 from pyquil import gates
 from pyquil.quil import Program
 from pyquil.quilatom import Addr
 
-_program_context: ContextVar[Program] = ContextVar('program')
+if sys.version_info < (3, 7):
+    from pyquil.external.contextvars import ContextVar
+else:
+    from contextvars import ContextVar
 
+_program_context: ContextVar[Program] = ContextVar('program')
 
 def program_context() -> Program:
     """

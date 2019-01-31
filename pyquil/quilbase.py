@@ -304,6 +304,7 @@ class JumpConditional(AbstractInstruction):
     """
     Abstract representation of an conditional jump instruction.
     """
+    op = NotImplemented
 
     def __init__(self, target, condition):
         if not isinstance(target, (Label, LabelPlaceholder)):
@@ -400,6 +401,7 @@ class LogicalBinaryOp(AbstractInstruction):
     """
     The abstract class for binary logical classical instructions.
     """
+    op = NotImplemented
 
     def __init__(self, left, right):
         if not isinstance(left, MemoryReference):
@@ -447,9 +449,10 @@ class ClassicalOr(ClassicalInclusiveOr):
     """
 
     def __init__(self, left, right):
-        warn("ClassicalOr has been deprecated. Replacing with ClassicalInclusiveOr. " +
-             "Use ClassicalInclusiveOr instead. " +
-             "NOTE: The operands to ClassicalInclusiveOr are inverted from ClassicalOr.")
+        warn("ClassicalOr has been deprecated. Replacing with "
+             "ClassicalInclusiveOr. Use ClassicalInclusiveOr instead. "
+             "NOTE: The operands to ClassicalInclusiveOr are inverted from "
+             "ClassicalOr.")
         super().__init__(right, left)
 
 
@@ -710,8 +713,10 @@ class Pragma(AbstractInstruction):
         if not isinstance(args, (tuple, list)):
             raise TypeError("Pragma arguments must be a list: {}".format(args))
         for a in args:
-            if not (isinstance(a, string_types) or isinstance(a, integer_types) or
-                    isinstance(a, QubitPlaceholder) or isinstance(a, Qubit)):
+            if not (isinstance(a, string_types)
+                    or isinstance(a, integer_types)
+                    or isinstance(a, QubitPlaceholder)
+                    or isinstance(a, Qubit)):
                 raise TypeError("Pragma arguments must be strings or integers: {}".format(a))
         if not isinstance(freeform_string, string_types):
             raise TypeError("The freeform string argument must be a string: {}".format(

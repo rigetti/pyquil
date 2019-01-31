@@ -22,7 +22,8 @@ from collections import Counter
 from rpcq import Client
 from rpcq.messages import (BinaryExecutableRequest, BinaryExecutableResponse,
                            NativeQuilRequest, TargetDevice,
-                           PyQuilExecutableResponse, ParameterSpec)
+                           PyQuilExecutableResponse, ParameterSpec,
+                           RewriteArithmeticRequest)
 
 from pyquil.api._base_connection import ForestConnection
 from pyquil.api._qac import AbstractCompiler
@@ -79,19 +80,21 @@ def _collect_classical_memory_write_locations(program: Program) -> List[Optional
     """
     ro_size = None
     for instr in program:
-        if isinstance(instr, Declare) and (instr.name == "ro" or instr.name == "ro_table"):
+        if isinstance(instr, Declare) and instr.name == "ro":
+            if ro_size is not None:
+                raise ValueError("I found multiple places where a register named `ro` is declared! "
+                                 "Please only declare one register named `ro`.")
             ro_size = instr.memory_size
-            break
 
-    measures_by_qubit = Counter()
-    ro_sources: Dict[int, int] = {}
+    measures_by_qubit: Dict[int, int] = Counter()
+    ro_sources: Dict[int, Tuple[int, int]] = {}
 
     for instr in program:
         if isinstance(instr, Measurement):
             q = instr.qubit.index
             if instr.classical_reg:
                 offset = instr.classical_reg.offset
-                assert (instr.classical_reg.name == "ro" or instr.classical_reg.name == "ro_table")
+                assert instr.classical_reg.name == "ro", instr.classical_reg.name
                 if offset in ro_sources:
                     _log.warning(f"Overwriting the measured result in register "
                                  f"{instr.classical_reg} from qubit {ro_sources[offset]} "
@@ -125,17 +128,27 @@ def _collect_memory_descriptors(program: Program) -> Dict[str, ParameterSpec]:
 
 class QPUCompiler(AbstractCompiler):
     @_record_call
-    def __init__(self, endpoint: str, device: AbstractDevice) -> None:
+    def __init__(self,
+                 endpoint: str,
+                 device: AbstractDevice,
+                 timeout: int = 10,
+                 name: Optional[str] = None) -> None:
         """
         Client to communicate with the Compiler Server.
 
         :param endpoint: TCP or IPC endpoint of the Compiler Server
         :param device: PyQuil Device object to use as compilation target
+        :param timeout: Number of seconds to wait for a response from the client.
+        :param name: Name of the lattice being targeted
         """
 
-        self.client = Client(endpoint)
+        self.client = Client(endpoint, timeout=timeout)
         self.target_device = TargetDevice(isa=device.get_isa().to_dict(),
                                           specs=device.get_specs().to_dict())
+        self.name = name
+
+    def get_version_info(self) -> dict:
+        return self.client.call('get_version_info')
 
     @_record_call
     def quil_to_native_quil(self, program: Program) -> Program:
@@ -153,12 +166,22 @@ class QPUCompiler(AbstractCompiler):
                           "Program that hasn't been compiled via `quil_to_native_quil`. This is "
                           "ok if you've hand-compiled your program to our native gateset, "
                           "but be careful!")
+        if self.name is not None:
+            targeted_lattice = self.client.call('get_config_info')['lattice_name']
+            if targeted_lattice and targeted_lattice != self.name:
+                warnings.warn(f'You requested compilation for device {self.name}, '
+                              f'but you are engaged on device {targeted_lattice}.')
 
-        request = BinaryExecutableRequest(quil=nq_program.out(), num_shots=nq_program.num_shots)
+        arithmetic_request = RewriteArithmeticRequest(quil=nq_program.out())
+        arithmetic_response = self.client.call('resolve_gate_parameter_arithmetic', arithmetic_request)
+
+        request = BinaryExecutableRequest(quil=arithmetic_response.quil, num_shots=nq_program.num_shots)
         response = self.client.call('native_quil_to_binary', request)
+
         # hack! we're storing a little extra info in the executable binary that we don't want to
         # expose to anyone outside of our own private lives: not the user, not the Forest server,
         # not anyone.
+        response.recalculation_table = arithmetic_response.recalculation_table
         response.memory_descriptors = _collect_memory_descriptors(nq_program)
         response.ro_sources = _collect_classical_memory_write_locations(nq_program)
         return response
@@ -166,16 +189,19 @@ class QPUCompiler(AbstractCompiler):
 
 class QVMCompiler(AbstractCompiler):
     @_record_call
-    def __init__(self, endpoint: str, device: AbstractDevice) -> None:
+    def __init__(self, endpoint: str, device: AbstractDevice, timeout: float = None) -> None:
         """
         Client to communicate with the Compiler Server.
 
         :param endpoint: TCP or IPC endpoint of the Compiler Server
         :param device: PyQuil Device object to use as compilation target
         """
-        self.client = Client(endpoint)
+        self.client = Client(endpoint, timeout=timeout)
         self.target_device = TargetDevice(isa=device.get_isa().to_dict(),
                                           specs=device.get_specs().to_dict())
+
+    def get_version_info(self) -> dict:
+        return self.client.call('get_version_info')
 
     @_record_call
     def quil_to_native_quil(self, program: Program) -> Program:
@@ -188,36 +214,6 @@ class QVMCompiler(AbstractCompiler):
 
     @_record_call
     def native_quil_to_executable(self, nq_program: Program) -> PyQuilExecutableResponse:
-        return PyQuilExecutableResponse(
-            program=nq_program.out(),
-            attributes=_extract_attribute_dictionary_from_program(nq_program))
-
-
-class LocalQVMCompiler(AbstractCompiler):
-    def __init__(self, endpoint: str, device: AbstractDevice) -> None:
-        """
-        Client to communicate with a locally executing quilc instance.
-
-        :param endpoint: HTTP endpoint of the quilc instance.
-        :param device: PyQuil Device object to use as the compilation target.
-        """
-        self.endpoint = endpoint
-        self.isa = device.get_isa()
-        self.specs = device.get_specs()
-
-        self._connection = ForestConnection(sync_endpoint=endpoint)
-        self.session = self._connection.session  # backwards compatibility
-
-    def quil_to_native_quil(self, program: Program) -> Program:
-        response = self._connection._quilc_compile(program, self.isa, self.specs)
-
-        compiled_program = Program(response['compiled-quil'])
-        compiled_program.native_quil_metadata = response['metadata']
-        compiled_program.num_shots = program.num_shots
-
-        return compiled_program
-
-    def native_quil_to_executable(self, nq_program: Program):
         return PyQuilExecutableResponse(
             program=nq_program.out(),
             attributes=_extract_attribute_dictionary_from_program(nq_program))

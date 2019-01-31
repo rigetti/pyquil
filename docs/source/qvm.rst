@@ -1,420 +1,362 @@
 .. _qvm:
 
-The Quantum Virtual Machine (QVM)
-=================================
+The Quantum Computer
+====================
 
-The Rigetti Quantum Virtual Machine is an implementation of the Quantum Abstract Machine from
-*A Practical Quantum Instruction Set Architecture*. [1]_  It is implemented in ANSI Common LISP and
-executes programs specified in the Quantum Instruction Language (Quil). Quil is an opinionated
+PyQuil is used to build Quil (Quantum Instruction Language) programs and execute them on simulated or real quantum devices. Quil is an opinionated
 quantum instruction language: its basic belief is that in the near term quantum computers will
-operate as coprocessors, working in concert with traditional CPUs.  This means that Quil is
-designed to execute on a Quantum Abstract Machine that has a shared classical/quantum architecture
-at its core. The QVM is a wavefunction simulation of unitary evolution with classical control flow
-and shared quantum classical memory.
+operate as coprocessors, working in concert with traditional CPUs. This means that Quil is designed to execute on
+a Quantum Abstract Machine (QAM) that has a shared classical/quantum architecture at its core.
+
+A QAM must, therefore, implement certain abstract methods to manipulate classical and quantum states, such as loading
+programs, writing to shared classical memory, and executing programs.
+
+The program execution itself is sent from pyQuil to quantum computer endpoints, which will be one of two options:
+
+  - A Rigetti Quantum Virtual Machine (QVM)
+  - A Rigetti Quantum Processing Unit (QPU)
+
+Within pyQuil, there is a :py:class:`~pyquil.api.QVM` object and a :py:class:`~pyquil.api.QPU` object which use
+the exposed APIs of the QVM and QPU servers, respectively.
+
+On this page, we'll learn a bit about the :ref:`QVM <qvm_use>` and :ref:`QPU <qpu>`. Then we will
+show you how to use them from pyQuil with a :ref:`quantum_computer`.
+
+For information on constructing quantum programs, please refer back to :ref:`basics`.
 
 .. _qvm_use:
 
-Using the QVM
--------------
-The QVM is available on your local machine. You can initialize a localQVM instance by doing the following:
+The Quantum Virtual Machine (QVM)
+~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
 
+The Rigetti Quantum Virtual Machine is an implementation of the Quantum Abstract Machine from
+*A Practical Quantum Instruction Set Architecture*. [1]_  It is implemented in ANSI Common LISP and
+executes programs specified in Quil.
+
+The QVM is a wavefunction simulation of unitary evolution with classical control flow
+and shared quantum classical memory.
+
+The QVM is part of the Forest SDK, and it's available for you to use on your local machine.
+After :ref:`downloading and installing the SDK <sdkinstall>`, you can initialize a local
+QVM server by typing ``qvm -S`` into your terminal. You should see the following message.
 
 .. code:: python
 
-    ### CONSOLE 1
     $ qvm -S
-    Configured with 2048 MiB of workspace and 8 workers.)
-    [2018-09-20 15:39:50] Starting server on port 5000.
+    ******************************
+    * Welcome to the Rigetti QVM *
+    ******************************
+    Copyright (c) 2018 Rigetti Computing.
 
+    (Configured with 2048 MiB of workspace and 8 workers.)
+
+    [2018-11-06 18:18:18] Starting server on port 5000.
+
+By default, the server is started on port 5000 on your local machine. Consequently, the endpoint which
+the pyQuil :py:class:`~pyquil.api.QVM` will default to for the QVM address is ``"http://127.0.0.1:5000"``. When you
+run your program, a pyQuil client will send a Quil program to the QVM server and wait for a response back.
+
+It's also possible to use the QVM from the command line. You can write a Quil program in its own file:
+
+.. code:: python
+
+    # example.quil
+
+    DECLARE ro BIT[1]
+    RX(pi/2) 0
+    CZ 0 1
+
+and then execute it with the QVM directly from the command line:
+
+.. code:: python
+
+    $ qvm -e < example.quil
+
+    [2018-11-30 11:13:58] Reading program.
+    [2018-11-30 11:13:58] Allocating memory for QVM of 2 qubits.
+    [2018-11-30 11:13:58] Allocation completed in 4 ms.
+    [2018-11-30 11:13:58] Loading quantum program.
+    [2018-11-30 11:13:58] Executing quantum program.
+    [2018-11-30 11:13:58] Execution completed in 6 ms.
+    [2018-11-30 11:13:58] Printing 2-qubit state.
+    [2018-11-30 11:13:58] Amplitudes:
+    [2018-11-30 11:13:58]   |00>: 0.0, P=  0.0%
+    [2018-11-30 11:13:58]   |01>: 0.0-1.0i, P=100.0%
+    [2018-11-30 11:13:58]   |10>: 0.0, P=  0.0%
+    [2018-11-30 11:13:58]   |11>: 0.0, P=  0.0%
+    [2018-11-30 11:13:58] Classical memory (low -> high indexes):
+    [2018-11-30 11:13:58]     ro:  1 0
+
+For a detailed description of how to use the ``qvm`` from the command line, see :ref:`The QVM manual page <qvm_man>` or
+type ``man qvm`` in your terminal.
+
+We also offer a Wavefunction Simulator (formerly a part of the :py:class:`~pyquil.api.QVM` object),
+which allows users to contruct and inspect wavefunctions of quantum programs. Learn more
+about the Wavefunction Simulator :ref:`here <wavefunction_simulator>`.
+
+.. _qpu:
+
+The Quantum Processing Unit (QPU)
+~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
+
+To access a QPU endpoint, you will have to `sign up <https://www.rigetti.com/>`_ for Quantum Cloud Services (QCS).
+Documentation for getting started with your Quantum Machine Image (QMI) is found
+`here <https://www.rigetti.com/qcs/docs/intro-to-qcs>`_. Using QCS, you will ``ssh`` into your QMI, and reserve a
+QPU lattice for a particular time block.
+
+When your reservation begins, you will be authorized to access the QPU. A configuration file will be automatically
+populated for you with the proper QPU endpoint for your reservation. Both your QMI and the QPU are located on premises,
+giving you low latency access to the QPU server. That server accepts jobs in the form of ``BinaryExecutableRequest``s,
+which is precisely what you get back when you compile your program in pyQuil and target the QPU (more on this soon).
+This request contains all the information necessary to run your program on the control rack which sends and receives
+waveforms from the QPU, so that you can receive classified readout results (``0``s and ``1``s).
+
+For information on available lattices, you can check out your dashboard at https://qcs.rigetti.com/dashboard after you've
+been invited to QCS.
+
+
+.. _quantum_computer:
+
+The ``QuantumComputer``
+~~~~~~~~~~~~~~~~~~~~~~~
+
+The :py:class:`~pyquil.api.QuantumComputer` abstraction offered by pyQuil provides an easy access point to the most
+critical objects used in pyQuil for building and executing your quantum programs.
+We will cover the main methods and attributes on this page.
+The `QuantumComputer API Reference <apidocs/quantum_computer.html>`_ provides a reference for all of its methods and
+options.
+
+At a high level, the :py:class:`~pyquil.api.QuantumComputer` wraps around our favorite quantum computing tools:
+
+  - **A quantum abstract machine** ``.qam`` : this is our general purpose quantum computing device,
+    which implements the required abstract methods described :ref:`above <qvm>`. It is implemented as a
+    :py:class:`~pyquil.api.QVM` or :py:class:`~pyquil.api.QPU` object in pyQuil.
+  - **A compiler** ``.compiler`` : this determines how we manipulate the Quil input to something more efficient when possible,
+    and then into a form which our QAM can accept as input.
+  - **A device** ``.device`` : this specifies the topology and Instruction Set Architecture (ISA) of
+    the targeted device by listing the supported 1Q and 2Q gates.
+
+When you instantiate a :py:class:`~pyquil.api.QuantumComputer` instance, these subcomponents will be compatible with
+each other. So, if you get a ``QPU`` implementation for the ``.qam``, you will have a ``QPUCompiler`` for the
+``.compiler``, and your ``.device`` will match the device used by the ``.compiler.``
+
+The :py:class:`~pyquil.api.QuantumComputer` instance makes methods available which are built on the above objects. If
+you need more fine grained controls for your work, you might try exploring what is offered by these objects.
+
+For more information on each of the above, check out the following pages:
+
+ - `Compiler API Reference <apidocs/compilers.html>`_
+ - :ref:`Quil Compiler docs <compiler>`
+ - `Device API Reference <apidocs/devices.html>`_
+ - :ref:`new_topology`
+ - `Quantum abstract machine (QAM) API Reference <apidocs/qam.html>`_
+ - `The Quil Whitepaper <https://arxiv.org/abs/1608.03355>`_ which describes the QAM
+
+Instantiation
+-------------
+
+A decent amount of information needs to be provided to initialize the ``compiler``, ``device``, and ``qam`` attributes,
+much of which is already in your :ref:`config files <_advanced_usage>` (or provided reasonable defaults when running locally).
+Typically, you will want a :py:class:`~pyquil.api.QuantumComputer` which either:
+
+  - pertains to a real, available QPU device
+  - is a QVM but mimics the topology of a QPU
+  - is some generic QVM
+
+All of this can be accomplished with :py:func:`~pyquil.api.get_qc`.
+
+.. code:: python
+
+    def get_qc(name: str, *, as_qvm: bool = None, noisy: bool = None,
+               connection: ForestConnection = None) -> QuantumComputer:
+
+.. code:: python
+
+    from pyquil import get_qc
+
+    # Get a QPU
+    qc = get_qc(QPU_LATTICE_NAME)  # QPU_LATTICE_NAME is just a string naming the device
+
+    # Get a QVM with the same topology as the QPU lattice
+    qc = get_qc(QPU_LATTICE_NAME, as_qvm=True)
+    # or, equivalently
+    qc = get_qc(f"{QPU_LATTICE_NAME}-qvm")
+
+    # A fully connected QVM
+    number_of_qubits = 10
+    qc = get_qc(f"{number_of_qubits}q-qvm")
+
+For now, you will have to join QCS to get ``QPU_LATTICE_NAME`` by running the
+``qcs lattices`` command from your QMI. Access to the QPU is only possible from a QMI, during a booked reservation.
+If this sounds unfamiliar, check out our `documentation for QCS <https://www.rigetti.com/qcs/docs/intro-to-qcs>`_
+and `join the waitlist <https://www.rigetti.com/>`_.
+
+For more information about creating and adding your own noise models, check out :ref:`noise`.
+
+.. note::
+    When connecting to a QVM locally (such as with ``get_qc(..., as_qvm=True)``) you'll have to set up the QVM
+    in :ref:`server mode <server>`.
+
+Methods
+-------
+
+Now that you have your ``qc``, there's a lot you can do with it. Most users will want to use ``compile``, ``run`` or
+``run_and_measure``, and ``qubits`` very regularly. The general flow of use would look like this:
 
 .. code:: python
 
     from pyquil import get_qc, Program
     from pyquil.gates import *
-    qvm = get_qc('9q-square-qvm')
+
+    qc = get_qc('9q-square-qvm')            # not general to any number of qubits, 9q-square-qvm is special
+
+    qubits = qc.qubits()                    # this information comes from qc.device
+    p = Program()
+    # ... build program, potentially making use of the qubits list
+
+    compiled_program = qc.compile(p)        # this makes multiple calls to qc.compiler
+
+    results = qc.run(compiled_program)      # this makes multiple calls to qc.qam
+
+.. note::
+
+    In addition to a running QVM server, you will need a running ``quilc`` server to compile your program. Setting
+    up both of these is very easy, as explained :ref:`here <server>`.
 
 
-One executes quantum programs on the QVM using two paradigms: the ``.run(...)`` method, and
-the ``.wavefunction(...)`` method. The former closely mirrors how one will execute programs on a
-real QPU (see `our QPU docs <rigetti.com/qpu>`_, while the latter takes advantage of the virtual machine, and allows
-direct access to the wavefunction. These two methods are described in the following two sections.
-(For information on constructing quantum programs, please refer back to :ref:`basics`.)
+The ``.run_and_measure(...)`` method
+^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+
+This is the most high level way to run your program. With this method, you are **not** responsible for compiling your program
+before running it, nor do you have to specify any ``MEASURE`` instructions; all qubits will get measured.
+
+.. code:: python
+
+    from pyquil import Program, get_qc
+    from pyquil.gates import X
+
+    qc = get_qc("8q-qvm")
+
+    p = Program(X(0))
+
+    results = qc.run_and_measure(p, trials=5)
+    print(results)
+
+``trials`` specifies how many times to run this program. Let's see our results:
+
+.. parsed-literal::
+
+    {0: array([1, 1, 1, 1, 1]),
+     1: array([0, 0, 0, 0, 0]),
+     2: array([0, 0, 0, 0, 0]),
+     3: array([0, 0, 0, 0, 0]),
+     4: array([0, 0, 0, 0, 0]),
+     5: array([0, 0, 0, 0, 0]),
+     6: array([0, 0, 0, 0, 0]),
+     7: array([0, 0, 0, 0, 0])}
+
+The return value is a dictionary from qubit index to results for all trials.
+Every qubit in the lattice is measured for you, and as expected, qubit 0 has been flipped to the excited state
+for each trial.
 
 The ``.run(...)`` method
-~~~~~~~~~~~~~~~~~~~~~~~~
+^^^^^^^^^^^^^^^^^^^^^^^^
+
+The lower-level ``.run(...)`` method gives you more control over how you want to build and compile your program than
+``.run_and_measure`` does. **You are responsible for compiling your program before running it.**
+The above program would be written in this way to execute with ``run``:
 
 .. code:: python
 
-    program = Program(X(0), MEASURE(0, 0))
-    results = qvm.run(program, trials=1)
-    # results = [[1]]
+    from pyquil import Program, get_qc
+    from pyquil.gates import X, MEASURE
 
-The ``.run(...)`` method takes numerous arguments, several of which are optional. The most important
-are
+    qc = get_qc("8q-qvm")
 
-1. the ``program`` to be executed on the QVM,
-2. the ``classical_addresses`` which to be returned from the QVM (not included above; by default, these are set to the addresses used in the program's ``MEASURE`` instructions), and
-3. the number of ``trials`` to be executed on the machine.
+    p = Program()
+    ro = p.declare('ro', 'BIT', 1)
+    p += X(0)
+    p += MEASURE(0, ro[0])
+    p += MEASURE(1, ro[1])
+    p.wrap_in_numshots_loop(5)
 
-The results returned are a *list of lists of integers*. In the above case, that's
+    executable = qc.compile(p)
+    bitstrings = qc.run(executable)  # .run takes in a compiled program, unlike .run_and_measure
+    print(bitstrings)
+
+By specifying ``MEASURE`` ourselves, we will only get the results that we are interested in. To be completely equivalent
+to the previous example, we would have to measure all eight qubits.
+
+The results returned is a *list of lists of integers*. In the above case, that's
 
 .. parsed-literal::
 
-    [[1]]
+    [[1, 0], [1, 0], [1, 0], [1, 0], [1, 0]]
 
-Let's unpack this. The *outer* list is an
-enumeration over the trials; if you set ``trials=1`` then ``len(results)`` should equal ``1``.
+Let's unpack this. The *outer* list is an enumeration over the trials; the argument given to
+``wrap_in_numshots_loop`` will match the length of ``results``.
 
-The *inner* list, on the other hand, is an enumeration over the results stored in the classical
-addresses. We see that the result of this program is that the classical register ``[0]`` now stores
-the state of qubit 0, which should be ``1`` after an :math:`X`-gate. We
-can of course ask for more classical registers:
+The *inner* list, on the other hand, is an enumeration over the results stored in the memory region named ``ro``, which
+we use as our readout register. We see that the result of this program is that the memory region ``ro[0]`` now stores
+the state of qubit 0, which should be ``1`` after an :math:`X`-gate. See :ref:`declaring_memory` and :ref:`measurement`
+for more details about declaring and accessing classical memory regions.
 
-.. code:: python
+.. tip:: Get the results for qubit 0 with ``numpy.array(bitstrings)[:,0]``.
 
-    qvm.run(p, [0, 1, 2])
+.. _new_topology:
 
-.. parsed-literal::
+Providing Your Own Device Topology
+----------------------------------
 
-    [[1, 0, 0]]
-
-The classical registers are initialized to zero, so registers ``[1]``
-and ``[2]`` come out as zero. If we stored the measurement in a
-different classical register we would obtain:
+It is simple to provide your own device topology as long as you can give your qubits each a number,
+and specify which edges exist. Here is an example, using the topology of our 16Q chip (two octagons connected by a square):
 
 .. code:: python
 
-    p = Program()   # clear the old program
-    p.inst(X(0)).measure(0, 1)
-    qvm.run(p, [0, 1, 2])
+    import networkx as nx
 
-.. parsed-literal::
+    from pyquil.device import NxDevice, gates_in_isa
+    from pyquil.noise import decoherence_noise_with_asymmetric_ro
 
-    [[0, 1, 0]]
+    qubits = [0, 1, 2, 3, 4, 5, 6, 7, 10, 11, 12, 13, 14, 15, 16, 17]  # qubits are numbered by octagon
+    edges = [(0, 1), (1, 2), (2, 3), (3, 4), (4, 5), (5, 6), (6, 7), (7, 0),  # first octagon
+             (1, 16), (2, 15),  # connections across the square
+             (10, 11), (11, 12), (13, 14), (14, 15), (15, 16), (16, 17), (10, 17)] # second octagon
 
-We can also run programs multiple times and accumulate all the results
-in a single list.
+    # Build the NX graph
+    topo = nx.from_edgelist(edges)
+    # You would uncomment the next line if you have disconnected qubits
+    # topo.add_nodes_from(qubits)
+    device = NxDevice(topo)
+    device.noise_model = decoherence_noise_with_asymmetric_ro(gates_in_isa(device.get_isa()))  # Optional
 
-.. code:: python
-
-    coin_flip = Program().inst(H(0)).measure(0, 0)
-    num_flips = 5
-    qvm.run(coin_flip, [0], num_flips)
-
-.. parsed-literal::
-
-    [[0], [1], [0], [1], [0]]
-
-Try running the above code several times. You will see that you will,
-with very high probability, get different results each time.
-
-The ``.wavefunction(...)`` method
-~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
-
-The QVM is a virtual machine. As such, we can directly inspect the wavefunction of
-a program, even without measurements, using the ``.wavefunction(...)`` method:
-
-.. code:: python
-
-    from pyquil.api import WavefunctionSimulator
-    make_wf = WavefunctionSimulator()
-    coin_flip = Program().inst(H(0))
-    make_wf.wavefunction(coin_flip)
-
-.. parsed-literal::
-
-    <pyquil.wavefunction.Wavefunction at 0x1088a2c10>
-
-The return value is a Wavefunction object that stores the amplitudes of the
-quantum state at the conclusion of the program. We can print this object
-
-.. code:: python
-
-    coin_flip = Program().inst(H(0))
-    wavefunction = make_wf.wavefunction(coin_flip)
-    print(wavefunction)
-
-.. parsed-literal::
-
-  (0.7071067812+0j)|0> + (0.7071067812+0j)|1>
-
-To see the amplitudes listed as a sum of computational basis states. We can index into those
-amplitudes directly or look at a dictionary of associated outcome probabilities.
-
-.. code:: python
-
-  assert wavefunction[0] == 1 / np.sqrt(2)
-  # The amplitudes are stored as a numpy array on the Wavefunction object
-  print(wavefunction.amplitudes)
-  prob_dict = wavefunction.get_outcome_probs() # extracts the probabilities of outcomes as a dict
-  print(prob_dict)
-  prob_dict.keys() # these stores the bitstring outcomes
-  assert len(wavefunction) == 1 # gives the number of qubits
-
-.. parsed-literal::
-
-  [ 0.70710678+0.j  0.70710678+0.j]
-  {'1': 0.49999999999999989, '0': 0.49999999999999989}
-
-The result from a wavefunction call also contains an optional amount of classical memory to
-check:
-
-.. code:: python
-
-    coin_flip = Program().inst(H(0)).measure(0,0)
-    wavefunction = qvm.wavefunction(coin_flip, classical_addresses=range(9))
-    classical_mem = wavefunction.classical_memory
-
-Additionally, we can pass a random seed to the Connection object. This allows us to reliably
-reproduce measurement results for the purpose of testing:
-
-.. code:: python
-
-    seeded_cxn = WavefunctionSimulator(random_seed=17)
-    print(seeded_cxn.run_and_measure(Program(H(0)), [0], 20))
-
-    seeded_cxn = WavefunctionSimulator(random_seed=17)
-    # This will give identical output to the above
-    print(seeded_cxn.run_and_measure(Program(H(0)), [0], 20))
-
-It is important to remember that this ``wavefunction`` method is just a useful debugging tool
-for small quantum systems, and it cannot be feasibly obtained on a
-quantum processor.
-
-.. _basis-ordering:
-
-Multi-Qubit Basis Enumeration
------------------------------
-
-The Rigetti QVM enumerates bitstrings such that qubit `0` is the least significant bit (LSB)
-and therefore on the right end of a bitstring as shown in the table below which contains some
-examples.
-
-=============== ============= ===== ========= ========= =========
- bitstring       qubit_(n-1)   ...   qubit_2   qubit_1   qubit_0
-=============== ============= ===== ========= ========= =========
-  1...101                  1   ...         1         0         1
-  0...110                  0   ...         1         1         0
-=============== ============= ===== ========= ========= =========
-
-
-
-This convention is counter to that often found in the quantum computing literature where
-bitstrings are often ordered such that the lowest-index qubit is on the left.
-The vector representation of a wavefunction assumes the "canonical" ordering of basis elements.
-I.e., for two qubits this order is ``00, 01, 10, 11``.
-In the typical Dirac notation for quantum states, the tensor product of two different degrees of
-freedom is not always explicitly understood as having a fixed order of those degrees of freedom.
-This is in contrast to the kronecker product between matrices which uses the same mathematical
-symbol and is clearly not commutative.
-This, however, becomes important when writing things down as coefficient vectors or matrices:
-
-.. math::
-
-    \ket{0}_0 \otimes \ket{1}_1 = \ket{1}_1 \otimes \ket{0}_0
-    = \ket{10}_{1,0} \equiv \begin{pmatrix} 0 \\ 0 \\ 1 \\ 0 \end{pmatrix}
-
-As a consequence there arise some subtle but important differences in the ordering of wavefunction
-and multi-qubit gate matrix coefficients.
-According to our conventions the matrix
-
-.. math::
-
-    U_{\rm CNOT(1,0)} \equiv
-    \begin{pmatrix}
-        1 & 0 & 0 & 0 \\
-        0 & 1 & 0 & 0 \\
-        0 & 0 & 0 & 1 \\
-        0 & 0 & 1 & 0
-    \end{pmatrix}
-
-corresponds to the Quil instruction ``CNOT(1, 0)`` which is counter to how most other people in the
-field order their tensor product factors (or more specifically their kronecker products).
-In this convention ``CNOT(0, 1)`` is given by
-
-.. math::
-
-    U_{\rm CNOT(0,1)} \equiv
-    \begin{pmatrix}
-        1 & 0 & 0 & 0 \\
-        0 & 0 & 0 & 1 \\
-        0 & 0 & 1 & 0 \\
-        0 & 1 & 0 & 0
-    \end{pmatrix}
-
-For additional information why we decided on this basis ordering check out our note
-*Someone shouts, "|01000>!" Who is Excited?* [2]_.
-
-.. [1] https://arxiv.org/abs/1608.03355
-.. [2] https://arxiv.org/abs/1711.02086
+Now that you have your device, you could set ``qc.device`` and ``qc.compiler.device`` to point to your new device,
+or use it to make new objects.
 
 Simulating the QPU using the QVM
 --------------------------------
 
-The QVM is a powerful tool for testing quantum programs before executing them on the QPU. In
-addition to the ``noise.py`` module for generating custom noise models for simulating noise on the
-QVM, pyQuil provides a simple interface for loading the QVM with noise models tailored to Rigetti's
-available QPUs, in just one modified line of code. This is made possible via the ``Device`` class,
-which holds hardware specification information, noise model information, and instruction set
-architecture (ISA) information regarding connectivity. This information is held in the ``Specs``,
-``ISA`` and ``NoiseModel`` attributes of the ``Device`` class, respectively.
+The :py:class:`~pyquil.api.QAM` methods are intended to be used in the same way, whether a QVM or QPU is being targeted.
+Everywhere on this page,
+you can swap out the type of the QAM (QVM <=> QPU) and you will still
+get reasonable results back. As long as the topology of the devices are the same, programs compiled and ran on the QVM
+will be able to run on the QPU and visa-versa. Since :py:class:`~pyquil.api.QuantumComputer` is built on the ``QAM``
+abstract class, its methods will also work for both QAM implementations.
 
-Specifically, to load a QVM with the ``NoiseModel`` information from a ``Device``, all that is
-required is to provide a ``Device`` object to the QVM during initialization:
-
-.. note::
-
-    This feature is currently deprecated, in advance of a new QPU (with new noise models). For users interested in
-    creating noise models for the QVM, you can do so by following the instructions in :ref:`noise`.
+This makes the QVM a powerful tool for testing quantum programs before executing them on the QPU.
 
 .. code:: python
 
-    from pyquil.api import get_devices, QVMConnection
+    qpu = get_qc(QPU_LATTICE_NAME)
+    qvm = get_qc(QPU_LATTICE_NAME, as_qvm=True)
 
-    device_name = get_device('quantum_device_name')
-    qvm = QVMConnection(device_name)
+By simply providing ``as_qvm=True``, we get a QVM which will have the same topology as
+the named QPU. It's a good idea to run your programs against the QVM before booking QPU time to iron out
+bugs. To learn more about how to add noise models to your virtual ``QuantumComputer`` instance, check out
+:ref:`noise`.
 
-By simply providing a device during QVM initialization, all programs executed on this QVM will, by
-default, have noise applied that is characteristic of the corresponding Rigetti QPU (in the case
-above, the ``agave`` device). One may then efficiently test realistic quantum algorithms on the QVM,
-in advance of running those programs on the QPU.
+In the next section, we will see how to use the Wavefunction Simulator aspect of the Rigetti QVM to inspect the full
+wavefunction set up by a Quil program.
 
-Examples of Quantum Programs
-----------------------------
+.. [1] https://arxiv.org/abs/1608.03355
 
-To create intuition for a new class of algorithms, that will run on Quantum Virtual Machines (QVM), it is useful (and
-fun) to play with the abstraction that the software provides.
-
-A broad class of programs that can easily be implemented on a QVM are generalizations of
-`Game Theory to incorporate Quantum Strategies <https://arxiv.org/abs/quant-ph/0611234>`_.
-
-Meyer-Penny Game
-~~~~~~~~~~~~~~~~
-
-A conceptually simple example that falls into this class is the
-`Meyer-Penny Game <https://link.aps.org/doi/10.1103/PhysRevLett.82.1052>`_. The game goes as follows: The Starship
-Enterprise, during one of its deep-space missions, is facing an immediate calamity, when a powerful alien suddenly
-appears on the bridge. The alien, named Q, offers to help Picard, the captain of the Enterprise, under the condition
-that Picard beats Q in a simple game of penny flips.
-
-The rules: Picard is to place a penny Heads up into an opaque box. Then Picard and Q take turns to flip or not flip the
-penny without being able to see it; first Q then P then Q again. After this the penny is revealed; Q wins if it shows
-Heads (H), while Tails (T) makes Picard the winner.
-
-Picard quickly estimates that his chance of winning is 50% and agrees to play the game. He loses the first round and
-insists on playing again. To his surprise Q agrees, and they continue playing several rounds more, each of which Picard
-loses. How is that possible?
-
-What Picard did not anticipate is that Q has access to quantum tools. Instead of flipping the penny, Q puts the penny
-into a superposition of Heads and Tails proportional to the quantum state :math:`|H\rangle+|T\rangle`. Then no matter
-whether Picard flips the penny or not, it will stay in a superposition (though the relative sign might change). In the
-third step Q undoes the superposition and always finds the penny to shows Heads.
-
-To simulate the game we first construct the corresponding quantum circuit, which takes two qubits -- one to simulate
-Picard's choice whether or not to flip the penny and the other to represent the penny. The initial state for all Qubits
-is :math:`|0\rangle (= |T\rangle)`. To simulate Picard's decision, we assume that he chooses randomly whether or not to
-flip the coin, in agreement with the optimal strategy for the classic penny-flip game. This random choice can be created
-by putting one qubit into an equal superposition, e.g. with the Hadamard gate H, and then measure its state. The
-measurement will show Heads or Tails with equal probability p=0.5.
-
-To simulate the penny flip game we take the second qubit and put it into its excited state
-:math:`|1\rangle (= |H\rangle)` by applying the X (or NOT) gate. Q's first move is to apply the Hadamard gate H.
-Picard's decision about the flip is simulated as a CNOT operation where the control bit is the outcome of the random
-number generator described above. Finally Q applies a Hadamard gate again, before we measure the outcome. The full
-circuit is shown in the figure below.
-
-.. figure:: images/MeyerPennyGame.png
-    :align: center
-    :figwidth: 65%
-
-First we import all the necessary tools:
-
-.. code-block:: python
-
-    from pyquil import get_qc
-    from pyquil.gates import I, H, X
-    from pyquil import Program
-    from pyquil.api import WavefunctionSimulator
-    prog = Program()
-    ro = prog.declare('classical_register', 'BIT', 2)
-    qvm = get_qc('9q-generic-qvm')
-
-Then we need to define two registers that will be used for the measurement of Picard's decision bit and the final answer
-of the penny tossing game.
-
-.. code-block:: python
-
-    prog = Program()
-    ro = prog.declare('classical_register', 'BIT', 2)
-    picard_register = ["1"]
-    answer_register = ["0"]
-
-Moreover we need to encode the two different actions of Picard, which conceptually is equivalent to an `if-else` control
-flow as:
-
-.. code-block:: python
-
-    then_branch = Program(X(0))
-    else_branch = Program(I(0))
-
-
-and then wire it all up into the overall measurement circuit:
-
-.. code-block:: python
-
-   prog = (Program()
-       # Prepare Qubits in Heads state or superposition, respectively
-       .inst(X(0), H(1))
-       # Q puts the penny into a superposition
-       .inst(H(0))
-       # Picard makes a decision and acts accordingly
-       .measure(1, picard_register)
-       .if_then(picard_register, then_branch, else_branch)
-       # Q undoes his superposition operation
-       .inst(H(0))
-       # The outcome is recorded into the answer register
-       .measure(0, answer_register))
-
-
-Finally we play the game several times
-
-.. code-block:: python
-
-   qvm.run_and_measure(prog, [0, 1], 10)
-
-
-and record the register outputs as
-
-.. code-block:: python
-
-   [[1, 1],
-    [1, 1],
-    [1, 0],
-    [1, 0],
-    [1, 0],
-    [1, 0],
-    [1, 1],
-    [1, 1],
-    [1, 0],
-    [1, 0]]
-
-Remember that the first number is the outcome of the game (value of the `answer_register`) whereas the second number is
-the outcome of Picard’s decision (value of the `picard_register`).
-
-Indeed, no matter what Picard does, Q will always win!
-
-Exercises
-~~~~~~~~~
-
-Prisoner's Dilemma
-__________________
-
-A classic strategy game is the `prisoner's dilemma <https://en.wikipedia.org/wiki/Prisoner%27s_dilemma>`_ where two
-prisoners get the minimal penalty if they collaborate and stay silent, get zero penalty if one of them defects and the
-other collaborates (incurring maximum penalty) and get intermediate penalty if they both defect. This game has an
-equilibrium where both defect and incur intermediate penalty.
-
-However, things change dramatically when we allow for quantum strategies leading to the
-`Quantum Prisoner's Dilemma <https://arxiv.org/abs/quant-ph/9806088>`_.
-
-Can you design a program that simulates this game?

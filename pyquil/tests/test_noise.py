@@ -70,7 +70,7 @@ def test_damping_after_dephasing():
     dephasing = dephasing_kraus_map(p=.5 * (1 - np.exp(-.2)))
     ks_ref = combine_kraus_maps(damping, dephasing)
 
-    ks_actual = damping_after_dephasing(10, 10, 1)
+    ks_actual = damping_after_dephasing(20, 40 / 3., 2.)
     np.testing.assert_allclose(ks_actual, ks_ref)
 
 
@@ -124,8 +124,8 @@ def test_decoherence_noise():
 
     # check that headers have been embedded
     headers = _noise_model_program_header(m3)
-    assert all((isinstance(i, Pragma) and i.command in ["ADD-KRAUS", "READOUT-POVM"]) or
-               isinstance(i, DefGate) for i in headers)
+    assert all((isinstance(i, Pragma) and i.command in ["ADD-KRAUS", "READOUT-POVM"])
+               or isinstance(i, DefGate) for i in headers)
     assert headers.out() in new_prog.out()
 
     # verify that high-level add_decoherence_noise reproduces new_prog

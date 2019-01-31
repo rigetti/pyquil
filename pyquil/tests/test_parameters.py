@@ -22,7 +22,7 @@ def test_format_parameter():
         assert format_parameter(test_case[0]) == test_case[1]
 
 
-# https://github.com/rigetticomputing/pyquil/issues/184
+# https://github.com/rigetti/pyquil/issues/184
 def test_pretty_print_pi():
     test_cases = [
         (0., '0'),
@@ -45,23 +45,23 @@ def test_expression_to_string():
     y = Parameter('y')
     assert str(y) == '%y'
 
-    assert str(x + y) == '%x+%y'
-    assert str(3 * x + y) == '3*%x+%y'
-    assert str(3 * (x + y)) == '3*(%x+%y)'
+    assert str(x + y) == '%x + %y'
+    assert str(3 * x + y) == '3*%x + %y'
+    assert str(3 * (x + y)) == '3*(%x + %y)'
 
-    assert str(x + y + 2) == '%x+%y+2'
-    assert str(x - y - 2) == '%x-%y-2'
-    assert str(x - (y - 2)) == '%x-(%y-2)'
+    assert str(x + y + 2) == '%x + %y + 2'
+    assert str(x - y - 2) == '%x - %y - 2'
+    assert str(x - (y - 2)) == '%x - (%y - 2)'
 
-    assert str((x + y) - 2) == '%x+%y-2'
-    assert str(x + (y - 2)) == '%x+%y-2'
+    assert str((x + y) - 2) == '%x + %y - 2'
+    assert str(x + (y - 2)) == '%x + %y - 2'
 
     assert str(x ** y ** 2) == '%x^%y^2'
     assert str(x ** (y ** 2)) == '%x^%y^2'
     assert str((x ** y) ** 2) == '(%x^%y)^2'
 
-    assert str(quil_sin(x)) == 'sin(%x)'
-    assert str(3 * quil_sin(x + y)) == '3*sin(%x+%y)'
+    assert str(quil_sin(x)) == 'SIN(%x)'
+    assert str(3 * quil_sin(x + y)) == '3*SIN(%x + %y)'
 
 
 def test_contained_parameters():

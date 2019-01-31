@@ -1,13 +1,17 @@
+
+import shutil
+
 import numpy as np
 import pytest
 from requests import RequestException
 
-from pyquil.api import QVMConnection, LocalQVMCompiler, ForestConnection, get_benchmarker
+from pyquil.api import (QVMConnection, QVMCompiler, ForestConnection,
+                        get_benchmarker, local_qvm)
 from pyquil.api._config import PyquilConfig
 from pyquil.api._errors import UnknownApiError
 from pyquil.device import Device
 from pyquil.gates import I
-from pyquil.paulis import sI
+from pyquil.paulis import sX
 from pyquil.quil import Program
 
 
@@ -72,21 +76,25 @@ def specs_dict():
             "0-1": {
                 "fBellState": 0.90,
                 "fCZ": 0.89,
+                "fCZ_std_err": 0.01,
                 "fCPHASE": 0.88
             },
             "1-2": {
                 "fBellState": 0.91,
                 "fCZ": 0.90,
+                "fCZ_std_err": 0.12,
                 "fCPHASE": 0.89
             },
             "2-0": {
                 "fBellState": 0.92,
                 "fCZ": 0.91,
+                "fCZ_std_err": 0.20,
                 "fCPHASE": 0.90
             },
             "0-3": {
                 "fBellState": 0.89,
                 "fCZ": 0.88,
+                "fCZ_std_err": 0.03,
                 "fCPHASE": 0.87
             }
         }
@@ -138,10 +146,10 @@ def qvm():
 def compiler(test_device):
     try:
         config = PyquilConfig()
-        compiler = LocalQVMCompiler(endpoint=config.compiler_url, device=test_device)
+        compiler = QVMCompiler(endpoint=config.compiler_url, device=test_device, timeout=1)
         compiler.quil_to_native_quil(Program(I(0)))
         return compiler
-    except (RequestException, UnknownApiError) as e:
+    except (RequestException, UnknownApiError, TimeoutError) as e:
         return pytest.skip("This test requires compiler connection: {}".format(e))
 
 
@@ -158,8 +166,19 @@ def forest():
 @pytest.fixture(scope='session')
 def benchmarker():
     try:
-        bm = get_benchmarker()
-        bm.apply_clifford_to_pauli(Program(I(0)), sI(0))
-    except RequestException as e:
+        bm = get_benchmarker(timeout=1)
+        bm.apply_clifford_to_pauli(Program(I(0)), sX(0))
+    except (RequestException, TimeoutError) as e:
         return pytest.skip("This test requires a running local benchmarker endpoint (ie quilc): {}"
                            .format(e))
+
+
+@pytest.fixture(scope='session')
+def local_qvm_quilc():
+    """Execute test with local qvm and quilc running"""
+    if shutil.which('qvm') is None or shutil.which('quilc') is None:
+        return pytest.skip("This test requires 'qvm' and 'quilc' "
+                           "executables to be installed locally.")
+
+    with local_qvm() as context:
+        yield context

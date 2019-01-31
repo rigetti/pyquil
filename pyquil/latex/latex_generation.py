@@ -249,7 +249,7 @@ class CircuitTikzGenerator(object):
                     self.is_quantum[l] = False
             elif gate == ALLOCATE:
                 # Draw 'begin line'.
-                add_str = "\n\\node[none] ({}) at ({},-{}) {{$\Ket{{0}}{}$}};"
+                add_str = "\n\\node[none] ({}) at ({},-{}) {{$\\Ket{{0}}{}$}};"
                 id_str = ""
                 if self.settings['gates']['AllocateQubitGate']['draw_id']:
                     id_str = "^{{\\textcolor{{red}}{{{}}}}}".format(cmds[i].id)

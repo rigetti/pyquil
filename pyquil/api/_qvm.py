@@ -14,6 +14,7 @@
 #    limitations under the License.
 ##############################################################################
 import warnings
+import numpy as np
 from typing import List
 
 from rpcq.messages import PyQuilExecutableResponse
@@ -22,7 +23,7 @@ from six import integer_types
 from pyquil.api._base_connection import (validate_qubit_list, validate_noise_probabilities,
                                          TYPE_MULTISHOT_MEASURE, TYPE_WAVEFUNCTION,
                                          TYPE_EXPECTATION, post_json, ForestConnection)
-from pyquil.api._compiler import (LocalQVMCompiler,
+from pyquil.api._compiler import (QVMCompiler,
                                   _extract_program_from_pyquil_executable_response)
 from pyquil.api._config import PyquilConfig
 from pyquil.api._error_reporting import _record_call
@@ -85,7 +86,7 @@ programs run on this QVM.
 """)
 
         self.noise_model = device.noise_model if device else None
-        self.compiler = LocalQVMCompiler(endpoint=compiler_endpoint, device=device) if device \
+        self.compiler = QVMCompiler(endpoint=compiler_endpoint, device=device) if device \
             else None
 
         self.sync_endpoint = endpoint
@@ -353,12 +354,12 @@ class QVM(QAM):
     @_record_call
     def __init__(self,
                  connection: ForestConnection,
-                 *args,
                  noise_model=None,
                  gate_noise=None,
                  measurement_noise=None,
                  random_seed=None,
-                 **kwargs) -> None:
+                 requires_executable=False,
+                 ) -> None:
         """
         A virtual machine that classically emulates the execution of Quil programs.
 
@@ -373,8 +374,11 @@ class QVM(QAM):
             None indicates no noise.
         :param random_seed: A seed for the QVM's random number generators. Either None (for an
             automatically generated seed) or a non-negative integer.
+        :param requires_executable: Whether this QVM will refuse to run a :py:class:`Program` and
+            only accept the result of :py:func:`compiler.native_quil_to_executable`. Setting this
+            to True better emulates the behavior of a QPU.
         """
-        super().__init__(*args, **kwargs)
+        super().__init__()
 
         if (noise_model is not None) and (gate_noise is not None or measurement_noise is not None):
             raise ValueError("""
@@ -400,6 +404,8 @@ To read more about supplying noise to the QVM, see http://pyquil.readthedocs.io/
         else:
             raise TypeError("random_seed should be None or a non-negative int")
 
+        self.requires_executable = requires_executable
+
     @_record_call
     def get_version_info(self):
         """
@@ -408,6 +414,39 @@ To read more about supplying noise to the QVM, see http://pyquil.readthedocs.io/
         :return: Dictionary with version information
         """
         return self.connection._qvm_get_version_info()
+
+    @_record_call
+    def load(self, executable):
+        """
+        Initialize a QAM and load a program to be executed with a call to :py:func:`run`.
+
+        If ``QVM.requires_executable`` is set to ``True``, this function will only load
+        :py:class:`PyQuilExecutableResponse` executables. This more closely follows the behavior
+        of :py:class:`QPU`. However, the quantum simulator doesn't *actually* need a compiled
+        binary executable, so if this flag is set to ``False`` we also accept :py:class:`Program`
+        objects.
+
+        :param executable: An executable. See the above note for acceptable types.
+        """
+        if self.requires_executable:
+            if isinstance(executable, PyQuilExecutableResponse):
+                executable = _extract_program_from_pyquil_executable_response(executable)
+            else:
+                raise TypeError("`executable` argument must be a `PyQuilExecutableResponse`. Make "
+                                "sure you have explicitly compiled your program via `qc.compile` "
+                                "or `qc.compiler.native_quil_to_executable(...)` for more "
+                                "fine-grained control. This explicit step is required for running "
+                                "on a QPU.")
+        else:
+            if isinstance(executable, PyQuilExecutableResponse):
+                executable = _extract_program_from_pyquil_executable_response(executable)
+            elif isinstance(executable, Program):
+                pass
+            else:
+                raise TypeError("`executable` argument must be a `PyQuilExecutableResponse` or a "
+                                "`Program`. You provided {}".format(type(executable)))
+
+        return super().load(executable)
 
     @_record_call
     def run(self):
@@ -420,16 +459,12 @@ To read more about supplying noise to the QVM, see http://pyquil.readthedocs.io/
 
         super().run()
 
-        if isinstance(self._executable, PyQuilExecutableResponse):
-            quil_program = _extract_program_from_pyquil_executable_response(self._executable)
-        elif isinstance(self._executable, Program):
-            quil_program = self._executable
-        else:
-            raise TypeError("quil_binary argument must be a PyQuilExecutableResponse or a Program."
-                            "This error is typically triggered by forgetting to pass (nativized)"
-                            "Quil to native_quil_to_executable or by using a compiler meant to be"
-                            "used for jobs bound for a QPU.")
+        if not isinstance(self._executable, Program):
+            # This should really never happen
+            # unless a user monkeys with `self.status` and `self._executable`.
+            raise ValueError("Please `load` an appropriate executable.")
 
+        quil_program = self._executable
         trials = quil_program.num_shots
         classical_addresses = get_classical_addresses_from_program(quil_program)
 
@@ -437,12 +472,18 @@ To read more about supplying noise to the QVM, see http://pyquil.readthedocs.io/
             quil_program = apply_noise_model(quil_program, self.noise_model)
 
         quil_program = self.augment_program_with_memory_values(quil_program)
-        self._bitstrings = self.connection._qvm_run(quil_program=quil_program,
-                                                    classical_addresses=classical_addresses,
-                                                    trials=trials,
-                                                    measurement_noise=self.measurement_noise,
-                                                    gate_noise=self.gate_noise,
-                                                    random_seed=self.random_seed)['ro']
+        try:
+            self._bitstrings = self.connection._qvm_run(quil_program=quil_program,
+                                                        classical_addresses=classical_addresses,
+                                                        trials=trials,
+                                                        measurement_noise=self.measurement_noise,
+                                                        gate_noise=self.gate_noise,
+                                                        random_seed=self.random_seed)['ro']
+        except KeyError:
+            warnings.warn("You are running a QVM program with no MEASURE instructions. "
+                          "The result of this program will always be an empty array. Are "
+                          "you sure you didn't mean to measure some of your qubits?")
+            self._bitstrings = np.zeros((trials, 0), dtype=np.int64)
 
         return self
 

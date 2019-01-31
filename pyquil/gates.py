@@ -65,10 +65,10 @@ def prepare_ternary_operands(classical_reg1, classical_reg2, classical_reg3):
 
 
 def I(qubit):
-    """Produces the I instruction.
+    """Produces the I identity gate::
 
-    I = [1, 0]
-        [0, 1]
+        I = [1, 0]
+            [0, 1]
 
     This gate is a single qubit identity gate.
     Note that this gate is different that the NOP instruction as noise channels
@@ -82,10 +82,10 @@ def I(qubit):
 
 
 def X(qubit):
-    """Produces the X instruction.
+    """Produces the X ("NOT") gate::
 
-    X = [[0, 1],
-         [1, 0]]
+        X = [[0, 1],
+             [1, 0]]
 
     This gate is a single qubit X-gate.
 
@@ -96,10 +96,10 @@ def X(qubit):
 
 
 def Y(qubit):
-    """Produces the Y instruction.
+    """Produces the Y gate::
 
-    Y = [[0, 0 - 1j],
-         [0 + 1j, 0]]
+        Y = [[0, 0 - 1j],
+             [0 + 1j, 0]]
 
     This gate is a single qubit Y-gate.
 
@@ -110,10 +110,10 @@ def Y(qubit):
 
 
 def Z(qubit):
-    """Produces the Z instruction.
+    """Produces the Z gate::
 
-    Z = [[1, 0],
-         [0, -1]]
+        Z = [[1,  0],
+             [0, -1]]
 
     This gate is a single qubit Z-gate.
 
@@ -124,9 +124,10 @@ def Z(qubit):
 
 
 def H(qubit):
-    """
-    H = (1 / sqrt(2)) * [[1, 1],
-                         [1, -1]]
+    """Produces the Hadamard gate::
+
+        H = (1 / sqrt(2)) * [[1,  1],
+                             [1, -1]]
 
     Produces the H instruction. This gate is a single qubit Hadamard gate.
 
@@ -137,10 +138,10 @@ def H(qubit):
 
 
 def S(qubit):
-    """Produces the S instruction.
+    """Produces the S gate::
 
-    S = [[1, 0],
-         [0, 1j]]
+        S = [[1, 0],
+             [0, 1j]]
 
     This gate is a single qubit S-gate.
 
@@ -151,10 +152,10 @@ def S(qubit):
 
 
 def T(qubit):
-    """Produces the T instruction.
+    """Produces the T gate::
 
-    T = [[1, 0],
-         [0, exp(1j * pi / 4)]]
+        T = [[1, 0],
+             [0, exp(1j * pi / 4)]]
 
     This gate is a single qubit T-gate. It is the same as RZ(pi/4).
 
@@ -165,10 +166,10 @@ def T(qubit):
 
 
 def RX(angle, qubit):
-    """Produces the RX instruction.
+    """Produces the RX gate::
 
-    RX(phi) = [[cos(phi / 2), -1j * sin(phi / 2)],
-               [-1j * sin(phi / 2), cos(phi / 2)]]
+        RX(phi) = [[cos(phi / 2), -1j * sin(phi / 2)],
+                   [-1j * sin(phi / 2), cos(phi / 2)]]
 
     This gate is a single qubit X-rotation.
 
@@ -180,10 +181,10 @@ def RX(angle, qubit):
 
 
 def RY(angle, qubit):
-    """Produces the RY instruction.
+    """Produces the RY gate::
 
-    RY(phi) = [[cos(phi / 2), -sin(phi / 2)],
-               [sin(phi / 2), cos(phi / 2)]]
+        RY(phi) = [[cos(phi / 2), -sin(phi / 2)],
+                   [sin(phi / 2), cos(phi / 2)]]
 
     This gate is a single qubit Y-rotation.
 
@@ -195,10 +196,10 @@ def RY(angle, qubit):
 
 
 def RZ(angle, qubit):
-    """Produces the RZ instruction.
+    """Produces the RZ gate::
 
-    RZ(phi) = [[cos(phi / 2) - 1j * sin(phi / 2), 0]
-               [0, cos(phi / 2) + 1j * sin(phi / 2)]]
+        RZ(phi) = [[cos(phi / 2) - 1j * sin(phi / 2), 0]
+                   [0, cos(phi / 2) + 1j * sin(phi / 2)]]
 
     This gate is a single qubit Z-rotation.
 
@@ -210,10 +211,10 @@ def RZ(angle, qubit):
 
 
 def PHASE(angle, qubit):
-    """Produces the PHASE instruction.
+    """Produces the PHASE gate::
 
-    PHASE(phi) = [[1, 0],
-                  [0, exp(1j * phi)]]
+        PHASE(phi) = [[1, 0],
+                      [0, exp(1j * phi)]]
 
     This is the same as the RZ gate.
 
@@ -225,12 +226,12 @@ def PHASE(angle, qubit):
 
 
 def CZ(control, target):
-    """Produces a CZ instruction.
+    """Produces a controlled-Z gate::
 
-    CZ = [[1, 0, 0, 0],
-          [0, 1, 0, 0],
-          [0, 0, 1, 0],
-          [0, 0, 0, -1]]
+        CZ = [[1, 0, 0,  0],
+              [0, 1, 0,  0],
+              [0, 0, 1,  0],
+              [0, 0, 0, -1]]
 
 
     This gate applies to two qubit arguments to produce the controlled-Z gate instruction.
@@ -244,34 +245,34 @@ def CZ(control, target):
 
 
 def CNOT(control, target):
-    """Produces a CNOT instruction.
+    """Produces a controlled-NOT (controlled-X) gate::
 
-    CNOT = [[1, 0, 0, 0],
-            [0, 1, 0, 0],
-            [0, 0, 0, 1],
-            [0, 0, 1, 0]]
+        CNOT = [[1, 0, 0, 0],
+                [0, 1, 0, 0],
+                [0, 0, 0, 1],
+                [0, 0, 1, 0]]
 
     This gate applies to two qubit arguments to produce the controlled-not gate instruction.
 
     :param control: The control qubit.
     :param target: The target qubit. The target qubit has an X-gate applied to it if the control
-        qubit is in the excited state.
+        qubit is in the ``|1>`` state.
     :returns: A Gate object.
     """
     return Gate(name="CNOT", params=[], qubits=[unpack_qubit(q) for q in (control, target)])
 
 
 def CCNOT(control1, control2, target):
-    """Produces a CCNOT instruction.
+    """Produces a doubly-controlled NOT gate::
 
-    CCNOT = [[1, 0, 0, 0, 0, 0, 0, 0],
-             [0, 1, 0, 0, 0, 0, 0, 0],
-             [0, 0, 1, 0, 0, 0, 0, 0],
-             [0, 0, 0, 1, 0, 0, 0, 0],
-             [0, 0, 0, 0, 1, 0, 0, 0],
-             [0, 0, 0, 0, 0, 1, 0, 0],
-             [0, 0, 0, 0, 0, 0, 0, 1],
-             [0, 0, 0, 0, 0, 0, 1, 0]]
+        CCNOT = [[1, 0, 0, 0, 0, 0, 0, 0],
+                 [0, 1, 0, 0, 0, 0, 0, 0],
+                 [0, 0, 1, 0, 0, 0, 0, 0],
+                 [0, 0, 0, 1, 0, 0, 0, 0],
+                 [0, 0, 0, 0, 1, 0, 0, 0],
+                 [0, 0, 0, 0, 0, 1, 0, 0],
+                 [0, 0, 0, 0, 0, 0, 0, 1],
+                 [0, 0, 0, 0, 0, 0, 1, 0]]
 
     This gate applies to three qubit arguments to produce the controlled-controlled-not gate
     instruction.
@@ -287,14 +288,14 @@ def CCNOT(control1, control2, target):
 
 
 def CPHASE00(angle, control, target):
-    """Produces a CPHASE00 instruction.
+    """Produces a controlled-phase gate that phases the ``|00>`` state::
 
-    CPHASE00(phi) = diag([exp(1j * phi), 1, 1, 1])
+        CPHASE00(phi) = diag([exp(1j * phi), 1, 1, 1])
 
     This gate applies to two qubit arguments to produce the variant of the controlled phase
     instruction that affects the state 00.
 
-    :param angle: The input phase angle to apply when both qubits are in the ground state.
+    :param angle: The input phase angle to apply when both qubits are in the ``|0>`` state.
     :param control: Qubit 1.
     :param target: Qubit 2.
     :returns: A Gate object.
@@ -304,15 +305,15 @@ def CPHASE00(angle, control, target):
 
 
 def CPHASE01(angle, control, target):
-    """Produces a CPHASE01 instruction.
+    """Produces a controlled-phase gate that phases the ``|01>`` state::
 
-    CPHASE01(phi) = diag([1.0, exp(1j * phi), 1.0, 1.0])
+        CPHASE01(phi) = diag([1.0, exp(1j * phi), 1.0, 1.0])
 
     This gate applies to two qubit arguments to produce the variant of the controlled phase
     instruction that affects the state 01.
 
-    :param angle: The input phase angle to apply when q1 is in the excited state and q2 is in
-        the ground state.
+    :param angle: The input phase angle to apply when q1 is in the ``|1>`` state and q2 is in
+        the ``|0>`` state.
     :param control: Qubit 1.
     :param target: Qubit 2.
     :returns: A Gate object.
@@ -322,15 +323,15 @@ def CPHASE01(angle, control, target):
 
 
 def CPHASE10(angle, control, target):
-    """Produces a CPHASE10 instruction.
+    """Produces a controlled-phase gate that phases the ``|10>`` state::
 
-    CPHASE10(phi) = diag([1, 1, exp(1j * phi), 1])
+        CPHASE10(phi) = diag([1, 1, exp(1j * phi), 1])
 
     This gate applies to two qubit arguments to produce the variant of the controlled phase
     instruction that affects the state 10.
 
-    :param angle: The input phase angle to apply when q2 is in the excited state and q1 is in
-        the ground state.
+    :param angle: The input phase angle to apply when q2 is in the ``|1>`` state and q1 is in
+        the ``|0>`` state.
     :param control: Qubit 1.
     :param target: Qubit 2.
     :returns: A Gate object.
@@ -340,14 +341,17 @@ def CPHASE10(angle, control, target):
 
 
 def CPHASE(angle, control, target):
-    """Produces a CPHASE instruction, which is a synonym for CPHASE11.
+    """Produces a controlled-phase instruction::
 
-    CPHASE(phi) = diag([1, 1, 1, exp(1j * phi)])
+        CPHASE(phi) = diag([1, 1, 1, exp(1j * phi)])
 
     This gate applies to two qubit arguments to produce the variant of the controlled phase
     instruction that affects the state 11.
 
-    :param angle: The input phase angle to apply when both qubits are in the excited state.
+    Compare with the :py:func:`CPHASExx` variants. This variant is the most common and does
+    not have a suffix, although you can think of it as ``CPHASE11`.
+
+    :param angle: The input phase angle to apply when both qubits are in the ``|1>`` state.
     :param control: Qubit 1.
     :param target: Qubit 2.
     :returns: A Gate object.
@@ -357,14 +361,13 @@ def CPHASE(angle, control, target):
 
 
 def SWAP(q1, q2):
-    """Produces a SWAP instruction.
+    """Produces a SWAP gate which swaps the state of two qubits::
 
-    SWAP = [[1, 0, 0, 0],
-            [0, 0, 1, 0],
-            [0, 1, 0, 0],
-            [0, 0, 0, 1]]
+        SWAP = [[1, 0, 0, 0],
+                [0, 0, 1, 0],
+                [0, 1, 0, 0],
+                [0, 0, 0, 1]]
 
-     This gate swaps the state of two qubits.
 
     :param q1: Qubit 1.
     :param q2: Qubit 2.
@@ -374,37 +377,37 @@ def SWAP(q1, q2):
 
 
 def CSWAP(control, target_1, target_2):
-    """
-    CSWAP = [[1, 0, 0, 0, 0, 0, 0, 0],
-             [0, 1, 0, 0, 0, 0, 0, 0],
-             [0, 0, 1, 0, 0, 0, 0, 0],
-             [0, 0, 0, 1, 0, 0, 0, 0],
-             [0, 0, 0, 0, 1, 0, 0, 0],
-             [0, 0, 0, 0, 0, 0, 1, 0],
-             [0, 0, 0, 0, 0, 1, 0, 0],
-             [0, 0, 0, 0, 0, 0, 0, 1]]
+    """Produces a controlled-SWAP gate. This gate conditionally swaps the state of two qubits::
 
-    Produces a CSWAP instruction. This gate swaps the state of two qubits.
+        CSWAP = [[1, 0, 0, 0, 0, 0, 0, 0],
+                 [0, 1, 0, 0, 0, 0, 0, 0],
+                 [0, 0, 1, 0, 0, 0, 0, 0],
+                 [0, 0, 0, 1, 0, 0, 0, 0],
+                 [0, 0, 0, 0, 1, 0, 0, 0],
+                 [0, 0, 0, 0, 0, 0, 1, 0],
+                 [0, 0, 0, 0, 0, 1, 0, 0],
+                 [0, 0, 0, 0, 0, 0, 0, 1]]
+
 
     :param control: The control qubit.
     :param target-1: The first target qubit.
     :param target-2: The second target qubit. The two target states are swapped if the control is
-        in the excited state.
+        in the ``|1>`` state.
     """
     qubits = [unpack_qubit(q) for q in (control, target_1, target_2)]
     return Gate(name="CSWAP", params=[], qubits=qubits)
 
 
 def ISWAP(q1, q2):
-    """Produces an ISWAP instruction.
+    """Produces an ISWAP gate::
 
-    ISWAP = [[1, 0,  0,  0],
-             [0, 0,  1j, 0],
-             [0, 1j, 0,  0],
-             [0, 0,  0,  1]]
+        ISWAP = [[1, 0,  0,  0],
+                 [0, 0,  1j, 0],
+                 [0, 1j, 0,  0],
+                 [0, 0,  0,  1]]
 
     This gate swaps the state of two qubits, applying a -i phase to q1 when it
-    is in the excited state and a -i phase to q2 when it is in the ground state.
+    is in the 1 state and a -i phase to q2 when it is in the 0 state.
 
     :param q1: Qubit 1.
     :param q2: Qubit 2.
@@ -414,17 +417,16 @@ def ISWAP(q1, q2):
 
 
 def PSWAP(angle, q1, q2):
-    """Produces a PSWAP instruction.
+    """Produces a parameterized SWAP gate::
 
-    PSWAP(phi) = [[1, 0,             0,             0],
-                  [0, 0,             exp(1j * phi), 0],
-                  [0, exp(1j * phi), 0,             0],
-                  [0, 0,             0,             1]]
+        PSWAP(phi) = [[1, 0,             0,             0],
+                      [0, 0,             exp(1j * phi), 0],
+                      [0, exp(1j * phi), 0,             0],
+                      [0, 0,             0,             1]]
 
-    This is a parameterized swap gate.
 
     :param angle: The angle of the phase to apply to the swapped states. This phase is applied to
-        q1 when it is in the excited state and to q2 when it is in the ground state.
+        q1 when it is in the 1 state and to q2 when it is in the 0 state.
     :param q1: Qubit 1.
     :param q2: Qubit 2.
     :returns: A Gate object.
@@ -484,8 +486,8 @@ def MEASURE(qubit, classical_reg=None):
     if classical_reg is None:
         address = None
     elif isinstance(classical_reg, int):
-        warn("Indexing measurement addresses by integers is deprecated. " +
-             "Replacing this with the MemoryReference ro[i] instead.")
+        warn("Indexing measurement addresses by integers is deprecated. "
+             + "Replacing this with the MemoryReference ro[i] instead.")
         address = MemoryReference("ro", classical_reg)
     else:
         address = unpack_classical_reg(classical_reg)
@@ -798,7 +800,7 @@ QUANTUM_GATES: Dict[str, Callable[..., Gate]] = {
     'ISWAP': ISWAP,
     'PSWAP': PSWAP}
 """
-Dictionary of quantum gates. Keys are gate names, values are gate functions.
+Dictionary of quantum gate functions keyed by gate names.
 """
 
 STANDARD_GATES = QUANTUM_GATES
@@ -835,7 +837,8 @@ STANDARD_INSTRUCTIONS = {
     'STORE': STORE,
     'CONVERT': CONVERT}
 """
-Dictionary of standard instructions. Keys are instruction names, values are the instruction functions.
+Dictionary of standard instruction functions keyed by instruction names.
 """
 
-__all__ = list(QUANTUM_GATES.keys()) + list(STANDARD_INSTRUCTIONS.keys()) + ['Gate']
+__all__ = list(QUANTUM_GATES.keys()) + list(STANDARD_INSTRUCTIONS.keys()) + \
+          ['Gate', 'QUANTUM_GATES', 'STANDARD_GATES', 'STANDARD_INSTRUCTIONS']

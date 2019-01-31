@@ -29,12 +29,13 @@ import pytest
 import requests_mock
 from rpcq import Server
 from rpcq.messages import (BinaryExecutableRequest, BinaryExecutableResponse,
+                           RewriteArithmeticRequest, RewriteArithmeticResponse,
                            NativeQuilRequest, NativeQuilResponse, NativeQuilMetadata,
                            ConjugateByCliffordRequest, ConjugateByCliffordResponse,
                            RandomizedBenchmarkingRequest, RandomizedBenchmarkingResponse)
 
 from pyquil.api import (QVMConnection, QPUCompiler, BenchmarkConnection,
-                        get_qc, LocalQVMCompiler, QVMCompiler, LocalBenchmarkConnection)
+                        get_qc, QVMCompiler)
 from pyquil.api._base_connection import validate_noise_probabilities, validate_qubit_list, \
     prepare_register_list
 from pyquil.api._config import PyquilConfig
@@ -49,7 +50,7 @@ BELL_STATE = Program(H(0), CNOT(0, 1))
 BELL_STATE_MEASURE = Program(H(0), CNOT(0, 1), MEASURE(0, 0), MEASURE(1, 1))
 COMPILED_BELL_STATE = Program([
     Declare("ro", "BIT", 2),
-    Pragma("EXPECTED_REWIRING", ('"#(0 1 2 3)"',)),
+    Pragma("EXPECTED_REWIRING", ('"#(0 1)"',)),
     RZ(pi / 2, 0),
     RX(pi / 2, 0),
     RZ(-pi / 2, 1),
@@ -58,9 +59,9 @@ COMPILED_BELL_STATE = Program([
     RZ(-pi / 2, 0),
     RX(-pi / 2, 1),
     RZ(pi / 2, 1),
-    Pragma("CURRENT_REWIRING", ('"#(0 1 2 3)"',)),
-    Pragma("EXPECTED_REWIRING", ('"#(0 1 2 3)"',)),
-    Pragma("CURRENT_REWIRING", ('"#(0 1 2 3)"',)),
+    Pragma("CURRENT_REWIRING", ('"#(0 1)"',)),
+    Pragma("EXPECTED_REWIRING", ('"#(0 1)"',)),
+    Pragma("CURRENT_REWIRING", ('"#(0 1)"',)),
 ])
 DUMMY_ISA_DICT = {"1Q": {"0": {}, "1": {}}, "2Q": {"0-1": {}}}
 DUMMY_ISA = ISA.from_dict(DUMMY_ISA_DICT)
@@ -70,6 +71,7 @@ RB_ENCODED_REPLY = [[0, 0], [1, 1]]
 RB_REPLY = [Program("H 0\nH 0\n"), Program("PHASE(pi/2) 0\nPHASE(pi/2) 0\n")]
 
 mock_qvm = QVMConnection()
+mock_endpoint = mock_qvm.sync_endpoint
 
 
 def test_sync_run_mock():
@@ -83,13 +85,13 @@ def test_sync_run_mock():
         return '{"ro": [[0,0],[1,1]]}'
 
     with requests_mock.Mocker() as m:
-        m.post('http://127.0.0.1:5000/qvm', text=mock_response)
+        m.post(mock_endpoint + '/qvm', text=mock_response)
         assert mock_qvm.run(BELL_STATE_MEASURE,
                             [0, 1],
                             trials=2) == [[0, 0], [1, 1]]
 
         # Test no classical addresses
-        m.post('http://127.0.0.1:5000/qvm', text=mock_response)
+        m.post(mock_endpoint + '/qvm', text=mock_response)
         assert mock_qvm.run(BELL_STATE_MEASURE, trials=2) == [[0, 0], [1, 1]]
 
     with pytest.raises(ValueError):
@@ -123,7 +125,7 @@ def test_sync_run_and_measure_mock():
         return '[[0,0],[1,1]]'
 
     with requests_mock.Mocker() as m:
-        m.post('http://127.0.0.1:5000/qvm', text=mock_response)
+        m.post(mock_endpoint + '/qvm', text=mock_response)
         assert mock_qvm.run_and_measure(BELL_STATE, [0, 1], trials=2) == [[0, 0], [1, 1]]
 
     with pytest.raises(ValueError):
@@ -155,13 +157,13 @@ def test_sync_expectation_mock():
         return b'[0.0, 0.0, 1.0]'
 
     with requests_mock.Mocker() as m:
-        m.post('http://127.0.0.1:5000/qvm', content=mock_response)
+        m.post(mock_endpoint + '/qvm', content=mock_response)
         result = mock_qvm.expectation(BELL_STATE, [Program(Z(0)), Program(Z(1)), Program(Z(0), Z(1))])
         exp_expected = [0.0, 0.0, 1.0]
         np.testing.assert_allclose(exp_expected, result)
 
     with requests_mock.Mocker() as m:
-        m.post('http://127.0.0.1:5000/qvm', content=mock_response)
+        m.post(mock_endpoint + '/qvm', content=mock_response)
         z0 = PauliTerm("Z", 0)
         z1 = PauliTerm("Z", 1)
         z01 = z0 * z1
@@ -180,7 +182,7 @@ def test_sync_expectation_2(qvm):
     z0 = PauliTerm("Z", 0)
     z1 = PauliTerm("Z", 1)
     z01 = z0 * z1
-    result = mock_qvm.pauli_expectation(BELL_STATE, [z0, z1, z01])
+    result = qvm.pauli_expectation(BELL_STATE, [z0, z1, z01])
     exp_expected = [0.0, 0.0, 1.0]
     np.testing.assert_allclose(exp_expected, result)
 
@@ -195,7 +197,7 @@ def test_sync_paulisum_expectation():
         return b'[1.0, 0.0, 0.0]'
 
     with requests_mock.Mocker() as m:
-        m.post('http://127.0.0.1:5000/qvm', content=mock_response)
+        m.post(mock_endpoint + '/qvm', content=mock_response)
         z0 = PauliTerm("Z", 0)
         z1 = PauliTerm("Z", 1)
         z01 = z0 * z1
@@ -209,43 +211,6 @@ def test_sync_wavefunction(qvm):
     result = qvm.wavefunction(WAVEFUNCTION_PROGRAM)
     wf_expected = np.array([0. + 0.j, 0. + 0.j, 0.70710678 + 0.j, -0.70710678 + 0.j])
     np.testing.assert_allclose(result.amplitudes, wf_expected)
-
-
-def test_seeded_qvm(test_device):
-    def mock_response(request, context):
-        assert json.loads(request.text) == {
-            "type": "multishot-measure",
-            "qubits": [0, 1],
-            "trials": 2,
-            "compiled-quil": "H 0\nCNOT 0 1\n"
-        }
-        return '[[0,0],[1,1]]'
-
-    with patch.object(LocalQVMCompiler, "quil_to_native_quil") as m_compile,\
-            patch('pyquil.api._qvm.apply_noise_model') as m_anm,\
-            requests_mock.Mocker() as m:
-        m.post('http://127.0.0.1:5000/qvm', text=mock_response)
-        m_compile.side_effect = [BELL_STATE]
-        m_anm.side_effect = [BELL_STATE]
-
-        qvm = QVMConnection(test_device)
-        assert qvm.noise_model == test_device.noise_model
-        qvm.run_and_measure(BELL_STATE, qubits=[0, 1], trials=2)
-        assert m_compile.call_count == 1
-        assert m_anm.call_count == 1
-
-        test_device.noise_model = None
-        qvm = QVMConnection(test_device)
-        assert qvm.noise_model is None
-        qvm.run_and_measure(BELL_STATE, qubits=[0, 1], trials=2)
-        assert m_compile.call_count == 1
-        assert m_anm.call_count == 1
-
-        qvm = QVMConnection()
-        assert qvm.noise_model is None
-        qvm.run_and_measure(BELL_STATE, qubits=[0, 1], trials=2)
-        assert m_compile.call_count == 1
-        assert m_anm.call_count == 1
 
 
 def test_validate_noise_probabilities():
@@ -273,39 +238,24 @@ def test_prepare_register_list():
         prepare_register_list({'ro': [-1, 1]})
 
 
-def test_config_parsing():
-    with patch.dict('os.environ', {"FOREST_CONFIG": os.path.join(os.path.dirname(__file__),
-                                                                 "data/forest_config.test"),
-                                   "QCS_CONFIG": os.path.join(os.path.dirname(__file__),
-                                                              "data/qcs_config.test")}):
-        pq_config = PyquilConfig()
-        assert pq_config.forest_url == "http://dummy_forest_url"
-        assert pq_config.api_key == "pyquil_user_key"
-        assert pq_config.user_id == "pyquil_user_token"
-        assert pq_config.engage_cmd == "dummy_command"
-        assert pq_config.qpu_url == "tcp://dummy_qpu_url"
-        assert pq_config.qvm_url == "http://dummy_qvm_url"
-        assert pq_config.compiler_url == "tcp://dummy_compiler_server_url"
-
-
 # ---------------------
 # compiler-server tests
 # ---------------------
 
 
-def test_get_qc_returns_local_qvm_compiler():
-    with patch.dict('os.environ', {"COMPILER_URL": "http://127.0.0.1:7000"}):
-        qc = get_qc("9q-generic-qvm")
-        assert isinstance(qc.compiler, LocalQVMCompiler)
-
-
 def test_get_qc_returns_remote_qvm_compiler():
-    with patch.dict('os.environ', {"COMPILER_URL": "tcp://192.168.0.0:5555"}):
+    with patch.dict('os.environ', {"COMPILER_URL": "tcp://192.168.0.0:5550"}):
         qc = get_qc("9q-generic-qvm")
         assert isinstance(qc.compiler, QVMCompiler)
 
 
 mock_compiler_server = Server()
+
+
+@mock_compiler_server.rpc_handler
+def get_version_info() -> dict:
+    time.sleep(0.1)
+    return {'compiler_server': '1.0.0'}
 
 
 @mock_compiler_server.rpc_handler
@@ -330,6 +280,14 @@ def native_quil_to_binary(payload: BinaryExecutableRequest) -> BinaryExecutableR
 
 
 @mock_compiler_server.rpc_handler
+def resolve_gate_parameter_arithmetic(payload: RewriteArithmeticRequest) -> RewriteArithmeticResponse:
+    time.sleep(0.1)
+    return RewriteArithmeticResponse(quil=payload.quil,
+                                     recalculation_table={},
+                                     original_memory_descriptors={})
+
+
+@mock_compiler_server.rpc_handler
 def generate_rb_sequence(payload: RandomizedBenchmarkingRequest) -> RandomizedBenchmarkingResponse:
     assert payload.depth == 2
     time.sleep(0.1)
@@ -344,7 +302,7 @@ def conjugate_pauli_by_clifford(payload: ConjugateByCliffordRequest) -> Conjugat
 
 @pytest.fixture
 def m_endpoints():
-    return "tcp://127.0.0.1:5555", "tcp://*:5555"
+    return "tcp://127.0.0.1:5550", "tcp://*:5550"
 
 
 def run_mock(_, endpoint):
@@ -369,6 +327,12 @@ def mock_compiler(request, m_endpoints):
 @pytest.fixture
 def mock_rb_cxn(request, m_endpoints):
     return BenchmarkConnection(endpoint=m_endpoints[0])
+
+
+def test_get_version_info(server, mock_compiler: QPUCompiler):
+    response = mock_compiler.get_version_info()
+    assert isinstance(response, dict)
+    assert 'compiler_server' in response
 
 
 def test_quil_to_native_quil(server, mock_compiler):
@@ -397,7 +361,7 @@ def test_conjugate_request(server, mock_rb_cxn):
 def test_local_rb_sequence(benchmarker):
     config = PyquilConfig()
     if config.compiler_url is not None:
-        cxn = LocalBenchmarkConnection(endpoint=config.compiler_url)
+        cxn = BenchmarkConnection(endpoint=config.compiler_url)
         response = cxn.generate_rb_sequence(2, [PHASE(np.pi / 2, 0), H(0)], seed=52)
         assert [prog.out() for prog in response] == \
                ["H 0\nPHASE(pi/2) 0\nH 0\nPHASE(pi/2) 0\nPHASE(pi/2) 0\n",
@@ -407,7 +371,7 @@ def test_local_rb_sequence(benchmarker):
 def test_local_conjugate_request(benchmarker):
     config = PyquilConfig()
     if config.compiler_url is not None:
-        cxn = LocalBenchmarkConnection(endpoint=config.compiler_url)
+        cxn = BenchmarkConnection(endpoint=config.compiler_url)
         response = cxn.apply_clifford_to_pauli(Program("H 0"), PauliTerm("X", 0, 1.0))
         assert isinstance(response, PauliTerm)
         assert str(response) == "(1+0j)*Z0"

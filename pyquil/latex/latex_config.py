@@ -73,7 +73,7 @@ def header(settings):
     :return: Header of the LaTeX document.
     :rtype: string
     """
-    packages = (r"\documentclass{standalone}",
+    packages = (r"\documentclass[convert={density=300,outext=.png}]{standalone}",
                 r"\usepackage[margin=1in]{geometry}",
                 r"\usepackage[hang,small,bf]{caption}",
                 r"\usepackage{tikz}",
@@ -101,11 +101,11 @@ def header(settings):
         gate_style += ",basicshadow"
     gate_style += ("]\n\\tikzstyle{none}=[inner sep=0pt,outer sep=-.5pt,"
                    "minimum height=0.5cm+1pt]\n"
-                   "\\tikzstyle{measure}=[operator,inner sep=0pt,minimum " +
-                   "height={}cm, minimum width={}cm]\n".format(
+                   "\\tikzstyle{measure}=[operator,inner sep=0pt,minimum "
+                   + "height={}cm, minimum width={}cm]\n".format(
                        settings.get('gates', {}).get('MeasureGate', {}).get('height', 0),
-                       settings.get('gates', {}).get('MeasureGate', {}).get('width', 0)) +
-                   "\\tikzstyle{xstyle}=[circle,basic,minimum height=")
+                       settings.get('gates', {}).get('MeasureGate', {}).get('width', 0))
+                   + "\\tikzstyle{xstyle}=[circle,basic,minimum height=")
     x_gate_radius = min(settings.get('gates', {}).get('XGate', {}).get('height', 0),
                         settings.get('gates', {}).get('XGate', {}).get('width', 0))
     gate_style += ("{x_rad}cm,minimum width={x_rad}cm,inner sep=0pt,{linestyle}]\n").format(
@@ -126,4 +126,4 @@ def footer():
     :return: LaTeX document footer.
     :rtype: string
     """
-    return "\end{tikzpicture}\n\end{document}"
+    return "\\end{tikzpicture}\n\\end{document}"

@@ -38,7 +38,7 @@ class PyquilConfig(object):
         "file": QCS_CONFIG,
         "section": "Rigetti Forest",
         "name": "url",
-        "default": None
+        "default": "https://forest-server.qcs.rigetti.com"
     }
 
     API_KEY = {
@@ -86,7 +86,7 @@ class PyquilConfig(object):
         "file": FOREST_CONFIG,
         "section": "Rigetti Forest",
         "name": "compiler_server_address",
-        "default": "http://127.0.0.1:6000"
+        "default": "tcp://127.0.0.1:5555"
     }
 
     def __init__(self):

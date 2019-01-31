@@ -3,314 +3,305 @@
 Advanced Usage
 ==============
 
-First, initialize a localQVM instance on your laptop. You should have two consoles open in your terminal to run in the
-background.
+.. note::
+
+    If you're running locally, remember set up the QVM and quilc in server mode before trying to use
+    them: :ref:`server`.
+
+PyQuil Configuration Files
+~~~~~~~~~~~~~~~~~~~~~~~~~~
+
+Network endpoints for the Rigetti Forest infrastructure and information pertaining to QPU access are
+stored in a pair of configuration files. These files are located by default at ``~/.qcs_config`` and ``~/.forest_config``.
+The location can be changed by setting the environment variables ``QCS_CONFIG`` or ``FOREST_CONFIG`` to point to the new
+location.
+
+When running on a QMI, the values in these configuration files are automatically managed so as to
+point to the correct endpoints. When running locally, configuration files are not necessary. Thus, the average
+user will not have to do any work to get their configuration files set up.
+
+If for some reason you want to use an atypical configuration, you may need to modify these files.
+
+.. exec on engage
+
+The default QCS config file on any QMI looks similar to the following:
+
+::
+
+    # .qcs_config
+    [Rigetti Forest]
+    url = https://forest-server.qcs.rigetti.com
+    key = 4fd12391-11eb-52ec-35c2-262765ae4c4f
+    user_id = 4fd12391-11eb-52ec-35c2-262765ae4c4f
+
+    [QPU]
+    exec_on_engage = bash exec_on_engage.sh
+
+where
+
+ -  ``url`` is the endpoint that pyQuil hits for device information and for the 2.0 endpoints,
+ -  ``key`` stores the Forest 1.X API key,
+ -  ``user_id`` stores a Forest 2.0 user ID, and
+ -  ``exec_on_engage`` specifies the shell command that the QMI will launch when the QMI becomes QPU-engaged. It
+    would have no effect if you are running locally, but is important if you are running on the QMI. By default, it runs the
+    ``exec_on_engage.sh`` shell script. It's best to leave the configuration as is, and edit that script.
+    More documentation about ``exec_on_engage.sh`` can be found in the QCS docs
+    `here <https://www.rigetti.com/qcs/docs/guides#queuing-programs-for-auto-execution>`_.
+
+The Forest config file on any QMI has these contents, with specific IP addresses filled in:
+
+::
+
+    # .forest_config
+    [Rigetti Forest]
+    qpu_endpoint_address = None
+    qvm_address = http://10.1.165.XX:5000
+    compiler_server_address = tcp://10.1.165.XX:5555
+
+where
+
+ -  ``qpu_endpoint_address`` is the endpoint where pyQuil will try to communicate with the QPU orchestrating service
+    during QPU-engagement. It may not appear until your QMI engages, and furthermore will have no effect if you are
+    running locally. It's best to leave this alone. If you obtain access to one of our QPUs, we will fill it in for you.
+ -  ``qvm_address`` is the endpoint where pyQuil will try to communicate with the Rigetti Quantum Virtual Machine.
+    On a QMI, this points to the provided QVM instance. On a local installation, this should be set to the server endpoint
+    for a locally running QVM instance. However, pyQuil will use the default value ``http://localhost:5000`` if this file
+    isn't found, which is the correct endpoint when you run the QVM locally with ``qvm -S``.
+ -  ``compiler_server_address``: This is the endpoint where pyQuil will try to communicate with the compiler server. On a
+    QMI, this points to a provided compiler server instance. On a local installation, this should be set to the server
+    endpoint for a locally running ``quilc`` instance. However, pyQuil will use the default value ``tcp://localhost:5555``
+    if this isn't set, which is the correct endpoint when you run ``quilc`` locally with ``quilc -R``.
+
+.. note::
+
+     PyQuil itself reads these values out using the helper class ``pyquil._config.PyquilConfig``. PyQuil users should not
+     ever need to touch this class directly.
+
+Using Qubit Placeholders
+~~~~~~~~~~~~~~~~~~~~~~~~
+
+.. note::
+    The functionality provided inline by ``QubitPlaceholders`` is similar to writing a function which returns a
+    ``Program``, with qubit indices taken as arguments to the function.
+
+In pyQuil, we typically use integers to identify qubits
 
 .. code:: python
 
-    ### CONSOLE 1
-    $ quilc -S
-    port triggered: 6000.
-    [2018-09-19 11:22:37] Starting server: 0.0.0.0 : 6000.
-
-    ### CONSOLE 2
-    $ qvm -S
-    Welcome to the Rigetti QVM
-    (Configured with 2048 MiB of workspace and 8 workers.)
-    [2018-09-20 15:39:50] Starting server on port 5000.
-
-.. code:: python
-
-    from pyquil import Program, get_qc
-    from pyquil.gates import *
-    qvm = get_qc('9q-square-qvm')
-
-
-Now that our local endpoints are up and running, we can start running pyQuil programs! Open a jupyter notebook (type
-..code::`jupyter notebook` in your terminal), or launch python in your terminal (type ..code::`python3`).
-
-Quantum Fourier Transform (QFT)
-~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
-
-Let us do an example that includes multi-qubit parameterized gates.
-
-Here we wish to compute the discrete Fourier transform of
-``[0, 1, 0, 0, 0, 0, 0, 0]``. We do this in three steps:
-
-1. Write a function called ``qft3`` to make a 3-qubit QFT quantum
-   program.
-2. Write a state preparation quantum program.
-3. Execute state preparation followed by the QFT on the QVM.
-
-First we define a function to make a 3-qubit QFT quantum program. This
-is a mix of Hadamard and CPHASE gates, with a final bit reversal
-correction at the end consisting of a single SWAP gate.
-
-.. code:: python
-
-    from math import pi
-
-    def qft3(q0, q1, q2):
-        p = Program()
-        p.inst( H(q2),
-                CPHASE(pi/2.0, q1, q2),
-                H(q1),
-                CPHASE(pi/4.0, q0, q2),
-                CPHASE(pi/2.0, q0, q1),
-                H(q0),
-                SWAP(q0, q2) )
-        return p
-
-There is a very important detail to recognize here: The function
-``qft3`` doesn't *compute* the QFT, but rather it *makes a quantum
-program* to compute the QFT on qubits ``q0``, ``q1``, and ``q2``.
-
-We can see what this program looks like in Quil notation by doing
-the following:
-
-.. code:: python
-
-    print(qft3(0, 1, 2))
+    from pyquil import Program
+    from pyquil.gates import CNOT, H
+    print(Program(H(0), CNOT(0, 1)))
 
 .. parsed-literal::
 
-    H 2
-    CPHASE(1.5707963267948966) 1 2
-    H 1
-    CPHASE(0.7853981633974483) 0 2
-    CPHASE(1.5707963267948966) 0 1
     H 0
-    SWAP 0 2
+    CNOT 0 1
 
-Next, we want to prepare a state that corresponds to the sequence we
-want to compute the discrete Fourier transform of. Fortunately, this is
-easy, we just apply an :math:`X`-gate to the zeroth qubit.
-
-.. code:: python
-
-    state_prep = Program().inst(X(0))
-
-We can verify that this works by computing its wavefunction. However, we
-need to add some "dummy" qubits, because otherwise ``wavefunction``
-would return a two-element vector.
+However, when running on real, near-term QPUs we care about what
+particular physical qubits our program will run on. In fact, we may want
+to run the same program on an assortment of different qubits. This is
+where using ``QubitPlaceholder``\ s comes in.
 
 .. code:: python
 
-    add_dummy_qubits = Program().inst(I(1), I(2))
-    wavefunction = qvm.wavefunction(state_prep + add_dummy_qubits)
-    print(wavefunction)
+    from pyquil.quilatom import QubitPlaceholder
+    q0 = QubitPlaceholder()
+    q1 = QubitPlaceholder()
+    p = Program(H(q0), CNOT(q0, q1))
+    print(p)
 
 .. parsed-literal::
 
-    (1+0j)|001>
+    H {q4402789176}
+    CNOT {q4402789176} {q4402789120}
 
-If we have two quantum programs ``a`` and ``b``, we can concatenate them
-by doing ``a + b``. Using this, all we need to do is compute the QFT
-after state preparation to get our final result.
-
-.. code:: python
-
-    wavefunction = qvm.wavefunction(state_prep + qft3(0, 1, 2))
-    print(wavefunction.amplitudes)
-
-.. parsed-literal::
-
-    array([  3.53553391e-01+0.j        ,   2.50000000e-01+0.25j      ,
-             2.16489014e-17+0.35355339j,  -2.50000000e-01+0.25j      ,
-            -3.53553391e-01+0.j        ,  -2.50000000e-01-0.25j      ,
-            -2.16489014e-17-0.35355339j,   2.50000000e-01-0.25j      ])
-
-We can verify this works by computing the (inverse) FFT from NumPy.
+If you try to use this program directly, it will not work
 
 .. code:: python
 
-    from numpy.fft import ifft
-    ifft([0,1,0,0,0,0,0,0], norm="ortho")
+    print(p.out())
+
+::
+
+    RuntimeError: Qubit q4402789176 has not been assigned an index
+
+
+Instead, you must explicitly map the placeholders to physical qubits. By
+default, the function ``address_qubits`` will address qubits from 0 to
+N.
+
+.. code:: python
+
+    from pyquil.quil import address_qubits
+    print(address_qubits(p))
 
 .. parsed-literal::
 
-    array([ 0.35355339+0.j        ,  0.25000000+0.25j      ,
-            0.00000000+0.35355339j, -0.25000000+0.25j      ,
-           -0.35355339+0.j        , -0.25000000-0.25j      ,
-            0.00000000-0.35355339j,  0.25000000-0.25j      ])
+    H 0
+    CNOT 0 1
+
+The real power comes into play when you provide an explicit mapping:
+
+.. code:: python
+
+    print(address_qubits(prog, qubit_mapping={
+        q0: 14,
+        q1: 19,
+    }))
+
+.. parsed-literal::
+
+    H 14
+    CNOT 14 19
+
+
+Register
+--------
+
+Usually, your algorithm will use an assortment of qubits. You can use
+the convenience function ``QubitPlaceholder.register()`` to request a
+list of qubits to build your program.
+
+.. code:: python
+
+    qbyte = QubitPlaceholder.register(8)
+    p_evens = Program(H(q) for q in qbyte)
+    print(address_qubits(p_evens, {q: i*2 for i, q in enumerate(qbyte)}))
+
+
+.. parsed-literal::
+
+    H 0
+    H 2
+    H 4
+    H 6
+    H 8
+    H 10
+    H 12
+    H 14
 
 Classical Control Flow
 ~~~~~~~~~~~~~~~~~~~~~~
 
-Here are a couple quick examples that show how much richer the classical
-control of a Quil program can be. In this first example, we have a
-register called ``classical_flag_register`` which we use for looping.
-Then we construct the loop in the following steps:
+.. note::
 
-1. We first initialize this register to ``1`` with the ``init_register``
-   program so our while loop will execute. This is often called the
+    Classical control flow is not yet supported on the QPU.
+
+
+Here are a couple quick examples that show how much richer a Quil program
+can be with classical control flow. In this first example, we create a while
+loop by following these steps:
+
+1. Declare a register called ``flag_register`` to use as a boolean test for looping.
+
+2. Initialize this register to ``1`` program so our while loop will execute. This is often called the
    *loop preamble* or *loop initialization*.
 
-2. Next, we write body of the loop in a program itself. This will be a
-   program that computes an :math:`X` followed by an :math:`H` on our
+3. Write the body of the loop in its own :py:class:`~pyquil.quil.Program`. This will be a
+   program that applies an :math:`X` gate followed by a :math:`H` gate on our
    qubit.
 
-3. Lastly, we put it all together using the ``while_do`` method.
+4. Using the :py:func:`~pyquil.quil.Program.while_do` method to add control flow.
 
 .. code:: python
 
-    # Name our classical registers:
-    classical_flag_register = 2
+    from pyquil import Program
+    from pyquil.gates import *
 
-    # Write out the loop initialization and body programs:
-    init_register = Program(TRUE([classical_flag_register]))
-    loop_body = Program(X(0), H(0)).measure(0, classical_flag_register)
+    # Initialize the Program and declare a 1 bit memory space for our boolean flag
+    outer_loop = Program()
+    flag_register = outer_loop.declare('flag_register', 'BIT')
 
-    # Put it all together in a loop program:
-    loop_prog = init_register.while_do(classical_flag_register, loop_body)
+    # Set the initial flag value to 1
+    outer_loop += MOVE(flag_register, 1)
 
-    print(loop_prog)
+    # Define the body of the loop with a new Program
+    inner_loop = Program()
+    inner_loop += Program(X(0), H(0))
+    inner_loop += MEASURE(0, flag_register)
+
+    # Run inner_loop in a loop until flag_register is 0
+    outer_loop.while_do(flag_register, inner_loop)
+
+    print(outer_loop)
 
 .. parsed-literal::
 
-    TRUE [2]
+    DECLARE flag_register BIT[1]
+    MOVE flag_register 1
     LABEL @START1
-    JUMP-UNLESS @END2 [2]
+    JUMP-UNLESS @END2 flag_register
     X 0
     H 0
-    MEASURE 0 [2]
+    MEASURE 0 flag_register
     JUMP @START1
     LABEL @END2
 
-Notice that the ``init_register`` program applied a Quil instruction directly to a
+Notice that the ``outer_loop`` program applied a Quil instruction directly to a
 classical register.  There are several classical commands that can be used in this fashion:
 
-- ``TRUE`` which sets a single classical bit to be 1
-- ``FALSE`` which sets a single classical bit to be 0
 - ``NOT`` which flips a classical bit
 - ``AND`` which operates on two classical bits
-- ``OR`` which operates on two classical bits
+- ``IOR`` which operates on two classical bits
 - ``MOVE`` which moves the value of a classical bit at one classical address into another
 - ``EXCHANGE`` which swaps the value of two classical bits
 
 In this next example, we show how to do conditional branching in the
 form of the traditional ``if`` construct as in many programming
 languages. Much like the last example, we construct programs for each
-branch of the ``if``, and put it all together by using the ``if_then``
+branch of the ``if``, and put it all together by using the :py:func:`~pyquil.quil.Program.if_then`
 method.
 
 .. code:: python
 
-    # Name our classical registers:
-    test_register = 1
-    answer_register = 0
+    # Declare our memory spaces
+    branching_prog = Program()
+    test_register = branching_prog.declare('test_register', 'BIT')
+    ro = branching_prog.declare('ro', 'BIT')
 
     # Construct each branch of our if-statement. We can have empty branches
     # simply by having empty programs.
     then_branch = Program(X(0))
     else_branch = Program()
 
-    # Make a program that will put a 0 or 1 in test_register with 50% probability:
-    branching_prog = Program(H(1)).measure(1, test_register)
+    # Construct our program so that the result in test_register is equally likely to be a 0 or 1
+    branching_prog += H(1)
+    branching_prog += MEASURE(1, test_register)
 
-    # Add the conditional branching:
+    # Add the conditional branching
     branching_prog.if_then(test_register, then_branch, else_branch)
 
-    # Measure qubit 0 into our answer register:
-    branching_prog.measure(0, answer_register)
+    # Measure qubit 0 into our readout register
+    branching_prog += MEASURE(0, ro)
 
     print(branching_prog)
 
 .. parsed-literal::
 
+    DECLARE test_register BIT[1]
+    DECLARE ro BIT[1]
     H 1
-    MEASURE 1 [1]
-    JUMP-WHEN @THEN3 [1]
-    JUMP @END4
-    LABEL @THEN3
+    MEASURE 1 test_register
+    JUMP-WHEN @THEN1 test_register
+    JUMP @END2
+    LABEL @THEN1
     X 0
-    LABEL @END4
-    MEASURE 0 [0]
+    LABEL @END2
+    MEASURE 0 ro
 
-We can run this program a few times to see what we get in the
-``answer_register``.
+We can run this program a few times to see what we get in the readout register ``ro``.
 
 .. code:: python
 
-    qvm.run(branching_prog, [answer_register], 10)
+    from pyquil import get_qc
+
+    qc = get_qc("2q-qvm")
+    branching_prog.wrap_in_numshots_loop(10)
+    qc.run(branching_prog)
 
 .. parsed-literal::
 
     [[1], [1], [1], [0], [1], [0], [0], [1], [1], [0]]
-
-Parametric Depolarizing Noise
-~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
-
-The Rigetti QVM has support for emulating certain types of noise models.
-One such model is *parametric Pauli noise*, which is defined by a
-set of 6 probabilities:
-
--  The probabilities :math:`P_X`, :math:`P_Y`, and :math:`P_Z` which
-   define respectively the probability of a Pauli :math:`X`, :math:`Y`,
-   or :math:`Z` gate getting applied to *each* qubit after *every* gate
-   application. These probabilities are called the *gate noise
-   probabilities*.
-
--  The probabilities :math:`P_X'`, :math:`P_Y'`, and :math:`P_Z'` which
-   define respectively the probability of a Pauli :math:`X`, :math:`Y`,
-   or :math:`Z` gate getting applied to the qubit being measured
-   *before* it is measured. These probabilities are called the
-   *measurement noise probabilities*.
-
-We can instantiate a noisy QVM by creating a new connection with these
-probabilities specified.
-
-.. code:: python
-
-    # 20% chance of a X gate being applied after gate applications and before measurements.
-    gate_noise_probs = [0.2, 0.0, 0.0]
-    meas_noise_probs = [0.2, 0.0, 0.0]
-    noisy_qvm = qvm(gate_noise=gate_noise_probs, measurement_noise=meas_noise_probs)
-
-We can test this by applying an :math:`X`-gate and measuring. Nominally,
-we should always measure ``1``.
-
-.. code:: python
-
-    p = Program().inst(X(0)).measure(0, 0)
-    print("Without Noise: {}".format(qvm.run(p, [0], 10)))
-    print("With Noise   : {}".format(noisy_qvm.run(p, [0], 10)))
-
-.. parsed-literal::
-
-    Without Noise: [[1], [1], [1], [1], [1], [1], [1], [1], [1], [1]]
-    With Noise   : [[0], [0], [0], [0], [0], [1], [1], [1], [1], [0]]
-
-Parametric Programs
-~~~~~~~~~~~~~~~~~~~
-
-A big advantage of working in pyQuil is that you are able to leverage all the functionality of
-Python to generate Quil programs.  In quantum/classical hybrid algorithms this often leads to
-situations where complex classical functions are used to generate Quil programs. pyQuil provides
-a convenient construction to allow you to use Python functions to generate templates of Quil
-programs, called ``ParametricPrograms``:
-
-.. code:: python
-
-    # This function returns a quantum circuit with different rotation angles on a gate on qubit 0
-    def rotator(angle):
-        return Program(RX(angle, 0))
-
-    from pyquil.parametric import ParametricProgram
-    par_p = ParametricProgram(rotator) # This produces a new type of parameterized program object
-
-The parametric program ``par_p`` now takes the same arguments as ``rotator``:
-
-.. code:: python
-
-    print(par_p(0.5))
-
-.. parsed-literal::
-
-    RX(0.5) 0
-
-We can think of ``ParametricPrograms`` as a sort of template for Quil programs.  They cache computations
-that happen in Python functions so that templates in Quil can be efficiently substituted.
 
 
 Pauli Operator Algebra
@@ -328,17 +319,17 @@ The above sum can be constructed as follows:
 
     # Pauli term takes an operator "X", "Y", "Z", or "I"; a qubit to act on, and
     # an optional coefficient.
-    a = 0.5 * ID
+    a = 0.5 * ID()
     b = -0.75 * sX(0) * sY(1) * sZ(3)
     c = (5-2j) * sZ(1) * sX(2)
 
     # Construct a sum of Pauli terms.
     sigma = a + b + c
-    print("sigma = {}".format(sigma))
+    print(f"sigma = {sigma}")
 
 .. parsed-literal::
 
-    sigma = 0.5*I + -0.75*X0*Y1*Z3 + (5-2j)*Z1*X2
+    sigma = (0.5+0j)*I + (-0.75+0j)*X0*Y1*Z3 + (5-2j)*Z1*X2
 
 Right now, the primary thing one can do with Pauli terms and sums is to construct the
 exponential of the Pauli term, i.e., :math:`\exp[-i\beta\sigma]`.  This is
@@ -356,39 +347,60 @@ The following shows an instructive example of all three.
 
 .. code:: python
 
-    import pyquil.paulis as pl
+    from pyquil.paulis import exponential_map
 
-    # Simplification
     sigma_cubed = sigma * sigma * sigma
-    print("Simplified  : {}".format(sigma_cubed))
-    print()
+    print(f"Simplified: {sigma_cubed}\n")
 
-    #Produce Quil code to compute exp[iX]
+    # Produce Quil code to compute exp[iX]
     H = -1.0 * sX(0)
-    print("Quil to compute exp[iX] on qubit 0:")
-    print(pl.exponential_map(H)(1.0))
+    print(f"Quil to compute exp[iX] on qubit 0:\n"
+           f"{exponential_map(H)(1.0)}")
 
 .. parsed-literal::
 
-    Simplified  : (32.46875-30j)*I + (-16.734375+15j)*X0*Y1*Z3 + (71.5625-144.625j)*Z1*X2
+    Simplified: (32.46875-30j)*I + (-16.734375+15j)*X0*Y1*Z3 + (71.5625-144.625j)*Z1*X2
 
     Quil to compute exp[iX] on qubit 0:
     H 0
     RZ(-2.0) 0
     H 0
 
-A more sophisticated feature of pyQuil is that it can create templates of Quil programs in
-ParametricProgram objects.  An example use of these templates is in exponentiating a Hamiltonian
-that is parametrized by a constant.  This commonly occurs in variational algorithms. The function
-``exponential_map`` is used to compute exp[-i * alpha * H] without explicitly filling in a value for
-alpha.
+``exponential_map`` returns a function allowing you to fill in a multiplicative
+constant later. This commonly occurs in variational algorithms. The function
+``exponential_map`` is used to compute :math:`\exp[-i \alpha H]` without explicitly filling in a
+value for :math:`\alpha`.
 
 .. code:: python
 
-    parametric_prog = pl.exponential_map(H)
-    print(parametric_prog(0.0))
-    print(parametric_prog(1.0))
-    print(parametric_prog(2.0))
+    expH = exponential_map(H)
+    print(f"0:\n{expH(0.0)}\n")
+    print(f"1:\n{expH(1.0)}\n")
+    print(f"2:\n{expH(2.0)}")
 
-This ParametricProgram now acts as a template, caching the result of the ``exponential_map``
-calculation so that it can be used later with new values.
+.. parsed-literal::
+    0:
+    H 0
+    RZ(0) 0
+    H 0
+
+    1:
+    H 0
+    RZ(-2.0) 0
+    H 0
+
+    2:
+    H 0
+    RZ(-4.0) 0
+    H 0
+
+To take it one step further, you can use :ref:`parametric_compilation` with ``exponential_map``. For instance:
+
+.. code:: python
+
+    ham = sZ(0) * sZ(1)
+    prog = Program()
+    theta = prog.declare('theta', 'REAL')
+    prog += exponential_map(ham)(theta)
+
+

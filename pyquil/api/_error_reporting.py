@@ -25,14 +25,16 @@ import sys
 import json
 import inspect
 from datetime import datetime, date
-from dataclasses import dataclass
-import dataclasses
 from typing import List, Dict, Any
 import logging
 from functools import wraps
 
 import pyquil
 
+if sys.version_info < (3, 7):
+    from pyquil.external.dataclasses import dataclass, is_dataclass, asdict
+else:
+    from dataclasses import dataclass, is_dataclass, asdict
 
 _log = logging.getLogger(__name__)
 
@@ -100,8 +102,8 @@ class CallLogValue:
 
 
 def json_serialization_helper(o):
-    if dataclasses.is_dataclass(o):
-        return dataclasses.asdict(o)
+    if is_dataclass(o):
+        return asdict(o)
     elif isinstance(o, datetime):
         return o.isoformat()
     elif isinstance(o, Exception):
@@ -184,7 +186,7 @@ Rigetti Computing support by email at support@rigetti.com for assistance.
         fh.close()
 
 
-global_error_context = ErrorContext()
+global_error_context = None
 
 
 def pyquil_protect(func, log_filename="pyquil_error.log"):
@@ -195,16 +197,17 @@ def pyquil_protect(func, log_filename="pyquil_error.log"):
     def pyquil_protect_wrapper(*args, **kwargs):
         global global_error_context
 
-        old_filename = global_error_context.filename
+        old_error_context = global_error_context
+        global_error_context = ErrorContext()
         global_error_context.filename = log_filename
 
         try:
             val = func(*args, **kwargs)
-            global_error_context.filename = old_filename
+            global_error_context = old_error_context
             return val
         except Exception as e:
             global_error_context.dump_error(e, inspect.trace())
-            global_error_context.filename = old_filename
+            global_error_context = old_error_context
             raise
 
     return pyquil_protect_wrapper
@@ -222,22 +225,24 @@ def _record_call(func):
         global global_error_context
 
         # log a call as about to take place
-        key = CallLogKey(name=func.__name__,
-                         args=[serialize_object_for_logging(arg) for arg in args],
-                         kwargs={k: serialize_object_for_logging(v) for k, v in kwargs.items()})
+        if global_error_context is not None:
+            key = CallLogKey(name=func.__name__,
+                             args=[serialize_object_for_logging(arg) for arg in args],
+                             kwargs={k: serialize_object_for_logging(v) for k, v in kwargs.items()})
 
-        pre_entry = CallLogValue(timestamp_in=datetime.utcnow(),
-                                 timestamp_out=None,
-                                 return_value=None)
-        global_error_context.log[key] = pre_entry
+            pre_entry = CallLogValue(timestamp_in=datetime.utcnow(),
+                                     timestamp_out=None,
+                                     return_value=None)
+            global_error_context.log[key] = pre_entry
 
         val = func(*args, **kwargs)
 
         # poke the return value of that call in
-        post_entry = CallLogValue(timestamp_in=pre_entry.timestamp_in,
-                                  timestamp_out=datetime.utcnow(),
-                                  return_value=serialize_object_for_logging(val))
-        global_error_context.log[key] = post_entry
+        if global_error_context is not None:
+            post_entry = CallLogValue(timestamp_in=pre_entry.timestamp_in,
+                                      timestamp_out=datetime.utcnow(),
+                                      return_value=serialize_object_for_logging(val))
+            global_error_context.log[key] = post_entry
 
         return val
 

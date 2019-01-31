@@ -18,8 +18,6 @@ from six import integer_types
 from warnings import warn
 from fractions import Fraction
 
-from pyquil.slot import Slot
-
 
 class QuilAtom(object):
     """
@@ -131,9 +129,9 @@ def unpack_classical_reg(c):
     :return: The address as a MemoryReference.
     """
     if isinstance(c, list) or isinstance(c, tuple):
-        if len(c) > 2 or len(c) is 0:
+        if len(c) > 2 or len(c) == 0:
             raise ValueError("if c is a list/tuple, it should be of length <= 2")
-        if len(c) is 1:
+        if len(c) == 1:
             c = (c[0], 0)
         if not isinstance(c[0], str):
             raise ValueError("if c is a list/tuple, its first member should be a string")
@@ -235,8 +233,6 @@ def format_parameter(element):
         return _expression_to_string(element)
     elif isinstance(element, MemoryReference):
         return element.out()
-    elif isinstance(element, Slot):
-        return format_parameter(element.value())
     assert False, "Invalid parameter: %r" % element
 
 
@@ -365,32 +361,32 @@ class Function(Expression):
         return self.fn(sop)
 
     def __eq__(self, other):
-        return (isinstance(other, Function) and
-                self.name == other.name and
-                self.expression == other.expression)
+        return (isinstance(other, Function)
+                and self.name == other.name
+                and self.expression == other.expression)
 
     def __neq__(self, other):
         return not self.__eq__(other)
 
 
 def quil_sin(expression):
-    return Function('sin', expression, np.sin)
+    return Function('SIN', expression, np.sin)
 
 
 def quil_cos(expression):
-    return Function('cos', expression, np.cos)
+    return Function('COS', expression, np.cos)
 
 
 def quil_sqrt(expression):
-    return Function('sqrt', expression, np.sqrt)
+    return Function('SQRT', expression, np.sqrt)
 
 
 def quil_exp(expression):
-    return Function('exp', expression, np.exp)
+    return Function('EXP', expression, np.exp)
 
 
 def quil_cis(expression):
-    return Function('cis', expression, lambda x: np.exp(1j * x))
+    return Function('CIS', expression, lambda x: np.exp(1j * x))
 
 
 class BinaryExp(Expression):
@@ -411,16 +407,16 @@ class BinaryExp(Expression):
         return self.fn(sop1, sop2)
 
     def __eq__(self, other):
-        return (isinstance(other, type(self)) and
-                self.op1 == other.op1 and
-                self.op2 == other.op2)
+        return (isinstance(other, type(self))
+                and self.op1 == other.op1
+                and self.op2 == other.op2)
 
     def __neq__(self, other):
         return not self.__eq__(other)
 
 
 class Add(BinaryExp):
-    operator = '+'
+    operator = ' + '
     precedence = 1
     associates = 'both'
 
@@ -433,7 +429,7 @@ class Add(BinaryExp):
 
 
 class Sub(BinaryExp):
-    operator = '-'
+    operator = ' - '
     precedence = 1
     associates = 'left'
 
@@ -496,16 +492,16 @@ def _expression_to_string(expression):
     if isinstance(expression, BinaryExp):
         left = _expression_to_string(expression.op1)
         if isinstance(expression.op1, BinaryExp) and not (
-                expression.op1.precedence > expression.precedence or
-                expression.op1.precedence == expression.precedence and
-                expression.associates in ('left', 'both')):
+                expression.op1.precedence > expression.precedence
+                or expression.op1.precedence == expression.precedence
+                and expression.associates in ('left', 'both')):
             left = '(' + left + ')'
 
         right = _expression_to_string(expression.op2)
         if isinstance(expression.op2, BinaryExp) and not (
-                expression.precedence < expression.op2.precedence or
-                expression.precedence == expression.op2.precedence and
-                expression.associates in ('right', 'both')):
+                expression.precedence < expression.op2.precedence
+                or expression.precedence == expression.op2.precedence
+                and expression.associates in ('right', 'both')):
             right = '(' + right + ')'
 
         return left + expression.operator + right
@@ -597,8 +593,9 @@ class MemoryReference(QuilAtom, Expression):
         return "<MRef {}[{}]>".format(self.name, self.offset)
 
     def __eq__(self, other):
-        return (isinstance(other, MemoryReference) and
-                other.name == self.name and other.offset == self.offset)
+        return (isinstance(other, MemoryReference)
+                and other.name == self.name
+                and other.offset == self.offset)
 
     def __hash__(self):
         return hash((self.name, self.offset))
