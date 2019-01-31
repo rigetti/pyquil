@@ -213,10 +213,10 @@ terminal.
 
 
     ### CONSOLE 2
-    $ quilc -S
+    $ quilc -R
 
-    Welcome to the Rigetti Quil Compiler
-    [2018-09-19 11:22:37] Starting server: 0.0.0.0 : 6000.
+    ... - Launching quilc.
+    ... - Spawning server at (tcp://*:5555) .
 
 
 That's it! You're all set up to run pyQuil locally. Your programs will make requests to these server endpoints to compile your Quil
