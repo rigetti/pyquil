@@ -129,9 +129,9 @@ def unpack_classical_reg(c):
     :return: The address as a MemoryReference.
     """
     if isinstance(c, list) or isinstance(c, tuple):
-        if len(c) > 2 or len(c) is 0:
+        if len(c) > 2 or len(c) == 0:
             raise ValueError("if c is a list/tuple, it should be of length <= 2")
-        if len(c) is 1:
+        if len(c) == 1:
             c = (c[0], 0)
         if not isinstance(c[0], str):
             raise ValueError("if c is a list/tuple, its first member should be a string")
