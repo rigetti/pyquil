@@ -27,9 +27,9 @@ from pyquil.gates import I, X, Y, Z, H, T, S, RX, RY, RZ, CNOT, CCNOT, PHASE, CP
 from pyquil.parameters import Parameter, quil_sin, quil_cos
 from pyquil.paulis import exponential_map, sZ
 from pyquil.quil import Program, merge_programs, merge_with_pauli_noise, address_qubits, \
-    get_classical_addresses_from_program, Pragma, validate_protoquil
+    get_classical_addresses_from_program, Pragma, validate_protoquil, validate_supported_quil
 from pyquil.quilatom import QubitPlaceholder, Addr, MemoryReference, Sub
-from pyquil.quilbase import DefGate, Gate, Qubit, JumpWhen, Declare
+from pyquil.quilbase import DefGate, Gate, Qubit, JumpWhen, Declare, ClassicalNot
 from pyquil.tests.utils import parse_equals
 
 
@@ -1008,47 +1008,47 @@ def test_measure_all_noncontig():
     ])
 
 
-def test_validate_protoquil_reset_first():
+def test_validate_supported_quil_reset_first():
     prog = Program(
         H(0),
         RESET(),
     )
     with pytest.raises(ValueError):
-        validate_protoquil(prog)
-    assert not prog.is_protoquil()
+        validate_supported_quil(prog)
+    assert not prog.is_supported_on_qpu()
 
 
-def test_validate_protoquil_reset_qubit():
+def test_validate_supported_quil_reset_qubit():
     prog = Program(
         RESET(2),
     )
     with pytest.raises(ValueError):
-        validate_protoquil(prog)
-    assert not prog.is_protoquil()
+        validate_supported_quil(prog)
+    assert not prog.is_supported_on_qpu()
 
 
-def test_validate_protoquil_measure_last():
+def test_validate_supported_quil_measure_last():
     prog = Program(
         MEASURE(0),
         H(0),
     )
     with pytest.raises(ValueError):
-        validate_protoquil(prog)
-    assert not prog.is_protoquil()
+        validate_supported_quil(prog)
+    assert not prog.is_supported_on_qpu()
 
 
-def test_validate_protoquil_with_pragma():
+def test_validate_supported_quil_with_pragma():
     prog = Program(
         RESET(),
         H(1),
         Pragma('DELAY'),
         MEASURE(1)
     )
-    assert prog.is_protoquil()
+    assert prog.is_supported_on_qpu()
 
 
-def test_validate_protoquil_suite():
-    validate_protoquil(Program("""
+def test_validate_supported_quil_suite():
+    validate_supported_quil(Program("""
 RESET
 DECLARE ro BIT[3]
 RX(-pi/4) 2
@@ -1059,7 +1059,7 @@ MEASURE 2 ro[2]
 MEASURE 3 ro[3]
 """))
 
-    validate_protoquil(Program("""
+    validate_supported_quil(Program("""
 RESET
 DECLARE ro BIT[3]
 RX(-pi/4) 2
@@ -1070,7 +1070,7 @@ MEASURE 2 ro[2]
 MEASURE 3 ro[3]
 HALT
 """))
-    validate_protoquil(Program("""
+    validate_supported_quil(Program("""
 RESET
 DECLARE ro BIT[3]
 RX(-pi/4) 2
@@ -1085,7 +1085,7 @@ HALT
 """))
 
     with pytest.raises(ValueError):
-        validate_protoquil(Program("""
+        validate_supported_quil(Program("""
 RESET
 DECLARE ro BIT[3]
 RX(-pi/4) 2
@@ -1098,7 +1098,7 @@ MEASURE 3 ro[3]
 """))
 
     with pytest.raises(ValueError):
-        validate_protoquil(Program("""
+        validate_supported_quil(Program("""
 RESET
 DECLARE ro BIT[3]
 RX(-pi/4) 2
@@ -1111,7 +1111,7 @@ MEASURE 3 ro[3]
 """))
 
     with pytest.raises(ValueError):
-        validate_protoquil(Program("""
+        validate_supported_quil(Program("""
 RESET
 DECLARE ro BIT[3]
 RX(-pi/4) 2
@@ -1124,7 +1124,7 @@ MEASURE 3 ro[3]
 """))
 
 
-def test_validate_protoquil_multiple_measures():
+def test_validate_supported_quil_multiple_measures():
     prog = Program(
         RESET(),
         H(1),
@@ -1133,7 +1133,29 @@ def test_validate_protoquil_multiple_measures():
         MEASURE(1)
     )
     with pytest.raises(ValueError):
+        validate_supported_quil(prog)
+
+
+def test_is_protoquil():
+    prog = Program(
+        Declare('ro', 'BIT'),
+        MEASURE(1, MemoryReference("ro", 0)),
+        H(1),
+        RESET())
+    validate_protoquil(prog)
+    assert prog.is_protoquil() == True
+
+    prog = Program(Declare('ro', 'BIT'), H(0), Y(1), CNOT(0, 1)) \
+        .measure(0, MemoryReference("ro", 0)) \
+        .if_then(MemoryReference("ro", 0), Program(X(0)), Program())
+    with pytest.raises(ValueError):
         validate_protoquil(prog)
+    assert prog.is_protoquil() == False
+
+    prog = Program(Declare('ro', 'BIT'), ClassicalNot(MemoryReference("ro", 0)))
+    with pytest.raises(ValueError):
+        validate_protoquil(prog)
+    assert prog.is_protoquil() == False
 
 
 def test_subtracting_memory_regions():

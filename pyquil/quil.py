@@ -517,13 +517,28 @@ class Program(object):
 
     def is_protoquil(self):
         """
-        Protoquil programs may only contain gates, Pragmas, and an initial global RESET. It may not
-        contain classical instructions or jumps.
+        Protoquil programs may only contain gates, Pragmas, and RESET. It may not contain
+        classical instructions or jumps.
 
         :return: True if the Program is Protoquil, False otherwise
         """
         try:
             validate_protoquil(self)
+            return True
+        except ValueError:
+            return False
+
+    def is_supported_on_qpu(self):
+        """
+        Whether the program can be compiled to the hardware to execute on a QPU. These Quil
+        programs are more restricted than Protoquil: for instance, RESET must be before any
+        gates or MEASUREs, MEASURE on a qubit must be after any gates on that qubit, and
+        no instructions can occur after HALT.
+
+        :return: True if the Program is supported Quil, False otherwise
+        """
+        try:
+            validate_supported_quil(self)
             return True
         except ValueError:
             return False
@@ -1005,33 +1020,45 @@ def percolate_declares(program: Program) -> Program:
 def validate_protoquil(program: Program) -> None:
     """
     Ensure that a program is valid ProtoQuil, otherwise raise a ValueError.
-    Protoquil allows a global RESET before any gates, and MEASUREs on each qubit after any gates
-    on that qubit. Pragmas are always allowed, and a final Halt instruction is allowed.
+    Protoquil is a subset of Quil which excludes control flow and classical instructions.
+
+    :param program: The Quil program to validate.
+    """
+    valid_instruction_types = tuple([Pragma, Declare, Halt, Gate, Reset, ResetQubit, Measurement])
+    for instr in program.instructions:
+        if not isinstance(instr, valid_instruction_types):
+            # Instructions like MOVE, NOT, JUMP, JUMP-UNLESS will fail here
+            raise ValueError(f"ProtoQuil validation failed: {instr} is not allowed.")
+
+
+def validate_supported_quil(program: Program) -> None:
+    """
+    Ensure that a program is supported Quil which can run on any QPU, otherwise raise a ValueError.
+    We support a global RESET before any gates, and MEASUREs on each qubit after any gates
+    on that qubit. PRAGMAs and DECLAREs are always allowed, and a final HALT instruction is allowed.
 
     :param program: The Quil program to validate.
     """
     gates_seen = False
-    halted = False
     measured_qubits: Set[int] = set()
-    for instr in program.instructions:
+    for i, instr in enumerate(program.instructions):
         if isinstance(instr, Pragma) or isinstance(instr, Declare):
             continue
         elif isinstance(instr, Halt):
-            halted = True
-        elif halted:
-            raise ValueError(f"Cannot have instruction {instr} after HALT")
+            if i != len(program.instructions) - 1:
+                raise ValueError(f"Cannot have instructions after HALT")
         elif isinstance(instr, Gate):
             gates_seen = True
             if any(q.index in measured_qubits for q in instr.qubits):
                 raise ValueError("Cannot apply gates to qubits that were already measured.")
         elif isinstance(instr, Reset):
             if gates_seen:
-                raise ValueError("ProtoQuil disallows RESET after a gate application.")
+                raise ValueError("RESET can only be applied before any gate applications.")
         elif isinstance(instr, ResetQubit):
-            raise ValueError("ProtoQuil only allows for global RESET.")
+            raise ValueError("Only global RESETs are currently supported.")
         elif isinstance(instr, Measurement):
             if instr.qubit.index in measured_qubits:
-                raise ValueError("ProtoQuil currently disallows multiple measurements per qubit.")
+                raise ValueError("Multiple measurements per qubit is not supported.")
             measured_qubits.add(instr.qubit.index)
         else:
-            raise ValueError(f"Unhandled instruction type in ProtoQuil validation: {instr}")
+            raise ValueError(f"Unhandled instruction type in supported Quil validation: {instr}")
