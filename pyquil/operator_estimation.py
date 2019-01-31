@@ -1,3 +1,4 @@
+import functools
 import itertools
 import json
 import logging
@@ -6,6 +7,7 @@ import sys
 import warnings
 from json import JSONEncoder
 from math import pi
+from operator import mul
 from typing import List, Union, Iterable, Dict, Tuple
 
 import networkx as nx
@@ -79,6 +81,9 @@ class TensorProductState:
             if oneq_state.qubit == qubit:
                 return oneq_state
         raise IndexError()
+
+    def __len__(self):
+        return len(self.states)
 
     @classmethod
     def from_str(cls, s):
@@ -587,54 +592,46 @@ def group_experiments_clique_removal(experiments: TomographyExperiment) -> Tomog
     return TomographyExperiment(new_cliqs, program=experiments.program, qubits=experiments.qubits)
 
 
-class GroupingError(ValueError):
-    pass
+def _max_weight_operator(ops: Iterable[PauliTerm]) -> Union[None, PauliTerm]:
+    """Construct a PauliTerm operator by taking the non-identity single-qubit operator at each
+    qubit position.
 
+    This function will return ``None`` if the input operators do not share a natural tensor
+    product basis.
 
-def _validate_all_diagonal_in_tpb(ops: Iterable[PauliTerm]) -> Dict[int, str]:
-    """Each non-identity qubit should result in the same op_str among all operations. Return
-    said mapping.
+    For example, the max_weight_operator of ["XI", "IZ"] is "XZ". Asking for the max weight
+    operator of something like ["XI", "ZI"] will return None.
     """
     mapping = dict()  # type: Dict[int, str]
     for op in ops:
         for idx, op_str in op:
             if idx in mapping:
                 if mapping[idx] != op_str:
-                    raise GroupingError()
+                    return None
             else:
                 mapping[idx] = op_str
-    return mapping
+    op = functools.reduce(mul, (PauliTerm(op, q) for q, op in mapping.items()), sI())
+    return op
 
 
-def _validate_grouped_input_states(states: Iterable[TensorProductState]) -> Dict[int, str]:
-    """The _OneQState's for each shared qubit should match among all grouped input
-    states. Return a "max weight" quantum state.
+def _max_weight_state(states: Iterable[TensorProductState]) -> Union[None, TensorProductState]:
+    """Construct a TensorProductState by taking the non-vacuum single-qubit state at each
+    qubit position.
+
+    This function will return ``None`` if the input states are not compatible
+
+    For example, the max_weight_state of ["(+X, q0)", "(-Z, q1)"] is "(+X, q0; -Z q1)". Asking for
+    the max weight state of something like ["(+X, q0)", "(+Z, q0)"] will return None.
     """
     mapping = dict()  # type: Dict[int, _OneQState]
     for state in states:
         for oneq_state in state.states:
             if oneq_state.qubit in mapping:
                 if mapping[oneq_state.qubit] != oneq_state:
-                    raise GroupingError()
+                    return None
             else:
                 mapping[oneq_state.qubit] = oneq_state
     return TensorProductState(list(mapping.values()))
-
-
-def _get_diagonalizing_basis(ops: Iterable[PauliTerm]) -> PauliTerm:
-    """
-    Find the Pauli Term with the most non-identity terms
-
-    :param ops: Iterable of PauliTerms to check
-    :return: The highest weight PauliTerm from the input iterable
-    """
-    # obtain qubit: operation mapping
-    dict_pt = _validate_all_diagonal_in_tpb(ops)
-    # convert this mapping to PauliTerm
-    pt = sI()
-    for q, op in dict_pt.items():
-        pt *= PauliTerm(op, q)
-    return pt
 
 
 def _max_tpb_overlap(tomo_expt: TomographyExperiment):
@@ -666,8 +663,8 @@ def _max_tpb_overlap(tomo_expt: TomographyExperiment):
                 # determine the updated list of ExperimentSettings
                 updated_es_list = es_list + [expt_setting]
                 # obtain the diagonalizing bases for both the updated in and out sets
-                diag_in_term = _get_diagonalizing_basis([expst.in_operator for expst in updated_es_list])
-                diag_out_term = _get_diagonalizing_basis([expst.out_operator for expst in updated_es_list])
+                diag_in_term = _max_weight_state([expst.in_state for expst in updated_es_list])
+                diag_out_term = _max_weight_operator([expst.out_operator for expst in updated_es_list])
                 assert len(diag_in_term) >= len(es.in_operator), \
                     "Highest weight in-PauliTerm can't be smaller than the given in-PauliTerm"
                 assert len(diag_out_term) >= len(es.out_operator), \
@@ -723,16 +720,6 @@ def group_experiments(experiments: TomographyExperiment, method: str = 'greedy')
         return group_experiments_clique_removal(experiments)
 
 
-def _consistent_input_states(state1: TensorProductState, state2: TensorProductState):
-    """Whether the _OneQState's for each shared qubit matches between state1 and state2.
-    """
-    try:
-        _validate_grouped_input_states([state1, state2])
-    except GroupingError:
-        return False
-    return True
-
-
 @dataclass(frozen=True)
 class ExperimentResult:
     """An expectation and standard deviation for the measurement of one experiment setting
@@ -786,8 +773,7 @@ def measure_observables(qc: QuantumComputer, tomo_experiment: TomographyExperime
         total_prog = Program()
         if active_reset:
             total_prog += RESET()
-        max_weight_in_state = _validate_grouped_input_states(setting.in_state
-                                                             for setting in settings)
+        max_weight_in_state = _max_weight_state(setting.in_state for setting in settings)
         for oneq_state in max_weight_in_state.states:
             total_prog += _one_q_state_prep(oneq_state)
 
@@ -795,9 +781,9 @@ def measure_observables(qc: QuantumComputer, tomo_experiment: TomographyExperime
         total_prog += tomo_experiment.program
 
         # 1.3 Measure the state according to setting.out_operator
-        out_mapping = _validate_all_diagonal_in_tpb(setting.out_operator for setting in settings)
-        for idx, op_str in out_mapping.items():
-            total_prog += _local_pauli_eig_meas(op_str, idx)
+        max_weight_out_op = _max_weight_operator(setting.out_operator for setting in settings)
+        for qubit, op_str in max_weight_out_op:
+            total_prog += _local_pauli_eig_meas(op_str, qubit)
 
         # 2. Run the experiment
         bitstrings = qc.run_and_measure(total_prog, n_shots)
