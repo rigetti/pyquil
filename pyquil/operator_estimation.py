@@ -466,30 +466,6 @@ def _local_pauli_eig_meas(op, idx):
     raise ValueError(f'Unknown operation {op}')
 
 
-def _ops_commute(op_code1: str, op_code2: str):
-    """
-    Given two 1q op strings (I, X, Y, or Z), determine whether they commute
-
-    :param op_code1: First operation
-    :param op_code2: Second operation
-    :return: Boolean specifying whether the two operations commute
-    """
-    if op_code1 not in ['X', 'Y', 'Z', 'I']:
-        raise ValueError(f"Unknown op_code {op_code1}")
-    if op_code2 not in ['X', 'Y', 'Z', 'I']:
-        raise ValueError(f"Unknown op_code {op_code2}")
-
-    if op_code1 == op_code2:
-        # Same op
-        return True
-    elif op_code1 == 'I' or op_code2 == 'I':
-        # I commutes with everything
-        return True
-    else:
-        # Otherwise, they do not commute.
-        return False
-
-
 def _all_qubits_diagonal_in_tpb(op1: PauliTerm, op2: PauliTerm):
     """
     Compare all qubits between two PauliTerms to see if they are all diagonal in an
@@ -523,23 +499,6 @@ def _all_qubits_diagonal_in_tpb(op1: PauliTerm, op2: PauliTerm):
     :param op2: PauliTerm to check diagonality of in the natural tpb of ``op1``
     :return: Boolean of diagonality in each others natural tpb
     """
-    all_qubits = set(op1.get_qubits()) & set(op2.get_qubits())
-    return all(_ops_commute(op1[q], op2[q]) for q in all_qubits)
-
-
-def _expt_settings_diagonal_in_tpb(es1: ExperimentSetting, es2: ExperimentSetting):
-    """
-    Extends the concept of being diagonal in the same tpb (see :py:func:_all_qubits_diagonal_in_tpb)
-    to ExperimentSettings, by determining if the pairs of in_operators and out_operators are
-    separately diagonal in the same tpb
-
-    :param es1: ExperimentSetting to check diagonality of in the natural tpb of ``es2``
-    :param es2: ExperimentSetting to check diagonality of in the natural tpb of ``es1``
-    :return: Boolean of diagonality in each others natural tpb
-    """
-    in_dtpb = _all_qubits_diagonal_in_tpb(es1.in_operator, es2.in_operator)
-    out_dtpb = _all_qubits_diagonal_in_tpb(es1.out_operator, es2.out_operator)
-    return in_dtpb and out_dtpb
 
 
 def construct_tpb_graph(experiments: TomographyExperiment):
@@ -563,7 +522,9 @@ def construct_tpb_graph(experiments: TomographyExperiment):
         if expt1 == expt2:
             continue
 
-        if _expt_settings_diagonal_in_tpb(expt1, expt2):
+        max_weight_in = _max_weight_state([expt1.in_state, expt2.in_state])
+        max_weight_out = _max_weight_operator([expt1.out_operator, expt2.out_operator])
+        if max_weight_in is not None and max_weight_out is not None:
             g.add_edge(expt1, expt2)
 
     return g
@@ -656,26 +617,24 @@ def _max_tpb_overlap(tomo_expt: TomographyExperiment):
         found_tpb = False
         # loop through dict items
         for es, es_list in diagonal_sets.items():
-            # update the dict value if es is diagonal in the same tpb as expt_setting
-            if _expt_settings_diagonal_in_tpb(es, expt_setting):
+            trial_es_list = es_list + [expt_setting]
+            diag_in_term = _max_weight_state(expst.in_state for expst in trial_es_list)
+            diag_out_term = _max_weight_operator(expst.out_operator for expst in trial_es_list)
+            if diag_in_term is not None and diag_out_term is not None:
                 # shared tpb was found
                 found_tpb = True
-                # determine the updated list of ExperimentSettings
-                updated_es_list = es_list + [expt_setting]
-                # obtain the diagonalizing bases for both the updated in and out sets
-                diag_in_term = _max_weight_state([expst.in_state for expst in updated_es_list])
-                diag_out_term = _max_weight_operator([expst.out_operator for expst in updated_es_list])
-                assert len(diag_in_term) >= len(es.in_operator), \
-                    "Highest weight in-PauliTerm can't be smaller than the given in-PauliTerm"
+                assert len(diag_in_term) >= len(es.in_state), \
+                    "Highest weight in-state can't be smaller than the given in-state"
                 assert len(diag_out_term) >= len(es.out_operator), \
                     "Highest weight out-PauliTerm can't be smaller than the given out-PauliTerm"
+
                 # update the diagonalizing basis (key of dict) if necessary
-                if len(diag_in_term) > len(es.in_operator) or len(diag_out_term) > len(es.out_operator):
+                if len(diag_in_term) > len(es.in_state) or len(diag_out_term) > len(es.out_operator):
                     del diagonal_sets[es]
                     new_es = ExperimentSetting(diag_in_term, diag_out_term)
-                    diagonal_sets[new_es] = updated_es_list
+                    diagonal_sets[new_es] = trial_es_list
                 else:
-                    diagonal_sets[es] = updated_es_list
+                    diagonal_sets[es] = trial_es_list
                 break
 
         if not found_tpb:
@@ -701,7 +660,8 @@ def group_experiments_greedy(tomo_expt: TomographyExperiment):
     return grouped_tomo_expt
 
 
-def group_experiments(experiments: TomographyExperiment, method: str = 'greedy') -> TomographyExperiment:
+def group_experiments(experiments: TomographyExperiment,
+                      method: str = 'greedy') -> TomographyExperiment:
     """
     Group experiments that are diagonal in a shared tensor product basis (TPB) to minimize number
     of QPU runs, using a specified method (greedy method by default)

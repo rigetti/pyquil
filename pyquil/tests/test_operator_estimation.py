@@ -12,8 +12,8 @@ from pyquil.api import WavefunctionSimulator
 from pyquil.gates import *
 from pyquil.operator_estimation import ExperimentSetting, TomographyExperiment, to_json, read_json, \
     _all_qubits_diagonal_in_tpb, group_experiments, ExperimentResult, measure_observables, SIC0, \
-    SIC1, SIC2, SIC3, plusX, minusX, plusY, minusY, plusZ, minusZ, vacuum, _get_diagonalizing_basis, \
-    _max_tpb_overlap, group_experiments_greedy, _expt_settings_diagonal_in_tpb
+    SIC1, SIC2, SIC3, plusX, minusX, plusY, minusY, plusZ, minusZ, vacuum, \
+    _max_tpb_overlap, group_experiments_greedy
 from pyquil.paulis import sI, sX, sY, sZ, PauliSum, PauliTerm
 
 
@@ -326,6 +326,19 @@ def test_group_experiments_greedy():
         qubits=[0, 1, 2])
     assert grouped_tomo_expt == expected_grouped_tomo_expt
 
+def _expt_settings_diagonal_in_tpb(es1: ExperimentSetting, es2: ExperimentSetting):
+    """
+    Extends the concept of being diagonal in the same tpb (see :py:func:_all_qubits_diagonal_in_tpb)
+    to ExperimentSettings, by determining if the pairs of in_operators and out_operators are
+    separately diagonal in the same tpb
+
+    :param es1: ExperimentSetting to check diagonality of in the natural tpb of ``es2``
+    :param es2: ExperimentSetting to check diagonality of in the natural tpb of ``es1``
+    :return: Boolean of diagonality in each others natural tpb
+    """
+    in_dtpb = _all_qubits_diagonal_in_tpb(es1.in_operator, es2.in_operator)
+    out_dtpb = _all_qubits_diagonal_in_tpb(es1.out_operator, es2.out_operator)
+    return in_dtpb and out_dtpb
 
 def test_expt_settings_diagonal_in_tpb():
     expt_setting1 = ExperimentSetting(sZ(1) * sX(0), sY(1) * sZ(0))
