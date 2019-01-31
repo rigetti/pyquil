@@ -334,6 +334,7 @@ def _all_qubits_diagonal_in_tpb(op1: PauliTerm, op2: PauliTerm):
     all_qubits = set(op1.get_qubits()) & set(op2.get_qubits())
     return all(_ops_commute(op1[q], op2[q]) for q in all_qubits)
 
+
 def _expt_settings_diagonal_in_tpb(es1: ExperimentSetting, es2: ExperimentSetting):
     """
     Extends the concept of being diagonal in the same tpb (see :py:func:_all_qubits_diagonal_in_tpb)
