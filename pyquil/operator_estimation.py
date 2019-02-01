@@ -1135,11 +1135,11 @@ def commuting_sets_by_zbasis(pauli_sums):
     :return: dictionary where key value pair is a tuple corresponding to the
              basis and a list of PauliTerms associated with that basis.
     """
-    diagonal_sets = {}
-    for term in pauli_sums:
-        diagonal_sets = _max_key_overlap(term, diagonal_sets)
-
-    return diagonal_sets
+    expt_settings = [ExperimentSetting(sI(), pt) for pt in pauli_sums]
+    tomo_expt = TomographyExperiment(expt_settings, Program(), [])
+    d_expt = _max_tpb_overlap(tomo_expt)
+    d_tpb = {tuple(sorted(k.out_operator.operations_as_set())): [es.out_operator for es in v] for k, v in d_expt.items()}
+    return d_tpb
 
 
 def estimate_pauli_sum_symmeterized(pauli_terms,
