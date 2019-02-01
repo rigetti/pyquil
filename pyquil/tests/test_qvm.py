@@ -5,7 +5,7 @@ import pytest
 from rpcq.messages import PyQuilExecutableResponse
 
 from pyquil import Program
-from pyquil.api import QVM, ForestConnection, LocalQVMCompiler
+from pyquil.api import QVM, ForestConnection, QVMCompiler
 from pyquil.api._compiler import _extract_program_from_pyquil_executable_response
 from pyquil.device import NxDevice
 from pyquil.gates import MEASURE, X, CNOT, H
@@ -65,10 +65,9 @@ def test_qvm_run_no_measure(forest: ForestConnection):
     assert bitstrings.shape == (100, 0)
 
 
-def test_roundtrip_pyquilexecutableresponse():
+def test_roundtrip_pyquilexecutableresponse(compiler):
     p = Program(H(10), CNOT(10, 11))
-    lcqvm = LocalQVMCompiler(endpoint=None, device=NxDevice(nx.complete_graph(3)))
-    pqer = lcqvm.native_quil_to_executable(p)
+    pqer = compiler.native_quil_to_executable(p)
     p2 = _extract_program_from_pyquil_executable_response(pqer)
     for i1, i2 in zip(p, p2):
         assert i1 == i2
@@ -76,10 +75,7 @@ def test_roundtrip_pyquilexecutableresponse():
 
 def test_qvm_version(forest: ForestConnection):
     qvm = QVM(connection=forest)
-    version_info = qvm.get_version_info()
-    assert isinstance(version_info, dict)
-    assert 'qvm-app' in version_info
-    assert 'qvm-lib' in version_info
+    version = qvm.get_version_info()
 
     def is_a_version_string(version_string: str):
         parts = version_string.split('.')
@@ -89,5 +85,4 @@ def test_qvm_version(forest: ForestConnection):
             return False
         return True
 
-    assert is_a_version_string(version_info['qvm-app'])
-    assert is_a_version_string(version_info['qvm-lib'])
+    assert is_a_version_string(version)

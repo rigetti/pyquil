@@ -129,9 +129,9 @@ def unpack_classical_reg(c):
     :return: The address as a MemoryReference.
     """
     if isinstance(c, list) or isinstance(c, tuple):
-        if len(c) > 2 or len(c) is 0:
+        if len(c) > 2 or len(c) == 0:
             raise ValueError("if c is a list/tuple, it should be of length <= 2")
-        if len(c) is 1:
+        if len(c) == 1:
             c = (c[0], 0)
         if not isinstance(c[0], str):
             raise ValueError("if c is a list/tuple, its first member should be a string")
@@ -370,23 +370,23 @@ class Function(Expression):
 
 
 def quil_sin(expression):
-    return Function('sin', expression, np.sin)
+    return Function('SIN', expression, np.sin)
 
 
 def quil_cos(expression):
-    return Function('cos', expression, np.cos)
+    return Function('COS', expression, np.cos)
 
 
 def quil_sqrt(expression):
-    return Function('sqrt', expression, np.sqrt)
+    return Function('SQRT', expression, np.sqrt)
 
 
 def quil_exp(expression):
-    return Function('exp', expression, np.exp)
+    return Function('EXP', expression, np.exp)
 
 
 def quil_cis(expression):
-    return Function('cis', expression, lambda x: np.exp(1j * x))
+    return Function('CIS', expression, lambda x: np.exp(1j * x))
 
 
 class BinaryExp(Expression):

@@ -840,4 +840,5 @@ STANDARD_INSTRUCTIONS = {
 Dictionary of standard instruction functions keyed by instruction names.
 """
 
-__all__ = list(QUANTUM_GATES.keys()) + list(STANDARD_INSTRUCTIONS.keys()) + ['Gate']
+__all__ = list(QUANTUM_GATES.keys()) + list(STANDARD_INSTRUCTIONS.keys()) + \
+          ['Gate', 'QUANTUM_GATES', 'STANDARD_GATES', 'STANDARD_INSTRUCTIONS']

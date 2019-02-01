@@ -76,4 +76,6 @@ def roll_die(qvm, number_of_sides):
 if __name__ == '__main__':
     number_of_sides = int(input("Please enter number of sides: "))
     qvm = get_qvm(number_of_sides)
-    print(f"The result is: {roll_die(qvm, number_of_sides)}")
+    die_value = roll_die(qvm, number_of_sides)
+    while die_value > number_of_sides: die_value = roll_die(qvm, number_of_sides)
+    print(f"The result is: {die_value}")
