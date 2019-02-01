@@ -320,29 +320,30 @@ def test_group_experiments_greedy():
         qubits=[0, 1, 2])
     assert grouped_tomo_expt == expected_grouped_tomo_expt
 
-def _expt_settings_diagonal_in_tpb(es1: ExperimentSetting, es2: ExperimentSetting):
-    """
-    Extends the concept of being diagonal in the same tpb to ExperimentSettings, by
-    determining if the pairs of in_states and out_operators are separately diagonal in the same tpb
-    """
-    max_weight_in = _max_weight_state([es1.in_state, es2.in_state])
-    max_weight_out = _max_weight_operator([es1.out_operator, es2.out_operator])
-    return max_weight_in is not None and max_weight_out is not None
-
 
 def test_expt_settings_diagonal_in_tpb():
-    expt_setting1 = ExperimentSetting(sZ(1) * sX(0), sY(1) * sZ(0))
-    expt_setting2 = ExperimentSetting(sY(2) * sZ(1), sZ(2) * sY(1))
+    def _expt_settings_diagonal_in_tpb(es1: ExperimentSetting, es2: ExperimentSetting):
+        """
+        Extends the concept of being diagonal in the same tpb to ExperimentSettings, by
+        determining if the pairs of in_states and out_operators are separately diagonal in the same
+        tpb
+        """
+        max_weight_in = _max_weight_state([es1.in_state, es2.in_state])
+        max_weight_out = _max_weight_operator([es1.out_operator, es2.out_operator])
+        return max_weight_in is not None and max_weight_out is not None
+
+    expt_setting1 = ExperimentSetting(plusZ(1) * plusX(0), sY(1) * sZ(0))
+    expt_setting2 = ExperimentSetting(plusY(2) * plusZ(1), sZ(2) * sY(1))
     assert _expt_settings_diagonal_in_tpb(expt_setting1, expt_setting2)
-    expt_setting3 = ExperimentSetting(sX(2) * sZ(1), sZ(2) * sY(1))
-    expt_setting4 = ExperimentSetting(sY(2) * sZ(1), sX(2) * sY(1))
+    expt_setting3 = ExperimentSetting(plusX(2) * plusZ(1), sZ(2) * sY(1))
+    expt_setting4 = ExperimentSetting(plusY(2) * plusZ(1), sX(2) * sY(1))
     assert not _expt_settings_diagonal_in_tpb(expt_setting2, expt_setting3)
     assert not _expt_settings_diagonal_in_tpb(expt_setting2, expt_setting4)
 
 
 def test_identity(forest):
     qc = get_qc('2q-qvm')
-    suite = TomographyExperiment([ExperimentSetting(sI(), 0.123 * sI(0))],
+    suite = TomographyExperiment([ExperimentSetting(vacuum(), 0.123 * sI(0))],
                                  program=Program(X(0)), qubits=[0])
     result = list(measure_observables(qc, suite))[0]
     assert result.expectation == 0.123
