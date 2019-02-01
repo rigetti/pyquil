@@ -255,14 +255,59 @@ def test_no_complex_coeffs(forest):
         res = list(measure_observables(qc, suite))
 
 
-def test_get_diagonalizing_basis_1():
-    pauli_terms = [sZ(0), sX(1) * sZ(0), sY(2) * sX(1)]
+def test_max_weight_operator_1():
+    pauli_terms = [sZ(0),
+                   sX(1) * sZ(0),
+                   sY(2) * sX(1)]
     assert _max_weight_operator(pauli_terms) == sY(2) * sX(1) * sZ(0)
 
 
-def test_get_diagonalizing_basis_2():
-    pauli_terms = [sZ(0), sX(1) * sZ(0), sY(2) * sX(1), sZ(5) * sI(3)]
+def test_max_weight_operator_2():
+    pauli_terms = [sZ(0),
+                   sX(1) * sZ(0),
+                   sY(2) * sX(1),
+                   sZ(5) * sI(3)]
     assert _max_weight_operator(pauli_terms) == sZ(5) * sY(2) * sX(1) * sZ(0)
+
+
+def test_max_weight_operator_3():
+    pauli_terms = [sZ(0) * sX(5),
+                   sX(1) * sZ(0),
+                   sY(2) * sX(1),
+                   sZ(5) * sI(3)]
+    assert _max_weight_operator(pauli_terms) is None
+
+
+def test_max_weight_state_1():
+    states = [plusX(0) * plusZ(1),
+              plusX(0),
+              plusZ(1),
+              ]
+    assert _max_weight_state(states) == states[0]
+
+
+def test_max_weight_state_2():
+    states = [plusX(1) * plusZ(0),
+              plusX(0),
+              plusZ(1),
+              ]
+    assert _max_weight_state(states) is None
+
+
+def test_max_weight_state_3():
+    states = [plusX(0) * minusZ(1),
+              plusX(0),
+              minusZ(1),
+              ]
+    assert _max_weight_state(states) == states[0]
+
+
+def test_max_weight_state_4():
+    states = [plusX(1) * minusZ(0),
+              plusX(0),
+              minusZ(1),
+              ]
+    assert _max_weight_state(states) is None
 
 
 def test_max_tpb_overlap_1():
