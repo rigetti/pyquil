@@ -1090,43 +1090,6 @@ def estimate_locally_commuting_operator_symmeterized(program, pauli_sum,
     return expected_value, estimator_variance, total_shots
 
 
-def diagonal_basis_commutes(pauli_a, pauli_b):
-    """
-    Test if `pauli_a` and `pauli_b` share a diagonal basis
-    Example:
-        Check if [A, B] with the constraint that A & B must share a one-qubit
-        diagonalizing basis. If the inputs were [sZ(0), sZ(0) * sZ(1)] then this
-        function would return True.  If the inputs were [sX(5), sZ(4)] this
-        function would return True.  If the inputs were [sX(0), sY(0) * sZ(2)]
-        this function would return False.
-    :param pauli_a: Pauli term to check commutation against `pauli_b`
-    :param pauli_b: Pauli term to check commutation against `pauli_a`
-    :return: Boolean of commutation result
-    :rtype: Bool
-    """
-    overlapping_active_qubits = set(pauli_a.get_qubits()) & set(pauli_b.get_qubits())
-    for qubit_index in overlapping_active_qubits:
-        if (pauli_a[qubit_index] != 'I' and pauli_b[qubit_index] != 'I'
-                and pauli_a[qubit_index] != pauli_b[qubit_index]):
-            return False
-
-    return True
-
-
-def get_diagonalizing_basis(list_of_pauli_terms):
-    """
-    Find the Pauli Term with the most non-identity terms
-    :param list_of_pauli_terms: List of Pauli terms to check
-    :return: The highest weight Pauli Term
-    :rtype: PauliTerm
-    """
-    qubit_ops = set(reduce(lambda x, y: x + y,
-                           [list(term._ops.items()) for term in list_of_pauli_terms]))
-    qubit_ops = sorted(list(qubit_ops), key=lambda x: x[0])
-
-    return PauliTerm.from_list(list(map(lambda x: tuple(reversed(x)), qubit_ops)))
-
-
 def _max_key_overlap(pauli_term, diagonal_sets):
     """
     Calculate the max overlap of a pauli term ID with keys of diagonal_sets
@@ -1145,9 +1108,9 @@ def _max_key_overlap(pauli_term, diagonal_sets):
     for key in list(diagonal_sets.keys()):
         pauli_from_key = PauliTerm.from_list(
             list(map(lambda x: tuple(reversed(x)), key)))
-        if diagonal_basis_commutes(pauli_term, pauli_from_key):
+        if _all_qubits_diagonal_in_tpb(pauli_term, pauli_from_key):
             updated_pauli_set = diagonal_sets[key] + [pauli_term]
-            diagonalizing_term = get_diagonalizing_basis(updated_pauli_set)
+            diagonalizing_term = _get_diagonalizing_basis(updated_pauli_set)
             if len(diagonalizing_term) > len(key):
                 del diagonal_sets[key]
                 new_key = tuple(sorted(diagonalizing_term._ops.items(),

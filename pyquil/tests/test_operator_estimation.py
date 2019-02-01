@@ -12,8 +12,8 @@ from pyquil.api import WavefunctionSimulator, QVMConnection
 from pyquil.operator_estimation import ExperimentSetting, TomographyExperiment, to_json, read_json, \
     _all_qubits_diagonal_in_tpb, group_experiments, ExperimentResult, measure_observables, \
     remove_imaginary, get_rotation_program_measure, get_parity, estimate_pauli_sum, CommutationError, \
-    remove_identity, estimate_locally_commuting_operator, diagonal_basis_commutes, get_diagonalizing_basis, \
-    _max_key_overlap, commuting_sets_by_zbasis, _get_diagonalizing_basis, _max_tpb_overlap, group_experiments_greedy, \
+    remove_identity, estimate_locally_commuting_operator, _max_key_overlap, commuting_sets_by_zbasis, \
+    _get_diagonalizing_basis, _max_tpb_overlap, group_experiments_greedy, \
     _expt_settings_diagonal_in_tpb
 from pyquil.paulis import sI, sX, sY, sZ, PauliSum, PauliTerm
 from pyquil import Program, get_qc
@@ -115,7 +115,7 @@ def test_suite_deser(tmpdir):
     assert suite == suite2
 
 
-def test_all_ops_belong_to_tpb():
+def test_all_qubits_diagonal_in_tpb():
     expts = [
         [ExperimentSetting(sI(), sX(0) * sI(1)), ExperimentSetting(sI(), sI(0) * sX(1))],
         [ExperimentSetting(sI(), sZ(0) * sI(1)), ExperimentSetting(sI(), sI(0) * sZ(1))],
@@ -128,6 +128,21 @@ def test_all_ops_belong_to_tpb():
     assert _all_qubits_diagonal_in_tpb(sZ(0), sZ(0) * sZ(1))
     assert _all_qubits_diagonal_in_tpb(sX(5), sZ(4))
     assert not _all_qubits_diagonal_in_tpb(sX(0), sY(0) * sZ(2))
+
+    x_term = sX(0) * sX(1)
+    z1_term = sZ(1)
+    z0_term = sZ(0)
+    z0z1_term = sZ(0) * sZ(1)
+    assert not _all_qubits_diagonal_in_tpb(x_term, z1_term)
+    assert not _all_qubits_diagonal_in_tpb(z0z1_term, x_term)
+
+    assert _all_qubits_diagonal_in_tpb(z1_term, z0_term)
+    assert _all_qubits_diagonal_in_tpb(z0z1_term, z0_term)
+    assert _all_qubits_diagonal_in_tpb(z0z1_term, z1_term)
+    assert _all_qubits_diagonal_in_tpb(z0z1_term, sI(1))
+    assert _all_qubits_diagonal_in_tpb(z0z1_term, sI(2))
+    assert _all_qubits_diagonal_in_tpb(z0z1_term, sX(5) * sY(7))
+
     # this last example illustrates that a pair of commuting operators
     # need not be diagonal in the same tpb
     assert not _all_qubits_diagonal_in_tpb(sX(1) * sZ(0), sZ(1) * sX(0))
@@ -244,8 +259,16 @@ def test_get_diagonalizing_basis_1():
     pauli_terms = [sZ(0), sX(1) * sZ(0), sY(2) * sX(1)]
     assert _get_diagonalizing_basis(pauli_terms) == sY(2) * sX(1) * sZ(0)
 
+    xxxx_terms = sX(1) * sX(2) + sX(2) + sX(3) * sX(4) + sX(4) + \
+        sX(1) * sX(3) * sX(4) + sX(1) * sX(4) + sX(1) * sX(2) * sX(3)
+    true_term = sX(1) * sX(2) * sX(3) * sX(4)
+    assert _get_diagonalizing_basis(xxxx_terms.terms) == true_term
 
-def test_get_diagonalizing_basis_2():
+    zzzz_terms = sZ(1) * sZ(2) + sZ(3) * sZ(4) + \
+        sZ(1) * sZ(3) + sZ(1) * sZ(3) * sZ(4)
+    assert _get_diagonalizing_basis(zzzz_terms.terms) == sZ(1) * sZ(2) * \
+        sZ(3) * sZ(4)
+
     pauli_terms = [sZ(0), sX(1) * sZ(0), sY(2) * sX(1), sZ(5) * sI(3)]
     assert _get_diagonalizing_basis(pauli_terms) == sZ(5) * sY(2) * sX(1) * sZ(0)
 
@@ -488,34 +511,6 @@ def test_mutation_free_estimation():
     # make sure RY(-pi/2) 0\nMEASURE 0 [0] was not added to the program the
     # user sees
     assert prog.out() == 'I 0\n'
-
-
-def test_diagonal_basis_commutes():
-    x_term = sX(0) * sX(1)
-    z1_term = sZ(1)
-    z0_term = sZ(0)
-    z0z1_term = sZ(0) * sZ(1)
-    assert not diagonal_basis_commutes(x_term, z1_term)
-    assert not diagonal_basis_commutes(z0z1_term, x_term)
-
-    assert diagonal_basis_commutes(z1_term, z0_term)
-    assert diagonal_basis_commutes(z0z1_term, z0_term)
-    assert diagonal_basis_commutes(z0z1_term, z1_term)
-    assert diagonal_basis_commutes(z0z1_term, sI(1))
-    assert diagonal_basis_commutes(z0z1_term, sI(2))
-    assert diagonal_basis_commutes(z0z1_term, sX(5) * sY(7))
-
-
-def test_get_diagonalizing_basis():
-    xxxx_terms = sX(1) * sX(2) + sX(2) + sX(3) * sX(4) + sX(4) + \
-        sX(1) * sX(3) * sX(4) + sX(1) * sX(4) + sX(1) * sX(2) * sX(3)
-    true_term = sX(1) * sX(2) * sX(3) * sX(4)
-    assert get_diagonalizing_basis(xxxx_terms.terms) == true_term
-
-    zzzz_terms = sZ(1) * sZ(2) + sZ(3) * sZ(4) + \
-        sZ(1) * sZ(3) + sZ(1) * sZ(3) * sZ(4)
-    assert get_diagonalizing_basis(zzzz_terms.terms) == sZ(1) * sZ(2) * \
-        sZ(3) * sZ(4)
 
 
 def test_max_key_overlap():
