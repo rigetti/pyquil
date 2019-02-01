@@ -1090,43 +1090,6 @@ def estimate_locally_commuting_operator_symmeterized(program, pauli_sum,
     return expected_value, estimator_variance, total_shots
 
 
-def _max_key_overlap(pauli_term, diagonal_sets):
-    """
-    Calculate the max overlap of a pauli term ID with keys of diagonal_sets
-    Returns a different key if we find any collisions.  If no collisions is
-    found then the pauli term is added and the key is updated so it has the
-    largest weight.
-    :param pauli_term:
-    :param diagonal_sets:
-    :return: dictionary where key value pair is tuple indicating diagonal basis
-             and list of PauliTerms that share that basis
-    :rtype: dict
-    """
-    # a lot of the ugliness comes from the fact that
-    # list(PauliTerm._ops.items()) is not the appropriate input for
-    # Pauliterm.from_list()
-    for key in list(diagonal_sets.keys()):
-        pauli_from_key = PauliTerm.from_list(
-            list(map(lambda x: tuple(reversed(x)), key)))
-        if _all_qubits_diagonal_in_tpb(pauli_term, pauli_from_key):
-            updated_pauli_set = diagonal_sets[key] + [pauli_term]
-            diagonalizing_term = _get_diagonalizing_basis(updated_pauli_set)
-            if len(diagonalizing_term) > len(key):
-                del diagonal_sets[key]
-                new_key = tuple(sorted(diagonalizing_term._ops.items(),
-                                       key=lambda x: x[0]))
-                diagonal_sets[new_key] = updated_pauli_set
-            else:
-                diagonal_sets[key] = updated_pauli_set
-            return diagonal_sets
-    # made it through all keys and sets so need to make a new set
-    else:
-        # always need to sort because new pauli term functionality
-        new_key = tuple(sorted(pauli_term._ops.items(), key=lambda x: x[0]))
-        diagonal_sets[new_key] = [pauli_term]
-        return diagonal_sets
-
-
 def commuting_sets_by_zbasis(pauli_sums):
     """
     Computes commuting sets based on terms having the same diagonal basis

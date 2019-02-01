@@ -12,7 +12,7 @@ from pyquil.api import WavefunctionSimulator, QVMConnection
 from pyquil.operator_estimation import ExperimentSetting, TomographyExperiment, to_json, read_json, \
     _all_qubits_diagonal_in_tpb, group_experiments, ExperimentResult, measure_observables, \
     remove_imaginary, get_rotation_program_measure, get_parity, estimate_pauli_sum, CommutationError, \
-    remove_identity, estimate_locally_commuting_operator, _max_key_overlap, commuting_sets_by_zbasis, \
+    remove_identity, estimate_locally_commuting_operator, commuting_sets_by_zbasis, \
     _get_diagonalizing_basis, _max_tpb_overlap, group_experiments_greedy, \
     _expt_settings_diagonal_in_tpb
 from pyquil.paulis import sI, sX, sY, sZ, PauliSum, PauliTerm
@@ -511,23 +511,6 @@ def test_mutation_free_estimation():
     # make sure RY(-pi/2) 0\nMEASURE 0 [0] was not added to the program the
     # user sees
     assert prog.out() == 'I 0\n'
-
-
-def test_max_key_overlap():
-    # adds to already existing key
-    x0_term = sX(0)
-    diag_sets = {((0, 'X'), (1, 'Z')): [sX(0) * sZ(1), sZ(1)], ((0, 'Y'), (1, 'Z')): [sY(0), sZ(1), sY(0) * sZ(1)]}
-    d_expected = {((0, 'X'), (1, 'Z')): [sX(0) * sZ(1), sZ(1), sX(0)],
-                  ((0, 'Y'), (1, 'Z')): [sY(0), sZ(1), sY(0) * sZ(1)]}
-    assert _max_key_overlap(x0_term, diag_sets) == d_expected
-
-    # adds a new key
-    x0_term = sX(0)
-    diag_sets = {((0, 'Z'), (1, 'Z')): [sZ(0) * sZ(1), sZ(1)], ((0, 'Y'), (1, 'Z')): [sY(0), sZ(1), sY(0) * sZ(1)]}
-    d_expected = d_expected = {((0, 'Z'), (1, 'Z')): [sZ(0) * sZ(1), sZ(1)],
-                               ((0, 'Y'), (1, 'Z')): [sY(0), sZ(1), sY(0) * sZ(1)],
-                               ((0, 'X'),): [sX(0)]}
-    assert _max_key_overlap(x0_term, diag_sets) == d_expected
 
 
 def test_commuting_sets_by_zbasis():
