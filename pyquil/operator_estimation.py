@@ -85,6 +85,18 @@ class TensorProductState:
     def __len__(self):
         return len(self.states)
 
+    def states_as_set(self):
+        return frozenset(self.states)
+
+    def __eq__(self, other):
+        if not isinstance(other, TensorProductState):
+            return False
+
+        return self.states_as_set() == other.states_as_set()
+
+    def __hash__(self):
+        return hash(self.states_as_set())
+
     @classmethod
     def from_str(cls, s):
         if s == '':
