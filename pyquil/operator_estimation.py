@@ -843,7 +843,7 @@ def estimate_pauli_sum(pauli_terms,
     if symmetrize:
         theta = program.declare("ro_symmetrize", "REAL", len(qubits))
         for (idx, q) in enumerate(qubits):
-            program += [RZ(np.pi / 2, q), RY(theta[idx], q), RZ(-np.pi / 2, q)]
+            program += RX(theta[idx], q)
 
     ro = program.declare("ro", "BIT", memory_size=len(qubits))
     for num, qubit in enumerate(qubits):
