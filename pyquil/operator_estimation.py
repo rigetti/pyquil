@@ -758,7 +758,7 @@ class EstimationResult:
     n_shots: int
 
     def __str__(self):
-        return f"Expected value: {self.expected_value}, shots: {self.n_shots}"
+        return f"Expected value: {self.expected_value}, variance: {self.variance}, shots: {self.n_shots}"
 
     def __repr__(self):
         return f"EstimationResult[{self}]"
