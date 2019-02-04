@@ -146,7 +146,7 @@ def minusZ(q):
     return TensorProductState((_OneQState('Z', 1, q),))
 
 
-def zeros_state(qubits: List[int]):
+def zeros_state(qubits: Iterable[int]):
     return TensorProductState(_OneQState('Z', 0, q) for q in qubits)
 
 
