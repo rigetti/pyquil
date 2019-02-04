@@ -316,4 +316,4 @@ STATES = {
 __all__ = list(QUANTUM_GATES.keys()) + ['relaxation_operators', 'dephasing_operators',
                                         'depolarizing_operators', 'phase_flip_operators',
                                         'bit_flip_operators', 'bitphase_flip_operators',
-                                        'SIC_BASIS', 'SIC0', 'SIC1', 'SIC2', 'SIC3']
+                                        'STATES', 'SIC0', 'SIC1', 'SIC2', 'SIC3']

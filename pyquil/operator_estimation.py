@@ -194,7 +194,7 @@ class ExperimentSetting:
         # Backwards compat
         pt = sI()
         for oneq_state in self.in_state.states:
-            if not oneq_state.label in ['X', 'Y', 'Z']:
+            if oneq_state.label not in ['X', 'Y', 'Z']:
                 raise ValueError(f"Can't shim {oneq_state.label} into a pauli term. Use in_state.")
             if oneq_state.index != 0:
                 raise ValueError(f"Can't shim {oneq_state} into a pauli term. Use in_state.")
