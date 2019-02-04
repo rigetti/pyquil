@@ -63,7 +63,9 @@ class TensorProductState:
     """
     states: Tuple[_OneQState]
 
-    def __init__(self, states):
+    def __init__(self, states=None):
+        if states is None:
+            states = tuple()
         object.__setattr__(self, 'states', tuple(states))
 
     def __mul__(self, other):
@@ -100,12 +102,8 @@ class TensorProductState:
     @classmethod
     def from_str(cls, s):
         if s == '':
-            return vacuum()
+            return TensorProductState()
         return TensorProductState(tuple(_OneQState.from_str(x) for x in s.split('*')))
-
-
-def vacuum():
-    return TensorProductState(tuple())
 
 
 def SIC0(q):
@@ -148,6 +146,10 @@ def minusZ(q):
     return TensorProductState((_OneQState('Z', 1, q),))
 
 
+def zeros_state(qubits: List[int]):
+    return TensorProductState(_OneQState('Z', 0, q) for q in qubits)
+
+
 @dataclass(frozen=True, init=False)
 class ExperimentSetting:
     """
@@ -174,7 +176,7 @@ class ExperimentSetting:
                           DeprecationWarning, stacklevel=2)
 
             if is_identity(in_state):
-                in_state = vacuum()
+                in_state = TensorProductState()
             else:
                 in_state = TensorProductState([
                     _OneQState(label=pauli_label, index=0, qubit=qubit)
@@ -553,7 +555,7 @@ def _max_weight_operator(ops: Iterable[PauliTerm]) -> Union[None, PauliTerm]:
 
 
 def _max_weight_state(states: Iterable[TensorProductState]) -> Union[None, TensorProductState]:
-    """Construct a TensorProductState by taking the non-vacuum single-qubit state at each
+    """Construct a TensorProductState by taking the single-qubit state at each
     qubit position.
 
     This function will return ``None`` if the input states are not compatible

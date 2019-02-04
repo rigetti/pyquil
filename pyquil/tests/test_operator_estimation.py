@@ -12,9 +12,9 @@ from pyquil.api import WavefunctionSimulator
 from pyquil.gates import *
 from pyquil.operator_estimation import ExperimentSetting, TomographyExperiment, to_json, read_json, \
     group_experiments, ExperimentResult, measure_observables, SIC0, \
-    SIC1, SIC2, SIC3, plusX, minusX, plusY, minusY, plusZ, minusZ, vacuum, \
+    SIC1, SIC2, SIC3, plusX, minusX, plusY, minusY, plusZ, minusZ, \
     _max_tpb_overlap, _max_weight_operator, _max_weight_state, \
-    TensorProductState
+    TensorProductState, zeros_state
 from pyquil.paulis import sI, sX, sY, sZ, PauliSum, PauliTerm
 
 
@@ -23,7 +23,8 @@ def _generate_random_states(n_qubits, n_terms):
     all_s_inds = np.random.randint(len(oneq_states), size=(n_terms, n_qubits))
     states = []
     for s_inds in all_s_inds:
-        state = functools.reduce(mul, (oneq_states[pi](i) for i, pi in enumerate(s_inds)), vacuum())
+        state = functools.reduce(mul, (oneq_states[pi](i) for i, pi in enumerate(s_inds)),
+                                 TensorProductState([]))
         states += [state]
     return states
 
@@ -64,10 +65,10 @@ def test_setting_no_in_back_compat():
 def test_setting_no_in():
     out_ops = _generate_random_paulis(n_qubits=4, n_terms=7)
     for oop in out_ops:
-        expt = ExperimentSetting(vacuum(), oop)
+        expt = ExperimentSetting(zeros_state(oop.get_qubits()), oop)
         expt2 = ExperimentSetting.from_str(str(expt))
         assert expt == expt2
-        assert expt2.in_operator == sI()
+        assert expt2.in_operator == functools.reduce(mul, [sZ(q) for q in oop.get_qubits()], sI())
         assert expt2.out_operator == oop
 
 
@@ -388,7 +389,7 @@ def test_expt_settings_diagonal_in_tpb():
 
 def test_identity(forest):
     qc = get_qc('2q-qvm')
-    suite = TomographyExperiment([ExperimentSetting(vacuum(), 0.123 * sI(0))],
+    suite = TomographyExperiment([ExperimentSetting(plusZ(0), 0.123 * sI(0))],
                                  program=Program(X(0)), qubits=[0])
     result = list(measure_observables(qc, suite))[0]
     assert result.expectation == 0.123
