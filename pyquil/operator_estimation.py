@@ -946,7 +946,7 @@ def estimate_locally_commuting_operator(program,
         # we have no estimation work to do...just return the identity value
         return expected_value, 0, 0
 
-    psets = commuting_sets_by_zbasis(pauli_sum)
+    psets = group_terms_greedy(pauli_sum)
     variance_bound_per_set = variance_bound / len(psets)
 
     total_shots = 0
@@ -1070,7 +1070,7 @@ def estimate_locally_commuting_operator_symmeterized(program, pauli_sum,
         # we have no estimation work to do...just return the identity value
         return expected_value, 0, 0
 
-    psets = commuting_sets_by_zbasis(pauli_sum)
+    psets = group_terms_greedy(pauli_sum)
     variance_bound_per_set = variance_bound / len(psets)
     total_shots = 0
     estimator_variance = 0
@@ -1090,7 +1090,7 @@ def estimate_locally_commuting_operator_symmeterized(program, pauli_sum,
     return expected_value, estimator_variance, total_shots
 
 
-def commuting_sets_by_zbasis(pauli_sums):
+def group_terms_greedy(pauli_sums):
     """
     Computes commuting sets based on terms having the same diagonal basis
     Following the technique outlined in the appendix of arXiv:1704.05018.

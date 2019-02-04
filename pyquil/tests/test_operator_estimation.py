@@ -12,7 +12,7 @@ from pyquil.api import WavefunctionSimulator, QVMConnection
 from pyquil.operator_estimation import ExperimentSetting, TomographyExperiment, to_json, read_json, \
     _all_qubits_diagonal_in_tpb, group_experiments, ExperimentResult, measure_observables, \
     remove_imaginary, get_rotation_program_measure, get_parity, estimate_pauli_sum, CommutationError, \
-    remove_identity, estimate_locally_commuting_operator, commuting_sets_by_zbasis, \
+    remove_identity, estimate_locally_commuting_operator, group_terms_greedy, \
     _get_diagonalizing_basis, _max_tpb_overlap, group_experiments_greedy, \
     _expt_settings_diagonal_in_tpb
 from pyquil.paulis import sI, sX, sY, sZ, PauliSum, PauliTerm
@@ -513,7 +513,7 @@ def test_mutation_free_estimation():
     assert prog.out() == 'I 0\n'
 
 
-def test_commuting_sets_by_zbasis():
+def test_group_terms_greedy():
     # complicated coefficients, overlap on single qubit
     coeff1 = 0.012870253243021476
     term1 = PauliTerm.from_list([('X', 1), ('Z', 2), ('Y', 3), ('Y', 5),
@@ -524,7 +524,7 @@ def test_commuting_sets_by_zbasis():
     term2 = PauliTerm.from_list([('Z', 0), ('Z', 6)],
                                 coefficient=coeff2)
 
-    d_result = commuting_sets_by_zbasis(term1 + term2)
+    d_result = group_terms_greedy(term1 + term2)
     d_expected = {((0, 'Z'), (1, 'X'), (2, 'Z'), (3, 'Y'), (5, 'Y'), (6, 'Z'), (7, 'X')):
                   [coeff1 * sX(1) * sZ(2) * sY(3) * sY(5) * sZ(6) * sX(7), coeff2 * sZ(0) * sZ(6)]}
     assert d_result == d_expected
@@ -535,7 +535,7 @@ def test_commuting_sets_by_zbasis():
     z2_term = sZ(0)
     zz_term = sZ(0) * sZ(1)
     h2_hamiltonian = zz_term + z2_term + z1_term + x_term
-    clumped_terms = commuting_sets_by_zbasis(h2_hamiltonian)
+    clumped_terms = group_terms_greedy(h2_hamiltonian)
     true_set = {((0, 'X'), (1, 'X')): set([x_term.id()]),
                 ((0, 'Z'), (1, 'Z')): set([z1_term.id(), z2_term.id(), zz_term.id()])}
 
@@ -552,7 +552,7 @@ def test_commuting_sets_by_zbasis():
     yyyy_terms = sY(1) * sY(2) + sY(3) * sY(4) + sY(1) * sY(2) * sY(3) * sY(4)
 
     pauli_sum = zzzz_terms + xzxz_terms + xxxx_terms + yyyy_terms
-    clumped_terms = commuting_sets_by_zbasis(pauli_sum)
+    clumped_terms = group_terms_greedy(pauli_sum)
 
     true_set = {((1, 'Z'), (2, 'Z'), (3, 'Z'), (4, 'Z')): set(map(lambda x: x.id(), zzzz_terms)),
                 ((1, 'X'), (2, 'Z'), (3, 'X'), (4, 'Z')): set(map(lambda x: x.id(), xzxz_terms)),
