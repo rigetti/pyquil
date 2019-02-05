@@ -395,7 +395,7 @@ def test_identity(forest):
     assert result.expectation == 0.123
 
 
-def test_sic_process_tomo():
+def test_sic_process_tomo(forest):
     qc = get_qc('2q-qvm')
     process = Program(X(0))
     settings = []
