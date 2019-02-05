@@ -291,6 +291,12 @@ SIC0 = np.array([1, 0])
 SIC1 = np.array([1, np.sqrt(2)]) / np.sqrt(3)
 SIC2 = np.array([1, np.exp(-np.pi * 2j / 3) * np.sqrt(2)]) / np.sqrt(3)
 SIC3 = np.array([1, np.exp(np.pi * 2j / 3) * np.sqrt(2)]) / np.sqrt(3)
+"""
+The symmetric informationally complete POVMs for a qubit.
+
+These can reduce the number of experiments to perform quantum process tomography.
+For more information, please see http://info.phys.unm.edu/~caves/reports/infopovm.pdf
+"""
 
 STATES = {
     'X': [
