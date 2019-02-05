@@ -364,5 +364,5 @@ def lifted_state_operator(state: TensorProductState, qubits: List[int]):
             state_matrix = state_vector @ state_vector.conj().T
         except IndexError:
             state_matrix = np.eye(2)
-        mat = np.kron(state_matrix, mat)
+        mat = np.kron(mat, state_matrix)
     return mat

@@ -331,21 +331,36 @@ def test_lifted_pauli():
 
 def test_lifted_state_operator():
     xz_state = plusX(5) * minusZ(6)
+
+    plus = np.array([1, 1]) / np.sqrt(2)
+    plus = plus[:, np.newaxis]
+    proj_plus = plus @ plus.conj().T
+    assert proj_plus.shape == (2, 2)
+
+    one = np.array([0, 1])
+    one = one[:, np.newaxis]
+    proj_one = one @ one.conj().T
+    assert proj_one.shape == (2, 2)
+
     np.testing.assert_allclose(
-        np.kron(
-            np.array([[1, 1]]) @ np.array([[1], [1]]) / 2.,
-            np.array([0, 1]) @ np.array([[0], [1]])
-        ),
+        np.kron(proj_plus, proj_one),
         lifted_state_operator(xz_state, qubits=[5, 6])
     )
 
 
 def test_lifted_state_operator_backwards_qubits():
     xz_state = plusX(5) * minusZ(6)
+    plus = np.array([1, 1]) / np.sqrt(2)
+    plus = plus[:, np.newaxis]
+    proj_plus = plus @ plus.conj().T
+    assert proj_plus.shape == (2, 2)
+
+    one = np.array([0, 1])
+    one = one[:, np.newaxis]
+    proj_one = one @ one.conj().T
+    assert proj_one.shape == (2, 2)
+
     np.testing.assert_allclose(
-        np.kron(
-            np.array([0, 1]) @ np.array([[0], [1]]),
-            np.array([[1, 1]]) @ np.array([[1], [1]]) / 2.
-        ),
+        np.kron(proj_one, proj_plus),
         lifted_state_operator(xz_state, qubits=[6, 5])
     )
