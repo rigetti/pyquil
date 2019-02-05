@@ -599,8 +599,9 @@ def _max_tpb_overlap(tomo_expt: TomographyExperiment):
             trial_es_list = es_list + [expt_setting]
             diag_in_term = _max_weight_state(expst.in_state for expst in trial_es_list)
             diag_out_term = _max_weight_operator(expst.out_operator for expst in trial_es_list)
+            # max_weight_xxx returns None if the set of xxx's don't share a TPB, so the following
+            # conditional is True if expt_setting can be inserted into the current es_list.
             if diag_in_term is not None and diag_out_term is not None:
-                # shared tpb was found
                 found_tpb = True
                 assert len(diag_in_term) >= len(es.in_state), \
                     "Highest weight in-state can't be smaller than the given in-state"
