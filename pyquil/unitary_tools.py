@@ -350,19 +350,16 @@ def tensor_up(pauli_sum: Union[PauliSum, PauliTerm], qubits: List[int]):
 
 def lifted_state_operator(state: TensorProductState, qubits: List[int]):
     """Take a TensorProductState along with a list of qubits and return a matrix
-    corresponding to the tensored-up representation of the states' operator form.
+    corresponding to the tensored-up representation of the states' density operator form.
 
     :param state: The state
     :param qubits: list of qubits in the order they will be represented in the resultant matrix.
     """
     mat = 1.0
     for qubit in qubits:
-        try:
-            oneq_state = state[qubit]
-            assert oneq_state.qubit == qubit
-            state_vector = STATES[oneq_state.label][oneq_state.index][:, np.newaxis]
-            state_matrix = state_vector @ state_vector.conj().T
-        except IndexError:
-            state_matrix = np.eye(2)
+        oneq_state = state[qubit]
+        assert oneq_state.qubit == qubit
+        state_vector = STATES[oneq_state.label][oneq_state.index][:, np.newaxis]
+        state_matrix = state_vector @ state_vector.conj().T
         mat = np.kron(mat, state_matrix)
     return mat
