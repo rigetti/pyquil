@@ -1143,19 +1143,19 @@ def test_is_protoquil():
         H(1),
         RESET())
     validate_protoquil(prog)
-    assert prog.is_protoquil() == True
+    assert prog.is_protoquil()
 
     prog = Program(Declare('ro', 'BIT'), H(0), Y(1), CNOT(0, 1)) \
         .measure(0, MemoryReference("ro", 0)) \
         .if_then(MemoryReference("ro", 0), Program(X(0)), Program())
     with pytest.raises(ValueError):
         validate_protoquil(prog)
-    assert prog.is_protoquil() == False
+    assert not prog.is_protoquil()
 
     prog = Program(Declare('ro', 'BIT'), ClassicalNot(MemoryReference("ro", 0)))
     with pytest.raises(ValueError):
         validate_protoquil(prog)
-    assert prog.is_protoquil() == False
+    assert not prog.is_protoquil()
 
 
 def test_subtracting_memory_regions():
