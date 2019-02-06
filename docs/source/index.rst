@@ -98,14 +98,6 @@ Contents
    apidocs/noise
    apidocs/operator_estimation
 
-.. toctree::
-   :caption: Man Pages
-   :maxdepth: 1
-
-   qvm-man
-   quilc-man
-
-
 Indices and Tables
 ------------------
 
