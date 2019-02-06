@@ -343,8 +343,8 @@ def test_lifted_state_operator():
     assert proj_one.shape == (2, 2)
 
     np.testing.assert_allclose(
-        np.kron(proj_plus, proj_one),
-        lifted_state_operator(xz_state, qubits=[5, 6])
+        np.kron(proj_one, proj_plus),
+        lifted_state_operator(xz_state, qubits=[5, 6]),
     )
 
 
@@ -361,6 +361,6 @@ def test_lifted_state_operator_backwards_qubits():
     assert proj_one.shape == (2, 2)
 
     np.testing.assert_allclose(
-        np.kron(proj_one, proj_plus),
-        lifted_state_operator(xz_state, qubits=[6, 5])
+        np.kron(proj_plus, proj_one),
+        lifted_state_operator(xz_state, qubits=[6, 5]),
     )
