@@ -1,10 +1,15 @@
+import functools
 import itertools
 import json
 import logging
+import re
 import sys
+import warnings
 from json import JSONEncoder
 from math import pi
-from typing import List, Union, Iterable, Dict
+from operator import mul
+from typing import List, Union, Iterable, Dict, Tuple
+
 import networkx as nx
 import numpy as np
 from networkx.algorithms.approximation.clique import clique_removal
@@ -23,6 +28,129 @@ log = logging.getLogger(__name__)
 
 
 @dataclass(frozen=True)
+class _OneQState:
+    """
+    A description of a named one-qubit quantum state.
+
+    This can be used to generate pre-rotations for quantum process tomography. For example,
+    X0_14 will generate the +1 eigenstate of the X operator on qubit 14. X1_14 will generate the
+    -1 eigenstate. SIC0_14 will generate the 0th SIC-basis state on qubit 14.
+    """
+    label: str
+    index: int
+    qubit: int
+
+    def __str__(self):
+        return f'{self.label}{self.index}_{self.qubit}'
+
+    @classmethod
+    def from_str(cls, s):
+        ma = re.match(r'\s*(\w+)(\d+)_(\d+)\s*', s)
+        if ma is None:
+            raise ValueError(f"Couldn't parse '{s}'")
+        return _OneQState(
+            label=ma.group(1),
+            index=int(ma.group(2)),
+            qubit=int(ma.group(3)),
+        )
+
+
+@dataclass(frozen=True)
+class TensorProductState:
+    """
+    A description of a multi-qubit quantum state that is a tensor product of many _OneQStates
+    states.
+    """
+    states: Tuple[_OneQState]
+
+    def __init__(self, states=None):
+        if states is None:
+            states = tuple()
+        object.__setattr__(self, 'states', tuple(states))
+
+    def __mul__(self, other):
+        return TensorProductState(self.states + other.states)
+
+    def __str__(self):
+        return ' * '.join(str(s) for s in self.states)
+
+    def __repr__(self):
+        return f'TensorProductState[{self}]'
+
+    def __getitem__(self, qubit):
+        """Return the _OneQState at the given qubit."""
+        for oneq_state in self.states:
+            if oneq_state.qubit == qubit:
+                return oneq_state
+        raise IndexError()
+
+    def __len__(self):
+        return len(self.states)
+
+    def states_as_set(self):
+        return frozenset(self.states)
+
+    def __eq__(self, other):
+        if not isinstance(other, TensorProductState):
+            return False
+
+        return self.states_as_set() == other.states_as_set()
+
+    def __hash__(self):
+        return hash(self.states_as_set())
+
+    @classmethod
+    def from_str(cls, s):
+        if s == '':
+            return TensorProductState()
+        return TensorProductState(tuple(_OneQState.from_str(x) for x in s.split('*')))
+
+
+def SIC0(q):
+    return TensorProductState((_OneQState('SIC', 0, q),))
+
+
+def SIC1(q):
+    return TensorProductState((_OneQState('SIC', 1, q),))
+
+
+def SIC2(q):
+    return TensorProductState((_OneQState('SIC', 2, q),))
+
+
+def SIC3(q):
+    return TensorProductState((_OneQState('SIC', 3, q),))
+
+
+def plusX(q):
+    return TensorProductState((_OneQState('X', 0, q),))
+
+
+def minusX(q):
+    return TensorProductState((_OneQState('X', 1, q),))
+
+
+def plusY(q):
+    return TensorProductState((_OneQState('Y', 0, q),))
+
+
+def minusY(q):
+    return TensorProductState((_OneQState('Y', 1, q),))
+
+
+def plusZ(q):
+    return TensorProductState((_OneQState('Z', 0, q),))
+
+
+def minusZ(q):
+    return TensorProductState((_OneQState('Z', 1, q),))
+
+
+def zeros_state(qubits: Iterable[int]):
+    return TensorProductState(_OneQState('Z', 0, q) for q in qubits)
+
+
+@dataclass(frozen=True, init=False)
 class ExperimentSetting:
     """
     Input and output settings for a tomography-like experiment.
@@ -38,11 +166,45 @@ class ExperimentSetting:
     number of these :py:class:`ExperimentSetting` objects will be created and grouped into
     a :py:class:`TomographyExperiment`.
     """
-    in_operator: PauliTerm
+    in_state: TensorProductState
     out_operator: PauliTerm
 
+    def __init__(self, in_state: TensorProductState, out_operator: PauliTerm):
+        # For backwards compatibility, handle in_state specified by PauliTerm.
+        if isinstance(in_state, PauliTerm):
+            warnings.warn("Please specify in_state as a TensorProductState",
+                          DeprecationWarning, stacklevel=2)
+
+            if is_identity(in_state):
+                in_state = TensorProductState()
+            else:
+                in_state = TensorProductState([
+                    _OneQState(label=pauli_label, index=0, qubit=qubit)
+                    for qubit, pauli_label in in_state._ops.items()
+                ])
+
+        object.__setattr__(self, 'in_state', in_state)
+        object.__setattr__(self, 'out_operator', out_operator)
+
+    @property
+    def in_operator(self):
+        warnings.warn("ExperimentSetting.in_operator is deprecated in favor of in_state",
+                      stacklevel=2)
+
+        # Backwards compat
+        pt = sI()
+        for oneq_state in self.in_state.states:
+            if oneq_state.label not in ['X', 'Y', 'Z']:
+                raise ValueError(f"Can't shim {oneq_state.label} into a pauli term. Use in_state.")
+            if oneq_state.index != 0:
+                raise ValueError(f"Can't shim {oneq_state} into a pauli term. Use in_state.")
+
+            pt *= PauliTerm(op=oneq_state.label, index=oneq_state.qubit)
+
+        return pt
+
     def __str__(self):
-        return f'{self.in_operator.compact_str()}→{self.out_operator.compact_str()}'
+        return f'{self.in_state}→{self.out_operator.compact_str()}'
 
     def __repr__(self):
         return f'ExperimentSetting[{self}]'
@@ -54,7 +216,7 @@ class ExperimentSetting:
     def from_str(cls, s: str):
         """The opposite of str(expt)"""
         instr, outstr = s.split('→')
-        return ExperimentSetting(in_operator=PauliTerm.from_compact_str(instr),
+        return ExperimentSetting(in_state=TensorProductState.from_str(instr),
                                  out_operator=PauliTerm.from_compact_str(outstr))
 
 
@@ -239,24 +401,68 @@ def read_json(fn):
         return json.load(f, object_hook=_operator_object_hook)
 
 
-def _local_pauli_eig_prep(op: str, idx: int):
-    """
-    Generate gate sequence to prepare a the +1 eigenstate of a Pauli operator, assuming
-    we are starting from the |00..00> ground state.
-
-    :param op: A string representation of the Pauli operator whose +1 eigenstate we'd like to
-        prepare.
-    :param idx: The index of the qubit that the preparation is acting on
-    :return: A program which will prepare the requested state.
-    """
-    if op == 'X':
-        return Program(RY(pi / 2, idx))
-    elif op == 'Y':
-        return Program(RX(-pi / 2, idx))
-    elif op == 'Z':
+def _one_q_sic_prep(index, qubit):
+    """Prepare the index-th SIC basis state."""
+    if index == 0:
         return Program()
 
-    raise ValueError(f'Unknown operation {op}')
+    theta = 2 * np.arccos(1 / np.sqrt(3))
+    zx_plane_rotation = Program([
+        RX(-pi / 2, qubit),
+        RZ(theta - pi, qubit),
+        RX(-pi / 2, qubit),
+    ])
+
+    if index == 1:
+        return zx_plane_rotation
+
+    elif index == 2:
+        return zx_plane_rotation + RZ(-2 * pi / 3, qubit)
+
+    elif index == 3:
+        return zx_plane_rotation + RZ(2 * pi / 3, qubit)
+
+    raise ValueError(f'Bad SIC index: {index}')
+
+
+def _one_q_pauli_prep(label, index, qubit):
+    """Prepare the index-th eigenstate of the pauli operator given by label."""
+    if index not in [0, 1]:
+        raise ValueError(f'Bad Pauli index: {index}')
+
+    if label == 'X':
+        if index == 0:
+            return Program(RY(pi / 2, qubit))
+        else:
+            return Program(RY(-pi / 2, qubit))
+
+    elif label == 'Y':
+        if index == 0:
+            return Program(RX(-pi / 2, qubit))
+        else:
+            return Program(RX(pi / 2, qubit))
+
+    elif label == 'Z':
+        if index == 0:
+            return Program()
+        else:
+            return Program(RX(pi, qubit))
+
+    raise ValueError(f'Bad Pauli label: {label}')
+
+
+def _one_q_state_prep(oneq_state: _OneQState):
+    """Prepare a one qubit state.
+
+    Either SIC[0-3], X[0-1], Y[0-1], or Z[0-1].
+    """
+    label = oneq_state.label
+    if label == 'SIC':
+        return _one_q_sic_prep(oneq_state.index, oneq_state.qubit)
+    elif label in ['X', 'Y', 'Z']:
+        return _one_q_pauli_prep(label, oneq_state.index, oneq_state.qubit)
+    else:
+        raise ValueError(f"Bad state label: {label}")
 
 
 def _local_pauli_eig_meas(op, idx):
@@ -272,82 +478,6 @@ def _local_pauli_eig_meas(op, idx):
     elif op == 'Z':
         return Program()
     raise ValueError(f'Unknown operation {op}')
-
-
-def _ops_commute(op_code1: str, op_code2: str):
-    """
-    Given two 1q op strings (I, X, Y, or Z), determine whether they commute
-
-    :param op_code1: First operation
-    :param op_code2: Second operation
-    :return: Boolean specifying whether the two operations commute
-    """
-    if op_code1 not in ['X', 'Y', 'Z', 'I']:
-        raise ValueError(f"Unknown op_code {op_code1}")
-    if op_code2 not in ['X', 'Y', 'Z', 'I']:
-        raise ValueError(f"Unknown op_code {op_code2}")
-
-    if op_code1 == op_code2:
-        # Same op
-        return True
-    elif op_code1 == 'I' or op_code2 == 'I':
-        # I commutes with everything
-        return True
-    else:
-        # Otherwise, they do not commute.
-        return False
-
-
-def _all_qubits_diagonal_in_tpb(op1: PauliTerm, op2: PauliTerm):
-    """
-    Compare all qubits between two PauliTerms to see if they are all diagonal in an
-    overall shared tensor product basis. More concretely, test if ``op1`` and
-    ``op2`` are diagonal in each others' "natural" tensor product basis.
-
-    Given some PauliTerm, the 'natural' tensor product basis (tpb) to
-    diagonalize this term is the one which diagonalizes each Pauli operator in the
-    product term-by-term.
-
-    For example, X(1) * Z(0) would be diagonal in the 'natural' tensor product basis
-    {(|0> +/- |1>)/Sqrt[2]} * {|0>, |1>}, whereas Z(1) * X(0) would be diagonal
-    in the 'natural' tpb {|0>, |1>} * {(|0> +/- |1>)/Sqrt[2]}. The two operators
-    commute but are not diagonal in each others 'natural' tpb (in fact, they are
-    anti-diagonal in each others 'natural' tpb). This function tests whether two
-    operators given as PauliTerms are both diagonal in each others 'natural' tpb.
-
-    Note that for the given example of X(1) * Z(0) and Z(1) * X(0), we can construct
-    the following basis which simultaneously diagonalizes both operators:
-
-      -- |0>' = |0> (|+>) + |1> (|->)
-      -- |1>' = |0> (|+>) - |1> (|->)
-      -- |2>' = |0> (|->) + |1> (|+>)
-      -- |3>' = |0> (-|->) + |1> (|+>)
-
-    In this basis, X Z looks like diag(1, -1, 1, -1), and Z X looks like diag(1, 1, -1, -1).
-    Notice however that this basis cannot be constructed with single-qubit operations, as each
-    of the basis vectors are entangled states.
-
-    :param op1: PauliTerm to check diagonality of in the natural tpb of ``op2``
-    :param op2: PauliTerm to check diagonality of in the natural tpb of ``op1``
-    :return: Boolean of diagonality in each others natural tpb
-    """
-    all_qubits = set(op1.get_qubits()) & set(op2.get_qubits())
-    return all(_ops_commute(op1[q], op2[q]) for q in all_qubits)
-
-
-def _expt_settings_diagonal_in_tpb(es1: ExperimentSetting, es2: ExperimentSetting):
-    """
-    Extends the concept of being diagonal in the same tpb (see :py:func:_all_qubits_diagonal_in_tpb)
-    to ExperimentSettings, by determining if the pairs of in_operators and out_operators are
-    separately diagonal in the same tpb
-
-    :param es1: ExperimentSetting to check diagonality of in the natural tpb of ``es2``
-    :param es2: ExperimentSetting to check diagonality of in the natural tpb of ``es1``
-    :return: Boolean of diagonality in each others natural tpb
-    """
-    in_dtpb = _all_qubits_diagonal_in_tpb(es1.in_operator, es2.in_operator)
-    out_dtpb = _all_qubits_diagonal_in_tpb(es1.out_operator, es2.out_operator)
-    return in_dtpb and out_dtpb
 
 
 def construct_tpb_graph(experiments: TomographyExperiment):
@@ -371,7 +501,9 @@ def construct_tpb_graph(experiments: TomographyExperiment):
         if expt1 == expt2:
             continue
 
-        if _expt_settings_diagonal_in_tpb(expt1, expt2):
+        max_weight_in = _max_weight_state([expt1.in_state, expt2.in_state])
+        max_weight_out = _max_weight_operator([expt1.out_operator, expt2.out_operator])
+        if max_weight_in is not None and max_weight_out is not None:
             g.add_edge(expt1, expt2)
 
     return g
@@ -400,34 +532,46 @@ def group_experiments_clique_removal(experiments: TomographyExperiment) -> Tomog
     return TomographyExperiment(new_cliqs, program=experiments.program, qubits=experiments.qubits)
 
 
-def _validate_all_diagonal_in_tpb(ops: Iterable[PauliTerm]) -> Dict[int, str]:
-    """Each non-identity qubit should result in the same op_str among all operations. Return
-    said mapping.
+def _max_weight_operator(ops: Iterable[PauliTerm]) -> Union[None, PauliTerm]:
+    """Construct a PauliTerm operator by taking the non-identity single-qubit operator at each
+    qubit position.
+
+    This function will return ``None`` if the input operators do not share a natural tensor
+    product basis.
+
+    For example, the max_weight_operator of ["XI", "IZ"] is "XZ". Asking for the max weight
+    operator of something like ["XI", "ZI"] will return None.
     """
     mapping = dict()  # type: Dict[int, str]
     for op in ops:
         for idx, op_str in op:
             if idx in mapping:
-                assert mapping[idx] == op_str, 'Improper grouping of operators'
+                if mapping[idx] != op_str:
+                    return None
             else:
                 mapping[idx] = op_str
-    return mapping
+    op = functools.reduce(mul, (PauliTerm(op, q) for q, op in mapping.items()), sI())
+    return op
 
 
-def _get_diagonalizing_basis(ops: Iterable[PauliTerm]) -> PauliTerm:
+def _max_weight_state(states: Iterable[TensorProductState]) -> Union[None, TensorProductState]:
+    """Construct a TensorProductState by taking the single-qubit state at each
+    qubit position.
+
+    This function will return ``None`` if the input states are not compatible
+
+    For example, the max_weight_state of ["(+X, q0)", "(-Z, q1)"] is "(+X, q0; -Z q1)". Asking for
+    the max weight state of something like ["(+X, q0)", "(+Z, q0)"] will return None.
     """
-    Find the Pauli Term with the most non-identity terms
-
-    :param ops: Iterable of PauliTerms to check
-    :return: The highest weight PauliTerm from the input iterable
-    """
-    # obtain qubit: operation mapping
-    dict_pt = _validate_all_diagonal_in_tpb(ops)
-    # convert this mapping to PauliTerm
-    pt = sI()
-    for q, op in dict_pt.items():
-        pt *= PauliTerm(op, q)
-    return pt
+    mapping = dict()  # type: Dict[int, _OneQState]
+    for state in states:
+        for oneq_state in state.states:
+            if oneq_state.qubit in mapping:
+                if mapping[oneq_state.qubit] != oneq_state:
+                    return None
+            else:
+                mapping[oneq_state.qubit] = oneq_state
+    return TensorProductState(list(mapping.values()))
 
 
 def _max_tpb_overlap(tomo_expt: TomographyExperiment):
@@ -452,26 +596,25 @@ def _max_tpb_overlap(tomo_expt: TomographyExperiment):
         found_tpb = False
         # loop through dict items
         for es, es_list in diagonal_sets.items():
-            # update the dict value if es is diagonal in the same tpb as expt_setting
-            if _expt_settings_diagonal_in_tpb(es, expt_setting):
-                # shared tpb was found
+            trial_es_list = es_list + [expt_setting]
+            diag_in_term = _max_weight_state(expst.in_state for expst in trial_es_list)
+            diag_out_term = _max_weight_operator(expst.out_operator for expst in trial_es_list)
+            # max_weight_xxx returns None if the set of xxx's don't share a TPB, so the following
+            # conditional is True if expt_setting can be inserted into the current es_list.
+            if diag_in_term is not None and diag_out_term is not None:
                 found_tpb = True
-                # determine the updated list of ExperimentSettings
-                updated_es_list = es_list + [expt_setting]
-                # obtain the diagonalizing bases for both the updated in and out sets
-                diag_in_term = _get_diagonalizing_basis([expst.in_operator for expst in updated_es_list])
-                diag_out_term = _get_diagonalizing_basis([expst.out_operator for expst in updated_es_list])
-                assert len(diag_in_term) >= len(es.in_operator), \
-                    "Highest weight in-PauliTerm can't be smaller than the given in-PauliTerm"
+                assert len(diag_in_term) >= len(es.in_state), \
+                    "Highest weight in-state can't be smaller than the given in-state"
                 assert len(diag_out_term) >= len(es.out_operator), \
                     "Highest weight out-PauliTerm can't be smaller than the given out-PauliTerm"
+
                 # update the diagonalizing basis (key of dict) if necessary
-                if len(diag_in_term) > len(es.in_operator) or len(diag_out_term) > len(es.out_operator):
+                if len(diag_in_term) > len(es.in_state) or len(diag_out_term) > len(es.out_operator):
                     del diagonal_sets[es]
                     new_es = ExperimentSetting(diag_in_term, diag_out_term)
-                    diagonal_sets[new_es] = updated_es_list
+                    diagonal_sets[new_es] = trial_es_list
                 else:
-                    diagonal_sets[es] = updated_es_list
+                    diagonal_sets[es] = trial_es_list
                 break
 
         if not found_tpb:
@@ -497,10 +640,51 @@ def group_experiments_greedy(tomo_expt: TomographyExperiment):
     return grouped_tomo_expt
 
 
-def group_experiments(experiments: TomographyExperiment, method: str = 'greedy') -> TomographyExperiment:
+def group_experiments(experiments: TomographyExperiment,
+                      method: str = 'greedy') -> TomographyExperiment:
     """
     Group experiments that are diagonal in a shared tensor product basis (TPB) to minimize number
-    of QPU runs, using a specified method (greedy method by default)
+    of QPU runs.
+
+    Background
+    ----------
+
+    Given some PauliTerm operator, the 'natural' tensor product basis to
+    diagonalize this term is the one which diagonalizes each Pauli operator in the
+    product term-by-term.
+
+    For example, X(1) * Z(0) would be diagonal in the 'natural' tensor product basis
+    {(|0> +/- |1>)/Sqrt[2]} * {|0>, |1>}, whereas Z(1) * X(0) would be diagonal
+    in the 'natural' tpb {|0>, |1>} * {(|0> +/- |1>)/Sqrt[2]}. The two operators
+    commute but are not diagonal in each others 'natural' tpb (in fact, they are
+    anti-diagonal in each others 'natural' tpb). This function tests whether two
+    operators given as PauliTerms are both diagonal in each others 'natural' tpb.
+
+    Note that for the given example of X(1) * Z(0) and Z(1) * X(0), we can construct
+    the following basis which simultaneously diagonalizes both operators:
+
+      -- |0>' = |0> (|+>) + |1> (|->)
+      -- |1>' = |0> (|+>) - |1> (|->)
+      -- |2>' = |0> (|->) + |1> (|+>)
+      -- |3>' = |0> (-|->) + |1> (|+>)
+
+    In this basis, X Z looks like diag(1, -1, 1, -1), and Z X looks like diag(1, 1, -1, -1).
+    Notice however that this basis cannot be constructed with single-qubit operations, as each
+    of the basis vectors are entangled states.
+
+
+    Methods
+    -------
+
+    The "greedy" method will keep a running set of 'buckets' into which grouped ExperimentSettings
+    will be placed. Each new ExperimentSetting considered is assigned to the first applicable
+    bucket and a new bucket is created if there are no applicable buckets.
+
+    The "clique-removal" method maps the term grouping problem onto Max Clique graph problem.
+    This method constructs a NetworkX graph where an edge exists between two settings that
+    share an nTPB and then uses networkx's algorithm for clique removal. This method can give
+    you marginally better groupings in certain circumstances, but constructing the
+    graph is pretty slow so "greedy" is the default.
 
     :param experiments: a tomography experiment
     :param method: method used for grouping; the allowed methods are one of
@@ -565,21 +749,21 @@ def measure_observables(qc: QuantumComputer, tomo_experiment: TomographyExperime
         # estimate.
         log.info(f"Collecting bitstrings for the {len(settings)} settings: {settings}")
 
-        # 1.1 Prepare a state according to setting.in_operator
+        # 1.1 Prepare a state according to the amalgam of all setting.in_state
         total_prog = Program()
         if active_reset:
             total_prog += RESET()
-        in_mapping = _validate_all_diagonal_in_tpb(setting.in_operator for setting in settings)
-        for idx, op_str in in_mapping.items():
-            total_prog += _local_pauli_eig_prep(op_str, idx)
+        max_weight_in_state = _max_weight_state(setting.in_state for setting in settings)
+        for oneq_state in max_weight_in_state.states:
+            total_prog += _one_q_state_prep(oneq_state)
 
         # 1.2 Add in the program
         total_prog += tomo_experiment.program
 
         # 1.3 Measure the state according to setting.out_operator
-        out_mapping = _validate_all_diagonal_in_tpb(setting.out_operator for setting in settings)
-        for idx, op_str in out_mapping.items():
-            total_prog += _local_pauli_eig_meas(op_str, idx)
+        max_weight_out_op = _max_weight_operator(setting.out_operator for setting in settings)
+        for qubit, op_str in max_weight_out_op:
+            total_prog += _local_pauli_eig_meas(op_str, qubit)
 
         # 2. Run the experiment
         bitstrings = qc.run_and_measure(total_prog, n_shots)
@@ -596,8 +780,6 @@ def measure_observables(qc: QuantumComputer, tomo_experiment: TomographyExperime
         # either the first column, second column, or both and multiplying along the row.
         for setting in settings:
             # 3.2 Get the term's coefficient so we can multiply it in later.
-            assert setting.in_operator.coefficient == 1, 'in_operator should specify a state and ' \
-                                                         'therefore cannot have a coefficient'
             coeff = complex(setting.out_operator.coefficient)
             if not np.isclose(coeff.imag, 0):
                 raise ValueError(f"{setting}'s out_operator has a complex coefficient.")
