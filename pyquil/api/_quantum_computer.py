@@ -144,6 +144,13 @@ class QuantumComputer:
             are a list of floats or integers.
         :return: A numpy array of shape (trials, len(ro-register)) that contains 0s and 1s.
         """
+        # This prevents a common error where users expect QVM.run()
+        # and QPU.run() to be interchangeable. QPU.run() needs the
+        # supplied executable to have been compiled, QVM.run() does not.
+        if isinstance(self.qam, QPU) and isinstance(executable, Program):
+            raise TypeError("It looks like you have provided a Program where an Executable"
+                            " is expected. Please use QuantumComputer.compile() to compile"
+                            " your program.")
         self.qam.load(executable)
         if memory_map:
             for region_name, values_list in memory_map.items():
