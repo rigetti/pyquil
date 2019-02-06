@@ -624,7 +624,7 @@ def measure_observables(qc: QuantumComputer, tomo_experiment: TomographyExperime
             obs_var = np.var(obs_vals) / n_shots
             yield ExperimentResult(
                 setting=setting,
-                expectation=np.asscalar(obs_mean),
-                stddev=np.asscalar(np.sqrt(obs_var)),
+                expectation=obs_mean.item(),
+                stddev=np.sqrt(obs_var).item(),
                 total_counts=n_shots,
             )
