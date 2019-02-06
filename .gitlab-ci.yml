@@ -4,10 +4,10 @@ before_script:
   - pip install tox
 
 services:
-  - name: rigetticomputing/qvm
+  - name: rigetti/qvm
     alias: qvm
     command: ["-S"]
-  - name: rigetticomputing/quilc
+  - name: rigetti/quilc
     alias: quilc
     command: ["-S"]
 
