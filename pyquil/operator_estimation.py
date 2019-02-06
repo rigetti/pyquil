@@ -84,6 +84,9 @@ class TensorProductState:
                 return oneq_state
         raise IndexError()
 
+    def __iter__(self):
+        yield from self.states
+
     def __len__(self):
         return len(self.states)
 
