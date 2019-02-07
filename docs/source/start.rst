@@ -54,6 +54,11 @@ for macOS, Linux (.deb), Linux (.rpm), and Linux (bare-bones).
 All installation mechanisms, except the bare-bones package, require administrative privileges to install. To use the QVM
 and Quil Compiler from the bare-bones package, you will have to install the prerequisite dependencies on your own.
 
+.. note::
+
+   You can also find the open source code for `quilc <http://github.com/rigetti/quilc>`__ and `qvm <http://github.com/rigetti/qvm>`__
+   on GitHub, where you can find instructions for compiling, installing, and contributing to the compiler and QVM.
+
 Installing on macOS
 -------------------
 Mount the file ``forest-sdk.dmg`` by double clicking on it in your email. From there, open ``forest-sdk.pkg`` by
