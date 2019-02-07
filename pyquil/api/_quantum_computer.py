@@ -36,7 +36,7 @@ from pyquil.device import AbstractDevice, NxDevice, gates_in_isa, ISA, Device
 from pyquil.gates import RX, MEASURE
 from pyquil.noise import decoherence_noise_with_asymmetric_ro, NoiseModel
 from pyquil.pyqvm import PyQVM
-from pyquil.quil import Program, validate_protoquil
+from pyquil.quil import Program, validate_supported_quil
 from pyquil.quilbase import Measurement, Pragma, Gate, Reset
 
 pyquil_config = PyquilConfig()
@@ -47,8 +47,7 @@ Executable = Union[BinaryExecutableResponse, PyQuilExecutableResponse]
 def _get_flipped_protoquil_program(program: Program) -> Program:
     """For symmetrization, generate a program where X gates are added before measurement.
 
-    Forest 1.3 is really picky about where the measure instructions happen. It has to be
-    at the end!
+    Forest is picky about where the measure instructions happen. It has to be at the end!
     """
     program = program.copy()
     to_measure = []
@@ -219,7 +218,7 @@ class QuantumComputer:
             measured bits.
         """
         program = program.copy()
-        validate_protoquil(program)
+        validate_supported_quil(program)
         ro = program.declare('ro', 'BIT', len(self.qubits()))
         for i, q in enumerate(self.qubits()):
             program.inst(MEASURE(q, ro[i]))

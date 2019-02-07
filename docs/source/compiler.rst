@@ -11,7 +11,7 @@ gate operators are constrained to lie in ``RZ(θ)``, ``RX(k*π/2)``, and ``CZ``;
 gates are required to act on physically available hardware (for single-qubit gates, this means
 acting only on live qubits, and for qubit-pair gates, this means acting on neighboring qubits). However, as a programmer, it is often (though not always) desirable to to be able to write programs which don't take these details into account. These generally leads to more portable code if one isn't tied to a specific set of gates or QPU architecture.
 To ameliorate these limitations, the Rigetti software toolkit contains an optimizing compiler that
-translates arbitrary Quil to native Quil and native ProtoQuil to executables suitable for Rigetti
+translates arbitrary Quil to native Quil and native Quil to executables suitable for Rigetti
 hardware.
 
 
@@ -84,7 +84,7 @@ class of this object changes based on context (e.g., ``QPUCompiler``, ``QVMCompi
   :py:class:`~pyquil.quil.Program` object, and the output is given as a new ``Program`` object, equipped with a
   ``.metadata`` property that gives extraneous information about the compilation output (e.g., gate
   depth, as well as many others).  This call blocks until Quil compilation finishes.
-* ``compiler.native_quil_to_executable(nq_program)``: This method converts a ProtoQuil program, which
+* ``compiler.native_quil_to_executable(nq_program)``: This method converts a native Quil program, which
   is promised to consist only of native gates for a given ISA, into an executable suitable for
   submission to one of a QVM or a QPU.  This call blocks until the executable is generated.
 
