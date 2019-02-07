@@ -470,18 +470,3 @@ def test_noisy(forest):
     qc = get_qc('1q-qvm', noisy=True)
     result = qc.run_and_measure(p, trials=10000)
     assert result[0].mean() < 1.0
-
-
-def test_run_expects_executable():
-    # https://github.com/rigetti/pyquil/issues/740
-
-    # This test might need some more knowledgeable eyes. Not sure how
-    # to best mock a qpu.
-    qc = get_qc('1q-qvm')
-    qc.qam = QPU(endpoint='tcp://not-needed:00000',
-                 user="pyQuil test suite")
-    print(isinstance(qc.qam, QPU))
-
-    p = Program(X(0))
-    with pytest.raises(TypeError):
-        result = qc.run(p)
