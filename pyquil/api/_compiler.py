@@ -173,7 +173,7 @@ class QPUCompiler(AbstractCompiler):
                               f'but you are engaged on device {targeted_lattice}.')
 
         arithmetic_request = RewriteArithmeticRequest(quil=nq_program.out())
-        arithmetic_response = self.client.call('resolve_gate_parameter_arithmetic', arithmetic_request)
+        arithmetic_response = self.client.call('rewrite_arithmetic', arithmetic_request)
 
         request = BinaryExecutableRequest(quil=arithmetic_response.quil, num_shots=nq_program.num_shots)
         response = self.client.call('native_quil_to_binary', request)
