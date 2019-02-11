@@ -536,11 +536,11 @@ def test_group_terms_greedy():
     zz_term = sZ(0) * sZ(1)
     h2_hamiltonian = zz_term + z2_term + z1_term + x_term
     clumped_terms = group_terms_greedy(h2_hamiltonian)
-    true_set = {((0, 'X'), (1, 'X')): set([x_term.id()]),
-                ((0, 'Z'), (1, 'Z')): set([z1_term.id(), z2_term.id(), zz_term.id()])}
+    true_set = {((0, 'X'), (1, 'X')): set([x_term.operations_as_set()]),
+                ((0, 'Z'), (1, 'Z')): set([z1_term.operations_as_set(), z2_term.operations_as_set(), zz_term.operations_as_set()])}
 
     for key, value in clumped_terms.items():
-        assert set(map(lambda x: x.id(), clumped_terms[key])) == true_set[key]
+        assert set(map(lambda x: x.operations_as_set(), clumped_terms[key])) == true_set[key]
 
     # clumping 4-qubit terms into same diagonal bases
     zzzz_terms = sZ(1) * sZ(2) + sZ(3) * sZ(4) + \
@@ -554,9 +554,9 @@ def test_group_terms_greedy():
     pauli_sum = zzzz_terms + xzxz_terms + xxxx_terms + yyyy_terms
     clumped_terms = group_terms_greedy(pauli_sum)
 
-    true_set = {((1, 'Z'), (2, 'Z'), (3, 'Z'), (4, 'Z')): set(map(lambda x: x.id(), zzzz_terms)),
-                ((1, 'X'), (2, 'Z'), (3, 'X'), (4, 'Z')): set(map(lambda x: x.id(), xzxz_terms)),
-                ((1, 'X'), (2, 'X'), (3, 'X'), (4, 'X')): set(map(lambda x: x.id(), xxxx_terms)),
-                ((1, 'Y'), (2, 'Y'), (3, 'Y'), (4, 'Y')): set(map(lambda x: x.id(), yyyy_terms))}
+    true_set = {((1, 'Z'), (2, 'Z'), (3, 'Z'), (4, 'Z')): set(map(lambda x: x.operations_as_set(), zzzz_terms)),
+                ((1, 'X'), (2, 'Z'), (3, 'X'), (4, 'Z')): set(map(lambda x: x.operations_as_set(), xzxz_terms)),
+                ((1, 'X'), (2, 'X'), (3, 'X'), (4, 'X')): set(map(lambda x: x.operations_as_set(), xxxx_terms)),
+                ((1, 'Y'), (2, 'Y'), (3, 'Y'), (4, 'Y')): set(map(lambda x: x.operations_as_set(), yyyy_terms))}
     for key, value in clumped_terms.items():
-        assert set(map(lambda x: x.id(), clumped_terms[key])) == true_set[key]
+        assert set(map(lambda x: x.operations_as_set(), clumped_terms[key])) == true_set[key]
