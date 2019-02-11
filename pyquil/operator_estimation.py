@@ -833,9 +833,9 @@ def estimate_pauli_sum(pauli_terms,
     if diagonal_ntpb_check:
         try:
             _validate_all_diagonal_in_tpb(pauli_terms)
-        except:
-            raise DiagonalNTPBError("Not all terms are diagonal in each others'" + \
-                "natural tensor product basis, as expected")
+        except AssertionError:
+            raise DiagonalNTPBError("Not all terms are diagonal in each others'"
+                                    + "natural tensor product basis, as expected")
 
     program = program.copy()
     pauli_for_rotations = PauliTerm.from_list(
@@ -1165,9 +1165,9 @@ def estimate_pauli_sum_symmeterized(pauli_terms,
     if diagonal_ntpb_check:
         try:
             _validate_all_diagonal_in_tpb(pauli_terms)
-        except:
-            raise DiagonalNTPBError("Not all terms are diagonal in each others'" + \
-                "natural tensor product basis, as expected")
+        except AssertionError:
+            raise DiagonalNTPBError("Not all terms are diagonal in each others'"
+                                    + "natural tensor product basis, as expected")
 
     program = program.copy()
     pauli_for_rotations = PauliTerm.from_list(
@@ -1213,8 +1213,8 @@ def estimate_pauli_sum_symmeterized(pauli_terms,
     program = program.wrap_in_numshots_loop(min(standard_numshots, num_sample_ubound + (num_sample_ubound % 2)))
     binary = quantum_resource.compiler.native_quil_to_executable(program)
 
-    while (sample_variance > variance_bound and
-           number_of_samples < num_sample_ubound):
+    while (sample_variance > variance_bound
+            and number_of_samples < num_sample_ubound):
         tresults = quantum_resource.run(binary)
         number_of_samples += len(tresults)
 
