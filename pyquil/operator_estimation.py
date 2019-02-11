@@ -812,7 +812,7 @@ def estimate_pauli_sum(pauli_terms,
     :param quantum_resource: quantum abstract machine object
     :param Bool diagonal_ntpb_check: Optional flag toggling a safety check
                                    ensuring all terms in `pauli_terms`
-                                   commute with each other
+                                   are diagonal in each others' natural tpb
     :param Bool symmetrize: Optional flag toggling symmetrization of readout
     :param Int rand_samples: number of random realizations for readout symmetrization
     :return: estimated expected value, expected value of each Pauli term in
@@ -829,7 +829,7 @@ def estimate_pauli_sum(pauli_terms,
     if isinstance(pauli_terms, PauliSum):
         pauli_terms = pauli_terms.terms
 
-    # check if each term commutes with everything
+    # check if all terms are diagonal in each others' natural tpb
     if diagonal_ntpb_check:
         try:
             _validate_all_diagonal_in_tpb(pauli_terms)
@@ -1146,7 +1146,7 @@ def estimate_pauli_sum_symmeterized(pauli_terms,
     :param quantum_resource: quantum abstract machine object
     :param Bool diagonal_ntpb_check: Optional flag toggling a safety check
                                    ensuring all terms in `pauli_terms`
-                                   commute with each other
+                                   are diagonal in each others' natural tpb
     :return: estimated expected value, expected value of each Pauli term in
              the sum, covariance matrix, variance of the estimator, and the
              number of shots taken.  The objected returned is a named tuple with
@@ -1161,7 +1161,7 @@ def estimate_pauli_sum_symmeterized(pauli_terms,
     if isinstance(pauli_terms, PauliSum):
         pauli_terms = pauli_terms.terms
 
-    # check if each term commutes with everything
+    # check if all terms are diagonal in each others' natural tpb
     if diagonal_ntpb_check:
         try:
             _validate_all_diagonal_in_tpb(pauli_terms)
