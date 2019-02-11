@@ -11,7 +11,7 @@ import pytest
 from pyquil.api import WavefunctionSimulator, QVMConnection
 from pyquil.operator_estimation import ExperimentSetting, TomographyExperiment, to_json, read_json, \
     _all_qubits_diagonal_in_tpb, group_experiments, ExperimentResult, measure_observables, \
-    remove_imaginary, get_rotation_program_measure, get_parity, estimate_pauli_sum, CommutationError, \
+    remove_imaginary, get_rotation_program_measure, get_parity, estimate_pauli_sum, DiagonalNTPBError, \
     remove_identity, estimate_locally_commuting_operator, group_terms_greedy, \
     _get_diagonalizing_basis, _max_tpb_overlap, group_experiments_greedy, \
     _expt_settings_diagonal_in_tpb
@@ -421,7 +421,7 @@ def test_estimate_pauli_sum():
         estimate_pauli_sum('5', {0: 'X', 1: 'Z'}, Program(), 1.0E-3,
                            quantum_resource)
 
-    with pytest.raises(CommutationError):
+    with pytest.raises(DiagonalNTPBError):
         estimate_pauli_sum([sX(0), sY(0)], {0: 'X', 1: 'Z'}, Program(), 1.0E-3,
                            quantum_resource)
 

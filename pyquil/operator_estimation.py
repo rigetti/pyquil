@@ -634,9 +634,10 @@ def measure_observables(qc: QuantumComputer, tomo_experiment: TomographyExperime
             )
 
 
-class CommutationError(ValueError):
+class DiagonalNTPBError(ValueError):
     """
-    Raised error when two items do not commute as promised
+    Raised error when two terms are not diagonal in each others'
+    natural tensor product basis (NTPB)
     """
     pass
 
@@ -779,7 +780,7 @@ def estimate_pauli_sum(pauli_terms,
                        program,
                        variance_bound,
                        quantum_resource,
-                       commutation_check=True,
+                       diagonal_ntpb_check=True,
                        symmetrize=True,
                        rand_samples=16):
     r"""
@@ -809,7 +810,7 @@ def estimate_pauli_sum(pauli_terms,
                             PauliSum. Remember this is the SQUARE of the
                             standard error!
     :param quantum_resource: quantum abstract machine object
-    :param Bool commutation_check: Optional flag toggling a safety check
+    :param Bool diagonal_ntpb_check: Optional flag toggling a safety check
                                    ensuring all terms in `pauli_terms`
                                    commute with each other
     :param Bool symmetrize: Optional flag toggling symmetrization of readout
@@ -829,9 +830,12 @@ def estimate_pauli_sum(pauli_terms,
         pauli_terms = pauli_terms.terms
 
     # check if each term commutes with everything
-    if commutation_check:
-        if len(commuting_sets(sum(pauli_terms))) != 1:
-            raise CommutationError("Not all terms commute in the expected way")
+    if diagonal_ntpb_check:
+        try:
+            _validate_all_diagonal_in_tpb(pauli_terms)
+        except:
+            raise DiagonalNTPBError("Not all terms are diagonal in each others'" + \
+                "natural tensor product basis, as expected")
 
     program = program.copy()
     pauli_for_rotations = PauliTerm.from_list(
@@ -957,7 +961,7 @@ def estimate_locally_commuting_operator(program,
                                      program,
                                      variance_bound_per_set,
                                      quantum_resource,
-                                     commutation_check=False,
+                                     diagonal_ntpb_check=False,
                                      symmetrize=symmetrize)
         assert results.variance < variance_bound_per_set
 
@@ -1079,7 +1083,7 @@ def estimate_locally_commuting_operator_symmeterized(program, pauli_sum,
         results = estimate_pauli_sum_symmeterized(pset, dict(qubit_op_key), program,
                                                   variance_bound_per_set,
                                                   quantum_resource,
-                                                  commutation_check=False,
+                                                  diagonal_ntpb_check=False,
                                                   confusion_mat_dict=confusion_mat_dict)
 
         assert results.variance < variance_bound_per_set
@@ -1110,7 +1114,7 @@ def estimate_pauli_sum_symmeterized(pauli_terms,
                                     program,
                                     variance_bound,
                                     quantum_resource,
-                                    commutation_check=True,
+                                    diagonal_ntpb_check=True,
                                     confusion_mat_dict=None):
     r"""
     Estimate the mean of a sum of pauli terms to set variance with symmeterized
@@ -1140,7 +1144,7 @@ def estimate_pauli_sum_symmeterized(pauli_terms,
                             PauliSum. Remember this is the SQUARE of the
                             standard error!
     :param quantum_resource: quantum abstract machine object
-    :param Bool commutation_check: Optional flag toggling a safety check
+    :param Bool diagonal_ntpb_check: Optional flag toggling a safety check
                                    ensuring all terms in `pauli_terms`
                                    commute with each other
     :return: estimated expected value, expected value of each Pauli term in
@@ -1158,9 +1162,12 @@ def estimate_pauli_sum_symmeterized(pauli_terms,
         pauli_terms = pauli_terms.terms
 
     # check if each term commutes with everything
-    if commutation_check:
-        if len(commuting_sets(sum(pauli_terms))) != 1:
-            raise CommutationError("Not all terms commute in the expected way")
+    if diagonal_ntpb_check:
+        try:
+            _validate_all_diagonal_in_tpb(pauli_terms)
+        except:
+            raise DiagonalNTPBError("Not all terms are diagonal in each others'" + \
+                "natural tensor product basis, as expected")
 
     program = program.copy()
     pauli_for_rotations = PauliTerm.from_list(
