@@ -287,6 +287,39 @@ KRAUS_OPS = {
     'bitphase_flip': bitphase_flip_operators,
 }
 
+SIC0 = np.array([1, 0])
+SIC1 = np.array([1, np.sqrt(2)]) / np.sqrt(3)
+SIC2 = np.array([1, np.exp(-np.pi * 2j / 3) * np.sqrt(2)]) / np.sqrt(3)
+SIC3 = np.array([1, np.exp(np.pi * 2j / 3) * np.sqrt(2)]) / np.sqrt(3)
+"""
+The symmetric informationally complete POVMs for a qubit.
+
+These can reduce the number of experiments to perform quantum process tomography.
+For more information, please see http://info.phys.unm.edu/~caves/reports/infopovm.pdf
+"""
+
+STATES = {
+    'X': [
+        np.array([1, 1]) / np.sqrt(2),
+        np.array([1, -1]) / np.sqrt(2),
+    ],
+    'Y': [
+        np.array([1, 1j]) / np.sqrt(2),
+        np.array([1, -1j]) / np.sqrt(2),
+    ],
+    'Z': [
+        np.array([1, 0]),
+        np.array([0, 1]),
+    ],
+    'SIC': [
+        SIC0,
+        SIC1,
+        SIC2,
+        SIC3,
+    ]
+}
+
 __all__ = list(QUANTUM_GATES.keys()) + ['relaxation_operators', 'dephasing_operators',
                                         'depolarizing_operators', 'phase_flip_operators',
-                                        'bit_flip_operators', 'bitphase_flip_operators']
+                                        'bit_flip_operators', 'bitphase_flip_operators',
+                                        'STATES', 'SIC0', 'SIC1', 'SIC2', 'SIC3']

@@ -5,7 +5,7 @@ import pytest
 from rpcq.messages import ParameterAref
 
 from pyquil.parser import parse
-from pyquil import Program
+from pyquil import Program, get_qc
 from pyquil.api import QuantumComputer, QPU, QPUCompiler
 from pyquil.api._compiler import _collect_classical_memory_write_locations
 from pyquil.api._config import PyquilConfig
@@ -231,3 +231,17 @@ def test_resolve_mem_references(gate_arithmetic_binaries, mock_qpu):
 def parse_expression(expression):
     """ We have to use this as a hack for now, RZ is meaningless. """
     return parse(f"RZ({expression}) 0")[0].params[0]
+
+
+def test_run_expects_executable():
+    # https://github.com/rigetti/pyquil/issues/740
+
+    # This test might need some more knowledgeable eyes. Not sure how
+    # to best mock a qpu.
+    qc = get_qc('1q-qvm')
+    qc.qam = QPU(endpoint='tcp://not-needed:00000',
+                 user="pyQuil test suite")
+
+    p = Program(X(0))
+    with pytest.raises(TypeError):
+        result = qc.run(p)

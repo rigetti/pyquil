@@ -21,6 +21,7 @@ import numpy as np
 from rpcq import Client
 from rpcq.messages import QPURequest, ParameterAref
 
+from pyquil import Program
 from pyquil.parser import parse
 from pyquil.api._qam import QAM
 from pyquil.api._error_reporting import _record_call
@@ -120,6 +121,13 @@ class QPU(QAM):
 
         :return: The QPU object itself.
         """
+        # This prevents a common error where users expect QVM.run()
+        # and QPU.run() to be interchangeable. QPU.run() needs the
+        # supplied executable to have been compiled, QVM.run() does not.
+        if isinstance(self._executable, Program):
+            raise TypeError("It looks like you have provided a Program where an Executable"
+                            " is expected. Please use QuantumComputer.compile() to compile"
+                            " your program.")
         super().run()
 
         request = QPURequest(program=self._executable.program,

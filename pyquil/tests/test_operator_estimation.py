@@ -1,3 +1,4 @@
+import functools
 import itertools
 import random
 from math import pi
@@ -5,19 +6,36 @@ from unittest.mock import Mock
 import numpy as np
 import functools
 from operator import mul
+
+import numpy as np
 from scipy.stats import bernoulli
 import pytest
 
+from pyquil import Program, get_qc
+from pyquil.gates import *
 from pyquil.api import WavefunctionSimulator, QVMConnection
 from pyquil.operator_estimation import ExperimentSetting, TomographyExperiment, to_json, read_json, \
+    group_experiments, ExperimentResult, measure_observables, SIC0, \
+    SIC1, SIC2, SIC3, plusX, minusX, plusY, minusY, plusZ, minusZ, \
+    _max_tpb_overlap, _max_weight_operator, _max_weight_state, \
+    TensorProductState, zeros_state, \
     _all_qubits_diagonal_in_tpb, group_experiments, ExperimentResult, measure_observables, \
     remove_imaginary, get_rotation_program_measure, get_parity, estimate_pauli_sum, DiagonalNTPBError, \
     remove_identity, estimate_locally_commuting_operator, group_terms_greedy, \
     _get_diagonalizing_basis, _max_tpb_overlap, group_experiments_greedy, \
     _expt_settings_diagonal_in_tpb
 from pyquil.paulis import sI, sX, sY, sZ, PauliSum, PauliTerm
-from pyquil import Program, get_qc
-from pyquil.gates import *
+
+
+def _generate_random_states(n_qubits, n_terms):
+    oneq_states = [SIC0, SIC1, SIC2, SIC3, plusX, minusX, plusY, minusY, plusZ, minusZ]
+    all_s_inds = np.random.randint(len(oneq_states), size=(n_terms, n_qubits))
+    states = []
+    for s_inds in all_s_inds:
+        state = functools.reduce(mul, (oneq_states[pi](i) for i, pi in enumerate(s_inds)),
+                                 TensorProductState([]))
+        states += [state]
+    return states
 
 
 def _generate_random_paulis(n_qubits, n_terms):
@@ -31,19 +49,19 @@ def _generate_random_paulis(n_qubits, n_terms):
     return operators
 
 
-def test_experiment():
-    in_ops = _generate_random_paulis(n_qubits=4, n_terms=7)
+def test_experiment_setting():
+    in_states = _generate_random_states(n_qubits=4, n_terms=7)
     out_ops = _generate_random_paulis(n_qubits=4, n_terms=7)
-    for iop, oop in zip(in_ops, out_ops):
-        expt = ExperimentSetting(iop, oop)
+    for ist, oop in zip(in_states, out_ops):
+        expt = ExperimentSetting(ist, oop)
         assert str(expt) == expt.serializable()
         expt2 = ExperimentSetting.from_str(str(expt))
         assert expt == expt2
-        assert expt2.in_operator == iop
+        assert expt2.in_state == ist
         assert expt2.out_operator == oop
 
 
-def test_experiment_no_in():
+def test_setting_no_in_back_compat():
     out_ops = _generate_random_paulis(n_qubits=4, n_terms=7)
     for oop in out_ops:
         expt = ExperimentSetting(sI(), oop)
@@ -53,7 +71,17 @@ def test_experiment_no_in():
         assert expt2.out_operator == oop
 
 
-def test_experiment_suite():
+def test_setting_no_in():
+    out_ops = _generate_random_paulis(n_qubits=4, n_terms=7)
+    for oop in out_ops:
+        expt = ExperimentSetting(zeros_state(oop.get_qubits()), oop)
+        expt2 = ExperimentSetting.from_str(str(expt))
+        assert expt == expt2
+        assert expt2.in_operator == functools.reduce(mul, [sZ(q) for q in oop.get_qubits()], sI())
+        assert expt2.out_operator == oop
+
+
+def test_tomo_experiment():
     expts = [
         ExperimentSetting(sI(), sX(0) * sY(1)),
         ExperimentSetting(sZ(0), sZ(0)),
@@ -74,7 +102,7 @@ def test_experiment_suite():
     assert prog_str == 'X 0; Y 1'
 
 
-def test_experiment_suite_pre_grouped():
+def test_tomo_experiment_pre_grouped():
     expts = [
         [ExperimentSetting(sI(), sX(0) * sI(1)), ExperimentSetting(sI(), sI(0) * sX(1))],
         [ExperimentSetting(sI(), sZ(0) * sI(1)), ExperimentSetting(sI(), sI(0) * sZ(1))],
@@ -93,13 +121,13 @@ def test_experiment_suite_pre_grouped():
     assert prog_str == 'X 0; Y 1'
 
 
-def test_experiment_suite_empty():
+def test_tomo_experiment_empty():
     suite = TomographyExperiment([], program=Program(X(0)), qubits=[0])
     assert len(suite) == 0
     assert str(suite.program) == 'X 0\n'
 
 
-def test_suite_deser(tmpdir):
+def test_experiment_deser(tmpdir):
     expts = [
         [ExperimentSetting(sI(), sX(0) * sI(1)), ExperimentSetting(sI(), sI(0) * sX(1))],
         [ExperimentSetting(sI(), sZ(0) * sI(1)), ExperimentSetting(sI(), sI(0) * sZ(1))],
@@ -113,6 +141,11 @@ def test_suite_deser(tmpdir):
     to_json(f'{tmpdir}/suite.json', suite)
     suite2 = read_json(f'{tmpdir}/suite.json')
     assert suite == suite2
+
+
+@pytest.fixture(params=['clique-removal', 'greedy'])
+def grouping_method(request):
+    return request.param
 
 
 def test_all_qubits_diagonal_in_tpb():
@@ -147,26 +180,35 @@ def test_all_qubits_diagonal_in_tpb():
     # need not be diagonal in the same tpb
     assert not _all_qubits_diagonal_in_tpb(sX(1) * sZ(0), sZ(1) * sX(0))
 
-
-def test_group_experiments():
+def test_group_experiments(grouping_method):
     expts = [  # cf above, I removed the inner nesting. Still grouped visually
         ExperimentSetting(sI(), sX(0) * sI(1)), ExperimentSetting(sI(), sI(0) * sX(1)),
         ExperimentSetting(sI(), sZ(0) * sI(1)), ExperimentSetting(sI(), sI(0) * sZ(1)),
     ]
     suite = TomographyExperiment(expts, Program(), qubits=[0, 1])
-    grouped_suite = group_experiments(suite)
+    grouped_suite = group_experiments(suite, method=grouping_method)
     assert len(suite) == 4
     assert len(grouped_suite) == 2
 
 
-def test_experiment_result():
+def test_experiment_result_compat():
     er = ExperimentResult(
         setting=ExperimentSetting(sX(0), sZ(0)),
         expectation=0.9,
         stddev=0.05,
         total_counts=100,
     )
-    assert str(er) == '(1+0j)*X0→(1+0j)*Z0: 0.9 +- 0.05'
+    assert str(er) == 'X0_0→(1+0j)*Z0: 0.9 +- 0.05'
+
+
+def test_experiment_result():
+    er = ExperimentResult(
+        setting=ExperimentSetting(plusX(0), sZ(0)),
+        expectation=0.9,
+        stddev=0.05,
+        total_counts=100,
+    )
+    assert str(er) == 'X0_0→(1+0j)*Z0: 0.9 +- 0.05'
 
 
 def test_measure_observables(forest):
@@ -255,15 +297,63 @@ def test_no_complex_coeffs(forest):
         res = list(measure_observables(qc, suite))
 
 
-def test_get_diagonalizing_basis_1():
-    pauli_terms = [sZ(0), sX(1) * sZ(0), sY(2) * sX(1)]
-    assert _get_diagonalizing_basis(pauli_terms) == sY(2) * sX(1) * sZ(0)
+def test_max_weight_operator_1():
+    pauli_terms = [sZ(0),
+                   sX(1) * sZ(0),
+                   sY(2) * sX(1)]
+    assert _max_weight_operator(pauli_terms) == sY(2) * sX(1) * sZ(0)
+
+
+def test_max_weight_operator_2():
+    pauli_terms = [sZ(0),
+                   sX(1) * sZ(0),
+                   sY(2) * sX(1),
+                   sZ(5) * sI(3)]
+    assert _max_weight_operator(pauli_terms) == sZ(5) * sY(2) * sX(1) * sZ(0)
+
+
+def test_max_weight_operator_3():
+    pauli_terms = [sZ(0) * sX(5),
+                   sX(1) * sZ(0),
+                   sY(2) * sX(1),
+                   sZ(5) * sI(3)]
+    assert _max_weight_operator(pauli_terms) is None
+
+
+def test_max_weight_state_1():
+    states = [plusX(0) * plusZ(1),
+              plusX(0),
+              plusZ(1),
+              ]
+    assert _max_weight_state(states) == states[0]
 
     xxxx_terms = sX(1) * sX(2) + sX(2) + sX(3) * sX(4) + sX(4) + \
         sX(1) * sX(3) * sX(4) + sX(1) * sX(4) + sX(1) * sX(2) * sX(3)
     true_term = sX(1) * sX(2) * sX(3) * sX(4)
     assert _get_diagonalizing_basis(xxxx_terms.terms) == true_term
 
+def test_max_weight_state_2():
+    states = [plusX(1) * plusZ(0),
+              plusX(0),
+              plusZ(1),
+              ]
+    assert _max_weight_state(states) is None
+
+
+def test_max_weight_state_3():
+    states = [plusX(0) * minusZ(1),
+              plusX(0),
+              minusZ(1),
+              ]
+    assert _max_weight_state(states) == states[0]
+
+
+def test_max_weight_state_4():
+    states = [plusX(1) * minusZ(0),
+              plusX(0),
+              minusZ(1),
+              ]
+    assert _max_weight_state(states) is None
     zzzz_terms = sZ(1) * sZ(2) + sZ(3) * sZ(4) + \
         sZ(1) * sZ(3) + sZ(1) * sZ(3) * sZ(4)
     assert _get_diagonalizing_basis(zzzz_terms.terms) == sZ(1) * sZ(2) * \
@@ -279,9 +369,12 @@ def test_max_tpb_overlap_1():
     tomo_expt_program = Program(H(0), H(1), H(2))
     tomo_expt_qubits = [0, 1, 2]
     tomo_expt = TomographyExperiment(tomo_expt_settings, tomo_expt_program, tomo_expt_qubits)
-    expected_dict = {ExperimentSetting(sX(0) * sZ(1) * sX(2), sZ(0) * sY(1) * sY(2)):
-                         [ExperimentSetting(sZ(1) * sX(0), sY(2) * sY(1)),
-                          ExperimentSetting(sX(2) * sZ(1), sY(2) * sZ(0))]}
+    expected_dict = {
+        ExperimentSetting(plusX(0) * plusZ(1) * plusX(2), sZ(0) * sY(1) * sY(2)): [
+            ExperimentSetting(plusZ(1) * plusX(0), sY(2) * sY(1)),
+            ExperimentSetting(plusX(2) * plusZ(1), sY(2) * sZ(0))
+        ]
+    }
     assert expected_dict == _max_tpb_overlap(tomo_expt)
 
 
@@ -313,29 +406,42 @@ def test_group_experiments_greedy():
                             PauliTerm.from_compact_str('(1+0j)*Z4X8Y5X3Y7Y1'))],
          [ExperimentSetting(sZ(7), sY(1))]], program=Program(H(0), H(1), H(2)),
         qubits=[0, 1, 2])
-    grouped_tomo_expt = group_experiments_greedy(ungrouped_tomo_expt)
+    grouped_tomo_expt = group_experiments(ungrouped_tomo_expt, method='greedy')
     expected_grouped_tomo_expt = TomographyExperiment(
-        [[ExperimentSetting(PauliTerm.from_compact_str('(1+0j)*Z7Y8Z1Y4Z2Y5Y0X6'),
-                            PauliTerm.from_compact_str('(1+0j)*Z4X8Y5X3Y7Y1')),
-          ExperimentSetting(sZ(7), sY(1))]],
+        [[
+            ExperimentSetting(TensorProductState.from_str('Z0_7 * Y0_8 * Z0_1 * Y0_4 * '
+                                                          'Z0_2 * Y0_5 * Y0_0 * X0_6'),
+                              PauliTerm.from_compact_str('(1+0j)*Z4X8Y5X3Y7Y1')),
+            ExperimentSetting(plusZ(7), sY(1))
+        ]],
         program=Program(H(0), H(1), H(2)),
         qubits=[0, 1, 2])
     assert grouped_tomo_expt == expected_grouped_tomo_expt
 
 
 def test_expt_settings_diagonal_in_tpb():
-    expt_setting1 = ExperimentSetting(sZ(1) * sX(0), sY(1) * sZ(0))
-    expt_setting2 = ExperimentSetting(sY(2) * sZ(1), sZ(2) * sY(1))
+    def _expt_settings_diagonal_in_tpb(es1: ExperimentSetting, es2: ExperimentSetting):
+        """
+        Extends the concept of being diagonal in the same tpb to ExperimentSettings, by
+        determining if the pairs of in_states and out_operators are separately diagonal in the same
+        tpb
+        """
+        max_weight_in = _max_weight_state([es1.in_state, es2.in_state])
+        max_weight_out = _max_weight_operator([es1.out_operator, es2.out_operator])
+        return max_weight_in is not None and max_weight_out is not None
+
+    expt_setting1 = ExperimentSetting(plusZ(1) * plusX(0), sY(1) * sZ(0))
+    expt_setting2 = ExperimentSetting(plusY(2) * plusZ(1), sZ(2) * sY(1))
     assert _expt_settings_diagonal_in_tpb(expt_setting1, expt_setting2)
-    expt_setting3 = ExperimentSetting(sX(2) * sZ(1), sZ(2) * sY(1))
-    expt_setting4 = ExperimentSetting(sY(2) * sZ(1), sX(2) * sY(1))
+    expt_setting3 = ExperimentSetting(plusX(2) * plusZ(1), sZ(2) * sY(1))
+    expt_setting4 = ExperimentSetting(plusY(2) * plusZ(1), sX(2) * sY(1))
     assert not _expt_settings_diagonal_in_tpb(expt_setting2, expt_setting3)
     assert not _expt_settings_diagonal_in_tpb(expt_setting2, expt_setting4)
 
 
 def test_identity(forest):
     qc = get_qc('2q-qvm')
-    suite = TomographyExperiment([ExperimentSetting(sI(), 0.123 * sI(0))],
+    suite = TomographyExperiment([ExperimentSetting(plusZ(0), 0.123 * sI(0))],
                                  program=Program(X(0)), qubits=[0])
     result = list(measure_observables(qc, suite))[0]
     assert result.expectation == 0.123
@@ -560,3 +666,19 @@ def test_group_terms_greedy():
                 ((1, 'Y'), (2, 'Y'), (3, 'Y'), (4, 'Y')): set(map(lambda x: x.operations_as_set(), yyyy_terms))}
     for key, value in clumped_terms.items():
         assert set(map(lambda x: x.operations_as_set(), clumped_terms[key])) == true_set[key]
+
+
+def test_sic_process_tomo(forest):
+    qc = get_qc('2q-qvm')
+    process = Program(X(0))
+    settings = []
+    for in_state in [SIC0, SIC1, SIC2, SIC3]:
+        for out_op in [sI, sX, sY, sZ]:
+            settings += [ExperimentSetting(
+                in_state=in_state(q=0),
+                out_operator=out_op(q=0)
+            )]
+
+    experiment = TomographyExperiment(settings=settings, program=process, qubits=[0])
+    results = list(measure_observables(qc, experiment))
+    assert len(results) == 4 * 4

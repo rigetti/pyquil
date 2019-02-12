@@ -4,9 +4,10 @@ import pytest
 from pyquil import Program
 from pyquil import gate_matrices as mat
 from pyquil.gates import *
+from pyquil.operator_estimation import plusX, minusZ
 from pyquil.paulis import sX, sY, sZ
 from pyquil.unitary_tools import qubit_adjacent_lifted_gate, program_unitary, lifted_gate_matrix, \
-    lifted_gate, lifted_pauli
+    lifted_gate, lifted_pauli, lifted_state_operator
 
 
 def test_random_gates():
@@ -326,3 +327,40 @@ def test_lifted_pauli():
     true_matrix[0, 0] = 2
     true_matrix[-1, -1] = -2
     np.testing.assert_allclose(trial_matrix, true_matrix)
+
+
+def test_lifted_state_operator():
+    xz_state = plusX(5) * minusZ(6)
+
+    plus = np.array([1, 1]) / np.sqrt(2)
+    plus = plus[:, np.newaxis]
+    proj_plus = plus @ plus.conj().T
+    assert proj_plus.shape == (2, 2)
+
+    one = np.array([0, 1])
+    one = one[:, np.newaxis]
+    proj_one = one @ one.conj().T
+    assert proj_one.shape == (2, 2)
+
+    np.testing.assert_allclose(
+        np.kron(proj_one, proj_plus),
+        lifted_state_operator(xz_state, qubits=[5, 6]),
+    )
+
+
+def test_lifted_state_operator_backwards_qubits():
+    xz_state = plusX(5) * minusZ(6)
+    plus = np.array([1, 1]) / np.sqrt(2)
+    plus = plus[:, np.newaxis]
+    proj_plus = plus @ plus.conj().T
+    assert proj_plus.shape == (2, 2)
+
+    one = np.array([0, 1])
+    one = one[:, np.newaxis]
+    proj_one = one @ one.conj().T
+    assert proj_one.shape == (2, 2)
+
+    np.testing.assert_allclose(
+        np.kron(proj_plus, proj_one),
+        lifted_state_operator(xz_state, qubits=[6, 5]),
+    )
