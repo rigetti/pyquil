@@ -19,7 +19,7 @@ from pyquil.operator_estimation import ExperimentSetting, TomographyExperiment, 
     SIC1, SIC2, SIC3, plusX, minusX, plusY, minusY, plusZ, minusZ, \
     _max_tpb_overlap, _max_weight_operator, _max_weight_state, \
     TensorProductState, zeros_state, \
-    _all_qubits_diagonal_in_tpb, group_experiments, ExperimentResult, measure_observables, \
+    group_experiments, ExperimentResult, measure_observables, \
     remove_imaginary, get_rotation_program_measure, get_parity, estimate_pauli_sum, DiagonalNTPBError, \
     remove_identity, estimate_locally_commuting_operator, group_terms_greedy, \
     _get_diagonalizing_basis, _max_tpb_overlap, group_experiments_greedy, \
@@ -148,37 +148,14 @@ def grouping_method(request):
     return request.param
 
 
-def test_all_qubits_diagonal_in_tpb():
-    expts = [
-        [ExperimentSetting(sI(), sX(0) * sI(1)), ExperimentSetting(sI(), sI(0) * sX(1))],
-        [ExperimentSetting(sI(), sZ(0) * sI(1)), ExperimentSetting(sI(), sI(0) * sZ(1))],
-    ]
+def test_expt_settings_share_ntpb():
+    expts = [[ExperimentSetting(zeros_state([0, 1]), sX(0) * sI(1)), ExperimentSetting(zeros_state([0, 1]), sI(0) * sX(1))],
+             [ExperimentSetting(zeros_state([0, 1]), sZ(0) * sI(1)), ExperimentSetting(zeros_state([0, 1]), sI(0) * sZ(1))]]
     for group in expts:
         for e1, e2 in itertools.combinations(group, 2):
-            assert _all_qubits_diagonal_in_tpb(e1.in_operator, e2.in_operator)
-            assert _all_qubits_diagonal_in_tpb(e1.out_operator, e2.out_operator)
+            assert _max_weight_state([e1.in_state, e2.in_state]) is not None
+            assert _max_weight_operator([e1.out_operator, e2.out_operator]) is not None
 
-    assert _all_qubits_diagonal_in_tpb(sZ(0), sZ(0) * sZ(1))
-    assert _all_qubits_diagonal_in_tpb(sX(5), sZ(4))
-    assert not _all_qubits_diagonal_in_tpb(sX(0), sY(0) * sZ(2))
-
-    x_term = sX(0) * sX(1)
-    z1_term = sZ(1)
-    z0_term = sZ(0)
-    z0z1_term = sZ(0) * sZ(1)
-    assert not _all_qubits_diagonal_in_tpb(x_term, z1_term)
-    assert not _all_qubits_diagonal_in_tpb(z0z1_term, x_term)
-
-    assert _all_qubits_diagonal_in_tpb(z1_term, z0_term)
-    assert _all_qubits_diagonal_in_tpb(z0z1_term, z0_term)
-    assert _all_qubits_diagonal_in_tpb(z0z1_term, z1_term)
-    assert _all_qubits_diagonal_in_tpb(z0z1_term, sI(1))
-    assert _all_qubits_diagonal_in_tpb(z0z1_term, sI(2))
-    assert _all_qubits_diagonal_in_tpb(z0z1_term, sX(5) * sY(7))
-
-    # this last example illustrates that a pair of commuting operators
-    # need not be diagonal in the same tpb
-    assert not _all_qubits_diagonal_in_tpb(sX(1) * sZ(0), sZ(1) * sX(0))
 
 def test_group_experiments(grouping_method):
     expts = [  # cf above, I removed the inner nesting. Still grouped visually
@@ -318,6 +295,32 @@ def test_max_weight_operator_3():
                    sY(2) * sX(1),
                    sZ(5) * sI(3)]
     assert _max_weight_operator(pauli_terms) is None
+
+
+def test_max_weight_operator_misc():
+    assert _max_weight_operator([sZ(0), sZ(0) * sZ(1)]) is not None
+    assert _max_weight_operator([sX(5), sZ(4)]) is not None
+    assert _max_weight_operator([sX(0), sY(0) * sZ(2)]) is None
+
+    x_term = sX(0) * sX(1)
+    z1_term = sZ(1)
+    z0_term = sZ(0)
+    z0z1_term = sZ(0) * sZ(1)
+    assert _max_weight_operator([x_term, z1_term]) is None
+    assert _max_weight_operator([z0z1_term, x_term]) is None
+
+    assert _max_weight_operator([z1_term, z0_term]) is not None
+    assert _max_weight_operator([z0z1_term, z0_term]) is not None
+    assert _max_weight_operator([z0z1_term, z1_term]) is not None
+    assert _max_weight_operator([z0z1_term, sI(1)]) is not None
+    assert _max_weight_operator([z0z1_term, sI(2)]) is not None
+    assert _max_weight_operator([z0z1_term, sX(5) * sZ(7)]) is not None
+
+
+def test_max_weight_operator_4():
+    # this last example illustrates that a pair of commuting operators
+    # need not be diagonal in the same tpb
+    assert _max_weight_operator([sX(1) * sZ(0), sZ(1) * sX(0)]) is None
 
 
 def test_max_weight_state_1():
