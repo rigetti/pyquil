@@ -60,6 +60,7 @@ def test_experiment_setting():
         assert expt2.out_operator == oop
 
 
+@pytest.mark.filterwarnings("ignore:ExperimentSetting")
 def test_setting_no_in_back_compat():
     out_ops = _generate_random_paulis(n_qubits=4, n_terms=7)
     for oop in out_ops:
@@ -70,6 +71,7 @@ def test_setting_no_in_back_compat():
         assert expt2.out_operator == oop
 
 
+@pytest.mark.filterwarnings("ignore:ExperimentSetting")
 def test_setting_no_in():
     out_ops = _generate_random_paulis(n_qubits=4, n_terms=7)
     for oop in out_ops:
@@ -341,6 +343,7 @@ def test_max_weight_state_1():
               plusZ(1),
               ]
     assert _max_weight_state(states) == states[0]
+
 
 def test_max_weight_state_2():
     states = [plusX(1) * plusZ(0),
