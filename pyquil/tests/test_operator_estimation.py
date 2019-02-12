@@ -22,7 +22,7 @@ from pyquil.operator_estimation import ExperimentSetting, TomographyExperiment, 
     group_experiments, ExperimentResult, measure_observables, \
     remove_imaginary, get_rotation_program_measure, get_parity, estimate_pauli_sum, DiagonalNTPBError, \
     remove_identity, estimate_locally_commuting_operator, group_terms_greedy, \
-    _get_diagonalizing_basis, _max_tpb_overlap, group_experiments_greedy, \
+    _max_tpb_overlap, group_experiments_greedy, \
     _expt_settings_diagonal_in_tpb
 from pyquil.paulis import sI, sX, sY, sZ, PauliSum, PauliTerm
 
@@ -316,6 +316,19 @@ def test_max_weight_operator_misc():
     assert _max_weight_operator([z0z1_term, sI(2)]) is not None
     assert _max_weight_operator([z0z1_term, sX(5) * sZ(7)]) is not None
 
+    xxxx_terms = sX(1) * sX(2) + sX(2) + sX(3) * sX(4) + sX(4) + \
+        sX(1) * sX(3) * sX(4) + sX(1) * sX(4) + sX(1) * sX(2) * sX(3)
+    true_term = sX(1) * sX(2) * sX(3) * sX(4)
+    assert _max_weight_operator(xxxx_terms.terms) == true_term
+
+    zzzz_terms = sZ(1) * sZ(2) + sZ(3) * sZ(4) + \
+        sZ(1) * sZ(3) + sZ(1) * sZ(3) * sZ(4)
+    assert _max_weight_operator(zzzz_terms.terms) == sZ(1) * sZ(2) * \
+        sZ(3) * sZ(4)
+
+    pauli_terms = [sZ(0), sX(1) * sZ(0), sY(2) * sX(1), sZ(5) * sI(3)]
+    assert _max_weight_operator(pauli_terms) == sZ(5) * sY(2) * sX(1) * sZ(0)
+
 
 def test_max_weight_operator_4():
     # this last example illustrates that a pair of commuting operators
@@ -329,11 +342,6 @@ def test_max_weight_state_1():
               plusZ(1),
               ]
     assert _max_weight_state(states) == states[0]
-
-    xxxx_terms = sX(1) * sX(2) + sX(2) + sX(3) * sX(4) + sX(4) + \
-        sX(1) * sX(3) * sX(4) + sX(1) * sX(4) + sX(1) * sX(2) * sX(3)
-    true_term = sX(1) * sX(2) * sX(3) * sX(4)
-    assert _get_diagonalizing_basis(xxxx_terms.terms) == true_term
 
 def test_max_weight_state_2():
     states = [plusX(1) * plusZ(0),
@@ -357,13 +365,6 @@ def test_max_weight_state_4():
               minusZ(1),
               ]
     assert _max_weight_state(states) is None
-    zzzz_terms = sZ(1) * sZ(2) + sZ(3) * sZ(4) + \
-        sZ(1) * sZ(3) + sZ(1) * sZ(3) * sZ(4)
-    assert _get_diagonalizing_basis(zzzz_terms.terms) == sZ(1) * sZ(2) * \
-        sZ(3) * sZ(4)
-
-    pauli_terms = [sZ(0), sX(1) * sZ(0), sY(2) * sX(1), sZ(5) * sI(3)]
-    assert _get_diagonalizing_basis(pauli_terms) == sZ(5) * sY(2) * sX(1) * sZ(0)
 
 
 def test_max_tpb_overlap_1():
