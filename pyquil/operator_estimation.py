@@ -1017,7 +1017,7 @@ def estimate_pauli_sum(pauli_terms,
     # check if all terms are diagonal in each others' natural tpb
     if diagonal_ntpb_check:
         try:
-            _validate_all_diagonal_in_tpb(pauli_terms)
+            assert _max_weight_operator(pauli_terms) is not None
         except AssertionError:
             raise DiagonalNTPBError("Not all terms are diagonal in each others'"
                                     + "natural tensor product basis, as expected")
@@ -1349,7 +1349,7 @@ def estimate_pauli_sum_symmeterized(pauli_terms,
     # check if all terms are diagonal in each others' natural tpb
     if diagonal_ntpb_check:
         try:
-            _validate_all_diagonal_in_tpb(pauli_terms)
+            assert _max_weight_operator(pauli_terms) is not None
         except AssertionError:
             raise DiagonalNTPBError("Not all terms are diagonal in each others'"
                                     + "natural tensor product basis, as expected")

@@ -22,8 +22,7 @@ from pyquil.operator_estimation import ExperimentSetting, TomographyExperiment, 
     group_experiments, ExperimentResult, measure_observables, \
     remove_imaginary, get_rotation_program_measure, get_parity, estimate_pauli_sum, DiagonalNTPBError, \
     remove_identity, estimate_locally_commuting_operator, group_terms_greedy, \
-    _max_tpb_overlap, group_experiments_greedy, \
-    _expt_settings_diagonal_in_tpb
+    _max_tpb_overlap, group_experiments_greedy
 from pyquil.paulis import sI, sX, sY, sZ, PauliSum, PauliTerm
 
 
