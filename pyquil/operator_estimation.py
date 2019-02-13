@@ -735,7 +735,7 @@ class ExperimentResult:
 
 
 def measure_observables(qc: QuantumComputer, tomo_experiment: TomographyExperiment, n_shots=1000,
-                        progress_callback=None, active_reset=False):
+                        progress_callback=None, active_reset=False, symmetrize=False):
     """
     Measure all the observables in a TomographyExperiment.
 
@@ -750,6 +750,10 @@ def measure_observables(qc: QuantumComputer, tomo_experiment: TomographyExperime
         to True is much faster but there is a ~1% error per qubit in the reset operation.
         Thermal noise from "traditional" reset is not routinely characterized but is of the same
         order.
+    :param symmetrize: Whether to symmetrize the readout errors, i.e. set p(0|1) = p(1|0). For
+        uncorrelated readout errors, this can be achieved by randomly selecting between the
+        POVMs {X.D1.X, X.D0.X} and {D0, D1} (where both D0 and D1 are diagonal). However, here
+        we use exhaustive symmetrization and loop through all possible 2^n POVMs {X/I . POVM . X/I}^n
     """
     for i, settings in enumerate(tomo_experiment):
         # Outer loop over a collection of grouped settings for which we can simultaneously
@@ -772,8 +776,31 @@ def measure_observables(qc: QuantumComputer, tomo_experiment: TomographyExperime
         for qubit, op_str in max_weight_out_op:
             total_prog += _local_pauli_eig_meas(op_str, qubit)
 
-        # 2. Run the experiment
-        bitstrings = qc.run_and_measure(total_prog, n_shots)
+        if symmetrize:
+            # 1.4 Symmetrize -- flip qubits pre-measurement
+            qubits = max_weight_out_op.get_qubits()
+            ops_strings = _ops_strs_symmetrize(qubits)
+            list_bitstrings_symm = []
+            for ops_str in ops_strings:
+                total_prog_symm = total_prog.copy()
+                prog_symm = _ops_str_to_prog(ops_str, qubits)
+                total_prog_symm += prog_symm
+                # 2. Run the experiment
+                bitstrings_symm = qc.run_and_measure(total_prog_symm, n_shots)
+                # 2.1 Flip the results post-measurement
+                d_flips_symm = _ops_str_to_flips(ops_str, qubits)
+                for qubit, bs_results in bitstrings_symm.items():
+                    bitstrings_symm[qubit] = bs_results ^ d_flips_symm.get(qubit, 0)
+                # 2.2 Gather together the symmetrized results into list
+                list_bitstrings_symm.append(bitstrings_symm)
+
+            # 2.3 Gather together all the symmetrized results
+            bitstrings = reduce(lambda d1, d2: _stack_dicts(d1, d2), list_bitstrings_symm)
+
+        else:
+            # 2. Run the experiment
+            bitstrings = qc.run_and_measure(total_prog, n_shots)
+
         if progress_callback is not None:
             progress_callback(i, len(tomo_experiment))
 
@@ -817,6 +844,73 @@ def measure_observables(qc: QuantumComputer, tomo_experiment: TomographyExperime
                 stddev=np.sqrt(obs_var).item(),
                 total_counts=n_shots,
             )
+
+
+def _ops_strs_symmetrize(qubits_):
+    """
+    :param qubits_: list specifying the qubits whose readout errors we wish to symmetrize
+    :return: list with the operation strings necessary for exhaustive symmetrization
+    """
+    ops_strings = []
+    for prod in itertools.product(['I', 'X'], repeat=len(qubits_)):
+        ops_strings.append(''.join(prod))
+    return ops_strings
+
+
+def _ops_str_to_prog(ops_str_, qubits_):
+    """
+    :param ops_str_: string specifying the operation to be carried out on `qubits_`
+    :param qubits_: list specifying the qubits to be carried operations on
+    :return: Program with the operations specified in `ops_str_` on the qubits specified in `qubits_`
+    """
+    assert len(ops_str_) == len(qubits_), "Mismatch of qubits and operations"
+    prog = Program()
+    for i, op_ch in enumerate(ops_str_):
+        if op_ch == 'I':
+            continue
+        elif op_ch == 'X':
+            prog += Program(X(qubits_[i]))
+        else:
+            raise ValueError("ops_strings_ should only consist of 'I's and/or 'X's")
+    return prog
+
+
+def _ops_str_to_flips(ops_str_, qubits_):
+    """
+    :param ops_str_: string specifying the operation to be carried out on `qubits_`
+    :param qubits_: list specifying the qubits to be carried operations on
+    :return: Dict specyfing whether to flip the readout results or not, depending on
+        the operations specified in `ops_str_`, which in turn are operating on the
+        qubits specified in `qubits_`
+    """
+    d_flip = {}
+    for i, op_ch in enumerate(ops_str_):
+        q = qubits_[i]
+        if op_ch == 'I':
+            d_flip[q] = 0
+        elif op_ch == 'X':
+            d_flip[q] = 1
+        else:
+            raise ValueError("ops_strings_ should only consist of 'I's and/or 'X's")
+    return d_flip
+
+
+def _stack_dicts(dict1, dict2):
+    """
+    :param dict1: Dict keyed with integer specifying qubit, valued by 1-dimensional numpy array specifying
+        readout results
+    :param dict2: Dict keyed with integer specifying qubit, valued by 1-dimensional numpy array specifying
+        readout results
+    :return: Dict keyed with integer specifying qubit, valued by 1-dimensional numpy array specifying
+        readout results gathered from both `dict1` and `dict2`
+    """
+    assert set(dict1.keys()) == set(dict2.keys()), "Dictionaries must have same keys"
+    assert set(len(v.shape) for v in dict1.values()) == set(len(v.shape) for v in dict2.values()), \
+        "Arrays in dict values must have same dimension"
+    dict_combined = {}
+    for k, v in dict1.items():
+        dict_combined[k] = np.hstack([v, dict2[k]])
+    return dict_combined
 
 
 class DiagonalNTPBError(ValueError):

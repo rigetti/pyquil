@@ -688,3 +688,24 @@ def test_sic_process_tomo(forest):
     experiment = TomographyExperiment(settings=settings, program=process, qubits=[0])
     results = list(measure_observables(qc, experiment))
     assert len(results) == 4 * 4
+
+
+def test_measure_observables_symmetrize(forest):
+    """
+    Symmetrization alone should not change the outcome on the QVM
+    """
+    expts = [
+        ExperimentSetting(sI(), o1 * o2)
+        for o1, o2 in itertools.product([sI(0), sX(0), sY(0), sZ(0)], [sI(1), sX(1), sY(1), sZ(1)])
+    ]
+    suite = TomographyExperiment(expts, program=Program(X(0), CNOT(0, 1)), qubits=[0, 1])
+    assert len(suite) == 4 * 4
+    gsuite = group_experiments(suite)
+    assert len(gsuite) == 3 * 3  # can get all the terms with I for free in this case
+
+    qc = get_qc('2q-qvm')
+    for res in measure_observables(qc, gsuite, n_shots=10_000, symmetrize=True):
+        if res.setting.out_operator in [sI(), sZ(0), sZ(1), sZ(0) * sZ(1)]:
+            assert np.abs(res.expectation) > 0.9
+        else:
+            assert np.abs(res.expectation) < 0.1
