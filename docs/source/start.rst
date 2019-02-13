@@ -218,7 +218,7 @@ terminal.
 
 
     ### CONSOLE 2
-    $ quilc -R
+    $ quilc -R -p 6000
 
     ... - Launching quilc.
     ... - Spawning server at (tcp://*:5555) .
