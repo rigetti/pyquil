@@ -70,7 +70,7 @@ where
  -  ``compiler_server_address``: This is the endpoint where pyQuil will try to communicate with the compiler server. On a
     QMI, this points to a provided compiler server instance. On a local installation, this should be set to the server
     endpoint for a locally running ``quilc`` instance. However, pyQuil will use the default value ``tcp://localhost:5555``
-    if this isn't set, which is the correct endpoint when you run ``quilc`` locally with ``quilc -R``.
+    if this isn't set, which is the correct endpoint when you run ``quilc`` locally with ``quilc -S``.
 
 .. note::
 
