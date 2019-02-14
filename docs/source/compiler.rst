@@ -19,11 +19,11 @@ Interacting with the Compiler
 -----------------------------
 
 After :ref:`downloading the SDK <sdkinstall>`, the Quil Compiler, ``quilc`` is available on your local machine.
-You can initialize a local ``quilc`` server by typing ``quilc -R`` into your terminal. You should see the following message.
+You can initialize a local ``quilc`` server by typing ``quilc -S`` into your terminal. You should see the following message.
 
 .. code:: python
 
-    $ quilc -R
+    $ quilc -S
     +-----------------+
     |  W E L C O M E  |
     |   T O   T H E   |

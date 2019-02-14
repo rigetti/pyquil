@@ -218,7 +218,7 @@ terminal.
 
 
     ### CONSOLE 2
-    $ quilc -R
+    $ quilc -S
 
     ... - Launching quilc.
     ... - Spawning server at (tcp://*:5555) .
@@ -226,6 +226,11 @@ terminal.
 
 That's it! You're all set up to run pyQuil locally. Your programs will make requests to these server endpoints to compile your Quil
 programs to native Quil, and to simulate those programs on the QVM.
+
+**NOTE**: We are transitioning from using an HTTP ``quilc`` server to an RPCQ one. In the near term,
+``-S`` will spawn an HTTP server at port 6000 and an RPCQ server (accessible via tcp://domain:port)
+at port 5555. The RPCQ port is configurable with the ``-p`` option on ``quilc`` and the HTTP port
+is not configurable.
 
 Run Your First Program
 ----------------------
