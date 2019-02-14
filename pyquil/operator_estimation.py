@@ -475,7 +475,7 @@ def _local_pauli_eig_meas(op, idx):
     """
     Generate gate sequence to measure in the eigenbasis of a Pauli operator, assuming
     we are only able to measure in the Z eigenbasis. (Note: The unitary operations of this
-    Program are essentially the Hermitian conjugates of those in :py:func:`_local_pauli_eig_prep`)
+    Program are essentially the Hermitian conjugates of those in :py:func:`_one_q_pauli_prep`)
 
     """
     if op == 'X':
@@ -735,7 +735,7 @@ class ExperimentResult:
 
 
 def measure_observables(qc: QuantumComputer, tomo_experiment: TomographyExperiment, n_shots=1000,
-                        progress_callback=None, active_reset=False, symmetrize=False):
+                        progress_callback=None, active_reset=False, symmetrize=False, calibrate_readout=False):
     """
     Measure all the observables in a TomographyExperiment.
 
@@ -753,7 +753,12 @@ def measure_observables(qc: QuantumComputer, tomo_experiment: TomographyExperime
     :param symmetrize: Whether to symmetrize the readout errors, i.e. set p(0|1) = p(1|0). For
         uncorrelated readout errors, this can be achieved by randomly selecting between the
         POVMs {X.D1.X, X.D0.X} and {D0, D1} (where both D0 and D1 are diagonal). However, here
-        we use exhaustive symmetrization and loop through all possible 2^n POVMs {X/I . POVM . X/I}^n
+        we use exhaustive symmetrization and loop through all possible 2^n POVMs {X/I . POVM . X/I}^n,
+        and obtain symmetrization more generally, i.e. set p(00|00) = p(01|01) = .. = p(11|11), as well
+        as p(00|01) = p(01|00) etc.
+    :param calibrate_readout: Whether to calibrate the readout results by normalizing against the
+        operator's expectation value in its +1 eigenstate. The preceding symmetrization and this step
+        together yield a more accurate estimation of the observable.
     """
     for i, settings in enumerate(tomo_experiment):
         # Outer loop over a collection of grouped settings for which we can simultaneously
@@ -838,6 +843,28 @@ def measure_observables(qc: QuantumComputer, tomo_experiment: TomographyExperime
             obs_vals = coeff * np.prod(my_obs_strings, axis=1)
             obs_mean = np.mean(obs_vals)
             obs_var = np.var(obs_vals) / n_shots
+
+            if calibrate_readout:
+                # 4 Readout calibration
+                # 4.1 Prepare the +1 eigenstate for the out operator
+                calibr_prog = Program()
+                for q, op in setting.out_operator.operations_as_set():
+                    calibr_prog += _one_q_pauli_prep(label=op, index=0, qubit=q)
+                # 4.2 Measure the out operator in this state
+                for q, op in setting.out_operator.operations_as_set():
+                    calibr_prog += _local_pauli_eig_meas(op, q)
+                calibr_results = qc.run_and_measure(calibr_prog, n_shots)
+                # 4.3 Calculate expectation value
+                obs_calibr_strings = {q: 1 - 2 * calibr_results[q] for q in calibr_results}
+                my_obs_calibr_strings = np.vstack(obs_calibr_strings[q] for q, _ in setting.out_operator).T
+                obs_calibr_vals = np.prod(my_obs_calibr_strings, axis=1)
+                obs_calibr_mean = np.mean(obs_calibr_vals)
+                # 4.4 Calibrate the readout results
+                obs_mean *= 1 / obs_calibr_mean
+                obs_var *= 1 / (obs_calibr_mean**2)
+            else:
+                pass
+
             yield ExperimentResult(
                 setting=setting,
                 expectation=obs_mean.item(),
