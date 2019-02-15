@@ -263,3 +263,15 @@ DEFCIRCUIT test_defcirc_reset_qubit:
 """.strip()
     parse_equals(defcircuit_reset_named_qubit, RawInstr(defcircuit_reset_named_qubit))
     parse_equals(defcircuit_reset_qubit, RawInstr(defcircuit_reset_qubit))
+
+
+def test_parse_dagger():
+    s = "DAGGER X 0"
+    parse_equals(s, X(0).dagger())
+    s = "DAGGER DAGGER X 0"
+    parse_equals(s, X(0).dagger().dagger())
+
+
+def test_parse_controlled():
+    s = "CONTROLLED X 0 1"
+    parse_equals(s, X(1).controlled(0))

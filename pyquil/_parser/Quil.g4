@@ -33,12 +33,15 @@ instr               : gate
 
 // C. Static and Parametric Gates
 
-gate                : name ( LPAREN param ( COMMA param )* RPAREN )? qubit+ ;
+gate                : modifier* name ( LPAREN param ( COMMA param )* RPAREN )? qubit+ ;
 
 name                : IDENTIFIER ;
 qubit               : INT ;
 
 param               : expression ;
+
+modifier            : CONTROLLED
+                    | DAGGER ;
 
 // D. Gate Definitions
 
@@ -206,6 +209,11 @@ MINUS               : '-' ;
 TIMES               : '*' ;
 DIVIDE              : '/' ;
 POWER               : '^' ;
+
+// Modifiers
+
+CONTROLLED          : 'CONTROLLED' ;
+DAGGER              : 'DAGGER' ;
 
 // Identifiers
 

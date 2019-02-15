@@ -145,14 +145,30 @@ class PyQuilListener(QuilListener):
         gate_name = ctx.name().getText()
         params = list(map(_param, ctx.param()))
         qubits = list(map(_qubit, ctx.qubit()))
+        # The Gate.controlled() method *prepends* the CONTROLLED modifier to the gate. But the
+        # parser works from the outside-in. Therefore the controlled qubits would be in reverse
+        # order. We reverse here to fix that.
+        modifiers = [mod.getText() for mod in ctx.modifier()][::-1]
+        control_qubits = qubits[0:len(list(filter(lambda str: str == "CONTROLLED", modifiers)))][::-1]
+        target_qubits = qubits[len(control_qubits):]
 
         if gate_name in QUANTUM_GATES:
             if params:
-                self.result.append(QUANTUM_GATES[gate_name](*params, *qubits))
+                gate = QUANTUM_GATES[gate_name](*params, *target_qubits)
             else:
-                self.result.append(QUANTUM_GATES[gate_name](*qubits))
+                gate = QUANTUM_GATES[gate_name](*target_qubits)
         else:
-            self.result.append(Gate(gate_name, params, qubits))
+            gate = Gate(gate_name, params, target_qubits)
+
+        for modifier in modifiers:
+            if modifier == "CONTROLLED":
+                gate.controlled(control_qubits.pop(0))
+            elif modifier == "DAGGER":
+                gate.dagger()
+            else:
+                raise ValueError(f"Unsupported gate modifier {modifier}.")
+
+        self.result.append(gate)
 
     def exitCircuitGate(self, ctx: QuilParser.CircuitGateContext):
         """

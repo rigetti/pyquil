@@ -87,3 +87,26 @@ def test_param_twoq_gate_kwarg(param_twoq_gate):
         raise ValueError()
     g = param_twoq_gate(angle=0.2, **qubits)
     assert g.out() == "{}(0.2) 234 567".format(g.name)
+
+
+def test_controlled_gate():
+    g = X(0).controlled(1)
+    assert g.out() == "CONTROLLED X 1 0"
+    g = X(0).controlled(1).controlled(2)
+    assert g.out() == "CONTROLLED CONTROLLED X 2 1 0"
+
+
+def test_dagger_gate():
+    g = X(0).dagger()
+    assert g.out() == "DAGGER X 0"
+    # This will be compiled away by quilc
+    g = X(0).dagger().dagger() == "DAGGER DAGGER X 0"
+
+
+def test_dagger_controlled_gate():
+    g = X(0).dagger().controlled(1)
+    assert g.out() == "CONTROLLED DAGGER X 1 0"
+    g = X(0).controlled(1).dagger()
+    assert g.out() == "DAGGER CONTROLLED X 1 0"
+    g = X(0).controlled(1).dagger().controlled(2)
+    assert g.out() == "CONTROLLED DAGGER CONTROLLED X 2 1 0"
