@@ -717,6 +717,8 @@ class ExperimentResult:
     expectation: Union[float, complex]
     stddev: float
     total_counts: int
+    calibration_expectation: Union[float, complex] = None
+    calibration_counts: int = 0
 
     def __str__(self):
         return f'{self.setting}: {self.expectation} +- {self.stddev}'
@@ -731,6 +733,8 @@ class ExperimentResult:
             'expectation': self.expectation,
             'stddev': self.stddev,
             'total_counts': self.total_counts,
+            'calibration_expectation': self.calibration_expectation,
+            'calibration_counts': self.calibration_counts,
         }
 
 
@@ -853,7 +857,8 @@ def measure_observables(qc: QuantumComputer, tomo_experiment: TomographyExperime
                 # 4.2 Measure the out operator in this state
                 for q, op in setting.out_operator.operations_as_set():
                     calibr_prog += _local_pauli_eig_meas(op, q)
-                calibr_results = qc.run_and_measure(calibr_prog, n_shots)
+                calibr_shots = n_shots
+                calibr_results = qc.run_and_measure(calibr_prog, calibr_shots)
                 # 4.3 Calculate expectation value
                 obs_calibr_strings = {q: 1 - 2 * calibr_results[q] for q in calibr_results}
                 my_obs_calibr_strings = np.vstack(obs_calibr_strings[q] for q, _ in setting.out_operator).T
@@ -863,13 +868,16 @@ def measure_observables(qc: QuantumComputer, tomo_experiment: TomographyExperime
                 obs_mean *= 1 / obs_calibr_mean
                 obs_var *= 1 / (obs_calibr_mean**2)
             else:
-                pass
+                obs_calibr_mean = None
+                calibr_shots = 0
 
             yield ExperimentResult(
                 setting=setting,
                 expectation=obs_mean.item(),
                 stddev=np.sqrt(obs_var).item(),
                 total_counts=n_shots,
+                calibration_expectation=obs_calibr_mean,
+                calibration_counts=n_shots,
             )
 
 
