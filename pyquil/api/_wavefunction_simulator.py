@@ -198,7 +198,6 @@ class WavefunctionSimulator:
         else:
             raise TypeError("Bad memory_map type; expected Dict[str, List[Union[int, float]]].")
 
-
         p += quil_program
 
         return percolate_declares(p)
