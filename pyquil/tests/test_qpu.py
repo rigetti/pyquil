@@ -214,10 +214,10 @@ def test_resolve_mem_references(gate_arithmetic_binaries, mock_qpu):
     def test_theta_and_beta(theta, beta):
         mock_qpu.write_memory(region_name='theta', value=theta)
         mock_qpu.write_memory(region_name='beta', value=beta)
-        expression_test('sqrt(2) + theta', np.sqrt(2) + theta)
+        expression_test('SQRT(2) + theta', np.sqrt(2) + theta)
         expression_test('beta*2 + 1', beta * 2 + 1)
         expression_test('(beta + 2) * (1 + theta)', (beta + 2) * (1 + theta))
-        expression_test('cos(beta)*sin(theta)', np.cos(beta) * np.sin(theta))
+        expression_test('COS(beta)*SIN(theta)', np.cos(beta) * np.sin(theta))
         expression_test('beta * theta', beta * theta)
         expression_test('theta - beta', theta - beta)
     # We just need the status to be loaded so we can write memory
