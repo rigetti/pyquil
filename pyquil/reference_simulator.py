@@ -242,8 +242,9 @@ class ReferenceDensitySimulator(AbstractQuantumSimulator):
 
     def do_post_gate_noise(self, noise_type: str, noise_prob: float, qubits: List[int]):
         kraus_ops = KRAUS_OPS[noise_type](p=noise_prob)
-        if np.isclose(noise_prob, 1.0):
-            warnings.warn(f"Skipping {noise_type} post-gate noise because noise_prob is close to 1")
+        if np.isclose(noise_prob, 0.0):
+            warnings.warn(f"Skipping {noise_type} post-gate noise because noise_prob is close to 0")
+            return self
 
         for q in qubits:
             new_density = np.zeros_like(self.density)

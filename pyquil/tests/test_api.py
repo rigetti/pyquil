@@ -280,7 +280,7 @@ def native_quil_to_binary(payload: BinaryExecutableRequest) -> BinaryExecutableR
 
 
 @mock_compiler_server.rpc_handler
-def resolve_gate_parameter_arithmetic(payload: RewriteArithmeticRequest) -> RewriteArithmeticResponse:
+def rewrite_arithmetic(payload: RewriteArithmeticRequest) -> RewriteArithmeticResponse:
     time.sleep(0.1)
     return RewriteArithmeticResponse(quil=payload.quil,
                                      recalculation_table={},

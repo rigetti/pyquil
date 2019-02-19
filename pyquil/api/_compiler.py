@@ -142,6 +142,15 @@ class QPUCompiler(AbstractCompiler):
         :param name: Name of the lattice being targeted
         """
 
+        if not endpoint.startswith('tcp://'):
+            raise ValueError(f"PyQuil versions >= 2.4 can only talk to quilc "
+                             f"versions >= 1.4 over network RPCQ.  You've supplied the "
+                             f"endpoint '{endpoint}', but this doesn't look like a network "
+                             f"ZeroMQ address, which has the form 'tcp://domain:port'. "
+                             f"You might try clearing (or correcting) your COMPILER_URL "
+                             f"environment variable and removing (or correcting) the "
+                             f"compiler_server_address line from your .forest_config file.")
+
         self.client = Client(endpoint, timeout=timeout)
         self.target_device = TargetDevice(isa=device.get_isa().to_dict(),
                                           specs=device.get_specs().to_dict())
@@ -173,7 +182,7 @@ class QPUCompiler(AbstractCompiler):
                               f'but you are engaged on device {targeted_lattice}.')
 
         arithmetic_request = RewriteArithmeticRequest(quil=nq_program.out())
-        arithmetic_response = self.client.call('resolve_gate_parameter_arithmetic', arithmetic_request)
+        arithmetic_response = self.client.call('rewrite_arithmetic', arithmetic_request)
 
         request = BinaryExecutableRequest(quil=arithmetic_response.quil, num_shots=nq_program.num_shots)
         response = self.client.call('native_quil_to_binary', request)
@@ -196,6 +205,16 @@ class QVMCompiler(AbstractCompiler):
         :param endpoint: TCP or IPC endpoint of the Compiler Server
         :param device: PyQuil Device object to use as compilation target
         """
+
+        if not endpoint.startswith('tcp://'):
+            raise ValueError(f"PyQuil versions >= 2.4 can only talk to quilc "
+                             f"versions >= 1.4 over network RPCQ.  You've supplied the "
+                             f"endpoint '{endpoint}', but this doesn't look like a network "
+                             f"ZeroMQ address, which has the form 'tcp://domain:port'. "
+                             f"You might try clearing (or correcting) your COMPILER_URL "
+                             f"environment variable and removing (or correcting) the "
+                             f"compiler_server_address line from your .forest_config file.")
+
         self.client = Client(endpoint, timeout=timeout)
         self.target_device = TargetDevice(isa=device.get_isa().to_dict(),
                                           specs=device.get_specs().to_dict())
