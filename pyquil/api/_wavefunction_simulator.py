@@ -84,7 +84,7 @@ class WavefunctionSimulator:
     @_record_call
     def expectation(self, prep_prog: Program,
                     pauli_terms: Union[PauliSum, List[PauliTerm]],
-                    memory_map: Dict[MemoryReference, Any] = None) -> Union[float, np.ndarray]:
+                    memory_map: Any = None) -> Union[float, np.ndarray]:
         """
         Calculate the expectation value of Pauli operators given a state prepared by prep_program.
 
@@ -102,6 +102,13 @@ class WavefunctionSimulator:
         :param pauli_terms: A Pauli representation of a quantum operator.
         :param memory_map: An assignment of classical registers to values, representing an initial
                            state for the QAM's classical memory.
+
+                           This is expected to be of type Dict[str, List[Union[int, float]]],
+                           where the keys are memory region names and the values are arrays of
+                           initialization data.
+
+                           For now, we also support input of type Dict[MemoryReference, Any],
+                           but this is deprecated and will be removed in a future release.
         :return: Either a float or array floats depending on ``pauli_terms``.
         """
 
@@ -124,7 +131,7 @@ class WavefunctionSimulator:
 
     @_record_call
     def run_and_measure(self, quil_program: Program, qubits: List[int] = None, trials: int = 1,
-                        memory_map: Dict[MemoryReference, Any] = None) -> np.ndarray:
+                        memory_map: Any = None) -> np.ndarray:
         """
         Run a Quil program once to determine the final wavefunction, and measure multiple times.
 
@@ -149,6 +156,13 @@ class WavefunctionSimulator:
         :param int trials: Number of times to sample from the prepared wavefunction.
         :param memory_map: An assignment of classical registers to values, representing an initial
                            state for the QAM's classical memory.
+
+                           This is expected to be of type Dict[str, List[Union[int, float]]],
+                           where the keys are memory region names and the values are arrays of
+                           initialization data.
+
+                           For now, we also support input of type Dict[MemoryReference, Any],
+                           but this is deprecated and will be removed in a future release.
         :return: An array of measurement results (0 or 1) of shape (trials, len(qubits))
         """
         if qubits is None:
