@@ -764,9 +764,14 @@ def measure_observables(qc: QuantumComputer, tomo_experiment: TomographyExperime
         operator's expectation value in its +1 eigenstate. The preceding symmetrization and this step
         together yield a more accurate estimation of the observable.
     """
+    # calibration readout only works with symmetrization turned on
+    if calibrate_readout:
+        symmetrize = True
+
+    # Outer loop over a collection of grouped settings for which we can simultaneously
+    # estimate.
     for i, settings in enumerate(tomo_experiment):
-        # Outer loop over a collection of grouped settings for which we can simultaneously
-        # estimate.
+
         log.info(f"Collecting bitstrings for the {len(settings)} settings: {settings}")
 
         # 1.1 Prepare a state according to the amalgam of all setting.in_state
