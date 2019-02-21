@@ -995,7 +995,7 @@ def ratio_variance(a: float, var_a: float, b: float, var_b: float) -> float:
     variance of Y
 
     Var[Y] \approx (a/b) ^2 * ( var_a /a^2 + var_b / b^2 - 2 * Cov[A,B]/(a*b) )
-    
+
     We assume the covariance of A and B is negligible, resting on the assumption that A and B
     are independently measured. The expression above rests on the assumption that B is non-zero,
     an assumption which we expect to hold true in most cases, but makes no such assumptions
