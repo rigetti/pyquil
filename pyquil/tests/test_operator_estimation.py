@@ -576,3 +576,13 @@ def test_stack_multiple_dicts():
     assert d123.keys() == d123_expected.keys()
     for k, v in d123.items():
         np.testing.assert_allclose(v, d123_expected[k])
+
+
+def test_stats_from_measurements():
+    d_results = {0: np.array([0]*10), 1: np.array([1]*10)}
+    setting = ExperimentSetting(TensorProductState(), sZ(0) * sX(1))
+    n_shots = 1000
+
+    obs_mean, obs_var = _stats_from_measurements(d_results, setting, n_shots)
+    assert obs_mean == -1.0
+    assert obs_var == 0.0
