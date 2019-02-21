@@ -710,7 +710,9 @@ def group_experiments(experiments: TomographyExperiment,
 @dataclass(frozen=True)
 class ExperimentResult:
     """An expectation and standard deviation for the measurement of one experiment setting
-    in a tomographic experiment.
+    in a tomographic experiment. In the case of readout error calibration, we also include
+    expectation, standard deviation and count for the calibration results, as well as the
+    expectation and standard deviation for the corrected results.
     """
 
     setting: ExperimentSetting
@@ -718,7 +720,11 @@ class ExperimentResult:
     stddev: float
     total_counts: int
     calibration_expectation: Union[float, complex] = None
-    calibration_counts: int = 0
+    calibration_stddev: Union[float, complex] = None
+    calibration_counts: int = None
+    corrected_expectation: Union[float, complex] = None
+    corrected_stddev: Union[float, complex] = None
+
 
     def __str__(self):
         return f'{self.setting}: {self.expectation} +- {self.stddev}'
@@ -734,7 +740,10 @@ class ExperimentResult:
             'stddev': self.stddev,
             'total_counts': self.total_counts,
             'calibration_expectation': self.calibration_expectation,
+            'calibration_stddev': self.calibration_stddev,
             'calibration_counts': self.calibration_counts,
+            'corrected_expectation': self.corrected_expectation,
+            'corrected_stddev': self.corrected_stddev,
         }
 
 
@@ -869,21 +878,38 @@ def measure_observables(qc: QuantumComputer, tomo_experiment: TomographyExperime
                 my_obs_calibr_strings = np.vstack(obs_calibr_strings[q] for q, _ in setting.out_operator).T
                 obs_calibr_vals = np.prod(my_obs_calibr_strings, axis=1)
                 obs_calibr_mean = np.mean(obs_calibr_vals)
+                obs_calibr_var = np.var(obs_calibr_vals) / calibr_shots
                 # 4.4 Calibrate the readout results
-                obs_mean *= 1 / obs_calibr_mean
-                obs_var *= 1 / (obs_calibr_mean**2)
-            else:
-                obs_calibr_mean = None
-                calibr_shots = 0
+                corrected_mean = obs_mean / obs_calibr_mean
+                corrected_var = ratio_variance(obs_mean, obs_var, obs_calibr_mean, obs_calibr_var)
 
-            yield ExperimentResult(
-                setting=setting,
-                expectation=obs_mean.item(),
-                stddev=np.sqrt(obs_var).item(),
-                total_counts=n_shots,
-                calibration_expectation=obs_calibr_mean,
-                calibration_counts=n_shots,
-            )
+                yield ExperimentResult(
+                    setting=setting,
+                    expectation=obs_mean.item(),
+                    stddev=np.sqrt(obs_var).item(),
+                    total_counts=n_shots,
+                    calibration_expectation=obs_calibr_mean.item(),
+                    calibration_stddev=np.sqrt(obs_calibr_var).item(),
+                    calibration_counts=calibr_shots,
+                    corrected_expectation=corrected_mean.item(),
+                    corrected_stddev=np.sqrt(corrected_var).item(),
+                )
+
+            else:
+                # No calibration
+                obs_calibr_mean = None
+                obs_calibr_var = None
+                calibr_shots = None
+                corrected_mean = None
+                corrected_var = None
+
+                yield ExperimentResult(
+                    setting=setting,
+                    expectation=obs_mean.item(),
+                    stddev=np.sqrt(obs_var).item(),
+                    total_counts=n_shots,
+                )
+
 
 
 def _ops_strs_symmetrize(qubits_):
@@ -951,3 +977,23 @@ def _stack_dicts(dict1, dict2):
     for k, v in dict1.items():
         dict_combined[k] = np.hstack([v, dict2[k]])
     return dict_combined
+
+
+def ratio_variance(a: float, var_a: float, b: float, var_b: float) -> float:
+    r"""
+    Given random variables 'A' and 'B', compute the variance on the ratio Y = A/B. Denote the
+    mean of the random variables as a = E[A] and b = E[B] while the variances are var_a = Var[A]
+    and var_b = Var[B] and the covariance as Cov[A,B]. The following expression approximates the
+    variance of Y
+    Var[Y] \approx (a/b) ^2 * ( var_a /a^2 + var_b / b^2 - 2 * Cov[A,B]/(a*b) )
+    Below we assume the covariance of a and b is negligible.
+    See the following for more details:
+      - https://doi.org/10.1002/(SICI)1097-0320(20000401)39:4<300::AID-CYTO8>3.0.CO;2-O
+      - http://www.stat.cmu.edu/~hseltman/files/ratio.pdf
+      - https://en.wikipedia.org/wiki/Taylor_expansions_for_the_moments_of_functions_of_random_variables
+    :param a: Mean of 'A', to be used as the numerator in a ratio.
+    :param var_a: Variance in 'A'
+    :param b: Mean of 'B', to be used as the numerator in a ratio.
+    :param var_b: Variance in 'B'
+    """
+    return (a/b)**2 * (var_a/a**2 + var_b/b**2)
