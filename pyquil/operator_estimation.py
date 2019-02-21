@@ -849,17 +849,20 @@ def measure_observables(qc: QuantumComputer, tomo_experiment: TomographyExperime
                 )
                 continue
 
-            # 3.3 Transform bits to eigenvalues; ie (+1, -1)
-            obs_strings = {q: 1 - 2 * bitstrings[q] for q in bitstrings}
+            # 3.3 Obtain statistics from result of experiment
+            obs_mean, obs_var = _stats_from_measurements(bitstrings, setting, n_shots, coeff)
 
-            # 3.4 Pick columns corresponding to qubits with a non-identity out_operation and stack
-            #     into an array of shape (n_shots, n_measure_qubits)
-            my_obs_strings = np.vstack(obs_strings[q] for q, op_str in setting.out_operator).T
+            # # 3.3 Transform bits to eigenvalues; ie (+1, -1)
+            # obs_strings = {q: 1 - 2 * bitstrings[q] for q in bitstrings}
 
-            # 3.6 Multiply row-wise to get operator values. Do statistics. Yield result.
-            obs_vals = coeff * np.prod(my_obs_strings, axis=1)
-            obs_mean = np.mean(obs_vals)
-            obs_var = np.var(obs_vals) / n_shots
+            # # 3.4 Pick columns corresponding to qubits with a non-identity out_operation and stack
+            # #     into an array of shape (n_shots, n_measure_qubits)
+            # my_obs_strings = np.vstack(obs_strings[q] for q, op_str in setting.out_operator).T
+
+            # # 3.6 Multiply row-wise to get operator values. Do statistics. Yield result.
+            # obs_vals = coeff * np.prod(my_obs_strings, axis=1)
+            # obs_mean = np.mean(obs_vals)
+            # obs_var = np.var(obs_vals) / n_shots
 
             if calibrate_readout:
                 # 4 Readout calibration
@@ -872,12 +875,13 @@ def measure_observables(qc: QuantumComputer, tomo_experiment: TomographyExperime
                     calibr_prog += _local_pauli_eig_meas(op, q)
                 calibr_shots = n_shots
                 calibr_results = qc.run_and_measure(calibr_prog, calibr_shots)
-                # 4.3 Calculate expectation value
-                obs_calibr_strings = {q: 1 - 2 * calibr_results[q] for q in calibr_results}
-                my_obs_calibr_strings = np.vstack(obs_calibr_strings[q] for q, _ in setting.out_operator).T
-                obs_calibr_vals = np.prod(my_obs_calibr_strings, axis=1)
-                obs_calibr_mean = np.mean(obs_calibr_vals)
-                obs_calibr_var = np.var(obs_calibr_vals) / calibr_shots
+                # 4.3 Obtain statistics from the measurement process
+                obs_calibr_mean, obs_calibr_var = _stats_from_measurements(calibr_results, setting, calibr_shots)
+                # obs_calibr_strings = {q: 1 - 2 * calibr_results[q] for q in calibr_results}
+                # my_obs_calibr_strings = np.vstack(obs_calibr_strings[q] for q, _ in setting.out_operator).T
+                # obs_calibr_vals = np.prod(my_obs_calibr_strings, axis=1)
+                # obs_calibr_mean = np.mean(obs_calibr_vals)
+                # obs_calibr_var = np.var(obs_calibr_vals) / calibr_shots
                 # 4.4 Calibrate the readout results
                 corrected_mean = obs_mean / obs_calibr_mean
                 corrected_var = ratio_variance(obs_mean, obs_var, obs_calibr_mean, obs_calibr_var)
@@ -975,6 +979,28 @@ def _stack_dicts(dict1, dict2):
     for k, v in dict1.items():
         dict_combined[k] = np.hstack([v, dict2[k]])
     return dict_combined
+
+
+def _stats_from_measurements(d_results: dict, setting: ExperimentSetting,
+                             n_shots: int, coeff: float = 1.0) -> Tuple[float]:
+    """
+    :param d_results: results from running `qc.run_and_measure()`
+    :param setting: ExperimentSetting
+    :param n_shots: number of shots in the measurement process
+    :param coeff: coefficient of the operator being estimated
+    :return: tuple specifying (mean, variance)
+    """
+    # Transform bits to eigenvalues; ie (+1, -1)
+    obs_strings = {q: 1 - 2 * d_results[q] for q in d_results}
+    # Pick columns corresponding to qubits with a non-identity out_operation and stack
+    # into an array of shape (n_shots, n_measure_qubits)
+    my_obs_strings = np.vstack(obs_strings[q] for q, op_str in setting.out_operator).T
+    # Multiply row-wise to get operator values. Do statistics. Return result.
+    obs_vals = coeff * np.prod(my_obs_strings, axis=1)
+    obs_mean = np.mean(obs_vals)
+    obs_var = np.var(obs_vals) / n_shots
+
+    return obs_mean, obs_var
 
 
 def ratio_variance(a: float, var_a: float, b: float, var_b: float) -> float:
