@@ -725,7 +725,6 @@ class ExperimentResult:
     corrected_expectation: Union[float, complex] = None
     corrected_stddev: Union[float, complex] = None
 
-
     def __str__(self):
         return f'{self.setting}: {self.expectation} +- {self.stddev}'
 
@@ -911,7 +910,6 @@ def measure_observables(qc: QuantumComputer, tomo_experiment: TomographyExperime
                 )
 
 
-
 def _ops_strs_symmetrize(qubits_):
     """
     :param qubits_: list specifying the qubits whose readout errors we wish to symmetrize
@@ -996,4 +994,4 @@ def ratio_variance(a: float, var_a: float, b: float, var_b: float) -> float:
     :param b: Mean of 'B', to be used as the numerator in a ratio.
     :param var_b: Variance in 'B'
     """
-    return (a/b)**2 * (var_a/a**2 + var_b/b**2)
+    return (a / b)**2 * (var_a / a**2 + var_b / b**2)
