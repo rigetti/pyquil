@@ -554,32 +554,32 @@ def test_ops_str_to_flips():
 
 
 def test_stack_dicts():
-    d1 = {0: np.array([0]*10), 1: np.array([1]*10)}
-    d2 = {0: np.array([10]*10), 1: np.array([20]*10)}
+    d1 = {0: np.array([0] * 10), 1: np.array([1] * 10)}
+    d2 = {0: np.array([10] * 10), 1: np.array([20] * 10)}
 
     d12 = _stack_dicts(d1, d2)
-    d12_expected = {0: np.array([0]*10 + [10]*10), 1: np.array([1]*10 + [20]*10)}
+    d12_expected = {0: np.array([0] * 10 + [10] * 10), 1: np.array([1] * 10 + [20] * 10)}
     assert d12.keys() == d12_expected.keys()
     for k, v in d12.items():
         np.testing.assert_allclose(v, d12_expected[k])
 
 
 def test_stack_multiple_dicts():
-    d1 = {0: np.array([0]*10), 1: np.array([1]*10)}
-    d2 = {0: np.array([10]*10), 1: np.array([20]*10)}
-    d3 = {0: np.array([100]*10), 1: np.array([200]*10)}
+    d1 = {0: np.array([0] * 10), 1: np.array([1] * 10)}
+    d2 = {0: np.array([10] * 10), 1: np.array([20] * 10)}
+    d3 = {0: np.array([100] * 10), 1: np.array([200] * 10)}
     list_dicts = [d1, d2, d3]
 
     d123 = functools.reduce(lambda d1, d2: _stack_dicts(d1, d2), list_dicts)
-    d123_expected = {0: np.array([0]*10 + [10]*10 + [100]*10),
-                     1: np.array([1]*10 + [20]*10 + [200]*10)}
+    d123_expected = {0: np.array([0] * 10 + [10] * 10 + [100] * 10),
+                     1: np.array([1] * 10 + [20] * 10 + [200] * 10)}
     assert d123.keys() == d123_expected.keys()
     for k, v in d123.items():
         np.testing.assert_allclose(v, d123_expected[k])
 
 
 def test_stats_from_measurements():
-    d_results = {0: np.array([0]*10), 1: np.array([1]*10)}
+    d_results = {0: np.array([0] * 10), 1: np.array([1] * 10)}
     setting = ExperimentSetting(TensorProductState(), sZ(0) * sX(1))
     n_shots = 1000
 
