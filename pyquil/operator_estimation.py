@@ -978,7 +978,7 @@ def _stats_from_measurements(d_results: dict, setting: ExperimentSetting,
     obs_strings = {q: 1 - 2 * d_results[q] for q in d_results}
     # Pick columns corresponding to qubits with a non-identity out_operation and stack
     # into an array of shape (n_shots, n_measure_qubits)
-    my_obs_strings = np.vstack(obs_strings[q] for q, op_str in setting.out_operator).T
+    my_obs_strings = np.vstack([obs_strings[q] for q, op_str in setting.out_operator]).T
     # Multiply row-wise to get operator values. Do statistics. Return result.
     obs_vals = coeff * np.prod(my_obs_strings, axis=1)
     obs_mean = np.mean(obs_vals)
