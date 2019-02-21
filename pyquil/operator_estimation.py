@@ -853,18 +853,6 @@ def measure_observables(qc: QuantumComputer, tomo_experiment: TomographyExperime
             # 3.3 Obtain statistics from result of experiment
             obs_mean, obs_var = _stats_from_measurements(bitstrings, setting, n_shots, coeff)
 
-            # # 3.3 Transform bits to eigenvalues; ie (+1, -1)
-            # obs_strings = {q: 1 - 2 * bitstrings[q] for q in bitstrings}
-
-            # # 3.4 Pick columns corresponding to qubits with a non-identity out_operation and stack
-            # #     into an array of shape (n_shots, n_measure_qubits)
-            # my_obs_strings = np.vstack(obs_strings[q] for q, op_str in setting.out_operator).T
-
-            # # 3.6 Multiply row-wise to get operator values. Do statistics. Yield result.
-            # obs_vals = coeff * np.prod(my_obs_strings, axis=1)
-            # obs_mean = np.mean(obs_vals)
-            # obs_var = np.var(obs_vals) / n_shots
-
             if calibrate_readout:
                 # 4 Readout calibration
                 # 4.1 Prepare the +1 eigenstate for the out operator
@@ -878,11 +866,6 @@ def measure_observables(qc: QuantumComputer, tomo_experiment: TomographyExperime
                 calibr_results = qc.run_and_measure(calibr_prog, calibr_shots)
                 # 4.3 Obtain statistics from the measurement process
                 obs_calibr_mean, obs_calibr_var = _stats_from_measurements(calibr_results, setting, calibr_shots)
-                # obs_calibr_strings = {q: 1 - 2 * calibr_results[q] for q in calibr_results}
-                # my_obs_calibr_strings = np.vstack(obs_calibr_strings[q] for q, _ in setting.out_operator).T
-                # obs_calibr_vals = np.prod(my_obs_calibr_strings, axis=1)
-                # obs_calibr_mean = np.mean(obs_calibr_vals)
-                # obs_calibr_var = np.var(obs_calibr_vals) / calibr_shots
                 # 4.4 Calibrate the readout results
                 corrected_mean = obs_mean / obs_calibr_mean
                 corrected_var = ratio_variance(obs_mean, obs_var, obs_calibr_mean, obs_calibr_var)
@@ -915,46 +898,46 @@ def measure_observables(qc: QuantumComputer, tomo_experiment: TomographyExperime
                 )
 
 
-def _ops_strs_symmetrize(qubits_):
+def _ops_strs_symmetrize(qubits: List[int]) -> List[str]:
     """
-    :param qubits_: list specifying the qubits whose readout errors we wish to symmetrize
+    :param qubits: list specifying the qubits whose readout errors we wish to symmetrize
     :return: list with the operation strings necessary for exhaustive symmetrization
     """
     ops_strings = []
-    for prod in itertools.product(['I', 'X'], repeat=len(qubits_)):
+    for prod in itertools.product(['I', 'X'], repeat=len(qubits)):
         ops_strings.append(''.join(prod))
     return ops_strings
 
 
-def _ops_str_to_prog(ops_str_, qubits_):
+def _ops_str_to_prog(ops_str: List[str], qubits: List[int]) -> Program:
     """
-    :param ops_str_: string specifying the operation to be carried out on `qubits_`
-    :param qubits_: list specifying the qubits to be carried operations on
-    :return: Program with the operations specified in `ops_str_` on the qubits specified in `qubits_`
+    :param ops_str: string specifying the operation to be carried out on `qubits`
+    :param qubits: list specifying the qubits to be carried operations on
+    :return: Program with the operations specified in `ops_str` on the qubits specified in `qubits`
     """
-    assert len(ops_str_) == len(qubits_), "Mismatch of qubits and operations"
+    assert len(ops_str) == len(qubits), "Mismatch of qubits and operations"
     prog = Program()
-    for i, op_ch in enumerate(ops_str_):
+    for i, op_ch in enumerate(ops_str):
         if op_ch == 'I':
             continue
         elif op_ch == 'X':
-            prog += Program(X(qubits_[i]))
+            prog += Program(X(qubits[i]))
         else:
             raise ValueError("ops_strings_ should only consist of 'I's and/or 'X's")
     return prog
 
 
-def _ops_str_to_flips(ops_str_, qubits_):
+def _ops_str_to_flips(ops_str: List[str], qubits: List[int]) -> Dict:
     """
-    :param ops_str_: string specifying the operation to be carried out on `qubits_`
-    :param qubits_: list specifying the qubits to be carried operations on
+    :param ops_str: string specifying the operation to be carried out on `qubits`
+    :param qubits: list specifying the qubits to be carried operations on
     :return: Dict specyfing whether to flip the readout results or not, depending on
-        the operations specified in `ops_str_`, which in turn are operating on the
-        qubits specified in `qubits_`
+        the operations specified in `ops_str`, which in turn are operating on the
+        qubits specified in `qubits`
     """
     d_flip = {}
-    for i, op_ch in enumerate(ops_str_):
-        q = qubits_[i]
+    for i, op_ch in enumerate(ops_str):
+        q = qubits[i]
         if op_ch == 'I':
             d_flip[q] = 0
         elif op_ch == 'X':
@@ -964,7 +947,7 @@ def _ops_str_to_flips(ops_str_, qubits_):
     return d_flip
 
 
-def _stack_dicts(dict1, dict2):
+def _stack_dicts(dict1: Dict, dict2: Dict) -> Dict:
     """
     :param dict1: Dict keyed with integer specifying qubit, valued by 1-dimensional numpy array specifying
         readout results
@@ -1010,8 +993,19 @@ def ratio_variance(a: float, var_a: float, b: float, var_b: float) -> float:
     mean of the random variables as a = E[A] and b = E[B] while the variances are var_a = Var[A]
     and var_b = Var[B] and the covariance as Cov[A,B]. The following expression approximates the
     variance of Y
+
     Var[Y] \approx (a/b) ^2 * ( var_a /a^2 + var_b / b^2 - 2 * Cov[A,B]/(a*b) )
-    Below we assume the covariance of a and b is negligible.
+    
+    We assume the covariance of A and B is negligible, resting on the assumption that A and B
+    are independently measured. The expression above rests on the assumption that B is non-zero,
+    an assumption which we expect to hold true in most cases, but makes no such assumptions
+    about A. If we allow E[A] = 0, then calculating the expression above via numpy would complain
+    about dividing by zero. Instead, we can re-write the above expression as
+
+    Var[Y] \approx var_a /b^2 + (a^2 * var_b) / b^4
+
+    where we have dropped the covariance term as noted above.
+
     See the following for more details:
       - https://doi.org/10.1002/(SICI)1097-0320(20000401)39:4<300::AID-CYTO8>3.0.CO;2-O
       - http://www.stat.cmu.edu/~hseltman/files/ratio.pdf
@@ -1021,4 +1015,4 @@ def ratio_variance(a: float, var_a: float, b: float, var_b: float) -> float:
     :param b: Mean of 'B', to be used as the numerator in a ratio.
     :param var_b: Variance in 'B'
     """
-    return (a / b)**2 * (var_a / a**2 + var_b / b**2)
+    return var_a / b**2 + (a**2 * var_b) / b**4

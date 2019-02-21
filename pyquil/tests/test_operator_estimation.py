@@ -505,3 +505,15 @@ def test_measure_observables_symmetrize_calibrate(forest):
             assert np.abs(res.expectation) > 0.9
         else:
             assert np.abs(res.expectation) < 0.1
+
+
+def test_measure_observables_zero_expectation(forest):
+    """
+    Testing case when expectation value of observable should be close to zero
+    """
+    qc = get_qc('2q-qvm')
+    exptsetting = ExperimentSetting(plusZ(0), sX(0))
+    suite = TomographyExperiment([exptsetting],
+                                 program=Program(I(0)), qubits=[0])
+    result = list(measure_observables(qc, suite, n_shots=10000, calibrate_readout=True))[0]
+    np.testing.assert_almost_equal(result.expectation, 0.0, decimal=1)
