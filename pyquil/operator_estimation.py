@@ -827,21 +827,18 @@ def measure_observables(qc: QuantumComputer, tomo_experiment: TomographyExperime
             progress_callback(i, len(tomo_experiment))
 
         # 3. Post-process
-        # 3.1 First transform bits to eigenvalues; ie (+1, -1)
-        obs_strings = {q: 1 - 2 * bitstrings[q] for q in bitstrings}
-
         # Inner loop over the grouped settings. They only differ in which qubits' measurements
         # we include in the post-processing. For example, if `settings` is Z1, Z2, Z1Z2 and we
         # measure (n_shots, n_qubits=2) obs_strings then the full operator value involves selecting
         # either the first column, second column, or both and multiplying along the row.
         for setting in settings:
-            # 3.2 Get the term's coefficient so we can multiply it in later.
+            # 3.1 Get the term's coefficient so we can multiply it in later.
             coeff = complex(setting.out_operator.coefficient)
             if not np.isclose(coeff.imag, 0):
                 raise ValueError(f"{setting}'s out_operator has a complex coefficient.")
             coeff = coeff.real
 
-            # 3.3 Special case for measuring the "identity" operator, which doesn't make much
+            # 3.2 Special case for measuring the "identity" operator, which doesn't make much
             #     sense but should happen perfectly.
             if is_identity(setting.out_operator):
                 yield ExperimentResult(
@@ -851,6 +848,9 @@ def measure_observables(qc: QuantumComputer, tomo_experiment: TomographyExperime
                     total_counts=n_shots,
                 )
                 continue
+
+            # 3.3 Transform bits to eigenvalues; ie (+1, -1)
+            obs_strings = {q: 1 - 2 * bitstrings[q] for q in bitstrings}
 
             # 3.4 Pick columns corresponding to qubits with a non-identity out_operation and stack
             #     into an array of shape (n_shots, n_measure_qubits)
