@@ -808,7 +808,8 @@ def measure_observables(qc: QuantumComputer, tomo_experiment: TomographyExperime
                 prog_symm = _ops_str_to_prog(ops_str, qubits)
                 total_prog_symm += prog_symm
                 # 2. Run the experiment
-                bitstrings_symm = qc.run_and_measure(total_prog_symm, n_shots)
+                n_shots_symm = n_shots // len(ops_strings)
+                bitstrings_symm = qc.run_and_measure(total_prog_symm, n_shots_symm)
                 # 2.1 Flip the results post-measurement
                 d_flips_symm = _ops_str_to_flips(ops_str, qubits)
                 for qubit, bs_results in bitstrings_symm.items():
