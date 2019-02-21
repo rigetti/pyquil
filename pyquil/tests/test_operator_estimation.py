@@ -18,7 +18,8 @@ from pyquil.operator_estimation import ExperimentSetting, TomographyExperiment, 
     plusX, minusX, plusY, minusY, plusZ, minusZ, \
     _max_tpb_overlap, _max_weight_operator, _max_weight_state, _max_tpb_overlap, \
     TensorProductState, zeros_state, \
-    group_experiments, group_experiments_greedy, ExperimentResult, measure_observables
+    group_experiments, group_experiments_greedy, ExperimentResult, measure_observables, \
+    _ops_strs_symmetrize, _ops_str_to_prog, _ops_str_to_flips, _stack_dicts, _stats_from_measurements
 from pyquil.paulis import sI, sX, sY, sZ, PauliSum, PauliTerm
 
 
@@ -517,3 +518,61 @@ def test_measure_observables_zero_expectation(forest):
                                  program=Program(I(0)), qubits=[0])
     result = list(measure_observables(qc, suite, n_shots=10000, calibrate_readout=True))[0]
     np.testing.assert_almost_equal(result.expectation, 0.0, decimal=1)
+
+
+def test_ops_strs_symmetrize():
+    qubits = [0, 2, 3]
+    ops_strings = _ops_strs_symmetrize(qubits)
+    assert ops_strings == ['III', 'IIX', 'IXI', 'IXX', 'XII', 'XIX', 'XXI', 'XXX']
+
+
+def test_ops_str_to_prog():
+    qubits = [0, 2, 3]
+    ops_strings = _ops_strs_symmetrize(qubits)
+    d_expected = {'III': '', 'IIX': 'X 3\n', 'IXI': 'X 2\n', 'IXX': 'X 2\nX 3\n',
+                  'XII': 'X 0\n', 'XIX': 'X 0\nX 3\n', 'XXI': 'X 0\nX 2\n',
+                  'XXX': 'X 0\nX 2\nX 3\n'}
+    for op_str in ops_strings:
+        p = _ops_str_to_prog(op_str, qubits)
+        assert str(p) == d_expected[op_str]
+
+
+def test_ops_str_to_flips():
+    qubits = [0, 2, 3]
+    d_expected = {'III': {0: 0, 2: 0, 3: 0},
+                  'IIX': {0: 0, 2: 0, 3: 1},
+                  'IXI': {0: 0, 2: 1, 3: 0},
+                  'IXX': {0: 0, 2: 1, 3: 1},
+                  'XII': {0: 1, 2: 0, 3: 0},
+                  'XIX': {0: 1, 2: 0, 3: 1},
+                  'XXI': {0: 1, 2: 1, 3: 0},
+                  'XXX': {0: 1, 2: 1, 3: 1}}
+    ops_strings = _ops_strs_symmetrize(qubits)
+    for op_str in ops_strings:
+        d_flip = _ops_str_to_flips(op_str, qubits)
+        assert d_flip == d_expected[op_str]
+
+
+def test_stack_dicts():
+    d1 = {0: np.array([0]*10), 1: np.array([1]*10)}
+    d2 = {0: np.array([10]*10), 1: np.array([20]*10)}
+
+    d12 = _stack_dicts(d1, d2)
+    d12_expected = {0: np.array([0]*10 + [10]*10), 1: np.array([1]*10 + [20]*10)}
+    assert d12.keys() == d12_expected.keys()
+    for k, v in d12.items():
+        np.testing.assert_allclose(v, d12_expected[k])
+
+
+def test_stack_multiple_dicts():
+    d1 = {0: np.array([0]*10), 1: np.array([1]*10)}
+    d2 = {0: np.array([10]*10), 1: np.array([20]*10)}
+    d3 = {0: np.array([100]*10), 1: np.array([200]*10)}
+    list_dicts = [d1, d2, d3]
+
+    d123 = functools.reduce(lambda d1, d2: _stack_dicts(d1, d2), list_dicts)
+    d123_expected = {0: np.array([0]*10 + [10]*10 + [100]*10),
+                     1: np.array([1]*10 + [20]*10 + [200]*10)}
+    assert d123.keys() == d123_expected.keys()
+    for k, v in d123.items():
+        np.testing.assert_allclose(v, d123_expected[k])

@@ -909,7 +909,7 @@ def _ops_strs_symmetrize(qubits: List[int]) -> List[str]:
     return ops_strings
 
 
-def _ops_str_to_prog(ops_str: List[str], qubits: List[int]) -> Program:
+def _ops_str_to_prog(ops_str: str, qubits: List[int]) -> Program:
     """
     :param ops_str: string specifying the operation to be carried out on `qubits`
     :param qubits: list specifying the qubits to be carried operations on
@@ -927,7 +927,7 @@ def _ops_str_to_prog(ops_str: List[str], qubits: List[int]) -> Program:
     return prog
 
 
-def _ops_str_to_flips(ops_str: List[str], qubits: List[int]) -> Dict:
+def _ops_str_to_flips(ops_str: str, qubits: List[int]) -> Dict:
     """
     :param ops_str: string specifying the operation to be carried out on `qubits`
     :param qubits: list specifying the qubits to be carried operations on
