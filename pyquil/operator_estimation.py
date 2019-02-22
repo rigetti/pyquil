@@ -710,7 +710,9 @@ def group_experiments(experiments: TomographyExperiment,
 @dataclass(frozen=True)
 class ExperimentResult:
     """An expectation and standard deviation for the measurement of one experiment setting
-    in a tomographic experiment. In the case of readout error calibration, we also include
+    in a tomographic experiment.
+
+    In the case of readout error calibration, we also include
     expectation, standard deviation and count for the calibration results, as well as the
     expectation and standard deviation for the corrected results.
     """
