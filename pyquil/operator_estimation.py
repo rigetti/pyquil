@@ -945,16 +945,16 @@ def _ops_str_to_flips(ops_str: str, qubits: List[int]) -> Dict:
 
 def _stack_dicts(dict1: Dict, dict2: Dict) -> Dict:
     """
-    :param dict1: Dict keyed with integer specifying qubit, valued by 1-dimensional numpy array specifying
-        readout results
-    :param dict2: Dict keyed with integer specifying qubit, valued by 1-dimensional numpy array specifying
-        readout results
-    :return: Dict keyed with integer specifying qubit, valued by 1-dimensional numpy array specifying
-        readout results gathered from both `dict1` and `dict2`
+    :param dict1: Dict keyed with integer specifying qubit, valued by 1-dimensional
+        numpy array specifying readout results
+    :param dict2: Dict keyed with integer specifying qubit, valued by 1-dimensional
+        numpy array specifying readout results
+    :return: Dict keyed with integer specifying qubit, valued by 1-dimensional
+        numpy array specifying readout results gathered from both `dict1` and `dict2`
     """
     assert set(dict1.keys()) == set(dict2.keys()), "Dictionaries must have same keys"
-    assert set(len(v.shape) for v in dict1.values()) == set(len(v.shape) for v in dict2.values()), \
-        "Arrays in dict values must have same dimension"
+    assert set(len(v.shape) for v in dict1.values()) == set(len(v.shape) \
+        for v in dict2.values()), "Arrays in dict values must have same dimension"
     dict_combined = {}
     for k, v in dict1.items():
         dict_combined[k] = np.hstack([v, dict2[k]])
