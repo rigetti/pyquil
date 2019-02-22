@@ -19,7 +19,8 @@ from pyquil.operator_estimation import ExperimentSetting, TomographyExperiment, 
     _max_tpb_overlap, _max_weight_operator, _max_weight_state, _max_tpb_overlap, \
     TensorProductState, zeros_state, \
     group_experiments, group_experiments_greedy, ExperimentResult, measure_observables, \
-    _ops_strs_symmetrize, _ops_str_to_prog, _ops_str_to_flips, _stack_dicts, _stats_from_measurements
+    _ops_strs_symmetrize, _ops_str_to_prog, _ops_str_to_flips, _stack_dicts, _stats_from_measurements, \
+    ratio_variance
 from pyquil.paulis import sI, sX, sY, sZ, PauliSum, PauliTerm
 
 
@@ -586,3 +587,25 @@ def test_stats_from_measurements():
     obs_mean, obs_var = _stats_from_measurements(d_results, setting, n_shots)
     assert obs_mean == -1.0
     assert obs_var == 0.0
+
+
+def test_ratio_variance_float():
+    a, b, var_a, var_b = 1.0, 2.0, 0.1, 0.05
+    ab_ratio_var = ratio_variance(a, var_a, b, var_b)
+    assert ab_ratio_var == 0.028125
+
+
+def test_ratio_variance_numerator_zero():
+    # denominator can't be zero, but numerator can be
+    a, b, var_a, var_b = 0.0, 2.0, 0.1, 0.05
+    ab_ratio_var = ratio_variance(a, var_a, b, var_b)
+    assert ab_ratio_var == 0.025
+
+
+def test_ratio_variance_array():
+    a = np.array([1.0, 10.0, 100.0])
+    b = np.array([2.0, 20.0, 200.0])
+    var_a = np.array([0.1, 1.0, 10.0])
+    var_b = np.array([0.05, 0.5, 5.0])
+    ab_ratio_var = ratio_variance(a, var_a, b, var_b)
+    np.testing.assert_allclose(ab_ratio_var, np.array([0.028125, 0.0028125, 0.00028125]))

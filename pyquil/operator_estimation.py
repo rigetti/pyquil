@@ -983,7 +983,10 @@ def _stats_from_measurements(d_results: dict, setting: ExperimentSetting,
     return obs_mean, obs_var
 
 
-def ratio_variance(a: float, var_a: float, b: float, var_b: float) -> float:
+def ratio_variance(a: Union[float, np.ndarray],
+                   var_a: Union[float, np.ndarray],
+                   b: Union[float, np.ndarray],
+                   var_b: Union[float, np.ndarray]) -> Union[float, np.ndarray]:
     r"""
     Given random variables 'A' and 'B', compute the variance on the ratio Y = A/B. Denote the
     mean of the random variables as a = E[A] and b = E[B] while the variances are var_a = Var[A]
