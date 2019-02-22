@@ -719,13 +719,13 @@ class ExperimentResult:
 
     setting: ExperimentSetting
     expectation: Union[float, complex]
-    stddev: float
+    stddev: Union[float, complex]
     total_counts: int
+    raw_expectation: Union[float, complex] = None
+    raw_stddev: float = None
     calibration_expectation: Union[float, complex] = None
     calibration_stddev: Union[float, complex] = None
     calibration_counts: int = None
-    corrected_expectation: Union[float, complex] = None
-    corrected_stddev: Union[float, complex] = None
 
     def __str__(self):
         return f'{self.setting}: {self.expectation} +- {self.stddev}'
@@ -737,14 +737,14 @@ class ExperimentResult:
         return {
             'type': 'ExperimentResult',
             'setting': self.setting,
-            'expectation': self.expectation,
-            'stddev': self.stddev,
+            'expectation': self.corrected_expectation,
+            'stddev': self.corrected_stddev,
             'total_counts': self.total_counts,
+            'raw_expectation': self.expectation,
+            'raw_stddev': self.stddev,
             'calibration_expectation': self.calibration_expectation,
             'calibration_stddev': self.calibration_stddev,
             'calibration_counts': self.calibration_counts,
-            'corrected_expectation': self.corrected_expectation,
-            'corrected_stddev': self.corrected_stddev,
         }
 
 
@@ -874,24 +874,18 @@ def measure_observables(qc: QuantumComputer, tomo_experiment: TomographyExperime
 
                 yield ExperimentResult(
                     setting=setting,
-                    expectation=obs_mean.item(),
-                    stddev=np.sqrt(obs_var).item(),
+                    expectation=corrected_mean.item(),
+                    stddev=np.sqrt(corrected_var).item(),
                     total_counts=n_shots,
+                    raw_expectation=obs_mean.item(),
+                    raw_stddev=np.sqrt(obs_var).item(),
                     calibration_expectation=obs_calibr_mean.item(),
                     calibration_stddev=np.sqrt(obs_calibr_var).item(),
                     calibration_counts=calibr_shots,
-                    corrected_expectation=corrected_mean.item(),
-                    corrected_stddev=np.sqrt(corrected_var).item(),
                 )
 
             else:
                 # No calibration
-                obs_calibr_mean = None
-                obs_calibr_var = None
-                calibr_shots = None
-                corrected_mean = None
-                corrected_var = None
-
                 yield ExperimentResult(
                     setting=setting,
                     expectation=obs_mean.item(),
