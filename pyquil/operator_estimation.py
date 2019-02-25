@@ -929,7 +929,7 @@ def _ops_str_to_prog(ops_str: str, qubits: List[int]) -> Program:
         elif op_ch == 'X':
             prog += Program(X(qubits[i]))
         else:
-            raise ValueError("ops_strings_ should only consist of 'I's and/or 'X's")
+            raise ValueError("ops_str should only consist of 'I's and/or 'X's")
     return prog
 
 
@@ -949,7 +949,7 @@ def _ops_str_to_flips(ops_str: str, qubits: List[int]) -> Dict:
         elif op_ch == 'X':
             d_flip[q] = 1
         else:
-            raise ValueError("ops_strings_ should only consist of 'I's and/or 'X's")
+            raise ValueError("ops_str should only consist of 'I's and/or 'X's")
     return d_flip
 
 
