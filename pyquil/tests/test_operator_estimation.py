@@ -535,7 +535,7 @@ def test_measure_observables_no_symm_calibr_raises_error(forest):
 
 def test_ops_strs_symmetrize():
     qubits = [0, 2, 3]
-    ops_strings = _ops_strs_symmetrize(qubits)
+    ops_strings = list(_ops_strs_symmetrize(qubits))
     assert ops_strings == ['III', 'IIX', 'IXI', 'IXX', 'XII', 'XIX', 'XXI', 'XXX']
 
 

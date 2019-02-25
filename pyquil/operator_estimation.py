@@ -807,14 +807,14 @@ def measure_observables(qc: QuantumComputer, tomo_experiment: TomographyExperime
         if readout_symmetrize == 'exhaustive':
             # 1.4 Symmetrize -- flip qubits pre-measurement
             qubits = max_weight_out_op.get_qubits()
-            ops_strings = _ops_strs_symmetrize(qubits)
+            n_shots_symm = n_shots // 2**len(qubits)
             list_bitstrings_symm = []
-            for ops_str in ops_strings:
+            # for ops_str in ops_strings:
+            for ops_str in _ops_strs_symmetrize(qubits):
                 total_prog_symm = total_prog.copy()
                 prog_symm = _ops_str_to_prog(ops_str, qubits)
                 total_prog_symm += prog_symm
                 # 2. Run the experiment
-                n_shots_symm = n_shots // len(ops_strings)
                 bitstrings_symm = qc.run_and_measure(total_prog_symm, n_shots_symm)
                 # 2.1 Flip the results post-measurement
                 d_flips_symm = _ops_str_to_flips(ops_str, qubits)
@@ -911,8 +911,7 @@ def _ops_strs_symmetrize(qubits: List[int]) -> List[str]:
     """
     ops_strings = []
     for prod in itertools.product(['I', 'X'], repeat=len(qubits)):
-        ops_strings.append(''.join(prod))
-    return ops_strings
+        yield ''.join(prod)
 
 
 def _ops_str_to_prog(ops_str: str, qubits: List[int]) -> Program:
