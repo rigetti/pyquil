@@ -748,8 +748,9 @@ class ExperimentResult:
         }
 
 
-def measure_observables(qc: QuantumComputer, tomo_experiment: TomographyExperiment, n_shots=1000,
-                        progress_callback=None, active_reset=False, symmetrize=False, calibrate_readout=False):
+def measure_observables(qc: QuantumComputer, tomo_experiment: TomographyExperiment,
+                        n_shots: int = 1000, progress_callback=None, active_reset=False,
+                        readout_symmetrize=False, calibrate_readout=False):
     """
     Measure all the observables in a TomographyExperiment.
 
@@ -764,19 +765,20 @@ def measure_observables(qc: QuantumComputer, tomo_experiment: TomographyExperime
         to True is much faster but there is a ~1% error per qubit in the reset operation.
         Thermal noise from "traditional" reset is not routinely characterized but is of the same
         order.
-    :param symmetrize: Whether to symmetrize the readout errors, i.e. set p(0|1) = p(1|0). For
-        uncorrelated readout errors, this can be achieved by randomly selecting between the
-        POVMs {X.D1.X, X.D0.X} and {D0, D1} (where both D0 and D1 are diagonal). However, here
-        we use exhaustive symmetrization and loop through all possible 2^n POVMs {X/I . POVM . X/I}^n,
-        and obtain symmetrization more generally, i.e. set p(00|00) = p(01|01) = .. = p(11|11), as well
-        as p(00|01) = p(01|00) etc.
+    :param readout_symmetrize: Whether to symmetrize the readout errors, i.e. set
+        p(0|1) = p(1|0). For uncorrelated readout errors, this can be achieved by randomly
+        selecting between the POVMs {X.D1.X, X.D0.X} and {D0, D1} (where both D0 and D1 are
+        diagonal). However, here we use exhaustive symmetrization and loop through all possible
+        2^n POVMs {X/I . POVM . X/I}^n, and obtain symmetrization more generally, i.e. set
+        p(00|00) = p(01|01) = .. = p(11|11), as well as p(00|01) = p(01|00) etc. If this is None,
+        no symmetrization is performed.
     :param calibrate_readout: Whether to calibrate the readout results by normalizing against the
-        operator's expectation value in its +1 eigenstate. The preceding symmetrization and this step
-        together yield a more accurate estimation of the observable.
+        operator's expectation value in its +1 eigenstate. The preceding symmetrization and this
+        step together yield a more accurate estimation of the observable.
     """
     # calibration readout only works with symmetrization turned on
-    if calibrate_readout:
-        symmetrize = True
+    if calibrate_readout and not readout_symmetrize:
+        raise ValueError("Readout calibration only works with readout symmetrization turned on")
 
     # Outer loop over a collection of grouped settings for which we can simultaneously
     # estimate.
@@ -800,7 +802,7 @@ def measure_observables(qc: QuantumComputer, tomo_experiment: TomographyExperime
         for qubit, op_str in max_weight_out_op:
             total_prog += _local_pauli_eig_meas(op_str, qubit)
 
-        if symmetrize:
+        if readout_symmetrize:
             # 1.4 Symmetrize -- flip qubits pre-measurement
             qubits = max_weight_out_op.get_qubits()
             ops_strings = _ops_strs_symmetrize(qubits)
@@ -953,8 +955,8 @@ def _stack_dicts(dict1: Dict, dict2: Dict) -> Dict:
         numpy array specifying readout results gathered from both `dict1` and `dict2`
     """
     assert set(dict1.keys()) == set(dict2.keys()), "Dictionaries must have same keys"
-    assert set(len(v.shape) for v in dict1.values()) == set(len(v.shape) \
-        for v in dict2.values()), "Arrays in dict values must have same dimension"
+    assert set(len(v.shape) for v in dict1.values()) == \
+           set(len(v.shape) for v in dict2.values()), "Arrays in dict values must have same dimension"
     dict_combined = {}
     for k, v in dict1.items():
         dict_combined[k] = np.hstack([v, dict2[k]])

@@ -481,7 +481,7 @@ def test_measure_observables_symmetrize(forest):
     assert len(gsuite) == 3 * 3  # can get all the terms with I for free in this case
 
     qc = get_qc('2q-qvm')
-    for res in measure_observables(qc, gsuite, n_shots=10_000, symmetrize=True):
+    for res in measure_observables(qc, gsuite, n_shots=10_000, readout_symmetrize=True):
         if res.setting.out_operator in [sI(), sZ(0), sZ(1), sZ(0) * sZ(1)]:
             assert np.abs(res.expectation) > 0.9
         else:
@@ -502,7 +502,8 @@ def test_measure_observables_symmetrize_calibrate(forest):
     assert len(gsuite) == 3 * 3  # can get all the terms with I for free in this case
 
     qc = get_qc('2q-qvm')
-    for res in measure_observables(qc, gsuite, n_shots=10_000, calibrate_readout=True):
+    for res in measure_observables(qc, gsuite, n_shots=10_000,
+                                   readout_symmetrize=True, calibrate_readout=True):
         if res.setting.out_operator in [sI(), sZ(0), sZ(1), sZ(0) * sZ(1)]:
             assert np.abs(res.expectation) > 0.9
         else:
@@ -517,7 +518,8 @@ def test_measure_observables_zero_expectation(forest):
     exptsetting = ExperimentSetting(plusZ(0), sX(0))
     suite = TomographyExperiment([exptsetting],
                                  program=Program(I(0)), qubits=[0])
-    result = list(measure_observables(qc, suite, n_shots=10000, calibrate_readout=True))[0]
+    result = list(measure_observables(qc, suite, n_shots=10000, readout_symmetrize=True,
+                                      calibrate_readout=True))[0]
     np.testing.assert_almost_equal(result.expectation, 0.0, decimal=1)
 
 
