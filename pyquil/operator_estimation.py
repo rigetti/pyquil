@@ -809,7 +809,7 @@ def measure_observables(qc: QuantumComputer, tomo_experiment: TomographyExperime
             qubits = max_weight_out_op.get_qubits()
             n_shots_symm = n_shots // 2**len(qubits)
             list_bitstrings_symm = []
-            for ops_str in _ops_strs_symmetrize(qubits):
+            for ops_str in itertools.product(['I', 'X'], repeat=len(qubits)):
                 total_prog_symm = total_prog.copy()
                 prog_symm = _ops_str_to_prog(ops_str, qubits)
                 total_prog_symm += prog_symm
@@ -901,16 +901,6 @@ def measure_observables(qc: QuantumComputer, tomo_experiment: TomographyExperime
 
             else:
                 raise ValueError("Calibration readout method must be either 'plus-eig' or None")
-
-
-def _ops_strs_symmetrize(qubits: List[int]) -> List[str]:
-    """
-    :param qubits: list specifying the qubits whose readout errors we wish to symmetrize
-    :return: list with the operation strings necessary for exhaustive symmetrization
-    """
-    ops_strings = []
-    for prod in itertools.product(['I', 'X'], repeat=len(qubits)):
-        yield ''.join(prod)
 
 
 def _ops_str_to_prog(ops_str: str, qubits: List[int]) -> Program:

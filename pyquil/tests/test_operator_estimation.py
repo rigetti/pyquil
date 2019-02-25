@@ -19,7 +19,7 @@ from pyquil.operator_estimation import ExperimentSetting, TomographyExperiment, 
     _max_tpb_overlap, _max_weight_operator, _max_weight_state, _max_tpb_overlap, \
     TensorProductState, zeros_state, \
     group_experiments, group_experiments_greedy, ExperimentResult, measure_observables, \
-    _ops_strs_symmetrize, _ops_str_to_prog, _ops_str_to_flips, _stack_dicts, _stats_from_measurements, \
+    _ops_str_to_prog, _ops_str_to_flips, _stack_dicts, _stats_from_measurements, \
     ratio_variance
 from pyquil.paulis import sI, sX, sY, sZ, PauliSum, PauliTerm
 
@@ -533,15 +533,9 @@ def test_measure_observables_no_symm_calibr_raises_error(forest):
                                           readout_symmetrize=None, calibrate_readout='plus-eig'))
 
 
-def test_ops_strs_symmetrize():
-    qubits = [0, 2, 3]
-    ops_strings = list(_ops_strs_symmetrize(qubits))
-    assert ops_strings == ['III', 'IIX', 'IXI', 'IXX', 'XII', 'XIX', 'XXI', 'XXX']
-
-
 def test_ops_str_to_prog():
     qubits = [0, 2, 3]
-    ops_strings = _ops_strs_symmetrize(qubits)
+    ops_strings = ['III', 'IIX', 'IXI', 'IXX', 'XII', 'XIX', 'XXI', 'XXX']
     d_expected = {'III': '', 'IIX': 'X 3\n', 'IXI': 'X 2\n', 'IXX': 'X 2\nX 3\n',
                   'XII': 'X 0\n', 'XIX': 'X 0\nX 3\n', 'XXI': 'X 0\nX 2\n',
                   'XXX': 'X 0\nX 2\nX 3\n'}
@@ -560,7 +554,7 @@ def test_ops_str_to_flips():
                   'XIX': {0: 1, 2: 0, 3: 1},
                   'XXI': {0: 1, 2: 1, 3: 0},
                   'XXX': {0: 1, 2: 1, 3: 1}}
-    ops_strings = _ops_strs_symmetrize(qubits)
+    ops_strings = ['III', 'IIX', 'IXI', 'IXX', 'XII', 'XIX', 'XXI', 'XXX']
     for op_str in ops_strings:
         d_flip = _ops_str_to_flips(op_str, qubits)
         assert d_flip == d_expected[op_str]
