@@ -809,7 +809,6 @@ def measure_observables(qc: QuantumComputer, tomo_experiment: TomographyExperime
             qubits = max_weight_out_op.get_qubits()
             n_shots_symm = n_shots // 2**len(qubits)
             list_bitstrings_symm = []
-            # for ops_str in ops_strings:
             for ops_str in _ops_strs_symmetrize(qubits):
                 total_prog_symm = total_prog.copy()
                 prog_symm = _ops_str_to_prog(ops_str, qubits)
