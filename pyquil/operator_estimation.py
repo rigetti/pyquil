@@ -830,7 +830,7 @@ def measure_observables(qc: QuantumComputer, tomo_experiment: TomographyExperime
             bitstrings = qc.run_and_measure(total_prog, n_shots)
 
         else:
-            raise ValueError("'readout_symmetrize' must be either 'exhaustive' or None")
+            raise ValueError("Readout symmetrization method must be either 'exhaustive' or None")
 
         if progress_callback is not None:
             progress_callback(i, len(tomo_experiment))
