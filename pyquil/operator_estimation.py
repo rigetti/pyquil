@@ -750,7 +750,7 @@ class ExperimentResult:
 
 def measure_observables(qc: QuantumComputer, tomo_experiment: TomographyExperiment,
                         n_shots: int = 1000, progress_callback=None, active_reset=False,
-                        readout_symmetrize=False, calibrate_readout=False):
+                        readout_symmetrize: str = None, calibrate_readout=False):
     """
     Measure all the observables in a TomographyExperiment.
 
@@ -765,13 +765,14 @@ def measure_observables(qc: QuantumComputer, tomo_experiment: TomographyExperime
         to True is much faster but there is a ~1% error per qubit in the reset operation.
         Thermal noise from "traditional" reset is not routinely characterized but is of the same
         order.
-    :param readout_symmetrize: Whether to symmetrize the readout errors, i.e. set
+    :param readout_symmetrize: Method used to symmetrize the readout errors, i.e. set
         p(0|1) = p(1|0). For uncorrelated readout errors, this can be achieved by randomly
         selecting between the POVMs {X.D1.X, X.D0.X} and {D0, D1} (where both D0 and D1 are
-        diagonal). However, here we use exhaustive symmetrization and loop through all possible
-        2^n POVMs {X/I . POVM . X/I}^n, and obtain symmetrization more generally, i.e. set
-        p(00|00) = p(01|01) = .. = p(11|11), as well as p(00|01) = p(01|00) etc. If this is None,
-        no symmetrization is performed.
+        diagonal). However, here we currently support exhaustive symmetrization and loop through
+        all possible 2^n POVMs {X/I . POVM . X/I}^n, and obtain symmetrization more generally,
+        i.e. set p(00|00) = p(01|01) = .. = p(11|11), as well as p(00|01) = p(01|00) etc. If this
+        is None, no symmetrization is performed. The exhaustive method can be specified by setting
+        this variable to 'exhaustive'
     :param calibrate_readout: Whether to calibrate the readout results by normalizing against the
         operator's expectation value in its +1 eigenstate. The preceding symmetrization and this
         step together yield a more accurate estimation of the observable.
@@ -802,7 +803,7 @@ def measure_observables(qc: QuantumComputer, tomo_experiment: TomographyExperime
         for qubit, op_str in max_weight_out_op:
             total_prog += _local_pauli_eig_meas(op_str, qubit)
 
-        if readout_symmetrize:
+        if readout_symmetrize == 'exhaustive':
             # 1.4 Symmetrize -- flip qubits pre-measurement
             qubits = max_weight_out_op.get_qubits()
             ops_strings = _ops_strs_symmetrize(qubits)
@@ -824,9 +825,12 @@ def measure_observables(qc: QuantumComputer, tomo_experiment: TomographyExperime
             # 2.3 Gather together all the symmetrized results
             bitstrings = reduce(lambda d1, d2: _stack_dicts(d1, d2), list_bitstrings_symm)
 
-        else:
+        elif readout_symmetrize is None:
             # 2. Run the experiment
             bitstrings = qc.run_and_measure(total_prog, n_shots)
+
+        else:
+            raise ValueError("'readout_symmetrize' must be either 'exhaustive' or None")
 
         if progress_callback is not None:
             progress_callback(i, len(tomo_experiment))
