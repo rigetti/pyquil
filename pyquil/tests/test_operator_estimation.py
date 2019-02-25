@@ -503,7 +503,7 @@ def test_measure_observables_symmetrize_calibrate(forest):
 
     qc = get_qc('2q-qvm')
     for res in measure_observables(qc, gsuite, n_shots=10_000,
-                                   readout_symmetrize='exhaustive', calibrate_readout=True):
+                                   readout_symmetrize='exhaustive', calibrate_readout='plus-eig'):
         if res.setting.out_operator in [sI(), sZ(0), sZ(1), sZ(0) * sZ(1)]:
             assert np.abs(res.expectation) > 0.9
         else:
@@ -519,8 +519,18 @@ def test_measure_observables_zero_expectation(forest):
     suite = TomographyExperiment([exptsetting],
                                  program=Program(I(0)), qubits=[0])
     result = list(measure_observables(qc, suite, n_shots=10000, readout_symmetrize='exhaustive',
-                                      calibrate_readout=True))[0]
+                                      calibrate_readout='plus-eig'))[0]
     np.testing.assert_almost_equal(result.expectation, 0.0, decimal=1)
+
+
+def test_measure_observables_no_symm_calibr_raises_error(forest):
+    qc = get_qc('2q-qvm')
+    exptsetting = ExperimentSetting(plusZ(0), sX(0))
+    suite = TomographyExperiment([exptsetting],
+                                 program=Program(I(0)), qubits=[0])
+    with pytest.raises(ValueError):
+        result = list(measure_observables(qc, suite, n_shots=1000,
+                                          readout_symmetrize=None, calibrate_readout='plus-eig'))
 
 
 def test_ops_strs_symmetrize():

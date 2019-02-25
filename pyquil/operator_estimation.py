@@ -750,7 +750,7 @@ class ExperimentResult:
 
 def measure_observables(qc: QuantumComputer, tomo_experiment: TomographyExperiment,
                         n_shots: int = 1000, progress_callback=None, active_reset=False,
-                        readout_symmetrize: str = None, calibrate_readout=False):
+                        readout_symmetrize: str = None, calibrate_readout: str = None):
     """
     Measure all the observables in a TomographyExperiment.
 
@@ -773,12 +773,13 @@ def measure_observables(qc: QuantumComputer, tomo_experiment: TomographyExperime
         i.e. set p(00|00) = p(01|01) = .. = p(11|11), as well as p(00|01) = p(01|00) etc. If this
         is None, no symmetrization is performed. The exhaustive method can be specified by setting
         this variable to 'exhaustive'
-    :param calibrate_readout: Whether to calibrate the readout results by normalizing against the
-        operator's expectation value in its +1 eigenstate. The preceding symmetrization and this
-        step together yield a more accurate estimation of the observable.
+    :param calibrate_readout: Method used to calibrate the readout results. Currently, the only
+        method supported is normalizing against the operator's expectation value in its +1
+        eigenstate, which can be specified by setting this variable to 'plus-eig'. The preceding
+        symmetrization and this step together yield a more accurate estimation of the observable.
     """
     # calibration readout only works with symmetrization turned on
-    if calibrate_readout and not readout_symmetrize:
+    if calibrate_readout is not None and readout_symmetrize is None:
         raise ValueError("Readout calibration only works with readout symmetrization turned on")
 
     # Outer loop over a collection of grouped settings for which we can simultaneously
@@ -861,7 +862,7 @@ def measure_observables(qc: QuantumComputer, tomo_experiment: TomographyExperime
             # 3.3 Obtain statistics from result of experiment
             obs_mean, obs_var = _stats_from_measurements(bitstrings, setting, n_shots, coeff)
 
-            if calibrate_readout:
+            if calibrate_readout == 'plus-eig':
                 # 4 Readout calibration
                 # 4.1 Prepare the +1 eigenstate for the out operator
                 calibr_prog = Program()
@@ -890,7 +891,7 @@ def measure_observables(qc: QuantumComputer, tomo_experiment: TomographyExperime
                     calibration_counts=calibr_shots,
                 )
 
-            else:
+            elif calibrate_readout is None:
                 # No calibration
                 yield ExperimentResult(
                     setting=setting,
@@ -898,6 +899,9 @@ def measure_observables(qc: QuantumComputer, tomo_experiment: TomographyExperime
                     stddev=np.sqrt(obs_var).item(),
                     total_counts=n_shots,
                 )
+
+            else:
+                raise ValueError("Calibration readout method must be either 'plus-eig' or None")
 
 
 def _ops_strs_symmetrize(qubits: List[int]) -> List[str]:
