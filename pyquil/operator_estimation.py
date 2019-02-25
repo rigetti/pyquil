@@ -955,6 +955,11 @@ def _ops_str_to_flips(ops_str: str, qubits: List[int]) -> Dict:
 
 def _stack_dicts(dict1: Dict, dict2: Dict) -> Dict:
     """
+    Given two dicts representing qubit measurements, keyed by integers (representing qubits)
+    and valued by 1-dimensional numpy arrays (representing measurements), this helper function
+    horizontally stacks the measurement results from the two dicts to produce a single
+    1-dimensional numpy array representing the measurement results in a single dict.
+
     :param dict1: Dict keyed with integer specifying qubit, valued by 1-dimensional
         numpy array specifying readout results
     :param dict2: Dict keyed with integer specifying qubit, valued by 1-dimensional
