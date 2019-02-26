@@ -823,7 +823,7 @@ def measure_observables(qc: QuantumComputer, tomo_experiment: TomographyExperime
                 list_bitstrings_symm.append(bitstrings_symm)
 
             # 2.3 Gather together all the symmetrized results
-            bitstrings = reduce(lambda d1, d2: _stack_dicts(d1, d2), list_bitstrings_symm)
+            bitstrings = reduce(_stack_dicts, list_bitstrings_symm)
 
         elif readout_symmetrize is None:
             # 2. Run the experiment
