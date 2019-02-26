@@ -13,11 +13,14 @@ from typing import List, Union, Iterable, Dict, Tuple
 import networkx as nx
 import numpy as np
 from networkx.algorithms.approximation.clique import clique_removal
-
+from functools import reduce
 from pyquil import Program
 from pyquil.api import QuantumComputer
 from pyquil.gates import *
-from pyquil.paulis import PauliTerm, is_identity, sI
+from pyquil.paulis import (PauliSum, PauliTerm, commuting_sets, sI,
+                           term_with_coeff, is_identity)
+from pyquil.quilbase import (Measurement, Pragma, Gate)
+from math import pi
 
 if sys.version_info < (3, 7):
     from pyquil.external.dataclasses import dataclass
@@ -471,7 +474,8 @@ def _one_q_state_prep(oneq_state: _OneQState):
 def _local_pauli_eig_meas(op, idx):
     """
     Generate gate sequence to measure in the eigenbasis of a Pauli operator, assuming
-    we are only able to measure in the Z eigenbasis.
+    we are only able to measure in the Z eigenbasis. (Note: The unitary operations of this
+    Program are essentially the Hermitian conjugates of those in :py:func:`_one_q_pauli_prep`)
 
     """
     if op == 'X':
@@ -707,12 +711,21 @@ def group_experiments(experiments: TomographyExperiment,
 class ExperimentResult:
     """An expectation and standard deviation for the measurement of one experiment setting
     in a tomographic experiment.
+
+    In the case of readout error calibration, we also include
+    expectation, standard deviation and count for the calibration results, as well as the
+    expectation and standard deviation for the corrected results.
     """
 
     setting: ExperimentSetting
     expectation: Union[float, complex]
-    stddev: float
+    stddev: Union[float, complex]
     total_counts: int
+    raw_expectation: Union[float, complex] = None
+    raw_stddev: float = None
+    calibration_expectation: Union[float, complex] = None
+    calibration_stddev: Union[float, complex] = None
+    calibration_counts: int = None
 
     def __str__(self):
         return f'{self.setting}: {self.expectation} +- {self.stddev}'
@@ -724,14 +737,20 @@ class ExperimentResult:
         return {
             'type': 'ExperimentResult',
             'setting': self.setting,
-            'expectation': self.expectation,
-            'stddev': self.stddev,
+            'expectation': self.corrected_expectation,
+            'stddev': self.corrected_stddev,
             'total_counts': self.total_counts,
+            'raw_expectation': self.expectation,
+            'raw_stddev': self.stddev,
+            'calibration_expectation': self.calibration_expectation,
+            'calibration_stddev': self.calibration_stddev,
+            'calibration_counts': self.calibration_counts,
         }
 
 
-def measure_observables(qc: QuantumComputer, tomo_experiment: TomographyExperiment, n_shots=1000,
-                        progress_callback=None, active_reset=False):
+def measure_observables(qc: QuantumComputer, tomo_experiment: TomographyExperiment,
+                        n_shots: int = 1000, progress_callback=None, active_reset=False,
+                        readout_symmetrize: str = None, calibrate_readout: str = None):
     """
     Measure all the observables in a TomographyExperiment.
 
@@ -746,10 +765,27 @@ def measure_observables(qc: QuantumComputer, tomo_experiment: TomographyExperime
         to True is much faster but there is a ~1% error per qubit in the reset operation.
         Thermal noise from "traditional" reset is not routinely characterized but is of the same
         order.
+    :param readout_symmetrize: Method used to symmetrize the readout errors, i.e. set
+        p(0|1) = p(1|0). For uncorrelated readout errors, this can be achieved by randomly
+        selecting between the POVMs {X.D1.X, X.D0.X} and {D0, D1} (where both D0 and D1 are
+        diagonal). However, here we currently support exhaustive symmetrization and loop through
+        all possible 2^n POVMs {X/I . POVM . X/I}^n, and obtain symmetrization more generally,
+        i.e. set p(00|00) = p(01|01) = .. = p(11|11), as well as p(00|01) = p(01|00) etc. If this
+        is None, no symmetrization is performed. The exhaustive method can be specified by setting
+        this variable to 'exhaustive'
+    :param calibrate_readout: Method used to calibrate the readout results. Currently, the only
+        method supported is normalizing against the operator's expectation value in its +1
+        eigenstate, which can be specified by setting this variable to 'plus-eig'. The preceding
+        symmetrization and this step together yield a more accurate estimation of the observable.
     """
+    # calibration readout only works with symmetrization turned on
+    if calibrate_readout is not None and readout_symmetrize is None:
+        raise ValueError("Readout calibration only works with readout symmetrization turned on")
+
+    # Outer loop over a collection of grouped settings for which we can simultaneously
+    # estimate.
     for i, settings in enumerate(tomo_experiment):
-        # Outer loop over a collection of grouped settings for which we can simultaneously
-        # estimate.
+
         log.info(f"Collecting bitstrings for the {len(settings)} settings: {settings}")
 
         # 1.1 Prepare a state according to the amalgam of all setting.in_state
@@ -768,27 +804,50 @@ def measure_observables(qc: QuantumComputer, tomo_experiment: TomographyExperime
         for qubit, op_str in max_weight_out_op:
             total_prog += _local_pauli_eig_meas(op_str, qubit)
 
-        # 2. Run the experiment
-        bitstrings = qc.run_and_measure(total_prog, n_shots)
+        if readout_symmetrize == 'exhaustive':
+            # 1.4 Symmetrize -- flip qubits pre-measurement
+            qubits = max_weight_out_op.get_qubits()
+            n_shots_symm = n_shots // 2**len(qubits)
+            list_bitstrings_symm = []
+            for ops_bool in itertools.product([0, 1], repeat=len(qubits)):
+                total_prog_symm = total_prog.copy()
+                prog_symm = _ops_bool_to_prog(ops_bool, qubits)
+                total_prog_symm += prog_symm
+                # 2. Run the experiment
+                bitstrings_symm = qc.run_and_measure(total_prog_symm, n_shots_symm)
+                # 2.1 Flip the results post-measurement
+                d_flips_symm = {qubits[i]: op_bool for i, op_bool in enumerate(ops_bool)}
+                for qubit, bs_results in bitstrings_symm.items():
+                    bitstrings_symm[qubit] = bs_results ^ d_flips_symm.get(qubit, 0)
+                # 2.2 Gather together the symmetrized results into list
+                list_bitstrings_symm.append(bitstrings_symm)
+
+            # 2.3 Gather together all the symmetrized results
+            bitstrings = reduce(_stack_dicts, list_bitstrings_symm)
+
+        elif readout_symmetrize is None:
+            # 2. Run the experiment
+            bitstrings = qc.run_and_measure(total_prog, n_shots)
+
+        else:
+            raise ValueError("Readout symmetrization method must be either 'exhaustive' or None")
+
         if progress_callback is not None:
             progress_callback(i, len(tomo_experiment))
 
         # 3. Post-process
-        # 3.1 First transform bits to eigenvalues; ie (+1, -1)
-        obs_strings = {q: 1 - 2 * bitstrings[q] for q in bitstrings}
-
         # Inner loop over the grouped settings. They only differ in which qubits' measurements
         # we include in the post-processing. For example, if `settings` is Z1, Z2, Z1Z2 and we
         # measure (n_shots, n_qubits=2) obs_strings then the full operator value involves selecting
         # either the first column, second column, or both and multiplying along the row.
         for setting in settings:
-            # 3.2 Get the term's coefficient so we can multiply it in later.
+            # 3.1 Get the term's coefficient so we can multiply it in later.
             coeff = complex(setting.out_operator.coefficient)
             if not np.isclose(coeff.imag, 0):
                 raise ValueError(f"{setting}'s out_operator has a complex coefficient.")
             coeff = coeff.real
 
-            # 3.3 Special case for measuring the "identity" operator, which doesn't make much
+            # 3.2 Special case for measuring the "identity" operator, which doesn't make much
             #     sense but should happen perfectly.
             if is_identity(setting.out_operator):
                 yield ExperimentResult(
@@ -799,17 +858,145 @@ def measure_observables(qc: QuantumComputer, tomo_experiment: TomographyExperime
                 )
                 continue
 
-            # 3.4 Pick columns corresponding to qubits with a non-identity out_operation and stack
-            #     into an array of shape (n_shots, n_measure_qubits)
-            my_obs_strings = np.vstack(obs_strings[q] for q, op_str in setting.out_operator).T
+            # 3.3 Obtain statistics from result of experiment
+            obs_mean, obs_var = _stats_from_measurements(bitstrings, setting, n_shots, coeff)
 
-            # 3.6 Multiply row-wise to get operator values. Do statistics. Yield result.
-            obs_vals = coeff * np.prod(my_obs_strings, axis=1)
-            obs_mean = np.mean(obs_vals)
-            obs_var = np.var(obs_vals) / n_shots
-            yield ExperimentResult(
-                setting=setting,
-                expectation=obs_mean.item(),
-                stddev=np.sqrt(obs_var).item(),
-                total_counts=n_shots,
-            )
+            if calibrate_readout == 'plus-eig':
+                # 4 Readout calibration
+                # 4.1 Prepare the +1 eigenstate for the out operator
+                calibr_prog = Program()
+                for q, op in setting.out_operator.operations_as_set():
+                    calibr_prog += _one_q_pauli_prep(label=op, index=0, qubit=q)
+                # 4.2 Measure the out operator in this state
+                for q, op in setting.out_operator.operations_as_set():
+                    calibr_prog += _local_pauli_eig_meas(op, q)
+                calibr_shots = n_shots
+                calibr_results = qc.run_and_measure(calibr_prog, calibr_shots)
+                # 4.3 Obtain statistics from the measurement process
+                obs_calibr_mean, obs_calibr_var = _stats_from_measurements(calibr_results, setting, calibr_shots)
+                # 4.4 Calibrate the readout results
+                corrected_mean = obs_mean / obs_calibr_mean
+                corrected_var = ratio_variance(obs_mean, obs_var, obs_calibr_mean, obs_calibr_var)
+
+                yield ExperimentResult(
+                    setting=setting,
+                    expectation=corrected_mean.item(),
+                    stddev=np.sqrt(corrected_var).item(),
+                    total_counts=n_shots,
+                    raw_expectation=obs_mean.item(),
+                    raw_stddev=np.sqrt(obs_var).item(),
+                    calibration_expectation=obs_calibr_mean.item(),
+                    calibration_stddev=np.sqrt(obs_calibr_var).item(),
+                    calibration_counts=calibr_shots,
+                )
+
+            elif calibrate_readout is None:
+                # No calibration
+                yield ExperimentResult(
+                    setting=setting,
+                    expectation=obs_mean.item(),
+                    stddev=np.sqrt(obs_var).item(),
+                    total_counts=n_shots,
+                )
+
+            else:
+                raise ValueError("Calibration readout method must be either 'plus-eig' or None")
+
+
+def _ops_bool_to_prog(ops_bool: Tuple[bool], qubits: List[int]) -> Program:
+    """
+    :param ops_bool: tuple of booleans specifying the operation to be carried out on `qubits`
+    :param qubits: list specifying the qubits to be carried operations on
+    :return: Program with the operations specified in `ops_bool` on the qubits specified in
+        `qubits`
+    """
+    assert len(ops_bool) == len(qubits), "Mismatch of qubits and operations"
+    prog = Program()
+    for i, op_bool in enumerate(ops_bool):
+        if op_bool == 0:
+            continue
+        elif op_bool == 1:
+            prog += Program(X(qubits[i]))
+        else:
+            raise ValueError("ops_bool should only consist of 0s and/or 1s")
+    return prog
+
+
+def _stack_dicts(dict1: Dict, dict2: Dict) -> Dict:
+    """
+    Given two dicts representing qubit measurements, keyed by integers (representing qubits)
+    and valued by 1-dimensional numpy arrays (representing measurements), this helper function
+    horizontally stacks the measurement results from the two dicts to produce a single
+    1-dimensional numpy array representing the measurement results in a single dict.
+
+    :param dict1: Dict keyed with integer specifying qubit, valued by 1-dimensional
+        numpy array specifying readout results
+    :param dict2: Dict keyed with integer specifying qubit, valued by 1-dimensional
+        numpy array specifying readout results
+    :return: Dict keyed with integer specifying qubit, valued by 1-dimensional
+        numpy array specifying readout results gathered from both `dict1` and `dict2`
+    """
+    assert set(dict1.keys()) == set(dict2.keys()), "Dictionaries must have same keys"
+    assert set(len(v.shape) for v in dict1.values()) == \
+           set(len(v.shape) for v in dict2.values()), "Arrays in dict values must have same dimension"
+    dict_combined = {}
+    for k, v in dict1.items():
+        dict_combined[k] = np.hstack([v, dict2[k]])
+    return dict_combined
+
+
+def _stats_from_measurements(d_results: dict, setting: ExperimentSetting,
+                             n_shots: int, coeff: float = 1.0) -> Tuple[float]:
+    """
+    :param d_results: results from running `qc.run_and_measure()`
+    :param setting: ExperimentSetting
+    :param n_shots: number of shots in the measurement process
+    :param coeff: coefficient of the operator being estimated
+    :return: tuple specifying (mean, variance)
+    """
+    # Transform bits to eigenvalues; ie (+1, -1)
+    obs_strings = {q: 1 - 2 * d_results[q] for q in d_results}
+    # Pick columns corresponding to qubits with a non-identity out_operation and stack
+    # into an array of shape (n_shots, n_measure_qubits)
+    my_obs_strings = np.vstack([obs_strings[q] for q, op_str in setting.out_operator]).T
+    # Multiply row-wise to get operator values. Do statistics. Return result.
+    obs_vals = coeff * np.prod(my_obs_strings, axis=1)
+    obs_mean = np.mean(obs_vals)
+    obs_var = np.var(obs_vals) / n_shots
+
+    return obs_mean, obs_var
+
+
+def ratio_variance(a: Union[float, np.ndarray],
+                   var_a: Union[float, np.ndarray],
+                   b: Union[float, np.ndarray],
+                   var_b: Union[float, np.ndarray]) -> Union[float, np.ndarray]:
+    r"""
+    Given random variables 'A' and 'B', compute the variance on the ratio Y = A/B. Denote the
+    mean of the random variables as a = E[A] and b = E[B] while the variances are var_a = Var[A]
+    and var_b = Var[B] and the covariance as Cov[A,B]. The following expression approximates the
+    variance of Y
+
+    Var[Y] \approx (a/b) ^2 * ( var_a /a^2 + var_b / b^2 - 2 * Cov[A,B]/(a*b) )
+
+    We assume the covariance of A and B is negligible, resting on the assumption that A and B
+    are independently measured. The expression above rests on the assumption that B is non-zero,
+    an assumption which we expect to hold true in most cases, but makes no such assumptions
+    about A. If we allow E[A] = 0, then calculating the expression above via numpy would complain
+    about dividing by zero. Instead, we can re-write the above expression as
+
+    Var[Y] \approx var_a /b^2 + (a^2 * var_b) / b^4
+
+    where we have dropped the covariance term as noted above.
+
+    See the following for more details:
+      - https://doi.org/10.1002/(SICI)1097-0320(20000401)39:4<300::AID-CYTO8>3.0.CO;2-O
+      - http://www.stat.cmu.edu/~hseltman/files/ratio.pdf
+      - https://en.wikipedia.org/wiki/Taylor_expansions_for_the_moments_of_functions_of_random_variables
+
+    :param a: Mean of 'A', to be used as the numerator in a ratio.
+    :param var_a: Variance in 'A'
+    :param b: Mean of 'B', to be used as the numerator in a ratio.
+    :param var_b: Variance in 'B'
+    """
+    return var_a / b**2 + (a**2 * var_b) / b**4

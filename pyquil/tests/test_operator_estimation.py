@@ -2,19 +2,25 @@ import functools
 import itertools
 import random
 from math import pi
+from unittest.mock import Mock
+import numpy as np
+import functools
 from operator import mul
 
 import numpy as np
 import pytest
 
 from pyquil import Program, get_qc
-from pyquil.api import WavefunctionSimulator
 from pyquil.gates import *
+from pyquil.api import WavefunctionSimulator, QVMConnection
 from pyquil.operator_estimation import ExperimentSetting, TomographyExperiment, to_json, read_json, \
-    group_experiments, ExperimentResult, measure_observables, SIC0, \
-    SIC1, SIC2, SIC3, plusX, minusX, plusY, minusY, plusZ, minusZ, \
-    _max_tpb_overlap, _max_weight_operator, _max_weight_state, \
-    TensorProductState, zeros_state
+    group_experiments, ExperimentResult, measure_observables, SIC0, SIC1, SIC2, SIC3, \
+    plusX, minusX, plusY, minusY, plusZ, minusZ, \
+    _max_tpb_overlap, _max_weight_operator, _max_weight_state, _max_tpb_overlap, \
+    TensorProductState, zeros_state, \
+    group_experiments, group_experiments_greedy, ExperimentResult, measure_observables, \
+    _ops_bool_to_prog, _stack_dicts, _stats_from_measurements, \
+    ratio_variance
 from pyquil.paulis import sI, sX, sY, sZ, PauliSum, PauliTerm
 
 
@@ -52,6 +58,7 @@ def test_experiment_setting():
         assert expt2.out_operator == oop
 
 
+@pytest.mark.filterwarnings("ignore:ExperimentSetting")
 def test_setting_no_in_back_compat():
     out_ops = _generate_random_paulis(n_qubits=4, n_terms=7)
     for oop in out_ops:
@@ -62,6 +69,7 @@ def test_setting_no_in_back_compat():
         assert expt2.out_operator == oop
 
 
+@pytest.mark.filterwarnings("ignore:ExperimentSetting")
 def test_setting_no_in():
     out_ops = _generate_random_paulis(n_qubits=4, n_terms=7)
     for oop in out_ops:
@@ -137,6 +145,15 @@ def test_experiment_deser(tmpdir):
 @pytest.fixture(params=['clique-removal', 'greedy'])
 def grouping_method(request):
     return request.param
+
+
+def test_expt_settings_share_ntpb():
+    expts = [[ExperimentSetting(zeros_state([0, 1]), sX(0) * sI(1)), ExperimentSetting(zeros_state([0, 1]), sI(0) * sX(1))],
+             [ExperimentSetting(zeros_state([0, 1]), sZ(0) * sI(1)), ExperimentSetting(zeros_state([0, 1]), sI(0) * sZ(1))]]
+    for group in expts:
+        for e1, e2 in itertools.combinations(group, 2):
+            assert _max_weight_state([e1.in_state, e2.in_state]) is not None
+            assert _max_weight_operator([e1.out_operator, e2.out_operator]) is not None
 
 
 def test_group_experiments(grouping_method):
@@ -279,6 +296,45 @@ def test_max_weight_operator_3():
     assert _max_weight_operator(pauli_terms) is None
 
 
+def test_max_weight_operator_misc():
+    assert _max_weight_operator([sZ(0), sZ(0) * sZ(1)]) is not None
+    assert _max_weight_operator([sX(5), sZ(4)]) is not None
+    assert _max_weight_operator([sX(0), sY(0) * sZ(2)]) is None
+
+    x_term = sX(0) * sX(1)
+    z1_term = sZ(1)
+    z0_term = sZ(0)
+    z0z1_term = sZ(0) * sZ(1)
+    assert _max_weight_operator([x_term, z1_term]) is None
+    assert _max_weight_operator([z0z1_term, x_term]) is None
+
+    assert _max_weight_operator([z1_term, z0_term]) is not None
+    assert _max_weight_operator([z0z1_term, z0_term]) is not None
+    assert _max_weight_operator([z0z1_term, z1_term]) is not None
+    assert _max_weight_operator([z0z1_term, sI(1)]) is not None
+    assert _max_weight_operator([z0z1_term, sI(2)]) is not None
+    assert _max_weight_operator([z0z1_term, sX(5) * sZ(7)]) is not None
+
+    xxxx_terms = sX(1) * sX(2) + sX(2) + sX(3) * sX(4) + sX(4) + \
+        sX(1) * sX(3) * sX(4) + sX(1) * sX(4) + sX(1) * sX(2) * sX(3)
+    true_term = sX(1) * sX(2) * sX(3) * sX(4)
+    assert _max_weight_operator(xxxx_terms.terms) == true_term
+
+    zzzz_terms = sZ(1) * sZ(2) + sZ(3) * sZ(4) + \
+        sZ(1) * sZ(3) + sZ(1) * sZ(3) * sZ(4)
+    assert _max_weight_operator(zzzz_terms.terms) == sZ(1) * sZ(2) * \
+        sZ(3) * sZ(4)
+
+    pauli_terms = [sZ(0), sX(1) * sZ(0), sY(2) * sX(1), sZ(5) * sI(3)]
+    assert _max_weight_operator(pauli_terms) == sZ(5) * sY(2) * sX(1) * sZ(0)
+
+
+def test_max_weight_operator_4():
+    # this last example illustrates that a pair of commuting operators
+    # need not be diagonal in the same tpb
+    assert _max_weight_operator([sX(1) * sZ(0), sZ(1) * sX(0)]) is None
+
+
 def test_max_weight_state_1():
     states = [plusX(0) * plusZ(1),
               plusX(0),
@@ -409,3 +465,137 @@ def test_sic_process_tomo(forest):
     experiment = TomographyExperiment(settings=settings, program=process, qubits=[0])
     results = list(measure_observables(qc, experiment))
     assert len(results) == 4 * 4
+
+
+def test_measure_observables_symmetrize(forest):
+    """
+    Symmetrization alone should not change the outcome on the QVM
+    """
+    expts = [
+        ExperimentSetting(sI(), o1 * o2)
+        for o1, o2 in itertools.product([sI(0), sX(0), sY(0), sZ(0)], [sI(1), sX(1), sY(1), sZ(1)])
+    ]
+    suite = TomographyExperiment(expts, program=Program(X(0), CNOT(0, 1)), qubits=[0, 1])
+    assert len(suite) == 4 * 4
+    gsuite = group_experiments(suite)
+    assert len(gsuite) == 3 * 3  # can get all the terms with I for free in this case
+
+    qc = get_qc('2q-qvm')
+    for res in measure_observables(qc, gsuite, n_shots=10_000, readout_symmetrize='exhaustive'):
+        if res.setting.out_operator in [sI(), sZ(0), sZ(1), sZ(0) * sZ(1)]:
+            assert np.abs(res.expectation) > 0.9
+        else:
+            assert np.abs(res.expectation) < 0.1
+
+
+def test_measure_observables_symmetrize_calibrate(forest):
+    """
+    Symmetrization + calibration should not change the outcome on the QVM
+    """
+    expts = [
+        ExperimentSetting(sI(), o1 * o2)
+        for o1, o2 in itertools.product([sI(0), sX(0), sY(0), sZ(0)], [sI(1), sX(1), sY(1), sZ(1)])
+    ]
+    suite = TomographyExperiment(expts, program=Program(X(0), CNOT(0, 1)), qubits=[0, 1])
+    assert len(suite) == 4 * 4
+    gsuite = group_experiments(suite)
+    assert len(gsuite) == 3 * 3  # can get all the terms with I for free in this case
+
+    qc = get_qc('2q-qvm')
+    for res in measure_observables(qc, gsuite, n_shots=10_000,
+                                   readout_symmetrize='exhaustive', calibrate_readout='plus-eig'):
+        if res.setting.out_operator in [sI(), sZ(0), sZ(1), sZ(0) * sZ(1)]:
+            assert np.abs(res.expectation) > 0.9
+        else:
+            assert np.abs(res.expectation) < 0.1
+
+
+def test_measure_observables_zero_expectation(forest):
+    """
+    Testing case when expectation value of observable should be close to zero
+    """
+    qc = get_qc('2q-qvm')
+    exptsetting = ExperimentSetting(plusZ(0), sX(0))
+    suite = TomographyExperiment([exptsetting],
+                                 program=Program(I(0)), qubits=[0])
+    result = list(measure_observables(qc, suite, n_shots=10000, readout_symmetrize='exhaustive',
+                                      calibrate_readout='plus-eig'))[0]
+    np.testing.assert_almost_equal(result.expectation, 0.0, decimal=1)
+
+
+def test_measure_observables_no_symm_calibr_raises_error(forest):
+    qc = get_qc('2q-qvm')
+    exptsetting = ExperimentSetting(plusZ(0), sX(0))
+    suite = TomographyExperiment([exptsetting],
+                                 program=Program(I(0)), qubits=[0])
+    with pytest.raises(ValueError):
+        result = list(measure_observables(qc, suite, n_shots=1000,
+                                          readout_symmetrize=None, calibrate_readout='plus-eig'))
+
+
+def test_ops_bool_to_prog():
+    qubits = [0, 2, 3]
+    ops_strings = list(itertools.product([0, 1], repeat=len(qubits)))
+    d_expected = {(0, 0, 0): '', (0, 0, 1): 'X 3\n', (0, 1, 0): 'X 2\n', (0, 1, 1): 'X 2\nX 3\n',
+                  (1, 0, 0): 'X 0\n', (1, 0, 1): 'X 0\nX 3\n', (1, 1, 0): 'X 0\nX 2\n',
+                  (1, 1, 1): 'X 0\nX 2\nX 3\n'}
+    for op_str in ops_strings:
+        p = _ops_bool_to_prog(op_str, qubits)
+        assert str(p) == d_expected[op_str]
+
+
+def test_stack_dicts():
+    d1 = {0: np.array([0] * 10), 1: np.array([1] * 10)}
+    d2 = {0: np.array([10] * 10), 1: np.array([20] * 10)}
+
+    d12 = _stack_dicts(d1, d2)
+    d12_expected = {0: np.array([0] * 10 + [10] * 10), 1: np.array([1] * 10 + [20] * 10)}
+    assert d12.keys() == d12_expected.keys()
+    for k, v in d12.items():
+        np.testing.assert_allclose(v, d12_expected[k])
+
+
+def test_stack_multiple_dicts():
+    d1 = {0: np.array([0] * 10), 1: np.array([1] * 10)}
+    d2 = {0: np.array([10] * 10), 1: np.array([20] * 10)}
+    d3 = {0: np.array([100] * 10), 1: np.array([200] * 10)}
+    list_dicts = [d1, d2, d3]
+
+    d123 = functools.reduce(lambda d1, d2: _stack_dicts(d1, d2), list_dicts)
+    d123_expected = {0: np.array([0] * 10 + [10] * 10 + [100] * 10),
+                     1: np.array([1] * 10 + [20] * 10 + [200] * 10)}
+    assert d123.keys() == d123_expected.keys()
+    for k, v in d123.items():
+        np.testing.assert_allclose(v, d123_expected[k])
+
+
+def test_stats_from_measurements():
+    d_results = {0: np.array([0] * 10), 1: np.array([1] * 10)}
+    setting = ExperimentSetting(TensorProductState(), sZ(0) * sX(1))
+    n_shots = 1000
+
+    obs_mean, obs_var = _stats_from_measurements(d_results, setting, n_shots)
+    assert obs_mean == -1.0
+    assert obs_var == 0.0
+
+
+def test_ratio_variance_float():
+    a, b, var_a, var_b = 1.0, 2.0, 0.1, 0.05
+    ab_ratio_var = ratio_variance(a, var_a, b, var_b)
+    assert ab_ratio_var == 0.028125
+
+
+def test_ratio_variance_numerator_zero():
+    # denominator can't be zero, but numerator can be
+    a, b, var_a, var_b = 0.0, 2.0, 0.1, 0.05
+    ab_ratio_var = ratio_variance(a, var_a, b, var_b)
+    assert ab_ratio_var == 0.025
+
+
+def test_ratio_variance_array():
+    a = np.array([1.0, 10.0, 100.0])
+    b = np.array([2.0, 20.0, 200.0])
+    var_a = np.array([0.1, 1.0, 10.0])
+    var_b = np.array([0.05, 0.5, 5.0])
+    ab_ratio_var = ratio_variance(a, var_a, b, var_b)
+    np.testing.assert_allclose(ab_ratio_var, np.array([0.028125, 0.0028125, 0.00028125]))
