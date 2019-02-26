@@ -19,7 +19,7 @@ from pyquil.operator_estimation import ExperimentSetting, TomographyExperiment, 
     _max_tpb_overlap, _max_weight_operator, _max_weight_state, _max_tpb_overlap, \
     TensorProductState, zeros_state, \
     group_experiments, group_experiments_greedy, ExperimentResult, measure_observables, \
-    _ops_str_to_prog, _ops_str_to_flips, _stack_dicts, _stats_from_measurements, \
+    _ops_bool_to_prog, _stack_dicts, _stats_from_measurements, \
     ratio_variance
 from pyquil.paulis import sI, sX, sY, sZ, PauliSum, PauliTerm
 
@@ -533,31 +533,15 @@ def test_measure_observables_no_symm_calibr_raises_error(forest):
                                           readout_symmetrize=None, calibrate_readout='plus-eig'))
 
 
-def test_ops_str_to_prog():
+def test_ops_bool_to_prog():
     qubits = [0, 2, 3]
-    ops_strings = ['III', 'IIX', 'IXI', 'IXX', 'XII', 'XIX', 'XXI', 'XXX']
-    d_expected = {'III': '', 'IIX': 'X 3\n', 'IXI': 'X 2\n', 'IXX': 'X 2\nX 3\n',
-                  'XII': 'X 0\n', 'XIX': 'X 0\nX 3\n', 'XXI': 'X 0\nX 2\n',
-                  'XXX': 'X 0\nX 2\nX 3\n'}
+    ops_strings = list(itertools.product([0, 1], repeat=len(qubits)))
+    d_expected = {(0, 0, 0): '', (0, 0, 1): 'X 3\n', (0, 1, 0): 'X 2\n', (0, 1, 1): 'X 2\nX 3\n',
+                  (1, 0, 0): 'X 0\n', (1, 0, 1): 'X 0\nX 3\n', (1, 1, 0): 'X 0\nX 2\n',
+                  (1, 1, 1): 'X 0\nX 2\nX 3\n'}
     for op_str in ops_strings:
-        p = _ops_str_to_prog(op_str, qubits)
+        p = _ops_bool_to_prog(op_str, qubits)
         assert str(p) == d_expected[op_str]
-
-
-def test_ops_str_to_flips():
-    qubits = [0, 2, 3]
-    d_expected = {'III': {0: 0, 2: 0, 3: 0},
-                  'IIX': {0: 0, 2: 0, 3: 1},
-                  'IXI': {0: 0, 2: 1, 3: 0},
-                  'IXX': {0: 0, 2: 1, 3: 1},
-                  'XII': {0: 1, 2: 0, 3: 0},
-                  'XIX': {0: 1, 2: 0, 3: 1},
-                  'XXI': {0: 1, 2: 1, 3: 0},
-                  'XXX': {0: 1, 2: 1, 3: 1}}
-    ops_strings = ['III', 'IIX', 'IXI', 'IXX', 'XII', 'XIX', 'XXI', 'XXX']
-    for op_str in ops_strings:
-        d_flip = _ops_str_to_flips(op_str, qubits)
-        assert d_flip == d_expected[op_str]
 
 
 def test_stack_dicts():

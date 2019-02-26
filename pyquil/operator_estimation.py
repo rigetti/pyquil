@@ -809,14 +809,14 @@ def measure_observables(qc: QuantumComputer, tomo_experiment: TomographyExperime
             qubits = max_weight_out_op.get_qubits()
             n_shots_symm = n_shots // 2**len(qubits)
             list_bitstrings_symm = []
-            for ops_str in itertools.product(['I', 'X'], repeat=len(qubits)):
+            for ops_bool in itertools.product([0, 1], repeat=len(qubits)):
                 total_prog_symm = total_prog.copy()
-                prog_symm = _ops_str_to_prog(ops_str, qubits)
+                prog_symm = _ops_bool_to_prog(ops_bool, qubits)
                 total_prog_symm += prog_symm
                 # 2. Run the experiment
                 bitstrings_symm = qc.run_and_measure(total_prog_symm, n_shots_symm)
                 # 2.1 Flip the results post-measurement
-                d_flips_symm = _ops_str_to_flips(ops_str, qubits)
+                d_flips_symm = {qubits[i]: op_bool for i, op_bool in enumerate(ops_bool)}
                 for qubit, bs_results in bitstrings_symm.items():
                     bitstrings_symm[qubit] = bs_results ^ d_flips_symm.get(qubit, 0)
                 # 2.2 Gather together the symmetrized results into list
@@ -903,42 +903,23 @@ def measure_observables(qc: QuantumComputer, tomo_experiment: TomographyExperime
                 raise ValueError("Calibration readout method must be either 'plus-eig' or None")
 
 
-def _ops_str_to_prog(ops_str: str, qubits: List[int]) -> Program:
+def _ops_bool_to_prog(ops_bool: Tuple[bool], qubits: List[int]) -> Program:
     """
-    :param ops_str: string specifying the operation to be carried out on `qubits`
+    :param ops_bool: tuple of booleans specifying the operation to be carried out on `qubits`
     :param qubits: list specifying the qubits to be carried operations on
-    :return: Program with the operations specified in `ops_str` on the qubits specified in `qubits`
+    :return: Program with the operations specified in `ops_bool` on the qubits specified in
+        `qubits`
     """
-    assert len(ops_str) == len(qubits), "Mismatch of qubits and operations"
+    assert len(ops_bool) == len(qubits), "Mismatch of qubits and operations"
     prog = Program()
-    for i, op_ch in enumerate(ops_str):
-        if op_ch == 'I':
+    for i, op_bool in enumerate(ops_bool):
+        if op_bool == 0:
             continue
-        elif op_ch == 'X':
+        elif op_bool == 1:
             prog += Program(X(qubits[i]))
         else:
-            raise ValueError("ops_str should only consist of 'I's and/or 'X's")
+            raise ValueError("ops_bool should only consist of 0s and/or 1s")
     return prog
-
-
-def _ops_str_to_flips(ops_str: str, qubits: List[int]) -> Dict:
-    """
-    :param ops_str: string specifying the operation to be carried out on `qubits`
-    :param qubits: list specifying the qubits to be carried operations on
-    :return: Dict specyfing whether to flip the readout results or not, depending on
-        the operations specified in `ops_str`, which in turn are operating on the
-        qubits specified in `qubits`
-    """
-    d_flip = {}
-    for i, op_ch in enumerate(ops_str):
-        q = qubits[i]
-        if op_ch == 'I':
-            d_flip[q] = 0
-        elif op_ch == 'X':
-            d_flip[q] = 1
-        else:
-            raise ValueError("ops_str should only consist of 'I's and/or 'X's")
-    return d_flip
 
 
 def _stack_dicts(dict1: Dict, dict2: Dict) -> Dict:
