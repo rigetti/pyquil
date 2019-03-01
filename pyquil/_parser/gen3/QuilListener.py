@@ -71,6 +71,15 @@ class QuilListener(ParseTreeListener):
         pass
 
 
+    # Enter a parse tree produced by QuilParser#modifier.
+    def enterModifier(self, ctx:QuilParser.ModifierContext):
+        pass
+
+    # Exit a parse tree produced by QuilParser#modifier.
+    def exitModifier(self, ctx:QuilParser.ModifierContext):
+        pass
+
+
     # Enter a parse tree produced by QuilParser#defGate.
     def enterDefGate(self, ctx:QuilParser.DefGateContext):
         pass

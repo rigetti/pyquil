@@ -108,26 +108,54 @@ class Gate(AbstractInstruction):
         self.name = name
         self.params = params
         self.qubits = qubits
+        self.modifiers = []
 
     def get_qubits(self, indices=True):
         return {_extract_qubit_index(q, indices) for q in self.qubits}
 
     def out(self):
         if self.params:
-            return "{}{} {}".format(self.name, _format_params(self.params),
-                                    _format_qubits_out(self.qubits))
+            return "{}{}{} {}".format(
+                ' '.join(self.modifiers) + ' ' if self.modifiers else '',
+                self.name, _format_params(self.params),
+                _format_qubits_out(self.qubits))
         else:
-            return "{} {}".format(self.name, _format_qubits_out(self.qubits))
+            return "{}{} {}".format(
+                ' '.join(self.modifiers) + ' ' if self.modifiers else '',
+                self.name, _format_qubits_out(self.qubits))
+
+    def controlled(self, control_qubit):
+        """
+        Add the CONTROLLED modifier to the gate with the given control qubit.
+        """
+        control_qubit = unpack_qubit(control_qubit)
+
+        self.modifiers.insert(0, "CONTROLLED")
+        self.qubits.insert(0, control_qubit)
+
+        return self
+
+    def dagger(self):
+        """
+        Add the DAGGER modifier to the gate.
+        """
+        self.modifiers.insert(0, "DAGGER")
+
+        return self
 
     def __repr__(self):
         return "<Gate " + str(self) + ">"
 
     def __str__(self):
         if self.params:
-            return "{}{} {}".format(self.name, _format_params(self.params),
-                                    _format_qubits_str(self.qubits))
+            return "{}{}{} {}".format(
+                ' '.join(self.modifiers) + ' ' if self.modifiers else '',
+                self.name, _format_params(self.params),
+                _format_qubits_str(self.qubits))
         else:
-            return "{} {}".format(self.name, _format_qubits_str(self.qubits))
+            return "{}{} {}".format(
+                ' '.join(self.modifiers) + ' ' if self.modifiers else '',
+                self.name, _format_qubits_str(self.qubits))
 
 
 class Measurement(AbstractInstruction):

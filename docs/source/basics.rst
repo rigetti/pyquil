@@ -369,6 +369,25 @@ The ``CONTROLLED`` modifier takes a gate and makes it a controlled gate. For ins
 .. note::
     The letter ``C`` in the gate name has no semantic significance in Quil. To make a controlled ``Y`` gate, one `cannot` write ``CY``, but rather one has to write ``CONTROLLED Y``.
 
+All gates (objects deriving from the ``Gate`` class) provide the
+methods ``Gate.controlled(control_qubit)`` and ``Gate.dagger()`` that
+can be used to programmatically apply the ``CONTROLLED`` and
+``DAGGER`` modifiers.
+
+For example, to produce the controlled-NOT gate (``CNOT``) with
+control qubit ``0`` and target qubit ``1``
+
+.. code:: python
+
+   prog = Program(X(1).controlled(0))
+
+You can achieve the oft-used `control-off` gate (flip the target qubit
+``1`` if the control qubit ``0`` is zero) with
+
+.. code:: python
+
+   prog = Program(X(0), X(1).controlled(0), X(0))
+
 Defining New Gates
 ~~~~~~~~~~~~~~~~~~
 
