@@ -87,8 +87,8 @@ and then execute it with the QVM directly from the command line:
     [2018-11-30 11:13:58] Classical memory (low -> high indexes):
     [2018-11-30 11:13:58]     ro:  1 0
 
-For a detailed description of how to use the ``qvm`` from the command line, see :ref:`The QVM manual page <qvm_man>` or
-type ``man qvm`` in your terminal.
+For a detailed description of how to use the ``qvm`` from the command line, see the QVM `README
+<https://github.com/rigetti/qvm>`_ or type ``man qvm`` in your terminal.
 
 We also offer a Wavefunction Simulator (formerly a part of the :py:class:`~pyquil.api.QVM` object),
 which allows users to contruct and inspect wavefunctions of quantum programs. Learn more
