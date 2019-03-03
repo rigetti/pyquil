@@ -53,7 +53,7 @@ QVM server by typing ``qvm -S`` into your terminal. You should see the following
     [2018-11-06 18:18:18] Starting server on port 5000.
 
 By default, the server is started on port 5000 on your local machine. Consequently, the endpoint which
-the pyQuil :py:class:`~pyquil.api.QVM` will default to for the QVM address is ``"http://127.0.0.1:5000"``. When you
+the pyQuil :py:class:`~pyquil.api.QVM` will default to for the QVM address is ``http://127.0.0.1:5000``. When you
 run your program, a pyQuil client will send a Quil program to the QVM server and wait for a response back.
 
 It's also possible to use the QVM from the command line. You can write a Quil program in its own file:
