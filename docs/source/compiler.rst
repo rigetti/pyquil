@@ -75,9 +75,9 @@ with output
     RZ(pi/2) 2
     PRAGMA CURRENT_REWIRING "#(0 1 2 3 4 5 6 7)"
 
-The compiler connection is also available directly via the property ``qc.compiler``.  The precise
-class of this object changes based on context (e.g., ``QPUCompiler``, ``QVMCompiler``, or
-``LocalQVMCompiler``), but it always conforms to the interface laid out by ``pyquil.api._qac``:
+The compiler connection is also available directly via the property ``qc.compiler``.  The
+precise class of this object changes based on context (e.g., ``QPUCompiler``,
+``QVMCompiler``), but it always conforms to the interface laid out by ``pyquil.api._qac``:
 
 * ``compiler.quil_to_native_quil(program)``: This method converts a Quil program into native Quil,
   according to the ISA that the compiler is initialized with.  The input parameter is specified as a
