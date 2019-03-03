@@ -604,8 +604,14 @@ class MemoryReference(QuilAtom, Expression):
         if self.offset != 0:
             raise ValueError("Please only index off of the base MemoryReference (offset = 0)")
 
-        return MemoryReference(name=self.name, offset=offset)
+        # NOTE If a MemoryReference is the result of parsing (not
+        # manually instantiated), it will likely be instantiated
+        # without a declared_size, and so bounds checking will be
+        # impossible.
+        if self.declared_size and offset >= self.declared_size:
+            raise IndexError("MemoryReference index out of range")
 
+        return MemoryReference(name=self.name, offset=offset)
 
 class Addr(MemoryReference):
     """

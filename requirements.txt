@@ -10,6 +10,7 @@ rpcq == 2.2.1
 
 # test deps
 pytest
+pytest-timeout
 requests-mock
 flake8
 tox
