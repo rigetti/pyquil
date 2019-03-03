@@ -15,9 +15,13 @@ Improvements and Changes:
   that uses fixed random seeds instead of averaging over several experiments. This can
   be enabled with the `--use-seed` command line option when running `pytest` (gh-928).
 
+- Examples README
+
 Bugfixes:
 
 - ``unitary_tools.lifted_gate()`` was not properly handling modifiers such as ``DAGGER`` and ``CONTROLLED``.
+- Remove memory warnings from notebooks
+- Update examples requirements
 
 v2.9.1 (June 28, 2019)
 ----------------------
