@@ -1029,7 +1029,7 @@ def test_validate_supported_quil_reset_qubit():
 
 def test_validate_supported_quil_measure_last():
     prog = Program(
-        MEASURE(0),
+        MEASURE(0, None),
         H(0),
     )
     with pytest.raises(ValueError):
@@ -1042,7 +1042,7 @@ def test_validate_supported_quil_with_pragma():
         RESET(),
         H(1),
         Pragma('DELAY'),
-        MEASURE(1)
+        MEASURE(1, None)
     )
     assert prog.is_supported_on_qpu()
 
@@ -1129,8 +1129,8 @@ def test_validate_supported_quil_multiple_measures():
         RESET(),
         H(1),
         Pragma('DELAY'),
-        MEASURE(1),
-        MEASURE(1)
+        MEASURE(1, None),
+        MEASURE(1, None)
     )
     with pytest.raises(ValueError):
         validate_supported_quil(prog)

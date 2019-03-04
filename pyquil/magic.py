@@ -196,7 +196,7 @@ def magicquil(f):
 
         @magicquil
         def fast_reset(q1):
-            reg1 = MEASURE(q1)
+            reg1 = MEASURE(q1, None)
             if reg1:
                 X(q1)
             else:
