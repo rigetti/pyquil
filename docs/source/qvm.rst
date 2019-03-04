@@ -53,7 +53,7 @@ QVM server by typing ``qvm -S`` into your terminal. You should see the following
     [2018-11-06 18:18:18] Starting server on port 5000.
 
 By default, the server is started on port 5000 on your local machine. Consequently, the endpoint which
-the pyQuil :py:class:`~pyquil.api.QVM` will default to for the QVM address is ``"http://127.0.0.1:5000"``. When you
+the pyQuil :py:class:`~pyquil.api.QVM` will default to for the QVM address is ``http://127.0.0.1:5000``. When you
 run your program, a pyQuil client will send a Quil program to the QVM server and wait for a response back.
 
 It's also possible to use the QVM from the command line. You can write a Quil program in its own file:
@@ -87,8 +87,8 @@ and then execute it with the QVM directly from the command line:
     [2018-11-30 11:13:58] Classical memory (low -> high indexes):
     [2018-11-30 11:13:58]     ro:  1 0
 
-For a detailed description of how to use the ``qvm`` from the command line, see :ref:`The QVM manual page <qvm_man>` or
-type ``man qvm`` in your terminal.
+For a detailed description of how to use the ``qvm`` from the command line, see the QVM `README
+<https://github.com/rigetti/qvm>`_ or type ``man qvm`` in your terminal.
 
 We also offer a Wavefunction Simulator (formerly a part of the :py:class:`~pyquil.api.QVM` object),
 which allows users to contruct and inspect wavefunctions of quantum programs. Learn more
@@ -104,12 +104,13 @@ Documentation for getting started with your Quantum Machine Image (QMI) is found
 `here <https://www.rigetti.com/qcs/docs/intro-to-qcs>`_. Using QCS, you will ``ssh`` into your QMI, and reserve a
 QPU lattice for a particular time block.
 
-When your reservation begins, you will be authorized to access the QPU. A configuration file will be automatically
-populated for you with the proper QPU endpoint for your reservation. Both your QMI and the QPU are located on premises,
-giving you low latency access to the QPU server. That server accepts jobs in the form of ``BinaryExecutableRequest``s,
-which is precisely what you get back when you compile your program in pyQuil and target the QPU (more on this soon).
-This request contains all the information necessary to run your program on the control rack which sends and receives
-waveforms from the QPU, so that you can receive classified readout results (``0``s and ``1``s).
+When your reservation begins, you will be authorized to access the QPU. A configuration file will be
+automatically populated for you with the proper QPU endpoint for your reservation. Both your QMI and the QPU
+are located on premises, giving you low latency access to the QPU server. That server accepts jobs in the form
+of a ``BinaryExecutableRequest`` object, which is precisely what you get back when you compile your program in
+pyQuil and target the QPU (more on this soon).  This request contains all the information necessary to run
+your program on the control rack which sends and receives waveforms from the QPU, so that you can receive
+classical binary readout results.
 
 For information on available lattices, you can check out your dashboard at https://qcs.rigetti.com/dashboard after you've
 been invited to QCS.

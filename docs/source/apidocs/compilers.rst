@@ -16,5 +16,4 @@ Therefore, we define an abstract interface that all compilers must follow. See
 
     _qac.AbstractCompiler
     QVMCompiler
-    LocalQVMCompiler
     QPUCompiler

@@ -10,12 +10,12 @@ v2.4 (February 14, 2019)
 
 Announcements:
 
-- The Quil Compiler ([``quilc``](https://github.com/rigetti/quilc)) and
-  the Quantum Virtual Machine ([``qvm``](https://github.com/rigetti/quilc)),
+- The Quil Compiler (`quilc <https://github.com/rigetti/quilc>`_) and
+  the Quantum Virtual Machine (`QVM <https://github.com/rigetti/quilc>`_),
   which are part of the Forest SDK, have been open sourced! In addition to
   downloading the binaries, you can now build these applications locally from source,
-  or run them via the Docker images [``rigetti/quilc``](https://hub.docker.com/r/rigetti/quilc)
-  and [``rigetti/qvm``](https://hub.docker.com/r/rigetti/qvm). These Docker images are now
+  or run them via the Docker images `rigetti/quilc <https://hub.docker.com/r/rigetti/quilc>`_
+  and `rigetti/qvm <https://hub.docker.com/r/rigetti/qvm>`_. These Docker images are now
   used as the ``services`` in the GitLab CI build plan YAML (gh-792, gh-794, gh-795).
 
 Improvements and Changes:
