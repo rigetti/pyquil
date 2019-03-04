@@ -171,18 +171,21 @@ Multiple qubits are represented in precisely the same way, by taking linear comb
 An Important Distinction
 ^^^^^^^^^^^^^^^^^^^^^^^^
 
-An important distinction between the probabilistic case described above
-and the quantum case is that probabilistic states may just mask out
-ignorance. For example a coin is physically only 0 or 1 and the
-probabilistic view merely represents our ignorance about which it actually
-is. **This is not the case in quantum mechanics**. Assuming events occuring at a distance from one another cannot instantaneously
-influence each other, the quantum states ---
-as far as we know --- cannot mask any underlying state. This is what
-people mean when they say that there is no `local hidden variable theory
-<https://en.wikipedia.org/wiki/Bell's_theorem>`_ for
-quantum mechanics. These probabilistic quantum states are as real as it
-gets: they don't just describe our knowledge of the quantum system, they
-describe the physical reality of the system.
+The probabilistic states described above represent ignorance of an underlying
+state, like 0 or 1 for probabilistic bits. **This is not true for quantum
+states.** The nature of quantum states is `a deep topic
+<https://plato.stanford.edu/entries/qt-issues/#OntoIssu>`_ with no full
+scientific consensus. However, `no-go theorems
+<https://en.wikipedia.org/wiki/No-go_theorem>`_ like `Bell's Theorem
+<https://en.wikipedia.org/wiki/Bell%27s_theorem>`_ have ruled out the option of
+`local hidden variable theories
+<https://en.wikipedia.org/wiki/Local_hidden-variable_theory>`_ for quantum
+mechanics. Effectively, these say that quantum states can't be interpreted as
+purely representing ignorance of an underlying local objective state. In
+practice this means that a pure quantum state simply *is* the complex vector
+described in the last section, and we consider it just as "real" as a heads-up
+coin. This distinction between quantum and classical states is foundational for
+understanding quantum computing.
 
 Some Code
 ^^^^^^^^^
