@@ -152,7 +152,7 @@ class Program(object):
                     op = instruction[0]
                     if op == "MEASURE":
                         if len(instruction) == 2:
-                            self.measure(instruction[1])
+                            self.measure(instruction[1], None)
                         else:
                             self.measure(instruction[1], instruction[2])
                     else:
@@ -290,12 +290,13 @@ class Program(object):
         """
         return self.inst(Pragma("NO-NOISE"))
 
-    def measure(self, qubit_index, classical_reg=None):
+    def measure(self, qubit_index, classical_reg):
         """
         Measures a qubit at qubit_index and puts the result in classical_reg
 
         :param int qubit_index: The address of the qubit to measure.
         :param int classical_reg: The address of the classical bit to store the result.
+            Set to None to measure for effect (discard result).
         :returns: The Quil Program with the appropriate measure instruction appended, e.g.
                   MEASURE 0 [1]
         :rtype: Program

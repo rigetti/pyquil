@@ -474,7 +474,7 @@ This instruction ends the program.
 """
 
 
-def MEASURE(qubit, classical_reg=None):
+def MEASURE(qubit, classical_reg):
     """
     Produce a MEASURE instruction.
 

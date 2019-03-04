@@ -163,7 +163,7 @@ class Measurement(AbstractInstruction):
     This is the pyQuil object for a Quil measurement instruction.
     """
 
-    def __init__(self, qubit, classical_reg=None):
+    def __init__(self, qubit, classical_reg):
         if not isinstance(qubit, (Qubit, QubitPlaceholder)):
             raise TypeError("qubit should be a Qubit")
         if classical_reg and not isinstance(classical_reg, MemoryReference):

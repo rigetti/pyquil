@@ -141,7 +141,7 @@ def test_expressions():
 
 
 def test_measure():
-    parse_equals("MEASURE 0", MEASURE(0))
+    parse_equals("MEASURE 0", MEASURE(0, None))
     parse_equals("MEASURE 0 ro[1]", MEASURE(0, 1))
 
 
