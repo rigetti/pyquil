@@ -1171,10 +1171,12 @@ def test_subtracting_memory_regions():
     assert parsed_param.op1 == alpha
     assert parsed_param.op2 == beta
 
+
 def test_out_of_bounds_memory():
     r = Program().declare('ro', 'BIT', 1)
     with pytest.raises(IndexError):
         r[1]
+
 
 @pytest.mark.timeout(5)
 def test_memory_reference_iteration():

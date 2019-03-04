@@ -613,6 +613,7 @@ class MemoryReference(QuilAtom, Expression):
 
         return MemoryReference(name=self.name, offset=offset)
 
+
 class Addr(MemoryReference):
     """
     Representation of a classical bit address.
