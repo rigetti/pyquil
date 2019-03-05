@@ -14,6 +14,7 @@
 #    limitations under the License.
 ##############################################################################
 from typing import List, Union, Optional, Dict, Any
+from warnings import warn
 
 import numpy as np
 from six import integer_types
@@ -51,7 +52,7 @@ class WavefunctionSimulator:
 
     @_record_call
     def wavefunction(self, quil_program: Program,
-                     memory_map: Dict[MemoryReference, Any] = None) -> Wavefunction:
+                     memory_map: Any = None) -> Wavefunction:
         """
         Simulate a Quil program and return the wavefunction.
 
@@ -64,6 +65,13 @@ class WavefunctionSimulator:
         :param quil_program: A Quil program.
         :param memory_map: An assignment of classical registers to values, representing an initial
                            state for the QAM's classical memory.
+
+                           This is expected to be of type Dict[str, List[Union[int, float]]],
+                           where the keys are memory region names and the values are arrays of
+                           initialization data.
+
+                           For now, we also support input of type Dict[MemoryReference, Any],
+                           but this is deprecated and will be removed in a future release.
         :return: A Wavefunction object representing the state of the QVM.
         """
 
@@ -76,7 +84,7 @@ class WavefunctionSimulator:
     @_record_call
     def expectation(self, prep_prog: Program,
                     pauli_terms: Union[PauliSum, List[PauliTerm]],
-                    memory_map: Dict[MemoryReference, Any] = None) -> Union[float, np.ndarray]:
+                    memory_map: Any = None) -> Union[float, np.ndarray]:
         """
         Calculate the expectation value of Pauli operators given a state prepared by prep_program.
 
@@ -94,6 +102,13 @@ class WavefunctionSimulator:
         :param pauli_terms: A Pauli representation of a quantum operator.
         :param memory_map: An assignment of classical registers to values, representing an initial
                            state for the QAM's classical memory.
+
+                           This is expected to be of type Dict[str, List[Union[int, float]]],
+                           where the keys are memory region names and the values are arrays of
+                           initialization data.
+
+                           For now, we also support input of type Dict[MemoryReference, Any],
+                           but this is deprecated and will be removed in a future release.
         :return: Either a float or array floats depending on ``pauli_terms``.
         """
 
@@ -116,7 +131,7 @@ class WavefunctionSimulator:
 
     @_record_call
     def run_and_measure(self, quil_program: Program, qubits: List[int] = None, trials: int = 1,
-                        memory_map: Dict[MemoryReference, Any] = None) -> np.ndarray:
+                        memory_map: Any = None) -> np.ndarray:
         """
         Run a Quil program once to determine the final wavefunction, and measure multiple times.
 
@@ -141,6 +156,13 @@ class WavefunctionSimulator:
         :param int trials: Number of times to sample from the prepared wavefunction.
         :param memory_map: An assignment of classical registers to values, representing an initial
                            state for the QAM's classical memory.
+
+                           This is expected to be of type Dict[str, List[Union[int, float]]],
+                           where the keys are memory region names and the values are arrays of
+                           initialization data.
+
+                           For now, we also support input of type Dict[MemoryReference, Any],
+                           but this is deprecated and will be removed in a future release.
         :return: An array of measurement results (0 or 1) of shape (trials, len(qubits))
         """
         if qubits is None:
@@ -157,8 +179,24 @@ class WavefunctionSimulator:
     def augment_program_with_memory_values(quil_program, memory_map):
         p = Program()
 
-        for k, v in memory_map.items():
-            p += MOVE(k, v)
+        # we stupidly allowed memory_map to be of type Dict[MemoryReference, Any], whereas qc.run
+        # takes a memory initialization argument of type Dict[str, List[Union[int, float]]. until
+        # we are in a position to remove this, we support both styles of input.
+
+        if len(memory_map.keys()) == 0:
+            return quil_program
+        elif isinstance(list(memory_map.keys())[0], MemoryReference):
+            warn("Use of memory_map values of type Dict[MemoryReference, Any] have been "
+                 "deprecated.  Please use Dict[str, List[Union[int, float]]], as with "
+                 "QuantumComputer.run .")
+            for k, v in memory_map.items():
+                p += MOVE(k, v)
+        elif isinstance(list(memory_map.keys())[0], str):
+            for name, arr in memory_map.items():
+                for index, value in enumerate(arr):
+                    p += MOVE(MemoryReference(name, offset=index), value)
+        else:
+            raise TypeError("Bad memory_map type; expected Dict[str, List[Union[int, float]]].")
 
         p += quil_program
 
