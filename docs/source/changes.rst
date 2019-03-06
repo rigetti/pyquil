@@ -1,10 +1,10 @@
 Changelog
 =========
 
-v2.5 (Development)
+v2.5 (March 6, 2019)
 ------------------
 
-Improvements and changes:
+Improvements and Changes:
 
 - PyQuil's Gate objects now expose ``.controlled(q)`` and ``.dagger()``
   modifiers, which turn a gate respectively into its controlled variant,
@@ -15,7 +15,7 @@ Improvements and changes:
   asymmetry between recognizing a qubit in the ground state versus the excited
   state.
 
-- The ``MEASURE`` instruction in pyQuil now has a _mandatory_ second argument.
+- The ``MEASURE`` instruction in pyQuil now has a *mandatory* second argument.
   Previously, the second argument could be omitted to induce "measurement for
   effect", without storing the readout result to a classical register, but users
   found this to be a common source of accidental error and a generally rude
