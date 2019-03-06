@@ -1,8 +1,19 @@
 Changelog
 =========
 
-v2.5 (March 6, 2019)
+v2.6 (Development)
 ------------------
+
+Anouncements:
+
+Improvements and Changes:
+
+Bugfixes:
+
+
+
+v2.5 (March 6, 2019)
+--------------------
 
 Improvements and Changes:
 
