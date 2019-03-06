@@ -1,8 +1,31 @@
 Changelog
 =========
 
-v2.5 (Development)
+v2.5 (March 6, 2019)
 ------------------
+
+Improvements and Changes:
+
+- PyQuil's Gate objects now expose ``.controlled(q)`` and ``.dagger()``
+  modifiers, which turn a gate respectively into its controlled variant,
+  conditional on the qubit ``q``, or into its inverse.
+
+- The operator estimation suite's ``measure_observables`` method now exposes a
+  ``readout_symmetrize`` argument, which helps mitigate a machine's fidelity
+  asymmetry between recognizing a qubit in the ground state versus the excited
+  state.
+
+- The ``MEASURE`` instruction in pyQuil now has a *mandatory* second argument.
+  Previously, the second argument could be omitted to induce "measurement for
+  effect", without storing the readout result to a classical register, but users
+  found this to be a common source of accidental error and a generally rude
+  surprise.  To ensure the user really intends to measure only for effect, we
+  now require that they supply an explicit ``None`` as the second argument.
+
+Bugfixes:
+
+- Some stale tests have been brought into the modern era.
+
 
 
 v2.4 (February 14, 2019)
