@@ -804,29 +804,12 @@ def measure_observables(qc: QuantumComputer, tomo_experiment: TomographyExperime
         for qubit, op_str in max_weight_out_op:
             total_prog += _local_pauli_eig_meas(op_str, qubit)
 
+        # 2. Symmetrization
         if readout_symmetrize == 'exhaustive':
-            # 1.4 Symmetrize -- flip qubits pre-measurement
             qubits = max_weight_out_op.get_qubits()
-            n_shots_symm = n_shots // 2**len(qubits)
-            list_bitstrings_symm = []
-            for ops_bool in itertools.product([0, 1], repeat=len(qubits)):
-                total_prog_symm = total_prog.copy()
-                prog_symm = _ops_bool_to_prog(ops_bool, qubits)
-                total_prog_symm += prog_symm
-                # 2. Run the experiment
-                bitstrings_symm = qc.run_and_measure(total_prog_symm, n_shots_symm)
-                # 2.1 Flip the results post-measurement
-                d_flips_symm = {qubits[i]: op_bool for i, op_bool in enumerate(ops_bool)}
-                for qubit, bs_results in bitstrings_symm.items():
-                    bitstrings_symm[qubit] = bs_results ^ d_flips_symm.get(qubit, 0)
-                # 2.2 Gather together the symmetrized results into list
-                list_bitstrings_symm.append(bitstrings_symm)
-
-            # 2.3 Gather together all the symmetrized results
-            bitstrings = reduce(_stack_dicts, list_bitstrings_symm)
+            bitstrings = _exhaustive_symmetrization(qc, qubits, n_shots, total_prog)
 
         elif readout_symmetrize is None:
-            # 2. Run the experiment
             bitstrings = qc.run_and_measure(total_prog, n_shots)
 
         else:
@@ -872,8 +855,15 @@ def measure_observables(qc: QuantumComputer, tomo_experiment: TomographyExperime
                 # 4.2 Measure the out operator in this state
                 for q, op in setting.out_operator.operations_as_set():
                     calibr_prog += _local_pauli_eig_meas(op, q)
-                calibr_shots = n_shots
-                calibr_results = qc.run_and_measure(calibr_prog, calibr_shots)
+                # 4.3 Perform symmetrization on the calibration readout
+                if readout_symmetrize == 'exhaustive':
+                    qubits = setting.out_operator.get_qubits()
+                    calibr_shots = n_shots
+                    calibr_results = _exhaustive_symmetrization(qc, qubits, calibr_shots, calibr_prog)
+
+                else:
+                    raise ValueError("Readout symmetrization method must be either 'exhaustive' or None")
+
                 # 4.3 Obtain statistics from the measurement process
                 obs_calibr_mean, obs_calibr_var = _stats_from_measurements(calibr_results, setting, calibr_shots)
                 # 4.4 Calibrate the readout results
@@ -1002,3 +992,35 @@ def ratio_variance(a: Union[float, np.ndarray],
     :param var_b: Variance in 'B'
     """
     return var_a / b**2 + (a**2 * var_b) / b**4
+
+
+def _exhaustive_symmetrization(qc: QuantumComputer, qubits: List[int],
+        shots: int, prog: Program) -> Dict:
+    """
+    Perform exhaustive symmetrization
+
+    :param qc: A QuantumComputer which can run quantum programs
+    :param qubits: qubits on which the symmetrization program runs
+    :param shots: number of shots in the symmetrized program
+    :prog: program to symmetrize
+    :return: the equivalent of a `run_and_measure` output, but with exhaustive symmetrization
+    """
+    # Symmetrize -- flip qubits pre-measurement
+    n_shots_symm = shots // 2**len(qubits)
+    list_bitstrings_symm = []
+    for ops_bool in itertools.product([0, 1], repeat=len(qubits)):
+        total_prog_symm = prog.copy()
+        prog_symm = _ops_bool_to_prog(ops_bool, qubits)
+        total_prog_symm += prog_symm
+        # Run the experiment
+        bitstrings_symm = qc.run_and_measure(total_prog_symm, n_shots_symm)
+        # Flip the results post-measurement
+        d_flips_symm = {qubits[i]: op_bool for i, op_bool in enumerate(ops_bool)}
+        for qubit, bs_results in bitstrings_symm.items():
+            bitstrings_symm[qubit] = bs_results ^ d_flips_symm.get(qubit, 0)
+        # Gather together the symmetrized results into list
+        list_bitstrings_symm.append(bitstrings_symm)
+
+    # Gather together all the symmetrized results
+    bitstrings = reduce(_stack_dicts, list_bitstrings_symm)
+    return bitstrings
