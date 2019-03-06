@@ -865,6 +865,8 @@ def measure_observables(qc: QuantumComputer, tomo_experiment: TomographyExperime
                 # 4 Readout calibration
                 # 4.1 Prepare the +1 eigenstate for the out operator
                 calibr_prog = Program()
+                readout_povm_instruction = [i for i in tomo_experiment.program.out().split('\n') if 'PRAGMA READOUT-POVM' in i]
+                calibr_prog += readout_povm_instruction
                 for q, op in setting.out_operator.operations_as_set():
                     calibr_prog += _one_q_pauli_prep(label=op, index=0, qubit=q)
                 # 4.2 Measure the out operator in this state
