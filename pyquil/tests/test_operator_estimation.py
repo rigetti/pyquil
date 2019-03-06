@@ -601,7 +601,7 @@ def test_ratio_variance_array():
     np.testing.assert_allclose(ab_ratio_var, np.array([0.028125, 0.0028125, 0.00028125]))
 
 
-def test_measure_observables_noisy_asymmetric_readout():
+def test_measure_observables_noisy_asymmetric_readout_plus_one():
     qc = get_qc('9q-qvm')
     expt1 = ExperimentSetting(TensorProductState(plusX(0)), sX(0))
     expt2 = ExperimentSetting(TensorProductState(plusY(0)), sY(0))
@@ -614,4 +614,20 @@ def test_measure_observables_noisy_asymmetric_readout():
     for res in measure_observables(qc, tomo_expt, n_shots=1000,
                                    readout_symmetrize='exhaustive',
                                    calibrate_readout='plus-eig'):
-        print (np.isclose(1.0, res.expectation, atol=5.e-2))
+        assert (np.isclose(1.0, res.expectation, atol=1.e-1))
+
+
+def test_measure_observables_noisy_asymmetric_readout_minus_one():
+    qc = get_qc('9q-qvm')
+    expt1 = ExperimentSetting(TensorProductState(minusX(0)), sX(0))
+    expt2 = ExperimentSetting(TensorProductState(minusY(0)), sY(0))
+    expt3 = ExperimentSetting(TensorProductState(minusZ(0)), sZ(0))
+    p = Program()
+    p.define_noisy_readout(0, p00=0.99, p11=0.80)
+    qubs = [0]
+    tomo_expt = TomographyExperiment(settings=[expt1, expt2, expt3], program=p, qubits=qubs)
+
+    for res in measure_observables(qc, tomo_expt, n_shots=1000,
+                                   readout_symmetrize='exhaustive',
+                                   calibrate_readout='plus-eig'):
+        assert (np.isclose(-1.0, res.expectation, atol=1.e-1))

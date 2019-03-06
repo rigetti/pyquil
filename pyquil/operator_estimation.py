@@ -848,6 +848,7 @@ def measure_observables(qc: QuantumComputer, tomo_experiment: TomographyExperime
                 # 4 Readout calibration
                 # 4.1 Prepare the +1 eigenstate for the out operator
                 calibr_prog = Program()
+                # 4.1.2 Inherit any noisy readout instructions from main Program
                 readout_povm_instruction = [i for i in tomo_experiment.program.out().split('\n') if 'PRAGMA READOUT-POVM' in i]
                 calibr_prog += readout_povm_instruction
                 for q, op in setting.out_operator.operations_as_set():
