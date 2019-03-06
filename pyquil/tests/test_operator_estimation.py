@@ -614,7 +614,7 @@ def test_measure_observables_noisy_asymmetric_readout_plus_one():
     for res in measure_observables(qc, tomo_expt, n_shots=1000,
                                    readout_symmetrize='exhaustive',
                                    calibrate_readout='plus-eig'):
-        assert (np.isclose(1.0, res.expectation, atol=1.e-1))
+        assert np.isclose(1.0, res.expectation, atol=1.e-1)
 
 
 def test_measure_observables_noisy_asymmetric_readout_minus_one():
@@ -630,4 +630,23 @@ def test_measure_observables_noisy_asymmetric_readout_minus_one():
     for res in measure_observables(qc, tomo_expt, n_shots=1000,
                                    readout_symmetrize='exhaustive',
                                    calibrate_readout='plus-eig'):
-        assert (np.isclose(-1.0, res.expectation, atol=1.e-1))
+        assert np.isclose(-1.0, res.expectation, atol=1.e-1)
+
+
+def test_measure_observables_uncalibrated_estimate_noisy_asymmetric_readout_plus_one():
+    qc = get_qc('9q-qvm')
+    expt1 = ExperimentSetting(TensorProductState(plusX(0)), sX(0))
+    expt2 = ExperimentSetting(TensorProductState(plusY(0)), sY(0))
+    expt3 = ExperimentSetting(TensorProductState(plusZ(0)), sZ(0))
+    p = Program()
+    p00, p11 = 0.99, 0.80
+    p.define_noisy_readout(0, p00=p00, p11=p11)
+    qubs = [0]
+    tomo_expt = TomographyExperiment(settings=[expt1, expt2, expt3], program=p, qubits=qubs)
+    expected_symm_error = (p00 + p11) / 2
+    expected_expectation_z_basis = expected_symm_error * (1) + (1 - expected_symm_error) * (-1)
+
+    for res in measure_observables(qc, tomo_expt, n_shots=10000,
+                                   readout_symmetrize='exhaustive',
+                                   calibrate_readout='plus-eig'):
+        assert np.isclose(expected_expectation_z_basis, res.raw_expectation, atol=1.e-1)
