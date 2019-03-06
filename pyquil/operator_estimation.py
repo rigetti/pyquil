@@ -851,6 +851,12 @@ def measure_observables(qc: QuantumComputer, tomo_experiment: TomographyExperime
                 # 4.1.2 Inherit any noisy readout instructions from main Program
                 readout_povm_instruction = [i for i in tomo_experiment.program.out().split('\n') if 'PRAGMA READOUT-POVM' in i]
                 calibr_prog += readout_povm_instruction
+                # 4.1.3 Inherit any gate definitions from main Program
+                defgate_instructions = [gdef for gdef in tomo_experiment.program._defined_gates]
+                calibr_prog += defgate_instructions
+                # 4.1.4 Inherit any Kraus operator instructions from main Program
+                kraus_instructions = [i for i in tomo_experiment.program.out().split('\n') if 'PRAGMA ADD-KRAUS' in i]
+                calibr_prog += kraus_instructions
                 for q, op in setting.out_operator.operations_as_set():
                     calibr_prog += _one_q_pauli_prep(label=op, index=0, qubit=q)
                 # 4.2 Measure the out operator in this state
@@ -996,7 +1002,7 @@ def ratio_variance(a: Union[float, np.ndarray],
 
 
 def _exhaustive_symmetrization(qc: QuantumComputer, qubits: List[int],
-        shots: int, prog: Program) -> Dict:
+                               shots: int, prog: Program) -> Dict:
     """
     Perform exhaustive symmetrization
 
