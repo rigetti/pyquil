@@ -786,6 +786,6 @@ def test_measure_observables_2q_readout_error_one_measured():
         obs_e[idx] = res.expectation
         cal_e[idx] = res.calibration_expectation
 
-    assert np.isclose(np.mean(raw_e), 0.84, atol=2e-2)
+    assert np.isclose(np.mean(raw_e), 0.849, atol=2e-2)
     assert np.isclose(np.mean(obs_e), 1.0, atol=2e-2)
-    assert np.isclose(np.mean(cal_e), 0.84, atol=2e-2)
+    assert np.isclose(np.mean(cal_e), 0.849, atol=2e-2)
