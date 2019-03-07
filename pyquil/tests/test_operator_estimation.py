@@ -818,6 +818,9 @@ def test_process_dfe_bit_flip(forest):
 
     # prepare noisy bit-flip channel as program
     prob = 0.3
+    # the bit flip channel is composed of two Kraus operations --
+    # applying the X gate with probability `prob`, and applying the identity gate
+    # with probability `1 - prob`
     kraus_ops = [np.sqrt(1 - prob) * np.array([[1, 0], [0, 1]]), np.sqrt(prob) * np.array([[0, 1], [1, 0]])]
     p = Program(I(0))
     p.define_noisy_gate("I", [0], kraus_ops)
