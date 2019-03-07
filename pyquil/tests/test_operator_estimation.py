@@ -761,7 +761,8 @@ def test_measure_observables_result_zero_no_symm_calibr():
     np.testing.assert_allclose(results, expected_result, atol=2e-2)
 
 
-def test_measure_observables_2q_readout_error():
+def test_measure_observables_2q_readout_error_one_measured():
+    # 2q readout errors, but only 1 qubit measured
     qc = get_qc('9q-qvm')
     qubs = [0, 1]
     runs = 50
