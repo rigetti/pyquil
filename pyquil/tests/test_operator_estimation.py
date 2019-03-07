@@ -816,7 +816,7 @@ def test_process_dfe_bit_flip(forest):
     expt3 = ExperimentSetting(TensorProductState(plusZ(0)), sZ(0))
     expt_list = [expt1, expt2, expt3]
 
-    # prepare noisy channel as program
+    # prepare noisy bit-flip channel as program
     prob = 0.3
     kraus_ops = [np.sqrt(1 - prob) * np.array([[1, 0], [0, 1]]), np.sqrt(prob) * np.array([[0, 1], [1, 0]])]
     p = Program(I(0))
