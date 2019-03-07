@@ -601,7 +601,8 @@ def test_ratio_variance_array():
     np.testing.assert_allclose(ab_ratio_var, np.array([0.028125, 0.0028125, 0.00028125]))
 
 
-def test_measure_observables_noisy_asymmetric_readout_plus_one():
+def test_measure_observables_noisy_asymmetric_readout():
+    # expecting the result +1 for calibrated readout
     qc = get_qc('9q-qvm')
     expt1 = ExperimentSetting(TensorProductState(plusX(0)), sX(0))
     expt2 = ExperimentSetting(TensorProductState(plusY(0)), sY(0))
@@ -611,29 +612,20 @@ def test_measure_observables_noisy_asymmetric_readout_plus_one():
     qubs = [0]
     tomo_expt = TomographyExperiment(settings=[expt1, expt2, expt3], program=p, qubits=qubs)
 
-    for res in measure_observables(qc, tomo_expt, n_shots=1000,
-                                   readout_symmetrize='exhaustive',
-                                   calibrate_readout='plus-eig'):
-        assert np.isclose(1.0, res.expectation, atol=1.e-1)
+    num_simulations = 50
+
+    expectations = []
+    for _ in range(num_simulations):
+        expt_results = list(measure_observables(qc, tomo_expt, n_shots=1000,
+                                           readout_symmetrize='exhaustive',
+                                           calibrate_readout='plus-eig'))
+        expectations.append([res.expectation for res in expt_results])
+    expectations = np.array(expectations)
+    results = np.mean(expectations, axis=0)
+    np.testing.assert_allclose(results, 1.0, atol=2e-2)
 
 
-def test_measure_observables_noisy_asymmetric_readout_minus_one():
-    qc = get_qc('9q-qvm')
-    expt1 = ExperimentSetting(TensorProductState(minusX(0)), sX(0))
-    expt2 = ExperimentSetting(TensorProductState(minusY(0)), sY(0))
-    expt3 = ExperimentSetting(TensorProductState(minusZ(0)), sZ(0))
-    p = Program()
-    p.define_noisy_readout(0, p00=0.99, p11=0.80)
-    qubs = [0]
-    tomo_expt = TomographyExperiment(settings=[expt1, expt2, expt3], program=p, qubits=qubs)
-
-    for res in measure_observables(qc, tomo_expt, n_shots=1000,
-                                   readout_symmetrize='exhaustive',
-                                   calibrate_readout='plus-eig'):
-        assert np.isclose(-1.0, res.expectation, atol=1.e-1)
-
-
-def test_measure_observables_uncalibrated_estimate_noisy_asymmetric_readout_plus_one():
+def test_measure_observables_uncalibrated_estimate_noisy_asymmetric_readout():
     qc = get_qc('9q-qvm')
     expt1 = ExperimentSetting(TensorProductState(plusX(0)), sX(0))
     expt2 = ExperimentSetting(TensorProductState(plusY(0)), sY(0))
@@ -646,7 +638,124 @@ def test_measure_observables_uncalibrated_estimate_noisy_asymmetric_readout_plus
     expected_symm_error = (p00 + p11) / 2
     expected_expectation_z_basis = expected_symm_error * (1) + (1 - expected_symm_error) * (-1)
 
-    for res in measure_observables(qc, tomo_expt, n_shots=10000,
-                                   readout_symmetrize='exhaustive',
-                                   calibrate_readout='plus-eig'):
-        assert np.isclose(expected_expectation_z_basis, res.raw_expectation, atol=1.e-1)
+    num_simulations = 50
+
+    raw_expectations = []
+    for _ in range(num_simulations):
+        expt_results = list(measure_observables(qc, tomo_expt, n_shots=1000,
+                                           readout_symmetrize='exhaustive',
+                                           calibrate_readout='plus-eig'))
+        raw_expectations.append([res.raw_expectation for res in expt_results])
+    raw_expectations = np.array(raw_expectations)
+    results = np.mean(raw_expectations, axis=0)
+    np.testing.assert_allclose(results, expected_expectation_z_basis, atol=2e-2)
+
+
+def test_measure_observables_result_zero_symmetrization_calibration():
+    # expecting expectation value to be 0 with symmetrization/calibration
+    qc = get_qc('9q-qvm')
+    expt1 = ExperimentSetting(TensorProductState(plusX(0)), sZ(0))
+    expt2 = ExperimentSetting(TensorProductState(plusY(0)), sZ(0))
+    expt3 = ExperimentSetting(TensorProductState(minusX(0)), sZ(0))
+    expt4 = ExperimentSetting(TensorProductState(minusY(0)), sZ(0))
+    expt5 = ExperimentSetting(TensorProductState(plusX(0)), sY(0))
+    expt6 = ExperimentSetting(TensorProductState(plusZ(0)), sY(0))
+    expt7 = ExperimentSetting(TensorProductState(minusX(0)), sY(0))
+    expt8 = ExperimentSetting(TensorProductState(minusZ(0)), sY(0))
+    expt9 = ExperimentSetting(TensorProductState(plusZ(0)), sX(0))
+    expt10 = ExperimentSetting(TensorProductState(plusY(0)), sX(0))
+    expt11 = ExperimentSetting(TensorProductState(minusZ(0)), sX(0))
+    expt12 = ExperimentSetting(TensorProductState(minusY(0)), sX(0))
+    expt_settings = [expt1, expt2, expt3, expt4, expt5, expt6, expt7, expt8, expt9, expt10, expt11, expt12]
+    p = Program()
+    p00, p11 = 0.99, 0.80
+    p.define_noisy_readout(0, p00=p00, p11=p11)
+    qubs = [0]
+    tomo_expt = TomographyExperiment(settings=expt_settings, program=p, qubits=qubs)
+
+    num_simulations = 50
+
+    expectations = []
+    raw_expectations = []
+    for _ in range(num_simulations):
+        expt_results = list(measure_observables(qc, tomo_expt, n_shots=1000,
+                                           readout_symmetrize='exhaustive',
+                                           calibrate_readout='plus-eig'))
+        expectations.append([res.expectation for res in expt_results])
+        raw_expectations.append([res.raw_expectation for res in expt_results])
+    expectations = np.array(expectations)
+    raw_expectations = np.array(raw_expectations)
+    results = np.mean(expectations, axis=0)
+    raw_results = np.mean(raw_expectations)
+    np.testing.assert_allclose(results, 0.0, atol=2e-2)
+    np.testing.assert_allclose(raw_results, 0.0, atol=2e-2)
+
+
+def test_measure_observables_result_zero_no_noisy_readout():
+    # expecting expectation value to be 0 with symmetrization/calibration
+    # and no noisy readout
+    qc = get_qc('9q-qvm')
+    expt1 = ExperimentSetting(TensorProductState(plusX(0)), sZ(0))
+    expt2 = ExperimentSetting(TensorProductState(plusY(0)), sZ(0))
+    expt3 = ExperimentSetting(TensorProductState(minusX(0)), sZ(0))
+    expt4 = ExperimentSetting(TensorProductState(minusY(0)), sZ(0))
+    expt5 = ExperimentSetting(TensorProductState(plusX(0)), sY(0))
+    expt6 = ExperimentSetting(TensorProductState(plusZ(0)), sY(0))
+    expt7 = ExperimentSetting(TensorProductState(minusX(0)), sY(0))
+    expt8 = ExperimentSetting(TensorProductState(minusZ(0)), sY(0))
+    expt9 = ExperimentSetting(TensorProductState(plusZ(0)), sX(0))
+    expt10 = ExperimentSetting(TensorProductState(plusY(0)), sX(0))
+    expt11 = ExperimentSetting(TensorProductState(minusZ(0)), sX(0))
+    expt12 = ExperimentSetting(TensorProductState(minusY(0)), sX(0))
+    expt_settings = [expt1, expt2, expt3, expt4, expt5, expt6, expt7, expt8, expt9, expt10, expt11, expt12]
+    p = Program()
+    qubs = [0]
+    tomo_expt = TomographyExperiment(settings=expt_settings, program=p, qubits=qubs)
+
+    num_simulations = 50
+
+    expectations = []
+    for _ in range(num_simulations):
+        expt_results = list(measure_observables(qc, tomo_expt, n_shots=1000,
+                                           readout_symmetrize=None,
+                                           calibrate_readout=None))
+        expectations.append([res.expectation for res in expt_results])
+    expectations = np.array(expectations)
+    results = np.mean(expectations, axis=0)
+    np.testing.assert_allclose(results, 0.0, atol=2e-2)
+
+
+def test_measure_observables_result_zero_no_symm_calibr():
+    # expecting expectation value to be nonzero with symmetrization/calibration
+    qc = get_qc('9q-qvm')
+    expt1 = ExperimentSetting(TensorProductState(plusX(0)), sZ(0))
+    expt2 = ExperimentSetting(TensorProductState(plusY(0)), sZ(0))
+    expt3 = ExperimentSetting(TensorProductState(minusX(0)), sZ(0))
+    expt4 = ExperimentSetting(TensorProductState(minusY(0)), sZ(0))
+    expt5 = ExperimentSetting(TensorProductState(plusX(0)), sY(0))
+    expt6 = ExperimentSetting(TensorProductState(plusZ(0)), sY(0))
+    expt7 = ExperimentSetting(TensorProductState(minusX(0)), sY(0))
+    expt8 = ExperimentSetting(TensorProductState(minusZ(0)), sY(0))
+    expt9 = ExperimentSetting(TensorProductState(plusZ(0)), sX(0))
+    expt10 = ExperimentSetting(TensorProductState(plusY(0)), sX(0))
+    expt11 = ExperimentSetting(TensorProductState(minusZ(0)), sX(0))
+    expt12 = ExperimentSetting(TensorProductState(minusY(0)), sX(0))
+    expt_settings = [expt1, expt2, expt3, expt4, expt5, expt6, expt7, expt8, expt9, expt10, expt11, expt12]
+    p = Program()
+    p00, p11 = 0.99, 0.80
+    p.define_noisy_readout(0, p00=p00, p11=p11)
+    qubs = [0]
+    tomo_expt = TomographyExperiment(settings=expt_settings, program=p, qubits=qubs)
+
+    num_simulations = 50
+
+    expectations = []
+    expected_result = (p00 * 0.5 + (1 - p11) * 0.5) - ((1 - p00) * 0.5 + p11 * 0.5)
+    for _ in range(num_simulations):
+        expt_results = list(measure_observables(qc, tomo_expt, n_shots=1000,
+                                           readout_symmetrize=None,
+                                           calibrate_readout=None))
+        expectations.append([res.expectation for res in expt_results])
+    expectations = np.array(expectations)
+    results = np.mean(expectations, axis=0)
+    np.testing.assert_allclose(results, expected_result, atol=2e-2)
