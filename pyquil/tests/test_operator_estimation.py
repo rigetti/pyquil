@@ -602,7 +602,7 @@ def test_ratio_variance_array():
     np.testing.assert_allclose(ab_ratio_var, np.array([0.028125, 0.0028125, 0.00028125]))
 
 
-def test_measure_observables_noisy_asymmetric_readout():
+def test_measure_observables_noisy_asymmetric_readout(forest):
     # expecting the result +1 for calibrated readout
     qc = get_qc('9q-qvm')
     expt1 = ExperimentSetting(TensorProductState(plusX(0)), sX(0))
@@ -626,7 +626,7 @@ def test_measure_observables_noisy_asymmetric_readout():
     np.testing.assert_allclose(results, 1.0, atol=2e-2)
 
 
-def test_measure_observables_uncalibrated_estimate_noisy_asymmetric_readout():
+def test_measure_observables_uncalibrated_estimate_noisy_asymmetric_readout(forest):
     qc = get_qc('9q-qvm')
     expt1 = ExperimentSetting(TensorProductState(plusX(0)), sX(0))
     expt2 = ExperimentSetting(TensorProductState(plusY(0)), sY(0))
@@ -656,7 +656,7 @@ def test_measure_observables_uncalibrated_estimate_noisy_asymmetric_readout():
     assert np.isclose(np.mean(raw_e[2::3]), expected_expectation_z_basis, atol=2e-2)
 
 
-def test_measure_observables_result_zero_symmetrization_calibration():
+def test_measure_observables_result_zero_symmetrization_calibration(forest):
     # expecting expectation value to be 0 with symmetrization/calibration
     qc = get_qc('9q-qvm')
     expt1 = ExperimentSetting(TensorProductState(plusX(0)), sZ(0))
@@ -687,7 +687,7 @@ def test_measure_observables_result_zero_symmetrization_calibration():
     np.testing.assert_allclose(raw_results, 0.0, atol=2e-2)
 
 
-def test_measure_observables_result_zero_no_noisy_readout():
+def test_measure_observables_result_zero_no_noisy_readout(forest):
     # expecting expectation value to be 0 with symmetrization/calibration
     # and no noisy readout
     qc = get_qc('9q-qvm')
@@ -712,7 +712,7 @@ def test_measure_observables_result_zero_no_noisy_readout():
     np.testing.assert_allclose(results, 0.0, atol=2e-2)
 
 
-def test_measure_observables_result_zero_no_symm_calibr():
+def test_measure_observables_result_zero_no_symm_calibr(forest):
     # expecting expectation value to be nonzero with symmetrization/calibration
     qc = get_qc('9q-qvm')
     expt1 = ExperimentSetting(TensorProductState(plusX(0)), sZ(0))
@@ -739,7 +739,7 @@ def test_measure_observables_result_zero_no_symm_calibr():
     np.testing.assert_allclose(results, expected_result, atol=2e-2)
 
 
-def test_measure_observables_2q_readout_error_one_measured():
+def test_measure_observables_2q_readout_error_one_measured(forest):
     # 2q readout errors, but only 1 qubit measured
     qc = get_qc('9q-qvm')
     qubs = [0, 1]
@@ -769,7 +769,7 @@ def test_measure_observables_2q_readout_error_one_measured():
     assert np.isclose(np.mean(cal_e), 0.849, atol=2e-2)
 
 
-def test_exhaustive_symmetrization_1q():
+def test_exhaustive_symmetrization_1q(forest):
     qc = get_qc('9q-qvm')
     qubs = [5]
     n_shots = 10000
@@ -784,7 +784,7 @@ def test_exhaustive_symmetrization_1q():
     assert np.isclose(frac0, expected_frac0, 2e-2)
 
 
-def test_exhaustive_symmetrization_2q():
+def test_exhaustive_symmetrization_2q(forest):
     qc = get_qc('9q-qvm')
     qubs = [5, 7]
     n_shots = 10000
@@ -822,7 +822,7 @@ def _random_unitary(n):
     return np.matmul(q, l)
 
 
-def test_process_dfe_bit_flip():
+def test_process_dfe_bit_flip(forest):
     qc = get_qc('9q-qvm')
     # prepare experiment settings
     expt1 = ExperimentSetting(TensorProductState(plusX(0)), sX(0))
