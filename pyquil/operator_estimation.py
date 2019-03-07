@@ -805,12 +805,21 @@ def measure_observables(qc: QuantumComputer, tomo_experiment: TomographyExperime
             total_prog += _local_pauli_eig_meas(op_str, qubit)
 
         # 2. Symmetrization
+        qubits = max_weight_out_op.get_qubits()
+
         if readout_symmetrize == 'exhaustive':
-            qubits = max_weight_out_op.get_qubits()
-            bitstrings = _exhaustive_symmetrization(qc, qubits, n_shots, total_prog)
+            bitstrings, d_qub_idx = _exhaustive_symmetrization(qc, qubits, n_shots, total_prog)
 
         elif readout_symmetrize is None:
-            bitstrings = qc.run_and_measure(total_prog, n_shots)
+            total_prog_no_symm = total_prog.copy()
+            ro = total_prog_no_symm.declare('ro', 'BIT', len(qubits))
+            d_qub_idx = {}
+            for i, q in enumerate(qubits):
+                total_prog_no_symm += MEASURE(q, ro[i])
+                # Keep track of qubit-classical register mapping via dict
+                d_qub_idx[q] = i
+            total_prog_no_symm.wrap_in_numshots_loop(n_shots)
+            bitstrings = qc.run(total_prog_no_symm)
 
         else:
             raise ValueError("Readout symmetrization method must be either 'exhaustive' or None")
@@ -842,7 +851,7 @@ def measure_observables(qc: QuantumComputer, tomo_experiment: TomographyExperime
                 continue
 
             # 3.3 Obtain statistics from result of experiment
-            obs_mean, obs_var = _stats_from_measurements(bitstrings, setting, n_shots, coeff)
+            obs_mean, obs_var = _stats_from_measurements(bitstrings, d_qub_idx, setting, n_shots, coeff)
 
             if calibrate_readout == 'plus-eig':
                 # 4 Readout calibration
@@ -858,15 +867,15 @@ def measure_observables(qc: QuantumComputer, tomo_experiment: TomographyExperime
                     calibr_prog += _local_pauli_eig_meas(op, q)
                 # 4.3 Perform symmetrization on the calibration readout
                 if readout_symmetrize == 'exhaustive':
-                    qubits = setting.out_operator.get_qubits()
+                    qubs_calibr = setting.out_operator.get_qubits()
                     calibr_shots = n_shots
-                    calibr_results = _exhaustive_symmetrization(qc, qubits, calibr_shots, calibr_prog)
+                    calibr_results, d_calibr_qub_idx = _exhaustive_symmetrization(qc, qubs_calibr, calibr_shots, calibr_prog)
 
                 else:
                     raise ValueError("Readout symmetrization method must be either 'exhaustive' or None")
 
                 # 4.3 Obtain statistics from the measurement process
-                obs_calibr_mean, obs_calibr_var = _stats_from_measurements(calibr_results, setting, calibr_shots)
+                obs_calibr_mean, obs_calibr_var = _stats_from_measurements(calibr_results, d_calibr_qub_idx, setting, calibr_shots)
                 # 4.4 Calibrate the readout results
                 corrected_mean = obs_mean / obs_calibr_mean
                 corrected_var = ratio_variance(obs_mean, obs_var, obs_calibr_mean, obs_calibr_var)
@@ -938,20 +947,23 @@ def _stack_dicts(dict1: Dict, dict2: Dict) -> Dict:
     return dict_combined
 
 
-def _stats_from_measurements(d_results: dict, setting: ExperimentSetting,
-                             n_shots: int, coeff: float = 1.0) -> Tuple[float]:
+def _stats_from_measurements(bs_results: np.ndarray, qubit_index_map: Dict, 
+                             setting: ExperimentSetting, n_shots: int,
+                             coeff: float = 1.0) -> Tuple[float]:
     """
-    :param d_results: results from running `qc.run_and_measure()`
+    :param bs_results: results from running `qc.run`
+    :param qubit_index_map: dict mapping qubit to classical register index
     :param setting: ExperimentSetting
     :param n_shots: number of shots in the measurement process
     :param coeff: coefficient of the operator being estimated
     :return: tuple specifying (mean, variance)
     """
+    # Identify classical register indices to select
+    idxs = [qubit_index_map[q] for q, _ in setting.out_operator]
+    # Pick columns corresponding to qubits with a non-identity out_operation
+    obs_strings = bs_results[:, idxs]
     # Transform bits to eigenvalues; ie (+1, -1)
-    obs_strings = {q: 1 - 2 * d_results[q] for q in d_results}
-    # Pick columns corresponding to qubits with a non-identity out_operation and stack
-    # into an array of shape (n_shots, n_measure_qubits)
-    my_obs_strings = np.vstack([obs_strings[q] for q, op_str in setting.out_operator]).T
+    my_obs_strings = 1 - 2 * obs_strings
     # Multiply row-wise to get operator values. Do statistics. Return result.
     obs_vals = coeff * np.prod(my_obs_strings, axis=1)
     obs_mean = np.mean(obs_vals)
@@ -996,7 +1008,7 @@ def ratio_variance(a: Union[float, np.ndarray],
 
 
 def _exhaustive_symmetrization(qc: QuantumComputer, qubits: List[int],
-                               shots: int, prog: Program) -> Dict:
+                               shots: int, prog: Program) -> (np.ndarray, Dict):
     """
     Perform exhaustive symmetrization
 
@@ -1004,7 +1016,9 @@ def _exhaustive_symmetrization(qc: QuantumComputer, qubits: List[int],
     :param qubits: qubits on which the symmetrization program runs
     :param shots: number of shots in the symmetrized program
     :prog: program to symmetrize
-    :return: the equivalent of a `run_and_measure` output, but with exhaustive symmetrization
+    :return: - the equivalent of a `run` output, but with exhaustive symmetrization
+             - dict keyed by qubit, valued by index of the numpy array containing
+                    bitstring results
     """
     # Symmetrize -- flip qubits pre-measurement
     n_shots_symm = shots // 2**len(qubits)
@@ -1014,14 +1028,19 @@ def _exhaustive_symmetrization(qc: QuantumComputer, qubits: List[int],
         prog_symm = _ops_bool_to_prog(ops_bool, qubits)
         total_prog_symm += prog_symm
         # Run the experiment
-        bitstrings_symm = qc.run_and_measure(total_prog_symm, n_shots_symm)
+        dict_qub_idx = {}
+        ro = total_prog_symm.declare('ro', 'BIT', len(qubits))
+        for i, q in enumerate(qubits):
+            total_prog_symm += MEASURE(q, ro[i])
+            # Keep track of qubit-classical register mapping via dict
+            dict_qub_idx[q] = i
+        total_prog_symm.wrap_in_numshots_loop(n_shots_symm)
+        bitstrings_symm = qc.run(total_prog_symm)
         # Flip the results post-measurement
-        d_flips_symm = {qubits[i]: op_bool for i, op_bool in enumerate(ops_bool)}
-        for qubit, bs_results in bitstrings_symm.items():
-            bitstrings_symm[qubit] = bs_results ^ d_flips_symm.get(qubit, 0)
+        bitstrings_symm = bitstrings_symm ^ ops_bool
         # Gather together the symmetrized results into list
         list_bitstrings_symm.append(bitstrings_symm)
 
     # Gather together all the symmetrized results
-    bitstrings = reduce(_stack_dicts, list_bitstrings_symm)
-    return bitstrings
+    bitstrings = reduce(lambda x, y: np.vstack((x, y)), list_bitstrings_symm)
+    return bitstrings, dict_qub_idx

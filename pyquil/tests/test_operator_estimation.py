@@ -20,7 +20,7 @@ from pyquil.operator_estimation import ExperimentSetting, TomographyExperiment, 
     TensorProductState, zeros_state, \
     group_experiments, group_experiments_greedy, ExperimentResult, measure_observables, \
     _ops_bool_to_prog, _stack_dicts, _stats_from_measurements, \
-    ratio_variance
+    ratio_variance, _exhaustive_symmetrization
 from pyquil.paulis import sI, sX, sY, sZ, PauliSum, PauliTerm
 
 
@@ -570,11 +570,12 @@ def test_stack_multiple_dicts():
 
 
 def test_stats_from_measurements():
-    d_results = {0: np.array([0] * 10), 1: np.array([1] * 10)}
+    bs_results = np.array([[0, 1] * 10])
+    d_qub_idx = {0: 0, 1: 1}
     setting = ExperimentSetting(TensorProductState(), sZ(0) * sX(1))
     n_shots = 1000
 
-    obs_mean, obs_var = _stats_from_measurements(d_results, setting, n_shots)
+    obs_mean, obs_var = _stats_from_measurements(bs_results, d_qub_idx, setting, n_shots)
     assert obs_mean == -1.0
     assert obs_var == 0.0
 
@@ -631,7 +632,7 @@ def test_measure_observables_uncalibrated_estimate_noisy_asymmetric_readout():
     expt2 = ExperimentSetting(TensorProductState(plusY(0)), sY(0))
     expt3 = ExperimentSetting(TensorProductState(plusZ(0)), sZ(0))
     p = Program()
-    p00, p11 = 0.99, 0.80
+    p00, p11 = 0.90, 0.80
     p.define_noisy_readout(0, p00=p00, p11=p11)
     qubs = [0]
     runs = 50
@@ -644,7 +645,7 @@ def test_measure_observables_uncalibrated_estimate_noisy_asymmetric_readout():
 
     for idx, res in enumerate(measure_observables(qc,
                                                   tomo_expt,
-                                                  n_shots=1000,
+                                                  n_shots=10000,
                                                   active_reset=True,
                                                   readout_symmetrize='exhaustive',
                                                   calibrate_readout='plus-eig')):
@@ -766,3 +767,42 @@ def test_measure_observables_2q_readout_error_one_measured():
     assert np.isclose(np.mean(raw_e), 0.849, atol=2e-2)
     assert np.isclose(np.mean(obs_e), 1.0, atol=2e-2)
     assert np.isclose(np.mean(cal_e), 0.849, atol=2e-2)
+
+
+def test_exhaustive_symmetrization_1q():
+    qc = get_qc('9q-qvm')
+    qubs = [5]
+    n_shots = 10000
+    p = Program()
+    p00, p11 = 0.90, 0.80
+    p.define_noisy_readout(5, p00, p11)
+    bs_results, d_qub_idx = _exhaustive_symmetrization(qc, qubs, n_shots, p)
+    frac0 = np.count_nonzero(bs_results == 0) / n_shots
+    expected_frac0 = (p00 + p11) / 2
+
+    assert d_qub_idx == {5: 0}
+    assert np.isclose(frac0, expected_frac0, 2e-2)
+
+
+def test_exhaustive_symmetrization_2q():
+    qc = get_qc('9q-qvm')
+    qubs = [5, 7]
+    n_shots = 10000
+    p = Program()
+    p5_00, p5_11 = 0.90, 0.80
+    p7_00, p7_11 = 0.99, 0.77
+    p.define_noisy_readout(5, p5_00, p5_11)
+    p.define_noisy_readout(7, p7_00, p7_11)
+    
+    bs_results, d_qub_idx = _exhaustive_symmetrization(qc, qubs, n_shots, p)
+
+    assert d_qub_idx == {5: 0, 7: 1}
+
+    frac5_0 = np.count_nonzero(bs_results[:, d_qub_idx[5]] == 0) / n_shots
+    frac7_0 = np.count_nonzero(bs_results[:, d_qub_idx[7]] == 0) / n_shots
+    
+    expected_frac5_0 = (p5_00 + p5_11) / 2
+    expected_frac7_0 = (p7_00 + p7_11) / 2
+
+    assert np.isclose(frac5_0, expected_frac5_0, 2e-2)
+    assert np.isclose(frac7_0, expected_frac7_0, 2e-2)
