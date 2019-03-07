@@ -806,3 +806,53 @@ def test_exhaustive_symmetrization_2q():
 
     assert np.isclose(frac5_0, expected_frac5_0, 2e-2)
     assert np.isclose(frac7_0, expected_frac7_0, 2e-2)
+
+
+def _random_unitary(n):
+    """
+    :return: array of shape (N, N) representing random unitary matrix drawn from Haar measure
+    """
+    # draw complex matrix from Ginibre ensemble
+    z = np.random.randn(n, n) + 1j * np.random.randn(n, n)
+    # QR decompose this complex matrix
+    q, r = np.linalg.qr(z)
+    # make this decomposition unique
+    d = np.diagonal(r)
+    l = np.diag(d) / np.abs(d)
+    return np.matmul(q, l)
+
+
+def test_process_dfe_bit_flip():
+    qc = get_qc('9q-qvm')
+    # prepare experiment settings
+    expt1 = ExperimentSetting(TensorProductState(plusX(0)), sX(0))
+    expt2 = ExperimentSetting(TensorProductState(plusY(0)), sY(0))
+    expt3 = ExperimentSetting(TensorProductState(plusZ(0)), sZ(0))
+    expt_list = [expt1, expt2, expt3]
+
+    # prepare noisy channel as program
+    prob = 0.3
+    kraus_ops = [np.sqrt(1 - prob) * np.array([[1, 0], [0, 1]]), np.sqrt(prob) * np.array([[0, 1], [1, 0]])]
+    p = Program()
+    p.defgate("DummyGate", _random_unitary(2))
+    p.inst(("DummyGate", 0))
+    p.define_noisy_gate("DummyGate", [0], kraus_ops)
+
+    # prepare TomographyExperiment
+    process_exp = TomographyExperiment(settings=expt_list, program=p,
+                                  qubits=[0])
+    # list to store experiment results
+    num_expts = 100
+    expts = []
+    for _ in range(num_expts):
+        expt_results = []
+        for res in measure_observables(qc, process_exp, n_shots=1000,
+                                       readout_symmetrize='exhaustive',
+                                       calibrate_readout='plus-eig'):
+            expt_results.append(res.expectation)
+        expts.append(expt_results)
+
+    expts = np.array(expts)
+    results = np.mean(expts, axis=0)
+    expected_results = np.array([1.0, 0.4, 0.4])
+    np.testing.assert_allclose(results, expected_results, atol=2e-2)

@@ -750,7 +750,9 @@ class ExperimentResult:
 
 def measure_observables(qc: QuantumComputer, tomo_experiment: TomographyExperiment,
                         n_shots: int = 1000, progress_callback=None, active_reset=False,
-                        readout_symmetrize: str = None, calibrate_readout: str = None):
+                        readout_symmetrize: str = None, calibrate_readout: str = None,
+                        inherit_povm : bool = True, inherit_gate_defn : bool = False,
+                        inherit_defined_gate_app : bool = False, inherit_kraus : bool = False):
     """
     Measure all the observables in a TomographyExperiment.
 
@@ -777,6 +779,14 @@ def measure_observables(qc: QuantumComputer, tomo_experiment: TomographyExperime
         method supported is normalizing against the operator's expectation value in its +1
         eigenstate, which can be specified by setting this variable to 'plus-eig'. The preceding
         symmetrization and this step together yield a more accurate estimation of the observable.
+    :param inherit_povm: Whether the calibration program should inherit any `PRAGMA READOUT-POVM`
+        instructions from the main TomographyExperiment's Program
+    :param inherit_gate_defn: Whether the calibration program should inherit any defined gates
+        from the main TomographyExperiment's Program
+    :param inherit_defined_gate_app: Whether the calibration program should inherit any
+        applications of any defined gates from the main TomographyExperiment's Program
+    :param inherit_kraus: Whether the calibration program should inherit any applications
+        of Kraus operators
     """
     # calibration readout only works with symmetrization turned on
     if calibrate_readout is not None and readout_symmetrize is None:
@@ -819,6 +829,9 @@ def measure_observables(qc: QuantumComputer, tomo_experiment: TomographyExperime
                 # Keep track of qubit-classical register mapping via dict
                 d_qub_idx[q] = i
             total_prog_no_symm.wrap_in_numshots_loop(n_shots)
+            print ("Here's total_prog_no_symm")
+            print (total_prog_no_symm)
+            print ("*" * 30)
             bitstrings = qc.run(total_prog_no_symm)
 
         elif len(qubits) == 0:
@@ -859,17 +872,37 @@ def measure_observables(qc: QuantumComputer, tomo_experiment: TomographyExperime
 
             if calibrate_readout == 'plus-eig':
                 # 4 Readout calibration
-                # 4.1 Prepare the +1 eigenstate for the out operator
+                # 4.1 Inherit any noisy attributes from main Program, including gate definitions
+                #     and applications which can be handy in creating simulating noisy channels
                 calibr_prog = Program()
-                # 4.1.2 Inherit any noisy readout instructions from main Program
-                readout_povm_instruction = [i for i in tomo_experiment.program.out().split('\n') if 'PRAGMA READOUT-POVM' in i]
-                calibr_prog += readout_povm_instruction
+                if inherit_povm:
+                    # 4.1.2 Inherit any noisy readout instructions from main Program
+                    readout_povm_instruction = [i for i in tomo_experiment.program.out().split('\n') if 'PRAGMA READOUT-POVM' in i]
+                    calibr_prog += readout_povm_instruction
+                if inherit_gate_defn:
+                    # 4.1.3 Inherit any gate definitions from main Program
+                    defgate_instructions = [gdef for gdef in tomo_experiment.program.defined_gates]
+                    calibr_prog += defgate_instructions
+                if inherit_defined_gate_app:
+                    # 4.1.4 Inherit any applications of defined gates from main Program
+                    assert inherit_gate_defn, "Gate(s) must be defined in order to be applied"
+                    defgate_app_instructions = []
+                    for defined_gate in defgate_instructions:
+                        defn = str(defined_gate)
+                        gatename = defn[defn.find('DEFGATE') + len('DEFGATE') + 1: defn.find(':')]
+                        defgate_app_instructions += [i for i in tomo_experiment.program.instructions if gatename in (str(i)) and isinstance(i, Gate)]
+                    calibr_prog += defgate_app_instructions
+                if inherit_kraus:
+                    # 4.1.5 Inherit any applications of Kraus operators
+                    kraus_instructions = [i for i in tomo_experiment.program.out().split('\n') if 'PRAGMA ADD-KRAUS' in i]
+                    calibr_prog += kraus_instructions
+                # 4.2 Prepare the +1 eigenstate for the out operator
                 for q, op in setting.out_operator.operations_as_set():
                     calibr_prog += _one_q_pauli_prep(label=op, index=0, qubit=q)
-                # 4.2 Measure the out operator in this state
+                # 4.3 Measure the out operator in this state
                 for q, op in setting.out_operator.operations_as_set():
                     calibr_prog += _local_pauli_eig_meas(op, q)
-                # 4.3 Perform symmetrization on the calibration readout
+                # 4.4 Perform symmetrization on the calibration readout
                 if readout_symmetrize == 'exhaustive':
                     qubs_calibr = setting.out_operator.get_qubits()
                     calibr_shots = n_shots
@@ -878,9 +911,9 @@ def measure_observables(qc: QuantumComputer, tomo_experiment: TomographyExperime
                 else:
                     raise ValueError("Readout symmetrization method must be either 'exhaustive' or None")
 
-                # 4.3 Obtain statistics from the measurement process
+                # 4.5 Obtain statistics from the measurement process
                 obs_calibr_mean, obs_calibr_var = _stats_from_measurements(calibr_results, d_calibr_qub_idx, setting, calibr_shots)
-                # 4.4 Calibrate the readout results
+                # 4.6 Calibrate the readout results
                 corrected_mean = obs_mean / obs_calibr_mean
                 corrected_var = ratio_variance(obs_mean, obs_var, obs_calibr_mean, obs_calibr_var)
 
