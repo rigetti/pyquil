@@ -793,14 +793,14 @@ def test_exhaustive_symmetrization_2q():
     p7_00, p7_11 = 0.99, 0.77
     p.define_noisy_readout(5, p5_00, p5_11)
     p.define_noisy_readout(7, p7_00, p7_11)
-    
+
     bs_results, d_qub_idx = _exhaustive_symmetrization(qc, qubs, n_shots, p)
 
     assert d_qub_idx == {5: 0, 7: 1}
 
     frac5_0 = np.count_nonzero(bs_results[:, d_qub_idx[5]] == 0) / n_shots
     frac7_0 = np.count_nonzero(bs_results[:, d_qub_idx[7]] == 0) / n_shots
-    
+
     expected_frac5_0 = (p5_00 + p5_11) / 2
     expected_frac7_0 = (p7_00 + p7_11) / 2
 
@@ -840,7 +840,7 @@ def test_process_dfe_bit_flip():
 
     # prepare TomographyExperiment
     process_exp = TomographyExperiment(settings=expt_list, program=p,
-                                  qubits=[0])
+                                       qubits=[0])
     # list to store experiment results
     num_expts = 100
     expts = []

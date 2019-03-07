@@ -751,8 +751,8 @@ class ExperimentResult:
 def measure_observables(qc: QuantumComputer, tomo_experiment: TomographyExperiment,
                         n_shots: int = 1000, progress_callback=None, active_reset=False,
                         readout_symmetrize: str = None, calibrate_readout: str = None,
-                        inherit_povm : bool = True, inherit_gate_defn : bool = False,
-                        inherit_defined_gate_app : bool = False, inherit_kraus : bool = False):
+                        inherit_povm: bool = True, inherit_gate_defn: bool = False,
+                        inherit_defined_gate_app: bool = False, inherit_kraus: bool = False):
     """
     Measure all the observables in a TomographyExperiment.
 
@@ -829,9 +829,6 @@ def measure_observables(qc: QuantumComputer, tomo_experiment: TomographyExperime
                 # Keep track of qubit-classical register mapping via dict
                 d_qub_idx[q] = i
             total_prog_no_symm.wrap_in_numshots_loop(n_shots)
-            print ("Here's total_prog_no_symm")
-            print (total_prog_no_symm)
-            print ("*" * 30)
             bitstrings = qc.run(total_prog_no_symm)
 
         elif len(qubits) == 0:
@@ -984,7 +981,7 @@ def _stack_dicts(dict1: Dict, dict2: Dict) -> Dict:
     return dict_combined
 
 
-def _stats_from_measurements(bs_results: np.ndarray, qubit_index_map: Dict, 
+def _stats_from_measurements(bs_results: np.ndarray, qubit_index_map: Dict,
                              setting: ExperimentSetting, n_shots: int,
                              coeff: float = 1.0) -> Tuple[float]:
     """
