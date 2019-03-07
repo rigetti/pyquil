@@ -634,39 +634,34 @@ def test_measure_observables_uncalibrated_estimate_noisy_asymmetric_readout():
     p00, p11 = 0.99, 0.80
     p.define_noisy_readout(0, p00=p00, p11=p11)
     qubs = [0]
-    tomo_expt = TomographyExperiment(settings=[expt1, expt2, expt3], program=p, qubits=qubs)
+    runs = 50
+    expt_list = [expt1, expt2, expt3]
+    tomo_expt = TomographyExperiment(settings=expt_list * runs, program=p, qubits=qubs)
     expected_symm_error = (p00 + p11) / 2
     expected_expectation_z_basis = expected_symm_error * (1) + (1 - expected_symm_error) * (-1)
 
-    num_simulations = 50
+    raw_e = np.zeros(runs * len(expt_list))
 
-    raw_expectations = []
-    for _ in range(num_simulations):
-        expt_results = list(measure_observables(qc, tomo_expt, n_shots=1000,
-                                           readout_symmetrize='exhaustive',
-                                           calibrate_readout='plus-eig'))
-        raw_expectations.append([res.raw_expectation for res in expt_results])
-    raw_expectations = np.array(raw_expectations)
-    results = np.mean(raw_expectations, axis=0)
-    np.testing.assert_allclose(results, expected_expectation_z_basis, atol=2e-2)
+    for idx, res in enumerate(measure_observables(qc,
+                                             tomo_expt,
+                                             n_shots=1000,
+                                             active_reset=True,
+                                             readout_symmetrize='exhaustive',
+                                             calibrate_readout='plus-eig')):
+        raw_e[idx] = res.raw_expectation
+
+    assert np.isclose(np.mean(raw_e[::3]), expected_expectation_z_basis, atol=2e-2)
+    assert np.isclose(np.mean(raw_e[1::3]), expected_expectation_z_basis, atol=2e-2)
+    assert np.isclose(np.mean(raw_e[2::3]), expected_expectation_z_basis, atol=2e-2)
 
 
 def test_measure_observables_result_zero_symmetrization_calibration():
     # expecting expectation value to be 0 with symmetrization/calibration
     qc = get_qc('9q-qvm')
     expt1 = ExperimentSetting(TensorProductState(plusX(0)), sZ(0))
-    expt2 = ExperimentSetting(TensorProductState(plusY(0)), sZ(0))
-    expt3 = ExperimentSetting(TensorProductState(minusX(0)), sZ(0))
-    expt4 = ExperimentSetting(TensorProductState(minusY(0)), sZ(0))
-    expt5 = ExperimentSetting(TensorProductState(plusX(0)), sY(0))
-    expt6 = ExperimentSetting(TensorProductState(plusZ(0)), sY(0))
-    expt7 = ExperimentSetting(TensorProductState(minusX(0)), sY(0))
-    expt8 = ExperimentSetting(TensorProductState(minusZ(0)), sY(0))
-    expt9 = ExperimentSetting(TensorProductState(plusZ(0)), sX(0))
-    expt10 = ExperimentSetting(TensorProductState(plusY(0)), sX(0))
-    expt11 = ExperimentSetting(TensorProductState(minusZ(0)), sX(0))
-    expt12 = ExperimentSetting(TensorProductState(minusY(0)), sX(0))
-    expt_settings = [expt1, expt2, expt3, expt4, expt5, expt6, expt7, expt8, expt9, expt10, expt11, expt12]
+    expt2 = ExperimentSetting(TensorProductState(minusZ(0)), sY(0))
+    expt3 = ExperimentSetting(TensorProductState(minusY(0)), sX(0))
+    expt_settings = [expt1, expt2, expt3]
     p = Program()
     p00, p11 = 0.99, 0.80
     p.define_noisy_readout(0, p00=p00, p11=p11)
@@ -696,18 +691,9 @@ def test_measure_observables_result_zero_no_noisy_readout():
     # and no noisy readout
     qc = get_qc('9q-qvm')
     expt1 = ExperimentSetting(TensorProductState(plusX(0)), sZ(0))
-    expt2 = ExperimentSetting(TensorProductState(plusY(0)), sZ(0))
-    expt3 = ExperimentSetting(TensorProductState(minusX(0)), sZ(0))
-    expt4 = ExperimentSetting(TensorProductState(minusY(0)), sZ(0))
-    expt5 = ExperimentSetting(TensorProductState(plusX(0)), sY(0))
-    expt6 = ExperimentSetting(TensorProductState(plusZ(0)), sY(0))
-    expt7 = ExperimentSetting(TensorProductState(minusX(0)), sY(0))
-    expt8 = ExperimentSetting(TensorProductState(minusZ(0)), sY(0))
-    expt9 = ExperimentSetting(TensorProductState(plusZ(0)), sX(0))
-    expt10 = ExperimentSetting(TensorProductState(plusY(0)), sX(0))
-    expt11 = ExperimentSetting(TensorProductState(minusZ(0)), sX(0))
-    expt12 = ExperimentSetting(TensorProductState(minusY(0)), sX(0))
-    expt_settings = [expt1, expt2, expt3, expt4, expt5, expt6, expt7, expt8, expt9, expt10, expt11, expt12]
+    expt2 = ExperimentSetting(TensorProductState(minusZ(0)), sY(0))
+    expt3 = ExperimentSetting(TensorProductState(plusY(0)), sX(0))
+    expt_settings = [expt1, expt2, expt3]
     p = Program()
     qubs = [0]
     tomo_expt = TomographyExperiment(settings=expt_settings, program=p, qubits=qubs)
@@ -729,18 +715,9 @@ def test_measure_observables_result_zero_no_symm_calibr():
     # expecting expectation value to be nonzero with symmetrization/calibration
     qc = get_qc('9q-qvm')
     expt1 = ExperimentSetting(TensorProductState(plusX(0)), sZ(0))
-    expt2 = ExperimentSetting(TensorProductState(plusY(0)), sZ(0))
-    expt3 = ExperimentSetting(TensorProductState(minusX(0)), sZ(0))
-    expt4 = ExperimentSetting(TensorProductState(minusY(0)), sZ(0))
-    expt5 = ExperimentSetting(TensorProductState(plusX(0)), sY(0))
-    expt6 = ExperimentSetting(TensorProductState(plusZ(0)), sY(0))
-    expt7 = ExperimentSetting(TensorProductState(minusX(0)), sY(0))
-    expt8 = ExperimentSetting(TensorProductState(minusZ(0)), sY(0))
-    expt9 = ExperimentSetting(TensorProductState(plusZ(0)), sX(0))
-    expt10 = ExperimentSetting(TensorProductState(plusY(0)), sX(0))
-    expt11 = ExperimentSetting(TensorProductState(minusZ(0)), sX(0))
-    expt12 = ExperimentSetting(TensorProductState(minusY(0)), sX(0))
-    expt_settings = [expt1, expt2, expt3, expt4, expt5, expt6, expt7, expt8, expt9, expt10, expt11, expt12]
+    expt2 = ExperimentSetting(TensorProductState(minusZ(0)), sY(0))
+    expt3 = ExperimentSetting(TensorProductState(minusY(0)), sX(0))
+    expt_settings = [expt1, expt2, expt3]
     p = Program()
     p00, p11 = 0.99, 0.80
     p.define_noisy_readout(0, p00=p00, p11=p11)
@@ -776,7 +753,7 @@ def test_measure_observables_2q_readout_error_one_measured():
     obs_e = np.zeros(runs)
     cal_e = np.zeros(runs)
 
-    for idx,res in enumerate(measure_observables(qc,
+    for idx, res in enumerate(measure_observables(qc,
                                              tomo_experiment,
                                              n_shots=1000,
                                              active_reset=True,
