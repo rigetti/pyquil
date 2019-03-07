@@ -808,20 +808,6 @@ def test_exhaustive_symmetrization_2q(forest):
     assert np.isclose(frac7_0, expected_frac7_0, 2e-2)
 
 
-def _random_unitary(n):
-    """
-    :return: array of shape (N, N) representing random unitary matrix drawn from Haar measure
-    """
-    # draw complex matrix from Ginibre ensemble
-    z = np.random.randn(n, n) + 1j * np.random.randn(n, n)
-    # QR decompose this complex matrix
-    q, r = np.linalg.qr(z)
-    # make this decomposition unique
-    d = np.diagonal(r)
-    l = np.diag(d) / np.abs(d)
-    return np.matmul(q, l)
-
-
 def test_process_dfe_bit_flip(forest):
     qc = get_qc('9q-qvm')
     # prepare experiment settings
@@ -833,10 +819,8 @@ def test_process_dfe_bit_flip(forest):
     # prepare noisy channel as program
     prob = 0.3
     kraus_ops = [np.sqrt(1 - prob) * np.array([[1, 0], [0, 1]]), np.sqrt(prob) * np.array([[0, 1], [1, 0]])]
-    p = Program()
-    p.defgate("DummyGate", _random_unitary(2))
-    p.inst(("DummyGate", 0))
-    p.define_noisy_gate("DummyGate", [0], kraus_ops)
+    p = Program(I(0))
+    p.define_noisy_gate("I", [0], kraus_ops)
 
     # prepare TomographyExperiment
     process_exp = TomographyExperiment(settings=expt_list, program=p,
