@@ -617,8 +617,8 @@ def test_measure_observables_noisy_asymmetric_readout():
     expectations = []
     for _ in range(num_simulations):
         expt_results = list(measure_observables(qc, tomo_expt, n_shots=1000,
-                                           readout_symmetrize='exhaustive',
-                                           calibrate_readout='plus-eig'))
+                                                readout_symmetrize='exhaustive',
+                                                calibrate_readout='plus-eig'))
         expectations.append([res.expectation for res in expt_results])
     expectations = np.array(expectations)
     results = np.mean(expectations, axis=0)
@@ -643,11 +643,11 @@ def test_measure_observables_uncalibrated_estimate_noisy_asymmetric_readout():
     raw_e = np.zeros(runs * len(expt_list))
 
     for idx, res in enumerate(measure_observables(qc,
-                                             tomo_expt,
-                                             n_shots=1000,
-                                             active_reset=True,
-                                             readout_symmetrize='exhaustive',
-                                             calibrate_readout='plus-eig')):
+                                                  tomo_expt,
+                                                  n_shots=1000,
+                                                  active_reset=True,
+                                                  readout_symmetrize='exhaustive',
+                                                  calibrate_readout='plus-eig')):
         raw_e[idx] = res.raw_expectation
 
     assert np.isclose(np.mean(raw_e[::3]), expected_expectation_z_basis, atol=2e-2)
@@ -674,8 +674,8 @@ def test_measure_observables_result_zero_symmetrization_calibration():
     raw_expectations = []
     for _ in range(num_simulations):
         expt_results = list(measure_observables(qc, tomo_expt, n_shots=1000,
-                                           readout_symmetrize='exhaustive',
-                                           calibrate_readout='plus-eig'))
+                                                readout_symmetrize='exhaustive',
+                                                calibrate_readout='plus-eig'))
         expectations.append([res.expectation for res in expt_results])
         raw_expectations.append([res.raw_expectation for res in expt_results])
     expectations = np.array(expectations)
@@ -703,8 +703,8 @@ def test_measure_observables_result_zero_no_noisy_readout():
     expectations = []
     for _ in range(num_simulations):
         expt_results = list(measure_observables(qc, tomo_expt, n_shots=1000,
-                                           readout_symmetrize=None,
-                                           calibrate_readout=None))
+                                                readout_symmetrize=None,
+                                                calibrate_readout=None))
         expectations.append([res.expectation for res in expt_results])
     expectations = np.array(expectations)
     results = np.mean(expectations, axis=0)
@@ -730,8 +730,8 @@ def test_measure_observables_result_zero_no_symm_calibr():
     expected_result = (p00 * 0.5 + (1 - p11) * 0.5) - ((1 - p00) * 0.5 + p11 * 0.5)
     for _ in range(num_simulations):
         expt_results = list(measure_observables(qc, tomo_expt, n_shots=1000,
-                                           readout_symmetrize=None,
-                                           calibrate_readout=None))
+                                                readout_symmetrize=None,
+                                                calibrate_readout=None))
         expectations.append([res.expectation for res in expt_results])
     expectations = np.array(expectations)
     results = np.mean(expectations, axis=0)
@@ -747,18 +747,18 @@ def test_measure_observables_2q_readout_error_one_measured():
     p = Program()
     p.define_noisy_readout(0, 0.999, 0.85)
     p.define_noisy_readout(1, 0.999, 0.75)
-    tomo_experiment = TomographyExperiment(settings=[expt]*runs, program=p, qubits=[qubs[0],qubs[1]])
+    tomo_experiment = TomographyExperiment(settings=[expt] * runs, program=p, qubits=[qubs[0], qubs[1]])
 
     raw_e = np.zeros(runs)
     obs_e = np.zeros(runs)
     cal_e = np.zeros(runs)
 
     for idx, res in enumerate(measure_observables(qc,
-                                             tomo_experiment,
-                                             n_shots=1000,
-                                             active_reset=True,
-                                             readout_symmetrize='exhaustive',
-                                             calibrate_readout='plus-eig')):
+                                                  tomo_experiment,
+                                                  n_shots=1000,
+                                                  active_reset=True,
+                                                  readout_symmetrize='exhaustive',
+                                                  calibrate_readout='plus-eig')):
         raw_e[idx] = res.raw_expectation
         obs_e[idx] = res.expectation
         cal_e[idx] = res.calibration_expectation
