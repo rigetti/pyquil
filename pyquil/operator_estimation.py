@@ -807,10 +807,10 @@ def measure_observables(qc: QuantumComputer, tomo_experiment: TomographyExperime
         # 2. Symmetrization
         qubits = max_weight_out_op.get_qubits()
 
-        if readout_symmetrize == 'exhaustive':
+        if readout_symmetrize == 'exhaustive' and len(qubits) > 0:
             bitstrings, d_qub_idx = _exhaustive_symmetrization(qc, qubits, n_shots, total_prog)
 
-        elif readout_symmetrize is None:
+        elif readout_symmetrize is None and len(qubits) > 0:
             total_prog_no_symm = total_prog.copy()
             ro = total_prog_no_symm.declare('ro', 'BIT', len(qubits))
             d_qub_idx = {}
@@ -820,6 +820,10 @@ def measure_observables(qc: QuantumComputer, tomo_experiment: TomographyExperime
                 d_qub_idx[q] = i
             total_prog_no_symm.wrap_in_numshots_loop(n_shots)
             bitstrings = qc.run(total_prog_no_symm)
+
+        elif len(qubits) == 0:
+            # looks like an identity operation
+            pass
 
         else:
             raise ValueError("Readout symmetrization method must be either 'exhaustive' or None")
