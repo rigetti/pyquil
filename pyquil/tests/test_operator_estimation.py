@@ -20,7 +20,7 @@ from pyquil.operator_estimation import ExperimentSetting, TomographyExperiment, 
     TensorProductState, zeros_state, \
     group_experiments, group_experiments_greedy, ExperimentResult, measure_observables, \
     _ops_bool_to_prog, _stack_dicts, _stats_from_measurements, \
-    ratio_variance, _exhaustive_symmetrization
+    ratio_variance, _exhaustive_symmetrization, _calibration_program
 from pyquil.paulis import sI, sX, sY, sZ, PauliSum, PauliTerm
 
 
@@ -843,3 +843,47 @@ def test_process_dfe_bit_flip(forest):
     results = np.mean(expts, axis=0)
     expected_results = np.array([1.0, 0.4, 0.4])
     np.testing.assert_allclose(results, expected_results, atol=2e-2)
+
+
+def test_measure_observables_inherit_noise_errors(forest):
+    qc = get_qc('3q-qvm')
+    # specify simplest experiments
+    expt1 = ExperimentSetting(TensorProductState(), sZ(0))
+    expt2 = ExperimentSetting(TensorProductState(), sZ(1))
+    expt3 = ExperimentSetting(TensorProductState(), sZ(2))
+    # specify a Program with multiple sources of noise
+    p = Program(X(0), Y(1), H(2))
+    # defining several bit-flip channels
+    kraus_ops_X = [np.sqrt(1-0.3) * np.array([[1, 0],[0,1]]),
+                   np.sqrt(0.3) * np.array([[0, 1], [1, 0]])]
+    kraus_ops_Y = [np.sqrt(1-0.2) * np.array([[1, 0],[0,1]]),
+                   np.sqrt(0.2) * np.array([[0, 1], [1, 0]])]
+    kraus_ops_H = [np.sqrt(1-0.1) * np.array([[1, 0],[0,1]]),
+                   np.sqrt(0.1) * np.array([[0, 1], [1, 0]])]
+    # replacing all the gates with bit-flip channels
+    p.define_noisy_gate("X", [0], kraus_ops_X)
+    p.define_noisy_gate("Y", [1], kraus_ops_Y)
+    p.define_noisy_gate("H", [2], kraus_ops_H)
+    # defining readout errors
+    p.define_noisy_readout(0, 0.99, 0.80)
+    p.define_noisy_readout(1, 0.95, 0.85)
+    p.define_noisy_readout(2, 0.97, 0.78)
+
+    tomo_expt = TomographyExperiment(settings=[expt1, expt2, expt3], program=p, qubits=[0, 1, 2])
+
+    calibr_prog1 = _calibration_program(qc, tomo_expt, expt1, inherit_readout_error=True, inherit_gate_noise=True)
+    calibr_prog2 = _calibration_program(qc, tomo_expt, expt1, inherit_readout_error=True, inherit_gate_noise=True)
+    calibr_prog3 = _calibration_program(qc, tomo_expt, expt1, inherit_readout_error=True, inherit_gate_noise=True)
+    expected_prog = '''PRAGMA READOUT-POVM 0 "(0.99 0.19999999999999996 0.010000000000000009 0.8)"
+PRAGMA READOUT-POVM 1 "(0.95 0.15000000000000002 0.050000000000000044 0.85)"
+PRAGMA READOUT-POVM 2 "(0.97 0.21999999999999997 0.030000000000000027 0.78)"
+PRAGMA ADD-KRAUS X 0 "(0.8366600265340756 0.0 0.0 0.8366600265340756)"
+PRAGMA ADD-KRAUS X 0 "(0.0 0.5477225575051661 0.5477225575051661 0.0)"
+PRAGMA ADD-KRAUS Y 1 "(0.8944271909999159 0.0 0.0 0.8944271909999159)"
+PRAGMA ADD-KRAUS Y 1 "(0.0 0.4472135954999579 0.4472135954999579 0.0)"
+PRAGMA ADD-KRAUS H 2 "(0.9486832980505138 0.0 0.0 0.9486832980505138)"
+PRAGMA ADD-KRAUS H 2 "(0.0 0.31622776601683794 0.31622776601683794 0.0)"
+'''
+    assert calibr_prog1 == Program(expected_prog)
+    assert calibr_prog2 == Program(expected_prog)
+    assert calibr_prog3 == Program(expected_prog)
