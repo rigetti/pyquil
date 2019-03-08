@@ -871,9 +871,9 @@ def test_measure_observables_inherit_noise_errors(forest):
 
     tomo_expt = TomographyExperiment(settings=[expt1, expt2, expt3], program=p, qubits=[0, 1, 2])
 
-    calibr_prog1 = _calibration_program(qc, tomo_expt, expt1, inherit_readout_error=True, inherit_gate_noise=True)
-    calibr_prog2 = _calibration_program(qc, tomo_expt, expt1, inherit_readout_error=True, inherit_gate_noise=True)
-    calibr_prog3 = _calibration_program(qc, tomo_expt, expt1, inherit_readout_error=True, inherit_gate_noise=True)
+    calibr_prog1 = _calibration_program(qc, tomo_expt, expt1)
+    calibr_prog2 = _calibration_program(qc, tomo_expt, expt2)
+    calibr_prog3 = _calibration_program(qc, tomo_expt, expt3)
     expected_prog = '''PRAGMA READOUT-POVM 0 "(0.99 0.19999999999999996 0.010000000000000009 0.8)"
 PRAGMA READOUT-POVM 1 "(0.95 0.15000000000000002 0.050000000000000044 0.85)"
 PRAGMA READOUT-POVM 2 "(0.97 0.21999999999999997 0.030000000000000027 0.78)"
