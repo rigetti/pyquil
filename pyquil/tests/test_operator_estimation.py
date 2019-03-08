@@ -916,6 +916,52 @@ def test_expectations_sic1(forest):
     np.testing.assert_allclose(results, expected_results, atol=2e-2)
 
 
+def test_expectations_sic2(forest):
+    qc = get_qc('1q-qvm')
+    expt1 = ExperimentSetting(SIC2(0), sX(0))
+    expt2 = ExperimentSetting(SIC2(0), sY(0))
+    expt3 = ExperimentSetting(SIC2(0), sZ(0))
+    tomo_expt = TomographyExperiment(settings=[expt1, expt2, expt3], program=Program(), qubits=[0])
+
+    num_simulations = 100
+    results_unavged = []
+    for _ in range(num_simulations):
+        measured_results = []
+        for res in measure_observables(qc, tomo_expt, n_shots=1000):
+            measured_results.append(res.expectation)
+        results_unavged.append(measured_results)
+
+    results_unavged = np.array(results_unavged)
+    results = np.mean(results_unavged, axis=0)
+    expected_results = np.array([(2 * np.sqrt(2) / 3) * np.cos(2 * np.pi / 3),
+                                 -(2 * np.sqrt(2) / 3) * np.sin(2 * np.pi / 3),
+                                 -1 / 3])
+    np.testing.assert_allclose(results, expected_results, atol=2e-2)
+
+
+def test_expectations_sic3(forest):
+    qc = get_qc('1q-qvm')
+    expt1 = ExperimentSetting(SIC3(0), sX(0))
+    expt2 = ExperimentSetting(SIC3(0), sY(0))
+    expt3 = ExperimentSetting(SIC3(0), sZ(0))
+    tomo_expt = TomographyExperiment(settings=[expt1, expt2, expt3], program=Program(), qubits=[0])
+
+    num_simulations = 100
+    results_unavged = []
+    for _ in range(num_simulations):
+        measured_results = []
+        for res in measure_observables(qc, tomo_expt, n_shots=1000):
+            measured_results.append(res.expectation)
+        results_unavged.append(measured_results)
+
+    results_unavged = np.array(results_unavged)
+    results = np.mean(results_unavged, axis=0)
+    expected_results = np.array([(2 * np.sqrt(2) / 3) * np.cos(2 * np.pi / 3),
+                                 (2 * np.sqrt(2) / 3) * np.sin(2 * np.pi / 3),
+                                 -1 / 3])
+    np.testing.assert_allclose(results, expected_results, atol=2e-2)
+
+
 def test_measure_observables_grouped_expts(forest):
     qc = get_qc('3q-qvm')
     # this more explicitly uses the list-of-lists-of-ExperimentSettings in TomographyExperiment
