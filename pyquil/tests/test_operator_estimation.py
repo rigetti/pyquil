@@ -528,7 +528,7 @@ def test_measure_observables_no_symm_calibr_raises_error(forest):
                                  program=Program(I(0)), qubits=[0])
     with pytest.raises(ValueError):
         result = list(measure_observables(qc, suite, readout_symmetrize=None,
-            calibrate_readout='plus-eig'))
+                                          calibrate_readout='plus-eig'))
 
 
 def test_ops_bool_to_prog():
@@ -839,11 +839,11 @@ def test_measure_observables_inherit_noise_errors(forest):
     # specify a Program with multiple sources of noise
     p = Program(X(0), Y(1), H(2))
     # defining several bit-flip channels
-    kraus_ops_X = [np.sqrt(1-0.3) * np.array([[1, 0],[0,1]]),
+    kraus_ops_X = [np.sqrt(1 - 0.3) * np.array([[1, 0], [0, 1]]),
                    np.sqrt(0.3) * np.array([[0, 1], [1, 0]])]
-    kraus_ops_Y = [np.sqrt(1-0.2) * np.array([[1, 0],[0,1]]),
+    kraus_ops_Y = [np.sqrt(1 - 0.2) * np.array([[1, 0], [0, 1]]),
                    np.sqrt(0.2) * np.array([[0, 1], [1, 0]])]
-    kraus_ops_H = [np.sqrt(1-0.1) * np.array([[1, 0],[0,1]]),
+    kraus_ops_H = [np.sqrt(1 - 0.1) * np.array([[1, 0], [0, 1]]),
                    np.sqrt(0.1) * np.array([[0, 1], [1, 0]])]
     # replacing all the gates with bit-flip channels
     p.define_noisy_gate("X", [0], kraus_ops_X)
@@ -912,7 +912,7 @@ def test_expectations_sic1(forest):
 
     results_unavged = np.array(results_unavged)
     results = np.mean(results_unavged, axis=0)
-    expected_results = np.array([2 * np.sqrt(2)/3, 0, -1/3])
+    expected_results = np.array([2 * np.sqrt(2) / 3, 0, -1 / 3])
     np.testing.assert_allclose(results, expected_results, atol=2e-2)
 
 
@@ -944,5 +944,5 @@ def test_measure_observables_grouped_expts(forest):
 
     results_unavged = np.array(results_unavged)
     results = np.mean(results_unavged, axis=0)
-    expected_results = np.array([-1/3, -1, 1, -1, -1])
+    expected_results = np.array([-1 / 3, -1, 1, -1, -1])
     np.testing.assert_allclose(results, expected_results, atol=2e-2)
