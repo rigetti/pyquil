@@ -481,7 +481,7 @@ def test_measure_observables_symmetrize(forest):
     assert len(gsuite) == 3 * 3  # can get all the terms with I for free in this case
 
     qc = get_qc('2q-qvm')
-    for res in measure_observables(qc, gsuite, n_shots=10_000, readout_symmetrize='exhaustive'):
+    for res in measure_observables(qc, gsuite, calibrate_readout=None):
         if res.setting.out_operator in [sI(), sZ(0), sZ(1), sZ(0) * sZ(1)]:
             assert np.abs(res.expectation) > 0.9
         else:
@@ -502,8 +502,7 @@ def test_measure_observables_symmetrize_calibrate(forest):
     assert len(gsuite) == 3 * 3  # can get all the terms with I for free in this case
 
     qc = get_qc('2q-qvm')
-    for res in measure_observables(qc, gsuite, n_shots=10_000,
-                                   readout_symmetrize='exhaustive', calibrate_readout='plus-eig'):
+    for res in measure_observables(qc, gsuite):
         if res.setting.out_operator in [sI(), sZ(0), sZ(1), sZ(0) * sZ(1)]:
             assert np.abs(res.expectation) > 0.9
         else:
@@ -518,8 +517,7 @@ def test_measure_observables_zero_expectation(forest):
     exptsetting = ExperimentSetting(plusZ(0), sX(0))
     suite = TomographyExperiment([exptsetting],
                                  program=Program(I(0)), qubits=[0])
-    result = list(measure_observables(qc, suite, n_shots=10000, readout_symmetrize='exhaustive',
-                                      calibrate_readout='plus-eig'))[0]
+    result = list(measure_observables(qc, suite))[0]
     np.testing.assert_almost_equal(result.expectation, 0.0, decimal=1)
 
 
@@ -529,8 +527,8 @@ def test_measure_observables_no_symm_calibr_raises_error(forest):
     suite = TomographyExperiment([exptsetting],
                                  program=Program(I(0)), qubits=[0])
     with pytest.raises(ValueError):
-        result = list(measure_observables(qc, suite, n_shots=1000,
-                                          readout_symmetrize=None, calibrate_readout='plus-eig'))
+        result = list(measure_observables(qc, suite, readout_symmetrize=None,
+            calibrate_readout='plus-eig'))
 
 
 def test_ops_bool_to_prog():
@@ -617,9 +615,7 @@ def test_measure_observables_noisy_asymmetric_readout(forest):
 
     expectations = []
     for _ in range(num_simulations):
-        expt_results = list(measure_observables(qc, tomo_expt, n_shots=1000,
-                                                readout_symmetrize='exhaustive',
-                                                calibrate_readout='plus-eig'))
+        expt_results = list(measure_observables(qc, tomo_expt, n_shots=1000))
         expectations.append([res.expectation for res in expt_results])
     expectations = np.array(expectations)
     results = np.mean(expectations, axis=0)
@@ -644,11 +640,7 @@ def test_measure_observables_uncalibrated_estimate_noisy_asymmetric_readout(fore
     raw_e = np.zeros(runs * len(expt_list))
 
     for idx, res in enumerate(measure_observables(qc,
-                                                  tomo_expt,
-                                                  n_shots=10000,
-                                                  active_reset=True,
-                                                  readout_symmetrize='exhaustive',
-                                                  calibrate_readout='plus-eig')):
+                                                  tomo_expt)):
         raw_e[idx] = res.raw_expectation
 
     assert np.isclose(np.mean(raw_e[::3]), expected_expectation_z_basis, atol=2e-2)
@@ -674,9 +666,7 @@ def test_measure_observables_result_zero_symmetrization_calibration(forest):
     expectations = []
     raw_expectations = []
     for _ in range(num_simulations):
-        expt_results = list(measure_observables(qc, tomo_expt, n_shots=1000,
-                                                readout_symmetrize='exhaustive',
-                                                calibrate_readout='plus-eig'))
+        expt_results = list(measure_observables(qc, tomo_expt, n_shots=1000))
         expectations.append([res.expectation for res in expt_results])
         raw_expectations.append([res.raw_expectation for res in expt_results])
     expectations = np.array(expectations)
@@ -688,7 +678,7 @@ def test_measure_observables_result_zero_symmetrization_calibration(forest):
 
 
 def test_measure_observables_result_zero_no_noisy_readout(forest):
-    # expecting expectation value to be 0 with symmetrization/calibration
+    # expecting expectation value to be 0 with no symmetrization/calibration
     # and no noisy readout
     qc = get_qc('9q-qvm')
     expt1 = ExperimentSetting(TensorProductState(plusX(0)), sZ(0))
@@ -756,10 +746,7 @@ def test_measure_observables_2q_readout_error_one_measured(forest):
 
     for idx, res in enumerate(measure_observables(qc,
                                                   tomo_experiment,
-                                                  n_shots=1000,
-                                                  active_reset=True,
-                                                  readout_symmetrize='exhaustive',
-                                                  calibrate_readout='plus-eig')):
+                                                  n_shots=1000)):
         raw_e[idx] = res.raw_expectation
         obs_e[idx] = res.expectation
         cal_e[idx] = res.calibration_expectation
@@ -833,9 +820,7 @@ def test_process_dfe_bit_flip(forest):
     expts = []
     for _ in range(num_expts):
         expt_results = []
-        for res in measure_observables(qc, process_exp, n_shots=1000,
-                                       readout_symmetrize='exhaustive',
-                                       calibrate_readout='plus-eig'):
+        for res in measure_observables(qc, process_exp, n_shots=1000):
             expt_results.append(res.expectation)
         expts.append(expt_results)
 
@@ -900,9 +885,7 @@ def test_expectations_sic0(forest):
     results_unavged = []
     for _ in range(num_simulations):
         measured_results = []
-        for res in measure_observables(qc, tomo_expt, n_shots=1000,
-                                       readout_symmetrize='exhaustive',
-                                       calibrate_readout='plus-eig'):
+        for res in measure_observables(qc, tomo_expt, n_shots=1000):
             measured_results.append(res.expectation)
         results_unavged.append(measured_results)
 
@@ -923,9 +906,7 @@ def test_expectations_sic1(forest):
     results_unavged = []
     for _ in range(num_simulations):
         measured_results = []
-        for res in measure_observables(qc, tomo_expt, n_shots=1000,
-                                       readout_symmetrize='exhaustive',
-                                       calibrate_readout='plus-eig'):
+        for res in measure_observables(qc, tomo_expt, n_shots=1000):
             measured_results.append(res.expectation)
         results_unavged.append(measured_results)
 
@@ -957,9 +938,7 @@ def test_measure_observables_grouped_expts(forest):
     results_unavged = []
     for _ in range(num_simulations):
         measured_results = []
-        for res in measure_observables(qc, tomo_expt, n_shots=1000,
-                                       readout_symmetrize='exhaustive',
-                                       calibrate_readout='plus-eig'):
+        for res in measure_observables(qc, tomo_expt, n_shots=1000):
             measured_results.append(res.expectation)
         results_unavged.append(measured_results)
 
