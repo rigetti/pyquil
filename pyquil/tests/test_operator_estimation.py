@@ -887,3 +887,83 @@ PRAGMA ADD-KRAUS H 2 "(0.0 0.31622776601683794 0.31622776601683794 0.0)"
     assert calibr_prog1 == Program(expected_prog)
     assert calibr_prog2 == Program(expected_prog)
     assert calibr_prog3 == Program(expected_prog)
+
+
+def test_expectations_sic0(forest):
+    qc = get_qc('1q-qvm')
+    expt1 = ExperimentSetting(SIC0(0), sX(0))
+    expt2 = ExperimentSetting(SIC0(0), sY(0))
+    expt3 = ExperimentSetting(SIC0(0), sZ(0))
+    tomo_expt = TomographyExperiment(settings=[expt1, expt2, expt3], program=Program(), qubits=[0])
+
+    num_simulations = 100
+    results_unavged = []
+    for _ in range(num_simulations):
+        measured_results = []
+        for res in measure_observables(qc, tomo_expt, n_shots=1000,
+                                       readout_symmetrize='exhaustive',
+                                       calibrate_readout='plus-eig'):
+            measured_results.append(res.expectation)
+        results_unavged.append(measured_results)
+
+    results_unavged = np.array(results_unavged)
+    results = np.mean(results_unavged, axis=0)
+    expected_results = np.array([0, 0, 1])
+    np.testing.assert_allclose(results, expected_results, atol=2e-2)
+
+
+def test_expectations_sic1(forest):
+    qc = get_qc('1q-qvm')
+    expt1 = ExperimentSetting(SIC1(0), sX(0))
+    expt2 = ExperimentSetting(SIC1(0), sY(0))
+    expt3 = ExperimentSetting(SIC1(0), sZ(0))
+    tomo_expt = TomographyExperiment(settings=[expt1, expt2, expt3], program=Program(), qubits=[0])
+
+    num_simulations = 100
+    results_unavged = []
+    for _ in range(num_simulations):
+        measured_results = []
+        for res in measure_observables(qc, tomo_expt, n_shots=1000,
+                                       readout_symmetrize='exhaustive',
+                                       calibrate_readout='plus-eig'):
+            measured_results.append(res.expectation)
+        results_unavged.append(measured_results)
+
+    results_unavged = np.array(results_unavged)
+    results = np.mean(results_unavged, axis=0)
+    expected_results = np.array([2 * np.sqrt(2)/3, 0, -1/3])
+    np.testing.assert_allclose(results, expected_results, atol=2e-2)
+
+
+def test_measure_observables_grouped_expts(forest):
+    qc = get_qc('3q-qvm')
+    # this more explicitly uses the list-of-lists-of-ExperimentSettings in TomographyExperiment
+    # create experiments in different groups
+    expt1_group1 = ExperimentSetting(SIC1(0) * plusX(1), sZ(0) * sX(1))
+    expt2_group1 = ExperimentSetting(plusX(1) * minusY(2), sX(1) * sY(2))
+    expts_group1 = [expt1_group1, expt2_group1]
+
+    expt1_group2 = ExperimentSetting(plusX(0) * SIC0(1), sX(0) * sZ(1))
+    expt2_group2 = ExperimentSetting(SIC0(1) * minusY(2), sZ(1) * sY(2))
+    expt3_group2 = ExperimentSetting(plusX(0) * minusY(2), sX(0) * sY(2))
+    expts_group2 = [expt1_group2, expt2_group2, expt3_group2]
+    # create a list-of-lists-of-ExperimentSettings
+    expt_settings = [expts_group1, expts_group2]
+    # and use this to create a TomographyExperiment suite
+    tomo_expt = TomographyExperiment(settings=expt_settings, program=Program(),
+                                     qubits=[0, 1, 2])
+
+    num_simulations = 100
+    results_unavged = []
+    for _ in range(num_simulations):
+        measured_results = []
+        for res in measure_observables(qc, tomo_expt, n_shots=1000,
+                                       readout_symmetrize='exhaustive',
+                                       calibrate_readout='plus-eig'):
+            measured_results.append(res.expectation)
+        results_unavged.append(measured_results)
+
+    results_unavged = np.array(results_unavged)
+    results = np.mean(results_unavged, axis=0)
+    expected_results = np.array([-1/3, -1, 1, -1, -1])
+    np.testing.assert_allclose(results, expected_results, atol=2e-2)
