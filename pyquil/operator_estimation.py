@@ -1070,6 +1070,6 @@ def _calibration_program(qc: QuantumComputer, tomo_experiment: TomographyExperim
         calibr_prog += _one_q_pauli_prep(label=op, index=0, qubit=q)
     # Measure the out operator in this state
     for q, op in setting.out_operator.operations_as_set():
-        calibr_prog += _local_pauli_eig_meas(op, q) 
+        calibr_prog += _local_pauli_eig_meas(op, q)
 
     return calibr_prog
