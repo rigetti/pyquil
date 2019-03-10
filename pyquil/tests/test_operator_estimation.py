@@ -9,7 +9,7 @@ from operator import mul
 
 import numpy as np
 import pytest
-
+from pyquil.quilbase import Pragma
 from pyquil import Program, get_qc
 from pyquil.gates import *
 from pyquil.api import WavefunctionSimulator, QVMConnection
@@ -230,12 +230,12 @@ def _random_2q_programs(n_progs=10):
 
 def test_measure_observables_many_progs(forest):
     expts = [
-        ExperimentSetting(sI(), o1 * o2)
+        ExperimentSetting(TensorProductState(), o1 * o2)
         for o1, o2 in itertools.product([sI(0), sX(0), sY(0), sZ(0)], [sI(1), sX(1), sY(1), sZ(1)])
     ]
 
     qc = get_qc('2q-qvm')
-    qc.qam.random_seed = 51
+    qc.qam.random_seed = 0
     for prog in _random_2q_programs():
         suite = TomographyExperiment(expts, program=prog, qubits=[0, 1])
         assert len(suite) == 4 * 4
@@ -247,8 +247,8 @@ def test_measure_observables_many_progs(forest):
         for expt in expts:
             wfn_exps[expt] = wfn.expectation(gsuite.program, PauliSum([expt.out_operator]))
 
-        for res in measure_observables(qc, gsuite, n_shots=1_000):
-            np.testing.assert_allclose(wfn_exps[res.setting], res.expectation, atol=0.1)
+        for res in measure_observables(qc, gsuite):
+            np.testing.assert_allclose(wfn_exps[res.setting], res.expectation, atol=2e-2)
 
 
 def test_append():
@@ -809,7 +809,7 @@ def test_process_dfe_bit_flip(forest):
     # applying the X gate with probability `prob`, and applying the identity gate
     # with probability `1 - prob`
     kraus_ops = [np.sqrt(1 - prob) * np.array([[1, 0], [0, 1]]), np.sqrt(prob) * np.array([[0, 1], [1, 0]])]
-    p = Program(I(0))
+    p = Program(Pragma("PRESERVE_BLOCK"), I(0), Pragma("END_PRESERVE_BLOCK"))
     p.define_noisy_gate("I", [0], kraus_ops)
 
     # prepare TomographyExperiment

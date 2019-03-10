@@ -821,7 +821,9 @@ def measure_observables(qc: QuantumComputer, tomo_experiment: TomographyExperime
                 # Keep track of qubit-classical register mapping via dict
                 d_qub_idx[q] = i
             total_prog_no_symm.wrap_in_numshots_loop(n_shots)
-            bitstrings = qc.run(total_prog_no_symm)
+            total_prog_no_symm_native = qc.compiler.quil_to_native_quil(total_prog_no_symm)
+            total_prog_no_symm_bin = qc.compiler.native_quil_to_executable(total_prog_no_symm_native)
+            bitstrings = qc.run(total_prog_no_symm_bin)
 
         elif len(qubits) == 0:
             # looks like an identity operation
@@ -1033,7 +1035,9 @@ def _exhaustive_symmetrization(qc: QuantumComputer, qubits: List[int],
             # Keep track of qubit-classical register mapping via dict
             dict_qub_idx[q] = i
         total_prog_symm.wrap_in_numshots_loop(n_shots_symm)
-        bitstrings_symm = qc.run(total_prog_symm)
+        total_prog_symm_native = qc.compiler.quil_to_native_quil(total_prog_symm)
+        total_prog_symm_bin = qc.compiler.native_quil_to_executable(total_prog_symm_native)
+        bitstrings_symm = qc.run(total_prog_symm_bin)
         # Flip the results post-measurement
         bitstrings_symm = bitstrings_symm ^ ops_bool
         # Gather together the symmetrized results into list
