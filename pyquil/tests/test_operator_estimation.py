@@ -1281,3 +1281,60 @@ def test_unitary_channel_fidelity_readout_error(forest):
     # how close is this channel to the identity operator
     expected_fidelity = (1 / 6) * ((2 * np.cos(theta / 2)) ** 2 + 2)
     np.testing.assert_allclose(expected_fidelity, estimated_fidelity, atol=2e-2)
+
+
+def test_2q_unitary_channel_fidelity_readout_error(qvm, benchmarker):
+    """
+    We use Eqn (5) of https://arxiv.org/abs/quant-ph/0701138 to compare the fidelity
+    This tests if our dimensionality factors are correct, even in the presence
+    of readout errors
+    """
+    qc = get_qc('2q-qvm')
+    # prepare experiment settings
+
+    expt1 = ExperimentSetting(TensorProductState(plusX(0)), sX(0))
+    expt2 = ExperimentSetting(TensorProductState(plusY(0)), sY(0))
+    expt3 = ExperimentSetting(TensorProductState(plusZ(0)), sZ(0))
+
+    expt4 = ExperimentSetting(TensorProductState(plusX(1)), sX(1))
+    expt5 = ExperimentSetting(TensorProductState(plusX(0) * plusX(1)), sX(0) * sX(1))
+    expt6 = ExperimentSetting(TensorProductState(plusY(0) * plusX(1)), sY(0) * sX(1))
+    expt7 = ExperimentSetting(TensorProductState(plusZ(0) * plusX(1)), sZ(0) * sX(1))
+
+    expt8 = ExperimentSetting(TensorProductState(plusY(1)), sY(1))
+    expt9 = ExperimentSetting(TensorProductState(plusX(0) * plusY(1)), sX(0) * sY(1))
+    expt10 = ExperimentSetting(TensorProductState(plusY(0) * plusY(1)), sY(0) * sY(1))
+    expt11 = ExperimentSetting(TensorProductState(plusZ(0) * plusY(1)), sZ(0) * sY(1))
+
+    expt12 = ExperimentSetting(TensorProductState(plusZ(1)), sZ(1))
+    expt13 = ExperimentSetting(TensorProductState(plusX(0) * plusZ(1)), sX(0) * sZ(1))
+    expt14 = ExperimentSetting(TensorProductState(plusY(0) * plusZ(1)), sY(0) * sZ(1))
+    expt15 = ExperimentSetting(TensorProductState(plusZ(0) * plusZ(1)), sZ(0) * sZ(1))
+
+    expt_list = [expt1, expt2, expt3, expt4, expt5, expt6, expt7, expt8, expt9, expt10, expt11, expt12, expt13, expt14, expt15]
+
+    # prepare unitary channel as an RY rotation program for some random angle
+    # theta1, theta2 = np.random.uniform(0.0, 2 * np.pi, size=2)
+    theta1, theta2 = np.pi / 4, np.pi / 5
+    # unitary (RY) channel
+    p = Program(RY(theta1, 0), RY(theta2, 1))
+    # add some readout error
+    p.define_noisy_readout(0, 0.95, 0.82)
+    # prepare TomographyExperiment
+    process_exp = TomographyExperiment(settings=expt_list, program=p,
+                                       qubits=[0])
+    # list to store experiment results
+    num_expts = 100
+    expts = []
+    for _ in range(num_expts):
+        expt_results = []
+        for res in measure_observables(qc, process_exp, n_shots=1000):
+            expt_results.append(res.expectation)
+        expts.append(expt_results)
+
+    expts = np.array(expts)
+    results = np.mean(expts, axis=0)
+    estimated_fidelity = _point_channel_fidelity_estimate(results, dim=4)
+    # how close is this channel to the identity operator
+    expected_fidelity = (1 / 5) * ((2 * np.cos(theta1 / 2) * np.cos(theta2 / 2)) ** 2 + 1)
+    np.testing.assert_allclose(expected_fidelity, estimated_fidelity, atol=2e-2)
