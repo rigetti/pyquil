@@ -1613,7 +1613,7 @@ def test_measure_2q_observable_raw_statistics(forest):
 
 def test_raw_statistics_2q_nontrivial_nonentangled_state(forest):
     # testing that we get correct exhaustively symmetrized statistics
-    # in terms of readout errors, even for non-trivial 2q entangled states
+    # in terms of readout errors, even for non-trivial 2q nonentangled states
     # Note: this only tests for exhaustive symmetrization in the presence
     #       of uncorrelated errors
     qc = get_qc('2q-qvm')
@@ -1672,6 +1672,63 @@ def test_raw_statistics_2q_nontrivial_nonentangled_state(forest):
     pr01 = p0100 * alph00 + p0101 * alph01 + p0110 * alph10 + p0111 * alph11
     pr10 = p1000 * alph00 + p1001 * alph01 + p1010 * alph10 + p1011 * alph11
     pr11 = p1100 * alph00 + p1101 * alph01 + p1110 * alph10 + p1111 * alph11
+    # calculate Z^{\otimes 2} expectation, and error of the mean
+    z_expectation = (pr00 + pr11) - (pr01 + pr10)
+    simulated_stddev = np.sqrt((1 - z_expectation ** 2) / num_shots)
+    # compare against simulated results
+    np.testing.assert_allclose(result_expectation, z_expectation, atol=2e-2)
+    np.testing.assert_allclose(result_stddev, simulated_stddev, atol=2e-2)
+
+
+def test_raw_statistics_2q_nontrivial_entangled_state(forest):
+    # testing that we get correct exhaustively symmetrized statistics
+    # in terms of readout errors, even for non-trivial 2q entangled states
+    # Note: this only tests for exhaustive symmetrization in the presence
+    #       of uncorrelated errors
+    qc = get_qc('2q-qvm')
+    expt = ExperimentSetting(TensorProductState(), sZ(0) * sZ(1))
+    theta = np.random.uniform(0.0, 2 * np.pi)
+    p = Program(RX(theta, 0), CNOT(0, 1))
+    p00, p11, q00, q11 = np.random.uniform(0.70, 0.99, size=4)
+    p.define_noisy_readout(0, p00=p00, p11=p11)
+    p.define_noisy_readout(1, p00=q00, p11=q11)
+    qubs = [0, 1]
+    tomo_expt = TomographyExperiment(settings=[expt], program=p, qubits=qubs)
+
+    num_simulations = 100
+    num_shots = 1000
+
+    raw_expectations = []
+    raw_stddevs = []
+
+    for _ in range(num_simulations):
+        expt_results = list(measure_observables(qc, tomo_expt, n_shots=num_shots))
+        raw_expectations.append([res.raw_expectation for res in expt_results])
+        raw_stddevs.append([res.raw_stddev for res in expt_results])
+    raw_expectations = np.array(raw_expectations)
+    raw_stddevs = np.array(raw_stddevs)
+    result_expectation = np.mean(raw_expectations, axis=0)
+    result_stddev = np.mean(raw_stddevs, axis=0)
+
+    # calculate relevant conditional probabilities, given |00> state
+    # notation used: pijmn means p(ij|mn)
+    p0000 = (p00 + p11) * (q00 + q11) / 4
+    p0100 = (p00 + p11) * (2 - q00 - q11) / 4
+    p1000 = (q00 + q11) * (2 - p00 - p11) / 4
+    p1100 = (2 - p00 - p11) * (2 - q00 - q11) / 4
+    # calculate relevant conditional probabilities, given |11> state
+    p0011 = p1100
+    p0111 = (2 - p00 - p11) * (q00 + q11) / 4
+    p1011 = (p00 + p11) * (2 - q00 - q11) / 4
+    p1111 = p0000
+    # calculate amplitudes squared of pure state
+    alph00 = (np.cos(theta / 2)) ** 2
+    alph11 = (np.sin(theta / 2)) ** 2
+    # calculate probabilities of various bitstrings
+    pr00 = p0000 * alph00 + p0011 * alph11
+    pr01 = p0100 * alph00 + p0111 * alph11
+    pr10 = p1000 * alph00 + p1011 * alph11
+    pr11 = p1100 * alph00 + p1111 * alph11
     # calculate Z^{\otimes 2} expectation, and error of the mean
     z_expectation = (pr00 + pr11) - (pr01 + pr10)
     simulated_stddev = np.sqrt((1 - z_expectation ** 2) / num_shots)
