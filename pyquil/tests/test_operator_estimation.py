@@ -1339,3 +1339,109 @@ def test_2q_unitary_channel_fidelity_readout_error(forest):
     # how close is this channel to the identity operator
     expected_fidelity = (1 / 5) * ((2 * np.cos(theta1 / 2) * np.cos(theta2 / 2)) ** 2 + 1)
     np.testing.assert_allclose(expected_fidelity, estimated_fidelity, atol=2e-2)
+
+
+def test_measure_1q_observable_raw_expectation(forest):
+    # testing that we get correct raw expectation in terms of readout errors
+    qc = get_qc('1q-qvm')
+    expt = ExperimentSetting(TensorProductState(plusZ(0)), sZ(0))
+    p = Program()
+    p00, p11 = 0.99, 0.80
+    p.define_noisy_readout(0, p00=p00, p11=p11)
+    qubs = [0]
+    tomo_expt = TomographyExperiment(settings=[expt], program=p, qubits=qubs)
+
+    num_simulations = 100
+
+    raw_expectations = []
+    for _ in range(num_simulations):
+        expt_results = list(measure_observables(qc, tomo_expt, n_shots=1000))
+        raw_expectations.append([res.raw_expectation for res in expt_results])
+    raw_expectations = np.array(raw_expectations)
+    result = np.mean(raw_expectations, axis=0)
+
+    # calculate expected raw_expectation
+    eps_not = (p00 + p11) / 2
+    eps = 1 - eps_not
+    expected_result = 1 - 2 * eps
+    np.testing.assert_allclose(result, expected_result, atol=2e-2)
+
+
+def test_measure_1q_observable_raw_variance(forest):
+    # testing that we get correct raw stddev in terms of readout errors
+    qc = get_qc('1q-qvm')
+    expt = ExperimentSetting(TensorProductState(plusZ(0)), sZ(0))
+    p = Program()
+    p00, p11 = 0.99, 0.80
+    p.define_noisy_readout(0, p00=p00, p11=p11)
+    qubs = [0]
+    tomo_expt = TomographyExperiment(settings=[expt], program=p, qubits=qubs)
+
+    num_simulations = 100
+    num_shots = 1000
+
+    raw_stddevs = []
+    for _ in range(num_simulations):
+        expt_results = list(measure_observables(qc, tomo_expt, n_shots=num_shots))
+        raw_stddevs.append([res.raw_stddev for res in expt_results])
+    raw_stddevs = np.array(raw_stddevs)
+    result = np.mean(raw_stddevs, axis=0)
+
+    # calculate expected raw_expectation
+    eps_not = (p00 + p11) / 2
+    eps = 1 - eps_not
+    expected_result = np.sqrt((1 - (1 - 2 * eps) ** 2) / num_shots)
+    np.testing.assert_allclose(result, expected_result, atol=2e-2)
+
+
+def test_measure_1q_observable_calibration_expectation(forest):
+    # testing that we get correct calibration expectation in terms of readout errors
+    qc = get_qc('1q-qvm')
+    expt = ExperimentSetting(TensorProductState(plusZ(0)), sZ(0))
+    p = Program()
+    p00, p11 = 0.93, 0.77
+    p.define_noisy_readout(0, p00=p00, p11=p11)
+    qubs = [0]
+    tomo_expt = TomographyExperiment(settings=[expt], program=p, qubits=qubs)
+
+    num_simulations = 100
+
+    calibration_expectations = []
+    for _ in range(num_simulations):
+        expt_results = list(measure_observables(qc, tomo_expt, n_shots=1000))
+        calibration_expectations.append([res.calibration_expectation for res in expt_results])
+    calibration_expectations = np.array(calibration_expectations)
+    result = np.mean(calibration_expectations, axis=0)
+
+    # calculate expected raw_expectation
+    eps_not = (p00 + p11) / 2
+    eps = 1 - eps_not
+    expected_result = 1 - 2 * eps
+    np.testing.assert_allclose(result, expected_result, atol=2e-2)
+
+
+def test_measure_1q_observable_calibration_variance(forest):
+    # testing that we get correct calibration stddev in terms of readout errors
+    qc = get_qc('1q-qvm')
+    expt = ExperimentSetting(TensorProductState(plusZ(0)), sZ(0))
+    p = Program()
+    p00, p11 = 0.93, 0.77
+    p.define_noisy_readout(0, p00=p00, p11=p11)
+    qubs = [0]
+    tomo_expt = TomographyExperiment(settings=[expt], program=p, qubits=qubs)
+
+    num_simulations = 100
+    num_shots = 1000
+
+    raw_stddevs = []
+    for _ in range(num_simulations):
+        expt_results = list(measure_observables(qc, tomo_expt, n_shots=num_shots))
+        raw_stddevs.append([res.raw_stddev for res in expt_results])
+    raw_stddevs = np.array(raw_stddevs)
+    result = np.mean(raw_stddevs, axis=0)
+
+    # calculate expected raw_expectation
+    eps_not = (p00 + p11) / 2
+    eps = 1 - eps_not
+    expected_result = np.sqrt((1 - (1 - 2 * eps) ** 2) / num_shots)
+    np.testing.assert_allclose(result, expected_result, atol=2e-2)
