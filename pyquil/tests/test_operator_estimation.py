@@ -1283,7 +1283,7 @@ def test_unitary_channel_fidelity_readout_error(forest):
     np.testing.assert_allclose(expected_fidelity, estimated_fidelity, atol=2e-2)
 
 
-def test_2q_unitary_channel_fidelity_readout_error(qvm, benchmarker):
+def test_2q_unitary_channel_fidelity_readout_error(forest):
     """
     We use Eqn (5) of https://arxiv.org/abs/quant-ph/0701138 to compare the fidelity
     This tests if our dimensionality factors are correct, even in the presence
@@ -1320,9 +1320,10 @@ def test_2q_unitary_channel_fidelity_readout_error(qvm, benchmarker):
     p = Program(RY(theta1, 0), RY(theta2, 1))
     # add some readout error
     p.define_noisy_readout(0, 0.95, 0.82)
+    p.define_noisy_readout(1, 0.99, 0.73)
     # prepare TomographyExperiment
     process_exp = TomographyExperiment(settings=expt_list, program=p,
-                                       qubits=[0])
+                                       qubits=[0, 1])
     # list to store experiment results
     num_expts = 100
     expts = []
