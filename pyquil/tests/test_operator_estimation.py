@@ -15,7 +15,7 @@ from pyquil.gates import *
 from pyquil.api import WavefunctionSimulator, QVMConnection
 from pyquil.operator_estimation import ExperimentSetting, TomographyExperiment, to_json, read_json, \
     group_experiments, ExperimentResult, measure_observables, SIC0, SIC1, SIC2, SIC3, \
-    plusX, minusX, plusY, minusY, plusZ, minusZ, \
+    plusX, minusX, plusY, minusY, plusZ, minusZ, _one_q_sic_prep, \
     _max_tpb_overlap, _max_weight_operator, _max_weight_state, _max_tpb_overlap, \
     TensorProductState, zeros_state, \
     group_experiments, group_experiments_greedy, ExperimentResult, measure_observables, \
@@ -928,6 +928,46 @@ def test_expectations_sic3(forest):
                                  (2 * np.sqrt(2) / 3) * np.sin(2 * np.pi / 3),
                                  -1 / 3])
     np.testing.assert_allclose(results, expected_results, atol=2e-2)
+
+
+def test_sic_conditions(forest):
+    """
+    Test that the SIC states indeed yield SIC-POVMs
+    """
+    wfn_sim = WavefunctionSimulator()
+
+    # condition (i) -- sum of all projectors equal identity times dimensionality
+    result = np.zeros((2, 2))
+
+    for i in range(4):
+        if i == 0:
+            amps = np.array([1, 0])
+        else:
+            sic = _one_q_sic_prep(i, 0)
+            wfn = wfn_sim.wavefunction(sic)
+            amps = wfn.amplitudes
+        proj = np.outer(amps, amps.conj())
+        result = np.add(result, proj)
+    np.testing.assert_allclose(result / 2, np.eye(2), atol=2e-2)
+
+    # condition (ii) -- tr(proj_a . proj_b) = 1 / 3, for a != b
+    for comb in itertools.combinations([0, 1, 2, 3], 2):
+        if comb[0] == 0:
+            sic_a = Program(I(0))
+        else:
+            sic_a = _one_q_sic_prep(comb[0], 0)
+        sic_b = _one_q_sic_prep(comb[1], 0)
+
+        wfn_a = wfn_sim.wavefunction(sic_a)
+        wfn_b = wfn_sim.wavefunction(sic_b)
+
+        amps_a = wfn_a.amplitudes
+        amps_b = wfn_b.amplitudes
+
+        proj_a = np.outer(amps_a, amps_a.conj())
+        proj_b = np.outer(amps_b, amps_b.conj())
+
+        assert np.isclose(np.trace(proj_a.dot(proj_b)), 1 / 3)
 
 
 def test_measure_observables_grouped_expts(forest):
