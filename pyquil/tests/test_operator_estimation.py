@@ -19,7 +19,7 @@ from pyquil.operator_estimation import ExperimentSetting, TomographyExperiment, 
     _max_tpb_overlap, _max_weight_operator, _max_weight_state, _max_tpb_overlap, \
     TensorProductState, zeros_state, \
     group_experiments, group_experiments_greedy, ExperimentResult, measure_observables, \
-    _ops_bool_to_prog, _stack_dicts, _stats_from_measurements, \
+    _ops_bool_to_prog, _stats_from_measurements, \
     ratio_variance, _exhaustive_symmetrization, _calibration_program
 from pyquil.paulis import sI, sX, sY, sZ, PauliSum, PauliTerm
 
@@ -540,31 +540,6 @@ def test_ops_bool_to_prog():
     for op_str in ops_strings:
         p = _ops_bool_to_prog(op_str, qubits)
         assert str(p) == d_expected[op_str]
-
-
-def test_stack_dicts():
-    d1 = {0: np.array([0] * 10), 1: np.array([1] * 10)}
-    d2 = {0: np.array([10] * 10), 1: np.array([20] * 10)}
-
-    d12 = _stack_dicts(d1, d2)
-    d12_expected = {0: np.array([0] * 10 + [10] * 10), 1: np.array([1] * 10 + [20] * 10)}
-    assert d12.keys() == d12_expected.keys()
-    for k, v in d12.items():
-        np.testing.assert_allclose(v, d12_expected[k])
-
-
-def test_stack_multiple_dicts():
-    d1 = {0: np.array([0] * 10), 1: np.array([1] * 10)}
-    d2 = {0: np.array([10] * 10), 1: np.array([20] * 10)}
-    d3 = {0: np.array([100] * 10), 1: np.array([200] * 10)}
-    list_dicts = [d1, d2, d3]
-
-    d123 = functools.reduce(lambda d1, d2: _stack_dicts(d1, d2), list_dicts)
-    d123_expected = {0: np.array([0] * 10 + [10] * 10 + [100] * 10),
-                     1: np.array([1] * 10 + [20] * 10 + [200] * 10)}
-    assert d123.keys() == d123_expected.keys()
-    for k, v in d123.items():
-        np.testing.assert_allclose(v, d123_expected[k])
 
 
 def test_stats_from_measurements():

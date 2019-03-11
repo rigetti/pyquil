@@ -924,29 +924,6 @@ def _ops_bool_to_prog(ops_bool: Tuple[bool], qubits: List[int]) -> Program:
     return prog
 
 
-def _stack_dicts(dict1: Dict, dict2: Dict) -> Dict:
-    """
-    Given two dicts representing qubit measurements, keyed by integers (representing qubits)
-    and valued by 1-dimensional numpy arrays (representing measurements), this helper function
-    horizontally stacks the measurement results from the two dicts to produce a single
-    1-dimensional numpy array representing the measurement results in a single dict.
-
-    :param dict1: Dict keyed with integer specifying qubit, valued by 1-dimensional
-        numpy array specifying readout results
-    :param dict2: Dict keyed with integer specifying qubit, valued by 1-dimensional
-        numpy array specifying readout results
-    :return: Dict keyed with integer specifying qubit, valued by 1-dimensional
-        numpy array specifying readout results gathered from both `dict1` and `dict2`
-    """
-    assert set(dict1.keys()) == set(dict2.keys()), "Dictionaries must have same keys"
-    assert set(len(v.shape) for v in dict1.values()) == \
-           set(len(v.shape) for v in dict2.values()), "Arrays in dict values must have same dimension"
-    dict_combined = {}
-    for k, v in dict1.items():
-        dict_combined[k] = np.hstack([v, dict2[k]])
-    return dict_combined
-
-
 def _stats_from_measurements(bs_results: np.ndarray, qubit_index_map: Dict,
                              setting: ExperimentSetting, n_shots: int,
                              coeff: float = 1.0) -> Tuple[float]:
