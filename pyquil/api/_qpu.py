@@ -77,14 +77,20 @@ class QPU(QAM):
         :param user: A string identifying who's running jobs.
         """
         super().__init__()
-        try:
-            self.client = Client(endpoint)
-        except TypeError:
-            raise Exception("""It looks like you've tried to run a program against a QPU, but do not currently have a reservation on one. To reserve time on Rigetti QPUs, use the command line interface, qcs, which comes pre-installed in your QMI. From within your QMI, type:
 
-qcs reserve --lattice <lattice-name>
+        if endpoint is None:
+            raise RuntimeError("""It looks like you've tried to run a program against a QPU but do
+ not currently have a reservation on one. To reserve time on Rigetti
+ QPUs, use the command line interface, qcs, which comes pre-installed
+ in your QMI. From within your QMI, type:
 
-For more information, please see the docs at https://www.rigetti.com/qcs/docs/reservations or reach out to Rigetti support at support@rigetti.com.""")
+    qcs reserve --lattice <lattice-name>
+
+For more information, please see the docs at
+https://www.rigetti.com/qcs/docs/reservations or reach out to Rigetti
+support at support@rigetti.com.""")
+
+        self.client = Client(endpoint)
         self.user = user
         self._last_results: Dict[str, np.ndarray] = {}
 
