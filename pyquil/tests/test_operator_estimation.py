@@ -1473,3 +1473,93 @@ def test_measure_1q_observable_calibration_variance(forest):
     eps = 1 - eps_not
     expected_result = np.sqrt((1 - (1 - 2 * eps) ** 2) / num_shots)
     np.testing.assert_allclose(result, expected_result, atol=2e-2)
+
+
+def test_uncalibrated_asymmetric_readout_nontrivial_1q_state(forest):
+    qc = get_qc('1q-qvm')
+    expt = ExperimentSetting(TensorProductState(), sZ(0))
+    # pick some random value for RX rotation
+    theta = np.random.uniform(0.0, 2 * np.pi)
+    p = Program(RX(theta, 0))
+    # pick some random (but sufficiently large) asymmetric readout errors
+    p00, p11 = np.random.uniform(0.7, 0.99, size=2)
+    p.define_noisy_readout(0, p00=p00, p11=p11)
+    qubs = [0]
+    runs = 50
+    expt_list = [expt]
+    tomo_expt = TomographyExperiment(settings=expt_list * runs, program=p, qubits=qubs)
+    # calculate expected expectation value
+    amp_sqr0 = (np.cos(theta / 2)) ** 2
+    amp_sqr1 = (np.sin(theta / 2)) ** 2
+    expected_expectation = (p00 * amp_sqr0 + (1 - p11) * amp_sqr1) - \
+                           ((1 - p00) * amp_sqr0 + p11 * amp_sqr1)
+
+    expect_arr = np.zeros(runs * len(expt_list))
+
+    for idx, res in enumerate(measure_observables(qc,
+                                                  tomo_expt, n_shots=1000,
+                                                  readout_symmetrize=None,
+                                                  calibrate_readout=None)):
+        expect_arr[idx] = res.expectation
+
+    assert np.isclose(np.mean(expect_arr), expected_expectation, atol=2e-2)
+
+
+def test_uncalibrated_symmetric_readout_nontrivial_1q_state(forest):
+    qc = get_qc('1q-qvm')
+    expt = ExperimentSetting(TensorProductState(), sZ(0))
+    # pick some random value for RX rotation
+    theta = np.random.uniform(0.0, 2 * np.pi)
+    p = Program(RX(theta, 0))
+    # pick some random (but sufficiently large) asymmetric readout errors
+    p00, p11 = np.random.uniform(0.7, 0.99, size=2)
+    p.define_noisy_readout(0, p00=p00, p11=p11)
+    qubs = [0]
+    runs = 50
+    expt_list = [expt]
+    tomo_expt = TomographyExperiment(settings=expt_list * runs, program=p, qubits=qubs)
+    # calculate expected expectation value
+    amp_sqr0 = (np.cos(theta / 2)) ** 2
+    amp_sqr1 = (np.sin(theta / 2)) ** 2
+    symm_prob = (p00 + p11) / 2
+    expected_expectation = (symm_prob * amp_sqr0 + (1 - symm_prob) * amp_sqr1) - \
+                           ((1 - symm_prob) * amp_sqr0 + symm_prob * amp_sqr1)
+
+    expect_arr = np.zeros(runs * len(expt_list))
+
+    for idx, res in enumerate(measure_observables(qc,
+                                                  tomo_expt, n_shots=1000,
+                                                  readout_symmetrize='exhaustive',
+                                                  calibrate_readout=None)):
+        expect_arr[idx] = res.expectation
+
+    assert np.isclose(np.mean(expect_arr), expected_expectation, atol=2e-2)
+
+
+def test_calibrated_symmetric_readout_nontrivial_1q_state(forest):
+    qc = get_qc('1q-qvm')
+    expt = ExperimentSetting(TensorProductState(), sZ(0))
+    # pick some random value for RX rotation
+    theta = np.random.uniform(0.0, 2 * np.pi)
+    p = Program(RX(theta, 0))
+    # pick some random (but sufficiently large) asymmetric readout errors
+    p00, p11 = np.random.uniform(0.7, 0.99, size=2)
+    p.define_noisy_readout(0, p00=p00, p11=p11)
+    qubs = [0]
+    runs = 50
+    expt_list = [expt]
+    tomo_expt = TomographyExperiment(settings=expt_list * runs, program=p, qubits=qubs)
+    # calculate expected expectation value
+    amp_sqr0 = (np.cos(theta / 2)) ** 2
+    amp_sqr1 = (np.sin(theta / 2)) ** 2
+    expected_expectation = amp_sqr0 - amp_sqr1
+
+    expect_arr = np.zeros(runs * len(expt_list))
+
+    for idx, res in enumerate(measure_observables(qc,
+                                                  tomo_expt, n_shots=1000,
+                                                  readout_symmetrize='exhaustive',
+                                                  calibrate_readout='plus-eig')):
+        expect_arr[idx] = res.expectation
+
+    assert np.isclose(np.mean(expect_arr), expected_expectation, atol=2e-2)
