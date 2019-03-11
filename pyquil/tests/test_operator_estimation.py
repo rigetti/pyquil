@@ -600,9 +600,63 @@ def test_ratio_variance_array():
     np.testing.assert_allclose(ab_ratio_var, np.array([0.028125, 0.0028125, 0.00028125]))
 
 
-def test_measure_observables_noisy_asymmetric_readout(forest):
+def test_measure_observables_uncalibrated_asymmetric_readout(forest):
+    qc = get_qc('1q-qvm')
+    expt1 = ExperimentSetting(TensorProductState(plusX(0)), sX(0))
+    expt2 = ExperimentSetting(TensorProductState(plusY(0)), sY(0))
+    expt3 = ExperimentSetting(TensorProductState(plusZ(0)), sZ(0))
+    p = Program()
+    p00, p11 = 0.90, 0.80
+    p.define_noisy_readout(0, p00=p00, p11=p11)
+    qubs = [0]
+    runs = 50
+    expt_list = [expt1, expt2, expt3]
+    tomo_expt = TomographyExperiment(settings=expt_list * runs, program=p, qubits=qubs)
+    expected_expectation_z_basis = 2 * p00 - 1
+
+    expect_arr = np.zeros(runs * len(expt_list))
+
+    for idx, res in enumerate(measure_observables(qc,
+                                                  tomo_expt, n_shots=1000,
+                                                  readout_symmetrize=None,
+                                                  calibrate_readout=None)):
+        expect_arr[idx] = res.expectation
+
+    assert np.isclose(np.mean(expect_arr[::3]), expected_expectation_z_basis, atol=2e-2)
+    assert np.isclose(np.mean(expect_arr[1::3]), expected_expectation_z_basis, atol=2e-2)
+    assert np.isclose(np.mean(expect_arr[2::3]), expected_expectation_z_basis, atol=2e-2)
+
+
+def test_measure_observables_uncalibrated_symmetric_readout(forest):
+    qc = get_qc('1q-qvm')
+    expt1 = ExperimentSetting(TensorProductState(plusX(0)), sX(0))
+    expt2 = ExperimentSetting(TensorProductState(plusY(0)), sY(0))
+    expt3 = ExperimentSetting(TensorProductState(plusZ(0)), sZ(0))
+    p = Program()
+    p00, p11 = 0.90, 0.80
+    p.define_noisy_readout(0, p00=p00, p11=p11)
+    qubs = [0]
+    runs = 50
+    expt_list = [expt1, expt2, expt3]
+    tomo_expt = TomographyExperiment(settings=expt_list * runs, program=p, qubits=qubs)
+    expected_symm_error = (p00 + p11) / 2
+    expected_expectation_z_basis = expected_symm_error * (1) + (1 - expected_symm_error) * (-1)
+
+    uncalibr_e = np.zeros(runs * len(expt_list))
+
+    for idx, res in enumerate(measure_observables(qc,
+                                                  tomo_expt, n_shots=1000,
+                                                  calibrate_readout=None)):
+        uncalibr_e[idx] = res.expectation
+
+    assert np.isclose(np.mean(uncalibr_e[::3]), expected_expectation_z_basis, atol=2e-2)
+    assert np.isclose(np.mean(uncalibr_e[1::3]), expected_expectation_z_basis, atol=2e-2)
+    assert np.isclose(np.mean(uncalibr_e[2::3]), expected_expectation_z_basis, atol=2e-2)
+
+
+def test_measure_observables_calibrated_symmetric_readout(forest):
     # expecting the result +1 for calibrated readout
-    qc = get_qc('9q-qvm')
+    qc = get_qc('1q-qvm')
     expt1 = ExperimentSetting(TensorProductState(plusX(0)), sX(0))
     expt2 = ExperimentSetting(TensorProductState(plusY(0)), sY(0))
     expt3 = ExperimentSetting(TensorProductState(plusZ(0)), sZ(0))
@@ -620,32 +674,6 @@ def test_measure_observables_noisy_asymmetric_readout(forest):
     expectations = np.array(expectations)
     results = np.mean(expectations, axis=0)
     np.testing.assert_allclose(results, 1.0, atol=2e-2)
-
-
-def test_measure_observables_uncalibrated_estimate_noisy_asymmetric_readout(forest):
-    qc = get_qc('9q-qvm')
-    expt1 = ExperimentSetting(TensorProductState(plusX(0)), sX(0))
-    expt2 = ExperimentSetting(TensorProductState(plusY(0)), sY(0))
-    expt3 = ExperimentSetting(TensorProductState(plusZ(0)), sZ(0))
-    p = Program()
-    p00, p11 = 0.90, 0.80
-    p.define_noisy_readout(0, p00=p00, p11=p11)
-    qubs = [0]
-    runs = 50
-    expt_list = [expt1, expt2, expt3]
-    tomo_expt = TomographyExperiment(settings=expt_list * runs, program=p, qubits=qubs)
-    expected_symm_error = (p00 + p11) / 2
-    expected_expectation_z_basis = expected_symm_error * (1) + (1 - expected_symm_error) * (-1)
-
-    raw_e = np.zeros(runs * len(expt_list))
-
-    for idx, res in enumerate(measure_observables(qc,
-                                                  tomo_expt)):
-        raw_e[idx] = res.raw_expectation
-
-    assert np.isclose(np.mean(raw_e[::3]), expected_expectation_z_basis, atol=2e-2)
-    assert np.isclose(np.mean(raw_e[1::3]), expected_expectation_z_basis, atol=2e-2)
-    assert np.isclose(np.mean(raw_e[2::3]), expected_expectation_z_basis, atol=2e-2)
 
 
 def test_measure_observables_result_zero_symmetrization_calibration(forest):
