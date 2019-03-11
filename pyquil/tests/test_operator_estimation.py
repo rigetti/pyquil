@@ -1638,3 +1638,275 @@ def test_measure_2q_observable_raw_variance(forest):
     expected_result = np.sqrt((1 - z_expectation ** 2) / num_shots)
     # compare against simulated result
     np.testing.assert_allclose(result, expected_result, atol=2e-2)
+
+
+def _point_state_fidelity_estimate(v, dim=2):
+    """:param v: array of expectation values
+    :param dim: dimensionality of the Hilbert space"""
+    return (1.0 + np.sum(v)) / dim
+
+
+def test_bit_flip_state_fidelity(forest):
+    qc = get_qc('1q-qvm')
+    # prepare experiment setting
+    expt = ExperimentSetting(TensorProductState(), sZ(0))
+
+    # prepare noisy bit-flip channel as program for some random value of probability
+    prob = np.random.uniform(0.1, 0.5)
+    # the bit flip channel is composed of two Kraus operations --
+    # applying the X gate with probability `prob`, and applying the identity gate
+    # with probability `1 - prob`
+    kraus_ops = [np.sqrt(1 - prob) * np.array([[1, 0], [0, 1]]), np.sqrt(prob) * np.array([[0, 1], [1, 0]])]
+    p = Program(Pragma("PRESERVE_BLOCK"), I(0), Pragma("END_PRESERVE_BLOCK"))
+    p.define_noisy_gate("I", [0], kraus_ops)
+
+    # prepare TomographyExperiment
+    process_exp = TomographyExperiment(settings=[expt], program=p,
+                                       qubits=[0])
+    # list to store experiment results
+    num_expts = 100
+    expts = []
+    for _ in range(num_expts):
+        expt_results = []
+        for res in measure_observables(qc, process_exp, n_shots=1000):
+            expt_results.append(res.expectation)
+        expts.append(expt_results)
+
+    expts = np.array(expts)
+    results = np.mean(expts, axis=0)
+    estimated_fidelity = _point_state_fidelity_estimate(results)
+    # how close is the mixed state to |0>
+    expected_fidelity = 1 - prob
+    np.testing.assert_allclose(expected_fidelity, estimated_fidelity, atol=2e-2)
+
+
+def test_dephasing_state_fidelity(forest):
+    qc = get_qc('1q-qvm')
+    # prepare experiment setting
+    expt = ExperimentSetting(TensorProductState(), sZ(0))
+
+    # prepare noisy dephasing channel as program for some random value of probability
+    prob = np.random.uniform(0.1, 0.5)
+    # Kraus operators for dephasing channel
+    kraus_ops = [np.sqrt(1 - prob) * np.array([[1, 0], [0, 1]]),
+                 np.sqrt(prob) * np.array([[1, 0], [0, -1]])]
+    p = Program(Pragma("PRESERVE_BLOCK"), I(0), Pragma("END_PRESERVE_BLOCK"))
+    p.define_noisy_gate("I", [0], kraus_ops)
+
+    # prepare TomographyExperiment
+    process_exp = TomographyExperiment(settings=[expt], program=p,
+                                       qubits=[0])
+    # list to store experiment results
+    num_expts = 100
+    expts = []
+    for _ in range(num_expts):
+        expt_results = []
+        for res in measure_observables(qc, process_exp, n_shots=1000):
+            expt_results.append(res.expectation)
+        expts.append(expt_results)
+
+    expts = np.array(expts)
+    results = np.mean(expts, axis=0)
+    estimated_fidelity = _point_state_fidelity_estimate(results)
+    # how close is the mixed state to |0>
+    expected_fidelity = 1
+    np.testing.assert_allclose(expected_fidelity, estimated_fidelity, atol=2e-2)
+
+
+def test_depolarizing_state_fidelity(forest):
+    qc = get_qc('1q-qvm')
+    # prepare experiment setting
+    expt = ExperimentSetting(TensorProductState(), sZ(0))
+
+    # prepare noisy depolarizing channel as program for some random value of probability
+    prob = np.random.uniform(0.1, 0.5)
+    # Kraus operators for depolarizing channel
+    kraus_ops = [np.sqrt(3 * prob + 1) / 2 * np.array([[1, 0], [0, 1]]),
+                 np.sqrt(1 - prob) / 2 * np.array([[0, 1], [1, 0]]),
+                 np.sqrt(1 - prob) / 2 * np.array([[0, -1j], [1j, 0]]),
+                 np.sqrt(1 - prob) / 2 * np.array([[1, 0], [0, -1]])]
+    p = Program(Pragma("PRESERVE_BLOCK"), I(0), Pragma("END_PRESERVE_BLOCK"))
+    p.define_noisy_gate("I", [0], kraus_ops)
+
+    # prepare TomographyExperiment
+    process_exp = TomographyExperiment(settings=[expt], program=p,
+                                       qubits=[0])
+    # list to store experiment results
+    num_expts = 100
+    expts = []
+    for _ in range(num_expts):
+        expt_results = []
+        for res in measure_observables(qc, process_exp, n_shots=1000):
+            expt_results.append(res.expectation)
+        expts.append(expt_results)
+
+    expts = np.array(expts)
+    results = np.mean(expts, axis=0)
+    estimated_fidelity = _point_state_fidelity_estimate(results)
+    # how close is the mixed state to |0>
+    expected_fidelity = (1 + prob) / 2
+    np.testing.assert_allclose(expected_fidelity, estimated_fidelity, atol=2e-2)
+
+
+def test_unitary_state_fidelity(forest):
+    qc = get_qc('1q-qvm')
+    # prepare experiment setting
+    expt = ExperimentSetting(TensorProductState(), sZ(0))
+
+    # rotate |0> state by some random angle about X axis
+    theta = np.random.uniform(0.0, 2 * np.pi)
+    p = Program(RX(theta, 0))
+
+    # prepare TomographyExperiment
+    process_exp = TomographyExperiment(settings=[expt], program=p,
+                                       qubits=[0])
+    # list to store experiment results
+    num_expts = 100
+    expts = []
+    for _ in range(num_expts):
+        expt_results = []
+        for res in measure_observables(qc, process_exp, n_shots=1000):
+            expt_results.append(res.expectation)
+        expts.append(expt_results)
+
+    expts = np.array(expts)
+    results = np.mean(expts, axis=0)
+    estimated_fidelity = _point_state_fidelity_estimate(results)
+    # how close is this state to |0>
+    expected_fidelity = (np.cos(theta / 2)) ** 2
+    np.testing.assert_allclose(expected_fidelity, estimated_fidelity, atol=2e-2)
+
+
+def test_bit_flip_state_fidelity_readout_error(forest):
+    qc = get_qc('1q-qvm')
+    # prepare experiment setting
+    expt = ExperimentSetting(TensorProductState(), sZ(0))
+
+    # prepare noisy bit-flip channel as program for some random value of probability
+    prob = np.random.uniform(0.1, 0.5)
+    # the bit flip channel is composed of two Kraus operations --
+    # applying the X gate with probability `prob`, and applying the identity gate
+    # with probability `1 - prob`
+    kraus_ops = [np.sqrt(1 - prob) * np.array([[1, 0], [0, 1]]), np.sqrt(prob) * np.array([[0, 1], [1, 0]])]
+    p = Program(Pragma("PRESERVE_BLOCK"), I(0), Pragma("END_PRESERVE_BLOCK"))
+    p.define_noisy_gate("I", [0], kraus_ops)
+    p.define_noisy_readout(0, 0.95, 0.76)
+
+    # prepare TomographyExperiment
+    process_exp = TomographyExperiment(settings=[expt], program=p,
+                                       qubits=[0])
+    # list to store experiment results
+    num_expts = 100
+    expts = []
+    for _ in range(num_expts):
+        expt_results = []
+        for res in measure_observables(qc, process_exp, n_shots=1000):
+            expt_results.append(res.expectation)
+        expts.append(expt_results)
+
+    expts = np.array(expts)
+    results = np.mean(expts, axis=0)
+    estimated_fidelity = _point_state_fidelity_estimate(results)
+    # how close is the mixed state to |0>
+    expected_fidelity = 1 - prob
+    np.testing.assert_allclose(expected_fidelity, estimated_fidelity, atol=2e-2)
+
+
+def test_dephasing_state_fidelity_readout_error(forest):
+    qc = get_qc('1q-qvm')
+    # prepare experiment setting
+    expt = ExperimentSetting(TensorProductState(), sZ(0))
+
+    # prepare noisy dephasing channel as program for some random value of probability
+    prob = np.random.uniform(0.1, 0.5)
+    # Kraus operators for dephasing channel
+    kraus_ops = [np.sqrt(1 - prob) * np.array([[1, 0], [0, 1]]),
+                 np.sqrt(prob) * np.array([[1, 0], [0, -1]])]
+    p = Program(Pragma("PRESERVE_BLOCK"), I(0), Pragma("END_PRESERVE_BLOCK"))
+    p.define_noisy_gate("I", [0], kraus_ops)
+    p.define_noisy_readout(0, 0.95, 0.76)
+
+    # prepare TomographyExperiment
+    process_exp = TomographyExperiment(settings=[expt], program=p,
+                                       qubits=[0])
+    # list to store experiment results
+    num_expts = 100
+    expts = []
+    for _ in range(num_expts):
+        expt_results = []
+        for res in measure_observables(qc, process_exp, n_shots=1000):
+            expt_results.append(res.expectation)
+        expts.append(expt_results)
+
+    expts = np.array(expts)
+    results = np.mean(expts, axis=0)
+    estimated_fidelity = _point_state_fidelity_estimate(results)
+    # how close is the mixed state to |0>
+    expected_fidelity = 1
+    np.testing.assert_allclose(expected_fidelity, estimated_fidelity, atol=2e-2)
+
+
+def test_depolarizing_state_fidelity_readout_error(forest):
+    qc = get_qc('1q-qvm')
+    # prepare experiment setting
+    expt = ExperimentSetting(TensorProductState(), sZ(0))
+
+    # prepare noisy depolarizing channel as program for some random value of probability
+    prob = np.random.uniform(0.1, 0.5)
+    # Kraus operators for depolarizing channel
+    kraus_ops = [np.sqrt(3 * prob + 1) / 2 * np.array([[1, 0], [0, 1]]),
+                 np.sqrt(1 - prob) / 2 * np.array([[0, 1], [1, 0]]),
+                 np.sqrt(1 - prob) / 2 * np.array([[0, -1j], [1j, 0]]),
+                 np.sqrt(1 - prob) / 2 * np.array([[1, 0], [0, -1]])]
+    p = Program(Pragma("PRESERVE_BLOCK"), I(0), Pragma("END_PRESERVE_BLOCK"))
+    p.define_noisy_gate("I", [0], kraus_ops)
+    p.define_noisy_readout(0, 0.95, 0.76)
+
+    # prepare TomographyExperiment
+    process_exp = TomographyExperiment(settings=[expt], program=p,
+                                       qubits=[0])
+    # list to store experiment results
+    num_expts = 100
+    expts = []
+    for _ in range(num_expts):
+        expt_results = []
+        for res in measure_observables(qc, process_exp, n_shots=1000):
+            expt_results.append(res.expectation)
+        expts.append(expt_results)
+
+    expts = np.array(expts)
+    results = np.mean(expts, axis=0)
+    estimated_fidelity = _point_state_fidelity_estimate(results)
+    # how close is the mixed state to |0>
+    expected_fidelity = (1 + prob) / 2
+    np.testing.assert_allclose(expected_fidelity, estimated_fidelity, atol=2e-2)
+
+
+def test_unitary_state_fidelity_readout_error(forest):
+    qc = get_qc('1q-qvm')
+    # prepare experiment setting
+    expt = ExperimentSetting(TensorProductState(), sZ(0))
+
+    # rotate |0> state by some random angle about X axis
+    theta = np.random.uniform(0.0, 2 * np.pi)
+    p = Program(RX(theta, 0))
+    p.define_noisy_readout(0, 0.95, 0.76)
+
+    # prepare TomographyExperiment
+    process_exp = TomographyExperiment(settings=[expt], program=p,
+                                       qubits=[0])
+    # list to store experiment results
+    num_expts = 100
+    expts = []
+    for _ in range(num_expts):
+        expt_results = []
+        for res in measure_observables(qc, process_exp, n_shots=1000):
+            expt_results.append(res.expectation)
+        expts.append(expt_results)
+
+    expts = np.array(expts)
+    results = np.mean(expts, axis=0)
+    estimated_fidelity = _point_state_fidelity_estimate(results)
+    # how close is this state to |0>
+    expected_fidelity = (np.cos(theta / 2)) ** 2
+    np.testing.assert_allclose(expected_fidelity, estimated_fidelity, atol=2e-2)
