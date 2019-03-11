@@ -1599,3 +1599,42 @@ def test_measure_2q_observable_raw_expectation(forest):
     expected_result = (p0000 + p1100) - (p0100 + p1000)
     # compare against simulated result
     np.testing.assert_allclose(result, expected_result, atol=2e-2)
+
+
+def test_measure_2q_observable_raw_variance(forest):
+    # testing that we get correct exhaustively symmetrized variance
+    # in terms of readout errors
+    # Note: this only tests for exhaustive symmetrization in the presence
+    #       of uncorrelated errors
+    qc = get_qc('2q-qvm')
+    expt = ExperimentSetting(TensorProductState(), sZ(0) * sZ(1))
+    p = Program()
+    p00, p11 = 0.99, 0.80
+    q00, q11 = 0.93, 0.76
+    p.define_noisy_readout(0, p00=p00, p11=p11)
+    p.define_noisy_readout(1, p00=q00, p11=q11)
+    qubs = [0, 1]
+    tomo_expt = TomographyExperiment(settings=[expt], program=p, qubits=qubs)
+
+    num_simulations = 100
+    num_shots = 1000
+
+    raw_stddevs = []
+    for _ in range(num_simulations):
+        expt_results = list(measure_observables(qc, tomo_expt, n_shots=num_shots))
+        raw_stddevs.append([res.raw_stddev for res in expt_results])
+    raw_stddevs = np.array(raw_stddevs)
+    result = np.mean(raw_stddevs, axis=0)
+
+    # calculate relevant conditional probabilities, given |00> state
+    # notation used: pijmn means p(ij|mn)
+    p0000 = (p00 + p11) * (q00 + q11) / 4
+    p0100 = (p00 + p11) * (2 - q00 - q11) / 4
+    p1000 = (q00 + q11) * (2 - p00 - p11) / 4
+    p1100 = (2 - p00 - p11) * (2 - q00 - q11) / 4
+    # calculate expectation value of Z^{\otimes 2}
+    z_expectation = (p0000 + p1100) - (p0100 + p1000)
+    # calculate standard deviation of the mean
+    expected_result = np.sqrt((1 - z_expectation ** 2) / num_shots)
+    # compare against simulated result
+    np.testing.assert_allclose(result, expected_result, atol=2e-2)
