@@ -1737,6 +1737,51 @@ def test_raw_statistics_2q_nontrivial_entangled_state(forest):
     np.testing.assert_allclose(result_stddev, simulated_stddev, atol=2e-2)
 
 
+def test_corrected_statistics_2q_nontrivial_nonentangled_state(forest):
+    # testing that we can successfully correct for observed statistics
+    # in the presence of readout errors, even for 2q nontrivial but
+    # nonentangled states
+    # Note: this only tests for exhaustive symmetrization in the presence
+    #       of uncorrelated errors
+    qc = get_qc('2q-qvm')
+    expt = ExperimentSetting(TensorProductState(), sZ(0) * sZ(1))
+    np.random.seed(0)
+    theta1, theta2 = np.random.uniform(0.0, 2 * np.pi, size=2)
+    p = Program(RX(theta1, 0), RX(theta2, 1))
+    p00, p11, q00, q11 = np.random.uniform(0.70, 0.99, size=4)
+    p.define_noisy_readout(0, p00=p00, p11=p11)
+    p.define_noisy_readout(1, p00=q00, p11=q11)
+    qubs = [0, 1]
+    tomo_expt = TomographyExperiment(settings=[expt], program=p, qubits=qubs)
+
+    num_simulations = 100
+    num_shots = 10000
+
+    expectations = []
+    stddevs = []
+
+    for _ in range(num_simulations):
+        expt_results = list(measure_observables(qc, tomo_expt, n_shots=num_shots))
+        expectations.append([res.expectation for res in expt_results])
+        stddevs.append([res.stddev for res in expt_results])
+    expectations = np.array(expectations)
+    stddevs = np.array(stddevs)
+    result_expectation = np.mean(expectations, axis=0)
+    result_stddev = np.mean(stddevs, axis=0)
+
+    # calculate amplitudes squared of pure state
+    alph00 = (np.cos(theta1 / 2) * np.cos(theta2 / 2)) ** 2
+    alph01 = (np.cos(theta1 / 2) * np.sin(theta2 / 2)) ** 2
+    alph10 = (np.sin(theta1 / 2) * np.cos(theta2 / 2)) ** 2
+    alph11 = (np.sin(theta1 / 2) * np.sin(theta2 / 2)) ** 2
+    # calculate Z^{\otimes 2} expectation, and error of the mean
+    z_expectation = (alph00 + alph11) - (alph01 + alph10)
+    simulated_stddev = np.sqrt((1 - z_expectation ** 2) / num_shots)
+    # compare against simulated results
+    np.testing.assert_allclose(result_expectation, z_expectation, atol=2e-2)
+    np.testing.assert_allclose(result_stddev, simulated_stddev, atol=2e-2)
+
+
 def _point_state_fidelity_estimate(v, dim=2):
     """:param v: array of expectation values
     :param dim: dimensionality of the Hilbert space"""
