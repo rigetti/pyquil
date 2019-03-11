@@ -749,8 +749,9 @@ class ExperimentResult:
 
 
 def measure_observables(qc: QuantumComputer, tomo_experiment: TomographyExperiment,
-                        n_shots: int = 1000, progress_callback=None, active_reset=False,
-                        readout_symmetrize: str = None, calibrate_readout: str = None):
+                        n_shots: int = 10000, progress_callback=None, active_reset=False,
+                        readout_symmetrize: str = 'exhaustive',
+                        calibrate_readout: str = 'plus-eig'):
     """
     Measure all the observables in a TomographyExperiment.
 
@@ -772,11 +773,12 @@ def measure_observables(qc: QuantumComputer, tomo_experiment: TomographyExperime
         all possible 2^n POVMs {X/I . POVM . X/I}^n, and obtain symmetrization more generally,
         i.e. set p(00|00) = p(01|01) = .. = p(11|11), as well as p(00|01) = p(01|00) etc. If this
         is None, no symmetrization is performed. The exhaustive method can be specified by setting
-        this variable to 'exhaustive'
+        this variable to 'exhaustive' (default value). Set to `None` if no symmetrization is
+        desired.
     :param calibrate_readout: Method used to calibrate the readout results. Currently, the only
         method supported is normalizing against the operator's expectation value in its +1
-        eigenstate, which can be specified by setting this variable to 'plus-eig'. The preceding
-        symmetrization and this step together yield a more accurate estimation of the observable.
+        eigenstate, which can be specified by setting this variable to 'plus-eig' (default value).
+        The preceding symmetrization and this step together yield a more accurate estimation of the observable. Set to `None` if no calibration is desired.
     """
     # calibration readout only works with symmetrization turned on
     if calibrate_readout is not None and readout_symmetrize is None:
@@ -804,30 +806,28 @@ def measure_observables(qc: QuantumComputer, tomo_experiment: TomographyExperime
         for qubit, op_str in max_weight_out_op:
             total_prog += _local_pauli_eig_meas(op_str, qubit)
 
-        if readout_symmetrize == 'exhaustive':
-            # 1.4 Symmetrize -- flip qubits pre-measurement
-            qubits = max_weight_out_op.get_qubits()
-            n_shots_symm = n_shots // 2**len(qubits)
-            list_bitstrings_symm = []
-            for ops_bool in itertools.product([0, 1], repeat=len(qubits)):
-                total_prog_symm = total_prog.copy()
-                prog_symm = _ops_bool_to_prog(ops_bool, qubits)
-                total_prog_symm += prog_symm
-                # 2. Run the experiment
-                bitstrings_symm = qc.run_and_measure(total_prog_symm, n_shots_symm)
-                # 2.1 Flip the results post-measurement
-                d_flips_symm = {qubits[i]: op_bool for i, op_bool in enumerate(ops_bool)}
-                for qubit, bs_results in bitstrings_symm.items():
-                    bitstrings_symm[qubit] = bs_results ^ d_flips_symm.get(qubit, 0)
-                # 2.2 Gather together the symmetrized results into list
-                list_bitstrings_symm.append(bitstrings_symm)
+        # 2. Symmetrization
+        qubits = max_weight_out_op.get_qubits()
 
-            # 2.3 Gather together all the symmetrized results
-            bitstrings = reduce(_stack_dicts, list_bitstrings_symm)
+        if readout_symmetrize == 'exhaustive' and len(qubits) > 0:
+            bitstrings, d_qub_idx = _exhaustive_symmetrization(qc, qubits, n_shots, total_prog)
 
-        elif readout_symmetrize is None:
-            # 2. Run the experiment
-            bitstrings = qc.run_and_measure(total_prog, n_shots)
+        elif readout_symmetrize is None and len(qubits) > 0:
+            total_prog_no_symm = total_prog.copy()
+            ro = total_prog_no_symm.declare('ro', 'BIT', len(qubits))
+            d_qub_idx = {}
+            for i, q in enumerate(qubits):
+                total_prog_no_symm += MEASURE(q, ro[i])
+                # Keep track of qubit-classical register mapping via dict
+                d_qub_idx[q] = i
+            total_prog_no_symm.wrap_in_numshots_loop(n_shots)
+            total_prog_no_symm_native = qc.compiler.quil_to_native_quil(total_prog_no_symm)
+            total_prog_no_symm_bin = qc.compiler.native_quil_to_executable(total_prog_no_symm_native)
+            bitstrings = qc.run(total_prog_no_symm_bin)
+
+        elif len(qubits) == 0:
+            # looks like an identity operation
+            pass
 
         else:
             raise ValueError("Readout symmetrization method must be either 'exhaustive' or None")
@@ -859,22 +859,24 @@ def measure_observables(qc: QuantumComputer, tomo_experiment: TomographyExperime
                 continue
 
             # 3.3 Obtain statistics from result of experiment
-            obs_mean, obs_var = _stats_from_measurements(bitstrings, setting, n_shots, coeff)
+            obs_mean, obs_var = _stats_from_measurements(bitstrings, d_qub_idx, setting, n_shots, coeff)
 
             if calibrate_readout == 'plus-eig':
                 # 4 Readout calibration
-                # 4.1 Prepare the +1 eigenstate for the out operator
-                calibr_prog = Program()
-                for q, op in setting.out_operator.operations_as_set():
-                    calibr_prog += _one_q_pauli_prep(label=op, index=0, qubit=q)
-                # 4.2 Measure the out operator in this state
-                for q, op in setting.out_operator.operations_as_set():
-                    calibr_prog += _local_pauli_eig_meas(op, q)
-                calibr_shots = n_shots
-                calibr_results = qc.run_and_measure(calibr_prog, calibr_shots)
+                # 4.1 Obtain calibration program
+                calibr_prog = _calibration_program(qc, tomo_experiment, setting)
+                # 4.2 Perform symmetrization on the calibration program
+                if readout_symmetrize == 'exhaustive':
+                    qubs_calibr = setting.out_operator.get_qubits()
+                    calibr_shots = n_shots
+                    calibr_results, d_calibr_qub_idx = _exhaustive_symmetrization(qc, qubs_calibr, calibr_shots, calibr_prog)
+
+                else:
+                    raise ValueError("Readout symmetrization method must be either 'exhaustive' or None")
+
                 # 4.3 Obtain statistics from the measurement process
-                obs_calibr_mean, obs_calibr_var = _stats_from_measurements(calibr_results, setting, calibr_shots)
-                # 4.4 Calibrate the readout results
+                obs_calibr_mean, obs_calibr_var = _stats_from_measurements(calibr_results, d_calibr_qub_idx, setting, calibr_shots)
+                # 4.3 Calibrate the readout results
                 corrected_mean = obs_mean / obs_calibr_mean
                 corrected_var = ratio_variance(obs_mean, obs_var, obs_calibr_mean, obs_calibr_var)
 
@@ -922,43 +924,23 @@ def _ops_bool_to_prog(ops_bool: Tuple[bool], qubits: List[int]) -> Program:
     return prog
 
 
-def _stack_dicts(dict1: Dict, dict2: Dict) -> Dict:
+def _stats_from_measurements(bs_results: np.ndarray, qubit_index_map: Dict,
+                             setting: ExperimentSetting, n_shots: int,
+                             coeff: float = 1.0) -> Tuple[float]:
     """
-    Given two dicts representing qubit measurements, keyed by integers (representing qubits)
-    and valued by 1-dimensional numpy arrays (representing measurements), this helper function
-    horizontally stacks the measurement results from the two dicts to produce a single
-    1-dimensional numpy array representing the measurement results in a single dict.
-
-    :param dict1: Dict keyed with integer specifying qubit, valued by 1-dimensional
-        numpy array specifying readout results
-    :param dict2: Dict keyed with integer specifying qubit, valued by 1-dimensional
-        numpy array specifying readout results
-    :return: Dict keyed with integer specifying qubit, valued by 1-dimensional
-        numpy array specifying readout results gathered from both `dict1` and `dict2`
-    """
-    assert set(dict1.keys()) == set(dict2.keys()), "Dictionaries must have same keys"
-    assert set(len(v.shape) for v in dict1.values()) == \
-           set(len(v.shape) for v in dict2.values()), "Arrays in dict values must have same dimension"
-    dict_combined = {}
-    for k, v in dict1.items():
-        dict_combined[k] = np.hstack([v, dict2[k]])
-    return dict_combined
-
-
-def _stats_from_measurements(d_results: dict, setting: ExperimentSetting,
-                             n_shots: int, coeff: float = 1.0) -> Tuple[float]:
-    """
-    :param d_results: results from running `qc.run_and_measure()`
+    :param bs_results: results from running `qc.run`
+    :param qubit_index_map: dict mapping qubit to classical register index
     :param setting: ExperimentSetting
     :param n_shots: number of shots in the measurement process
     :param coeff: coefficient of the operator being estimated
     :return: tuple specifying (mean, variance)
     """
+    # Identify classical register indices to select
+    idxs = [qubit_index_map[q] for q, _ in setting.out_operator]
+    # Pick columns corresponding to qubits with a non-identity out_operation
+    obs_strings = bs_results[:, idxs]
     # Transform bits to eigenvalues; ie (+1, -1)
-    obs_strings = {q: 1 - 2 * d_results[q] for q in d_results}
-    # Pick columns corresponding to qubits with a non-identity out_operation and stack
-    # into an array of shape (n_shots, n_measure_qubits)
-    my_obs_strings = np.vstack([obs_strings[q] for q, op_str in setting.out_operator]).T
+    my_obs_strings = 1 - 2 * obs_strings
     # Multiply row-wise to get operator values. Do statistics. Return result.
     obs_vals = coeff * np.prod(my_obs_strings, axis=1)
     obs_mean = np.mean(obs_vals)
@@ -1000,3 +982,75 @@ def ratio_variance(a: Union[float, np.ndarray],
     :param var_b: Variance in 'B'
     """
     return var_a / b**2 + (a**2 * var_b) / b**4
+
+
+def _exhaustive_symmetrization(qc: QuantumComputer, qubits: List[int],
+                               shots: int, prog: Program) -> (np.ndarray, Dict):
+    """
+    Perform exhaustive symmetrization
+
+    :param qc: A QuantumComputer which can run quantum programs
+    :param qubits: qubits on which the symmetrization program runs
+    :param shots: number of shots in the symmetrized program
+    :prog: program to symmetrize
+    :return: - the equivalent of a `run` output, but with exhaustive symmetrization
+             - dict keyed by qubit, valued by index of the numpy array containing
+                    bitstring results
+    """
+    # Symmetrize -- flip qubits pre-measurement
+    n_shots_symm = shots // 2**len(qubits)
+    list_bitstrings_symm = []
+    for ops_bool in itertools.product([0, 1], repeat=len(qubits)):
+        total_prog_symm = prog.copy()
+        prog_symm = _ops_bool_to_prog(ops_bool, qubits)
+        total_prog_symm += prog_symm
+        # Run the experiment
+        dict_qub_idx = {}
+        ro = total_prog_symm.declare('ro', 'BIT', len(qubits))
+        for i, q in enumerate(qubits):
+            total_prog_symm += MEASURE(q, ro[i])
+            # Keep track of qubit-classical register mapping via dict
+            dict_qub_idx[q] = i
+        total_prog_symm.wrap_in_numshots_loop(n_shots_symm)
+        total_prog_symm_native = qc.compiler.quil_to_native_quil(total_prog_symm)
+        total_prog_symm_bin = qc.compiler.native_quil_to_executable(total_prog_symm_native)
+        bitstrings_symm = qc.run(total_prog_symm_bin)
+        # Flip the results post-measurement
+        bitstrings_symm = bitstrings_symm ^ ops_bool
+        # Gather together the symmetrized results into list
+        list_bitstrings_symm.append(bitstrings_symm)
+
+    # Gather together all the symmetrized results
+    bitstrings = reduce(lambda x, y: np.vstack((x, y)), list_bitstrings_symm)
+    return bitstrings, dict_qub_idx
+
+
+def _calibration_program(qc: QuantumComputer, tomo_experiment: TomographyExperiment,
+                         setting: ExperimentSetting) -> Program:
+    """
+    Program required for calibration in a tomography-like experiment.
+
+    :param tomo_experiment: A suite of tomographic observables
+    :param ExperimentSetting: The particular tomographic observable to measure
+    :param readout_symmetrize: Method used to symmetrize the readout errors (see docstring for
+        `measure_observables` for more details)
+    :param cablir_shots: number of shots to take in the measurement process
+    :return: Program performing the calibration
+    """
+    # Inherit any noisy attributes from main Program, including gate definitions
+    # and applications which can be handy in creating simulating noisy channels
+    calibr_prog = Program()
+    # Inherit readout errro instructions from main Program
+    readout_povm_instruction = [i for i in tomo_experiment.program.out().split('\n') if 'PRAGMA READOUT-POVM' in i]
+    calibr_prog += readout_povm_instruction
+    # Inherit any definitions of noisy gates from main Program
+    kraus_instructions = [i for i in tomo_experiment.program.out().split('\n') if 'PRAGMA ADD-KRAUS' in i]
+    calibr_prog += kraus_instructions
+    # Prepare the +1 eigenstate for the out operator
+    for q, op in setting.out_operator.operations_as_set():
+        calibr_prog += _one_q_pauli_prep(label=op, index=0, qubit=q)
+    # Measure the out operator in this state
+    for q, op in setting.out_operator.operations_as_set():
+        calibr_prog += _local_pauli_eig_meas(op, q)
+
+    return calibr_prog
