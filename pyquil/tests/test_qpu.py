@@ -250,4 +250,3 @@ def test_run_expects_executable():
 def test_qpu_not_engaged_error():
     with pytest.raises(RuntimeError):
         qpu = QPU(None)
-
