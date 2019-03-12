@@ -245,3 +245,8 @@ def test_run_expects_executable():
     p = Program(X(0))
     with pytest.raises(TypeError):
         result = qc.run(p)
+
+
+def test_qpu_not_engaged_error():
+    with pytest.raises(RuntimeError):
+        qpu = QPU(None)
