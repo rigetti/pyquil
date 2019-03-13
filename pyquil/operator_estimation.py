@@ -272,8 +272,7 @@ class TomographyExperiment:
 
     def __init__(self,
                  settings: Union[List[ExperimentSetting], List[List[ExperimentSetting]]],
-                 program: Program,
-                 qubits: List[int]):
+                 program: Program):
         if len(settings) == 0:
             settings = []
         else:
@@ -283,7 +282,6 @@ class TomographyExperiment:
 
         self._settings = settings  # type: List[List[ExperimentSetting]]
         self.program = program
-        self.qubits = qubits
 
     def __len__(self):
         return len(self._settings)
@@ -359,7 +357,6 @@ class TomographyExperiment:
             'type': 'TomographyExperiment',
             'settings': self._settings,
             'program': self.program.out(),
-            'qubits': self.qubits,
         }
 
     def __eq__(self, other):
@@ -393,8 +390,7 @@ def _operator_object_hook(obj):
     if 'type' in obj and obj['type'] == 'TomographyExperiment':
         return TomographyExperiment([[ExperimentSetting.from_str(s) for s in settings]
                                      for settings in obj['settings']],
-                                    program=Program(obj['program']),
-                                    qubits=obj['qubits'])
+                                    program=Program(obj['program']))
     return obj
 
 
@@ -536,7 +532,7 @@ def group_experiments_clique_removal(experiments: TomographyExperiment) -> Tomog
 
         new_cliqs += [new_cliq]
 
-    return TomographyExperiment(new_cliqs, program=experiments.program, qubits=experiments.qubits)
+    return TomographyExperiment(new_cliqs, program=experiments.program)
 
 
 def _max_weight_operator(ops: Iterable[PauliTerm]) -> Union[None, PauliTerm]:
@@ -642,8 +638,7 @@ def group_experiments_greedy(tomo_expt: TomographyExperiment):
     """
     diag_sets = _max_tpb_overlap(tomo_expt)
     grouped_expt_settings_list = list(diag_sets.values())
-    grouped_tomo_expt = TomographyExperiment(grouped_expt_settings_list, program=tomo_expt.program,
-                                             qubits=tomo_expt.qubits)
+    grouped_tomo_expt = TomographyExperiment(grouped_expt_settings_list, program=tomo_expt.program)
     return grouped_tomo_expt
 
 
