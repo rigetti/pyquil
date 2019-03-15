@@ -177,6 +177,10 @@ def test_program_string():
     assert p.out() == "Y 0\nX 1\n"
 
 
+def test_program_slice():
+    p = Program(H(0), CNOT(0, 1), H(1))
+    assert isinstance(p[1:], Program)
+
 def test_prog_init():
     p = Program()
     p.inst(X(0)).measure(0, 0)
