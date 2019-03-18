@@ -131,7 +131,7 @@ class QPUCompiler(AbstractCompiler):
     def __init__(self,
                  endpoint: str,
                  device: AbstractDevice,
-                 timeout: int = 5,
+                 timeout: int = 10,
                  name: Optional[str] = None) -> None:
         """
         Client to communicate with the Compiler Server.
@@ -198,7 +198,7 @@ class QPUCompiler(AbstractCompiler):
 
 class QVMCompiler(AbstractCompiler):
     @_record_call
-    def __init__(self, endpoint: str, device: AbstractDevice, timeout: float = 5) -> None:
+    def __init__(self, endpoint: str, device: AbstractDevice, timeout: float = 10) -> None:
         """
         Client to communicate with the Compiler Server.
 
