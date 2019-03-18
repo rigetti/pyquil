@@ -131,7 +131,7 @@ class QPUCompiler(AbstractCompiler):
     def __init__(self,
                  endpoint: str,
                  device: AbstractDevice,
-                 timeout: int = 10,
+                 timeout: int = 5,
                  name: Optional[str] = None) -> None:
         """
         Client to communicate with the Compiler Server.
