@@ -198,7 +198,7 @@ class QPUCompiler(AbstractCompiler):
 
 class QVMCompiler(AbstractCompiler):
     @_record_call
-    def __init__(self, endpoint: str, device: AbstractDevice, timeout: float = None) -> None:
+    def __init__(self, endpoint: str, device: AbstractDevice, timeout: float = 10) -> None:
         """
         Client to communicate with the Compiler Server.
 
