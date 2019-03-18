@@ -375,3 +375,8 @@ def test_local_conjugate_request(benchmarker):
         response = cxn.apply_clifford_to_pauli(Program("H 0"), PauliTerm("X", 0, 1.0))
         assert isinstance(response, PauliTerm)
         assert str(response) == "(1+0j)*Z0"
+
+
+def test_apply_clifford_to_pauli(benchmarker, mock_rb_cxn):
+    response = mock_rb_cxn.apply_clifford_to_pauli(Program("H 0"), PauliTerm("I", 0, 0.34))
+    assert response == PauliTerm("I", 0, 0.34)
