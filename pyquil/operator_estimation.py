@@ -732,11 +732,11 @@ class ExperimentResult:
         return {
             'type': 'ExperimentResult',
             'setting': self.setting,
-            'expectation': self.corrected_expectation,
-            'stddev': self.corrected_stddev,
+            'expectation': self.expectation,
+            'stddev': self.stddev,
             'total_counts': self.total_counts,
-            'raw_expectation': self.expectation,
-            'raw_stddev': self.stddev,
+            'raw_expectation': self.raw_expectation,
+            'raw_stddev': self.raw_stddev,
             'calibration_expectation': self.calibration_expectation,
             'calibration_stddev': self.calibration_stddev,
             'calibration_counts': self.calibration_counts,
@@ -993,7 +993,9 @@ def _exhaustive_symmetrization(qc: QuantumComputer, qubits: List[int],
                     bitstring results
     """
     # Symmetrize -- flip qubits pre-measurement
-    n_shots_symm = shots // 2**len(qubits)
+    n_shots_symm = round(np.ceil(shots / 2**len(qubits)))
+    if n_shots_symm * 2**len(qubits) > shots:
+        warnings.warn("Symmetrization increasing number of shots from {} to {}".format(shots, round(n_shots_symm * 2**len(qubits))))
     list_bitstrings_symm = []
     for ops_bool in itertools.product([0, 1], repeat=len(qubits)):
         total_prog_symm = prog.copy()
