@@ -256,6 +256,12 @@ The :py:class:`~pyquil.quil.Program` object allows us to build up a Quil program
 :py:class:`~pyquil.api.QuantumComputer` object, which specifies what our program should run on (see: :ref:`qvm`). We've also imported all (``*``)
 gates from the ``pyquil.gates`` module, which allows us to add operations to our program (:ref:`basics`).
 
+.. note::
+
+    PyQuil also provides a handy function for you to ensure that a local qvm and quilc are currently running in
+    your environment. To make sure both are available you import `from pyquil.api import local_qvm` and then run
+    `local_qvm()`. This will start a qvm and quilc instances using subprocesses if they have not already been started.
+
 Next, let's construct our Bell State.
 
 .. code:: python
