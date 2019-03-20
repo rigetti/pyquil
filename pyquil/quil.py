@@ -648,7 +648,7 @@ class Program(object):
         :param index: The action at the specified index.
         :return:
         """
-        return self.instructions[index]
+        return Program(self.instructions[index]) if isinstance(index, slice) else self.instructions[index]
 
     def __iter__(self):
         """
