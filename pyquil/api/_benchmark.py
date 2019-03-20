@@ -22,7 +22,7 @@ from pyquil.api._base_connection import get_session, post_json
 from pyquil.api._config import PyquilConfig
 from pyquil.api._error_reporting import _record_call
 from pyquil.api._qac import AbstractBenchmarker
-from pyquil.paulis import PauliTerm
+from pyquil.paulis import PauliTerm, is_identity
 from pyquil.quil import address_qubits, Program
 
 
@@ -54,6 +54,9 @@ class BenchmarkConnection(AbstractBenchmarker):
         :param PauliTerm pauli_in: A PauliTerm to be acted on by clifford via conjugation.
         :return: A PauliTerm corresponding to clifford * pauli_in * clifford^{\dagger}
         """
+        # do nothing if `pauli_in` is the identity
+        if is_identity(pauli_in):
+            return pauli_in
 
         indices_and_terms = list(zip(*list(pauli_in.operations_as_set())))
 
