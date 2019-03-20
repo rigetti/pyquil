@@ -81,7 +81,7 @@ setup(
         'antlr4-python3-runtime',
         'requests',
         'six',
-        'networkx',
+        'networkx>=2.0.0',
         'rpcq>=2.2.1',
 
         # dependency of contextvars, which we vendor
