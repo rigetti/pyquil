@@ -48,11 +48,11 @@ class BenchmarkConnection(AbstractBenchmarker):
         return its action on a PauliTerm.
 
         In particular, for Clifford C, and Pauli P, this returns the PauliTerm
-        representing PCP^{\dagger}.
+        representing CPC^{\dagger}.
 
         :param Program clifford: A Program that consists only of Clifford operations.
         :param PauliTerm pauli_in: A PauliTerm to be acted on by clifford via conjugation.
-        :return: A PauliTerm corresponding to pauli_in * clifford * pauli_in^{\dagger}
+        :return: A PauliTerm corresponding to clifford * pauli_in * clifford^{\dagger}
         """
 
         indices_and_terms = list(zip(*list(pauli_in.operations_as_set())))
