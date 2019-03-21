@@ -141,7 +141,7 @@ class BenchmarkConnection(AbstractBenchmarker):
         return list(reversed(programs))
 
 
-def get_benchmarker(endpoint: str = None, timeout: float = None):
+def get_benchmarker(endpoint: str = None, timeout: float = 10):
     """
     Retrieve an instance of the appropriate AbstractBenchmarker subclass for a given endpoint.
 
