@@ -166,7 +166,7 @@ def forest():
 @pytest.fixture(scope='session')
 def benchmarker():
     try:
-        bm = get_benchmarker(timeout=1)
+        bm = get_benchmarker(timeout=2)
         bm.apply_clifford_to_pauli(Program(I(0)), sX(0))
         return bm
     except (RequestException, TimeoutError) as e:

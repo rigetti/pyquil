@@ -30,7 +30,7 @@ import requests_mock
 from rpcq import Server
 from rpcq.messages import BinaryExecutableRequest, BinaryExecutableResponse
 
-from pyquil.api import QVMConnection, QPUCompiler,get_qc, QVMCompiler
+from pyquil.api import QVMConnection, QPUCompiler, get_qc, QVMCompiler
 from pyquil.api._base_connection import (validate_noise_probabilities, validate_qubit_list,
                                          prepare_register_list)
 from pyquil.api._config import PyquilConfig
@@ -276,7 +276,6 @@ def mock_qpu_compiler(request, m_endpoints):
     return QPUCompiler(quilc_endpoint=config.quilc_url,
                        qpu_compiler_endpoint=m_endpoints[0],
                        device=NxDevice(nx.Graph([(0, 1)])))
-
 
 
 def test_quil_to_native_quil(compiler):
