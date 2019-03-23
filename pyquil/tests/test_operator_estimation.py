@@ -837,9 +837,9 @@ PRAGMA ADD-KRAUS Y 1 "(0.0 0.4472135954999579 0.4472135954999579 0.0)"
 PRAGMA ADD-KRAUS H 2 "(0.9486832980505138 0.0 0.0 0.9486832980505138)"
 PRAGMA ADD-KRAUS H 2 "(0.0 0.31622776601683794 0.31622776601683794 0.0)"
 '''
-    assert calibr_prog1 == Program(expected_prog)
-    assert calibr_prog2 == Program(expected_prog)
-    assert calibr_prog3 == Program(expected_prog)
+    assert calibr_prog1.out() == Program(expected_prog).out()
+    assert calibr_prog2.out() == Program(expected_prog).out()
+    assert calibr_prog3.out() == Program(expected_prog).out()
 
 
 def test_expectations_sic0(forest):

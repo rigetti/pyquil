@@ -298,7 +298,7 @@ class ForestConnection:
         if sync_endpoint is None:
             sync_endpoint = pyquil_config.qvm_url
         if compiler_endpoint is None:
-            compiler_endpoint = pyquil_config.compiler_url
+            compiler_endpoint = pyquil_config.quilc_url
         if forest_cloud_endpoint is None:
             forest_cloud_endpoint = pyquil_config.forest_url
 

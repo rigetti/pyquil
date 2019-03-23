@@ -28,29 +28,23 @@ import numpy as np
 import pytest
 import requests_mock
 from rpcq import Server
-from rpcq.messages import (BinaryExecutableRequest, BinaryExecutableResponse,
-                           RewriteArithmeticRequest, RewriteArithmeticResponse,
-                           NativeQuilRequest, NativeQuilResponse, NativeQuilMetadata,
-                           ConjugateByCliffordRequest, ConjugateByCliffordResponse,
-                           RandomizedBenchmarkingRequest, RandomizedBenchmarkingResponse)
+from rpcq.messages import BinaryExecutableRequest, BinaryExecutableResponse
 
-from pyquil.api import (QVMConnection, QPUCompiler, BenchmarkConnection,
-                        get_qc, QVMCompiler)
-from pyquil.api._base_connection import validate_noise_probabilities, validate_qubit_list, \
-    prepare_register_list
+from pyquil.api import QVMConnection, QPUCompiler,get_qc, QVMCompiler
+from pyquil.api._base_connection import (validate_noise_probabilities, validate_qubit_list,
+                                         prepare_register_list)
 from pyquil.api._config import PyquilConfig
 from pyquil.device import ISA, NxDevice
 from pyquil.gates import CNOT, H, MEASURE, PHASE, Z, RZ, RX, CZ
 from pyquil.paulis import PauliTerm
 from pyquil.quil import Program
-from pyquil.quilbase import Pragma, Declare
+from pyquil.quilbase import Pragma, Halt
 
 EMPTY_PROGRAM = Program()
 BELL_STATE = Program(H(0), CNOT(0, 1))
 BELL_STATE_MEASURE = Program(H(0), CNOT(0, 1), MEASURE(0, 0), MEASURE(1, 1))
 COMPILED_BELL_STATE = Program([
-    Declare("ro", "BIT", 2),
-    Pragma("EXPECTED_REWIRING", ('"#(0 1)"',)),
+    Pragma("EXPECTED_REWIRING", ('"#(0 1 2 3)"',)),
     RZ(pi / 2, 0),
     RX(pi / 2, 0),
     RZ(-pi / 2, 1),
@@ -59,9 +53,8 @@ COMPILED_BELL_STATE = Program([
     RZ(-pi / 2, 0),
     RX(-pi / 2, 1),
     RZ(pi / 2, 1),
-    Pragma("CURRENT_REWIRING", ('"#(0 1)"',)),
-    Pragma("EXPECTED_REWIRING", ('"#(0 1)"',)),
-    Pragma("CURRENT_REWIRING", ('"#(0 1)"',)),
+    Pragma("CURRENT_REWIRING", ('"#(0 1 2 3)"',)),
+    Halt()
 ])
 DUMMY_ISA_DICT = {"1Q": {"0": {}, "1": {}}, "2Q": {"0-1": {}}}
 DUMMY_ISA = ISA.from_dict(DUMMY_ISA_DICT)
@@ -249,55 +242,14 @@ def test_get_qc_returns_remote_qvm_compiler():
         assert isinstance(qc.compiler, QVMCompiler)
 
 
-mock_compiler_server = Server()
+mock_qpu_compiler_server = Server()
 
 
-@mock_compiler_server.rpc_handler
-def get_version_info() -> dict:
-    time.sleep(0.1)
-    return {'compiler_server': '1.0.0'}
-
-
-@mock_compiler_server.rpc_handler
-def quil_to_native_quil(payload: NativeQuilRequest) -> NativeQuilResponse:
-    assert payload.quil == BELL_STATE.out()
-    time.sleep(0.1)
-    return NativeQuilResponse(quil=COMPILED_BELL_STATE.out(),
-                              metadata=NativeQuilMetadata(final_rewiring=[],
-                                                          gate_depth=0,
-                                                          gate_volume=0,
-                                                          multiqubit_gate_depth=0,
-                                                          program_duration=0.0,
-                                                          program_fidelity=0.0,
-                                                          topological_swaps=0))
-
-
-@mock_compiler_server.rpc_handler
+@mock_qpu_compiler_server.rpc_handler
 def native_quil_to_binary(payload: BinaryExecutableRequest) -> BinaryExecutableResponse:
     assert payload.quil == COMPILED_BELL_STATE.out()
     time.sleep(0.1)
     return BinaryExecutableResponse(program=COMPILED_BYTES_ARRAY)
-
-
-@mock_compiler_server.rpc_handler
-def rewrite_arithmetic(payload: RewriteArithmeticRequest) -> RewriteArithmeticResponse:
-    time.sleep(0.1)
-    return RewriteArithmeticResponse(quil=payload.quil,
-                                     recalculation_table={},
-                                     original_memory_descriptors={})
-
-
-@mock_compiler_server.rpc_handler
-def generate_rb_sequence(payload: RandomizedBenchmarkingRequest) -> RandomizedBenchmarkingResponse:
-    assert payload.depth == 2
-    time.sleep(0.1)
-    return RandomizedBenchmarkingResponse(sequence=RB_ENCODED_REPLY)
-
-
-@mock_compiler_server.rpc_handler
-def conjugate_pauli_by_clifford(payload: ConjugateByCliffordRequest) -> ConjugateByCliffordResponse:
-    time.sleep(0.1)
-    return ConjugateByCliffordResponse(phase=0, pauli="Z")
 
 
 @pytest.fixture
@@ -307,7 +259,7 @@ def m_endpoints():
 
 def run_mock(_, endpoint):
     # Need a new event loop for a new process
-    mock_compiler_server.run(endpoint, loop=asyncio.new_event_loop())
+    mock_qpu_compiler_server.run(endpoint, loop=asyncio.new_event_loop())
 
 
 @pytest.fixture
@@ -319,64 +271,40 @@ def server(request, m_endpoints):
 
 
 @pytest.fixture
-def mock_compiler(request, m_endpoints):
-    return QPUCompiler(endpoint=m_endpoints[0],
+def mock_qpu_compiler(request, m_endpoints):
+    config = PyquilConfig()
+    return QPUCompiler(quilc_endpoint=config.quilc_url,
+                       qpu_compiler_endpoint=m_endpoints[0],
                        device=NxDevice(nx.Graph([(0, 1)])))
 
 
-@pytest.fixture
-def mock_rb_cxn(request, m_endpoints):
-    return BenchmarkConnection(endpoint=m_endpoints[0])
 
-
-def test_get_version_info(server, mock_compiler: QPUCompiler):
-    response = mock_compiler.get_version_info()
-    assert isinstance(response, dict)
-    assert 'compiler_server' in response
-
-
-def test_quil_to_native_quil(server, mock_compiler):
-    response = mock_compiler.quil_to_native_quil(BELL_STATE)
+def test_quil_to_native_quil(compiler):
+    response = compiler.quil_to_native_quil(BELL_STATE)
+    print(response)
     assert response.out() == COMPILED_BELL_STATE.out()
 
 
-def test_native_quil_to_binary(server, mock_compiler):
+def test_native_quil_to_binary(server, mock_qpu_compiler):
     p = COMPILED_BELL_STATE.copy()
     p.wrap_in_numshots_loop(10)
-    response = mock_compiler.native_quil_to_executable(p)
+    response = mock_qpu_compiler.native_quil_to_executable(p)
     assert response.program == COMPILED_BYTES_ARRAY
 
 
-def test_rb_sequence(server, mock_rb_cxn):
-    response = mock_rb_cxn.generate_rb_sequence(2, [PHASE(np.pi / 2, 0), H(0)])
-    assert [prog.out() for prog in response] == [prog.out() for prog in RB_REPLY]
+def test_local_rb_sequence(benchmarker):
+    response = benchmarker.generate_rb_sequence(2, [PHASE(np.pi / 2, 0), H(0)], seed=52)
+    assert [prog.out() for prog in response] == \
+           ["H 0\nPHASE(pi/2) 0\nH 0\nPHASE(pi/2) 0\nPHASE(pi/2) 0\n",
+            "H 0\nPHASE(pi/2) 0\nH 0\nPHASE(pi/2) 0\nPHASE(pi/2) 0\n"]
 
 
-def test_conjugate_request(server, mock_rb_cxn):
-    response = mock_rb_cxn.apply_clifford_to_pauli(Program("H 0"), PauliTerm("X", 0, 1.0))
+def test_local_conjugate_request(benchmarker):
+    response = benchmarker.apply_clifford_to_pauli(Program("H 0"), PauliTerm("X", 0, 1.0))
     assert isinstance(response, PauliTerm)
     assert str(response) == "(1+0j)*Z0"
 
 
-def test_local_rb_sequence(benchmarker):
-    config = PyquilConfig()
-    if config.compiler_url is not None:
-        cxn = BenchmarkConnection(endpoint=config.compiler_url)
-        response = cxn.generate_rb_sequence(2, [PHASE(np.pi / 2, 0), H(0)], seed=52)
-        assert [prog.out() for prog in response] == \
-               ["H 0\nPHASE(pi/2) 0\nH 0\nPHASE(pi/2) 0\nPHASE(pi/2) 0\n",
-                "H 0\nPHASE(pi/2) 0\nH 0\nPHASE(pi/2) 0\nPHASE(pi/2) 0\n"]
-
-
-def test_local_conjugate_request(benchmarker):
-    config = PyquilConfig()
-    if config.compiler_url is not None:
-        cxn = BenchmarkConnection(endpoint=config.compiler_url)
-        response = cxn.apply_clifford_to_pauli(Program("H 0"), PauliTerm("X", 0, 1.0))
-        assert isinstance(response, PauliTerm)
-        assert str(response) == "(1+0j)*Z0"
-
-
-def test_apply_clifford_to_pauli(benchmarker, mock_rb_cxn):
-    response = mock_rb_cxn.apply_clifford_to_pauli(Program("H 0"), PauliTerm("I", 0, 0.34))
+def test_apply_clifford_to_pauli(benchmarker):
+    response = benchmarker.apply_clifford_to_pauli(Program("H 0"), PauliTerm("I", 0, 0.34))
     assert response == PauliTerm("I", 0, 0.34)
