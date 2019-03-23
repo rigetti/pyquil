@@ -271,9 +271,8 @@ def server(request, m_endpoints):
 
 
 @pytest.fixture
-def mock_qpu_compiler(request, m_endpoints):
-    config = PyquilConfig()
-    return QPUCompiler(quilc_endpoint=config.quilc_url,
+def mock_qpu_compiler(request, m_endpoints, compiler: QVMCompiler):
+    return QPUCompiler(quilc_endpoint=compiler.client.endpoint,
                        qpu_compiler_endpoint=m_endpoints[0],
                        device=NxDevice(nx.Graph([(0, 1)])))
 
