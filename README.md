@@ -43,7 +43,7 @@ See the [Getting Started Guide](https://go.rigetti.com/getting-started) to start
 
 ## Community
 
-Join the public Forest Slack channel at [http://slack.rigetti.com](https://join.slack.com/t/rigetti-forest/shared_invite/enQtNDI1MDQzOTk3OTI3LWZlNzVjZWNlMmYxMjAzYTNlZjRhNjlmNWE0MDc1MjNhYTRkODA5Mjg3NTY4YWRmYzJmN2Q1M2M0Nzg3YzhhYzI).
+Join the public Forest Slack channel at [http://slack.rigetti.com](https://join.slack.com/t/rigetti-forest/shared_invite/enQtNTUyNTE1ODg3MzE2LWExZWU5OTE4YTJhMmE2NGNjMThjOTM1MjlkYTA5ZmUxNTJlOTVmMWE0YjA3Y2M2YmQzNTZhNTBlMTYyODRjMzA).
 
 The following projects have been contributed by community members:
 
