@@ -72,7 +72,7 @@ quantum gate errors:
    .. math::
 
 
-      \rho \mapsto \sum_{j=1}^n K_j\rho K_j^\dagger,
+      \rho \mapsto \sum_{j=1}^m K_j\rho K_j^\dagger,
 
    where the operators :math:`\{K_1, K_2, \dots, K_m\}` are called
    Kraus operators and must obey
