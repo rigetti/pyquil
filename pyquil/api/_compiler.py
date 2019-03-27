@@ -158,6 +158,10 @@ class QPUCompiler(AbstractCompiler):
             self.qpu_compiler_client = Client(qpu_compiler_endpoint, timeout=timeout)
         else:
             self.qpu_compiler_client = None
+            warnings.warn("It looks like you are initializing a QPUCompiler object without a "
+                          "qpu_compiler_address. If you didn't do this manually, then "
+                          "you probably don't have a qpu_compiler_address entry in your "
+                          "~/.forest_config file, meaning that you are not engaged to the QPU.")
         self.target_device = TargetDevice(isa=device.get_isa().to_dict(),
                                           specs=device.get_specs().to_dict())
         self.name = name
@@ -179,37 +183,38 @@ class QPUCompiler(AbstractCompiler):
         return nq_program
 
     @_record_call
-    def native_quil_to_executable(self, nq_program: Program) -> BinaryExecutableResponse:
-        if self.qpu_compiler_client:
-            if nq_program.native_quil_metadata is None:
-                warnings.warn("It looks like you're trying to call `native_quil_to_binary` on a "
-                              "Program that hasn't been compiled via `quil_to_native_quil`. This is "
-                              "ok if you've hand-compiled your program to our native gateset, "
-                              "but be careful!")
-            if self.name is not None:
-                targeted_lattice = self.qpu_compiler_client.call('get_config_info')['lattice_name']
-                if targeted_lattice and targeted_lattice != self.name:
-                    warnings.warn(f'You requested compilation for device {self.name}, '
-                                  f'but you are engaged on device {targeted_lattice}.')
-
-            arithmetic_request = RewriteArithmeticRequest(quil=nq_program.out())
-            arithmetic_response = self.quilc_client.call('rewrite_arithmetic', arithmetic_request)
-
-            request = BinaryExecutableRequest(quil=arithmetic_response.quil,
-                                              num_shots=nq_program.num_shots)
-            response = self.qpu_compiler_client.call('native_quil_to_binary', request)
-
-            # hack! we're storing a little extra info in the executable binary that we don't want to
-            # expose to anyone outside of our own private lives: not the user, not the Forest server,
-            # not anyone.
-            response.recalculation_table = arithmetic_response.recalculation_table
-            response.memory_descriptors = _collect_memory_descriptors(nq_program)
-            response.ro_sources = _collect_classical_memory_write_locations(nq_program)
-            return response
-        else:
+    def native_quil_to_executable(self, nq_program: Program) -> Optional[BinaryExecutableResponse]:
+        if not self.qpu_compiler_client:
             warnings.warn("It looks like you're trying to compile to an executable, but "
                           "do not have access to the QPU compiler endpoint. Make sure you "
                           "are engaged to the QPU before trying to do this.")
+            return
+
+        if nq_program.native_quil_metadata is None:
+            warnings.warn("It looks like you're trying to call `native_quil_to_binary` on a "
+                          "Program that hasn't been compiled via `quil_to_native_quil`. This is "
+                          "ok if you've hand-compiled your program to our native gateset, "
+                          "but be careful!")
+        if self.name is not None:
+            targeted_lattice = self.qpu_compiler_client.call('get_config_info')['lattice_name']
+            if targeted_lattice and targeted_lattice != self.name:
+                warnings.warn(f'You requested compilation for device {self.name}, '
+                              f'but you are engaged on device {targeted_lattice}.')
+
+        arithmetic_request = RewriteArithmeticRequest(quil=nq_program.out())
+        arithmetic_response = self.quilc_client.call('rewrite_arithmetic', arithmetic_request)
+
+        request = BinaryExecutableRequest(quil=arithmetic_response.quil,
+                                          num_shots=nq_program.num_shots)
+        response = self.qpu_compiler_client.call('native_quil_to_binary', request)
+
+        # hack! we're storing a little extra info in the executable binary that we don't want to
+        # expose to anyone outside of our own private lives: not the user, not the Forest server,
+        # not anyone.
+        response.recalculation_table = arithmetic_response.recalculation_table
+        response.memory_descriptors = _collect_memory_descriptors(nq_program)
+        response.ro_sources = _collect_classical_memory_write_locations(nq_program)
+        return response
 
 
 class QVMCompiler(AbstractCompiler):
