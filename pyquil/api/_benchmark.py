@@ -152,6 +152,6 @@ def get_benchmarker(endpoint: str = None, timeout: float = 10):
     """
     if endpoint is None:
         config = PyquilConfig()
-        endpoint = config.compiler_url
+        endpoint = config.quilc_url
 
     return BenchmarkConnection(endpoint=endpoint, timeout=timeout)

@@ -81,12 +81,20 @@ class PyquilConfig(object):
         "default": "http://127.0.0.1:5000"
     }
 
-    COMPILER_URL = {
-        "env": "COMPILER_URL",
+    QUILC_URL = {
+        "env": "QUILC_URL",
         "file": FOREST_CONFIG,
         "section": "Rigetti Forest",
-        "name": "compiler_server_address",
+        "name": "quilc_address",
         "default": "tcp://127.0.0.1:5555"
+    }
+
+    QPU_COMPILER_URL = {
+        "env": "QPU_COMPILER_URL",
+        "file": FOREST_CONFIG,
+        "section": "Rigetti Forest",
+        "name": "qpu_compiler_address",
+        "default": None
     }
 
     def __init__(self):
@@ -142,5 +150,9 @@ class PyquilConfig(object):
         return self._env_or_config_or_default(**self.QVM_URL)
 
     @property
-    def compiler_url(self):
-        return self._env_or_config_or_default(**self.COMPILER_URL)
+    def quilc_url(self):
+        return self._env_or_config_or_default(**self.QUILC_URL)
+
+    @property
+    def qpu_compiler_url(self):
+        return self._env_or_config_or_default(**self.QPU_COMPILER_URL)

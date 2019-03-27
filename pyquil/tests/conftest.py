@@ -146,7 +146,7 @@ def qvm():
 def compiler(test_device):
     try:
         config = PyquilConfig()
-        compiler = QVMCompiler(endpoint=config.compiler_url, device=test_device, timeout=1)
+        compiler = QVMCompiler(endpoint=config.quilc_url, device=test_device, timeout=1)
         compiler.quil_to_native_quil(Program(I(0)))
         return compiler
     except (RequestException, UnknownApiError, TimeoutError) as e:
@@ -166,8 +166,9 @@ def forest():
 @pytest.fixture(scope='session')
 def benchmarker():
     try:
-        bm = get_benchmarker(timeout=1)
+        bm = get_benchmarker(timeout=2)
         bm.apply_clifford_to_pauli(Program(I(0)), sX(0))
+        return bm
     except (RequestException, TimeoutError) as e:
         return pytest.skip("This test requires a running local benchmarker endpoint (ie quilc): {}"
                            .format(e))

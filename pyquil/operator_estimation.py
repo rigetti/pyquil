@@ -998,7 +998,7 @@ def _exhaustive_symmetrization(qc: QuantumComputer, qubits: List[int],
                     bitstring results
     """
     # Symmetrize -- flip qubits pre-measurement
-    n_shots_symm = round(np.ceil(shots / 2**len(qubits)))
+    n_shots_symm = int(round(np.ceil(shots / 2**len(qubits))))
     if n_shots_symm * 2**len(qubits) > shots:
         warnings.warn("Symmetrization increasing number of shots from {} to {}".format(shots, round(n_shots_symm * 2**len(qubits))))
     list_bitstrings_symm = []

@@ -16,13 +16,13 @@
 import re
 import warnings
 from math import pi
-from typing import List, Dict, Tuple, Iterator, Union, Optional
+from typing import List, Dict, Tuple, Iterator, Union
 import subprocess
 from contextlib import contextmanager
 
 import networkx as nx
 import numpy as np
-from rpcq.messages import BinaryExecutableResponse, Message, PyQuilExecutableResponse
+from rpcq.messages import BinaryExecutableResponse, PyQuilExecutableResponse
 
 from pyquil.api._compiler import QPUCompiler, QVMCompiler
 from pyquil.api._config import PyquilConfig
@@ -37,7 +37,7 @@ from pyquil.gates import RX, MEASURE
 from pyquil.noise import decoherence_noise_with_asymmetric_ro, NoiseModel
 from pyquil.pyqvm import PyQVM
 from pyquil.quil import Program, validate_supported_quil
-from pyquil.quilbase import Measurement, Pragma, Gate, Reset
+from pyquil.quilbase import Measurement, Pragma
 
 pyquil_config = PyquilConfig()
 
@@ -622,7 +622,8 @@ def get_qc(name: str, *, as_qvm: bool = None, noisy: bool = None,
                                    user=pyquil_config.user_id),
                                device=device,
                                compiler=QPUCompiler(
-                                   endpoint=pyquil_config.compiler_url,
+                                   quilc_endpoint=pyquil_config.quilc_url,
+                                   qpu_compiler_endpoint=pyquil_config.qpu_compiler_url,
                                    device=device,
                                    name=prefix))
 
