@@ -562,7 +562,12 @@ are not regular gate operations, and they do not affect the abstract semantics o
 
     #  ...
     # qubit index and time in seconds must be defined and provided
+    # the time argument accepts exponential notation e.g. 200e-9
     p += Pragma('DELAY', [qubit], str(time))
+
+.. warning::
+    These delays currently have effects on the real QPU. They have no effect on QVM's even when those QVM's have noise
+    models applied.
 
 .. warning::
     Keep in mind, the program duration is currently capped at 15 seconds, and the length of the program is multiplied
