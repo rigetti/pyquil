@@ -185,10 +185,9 @@ class QPUCompiler(AbstractCompiler):
     @_record_call
     def native_quil_to_executable(self, nq_program: Program) -> Optional[BinaryExecutableResponse]:
         if not self.qpu_compiler_client:
-            warnings.warn("It looks like you're trying to compile to an executable, but "
-                          "do not have access to the QPU compiler endpoint. Make sure you "
-                          "are engaged to the QPU before trying to do this.")
-            return
+            raise ValueError("It looks like you're trying to compile to an executable, but "
+                             "do not have access to the QPU compiler endpoint. Make sure you "
+                             "are engaged to the QPU before trying to do this.")
 
         if nq_program.native_quil_metadata is None:
             warnings.warn("It looks like you're trying to call `native_quil_to_binary` on a "
