@@ -1,8 +1,39 @@
 Changelog
 =========
 
+v2.6 (March 29, 2019)
+---------------------
+
+Improvements and Changes:
+
+- Added a CODEOWNERS file for default reviewers (gh-855).
+
+- Bifurcated the ``QPUCompiler`` endpoint parameter into two -- ``quilc_endpoint`` and
+  ``qpu_compiler_endpoint`` -- to reflect changes in Quantum Cloud Services (gh-856).
+
+- Clarified documentation around the DELAY pragma (gh-862).
+
+- Added information about the ``local_qvm`` context manager to the
+  getting started documentation (gh-851).
+
+Bugfixes:
+
+- Added a non-None default timeout to the ``QVMCompiler`` object (gh-850) and
+  the ``get_benchmarker`` function (gh-854).
+
+- Fixed the docstring for the ``apply_clifford_to_pauli`` function (gh-836).
+
+- Allowed the ``apply_clifford_to_pauli`` function to now work with the Identity
+  as input (gh-849).
+
+- Updated a stale link to the Rigetti Forest Slack workspace (gh-860).
+
+- Fixed a notation typo in the documentation for noise (gh-861).
+
+Special thanks to willzeng for all the contributions this release!
+
 v2.5 (March 6, 2019)
-------------------
+--------------------
 
 Improvements and Changes:
 
@@ -25,8 +56,6 @@ Improvements and Changes:
 Bugfixes:
 
 - Some stale tests have been brought into the modern era.
-
-
 
 v2.4 (February 14, 2019)
 ------------------------
