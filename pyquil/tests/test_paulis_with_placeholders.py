@@ -613,7 +613,7 @@ def test_simplify_warning():
 def test_PauliTerm_matrix():
     q0 = QubitPlaceholder()
     q1 = QubitPlaceholder()
-    term = 1.5*sX(q0) * sZ(2)
+    term = 1.5 * sX(q0) * sZ(2)
     matrix1 = term.matrix(qubit_mapping={q0: 0, q1: 1})
     matrix2 = np.array([[0, 1.5, 0, 0, 0, 0, 0, 0],
                          [1.5, 0, 0, 0, 0, 0, 0, 0],
@@ -624,21 +624,22 @@ def test_PauliTerm_matrix():
                          [0, 0, 0, 0, 0, 0, 0, -1.5],
                          [0, 0, 0, 0, 0, 0, -1.5, 0]])
     assert np.allclose(matrix1, matrix2)
-    matrix1 = term.matrix(qubit_mapping = {q0:0}, nqubits=4)
+    matrix1 = term.matrix(qubit_mapping={q0: 0}, nqubits=4)
     matrix2 = np.kron(np.array([[1, 0], [0, 1]]), matrix2)
     assert np.allclose(matrix1, matrix2)
 
     with pytest.raises(AssertionError):
         term.matrix(qubit_mapping={q0: 2})
     with pytest.raises(AssertionError):
-        term.matrix(qubit_mapping = {q1: 2})
+        term.matrix(qubit_mapping={q1: 2})
     with pytest.raises(AssertionError):
-        term.matrix(qubit_mapping = {q1: 2, q0: 2})
+        term.matrix(qubit_mapping={q1: 2, q0: 2})
+
 
 def test_PauliSum_matrix():
     q0 = QubitPlaceholder()
     q1 = QubitPlaceholder()
-    Sum = 1.5*sX(q0)*sZ(2) + 0.7*sZ(1)
+    Sum = 1.5 * sX(q0) * sZ(2) + 0.7 * sZ(1)
     matrix1 = Sum.matrix(qubit_mapping={q0: 0})
     matrix2 = np.array([[0, 1.5, 0, 0, 0, 0, 0, 0],
                          [1.5, 0, 0, 0, 0, 0, 0, 0],
@@ -648,7 +649,7 @@ def test_PauliSum_matrix():
                          [0, 0, 0, 0, -1.5, 0, 0, 0],
                          [0, 0, 0, 0, 0, 0, 0, -1.5],
                          [0, 0, 0, 0, 0, 0, -1.5, 0]])
-    matrix2 += np.diag([0.7,0.7,-0.7,-0.7,0.7,0.7,-0.7,-0.7])
+    matrix2 += np.diag([0.7, 0.7, -0.7, -0.7, 0.7, 0.7, -0.7, -0.7])
     assert(np.allclose(matrix1, matrix2))
     matrix1 = Sum.matrix(qubit_mapping={q0: 0}, nqubits=4)
     matrix2 = np.kron(np.array([[1, 0], [0, 1]]), matrix2)
@@ -657,6 +658,6 @@ def test_PauliSum_matrix():
     with pytest.raises(AssertionError):
         Sum.matrix(qubit_mapping={q0: 2})
     with pytest.raises(AssertionError):
-        Sum.matrix(qubit_mapping = {q1: 2})
+        Sum.matrix(qubit_mapping={q1: 2})
     with pytest.raises(AssertionError):
-        Sum.matrix(qubit_mapping = {q1: 2, q0: 2})
+        Sum.matrix(qubit_mapping={q1: 2, q0: 2})
