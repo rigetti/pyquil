@@ -676,3 +676,48 @@ def test_identity_no_qubit():
 def test_qubit_validation():
     with pytest.raises(ValueError):
         op = sX(None)
+
+def test_PauliSum_from_str():
+    Sum = (1.5+.5j)*sX(0)*sZ(2) + 0.7*sZ(1)
+    assert PauliSum.from_compact_str(str(Sum)) == Sum
+    with pytest.raises(ValueError):
+        PauliSum.from_compact_str("(1.0+0j)*X0 + (1.0+0j)*A0")
+
+def test_PauliTerm_matrix():
+    term = 1.5*sX(0) * sZ(2)
+    matrix1 = term.matrix()
+    matrix2 = np.array([[0, 1.5, 0, 0, 0, 0, 0, 0],
+                         [1.5, 0, 0, 0, 0, 0, 0, 0],
+                         [0, 0, 0, 1.5, 0, 0, 0, 0],
+                         [0, 0, 1.5, 0, 0, 0, 0, 0],
+                         [0, 0, 0, 0, 0, -1.5, 0, 0],
+                         [0, 0, 0, 0, -1.5, 0, 0, 0],
+                         [0, 0, 0, 0, 0, 0, 0, -1.5],
+                         [0, 0, 0, 0, 0, 0, -1.5, 0]])
+    assert np.allclose(matrix1, matrix2)
+    matrix1 = term.matrix(nqubits=4)
+    matrix2 = np.kron(np.array([[1, 0], [0, 1]]), matrix2)
+    assert np.allclose(matrix1, matrix2)
+
+    with pytest.raises(ValueError):
+        term.matrix(nqubits=2)
+
+def test_PauliSum_matrix():
+    Sum = 1.5*sX(0)*sZ(2) + 0.7*sZ(1)
+    matrix1 = Sum.matrix()
+    matrix2 = np.array([[0, 1.5, 0, 0, 0, 0, 0, 0],
+                         [1.5, 0, 0, 0, 0, 0, 0, 0],
+                         [0, 0, 0, 1.5, 0, 0, 0, 0],
+                         [0, 0, 1.5, 0, 0, 0, 0, 0],
+                         [0, 0, 0, 0, 0, -1.5, 0, 0],
+                         [0, 0, 0, 0, -1.5, 0, 0, 0],
+                         [0, 0, 0, 0, 0, 0, 0, -1.5],
+                         [0, 0, 0, 0, 0, 0, -1.5, 0]])
+    matrix2 += np.diag([0.7,0.7,-0.7,-0.7,0.7,0.7,-0.7,-0.7])
+    assert(np.allclose(matrix1, matrix2))
+    matrix1 = Sum.matrix(nqubits=4)
+    matrix2 = np.kron(np.array([[1, 0], [0, 1]]), matrix2)
+    assert np.allclose(matrix1, matrix2)
+
+    with pytest.raises(ValueError):
+            Sum.matrix(nqubits=2)

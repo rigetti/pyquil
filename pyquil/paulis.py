@@ -1,3 +1,4 @@
+
 ##############################################################################
 # Copyright 2016-2018 Rigetti Computing
 #
@@ -47,6 +48,12 @@ PAULI_COEFF = {'ZZ': 1.0, 'YY': 1.0, 'XX': 1.0, 'II': 1.0,
                'ZY': -1.0j, 'IX': 1.0, 'IY': 1.0, 'IZ': 1.0, 'ZI': 1.0,
                'YI': 1.0, 'XI': 1.0,
                'X': 1.0, 'Y': 1.0, 'Z': 1.0, 'I': 1.0}
+
+PAULI_MATS = {"I": np.array([[1, 0], [0, 1]]),
+              "X": np.array([[0, 1], [1, 0]]),
+              "Y": np.array([[0, -1j], [1j, 0]]),
+              "Z": np.array([[1, 0], [0, -1]])
+              }
 
 
 class UnequalLengthWarning(Warning):
@@ -329,10 +336,6 @@ class PauliTerm(object):
         :param list terms_list: A list of tuples, e.g. [("X", 0), ("Y", 1)]
         :return: PauliTerm
         """
-        if not all([isinstance(op, tuple) for op in terms_list]):
-            raise TypeError("The type of terms_list should be a list of (name, index) "
-                            "tuples suitable for PauliTerm().")
-
         pterm = PauliTerm("I", 0)
         assert all([op[0] in PAULI_OPS for op in terms_list])
 
@@ -357,7 +360,9 @@ class PauliTerm(object):
     def from_compact_str(cls, str_pauli_term):
         """Construct a PauliTerm from the result of str(pauli_term)
         """
-        coef_str, str_pauli_term = str_pauli_term.split('*')
+        factors = str_pauli_term.split('*')
+        coef_str = factors[0]
+        strs_pauli_terms = factors[1:]
         try:
             coef = int(coef_str)
         except ValueError:
@@ -367,13 +372,15 @@ class PauliTerm(object):
                 coef = complex(coef_str)
 
         op = sI() * coef
-        if str_pauli_term == 'I':
+        if all(str_pauli_term == 'I' for str_pauli_term in strs_pauli_terms):
             return op
-        ma = re.fullmatch(r'(([XYZ])(\d+))+', str_pauli_term)
-        if ma is None:
-            raise ValueError(f"Could not parse pauli string {str_pauli_term}")
-        for ma in re.finditer(r'([XYZ])(\d+)', str_pauli_term):
-            op *= cls(ma.group(1), int(ma.group(2)))
+
+        for str_pauli_term in strs_pauli_terms:
+            ma = re.fullmatch(r'(([XYZ])(\d+))+', str_pauli_term)
+            if ma is None:
+                raise ValueError(f"Could not parse pauli string {str_pauli_term}")
+            for ma in re.finditer(r'([XYZ])(\d+)', str_pauli_term):
+                op *= cls(ma.group(1), int(ma.group(2)))
 
         return op
 
@@ -406,6 +413,74 @@ class PauliTerm(object):
             qubits = self.get_qubits()
 
         return ''.join(self[q] for q in qubits)
+
+    def matrix(self, qubit_mapping={}, nqubits=None, check_mapping=True):
+        """Create the matrix representation of self.
+
+        :param nqubits:  Number of qubits to represent self on. If none the maximum qubit in the
+                         PauliTerm or qubit_mapping is used.
+        :param qubit_mapping: A dictionary-like object that maps from :py:class`QubitPlaceholder`
+                              to :py:class:`int`
+        :check_mapping: (bool) whether or not to check qubit_mapping for validity
+        :return: np.matrix representing the PauliTerm
+        """
+        qubits = self.get_qubits()
+
+        if check_mapping:
+            real_qubits = set()
+            placeholder_qubits = set()
+            for q in qubits:
+                if isinstance(q, int):
+                    real_qubits.add(q)
+                elif isinstance(q, QubitPlaceholder):
+                    placeholder_qubits.add(q)
+                else:
+                    raise ValueError(
+                        "the qubit {} is neither int nor QubitPlaceholder".format(q))
+
+            mapped_placeholders = set(qubit_mapping.keys())
+            mapped_qubits = set(qubit_mapping.values())
+
+            assert placeholder_qubits <= mapped_placeholders,\
+                "not all QubitPlaceholders are mapped to real qubits"
+            assert len(mapped_qubits) == len(mapped_placeholders),\
+                "qubit_mapping is not one to one"
+            assert len(mapped_qubits & real_qubits) == 0,\
+                "qubit_mapping maps to qubits already in use"
+
+        reversed_mapping = {}
+        for qubit in qubits:
+            if isinstance(qubit, int):
+                reversed_mapping[qubit] = qubit
+            elif isinstance(qubit, QubitPlaceholder):
+                try:
+                    reversed_mapping[qubit_mapping[qubit]] = qubit
+                except KeyError:
+                    raise ValueError(
+                        "{} not found in qubit_mapping".format(qubit))
+            else:
+                raise ValueError(
+                    "qubit {} is neither int nor QubitPlaceholder".format(qubit))
+
+        def get_op(qubit_index):
+            """Return the operator at qubit `qubit_index`
+            """
+            try:
+                return PAULI_MATS[self[reversed_mapping[qubit_index]]]
+            except KeyError:  # all qubits w/o an operator have "I" implicitly
+                return(PAULI_MATS["I"])
+
+        # check that nqubits makes sense
+        if nqubits is None:
+            nqubits = max(reversed_mapping.keys()) + 1
+        elif nqubits <= max(reversed_mapping.keys()):
+            raise ValueError(
+                "nqubits must be higher than the largest qubit in the PauliTerm or the qubit_map")
+
+        matrix = np.array([self.coefficient])
+        for i in range(nqubits):
+            matrix = np.kron(get_op(i), matrix)
+        return matrix
 
 
 # For convenience, a shorthand for several operators.
@@ -676,6 +751,62 @@ class PauliSum(object):
         programs = [term.program for term in self.terms]
         coefficients = np.array([term.coefficient for term in self.terms])
         return programs, coefficients
+
+    def matrix(self, qubit_mapping={}, nqubits=None):
+        """Create the matrix representation of self.
+
+        :param nqubits:  Number of qubits to represent self on. If None, the maximum qubit from
+                         the PauliSum or qubit_mapping is used
+        :param qubit_mapping: A dictionary-like object that maps from :py:class`QubitPlaceholder`
+                              to :py:class:`int`
+        :return: np.matrix representing the PauliTerm
+        """
+
+        # check that qubit_map is valid
+        real_qubits = set()
+        placeholder_qubits = set()
+        qubits = self.get_qubits()
+        for q in qubits:
+            if isinstance(q, int):
+                real_qubits.add(q)
+            elif isinstance(q, QubitPlaceholder):
+                placeholder_qubits.add(q)
+            else:
+                raise ValueError(
+                    "the qubit {} is neither int nor QubitPlaceholder".format(q))
+
+        mapped_placeholders = set(qubit_mapping.keys())
+        mapped_qubits = set(qubit_mapping.values())
+
+        assert placeholder_qubits <= mapped_placeholders,\
+            "not all QubitPlaceholders are mapped to real qubits"
+        assert len(mapped_qubits) == len(mapped_placeholders),\
+            "qubit_mapping is not one to one"
+        assert len(mapped_qubits & real_qubits) == 0,\
+            "qubit_mapping maps to qubits already in use"
+
+        # check that nqubits makes sense
+        if nqubits is None:
+            nqubits = max(mapped_qubits | real_qubits) + 1
+        elif nqubits <= max(mapped_qubits | real_qubits):
+            raise ValueError(
+                "nqubits lower than the maximum qubit in the PauliTerm or qubit_map")
+
+        # create the matrix
+        matrix = np.zeros((2**nqubits, 2**nqubits), dtype=complex)
+        for term in self:
+            matrix += term.matrix(qubit_mapping=qubit_mapping,
+                                  nqubits=nqubits,
+                                  check_mapping=False)
+        return matrix
+
+    @classmethod
+    def from_compact_str(cls, str_pauli_sum):
+        """Construct a PauliSum from the result of str(pauli_sum)
+        """
+        str_terms = str_pauli_sum.split(" + ")
+        terms = [PauliTerm.from_compact_str(term) for term in str_terms]
+        return cls(terms)
 
 
 def simplify_pauli_sum(pauli_sum):
