@@ -750,7 +750,7 @@ class ExperimentResult:
 
 def measure_observables(qc: QuantumComputer, tomo_experiment: TomographyExperiment,
                         n_shots: int = 10000, progress_callback=None, active_reset=False,
-                        readout_symmetrize: str = 'exhaustive',
+                        symmetrize_readout: str = 'exhaustive',
                         calibrate_readout: str = 'plus-eig'):
     """
     Measure all the observables in a TomographyExperiment.
@@ -766,7 +766,7 @@ def measure_observables(qc: QuantumComputer, tomo_experiment: TomographyExperime
         to True is much faster but there is a ~1% error per qubit in the reset operation.
         Thermal noise from "traditional" reset is not routinely characterized but is of the same
         order.
-    :param readout_symmetrize: Method used to symmetrize the readout errors, i.e. set
+    :param symmetrize_readout: Method used to symmetrize the readout errors, i.e. set
         p(0|1) = p(1|0). For uncorrelated readout errors, this can be achieved by randomly
         selecting between the POVMs {X.D1.X, X.D0.X} and {D0, D1} (where both D0 and D1 are
         diagonal). However, here we currently support exhaustive symmetrization and loop through
@@ -781,7 +781,7 @@ def measure_observables(qc: QuantumComputer, tomo_experiment: TomographyExperime
         The preceding symmetrization and this step together yield a more accurate estimation of the observable. Set to `None` if no calibration is desired.
     """
     # calibration readout only works with symmetrization turned on
-    if calibrate_readout is not None and readout_symmetrize is None:
+    if calibrate_readout is not None and symmetrize_readout is None:
         raise ValueError("Readout calibration only works with readout symmetrization turned on")
 
     # Outer loop over a collection of grouped settings for which we can simultaneously
@@ -809,10 +809,10 @@ def measure_observables(qc: QuantumComputer, tomo_experiment: TomographyExperime
         # 2. Symmetrization
         qubits = max_weight_out_op.get_qubits()
 
-        if readout_symmetrize == 'exhaustive' and len(qubits) > 0:
+        if symmetrize_readout == 'exhaustive' and len(qubits) > 0:
             bitstrings, d_qub_idx = _exhaustive_symmetrization(qc, qubits, n_shots, total_prog)
 
-        elif readout_symmetrize is None and len(qubits) > 0:
+        elif symmetrize_readout is None and len(qubits) > 0:
             total_prog_no_symm = total_prog.copy()
             ro = total_prog_no_symm.declare('ro', 'BIT', len(qubits))
             d_qub_idx = {}
@@ -866,7 +866,7 @@ def measure_observables(qc: QuantumComputer, tomo_experiment: TomographyExperime
                 # 4.1 Obtain calibration program
                 calibr_prog = _calibration_program(qc, tomo_experiment, setting)
                 # 4.2 Perform symmetrization on the calibration program
-                if readout_symmetrize == 'exhaustive':
+                if symmetrize_readout == 'exhaustive':
                     qubs_calibr = setting.out_operator.get_qubits()
                     calibr_shots = n_shots
                     calibr_results, d_calibr_qub_idx = _exhaustive_symmetrization(qc, qubs_calibr, calibr_shots, calibr_prog)
@@ -1034,7 +1034,7 @@ def _calibration_program(qc: QuantumComputer, tomo_experiment: TomographyExperim
 
     :param tomo_experiment: A suite of tomographic observables
     :param ExperimentSetting: The particular tomographic observable to measure
-    :param readout_symmetrize: Method used to symmetrize the readout errors (see docstring for
+    :param symmetrize_readout: Method used to symmetrize the readout errors (see docstring for
         `measure_observables` for more details)
     :param cablir_shots: number of shots to take in the measurement process
     :return: Program performing the calibration
