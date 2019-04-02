@@ -719,16 +719,16 @@ class ExperimentResult:
 
     setting: ExperimentSetting
     expectation: Union[float, complex]
-    stddev: Union[float, complex]
+    std_err: Union[float, complex]
     total_counts: int
     raw_expectation: Union[float, complex] = None
-    raw_stddev: float = None
+    raw_std_err: float = None
     calibration_expectation: Union[float, complex] = None
-    calibration_stddev: Union[float, complex] = None
+    calibration_std_err: Union[float, complex] = None
     calibration_counts: int = None
 
     def __str__(self):
-        return f'{self.setting}: {self.expectation} +- {self.stddev}'
+        return f'{self.setting}: {self.expectation} +- {self.std_err}'
 
     def __repr__(self):
         return f'ExperimentResult[{self}]'
@@ -738,12 +738,12 @@ class ExperimentResult:
             'type': 'ExperimentResult',
             'setting': self.setting,
             'expectation': self.expectation,
-            'stddev': self.stddev,
+            'std_err': self.std_err,
             'total_counts': self.total_counts,
             'raw_expectation': self.raw_expectation,
-            'raw_stddev': self.raw_stddev,
+            'raw_std_err': self.raw_std_err,
             'calibration_expectation': self.calibration_expectation,
-            'calibration_stddev': self.calibration_stddev,
+            'calibration_std_err': self.calibration_std_err,
             'calibration_counts': self.calibration_counts,
         }
 
@@ -853,7 +853,7 @@ def measure_observables(qc: QuantumComputer, tomo_experiment: TomographyExperime
                 yield ExperimentResult(
                     setting=setting,
                     expectation=coeff,
-                    stddev=0.0,
+                    std_err=0.0,
                     total_counts=n_shots,
                 )
                 continue
@@ -883,12 +883,12 @@ def measure_observables(qc: QuantumComputer, tomo_experiment: TomographyExperime
                 yield ExperimentResult(
                     setting=setting,
                     expectation=corrected_mean.item(),
-                    stddev=np.sqrt(corrected_var).item(),
+                    std_err=np.sqrt(corrected_var).item(),
                     total_counts=n_shots,
                     raw_expectation=obs_mean.item(),
-                    raw_stddev=np.sqrt(obs_var).item(),
+                    raw_std_err=np.sqrt(obs_var).item(),
                     calibration_expectation=obs_calibr_mean.item(),
-                    calibration_stddev=np.sqrt(obs_calibr_var).item(),
+                    calibration_std_err=np.sqrt(obs_calibr_var).item(),
                     calibration_counts=calibr_shots,
                 )
 
@@ -897,7 +897,7 @@ def measure_observables(qc: QuantumComputer, tomo_experiment: TomographyExperime
                 yield ExperimentResult(
                     setting=setting,
                     expectation=obs_mean.item(),
-                    stddev=np.sqrt(obs_var).item(),
+                    std_err=np.sqrt(obs_var).item(),
                     total_counts=n_shots,
                 )
 
