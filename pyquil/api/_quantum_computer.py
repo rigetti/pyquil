@@ -41,7 +41,6 @@ from pyquil.quil import Program, validate_supported_quil
 from pyquil.quilbase import Measurement, Pragma
 
 
-
 Executable = Union[BinaryExecutableResponse, PyQuilExecutableResponse]
 
 
@@ -289,10 +288,12 @@ class QuantumComputer:
             self.compiler.qpu_compiler_client = refresh_client(self.compiler.qpu_compiler_client,
                                                                pyquil_config.qpu_compiler_url)
         else:
-            raise TypeError("It looks like you've managed to create a QuantumComputer object "
-                            "that has a mismatch between QAM and Compiler types. You must always "
-                            "use a QPUCompiler with a QPU backend, and a QVMCompiler with a QVM "
-                            "backend.")
+            warnings.warn("It looks like you've managed to create a QuantumComputer object "
+                          "that has a mismatch between QAM and Compiler types. You must "
+                          "use a QPUCompiler with a QPU backend, and a QVMCompiler with a QVM "
+                          "backend, for typical operation. However, maybe you defined a custom "
+                          "object, and so we are just giving you a warning. Note that, because of"
+                          "this, the reset command will no longer update the connection objects.")
         self.qam.reset()
 
     def __str__(self) -> str:
