@@ -412,15 +412,15 @@ def test_reset(forest):
     aref = ParameterAref(name='theta', index=0)
     assert qc.qam._variables_shim[aref] == np.pi
     assert qc.qam._executable == p
-    assert qc.qam._bitstrings.shape == (1000, 1)
-    assert all([bit == 1 for bit in qc.qam._bitstrings])
+    assert qc.qam._memory_results["ro"].shape == (1000, 1)
+    assert all([bit == 1 for bit in qc.qam._memory_results["ro"]])
     assert qc.qam.status == 'done'
 
     qc.reset()
 
     assert qc.qam._variables_shim == {}
     assert qc.qam._executable is None
-    assert qc.qam._bitstrings is None
+    assert qc.qam._memory_results["ro"] is None
     assert qc.qam.status == 'connected'
 
 
