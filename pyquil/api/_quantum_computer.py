@@ -269,28 +269,25 @@ class QuantumComputer:
         objects in the event that the ~/.forest_config file has changed during the existence
         of this QuantumComputer object.
         """
+        def refresh_client(client: Client, new_endpoint: str) -> Client:
+            timeout = client.timeout
+            client.close()
+            return Client(new_endpoint, timeout)
+
         if isinstance(self.qam, QVM) and isinstance(self.compiler, QVMCompiler):
             forest_connection = ForestConnection()
             self.qam.connection = forest_connection
+            self.compiler.client = refresh_client(self.compiler.client,
+                                                  forest_connection.compiler_endpoint)
 
-            timeout = self.compiler.client.timeout
-            self.compiler.client.close()
-            self.compiler.client = Client(forest_connection.compiler_endpoint, timeout)
         elif isinstance(self.qam, QPU) and isinstance(self.compiler, QPUCompiler):
             pyquil_config = PyquilConfig()
+            self.qam.client = refresh_client(self.qam.client, pyquil_config.qpu_url)
+            self.compiler.quilc_client = refresh_client(self.compiler.quilc_client,
+                                                        pyquil_config.quilc_url)
+            self.compiler.qpu_compiler_client = refresh_client(self.compiler.qpu_compiler_client,
+                                                               pyquil_config.qpu_compiler_url)
 
-            qpu_timeout = self.qam.client.timeout
-            self.qam.client.close()
-            self.qam.client = Client(pyquil_config.qpu_url, qpu_timeout)
-
-            quilc_timeout = self.compiler.quilc_client.timeout
-            self.compiler.quilc_client.close()
-            self.compiler.quilc_client = Client(pyquil_config.quilc_url, quilc_timeout)
-
-            qpu_compiler_timeout = self.compiler.qpu_compiler_client.timeout
-            self.compiler.qpu_compiler_client.close()
-            self.compiler.qpu_compiler_client = Client(pyquil_config.qpu_compiler_url,
-                                                       qpu_compiler_timeout)
         else:
             raise TypeError("It looks like you've managed to create a QuantumComputer object "
                             "that has a mismatch between QAM and Compiler types. You must always "
