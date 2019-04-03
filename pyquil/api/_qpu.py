@@ -172,6 +172,11 @@ support at support@rigetti.com.""")
         self._last_results = results
         return self
 
+    def read_memory(self, *, region_name: str):
+        if region_name != "ro":
+            raise ValueError("The QPU only exposes the memory region \"ro\".")
+        return super().read_memory(region_name=region_name)
+
     def _get_buffers(self, job_id: str) -> Dict[str, np.ndarray]:
         """
         Return the decoded result buffers for particular job_id.
