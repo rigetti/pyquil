@@ -252,6 +252,8 @@ class QuantumComputer:
             to protoquil (executable on QPU). A value of ``None`` means defer to server.
         :return: An executable binary suitable for passing to :py:func:`QuantumComputer.run`.
         """
+        self.reset()
+
         flags = [to_native_gates, optimize]
         assert all(flags) or all(not f for f in flags), "Must turn quilc all on or all off"
         quilc = all(flags)
@@ -279,7 +281,6 @@ class QuantumComputer:
             self.qam.connection = forest_connection
             self.compiler.client = refresh_client(self.compiler.client,
                                                   forest_connection.compiler_endpoint)
-
         elif isinstance(self.qam, QPU) and isinstance(self.compiler, QPUCompiler):
             pyquil_config = PyquilConfig()
             self.qam.client = refresh_client(self.qam.client, pyquil_config.qpu_url)
@@ -287,7 +288,6 @@ class QuantumComputer:
                                                         pyquil_config.quilc_url)
             self.compiler.qpu_compiler_client = refresh_client(self.compiler.qpu_compiler_client,
                                                                pyquil_config.qpu_compiler_url)
-
         else:
             raise TypeError("It looks like you've managed to create a QuantumComputer object "
                             "that has a mismatch between QAM and Compiler types. You must always "
