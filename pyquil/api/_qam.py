@@ -54,7 +54,7 @@ class QAM(ABC):
 
         self._variables_shim = {}
         self._executable = executable
-        self._bitstrings = None
+        self._memory_results = None
         self.status = 'loaded'
         return self
 
@@ -104,12 +104,8 @@ class QAM(ABC):
         :return: A list of values of the appropriate type.
         """
         assert self.status == 'done'
-        if region_name != "ro":
-            raise QAMError("Currently only allowed to read measurement data from ro.")
-        if self._bitstrings is None:
-            raise QAMError("Bitstrings have not yet been populated. Something has gone wrong.")
 
-        return self._bitstrings
+        return self._memory_results[region_name]
 
     @_record_call
     def read_from_memory_region(self, *, region_name: str):
@@ -125,13 +121,8 @@ class QAM(ABC):
         warnings.warn("pyquil.api._qam.QAM.read_from_memory_region is deprecated, please use "
                       "pyquil.api._qam.QAM.read_memory instead.",
                       DeprecationWarning)
-        assert self.status == 'done'
-        if region_name != "ro":
-            raise QAMError("Currently only allowed to read measurement data from ro.")
-        if self._bitstrings is None:
-            raise QAMError("Bitstrings have not yet been populated. Something has gone wrong.")
 
-        return self._bitstrings
+        self.read_memory(region_name=region_name)
 
     @_record_call
     def reset(self):
@@ -142,6 +133,6 @@ class QAM(ABC):
         """
         self._variables_shim = {}
         self._executable = None
-        self._bitstrings = None
+        self._memory_results = None
 
         self.status = 'connected'
