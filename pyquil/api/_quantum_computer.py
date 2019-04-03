@@ -22,6 +22,7 @@ from contextlib import contextmanager
 
 import networkx as nx
 import numpy as np
+from rpcq import Client
 from rpcq.messages import BinaryExecutableResponse, PyQuilExecutableResponse
 
 from pyquil.api._compiler import QPUCompiler, QVMCompiler
@@ -39,7 +40,7 @@ from pyquil.pyqvm import PyQVM
 from pyquil.quil import Program, validate_supported_quil
 from pyquil.quilbase import Measurement, Pragma
 
-pyquil_config = PyquilConfig()
+
 
 Executable = Union[BinaryExecutableResponse, PyQuilExecutableResponse]
 
@@ -264,8 +265,37 @@ class QuantumComputer:
 
     def reset(self):
         """
-        Reset the QuantumComputer's QAM to its initial state.
+        Reset the QuantumComputer's QAM to its initial state, and refresh all the connection
+        objects in the event that the ~/.forest_config file has changed during the existence
+        of this QuantumComputer object.
         """
+        if isinstance(self.qam, QVM) and isinstance(self.compiler, QVMCompiler):
+            forest_connection = ForestConnection()
+            self.qam.connection = forest_connection
+
+            timeout = self.compiler.client.timeout
+            self.compiler.client.close()
+            self.compiler.client = Client(forest_connection.compiler_endpoint, timeout)
+        elif isinstance(self.qam, QPU) and isinstance(self.compiler, QPUCompiler):
+            pyquil_config = PyquilConfig()
+
+            qpu_timeout = self.qam.client.timeout
+            self.qam.client.close()
+            self.qam.client = Client(pyquil_config.qpu_url, qpu_timeout)
+
+            quilc_timeout = self.compiler.quilc_client.timeout
+            self.compiler.quilc_client.close()
+            self.compiler.quilc_client = Client(pyquil_config.quilc_url, quilc_timeout)
+
+            qpu_compiler_timeout = self.compiler.qpu_compiler_client.timeout
+            self.compiler.qpu_compiler_client.close()
+            self.compiler.qpu_compiler_client = Client(pyquil_config.qpu_compiler_url,
+                                                       qpu_compiler_timeout)
+        else:
+            raise TypeError("It looks like you've managed to create a QuantumComputer object "
+                            "that has a mismatch between QAM and Compiler types. You must always "
+                            "use a QPUCompiler with a QPU backend, and a QVMCompiler with a QVM "
+                            "backend.")
         self.qam.reset()
 
     def __str__(self) -> str:
@@ -616,6 +646,7 @@ def get_qc(name: str, *, as_qvm: bool = None, noisy: bool = None,
                                              noisy=noisy, connection=connection, qvm_type=qvm_type)
     else:
         # 4.2 A real device
+        pyquil_config = PyquilConfig()
         if noisy is not None and noisy:
             warnings.warn("You have specified `noisy=True`, but you're getting a QPU. This flag "
                           "is meant for controlling noise models on QVMs.")
