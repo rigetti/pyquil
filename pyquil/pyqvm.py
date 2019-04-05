@@ -240,7 +240,7 @@ class PyQVM(QAM):
         self.wf_simulator.reset()
 
         # grab the gate definitions for future use
-        self.defined_gates = list()
+        self.defined_gates = dict()
         for dg in self.program.defined_gates:
             if dg.parameters is not None and len(dg.parameters) > 0:
                 raise NotImplementedError("PyQVM does not support parameterized DEFGATEs")
