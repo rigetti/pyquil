@@ -155,16 +155,7 @@ def _vet_program(program):
     new_prog = program.copy_everything_except_instructions()
 
     for instr in program:
-        if isinstance(instr, Pragma) or isinstance(instr, Declare):
-            new_prog += instr
-        elif isinstance(instr, Gate):
-            new_prog += instr
-        elif isinstance(instr, Measurement):
-            if instr.classical_reg is None:
-                raise NotRunAndMeasureProgramError("No measure-for-effect allowed")
-            new_prog += instr
-        else:
-            raise NotRunAndMeasureProgramError(f"Unsupported r_a_m instruction {instr}")
+        new_prog += instr
 
     return new_prog
 
