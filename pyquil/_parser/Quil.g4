@@ -245,11 +245,11 @@ UNDERSCORE          : '_' ;
 // Whitespace
 
 TAB                 : '    ' ;
-NEWLINE             : ( '\r'? '\n' | '\r' )+ ;
+NEWLINE             : (' ' | '\t' )* ( '\r'? '\n' | '\r' )+ ;
 
 // Skips
 
-COMMENT             : '#' ~( '\n' | '\r' )* -> skip ;
+COMMENT             : (' ' | '\t' )* '#' ~( '\n' | '\r' )* -> skip ;
 SPACE               : ' ' -> skip ;
 
 // Error
