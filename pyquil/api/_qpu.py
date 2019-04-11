@@ -75,7 +75,7 @@ class QPU(QAM):
 
         :param endpoint: Address to connect to the QPU server.
         :param user: A string identifying who's running jobs.
-        :param priority: the priority with which to insert jobs into the Lodgepole queue. Lower
+        :param priority: The priority with which to insert jobs into the Lodgepole queue. Lower
                          integers correspond to higher priority.
         """
         super().__init__()
