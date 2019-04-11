@@ -245,7 +245,7 @@ mock_qpu_compiler_server = Server()
 
 @mock_qpu_compiler_server.rpc_handler
 def native_quil_to_binary(payload: BinaryExecutableRequest) -> BinaryExecutableResponse:
-    assert payload.quil == COMPILED_BELL_STATE.out()
+    assert Program(payload.quil).out() == COMPILED_BELL_STATE.out()
     time.sleep(0.1)
     return BinaryExecutableResponse(program=COMPILED_BYTES_ARRAY)
 
