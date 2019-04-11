@@ -69,12 +69,14 @@ def _extract_bitstrings(ro_sources: List[Optional[Tuple[int, int]]],
 
 class QPU(QAM):
     @_record_call
-    def __init__(self, endpoint: str, user: str = "pyquil-user") -> None:
+    def __init__(self, endpoint: str, user: str = "pyquil-user", priority: int = 1) -> None:
         """
         A connection to the QPU.
 
         :param endpoint: Address to connect to the QPU server.
         :param user: A string identifying who's running jobs.
+        :param priority: the priority with which to insert jobs into the Lodgepole queue. Lower
+                         integers correspond to higher priority.
         """
         super().__init__()
 
@@ -93,6 +95,7 @@ support at support@rigetti.com.""")
         self.client = Client(endpoint)
         self.user = user
         self._last_results: Dict[str, np.ndarray] = {}
+        self.priority = priority
 
     def get_version_info(self) -> dict:
         """
@@ -146,7 +149,8 @@ support at support@rigetti.com.""")
         request = QPURequest(program=self._executable.program,
                              patch_values=self._build_patch_values(),
                              id=str(uuid.uuid4()))
-        job_id = self.client.call('execute_qpu_request', request=request, user=self.user)
+        job_id = self.client.call('execute_qpu_request', request=request, user=self.user,
+                                  priority=self.priority)
         results = self._get_buffers(job_id)
         ro_sources = self._executable.ro_sources
 
