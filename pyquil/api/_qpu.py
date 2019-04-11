@@ -75,7 +75,7 @@ class QPU(QAM):
 
         :param endpoint: Address to connect to the QPU server.
         :param user: A string identifying who's running jobs.
-        :param priority: The priority with which to insert jobs into the Lodgepole queue. Lower
+        :param priority: The priority with which to insert jobs into the QPU queue. Lower
                          integers correspond to higher priority.
         """
         super().__init__()
@@ -125,7 +125,7 @@ support at support@rigetti.com.""")
         return self
 
     @_record_call
-    def run(self):
+    def run(self, run_priority: Optional[int] = None):
         """
         Run a pyquil program on the QPU.
 
@@ -135,6 +135,9 @@ support at support@rigetti.com.""")
         only do measurements where there is a 1-to-1 mapping between qubits and classical
         addresses.
 
+        :param run_priority: The priority with which to insert jobs into the QPU queue. Lower
+                             integers correspond to higher priority. If not specified, the QPU
+                             object's default priority is used.
         :return: The QPU object itself.
         """
         # This prevents a common error where users expect QVM.run()
@@ -149,8 +152,9 @@ support at support@rigetti.com.""")
         request = QPURequest(program=self._executable.program,
                              patch_values=self._build_patch_values(),
                              id=str(uuid.uuid4()))
+        job_priority = run_priority if run_priority else self.priority
         job_id = self.client.call('execute_qpu_request', request=request, user=self.user,
-                                  priority=self.priority)
+                                  priority=job_priority)
         results = self._get_buffers(job_id)
         ro_sources = self._executable.ro_sources
 
