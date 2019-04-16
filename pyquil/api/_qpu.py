@@ -152,7 +152,7 @@ support at support@rigetti.com.""")
         request = QPURequest(program=self._executable.program,
                              patch_values=self._build_patch_values(),
                              id=str(uuid.uuid4()))
-        job_priority = run_priority if run_priority else self.priority
+        job_priority = run_priority if run_priority is not None else self.priority
         job_id = self.client.call('execute_qpu_request', request=request, user=self.user,
                                   priority=job_priority)
         results = self._get_buffers(job_id)
