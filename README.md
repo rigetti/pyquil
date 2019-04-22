@@ -24,7 +24,7 @@ Documentation is hosted at [http://pyquil.readthedocs.io/en/latest/](http://pyqu
 You can install pyQuil as a conda package (recommended):
 
 ```bash
-conda install -c -conda-forge pyquil
+conda install -c conda-forge pyquil
 ```
 
 or using `pip`:
