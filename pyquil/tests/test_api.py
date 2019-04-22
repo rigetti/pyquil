@@ -44,7 +44,6 @@ EMPTY_PROGRAM = Program()
 BELL_STATE = Program(H(0), CNOT(0, 1))
 BELL_STATE_MEASURE = Program(H(0), CNOT(0, 1), MEASURE(0, 0), MEASURE(1, 1))
 COMPILED_BELL_STATE = Program([
-    Pragma("EXPECTED_REWIRING", ('"#(0 1 2 3)"',)),
     RZ(pi / 2, 0),
     RX(pi / 2, 0),
     RZ(-pi / 2, 1),
@@ -53,7 +52,6 @@ COMPILED_BELL_STATE = Program([
     RZ(-pi / 2, 0),
     RX(-pi / 2, 1),
     RZ(pi / 2, 1),
-    Pragma("CURRENT_REWIRING", ('"#(0 1 2 3)"',)),
     Halt()
 ])
 DUMMY_ISA_DICT = {"1Q": {"0": {}, "1": {}}, "2Q": {"0-1": {}}}
@@ -247,7 +245,7 @@ mock_qpu_compiler_server = Server()
 
 @mock_qpu_compiler_server.rpc_handler
 def native_quil_to_binary(payload: BinaryExecutableRequest) -> BinaryExecutableResponse:
-    assert payload.quil == COMPILED_BELL_STATE.out()
+    assert Program(payload.quil).out() == COMPILED_BELL_STATE.out()
     time.sleep(0.1)
     return BinaryExecutableResponse(program=COMPILED_BYTES_ARRAY)
 
