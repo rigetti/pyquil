@@ -22,7 +22,7 @@ from pyquil.parser import parse
 from pyquil.quilatom import Addr
 from pyquil.quilatom import MemoryReference
 from pyquil.quilbase import Declare, Reset, ResetQubit
-from pyquil.quilbase import Label, JumpTarget, Jump, JumpWhen, JumpUnless, DefGate, Qubit, Pragma, \
+from pyquil.quilbase import Label, JumpTarget, Jump, JumpWhen, JumpUnless, DefGate, DefPermutationGate, Qubit, Pragma, \
     RawInstr
 from pyquil.tests.utils import parse_equals
 
@@ -68,6 +68,43 @@ def test_def_gate_with_variables():
               '    i*SIN(%theta/2), COS(%theta/2)\n\n'
 
     parse_equals(defgate, DefGate('RX', rx, [theta]))
+
+
+def test_def_gate_as():
+    perm_gate_str = 'DEFGATE CCNOT AS PERMUTATION:\n    0, 1, 2, 3, 4, 5, 7, 6'.strip()
+    matrix_gate_str = 'DEFGATE CNOT AS MATRIX:\n    1.0, 0.0, 0.0, 0.0\n    0.0, 1.0, 0.0, 0.0\n    0.0, 0.0, 0.0, 1.0\n    0.0, 0.0, 1.0, 0.0'.strip()
+    unknown_gate_str = 'DEFGATE CCNOT AS UNKNOWNTYPE:\n    0, 1, 2, 3, 4, 5, 7, 6'.strip()
+
+    parse(perm_gate_str)
+    parse(matrix_gate_str)
+    with pytest.raises(RuntimeError):
+        parse(unknown_gate_str)
+
+
+def test_def_gate_as_matrix():
+    matrix_gate_str = 'DEFGATE CNOT AS MATRIX:\n    1.0, 0.0, 0.0, 0.0\n    0.0, 1.0, 0.0, 0.0\n    0.0, 0.0, 0.0, 1.0\n    0.0, 0.0, 1.0, 0.0'.strip()
+    parsed = parse(matrix_gate_str)
+
+    assert len(parsed) == 1
+    assert isinstance(parsed[0], DefGate)
+    assert not isinstance(parsed[0], DefPermutationGate)
+
+
+def test_def_permutation_gate():
+    perm_gate = DefPermutationGate("CCNOT", [0, 1, 2, 3, 4, 5, 7, 6])
+
+    perm_gate_str = 'DEFGATE CCNOT AS PERMUTATION:\n    0, 1, 2, 3, 4, 5, 7, 6'.strip()
+
+    parse_equals(perm_gate_str, perm_gate)
+
+
+def test_def_gate_as_permutation():
+    perm_gate_str = 'DEFGATE CCNOT AS PERMUTATION:\n    0, 1, 2, 3, 4, 5, 7, 6'.strip()
+    parsed = parse(perm_gate_str)
+
+    assert len(parsed) == 1
+    assert isinstance(parsed[0], DefGate)
+    assert isinstance(parsed[0], DefPermutationGate)
 
 
 def test_parameters():

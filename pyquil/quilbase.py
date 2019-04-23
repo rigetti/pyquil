@@ -311,6 +311,41 @@ class DefGate(AbstractInstruction):
         return int(np.log2(rows))
 
 
+class DefPermutationGate(DefGate):
+    def __init__(self, name, permutation):
+        if not isinstance(name, string_types):
+            raise TypeError("Gate name must be a string")
+
+        if name in RESERVED_WORDS:
+            raise ValueError("Cannot use {} for a gate name since it's a reserved word".format(name))
+
+        if isinstance(permutation, list):
+            elts = len(permutation)
+        elif isinstance(permutation, np.ndarray):
+            elts, cols = permutation.shape
+            if cols != 1:
+                raise ValueError("Permutation must have shape (N, 1)")
+        else:
+            raise ValueError("Permutation must be a list or NumPy array")
+
+        if 0 != elts & (elts - 1):
+            raise ValueError("Dimension of permutation must be a power of 2, got {0}".format(elts))
+
+        self.name = name
+        self.permutation = np.asarray(permutation)
+        self.parameters = None
+
+    def out(self):
+        return f"DEFGATE {self.name} AS PERMUTATION:\n    {', '.join(map(str, self.permutation))}"
+
+    def num_args(self):
+        """
+        :return: The number of qubit arguments the gate takes.
+        :rtype: int
+        """
+        return int(np.log2(len(self.permutation)))
+
+
 class JumpTarget(AbstractInstruction):
     """
     Representation of a target that can be jumped to.
