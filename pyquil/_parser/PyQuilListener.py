@@ -405,7 +405,7 @@ def _permutation(matrix):
     if len(row) == 1:
         return list(map(_expression, row[0].expression()))
     else:
-        raise RuntimeError("Unexpected permutation gate entry: " + permutation)
+        raise RuntimeError("Permutation gates are defined by a single row, but found " + str(len(row)) + " during parsing.")
 
 
 def _addr(classical):
