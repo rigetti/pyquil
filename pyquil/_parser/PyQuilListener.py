@@ -118,7 +118,6 @@ class PyQuilListener(QuilListener):
             matrix = _matrix(ctx.matrix())
             parameters = list(map(_variable, ctx.variable()))
             self.result.append(DefGate(gate_name, matrix, parameters))
-            
 
     # DEFCIRCUIT parsing:
     # When we enter a circuit definition we create a backup of the instructions seen up to that point. Then, when the
