@@ -336,7 +336,8 @@ class DefPermutationGate(DefGate):
         self.parameters = None
 
     def out(self):
-        return f"DEFGATE {self.name} AS PERMUTATION:\n    {', '.join(map(str, self.permutation))}"
+        body = ', '.join([str(p) for p in self.permutation])
+        return f"DEFGATE {self.name} AS PERMUTATION:\n    {body}"
 
     def num_args(self):
         """

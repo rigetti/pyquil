@@ -116,7 +116,7 @@ class PyQuilListener(QuilListener):
             self.result.append(DefPermutationGate(gate_name, permutation))
         else:
             matrix = _matrix(ctx.matrix())
-            parameters = list(map(_variable, ctx.variable()))
+            parameters = [_variable(v) for v in ctx.variable()]
             self.result.append(DefGate(gate_name, matrix, parameters))
 
     # DEFCIRCUIT parsing:
@@ -403,7 +403,7 @@ def _matrix(matrix):
 def _permutation(matrix):
     row = matrix.matrixRow()
     if len(row) == 1:
-        return list(map(_expression, row[0].expression()))
+        return [_expression(e) for e in row[0].expression()]
     else:
         raise RuntimeError("Permutation gates are defined by a single row, but found " + str(len(row)) + " during parsing.")
 
