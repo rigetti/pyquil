@@ -106,6 +106,11 @@ def test_def_gate_as_permutation():
     assert isinstance(parsed[0], DefGate)
     assert isinstance(parsed[0], DefPermutationGate)
 
+    # perm gates are defined by a single row of entries, unlike general defgates
+    bad_perm_gate_str = 'DEFGATE CCNOT AS PERMUTATION:\n    0, 1, 2, 3, 4, 5, 7, 6\n    0, 1, 2, 3, 4, 5, 7, 6'.strip()
+    with pytest.raises(RuntimeError):
+        parse(bad_perm_gate_str)
+
 
 def test_parameters():
     parse_equals("RX(123) 0", RX(123, 0))
