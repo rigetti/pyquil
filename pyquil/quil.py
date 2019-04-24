@@ -806,7 +806,10 @@ def address_qubits(program, qubit_mapping=None):
         else:
             result.append(instr)
 
-    return Program(result)
+    new_program = program.copy()
+    new_program._instructions = result
+
+    return new_program
 
 
 def _get_label(placeholder, label_mapping, label_i):
