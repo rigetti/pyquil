@@ -22,7 +22,7 @@ from pyquil.api._base_connection import get_session, post_json
 from pyquil.api._config import PyquilConfig
 from pyquil.api._error_reporting import _record_call
 from pyquil.api._qac import AbstractBenchmarker
-from pyquil.paulis import PauliTerm
+from pyquil.paulis import PauliTerm, is_identity
 from pyquil.quil import address_qubits, Program
 
 
@@ -48,12 +48,15 @@ class BenchmarkConnection(AbstractBenchmarker):
         return its action on a PauliTerm.
 
         In particular, for Clifford C, and Pauli P, this returns the PauliTerm
-        representing PCP^{\dagger}.
+        representing CPC^{\dagger}.
 
         :param Program clifford: A Program that consists only of Clifford operations.
         :param PauliTerm pauli_in: A PauliTerm to be acted on by clifford via conjugation.
-        :return: A PauliTerm corresponding to pauli_in * clifford * pauli_in^{\dagger}
+        :return: A PauliTerm corresponding to clifford * pauli_in * clifford^{\dagger}
         """
+        # do nothing if `pauli_in` is the identity
+        if is_identity(pauli_in):
+            return pauli_in
 
         indices_and_terms = list(zip(*list(pauli_in.operations_as_set())))
 
@@ -138,7 +141,7 @@ class BenchmarkConnection(AbstractBenchmarker):
         return list(reversed(programs))
 
 
-def get_benchmarker(endpoint: str = None, timeout: float = None):
+def get_benchmarker(endpoint: str = None, timeout: float = 10):
     """
     Retrieve an instance of the appropriate AbstractBenchmarker subclass for a given endpoint.
 
@@ -149,6 +152,6 @@ def get_benchmarker(endpoint: str = None, timeout: float = None):
     """
     if endpoint is None:
         config = PyquilConfig()
-        endpoint = config.compiler_url
+        endpoint = config.quilc_url
 
     return BenchmarkConnection(endpoint=endpoint, timeout=timeout)

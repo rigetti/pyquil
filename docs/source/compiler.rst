@@ -59,7 +59,6 @@ with output
 
 .. code:: python
 
-    PRAGMA EXPECTED_REWIRING "#(0 1 2 3 4 5 6 7)"
     RZ(pi/2) 0
     RX(pi/2) 0
     RZ(-pi/2) 1
@@ -73,7 +72,6 @@ with output
     RZ(-pi/2) 1
     RX(-pi/2) 2
     RZ(pi/2) 2
-    PRAGMA CURRENT_REWIRING "#(0 1 2 3 4 5 6 7)"
 
 The compiler connection is also available directly via the property ``qc.compiler``.  The
 precise class of this object changes based on context (e.g., ``QPUCompiler``,
@@ -247,12 +245,12 @@ Rewirings
 
 When a Quil program contains multi-qubit instructions that do not name qubit-qubit links present on a
 target device, the compiler will rearrange the qubits so that execution becomes possible.  In order to
-help the user understand what rearrangement may have been done, the compiler emits two forms of
-``PRAGMA``: ``PRAGMA EXPECTED_REWIRING`` and ``PRAGMA CURRENT_REWIRING``.  From the perspective of the
-user, both ``PRAGMA`` instructions serve the same purpose: ``PRAGMA ..._REWIRING "#(n0 n1 ... nk)"``
-indicates that the logical qubit labeled ``j`` in the program has been assigned to lie on the physical
-qubit labeled ``nj`` on the device.  This is strictly for human-readability: user-supplied instructions
-of the form ``PRAGMA [EXPECTED|CURRENT]_REWIRING`` are discarded and have no effect.
+help the user understand what rearrangement may have been done, the compiler emits comments at various
+points in the raw Quil code (which is not currently visible from a pyQuil ``Program`` object's ``.out()``
+method): ``# Entering rewiring`` and ``# Exiting rewiring``.  From the perspective of the user, both
+comments serve the same purpose: ``# Entering rewiring: #(n0 n1 ... nk)`` indicates that the logical
+qubit labeled ``j`` in the program has been assigned to lie on the physical qubit labeled ``nj`` on
+the device.  This is strictly for human-readability: these comments are discarded and have no effect.
 
 In addition, you have some control over how the compiler constructs its
 rewiring, which is controlled by ``PRAGMA INITIAL_REWIRING``. The syntax is as follows.

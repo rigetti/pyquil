@@ -67,7 +67,7 @@ class QVMConnection(object):
 
         if compiler_endpoint is None:
             pyquil_config = PyquilConfig()
-            compiler_endpoint = pyquil_config.compiler_url
+            compiler_endpoint = pyquil_config.quilc_url
 
         if (device is not None and device.noise_model is not None) and \
                 (gate_noise is not None or measurement_noise is not None):

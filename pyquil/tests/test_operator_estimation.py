@@ -168,7 +168,7 @@ def test_experiment_result_compat():
     er = ExperimentResult(
         setting=ExperimentSetting(sX(0), sZ(0)),
         expectation=0.9,
-        stddev=0.05,
+        std_err=0.05,
         total_counts=100,
     )
     assert str(er) == 'X0_0→(1+0j)*Z0: 0.9 +- 0.05'
@@ -178,7 +178,7 @@ def test_experiment_result():
     er = ExperimentResult(
         setting=ExperimentSetting(plusX(0), sZ(0)),
         expectation=0.9,
-        stddev=0.05,
+        std_err=0.05,
         total_counts=100,
     )
     assert str(er) == 'X0_0→(1+0j)*Z0: 0.9 +- 0.05'
@@ -517,7 +517,7 @@ def test_measure_observables_no_symm_calibr_raises_error(forest):
     suite = TomographyExperiment([exptsetting],
                                  program=Program(I(0)))
     with pytest.raises(ValueError):
-        result = list(measure_observables(qc, suite, readout_symmetrize=None,
+        result = list(measure_observables(qc, suite, symmetrize_readout=None,
                                           calibrate_readout='plus-eig'))
 
 
@@ -582,7 +582,7 @@ def test_measure_observables_uncalibrated_asymmetric_readout(forest):
 
     for idx, res in enumerate(measure_observables(qc,
                                                   tomo_expt, n_shots=1000,
-                                                  readout_symmetrize=None,
+                                                  symmetrize_readout=None,
                                                   calibrate_readout=None)):
         expect_arr[idx] = res.expectation
 
@@ -682,7 +682,7 @@ def test_measure_observables_result_zero_no_noisy_readout(forest):
     expectations = []
     for _ in range(num_simulations):
         expt_results = list(measure_observables(qc, tomo_expt, n_shots=1000,
-                                                readout_symmetrize=None,
+                                                symmetrize_readout=None,
                                                 calibrate_readout=None))
         expectations.append([res.expectation for res in expt_results])
     expectations = np.array(expectations)
@@ -708,7 +708,7 @@ def test_measure_observables_result_zero_no_symm_calibr(forest):
     expected_result = (p00 * 0.5 + (1 - p11) * 0.5) - ((1 - p00) * 0.5 + p11 * 0.5)
     for _ in range(num_simulations):
         expt_results = list(measure_observables(qc, tomo_expt, n_shots=1000,
-                                                readout_symmetrize=None,
+                                                symmetrize_readout=None,
                                                 calibrate_readout=None))
         expectations.append([res.expectation for res in expt_results])
     expectations = np.array(expectations)
@@ -821,9 +821,9 @@ PRAGMA ADD-KRAUS Y 1 "(0.0 0.4472135954999579 0.4472135954999579 0.0)"
 PRAGMA ADD-KRAUS H 2 "(0.9486832980505138 0.0 0.0 0.9486832980505138)"
 PRAGMA ADD-KRAUS H 2 "(0.0 0.31622776601683794 0.31622776601683794 0.0)"
 '''
-    assert calibr_prog1 == Program(expected_prog)
-    assert calibr_prog2 == Program(expected_prog)
-    assert calibr_prog3 == Program(expected_prog)
+    assert calibr_prog1.out() == Program(expected_prog).out()
+    assert calibr_prog2.out() == Program(expected_prog).out()
+    assert calibr_prog3.out() == Program(expected_prog).out()
 
 
 def test_expectations_sic0(forest):
@@ -1384,7 +1384,7 @@ def test_measure_1q_observable_raw_expectation(forest):
 
 
 def test_measure_1q_observable_raw_variance(forest):
-    # testing that we get correct raw stddev in terms of readout errors
+    # testing that we get correct raw std_err in terms of readout errors
     qc = get_qc('1q-qvm')
     expt = ExperimentSetting(TensorProductState(plusZ(0)), sZ(0))
     p = Program()
@@ -1395,12 +1395,12 @@ def test_measure_1q_observable_raw_variance(forest):
     num_simulations = 100
     num_shots = 1000
 
-    raw_stddevs = []
+    raw_std_errs = []
     for _ in range(num_simulations):
         expt_results = list(measure_observables(qc, tomo_expt, n_shots=num_shots))
-        raw_stddevs.append([res.raw_stddev for res in expt_results])
-    raw_stddevs = np.array(raw_stddevs)
-    result = np.mean(raw_stddevs, axis=0)
+        raw_std_errs.append([res.raw_std_err for res in expt_results])
+    raw_std_errs = np.array(raw_std_errs)
+    result = np.mean(raw_std_errs, axis=0)
 
     # calculate expected raw_expectation
     eps_not = (p00 + p11) / 2
@@ -1435,7 +1435,7 @@ def test_measure_1q_observable_calibration_expectation(forest):
 
 
 def test_measure_1q_observable_calibration_variance(forest):
-    # testing that we get correct calibration stddev in terms of readout errors
+    # testing that we get correct calibration std_err in terms of readout errors
     qc = get_qc('1q-qvm')
     expt = ExperimentSetting(TensorProductState(plusZ(0)), sZ(0))
     p = Program()
@@ -1446,12 +1446,12 @@ def test_measure_1q_observable_calibration_variance(forest):
     num_simulations = 100
     num_shots = 1000
 
-    raw_stddevs = []
+    raw_std_errs = []
     for _ in range(num_simulations):
         expt_results = list(measure_observables(qc, tomo_expt, n_shots=num_shots))
-        raw_stddevs.append([res.raw_stddev for res in expt_results])
-    raw_stddevs = np.array(raw_stddevs)
-    result = np.mean(raw_stddevs, axis=0)
+        raw_std_errs.append([res.raw_std_err for res in expt_results])
+    raw_std_errs = np.array(raw_std_errs)
+    result = np.mean(raw_std_errs, axis=0)
 
     # calculate expected raw_expectation
     eps_not = (p00 + p11) / 2
@@ -1482,7 +1482,7 @@ def test_uncalibrated_asymmetric_readout_nontrivial_1q_state(forest):
 
     for idx, res in enumerate(measure_observables(qc,
                                                   tomo_expt, n_shots=1000,
-                                                  readout_symmetrize=None,
+                                                  symmetrize_readout=None,
                                                   calibrate_readout=None)):
         expect_arr[idx] = res.expectation
 
@@ -1512,7 +1512,7 @@ def test_uncalibrated_symmetric_readout_nontrivial_1q_state(forest):
 
     for idx, res in enumerate(measure_observables(qc,
                                                   tomo_expt, n_shots=1000,
-                                                  readout_symmetrize='exhaustive',
+                                                  symmetrize_readout='exhaustive',
                                                   calibrate_readout=None)):
         expect_arr[idx] = res.expectation
 
@@ -1540,7 +1540,7 @@ def test_calibrated_symmetric_readout_nontrivial_1q_state(forest):
 
     for idx, res in enumerate(measure_observables(qc,
                                                   tomo_expt, n_shots=1000,
-                                                  readout_symmetrize='exhaustive',
+                                                  symmetrize_readout='exhaustive',
                                                   calibrate_readout='plus-eig')):
         expect_arr[idx] = res.expectation
 
@@ -1565,17 +1565,17 @@ def test_measure_2q_observable_raw_statistics(forest):
     num_shots = 1000
 
     raw_expectations = []
-    raw_stddevs = []
+    raw_std_errs = []
 
     for _ in range(num_simulations):
         expt_results = list(measure_observables(qc, tomo_expt, n_shots=num_shots))
         raw_expectations.append([res.raw_expectation for res in expt_results])
-        raw_stddevs.append([res.raw_stddev for res in expt_results])
+        raw_std_errs.append([res.raw_std_err for res in expt_results])
 
     raw_expectations = np.array(raw_expectations)
-    raw_stddevs = np.array(raw_stddevs)
+    raw_std_errs = np.array(raw_std_errs)
     result_expectation = np.mean(raw_expectations, axis=0)
-    result_stddev = np.mean(raw_stddevs, axis=0)
+    result_std_err = np.mean(raw_std_errs, axis=0)
 
     # calculate relevant conditional probabilities, given |00> state
     # notation used: pijmn means p(ij|mn)
@@ -1586,10 +1586,10 @@ def test_measure_2q_observable_raw_statistics(forest):
     # calculate expectation value of Z^{\otimes 2}
     z_expectation = (p0000 + p1100) - (p0100 + p1000)
     # calculate standard deviation of the mean
-    simulated_stddev = np.sqrt((1 - z_expectation ** 2) / num_shots)
+    simulated_std_err = np.sqrt((1 - z_expectation ** 2) / num_shots)
     # compare against simulated results
     np.testing.assert_allclose(result_expectation, z_expectation, atol=2e-2)
-    np.testing.assert_allclose(result_stddev, simulated_stddev, atol=2e-2)
+    np.testing.assert_allclose(result_std_err, simulated_std_err, atol=2e-2)
 
 
 def test_raw_statistics_2q_nontrivial_nonentangled_state(forest):
@@ -1610,16 +1610,16 @@ def test_raw_statistics_2q_nontrivial_nonentangled_state(forest):
     num_shots = 1000
 
     raw_expectations = []
-    raw_stddevs = []
+    raw_std_errs = []
 
     for _ in range(num_simulations):
         expt_results = list(measure_observables(qc, tomo_expt, n_shots=num_shots))
         raw_expectations.append([res.raw_expectation for res in expt_results])
-        raw_stddevs.append([res.raw_stddev for res in expt_results])
+        raw_std_errs.append([res.raw_std_err for res in expt_results])
     raw_expectations = np.array(raw_expectations)
-    raw_stddevs = np.array(raw_stddevs)
+    raw_std_errs = np.array(raw_std_errs)
     result_expectation = np.mean(raw_expectations, axis=0)
-    result_stddev = np.mean(raw_stddevs, axis=0)
+    result_std_err = np.mean(raw_std_errs, axis=0)
 
     # calculate relevant conditional probabilities, given |00> state
     # notation used: pijmn means p(ij|mn)
@@ -1654,10 +1654,10 @@ def test_raw_statistics_2q_nontrivial_nonentangled_state(forest):
     pr11 = p1100 * alph00 + p1101 * alph01 + p1110 * alph10 + p1111 * alph11
     # calculate Z^{\otimes 2} expectation, and error of the mean
     z_expectation = (pr00 + pr11) - (pr01 + pr10)
-    simulated_stddev = np.sqrt((1 - z_expectation ** 2) / num_shots)
+    simulated_std_err = np.sqrt((1 - z_expectation ** 2) / num_shots)
     # compare against simulated results
     np.testing.assert_allclose(result_expectation, z_expectation, atol=2e-2)
-    np.testing.assert_allclose(result_stddev, simulated_stddev, atol=2e-2)
+    np.testing.assert_allclose(result_std_err, simulated_std_err, atol=2e-2)
 
 
 def test_raw_statistics_2q_nontrivial_entangled_state(forest):
@@ -1678,16 +1678,16 @@ def test_raw_statistics_2q_nontrivial_entangled_state(forest):
     num_shots = 1000
 
     raw_expectations = []
-    raw_stddevs = []
+    raw_std_errs = []
 
     for _ in range(num_simulations):
         expt_results = list(measure_observables(qc, tomo_expt, n_shots=num_shots))
         raw_expectations.append([res.raw_expectation for res in expt_results])
-        raw_stddevs.append([res.raw_stddev for res in expt_results])
+        raw_std_errs.append([res.raw_std_err for res in expt_results])
     raw_expectations = np.array(raw_expectations)
-    raw_stddevs = np.array(raw_stddevs)
+    raw_std_errs = np.array(raw_std_errs)
     result_expectation = np.mean(raw_expectations, axis=0)
-    result_stddev = np.mean(raw_stddevs, axis=0)
+    result_std_err = np.mean(raw_std_errs, axis=0)
 
     # calculate relevant conditional probabilities, given |00> state
     # notation used: pijmn means p(ij|mn)
@@ -1710,10 +1710,10 @@ def test_raw_statistics_2q_nontrivial_entangled_state(forest):
     pr11 = p1100 * alph00 + p1111 * alph11
     # calculate Z^{\otimes 2} expectation, and error of the mean
     z_expectation = (pr00 + pr11) - (pr01 + pr10)
-    simulated_stddev = np.sqrt((1 - z_expectation ** 2) / num_shots)
+    simulated_std_err = np.sqrt((1 - z_expectation ** 2) / num_shots)
     # compare against simulated results
     np.testing.assert_allclose(result_expectation, z_expectation, atol=2e-2)
-    np.testing.assert_allclose(result_stddev, simulated_stddev, atol=2e-2)
+    np.testing.assert_allclose(result_std_err, simulated_std_err, atol=2e-2)
 
 
 def test_corrected_statistics_2q_nontrivial_nonentangled_state(forest):
@@ -1735,16 +1735,16 @@ def test_corrected_statistics_2q_nontrivial_nonentangled_state(forest):
     num_shots = 10000
 
     expectations = []
-    stddevs = []
+    std_errs = []
 
     for _ in range(num_simulations):
         expt_results = list(measure_observables(qc, tomo_expt, n_shots=num_shots))
         expectations.append([res.expectation for res in expt_results])
-        stddevs.append([res.stddev for res in expt_results])
+        std_errs.append([res.std_err for res in expt_results])
     expectations = np.array(expectations)
-    stddevs = np.array(stddevs)
+    std_errs = np.array(std_errs)
     result_expectation = np.mean(expectations, axis=0)
-    result_stddev = np.mean(stddevs, axis=0)
+    result_std_err = np.mean(std_errs, axis=0)
 
     # calculate amplitudes squared of pure state
     alph00 = (np.cos(theta1 / 2) * np.cos(theta2 / 2)) ** 2
@@ -1753,10 +1753,10 @@ def test_corrected_statistics_2q_nontrivial_nonentangled_state(forest):
     alph11 = (np.sin(theta1 / 2) * np.sin(theta2 / 2)) ** 2
     # calculate Z^{\otimes 2} expectation, and error of the mean
     expected_expectation = (alph00 + alph11) - (alph01 + alph10)
-    expected_stddev = np.sqrt(np.var(expectations))
+    expected_std_err = np.sqrt(np.var(expectations))
     # compare against simulated results
     np.testing.assert_allclose(result_expectation, expected_expectation, atol=2e-2)
-    np.testing.assert_allclose(result_stddev, expected_stddev, atol=2e-2)
+    np.testing.assert_allclose(result_std_err, expected_std_err, atol=2e-2)
 
 
 def _point_state_fidelity_estimate(v, dim=2):

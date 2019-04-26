@@ -40,7 +40,7 @@ def run_bell_medium_level(n_shots=1000):
     program += CNOT(q[0], q[1])
 
     # Step 2.1. Manage read-out memory
-    ro = program.declare('ro', memory_type='BIT', memory_size='2')
+    ro = program.declare('ro', memory_type='BIT', memory_size=2)
     program += MEASURE(q[0], ro[0])
     program += MEASURE(q[1], ro[1])
 
@@ -76,7 +76,7 @@ def run_bell_low_level(n_shots=1000):
     program += CNOT(q[0], q[1])
 
     # Step 2.1. Manage read-out memory
-    ro = program.declare('ro', memory_type='BIT', memory_size='2')
+    ro = program.declare('ro', memory_type='BIT', memory_size=2)
     program += MEASURE(q[0], ro[0])
     program += MEASURE(q[1], ro[1])
 

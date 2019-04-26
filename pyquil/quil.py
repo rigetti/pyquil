@@ -648,7 +648,7 @@ class Program(object):
         :param index: The action at the specified index.
         :return:
         """
-        return self.instructions[index]
+        return Program(self.instructions[index]) if isinstance(index, slice) else self.instructions[index]
 
     def __iter__(self):
         """
@@ -806,7 +806,10 @@ def address_qubits(program, qubit_mapping=None):
         else:
             result.append(instr)
 
-    return Program(result)
+    new_program = program.copy()
+    new_program._instructions = result
+
+    return new_program
 
 
 def _get_label(placeholder, label_mapping, label_i):
