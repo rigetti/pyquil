@@ -1,6 +1,24 @@
 Changelog
 =========
 
+v2.7 (April 29, 2019)
+---------------------
+
+Improvements and Changes:
+
+- Standard deviation -> standard error in operator estimation (gh-870).
+
+- Update what pyQuil expects from quilc in terms of rewiring pragmas -- they are
+  now comments rather than distinct instructions (gh-878).
+
+- Allow users to deprioritize QPU jobs -- mostly a Rigetti-internal feature (gh-877).
+
+- Remove the ``qubits`` field from the ``TomographyExperiment`` dataclass (gh-896).
+
+Bugfixes:
+
+- Ensure that shots aren't lost when passing a ``Program`` through ``address_qubits`` (gh-895).
+
 v2.6 (March 29, 2019)
 ---------------------
 
