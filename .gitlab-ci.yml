@@ -15,7 +15,9 @@ test:
   tags:
     - github
   script:
-    - QVM_URL='http://qvm:5000' QUILC_URL='tcp://quilc:5555' tox -e py36
+    - export QVM_URL='http://qvm:5000'
+    - export QUILC_URL='tcp://quilc:5555'
+    - tox -e py36
 
 style:
   tags:
