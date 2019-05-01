@@ -761,7 +761,7 @@ def test_exhaustive_symmetrization_1q(forest):
 def test_exhaustive_symmetrization_2q(forest):
     qc = get_qc('9q-qvm')
     qubs = [5, 7]
-    n_shots = 2000
+    n_shots = 4000
     p = Program()
     p5_00, p5_11 = 0.90, 0.80
     p7_00, p7_11 = 0.99, 0.77
