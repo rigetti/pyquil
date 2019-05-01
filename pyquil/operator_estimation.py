@@ -766,17 +766,17 @@ class ExperimentResult:
         warnings.warn("'stddev' has been renamed to 'std_err'")
         return self.std_err
 
-    def set_stddev(self, value):
+    def set_stddev(self, value: Union[float, complex]):
         warnings.warn("'stddev' has been renamed to 'std_err'")
         object.__setattr__(self, 'std_err', value)
 
     stddev = property(get_stddev, set_stddev)
 
-    def get_raw_stddev(self) -> Union[float, complex]:
+    def get_raw_stddev(self) -> float:
         warnings.warn("'raw_stddev' has been renamed to 'raw_std_err'")
         return self.raw_std_err
 
-    def set_raw_stddev(self, value):
+    def set_raw_stddev(self, value: float):
         warnings.warn("'raw_stddev' has been renamed to 'raw_std_err'")
         object.__setattr__(self, 'raw_std_err', value)
 
@@ -786,7 +786,7 @@ class ExperimentResult:
         warnings.warn("'calibration_stddev' has been renamed to 'calibration_std_err'")
         return self.calibration_std_err
 
-    def set_calibration_stddev(self, value):
+    def set_calibration_stddev(self, value: Union[float, complex]):
         warnings.warn("'calibration_stddev' has been renamed to 'calibration_std_err'")
         object.__setattr__(self, 'calibration_std_err', value)
 
