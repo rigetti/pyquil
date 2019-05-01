@@ -9,15 +9,15 @@ services:
     command: ["-S"]
   - name: rigetti/quilc
     alias: quilc
-    command: ["-S"]
+    command: ["-R"]
 
 
 test:
   tags:
     - github
   script:
-    - export QVM_URL="http://qvm:5000"
-    - export COMPILER_URL='http://quilc:6000'
+    - export QVM_URL='http://qvm:5000'
+    - export QUILC_URL='tcp://quilc:5555'
     - tox -e py36
 
 style:
