@@ -733,7 +733,7 @@ def test_measure_observables_2q_readout_error_one_measured(forest):
 
     for idx, res in enumerate(measure_observables(qc,
                                                   tomo_experiment,
-                                                  n_shots=2000)):
+                                                  n_shots=4000)):
         raw_e[idx] = res.raw_expectation
         obs_e[idx] = res.expectation
         cal_e[idx] = res.calibration_expectation
@@ -1348,7 +1348,7 @@ def test_2q_unitary_channel_fidelity_readout_error(forest):
     expts = []
     for _ in range(num_expts):
         expt_results = []
-        for res in measure_observables(qc, process_exp, n_shots=2000):
+        for res in measure_observables(qc, process_exp, n_shots=4000):
             expt_results.append(res.expectation)
         expts.append(expt_results)
 
@@ -1564,7 +1564,7 @@ def test_measure_2q_observable_raw_statistics(forest):
     tomo_expt = TomographyExperiment(settings=[expt], program=p)
 
     num_simulations = 25
-    num_shots = 2000
+    num_shots = 4000
 
     raw_expectations = []
     raw_std_errs = []
@@ -1609,7 +1609,7 @@ def test_raw_statistics_2q_nontrivial_nonentangled_state(forest):
     tomo_expt = TomographyExperiment(settings=[expt], program=p)
 
     num_simulations = 25
-    num_shots = 2000
+    num_shots = 4000
 
     raw_expectations = []
     raw_std_errs = []
@@ -1677,7 +1677,7 @@ def test_raw_statistics_2q_nontrivial_entangled_state(forest):
     tomo_expt = TomographyExperiment(settings=[expt], program=p)
 
     num_simulations = 25
-    num_shots = 2000
+    num_shots = 4000
 
     raw_expectations = []
     raw_std_errs = []
@@ -1734,7 +1734,7 @@ def test_corrected_statistics_2q_nontrivial_nonentangled_state(forest):
     tomo_expt = TomographyExperiment(settings=[expt], program=p)
 
     num_simulations = 25
-    num_shots = 2000
+    num_shots = 4000
 
     expectations = []
     std_errs = []
