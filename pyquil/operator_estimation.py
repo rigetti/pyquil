@@ -272,7 +272,8 @@ class TomographyExperiment:
 
     def __init__(self,
                  settings: Union[List[ExperimentSetting], List[List[ExperimentSetting]]],
-                 program: Program):
+                 program: Program,
+                 qubits: List[int] = None):
         if len(settings) == 0:
             settings = []
         else:
@@ -282,6 +283,10 @@ class TomographyExperiment:
 
         self._settings = settings  # type: List[List[ExperimentSetting]]
         self.program = program
+        if qubits is not None:
+            warnings.warn("The 'qubits' parameter has been deprecated and will be removed"
+                          "in a future release of pyquil")
+        self.qubits = qubits
 
     def __len__(self):
         return len(self._settings)
