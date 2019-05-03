@@ -1,6 +1,14 @@
 Changelog
 =========
 
+v2.7.2 (May 3, 2019)
+--------------------
+
+Bugfixes:
+
+- An additional backwards-incompatible change from gh-870 snuck through 2.7.1, and is
+  addressed in this patch release.
+
 v2.7.1 (April 30, 2019)
 -----------------------
 
@@ -9,7 +17,6 @@ Bugfixes:
 - The changes to operator estimation (gh-870, gh-896) were not made in a backwards-compatible
   fashion, and therefore this patch release aims to remedy that. Going forward, there will be
   much more stringent requirements around backwards compatibility and deprecation.
-
 
 v2.7 (April 29, 2019)
 ---------------------

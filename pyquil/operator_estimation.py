@@ -6,9 +6,8 @@ import re
 import sys
 import warnings
 from json import JSONEncoder
-from math import pi
 from operator import mul
-from typing import List, Union, Iterable, Dict, Tuple
+from typing import List, Union, Iterable, Tuple, Optional, Dict
 
 import networkx as nx
 import numpy as np
@@ -17,9 +16,7 @@ from functools import reduce
 from pyquil import Program
 from pyquil.api import QuantumComputer
 from pyquil.gates import *
-from pyquil.paulis import (PauliSum, PauliTerm, commuting_sets, sI,
-                           term_with_coeff, is_identity)
-from pyquil.quilbase import (Measurement, Pragma, Gate)
+from pyquil.paulis import PauliTerm, sI, is_identity
 from math import pi
 
 if sys.version_info < (3, 7):
@@ -816,7 +813,8 @@ class ExperimentResult:
 def measure_observables(qc: QuantumComputer, tomo_experiment: TomographyExperiment,
                         n_shots: int = 10000, progress_callback=None, active_reset=False,
                         symmetrize_readout: str = 'exhaustive',
-                        calibrate_readout: str = 'plus-eig'):
+                        calibrate_readout: str = 'plus-eig',
+                        readout_symmetrize: Optional[str] = None):
     """
     Measure all the observables in a TomographyExperiment.
 
@@ -845,6 +843,11 @@ def measure_observables(qc: QuantumComputer, tomo_experiment: TomographyExperime
         eigenstate, which can be specified by setting this variable to 'plus-eig' (default value).
         The preceding symmetrization and this step together yield a more accurate estimation of the observable. Set to `None` if no calibration is desired.
     """
+    if readout_symmetrize is not None:
+        warnings.warn("'readout_symmetrize' has been renamed to 'symmetrize_readout'",
+                      DeprecationWarning)
+        symmetrize_readout = readout_symmetrize
+
     # calibration readout only works with symmetrization turned on
     if calibrate_readout is not None and symmetrize_readout is None:
         raise ValueError("Readout calibration only works with readout symmetrization turned on")
