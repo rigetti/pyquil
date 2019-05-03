@@ -7,7 +7,7 @@ import sys
 import warnings
 from json import JSONEncoder
 from operator import mul
-from typing import List, Union, Iterable, Tuple, Optional
+from typing import List, Union, Iterable, Tuple, Optional, Dict
 
 import networkx as nx
 import numpy as np
