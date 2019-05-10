@@ -6,7 +6,7 @@ six
 networkx >= 2.0.0
 
 # rigetti packages
-rpcq >= 2.2.1
+rpcq >= 2.5.0
 
 # test deps
 pytest
