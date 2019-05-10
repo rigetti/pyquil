@@ -812,8 +812,8 @@ class ExperimentResult:
 
 def measure_observables(qc: QuantumComputer, tomo_experiment: TomographyExperiment,
                         n_shots: int = 10000, progress_callback=None, active_reset=False,
-                        symmetrize_readout: str = 'exhaustive',
-                        calibrate_readout: str = 'plus-eig',
+                        symmetrize_readout: Optional[str] = 'exhaustive',
+                        calibrate_readout: Optional[str] = 'plus-eig',
                         readout_symmetrize: Optional[str] = None):
     """
     Measure all the observables in a TomographyExperiment.
