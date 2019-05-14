@@ -140,26 +140,6 @@ class AbstractQuantumSimulator(ABC):
         """
 
 
-class NotRunAndMeasureProgramError(ValueError):
-    pass
-
-
-def _vet_program(program):
-    """
-    Check that this program is a series of quantum gates with terminal MEASURE instructions; pop
-    MEASURE instructions.
-
-    :param program: The program
-    :return: A new program with MEASURE instructions removed.
-    """
-    new_prog = program.copy_everything_except_instructions()
-
-    for instr in program:
-        new_prog += instr
-
-    return new_prog
-
-
 class PyQVM(QAM):
     def __init__(self, n_qubits, quantum_simulator_type: Type[AbstractQuantumSimulator] = None,
                  seed=None,
@@ -218,8 +198,6 @@ class PyQVM(QAM):
         else:
             program = executable
 
-        program = _vet_program(program)
-        
         # initialize program counter
         self.program = program
         self.program_counter = 0
@@ -270,7 +248,7 @@ class PyQVM(QAM):
         return self
 
     def read_memory(self, *, region_name: str):
-        return self.ram[region_name]
+        return np.asarray(self._memory_results[region_name])
 
     def find_label(self, label: Label):
         """
@@ -457,7 +435,7 @@ class PyQVM(QAM):
 
     def execute(self, program: Program):
         """
-        Execute a one outer loop of a program on the QVM.
+        Execute one outer loop of a program on the QVM.
 
         Note that the QAM is stateful. Subsequent calls to :py:func:`execute` will not
         automatically reset the wavefunction or the classical RAM. If this is desired,
