@@ -187,7 +187,7 @@ class ReferenceDensitySimulator(AbstractQuantumSimulator):
         machine_eps = np.finfo(float).eps
         probabilities = [0 if np.abs(p) < machine_eps * tol_factor else p for p in probabilities]
         # Ensure they sum to one
-        probabilities = probabilities/np.sum(probabilities)
+        probabilities = probabilities / np.sum(probabilities)
         possible_bitstrings = all_bitstrings(self.n_qubits)
         inds = self.rs.choice(2 ** self.n_qubits, n_samples, p=probabilities)
         bitstrings = possible_bitstrings[inds, :]
