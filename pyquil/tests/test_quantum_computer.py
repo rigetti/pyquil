@@ -101,9 +101,7 @@ def test_run_pyqvm_noiseless():
         device=device,
         compiler=DummyCompiler()
     )
-    prog = Program(H(0),
-            CNOT(0, 1),
-            CNOT(1, 2))
+    prog = Program(H(0), CNOT(0, 1), CNOT(1, 2))
     ro = prog.declare('ro', 'BIT', 3)
     for q in range(3):
         prog += MEASURE(q, ro[q])
@@ -122,9 +120,7 @@ def test_run_pyqvm_noisy():
         device=device,
         compiler=DummyCompiler()
     )
-    prog = Program(H(0),
-            CNOT(0, 1),
-            CNOT(1, 2))
+    prog = Program(H(0), CNOT(0, 1), CNOT(1, 2))
     ro = prog.declare('ro', 'BIT', 3)
     for q in range(3):
         prog += MEASURE(q, ro[q])
