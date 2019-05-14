@@ -178,7 +178,16 @@ class ReferenceDensitySimulator(AbstractQuantumSimulator):
         if self.rs is None:
             raise ValueError("You have tried to perform a stochastic operation without setting the "
                              "random state of the simulator. Might I suggest using a PyQVM object?")
-        probabilities = np.real_if_close(np.diagonal(self.density))
+
+        # for np.real_if_close the actual tolerance is (machine_eps *tol_factor). If we use
+        tol_factor = 1e8
+        # then the overall tolerance is \approx 2e-8
+        probabilities = np.real_if_close(np.diagonal(self.density), tol=tol_factor)
+        # Next deal with small positive and negative probs by setting them to zero
+        machine_eps = np.finfo(float).eps
+        probabilities = [0 if np.abs(p) < machine_eps * tol_factor else p for p in probabilities]
+        # Ensure they sum to one
+        probabilities = probabilities/np.sum(probabilities)
         possible_bitstrings = all_bitstrings(self.n_qubits)
         inds = self.rs.choice(2 ** self.n_qubits, n_samples, p=probabilities)
         bitstrings = possible_bitstrings[inds, :]
