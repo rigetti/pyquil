@@ -286,8 +286,7 @@ def test_for_negative_probabilities():
             )
 
     # trivial program to do state tomography on
-    prog = Program()
-    prog += I(0)
+    prog = Program(I(0))
 
     experiment_1q = TomographyExperiment(settings=list(_state_tomo_settings([0])), program=prog)
 
@@ -313,7 +312,6 @@ def test_for_negative_probabilities():
     # initialize with a mixed state
     initial_density = np.array([[1.0, 0.0], [0.0, 0.0]])
     qc_density.qam.wf_simulator.density = initial_density
-    # print(qc_density.qam.wf_simulator.density)
 
     logger = logging.Logger('catch_all')
 
