@@ -178,7 +178,7 @@ class ReferenceDensitySimulator(AbstractQuantumSimulator):
         if self.rs is None:
             raise ValueError("You have tried to perform a stochastic operation without setting the "
                              "random state of the simulator. Might I suggest using a PyQVM object?")
-
+        
         # for np.real_if_close the actual tolerance is (machine_eps *tol_factor). If we use
         tol_factor = 1e8
         # then the overall tolerance is \approx 2e-8
