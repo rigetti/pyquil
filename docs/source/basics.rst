@@ -498,6 +498,9 @@ functions you can use with pyQuil are: ``quil_sin``, ``quil_cos``, ``quil_sqrt``
 Defining Permutation Gates
 ~~~~~~~~~~~~~~~~~~~~~~~~~~
 
+.. note::
+   ``quilc`` supports permutation gate syntax since version ``1.8.0``. pyQuil introduced support in version ``2.8.0``.
+
 Some gates can be compactly represented as a permutation. For example, ``CCNOT`` gate can be represented by the matrix
 
 .. code:: python
