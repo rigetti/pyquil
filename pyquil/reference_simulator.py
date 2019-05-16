@@ -166,26 +166,31 @@ class ReferenceDensitySimulator(AbstractQuantumSimulator):
         self.density = np.zeros((2 ** n_qubits, 2 ** n_qubits), dtype=np.complex128)
         self.density[0, 0] = complex(1.0, 0)
 
-    def sample_bitstrings(self, n_samples):
+    def sample_bitstrings(self, n_samples, tol_factor: float = 1e8):
         """
         Sample bitstrings from the distribution defined by the wavefunction.
 
         Qubit 0 is at ``out[:, 0]``.
 
+        The tolerance factor `tol_factor` is a threshold for setting imaginary and negative
+        probabilities to zero. It is relative to `machine_eps = np.finfo(float).eps`,
+        the the actual tolerance is (machine_eps *tol_factor). So for tol_factor = 1e8
+        then the overall tolerance is approximately 2.2e-8.
+
         :param n_samples: The number of bitstrings to sample
+        :param tol_factor: Tolerance for setting imaginary and negative probabilities to zero.
         :return: An array of shape (n_samples, n_qubits)
         """
         if self.rs is None:
             raise ValueError("You have tried to perform a stochastic operation without setting the "
                              "random state of the simulator. Might I suggest using a PyQVM object?")
 
-        # for np.real_if_close the actual tolerance is (machine_eps *tol_factor). If we use
-        tol_factor = 1e8
-        # then the overall tolerance is \approx 2e-8
+        # for np.real_if_close the actual tolerance is (machine_eps * tol_factor). If we use
+        # tol_factor = 1e8, then the overall tolerance is \approx 2.2e-8.
         probabilities = np.real_if_close(np.diagonal(self.density), tol=tol_factor)
-        # Next deal with small positive and negative probs by setting them to zero
+        # Next deal with small negative probabilities by setting them to zero
         machine_eps = np.finfo(float).eps
-        probabilities = [0 if np.abs(p) < machine_eps * tol_factor else p for p in probabilities]
+        probabilities = [0 if p < -abs(machine_eps * tol_factor) else p for p in probabilities]
         # Ensure they sum to one
         probabilities = probabilities / np.sum(probabilities)
         possible_bitstrings = all_bitstrings(self.n_qubits)
