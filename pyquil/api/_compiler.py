@@ -276,7 +276,6 @@ class QVMCompiler(AbstractCompiler):
         except TimeoutError:
             raise QuilcNotRunning(f'No quilc server running at {self.client.endpoint}')
 
-
     def get_version_info(self) -> dict:
         return self.client.call('get_version_info')
 
