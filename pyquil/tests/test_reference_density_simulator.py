@@ -269,26 +269,12 @@ def test_multiqubit_decay_bellstate():
 
 
 def test_for_negative_probabilities():
-    def _state_tomo_settings(qubits):
-        """Yield settings over itertools.product(I, X, Y, Z).
-
-        Used as a helper function to generate a state tomography experiment.
-
-        :param qubits: The qubits to tomographize.
-        """
-        n_qubits = len(qubits)
-        for o_ops in itertools.product([sI, sX, sY, sZ], repeat=n_qubits):
-            o_op = functools.reduce(mul, (op(q) for op, q in zip(o_ops, qubits)), sI())
-
-            yield ExperimentSetting(
-                in_state=zeros_state(qubits),
-                out_operator=o_op,
-            )
-
     # trivial program to do state tomography on
     prog = Program(I(0))
 
-    experiment_1q = TomographyExperiment(settings=list(_state_tomo_settings([0])), program=prog)
+    # make TomographyExperiment
+    expt_settings = [ExperimentSetting(zeros_state([0]), pt) for pt in [sI(0), sX(0), sY(0), sZ(0)]]
+    experiment_1q = TomographyExperiment(settings=expt_settings, program=prog)
 
     # make an abstract compiler
     class DummyCompiler(AbstractCompiler):
