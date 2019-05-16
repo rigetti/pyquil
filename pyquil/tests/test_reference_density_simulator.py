@@ -1,8 +1,5 @@
 import numpy as np
 import pytest
-import itertools
-import functools
-from operator import mul
 import networkx as nx
 import logging
 
@@ -16,8 +13,8 @@ from pyquil.paulis import sI, sX, sY, sZ
 from pyquil.device import NxDevice
 from pyquil.api import QuantumComputer
 from pyquil.api._qac import AbstractCompiler
-from pyquil.operator_estimation import measure_observables, ExperimentSetting, \
-    TomographyExperiment, zeros_state
+from pyquil.operator_estimation import (measure_observables, ExperimentSetting,
+                                        TomographyExperiment, zeros_state)
 
 
 def test_qaoa_density():
