@@ -172,25 +172,21 @@ class ReferenceDensitySimulator(AbstractQuantumSimulator):
 
         Qubit 0 is at ``out[:, 0]``.
 
-        The tolerance factor `tol_factor` is a threshold for setting imaginary and negative
-        probabilities to zero. It is relative to `machine_eps = np.finfo(float).eps`,
-        the the actual tolerance is (machine_eps *tol_factor). So for tol_factor = 1e8
-        then the overall tolerance is approximately 2.2e-8.
-
         :param n_samples: The number of bitstrings to sample
-        :param tol_factor: Tolerance for setting imaginary and negative probabilities to zero.
+        :param tol_factor: Tolerance for setting imaginary probabilities to zero, relative to
+        machine epsilon.
         :return: An array of shape (n_samples, n_qubits)
         """
         if self.rs is None:
             raise ValueError("You have tried to perform a stochastic operation without setting the "
                              "random state of the simulator. Might I suggest using a PyQVM object?")
 
-        # for np.real_if_close the actual tolerance is (machine_eps * tol_factor). If we use
-        # tol_factor = 1e8, then the overall tolerance is \approx 2.2e-8.
+        # for np.real_if_close the actual tolerance is (machine_eps * tol_factor),
+        # where `machine_epsilon. = np.finfo(float).eps`. If we use tol_factor = 1e8, then the
+        # overall tolerance is \approx 2.2e-8.
         probabilities = np.real_if_close(np.diagonal(self.density), tol=tol_factor)
-        # Next deal with small negative probabilities by setting them to zero
-        machine_eps = np.finfo(float).eps
-        probabilities = [0 if p < -abs(machine_eps * tol_factor) else p for p in probabilities]
+        # Next set negative probabilities to zero
+        probabilities = [0 if p < 0.0 else p for p in probabilities]
         # Ensure they sum to one
         probabilities = probabilities / np.sum(probabilities)
         possible_bitstrings = all_bitstrings(self.n_qubits)
