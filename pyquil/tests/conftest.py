@@ -9,6 +9,8 @@ from pyquil.api import (QVMConnection, QVMCompiler, ForestConnection,
                         get_benchmarker, local_qvm)
 from pyquil.api._config import PyquilConfig
 from pyquil.api._errors import UnknownApiError
+from pyquil.api._compiler import QuilcNotRunning, QuilcVersionMismatch
+from pyquil.api._qvm import QVMNotRunning, QVMVersionMismatch
 from pyquil.device import Device
 from pyquil.gates import I
 from pyquil.paulis import sX
@@ -138,8 +140,10 @@ def qvm():
         qvm = QVMConnection(random_seed=52)
         qvm.run(Program(I(0)), [])
         return qvm
-    except (RequestException, UnknownApiError) as e:
+    except (RequestException, QVMNotRunning, UnknownApiError) as e:
         return pytest.skip("This test requires QVM connection: {}".format(e))
+    except QVMVersionMismatch as e:
+        return pytest.skip("This test requires a different version of the QVM: {}".format(e))
 
 
 @pytest.fixture()
@@ -149,8 +153,10 @@ def compiler(test_device):
         compiler = QVMCompiler(endpoint=config.quilc_url, device=test_device, timeout=1)
         compiler.quil_to_native_quil(Program(I(0)))
         return compiler
-    except (RequestException, UnknownApiError, TimeoutError) as e:
+    except (RequestException, QuilcNotRunning, UnknownApiError, TimeoutError) as e:
         return pytest.skip("This test requires compiler connection: {}".format(e))
+    except QuilcVersionMismatch as e:
+        return pytest.skip("This test requires a different version of quilc: {}".format(e))
 
 
 @pytest.fixture(scope='session')
