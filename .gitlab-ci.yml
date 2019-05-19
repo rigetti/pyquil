@@ -22,6 +22,8 @@ test:
     - echo "QVM_URL = $QVM_URL"
     - echo "QUILC_URL = $QUILC_URL"
     - export
+    - echo "[Rigetti Forest]\nqvm_address = http://qvm:5000\nquilc_address = tcp://quilc:5555" >> ~/.forest_config
+    - cat ~/.forest_config
     - tox -e py36
 
 style:
