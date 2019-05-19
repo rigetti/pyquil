@@ -21,6 +21,7 @@ test:
   script:
     - echo "QVM_URL = $QVM_URL"
     - echo "QUILC_URL = $QUILC_URL"
+    - export
     - tox -e py36
 
 style:
