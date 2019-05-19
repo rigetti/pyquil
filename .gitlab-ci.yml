@@ -24,6 +24,7 @@ test:
     - export
     - echo -e "[Rigetti Forest]\nqvm_address = http://qvm:5000\nquilc_address = tcp://quilc:5555" >> ~/.forest_config
     - cat ~/.forest_config
+    - python -c "import os; print(os.environ)"
     - tox -e py36
 
 style:
