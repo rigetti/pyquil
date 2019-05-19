@@ -20,7 +20,7 @@ test:
     - github
   script:
     - echo "QVM_URL = $QVM_URL"
-    - echo "QUILC_URL = QUILC_URL"
+    - echo "QUILC_URL = $QUILC_URL"
     - tox -e py36
 
 style:
