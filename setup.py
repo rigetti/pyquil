@@ -82,7 +82,7 @@ setup(
         'requests',
         'six',
         'networkx>=2.0.0',
-        'rpcq>=2.5.0',
+        'rpcq>=2.5.1',
 
         # dependency of contextvars, which we vendor
         'immutables==0.6',
