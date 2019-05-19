@@ -1,5 +1,9 @@
 image: python:3.6
 
+variables:
+    QVM_URL: "http://qvm:5000"
+    QUILC_URL: "tcp://quilc:5555"
+
 before_script:
   - pip install tox
 
@@ -15,8 +19,8 @@ test:
   tags:
     - github
   script:
-    - export QVM_URL='http://qvm:5000'
-    - export QUILC_URL='tcp://quilc:5555'
+    - echo "QVM_URL = $QVM_URL"
+    - echo "QUILC_URL = QUILC_URL"
     - tox -e py36
 
 style:
