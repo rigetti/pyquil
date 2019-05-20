@@ -580,11 +580,11 @@ class Program(object):
             qubits = [unpack_qubit(q) for q in gate.qubits]
             if gate.name in QUANTUM_GATES:
                 if gate.name == "S":
-                    reversed_gate = Gate("PHASE", -pi / 2, qubits)
+                    reversed_gate = Gate("PHASE", [-pi / 2], qubits)
                 elif gate.name == "T":
-                    reversed_gate = Gate("RZ", pi / 4, qubits)
+                    reversed_gate = Gate("RZ", [pi / 4], qubits)
                 elif gate.name == "ISWAP":
-                    reversed_gate = Gate("PSWAP", pi / 2, qubits)
+                    reversed_gate = Gate("PSWAP", [pi / 2], qubits)
                 else:
                     negated_params = list(map(lambda x: -1 * x, gate.params))
                     reversed_gate = Gate(gate.name, negated_params, qubits)
