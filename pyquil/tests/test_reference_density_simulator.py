@@ -1,7 +1,6 @@
 import numpy as np
 import pytest
 import networkx as nx
-import logging
 
 import pyquil.gate_matrices as qmats
 from pyquil import Program
@@ -292,16 +291,14 @@ def test_for_negative_probabilities():
                                  device=device,
                                  compiler=DummyCompiler())
 
-    # initialize with a mixed state
+    # initialize with a pure state
     initial_density = np.array([[1.0, 0.0], [0.0, 0.0]])
     qc_density.qam.wf_simulator.density = initial_density
 
-    logger = logging.Logger('catch_all')
-
     try:
         list(measure_observables(qc=qc_density, tomo_experiment=experiment_1q, n_shots=3000))
-    except Exception as e:
-        print(logger.error('Error: ' + str(e)))
+    except ValueError as e:
+        # the error is from np.random.choice by way of self.rs.choice in ReferenceDensitySimulator
         assert str(e) != 'probabilities are not non-negative'
 
     # initialize with a mixed state
@@ -310,6 +307,5 @@ def test_for_negative_probabilities():
 
     try:
         list(measure_observables(qc=qc_density, tomo_experiment=experiment_1q, n_shots=3000))
-    except Exception as e:
-        print(logger.error('Error: ' + str(e)))
+    except ValueError as e:
         assert str(e) != 'probabilities are not non-negative'
