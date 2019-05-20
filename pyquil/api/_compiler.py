@@ -25,7 +25,7 @@ from rpcq.messages import (BinaryExecutableRequest, BinaryExecutableResponse,
                            PyQuilExecutableResponse, ParameterSpec,
                            RewriteArithmeticRequest)
 
-from pyquil.api._base_connection import ForestConnection
+from pyquil import __version__
 from pyquil.api._qac import AbstractCompiler
 from pyquil.api._error_reporting import _record_call
 from pyquil.device import AbstractDevice
@@ -36,6 +36,27 @@ from pyquil.quil import Program, Measurement, Declare
 _log = logging.getLogger(__name__)
 
 PYQUIL_PROGRAM_PROPERTIES = ["native_quil_metadata", "num_shots"]
+
+
+class QuilcVersionMismatch(Exception):
+    pass
+
+
+class QuilcNotRunning(Exception):
+    pass
+
+
+def check_quilc_version(version_dict: Dict[str, str]):
+    """
+    Verify that there is no mismatch between pyquil and quilc versions.
+
+    :param version_dict: Dictionary containing version information about quilc.
+    """
+    quilc_version = version_dict['quilc']
+    major, minor, patch = map(int, quilc_version.split('.'))
+    if major == 1 and minor < 8:
+        raise QuilcVersionMismatch('Must use quilc >= 1.8.0 with pyquil >= 2.8.0, but you '
+                                   f'have quilc {quilc_version} and pyquil {__version__}')
 
 
 def _extract_attribute_dictionary_from_program(program: Program) -> Dict[str, Any]:
@@ -165,6 +186,14 @@ class QPUCompiler(AbstractCompiler):
         self.target_device = TargetDevice(isa=device.get_isa().to_dict(),
                                           specs=device.get_specs().to_dict())
         self.name = name
+        self.connect()
+
+    def connect(self):
+        try:
+            quilc_version_dict = self.get_version_info()['quilc']
+            check_quilc_version(quilc_version_dict)
+        except TimeoutError:
+            raise QuilcNotRunning(f'No quilc server running at {self.quilc_client.endpoint}')
 
     def get_version_info(self) -> dict:
         quilc_version_info = self.quilc_client.call('get_version_info')
@@ -238,6 +267,14 @@ class QVMCompiler(AbstractCompiler):
         self.client = Client(endpoint, timeout=timeout)
         self.target_device = TargetDevice(isa=device.get_isa().to_dict(),
                                           specs=device.get_specs().to_dict())
+        self.connect()
+
+    def connect(self):
+        try:
+            version_dict = self.get_version_info()
+            check_quilc_version(version_dict)
+        except TimeoutError:
+            raise QuilcNotRunning(f'No quilc server running at {self.client.endpoint}')
 
     def get_version_info(self) -> dict:
         return self.client.call('get_version_info')
