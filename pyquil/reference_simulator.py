@@ -173,8 +173,8 @@ class ReferenceDensitySimulator(AbstractQuantumSimulator):
         Qubit 0 is at ``out[:, 0]``.
 
         :param n_samples: The number of bitstrings to sample
-        :param tol_factor: Tolerance for setting imaginary probabilities to zero, relative to
-        machine epsilon.
+        :param tol_factor: Tolerance to set imaginary probabilities to zero, relative to
+            machine epsilon.
         :return: An array of shape (n_samples, n_qubits)
         """
         if self.rs is None:
@@ -182,7 +182,7 @@ class ReferenceDensitySimulator(AbstractQuantumSimulator):
                              "random state of the simulator. Might I suggest using a PyQVM object?")
 
         # for np.real_if_close the actual tolerance is (machine_eps * tol_factor),
-        # where `machine_epsilon. = np.finfo(float).eps`. If we use tol_factor = 1e8, then the
+        # where `machine_epsilon = np.finfo(float).eps`. If we use tol_factor = 1e8, then the
         # overall tolerance is \approx 2.2e-8.
         probabilities = np.real_if_close(np.diagonal(self.density), tol=tol_factor)
         # Next set negative probabilities to zero
