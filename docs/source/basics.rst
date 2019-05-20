@@ -530,7 +530,7 @@ It can equivalently be defined by the permutation
    import numpy as np
    from pyquil.quilbase import DefPermutationGate
 
-   ccnot_gate = DefGate("CCNOT", [0, 1, 2, 3, 4, 5, 7, 6])
+   ccnot_gate = DefPermutationGate("CCNOT", [0, 1, 2, 3, 4, 5, 7, 6])
 
    # etc
 
