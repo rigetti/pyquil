@@ -19,12 +19,10 @@ test:
   tags:
     - github
   script:
-    - echo "QVM_URL = $QVM_URL"
-    - echo "QUILC_URL = $QUILC_URL"
-    - export
-    - echo -e "[Rigetti Forest]\nqvm_address = http://qvm:5000\nquilc_address = tcp://quilc:5555" >> ~/.forest_config
+    - echo "[Rigetti Forest]" > ~/.forest_config
+    - echo "qvm_address = $QVM_URL" >> ~/.forest_config
+    - echo "quilc_address = $QUILC_URL" >> ~/.forest_config
     - cat ~/.forest_config
-    - python -c "import os; print(os.environ)"
     - tox -e py36
 
 style:
