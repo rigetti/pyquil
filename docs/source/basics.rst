@@ -495,6 +495,45 @@ functions you can use with pyQuil are: ``quil_sin``, ``quil_cos``, ``quil_sqrt``
     (e.g. ``print(WavefunctionSimulator().wavefunction(p))``).
 
 
+Defining Permutation Gates
+~~~~~~~~~~~~~~~~~~~~~~~~~~
+
+.. note::
+   ``quilc`` supports permutation gate syntax since version ``1.8.0``. pyQuil introduced support in version ``2.8.0``.
+
+Some gates can be compactly represented as a permutation. For example, ``CCNOT`` gate can be represented by the matrix
+
+.. code:: python
+
+   import numpy as np
+   from pyquil.quilbase import DefGate
+
+   ccnot_matrix = np.array([
+       [1, 0, 0, 0, 0, 0, 0, 0],
+       [0, 1, 0, 0, 0, 0, 0, 0],
+       [0, 0, 1, 0, 0, 0, 0, 0],
+       [0, 0, 0, 1, 0, 0, 0, 0],
+       [0, 0, 0, 0, 1, 0, 0, 0],
+       [0, 0, 0, 0, 0, 1, 0, 0],
+       [0, 0, 0, 0, 0, 0, 0, 1],
+       [1, 0, 0, 0, 0, 0, 1, 0]
+   ])
+
+   ccnot_gate = DefGate("CCNOT", ccnot_matrix)
+
+   # etc
+
+It can equivalently be defined by the permutation
+
+.. code:: python
+
+   import numpy as np
+   from pyquil.quilbase import DefPermutationGate
+
+   ccnot_gate = DefPermutationGate("CCNOT", [0, 1, 2, 3, 4, 5, 7, 6])
+
+   # etc
+
 Pragmas
 ~~~~~~~
 

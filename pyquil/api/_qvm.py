@@ -17,9 +17,11 @@ import warnings
 import numpy as np
 from typing import List
 
+from requests.exceptions import ConnectionError
 from rpcq.messages import PyQuilExecutableResponse
 from six import integer_types
 
+from pyquil import __version__
 from pyquil.api._base_connection import (validate_qubit_list, validate_noise_probabilities,
                                          TYPE_MULTISHOT_MEASURE, TYPE_WAVEFUNCTION,
                                          TYPE_EXPECTATION, post_json, ForestConnection)
@@ -34,6 +36,26 @@ from pyquil.noise import apply_noise_model
 from pyquil.paulis import PauliSum
 from pyquil.quil import Program, get_classical_addresses_from_program, percolate_declares
 from pyquil.wavefunction import Wavefunction
+
+
+class QVMVersionMismatch(Exception):
+    pass
+
+
+class QVMNotRunning(Exception):
+    pass
+
+
+def check_qvm_version(version: str):
+    """
+    Verify that there is no mismatch between pyquil and QVM versions.
+
+    :param version: The version of the QVM
+    """
+    major, minor, patch = map(int, version.split('.'))
+    if major == 1 and minor < 8:
+        raise QVMVersionMismatch('Must use QVM >= 1.8.0 with pyquil >= 2.8.0, but you '
+                                 f'have QVM {version} and pyquil {__version__}')
 
 
 class QVMConnection(object):
@@ -105,6 +127,14 @@ programs run on this QVM.
 
         self._connection = ForestConnection(sync_endpoint=endpoint)
         self.session = self._connection.session  # backwards compatibility
+        self.connect()
+
+    def connect(self):
+        try:
+            version_dict = self.get_version_info()
+            check_qvm_version(version_dict)
+        except ConnectionError:
+            raise QVMNotRunning(f'No QVM server running at {self._connection.sync_endpoint}')
 
     @_record_call
     def get_version_info(self):
@@ -405,6 +435,14 @@ To read more about supplying noise to the QVM, see http://pyquil.readthedocs.io/
             raise TypeError("random_seed should be None or a non-negative int")
 
         self.requires_executable = requires_executable
+        self.connect()
+
+    def connect(self):
+        try:
+            version_dict = self.get_version_info()
+            check_qvm_version(version_dict)
+        except ConnectionError:
+            raise QVMNotRunning(f'No QVM server running at {self.connection.sync_endpoint}')
 
     @_record_call
     def get_version_info(self):
