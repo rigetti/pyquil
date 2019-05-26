@@ -1187,3 +1187,17 @@ def test_out_of_bounds_memory():
 def test_memory_reference_iteration():
     r = Program().declare('ro', 'BIT', 10)
     assert len([i for i in r]) == 10
+
+
+def test_placeholders_preserves_modifiers():
+    cs = QubitPlaceholder.register(3)
+    ts = QubitPlaceholder.register(1)
+
+    g = X(ts[0])
+    for c in cs:
+        g = g.controlled(c).dagger()
+
+    p = Program(g)
+    a = address_qubits(p)
+
+    assert a[0].modifiers == g.modifiers

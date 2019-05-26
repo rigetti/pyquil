@@ -1,6 +1,19 @@
 Changelog
 =========
 
+v2.8 (May 20, 2019)
+---------------------
+
+Improvements and Changes:
+
+- PyQuil now verifies that you are using the correct version of the QVM and quilc (gh-913).
+
+- Added support for defining permutation gates for use with the latest version of quilc (gh-891).
+
+Bugfixes:
+
+- Preserve modifiers during ``address_qubits`` (gh-907).
+
 v2.7.2 (May 3, 2019)
 --------------------
 

@@ -789,7 +789,9 @@ def address_qubits(program, qubit_mapping=None):
         # Remap qubits on Gate and Measurement instructions
         if isinstance(instr, Gate):
             remapped_qubits = [qubit_mapping[q] for q in instr.qubits]
-            result.append(Gate(instr.name, instr.params, remapped_qubits))
+            gate = Gate(instr.name, instr.params, remapped_qubits)
+            gate.modifiers = instr.modifiers
+            result.append(gate)
         elif isinstance(instr, Measurement):
             result.append(Measurement(qubit_mapping[instr.qubit], instr.classical_reg))
         elif isinstance(instr, Pragma):
