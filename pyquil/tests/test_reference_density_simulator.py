@@ -1,5 +1,6 @@
 import numpy as np
 import pytest
+import networkx as nx
 
 import pyquil.gate_matrices as qmats
 from pyquil import Program
@@ -7,6 +8,12 @@ from pyquil.gates import *
 from pyquil.pyqvm import PyQVM
 from pyquil.reference_simulator import ReferenceDensitySimulator, ReferenceWavefunctionSimulator
 from pyquil.unitary_tools import lifted_gate_matrix
+from pyquil.paulis import sI, sX, sY, sZ
+from pyquil.device import NxDevice
+from pyquil.api import QuantumComputer
+from pyquil.api._qac import AbstractCompiler
+from pyquil.operator_estimation import (measure_observables, ExperimentSetting,
+                                        TomographyExperiment, zeros_state)
 
 
 def test_qaoa_density():
@@ -255,3 +262,50 @@ def test_multiqubit_decay_bellstate():
     qam.execute(program)
 
     assert np.allclose(qam.wf_simulator.density, state)
+
+
+def test_for_negative_probabilities():
+    # trivial program to do state tomography on
+    prog = Program(I(0))
+
+    # make TomographyExperiment
+    expt_settings = [ExperimentSetting(zeros_state([0]), pt) for pt in [sI(0), sX(0), sY(0), sZ(0)]]
+    experiment_1q = TomographyExperiment(settings=expt_settings, program=prog)
+
+    # make an abstract compiler
+    class DummyCompiler(AbstractCompiler):
+        def get_version_info(self):
+            return {}
+
+        def quil_to_native_quil(self, program: Program):
+            return program
+
+        def native_quil_to_executable(self, nq_program: Program):
+            return nq_program
+
+    # make a quantum computer object
+    device = NxDevice(nx.complete_graph(1))
+    qc_density = QuantumComputer(name='testy!',
+                                 qam=PyQVM(n_qubits=1,
+                                           quantum_simulator_type=ReferenceDensitySimulator),
+                                 device=device,
+                                 compiler=DummyCompiler())
+
+    # initialize with a pure state
+    initial_density = np.array([[1.0, 0.0], [0.0, 0.0]])
+    qc_density.qam.wf_simulator.density = initial_density
+
+    try:
+        list(measure_observables(qc=qc_density, tomo_experiment=experiment_1q, n_shots=3000))
+    except ValueError as e:
+        # the error is from np.random.choice by way of self.rs.choice in ReferenceDensitySimulator
+        assert str(e) != 'probabilities are not non-negative'
+
+    # initialize with a mixed state
+    initial_density = np.array([[0.9, 0.0], [0.0, 0.1]])
+    qc_density.qam.wf_simulator.density = initial_density
+
+    try:
+        list(measure_observables(qc=qc_density, tomo_experiment=experiment_1q, n_shots=3000))
+    except ValueError as e:
+        assert str(e) != 'probabilities are not non-negative'
