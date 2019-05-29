@@ -208,6 +208,8 @@ def test_memory_commands():
     parse_equals("CONVERT ro[1] ro[2]", CONVERT(MemoryReference("ro", 1), MemoryReference("ro", 2)))
     parse_equals("EXCHANGE ro[0] ro[1]", EXCHANGE(MemoryReference("ro", 0), MemoryReference("ro", 1)))
     parse_equals("MOVE mem[2] 4", MOVE(MemoryReference("mem", 2), 4))
+    parse_equals("MOVE mem[2] -4", MOVE(MemoryReference("mem", 2), -4))
+    parse_equals("MOVE mem[2] -4.1", MOVE(MemoryReference("mem", 2), -4.1))
 
 
 def test_classical():
@@ -222,6 +224,10 @@ def test_classical():
     parse_equals("SUB mem[0] 1.2", SUB(MemoryReference("mem", 0), 1.2))
     parse_equals("MUL mem[0] 1.2", MUL(MemoryReference("mem", 0), 1.2))
     parse_equals("DIV mem[0] 1.2", DIV(MemoryReference("mem", 0), 1.2))
+    parse_equals("ADD mem[0] -1.2", ADD(MemoryReference("mem", 0), -1.2))
+    parse_equals("SUB mem[0] -1.2", SUB(MemoryReference("mem", 0), -1.2))
+    parse_equals("MUL mem[0] -1.2", MUL(MemoryReference("mem", 0), -1.2))
+    parse_equals("DIV mem[0] -1.2", DIV(MemoryReference("mem", 0), -1.2))
     parse_equals("EQ comp[1] ro[3] ro[2]",
                  EQ(MemoryReference("comp", 1), MemoryReference("ro", 3), MemoryReference("ro", 2)))
     parse_equals("LT comp[1] ro[3] ro[2]",
