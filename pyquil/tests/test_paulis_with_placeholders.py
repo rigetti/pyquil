@@ -624,15 +624,15 @@ def test_PauliTerm_matrix():
                          [0, 0, 0, 0, 0, 0, 0, -1.5],
                          [0, 0, 0, 0, 0, 0, -1.5, 0]])
     assert np.allclose(matrix1, matrix2)
-    matrix1 = term.matrix(qubit_mapping={q0: 0}, nqubits=4)
+    matrix1 = term.matrix(qubit_mapping={q0: 0}, n_qubits=4)
     matrix2 = np.kron(np.array([[1, 0], [0, 1]]), matrix2)
     assert np.allclose(matrix1, matrix2)
 
-    with pytest.raises(AssertionError):
+    with pytest.raises(ValueError):
         term.matrix(qubit_mapping={q0: 2})
-    with pytest.raises(AssertionError):
+    with pytest.raises(ValueError):
         term.matrix(qubit_mapping={q1: 2})
-    with pytest.raises(AssertionError):
+    with pytest.raises(ValueError):
         term.matrix(qubit_mapping={q1: 2, q0: 2})
 
 
@@ -651,13 +651,13 @@ def test_PauliSum_matrix():
                          [0, 0, 0, 0, 0, 0, -1.5, 0]])
     matrix2 += np.diag([0.7, 0.7, -0.7, -0.7, 0.7, 0.7, -0.7, -0.7])
     assert(np.allclose(matrix1, matrix2))
-    matrix1 = Sum.matrix(qubit_mapping={q0: 0}, nqubits=4)
+    matrix1 = Sum.matrix(qubit_mapping={q0: 0}, n_qubits=4)
     matrix2 = np.kron(np.array([[1, 0], [0, 1]]), matrix2)
     assert np.allclose(matrix1, matrix2)
 
-    with pytest.raises(AssertionError):
+    with pytest.raises(ValueError):
         Sum.matrix(qubit_mapping={q0: 2})
-    with pytest.raises(AssertionError):
+    with pytest.raises(ValueError):
         Sum.matrix(qubit_mapping={q1: 2})
-    with pytest.raises(AssertionError):
+    with pytest.raises(ValueError):
         Sum.matrix(qubit_mapping={q1: 2, q0: 2})
