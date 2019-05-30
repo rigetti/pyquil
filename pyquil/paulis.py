@@ -725,7 +725,7 @@ class PauliSum(object):
         # be able to also map real qubits to other indices in the tensor
         # product
         qubit_list = [*range(n_qubits)]
-        is_already_mapped_on = [False]*n_qubits
+        is_already_mapped_on = [False] * n_qubits
         for qubit in self_qubits:
             # check that we didn't already map to this physical qubit
             try:
@@ -735,7 +735,7 @@ class PauliSum(object):
                         is_already_mapped_on[qubit_mapping[qubit]] = True
                     except IndexError:
                         raise ValueError("n_qubits lower than the maximum "
-                            "qubit in the PauliTerm or qubit_map")
+                                         "qubit in the PauliTerm or qubit_map")
                 # raise exception, if we already mapped to qubit_mappig[qubit]
                 else:
                     raise ValueError("qubit_mapping is not injective")
@@ -747,7 +747,7 @@ class PauliSum(object):
                 # don't do anything, if qubit is already an integer
                 if isinstance(qubit, QubitPlaceholder):
                     raise ValueError("qubit_mapping doesn't map all "
-                        "QubitPlaceholders to real qubits")
+                                     "QubitPlaceholders to real qubits")
                 elif isinstance(qubit, int):
                     if is_already_mapped_on[qubit]:
                         raise ValueError("qubit_mapping is not injective")
@@ -1085,4 +1085,3 @@ def trotterize(first_pauli_term, second_pauli_term, trotter_order=1,
             exp_prog = param_prog(1)
             prog += exp_prog
     return prog
-
