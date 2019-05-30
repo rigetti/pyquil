@@ -30,7 +30,7 @@ from pyquil import parameters
 from pyquil.gates import QUANTUM_GATES
 from pyquil.parameters import Parameter
 from pyquil.quilatom import MemoryReference, Addr
-from pyquil.quilbase import (Gate, DefGate, Measurement, JumpTarget, Label, Expression,
+from pyquil.quilbase import (Gate, DefGate, DefPermutationGate, Measurement, JumpTarget, Label, Expression,
                              Nop, Halt, Jump, JumpWhen, JumpUnless, Reset, Wait,
                              ClassicalNot, ClassicalNeg, ClassicalAnd, ClassicalInclusiveOr,
                              ClassicalExclusiveOr,
@@ -110,9 +110,14 @@ class PyQuilListener(QuilListener):
 
     def exitDefGate(self, ctx: QuilParser.DefGateContext):
         gate_name = ctx.name().getText()
-        matrix = _matrix(ctx.matrix())
-        parameters = list(map(_variable, ctx.variable()))
-        self.result.append(DefGate(gate_name, matrix, parameters))
+        gate_type = ctx.gatetype()
+        if gate_type and gate_type.getText() == 'PERMUTATION':
+            permutation = _permutation(ctx.matrix())
+            self.result.append(DefPermutationGate(gate_name, permutation))
+        else:
+            matrix = _matrix(ctx.matrix())
+            parameters = [_variable(v) for v in ctx.variable()]
+            self.result.append(DefGate(gate_name, matrix, parameters))
 
     # DEFCIRCUIT parsing:
     # When we enter a circuit definition we create a backup of the instructions seen up to that point. Then, when the
@@ -393,6 +398,14 @@ def _matrix(matrix):
     for row in matrix.matrixRow():
         out.append(list(map(_expression, row.expression())))
     return out
+
+
+def _permutation(matrix):
+    row = matrix.matrixRow()
+    if len(row) == 1:
+        return [_expression(e) for e in row[0].expression()]
+    else:
+        raise RuntimeError("Permutation gates are defined by a single row, but found " + str(len(row)) + " during parsing.")
 
 
 def _addr(classical):

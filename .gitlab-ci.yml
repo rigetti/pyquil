@@ -1,5 +1,9 @@
 image: python:3.6
 
+variables:
+    QVM_URL: "http://qvm:5000"
+    QUILC_URL: "tcp://quilc:5555"
+
 before_script:
   - pip install tox
 
@@ -9,15 +13,16 @@ services:
     command: ["-S"]
   - name: rigetti/quilc
     alias: quilc
-    command: ["-S"]
-
+    command: ["-R"]
 
 test:
   tags:
     - github
   script:
-    - export QVM_URL="http://qvm:5000"
-    - export COMPILER_URL='http://quilc:6000'
+    - echo "[Rigetti Forest]" > ~/.forest_config
+    - echo "qvm_address = $QVM_URL" >> ~/.forest_config
+    - echo "quilc_address = $QUILC_URL" >> ~/.forest_config
+    - cat ~/.forest_config
     - tox -e py36
 
 style:

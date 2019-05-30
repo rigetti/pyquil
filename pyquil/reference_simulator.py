@@ -166,19 +166,29 @@ class ReferenceDensitySimulator(AbstractQuantumSimulator):
         self.density = np.zeros((2 ** n_qubits, 2 ** n_qubits), dtype=np.complex128)
         self.density[0, 0] = complex(1.0, 0)
 
-    def sample_bitstrings(self, n_samples):
+    def sample_bitstrings(self, n_samples, tol_factor: float = 1e8):
         """
         Sample bitstrings from the distribution defined by the wavefunction.
 
         Qubit 0 is at ``out[:, 0]``.
 
         :param n_samples: The number of bitstrings to sample
+        :param tol_factor: Tolerance to set imaginary probabilities to zero, relative to
+            machine epsilon.
         :return: An array of shape (n_samples, n_qubits)
         """
         if self.rs is None:
             raise ValueError("You have tried to perform a stochastic operation without setting the "
                              "random state of the simulator. Might I suggest using a PyQVM object?")
-        probabilities = np.real_if_close(np.diagonal(self.density))
+
+        # for np.real_if_close the actual tolerance is (machine_eps * tol_factor),
+        # where `machine_epsilon = np.finfo(float).eps`. If we use tol_factor = 1e8, then the
+        # overall tolerance is \approx 2.2e-8.
+        probabilities = np.real_if_close(np.diagonal(self.density), tol=tol_factor)
+        # Next set negative probabilities to zero
+        probabilities = [0 if p < 0.0 else p for p in probabilities]
+        # Ensure they sum to one
+        probabilities = probabilities / np.sum(probabilities)
         possible_bitstrings = all_bitstrings(self.n_qubits)
         inds = self.rs.choice(2 ** self.n_qubits, n_samples, p=probabilities)
         bitstrings = possible_bitstrings[inds, :]

@@ -6,9 +6,8 @@ import re
 import sys
 import warnings
 from json import JSONEncoder
-from math import pi
 from operator import mul
-from typing import List, Union, Iterable, Dict, Tuple
+from typing import List, Union, Iterable, Tuple, Optional, Dict
 
 import networkx as nx
 import numpy as np
@@ -17,9 +16,7 @@ from functools import reduce
 from pyquil import Program
 from pyquil.api import QuantumComputer
 from pyquil.gates import *
-from pyquil.paulis import (PauliSum, PauliTerm, commuting_sets, sI,
-                           term_with_coeff, is_identity)
-from pyquil.quilbase import (Measurement, Pragma, Gate)
+from pyquil.paulis import PauliTerm, sI, is_identity
 from math import pi
 
 if sys.version_info < (3, 7):
@@ -273,7 +270,7 @@ class TomographyExperiment:
     def __init__(self,
                  settings: Union[List[ExperimentSetting], List[List[ExperimentSetting]]],
                  program: Program,
-                 qubits: List[int]):
+                 qubits: List[int] = None):
         if len(settings) == 0:
             settings = []
         else:
@@ -283,6 +280,9 @@ class TomographyExperiment:
 
         self._settings = settings  # type: List[List[ExperimentSetting]]
         self.program = program
+        if qubits is not None:
+            warnings.warn("The 'qubits' parameter has been deprecated and will be removed"
+                          "in a future release of pyquil")
         self.qubits = qubits
 
     def __len__(self):
@@ -359,7 +359,6 @@ class TomographyExperiment:
             'type': 'TomographyExperiment',
             'settings': self._settings,
             'program': self.program.out(),
-            'qubits': self.qubits,
         }
 
     def __eq__(self, other):
@@ -393,8 +392,7 @@ def _operator_object_hook(obj):
     if 'type' in obj and obj['type'] == 'TomographyExperiment':
         return TomographyExperiment([[ExperimentSetting.from_str(s) for s in settings]
                                      for settings in obj['settings']],
-                                    program=Program(obj['program']),
-                                    qubits=obj['qubits'])
+                                    program=Program(obj['program']))
     return obj
 
 
@@ -536,7 +534,7 @@ def group_experiments_clique_removal(experiments: TomographyExperiment) -> Tomog
 
         new_cliqs += [new_cliq]
 
-    return TomographyExperiment(new_cliqs, program=experiments.program, qubits=experiments.qubits)
+    return TomographyExperiment(new_cliqs, program=experiments.program)
 
 
 def _max_weight_operator(ops: Iterable[PauliTerm]) -> Union[None, PauliTerm]:
@@ -642,8 +640,7 @@ def group_experiments_greedy(tomo_expt: TomographyExperiment):
     """
     diag_sets = _max_tpb_overlap(tomo_expt)
     grouped_expt_settings_list = list(diag_sets.values())
-    grouped_tomo_expt = TomographyExperiment(grouped_expt_settings_list, program=tomo_expt.program,
-                                             qubits=tomo_expt.qubits)
+    grouped_tomo_expt = TomographyExperiment(grouped_expt_settings_list, program=tomo_expt.program)
     return grouped_tomo_expt
 
 
@@ -719,16 +716,81 @@ class ExperimentResult:
 
     setting: ExperimentSetting
     expectation: Union[float, complex]
-    stddev: Union[float, complex]
     total_counts: int
+    std_err: Union[float, complex] = None
     raw_expectation: Union[float, complex] = None
-    raw_stddev: float = None
+    raw_std_err: float = None
     calibration_expectation: Union[float, complex] = None
-    calibration_stddev: Union[float, complex] = None
+    calibration_std_err: Union[float, complex] = None
     calibration_counts: int = None
 
+    def __init__(self, setting: ExperimentSetting,
+                 expectation: Union[float, complex],
+                 total_counts: int,
+                 stddev: Union[float, complex] = None,
+                 std_err: Union[float, complex] = None,
+                 raw_expectation: Union[float, complex] = None,
+                 raw_stddev: float = None,
+                 raw_std_err: float = None,
+                 calibration_expectation: Union[float, complex] = None,
+                 calibration_stddev: Union[float, complex] = None,
+                 calibration_std_err: Union[float, complex] = None,
+                 calibration_counts: int = None):
+
+        object.__setattr__(self, 'setting', setting)
+        object.__setattr__(self, 'expectation', expectation)
+        object.__setattr__(self, 'total_counts', total_counts)
+        object.__setattr__(self, 'raw_expectation', raw_expectation)
+        object.__setattr__(self, 'calibration_expectation', calibration_expectation)
+        object.__setattr__(self, 'calibration_counts', calibration_counts)
+
+        if stddev is not None:
+            warnings.warn("'stddev' has been renamed to 'std_err'")
+            std_err = stddev
+        object.__setattr__(self, 'std_err', std_err)
+
+        if raw_stddev is not None:
+            warnings.warn("'raw_stddev' has been renamed to 'raw_std_err'")
+            raw_std_err = raw_stddev
+        object.__setattr__(self, 'raw_std_err', raw_std_err)
+
+        if calibration_stddev is not None:
+            warnings.warn("'calibration_stddev' has been renamed to 'calibration_std_err'")
+            calibration_std_err = calibration_stddev
+        object.__setattr__(self, 'calibration_std_err', calibration_std_err)
+
+    def get_stddev(self) -> Union[float, complex]:
+        warnings.warn("'stddev' has been renamed to 'std_err'")
+        return self.std_err
+
+    def set_stddev(self, value: Union[float, complex]):
+        warnings.warn("'stddev' has been renamed to 'std_err'")
+        object.__setattr__(self, 'std_err', value)
+
+    stddev = property(get_stddev, set_stddev)
+
+    def get_raw_stddev(self) -> float:
+        warnings.warn("'raw_stddev' has been renamed to 'raw_std_err'")
+        return self.raw_std_err
+
+    def set_raw_stddev(self, value: float):
+        warnings.warn("'raw_stddev' has been renamed to 'raw_std_err'")
+        object.__setattr__(self, 'raw_std_err', value)
+
+    raw_stddev = property(get_raw_stddev, set_raw_stddev)
+
+    def get_calibration_stddev(self) -> Union[float, complex]:
+        warnings.warn("'calibration_stddev' has been renamed to 'calibration_std_err'")
+        return self.calibration_std_err
+
+    def set_calibration_stddev(self, value: Union[float, complex]):
+        warnings.warn("'calibration_stddev' has been renamed to 'calibration_std_err'")
+        object.__setattr__(self, 'calibration_std_err', value)
+
+    calibration_stddev = property(get_calibration_stddev, set_calibration_stddev)
+
     def __str__(self):
-        return f'{self.setting}: {self.expectation} +- {self.stddev}'
+        return f'{self.setting}: {self.expectation} +- {self.std_err}'
 
     def __repr__(self):
         return f'ExperimentResult[{self}]'
@@ -738,20 +800,21 @@ class ExperimentResult:
             'type': 'ExperimentResult',
             'setting': self.setting,
             'expectation': self.expectation,
-            'stddev': self.stddev,
+            'std_err': self.std_err,
             'total_counts': self.total_counts,
             'raw_expectation': self.raw_expectation,
-            'raw_stddev': self.raw_stddev,
+            'raw_std_err': self.raw_std_err,
             'calibration_expectation': self.calibration_expectation,
-            'calibration_stddev': self.calibration_stddev,
+            'calibration_std_err': self.calibration_std_err,
             'calibration_counts': self.calibration_counts,
         }
 
 
 def measure_observables(qc: QuantumComputer, tomo_experiment: TomographyExperiment,
                         n_shots: int = 10000, progress_callback=None, active_reset=False,
-                        readout_symmetrize: str = 'exhaustive',
-                        calibrate_readout: str = 'plus-eig'):
+                        symmetrize_readout: Optional[str] = 'exhaustive',
+                        calibrate_readout: Optional[str] = 'plus-eig',
+                        readout_symmetrize: Optional[str] = None):
     """
     Measure all the observables in a TomographyExperiment.
 
@@ -766,7 +829,7 @@ def measure_observables(qc: QuantumComputer, tomo_experiment: TomographyExperime
         to True is much faster but there is a ~1% error per qubit in the reset operation.
         Thermal noise from "traditional" reset is not routinely characterized but is of the same
         order.
-    :param readout_symmetrize: Method used to symmetrize the readout errors, i.e. set
+    :param symmetrize_readout: Method used to symmetrize the readout errors, i.e. set
         p(0|1) = p(1|0). For uncorrelated readout errors, this can be achieved by randomly
         selecting between the POVMs {X.D1.X, X.D0.X} and {D0, D1} (where both D0 and D1 are
         diagonal). However, here we currently support exhaustive symmetrization and loop through
@@ -780,8 +843,13 @@ def measure_observables(qc: QuantumComputer, tomo_experiment: TomographyExperime
         eigenstate, which can be specified by setting this variable to 'plus-eig' (default value).
         The preceding symmetrization and this step together yield a more accurate estimation of the observable. Set to `None` if no calibration is desired.
     """
+    if readout_symmetrize is not None:
+        warnings.warn("'readout_symmetrize' has been renamed to 'symmetrize_readout'",
+                      DeprecationWarning)
+        symmetrize_readout = readout_symmetrize
+
     # calibration readout only works with symmetrization turned on
-    if calibrate_readout is not None and readout_symmetrize is None:
+    if calibrate_readout is not None and symmetrize_readout is None:
         raise ValueError("Readout calibration only works with readout symmetrization turned on")
 
     # Outer loop over a collection of grouped settings for which we can simultaneously
@@ -809,10 +877,10 @@ def measure_observables(qc: QuantumComputer, tomo_experiment: TomographyExperime
         # 2. Symmetrization
         qubits = max_weight_out_op.get_qubits()
 
-        if readout_symmetrize == 'exhaustive' and len(qubits) > 0:
+        if symmetrize_readout == 'exhaustive' and len(qubits) > 0:
             bitstrings, d_qub_idx = _exhaustive_symmetrization(qc, qubits, n_shots, total_prog)
 
-        elif readout_symmetrize is None and len(qubits) > 0:
+        elif symmetrize_readout is None and len(qubits) > 0:
             total_prog_no_symm = total_prog.copy()
             ro = total_prog_no_symm.declare('ro', 'BIT', len(qubits))
             d_qub_idx = {}
@@ -853,7 +921,7 @@ def measure_observables(qc: QuantumComputer, tomo_experiment: TomographyExperime
                 yield ExperimentResult(
                     setting=setting,
                     expectation=coeff,
-                    stddev=0.0,
+                    std_err=0.0,
                     total_counts=n_shots,
                 )
                 continue
@@ -866,7 +934,7 @@ def measure_observables(qc: QuantumComputer, tomo_experiment: TomographyExperime
                 # 4.1 Obtain calibration program
                 calibr_prog = _calibration_program(qc, tomo_experiment, setting)
                 # 4.2 Perform symmetrization on the calibration program
-                if readout_symmetrize == 'exhaustive':
+                if symmetrize_readout == 'exhaustive':
                     qubs_calibr = setting.out_operator.get_qubits()
                     calibr_shots = n_shots
                     calibr_results, d_calibr_qub_idx = _exhaustive_symmetrization(qc, qubs_calibr, calibr_shots, calibr_prog)
@@ -883,12 +951,12 @@ def measure_observables(qc: QuantumComputer, tomo_experiment: TomographyExperime
                 yield ExperimentResult(
                     setting=setting,
                     expectation=corrected_mean.item(),
-                    stddev=np.sqrt(corrected_var).item(),
+                    std_err=np.sqrt(corrected_var).item(),
                     total_counts=n_shots,
                     raw_expectation=obs_mean.item(),
-                    raw_stddev=np.sqrt(obs_var).item(),
+                    raw_std_err=np.sqrt(obs_var).item(),
                     calibration_expectation=obs_calibr_mean.item(),
-                    calibration_stddev=np.sqrt(obs_calibr_var).item(),
+                    calibration_std_err=np.sqrt(obs_calibr_var).item(),
                     calibration_counts=calibr_shots,
                 )
 
@@ -897,7 +965,7 @@ def measure_observables(qc: QuantumComputer, tomo_experiment: TomographyExperime
                 yield ExperimentResult(
                     setting=setting,
                     expectation=obs_mean.item(),
-                    stddev=np.sqrt(obs_var).item(),
+                    std_err=np.sqrt(obs_var).item(),
                     total_counts=n_shots,
                 )
 
@@ -1000,7 +1068,7 @@ def _exhaustive_symmetrization(qc: QuantumComputer, qubits: List[int],
     # Symmetrize -- flip qubits pre-measurement
     n_shots_symm = int(round(np.ceil(shots / 2**len(qubits))))
     if n_shots_symm * 2**len(qubits) > shots:
-        warnings.warn("Symmetrization increasing number of shots from {} to {}".format(shots, round(n_shots_symm * 2**len(qubits))))
+        warnings.warn(f"Symmetrization increasing number of shots from {shots} to {round(n_shots_symm * 2**len(qubits))}")
     list_bitstrings_symm = []
     for ops_bool in itertools.product([0, 1], repeat=len(qubits)):
         total_prog_symm = prog.copy()
@@ -1034,7 +1102,7 @@ def _calibration_program(qc: QuantumComputer, tomo_experiment: TomographyExperim
 
     :param tomo_experiment: A suite of tomographic observables
     :param ExperimentSetting: The particular tomographic observable to measure
-    :param readout_symmetrize: Method used to symmetrize the readout errors (see docstring for
+    :param symmetrize_readout: Method used to symmetrize the readout errors (see docstring for
         `measure_observables` for more details)
     :param cablir_shots: number of shots to take in the measurement process
     :return: Program performing the calibration

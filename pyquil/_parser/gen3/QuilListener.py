@@ -98,6 +98,15 @@ class QuilListener(ParseTreeListener):
         pass
 
 
+    # Enter a parse tree produced by QuilParser#gatetype.
+    def enterGatetype(self, ctx:QuilParser.GatetypeContext):
+        pass
+
+    # Exit a parse tree produced by QuilParser#gatetype.
+    def exitGatetype(self, ctx:QuilParser.GatetypeContext):
+        pass
+
+
     # Enter a parse tree produced by QuilParser#matrix.
     def enterMatrix(self, ctx:QuilParser.MatrixContext):
         pass

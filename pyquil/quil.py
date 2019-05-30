@@ -789,7 +789,9 @@ def address_qubits(program, qubit_mapping=None):
         # Remap qubits on Gate and Measurement instructions
         if isinstance(instr, Gate):
             remapped_qubits = [qubit_mapping[q] for q in instr.qubits]
-            result.append(Gate(instr.name, instr.params, remapped_qubits))
+            gate = Gate(instr.name, instr.params, remapped_qubits)
+            gate.modifiers = instr.modifiers
+            result.append(gate)
         elif isinstance(instr, Measurement):
             result.append(Measurement(qubit_mapping[instr.qubit], instr.classical_reg))
         elif isinstance(instr, Pragma):
@@ -806,7 +808,10 @@ def address_qubits(program, qubit_mapping=None):
         else:
             result.append(instr)
 
-    return Program(result)
+    new_program = program.copy()
+    new_program._instructions = result
+
+    return new_program
 
 
 def _get_label(placeholder, label_mapping, label_i):

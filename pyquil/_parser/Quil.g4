@@ -45,9 +45,11 @@ modifier            : CONTROLLED
 
 // D. Gate Definitions
 
-defGate             : DEFGATE name ( LPAREN variable ( COMMA variable )* RPAREN )? COLON NEWLINE matrix ;
+defGate             : DEFGATE name (( LPAREN variable ( COMMA variable )* RPAREN ) | ( AS gatetype ))? COLON NEWLINE matrix ;
 
 variable            : PERCENTAGE IDENTIFIER ;
+gatetype            : MATRIX
+                    | PERMUTATION ;
 
 matrix              : ( matrixRow NEWLINE )* matrixRow ;
 matrixRow           : TAB expression ( COMMA expression )* ;
@@ -165,6 +167,10 @@ DECLARE             : 'DECLARE' ;
 SHARING             : 'SHARING' ;
 OFFSET              : 'OFFSET' ;
 
+AS                  : 'AS' ;
+MATRIX              : 'MATRIX' ;
+PERMUTATION         : 'PERMUTATION' ;
+
 NEG                 : 'NEG' ;
 NOT                 : 'NOT' ;
 TRUE                : 'TRUE' ; // Deprecated
@@ -245,11 +251,11 @@ UNDERSCORE          : '_' ;
 // Whitespace
 
 TAB                 : '    ' ;
-NEWLINE             : ( '\r'? '\n' | '\r' )+ ;
+NEWLINE             : (' ' | '\t' )* ( '\r'? '\n' | '\r' )+ ;
 
 // Skips
 
-COMMENT             : '#' ~( '\n' | '\r' )* -> skip ;
+COMMENT             : (' ' | '\t' )* '#' ~( '\n' | '\r' )* -> skip ;
 SPACE               : ' ' -> skip ;
 
 // Error

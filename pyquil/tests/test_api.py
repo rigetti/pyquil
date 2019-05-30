@@ -33,18 +33,16 @@ from rpcq.messages import BinaryExecutableRequest, BinaryExecutableResponse
 from pyquil.api import QVMConnection, QPUCompiler, get_qc, QVMCompiler
 from pyquil.api._base_connection import (validate_noise_probabilities, validate_qubit_list,
                                          prepare_register_list)
-from pyquil.api._config import PyquilConfig
 from pyquil.device import ISA, NxDevice
 from pyquil.gates import CNOT, H, MEASURE, PHASE, Z, RZ, RX, CZ
 from pyquil.paulis import PauliTerm
 from pyquil.quil import Program
-from pyquil.quilbase import Pragma, Halt
+from pyquil.quilbase import Halt
 
 EMPTY_PROGRAM = Program()
 BELL_STATE = Program(H(0), CNOT(0, 1))
 BELL_STATE_MEASURE = Program(H(0), CNOT(0, 1), MEASURE(0, 0), MEASURE(1, 1))
 COMPILED_BELL_STATE = Program([
-    Pragma("EXPECTED_REWIRING", ('"#(0 1 2 3)"',)),
     RZ(pi / 2, 0),
     RX(pi / 2, 0),
     RZ(-pi / 2, 1),
@@ -53,7 +51,6 @@ COMPILED_BELL_STATE = Program([
     RZ(-pi / 2, 0),
     RX(-pi / 2, 1),
     RZ(pi / 2, 1),
-    Pragma("CURRENT_REWIRING", ('"#(0 1 2 3)"',)),
     Halt()
 ])
 DUMMY_ISA_DICT = {"1Q": {"0": {}, "1": {}}, "2Q": {"0-1": {}}}
@@ -63,17 +60,18 @@ COMPILED_BYTES_ARRAY = b'SUPER SECRET PACKAGE'
 RB_ENCODED_REPLY = [[0, 0], [1, 1]]
 RB_REPLY = [Program("H 0\nH 0\n"), Program("PHASE(pi/2) 0\nPHASE(pi/2) 0\n")]
 
-mock_qvm = QVMConnection()
-mock_endpoint = mock_qvm.sync_endpoint
 
+def test_sync_run_mock(qvm: QVMConnection):
+    mock_qvm = qvm
+    mock_endpoint = mock_qvm.sync_endpoint
 
-def test_sync_run_mock():
     def mock_response(request, context):
         assert json.loads(request.text) == {
             "type": "multishot",
             "addresses": {'ro': [0, 1]},
             "trials": 2,
-            "compiled-quil": "DECLARE ro BIT[2]\nH 0\nCNOT 0 1\nMEASURE 0 ro[0]\nMEASURE 1 ro[1]\n"
+            "compiled-quil": "DECLARE ro BIT[2]\nH 0\nCNOT 0 1\nMEASURE 0 ro[0]\nMEASURE 1 ro[1]\n",
+            'rng-seed': 52
         }
         return '{"ro": [[0,0],[1,1]]}'
 
@@ -107,13 +105,17 @@ def test_sync_run(qvm: QVMConnection):
         qvm.run(EMPTY_PROGRAM)
 
 
-def test_sync_run_and_measure_mock():
+def test_sync_run_and_measure_mock(qvm: QVMConnection):
+    mock_qvm = qvm
+    mock_endpoint = mock_qvm.sync_endpoint
+
     def mock_response(request, context):
         assert json.loads(request.text) == {
             "type": "multishot-measure",
             "qubits": [0, 1],
             "trials": 2,
-            "compiled-quil": "H 0\nCNOT 0 1\n"
+            "compiled-quil": "H 0\nCNOT 0 1\n",
+            'rng-seed': 52
         }
         return '[[0,0],[1,1]]'
 
@@ -140,18 +142,23 @@ WAVEFUNCTION_BINARY = (b'\x01\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00\x0
 WAVEFUNCTION_PROGRAM = Program(H(0), CNOT(0, 1), MEASURE(0, 0), H(0))
 
 
-def test_sync_expectation_mock():
+def test_sync_expectation_mock(qvm: QVMConnection):
+    mock_qvm = qvm
+    mock_endpoint = mock_qvm.sync_endpoint
+
     def mock_response(request, context):
         assert json.loads(request.text) == {
             "type": "expectation",
             "state-preparation": BELL_STATE.out(),
-            "operators": ["Z 0\n", "Z 1\n", "Z 0\nZ 1\n"]
+            "operators": ["Z 0\n", "Z 1\n", "Z 0\nZ 1\n"],
+            'rng-seed': 52
         }
         return b'[0.0, 0.0, 1.0]'
 
     with requests_mock.Mocker() as m:
         m.post(mock_endpoint + '/qvm', content=mock_response)
-        result = mock_qvm.expectation(BELL_STATE, [Program(Z(0)), Program(Z(1)), Program(Z(0), Z(1))])
+        result = mock_qvm.expectation(BELL_STATE, [Program(Z(0)), Program(Z(1)),
+                                                   Program(Z(0), Z(1))])
         exp_expected = [0.0, 0.0, 1.0]
         np.testing.assert_allclose(exp_expected, result)
 
@@ -180,12 +187,16 @@ def test_sync_expectation_2(qvm):
     np.testing.assert_allclose(exp_expected, result)
 
 
-def test_sync_paulisum_expectation():
+def test_sync_paulisum_expectation(qvm: QVMConnection):
+    mock_qvm = qvm
+    mock_endpoint = mock_qvm.sync_endpoint
+
     def mock_response(request, context):
         assert json.loads(request.text) == {
             "type": "expectation",
             "state-preparation": BELL_STATE.out(),
-            "operators": ["Z 0\nZ 1\n", "Z 0\n", "Z 1\n"]
+            "operators": ["Z 0\nZ 1\n", "Z 0\n", "Z 1\n"],
+            'rng-seed': 52
         }
         return b'[1.0, 0.0, 0.0]'
 
@@ -236,7 +247,7 @@ def test_prepare_register_list():
 # ---------------------
 
 
-def test_get_qc_returns_remote_qvm_compiler():
+def test_get_qc_returns_remote_qvm_compiler(qvm: QVMConnection, compiler: QVMCompiler):
     with patch.dict('os.environ', {"COMPILER_URL": "tcp://192.168.0.0:5550"}):
         qc = get_qc("9q-generic-qvm")
         assert isinstance(qc.compiler, QVMCompiler)
@@ -247,9 +258,14 @@ mock_qpu_compiler_server = Server()
 
 @mock_qpu_compiler_server.rpc_handler
 def native_quil_to_binary(payload: BinaryExecutableRequest) -> BinaryExecutableResponse:
-    assert payload.quil == COMPILED_BELL_STATE.out()
+    assert Program(payload.quil).out() == COMPILED_BELL_STATE.out()
     time.sleep(0.1)
     return BinaryExecutableResponse(program=COMPILED_BYTES_ARRAY)
+
+
+@mock_qpu_compiler_server.rpc_handler
+def get_version_info() -> str:
+    return '1.8.1'
 
 
 @pytest.fixture

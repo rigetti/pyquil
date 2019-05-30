@@ -33,14 +33,22 @@ The Rigetti Quantum Virtual Machine is an implementation of the Quantum Abstract
 *A Practical Quantum Instruction Set Architecture*. [1]_  It is implemented in ANSI Common LISP and
 executes programs specified in Quil.
 
-The QVM is a wavefunction simulation of unitary evolution with classical control flow
-and shared quantum classical memory.
+The QVM simulates the unitary evolution of a wavefunction with
+classical control. The QVM has a plethora of other features,
+including:
+
+  - Stochastic pure-state evolution, density matrix evolution, and
+    Pauli noise channels;
+  - Shared memory access to the quantum state, allowing direct NumPy
+    access to the state without copying or transmission delay; and
+  - A fast just-in-time compilation mode for rapid simulation of large
+    programs with many qubits.
 
 The QVM is part of the Forest SDK, and it's available for you to use on your local machine.
 After :ref:`downloading and installing the SDK <sdkinstall>`, you can initialize a local
 QVM server by typing ``qvm -S`` into your terminal. You should see the following message.
 
-.. code:: python
+.. code:: text
 
     $ qvm -S
     ******************************
@@ -58,7 +66,7 @@ run your program, a pyQuil client will send a Quil program to the QVM server and
 
 It's also possible to use the QVM from the command line. You can write a Quil program in its own file:
 
-.. code:: python
+.. code:: text
 
     # example.quil
 
@@ -68,9 +76,9 @@ It's also possible to use the QVM from the command line. You can write a Quil pr
 
 and then execute it with the QVM directly from the command line:
 
-.. code:: python
+.. code:: text
 
-    $ qvm -e < example.quil
+    $ qvm < example.quil
 
     [2018-11-30 11:13:58] Reading program.
     [2018-11-30 11:13:58] Allocating memory for QVM of 2 qubits.
@@ -86,6 +94,77 @@ and then execute it with the QVM directly from the command line:
     [2018-11-30 11:13:58]   |11>: 0.0, P=  0.0%
     [2018-11-30 11:13:58] Classical memory (low -> high indexes):
     [2018-11-30 11:13:58]     ro:  1 0
+
+The QVM offers a simple benchmarking mode with ``qvm --verbose
+--benchmark``. Example output looks like this:
+
+.. code:: text
+
+   $ ./qvm --verbose --benchmark
+   ******************************
+   * Welcome to the Rigetti QVM *
+   ******************************
+   Copyright (c) 2016-2019 Rigetti Computing.
+
+   (Configured with 8192 MiB of workspace and 8 workers.)
+
+   <135>1 2019-05-01T18:26:14Z workstation.local qvm 96177 - - Selected simulation method: pure-state
+   <135>1 2019-05-01T18:26:15Z workstation.local qvm 96177 - - Computing baseline serial norm timing...
+   <135>1 2019-05-01T18:26:15Z workstation.local qvm 96177 - - Baseline serial norm timing: 96 ms
+   <135>1 2019-05-01T18:26:15Z workstation.local qvm 96177 - - Starting "bell" benchmark with 26 qubits...
+
+   ; Transition H 0 took 686 ms (gc: 0 ms; alloc: 65536 bytes)
+   ; Transition CNOT 0 1 took 651 ms (gc: 0 ms; alloc: 0 bytes)
+   ; Transition CNOT 1 2 took 658 ms (gc: 0 ms; alloc: 32656 bytes)
+   ; Transition CNOT 2 3 took 661 ms (gc: 0 ms; alloc: 0 bytes)
+   ; Transition CNOT 3 4 took 650 ms (gc: 0 ms; alloc: 0 bytes)
+   ; Transition CNOT 4 5 took 662 ms (gc: 0 ms; alloc: 0 bytes)
+   ; Transition CNOT 5 6 took 673 ms (gc: 0 ms; alloc: 0 bytes)
+   [...]
+   <135>1 2019-05-01T18:30:13Z workstation.local qvm 96288 - - Total time for program run: 24385 ms
+
+The QVM also has mode for faster execution of long quantum programs
+operating on a large number of qubits, called **compiled
+mode**. Compiled mode can be enabled by adding ``-c`` to the command
+line options. Observe the speed-up in the benchmark:
+
+.. code:: text
+
+   $ ./qvm --verbose --benchmark -c
+   ******************************
+   * Welcome to the Rigetti QVM *
+   ******************************
+   Copyright (c) 2016-2019 Rigetti Computing.
+
+   (Configured with 8192 MiB of workspace and 8 workers.)
+
+   <135>1 2019-05-01T18:28:07Z workstation.local qvm 96285 - - Selected simulation method: pure-state
+   <135>1 2019-05-01T18:28:08Z workstation.local qvm 96285 - - Computing baseline serial norm timing...
+   <135>1 2019-05-01T18:28:08Z workstation.local qvm 96285 - - Baseline serial norm timing: 95 ms
+   <135>1 2019-05-01T18:28:08Z workstation.local qvm 96285 - - Starting "bell" benchmark with 26 qubits...
+
+   ; Compiling program loaded into QVM...
+   ; Compiled in 87 ms.
+   ; Optimization eliminated 26 instructions ( 50.0%).
+   ; Transition compiled{ FUSED-GATE-0 1 0 } took 138 ms (gc: 0 ms; alloc: 0 bytes)
+   ; Transition compiled{ CNOT 1 2 } took 144 ms (gc: 0 ms; alloc: 0 bytes)
+   ; Transition compiled{ CNOT 2 3 } took 137 ms (gc: 0 ms; alloc: 0 bytes)
+   ; Transition compiled{ CNOT 3 4 } took 143 ms (gc: 0 ms; alloc: 0 bytes)
+   ; Transition compiled{ CNOT 4 5 } took 95 ms (gc: 0 ms; alloc: 0 bytes)
+   ; Transition compiled{ CNOT 5 6 } took 75 ms (gc: 0 ms; alloc: 0 bytes)
+   [...]
+   <135>1 2019-05-01T18:29:12Z workstation.local qvm 96287 - - Total time for program run: 2416 ms
+
+The runtime reduced to 2.4 seconds from 24 seconds, a 10x speedup.
+
+.. note::
+   Compiled mode speeds up the execution of a program at the
+   cost of an initial compilation. Note in the above example that
+   compilation took 87 ms.  If you are running small programs with low
+   qubit counts, this cost may be significant, and it may be worth
+   executing in the usual ("interpreted") mode. However, if your
+   programs contain a large number of qubits or a large number of
+   instructions, the initial cost is far outweighed by the benefits.
 
 For a detailed description of how to use the ``qvm`` from the command line, see the QVM `README
 <https://github.com/rigetti/qvm>`_ or type ``man qvm`` in your terminal.

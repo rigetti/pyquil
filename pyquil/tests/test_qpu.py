@@ -17,7 +17,7 @@ from pyquil.quilatom import Expression
 
 def test_qpu_run():
     config = PyquilConfig()
-    if config.qpu_url and config.compiler_url:
+    if config.qpu_url and config.qpu_compiler_url:
         g = nx.Graph()
         g.add_node(0)
         device = NxDevice(g)
@@ -139,7 +139,7 @@ def mock_qpu():
 def qpu_compiler(test_device):
     try:
         config = PyquilConfig()
-        compiler = QPUCompiler(endpoint=config.compiler_url, device=test_device, timeout=0.5)
+        compiler = QPUCompiler(endpoint=config.qpu_compiler_url, device=test_device, timeout=0.5)
         compiler.quil_to_native_quil(Program(I(0)))
         return compiler
     except Exception as e:
@@ -233,7 +233,7 @@ def parse_expression(expression):
     return parse(f"RZ({expression}) 0")[0].params[0]
 
 
-def test_run_expects_executable():
+def test_run_expects_executable(qvm, qpu_compiler):
     # https://github.com/rigetti/pyquil/issues/740
 
     # This test might need some more knowledgeable eyes. Not sure how

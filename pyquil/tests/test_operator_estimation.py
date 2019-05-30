@@ -88,8 +88,7 @@ def test_tomo_experiment():
 
     suite = TomographyExperiment(
         settings=expts,
-        program=Program(X(0), Y(1)),
-        qubits=[0, 1]
+        program=Program(X(0), Y(1))
     )
     assert len(suite) == 2
     for e1, e2 in zip(expts, suite):
@@ -109,8 +108,7 @@ def test_tomo_experiment_pre_grouped():
 
     suite = TomographyExperiment(
         settings=expts,
-        program=Program(X(0), Y(1)),
-        qubits=[0, 1]
+        program=Program(X(0), Y(1))
     )
     assert len(suite) == 2  # number of groups
     for es1, es2 in zip(expts, suite):
@@ -121,7 +119,7 @@ def test_tomo_experiment_pre_grouped():
 
 
 def test_tomo_experiment_empty():
-    suite = TomographyExperiment([], program=Program(X(0)), qubits=[0])
+    suite = TomographyExperiment([], program=Program(X(0)))
     assert len(suite) == 0
     assert str(suite.program) == 'X 0\n'
 
@@ -134,8 +132,7 @@ def test_experiment_deser(tmpdir):
 
     suite = TomographyExperiment(
         settings=expts,
-        program=Program(X(0), Y(1)),
-        qubits=[0, 1]
+        program=Program(X(0), Y(1))
     )
     to_json(f'{tmpdir}/suite.json', suite)
     suite2 = read_json(f'{tmpdir}/suite.json')
@@ -161,7 +158,7 @@ def test_group_experiments(grouping_method):
         ExperimentSetting(sI(), sX(0) * sI(1)), ExperimentSetting(sI(), sI(0) * sX(1)),
         ExperimentSetting(sI(), sZ(0) * sI(1)), ExperimentSetting(sI(), sI(0) * sZ(1)),
     ]
-    suite = TomographyExperiment(expts, Program(), qubits=[0, 1])
+    suite = TomographyExperiment(expts, Program())
     grouped_suite = group_experiments(suite, method=grouping_method)
     assert len(suite) == 4
     assert len(grouped_suite) == 2
@@ -171,7 +168,7 @@ def test_experiment_result_compat():
     er = ExperimentResult(
         setting=ExperimentSetting(sX(0), sZ(0)),
         expectation=0.9,
-        stddev=0.05,
+        std_err=0.05,
         total_counts=100,
     )
     assert str(er) == 'X0_0→(1+0j)*Z0: 0.9 +- 0.05'
@@ -181,7 +178,7 @@ def test_experiment_result():
     er = ExperimentResult(
         setting=ExperimentSetting(plusX(0), sZ(0)),
         expectation=0.9,
-        stddev=0.05,
+        std_err=0.05,
         total_counts=100,
     )
     assert str(er) == 'X0_0→(1+0j)*Z0: 0.9 +- 0.05'
@@ -192,13 +189,13 @@ def test_measure_observables(forest):
         ExperimentSetting(sI(), o1 * o2)
         for o1, o2 in itertools.product([sI(0), sX(0), sY(0), sZ(0)], [sI(1), sX(1), sY(1), sZ(1)])
     ]
-    suite = TomographyExperiment(expts, program=Program(X(0), CNOT(0, 1)), qubits=[0, 1])
+    suite = TomographyExperiment(expts, program=Program(X(0), CNOT(0, 1)))
     assert len(suite) == 4 * 4
     gsuite = group_experiments(suite)
     assert len(gsuite) == 3 * 3  # can get all the terms with I for free in this case
 
     qc = get_qc('2q-qvm')
-    for res in measure_observables(qc, gsuite, n_shots=10_000):
+    for res in measure_observables(qc, gsuite, n_shots=2000):
         if res.setting.out_operator in [sI(), sZ(0), sZ(1), sZ(0) * sZ(1)]:
             assert np.abs(res.expectation) > 0.9
         else:
@@ -237,7 +234,7 @@ def test_measure_observables_many_progs(forest):
     qc = get_qc('2q-qvm')
     qc.qam.random_seed = 0
     for prog in _random_2q_programs():
-        suite = TomographyExperiment(expts, program=prog, qubits=[0, 1])
+        suite = TomographyExperiment(expts, program=prog)
         assert len(suite) == 4 * 4
         gsuite = group_experiments(suite)
         assert len(gsuite) == 3 * 3  # can get all the terms with I for free in this case
@@ -258,8 +255,7 @@ def test_append():
     ]
     suite = TomographyExperiment(
         settings=expts,
-        program=Program(X(0), Y(1)),
-        qubits=[0, 1]
+        program=Program(X(0), Y(1))
     )
     suite.append(ExperimentSetting(sI(), sY(0) * sX(1)))
     assert (len(str(suite))) > 0
@@ -267,10 +263,9 @@ def test_append():
 
 def test_no_complex_coeffs(forest):
     qc = get_qc('2q-qvm')
-    suite = TomographyExperiment([ExperimentSetting(sI(), 1.j * sY(0))], program=Program(X(0)),
-                                 qubits=[0])
+    suite = TomographyExperiment([ExperimentSetting(sI(), 1.j * sY(0))], program=Program(X(0)))
     with pytest.raises(ValueError):
-        res = list(measure_observables(qc, suite))
+        res = list(measure_observables(qc, suite, n_shots=2000))
 
 
 def test_max_weight_operator_1():
@@ -371,8 +366,7 @@ def test_max_tpb_overlap_1():
     tomo_expt_settings = [ExperimentSetting(sZ(1) * sX(0), sY(2) * sY(1)),
                           ExperimentSetting(sX(2) * sZ(1), sY(2) * sZ(0))]
     tomo_expt_program = Program(H(0), H(1), H(2))
-    tomo_expt_qubits = [0, 1, 2]
-    tomo_expt = TomographyExperiment(tomo_expt_settings, tomo_expt_program, tomo_expt_qubits)
+    tomo_expt = TomographyExperiment(tomo_expt_settings, tomo_expt_program)
     expected_dict = {
         ExperimentSetting(plusX(0) * plusZ(1) * plusX(2), sZ(0) * sY(1) * sY(2)): [
             ExperimentSetting(plusZ(1) * plusX(0), sY(2) * sY(1)),
@@ -386,8 +380,7 @@ def test_max_tpb_overlap_2():
     expt_setting = ExperimentSetting(PauliTerm.from_compact_str('(1+0j)*Z7Y8Z1Y4Z2Y5Y0X6'),
                                      PauliTerm.from_compact_str('(1+0j)*Z4X8Y5X3Y7Y1'))
     p = Program(H(0), H(1), H(2))
-    qubits = [0, 1, 2]
-    tomo_expt = TomographyExperiment([expt_setting], p, qubits)
+    tomo_expt = TomographyExperiment([expt_setting], p)
     expected_dict = {expt_setting: [expt_setting]}
     assert expected_dict == _max_tpb_overlap(tomo_expt)
 
@@ -398,8 +391,7 @@ def test_max_tpb_overlap_3():
                                      PauliTerm.from_compact_str('(1+0j)*Z4X8Y5X3Y7Y1'))
     expt_setting2 = ExperimentSetting(sZ(7), sY(1))
     p = Program(H(0), H(1), H(2))
-    qubits = [0, 1, 2]
-    tomo_expt2 = TomographyExperiment([expt_setting, expt_setting2], p, qubits)
+    tomo_expt2 = TomographyExperiment([expt_setting, expt_setting2], p)
     expected_dict2 = {expt_setting: [expt_setting, expt_setting2]}
     assert expected_dict2 == _max_tpb_overlap(tomo_expt2)
 
@@ -408,8 +400,7 @@ def test_group_experiments_greedy():
     ungrouped_tomo_expt = TomographyExperiment(
         [[ExperimentSetting(PauliTerm.from_compact_str('(1+0j)*Z7Y8Z1Y4Z2Y5Y0X6'),
                             PauliTerm.from_compact_str('(1+0j)*Z4X8Y5X3Y7Y1'))],
-         [ExperimentSetting(sZ(7), sY(1))]], program=Program(H(0), H(1), H(2)),
-        qubits=[0, 1, 2])
+         [ExperimentSetting(sZ(7), sY(1))]], program=Program(H(0), H(1), H(2)))
     grouped_tomo_expt = group_experiments(ungrouped_tomo_expt, method='greedy')
     expected_grouped_tomo_expt = TomographyExperiment(
         [[
@@ -418,8 +409,7 @@ def test_group_experiments_greedy():
                               PauliTerm.from_compact_str('(1+0j)*Z4X8Y5X3Y7Y1')),
             ExperimentSetting(plusZ(7), sY(1))
         ]],
-        program=Program(H(0), H(1), H(2)),
-        qubits=[0, 1, 2])
+        program=Program(H(0), H(1), H(2)))
     assert grouped_tomo_expt == expected_grouped_tomo_expt
 
 
@@ -446,7 +436,7 @@ def test_expt_settings_diagonal_in_tpb():
 def test_identity(forest):
     qc = get_qc('2q-qvm')
     suite = TomographyExperiment([ExperimentSetting(plusZ(0), 0.123 * sI(0))],
-                                 program=Program(X(0)), qubits=[0])
+                                 program=Program(X(0)))
     result = list(measure_observables(qc, suite))[0]
     assert result.expectation == 0.123
 
@@ -462,7 +452,7 @@ def test_sic_process_tomo(forest):
                 out_operator=out_op(q=0)
             )]
 
-    experiment = TomographyExperiment(settings=settings, program=process, qubits=[0])
+    experiment = TomographyExperiment(settings=settings, program=process)
     results = list(measure_observables(qc, experiment))
     assert len(results) == 4 * 4
 
@@ -475,7 +465,7 @@ def test_measure_observables_symmetrize(forest):
         ExperimentSetting(sI(), o1 * o2)
         for o1, o2 in itertools.product([sI(0), sX(0), sY(0), sZ(0)], [sI(1), sX(1), sY(1), sZ(1)])
     ]
-    suite = TomographyExperiment(expts, program=Program(X(0), CNOT(0, 1)), qubits=[0, 1])
+    suite = TomographyExperiment(expts, program=Program(X(0), CNOT(0, 1)))
     assert len(suite) == 4 * 4
     gsuite = group_experiments(suite)
     assert len(gsuite) == 3 * 3  # can get all the terms with I for free in this case
@@ -496,7 +486,7 @@ def test_measure_observables_symmetrize_calibrate(forest):
         ExperimentSetting(sI(), o1 * o2)
         for o1, o2 in itertools.product([sI(0), sX(0), sY(0), sZ(0)], [sI(1), sX(1), sY(1), sZ(1)])
     ]
-    suite = TomographyExperiment(expts, program=Program(X(0), CNOT(0, 1)), qubits=[0, 1])
+    suite = TomographyExperiment(expts, program=Program(X(0), CNOT(0, 1)))
     assert len(suite) == 4 * 4
     gsuite = group_experiments(suite)
     assert len(gsuite) == 3 * 3  # can get all the terms with I for free in this case
@@ -516,7 +506,7 @@ def test_measure_observables_zero_expectation(forest):
     qc = get_qc('2q-qvm')
     exptsetting = ExperimentSetting(plusZ(0), sX(0))
     suite = TomographyExperiment([exptsetting],
-                                 program=Program(I(0)), qubits=[0])
+                                 program=Program(I(0)))
     result = list(measure_observables(qc, suite))[0]
     np.testing.assert_almost_equal(result.expectation, 0.0, decimal=1)
 
@@ -525,9 +515,9 @@ def test_measure_observables_no_symm_calibr_raises_error(forest):
     qc = get_qc('2q-qvm')
     exptsetting = ExperimentSetting(plusZ(0), sX(0))
     suite = TomographyExperiment([exptsetting],
-                                 program=Program(I(0)), qubits=[0])
+                                 program=Program(I(0)))
     with pytest.raises(ValueError):
-        result = list(measure_observables(qc, suite, readout_symmetrize=None,
+        result = list(measure_observables(qc, suite, symmetrize_readout=None,
                                           calibrate_readout='plus-eig'))
 
 
@@ -546,7 +536,7 @@ def test_stats_from_measurements():
     bs_results = np.array([[0, 1] * 10])
     d_qub_idx = {0: 0, 1: 1}
     setting = ExperimentSetting(TensorProductState(), sZ(0) * sX(1))
-    n_shots = 1000
+    n_shots = 2000
 
     obs_mean, obs_var = _stats_from_measurements(bs_results, d_qub_idx, setting, n_shots)
     assert obs_mean == -1.0
@@ -583,17 +573,16 @@ def test_measure_observables_uncalibrated_asymmetric_readout(forest):
     p = Program()
     p00, p11 = 0.90, 0.80
     p.define_noisy_readout(0, p00=p00, p11=p11)
-    qubs = [0]
-    runs = 50
+    runs = 25
     expt_list = [expt1, expt2, expt3]
-    tomo_expt = TomographyExperiment(settings=expt_list * runs, program=p, qubits=qubs)
+    tomo_expt = TomographyExperiment(settings=expt_list * runs, program=p)
     expected_expectation_z_basis = 2 * p00 - 1
 
     expect_arr = np.zeros(runs * len(expt_list))
 
     for idx, res in enumerate(measure_observables(qc,
-                                                  tomo_expt, n_shots=1000,
-                                                  readout_symmetrize=None,
+                                                  tomo_expt, n_shots=2000,
+                                                  symmetrize_readout=None,
                                                   calibrate_readout=None)):
         expect_arr[idx] = res.expectation
 
@@ -610,17 +599,16 @@ def test_measure_observables_uncalibrated_symmetric_readout(forest):
     p = Program()
     p00, p11 = 0.90, 0.80
     p.define_noisy_readout(0, p00=p00, p11=p11)
-    qubs = [0]
-    runs = 50
+    runs = 25
     expt_list = [expt1, expt2, expt3]
-    tomo_expt = TomographyExperiment(settings=expt_list * runs, program=p, qubits=qubs)
+    tomo_expt = TomographyExperiment(settings=expt_list * runs, program=p)
     expected_symm_error = (p00 + p11) / 2
     expected_expectation_z_basis = expected_symm_error * (1) + (1 - expected_symm_error) * (-1)
 
     uncalibr_e = np.zeros(runs * len(expt_list))
 
     for idx, res in enumerate(measure_observables(qc,
-                                                  tomo_expt, n_shots=1000,
+                                                  tomo_expt, n_shots=2000,
                                                   calibrate_readout=None)):
         uncalibr_e[idx] = res.expectation
 
@@ -637,14 +625,13 @@ def test_measure_observables_calibrated_symmetric_readout(forest):
     expt3 = ExperimentSetting(TensorProductState(plusZ(0)), sZ(0))
     p = Program()
     p.define_noisy_readout(0, p00=0.99, p11=0.80)
-    qubs = [0]
-    tomo_expt = TomographyExperiment(settings=[expt1, expt2, expt3], program=p, qubits=qubs)
+    tomo_expt = TomographyExperiment(settings=[expt1, expt2, expt3], program=p)
 
-    num_simulations = 50
+    num_simulations = 25
 
     expectations = []
     for _ in range(num_simulations):
-        expt_results = list(measure_observables(qc, tomo_expt, n_shots=1000))
+        expt_results = list(measure_observables(qc, tomo_expt, n_shots=2000))
         expectations.append([res.expectation for res in expt_results])
     expectations = np.array(expectations)
     results = np.mean(expectations, axis=0)
@@ -661,15 +648,14 @@ def test_measure_observables_result_zero_symmetrization_calibration(forest):
     p = Program()
     p00, p11 = 0.99, 0.80
     p.define_noisy_readout(0, p00=p00, p11=p11)
-    qubs = [0]
-    tomo_expt = TomographyExperiment(settings=expt_settings, program=p, qubits=qubs)
+    tomo_expt = TomographyExperiment(settings=expt_settings, program=p)
 
-    num_simulations = 50
+    num_simulations = 25
 
     expectations = []
     raw_expectations = []
     for _ in range(num_simulations):
-        expt_results = list(measure_observables(qc, tomo_expt, n_shots=1000))
+        expt_results = list(measure_observables(qc, tomo_expt, n_shots=2000))
         expectations.append([res.expectation for res in expt_results])
         raw_expectations.append([res.raw_expectation for res in expt_results])
     expectations = np.array(expectations)
@@ -689,15 +675,14 @@ def test_measure_observables_result_zero_no_noisy_readout(forest):
     expt3 = ExperimentSetting(TensorProductState(plusY(0)), sX(0))
     expt_settings = [expt1, expt2, expt3]
     p = Program()
-    qubs = [0]
-    tomo_expt = TomographyExperiment(settings=expt_settings, program=p, qubits=qubs)
+    tomo_expt = TomographyExperiment(settings=expt_settings, program=p)
 
-    num_simulations = 50
+    num_simulations = 25
 
     expectations = []
     for _ in range(num_simulations):
-        expt_results = list(measure_observables(qc, tomo_expt, n_shots=1000,
-                                                readout_symmetrize=None,
+        expt_results = list(measure_observables(qc, tomo_expt, n_shots=2000,
+                                                symmetrize_readout=None,
                                                 calibrate_readout=None))
         expectations.append([res.expectation for res in expt_results])
     expectations = np.array(expectations)
@@ -715,16 +700,15 @@ def test_measure_observables_result_zero_no_symm_calibr(forest):
     p = Program()
     p00, p11 = 0.99, 0.80
     p.define_noisy_readout(0, p00=p00, p11=p11)
-    qubs = [0]
-    tomo_expt = TomographyExperiment(settings=expt_settings, program=p, qubits=qubs)
+    tomo_expt = TomographyExperiment(settings=expt_settings, program=p)
 
-    num_simulations = 50
+    num_simulations = 25
 
     expectations = []
     expected_result = (p00 * 0.5 + (1 - p11) * 0.5) - ((1 - p00) * 0.5 + p11 * 0.5)
     for _ in range(num_simulations):
-        expt_results = list(measure_observables(qc, tomo_expt, n_shots=1000,
-                                                readout_symmetrize=None,
+        expt_results = list(measure_observables(qc, tomo_expt, n_shots=2000,
+                                                symmetrize_readout=None,
                                                 calibrate_readout=None))
         expectations.append([res.expectation for res in expt_results])
     expectations = np.array(expectations)
@@ -735,13 +719,13 @@ def test_measure_observables_result_zero_no_symm_calibr(forest):
 def test_measure_observables_2q_readout_error_one_measured(forest):
     # 2q readout errors, but only 1 qubit measured
     qc = get_qc('9q-qvm')
+    runs = 25
     qubs = [0, 1]
-    runs = 50
     expt = ExperimentSetting(TensorProductState(plusZ(qubs[0]) * plusZ(qubs[1])), sZ(qubs[0]))
     p = Program()
     p.define_noisy_readout(0, 0.999, 0.85)
     p.define_noisy_readout(1, 0.999, 0.75)
-    tomo_experiment = TomographyExperiment(settings=[expt] * runs, program=p, qubits=[qubs[0], qubs[1]])
+    tomo_experiment = TomographyExperiment(settings=[expt] * runs, program=p)
 
     raw_e = np.zeros(runs)
     obs_e = np.zeros(runs)
@@ -749,7 +733,7 @@ def test_measure_observables_2q_readout_error_one_measured(forest):
 
     for idx, res in enumerate(measure_observables(qc,
                                                   tomo_experiment,
-                                                  n_shots=1000)):
+                                                  n_shots=5000)):
         raw_e[idx] = res.raw_expectation
         obs_e[idx] = res.expectation
         cal_e[idx] = res.calibration_expectation
@@ -762,7 +746,7 @@ def test_measure_observables_2q_readout_error_one_measured(forest):
 def test_exhaustive_symmetrization_1q(forest):
     qc = get_qc('9q-qvm')
     qubs = [5]
-    n_shots = 10000
+    n_shots = 2000
     p = Program()
     p00, p11 = 0.90, 0.80
     p.define_noisy_readout(5, p00, p11)
@@ -777,7 +761,7 @@ def test_exhaustive_symmetrization_1q(forest):
 def test_exhaustive_symmetrization_2q(forest):
     qc = get_qc('9q-qvm')
     qubs = [5, 7]
-    n_shots = 10000
+    n_shots = 5000
     p = Program()
     p5_00, p5_11 = 0.90, 0.80
     p7_00, p7_11 = 0.99, 0.77
@@ -798,6 +782,8 @@ def test_exhaustive_symmetrization_2q(forest):
     assert np.isclose(frac7_0, expected_frac7_0, 2e-2)
 
 
+# TODO: gh-897
+@pytest.mark.skip
 def test_measure_observables_inherit_noise_errors(forest):
     qc = get_qc('3q-qvm')
     # specify simplest experiments
@@ -822,7 +808,7 @@ def test_measure_observables_inherit_noise_errors(forest):
     p.define_noisy_readout(1, 0.95, 0.85)
     p.define_noisy_readout(2, 0.97, 0.78)
 
-    tomo_expt = TomographyExperiment(settings=[expt1, expt2, expt3], program=p, qubits=[0, 1, 2])
+    tomo_expt = TomographyExperiment(settings=[expt1, expt2, expt3], program=p)
 
     calibr_prog1 = _calibration_program(qc, tomo_expt, expt1)
     calibr_prog2 = _calibration_program(qc, tomo_expt, expt2)
@@ -847,13 +833,13 @@ def test_expectations_sic0(forest):
     expt1 = ExperimentSetting(SIC0(0), sX(0))
     expt2 = ExperimentSetting(SIC0(0), sY(0))
     expt3 = ExperimentSetting(SIC0(0), sZ(0))
-    tomo_expt = TomographyExperiment(settings=[expt1, expt2, expt3], program=Program(), qubits=[0])
+    tomo_expt = TomographyExperiment(settings=[expt1, expt2, expt3], program=Program())
 
-    num_simulations = 100
+    num_simulations = 25
     results_unavged = []
     for _ in range(num_simulations):
         measured_results = []
-        for res in measure_observables(qc, tomo_expt, n_shots=1000):
+        for res in measure_observables(qc, tomo_expt, n_shots=2000):
             measured_results.append(res.expectation)
         results_unavged.append(measured_results)
 
@@ -868,13 +854,13 @@ def test_expectations_sic1(forest):
     expt1 = ExperimentSetting(SIC1(0), sX(0))
     expt2 = ExperimentSetting(SIC1(0), sY(0))
     expt3 = ExperimentSetting(SIC1(0), sZ(0))
-    tomo_expt = TomographyExperiment(settings=[expt1, expt2, expt3], program=Program(), qubits=[0])
+    tomo_expt = TomographyExperiment(settings=[expt1, expt2, expt3], program=Program())
 
-    num_simulations = 100
+    num_simulations = 25
     results_unavged = []
     for _ in range(num_simulations):
         measured_results = []
-        for res in measure_observables(qc, tomo_expt, n_shots=1000):
+        for res in measure_observables(qc, tomo_expt, n_shots=2000):
             measured_results.append(res.expectation)
         results_unavged.append(measured_results)
 
@@ -889,13 +875,13 @@ def test_expectations_sic2(forest):
     expt1 = ExperimentSetting(SIC2(0), sX(0))
     expt2 = ExperimentSetting(SIC2(0), sY(0))
     expt3 = ExperimentSetting(SIC2(0), sZ(0))
-    tomo_expt = TomographyExperiment(settings=[expt1, expt2, expt3], program=Program(), qubits=[0])
+    tomo_expt = TomographyExperiment(settings=[expt1, expt2, expt3], program=Program())
 
-    num_simulations = 100
+    num_simulations = 25
     results_unavged = []
     for _ in range(num_simulations):
         measured_results = []
-        for res in measure_observables(qc, tomo_expt, n_shots=1000):
+        for res in measure_observables(qc, tomo_expt, n_shots=2000):
             measured_results.append(res.expectation)
         results_unavged.append(measured_results)
 
@@ -912,13 +898,13 @@ def test_expectations_sic3(forest):
     expt1 = ExperimentSetting(SIC3(0), sX(0))
     expt2 = ExperimentSetting(SIC3(0), sY(0))
     expt3 = ExperimentSetting(SIC3(0), sZ(0))
-    tomo_expt = TomographyExperiment(settings=[expt1, expt2, expt3], program=Program(), qubits=[0])
+    tomo_expt = TomographyExperiment(settings=[expt1, expt2, expt3], program=Program())
 
-    num_simulations = 100
+    num_simulations = 25
     results_unavged = []
     for _ in range(num_simulations):
         measured_results = []
-        for res in measure_observables(qc, tomo_expt, n_shots=1000):
+        for res in measure_observables(qc, tomo_expt, n_shots=2000):
             measured_results.append(res.expectation)
         results_unavged.append(measured_results)
 
@@ -985,14 +971,13 @@ def test_measure_observables_grouped_expts(forest):
     # create a list-of-lists-of-ExperimentSettings
     expt_settings = [expts_group1, expts_group2]
     # and use this to create a TomographyExperiment suite
-    tomo_expt = TomographyExperiment(settings=expt_settings, program=Program(),
-                                     qubits=[0, 1, 2])
+    tomo_expt = TomographyExperiment(settings=expt_settings, program=Program())
 
-    num_simulations = 100
+    num_simulations = 25
     results_unavged = []
     for _ in range(num_simulations):
         measured_results = []
-        for res in measure_observables(qc, tomo_expt, n_shots=1000):
+        for res in measure_observables(qc, tomo_expt, n_shots=2000):
             measured_results.append(res.expectation)
         results_unavged.append(measured_results)
 
@@ -1029,14 +1014,13 @@ def test_bit_flip_channel_fidelity(forest):
     p.define_noisy_gate("I", [0], kraus_ops)
 
     # prepare TomographyExperiment
-    process_exp = TomographyExperiment(settings=expt_list, program=p,
-                                       qubits=[0])
+    process_exp = TomographyExperiment(settings=expt_list, program=p)
     # list to store experiment results
-    num_expts = 100
+    num_expts = 25
     expts = []
     for _ in range(num_expts):
         expt_results = []
-        for res in measure_observables(qc, process_exp, n_shots=1000):
+        for res in measure_observables(qc, process_exp, n_shots=2000):
             expt_results.append(res.expectation)
         expts.append(expt_results)
 
@@ -1068,14 +1052,13 @@ def test_dephasing_channel_fidelity(forest):
     p.define_noisy_gate("I", [0], kraus_ops)
 
     # prepare TomographyExperiment
-    process_exp = TomographyExperiment(settings=expt_list, program=p,
-                                       qubits=[0])
+    process_exp = TomographyExperiment(settings=expt_list, program=p)
     # list to store experiment results
-    num_expts = 100
+    num_expts = 25
     expts = []
     for _ in range(num_expts):
         expt_results = []
-        for res in measure_observables(qc, process_exp, n_shots=1000):
+        for res in measure_observables(qc, process_exp, n_shots=2000):
             expt_results.append(res.expectation)
         expts.append(expt_results)
 
@@ -1109,14 +1092,13 @@ def test_depolarizing_channel_fidelity(forest):
     p.define_noisy_gate("I", [0], kraus_ops)
 
     # prepare TomographyExperiment
-    process_exp = TomographyExperiment(settings=expt_list, program=p,
-                                       qubits=[0])
+    process_exp = TomographyExperiment(settings=expt_list, program=p)
     # list to store experiment results
-    num_expts = 100
+    num_expts = 25
     expts = []
     for _ in range(num_expts):
         expt_results = []
-        for res in measure_observables(qc, process_exp, n_shots=1000):
+        for res in measure_observables(qc, process_exp, n_shots=2000):
             expt_results.append(res.expectation)
         expts.append(expt_results)
 
@@ -1144,14 +1126,13 @@ def test_unitary_channel_fidelity(forest):
     # unitary (RY) channel
     p = Program(RY(theta, 0))
     # prepare TomographyExperiment
-    process_exp = TomographyExperiment(settings=expt_list, program=p,
-                                       qubits=[0])
+    process_exp = TomographyExperiment(settings=expt_list, program=p)
     # list to store experiment results
-    num_expts = 100
+    num_expts = 25
     expts = []
     for _ in range(num_expts):
         expt_results = []
-        for res in measure_observables(qc, process_exp, n_shots=1000):
+        for res in measure_observables(qc, process_exp, n_shots=2000):
             expt_results.append(res.expectation)
         expts.append(expt_results)
 
@@ -1186,14 +1167,13 @@ def test_bit_flip_channel_fidelity_readout_error(forest):
     p.define_noisy_readout(0, 0.95, 0.82)
 
     # prepare TomographyExperiment
-    process_exp = TomographyExperiment(settings=expt_list, program=p,
-                                       qubits=[0])
+    process_exp = TomographyExperiment(settings=expt_list, program=p)
     # list to store experiment results
-    num_expts = 100
+    num_expts = 25
     expts = []
     for _ in range(num_expts):
         expt_results = []
-        for res in measure_observables(qc, process_exp, n_shots=1000):
+        for res in measure_observables(qc, process_exp, n_shots=2000):
             expt_results.append(res.expectation)
         expts.append(expt_results)
 
@@ -1227,14 +1207,13 @@ def test_dephasing_channel_fidelity_readout_error(forest):
     p.define_noisy_readout(0, 0.95, 0.82)
 
     # prepare TomographyExperiment
-    process_exp = TomographyExperiment(settings=expt_list, program=p,
-                                       qubits=[0])
+    process_exp = TomographyExperiment(settings=expt_list, program=p)
     # list to store experiment results
-    num_expts = 100
+    num_expts = 25
     expts = []
     for _ in range(num_expts):
         expt_results = []
-        for res in measure_observables(qc, process_exp, n_shots=1000):
+        for res in measure_observables(qc, process_exp, n_shots=2000):
             expt_results.append(res.expectation)
         expts.append(expt_results)
 
@@ -1270,14 +1249,13 @@ def test_depolarizing_channel_fidelity_readout_error(forest):
     p.define_noisy_readout(0, 0.95, 0.82)
 
     # prepare TomographyExperiment
-    process_exp = TomographyExperiment(settings=expt_list, program=p,
-                                       qubits=[0])
+    process_exp = TomographyExperiment(settings=expt_list, program=p)
     # list to store experiment results
-    num_expts = 100
+    num_expts = 25
     expts = []
     for _ in range(num_expts):
         expt_results = []
-        for res in measure_observables(qc, process_exp, n_shots=1000):
+        for res in measure_observables(qc, process_exp, n_shots=2000):
             expt_results.append(res.expectation)
         expts.append(expt_results)
 
@@ -1307,14 +1285,13 @@ def test_unitary_channel_fidelity_readout_error(forest):
     # add some readout error
     p.define_noisy_readout(0, 0.95, 0.82)
     # prepare TomographyExperiment
-    process_exp = TomographyExperiment(settings=expt_list, program=p,
-                                       qubits=[0])
+    process_exp = TomographyExperiment(settings=expt_list, program=p)
     # list to store experiment results
-    num_expts = 100
+    num_expts = 25
     expts = []
     for _ in range(num_expts):
         expt_results = []
-        for res in measure_observables(qc, process_exp, n_shots=1000):
+        for res in measure_observables(qc, process_exp, n_shots=2000):
             expt_results.append(res.expectation)
         expts.append(expt_results)
 
@@ -1365,14 +1342,13 @@ def test_2q_unitary_channel_fidelity_readout_error(forest):
     p.define_noisy_readout(0, 0.95, 0.82)
     p.define_noisy_readout(1, 0.99, 0.73)
     # prepare TomographyExperiment
-    process_exp = TomographyExperiment(settings=expt_list, program=p,
-                                       qubits=[0, 1])
+    process_exp = TomographyExperiment(settings=expt_list, program=p)
     # list to store experiment results
-    num_expts = 100
+    num_expts = 25
     expts = []
     for _ in range(num_expts):
         expt_results = []
-        for res in measure_observables(qc, process_exp, n_shots=1000):
+        for res in measure_observables(qc, process_exp, n_shots=5000):
             expt_results.append(res.expectation)
         expts.append(expt_results)
 
@@ -1391,14 +1367,13 @@ def test_measure_1q_observable_raw_expectation(forest):
     p = Program()
     p00, p11 = 0.99, 0.80
     p.define_noisy_readout(0, p00=p00, p11=p11)
-    qubs = [0]
-    tomo_expt = TomographyExperiment(settings=[expt], program=p, qubits=qubs)
+    tomo_expt = TomographyExperiment(settings=[expt], program=p)
 
-    num_simulations = 100
+    num_simulations = 25
 
     raw_expectations = []
     for _ in range(num_simulations):
-        expt_results = list(measure_observables(qc, tomo_expt, n_shots=1000))
+        expt_results = list(measure_observables(qc, tomo_expt, n_shots=2000))
         raw_expectations.append([res.raw_expectation for res in expt_results])
     raw_expectations = np.array(raw_expectations)
     result = np.mean(raw_expectations, axis=0)
@@ -1411,24 +1386,23 @@ def test_measure_1q_observable_raw_expectation(forest):
 
 
 def test_measure_1q_observable_raw_variance(forest):
-    # testing that we get correct raw stddev in terms of readout errors
+    # testing that we get correct raw std_err in terms of readout errors
     qc = get_qc('1q-qvm')
     expt = ExperimentSetting(TensorProductState(plusZ(0)), sZ(0))
     p = Program()
     p00, p11 = 0.99, 0.80
     p.define_noisy_readout(0, p00=p00, p11=p11)
-    qubs = [0]
-    tomo_expt = TomographyExperiment(settings=[expt], program=p, qubits=qubs)
+    tomo_expt = TomographyExperiment(settings=[expt], program=p)
 
-    num_simulations = 100
-    num_shots = 1000
+    num_simulations = 25
+    num_shots = 2000
 
-    raw_stddevs = []
+    raw_std_errs = []
     for _ in range(num_simulations):
         expt_results = list(measure_observables(qc, tomo_expt, n_shots=num_shots))
-        raw_stddevs.append([res.raw_stddev for res in expt_results])
-    raw_stddevs = np.array(raw_stddevs)
-    result = np.mean(raw_stddevs, axis=0)
+        raw_std_errs.append([res.raw_std_err for res in expt_results])
+    raw_std_errs = np.array(raw_std_errs)
+    result = np.mean(raw_std_errs, axis=0)
 
     # calculate expected raw_expectation
     eps_not = (p00 + p11) / 2
@@ -1444,14 +1418,13 @@ def test_measure_1q_observable_calibration_expectation(forest):
     p = Program()
     p00, p11 = 0.93, 0.77
     p.define_noisy_readout(0, p00=p00, p11=p11)
-    qubs = [0]
-    tomo_expt = TomographyExperiment(settings=[expt], program=p, qubits=qubs)
+    tomo_expt = TomographyExperiment(settings=[expt], program=p)
 
-    num_simulations = 100
+    num_simulations = 25
 
     calibration_expectations = []
     for _ in range(num_simulations):
-        expt_results = list(measure_observables(qc, tomo_expt, n_shots=1000))
+        expt_results = list(measure_observables(qc, tomo_expt, n_shots=2000))
         calibration_expectations.append([res.calibration_expectation for res in expt_results])
     calibration_expectations = np.array(calibration_expectations)
     result = np.mean(calibration_expectations, axis=0)
@@ -1464,24 +1437,23 @@ def test_measure_1q_observable_calibration_expectation(forest):
 
 
 def test_measure_1q_observable_calibration_variance(forest):
-    # testing that we get correct calibration stddev in terms of readout errors
+    # testing that we get correct calibration std_err in terms of readout errors
     qc = get_qc('1q-qvm')
     expt = ExperimentSetting(TensorProductState(plusZ(0)), sZ(0))
     p = Program()
     p00, p11 = 0.93, 0.77
     p.define_noisy_readout(0, p00=p00, p11=p11)
-    qubs = [0]
-    tomo_expt = TomographyExperiment(settings=[expt], program=p, qubits=qubs)
+    tomo_expt = TomographyExperiment(settings=[expt], program=p)
 
-    num_simulations = 100
-    num_shots = 1000
+    num_simulations = 25
+    num_shots = 2000
 
-    raw_stddevs = []
+    raw_std_errs = []
     for _ in range(num_simulations):
         expt_results = list(measure_observables(qc, tomo_expt, n_shots=num_shots))
-        raw_stddevs.append([res.raw_stddev for res in expt_results])
-    raw_stddevs = np.array(raw_stddevs)
-    result = np.mean(raw_stddevs, axis=0)
+        raw_std_errs.append([res.raw_std_err for res in expt_results])
+    raw_std_errs = np.array(raw_std_errs)
+    result = np.mean(raw_std_errs, axis=0)
 
     # calculate expected raw_expectation
     eps_not = (p00 + p11) / 2
@@ -1499,10 +1471,9 @@ def test_uncalibrated_asymmetric_readout_nontrivial_1q_state(forest):
     # pick some random (but sufficiently large) asymmetric readout errors
     p00, p11 = np.random.uniform(0.7, 0.99, size=2)
     p.define_noisy_readout(0, p00=p00, p11=p11)
-    qubs = [0]
-    runs = 50
+    runs = 25
     expt_list = [expt]
-    tomo_expt = TomographyExperiment(settings=expt_list * runs, program=p, qubits=qubs)
+    tomo_expt = TomographyExperiment(settings=expt_list * runs, program=p)
     # calculate expected expectation value
     amp_sqr0 = (np.cos(theta / 2)) ** 2
     amp_sqr1 = (np.sin(theta / 2)) ** 2
@@ -1512,8 +1483,8 @@ def test_uncalibrated_asymmetric_readout_nontrivial_1q_state(forest):
     expect_arr = np.zeros(runs * len(expt_list))
 
     for idx, res in enumerate(measure_observables(qc,
-                                                  tomo_expt, n_shots=1000,
-                                                  readout_symmetrize=None,
+                                                  tomo_expt, n_shots=2000,
+                                                  symmetrize_readout=None,
                                                   calibrate_readout=None)):
         expect_arr[idx] = res.expectation
 
@@ -1529,10 +1500,9 @@ def test_uncalibrated_symmetric_readout_nontrivial_1q_state(forest):
     # pick some random (but sufficiently large) asymmetric readout errors
     p00, p11 = np.random.uniform(0.7, 0.99, size=2)
     p.define_noisy_readout(0, p00=p00, p11=p11)
-    qubs = [0]
-    runs = 50
+    runs = 25
     expt_list = [expt]
-    tomo_expt = TomographyExperiment(settings=expt_list * runs, program=p, qubits=qubs)
+    tomo_expt = TomographyExperiment(settings=expt_list * runs, program=p)
     # calculate expected expectation value
     amp_sqr0 = (np.cos(theta / 2)) ** 2
     amp_sqr1 = (np.sin(theta / 2)) ** 2
@@ -1543,8 +1513,8 @@ def test_uncalibrated_symmetric_readout_nontrivial_1q_state(forest):
     expect_arr = np.zeros(runs * len(expt_list))
 
     for idx, res in enumerate(measure_observables(qc,
-                                                  tomo_expt, n_shots=1000,
-                                                  readout_symmetrize='exhaustive',
+                                                  tomo_expt, n_shots=2000,
+                                                  symmetrize_readout='exhaustive',
                                                   calibrate_readout=None)):
         expect_arr[idx] = res.expectation
 
@@ -1560,10 +1530,9 @@ def test_calibrated_symmetric_readout_nontrivial_1q_state(forest):
     # pick some random (but sufficiently large) asymmetric readout errors
     p00, p11 = np.random.uniform(0.7, 0.99, size=2)
     p.define_noisy_readout(0, p00=p00, p11=p11)
-    qubs = [0]
-    runs = 50
+    runs = 25
     expt_list = [expt]
-    tomo_expt = TomographyExperiment(settings=expt_list * runs, program=p, qubits=qubs)
+    tomo_expt = TomographyExperiment(settings=expt_list * runs, program=p)
     # calculate expected expectation value
     amp_sqr0 = (np.cos(theta / 2)) ** 2
     amp_sqr1 = (np.sin(theta / 2)) ** 2
@@ -1572,8 +1541,8 @@ def test_calibrated_symmetric_readout_nontrivial_1q_state(forest):
     expect_arr = np.zeros(runs * len(expt_list))
 
     for idx, res in enumerate(measure_observables(qc,
-                                                  tomo_expt, n_shots=1000,
-                                                  readout_symmetrize='exhaustive',
+                                                  tomo_expt, n_shots=2000,
+                                                  symmetrize_readout='exhaustive',
                                                   calibrate_readout='plus-eig')):
         expect_arr[idx] = res.expectation
 
@@ -1592,24 +1561,23 @@ def test_measure_2q_observable_raw_statistics(forest):
     q00, q11 = 0.93, 0.76
     p.define_noisy_readout(0, p00=p00, p11=p11)
     p.define_noisy_readout(1, p00=q00, p11=q11)
-    qubs = [0, 1]
-    tomo_expt = TomographyExperiment(settings=[expt], program=p, qubits=qubs)
+    tomo_expt = TomographyExperiment(settings=[expt], program=p)
 
-    num_simulations = 100
-    num_shots = 1000
+    num_simulations = 25
+    num_shots = 5000
 
     raw_expectations = []
-    raw_stddevs = []
+    raw_std_errs = []
 
     for _ in range(num_simulations):
         expt_results = list(measure_observables(qc, tomo_expt, n_shots=num_shots))
         raw_expectations.append([res.raw_expectation for res in expt_results])
-        raw_stddevs.append([res.raw_stddev for res in expt_results])
+        raw_std_errs.append([res.raw_std_err for res in expt_results])
 
     raw_expectations = np.array(raw_expectations)
-    raw_stddevs = np.array(raw_stddevs)
+    raw_std_errs = np.array(raw_std_errs)
     result_expectation = np.mean(raw_expectations, axis=0)
-    result_stddev = np.mean(raw_stddevs, axis=0)
+    result_std_err = np.mean(raw_std_errs, axis=0)
 
     # calculate relevant conditional probabilities, given |00> state
     # notation used: pijmn means p(ij|mn)
@@ -1620,10 +1588,10 @@ def test_measure_2q_observable_raw_statistics(forest):
     # calculate expectation value of Z^{\otimes 2}
     z_expectation = (p0000 + p1100) - (p0100 + p1000)
     # calculate standard deviation of the mean
-    simulated_stddev = np.sqrt((1 - z_expectation ** 2) / num_shots)
+    simulated_std_err = np.sqrt((1 - z_expectation ** 2) / num_shots)
     # compare against simulated results
     np.testing.assert_allclose(result_expectation, z_expectation, atol=2e-2)
-    np.testing.assert_allclose(result_stddev, simulated_stddev, atol=2e-2)
+    np.testing.assert_allclose(result_std_err, simulated_std_err, atol=2e-2)
 
 
 def test_raw_statistics_2q_nontrivial_nonentangled_state(forest):
@@ -1638,23 +1606,22 @@ def test_raw_statistics_2q_nontrivial_nonentangled_state(forest):
     p00, p11, q00, q11 = np.random.uniform(0.70, 0.99, size=4)
     p.define_noisy_readout(0, p00=p00, p11=p11)
     p.define_noisy_readout(1, p00=q00, p11=q11)
-    qubs = [0, 1]
-    tomo_expt = TomographyExperiment(settings=[expt], program=p, qubits=qubs)
+    tomo_expt = TomographyExperiment(settings=[expt], program=p)
 
-    num_simulations = 100
-    num_shots = 1000
+    num_simulations = 25
+    num_shots = 5000
 
     raw_expectations = []
-    raw_stddevs = []
+    raw_std_errs = []
 
     for _ in range(num_simulations):
         expt_results = list(measure_observables(qc, tomo_expt, n_shots=num_shots))
         raw_expectations.append([res.raw_expectation for res in expt_results])
-        raw_stddevs.append([res.raw_stddev for res in expt_results])
+        raw_std_errs.append([res.raw_std_err for res in expt_results])
     raw_expectations = np.array(raw_expectations)
-    raw_stddevs = np.array(raw_stddevs)
+    raw_std_errs = np.array(raw_std_errs)
     result_expectation = np.mean(raw_expectations, axis=0)
-    result_stddev = np.mean(raw_stddevs, axis=0)
+    result_std_err = np.mean(raw_std_errs, axis=0)
 
     # calculate relevant conditional probabilities, given |00> state
     # notation used: pijmn means p(ij|mn)
@@ -1689,10 +1656,10 @@ def test_raw_statistics_2q_nontrivial_nonentangled_state(forest):
     pr11 = p1100 * alph00 + p1101 * alph01 + p1110 * alph10 + p1111 * alph11
     # calculate Z^{\otimes 2} expectation, and error of the mean
     z_expectation = (pr00 + pr11) - (pr01 + pr10)
-    simulated_stddev = np.sqrt((1 - z_expectation ** 2) / num_shots)
+    simulated_std_err = np.sqrt((1 - z_expectation ** 2) / num_shots)
     # compare against simulated results
     np.testing.assert_allclose(result_expectation, z_expectation, atol=2e-2)
-    np.testing.assert_allclose(result_stddev, simulated_stddev, atol=2e-2)
+    np.testing.assert_allclose(result_std_err, simulated_std_err, atol=2e-2)
 
 
 def test_raw_statistics_2q_nontrivial_entangled_state(forest):
@@ -1707,23 +1674,22 @@ def test_raw_statistics_2q_nontrivial_entangled_state(forest):
     p00, p11, q00, q11 = np.random.uniform(0.70, 0.99, size=4)
     p.define_noisy_readout(0, p00=p00, p11=p11)
     p.define_noisy_readout(1, p00=q00, p11=q11)
-    qubs = [0, 1]
-    tomo_expt = TomographyExperiment(settings=[expt], program=p, qubits=qubs)
+    tomo_expt = TomographyExperiment(settings=[expt], program=p)
 
-    num_simulations = 100
-    num_shots = 1000
+    num_simulations = 25
+    num_shots = 5000
 
     raw_expectations = []
-    raw_stddevs = []
+    raw_std_errs = []
 
     for _ in range(num_simulations):
         expt_results = list(measure_observables(qc, tomo_expt, n_shots=num_shots))
         raw_expectations.append([res.raw_expectation for res in expt_results])
-        raw_stddevs.append([res.raw_stddev for res in expt_results])
+        raw_std_errs.append([res.raw_std_err for res in expt_results])
     raw_expectations = np.array(raw_expectations)
-    raw_stddevs = np.array(raw_stddevs)
+    raw_std_errs = np.array(raw_std_errs)
     result_expectation = np.mean(raw_expectations, axis=0)
-    result_stddev = np.mean(raw_stddevs, axis=0)
+    result_std_err = np.mean(raw_std_errs, axis=0)
 
     # calculate relevant conditional probabilities, given |00> state
     # notation used: pijmn means p(ij|mn)
@@ -1746,10 +1712,10 @@ def test_raw_statistics_2q_nontrivial_entangled_state(forest):
     pr11 = p1100 * alph00 + p1111 * alph11
     # calculate Z^{\otimes 2} expectation, and error of the mean
     z_expectation = (pr00 + pr11) - (pr01 + pr10)
-    simulated_stddev = np.sqrt((1 - z_expectation ** 2) / num_shots)
+    simulated_std_err = np.sqrt((1 - z_expectation ** 2) / num_shots)
     # compare against simulated results
     np.testing.assert_allclose(result_expectation, z_expectation, atol=2e-2)
-    np.testing.assert_allclose(result_stddev, simulated_stddev, atol=2e-2)
+    np.testing.assert_allclose(result_std_err, simulated_std_err, atol=2e-2)
 
 
 def test_corrected_statistics_2q_nontrivial_nonentangled_state(forest):
@@ -1765,23 +1731,22 @@ def test_corrected_statistics_2q_nontrivial_nonentangled_state(forest):
     p00, p11, q00, q11 = np.random.uniform(0.70, 0.99, size=4)
     p.define_noisy_readout(0, p00=p00, p11=p11)
     p.define_noisy_readout(1, p00=q00, p11=q11)
-    qubs = [0, 1]
-    tomo_expt = TomographyExperiment(settings=[expt], program=p, qubits=qubs)
+    tomo_expt = TomographyExperiment(settings=[expt], program=p)
 
-    num_simulations = 100
-    num_shots = 10000
+    num_simulations = 25
+    num_shots = 5000
 
     expectations = []
-    stddevs = []
+    std_errs = []
 
     for _ in range(num_simulations):
         expt_results = list(measure_observables(qc, tomo_expt, n_shots=num_shots))
         expectations.append([res.expectation for res in expt_results])
-        stddevs.append([res.stddev for res in expt_results])
+        std_errs.append([res.std_err for res in expt_results])
     expectations = np.array(expectations)
-    stddevs = np.array(stddevs)
+    std_errs = np.array(std_errs)
     result_expectation = np.mean(expectations, axis=0)
-    result_stddev = np.mean(stddevs, axis=0)
+    result_std_err = np.mean(std_errs, axis=0)
 
     # calculate amplitudes squared of pure state
     alph00 = (np.cos(theta1 / 2) * np.cos(theta2 / 2)) ** 2
@@ -1790,10 +1755,10 @@ def test_corrected_statistics_2q_nontrivial_nonentangled_state(forest):
     alph11 = (np.sin(theta1 / 2) * np.sin(theta2 / 2)) ** 2
     # calculate Z^{\otimes 2} expectation, and error of the mean
     expected_expectation = (alph00 + alph11) - (alph01 + alph10)
-    expected_stddev = np.sqrt(np.var(expectations))
+    expected_std_err = np.sqrt(np.var(expectations))
     # compare against simulated results
     np.testing.assert_allclose(result_expectation, expected_expectation, atol=2e-2)
-    np.testing.assert_allclose(result_stddev, expected_stddev, atol=2e-2)
+    np.testing.assert_allclose(result_std_err, expected_std_err, atol=2e-2)
 
 
 def _point_state_fidelity_estimate(v, dim=2):
@@ -1817,14 +1782,13 @@ def test_bit_flip_state_fidelity(forest):
     p.define_noisy_gate("I", [0], kraus_ops)
 
     # prepare TomographyExperiment
-    process_exp = TomographyExperiment(settings=[expt], program=p,
-                                       qubits=[0])
+    process_exp = TomographyExperiment(settings=[expt], program=p)
     # list to store experiment results
-    num_expts = 100
+    num_expts = 25
     expts = []
     for _ in range(num_expts):
         expt_results = []
-        for res in measure_observables(qc, process_exp, n_shots=1000):
+        for res in measure_observables(qc, process_exp, n_shots=2000):
             expt_results.append(res.expectation)
         expts.append(expt_results)
 
@@ -1850,14 +1814,13 @@ def test_dephasing_state_fidelity(forest):
     p.define_noisy_gate("I", [0], kraus_ops)
 
     # prepare TomographyExperiment
-    process_exp = TomographyExperiment(settings=[expt], program=p,
-                                       qubits=[0])
+    process_exp = TomographyExperiment(settings=[expt], program=p)
     # list to store experiment results
-    num_expts = 100
+    num_expts = 25
     expts = []
     for _ in range(num_expts):
         expt_results = []
-        for res in measure_observables(qc, process_exp, n_shots=1000):
+        for res in measure_observables(qc, process_exp, n_shots=2000):
             expt_results.append(res.expectation)
         expts.append(expt_results)
 
@@ -1885,14 +1848,13 @@ def test_depolarizing_state_fidelity(forest):
     p.define_noisy_gate("I", [0], kraus_ops)
 
     # prepare TomographyExperiment
-    process_exp = TomographyExperiment(settings=[expt], program=p,
-                                       qubits=[0])
+    process_exp = TomographyExperiment(settings=[expt], program=p)
     # list to store experiment results
-    num_expts = 100
+    num_expts = 25
     expts = []
     for _ in range(num_expts):
         expt_results = []
-        for res in measure_observables(qc, process_exp, n_shots=1000):
+        for res in measure_observables(qc, process_exp, n_shots=2000):
             expt_results.append(res.expectation)
         expts.append(expt_results)
 
@@ -1914,14 +1876,13 @@ def test_unitary_state_fidelity(forest):
     p = Program(RX(theta, 0))
 
     # prepare TomographyExperiment
-    process_exp = TomographyExperiment(settings=[expt], program=p,
-                                       qubits=[0])
+    process_exp = TomographyExperiment(settings=[expt], program=p)
     # list to store experiment results
-    num_expts = 100
+    num_expts = 25
     expts = []
     for _ in range(num_expts):
         expt_results = []
-        for res in measure_observables(qc, process_exp, n_shots=1000):
+        for res in measure_observables(qc, process_exp, n_shots=2000):
             expt_results.append(res.expectation)
         expts.append(expt_results)
 
@@ -1949,14 +1910,13 @@ def test_bit_flip_state_fidelity_readout_error(forest):
     p.define_noisy_readout(0, 0.95, 0.76)
 
     # prepare TomographyExperiment
-    process_exp = TomographyExperiment(settings=[expt], program=p,
-                                       qubits=[0])
+    process_exp = TomographyExperiment(settings=[expt], program=p)
     # list to store experiment results
-    num_expts = 100
+    num_expts = 25
     expts = []
     for _ in range(num_expts):
         expt_results = []
-        for res in measure_observables(qc, process_exp, n_shots=1000):
+        for res in measure_observables(qc, process_exp, n_shots=2000):
             expt_results.append(res.expectation)
         expts.append(expt_results)
 
@@ -1983,14 +1943,13 @@ def test_dephasing_state_fidelity_readout_error(forest):
     p.define_noisy_readout(0, 0.95, 0.76)
 
     # prepare TomographyExperiment
-    process_exp = TomographyExperiment(settings=[expt], program=p,
-                                       qubits=[0])
+    process_exp = TomographyExperiment(settings=[expt], program=p)
     # list to store experiment results
-    num_expts = 100
+    num_expts = 25
     expts = []
     for _ in range(num_expts):
         expt_results = []
-        for res in measure_observables(qc, process_exp, n_shots=1000):
+        for res in measure_observables(qc, process_exp, n_shots=2000):
             expt_results.append(res.expectation)
         expts.append(expt_results)
 
@@ -2019,14 +1978,13 @@ def test_depolarizing_state_fidelity_readout_error(forest):
     p.define_noisy_readout(0, 0.95, 0.76)
 
     # prepare TomographyExperiment
-    process_exp = TomographyExperiment(settings=[expt], program=p,
-                                       qubits=[0])
+    process_exp = TomographyExperiment(settings=[expt], program=p)
     # list to store experiment results
-    num_expts = 100
+    num_expts = 25
     expts = []
     for _ in range(num_expts):
         expt_results = []
-        for res in measure_observables(qc, process_exp, n_shots=1000):
+        for res in measure_observables(qc, process_exp, n_shots=2000):
             expt_results.append(res.expectation)
         expts.append(expt_results)
 
@@ -2049,14 +2007,13 @@ def test_unitary_state_fidelity_readout_error(forest):
     p.define_noisy_readout(0, 0.95, 0.76)
 
     # prepare TomographyExperiment
-    process_exp = TomographyExperiment(settings=[expt], program=p,
-                                       qubits=[0])
+    process_exp = TomographyExperiment(settings=[expt], program=p)
     # list to store experiment results
-    num_expts = 100
+    num_expts = 25
     expts = []
     for _ in range(num_expts):
         expt_results = []
-        for res in measure_observables(qc, process_exp, n_shots=1000):
+        for res in measure_observables(qc, process_exp, n_shots=2000):
             expt_results.append(res.expectation)
         expts.append(expt_results)
 
