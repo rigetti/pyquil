@@ -447,8 +447,8 @@ def RESET(qubit_index=None):
     """
     Reset all qubits or just one specific qubit.
 
-    :param Optional[qubit_index] qubit: The qubit to reset. This can be a qubit's index, a Qubit,
-        or a QubitPlaceholder.
+    :param Optional[Union[integer_types, Qubit, QubitPlaceholder]] qubit_index: The qubit to reset.
+        This can be a qubit's index, a Qubit, or a QubitPlaceholder.
         If None, reset all qubits.
     :returns: A Reset or ResetQubit Quil AST expression corresponding to a global or targeted
         reset, respectively.
