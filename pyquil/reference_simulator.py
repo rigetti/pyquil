@@ -165,6 +165,25 @@ class ReferenceDensitySimulator(AbstractQuantumSimulator):
         self.rs = rs
         self.density = np.zeros((2 ** n_qubits, 2 ** n_qubits), dtype=np.complex128)
         self.density[0, 0] = complex(1.0, 0)
+        self.density_is_set = False
+
+    def set_density(self, state_matrix):
+        """
+        The default state of RDS is |000...00>. This method is the correct way (TM) to set the
+        state matrix to another state/
+
+        :param state_matrix: numpy.ndarray
+        :return: zippo
+        """
+        rows, cols = state_matrix.shape
+        if rows != cols:
+            raise ValueError("The state matrix is not square.")
+        if self.n_qubits != int(np.log2(rows)):
+            raise ValueError("The state matrix is not defined on the same numbers of qubits as "
+                             "the QVM.")
+        self.density = state_matrix
+        self.initial_density = state_matrix
+        self.density_is_set = True
 
     def sample_bitstrings(self, n_samples, tol_factor: float = 1e8):
         """
@@ -246,9 +265,13 @@ class ReferenceDensitySimulator(AbstractQuantumSimulator):
         raise NotImplementedError("To implement")
 
     def reset(self) -> 'AbstractQuantumSimulator':
-        self.density.fill(0)
-        self.density[0, 0] = complex(1.0, 0)
-        return self
+        if self.density_is_set:
+            self.density = self.initial_density
+            #print("I said hey, what's going on?")
+        else:
+            self.density.fill(0)
+            self.density[0, 0] = complex(1.0, 0)
+            #print("She was more like a beauty queen from a movie scene")
 
     def do_post_gate_noise(self, noise_type: str, noise_prob: float, qubits: List[int]):
         kraus_ops = KRAUS_OPS[noise_type](p=noise_prob)
