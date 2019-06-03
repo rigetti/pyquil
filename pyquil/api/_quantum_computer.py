@@ -158,80 +158,72 @@ kraus_ops = two_qubit_bit_flip_operators(0.7,1,1,1)
 # ==================================================================================================
 
 
-
-def symmetrization(programs: List[Program], meas_qubits: List[List[int]], symm_type: str = 'thr') \
-        -> Tuple[List[Program], List[List[int]], List[Tuple[bool]], List[int]]:
+def symmetrization(program: Program, meas_qubits: List[int], symm_type: int = 3) \
+        -> Tuple[List[Program], List[Tuple[bool]]]:
     """
-    For each program in the input programs generate new programs which flip the measured qubits
-    with an X gate in certain combinations in order to symmetrize readout.
+    For the input program generate new programs which flip the measured qubits with an X gate in
+    certain combinations in order to symmetrize readout.
 
-    The symmetrization types avablible are:
-    'tri' -- trivial that is no symmetrization
-    'one' -- symmetrization using an orthogonal array with strength 1
-    'two' -- symmetrization using an orthogonal array with strength 2
-    'thr' -- symmetrization using an orthogonal array with strength 3
-    'exh' -- exhaustive symmetrization uses every possible combination of flips
+    An expanded list of programs is returned along with a list of bools which indicates which
+    qubits are flipped in each program.
 
-    The expanded list of programs is returned along with a correspondingly expanded list of
-    meas_qubits, a list of bools which indicates which qubits are flipped in each program,
-    and a list of indices which records from which program in the input programs list each
-    symmetrized program originated.
+    The symmetrization types are specified by an int; the types available are:
+    -1 -- exhaustive symmetrization uses every possible combination of flips
+     0 -- trivial that is no symmetrization
+     1 -- symmetrization using an orthogonal array with strength 1
+     2 -- symmetrization using an orthogonal array with strength 2
+     3 -- symmetrization using an orthogonal array with strength 3
+    By default a strength 3 orthogonal array (OA) is used; this ensures that expectations of the
+    form <b_k b_j b_i> for bits any bits i,j,k will have symmetric readout errors. As a strength 3
+    OA is also a strength 2 and 1 OA it also ensures <b_j b_i> and <b_i> for any bits j and i.
 
-    :param programs: a list of programs each of which will be symmetrized.
-    :param meas_qubits: the corresponding groups of measurement qubits for the input list of
-        programs. Only these qubits will be symmetrized over, even if the program acts on other
-        qubits.
-    :param sym_type: a string determining the type of symmetrization performed
-    :return: a list of symmetrized programs, the corresponding measurement qubits,
-        the corresponding array of bools indicating which qubits were flipped,
-        and a corresponding list of indices specifying the generating `program'
+    :param programs: a program which will be symmetrized.
+    :param meas_qubits: the groups of measurement qubits. Only these qubits will be symmetrized
+        over, even if the program acts on other qubits.
+    :param sym_type: an int determining the type of symmetrization performed.
+    :return: a list of symmetrized programs, the corresponding array of bools indicating which
+        qubits were flipped.
     """
-    assert len(programs) == len(meas_qubits), 'mismatch of programs and qubits; must know which ' \
-                                              'qubits are being measured to symmetrize them.'
-
     symm_programs = []
-    symm_meas_qs = []
-    prog_groups = []
     flip_arrays = []
+    len_meas_qs = len(meas_qubits)
+                  len_meas_qs
+    if symm_type == -1:
+        # exhaustive = all possible binary strings
+        flip_matrix = np.asarray(list(itertools.product([0, 1], repeat=len(meas_qubits))))
+    elif symm_type == 0:
+        # trivial flip matrix = an array of zeros
+        flip_matrix = np.zeros(len(meas_qubits))
+    elif symm_type == 1:
+        # orthogonal array with strength equal to 1. See Example 1.4 of [OATA], referenced in the
+        # `construct_strength_two_orthogonal_array` docstrings, for more details.
+        flip_matrix = np.concatenate((np.zeros(len(meas_qubits)), np.ones(len(meas_qubits))), axis=0)
+    elif symm_type == 2:
+        flip_matrix = construct_strength_two_orthogonal_array(len(meas_qubits))
+    elif symm_type == 3:
+        flip_matrix = construct_strength_three_orthogonal_array(len(meas_qubits))
 
-    for idx, (prog, meas_qs) in enumerate(zip(programs, meas_qubits)):
-        if symm_type == 'tri':
-            # trivial flip matrix = an array of zeros
-            flip_matrix = np.asarray(list(itertools.product([0], repeat=len(meas_qs))))
-        elif symm_type == 'one':
-            # orthogonal array with strength equal to 1. See Example 1.4.
-            zeros_array = np.asarray(list(itertools.product([0], repeat=len(meas_qs))))
-            ones_array = np.asarray(list(itertools.product([1], repeat=len(meas_qs))))
-            flip_matrix = np.concatenate((zeros_array, ones_array), axis=0)
-        elif symm_type == 'two':
-            flip_matrix = construct_strength_two_orthogonal_array(len(meas_qs))
-        elif symm_type == 'thr':
-            flip_matrix = construct_strength_three_orthogonal_array(len(meas_qs))
-        elif symm_type == 'exh':
-            flip_matrix = np.asarray(list(itertools.product([0, 1], repeat=len(meas_qs))))
+    # The next part is not rigorous the sense that we simply truncate to the desired
+    # number of qubits. The problem is that orthogonal arrays of a certain strength for an
+    # arbitrary number of qubits are not known to exist.
+    num_expts, num_qubits = flip_matrix.shape
+    if len(meas_qubits) != num_qubits:
+        flip_matrix = flip_matrix[0:int(num_expts), 0:int(len(meas_qubits))]
 
-        # the next part is a hack in the sense that orthogonal arrays of a certain strength
-        # for an arbitrary number of qubits are not known to exist.
-        num_expts, num_qubits = flip_matrix.shape
-        if len(meas_qs) != num_qubits:
-            flip_matrix = flip_matrix[0:int(num_expts), 0:int(len(meas_qs))]
+    for flip_array in flip_matrix:
+        total_prog_symm = program.copy()
+        prog_symm = _flip_array_to_prog(flip_array, meas_qubits)
+        total_prog_symm += prog_symm
+        symm_programs.append(total_prog_symm)
+        flip_arrays.append(flip_array)
 
-        for flip_array in flip_matrix:
-            total_prog_symm = prog.copy()
-            prog_symm = _flip_array_to_prog(flip_array, meas_qs)
-            total_prog_symm += prog_symm
-            symm_programs.append(total_prog_symm)
-            symm_meas_qs.append(meas_qs)
-            prog_groups.append(idx)
-            flip_arrays.append(flip_array)
+    # this hack is here only to test the symmetrization
+    for prog in symm_programs:
+        prog.inst(II_definition)
+        prog.define_noisy_gate("II", [0, 1], append_kraus_to_gate(kraus_ops, II_mat))
+        prog.inst(II(0, 1))
 
-        # this hack is here only to test the symmetrization
-        for prog in symm_programs:
-            prog.inst(II_definition)
-            prog.define_noisy_gate("II", [0, 1], append_kraus_to_gate(kraus_ops, II_mat))
-            prog.inst(II(0, 1))
-
-    return symm_programs, symm_meas_qs, flip_arrays, prog_groups
+return symm_programs, flip_arrays
 
 def consolidate_symmetrization_outputs(outputs: List[np.ndarray], flip_arrays: List[Tuple[bool]],
                                        groups: List[int]) -> List[np.ndarray]:
@@ -318,6 +310,13 @@ def construct_strength_three_orthogonal_array(num_qubits: int):
     k: Number of columns, constraints or factors
     s: Number of symbols or levels
     t: Strength
+
+    See [OATA] for more details.
+
+    [OATA] Orthogonal Arrays: theory and applications
+           Hedayat, Sloane, Stufken
+           Springer Science & Business Media, 2012.
+           https://dx.doi.org/10.1007/978-1-4612-1478-6
     """
 
     num_qubits_power_of_2 = _next_power_of_2(num_qubits)
@@ -342,6 +341,14 @@ def construct_strength_two_orthogonal_array(num_qubits: int):
     k: Number of columns, constraints or factors
     s: Number of symbols or levels
     t: Strength
+
+    See [OATA] for more details.
+
+    [OATA] Orthogonal Arrays: theory and applications
+           Hedayat, Sloane, Stufken
+           Springer Science & Business Media, 2012.
+           https://dx.doi.org/10.1007/978-1-4612-1478-6
+
     """
     # next line will break post denali at 275 qubits
     # valid_num_qubits = 4 * lambda - 1
@@ -351,8 +358,7 @@ def construct_strength_two_orthogonal_array(num_qubits: int):
 
     H = hadamard(_next_power_of_2(four_lam))
 
-    # The minus sign in front of H fixes the 0 <-> 1 inversion relative to the reference
-    # "Orthogonal Arrays Theory and Applications" by Hedayat, Sloane, and Stufken
+    # The minus sign in front of H fixes the 0 <-> 1 inversion relative to the reference [OATA]
     design = ((-H[1:int(four_lam), 0:int(four_lam)] + 1) / 2).astype(int)
     return design.T
 
