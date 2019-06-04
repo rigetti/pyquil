@@ -113,9 +113,10 @@ def symmetrization(program: Program, meas_qubits: List[int], symm_type: int = 3)
      1 -- symmetrization using an orthogonal array with strength 1
      2 -- symmetrization using an orthogonal array with strength 2
      3 -- symmetrization using an orthogonal array with strength 3
-    By default a strength 3 orthogonal array (OA) is used; this ensures that expectations of the
-    form <b_k b_j b_i> for bits any bits i,j,k will have symmetric readout errors. As a strength 3
-    OA is also a strength 2 and 1 OA it also ensures <b_j b_i> and <b_i> for any bits b_j and b_i.
+    By default a strength 3 OA is used; this ensures expectations of the form <b_k b_j b_i> for
+    bits any bits i,j,k will have symmetric readout errors. As a strength 3 OA is also a strength 2
+    and strength 1 OA it also ensures <b_j b_i> and <b_i> have symmetric readout errors for any
+    bits b_j and b_i.
 
     :param programs: a program which will be symmetrized.
     :param meas_qubits: the groups of measurement qubits. Only these qubits will be symmetrized
@@ -471,7 +472,8 @@ class QuantumComputer:
          3 -- symmetrization using an OA with strength 3
         By default a strength 3 OA is used; this ensures expectations of the form <b_k b_j b_i>
         for bits any bits i,j,k will have symmetric readout errors. As a strength 3 OA is also a
-        strength 2 and 1 OA it also ensures <b_j b_i> and <b_i> for any bits b_j and b_i.
+        strength 2 and strength 1 OA it also ensures <b_j b_i> and <b_i> have symmetric readout
+        errors for any bits b_j and b_i.
 
         :param program: The program to run symmetrized readout on.
         :param trials: The minimum number of times to run the program.
