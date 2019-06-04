@@ -275,12 +275,14 @@ class DummyCompiler(AbstractCompiler):
     def native_quil_to_executable(self, nq_program: Program):
         return nq_program
 
+
 # make a quantum computer object
 device = NxDevice(nx.complete_graph(1))
 qc_density = QuantumComputer(name='testy!',
                              qam=PyQVM(n_qubits=1, quantum_simulator_type=ReferenceDensitySimulator),
                              device=device,
                              compiler=DummyCompiler())
+
 
 def test_for_negative_probabilities():
     # trivial program to do state tomography on
@@ -308,6 +310,7 @@ def test_for_negative_probabilities():
         list(measure_observables(qc=qc_density, tomo_experiment=experiment_1q, n_shots=3000))
     except ValueError as e:
         assert str(e) != 'probabilities are not non-negative'
+
 
 def test_set_density():
     # That is test the assigned state matrix in ReferenceDensitySimulator is persistent between
