@@ -46,56 +46,6 @@ pyquil_config = PyquilConfig()
 
 Executable = Union[BinaryExecutableResponse, PyQuilExecutableResponse]
 
-
-def _get_flipped_protoquil_program(program: Program) -> Program:
-    """For symmetrization, generate a program where X gates are added before measurement.
-
-    Forest is picky about where the measure instructions happen. It has to be at the end!
-    """
-    program = program.copy()
-    to_measure = []
-    while len(program) > 0:
-        inst = program.instructions[-1]
-        if isinstance(inst, Measurement):
-            program.pop()
-            to_measure.append((inst.qubit, inst.classical_reg))
-        else:
-            break
-
-    program += Pragma('PRESERVE_BLOCK')
-    for qu, addr in to_measure[::-1]:
-        program += RX(pi, qu)
-    program += Pragma('END_PRESERVE_BLOCK')
-
-    for qu, addr in to_measure[::-1]:
-        program += Measurement(qubit=qu, classical_reg=addr)
-
-    return program
-
-def _flip_array_to_prog(flip_array: Tuple[bool], qubits: List[int]) -> Program:
-    """
-    Generate a pre-measurement program that flips the qubit state according to the flip_array of
-    bools.
-
-    This is used, for example, in exhaustive_symmetrization to produce programs which flip a
-    select subset of qubits immediately before measurement.
-
-    :param flip_array: tuple of booleans specifying whether the qubit in the corresponding index
-        should be flipped or not.
-    :param qubits: list specifying the qubits in order corresponding to the flip_array
-    :return: Program which flips each qubit (i.e. instructs RX(pi, q)) according to the flip_array.
-    """
-    assert len(flip_array) == len(qubits), "Mismatch of qubits and operations"
-    prog = Program()
-    for qubit, flip_output in zip(qubits, flip_array):
-        if flip_output == 0:
-            continue
-        elif flip_output == 1:
-            prog += Program(RX(pi, qubit))
-        else:
-            raise ValueError("flip_bools should only consist of 0s and/or 1s")
-    return prog
-
 # ==================================================================================================
 # Between this line ^^ and the one below this code is used to test...will delete
 
@@ -158,6 +108,57 @@ kraus_ops = two_qubit_bit_flip_operators(0.7,1,1,1)
 # ==================================================================================================
 
 
+def _get_flipped_protoquil_program(program: Program) -> Program:
+    """For symmetrization, generate a program where X gates are added before measurement.
+
+    Forest is picky about where the measure instructions happen. It has to be at the end!
+    """
+    program = program.copy()
+    to_measure = []
+    while len(program) > 0:
+        inst = program.instructions[-1]
+        if isinstance(inst, Measurement):
+            program.pop()
+            to_measure.append((inst.qubit, inst.classical_reg))
+        else:
+            break
+
+    program += Pragma('PRESERVE_BLOCK')
+    for qu, addr in to_measure[::-1]:
+        program += RX(pi, qu)
+    program += Pragma('END_PRESERVE_BLOCK')
+
+    for qu, addr in to_measure[::-1]:
+        program += Measurement(qubit=qu, classical_reg=addr)
+
+    return program
+
+
+def _flip_array_to_prog(flip_array: Tuple[bool], qubits: List[int]) -> Program:
+    """
+    Generate a pre-measurement program that flips the qubit state according to the flip_array of
+    bools.
+
+    This is used, for example, in symmetrization to produce programs which flip a select subset
+    of qubits immediately before measurement.
+
+    :param flip_array: tuple of booleans specifying whether the qubit in the corresponding index
+        should be flipped or not.
+    :param qubits: list specifying the qubits in order corresponding to the flip_array
+    :return: Program which flips each qubit (i.e. instructs RX(pi, q)) according to the flip_array.
+    """
+    assert len(flip_array) == len(qubits), "Mismatch of qubits and operations"
+    prog = Program()
+    for qubit, flip_output in zip(qubits, flip_array):
+        if flip_output == 0:
+            continue
+        elif flip_output == 1:
+            prog += Program(RX(pi, qubit))
+        else:
+            raise ValueError("flip_bools should only consist of 0s and/or 1s")
+    return prog
+
+
 def symmetrization(program: Program, meas_qubits: List[int], symm_type: int = 3) \
         -> Tuple[List[Program], List[Tuple[bool]]]:
     """
@@ -175,7 +176,7 @@ def symmetrization(program: Program, meas_qubits: List[int], symm_type: int = 3)
      3 -- symmetrization using an orthogonal array with strength 3
     By default a strength 3 orthogonal array (OA) is used; this ensures that expectations of the
     form <b_k b_j b_i> for bits any bits i,j,k will have symmetric readout errors. As a strength 3
-    OA is also a strength 2 and 1 OA it also ensures <b_j b_i> and <b_i> for any bits j and i.
+    OA is also a strength 2 and 1 OA it also ensures <b_j b_i> and <b_i> for any bits b_j and b_i.
 
     :param programs: a program which will be symmetrized.
     :param meas_qubits: the groups of measurement qubits. Only these qubits will be symmetrized
@@ -217,8 +218,9 @@ def symmetrization(program: Program, meas_qubits: List[int], symm_type: int = 3)
 
     return symm_programs, flip_arrays
 
+
 def consolidate_symmetrization_outputs(outputs: List[np.ndarray],
-                                       flip_arrays: List[Tuple[bool]] ) -> np.ndarray:
+                                       flip_arrays: List[Tuple[bool]]) -> np.ndarray:
     """
     Given bitarray results from a series of symmetrization programs, appropriately flip output
     bits and consolidate results into new bitarrays.
@@ -244,13 +246,12 @@ def consolidate_symmetrization_outputs(outputs: List[np.ndarray],
 
     return np.vstack(output)
 
+
 def _measure_bitstrings(qc, programs: List[Program], meas_qubits: List[int],
-                        num_shots = 600, use_compiler = False) -> List[np.ndarray]:
+                        num_shots: int = 600) -> List[np.ndarray]:
     """
     Wrapper for appending measure instructions onto each program, running the program,
     and accumulating the resulting bitarrays.
-
-    By default each program is assumed to be native quil.
 
     :param qc: a quantum computer object on which to run each program
     :param programs: a list of programs to run
@@ -272,15 +273,14 @@ def _measure_bitstrings(qc, programs: List[Program], meas_qubits: List[int],
             prog += MEASURE(q, ro[idx])
 
         prog.wrap_in_numshots_loop(num_shots)
-        if use_compiler:
-            prog = qc.compiler.quil_to_native_quil(prog)
+        prog = qc.compiler.quil_to_native_quil(prog)
         exe = qc.compiler.native_quil_to_executable(prog)
         shots = qc.run(exe)
         results.append(shots)
     return results
 
 
-def construct_orthogonal_array(num_qubits: int, strength: int = 3):
+def construct_orthogonal_array(num_qubits: int, strength: int = 3) -> np.ndarray:
     """
     Given a strength and number of qubits this function returns an Orthogonal Array (OA)
     on 'n' or more qubits. Sometimes the size of the returned array is larger than num_qubits;
@@ -295,23 +295,26 @@ def construct_orthogonal_array(num_qubits: int, strength: int = 3):
         raise ValueError("'strength' must be one of the following ints [0, 1, 2, 3].")
     if strength == 0:
         # trivial flip matrix = an array of zeros
-        flip_matrix = np.zeros(num_qubits)
-    elif symm_type == 1:
+        flip_matrix = np.zeros((1,num_qubits)).astype(int)
+    elif strength == 1:
         # orthogonal array with strength equal to 1. See Example 1.4 of [OATA], referenced in the
         # `construct_strength_two_orthogonal_array` docstrings, for more details.
-        flip_matrix = np.concatenate((np.zeros(num_qubits), np.ones(num_qubits)), axis=0)
-    elif symm_type == 2:
+        zero_array = np.zeros((1, num_qubits))
+        one_array = np.ones((1, num_qubits))
+        flip_matrix = np.concatenate((zero_array, one_array), axis=0).astype(int)
+    elif strength == 2:
         flip_matrix = construct_strength_two_orthogonal_array(num_qubits)
-    elif symm_type == 3:
+    elif strength == 3:
         flip_matrix = construct_strength_three_orthogonal_array(num_qubits)
 
     return flip_matrix
+
 
 def _next_power_of_2(x):
     return 1 if x == 0 else 2 ** (x - 1).bit_length()
 
 
-def construct_strength_three_orthogonal_array(num_qubits: int):
+def construct_strength_three_orthogonal_array(num_qubits: int) -> np.ndarray:
     r"""
     Given a number of qubits this function returns an Orthogonal Array (OA)
     on 'n' qubits where n is the next power of two relative to num_qubits.
@@ -330,6 +333,9 @@ def construct_strength_three_orthogonal_array(num_qubits: int):
            Hedayat, Sloane, Stufken
            Springer Science & Business Media, 2012.
            https://dx.doi.org/10.1007/978-1-4612-1478-6
+
+    :param num_qubits: minimum number of qubits the OA should run on.
+    :return: A numpy array representing the OQ with shape N by k
     """
     num_qubits_power_of_2 = _next_power_of_2(num_qubits)
     H = hadamard(num_qubits_power_of_2)
@@ -338,7 +344,7 @@ def construct_strength_three_orthogonal_array(num_qubits: int):
     return design
 
 
-def construct_strength_two_orthogonal_array(num_qubits: int):
+def construct_strength_two_orthogonal_array(num_qubits: int) -> np.ndarray:
     r"""
     Given a number of qubits this function returns an Orthogonal Array (OA) on 'n-1' qubits
     where n-1 is the next integer lambda so that 4*lambda -1 is larger than num_qubits.
@@ -357,6 +363,9 @@ def construct_strength_two_orthogonal_array(num_qubits: int):
            Hedayat, Sloane, Stufken
            Springer Science & Business Media, 2012.
            https://dx.doi.org/10.1007/978-1-4612-1478-6
+
+    :param num_qubits: minimum number of qubits the OA should run on.
+    :return: A numpy array representing the OQ with shape N by k
     """
     # next line will break post denali at 275 qubits
     # valid_num_qubits = 4 * lambda - 1
@@ -488,29 +497,57 @@ class QuantumComputer:
         return results
 
     @_record_call
-    def run_symmetrized_readout_new(self, program: Program, trials: int,  symm_type: str = 'thr',
-                                    meas_qubits: List[int] = None, use_compiler: bool = True)\
-            -> np.ndarray:
-        """
-        Run a quil program in such a way that the readout error is made collectively symmetric
+    def run_symmetrized_readout_new(self, program: Program, trials: int,  symm_type: int = 3,
+                                    meas_qubits: List[int] = None) -> np.ndarray:
+        r"""
+        Run a quil program in such a way that the readout error is made symmetric. Enforcing
+        symmetric readout error is useful in simplifying the assumptions in some near
+        term error mitigation strategies, see `measure_observables` for more information.
 
-        This means the probability of a bitstring ``b`` being mistaken for a bitstring ``c`` is
-        the same as the probability of ``not(b)`` being mistaken for ``not(c)``
-
-        A more general symmetrization would guarantee that the probability of ``b`` being
-        mistaken for ``c`` depends only on which bit of ``c`` are different from ``b``. This
-        would require choosing random subsets of bits to flip.
-
-        In a noisy device, the probability of accurately reading the 0 state might be higher
-        than that of the 1 state. This makes correcting for readout more difficult. This
+        The simplest example is for one qubit. In a noisy device, the probability of accurately
+        reading the 0 state might be higher than that of the 1 state; due to e.g. amplitude
+        damping. This makes correcting for readout more difficult. In the simplest case, this
         function runs the program normally ``(trials//2)`` times. The other half of the time,
         it will insert an ``X`` gate prior to any ``MEASURE`` instruction and then flip the
-        measured classical bit back.
+        measured classical bit back. Overall this has the effect of symmetrizing the readout error.
 
-        See :py:func:`run` for this function's parameter descriptions.
+        The details. Consider preparing the input bitstring |i> (in the computational basis) and
+        measure in the Z basis. Then the Confusion matrix for the readout error is specified by
+        the probabilities
+
+            p_{j|i} := Pr(measured = j | prepared = i )
+
+        If p_{0|0} = p_{1|1} = 1 then there is no readout error.
+        If p_{0|0} = p_{1|1} = 1 - epsilon then the readout error is symmetric.
+        If p_{0|0} != p_{1|1}  then the readout error is asymmetric.
+
+        If your quantum computer has this kind of asymmetric readout error then
+        `qc.run_symmetrized_readout` will symmetrize the readout error.
+
+        The readout error above is only asymmetric on a single bit. In practice the confusion
+        matrix on n bits need not be symmetric, e.g. for two qubits p_{ij|ij} != 1 - epsilon for
+        all i,j. In these situations a more sophisticated means of symmetrization is needed; and
+        we use orthogonal arrays (OA).
+
+        The symmetrization types are specified by an int; the types available are:
+        -1 -- exhaustive symmetrization uses every possible combination of flips
+         0 -- trivial that is no symmetrization
+         1 -- symmetrization using an OA with strength 1
+         2 -- symmetrization using an OA with strength 2
+         3 -- symmetrization using an OA with strength 3
+        By default a strength 3 OA is used; this ensures expectations of the form <b_k b_j b_i>
+        for bits any bits i,j,k will have symmetric readout errors. As a strength 3 OA is also a
+        strength 2 and 1 OA it also ensures <b_j b_i> and <b_i> for any bits b_j and b_i.
+
+        :param program: The program to run symmetrized readout on.
+        :param trials: The minimum number of times to run the program.
+        :param symm_type: the type of symmetrization
+        :param meas_qubits: An advanced feature. The groups of measurement qubits. Only these
+            qubits will be symmetrized over, even if the program acts on other qubits.
+        :return: A numpy array of shape (trials, len(ro-register)) that contains 0s and 1s.
         """
-        if len(symm_type) is not 3:
-            raise ValueError("Symmetrization options are indicated by a length three string. See "
+        if type(symm_type) is not int:
+            raise ValueError("Symmetrization options are indicated by an int. See "
                              "the docstrings for more information.")
 
         if trials % 2 != 0:
@@ -518,30 +555,20 @@ class QuantumComputer:
                              "take an even number of trials.")
 
         if meas_qubits is None:
-            meas_qubits = [list(program.get_qubits())]
+            meas_qubits = list(program.get_qubits())
 
-        max_num_qubits= max( [len(qs) for qs in meas_qubits])
+        if trials <= len(meas_qubits):
+            trials = _next_power_of_2(2*len(meas_qubits)+1)
+            warnings.warn('Number of trials was too low, it is now '+str(trials))
 
-        if trials <= max_num_qubits:
-            trials = _next_power_of_2(2*max_num_qubits)
-            warnings.warn('Number of trials was too low it is now '+str(trials))
-
-        sym_programs, sym_meas_qs, flip_arrays, prog_groups = symmetrization([program],
-                                                                             meas_qubits,
-                                                                             symm_type)
+        sym_programs, flip_arrays = symmetrization(program, meas_qubits, symm_type)
         # This will be 1 or a power of two
         num_sym_progs = len(sym_programs)
-
         num_shots_per_prog =  trials // num_sym_progs
-        results = _measure_bitstrings(self,
-                                      sym_programs,
-                                      sym_meas_qs,
-                                      num_shots_per_prog,
-                                      use_compiler)
 
-        conso_results = consolidate_symmetrization_outputs(results, flip_arrays, prog_groups)
+        results = _measure_bitstrings(self, sym_programs, meas_qubits, num_shots_per_prog)
 
-        return conso_results[0]
+        return consolidate_symmetrization_outputs(results, flip_arrays)
 
     @_record_call
     def run_and_measure(self, program: Program, trials: int) -> Dict[int, np.ndarray]:
