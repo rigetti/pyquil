@@ -264,6 +264,24 @@ def test_multiqubit_decay_bellstate():
     assert np.allclose(qam.wf_simulator.density, state)
 
 
+# make an abstract compiler
+class DummyCompiler(AbstractCompiler):
+    def get_version_info(self):
+        return {}
+
+    def quil_to_native_quil(self, program: Program):
+        return program
+
+    def native_quil_to_executable(self, nq_program: Program):
+        return nq_program
+
+# make a quantum computer object
+device = NxDevice(nx.complete_graph(1))
+qc_density = QuantumComputer(name='testy!',
+                             qam=PyQVM(n_qubits=1, quantum_simulator_type=ReferenceDensitySimulator),
+                             device=device,
+                             compiler=DummyCompiler())
+
 def test_for_negative_probabilities():
     # trivial program to do state tomography on
     prog = Program(I(0))
@@ -271,25 +289,6 @@ def test_for_negative_probabilities():
     # make TomographyExperiment
     expt_settings = [ExperimentSetting(zeros_state([0]), pt) for pt in [sI(0), sX(0), sY(0), sZ(0)]]
     experiment_1q = TomographyExperiment(settings=expt_settings, program=prog)
-
-    # make an abstract compiler
-    class DummyCompiler(AbstractCompiler):
-        def get_version_info(self):
-            return {}
-
-        def quil_to_native_quil(self, program: Program):
-            return program
-
-        def native_quil_to_executable(self, nq_program: Program):
-            return nq_program
-
-    # make a quantum computer object
-    device = NxDevice(nx.complete_graph(1))
-    qc_density = QuantumComputer(name='testy!',
-                                 qam=PyQVM(n_qubits=1,
-                                           quantum_simulator_type=ReferenceDensitySimulator),
-                                 device=device,
-                                 compiler=DummyCompiler())
 
     # initialize with a pure state
     initial_density = np.array([[1.0, 0.0], [0.0, 0.0]])
@@ -309,3 +308,28 @@ def test_for_negative_probabilities():
         list(measure_observables(qc=qc_density, tomo_experiment=experiment_1q, n_shots=3000))
     except ValueError as e:
         assert str(e) != 'probabilities are not non-negative'
+
+def test_set_density():
+    # That is test the assigned state matrix in ReferenceDensitySimulator is persistent between
+    # rounds of run.
+    rho1 = np.array([[0.0, 0.0], [0.0, 1.0]])
+
+    # run prog
+    prog = Program(I(0))
+    ro = prog.declare('ro', 'BIT', 1)
+    prog += MEASURE(0, ro[0])
+
+    qc_density.qam.wf_simulator.set_density(rho1)
+
+    out = []
+    for _ in range(0, 4):
+        out.append(qc_density.run(prog))
+    ans = [np.array([[1]]), np.array([[1]]), np.array([[1]]), np.array([[1]])]
+    assert all([np.allclose(x, y) for x, y in zip(out, ans)])
+
+    # Run and measure style
+    progRAM = Program(I(0))
+
+    results = qc_density.run_and_measure(progRAM, trials=10)
+    ans = {0: np.array([1, 1, 1, 1, 1, 1, 1, 1, 1, 1])}
+    assert np.allclose(results[0], ans[0])

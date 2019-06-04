@@ -169,8 +169,8 @@ class ReferenceDensitySimulator(AbstractQuantumSimulator):
 
     def set_density(self, state_matrix):
         """
-        The default state of RDS is |000...00>. This method is the correct way (TM) to set the
-        state matrix to another state/
+        The default state of ReferenceDensitySimulator is |000...00>. This method is the correct
+        way (TM) to set the state matrix to another state.
 
         :param state_matrix: numpy.ndarray
         :return: zippo
@@ -265,13 +265,20 @@ class ReferenceDensitySimulator(AbstractQuantumSimulator):
         raise NotImplementedError("To implement")
 
     def reset(self) -> 'AbstractQuantumSimulator':
+        """
+        Resets the initial state of ReferenceDensitySimulator.
+
+        If the flag ``self.density_is_set`` is True then the self.density is reset to the user
+        specified self.initial_density. Otherwise it is set to the all zeros state.
+
+        :return: ``self`` to support method chaining.
+        """
         if self.density_is_set:
             self.density = self.initial_density
-            #print("I said hey, what's going on?")
         else:
             self.density.fill(0)
             self.density[0, 0] = complex(1.0, 0)
-            #print("She was more like a beauty queen from a movie scene")
+        return self
 
     def do_post_gate_noise(self, noise_type: str, noise_prob: float, qubits: List[int]):
         kraus_ops = KRAUS_OPS[noise_type](p=noise_prob)
