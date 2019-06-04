@@ -7,8 +7,8 @@ import pytest
 from pyquil import Program, get_qc, list_quantum_computers
 from pyquil.api import QVM, QuantumComputer, local_qvm
 from pyquil.api._qac import AbstractCompiler
-from pyquil.api._quantum_computer import _get_flipped_protoquil_program, _flip_array_to_prog, _parse_name, \
-    _get_qvm_with_topology
+from pyquil.api._quantum_computer import (_get_flipped_protoquil_program,symmetrization,
+                                          _flip_array_to_prog, _parse_name, _get_qvm_with_topology)
 from pyquil.device import NxDevice, gates_in_isa
 from pyquil.gates import *
 from pyquil.quilbase import Declare, MemoryReference
@@ -74,9 +74,22 @@ def test_flip_array_to_prog():
         'RX(pi) 5'
     ]
 
-# def test_symmetrization():
-#     'I 0', 'I 1'
-#     symmetrization
+def test_symmetrization():
+    # strength 1
+    sym_progs, flip_array = symmetrization(Program(I(0), I(1)), [0, 1], symm_type=1)
+    assert sym_progs[0].out().splitlines() == ['I 0', 'I 1']
+    assert sym_progs[1].out().splitlines() == ['I 0', 'I 1', 'RX(pi) 0', 'RX(pi) 1']
+    right = [np.array([0, 0]), np.array([1, 1])]
+    assert all([np.allclose(x, y) for x, y in zip(flip_array, right)])
+    # strength 2
+    sym_progs, flip_array = symmetrization(Program(I(0), I(1)), [0, 1], symm_type=2)
+    assert sym_progs[0].out().splitlines() == ['I 0', 'I 1']
+    assert sym_progs[1].out().splitlines() == ['I 0', 'I 1', 'RX(pi) 0']
+    assert sym_progs[2].out().splitlines() == ['I 0', 'I 1', 'RX(pi) 1']
+    assert sym_progs[3].out().splitlines() == ['I 0', 'I 1', 'RX(pi) 0', 'RX(pi) 1']
+    right = [np.array([0, 0]), np.array([1, 0]), np.array([0, 1]), np.array([1, 1])]
+    assert all([np.allclose(x, y) for x, y in zip(flip_array, right)])
+
 
 def test_device_stuff():
     topo = nx.from_edgelist([(0, 4), (0, 99)])
