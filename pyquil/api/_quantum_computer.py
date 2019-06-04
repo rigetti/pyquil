@@ -186,22 +186,14 @@ def symmetrization(program: Program, meas_qubits: List[int], symm_type: int = 3)
     """
     symm_programs = []
     flip_arrays = []
-    len_meas_qs = len(meas_qubits)
-                  len_meas_qs
-    if symm_type == -1:
+
+    if symm_type < -1 or symm_type > 3:
+        raise ValueError("symm_type must be one of the following ints [-1, 0, 1, 2, 3].")
+    elif symm_type == -1:
         # exhaustive = all possible binary strings
         flip_matrix = np.asarray(list(itertools.product([0, 1], repeat=len(meas_qubits))))
-    elif symm_type == 0:
-        # trivial flip matrix = an array of zeros
-        flip_matrix = np.zeros(len(meas_qubits))
-    elif symm_type == 1:
-        # orthogonal array with strength equal to 1. See Example 1.4 of [OATA], referenced in the
-        # `construct_strength_two_orthogonal_array` docstrings, for more details.
-        flip_matrix = np.concatenate((np.zeros(len(meas_qubits)), np.ones(len(meas_qubits))), axis=0)
-    elif symm_type == 2:
-        flip_matrix = construct_strength_two_orthogonal_array(len(meas_qubits))
-    elif symm_type == 3:
-        flip_matrix = construct_strength_three_orthogonal_array(len(meas_qubits))
+    elif symm_type >= 0:
+        flip_matrix = construct_orthogonal_array(len(meas_qubits), symm_type)
 
     # The next part is not rigorous the sense that we simply truncate to the desired
     # number of qubits. The problem is that orthogonal arrays of a certain strength for an
@@ -223,7 +215,7 @@ def symmetrization(program: Program, meas_qubits: List[int], symm_type: int = 3)
         prog.define_noisy_gate("II", [0, 1], append_kraus_to_gate(kraus_ops, II_mat))
         prog.inst(II(0, 1))
 
-return symm_programs, flip_arrays
+    return symm_programs, flip_arrays
 
 def consolidate_symmetrization_outputs(outputs: List[np.ndarray], flip_arrays: List[Tuple[bool]],
                                        groups: List[int]) -> List[np.ndarray]:
@@ -294,6 +286,33 @@ def _measure_bitstrings(qc, programs: List[Program], meas_qubits: List[List[int]
     return results
 
 
+def construct_orthogonal_array(num_qubits: int, strength: int = 3):
+    """
+    Given a strength and number of qubits this function returns an Orthogonal Array (OA)
+    on 'n' or more qubits. Sometimes the size of the returned array is larger than num_qubits;
+    typically the next power of two relative to num_qubits. This is corrected later in the code
+    flow.
+
+    :param num_qubits: the minimum number of qubits the OA should act on.
+    :param strength: the statistical "strength" of the OA
+    :return: a numpy array where the rows represent the different experiments
+    """
+    if strength < 0 or strength > 3:
+        raise ValueError("'strength' must be one of the following ints [0, 1, 2, 3].")
+    if strength == 0:
+        # trivial flip matrix = an array of zeros
+        flip_matrix = np.zeros(num_qubits)
+    elif symm_type == 1:
+        # orthogonal array with strength equal to 1. See Example 1.4 of [OATA], referenced in the
+        # `construct_strength_two_orthogonal_array` docstrings, for more details.
+        flip_matrix = np.concatenate((np.zeros(num_qubits), np.ones(num_qubits)), axis=0)
+    elif symm_type == 2:
+        flip_matrix = construct_strength_two_orthogonal_array(num_qubits)
+    elif symm_type == 3:
+        flip_matrix = construct_strength_three_orthogonal_array(num_qubits)
+
+    return flip_matrix
+
 def _next_power_of_2(x):
     return 1 if x == 0 else 2 ** (x - 1).bit_length()
 
@@ -318,21 +337,17 @@ def construct_strength_three_orthogonal_array(num_qubits: int):
            Springer Science & Business Media, 2012.
            https://dx.doi.org/10.1007/978-1-4612-1478-6
     """
-
     num_qubits_power_of_2 = _next_power_of_2(num_qubits)
-
     H = hadamard(num_qubits_power_of_2)
     Hfold = np.concatenate((H, -H), axis=0)
-
     design = ((Hfold + 1) / 2).astype(int)
     return design
 
 
 def construct_strength_two_orthogonal_array(num_qubits: int):
     r"""
-    Given a number of qubits this function returns an Orthogonal Array (OA)
-    on 'n-1' qubits where n-1 is the next integer lambda so that 4*lambda -1 is larger than
-    num_qubits.
+    Given a number of qubits this function returns an Orthogonal Array (OA) on 'n-1' qubits
+    where n-1 is the next integer lambda so that 4*lambda -1 is larger than num_qubits.
 
     Specifically it returns an with the OA(n, n − 1, 2, 2), where
 
@@ -348,16 +363,13 @@ def construct_strength_two_orthogonal_array(num_qubits: int):
            Hedayat, Sloane, Stufken
            Springer Science & Business Media, 2012.
            https://dx.doi.org/10.1007/978-1-4612-1478-6
-
     """
     # next line will break post denali at 275 qubits
     # valid_num_qubits = 4 * lambda - 1
     valid_numbers = [4 * lam - 1 for lam in range(1, 70)]
     # 4 * lambda
     four_lam = int(min(x for x in valid_numbers if x >= num_qubits) + 1)
-
     H = hadamard(_next_power_of_2(four_lam))
-
     # The minus sign in front of H fixes the 0 <-> 1 inversion relative to the reference [OATA]
     design = ((-H[1:int(four_lam), 0:int(four_lam)] + 1) / 2).astype(int)
     return design.T
