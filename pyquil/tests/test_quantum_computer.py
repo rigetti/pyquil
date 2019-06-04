@@ -7,7 +7,7 @@ import pytest
 from pyquil import Program, get_qc, list_quantum_computers
 from pyquil.api import QVM, QuantumComputer, local_qvm
 from pyquil.api._qac import AbstractCompiler
-from pyquil.api._quantum_computer import (_get_flipped_protoquil_program,symmetrization,
+from pyquil.api._quantum_computer import (_get_flipped_protoquil_program, symmetrization,
                                           _flip_array_to_prog, _parse_name, _get_qvm_with_topology)
 from pyquil.device import NxDevice, gates_in_isa
 from pyquil.gates import *
@@ -66,7 +66,7 @@ def test_get_flipped_program_only_measure():
     ]
 
 def test_flip_array_to_prog():
-    flip_prog = _flip_array_to_prog((1,0,1,0,1,1),[0,1,2,3,4,5])
+    flip_prog = _flip_array_to_prog((1, 0, 1, 0, 1, 1), [0, 1, 2, 3, 4, 5])
     assert flip_prog.out().splitlines() == [
         'RX(pi) 0',
         'RX(pi) 2',

@@ -228,7 +228,7 @@ def construct_orthogonal_array(num_qubits: int, strength: int = 3) -> np.ndarray
         raise ValueError("'strength' must be one of the following ints [0, 1, 2, 3].")
     if strength == 0:
         # trivial flip matrix = an array of zeros
-        flip_matrix = np.zeros((1,num_qubits)).astype(int)
+        flip_matrix = np.zeros((1, num_qubits)).astype(int)
     elif strength == 1:
         # orthogonal array with strength equal to 1. See Example 1.4 of [OATA], referenced in the
         # `construct_strength_two_orthogonal_array` docstrings, for more details.
@@ -430,7 +430,7 @@ class QuantumComputer:
         return results
 
     @_record_call
-    def run_symmetrized_readout_new(self, program: Program, trials: int,  symm_type: int = 3,
+    def run_symmetrized_readout_new(self, program: Program, trials: int, symm_type: int = 3,
                                     meas_qubits: List[int] = None) -> np.ndarray:
         r"""
         Run a quil program in such a way that the readout error is made symmetric. Enforcing
@@ -497,7 +497,7 @@ class QuantumComputer:
         sym_programs, flip_arrays = symmetrization(program, meas_qubits, symm_type)
         # This will be 1 or a power of two
         num_sym_progs = len(sym_programs)
-        num_shots_per_prog =  trials // num_sym_progs
+        num_shots_per_prog = trials // num_sym_progs
 
         results = _measure_bitstrings(self, sym_programs, meas_qubits, num_shots_per_prog)
 
