@@ -310,6 +310,7 @@ def construct_strength_two_orthogonal_array(num_qubits: int) -> np.ndarray:
     design = ((-H[1:int(four_lam), 0:int(four_lam)] + 1) / 2).astype(int)
     return design.T
 
+
 class QuantumComputer:
     def __init__(self, *,
                  name: str,
@@ -491,8 +492,8 @@ class QuantumComputer:
             meas_qubits = list(program.get_qubits())
 
         if trials <= len(meas_qubits):
-            trials = _next_power_of_2(2*len(meas_qubits)+1)
-            warnings.warn('Number of trials was too low, it is now '+str(trials))
+            trials = _next_power_of_2(2 * len(meas_qubits) + 1)
+            warnings.warn('Number of trials was too low, it is now ' + str(trials))
 
         sym_programs, flip_arrays = symmetrization(program, meas_qubits, symm_type)
         # This will be 1 or a power of two

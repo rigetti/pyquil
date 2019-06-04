@@ -65,6 +65,7 @@ def test_get_flipped_program_only_measure():
         'MEASURE 1 ro[1]',
     ]
 
+
 def test_flip_array_to_prog():
     flip_prog = _flip_array_to_prog((1, 0, 1, 0, 1, 1), [0, 1, 2, 3, 4, 5])
     assert flip_prog.out().splitlines() == [
@@ -73,6 +74,7 @@ def test_flip_array_to_prog():
         'RX(pi) 4',
         'RX(pi) 5'
     ]
+
 
 def test_symmetrization():
     # strength 1
