@@ -217,8 +217,8 @@ def symmetrization(program: Program, meas_qubits: List[int], symm_type: int = 3)
 
     return symm_programs, flip_arrays
 
-def consolidate_symmetrization_outputs(outputs: List[np.ndarray], flip_arrays: List[Tuple[bool]],
-                                       groups: List[int]) -> List[np.ndarray]:
+def consolidate_symmetrization_outputs(outputs: List[np.ndarray],
+                                       flip_arrays: List[Tuple[bool]] ) -> np.ndarray:
     """
     Given bitarray results from a series of symmetrization programs, appropriately flip output
     bits and consolidate results into new bitarrays.
@@ -227,27 +227,24 @@ def consolidate_symmetrization_outputs(outputs: List[np.ndarray], flip_arrays: L
         programs; for example, the results returned from _measure_bitstrings
     :param flip_arrays: a list of boolean arrays in one-to-one correspondence with the list of
         outputs indicating which qubits where flipped before each bitarray was measured.
-    :param groups: the group from which each symmetrized program was generated. E.g. if only one
-        program was symmetrized then groups is simply [0] * len(outputs). The length of the
-        returned consolidated outputs is exactly the number of distinct integers in groups.
-    :return: a list of the consolidated bitarray outputs which can be treated as the symmetrized
-        outputs of the original programs passed into a symmetrization method. See
+    :return: an np.ndarray consisting of the consolidated bitarray outputs which can be treated as
+        the symmetrized outputs of the original programs passed into a symmetrization method. See
         estimate_observables for example usage.
     """
-    assert len(outputs) == len(groups) == len(flip_arrays)
+    assert len(outputs) == len(flip_arrays)
 
-    output = {group: [] for group in set(groups)}
-    for bitarray, group, flip_array in zip(outputs, groups, flip_arrays):
+    output = []
+    for bitarray, flip_array in zip(outputs, flip_arrays):
         if len(flip_array) == 0:
             # happens when measuring identity.
             # TODO: better way of handling identity measurement? (in _measure_bitstrings too)
-            output[group].append(bitarray)
+            output.append(bitarray)
         else:
-            output[group].append(bitarray ^ flip_array)
+            output.append(bitarray ^ flip_array)
 
-    return [np.vstack(output[group]) for group in sorted(list(set(groups)))]
+    return np.vstack(output)
 
-def _measure_bitstrings(qc, programs: List[Program], meas_qubits: List[List[int]],
+def _measure_bitstrings(qc, programs: List[Program], meas_qubits: List[int],
                         num_shots = 600, use_compiler = False) -> List[np.ndarray]:
     """
     Wrapper for appending measure instructions onto each program, running the program,
@@ -262,19 +259,16 @@ def _measure_bitstrings(qc, programs: List[Program], meas_qubits: List[List[int]
     :return: a len(programs) long list of num_shots by num_meas_qubits bit arrays of results for
         each program.
     """
-    assert len(programs) == len(meas_qubits), 'The qubits to measure must be specified for each ' \
-                                              'program, one list of qubits per program.'
-
     results = []
-    for program, qubits in zip(programs, meas_qubits):
-        if len(qubits) == 0:
+    for program in programs:
+        if len(meas_qubits) == 0:
             # corresponds to measuring identity; no program needs to be run.
             results.append(np.array([[]]))
             continue
         # copy the program so the original is not mutated
         prog = program.copy()
-        ro = prog.declare('ro', 'BIT', len(qubits))
-        for idx, q in enumerate(qubits):
+        ro = prog.declare('ro', 'BIT', len(meas_qubits))
+        for idx, q in enumerate(meas_qubits):
             prog += MEASURE(q, ro[idx])
 
         prog.wrap_in_numshots_loop(num_shots)
