@@ -165,12 +165,15 @@ class ReferenceDensitySimulator(AbstractQuantumSimulator):
         self.rs = rs
         self.density = np.zeros((2 ** n_qubits, 2 ** n_qubits), dtype=np.complex128)
         self.density[0, 0] = complex(1.0, 0)
-        self.density_is_set = False
+        self.initial_density = None
 
     def set_density(self, state_matrix):
         """
         The default state of ReferenceDensitySimulator is |000...00>. This method is the correct
         way (TM) to set the state matrix to another state.
+
+        To restore the ReferenceDensitySimulator state back to the default behavior set
+        state_matrix = None.
 
         :param state_matrix: numpy.ndarray
         :return: None
@@ -183,7 +186,6 @@ class ReferenceDensitySimulator(AbstractQuantumSimulator):
                              "the QVM.")
         self.density = state_matrix
         self.initial_density = state_matrix
-        self.density_is_set = True
 
     def sample_bitstrings(self, n_samples, tol_factor: float = 1e8):
         """
@@ -268,16 +270,17 @@ class ReferenceDensitySimulator(AbstractQuantumSimulator):
         """
         Resets the initial state of ReferenceDensitySimulator.
 
-        If the flag ``self.density_is_set`` is True then the self.density is reset to the user
-        specified self.initial_density. Otherwise it is set to the all zeros state.
+        If ``self.initial_density`` is ``None`` the QVM state, that is ``self.density``,
+        is reset to the all zeros state. Otherwise ``self.density`` is reset to the user specified
+        ``self.initial_density``.
 
         :return: ``self`` to support method chaining.
         """
-        if self.density_is_set:
-            self.density = self.initial_density
-        else:
+        if self.initial_density is None:
             self.density.fill(0)
             self.density[0, 0] = complex(1.0, 0)
+        else:
+            self.density = self.initial_density
         return self
 
     def do_post_gate_noise(self, noise_type: str, noise_prob: float, qubits: List[int]):

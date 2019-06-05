@@ -2,13 +2,13 @@ from pyquil.parser import parse
 from pyquil.api._qac import AbstractCompiler
 from pyquil import Program
 
+
 def parse_equals(quil_string, *instructions):
     expected = list(instructions)
     actual = parse(quil_string)
     assert expected == actual
 
 
-# make an abstract compiler
 class DummyCompiler(AbstractCompiler):
     def get_version_info(self):
         return {}

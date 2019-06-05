@@ -264,14 +264,6 @@ def test_multiqubit_decay_bellstate():
     assert np.allclose(qam.wf_simulator.density, state)
 
 
-# make a quantum computer object
-device = NxDevice(nx.complete_graph(1))
-qc_density = QuantumComputer(name='testy!',
-                             qam=PyQVM(n_qubits=1, quantum_simulator_type=ReferenceDensitySimulator),
-                             device=device,
-                             compiler=DummyCompiler())
-
-
 def test_for_negative_probabilities():
     # trivial program to do state tomography on
     prog = Program(I(0))
@@ -279,6 +271,14 @@ def test_for_negative_probabilities():
     # make TomographyExperiment
     expt_settings = [ExperimentSetting(zeros_state([0]), pt) for pt in [sI(0), sX(0), sY(0), sZ(0)]]
     experiment_1q = TomographyExperiment(settings=expt_settings, program=prog)
+
+    # make a quantum computer object
+    device = NxDevice(nx.complete_graph(1))
+    qc_density = QuantumComputer(name='testy!',
+                                 qam=PyQVM(n_qubits=1,
+                                           quantum_simulator_type=ReferenceDensitySimulator),
+                                 device=device,
+                                 compiler=DummyCompiler())
 
     # initialize with a pure state
     initial_density = np.array([[1.0, 0.0], [0.0, 0.0]])
@@ -309,6 +309,14 @@ def test_set_density():
     prog = Program(I(0))
     ro = prog.declare('ro', 'BIT', 1)
     prog += MEASURE(0, ro[0])
+
+    # make a quantum computer object
+    device = NxDevice(nx.complete_graph(1))
+    qc_density = QuantumComputer(name='testy!',
+                                 qam=PyQVM(n_qubits=1,
+                                           quantum_simulator_type=ReferenceDensitySimulator),
+                                 device=device,
+                                 compiler=DummyCompiler())
 
     qc_density.qam.wf_simulator.set_density(rho1)
 
