@@ -318,10 +318,9 @@ def _check_min_num_trials_for_symmetrized_readout(num_qubits: int, trials: int, 
     """
     # There is no need to test symm_type == 0 or symm_type == 1 as they require one and two
     # trials respectively and that is ensured by this:
-    if trials % 2 != 0 or trials < 2:
+    if trials < 2:
         trials = 2
         warnings.warn('Number of trials was too low, it is now ' + str(trials))
-
     if symm_type == -1:
         if trials < 2 ** num_qubits:
             # 2**num_qubits is the minimum
@@ -524,7 +523,7 @@ class QuantumComputer:
         trials = _check_min_num_trials_for_symmetrized_readout(len(meas_qubits), trials, symm_type)
 
         sym_programs, flip_arrays = symmetrization(program, meas_qubits, symm_type)
-        # This will be 1 or a power of two
+
         num_sym_progs = len(sym_programs)
         num_shots_per_prog = trials // num_sym_progs
 
