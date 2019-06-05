@@ -99,7 +99,7 @@ def _flip_array_to_prog(flip_array: Tuple[bool], qubits: List[int]) -> Program:
 
 
 def symmetrization(program: Program, meas_qubits: List[int], symm_type: int = 3) \
-        -> Tuple[List[Program], List[Tuple[bool]]]:
+        -> Tuple[List[Program], List[np.ndarray]]:
     """
     For the input program generate new programs which flip the measured qubits with an X gate in
     certain combinations in order to symmetrize readout.
@@ -125,9 +125,6 @@ def symmetrization(program: Program, meas_qubits: List[int], symm_type: int = 3)
     :return: a list of symmetrized programs, the corresponding array of bools indicating which
         qubits were flipped.
     """
-    symm_programs = []
-    flip_arrays = []
-
     if symm_type < -1 or symm_type > 3:
         raise ValueError("symm_type must be one of the following ints [-1, 0, 1, 2, 3].")
     elif symm_type == -1:
@@ -141,8 +138,10 @@ def symmetrization(program: Program, meas_qubits: List[int], symm_type: int = 3)
     # arbitrary number of qubits are not known to exist.
     num_expts, num_qubits = flip_matrix.shape
     if len(meas_qubits) != num_qubits:
-        flip_matrix = flip_matrix[0:int(num_expts), 0:int(len(meas_qubits))]
+        flip_matrix = flip_matrix[0:num_expts, 0:len(meas_qubits)]
 
+    symm_programs = []
+    flip_arrays = []
     for flip_array in flip_matrix:
         total_prog_symm = program.copy()
         prog_symm = _flip_array_to_prog(flip_array, meas_qubits)
@@ -172,8 +171,6 @@ def consolidate_symmetrization_outputs(outputs: List[np.ndarray],
     output = []
     for bitarray, flip_array in zip(outputs, flip_arrays):
         if len(flip_array) == 0:
-            # happens when measuring identity.
-            # TODO: better way of handling identity measurement? (in _measure_bitstrings too)
             output.append(bitarray)
         else:
             output.append(bitarray ^ flip_array)
@@ -196,10 +193,6 @@ def _measure_bitstrings(qc, programs: List[Program], meas_qubits: List[int],
     """
     results = []
     for program in programs:
-        if len(meas_qubits) == 0:
-            # corresponds to measuring identity; no program needs to be run.
-            results.append(np.array([[]]))
-            continue
         # copy the program so the original is not mutated
         prog = program.copy()
         ro = prog.declare('ro', 'BIT', len(meas_qubits))
@@ -269,7 +262,7 @@ def construct_strength_three_orthogonal_array(num_qubits: int) -> np.ndarray:
            https://dx.doi.org/10.1007/978-1-4612-1478-6
 
     :param num_qubits: minimum number of qubits the OA should run on.
-    :return: A numpy array representing the OQ with shape N by k
+    :return: A numpy array representing the OA with shape N by k
     """
     num_qubits_power_of_2 = _next_power_of_2(num_qubits)
     H = hadamard(num_qubits_power_of_2)
@@ -305,11 +298,47 @@ def construct_strength_two_orthogonal_array(num_qubits: int) -> np.ndarray:
     # valid_num_qubits = 4 * lambda - 1
     valid_numbers = [4 * lam - 1 for lam in range(1, 70)]
     # 4 * lambda
-    four_lam = int(min(x for x in valid_numbers if x >= num_qubits) + 1)
+    four_lam = min(x for x in valid_numbers if x >= num_qubits) + 1
     H = hadamard(_next_power_of_2(four_lam))
     # The minus sign in front of H fixes the 0 <-> 1 inversion relative to the reference [OATA]
-    design = ((-H[1:int(four_lam), 0:int(four_lam)] + 1) / 2).astype(int)
+    design = ((-H[1:four_lam, 0:four_lam] + 1) / 2).astype(int)
     return design.T
+
+
+def _check_min_num_trials_for_symmetrized_readout(num_qubits: int, trials: int, symm_type: int) \
+        -> int:
+    """
+    This function sets the minimum number of trials; it is desirable to have hundreds or
+    thousands of trials more than the minimum.
+
+    :param num_qubits: number of qubits to symmetrize
+    :param trials: number of trials
+    :param symm_type: symmetrization type see
+    :return: possibly modified number of trials
+    """
+    # There is no need to test symm_type == 0 or symm_type == 1 as they require one and two
+    # trials respectively and that is ensured by this:
+    if trials % 2 != 0 or trials < 2:
+        trials = 2
+        warnings.warn('Number of trials was too low, it is now ' + str(trials))
+
+    if symm_type == -1:
+        if trials < 2 ** num_qubits:
+            # 2**num_qubits is the minimum
+            trials = 2 ** num_qubits
+            warnings.warn('Number of trials was too low, it is now ' + str(trials))
+    if symm_type == 2:
+        def _f(x):
+            return 4 * x - 1
+        min_num_trials = min(_f(x) for x in range(1, 1024) if _f(x) >= num_qubits) + 1
+        if trials < min_num_trials:
+            trials = min_num_trials
+            warnings.warn('Number of trials was too low, it is now ' + str(trials))
+    if symm_type == 3:
+        if trials < _next_power_of_2(2 * num_qubits):
+            trials = _next_power_of_2(2 * num_qubits)
+            warnings.warn('Number of trials was too low, it is now ' + str(trials))
+    return trials
 
 
 class QuantumComputer:
@@ -476,7 +505,8 @@ class QuantumComputer:
         errors for any bits b_j and b_i.
 
         :param program: The program to run symmetrized readout on.
-        :param trials: The minimum number of times to run the program.
+        :param trials: The minimum number of times to run the program; it is recommend that this
+            number should be in the hundreds or thousands.
         :param symm_type: the type of symmetrization
         :param meas_qubits: An advanced feature. The groups of measurement qubits. Only these
             qubits will be symmetrized over, even if the program acts on other qubits.
@@ -486,16 +516,12 @@ class QuantumComputer:
             raise ValueError("Symmetrization options are indicated by an int. See "
                              "the docstrings for more information.")
 
-        if trials % 2 != 0:
-            raise ValueError("Using symmetrized measurement functionality requires that you "
-                             "take an even number of trials.")
-
         if meas_qubits is None:
             meas_qubits = list(program.get_qubits())
 
-        if trials <= len(meas_qubits):
-            trials = _next_power_of_2(2 * len(meas_qubits) + 1)
-            warnings.warn('Number of trials was too low, it is now ' + str(trials))
+        # The point below is to set the minimum number of trials; it is desirable to have
+        # hundreds or thousands of trials more than the minimum.
+        trials = _check_min_num_trials_for_symmetrized_readout(len(meas_qubits), trials, symm_type)
 
         sym_programs, flip_arrays = symmetrization(program, meas_qubits, symm_type)
         # This will be 1 or a power of two
