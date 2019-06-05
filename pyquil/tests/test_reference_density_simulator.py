@@ -11,9 +11,9 @@ from pyquil.unitary_tools import lifted_gate_matrix
 from pyquil.paulis import sI, sX, sY, sZ
 from pyquil.device import NxDevice
 from pyquil.api import QuantumComputer
-from pyquil.api._qac import AbstractCompiler
 from pyquil.operator_estimation import (measure_observables, ExperimentSetting,
                                         TomographyExperiment, zeros_state)
+from pyquil.tests.utils import DummyCompiler
 
 
 def test_qaoa_density():
@@ -264,18 +264,6 @@ def test_multiqubit_decay_bellstate():
     assert np.allclose(qam.wf_simulator.density, state)
 
 
-# make an abstract compiler
-class DummyCompiler(AbstractCompiler):
-    def get_version_info(self):
-        return {}
-
-    def quil_to_native_quil(self, program: Program):
-        return program
-
-    def native_quil_to_executable(self, nq_program: Program):
-        return nq_program
-
-
 # make a quantum computer object
 device = NxDevice(nx.complete_graph(1))
 qc_density = QuantumComputer(name='testy!',
@@ -324,9 +312,7 @@ def test_set_density():
 
     qc_density.qam.wf_simulator.set_density(rho1)
 
-    out = []
-    for _ in range(0, 4):
-        out.append(qc_density.run(prog))
+    out = [qc_density.run(prog) for _ in range(0, 4)]
     ans = [np.array([[1]]), np.array([[1]]), np.array([[1]]), np.array([[1]])]
     assert all([np.allclose(x, y) for x, y in zip(out, ans)])
 
