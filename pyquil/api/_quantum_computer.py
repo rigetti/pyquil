@@ -525,6 +525,7 @@ class QuantumComputer:
         sym_programs, flip_arrays = symmetrization(program, meas_qubits, symm_type)
 
         num_sym_progs = len(sym_programs)
+        # Floor division so e.g. 9 // 8 = 1 and 17 // 8 = 2
         num_shots_per_prog = trials // num_sym_progs
 
         results = _measure_bitstrings(self, sym_programs, meas_qubits, num_shots_per_prog)
