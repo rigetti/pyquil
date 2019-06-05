@@ -173,7 +173,7 @@ class ReferenceDensitySimulator(AbstractQuantumSimulator):
         way (TM) to set the state matrix to another state.
 
         :param state_matrix: numpy.ndarray
-        :return: zippo
+        :return: None
         """
         rows, cols = state_matrix.shape
         if rows != cols:
