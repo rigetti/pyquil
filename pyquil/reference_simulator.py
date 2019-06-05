@@ -25,6 +25,20 @@ def _term_expectation(wf, term: PauliTerm, n_qubits):
     return term.coefficient * (wf.conj().T @ wf2)
 
 
+def _is_valid_quantum_state(state_matrix: np.ndarray) -> bool:
+    """
+    Checks if a quantum state is valid, i.e. the matrix is Hermitian; trace one, and that the
+    eigenvalues are non-negative.
+
+    :param state_matrix:
+    :return: bool
+    """
+    is_hermitian = np.alltrue(state_matrix == np.conjugate(state_matrix.transpose()))
+    is_trace_one = np.isclose(np.trace(state_matrix), 1)
+    non_neg_eigs = np.all(np.linalg.eigvals(state_matrix) >= 0)
+    return is_hermitian and is_trace_one and non_neg_eigs
+
+
 class ReferenceWavefunctionSimulator(AbstractQuantumSimulator):
     def __init__(self, n_qubits: int, rs: RandomState = None):
         """
@@ -163,29 +177,37 @@ class ReferenceDensitySimulator(AbstractQuantumSimulator):
     def __init__(self, n_qubits: int, rs: RandomState = None):
         self.n_qubits = n_qubits
         self.rs = rs
-        self.density = np.zeros((2 ** n_qubits, 2 ** n_qubits), dtype=np.complex128)
-        self.density[0, 0] = complex(1.0, 0)
         self.initial_density = None
+        # set self.density via
+        self.reset()
 
-    def set_density(self, state_matrix):
+    def set_initial_state(self, state_matrix):
         """
-        The default state of ReferenceDensitySimulator is |000...00>. This method is the correct
-        way (TM) to set the state matrix to another state.
+        This method is the correct way (TM) to set the state matrix to a state other than the
+        default state. The default state of ReferenceDensitySimulator is |000...00>.
 
-        To restore the ReferenceDensitySimulator state back to the default behavior set
-        state_matrix = None.
+        To restore default behavior and state of ReferenceDensitySimulator use
+        ``state_matrix = None.``
 
-        :param state_matrix: numpy.ndarray
-        :return: None
+        :param state_matrix: numpy.ndarray or None.
+        :return: ``self`` to support method chaining.
         """
-        rows, cols = state_matrix.shape
-        if rows != cols:
-            raise ValueError("The state matrix is not square.")
-        if self.n_qubits != int(np.log2(rows)):
-            raise ValueError("The state matrix is not defined on the same numbers of qubits as "
-                             "the QVM.")
-        self.density = state_matrix
-        self.initial_density = state_matrix
+        if state_matrix is not None:
+            rows, cols = state_matrix.shape
+            if rows != cols:
+                raise ValueError("The state matrix is not square.")
+            if self.n_qubits != int(np.log2(rows)):
+                raise ValueError("The state matrix is not defined on the same numbers of qubits as "
+                                 "the QVM.")
+            if _is_valid_quantum_state(state_matrix):
+                self.initial_density = state_matrix
+            else:
+                raise ValueError("The state matrix is not valid. It must be Hermitian, trace one, "
+                                 "and have non-negative eigenvalues.")
+        else:
+            self.initial_density = None
+        self.reset()
+        return self
 
     def sample_bitstrings(self, n_samples, tol_factor: float = 1e8):
         """
@@ -270,14 +292,13 @@ class ReferenceDensitySimulator(AbstractQuantumSimulator):
         """
         Resets the initial state of ReferenceDensitySimulator.
 
-        If ``self.initial_density`` is ``None`` the QVM state, that is ``self.density``,
-        is reset to the all zeros state. Otherwise ``self.density`` is reset to the user specified
-        ``self.initial_density``.
+        If ``self.initial_density`` is ``None`` then the QVM state ``self.density`` is reset to
+        the all zeros state. Otherwise it is reset to the user specified ``self.initial_density``.
 
         :return: ``self`` to support method chaining.
         """
         if self.initial_density is None:
-            self.density.fill(0)
+            self.density = np.zeros((2 ** self.n_qubits, 2 ** self.n_qubits), dtype=np.complex128)
             self.density[0, 0] = complex(1.0, 0)
         else:
             self.density = self.initial_density

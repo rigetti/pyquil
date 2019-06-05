@@ -300,7 +300,7 @@ def test_for_negative_probabilities():
         assert str(e) != 'probabilities are not non-negative'
 
 
-def test_set_density():
+def test_set_initial_state():
     # That is test the assigned state matrix in ReferenceDensitySimulator is persistent between
     # rounds of run.
     rho1 = np.array([[0.0, 0.0], [0.0, 1.0]])
@@ -318,7 +318,7 @@ def test_set_density():
                                  device=device,
                                  compiler=DummyCompiler())
 
-    qc_density.qam.wf_simulator.set_density(rho1)
+    qc_density.qam.wf_simulator.set_initial_state(rho1)
 
     out = [qc_density.run(prog) for _ in range(0, 4)]
     ans = [np.array([[1]]), np.array([[1]]), np.array([[1]]), np.array([[1]])]
