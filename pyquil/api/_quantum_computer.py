@@ -294,13 +294,13 @@ def _check_min_num_trials_for_symmetrized_readout(num_qubits: int, trials: int, 
     # trials respectively and that is ensured by this:
     min_num_trials = 2
     if symm_type == -1:
-       min_num_trials = 2 ** num_qubits
+        min_num_trials = 2 ** num_qubits
     elif symm_type == 2:
         def _f(x):
             return 4 * x - 1
         min_num_trials = min(_f(x) for x in range(1, 1024) if _f(x) >= num_qubits) + 1
     elif symm_type == 3:
-       min_num_trials = _next_power_of_2(2 * num_qubits)
+        min_num_trials = _next_power_of_2(2 * num_qubits)
 
     if trials < min_num_trials:
         trials = min_num_trials
