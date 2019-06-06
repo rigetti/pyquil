@@ -461,9 +461,10 @@ class QuantumComputer:
         num_shots_per_prog = trials // len(sym_programs)
 
         if num_shots_per_prog * len(sym_programs) < trials:
-            print("The number of trials was modified from " +str(trials) + " to " +
-                  str(num_shots_per_prog * len(sym_programs)) + ". To be consistent with the "
-                  "number of trials required by the type of readout symmetrization chosen.")
+            print("The number of trials was modified from " + str(trials) + " to " + str(
+                num_shots_per_prog * len(sym_programs)) + ". To be consistent with the number of "
+                                                          "trials required by the type of readout "
+                                                          "symmetrization chosen.")
 
         results = _measure_bitstrings(self, sym_programs, meas_qubits, num_shots_per_prog)
 
