@@ -977,9 +977,11 @@ def test_reset():
 
     program = Program()
     qubit = QubitPlaceholder()
-    program += X(qubit) # address_qubits() won't work unless there's a gate besides
-                        # RESET on a QubitPlaceholder, this is just here to make
-                        # addressing work
+    # address_qubits() won't work unless there's a gate besides
+    # RESET on a QubitPlaceholder, this is just here to make
+    # addressing work
+    program += X(qubit) 
+
     program += RESET(qubit)
     program = address_qubits(program)
     assert program.out() == "X 0\nRESET 0\n"
