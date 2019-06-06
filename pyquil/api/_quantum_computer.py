@@ -47,32 +47,6 @@ pyquil_config = PyquilConfig()
 Executable = Union[BinaryExecutableResponse, PyQuilExecutableResponse]
 
 
-def _get_flipped_protoquil_program(program: Program) -> Program:
-    """For symmetrization, generate a program where X gates are added before measurement.
-
-    Forest is picky about where the measure instructions happen. It has to be at the end!
-    """
-    program = program.copy()
-    to_measure = []
-    while len(program) > 0:
-        inst = program.instructions[-1]
-        if isinstance(inst, Measurement):
-            program.pop()
-            to_measure.append((inst.qubit, inst.classical_reg))
-        else:
-            break
-
-    program += Pragma('PRESERVE_BLOCK')
-    for qu, addr in to_measure[::-1]:
-        program += RX(pi, qu)
-    program += Pragma('END_PRESERVE_BLOCK')
-
-    for qu, addr in to_measure[::-1]:
-        program += Measurement(qubit=qu, classical_reg=addr)
-
-    return program
-
-
 def _flip_array_to_prog(flip_array: Tuple[bool], qubits: List[int]) -> Program:
     """
     Generate a pre-measurement program that flips the qubit state according to the flip_array of
@@ -318,25 +292,19 @@ def _check_min_num_trials_for_symmetrized_readout(num_qubits: int, trials: int, 
     """
     # There is no need to test symm_type == 0 or symm_type == 1 as they require one and two
     # trials respectively and that is ensured by this:
-    if trials < 2:
-        trials = 2
-        warnings.warn('Number of trials was too low, it is now ' + str(trials))
+    min_num_trials = 2
     if symm_type == -1:
-        if trials < 2 ** num_qubits:
-            # 2**num_qubits is the minimum
-            trials = 2 ** num_qubits
-            warnings.warn('Number of trials was too low, it is now ' + str(trials))
-    if symm_type == 2:
+       min_num_trials = 2 ** num_qubits
+    elif symm_type == 2:
         def _f(x):
             return 4 * x - 1
         min_num_trials = min(_f(x) for x in range(1, 1024) if _f(x) >= num_qubits) + 1
-        if trials < min_num_trials:
-            trials = min_num_trials
-            warnings.warn('Number of trials was too low, it is now ' + str(trials))
-    if symm_type == 3:
-        if trials < _next_power_of_2(2 * num_qubits):
-            trials = _next_power_of_2(2 * num_qubits)
-            warnings.warn('Number of trials was too low, it is now ' + str(trials))
+    elif symm_type == 3:
+       min_num_trials = _next_power_of_2(2 * num_qubits)
+
+    if trials < min_num_trials:
+        trials = min_num_trials
+        warnings.warn('Number of trials was too low, it is now ' + str(trials))
     return trials
 
 
@@ -424,43 +392,7 @@ class QuantumComputer:
             .read_memory(region_name='ro')
 
     @_record_call
-    def run_symmetrized_readout(self, program: Program, trials: int) -> np.ndarray:
-        """
-        Run a quil program in such a way that the readout error is made collectively symmetric
-
-        This means the probability of a bitstring ``b`` being mistaken for a bitstring ``c`` is
-        the same as the probability of ``not(b)`` being mistaken for ``not(c)``
-
-        A more general symmetrization would guarantee that the probability of ``b`` being
-        mistaken for ``c`` depends only on which bit of ``c`` are different from ``b``. This
-        would require choosing random subsets of bits to flip.
-
-        In a noisy device, the probability of accurately reading the 0 state might be higher
-        than that of the 1 state. This makes correcting for readout more difficult. This
-        function runs the program normally ``(trials//2)`` times. The other half of the time,
-        it will insert an ``X`` gate prior to any ``MEASURE`` instruction and then flip the
-        measured classical bit back.
-
-        See :py:func:`run` for this function's parameter descriptions.
-        """
-        flipped_program = _get_flipped_protoquil_program(program)
-        if trials % 2 != 0:
-            raise ValueError("Using symmetrized measurement functionality requires that you "
-                             "take an even number of trials.")
-        half_trials = trials // 2
-        flipped_program = flipped_program.wrap_in_numshots_loop(shots=half_trials)
-        flipped_executable = self.compile(flipped_program)
-
-        executable = self.compile(program.wrap_in_numshots_loop(half_trials))
-        samples = self.run(executable)
-        flipped_samples = self.run(flipped_executable)
-        double_flipped_samples = np.logical_not(flipped_samples).astype(int)
-        results = np.concatenate((samples, double_flipped_samples), axis=0)
-        np.random.shuffle(results)
-        return results
-
-    @_record_call
-    def run_symmetrized_readout_new(self, program: Program, trials: int, symm_type: int = 3,
+    def run_symmetrized_readout(self, program: Program, trials: int, symm_type: int = 3,
                                     meas_qubits: List[int] = None) -> np.ndarray:
         r"""
         Run a quil program in such a way that the readout error is made symmetric. Enforcing
@@ -505,7 +437,8 @@ class QuantumComputer:
 
         :param program: The program to run symmetrized readout on.
         :param trials: The minimum number of times to run the program; it is recommend that this
-            number should be in the hundreds or thousands.
+            number should be in the hundreds or thousands. This parameter will be mutated if
+            necessary.
         :param symm_type: the type of symmetrization
         :param meas_qubits: An advanced feature. The groups of measurement qubits. Only these
             qubits will be symmetrized over, even if the program acts on other qubits.
