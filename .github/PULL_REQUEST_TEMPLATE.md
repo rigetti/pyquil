@@ -8,8 +8,8 @@ Checklist
 
 - [ ] The above description motivates these changes.
 - [ ] There is a unit test that covers these changes.
-- [ ] Parameters have type hints with PEP 484 syntax.
+- [ ] Parameters have type hints with [PEP 484 syntax](https://www.python.org/dev/peps/pep-0484/).
 - [ ] Functions and classes have useful sphinx-style docstrings.
 - [ ] (New Feature) The docs have been updated accordingly.
-- [ ] (Bugfix) The issue being addressed is referenced in the
-      description using the GitHub auto-close syntax (e.g. Closes #123).
+- [ ] (Bugfix) The associated issue is referenced above using
+      [auto-close keywords](https://help.github.com/en/articles/closing-issues-using-keywords).
