@@ -980,7 +980,7 @@ def test_reset():
     # address_qubits() won't work unless there's a gate besides
     # RESET on a QubitPlaceholder, this is just here to make
     # addressing work
-    program += X(qubit) 
+    program += X(qubit)
 
     program += RESET(qubit)
     program = address_qubits(program)
