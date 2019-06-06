@@ -137,7 +137,7 @@ sign                : PLUS | MINUS ;
 // Numbers
 // We suffix -N onto these names so they don't conflict with already defined Python types
 
-number              : realN | imaginaryN | I | PI ;
+number              : MINUS? ( realN | imaginaryN | I | PI ) ;
 imaginaryN          : realN I ;
 realN               : FLOAT | INT ;
 
