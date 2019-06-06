@@ -6,7 +6,7 @@ import pyquil.gate_matrices as qmats
 from pyquil import Program
 from pyquil.gates import *
 from pyquil.pyqvm import PyQVM
-from pyquil.reference_simulator import ReferenceDensitySimulator, ReferenceWavefunctionSimulator
+from pyquil.reference_simulator import (ReferenceDensitySimulator, _is_valid_quantum_state)
 from pyquil.unitary_tools import lifted_gate_matrix
 from pyquil.paulis import sI, sX, sY, sZ
 from pyquil.device import NxDevice
@@ -330,3 +330,20 @@ def test_set_initial_state():
     results = qc_density.run_and_measure(progRAM, trials=10)
     ans = {0: np.array([1, 1, 1, 1, 1, 1, 1, 1, 1, 1])}
     assert np.allclose(results[0], ans[0])
+
+    # test reverting ReferenceDensitySimulator to the default state
+    rho0 = np.array([[1.0, 0.0], [0.0, 0.0]])
+    qc_density.qam.wf_simulator.set_initial_state(None)
+    assert np.allclose(qc_density.qam.wf_simulator.density,rho0)
+    assert qc_density.qam.wf_simulator.initial_density == None
+
+def test_is_valid_quantum_state():
+    # is Hermitian and PSD but not trace one
+    assert _is_valid_quantum_state(np.array([[1, 0], [0, 1]])) == False
+    # negative eigenvalue
+    assert _is_valid_quantum_state(np.array([[1.01, 0], [0, -0.01]])) == False
+    # imaginary eigenvalue
+    assert _is_valid_quantum_state(np.array([[1, 0], [0, -0.0001j]])) == False
+    # not Hermitian
+    assert _is_valid_quantum_state(np.array([[0, 1], [1, 0]])) == False
+
