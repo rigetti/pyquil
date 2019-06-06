@@ -334,16 +334,16 @@ def test_set_initial_state():
     # test reverting ReferenceDensitySimulator to the default state
     rho0 = np.array([[1.0, 0.0], [0.0, 0.0]])
     qc_density.qam.wf_simulator.set_initial_state(None)
-    assert np.allclose(qc_density.qam.wf_simulator.density,rho0)
-    assert qc_density.qam.wf_simulator.initial_density == None
+    assert np.allclose(qc_density.qam.wf_simulator.density, rho0)
+    assert qc_density.qam.wf_simulator.initial_density is None
+
 
 def test_is_valid_quantum_state():
     # is Hermitian and PSD but not trace one
-    assert _is_valid_quantum_state(np.array([[1, 0], [0, 1]])) == False
+    assert not(_is_valid_quantum_state(np.array([[1, 0], [0, 1]])))
     # negative eigenvalue
-    assert _is_valid_quantum_state(np.array([[1.01, 0], [0, -0.01]])) == False
+    assert not(_is_valid_quantum_state(np.array([[1.01, 0], [0, -0.01]])))
     # imaginary eigenvalue
-    assert _is_valid_quantum_state(np.array([[1, 0], [0, -0.0001j]])) == False
+    assert not(_is_valid_quantum_state(np.array([[1, 0], [0, -0.0001j]])))
     # not Hermitian
-    assert _is_valid_quantum_state(np.array([[0, 1], [1, 0]])) == False
-
+    assert not(_is_valid_quantum_state(np.array([[0, 1], [1, 0]])))
