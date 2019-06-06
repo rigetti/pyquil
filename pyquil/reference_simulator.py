@@ -192,7 +192,9 @@ class ReferenceDensitySimulator(AbstractQuantumSimulator):
         :param state_matrix: numpy.ndarray or None.
         :return: ``self`` to support method chaining.
         """
-        if state_matrix is not None:
+        if state_matrix is None:
+            self.initial_density = None
+        else:
             rows, cols = state_matrix.shape
             if rows != cols:
                 raise ValueError("The state matrix is not square.")
@@ -204,8 +206,6 @@ class ReferenceDensitySimulator(AbstractQuantumSimulator):
             else:
                 raise ValueError("The state matrix is not valid. It must be Hermitian, trace one, "
                                  "and have non-negative eigenvalues.")
-        else:
-            self.initial_density = None
         self.reset()
         return self
 
