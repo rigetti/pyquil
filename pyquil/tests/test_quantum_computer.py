@@ -7,8 +7,8 @@ import pytest
 from pyquil import Program, get_qc, list_quantum_computers
 from pyquil.api import QVM, QuantumComputer, local_qvm
 from pyquil.api._qac import AbstractCompiler
-from pyquil.api._quantum_computer import (_get_flipped_protoquil_program, symmetrization,
-                                          _flip_array_to_prog, _parse_name, _get_qvm_with_topology)
+from pyquil.api._quantum_computer import (symmetrization, _flip_array_to_prog, _parse_name,
+                                          _get_qvm_with_topology)
 from pyquil.device import NxDevice, gates_in_isa
 from pyquil.gates import *
 from pyquil.quilbase import Declare, MemoryReference
@@ -26,44 +26,6 @@ class DummyCompiler(AbstractCompiler):
 
     def native_quil_to_executable(self, nq_program: Program):
         return nq_program
-
-
-def test_get_flipped_program():
-    program = Program([
-        I(0),
-        RX(2.3, 1),
-        CNOT(0, 1),
-        MEASURE(0, 0),
-        MEASURE(1, 1),
-    ])
-
-    flipped_program = _get_flipped_protoquil_program(program)
-    assert flipped_program.out().splitlines()[-6::] == [
-        'PRAGMA PRESERVE_BLOCK',
-        'RX(pi) 0',
-        'RX(pi) 1',
-        'PRAGMA END_PRESERVE_BLOCK',
-        'MEASURE 0 ro[0]',
-        'MEASURE 1 ro[1]',
-    ]
-
-
-def test_get_flipped_program_only_measure():
-    program = Program([
-        MEASURE(0, 0),
-        MEASURE(1, 1),
-    ])
-
-    flipped_program = _get_flipped_protoquil_program(program)
-    assert flipped_program.out().splitlines() == [
-        'DECLARE ro BIT[2]',
-        'PRAGMA PRESERVE_BLOCK',
-        'RX(pi) 0',
-        'RX(pi) 1',
-        'PRAGMA END_PRESERVE_BLOCK',
-        'MEASURE 0 ro[0]',
-        'MEASURE 1 ro[1]',
-    ]
 
 
 def test_flip_array_to_prog():
@@ -203,6 +165,17 @@ def test_readout_symmetrization(forest):
     avg1_s = 1 - np.mean(bs2[:, 1])
     diff_s = avg1_s - avg0_s
     assert diff_s < 0.05
+
+
+def test_run_symmetrized_readout_error():
+    # This test checks if the function runs for any possible input on a small number of qubits.
+    # Locally this test was run all 8 qubits, but it was slow.
+    qc = get_qc("8q-qvm")
+    sym_type_vec = [-1, 0, 1, 2, 3]
+    prog_vec = [Program(I(x) for x in range(0, 3))[0:n] for n in range(0, 4)]
+    trials_vec = list(range(0, 5))
+    for prog, trials, sym_type in itertools.product(prog_vec, trials_vec, sym_type_vec):
+        print(qc.run_symmetrized_readout(prog, trials, sym_type))
 
 
 def test_list_qc():
@@ -373,16 +346,6 @@ def test_run_and_measure(local_qvm_quilc):
         bitstrings = qc.run_and_measure(prog, trials)
     bitstring_array = np.vstack(bitstrings[q] for q in qc.qubits()).T
     assert bitstring_array.shape == (trials, len(qc.qubits()))
-
-
-def test_run_symmetrized_readout_error(local_qvm_quilc):
-    qc = get_qc("9q-generic-qvm")
-    trials = 11
-    prog = Program(I(8))
-
-    # Trials not even
-    with pytest.raises(ValueError):
-        bitstrings = qc.run_symmetrized_readout(prog, trials)
 
 
 def test_qvm_compile_pickiness(forest):
