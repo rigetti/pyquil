@@ -343,6 +343,28 @@ def test_dagger():
     p = Program(GPARAM(pi)(1, 2))
     assert p.dagger().out() == 'GPARAM-INV(pi) 1 2\n'
 
+    # ensure that modifiers are preserved https://github.com/rigetti/pyquil/pull/914
+    p = Program()
+    control = 0
+    target = 1
+    cnot_control = 2
+    p += X(target).controlled(control)
+    p += Y(target).controlled(control)
+    p += Z(target).controlled(control)
+    p += H(target).controlled(control)
+    p += S(target).controlled(control)
+    p += T(target).controlled(control)
+    p += PHASE(pi, target).controlled(control)
+    p += CNOT(cnot_control, target).controlled(control)
+    assert p.dagger().out() == 'CONTROLLED CNOT 0 2 1\n' \
+                               'CONTROLLED PHASE(-pi) 0 1\n' \
+                               'CONTROLLED RZ(pi/4) 0 1\n' \
+                               'CONTROLLED PHASE(-pi/2) 0 1\n' \
+                               'CONTROLLED H 0 1\n' \
+                               'CONTROLLED Z 0 1\n' \
+                               'CONTROLLED Y 0 1\n' \
+                               'CONTROLLED X 0 1\n'
+
 
 def test_construction_syntax():
     p = Program().inst(X(0), Y(1), Z(0)).measure(0, 1)
