@@ -308,14 +308,10 @@ def test_dagger():
     p += T(target).controlled(control)
     p += PHASE(pi, target).controlled(control)
     p += CNOT(cnot_control, target).controlled(control)
-    assert p.dagger().out() == 'CONTROLLED CNOT 0 2 1\n' \
-                               'CONTROLLED PHASE(-pi) 0 1\n' \
-                               'CONTROLLED RZ(pi/4) 0 1\n' \
-                               'CONTROLLED PHASE(-pi/2) 0 1\n' \
-                               'CONTROLLED H 0 1\n' \
-                               'CONTROLLED Z 0 1\n' \
-                               'CONTROLLED Y 0 1\n' \
-                               'CONTROLLED X 0 1\n'
+
+    for instr, instr_dagger in zip(reversed(p._instructions),
+                                   p.dagger()._instructions):
+        assert 'DAGGER ' +  instr.out() == instr_dagger.out()
 
 
 def test_construction_syntax():
