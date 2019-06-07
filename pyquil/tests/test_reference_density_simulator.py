@@ -318,7 +318,7 @@ def test_set_initial_state():
                                  device=device,
                                  compiler=DummyCompiler())
 
-    qc_density.qam.wf_simulator.set_initial_state(rho1)
+    qc_density.qam.wf_simulator.set_initial_state(rho1).reset()
 
     out = [qc_density.run(prog) for _ in range(0, 4)]
     ans = [np.array([[1]]), np.array([[1]]), np.array([[1]]), np.array([[1]])]
@@ -333,9 +333,9 @@ def test_set_initial_state():
 
     # test reverting ReferenceDensitySimulator to the default state
     rho0 = np.array([[1.0, 0.0], [0.0, 0.0]])
-    qc_density.qam.wf_simulator.set_initial_state(None)
+    qc_density.qam.wf_simulator.set_initial_state(None).reset()
     assert np.allclose(qc_density.qam.wf_simulator.density, rho0)
-    assert qc_density.qam.wf_simulator.initial_density is None
+    assert np.allclose(qc_density.qam.wf_simulator.initial_density, rho0)
 
 
 def test_is_valid_quantum_state():

@@ -177,23 +177,29 @@ class ReferenceDensitySimulator(AbstractQuantumSimulator):
     def __init__(self, n_qubits: int, rs: RandomState = None):
         self.n_qubits = n_qubits
         self.rs = rs
-        self.initial_density = None
-        # set self.density via
-        self.reset()
+        self.initial_density = np.zeros((2 ** n_qubits, 2 ** n_qubits), dtype=np.complex128)
+        self.initial_density[0, 0] = complex(1.0, 0)
+        self.density = self.initial_density
 
     def set_initial_state(self, state_matrix):
         """
-        This method is the correct way (TM) to set the state matrix to a state other than the
-        default state. The default state of ReferenceDensitySimulator is |000...00>.
+        This method is the correct way (TM) to update the initial state matrix that is
+        initialized every time reset() is called. The default initial state of
+        ReferenceDensitySimulator is |000...00>.
 
-        To restore default behavior and state of ReferenceDensitySimulator use
-        ``state_matrix = None.``
+        Note that the current state matrix, i.e. ``self.density`` is not affected by this
+        method; you must change it directly or else call reset() after calling this method.
+
+        To restore default state initialization behavior of ReferenceDensitySimulator pass in
+        ``state_matrix = None`` and then call reset().
 
         :param state_matrix: numpy.ndarray or None.
         :return: ``self`` to support method chaining.
         """
         if state_matrix is None:
-            self.initial_density = None
+            self.initial_density = np.zeros((2 ** self.n_qubits, 2 ** self.n_qubits),
+                                            dtype=np.complex128)
+            self.initial_density[0, 0] = complex(1.0, 0)
         else:
             rows, cols = state_matrix.shape
             if rows != cols:
@@ -206,7 +212,6 @@ class ReferenceDensitySimulator(AbstractQuantumSimulator):
             else:
                 raise ValueError("The state matrix is not valid. It must be Hermitian, trace one, "
                                  "and have non-negative eigenvalues.")
-        self.reset()
         return self
 
     def sample_bitstrings(self, n_samples, tol_factor: float = 1e8):
@@ -290,18 +295,12 @@ class ReferenceDensitySimulator(AbstractQuantumSimulator):
 
     def reset(self) -> 'AbstractQuantumSimulator':
         """
-        Resets the initial state of ReferenceDensitySimulator.
-
-        If ``self.initial_density`` is ``None`` then the QVM state ``self.density`` is reset to
-        the all zeros state. Otherwise it is reset to the user specified ``self.initial_density``.
+        Resets the current state of ReferenceDensitySimulator ``self.density`` to
+        ``self.initial_density``.
 
         :return: ``self`` to support method chaining.
         """
-        if self.initial_density is None:
-            self.density = np.zeros((2 ** self.n_qubits, 2 ** self.n_qubits), dtype=np.complex128)
-            self.density[0, 0] = complex(1.0, 0)
-        else:
-            self.density = self.initial_density
+        self.density = self.initial_density
         return self
 
     def do_post_gate_noise(self, noise_type: str, noise_prob: float, qubits: List[int]):
