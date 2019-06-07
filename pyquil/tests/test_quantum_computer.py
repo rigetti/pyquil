@@ -92,6 +92,16 @@ def test_symmetrization():
     assert all([np.allclose(x, y) for x, y in zip(flip_array, right)])
 
 
+def test_construct_orthogonal_array():
+    # check for valid inputs
+    with pytest.raises(ValueError):
+        construct_orthogonal_array(3, strength=-1)
+    with pytest.raises(ValueError):
+        construct_orthogonal_array(3, strength=4)
+    with pytest.raises(ValueError):
+        construct_orthogonal_array(3, strength=100)
+
+
 def test_device_stuff():
     topo = nx.from_edgelist([(0, 4), (0, 99)])
     qc = QuantumComputer(
