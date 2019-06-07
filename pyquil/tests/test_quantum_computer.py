@@ -7,8 +7,11 @@ import pytest
 from pyquil import Program, get_qc, list_quantum_computers
 from pyquil.api import QVM, QuantumComputer, local_qvm
 from pyquil.api._qac import AbstractCompiler
-from pyquil.api._quantum_computer import (symmetrization, _flip_array_to_prog, _parse_name,
-                                          _get_qvm_with_topology)
+from pyquil.api._quantum_computer import (symmetrization, _flip_array_to_prog,
+                                          construct_orthogonal_array,
+                                          construct_strength_two_orthogonal_array,
+                                          construct_strength_three_orthogonal_array,
+                                          _parse_name, _get_qvm_with_topology)
 from pyquil.device import NxDevice, gates_in_isa
 from pyquil.gates import *
 from pyquil.quilbase import Declare, MemoryReference
@@ -100,6 +103,26 @@ def test_construct_orthogonal_array():
         construct_orthogonal_array(3, strength=4)
     with pytest.raises(ValueError):
         construct_orthogonal_array(3, strength=100)
+
+
+def test_construct_strength_three_orthogonal_array():
+    answer = np.array([[1, 1, 1, 1],
+                       [1, 0, 1, 0],
+                       [1, 1, 0, 0],
+                       [1, 0, 0, 1],
+                       [0, 0, 0, 0],
+                       [0, 1, 0, 1],
+                       [0, 0, 1, 1],
+                       [0, 1, 1, 0]])
+    assert np.allclose(construct_strength_three_orthogonal_array(4), answer)
+
+
+def test_construct_strength_two_orthogonal_array():
+    answer = np.array([[0, 0, 0],
+                       [1, 0, 1],
+                       [0, 1, 1],
+                       [1, 1, 0]])
+    assert np.allclose(construct_strength_two_orthogonal_array(3), answer)
 
 
 def test_device_stuff():
