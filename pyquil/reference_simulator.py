@@ -186,9 +186,7 @@ class ReferenceDensitySimulator(AbstractQuantumSimulator):
     def __init__(self, n_qubits: int, rs: RandomState = None):
         self.n_qubits = n_qubits
         self.rs = rs
-        self.initial_density = np.zeros((2 ** n_qubits, 2 ** n_qubits), dtype=np.complex128)
-        self.initial_density[0, 0] = complex(1.0, 0)
-        self.density = self.initial_density
+        self.set_initial_state(None).reset()
 
     def set_initial_state(self, state_matrix):
         """
