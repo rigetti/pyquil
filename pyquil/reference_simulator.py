@@ -25,18 +25,27 @@ def _term_expectation(wf, term: PauliTerm, n_qubits):
     return term.coefficient * (wf.conj().T @ wf2)
 
 
-def _is_valid_quantum_state(state_matrix: np.ndarray) -> bool:
+def _is_valid_quantum_state(state_matrix: np.ndarray, rtol=1e-05, atol=1e-08) -> bool:
     """
     Checks if a quantum state is valid, i.e. the matrix is Hermitian; trace one, and that the
     eigenvalues are non-negative.
 
-    :param state_matrix:
+    :param state_matrix: a D by D np.ndarray representing a quantum state
+    :param rtol: The relative tolerance parameter in np.allclose and np.isclose
+    :param atol: The absolute tolerance parameter in np.allclose and np.isclose
     :return: bool
     """
-    is_hermitian = np.alltrue(state_matrix == np.conjugate(state_matrix.transpose()))
-    is_trace_one = np.isclose(np.trace(state_matrix), 1)
-    non_neg_eigs = np.all(np.linalg.eigvals(state_matrix) >= 0)
-    return is_hermitian and is_trace_one and non_neg_eigs
+    hermitian = np.allclose(state_matrix, np.conjugate(state_matrix.transpose()), rtol, atol)
+    if not hermitian:
+        raise ValueError("The state matrix is not Hermitian.")
+    trace_one = np.isclose(np.trace(state_matrix), 1, rtol, atol)
+    if not trace_one:
+        raise ValueError("The state matrix is not trace one.")
+    evals = np.linalg.eigvals(state_matrix)
+    non_neg_eigs = all([False if val < -atol else True for val in evals])
+    if not non_neg_eigs:
+        raise ValueError("The state matrix has negative Eigenvalues of the order -"+str(atol)+".")
+    return hermitian and trace_one and non_neg_eigs
 
 
 class ReferenceWavefunctionSimulator(AbstractQuantumSimulator):
