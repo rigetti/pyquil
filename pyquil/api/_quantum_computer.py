@@ -40,7 +40,6 @@ from pyquil.gates import RX, MEASURE
 from pyquil.noise import decoherence_noise_with_asymmetric_ro, NoiseModel
 from pyquil.pyqvm import PyQVM
 from pyquil.quil import Program, validate_supported_quil
-from pyquil.quilbase import Measurement, Pragma
 
 pyquil_config = PyquilConfig()
 
@@ -72,7 +71,7 @@ def _flip_array_to_prog(flip_array: Tuple[bool], qubits: List[int]) -> Program:
     return prog
 
 
-def symmetrization(program: Program, meas_qubits: List[int], symm_type: int = 3) \
+def _symmetrization(program: Program, meas_qubits: List[int], symm_type: int = 3) \
         -> Tuple[List[Program], List[np.ndarray]]:
     """
     For the input program generate new programs which flip the measured qubits with an X gate in
@@ -105,7 +104,7 @@ def symmetrization(program: Program, meas_qubits: List[int], symm_type: int = 3)
         # exhaustive = all possible binary strings
         flip_matrix = np.asarray(list(itertools.product([0, 1], repeat=len(meas_qubits))))
     elif symm_type >= 0:
-        flip_matrix = construct_orthogonal_array(len(meas_qubits), symm_type)
+        flip_matrix = _construct_orthogonal_array(len(meas_qubits), symm_type)
 
     # The next part is not rigorous the sense that we simply truncate to the desired
     # number of qubits. The problem is that orthogonal arrays of a certain strength for an
@@ -126,8 +125,8 @@ def symmetrization(program: Program, meas_qubits: List[int], symm_type: int = 3)
     return symm_programs, flip_arrays
 
 
-def consolidate_symmetrization_outputs(outputs: List[np.ndarray],
-                                       flip_arrays: List[Tuple[bool]]) -> np.ndarray:
+def _consolidate_symmetrization_outputs(outputs: List[np.ndarray],
+                                        flip_arrays: List[Tuple[bool]]) -> np.ndarray:
     """
     Given bitarray results from a series of symmetrization programs, appropriately flip output
     bits and consolidate results into new bitarrays.
@@ -181,7 +180,7 @@ def _measure_bitstrings(qc, programs: List[Program], meas_qubits: List[int],
     return results
 
 
-def construct_orthogonal_array(num_qubits: int, strength: int = 3) -> np.ndarray:
+def _construct_orthogonal_array(num_qubits: int, strength: int = 3) -> np.ndarray:
     """
     Given a strength and number of qubits this function returns an Orthogonal Array (OA)
     on 'n' or more qubits. Sometimes the size of the returned array is larger than num_qubits;
@@ -204,9 +203,9 @@ def construct_orthogonal_array(num_qubits: int, strength: int = 3) -> np.ndarray
         one_array = np.ones((1, num_qubits))
         flip_matrix = np.concatenate((zero_array, one_array), axis=0).astype(int)
     elif strength == 2:
-        flip_matrix = construct_strength_two_orthogonal_array(num_qubits)
+        flip_matrix = _construct_strength_two_orthogonal_array(num_qubits)
     elif strength == 3:
-        flip_matrix = construct_strength_three_orthogonal_array(num_qubits)
+        flip_matrix = _construct_strength_three_orthogonal_array(num_qubits)
 
     return flip_matrix
 
@@ -215,7 +214,7 @@ def _next_power_of_2(x):
     return 1 if x == 0 else 2 ** (x - 1).bit_length()
 
 
-def construct_strength_three_orthogonal_array(num_qubits: int) -> np.ndarray:
+def _construct_strength_three_orthogonal_array(num_qubits: int) -> np.ndarray:
     r"""
     Given a number of qubits this function returns an Orthogonal Array (OA)
     on 'n' qubits where n is the next power of two relative to num_qubits.
@@ -245,7 +244,7 @@ def construct_strength_three_orthogonal_array(num_qubits: int) -> np.ndarray:
     return design
 
 
-def construct_strength_two_orthogonal_array(num_qubits: int) -> np.ndarray:
+def _construct_strength_two_orthogonal_array(num_qubits: int) -> np.ndarray:
     r"""
     Given a number of qubits this function returns an Orthogonal Array (OA) on 'n-1' qubits
     where n-1 is the next integer lambda so that 4*lambda -1 is larger than num_qubits.
@@ -455,7 +454,7 @@ class QuantumComputer:
         # hundreds or thousands of trials more than the minimum.
         trials = _check_min_num_trials_for_symmetrized_readout(len(meas_qubits), trials, symm_type)
 
-        sym_programs, flip_arrays = symmetrization(program, meas_qubits, symm_type)
+        sym_programs, flip_arrays = _symmetrization(program, meas_qubits, symm_type)
 
         # Floor division so e.g. 9 // 8 = 1 and 17 // 8 = 2
         num_shots_per_prog = trials // len(sym_programs)
@@ -468,7 +467,7 @@ class QuantumComputer:
 
         results = _measure_bitstrings(self, sym_programs, meas_qubits, num_shots_per_prog)
 
-        return consolidate_symmetrization_outputs(results, flip_arrays)
+        return _consolidate_symmetrization_outputs(results, flip_arrays)
 
     @_record_call
     def run_and_measure(self, program: Program, trials: int) -> Dict[int, np.ndarray]:

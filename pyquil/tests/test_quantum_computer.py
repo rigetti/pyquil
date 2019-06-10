@@ -7,10 +7,10 @@ import pytest
 from pyquil import Program, get_qc, list_quantum_computers
 from pyquil.api import QVM, QuantumComputer, local_qvm
 from pyquil.api._qac import AbstractCompiler
-from pyquil.api._quantum_computer import (symmetrization, _flip_array_to_prog,
-                                          construct_orthogonal_array,
-                                          construct_strength_two_orthogonal_array,
-                                          construct_strength_three_orthogonal_array,
+from pyquil.api._quantum_computer import (_symmetrization, _flip_array_to_prog,
+                                          _construct_orthogonal_array,
+                                          _construct_strength_two_orthogonal_array,
+                                          _construct_strength_three_orthogonal_array,
                                           _parse_name, _get_qvm_with_topology)
 from pyquil.device import NxDevice, gates_in_isa
 from pyquil.gates import *
@@ -59,7 +59,7 @@ def test_symmetrization():
     prog = Program(I(0), I(1))
     meas_qubits = [0, 1]
     # exhaustive symm
-    sym_progs, flip_array = symmetrization(prog, meas_qubits, symm_type=-1)
+    sym_progs, flip_array = _symmetrization(prog, meas_qubits, symm_type=-1)
     assert sym_progs[0].out().splitlines() == ['I 0', 'I 1']
     assert sym_progs[1].out().splitlines() == ['I 0', 'I 1', 'RX(pi) 1']
     assert sym_progs[2].out().splitlines() == ['I 0', 'I 1', 'RX(pi) 0']
@@ -67,18 +67,18 @@ def test_symmetrization():
     right = [np.array([0, 0]), np.array([0, 1]), np.array([1, 0]), np.array([1, 1])]
     assert all([np.allclose(x, y) for x, y in zip(flip_array, right)])
     # strength 0 i.e. no symm
-    sym_progs, flip_array = symmetrization(prog, meas_qubits, symm_type=-1)
+    sym_progs, flip_array = _symmetrization(prog, meas_qubits, symm_type=-1)
     assert sym_progs[0].out().splitlines() == ['I 0', 'I 1']
     right = [np.array([0, 0])]
     assert all([np.allclose(x, y) for x, y in zip(flip_array, right)])
     # strength 1
-    sym_progs, flip_array = symmetrization(prog, meas_qubits, symm_type=1)
+    sym_progs, flip_array = _symmetrization(prog, meas_qubits, symm_type=1)
     assert sym_progs[0].out().splitlines() == ['I 0', 'I 1']
     assert sym_progs[1].out().splitlines() == ['I 0', 'I 1', 'RX(pi) 0', 'RX(pi) 1']
     right = [np.array([0, 0]), np.array([1, 1])]
     assert all([np.allclose(x, y) for x, y in zip(flip_array, right)])
     # strength 2
-    sym_progs, flip_array = symmetrization(prog, meas_qubits, symm_type=2)
+    sym_progs, flip_array = _symmetrization(prog, meas_qubits, symm_type=2)
     assert sym_progs[0].out().splitlines() == ['I 0', 'I 1']
     assert sym_progs[1].out().splitlines() == ['I 0', 'I 1', 'RX(pi) 0']
     assert sym_progs[2].out().splitlines() == ['I 0', 'I 1', 'RX(pi) 1']
@@ -86,7 +86,7 @@ def test_symmetrization():
     right = [np.array([0, 0]), np.array([1, 0]), np.array([0, 1]), np.array([1, 1])]
     assert all([np.allclose(x, y) for x, y in zip(flip_array, right)])
     # strength 3
-    sym_progs, flip_array = symmetrization(prog, meas_qubits, symm_type=3)
+    sym_progs, flip_array = _symmetrization(prog, meas_qubits, symm_type=3)
     assert sym_progs[0].out().splitlines() == ['I 0', 'I 1', 'RX(pi) 0', 'RX(pi) 1']
     assert sym_progs[1].out().splitlines() == ['I 0', 'I 1', 'RX(pi) 0']
     assert sym_progs[2].out().splitlines() == ['I 0', 'I 1']
@@ -98,11 +98,11 @@ def test_symmetrization():
 def test_construct_orthogonal_array():
     # check for valid inputs
     with pytest.raises(ValueError):
-        construct_orthogonal_array(3, strength=-1)
+        _construct_orthogonal_array(3, strength=-1)
     with pytest.raises(ValueError):
-        construct_orthogonal_array(3, strength=4)
+        _construct_orthogonal_array(3, strength=4)
     with pytest.raises(ValueError):
-        construct_orthogonal_array(3, strength=100)
+        _construct_orthogonal_array(3, strength=100)
 
 
 def test_construct_strength_three_orthogonal_array():
@@ -114,7 +114,7 @@ def test_construct_strength_three_orthogonal_array():
                        [0, 1, 0, 1],
                        [0, 0, 1, 1],
                        [0, 1, 1, 0]])
-    assert np.allclose(construct_strength_three_orthogonal_array(4), answer)
+    assert np.allclose(_construct_strength_three_orthogonal_array(4), answer)
 
 
 def test_construct_strength_two_orthogonal_array():
@@ -122,7 +122,7 @@ def test_construct_strength_two_orthogonal_array():
                        [1, 0, 1],
                        [0, 1, 1],
                        [1, 1, 0]])
-    assert np.allclose(construct_strength_two_orthogonal_array(3), answer)
+    assert np.allclose(_construct_strength_two_orthogonal_array(3), answer)
 
 
 def test_device_stuff():
