@@ -44,7 +44,7 @@ def _is_valid_quantum_state(state_matrix: np.ndarray, rtol=1e-05, atol=1e-08) ->
     evals = np.linalg.eigvals(state_matrix)
     non_neg_eigs = all([False if val < -atol else True for val in evals])
     if not non_neg_eigs:
-        raise ValueError("The state matrix has negative Eigenvalues of the order -"+str(atol)+".")
+        raise ValueError("The state matrix has negative Eigenvalues of order -" + str(atol) + ".")
     return hermitian and trace_one and non_neg_eigs
 
 

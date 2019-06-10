@@ -339,11 +339,15 @@ def test_set_initial_state():
 
 
 def test_is_valid_quantum_state():
-    # is Hermitian and PSD but not trace one
-    assert not(_is_valid_quantum_state(np.array([[1, 0], [0, 1]])))
-    # negative eigenvalue
-    assert not(_is_valid_quantum_state(np.array([[1.01, 0], [0, -0.01]])))
-    # imaginary eigenvalue
-    assert not(_is_valid_quantum_state(np.array([[1, 0], [0, -0.0001j]])))
-    # not Hermitian
-    assert not(_is_valid_quantum_state(np.array([[0, 1], [1, 0]])))
+    with pytest.raises(ValueError):
+        # is Hermitian and PSD but not trace one
+        _is_valid_quantum_state(np.array([[1, 0], [0, 1]]))
+    with pytest.raises(ValueError):
+        # negative eigenvalue
+        _is_valid_quantum_state(np.array([[1.01, 0], [0, -0.01]]))
+    with pytest.raises(ValueError):
+        # imaginary eigenvalue
+        _is_valid_quantum_state(np.array([[1, 0], [0, -0.0001j]]))
+    with pytest.raises(ValueError):
+        # not Hermitian
+        _is_valid_quantum_state(np.array([[0, 1], [1, 0]]))
