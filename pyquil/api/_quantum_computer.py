@@ -145,14 +145,15 @@ class QuantumComputer:
         measured classical bit back. Overall this has the effect of symmetrizing the readout error.
 
         The details. Consider preparing the input bitstring |i> (in the computational basis) and
-        measure in the Z basis. Then the Confusion matrix for the readout error is specified by
+        measuring in the Z basis. Then the Confusion matrix for the readout error is specified by
         the probabilities
 
-            p_{j|i} := Pr(measured = j | prepared = i )
+            p_{j|i} := Pr(measured = j | prepared = i ).
 
-        If p_{0|0} = p_{1|1} = 1 then there is no readout error.
-        If p_{0|0} = p_{1|1} = 1 - epsilon then the readout error is symmetric.
-        If p_{0|0} != p_{1|1}  then the readout error is asymmetric.
+        In the case of a single qubit i,j \in [0,1] then:
+        there is no readout error if p_{0|0} = p_{1|1} = 1.
+        the readout error is symmetric if p_{0|0} = p_{1|1} = 1 - epsilon.
+        the readout error is asymmetric if p_{0|0} != p_{1|1}.
 
         If your quantum computer has this kind of asymmetric readout error then
         `qc.run_symmetrized_readout` will symmetrize the readout error.
@@ -160,7 +161,7 @@ class QuantumComputer:
         The readout error above is only asymmetric on a single bit. In practice the confusion
         matrix on n bits need not be symmetric, e.g. for two qubits p_{ij|ij} != 1 - epsilon for
         all i,j. In these situations a more sophisticated means of symmetrization is needed; and
-        we use orthogonal arrays (OA).
+        we use orthogonal arrays (OA) built from Hadamard matrices.
 
         The symmetrization types are specified by an int; the types available are:
         -1 -- exhaustive symmetrization uses every possible combination of flips
@@ -168,9 +169,13 @@ class QuantumComputer:
          1 -- symmetrization using an OA with strength 1
          2 -- symmetrization using an OA with strength 2
          3 -- symmetrization using an OA with strength 3
-        By default a strength 3 OA is used; this ensures expectations of the form <b_k b_j b_i>
-        for bits any bits i,j,k will have symmetric readout errors. As a strength 3 OA is also a
-        strength 2 and strength 1 OA it also ensures <b_j b_i> and <b_i> have symmetric readout
+        In the context of readout symmetrization the strength of the orthogonal array enforces
+        the symmetry of the marginal confusion matrices.
+
+        By default a strength 3 OA is used; this ensures expectations of the form <b_k * b_j * b_i>
+        for bits any bits i,j,k will have symmetric readout errors. Here expectation of a random
+        variable x as is denote <x> = sum_i Pr(i) x_i. It turns out that a strength 3 OA is also a
+        strength 2 and strength 1 OA it also ensures <b_j * b_i> and <b_i> have symmetric readout
         errors for any bits b_j and b_i.
 
         :param program: The program to run symmetrized readout on.
@@ -729,13 +734,17 @@ def _symmetrization(program: Program, meas_qubits: List[int], symm_type: int = 3
     The symmetrization types are specified by an int; the types available are:
     -1 -- exhaustive symmetrization uses every possible combination of flips
      0 -- trivial that is no symmetrization
-     1 -- symmetrization using an orthogonal array with strength 1
-     2 -- symmetrization using an orthogonal array with strength 2
-     3 -- symmetrization using an orthogonal array with strength 3
-    By default a strength 3 OA is used; this ensures expectations of the form <b_k b_j b_i> for
-    bits any bits i,j,k will have symmetric readout errors. As a strength 3 OA is also a strength 2
-    and strength 1 OA it also ensures <b_j b_i> and <b_i> have symmetric readout errors for any
-    bits b_j and b_i.
+     1 -- symmetrization using an OA with strength 1
+     2 -- symmetrization using an OA with strength 2
+     3 -- symmetrization using an OA with strength 3
+    In the context of readout symmetrization the strength of the orthogonal array enforces the
+    symmetry of the marginal confusion matrices.
+
+    By default a strength 3 OA is used; this ensures expectations of the form <b_k * b_j * b_i>
+    for bits any bits i,j,k will have symmetric readout errors. Here expectation of a random
+    variable x as is denote <x> = sum_i Pr(i) x_i. It turns out that a strength 3 OA is also a
+    strength 2 and strength 1 OA it also ensures <b_j * b_i> and <b_i> have symmetric readout
+    errors for any bits b_j and b_i.
 
     :param programs: a program which will be symmetrized.
     :param meas_qubits: the groups of measurement qubits. Only these qubits will be symmetrized
@@ -865,9 +874,9 @@ def _construct_strength_three_orthogonal_array(num_qubits: int) -> np.ndarray:
     Given a number of qubits this function returns an Orthogonal Array (OA)
     on 'n' qubits where n is the next power of two relative to num_qubits.
 
-    Specifically it returns an with the OA(2n, n, 2, 3), where
+    Specifically it returns the OA(2n, n, 2, 3).
 
-    OA(N, k, s, t)
+    The parameters of the OA(N, k, s, t) are interpreted as
     N: Number of rows, level combinations or runs
     k: Number of columns, constraints or factors
     s: Number of symbols or levels
@@ -886,8 +895,8 @@ def _construct_strength_three_orthogonal_array(num_qubits: int) -> np.ndarray:
     num_qubits_power_of_2 = _next_power_of_2(num_qubits)
     H = hadamard(num_qubits_power_of_2)
     Hfold = np.concatenate((H, -H), axis=0)
-    design = ((Hfold + 1) / 2).astype(int)
-    return design
+    orthogonal_array = ((Hfold + 1) / 2).astype(int)
+    return orthogonal_array
 
 
 def _construct_strength_two_orthogonal_array(num_qubits: int) -> np.ndarray:
@@ -895,9 +904,9 @@ def _construct_strength_two_orthogonal_array(num_qubits: int) -> np.ndarray:
     Given a number of qubits this function returns an Orthogonal Array (OA) on 'n-1' qubits
     where n-1 is the next integer lambda so that 4*lambda -1 is larger than num_qubits.
 
-    Specifically it returns an with the OA(n, n − 1, 2, 2), where
+    Specifically it returns the OA(n, n − 1, 2, 2).
 
-    OA(N, k, s, t)
+    The parameters of the OA(N, k, s, t) are interpreted as
     N: Number of rows, level combinations or runs
     k: Number of columns, constraints or factors
     s: Number of symbols or levels
@@ -911,7 +920,7 @@ def _construct_strength_two_orthogonal_array(num_qubits: int) -> np.ndarray:
            https://dx.doi.org/10.1007/978-1-4612-1478-6
 
     :param num_qubits: minimum number of qubits the OA should run on.
-    :return: A numpy array representing the OQ with shape N by k
+    :return: A numpy array representing the OA with shape N by k
     """
     # next line will break post denali at 275 qubits
     # valid_num_qubits = 4 * lambda - 1
@@ -920,8 +929,8 @@ def _construct_strength_two_orthogonal_array(num_qubits: int) -> np.ndarray:
     four_lam = min(x for x in valid_numbers if x >= num_qubits) + 1
     H = hadamard(_next_power_of_2(four_lam))
     # The minus sign in front of H fixes the 0 <-> 1 inversion relative to the reference [OATA]
-    design = ((-H[1:four_lam, 0:four_lam] + 1) / 2).astype(int)
-    return design.T
+    orthogonal_array = ((-H[1:four_lam, 0:four_lam] + 1) / 2).astype(int)
+    return orthogonal_array.T
 
 
 def _check_min_num_trials_for_symmetrized_readout(num_qubits: int, trials: int, symm_type: int) \
