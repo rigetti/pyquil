@@ -343,6 +343,28 @@ def test_dagger():
     p = Program(GPARAM(pi)(1, 2))
     assert p.dagger().out() == 'GPARAM-INV(pi) 1 2\n'
 
+    # ensure that modifiers are preserved https://github.com/rigetti/pyquil/pull/914
+    p = Program()
+    control = 0
+    target = 1
+    cnot_control = 2
+    p += X(target).controlled(control)
+    p += Y(target).controlled(control)
+    p += Z(target).controlled(control)
+    p += H(target).controlled(control)
+    p += S(target).controlled(control)
+    p += T(target).controlled(control)
+    p += PHASE(pi, target).controlled(control)
+    p += CNOT(cnot_control, target).controlled(control)
+    assert p.dagger().out() == 'CONTROLLED CNOT 0 2 1\n' \
+                               'CONTROLLED PHASE(-pi) 0 1\n' \
+                               'CONTROLLED RZ(pi/4) 0 1\n' \
+                               'CONTROLLED PHASE(-pi/2) 0 1\n' \
+                               'CONTROLLED H 0 1\n' \
+                               'CONTROLLED Z 0 1\n' \
+                               'CONTROLLED Y 0 1\n' \
+                               'CONTROLLED X 0 1\n'
+
 
 def test_construction_syntax():
     p = Program().inst(X(0), Y(1), Z(0)).measure(0, 1)
@@ -974,6 +996,17 @@ def test_reset():
     p.reset(0)
     p.reset()
     assert p.out() == "RESET 0\nRESET\n"
+
+    program = Program()
+    qubit = QubitPlaceholder()
+    # address_qubits() won't work unless there's a gate besides
+    # RESET on a QubitPlaceholder, this is just here to make
+    # addressing work
+    program += X(qubit)
+
+    program += RESET(qubit)
+    program = address_qubits(program)
+    assert program.out() == "X 0\nRESET 0\n"
 
 
 def test_copy():

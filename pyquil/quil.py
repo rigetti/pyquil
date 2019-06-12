@@ -576,23 +576,29 @@ class Program(object):
                 daggered.defgate(gate.name + suffix, gate.matrix.T.conj())
 
         for gate in reversed(self._instructions):
+            reversed_gate = None
+            qubits = [unpack_qubit(q) for q in gate.qubits]
             if gate.name in QUANTUM_GATES:
                 if gate.name == "S":
-                    daggered.inst(QUANTUM_GATES["PHASE"](-pi / 2, *gate.qubits))
+                    reversed_gate = Gate("PHASE", [-pi / 2], qubits)
                 elif gate.name == "T":
-                    daggered.inst(QUANTUM_GATES["RZ"](pi / 4, *gate.qubits))
+                    reversed_gate = Gate("RZ", [pi / 4], qubits)
                 elif gate.name == "ISWAP":
-                    daggered.inst(QUANTUM_GATES["PSWAP"](pi / 2, *gate.qubits))
+                    reversed_gate = Gate("PSWAP", [pi / 2], qubits)
                 else:
                     negated_params = list(map(lambda x: -1 * x, gate.params))
-                    daggered.inst(QUANTUM_GATES[gate.name](*(negated_params + gate.qubits)))
+                    reversed_gate = Gate(gate.name, negated_params, qubits)
+                reversed_gate.modifiers = gate.modifiers
+                daggered.inst(reversed_gate)
             else:
                 if inv_dict is None or gate.name not in inv_dict:
                     gate_inv_name = gate.name + suffix
                 else:
                     gate_inv_name = inv_dict[gate.name]
 
-                daggered.inst(Gate(gate_inv_name, gate.params, gate.qubits))
+                reversed_gate = Gate(gate_inv_name, gate.params, qubits)
+                reversed_gate.modifiers = gate.modifiers
+                daggered.inst(reversed_gate)
 
         return daggered
 
@@ -786,7 +792,7 @@ def address_qubits(program, qubit_mapping=None):
 
     result = []
     for instr in program:
-        # Remap qubits on Gate and Measurement instructions
+        # Remap qubits on Gate, Measurement, and ResetQubit instructions
         if isinstance(instr, Gate):
             remapped_qubits = [qubit_mapping[q] for q in instr.qubits]
             gate = Gate(instr.name, instr.params, remapped_qubits)
@@ -794,6 +800,8 @@ def address_qubits(program, qubit_mapping=None):
             result.append(gate)
         elif isinstance(instr, Measurement):
             result.append(Measurement(qubit_mapping[instr.qubit], instr.classical_reg))
+        elif isinstance(instr, ResetQubit):
+            result.append(ResetQubit(qubit_mapping[instr.qubit]))
         elif isinstance(instr, Pragma):
             new_args = []
             for arg in instr.args:
