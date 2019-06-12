@@ -2,7 +2,7 @@ Changelog
 =========
 
 v2.8 (May 20, 2019)
----------------------
+-------------------
 
 Improvements and Changes:
 

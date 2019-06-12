@@ -445,16 +445,17 @@ manipulated by a CPU in a hybrid classical/quantum algorithm.
 
 def RESET(qubit_index=None):
     """
-    Reset all qubits or just a specific qubit at qubit_index.
+    Reset all qubits or just one specific qubit.
 
-    :param Optional[int] qubit_index: The address of the qubit to reset.
+    :param Optional[Union[integer_types, Qubit, QubitPlaceholder]] qubit_index: The qubit to reset.
+        This can be a qubit's index, a Qubit, or a QubitPlaceholder.
         If None, reset all qubits.
     :returns: A Reset or ResetQubit Quil AST expression corresponding to a global or targeted
         reset, respectively.
     :rtype: Union[Reset, ResetQubit]
     """
     if qubit_index is not None:
-        return ResetQubit(Qubit(qubit_index))
+        return ResetQubit(unpack_qubit(qubit_index))
     else:
         return Reset()
 
