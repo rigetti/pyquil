@@ -9,7 +9,7 @@ Bugfixes:
 
 - Small negative probabilities were causing ReferenceDensitySimulator to fail (gh-904).
 
-- The assigned state matrix in ReferenceDensitySimulator is was not persistent between rounds of
+- The assigned state matrix in ReferenceDensitySimulator was not persistent between rounds of
 run (gh-916).
 
 v2.8 (May 20, 2019)
