@@ -194,8 +194,7 @@ class QuantumComputer:
         if meas_qubits is None:
             meas_qubits = list(program.get_qubits())
 
-        # The point below is to set the minimum number of trials; it is desirable to have
-        # hundreds or thousands of trials more than the minimum.
+        # It is desirable to have hundreds or thousands of trials more than the minimum
         trials = _check_min_num_trials_for_symmetrized_readout(len(meas_qubits), trials, symm_type)
 
         sym_programs, flip_arrays = _symmetrization(program, meas_qubits, symm_type)
@@ -944,6 +943,8 @@ def _check_min_num_trials_for_symmetrized_readout(num_qubits: int, trials: int, 
     :param symm_type: symmetrization type see
     :return: possibly modified number of trials
     """
+    if symm_type < -1 or symm_type > 3:
+        raise ValueError("symm_type must be one of the following ints [-1, 0, 1, 2, 3].")
     # There is no need to test symm_type == 0 or symm_type == 1 as they require one and two
     # trials respectively and that is ensured by this:
     min_num_trials = 2
