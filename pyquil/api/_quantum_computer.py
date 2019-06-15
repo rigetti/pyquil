@@ -696,6 +696,68 @@ def local_qvm() -> Iterator[Tuple[subprocess.Popen, subprocess.Popen]]:
         quilc.terminate()
 
 
+# ================================================================================================
+# Between this line ^^ and the one below this code is used to test...will delete
+
+def two_qubit_bit_flip_operators(p00, p01, p10, p11):
+    """
+    Return a special case of a two qubit asymmetric bit flip kraus operators.
+
+    Suppose we prepare a two qubit state |i,j> = |i>\otimes|j> for i,j \in {0,1}.
+
+    Then pij := Pr(measured=ij|prepared=ij). So if pij = 1 no flip happens.
+
+    For example consider p00 = 1-epsilon then a flip happens with probablity epsilon.
+    The flip is symmetrically superposed over flipping to the states |0,1>, |1,0>, and |1,1>.
+    The asymmetry comes from the fact that p00 does not have to be equal to p10 etc.
+
+    :param p00: the probablity of |0,0> to remain in |0,0>
+    :param p01: the probablity of |0,1> to remain in |0,1>
+    :param p10: the probablity of |1,0> to remain in |1,0>
+    :param p11: the probablity of |1,1> to remain in |1,1>
+    :returns: a list of four Kraus operators.
+    """
+    p00e = 1.0 - p00
+    p01e = 1.0 - p01
+    p10e = 1.0 - p10
+    p11e = 1.0 - p11
+    kI = np.array([[np.sqrt(1 - p00e), 0.0, 0.0, 0.0], [0.0, np.sqrt(1 - p01e), 0.0, 0.0],
+                   [0.0, 0.0, np.sqrt(1 - p10e), 0.0], [0.0, 0.0, 0.0, np.sqrt(1 - p11e)]])
+    k00 = np.sqrt(p00e / 3) * (_flip_matrix(0, 1) + _flip_matrix(0, 2) + _flip_matrix(0, 3))
+    k01 = np.sqrt(p01e / 3) * (_flip_matrix(1, 0) + _flip_matrix(1, 2) + _flip_matrix(1, 3))
+    k10 = np.sqrt(p10e / 3) * (_flip_matrix(2, 0) + _flip_matrix(2, 1) + _flip_matrix(2, 3))
+    k11 = np.sqrt(p11e / 3) * (_flip_matrix(3, 0) + _flip_matrix(3, 1) + _flip_matrix(3, 2))
+    return kI, k00, k01, k10, k11
+
+
+def _flip_matrix(i, j, dim=4):
+    mat = np.zeros((dim, dim))
+    # mat.itemset((i,j),1)
+    mat.itemset((j, i), 1)
+    return mat
+
+
+def append_kraus_to_gate(kraus_ops, g):
+    """
+    Follow a gate `g` by a Kraus map described by `kraus_ops`.
+
+    :param list kraus_ops: The Kraus operators.
+    :param numpy.ndarray g: The unitary gate.
+    :return: A list of transformed Kraus operators.
+    """
+    return [kj.dot(g) for kj in kraus_ops]
+
+from pyquil.quil import DefGate
+II_mat = np.eye(4)
+II_definition = DefGate("II", II_mat)
+II = II_definition.get_constructor()
+kraus_ops = two_qubit_bit_flip_operators(0.7,1,1,1)
+
+# will delete code above here
+# ================================================================================================
+
+
+
 def _flip_array_to_prog(flip_array: Tuple[bool], qubits: List[int]) -> Program:
     """
     Generate a pre-measurement program that flips the qubit state according to the flip_array of
@@ -775,6 +837,16 @@ def _symmetrization(program: Program, meas_qubits: List[int], symm_type: int = 3
         total_prog_symm += prog_symm
         symm_programs.append(total_prog_symm)
         flip_arrays.append(flip_array)
+
+    # ============================================================================================
+    # Between this line ^^ and the one below this code is used to test...will delete
+    # this hack is here only to test the symmetrization
+    for prog in symm_programs:
+        prog.inst(II_definition)
+        prog.define_noisy_gate("II", [0, 1], append_kraus_to_gate(kraus_ops, II_mat))
+        prog.inst(II(0, 1))
+    # will delete code above here
+    # ============================================================================================
 
     return symm_programs, flip_arrays
 
