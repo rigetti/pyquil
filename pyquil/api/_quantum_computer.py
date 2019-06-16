@@ -40,6 +40,7 @@ from pyquil.gates import RX, MEASURE
 from pyquil.noise import decoherence_noise_with_asymmetric_ro, NoiseModel
 from pyquil.pyqvm import PyQVM
 from pyquil.quil import Program, validate_supported_quil
+from pyquil.quil import DefGate
 
 pyquil_config = PyquilConfig()
 
@@ -700,7 +701,7 @@ def local_qvm() -> Iterator[Tuple[subprocess.Popen, subprocess.Popen]]:
 # Between this line ^^ and the one below this code is used to test...will delete
 
 def two_qubit_bit_flip_operators(p00, p01, p10, p11):
-    """
+    r"""
     Return a special case of a two qubit asymmetric bit flip kraus operators.
 
     Suppose we prepare a two qubit state |i,j> = |i>\otimes|j> for i,j \in {0,1}.
@@ -747,15 +748,13 @@ def append_kraus_to_gate(kraus_ops, g):
     """
     return [kj.dot(g) for kj in kraus_ops]
 
-from pyquil.quil import DefGate
+
 II_mat = np.eye(4)
 II_definition = DefGate("II", II_mat)
 II = II_definition.get_constructor()
-kraus_ops = two_qubit_bit_flip_operators(0.7,1,1,1)
-
+kraus_ops = two_qubit_bit_flip_operators(0.7, 1, 1, 1)
 # will delete code above here
 # ================================================================================================
-
 
 
 def _flip_array_to_prog(flip_array: Tuple[bool], qubits: List[int]) -> Program:
