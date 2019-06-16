@@ -57,7 +57,7 @@ Quantum Gate Errors
 ~~~~~~~~~~~~~~~~~~~
 
 For a quantum gate given by its unitary operator :math:`U`, a "quantum gate error" describes the scenario in which the
-actually induces transformation deviates from :math:`\ket{\psi} \mapsto U\ket{\psi}`. There are two basic types of
+actually induced transformation deviates from :math:`\ket{\psi} \mapsto U\ket{\psi}`. There are two basic types of
 quantum gate errors:
 
 1. **coherent errors** are those that preserve the purity of the input
@@ -192,14 +192,14 @@ equation <https://en.wikipedia.org/wiki/Lindblad_equation>`__.
 Noisy Gates on the Rigetti QVM
 ------------------------------
 
-As of today, users of our Forest SDK can annotate their QUIL programs by
+As of today, users of our Forest SDK can annotate their Quil programs by
 certain pragma statements that inform the QVM that a particular gate on
 specific target qubits should be replaced by an imperfect realization
 given by a Kraus map.
 
 The QVM propagates **pure states** --- so how does it simulate noisy gates?
 It does so by yielding the correct outcomes **in the average over many
-executions of the QUIL program**: When the noisy version of a gate
+executions of the Quil program**: When the noisy version of a gate
 should be applied the QVM makes a random choice which Kraus operator is
 applied to the current state with a probability that ensures that the
 average over many executions is equivalent to the Kraus map. In
@@ -259,14 +259,14 @@ Getting Started
    matrices to obtain a very accurate noise model for a particular QPU.
 2. Define your Kraus operators as a list of numpy arrays
    ``kraus_ops = [K1, K2, ..., Km]``.
-3. For your QUIL program ``p``, call:
+3. For your Quil program ``p``, call:
 
    ::
 
        p.define_noisy_gate("MY_NOISY_GATE", [q1, q2], kraus_ops)
 
    where you should replace ``MY_NOISY_GATE`` with the gate of interest
-   and ``q1, q2`` the indices of the qubits.
+   and ``q1, q2`` with the indices of the qubits.
 
 **Scroll down for some examples!**
 
@@ -443,7 +443,7 @@ outcomes:
 
 The Kraus operators for this are given by
 
-.. raw:: latex
+.. math::
 
    \begin{align}
    K'_1(p,q) = K_1(p)\otimes K_1(q) \\
@@ -661,7 +661,7 @@ will want to use a compiler to do this step for you.
 Scan Over Noise Parameters
 ~~~~~~~~~~~~~~~~~~~~~~~~~~
 
-We perform a scan over three levels of noise each at 20 theta points.
+We perform a scan over three levels of noise, each at 20 theta points.
 
 Specifically, we investigate T1 values of 1, 3, and 10 us. By default,
 T2 = T1 / 2, 1 qubit gates take 50 ns, and 2 qubit gates take 150 ns.
@@ -784,9 +784,9 @@ The most general type of measurement performed on a single qubit at a
 single time can be characterized by some set :math:`\mathcal{O}` of
 measurement outcomes, e.g., in the simplest case
 :math:`\mathcal{O} = \{0, 1\}`, and some unnormalized quantum channels
-(see notebook on gate noise models) that encapsulate 1. the probability
-of that outcome 2. how the qubit state is affected conditional on the
-measurement outcome.
+(see notebook on gate noise models) that encapsulate: 1. the probability
+of that outcome, and 2. how the qubit state is affected conditional on
+the measurement outcome.
 
 Here the *outcome* is understood as classical information that has been
 extracted from the quantum system.
@@ -813,10 +813,10 @@ set of projectors any two members satisfy
 
 and for a *complete* set we additionally demand that
 :math:`\sum_{x\in\mathcal{O}} \Pi_x = 1`. Following our introduction to
-gate noise, we write quantum states as density matrices as this is more
+gate noise, we write quantum states as density matrices, as this is more
 general and in closer correspondence with classical probability theory.
 
-With these the probability of outcome :math:`x` is given by
+With these, the probability of outcome :math:`x` is given by
 :math:`p(x) = \tr{\Pi_x \rho \Pi_x} = \tr{\Pi_x^2 \rho} = \tr{\Pi_x \rho}`
 and the post measurement state is
 
@@ -827,8 +827,9 @@ and the post measurement state is
 which is the projection postulate applied to mixed states.
 
 If we were a sloppy quantum programmer and accidentally erased the
-measurement outcome then our best guess for the post measurement state
-would be given by something that looks an awful lot like a Kraus map:
+measurement outcome, then our best guess for the post measurement
+state would be given by something that looks an awful lot like a Kraus
+map:
 
 .. math::
 
@@ -905,9 +906,9 @@ that must sum to 1:
 The above result is a type of generalized **Bayes' theorem** that is
 extremely useful for this type of (slightly) generalized measurement and
 the family of operators :math:`\{E_{x'}| x' \in \mathcal{O}'\}` whose
-expectations give the probabilities is called a **positive operator
+expectations given the probabilities is called a **positive operator
 valued measure** (POVM). These operators are not generally orthogonal
-nor valid projection operators but they naturally arise in this
+nor valid projection operators, but they naturally arise in this
 scenario. This is not yet the most general type of measurement, but it
 will get us pretty far.
 
@@ -934,12 +935,12 @@ Working with Readout Noise
 --------------------------
 
 1. Come up with a good guess for your readout noise parameters
-   :math:`p(0|0)` and :math:`p(1|1)`, the off-diagonals then follow from
+   :math:`p(0|0)` and :math:`p(1|1)`; the off-diagonals then follow from
    the normalization of :math:`P_{x'|x}`. If your assignment fidelity
    :math:`F` is given, and you assume that the classical bit flip noise
    is roughly symmetric, then a good approximation is to set
    :math:`p(0|0)=p(1|1)=F`.
-2. For your QUIL program ``p``, and a qubit index ``q`` call:
+2. For your Quil program ``p`` and a qubit index ``q`` call:
 
    ::
 

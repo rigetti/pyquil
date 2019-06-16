@@ -9,7 +9,7 @@ Expectations for Program Contents
 The QPUs have much more limited natural gate sets than the standard gate set offered by pyQuil: on Rigetti QPUs, the
 gate operators are constrained to lie in ``RZ(θ)``, ``RX(k*π/2)``, and ``CZ``; and the
 gates are required to act on physically available hardware (for single-qubit gates, this means
-acting only on live qubits, and for qubit-pair gates, this means acting on neighboring qubits). However, as a programmer, it is often (though not always) desirable to to be able to write programs which don't take these details into account. These generally leads to more portable code if one isn't tied to a specific set of gates or QPU architecture.
+acting only on live qubits, and for qubit-pair gates, this means acting on neighboring qubits). However, as a programmer, it is often (though not always) desirable to to be able to write programs which don't take these details into account. This generally leads to more portable code if one isn't tied to a specific set of gates or QPU architecture.
 To ameliorate these limitations, the Rigetti software toolkit contains an optimizing compiler that
 translates arbitrary Quil to native Quil and native Quil to executables suitable for Rigetti
 hardware.
@@ -36,7 +36,8 @@ You can initialize a local ``quilc`` server by typing ``quilc -S`` into your ter
     ... - Launching quilc.
     ... - Spawning server at (tcp://*:5555) .
 
-To get a description of ``quilc``, and options and examples of its command line use, see :ref:`quilc_man`.
+To get a description of ``quilc`` and its options and examples of command line use, see the quilc `README
+<https://github.com/rigetti/quilc>`_ or type ``man quilc`` in your terminal.
 
 
 A ``QuantumComputer`` object supplied by the function ``pyquil.api.get_qc()`` comes equipped with a
