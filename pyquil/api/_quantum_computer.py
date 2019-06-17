@@ -15,7 +15,7 @@
 ##############################################################################
 import re
 import warnings
-from math import pi
+from math import pi, log
 from typing import List, Dict, Tuple, Iterator, Union
 import itertools
 
@@ -187,7 +187,7 @@ class QuantumComputer:
             qubits will be symmetrized over, even if the program acts on other qubits.
         :return: A numpy array of shape (trials, len(ro-register)) that contains 0s and 1s.
         """
-        if type(symm_type) is not int:
+        if not isinstance(symm_type, int):
             raise ValueError("Symmetrization options are indicated by an int. See "
                              "the docstrings for more information.")
 
@@ -203,10 +203,10 @@ class QuantumComputer:
         num_shots_per_prog = trials // len(sym_programs)
 
         if num_shots_per_prog * len(sym_programs) < trials:
-            print("The number of trials was modified from " + str(trials) + " to " + str(
-                num_shots_per_prog * len(sym_programs)) + ". To be consistent with the number of "
-                                                          "trials required by the type of readout "
-                                                          "symmetrization chosen.")
+            warnings.warn(f"The number of trials was modified from {trials} to "
+                          f"{num_shots_per_prog * len(sym_programs)}. To be consistent with the "
+                          f"number of trials required by the type of readout symmetrization "
+                          f"chosen.")
 
         results = _measure_bitstrings(self, sym_programs, meas_qubits, num_shots_per_prog)
 
@@ -972,7 +972,7 @@ def hadamard(n, dtype=int):
     if n < 1:
         lg2 = 0
     else:
-        lg2 = int(math.log(n, 2))
+        lg2 = int(log(n, 2))
     if 2 ** lg2 != n:
         raise ValueError("n must be an positive integer, and n must be "
                          "a power of 2")
@@ -1063,9 +1063,7 @@ def _check_min_num_trials_for_symmetrized_readout(num_qubits: int, trials: int, 
     """
     if symm_type < -1 or symm_type > 3:
         raise ValueError("symm_type must be one of the following ints [-1, 0, 1, 2, 3].")
-    # There is no need to test symm_type == 0 or symm_type == 1 as they require one and two
-    # trials respectively and that is ensured by this:
-    min_num_trials = 2
+
     if symm_type == -1:
         min_num_trials = 2 ** num_qubits
     elif symm_type == 2:
@@ -1074,8 +1072,11 @@ def _check_min_num_trials_for_symmetrized_readout(num_qubits: int, trials: int, 
         min_num_trials = min(_f(x) for x in range(1, 1024) if _f(x) >= num_qubits) + 1
     elif symm_type == 3:
         min_num_trials = _next_power_of_2(2 * num_qubits)
+    else:
+        # symm_type == 0 or symm_type == 1 require one and two trials respectively; ensured by:
+        min_num_trials = 2
 
     if trials < min_num_trials:
         trials = min_num_trials
-        warnings.warn('Number of trials was too low, it is now ' + str(trials))
+        warnings.warn(f"Number of trials was too low, it is now {trials}.")
     return trials

@@ -313,7 +313,7 @@ def test_readout_symmetrization(forest):
 
 def test_run_symmetrized_readout_error():
     # This test checks if the function runs for any possible input on a small number of qubits.
-    # Locally this test was run all 8 qubits, but it was slow.
+    # Locally this test was run on all 8 qubits, but it was slow.
     qc = get_qc("8q-qvm")
     sym_type_vec = [-1, 0, 1, 2, 3]
     prog_vec = [Program(I(x) for x in range(0, 3))[0:n] for n in range(0, 4)]
