@@ -884,7 +884,7 @@ where
    p(x') & = \sum_{x\in\mathcal{O}} p(x'|x) p(x)  \\
    & = \tr{\sum_{x\in \mathcal{O}} p(x'|x) \Pi_x \rho \Pi_x} \\
    & = \tr{\rho \sum_{x\in \mathcal{O}} p(x'|x)\Pi_x} \\
-   & = \tr{\rho E_x'}.
+   & = \tr{\rho E_{x'}}.
    \end{aligned}
 
 where we have exploited the cyclical property of the trace
@@ -900,7 +900,7 @@ that must sum to 1:
 
 .. math::
 
-   \sum_{x'\in\mathcal{O}'} E_x' = \sum_{x\in\mathcal{O}}\underbrace{\left[\sum_{x'\in\mathcal{O}'} p(x'|x)\right]}_{1}\Pi_x = \sum_{x\in\mathcal{O}}\Pi_x = 1.
+   \sum_{x'\in\mathcal{O}'} E_{x'} = \sum_{x\in\mathcal{O}}\underbrace{\left[\sum_{x'\in\mathcal{O}'} p(x'|x)\right]}_{1}\Pi_x = \sum_{x\in\mathcal{O}}\Pi_x = 1.
 
 The above result is a type of generalized **Bayes' theorem** that is
 extremely useful for this type of (slightly) generalized measurement and
