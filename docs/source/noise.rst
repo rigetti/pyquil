@@ -1162,7 +1162,7 @@ Uncorrupted probability for :math:`\left|000\right\rangle` and :math:`\left|111\
 As expected the outcomes ``000`` and ``111`` each have roughly
 probability :math:`1/2`.
 
-Corrupted probability for :math:`\left|011\right\rangle` and :math:`\left|100\right\rangle`
+Corrupted probability for :math:`\left|000\right\rangle` and :math:`\left|111\right\rangle`
 ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
 
 .. code:: python
@@ -1177,7 +1177,7 @@ Corrupted probability for :math:`\left|011\right\rangle` and :math:`\left|100\ri
 The noise-corrupted outcome probabilities deviate significantly from
 their ideal values!
 
-Corrected probability for :math:`\left|011\right\rangle` and :math:`\left|100\right\rangle`
+Corrected probability for :math:`\left|000\right\rangle` and :math:`\left|111\right\rangle`
 ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
 
 .. code:: python
