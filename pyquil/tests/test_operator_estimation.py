@@ -202,7 +202,7 @@ def test_measure_observables(forest):
             assert np.abs(res.expectation) < 0.1
 
 
-def _random_2q_programs(n_progs=10):
+def _random_2q_programs(n_progs=3):
     """Generate random programs that consist of single qubit rotations, a CZ, and single
     qubit rotations.
     """
