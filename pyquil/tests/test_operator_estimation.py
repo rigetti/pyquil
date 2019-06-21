@@ -1890,7 +1890,7 @@ def test_corrected_statistics_2q_nontrivial_nonentangled_state(forest, use_seed=
     p.define_noisy_readout(0, p00=p00, p11=p11)
     p.define_noisy_readout(1, p00=q00, p11=q11)
     tomo_expt = TomographyExperiment(settings=[expt], program=p)
-    
+
     num_shots = 5000
 
     expectations = []
