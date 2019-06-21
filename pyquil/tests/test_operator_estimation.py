@@ -577,7 +577,7 @@ def test_measure_observables_uncalibrated_asymmetric_readout(forest, use_seed):
         np.random.seed(0)
         runs = 1
     else:
-        runs = 25
+        runs = 100
     expt1 = ExperimentSetting(TensorProductState(plusX(0)), sX(0))
     expt2 = ExperimentSetting(TensorProductState(plusY(0)), sY(0))
     expt3 = ExperimentSetting(TensorProductState(plusZ(0)), sZ(0))
@@ -613,7 +613,7 @@ def test_measure_observables_uncalibrated_symmetric_readout(forest, use_seed):
         np.random.seed(0)
         runs = 1
     else:
-        runs = 25
+        runs = 100
     expt1 = ExperimentSetting(TensorProductState(plusX(0)), sX(0))
     expt2 = ExperimentSetting(TensorProductState(plusY(0)), sY(0))
     expt3 = ExperimentSetting(TensorProductState(plusZ(0)), sZ(0))
@@ -650,7 +650,7 @@ def test_measure_observables_calibrated_symmetric_readout(forest, use_seed):
         np.random.seed(0)
         num_simulations = 1
     else:
-        num_simulations = 25
+        num_simulations = 100
     expt1 = ExperimentSetting(TensorProductState(plusX(0)), sX(0))
     expt2 = ExperimentSetting(TensorProductState(plusY(0)), sY(0))
     expt3 = ExperimentSetting(TensorProductState(plusZ(0)), sZ(0))
@@ -680,7 +680,7 @@ def test_measure_observables_result_zero_symmetrization_calibration(forest, use_
         np.random.seed(0)
         num_simulations = 1
     else:
-        num_simulations = 25
+        num_simulations = 100
     expt1 = ExperimentSetting(TensorProductState(plusX(0)), sZ(0))
     expt2 = ExperimentSetting(TensorProductState(minusZ(0)), sY(0))
     expt3 = ExperimentSetting(TensorProductState(minusY(0)), sX(0))
@@ -718,7 +718,7 @@ def test_measure_observables_result_zero_no_noisy_readout(forest, use_seed):
         np.random.seed(0)
         num_simulations = 1
     else:
-        num_simulations = 25
+        num_simulations = 100
     expt1 = ExperimentSetting(TensorProductState(plusX(0)), sZ(0))
     expt2 = ExperimentSetting(TensorProductState(minusZ(0)), sY(0))
     expt3 = ExperimentSetting(TensorProductState(plusY(0)), sX(0))
@@ -750,7 +750,7 @@ def test_measure_observables_result_zero_no_symm_calibr(forest, use_seed):
         np.random.seed(0)
         num_simulations = 1
     else:
-        num_simulations = 25
+        num_simulations = 100
     expt1 = ExperimentSetting(TensorProductState(plusX(0)), sZ(0))
     expt2 = ExperimentSetting(TensorProductState(minusZ(0)), sY(0))
     expt3 = ExperimentSetting(TensorProductState(minusY(0)), sX(0))
@@ -785,7 +785,7 @@ def test_measure_observables_2q_readout_error_one_measured(forest, use_seed):
         np.random.seed(0)
         runs = 1
     else:
-        runs = 25
+        runs = 100
     qubs = [0, 1]
     expt = ExperimentSetting(TensorProductState(plusZ(qubs[0]) * plusZ(qubs[1])), sZ(qubs[0]))
     p = Program()
@@ -906,7 +906,7 @@ def test_expectations_sic0(forest, use_seed):
         np.random.seed(0)
         num_simulations = 1
     else:
-        num_simulations = 25
+        num_simulations = 100
     expt1 = ExperimentSetting(SIC0(0), sX(0))
     expt2 = ExperimentSetting(SIC0(0), sY(0))
     expt3 = ExperimentSetting(SIC0(0), sZ(0))
@@ -937,7 +937,7 @@ def test_expectations_sic1(forest, use_seed):
         np.random.seed(0)
         num_simulations = 1
     else:
-        num_simulations = 25
+        num_simulations = 100
     expt1 = ExperimentSetting(SIC1(0), sX(0))
     expt2 = ExperimentSetting(SIC1(0), sY(0))
     expt3 = ExperimentSetting(SIC1(0), sZ(0))
@@ -968,7 +968,7 @@ def test_expectations_sic2(forest, use_seed):
         np.random.seed(0)
         num_simulations = 1
     else:
-        num_simulations = 25
+        num_simulations = 100
     expt1 = ExperimentSetting(SIC2(0), sX(0))
     expt2 = ExperimentSetting(SIC2(0), sY(0))
     expt3 = ExperimentSetting(SIC2(0), sZ(0))
@@ -1001,7 +1001,7 @@ def test_expectations_sic3(forest, use_seed):
         np.random.seed(0)
         num_simulations = 1
     else:
-        num_simulations = 25
+        num_simulations = 100
     expt1 = ExperimentSetting(SIC3(0), sX(0))
     expt2 = ExperimentSetting(SIC3(0), sY(0))
     expt3 = ExperimentSetting(SIC3(0), sZ(0))
@@ -1074,7 +1074,7 @@ def test_measure_observables_grouped_expts(forest, use_seed):
         num_simulations = 1
         qc.qam.random_seed = 4
     else:
-        num_simulations = 25
+        num_simulations = 100
 
     # this more explicitly uses the list-of-lists-of-ExperimentSettings in TomographyExperiment
     # create experiments in different groups
@@ -1125,7 +1125,7 @@ def test_bit_flip_channel_fidelity(forest, use_seed):
         qc.qam.random_seed = 0
         num_expts = 1
     else:
-        num_expts = 25
+        num_expts = 100
 
     # prepare experiment settings
     expt1 = ExperimentSetting(TensorProductState(plusX(0)), sX(0))
@@ -1175,7 +1175,7 @@ def test_dephasing_channel_fidelity(forest, use_seed):
         np.random.seed(0)
         num_expts = 1
     else:
-        num_expts = 25
+        num_expts = 100
     # prepare experiment settings
     expt1 = ExperimentSetting(TensorProductState(plusX(0)), sX(0))
     expt2 = ExperimentSetting(TensorProductState(plusY(0)), sY(0))
@@ -1223,7 +1223,7 @@ def test_depolarizing_channel_fidelity(forest, use_seed):
         np.random.seed(0)
         num_expts = 1
     else:
-        num_expts = 25
+        num_expts = 100
     # prepare experiment settings
     expt1 = ExperimentSetting(TensorProductState(plusX(0)), sX(0))
     expt2 = ExperimentSetting(TensorProductState(plusY(0)), sY(0))
@@ -1273,7 +1273,7 @@ def test_unitary_channel_fidelity(forest, use_seed):
         np.random.seed(0)
         num_expts = 1
     else:
-        num_expts = 25
+        num_expts = 100
     # prepare experiment settings
     expt1 = ExperimentSetting(TensorProductState(plusX(0)), sX(0))
     expt2 = ExperimentSetting(TensorProductState(plusY(0)), sY(0))
@@ -1317,7 +1317,7 @@ def test_bit_flip_channel_fidelity_readout_error(forest, use_seed):
         np.random.seed(0)
         num_expts = 1
     else:
-        num_expts = 25
+        num_expts = 100
     # prepare experiment settings
     expt1 = ExperimentSetting(TensorProductState(plusX(0)), sX(0))
     expt2 = ExperimentSetting(TensorProductState(plusY(0)), sY(0))
@@ -1368,7 +1368,7 @@ def test_dephasing_channel_fidelity_readout_error(forest, use_seed):
         np.random.seed(0)
         num_expts = 1
     else:
-        num_expts = 25
+        num_expts = 100
     # prepare experiment settings
     expt1 = ExperimentSetting(TensorProductState(plusX(0)), sX(0))
     expt2 = ExperimentSetting(TensorProductState(plusY(0)), sY(0))
@@ -1418,7 +1418,7 @@ def test_depolarizing_channel_fidelity_readout_error(forest, use_seed):
         np.random.seed(0)
         num_expts = 1
     else:
-        num_expts = 25
+        num_expts = 100
     # prepare experiment settings
     expt1 = ExperimentSetting(TensorProductState(plusX(0)), sX(0))
     expt2 = ExperimentSetting(TensorProductState(plusY(0)), sY(0))
@@ -1470,7 +1470,7 @@ def test_unitary_channel_fidelity_readout_error(forest, use_seed):
         np.random.seed(0)
         num_expts = 1
     else:
-        num_expts = 25
+        num_expts = 100
     # prepare experiment settings
     expt1 = ExperimentSetting(TensorProductState(plusX(0)), sX(0))
     expt2 = ExperimentSetting(TensorProductState(plusY(0)), sY(0))
@@ -1518,7 +1518,7 @@ def test_2q_unitary_channel_fidelity_readout_error(forest, use_seed):
         np.random.seed(0)
         num_expts = 1
     else:
-        num_expts = 25
+        num_expts = 100
     # prepare experiment settings
 
     expt1 = ExperimentSetting(TensorProductState(plusX(0)), sX(0))
@@ -1580,7 +1580,7 @@ def test_measure_1q_observable_raw_expectation(forest, use_seed):
         np.random.seed(0)
         num_expts = 1
     else:
-        num_expts = 25
+        num_expts = 100
     expt = ExperimentSetting(TensorProductState(plusZ(0)), sZ(0))
     p = Program()
     p00, p11 = 0.99, 0.80
@@ -1614,7 +1614,7 @@ def test_measure_1q_observable_raw_variance(forest, use_seed):
         np.random.seed(0)
         num_expts = 1
     else:
-        num_expts = 25
+        num_expts = 100
     expt = ExperimentSetting(TensorProductState(plusZ(0)), sZ(0))
     p = Program()
     p00, p11 = 0.99, 0.80
@@ -1650,7 +1650,7 @@ def test_measure_1q_observable_calibration_expectation(forest, use_seed):
         np.random.seed(0)
         num_expts = 1
     else:
-        num_expts = 25
+        num_expts = 100
     expt = ExperimentSetting(TensorProductState(plusZ(0)), sZ(0))
     p = Program()
     p00, p11 = 0.93, 0.77
@@ -1684,7 +1684,7 @@ def test_measure_1q_observable_calibration_variance(forest, use_seed):
         np.random.seed(0)
         num_expts = 1
     else:
-        num_expts = 25
+        num_expts = 100
     expt = ExperimentSetting(TensorProductState(plusZ(0)), sZ(0))
     p = Program()
     p00, p11 = 0.93, 0.77
@@ -1719,7 +1719,7 @@ def test_uncalibrated_asymmetric_readout_nontrivial_1q_state(forest, use_seed):
         np.random.seed(0)
         runs = 1
     else:
-        runs = 25
+        runs = 100
     expt = ExperimentSetting(TensorProductState(), sZ(0))
     # pick some random value for RX rotation
     theta = np.random.uniform(0.0, 2 * np.pi)
@@ -1758,7 +1758,7 @@ def test_uncalibrated_symmetric_readout_nontrivial_1q_state(forest, use_seed):
         np.random.seed(0)
         runs = 1
     else:
-        runs = 25
+        runs = 100
     expt = ExperimentSetting(TensorProductState(), sZ(0))
     # pick some random value for RX rotation
     theta = np.random.uniform(0.0, 2 * np.pi)
@@ -1798,7 +1798,7 @@ def test_calibrated_symmetric_readout_nontrivial_1q_state(forest, use_seed):
         np.random.seed(0)
         runs = 1
     else:
-        runs = 25
+        runs = 100
     expt = ExperimentSetting(TensorProductState(), sZ(0))
     # pick some random value for RX rotation
     theta = np.random.uniform(0.0, 2 * np.pi)
@@ -1841,7 +1841,7 @@ def test_measure_2q_observable_raw_statistics(forest, use_seed):
         np.random.seed(0)
         num_simulations = 1
     else:
-        num_simulations = 25
+        num_simulations = 100
     expt = ExperimentSetting(TensorProductState(), sZ(0) * sZ(1))
     p = Program()
     p00, p11 = 0.99, 0.80
@@ -1897,7 +1897,7 @@ def test_raw_statistics_2q_nontrivial_nonentangled_state(forest, use_seed):
         np.random.seed(0)
         num_simulations = 1
     else:
-        num_simulations = 25
+        num_simulations = 100
     expt = ExperimentSetting(TensorProductState(), sZ(0) * sZ(1))
     theta1, theta2 = np.random.uniform(0.0, 2 * np.pi, size=2)
     p = Program(RX(theta1, 0), RX(theta2, 1))
@@ -1976,7 +1976,7 @@ def test_raw_statistics_2q_nontrivial_entangled_state(forest, use_seed):
         np.random.seed(0)
         num_simulations = 1
     else:
-        num_simulations = 25
+        num_simulations = 100
     expt = ExperimentSetting(TensorProductState(), sZ(0) * sZ(1))
     theta = np.random.uniform(0.0, 2 * np.pi)
     p = Program(RX(theta, 0), CNOT(0, 1))
@@ -2044,7 +2044,7 @@ def test_corrected_statistics_2q_nontrivial_nonentangled_state(forest, use_seed)
         np.random.seed(13)
         num_simulations = 1
     else:
-        num_simulations = 25
+        num_simulations = 100
 
     expt = ExperimentSetting(TensorProductState(), sZ(0) * sZ(1))
     theta1, theta2 = np.random.uniform(0.0, 2 * np.pi, size=2)
@@ -2099,7 +2099,7 @@ def test_bit_flip_state_fidelity(forest, use_seed):
         np.random.seed(0)
         num_expts = 1
     else:
-        num_expts = 25
+        num_expts = 100
     # prepare experiment setting
     expt = ExperimentSetting(TensorProductState(), sZ(0))
 
@@ -2142,7 +2142,7 @@ def test_dephasing_state_fidelity(forest, use_seed):
         np.random.seed(0)
         num_expts = 1
     else:
-        num_expts = 25
+        num_expts = 100
     # prepare experiment setting
     expt = ExperimentSetting(TensorProductState(), sZ(0))
 
@@ -2184,7 +2184,7 @@ def test_depolarizing_state_fidelity(forest, use_seed):
         np.random.seed(0)
         num_expts = 1
     else:
-        num_expts = 25
+        num_expts = 100
     # prepare experiment setting
     expt = ExperimentSetting(TensorProductState(), sZ(0))
 
@@ -2228,7 +2228,7 @@ def test_unitary_state_fidelity(forest, use_seed):
         np.random.seed(0)
         num_expts = 1
     else:
-        num_expts = 25
+        num_expts = 100
     # prepare experiment setting
     expt = ExperimentSetting(TensorProductState(), sZ(0))
 
@@ -2266,7 +2266,7 @@ def test_bit_flip_state_fidelity_readout_error(forest, use_seed):
         np.random.seed(0)
         num_expts = 1
     else:
-        num_expts = 25
+        num_expts = 100
     # prepare experiment setting
     expt = ExperimentSetting(TensorProductState(), sZ(0))
 
@@ -2310,7 +2310,7 @@ def test_dephasing_state_fidelity_readout_error(forest, use_seed):
         np.random.seed(0)
         num_expts = 1
     else:
-        num_expts = 25
+        num_expts = 100
     # prepare experiment setting
     expt = ExperimentSetting(TensorProductState(), sZ(0))
 
@@ -2353,7 +2353,7 @@ def test_depolarizing_state_fidelity_readout_error(forest, use_seed):
         np.random.seed(0)
         num_expts = 1
     else:
-        num_expts = 25
+        num_expts = 100
     # prepare experiment setting
     expt = ExperimentSetting(TensorProductState(), sZ(0))
 
@@ -2398,7 +2398,7 @@ def test_unitary_state_fidelity_readout_error(forest, use_seed):
         np.random.seed(0)
         num_expts = 1
     else:
-        num_expts = 25
+        num_expts = 100
     # prepare experiment setting
     expt = ExperimentSetting(TensorProductState(), sZ(0))
 
