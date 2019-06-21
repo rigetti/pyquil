@@ -311,7 +311,7 @@ def test_dagger():
 
     for instr, instr_dagger in zip(reversed(p._instructions),
                                    p.dagger()._instructions):
-        assert 'DAGGER ' +  instr.out() == instr_dagger.out()
+        assert 'DAGGER ' + instr.out() == instr_dagger.out()
 
 
 def test_construction_syntax():
