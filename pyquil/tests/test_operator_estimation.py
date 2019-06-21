@@ -565,7 +565,12 @@ def test_ratio_variance_array():
     np.testing.assert_allclose(ab_ratio_var, np.array([0.028125, 0.0028125, 0.00028125]))
 
 
-def test_measure_observables_uncalibrated_asymmetric_readout(forest, use_seed=True):
+def test_measure_observables_uncalibrated_asymmetric_readout(forest, use_seed):
+    # ensure sensible input
+    if type(use_seed) == str:
+        use_seed = eval(use_seed)
+    assert use_seed in [True, False], "Please specify a boolean value for 'use_seed'"
+
     qc = get_qc('1q-qvm')
     if use_seed:
         qc.qam.random_seed = 0
@@ -573,7 +578,6 @@ def test_measure_observables_uncalibrated_asymmetric_readout(forest, use_seed=Tr
         runs = 1
     else:
         runs = 25
-
     expt1 = ExperimentSetting(TensorProductState(plusX(0)), sX(0))
     expt2 = ExperimentSetting(TensorProductState(plusY(0)), sY(0))
     expt3 = ExperimentSetting(TensorProductState(plusZ(0)), sZ(0))
@@ -597,7 +601,12 @@ def test_measure_observables_uncalibrated_asymmetric_readout(forest, use_seed=Tr
     assert np.isclose(np.mean(expect_arr[2::3]), expected_expectation_z_basis, atol=2e-2)
 
 
-def test_measure_observables_uncalibrated_symmetric_readout(forest, use_seed=True):
+def test_measure_observables_uncalibrated_symmetric_readout(forest, use_seed):
+    # ensure sensible input
+    if type(use_seed) == str:
+        use_seed = eval(use_seed)
+    assert use_seed in [True, False], "Please specify a boolean value for 'use_seed'"
+
     qc = get_qc('1q-qvm')
     if use_seed:
         qc.qam.random_seed = 0
@@ -628,7 +637,12 @@ def test_measure_observables_uncalibrated_symmetric_readout(forest, use_seed=Tru
     assert np.isclose(np.mean(uncalibr_e[2::3]), expected_expectation_z_basis, atol=2e-2)
 
 
-def test_measure_observables_calibrated_symmetric_readout(forest, use_seed=True):
+def test_measure_observables_calibrated_symmetric_readout(forest, use_seed):
+    # ensure sensible input
+    if type(use_seed) == str:
+        use_seed = eval(use_seed)
+    assert use_seed in [True, False], "Please specify a boolean value for 'use_seed'"
+
     # expecting the result +1 for calibrated readout
     qc = get_qc('1q-qvm')
     if use_seed:
@@ -653,7 +667,12 @@ def test_measure_observables_calibrated_symmetric_readout(forest, use_seed=True)
     np.testing.assert_allclose(results, 1.0, atol=2e-2)
 
 
-def test_measure_observables_result_zero_symmetrization_calibration(forest, use_seed=True):
+def test_measure_observables_result_zero_symmetrization_calibration(forest, use_seed):
+    # ensure sensible input
+    if type(use_seed) == str:
+        use_seed = eval(use_seed)
+    assert use_seed in [True, False], "Please specify a boolean value for 'use_seed'"
+
     # expecting expectation value to be 0 with symmetrization/calibration
     qc = get_qc('9q-qvm')
     if use_seed:
@@ -685,7 +704,12 @@ def test_measure_observables_result_zero_symmetrization_calibration(forest, use_
     np.testing.assert_allclose(raw_results, 0.0, atol=2e-2)
 
 
-def test_measure_observables_result_zero_no_noisy_readout(forest, use_seed=True):
+def test_measure_observables_result_zero_no_noisy_readout(forest, use_seed):
+    # ensure sensible input
+    if type(use_seed) == str:
+        use_seed = eval(use_seed)
+    assert use_seed in [True, False], "Please specify a boolean value for 'use_seed'"
+
     # expecting expectation value to be 0 with no symmetrization/calibration
     # and no noisy readout
     qc = get_qc('9q-qvm')
@@ -713,7 +737,12 @@ def test_measure_observables_result_zero_no_noisy_readout(forest, use_seed=True)
     np.testing.assert_allclose(results, 0.0, atol=2e-2)
 
 
-def test_measure_observables_result_zero_no_symm_calibr(forest, use_seed=True):
+def test_measure_observables_result_zero_no_symm_calibr(forest, use_seed):
+    # ensure sensible input
+    if type(use_seed) == str:
+        use_seed = eval(use_seed)
+    assert use_seed in [True, False], "Please specify a boolean value for 'use_seed'"
+
     # expecting expectation value to be nonzero with symmetrization/calibration
     qc = get_qc('9q-qvm')
     if use_seed:
@@ -743,7 +772,12 @@ def test_measure_observables_result_zero_no_symm_calibr(forest, use_seed=True):
     np.testing.assert_allclose(results, expected_result, atol=2e-2)
 
 
-def test_measure_observables_2q_readout_error_one_measured(forest, use_seed=True):
+def test_measure_observables_2q_readout_error_one_measured(forest, use_seed):
+    # ensure sensible input
+    if type(use_seed) == str:
+        use_seed = eval(use_seed)
+    assert use_seed in [True, False], "Please specify a boolean value for 'use_seed'"
+
     # 2q readout errors, but only 1 qubit measured
     qc = get_qc('9q-qvm')
     if use_seed:
@@ -860,7 +894,12 @@ PRAGMA ADD-KRAUS H 2 "(0.0 0.31622776601683794 0.31622776601683794 0.0)"
     assert calibr_prog3.out() == Program(expected_prog).out()
 
 
-def test_expectations_sic0(forest, use_seed=True):
+def test_expectations_sic0(forest, use_seed):
+    # ensure sensible input
+    if type(use_seed) == str:
+        use_seed = eval(use_seed)
+    assert use_seed in [True, False], "Please specify a boolean value for 'use_seed'"
+
     qc = get_qc('1q-qvm')
     if use_seed:
         qc.qam.random_seed = 0
@@ -886,7 +925,12 @@ def test_expectations_sic0(forest, use_seed=True):
     np.testing.assert_allclose(results, expected_results, atol=2e-2)
 
 
-def test_expectations_sic1(forest, use_seed=True):
+def test_expectations_sic1(forest, use_seed):
+    # ensure sensible input
+    if type(use_seed) == str:
+        use_seed = eval(use_seed)
+    assert use_seed in [True, False], "Please specify a boolean value for 'use_seed'"
+
     qc = get_qc('1q-qvm')
     if use_seed:
         qc.qam.random_seed = 0
@@ -912,7 +956,12 @@ def test_expectations_sic1(forest, use_seed=True):
     np.testing.assert_allclose(results, expected_results, atol=2e-2)
 
 
-def test_expectations_sic2(forest, use_seed=True):
+def test_expectations_sic2(forest, use_seed):
+    # ensure sensible input
+    if type(use_seed) == str:
+        use_seed = eval(use_seed)
+    assert use_seed in [True, False], "Please specify a boolean value for 'use_seed'"
+
     qc = get_qc('1q-qvm')
     if use_seed:
         qc.qam.random_seed = 0
@@ -940,7 +989,12 @@ def test_expectations_sic2(forest, use_seed=True):
     np.testing.assert_allclose(results, expected_results, atol=2e-2)
 
 
-def test_expectations_sic3(forest, use_seed=True):
+def test_expectations_sic3(forest, use_seed):
+    # ensure sensible input
+    if type(use_seed) == str:
+        use_seed = eval(use_seed)
+    assert use_seed in [True, False], "Please specify a boolean value for 'use_seed'"
+
     qc = get_qc('1q-qvm')
     if use_seed:
         qc.qam.random_seed = 0
@@ -1008,7 +1062,12 @@ def test_sic_conditions(forest):
         assert np.isclose(np.trace(proj_a.dot(proj_b)), 1 / 3)
 
 
-def test_measure_observables_grouped_expts(forest, use_seed=True):
+def test_measure_observables_grouped_expts(forest, use_seed):
+    # ensure sensible input
+    if type(use_seed) == str:
+        use_seed = eval(use_seed)
+    assert use_seed in [True, False], "Please specify a boolean value for 'use_seed'"
+
     qc = get_qc('3q-qvm')
 
     if use_seed:
@@ -1051,10 +1110,15 @@ def _point_channel_fidelity_estimate(v, dim=2):
     return (1.0 + np.sum(v) + dim) / (dim * (dim + 1))
 
 
-def test_bit_flip_channel_fidelity(forest, use_seed=True):
+def test_bit_flip_channel_fidelity(forest, use_seed):
     """
     We use Eqn (5) of https://arxiv.org/abs/quant-ph/0701138 to compare the fidelity
     """
+    # ensure sensible input
+    if type(use_seed) == str:
+        use_seed = eval(use_seed)
+    assert use_seed in [True, False], "Please specify a boolean value for 'use_seed'"
+
     qc = get_qc('1q-qvm')
     if use_seed:
         np.random.seed(0)
@@ -1096,10 +1160,15 @@ def test_bit_flip_channel_fidelity(forest, use_seed=True):
     np.testing.assert_allclose(expected_fidelity, estimated_fidelity, atol=2e-2)
 
 
-def test_dephasing_channel_fidelity(forest, use_seed=True):
+def test_dephasing_channel_fidelity(forest, use_seed):
     """
     We use Eqn (5) of https://arxiv.org/abs/quant-ph/0701138 to compare the fidelity
     """
+    # ensure sensible input
+    if type(use_seed) == str:
+        use_seed = eval(use_seed)
+    assert use_seed in [True, False], "Please specify a boolean value for 'use_seed'"
+
     qc = get_qc('1q-qvm')
     if use_seed:
         qc.qam.random_seed = 0
@@ -1139,10 +1208,15 @@ def test_dephasing_channel_fidelity(forest, use_seed=True):
     np.testing.assert_allclose(expected_fidelity, estimated_fidelity, atol=2e-2)
 
 
-def test_depolarizing_channel_fidelity(forest, use_seed=True):
+def test_depolarizing_channel_fidelity(forest, use_seed):
     """
     We use Eqn (5) of https://arxiv.org/abs/quant-ph/0701138 to compare the fidelity
     """
+    # ensure sensible input
+    if type(use_seed) == str:
+        use_seed = eval(use_seed)
+    assert use_seed in [True, False], "Please specify a boolean value for 'use_seed'"
+
     qc = get_qc('1q-qvm')
     if use_seed:
         qc.qam.random_seed = 0
@@ -1184,10 +1258,15 @@ def test_depolarizing_channel_fidelity(forest, use_seed=True):
     np.testing.assert_allclose(expected_fidelity, estimated_fidelity, atol=2e-2)
 
 
-def test_unitary_channel_fidelity(forest, use_seed=True):
+def test_unitary_channel_fidelity(forest, use_seed):
     """
     We use Eqn (5) of https://arxiv.org/abs/quant-ph/0701138 to compare the fidelity
     """
+    # ensure sensible input
+    if type(use_seed) == str:
+        use_seed = eval(use_seed)
+    assert use_seed in [True, False], "Please specify a boolean value for 'use_seed'"
+
     qc = get_qc('1q-qvm')
     if use_seed:
         qc.qam.random_seed = 0
@@ -1223,10 +1302,15 @@ def test_unitary_channel_fidelity(forest, use_seed=True):
     np.testing.assert_allclose(expected_fidelity, estimated_fidelity, atol=2e-2)
 
 
-def test_bit_flip_channel_fidelity_readout_error(forest, use_seed=True):
+def test_bit_flip_channel_fidelity_readout_error(forest, use_seed):
     """
     We use Eqn (5) of https://arxiv.org/abs/quant-ph/0701138 to compare the fidelity
     """
+    # ensure sensible input
+    if type(use_seed) == str:
+        use_seed = eval(use_seed)
+    assert use_seed in [True, False], "Please specify a boolean value for 'use_seed'"
+
     qc = get_qc('1q-qvm')
     if use_seed:
         qc.qam.random_seed = 0
@@ -1269,10 +1353,15 @@ def test_bit_flip_channel_fidelity_readout_error(forest, use_seed=True):
     np.testing.assert_allclose(expected_fidelity, estimated_fidelity, atol=2e-2)
 
 
-def test_dephasing_channel_fidelity_readout_error(forest, use_seed=True):
+def test_dephasing_channel_fidelity_readout_error(forest, use_seed):
     """
     We use Eqn (5) of https://arxiv.org/abs/quant-ph/0701138 to compare the fidelity
     """
+    # ensure sensible input
+    if type(use_seed) == str:
+        use_seed = eval(use_seed)
+    assert use_seed in [True, False], "Please specify a boolean value for 'use_seed'"
+
     qc = get_qc('1q-qvm')
     if use_seed:
         qc.qam.random_seed = 0
@@ -1314,10 +1403,15 @@ def test_dephasing_channel_fidelity_readout_error(forest, use_seed=True):
     np.testing.assert_allclose(expected_fidelity, estimated_fidelity, atol=2e-2)
 
 
-def test_depolarizing_channel_fidelity_readout_error(forest, use_seed=True):
+def test_depolarizing_channel_fidelity_readout_error(forest, use_seed):
     """
     We use Eqn (5) of https://arxiv.org/abs/quant-ph/0701138 to compare the fidelity
     """
+    # ensure sensible input
+    if type(use_seed) == str:
+        use_seed = eval(use_seed)
+    assert use_seed in [True, False], "Please specify a boolean value for 'use_seed'"
+
     qc = get_qc('1q-qvm')
     if use_seed:
         qc.qam.random_seed = 0
@@ -1361,10 +1455,15 @@ def test_depolarizing_channel_fidelity_readout_error(forest, use_seed=True):
     np.testing.assert_allclose(expected_fidelity, estimated_fidelity, atol=2e-2)
 
 
-def test_unitary_channel_fidelity_readout_error(forest, use_seed=True):
+def test_unitary_channel_fidelity_readout_error(forest, use_seed):
     """
     We use Eqn (5) of https://arxiv.org/abs/quant-ph/0701138 to compare the fidelity
     """
+    # ensure sensible input
+    if type(use_seed) == str:
+        use_seed = eval(use_seed)
+    assert use_seed in [True, False], "Please specify a boolean value for 'use_seed'"
+
     qc = get_qc('1q-qvm')
     if use_seed:
         qc.qam.random_seed = 0
@@ -1402,12 +1501,17 @@ def test_unitary_channel_fidelity_readout_error(forest, use_seed=True):
     np.testing.assert_allclose(expected_fidelity, estimated_fidelity, atol=2e-2)
 
 
-def test_2q_unitary_channel_fidelity_readout_error(forest, use_seed=True):
+def test_2q_unitary_channel_fidelity_readout_error(forest, use_seed):
     """
     We use Eqn (5) of https://arxiv.org/abs/quant-ph/0701138 to compare the fidelity
     This tests if our dimensionality factors are correct, even in the presence
     of readout errors
     """
+    # ensure sensible input
+    if type(use_seed) == str:
+        use_seed = eval(use_seed)
+    assert use_seed in [True, False], "Please specify a boolean value for 'use_seed'"
+
     qc = get_qc('2q-qvm')
     if use_seed:
         qc.qam.random_seed = 0
@@ -1463,7 +1567,12 @@ def test_2q_unitary_channel_fidelity_readout_error(forest, use_seed=True):
     np.testing.assert_allclose(expected_fidelity, estimated_fidelity, atol=2e-2)
 
 
-def test_measure_1q_observable_raw_expectation(forest, use_seed=True):
+def test_measure_1q_observable_raw_expectation(forest, use_seed):
+    # ensure sensible input
+    if type(use_seed) == str:
+        use_seed = eval(use_seed)
+    assert use_seed in [True, False], "Please specify a boolean value for 'use_seed'"
+
     # testing that we get correct raw expectation in terms of readout errors
     qc = get_qc('1q-qvm')
     if use_seed:
@@ -1492,7 +1601,12 @@ def test_measure_1q_observable_raw_expectation(forest, use_seed=True):
     np.testing.assert_allclose(result, expected_result, atol=2e-2)
 
 
-def test_measure_1q_observable_raw_variance(forest, use_seed=True):
+def test_measure_1q_observable_raw_variance(forest, use_seed):
+    # ensure sensible input
+    if type(use_seed) == str:
+        use_seed = eval(use_seed)
+    assert use_seed in [True, False], "Please specify a boolean value for 'use_seed'"
+
     # testing that we get correct raw std_err in terms of readout errors
     qc = get_qc('1q-qvm')
     if use_seed:
@@ -1523,7 +1637,12 @@ def test_measure_1q_observable_raw_variance(forest, use_seed=True):
     np.testing.assert_allclose(result, expected_result, atol=2e-2)
 
 
-def test_measure_1q_observable_calibration_expectation(forest, use_seed=True):
+def test_measure_1q_observable_calibration_expectation(forest, use_seed):
+    # ensure sensible input
+    if type(use_seed) == str:
+        use_seed = eval(use_seed)
+    assert use_seed in [True, False], "Please specify a boolean value for 'use_seed'"
+
     # testing that we get correct calibration expectation in terms of readout errors
     qc = get_qc('1q-qvm')
     if use_seed:
@@ -1552,7 +1671,12 @@ def test_measure_1q_observable_calibration_expectation(forest, use_seed=True):
     np.testing.assert_allclose(result, expected_result, atol=2e-2)
 
 
-def test_measure_1q_observable_calibration_variance(forest, use_seed=True):
+def test_measure_1q_observable_calibration_variance(forest, use_seed):
+    # ensure sensible input
+    if type(use_seed) == str:
+        use_seed = eval(use_seed)
+    assert use_seed in [True, False], "Please specify a boolean value for 'use_seed'"
+
     # testing that we get correct calibration std_err in terms of readout errors
     qc = get_qc('1q-qvm')
     if use_seed:
@@ -1583,7 +1707,12 @@ def test_measure_1q_observable_calibration_variance(forest, use_seed=True):
     np.testing.assert_allclose(result, expected_result, atol=2e-2)
 
 
-def test_uncalibrated_asymmetric_readout_nontrivial_1q_state(forest, use_seed=True):
+def test_uncalibrated_asymmetric_readout_nontrivial_1q_state(forest, use_seed):
+    # ensure sensible input
+    if type(use_seed) == str:
+        use_seed = eval(use_seed)
+    assert use_seed in [True, False], "Please specify a boolean value for 'use_seed'"
+
     qc = get_qc('1q-qvm')
     if use_seed:
         qc.qam.random_seed = 0
@@ -1617,7 +1746,12 @@ def test_uncalibrated_asymmetric_readout_nontrivial_1q_state(forest, use_seed=Tr
     assert np.isclose(np.mean(expect_arr), expected_expectation, atol=2e-2)
 
 
-def test_uncalibrated_symmetric_readout_nontrivial_1q_state(forest, use_seed=True):
+def test_uncalibrated_symmetric_readout_nontrivial_1q_state(forest, use_seed):
+    # ensure sensible input
+    if type(use_seed) == str:
+        use_seed = eval(use_seed)
+    assert use_seed in [True, False], "Please specify a boolean value for 'use_seed'"
+
     qc = get_qc('1q-qvm')
     if use_seed:
         qc.qam.random_seed = 0
@@ -1652,7 +1786,12 @@ def test_uncalibrated_symmetric_readout_nontrivial_1q_state(forest, use_seed=Tru
     assert np.isclose(np.mean(expect_arr), expected_expectation, atol=2e-2)
 
 
-def test_calibrated_symmetric_readout_nontrivial_1q_state(forest, use_seed=True):
+def test_calibrated_symmetric_readout_nontrivial_1q_state(forest, use_seed):
+    # ensure sensible input
+    if type(use_seed) == str:
+        use_seed = eval(use_seed)
+    assert use_seed in [True, False], "Please specify a boolean value for 'use_seed'"
+
     qc = get_qc('1q-qvm')
     if use_seed:
         qc.qam.random_seed = 0
@@ -1685,11 +1824,17 @@ def test_calibrated_symmetric_readout_nontrivial_1q_state(forest, use_seed=True)
     assert np.isclose(np.mean(expect_arr), expected_expectation, atol=2e-2)
 
 
-def test_measure_2q_observable_raw_statistics(forest, use_seed=True):
+def test_measure_2q_observable_raw_statistics(forest, use_seed):
     # testing that we get correct exhaustively symmetrized statistics
     # in terms of readout errors
     # Note: this only tests for exhaustive symmetrization in the presence
     #       of uncorrelated errors
+
+    # ensure sensible input
+    if type(use_seed) == str:
+        use_seed = eval(use_seed)
+    assert use_seed in [True, False], "Please specify a boolean value for 'use_seed'"
+
     qc = get_qc('2q-qvm')
     if use_seed:
         qc.qam.random_seed = 0
@@ -1735,11 +1880,17 @@ def test_measure_2q_observable_raw_statistics(forest, use_seed=True):
     np.testing.assert_allclose(result_std_err, simulated_std_err, atol=2e-2)
 
 
-def test_raw_statistics_2q_nontrivial_nonentangled_state(forest, use_seed=True):
+def test_raw_statistics_2q_nontrivial_nonentangled_state(forest, use_seed):
     # testing that we get correct exhaustively symmetrized statistics
     # in terms of readout errors, even for non-trivial 2q nonentangled states
     # Note: this only tests for exhaustive symmetrization in the presence
     #       of uncorrelated errors
+
+    # ensure sensible input
+    if type(use_seed) == str:
+        use_seed = eval(use_seed)
+    assert use_seed in [True, False], "Please specify a boolean value for 'use_seed'"
+
     qc = get_qc('2q-qvm')
     if use_seed:
         qc.qam.random_seed = 0
@@ -1808,11 +1959,17 @@ def test_raw_statistics_2q_nontrivial_nonentangled_state(forest, use_seed=True):
     np.testing.assert_allclose(result_std_err, simulated_std_err, atol=2e-2)
 
 
-def test_raw_statistics_2q_nontrivial_entangled_state(forest, use_seed=True):
+def test_raw_statistics_2q_nontrivial_entangled_state(forest, use_seed):
     # testing that we get correct exhaustively symmetrized statistics
     # in terms of readout errors, even for non-trivial 2q entangled states
     # Note: this only tests for exhaustive symmetrization in the presence
     #       of uncorrelated errors
+
+    # ensure sensible input
+    if type(use_seed) == str:
+        use_seed = eval(use_seed)
+    assert use_seed in [True, False], "Please specify a boolean value for 'use_seed'"
+
     qc = get_qc('2q-qvm')
     if use_seed:
         qc.qam.random_seed = 0
@@ -1869,12 +2026,18 @@ def test_raw_statistics_2q_nontrivial_entangled_state(forest, use_seed=True):
     np.testing.assert_allclose(result_std_err, simulated_std_err, atol=2e-2)
 
 
-def test_corrected_statistics_2q_nontrivial_nonentangled_state(forest, use_seed=True):
+def test_corrected_statistics_2q_nontrivial_nonentangled_state(forest, use_seed):
     # testing that we can successfully correct for observed statistics
     # in the presence of readout errors, even for 2q nontrivial but
     # nonentangled states
     # Note: this only tests for exhaustive symmetrization in the presence
     #       of uncorrelated errors
+
+    # ensure sensible input
+    if type(use_seed) == str:
+        use_seed = eval(use_seed)
+    assert use_seed in [True, False], "Please specify a boolean value for 'use_seed'"
+
     qc = get_qc('2q-qvm')
     if use_seed:
         qc.qam.random_seed = 0
@@ -1924,7 +2087,12 @@ def _point_state_fidelity_estimate(v, dim=2):
     return (1.0 + np.sum(v)) / dim
 
 
-def test_bit_flip_state_fidelity(forest, use_seed=True):
+def test_bit_flip_state_fidelity(forest, use_seed):
+    # ensure sensible input
+    if type(use_seed) == str:
+        use_seed = eval(use_seed)
+    assert use_seed in [True, False], "Please specify a boolean value for 'use_seed'"
+
     qc = get_qc('1q-qvm')
     if use_seed:
         qc.qam.random_seed = 0
@@ -1962,7 +2130,12 @@ def test_bit_flip_state_fidelity(forest, use_seed=True):
     np.testing.assert_allclose(expected_fidelity, estimated_fidelity, atol=2e-2)
 
 
-def test_dephasing_state_fidelity(forest, use_seed=True):
+def test_dephasing_state_fidelity(forest, use_seed):
+    # ensure sensible input
+    if type(use_seed) == str:
+        use_seed = eval(use_seed)
+    assert use_seed in [True, False], "Please specify a boolean value for 'use_seed'"
+
     qc = get_qc('1q-qvm')
     if use_seed:
         qc.qam.random_seed = 0
@@ -1999,7 +2172,12 @@ def test_dephasing_state_fidelity(forest, use_seed=True):
     np.testing.assert_allclose(expected_fidelity, estimated_fidelity, atol=2e-2)
 
 
-def test_depolarizing_state_fidelity(forest, use_seed=True):
+def test_depolarizing_state_fidelity(forest, use_seed):
+    # ensure sensible input
+    if type(use_seed) == str:
+        use_seed = eval(use_seed)
+    assert use_seed in [True, False], "Please specify a boolean value for 'use_seed'"
+
     qc = get_qc('1q-qvm')
     if use_seed:
         qc.qam.random_seed = 0
@@ -2038,7 +2216,12 @@ def test_depolarizing_state_fidelity(forest, use_seed=True):
     np.testing.assert_allclose(expected_fidelity, estimated_fidelity, atol=2e-2)
 
 
-def test_unitary_state_fidelity(forest, use_seed=True):
+def test_unitary_state_fidelity(forest, use_seed):
+    # ensure sensible input
+    if type(use_seed) == str:
+        use_seed = eval(use_seed)
+    assert use_seed in [True, False], "Please specify a boolean value for 'use_seed'"
+
     qc = get_qc('1q-qvm')
     if use_seed:
         qc.qam.random_seed = 0
@@ -2071,7 +2254,12 @@ def test_unitary_state_fidelity(forest, use_seed=True):
     np.testing.assert_allclose(expected_fidelity, estimated_fidelity, atol=2e-2)
 
 
-def test_bit_flip_state_fidelity_readout_error(forest, use_seed=True):
+def test_bit_flip_state_fidelity_readout_error(forest, use_seed):
+    # ensure sensible input
+    if type(use_seed) == str:
+        use_seed = eval(use_seed)
+    assert use_seed in [True, False], "Please specify a boolean value for 'use_seed'"
+
     qc = get_qc('1q-qvm')
     if use_seed:
         qc.qam.random_seed = 0
@@ -2110,7 +2298,12 @@ def test_bit_flip_state_fidelity_readout_error(forest, use_seed=True):
     np.testing.assert_allclose(expected_fidelity, estimated_fidelity, atol=2e-2)
 
 
-def test_dephasing_state_fidelity_readout_error(forest, use_seed=True):
+def test_dephasing_state_fidelity_readout_error(forest, use_seed):
+    # ensure sensible input
+    if type(use_seed) == str:
+        use_seed = eval(use_seed)
+    assert use_seed in [True, False], "Please specify a boolean value for 'use_seed'"
+
     qc = get_qc('1q-qvm')
     if use_seed:
         qc.qam.random_seed = 0
@@ -2148,7 +2341,12 @@ def test_dephasing_state_fidelity_readout_error(forest, use_seed=True):
     np.testing.assert_allclose(expected_fidelity, estimated_fidelity, atol=2e-2)
 
 
-def test_depolarizing_state_fidelity_readout_error(forest, use_seed=True):
+def test_depolarizing_state_fidelity_readout_error(forest, use_seed):
+    # ensure sensible input
+    if type(use_seed) == str:
+        use_seed = eval(use_seed)
+    assert use_seed in [True, False], "Please specify a boolean value for 'use_seed'"
+
     qc = get_qc('1q-qvm')
     if use_seed:
         qc.qam.random_seed = 0
@@ -2188,7 +2386,12 @@ def test_depolarizing_state_fidelity_readout_error(forest, use_seed=True):
     np.testing.assert_allclose(expected_fidelity, estimated_fidelity, atol=2e-2)
 
 
-def test_unitary_state_fidelity_readout_error(forest, use_seed=True):
+def test_unitary_state_fidelity_readout_error(forest, use_seed):
+    # ensure sensible input
+    if type(use_seed) == str:
+        use_seed = eval(use_seed)
+    assert use_seed in [True, False], "Please specify a boolean value for 'use_seed'"
+
     qc = get_qc('1q-qvm')
     if use_seed:
         qc.qam.random_seed = 0

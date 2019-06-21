@@ -189,3 +189,12 @@ def local_qvm_quilc():
 
     with local_qvm() as context:
         yield context
+
+
+def pytest_addoption(parser):
+    parser.addoption("--use_seed", action="store", default=True, help="run some tests faster using random seed")
+
+
+@pytest.fixture()
+def use_seed(pytestconfig):
+    return pytestconfig.getoption("use_seed")
