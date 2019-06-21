@@ -1878,7 +1878,7 @@ def test_corrected_statistics_2q_nontrivial_nonentangled_state(forest, use_seed=
     qc = get_qc('2q-qvm')
     if use_seed:
         qc.qam.random_seed = 0
-        np.random.seed(0)
+        np.random.seed(13)
         num_simulations = 1
     else:
         num_simulations = 25
@@ -1915,7 +1915,7 @@ def test_corrected_statistics_2q_nontrivial_nonentangled_state(forest, use_seed=
     expected_std_err = np.sqrt(np.var(expectations))
     # compare against simulated results
     np.testing.assert_allclose(result_expectation, expected_expectation, atol=2e-2)
-    np.testing.assert_allclose(result_std_err, expected_std_err, atol=3e-2)
+    np.testing.assert_allclose(result_std_err, expected_std_err, atol=2e-2)
 
 
 def _point_state_fidelity_estimate(v, dim=2):
