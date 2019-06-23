@@ -333,7 +333,7 @@ def test_set_initial_state():
 
     # test reverting ReferenceDensitySimulator to the default state
     rho0 = np.array([[1.0, 0.0], [0.0, 0.0]])
-    qc_density.qam.wf_simulator.set_initial_state(None).reset()
+    qc_density.qam.wf_simulator.set_initial_state(rho0).reset()
     assert np.allclose(qc_density.qam.wf_simulator.density, rho0)
     assert np.allclose(qc_density.qam.wf_simulator.initial_density, rho0)
 
