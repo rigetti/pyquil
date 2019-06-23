@@ -198,9 +198,9 @@ class ReferenceDensitySimulator(AbstractQuantumSimulator):
     def __init__(self, n_qubits: int, rs: RandomState = None):
         self.n_qubits = n_qubits
         self.rs = rs
-        self.set_initial_state(None).reset()
+        self.set_initial_state(n_qubit_zero_state(n_qubits)).reset()
 
-    def set_initial_state(self, state_matrix):
+    def set_initial_state(self, state_matrix: np.ndarray):
         """
         This method is the correct way (TM) to update the initial state matrix that is
         initialized every time reset() is called. The default initial state of
@@ -210,27 +210,24 @@ class ReferenceDensitySimulator(AbstractQuantumSimulator):
         method; you must change it directly or else call reset() after calling this method.
 
         To restore default state initialization behavior of ReferenceDensitySimulator pass in
-        ``state_matrix = None`` and then call reset().
+        a ``state_matrix`` equal to the default initial state on `n_qubits` (i.e. |000...00>) and
+        then call ``reset()``. We have provided a helper function ``n_qubit_zero_state`` in the
+        ``reference_simulator.py`` module to simplify this step.
 
         :param state_matrix: numpy.ndarray or None.
         :return: ``self`` to support method chaining.
         """
-        if state_matrix is None:
-            self.initial_density = np.zeros((2 ** self.n_qubits, 2 ** self.n_qubits),
-                                            dtype=np.complex128)
-            self.initial_density[0, 0] = complex(1.0, 0)
+        rows, cols = state_matrix.shape
+        if rows != cols:
+            raise ValueError("The state matrix is not square.")
+        if self.n_qubits != int(np.log2(rows)):
+            raise ValueError("The state matrix is not defined on the same numbers of qubits as "
+                             "the QVM.")
+        if _is_valid_quantum_state(state_matrix):
+            self.initial_density = state_matrix
         else:
-            rows, cols = state_matrix.shape
-            if rows != cols:
-                raise ValueError("The state matrix is not square.")
-            if self.n_qubits != int(np.log2(rows)):
-                raise ValueError("The state matrix is not defined on the same numbers of qubits as "
-                                 "the QVM.")
-            if _is_valid_quantum_state(state_matrix):
-                self.initial_density = state_matrix
-            else:
-                raise ValueError("The state matrix is not valid. It must be Hermitian, trace one, "
-                                 "and have non-negative eigenvalues.")
+            raise ValueError("The state matrix is not valid. It must be Hermitian, trace one, "
+                             "and have non-negative eigenvalues.")
         return self
 
     def sample_bitstrings(self, n_samples, tol_factor: float = 1e8):
