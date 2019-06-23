@@ -167,7 +167,7 @@ class ReferenceWavefunctionSimulator(AbstractQuantumSimulator):
         raise NotImplementedError("The reference wavefunction simulator cannot handle noise")
 
 
-def n_qubit_zero_state(n_qubits: int)->np.ndarray:
+def n_qubit_zero_state(n_qubits: int) -> np.ndarray:
     """
     Construct a matrix corresponding to the tensor product of `n` ground states |0><0|.
 
