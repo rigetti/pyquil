@@ -167,16 +167,16 @@ class ReferenceWavefunctionSimulator(AbstractQuantumSimulator):
         raise NotImplementedError("The reference wavefunction simulator cannot handle noise")
 
 
-def n_qubit_zero_state(n_qubits: int) -> np.ndarray:
+def zero_state_matrix(n_qubits: int) -> np.ndarray:
     """
     Construct a matrix corresponding to the tensor product of `n` ground states |0><0|.
 
     :param n_qubits: The number of qubits.
     :return: The state matrix  |000...0><000...0| for `n_qubits`.
     """
-    zero_state_matrix = np.zeros((2 ** n_qubits, 2 ** n_qubits), dtype=np.complex128)
-    zero_state_matrix[0, 0] = complex(1.0, 0)
-    return zero_state_matrix
+    state_matrix = np.zeros((2 ** n_qubits, 2 ** n_qubits), dtype=np.complex128)
+    state_matrix[0, 0] = complex(1.0, 0)
+    return state_matrix
 
 
 class ReferenceDensitySimulator(AbstractQuantumSimulator):
@@ -198,7 +198,7 @@ class ReferenceDensitySimulator(AbstractQuantumSimulator):
     def __init__(self, n_qubits: int, rs: RandomState = None):
         self.n_qubits = n_qubits
         self.rs = rs
-        self.set_initial_state(n_qubit_zero_state(n_qubits)).reset()
+        self.set_initial_state(zero_state_matrix(n_qubits)).reset()
 
     def set_initial_state(self, state_matrix: np.ndarray):
         """
