@@ -25,6 +25,29 @@ def _term_expectation(wf, term: PauliTerm, n_qubits):
     return term.coefficient * (wf.conj().T @ wf2)
 
 
+def _is_valid_quantum_state(state_matrix: np.ndarray, rtol=1e-05, atol=1e-08) -> bool:
+    """
+    Checks if a quantum state is valid, i.e. the matrix is Hermitian; trace one, and that the
+    eigenvalues are non-negative.
+
+    :param state_matrix: a D by D np.ndarray representing a quantum state
+    :param rtol: The relative tolerance parameter in np.allclose and np.isclose
+    :param atol: The absolute tolerance parameter in np.allclose and np.isclose
+    :return: bool
+    """
+    hermitian = np.allclose(state_matrix, np.conjugate(state_matrix.transpose()), rtol, atol)
+    if not hermitian:
+        raise ValueError("The state matrix is not Hermitian.")
+    trace_one = np.isclose(np.trace(state_matrix), 1, rtol, atol)
+    if not trace_one:
+        raise ValueError("The state matrix is not trace one.")
+    evals = np.linalg.eigvals(state_matrix)
+    non_neg_eigs = all([False if val < -atol else True for val in evals])
+    if not non_neg_eigs:
+        raise ValueError("The state matrix has negative Eigenvalues of order -" + str(atol) + ".")
+    return hermitian and trace_one and non_neg_eigs
+
+
 class ReferenceWavefunctionSimulator(AbstractQuantumSimulator):
     def __init__(self, n_qubits: int, rs: RandomState = None):
         """
@@ -144,6 +167,18 @@ class ReferenceWavefunctionSimulator(AbstractQuantumSimulator):
         raise NotImplementedError("The reference wavefunction simulator cannot handle noise")
 
 
+def zero_state_matrix(n_qubits: int) -> np.ndarray:
+    """
+    Construct a matrix corresponding to the tensor product of `n` ground states |0><0|.
+
+    :param n_qubits: The number of qubits.
+    :return: The state matrix  |000...0><000...0| for `n_qubits`.
+    """
+    state_matrix = np.zeros((2 ** n_qubits, 2 ** n_qubits), dtype=np.complex128)
+    state_matrix[0, 0] = complex(1.0, 0)
+    return state_matrix
+
+
 class ReferenceDensitySimulator(AbstractQuantumSimulator):
     """
     A density matrix simulator that prioritizes readability over performance.
@@ -163,8 +198,37 @@ class ReferenceDensitySimulator(AbstractQuantumSimulator):
     def __init__(self, n_qubits: int, rs: RandomState = None):
         self.n_qubits = n_qubits
         self.rs = rs
-        self.density = np.zeros((2 ** n_qubits, 2 ** n_qubits), dtype=np.complex128)
-        self.density[0, 0] = complex(1.0, 0)
+        self.set_initial_state(zero_state_matrix(n_qubits)).reset()
+
+    def set_initial_state(self, state_matrix: np.ndarray):
+        """
+        This method is the correct way (TM) to update the initial state matrix that is
+        initialized every time reset() is called. The default initial state of
+        ReferenceDensitySimulator is |000...00>.
+
+        Note that the current state matrix, i.e. ``self.density`` is not affected by this
+        method; you must change it directly or else call reset() after calling this method.
+
+        To restore default state initialization behavior of ReferenceDensitySimulator pass in
+        a ``state_matrix`` equal to the default initial state on `n_qubits` (i.e. |000...00>) and
+        then call ``reset()``. We have provided a helper function ``n_qubit_zero_state`` in the
+        ``reference_simulator.py`` module to simplify this step.
+
+        :param state_matrix: numpy.ndarray or None.
+        :return: ``self`` to support method chaining.
+        """
+        rows, cols = state_matrix.shape
+        if rows != cols:
+            raise ValueError("The state matrix is not square.")
+        if self.n_qubits != int(np.log2(rows)):
+            raise ValueError("The state matrix is not defined on the same numbers of qubits as "
+                             "the QVM.")
+        if _is_valid_quantum_state(state_matrix):
+            self.initial_density = state_matrix
+        else:
+            raise ValueError("The state matrix is not valid. It must be Hermitian, trace one, "
+                             "and have non-negative eigenvalues.")
+        return self
 
     def sample_bitstrings(self, n_samples, tol_factor: float = 1e8):
         """
@@ -246,8 +310,13 @@ class ReferenceDensitySimulator(AbstractQuantumSimulator):
         raise NotImplementedError("To implement")
 
     def reset(self) -> 'AbstractQuantumSimulator':
-        self.density.fill(0)
-        self.density[0, 0] = complex(1.0, 0)
+        """
+        Resets the current state of ReferenceDensitySimulator ``self.density`` to
+        ``self.initial_density``.
+
+        :return: ``self`` to support method chaining.
+        """
+        self.density = self.initial_density
         return self
 
     def do_post_gate_noise(self, noise_type: str, noise_prob: float, qubits: List[int]):
