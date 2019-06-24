@@ -557,50 +557,23 @@ class Program(object):
 
     def dagger(self, inv_dict=None, suffix="-INV"):
         """
-        Creates the conjugate transpose of the Quil program. The program must not
-        contain any irreversible actions (measurement, control flow, qubit allocation).
+        Creates the conjugate transpose of the Quil program. The program must
+        contain only gate applications.
+
+        Note: the keyword arguments inv_dict and suffix are kept only
+        for backwards compatibility and have no effect.
 
         :return: The Quil program's inverse
         :rtype: Program
 
         """
-        if not self.is_protoquil():
-            raise ValueError("Program must be valid Protoquil")
+        if any(not isinstance(instr, Gate) for instr in self._instructions):
+            raise ValueError("Program to be daggered must contain only gate applications")
 
-        daggered = Program()
-
-        for gate in self._defined_gates:
-            if inv_dict is None or gate.name not in inv_dict:
-                if gate.parameters:
-                    raise TypeError("Cannot auto define daggered version of parameterized gates")
-                daggered.defgate(gate.name + suffix, gate.matrix.T.conj())
-
-        for gate in reversed(self._instructions):
-            reversed_gate = None
-            qubits = [unpack_qubit(q) for q in gate.qubits]
-            if gate.name in QUANTUM_GATES:
-                if gate.name == "S":
-                    reversed_gate = Gate("PHASE", [-pi / 2], qubits)
-                elif gate.name == "T":
-                    reversed_gate = Gate("RZ", [pi / 4], qubits)
-                elif gate.name == "ISWAP":
-                    reversed_gate = Gate("PSWAP", [pi / 2], qubits)
-                else:
-                    negated_params = list(map(lambda x: -1 * x, gate.params))
-                    reversed_gate = Gate(gate.name, negated_params, qubits)
-                reversed_gate.modifiers = gate.modifiers
-                daggered.inst(reversed_gate)
-            else:
-                if inv_dict is None or gate.name not in inv_dict:
-                    gate_inv_name = gate.name + suffix
-                else:
-                    gate_inv_name = inv_dict[gate.name]
-
-                reversed_gate = Gate(gate_inv_name, gate.params, qubits)
-                reversed_gate.modifiers = gate.modifiers
-                daggered.inst(reversed_gate)
-
-        return daggered
+        # This is a bit hacky. Gate.dagger() mutates the gate object,
+        # rather than returning a fresh (and daggered) copy.
+        return Program([instr.dagger() for instr
+                        in reversed(Program(self.out())._instructions)])
 
     def _synthesize(self):
         """
