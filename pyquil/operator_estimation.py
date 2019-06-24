@@ -650,8 +650,7 @@ def group_experiments(experiments: TomographyExperiment,
     Group experiments that are diagonal in a shared tensor product basis (TPB) to minimize number
     of QPU runs.
 
-    Background
-    ----------
+    .. rubric:: Background
 
     Given some PauliTerm operator, the 'natural' tensor product basis to
     diagonalize this term is the one which diagonalizes each Pauli operator in the
@@ -677,8 +676,7 @@ def group_experiments(experiments: TomographyExperiment,
     of the basis vectors are entangled states.
 
 
-    Methods
-    -------
+    .. rubric:: Methods
 
     The "greedy" method will keep a running set of 'buckets' into which grouped ExperimentSettings
     will be placed. Each new ExperimentSetting considered is assigned to the first applicable
