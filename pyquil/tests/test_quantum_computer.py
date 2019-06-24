@@ -6,7 +6,7 @@ import pytest
 
 from pyquil import Program, get_qc, list_quantum_computers
 from pyquil.api import QVM, QuantumComputer, local_qvm
-from pyquil.api._qac import AbstractCompiler
+from pyquil.tests.utils import DummyCompiler
 from pyquil.api._quantum_computer import (_symmetrization, _flip_array_to_prog,
                                           _construct_orthogonal_array,
                                           _construct_strength_two_orthogonal_array,
@@ -20,18 +20,8 @@ from pyquil.gates import *
 from pyquil.quilbase import Declare, MemoryReference
 from pyquil.noise import decoherence_noise_with_asymmetric_ro
 from pyquil.pyqvm import PyQVM
+from pyquil.tests.utils import DummyCompiler
 from rpcq.messages import ParameterAref, PyQuilExecutableResponse
-
-
-class DummyCompiler(AbstractCompiler):
-    def get_version_info(self):
-        return {}
-
-    def quil_to_native_quil(self, program: Program):
-        return program
-
-    def native_quil_to_executable(self, nq_program: Program):
-        return nq_program
 
 
 def test_flip_array_to_prog():

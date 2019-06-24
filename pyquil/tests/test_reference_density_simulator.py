@@ -6,14 +6,14 @@ import pyquil.gate_matrices as qmats
 from pyquil import Program
 from pyquil.gates import *
 from pyquil.pyqvm import PyQVM
-from pyquil.reference_simulator import ReferenceDensitySimulator, ReferenceWavefunctionSimulator
+from pyquil.reference_simulator import (ReferenceDensitySimulator, _is_valid_quantum_state)
 from pyquil.unitary_tools import lifted_gate_matrix
 from pyquil.paulis import sI, sX, sY, sZ
 from pyquil.device import NxDevice
 from pyquil.api import QuantumComputer
-from pyquil.api._qac import AbstractCompiler
 from pyquil.operator_estimation import (measure_observables, ExperimentSetting,
                                         TomographyExperiment, zeros_state)
+from pyquil.tests.utils import DummyCompiler
 
 
 def test_qaoa_density():
@@ -272,17 +272,6 @@ def test_for_negative_probabilities():
     expt_settings = [ExperimentSetting(zeros_state([0]), pt) for pt in [sI(0), sX(0), sY(0), sZ(0)]]
     experiment_1q = TomographyExperiment(settings=expt_settings, program=prog)
 
-    # make an abstract compiler
-    class DummyCompiler(AbstractCompiler):
-        def get_version_info(self):
-            return {}
-
-        def quil_to_native_quil(self, program: Program):
-            return program
-
-        def native_quil_to_executable(self, nq_program: Program):
-            return nq_program
-
     # make a quantum computer object
     device = NxDevice(nx.complete_graph(1))
     qc_density = QuantumComputer(name='testy!',
@@ -309,3 +298,56 @@ def test_for_negative_probabilities():
         list(measure_observables(qc=qc_density, tomo_experiment=experiment_1q, n_shots=3000))
     except ValueError as e:
         assert str(e) != 'probabilities are not non-negative'
+
+
+def test_set_initial_state():
+    # That is test the assigned state matrix in ReferenceDensitySimulator is persistent between
+    # rounds of run.
+    rho1 = np.array([[0.0, 0.0], [0.0, 1.0]])
+
+    # run prog
+    prog = Program(I(0))
+    ro = prog.declare('ro', 'BIT', 1)
+    prog += MEASURE(0, ro[0])
+
+    # make a quantum computer object
+    device = NxDevice(nx.complete_graph(1))
+    qc_density = QuantumComputer(name='testy!',
+                                 qam=PyQVM(n_qubits=1,
+                                           quantum_simulator_type=ReferenceDensitySimulator),
+                                 device=device,
+                                 compiler=DummyCompiler())
+
+    qc_density.qam.wf_simulator.set_initial_state(rho1).reset()
+
+    out = [qc_density.run(prog) for _ in range(0, 4)]
+    ans = [np.array([[1]]), np.array([[1]]), np.array([[1]]), np.array([[1]])]
+    assert all([np.allclose(x, y) for x, y in zip(out, ans)])
+
+    # Run and measure style
+    progRAM = Program(I(0))
+
+    results = qc_density.run_and_measure(progRAM, trials=10)
+    ans = {0: np.array([1, 1, 1, 1, 1, 1, 1, 1, 1, 1])}
+    assert np.allclose(results[0], ans[0])
+
+    # test reverting ReferenceDensitySimulator to the default state
+    rho0 = np.array([[1.0, 0.0], [0.0, 0.0]])
+    qc_density.qam.wf_simulator.set_initial_state(rho0).reset()
+    assert np.allclose(qc_density.qam.wf_simulator.density, rho0)
+    assert np.allclose(qc_density.qam.wf_simulator.initial_density, rho0)
+
+
+def test_is_valid_quantum_state():
+    with pytest.raises(ValueError):
+        # is Hermitian and PSD but not trace one
+        _is_valid_quantum_state(np.array([[1, 0], [0, 1]]))
+    with pytest.raises(ValueError):
+        # negative eigenvalue
+        _is_valid_quantum_state(np.array([[1.01, 0], [0, -0.01]]))
+    with pytest.raises(ValueError):
+        # imaginary eigenvalue
+        _is_valid_quantum_state(np.array([[1, 0], [0, -0.0001j]]))
+    with pytest.raises(ValueError):
+        # not Hermitian
+        _is_valid_quantum_state(np.array([[0, 1], [1, 0]]))
