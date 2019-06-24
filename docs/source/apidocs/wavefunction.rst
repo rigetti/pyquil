@@ -24,7 +24,6 @@ Wavefunction Methods
         :toctree: autogen
         :template: autosumm.rst
 
-        ~Wavefunction.amplitudes
         ~Wavefunction.probabilities
         ~Wavefunction.pretty_print
         ~Wavefunction.pretty_print_probabilities
