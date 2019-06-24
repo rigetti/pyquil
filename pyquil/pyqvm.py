@@ -226,16 +226,14 @@ class PyQVM(QAM):
 
     def run(self):
         self.status = 'running'
-        p = self.program
 
         self._memory_results = {}
-        for n in range(0, self.program.num_shots):
+        for _ in range(self.program.num_shots):
             self.wf_simulator.reset()
-            self.execute(p)
+            self.execute(self.program)
             for name in self.ram.keys():
-                if name not in self._memory_results:
-                    self._memory_results[name] = list()
-                self._memory_results[name].append(self.ram[name])
+                self._memory_results.setdefault(name, list())
+                self._memory_results.append(self.ram[name])
 
         # TODO: this will need to be removed in merge conflict with #873
         self._bitstrings = self._memory_results['ro']
