@@ -5,6 +5,7 @@ Wavefunction Methods
 
 .. currentmodule:: pyquil.api
 .. autoclass:: pyquil.api.WavefunctionSimulator
+    :noindex:
 
     .. rubric:: Methods
     .. autosummary::
@@ -18,7 +19,6 @@ Wavefunction Methods
 
 
 .. currentmodule:: pyquil.wavefunction
-
 .. autoclass:: pyquil.wavefunction.Wavefunction
 
     .. rubric:: Attributes and Methods
