@@ -368,7 +368,7 @@ mathjax_config = {
             'ket': ["\\left| #1 \\right\\rangle", 1],
             'bra': ["\\left\\langle #1 \\right|", 1],
             'braket': ["\\left\\langle #1 | #2 \\right\\rangle", 2],
-            'vec': ["\\text{vec}\\left(#1\\right)", 1],
+            'vect': ["\\text{vec}\\left(#1\\right)", 1],
             'tr': ["\\text{Tr}\\left(#1\\right)", 1]
         }
     }
