@@ -6,7 +6,7 @@ v2.9.1 (XX, YY, 2019)
 
 Bugfixes:
 
-- ``unitary_tools.lifted_gate(gate.dagger(), ...)`` was not returning the dagger of the original ``gate`` matrix.
+- ``unitary_tools.lifted_gate()`` was not properly handling modifiers such as 'DAGGER' and 'CONTROLLED'
 
 v2.9 (June 25, 2019)
 --------------------
