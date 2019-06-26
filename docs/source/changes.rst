@@ -1,16 +1,37 @@
 Changelog
 =========
 
+v2.9 (June 25, 2019)
+--------------------
 
-v2.8.1 (XXX YY, 2019)
--------------------
+Announcements:
+
+- PyQuil now has a `Pull Request Template <https://github.com/rigetti/pyquil/blob/master/.github/PULL_REQUEST_TEMPLATE.md>`_,
+  which contains a checklist of things that must be completed (if applicable) before a PR can be
+  merged (gh-921).
+
+Improvements and Changes:
+
+- Removed a bunch of logic around creating inverse gates from user-defined gates in
+  ``Program.dagger()`` in favor of a simpler call to ``Gate.dagger()`` (gh-887).
+
+- The ``RESET`` instruction now works correctly with ``QubitPlaceholder`` objects
+  and the ``address_qubits`` function (gh-910).
+
+- ``ReferenceDensitySimulator`` can now have a state that is persistent between rounds
+  of ``run`` or ``run_and_measure`` (gh-920).
 
 Bugfixes:
 
-- Small negative probabilities were causing ReferenceDensitySimulator to fail (gh-904).
+- Small negative probabilities were causing ``ReferenceDensitySimulator`` to fail (gh-908).
 
-- The assigned state matrix in ReferenceDensitySimulator was not persistent between rounds of
-run (gh-916).
+- The ``dagger`` function was incorrectly dropping gate modifiers like ``CONTROLLED`` (gh-914).
+
+- Negative numbers in classical instruction arguments were not being parsed (gh-917).
+
+- Inline math rendering was not working correctly in ``intro.rst`` (gh-927).
+
+Thanks to community member **jclapis** for the contributions to this release!
 
 v2.8 (May 20, 2019)
 -------------------
