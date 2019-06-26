@@ -276,6 +276,9 @@ def lifted_gate(gate: Gate, n_qubits: int):
     else:
         matrix = QUANTUM_GATES[gate.name]
 
+    if 'DAGGER' in gate.modifiers:
+        matrix = matrix.conj().T
+
     return lifted_gate_matrix(matrix=matrix,
                               qubit_inds=[q.index for q in gate.qubits],
                               n_qubits=n_qubits)
