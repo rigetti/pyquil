@@ -292,6 +292,10 @@ def test_lifted_gate_single_qubit():
     true_unitary = np.kron(np.eye(2 ** 0), np.kron(mat.RX(0.5), np.eye(2 ** 4)))
     assert np.allclose(test_unitary, true_unitary)
 
+    test_unitary = lifted_gate(RZ(np.pi/4, 0).dagger(), 1)
+    true_unitary = mat.RZ(-np.pi/4)
+    assert np.allclose(test_unitary, true_unitary)
+
 
 def test_lifted_gate_two_qubit():
     test_unitary = lifted_gate(CNOT(0, 1), 4)
