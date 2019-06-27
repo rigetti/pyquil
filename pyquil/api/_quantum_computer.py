@@ -233,7 +233,8 @@ class QuantumComputer:
     @_record_call
     def compile(self, program: Program,
                 to_native_gates: bool = True,
-                optimize: bool = True) -> Union[BinaryExecutableResponse, PyQuilExecutableResponse]:
+                optimize: bool = True,
+                protoquil: bool = False) -> Union[BinaryExecutableResponse, PyQuilExecutableResponse]:
         """
         A high-level interface to program compilation.
 
@@ -245,7 +246,8 @@ class QuantumComputer:
 
         :param program: A Program
         :param to_native_gates: Whether to compile non-native gates to native gates.
-        :param optimize: Whether to optimize programs to reduce the number of operations.
+        :param optimize: Whether to optimize the program to reduce the number of operations.
+        :param protoquil: Whether to compile the program to protoquil (executable on QPU).
         :return: An executable binary suitable for passing to :py:func:`QuantumComputer.run`.
         """
         flags = [to_native_gates, optimize]
@@ -253,7 +255,7 @@ class QuantumComputer:
         quilc = all(flags)
 
         if quilc:
-            nq_program = self.compiler.quil_to_native_quil(program)
+            nq_program = self.compiler.quil_to_protoquil(program) if protoquil else self.compiler.quil_to_native_quil(program)
         else:
             nq_program = program
         binary = self.compiler.native_quil_to_executable(nq_program)
