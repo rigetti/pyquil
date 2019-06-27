@@ -848,8 +848,6 @@ def test_exhaustive_symmetrization_2q(forest):
     assert np.isclose(frac7_0, expected_frac7_0, 2e-2)
 
 
-# # TODO: gh-897
-# @pytest.mark.skip
 def test_measure_observables_inherit_noise_errors(forest):
     qc = get_qc('3q-qvm')
     # specify simplest experiments
