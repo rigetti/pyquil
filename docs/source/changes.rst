@@ -1,12 +1,12 @@
 Changelog
 =========
 
-v2.9.1 (XX, YY, 2019)
----------------------
+v2.10 (in development)
+----------------------
 
 Bugfixes:
 
-- ``unitary_tools.lifted_gate()`` was not properly handling modifiers such as 'DAGGER' and 'CONTROLLED'
+- ``unitary_tools.lifted_gate()`` was not properly handling modifiers such as `DAGGER` and `CONTROLLED`
 
 v2.9 (June 25, 2019)
 --------------------
