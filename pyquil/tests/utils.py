@@ -13,7 +13,7 @@ class DummyCompiler(AbstractCompiler):
     def get_version_info(self):
         return {}
 
-    def quil_to_native_quil(self, program: Program):
+    def quil_to_native_quil(self, program: Program, protoquil=False):
         return program
 
     def native_quil_to_executable(self, nq_program: Program):
