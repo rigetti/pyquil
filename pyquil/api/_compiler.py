@@ -45,6 +45,7 @@ class QuilcVersionMismatch(Exception):
 class QuilcNotRunning(Exception):
     pass
 
+
 class QPUCompilerNotRunning(Exception):
     pass
 
