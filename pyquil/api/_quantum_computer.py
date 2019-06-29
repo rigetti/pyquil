@@ -255,7 +255,7 @@ class QuantumComputer:
         quilc = all(flags)
 
         if quilc:
-            nq_program = self.compiler.quil_to_protoquil(program) if protoquil else self.compiler.quil_to_native_quil(program)
+            nq_program = self.compiler.quil_to_native_quil(program, protoquil=protoquil)
         else:
             nq_program = program
         binary = self.compiler.native_quil_to_executable(nq_program)

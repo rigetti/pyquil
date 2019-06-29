@@ -203,9 +203,9 @@ class QPUCompiler(AbstractCompiler):
         return {'quilc': quilc_version_info}
 
     @_record_call
-    def quil_to_native_quil(self, program: Program) -> Program:
+    def quil_to_native_quil(self, program: Program, protoquil=False) -> Program:
         request = NativeQuilRequest(quil=program.out(), target_device=self.target_device)
-        response = self.quilc_client.call('quil_to_native_quil', request).asdict()  # type: Dict
+        response = self.quilc_client.call('quil_to_native_quil', request, protoquil=False).asdict()  # type: Dict
         nq_program = parse_program(response['quil'])
         nq_program.native_quil_metadata = response['metadata']
         nq_program.num_shots = program.num_shots
@@ -280,23 +280,13 @@ class QVMCompiler(AbstractCompiler):
         return self.client.call('get_version_info')
 
     @_record_call
-    def quil_to_native_quil(self, program: Program) -> Program:
+    def quil_to_native_quil(self, program: Program, protoquil = False) -> Program:
         request = NativeQuilRequest(quil=program.out(), target_device=self.target_device)
-        response = self.client.call('quil_to_native_quil', request).asdict()  # type: Dict
+        response = self.client.call('quil_to_native_quil', request, protoquil=protoquil).asdict()  # type: Dict
         nq_program = parse_program(response['quil'])
         nq_program.native_quil_metadata = response['metadata']
         nq_program.num_shots = program.num_shots
         return nq_program
-
-    @_record_call
-    def quil_to_protoquil(self, program: Program) -> Program:
-        request = NativeQuilRequest(quil=program.out(), target_device=self.target_device)
-        response = self.client.call('quil_to_protoquil', request).asdict()  # type: Dict
-        nq_program = parse_program(response['quil'])
-        nq_program.native_quil_metadata = response['metadata']
-        nq_program.num_shots = program.num_shots
-        return nq_program
-
 
     @_record_call
     def native_quil_to_executable(self, nq_program: Program) -> PyQuilExecutableResponse:
