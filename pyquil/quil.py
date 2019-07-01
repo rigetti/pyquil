@@ -200,7 +200,7 @@ class Program(object):
             The matrix elements along each axis are ordered by bitstring. For two qubits the order
             is ``00, 01, 10, 11``, where the the bits **are ordered in reverse** by the qubit index,
             i.e., for qubits 0 and 1 the bitstring ``01`` indicates that qubit 0 is in the state 1.
-            See also :ref:`the related documentation section in the QVM Overview <basis-ordering>`.
+            See also :ref:`the related documentation section in the WavefunctionSimulator Overview <basis_ordering>`.
 
         :param string name: The name of the gate.
         :param list params: Parameters to send to the gate.
@@ -219,7 +219,7 @@ class Program(object):
             The matrix elements along each axis are ordered by bitstring. For two qubits the order
             is ``00, 01, 10, 11``, where the the bits **are ordered in reverse** by the qubit index,
             i.e., for qubits 0 and 1 the bitstring ``01`` indicates that qubit 0 is in the state 1.
-            See also :ref:`the related documentation section in the QVM Overview <basis-ordering>`.
+            See also :ref:`the related documentation section in the WavefunctionSimulator Overview <basis_ordering>`.
 
 
         :param string name: The name of the gate.
@@ -239,7 +239,7 @@ class Program(object):
             The matrix elements along each axis are ordered by bitstring. For two qubits the order
             is ``00, 01, 10, 11``, where the the bits **are ordered in reverse** by the qubit index,
             i.e., for qubits 0 and 1 the bitstring ``01`` indicates that qubit 0 is in the state 1.
-            See also :ref:`the related documentation section in the QVM Overview <basis-ordering>`.
+            See also :ref:`the related documentation section in the WavefunctionSimulator Overview <basis_ordering>`.
 
 
         :param str name: The name of the gate.

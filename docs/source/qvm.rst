@@ -236,7 +236,7 @@ Instantiation
 -------------
 
 A decent amount of information needs to be provided to initialize the ``compiler``, ``device``, and ``qam`` attributes,
-much of which is already in your :ref:`config files <_advanced_usage>` (or provided reasonable defaults when running locally).
+much of which is already in your :ref:`config files <advanced_usage>` (or provided reasonable defaults when running locally).
 Typically, you will want a :py:class:`~pyquil.api.QuantumComputer` which either:
 
   - pertains to a real, available QPU device
