@@ -147,18 +147,18 @@ class QuantumComputer:
         measuring in the Z basis. Then the Confusion matrix for the readout error is specified by
         the probabilities
 
-            p_{j|i} := Pr(measured = j | prepared = i ).
+            p(j|i) := Pr(measured = j | prepared = i ).
 
         In the case of a single qubit i,j \in [0,1] then:
-        there is no readout error if p_{0|0} = p_{1|1} = 1.
-        the readout error is symmetric if p_{0|0} = p_{1|1} = 1 - epsilon.
-        the readout error is asymmetric if p_{0|0} != p_{1|1}.
+        there is no readout error if p(0|0) = p(1|1) = 1.
+        the readout error is symmetric if p(0|0) = p(1|1) = 1 - epsilon.
+        the readout error is asymmetric if p(0|0) != p(1|1).
 
         If your quantum computer has this kind of asymmetric readout error then
-        `qc.run_symmetrized_readout` will symmetrize the readout error.
+        ``qc.run_symmetrized_readout`` will symmetrize the readout error.
 
         The readout error above is only asymmetric on a single bit. In practice the confusion
-        matrix on n bits need not be symmetric, e.g. for two qubits p_{ij|ij} != 1 - epsilon for
+        matrix on n bits need not be symmetric, e.g. for two qubits p(ij|ij) != 1 - epsilon for
         all i,j. In these situations a more sophisticated means of symmetrization is needed; and
         we use orthogonal arrays (OA) built from Hadamard matrices.
 
