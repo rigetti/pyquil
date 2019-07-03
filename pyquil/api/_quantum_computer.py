@@ -198,7 +198,7 @@ class QuantumComputer:
 
         sym_programs, flip_arrays = _symmetrization(program, meas_qubits, symm_type)
 
-        # Floor division so e.g. 9 // 8 = 1 and 17 // 8 = 2
+        # Floor division so e.g. 9 // 8 = 1 and 17 // 8 = 2.
         num_shots_per_prog = trials // len(sym_programs)
 
         if num_shots_per_prog * len(sym_programs) < trials:
