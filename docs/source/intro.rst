@@ -38,16 +38,16 @@ Probabilistic Bits as Vector Spaces
 
 From an operational perspective, a bit is described by the results of
 measurements performed on it. Let the possible results of measuring a bit (0
-or 1) be represented by orthonormal basis vectors \\(\\vec{0}\\) and
-\\(\\vec{1}\\). We will call these vectors **outcomes**. These outcomes
+or 1) be represented by orthonormal basis vectors :math:`\vec{0}` and
+:math:`\vec{1}`. We will call these vectors **outcomes**. These outcomes
 span a two-dimensional vector space that represents a probabilistic bit.
 A probabilistic bit can be represented as a vector
 
 .. math::  \vec{v} = a\,\vec{0} + b\,\vec{1},
 
-where \\(a\\) represents the probability of the bit being 0 and \\(b\\)
+where :math:`a` represents the probability of the bit being 0 and :math:`b`
 represents the probability of the bit being 1. This clearly also
-requires that \\(a+b=1\\). In this picture the **system** (the
+requires that :math:`a+b=1`. In this picture the **system** (the
 probabilistic bit) is a two-dimensional real vector space and a
 **state** of a system is a particular vector in that vector space.
 
@@ -80,9 +80,9 @@ Given some state vector, like the one plotted above, we can find the
 probabilities associated with each outcome by projecting the vector onto
 the basis outcomes. This gives us the following rule:
 
-.. math::  \operatorname{Pr}(0) = \vec{v}^T.\vec{0} = a \\ \operatorname{Pr}(1) = \vec{v}^T.\vec{1} = b,
+.. math::  \operatorname{Pr}(0) = \vec{v}^T \cdot \vec{0} = a \\ \operatorname{Pr}(1) = \vec{v}^T \cdot \vec{1} = b,
 
-where Pr(0) and Pr(1) are the probabilities of the 0 and 1 outcomes
+where :math:`\operatorname{Pr}(0)` and :math:`\operatorname{Pr}(1)` are the probabilities of the 0 and 1 outcomes
 respectively.
 
 Dirac Notation
@@ -96,7 +96,7 @@ of the great theoretical physicist Paul Dirac, allows us to define
 
 Thus, we can rewrite our "measurement rule" in this notation as
 
-.. math::  Pr(0) = \langle v \vert 0 \rangle = a \\ Pr(1) = \langle v\vert 1 \rangle = b
+.. math::  \operatorname{Pr}(0) = \langle v \vert 0 \rangle = a \\ \operatorname{Pr}(1) = \langle v\vert 1 \rangle = b
 
 We will use this notation throughout the rest of this introduction.
 
@@ -113,9 +113,9 @@ programmers). Their states can be represented as
     |\,u\rangle = \frac{1}{2}|\,0_u\rangle + \frac{1}{2}|\,1_u\rangle \\
    |\,v\rangle = \frac{1}{2}|\,0_v\rangle + \frac{1}{2}|\,1_v\rangle,
 
-where \\(1\_u\\) represents the outcome 1 on coin \\(u\\). The
-**combined system** of the two coins has four possible outcomes \\(\\{
-0\_u0\_v,\\;0\_u1\_v,\\;1\_u0\_v,\\;1\_u1\_v \\}\\) that are the basis
+where :math:`1_u` represents the outcome 1 on coin :math:`u`. The
+**combined system** of the two coins has four possible outcomes :math:`\{
+0_u0_v,\;0_u1_v,\;1_u0_v,\;1_u1_v\}` that are the basis
 states of a larger four-dimensional vector space. The rule for
 constructing a **combined state** is to take the tensor product of
 individual states, e.g.
@@ -125,7 +125,7 @@ individual states, e.g.
 Then, the combined space is simply the space spanned by the tensor products
 of all pairs of basis vectors of the two smaller spaces.
 
-Similarly, the combined state for \\(n\\) such probabilistic bits is a vector of size \\(2^n\\) and is given by \\(\\bigotimes\_{i=0}^{n-1}\|\\,v\_i\\rangle\\). We will talk more about these larger spaces in the quantum case, but it is important to note that not all composite states can be written as tensor products of sub-states (e.g. consider the state \\(\\frac{1}{2}|\\,0\_u0\_v\\rangle + \\frac{1}{2}|\\,1\_u1\_v\\rangle\\)). The most general composite state of \\(n\\) probabilistic bits can be written as \\(\\sum\_{j=0}^{2^n - 1} a\_{j} (\\bigotimes\_{i=0}^{n-1}\|\\,b\_{ij}\\rangle\\)) where each \\(b\_{ij} \\in \\{0, 1\\}\\) and \\(a_j \\in \\mathbb{R}\\), i.e. as a linear combination (with real coefficients) of tensor products of basis states. Note that this still gives us \\(2^n\\) possible states.
+Similarly, the combined state for :math:`n` such probabilistic bits is a vector of size :math:`2^n` and is given by :math:`\bigotimes_{i=0}^{n-1}|\,v_i\rangle`. We will talk more about these larger spaces in the quantum case, but it is important to note that not all composite states can be written as tensor products of sub-states (e.g. consider the state :math:`\frac{1}{2}|\,0_u0_v\rangle + \frac{1}{2}|\,1_u1_v\rangle`). The most general composite state of :math:`n` probabilistic bits can be written as :math:`\sum_{j=0}^{2^n - 1} a_{j} (\bigotimes_{i=0}^{n-1}|\,b_{ij}\rangle` where each :math:`b_{ij} \in \{0, 1\}` and :math:`a_j \in \mathbb{R}`, i.e. as a linear combination (with real coefficients) of tensor products of basis states. Note that this still gives us :math:`2^n` possible states.
 
 Qubits
 ^^^^^^
@@ -136,8 +136,8 @@ it is measured. Similar to the previous section, a qubit can also be
 represented in a vector space, but with complex coefficients instead of
 real ones. A qubit **system** is a two-dimensional complex vector space,
 and the **state** of a qubit is a complex vector in that space. Again we
-will define a basis of outcomes \\(\\{\|\\,0\\rangle,
-\|\\,1\\rangle\\}\\) and let a generic qubit state be written as
+will define a basis of outcomes :math:`\{|\,0\rangle,
+|\,1\rangle\}` and let a generic qubit state be written as
 
 .. math:: \alpha |\,0\rangle + \beta |\,1\rangle.
 
@@ -147,7 +147,7 @@ rewrite the rule for outcomes in the following manner:
 
 .. math::  \operatorname{Pr}(0) = |\langle v\,|\,0 \rangle|^2 = |\alpha|^2 \\ \operatorname{Pr}(1) = |\langle v\,|\,1 \rangle|^2 = |\beta|^2,
 
-and as long as \\(\|\\alpha\|^2 + \|\\beta\|^2 = 1\\) we are able to
+and as long as :math:`|\alpha|^2 + |\beta|^2 = 1` we are able to
 recover acceptable probabilities for outcomes based on our new complex
 vector.
 
@@ -159,14 +159,13 @@ outcome of 0 is represented by:
 
 .. image:: images/bloch_1.png
 
-Notice that the two axes in the horizontal plane have been labeled \\(x\\)
-and \\(y\\), implying that \\(z\\) is the vertical axis (not labeled). Physicists
-use the convention that a qubit's \\(\\{\|\\,0\\rangle,
-\|\\,1\\rangle\\}\\) states are the
+Notice that the two axes in the horizontal plane have been labeled :math:`x`
+and :math:`y`, implying that :math:`z` is the vertical axis (not labeled). Physicists
+use the convention that a qubit's :math:`\{|\,0\rangle, |\,1\rangle\}` states are the
 positive and negative unit vectors along the z axis, respectively. These
 axes will be useful later in this document.
 
-Multiple qubits are represented in precisely the same way, by taking linear combinations (with complex coefficients, now) of tensor products of basis states. Thus \\(n\\) qubits have \\(2^n\\) possible states.
+Multiple qubits are represented in precisely the same way, by taking linear combinations (with complex coefficients, now) of tensor products of basis states. Thus :math:`n` qubits have :math:`2^n` possible states.
 
 An Important Distinction
 ^^^^^^^^^^^^^^^^^^^^^^^^
@@ -418,8 +417,8 @@ called the Pauli operators:
 The Pauli matrices have a visual interpretation: they perform 180-degree rotations of
 qubit state vectors on the Bloch sphere. They operate about their respective axes
 as shown in the Bloch sphere depicted above. For example, the ``X`` gate performs a 180-degree
-rotation **about** the \\(x\\) axis. This explains the results of our code above: for a state vector
-initially in the +\\(z\\) direction, both ``X`` and ``Y`` gates will rotate it to -\\(z\\),
+rotation **about** the :math:`x` axis. This explains the results of our code above: for a state vector
+initially in the :math:`+z` direction, both ``X`` and ``Y`` gates will rotate it to :math:`-z`,
 and the ``Z`` gate will leave it unchanged.
 
 However, notice that while the ``X`` and ``Y`` gates produce the same outcome probabilities, they
@@ -512,8 +511,8 @@ Let's take a look at how we could use a ``CNOT`` gate in pyQuil.
 The ``CNOT`` gate does what its name implies: the state of the second qubit is flipped
 (negated) if and only if the state of the first qubit is 1 (true).
 
-Another two-qubit gate example is the ``SWAP`` gate, which swaps the \\( \|01\\rangle \\)
-and \\(\|10\\rangle \\) states:
+Another two-qubit gate example is the ``SWAP`` gate, which swaps the :math:`|01\rangle`
+and :math:`|10\rangle` states:
 
 .. math::
 
@@ -553,7 +552,7 @@ The Quantum Abstract Machine
 
 We now have enough background to introduce the programming model
 that underlies Quil. This is a hybrid quantum-classical model in which
-\\(N\\) qubits interact with \\(M\\) classical bits:
+:math:`N` qubits interact with :math:`M` classical bits:
 
 .. image:: images/qam.png
 
@@ -681,11 +680,10 @@ The following pyQuil code shows how we can use the Hadamard gate:
     {'0': 0.49999999999999989, '1': 0.49999999999999989}
 
 
-A qubit in this state will be measured half of the time in the \\( \|0\\rangle \\) state,
-and half of the time in the \\( \|1\\rangle \\) state. In a sense, this qubit truly is a
-random variable representing a
-coin. In fact, there are many wavefunctions that will give this same operational
-outcome. There is a continuous family of states of the form
+A qubit in this state will be measured half of the time in the :math:`|0\rangle` state,
+and half of the time in the :math:`|1\rangle` state. In a sense, this qubit truly is a
+random variable representing a coin. In fact, there are many wavefunctions that will give
+this same operational outcome. There is a continuous family of states of the form
 
 .. math::
 
@@ -741,9 +739,9 @@ pyQuil allows us to look at the wavefunction **after** a measurement as well:
 
 We can clearly see that measurement has an effect on the quantum state
 independent of what is stored classically. We begin in a state that has
-a 50-50 probability of being \\( \|0\\rangle \\) or \\( \|1\\rangle \\).
-After measurement, the state changes into being entirely in \\( \|0\\rangle \\)
-or entirely in \\( \|1\\rangle \\) according to which outcome was
+a 50-50 probability of being :math:`|0\rangle` or :math:`|1\rangle`.
+After measurement, the state changes into being entirely in :math:`|0\rangle`
+or entirely in :math:`|1\rangle` according to which outcome was
 obtained. This is the phenomenon referred to as the **collapse** of the wavefunction.
 Mathematically, the wavefunction is being projected onto the vector of
 the obtained outcome and subsequently rescaled to unit norm.
@@ -776,7 +774,7 @@ the obtained outcome and subsequently rescaled to unit norm.
 
 The above program prepares **entanglement** because, even though there are
 random outcomes, after every measurement both qubits are in the same state. They
-are either both \\( \|0\\rangle \\) or both \\( \|1\\rangle \\). This special kind of
+are either both :math:`|0\rangle` or both :math:`|1\rangle`. This special kind of
 correlation is part of what makes quantum mechanics so unique and powerful.
 
 

@@ -22,10 +22,13 @@ In terms of compatibility with Quil 1.0, this primarily changes how ``MEASURE`` 
 classical address targets must be modified to fit the new framework. In terms of new functionality, this allows angle
 values to be read in from classical memory.
 
-Quil 2 also introduces easier ways to manipulate gates by using gate modifiers. Two gate modifiers are supported currently,
-`DAGGER` and `CONTROLLED`.
+``DAGGER`` and ``CONTROLLED`` modifiers
+--------------------------------------------
 
-`DAGGER` can be written before a gate to refer to its inverse. For instance::
+Quil 2 also introduces easier ways to manipulate gates by using gate modifiers. Two gate modifiers are supported currently,
+``DAGGER`` and ``CONTROLLED``.
+
+``DAGGER`` can be written before a gate to refer to its inverse. For instance::
 
     DAGGER RX(pi/3) 0
 
@@ -33,7 +36,7 @@ would have the same effect as::
 
     RX(-pi/3) 0
 
-`DAGGER` can be applied to any gate, but also circuits defined with `DEFCIRCUIT`. This allows for easy reversal of unitary circuits::
+``DAGGER`` can be applied to any gate, but also circuits defined with ``DEFCIRCUIT``. This allows for easy reversal of unitary circuits::
 
     DEFCIRCUIT BELL:
         H 0
@@ -44,6 +47,10 @@ would have the same effect as::
     # disentangle, bringing us back to identity
     DAGGER BELL
 
+.. _quil_2_declare:
+
+``DECLARE``
+------------
 
 Classical memory regions must be explicitly requested and named by a Quil program using ``DECLARE`` directive. A generic
 ``DECLARE`` directive has the following syntax:

@@ -14,3 +14,4 @@ Checklist
 - [ ] (New Feature) The docs have been updated accordingly.
 - [ ] (Bugfix) The associated issue is referenced above using
       [auto-close keywords](https://help.github.com/en/articles/closing-issues-using-keywords).
+- [ ] The changelog (`docs/source/changes.rst`) has a description of this change.
