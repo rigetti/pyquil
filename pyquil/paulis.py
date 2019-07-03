@@ -409,7 +409,7 @@ class PauliTerm(object):
 
         return ''.join(self[q] for q in qubits)
 
-    def matrix(self, qubit_mapping={}, n_qubits=None):
+    def matrix(self, qubit_mapping={}):
         """Create the matrix representation of self.
 
         :param n_qubits:  Number of qubits to represent self on. If none the maximum qubit in the
@@ -418,9 +418,7 @@ class PauliTerm(object):
                               to :py:class:`int`
         :return: np.matrix representing the PauliTerm
         """
-
-        return PauliSum([self]).matrix(qubit_mapping=qubit_mapping,
-                                       n_qubits=n_qubits)
+        return PauliSum([self]).matrix(qubit_mapping=qubit_mapping)
 
 
 # For convenience, a shorthand for several operators.
@@ -692,71 +690,34 @@ class PauliSum(object):
         coefficients = np.array([term.coefficient for term in self.terms])
         return programs, coefficients
 
-    def matrix(self, qubit_mapping={}, n_qubits=None):
+    def matrix(self, qubit_mapping={}):
         """Create the matrix representation of self.
 
-        :param n_qubits:  Number of qubits to represent self on. If None, the maximum qubit from
-                         the PauliSum or qubit_mapping is used
-        :param qubit_mapping: A dictionary-like object that maps from :py:class`QubitPlaceholder`
-                              to :py:class:`int`
-        :return: np.matrix representing the PauliTerm
+        :param qubit_mapping: A dictionary-like object that maps from
+                              :py:class`QubitPlaceholder` to :py:class:`int`
+        :return: np.matrix representing the PauliSum
         """
 
-        # get a list of the qubits in self
-        self_qubits = self.get_qubits()
-        # find maximum real qubit in self for later use
-        max_qubit = 0
-        for qubit in self_qubits:
-            if isinstance(qubit, int):
-                if qubit > max_qubit:
-                    max_qubit = qubit
+        # get unmapped Qubits and check that all QubitPlaceholders are mapped
+        unmapped_qubits = {*self.get_qubits()} - qubit_mapping.keys()
+        if not all(isinstance(q, int) for q in unmapped_qubits):
+            raise ValueError("Not all QubitPlaceholders are mapped")
 
-        # n_qubits defaults to the maximum of the mapped or used qubits
-        # (depending on which is larger)
-        if n_qubits is None:
-            n_qubits = max({max_qubit} | {*qubit_mapping.values()}) + 1
-        elif n_qubits < max({max_qubit} | {*qubit_mapping.values()}) + 1:
-            raise ValueError("n_qubits is smaller than the highest qubit in"
-                             " the hamiltonian")
+        # invert qubit_mapping and assert its injectivity
+        inv_mapping = dict([v, k] for k, v in qubit_mapping.items())
+        if len(inv_mapping) is not len(qubit_mapping):
+            raise ValueError("qubit_mapping must be injective")
 
-        # create a list of qubits ordered by how they should appear in the
-        # tensor product.
-        # We don't automatically skip in all real qubits, because  we want to
-        # be able to also map real qubits to other indices in the tensor
-        # product
-        qubit_list = [*range(n_qubits)]
-        is_already_mapped_on = [False] * n_qubits
-        for qubit in self_qubits:
-            # check that we didn't already map to this physical qubit
-            try:
-                if is_already_mapped_on[qubit_mapping[qubit]] is False:
-                    try:
-                        qubit_list[qubit_mapping[qubit]] = qubit
-                        is_already_mapped_on[qubit_mapping[qubit]] = True
-                    except IndexError:
-                        raise ValueError("n_qubits lower than the maximum "
-                                         "qubit in the PauliTerm or qubit_map")
-                # raise exception, if we already mapped to qubit_mappig[qubit]
-                else:
-                    raise ValueError("qubit_mapping is not injective")
+        # add unmapped qubits to the inverse mapping, ensuring we don't have
+        # a list entry twice
+        for q in unmapped_qubits:
+            if q not in inv_mapping.keys():
+                inv_mapping[q] = q
+            else:
+                raise ValueError("qubit_mapping maps to qubit already in use")
 
-            # handle the case, where `qubit` doesn't appear in the keys of
-            # qubit_mapping. Either because it is already a real qubit
-            # or because a QubitPlaceholder didn't get mapped
-            except KeyError:
-                # don't do anything, if qubit is already an integer
-                if isinstance(qubit, QubitPlaceholder):
-                    raise ValueError("qubit_mapping doesn't map all "
-                                     "QubitPlaceholders to real qubits")
-                elif isinstance(qubit, int):
-                    if is_already_mapped_on[qubit]:
-                        raise ValueError("qubit_mapping is not injective")
-                    else:
-                        is_already_mapped_on[qubit] = True
+        qubit_list = [inv_mapping[k] for k in sorted(inv_mapping.keys())]
 
-        # create the matrix using unitary_tools.lifted_pauli
-        # using deferred import here, because importing at the top of
-        # the file causes a circular import.
         from pyquil.unitary_tools import lifted_pauli
         matrix = lifted_pauli(self, qubit_list)
         return matrix

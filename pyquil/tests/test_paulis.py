@@ -688,39 +688,46 @@ def test_PauliSum_from_str():
 def test_PauliTerm_matrix():
     term = 1.5 * sX(0) * sZ(2)
     matrix1 = term.matrix()
-    matrix2 = np.array([[0, 1.5, 0, 0, 0, 0, 0, 0],
-                         [1.5, 0, 0, 0, 0, 0, 0, 0],
-                         [0, 0, 0, 1.5, 0, 0, 0, 0],
-                         [0, 0, 1.5, 0, 0, 0, 0, 0],
-                         [0, 0, 0, 0, 0, -1.5, 0, 0],
-                         [0, 0, 0, 0, -1.5, 0, 0, 0],
-                         [0, 0, 0, 0, 0, 0, 0, -1.5],
-                         [0, 0, 0, 0, 0, 0, -1.5, 0]])
+    matrix2 = np.array([[0, 1.5, 0, 0],
+                        [1.5, 0, 0, 0],
+                        [0, 0, 0, -1.5],
+                        [0, 0, -1.5, 0]])
     assert np.allclose(matrix1, matrix2)
-    matrix1 = term.matrix(n_qubits=4)
-    matrix2 = np.kron(np.array([[1, 0], [0, 1]]), matrix2)
+    matrix1 = term.matrix(qubit_mapping={0: 0, 1: 1, 2: 2})
+    matrix2 = np.array([[0, 1.5, 0, 0, 0, 0, 0, 0],
+                        [1.5, 0, 0, 0, 0, 0, 0, 0],
+                        [0, 0, 0, 1.5, 0, 0, 0, 0],
+                        [0, 0, 1.5, 0, 0, 0, 0, 0],
+                        [0, 0, 0, 0, 0, -1.5, 0, 0],
+                        [0, 0, 0, 0, -1.5, 0, 0, 0],
+                        [0, 0, 0, 0, 0, 0, 0, -1.5],
+                        [0, 0, 0, 0, 0, 0, -1.5, 0]])
     assert np.allclose(matrix1, matrix2)
 
     with pytest.raises(ValueError):
-        term.matrix(n_qubits=2)
+        term.matrix(qubit_mapping={0: 0, 2: 0})
 
 
 def test_PauliSum_matrix():
     Sum = 1.5 * sX(0) * sZ(2) + 0.7 * sZ(1)
     matrix1 = Sum.matrix()
     matrix2 = np.array([[0, 1.5, 0, 0, 0, 0, 0, 0],
-                         [1.5, 0, 0, 0, 0, 0, 0, 0],
-                         [0, 0, 0, 1.5, 0, 0, 0, 0],
-                         [0, 0, 1.5, 0, 0, 0, 0, 0],
-                         [0, 0, 0, 0, 0, -1.5, 0, 0],
-                         [0, 0, 0, 0, -1.5, 0, 0, 0],
-                         [0, 0, 0, 0, 0, 0, 0, -1.5],
-                         [0, 0, 0, 0, 0, 0, -1.5, 0]])
+                        [1.5, 0, 0, 0, 0, 0, 0, 0],
+                        [0, 0, 0, 1.5, 0, 0, 0, 0],
+                        [0, 0, 1.5, 0, 0, 0, 0, 0],
+                        [0, 0, 0, 0, 0, -1.5, 0, 0],
+                        [0, 0, 0, 0, -1.5, 0, 0, 0],
+                        [0, 0, 0, 0, 0, 0, 0, -1.5],
+                        [0, 0, 0, 0, 0, 0, -1.5, 0]])
     matrix2 += np.diag([0.7, 0.7, -0.7, -0.7, 0.7, 0.7, -0.7, -0.7])
     assert(np.allclose(matrix1, matrix2))
-    matrix1 = Sum.matrix(n_qubits=4)
-    matrix2 = np.kron(np.array([[1, 0], [0, 1]]), matrix2)
+    matrix1 = Sum.matrix(qubit_mapping={0: 2, 1: 1, 2: 0})
+    matrix2 = np.array([[0.7, 0., 0., 0., 1.5, 0., 0., 0.],
+                       [0., 0.7, 0., 0., 0., -1.5, 0., 0.],
+                       [0., 0., -0.7, 0., 0., 0., 1.5, 0.],
+                       [0., 0., 0., -0.7, 0., 0., 0., -1.5],
+                       [1.5, 0., 0., 0., 0.7, 0., 0., 0.],
+                       [0., -1.5, 0., 0., 0., 0.7, 0., 0.],
+                       [0., 0., 1.5, 0., 0., 0., -0.7, 0.],
+                       [0., 0., 0., -1.5, 0., 0., 0., -0.7]])
     assert np.allclose(matrix1, matrix2)
-
-    with pytest.raises(ValueError):
-        Sum.matrix(n_qubits=2)
