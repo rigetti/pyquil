@@ -171,10 +171,10 @@ class QuantumComputer:
         In the context of readout symmetrization the strength of the orthogonal array enforces
         the symmetry of the marginal confusion matrices.
 
-        By default a strength 3 OA is used; this ensures expectations of the form <b_k * b_j * b_i>
+        By default a strength 3 OA is used; this ensures expectations of the form <b_k . b_j . b_i>
         for bits any bits i,j,k will have symmetric readout errors. Here expectation of a random
         variable x as is denote <x> = sum_i Pr(i) x_i. It turns out that a strength 3 OA is also a
-        strength 2 and strength 1 OA it also ensures <b_j * b_i> and <b_i> have symmetric readout
+        strength 2 and strength 1 OA it also ensures <b_j . b_i> and <b_i> have symmetric readout
         errors for any bits b_j and b_i.
 
         :param program: The program to run symmetrized readout on.
