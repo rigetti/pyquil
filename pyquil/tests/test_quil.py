@@ -287,61 +287,13 @@ def test_measure_all():
 
 
 def test_dagger():
-    # these gates are their own inverses
-    p = Program().inst(I(0), X(0), Y(0), Z(0),
-                       H(0), CNOT(0, 1), CCNOT(0, 1, 2),
-                       SWAP(0, 1), CSWAP(0, 1, 2))
-    assert p.dagger().out() == 'CSWAP 0 1 2\nSWAP 0 1\n' \
-                               'CCNOT 0 1 2\nCNOT 0 1\nH 0\n' \
-                               'Z 0\nY 0\nX 0\nI 0\n'
+    p = Program(X(0), H(0))
+    assert p.dagger().out() == 'DAGGER H 0\n' \
+                               'DAGGER X 0\n'
 
-    # these gates require negating a parameter
-    p = Program().inst(PHASE(pi, 0), RX(pi, 0), RY(pi, 0),
-                       RZ(pi, 0), CPHASE(pi, 0, 1),
-                       CPHASE00(pi, 0, 1), CPHASE01(pi, 0, 1),
-                       CPHASE10(pi, 0, 1), PSWAP(pi, 0, 1))
-    assert p.dagger().out() == 'PSWAP(-pi) 0 1\n' \
-                               'CPHASE10(-pi) 0 1\n' \
-                               'CPHASE01(-pi) 0 1\n' \
-                               'CPHASE00(-pi) 0 1\n' \
-                               'CPHASE(-pi) 0 1\n' \
-                               'RZ(-pi) 0\n' \
-                               'RY(-pi) 0\n' \
-                               'RX(-pi) 0\n' \
-                               'PHASE(-pi) 0\n'
-
-    # these gates are special cases
-    p = Program().inst(S(0), T(0), ISWAP(0, 1))
-    assert p.dagger().out() == 'PSWAP(pi/2) 0 1\n' \
-                               'RZ(pi/4) 0\n' \
-                               'PHASE(-pi/2) 0\n'
-
-    # must invert defined gates
-    G = np.array([[0, 1], [0 + 1j, 0]])
-    p = Program().defgate("G", G).inst(("G", 0))
-    assert p.dagger().out() == 'DEFGATE G-INV:\n' \
-                               '    0.0, -i\n' \
-                               '    1.0, 0.0\n\n' \
-                               'G-INV 0\n'
-
-    # can also pass in a list of inverses
-    inv_dict = {"G": "J"}
-    p = Program().defgate("G", G).inst(("G", 0))
-    assert p.dagger(inv_dict=inv_dict).out() == 'J 0\n'
-
-    # defined parameterized gates cannot auto generate daggered version https://github.com/rigetti/pyquil/issues/304
-    theta = Parameter('theta')
-    gparam_matrix = np.array([[quil_cos(theta / 2), -1j * quil_sin(theta / 2)],
-                             [-1j * quil_sin(theta / 2), quil_cos(theta / 2)]])
-    g_param_def = DefGate('GPARAM', gparam_matrix, [theta])
-    p = Program(g_param_def)
-    with pytest.raises(TypeError):
-        p.dagger()
-
-    # defined parameterized gates should passback parameters https://github.com/rigetti/pyquil/issues/304
-    GPARAM = g_param_def.get_constructor()
-    p = Program(GPARAM(pi)(1, 2))
-    assert p.dagger().out() == 'GPARAM-INV(pi) 1 2\n'
+    p = Program(X(0), MEASURE(0, 0))
+    with pytest.raises(ValueError) as e:
+        p.dagger().out()
 
     # ensure that modifiers are preserved https://github.com/rigetti/pyquil/pull/914
     p = Program()
@@ -356,14 +308,10 @@ def test_dagger():
     p += T(target).controlled(control)
     p += PHASE(pi, target).controlled(control)
     p += CNOT(cnot_control, target).controlled(control)
-    assert p.dagger().out() == 'CONTROLLED CNOT 0 2 1\n' \
-                               'CONTROLLED PHASE(-pi) 0 1\n' \
-                               'CONTROLLED RZ(pi/4) 0 1\n' \
-                               'CONTROLLED PHASE(-pi/2) 0 1\n' \
-                               'CONTROLLED H 0 1\n' \
-                               'CONTROLLED Z 0 1\n' \
-                               'CONTROLLED Y 0 1\n' \
-                               'CONTROLLED X 0 1\n'
+
+    for instr, instr_dagger in zip(reversed(p._instructions),
+                                   p.dagger()._instructions):
+        assert 'DAGGER ' + instr.out() == instr_dagger.out()
 
 
 def test_construction_syntax():

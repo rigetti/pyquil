@@ -348,8 +348,8 @@ def CPHASE(angle, control, target):
     This gate applies to two qubit arguments to produce the variant of the controlled phase
     instruction that affects the state 11.
 
-    Compare with the :py:func:`CPHASExx` variants. This variant is the most common and does
-    not have a suffix, although you can think of it as ``CPHASE11`.
+    Compare with the ``CPHASExx`` variants. This variant is the most common and does
+    not have a suffix, although you can think of it as ``CPHASE11``.
 
     :param angle: The input phase angle to apply when both qubits are in the ``|1>`` state.
     :param control: Qubit 1.
