@@ -134,7 +134,7 @@ class QuantumComputer:
         r"""
         Run a quil program in such a way that the readout error is made symmetric. Enforcing
         symmetric readout error is useful in simplifying the assumptions in some near
-        term error mitigation strategies, see `measure_observables` for more information.
+        term error mitigation strategies, see ``measure_observables`` for more information.
 
         The simplest example is for one qubit. In a noisy device, the probability of accurately
         reading the 0 state might be higher than that of the 1 state; due to e.g. amplitude
@@ -143,11 +143,11 @@ class QuantumComputer:
         it will insert an ``X`` gate prior to any ``MEASURE`` instruction and then flip the
         measured classical bit back. Overall this has the effect of symmetrizing the readout error.
 
-        The details. Consider preparing the input bitstring |i> (in the computational basis) and
+        The details. Consider preparing the input bitstring ``|i>`` (in the computational basis) and
         measuring in the Z basis. Then the Confusion matrix for the readout error is specified by
         the probabilities
 
-            p(j|i) := Pr(measured = j | prepared = i ).
+             p(j|i) := Pr(measured = j | prepared = i ).
 
         In the case of a single qubit i,j \in [0,1] then:
         there is no readout error if p(0|0) = p(1|1) = 1.
@@ -164,18 +164,18 @@ class QuantumComputer:
 
         The symmetrization types are specified by an int; the types available are:
         -1 -- exhaustive symmetrization uses every possible combination of flips
-         0 -- trivial that is no symmetrization
-         1 -- symmetrization using an OA with strength 1
-         2 -- symmetrization using an OA with strength 2
-         3 -- symmetrization using an OA with strength 3
+        0 -- trivial that is no symmetrization
+        1 -- symmetrization using an OA with strength 1
+        2 -- symmetrization using an OA with strength 2
+        3 -- symmetrization using an OA with strength 3
         In the context of readout symmetrization the strength of the orthogonal array enforces
         the symmetry of the marginal confusion matrices.
 
-        By default a strength 3 OA is used; this ensures expectations of the form <b_k . b_j . b_i>
-        for bits any bits i,j,k will have symmetric readout errors. Here expectation of a random
-        variable x as is denote <x> = sum_i Pr(i) x_i. It turns out that a strength 3 OA is also a
-        strength 2 and strength 1 OA it also ensures <b_j . b_i> and <b_i> have symmetric readout
-        errors for any bits b_j and b_i.
+        By default a strength 3 OA is used; this ensures expectations of the form
+        ``<b_k . b_j . b_i>`` for bits any bits i,j,k will have symmetric readout errors. Here
+        expectation of a random variable x as is denote ``<x> = sum_i Pr(i) x_i``. It turns out that
+        a strength 3 OA is also a strength 2 and strength 1 OA it also ensures ``<b_j . b_i>`` and
+        ``<b_i>`` have symmetric readout errors for any bits b_j and b_i.
 
         :param program: The program to run symmetrized readout on.
         :param trials: The minimum number of times to run the program; it is recommend that this
