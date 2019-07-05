@@ -37,7 +37,7 @@ class Wavefunction(object):
         The elements of the wavefunction are ordered by bitstring. E.g., for two qubits the order
         is ``00, 01, 10, 11``, where the the bits **are ordered in reverse** by the qubit index,
         i.e., for qubits 0 and 1 the bitstring ``01`` indicates that qubit 0 is in the state 1.
-        See also :ref:`the related documentation section in the QVM Overview <basis-ordering>`.
+        See also :ref:`the related documentation section in the WavefunctionSimulator Overview <basis_ordering>`.
     """
 
     def __init__(self, amplitude_vector):

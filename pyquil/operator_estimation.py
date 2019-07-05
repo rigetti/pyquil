@@ -650,22 +650,21 @@ def group_experiments(experiments: TomographyExperiment,
     Group experiments that are diagonal in a shared tensor product basis (TPB) to minimize number
     of QPU runs.
 
-    Background
-    ----------
+    .. rubric:: Background
 
     Given some PauliTerm operator, the 'natural' tensor product basis to
     diagonalize this term is the one which diagonalizes each Pauli operator in the
     product term-by-term.
 
     For example, X(1) * Z(0) would be diagonal in the 'natural' tensor product basis
-    {(|0> +/- |1>)/Sqrt[2]} * {|0>, |1>}, whereas Z(1) * X(0) would be diagonal
-    in the 'natural' tpb {|0>, |1>} * {(|0> +/- |1>)/Sqrt[2]}. The two operators
+    ``{(|0> +/- |1>)/Sqrt[2]} * {|0>, |1>}``, whereas Z(1) * X(0) would be diagonal
+    in the 'natural' tpb ``{|0>, |1>} * {(|0> +/- |1>)/Sqrt[2]}``. The two operators
     commute but are not diagonal in each others 'natural' tpb (in fact, they are
     anti-diagonal in each others 'natural' tpb). This function tests whether two
     operators given as PauliTerms are both diagonal in each others 'natural' tpb.
 
     Note that for the given example of X(1) * Z(0) and Z(1) * X(0), we can construct
-    the following basis which simultaneously diagonalizes both operators:
+    the following basis which simultaneously diagonalizes both operators::
 
       -- |0>' = |0> (|+>) + |1> (|->)
       -- |1>' = |0> (|+>) - |1> (|->)
@@ -677,8 +676,7 @@ def group_experiments(experiments: TomographyExperiment,
     of the basis vectors are entangled states.
 
 
-    Methods
-    -------
+    .. rubric:: Methods
 
     The "greedy" method will keep a running set of 'buckets' into which grouped ExperimentSettings
     will be placed. Each new ExperimentSetting considered is assigned to the first applicable
@@ -825,7 +823,7 @@ def measure_observables(qc: QuantumComputer, tomo_experiment: TomographyExperime
         settings is run with arguments ``f(i, len(tomo_experiment)`` such that the progress
         is ``i / len(tomo_experiment)``.
     :param active_reset: Whether to actively reset qubits instead of waiting several
-        times the coherence length for qubits to decay to |0> naturally. Setting this
+        times the coherence length for qubits to decay to ``|0>`` naturally. Setting this
         to True is much faster but there is a ~1% error per qubit in the reset operation.
         Thermal noise from "traditional" reset is not routinely characterized but is of the same
         order.

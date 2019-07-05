@@ -8,6 +8,14 @@ Bugfixes:
 
 - ``unitary_tools.lifted_gate()`` was not properly handling modifiers such as ``DAGGER`` and ``CONTROLLED``
 
+v2.9.1 (June 28, 2019)
+----------------------
+
+Bugfixes:
+
+- Relaxed the requirement for a quilc server to exist when users of the ``QuantumComputer``
+  object only want to do simulation work with a ``QVM`` or ``pyQVM`` backend (gh-934).
+
 v2.9 (June 25, 2019)
 --------------------
 

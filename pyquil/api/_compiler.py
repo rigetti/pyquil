@@ -46,6 +46,10 @@ class QuilcNotRunning(Exception):
     pass
 
 
+class QPUCompilerNotRunning(Exception):
+    pass
+
+
 def check_quilc_version(version_dict: Dict[str, str]):
     """
     Verify that there is no mismatch between pyquil and quilc versions.
@@ -186,24 +190,44 @@ class QPUCompiler(AbstractCompiler):
         self.target_device = TargetDevice(isa=device.get_isa().to_dict(),
                                           specs=device.get_specs().to_dict())
         self.name = name
-        self.connect()
+
+        try:
+            self.connect()
+        except QuilcNotRunning as e:
+            warnings.warn(f'{e}. Compilation using quilc will not be available.')
+        except QPUCompilerNotRunning as e:
+            warnings.warn(f'{e}. Compilation using the QPU compiler will not be available.')
 
     def connect(self):
+        self._connect_quilc()
+        if self.qpu_compiler_client:
+            self._connect_qpu_compiler()
+
+    def _connect_quilc(self):
         try:
-            quilc_version_dict = self.get_version_info()['quilc']
+            quilc_version_dict = self.quilc_client.call('get_version_info', rpc_timeout=1)
             check_quilc_version(quilc_version_dict)
         except TimeoutError:
             raise QuilcNotRunning(f'No quilc server running at {self.quilc_client.endpoint}')
 
+    def _connect_qpu_compiler(self):
+        try:
+            self.qpu_compiler_client.call('get_version_info', rpc_timeout=1)
+        except TimeoutError:
+            raise QPUCompilerNotRunning('No QPU compiler server running at '
+                                        f'{self.qpu_compiler_client.endpoint}')
+
     def get_version_info(self) -> dict:
-        quilc_version_info = self.quilc_client.call('get_version_info')
+        quilc_version_info = self.quilc_client.call('get_version_info', rpc_timeout=1)
         if self.qpu_compiler_client:
-            qpu_compiler_version_info = self.qpu_compiler_client.call('get_version_info')
+            qpu_compiler_version_info = self.qpu_compiler_client.call('get_version_info',
+                                                                      rpc_timeout=1)
             return {'quilc': quilc_version_info, 'qpu_compiler': qpu_compiler_version_info}
         return {'quilc': quilc_version_info}
 
     @_record_call
     def quil_to_native_quil(self, program: Program) -> Program:
+        self._connect_quilc()
         request = NativeQuilRequest(quil=program.out(), target_device=self.target_device)
         response = self.quilc_client.call('quil_to_native_quil', request).asdict()  # type: Dict
         nq_program = parse_program(response['quil'])
@@ -217,6 +241,8 @@ class QPUCompiler(AbstractCompiler):
             raise ValueError("It looks like you're trying to compile to an executable, but "
                              "do not have access to the QPU compiler endpoint. Make sure you "
                              "are engaged to the QPU before trying to do this.")
+
+        self._connect_qpu_compiler()
 
         if nq_program.native_quil_metadata is None:
             warnings.warn("It looks like you're trying to call `native_quil_to_binary` on a "
@@ -267,7 +293,11 @@ class QVMCompiler(AbstractCompiler):
         self.client = Client(endpoint, timeout=timeout)
         self.target_device = TargetDevice(isa=device.get_isa().to_dict(),
                                           specs=device.get_specs().to_dict())
-        self.connect()
+
+        try:
+            self.connect()
+        except QuilcNotRunning as e:
+            warnings.warn(f'{e}. Compilation using quilc will not be available.')
 
     def connect(self):
         try:
@@ -277,10 +307,11 @@ class QVMCompiler(AbstractCompiler):
             raise QuilcNotRunning(f'No quilc server running at {self.client.endpoint}')
 
     def get_version_info(self) -> dict:
-        return self.client.call('get_version_info')
+        return self.client.call('get_version_info', rpc_timeout=1)
 
     @_record_call
     def quil_to_native_quil(self, program: Program) -> Program:
+        self.connect()
         request = NativeQuilRequest(quil=program.out(), target_device=self.target_device)
         response = self.client.call('quil_to_native_quil', request).asdict()  # type: Dict
         nq_program = parse_program(response['quil'])
