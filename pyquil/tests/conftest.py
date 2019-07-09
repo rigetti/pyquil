@@ -192,7 +192,7 @@ def local_qvm_quilc():
 
 
 def pytest_addoption(parser):
-    parser.addoption("--use_seed", action="store", default=True, help="run some tests faster using random seed")
+    parser.addoption("--use-seed", action="store", default=True, help="run some tests faster using random seed")
 
 
 @pytest.fixture()
