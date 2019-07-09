@@ -48,6 +48,7 @@ from pyquil.quilatom import (
     MemoryReferenceDesignator,
     Parameter,
     ParameterDesignator,
+    Frame,
     Qubit,
     QubitDesignator,
     QubitPlaceholder,
@@ -71,6 +72,10 @@ from pyquil.quilbase import (
     Reset,
     ResetQubit,
     DefPermutationGate,
+    DefCalibration,
+    DefFrame,
+    DefMeasureCalibration,
+    DefWaveform,
 )
 
 
@@ -97,6 +102,9 @@ class Program(object):
 
     def __init__(self, *instructions: InstructionDesignator):
         self._defined_gates: List[DefGate] = []
+        self.calibrations: List[Union[DefCalibration, DefMeasureCalibration]] = []
+        self.waveforms: Dict[str, DefWaveform] = {}
+        self.frames: Dict[Frame, DefFrame] = {}
         # Implementation note: the key difference between the private _instructions and
         # the public instructions property below is that the private _instructions list
         # may contain placeholder labels.
@@ -126,7 +134,10 @@ class Program(object):
         :return: a new Program
         """
         new_prog = Program()
+        new_prog.calibrations = self.calibrations.copy()
+        new_prog.waveforms = self.waveforms.copy()
         new_prog._defined_gates = self._defined_gates.copy()
+        new_prog.frames = self.frames.copy()
         if self.native_quil_metadata is not None:
             # TODO: remove this type: ignore once rpcq._base.Message gets type hints.
             new_prog.native_quil_metadata = self.native_quil_metadata.copy()  # type: ignore
@@ -232,6 +243,14 @@ class Program(object):
                     )
 
                 self._defined_gates.append(instruction)
+            elif isinstance(instruction, DefCalibration) or isinstance(
+                instruction, DefMeasureCalibration
+            ):
+                self.calibrations.append(instruction)
+            elif isinstance(instruction, DefWaveform):
+                self.waveforms[instruction.name] = instruction
+            elif isinstance(instruction, DefFrame):
+                self.frames[instruction.frame] = instruction
             elif isinstance(instruction, AbstractInstruction):
                 self._instructions.append(instruction)
                 self._synthesized_instructions = None
@@ -559,9 +578,13 @@ class Program(object):
         """
         Serializes the Quil program to a string suitable for submitting to the QVM or QPU.
         """
+
         return "\n".join(
             itertools.chain(
                 (dg.out() for dg in self._defined_gates),
+                (wf.out() for wf in self.waveforms.values()),
+                (fdef.out() for fdef in self.frames.values()),
+                (cal.out() for cal in self.calibrations),
                 (instr.out() for instr in self.instructions),
                 [""],
             )
@@ -730,6 +753,9 @@ class Program(object):
         return "\n".join(
             itertools.chain(
                 (str(dg) for dg in self._defined_gates),
+                (str(wf) for wf in self.waveforms.values()),
+                (str(fdef) for fdef in self.frames.values()),
+                (str(cal) for cal in self.calibrations),
                 (str(instr) for instr in self.instructions),
                 [""],
             )
@@ -1014,6 +1040,7 @@ def merge_with_pauli_noise(
     return p
 
 
+# TODO: does this need modification?
 def merge_programs(prog_list: Sequence[Program]) -> Program:
     """
     Merges a list of pyQuil programs into a single one by appending them in sequence.
@@ -1080,7 +1107,7 @@ def get_classical_addresses_from_program(program: Program) -> Dict[str, List[int
 
 def percolate_declares(program: Program) -> Program:
     """
-    Move all the DECLARE statements to the top of the program. Return a fresh obejct.
+    Move all the DECLARE statements to the top of the program. Return a fresh object.
 
     :param program: Perhaps jumbled program.
     :return: Program with DECLAREs all at the top and otherwise the same sorted contents.
