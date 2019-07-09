@@ -237,7 +237,7 @@ Now that our local endpoints are up and running, we can start running pyQuil pro
 We will run a simple program on the Quantum Virtual Machine (QVM).
 
 The program we will create prepares a fully entangled state between two qubits, called a Bell State. This state is in an equal
-superposition between |00⟩ and |11⟩, meaning that it is equally likely that a measurement will result in measuring
+superposition between :math:`\ket{00}` and :math:`\ket{11}`, meaning that it is equally likely that a measurement will result in measuring
 both qubits in the ground state or both qubits in the excited state. For more details about the physics behind these
 concepts, see :ref:`intro`.
 

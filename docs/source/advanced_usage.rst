@@ -194,14 +194,14 @@ loop by following these steps:
 
 1. Declare a register called ``flag_register`` to use as a boolean test for looping.
 
-2. Initialize this register to ``1`` program so our while loop will execute. This is often called the
+2. Initialize this register to ``1``, so our while loop will execute. This is often called the
    *loop preamble* or *loop initialization*.
 
 3. Write the body of the loop in its own :py:class:`~pyquil.quil.Program`. This will be a
-   program that applies an :math:`X` gate followed by a :math:`H` gate on our
+   program that applies an :math:`X` gate followed by an :math:`H` gate on our
    qubit.
 
-4. Using the :py:func:`~pyquil.quil.Program.while_do` method to add control flow.
+4. Use the :py:func:`~pyquil.quil.Program.while_do` method to add control flow.
 
 .. code:: python
 
@@ -336,7 +336,7 @@ exponential of the Pauli term, i.e., :math:`\exp[-i\beta\sigma]`.  This is
 accomplished by constructing a parameterized Quil program that is evaluated
 when passed values for the coefficients of the angle :math:`\beta`.
 
-Related to exponentiating Pauli sums we provide utility functions for finding
+Related to exponentiating Pauli sums, we provide utility functions for finding
 the commuting subgroups of a Pauli sum and approximating the exponential with the
 Suzuki-Trotter approximation through fourth order.
 

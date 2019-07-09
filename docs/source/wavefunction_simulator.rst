@@ -58,6 +58,8 @@ amplitudes directly or look at a dictionary of associated outcome probabilities.
 It is important to remember that this ``wavefunction`` method is a useful debugging tool for small quantum systems, and
 cannot be feasibly obtained on a quantum processor.
 
+.. _basis_ordering:
+
 Multi-Qubit Basis Enumeration
 -----------------------------
 

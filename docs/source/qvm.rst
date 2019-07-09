@@ -20,7 +20,7 @@ Within pyQuil, there is a :py:class:`~pyquil.api.QVM` object and a :py:class:`~p
 the exposed APIs of the QVM and QPU servers, respectively.
 
 On this page, we'll learn a bit about the :ref:`QVM <qvm_use>` and :ref:`QPU <qpu>`. Then we will
-show you how to use them from pyQuil with a :ref:`quantum_computer`.
+show you how to use them from pyQuil with a :ref:`QuantumComputer <quantum_computer>` object.
 
 For information on constructing quantum programs, please refer back to :ref:`basics`.
 
@@ -236,7 +236,7 @@ Instantiation
 -------------
 
 A decent amount of information needs to be provided to initialize the ``compiler``, ``device``, and ``qam`` attributes,
-much of which is already in your :ref:`config files <_advanced_usage>` (or provided reasonable defaults when running locally).
+much of which is already in your :ref:`config files <advanced_usage>` (or provided reasonable defaults when running locally).
 Typically, you will want a :py:class:`~pyquil.api.QuantumComputer` which either:
 
   - pertains to a real, available QPU device
@@ -419,8 +419,8 @@ Simulating the QPU using the QVM
 The :py:class:`~pyquil.api.QAM` methods are intended to be used in the same way, whether a QVM or QPU is being targeted.
 Everywhere on this page,
 you can swap out the type of the QAM (QVM <=> QPU) and you will still
-get reasonable results back. As long as the topology of the devices are the same, programs compiled and ran on the QVM
-will be able to run on the QPU and visa-versa. Since :py:class:`~pyquil.api.QuantumComputer` is built on the ``QAM``
+get reasonable results back. As long as the topologies of the devices are the same, programs compiled and run on the QVM
+will be able to run on the QPU and vice versa. Since :py:class:`~pyquil.api.QuantumComputer` is built on the ``QAM``
 abstract class, its methods will also work for both QAM implementations.
 
 This makes the QVM a powerful tool for testing quantum programs before executing them on the QPU.

@@ -1,8 +1,11 @@
+:orphan:
+
 Wavefunction Methods
 ====================
 
 .. currentmodule:: pyquil.api
 .. autoclass:: pyquil.api.WavefunctionSimulator
+    :noindex:
 
     .. rubric:: Methods
     .. autosummary::
@@ -16,7 +19,6 @@ Wavefunction Methods
 
 
 .. currentmodule:: pyquil.wavefunction
-
 .. autoclass:: pyquil.wavefunction.Wavefunction
 
     .. rubric:: Attributes and Methods
@@ -24,7 +26,6 @@ Wavefunction Methods
         :toctree: autogen
         :template: autosumm.rst
 
-        ~Wavefunction.amplitudes
         ~Wavefunction.probabilities
         ~Wavefunction.pretty_print
         ~Wavefunction.pretty_print_probabilities
