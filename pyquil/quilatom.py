@@ -84,7 +84,7 @@ class Qubit(QuilAtom):
 class FormalArgument(QuilAtom):
     """
     Representation of a formal argument associated with a DEFCIRCUIT or DEFGATE ... AS PAULI-SUM
-    form.
+    or DEFCAL form.
     """
 
     def __init__(self, name: str):
@@ -736,3 +736,115 @@ class Addr(MemoryReference):
         if not isinstance(value, int) or value < 0:
             raise TypeError("Addr value must be a non-negative int")
         super(Addr, self).__init__("ro", offset=value, declared_size=None)
+
+
+class Frame(QuilAtom):
+    """
+    Representation of a frame descriptor.
+
+    :param qubits: List of qubits associated to the frame.
+    :param name: String name associated to the frame.
+    """
+
+    def __init__(self, qubits: List[Union[Qubit, FormalArgument]], name: str):
+        assert isinstance(qubits, list)
+        assert isinstance(name, str)
+        self.name = name
+        self.qubits = qubits
+
+    def __eq__(self, other: object) -> bool:
+        return (
+            isinstance(other, Frame) and (self.name == other.name) and (self.qubits == other.qubits)
+        )
+
+    def __hash__(self) -> int:
+        return hash((self.name, tuple(self.qubits)))
+
+    def __str__(self) -> str:
+        return self.out()
+
+    def out(self) -> str:
+        return " ".join([q.out() for q in self.qubits]) + f' "{self.name}"'
+
+
+class Waveform(QuilAtom):
+    """
+    Representation of a Waveform reference.
+
+    :param name: Name of the waveform definition.
+    :param params: Dict of numerical parameters to supply to the waveform definition.
+    """
+
+    def __init__(self, name: str, params: Mapping[str, float]):
+        self.name = name
+        self.params = params
+
+    def __eq__(self, other: object) -> bool:
+        return (
+            isinstance(other, Waveform) and self.name == other.name and self.params == other.params
+        )
+
+    def __hash__(self) -> int:
+        h = hash(self.name)
+        for key, val in self.params.items():
+            if isinstance(val, list):
+                h ^= hash((key, tuple(val)))
+            else:
+                h ^= hash((key, val))
+        return h
+
+    def out(self) -> str:
+        ret = self.name
+        if len(self.params) == 0:
+            return ret
+        else:
+            (first_name, first_value), *params = list(self.params.items())
+            ret += f"({first_name}: {first_value}"
+            for (param_name, param_value) in params:
+                ret += f", {param_name}: {param_value}"
+            return ret + ")"
+
+    def __str__(self) -> str:
+        return self.out()
+
+
+class AffineKernelFamily(QuilAtom):
+    """
+    Representation of a family of affine kernels.
+
+    NOTE: At present, we support only families of size 1.
+
+    :param kernels: List  (or, in the case of a family of size 1, waveform) of individual kernel waveforms.
+    :param matrix: Matrix (or, in the case of a family of size 1, scalar)   by which to recombine kernel convolutions.
+    :param offset: Vector (or, in the case of a family of size 1, offset)   by which to offset recombined kernel convolutions.
+    """
+
+    def __init__(
+        self,
+        kernels: Union[Waveform, List[Waveform]],
+        matrix: Union[complex, np.ndarray],
+        offset: Union[float, np.ndarray],
+    ):
+        assert isinstance(kernels, Waveform)
+        assert isinstance(matrix, complex)
+        assert isinstance(offset, float)
+        self.kernels = kernels
+        self.matrix = matrix
+        self.offset = offset
+
+    def __eq__(self, other: object) -> bool:
+        return (
+            isinstance(other, AffineKernelFamily)
+            and self.offset == other.offset
+            and self.matrix == other.matrix
+            and self.kernels == other.kernels
+        )
+
+    def __hash__(self) -> int:
+        return hash((self.kernels, self.matrix, self.offset))
+
+    def out(self) -> str:
+        return f"{self.matrix}*({self.kernels})+({self.offset})"
+
+    def __str__(self) -> str:
+        return self.out()

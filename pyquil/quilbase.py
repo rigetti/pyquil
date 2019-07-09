@@ -18,6 +18,7 @@ Contains the core pyQuil objects that correspond to Quil instructions.
 """
 import collections
 import numpy as np
+from numbers import Complex
 from typing import (
     Any,
     Callable,
@@ -25,6 +26,7 @@ from typing import (
     Container,
     Dict,
     Iterable,
+    Mapping,
     List,
     Optional,
     Sequence,
@@ -43,9 +45,12 @@ from pyquil.quilatom import (
     MemoryReference,
     Parameter,
     ParameterDesignator,
+    Frame,
+    Waveform,
     Qubit,
     QubitDesignator,
     QubitPlaceholder,
+    FormalArgument,
     _contained_parameters,
     format_parameter,
     unpack_qubit,
@@ -111,6 +116,22 @@ RESERVED_WORDS: Container[str] = [
     "LE",
     "LOAD",
     "STORE",
+    # Quilt additions:
+    "DEFCAL",
+    "DEFFRAME",
+    "DEFWAVEFORM",
+    "PULSE",
+    "CAPTURE",
+    "RAW-CAPTURE",
+    "DELAY",
+    "FENCE",
+    "SET-FREQUENCY",
+    "SET-PHASE",
+    "SHIFT-PHASE",
+    "SWAP-PHASES",
+    "SET-SCALE",
+    "SAMPLE-RATE",
+    "INITIAL-FREQUENCY",
     # to be removed:
     "TRUE",
     "FALSE",
@@ -126,22 +147,26 @@ def _extract_qubit_index(
     return qubit.index
 
 
-def _format_qubit_str(qubit: Union[Qubit, QubitPlaceholder]) -> str:
+def _format_qubit_str(qubit: Union[Qubit, QubitPlaceholder, FormalArgument]) -> str:
     if isinstance(qubit, QubitPlaceholder):
         return "{%s}" % str(qubit)
     return str(qubit)
 
 
-def _format_qubits_str(qubits: Iterable[Union[Qubit, QubitPlaceholder]]) -> str:
+def _format_qubits_str(qubits: Iterable[Union[Qubit, QubitPlaceholder, FormalArgument]]) -> str:
     return " ".join([_format_qubit_str(qubit) for qubit in qubits])
 
 
-def _format_qubits_out(qubits: Iterable[Union[Qubit, QubitPlaceholder]]) -> str:
+def _format_qubits_out(qubits: Iterable[Union[Qubit, QubitPlaceholder, FormalArgument]]) -> str:
     return " ".join([qubit.out() for qubit in qubits])
 
 
 def _format_params(params: Iterable[ParameterDesignator]) -> str:
     return "(" + ",".join(format_parameter(param) for param in params) + ")"
+
+
+def _join_strings(*args: str) -> str:
+    return " ".join(map(str, args))
 
 
 class Gate(AbstractInstruction):
@@ -1124,3 +1149,234 @@ class RawInstr(AbstractInstruction):
 
     def __repr__(self) -> str:
         return "<RawInstr {}>".format(self.instr)
+
+
+class Pulse(AbstractInstruction):
+    def __init__(self, frame: Frame, waveform: Waveform, nonblocking: bool = False):
+        self.frame = frame
+        self.waveform = waveform
+        self.nonblocking = nonblocking
+
+    def out(self) -> str:
+        return (
+            f'{"NONBLOCKING " if self.nonblocking else ""}PULSE {self.frame} {self.waveform.out()}'
+        )
+
+
+class SetFrequency(AbstractInstruction):
+    def __init__(self, frame: Frame, freq: ParameterDesignator):
+        self.frame = frame
+        self.freq = freq
+
+    def out(self) -> str:
+        return f"SET-FREQUENCY {self.frame} {self.freq}"
+
+
+class SetPhase(AbstractInstruction):
+    def __init__(self, frame: Frame, phase: ParameterDesignator):
+        self.frame = frame
+        self.phase = phase
+
+    def out(self) -> str:
+        return f"SET-PHASE {self.frame} {self.phase}"
+
+
+class ShiftPhase(AbstractInstruction):
+    def __init__(self, frame: Frame, phase: ParameterDesignator):
+        self.frame = frame
+        self.phase = phase
+
+    def out(self) -> str:
+        return f"SHIFT-PHASE {self.frame} {self.phase}"
+
+
+class SwapPhase(AbstractInstruction):
+    def __init__(self, frameA: Frame, frameB: Frame):
+        self.frameA = frameA
+        self.frameB = frameB
+
+    def out(self) -> str:
+        return f"SWAP-PHASE {self.frameA} {self.frameB}"
+
+
+class SetScale(AbstractInstruction):
+    def __init__(self, frame: Frame, scale: ParameterDesignator):
+        self.frame = frame
+        self.scale = scale
+
+    def out(self) -> str:
+        return f"SET-SCALE {self.frame} {self.scale}"
+
+
+class Capture(AbstractInstruction):
+    def __init__(
+        self,
+        frame: Frame,
+        waveform: Waveform,
+        memory_region: MemoryReference,
+        nonblocking: bool = False,
+    ):
+        self.frame = frame
+        self.waveform = waveform
+        self.memory_region = memory_region
+        self.nonblocking = nonblocking
+
+    def out(self) -> str:
+        return (
+            f'{"NONBLOCKING " if self.nonblocking else ""}CAPTURE {self.frame} {self.waveform.out()}'
+            + (" " + self.memory_region.out() if self.memory_region is not None else "")
+        )
+
+
+class RawCapture(AbstractInstruction):
+    def __init__(
+        self,
+        frame: Frame,
+        duration: ParameterDesignator,
+        memory_region: MemoryReference,
+        nonblocking: bool = False,
+    ):
+        self.frame = frame
+        self.duration = duration
+        self.memory_region = memory_region
+        self.nonblocking = nonblocking
+
+    def out(self) -> str:
+        return f'{"NONBLOCKING " if self.nonblocking else ""}RAW-CAPTURE {self.frame} {self.duration} {self.memory_region.out()}'
+
+
+class DelayFrames(AbstractInstruction):
+    def __init__(self, frames: List[Frame], duration: ParameterDesignator):
+
+        # all frames should be on the same qubits
+        if len(frames) == 0:
+            raise ValueError("DELAY expected nonempty list of frames.")
+        if len(set(tuple(f.qubits) for f in frames)) != 1:
+            raise ValueError(
+                "DELAY with explicit frames requires all frames are on the same qubits."
+            )
+
+        self.frames = frames
+        self.duration = duration
+
+    def out(self) -> str:
+        qubits = self.frames[0].qubits
+        ret = "DELAY " + _format_qubits_str(qubits)
+        for f in self.frames:
+            ret += f' "{f.name}"'
+        ret += f" {self.duration}"
+        return ret
+
+
+class DelayQubits(AbstractInstruction):
+    def __init__(self, qubits: List[Union[Qubit, FormalArgument]], duration: ParameterDesignator):
+        self.qubits = qubits
+        self.duration = duration
+
+    def out(self) -> str:
+        return f"DELAY {_format_qubits_str(self.qubits)} {self.duration}"
+
+
+class Fence(AbstractInstruction):
+    def __init__(self, qubits: List[Union[Qubit, FormalArgument]]):
+        self.qubits = qubits
+
+    def out(self) -> str:
+        ret = "FENCE " + _format_qubits_str(self.qubits)
+        return ret
+
+
+class DefWaveform(AbstractInstruction):
+    def __init__(
+        self,
+        name: str,
+        parameters: List[Parameter],
+        sample_rate: float,
+        entries: List[Union[Complex, Expression]],
+    ):
+        self.name = name
+        self.parameters = parameters
+        self.entries = entries
+        for e in entries:
+            if not isinstance(e, (Complex, Expression)):
+                raise TypeError(f"Unsupported waveform entry {e}")
+        self.sample_rate = sample_rate
+
+    def out(self) -> str:
+        ret = f"DEFWAVEFORM {self.name}"
+        # TODO: simplify this
+        if len(self.parameters) > 0:
+            first_param, *params = self.parameters
+            ret += f"({first_param}"
+            for param in params:
+                ret += f", {param}"
+            ret += ")"
+        ret += f" {self.sample_rate} :\n    "
+
+        def _iq_str(iq: Union[Complex, Expression]) -> str:
+            return str(iq) if isinstance(iq, Expression) else f"{iq.real} + ({iq.imag})*i"
+
+        ret += ", ".join(map(_iq_str, self.entries))
+        return ret
+
+
+class DefCalibration(AbstractInstruction):
+    def __init__(
+        self,
+        name: str,
+        parameters: List[ParameterDesignator],
+        qubits: List[Union[Qubit, FormalArgument]],
+        instrs: List[AbstractInstruction],
+    ):
+        self.name = name
+        self.parameters = parameters
+        self.qubits = qubits
+        self.instrs = instrs
+
+    def out(self) -> str:
+        ret = f"DEFCAL {self.name}"
+        if len(self.parameters) > 0:
+            ret += _format_params(self.parameters)
+        ret += " " + _format_qubits_str(self.qubits) + ":\n"
+        for instr in self.instrs:
+            ret += f"    {instr.out()}\n"
+        return ret
+
+
+class DefMeasureCalibration(AbstractInstruction):
+    def __init__(
+        self,
+        qubit: Union[Qubit, FormalArgument],
+        memory_reference: Optional[MemoryReference],
+        instrs: List[AbstractInstruction],
+    ):
+        self.qubit = qubit
+        self.memory_reference = memory_reference
+        self.instrs = instrs
+
+    def out(self) -> str:
+        ret = f"DEFCAL MEASURE {self.qubit}"
+        if self.memory_reference is not None:
+            ret += f" {self.memory_reference}"
+        ret += ":\n"
+        for instr in self.instrs:
+            ret += f"    {instr.out()}\n"
+        return ret
+
+
+class DefFrame(AbstractInstruction):
+    def __init__(self, frame: Frame, options: Optional[Mapping[str, Any]] = None):
+        if options is None:
+            options = {}
+        self.frame = frame
+        self.options = options
+
+    def out(self) -> str:
+        r = f"DEFFRAME {self.frame.out()}"
+        if len(self.options) > 0:
+            r += ":"
+            for name, value in self.options.items():
+                if isinstance(value, str):
+                    value = f'"{value}"'
+                r += f"\n    {name}: {value}"
+        return r + "\n"
