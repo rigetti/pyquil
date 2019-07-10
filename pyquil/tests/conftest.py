@@ -198,11 +198,11 @@ def _str_to_bool(s):
     elif s == 'False':
         return False
     else:
-        raise argparse.ArgumentTypeError("Please specify either True or False")
+        raise ValueError("Please specify either True or False")
 
 
 def pytest_addoption(parser):
-    parser.addoption("--use-seed", action="store", type=_str_to_bool, default=True, help="run some tests faster using random seed")
+    parser.addoption("--use-seed", action="store", type=_str_to_bool, default=False, help="run some tests faster using random seed")
 
 
 @pytest.fixture()
