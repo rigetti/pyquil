@@ -324,7 +324,7 @@ class Program(object):
         :param Tuple qubit_reg_pairs: Tuples of qubit indices paired with classical bits.
         :return: The Quil Program with the appropriate measure instructions appended, e.g.
 
-        .. code::
+        .. code:: text
 
                   MEASURE 0 [1]
                   MEASURE 1 [2]
@@ -350,7 +350,7 @@ class Program(object):
 
         Equivalent to the following construction:
 
-        .. code::
+        .. code:: text
 
             WHILE [c]:
                instr...
@@ -382,7 +382,7 @@ class Program(object):
 
         Equivalent to the following construction:
 
-        .. code::
+        .. code:: text
 
             IF [c]:
                instrA...

@@ -29,7 +29,7 @@ you also go to our section on :ref:`intro`. There, you’ll learn the basic conc
 can also work through an introduction to quantum computing in a jupyter notebook; launch the notebook from the source folder
 in pyquil's docs:
 
-.. code::
+.. code:: shell
 
     cd pyquil/docs/source
     jupyter notebook intro_to_qc.ipynb
