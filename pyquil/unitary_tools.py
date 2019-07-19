@@ -276,7 +276,7 @@ def lifted_gate(gate: Gate, n_qubits: int):
     else:
         matrix = QUANTUM_GATES[gate.name]
 
-    for mod in gate.modifiers:
+    for mod in reversed(gate.modifiers):
         if mod == 'DAGGER':
             matrix = matrix.conj().T
         if mod == 'CONTROLLED':
