@@ -510,19 +510,14 @@ To read more about supplying noise to the QVM, see http://pyquil.readthedocs.io/
             quil_program = apply_noise_model(quil_program, self.noise_model)
 
         quil_program = self.augment_program_with_memory_values(quil_program)
-        try:
-            self._memory_results = self.connection._qvm_run(quil_program=quil_program,
-                                                            classical_addresses=classical_addresses,
-                                                            trials=trials,
-                                                            measurement_noise=self.measurement_noise,
-                                                            gate_noise=self.gate_noise,
-                                                            random_seed=self.random_seed)
-        except KeyError:
-            warnings.warn("You are running a QVM program with no MEASURE instructions. "
-                          "The result of this program will always be an empty array. Are "
-                          "you sure you didn't mean to measure some of your qubits?")
-            self._memory_results = {"ro": np.zeros((trials, 0), dtype=np.int64)}
-
+        
+        self._memory_results = self.connection._qvm_run(quil_program=quil_program,
+                                                        classical_addresses=classical_addresses,
+                                                        trials=trials,
+                                                        measurement_noise=self.measurement_noise,
+                                                        gate_noise=self.gate_noise,
+                                                        random_seed=self.random_seed)
+        
         return self
 
     def augment_program_with_memory_values(self, quil_program):
