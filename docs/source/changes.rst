@@ -4,9 +4,16 @@ Changelog
 v2.10 (in development)
 ----------------------
 
+Improvements and Changes:
+
+- Add the ability to query for other memory regions after both QPU and QVM runs.
+  This removes a previously unnecessary restriction on the QVM, although ``ro``
+  remains the only QPU-writeable memory region during Quil execution.
+
 Bugfixes:
 
 - ``unitary_tools.lifted_gate()`` was not properly handling modifiers such as ``DAGGER`` and ``CONTROLLED``.
+
 
 v2.9.1 (June 28, 2019)
 ----------------------
