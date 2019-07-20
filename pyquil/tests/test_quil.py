@@ -217,17 +217,17 @@ def test_unary_classicals():
 
 def test_binary_classicals():
     p = Program()
-    p.inst(AND(Addr(0), Addr(1)),
-           OR(Addr(1), Addr(0)),
-           MOVE(Addr(0), Addr(1)),
-           CONVERT(Addr(0), Addr(1)),
-           IOR(Addr(0), Addr(1)),
-           XOR(Addr(0), Addr(1)),
-           ADD(Addr(0), Addr(1)),
-           SUB(Addr(0), Addr(1)),
-           MUL(Addr(0), Addr(1)),
-           DIV(Addr(0), Addr(1)),
-           EXCHANGE(Addr(0), Addr(1)))
+    p.inst(AND(MemoryReference("ro",0), MemoryReference("ro",1)),
+           OR(MemoryReference("ro",1), MemoryReference("ro",0)),
+           MOVE(MemoryReference("ro",0), MemoryReference("ro",1)),
+           CONVERT(MemoryReference("ro",0), MemoryReference("ro",1)),
+           IOR(MemoryReference("ro",0), MemoryReference("ro",1)),
+           XOR(MemoryReference("ro",0), MemoryReference("ro",1)),
+           ADD(MemoryReference("ro",0), MemoryReference("ro",1)),
+           SUB(MemoryReference("ro",0), MemoryReference("ro",1)),
+           MUL(MemoryReference("ro",0), MemoryReference("ro",1)),
+           DIV(MemoryReference("ro",0), MemoryReference("ro",1)),
+           EXCHANGE(MemoryReference("ro",0), MemoryReference("ro",1)))
     assert p.out() == 'AND ro[0] ro[1]\n' \
                       'IOR ro[0] ro[1]\n' \
                       'MOVE ro[0] ro[1]\n' \
