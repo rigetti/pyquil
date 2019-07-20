@@ -429,15 +429,15 @@ def test_while():
 
 
 def test_halt():
-    prog = Program(X(0), MEASURE(0, 0))
+    prog = Program(X(0), MEASURE(0, MemoryReference("ro",0)))
     prog.inst(HALT)
-    prog.inst(X(0), MEASURE(0, 0))
+    prog.inst(X(0), MEASURE(0, MemoryReference("ro",0)))
     qam = PyQVM(n_qubits=1, quantum_simulator_type=ReferenceWavefunctionSimulator)
     qam.execute(prog)
     # HALT should stop execution; measure should give 1
     assert qam.ram['ro'][0] == 1
 
-    prog = Program(X(0)).inst(X(0)).inst(MEASURE(0, 0))
+    prog = Program(X(0)).inst(X(0)).inst(MEASURE(0, MemoryReference("ro",0)))
     qam = PyQVM(n_qubits=1, quantum_simulator_type=ReferenceWavefunctionSimulator)
     qam.execute(prog)
     assert qam.ram['ro'][0] == 0
