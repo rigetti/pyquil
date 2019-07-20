@@ -21,7 +21,7 @@ def fast_reset(q1):
 
 
 def test_fast_reset():
-    assert fast_reset(0) == Program('MEASURE 0 ro[0]').if_then(("ro", 0), Program('X 0'), Program('I 0'))
+    assert fast_reset(0) == Program('DECLARE ro BIT[8]\nMEASURE 0 ro[0]').if_then(("ro", 0), Program('X 0'), Program('I 0'))
 
 
 @magicquil
