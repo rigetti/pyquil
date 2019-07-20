@@ -13,6 +13,7 @@ from pyquil.paulis import PauliTerm, exponentiate, sZ, sX, sI, sY
 from pyquil.pyqvm import PyQVM
 from pyquil.quil import Program
 from pyquil.reference_simulator import ReferenceWavefunctionSimulator
+from pyquil.quilatom import MemoryReference
 
 QFT_8_INSTRUCTIONS = [
     H(7),
