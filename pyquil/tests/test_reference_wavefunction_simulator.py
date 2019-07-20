@@ -445,7 +445,7 @@ def test_halt():
 
 def test_biased_coin():
     # sample from a 75% heads and 25% tails coin
-    prog = Program().inst(RX(np.pi / 3, 0)).measure(0, 0)
+    prog = Program().inst(RX(np.pi / 3, 0)).measure(0, MemoryReference("ro",0))
 
     results = []
     qam = PyQVM(n_qubits=1, quantum_simulator_type=ReferenceWavefunctionSimulator)
