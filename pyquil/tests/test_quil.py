@@ -261,8 +261,8 @@ def test_ternary_classicals():
 
 def test_measurement_calls():
     p = Program()
-    p.inst(MEASURE(0, 1),
-           MEASURE(0, Addr(1)))
+    p.inst(MEASURE(0, MemoryReference("ro",1)),
+           MEASURE(0, MemoryReference("ro",1)))
     assert p.out() == ('DECLARE ro BIT[2]\n'
                        'MEASURE 0 ro[1]\n'
                        'MEASURE 0 ro[1]\n')
