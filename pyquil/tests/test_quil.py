@@ -112,7 +112,7 @@ def test_len_one():
 
 
 def test_len_nested():
-    p = Program(H(0)).measure(0, 0)
+    p = Program(H(0)).measure(0, MemoryReference("ro",0))
     q = Program(H(0), CNOT(0, 1))
     p.if_then(MemoryReference("ro", 0), q)
     assert len(p) == 9
@@ -128,7 +128,7 @@ def test_plus_operator():
 
 def test_indexing():
     program = Program(Declare('ro', 'BIT'), H(0), Y(1), CNOT(0, 1)) \
-        .measure(0, 0) \
+        .measure(0, MemoryReference("ro",0)) \
         .if_then(MemoryReference("ro", 0), Program(X(0)), Program())
     assert program[1] == H(0)
     for ii, instr in enumerate(program.instructions):
@@ -184,7 +184,7 @@ def test_program_slice():
 
 def test_prog_init():
     p = Program()
-    p.inst(X(0)).measure(0, 0)
+    p.inst(X(0)).measure(0, MemoryReference("ro",0))
     assert p.out() == ('DECLARE ro BIT[1]\n'
                        'X 0\n'
                        'MEASURE 0 ro[0]\n')
@@ -192,7 +192,7 @@ def test_prog_init():
 
 def test_classical_regs():
     p = Program()
-    p.inst(X(0)).measure(0, 1)
+    p.inst(X(0)).measure(0, MemoryReference("ro",1))
     assert p.out() == ('DECLARE ro BIT[2]\n'
                        'X 0\n'
                        'MEASURE 0 ro[1]\n')
@@ -270,7 +270,7 @@ def test_measurement_calls():
 
 def test_measure_all():
     p = Program()
-    p.measure_all((0, 0), (1, 1), (2, 3))
+    p.measure_all((0, MemoryReference("ro",0)), (1, MemoryReference("ro",1)), (2, MemoryReference("ro",3)))
     assert p.out() == 'DECLARE ro BIT[4]\n' \
                       'MEASURE 0 ro[0]\n' \
                       'MEASURE 1 ro[1]\n' \
@@ -291,7 +291,7 @@ def test_dagger():
     assert p.dagger().out() == 'DAGGER H 0\n' \
                                'DAGGER X 0\n'
 
-    p = Program(X(0), MEASURE(0, 0))
+    p = Program(X(0), MEASURE(0, MemoryReference("ro",0)))
     with pytest.raises(ValueError) as e:
         p.dagger().out()
 
@@ -315,19 +315,19 @@ def test_dagger():
 
 
 def test_construction_syntax():
-    p = Program().inst(X(0), Y(1), Z(0)).measure(0, 1)
+    p = Program().inst(X(0), Y(1), Z(0)).measure(0, MemoryReference("ro",1))
     assert p.out() == ('DECLARE ro BIT[2]\n'
                        'X 0\n'
                        'Y 1\n'
                        'Z 0\n'
                        'MEASURE 0 ro[1]\n')
-    p = Program().inst(X(0)).inst(Y(1)).measure(0, 1).inst(MEASURE(1, 2))
+    p = Program().inst(X(0)).inst(Y(1)).measure(0, 1).inst(MEASURE(1, MemoryReference("ro",2)))
     assert p.out() == ('DECLARE ro BIT[3]\n'
                        'X 0\n'
                        'Y 1\n'
                        'MEASURE 0 ro[1]\n'
                        'MEASURE 1 ro[2]\n')
-    p = Program().inst(X(0)).measure(0, 1).inst(Y(1), X(0)).measure(0, 0)
+    p = Program().inst(X(0)).measure(0, MemoryReference("ro",1)).inst(Y(1), X(0)).measure(0, MemoryReference("ro",0))
     assert p.out() == ('DECLARE ro BIT[2]\n'
                        'X 0\n'
                        'MEASURE 0 ro[1]\n'
@@ -459,9 +459,9 @@ def test_control_flows_2():
     # create a program that branches based on the value of a classical register
     x_prog = Program(X(0))
     z_prog = Program()
-    branch = Program(H(1)).measure(1, 1) \
+    branch = Program(H(1)).measure(1, MemoryReference("ro",1)) \
         .if_then(MemoryReference("ro", 1), x_prog, z_prog) \
-        .measure(0, 0)
+        .measure(0, MemoryReference("ro",0))
     assert branch.out() == ('DECLARE ro BIT[2]\n'
                             'H 1\n'
                             'MEASURE 1 ro[1]\n'
@@ -474,7 +474,7 @@ def test_control_flows_2():
 
 
 def test_if_option():
-    p = Program(X(0)).measure(0, 0).if_then(MemoryReference("ro", 0), Program(X(1)))
+    p = Program(X(0)).measure(0, MemoryReference("ro",0)).if_then(MemoryReference("ro", 0), Program(X(1)))
     assert p.out() == ('DECLARE ro BIT[1]\n'
                        'X 0\n'
                        'MEASURE 0 ro[0]\n'
@@ -649,11 +649,11 @@ pauli_noise 0
 
 
 def test_get_qubits():
-    pq = Program(X(0), CNOT(0, 4), MEASURE(5, 5))
+    pq = Program(X(0), CNOT(0, 4), MEASURE(5, MemoryReference("ro",5)))
     assert pq.get_qubits() == {0, 4, 5}
 
     q = [QubitPlaceholder() for _ in range(6)]
-    pq = Program(X(q[0]), CNOT(q[0], q[4]), MEASURE(q[5], 5))
+    pq = Program(X(q[0]), CNOT(q[0], q[4]), MEASURE(q[5], MemoryReference("ro",5)))
     qq = pq.alloc()
     pq.inst(Y(q[2]), X(qq))
     assert address_qubits(pq).get_qubits() == {0, 1, 2, 3, 4}
@@ -671,7 +671,7 @@ def test_get_qubits():
 
 def test_get_qubit_placeholders():
     qs = QubitPlaceholder.register(8)
-    pq = Program(X(qs[0]), CNOT(qs[0], qs[4]), MEASURE(qs[5], 5))
+    pq = Program(X(qs[0]), CNOT(qs[0], qs[4]), MEASURE(qs[5], MemoryReference("ro",5)))
     assert pq.get_qubits() == {qs[i] for i in [0, 4, 5]}
 
 
@@ -799,7 +799,7 @@ PRAGMA READOUT-POVM 1 "(0.9 0.19999999999999996 0.09999999999999998 0.8)"
 def test_if_then_inherits_defined_gates():
     p1 = Program()
     p1.inst(H(0))
-    p1.measure(0, 0)
+    p1.measure(0, MemoryReference("ro",0))
 
     p2 = Program()
     p2.defgate("A", np.array([[1., 0.], [0., 1.]]))
@@ -837,7 +837,7 @@ def test_installing_programs_inside_other_programs():
 
 # https://github.com/rigetti/pyquil/issues/168
 def test_nesting_a_program_inside_itself():
-    p = Program(H(0)).measure(0, 0)
+    p = Program(H(0)).measure(0, MemoryReference("ro",0))
     with pytest.raises(ValueError):
         p.if_then(MemoryReference("ro", 0), p)
 
@@ -858,7 +858,7 @@ def test_defgate_integer_input():
 
 def test_out_vs_str():
     qs = QubitPlaceholder.register(6)
-    pq = Program(X(qs[0]), CNOT(qs[0], qs[4]), MEASURE(qs[5], 5))
+    pq = Program(X(qs[0]), CNOT(qs[0], qs[4]), MEASURE(qs[5], MemoryReference("ro",5)))
 
     with pytest.raises(RuntimeError) as e:
         pq.out()
@@ -873,7 +873,7 @@ def test_get_classical_addresses_from_program():
     p = Program([H(i) for i in range(4)])
     assert get_classical_addresses_from_program(p) == {}
 
-    p += [MEASURE(i, i) for i in [0, 3, 1]]
+    p += [MEASURE(i, MemoryReference("ro",i)) for i in [0, 3, 1]]
     assert get_classical_addresses_from_program(p) == {"ro": [0, 1, 3]}
 
 
@@ -920,7 +920,7 @@ PRAGMA READOUT-POVM 1 "(0.9 0.19999999999999996 0.09999999999999998 0.8)"
 
 
 def test_implicit_declare():
-    program = Program(MEASURE(0, 0))
+    program = Program(MEASURE(0, MemoryReference("ro",0)))
     assert program.out() == ('DECLARE ro BIT[1]\n'
                              'MEASURE 0 ro[0]\n')
 
