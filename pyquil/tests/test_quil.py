@@ -676,7 +676,7 @@ def test_get_qubit_placeholders():
 
 
 def test_get_qubits_not_as_indices():
-    pq = Program(X(0), CNOT(0, 4), MEASURE(5, 5))
+    pq = Program(X(0), CNOT(0, 4), MEASURE(5, MemoryReference("ro",5)))
     assert pq.get_qubits(indices=False) == {Qubit(i) for i in [0, 4, 5]}
 
 
