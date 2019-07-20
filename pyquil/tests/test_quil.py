@@ -205,7 +205,7 @@ def test_simple_instructions():
 
 def test_unary_classicals():
     p = Program()
-    p.inst(TRUE(0),
+    p.inst(TRUE(MemoryReference("ro",0)),
            FALSE(MemoryReference("ro",1)),
            NOT(MemoryReference("ro",2)),
            NEG(MemoryReference("ro",3)))
