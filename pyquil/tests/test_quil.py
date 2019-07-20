@@ -206,9 +206,9 @@ def test_simple_instructions():
 def test_unary_classicals():
     p = Program()
     p.inst(TRUE(0),
-           FALSE(Addr(1)),
-           NOT(Addr(2)),
-           NEG(Addr(3)))
+           FALSE(MemoryReference("ro",1)),
+           NOT(MemoryReference("ro",2)),
+           NEG(MemoryReference("ro",3)))
     assert p.out() == 'MOVE ro[0] 1\n' \
                       'MOVE ro[1] 0\n' \
                       'NOT ro[2]\n' \
@@ -279,7 +279,7 @@ def test_measure_all():
     p = Program([H(idx) for idx in range(4)])
     p.measure_all()
     for idx in range(4):
-        assert p[idx + 5] == MEASURE(idx, idx)
+        assert p[idx + 5] == MEASURE(idx, MemoryReference("ro",idx))
 
     p = Program()
     p.measure_all()
@@ -321,7 +321,7 @@ def test_construction_syntax():
                        'Y 1\n'
                        'Z 0\n'
                        'MEASURE 0 ro[1]\n')
-    p = Program().inst(X(0)).inst(Y(1)).measure(0, 1).inst(MEASURE(1, MemoryReference("ro",2)))
+    p = Program().inst(X(0)).inst(Y(1)).measure(0, MemoryReference("ro",1)).inst(MEASURE(1, MemoryReference("ro",2)))
     assert p.out() == ('DECLARE ro BIT[3]\n'
                        'X 0\n'
                        'Y 1\n'
