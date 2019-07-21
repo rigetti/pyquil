@@ -202,7 +202,7 @@ def test_estimate_assignment_probs():
     ap_target = np.array([[p00, 1 - p11],
                           [1 - p00, p11]])
 
-    povm_pragma = Pragma("READOUT-POVM", (MemoryReference("ro", 0), "({} {} {} {})".format(*ap_target.flatten())))
+    povm_pragma = Pragma("READOUT-POVM", (0, "({} {} {} {})".format(*ap_target.flatten())))
     ap = estimate_assignment_probs(0, trials, cxn, Program(povm_pragma))
     assert np.allclose(ap, ap_target)
     for call in cxn.run.call_args_list:
