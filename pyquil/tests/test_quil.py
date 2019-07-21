@@ -270,7 +270,8 @@ def test_measurement_calls():
 
 def test_measure_all():
     p = Program()
-    p.inst(Declare('ro', 'BIT', 4)).measure_all((0, MemoryReference('ro', 0)), (1, MemoryReference('ro', 1)), (2, MemoryReference('ro', 3)))
+    mem = p.declare("ro", memory_size=4)	
+    p.measure_all((0, mem[0]), (1, mem[1]), (2, mem[2]))
     assert p.out() == 'DECLARE ro BIT[4]\n' \
                       'MEASURE 0 ro[0]\n' \
                       'MEASURE 1 ro[1]\n' \
