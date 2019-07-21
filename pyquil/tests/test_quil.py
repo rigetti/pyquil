@@ -270,7 +270,7 @@ def test_measurement_calls():
 
 def test_measure_all():
     p = Program()
-    p.measure_all((0, MemoryReference('ro', 0)), (1, MemoryReference('ro', 1)), (2, MemoryReference('ro', 3)))
+    p.declare('ro', 'BIT', 4).measure_all((0, MemoryReference('ro', 0)), (1, MemoryReference('ro', 1)), (2, MemoryReference('ro', 3)))
     assert p.out() == 'DECLARE ro BIT[4]\n' \
                       'MEASURE 0 ro[0]\n' \
                       'MEASURE 1 ro[1]\n' \
@@ -315,19 +315,19 @@ def test_dagger():
 
 
 def test_construction_syntax():
-    p = Program().inst(X(0), Y(1), Z(0)).measure(0, MemoryReference('ro', 1))
+    p = Program().inst(Declare('ro', 'BIT', 2), X(0), Y(1), Z(0)).measure(0, MemoryReference('ro', 1))
     assert p.out() == ('DECLARE ro BIT[2]\n'
                        'X 0\n'
                        'Y 1\n'
                        'Z 0\n'
                        'MEASURE 0 ro[1]\n')
-    p = Program().inst(X(0)).inst(Y(1)).measure(0, MemoryReference('ro', 1)).inst(MEASURE(1, MemoryReference('ro', 2)))
+    p = Program().inst(X(0)).inst(Declare('ro', 'BIT', 3), Y(1)).measure(0, MemoryReference('ro', 1)).inst(MEASURE(1, MemoryReference('ro', 2)))
     assert p.out() == ('DECLARE ro BIT[3]\n'
                        'X 0\n'
                        'Y 1\n'
                        'MEASURE 0 ro[1]\n'
                        'MEASURE 1 ro[2]\n')
-    p = Program().inst(X(0)).measure(0, MemoryReference('ro', 1)).inst(Y(1), X(0)).measure(0, MemoryReference('ro', 0))
+    p = Program().inst(Declare('ro', 'BIT', 2), X(0)).measure(0, MemoryReference('ro', 1)).inst(Y(1), X(0)).measure(0, MemoryReference('ro', 0))
     assert p.out() == ('DECLARE ro BIT[2]\n'
                        'X 0\n'
                        'MEASURE 0 ro[1]\n'
