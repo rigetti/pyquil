@@ -20,7 +20,7 @@ import inspect
 
 from pyquil import gates
 from pyquil.quil import Program
-from pyquil.quilatom import Addr, MemoryReference
+from pyquil.quilatom import MemoryReference
 
 if sys.version_info < (3, 7):
     from pyquil.external.contextvars import ContextVar
@@ -65,11 +65,11 @@ def _if_statement(test, if_function, else_function) -> None:
     """
     Evaluate an if statement within a @magicquil block.
 
-    If the test value is a Quil Addr then unwind it into quil code equivalent to an if then statement using jumps. Both
+    If the test value is a Quil MemoryReference then unwind it into quil code equivalent to an if then statement using jumps. Both
     sides of the if statement need to be evaluated and placed into separate Programs, which is why we create new
     program contexts for their evaluation.
 
-    If the test value is not a Quil Addr then fall back to what Python would normally do with an if statement.
+    If the test value is not a Quil MemoryReference then fall back to what Python would normally do with an if statement.
 
     Params are:
         if <test>:
