@@ -112,7 +112,7 @@ def test_len_one():
 
 
 def test_len_nested():
-    p = Program(H(0)).measure(0, MemoryReference("ro", 0))
+    p = Program(Declare('ro', 'BIT'), H(0)).measure(0, MemoryReference("ro", 0))
     q = Program(H(0), CNOT(0, 1))
     p.if_then(MemoryReference("ro", 0), q)
     assert len(p) == 9
@@ -184,7 +184,7 @@ def test_program_slice():
 
 def test_prog_init():
     p = Program()
-    p.inst(X(0)).measure(0, MemoryReference("ro", 0))
+    p.inst(Declare('ro', 'BIT'), X(0)).measure(0, MemoryReference("ro", 0))
     assert p.out() == ('DECLARE ro BIT[1]\n'
                        'X 0\n'
                        'MEASURE 0 ro[0]\n')
@@ -192,7 +192,7 @@ def test_prog_init():
 
 def test_classical_regs():
     p = Program()
-    p.inst(X(0)).measure(0, MemoryReference("ro", 1))
+    p.inst(Declare('ro', 'BIT'), X(0)).measure(0, MemoryReference("ro", 1))
     assert p.out() == ('DECLARE ro BIT[2]\n'
                        'X 0\n'
                        'MEASURE 0 ro[1]\n')
@@ -261,7 +261,7 @@ def test_ternary_classicals():
 
 def test_measurement_calls():
     p = Program()
-    p.inst(MEASURE(0, MemoryReference("ro", 1)),
+    p.inst(Declare('ro', 'BIT'), MEASURE(0, MemoryReference("ro", 1)),
            MEASURE(0, MemoryReference("ro", 1)))
     assert p.out() == ('DECLARE ro BIT[2]\n'
                        'MEASURE 0 ro[1]\n'
