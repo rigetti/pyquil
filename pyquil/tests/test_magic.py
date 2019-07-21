@@ -1,4 +1,5 @@
 from pyquil.magic import *
+from pyquil.quilatom import MemoryReference
 
 
 @magicquil
@@ -21,7 +22,7 @@ def fast_reset(q1):
 
 
 def test_fast_reset():
-    assert fast_reset(0) == Program('MEASURE 0 ro[0]').if_then(("ro", 0), Program('X 0'), Program('I 0'))
+    assert fast_reset(0) == Program('MEASURE 0 ro[0]').if_then(("ro", MemoryReference("ro", 0)), Program('X 0'), Program('I 0'))
 
 
 @magicquil
