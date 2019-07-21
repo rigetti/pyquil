@@ -20,7 +20,7 @@ import inspect
 
 from pyquil import gates
 from pyquil.quil import Program
-from pyquil.quilatom import Addr
+from pyquil.quilatom import Addr, MemoryReference
 
 if sys.version_info < (3, 7):
     from pyquil.external.contextvars import ContextVar
@@ -56,9 +56,9 @@ def CNOT(qubit1, qubit2) -> None:
     program_context().inst(gates.CNOT(qubit1, qubit2))
 
 
-def MEASURE(qubit) -> Addr:
-    program_context().inst(gates.MEASURE(qubit, qubit))
-    return Addr(qubit)
+def MEASURE(qubit) -> MemoryReference:
+    program_context().inst(gates.MEASURE(qubit, MemoryReference("ro", qubit)))
+    return MemoryReference("ro", qubit)
 
 
 def _if_statement(test, if_function, else_function) -> None:
@@ -79,7 +79,7 @@ def _if_statement(test, if_function, else_function) -> None:
 
     NB: This function must be named exactly _if_statement and be in scope for the ast transformer
     """
-    if isinstance(test, Addr):
+    if isinstance(test, MemoryReference):
         token = _program_context.set(Program())
         if_function()
         if_program = _program_context.get()
