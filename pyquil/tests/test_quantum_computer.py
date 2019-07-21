@@ -22,8 +22,8 @@ def test_get_flipped_program():
         I(0),
         RX(2.3, 1),
         CNOT(0, 1),
-        MEASURE(0, MemoryReference("ro",0)),
-        MEASURE(1, MemoryReference("ro",1)),
+        MEASURE(0, MemoryReference("ro", 0)),
+        MEASURE(1, MemoryReference("ro", 1)),
     ])
 
     flipped_program = _get_flipped_protoquil_program(program)
@@ -39,8 +39,8 @@ def test_get_flipped_program():
 
 def test_get_flipped_program_only_measure():
     program = Program([
-        MEASURE(0, MemoryReference("ro",0)),
-        MEASURE(1, MemoryReference("ro",1)),
+        MEASURE(0, MemoryReference("ro", 0)),
+        MEASURE(1, MemoryReference("ro", 1)),
     ])
 
     flipped_program = _get_flipped_protoquil_program(program)
@@ -83,9 +83,9 @@ def test_run(forest):
             H(0),
             CNOT(0, 1),
             CNOT(1, 2),
-            MEASURE(0, MemoryReference("ro",0)),
-            MEASURE(1, MemoryReference("ro",1)),
-            MEASURE(2, MemoryReference("ro",2))).wrap_in_numshots_loop(1000)
+            MEASURE(0, MemoryReference("ro", 0)),
+            MEASURE(1, MemoryReference("ro", 1)),
+            MEASURE(2, MemoryReference("ro", 2))).wrap_in_numshots_loop(1000)
     )
 
     assert bitstrings.shape == (1000, 3)
@@ -106,9 +106,9 @@ def test_run_pyqvm_noiseless():
             H(0),
             CNOT(0, 1),
             CNOT(1, 2),
-            MEASURE(0, MemoryReference("ro",0)),
-            MEASURE(1, MemoryReference("ro",1)),
-            MEASURE(2, MemoryReference("ro",2))).wrap_in_numshots_loop(1000)
+            MEASURE(0, MemoryReference("ro", 0)),
+            MEASURE(1, MemoryReference("ro", 1)),
+            MEASURE(2, MemoryReference("ro", 2))).wrap_in_numshots_loop(1000)
     )
 
     assert bitstrings.shape == (1000, 3)
@@ -129,9 +129,9 @@ def test_run_pyqvm_noisy():
             H(0),
             CNOT(0, 1),
             CNOT(1, 2),
-            MEASURE(0, MemoryReference("ro",0)),
-            MEASURE(1, MemoryReference("ro",1)),
-            MEASURE(2, MemoryReference("ro",2))).wrap_in_numshots_loop(1000)
+            MEASURE(0, MemoryReference("ro", 0)),
+            MEASURE(1, MemoryReference("ro", 1)),
+            MEASURE(2, MemoryReference("ro", 2))).wrap_in_numshots_loop(1000)
     )
 
     assert bitstrings.shape == (1000, 3)
@@ -150,8 +150,8 @@ def test_readout_symmetrization(forest):
     )
 
     prog = Program(I(0), X(1),
-                   MEASURE(0, MemoryReference("ro",0)),
-                   MEASURE(1, MemoryReference("ro",1)))
+                   MEASURE(0, MemoryReference("ro", 0)),
+                   MEASURE(1, MemoryReference("ro", 1)))
     prog.wrap_in_numshots_loop(1000)
 
     bs1 = qc.run(prog)
