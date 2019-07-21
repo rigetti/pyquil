@@ -14,7 +14,7 @@ from pyquil.noise import (pauli_kraus_map, damping_kraus_map, dephasing_kraus_ma
 from pyquil.quil import Pragma, Program
 from pyquil.quilbase import DefGate, Gate
 from pyquil.api import QVMConnection
-from pyquil.quilatom import MemoryReference
+
 
 def test_pauli_kraus_map():
     probabilities = [.1, .2, .3, .4]
