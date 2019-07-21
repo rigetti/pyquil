@@ -192,7 +192,7 @@ def test_prog_init():
 
 def test_classical_regs():
     p = Program()
-    p.inst(Declare('ro', 'BIT'), X(0)).measure(0, MemoryReference("ro", 1))
+    p.inst(Declare('ro', 'BIT[2]'), X(0)).measure(0, MemoryReference("ro", 1))
     assert p.out() == ('DECLARE ro BIT[2]\n'
                        'X 0\n'
                        'MEASURE 0 ro[1]\n')
@@ -261,7 +261,7 @@ def test_ternary_classicals():
 
 def test_measurement_calls():
     p = Program()
-    p.inst(Declare('ro', 'BIT'), MEASURE(0, MemoryReference("ro", 1)),
+    p.inst(Declare('ro', 'BIT[2]'), MEASURE(0, MemoryReference("ro", 1)),
            MEASURE(0, MemoryReference("ro", 1)))
     assert p.out() == ('DECLARE ro BIT[2]\n'
                        'MEASURE 0 ro[1]\n'
