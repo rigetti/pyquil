@@ -192,7 +192,7 @@ def test_prog_init():
 
 def test_classical_regs():
     p = Program()
-    p.inst(Declare('ro', 'BIT[2]'), X(0)).measure(0, MemoryReference("ro", 1))
+    p.inst(Declare('ro', 'BIT', 2), X(0)).measure(0, MemoryReference("ro", 1))
     assert p.out() == ('DECLARE ro BIT[2]\n'
                        'X 0\n'
                        'MEASURE 0 ro[1]\n')
