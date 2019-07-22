@@ -307,6 +307,37 @@ def test_lifted_gate_two_qubit():
     assert np.allclose(test_unitary, true_unitary)
 
 
+def test_lifted_gate_modified():
+    test_unitary = lifted_gate(RZ(np.pi / 4, 0).dagger(), 1)
+    true_unitary = mat.RZ(-np.pi / 4)
+    assert np.allclose(test_unitary, true_unitary)
+
+    test_unitary = lifted_gate(X(0).dagger().controlled(1), 2)
+    true_unitary = lifted_gate(CNOT(1, 0), 2)
+    other_true = mat.CNOT
+    assert np.allclose(test_unitary, true_unitary)
+    assert np.allclose(other_true, true_unitary)
+
+    test_unitary = lifted_gate(X(1).dagger().controlled(0).dagger().dagger(), 2)
+    true_unitary = lifted_gate(CNOT(0, 1), 2)
+    assert np.allclose(test_unitary, true_unitary)
+
+    test_unitary = lifted_gate(X(0).dagger().controlled(1).dagger().dagger().controlled(2), 3)
+    true_unitary = lifted_gate(CCNOT(1, 2, 0), 3)
+    other_true = mat.CCNOT
+    assert np.allclose(test_unitary, true_unitary)
+    assert np.allclose(other_true, true_unitary)
+
+    test_unitary = lifted_gate(RY(np.pi / 4, 0).dagger().controlled(2).dagger().dagger(), 3)
+    ry_part = lifted_gate(RY(-np.pi / 4, 0), 1)
+    zero = np.eye(2)
+    zero[1, 1] = 0
+    one = np.eye(2)
+    one[0, 0] = 0
+    true_unitary = np.kron(zero, np.eye(4)) + np.kron(one, np.kron(np.eye(2), ry_part))
+    assert np.allclose(test_unitary, true_unitary)
+
+
 def test_lifted_pauli():
     qubits = [0, 1]
     xy_term = sX(0) * sY(1)
