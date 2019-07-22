@@ -1869,6 +1869,7 @@ def test_raw_statistics_2q_nontrivial_entangled_state(forest, use_seed):
     np.testing.assert_allclose(result_std_err, simulated_std_err, atol=2e-2)
 
 
+@pytest.mark.flaky(reruns=1)
 def test_corrected_statistics_2q_nontrivial_nonentangled_state(forest, use_seed):
     ''' Testing that we can successfully correct for observed statistics
         in the presence of readout errors, even for 2q nontrivial but
