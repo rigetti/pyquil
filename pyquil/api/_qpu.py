@@ -169,11 +169,11 @@ support at support@rigetti.com.""")
             bitstrings = None
 
         self._memory_results = dict()
-        for aref, vals in self._variables_shim[aref].items():
+        for aref, vals in self._variables_shim.items():
             self._memory_results[aref] = [vals] * ro_sources[0].shape[0]
         self._memory_results["ro"] = bitstrings
         self._last_results = results
-        
+
         return self
 
     def read_memory(self, *, region_name: str):
