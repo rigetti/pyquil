@@ -8,6 +8,12 @@ Bugfixes:
 
 - ``unitary_tools.lifted_gate()`` was not properly handling modifiers such as ``DAGGER`` and ``CONTROLLED``.
 
+Improvements and Changes:
+
+- The test suite for `pyquil.operator_estimation` now has an (optional) faster version
+  that uses fixed random seeds instead of averaging over several experiments, using the optional
+  `--use-seed` command line input (gh-928).
+
 v2.9.1 (June 28, 2019)
 ----------------------
 
