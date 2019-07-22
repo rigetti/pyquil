@@ -475,7 +475,7 @@ def test_control_flows_2():
 
 
 def test_if_option():
-    p = Program(X(0)).measure(0, MemoryReference("ro", 0)).if_then(MemoryReference("ro", 0), Program(X(1)))
+    p = Program(Declare("ro", "BIT", 1), X(0)).measure(0, MemoryReference("ro", 0)).if_then(MemoryReference("ro", 0), Program(X(1)))
     assert p.out() == ('DECLARE ro BIT[1]\n'
                        'X 0\n'
                        'MEASURE 0 ro[0]\n'
