@@ -131,7 +131,8 @@ To instruct the compiler to produce Quil code that can be executed on a QPU, you
 .. note::
 
    If your compiler server is started with the protoquil option ``-P`` (as is the case for your QMI
-   compiler) then specifying ``protoquil=False`` will have no effect.
+   compiler) then specifying ``protoquil=False`` will override the server and force disable
+   protoquil. Specifying ``protoquil=None`` defers to the server.
 
 .. _pragma:
 

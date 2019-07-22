@@ -234,7 +234,7 @@ class QuantumComputer:
     def compile(self, program: Program,
                 to_native_gates: bool = True,
                 optimize: bool = True,
-                protoquil: bool = False) -> Union[BinaryExecutableResponse, PyQuilExecutableResponse]:
+                protoquil: bool = None) -> Union[BinaryExecutableResponse, PyQuilExecutableResponse]:
         """
         A high-level interface to program compilation.
 
@@ -248,7 +248,7 @@ class QuantumComputer:
         :param to_native_gates: Whether to compile non-native gates to native gates.
         :param optimize: Whether to optimize the program to reduce the number of operations.
         :param protoquil: Whether to restrict the input program to and the compiled program
-            to protoquil (executable on QPU).
+            to protoquil (executable on QPU). A value of ``None`` means defer to server.
         :return: An executable binary suitable for passing to :py:func:`QuantumComputer.run`.
         """
         flags = [to_native_gates, optimize]
