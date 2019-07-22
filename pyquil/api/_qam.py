@@ -55,7 +55,7 @@ class QAM(ABC):
 
         self._variables_shim = {}
         self._executable = executable
-        self._memory_results = None
+        self._memory_results = defaultdict(lambda: None)
         self.status = 'loaded'
         return self
 
