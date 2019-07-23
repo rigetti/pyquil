@@ -233,7 +233,7 @@ class PyQVM(QAM):
             self.execute(self.program)
             for name in self.ram.keys():
                 self._memory_results.setdefault(name, list())
-                self._memory_results.append(self.ram[name])
+                self._memory_results[name].append(self.ram[name])
 
         # TODO: this will need to be removed in merge conflict with #873
         self._bitstrings = self._memory_results['ro']
