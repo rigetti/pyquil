@@ -202,7 +202,7 @@ def test_measure_observables(forest):
             assert np.abs(res.expectation) < 0.1
 
 
-def _random_2q_programs(n_progs=10):
+def _random_2q_programs(n_progs=3):
     """Generate random programs that consist of single qubit rotations, a CZ, and single
     qubit rotations.
     """
@@ -565,15 +565,20 @@ def test_ratio_variance_array():
     np.testing.assert_allclose(ab_ratio_var, np.array([0.028125, 0.0028125, 0.00028125]))
 
 
-def test_measure_observables_uncalibrated_asymmetric_readout(forest):
+def test_measure_observables_uncalibrated_asymmetric_readout(forest, use_seed):
     qc = get_qc('1q-qvm')
+    if use_seed:
+        qc.qam.random_seed = 0
+        np.random.seed(0)
+        runs = 1
+    else:
+        runs = 100
     expt1 = ExperimentSetting(TensorProductState(plusX(0)), sX(0))
     expt2 = ExperimentSetting(TensorProductState(plusY(0)), sY(0))
     expt3 = ExperimentSetting(TensorProductState(plusZ(0)), sZ(0))
     p = Program()
     p00, p11 = 0.90, 0.80
     p.define_noisy_readout(0, p00=p00, p11=p11)
-    runs = 25
     expt_list = [expt1, expt2, expt3]
     tomo_expt = TomographyExperiment(settings=expt_list * runs, program=p)
     expected_expectation_z_basis = 2 * p00 - 1
@@ -591,15 +596,20 @@ def test_measure_observables_uncalibrated_asymmetric_readout(forest):
     assert np.isclose(np.mean(expect_arr[2::3]), expected_expectation_z_basis, atol=2e-2)
 
 
-def test_measure_observables_uncalibrated_symmetric_readout(forest):
+def test_measure_observables_uncalibrated_symmetric_readout(forest, use_seed):
     qc = get_qc('1q-qvm')
+    if use_seed:
+        qc.qam.random_seed = 0
+        np.random.seed(0)
+        runs = 1
+    else:
+        runs = 100
     expt1 = ExperimentSetting(TensorProductState(plusX(0)), sX(0))
     expt2 = ExperimentSetting(TensorProductState(plusY(0)), sY(0))
     expt3 = ExperimentSetting(TensorProductState(plusZ(0)), sZ(0))
     p = Program()
     p00, p11 = 0.90, 0.80
     p.define_noisy_readout(0, p00=p00, p11=p11)
-    runs = 25
     expt_list = [expt1, expt2, expt3]
     tomo_expt = TomographyExperiment(settings=expt_list * runs, program=p)
     expected_symm_error = (p00 + p11) / 2
@@ -617,17 +627,21 @@ def test_measure_observables_uncalibrated_symmetric_readout(forest):
     assert np.isclose(np.mean(uncalibr_e[2::3]), expected_expectation_z_basis, atol=2e-2)
 
 
-def test_measure_observables_calibrated_symmetric_readout(forest):
+def test_measure_observables_calibrated_symmetric_readout(forest, use_seed):
     # expecting the result +1 for calibrated readout
     qc = get_qc('1q-qvm')
+    if use_seed:
+        qc.qam.random_seed = 0
+        np.random.seed(0)
+        num_simulations = 1
+    else:
+        num_simulations = 100
     expt1 = ExperimentSetting(TensorProductState(plusX(0)), sX(0))
     expt2 = ExperimentSetting(TensorProductState(plusY(0)), sY(0))
     expt3 = ExperimentSetting(TensorProductState(plusZ(0)), sZ(0))
     p = Program()
     p.define_noisy_readout(0, p00=0.99, p11=0.80)
     tomo_expt = TomographyExperiment(settings=[expt1, expt2, expt3], program=p)
-
-    num_simulations = 25
 
     expectations = []
     for _ in range(num_simulations):
@@ -638,9 +652,15 @@ def test_measure_observables_calibrated_symmetric_readout(forest):
     np.testing.assert_allclose(results, 1.0, atol=2e-2)
 
 
-def test_measure_observables_result_zero_symmetrization_calibration(forest):
+def test_measure_observables_result_zero_symmetrization_calibration(forest, use_seed):
     # expecting expectation value to be 0 with symmetrization/calibration
     qc = get_qc('9q-qvm')
+    if use_seed:
+        qc.qam.random_seed = 0
+        np.random.seed(0)
+        num_simulations = 1
+    else:
+        num_simulations = 100
     expt1 = ExperimentSetting(TensorProductState(plusX(0)), sZ(0))
     expt2 = ExperimentSetting(TensorProductState(minusZ(0)), sY(0))
     expt3 = ExperimentSetting(TensorProductState(minusY(0)), sX(0))
@@ -649,8 +669,6 @@ def test_measure_observables_result_zero_symmetrization_calibration(forest):
     p00, p11 = 0.99, 0.80
     p.define_noisy_readout(0, p00=p00, p11=p11)
     tomo_expt = TomographyExperiment(settings=expt_settings, program=p)
-
-    num_simulations = 25
 
     expectations = []
     raw_expectations = []
@@ -666,18 +684,22 @@ def test_measure_observables_result_zero_symmetrization_calibration(forest):
     np.testing.assert_allclose(raw_results, 0.0, atol=2e-2)
 
 
-def test_measure_observables_result_zero_no_noisy_readout(forest):
+def test_measure_observables_result_zero_no_noisy_readout(forest, use_seed):
     # expecting expectation value to be 0 with no symmetrization/calibration
     # and no noisy readout
     qc = get_qc('9q-qvm')
+    if use_seed:
+        qc.qam.random_seed = 0
+        np.random.seed(0)
+        num_simulations = 1
+    else:
+        num_simulations = 100
     expt1 = ExperimentSetting(TensorProductState(plusX(0)), sZ(0))
     expt2 = ExperimentSetting(TensorProductState(minusZ(0)), sY(0))
     expt3 = ExperimentSetting(TensorProductState(plusY(0)), sX(0))
     expt_settings = [expt1, expt2, expt3]
     p = Program()
     tomo_expt = TomographyExperiment(settings=expt_settings, program=p)
-
-    num_simulations = 25
 
     expectations = []
     for _ in range(num_simulations):
@@ -690,9 +712,15 @@ def test_measure_observables_result_zero_no_noisy_readout(forest):
     np.testing.assert_allclose(results, 0.0, atol=2e-2)
 
 
-def test_measure_observables_result_zero_no_symm_calibr(forest):
+def test_measure_observables_result_zero_no_symm_calibr(forest, use_seed):
     # expecting expectation value to be nonzero with symmetrization/calibration
     qc = get_qc('9q-qvm')
+    if use_seed:
+        qc.qam.random_seed = 3
+        np.random.seed(0)
+        num_simulations = 1
+    else:
+        num_simulations = 100
     expt1 = ExperimentSetting(TensorProductState(plusX(0)), sZ(0))
     expt2 = ExperimentSetting(TensorProductState(minusZ(0)), sY(0))
     expt3 = ExperimentSetting(TensorProductState(minusY(0)), sX(0))
@@ -701,8 +729,6 @@ def test_measure_observables_result_zero_no_symm_calibr(forest):
     p00, p11 = 0.99, 0.80
     p.define_noisy_readout(0, p00=p00, p11=p11)
     tomo_expt = TomographyExperiment(settings=expt_settings, program=p)
-
-    num_simulations = 25
 
     expectations = []
     expected_result = (p00 * 0.5 + (1 - p11) * 0.5) - ((1 - p00) * 0.5 + p11 * 0.5)
@@ -716,10 +742,15 @@ def test_measure_observables_result_zero_no_symm_calibr(forest):
     np.testing.assert_allclose(results, expected_result, atol=2e-2)
 
 
-def test_measure_observables_2q_readout_error_one_measured(forest):
+def test_measure_observables_2q_readout_error_one_measured(forest, use_seed):
     # 2q readout errors, but only 1 qubit measured
     qc = get_qc('9q-qvm')
-    runs = 25
+    if use_seed:
+        qc.qam.random_seed = 3
+        np.random.seed(0)
+        runs = 1
+    else:
+        runs = 100
     qubs = [0, 1]
     expt = ExperimentSetting(TensorProductState(plusZ(qubs[0]) * plusZ(qubs[1])), sZ(qubs[0]))
     p = Program()
@@ -782,8 +813,6 @@ def test_exhaustive_symmetrization_2q(forest):
     assert np.isclose(frac7_0, expected_frac7_0, 2e-2)
 
 
-# TODO: gh-897
-@pytest.mark.skip
 def test_measure_observables_inherit_noise_errors(forest):
     qc = get_qc('3q-qvm')
     # specify simplest experiments
@@ -828,14 +857,19 @@ PRAGMA ADD-KRAUS H 2 "(0.0 0.31622776601683794 0.31622776601683794 0.0)"
     assert calibr_prog3.out() == Program(expected_prog).out()
 
 
-def test_expectations_sic0(forest):
+def test_expectations_sic0(forest, use_seed):
     qc = get_qc('1q-qvm')
+    if use_seed:
+        qc.qam.random_seed = 0
+        np.random.seed(0)
+        num_simulations = 1
+    else:
+        num_simulations = 100
     expt1 = ExperimentSetting(SIC0(0), sX(0))
     expt2 = ExperimentSetting(SIC0(0), sY(0))
     expt3 = ExperimentSetting(SIC0(0), sZ(0))
     tomo_expt = TomographyExperiment(settings=[expt1, expt2, expt3], program=Program())
 
-    num_simulations = 25
     results_unavged = []
     for _ in range(num_simulations):
         measured_results = []
@@ -849,14 +883,19 @@ def test_expectations_sic0(forest):
     np.testing.assert_allclose(results, expected_results, atol=2e-2)
 
 
-def test_expectations_sic1(forest):
+def test_expectations_sic1(forest, use_seed):
     qc = get_qc('1q-qvm')
+    if use_seed:
+        qc.qam.random_seed = 0
+        np.random.seed(0)
+        num_simulations = 1
+    else:
+        num_simulations = 100
     expt1 = ExperimentSetting(SIC1(0), sX(0))
     expt2 = ExperimentSetting(SIC1(0), sY(0))
     expt3 = ExperimentSetting(SIC1(0), sZ(0))
     tomo_expt = TomographyExperiment(settings=[expt1, expt2, expt3], program=Program())
 
-    num_simulations = 25
     results_unavged = []
     for _ in range(num_simulations):
         measured_results = []
@@ -870,14 +909,19 @@ def test_expectations_sic1(forest):
     np.testing.assert_allclose(results, expected_results, atol=2e-2)
 
 
-def test_expectations_sic2(forest):
+def test_expectations_sic2(forest, use_seed):
     qc = get_qc('1q-qvm')
+    if use_seed:
+        qc.qam.random_seed = 0
+        np.random.seed(0)
+        num_simulations = 1
+    else:
+        num_simulations = 100
     expt1 = ExperimentSetting(SIC2(0), sX(0))
     expt2 = ExperimentSetting(SIC2(0), sY(0))
     expt3 = ExperimentSetting(SIC2(0), sZ(0))
     tomo_expt = TomographyExperiment(settings=[expt1, expt2, expt3], program=Program())
 
-    num_simulations = 25
     results_unavged = []
     for _ in range(num_simulations):
         measured_results = []
@@ -893,14 +937,19 @@ def test_expectations_sic2(forest):
     np.testing.assert_allclose(results, expected_results, atol=2e-2)
 
 
-def test_expectations_sic3(forest):
+def test_expectations_sic3(forest, use_seed):
     qc = get_qc('1q-qvm')
+    if use_seed:
+        qc.qam.random_seed = 0
+        np.random.seed(0)
+        num_simulations = 1
+    else:
+        num_simulations = 100
     expt1 = ExperimentSetting(SIC3(0), sX(0))
     expt2 = ExperimentSetting(SIC3(0), sY(0))
     expt3 = ExperimentSetting(SIC3(0), sZ(0))
     tomo_expt = TomographyExperiment(settings=[expt1, expt2, expt3], program=Program())
 
-    num_simulations = 25
     results_unavged = []
     for _ in range(num_simulations):
         measured_results = []
@@ -956,8 +1005,15 @@ def test_sic_conditions(forest):
         assert np.isclose(np.trace(proj_a.dot(proj_b)), 1 / 3)
 
 
-def test_measure_observables_grouped_expts(forest):
+def test_measure_observables_grouped_expts(forest, use_seed):
     qc = get_qc('3q-qvm')
+
+    if use_seed:
+        num_simulations = 1
+        qc.qam.random_seed = 4
+    else:
+        num_simulations = 100
+
     # this more explicitly uses the list-of-lists-of-ExperimentSettings in TomographyExperiment
     # create experiments in different groups
     expt1_group1 = ExperimentSetting(SIC1(0) * plusX(1), sZ(0) * sX(1))
@@ -973,7 +1029,6 @@ def test_measure_observables_grouped_expts(forest):
     # and use this to create a TomographyExperiment suite
     tomo_expt = TomographyExperiment(settings=expt_settings, program=Program())
 
-    num_simulations = 25
     results_unavged = []
     for _ in range(num_simulations):
         measured_results = []
@@ -993,11 +1048,18 @@ def _point_channel_fidelity_estimate(v, dim=2):
     return (1.0 + np.sum(v) + dim) / (dim * (dim + 1))
 
 
-def test_bit_flip_channel_fidelity(forest):
+def test_bit_flip_channel_fidelity(forest, use_seed):
     """
     We use Eqn (5) of https://arxiv.org/abs/quant-ph/0701138 to compare the fidelity
     """
     qc = get_qc('1q-qvm')
+    if use_seed:
+        np.random.seed(0)
+        qc.qam.random_seed = 0
+        num_expts = 1
+    else:
+        num_expts = 100
+
     # prepare experiment settings
     expt1 = ExperimentSetting(TensorProductState(plusX(0)), sX(0))
     expt2 = ExperimentSetting(TensorProductState(plusY(0)), sY(0))
@@ -1016,7 +1078,6 @@ def test_bit_flip_channel_fidelity(forest):
     # prepare TomographyExperiment
     process_exp = TomographyExperiment(settings=expt_list, program=p)
     # list to store experiment results
-    num_expts = 25
     expts = []
     for _ in range(num_expts):
         expt_results = []
@@ -1032,11 +1093,17 @@ def test_bit_flip_channel_fidelity(forest):
     np.testing.assert_allclose(expected_fidelity, estimated_fidelity, atol=2e-2)
 
 
-def test_dephasing_channel_fidelity(forest):
+def test_dephasing_channel_fidelity(forest, use_seed):
     """
     We use Eqn (5) of https://arxiv.org/abs/quant-ph/0701138 to compare the fidelity
     """
     qc = get_qc('1q-qvm')
+    if use_seed:
+        qc.qam.random_seed = 0
+        np.random.seed(0)
+        num_expts = 1
+    else:
+        num_expts = 100
     # prepare experiment settings
     expt1 = ExperimentSetting(TensorProductState(plusX(0)), sX(0))
     expt2 = ExperimentSetting(TensorProductState(plusY(0)), sY(0))
@@ -1054,7 +1121,6 @@ def test_dephasing_channel_fidelity(forest):
     # prepare TomographyExperiment
     process_exp = TomographyExperiment(settings=expt_list, program=p)
     # list to store experiment results
-    num_expts = 25
     expts = []
     for _ in range(num_expts):
         expt_results = []
@@ -1070,11 +1136,17 @@ def test_dephasing_channel_fidelity(forest):
     np.testing.assert_allclose(expected_fidelity, estimated_fidelity, atol=2e-2)
 
 
-def test_depolarizing_channel_fidelity(forest):
+def test_depolarizing_channel_fidelity(forest, use_seed):
     """
     We use Eqn (5) of https://arxiv.org/abs/quant-ph/0701138 to compare the fidelity
     """
     qc = get_qc('1q-qvm')
+    if use_seed:
+        qc.qam.random_seed = 0
+        np.random.seed(0)
+        num_expts = 1
+    else:
+        num_expts = 100
     # prepare experiment settings
     expt1 = ExperimentSetting(TensorProductState(plusX(0)), sX(0))
     expt2 = ExperimentSetting(TensorProductState(plusY(0)), sY(0))
@@ -1094,7 +1166,6 @@ def test_depolarizing_channel_fidelity(forest):
     # prepare TomographyExperiment
     process_exp = TomographyExperiment(settings=expt_list, program=p)
     # list to store experiment results
-    num_expts = 25
     expts = []
     for _ in range(num_expts):
         expt_results = []
@@ -1110,11 +1181,17 @@ def test_depolarizing_channel_fidelity(forest):
     np.testing.assert_allclose(expected_fidelity, estimated_fidelity, atol=2e-2)
 
 
-def test_unitary_channel_fidelity(forest):
+def test_unitary_channel_fidelity(forest, use_seed):
     """
     We use Eqn (5) of https://arxiv.org/abs/quant-ph/0701138 to compare the fidelity
     """
     qc = get_qc('1q-qvm')
+    if use_seed:
+        qc.qam.random_seed = 0
+        np.random.seed(0)
+        num_expts = 1
+    else:
+        num_expts = 100
     # prepare experiment settings
     expt1 = ExperimentSetting(TensorProductState(plusX(0)), sX(0))
     expt2 = ExperimentSetting(TensorProductState(plusY(0)), sY(0))
@@ -1128,7 +1205,6 @@ def test_unitary_channel_fidelity(forest):
     # prepare TomographyExperiment
     process_exp = TomographyExperiment(settings=expt_list, program=p)
     # list to store experiment results
-    num_expts = 25
     expts = []
     for _ in range(num_expts):
         expt_results = []
@@ -1144,11 +1220,17 @@ def test_unitary_channel_fidelity(forest):
     np.testing.assert_allclose(expected_fidelity, estimated_fidelity, atol=2e-2)
 
 
-def test_bit_flip_channel_fidelity_readout_error(forest):
+def test_bit_flip_channel_fidelity_readout_error(forest, use_seed):
     """
     We use Eqn (5) of https://arxiv.org/abs/quant-ph/0701138 to compare the fidelity
     """
     qc = get_qc('1q-qvm')
+    if use_seed:
+        qc.qam.random_seed = 0
+        np.random.seed(0)
+        num_expts = 1
+    else:
+        num_expts = 100
     # prepare experiment settings
     expt1 = ExperimentSetting(TensorProductState(plusX(0)), sX(0))
     expt2 = ExperimentSetting(TensorProductState(plusY(0)), sY(0))
@@ -1169,7 +1251,6 @@ def test_bit_flip_channel_fidelity_readout_error(forest):
     # prepare TomographyExperiment
     process_exp = TomographyExperiment(settings=expt_list, program=p)
     # list to store experiment results
-    num_expts = 25
     expts = []
     for _ in range(num_expts):
         expt_results = []
@@ -1185,11 +1266,17 @@ def test_bit_flip_channel_fidelity_readout_error(forest):
     np.testing.assert_allclose(expected_fidelity, estimated_fidelity, atol=2e-2)
 
 
-def test_dephasing_channel_fidelity_readout_error(forest):
+def test_dephasing_channel_fidelity_readout_error(forest, use_seed):
     """
     We use Eqn (5) of https://arxiv.org/abs/quant-ph/0701138 to compare the fidelity
     """
     qc = get_qc('1q-qvm')
+    if use_seed:
+        qc.qam.random_seed = 0
+        np.random.seed(0)
+        num_expts = 1
+    else:
+        num_expts = 100
     # prepare experiment settings
     expt1 = ExperimentSetting(TensorProductState(plusX(0)), sX(0))
     expt2 = ExperimentSetting(TensorProductState(plusY(0)), sY(0))
@@ -1209,7 +1296,6 @@ def test_dephasing_channel_fidelity_readout_error(forest):
     # prepare TomographyExperiment
     process_exp = TomographyExperiment(settings=expt_list, program=p)
     # list to store experiment results
-    num_expts = 25
     expts = []
     for _ in range(num_expts):
         expt_results = []
@@ -1225,11 +1311,17 @@ def test_dephasing_channel_fidelity_readout_error(forest):
     np.testing.assert_allclose(expected_fidelity, estimated_fidelity, atol=2e-2)
 
 
-def test_depolarizing_channel_fidelity_readout_error(forest):
+def test_depolarizing_channel_fidelity_readout_error(forest, use_seed):
     """
     We use Eqn (5) of https://arxiv.org/abs/quant-ph/0701138 to compare the fidelity
     """
     qc = get_qc('1q-qvm')
+    if use_seed:
+        qc.qam.random_seed = 0
+        np.random.seed(0)
+        num_expts = 1
+    else:
+        num_expts = 100
     # prepare experiment settings
     expt1 = ExperimentSetting(TensorProductState(plusX(0)), sX(0))
     expt2 = ExperimentSetting(TensorProductState(plusY(0)), sY(0))
@@ -1251,7 +1343,6 @@ def test_depolarizing_channel_fidelity_readout_error(forest):
     # prepare TomographyExperiment
     process_exp = TomographyExperiment(settings=expt_list, program=p)
     # list to store experiment results
-    num_expts = 25
     expts = []
     for _ in range(num_expts):
         expt_results = []
@@ -1267,11 +1358,17 @@ def test_depolarizing_channel_fidelity_readout_error(forest):
     np.testing.assert_allclose(expected_fidelity, estimated_fidelity, atol=2e-2)
 
 
-def test_unitary_channel_fidelity_readout_error(forest):
+def test_unitary_channel_fidelity_readout_error(forest, use_seed):
     """
     We use Eqn (5) of https://arxiv.org/abs/quant-ph/0701138 to compare the fidelity
     """
     qc = get_qc('1q-qvm')
+    if use_seed:
+        qc.qam.random_seed = 0
+        np.random.seed(0)
+        num_expts = 1
+    else:
+        num_expts = 100
     # prepare experiment settings
     expt1 = ExperimentSetting(TensorProductState(plusX(0)), sX(0))
     expt2 = ExperimentSetting(TensorProductState(plusY(0)), sY(0))
@@ -1287,7 +1384,6 @@ def test_unitary_channel_fidelity_readout_error(forest):
     # prepare TomographyExperiment
     process_exp = TomographyExperiment(settings=expt_list, program=p)
     # list to store experiment results
-    num_expts = 25
     expts = []
     for _ in range(num_expts):
         expt_results = []
@@ -1303,13 +1399,19 @@ def test_unitary_channel_fidelity_readout_error(forest):
     np.testing.assert_allclose(expected_fidelity, estimated_fidelity, atol=2e-2)
 
 
-def test_2q_unitary_channel_fidelity_readout_error(forest):
+def test_2q_unitary_channel_fidelity_readout_error(forest, use_seed):
     """
     We use Eqn (5) of https://arxiv.org/abs/quant-ph/0701138 to compare the fidelity
     This tests if our dimensionality factors are correct, even in the presence
     of readout errors
     """
     qc = get_qc('2q-qvm')
+    if use_seed:
+        qc.qam.random_seed = 0
+        np.random.seed(0)
+        num_expts = 1
+    else:
+        num_expts = 100
     # prepare experiment settings
 
     expt1 = ExperimentSetting(TensorProductState(plusX(0)), sX(0))
@@ -1334,8 +1436,7 @@ def test_2q_unitary_channel_fidelity_readout_error(forest):
     expt_list = [expt1, expt2, expt3, expt4, expt5, expt6, expt7, expt8, expt9, expt10, expt11, expt12, expt13, expt14, expt15]
 
     # prepare unitary channel as an RY rotation program for some random angle
-    # theta1, theta2 = np.random.uniform(0.0, 2 * np.pi, size=2)
-    theta1, theta2 = np.pi / 4, np.pi / 5
+    theta1, theta2 = np.random.uniform(0.0, 2 * np.pi, size=2)
     # unitary (RY) channel
     p = Program(RY(theta1, 0), RY(theta2, 1))
     # add some readout error
@@ -1344,7 +1445,6 @@ def test_2q_unitary_channel_fidelity_readout_error(forest):
     # prepare TomographyExperiment
     process_exp = TomographyExperiment(settings=expt_list, program=p)
     # list to store experiment results
-    num_expts = 25
     expts = []
     for _ in range(num_expts):
         expt_results = []
@@ -1360,19 +1460,23 @@ def test_2q_unitary_channel_fidelity_readout_error(forest):
     np.testing.assert_allclose(expected_fidelity, estimated_fidelity, atol=2e-2)
 
 
-def test_measure_1q_observable_raw_expectation(forest):
+def test_measure_1q_observable_raw_expectation(forest, use_seed):
     # testing that we get correct raw expectation in terms of readout errors
     qc = get_qc('1q-qvm')
+    if use_seed:
+        qc.qam.random_seed = 0
+        np.random.seed(0)
+        num_expts = 1
+    else:
+        num_expts = 100
     expt = ExperimentSetting(TensorProductState(plusZ(0)), sZ(0))
     p = Program()
     p00, p11 = 0.99, 0.80
     p.define_noisy_readout(0, p00=p00, p11=p11)
     tomo_expt = TomographyExperiment(settings=[expt], program=p)
 
-    num_simulations = 25
-
     raw_expectations = []
-    for _ in range(num_simulations):
+    for _ in range(num_expts):
         expt_results = list(measure_observables(qc, tomo_expt, n_shots=2000))
         raw_expectations.append([res.raw_expectation for res in expt_results])
     raw_expectations = np.array(raw_expectations)
@@ -1385,20 +1489,25 @@ def test_measure_1q_observable_raw_expectation(forest):
     np.testing.assert_allclose(result, expected_result, atol=2e-2)
 
 
-def test_measure_1q_observable_raw_variance(forest):
+def test_measure_1q_observable_raw_variance(forest, use_seed):
     # testing that we get correct raw std_err in terms of readout errors
     qc = get_qc('1q-qvm')
+    if use_seed:
+        qc.qam.random_seed = 0
+        np.random.seed(0)
+        num_expts = 1
+    else:
+        num_expts = 100
     expt = ExperimentSetting(TensorProductState(plusZ(0)), sZ(0))
     p = Program()
     p00, p11 = 0.99, 0.80
     p.define_noisy_readout(0, p00=p00, p11=p11)
     tomo_expt = TomographyExperiment(settings=[expt], program=p)
 
-    num_simulations = 25
     num_shots = 2000
 
     raw_std_errs = []
-    for _ in range(num_simulations):
+    for _ in range(num_expts):
         expt_results = list(measure_observables(qc, tomo_expt, n_shots=num_shots))
         raw_std_errs.append([res.raw_std_err for res in expt_results])
     raw_std_errs = np.array(raw_std_errs)
@@ -1411,19 +1520,23 @@ def test_measure_1q_observable_raw_variance(forest):
     np.testing.assert_allclose(result, expected_result, atol=2e-2)
 
 
-def test_measure_1q_observable_calibration_expectation(forest):
+def test_measure_1q_observable_calibration_expectation(forest, use_seed):
     # testing that we get correct calibration expectation in terms of readout errors
     qc = get_qc('1q-qvm')
+    if use_seed:
+        qc.qam.random_seed = 0
+        np.random.seed(0)
+        num_expts = 1
+    else:
+        num_expts = 100
     expt = ExperimentSetting(TensorProductState(plusZ(0)), sZ(0))
     p = Program()
     p00, p11 = 0.93, 0.77
     p.define_noisy_readout(0, p00=p00, p11=p11)
     tomo_expt = TomographyExperiment(settings=[expt], program=p)
 
-    num_simulations = 25
-
     calibration_expectations = []
-    for _ in range(num_simulations):
+    for _ in range(num_expts):
         expt_results = list(measure_observables(qc, tomo_expt, n_shots=2000))
         calibration_expectations.append([res.calibration_expectation for res in expt_results])
     calibration_expectations = np.array(calibration_expectations)
@@ -1436,20 +1549,25 @@ def test_measure_1q_observable_calibration_expectation(forest):
     np.testing.assert_allclose(result, expected_result, atol=2e-2)
 
 
-def test_measure_1q_observable_calibration_variance(forest):
+def test_measure_1q_observable_calibration_variance(forest, use_seed):
     # testing that we get correct calibration std_err in terms of readout errors
     qc = get_qc('1q-qvm')
+    if use_seed:
+        qc.qam.random_seed = 0
+        np.random.seed(0)
+        num_expts = 1
+    else:
+        num_expts = 100
     expt = ExperimentSetting(TensorProductState(plusZ(0)), sZ(0))
     p = Program()
     p00, p11 = 0.93, 0.77
     p.define_noisy_readout(0, p00=p00, p11=p11)
     tomo_expt = TomographyExperiment(settings=[expt], program=p)
 
-    num_simulations = 25
     num_shots = 2000
 
     raw_std_errs = []
-    for _ in range(num_simulations):
+    for _ in range(num_expts):
         expt_results = list(measure_observables(qc, tomo_expt, n_shots=num_shots))
         raw_std_errs.append([res.raw_std_err for res in expt_results])
     raw_std_errs = np.array(raw_std_errs)
@@ -1462,8 +1580,14 @@ def test_measure_1q_observable_calibration_variance(forest):
     np.testing.assert_allclose(result, expected_result, atol=2e-2)
 
 
-def test_uncalibrated_asymmetric_readout_nontrivial_1q_state(forest):
+def test_uncalibrated_asymmetric_readout_nontrivial_1q_state(forest, use_seed):
     qc = get_qc('1q-qvm')
+    if use_seed:
+        qc.qam.random_seed = 0
+        np.random.seed(0)
+        runs = 1
+    else:
+        runs = 100
     expt = ExperimentSetting(TensorProductState(), sZ(0))
     # pick some random value for RX rotation
     theta = np.random.uniform(0.0, 2 * np.pi)
@@ -1471,7 +1595,6 @@ def test_uncalibrated_asymmetric_readout_nontrivial_1q_state(forest):
     # pick some random (but sufficiently large) asymmetric readout errors
     p00, p11 = np.random.uniform(0.7, 0.99, size=2)
     p.define_noisy_readout(0, p00=p00, p11=p11)
-    runs = 25
     expt_list = [expt]
     tomo_expt = TomographyExperiment(settings=expt_list * runs, program=p)
     # calculate expected expectation value
@@ -1491,8 +1614,14 @@ def test_uncalibrated_asymmetric_readout_nontrivial_1q_state(forest):
     assert np.isclose(np.mean(expect_arr), expected_expectation, atol=2e-2)
 
 
-def test_uncalibrated_symmetric_readout_nontrivial_1q_state(forest):
+def test_uncalibrated_symmetric_readout_nontrivial_1q_state(forest, use_seed):
     qc = get_qc('1q-qvm')
+    if use_seed:
+        qc.qam.random_seed = 0
+        np.random.seed(0)
+        runs = 1
+    else:
+        runs = 100
     expt = ExperimentSetting(TensorProductState(), sZ(0))
     # pick some random value for RX rotation
     theta = np.random.uniform(0.0, 2 * np.pi)
@@ -1500,7 +1629,6 @@ def test_uncalibrated_symmetric_readout_nontrivial_1q_state(forest):
     # pick some random (but sufficiently large) asymmetric readout errors
     p00, p11 = np.random.uniform(0.7, 0.99, size=2)
     p.define_noisy_readout(0, p00=p00, p11=p11)
-    runs = 25
     expt_list = [expt]
     tomo_expt = TomographyExperiment(settings=expt_list * runs, program=p)
     # calculate expected expectation value
@@ -1521,8 +1649,14 @@ def test_uncalibrated_symmetric_readout_nontrivial_1q_state(forest):
     assert np.isclose(np.mean(expect_arr), expected_expectation, atol=2e-2)
 
 
-def test_calibrated_symmetric_readout_nontrivial_1q_state(forest):
+def test_calibrated_symmetric_readout_nontrivial_1q_state(forest, use_seed):
     qc = get_qc('1q-qvm')
+    if use_seed:
+        qc.qam.random_seed = 0
+        np.random.seed(0)
+        runs = 1
+    else:
+        runs = 100
     expt = ExperimentSetting(TensorProductState(), sZ(0))
     # pick some random value for RX rotation
     theta = np.random.uniform(0.0, 2 * np.pi)
@@ -1530,7 +1664,6 @@ def test_calibrated_symmetric_readout_nontrivial_1q_state(forest):
     # pick some random (but sufficiently large) asymmetric readout errors
     p00, p11 = np.random.uniform(0.7, 0.99, size=2)
     p.define_noisy_readout(0, p00=p00, p11=p11)
-    runs = 25
     expt_list = [expt]
     tomo_expt = TomographyExperiment(settings=expt_list * runs, program=p)
     # calculate expected expectation value
@@ -1549,12 +1682,19 @@ def test_calibrated_symmetric_readout_nontrivial_1q_state(forest):
     assert np.isclose(np.mean(expect_arr), expected_expectation, atol=2e-2)
 
 
-def test_measure_2q_observable_raw_statistics(forest):
-    # testing that we get correct exhaustively symmetrized statistics
-    # in terms of readout errors
-    # Note: this only tests for exhaustive symmetrization in the presence
-    #       of uncorrelated errors
+def test_measure_2q_observable_raw_statistics(forest, use_seed):
+    ''' Testing that we get correct exhaustively symmetrized statistics
+        in terms of readout errors.
+    Note: this only tests for exhaustive symmetrization in the presence
+        of uncorrelated errors
+    '''
     qc = get_qc('2q-qvm')
+    if use_seed:
+        qc.qam.random_seed = 0
+        np.random.seed(0)
+        num_simulations = 1
+    else:
+        num_simulations = 100
     expt = ExperimentSetting(TensorProductState(), sZ(0) * sZ(1))
     p = Program()
     p00, p11 = 0.99, 0.80
@@ -1563,7 +1703,6 @@ def test_measure_2q_observable_raw_statistics(forest):
     p.define_noisy_readout(1, p00=q00, p11=q11)
     tomo_expt = TomographyExperiment(settings=[expt], program=p)
 
-    num_simulations = 25
     num_shots = 5000
 
     raw_expectations = []
@@ -1594,12 +1733,19 @@ def test_measure_2q_observable_raw_statistics(forest):
     np.testing.assert_allclose(result_std_err, simulated_std_err, atol=2e-2)
 
 
-def test_raw_statistics_2q_nontrivial_nonentangled_state(forest):
-    # testing that we get correct exhaustively symmetrized statistics
-    # in terms of readout errors, even for non-trivial 2q nonentangled states
-    # Note: this only tests for exhaustive symmetrization in the presence
-    #       of uncorrelated errors
+def test_raw_statistics_2q_nontrivial_nonentangled_state(forest, use_seed):
+    ''' Testing that we get correct exhaustively symmetrized statistics
+        in terms of readout errors, even for non-trivial 2q nonentangled states
+    Note: this only tests for exhaustive symmetrization in the presence
+        of uncorrelated errors
+    '''
     qc = get_qc('2q-qvm')
+    if use_seed:
+        qc.qam.random_seed = 0
+        np.random.seed(0)
+        num_simulations = 1
+    else:
+        num_simulations = 100
     expt = ExperimentSetting(TensorProductState(), sZ(0) * sZ(1))
     theta1, theta2 = np.random.uniform(0.0, 2 * np.pi, size=2)
     p = Program(RX(theta1, 0), RX(theta2, 1))
@@ -1608,7 +1754,6 @@ def test_raw_statistics_2q_nontrivial_nonentangled_state(forest):
     p.define_noisy_readout(1, p00=q00, p11=q11)
     tomo_expt = TomographyExperiment(settings=[expt], program=p)
 
-    num_simulations = 25
     num_shots = 5000
 
     raw_expectations = []
@@ -1662,12 +1807,19 @@ def test_raw_statistics_2q_nontrivial_nonentangled_state(forest):
     np.testing.assert_allclose(result_std_err, simulated_std_err, atol=2e-2)
 
 
-def test_raw_statistics_2q_nontrivial_entangled_state(forest):
-    # testing that we get correct exhaustively symmetrized statistics
-    # in terms of readout errors, even for non-trivial 2q entangled states
-    # Note: this only tests for exhaustive symmetrization in the presence
-    #       of uncorrelated errors
+def test_raw_statistics_2q_nontrivial_entangled_state(forest, use_seed):
+    ''' Testing that we get correct exhaustively symmetrized statistics
+        in terms of readout errors, even for non-trivial 2q entangled states.
+    Note: this only tests for exhaustive symmetrization in the presence
+        of uncorrelated errors
+    '''
     qc = get_qc('2q-qvm')
+    if use_seed:
+        qc.qam.random_seed = 0
+        np.random.seed(0)
+        num_simulations = 1
+    else:
+        num_simulations = 100
     expt = ExperimentSetting(TensorProductState(), sZ(0) * sZ(1))
     theta = np.random.uniform(0.0, 2 * np.pi)
     p = Program(RX(theta, 0), CNOT(0, 1))
@@ -1676,7 +1828,6 @@ def test_raw_statistics_2q_nontrivial_entangled_state(forest):
     p.define_noisy_readout(1, p00=q00, p11=q11)
     tomo_expt = TomographyExperiment(settings=[expt], program=p)
 
-    num_simulations = 25
     num_shots = 5000
 
     raw_expectations = []
@@ -1718,13 +1869,21 @@ def test_raw_statistics_2q_nontrivial_entangled_state(forest):
     np.testing.assert_allclose(result_std_err, simulated_std_err, atol=2e-2)
 
 
-def test_corrected_statistics_2q_nontrivial_nonentangled_state(forest):
-    # testing that we can successfully correct for observed statistics
-    # in the presence of readout errors, even for 2q nontrivial but
-    # nonentangled states
-    # Note: this only tests for exhaustive symmetrization in the presence
-    #       of uncorrelated errors
+def test_corrected_statistics_2q_nontrivial_nonentangled_state(forest, use_seed):
+    ''' Testing that we can successfully correct for observed statistics
+        in the presence of readout errors, even for 2q nontrivial but
+        nonentangled states.
+    Note: this only tests for exhaustive symmetrization in the presence
+        of uncorrelated errors
+    '''
     qc = get_qc('2q-qvm')
+    if use_seed:
+        qc.qam.random_seed = 0
+        np.random.seed(13)
+        num_simulations = 1
+    else:
+        num_simulations = 100
+
     expt = ExperimentSetting(TensorProductState(), sZ(0) * sZ(1))
     theta1, theta2 = np.random.uniform(0.0, 2 * np.pi, size=2)
     p = Program(RX(theta1, 0), RX(theta2, 1))
@@ -1733,7 +1892,6 @@ def test_corrected_statistics_2q_nontrivial_nonentangled_state(forest):
     p.define_noisy_readout(1, p00=q00, p11=q11)
     tomo_expt = TomographyExperiment(settings=[expt], program=p)
 
-    num_simulations = 25
     num_shots = 5000
 
     expectations = []
@@ -1767,8 +1925,14 @@ def _point_state_fidelity_estimate(v, dim=2):
     return (1.0 + np.sum(v)) / dim
 
 
-def test_bit_flip_state_fidelity(forest):
+def test_bit_flip_state_fidelity(forest, use_seed):
     qc = get_qc('1q-qvm')
+    if use_seed:
+        qc.qam.random_seed = 0
+        np.random.seed(0)
+        num_expts = 1
+    else:
+        num_expts = 100
     # prepare experiment setting
     expt = ExperimentSetting(TensorProductState(), sZ(0))
 
@@ -1784,7 +1948,6 @@ def test_bit_flip_state_fidelity(forest):
     # prepare TomographyExperiment
     process_exp = TomographyExperiment(settings=[expt], program=p)
     # list to store experiment results
-    num_expts = 25
     expts = []
     for _ in range(num_expts):
         expt_results = []
@@ -1800,8 +1963,14 @@ def test_bit_flip_state_fidelity(forest):
     np.testing.assert_allclose(expected_fidelity, estimated_fidelity, atol=2e-2)
 
 
-def test_dephasing_state_fidelity(forest):
+def test_dephasing_state_fidelity(forest, use_seed):
     qc = get_qc('1q-qvm')
+    if use_seed:
+        qc.qam.random_seed = 0
+        np.random.seed(0)
+        num_expts = 1
+    else:
+        num_expts = 100
     # prepare experiment setting
     expt = ExperimentSetting(TensorProductState(), sZ(0))
 
@@ -1816,7 +1985,6 @@ def test_dephasing_state_fidelity(forest):
     # prepare TomographyExperiment
     process_exp = TomographyExperiment(settings=[expt], program=p)
     # list to store experiment results
-    num_expts = 25
     expts = []
     for _ in range(num_expts):
         expt_results = []
@@ -1832,8 +2000,14 @@ def test_dephasing_state_fidelity(forest):
     np.testing.assert_allclose(expected_fidelity, estimated_fidelity, atol=2e-2)
 
 
-def test_depolarizing_state_fidelity(forest):
+def test_depolarizing_state_fidelity(forest, use_seed):
     qc = get_qc('1q-qvm')
+    if use_seed:
+        qc.qam.random_seed = 0
+        np.random.seed(0)
+        num_expts = 1
+    else:
+        num_expts = 100
     # prepare experiment setting
     expt = ExperimentSetting(TensorProductState(), sZ(0))
 
@@ -1850,7 +2024,6 @@ def test_depolarizing_state_fidelity(forest):
     # prepare TomographyExperiment
     process_exp = TomographyExperiment(settings=[expt], program=p)
     # list to store experiment results
-    num_expts = 25
     expts = []
     for _ in range(num_expts):
         expt_results = []
@@ -1866,8 +2039,14 @@ def test_depolarizing_state_fidelity(forest):
     np.testing.assert_allclose(expected_fidelity, estimated_fidelity, atol=2e-2)
 
 
-def test_unitary_state_fidelity(forest):
+def test_unitary_state_fidelity(forest, use_seed):
     qc = get_qc('1q-qvm')
+    if use_seed:
+        qc.qam.random_seed = 0
+        np.random.seed(0)
+        num_expts = 1
+    else:
+        num_expts = 100
     # prepare experiment setting
     expt = ExperimentSetting(TensorProductState(), sZ(0))
 
@@ -1878,7 +2057,6 @@ def test_unitary_state_fidelity(forest):
     # prepare TomographyExperiment
     process_exp = TomographyExperiment(settings=[expt], program=p)
     # list to store experiment results
-    num_expts = 25
     expts = []
     for _ in range(num_expts):
         expt_results = []
@@ -1894,8 +2072,14 @@ def test_unitary_state_fidelity(forest):
     np.testing.assert_allclose(expected_fidelity, estimated_fidelity, atol=2e-2)
 
 
-def test_bit_flip_state_fidelity_readout_error(forest):
+def test_bit_flip_state_fidelity_readout_error(forest, use_seed):
     qc = get_qc('1q-qvm')
+    if use_seed:
+        qc.qam.random_seed = 0
+        np.random.seed(0)
+        num_expts = 1
+    else:
+        num_expts = 100
     # prepare experiment setting
     expt = ExperimentSetting(TensorProductState(), sZ(0))
 
@@ -1912,7 +2096,6 @@ def test_bit_flip_state_fidelity_readout_error(forest):
     # prepare TomographyExperiment
     process_exp = TomographyExperiment(settings=[expt], program=p)
     # list to store experiment results
-    num_expts = 25
     expts = []
     for _ in range(num_expts):
         expt_results = []
@@ -1928,8 +2111,14 @@ def test_bit_flip_state_fidelity_readout_error(forest):
     np.testing.assert_allclose(expected_fidelity, estimated_fidelity, atol=2e-2)
 
 
-def test_dephasing_state_fidelity_readout_error(forest):
+def test_dephasing_state_fidelity_readout_error(forest, use_seed):
     qc = get_qc('1q-qvm')
+    if use_seed:
+        qc.qam.random_seed = 0
+        np.random.seed(0)
+        num_expts = 1
+    else:
+        num_expts = 100
     # prepare experiment setting
     expt = ExperimentSetting(TensorProductState(), sZ(0))
 
@@ -1945,7 +2134,6 @@ def test_dephasing_state_fidelity_readout_error(forest):
     # prepare TomographyExperiment
     process_exp = TomographyExperiment(settings=[expt], program=p)
     # list to store experiment results
-    num_expts = 25
     expts = []
     for _ in range(num_expts):
         expt_results = []
@@ -1961,8 +2149,14 @@ def test_dephasing_state_fidelity_readout_error(forest):
     np.testing.assert_allclose(expected_fidelity, estimated_fidelity, atol=2e-2)
 
 
-def test_depolarizing_state_fidelity_readout_error(forest):
+def test_depolarizing_state_fidelity_readout_error(forest, use_seed):
     qc = get_qc('1q-qvm')
+    if use_seed:
+        qc.qam.random_seed = 0
+        np.random.seed(0)
+        num_expts = 1
+    else:
+        num_expts = 100
     # prepare experiment setting
     expt = ExperimentSetting(TensorProductState(), sZ(0))
 
@@ -1980,7 +2174,6 @@ def test_depolarizing_state_fidelity_readout_error(forest):
     # prepare TomographyExperiment
     process_exp = TomographyExperiment(settings=[expt], program=p)
     # list to store experiment results
-    num_expts = 25
     expts = []
     for _ in range(num_expts):
         expt_results = []
@@ -1996,8 +2189,14 @@ def test_depolarizing_state_fidelity_readout_error(forest):
     np.testing.assert_allclose(expected_fidelity, estimated_fidelity, atol=2e-2)
 
 
-def test_unitary_state_fidelity_readout_error(forest):
+def test_unitary_state_fidelity_readout_error(forest, use_seed):
     qc = get_qc('1q-qvm')
+    if use_seed:
+        qc.qam.random_seed = 0
+        np.random.seed(0)
+        num_expts = 1
+    else:
+        num_expts = 100
     # prepare experiment setting
     expt = ExperimentSetting(TensorProductState(), sZ(0))
 
@@ -2009,7 +2208,6 @@ def test_unitary_state_fidelity_readout_error(forest):
     # prepare TomographyExperiment
     process_exp = TomographyExperiment(settings=[expt], program=p)
     # list to store experiment results
-    num_expts = 25
     expts = []
     for _ in range(num_expts):
         expt_results = []

@@ -189,3 +189,23 @@ def local_qvm_quilc():
 
     with local_qvm() as context:
         yield context
+
+
+def _str_to_bool(s):
+    """Convert either of the strings 'True' or 'False' to their Boolean equivalent"""
+    if s == 'True':
+        return True
+    elif s == 'False':
+        return False
+    else:
+        raise ValueError("Please specify either True or False")
+
+
+def pytest_addoption(parser):
+    parser.addoption("--use-seed", action="store", type=_str_to_bool, default=False,
+                     help="run some tests faster using a fixed random seed")
+
+
+@pytest.fixture()
+def use_seed(pytestconfig):
+    return pytestconfig.getoption("use_seed")
