@@ -13,7 +13,6 @@ Improvements and Changes:
 - The test suite for `pyquil.operator_estimation` now has an (optional) faster version
   that uses fixed random seeds instead of averaging over several experiments. This can
   be enabled with the `--use-seed` command line option when running `pytest` (gh-928).
-  that uses fixed random seeds instead of averaging over several experiments, using the optional
 
 v2.9.1 (June 28, 2019)
 ----------------------
