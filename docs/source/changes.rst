@@ -4,6 +4,13 @@ Changelog
 v2.10 (in development)
 ----------------------
 
+Improvements and Changes:
+
+- Rewrote the README, adding a more in-depth overview of the purpose of pyQuil as a library,
+  as well as two badges -- one for PyPI downloads and another for the Forest Slack workspace.
+  Also, included an example section for how to get started with running a simple Bell state
+  program on the QVM (gh-949).
+
 Bugfixes:
 
 - ``unitary_tools.lifted_gate()`` was not properly handling modifiers such as ``DAGGER`` and ``CONTROLLED``.
