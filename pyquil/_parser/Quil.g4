@@ -33,7 +33,7 @@ instr               : gate
 
 // C. Static and Parametric Gates
 
-gate                : modifier* name ( LPAREN param ( COMMA param )* RPAREN )? qubit+ ;
+gate                : modifier* name ( LPAREN param ( COMMA param )* RPAREN )? qubit* ;
 
 name                : IDENTIFIER ;
 qubit               : INT ;

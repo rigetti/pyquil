@@ -7,6 +7,7 @@ v2.10 (in development)
 Bugfixes:
 
 - ``unitary_tools.lifted_gate()`` was not properly handling modifiers such as ``DAGGER`` and ``CONTROLLED``.
+- The parser can now handle circuit instructions with zero input qubits (gh-958).
 
 v2.9.1 (June 28, 2019)
 ----------------------

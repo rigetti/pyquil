@@ -163,7 +163,10 @@ class PyQuilListener(QuilListener):
             else:
                 gate = QUANTUM_GATES[gate_name](*target_qubits)
         else:
-            gate = Gate(gate_name, params, target_qubits)
+            if qubits:
+                gate = Gate(gate_name, params, target_qubits)
+            else:
+                gate = RawInstr(gate_name)
 
         for modifier in modifiers:
             if modifier == "CONTROLLED":

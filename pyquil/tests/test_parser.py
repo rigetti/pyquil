@@ -313,6 +313,18 @@ DEFCIRCUIT test_defcirc_reset_qubit:
     parse_equals(defcircuit_reset_qubit, RawInstr(defcircuit_reset_qubit))
 
 
+def test_defcircuit_zero_arguments():
+    circuit = """
+DEFCIRCUIT BELL:
+    H 0
+    CNOT 0 1
+""".strip()
+    circuit_app = """
+BELL
+""".strip()
+    parse_equals(circuit + "\n" + circuit_app, RawInstr(circuit), RawInstr(circuit_app))
+
+
 def test_parse_dagger():
     s = "DAGGER X 0"
     parse_equals(s, X(0).dagger())

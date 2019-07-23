@@ -101,6 +101,7 @@ class Gate(AbstractInstruction):
 
         if not isinstance(qubits, list) or not qubits:
             raise TypeError("Gate arguments must be a non-empty list")
+
         for qubit in qubits:
             if not isinstance(qubit, (Qubit, QubitPlaceholder)):
                 raise TypeError("Gate arguments must all be Qubits")
