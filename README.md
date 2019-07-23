@@ -20,7 +20,7 @@ PyQuil serves three main functions:
   [Quantum Cloud Services](https://www.rigetti.com/qcs) (QCS)
 
 PyQuil has a ton of other features, which you can learn more about in the
-[docs](ttp://pyquil.readthedocs.io/en/latest/). However, you can also keep reading
+[docs](http://pyquil.readthedocs.io/en/latest/). However, you can also keep reading
 below to get started with running your first quantum program!
 
 Installation
