@@ -2,8 +2,9 @@ PyQuil: Quantum programming in Python
 =====================================
 
 [![pipeline status](https://gitlab.com/rigetti/forest/pyquil/badges/master/pipeline.svg)](https://gitlab.com/rigetti/forest/pyquil/commits/master)
-[![Build Status](https://semaphoreci.com/api/v1/rigetti/pyquil/branches/master/shields_badge.svg)](https://semaphoreci.com/rigetti/pyquil)
-[![Documentation Status](https://readthedocs.org/projects/pyquil/badge/?version=latest)](http://pyquil.readthedocs.io/en/latest/?badge=latest)
+[![build status](https://semaphoreci.com/api/v1/rigetti/pyquil/branches/master/shields_badge.svg)](https://semaphoreci.com/rigetti/pyquil)
+[![docs status](https://readthedocs.org/projects/pyquil/badge/?version=latest)](http://pyquil.readthedocs.io/en/latest/?badge=latest)
+[![pypi downloads](https://img.shields.io/pypi/dm/pyquil.svg)](https://pypi.org/project/pyquil/)
 [![pypi version](https://img.shields.io/pypi/v/pyquil.svg)](https://pypi.org/project/pyquil/)
 [![conda-forge version](https://img.shields.io/conda/vn/conda-forge/pyquil.svg)](https://anaconda.org/conda-forge/pyquil)
 [![slack workspace](https://img.shields.io/badge/slack-rigetti--forest-812f82.svg?)](https://join.slack.com/t/rigetti-forest/shared_invite/enQtNTUyNTE1ODg3MzE2LWExZWU5OTE4YTJhMmE2NGNjMThjOTM1MjlkYTA5ZmUxNTJlOTVmMWE0YjA3Y2M2YmQzNTZhNTBlMTYyODRjMzA)
