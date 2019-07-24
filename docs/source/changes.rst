@@ -16,7 +16,7 @@ Improvements and Changes:
   be enabled with the `--use-seed` command line option when running `pytest` (gh-928).
 
 - Updated the examples README. Removed an outdated notebook. Updated remaining notebooks to use
-  ``MemoryReference``s, and fix any parts that were broken (gh-820).
+  ``MemoryReference``, and fix any parts that were broken (gh-820).
 
 Bugfixes:
 
