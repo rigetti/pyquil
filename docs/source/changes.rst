@@ -21,7 +21,6 @@ Improvements and Changes:
 Bugfixes:
 
 - ``unitary_tools.lifted_gate()`` was not properly handling modifiers such as ``DAGGER`` and ``CONTROLLED``.
-- Remove memory warnings from notebooks
 
 v2.9.1 (June 28, 2019)
 ----------------------
