@@ -774,6 +774,7 @@ def test_measure_observables_2q_readout_error_one_measured(forest, use_seed):
     assert np.isclose(np.mean(cal_e), 0.849, atol=2e-2)
 
 
+@pytest.mark.flaky(reruns=1)
 def test_exhaustive_symmetrization_1q(forest):
     qc = get_qc('9q-qvm')
     qubs = [5]
