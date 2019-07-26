@@ -32,8 +32,17 @@ THETA = Parameter("theta")
 DEFAULT_QUBIT_TYPE = "Xhalves"
 DEFAULT_EDGE_TYPE = "CZ"
 
-Qubit = namedtuple("Qubit", ["id", "type", "dead"])
-Edge = namedtuple("Edge", ["targets", "type", "dead"])
+PERFECT_FIDELITY = 1e0
+PERFECT_DURATION = 1 / 100
+DEFAULT_CZ_DURATION = 200
+DEFAULT_CZ_FIDELITY = 0.89
+DEFAULT_RX_DURATION = 50
+DEFAULT_RX_FIDELITY = 0.95
+DEFAULT_MEASURE_FIDELITY = 0.90
+DEFAULT_MEASURE_DURATION = 2000
+
+Qubit = namedtuple("Qubit", ["id", "type", "dead", "gates"])
+Edge = namedtuple("Edge", ["targets", "type", "dead", "gates"])
 _ISA = namedtuple("_ISA", ["qubits", "edges"])
 QubitSpecs = namedtuple("_QubitSpecs", ["id", "fRO", "f1QRB", "f1QRB_std_err",
                                         "f1Q_simultaneous_RB", "f1Q_simultaneous_RB_std_err", "T1",
@@ -41,6 +50,14 @@ QubitSpecs = namedtuple("_QubitSpecs", ["id", "fRO", "f1QRB", "f1QRB_std_err",
 EdgeSpecs = namedtuple("_QubitQubitSpecs", ["targets", "fBellState", "fCZ", "fCZ_std_err",
                                             "fCPHASE"])
 _Specs = namedtuple("_Specs", ["qubits_specs", "edges_specs"])
+MeasureInfo = namedtuple("MeasureInfo", ["operator", "qubit", "target", "duration", "fidelity"])
+GateInfo = namedtuple("GateInfo", ["operator", "parameters", "arguments", "duration", "fidelity"])
+
+# make Qubit and Edge arguments optional
+Qubit.__new__.__defaults__ = (None,) * len(Qubit._fields)
+Edge.__new__.__defaults__ = (None,) * len(Edge._fields)
+MeasureInfo.__new__.__defaults__ = (None,) * len(MeasureInfo._fields)
+GateInfo.__new__.__defaults__ = (None,) * len(GateInfo._fields)
 
 
 class ISA(_ISA):
@@ -94,7 +111,19 @@ class ISA(_ISA):
             :return: d
             """
             d = {}
-            if o.type != t:
+            if o.gates is not None:
+                d["gates"] = [
+                    {"operator": i.operator,
+                     "parameters": i.parameters,
+                     "arguments": i.arguments,
+                     "fidelity": i.fidelity,
+                     "duration": i.duration} if isinstance(i, GateInfo) else
+                    {"operator": "MEASURE",
+                     "qubit": i.qubit,
+                     "target": i.target,
+                     "duration": i.duration,
+                     "fidelity": i.fidelity} for i in o.gates]
+            if o.gates is None and o.type != t:
                 d["type"] = o.type
             if o.dead:
                 d["dead"] = o.dead
@@ -469,6 +498,9 @@ class AbstractDevice(ABC):
         Construct a Specs object required by compilation
         """
 
+    def get_annotated_isa(self) -> ISA:
+        return self.get_isa()
+
 
 class Device(AbstractDevice):
     """
@@ -528,6 +560,30 @@ class Device(AbstractDevice):
 
     def get_specs(self):
         return self.specs
+
+    def get_annotated_isa(self) -> ISA:
+        qubits = [Qubit(id=q.id, type=None, dead=q.dead, gates=[
+            MeasureInfo(operator="MEASURE", qubit=q.id, target="_",
+                        fidelity=self.specs.fROs()[q.id] or DEFAULT_MEASURE_FIDELITY,
+                        duration=DEFAULT_MEASURE_DURATION),
+            MeasureInfo(operator="MEASURE", qubit=q.id, target=None,
+                        fidelity=self.specs.fROs()[q.id] or DEFAULT_MEASURE_FIDELITY,
+                        duration=DEFAULT_MEASURE_DURATION),
+            GateInfo(operator="RZ", parameters=["_"], arguments=[q.id],
+                     duration=PERFECT_DURATION, fidelity=PERFECT_FIDELITY),
+            GateInfo(operator="RX", parameters=[0.0], arguments=[q.id],
+                     duration=DEFAULT_RX_DURATION, fidelity=PERFECT_FIDELITY)] + [
+                GateInfo(operator="RX", parameters=[param], arguments=[q.id],
+                         duration=DEFAULT_RX_DURATION,
+                         fidelity=self.specs.f1QRBs()[q.id] or DEFAULT_RX_FIDELITY)
+                for param in [np.pi, -np.pi, np.pi / 2, -np.pi / 2]])
+            for q in self._isa.qubits]
+        edges = [Edge(targets=e.targets, type=None, dead=e.dead, gates=[
+                    GateInfo(operator="CZ", parameters=[], arguments=["_", "_"],
+                             duration=DEFAULT_CZ_DURATION,
+                             fidelity=self.specs.fCZs()[tuple(e.targets)] or DEFAULT_CZ_FIDELITY)])
+                 for e in self._isa.edges]
+        return ISA(qubits, edges)
 
     def __str__(self):
         return '<Device {}>'.format(self.name)
