@@ -21,7 +21,8 @@ Improvements and Changes:
 - The ``AbstractCompiler.quil_to_native_quil()`` function now accepts a ``protoquil`` keyword which
   tells the compiler to restrict both input and output to protoquil (i.e. Quil code executable on a
   QPU). Additionally, the compiler will return a metadata dictionary that contains statistics about
-  the compiled program, e.g. its estimated QPU runtime. See the compiler docs for more information.
+  the compiled program, e.g. its estimated QPU runtime. See the compiler docs for more information
+  (gh-940).
 
 Bugfixes:
 
