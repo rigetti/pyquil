@@ -18,6 +18,8 @@ Improvements and Changes:
 - Updated the examples README. Removed an outdated notebook. Updated remaining notebooks to use
   ``MemoryReference``, and fix any parts that were broken (gh-820).
 
+- Provided example code for reading out the QPU runtime estimation for a program (gh-963).
+
 Bugfixes:
 
 - ``unitary_tools.lifted_gate()`` was not properly handling modifiers such as ``DAGGER`` and ``CONTROLLED``.
