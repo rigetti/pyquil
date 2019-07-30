@@ -66,9 +66,9 @@ def test_specs(specs_dict):
         ],
         edges_specs=[
             EdgeSpecs(targets=[0, 1], fBellState=0.90, fCZ=0.89, fCZ_std_err=0.01, fCPHASE=0.88),
+            EdgeSpecs(targets=[0, 2], fBellState=0.92, fCZ=0.91, fCZ_std_err=0.20, fCPHASE=0.90),
             EdgeSpecs(targets=[0, 3], fBellState=0.89, fCZ=0.88, fCZ_std_err=0.03, fCPHASE=0.87),
             EdgeSpecs(targets=[1, 2], fBellState=0.91, fCZ=0.90, fCZ_std_err=0.12, fCPHASE=0.89),
-            EdgeSpecs(targets=[2, 0], fBellState=0.92, fCZ=0.91, fCZ_std_err=0.20, fCPHASE=0.90)
         ])
 
     assert specs == Specs.from_dict(specs.to_dict())
@@ -79,10 +79,10 @@ def test_specs(specs_dict):
     assert specs.T1s() == {0: 20e-6, 1: 19e-6, 2: 21e-6, 3: 18e-6}
     assert specs.T2s() == {0: 15e-6, 1: 12e-6, 2: 16e-6, 3: 11e-6}
 
-    assert specs.fBellStates() == {(0, 1): 0.90, (0, 3): 0.89, (1, 2): 0.91, (2, 0): 0.92}
-    assert specs.fCZs() == {(0, 1): 0.89, (0, 3): 0.88, (1, 2): 0.90, (2, 0): 0.91}
-    assert specs.fCZ_std_errs() == {(0, 1): 0.01, (0, 3): 0.03, (1, 2): 0.12, (2, 0): 0.20}
-    assert specs.fCPHASEs() == {(0, 1): 0.88, (0, 3): 0.87, (1, 2): 0.89, (2, 0): 0.90}
+    assert specs.fBellStates() == {(0, 1): 0.90, (0, 2): 0.92, (0, 3): 0.89, (1, 2): 0.91}
+    assert specs.fCZs() == {(0, 1): 0.89, (0, 2): 0.91, (0, 3): 0.88, (1, 2): 0.90}
+    assert specs.fCZ_std_errs() == {(0, 1): 0.01, (0, 2): 0.20, (0, 3): 0.03, (1, 2): 0.12}
+    assert specs.fCPHASEs() == {(0, 1): 0.88, (0, 2): 0.90, (0, 3): 0.87, (1, 2): 0.89}
 
 
 def test_kraus_model(kraus_model_I_dict):
