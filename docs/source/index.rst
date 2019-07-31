@@ -54,7 +54,7 @@ in pyquil's docs:
    concert with traditional processors to run hybrid quantum-classical algorithms. For references on problems addressable
    with near-term quantum computers, see `Quantum Computing in the NISQ era and beyond <https://arxiv.org/abs/1801.00862>`_.
 
-Our flagship product `Quantum Cloud Services <http://rigetti.com/qcs>`_ offers users an on-premise, dedicated access
+Our flagship product `Quantum Cloud Services <https://rigetti.com/qcs>`_ offers users an on-premise, dedicated access
 point to our quantum computers. This access point is a fully-configured VM, which we call a Quantum Machine Image. A QMI
 is bundled with the same downloadable SDK mentioned above, and a command line interface (CLI), which is used for
 scheduling compute time on our quantum computers. To sign up for our waitlist, please click the link above. If you'd like
@@ -62,7 +62,7 @@ to access to our quantum computers for research, please email support@rigetti.co
 
 .. note::
 
-    To join our user community, connect to the Rigetti Slack workspace at https://rigetti-forest.slack.com.
+    To join our user community, connect to the `Rigetti Slack workspace <https://rigetti-forest.slack.com>`_ using `this invite <https://join.slack.com/t/rigetti-forest/shared_invite/enQtNTUyNTE1ODg3MzE2LWExZWU5OTE4YTJhMmE2NGNjMThjOTM1MjlkYTA5ZmUxNTJlOTVmMWE0YjA3Y2M2YmQzNTZhNTBlMTYyODRjMzA>`_.
 
 Contents
 --------
