@@ -1,8 +1,8 @@
 Changelog
 =========
 
-v2.10 (in development)
-----------------------
+v2.10 (July 31, 2019)
+---------------------
 
 Improvements and Changes:
 
@@ -15,6 +15,8 @@ Improvements and Changes:
   that uses fixed random seeds instead of averaging over several experiments. This can
   be enabled with the `--use-seed` command line option when running `pytest` (gh-928).
 
+- Deleted the deprecated modules ``job_results.py`` and ``kraus.py`` (gh-957).
+
 - Updated the examples README. Removed an outdated notebook. Updated remaining notebooks to use
   ``MemoryReference``, and fix any parts that were broken (gh-820).
 
@@ -23,12 +25,15 @@ Improvements and Changes:
   QPU). Additionally, the compiler will return a metadata dictionary that contains statistics about
   the compiled program, e.g. its estimated QPU runtime. See the compiler docs for more information
   (gh-940).
+
+- Updated the QCS and Slack invite links on the ``index.rst`` docs page (gh-965).
   
   - Provided example code for reading out the QPU runtime estimation for a program (gh-963).
 
 Bugfixes:
 
-- ``unitary_tools.lifted_gate()`` was not properly handling modifiers such as ``DAGGER`` and ``CONTROLLED``.
+- ``unitary_tools.lifted_gate()`` was not properly handling modifiers such as ``DAGGER``
+  and ``CONTROLLED`` (gh-931).
 
 v2.9.1 (June 28, 2019)
 ----------------------
