@@ -23,6 +23,8 @@ Improvements and Changes:
   QPU). Additionally, the compiler will return a metadata dictionary that contains statistics about
   the compiled program, e.g. its estimated QPU runtime. See the compiler docs for more information
   (gh-940).
+  
+  - Provided example code for reading out the QPU runtime estimation for a program (gh-963).
 
 Bugfixes:
 

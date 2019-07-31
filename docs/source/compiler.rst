@@ -134,6 +134,48 @@ To instruct the compiler to produce Quil code that can be executed on a QPU, you
    compiler) then specifying ``protoquil=False`` will override the server and force disable
    protoquil. Specifying ``protoquil=None`` defers to the server.
 
+Compilation metadata
+--------------------
+
+When your compiler is started with the ``-P`` option, the ``compiler.quil_to_native_quil()`` method
+will return both the compiled program and a dictionary of statistics for the compiled program. This
+dictionary contains the keys
+
+- ``final_rewiring``: see section below on rewirings.
+- ``gate_depth``: the longest subsequence of compiled instructions whereadjaction instructions share
+  resources.
+- ``multiqubit_gate_depth``: like ``gate_depth`` but restricted to multi-qubit gates.
+- ``gate_volume``: total number of gates in the compiled program.
+- ``program_duration``: program duration with parallel executation of gates (using hard-coded values
+  of individual gate durations).
+- ``qpu_runtime_estimation``: estimated runtime on a Rigetti QPU (in milliseconds). This is
+  extrapolated from a single shot of a 16Q program with final measurements on all 16 qubits. If you
+  are running a parametric program then you should estimate the total runtime as ``size of parameter
+  space * estimated runtime of single shot``. This should be treated only as an approximation.
+- ``program_fidelity``: the estimated fidelity of the compiled program.
+- ``topological_swaps``: the number of topological swaps incurred during compilation of the program.
+
+For example, to inspect the ``qpu_runtime_estimation`` you might do the following:
+
+.. code:: python
+
+    from pyquil import get_qc, Program
+
+    # If you have a reserved lattice, use it here
+    qc = get_qc("Aspen-4-4Q-A")
+    # Otherwise use a QVM
+    # qc = get_qc("8q-qvm")
+
+    # Likely you will have a more complex program:
+    p = Program("RX(pi) 0")
+
+    native_p = qc.compiler.quil_to_native_quil(p)
+
+    # The program will now have only native gates
+    print(native_p)
+    # And also a dictionary, with the above keys
+    print(native_p.native_quil_metadata["qpu_runtime_estimation"])
+
 .. _pragma:
 
 Region-specific compiler features through PRAGMA
