@@ -51,29 +51,32 @@ def test_specs(specs_dict):
     specs = Specs.from_dict(specs_dict)
     assert specs == Specs(
         qubits_specs=[
-            QubitSpecs(id=0, f1QRB=0.99, fRO=0.93, T1=20e-6, T2=15e-6, fActiveReset=None),
-            QubitSpecs(id=1, f1QRB=0.989, fRO=0.92, T1=19e-6, T2=12e-6, fActiveReset=None),
-            QubitSpecs(id=2, f1QRB=0.983, fRO=0.95, T1=21e-6, T2=16e-6, fActiveReset=None),
-            QubitSpecs(id=3, f1QRB=0.988, fRO=0.94, T1=18e-6, T2=11e-6, fActiveReset=None)
+            QubitSpecs(id=0, f1QRB_individual=0.99, f1QRB_simultaneous=0.98, fRO=0.93, T1=20e-6,
+                       T2=15e-6, fActiveReset=None),
+            QubitSpecs(id=1, f1QRB_individual=0.989, f1QRB_simultaneous=0.979, fRO=0.92, T1=19e-6,
+                       T2=12e-6, fActiveReset=None),
+            QubitSpecs(id=2, f1QRB_individual=0.983, f1QRB_simultaneous=0.973, fRO=0.95, T1=21e-6,
+                       T2=16e-6, fActiveReset=None),
+            QubitSpecs(id=3, f1QRB_individual=0.988, f1QRB_simultaneous=0.978, fRO=0.94, T1=18e-6,
+                       T2=11e-6, fActiveReset=None)
         ],
         edges_specs=[
-            EdgeSpecs(targets=[0, 1], fBellState=0.90, fCZ=0.89, fCZ_std_err=0.01, fCPHASE=0.88),
-            EdgeSpecs(targets=[0, 3], fBellState=0.89, fCZ=0.88, fCZ_std_err=0.03, fCPHASE=0.87),
-            EdgeSpecs(targets=[1, 2], fBellState=0.91, fCZ=0.90, fCZ_std_err=0.12, fCPHASE=0.89),
-            EdgeSpecs(targets=[2, 0], fBellState=0.92, fCZ=0.91, fCZ_std_err=0.20, fCPHASE=0.90)
+            EdgeSpecs(targets=[0, 1], fCZ=0.89, fCZ_std_err=0.01),
+            EdgeSpecs(targets=[0, 3], fCZ=0.88, fCZ_std_err=0.03),
+            EdgeSpecs(targets=[1, 2], fCZ=0.90, fCZ_std_err=0.12),
+            EdgeSpecs(targets=[2, 0], fCZ=0.91, fCZ_std_err=0.20)
         ])
 
     assert specs == Specs.from_dict(specs.to_dict())
 
-    assert specs.f1QRBs() == {0: 0.99, 1: 0.989, 2: 0.983, 3: 0.988}
+    assert specs.f1QRB_individuals() == {0: 0.99, 1: 0.989, 2: 0.983, 3: 0.988}
+    assert specs.f1QRB_simultaneouss() == {0: 0.98, 1: 0.979, 2: 0.973, 3: 0.978}
     assert specs.fROs() == {0: 0.93, 1: 0.92, 2: 0.95, 3: 0.94}
     assert specs.T1s() == {0: 20e-6, 1: 19e-6, 2: 21e-6, 3: 18e-6}
     assert specs.T2s() == {0: 15e-6, 1: 12e-6, 2: 16e-6, 3: 11e-6}
 
-    assert specs.fBellStates() == {(0, 1): 0.90, (0, 3): 0.89, (1, 2): 0.91, (2, 0): 0.92}
     assert specs.fCZs() == {(0, 1): 0.89, (0, 3): 0.88, (1, 2): 0.90, (2, 0): 0.91}
     assert specs.fCZ_std_errs() == {(0, 1): 0.01, (0, 3): 0.03, (1, 2): 0.12, (2, 0): 0.20}
-    assert specs.fCPHASEs() == {(0, 1): 0.88, (0, 3): 0.87, (1, 2): 0.89, (2, 0): 0.90}
 
 
 def test_kraus_model(kraus_model_I_dict):

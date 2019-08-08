@@ -35,9 +35,9 @@ DEFAULT_EDGE_TYPE = "CZ"
 Qubit = namedtuple("Qubit", ["id", "type", "dead"])
 Edge = namedtuple("Edge", ["targets", "type", "dead"])
 _ISA = namedtuple("_ISA", ["qubits", "edges"])
-QubitSpecs = namedtuple("_QubitSpecs", ["id", "fRO", "f1QRB", "T1", "T2", "fActiveReset"])
-EdgeSpecs = namedtuple("_QubitQubitSpecs", ["targets", "fBellState", "fCZ", "fCZ_std_err",
-                                            "fCPHASE"])
+QubitSpecs = namedtuple("_QubitSpecs", ["id", "fRO", "f1QRB_individual", "f1QRB_simultaneous",
+                                        "T1", "T2", "fActiveReset"])
+EdgeSpecs = namedtuple("_QubitQubitSpecs", ["targets", "fCZ", "fCZ_std_err"])
 _Specs = namedtuple("_Specs", ["qubits_specs", "edges_specs"])
 
 
@@ -175,15 +175,25 @@ class Specs(_Specs):
     :ivar List[EdgesSpecs] edges_specs: The specs associated with edges, or qubit-qubit pairs.
     """
 
-    def f1QRBs(self):
+    def f1QRB_individuals(self):
         """
-        Get a dictionary of single-qubit randomized benchmarking fidelities (normalized to unity)
-        from the specs, keyed by qubit index.
+        Get a dictionary of single-qubit randomized benchmarking fidelities (for individual gate
+        operation, normalized to unity) from the specs, keyed by qubit index.
 
         :return: A dictionary of 1QRBs, normalized to unity.
         :rtype: Dict[int, float]
         """
-        return {qs.id: qs.f1QRB for qs in self.qubits_specs}
+        return {qs.id: qs.f1QRB_individual for qs in self.qubits_specs}
+
+    def f1QRB_simultaneouss(self):
+        """
+        Get a dictionary of single-qubit randomized benchmarking fidelities (for simultaneous gate
+        operation across the chip, normalized to unity) from the specs, keyed by qubit index.
+
+        :return: A dictionary of 1QRBs, normalized to unity.
+        :rtype: Dict[int, float]
+        """
+        return {qs.id: qs.f1QRB_simultaneous for qs in self.qubits_specs}
 
     def fROs(self):
         """
@@ -222,16 +232,6 @@ class Specs(_Specs):
         """
         return {qs.id: qs.T2 for qs in self.qubits_specs}
 
-    def fBellStates(self):
-        """
-        Get a dictionary of two-qubit Bell state fidelities (normalized to unity)
-        from the specs, keyed by targets (qubit-qubit pairs).
-
-        :return: A dictionary of Bell state fidelities, normalized to unity.
-        :rtype: Dict[tuple(int, int), float]
-        """
-        return {tuple(es.targets): es.fBellState for es in self.edges_specs}
-
     def fCZs(self):
         """
         Get a dictionary of CZ fidelities (normalized to unity) from the specs,
@@ -252,16 +252,6 @@ class Specs(_Specs):
         """
         return {tuple(es.targets): es.fCZ_std_err for es in self.edges_specs}
 
-    def fCPHASEs(self):
-        """
-        Get a dictionary of CPHASE fidelities (normalized to unity) from the specs,
-        keyed by targets (qubit-qubit pairs).
-
-        :return: A dictionary of CPHASE fidelities, normalized to unity.
-        :rtype: Dict[tuple(int, int), float]
-        """
-        return {tuple(es.targets): es.fCPHASE for es in self.edges_specs}
-
     def to_dict(self):
         """
         Create a JSON-serializable representation of the device Specs.
@@ -271,12 +261,12 @@ class Specs(_Specs):
             {
                 '1Q': {
                     "0": {
-                        "f1QRB": 0.99,
+                        "f1QRB_individual": 0.99,
                         "T1": 20e-6,
                         ...
                     },
                     "1": {
-                        "f1QRB": 0.989,
+                        "f1QRB_individual": 0.989,
                         "T1": 19e-6,
                         ...
                     },
@@ -284,16 +274,12 @@ class Specs(_Specs):
                 },
                 '2Q': {
                     "1-4": {
-                        "fBellState": 0.93,
                         "fCZ": 0.92,
                         "fCZ_std_err": 0.03,
-                        "fCPHASE": 0.91
                     },
                     "1-5": {
-                        "fBellState": 0.9,
                         "fCZ": 0.89,
                         "fCZ_std_err": 0.05,
-                        "fCPHASE": 0.88
                     },
                     ...
                 },
@@ -306,7 +292,8 @@ class Specs(_Specs):
         return {
             '1Q': {
                 "{}".format(qs.id): {
-                    'f1QRB': qs.f1QRB,
+                    'f1QRB_individual': qs.f1QRB_individual,
+                    'f1QRB_simultaneous': qs.f1QRB_simultaneous,
                     'fRO': qs.fRO,
                     'T1': qs.T1,
                     'T2': qs.T2,
@@ -315,10 +302,8 @@ class Specs(_Specs):
             },
             '2Q': {
                 "{}-{}".format(*es.targets): {
-                    'fBellState': es.fBellState,
                     'fCZ': es.fCZ,
                     'fCZ_std_err': es.fCZ_std_err,
-                    'fCPHASE': es.fCPHASE
                 } for es in self.edges_specs
             }
         }
@@ -335,17 +320,16 @@ class Specs(_Specs):
         return Specs(
             qubits_specs=sorted([QubitSpecs(id=int(q),
                                             fRO=qspecs.get('fRO'),
-                                            f1QRB=qspecs.get('f1QRB'),
+                                            f1QRB_individual=qspecs.get('f1QRB_individual'),
+                                            f1QRB_simultaneous=qspecs.get('f1QRB_simultaneous'),
                                             T1=qspecs.get('T1'),
                                             T2=qspecs.get('T2'),
                                             fActiveReset=qspecs.get('fActiveReset'))
                                  for q, qspecs in d["1Q"].items()],
                                 key=lambda qubit_specs: qubit_specs.id),
             edges_specs=sorted([EdgeSpecs(targets=[int(q) for q in e.split('-')],
-                                          fBellState=especs.get('fBellState'),
                                           fCZ=especs.get('fCZ'),
-                                          fCZ_std_err=especs.get('fCZ_std_err'),
-                                          fCPHASE=especs.get('fCPHASE'))
+                                          fCZ_std_err=especs.get('fCZ_std_err'))
                                 for e, especs in d["2Q"].items()],
                                key=lambda edge_specs: edge_specs.targets)
         )
@@ -371,9 +355,10 @@ def specs_from_graph(graph: nx.Graph):
 
     :param graph: The graph
     """
-    qspecs = [QubitSpecs(id=q, fRO=0.90, f1QRB=0.99, T1=30e-6, T2=30e-6, fActiveReset=0.99)
+    qspecs = [QubitSpecs(id=q, fRO=0.90, f1QRB_individual=0.99, f1QRB_simultaneous=0.99,
+                         T1=30e-6, T2=30e-6, fActiveReset=0.99)
               for q in graph.nodes]
-    especs = [EdgeSpecs(targets=(q1, q2), fBellState=0.90, fCZ=0.90, fCZ_std_err=0.05, fCPHASE=0.80)
+    especs = [EdgeSpecs(targets=(q1, q2), fCZ=0.90, fCZ_std_err=0.05)
               for q1, q2 in graph.edges]
     return Specs(qspecs, especs)
 
