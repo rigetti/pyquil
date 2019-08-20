@@ -36,7 +36,7 @@ from pyquil.quilatom import (LabelPlaceholder, QubitPlaceholder, unpack_qubit, A
 from pyquil.gates import MEASURE, QUANTUM_GATES, H, RESET
 from pyquil.quilbase import (DefGate, Gate, Measurement, Pragma, AbstractInstruction, Qubit,
                              Jump, Label, JumpConditional, JumpTarget, JumpUnless, JumpWhen,
-                             Declare, Halt, Reset, ResetQubit)
+                             Declare, Halt, Reset, ResetQubit, DefPermutationGate)
 
 
 class Program(object):
@@ -952,7 +952,10 @@ def merge_programs(prog_list):
     p = sum([Program(prog).instructions for prog in prog_list], Program())  # Combine programs without gate definitions
 
     for definition in new_definitions:
-        p.defgate(definition.name, definition.matrix, definition.parameters)
+        if isinstance(definition, DefPermutationGate):
+            p.inst(DefPermutationGate(definition.name, list(definition.permutation)))
+        else:
+            p.defgate(definition.name, definition.matrix, definition.parameters)
 
     return p
 

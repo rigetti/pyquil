@@ -1,6 +1,12 @@
 Changelog
 =========
 
+v2.xx (in progress)
+-------------------
+Improvements and Changes:
+
+- ``merge_programs`` supports ``DefPermutationGate``
+
 v2.10 (July 31, 2019)
 ---------------------
 

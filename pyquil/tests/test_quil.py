@@ -29,7 +29,8 @@ from pyquil.paulis import exponential_map, sZ
 from pyquil.quil import Program, merge_programs, merge_with_pauli_noise, address_qubits, \
     get_classical_addresses_from_program, Pragma, validate_protoquil, validate_supported_quil
 from pyquil.quilatom import QubitPlaceholder, Addr, MemoryReference, Sub
-from pyquil.quilbase import DefGate, Gate, Qubit, JumpWhen, Declare, ClassicalNot
+from pyquil.quilbase import DefGate, Gate, Qubit, JumpWhen, Declare, ClassicalNot, \
+    DefPermutationGate
 from pyquil.tests.utils import parse_equals
 
 
@@ -615,10 +616,12 @@ def test_prog_merge():
     prog_0 = Program(X(0))
     prog_1 = Program(Y(0))
     assert merge_programs([prog_0, prog_1]).out() == (prog_0 + prog_1).out()
-    prog_0.defgate("test", np.eye(2))
-    prog_0.inst(("test", 0))
-    prog_1.defgate("test", np.eye(2))
-    prog_1.inst(("test", 0))
+    test_def = DefGate("test", np.eye(2))
+    TEST = test_def.get_constructor()
+    prog_0.inst(test_def)
+    prog_0.inst(TEST(0))
+    prog_1.inst(test_def)
+    prog_1.inst(TEST(0))
     assert merge_programs([prog_0, prog_1]).out() == """DEFGATE test:
     1.0, 0
     0, 1.0
@@ -627,6 +630,25 @@ X 0
 test 0
 Y 0
 test 0
+"""
+    perm_def = DefPermutationGate('PERM', [0, 1, 3, 2])
+    PERM = perm_def.get_constructor()
+    prog_0.inst(perm_def)
+    prog_0.inst(PERM(0, 1))
+    prog_1.inst(perm_def)
+    prog_1.inst(PERM(1, 0))
+    assert merge_programs([prog_0, prog_1]).out() == """DEFGATE PERM AS PERMUTATION:
+    0, 1, 3, 2
+DEFGATE test:
+    1.0, 0
+    0, 1.0
+
+X 0
+test 0
+PERM 0 1
+Y 0
+test 0
+PERM 1 0
 """
 
 
