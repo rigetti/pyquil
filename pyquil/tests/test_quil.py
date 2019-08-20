@@ -650,6 +650,12 @@ Y 0
 test 0
 PERM 1 0
 """
+    assert merge_programs([Program("DECLARE ro BIT[1]"),
+                           Program("H 0"),
+                           Program("MEASURE 0 ro[0]")]).out() == """DECLARE ro BIT[1]
+H 0
+MEASURE 0 ro[0]
+"""
 
 
 def test_merge_with_pauli_noise():
