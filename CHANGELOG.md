@@ -89,7 +89,7 @@ Announcements:
 -   Inline math rendering was not working correctly in `intro.rst`
     (gh-927).
 
-Thanks to community member **jclapis** for the contributions to this
+Thanks to community member @jclapis for the contributions to this
 release!
 
 v2.8 (May 20, 2019)
@@ -169,7 +169,7 @@ v2.6 (March 29, 2019)
 -   Updated a stale link to the Rigetti Forest Slack workspace (gh-860).
 -   Fixed a notation typo in the documentation for noise (gh-861).
 
-Special thanks to willzeng for all the contributions this release!
+Special thanks to @willzeng for all the contributions this release!
 
 v2.5 (March 6, 2019)
 --------------------
@@ -317,7 +317,7 @@ release of a new suite of simulators:
     passed to `get_qc` did not match the lattice you booked. This is now
     validated (gh-771).
 
-We extend thanks to community member estamm12 for their contribution to
+We extend thanks to community member @estamm12 for their contribution to
 this release.
 
 v2.2 (January 4, 2019)
@@ -354,7 +354,7 @@ algorithms. This release includes:
 Please look forward to more features and polish in future releases.
 Don\'t hesitate to submit feedback or suggestions as GitHub issues.
 
-We extend thanks to community member petterwittek for their contribution
+We extend thanks to community member @petterwittek for their contribution
 to this release.
 
 Bugfix release 2.2.1 was released January 11 to maintain compatibility
@@ -439,8 +439,8 @@ the latest in our series of regular releases, and it's filled with
 convenience features, enhancements, bug fixes, and documentation
 improvements.
 
-Special thanks to community members sethuiyer, vtomole, rht, akarazeev,
-ejdanderson, markf94, playadust, and kadora626 for contributing to this
+Special thanks to community members @sethuiyer, @vtomole, @rht, @akarazeev,
+@ejdanderson, @markf94, @playadust, and @kadora626 for contributing to this
 release!
 
 ### Qubit placeholders
@@ -508,7 +508,7 @@ In addition, the `CompilerConnection` has another new method,
 that are composed of Clifford gates. That is to say, given a circuit C,
 that contains only gates corresponding to elements of the Clifford
 group, and a tensor product of elements P, from the Pauli group, this
-method will compute \$PCP\^{dagger}\$. Such a procedure can be used in
+method will compute `$PCP^{dagger}$` Such a procedure can be used in
 various ways. An example is predicting the effect a Clifford circuit
 will have on an input state modeled as a density matrix, which can be
 written as a sum of Pauli matrices.
