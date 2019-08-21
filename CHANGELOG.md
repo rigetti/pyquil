@@ -61,7 +61,7 @@ v2.9.1 (June 28, 2019)
 v2.9 (June 25, 2019)
 --------------------
 
-Announcements:
+### Announcements
 
 -   PyQuil now has a [Pull Request
     Template](https://github.com/rigetti/pyquil/blob/master/.github/PULL_REQUEST_TEMPLATE.md),
