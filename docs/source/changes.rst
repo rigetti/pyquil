@@ -41,7 +41,7 @@ Improvements and Changes:
 
 - Updated the QCS and Slack invite links on the ``index.rst`` docs page (gh-965).
   
-  - Provided example code for reading out the QPU runtime estimation for a program (gh-963).
+- Provided example code for reading out the QPU runtime estimation for a program (gh-963).
 
 Bugfixes:
 
