@@ -51,28 +51,36 @@ def specs_dict():
         '1Q': {
             "0": {
                 "f1QRB_individual": 0.99,
+                "f1QRB_individual_std_err": 0.01,
                 "f1QRB_simultaneous": 0.98,
+                "f1QRB_simultaneous_std_err": 0.02,
                 "fRO": 0.93,
                 "T1": 20e-6,
                 "T2": 15e-6
             },
             "1": {
                 "f1QRB_individual": 0.989,
+                "f1QRB_individual_std_err": 0.011,
                 "f1QRB_simultaneous": 0.979,
+                "f1QRB_simultaneous_std_err": 0.021,
                 "fRO": 0.92,
                 "T1": 19e-6,
                 "T2": 12e-6
             },
             "2": {
                 "f1QRB_individual": 0.983,
+                "f1QRB_individual_std_err": 0.017,
                 "f1QRB_simultaneous": 0.973,
+                "f1QRB_simultaneous_std_err": 0.027,
                 "fRO": 0.95,
                 "T1": 21e-6,
                 "T2": 16e-6
             },
             "3": {
                 "f1QRB_individual": 0.988,
+                "f1QRB_individual_std_err": 0.012,
                 "f1QRB_simultaneous": 0.978,
+                "f1QRB_simultaneous_std_err": 0.022,
                 "fRO": 0.94,
                 "T1": 18e-6,
                 "T2": 11e-6
@@ -80,20 +88,28 @@ def specs_dict():
         },
         '2Q': {
             "0-1": {
+                "fBellState": 0.90,
                 "fCZ": 0.89,
                 "fCZ_std_err": 0.01,
+                "fCPHASE": 0.88
             },
             "1-2": {
+                "fBellState": 0.91,
                 "fCZ": 0.90,
                 "fCZ_std_err": 0.12,
+                "fCPHASE": 0.89
             },
             "2-0": {
+                "fBellState": 0.92,
                 "fCZ": 0.91,
                 "fCZ_std_err": 0.20,
+                "fCPHASE": 0.90
             },
             "0-3": {
+                "fBellState": 0.89,
                 "fCZ": 0.88,
                 "fCZ_std_err": 0.03,
+                "fCPHASE": 0.87
             }
         }
     }
