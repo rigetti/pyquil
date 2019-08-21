@@ -14,5 +14,5 @@ Checklist
 - [ ] (New Feature) The docs have been updated accordingly.
 - [ ] (Bugfix) The associated issue is referenced above using
       [auto-close keywords](https://help.github.com/en/articles/closing-issues-using-keywords).
-- [ ] The [changelog](https://github.com/rigetti/pyquil/blob/master/CHANGELOG.md) has a
-      description of this change, including the author and PR number (@username, gh-xxx).
+- [ ] The [changelog](https://github.com/rigetti/pyquil/blob/master/CHANGELOG.md) is updated,
+      including author and PR number (@username, gh-xxx).

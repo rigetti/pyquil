@@ -1,8 +1,20 @@
 Changelog
 =========
 
-v2.11 (in development)
-----------------------
+`v2.11 <https://github.com/rigetti/pyquil/compare/v2.10.0...master>`__ (in development)
+---------------------------------------------------------------------------------------
+
+Announcements
+~~~~~~~~~~~~~
+
+-  PyQuil’s RST-style changelog has been rewritten in Markdown, and can
+   be found in the top-level directory of the repository as the
+   `CHANGELOG.md <https://github.com/rigetti/pyquil/blob/master/CHANGELOG.md>`__
+   file (which is the standard for most GitHub repositories). However,
+   during the build process, we use ``pandoc`` to convert it back to RST
+   so that it can be included as part of the ReadTheDocs documentation
+   `here <https://pyquil.readthedocs.io/en/stable/changes.html>`__
+   (@karalekas, gh-945).
 
 Improvements and Changes
 ~~~~~~~~~~~~~~~~~~~~~~~~
@@ -11,13 +23,13 @@ Bugfixes
 ~~~~~~~~
 
 -  The ``MemoryReference`` warnings from have been removed from the unit
-   tests (gh-950).
+   tests (@maxKenngott, gh-950).
 -  The ``merge_programs`` function now supports merging programs with
    ``DefPermutationGate``, instead of throwing an error, and avoids
-   redundant readout declaration (gh-971).
+   redundant readout declaration (@kylegulshen, gh-971).
 
-v2.10 (July 31, 2019)
----------------------
+`v2.10 <https://github.com/rigetti/pyquil/compare/v2.9.1...v2.10.0>`__ (July 31, 2019)
+--------------------------------------------------------------------------------------
 
 .. _improvements-and-changes-1:
 
@@ -28,26 +40,28 @@ Improvements and Changes
    pyQuil as a library, as well as two badges -- one for PyPI downloads
    and another for the Forest Slack workspace. Also, included an example
    section for how to get started with running a simple Bell state
-   program on the QVM (gh-949).
+   program on the QVM (@karalekas, gh-949).
 -  The test suite for ``pyquil.operator_estimation`` now has an
    (optional) faster version that uses fixed random seeds instead of
    averaging over several experiments. This can be enabled with the
-   ``--use-seed`` command line option when running ``pytest`` (gh-928).
+   ``--use-seed`` command line option when running ``pytest``
+   (@msohaibalam, gh-928).
 -  Deleted the deprecated modules ``job_results.py`` and ``kraus.py``
-   (gh-957).
+   (@karalekas, gh-957).
 -  Updated the examples README. Removed an outdated notebook. Updated
    remaining notebooks to use ``MemoryReference``, and fix any parts
-   that were broken (gh-820).
+   that were broken (@notmgsk, gh-820).
 -  The ``AbstractCompiler.quil_to_native_quil()`` function now accepts a
    ``protoquil`` keyword which tells the compiler to restrict both input
    and output to protoquil (i.e. Quil code executable on a QPU).
    Additionally, the compiler will return a metadata dictionary that
    contains statistics about the compiled program, e.g. its estimated
-   QPU runtime. See the compiler docs for more information (gh-940).
+   QPU runtime. See the compiler docs for more information (@notmgsk,
+   gh-940).
 -  Updated the QCS and Slack invite links on the ``index.rst`` docs page
-   (gh-965).
+   (@starktech23, gh-965).
 -  Provided example code for reading out the QPU runtime estimation for
-   a program (gh-963).
+   a program (@notmgsk, gh-963).
 
 .. _bugfixes-1:
 
@@ -55,10 +69,10 @@ Bugfixes
 ~~~~~~~~
 
 -  ``unitary_tools.lifted_gate()`` was not properly handling modifiers
-   such as ``DAGGER`` and ``CONTROLLED`` (gh-931).
+   such as ``DAGGER`` and ``CONTROLLED`` (@kylegulshen, gh-931).
 
-v2.9.1 (June 28, 2019)
-----------------------
+`v2.9.1 <https://github.com/rigetti/pyquil/compare/v2.9.0...v2.9.1>`__ (June 28, 2019)
+--------------------------------------------------------------------------------------
 
 .. _bugfixes-2:
 
@@ -67,10 +81,12 @@ Bugfixes
 
 -  Relaxed the requirement for a quilc server to exist when users of the
    ``QuantumComputer`` object only want to do simulation work with a
-   ``QVM`` or ``pyQVM`` backend (gh-934).
+   ``QVM`` or ``pyQVM`` backend (@karalekas, gh-934).
 
-v2.9 (June 25, 2019)
---------------------
+`v2.9 <https://github.com/rigetti/pyquil/compare/v2.8.0...v2.9.0>`__ (June 25, 2019)
+------------------------------------------------------------------------------------
+
+.. _announcements-1:
 
 Announcements
 ~~~~~~~~~~~~~
@@ -78,7 +94,7 @@ Announcements
 -  PyQuil now has a `Pull Request
    Template <https://github.com/rigetti/pyquil/blob/master/.github/PULL_REQUEST_TEMPLATE.md>`__,
    which contains a checklist of things that must be completed (if
-   applicable) before a PR can be merged (gh-921).
+   applicable) before a PR can be merged (@karalekas, gh-921).
 
 .. _improvements-and-changes-2:
 
@@ -87,12 +103,13 @@ Improvements and Changes
 
 -  Removed a bunch of logic around creating inverse gates from
    user-defined gates in ``Program.dagger()`` in favor of a simpler call
-   to ``Gate.dagger()`` (gh-887).
+   to ``Gate.dagger()`` (@notmgsk, gh-887).
 -  The ``RESET`` instruction now works correctly with
    ``QubitPlaceholder`` objects and the ``address_qubits`` function
-   (gh-910).
+   (@jclapis, gh-910).
 -  ``ReferenceDensitySimulator`` can now have a state that is persistent
-   between rounds of ``run`` or ``run_and_measure`` (gh-920).
+   between rounds of ``run`` or ``run_and_measure`` (@joshcombes,
+   gh-920).
 
 .. _bugfixes-3:
 
@@ -100,19 +117,19 @@ Bugfixes
 ~~~~~~~~
 
 -  Small negative probabilities were causing
-   ``ReferenceDensitySimulator`` to fail (gh-908).
+   ``ReferenceDensitySimulator`` to fail (@joshcombes, gh-908).
 -  The ``dagger`` function was incorrectly dropping gate modifiers like
-   ``CONTROLLED`` (gh-914).
+   ``CONTROLLED`` (@jclapis, gh-914).
 -  Negative numbers in classical instruction arguments were not being
-   parsed (gh-917).
+   parsed (@notmgsk, gh-917).
 -  Inline math rendering was not working correctly in ``intro.rst``
-   (gh-927).
+   (@appleby, gh-927).
 
 Thanks to community member @jclapis for the contributions to this
 release!
 
-v2.8 (May 20, 2019)
--------------------
+`v2.8 <https://github.com/rigetti/pyquil/compare/v2.7.2...v2.8.0>`__ (May 20, 2019)
+-----------------------------------------------------------------------------------
 
 .. _improvements-and-changes-3:
 
@@ -120,16 +137,16 @@ Improvements and Changes
 ~~~~~~~~~~~~~~~~~~~~~~~~
 
 -  PyQuil now verifies that you are using the correct version of the QVM
-   and quilc (gh-913).
+   and quilc (@karalekas, gh-913).
 -  Added support for defining permutation gates for use with the latest
-   version of quilc (gh-891).
+   version of quilc (@notmgsk, gh-891).
 
 .. _bugfixes-4:
 
 Bugfixes
 ~~~~~~~~
 
--  Preserve modifiers during ``address_qubits`` (gh-907).
+-  Preserve modifiers during ``address_qubits`` (@notmgsk, gh-907).
 
 v2.7.2 (May 3, 2019)
 --------------------
@@ -244,7 +261,7 @@ Bugfixes
 v2.4 (February 14, 2019)
 ------------------------
 
-.. _announcements-1:
+.. _announcements-2:
 
 Announcements
 ~~~~~~~~~~~~~
