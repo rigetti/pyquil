@@ -4,6 +4,17 @@ Changelog
 v2.11 (in development)
 ----------------------
 
+### Announcements
+
+-   PyQuil's RST-style changelog has been rewritten in Markdown, and can be
+    found in the top-level directory of the repository as the
+    [CHANGELOG.md](https://github.com/rigetti/pyquil/blob/master/CHANGELOG.md)
+    file (which is the standard for most GitHub repositories). However,
+    during the build process, we use `pandoc` to convert it back to RST so
+    that it can be included as part of the ReadTheDocs documentation
+    [here](https://pyquil.readthedocs.io/en/stable/changes.html)
+    (@karalekas, gh-945).
+
 ### Improvements and Changes
 
 ### Bugfixes
