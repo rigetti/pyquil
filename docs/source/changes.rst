@@ -61,7 +61,8 @@ v2.9 (June 25, 2019)
 
 Announcements:
 
-- PyQuil now has a `Pull Request Template <https://github.com/rigetti/pyquil/blob/master/.github/PULL_REQUEST_TEMPLATE.md>`_,
+- PyQuil now has a `Pull Request Template
+  <https://github.com/rigetti/pyquil/blob/master/.github/PULL_REQUEST_TEMPLATE.md>`_,
   which contains a checklist of things that must be completed (if applicable) before a PR can be
   merged (gh-921).
 
