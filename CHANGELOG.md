@@ -4,9 +4,9 @@ Changelog
 v2.11 (in development)
 ----------------------
 
-Improvements and Changes:
+### Improvements and Changes
 
-Bugfixes:
+### Bugfixes
 
 -   The `MemoryReference` warnings from have been removed from the unit
     tests (gh-950).
@@ -17,7 +17,7 @@ Bugfixes:
 v2.10 (July 31, 2019)
 ---------------------
 
-Improvements and Changes:
+### Improvements and Changes
 
 -   Rewrote the README, adding a more in-depth overview of the purpose
     of pyQuil as a library, as well as two badges \-- one for PyPI
@@ -44,7 +44,7 @@ Improvements and Changes:
 -   Provided example code for reading out the QPU runtime estimation for
     a program (gh-963).
 
-Bugfixes:
+### Bugfixes
 
 -   `unitary_tools.lifted_gate()` was not properly handling modifiers
     such as `DAGGER` and `CONTROLLED` (gh-931).
@@ -52,7 +52,7 @@ Bugfixes:
 v2.9.1 (June 28, 2019)
 ----------------------
 
-Bugfixes:
+### Bugfixes
 
 -   Relaxed the requirement for a quilc server to exist when users of
     the `QuantumComputer` object only want to do simulation work with a
@@ -68,7 +68,7 @@ Announcements:
     which contains a checklist of things that must be completed (if
     applicable) before a PR can be merged (gh-921).
 
-Improvements and Changes:
+### Improvements and Changes
 
 -   Removed a bunch of logic around creating inverse gates from
     user-defined gates in `Program.dagger()` in favor of a simpler call
@@ -78,7 +78,7 @@ Improvements and Changes:
 -   `ReferenceDensitySimulator` can now have a state that is persistent
     between rounds of `run` or `run_and_measure` (gh-920).
 
-Bugfixes:
+### Bugfixes
 
 -   Small negative probabilities were causing
     `ReferenceDensitySimulator` to fail (gh-908).
@@ -95,21 +95,21 @@ release!
 v2.8 (May 20, 2019)
 -------------------
 
-Improvements and Changes:
+### Improvements and Changes
 
 -   PyQuil now verifies that you are using the correct version of the
     QVM and quilc (gh-913).
 -   Added support for defining permutation gates for use with the latest
     version of quilc (gh-891).
 
-Bugfixes:
+### Bugfixes
 
 -   Preserve modifiers during `address_qubits` (gh-907).
 
 v2.7.2 (May 3, 2019)
 --------------------
 
-Bugfixes:
+### Bugfixes
 
 -   An additional backwards-incompatible change from gh-870 snuck
     through 2.7.1, and is addressed in this patch release.
@@ -117,7 +117,7 @@ Bugfixes:
 v2.7.1 (April 30, 2019)
 -----------------------
 
-Bugfixes:
+### Bugfixes
 
 -   The changes to operator estimation (gh-870, gh-896) were not made in
     a backwards-compatible fashion, and therefore this patch release
@@ -128,7 +128,7 @@ Bugfixes:
 v2.7 (April 29, 2019)
 ---------------------
 
-Improvements and Changes:
+### Improvements and Changes
 
 -   Standard deviation -\> standard error in operator estimation
     (gh-870).
@@ -140,7 +140,7 @@ Improvements and Changes:
 -   Remove the `qubits` field from the `TomographyExperiment` dataclass
     (gh-896).
 
-Bugfixes:
+### Bugfixes
 
 -   Ensure that shots aren\'t lost when passing a `Program` through
     `address_qubits` (gh-895).
@@ -148,7 +148,7 @@ Bugfixes:
 v2.6 (March 29, 2019)
 ---------------------
 
-Improvements and Changes:
+### Improvements and Changes
 
 -   Added a CODEOWNERS file for default reviewers (gh-855).
 -   Bifurcated the `QPUCompiler` endpoint parameter into two \--
@@ -158,7 +158,7 @@ Improvements and Changes:
 -   Added information about the `local_qvm` context manager to the
     getting started documentation (gh-851).
 
-Bugfixes:
+### Bugfixes
 
 -   Added a non-None default timeout to the `QVMCompiler` object
     (gh-850) and the `get_benchmarker` function (gh-854).
@@ -174,7 +174,7 @@ Special thanks to willzeng for all the contributions this release!
 v2.5 (March 6, 2019)
 --------------------
 
-Improvements and Changes:
+### Improvements and Changes
 
 -   PyQuil\'s Gate objects now expose `.controlled(q)` and `.dagger()`
     modifiers, which turn a gate respectively into its controlled
@@ -191,14 +191,14 @@ Improvements and Changes:
     really intends to measure only for effect, we now require that they
     supply an explicit `None` as the second argument.
 
-Bugfixes:
+### Bugfixes
 
 -   Some stale tests have been brought into the modern era.
 
 v2.4 (February 14, 2019)
 ------------------------
 
-Announcements:
+### Announcements
 
 -   The Quil Compiler ([quilc](https://github.com/rigetti/quilc)) and
     the Quantum Virtual Machine
@@ -211,7 +211,7 @@ Announcements:
     images are now used as the `services` in the GitLab CI build plan
     YAML (gh-792, gh-794, gh-795).
 
-Improvements and Changes:
+### Improvements and Changes
 
 -   The `WavefunctionSimulator` now supports the use of parametric Quil
     programs, via the `memory_map` parameter for its various methods
@@ -237,7 +237,7 @@ Improvements and Changes:
 -   The difference between ProtoQuil and QPU-supported Quil is now
     better defined (gh-798).
 
-Bugfixes:
+### Bugfixes
 
 -   Resolved an issue with post-gate noise in the pyQVM (gh-801).
 -   A `TypeError` with a useful error message is now raised when a
@@ -274,7 +274,7 @@ release of a new suite of simulators:
 -   This functionality should be considered experimental and may undergo
     minor API changes.
 
-Important changes to note:
+### Important changes to note
 
 -   Quil math functions (like COS, SIN, \...) used to be ambiguous with
     respect to case sensitivity. They are now case-sensitive and should
@@ -297,7 +297,7 @@ Important changes to note:
     parameters with the constants folded in, allowing you to multiply
     variables by whatever you want (gh-707).
 
-As always, this release contains bug fixes and improvements:
+### Bug fixes and improvements
 
 -   The CZ gate fidelity metric available in the Specs object now has
     its associated standard error, which is accessible from the method
