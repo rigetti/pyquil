@@ -24,9 +24,9 @@ Improvements and Changes:
   Also, included an example section for how to get started with running a simple Bell state
   program on the QVM (gh-949).
 
-- The test suite for `pyquil.operator_estimation` now has an (optional) faster version
+- The test suite for ``pyquil.operator_estimation`` now has an (optional) faster version
   that uses fixed random seeds instead of averaging over several experiments. This can
-  be enabled with the `--use-seed` command line option when running `pytest` (gh-928).
+  be enabled with the ``--use-seed`` command line option when running ``pytest`` (gh-928).
 
 - Deleted the deprecated modules ``job_results.py`` and ``kraus.py`` (gh-957).
 
