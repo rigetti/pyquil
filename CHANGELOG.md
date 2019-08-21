@@ -1,8 +1,8 @@
 Changelog
 =========
 
-v2.11 (in development)
-----------------------
+[v2.11](https://github.com/rigetti/pyquil/compare/v2.10.0...master) (in development)
+------------------------------------------------------------------------------------
 
 ### Announcements
 
@@ -25,8 +25,8 @@ v2.11 (in development)
     `DefPermutationGate`, instead of throwing an error, and avoids
     redundant readout declaration (@kylegulshen, gh-971).
 
-v2.10 (July 31, 2019)
----------------------
+[v2.10](https://github.com/rigetti/pyquil/compare/v2.9.1...v2.10.0) (July 31, 2019)
+-----------------------------------------------------------------------------------
 
 ### Improvements and Changes
 
@@ -62,8 +62,8 @@ v2.10 (July 31, 2019)
 -   `unitary_tools.lifted_gate()` was not properly handling modifiers
     such as `DAGGER` and `CONTROLLED` (@kylegulshen, gh-931).
 
-v2.9.1 (June 28, 2019)
-----------------------
+[v2.9.1](https://github.com/rigetti/pyquil/compare/v2.9.0...v2.9.1) (June 28, 2019)
+-----------------------------------------------------------------------------------
 
 ### Bugfixes
 
@@ -71,8 +71,8 @@ v2.9.1 (June 28, 2019)
     the `QuantumComputer` object only want to do simulation work with a
     `QVM` or `pyQVM` backend (@karalekas, gh-934).
 
-v2.9 (June 25, 2019)
---------------------
+[v2.9](https://github.com/rigetti/pyquil/compare/v2.8.0...v2.9.0) (June 25, 2019)
+---------------------------------------------------------------------------------
 
 ### Announcements
 
@@ -105,8 +105,8 @@ v2.9 (June 25, 2019)
 Thanks to community member @jclapis for the contributions to this
 release!
 
-v2.8 (May 20, 2019)
--------------------
+[v2.8](https://github.com/rigetti/pyquil/compare/v2.7.2...v2.8.0) (May 20, 2019)
+--------------------------------------------------------------------------------
 
 ### Improvements and Changes
 
