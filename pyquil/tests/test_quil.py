@@ -657,6 +657,28 @@ H 0
 MEASURE 0 ro[0]
 """
 
+    q0 = QubitPlaceholder()
+    q0_str = "{" + str(q0) + "}"
+    p0 = Program(X(q0))
+    p1 = Program(Z(q0))
+    merged = merge_programs([p0, p1])
+    assert str(merged) == f"""X {q0_str}
+Z {q0_str}
+"""
+    assert address_qubits(merged, {q0: 1}).out() == """X 1
+Z 1
+"""
+    q1 = QubitPlaceholder()
+    p2 = Program(Z(q1))
+    assert address_qubits(merge_programs([p0, p2]), {q0: 1, q1: 2}).out() == """X 1
+Z 2
+"""
+    p0 = address_qubits(p0, {q0: 2})
+    p1 = address_qubits(p1, {q0: 1})
+    assert merge_programs([p0, p1]).out() == """X 2
+Z 1
+"""
+
 
 def test_merge_with_pauli_noise():
     p = Program(X(0)).inst(Z(0))

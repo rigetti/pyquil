@@ -950,7 +950,7 @@ def merge_programs(prog_list):
     new_definitions = [gate for key in seen.keys() for gate in reversed(seen[key])]
 
     # Combine programs without gate definitions; avoid call to _synthesize by using _instructions
-    p = sum([Program(prog)._instructions for prog in prog_list], Program())
+    p = Program(*[prog._instructions for prog in prog_list])
 
     for definition in new_definitions:
         if isinstance(definition, DefPermutationGate):
