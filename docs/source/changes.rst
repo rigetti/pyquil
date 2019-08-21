@@ -1,6 +1,16 @@
 Changelog
 =========
 
+v2.xx (in progress)
+-------------------
+Improvements and Changes:
+
+
+Bugfixes:
+
+- ``merge_programs`` now supports merging programs with ``DefPermutationGate`` instead of throwing error (gh-971).
+- ``merge_programs`` now avoids redundant readout declaration (gh-971).
+
 v2.10 (July 31, 2019)
 ---------------------
 

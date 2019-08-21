@@ -29,7 +29,8 @@ from pyquil.paulis import exponential_map, sZ
 from pyquil.quil import Program, merge_programs, merge_with_pauli_noise, address_qubits, \
     get_classical_addresses_from_program, Pragma, validate_protoquil, validate_supported_quil
 from pyquil.quilatom import QubitPlaceholder, Addr, MemoryReference, Sub
-from pyquil.quilbase import DefGate, Gate, Qubit, JumpWhen, Declare, ClassicalNot
+from pyquil.quilbase import DefGate, Gate, Qubit, JumpWhen, Declare, ClassicalNot, \
+    DefPermutationGate
 from pyquil.tests.utils import parse_equals
 
 
@@ -615,10 +616,12 @@ def test_prog_merge():
     prog_0 = Program(X(0))
     prog_1 = Program(Y(0))
     assert merge_programs([prog_0, prog_1]).out() == (prog_0 + prog_1).out()
-    prog_0.defgate("test", np.eye(2))
-    prog_0.inst(("test", 0))
-    prog_1.defgate("test", np.eye(2))
-    prog_1.inst(("test", 0))
+    test_def = DefGate("test", np.eye(2))
+    TEST = test_def.get_constructor()
+    prog_0.inst(test_def)
+    prog_0.inst(TEST(0))
+    prog_1.inst(test_def)
+    prog_1.inst(TEST(0))
     assert merge_programs([prog_0, prog_1]).out() == """DEFGATE test:
     1.0, 0
     0, 1.0
@@ -627,6 +630,53 @@ X 0
 test 0
 Y 0
 test 0
+"""
+    perm_def = DefPermutationGate('PERM', [0, 1, 3, 2])
+    PERM = perm_def.get_constructor()
+    prog_0.inst(perm_def)
+    prog_0.inst(PERM(0, 1))
+    prog_1.inst(perm_def)
+    prog_1.inst(PERM(1, 0))
+    assert merge_programs([prog_0, prog_1]).out() == """DEFGATE PERM AS PERMUTATION:
+    0, 1, 3, 2
+DEFGATE test:
+    1.0, 0
+    0, 1.0
+
+X 0
+test 0
+PERM 0 1
+Y 0
+test 0
+PERM 1 0
+"""
+    assert merge_programs([Program("DECLARE ro BIT[1]"),
+                           Program("H 0"),
+                           Program("MEASURE 0 ro[0]")]).out() == """DECLARE ro BIT[1]
+H 0
+MEASURE 0 ro[0]
+"""
+
+    q0 = QubitPlaceholder()
+    q0_str = "{" + str(q0) + "}"
+    p0 = Program(X(q0))
+    p1 = Program(Z(q0))
+    merged = merge_programs([p0, p1])
+    assert str(merged) == f"""X {q0_str}
+Z {q0_str}
+"""
+    assert address_qubits(merged, {q0: 1}).out() == """X 1
+Z 1
+"""
+    q1 = QubitPlaceholder()
+    p2 = Program(Z(q1))
+    assert address_qubits(merge_programs([p0, p2]), {q0: 1, q1: 2}).out() == """X 1
+Z 2
+"""
+    p0 = address_qubits(p0, {q0: 2})
+    p1 = address_qubits(p1, {q0: 1})
+    assert merge_programs([p0, p1]).out() == """X 2
+Z 1
 """
 
 
