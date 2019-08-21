@@ -37,4 +37,5 @@ docs:
   script:
     - apt-get update
     - apt-get install -y pandoc
+    - pandoc --from=markdown --to=rst --output=docs/source/changes.rst CHANGELOG.md
     - tox -e docs
