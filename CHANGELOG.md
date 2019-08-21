@@ -24,11 +24,10 @@ Improvements and Changes:
     downloads and another for the Forest Slack workspace. Also, included
     an example section for how to get started with running a simple Bell
     state program on the QVM (gh-949).
--   The test suite for [pyquil.operator\_estimation]{.title-ref} now has
-    an (optional) faster version that uses fixed random seeds instead of
+-   The test suite for `pyquil.operator_estimation` now has an
+    (optional) faster version that uses fixed random seeds instead of
     averaging over several experiments. This can be enabled with the
-    [\--use-seed]{.title-ref} command line option when running
-    [pytest]{.title-ref} (gh-928).
+    `--use-seed` command line option when running `pytest` (gh-928).
 -   Deleted the deprecated modules `job_results.py` and `kraus.py`
     (gh-957).
 -   Updated the examples README. Removed an outdated notebook. Updated
@@ -400,7 +399,9 @@ The new QCS access model and features will allow you to execute hybrid
 quantum algorithms several orders of magnitude (!) faster than the
 previous web endpoint. However, to fully exploit these speed increases
 you must update your programs to use the latest pyQuil features and
-APIs. Please read the `quickstart` for a comprehensive migration guide.
+APIs. Please read the documentation on what is [New in Forest
+2](https://pyquil.readthedocs.io/en/stable/migration4.html) for a
+comprehensive migration guide.
 
 An incomplete list of significant changes:
 
@@ -412,14 +413,15 @@ An incomplete list of significant changes:
     `RX(angle=pi/2, qubit=0)`.
 -   All `async` methods have been removed from `QVMConnection` and
     `QVMConnection` is deprecated. `QPUConnection` has been removed in
-    accordance with the QCS access model. Use
-    `pyquil.get_qc` as the primary
-    means of interacting with the QVM or QPU.
+    accordance with the QCS access model. Use `pyquil.get_qc` as the
+    primary means of interacting with the QVM or QPU.
 -   `WavefunctionSimulator` allows unfettered access to wavefunction
     properties and routines. These methods and properties previously
     lived on `QVMConnection` and have been deprecated there.
 -   Classical memory in Quil must be declared with a name and type.
-    Please read `quickstart` for more.
+    Please read [New in Forest
+    2](https://pyquil.readthedocs.io/en/stable/migration4.html) for
+    more.
 -   Compilation has changed. There are now different `Compiler` objects
     that target either the QPU or QVM. You **must** explicitly compile
     your programs to run on a QPU or a realistic QVM.
@@ -465,14 +467,14 @@ order they were constructed.
     `PauliSum` combination of like terms, a warning will be emitted if
     two terms are combined that have different orders of operation.
 -   `PauliTerm.id()` takes an optional argument `sort_ops` which
-    defaults to True for backwards compatibility. However, this
-    function should not be used for comparing term-type like it has
-    been used previously. Use `PauliTerm.operations_as_set()`
-    instead. In the future, `sort_ops` will default to False and will
-    eventually be removed.
+    defaults to True for backwards compatibility. However, this function
+    should not be used for comparing term-type like it has been used
+    previously. Use `PauliTerm.operations_as_set()` instead. In the
+    future, `sort_ops` will default to False and will eventually be
+    removed.
 -   `Program.alloc()` has been deprecated. Please instantiate
-    `QubitPlaceholder()` directly or request a \"register\" (list)
-    of `n` placeholders by using the class constructor
+    `QubitPlaceholder()` directly or request a \"register\" (list) of
+    `n` placeholders by using the class constructor
     `QubitPlaceholder.register(n)`.
 -   Programs must contain either (1) all instantiated qubits with
     integer indexes or (2) all placeholder qubits of type
@@ -487,28 +489,29 @@ order they were constructed.
 -   `PauliTerm` can now accept `QubitPlaceholder` in addition to
     integers.
 -   `QubitPlaceholder` is no longer a subclass of `Qubit`.
-    `LabelPlaceholder` is no longer a `Label`.
+    `LabelPlaceholder` is no longer a subclass of `Label`.
 -   `QuilAtom` subclasses\' hash functions have changed.
 
 ### Randomized benchmarking sequence generation
 
-PyQuil now includes support for performing a simple benchmarking routine,
-randomized benchmarking. There is a new method in the `CompilerConnection`
-that will return sequences of pyQuil programs, corresponding to elements
-of the Clifford group. These programs are uniformly randomly sampled, and
-have the property that they compose to the identity. When concatenated and
-run as one program, these programs can be used in a procedure called randomized
-benchmarking to gain insight about the fidelity of operations on a QPU.
+Pyquil now includes support for performing a simple benchmarking routine
+- randomized benchmarking. There is a new method in the
+`CompilerConnection` that will return sequences of pyquil programs,
+corresponding to elements of the Clifford group. These programs are
+uniformly randomly sampled, and have the property that they compose to
+the identity. When concatenated and run as one program, these programs
+can be used in a procedure called randomized benchmarking to gain
+insight about the fidelity of operations on a QPU.
 
 In addition, the `CompilerConnection` has another new method,
-`apply_clifford_to_pauli` which conjugates `PauliTerm`s by `Program` that
-are composed of Clifford gates. That is to say, given a circuit C, that
-contains only gates corresponding to elements of the Clifford group, and
-a tensor product of elements P, from the Pauli group, this method will
-compute PCP^{dagger}. Such a procedure can be used in various ways.
-An example is predicting the effect a Clifford circuit will have on an
-input state modeled as a density matrix, which can be written as a sum
-of Pauli matrices.
+`apply_clifford_to_pauli` which conjugates `PauliTerms` by `Program`
+that are composed of Clifford gates. That is to say, given a circuit C,
+that contains only gates corresponding to elements of the Clifford
+group, and a tensor product of elements P, from the Pauli group, this
+method will compute \$PCP\^{dagger}\$. Such a procedure can be used in
+various ways. An example is predicting the effect a Clifford circuit
+will have on an input state modeled as a density matrix, which can be
+written as a sum of Pauli matrices.
 
 ### Ease of Use
 
@@ -518,11 +521,11 @@ defaults for `Program.measure_all`, and sensible defaults for
 `classical_addresses` in `run` methods.
 
 -   `Program` can be initiated with a generator expression.
--   `Program.measure_all` (with no arguments) will measure all qubit
-    in a program.
--   `classical_addresses` is now optional in QVM and QPU
-    `run` methods. By default, any classical addresses targeted by
-    `MEASURE` will be returned.
+-   `Program.measure_all` (with no arguments) will measure all qubits in
+    a program.
+-   `classical_addresses` is now optional in QVM and QPU `run` methods.
+    By default, any classical addresses targeted by `MEASURE` will be
+    returned.
 -   `QVMConnection.pauli_expectation` accepts `PauliSum` as arguments.
     This offers a more sensible API compared to
     `QVMConnection.expectation`.
@@ -542,8 +545,8 @@ longer work without modification for Python 2.
 ### Bug fixes
 
 -   `shift_quantum_gates` has been removed. Users who relied on this
-    functionality should use `QubitPlaceholder` and `address_qubits`
-    to achieve the same result. Users should also double-check data
+    functionality should use `QubitPlaceholder` and `address_qubits` to
+    achieve the same result. Users should also double-check data
     resulting from use of this function as there were several edge cases
     which would cause the shift to be applied incorrectly resulting in
     badly-addressed qubits.
