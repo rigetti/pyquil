@@ -15,9 +15,18 @@ Announcements
    so that it can be included as part of the ReadTheDocs documentation
    `here <https://pyquil.readthedocs.io/en/stable/changes.html>`__
    (@karalekas, gh-945).
+-  Deprecation warnings have been added regarding the ``fCPHASE`` and
+   ``fBellState`` device spec fields, which are no longer routinely
+   updated and will be removed in a coming release.
 
 Improvements and Changes
 ~~~~~~~~~~~~~~~~~~~~~~~~
+
+- In addition to the simultaneous gate operation 1Q RB fidelities
+  contained in device specs prior to this release, there are now 1Q RB
+  fidelities for individual gate operation. The names of these fields
+  have been changed for clarity, and standard errors for both fidelities
+  have been added as well.
 
 Bugfixes
 ~~~~~~~~
