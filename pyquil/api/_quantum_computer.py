@@ -22,7 +22,6 @@ from contextlib import contextmanager
 
 import networkx as nx
 import numpy as np
-from rpcq import Client
 from rpcq.messages import BinaryExecutableResponse, PyQuilExecutableResponse
 
 from pyquil.api._compiler import QPUCompiler, QVMCompiler
@@ -271,29 +270,8 @@ class QuantumComputer:
         objects in the event that the ~/.forest_config file has changed during the existence
         of this QuantumComputer object.
         """
-        def refresh_client(client: Client, new_endpoint: str) -> Client:
-            timeout = client.timeout
-            client.close()
-            return Client(new_endpoint, timeout)
-
-        if isinstance(self.qam, QVM) and isinstance(self.compiler, QVMCompiler):
-            forest_connection = ForestConnection()
-            self.compiler.client = refresh_client(self.compiler.client,
-                                                  forest_connection.compiler_endpoint)
-        elif isinstance(self.qam, QPU) and isinstance(self.compiler, QPUCompiler):
-            pyquil_config = PyquilConfig()
-            self.compiler.quilc_client = refresh_client(self.compiler.quilc_client,
-                                                        pyquil_config.quilc_url)
-            self.compiler.qpu_compiler_client = refresh_client(self.compiler.qpu_compiler_client,
-                                                               pyquil_config.qpu_compiler_url)
-        else:
-            warnings.warn("It looks like you've managed to create a QuantumComputer object "
-                          "that has a mismatch between QAM and Compiler types. You must "
-                          "use a QPUCompiler with a QPU backend, and a QVMCompiler with a QVM "
-                          "backend, for typical operation. However, maybe you defined a custom "
-                          "object, and so we are just giving you a warning. Note that, because of"
-                          "this, the reset command will no longer update the connection objects.")
         self.qam.reset()
+        self.compiler.reset()
 
     def __str__(self) -> str:
         return self.name
