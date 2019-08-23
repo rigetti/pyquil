@@ -17,6 +17,11 @@ Changelog
 
 ### Improvements and Changes
 
+-   Add the ability to query for other memory regions after both QPU and QVM
+    runs. This removes a previously unnecessary restriction on the QVM, although
+    `ro` remains the only QPU-writeable memory region during Quil execution
+    (@ecpeterson, gh-873).
+
 ### Bugfixes
 
 -   The `MemoryReference` warnings from have been removed from the unit
