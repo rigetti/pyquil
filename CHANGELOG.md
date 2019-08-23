@@ -13,7 +13,7 @@ Changelog
     during the build process, we use `pandoc` to convert it back to RST so
     that it can be included as part of the ReadTheDocs documentation
     [here](https://pyquil.readthedocs.io/en/stable/changes.html)
-    (@karalekas, gh-945).
+    (@karalekas, gh-945, gh-973).
 
 ### Improvements and Changes
 
