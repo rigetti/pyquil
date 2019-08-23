@@ -232,15 +232,11 @@ def test_run_pyqvm_noiseless():
         device=device,
         compiler=DummyCompiler()
     )
-    bitstrings = qc.run(
-        Program(
-            H(0),
-            CNOT(0, 1),
-            CNOT(1, 2),
-            MEASURE(0, MemoryReference("ro", 0)),
-            MEASURE(1, MemoryReference("ro", 1)),
-            MEASURE(2, MemoryReference("ro", 2))).wrap_in_numshots_loop(1000)
-    )
+    prog = Program(H(0), CNOT(0, 1), CNOT(1, 2))
+    ro = prog.declare('ro', 'BIT', 3)
+    for q in range(3):
+        prog += MEASURE(q, ro[q])
+    bitstrings = qc.run(prog.wrap_in_numshots_loop(1000))
 
     assert bitstrings.shape == (1000, 3)
     parity = np.sum(bitstrings, axis=1) % 3
@@ -255,15 +251,11 @@ def test_run_pyqvm_noisy():
         device=device,
         compiler=DummyCompiler()
     )
-    bitstrings = qc.run(
-        Program(
-            H(0),
-            CNOT(0, 1),
-            CNOT(1, 2),
-            MEASURE(0, MemoryReference("ro", 0)),
-            MEASURE(1, MemoryReference("ro", 1)),
-            MEASURE(2, MemoryReference("ro", 2))).wrap_in_numshots_loop(1000)
-    )
+    prog = Program(H(0), CNOT(0, 1), CNOT(1, 2))
+    ro = prog.declare('ro', 'BIT', 3)
+    for q in range(3):
+        prog += MEASURE(q, ro[q])
+    bitstrings = qc.run(prog.wrap_in_numshots_loop(1000))
 
     assert bitstrings.shape == (1000, 3)
     parity = np.sum(bitstrings, axis=1) % 3
