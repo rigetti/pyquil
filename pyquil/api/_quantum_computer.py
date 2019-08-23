@@ -40,7 +40,6 @@ from pyquil.noise import decoherence_noise_with_asymmetric_ro, NoiseModel
 from pyquil.pyqvm import PyQVM
 from pyquil.quil import Program, validate_supported_quil
 
-pyquil_config = PyquilConfig()
 
 Executable = Union[BinaryExecutableResponse, PyQuilExecutableResponse]
 
@@ -266,6 +265,11 @@ class QuantumComputer:
         Right now both ``to_native_gates`` and ``optimize`` must be either both set or both
         unset. More modular compilation passes may be available in the future.
 
+        Additionally, a call to compile also calls the ``reset`` method if one is running
+        on the QPU. This is a bit of a sneaky hack to guard against stale compiler connections,
+        but shouldn't result in any material hit to performance (especially when taking advantage
+        of parametric compilation for hybrid applications).
+
         :param program: A Program
         :param to_native_gates: Whether to compile non-native gates to native gates.
         :param optimize: Whether to optimize the program to reduce the number of operations.
@@ -273,6 +277,9 @@ class QuantumComputer:
             to protoquil (executable on QPU). A value of ``None`` means defer to server.
         :return: An executable binary suitable for passing to :py:func:`QuantumComputer.run`.
         """
+        if isinstance(self.qam, QPU):
+            self.reset()
+
         flags = [to_native_gates, optimize]
         assert all(flags) or all(not f for f in flags), "Must turn quilc all on or all off"
         quilc = all(flags)
@@ -284,11 +291,15 @@ class QuantumComputer:
         binary = self.compiler.native_quil_to_executable(nq_program)
         return binary
 
+    @_record_call
     def reset(self):
         """
-        Reset the QuantumComputer's QAM to its initial state.
+        Reset the QuantumComputer's QAM to its initial state, and refresh all the connection
+        objects in the event that the ~/.forest_config file has changed during the existence
+        of this QuantumComputer object.
         """
         self.qam.reset()
+        self.compiler.reset()
 
     def __str__(self) -> str:
         return self.name
@@ -638,6 +649,7 @@ def get_qc(name: str, *, as_qvm: bool = None, noisy: bool = None,
                                              noisy=noisy, connection=connection, qvm_type=qvm_type)
     else:
         # 4.2 A real device
+        pyquil_config = PyquilConfig()
         if noisy is not None and noisy:
             warnings.warn("You have specified `noisy=True`, but you're getting a QPU. This flag "
                           "is meant for controlling noise models on QVMs.")

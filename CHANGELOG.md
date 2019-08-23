@@ -28,6 +28,11 @@ Changelog
     runs. This removes a previously unnecessary restriction on the QVM, although
     `ro` remains the only QPU-writeable memory region during Quil execution
     (@ecpeterson, gh-873).
+-   Now, running `QuantumComputer.reset()` (and `QuantumComputer.compile()`
+    when using the QPU) additionally resets the connection information for
+    the underlying `QVM`/`QPU` and `QVMCompiler`/`QPUCompiler` objects,
+    which should resolve bugs that arise due to stale clients/connections
+    (@karalekas, gh-872).
 
 ### Bugfixes
 
