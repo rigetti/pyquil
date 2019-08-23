@@ -13,6 +13,7 @@ from pyquil.paulis import PauliTerm, exponentiate, sZ, sX, sI, sY
 from pyquil.pyqvm import PyQVM
 from pyquil.quil import Program
 from pyquil.reference_simulator import ReferenceWavefunctionSimulator
+from pyquil.quilatom import MemoryReference
 
 QFT_8_INSTRUCTIONS = [
     H(7),
@@ -429,15 +430,15 @@ def test_while():
 
 
 def test_halt():
-    prog = Program(X(0), MEASURE(0, 0))
+    prog = Program(X(0), MEASURE(0, MemoryReference("ro", 0)))
     prog.inst(HALT)
-    prog.inst(X(0), MEASURE(0, 0))
+    prog.inst(X(0), MEASURE(0, MemoryReference("ro", 0)))
     qam = PyQVM(n_qubits=1, quantum_simulator_type=ReferenceWavefunctionSimulator)
     qam.execute(prog)
     # HALT should stop execution; measure should give 1
     assert qam.ram['ro'][0] == 1
 
-    prog = Program(X(0)).inst(X(0)).inst(MEASURE(0, 0))
+    prog = Program(X(0)).inst(X(0)).inst(MEASURE(0, MemoryReference("ro", 0)))
     qam = PyQVM(n_qubits=1, quantum_simulator_type=ReferenceWavefunctionSimulator)
     qam.execute(prog)
     assert qam.ram['ro'][0] == 0
@@ -445,7 +446,7 @@ def test_halt():
 
 def test_biased_coin():
     # sample from a 75% heads and 25% tails coin
-    prog = Program().inst(RX(np.pi / 3, 0)).measure(0, 0)
+    prog = Program().inst(RX(np.pi / 3, 0)).measure(0, MemoryReference("ro", 0))
 
     results = []
     qam = PyQVM(n_qubits=1, quantum_simulator_type=ReferenceWavefunctionSimulator)

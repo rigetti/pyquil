@@ -184,14 +184,14 @@ def test_expressions():
 
 def test_measure():
     parse_equals("MEASURE 0", MEASURE(0, None))
-    parse_equals("MEASURE 0 ro[1]", MEASURE(0, 1))
+    parse_equals("MEASURE 0 ro[1]", MEASURE(0, MemoryReference("ro", 1)))
 
 
 def test_jumps():
     parse_equals("LABEL @test_1", JumpTarget(Label("test_1")))
     parse_equals("JUMP @test_1", Jump(Label("test_1")))
-    parse_equals("JUMP-WHEN @test_1 ro[0]", JumpWhen(Label("test_1"), Addr(0)))
-    parse_equals("JUMP-UNLESS @test_1 ro[1]", JumpUnless(Label("test_1"), Addr(1)))
+    parse_equals("JUMP-WHEN @test_1 ro[0]", JumpWhen(Label("test_1"), MemoryReference("ro", 0)))
+    parse_equals("JUMP-UNLESS @test_1 ro[1]", JumpUnless(Label("test_1"), MemoryReference("ro", 1)))
 
 
 def test_others():

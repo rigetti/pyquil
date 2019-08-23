@@ -13,6 +13,7 @@ from pyquil.pyqvm import PyQVM
 from pyquil.reference_simulator import ReferenceWavefunctionSimulator
 from pyquil.tests.test_reference_wavefunction_simulator import _generate_random_program, \
     _generate_random_pauli
+from pyquil.quilatom import MemoryReference
 
 
 def test_H_einsum():
@@ -99,7 +100,7 @@ def test_measure():
     qam.execute(Program(
         H(0),
         CNOT(0, 1),
-        MEASURE(0, 63)
+        MEASURE(0, MemoryReference("ro", 63))
     ))
     measured_bit = qam.ram['ro'][-1]
     should_be = np.zeros((2, 2, 2))

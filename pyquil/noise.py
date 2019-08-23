@@ -26,6 +26,7 @@ import sys
 from pyquil.gates import I, MEASURE, X
 from pyquil.parameters import format_parameter
 from pyquil.quilbase import Pragma, Gate
+from pyquil.quilatom import MemoryReference
 
 INFINITY = float("inf")
 "Used for infinite coherence times."
@@ -775,8 +776,8 @@ def estimate_assignment_probs(q, trials, cxn, p0=None):
     from pyquil.quil import Program
     if p0 is None:  # pragma no coverage
         p0 = Program()
-    results_i = np.sum(cxn.run(p0 + Program(I(q), MEASURE(q, 0)), [0], trials))
-    results_x = np.sum(cxn.run(p0 + Program(X(q), MEASURE(q, 0)), [0], trials))
+    results_i = np.sum(cxn.run(p0 + Program(I(q), MEASURE(q, MemoryReference("ro", 0))), [0], trials))
+    results_x = np.sum(cxn.run(p0 + Program(X(q), MEASURE(q, MemoryReference("ro", 0))), [0], trials))
 
     p00 = 1. - results_i / float(trials)
     p11 = results_x / float(trials)
