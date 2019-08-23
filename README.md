@@ -122,6 +122,8 @@ Contributing to pyQuil
 To make changes to PyQuil itself see [DEVELOPMENT.md](DEVELOPMENT.md) for instructions on
 development and testing.
 
+To see a list of all the past changes, check out [CHANGELOG.md](CHANGELOG.md).
+
 Citing pyQuil and Forest
 ------------------------
 

@@ -6,17 +6,24 @@ Changelog
 
 ### Announcements
 
--   PyQuil's RST-style changelog has been rewritten in Markdown, and can be
-    found in the top-level directory of the repository as the
+-   PyQuil's changelog has been overhauled and rewritten in Markdown instead of
+    RST, and can be found in the top-level directory of the repository as the
     [CHANGELOG.md](https://github.com/rigetti/pyquil/blob/master/CHANGELOG.md)
     file (which is the standard for most GitHub repositories). However,
     during the build process, we use `pandoc` to convert it back to RST so
     that it can be included as part of the ReadTheDocs documentation
     [here](https://pyquil.readthedocs.io/en/stable/changes.html)
-    (@karalekas, gh-945).
+    (@karalekas, gh-945, gh-973).
 
 ### Improvements and Changes
 
+-   Test suite attempts to retry specific tests that fail often. Tests are
+    retried only a single time (@notmgsk, gh-951).
+-   The `QuantumComputer.run_symmetrized_readout()` method has been
+    revamped, and now has options for using more advanced forms of
+    readout symmetrization (@joshcombes, gh-919).
+-   The ProtoQuil restrictions built in to PyQVM have been removed
+    (@ecpeterson, gh-874).
 -   Add the ability to query for other memory regions after both QPU and QVM
     runs. This removes a previously unnecessary restriction on the QVM, although
     `ro` remains the only QPU-writeable memory region during Quil execution
@@ -24,7 +31,7 @@ Changelog
 
 ### Bugfixes
 
--   The `MemoryReference` warnings from have been removed from the unit
+-   The `MemoryReference` warnings have been removed from the unit
     tests (@maxKenngott, gh-950).
 -   The `merge_programs` function now supports merging programs with
     `DefPermutationGate`, instead of throwing an error, and avoids
@@ -39,7 +46,7 @@ Changelog
     of pyQuil as a library, as well as two badges \-- one for PyPI
     downloads and another for the Forest Slack workspace. Also, included
     an example section for how to get started with running a simple Bell
-    state program on the QVM (@karalekas, gh-949).
+    state program on the QVM (@karalekas, gh-946, gh-949).
 -   The test suite for `pyquil.operator_estimation` now has an
     (optional) faster version that uses fixed random seeds instead of
     averaging over several experiments. This can be enabled with the
@@ -66,6 +73,8 @@ Changelog
 
 -   `unitary_tools.lifted_gate()` was not properly handling modifiers
     such as `DAGGER` and `CONTROLLED` (@kylegulshen, gh-931).
+-   Fixed warnings raised by Sphinx when building the documentation
+    (@appleby, gh-929).
 
 [v2.9.1](https://github.com/rigetti/pyquil/compare/v2.9.0...v2.9.1) (June 28, 2019)
 -----------------------------------------------------------------------------------
@@ -119,21 +128,28 @@ release!
     QVM and quilc (@karalekas, gh-913).
 -   Added support for defining permutation gates for use with the latest
     version of quilc (@notmgsk, gh-891).
+-   The rpcq dependency requirement has been raised to v2.5.1 (@notmgsk,
+    gh-911).
+-   Added a note about the QVM's compilation mode to the documentation
+    (@stylewarning, gh-900).
+-   Some measure_observables params now have the `Optional` type
+    specification (@msohaibalam, gh-903).
 
 ### Bugfixes
 
 -   Preserve modifiers during `address_qubits` (@notmgsk, gh-907).
 
-v2.7.2 (May 3, 2019)
---------------------
+[v2.7.2](https://github.com/rigetti/pyquil/compare/v2.7.1...v2.7.2) (May 3, 2019)
+---------------------------------------------------------------------------------
 
 ### Bugfixes
 
 -   An additional backwards-incompatible change from gh-870 snuck
-    through 2.7.1, and is addressed in this patch release.
+    through 2.7.1, and is addressed in this patch release
+    (@karalekas, gh-901).
 
-v2.7.1 (April 30, 2019)
------------------------
+[v2.7.1](https://github.com/rigetti/pyquil/compare/v2.7.0...v2.7.1) (April 30, 2019)
+------------------------------------------------------------------------------------
 
 ### Bugfixes
 
@@ -141,51 +157,63 @@ v2.7.1 (April 30, 2019)
     a backwards-compatible fashion, and therefore this patch release
     aims to remedy that. Going forward, there will be much more
     stringent requirements around backwards compatibility and
-    deprecation.
+    deprecation (@karalekas, gh-899).
 
-v2.7 (April 29, 2019)
----------------------
+[v2.7](https://github.com/rigetti/pyquil/compare/v2.6.0...v2.7.0) (April 29, 2019)
+----------------------------------------------------------------------------------
 
 ### Improvements and Changes
 
 -   Standard deviation -\> standard error in operator estimation
-    (gh-870).
+    (@msohaibalam, gh-870).
 -   Update what pyQuil expects from quilc in terms of rewiring pragmas
     \-- they are now comments rather than distinct instructions
-    (gh-878).
+    (@ecpeterson, gh-878).
 -   Allow users to deprioritize QPU jobs \-- mostly a Rigetti-internal
-    feature (gh-877).
+    feature (@jvalery2, gh-877).
 -   Remove the `qubits` field from the `TomographyExperiment` dataclass
-    (gh-896).
+    (@msohaibalam, gh-896).
 
 ### Bugfixes
 
 -   Ensure that shots aren\'t lost when passing a `Program` through
-    `address_qubits` (gh-895).
+    `address_qubits` (@notmgsk, gh-895).
+-   Fixed the `conda` install command in the README (@seandiscovery,
+    gh-890).
 
-v2.6 (March 29, 2019)
----------------------
+[v2.6](https://github.com/rigetti/pyquil/compare/v2.5.2...v2.6.0) (March 29, 2019)
+----------------------------------------------------------------------------------
 
 ### Improvements and Changes
 
--   Added a CODEOWNERS file for default reviewers (gh-855).
+-   Added a CODEOWNERS file for default reviewers (@karalekas, gh-855).
 -   Bifurcated the `QPUCompiler` endpoint parameter into two \--
     `quilc_endpoint` and `qpu_compiler_endpoint` \-- to reflect changes
-    in Quantum Cloud Services (gh-856).
--   Clarified documentation around the DELAY pragma (gh-862).
+    in Quantum Cloud Services (@karalekas, gh-856).
+-   Clarified documentation around the DELAY pragma (@willzeng, gh-862).
 -   Added information about the `local_qvm` context manager to the
-    getting started documentation (gh-851).
+    getting started documentation (@willzeng, gh-851).
+-   Added strict version lower bounds on the rpcq and networkx
+    dependencies (@notmgsk, gh-828).
+-   A slice of a `Program` object now returns a `Program` object
+    (@notmgsk, gh-848).
 
 ### Bugfixes
 
 -   Added a non-None default timeout to the `QVMCompiler` object
-    (gh-850) and the `get_benchmarker` function (gh-854).
+    and the `get_benchmarker` function (@karalekas, gh-850, gh-854).
 -   Fixed the docstring for the `apply_clifford_to_pauli` function
-    (gh-836).
+    (@kylegulshen, gh-836).
 -   Allowed the `apply_clifford_to_pauli` function to now work with the
-    Identity as input (gh-849).
--   Updated a stale link to the Rigetti Forest Slack workspace (gh-860).
--   Fixed a notation typo in the documentation for noise (gh-861).
+    Identity as input (@msohaibalam, gh-849).
+-   Updated a stale link to the Rigetti Forest Slack workspace
+    (@karalekas, gh-860).
+-   Fixed a notation typo in the documentation for noise (@willzeng,
+    gh-861).
+-   An `IndexError` is now raised when trying to access an
+    out-of-bounds entry in a `MemoryReference` (@notmgsk, gh-819).
+-   Added a check to ensure that `measure_observables` takes as many
+    shots as requested (@marcusps, gh-846).
 
 Special thanks to @willzeng for all the contributions this release!
 

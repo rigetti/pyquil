@@ -11,6 +11,7 @@ rpcq >= 2.7.2
 # test deps
 pytest
 pytest-timeout
+pytest-rerunfailures
 requests-mock
 flake8
 tox

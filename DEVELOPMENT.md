@@ -13,12 +13,14 @@ tox
 
 ## Building the Docs
 
-We use sphinx to build the documentation. To do this, navigate into pyQuil's top-level directory and run:
+We use sphinx to build the documentation. Before building the docs, you must have
+`pandoc` installed. Then, navigate into the `docs` directory and run:
 
 ```
 make html
 ```
-To view the docs navigate to the newly-created `docs/_build` directory and open
+
+To view the docs navigate to the newly-created `docs/build` directory and open
 the `index.html` file in a browser. Note that we use the Read the Docs theme for
 our documentation, so this may need to be installed using `pip install sphinx_rtd_theme`.
 
