@@ -182,19 +182,19 @@ class Specs(_Specs):
         Get a dictionary of single-qubit randomized benchmarking fidelities (for individual gate
         operation, normalized to unity) from the specs, keyed by qubit index.
 
-        :return: A dictionary of 1QRBs, normalized to unity.
+        :return: A dictionary of 1Q RB fidelities, normalized to unity.
         :rtype: Dict[int, float]
         """
         return {qs.id: qs.f1QRB for qs in self.qubits_specs}
 
     def f1QRB_std_errs(self):
         """
-        Get a dictionary of the standard errors of the single-qubit randomized
+        Get a dictionary of the standard errors of single-qubit randomized
         benchmarking fidelities (for individual gate operation, normalized to unity)
         from the specs, keyed by qubit index.
 
-        :return: A dictionary of CZ fidelities, normalized to unity.
-        :rtype: Dict[tuple(int, int), float]
+        :return: A dictionary of 1Q RB fidelity standard errors, normalized to unity.
+        :rtype: Dict[int, float]
         """
         return {qs.id: qs.f1QRB_std_err for qs in self.qubits_specs}
 
@@ -203,19 +203,19 @@ class Specs(_Specs):
         Get a dictionary of single-qubit randomized benchmarking fidelities (for simultaneous gate
         operation across the chip, normalized to unity) from the specs, keyed by qubit index.
 
-        :return: A dictionary of 1QRBs, normalized to unity.
+        :return: A dictionary of simultaneous 1Q RB fidelities, normalized to unity.
         :rtype: Dict[int, float]
         """
         return {qs.id: qs.f1Q_simultaneous_RB for qs in self.qubits_specs}
 
     def f1Q_simultaneous_RB_std_errs(self):
         """
-        Get a dictionary of the standard errors of the single-qubit randomized
+        Get a dictionary of the standard errors of single-qubit randomized
         benchmarking fidelities (for simultaneous gate operation across the chip, normalized to
         unity) from the specs, keyed by qubit index.
 
-        :return: A dictionary of CZ fidelities, normalized to unity.
-        :rtype: Dict[tuple(int, int), float]
+        :return: A dictionary of simultaneous 1Q RB fidelity standard errors, normalized to unity.
+        :rtype: Dict[int, float]
         """
         return {qs.id: qs.f1Q_simultaneous_RB_std_err for qs in self.qubits_specs}
 
