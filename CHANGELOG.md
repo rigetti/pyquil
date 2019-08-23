@@ -17,6 +17,12 @@ Changelog
 
 ### Improvements and Changes
 
+-   Now, running `QuantumComputer.reset()` or `QuantumComputer.compile()`
+    additionally resets the connection information for the underlying
+    `QVM`/`QPU` and `QVMCompiler`/`QPUCompiler` objects, which should
+    resolve bugs that arise due to stale clients/connections (@karalekas,
+    gh-872).
+
 ### Bugfixes
 
 -   The `MemoryReference` warnings from have been removed from the unit
