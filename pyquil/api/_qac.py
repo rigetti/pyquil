@@ -51,6 +51,9 @@ class AbstractCompiler(ABC):
         :return: An (opaque) binary executable
         """
 
+    def reset(self):
+        pass
+
 
 class AbstractBenchmarker(ABC):
     @abstractmethod

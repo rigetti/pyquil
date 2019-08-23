@@ -13,6 +13,7 @@
 #    See the License for the specific language governing permissions and
 #    limitations under the License.
 ##############################################################################
+from collections import defaultdict
 import uuid
 import warnings
 from typing import Dict, List, Optional, Tuple, Union
@@ -23,6 +24,7 @@ from rpcq.messages import QPURequest, ParameterAref
 
 from pyquil import Program
 from pyquil.parser import parse
+from pyquil.api._config import PyquilConfig
 from pyquil.api._qam import QAM
 from pyquil.api._error_reporting import _record_call
 from pyquil.quilatom import MemoryReference, BinaryExp, Function, Parameter, Expression
@@ -78,7 +80,6 @@ class QPU(QAM):
         :param priority: The priority with which to insert jobs into the QPU queue. Lower
                          integers correspond to higher priority.
         """
-        super().__init__()
 
         if endpoint is None:
             raise RuntimeError("""It looks like you've tried to run a program against a QPU but do
@@ -96,6 +97,8 @@ support at support@rigetti.com.""")
         self.user = user
         self._last_results: Dict[str, np.ndarray] = {}
         self.priority = priority
+
+        super().__init__()
 
     def get_version_info(self) -> dict:
         """
@@ -168,8 +171,12 @@ support at support@rigetti.com.""")
         else:
             bitstrings = None
 
-        self._bitstrings = bitstrings
+        self._memory_results = defaultdict(lambda: None)
+        for aref, vals in self._variables_shim.items():
+            self._memory_results[aref] = [vals] * ro_sources[0].shape[0]
+        self._memory_results["ro"] = bitstrings
         self._last_results = results
+
         return self
 
     def _get_buffers(self, job_id: str) -> Dict[str, np.ndarray]:
@@ -292,3 +299,18 @@ support at support@rigetti.com.""")
             return self._variables_shim.get(ParameterAref(name=expression.name, index=expression.offset), 0)
         else:
             raise ValueError(f"Unexpected expression in gate parameter: {expression}")
+
+    @_record_call
+    def reset(self):
+        """
+        Reset the state of the underlying QAM, and the QPU Client connection.
+        """
+        super().reset()
+
+        def refresh_client(client: Client, new_endpoint: str) -> Client:
+            timeout = client.timeout
+            client.close()
+            return Client(new_endpoint, timeout)
+
+        pyquil_config = PyquilConfig()
+        self.client = refresh_client(self.client, pyquil_config.qpu_url)

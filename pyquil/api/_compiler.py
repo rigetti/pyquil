@@ -26,6 +26,7 @@ from rpcq.messages import (BinaryExecutableRequest, BinaryExecutableResponse,
                            RewriteArithmeticRequest)
 
 from pyquil import __version__
+from pyquil.api._config import PyquilConfig
 from pyquil.api._qac import AbstractCompiler
 from pyquil.api._error_reporting import _record_call
 from pyquil.device import AbstractDevice
@@ -48,6 +49,19 @@ class QuilcNotRunning(Exception):
 
 class QPUCompilerNotRunning(Exception):
     pass
+
+
+def refresh_client(client: Client, new_endpoint: str) -> Client:
+    """
+    Refresh the state of an RPCQ Client object, providing it a new endpoint.
+
+    :param client: Stale RPCQ Client object
+    :param new_endpoint: New RPC endpoint to use
+    :return: New RPCQ Client object
+    """
+    timeout = client.timeout
+    client.close()
+    return Client(new_endpoint, timeout)
 
 
 def check_quilc_version(version_dict: Dict[str, str]):
@@ -270,6 +284,16 @@ class QPUCompiler(AbstractCompiler):
         response.ro_sources = _collect_classical_memory_write_locations(nq_program)
         return response
 
+    @_record_call
+    def reset(self):
+        """
+        Reset the state of the QPUCompiler Client connections.
+        """
+        pyquil_config = PyquilConfig()
+        self.quilc_client = refresh_client(self.quilc_client, pyquil_config.quilc_url)
+        self.qpu_compiler_client = refresh_client(self.qpu_compiler_client,
+                                                  pyquil_config.qpu_compiler_url)
+
 
 class QVMCompiler(AbstractCompiler):
     @_record_call
@@ -324,3 +348,11 @@ class QVMCompiler(AbstractCompiler):
         return PyQuilExecutableResponse(
             program=nq_program.out(),
             attributes=_extract_attribute_dictionary_from_program(nq_program))
+
+    @_record_call
+    def reset(self):
+        """
+        Reset the state of the QPUCompiler Client connections.
+        """
+        pyquil_config = PyquilConfig()
+        self.client = refresh_client(self.client, pyquil_config.quilc_url)
