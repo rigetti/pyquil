@@ -373,3 +373,20 @@ mathjax_config = {
         }
     }
 }
+
+# fun little hack to always build the rst changelog from the markdown
+
+import subprocess
+import os
+
+dirname = os.path.dirname(__file__)
+
+
+def builder_inited_handler(app):
+    subprocess.call(['pandoc', '--from=markdown', '--to=rst',
+                     f'--output={dirname}/changes.rst',
+                     f'{dirname}/../../CHANGELOG.md'])
+
+
+def setup(app):
+    app.connect('builder-inited', builder_inited_handler)
