@@ -13,6 +13,7 @@
 #    See the License for the specific language governing permissions and
 #    limitations under the License.
 ##############################################################################
+from collections import defaultdict
 import uuid
 import warnings
 from typing import Dict, List, Optional, Tuple, Union
@@ -168,16 +169,13 @@ support at support@rigetti.com.""")
         else:
             bitstrings = None
 
-        self._memory_results = dict()
+        self._memory_results = defaultdict(lambda: None)
         for aref, vals in self._variables_shim.items():
             self._memory_results[aref] = [vals] * ro_sources[0].shape[0]
         self._memory_results["ro"] = bitstrings
         self._last_results = results
 
         return self
-
-    def read_memory(self, *, region_name: str):
-        return super().read_memory(region_name=region_name)
 
     def _get_buffers(self, job_id: str) -> Dict[str, np.ndarray]:
         """

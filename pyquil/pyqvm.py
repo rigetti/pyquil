@@ -244,7 +244,7 @@ class PyQVM(QAM):
         # private implementation details
         self._qubit_to_ram = None  # type: Dict[int, int]
         self._ro_size = None  # type :int
-        self._memory_results = None  # type: np.ndarray
+        self._memory_results = None  # type: Dict[str, np.ndarray]
 
         self.rs = np.random.RandomState(seed=seed)
         self.wf_simulator = quantum_simulator_type(n_qubits=n_qubits, rs=self.rs)

@@ -519,7 +519,7 @@ To read more about supplying noise to the QVM, see http://pyquil.readthedocs.io/
                                                         random_seed=self.random_seed)
 
         if "ro" not in self._memory_results or self._memory_results["ro"] == []:
-            self._memory_results["ro"] = np.zeros((trials, 0))
+            self._memory_results["ro"] = np.zeros((trials, 0), dtype=np.int64)
 
         return self
 

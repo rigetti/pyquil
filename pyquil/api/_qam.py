@@ -123,7 +123,7 @@ class QAM(ABC):
                       "pyquil.api._qam.QAM.read_memory instead.",
                       DeprecationWarning)
 
-        self.read_memory(region_name=region_name)
+        return self.read_memory(region_name=region_name)
 
     @_record_call
     def reset(self):
