@@ -24,6 +24,10 @@ Changelog
     readout symmetrization (@joshcombes, gh-919).
 -   The ProtoQuil restrictions built in to PyQVM have been removed
     (@ecpeterson, gh-874).
+-   Add the ability to query for other memory regions after both QPU and QVM
+    runs. This removes a previously unnecessary restriction on the QVM, although
+    `ro` remains the only QPU-writeable memory region during Quil execution
+    (@ecpeterson, gh-873).
 
 ### Bugfixes
 
