@@ -6,8 +6,8 @@ Changelog
 
 ### Announcements
 
--   PyQuil's RST-style changelog has been rewritten in Markdown, and can be
-    found in the top-level directory of the repository as the
+-   PyQuil's changelog has been overhauled and rewritten in Markdown instead of
+    RST, and can be found in the top-level directory of the repository as the
     [CHANGELOG.md](https://github.com/rigetti/pyquil/blob/master/CHANGELOG.md)
     file (which is the standard for most GitHub repositories). However,
     during the build process, we use `pandoc` to convert it back to RST so
@@ -19,12 +19,15 @@ Changelog
 
 -   Test suite attempts to retry specific tests that fail often. Tests are
     retried only a single time (@notmgsk, gh-951).
+-   The `QuantumComputer.run_symmetrized_readout()` method has been
+    revamped, and now has options for using more advanced forms of
+    readout symmetrization (@joshcombes, gh-919).
 -   The ProtoQuil restrictions built in to PyQVM have been removed
     (@ecpeterson, gh-874).
 
 ### Bugfixes
 
--   The `MemoryReference` warnings from have been removed from the unit
+-   The `MemoryReference` warnings have been removed from the unit
     tests (@maxKenngott, gh-950).
 -   The `merge_programs` function now supports merging programs with
     `DefPermutationGate`, instead of throwing an error, and avoids
