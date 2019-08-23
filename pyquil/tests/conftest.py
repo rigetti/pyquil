@@ -193,7 +193,7 @@ def benchmarker():
 
 
 @pytest.fixture(scope='session')
-def local__quilc():
+def local_qvm_quilc():
     """Execute test with local qvm and quilc running"""
     if shutil.which('qvm') is None or shutil.which('quilc') is None:
         return pytest.skip("This test requires 'qvm' and 'quilc' "
