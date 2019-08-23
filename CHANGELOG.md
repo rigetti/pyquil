@@ -42,7 +42,7 @@ Changelog
     of pyQuil as a library, as well as two badges \-- one for PyPI
     downloads and another for the Forest Slack workspace. Also, included
     an example section for how to get started with running a simple Bell
-    state program on the QVM (@karalekas, gh-949).
+    state program on the QVM (@karalekas, gh-946, gh-949).
 -   The test suite for `pyquil.operator_estimation` now has an
     (optional) faster version that uses fixed random seeds instead of
     averaging over several experiments. This can be enabled with the
@@ -69,6 +69,8 @@ Changelog
 
 -   `unitary_tools.lifted_gate()` was not properly handling modifiers
     such as `DAGGER` and `CONTROLLED` (@kylegulshen, gh-931).
+-   Fixed warnings raised by Sphinx when building the documentation
+    (@appleby, gh-929).
 
 [v2.9.1](https://github.com/rigetti/pyquil/compare/v2.9.0...v2.9.1) (June 28, 2019)
 -----------------------------------------------------------------------------------
@@ -122,6 +124,12 @@ release!
     QVM and quilc (@karalekas, gh-913).
 -   Added support for defining permutation gates for use with the latest
     version of quilc (@notmgsk, gh-891).
+-   The rpcq dependency requirement has been raised to v2.5.1 (@notmgsk,
+    gh-911).
+-   Added a note about the QVM's compilation mode to the documentation
+    (@stylewarning, gh-900).
+-   Some measure_observables params now have the `Optional` type
+    specification (@msohaibalam, gh-903).
 
 ### Bugfixes
 
