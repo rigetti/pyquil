@@ -135,16 +135,17 @@ release!
 
 -   Preserve modifiers during `address_qubits` (@notmgsk, gh-907).
 
-v2.7.2 (May 3, 2019)
---------------------
+[v2.7.2](https://github.com/rigetti/pyquil/compare/v2.7.1...v2.7.2) (May 3, 2019)
+---------------------------------------------------------------------------------
 
 ### Bugfixes
 
 -   An additional backwards-incompatible change from gh-870 snuck
-    through 2.7.1, and is addressed in this patch release.
+    through 2.7.1, and is addressed in this patch release
+    (@karalekas, gh-901).
 
-v2.7.1 (April 30, 2019)
------------------------
+[v2.7.1](https://github.com/rigetti/pyquil/compare/v2.7.0...v2.7.1) (April 30, 2019)
+------------------------------------------------------------------------------------
 
 ### Bugfixes
 
@@ -152,51 +153,63 @@ v2.7.1 (April 30, 2019)
     a backwards-compatible fashion, and therefore this patch release
     aims to remedy that. Going forward, there will be much more
     stringent requirements around backwards compatibility and
-    deprecation.
+    deprecation (@karalekas, gh-899).
 
-v2.7 (April 29, 2019)
----------------------
+[v2.7](https://github.com/rigetti/pyquil/compare/v2.6.0...v2.7.0) (April 29, 2019)
+----------------------------------------------------------------------------------
 
 ### Improvements and Changes
 
 -   Standard deviation -\> standard error in operator estimation
-    (gh-870).
+    (@msohaibalam, gh-870).
 -   Update what pyQuil expects from quilc in terms of rewiring pragmas
     \-- they are now comments rather than distinct instructions
-    (gh-878).
+    (@ecpeterson, gh-878).
 -   Allow users to deprioritize QPU jobs \-- mostly a Rigetti-internal
-    feature (gh-877).
+    feature (@jvalery2, gh-877).
 -   Remove the `qubits` field from the `TomographyExperiment` dataclass
-    (gh-896).
+    (@msohaibalam, gh-896).
 
 ### Bugfixes
 
 -   Ensure that shots aren\'t lost when passing a `Program` through
-    `address_qubits` (gh-895).
+    `address_qubits` (@notmgsk, gh-895).
+-   Fixed the `conda` install command in the README (@seandiscovery,
+    gh-890).
 
-v2.6 (March 29, 2019)
----------------------
+[v2.6](https://github.com/rigetti/pyquil/compare/v2.5.2...v2.6.0) (March 29, 2019)
+----------------------------------------------------------------------------------
 
 ### Improvements and Changes
 
--   Added a CODEOWNERS file for default reviewers (gh-855).
+-   Added a CODEOWNERS file for default reviewers (@karalekas, gh-855).
 -   Bifurcated the `QPUCompiler` endpoint parameter into two \--
     `quilc_endpoint` and `qpu_compiler_endpoint` \-- to reflect changes
-    in Quantum Cloud Services (gh-856).
--   Clarified documentation around the DELAY pragma (gh-862).
+    in Quantum Cloud Services (@karalekas, gh-856).
+-   Clarified documentation around the DELAY pragma (@willzeng, gh-862).
 -   Added information about the `local_qvm` context manager to the
-    getting started documentation (gh-851).
+    getting started documentation (@willzeng, gh-851).
+-   Added strict version lower bounds on the rpcq and networkx
+    dependencies (@notmgsk, gh-828).
+-   A slice of a `Program` object now returns a `Program` object
+    (@notmgsk, gh-848).
 
 ### Bugfixes
 
 -   Added a non-None default timeout to the `QVMCompiler` object
-    (gh-850) and the `get_benchmarker` function (gh-854).
+    and the `get_benchmarker` function (@karalekas, gh-850, gh-854).
 -   Fixed the docstring for the `apply_clifford_to_pauli` function
-    (gh-836).
+    (@kylegulshen, gh-836).
 -   Allowed the `apply_clifford_to_pauli` function to now work with the
-    Identity as input (gh-849).
--   Updated a stale link to the Rigetti Forest Slack workspace (gh-860).
--   Fixed a notation typo in the documentation for noise (gh-861).
+    Identity as input (@msohaibalam, gh-849).
+-   Updated a stale link to the Rigetti Forest Slack workspace
+    (@karalekas, gh-860).
+-   Fixed a notation typo in the documentation for noise (@willzeng,
+    gh-861).
+-   An `IndexError` is now raised when trying to access an
+    out-of-bounds entry in a `MemoryReference` (@notmgsk, gh-819).
+-   Added a check to ensure that `measure_observables` takes as many
+    shots as requested (@marcusps, gh-846).
 
 Special thanks to @willzeng for all the contributions this release!
 
