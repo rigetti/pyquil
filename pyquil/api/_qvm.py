@@ -534,3 +534,12 @@ To read more about supplying noise to the QVM, see http://pyquil.readthedocs.io/
         p += quil_program
 
         return percolate_declares(p)
+
+    @_record_call
+    def reset(self):
+        """
+        Reset the state of the underlying QAM, and the QVM connection information.
+        """
+        super().reset()
+        forest_connection = ForestConnection()
+        self.connection = forest_connection

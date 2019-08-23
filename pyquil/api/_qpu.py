@@ -23,6 +23,7 @@ from rpcq.messages import QPURequest, ParameterAref
 
 from pyquil import Program
 from pyquil.parser import parse
+from pyquil.api._config import PyquilConfig
 from pyquil.api._qam import QAM
 from pyquil.api._error_reporting import _record_call
 from pyquil.quilatom import MemoryReference, BinaryExp, Function, Parameter, Expression
@@ -292,3 +293,18 @@ support at support@rigetti.com.""")
             return self._variables_shim.get(ParameterAref(name=expression.name, index=expression.offset), 0)
         else:
             raise ValueError(f"Unexpected expression in gate parameter: {expression}")
+
+    @_record_call
+    def reset(self):
+        """
+        Reset the state of the underlying QAM, and the QPU Client connection.
+        """
+        super().reset()
+
+        def refresh_client(client: Client, new_endpoint: str) -> Client:
+            timeout = client.timeout
+            client.close()
+            return Client(new_endpoint, timeout)
+
+        pyquil_config = PyquilConfig()
+        self.client = refresh_client(self.client, pyquil_config.qpu_url)

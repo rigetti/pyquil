@@ -264,6 +264,7 @@ class QuantumComputer:
         binary = self.compiler.native_quil_to_executable(nq_program)
         return binary
 
+    @_record_call
     def reset(self):
         """
         Reset the QuantumComputer's QAM to its initial state, and refresh all the connection
@@ -277,12 +278,10 @@ class QuantumComputer:
 
         if isinstance(self.qam, QVM) and isinstance(self.compiler, QVMCompiler):
             forest_connection = ForestConnection()
-            self.qam.connection = forest_connection
             self.compiler.client = refresh_client(self.compiler.client,
                                                   forest_connection.compiler_endpoint)
         elif isinstance(self.qam, QPU) and isinstance(self.compiler, QPUCompiler):
             pyquil_config = PyquilConfig()
-            self.qam.client = refresh_client(self.qam.client, pyquil_config.qpu_url)
             self.compiler.quilc_client = refresh_client(self.compiler.quilc_client,
                                                         pyquil_config.quilc_url)
             self.compiler.qpu_compiler_client = refresh_client(self.compiler.qpu_compiler_client,
