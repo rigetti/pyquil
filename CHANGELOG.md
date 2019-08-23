@@ -17,6 +17,10 @@ Changelog
 
 ### Improvements and Changes
 
+-   Test suite attempts to retry specific tests that fail often. Tests are
+    retried only a single time (@notmgsk, gh-951).
+-   The ProtoQuil restrictions built in to PyQVM have been removed
+    (@ecpeterson, gh-874).
 -   Now, running `QuantumComputer.reset()` or `QuantumComputer.compile()`
     additionally resets the connection information for the underlying
     `QVM`/`QPU` and `QVMCompiler`/`QPUCompiler` objects, which should

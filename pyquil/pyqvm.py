@@ -140,64 +140,6 @@ class AbstractQuantumSimulator(ABC):
         """
 
 
-class NotRunAndMeasureProgramError(ValueError):
-    pass
-
-
-def _make_ram_program(program):
-    """
-    Check that this program is a series of quantum gates with terminal MEASURE instructions; pop
-    MEASURE instructions.
-
-    :param program: The program
-    :return: A new program with MEASURE instructions removed.
-    """
-    new_prog = program.copy_everything_except_instructions()
-    last_qubit_operation = {}
-    times_qubit_measured = defaultdict(lambda: 0)
-    ro_size = None
-    qubit_to_ram = {}
-
-    for instr in program:
-        if isinstance(instr, Pragma):
-            new_prog += instr
-        elif isinstance(instr, Declare):
-            if instr.name == 'ro':
-                if instr.memory_type != 'BIT':
-                    raise NotRunAndMeasureProgramError("The readout register `ro` "
-                                                       "must be of type BIT")
-                ro_size = instr.memory_size
-            new_prog += instr
-        elif isinstance(instr, Gate):
-            for qubit in instr.qubits:
-                last_qubit_operation[qubit.index] = 'gate'
-            new_prog += instr
-        elif isinstance(instr, Measurement):
-            if instr.classical_reg is None:
-                raise NotRunAndMeasureProgramError("No measure-for-effect allowed")
-            if instr.classical_reg.name != 'ro':
-                raise NotRunAndMeasureProgramError("The readout register must be named `ro`, "
-                                                   "not {}".format(instr.classical_reg.name))
-            last_qubit_operation[instr.qubit.index] = 'measure'
-            times_qubit_measured[instr.qubit.index] += 1
-            qubit_to_ram[instr.qubit.index] = instr.classical_reg.offset
-        else:
-            raise NotRunAndMeasureProgramError(f"Unsupported r_a_m instruction {instr}")
-
-    for q, lqo in last_qubit_operation.items():
-        if lqo != 'measure':
-            raise NotRunAndMeasureProgramError(f"Qubit {q}'s last operation is a gate")
-
-    for q, tqm in times_qubit_measured.items():
-        if tqm > 1:
-            raise NotRunAndMeasureProgramError(f"Qubit {q} is measured {tqm} times")
-
-    if ro_size is None:
-        raise NotRunAndMeasureProgramError("Please declare a readout register")
-
-    return new_prog, qubit_to_ram, ro_size
-
-
 class PyQVM(QAM):
     def __init__(self, n_qubits, quantum_simulator_type: Type[AbstractQuantumSimulator] = None,
                  seed=None,
@@ -256,12 +198,6 @@ class PyQVM(QAM):
         else:
             program = executable
 
-        try:
-            program, self._qubit_to_ram, self._ro_size = _make_ram_program(program)
-        except NotRunAndMeasureProgramError as e:
-            raise ValueError("PyQVM can only run run-and-measure style programs: {}"
-                             .format(e))
-
         # initialize program counter
         self.program = program
         self.program_counter = 0
@@ -269,6 +205,15 @@ class PyQVM(QAM):
 
         # clear RAM, although it's not strictly clear if this should happen here
         self.ram = {}
+        # if we're clearing RAM, we ought to clear the WF too
+        self.wf_simulator.reset()
+
+        # grab the gate definitions for future use
+        self.defined_gates = dict()
+        for dg in self.program.defined_gates:
+            if dg.parameters is not None and len(dg.parameters) > 0:
+                raise NotImplementedError("PyQVM does not support parameterized DEFGATEs")
+            self.defined_gates[dg.name] = dg.matrix
 
         self.status = 'loaded'
         return self
@@ -281,31 +226,18 @@ class PyQVM(QAM):
 
     def run(self):
         self.status = 'running'
-        assert self._qubit_to_ram is not None
-        assert self._ro_size is not None
 
-        # TODO: why are DEFGATEs not just included in the list of instructions?
-        for dg in self.program.defined_gates:
-            if dg.parameters is not None and len(dg.parameters) > 0:
-                raise NotImplementedError("PyQVM does not support parameterized DEFGATEs")
-            self.defined_gates[dg.name] = dg.matrix
+        self._memory_results = {}
+        for _ in range(self.program.num_shots):
+            self.wf_simulator.reset()
+            self.execute(self.program)
+            for name in self.ram.keys():
+                self._memory_results.setdefault(name, list())
+                self._memory_results[name].append(self.ram[name])
 
-        halted = len(self.program) == 0
-        while not halted:
-            halted = self.transition()
+        # TODO: this will need to be removed in merge conflict with #873
+        self._bitstrings = self._memory_results['ro']
 
-        bitstrings = self.wf_simulator.sample_bitstrings(self.program.num_shots)
-
-        n_shots = self.program.num_shots
-        self.ram['ro'] = np.zeros((n_shots, self._ro_size), dtype=int)
-        for q in range(bitstrings.shape[1]):
-            if q in self._qubit_to_ram:
-                ram_offset = self._qubit_to_ram[q]
-                self.ram['ro'][:, ram_offset] = bitstrings[:, q]
-
-        # Finally, we RESET the system because it isn't mandated yet that programs
-        # contain RESET instructions.
-        self.wf_simulator.reset()
         return self
 
     def wait(self):
@@ -314,7 +246,7 @@ class PyQVM(QAM):
         return self
 
     def read_memory(self, *, region_name: str):
-        return self.ram[region_name]
+        return np.asarray(self._memory_results[region_name])
 
     def find_label(self, label: Label):
         """
@@ -501,7 +433,7 @@ class PyQVM(QAM):
 
     def execute(self, program: Program):
         """
-        Execute a program on the QVM.
+        Execute one outer loop of a program on the QVM.
 
         Note that the QAM is stateful. Subsequent calls to :py:func:`execute` will not
         automatically reset the wavefunction or the classical RAM. If this is desired,
@@ -509,11 +441,6 @@ class PyQVM(QAM):
 
         :return: ``self`` to support method chaining.
         """
-        # TODO: why are DEFGATEs not just included in the list of instructions?
-        for dg in program.defined_gates:
-            if dg.parameters is not None:
-                raise NotImplementedError("PyQVM does not support parameterized DEFGATEs")
-            self.defined_gates[dg.name] = dg.matrix
 
         # initialize program counter
         self.program = program
