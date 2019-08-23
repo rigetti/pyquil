@@ -265,6 +265,11 @@ class QuantumComputer:
         Right now both ``to_native_gates`` and ``optimize`` must be either both set or both
         unset. More modular compilation passes may be available in the future.
 
+        Additionally, a call to compile also calls the ``reset`` method if one is running
+        on the QPU. This is a bit of a sneaky hack to guard against stale compiler connections,
+        but shouldn't result in any material hit to performance (especially when taking advantage
+        of parametric compilation for hybrid applications).
+
         :param program: A Program
         :param to_native_gates: Whether to compile non-native gates to native gates.
         :param optimize: Whether to optimize the program to reduce the number of operations.
@@ -272,7 +277,8 @@ class QuantumComputer:
             to protoquil (executable on QPU). A value of ``None`` means defer to server.
         :return: An executable binary suitable for passing to :py:func:`QuantumComputer.run`.
         """
-        self.reset()
+        if isinstance(self.qam, QPU):
+            self.reset()
 
         flags = [to_native_gates, optimize]
         assert all(flags) or all(not f for f in flags), "Must turn quilc all on or all off"
