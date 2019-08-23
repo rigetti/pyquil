@@ -79,7 +79,6 @@ class QPU(QAM):
         :param priority: The priority with which to insert jobs into the QPU queue. Lower
                          integers correspond to higher priority.
         """
-        super().__init__()
 
         if endpoint is None:
             raise RuntimeError("""It looks like you've tried to run a program against a QPU but do
@@ -97,6 +96,8 @@ support at support@rigetti.com.""")
         self.user = user
         self._last_results: Dict[str, np.ndarray] = {}
         self.priority = priority
+
+        super().__init__()
 
     def get_version_info(self) -> dict:
         """
