@@ -17,6 +17,9 @@ Changelog
 
 ### Improvements and Changes
 
+-   Test suite attempts to retry specific tests that fail often. Tests are
+    retried only a single time (@notmgsk, gh-951).
+
 ### Bugfixes
 
 -   The `MemoryReference` warnings from have been removed from the unit

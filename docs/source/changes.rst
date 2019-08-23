@@ -19,8 +19,6 @@ Announcements
 Improvements and Changes
 ~~~~~~~~~~~~~~~~~~~~~~~~
 
-- Test suite attempts to retry any tests that fail. Tests are retried
-  only a single time (@notmgsk, gh-951).
 
 Bugfixes
 ~~~~~~~~
