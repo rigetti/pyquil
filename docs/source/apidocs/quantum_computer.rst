@@ -4,6 +4,7 @@ Quantum Computer
 ================
 
 .. autofunction:: pyquil.get_qc
+.. autofunction:: pyquil.api.local_runtime
 .. autofunction:: pyquil.list_quantum_computers
 
 .. autoclass:: pyquil.api.QuantumComputer

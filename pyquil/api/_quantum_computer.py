@@ -666,7 +666,13 @@ def get_qc(name: str, *, as_qvm: bool = None, noisy: bool = None,
 
 
 @contextmanager
-def local_qvm() -> Iterator[Tuple[subprocess.Popen, subprocess.Popen]]:
+def local_runtime(
+        host: str = '127.0.0.1',
+        qvm_port: int = 5000,
+        quilc_port: int = 5555,
+        provide_http_server: bool = False,
+        use_protoquil: bool = False
+    ) -> Iterator[Tuple[subprocess.Popen, subprocess.Popen]]:
     """A context manager for the Rigetti local QVM and QUIL compiler.
 
     You must first have installed the `qvm` and `quilc` executables from
@@ -681,22 +687,43 @@ def local_qvm() -> Iterator[Tuple[subprocess.Popen, subprocess.Popen]]:
 
     >>> from pyquil import get_qc, Program
     >>> from pyquil.gates import CNOT, Z
-    >>> from pyquil.api import local_qvm
+    >>> from pyquil.api import local_runtime
     >>>
     >>> qvm = get_qc('9q-square-qvm')
     >>> prog = Program(Z(0), CNOT(0, 1))
     >>>
-    >>> with local_qvm():
+    >>> with local_runtime():
     >>>     results = qvm.run_and_measure(prog, trials=10)
+
+    :param host: host on which qvm and quilc should listen on
+    :param qvm_port: port which should be used by qvm
+    :param quilc_port: port which should be used by quilc
+    :param provide_http_server: additionally start a http server to the rpcq server (quilc). If true ignores quilc_port and will use 6000 for the http server and 5555 for the rpcq server
+    :param use_protoquil: restrict input/output to protoquil
+
+    .. warning::
+        use_protoquil may disables language features you need, use with caution
 
     :raises: FileNotFoundError: If either executable is not installed.
     """
-    # Enter. Acquire resource
-    qvm = subprocess.Popen(['qvm', '-S'],
+    qvm_cmd = ['qvm', '-S', '--host', host, '-p', str(qvm_port)]
+
+    qvm = subprocess.Popen(qvm_cmd,
                            stdout=subprocess.PIPE,
                            stderr=subprocess.PIPE)
 
-    quilc = subprocess.Popen(['quilc', '-RP'],
+    quilc_cmd = ['quilc', '--host', host, '-p', str(quilc_port)]
+
+    # -S starts both a http server AND a RPCQ server
+    if provide_http_server:
+        quilc_cmd += ['-S']
+    else:
+        quilc_cmd += ['-R']
+
+    if use_protoquil:
+        quilc_cmd += ['-P']
+
+    quilc = subprocess.Popen(quilc_cmd,
                              stdout=subprocess.PIPE,
                              stderr=subprocess.PIPE)
 

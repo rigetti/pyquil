@@ -6,7 +6,7 @@ import pytest
 from requests import RequestException
 
 from pyquil.api import (QVMConnection, QVMCompiler, ForestConnection,
-                        get_benchmarker, local_qvm)
+                        get_benchmarker, local_runtime)
 from pyquil.api._config import PyquilConfig
 from pyquil.api._errors import UnknownApiError
 from pyquil.api._compiler import QuilcNotRunning, QuilcVersionMismatch
@@ -193,13 +193,13 @@ def benchmarker():
 
 
 @pytest.fixture(scope='session')
-def local_qvm_quilc():
+def local__quilc():
     """Execute test with local qvm and quilc running"""
     if shutil.which('qvm') is None or shutil.which('quilc') is None:
         return pytest.skip("This test requires 'qvm' and 'quilc' "
                            "executables to be installed locally.")
 
-    with local_qvm() as context:
+    with local_runtime() as context:
         yield context
 
 
