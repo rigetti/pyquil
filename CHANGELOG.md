@@ -17,6 +17,9 @@ Changelog
 
 ### Improvements and Changes
 
+-  The ProtoQuil restrictions built in to PyQVM have been removed
+   (@ecpeterson, gh-874).
+
 ### Bugfixes
 
 -   The `MemoryReference` warnings from have been removed from the unit
