@@ -50,37 +50,37 @@ def specs_dict():
     return {
         '1Q': {
             "0": {
-                "f1QRB_individual": 0.99,
-                "f1QRB_individual_std_err": 0.01,
-                "f1QRB_simultaneous": 0.98,
-                "f1QRB_simultaneous_std_err": 0.02,
+                "f1QRB": 0.99,
+                "f1QRB_std_err": 0.01,
+                "simultaneous_f1QRB": 0.98,
+                "simultaneous_f1QRB_std_err": 0.02,
                 "fRO": 0.93,
                 "T1": 20e-6,
                 "T2": 15e-6
             },
             "1": {
-                "f1QRB_individual": 0.989,
-                "f1QRB_individual_std_err": 0.011,
-                "f1QRB_simultaneous": 0.979,
-                "f1QRB_simultaneous_std_err": 0.021,
+                "f1QRB": 0.989,
+                "f1QRB_std_err": 0.011,
+                "simultaneous_f1QRB": 0.979,
+                "simultaneous_f1QRB_std_err": 0.021,
                 "fRO": 0.92,
                 "T1": 19e-6,
                 "T2": 12e-6
             },
             "2": {
-                "f1QRB_individual": 0.983,
-                "f1QRB_individual_std_err": 0.017,
-                "f1QRB_simultaneous": 0.973,
-                "f1QRB_simultaneous_std_err": 0.027,
+                "f1QRB": 0.983,
+                "f1QRB_std_err": 0.017,
+                "simultaneous_f1QRB": 0.973,
+                "simultaneous_f1QRB_std_err": 0.027,
                 "fRO": 0.95,
                 "T1": 21e-6,
                 "T2": 16e-6
             },
             "3": {
-                "f1QRB_individual": 0.988,
-                "f1QRB_individual_std_err": 0.012,
-                "f1QRB_simultaneous": 0.978,
-                "f1QRB_simultaneous_std_err": 0.022,
+                "f1QRB": 0.988,
+                "f1QRB_std_err": 0.012,
+                "simultaneous_f1QRB": 0.978,
+                "simultaneous_f1QRB_std_err": 0.022,
                 "fRO": 0.94,
                 "T1": 18e-6,
                 "T2": 11e-6
