@@ -36,7 +36,7 @@ Qubit = namedtuple("Qubit", ["id", "type", "dead"])
 Edge = namedtuple("Edge", ["targets", "type", "dead"])
 _ISA = namedtuple("_ISA", ["qubits", "edges"])
 QubitSpecs = namedtuple("_QubitSpecs", ["id", "fRO", "f1QRB", "f1QRB_std_err",
-                                        "simultaneous_f1QRB", "simultaneous_f1QRB_std_err", "T1",
+                                        "f1Q_simultaneous_RB", "f1Q_simultaneous_RB_std_err", "T1",
                                         "T2", "fActiveReset"])
 EdgeSpecs = namedtuple("_QubitQubitSpecs", ["targets", "fBellState", "fCZ", "fCZ_std_err",
                                             "fCPHASE"])
@@ -198,7 +198,7 @@ class Specs(_Specs):
         """
         return {qs.id: qs.f1QRB_std_err for qs in self.qubits_specs}
 
-    def simultaneous_f1QRBs(self):
+    def f1Q_simultaneous_RBs(self):
         """
         Get a dictionary of single-qubit randomized benchmarking fidelities (for simultaneous gate
         operation across the chip, normalized to unity) from the specs, keyed by qubit index.
@@ -206,9 +206,9 @@ class Specs(_Specs):
         :return: A dictionary of 1QRBs, normalized to unity.
         :rtype: Dict[int, float]
         """
-        return {qs.id: qs.simultaneous_f1QRB for qs in self.qubits_specs}
+        return {qs.id: qs.f1Q_simultaneous_RB for qs in self.qubits_specs}
 
-    def simultaneous_f1QRB_std_errs(self):
+    def f1Q_simultaneous_RB_std_errs(self):
         """
         Get a dictionary of the standard errors of the single-qubit randomized
         benchmarking fidelities (for simultaneous gate operation across the chip, normalized to
@@ -217,7 +217,7 @@ class Specs(_Specs):
         :return: A dictionary of CZ fidelities, normalized to unity.
         :rtype: Dict[tuple(int, int), float]
         """
-        return {qs.id: qs.simlutaneous_f1QRB_std_err for qs in self.qubits_specs}
+        return {qs.id: qs.f1Q_simultaneous_RB_std_err for qs in self.qubits_specs}
 
     def fROs(self):
         """
@@ -348,8 +348,8 @@ class Specs(_Specs):
                 "{}".format(qs.id): {
                     'f1QRB': qs.f1QRB,
                     'f1QRB_std_err': qs.f1QRB_std_err,
-                    'simultaneous_f1QRB': qs.simultaneous_f1QRB,
-                    'simultaneous_f1QRB_std_err': qs.simultaneous_f1QRB_std_err,
+                    'f1Q_simultaneous_RB': qs.f1Q_simultaneous_RB,
+                    'f1Q_simultaneous_RB_std_err': qs.f1Q_simultaneous_RB_std_err,
                     'fRO': qs.fRO,
                     'T1': qs.T1,
                     'T2': qs.T2,
@@ -380,9 +380,9 @@ class Specs(_Specs):
                                             fRO=qspecs.get('fRO'),
                                             f1QRB=qspecs.get('f1QRB'),
                                             f1QRB_std_err=qspecs.get('f1QRB_std_err'),
-                                            simultaneous_f1QRB=qspecs.get('simultaneous_f1QRB'),
-                                            simultaneous_f1QRB_std_err=qspecs.get(
-                                                'simultaneous_f1QRB_std_err'),
+                                            f1Q_simultaneous_RB=qspecs.get('f1Q_simultaneous_RB'),
+                                            f1Q_simultaneous_RB_std_err=qspecs.get(
+                                                'f1Q_simultaneous_RB_std_err'),
                                             T1=qspecs.get('T1'),
                                             T2=qspecs.get('T2'),
                                             fActiveReset=qspecs.get('fActiveReset'))
@@ -419,7 +419,7 @@ def specs_from_graph(graph: nx.Graph):
     :param graph: The graph
     """
     qspecs = [QubitSpecs(id=q, fRO=0.90, f1QRB=0.99, f1QRB_std_err=0.01,
-                         simultaneous_f1QRB=0.99, simultaneous_f1QRB_std_err=0.02, T1=30e-6,
+                         f1Q_simultaneous_RB=0.99, f1Q_simultaneous_RB_std_err=0.02, T1=30e-6,
                          T2=30e-6, fActiveReset=0.99)
               for q in graph.nodes]
     especs = [EdgeSpecs(targets=(q1, q2), fBellState=0.90, fCZ=0.90, fCZ_std_err=0.05, fCPHASE=0.80)
