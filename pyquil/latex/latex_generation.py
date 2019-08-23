@@ -34,7 +34,7 @@
 from copy import copy
 
 from pyquil.latex.latex_config import get_default_settings, header, footer
-from pyquil.quil import Measurement
+from pyquil.quil import Measurement, Gate
 from collections import namedtuple
 
 
@@ -85,14 +85,16 @@ def body(circuit, settings):
         if isinstance(inst, Measurement):
             inst.qubits = [inst.qubit]
             inst.name = "MEASURE"
-        else:
+        elif isinstance(inst, Gate):
             qubits = inst.qubits
-        for qubit in qubits:
-            qubit_instruction_mapping[qubit.index] = []
+            for qubit in qubits:
+                qubit_instruction_mapping[qubit.index] = []
     for k, v in list(qubit_instruction_mapping.items()):
         v.append(command(ALLOCATE, [k], [], [k], k))
 
     for inst in circuit:
+        if not isinstance(inst, Gate) and not isinstance(inst, Measurement):
+            continue
         qubits = [qubit.index for qubit in inst.qubits]
         gate = inst.name
         # If this is a single qubit instruction.
