@@ -33,6 +33,13 @@ Changelog
     the underlying `QVM`/`QPU` and `QVMCompiler`/`QPUCompiler` objects,
     which should resolve bugs that arise due to stale clients/connections
     (@karalekas, gh-872).
+-   In addition to the simultaneous 1Q RB fidelities contained in device 
+    specs prior to this release, there are now 1Q RB fidelities for 
+    non-simultaneous gate operation. The names of these fields have been
+    changed for clarity, and standard errors for both fidelities have been
+    added as well. Finally, deprecation warnings have been added regarding
+    the `fCPHASE` and `fBellState` device spec fields, which are no longer
+    routinely updated and will be removed in release v2.13 (@jvalery2, gh-968).
 
 ### Bugfixes
 

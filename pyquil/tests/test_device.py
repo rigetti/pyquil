@@ -51,10 +51,18 @@ def test_specs(specs_dict):
     specs = Specs.from_dict(specs_dict)
     assert specs == Specs(
         qubits_specs=[
-            QubitSpecs(id=0, f1QRB=0.99, fRO=0.93, T1=20e-6, T2=15e-6, fActiveReset=None),
-            QubitSpecs(id=1, f1QRB=0.989, fRO=0.92, T1=19e-6, T2=12e-6, fActiveReset=None),
-            QubitSpecs(id=2, f1QRB=0.983, fRO=0.95, T1=21e-6, T2=16e-6, fActiveReset=None),
-            QubitSpecs(id=3, f1QRB=0.988, fRO=0.94, T1=18e-6, T2=11e-6, fActiveReset=None)
+            QubitSpecs(id=0, f1QRB=0.99, f1QRB_std_err=0.01,
+                       f1Q_simultaneous_RB=0.98, f1Q_simultaneous_RB_std_err=0.02, fRO=0.93,
+                       T1=20e-6, T2=15e-6, fActiveReset=None),
+            QubitSpecs(id=1, f1QRB=0.989, f1QRB_std_err=0.011,
+                       f1Q_simultaneous_RB=0.979, f1Q_simultaneous_RB_std_err=0.021, fRO=0.92,
+                       T1=19e-6, T2=12e-6, fActiveReset=None),
+            QubitSpecs(id=2, f1QRB=0.983, f1QRB_std_err=0.017,
+                       f1Q_simultaneous_RB=0.973, f1Q_simultaneous_RB_std_err=0.027, fRO=0.95,
+                       T1=21e-6, T2=16e-6, fActiveReset=None),
+            QubitSpecs(id=3, f1QRB=0.988, f1QRB_std_err=0.012,
+                       f1Q_simultaneous_RB=0.978, f1Q_simultaneous_RB_std_err=0.022, fRO=0.94,
+                       T1=18e-6, T2=11e-6, fActiveReset=None)
         ],
         edges_specs=[
             EdgeSpecs(targets=[0, 1], fBellState=0.90, fCZ=0.89, fCZ_std_err=0.01, fCPHASE=0.88),
@@ -66,6 +74,7 @@ def test_specs(specs_dict):
     assert specs == Specs.from_dict(specs.to_dict())
 
     assert specs.f1QRBs() == {0: 0.99, 1: 0.989, 2: 0.983, 3: 0.988}
+    assert specs.f1Q_simultaneous_RBs() == {0: 0.98, 1: 0.979, 2: 0.973, 3: 0.978}
     assert specs.fROs() == {0: 0.93, 1: 0.92, 2: 0.95, 3: 0.94}
     assert specs.T1s() == {0: 20e-6, 1: 19e-6, 2: 21e-6, 3: 18e-6}
     assert specs.T2s() == {0: 15e-6, 1: 12e-6, 2: 16e-6, 3: 11e-6}

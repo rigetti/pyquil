@@ -35,7 +35,9 @@ DEFAULT_EDGE_TYPE = "CZ"
 Qubit = namedtuple("Qubit", ["id", "type", "dead"])
 Edge = namedtuple("Edge", ["targets", "type", "dead"])
 _ISA = namedtuple("_ISA", ["qubits", "edges"])
-QubitSpecs = namedtuple("_QubitSpecs", ["id", "fRO", "f1QRB", "T1", "T2", "fActiveReset"])
+QubitSpecs = namedtuple("_QubitSpecs", ["id", "fRO", "f1QRB", "f1QRB_std_err",
+                                        "f1Q_simultaneous_RB", "f1Q_simultaneous_RB_std_err", "T1",
+                                        "T2", "fActiveReset"])
 EdgeSpecs = namedtuple("_QubitQubitSpecs", ["targets", "fBellState", "fCZ", "fCZ_std_err",
                                             "fCPHASE"])
 _Specs = namedtuple("_Specs", ["qubits_specs", "edges_specs"])
@@ -177,13 +179,45 @@ class Specs(_Specs):
 
     def f1QRBs(self):
         """
-        Get a dictionary of single-qubit randomized benchmarking fidelities (normalized to unity)
-        from the specs, keyed by qubit index.
+        Get a dictionary of single-qubit randomized benchmarking fidelities (for individual gate
+        operation, normalized to unity) from the specs, keyed by qubit index.
 
-        :return: A dictionary of 1QRBs, normalized to unity.
+        :return: A dictionary of 1Q RB fidelities, normalized to unity.
         :rtype: Dict[int, float]
         """
         return {qs.id: qs.f1QRB for qs in self.qubits_specs}
+
+    def f1QRB_std_errs(self):
+        """
+        Get a dictionary of the standard errors of single-qubit randomized
+        benchmarking fidelities (for individual gate operation, normalized to unity)
+        from the specs, keyed by qubit index.
+
+        :return: A dictionary of 1Q RB fidelity standard errors, normalized to unity.
+        :rtype: Dict[int, float]
+        """
+        return {qs.id: qs.f1QRB_std_err for qs in self.qubits_specs}
+
+    def f1Q_simultaneous_RBs(self):
+        """
+        Get a dictionary of single-qubit randomized benchmarking fidelities (for simultaneous gate
+        operation across the chip, normalized to unity) from the specs, keyed by qubit index.
+
+        :return: A dictionary of simultaneous 1Q RB fidelities, normalized to unity.
+        :rtype: Dict[int, float]
+        """
+        return {qs.id: qs.f1Q_simultaneous_RB for qs in self.qubits_specs}
+
+    def f1Q_simultaneous_RB_std_errs(self):
+        """
+        Get a dictionary of the standard errors of single-qubit randomized
+        benchmarking fidelities (for simultaneous gate operation across the chip, normalized to
+        unity) from the specs, keyed by qubit index.
+
+        :return: A dictionary of simultaneous 1Q RB fidelity standard errors, normalized to unity.
+        :rtype: Dict[int, float]
+        """
+        return {qs.id: qs.f1Q_simultaneous_RB_std_err for qs in self.qubits_specs}
 
     def fROs(self):
         """
@@ -230,6 +264,8 @@ class Specs(_Specs):
         :return: A dictionary of Bell state fidelities, normalized to unity.
         :rtype: Dict[tuple(int, int), float]
         """
+        warnings.warn(DeprecationWarning("fBellState device specs have been deprecated, and will "
+                                         "be removed in release v2.13 (targeted for October 2019)"))
         return {tuple(es.targets): es.fBellState for es in self.edges_specs}
 
     def fCZs(self):
@@ -260,6 +296,8 @@ class Specs(_Specs):
         :return: A dictionary of CPHASE fidelities, normalized to unity.
         :rtype: Dict[tuple(int, int), float]
         """
+        warnings.warn(DeprecationWarning("fCPHASE device specs have been deprecated, and will "
+                                         "be removed in release v2.13 (targeted for October 2019)"))
         return {tuple(es.targets): es.fCPHASE for es in self.edges_specs}
 
     def to_dict(self):
@@ -272,11 +310,13 @@ class Specs(_Specs):
                 '1Q': {
                     "0": {
                         "f1QRB": 0.99,
+                        "f1QRB_std_err": 0.02,
                         "T1": 20e-6,
                         ...
                     },
                     "1": {
                         "f1QRB": 0.989,
+                        "f1QRB_std_err": 0.015,
                         "T1": 19e-6,
                         ...
                     },
@@ -307,6 +347,9 @@ class Specs(_Specs):
             '1Q': {
                 "{}".format(qs.id): {
                     'f1QRB': qs.f1QRB,
+                    'f1QRB_std_err': qs.f1QRB_std_err,
+                    'f1Q_simultaneous_RB': qs.f1Q_simultaneous_RB,
+                    'f1Q_simultaneous_RB_std_err': qs.f1Q_simultaneous_RB_std_err,
                     'fRO': qs.fRO,
                     'T1': qs.T1,
                     'T2': qs.T2,
@@ -336,6 +379,10 @@ class Specs(_Specs):
             qubits_specs=sorted([QubitSpecs(id=int(q),
                                             fRO=qspecs.get('fRO'),
                                             f1QRB=qspecs.get('f1QRB'),
+                                            f1QRB_std_err=qspecs.get('f1QRB_std_err'),
+                                            f1Q_simultaneous_RB=qspecs.get('f1Q_simultaneous_RB'),
+                                            f1Q_simultaneous_RB_std_err=qspecs.get(
+                                                'f1Q_simultaneous_RB_std_err'),
                                             T1=qspecs.get('T1'),
                                             T2=qspecs.get('T2'),
                                             fActiveReset=qspecs.get('fActiveReset'))
@@ -371,7 +418,9 @@ def specs_from_graph(graph: nx.Graph):
 
     :param graph: The graph
     """
-    qspecs = [QubitSpecs(id=q, fRO=0.90, f1QRB=0.99, T1=30e-6, T2=30e-6, fActiveReset=0.99)
+    qspecs = [QubitSpecs(id=q, fRO=0.90, f1QRB=0.99, f1QRB_std_err=0.01,
+                         f1Q_simultaneous_RB=0.99, f1Q_simultaneous_RB_std_err=0.02, T1=30e-6,
+                         T2=30e-6, fActiveReset=0.99)
               for q in graph.nodes]
     especs = [EdgeSpecs(targets=(q1, q2), fBellState=0.90, fCZ=0.90, fCZ_std_err=0.05, fCPHASE=0.80)
               for q1, q2 in graph.edges]
