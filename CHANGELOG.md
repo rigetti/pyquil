@@ -54,7 +54,7 @@ Changelog
 -   PyQuil now sends “modern” ISA payloads to quilc, which must be of version
     \>= `1.10.0`. Check out the details of `get_isa` for information on how to
     specify custom payloads (@ecpeterson, gh-961).
--		`local_qvm` has been renamed to `lcocal_runtime` (@sauercrowd, gh-976)
+-		The `local_qvm` context manager has been renamed to `local_forest_runtime` (@sauercrowd, gh-976)
 
 ### Bugfixes
 

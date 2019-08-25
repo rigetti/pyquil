@@ -20,7 +20,8 @@ import warnings
 
 __all__ = ['QVMConnection', 'QVMCompiler', 'QPUCompiler',
            'Job', 'Device', 'ForestConnection', 'pyquil_protect',
-           'WavefunctionSimulator', 'QuantumComputer', 'list_quantum_computers', 'get_qc', 'local_runtime',
+           'WavefunctionSimulator', 'QuantumComputer',
+           'list_quantum_computers', 'get_qc', 'local_forest_runtime', 'local_qvm',
            'QAM', 'QVM', 'QPU', 'QPUConnection',
            'BenchmarkConnection', 'get_benchmarker']
 
@@ -31,7 +32,8 @@ from pyquil.api._error_reporting import pyquil_protect
 from pyquil.api._job import Job
 from pyquil.api._qam import QAM
 from pyquil.api._qpu import QPU
-from pyquil.api._quantum_computer import QuantumComputer, list_quantum_computers, get_qc, local_runtime
+from pyquil.api._quantum_computer import (QuantumComputer, list_quantum_computers,
+                                          get_qc, local_forest_runtime, local_qvm)
 from pyquil.api._qvm import QVMConnection, QVM
 from pyquil.api._wavefunction_simulator import WavefunctionSimulator
 from pyquil.device import Device

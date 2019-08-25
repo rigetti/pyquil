@@ -5,7 +5,7 @@ import numpy as np
 import pytest
 
 from pyquil import Program, get_qc, list_quantum_computers
-from pyquil.api import QVM, QuantumComputer, local_runtime
+from pyquil.api import QVM, QuantumComputer, local_forest_runtime
 from pyquil.tests.utils import DummyCompiler
 from pyquil.api._quantum_computer import (_symmetrization, _flip_array_to_prog,
                                           _construct_orthogonal_array,

@@ -666,13 +666,22 @@ def get_qc(name: str, *, as_qvm: bool = None, noisy: bool = None,
 
 
 @contextmanager
-def local_runtime(
+def local_qvm() -> Iterator[Tuple[subprocess.Popen, subprocess.Popen]]:
+    """A context manager for the Rigetti local QVM and QUIL compiler.
+
+    .. deprecated:: 2.11
+        Use py:func:`local_forest_runtime` instead.
+    """
+    yield local_forest_runtime()
+
+
+@contextmanager
+def local_forest_runtime(
         host: str = '127.0.0.1',
         qvm_port: int = 5000,
         quilc_port: int = 5555,
         provide_http_server: bool = False,
-        use_protoquil: bool = False
-    ) -> Iterator[Tuple[subprocess.Popen, subprocess.Popen]]:
+        use_protoquil: bool = False) -> Iterator[Tuple[subprocess.Popen, subprocess.Popen]]:
     """A context manager for the Rigetti local QVM and QUIL compiler.
 
     You must first have installed the `qvm` and `quilc` executables from
@@ -687,18 +696,20 @@ def local_runtime(
 
     >>> from pyquil import get_qc, Program
     >>> from pyquil.gates import CNOT, Z
-    >>> from pyquil.api import local_runtime
+    >>> from pyquil.api import local_forest_runtime
     >>>
     >>> qvm = get_qc('9q-square-qvm')
     >>> prog = Program(Z(0), CNOT(0, 1))
     >>>
-    >>> with local_runtime():
+    >>> with local_forest_runtime():
     >>>     results = qvm.run_and_measure(prog, trials=10)
 
     :param host: host on which qvm and quilc should listen on
     :param qvm_port: port which should be used by qvm
     :param quilc_port: port which should be used by quilc
-    :param provide_http_server: additionally start a http server to the rpcq server (quilc). If true ignores quilc_port and will use 6000 for the http server and 5555 for the rpcq server
+    :param provide_http_server: additionally start a http server to the rpcq
+               server (quilc). If true ignores quilc_port and will use 6000
+               for the http server and 5555 for the rpcq server.
     :param use_protoquil: restrict input/output to protoquil
 
     .. warning::
