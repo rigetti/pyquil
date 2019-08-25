@@ -677,6 +677,7 @@ def local_qvm() -> Iterator[Tuple[subprocess.Popen, subprocess.Popen]]:
 
 @contextmanager
 def local_forest_runtime(
+        *,
         host: str = '127.0.0.1',
         qvm_port: int = 5000,
         quilc_port: int = 5555,
