@@ -40,6 +40,8 @@ Changelog
     added as well. Finally, deprecation warnings have been added regarding
     the `fCPHASE` and `fBellState` device spec fields, which are no longer
     routinely updated and will be removed in release v2.13 (@jvalery2, gh-968).
+-   The NOTICE has been updated to accurately reflect the third-party software
+    used in pyQuil (@karalekas, gh-979).
 
 ### Bugfixes
 
