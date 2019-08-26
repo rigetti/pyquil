@@ -545,23 +545,19 @@ class Device(AbstractDevice):
         """
         return isa_to_graph(self._isa)
 
-    def get_isa(self, oneq_type='Xhalves', twoq_type='CZ') -> ISA:
+    def get_specs(self):
+        return self.specs
+
+    def get_isa(self, oneq_type=None, twoq_type=None) -> ISA:
         """
         Construct an ISA suitable for targeting by compilation.
 
         This will raise an exception if the requested ISA is not supported by the device.
-
-        :param oneq_type: The family of one-qubit gates to target
-        :param twoq_type: The family of two-qubit gates to target
         """
-        qubits = [Qubit(id=q.id, type=oneq_type, dead=q.dead) for q in self._isa.qubits]
-        edges = [Edge(targets=e.targets, type=twoq_type, dead=e.dead) for e in self._isa.edges]
-        return ISA(qubits, edges)
+        if oneq_type is not None or twoq_type is not None:
+            raise ValueError("oneq_type and twoq_type are both fatally deprecated. If you want to "
+                             "make an ISA with custom gate types, you'll have to do it by hand.")
 
-    def get_specs(self):
-        return self.specs
-
-    def get_annotated_isa(self) -> ISA:
         qubits = [Qubit(id=q.id, type=None, dead=q.dead, gates=[
             MeasureInfo(operator="MEASURE", qubit=q.id, target="_",
                         fidelity=self.specs.fROs()[q.id] or DEFAULT_MEASURE_FIDELITY,
