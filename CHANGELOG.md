@@ -42,6 +42,9 @@ Changelog
     routinely updated and will be removed in release v2.13 (@jvalery2, gh-968).
 -   The NOTICE has been updated to accurately reflect the third-party software
     used in pyQuil (@karalekas, gh-979).
+-   PyQuil now sends “modern” ISA payloads to quilc, which must be of version
+    \>= `1.10.0`. Check out the details of `get_isa` for information on how to
+    specify custom payloads (@ecpeterson, gh-961).
 
 ### Bugfixes
 
