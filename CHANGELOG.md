@@ -41,8 +41,8 @@ Changelog
     the `fCPHASE` and `fBellState` device spec fields, which are no longer
     routinely updated and will be removed in release v2.13 (@jvalery2, gh-968).
 -   PyQuil now sends “modern” ISA payloads to quilc, which must be of version
-    >= 1.10.0 . Check out the details of `get_isa` for information on how to
-    specify custom payloads.
+    \>= `1.10.0`. Check out the details of `get_isa` for information on how to
+    specify custom payloads (@ecpeterson, gh-961).
 
 ### Bugfixes
 
