@@ -258,7 +258,7 @@ gates from the ``pyquil.gates`` module, which allows us to add operations to our
 
     PyQuil also provides a handy function for you to ensure that a local qvm and quilc are currently running in
     your environment. To make sure both are available you import `from pyquil.api import local_forest_runtime` and then run
-    `local_forest_runtime()`. This will start a qvm and quilc instances using subprocesses if they have not already been started.
+    `local_forest_runtime()`. This will start qvm and quilc instances using subprocesses if they have not already been started.
     You can also use it as a context manager as in the following example:
 
     .. code:: python
