@@ -257,20 +257,20 @@ gates from the ``pyquil.gates`` module, which allows us to add operations to our
 .. note::
 
     PyQuil also provides a handy function for you to ensure that a local qvm and quilc are currently running in
-    your environment. To make sure both are available you import `from pyquil.api import local_runtime` and then run
-    `local_runtime()`. This will start a qvm and quilc instances using subprocesses if they have not already been started.
+    your environment. To make sure both are available you import `from pyquil.api import local_forest_runtime` and then run
+    `local_forest_runtime()`. This will start a qvm and quilc instances using subprocesses if they have not already been started.
     You can also use it as a context manager as in the following example:
 
     .. code:: python
 
         from pyquil import get_qc, Program
         from pyquil.gates import CNOT, Z
-        from pyquil.api import local_runtime
+        from pyquil.api import local_forest_runtime
 
         qvm = get_qc('9q-square-qvm')
         prog = Program(Z(0), CNOT(0, 1))
 
-        with local_runtime():
+        with local_forest_runtime():
             results = qvm.run_and_measure(prog, trials=10)
 
 Next, let's construct our Bell State.

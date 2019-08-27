@@ -681,7 +681,6 @@ def local_forest_runtime(
         host: str = '127.0.0.1',
         qvm_port: int = 5000,
         quilc_port: int = 5555,
-        provide_http_server: bool = False,
         use_protoquil: bool = False) -> Iterator[Tuple[subprocess.Popen, subprocess.Popen]]:
     """A context manager for the Rigetti local QVM and QUIL compiler.
 
@@ -708,13 +707,10 @@ def local_forest_runtime(
     :param host: host on which qvm and quilc should listen on
     :param qvm_port: port which should be used by qvm
     :param quilc_port: port which should be used by quilc
-    :param provide_http_server: additionally start a http server to the rpcq
-               server (quilc). If true ignores quilc_port and will use 6000
-               for the http server and 5555 for the rpcq server.
     :param use_protoquil: restrict input/output to protoquil
 
     .. warning::
-        use_protoquil may disables language features you need, use with caution
+        use_protoquil may disable language features you need, use with caution
 
     :raises: FileNotFoundError: If either executable is not installed.
     """
@@ -724,13 +720,7 @@ def local_forest_runtime(
                            stdout=subprocess.PIPE,
                            stderr=subprocess.PIPE)
 
-    quilc_cmd = ['quilc', '--host', host, '-p', str(quilc_port)]
-
-    # -S starts both a http server AND a RPCQ server
-    if provide_http_server:
-        quilc_cmd += ['-S']
-    else:
-        quilc_cmd += ['-R']
+    quilc_cmd = ['quilc', '--host', host, '-p', str(quilc_port), '-R']
 
     if use_protoquil:
         quilc_cmd += ['-P']
