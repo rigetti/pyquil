@@ -498,9 +498,6 @@ class AbstractDevice(ABC):
         Construct a Specs object required by compilation
         """
 
-    def get_annotated_isa(self) -> ISA:
-        return self.get_isa()
-
 
 class Device(AbstractDevice):
     """

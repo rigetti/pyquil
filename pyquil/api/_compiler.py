@@ -201,7 +201,7 @@ class QPUCompiler(AbstractCompiler):
                           "qpu_compiler_address. If you didn't do this manually, then "
                           "you probably don't have a qpu_compiler_address entry in your "
                           "~/.forest_config file, meaning that you are not engaged to the QPU.")
-        self.target_device = TargetDevice(isa=device.get_annotated_isa().to_dict(),
+        self.target_device = TargetDevice(isa=device.get_isa().to_dict(),
                                           specs=None)
         self.name = name
 
@@ -315,7 +315,7 @@ class QVMCompiler(AbstractCompiler):
                              f"compiler_server_address line from your .forest_config file.")
 
         self.client = Client(endpoint, timeout=timeout)
-        self.target_device = TargetDevice(isa=device.get_annotated_isa().to_dict(),
+        self.target_device = TargetDevice(isa=device.get_isa().to_dict(),
                                           specs=None)
 
         try:
