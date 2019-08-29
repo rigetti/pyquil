@@ -672,7 +672,10 @@ def local_qvm() -> Iterator[Tuple[subprocess.Popen, subprocess.Popen]]:
     .. deprecated:: 2.11
         Use py:func:`local_forest_runtime` instead.
     """
-    yield local_forest_runtime()
+    warnings.warn(DeprecationWarning("Use of pyquil.api.local_qvm has been deprecated.\n"
+                                     "Please use pyquil.api.local_forest_runtime instead."))
+    with local_forest_runtime() as (qvm, quilc):
+        yield (qvm, quilc)
 
 
 @contextmanager
@@ -704,13 +707,14 @@ def local_forest_runtime(
     >>> with local_forest_runtime():
     >>>     results = qvm.run_and_measure(prog, trials=10)
 
-    :param host: host on which qvm and quilc should listen on
-    :param qvm_port: port which should be used by qvm
-    :param quilc_port: port which should be used by quilc
-    :param use_protoquil: restrict input/output to protoquil
+    :param host: Host on which `qvm` and `quilc` should listen on.
+    :param qvm_port: Port which should be used by `qvm`.
+    :param quilc_port: Port which should be used by `quilc`.
+    :param use_protoquil: Restrict input/output to protoquil.
 
     .. warning::
-        use_protoquil may disable language features you need, use with caution
+        If ``use_protoquil`` is set to ``True`` language features you need
+        may be disabled. Please use it with caution.
 
     :raises: FileNotFoundError: If either executable is not installed.
     """

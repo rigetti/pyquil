@@ -55,7 +55,7 @@ Changelog
     \>= `1.10.0`. Check out the details of `get_isa` for information on how to
     specify custom payloads (@ecpeterson, gh-961).
 -   The `local_qvm` context manager has been renamed to `local_forest_runtime`
-    (@sauercrowd, gh-976)
+    and the original `local_qvm` has been deprecated (@sauercrowd, gh-976).
 
 ### Bugfixes
 
