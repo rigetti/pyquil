@@ -53,6 +53,8 @@ Changelog
 -   The `merge_programs` function now supports merging programs with
     `DefPermutationGate`, instead of throwing an error, and avoids
     redundant readout declaration (@kylegulshen, gh-971).
+-   Remove unsound logic to fill out non-"ro" memory regions when
+    targeting a QPU (@notmgsk, gh-982).
 
 [v2.10](https://github.com/rigetti/pyquil/compare/v2.9.1...v2.10.0) (July 31, 2019)
 -----------------------------------------------------------------------------------
