@@ -1,4 +1,3 @@
-
 ##############################################################################
 # Copyright 2016-2018 Rigetti Computing
 #
@@ -31,7 +30,6 @@ from pyquil.quilatom import QubitPlaceholder
 
 from .quil import Program
 from .gates import I, H, RZ, RX, CNOT, X, PHASE, QUANTUM_GATES
-
 from numbers import Number
 from collections import Sequence, OrderedDict
 import warnings
@@ -355,27 +353,30 @@ class PauliTerm(object):
     def from_compact_str(cls, str_pauli_term):
         """Construct a PauliTerm from the result of str(pauli_term)
         """
-        factors = str_pauli_term.split('*')
-        coef_str = factors[0]
-        strs_pauli_terms = factors[1:]
+        # split into coefficient and operator
+        str_coef, str_op = str_pauli_term.split('*', maxsplit=1)
+
+        # parse the coefficient
+        str_coef = str_coef.replace(' ', '')
         try:
-            coef = int(coef_str)
+            coef = int(str_coef)
         except ValueError:
             try:
-                coef = float(coef_str)
+                coef = float(str_coef)
             except ValueError:
-                coef = complex(coef_str)
+                coef = complex(str_coef)
 
         op = sI() * coef
-        if strs_pauli_terms == 'I':
+        if str_op == 'I':
             return op
 
-        for str_pauli_term in strs_pauli_terms:
-            ma = re.fullmatch(r'(([XYZ])(\d+))+', str_pauli_term)
-            if ma is None:
-                raise ValueError(f"Could not parse pauli string {str_pauli_term}")
-            for ma in re.finditer(r'([XYZ])(\d+)', str_pauli_term):
-                op *= cls(ma.group(1), int(ma.group(2)))
+        # parse the operator
+        str_op = re.sub(r'\*', '', str_op)
+        if not re.match(r'^(([XYZ])(\d+))+$', str_op):
+            raise ValueError(f"Could not parse pauli string {str_pauli_term}")
+
+        for factor in re.finditer(r'([XYZ])(\d+)', str_op):
+            op *= cls(factor.group(1), int(factor.group(2)))
 
         return op
 
@@ -408,17 +409,6 @@ class PauliTerm(object):
             qubits = self.get_qubits()
 
         return ''.join(self[q] for q in qubits)
-
-    def matrix(self, qubit_mapping={}):
-        """Create the matrix representation of self.
-
-        :param n_qubits:  Number of qubits to represent self on. If none the maximum qubit in the
-                         PauliTerm or qubit_mapping is used.
-        :param qubit_mapping: A dictionary-like object that maps from :py:class`QubitPlaceholder`
-                              to :py:class:`int`
-        :return: np.matrix representing the PauliTerm
-        """
-        return PauliSum([self]).matrix(qubit_mapping=qubit_mapping)
 
 
 # For convenience, a shorthand for several operators.
@@ -690,43 +680,25 @@ class PauliSum(object):
         coefficients = np.array([term.coefficient for term in self.terms])
         return programs, coefficients
 
-    def matrix(self, qubit_mapping={}):
-        """Create the matrix representation of self.
+    def compact_str(self):
+        """A string representation of the PauliSum that is more compact than ``str(pauli_sum)``
 
-        :param qubit_mapping: A dictionary-like object that maps from
-                              :py:class`QubitPlaceholder` to :py:class:`int`
-        :return: np.matrix representing the PauliSum
+        >>> pauli_sum = 2.0 * sX(1)* sZ(2) + 1.5 * sY(2)
+        >>> str(term)
+        >>> '2.0*X1*X2 + 1.5*Y2'
+        >>> term.compact_str()
+        >>> '2.0*X1X2+1.5*Y2'
         """
-
-        # get unmapped Qubits and check that all QubitPlaceholders are mapped
-        unmapped_qubits = {*self.get_qubits()} - qubit_mapping.keys()
-        if not all(isinstance(q, int) for q in unmapped_qubits):
-            raise ValueError("Not all QubitPlaceholders are mapped")
-
-        # invert qubit_mapping and assert its injectivity
-        inv_mapping = dict([v, k] for k, v in qubit_mapping.items())
-        if len(inv_mapping) is not len(qubit_mapping):
-            raise ValueError("qubit_mapping must be injective")
-
-        # add unmapped qubits to the inverse mapping, ensuring we don't have
-        # a list entry twice
-        for q in unmapped_qubits:
-            if q not in inv_mapping.keys():
-                inv_mapping[q] = q
-            else:
-                raise ValueError("qubit_mapping maps to qubit already in use")
-
-        qubit_list = [inv_mapping[k] for k in sorted(inv_mapping.keys())]
-
-        from pyquil.unitary_tools import lifted_pauli
-        matrix = lifted_pauli(self, qubit_list)
-        return matrix
+        return "+".join([term.compact_str() for term in self.terms])
 
     @classmethod
     def from_compact_str(cls, str_pauli_sum):
         """Construct a PauliSum from the result of str(pauli_sum)
         """
-        str_terms = str_pauli_sum.split(" + ")
+        # split str_pauli_sum only at "+" outside of parenthesis to allow
+        # e.g. "0.5*X0 + (0.5+0j)*Z2"
+        str_terms = re.split("\+(?![^(]*\))", str_pauli_sum)
+        str_terms = [s.strip() for s in str_terms]
         terms = [PauliTerm.from_compact_str(term) for term in str_terms]
         return cls(terms)
 

@@ -678,56 +678,12 @@ def test_qubit_validation():
         op = sX(None)
 
 
-def test_PauliSum_from_str():
+def test_pauli_sum_from_str():
+    # this also tests PauliTerm.from_compact_str() since it gets called
     Sum = (1.5 + .5j) * sX(0) * sZ(2) + 0.7 * sZ(1)
+    another_str = "(1.5 + 0.5j)*X0*Z2+.7*Z1"
     assert PauliSum.from_compact_str(str(Sum)) == Sum
+    assert PauliSum.from_compact_str(Sum.compact_str()) == Sum
+    assert PauliSum.from_compact_str(another_str) == Sum
     with pytest.raises(ValueError):
         PauliSum.from_compact_str("(1.0+0j)*X0 + (1.0+0j)*A0")
-
-
-def test_PauliTerm_matrix():
-    term = 1.5 * sX(0) * sZ(2)
-    matrix1 = term.matrix()
-    matrix2 = np.array([[0, 1.5, 0, 0],
-                        [1.5, 0, 0, 0],
-                        [0, 0, 0, -1.5],
-                        [0, 0, -1.5, 0]])
-    assert np.allclose(matrix1, matrix2)
-    matrix1 = term.matrix(qubit_mapping={0: 0, 1: 1, 2: 2})
-    matrix2 = np.array([[0, 1.5, 0, 0, 0, 0, 0, 0],
-                        [1.5, 0, 0, 0, 0, 0, 0, 0],
-                        [0, 0, 0, 1.5, 0, 0, 0, 0],
-                        [0, 0, 1.5, 0, 0, 0, 0, 0],
-                        [0, 0, 0, 0, 0, -1.5, 0, 0],
-                        [0, 0, 0, 0, -1.5, 0, 0, 0],
-                        [0, 0, 0, 0, 0, 0, 0, -1.5],
-                        [0, 0, 0, 0, 0, 0, -1.5, 0]])
-    assert np.allclose(matrix1, matrix2)
-
-    with pytest.raises(ValueError):
-        term.matrix(qubit_mapping={0: 0, 2: 0})
-
-
-def test_PauliSum_matrix():
-    Sum = 1.5 * sX(0) * sZ(2) + 0.7 * sZ(1)
-    matrix1 = Sum.matrix()
-    matrix2 = np.array([[0, 1.5, 0, 0, 0, 0, 0, 0],
-                        [1.5, 0, 0, 0, 0, 0, 0, 0],
-                        [0, 0, 0, 1.5, 0, 0, 0, 0],
-                        [0, 0, 1.5, 0, 0, 0, 0, 0],
-                        [0, 0, 0, 0, 0, -1.5, 0, 0],
-                        [0, 0, 0, 0, -1.5, 0, 0, 0],
-                        [0, 0, 0, 0, 0, 0, 0, -1.5],
-                        [0, 0, 0, 0, 0, 0, -1.5, 0]])
-    matrix2 += np.diag([0.7, 0.7, -0.7, -0.7, 0.7, 0.7, -0.7, -0.7])
-    assert(np.allclose(matrix1, matrix2))
-    matrix1 = Sum.matrix(qubit_mapping={0: 2, 1: 1, 2: 0})
-    matrix2 = np.array([[0.7, 0., 0., 0., 1.5, 0., 0., 0.],
-                       [0., 0.7, 0., 0., 0., -1.5, 0., 0.],
-                       [0., 0., -0.7, 0., 0., 0., 1.5, 0.],
-                       [0., 0., 0., -0.7, 0., 0., 0., -1.5],
-                       [1.5, 0., 0., 0., 0.7, 0., 0., 0.],
-                       [0., -1.5, 0., 0., 0., 0.7, 0., 0.],
-                       [0., 0., 1.5, 0., 0., 0., -0.7, 0.],
-                       [0., 0., 0., -1.5, 0., 0., 0., -0.7]])
-    assert np.allclose(matrix1, matrix2)
