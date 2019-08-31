@@ -329,6 +329,10 @@ class PauliTerm(object):
         :param list terms_list: A list of tuples, e.g. [("X", 0), ("Y", 1)]
         :return: PauliTerm
         """
+        if not all([isinstance(op, tuple) for op in terms_list]):
+            raise TypeError("The type of terms_list should be a list of (name, index) "
+                            "tuples suitable for PauliTerm().")
+
         pterm = PauliTerm("I", 0)
         assert all([op[0] in PAULI_OPS for op in terms_list])
 
