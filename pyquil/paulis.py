@@ -701,7 +701,7 @@ class PauliSum(object):
         """
         # split str_pauli_sum only at "+" outside of parenthesis to allow
         # e.g. "0.5*X0 + (0.5+0j)*Z2"
-        str_terms = re.split("\+(?![^(]*\))", str_pauli_sum)
+        str_terms = re.split(r'\+(?![^(]*\))', str_pauli_sum)
         str_terms = [s.strip() for s in str_terms]
         terms = [PauliTerm.from_compact_str(term) for term in str_terms]
         return cls(terms)
