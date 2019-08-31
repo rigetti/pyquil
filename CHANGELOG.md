@@ -45,6 +45,9 @@ Changelog
 -   PyQuil now sends “modern” ISA payloads to quilc, which must be of version
     \>= `1.10.0`. Check out the details of `get_isa` for information on how to
     specify custom payloads (@ecpeterson, gh-961).
+-   PauliSums can now be constructed from strings and
+    PauliTerm.from_compact_str() supports multi qubit strings. Added
+    PauliSum.compact_str() in analogy to PauliTerm.compact_str(). (@jlbosse, gh-977)
 
 ### Bugfixes
 

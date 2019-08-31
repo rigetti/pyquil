@@ -55,6 +55,7 @@ Classes
         ~PauliSum.get_qubits
         ~PauliSum.simplify
         ~PauliSum.get_programs
+        ~PauliSum.from_compact_str
 
 
 .. autoclass:: pyquil.paulis.PauliTerm
