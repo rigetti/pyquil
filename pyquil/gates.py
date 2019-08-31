@@ -348,8 +348,8 @@ def CPHASE(angle, control, target):
     This gate applies to two qubit arguments to produce the variant of the controlled phase
     instruction that affects the state 11.
 
-    Compare with the :py:func:`CPHASExx` variants. This variant is the most common and does
-    not have a suffix, although you can think of it as ``CPHASE11`.
+    Compare with the ``CPHASExx`` variants. This variant is the most common and does
+    not have a suffix, although you can think of it as ``CPHASE11``.
 
     :param angle: The input phase angle to apply when both qubits are in the ``|1>`` state.
     :param control: Qubit 1.
@@ -445,16 +445,17 @@ manipulated by a CPU in a hybrid classical/quantum algorithm.
 
 def RESET(qubit_index=None):
     """
-    Reset all qubits or just a specific qubit at qubit_index.
+    Reset all qubits or just one specific qubit.
 
-    :param Optional[int] qubit_index: The address of the qubit to reset.
+    :param Optional[Union[integer_types, Qubit, QubitPlaceholder]] qubit_index: The qubit to reset.
+        This can be a qubit's index, a Qubit, or a QubitPlaceholder.
         If None, reset all qubits.
     :returns: A Reset or ResetQubit Quil AST expression corresponding to a global or targeted
         reset, respectively.
     :rtype: Union[Reset, ResetQubit]
     """
     if qubit_index is not None:
-        return ResetQubit(Qubit(qubit_index))
+        return ResetQubit(unpack_qubit(qubit_index))
     else:
         return Reset()
 

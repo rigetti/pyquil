@@ -357,4 +357,36 @@ texinfo_documents = [
 
 
 # Example configuration for intersphinx: refer to the Python standard library.
-intersphinx_mapping = {'https://docs.python.org/': None}
+intersphinx_mapping = {'https://docs.python.org/3/': None}
+
+mathjax_config = {
+    'TeX': {
+        'Macros': {
+            'sket': ["\\left|\\left. #1 \\right\\rangle\\!\\right\\rangle", 1],
+            'sbra': ["\\left\\langle\\!\\left\\langle #1 \\right.\\right|", 1],
+            'sbraket': ["\\left\\langle\\!\\left\\langle #1 | #2 \\right\\rangle\\!\\right\\rangle", 2],
+            'ket': ["\\left| #1 \\right\\rangle", 1],
+            'bra': ["\\left\\langle #1 \\right|", 1],
+            'braket': ["\\left\\langle #1 | #2 \\right\\rangle", 2],
+            'vect': ["\\text{vec}\\left(#1\\right)", 1],
+            'tr': ["\\text{Tr}\\left(#1\\right)", 1]
+        }
+    }
+}
+
+# fun little hack to always build the rst changelog from the markdown
+
+import subprocess
+import os
+
+dirname = os.path.dirname(__file__)
+
+
+def builder_inited_handler(app):
+    subprocess.call(['pandoc', '--from=markdown', '--to=rst',
+                     f'--output={dirname}/changes.rst',
+                     f'{dirname}/../../CHANGELOG.md'])
+
+
+def setup(app):
+    app.connect('builder-inited', builder_inited_handler)

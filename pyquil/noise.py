@@ -26,6 +26,7 @@ import sys
 from pyquil.gates import I, MEASURE, X
 from pyquil.parameters import format_parameter
 from pyquil.quilbase import Pragma, Gate
+from pyquil.quilatom import MemoryReference
 
 INFINITY = float("inf")
 "Used for infinite coherence times."
@@ -233,8 +234,8 @@ def pauli_kraus_map(probabilities):
     Generate the Kraus operators corresponding to a pauli channel.
 
     :params list|floats probabilities: The 4^num_qubits list of probabilities specifying the desired pauli channel.
-    There should be either 4 or 16 probabilities specified in the order I, X, Y, Z for 1 qubit
-    or II, IX, IY, IZ, XI, XX, XY, etc for 2 qubits.
+        There should be either 4 or 16 probabilities specified in the order I, X, Y, Z for 1 qubit
+        or II, IX, IY, IZ, XI, XX, XY, etc for 2 qubits.
 
             For example::
 
@@ -775,8 +776,8 @@ def estimate_assignment_probs(q, trials, cxn, p0=None):
     from pyquil.quil import Program
     if p0 is None:  # pragma no coverage
         p0 = Program()
-    results_i = np.sum(cxn.run(p0 + Program(I(q), MEASURE(q, 0)), [0], trials))
-    results_x = np.sum(cxn.run(p0 + Program(X(q), MEASURE(q, 0)), [0], trials))
+    results_i = np.sum(cxn.run(p0 + Program(I(q), MEASURE(q, MemoryReference("ro", 0))), [0], trials))
+    results_x = np.sum(cxn.run(p0 + Program(X(q), MEASURE(q, MemoryReference("ro", 0))), [0], trials))
 
     p00 = 1. - results_i / float(trials)
     p11 = results_x / float(trials)

@@ -36,7 +36,7 @@ from pyquil.quilatom import (LabelPlaceholder, QubitPlaceholder, unpack_qubit, A
 from pyquil.gates import MEASURE, QUANTUM_GATES, H, RESET
 from pyquil.quilbase import (DefGate, Gate, Measurement, Pragma, AbstractInstruction, Qubit,
                              Jump, Label, JumpConditional, JumpTarget, JumpUnless, JumpWhen,
-                             Declare, Halt, Reset, ResetQubit)
+                             Declare, Halt, Reset, ResetQubit, DefPermutationGate)
 
 
 class Program(object):
@@ -200,7 +200,7 @@ class Program(object):
             The matrix elements along each axis are ordered by bitstring. For two qubits the order
             is ``00, 01, 10, 11``, where the the bits **are ordered in reverse** by the qubit index,
             i.e., for qubits 0 and 1 the bitstring ``01`` indicates that qubit 0 is in the state 1.
-            See also :ref:`the related documentation section in the QVM Overview <basis-ordering>`.
+            See also :ref:`the related documentation section in the WavefunctionSimulator Overview <basis_ordering>`.
 
         :param string name: The name of the gate.
         :param list params: Parameters to send to the gate.
@@ -219,7 +219,7 @@ class Program(object):
             The matrix elements along each axis are ordered by bitstring. For two qubits the order
             is ``00, 01, 10, 11``, where the the bits **are ordered in reverse** by the qubit index,
             i.e., for qubits 0 and 1 the bitstring ``01`` indicates that qubit 0 is in the state 1.
-            See also :ref:`the related documentation section in the QVM Overview <basis-ordering>`.
+            See also :ref:`the related documentation section in the WavefunctionSimulator Overview <basis_ordering>`.
 
 
         :param string name: The name of the gate.
@@ -239,7 +239,7 @@ class Program(object):
             The matrix elements along each axis are ordered by bitstring. For two qubits the order
             is ``00, 01, 10, 11``, where the the bits **are ordered in reverse** by the qubit index,
             i.e., for qubits 0 and 1 the bitstring ``01`` indicates that qubit 0 is in the state 1.
-            See also :ref:`the related documentation section in the QVM Overview <basis-ordering>`.
+            See also :ref:`the related documentation section in the WavefunctionSimulator Overview <basis_ordering>`.
 
 
         :param str name: The name of the gate.
@@ -557,44 +557,23 @@ class Program(object):
 
     def dagger(self, inv_dict=None, suffix="-INV"):
         """
-        Creates the conjugate transpose of the Quil program. The program must not
-        contain any irreversible actions (measurement, control flow, qubit allocation).
+        Creates the conjugate transpose of the Quil program. The program must
+        contain only gate applications.
+
+        Note: the keyword arguments inv_dict and suffix are kept only
+        for backwards compatibility and have no effect.
 
         :return: The Quil program's inverse
         :rtype: Program
 
         """
-        if not self.is_protoquil():
-            raise ValueError("Program must be valid Protoquil")
+        if any(not isinstance(instr, Gate) for instr in self._instructions):
+            raise ValueError("Program to be daggered must contain only gate applications")
 
-        daggered = Program()
-
-        for gate in self._defined_gates:
-            if inv_dict is None or gate.name not in inv_dict:
-                if gate.parameters:
-                    raise TypeError("Cannot auto define daggered version of parameterized gates")
-                daggered.defgate(gate.name + suffix, gate.matrix.T.conj())
-
-        for gate in reversed(self._instructions):
-            if gate.name in QUANTUM_GATES:
-                if gate.name == "S":
-                    daggered.inst(QUANTUM_GATES["PHASE"](-pi / 2, *gate.qubits))
-                elif gate.name == "T":
-                    daggered.inst(QUANTUM_GATES["RZ"](pi / 4, *gate.qubits))
-                elif gate.name == "ISWAP":
-                    daggered.inst(QUANTUM_GATES["PSWAP"](pi / 2, *gate.qubits))
-                else:
-                    negated_params = list(map(lambda x: -1 * x, gate.params))
-                    daggered.inst(QUANTUM_GATES[gate.name](*(negated_params + gate.qubits)))
-            else:
-                if inv_dict is None or gate.name not in inv_dict:
-                    gate_inv_name = gate.name + suffix
-                else:
-                    gate_inv_name = inv_dict[gate.name]
-
-                daggered.inst(Gate(gate_inv_name, gate.params, gate.qubits))
-
-        return daggered
+        # This is a bit hacky. Gate.dagger() mutates the gate object,
+        # rather than returning a fresh (and daggered) copy.
+        return Program([instr.dagger() for instr
+                        in reversed(Program(self.out())._instructions)])
 
     def _synthesize(self):
         """
@@ -786,7 +765,7 @@ def address_qubits(program, qubit_mapping=None):
 
     result = []
     for instr in program:
-        # Remap qubits on Gate and Measurement instructions
+        # Remap qubits on Gate, Measurement, and ResetQubit instructions
         if isinstance(instr, Gate):
             remapped_qubits = [qubit_mapping[q] for q in instr.qubits]
             gate = Gate(instr.name, instr.params, remapped_qubits)
@@ -794,6 +773,8 @@ def address_qubits(program, qubit_mapping=None):
             result.append(gate)
         elif isinstance(instr, Measurement):
             result.append(Measurement(qubit_mapping[instr.qubit], instr.classical_reg))
+        elif isinstance(instr, ResetQubit):
+            result.append(ResetQubit(qubit_mapping[instr.qubit]))
         elif isinstance(instr, Pragma):
             new_args = []
             for arg in instr.args:
@@ -968,10 +949,14 @@ def merge_programs(prog_list):
             seen[name] = [definition]
     new_definitions = [gate for key in seen.keys() for gate in reversed(seen[key])]
 
-    p = sum([Program(prog).instructions for prog in prog_list], Program())  # Combine programs without gate definitions
+    # Combine programs without gate definitions; avoid call to _synthesize by using _instructions
+    p = Program(*[prog._instructions for prog in prog_list])
 
     for definition in new_definitions:
-        p.defgate(definition.name, definition.matrix, definition.parameters)
+        if isinstance(definition, DefPermutationGate):
+            p.inst(DefPermutationGate(definition.name, list(definition.permutation)))
+        else:
+            p.defgate(definition.name, definition.matrix, definition.parameters)
 
     return p
 

@@ -184,14 +184,14 @@ def test_expressions():
 
 def test_measure():
     parse_equals("MEASURE 0", MEASURE(0, None))
-    parse_equals("MEASURE 0 ro[1]", MEASURE(0, 1))
+    parse_equals("MEASURE 0 ro[1]", MEASURE(0, MemoryReference("ro", 1)))
 
 
 def test_jumps():
     parse_equals("LABEL @test_1", JumpTarget(Label("test_1")))
     parse_equals("JUMP @test_1", Jump(Label("test_1")))
-    parse_equals("JUMP-WHEN @test_1 ro[0]", JumpWhen(Label("test_1"), Addr(0)))
-    parse_equals("JUMP-UNLESS @test_1 ro[1]", JumpUnless(Label("test_1"), Addr(1)))
+    parse_equals("JUMP-WHEN @test_1 ro[0]", JumpWhen(Label("test_1"), MemoryReference("ro", 0)))
+    parse_equals("JUMP-UNLESS @test_1 ro[1]", JumpUnless(Label("test_1"), MemoryReference("ro", 1)))
 
 
 def test_others():
@@ -208,6 +208,8 @@ def test_memory_commands():
     parse_equals("CONVERT ro[1] ro[2]", CONVERT(MemoryReference("ro", 1), MemoryReference("ro", 2)))
     parse_equals("EXCHANGE ro[0] ro[1]", EXCHANGE(MemoryReference("ro", 0), MemoryReference("ro", 1)))
     parse_equals("MOVE mem[2] 4", MOVE(MemoryReference("mem", 2), 4))
+    parse_equals("MOVE mem[2] -4", MOVE(MemoryReference("mem", 2), -4))
+    parse_equals("MOVE mem[2] -4.1", MOVE(MemoryReference("mem", 2), -4.1))
 
 
 def test_classical():
@@ -222,6 +224,10 @@ def test_classical():
     parse_equals("SUB mem[0] 1.2", SUB(MemoryReference("mem", 0), 1.2))
     parse_equals("MUL mem[0] 1.2", MUL(MemoryReference("mem", 0), 1.2))
     parse_equals("DIV mem[0] 1.2", DIV(MemoryReference("mem", 0), 1.2))
+    parse_equals("ADD mem[0] -1.2", ADD(MemoryReference("mem", 0), -1.2))
+    parse_equals("SUB mem[0] -1.2", SUB(MemoryReference("mem", 0), -1.2))
+    parse_equals("MUL mem[0] -1.2", MUL(MemoryReference("mem", 0), -1.2))
+    parse_equals("DIV mem[0] -1.2", DIV(MemoryReference("mem", 0), -1.2))
     parse_equals("EQ comp[1] ro[3] ro[2]",
                  EQ(MemoryReference("comp", 1), MemoryReference("ro", 3), MemoryReference("ro", 2)))
     parse_equals("LT comp[1] ro[3] ro[2]",

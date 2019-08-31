@@ -227,9 +227,7 @@ terminal.
 That's it! You're all set up to run pyQuil locally. Your programs will make requests to these server endpoints to compile your Quil
 programs to native Quil, and to simulate those programs on the QVM.
 
-**NOTE**: We are transitioning from using an HTTP ``quilc`` server to an RPCQ one.
-In the near term, ``-S`` will spawn an HTTP server at port 6000 and an RPCQ server
-at port 5555 (accessible via ``tcp://localhost:5555``).
+**NOTE**: Prior to quilc version 1.10 there existed two methods for communicating with the quilc server: over HTTP by creating the server with the ``-S`` flag, or over RPCQ by creating the server with the ``-R`` flag. The HTTP server mode was deprecated in early 2019, and removed in mid 2019. The ``-S`` and ``-R`` flags now both start the RPCQ server.
 
 Run Your First Program
 ----------------------
@@ -237,7 +235,7 @@ Now that our local endpoints are up and running, we can start running pyQuil pro
 We will run a simple program on the Quantum Virtual Machine (QVM).
 
 The program we will create prepares a fully entangled state between two qubits, called a Bell State. This state is in an equal
-superposition between |00⟩ and |11⟩, meaning that it is equally likely that a measurement will result in measuring
+superposition between :math:`\ket{00}` and :math:`\ket{11}`, meaning that it is equally likely that a measurement will result in measuring
 both qubits in the ground state or both qubits in the excited state. For more details about the physics behind these
 concepts, see :ref:`intro`.
 

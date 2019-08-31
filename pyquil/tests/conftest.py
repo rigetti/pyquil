@@ -51,24 +51,36 @@ def specs_dict():
         '1Q': {
             "0": {
                 "f1QRB": 0.99,
+                "f1QRB_std_err": 0.01,
+                "f1Q_simultaneous_RB": 0.98,
+                "f1Q_simultaneous_RB_std_err": 0.02,
                 "fRO": 0.93,
                 "T1": 20e-6,
                 "T2": 15e-6
             },
             "1": {
                 "f1QRB": 0.989,
+                "f1QRB_std_err": 0.011,
+                "f1Q_simultaneous_RB": 0.979,
+                "f1Q_simultaneous_RB_std_err": 0.021,
                 "fRO": 0.92,
                 "T1": 19e-6,
                 "T2": 12e-6
             },
             "2": {
                 "f1QRB": 0.983,
+                "f1QRB_std_err": 0.017,
+                "f1Q_simultaneous_RB": 0.973,
+                "f1Q_simultaneous_RB_std_err": 0.027,
                 "fRO": 0.95,
                 "T1": 21e-6,
                 "T2": 16e-6
             },
             "3": {
                 "f1QRB": 0.988,
+                "f1QRB_std_err": 0.012,
+                "f1Q_simultaneous_RB": 0.978,
+                "f1Q_simultaneous_RB_std_err": 0.022,
                 "fRO": 0.94,
                 "T1": 18e-6,
                 "T2": 11e-6
@@ -87,7 +99,7 @@ def specs_dict():
                 "fCZ_std_err": 0.12,
                 "fCPHASE": 0.89
             },
-            "2-0": {
+            "0-2": {
                 "fBellState": 0.92,
                 "fCZ": 0.91,
                 "fCZ_std_err": 0.20,
@@ -189,3 +201,23 @@ def local_qvm_quilc():
 
     with local_qvm() as context:
         yield context
+
+
+def _str_to_bool(s):
+    """Convert either of the strings 'True' or 'False' to their Boolean equivalent"""
+    if s == 'True':
+        return True
+    elif s == 'False':
+        return False
+    else:
+        raise ValueError("Please specify either True or False")
+
+
+def pytest_addoption(parser):
+    parser.addoption("--use-seed", action="store", type=_str_to_bool, default=False,
+                     help="run some tests faster using a fixed random seed")
+
+
+@pytest.fixture()
+def use_seed(pytestconfig):
+    return pytestconfig.getoption("use_seed")

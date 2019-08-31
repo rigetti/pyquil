@@ -276,6 +276,17 @@ def lifted_gate(gate: Gate, n_qubits: int):
     else:
         matrix = QUANTUM_GATES[gate.name]
 
+    for mod in reversed(gate.modifiers):
+        if mod == 'DAGGER':
+            matrix = matrix.conj().T
+        if mod == 'CONTROLLED':
+            zero = np.eye(2)
+            zero[1, 1] = 0
+            one = np.eye(2)
+            one[0, 0] = 0
+
+            matrix = np.kron(zero, np.eye(*matrix.shape)) + np.kron(one, matrix)
+
     return lifted_gate_matrix(matrix=matrix,
                               qubit_inds=[q.index for q in gate.qubits],
                               n_qubits=n_qubits)

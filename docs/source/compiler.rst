@@ -9,7 +9,7 @@ Expectations for Program Contents
 The QPUs have much more limited natural gate sets than the standard gate set offered by pyQuil: on Rigetti QPUs, the
 gate operators are constrained to lie in ``RZ(θ)``, ``RX(k*π/2)``, and ``CZ``; and the
 gates are required to act on physically available hardware (for single-qubit gates, this means
-acting only on live qubits, and for qubit-pair gates, this means acting on neighboring qubits). However, as a programmer, it is often (though not always) desirable to to be able to write programs which don't take these details into account. These generally leads to more portable code if one isn't tied to a specific set of gates or QPU architecture.
+acting only on live qubits, and for qubit-pair gates, this means acting on neighboring qubits). However, as a programmer, it is often (though not always) desirable to to be able to write programs which don't take these details into account. This generally leads to more portable code if one isn't tied to a specific set of gates or QPU architecture.
 To ameliorate these limitations, the Rigetti software toolkit contains an optimizing compiler that
 translates arbitrary Quil to native Quil and native Quil to executables suitable for Rigetti
 hardware.
@@ -21,7 +21,7 @@ Interacting with the Compiler
 After :ref:`downloading the SDK <sdkinstall>`, the Quil Compiler, ``quilc`` is available on your local machine.
 You can initialize a local ``quilc`` server by typing ``quilc -S`` into your terminal. You should see the following message.
 
-.. code:: python
+.. code:: text
 
     $ quilc -S
     +-----------------+
@@ -36,7 +36,8 @@ You can initialize a local ``quilc`` server by typing ``quilc -S`` into your ter
     ... - Launching quilc.
     ... - Spawning server at (tcp://*:5555) .
 
-To get a description of ``quilc``, and options and examples of its command line use, see :ref:`quilc_man`.
+To get a description of ``quilc`` and its options and examples of command line use, see the quilc `README
+<https://github.com/rigetti/quilc>`_ or type ``man quilc`` in your terminal.
 
 
 A ``QuantumComputer`` object supplied by the function ``pyquil.api.get_qc()`` comes equipped with a
@@ -77,11 +78,14 @@ The compiler connection is also available directly via the property ``qc.compile
 precise class of this object changes based on context (e.g., ``QPUCompiler``,
 ``QVMCompiler``), but it always conforms to the interface laid out by ``pyquil.api._qac``:
 
-* ``compiler.quil_to_native_quil(program)``: This method converts a Quil program into native Quil,
-  according to the ISA that the compiler is initialized with.  The input parameter is specified as a
-  :py:class:`~pyquil.quil.Program` object, and the output is given as a new ``Program`` object, equipped with a
-  ``.metadata`` property that gives extraneous information about the compilation output (e.g., gate
-  depth, as well as many others).  This call blocks until Quil compilation finishes.
+* ``compiler.quil_to_native_quil(program, protoquil)``: This method converts a Quil program into
+  native Quil, according to the ISA that the compiler is initialized with.  The input parameter is
+  specified as a :py:class:`~pyquil.quil.Program` object. The optional ``protoquil`` keyword
+  argument instructs the compiler to restrict both its input and output to protoquil (Quil code that
+  can be executed on a QPU). If the server is started with the ``-P`` option, or you specify
+  ``protoquil=True`` the returned ``Program`` object will be equipped with a ``.metadata`` property
+  that gives extraneous information about the compilation output (e.g., gate depth, as well as many
+  others).  This call blocks until Quil compilation finishes.
 * ``compiler.native_quil_to_executable(nq_program)``: This method converts a native Quil program, which
   is promised to consist only of native gates for a given ISA, into an executable suitable for
   submission to one of a QVM or a QPU.  This call blocks until the executable is generated.
@@ -99,9 +103,11 @@ the previous example snippet is identical to the following:
     qc = get_qc("9q-square-qvm")
 
     p = Program(H(0), CNOT(0,1), CNOT(1,2))
-    np = qc.compiler.quil_to_native_quil(p)
-    ep = qc.compiler.native_quil_to_executable(np)
 
+    np = qc.compiler.quil_to_native_quil(p, protoquil=True)
+    print(np.metadata)
+
+    ep = qc.compiler.native_quil_to_executable(np)
     print(ep.program) # here ep is of type PyquilExecutableResponse, which is not always inspectable
 
 
@@ -118,6 +124,57 @@ The QPU is not able to execute all possible Quil programs.  At present, a Quil p
   a pair of qubits participating in a qubit-qubit interaction.
 * This is then followed by a block of ``MEASURE`` instructions.
 
+To instruct the compiler to produce Quil code that can be executed on a QPU, you can use the
+``protoquil`` keyword in a call to `compiler.quil_to_native_quil(program, protoquil=True)` or
+`qc.compile(program, protoquil=True)`.
+
+.. note::
+
+   If your compiler server is started with the protoquil option ``-P`` (as is the case for your QMI
+   compiler) then specifying ``protoquil=False`` will override the server and force disable
+   protoquil. Specifying ``protoquil=None`` defers to the server.
+
+Compilation metadata
+--------------------
+
+When your compiler is started with the ``-P`` option, the ``compiler.quil_to_native_quil()`` method
+will return both the compiled program and a dictionary of statistics for the compiled program. This
+dictionary contains the keys
+
+- ``final_rewiring``: see section below on rewirings.
+- ``gate_depth``: the longest subsequence of compiled instructions whereadjaction instructions share
+  resources.
+- ``multiqubit_gate_depth``: like ``gate_depth`` but restricted to multi-qubit gates.
+- ``gate_volume``: total number of gates in the compiled program.
+- ``program_duration``: program duration with parallel executation of gates (using hard-coded values
+  of individual gate durations).
+- ``qpu_runtime_estimation``: estimated runtime on a Rigetti QPU (in milliseconds). This is
+  extrapolated from a single shot of a 16Q program with final measurements on all 16 qubits. If you
+  are running a parametric program then you should estimate the total runtime as ``size of parameter
+  space * estimated runtime of single shot``. This should be treated only as an approximation.
+- ``program_fidelity``: the estimated fidelity of the compiled program.
+- ``topological_swaps``: the number of topological swaps incurred during compilation of the program.
+
+For example, to inspect the ``qpu_runtime_estimation`` you might do the following:
+
+.. code:: python
+
+    from pyquil import get_qc, Program
+
+    # If you have a reserved lattice, use it here
+    qc = get_qc("Aspen-4-4Q-A")
+    # Otherwise use a QVM
+    # qc = get_qc("8q-qvm")
+
+    # Likely you will have a more complex program:
+    p = Program("RX(pi) 0")
+
+    native_p = qc.compiler.quil_to_native_quil(p)
+
+    # The program will now have only native gates
+    print(native_p)
+    # And also a dictionary, with the above keys
+    print(native_p.native_quil_metadata["qpu_runtime_estimation"])
 
 .. _pragma:
 

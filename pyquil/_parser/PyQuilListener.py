@@ -503,13 +503,13 @@ def _apply_function(func, arg):
 def _number(number):
     # type: (QuilParser.NumberContext) -> Any
     if number.realN():
-        return _real(number.realN())
+        return _sign(number) * _real(number.realN())
     elif number.imaginaryN():
-        return complex(0, _real(number.imaginaryN().realN()))
+        return _sign(number) * complex(0, _real(number.imaginaryN().realN()))
     elif number.I():
-        return complex(0, 1)
+        return _sign(number) * complex(0, 1)
     elif number.PI():
-        return np.pi
+        return _sign(number) * np.pi
     else:
         raise RuntimeError("Unexpected number: " + number.getText())
 
@@ -522,3 +522,7 @@ def _real(real):
         return int(real.getText())
     else:
         raise RuntimeError("Unexpected real: " + real.getText())
+
+
+def _sign(real):
+    return -1 if real.MINUS() else 1
