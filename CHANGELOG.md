@@ -1,6 +1,15 @@
 Changelog
 =========
 
+[v2.12](https://github.com/rigetti/pyquil/compare/v2.11.0...master) (in development)
+----------------------------------------------------------------------------------------
+
+### Announcements
+
+### Improvements and Changes
+
+### Bugfixes
+
 [v2.11](https://github.com/rigetti/pyquil/compare/v2.10.0...v2.11.0) (September 3, 2019)
 ----------------------------------------------------------------------------------------
 
