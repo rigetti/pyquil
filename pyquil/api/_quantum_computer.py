@@ -14,6 +14,8 @@
 #    limitations under the License.
 ##############################################################################
 import re
+import socket
+import sys
 import warnings
 from math import pi, log
 from typing import List, Dict, Tuple, Iterator, Union
@@ -678,6 +680,22 @@ def local_qvm() -> Iterator[Tuple[subprocess.Popen, subprocess.Popen]]:
         yield (qvm, quilc)
 
 
+def _port_used(port: int):
+    """Check if a (TCP) port is listening on localhost.
+    Returns ``True`` if a process is listening on the specified port, ``False`` otherwise.
+
+    :param port: TCP port which should get checked.
+    """
+    s = socket.socket(socket.AF_INET, socket.SOCK_STREAM)
+    try:
+        s.connect(('127.0.0.1', port))
+        return True
+    except ConnectionRefusedError:
+        return False
+    finally:
+        s.close()
+
+
 @contextmanager
 def local_forest_runtime(
         *,
@@ -718,20 +736,30 @@ def local_forest_runtime(
 
     :raises: FileNotFoundError: If either executable is not installed.
     """
-    qvm_cmd = ['qvm', '-S', '--host', host, '-p', str(qvm_port)]
 
-    qvm = subprocess.Popen(qvm_cmd,
-                           stdout=subprocess.PIPE,
-                           stderr=subprocess.PIPE)
+    qvm = None
+    quilc = None
 
-    quilc_cmd = ['quilc', '--host', host, '-p', str(quilc_port), '-R']
+    if _port_used(qvm_port):
+        print(("Unable to start QVM, since the QVM "
+               "port {} is already in use.").format(qvm_port), file=sys.stderr)
+    else:
+        qvm_cmd = ['qvm', '-S', '--host', host, '-p', str(qvm_port)]
+        qvm = subprocess.Popen(qvm_cmd,
+                               stdout=subprocess.PIPE,
+                               stderr=subprocess.PIPE)
+    if _port_used(quilc_port):
+        print(("Unable to start QUILC, since the QUILC "
+               "port {} is already in use.").format(quilc_port), file=sys.stderr)
+    else:
+        quilc_cmd = ['quilc', '--host', host, '-p', str(quilc_port), '-R']
 
-    if use_protoquil:
-        quilc_cmd += ['-P']
+        if use_protoquil:
+            quilc_cmd += ['-P']
 
-    quilc = subprocess.Popen(quilc_cmd,
-                             stdout=subprocess.PIPE,
-                             stderr=subprocess.PIPE)
+        quilc = subprocess.Popen(quilc_cmd,
+                                 stdout=subprocess.PIPE,
+                                 stderr=subprocess.PIPE)
 
     # Return context
     try:
@@ -739,8 +767,10 @@ def local_forest_runtime(
 
     finally:
         # Exit. Release resource
-        qvm.terminate()
-        quilc.terminate()
+        if qvm:
+            qvm.terminate()
+        if quilc:
+            quilc.terminate()
 
 
 def _flip_array_to_prog(flip_array: Tuple[bool], qubits: List[int]) -> Program:
