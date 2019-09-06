@@ -688,9 +688,9 @@ class PauliSum(object):
         """A string representation of the PauliSum that is more compact than ``str(pauli_sum)``
 
         >>> pauli_sum = 2.0 * sX(1)* sZ(2) + 1.5 * sY(2)
-        >>> str(term)
+        >>> str(pauli_sum)
         >>> '2.0*X1*X2 + 1.5*Y2'
-        >>> term.compact_str()
+        >>> pauli_sum.compact_str()
         >>> '2.0*X1X2+1.5*Y2'
         """
         return "+".join([term.compact_str() for term in self.terms])
