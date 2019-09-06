@@ -7,6 +7,8 @@ Changelog
 ### Announcements
 
 ### Improvements and Changes
+-   The `local_qvm` context manager has been renamed to `local_forest_runtime`
+    and the original `local_qvm` has been deprecated (@sauercrowd, gh-976).
 
 ### Bugfixes
 
@@ -54,8 +56,6 @@ Changelog
 -   PyQuil now sends “modern” ISA payloads to quilc, which must be of version
     \>= `1.10.0`. Check out the details of `get_isa` for information on how to
     specify custom payloads (@ecpeterson, gh-961).
--   The `local_qvm` context manager has been renamed to `local_forest_runtime`
-    and the original `local_qvm` has been deprecated (@sauercrowd, gh-976).
 
 ### Bugfixes
 
