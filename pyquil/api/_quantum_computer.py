@@ -680,15 +680,17 @@ def local_qvm() -> Iterator[Tuple[subprocess.Popen, subprocess.Popen]]:
         yield (qvm, quilc)
 
 
-def _port_used(port: int):
-    """Check if a (TCP) port is listening on localhost.
-    Returns ``True`` if a process is listening on the specified port, ``False`` otherwise.
+def _port_used(host: str, port: int):
+    """Check if a (TCP) port is listening.
 
-    :param port: TCP port which should get checked.
+    :param host: Host address to check.
+    :param port: TCP port to check.
+
+    :returns: ``True`` if a process is listening on the specified host/port, ``False`` otherwise
     """
     s = socket.socket(socket.AF_INET, socket.SOCK_STREAM)
     try:
-        s.connect(('127.0.0.1', port))
+        s.connect((host, port))
         return True
     except ConnectionRefusedError:
         return False
@@ -703,17 +705,21 @@ def local_forest_runtime(
         qvm_port: int = 5000,
         quilc_port: int = 5555,
         use_protoquil: bool = False) -> Iterator[Tuple[subprocess.Popen, subprocess.Popen]]:
-    """A context manager for the Rigetti local QVM and QUIL compiler.
+    """A context manager for local QVM and QUIL compiler.
 
     You must first have installed the `qvm` and `quilc` executables from
     the forest SDK. [https://www.rigetti.com/forest]
 
-    This context manager will start up external processes for both the
-    compiler and virtual machine, and then terminate them when the context
-    is exited.
+    This context manager will ensure that the designated ports are not used, start up `qvm` and
+    `quilc` proccesses if possible and terminate them when the context is exited.
+    The returned tuple contains two ``subprocess.Popen`` objects for the `qvm` and the `quilc` processes.
+    If one of the ports is in use, a ``RuntimeWarning`` will be issued, the `qvm`/`quilc` process
+    won't be started and the respective value in the tuple will be ``None``.
 
-    If `qvm` (or `quilc`) is already running, then the existing process will
-    be used, and will not terminated at exit.
+    .. note::
+        Only processes started by this context manager will be terminated on exit, no external process will
+        be touched.
+
 
     >>> from pyquil import get_qc, Program
     >>> from pyquil.gates import CNOT, Z
@@ -740,17 +746,19 @@ def local_forest_runtime(
     qvm = None
     quilc = None
 
-    if _port_used(qvm_port):
-        print(("Unable to start QVM, since the QVM "
-               "port {} is already in use.").format(qvm_port), file=sys.stderr)
+    if _port_used('127.0.0.1', qvm_port):
+        warning_msg = ("Unable to start qvm server, since the specified "
+               "port {} is in use.").format(qvm_port)
+        warnings.warn(RuntimeWarning(warning_msg))
     else:
         qvm_cmd = ['qvm', '-S', '--host', host, '-p', str(qvm_port)]
         qvm = subprocess.Popen(qvm_cmd,
                                stdout=subprocess.PIPE,
                                stderr=subprocess.PIPE)
-    if _port_used(quilc_port):
-        print(("Unable to start QUILC, since the QUILC "
-               "port {} is already in use.").format(quilc_port), file=sys.stderr)
+    if _port_used('127.0.0.1', quilc_port):
+        warning_msg = ("Unable to start quilc server, since the specified "
+               "port {} is in use.").format(quilc_port)
+        warnings.warn(RuntimeWarning(warning_msg))
     else:
         quilc_cmd = ['quilc', '--host', host, '-p', str(quilc_port), '-R']
 
