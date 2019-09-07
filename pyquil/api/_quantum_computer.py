@@ -15,7 +15,6 @@
 ##############################################################################
 import re
 import socket
-import sys
 import warnings
 from math import pi, log
 from typing import List, Dict, Tuple, Iterator, Union
@@ -748,7 +747,7 @@ def local_forest_runtime(
 
     if _port_used('127.0.0.1', qvm_port):
         warning_msg = ("Unable to start qvm server, since the specified "
-               "port {} is in use.").format(qvm_port)
+                       "port {} is in use.").format(qvm_port)
         warnings.warn(RuntimeWarning(warning_msg))
     else:
         qvm_cmd = ['qvm', '-S', '--host', host, '-p', str(qvm_port)]
@@ -757,7 +756,7 @@ def local_forest_runtime(
                                stderr=subprocess.PIPE)
     if _port_used('127.0.0.1', quilc_port):
         warning_msg = ("Unable to start quilc server, since the specified "
-               "port {} is in use.").format(quilc_port)
+                       "port {} is in use.").format(quilc_port)
         warnings.warn(RuntimeWarning(warning_msg))
     else:
         quilc_cmd = ['quilc', '--host', host, '-p', str(quilc_port), '-R']
