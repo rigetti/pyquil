@@ -25,7 +25,7 @@ How to Reproduce
 
 If useful, provide a numbered list of the steps that result in the error.
 
-Otherwise, just fill out the "Code Snippet" and "Error Output" section below.
+Otherwise, just fill out the "Code Snippet" and "Error Output" sections below.
 
 ### Code Snippet
 
