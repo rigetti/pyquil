@@ -711,9 +711,8 @@ def local_forest_runtime(
 
     This context manager will ensure that the designated ports are not used, start up `qvm` and
     `quilc` proccesses if possible and terminate them when the context is exited.
-    The returned tuple contains two ``subprocess.Popen`` objects for the `qvm` and the `quilc` processes.
-    If one of the ports is in use, a ``RuntimeWarning`` will be issued, the `qvm`/`quilc` process
-    won't be started and the respective value in the tuple will be ``None``.
+    If one of the ports is in use, a ``RuntimeWarning`` will be issued and the `qvm`/`quilc` process
+    won't be started.
 
     .. note::
         Only processes started by this context manager will be terminated on exit, no external process will
@@ -740,6 +739,11 @@ def local_forest_runtime(
         may be disabled. Please use it with caution.
 
     :raises: FileNotFoundError: If either executable is not installed.
+
+    :returns: The returned tuple contains two ``subprocess.Popen`` objects
+        for the `qvm` and the `quilc` processes.  If one of the designated
+        ports is in use, the process won't be started and the respective
+        value in the tuple will be ``None``.
     """
 
     qvm = None
