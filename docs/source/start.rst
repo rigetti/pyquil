@@ -268,10 +268,10 @@ gates from the ``pyquil.gates`` module, which allows us to add operations to our
         from pyquil.gates import CNOT, Z
         from pyquil.api import local_forest_runtime
 
+        prog = Program(Z(0), CNOT(0, 1))
+
         with local_forest_runtime():
             qvm = get_qc('9q-square-qvm')
-            prog = Program(Z(0), CNOT(0, 1))
-
             results = qvm.run_and_measure(prog, trials=10)
 
 Next, let's construct our Bell State.
