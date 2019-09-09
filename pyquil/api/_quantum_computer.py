@@ -745,7 +745,8 @@ def local_forest_runtime(
     qvm = None
     quilc = None
 
-    if _port_used('127.0.0.1', qvm_port):
+    # if host is 0.0.0.0 replace it with 127.0.01
+    if _port_used(host if host != '0.0.0.0' else '127.0.0.1', qvm_port):
         warning_msg = ("Unable to start qvm server, since the specified "
                        "port {} is in use.").format(qvm_port)
         warnings.warn(RuntimeWarning(warning_msg))
@@ -754,7 +755,8 @@ def local_forest_runtime(
         qvm = subprocess.Popen(qvm_cmd,
                                stdout=subprocess.PIPE,
                                stderr=subprocess.PIPE)
-    if _port_used('127.0.0.1', quilc_port):
+
+    if _port_used(host if host != '0.0.0.0' else '127.0.0.1', quilc_port):
         warning_msg = ("Unable to start quilc server, since the specified "
                        "port {} is in use.").format(quilc_port)
         warnings.warn(RuntimeWarning(warning_msg))
