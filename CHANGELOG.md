@@ -6,6 +6,10 @@ Changelog
 
 ### Announcements
 
+-   PyQuil now has a [Bug Report
+    Template](https://github.com/rigetti/pyquil/blob/master/.github/ISSUE_TEMPLATE/BUG_REPORT.md),
+    which contains sections to fill out when filing a bug (@karalekas, gh-985).
+
 ### Improvements and Changes
 
 ### Bugfixes
