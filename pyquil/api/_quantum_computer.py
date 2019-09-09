@@ -745,7 +745,8 @@ def local_forest_runtime(
     qvm = None
     quilc = None
 
-    # if host is 0.0.0.0 replace it with 127.0.01
+    # If the host we should listen to is 0.0.0.0, we replace it
+    # with 127.0.0.1 to use a valid IP when checking if the port is in use.
     if _port_used(host if host != '0.0.0.0' else '127.0.0.1', qvm_port):
         warning_msg = ("Unable to start qvm server, since the specified "
                        "port {} is in use.").format(qvm_port)
