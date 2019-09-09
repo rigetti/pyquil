@@ -4,7 +4,6 @@ about: Let us know what needs fixing
 title: ''
 labels: 'bug :bug:'
 assignees: ''
-
 ---
 
 Pre-Report Checklist
