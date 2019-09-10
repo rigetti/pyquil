@@ -15,6 +15,7 @@ Changelog
 
 ### Improvements and Changes
 
+-   Add support for the `FORKED` gate modifier (@kilimanjaro, gh-989).
 -   The `local_qvm` context manager has been renamed to `local_forest_runtime`,
     which now checks if the designated ports are used before starting `qvm`/`quilc`.
     The original `local_qvm` has been deprecated (@sauercrowd, gh-976).
