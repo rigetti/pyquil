@@ -1,5 +1,5 @@
 ---
-name: Bug Report
+name: Bug Report 🐛
 about: Let us know what needs fixing
 title: ''
 labels: 'bug :bug:'
@@ -17,7 +17,7 @@ Issue Description
 
 Insert a short description of the bug here, along with what you expected the behavior to be.
 
-Thanks for helping us improve pyQuil! :)
+Thanks for helping us improve pyQuil! 🙂
 
 How to Reproduce
 ----------------

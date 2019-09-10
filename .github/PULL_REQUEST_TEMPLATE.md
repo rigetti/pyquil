@@ -1,7 +1,7 @@
 Description
 -----------
 
-Insert your PR description here. Thanks for contributing to pyQuil! :)
+Insert your PR description here. Thanks for contributing to pyQuil! 🙂
 
 Checklist
 ---------
