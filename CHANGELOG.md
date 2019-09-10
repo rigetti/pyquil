@@ -9,8 +9,12 @@ Changelog
 -   PyQuil now has a [Bug Report
     Template](https://github.com/rigetti/pyquil/blob/master/.github/ISSUE_TEMPLATE/BUG_REPORT.md),
     which contains sections to fill out when filing a bug (@karalekas, gh-985).
+-   PyQuil now has a [Feature Request Template
+    ](https://github.com/rigetti/pyquil/blob/master/.github/ISSUE_TEMPLATE/FEATURE_REQUEST.md),
+    which contains sections to fill out when suggesting an enhancement (@karalekas, gh-986).
 
 ### Improvements and Changes
+
 -   The `local_qvm` context manager has been renamed to `local_forest_runtime`,
     which now checks if the designated ports are used before starting `qvm`/`quilc`.
     The original `local_qvm` has been deprecated (@sauercrowd, gh-976).
