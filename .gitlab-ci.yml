@@ -15,7 +15,7 @@ services:
     alias: quilc
     command: ["-R"]
 
-test:
+test-py36:
   tags:
     - github
   script:
@@ -24,6 +24,17 @@ test:
     - echo "quilc_address = $QUILC_URL" >> ~/.forest_config
     - cat ~/.forest_config
     - tox -e py36
+
+test-py37:
+  image: python:3.7
+  tags:
+    - github
+  script:
+    - echo "[Rigetti Forest]" > ~/.forest_config
+    - echo "qvm_address = $QVM_URL" >> ~/.forest_config
+    - echo "quilc_address = $QUILC_URL" >> ~/.forest_config
+    - cat ~/.forest_config
+    - tox -e py37
 
 style:
   tags:
