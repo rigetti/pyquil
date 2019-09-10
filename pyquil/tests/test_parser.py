@@ -323,15 +323,17 @@ def test_parse_controlled():
     s = "CONTROLLED X 0 1"
     parse_equals(s, X(1).controlled(0))
 
+
 def test_parse_forked():
     s = "FORKED RX(0, pi/2) 0 1"
-    parse_equals(s, RX(0, 1).forked(0, [np.pi/2]))
+    parse_equals(s, RX(0, 1).forked(0, [np.pi / 2]))
+
 
 def test_messy_modifiers():
     s = "FORKED DAGGER CONTROLLED FORKED RX(0.1,0.2,0.3,0.4) 0 1 2 3"
     parse_equals(s,
-                 RX(0.1, 3) \
-                 .forked(2, [0.2]) \
-                 .controlled(1) \
-                 .dagger() \
+                 RX(0.1, 3)
+                 .forked(2, [0.2])
+                 .controlled(1)
+                 .dagger()
                  .forked(0, [0.3, 0.4]))

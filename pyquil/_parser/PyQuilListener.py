@@ -168,9 +168,9 @@ class PyQuilListener(QuilListener):
         base_qubits = qubits[len(modifier_qubits):]
 
         # Each FORKED doubles the number of parameters,
-        # e.g. FORKED RX(0.5, 1.5) 0 1
-        num_forks = sum(1 for m in modifiers if m == "FORKED")
-        base_params = params[:len(params)>>num_forks]
+        # e.g. FORKED RX(0.5, 1.5) 0 1 has two.
+        forked_offset = len(params) >> sum(1 for m in modifiers if m == "FORKED")
+        base_params = params[:forked_offset]
 
         if gate_name in QUANTUM_GATES:
             if base_params:
@@ -181,15 +181,14 @@ class PyQuilListener(QuilListener):
             gate = Gate(gate_name, base_params, base_qubits)
 
         # Track the last param used (for FORKED)
-        last_param = len(base_params)
         for modifier in modifiers[::-1]:
             if modifier == "CONTROLLED":
                 gate.controlled(modifier_qubits.pop())
             elif modifier == "DAGGER":
                 gate.dagger()
             elif modifier == 'FORKED':
-                gate.forked(modifier_qubits.pop(), params[last_param:2*last_param])
-                last_param *= 2
+                gate.forked(modifier_qubits.pop(), params[forked_offset:(2 * forked_offset)])
+                forked_offset *= 2
             else:
                 raise ValueError(f"Unsupported gate modifier {modifier}.")
 
