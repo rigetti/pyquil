@@ -384,7 +384,7 @@ is equivalent to
     else if c == 1:
         G(v1, ..., vk) q1 ... qn
 
-extended by linearity for general c. Note that the total number of parameters in the forked gate has doubled.
+extended by linearity for general ``c``. Note that the total number of parameters in the forked gate has doubled.
 
 All gates (objects deriving from the ``Gate`` class) provide the
 methods ``Gate.dagger()``, ``Gate.controlled(control_qubit)``, and ``Gate.forked(fork_qubit, alt_params)``  that
@@ -408,7 +408,7 @@ The gate ``FORKED RX(pi/2, pi) 0 1`` may be produced by
 
 .. code:: python
 
-   prog = Program(RX(np.pi/2, 1).forked(0, np.pi))
+   prog = Program(RX(np.pi/2, 1).forked(0, [np.pi]))
     
 
 

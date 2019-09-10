@@ -155,8 +155,8 @@ class PyQuilListener(QuilListener):
         #   modifiers ['DAGGER', 'CONTROLLED']
         #   qubits    ['0', '1']
         #
-        # We will build such gates up from "the inside out", e.g.
-        # starting with X 1.
+        # We will build such gates by applying modifiers from right to left,
+        # e.g. X 1 -> CONTROLLED X 0 1 -> DAGGER CONTROLLED X 0 1
 
         # Some gate modifiers increase the arity of the base gate.
         # The new qubit arguments prefix the old ones.
@@ -169,7 +169,7 @@ class PyQuilListener(QuilListener):
 
         # Each FORKED doubles the number of parameters,
         # e.g. FORKED RX(0.5, 1.5) 0 1 has two.
-        forked_offset = len(params) >> sum(1 for m in modifiers if m == "FORKED")
+        forked_offset = len(params) >> modifiers.count("FORKED")
         base_params = params[:forked_offset]
 
         if gate_name in QUANTUM_GATES:

@@ -106,8 +106,7 @@ def test_dagger_gate():
 def test_forked_gate():
     g = RX(0.0, 0).forked(1, [1.0])
     assert g.out() == "FORKED RX(0,1.0) 1 0"
-    g = RX(0.0, 0).forked(1, [1.0]) \
-                    .forked(2, [2.0, 3.0])
+    g = RX(0.0, 0).forked(1, [1.0]).forked(2, [2.0, 3.0])
     assert g.out() == "FORKED FORKED RX(0,1.0,2.0,3.0) 2 1 0"
 
 
