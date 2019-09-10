@@ -147,28 +147,49 @@ class PyQuilListener(QuilListener):
 
     def exitGate(self, ctx: QuilParser.GateContext):
         gate_name = ctx.name().getText()
+        modifiers = [mod.getText() for mod in ctx.modifier()]
         params = list(map(_param, ctx.param()))
         qubits = list(map(_qubit, ctx.qubit()))
-        # The Gate.controlled() method *prepends* the CONTROLLED modifier to the gate. But the
-        # parser works from the outside-in. Therefore the controlled qubits would be in reverse
-        # order. We reverse here to fix that.
-        modifiers = [mod.getText() for mod in ctx.modifier()][::-1]
-        control_qubits = qubits[0:len(list(filter(lambda str: str == "CONTROLLED", modifiers)))][::-1]
-        target_qubits = qubits[len(control_qubits):]
+
+        # The parsed string 'DAGGER CONTROLLED X 0 1' gives
+        #   modifiers ['DAGGER', 'CONTROLLED']
+        #   qubits    ['0', '1']
+        #
+        # We will build such gates up from "the inside out", e.g.
+        # starting with X 1.
+
+        # Some gate modifiers increase the arity of the base gate.
+        # The new qubit arguments prefix the old ones.
+        modifier_qubits = []
+        for m in modifiers:
+            if m in ["CONTROLLED", "FORKED"]:
+                modifier_qubits.append(qubits[len(modifier_qubits)])
+
+        base_qubits = qubits[len(modifier_qubits):]
+
+        # Each FORKED doubles the number of parameters,
+        # e.g. FORKED RX(0.5, 1.5) 0 1
+        num_forks = sum(1 for m in modifiers if m == "FORKED")
+        base_params = params[:len(params)>>num_forks]
 
         if gate_name in QUANTUM_GATES:
-            if params:
-                gate = QUANTUM_GATES[gate_name](*params, *target_qubits)
+            if base_params:
+                gate = QUANTUM_GATES[gate_name](*base_params, *base_qubits)
             else:
-                gate = QUANTUM_GATES[gate_name](*target_qubits)
+                gate = QUANTUM_GATES[gate_name](*base_qubits)
         else:
-            gate = Gate(gate_name, params, target_qubits)
+            gate = Gate(gate_name, base_params, base_qubits)
 
-        for modifier in modifiers:
+        # Track the last param used (for FORKED)
+        last_param = len(base_params)
+        for modifier in modifiers[::-1]:
             if modifier == "CONTROLLED":
-                gate.controlled(control_qubits.pop(0))
+                gate.controlled(modifier_qubits.pop())
             elif modifier == "DAGGER":
                 gate.dagger()
+            elif modifier == 'FORKED':
+                gate.forked(modifier_qubits.pop(), params[last_param:2*last_param])
+                last_param *= 2
             else:
                 raise ValueError(f"Unsupported gate modifier {modifier}.")
 

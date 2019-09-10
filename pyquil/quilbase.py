@@ -134,6 +134,23 @@ class Gate(AbstractInstruction):
 
         return self
 
+    def forked(self, fork_qubit, alt_params):
+        """
+        Add the FORKED modifier to the gate with the given fork qubit and given additional parameters.
+        """
+        if not isinstance(alt_params, list):
+            raise TypeError("Gate params must be a list")
+        if len(self.params) != len(alt_params):
+            raise ValueError("Expected {} parameters but received {}".format(len(self.params), len(alt_params)))
+
+        fork_qubit = unpack_qubit(fork_qubit)
+
+        self.modifiers.insert(0, "FORKED")
+        self.qubits.insert(0, fork_qubit)
+        self.params += alt_params
+
+        return self
+
     def dagger(self):
         """
         Add the DAGGER modifier to the gate.

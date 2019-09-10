@@ -103,6 +103,14 @@ def test_dagger_gate():
     g = X(0).dagger().dagger() == "DAGGER DAGGER X 0"
 
 
+def test_forked_gate():
+    g = RX(0.0, 0).forked(1, [1.0])
+    assert g.out() == "FORKED RX(0,1.0) 1 0"
+    g = RX(0.0, 0).forked(1, [1.0]) \
+                    .forked(2, [2.0, 3.0])
+    assert g.out() == "FORKED FORKED RX(0,1.0,2.0,3.0) 2 1 0"
+
+
 def test_dagger_controlled_gate():
     g = X(0).dagger().controlled(1)
     assert g.out() == "CONTROLLED DAGGER X 1 0"
@@ -110,3 +118,12 @@ def test_dagger_controlled_gate():
     assert g.out() == "DAGGER CONTROLLED X 1 0"
     g = X(0).controlled(1).dagger().controlled(2)
     assert g.out() == "CONTROLLED DAGGER CONTROLLED X 2 1 0"
+
+
+def test_mixed_gate_modifiers():
+    g = RX(0.1, 3) \
+        .forked(2, [0.2]) \
+        .controlled(1) \
+        .dagger() \
+        .forked(0, [0.3, 0.4])
+    assert g.out() == "FORKED DAGGER CONTROLLED FORKED RX(0.1,0.2,0.3,0.4) 0 1 2 3"

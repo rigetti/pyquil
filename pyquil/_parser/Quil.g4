@@ -41,7 +41,8 @@ qubit               : INT ;
 param               : expression ;
 
 modifier            : CONTROLLED
-                    | DAGGER ;
+                    | DAGGER
+                    | FORKED ;
 
 // D. Gate Definitions
 
@@ -220,6 +221,7 @@ POWER               : '^' ;
 
 CONTROLLED          : 'CONTROLLED' ;
 DAGGER              : 'DAGGER' ;
+FORKED              : 'FORKED' ;
 
 // Identifiers
 
