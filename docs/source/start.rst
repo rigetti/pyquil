@@ -229,6 +229,7 @@ programs to native Quil, and to simulate those programs on the QVM.
 
 **NOTE**: Prior to quilc version 1.10 there existed two methods for communicating with the quilc server: over HTTP by creating the server with the ``-S`` flag, or over RPCQ by creating the server with the ``-R`` flag. The HTTP server mode was deprecated in early 2019, and removed in mid 2019. The ``-S`` and ``-R`` flags now both start the RPCQ server.
 
+
 Run Your First Program
 ----------------------
 Now that our local endpoints are up and running, we can start running pyQuil programs!
@@ -257,20 +258,20 @@ gates from the ``pyquil.gates`` module, which allows us to add operations to our
 .. note::
 
     PyQuil also provides a handy function for you to ensure that a local qvm and quilc are currently running in
-    your environment. To make sure both are available you import `from pyquil.api import local_qvm` and then run
-    `local_qvm()`. This will start a qvm and quilc instances using subprocesses if they have not already been started.
+    your environment. To make sure both are available you execute ``from pyquil.api import local_forest_runtime`` and then use
+    :py:func:`~pyquil.api.local_forest_runtime()`. This will start qvm and quilc instances using subprocesses if they have not already been started.
     You can also use it as a context manager as in the following example:
 
     .. code:: python
 
         from pyquil import get_qc, Program
         from pyquil.gates import CNOT, Z
-        from pyquil.api import local_qvm
+        from pyquil.api import local_forest_runtime
 
-        qvm = get_qc('9q-square-qvm')
         prog = Program(Z(0), CNOT(0, 1))
 
-        with local_qvm():
+        with local_forest_runtime():
+            qvm = get_qc('9q-square-qvm')
             results = qvm.run_and_measure(prog, trials=10)
 
 Next, let's construct our Bell State.

@@ -14,6 +14,7 @@
 #    limitations under the License.
 ##############################################################################
 import re
+import socket
 import warnings
 from math import pi, log
 from typing import List, Dict, Tuple, Iterator, Union
@@ -669,36 +670,110 @@ def get_qc(name: str, *, as_qvm: bool = None, noisy: bool = None,
 def local_qvm() -> Iterator[Tuple[subprocess.Popen, subprocess.Popen]]:
     """A context manager for the Rigetti local QVM and QUIL compiler.
 
+    .. deprecated:: 2.11
+        Use py:func:`local_forest_runtime` instead.
+    """
+    warnings.warn(DeprecationWarning("Use of pyquil.api.local_qvm has been deprecated.\n"
+                                     "Please use pyquil.api.local_forest_runtime instead."))
+    with local_forest_runtime() as (qvm, quilc):
+        yield (qvm, quilc)
+
+
+def _port_used(host: str, port: int):
+    """Check if a (TCP) port is listening.
+
+    :param host: Host address to check.
+    :param port: TCP port to check.
+
+    :returns: ``True`` if a process is listening on the specified host/port, ``False`` otherwise
+    """
+    s = socket.socket(socket.AF_INET, socket.SOCK_STREAM)
+    try:
+        s.connect((host, port))
+        return True
+    except ConnectionRefusedError:
+        return False
+    finally:
+        s.close()
+
+
+@contextmanager
+def local_forest_runtime(
+        *,
+        host: str = '127.0.0.1',
+        qvm_port: int = 5000,
+        quilc_port: int = 5555,
+        use_protoquil: bool = False) -> Iterator[Tuple[subprocess.Popen, subprocess.Popen]]:
+    """A context manager for local QVM and QUIL compiler.
+
     You must first have installed the `qvm` and `quilc` executables from
     the forest SDK. [https://www.rigetti.com/forest]
 
-    This context manager will start up external processes for both the
-    compiler and virtual machine, and then terminate them when the context
-    is exited.
+    This context manager will ensure that the designated ports are not used, start up `qvm` and
+    `quilc` proccesses if possible and terminate them when the context is exited.
+    If one of the ports is in use, a ``RuntimeWarning`` will be issued and the `qvm`/`quilc` process
+    won't be started.
 
-    If `qvm` (or `quilc`) is already running, then the existing process will
-    be used, and will not terminated at exit.
+    .. note::
+        Only processes started by this context manager will be terminated on exit, no external process will
+        be touched.
+
 
     >>> from pyquil import get_qc, Program
     >>> from pyquil.gates import CNOT, Z
-    >>> from pyquil.api import local_qvm
+    >>> from pyquil.api import local_forest_runtime
     >>>
     >>> qvm = get_qc('9q-square-qvm')
     >>> prog = Program(Z(0), CNOT(0, 1))
     >>>
-    >>> with local_qvm():
+    >>> with local_forest_runtime():
     >>>     results = qvm.run_and_measure(prog, trials=10)
 
-    :raises: FileNotFoundError: If either executable is not installed.
-    """
-    # Enter. Acquire resource
-    qvm = subprocess.Popen(['qvm', '-S'],
-                           stdout=subprocess.PIPE,
-                           stderr=subprocess.PIPE)
+    :param host: Host on which `qvm` and `quilc` should listen on.
+    :param qvm_port: Port which should be used by `qvm`.
+    :param quilc_port: Port which should be used by `quilc`.
+    :param use_protoquil: Restrict input/output to protoquil.
 
-    quilc = subprocess.Popen(['quilc', '-RP'],
-                             stdout=subprocess.PIPE,
-                             stderr=subprocess.PIPE)
+    .. warning::
+        If ``use_protoquil`` is set to ``True`` language features you need
+        may be disabled. Please use it with caution.
+
+    :raises: FileNotFoundError: If either executable is not installed.
+
+    :returns: The returned tuple contains two ``subprocess.Popen`` objects
+        for the `qvm` and the `quilc` processes.  If one of the designated
+        ports is in use, the process won't be started and the respective
+        value in the tuple will be ``None``.
+    """
+
+    qvm = None
+    quilc = None
+
+    # If the host we should listen to is 0.0.0.0, we replace it
+    # with 127.0.0.1 to use a valid IP when checking if the port is in use.
+    if _port_used(host if host != '0.0.0.0' else '127.0.0.1', qvm_port):
+        warning_msg = ("Unable to start qvm server, since the specified "
+                       "port {} is in use.").format(qvm_port)
+        warnings.warn(RuntimeWarning(warning_msg))
+    else:
+        qvm_cmd = ['qvm', '-S', '--host', host, '-p', str(qvm_port)]
+        qvm = subprocess.Popen(qvm_cmd,
+                               stdout=subprocess.PIPE,
+                               stderr=subprocess.PIPE)
+
+    if _port_used(host if host != '0.0.0.0' else '127.0.0.1', quilc_port):
+        warning_msg = ("Unable to start quilc server, since the specified "
+                       "port {} is in use.").format(quilc_port)
+        warnings.warn(RuntimeWarning(warning_msg))
+    else:
+        quilc_cmd = ['quilc', '--host', host, '-p', str(quilc_port), '-R']
+
+        if use_protoquil:
+            quilc_cmd += ['-P']
+
+        quilc = subprocess.Popen(quilc_cmd,
+                                 stdout=subprocess.PIPE,
+                                 stderr=subprocess.PIPE)
 
     # Return context
     try:
@@ -706,8 +781,10 @@ def local_qvm() -> Iterator[Tuple[subprocess.Popen, subprocess.Popen]]:
 
     finally:
         # Exit. Release resource
-        qvm.terminate()
-        quilc.terminate()
+        if qvm:
+            qvm.terminate()
+        if quilc:
+            quilc.terminate()
 
 
 def _flip_array_to_prog(flip_array: Tuple[bool], qubits: List[int]) -> Program:

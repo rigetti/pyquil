@@ -5,7 +5,7 @@ import numpy as np
 import pytest
 
 from pyquil import Program, get_qc, list_quantum_computers
-from pyquil.api import QVM, QuantumComputer, local_qvm
+from pyquil.api import QVM, QuantumComputer, local_forest_runtime
 from pyquil.tests.utils import DummyCompiler
 from pyquil.api._quantum_computer import (_symmetrization, _flip_array_to_prog,
                                           _construct_orthogonal_array,
@@ -465,7 +465,7 @@ def test_run_and_measure(local_qvm_quilc):
     trials = 11
     # note to devs: this is included as an example in the run_and_measure docstrings
     # so if you change it here ... change it there!
-    with local_qvm():  # Redundant with test fixture.
+    with local_forest_runtime():  # Redundant with test fixture.
         bitstrings = qc.run_and_measure(prog, trials)
     bitstring_array = np.vstack(bitstrings[q] for q in qc.qubits()).T
     assert bitstring_array.shape == (trials, len(qc.qubits()))
