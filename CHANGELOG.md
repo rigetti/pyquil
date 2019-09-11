@@ -26,7 +26,9 @@ Changelog
 
 ### Bugfixes
 
--   Strength two symmetrization was not correctly producing orthogonal arrays due to erroneous truncation, which has been fixed. (@kylegulshen, gh-990)
+-   Strength two symmetrization was not correctly producing orthogonal 
+    arrays due to erroneous truncation, which has been fixed 
+    (@kylegulshen, gh-990).
 
 [v2.11](https://github.com/rigetti/pyquil/compare/v2.10.0...v2.11.0) (September 3, 2019)
 ----------------------------------------------------------------------------------------
