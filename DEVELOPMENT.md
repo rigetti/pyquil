@@ -11,6 +11,12 @@ pip install tox
 tox
 ```
 
+When making considerable changes to `operator_estimation.py`, we recommend that you set
+the `pytest` option `--use-seed` to `False` to make sure you have not broken anything:
+```shell
+pytest --use-seed=False pyquil
+```
+
 ## Building the Docs
 
 We use sphinx to build the documentation. Before building the docs, you must have
