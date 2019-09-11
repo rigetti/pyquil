@@ -338,6 +338,14 @@ def test_lifted_gate_modified():
     true_unitary = np.kron(zero, np.eye(4)) + np.kron(one, np.kron(np.eye(2), ry_part))
     assert np.allclose(test_unitary, true_unitary)
 
+    test_unitary = lifted_gate(PHASE(0.0, 1).forked(0, [np.pi]), 2)
+    true_unitary = lifted_gate(CZ(0, 1), 2)
+    assert np.allclose(test_unitary, true_unitary)
+
+    test_unitary = lifted_gate(PHASE(0.0, 2).forked(1, [0.0]).forked(0, [0.0, np.pi]), 3)
+    true_unitary = lifted_gate(CZ(1, 2).controlled(0), 3)
+    assert np.allclose(test_unitary, true_unitary)
+
 
 def test_lifted_pauli():
     qubits = [0, 1]

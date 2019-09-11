@@ -17,10 +17,10 @@ from typing import Union, List
 
 import numpy as np
 
-from pyquil.gate_matrices import SWAP, QUANTUM_GATES, STATES
+from pyquil.gate_matrices import SWAP, STATES, QUANTUM_GATES
 from pyquil.operator_estimation import TensorProductState
 from pyquil.paulis import PauliSum, PauliTerm
-from pyquil.quilbase import Gate
+from pyquil.quilbase import Gate, _strip_modifiers
 
 
 def all_bitstrings(n_bits):
@@ -271,21 +271,56 @@ def lifted_gate(gate: Gate, n_qubits: int):
     :param n_qubits: The total number of qubits.
     :return: A 2^n by 2^n lifted version of the gate acting on its specified qubits.
     """
-    if len(gate.params) > 0:
-        matrix = QUANTUM_GATES[gate.name](*gate.params)
-    else:
-        matrix = QUANTUM_GATES[gate.name]
 
-    for mod in reversed(gate.modifiers):
-        if mod == 'DAGGER':
-            matrix = matrix.conj().T
-        if mod == 'CONTROLLED':
-            zero = np.eye(2)
-            zero[1, 1] = 0
-            one = np.eye(2)
-            one[0, 0] = 0
+    zero = np.eye(2)
+    zero[1, 1] = 0
+    one = np.eye(2)
+    one[0, 0] = 0
 
-            matrix = np.kron(zero, np.eye(*matrix.shape)) + np.kron(one, matrix)
+    # The main source of complexity is in handling handling FORKED gates. Given
+    # a gate with modifiers, such as `FORKED CONTROLLED FORKED RX(a,b,c,d) 0 1
+    # 2 3`, we get a tree, as in
+    #
+    #               FORKED CONTROLLED FORKED RX(a,b,c,d) 0 1 2 3
+    #                 /                                      \
+    #    CONTROLLED FORKED RX(a,b) 1 2 3       CONTROLLED FORKED RX(c,d) 1 2 3
+    #                |                                        |
+    #         FORKED RX(a,b) 2 3                      FORKED RX(c,d) 2 3
+    #          /          \                            /          \
+    #      RX(a) 3      RX(b) 3                    RX(c) 3      RX(d) 3
+    #
+    # We recurse on this structure using _gate_matrix below.
+
+    def _gate_matrix(gate: Gate):
+        if len(gate.modifiers) == 0:         # base case
+            if len(gate.params) > 0:
+                return QUANTUM_GATES[gate.name](*gate.params)
+            else:
+                return QUANTUM_GATES[gate.name]
+        else:
+            mod = gate.modifiers[0]
+            if mod == 'DAGGER':
+                child = _strip_modifiers(gate, limit=1)
+                return _gate_matrix(child).conj().T
+            elif mod == 'CONTROLLED':
+                child = _strip_modifiers(gate, limit=1)
+                matrix = _gate_matrix(child)
+                return np.kron(zero, np.eye(*matrix.shape)) + np.kron(one, matrix)
+            elif mod == 'FORKED':
+                assert len(gate.params) % 2 == 0
+                p0, p1 = gate.params[:len(gate.params) // 2], gate.params[len(gate.params) // 2:]
+                child = _strip_modifiers(gate, limit=1)
+                # handle the first half of the FORKED params
+                child.params = p0
+                mat0 = _gate_matrix(child)
+                # handle the second half of the FORKED params
+                child.params = p1
+                mat1 = _gate_matrix(child)
+                return np.kron(zero, mat0) + np.kron(one, mat1)
+            else:
+                raise TypeError("Unsupported gate modifier {}".format(mod))
+
+    matrix = _gate_matrix(gate)
 
     return lifted_gate_matrix(matrix=matrix,
                               qubit_inds=[q.index for q in gate.qubits],

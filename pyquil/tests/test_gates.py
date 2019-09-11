@@ -1,5 +1,6 @@
 import pytest
 from pyquil.gates import *
+from pyquil.quilbase import _strip_modifiers
 
 
 @pytest.fixture(params=[I, X, Y, Z, H, S, T, ])
@@ -126,3 +127,14 @@ def test_mixed_gate_modifiers():
         .dagger() \
         .forked(0, [0.3, 0.4])
     assert g.out() == "FORKED DAGGER CONTROLLED FORKED RX(0.1,0.2,0.3,0.4) 0 1 2 3"
+
+
+def test_strip_gate_modifiers():
+    g0 = RX(0.1, 3)
+    g1 = RX(0.1, 3).forked(2, [0.2]).controlled(1)
+    g2 = RX(0.1, 3).forked(2, [0.2]).controlled(1).dagger()
+
+    assert _strip_modifiers(g1) == g0
+    assert _strip_modifiers(g2) == g0
+    assert _strip_modifiers(g2, 3) == g0
+    assert _strip_modifiers(g2, 1) == g1
