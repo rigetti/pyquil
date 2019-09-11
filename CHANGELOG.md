@@ -20,6 +20,7 @@ Changelog
     The original `local_qvm` has been deprecated (@sauercrowd, gh-976).
 -   The test suite for pyQuil now runs against both Python 3.6 and 3.7 to ensure
     compatibility with the two most recent versions of Python (@karalekas, gh-987).
+-   Deleted the deprecated modules `parameters.py` and `qpu.py` (@karalekas, gh-991).
 
 ### Bugfixes
 

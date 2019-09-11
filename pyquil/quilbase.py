@@ -20,9 +20,8 @@ import numpy as np
 from six import integer_types, string_types
 from warnings import warn
 
-from pyquil.parameters import Expression, _contained_parameters, format_parameter
-from pyquil.quilatom import (Qubit, MemoryReference, Label, unpack_qubit, QubitPlaceholder,
-                             LabelPlaceholder)
+from pyquil.quilatom import (Expression, LabelPlaceholder, MemoryReference, Qubit, QubitPlaceholder,
+                             Label, _contained_parameters, format_parameter, unpack_qubit)
 
 
 class AbstractInstruction(object):

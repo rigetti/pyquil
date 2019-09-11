@@ -2,8 +2,9 @@ from math import pi
 
 import numpy as np
 
-from pyquil.parameters import (Parameter, quil_sin, quil_cos, quil_sqrt, quil_exp, quil_cis,
-                               _contained_parameters, format_parameter, quil_cis, substitute, substitute_array)
+from pyquil.quilatom import (Parameter, quil_sin, quil_cos, quil_sqrt, quil_exp, quil_cis,
+                             _contained_parameters, format_parameter, quil_cis, substitute,
+                             substitute_array)
 
 
 def test_format_parameter():

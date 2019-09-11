@@ -462,7 +462,7 @@ defining it than in the previous section.
 .. code:: python
 
     from pyquil import Program, WavefunctionSimulator
-    from pyquil.parameters import Parameter, quil_sin, quil_cos
+    from pyquil.quilatom import Parameter, quil_sin, quil_cos
     from pyquil.quilbase import DefGate
     import numpy as np
 

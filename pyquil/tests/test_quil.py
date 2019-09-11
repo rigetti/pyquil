@@ -20,17 +20,17 @@ from math import pi
 import numpy as np
 import pytest
 
-from pyquil.gates import I, X, Y, Z, H, T, S, RX, RY, RZ, CNOT, CCNOT, PHASE, CPHASE00, CPHASE01, \
-    CPHASE10, CPHASE, SWAP, CSWAP, ISWAP, PSWAP, MEASURE, HALT, WAIT, NOP, RESET, \
-    TRUE, FALSE, NOT, AND, OR, MOVE, EXCHANGE, \
-    LOAD, CONVERT, STORE, XOR, IOR, NEG, ADD, SUB, MUL, DIV, EQ, GT, GE, LT, LE
-from pyquil.parameters import Parameter, quil_sin, quil_cos
+from pyquil.gates import (I, X, Y, Z, H, T, S, RX, RY, RZ, CNOT, CCNOT, PHASE, CPHASE00, CPHASE01,
+                          CPHASE10, CPHASE, SWAP, CSWAP, ISWAP, PSWAP, MEASURE, HALT, WAIT, NOP,
+                          RESET, TRUE, FALSE, NOT, AND, OR, MOVE, EXCHANGE, LOAD, CONVERT, STORE,
+                          XOR, IOR, NEG, ADD, SUB, MUL, DIV, EQ, GT, GE, LT, LE)
 from pyquil.paulis import exponential_map, sZ
-from pyquil.quil import Program, merge_programs, merge_with_pauli_noise, address_qubits, \
-    get_classical_addresses_from_program, Pragma, validate_protoquil, validate_supported_quil
-from pyquil.quilatom import QubitPlaceholder, Addr, MemoryReference, Sub
-from pyquil.quilbase import DefGate, Gate, Qubit, JumpWhen, Declare, ClassicalNot, \
-    DefPermutationGate
+from pyquil.quil import (Program, merge_programs, merge_with_pauli_noise, address_qubits,
+                         get_classical_addresses_from_program, Pragma, validate_protoquil,
+                         validate_supported_quil)
+from pyquil.quilatom import MemoryReference, Parameter, QubitPlaceholder, Sub, quil_cos, quil_sin
+from pyquil.quilbase import (DefGate, Gate, Qubit, JumpWhen, Declare, ClassicalNot,
+                             DefPermutationGate)
 from pyquil.tests.utils import parse_equals
 
 
