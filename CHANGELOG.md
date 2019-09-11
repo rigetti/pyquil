@@ -21,6 +21,8 @@ Changelog
 -   The test suite for pyQuil now runs against both Python 3.6 and 3.7 to ensure
     compatibility with the two most recent versions of Python (@karalekas, gh-987).
 -   Deleted the deprecated modules `parameters.py` and `qpu.py` (@karalekas, gh-991).
+-   The test suite for pyQuil now runs much faster, by setting the default value
+    of the `--use-seed` option for `pytest` to `True` (@karalekas, gh-992).
 
 ### Bugfixes
 
