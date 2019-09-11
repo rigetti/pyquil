@@ -214,8 +214,8 @@ def _str_to_bool(s):
 
 
 def pytest_addoption(parser):
-    parser.addoption("--use-seed", action="store", type=_str_to_bool, default=False,
-                     help="run some tests faster using a fixed random seed")
+    parser.addoption("--use-seed", action="store", type=_str_to_bool, default=True,
+                     help="run operator estimation tests faster by using a fixed random seed")
 
 
 @pytest.fixture()
