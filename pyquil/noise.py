@@ -24,9 +24,8 @@ import numpy as np
 import sys
 
 from pyquil.gates import I, MEASURE, X
-from pyquil.parameters import format_parameter
 from pyquil.quilbase import Pragma, Gate
-from pyquil.quilatom import MemoryReference
+from pyquil.quilatom import MemoryReference, format_parameter
 
 INFINITY = float("inf")
 "Used for infinite coherence times."

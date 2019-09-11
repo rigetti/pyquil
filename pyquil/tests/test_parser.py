@@ -17,10 +17,9 @@ import numpy as np
 import pytest
 
 from pyquil.gates import *
-from pyquil.parameters import Parameter, quil_sin, quil_cos
 from pyquil.parser import parse
 from pyquil.quilatom import Addr
-from pyquil.quilatom import MemoryReference
+from pyquil.quilatom import MemoryReference, Parameter, quil_cos, quil_sin
 from pyquil.quilbase import Declare, Reset, ResetQubit
 from pyquil.quilbase import Label, JumpTarget, Jump, JumpWhen, JumpUnless, DefGate, DefPermutationGate, Qubit, Pragma, \
     RawInstr
