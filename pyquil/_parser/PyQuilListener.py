@@ -26,10 +26,9 @@ from antlr4.error.ErrorListener import ErrorListener
 from antlr4.error.Errors import InputMismatchException
 from numpy.ma import sin, cos, sqrt, exp
 
-from pyquil import parameters
 from pyquil.gates import QUANTUM_GATES
-from pyquil.parameters import Parameter
-from pyquil.quilatom import MemoryReference, Addr
+from pyquil.quilatom import (Addr, MemoryReference, Parameter, quil_cos, quil_cis, quil_exp,
+                             quil_sin, quil_sqrt)
 from pyquil.quilbase import (Gate, DefGate, DefPermutationGate, Measurement, JumpTarget, Label, Expression,
                              Nop, Halt, Jump, JumpWhen, JumpUnless, Reset, Wait,
                              ClassicalNot, ClassicalNeg, ClassicalAnd, ClassicalInclusiveOr,
@@ -474,15 +473,15 @@ def _apply_function(func, arg):
     # type: (QuilParser.FunctionContext, Any) -> Any
     if isinstance(arg, Expression):
         if func.SIN():
-            return parameters.quil_sin(arg)
+            return quil_sin(arg)
         elif func.COS():
-            return parameters.quil_cos(arg)
+            return quil_cos(arg)
         elif func.SQRT():
-            return parameters.quil_sqrt(arg)
+            return quil_sqrt(arg)
         elif func.EXP():
-            return parameters.quil_exp(arg)
+            return quil_exp(arg)
         elif func.CIS():
-            return parameters.quil_cis(arg)
+            return quil_cis(arg)
         else:
             raise RuntimeError("Unexpected function to apply: " + func.getText())
     else:
