@@ -33,6 +33,8 @@ Table of Contents
 
 - [Building the Docs](#building-the-docs)
 
+- [Working with the Parser](#working-with-the-parser)
+
 ### [Tips for Maintainers](#tips-for-maintainers)
 
 - [Merging a Pull Request](#merging-a-pull-request)
@@ -140,6 +142,12 @@ directory and open the `index.html` file in your browser (`open index.html` work
 for example). You can then click around the docs just as if they were hosted on RTD, and
 verify that everything looks right!
 
+### Working with the Parser
+
+Working with the ANTLR parser involves some extra steps, see the
+[Parser README](pyquil/_parser/README.md) for more information. Note that you only need
+to install ANTLR if you want to change the grammar, simply running the parser involves
+no additional steps beyond installing PyQuil as usual.
 
 Tips for Maintainers
 --------------------
