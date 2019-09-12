@@ -349,8 +349,8 @@ In the example here, if you called ``qc.run(executable)`` and didn't specify ``'
 
 Gate Modifiers
 ~~~~~~~~~~~~~~
-Gate applications in Quil can be preceded by a `gate modifier`. There are two supported modifiers:
-``DAGGER`` and ``CONTROLLED``. The ``DAGGER`` modifier represents the dagger of the gate. For instance,
+Gate applications in Quil can be preceded by a `gate modifier`. There are three supported modifiers:
+``DAGGER``, ``CONTROLLED``, and ``FORKED``. The ``DAGGER`` modifier represents the dagger of the gate. For instance,
 
 .. parsed-literal::
 
@@ -369,10 +369,26 @@ The ``CONTROLLED`` modifier takes a gate and makes it a controlled gate. For ins
 .. note::
     The letter ``C`` in the gate name has no semantic significance in Quil. To make a controlled ``Y`` gate, one `cannot` write ``CY``, but rather one has to write ``CONTROLLED Y``.
 
+The ``FORKED`` modifier allows for a parametric gate to be applied, with the specific choice of parameters conditional on a qubit value. For a parametric gate ``G`` with k parameters,
+
+.. parsed-literal::
+
+    FORKED G(u1, ..., uk, v1, ..., vk) c q1 ... qn
+
+is equivalent to
+
+.. parsed-literal::
+
+    if c == 0:
+        G(u1, ..., uk) q1 ... qn
+    else if c == 1:
+        G(v1, ..., vk) q1 ... qn
+
+extended by linearity for general ``c``. Note that the total number of parameters in the forked gate has doubled.
+
 All gates (objects deriving from the ``Gate`` class) provide the
-methods ``Gate.controlled(control_qubit)`` and ``Gate.dagger()`` that
-can be used to programmatically apply the ``CONTROLLED`` and
-``DAGGER`` modifiers.
+methods ``Gate.dagger()``, ``Gate.controlled(control_qubit)``, and ``Gate.forked(fork_qubit, alt_params)``  that
+can be used to programmatically apply the ``DAGGER``, ``CONTROLLED``, and ``FORKED`` modifiers.
 
 For example, to produce the controlled-NOT gate (``CNOT``) with
 control qubit ``0`` and target qubit ``1``
@@ -387,6 +403,14 @@ You can achieve the oft-used `control-off` gate (flip the target qubit
 .. code:: python
 
    prog = Program(X(0), X(1).controlled(0), X(0))
+
+The gate ``FORKED RX(pi/2, pi) 0 1`` may be produced by
+
+.. code:: python
+
+   prog = Program(RX(np.pi/2, 1).forked(0, [np.pi]))
+    
+
 
 Defining New Gates
 ~~~~~~~~~~~~~~~~~~
