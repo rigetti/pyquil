@@ -93,36 +93,42 @@ the statistics of which are consistent with a two-qubit entangled state.
  [0, 0]]
 ```
 
+Joining the Forest Community
+----------------------------
+
+If you'd like to get involved with pyQuil and Forest, joining the [Rigetti Forest Slack
+Workspace](https://join.slack.com/t/rigetti-forest/shared_invite/enQtNTUyNTE1ODg3MzE2LWExZWU5OTE4YTJhMmE2NGNjMThjOTM1MjlkYTA5ZmUxNTJlOTVmMWE0YjA3Y2M2YmQzNTZhNTBlMTYyODRjMzA)
+is a great place to start! You can do so by clicking the invite link in the previous sentence,
+or in the badge at the top of this README. The Slack Workspace is a great place to ask general
+questions, join high-level design discussions, and hear about updates to pyQuil and the Forest SDK.
+
+To go a step further and start contributing to the development of pyQuil, good first steps are
+[reporting a bug][bug], [requesting a feature][feature], or picking up one of the issues with the
+[good first issue][first] or [help wanted][help] labels. Once you find an issue to work
+on, make sure to [fork this repository][fork] and then [open a pull request][pr] once your changes
+are ready. For more information on all the ways you can contribute to pyQuil (along with
+some helpful tips for developers and maintainers) check out our
+[Contributing Guide](CONTRIBUTING.md)!
+
+To see what people have contributed in the past, check out the [Changelog](CHANGELOG.md) for
+a detailed list of all announcements, improvements, changes, and bugfixes. The
+[Releases](https://github.com/rigetti/pyquil/releases) page for pyQuil contains similar
+information, but with links to the pull request for each change and its corresponding author.
+Thanks for contributing to pyQuil! 🙂
+
+[bug]: https://github.com/rigetti/pyquil/issues/new?assignees=&labels=bug+%3Abug%3A&template=BUG_REPORT.md&title=
+[feature]: https://github.com/rigetti/pyquil/issues/new?assignees=&labels=enhancement+%3Asparkles%3A&template=FEATURE_REQUEST.md&title=
+[first]: https://github.com/rigetti/pyquil/labels/good%20first%20issue%20%3Ababy%3A
+[help]: https://github.com/rigetti/pyquil/labels/help%20wanted%20%3Awave%3A
+[fork]: https://github.com/rigetti/pyquil/fork
+[pr]: https://github.com/rigetti/pyquil/compare
+
 Running on the QPU
 ------------------
 
 Using the Forest SDK, you can simulate the operation of a real quantum processor. If you
 would like to run on the real QPUs in our lab in Berkeley, you can sign up for an account
 on [Quantum Cloud Services](https://www.rigetti.com/qcs)!
-
-Joining the Forest Community
-----------------------------
-
-Join the public Forest Slack channel at [http://slack.rigetti.com](https://join.slack.com/t/rigetti-forest/shared_invite/enQtNTUyNTE1ODg3MzE2LWExZWU5OTE4YTJhMmE2NGNjMThjOTM1MjlkYTA5ZmUxNTJlOTVmMWE0YjA3Y2M2YmQzNTZhNTBlMTYyODRjMzA).
-
-The following projects have been contributed by community members:
-
-- [Syntax Highlighting for Quil](https://github.com/JavaFXpert/quil-syntax-highlighter)
-  contributed by [James Weaver](https://github.com/JavaFXpert)
-- [Web Based Circuit Simulator](https://github.com/rasa97/quil-sim/tree/master)
-  contributed by [Ravisankar A V](https://github.com/rasa97)
-- [Quil in Javascript](https://github.com/mapmeld/jsquil)
-  contributed by [Nick Doiron](https://github.com/mapmeld)
-- [Quil in Java](https://github.com/QCHackers/jquil)
-  contributed by [Victory Omole](https://github.com/vtomole)
-
-Contributing to pyQuil
-----------------------
-
-To make changes to PyQuil itself see [DEVELOPMENT.md](DEVELOPMENT.md) for instructions on
-development and testing.
-
-To see a list of all the past changes, check out [CHANGELOG.md](CHANGELOG.md).
 
 Citing pyQuil and Forest
 ------------------------
@@ -149,4 +155,5 @@ R. Smith, M. J. Curtis and W. J. Zeng, "A Practical Quantum Instruction Set Arch
 License
 -------
 
-PyQuil is licensed under the [Apache License 2.0](https://github.com/rigetti/pyQuil/blob/master/LICENSE).
+PyQuil is licensed under the
+[Apache License 2.0](https://github.com/rigetti/pyQuil/blob/master/LICENSE).
