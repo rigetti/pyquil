@@ -41,6 +41,8 @@ Table of Contents
 
 - [Merging a Pull Request](#merging-a-pull-request)
 
+- [Drafting a Release](#drafting-a-release)
+
 - [Issue and PR Labels](#issue-and-pr-labels)
 
 Ways to Contribute
@@ -168,6 +170,26 @@ When merging PRs, we have a couple of guidelines:
    [release milestone](https://github.com/rigetti/pyquil/milestones) once it is
    merged. We use this to keep track of overall release progress, along with the
    [Changelog](CHANGELOG.md).
+
+### Drafting a Release
+
+Once it is time to perform a release of pyQuil, the maintainer must perform the
+following steps:
+
+1. Push a commit to `master` that bumps the version of pyQuil in `pyquil/__init__.py` and
+   changes the latest heading in the Changelog from "in development" to the current date.
+   We try to follow [Semantic Versioning](https://semver.org/) (SemVer), which means that
+   versions correspond to `MAJOR.MINOR.PATCH`, and thus for most (hopefully backwards
+   compatible) releases, we should increment the `MINOR` version number.
+
+2. Tag that commit with `git tag vX.Y.Z`, where `X.Y.Z` corresponds to the
+   `MAJOR.MINOR.PATCH`version bump in the previous step, and push the tag to GitHub.
+
+3. Create a [GitHub release](https://github.com/rigetti/pyquil/releases) where the
+   "Tag version" is the tag you just pushed, the "Release title" is the same as the
+   "Tag version", and "Describe this release" contains the latest section of the
+   Changelog, but with level-3 headings changed to level-2 headings, and with all
+   mid-bullet newlines removed.
 
 ### Issue and PR Labels
 
