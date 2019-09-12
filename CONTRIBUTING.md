@@ -13,7 +13,7 @@ rather than opening an issue. Otherwise, read on to learn more!
 Table of Contents
 -----------------
 
-### [Ways to Contribute](#ways-to-contribute)
+[Ways to Contribute](#ways-to-contribute)
 
 - [Code of Conduct](#code-of-conduct)
 
@@ -25,7 +25,7 @@ Table of Contents
 
 - [Making a Pull Request](#making-a-pull-request)
 
-### [Developer How-Tos](#developer-how-tos)
+[Developer How-Tos](#developer-how-tos)
 
 - [Style Guidelines](#style-guidelines)
 
@@ -35,11 +35,11 @@ Table of Contents
 
 - [Working with the Parser](#working-with-the-parser)
 
-### [Tips for Maintainers](#tips-for-maintainers)
+[Tips for Maintainers](#tips-for-maintainers)
 
 - [Merging a Pull Request](#merging-a-pull-request)
 
-- [Issue and PR Labels](#issues-and-pr-labels)
+- [Issue and PR Labels](#issue-and-pr-labels)
 
 Ways to Contribute
 ------------------
@@ -174,6 +174,9 @@ When merging PRs, we have a couple of guidelines:
    [Changelog](CHANGELOG.md).
 
 ### Issue and PR Labels
+
+We use a collection of labels to add metadata to the issues and pull requests in
+the pyQuil project.
 
 | Label | Description |
 | --- | --- |
