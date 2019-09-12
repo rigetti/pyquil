@@ -202,7 +202,7 @@ def format_parameter(element):
     if isinstance(element, integer_types) or isinstance(element, np.int_):
         return repr(element)
     elif isinstance(element, float):
-        return _check_for_pi(element)
+        return _expression_to_string(_check_for_pi(element))
     elif isinstance(element, complex):
         out = ''
         r = element.real
@@ -233,6 +233,8 @@ def format_parameter(element):
         return _expression_to_string(element)
     elif isinstance(element, MemoryReference):
         return element.out()
+    elif isinstance(element, str):
+        return element
     assert False, "Invalid parameter: %r" % element
 
 
@@ -464,7 +466,8 @@ class Div(BinaryExp):
         return a / b
 
     def __init__(self, op1, op2):
-        super(Div, self).__init__(op1, op2)
+        super(Div, self).__init__(_check_for_pi(op1) if isinstance(op1, float) else op1,
+                                  _check_for_pi(op2) if isinstance(op2, float) else op2)
 
 
 class Pow(BinaryExp):
@@ -483,7 +486,7 @@ class Pow(BinaryExp):
 def _expression_to_string(expression):
     """
     Recursively converts an expression to a string taking into account precedence and associativity for placing
-    parenthesis
+    parentheses.
 
     :param Expression expression: expression involving parameters
     :return: string such as '%x*(%y-4)'
@@ -549,11 +552,11 @@ def _check_for_pi(element):
         elif abs(num) == 1 and den == 1:
             return sign + "pi"
         elif abs(num) == 1:
-            return sign + "pi/" + repr(den)
+            return Div(sign + "pi", den)
         elif den == 1:
-            return repr(num) + "*pi"
+            return Mul(num, "pi")
         else:
-            return repr(num) + "*pi/" + repr(den)
+            return Mul(num, Div("pi", den))
     else:
         return repr(element)
 

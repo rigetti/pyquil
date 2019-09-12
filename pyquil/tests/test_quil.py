@@ -1298,3 +1298,14 @@ def test_placeholders_preserves_modifiers():
     a = address_qubits(p)
 
     assert a[0].modifiers == g.modifiers
+
+
+def test_arithmetic_pretty_printing():
+    import numpy as np
+    from pyquil.quilatom import _expression_to_string
+    pi = np.pi
+    theta = [2]
+    math = "3 * theta[0] / (2 * pi)"
+    exp = Program(f"RX({math}) 0")[0].params[0]
+
+    assert eval(_expression_to_string(exp)) == eval(math)

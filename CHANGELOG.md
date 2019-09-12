@@ -44,6 +44,8 @@ Changelog
     immediate `float` value. Finally, the `CONVERT` instruction now accepts any valid
     memory reference designator (a `MemoryReference`, a string, or a tuple of type
     `(str, int)`) for both its arguments (@appleby, gh-1010).
+-   Fix the interaction between pretty-printing multiples of π and discarding of
+    parentheses that would lead to incorrect arithmetic expressions (@notmgsk, gh-993).
 
 [v2.11](https://github.com/rigetti/pyquil/compare/v2.10.0...v2.11.0) (September 3, 2019)
 ----------------------------------------------------------------------------------------
