@@ -1,4 +1,5 @@
 import itertools
+import random
 
 import networkx as nx
 import numpy as np
@@ -583,3 +584,24 @@ def test_noisy(forest):
     qc = get_qc('1q-qvm', noisy=True)
     result = qc.run_and_measure(p, trials=10000)
     assert result[0].mean() < 1.0
+
+
+def test_orthogonal_array():
+    def bit_array_to_int(bit_array):
+        output = 0
+        for bit in bit_array:
+            output = (output << 1) | bit
+        return output
+
+    def check_random_columns(oa, strength):
+        column_idxs = random.sample(range(oa.shape[1]), strength)
+        occurences = {entry: 0 for entry in range(2 ** strength)}
+        for row in oa[:, column_idxs]:
+            occurences[bit_array_to_int(row)] += 1
+        assert all([count == occurences[0] for count in occurences.values()])
+
+    for strength in [0, 1, 2, 3]:
+        num_q = random.randint(1, 32)
+        oa = _construct_orthogonal_array(num_q, strength=strength)
+        for _ in range(10):
+            check_random_columns(oa, strength)
