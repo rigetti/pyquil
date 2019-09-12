@@ -19,13 +19,14 @@ Module for facilitating connections to the QVM / QPU.
 import warnings
 
 __all__ = ['QVMConnection', 'QVMCompiler', 'QPUCompiler',
+           'QVMAllocationMethod', 'QVMSimulationMethod',
            'Job', 'Device', 'ForestConnection', 'pyquil_protect',
-           'WavefunctionSimulator', 'QuantumComputer',
+           'WavefunctionSimulator', 'QuantumComputer', 'PersistentQVM'
            'list_quantum_computers', 'get_qc', 'local_forest_runtime', 'local_qvm',
            'QAM', 'QVM', 'QPU', 'QPUConnection',
            'BenchmarkConnection', 'get_benchmarker']
 
-from pyquil.api._base_connection import ForestConnection
+from pyquil.api._base_connection import ForestConnection, QVMAllocationMethod, QVMSimulationMethod
 from pyquil.api._benchmark import BenchmarkConnection, get_benchmarker
 from pyquil.api._compiler import QVMCompiler, QPUCompiler
 from pyquil.api._error_reporting import pyquil_protect
@@ -36,6 +37,7 @@ from pyquil.api._quantum_computer import (QuantumComputer, list_quantum_computer
                                           get_qc, local_forest_runtime, local_qvm)
 from pyquil.api._qvm import QVMConnection, QVM
 from pyquil.api._wavefunction_simulator import WavefunctionSimulator
+from pyquil.api._persistent_qvm import PersistentQVM
 from pyquil.device import Device
 
 

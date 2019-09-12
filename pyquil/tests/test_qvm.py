@@ -10,6 +10,7 @@ from pyquil.api._compiler import _extract_program_from_pyquil_executable_respons
 from pyquil.device import NxDevice
 from pyquil.gates import MEASURE, X, CNOT, H
 from pyquil.quilbase import Declare, MemoryReference
+from pyquil.tests.utils import is_qvm_version_string
 
 
 def test_qvm_run_pqer(forest: ForestConnection):
@@ -77,13 +78,4 @@ def test_roundtrip_pyquilexecutableresponse(compiler):
 def test_qvm_version(forest: ForestConnection):
     qvm = QVM(connection=forest)
     version = qvm.get_version_info()
-
-    def is_a_version_string(version_string: str):
-        parts = version_string.split('.')
-        try:
-            map(int, parts)
-        except ValueError:
-            return False
-        return True
-
-    assert is_a_version_string(version)
+    assert is_qvm_version_string(version)

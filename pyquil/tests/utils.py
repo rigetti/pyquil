@@ -9,6 +9,15 @@ def parse_equals(quil_string, *instructions):
     assert expected == actual
 
 
+def is_qvm_version_string(version_string: str):
+    parts = version_string.split('.')
+    try:
+        map(int, parts)
+    except ValueError:
+        return False
+    return True
+
+
 class DummyCompiler(AbstractCompiler):
     def get_version_info(self):
         return {}

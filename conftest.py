@@ -182,6 +182,19 @@ def forest():
 
 
 @pytest.fixture(scope='session')
+def forest_app_ng():
+    # TODO:(appleby) delete this forest_app_ng fixture and replace all occurrences with the
+    # standard forest fixture once qvm-app-ng is stable and/or backwards compatible enough to be
+    # used by all tests that require a ForestConnection.
+    try:
+        connection = ForestConnection()
+        connection._qvm_ng_get_version_info()
+        return connection
+    except (RequestException, UnknownApiError) as e:
+        return pytest.skip("This test requires a QVM app-ng connection: {}".format(e))
+
+
+@pytest.fixture(scope='session')
 def benchmarker():
     try:
         bm = get_benchmarker(timeout=2)

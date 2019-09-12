@@ -80,6 +80,14 @@ class PyquilConfig(object):
         "default": "http://127.0.0.1:5000"
     }
 
+    QVM_NG_URL = {
+        "env": "QVM_NG_URL",
+        "file": FOREST_CONFIG,
+        "section": "Rigetti Forest",
+        "name": "qvm_ng_address",
+        "default": "http://127.0.0.1:5222"
+    }
+
     QUILC_URL = {
         "env": "QUILC_URL",
         "file": FOREST_CONFIG,
@@ -147,6 +155,10 @@ class PyquilConfig(object):
     @property
     def qvm_url(self):
         return self._env_or_config_or_default(**self.QVM_URL)
+
+    @property
+    def qvm_ng_url(self):
+        return self._env_or_config_or_default(**self.QVM_NG_URL)
 
     @property
     def quilc_url(self):
