@@ -10,13 +10,12 @@ If all you want to do is ask a question, you should do so in our
 [Rigetti Forest Slack Workspace](https://join.slack.com/t/rigetti-forest/shared_invite/enQtNTUyNTE1ODg3MzE2LWExZWU5OTE4YTJhMmE2NGNjMThjOTM1MjlkYTA5ZmUxNTJlOTVmMWE0YjA3Y2M2YmQzNTZhNTBlMTYyODRjMzA)
 rather than opening an issue. Otherwise, read on to learn more!
 
-### Code of Conduct
-
 This project and everyone participating in it is governed by pyQuil's
 [Code of Conduct](.github/CODE_OF_CONDUCT.md). In contributing, you are expected
 to uphold this code. Please report unacceptable behavior by contacting support@rigetti.com.
 
-### Table of Contents
+Table of Contents
+-----------------
 
 [Ways to Contribute](#ways-to-contribute)
 
