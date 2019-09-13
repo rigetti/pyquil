@@ -851,12 +851,10 @@ def _symmetrization(program: Program, meas_qubits: List[int], symm_type: int = 3
     elif symm_type >= 0:
         flip_matrix = _construct_orthogonal_array(len(meas_qubits), symm_type)
 
-    # The next part is not rigorous the sense that we simply truncate to the desired
+    # The next part is not rigorous in the sense that we simply truncate to the desired
     # number of qubits. The problem is that orthogonal arrays of a certain strength for an
     # arbitrary number of qubits are not known to exist.
-    num_expts, num_qubits = flip_matrix.shape
-    if len(meas_qubits) != num_qubits:
-        flip_matrix = flip_matrix[0:num_expts, 0:len(meas_qubits)]
+    flip_matrix = flip_matrix[:, :len(meas_qubits)]
 
     symm_programs = []
     flip_arrays = []
@@ -1067,8 +1065,8 @@ def _construct_strength_two_orthogonal_array(num_qubits: int) -> np.ndarray:
     four_lam = min(x for x in valid_numbers if x >= num_qubits) + 1
     H = hadamard(_next_power_of_2(four_lam))
     # The minus sign in front of H fixes the 0 <-> 1 inversion relative to the reference [OATA]
-    orthogonal_array = ((-H[1:four_lam, 0:four_lam] + 1) / 2).astype(int)
-    return orthogonal_array.T
+    orthogonal_array = ((-H[1:, :].T + 1) / 2).astype(int)
+    return orthogonal_array
 
 
 def _check_min_num_trials_for_symmetrized_readout(num_qubits: int, trials: int, symm_type: int) \
