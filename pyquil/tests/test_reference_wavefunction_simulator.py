@@ -14,6 +14,7 @@ from pyquil.pyqvm import PyQVM
 from pyquil.quil import Program
 from pyquil.reference_simulator import ReferenceWavefunctionSimulator
 from pyquil.quilatom import MemoryReference
+from pyquil.quilbase import Declare
 
 QFT_8_INSTRUCTIONS = [
     H(7),
@@ -430,7 +431,7 @@ def test_while():
 
 
 def test_halt():
-    prog = Program(X(0), MEASURE(0, MemoryReference("ro", 0)))
+    prog = Program(Declare('ro', 'BIT'), X(0), MEASURE(0, MemoryReference("ro", 0)))
     prog.inst(HALT)
     prog.inst(X(0), MEASURE(0, MemoryReference("ro", 0)))
     qam = PyQVM(n_qubits=1, quantum_simulator_type=ReferenceWavefunctionSimulator)
@@ -438,7 +439,7 @@ def test_halt():
     # HALT should stop execution; measure should give 1
     assert qam.ram['ro'][0] == 1
 
-    prog = Program(X(0)).inst(X(0)).inst(MEASURE(0, MemoryReference("ro", 0)))
+    prog = Program(Declare('ro', 'BIT'), X(0)).inst(X(0)).inst(MEASURE(0, MemoryReference("ro", 0)))
     qam = PyQVM(n_qubits=1, quantum_simulator_type=ReferenceWavefunctionSimulator)
     qam.execute(prog)
     assert qam.ram['ro'][0] == 0
@@ -446,7 +447,7 @@ def test_halt():
 
 def test_biased_coin():
     # sample from a 75% heads and 25% tails coin
-    prog = Program().inst(RX(np.pi / 3, 0)).measure(0, MemoryReference("ro", 0))
+    prog = Program().inst(Declare("ro", "BIT"), RX(np.pi / 3, 0)).measure(0, MemoryReference("ro", 0))
 
     results = []
     qam = PyQVM(n_qubits=1, quantum_simulator_type=ReferenceWavefunctionSimulator)
@@ -604,10 +605,12 @@ def _generate_random_program(n_qubits, length, include_measures=False):
         raise ValueError("Please request n_qubits >= 3 so we can use 3-qubit gates.")
 
     gates = list(QUANTUM_GATES.values())
-    if include_measures:
-        gates.append(MEASURE)
 
     prog = Program()
+    if include_measures:
+        gates.append(MEASURE)
+        # one bit of classical memory per qubit
+        prog.declare('ro', 'BIT', n_qubits)
     for _ in range(length):
         gate = random.choice(gates)
         possible_qubits = set(range(n_qubits))
@@ -616,10 +619,13 @@ def _generate_random_program(n_qubits, length, include_measures=False):
         param_vals = []
         for param in sig.parameters:
             if param in ['qubit', 'q1', 'q2', 'control',
-                         'control1', 'control2', 'target', 'target_1', 'target_2',
-                         'classical_reg']:
+                         'control1', 'control2', 'target', 'target_1', 'target_2']:
                 param_val = random.choice(list(possible_qubits))
                 possible_qubits.remove(param_val)
+            elif param == 'classical_reg':
+                qubit = random.choice(list(possible_qubits))
+                param_val = MemoryReference("ro", qubit)
+                possible_qubits.remove(qubit)
             elif param == 'angle':
                 param_val = random.uniform(-2 * pi, 2 * pi)
             else:

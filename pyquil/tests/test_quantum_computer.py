@@ -212,6 +212,7 @@ def test_run(forest):
     )
     bitstrings = qc.run(
         Program(
+            Declare("ro", "BIT", 3),
             H(0),
             CNOT(0, 1),
             CNOT(1, 2),
@@ -274,8 +275,8 @@ def test_readout_symmetrization(forest):
     )
 
     prog = Program(I(0), X(1),
-                   MEASURE(0, MemoryReference("ro", 0)),
-                   MEASURE(1, MemoryReference("ro", 1)))
+                   MEASURE(0, MemoryReference('ro', 0)),
+                   MEASURE(1, MemoryReference('ro', 1)))
     prog.wrap_in_numshots_loop(1000)
 
     bs1 = qc.run(prog)
@@ -473,7 +474,7 @@ def test_run_and_measure(local_qvm_quilc):
 
 
 def test_qvm_compile_pickiness(forest):
-    p = Program(X(0), MEASURE(0, 0))
+    p = Program(Declare('ro', 'BIT'), X(0), MEASURE(0, MemoryReference('ro')))
     p.wrap_in_numshots_loop(1000)
     nq = PyQuilExecutableResponse(program=p.out(), attributes={'num_shots': 1000})
 

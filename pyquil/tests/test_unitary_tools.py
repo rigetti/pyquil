@@ -9,6 +9,7 @@ from pyquil.paulis import sX, sY, sZ
 from pyquil.unitary_tools import qubit_adjacent_lifted_gate, program_unitary, lifted_gate_matrix, \
     lifted_gate, lifted_pauli, lifted_state_operator
 from pyquil.quilatom import MemoryReference
+from pyquil.quilbase import Declare
 
 
 def test_random_gates():
@@ -62,7 +63,7 @@ def test_qaoa_unitary():
 
 
 def test_unitary_measure():
-    prog = Program(H(0), H(1), MEASURE(0, MemoryReference("ro", 0)))
+    prog = Program(Declare('ro', 'BIT'), H(0), H(1), MEASURE(0, MemoryReference("ro", 0)))
     with pytest.raises(ValueError):
         program_unitary(prog, n_qubits=2)
 
