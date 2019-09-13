@@ -594,8 +594,10 @@ def test_orthogonal_array():
         return output
 
     def check_random_columns(oa, strength):
-        column_idxs = random.sample(range(oa.shape[1]), strength)
-        occurences = {entry: 0 for entry in range(2 ** strength)}
+        num_q = oa.shape[1]
+        num_cols = min(num_q, strength)
+        column_idxs = random.sample(range(num_q), num_cols)
+        occurences = {entry: 0 for entry in range(2 ** num_cols)}
         for row in oa[:, column_idxs]:
             occurences[bit_array_to_int(row)] += 1
         assert all([count == occurences[0] for count in occurences.values()])
