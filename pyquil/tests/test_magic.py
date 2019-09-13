@@ -1,5 +1,6 @@
 from pyquil.magic import *
 
+
 @magicquil
 def bell_state(q1, q2):
     H(q1)
