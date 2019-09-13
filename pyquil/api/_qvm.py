@@ -518,7 +518,7 @@ To read more about supplying noise to the QVM, see http://pyquil.readthedocs.io/
                                                         gate_noise=self.gate_noise,
                                                         random_seed=self.random_seed)
 
-        if "ro" not in self._memory_results or self._memory_results["ro"] == []:
+        if "ro" not in self._memory_results or len(self._memory_results["ro"]) == 0:
             self._memory_results["ro"] = np.zeros((trials, 0), dtype=np.int64)
 
         return self
