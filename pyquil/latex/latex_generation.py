@@ -93,6 +93,8 @@ def body(circuit, settings):
         v.append(command(ALLOCATE, [k], [], [k], k))
 
     for inst in circuit:
+        # Ignore everything that is neither a Gate nor a Measurement
+        # (e.g. a Pragma)
         if not isinstance(inst, Gate) and not isinstance(inst, Measurement):
             continue
         qubits = [qubit.index for qubit in inst.qubits]
