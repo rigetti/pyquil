@@ -603,7 +603,7 @@ def test_orthogonal_array():
         assert all([count == occurences[0] for count in occurences.values()])
 
     for strength in [0, 1, 2, 3]:
-        for num_q in range(1,64):
+        for num_q in range(1, 64):
             oa = _construct_orthogonal_array(num_q, strength=strength)
             for _ in range(10):
                 check_random_columns(oa, strength)
