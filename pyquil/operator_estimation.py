@@ -109,6 +109,20 @@ class TensorProductState:
         return TensorProductState(tuple(_OneQState.from_str(x) for x in s.split('*')))
 
 
+def _pauli_to_product_state(in_state: PauliTerm) -> TensorProductState:
+    """
+    Convert a Pauli term to a TensorProductState.
+    """
+    if is_identity(in_state):
+        in_state = TensorProductState()
+    else:
+        in_state = TensorProductState([
+            _OneQState(label=pauli_label, index=0, qubit=qubit)
+            for qubit, pauli_label in in_state._ops.items()
+        ])
+    return in_state
+
+
 def SIC0(q):
     return TensorProductState((_OneQState('SIC', 0, q),))
 
@@ -177,15 +191,7 @@ class ExperimentSetting:
         if isinstance(in_state, PauliTerm):
             warnings.warn("Please specify in_state as a TensorProductState",
                           DeprecationWarning, stacklevel=2)
-
-            if is_identity(in_state):
-                in_state = TensorProductState()
-            else:
-                in_state = TensorProductState([
-                    _OneQState(label=pauli_label, index=0, qubit=qubit)
-                    for qubit, pauli_label in in_state._ops.items()
-                ])
-
+            in_state = _pauli_to_product_state(in_state)
         object.__setattr__(self, 'in_state', in_state)
         object.__setattr__(self, 'out_operator', out_operator)
 

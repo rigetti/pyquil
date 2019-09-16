@@ -14,6 +14,7 @@ from pyquil.reference_simulator import ReferenceWavefunctionSimulator
 from pyquil.tests.test_reference_wavefunction_simulator import _generate_random_program, \
     _generate_random_pauli
 from pyquil.quilatom import MemoryReference
+from pyquil.quilbase import Declare
 
 
 def test_H_einsum():
@@ -98,6 +99,7 @@ def test_einsum_simulator_10q():
 def test_measure():
     qam = PyQVM(n_qubits=3, quantum_simulator_type=NumpyWavefunctionSimulator)
     qam.execute(Program(
+        Declare("ro", "BIT", 64),
         H(0),
         CNOT(0, 1),
         MEASURE(0, MemoryReference("ro", 63))

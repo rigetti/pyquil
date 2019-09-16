@@ -21,7 +21,7 @@ def fast_reset(q1):
 
 
 def test_fast_reset():
-    assert fast_reset(0) == Program('MEASURE 0 ro[0]').if_then(("ro", 0), Program('X 0'), Program('I 0'))
+    assert fast_reset(0) == Program('DECLARE ro BIT\nMEASURE 0 ro[0]').if_then(("ro", 0), Program('X 0'), Program('I 0'))
 
 
 @magicquil
@@ -32,7 +32,7 @@ def no_else(q1):
 
 
 def test_no_else():
-    assert no_else(0) == Program('MEASURE 0 ro[0]').if_then(("ro", 0), Program('X 0'))
+    assert no_else(0) == Program('DECLARE ro BIT\nMEASURE 0 ro[0]').if_then(("ro", 0), Program('X 0'))
 
 
 @magicquil
@@ -46,7 +46,7 @@ def with_elif(q1, q2):
 
 
 def test_with_elif():
-    assert with_elif(0, 1) == Program('MEASURE 0 ro[0]\nMEASURE 1 ro[1]')\
+    assert with_elif(0, 1) == Program('DECLARE ro BIT[2]\nMEASURE 0 ro[0]\nMEASURE 1 ro[1]')\
         .if_then(("ro", 0), Program('X 0'), Program().if_then(("ro", 1), Program('X 1')))
 
 
