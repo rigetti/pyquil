@@ -553,8 +553,8 @@ def NOT(classical_reg: MemoryReferenceDesignator) -> ClassicalNot:
     return ClassicalNot(unpack_classical_reg(classical_reg))
 
 
-def AND(classical_reg1: MemoryReferenceDesignator, classical_reg2: MemoryReferenceOrImmediateValue) \
-    -> ClassicalAnd:
+def AND(classical_reg1: MemoryReferenceDesignator,
+        classical_reg2: MemoryReferenceOrImmediateValue) -> ClassicalAnd:
     """
     Produce an AND instruction.
 
@@ -568,8 +568,8 @@ def AND(classical_reg1: MemoryReferenceDesignator, classical_reg2: MemoryReferen
     return ClassicalAnd(left, right)
 
 
-def OR(classical_reg1: MemoryReferenceDesignator, classical_reg2: MemoryReferenceDesignator) \
-    -> ClassicalInclusiveOr:
+def OR(classical_reg1: MemoryReferenceDesignator,
+       classical_reg2: MemoryReferenceDesignator) -> ClassicalInclusiveOr:
     """
     Produce an OR instruction.
 
@@ -583,8 +583,8 @@ def OR(classical_reg1: MemoryReferenceDesignator, classical_reg2: MemoryReferenc
     return IOR(classical_reg2, classical_reg1)
 
 
-def IOR(classical_reg1: MemoryReferenceDesignator, classical_reg2: MemoryReferenceOrImmediateValue) \
-    -> ClassicalInclusiveOr:
+def IOR(classical_reg1: MemoryReferenceDesignator,
+        classical_reg2: MemoryReferenceOrImmediateValue) -> ClassicalInclusiveOr:
     """
     Produce an inclusive OR instruction.
 
@@ -596,8 +596,8 @@ def IOR(classical_reg1: MemoryReferenceDesignator, classical_reg2: MemoryReferen
     return ClassicalInclusiveOr(left, right)
 
 
-def XOR(classical_reg1: MemoryReferenceDesignator, classical_reg2: MemoryReferenceOrImmediateValue) \
-    -> ClassicalExclusiveOr:
+def XOR(classical_reg1: MemoryReferenceDesignator,
+        classical_reg2: MemoryReferenceOrImmediateValue) -> ClassicalExclusiveOr:
     """
     Produce an exclusive OR instruction.
 
@@ -609,8 +609,8 @@ def XOR(classical_reg1: MemoryReferenceDesignator, classical_reg2: MemoryReferen
     return ClassicalExclusiveOr(left, right)
 
 
-def MOVE(classical_reg1: MemoryReferenceDesignator, classical_reg2: MemoryReferenceOrImmediateValue) \
-    -> ClassicalMove:
+def MOVE(classical_reg1: MemoryReferenceDesignator,
+         classical_reg2: MemoryReferenceOrImmediateValue) -> ClassicalMove:
     """
     Produce a MOVE instruction.
 
@@ -622,8 +622,8 @@ def MOVE(classical_reg1: MemoryReferenceDesignator, classical_reg2: MemoryRefere
     return ClassicalMove(left, right)
 
 
-def EXCHANGE(classical_reg1: MemoryReferenceDesignator, classical_reg2: MemoryReferenceDesignator) \
-    -> ClassicalExchange:
+def EXCHANGE(classical_reg1: MemoryReferenceDesignator,
+             classical_reg2: MemoryReferenceDesignator) -> ClassicalExchange:
     """
     Produce an EXCHANGE instruction.
 
@@ -653,8 +653,9 @@ def LOAD(target_reg: MemoryReferenceDesignator,
 # TODO:(appleby) Docstring wrong here? ClassicalStore's __init__ will throw an exception if either
 # of the last two args are not MemoryReferences. Perhaps the comment should say that offset_reg can
 # be either MemoryReference or constant (i.e. MemoryReferenceDesignator)?
-def STORE(region_name: str, offset_reg: MemoryReferenceDesignator, source: MemoryReference) \
-    -> ClassicalStore:
+def STORE(region_name: str,
+          offset_reg: MemoryReferenceDesignator,
+          source: MemoryReference) -> ClassicalStore:
     """
     Produce a STORE instruction.
 
@@ -681,8 +682,8 @@ def CONVERT(classical_reg1: MemoryReference, classical_reg2: MemoryReference) ->
                             unpack_classical_reg(classical_reg2))
 
 
-def ADD(classical_reg: MemoryReferenceDesignator, right: MemoryReferenceOrImmediateValue) \
-    -> ClassicalAdd:
+def ADD(classical_reg: MemoryReferenceDesignator,
+        right: MemoryReferenceOrImmediateValue) -> ClassicalAdd:
     """
     Produce an ADD instruction.
 
@@ -694,8 +695,8 @@ def ADD(classical_reg: MemoryReferenceDesignator, right: MemoryReferenceOrImmedi
     return ClassicalAdd(left, right)
 
 
-def SUB(classical_reg: MemoryReferenceDesignator, right: MemoryReferenceOrImmediateValue) \
-    -> ClassicalSub:
+def SUB(classical_reg: MemoryReferenceDesignator,
+        right: MemoryReferenceOrImmediateValue) -> ClassicalSub:
     """
     Produce a SUB instruction.
 
@@ -707,8 +708,8 @@ def SUB(classical_reg: MemoryReferenceDesignator, right: MemoryReferenceOrImmedi
     return ClassicalSub(left, right)
 
 
-def MUL(classical_reg: MemoryReferenceDesignator, right: MemoryReferenceOrImmediateValue) \
-    -> ClassicalMul:
+def MUL(classical_reg: MemoryReferenceDesignator,
+        right: MemoryReferenceOrImmediateValue) -> ClassicalMul:
     """
     Produce a MUL instruction.
 
@@ -720,8 +721,8 @@ def MUL(classical_reg: MemoryReferenceDesignator, right: MemoryReferenceOrImmedi
     return ClassicalMul(left, right)
 
 
-def DIV(classical_reg: MemoryReferenceDesignator, right: MemoryReferenceOrImmediateValue) \
-    -> ClassicalDiv:
+def DIV(classical_reg: MemoryReferenceDesignator,
+        right: MemoryReferenceOrImmediateValue) -> ClassicalDiv:
     """
     Produce an DIV instruction.
 
