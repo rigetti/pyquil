@@ -31,7 +31,8 @@ from pyquil.quilatom import QubitPlaceholder
 from .quil import Program
 from .gates import I, H, RZ, RX, CNOT, X, PHASE, QUANTUM_GATES
 from numbers import Number
-from collections import Sequence, OrderedDict
+from collections import OrderedDict
+from collections.abc import Sequence
 import warnings
 from six import integer_types as six_integer_types
 from six.moves import range
