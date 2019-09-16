@@ -24,6 +24,7 @@ Changelog
 -   Deleted the deprecated modules `parameters.py` and `qpu.py` (@karalekas, gh-991).
 -   The test suite for pyQuil now runs much faster, by setting the default value
     of the `--use-seed` option for `pytest` to `True` (@karalekas, gh-992).
+-   Support non-gate instructions (e.g. `MEASURE`) in `to_latex()` (@notmgsk, gh-975).
 -   Test suite has been updated to reduce the use of deprecated features
     (@kilimanjaro, gh-998).
 
