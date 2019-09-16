@@ -463,7 +463,7 @@ def test_qc_error():
 
 
 def test_run_and_measure(local_qvm_quilc):
-    qc = get_qc("9q-generic-qvm")
+    qc = get_qc("9q-square-qvm")
     prog = Program(I(8))
     trials = 11
     # note to devs: this is included as an example in the run_and_measure docstrings
