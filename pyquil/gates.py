@@ -31,7 +31,9 @@ from pyquil.quilbase import (AbstractInstruction, Gate, Halt, Reset, ResetQubit,
 
 MemoryReferenceOrImmediateValue = Union[MemoryReferenceDesignator, int, float]
 MemoryReferenceOrImmediateInt = Union[MemoryReferenceDesignator, int]
+# TODO:(appleby) Should this type just be quilatom.ParameterDesignator?
 GateParameter = Union[Parameter, MemoryReference, int, float, complex]
+
 
 def unpack_reg_val_pair(classical_reg1: MemoryReferenceDesignator,
                         classical_reg2: MemoryReferenceOrImmediateValue) \
