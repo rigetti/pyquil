@@ -16,6 +16,7 @@
 import numpy as np
 from warnings import warn
 from fractions import Fraction
+from typing import List, Tuple, Union
 
 
 class QuilAtom(object):
@@ -103,7 +104,10 @@ class QubitPlaceholder(QuilAtom):
         return [cls() for _ in range(n)]
 
 
-def unpack_qubit(qubit):
+QubitDesignator = Union[Qubit, QubitPlaceholder, int]
+
+
+def unpack_qubit(qubit: QubitDesignator) -> Union[Qubit, QubitPlaceholder]:
     """
     Get a qubit from an object.
 
@@ -118,31 +122,6 @@ def unpack_qubit(qubit):
         return qubit
     else:
         raise TypeError("qubit should be an int or Qubit instance")
-
-
-def unpack_classical_reg(c):
-    """
-    Get the address for a classical register.
-
-    :param c: A list of length 2, a pair, a string (to be interpreted as name[0]), or a MemoryReference.
-    :return: The address as a MemoryReference.
-    """
-    if isinstance(c, list) or isinstance(c, tuple):
-        if len(c) > 2 or len(c) == 0:
-            raise ValueError("if c is a list/tuple, it should be of length <= 2")
-        if len(c) == 1:
-            c = (c[0], 0)
-        if not isinstance(c[0], str):
-            raise ValueError("if c is a list/tuple, its first member should be a string")
-        if not isinstance(c[1], int):
-            raise ValueError("if c is a list/tuple, its second member should be an int")
-        return MemoryReference(c[0], c[1])
-    if isinstance(c, MemoryReference):
-        return c
-    elif isinstance(c, str):
-        return MemoryReference(c, 0)
-    else:
-        raise TypeError("c should be a list of length 2, a pair, a string, or a MemoryReference")
 
 
 class Label(QuilAtom):
@@ -634,3 +613,33 @@ class Addr(MemoryReference):
         if not isinstance(value, int) or value < 0:
             raise TypeError("Addr value must be a non-negative int")
         super(Addr, self).__init__("ro", offset=value, declared_size=None)
+
+
+# Like the Tuple, the List must be length 2, where the first item is a string and the second is an
+# int.
+MemoryReferenceDesignator = Union[MemoryReference, str, Tuple[str, int], List[Union[str, int]]]
+
+
+def unpack_classical_reg(c: MemoryReferenceDesignator) -> MemoryReference:
+    """
+    Get the address for a classical register.
+
+    :param c: A list of length 2, a pair, a string (to be interpreted as name[0]), or a MemoryReference.
+    :return: The address as a MemoryReference.
+    """
+    if isinstance(c, list) or isinstance(c, tuple):
+        if len(c) > 2 or len(c) == 0:
+            raise ValueError("if c is a list/tuple, it should be of length <= 2")
+        if len(c) == 1:
+            c = (c[0], 0)
+        if not isinstance(c[0], str):
+            raise ValueError("if c is a list/tuple, its first member should be a string")
+        if not isinstance(c[1], int):
+            raise ValueError("if c is a list/tuple, its second member should be an int")
+        return MemoryReference(c[0], c[1])
+    if isinstance(c, MemoryReference):
+        return c
+    elif isinstance(c, str):
+        return MemoryReference(c, 0)
+    else:
+        raise TypeError("c should be a list of length 2, a pair, a string, or a MemoryReference")
