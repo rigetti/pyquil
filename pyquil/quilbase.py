@@ -736,8 +736,9 @@ class ClassicalStore(AbstractInstruction):
     def __init__(self, target, left, right):
         if not isinstance(left, MemoryReference):
             raise TypeError("left operand should be an MemoryReference")
-        if not isinstance(right, MemoryReference):
-            raise TypeError("right operand should be an MemoryReference")
+        if not (isinstance(right, MemoryReference) or isinstance(right, int)
+                or isinstance(right, float)):
+            raise TypeError("right operand should be an MemoryReference or an int or float.")
         self.target = target
         self.left = left
         self.right = right

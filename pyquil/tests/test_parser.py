@@ -202,6 +202,7 @@ def test_memory_commands():
     parse_equals("DECLARE mem OCTET[32] SHARING mem2 OFFSET 16 REAL OFFSET 32 REAL",
                  Declare("mem", "OCTET", 32, shared_region="mem2", offsets=[(16, "REAL"), (32, "REAL")]))
     parse_equals("STORE mem ro[2] ro[0]", STORE("mem", MemoryReference("ro", 2), MemoryReference("ro", 0)))
+    parse_equals("STORE mem ro[2] 7", STORE("mem", MemoryReference("ro", 2), 7))
     parse_equals("LOAD ro[8] mem mem[4]", LOAD(MemoryReference("ro", 8), "mem", MemoryReference("mem", 4)))
     parse_equals("CONVERT ro[1] ro[2]", CONVERT(MemoryReference("ro", 1), MemoryReference("ro", 2)))
     parse_equals("EXCHANGE ro[0] ro[1]", EXCHANGE(MemoryReference("ro", 0), MemoryReference("ro", 1)))
@@ -236,6 +237,26 @@ def test_classical():
                  GT(MemoryReference("comp", 1), MemoryReference("ro", 3), MemoryReference("ro", 2)))
     parse_equals("GE comp[1] ro[3] ro[2]",
                  GE(MemoryReference("comp", 1), MemoryReference("ro", 3), MemoryReference("ro", 2)))
+    parse_equals("EQ comp[1] ro[3] 0",
+                 EQ(MemoryReference("comp", 1), MemoryReference("ro", 3), 0))
+    parse_equals("LT comp[1] ro[3] 1",
+                 LT(MemoryReference("comp", 1), MemoryReference("ro", 3), 1))
+    parse_equals("LE comp[1] ro[3] 2",
+                 LE(MemoryReference("comp", 1), MemoryReference("ro", 3), 2))
+    parse_equals("GT comp[1] ro[3] 3",
+                 GT(MemoryReference("comp", 1), MemoryReference("ro", 3), 3))
+    parse_equals("GE comp[1] ro[3] 4",
+                 GE(MemoryReference("comp", 1), MemoryReference("ro", 3), 4))
+    parse_equals("EQ comp[1] ro[3] 0.0",
+                 EQ(MemoryReference("comp", 1), MemoryReference("ro", 3), 0.0))
+    parse_equals("LT comp[1] ro[3] 1.1",
+                 LT(MemoryReference("comp", 1), MemoryReference("ro", 3), 1.1))
+    parse_equals("LE comp[1] ro[3] 2.2",
+                 LE(MemoryReference("comp", 1), MemoryReference("ro", 3), 2.2))
+    parse_equals("GT comp[1] ro[3] 3.3",
+                 GT(MemoryReference("comp", 1), MemoryReference("ro", 3), 3.3))
+    parse_equals("GE comp[1] ro[3] 4.4",
+                 GE(MemoryReference("comp", 1), MemoryReference("ro", 3), 4.4))
 
 
 def test_pragma():

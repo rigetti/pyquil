@@ -58,7 +58,7 @@ def prepare_ternary_operands(classical_reg1, classical_reg2, classical_reg3):
     if isinstance(classical_reg2, int):
         raise TypeError("Left operand of comparison must be a memory address")
     classical_reg2 = unpack_classical_reg(classical_reg2)
-    if not isinstance(classical_reg3, int):
+    if not isinstance(classical_reg3, int) and not isinstance(classical_reg3, float):
         classical_reg3 = unpack_classical_reg(classical_reg3)
 
     return classical_reg1, classical_reg2, classical_reg3
@@ -639,6 +639,8 @@ def STORE(region_name, offset_reg, source):
     :param source: Source data. Can be either a MemoryReference or a constant.
     :return: A ClassicalStore instance.
     """
+    if not isinstance(source, int) and not isinstance(source, float):
+        source = unpack_classical_reg(source)
     return ClassicalStore(region_name, unpack_classical_reg(offset_reg), source)
 
 
@@ -648,9 +650,10 @@ def CONVERT(classical_reg1, classical_reg2):
 
     :param classical_reg1: MemoryReference to store to.
     :param classical_reg2: MemoryReference to read from.
-    :return: A ClassicalCONVERT instance.
+    :return: A ClassicalConvert instance.
     """
-    return ClassicalConvert(classical_reg1, classical_reg2)
+    return ClassicalConvert(unpack_classical_reg(classical_reg1),
+                            unpack_classical_reg(classical_reg2))
 
 
 def ADD(classical_reg, right):

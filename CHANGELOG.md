@@ -35,9 +35,17 @@ Changelog
 
 ### Bugfixes
 
--   Strength two symmetrization was not correctly producing orthogonal 
-    arrays due to erroneous truncation, which has been fixed 
-    (@kylegulshen, gh-990).
+-   Strength two symmetrization was not correctly producing orthogonal arrays due to erroneous
+    truncation, which has been fixed (@kylegulshen, gh-990).
+-   The `STORE` instruction now accepts `int` or `float` in addition to `MemoryReference` as it's
+    `source` argument. As a result, you can now `STORE` an immediate value into a memory register
+    (@appleby, gh-1010).
+-   The `EQ`, `LT`, `LE`, `GT`, and `GE` instructions now all accept `float` in addition to `int` or
+    `MemoryReference` as their third and final argument. As a result, you can now perform classical
+    comparisons against an immediate `float` value (@appleby, gh-1010).
+-   The `CONVERT` instruction now accepts any valid memory reference designator for both it's
+    arguments, i.e. a `MemoryReference`, a string, or a tuple of type `(str, int)`
+    (@appleby, gh-1010).
 
 [v2.11](https://github.com/rigetti/pyquil/compare/v2.10.0...v2.11.0) (September 3, 2019)
 ----------------------------------------------------------------------------------------
