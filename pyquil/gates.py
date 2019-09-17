@@ -16,8 +16,9 @@
 from warnings import warn
 from typing import Any, Callable, Dict, Optional, Tuple, Union
 
-from pyquil.quilatom import (Addr, MemoryReference, MemoryReferenceDesignator, Parameter, Qubit,
-                             QubitDesignator, QubitPlaceholder, unpack_classical_reg, unpack_qubit)
+from pyquil.quilatom import (Addr, MemoryReference, MemoryReferenceDesignator, Parameter,
+                             ParameterDesignator, Qubit, QubitDesignator, QubitPlaceholder,
+                             unpack_classical_reg, unpack_qubit)
 from pyquil.quilbase import (AbstractInstruction, Gate, Halt, Reset, ResetQubit, Measurement, Nop,
                              Wait,
                              ClassicalNeg, ClassicalNot,
@@ -30,9 +31,6 @@ from pyquil.quilbase import (AbstractInstruction, Gate, Halt, Reset, ResetQubit,
 
 
 MemoryReferenceOrImmediateValue = Union[MemoryReferenceDesignator, int, float]
-MemoryReferenceOrImmediateInt = Union[MemoryReferenceDesignator, int]
-# TODO:(appleby) Should this type just be quilatom.ParameterDesignator?
-GateParameter = Union[Parameter, MemoryReference, int, float, complex]
 
 
 def unpack_reg_val_pair(classical_reg1: MemoryReferenceDesignator,
@@ -53,9 +51,8 @@ def unpack_reg_val_pair(classical_reg1: MemoryReferenceDesignator,
 
 def prepare_ternary_operands(classical_reg1: MemoryReferenceDesignator,
                              classical_reg2: MemoryReferenceDesignator,
-                             # TODO:(appleby) why doesn't prepare_ternary_operands allow floats for classical_reg3
-                             classical_reg3: MemoryReferenceOrImmediateInt) \
-                             -> Tuple[MemoryReference, MemoryReference, MemoryReferenceOrImmediateInt]:
+                             classical_reg3: MemoryReferenceOrImmediateValue) \
+                             -> Tuple[MemoryReference, MemoryReference, MemoryReferenceOrImmediateValue]:
     """
     Helper function for typechecking / type-coercing arguments to constructors for ternary classical operators.
 
@@ -177,7 +174,7 @@ def T(qubit: QubitDesignator) -> Gate:
     return Gate(name="T", params=[], qubits=[unpack_qubit(qubit)])
 
 
-def RX(angle: GateParameter, qubit: QubitDesignator) -> Gate:
+def RX(angle: ParameterDesignator, qubit: QubitDesignator) -> Gate:
     """Produces the RX gate::
 
         RX(phi) = [[cos(phi / 2), -1j * sin(phi / 2)],
@@ -192,7 +189,7 @@ def RX(angle: GateParameter, qubit: QubitDesignator) -> Gate:
     return Gate(name="RX", params=[angle], qubits=[unpack_qubit(qubit)])
 
 
-def RY(angle: GateParameter, qubit: QubitDesignator) -> Gate:
+def RY(angle: ParameterDesignator, qubit: QubitDesignator) -> Gate:
     """Produces the RY gate::
 
         RY(phi) = [[cos(phi / 2), -sin(phi / 2)],
@@ -207,7 +204,7 @@ def RY(angle: GateParameter, qubit: QubitDesignator) -> Gate:
     return Gate(name="RY", params=[angle], qubits=[unpack_qubit(qubit)])
 
 
-def RZ(angle: GateParameter, qubit: QubitDesignator) -> Gate:
+def RZ(angle: ParameterDesignator, qubit: QubitDesignator) -> Gate:
     """Produces the RZ gate::
 
         RZ(phi) = [[cos(phi / 2) - 1j * sin(phi / 2), 0]
@@ -222,7 +219,7 @@ def RZ(angle: GateParameter, qubit: QubitDesignator) -> Gate:
     return Gate(name="RZ", params=[angle], qubits=[unpack_qubit(qubit)])
 
 
-def PHASE(angle: GateParameter, qubit: QubitDesignator) -> Gate:
+def PHASE(angle: ParameterDesignator, qubit: QubitDesignator) -> Gate:
     """Produces the PHASE gate::
 
         PHASE(phi) = [[1, 0],
@@ -299,7 +296,7 @@ def CCNOT(control1: QubitDesignator, control2: QubitDesignator, target: QubitDes
     return Gate(name="CCNOT", params=[], qubits=qubits)
 
 
-def CPHASE00(angle: GateParameter, control: QubitDesignator, target: QubitDesignator) -> Gate:
+def CPHASE00(angle: ParameterDesignator, control: QubitDesignator, target: QubitDesignator) -> Gate:
     """Produces a controlled-phase gate that phases the ``|00>`` state::
 
         CPHASE00(phi) = diag([exp(1j * phi), 1, 1, 1])
@@ -316,7 +313,7 @@ def CPHASE00(angle: GateParameter, control: QubitDesignator, target: QubitDesign
     return Gate(name="CPHASE00", params=[angle], qubits=qubits)
 
 
-def CPHASE01(angle: GateParameter, control: QubitDesignator, target: QubitDesignator) -> Gate:
+def CPHASE01(angle: ParameterDesignator, control: QubitDesignator, target: QubitDesignator) -> Gate:
     """Produces a controlled-phase gate that phases the ``|01>`` state::
 
         CPHASE01(phi) = diag([1.0, exp(1j * phi), 1.0, 1.0])
@@ -334,7 +331,7 @@ def CPHASE01(angle: GateParameter, control: QubitDesignator, target: QubitDesign
     return Gate(name="CPHASE01", params=[angle], qubits=qubits)
 
 
-def CPHASE10(angle: GateParameter, control: QubitDesignator, target: QubitDesignator) -> Gate:
+def CPHASE10(angle: ParameterDesignator, control: QubitDesignator, target: QubitDesignator) -> Gate:
     """Produces a controlled-phase gate that phases the ``|10>`` state::
 
         CPHASE10(phi) = diag([1, 1, exp(1j * phi), 1])
@@ -352,7 +349,7 @@ def CPHASE10(angle: GateParameter, control: QubitDesignator, target: QubitDesign
     return Gate(name="CPHASE10", params=[angle], qubits=qubits)
 
 
-def CPHASE(angle: GateParameter, control: QubitDesignator, target: QubitDesignator) -> Gate:
+def CPHASE(angle: ParameterDesignator, control: QubitDesignator, target: QubitDesignator) -> Gate:
     """Produces a controlled-phase instruction::
 
         CPHASE(phi) = diag([1, 1, 1, exp(1j * phi)])
@@ -428,7 +425,7 @@ def ISWAP(q1: QubitDesignator, q2: QubitDesignator) -> Gate:
     return Gate(name="ISWAP", params=[], qubits=[unpack_qubit(q) for q in (q1, q2)])
 
 
-def PSWAP(angle: GateParameter, q1: QubitDesignator, q2: QubitDesignator) -> Gate:
+def PSWAP(angle: ParameterDesignator, q1: QubitDesignator, q2: QubitDesignator) -> Gate:
     """Produces a parameterized SWAP gate::
 
         PSWAP(phi) = [[1, 0,             0,             0],
@@ -650,12 +647,9 @@ def LOAD(target_reg: MemoryReferenceDesignator,
     return ClassicalLoad(unpack_classical_reg(target_reg), region_name, unpack_classical_reg(offset_reg))
 
 
-# TODO:(appleby) Docstring wrong here? ClassicalStore's __init__ will throw an exception if either
-# of the last two args are not MemoryReferences. Perhaps the comment should say that offset_reg can
-# be either MemoryReference or constant (i.e. MemoryReferenceDesignator)?
 def STORE(region_name: str,
           offset_reg: MemoryReferenceDesignator,
-          source: MemoryReference) -> ClassicalStore:
+          source: MemoryReferenceOrImmediateValue) -> ClassicalStore:
     """
     Produce a STORE instruction.
 
@@ -669,8 +663,8 @@ def STORE(region_name: str,
     return ClassicalStore(region_name, unpack_classical_reg(offset_reg), source)
 
 
-# TODO:(appleby) should this take 2 MemoryReferenceDesignators and call unpack_classical_reg on them?
-def CONVERT(classical_reg1: MemoryReference, classical_reg2: MemoryReference) -> ClassicalConvert:
+def CONVERT(classical_reg1: MemoryReferenceDesignator,
+            classical_reg2: MemoryReferenceDesignator) -> ClassicalConvert:
     """
     Produce a CONVERT instruction.
 
@@ -736,7 +730,7 @@ def DIV(classical_reg: MemoryReferenceDesignator,
 
 def EQ(classical_reg1: MemoryReferenceDesignator,
        classical_reg2: MemoryReferenceDesignator,
-       classical_reg3: MemoryReferenceOrImmediateInt) -> ClassicalEqual:
+       classical_reg3: MemoryReferenceOrImmediateValue) -> ClassicalEqual:
     """
     Produce an EQ instruction.
 
@@ -754,7 +748,7 @@ def EQ(classical_reg1: MemoryReferenceDesignator,
 
 def LT(classical_reg1: MemoryReferenceDesignator,
        classical_reg2: MemoryReferenceDesignator,
-       classical_reg3: MemoryReferenceOrImmediateInt) -> ClassicalLessThan:
+       classical_reg3: MemoryReferenceOrImmediateValue) -> ClassicalLessThan:
     """
     Produce an LT instruction.
 
@@ -771,7 +765,7 @@ def LT(classical_reg1: MemoryReferenceDesignator,
 
 def LE(classical_reg1: MemoryReferenceDesignator,
        classical_reg2: MemoryReferenceDesignator,
-       classical_reg3: MemoryReferenceOrImmediateInt) -> ClassicalLessEqual:
+       classical_reg3: MemoryReferenceOrImmediateValue) -> ClassicalLessEqual:
     """
     Produce an LE instruction.
 
@@ -788,7 +782,7 @@ def LE(classical_reg1: MemoryReferenceDesignator,
 
 def GT(classical_reg1: MemoryReferenceDesignator,
        classical_reg2: MemoryReferenceDesignator,
-       classical_reg3: MemoryReferenceOrImmediateInt) -> ClassicalGreaterThan:
+       classical_reg3: MemoryReferenceOrImmediateValue) -> ClassicalGreaterThan:
     """
     Produce an GT instruction.
 
@@ -805,7 +799,7 @@ def GT(classical_reg1: MemoryReferenceDesignator,
 
 def GE(classical_reg1: MemoryReferenceDesignator,
        classical_reg2: MemoryReferenceDesignator,
-       classical_reg3: MemoryReferenceOrImmediateInt) -> ClassicalGreaterEqual:
+       classical_reg3: MemoryReferenceOrImmediateValue) -> ClassicalGreaterEqual:
     """
     Produce an GE instruction.
 

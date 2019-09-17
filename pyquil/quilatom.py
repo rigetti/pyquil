@@ -409,12 +409,10 @@ class BinaryExp(Expression):
     precedence: ClassVar[int]
     associates: ClassVar[str]
 
-    # TODO:(appleby) what are a and b types? Expression?
     @staticmethod
     def fn(a: ExpressionOrValue, b: ExpressionOrValue):
         raise NotImplementedError
 
-    # TODO:(appleby) what are op types? Expression?
     def __init__(self, op1: ExpressionOrValue, op2: ExpressionOrValue) -> None:
         self.op1 = op1
         self.op2 = op2
