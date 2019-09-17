@@ -1,5 +1,6 @@
 import pytest
-from pyquil.gates import *
+from pyquil.gates import (CNOT, CPHASE, CPHASE00, CPHASE01, CPHASE10, CZ, H, I, ISWAP, PHASE, PSWAP,
+                          RX, RY, RZ, S, SWAP, T, X, Y, Z)
 from pyquil.quilbase import _strip_modifiers
 
 
