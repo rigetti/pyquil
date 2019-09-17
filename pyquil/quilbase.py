@@ -88,8 +88,13 @@ class Gate(AbstractInstruction):
     This is the pyQuil object for a quantum gate instruction.
     """
 
+<<<<<<< HEAD
     def __init__(self, name, params, qubits):
         if not isinstance(name, str):
+=======
+    def __init__(self, name, params, qubits) -> None:
+        if not isinstance(name, string_types):
+>>>>>>> Satisfy mypy --strict about pyquil.quilatom type hints
             raise TypeError("Gate name must be a string")
 
         if name in RESERVED_WORDS:
@@ -220,7 +225,7 @@ class Measurement(AbstractInstruction):
     This is the pyQuil object for a Quil measurement instruction.
     """
 
-    def __init__(self, qubit, classical_reg):
+    def __init__(self, qubit, classical_reg) -> None:
         if not isinstance(qubit, (Qubit, QubitPlaceholder)):
             raise TypeError("qubit should be a Qubit")
         if classical_reg and not isinstance(classical_reg, MemoryReference):
@@ -250,7 +255,7 @@ class ResetQubit(AbstractInstruction):
     This is the pyQuil object for a Quil targeted reset instruction.
     """
 
-    def __init__(self, qubit):
+    def __init__(self, qubit) -> None:
         if not isinstance(qubit, (Qubit, QubitPlaceholder)):
             raise TypeError("qubit should be a Qubit")
         self.qubit = qubit
@@ -274,7 +279,7 @@ class DefGate(AbstractInstruction):
     :param list parameters: list of parameters that are used in this gate
     """
 
-    def __init__(self, name, matrix, parameters=None):
+    def __init__(self, name, matrix, parameters=None) -> None:
         if not isinstance(name, str):
             raise TypeError("Gate name must be a string")
 
@@ -369,7 +374,7 @@ class DefGate(AbstractInstruction):
 
 
 class DefPermutationGate(DefGate):
-    def __init__(self, name, permutation):
+    def __init__(self, name, permutation) -> None:
         if not isinstance(name, str):
             raise TypeError("Gate name must be a string")
 
@@ -409,7 +414,7 @@ class JumpTarget(AbstractInstruction):
     Representation of a target that can be jumped to.
     """
 
-    def __init__(self, label):
+    def __init__(self, label) -> None:
         if not isinstance(label, (Label, LabelPlaceholder)):
             raise TypeError("label must be a Label")
         self.label = label
@@ -427,7 +432,7 @@ class JumpConditional(AbstractInstruction):
     """
     op = NotImplemented
 
-    def __init__(self, target, condition):
+    def __init__(self, target, condition) -> None:
         if not isinstance(target, (Label, LabelPlaceholder)):
             raise TypeError("target should be a Label")
         if not isinstance(condition, MemoryReference):
@@ -495,7 +500,7 @@ class UnaryClassicalInstruction(AbstractInstruction):
     The abstract class for unary classical instructions.
     """
 
-    def __init__(self, target):
+    def __init__(self, target) -> None:
         if not isinstance(target, MemoryReference):
             raise TypeError("target operand should be an MemoryReference")
         self.target = target
@@ -524,7 +529,7 @@ class LogicalBinaryOp(AbstractInstruction):
     """
     op = NotImplemented
 
-    def __init__(self, left, right):
+    def __init__(self, left, right) -> None:
         if not isinstance(left, MemoryReference):
             raise TypeError("left operand should be an MemoryReference")
         if not isinstance(right, MemoryReference) and not isinstance(right, int):
@@ -569,7 +574,7 @@ class ClassicalOr(ClassicalInclusiveOr):
     Deprecated class.
     """
 
-    def __init__(self, left, right):
+    def __init__(self, left, right) -> None:
         warn("ClassicalOr has been deprecated. Replacing with "
              "ClassicalInclusiveOr. Use ClassicalInclusiveOr instead. "
              "NOTE: The operands to ClassicalInclusiveOr are inverted from "
@@ -582,7 +587,7 @@ class ArithmeticBinaryOp(AbstractInstruction):
     The abstract class for binary arithmetic classical instructions.
     """
 
-    def __init__(self, left, right):
+    def __init__(self, left, right) -> None:
         if not isinstance(left, MemoryReference):
             raise TypeError("left operand should be an MemoryReference")
         if not isinstance(right, MemoryReference) and not isinstance(right, int) and not isinstance(right, float):
@@ -632,7 +637,7 @@ class ClassicalMove(AbstractInstruction):
     """
     op = "MOVE"
 
-    def __init__(self, left, right):
+    def __init__(self, left, right) -> None:
         if not isinstance(left, MemoryReference):
             raise TypeError("Left operand of MOVE should be an MemoryReference.  "
                             "Note that the order of the operands in pyQuil 2.0 has reversed from "
@@ -652,7 +657,7 @@ class ClassicalFalse(ClassicalMove):
     Deprecated class.
     """
 
-    def __init__(self, target):
+    def __init__(self, target) -> None:
         super().__init__(target, 0)
         warn("ClassicalFalse is deprecated in favor of ClassicalMove.")
 
@@ -662,7 +667,7 @@ class ClassicalTrue(ClassicalMove):
     Deprecated class.
     """
 
-    def __init__(self, target):
+    def __init__(self, target) -> None:
         super().__init__(target, 1)
         warn("ClassicalTrue is deprecated in favor of ClassicalMove.")
 
@@ -674,7 +679,7 @@ class ClassicalExchange(AbstractInstruction):
 
     op = "EXCHANGE"
 
-    def __init__(self, left, right):
+    def __init__(self, left, right) -> None:
         if not isinstance(left, MemoryReference):
             raise TypeError("left operand should be an MemoryReference")
         if not isinstance(right, MemoryReference):
@@ -693,7 +698,7 @@ class ClassicalConvert(AbstractInstruction):
 
     op = "CONVERT"
 
-    def __init__(self, left, right):
+    def __init__(self, left, right) -> None:
         if not isinstance(left, MemoryReference):
             raise TypeError("left operand should be an MemoryReference")
         if not isinstance(right, MemoryReference):
@@ -712,7 +717,7 @@ class ClassicalLoad(AbstractInstruction):
 
     op = "LOAD"
 
-    def __init__(self, target, left, right):
+    def __init__(self, target, left, right) -> None:
         if not isinstance(target, MemoryReference):
             raise TypeError("target operand should be an MemoryReference")
         if not isinstance(right, MemoryReference):
@@ -732,7 +737,7 @@ class ClassicalStore(AbstractInstruction):
 
     op = "STORE"
 
-    def __init__(self, target, left, right):
+    def __init__(self, target, left, right) -> None:
         if not isinstance(left, MemoryReference):
             raise TypeError("left operand should be an MemoryReference")
         if not (isinstance(right, MemoryReference) or isinstance(right, int)
@@ -751,7 +756,7 @@ class ClassicalComparison(AbstractInstruction):
     Abstract class for ternary comparison instructions.
     """
 
-    def __init__(self, target, left, right):
+    def __init__(self, target, left, right) -> None:
         if not isinstance(target, MemoryReference):
             raise TypeError("target operand should be an MemoryReference")
         if not isinstance(left, MemoryReference):
@@ -809,7 +814,7 @@ class Jump(AbstractInstruction):
     Representation of an unconditional jump instruction (JUMP).
     """
 
-    def __init__(self, target):
+    def __init__(self, target) -> None:
         if not isinstance(target, (Label, LabelPlaceholder)):
             raise TypeError("target should be a Label")
         self.target = target
@@ -828,7 +833,7 @@ class Pragma(AbstractInstruction):
 
     """
 
-    def __init__(self, command, args=(), freeform_string=""):
+    def __init__(self, command, args=(), freeform_string="") -> None:
         if not isinstance(command, str):
             raise TypeError("Pragma's require an identifier.")
 
@@ -870,7 +875,7 @@ class Declare(AbstractInstruction):
 
     """
 
-    def __init__(self, name, memory_type, memory_size=1, shared_region=None, offsets=None):
+    def __init__(self, name, memory_type, memory_size=1, shared_region=None, offsets=None) -> None:
         self.name = name
         self.memory_type = memory_type
         self.memory_size = memory_size
@@ -907,7 +912,7 @@ class RawInstr(AbstractInstruction):
     A raw instruction represented as a string.
     """
 
-    def __init__(self, instr_str):
+    def __init__(self, instr_str) -> None:
         if not isinstance(instr_str, str):
             raise TypeError("Raw instructions require a string.")
         self.instr = instr_str
