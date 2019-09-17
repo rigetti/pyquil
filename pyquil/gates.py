@@ -16,9 +16,9 @@
 from warnings import warn
 from typing import Any, Callable, Dict, Optional, Tuple, Union
 
-from pyquil.quilatom import (Addr, MemoryReference, MemoryReferenceDesignator, Parameter,
-                             ParameterDesignator, Qubit, QubitDesignator, QubitPlaceholder,
-                             unpack_classical_reg, unpack_qubit)
+from pyquil.quilatom import (Addr, Expression, MemoryReference, MemoryReferenceDesignator,
+                             Parameter, ParameterDesignator, Qubit, QubitDesignator,
+                             QubitPlaceholder, unpack_classical_reg, unpack_qubit)
 from pyquil.quilbase import (AbstractInstruction, Gate, Halt, Reset, ResetQubit, Measurement, Nop,
                              Wait,
                              ClassicalNeg, ClassicalNot,
