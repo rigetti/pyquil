@@ -550,7 +550,7 @@ def _ops_bool_to_prog(ops_bool: Tuple[bool], qubits: List[int]) -> Program:
 
 def _stats_from_measurements(bs_results: np.ndarray, qubit_index_map: Dict,
                              setting: ExperimentSetting, n_shots: int,
-                             coeff: float = 1.0) -> Tuple[float]:
+                             coeff: float = 1.0) -> Tuple[float, float]:
     """
     :param bs_results: results from running `qc.run`
     :param qubit_index_map: dict mapping qubit to classical register index
