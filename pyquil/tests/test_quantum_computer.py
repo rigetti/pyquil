@@ -470,7 +470,7 @@ def test_run_and_measure(local_qvm_quilc):
     # so if you change it here ... change it there!
     with local_forest_runtime():  # Redundant with test fixture.
         bitstrings = qc.run_and_measure(prog, trials)
-    bitstring_array = np.vstack(bitstrings[q] for q in qc.qubits()).T
+    bitstring_array = np.vstack([bitstrings[q] for q in qc.qubits()]).T
     assert bitstring_array.shape == (trials, len(qc.qubits()))
 
 
