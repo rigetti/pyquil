@@ -22,7 +22,7 @@ import pytest
 
 from pyquil.gates import (I, X, Y, Z, H, T, S, RX, RY, RZ, CNOT, CCNOT, PHASE, CPHASE00, CPHASE01,
                           CPHASE10, CPHASE, SWAP, CSWAP, ISWAP, PSWAP, MEASURE, HALT, WAIT, NOP,
-                          RESET, TRUE, FALSE, NOT, AND, OR, MOVE, EXCHANGE, LOAD, CONVERT, STORE,
+                          RESET, NOT, AND, OR, MOVE, EXCHANGE, LOAD, CONVERT, STORE,
                           XOR, IOR, NEG, ADD, SUB, MUL, DIV, EQ, GT, GE, LT, LE)
 from pyquil.paulis import exponential_map, sZ
 from pyquil.quil import (Program, merge_programs, merge_with_pauli_noise, address_qubits,
@@ -206,8 +206,8 @@ def test_simple_instructions():
 
 def test_unary_classicals():
     p = Program()
-    p.inst(TRUE(MemoryReference("ro", 0)),
-           FALSE(MemoryReference("ro", 1)),
+    p.inst(MOVE(MemoryReference("ro", 0), 1),
+           MOVE(MemoryReference("ro", 1), 0),
            NOT(MemoryReference("ro", 2)),
            NEG(MemoryReference("ro", 3)))
     assert p.out() == 'MOVE ro[0] 1\n' \
@@ -218,8 +218,12 @@ def test_unary_classicals():
 
 def test_binary_classicals():
     p = Program()
+
+    # OR is deprecated in favor of IOR
+    with pytest.warns(UserWarning):
+        p.inst(OR(MemoryReference("ro", 1), MemoryReference("ro", 0)))
+
     p.inst(AND(MemoryReference("ro", 0), MemoryReference("ro", 1)),
-           OR(MemoryReference("ro", 1), MemoryReference("ro", 0)),
            MOVE(MemoryReference("ro", 0), MemoryReference("ro", 1)),
            CONVERT(MemoryReference("ro", 0), MemoryReference("ro", 1)),
            IOR(MemoryReference("ro", 0), MemoryReference("ro", 1)),
@@ -229,8 +233,9 @@ def test_binary_classicals():
            MUL(MemoryReference("ro", 0), MemoryReference("ro", 1)),
            DIV(MemoryReference("ro", 0), MemoryReference("ro", 1)),
            EXCHANGE(MemoryReference("ro", 0), MemoryReference("ro", 1)))
-    assert p.out() == 'AND ro[0] ro[1]\n' \
-                      'IOR ro[0] ro[1]\n' \
+
+    assert p.out() == 'IOR ro[0] ro[1]\n' \
+                      'AND ro[0] ro[1]\n' \
                       'MOVE ro[0] ro[1]\n' \
                       'CONVERT ro[0] ro[1]\n' \
                       'IOR ro[0] ro[1]\n' \

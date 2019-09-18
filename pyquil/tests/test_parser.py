@@ -212,11 +212,11 @@ def test_memory_commands():
 
 
 def test_classical():
-    parse_equals("MOVE ro[0] 1", TRUE(0))
-    parse_equals("MOVE ro[0] 0", FALSE(0))
+    parse_equals("MOVE ro[0] 1", MOVE(MemoryReference("ro", 0), 1))
+    parse_equals("MOVE ro[0] 0", MOVE(MemoryReference("ro", 0), 0))
     parse_equals("NOT ro[0]", NOT(Addr(0)))
     parse_equals("AND ro[0] 1", AND(MemoryReference("ro", 0), 1))
-    parse_equals("IOR ro[0] 1", OR(1, MemoryReference("ro", 0)))
+    parse_equals("IOR ro[0] 1", IOR(MemoryReference("ro", 0), 1))
     parse_equals("MOVE ro[0] 1", MOVE(MemoryReference("ro", 0), 1))
     parse_equals("XOR ro[0] 1", XOR(MemoryReference("ro", 0), 1))
     parse_equals("ADD mem[0] 1.2", ADD(MemoryReference("mem", 0), 1.2))
