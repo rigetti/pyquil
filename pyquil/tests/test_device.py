@@ -132,8 +132,8 @@ def test_device(isa_dict, noise_model_dict):
 
     isa = ISA.from_dict(isa_dict)
     noise_model = NoiseModel.from_dict(noise_model_dict)
-    assert isinstance(device.isa, ISA)
-    assert device.isa == isa
+    assert isinstance(device._isa, ISA)
+    assert device._isa == isa
     assert isinstance(device.noise_model, NoiseModel)
     assert device.noise_model == noise_model
 
