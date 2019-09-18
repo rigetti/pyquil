@@ -515,7 +515,6 @@ class PauliSum(object):
         elif isinstance(other, PauliTerm):
             return self == PauliSum([other])
         elif len(self.terms) != len(other.terms):
-            warnings.warn(UnequalLengthWarning("These PauliSums have a different number of terms."))
             return False
 
         return set(self.terms) == set(other.terms)
