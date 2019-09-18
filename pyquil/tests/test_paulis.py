@@ -678,6 +678,20 @@ def test_qubit_validation():
         op = sX(None)
 
 
+def test_pauli_term_from_str():
+    # tests that should _not_ fail are in test_pauli_sum_from_str
+    with pytest.raises(ValueError):
+        PauliTerm.from_compact_str("X0")
+    with pytest.raises(ValueError):
+        PauliTerm.from_compact_str("10")
+    with pytest.raises(ValueError):
+        PauliTerm.from_compact_str("1.0X0")
+    with pytest.raises(ValueError):
+        PauliTerm.from_compact_str("(1.0+9i)*X0")
+    with pytest.raises(ValueError):
+        PauliTerm.from_compact_str("(1.0+0j)*A0")
+
+
 def test_pauli_sum_from_str():
     # this also tests PauliTerm.from_compact_str() since it gets called
     Sum = (1.5 + .5j) * sX(0) * sZ(2) + 0.7 * sZ(1)
@@ -685,5 +699,3 @@ def test_pauli_sum_from_str():
     assert PauliSum.from_compact_str(str(Sum)) == Sum
     assert PauliSum.from_compact_str(Sum.compact_str()) == Sum
     assert PauliSum.from_compact_str(another_str) == Sum
-    with pytest.raises(ValueError):
-        PauliSum.from_compact_str("(1.0+0j)*X0 + (1.0+0j)*A0")

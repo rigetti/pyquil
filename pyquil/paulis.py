@@ -357,18 +357,25 @@ class PauliTerm(object):
     def from_compact_str(cls, str_pauli_term):
         """Construct a PauliTerm from the result of str(pauli_term)
         """
-        # split into coefficient and operator
-        str_coef, str_op = str_pauli_term.split('*', maxsplit=1)
+        # split into str_coef, str_op at first '*'' outside parenthesis
+        try:
+            str_coef, str_op = re.split(r'\*(?![^(]*\))', str_pauli_term,
+                                        maxsplit=1)
+        except ValueError:
+            raise ValueError("Could not separate the pauli string into "
+                             f"coefficient and operator. {str_pauli_term} does"
+                             " not match <coefficient>*<operator>")
 
-        # parse the coefficient
+        # parse the coefficient into either a float or complex
         str_coef = str_coef.replace(' ', '')
         try:
-            coef = int(str_coef)
+            coef = float(str_coef)
         except ValueError:
             try:
-                coef = float(str_coef)
-            except ValueError:
                 coef = complex(str_coef)
+            except ValueError:
+                raise ValueError("Could not parse the coefficient "
+                                 f"{str_coef}")
 
         op = sI() * coef
         if str_op == 'I':
@@ -377,7 +384,8 @@ class PauliTerm(object):
         # parse the operator
         str_op = re.sub(r'\*', '', str_op)
         if not re.match(r'^(([XYZ])(\d+))+$', str_op):
-            raise ValueError(f"Could not parse pauli string {str_pauli_term}")
+            raise ValueError(f"Could not parse operator string {str_op}. "
+                             r"It should match ^(([XYZ])(\d+))+$")
 
         for factor in re.finditer(r'([XYZ])(\d+)', str_op):
             op *= cls(factor.group(1), int(factor.group(2)))
@@ -704,7 +712,7 @@ class PauliSum(object):
         str_terms = re.split(r'\+(?![^(]*\))', str_pauli_sum)
         str_terms = [s.strip() for s in str_terms]
         terms = [PauliTerm.from_compact_str(term) for term in str_terms]
-        return cls(terms)
+        return cls(terms).simplify()
 
 
 def simplify_pauli_sum(pauli_sum):
