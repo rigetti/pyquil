@@ -16,7 +16,7 @@ Changelog
 ### Improvements and Changes
 
 -   Certaint tests have been marked as "slow", and are skipped unless
-    `--include-slow-tests` is specified. (@kilimanjaro, gh-1001)
+    `--runslow` is specified. (@kilimanjaro, gh-1001)
 -   The `local_qvm` context manager has been renamed to `local_forest_runtime`,
     which now checks if the designated ports are used before starting `qvm`/`quilc`.
     The original `local_qvm` has been deprecated (@sauercrowd, gh-976).

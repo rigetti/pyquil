@@ -106,12 +106,12 @@ We use `pytest` to run the pyQuil unit tests. These are run automatically on Pyt
 3.7 as part of the CI pipeline. But, you can run them yourself locally as well. Some of the
 tests depend on having running QVM and quilc servers, and otherwise will be skipped. Thus,
 to run the tests, you should begin by spinning up these servers via `qvm -S` and `quilc -S`,
-respectively. Once this is done, run `pytest** in the top-level directory of pyQuil, and the
+respectively. Once this is done, run `pytest` in the top-level directory of pyQuil, and the
 full unit test suite will start!
 
 **NOTE**: Some tests (particularly those related to operator estimation and readout
 symmetrization) require a nontrivial amount of computation. For this reason, they have been marked 
-as slow and are not run by default unless pytest is given the `--include-slow-tests` option. For a 
+as slow and are not run by default unless pytest is given the `--runslow` option. For a 
 full, up-to-date list of these tests, you may invoke (from the base pyquil directory)
 
 ```bash
