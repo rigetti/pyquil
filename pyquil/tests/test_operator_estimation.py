@@ -226,6 +226,7 @@ def _random_2q_programs(n_progs=3):
         yield prog
 
 
+@pytest.mark.slow
 def test_measure_observables_many_progs(forest):
     expts = [
         ExperimentSetting(TensorProductState(), o1 * o2)

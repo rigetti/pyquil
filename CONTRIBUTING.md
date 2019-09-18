@@ -109,6 +109,15 @@ to run the tests, you should begin by spinning up these servers via `qvm -S` and
 respectively. Once this is done, run `pytest` in the top-level directory of pyQuil, and the
 full unit test suite will start!
 
+**NOTE**: Some tests (particularly those related to operator estimation and readout
+symmetrization) require a nontrivial amount of computation. For this reason, they have been marked 
+as slow and are not run by default unless `pytest` is given the `--runslow` option. For a 
+full, up-to-date list of these tests, you may invoke (from the top-level directory):
+
+```bash
+grep -A 1 -r pytest.mark.slow  pyquil/tests/
+```
+
 **NOTE**: When making considerable changes to `operator_estimation.py`, we recommend that you set
 the `pytest` option `--use-seed` to `False` to make sure you have not broken anything. You will
 additionally need to provide the `pyquil` directory to the command, as `pytest` doesn't try

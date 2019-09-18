@@ -292,6 +292,7 @@ def test_readout_symmetrization(forest):
     assert diff_s < 0.05
 
 
+@pytest.mark.slow
 def test_run_symmetrized_readout_error():
     # This test checks if the function runs for any possible input on a small number of qubits.
     # Locally this test was run on all 8 qubits, but it was slow.

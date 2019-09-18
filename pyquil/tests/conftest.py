@@ -216,6 +216,21 @@ def _str_to_bool(s):
 def pytest_addoption(parser):
     parser.addoption("--use-seed", action="store", type=_str_to_bool, default=True,
                      help="run operator estimation tests faster by using a fixed random seed")
+    parser.addoption("--runslow", action="store_true", default=False, help="run tests marked as being 'slow'")
+
+
+def pytest_configure(config):
+    config.addinivalue_line("markers", "slow: mark test as slow to run")
+
+
+def pytest_collection_modifyitems(config, items):
+    if config.getoption("--runslow"):
+        # --runslow given in cli: do not skip slow tests
+        return
+    skip_slow = pytest.mark.skip(reason="need --runslow option to run")
+    for item in items:
+        if "slow" in item.keywords:
+            item.add_marker(skip_slow)
 
 
 @pytest.fixture()
