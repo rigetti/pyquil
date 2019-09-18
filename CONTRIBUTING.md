@@ -111,8 +111,8 @@ full unit test suite will start!
 
 **NOTE**: Some tests (particularly those related to operator estimation and readout
 symmetrization) require a nontrivial amount of computation. For this reason, they have been marked 
-as slow and are not run by default unless pytest is given the `--runslow` option. For a 
-full, up-to-date list of these tests, you may invoke (from the base pyquil directory)
+as slow and are not run by default unless `pytest` is given the `--runslow` option. For a 
+full, up-to-date list of these tests, you may invoke (from the top-level directory):
 
 ```bash
 grep -A 1 -r pytest.mark.slow  pyquil/tests/
