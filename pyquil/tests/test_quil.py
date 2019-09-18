@@ -489,20 +489,25 @@ def test_if_option():
 
     assert isinstance(p.instructions[3], JumpWhen)
 
+def test_alloc_deprecated():
+    p = Program()
 
-def test_alloc():
+    with pytest.warns(DeprecationWarning):
+        p.alloc()
+
+def test_qubit_placeholder():
     p = Program()
 
     p.inst(H(0))  # H 0
 
-    q1 = p.alloc()  # q1 = 1
-    q2 = p.alloc()  # q2 = 3
+    q1 = QubitPlaceholder()  # q1 = 1
+    q2 = QubitPlaceholder()  # q2 = 3
 
     p.inst(CNOT(q1, q2))  # CNOT 1 3
 
     p.inst(H(2))
 
-    q3 = p.alloc()  # q3 = 4
+    q3 = QubitPlaceholder()  # q3 = 4
 
     p.inst(X(q3))  # X 4
 
@@ -511,19 +516,19 @@ def test_alloc():
     assert e.match(r'Qubit q\d+ has not been assigned an index')
 
 
-def test_alloc_2():
+def test_qubit_placeholder_2():
     p = Program()
 
     p.inst(H(0))  # H 0
 
-    q1 = p.alloc()  # q1 = 1
-    q2 = p.alloc()  # q2 = 3
+    q1 = QubitPlaceholder()  # q1 = 1
+    q2 = QubitPlaceholder()  # q2 = 3
 
     p.inst(CNOT(q1, q2))  # CNOT 1 3
 
     p.inst(H(2))
 
-    q3 = p.alloc()  # q3 = 4
+    q3 = QubitPlaceholder()  # q3 = 4
 
     p.inst(X(q3))  # X 4
     with pytest.raises(ValueError) as e:
@@ -536,7 +541,7 @@ def test_alloc_2():
     assert e.match('Your program mixes instantiated qubits with placeholders')
 
 
-def test_alloc_new():
+def test_qubit_placeholder_new():
     p = Program()
 
     q0 = QubitPlaceholder()
@@ -595,17 +600,17 @@ def test_multiaddress():
 
 def test_multiple_instantiate():
     p = Program()
-    q = p.alloc()
+    q = QubitPlaceholder()
     p.inst(H(q))
     p = address_qubits(p)
     assert p.out() == 'H 0\n'
     assert p.out() == 'H 0\n'
 
 
-def test_reuse_alloc():
+def test_reuse_placeholder():
     p = Program()
-    q1 = p.alloc()
-    q2 = p.alloc()
+    q1 = QubitPlaceholder()
+    q2 = QubitPlaceholder()
     p.inst(H(q1))
     p.inst(H(q2))
     p.inst(CNOT(q1, q2))
@@ -706,15 +711,15 @@ def test_get_qubits():
 
     q = [QubitPlaceholder() for _ in range(6)]
     pq = Program(Declare('ro', 'BIT'), X(q[0]), CNOT(q[0], q[4]), MEASURE(q[5], MemoryReference("ro", 0)))
-    qq = pq.alloc()
+    qq = QubitPlaceholder()
     pq.inst(Y(q[2]), X(qq))
     assert address_qubits(pq).get_qubits() == {0, 1, 2, 3, 4}
 
     qubit_index = 1
     p = Program(("H", qubit_index))
     assert p.get_qubits() == {qubit_index}
-    q1 = p.alloc()
-    q2 = p.alloc()
+    q1 = QubitPlaceholder()
+    q2 = QubitPlaceholder()
     p.inst(("CNOT", q1, q2))
     with pytest.raises(ValueError) as e:
         _ = address_qubits(p).get_qubits()
@@ -734,8 +739,8 @@ def test_get_qubits_not_as_indices():
 
 def test_eq():
     p1 = Program()
-    q1 = p1.alloc()
-    q2 = p1.alloc()
+    q1 = QubitPlaceholder()
+    q2 = QubitPlaceholder()
     p1.inst([H(q1), CNOT(q1, q2)])
     p1 = address_qubits(p1)
 
@@ -869,11 +874,11 @@ def test_if_then_inherits_defined_gates():
 # https://github.com/rigetti/pyquil/issues/124
 def test_allocating_qubits_on_multiple_programs():
     p = Program()
-    qubit0 = p.alloc()
+    qubit0 = QubitPlaceholder()
     p.inst(X(qubit0))
 
     q = Program()
-    qubit1 = q.alloc()
+    qubit1 = QubitPlaceholder()
     q.inst(X(qubit1))
 
     assert address_qubits(p + q).out() == "X 0\nX 1\n"
@@ -895,9 +900,9 @@ def test_nesting_a_program_inside_itself():
 
 
 # https://github.com/rigetti/pyquil/issues/170
-def test_inline_alloc():
+def test_inline_placeholder():
     p = Program()
-    p += H(p.alloc())
+    p += H(QubitPlaceholder())
     assert address_qubits(p).out() == "H 0\n"
 
 
