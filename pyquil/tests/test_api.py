@@ -37,11 +37,16 @@ from pyquil.device import ISA, NxDevice
 from pyquil.gates import CNOT, H, MEASURE, PHASE, Z, RZ, RX, CZ
 from pyquil.paulis import PauliTerm
 from pyquil.quil import Program
-from pyquil.quilbase import Halt
+from pyquil.quilbase import Halt, Declare
+from pyquil.quilatom import MemoryReference
 
 EMPTY_PROGRAM = Program()
 BELL_STATE = Program(H(0), CNOT(0, 1))
-BELL_STATE_MEASURE = Program(H(0), CNOT(0, 1), MEASURE(0, 0), MEASURE(1, 1))
+BELL_STATE_MEASURE = Program(Declare('ro', 'BIT', 2),
+                             H(0),
+                             CNOT(0, 1),
+                             MEASURE(0, MemoryReference('ro', 0)),
+                             MEASURE(1, MemoryReference('ro', 1)))
 COMPILED_BELL_STATE = Program([
     RZ(pi / 2, 0),
     RX(pi / 2, 0),
@@ -139,7 +144,7 @@ WAVEFUNCTION_BINARY = (b'\x01\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00\x0
                        b'\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00?\xe6\xa0\x9ef'
                        b'\x7f;\xcc\x00\x00\x00\x00\x00\x00\x00\x00\xbf\xe6\xa0\x9ef\x7f;\xcc\x00'
                        b'\x00\x00\x00\x00\x00\x00\x00')
-WAVEFUNCTION_PROGRAM = Program(H(0), CNOT(0, 1), MEASURE(0, 0), H(0))
+WAVEFUNCTION_PROGRAM = Program(Declare('ro', 'BIT'), H(0), CNOT(0, 1), MEASURE(0, MemoryReference('ro')), H(0))
 
 
 def test_sync_expectation_mock(qvm: QVMConnection):

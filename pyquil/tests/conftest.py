@@ -6,7 +6,7 @@ import pytest
 from requests import RequestException
 
 from pyquil.api import (QVMConnection, QVMCompiler, ForestConnection,
-                        get_benchmarker, local_qvm)
+                        get_benchmarker, local_forest_runtime)
 from pyquil.api._config import PyquilConfig
 from pyquil.api._errors import UnknownApiError
 from pyquil.api._compiler import QuilcNotRunning, QuilcVersionMismatch
@@ -199,7 +199,7 @@ def local_qvm_quilc():
         return pytest.skip("This test requires 'qvm' and 'quilc' "
                            "executables to be installed locally.")
 
-    with local_qvm() as context:
+    with local_forest_runtime() as context:
         yield context
 
 
@@ -214,8 +214,8 @@ def _str_to_bool(s):
 
 
 def pytest_addoption(parser):
-    parser.addoption("--use-seed", action="store", type=_str_to_bool, default=False,
-                     help="run some tests faster using a fixed random seed")
+    parser.addoption("--use-seed", action="store", type=_str_to_bool, default=True,
+                     help="run operator estimation tests faster by using a fixed random seed")
 
 
 @pytest.fixture()

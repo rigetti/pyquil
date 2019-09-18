@@ -20,17 +20,17 @@ from math import pi
 import numpy as np
 import pytest
 
-from pyquil.gates import I, X, Y, Z, H, T, S, RX, RY, RZ, CNOT, CCNOT, PHASE, CPHASE00, CPHASE01, \
-    CPHASE10, CPHASE, SWAP, CSWAP, ISWAP, PSWAP, MEASURE, HALT, WAIT, NOP, RESET, \
-    TRUE, FALSE, NOT, AND, OR, MOVE, EXCHANGE, \
-    LOAD, CONVERT, STORE, XOR, IOR, NEG, ADD, SUB, MUL, DIV, EQ, GT, GE, LT, LE
-from pyquil.parameters import Parameter, quil_sin, quil_cos
+from pyquil.gates import (I, X, Y, Z, H, T, S, RX, RY, RZ, CNOT, CCNOT, PHASE, CPHASE00, CPHASE01,
+                          CPHASE10, CPHASE, SWAP, CSWAP, ISWAP, PSWAP, MEASURE, HALT, WAIT, NOP,
+                          RESET, TRUE, FALSE, NOT, AND, OR, MOVE, EXCHANGE, LOAD, CONVERT, STORE,
+                          XOR, IOR, NEG, ADD, SUB, MUL, DIV, EQ, GT, GE, LT, LE)
 from pyquil.paulis import exponential_map, sZ
-from pyquil.quil import Program, merge_programs, merge_with_pauli_noise, address_qubits, \
-    get_classical_addresses_from_program, Pragma, validate_protoquil, validate_supported_quil
-from pyquil.quilatom import QubitPlaceholder, Addr, MemoryReference, Sub
-from pyquil.quilbase import DefGate, Gate, Qubit, JumpWhen, Declare, ClassicalNot, \
-    DefPermutationGate
+from pyquil.quil import (Program, merge_programs, merge_with_pauli_noise, address_qubits,
+                         get_classical_addresses_from_program, Pragma, validate_protoquil,
+                         validate_supported_quil)
+from pyquil.quilatom import MemoryReference, Parameter, QubitPlaceholder, Sub, quil_cos, quil_sin
+from pyquil.quilbase import (DefGate, Gate, Qubit, JumpWhen, Declare, ClassicalNot,
+                             DefPermutationGate)
 from pyquil.tests.utils import parse_equals
 
 
@@ -461,7 +461,8 @@ def test_control_flows_2():
     # create a program that branches based on the value of a classical register
     x_prog = Program(X(0))
     z_prog = Program()
-    branch = Program(H(1)).measure(1, MemoryReference("ro", 1)) \
+    branch = Program(Declare('ro', 'BIT', 2), H(1)) \
+        .measure(1, MemoryReference("ro", 1)) \
         .if_then(MemoryReference("ro", 1), x_prog, z_prog) \
         .measure(0, MemoryReference("ro", 0))
     assert branch.out() == ('DECLARE ro BIT[2]\n'
@@ -700,11 +701,11 @@ pauli_noise 0
 
 
 def test_get_qubits():
-    pq = Program(X(0), CNOT(0, 4), MEASURE(5, MemoryReference("ro", 5)))
+    pq = Program(Declare('ro', 'BIT'), X(0), CNOT(0, 4), MEASURE(5, MemoryReference("ro", 0)))
     assert pq.get_qubits() == {0, 4, 5}
 
     q = [QubitPlaceholder() for _ in range(6)]
-    pq = Program(X(q[0]), CNOT(q[0], q[4]), MEASURE(q[5], MemoryReference("ro", 5)))
+    pq = Program(Declare('ro', 'BIT'), X(q[0]), CNOT(q[0], q[4]), MEASURE(q[5], MemoryReference("ro", 0)))
     qq = pq.alloc()
     pq.inst(Y(q[2]), X(qq))
     assert address_qubits(pq).get_qubits() == {0, 1, 2, 3, 4}
@@ -722,12 +723,12 @@ def test_get_qubits():
 
 def test_get_qubit_placeholders():
     qs = QubitPlaceholder.register(8)
-    pq = Program(X(qs[0]), CNOT(qs[0], qs[4]), MEASURE(qs[5], MemoryReference("ro", 5)))
+    pq = Program(Declare('ro', 'BIT'), X(qs[0]), CNOT(qs[0], qs[4]), MEASURE(qs[5], MemoryReference("ro", 0)))
     assert pq.get_qubits() == {qs[i] for i in [0, 4, 5]}
 
 
 def test_get_qubits_not_as_indices():
-    pq = Program(X(0), CNOT(0, 4), MEASURE(5, MemoryReference("ro", 5)))
+    pq = Program(Declare('ro', 'BIT'), X(0), CNOT(0, 4), MEASURE(5, MemoryReference("ro", 0)))
     assert pq.get_qubits(indices=False) == {Qubit(i) for i in [0, 4, 5]}
 
 
@@ -909,7 +910,7 @@ def test_defgate_integer_input():
 
 def test_out_vs_str():
     qs = QubitPlaceholder.register(6)
-    pq = Program(X(qs[0]), CNOT(qs[0], qs[4]), MEASURE(qs[5], MemoryReference("ro", 5)))
+    pq = Program(Declare('ro', 'BIT', 6), X(qs[0]), CNOT(qs[0], qs[4]), MEASURE(qs[5], MemoryReference("ro", 5)))
 
     with pytest.raises(RuntimeError) as e:
         pq.out()
@@ -921,7 +922,7 @@ def test_out_vs_str():
 
 
 def test_get_classical_addresses_from_program():
-    p = Program([H(i) for i in range(4)])
+    p = Program(Declare('ro', 'BIT', 4), [H(i) for i in range(4)])
     assert get_classical_addresses_from_program(p) == {}
 
     p += [MEASURE(i, MemoryReference("ro", i)) for i in [0, 3, 1]]
@@ -941,6 +942,7 @@ def test_get_classical_addresses_from_quil_program():
     assert get_classical_addresses_from_program(p) == {}
 
     p = Program('\n'.join([
+        'DECLARE ro BIT[2]',
         'X 0',
         'MEASURE 0 ro[1]'
     ]))
@@ -971,9 +973,10 @@ PRAGMA READOUT-POVM 1 "(0.9 0.19999999999999996 0.09999999999999998 0.8)"
 
 
 def test_implicit_declare():
-    program = Program(MEASURE(0, MemoryReference("ro", 0)))
-    assert program.out() == ('DECLARE ro BIT[1]\n'
-                             'MEASURE 0 ro[0]\n')
+    with pytest.warns(UserWarning):
+        program = Program(MEASURE(0, MemoryReference("ro", 0)))
+        assert program.out() == ('DECLARE ro BIT[1]\n'
+                                 'MEASURE 0 ro[0]\n')
 
 
 def test_no_implicit_declare():

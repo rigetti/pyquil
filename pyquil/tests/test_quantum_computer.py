@@ -1,11 +1,12 @@
 import itertools
+import random
 
 import networkx as nx
 import numpy as np
 import pytest
 
 from pyquil import Program, get_qc, list_quantum_computers
-from pyquil.api import QVM, QuantumComputer, local_qvm
+from pyquil.api import QVM, QuantumComputer, local_forest_runtime
 from pyquil.tests.utils import DummyCompiler
 from pyquil.api._quantum_computer import (_symmetrization, _flip_array_to_prog,
                                           _construct_orthogonal_array,
@@ -211,6 +212,7 @@ def test_run(forest):
     )
     bitstrings = qc.run(
         Program(
+            Declare("ro", "BIT", 3),
             H(0),
             CNOT(0, 1),
             CNOT(1, 2),
@@ -273,8 +275,8 @@ def test_readout_symmetrization(forest):
     )
 
     prog = Program(I(0), X(1),
-                   MEASURE(0, MemoryReference("ro", 0)),
-                   MEASURE(1, MemoryReference("ro", 1)))
+                   MEASURE(0, MemoryReference('ro', 0)),
+                   MEASURE(1, MemoryReference('ro', 1)))
     prog.wrap_in_numshots_loop(1000)
 
     bs1 = qc.run(prog)
@@ -465,14 +467,14 @@ def test_run_and_measure(local_qvm_quilc):
     trials = 11
     # note to devs: this is included as an example in the run_and_measure docstrings
     # so if you change it here ... change it there!
-    with local_qvm():  # Redundant with test fixture.
+    with local_forest_runtime():  # Redundant with test fixture.
         bitstrings = qc.run_and_measure(prog, trials)
     bitstring_array = np.vstack(bitstrings[q] for q in qc.qubits()).T
     assert bitstring_array.shape == (trials, len(qc.qubits()))
 
 
 def test_qvm_compile_pickiness(forest):
-    p = Program(X(0), MEASURE(0, 0))
+    p = Program(Declare('ro', 'BIT'), X(0), MEASURE(0, MemoryReference('ro')))
     p.wrap_in_numshots_loop(1000)
     nq = PyQuilExecutableResponse(program=p.out(), attributes={'num_shots': 1000})
 
@@ -583,3 +585,26 @@ def test_noisy(forest):
     qc = get_qc('1q-qvm', noisy=True)
     result = qc.run_and_measure(p, trials=10000)
     assert result[0].mean() < 1.0
+
+
+def test_orthogonal_array():
+    def bit_array_to_int(bit_array):
+        output = 0
+        for bit in bit_array:
+            output = (output << 1) | bit
+        return output
+
+    def check_random_columns(oa, strength):
+        num_q = oa.shape[1]
+        num_cols = min(num_q, strength)
+        column_idxs = random.sample(range(num_q), num_cols)
+        occurences = {entry: 0 for entry in range(2 ** num_cols)}
+        for row in oa[:, column_idxs]:
+            occurences[bit_array_to_int(row)] += 1
+        assert all([count == occurences[0] for count in occurences.values()])
+
+    for strength in [0, 1, 2, 3]:
+        for num_q in range(1, 64):
+            oa = _construct_orthogonal_array(num_q, strength=strength)
+            for _ in range(10):
+                check_random_columns(oa, strength)

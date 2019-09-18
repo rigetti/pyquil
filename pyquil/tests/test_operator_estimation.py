@@ -20,7 +20,8 @@ from pyquil.operator_estimation import ExperimentSetting, TomographyExperiment, 
     TensorProductState, zeros_state, \
     group_experiments, group_experiments_greedy, ExperimentResult, measure_observables, \
     _ops_bool_to_prog, _stats_from_measurements, \
-    ratio_variance, _exhaustive_symmetrization, _calibration_program
+    ratio_variance, _exhaustive_symmetrization, _calibration_program, \
+    _pauli_to_product_state
 from pyquil.paulis import sI, sX, sY, sZ, PauliSum, PauliTerm
 
 
@@ -62,7 +63,7 @@ def test_experiment_setting():
 def test_setting_no_in_back_compat():
     out_ops = _generate_random_paulis(n_qubits=4, n_terms=7)
     for oop in out_ops:
-        expt = ExperimentSetting(sI(), oop)
+        expt = ExperimentSetting(TensorProductState(), oop)
         expt2 = ExperimentSetting.from_str(str(expt))
         assert expt == expt2
         assert expt2.in_operator == sI()
@@ -82,8 +83,8 @@ def test_setting_no_in():
 
 def test_tomo_experiment():
     expts = [
-        ExperimentSetting(sI(), sX(0) * sY(1)),
-        ExperimentSetting(sZ(0), sZ(0)),
+        ExperimentSetting(TensorProductState(), sX(0) * sY(1)),
+        ExperimentSetting(plusZ(0), sZ(0)),
     ]
 
     suite = TomographyExperiment(
@@ -102,8 +103,8 @@ def test_tomo_experiment():
 
 def test_tomo_experiment_pre_grouped():
     expts = [
-        [ExperimentSetting(sI(), sX(0) * sI(1)), ExperimentSetting(sI(), sI(0) * sX(1))],
-        [ExperimentSetting(sI(), sZ(0) * sI(1)), ExperimentSetting(sI(), sI(0) * sZ(1))],
+        [ExperimentSetting(TensorProductState(), sX(0) * sI(1)), ExperimentSetting(TensorProductState(), sI(0) * sX(1))],
+        [ExperimentSetting(TensorProductState(), sZ(0) * sI(1)), ExperimentSetting(TensorProductState(), sI(0) * sZ(1))],
     ]
 
     suite = TomographyExperiment(
@@ -126,8 +127,8 @@ def test_tomo_experiment_empty():
 
 def test_experiment_deser(tmpdir):
     expts = [
-        [ExperimentSetting(sI(), sX(0) * sI(1)), ExperimentSetting(sI(), sI(0) * sX(1))],
-        [ExperimentSetting(sI(), sZ(0) * sI(1)), ExperimentSetting(sI(), sI(0) * sZ(1))],
+        [ExperimentSetting(TensorProductState(), sX(0) * sI(1)), ExperimentSetting(TensorProductState(), sI(0) * sX(1))],
+        [ExperimentSetting(TensorProductState(), sZ(0) * sI(1)), ExperimentSetting(TensorProductState(), sI(0) * sZ(1))],
     ]
 
     suite = TomographyExperiment(
@@ -155,8 +156,8 @@ def test_expt_settings_share_ntpb():
 
 def test_group_experiments(grouping_method):
     expts = [  # cf above, I removed the inner nesting. Still grouped visually
-        ExperimentSetting(sI(), sX(0) * sI(1)), ExperimentSetting(sI(), sI(0) * sX(1)),
-        ExperimentSetting(sI(), sZ(0) * sI(1)), ExperimentSetting(sI(), sI(0) * sZ(1)),
+        ExperimentSetting(TensorProductState(), sX(0) * sI(1)), ExperimentSetting(TensorProductState(), sI(0) * sX(1)),
+        ExperimentSetting(TensorProductState(), sZ(0) * sI(1)), ExperimentSetting(TensorProductState(), sI(0) * sZ(1)),
     ]
     suite = TomographyExperiment(expts, Program())
     grouped_suite = group_experiments(suite, method=grouping_method)
@@ -166,7 +167,7 @@ def test_group_experiments(grouping_method):
 
 def test_experiment_result_compat():
     er = ExperimentResult(
-        setting=ExperimentSetting(sX(0), sZ(0)),
+        setting=ExperimentSetting(plusX(0), sZ(0)),
         expectation=0.9,
         std_err=0.05,
         total_counts=100,
@@ -186,7 +187,7 @@ def test_experiment_result():
 
 def test_measure_observables(forest):
     expts = [
-        ExperimentSetting(sI(), o1 * o2)
+        ExperimentSetting(TensorProductState(), o1 * o2)
         for o1, o2 in itertools.product([sI(0), sX(0), sY(0), sZ(0)], [sI(1), sX(1), sY(1), sZ(1)])
     ]
     suite = TomographyExperiment(expts, program=Program(X(0), CNOT(0, 1)))
@@ -250,20 +251,20 @@ def test_measure_observables_many_progs(forest):
 
 def test_append():
     expts = [
-        [ExperimentSetting(sI(), sX(0) * sI(1)), ExperimentSetting(sI(), sI(0) * sX(1))],
-        [ExperimentSetting(sI(), sZ(0) * sI(1)), ExperimentSetting(sI(), sI(0) * sZ(1))],
+        [ExperimentSetting(TensorProductState(), sX(0) * sI(1)), ExperimentSetting(TensorProductState(), sI(0) * sX(1))],
+        [ExperimentSetting(TensorProductState(), sZ(0) * sI(1)), ExperimentSetting(TensorProductState(), sI(0) * sZ(1))],
     ]
     suite = TomographyExperiment(
         settings=expts,
         program=Program(X(0), Y(1))
     )
-    suite.append(ExperimentSetting(sI(), sY(0) * sX(1)))
+    suite.append(ExperimentSetting(TensorProductState(), sY(0) * sX(1)))
     assert (len(str(suite))) > 0
 
 
 def test_no_complex_coeffs(forest):
     qc = get_qc('2q-qvm')
-    suite = TomographyExperiment([ExperimentSetting(sI(), 1.j * sY(0))], program=Program(X(0)))
+    suite = TomographyExperiment([ExperimentSetting(TensorProductState(), 1.j * sY(0))], program=Program(X(0)))
     with pytest.raises(ValueError):
         res = list(measure_observables(qc, suite, n_shots=2000))
 
@@ -363,8 +364,8 @@ def test_max_weight_state_4():
 
 
 def test_max_tpb_overlap_1():
-    tomo_expt_settings = [ExperimentSetting(sZ(1) * sX(0), sY(2) * sY(1)),
-                          ExperimentSetting(sX(2) * sZ(1), sY(2) * sZ(0))]
+    tomo_expt_settings = [ExperimentSetting(plusZ(1) * plusX(0), sY(2) * sY(1)),
+                          ExperimentSetting(plusX(2) * plusZ(1), sY(2) * sZ(0))]
     tomo_expt_program = Program(H(0), H(1), H(2))
     tomo_expt = TomographyExperiment(tomo_expt_settings, tomo_expt_program)
     expected_dict = {
@@ -377,7 +378,7 @@ def test_max_tpb_overlap_1():
 
 
 def test_max_tpb_overlap_2():
-    expt_setting = ExperimentSetting(PauliTerm.from_compact_str('(1+0j)*Z7Y8Z1Y4Z2Y5Y0X6'),
+    expt_setting = ExperimentSetting(_pauli_to_product_state(PauliTerm.from_compact_str('(1+0j)*Z7Y8Z1Y4Z2Y5Y0X6')),
                                      PauliTerm.from_compact_str('(1+0j)*Z4X8Y5X3Y7Y1'))
     p = Program(H(0), H(1), H(2))
     tomo_expt = TomographyExperiment([expt_setting], p)
@@ -387,9 +388,9 @@ def test_max_tpb_overlap_2():
 
 def test_max_tpb_overlap_3():
     # add another ExperimentSetting to the above
-    expt_setting = ExperimentSetting(PauliTerm.from_compact_str('(1+0j)*Z7Y8Z1Y4Z2Y5Y0X6'),
+    expt_setting = ExperimentSetting(_pauli_to_product_state(PauliTerm.from_compact_str('(1+0j)*Z7Y8Z1Y4Z2Y5Y0X6')),
                                      PauliTerm.from_compact_str('(1+0j)*Z4X8Y5X3Y7Y1'))
-    expt_setting2 = ExperimentSetting(sZ(7), sY(1))
+    expt_setting2 = ExperimentSetting(plusZ(7), sY(1))
     p = Program(H(0), H(1), H(2))
     tomo_expt2 = TomographyExperiment([expt_setting, expt_setting2], p)
     expected_dict2 = {expt_setting: [expt_setting, expt_setting2]}
@@ -398,9 +399,9 @@ def test_max_tpb_overlap_3():
 
 def test_group_experiments_greedy():
     ungrouped_tomo_expt = TomographyExperiment(
-        [[ExperimentSetting(PauliTerm.from_compact_str('(1+0j)*Z7Y8Z1Y4Z2Y5Y0X6'),
+        [[ExperimentSetting(_pauli_to_product_state(PauliTerm.from_compact_str('(1+0j)*Z7Y8Z1Y4Z2Y5Y0X6')),
                             PauliTerm.from_compact_str('(1+0j)*Z4X8Y5X3Y7Y1'))],
-         [ExperimentSetting(sZ(7), sY(1))]], program=Program(H(0), H(1), H(2)))
+         [ExperimentSetting(plusZ(7), sY(1))]], program=Program(H(0), H(1), H(2)))
     grouped_tomo_expt = group_experiments(ungrouped_tomo_expt, method='greedy')
     expected_grouped_tomo_expt = TomographyExperiment(
         [[
@@ -462,7 +463,7 @@ def test_measure_observables_symmetrize(forest):
     Symmetrization alone should not change the outcome on the QVM
     """
     expts = [
-        ExperimentSetting(sI(), o1 * o2)
+        ExperimentSetting(TensorProductState(), o1 * o2)
         for o1, o2 in itertools.product([sI(0), sX(0), sY(0), sZ(0)], [sI(1), sX(1), sY(1), sZ(1)])
     ]
     suite = TomographyExperiment(expts, program=Program(X(0), CNOT(0, 1)))
@@ -483,7 +484,8 @@ def test_measure_observables_symmetrize_calibrate(forest):
     Symmetrization + calibration should not change the outcome on the QVM
     """
     expts = [
-        ExperimentSetting(sI(), o1 * o2)
+        ExperimentSetting(TensorProductState(),
+                          o1 * o2)
         for o1, o2 in itertools.product([sI(0), sX(0), sY(0), sZ(0)], [sI(1), sX(1), sY(1), sZ(1)])
     ]
     suite = TomographyExperiment(expts, program=Program(X(0), CNOT(0, 1)))

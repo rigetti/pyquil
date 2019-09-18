@@ -1,18 +1,50 @@
 Changelog
 =========
 
-[v2.11](https://github.com/rigetti/pyquil/compare/v2.10.0...master) (in development)
-------------------------------------------------------------------------------------
+[v2.12](https://github.com/rigetti/pyquil/compare/v2.11.0...master) (in development)
+----------------------------------------------------------------------------------------
+
+### Announcements
+
+-   There is now a [Contributing Guide](CONTRIBUTING.md) for those who would like
+    to participate in the development of pyQuil. Check it out! (@karalekas, gh-996)
+-   PyQuil now has a [Bug Report Template](.github/ISSUE_TEMPLATE/BUG_REPORT.md),
+    and a [Feature Request Template](.github/ISSUE_TEMPLATE/FEATURE_REQUEST.md),
+    which contain sections to fill out when filing a bug or suggesting an enhancement
+    (@karalekas, gh-985, gh-986).
+
+### Improvements and Changes
+
+-   The `local_qvm` context manager has been renamed to `local_forest_runtime`,
+    which now checks if the designated ports are used before starting `qvm`/`quilc`.
+    The original `local_qvm` has been deprecated (@sauercrowd, gh-976).
+-   The test suite for pyQuil now runs against both Python 3.6 and 3.7 to ensure
+    compatibility with the two most recent versions of Python (@karalekas, gh-987).
+-   Add support for the `FORKED` gate modifier (@kilimanjaro, gh-989).
+-   Deleted the deprecated modules `parameters.py` and `qpu.py` (@karalekas, gh-991).
+-   The test suite for pyQuil now runs much faster, by setting the default value
+    of the `--use-seed` option for `pytest` to `True` (@karalekas, gh-992).
+-   Support non-gate instructions (e.g. `MEASURE`) in `to_latex()` (@notmgsk, gh-975).
+-   Test suite has been updated to reduce the use of deprecated features
+    (@kilimanjaro, gh-998).
+
+### Bugfixes
+
+-   Strength two symmetrization was not correctly producing orthogonal 
+    arrays due to erroneous truncation, which has been fixed 
+    (@kylegulshen, gh-990).
+
+[v2.11](https://github.com/rigetti/pyquil/compare/v2.10.0...v2.11.0) (September 3, 2019)
+----------------------------------------------------------------------------------------
 
 ### Announcements
 
 -   PyQuil's changelog has been overhauled and rewritten in Markdown instead of
     RST, and can be found in the top-level directory of the repository as the
-    [CHANGELOG.md](https://github.com/rigetti/pyquil/blob/master/CHANGELOG.md)
-    file (which is the standard for most GitHub repositories). However,
-    during the build process, we use `pandoc` to convert it back to RST so
-    that it can be included as part of the ReadTheDocs documentation
-    [here](https://pyquil.readthedocs.io/en/stable/changes.html)
+    [CHANGELOG.md](CHANGELOG.md)  file (which is the standard for most GitHub
+    repositories). However, during the build process, we use `pandoc` to convert
+    it back to RST so that it can be included as part of the ReadTheDocs
+    documentation [here](https://pyquil.readthedocs.io/en/stable/changes.html)
     (@karalekas, gh-945, gh-973).
 
 ### Improvements and Changes
@@ -112,8 +144,7 @@ Changelog
 
 ### Announcements
 
--   PyQuil now has a [Pull Request
-    Template](https://github.com/rigetti/pyquil/blob/master/.github/PULL_REQUEST_TEMPLATE.md),
+-   PyQuil now has a [Pull Request Template](.github/PULL_REQUEST_TEMPLATE.md),
     which contains a checklist of things that must be completed (if
     applicable) before a PR can be merged (@karalekas, gh-921).
 

@@ -21,7 +21,6 @@ import types
 from typing import Iterable, Set
 import warnings
 from collections import OrderedDict, defaultdict
-from math import pi
 
 import numpy as np
 from rpcq.messages import NativeQuilMetadata
@@ -30,10 +29,9 @@ from typing import List, Dict
 
 from pyquil._parser.PyQuilListener import run_parser
 from pyquil.noise import _check_kraus_ops, _create_kraus_pragmas, pauli_kraus_map
-from pyquil.parameters import format_parameter
-from pyquil.quilatom import (LabelPlaceholder, QubitPlaceholder, unpack_qubit, Addr,
-                             unpack_classical_reg, MemoryReference)
-from pyquil.gates import MEASURE, QUANTUM_GATES, H, RESET
+from pyquil.quilatom import (LabelPlaceholder, MemoryReference, QubitPlaceholder,
+                             format_parameter, unpack_classical_reg, unpack_qubit)
+from pyquil.gates import MEASURE, H, RESET
 from pyquil.quilbase import (DefGate, Gate, Measurement, Pragma, AbstractInstruction, Qubit,
                              Jump, Label, JumpConditional, JumpTarget, JumpUnless, JumpWhen,
                              Declare, Halt, Reset, ResetQubit, DefPermutationGate)

@@ -22,8 +22,7 @@ import networkx as nx
 import numpy as np
 
 from pyquil.noise import NoiseModel
-from pyquil.parameters import Parameter
-from pyquil.quilatom import unpack_qubit
+from pyquil.quilatom import Parameter, unpack_qubit
 from pyquil.quilbase import Gate
 
 THETA = Parameter("theta")

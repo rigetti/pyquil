@@ -18,11 +18,11 @@ Contains the core pyQuil objects that correspond to Quil instructions.
 """
 import numpy as np
 from six import integer_types, string_types
+from typing import Optional
 from warnings import warn
 
-from pyquil.parameters import Expression, _contained_parameters, format_parameter
-from pyquil.quilatom import (Qubit, MemoryReference, Label, unpack_qubit, QubitPlaceholder,
-                             LabelPlaceholder)
+from pyquil.quilatom import (Expression, LabelPlaceholder, MemoryReference, Qubit, QubitPlaceholder,
+                             Label, _contained_parameters, format_parameter, unpack_qubit)
 
 
 class AbstractInstruction(object):
@@ -135,6 +135,23 @@ class Gate(AbstractInstruction):
 
         return self
 
+    def forked(self, fork_qubit, alt_params):
+        """
+        Add the FORKED modifier to the gate with the given fork qubit and given additional parameters.
+        """
+        if not isinstance(alt_params, list):
+            raise TypeError("Gate params must be a list")
+        if len(self.params) != len(alt_params):
+            raise ValueError("Expected {} parameters but received {}".format(len(self.params), len(alt_params)))
+
+        fork_qubit = unpack_qubit(fork_qubit)
+
+        self.modifiers.insert(0, "FORKED")
+        self.qubits.insert(0, fork_qubit)
+        self.params += alt_params
+
+        return self
+
     def dagger(self):
         """
         Add the DAGGER modifier to the gate.
@@ -156,6 +173,47 @@ class Gate(AbstractInstruction):
             return "{}{} {}".format(
                 ' '.join(self.modifiers) + ' ' if self.modifiers else '',
                 self.name, _format_qubits_str(self.qubits))
+
+
+def _strip_modifiers(gate: Gate, limit: Optional[int] = None):
+    """
+    Remove modifiers from :py:class:`Gate`.
+
+    This function removes up to ``limit`` gate modifiers from the given gate,
+    starting from the leftmost gate modifier.
+
+    :param gate: A gate.
+    :param limit: An upper bound on how many modifiers to remove.
+    """
+    if limit is None:
+        limit = len(gate.modifiers)
+
+    # We walk the modifiers from left-to-right, tracking indices to identify
+    # qubits/params introduced by gate modifiers.
+    #
+    # Invariants:
+    #   - gate.qubits[0:qubit_index] are qubits introduced by gate modifiers
+    #   - gate.params[param_index:] are parameters introduced by gate modifiers
+    qubit_index = 0
+    param_index = len(gate.params)
+    for m in gate.modifiers[:limit]:
+        if m == 'CONTROLLED':
+            qubit_index += 1
+        elif m == 'FORKED':
+            if param_index % 2 != 0:
+                raise ValueError("FORKED gate has an invalid number of parameters.")
+            param_index //= 2
+            qubit_index += 1
+        elif m == 'DAGGER':
+            pass
+        else:
+            raise TypeError("Unsupported gate modifier {}".format(m))
+
+    stripped = Gate(gate.name,
+                    gate.params[:param_index],
+                    gate.qubits[qubit_index:])
+    stripped.modifiers = gate.modifiers[limit:]
+    return stripped
 
 
 class Measurement(AbstractInstruction):

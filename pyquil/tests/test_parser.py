@@ -17,10 +17,9 @@ import numpy as np
 import pytest
 
 from pyquil.gates import *
-from pyquil.parameters import Parameter, quil_sin, quil_cos
 from pyquil.parser import parse
 from pyquil.quilatom import Addr
-from pyquil.quilatom import MemoryReference
+from pyquil.quilatom import MemoryReference, Parameter, quil_cos, quil_sin
 from pyquil.quilbase import Declare, Reset, ResetQubit
 from pyquil.quilbase import Label, JumpTarget, Jump, JumpWhen, JumpUnless, DefGate, DefPermutationGate, Qubit, Pragma, \
     RawInstr
@@ -323,3 +322,18 @@ def test_parse_dagger():
 def test_parse_controlled():
     s = "CONTROLLED X 0 1"
     parse_equals(s, X(1).controlled(0))
+
+
+def test_parse_forked():
+    s = "FORKED RX(0, pi/2) 0 1"
+    parse_equals(s, RX(0, 1).forked(0, [np.pi / 2]))
+
+
+def test_messy_modifiers():
+    s = "FORKED DAGGER CONTROLLED FORKED RX(0.1,0.2,0.3,0.4) 0 1 2 3"
+    parse_equals(s,
+                 RX(0.1, 3)
+                 .forked(2, [0.2])
+                 .controlled(1)
+                 .dagger()
+                 .forked(0, [0.3, 0.4]))

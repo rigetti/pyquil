@@ -26,10 +26,9 @@ from antlr4.error.ErrorListener import ErrorListener
 from antlr4.error.Errors import InputMismatchException
 from numpy.ma import sin, cos, sqrt, exp
 
-from pyquil import parameters
 from pyquil.gates import QUANTUM_GATES
-from pyquil.parameters import Parameter
-from pyquil.quilatom import MemoryReference, Addr
+from pyquil.quilatom import (Addr, MemoryReference, Parameter, quil_cos, quil_cis, quil_exp,
+                             quil_sin, quil_sqrt)
 from pyquil.quilbase import (Gate, DefGate, DefPermutationGate, Measurement, JumpTarget, Label, Expression,
                              Nop, Halt, Jump, JumpWhen, JumpUnless, Reset, Wait,
                              ClassicalNot, ClassicalNeg, ClassicalAnd, ClassicalInclusiveOr,
@@ -148,28 +147,48 @@ class PyQuilListener(QuilListener):
 
     def exitGate(self, ctx: QuilParser.GateContext):
         gate_name = ctx.name().getText()
+        modifiers = [mod.getText() for mod in ctx.modifier()]
         params = list(map(_param, ctx.param()))
         qubits = list(map(_qubit, ctx.qubit()))
-        # The Gate.controlled() method *prepends* the CONTROLLED modifier to the gate. But the
-        # parser works from the outside-in. Therefore the controlled qubits would be in reverse
-        # order. We reverse here to fix that.
-        modifiers = [mod.getText() for mod in ctx.modifier()][::-1]
-        control_qubits = qubits[0:len(list(filter(lambda str: str == "CONTROLLED", modifiers)))][::-1]
-        target_qubits = qubits[len(control_qubits):]
+
+        # The parsed string 'DAGGER CONTROLLED X 0 1' gives
+        #   modifiers ['DAGGER', 'CONTROLLED']
+        #   qubits    ['0', '1']
+        #
+        # We will build such gates by applying modifiers from right to left,
+        # e.g. X 1 -> CONTROLLED X 0 1 -> DAGGER CONTROLLED X 0 1
+
+        # Some gate modifiers increase the arity of the base gate.
+        # The new qubit arguments prefix the old ones.
+        modifier_qubits = []
+        for m in modifiers:
+            if m in ["CONTROLLED", "FORKED"]:
+                modifier_qubits.append(qubits[len(modifier_qubits)])
+
+        base_qubits = qubits[len(modifier_qubits):]
+
+        # Each FORKED doubles the number of parameters,
+        # e.g. FORKED RX(0.5, 1.5) 0 1 has two.
+        forked_offset = len(params) >> modifiers.count("FORKED")
+        base_params = params[:forked_offset]
 
         if gate_name in QUANTUM_GATES:
-            if params:
-                gate = QUANTUM_GATES[gate_name](*params, *target_qubits)
+            if base_params:
+                gate = QUANTUM_GATES[gate_name](*base_params, *base_qubits)
             else:
-                gate = QUANTUM_GATES[gate_name](*target_qubits)
+                gate = QUANTUM_GATES[gate_name](*base_qubits)
         else:
-            gate = Gate(gate_name, params, target_qubits)
+            gate = Gate(gate_name, base_params, base_qubits)
 
-        for modifier in modifiers:
+        # Track the last param used (for FORKED)
+        for modifier in modifiers[::-1]:
             if modifier == "CONTROLLED":
-                gate.controlled(control_qubits.pop(0))
+                gate.controlled(modifier_qubits.pop())
             elif modifier == "DAGGER":
                 gate.dagger()
+            elif modifier == 'FORKED':
+                gate.forked(modifier_qubits.pop(), params[forked_offset:(2 * forked_offset)])
+                forked_offset *= 2
             else:
                 raise ValueError(f"Unsupported gate modifier {modifier}.")
 
@@ -474,15 +493,15 @@ def _apply_function(func, arg):
     # type: (QuilParser.FunctionContext, Any) -> Any
     if isinstance(arg, Expression):
         if func.SIN():
-            return parameters.quil_sin(arg)
+            return quil_sin(arg)
         elif func.COS():
-            return parameters.quil_cos(arg)
+            return quil_cos(arg)
         elif func.SQRT():
-            return parameters.quil_sqrt(arg)
+            return quil_sqrt(arg)
         elif func.EXP():
-            return parameters.quil_exp(arg)
+            return quil_exp(arg)
         elif func.CIS():
-            return parameters.quil_cis(arg)
+            return quil_cis(arg)
         else:
             raise RuntimeError("Unexpected function to apply: " + func.getText())
     else:
