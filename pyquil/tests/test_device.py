@@ -79,10 +79,12 @@ def test_specs(specs_dict):
     assert specs.T1s() == {0: 20e-6, 1: 19e-6, 2: 21e-6, 3: 18e-6}
     assert specs.T2s() == {0: 15e-6, 1: 12e-6, 2: 16e-6, 3: 11e-6}
 
-    assert specs.fBellStates() == {(0, 1): 0.90, (0, 2): 0.92, (0, 3): 0.89, (1, 2): 0.91}
+    with pytest.warns(DeprecationWarning): # soon to be removed
+        assert specs.fBellStates() == {(0, 1): 0.90, (0, 2): 0.92, (0, 3): 0.89, (1, 2): 0.91}
     assert specs.fCZs() == {(0, 1): 0.89, (0, 2): 0.91, (0, 3): 0.88, (1, 2): 0.90}
     assert specs.fCZ_std_errs() == {(0, 1): 0.01, (0, 2): 0.20, (0, 3): 0.03, (1, 2): 0.12}
-    assert specs.fCPHASEs() == {(0, 1): 0.88, (0, 2): 0.90, (0, 3): 0.87, (1, 2): 0.89}
+    with pytest.warns(DeprecationWarning): # soon to be removed
+        assert specs.fCPHASEs() == {(0, 1): 0.88, (0, 2): 0.90, (0, 3): 0.87, (1, 2): 0.89}
 
 
 def test_kraus_model(kraus_model_I_dict):
@@ -132,8 +134,10 @@ def test_device(isa_dict, noise_model_dict):
 
     isa = ISA.from_dict(isa_dict)
     noise_model = NoiseModel.from_dict(noise_model_dict)
-    assert isinstance(device._isa, ISA)
-    assert device._isa == isa
+    # Device.isa is deprecated, but seemingly this is what we want here
+    with pytest.warns(DeprecationWarning):
+        assert isinstance(device.isa, ISA)
+        assert device.isa == isa
     assert isinstance(device.noise_model, NoiseModel)
     assert device.noise_model == noise_model
 
