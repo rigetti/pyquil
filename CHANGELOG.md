@@ -15,8 +15,6 @@ Changelog
 
 ### Improvements and Changes
 
--   Certain tests have been marked as "slow", and are skipped unless
-    the `--runslow` option is specified for `pytest` (@kilimanjaro, gh-1001).
 -   The `local_qvm` context manager has been renamed to `local_forest_runtime`,
     which now checks if the designated ports are used before starting `qvm`/`quilc`.
     The original `local_qvm` has been deprecated (@sauercrowd, gh-976).
@@ -29,6 +27,8 @@ Changelog
 -   Support non-gate instructions (e.g. `MEASURE`) in `to_latex()` (@notmgsk, gh-975).
 -   Test suite has been updated to reduce the use of deprecated features
     (@kilimanjaro, gh-998).
+-   Certain tests have been marked as "slow", and are skipped unless
+    the `--runslow` option is specified for `pytest` (@kilimanjaro, gh-1001).
 
 ### Bugfixes
 
