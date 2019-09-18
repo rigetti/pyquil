@@ -626,7 +626,8 @@ def test_simplify():
 def test_dont_simplify():
     t1 = sZ(0) * sZ(1)
     t2 = sZ(2) * sZ(3)
-    assert (t1 + t2) != 2 * sZ(0) * sZ(1)
+    with pytest.warns(UnequalLengthWarning):
+        assert (t1 + t2) != 2 * sZ(0) * sZ(1)
 
 
 def test_simplify_warning():
