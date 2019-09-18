@@ -263,6 +263,7 @@ def test_multiqubit_decay_bellstate():
 
     assert np.allclose(qam.wf_simulator.density, state)
 
+
 @pytest.mark.slow
 def test_for_negative_probabilities():
     # trivial program to do state tomography on

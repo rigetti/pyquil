@@ -225,6 +225,7 @@ def _random_2q_programs(n_progs=3):
         prog += _random_1q_gate(1)
         yield prog
 
+
 @pytest.mark.slow
 def test_measure_observables_many_progs(forest):
     expts = [
