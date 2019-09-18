@@ -179,7 +179,8 @@ def test_consolidate_symmetrization_outputs():
 
 def test_check_min_num_trials_for_symmetrized_readout():
     # trials = -2 should get bumped up to 4 trials
-    assert _check_min_num_trials_for_symmetrized_readout(num_qubits=2, trials=-2, symm_type=-1) == 4
+    with pytest.warns(Warning):
+        assert _check_min_num_trials_for_symmetrized_readout(num_qubits=2, trials=-2, symm_type=-1) == 4
     # can't have symm_type < -2 or > 3
     with pytest.raises(ValueError):
         _check_min_num_trials_for_symmetrized_readout(num_qubits=2, trials=-2, symm_type=-2)
