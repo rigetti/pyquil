@@ -79,11 +79,11 @@ def test_specs(specs_dict):
     assert specs.T1s() == {0: 20e-6, 1: 19e-6, 2: 21e-6, 3: 18e-6}
     assert specs.T2s() == {0: 15e-6, 1: 12e-6, 2: 16e-6, 3: 11e-6}
 
-    with pytest.warns(DeprecationWarning): # soon to be removed
+    with pytest.warns(DeprecationWarning):  # soon to be removed
         assert specs.fBellStates() == {(0, 1): 0.90, (0, 2): 0.92, (0, 3): 0.89, (1, 2): 0.91}
     assert specs.fCZs() == {(0, 1): 0.89, (0, 2): 0.91, (0, 3): 0.88, (1, 2): 0.90}
     assert specs.fCZ_std_errs() == {(0, 1): 0.01, (0, 2): 0.20, (0, 3): 0.03, (1, 2): 0.12}
-    with pytest.warns(DeprecationWarning): # soon to be removed
+    with pytest.warns(DeprecationWarning):  # soon to be removed
         assert specs.fCPHASEs() == {(0, 1): 0.88, (0, 2): 0.90, (0, 3): 0.87, (1, 2): 0.89}
 
 

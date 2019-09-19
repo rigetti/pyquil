@@ -494,11 +494,13 @@ def test_if_option():
 
     assert isinstance(p.instructions[3], JumpWhen)
 
+
 def test_alloc_deprecated():
     p = Program()
 
     with pytest.warns(DeprecationWarning):
         p.alloc()
+
 
 def test_qubit_placeholder():
     p = Program()
