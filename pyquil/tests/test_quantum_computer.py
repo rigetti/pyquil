@@ -179,7 +179,8 @@ def test_consolidate_symmetrization_outputs():
 
 def test_check_min_num_trials_for_symmetrized_readout():
     # trials = -2 should get bumped up to 4 trials
-    assert _check_min_num_trials_for_symmetrized_readout(num_qubits=2, trials=-2, symm_type=-1) == 4
+    with pytest.warns(Warning):
+        assert _check_min_num_trials_for_symmetrized_readout(num_qubits=2, trials=-2, symm_type=-1) == 4
     # can't have symm_type < -2 or > 3
     with pytest.raises(ValueError):
         _check_min_num_trials_for_symmetrized_readout(num_qubits=2, trials=-2, symm_type=-2)
@@ -463,14 +464,14 @@ def test_qc_error():
 
 
 def test_run_and_measure(local_qvm_quilc):
-    qc = get_qc("9q-generic-qvm")
+    qc = get_qc("9q-square-qvm")
     prog = Program(I(8))
     trials = 11
     # note to devs: this is included as an example in the run_and_measure docstrings
     # so if you change it here ... change it there!
     with local_forest_runtime():  # Redundant with test fixture.
         bitstrings = qc.run_and_measure(prog, trials)
-    bitstring_array = np.vstack(bitstrings[q] for q in qc.qubits()).T
+    bitstring_array = np.vstack([bitstrings[q] for q in qc.qubits()]).T
     assert bitstring_array.shape == (trials, len(qc.qubits()))
 
 

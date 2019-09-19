@@ -149,9 +149,10 @@ def test_ids():
     q = QubitPlaceholder.register(6)
     term_1 = PauliTerm("Z", q[0], 1.0) * PauliTerm("Z", q[1], 1.0) * PauliTerm("X", q[5], 5)
     term_2 = PauliTerm("X", q[5], 5) * PauliTerm("Z", q[0], 1.0) * PauliTerm("Z", q[1], 1.0)
+    # Not sortable
     with pytest.raises(TypeError):
-        # Not sortable
-        t = term_1.id() == term_2.id()
+        with pytest.warns(FutureWarning):
+            t = term_1.id() == term_2.id()
 
 
 def test_ids_no_sort():
@@ -330,24 +331,23 @@ def test_exponentiate_prog():
 
 def test_exponentiate_identity():
     q = QubitPlaceholder.register(11)
-    mapping = {qp: Qubit(i) for i, qp in enumerate(q)}
+
     generator = PauliTerm("I", q[1], 0.0)
     para_prog = exponential_map(generator)
     prog = para_prog(1)
-    result_prog = Program().inst()
-    assert address_qubits(prog, mapping) == address_qubits(result_prog, mapping)
+    assert len(prog) == 0
 
     generator = PauliTerm("I", q[1], 1.0)
     para_prog = exponential_map(generator)
     prog = para_prog(1)
     result_prog = Program().inst([X(q[0]), PHASE(-1.0, q[0]), X(q[0]), PHASE(-1.0, q[0])])
-    assert address_qubits(prog, mapping) == address_qubits(result_prog, mapping)
+    assert address_qubits(prog) == address_qubits(result_prog)
 
     generator = PauliTerm("I", q[10], 0.08)
     para_prog = exponential_map(generator)
     prog = para_prog(1)
     result_prog = Program().inst([X(q[0]), PHASE(-0.08, q[0]), X(q[0]), PHASE(-0.08, q[0])])
-    assert address_qubits(prog, mapping) == address_qubits(result_prog, mapping)
+    assert address_qubits(prog) == address_qubits(result_prog)
 
 
 def test_trotterize():
@@ -596,7 +596,8 @@ def test_dont_simplify():
     q = QubitPlaceholder.register(8)
     t1 = sZ(q[0]) * sZ(q[1])
     t2 = sZ(q[2]) * sZ(q[3])
-    assert (t1 + t2) != 2 * sZ(q[0]) * sZ(q[1])
+    with pytest.warns(UnequalLengthWarning):
+        assert (t1 + t2) != 2 * sZ(q[0]) * sZ(q[1])
 
 
 def test_simplify_warning():

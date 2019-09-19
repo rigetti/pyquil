@@ -254,7 +254,7 @@ def test_prepare_register_list():
 
 def test_get_qc_returns_remote_qvm_compiler(qvm: QVMConnection, compiler: QVMCompiler):
     with patch.dict('os.environ', {"COMPILER_URL": "tcp://192.168.0.0:5550"}):
-        qc = get_qc("9q-generic-qvm")
+        qc = get_qc("9q-square-qvm")
         assert isinstance(qc.compiler, QVMCompiler)
 
 
@@ -307,7 +307,10 @@ def test_quil_to_native_quil(compiler):
 def test_native_quil_to_binary(server, mock_qpu_compiler):
     p = COMPILED_BELL_STATE.copy()
     p.wrap_in_numshots_loop(10)
-    response = mock_qpu_compiler.native_quil_to_executable(p)
+    # `native_quil_to_executable` will warn us that we haven't constructed our
+    # program via `quil_to_native_quil`.
+    with pytest.warns(UserWarning):
+        response = mock_qpu_compiler.native_quil_to_executable(p)
     assert response.program == COMPILED_BYTES_ARRAY
 
 
