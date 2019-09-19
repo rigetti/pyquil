@@ -701,7 +701,7 @@ def test_pauli_sum_from_str():
     assert PauliSum.from_compact_str(another_str) == Sum
 
     # test sums of length one
-    Sum = PauliSum([1*sY(0)*sY(1)])
+    Sum = PauliSum([1 * sY(0) * sY(1)])
     the_str = "1*Y0*Y1"
     assert PauliSum.from_compact_str(the_str) == Sum
 
@@ -711,6 +711,6 @@ def test_pauli_sum_from_str():
     assert PauliSum.from_compact_str(the_str) == Sum
 
     # test the simplification (both in sums and products)
-    Sum = PauliSum([2*sY(1)])
+    Sum = PauliSum([2 * sY(1)])
     the_str = "1*Y0*X0 + (0+1j)*Z0 + 2*Y1"
     assert PauliSum.from_compact_str(the_str) == Sum
