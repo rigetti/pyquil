@@ -79,7 +79,6 @@ Changelog
     specify custom payloads (@ecpeterson, gh-961).
 -   `PauliSum` objects can now be constructed from strings via `from_compact_str()`
     and `PauliTerm.from_compact_str()` supports multi-qubit strings (@jlbosse, gh-984).
-    PauliSum.compact_str() in analogy to PauliTerm.compact_str(). (@jlbosse, gh-984)
 
 ### Bugfixes
 
