@@ -12,6 +12,9 @@ Changelog
     and a [Feature Request Template](.github/ISSUE_TEMPLATE/FEATURE_REQUEST.md),
     which contain sections to fill out when filing a bug or suggesting an enhancement
     (@karalekas, gh-985, gh-986).
+-   `PauliSum` objects can now be constructed from strings via
+    `from_compact_str()` and `PauliTerm.from_compact_str()` supports multi-qubit
+    strings (@jlbosse, gh-984).
 
 ### Improvements and Changes
 

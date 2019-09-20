@@ -677,3 +677,41 @@ def test_identity_no_qubit():
 def test_qubit_validation():
     with pytest.raises(ValueError):
         op = sX(None)
+
+
+def test_pauli_term_from_str():
+    # tests that should _not_ fail are in test_pauli_sum_from_str
+    with pytest.raises(ValueError):
+        PauliTerm.from_compact_str("X0")
+    with pytest.raises(ValueError):
+        PauliTerm.from_compact_str("10")
+    with pytest.raises(ValueError):
+        PauliTerm.from_compact_str("1.0X0")
+    with pytest.raises(ValueError):
+        PauliTerm.from_compact_str("(1.0+9i)*X0")
+    with pytest.raises(ValueError):
+        PauliTerm.from_compact_str("(1.0+0j)*A0")
+
+
+def test_pauli_sum_from_str():
+    # this also tests PauliTerm.from_compact_str() since it gets called
+    Sum = (1.5 + .5j) * sX(0) * sZ(2) + 0.7 * sZ(1)
+    another_str = "(1.5 + 0.5j)*X0*Z2+.7*Z1"
+    assert PauliSum.from_compact_str(str(Sum)) == Sum
+    assert PauliSum.from_compact_str(Sum.compact_str()) == Sum
+    assert PauliSum.from_compact_str(another_str) == Sum
+
+    # test sums of length one
+    Sum = PauliSum([1 * sY(0) * sY(1)])
+    the_str = "1*Y0*Y1"
+    assert PauliSum.from_compact_str(the_str) == Sum
+
+    # test sums containing the identity
+    Sum = (1.5 + .5j) * sX(0) * sZ(2) + 0.7 * sI(1)
+    the_str = "(1.5 + 0.5j)*X0*Z2+.7*I"
+    assert PauliSum.from_compact_str(the_str) == Sum
+
+    # test the simplification (both in sums and products)
+    Sum = PauliSum([2 * sY(1)])
+    the_str = "1*Y0*X0 + (0+1j)*Z0 + 2*Y1"
+    assert PauliSum.from_compact_str(the_str) == Sum

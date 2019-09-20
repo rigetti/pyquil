@@ -358,23 +358,38 @@ class PauliTerm(object):
     def from_compact_str(cls, str_pauli_term):
         """Construct a PauliTerm from the result of str(pauli_term)
         """
-        coef_str, str_pauli_term = str_pauli_term.split('*')
+        # split into str_coef, str_op at first '*'' outside parenthesis
         try:
-            coef = int(coef_str)
+            str_coef, str_op = re.split(r'\*(?![^(]*\))', str_pauli_term,
+                                        maxsplit=1)
+        except ValueError:
+            raise ValueError("Could not separate the pauli string into "
+                             f"coefficient and operator. {str_pauli_term} does"
+                             " not match <coefficient>*<operator>")
+
+        # parse the coefficient into either a float or complex
+        str_coef = str_coef.replace(' ', '')
+        try:
+            coef = float(str_coef)
         except ValueError:
             try:
-                coef = float(coef_str)
+                coef = complex(str_coef)
             except ValueError:
-                coef = complex(coef_str)
+                raise ValueError("Could not parse the coefficient "
+                                 f"{str_coef}")
 
         op = sI() * coef
-        if str_pauli_term == 'I':
+        if str_op == 'I':
             return op
-        ma = re.fullmatch(r'(([XYZ])(\d+))+', str_pauli_term)
-        if ma is None:
-            raise ValueError(f"Could not parse pauli string {str_pauli_term}")
-        for ma in re.finditer(r'([XYZ])(\d+)', str_pauli_term):
-            op *= cls(ma.group(1), int(ma.group(2)))
+
+        # parse the operator
+        str_op = re.sub(r'\*', '', str_op)
+        if not re.match(r'^(([XYZ])(\d+))+$', str_op):
+            raise ValueError(f"Could not parse operator string {str_op}. "
+                             r"It should match ^(([XYZ])(\d+))+$")
+
+        for factor in re.finditer(r'([XYZ])(\d+)', str_op):
+            op *= cls(factor.group(1), int(factor.group(2)))
 
         return op
 
@@ -677,6 +692,28 @@ class PauliSum(object):
         programs = [term.program for term in self.terms]
         coefficients = np.array([term.coefficient for term in self.terms])
         return programs, coefficients
+
+    def compact_str(self):
+        """A string representation of the PauliSum that is more compact than ``str(pauli_sum)``
+
+        >>> pauli_sum = 2.0 * sX(1)* sZ(2) + 1.5 * sY(2)
+        >>> str(pauli_sum)
+        >>> '2.0*X1*X2 + 1.5*Y2'
+        >>> pauli_sum.compact_str()
+        >>> '2.0*X1X2+1.5*Y2'
+        """
+        return "+".join([term.compact_str() for term in self.terms])
+
+    @classmethod
+    def from_compact_str(cls, str_pauli_sum):
+        """Construct a PauliSum from the result of str(pauli_sum)
+        """
+        # split str_pauli_sum only at "+" outside of parenthesis to allow
+        # e.g. "0.5*X0 + (0.5+0j)*Z2"
+        str_terms = re.split(r'\+(?![^(]*\))', str_pauli_sum)
+        str_terms = [s.strip() for s in str_terms]
+        terms = [PauliTerm.from_compact_str(term) for term in str_terms]
+        return cls(terms).simplify()
 
 
 def simplify_pauli_sum(pauli_sum):
