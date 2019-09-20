@@ -12,6 +12,9 @@ Changelog
     and a [Feature Request Template](.github/ISSUE_TEMPLATE/FEATURE_REQUEST.md),
     which contain sections to fill out when filing a bug or suggesting an enhancement
     (@karalekas, gh-985, gh-986).
+-   `PauliSum` objects can now be constructed from strings via
+    `from_compact_str()` and `PauliTerm.from_compact_str()` supports multi-qubit
+    strings (@jlbosse, gh-984).
 
 ### Improvements and Changes
 
@@ -77,8 +80,6 @@ Changelog
 -   PyQuil now sends “modern” ISA payloads to quilc, which must be of version
     \>= `1.10.0`. Check out the details of `get_isa` for information on how to
     specify custom payloads (@ecpeterson, gh-961).
--   `PauliSum` objects can now be constructed from strings via `from_compact_str()`
-    and `PauliTerm.from_compact_str()` supports multi-qubit strings (@jlbosse, gh-984).
 
 ### Bugfixes
 
