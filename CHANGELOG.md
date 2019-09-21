@@ -2,7 +2,7 @@ Changelog
 =========
 
 [v2.12](https://github.com/rigetti/pyquil/compare/v2.11.0...master) (in development)
-----------------------------------------------------------------------------------------
+------------------------------------------------------------------------------------
 
 ### Announcements
 
@@ -12,9 +12,6 @@ Changelog
     and a [Feature Request Template](.github/ISSUE_TEMPLATE/FEATURE_REQUEST.md),
     which contain sections to fill out when filing a bug or suggesting an enhancement
     (@karalekas, gh-985, gh-986).
--   `PauliSum` objects can now be constructed from strings via
-    `from_compact_str()` and `PauliTerm.from_compact_str()` supports multi-qubit
-    strings (@jlbosse, gh-984).
 
 ### Improvements and Changes
 
@@ -32,12 +29,21 @@ Changelog
     (@kilimanjaro, gh-998, gh-1005).
 -   Certain tests have been marked as "slow", and are skipped unless
     the `--runslow` option is specified for `pytest` (@kilimanjaro, gh-1001).
+-   `PauliSum` objects can now be constructed from strings via `from_compact_str()`
+    and `PauliTerm.from_compact_str()` supports multi-qubit strings (@jlbosse, gh-984).
 
 ### Bugfixes
 
--   Strength two symmetrization was not correctly producing orthogonal 
-    arrays due to erroneous truncation, which has been fixed 
-    (@kylegulshen, gh-990).
+-   Strength two symmetrization was not correctly producing orthogonal arrays due to
+    erroneous truncation, which has been fixed (@kylegulshen, gh-990).
+-   The `STORE` instruction now accepts `int` or `float` in addition to `MemoryReference`
+    as its `source` argument. As a result, you can now `STORE` an immediate value into a
+    memory register. Also, the `EQ`, `LT`, `LE`, `GT`, and `GE` instructions now all
+    accept `float` in addition to `int` or `MemoryReference` as their third and final
+    argument. As a result, you can now perform classical comparisons against an
+    immediate `float` value. Finally, the `CONVERT` instruction now accepts any valid
+    memory reference designator (a `MemoryReference`, a string, or a tuple of type
+    `(str, int)`) for both its arguments (@appleby, gh-1010).
 
 [v2.11](https://github.com/rigetti/pyquil/compare/v2.10.0...v2.11.0) (September 3, 2019)
 ----------------------------------------------------------------------------------------

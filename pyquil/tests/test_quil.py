@@ -247,22 +247,72 @@ def test_binary_classicals():
                       'EXCHANGE ro[0] ro[1]\n'
 
 
+def test_memory_reference_unpacking():
+    p = Program()
+
+    p.inst(AND("ro", ("ro", 1)),
+           MOVE("ro", ("ro", 1)),
+           CONVERT("ro", ("ro", 1)),
+           IOR("ro", ("ro", 1)),
+           XOR("ro", ("ro", 1)),
+           ADD("ro", ("ro", 1)),
+           SUB("ro", ("ro", 1)),
+           MUL("ro", ("ro", 1)),
+           DIV("ro", ("ro", 1)),
+           EXCHANGE("ro", ("ro", 1)))
+
+    assert p.out() == 'AND ro[0] ro[1]\n' \
+                      'MOVE ro[0] ro[1]\n' \
+                      'CONVERT ro[0] ro[1]\n' \
+                      'IOR ro[0] ro[1]\n' \
+                      'XOR ro[0] ro[1]\n' \
+                      'ADD ro[0] ro[1]\n' \
+                      'SUB ro[0] ro[1]\n'\
+                      'MUL ro[0] ro[1]\n' \
+                      'DIV ro[0] ro[1]\n' \
+                      'EXCHANGE ro[0] ro[1]\n'
+
+
 def test_ternary_classicals():
     p = Program()
     p.inst(LOAD(MemoryReference("ro", 0), "ro", MemoryReference("n", 0)),
            STORE("ro", MemoryReference("n", 0), MemoryReference("ro", 0)),
-           EQ(MemoryReference("ro", 0), MemoryReference("ro", 1), MemoryReference("ro", 2)),
+           STORE("ro", MemoryReference("n", 0), 0),
+           STORE("ro", MemoryReference("n", 0), 0.1),
+           EQ(MemoryReference("ro", 0), MemoryReference("ro", 1), 0),
+           EQ(MemoryReference("ro", 0), MemoryReference("ro", 1), 0.0),
+           EQ(MemoryReference("ro", 0), MemoryReference("ro", 1), MemoryReference("ro", 0)),
+           GE(MemoryReference("ro", 0), MemoryReference("ro", 1), 1),
+           GE(MemoryReference("ro", 0), MemoryReference("ro", 1), 1.1),
+           GE(MemoryReference("ro", 0), MemoryReference("ro", 1), MemoryReference("ro", 1)),
+           GT(MemoryReference("ro", 0), MemoryReference("ro", 1), 2),
+           GT(MemoryReference("ro", 0), MemoryReference("ro", 1), 2.2),
            GT(MemoryReference("ro", 0), MemoryReference("ro", 1), MemoryReference("ro", 2)),
-           GE(MemoryReference("ro", 0), MemoryReference("ro", 1), MemoryReference("ro", 2)),
-           LE(MemoryReference("ro", 0), MemoryReference("ro", 1), MemoryReference("ro", 2)),
-           LT(MemoryReference("ro", 0), MemoryReference("ro", 1), MemoryReference("ro", 2)))
+           LE(MemoryReference("ro", 0), MemoryReference("ro", 1), 3),
+           LE(MemoryReference("ro", 0), MemoryReference("ro", 1), 3.3),
+           LE(MemoryReference("ro", 0), MemoryReference("ro", 1), MemoryReference("ro", 3)),
+           LT(MemoryReference("ro", 0), MemoryReference("ro", 1), 4),
+           LT(MemoryReference("ro", 0), MemoryReference("ro", 1), 4.4),
+           LT(MemoryReference("ro", 0), MemoryReference("ro", 1), MemoryReference("ro", 4)))
     assert p.out() == 'LOAD ro[0] ro n[0]\n' \
                       'STORE ro n[0] ro[0]\n' \
-                      'EQ ro[0] ro[1] ro[2]\n' \
+                      'STORE ro n[0] 0\n' \
+                      'STORE ro n[0] 0.1\n' \
+                      'EQ ro[0] ro[1] 0\n' \
+                      'EQ ro[0] ro[1] 0.0\n' \
+                      'EQ ro[0] ro[1] ro[0]\n' \
+                      'GE ro[0] ro[1] 1\n' \
+                      'GE ro[0] ro[1] 1.1\n' \
+                      'GE ro[0] ro[1] ro[1]\n' \
+                      'GT ro[0] ro[1] 2\n' \
+                      'GT ro[0] ro[1] 2.2\n' \
                       'GT ro[0] ro[1] ro[2]\n' \
-                      'GE ro[0] ro[1] ro[2]\n' \
-                      'LE ro[0] ro[1] ro[2]\n' \
-                      'LT ro[0] ro[1] ro[2]\n'
+                      'LE ro[0] ro[1] 3\n' \
+                      'LE ro[0] ro[1] 3.3\n' \
+                      'LE ro[0] ro[1] ro[3]\n' \
+                      'LT ro[0] ro[1] 4\n' \
+                      'LT ro[0] ro[1] 4.4\n' \
+                      'LT ro[0] ro[1] ro[4]\n'
 
 
 def test_measurement_calls():
