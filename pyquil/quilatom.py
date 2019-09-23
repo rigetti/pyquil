@@ -538,10 +538,17 @@ def _check_for_pi(element):
     """
     Check to see if there exists a rational number r = p/q
     in reduced form for which the difference between element/np.pi
-    and r is small and q <= 8.
+    and r is small and q <= 8. Returns a string if no such rational
+    exists, or an Expression which will pretty print using the string
+    "pi".
+
+    For example,
+    In[1]:  _check_for_pi(2 * np.pi)
+    Out[1]: "2*pi"
 
     :param element: float
-    :return element: pretty print string if true, else standard representation.
+    :return element: an expression containing a rational of pi
+    :rtype: Union[str, Expression]
     """
     frac = Fraction(element / np.pi).limit_denominator(8)
     num, den = frac.numerator, frac.denominator
