@@ -111,8 +111,8 @@ def unpack_qubit(qubit: QubitDesignator) -> Union[Qubit, QubitPlaceholder]:
     """
     Get a qubit from an object.
 
-    :param qubit: An int or Qubit.
-    :return: A Qubit instance
+    :param qubit: the qubit designator to unpack.
+    :return: A Qubit or QubitPlaceholder instance
     """
     if isinstance(qubit, int):
         return Qubit(qubit)
@@ -121,7 +121,7 @@ def unpack_qubit(qubit: QubitDesignator) -> Union[Qubit, QubitPlaceholder]:
     elif isinstance(qubit, QubitPlaceholder):
         return qubit
     else:
-        raise TypeError("qubit should be an int or Qubit instance")
+        raise TypeError("qubit should be an int or Qubit or QubitPlaceholder instance")
 
 
 # Like the Tuple, the List must be length 2, where the first item is a string and the second an
@@ -210,7 +210,7 @@ def format_parameter(element: ParameterDesignator) -> str:
     Formats a particular parameter. Essentially the same as built-in formatting except using 'i' instead of 'j' for
     the imaginary number.
 
-    :param element: {int, float, complex, Parameter, MemoryReference, Expression} Formats a parameter for Quil output.
+    :param element: The parameter to format for Quil output.
     """
     if isinstance(element, int) or isinstance(element, np.int_):
         return repr(element)
@@ -562,7 +562,7 @@ def _check_for_pi(element: float) -> str:
     in reduced form for which the difference between element/np.pi
     and r is small and q <= 8.
 
-    :param element: float
+    :param element: the number to check
     :return element: pretty print string if true, else standard representation.
     """
     frac = Fraction(element / np.pi).limit_denominator(8)

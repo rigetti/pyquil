@@ -456,12 +456,11 @@ def RESET(qubit_index: Optional[QubitDesignator] = None) -> Union[Reset, ResetQu
     """
     Reset all qubits or just one specific qubit.
 
-    :param Optional[QubitDesignator] qubit_index: The qubit to reset.
+    :param qubit_index: The qubit to reset.
         This can be a qubit's index, a Qubit, or a QubitPlaceholder.
         If None, reset all qubits.
     :returns: A Reset or ResetQubit Quil AST expression corresponding to a global or targeted
         reset, respectively.
-    :rtype: Union[Reset, ResetQubit]
     """
     if qubit_index is not None:
         return ResetQubit(unpack_qubit(qubit_index))
