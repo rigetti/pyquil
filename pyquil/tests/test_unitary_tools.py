@@ -8,7 +8,7 @@ from pyquil.operator_estimation import plusX, minusZ
 from pyquil.paulis import sX, sY, sZ
 from pyquil.unitary_tools import qubit_adjacent_lifted_gate, program_unitary, lifted_gate_matrix, \
     lifted_gate, lifted_pauli, lifted_state_operator
-from pyquil.quilatom import MemoryReference
+from pyquil.quilatom import MemoryReference, Parameter
 from pyquil.quilbase import Declare
 
 
@@ -405,3 +405,10 @@ def test_lifted_state_operator_backwards_qubits():
         np.kron(proj_plus, proj_one),
         lifted_state_operator(xz_state, qubits=[6, 5]),
     )
+
+
+def test_lifted_gate_with_nonconstant_params():
+    gate = RX(Parameter("theta"), 0)
+
+    with pytest.raises(TypeError):
+        lifted_gate(gate, 1)

@@ -21,6 +21,7 @@ from pyquil.gate_matrices import SWAP, STATES, QUANTUM_GATES
 from pyquil.operator_estimation import TensorProductState
 from pyquil.paulis import PauliSum, PauliTerm
 from pyquil.quilbase import Gate, _strip_modifiers
+from pyquil.quilatom import Parameter
 
 
 def all_bitstrings(n_bits):
@@ -276,6 +277,9 @@ def lifted_gate(gate: Gate, n_qubits: int):
     zero[1, 1] = 0
     one = np.eye(2)
     one[0, 0] = 0
+
+    if any(isinstance(param, Parameter) for param in gate.params):
+        raise TypeError("Cannot produce a matrix from a gate with non-constant parameters.")
 
     # The main source of complexity is in handling handling FORKED gates. Given
     # a gate with modifiers, such as `FORKED CONTROLLED FORKED RX(a,b,c,d) 0 1
