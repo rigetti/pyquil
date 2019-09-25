@@ -219,23 +219,22 @@ class QPUCompiler(AbstractCompiler):
 
     def _connect_quilc(self):
         try:
-            quilc_version_dict = self.quilc_client.call('get_version_info', rpc_timeout=1)
+            quilc_version_dict = self.quilc_client.call('get_version_info')
             check_quilc_version(quilc_version_dict)
         except TimeoutError:
             raise QuilcNotRunning(f'No quilc server running at {self.quilc_client.endpoint}')
 
     def _connect_qpu_compiler(self):
         try:
-            self.qpu_compiler_client.call('get_version_info', rpc_timeout=1)
+            self.qpu_compiler_client.call('get_version_info')
         except TimeoutError:
             raise QPUCompilerNotRunning('No QPU compiler server running at '
                                         f'{self.qpu_compiler_client.endpoint}')
 
     def get_version_info(self) -> dict:
-        quilc_version_info = self.quilc_client.call('get_version_info', rpc_timeout=1)
+        quilc_version_info = self.quilc_client.call('get_version_info')
         if self.qpu_compiler_client:
-            qpu_compiler_version_info = self.qpu_compiler_client.call('get_version_info',
-                                                                      rpc_timeout=1)
+            qpu_compiler_version_info = self.qpu_compiler_client.call('get_version_info')
             return {'quilc': quilc_version_info, 'qpu_compiler': qpu_compiler_version_info}
         return {'quilc': quilc_version_info}
 
@@ -331,7 +330,7 @@ class QVMCompiler(AbstractCompiler):
             raise QuilcNotRunning(f'No quilc server running at {self.client.endpoint}')
 
     def get_version_info(self) -> dict:
-        return self.client.call('get_version_info', rpc_timeout=1)
+        return self.client.call('get_version_info')
 
     @_record_call
     def quil_to_native_quil(self, program: Program, *, protoquil=None) -> Program:
