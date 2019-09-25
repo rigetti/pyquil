@@ -46,6 +46,8 @@ Changelog
     `(str, int)`) for both its arguments (@appleby, gh-1010).
 -   Raise an error if a gate with non-constant parameters is provided to `lifted_gate`
     (@notmgsk, gh-1012).
+-   Uniformly use provided `timeout` in `QVMCompiler` and `QPUCompiler`
+    (@kilimanjaro, gh-1014).
 
 [v2.11](https://github.com/rigetti/pyquil/compare/v2.10.0...v2.11.0) (September 3, 2019)
 ----------------------------------------------------------------------------------------
