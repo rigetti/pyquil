@@ -1,17 +1,17 @@
 Changelog
 =========
 
-[v2.12](https://github.com/rigetti/pyquil/compare/v2.11.0...master) (in development)
-------------------------------------------------------------------------------------
+[v2.12](https://github.com/rigetti/pyquil/compare/v2.11.0...master) (September 28, 2019)
+----------------------------------------------------------------------------------------
 
 ### Announcements
 
 -   There is now a [Contributing Guide](CONTRIBUTING.md) for those who would like
-    to participate in the development of pyQuil. Check it out! (@karalekas, gh-996)
--   PyQuil now has a [Bug Report Template](.github/ISSUE_TEMPLATE/BUG_REPORT.md),
+    to participate in the development of pyQuil. Check it out! In addition, pyQuil
+    now has a [Bug Report Template](.github/ISSUE_TEMPLATE/BUG_REPORT.md),
     and a [Feature Request Template](.github/ISSUE_TEMPLATE/FEATURE_REQUEST.md),
     which contain sections to fill out when filing a bug or suggesting an enhancement
-    (@karalekas, gh-985, gh-986).
+    (@karalekas, gh-985, gh-986, gh-996).
 
 ### Improvements and Changes
 
