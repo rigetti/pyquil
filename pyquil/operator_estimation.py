@@ -4,7 +4,7 @@ import logging
 import warnings
 from math import pi
 from operator import mul
-from typing import Callable, Dict, List, Union, Iterable, Tuple, Optional
+from typing import Callable, Dict, List, Union, Iterable, Tuple, Optional, Sequence
 
 import networkx as nx
 import numpy as np
@@ -214,7 +214,8 @@ def _max_weight_state(states: Iterable[TensorProductState]) -> Union[None, Tenso
     return TensorProductState(list(mapping.values()))
 
 
-def _max_tpb_overlap(tomo_expt: TomographyExperiment):
+def _max_tpb_overlap(tomo_expt: TomographyExperiment) \
+        -> Dict[ExperimentSetting, List[ExperimentSetting]]:
     """
     Given an input TomographyExperiment, provide a dictionary indicating which ExperimentSettings
     share a tensor product basis
@@ -706,3 +707,87 @@ def _calibration_program(
         calibr_prog += _local_pauli_eig_meas(op, q)
 
     return calibr_prog
+
+
+def merge_disjoint_experiments(experiments: List[TomographyExperiment],
+                               group_merged_settings: bool = True) -> TomographyExperiment:
+    """
+    Merges the list of experiments into a single experiment that runs the sum of the individual
+    experiment programs and contains all of the combined experiment settings.
+
+    A group of TomographyExperiments whose programs operate on disjoint sets of qubits can be
+    'parallelized' so that the total number of runs can be reduced after grouping the settings.
+    Settings which act on disjoint sets of qubits can be automatically estimated from the same
+    run on the quantum computer.
+
+    If any experiment programs act on a shared qubit they cannot be thoughtlessly composed since
+    the order of operations on the shared qubit may have a significant impact on the program
+    behaviour; therefore we do not recommend using this method if this is the case.
+
+    Even when the individual experiments act on disjoint sets of qubits you must be
+    careful not to associate 'parallel' with 'simultaneous' execution. Physically the gates
+    specified in a pyquil Program occur as soon as resources are available; meanwhile, measurement
+    happens only after all gates. There is no specification of the exact timing of gates beyond
+    their causal relationships. Therefore, while grouping experiments into parallel operation can
+    be quite beneficial for time savings, do not depend on any simultaneous execution of gates on
+    different qubits, and be wary of the fact that measurement happens only after all gates have
+    finished.
+
+    Note that to get the time saving benefits the settings must be grouped on the merged
+    experiment--by default this is done before returning the experiment.
+
+    :param experiments: a group of experiments to combine into a single experiment
+    :param group_merged_settings: By default group the settings of the merged experiment.
+    :return: a single experiment that runs the summed program and all settings.
+    """
+    used_qubits = set()
+    for expt in experiments:
+        if expt.program.get_qubits().intersection(used_qubits):
+            raise ValueError(
+                "Experiment programs act on some shared set of qubits and cannot be "
+                "merged unambiguously.")
+        used_qubits = used_qubits.union(expt.program.get_qubits())
+
+    # get a flat list of all settings, to be regrouped later
+    all_settings = [setting for expt in experiments
+                    for simult_settings in expt
+                    for setting in simult_settings]
+    merged_program = sum([expt.program for expt in experiments], Program())
+
+    merged_expt = TomographyExperiment(all_settings, merged_program)
+
+    if group_merged_settings:
+        merged_expt = group_experiments(merged_expt)
+
+    return merged_expt
+
+
+def get_results_by_qubit_groups(results: Iterable[ExperimentResult],
+                                qubit_groups: Sequence[Sequence[int]]) \
+        -> Dict[Tuple[int, ...], List[ExperimentResult]]:
+    """
+    Organizes ExperimentResults by the group of qubits on which the observable of the result acts.
+
+    Each experiment result will be associated with a qubit group key if the observable of the
+    result.setting acts on a subset of the qubits in the group. If the result does not act on a
+    subset of qubits of any given group then the result is ignored.
+
+    Note that for groups of qubits which are not pairwise disjoint, one result may be associated to
+    multiple groups.
+
+    :param qubit_groups: groups of qubits for which you want the pertinent results.
+    :param results: ExperimentResults from running an TomographyExperiment
+    :return: a dictionary whose keys are individual groups of qubits (as sorted tuples). The
+        corresponding value is the list of experiment results whose observables measure some
+        subset of that qubit group. The result order is maintained within each group.
+    """
+    qubit_groups = [tuple(sorted(group)) for group in qubit_groups]
+    results_by_qubit_group = {group: [] for group in qubit_groups}
+    for res in results:
+        res_qs = res.setting.observable.get_qubits()
+
+        for group in qubit_groups:
+            if set(res_qs).issubset(set(group)):
+                results_by_qubit_group[group].append(res)
+
+    return results_by_qubit_group
