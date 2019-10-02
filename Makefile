@@ -7,7 +7,6 @@ QVM_URL=http://qvm:5000
 all:
     dist
 
-# 
 .PHONY: clean
 clean:
     rm -rf dist
