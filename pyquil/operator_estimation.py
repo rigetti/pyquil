@@ -992,11 +992,6 @@ def calibrate_observable_estimates(qc: QuantumComputer, expt_results: List[Exper
         # TODO: we have to fabricate an ExperimentSetting to pass to _stats_from_measurements
         #  even though it only needs the observable.
         setting = ExperimentSetting(zeros_state(meas_qs), obs)
-        # TODO: current behavior removes sign information from the reported observable and
-        #  instead stores it here in the calibrated expectation. It might be more clear to change
-        #  this (by simply omitting coeff) to match the docstring description above where the
-        #  calibration expectation is simply the average magnitude of expectation over
-        #  eigenstates.
         obs_mean, obs_var = _stats_from_measurements(results,
                                                      {q: idx for idx, q in enumerate(meas_qs)},
                                                      setting)
