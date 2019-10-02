@@ -7,7 +7,9 @@ import sys
 import warnings
 from json import JSONEncoder
 from operator import mul
-from typing import List, Union, Iterable, Tuple, Optional, Dict
+from typing import List, Union, Iterable, Tuple, Optional, Dict, Sequence
+from tqdm import tqdm
+from copy import copy
 
 import networkx as nx
 import numpy as np
@@ -814,11 +816,227 @@ class ExperimentResult:
         }
 
 
+def generate_experiment_programs(tomo_experiment: TomographyExperiment, active_reset: bool = False) \
+            -> Tuple[List[Program], List[List[int]]]:
+    """
+    Generate the programs necessary to estimate the observables in a TomographyExperiment.
+
+    Grouping of settings to be run in parallel, e.g. by a call to group_experiments, should be
+    done before this method is called.
+
+    .. CAUTION::
+        One must be careful with compilation of the output programs before the appropriate MEASURE
+        instructions are added, because compilation may re-index the qubits so that
+        the output list of `measure_qubits` no longer accurately indexes the qubits that
+        should be measured.
+
+    :param tomo_experiment: a single TomographyExperiment to be translated to a series of programs
+        that, when run serially, can be used to estimate each of obs_expt's observables.
+    :param active_reset: whether or not to begin the program by actively resetting. If true,
+        execution of each of the returned programs in a loop on the QPU will generally be faster.
+    :return: a list of programs along with a corresponding list of the groups of qubits that are
+        measured by that program. The returned programs may be run on a qc after measurement
+        instructions are added for the corresponding group of qubits in meas_qubits, or by a call
+        to `qc.run_symmetrized_readout` -- see :func:`raw_estimate_observables` for possible usage.
+    """
+    # Outer loop over a collection of grouped settings for which we can simultaneously estimate.
+    programs = []
+    meas_qubits = []
+    for settings in tomo_experiment:
+
+        # Prepare a state according to the amalgam of all setting.in_state
+        total_prog = Program()
+        if active_reset:
+            total_prog += RESET()
+        max_weight_in_state = _max_weight_state(setting.in_state for setting in settings)
+        if max_weight_in_state is None:
+            raise ValueError(
+                'Input states are not compatible. Re-group the experiment settings '
+                'so that groups of parallel settings have compatible input states.')
+        for oneq_state in max_weight_in_state.states:
+            total_prog += _one_q_state_prep(oneq_state)
+
+        # Add in the program
+        total_prog += tomo_experiment.program
+
+        # Prepare for measurement state according to setting.out_operator
+        max_weight_out_op = _max_weight_operator(setting.out_operator for setting in settings)
+        if max_weight_out_op is None:
+            raise ValueError('Observables not compatible. Re-group the experiment settings '
+                             'so that groups of parallel settings have compatible observables.')
+        for qubit, op_str in max_weight_out_op:
+            total_prog += _local_pauli_eig_meas(op_str, qubit)
+
+        programs.append(total_prog)
+
+        meas_qubits.append(max_weight_out_op.get_qubits())
+    return programs, meas_qubits
+
+
+def raw_estimate_observables(qc: QuantumComputer, tomo_experiment: TomographyExperiment,
+                             n_shots: int = 500, symm_type: int = 0, active_reset: bool = False,
+                             show_progress_bar: bool = False) -> Iterable[ExperimentResult]:
+    """
+    Wrapper for estimating the raw observables in a TomographyExperiment, optionally with the
+    level of symmetrization specified.
+
+    An expectation and standard error will be estimated for each observable in each setting of
+    the TomographyExperiment. Settings which are grouped together will be run in parallel under
+    the same call to the QuantumComputer.
+
+    .. CAUTION::
+        Note that the call to `qc.run_symmetrized_readout` adds MEASURE instructions to the
+        programs output by :func:`generate_experiment_programs` and also uses the qc.compiler to
+        compile each program. This will throw an error if the program in tomo_experiment already
+        has a readout register declared. The default compiler (e.g. for qc returned by `get_qc`)
+        may make optimizations that remove gates necessary for benchmarking.
+
+    :param qc: a quantum computer object on which to run the programs necessary to estimate each
+        observable of tomo_experiment.
+    :param tomo_experiment: a single TomographyExperiment with settings pre-grouped as desired.
+    :param n_shots: the number of shots to run each program or each symmetrized program.
+    :param symm_type: the type of symmetrization
+
+        * -1 -- exhaustive symmetrization uses every possible combination of flips
+        * 0 -- no symmetrization
+        * 1 -- symmetrization using an OA with strength 1
+        * 2 -- symmetrization using an OA with strength 2
+        * 3 -- symmetrization using an OA with strength 3
+
+    :param active_reset: whether or not to begin the program by actively resetting. If true,
+        execution of each of the returned programs in a loop on the QPU will generally be faster.
+    :param show_progress_bar: displays a progress bar via tqdm if true.
+
+    :return: all of the ExperimentResults which hold an estimate of each observable of tomo_experiment
+    """
+    programs, meas_qubits = generate_experiment_programs(tomo_experiment, active_reset)
+    for prog, meas_qs, settings in zip(tqdm(programs, disable=not show_progress_bar),
+                                       meas_qubits,
+                                       tomo_experiment):
+        results = qc.run_symmetrized_readout(prog, n_shots, symm_type, meas_qs)
+
+        for setting in settings:
+            coeff = complex(setting.out_operator.coefficient)
+            if not np.isclose(coeff.imag, 0):
+                raise ValueError(f"The coefficient of an observable should not be complex.")
+            coeff = coeff.real
+
+            # Obtain statistics from result of experiment
+            obs_mean, obs_var = _stats_from_measurements(results,
+                                                         {q: idx for idx, q in enumerate(meas_qs)},
+                                                         setting, coeff=coeff)
+
+            yield ExperimentResult(
+                setting=setting,
+                expectation=obs_mean,
+                std_err=np.sqrt(obs_var),
+                total_counts=len(results),
+            )
+
+
+def calibrate_observable_estimates(qc: QuantumComputer, expt_results: List[ExperimentResult],
+                                   n_shots: int = 500, symm_type: int = -1,
+                                   noisy_program: Program = None, active_reset: bool = False,
+                                   show_progress_bar: bool = False) \
+        -> Iterable[ExperimentResult]:
+    """
+    Calibrates the expectation and std_err of the input expt_results and updates those estimates.
+
+    The input expt_results should be estimated with symmetrized readout error for this to work
+    properly. Calibration is done by measuring expectation values of eigenstates of the
+    observable, which ideally should yield either +/- 1 but in practice will have magnitude less
+    than 1. For default exhaustive_symmetrization the calibration expectation magnitude
+    averaged over all eigenvectors is recorded as calibration_expectation. The original
+    expectation is moved to raw_expectation and replaced with the old value scaled by the inverse
+    calibration expectation.
+
+    :param qc: a quantum computer object on which to run the programs necessary to calibrate each
+        result.
+    :param expt_results: a list of results, each of which will be separately calibrated.
+    :param n_shots: the number of shots to run for each eigenvector
+    :param symm_type: the type of symmetrization
+
+        * -1 -- exhaustive symmetrization uses every possible combination of flips; this option
+            is the default since it ensures proper calibration, but is exponential in the
+            weight of each observable.
+        * 0 -- no symmetrization
+        * 1 -- symmetrization using an OA with strength 1
+        * 2 -- symmetrization using an OA with strength 2
+        * 3 -- symmetrization using an OA with strength 3
+
+        TODO: accomodate calibration for weight > symmetrization strength (symm_type)
+        Currently, the symmetrization type must be at least the maximum weight of any observable
+        estimated and also match the symmetrization type used to estimate the observables of the
+        input ExperimentResults.
+
+    :param noisy_program: an optional program from which to inherit a noise model; only relevant
+        for running on a QVM
+    :param active_reset: whether or not to begin the program by actively resetting. If true,
+        execution of each of the returned programs in a loop on the QPU will generally be faster.
+    :param show_progress_bar: displays a progress bar via tqdm if true.
+    :return: a copy of the input results with updated estimates and calibration results.
+    """
+    observables = [copy(res.setting.observable) for res in expt_results]
+    observables = list(set(observables))  # get unique observables that will need to be calibrated
+
+    programs = [get_calibration_program(obs, noisy_program, active_reset) for obs in
+                observables]
+    meas_qubits = [obs.get_qubits() for obs in observables]
+
+    calibrations = {}
+    for prog, meas_qs, obs in zip(tqdm(programs, disable=not show_progress_bar), meas_qubits,
+                                  observables):
+        print(prog)
+        results = qc.run_symmetrized_readout(prog, n_shots, symm_type, meas_qs)
+
+        # Obtain statistics from result of experiment
+        # TODO: we have to fabricate an ExperimentSetting to pass to _stats_from_measurements
+        #  even though it only needs the observable.
+        setting = ExperimentSetting(zeros_state(meas_qs), obs)
+        # TODO: current behavior removes sign information from the reported observable and
+        #  instead stores it here in the calibrated expectation. It might be more clear to change
+        #  this (by simply omitting coeff) to match the docstring description above where the
+        #  calibration expectation is simply the average magnitude of expectation over
+        #  eigenstates.
+        obs_mean, obs_var = _stats_from_measurements(results, meas_qs, setting, coeff=obs.coeff)
+        calibrations[obs.operations_as_set()] = (obs_mean, obs_var, len(results))
+
+    for expt_result in expt_results:
+        # TODO: allow weight > symm_type
+        if -1 < symm_type < len(expt_result.setting.observable.get_qubits()):
+            warnings.warn(f'Calibration of observable {expt_result.setting.observable} '
+                          f'currently not supported since it acts on more qubits than the '
+                          f'symm_type {symm_type}.')
+
+        # get the calibration data for this observable
+        cal_data = calibrations[expt_result.setting.observable.operations_as_set()]
+        obs_mean, obs_var, counts = cal_data
+
+        # Use the calibration to correct the mean and var
+        result_mean = expt_result.expectation
+        result_var = expt_result.std_err ** 2
+        corrected_mean = result_mean / obs_mean
+        corrected_var = ratio_variance(result_mean, result_var, obs_mean, obs_var)
+
+        yield ExperimentResult(
+            setting=expt_result.setting,
+            expectation=corrected_mean,
+            std_err=np.sqrt(corrected_var),
+            total_counts=expt_result.total_counts,
+            raw_expectation=result_mean,
+            raw_std_err=expt_result.std_err,
+            calibration_expectation=obs_mean,
+            calibration_std_err=np.sqrt(obs_var),
+            calibration_counts=counts
+        )
+
+
 def measure_observables(qc: QuantumComputer, tomo_experiment: TomographyExperiment,
                         n_shots: int = 10000, progress_callback=None, active_reset=False,
-                        symmetrize_readout: Optional[str] = 'exhaustive',
+                        symmetrize_readout: Optional[Union[str, int]] = 'exhaustive',
                         calibrate_readout: Optional[str] = 'plus-eig',
-                        readout_symmetrize: Optional[str] = None):
+                        readout_symmetrize: Optional[str] = None,
+                        show_progress_bar: bool = False) -> Iterable[ExperimentResult]:
     """
     Measure all the observables in a TomographyExperiment.
 
@@ -833,19 +1051,24 @@ def measure_observables(qc: QuantumComputer, tomo_experiment: TomographyExperime
         to True is much faster but there is a ~1% error per qubit in the reset operation.
         Thermal noise from "traditional" reset is not routinely characterized but is of the same
         order.
-    :param symmetrize_readout: Method used to symmetrize the readout errors, i.e. set
-        p(0|1) = p(1|0). For uncorrelated readout errors, this can be achieved by randomly
-        selecting between the POVMs {X.D1.X, X.D0.X} and {D0, D1} (where both D0 and D1 are
-        diagonal). However, here we currently support exhaustive symmetrization and loop through
-        all possible 2^n POVMs {X/I . POVM . X/I}^n, and obtain symmetrization more generally,
-        i.e. set p(00|00) = p(01|01) = .. = p(11|11), as well as p(00|01) = p(01|00) etc. If this
-        is None, no symmetrization is performed. The exhaustive method can be specified by setting
-        this variable to 'exhaustive' (default value). Set to `None` if no symmetrization is
-        desired.
+    :param symmetrize_readout: the level of readout symmetrization to perform for the estimation
+        optional calibration of each observable. Specifying the string `exhaustive` is equivalent
+        to -1 below, and the default None is equivalent to 0 below. The following integer levels
+        are currently supported:
+        * -1 -- exhaustive symmetrization uses every possible combination of flips
+        * 0 -- no symmetrization
+        * 1 -- symmetrization using an OA with strength 1
+        * 2 -- symmetrization using an OA with strength 2
+        * 3 -- symmetrization using an OA with strength 3
+        Note that exhaustive symmetrization requires a number of QPU calls exponential in the
+        number of qubits in the union of the support of the observables in any group of settings
+        in tomo_expt; the number of shots may need to be increased to accommodate this.
+        see :func:`run_symmetrized_readout` in api._quantum_computer for more information.
     :param calibrate_readout: Method used to calibrate the readout results. Currently, the only
         method supported is normalizing against the operator's expectation value in its +1
         eigenstate, which can be specified by setting this variable to 'plus-eig' (default value).
         The preceding symmetrization and this step together yield a more accurate estimation of the observable. Set to `None` if no calibration is desired.
+    :param show_progress_bar: displays a progress bar via tqdm if true.
     """
     if readout_symmetrize is not None:
         warnings.warn("'readout_symmetrize' has been renamed to 'symmetrize_readout'",
@@ -856,125 +1079,26 @@ def measure_observables(qc: QuantumComputer, tomo_experiment: TomographyExperime
     if calibrate_readout is not None and symmetrize_readout is None:
         raise ValueError("Readout calibration only works with readout symmetrization turned on")
 
-    # Outer loop over a collection of grouped settings for which we can simultaneously
-    # estimate.
-    for i, settings in enumerate(tomo_experiment):
+    # TODO: directly specify the symmetrization strength as an int
+    symm_type = 0
+    if symmetrize_readout is not None:
+        if symmetrize_readout == 'exhaustive':
+            symm_type = -1
 
-        log.info(f"Collecting bitstrings for the {len(settings)} settings: {settings}")
+    # TODO: accommodate logging
 
-        # 1.1 Prepare a state according to the amalgam of all setting.in_state
-        total_prog = Program()
-        if active_reset:
-            total_prog += RESET()
-        max_weight_in_state = _max_weight_state(setting.in_state for setting in settings)
-        for oneq_state in max_weight_in_state.states:
-            total_prog += _one_q_state_prep(oneq_state)
+    if calibrate_readout == 'plus-eig':
+        results = raw_estimate_observables(qc, tomo_experiment, n_shots, symm_type, active_reset,
+                                        show_progress_bar)
+        return calibrate_observable_estimates(qc, list(results), n_shots, symm_type,
+                                              tomo_experiment.program, active_reset,
+                                              show_progress_bar)
 
-        # 1.2 Add in the program
-        total_prog += tomo_experiment.program
-
-        # 1.3 Measure the state according to setting.out_operator
-        max_weight_out_op = _max_weight_operator(setting.out_operator for setting in settings)
-        for qubit, op_str in max_weight_out_op:
-            total_prog += _local_pauli_eig_meas(op_str, qubit)
-
-        # 2. Symmetrization
-        qubits = max_weight_out_op.get_qubits()
-
-        if symmetrize_readout == 'exhaustive' and len(qubits) > 0:
-            bitstrings, d_qub_idx = _exhaustive_symmetrization(qc, qubits, n_shots, total_prog)
-
-        elif symmetrize_readout is None and len(qubits) > 0:
-            total_prog_no_symm = total_prog.copy()
-            ro = total_prog_no_symm.declare('ro', 'BIT', len(qubits))
-            d_qub_idx = {}
-            for i, q in enumerate(qubits):
-                total_prog_no_symm += MEASURE(q, ro[i])
-                # Keep track of qubit-classical register mapping via dict
-                d_qub_idx[q] = i
-            total_prog_no_symm.wrap_in_numshots_loop(n_shots)
-            total_prog_no_symm_native = qc.compiler.quil_to_native_quil(total_prog_no_symm)
-            total_prog_no_symm_bin = qc.compiler.native_quil_to_executable(total_prog_no_symm_native)
-            bitstrings = qc.run(total_prog_no_symm_bin)
-
-        elif len(qubits) == 0:
-            # looks like an identity operation
-            pass
-
-        else:
-            raise ValueError("Readout symmetrization method must be either 'exhaustive' or None")
-
-        if progress_callback is not None:
-            progress_callback(i, len(tomo_experiment))
-
-        # 3. Post-process
-        # Inner loop over the grouped settings. They only differ in which qubits' measurements
-        # we include in the post-processing. For example, if `settings` is Z1, Z2, Z1Z2 and we
-        # measure (n_shots, n_qubits=2) obs_strings then the full operator value involves selecting
-        # either the first column, second column, or both and multiplying along the row.
-        for setting in settings:
-            # 3.1 Get the term's coefficient so we can multiply it in later.
-            coeff = complex(setting.out_operator.coefficient)
-            if not np.isclose(coeff.imag, 0):
-                raise ValueError(f"{setting}'s out_operator has a complex coefficient.")
-            coeff = coeff.real
-
-            # 3.2 Special case for measuring the "identity" operator, which doesn't make much
-            #     sense but should happen perfectly.
-            if is_identity(setting.out_operator):
-                yield ExperimentResult(
-                    setting=setting,
-                    expectation=coeff,
-                    std_err=0.0,
-                    total_counts=n_shots,
-                )
-                continue
-
-            # 3.3 Obtain statistics from result of experiment
-            obs_mean, obs_var = _stats_from_measurements(bitstrings, d_qub_idx, setting, n_shots, coeff)
-
-            if calibrate_readout == 'plus-eig':
-                # 4 Readout calibration
-                # 4.1 Obtain calibration program
-                calibr_prog = _calibration_program(qc, tomo_experiment, setting)
-                # 4.2 Perform symmetrization on the calibration program
-                if symmetrize_readout == 'exhaustive':
-                    qubs_calibr = setting.out_operator.get_qubits()
-                    calibr_shots = n_shots
-                    calibr_results, d_calibr_qub_idx = _exhaustive_symmetrization(qc, qubs_calibr, calibr_shots, calibr_prog)
-
-                else:
-                    raise ValueError("Readout symmetrization method must be either 'exhaustive' or None")
-
-                # 4.3 Obtain statistics from the measurement process
-                obs_calibr_mean, obs_calibr_var = _stats_from_measurements(calibr_results, d_calibr_qub_idx, setting, calibr_shots)
-                # 4.3 Calibrate the readout results
-                corrected_mean = obs_mean / obs_calibr_mean
-                corrected_var = ratio_variance(obs_mean, obs_var, obs_calibr_mean, obs_calibr_var)
-
-                yield ExperimentResult(
-                    setting=setting,
-                    expectation=corrected_mean.item(),
-                    std_err=np.sqrt(corrected_var).item(),
-                    total_counts=n_shots,
-                    raw_expectation=obs_mean.item(),
-                    raw_std_err=np.sqrt(obs_var).item(),
-                    calibration_expectation=obs_calibr_mean.item(),
-                    calibration_std_err=np.sqrt(obs_calibr_var).item(),
-                    calibration_counts=calibr_shots,
-                )
-
-            elif calibrate_readout is None:
-                # No calibration
-                yield ExperimentResult(
-                    setting=setting,
-                    expectation=obs_mean.item(),
-                    std_err=np.sqrt(obs_var).item(),
-                    total_counts=n_shots,
-                )
-
-            else:
-                raise ValueError("Calibration readout method must be either 'plus-eig' or None")
+    elif calibrate_readout is None:
+        return raw_estimate_observables(qc, tomo_experiment, n_shots, symm_type, active_reset,
+                                        show_progress_bar)
+    else:
+        raise ValueError("Calibration readout method must be either 'plus-eig' or None")
 
 
 def _ops_bool_to_prog(ops_bool: Tuple[bool], qubits: List[int]) -> Program:
@@ -997,18 +1121,29 @@ def _ops_bool_to_prog(ops_bool: Tuple[bool], qubits: List[int]) -> Program:
 
 
 def _stats_from_measurements(bs_results: np.ndarray, qubit_index_map: Dict,
-                             setting: ExperimentSetting, n_shots: int,
-                             coeff: float = 1.0) -> Tuple[float]:
+                             setting: ExperimentSetting, n_shots: int = None,
+                             coeff: float = 1.0) -> Tuple[float, float]:
     """
     :param bs_results: results from running `qc.run`
     :param qubit_index_map: dict mapping qubit to classical register index
     :param setting: ExperimentSetting
     :param n_shots: number of shots in the measurement process
-    :param coeff: coefficient of the operator being estimated
     :return: tuple specifying (mean, variance)
     """
+    if n_shots is not None:
+        warnings.warn("The argument n_shots will be deprecated in favor of len(bs_results).",
+                      DeprecationWarning)
+    else:
+        n_shots = len(bs_results)
+
+    obs = setting.out_operator
+
     # Identify classical register indices to select
-    idxs = [qubit_index_map[q] for q, _ in setting.out_operator]
+    idxs = [qubit_index_map[q] for q, _ in obs]
+    
+    if len(idxs) == 0: # identity term
+        return coeff, 0
+    
     # Pick columns corresponding to qubits with a non-identity out_operation
     obs_strings = bs_results[:, idxs]
     # Transform bits to eigenvalues; ie (+1, -1)
@@ -1105,10 +1240,7 @@ def _calibration_program(qc: QuantumComputer, tomo_experiment: TomographyExperim
     Program required for calibration in a tomography-like experiment.
 
     :param tomo_experiment: A suite of tomographic observables
-    :param ExperimentSetting: The particular tomographic observable to measure
-    :param symmetrize_readout: Method used to symmetrize the readout errors (see docstring for
-        `measure_observables` for more details)
-    :param cablir_shots: number of shots to take in the measurement process
+    :param setting: The particular tomographic observable to measure
     :return: Program performing the calibration
     """
     # Inherit any noisy attributes from main Program, including gate definitions
@@ -1128,3 +1260,42 @@ def _calibration_program(qc: QuantumComputer, tomo_experiment: TomographyExperim
         calibr_prog += _local_pauli_eig_meas(op, q)
 
     return calibr_prog
+
+
+def get_calibration_program(observable: PauliTerm, noisy_program: Program = None,
+                            active_reset: bool = False) -> Program:
+    """
+    Get program required for calibrating the given observable.
+
+    :param observable: observable to calibrate
+    :param noisy_program: a program with readout and gate noise defined; only useful for QVM
+    :param active_reset: whether or not to begin the program by actively resetting. If true,
+        execution of each of the returned programs in a loop on the QPU will generally be faster.
+    :return: Program performing the calibration
+    """
+    calibr_prog = Program()
+
+    if active_reset:
+        calibr_prog += RESET()
+
+    # Inherit any noisy attributes from noisy_program, including gate definitions
+    # and applications which can be handy in simulating noisy channels
+    if noisy_program is not None:
+        # Inherit readout error instructions from main Program
+        readout_povm_instruction = [i for i in noisy_program.out().split('\n')
+                                    if 'PRAGMA READOUT-POVM' in i]
+        calibr_prog += readout_povm_instruction
+        # Inherit any definitions of noisy gates from main Program
+        kraus_instructions = [i for i in noisy_program.out().split('\n') if
+                              'PRAGMA ADD-KRAUS' in i]
+        calibr_prog += kraus_instructions
+
+    # Prepare the +1 eigenstate for the out operator
+    for q, op in observable.operations_as_set():
+        calibr_prog += _one_q_pauli_prep(label=op, index=0, qubit=q)
+    # Measure the out operator in this state
+    for q, op in observable.operations_as_set():
+        calibr_prog += _local_pauli_eig_meas(op, q)
+
+    return calibr_prog
+
