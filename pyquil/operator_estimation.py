@@ -976,7 +976,7 @@ def calibrate_observable_estimates(qc: QuantumComputer, expt_results: List[Exper
     :param show_progress_bar: displays a progress bar via tqdm if true.
     :return: a copy of the input results with updated estimates and calibration results.
     """
-    observables = [copy(res.setting.observable) for res in expt_results]
+    observables = [copy(res.setting.out_operator) for res in expt_results]
     observables = list(set(observables))  # get unique observables that will need to be calibrated
 
     programs = [get_calibration_program(obs, noisy_program, active_reset) for obs in
@@ -986,7 +986,6 @@ def calibrate_observable_estimates(qc: QuantumComputer, expt_results: List[Exper
     calibrations = {}
     for prog, meas_qs, obs in zip(tqdm(programs, disable=not show_progress_bar), meas_qubits,
                                   observables):
-        print(prog)
         results = qc.run_symmetrized_readout(prog, n_shots, symm_type, meas_qs)
 
         # Obtain statistics from result of experiment
@@ -998,18 +997,20 @@ def calibrate_observable_estimates(qc: QuantumComputer, expt_results: List[Exper
         #  this (by simply omitting coeff) to match the docstring description above where the
         #  calibration expectation is simply the average magnitude of expectation over
         #  eigenstates.
-        obs_mean, obs_var = _stats_from_measurements(results, meas_qs, setting, coeff=obs.coeff)
+        obs_mean, obs_var = _stats_from_measurements(results,
+                                                     {q: idx for idx, q in enumerate(meas_qs)},
+                                                     setting)
         calibrations[obs.operations_as_set()] = (obs_mean, obs_var, len(results))
 
     for expt_result in expt_results:
         # TODO: allow weight > symm_type
-        if -1 < symm_type < len(expt_result.setting.observable.get_qubits()):
-            warnings.warn(f'Calibration of observable {expt_result.setting.observable} '
+        if -1 < symm_type < len(expt_result.setting.out_operator.get_qubits()):
+            warnings.warn(f'Calibration of observable {expt_result.setting.out_operator} '
                           f'currently not supported since it acts on more qubits than the '
                           f'symm_type {symm_type}.')
 
         # get the calibration data for this observable
-        cal_data = calibrations[expt_result.setting.observable.operations_as_set()]
+        cal_data = calibrations[expt_result.setting.out_operator.operations_as_set()]
         obs_mean, obs_var, counts = cal_data
 
         # Use the calibration to correct the mean and var
