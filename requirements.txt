@@ -23,5 +23,8 @@ sphinx_autodoc_typehints
 ipykernel
 nbsphinx
 
+# pypi
+twine
+
 # depdendency of contextvars, which we vendor
 immutables==0.6
