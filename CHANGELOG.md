@@ -8,6 +8,9 @@ Changelog
 
 ### Improvements and Changes
 
+-   Added a `Makefile` with some simple targets for performing common build
+    operations like creating and uploading a package (gh-1032, @karalekas).
+
 ### Bugfixes
 
 [v2.12](https://github.com/rigetti/pyquil/compare/v2.11.0...v2.12.0) (September 28, 2019)
