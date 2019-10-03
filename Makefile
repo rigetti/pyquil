@@ -1,7 +1,7 @@
 PYPI_URL=https://pypi.org
 TEST_PYPI_URL=https://test.pypi.org
-QUILC_URL=tcp://quilc:5555
-QVM_URL=http://qvm:5000
+QUILC_URL=tcp://localhost:5555
+QVM_URL=http://localhost:5000
 
 .PHONY: all
 all: dist
