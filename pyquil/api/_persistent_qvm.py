@@ -68,17 +68,17 @@ class PersistentQVM:
         :param random_seed: A seed for the QVM's random number generators. Either None (for an
             automatically generated seed) or a non-negative integer.
         """
+        validate_num_qubits(num_qubits)
         validate_simulation_method(simulation_method)
         validate_allocation_method(allocation_method)
-        validate_num_qubits(num_qubits)
-        validate_noise_probabilities(gate_noise)
         validate_noise_probabilities(measurement_noise)
+        validate_noise_probabilities(gate_noise)
 
+        self.num_qubits = num_qubits
         self.simulation_method = simulation_method
         self.allocation_method = allocation_method
-        self.num_qubits = num_qubits
-        self.gate_noise = gate_noise
         self.measurement_noise = measurement_noise
+        self.gate_noise = gate_noise
 
         if random_seed is None:
             self.random_seed = None
