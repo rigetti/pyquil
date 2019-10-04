@@ -165,6 +165,11 @@ def validate_qubit_list(qubit_list):
     return qubit_list
 
 
+def validate_num_qubits(num_qubits):
+    if not isinstance(num_qubits, integer_types) or num_qubits < 0:
+        raise TypeError("num_qubits must be a positive integer.")
+
+
 def is_valid_v4_uuid(uuid_string):
     """
     Is uuid_string a valid string representation of a v4 UUID?
@@ -369,6 +374,9 @@ def qvm_ng_create_qvm_payload(simulation_method, allocation_method, num_qubits, 
 
     validate_simulation_method(simulation_method)
     validate_allocation_method(allocation_method)
+    validate_num_qubits(num_qubits)
+    validate_noise_probabilities(gate_noise)
+    validate_noise_probabilities(measurement_noise)
 
     payload = {"type": TYPE_CREATE_QVM,
                "simulation-method": simulation_method.value,

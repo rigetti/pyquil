@@ -19,6 +19,7 @@ import json
 import os
 import signal
 import time
+import uuid
 from math import pi
 from multiprocessing import Process
 from unittest.mock import patch
@@ -31,8 +32,11 @@ from rpcq import Server
 from rpcq.messages import BinaryExecutableRequest, BinaryExecutableResponse
 
 from pyquil.api import QVMConnection, QPUCompiler, get_qc, QVMCompiler
-from pyquil.api._base_connection import (validate_noise_probabilities, validate_qubit_list,
-                                         prepare_register_list)
+from pyquil.api._base_connection import (validate_allocation_method, validate_noise_probabilities,
+                                         validate_num_qubits, validate_persistent_qvm_token,
+                                         validate_qubit_list, validate_simulation_method,
+                                         prepare_register_list, QVMAllocationMethod,
+                                         QVMSimulationMethod)
 from pyquil.device import ISA, NxDevice
 from pyquil.gates import CNOT, H, MEASURE, PHASE, Z, RZ, RX, CZ
 from pyquil.paulis import PauliTerm
@@ -222,6 +226,18 @@ def test_sync_wavefunction(qvm):
     np.testing.assert_allclose(result.amplitudes, wf_expected)
 
 
+def test_validate_allocation_method():
+    with pytest.raises(TypeError):
+        validate_allocation_method("native")
+    with pytest.raises(TypeError):
+        validate_allocation_method("foreign")
+    with pytest.raises(TypeError):
+        validate_allocation_method(0)
+
+    validate_allocation_method(QVMAllocationMethod.NATIVE)
+    validate_allocation_method(QVMAllocationMethod.FOREIGN)
+
+
 def test_validate_noise_probabilities():
     with pytest.raises(TypeError):
         validate_noise_probabilities(1)
@@ -242,6 +258,33 @@ def test_validate_noise_probabilities():
     validate_noise_probabilities([0.25, 0.25, 0.5])
 
 
+def test_validate_num_qubits():
+    with pytest.raises(TypeError):
+        validate_num_qubits(-1)
+    with pytest.raises(TypeError):
+        validate_num_qubits(0.0)
+    with pytest.raises(TypeError):
+        validate_num_qubits("1")
+
+    validate_num_qubits(0)
+    validate_num_qubits(1)
+    validate_num_qubits(10)
+    validate_num_qubits(100)
+
+
+def test_validate_persistent_qvm_token():
+    with pytest.raises(ValueError):
+        validate_persistent_qvm_token("hey")
+    with pytest.raises(ValueError):
+        validate_persistent_qvm_token(uuid.uuid4())
+    with pytest.raises(ValueError):
+        validate_persistent_qvm_token(uuid.uuid4().bytes)
+    with pytest.raises(ValueError):
+        validate_persistent_qvm_token(uuid.uuid4().int)
+
+    validate_persistent_qvm_token(str(uuid.uuid4()))
+
+
 def test_validate_qubit_list():
     with pytest.raises(TypeError):
         validate_qubit_list([-1, 1])
@@ -255,6 +298,18 @@ def test_validate_qubit_list():
     validate_qubit_list(range(1))
     validate_qubit_list(range(2))
     validate_qubit_list(range(10))
+
+
+def test_validate_simulation_method():
+    with pytest.raises(TypeError):
+        validate_allocation_method("pure-state")
+    with pytest.raises(TypeError):
+        validate_allocation_method("full-density-matrix")
+    with pytest.raises(TypeError):
+        validate_allocation_method(0)
+
+    validate_simulation_method(QVMSimulationMethod.PURE_STATE)
+    validate_simulation_method(QVMSimulationMethod.FULL_DENSITY_MATRIX)
 
 
 def test_prepare_register_list():

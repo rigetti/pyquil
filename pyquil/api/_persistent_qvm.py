@@ -19,8 +19,8 @@ from six import integer_types
 import numpy as np
 
 from pyquil.api._base_connection import (ForestConnection, QVMAllocationMethod, QVMSimulationMethod,
-                                         validate_simulation_method, validate_allocation_method,
-                                         validate_persistent_qvm_token)
+                                         validate_allocation_method, validate_num_qubits,
+                                         validate_persistent_qvm_token, validate_simulation_method)
 from pyquil.api._error_reporting import _record_call
 from pyquil.api._qvm import QVMNotRunning, QVMVersionMismatch, validate_noise_probabilities
 from pyquil.quil import Program, get_classical_addresses_from_program
@@ -68,11 +68,9 @@ class PersistentQVM:
         :param random_seed: A seed for the QVM's random number generators. Either None (for an
             automatically generated seed) or a non-negative integer.
         """
-        if not isinstance(num_qubits, integer_types) or num_qubits < 0:
-            raise TypeError(f"num_qubits must be a positive integer. Got {num_qubits}.")
-
         validate_simulation_method(simulation_method)
         validate_allocation_method(allocation_method)
+        validate_num_qubits(num_qubits)
         validate_noise_probabilities(gate_noise)
         validate_noise_probabilities(measurement_noise)
 
