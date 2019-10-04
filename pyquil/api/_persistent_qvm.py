@@ -44,7 +44,7 @@ class PersistentQVM:
     """
     @_record_call
     def __init__(self, num_qubits: int,
-                 connection: ForestConnection = None,
+                 connection: Optional[ForestConnection] = None,
                  simulation_method: QVMSimulationMethod = QVMSimulationMethod.PURE_STATE,
                  allocation_method: QVMAllocationMethod = QVMAllocationMethod.NATIVE,
                  measurement_noise: Optional[List[float]] = None,
