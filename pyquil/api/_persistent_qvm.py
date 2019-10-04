@@ -178,7 +178,7 @@ class PersistentQVM:
         :return: A Dict mapping classical memory names to values.
         """
         if not isinstance(quil_program, Program):
-            raise TypeError("quil_program must be a Quil Program. Got {quil_program}.")
+            raise TypeError(f"quil_program must be a Quil Program. Got {quil_program}.")
 
         classical_addresses = get_classical_addresses_from_program(quil_program)
         return self.connection._qvm_ng_run_program(quil_program=quil_program,
