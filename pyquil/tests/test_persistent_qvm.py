@@ -3,6 +3,7 @@ import pytest
 from pyquil import Program
 from pyquil.api import (ForestConnection, PersistentQVM, QVMSimulationMethod, QVMAllocationMethod,
                         get_qvm_memory_estimate)
+from pyquil.api._errors import QVMError
 from pyquil.gates import MEASURE, X
 from pyquil.tests.utils import is_qvm_version_string
 
@@ -73,6 +74,26 @@ def test_pqvm_create_and_info(forest_app_ng: ForestConnection):
     assert info['qvm-type'] == 'DENSITY-QVM'
     assert info['num-qubits'] == 3
     assert info['metadata']['allocation-method'] == 'FOREIGN'
+
+
+def test_pqvm_read_memory(forest_app_ng: ForestConnection):
+    pqvm = PersistentQVM(num_qubits=2, connection=forest_app_ng)
+    assert pqvm.read_memory({}) == {}
+
+    # No classical memory has been configured yet.
+    with pytest.raises(QVMError):
+        pqvm.read_memory({"ro": True})
+
+    pqvm.run_program(Program("DECLARE ro BIT"))
+    assert pqvm.read_memory({"ro": True}) == {"ro": [0]}
+
+    # The ro register exists, but nothing else.
+    with pytest.raises(QVMError):
+        pqvm.read_memory({"foo": True})
+
+    # Request memory at a specific offset.
+    pqvm.run_program(Program("DECLARE byte BIT[8]\nX 0\nMEASURE 0 byte[4]"))
+    assert pqvm.read_memory({"byte": [4]}) == {"byte": [1]}
 
 
 def test_pqvm_run_program(forest_app_ng: ForestConnection):

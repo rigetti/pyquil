@@ -168,6 +168,16 @@ class PersistentQVM:
         return self.connection._qvm_ng_qvm_info(self.token)
 
     @_record_call
+    def read_memory(self, classical_addresses) -> Dict[str, np.array]:
+        """
+        Return the contents of this PersistentQVM's classical memory registers.
+
+        :param classical_addresses: A mapping from memory region names to lists of offsets.
+        :return: Dict mapping memory region names to values for the corresponding requested offsets.
+        """
+        return self.connection._qvm_ng_read_memory(self.token, classical_addresses)
+
+    @_record_call
     def run_program(self, quil_program: Program) -> Dict[str, np.array]:
         """
         Run quil_program on this PersistentQVM instance, and return the values stored in all of the

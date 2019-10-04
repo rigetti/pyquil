@@ -43,6 +43,7 @@ TYPE_RUN_PROGRAM = "run-program"
 TYPE_QVM_MEMORY_ESTIMATE = "qvm-memory-estimate"
 TYPE_CREATE_QVM = "create-qvm"
 TYPE_DELETE_QVM = "delete-qvm"
+TYPE_READ_MEMORY_QVM = "read-memory"
 TYPE_QVM_INFO = "qvm-info"
 
 
@@ -423,6 +424,16 @@ def qvm_ng_delete_qvm_payload(token):
     return {"type": TYPE_DELETE_QVM, "qvm-token": token}
 
 
+def qvm_ng_read_memory_payload(qvm_token, classical_addresses):
+    """REST payload for :py:func:`ForestConnection._qvm_ng_read_memory`"""
+    validate_persistent_qvm_token(qvm_token)
+    classical_addresses = prepare_register_list(classical_addresses)
+    payload = {"type": TYPE_READ_MEMORY_QVM,
+               "addresses": classical_addresses,
+               "qvm-token": qvm_token}
+    return payload
+
+
 def qvm_ng_qvm_info_payload(token):
     """REST payload for :py:func:`ForestConnection._qvm_ng_qvm_info`"""
     validate_persistent_qvm_token(token)
@@ -594,6 +605,20 @@ class ForestConnection:
         payload = qvm_ng_delete_qvm_payload(token)
         response = post_json(self.session, self.qvm_ng_endpoint + "/", payload)
         return response.ok
+
+    @_record_call
+    def _qvm_ng_read_memory(self, qvm_token, classical_addresses) -> np.ndarray:
+        """
+        Run a Forest ``read_memory`` job.
+        """
+        payload = qvm_ng_read_memory_payload(qvm_token, classical_addresses)
+        response = post_json(self.session, self.qvm_ng_endpoint + "/", payload)
+        ram = response.json()
+
+        for k in ram.keys():
+            ram[k] = np.array(ram[k])
+
+        return ram
 
     @_record_call
     def _qvm_ng_qvm_info(self, token) -> dict:
