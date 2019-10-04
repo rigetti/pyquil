@@ -14,9 +14,10 @@
 #    limitations under the License.
 ##############################################################################
 
-from enum import Enum
 import re
+import uuid
 import warnings
+from enum import Enum
 from json.decoder import JSONDecodeError
 from typing import Dict, Union, Sequence
 
@@ -24,7 +25,6 @@ import numpy as np
 import requests
 from requests.adapters import HTTPAdapter
 from urllib3 import Retry
-import uuid
 
 from pyquil import Program
 from pyquil.api._config import PyquilConfig
