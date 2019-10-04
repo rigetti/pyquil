@@ -40,6 +40,7 @@ TYPE_WAVEFUNCTION = "wavefunction"
 
 # The following RPC methods are only available in qvm-ng.
 TYPE_RUN_PROGRAM = "run-program"
+TYPE_QVM_MEMORY_ESTIMATE = "qvm-memory-estimate"
 TYPE_CREATE_QVM = "create-qvm"
 TYPE_DELETE_QVM = "delete-qvm"
 TYPE_QVM_INFO = "qvm-info"
@@ -366,6 +367,31 @@ def qvm_ng_run_program_payload(quil_program, qvm_token, simulation_method, alloc
     return payload
 
 
+def qvm_ng_qvm_memory_estimate_payload(simulation_method, allocation_method, num_qubits,
+                                       measurement_noise, gate_noise):
+    """REST payload for :py:func:`ForestConnection._qvm_ng_qvm_memory_estimate`"""
+    if not isinstance(num_qubits, integer_types) or num_qubits < 0:
+        raise ValueError("num_qubits must be a positive integer.")
+
+    validate_simulation_method(simulation_method)
+    validate_allocation_method(allocation_method)
+    validate_num_qubits(num_qubits)
+    validate_noise_probabilities(gate_noise)
+    validate_noise_probabilities(measurement_noise)
+
+    payload = {"type": TYPE_QVM_MEMORY_ESTIMATE,
+               "simulation-method": simulation_method.value,
+               "allocation-method": allocation_method.value,
+               "num-qubits": num_qubits}
+
+    if measurement_noise is not None:
+        payload["measurement-noise"] = measurement_noise
+    if gate_noise is not None:
+        payload["gate-noise"] = gate_noise
+
+    return payload
+
+
 def qvm_ng_create_qvm_payload(simulation_method, allocation_method, num_qubits, measurement_noise,
                               gate_noise):
     """REST payload for :py:func:`ForestConnection._qvm_ng_create_qvm`"""
@@ -524,6 +550,25 @@ class ForestConnection:
             ram[k] = np.array(ram[k])
 
         return ram
+
+    @_record_call
+    def _qvm_ng_qvm_memory_estimate(self, simulation_method, allocation_method, num_qubits,
+                                    measurement_noise, gate_noise) -> int:
+        """
+        Run a Forest ``get_memory_estimate`` job.
+        """
+        payload = qvm_ng_qvm_memory_estimate_payload(
+            simulation_method, allocation_method, num_qubits, measurement_noise, gate_noise
+        )
+        response = post_json(self.session, self.qvm_ng_endpoint + "/", payload)
+        json = response.json()
+
+        if not isinstance(json, dict) or "bytes" not in json or not isinstance(json['bytes'], int):
+            raise TypeError(f"Malformed persistent QVM token returned by the QVM: {json}")
+
+        # TODO(appleby): maybe this should return the whole json response object rather than just
+        # the bytes field.
+        return json["bytes"]
 
     @_record_call
     def _qvm_ng_create_qvm(self, simulation_method, allocation_method, num_qubits, measurement_noise,

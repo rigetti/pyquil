@@ -38,6 +38,48 @@ def check_qvm_ng_version(version: str):
                                  f'have QVM {version}.')
 
 
+@_record_call
+def get_qvm_memory_estimate(num_qubits: int,
+                            connection: Optional[ForestConnection] = None,
+                            simulation_method: QVMSimulationMethod = QVMSimulationMethod.PURE_STATE,
+                            allocation_method: QVMAllocationMethod = QVMAllocationMethod.NATIVE,
+                            measurement_noise: Optional[List[float]] = None,
+                            gate_noise: Optional[List[float]] = None,) -> int:
+    """
+    Return an estimate of the number of bytes required to store the quantum state of a
+    PersistentQVM.
+
+    :param num_qubits: The maximum number of qubits available to this QVM.
+    :param connection: An optional :py:class:`ForestConnection` object.  If not specified, the
+        default values for URL endpoints will be used, and your API key will be read from
+        ~/.pyquil_config.  If you deign to change any of these parameters, pass your own
+        :py:class:`ForestConnection` object.
+    :param simulation_method: The simulation method to use for this PersistentQVM.  See the enum
+        QVMSimulationmethod for valid values.
+    :param allocation_method: The allocation method to use for this PersistentQVM.  See the enum
+        QVMAllocationmethod for valid values.
+    :param measurement_noise: A list of three numbers [Px, Py, Pz] indicating the probability of an
+        X, Y, or Z gate getting applied before a measurement.  The default value of None indicates
+        no noise.
+    :param gate_noise: A list of three numbers [Px, Py, Pz] indicating the probability of an X, Y,
+        or Z gate getting applied to each qubit after a gate application or reset.  The default
+        value of None indicates no noise.
+
+    :return: the number of bytes
+    """
+    validate_num_qubits(num_qubits)
+    validate_simulation_method(simulation_method)
+    validate_allocation_method(allocation_method)
+    validate_noise_probabilities(measurement_noise)
+    validate_noise_probabilities(gate_noise)
+
+    if connection is None:
+        connection = ForestConnection()
+
+    return connection._qvm_ng_qvm_memory_estimate(simulation_method, allocation_method,
+                                                  num_qubits, measurement_noise, gate_noise)
+
+
 class PersistentQVM:
     """
     Represents a connection to a PersistentQVM.

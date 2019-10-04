@@ -1,7 +1,8 @@
 import pytest
 
 from pyquil import Program
-from pyquil.api import ForestConnection, PersistentQVM, QVMSimulationMethod, QVMAllocationMethod
+from pyquil.api import (ForestConnection, PersistentQVM, QVMSimulationMethod, QVMAllocationMethod,
+                        get_qvm_memory_estimate)
 from pyquil.gates import MEASURE, X
 from pyquil.tests.utils import is_qvm_version_string
 
@@ -10,6 +11,38 @@ def test_pqvm_version(forest_app_ng: ForestConnection):
     pqvm = PersistentQVM(num_qubits=0, connection=forest_app_ng)
     version = pqvm.get_version_info()
     assert is_qvm_version_string(version)
+
+
+def test_qvm_memory_estimate(forest_app_ng: ForestConnection):
+    def is_valid_mem_estimate(estimate):
+        return isinstance(estimate, int) and estimate >= 0
+
+    assert is_valid_mem_estimate(get_qvm_memory_estimate(0, connection=forest_app_ng))
+    assert is_valid_mem_estimate(get_qvm_memory_estimate(1, connection=forest_app_ng))
+    assert is_valid_mem_estimate(get_qvm_memory_estimate(10, connection=forest_app_ng))
+    assert is_valid_mem_estimate(get_qvm_memory_estimate(
+        11, simulation_method=QVMSimulationMethod.FULL_DENSITY_MATRIX, connection=forest_app_ng
+    ))
+    assert is_valid_mem_estimate(get_qvm_memory_estimate(
+        12, allocation_method=QVMAllocationMethod.FOREIGN, connection=forest_app_ng
+    ))
+    assert is_valid_mem_estimate(get_qvm_memory_estimate(
+        13, measurement_noise=[1.0, 0.0, 0.0], connection=forest_app_ng
+    ))
+    assert is_valid_mem_estimate(get_qvm_memory_estimate(
+        14, gate_noise=[1.0, 0.0, 0.0], connection=forest_app_ng
+    ))
+
+    with pytest.raises(TypeError):
+        get_qvm_memory_estimate(-1, connection=forest_app_ng)
+    with pytest.raises(TypeError):
+        get_qvm_memory_estimate(0, connection=forest_app_ng, simulation_method="pure-state")
+    with pytest.raises(TypeError):
+        get_qvm_memory_estimate(0, connection=forest_app_ng, allocation_method="native")
+    with pytest.raises(ValueError):
+        get_qvm_memory_estimate(0, connection=forest_app_ng, measurement_noise=[1.0])
+    with pytest.raises(ValueError):
+        get_qvm_memory_estimate(0, connection=forest_app_ng, gate_noise=[1.0])
 
 
 def test_pqvm_create_and_info(forest_app_ng: ForestConnection):
