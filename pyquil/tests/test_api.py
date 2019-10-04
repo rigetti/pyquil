@@ -234,12 +234,27 @@ def test_validate_noise_probabilities():
     with pytest.raises(ValueError):
         validate_noise_probabilities([-0.5, -0.5, -0.5])
 
+    validate_noise_probabilities([0.0, 0.0, 0.0])
+    validate_noise_probabilities([1.0, 0.0, 0.0])
+    validate_noise_probabilities([0.0, 1.0, 0.0])
+    validate_noise_probabilities([0.0, 0.0, 1.0])
+    validate_noise_probabilities([0.1, 0.1, 0.1])
+    validate_noise_probabilities([0.25, 0.25, 0.5])
+
 
 def test_validate_qubit_list():
     with pytest.raises(TypeError):
         validate_qubit_list([-1, 1])
     with pytest.raises(TypeError):
         validate_qubit_list(['a', 0], 1)
+
+    validate_qubit_list([0])
+    validate_qubit_list([0, 1])
+    validate_qubit_list([1, 1])
+    validate_qubit_list([2, 10])
+    validate_qubit_list(range(1))
+    validate_qubit_list(range(2))
+    validate_qubit_list(range(10))
 
 
 def test_prepare_register_list():
