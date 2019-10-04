@@ -115,7 +115,6 @@ class PersistentQVM:
         Return version information for the connected QVM.
 
         :return: String with version information
-        :rtype: str
         """
         return self.connection._qvm_ng_get_version_info()
 
@@ -125,7 +124,6 @@ class PersistentQVM:
         Return configuration information about the PersistentQVM.
 
         :return: Dict with QVM information
-        :rtype: Dict[str, Any]
         """
         return self.connection._qvm_ng_qvm_info(self.token)
 
@@ -135,10 +133,9 @@ class PersistentQVM:
         Run quil_program on this PersistentQVM instance, and return the values stored in all of the
         classical registers assigned to by the program.
 
-        :param Program quil_program: the Quil program to run.
+        :param quil_program: the Quil program to run.
 
         :return: A Dict mapping classical memory names to values.
-        :rtype: Dict[str, np.array]
         """
         if not isinstance(quil_program, Program):
             raise TypeError("quil_program must be a Quil Program. Got {quil_program}.")
