@@ -529,7 +529,7 @@ class ForestConnection:
         json = response.json()
 
         if not isinstance(json, dict) or "token" not in json or not is_valid_v4_uuid(json["token"]):
-            raise TypeError(f'Malformed persistent QVM token returned by the QVM: {json}')
+            raise TypeError(f"Malformed persistent QVM token returned by the QVM: {json}")
 
         return json["token"]
 
