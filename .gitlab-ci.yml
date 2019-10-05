@@ -19,10 +19,7 @@ test-py36:
   tags:
     - github
   script:
-    - echo "[Rigetti Forest]" > ~/.forest_config
-    - echo "qvm_address = $QVM_URL" >> ~/.forest_config
-    - echo "quilc_address = $QUILC_URL" >> ~/.forest_config
-    - cat ~/.forest_config
+    - make -e config
     - tox -e py36
 
 test-py37:
@@ -30,10 +27,7 @@ test-py37:
   tags:
     - github
   script:
-    - echo "[Rigetti Forest]" > ~/.forest_config
-    - echo "qvm_address = $QVM_URL" >> ~/.forest_config
-    - echo "quilc_address = $QUILC_URL" >> ~/.forest_config
-    - cat ~/.forest_config
+    - make -e config
     - tox -e py37
 
 style:
@@ -46,7 +40,6 @@ docs:
   tags:
     - github
   script:
-    - apt-get update
-    - apt-get install -y pandoc
+    - apt-get update && apt-get install -y pandoc
     - pandoc --from=markdown --to=rst --output=docs/source/changes.rst CHANGELOG.md
     - tox -e docs
