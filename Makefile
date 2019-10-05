@@ -1,5 +1,3 @@
-PYPI_URL=https://pypi.org
-TEST_PYPI_URL=https://test.pypi.org
 QUILC_URL=tcp://localhost:5555
 QVM_URL=http://localhost:5000
 
@@ -35,15 +33,11 @@ info:
 
 .PHONY: install
 install:
-	pip install --index-url ${TEST_PYPI_URL}/simple/ --extra-index-url ${PYPI_URL}/simple pyquil
+	pip install -e .
 
 .PHONY: requirements
 requirements:
 	pip install -r requirements.txt
-
-.PHONY: setup
-setup:
-	python setup.py install -e .
 
 .PHONY: style
 style:
@@ -55,4 +49,4 @@ test:
 
 .PHONY: upload
 upload:
-	twine upload --repository-url ${TEST_PYPI_URL}/legacy/ dist/*
+	twine upload --repository-url https://test.pypi.org/legacy/ dist/*
