@@ -41,11 +41,13 @@ TYPE_WAVEFUNCTION = "wavefunction"
 
 # The following RPC methods are only available in qvm-ng.
 TYPE_RUN_PROGRAM = "run-program"
+TYPE_RUN_PROGRAM_ASYNC = "run-program-async"
 TYPE_QVM_MEMORY_ESTIMATE = "qvm-memory-estimate"
 TYPE_CREATE_QVM = "create-qvm"
 TYPE_DELETE_QVM = "delete-qvm"
 TYPE_READ_MEMORY_QVM = "read-memory"
 TYPE_WRITE_MEMORY_QVM = "write-memory"
+TYPE_RESUME = "resume"
 TYPE_QVM_INFO = "qvm-info"
 
 
@@ -418,6 +420,23 @@ def qvm_ng_run_program_payload(quil_program, qvm_token, simulation_method, alloc
     return payload
 
 
+def qvm_ng_run_program_async_payload(qvm_token, quil_program):
+    """REST payload for :py:func:`ForestConnection._qvm_ng_run_program_async`"""
+    if not quil_program:
+        raise ValueError("You have attempted to run an empty program."
+                         " Please provide gates or measure instructions to your program.")
+    if not isinstance(quil_program, Program):
+        raise TypeError("quil_program must be a Quil program object")
+
+    validate_persistent_qvm_token(qvm_token)
+
+    payload = {"type": TYPE_RUN_PROGRAM_ASYNC,
+               "qvm-token": qvm_token,
+               "compiled-quil": quil_program.out()}
+
+    return payload
+
+
 def qvm_ng_qvm_memory_estimate_payload(simulation_method, allocation_method, num_qubits,
                                        measurement_noise, gate_noise):
     """REST payload for :py:func:`ForestConnection._qvm_ng_qvm_memory_estimate`"""
@@ -492,6 +511,12 @@ def qvm_ng_write_memory_payload(qvm_token, memory_contents):
                "memory-contents": memory_contents,
                "qvm-token": qvm_token}
     return payload
+
+
+def qvm_ng_resume_payload(qvm_token):
+    """REST payload for :py:func:`ForestConnection._qvm_ng_resume`"""
+    validate_persistent_qvm_token(qvm_token)
+    return {"type": TYPE_RESUME, "qvm-token": qvm_token}
 
 
 def qvm_ng_qvm_info_payload(token):
@@ -623,6 +648,20 @@ class ForestConnection:
         return ram
 
     @_record_call
+    def _qvm_ng_run_program_async(self, qvm_token, quil_program) -> bool:
+        """
+        Run a Forest ``run_program_async`` job on a QVM.
+        """
+        payload = qvm_ng_run_program_async_payload(qvm_token, quil_program)
+        response = post_json(self.session, self.qvm_ng_endpoint + "/", payload)
+        ok = response.json()
+
+        if not isinstance(ok, bool):
+            raise TypeError(f"Malformed run-program-async response returned by the QVM: {ok}")
+
+        return ok
+
+    @_record_call
     def _qvm_ng_qvm_memory_estimate(self, simulation_method, allocation_method, num_qubits,
                                     measurement_noise, gate_noise) -> int:
         """
@@ -691,6 +730,20 @@ class ForestConnection:
 
         if not isinstance(ok, bool):
             raise TypeError(f"Malformed write-memory response returned by the QVM: {ok}")
+
+        return ok
+
+    @_record_call
+    def _qvm_ng_resume(self, qvm_token) -> None:
+        """
+        Run a Forest ``resume`` job.
+        """
+        payload = qvm_ng_resume_payload(qvm_token)
+        response = post_json(self.session, self.qvm_ng_endpoint + "/", payload)
+        ok = response.json()
+
+        if not isinstance(ok, bool):
+            raise TypeError(f"Malformed resume response returned by the QVM: {ok}")
 
         return ok
 

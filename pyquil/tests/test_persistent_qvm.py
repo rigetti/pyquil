@@ -1,3 +1,5 @@
+import math
+import time
 from typing import Dict
 
 import pytest
@@ -7,7 +9,7 @@ from pyquil import Program
 from pyquil.api import (ForestConnection, PersistentQVM, QVMSimulationMethod, QVMAllocationMethod,
                         get_qvm_memory_estimate)
 from pyquil.api._errors import QVMError
-from pyquil.gates import MEASURE, X
+from pyquil.gates import MEASURE, RX, WAIT, X
 from pyquil.tests.utils import is_qvm_version_string
 
 
@@ -173,6 +175,42 @@ def test_write_memory(forest_app_ng: ForestConnection):
     # tuple of values
     pqvm.write_memory({"theta": (4.1, 3.1, 2.1, 1.1)})
     _check_mem_equal(pqvm.read_memory({"theta": True}), {"theta": [[4.1, 3.1, 2.1, 1.1]]})
+
+
+def test_wait_resume(forest_app_ng: ForestConnection):
+    pqvm = PersistentQVM(num_qubits=2, connection=forest_app_ng)
+
+    def wait_for_it(state):
+        for _ in range(10):
+            info = pqvm.get_qvm_info()
+            if info["state"] == state:
+                break
+            time.sleep(0.1)
+        assert pqvm.get_qvm_info()["state"] == state
+
+    pqvm.run_program_async(Program("WAIT"))
+    wait_for_it("WAITING")
+    pqvm.resume()
+    wait_for_it("READY")
+
+    # It's an error to call resume on pqvm that's not in the WAITING state
+    with pytest.raises(QVMError):
+        pqvm.resume()
+
+    # Slightly more realistic example with a write_memory / resume / read_memory cycle.
+    p = Program()
+    theta = p.declare("theta", "REAL")
+    ro = p.declare("ro", "BIT")
+    p += WAIT
+    p += RX(theta, 0)
+    p += MEASURE(0, ro)
+    pqvm.run_program_async(p)
+
+    wait_for_it("WAITING")
+    pqvm.write_memory({"theta": [math.pi]})
+    pqvm.resume()
+    wait_for_it("READY")
+    _check_mem_equal(pqvm.read_memory({"ro": True}), {"ro": [[1]]})
 
 
 def test_pqvm_run_program(forest_app_ng: ForestConnection):

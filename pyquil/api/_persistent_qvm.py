@@ -195,6 +195,16 @@ class PersistentQVM:
         self.connection._qvm_ng_write_memory(self.token, memory_contents)
 
     @_record_call
+    def resume(self) -> None:
+        """
+        Resume execution of the PersistentQVM.
+
+        The PersistentQVM must be in the WAITING state due to having executed a Quil WAIT
+        instruction.
+        """
+        self.connection._qvm_ng_resume(self.token)
+
+    @_record_call
     def run_program(self, quil_program: Program) -> Dict[str, np.array]:
         """
         Run quil_program on this PersistentQVM instance, and return the values stored in all of the
@@ -215,3 +225,15 @@ class PersistentQVM:
                                                    classical_addresses=classical_addresses,
                                                    measurement_noise=None,
                                                    gate_noise=None)
+
+    @_record_call
+    def run_program_async(self, quil_program: Program) -> None:
+        """
+        Like ``run_program``, but run the program asynchronously, for effect.
+
+        :param quil_program: the Quil program to run.
+        """
+        if not isinstance(quil_program, Program):
+            raise TypeError(f"quil_program must be a Quil Program. Got {quil_program}.")
+
+        self.connection._qvm_ng_run_program_async(self.token, quil_program)
