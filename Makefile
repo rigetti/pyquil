@@ -1,3 +1,5 @@
+COMMIT_HASH=$(shell git rev-parse --short HEAD)
+DOCKER_TAG=rigetti/forest:$(COMMIT_HASH)
 QUILC_URL=tcp://localhost:5555
 QVM_URL=http://localhost:5000
 
@@ -22,9 +24,13 @@ dist:
 	python setup.py sdist
 
 .PHONY: docs
-docs:
+docs: CHANGELOG.md
 	pandoc --from=markdown --to=rst --output=docs/source/changes.rst CHANGELOG.md
 	make -C docs html
+
+.PHONY: docker
+docker: Dockerfile
+	docker build -t $(DOCKER_TAG) .
 
 .PHONY: info
 info:
@@ -36,7 +42,7 @@ install:
 	pip install -e .
 
 .PHONY: requirements
-requirements:
+requirements: requirements.txt
 	pip install -r requirements.txt
 
 .PHONY: style

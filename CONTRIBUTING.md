@@ -37,6 +37,8 @@ Table of Contents
 
 - [Working with the Parser](#working-with-the-parser)
 
+- [Using the Docker Image](#using-the-docker-image)
+
 [Tips for Maintainers](#tips-for-maintainers)
 
 - [Merging a Pull Request](#merging-a-pull-request)
@@ -155,6 +157,45 @@ Working with the ANTLR parser involves some extra steps, see the
 [Parser README](pyquil/_parser/README.md) for more information. Note that you only need
 to install ANTLR if you want to change the grammar, simply running the parser involves
 no additional steps beyond installing PyQuil as usual.
+
+### Using the Docker Image
+
+Rather than having a user go through the effort of setting up their local Forest
+environment (a Python virtual environment with pyQuil installed, along with quilc
+and qvm servers running), the Forest [Docker](https://www.docker.com/) image gives a
+convenient way to quickly get started with quantum programming. This is not a wholesale
+replacement for locally installing the Forest SDK, as Docker containers are ephemeral
+filesystems, and therefore are not the best solution when the data they produce need
+to be persisted.
+
+The [`rigetti/forest`](https://hub.docker.com/r/rigetti/forest) Docker image is built
+and pushed to DockerHub automatically as part of the CI pipeline. Developers can also
+build the image locally by running `make docker` from the top-level directory. This
+creates an image tagged by a shortened version of the current git commit hash. To then
+start a container from this image, run:
+
+```bash
+docker run -it rigetti/forest:COMMIT_HASH
+```
+
+Where `COMMIT_HASH` is replaced by the actual git commit hash. This will drop you into an
+`ipython` REPL with pyQuil installed and quilc / qvm servers running in the background.
+Exiting the REPL (via `C-d`) will additionally shut down the Docker container and return
+you to the shell that ran the image.
+
+The image is defined by its [Dockerfile](Dockerfile), and it is additionally important to
+note that this image depends on a collection of parent images, pinned to specific versions.
+This pinning ensures reproducibility, but requires that these versions be updated manually
+as necessary. The section of the Dockerfile that would need to be edited looks like this:
+
+```dockerfile
+ARG quilc_version=1.12.0
+ARG qvm_version=1.12.0
+ARG python_version=3.6
+```
+
+Once a version has been changed, committed, and pushed, the CI will then use that new
+version in all builds going forward.
 
 Tips for Maintainers
 --------------------

@@ -1,11 +1,11 @@
-image: python:3.6
+include:
+  - project: rigetti/ci
+    file: pipelines/docker.gitlab-ci.yml
 
 variables:
-    QVM_URL: "http://qvm:5000"
-    QUILC_URL: "tcp://quilc:5555"
-
-before_script:
-  - pip install tox
+  IMAGE: rigetti/forest
+  QVM_URL: "http://qvm:5000"
+  QUILC_URL: "tcp://quilc:5555"
 
 services:
   - name: rigetti/qvm
@@ -16,8 +16,11 @@ services:
     command: ["-R"]
 
 test-py36:
+  image: python:3.6
   tags:
     - github
+  before_script:
+    - pip install tox
   script:
     - make -e config
     - tox -e py36
@@ -26,19 +29,27 @@ test-py37:
   image: python:3.7
   tags:
     - github
+  before_script:
+    - pip install tox
   script:
     - make -e config
     - tox -e py37
 
 style:
+  image: python:3.6
   tags:
     - github
+  before_script:
+    - pip install tox
   script:
     - tox -e flake8
 
 docs:
+  image: python:3.6
   tags:
     - github
+  before_script:
+    - pip install tox
   script:
     - apt-get update && apt-get install -y pandoc
     - pandoc --from=markdown --to=rst --output=docs/source/changes.rst CHANGELOG.md
