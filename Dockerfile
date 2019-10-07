@@ -6,17 +6,17 @@ ARG qvm_version=1.12.0
 ARG python_version=3.6
 
 # use multi-stage builds to independently pull dependency versions
-FROM rigetti/lisp:$quicklisp_version
+FROM rigetti/lisp:$quicklisp_version as lisp
 FROM rigetti/rpcq:$rpcq_version as rpcq
 FROM rigetti/quilc:$quilc_version as quilc
 FROM rigetti/qvm:$qvm_version as qvm
 FROM python:$python_version
 
 # copy over SBCL and Quicklisp from the first build stage
-COPY --from=quilc /src/sbcl /src/sbcl
-COPY --from=quilc /usr/local/bin/sbcl /usr/local/bin/sbcl
-COPY --from=quilc /usr/local/lib/sbcl /usr/local/lib/sbcl
-COPY --from=quilc /root/quicklisp /root/quicklisp
+COPY --from=lisp /src/sbcl /src/sbcl
+COPY --from=lisp /usr/local/bin/sbcl /usr/local/bin/sbcl
+COPY --from=lisp /usr/local/lib/sbcl /usr/local/lib/sbcl
+COPY --from=lisp /root/quicklisp /root/quicklisp
 
 # copy over rpcq source from the second build stage
 COPY --from=rpcq /src/rpcq /src/rpcq
