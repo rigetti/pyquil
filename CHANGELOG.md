@@ -6,10 +6,18 @@ Changelog
 
 ### Announcements
 
+-   Rather than installing pyQuil from PyPI, conda-forge, or the source directly,
+    users with [Docker](https://www.docker.com/) installed can pull and run the
+    [`rigetti/forest`](https://hub.docker.com/r/rigetti/forest) Docker image
+    to quickly get started with compiling and simulating quantum programs! When
+    running the image, a user will be dropped into an `ipython` REPL that has
+    pyQuil and its requirements preinstalled, along with quilc and qvm servers
+    running in the background (@karalekas, gh-1035).
+
 ### Improvements and Changes
 
 -   Added a `Makefile` with some simple targets for performing common build
-    operations like creating and uploading a package (gh-1032, @karalekas).
+    operations like creating and uploading a package (@karalekas, gh-1032).
 
 ### Bugfixes
 
