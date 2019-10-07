@@ -8,7 +8,7 @@ FROM rigetti/quilc:$quilc_version as quilc
 FROM rigetti/qvm:$qvm_version as qvm
 FROM python:$python_version
 
-# copy over the pre-built qvm binary from the first build stage
+# copy over the pre-built quilc binary from the first build stage
 COPY --from=quilc /src/quilc /src/quilc
 
 # copy over the pre-built qvm binary from the second build stage
