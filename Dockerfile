@@ -1,4 +1,4 @@
-# specify the dependency versions (can be overriden with --build_arg)
+# specify the dependency versions (can be overriden with --build-arg)
 ARG quicklisp_version=2019-07-11
 ARG rpcq_version=2.7.3
 ARG quilc_version=1.12.0
@@ -45,6 +45,6 @@ ADD . /src/pyquil
 WORKDIR /src/pyquil
 RUN pip install -e .
 
-# use a start script to add startup commands (qvm & quilc server spinup)
-ENTRYPOINT ["./start.sh"]
+# use an entrypoint script to add startup commands (qvm & quilc server spinup)
+ENTRYPOINT ["./entrypoint.sh"]
 CMD ["ipython"]
