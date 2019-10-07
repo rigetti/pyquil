@@ -189,8 +189,6 @@ This pinning ensures reproducibility, but requires that these versions be update
 as necessary. The section of the Dockerfile that would need to be edited looks like this:
 
 ```dockerfile
-ARG quicklisp_version=2019-07-11
-ARG rpcq_version=2.7.3
 ARG quilc_version=1.12.0
 ARG qvm_version=1.12.0
 ARG python_version=3.6
