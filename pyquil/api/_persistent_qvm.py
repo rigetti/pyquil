@@ -178,6 +178,23 @@ class PersistentQVM:
         return self.connection._qvm_ng_read_memory(self.token, classical_addresses)
 
     @_record_call
+    def write_memory(self, memory_contents) -> None:
+        """
+        Write ``memory_contents`` to this PersistentQVM's classical memory registers.
+
+        :param memory_contents: A dictionary specifying the classical memory to overwrite.  The keys
+            are the names of memory regions, and the values are either (1) a sequence of (index,
+            value) pairs such that each value is stored at the corresponding index in the given
+            memory region, or (2) a sequence of values such that the ith item in the sequence will
+            be stored at the ith index of the memory region.  For example, ``memory_contents`` of
+            ``{"theta": [(0, 1.0), (1, 2.3)]}`` indicates that the value ``1.0`` will be written to
+            ``theta[0]`` while the value ``2.3`` is writtent to ``theta[1]``.  Equivalently, the
+            caller may instead pass a ``memory_contents`` of ``{"theta": [1.0, 2.3]}`` to acheive
+            the same result.
+        """
+        self.connection._qvm_ng_write_memory(self.token, memory_contents)
+
+    @_record_call
     def run_program(self, quil_program: Program) -> Dict[str, np.array]:
         """
         Run quil_program on this PersistentQVM instance, and return the values stored in all of the

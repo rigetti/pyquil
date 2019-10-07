@@ -14,12 +14,13 @@
 #    limitations under the License.
 ##############################################################################
 
+import collections
 import re
 import uuid
 import warnings
 from enum import Enum
 from json.decoder import JSONDecodeError
-from typing import Dict, Union, Sequence
+from typing import Dict, Iterable, List, Tuple, Union, Sequence
 
 import numpy as np
 import requests
@@ -44,6 +45,7 @@ TYPE_QVM_MEMORY_ESTIMATE = "qvm-memory-estimate"
 TYPE_CREATE_QVM = "create-qvm"
 TYPE_DELETE_QVM = "delete-qvm"
 TYPE_READ_MEMORY_QVM = "read-memory"
+TYPE_WRITE_MEMORY_QVM = "write-memory"
 TYPE_QVM_INFO = "qvm-info"
 
 
@@ -216,6 +218,54 @@ def validate_simulation_method(simulation_method):
     if not isinstance(simulation_method, QVMSimulationMethod):
         raise TypeError("simulation_method must be a QVMSimulationMethod. "
                         f"Got '{simulation_method}'.")
+
+
+ClassicalRegisterValue = Union[int, float, complex]
+
+
+def prepare_memory_contents(
+        register_dict: Dict[str, Union[List[Tuple[int, ClassicalRegisterValue]],
+                                       Iterable[ClassicalRegisterValue]]]) \
+        -> Dict[str, List[Tuple[int, ClassicalRegisterValue]]]:
+    """
+    Canonicalize memory contents for the payload.
+
+    This function will cast values that are iterables to a list of Python tuples.  This is to
+    support specifying the register contents as ``range()`` or dense numpy arrays.  This mutates
+    ``register_dict``.
+
+    :param register_dict: The classical memory to overwrite.  Specified as a dictionary: the keys
+        are the names of memory regions, and the values are either (1) an Iterable of (index, value)
+        pairs or (2) an Iterable of values which will be transformed into the canonical form (1) so
+        that e.g. the sequence [v0, v1, v2] becomes [(0, v0), (1, v1), (2, v2)].
+    """
+    if not isinstance(register_dict, dict):
+        raise TypeError(f"register_dict must be a dict but got {register_dict}")
+
+    for reg_name, vs in register_dict.items():
+        if not isinstance(vs, collections.abc.Iterable) or isinstance(vs, str):
+            raise TypeError(f"Values for register '{reg_name}' must be a non-string Sequence."
+                            f" Got '{vs}'.")
+
+        vlist = list(vs)
+
+        if len(vlist) == 0:
+            raise ValueError(f"Values sequence for register '{reg_name}' is empty. You must provide"
+                             " at least one value for each register in register_dict.")
+
+        # Allow the caller to specify an Iterable of dense values, rather than (index, value) pairs.
+        if not isinstance(vlist[0], tuple):
+            vlist = [(i, v) for i, v in enumerate(vlist)]
+            register_dict[reg_name] = vlist
+
+        for i, v in vlist:
+            if i < 0:
+                raise TypeError(f"Negative index {i} into classical register {reg_name} is invalid.")
+            if not (isinstance(v, int) or isinstance(v, float) or isinstance(v, complex)):
+                raise TypeError(f"Value for classical register {reg_name}[{i}] must be of type int,"
+                                f" float, or complex. Got '{v}'.")
+
+    return register_dict
 
 
 def prepare_register_list(register_dict: Dict[str, Union[bool, Sequence[int]]]):
@@ -434,6 +484,16 @@ def qvm_ng_read_memory_payload(qvm_token, classical_addresses):
     return payload
 
 
+def qvm_ng_write_memory_payload(qvm_token, memory_contents):
+    """REST payload for :py:func:`ForestConnection._qvm_ng_write_memory`"""
+    validate_persistent_qvm_token(qvm_token)
+    memory_contents = prepare_memory_contents(memory_contents)
+    payload = {"type": TYPE_WRITE_MEMORY_QVM,
+               "memory-contents": memory_contents,
+               "qvm-token": qvm_token}
+    return payload
+
+
 def qvm_ng_qvm_info_payload(token):
     """REST payload for :py:func:`ForestConnection._qvm_ng_qvm_info`"""
     validate_persistent_qvm_token(token)
@@ -619,6 +679,20 @@ class ForestConnection:
             ram[k] = np.array(ram[k])
 
         return ram
+
+    @_record_call
+    def _qvm_ng_write_memory(self, qvm_token, memory_contents) -> None:
+        """
+        Run a Forest ``write_memory`` job.
+        """
+        payload = qvm_ng_write_memory_payload(qvm_token, memory_contents)
+        response = post_json(self.session, self.qvm_ng_endpoint + "/", payload)
+        ok = response.json()
+
+        if not isinstance(ok, bool):
+            raise TypeError(f"Malformed write-memory response returned by the QVM: {ok}")
+
+        return ok
 
     @_record_call
     def _qvm_ng_qvm_info(self, token) -> dict:
