@@ -55,7 +55,7 @@ docs:
     - pandoc --from=markdown --to=rst --output=docs/source/changes.rst CHANGELOG.md
     - tox -e docs
 
-upload:
+upload-testpypi:
   stage: deploy
   image: python:3.6
   tags:

@@ -59,4 +59,4 @@ upload:
 
 .PHONY: version
 version:
-	@git describe --tags | sed 's/-/./' | sed 's/-/+/'
+	@git describe --tags | sed 's/v//' | sed 's/\(.*\)-.*/\1/'| sed 's/-/./'
