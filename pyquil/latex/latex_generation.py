@@ -120,15 +120,13 @@ def TIKZ_NOP():
 def TIKZ_MEASURE():
     return r"\meter{}"
 
-def TIKZ_GATE(instr):
-    size = len(instr.qubits)
+def TIKZ_GATE(name, size=1, params=None):
     cmd = r"\gate"
     if size > 1:
         cmd += "[wires={size}]".format(size=size)
     # TODO: R_x etc
-    name = instr.name
-    if instr.params:
-        name += _format_params(instr.params)
+    if params:
+        name += _format_params(params)
     return cmd + "{{{name}}}".format(name=name)
 
 def is_interval(indices):
@@ -177,7 +175,7 @@ def body(circuit, settings):
                 raise ValueError("LaTeX output does not currently support gate modifiers: {}".format(instr))
             qubits = [qubit.index for qubit in instr.qubits]
             if len(qubits) == 1:
-                lines[qubits[0]].append(TIKZ_GATE(instr))
+                lines[qubits[0]].append(TIKZ_GATE(instr.name))
             else:
                 # fill to latest edge
                 nop_to_latest_edge(qubits)
@@ -192,16 +190,17 @@ def body(circuit, settings):
                     lines[source].append(TIKZ_SWAP(source, target))
                     lines[target].append(TIKZ_SWAP_TARGET(target))
                 elif instr.name == "CZ":
+                    # we destructure to make this show as a controlled-Z
                     control, target = qubits
                     lines[control].append(TIKZ_CONTROL(control, target))
-                    lines[target].append(TIKZ_GATE(instr))
+                    lines[target].append(TIKZ_GATE("Z"))
                 else: # generic unitary
                     if not is_interval(sorted(qubits)):
                         raise ValueError("Unable to render instruction {} which spans non-adjacent qubits.".format(instr))
 
                     # we put the gate on the first line, and nop on the others
                     qubit, *remaining = qubits
-                    lines[qubit].append(TIKZ_GATE(instr))
+                    lines[qubit].append(TIKZ_GATE(instr, size=len(qubits), params=instr.params))
                     for q in remaining:
                         lines[q].append(TIKZ_NOP())
 
