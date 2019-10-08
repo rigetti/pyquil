@@ -62,7 +62,7 @@ upload-testpypi:
     - github
   only:
     refs:
-      - branches
+      - master
   script:
     - make version > VERSION.txt
     - make install && make dist
