@@ -7,7 +7,7 @@ import sys
 import warnings
 from json import JSONEncoder
 from operator import mul
-from typing import List, Union, Iterable, Tuple, Optional, Dict, Sequence
+from typing import List, Union, Iterable, Tuple, Optional, Dict, Sequence, Callable
 from tqdm import tqdm
 from copy import copy
 
@@ -936,7 +936,8 @@ def raw_estimate_observables(qc: QuantumComputer, tomo_experiment: TomographyExp
 
 def calibrate_observable_estimates(qc: QuantumComputer, expt_results: List[ExperimentResult],
                                    n_shots: int = 500, symm_type: int = -1,
-                                   noisy_program: Program = None, active_reset: bool = False,
+                                   noisy_program: Optional[Program] = None,
+                                   active_reset: bool = False,
                                    show_progress_bar: bool = False) \
         -> Iterable[ExperimentResult]:
     """
@@ -976,16 +977,13 @@ def calibrate_observable_estimates(qc: QuantumComputer, expt_results: List[Exper
     :param show_progress_bar: displays a progress bar via tqdm if true.
     :return: a copy of the input results with updated estimates and calibration results.
     """
-    observables = [copy(res.setting.out_operator) for res in expt_results]
-    observables = list(set(observables))  # get unique observables that will need to be calibrated
-
-    programs = [get_calibration_program(obs, noisy_program, active_reset) for obs in
-                observables]
-    meas_qubits = [obs.get_qubits() for obs in observables]
+    # get unique observables that will need to be calibrated
+    observables = {copy(res.setting.out_operator) for res in expt_results}
 
     calibrations = {}
-    for prog, meas_qs, obs in zip(tqdm(programs, disable=not show_progress_bar), meas_qubits,
-                                  observables):
+    for obs in tqdm(observables, disable=not show_progress_bar):
+        prog = get_calibration_program(obs, noisy_program, active_reset)
+        meas_qs = obs.get_qubits()
         results = qc.run_symmetrized_readout(prog, n_shots, symm_type, meas_qs)
 
         # Obtain statistics from result of experiment
@@ -1028,7 +1026,9 @@ def calibrate_observable_estimates(qc: QuantumComputer, expt_results: List[Exper
 
 
 def measure_observables(qc: QuantumComputer, tomo_experiment: TomographyExperiment,
-                        n_shots: int = 10000, progress_callback=None, active_reset=False,
+                        n_shots: int = 10000,
+                        progress_callback: Optional[Callable[[int, int], None]] = None,
+                        active_reset=False,
                         symmetrize_readout: Optional[Union[str, int]] = 'exhaustive',
                         calibrate_readout: Optional[str] = 'plus-eig',
                         readout_symmetrize: Optional[str] = None,
@@ -1117,7 +1117,7 @@ def _ops_bool_to_prog(ops_bool: Tuple[bool], qubits: List[int]) -> Program:
 
 
 def _stats_from_measurements(bs_results: np.ndarray, qubit_index_map: Dict,
-                             setting: ExperimentSetting, n_shots: int = None,
+                             setting: ExperimentSetting, n_shots: Optional[int] = None,
                              coeff: float = 1.0) -> Tuple[float, float]:
     """
     :param bs_results: results from running `qc.run`
@@ -1200,6 +1200,8 @@ def _exhaustive_symmetrization(qc: QuantumComputer, qubits: List[int],
              - dict keyed by qubit, valued by index of the numpy array containing
                     bitstring results
     """
+    warnings.warn("This method will be deprecated in favor of more general symmetrization "
+                  "functionality found in api._quantum_computer.py", DeprecationWarning)
     # Symmetrize -- flip qubits pre-measurement
     n_shots_symm = int(round(np.ceil(shots / 2**len(qubits))))
     if n_shots_symm * 2**len(qubits) > shots:
@@ -1258,7 +1260,7 @@ def _calibration_program(qc: QuantumComputer, tomo_experiment: TomographyExperim
     return calibr_prog
 
 
-def get_calibration_program(observable: PauliTerm, noisy_program: Program = None,
+def get_calibration_program(observable: PauliTerm, noisy_program: Optional[Program] = None,
                             active_reset: bool = False) -> Program:
     """
     Get program required for calibrating the given observable.
