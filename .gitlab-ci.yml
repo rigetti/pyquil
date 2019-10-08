@@ -55,6 +55,10 @@ docs:
     - pandoc --from=markdown --to=rst --output=docs/source/changes.rst CHANGELOG.md
     - tox -e docs
 
+####################################################################################################
+# MASTER-ONLY JOBS
+####################################################################################################
+
 upload-testpypi:
   stage: deploy
   image: python:3.6
@@ -68,6 +72,10 @@ upload-testpypi:
     - make install && make dist
     - make requirements && make upload
 
+####################################################################################################
+# RELEASE-ONLY JOBS
+####################################################################################################
+
 test-docker:
   stage: test
   image: docker:stable
@@ -79,3 +87,18 @@ test-docker:
       - /^v(\d+\.)?(\d+\.)?(\d+)$/
   script:
     - docker run --rm $IMAGE:edge python -c "from pyquil import get_qc; qvm = get_qc('9q-qvm')"
+
+install-testpypi:
+  stage: test
+  image: python:3.6
+  tags:
+    - github
+  only:
+    refs:
+      - /^v(\d+\.)?(\d+\.)?(\d+)$/
+  variables:
+    PYPI_URL: https://pypi.org/simple
+    TEST_PYPI_URL: https://test.pypi.org/simple/
+  script:
+    - pip install --index-url ${TEST_PYPI_URL} --extra-index-url ${PYPI_URL} pyquil
+    - python -c "import pyquil"
