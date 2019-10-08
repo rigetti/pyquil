@@ -56,3 +56,7 @@ test:
 .PHONY: upload
 upload:
 	twine upload --repository-url https://test.pypi.org/legacy/ dist/*
+
+.PHONY: version
+version:
+	@git describe --tags | sed 's/-/./' | sed 's/-/+/'
