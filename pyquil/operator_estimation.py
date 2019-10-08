@@ -7,7 +7,8 @@ import sys
 import warnings
 from json import JSONEncoder
 from operator import mul
-from typing import List, Union, Iterable, Tuple, Optional, Dict
+from typing import List, Union, Iterable, Tuple, Optional, Dict, Callable
+from tqdm import tqdm
 
 import networkx as nx
 import numpy as np
@@ -814,11 +815,71 @@ class ExperimentResult:
         }
 
 
+def generate_experiment_programs(tomo_experiment: TomographyExperiment,
+                                 active_reset: bool = False) \
+        -> Tuple[List[Program], List[List[int]]]:
+    """
+    Generate the programs necessary to estimate the observables in a TomographyExperiment.
+    Grouping of settings to be run in parallel, e.g. by a call to group_experiments, should be
+    done before this method is called.
+
+    .. CAUTION::
+        One must be careful with compilation of the output programs before the appropriate MEASURE
+        instructions are added, because compilation may re-index the qubits so that
+        the output list of `measure_qubits` no longer accurately indexes the qubits that
+        should be measured.
+
+    :param tomo_experiment: a single TomographyExperiment to be translated to a series of programs
+        that, when run serially, can be used to estimate each of obs_expt's observables.
+    :param active_reset: whether or not to begin the program by actively resetting. If true,
+        execution of each of the returned programs in a loop on the QPU will generally be faster.
+    :return: a list of programs along with a corresponding list of the groups of qubits that are
+        measured by that program. The returned programs may be run on a qc after measurement
+        instructions are added for the corresponding group of qubits in meas_qubits, or by a call
+        to `qc.run_symmetrized_readout` -- see :func:`raw_estimate_observables` for possible usage.
+    """
+    # Outer loop over a collection of grouped settings for which we can simultaneously estimate.
+    programs = []
+    meas_qubits = []
+    for settings in tomo_experiment:
+
+        # Prepare a state according to the amalgam of all setting.in_state
+        total_prog = Program()
+        if active_reset:
+            total_prog += RESET()
+        max_weight_in_state = _max_weight_state(setting.in_state for setting in settings)
+        if max_weight_in_state is None:
+            raise ValueError(
+                'Input states are not compatible. Re-group the experiment settings '
+                'so that groups of parallel settings have compatible input states.')
+        for oneq_state in max_weight_in_state.states:
+            total_prog += _one_q_state_prep(oneq_state)
+
+        # Add in the program
+        total_prog += tomo_experiment.program
+
+        # Prepare for measurement state according to setting.out_operator
+        max_weight_out_op = _max_weight_operator(setting.out_operator for setting in settings)
+        if max_weight_out_op is None:
+            raise ValueError('Observables not compatible. Re-group the experiment settings '
+                             'so that groups of parallel settings have compatible observables.')
+        for qubit, op_str in max_weight_out_op:
+            total_prog += _local_pauli_eig_meas(op_str, qubit)
+
+        programs.append(total_prog)
+
+        meas_qubits.append(max_weight_out_op.get_qubits())
+    return programs, meas_qubits
+
+
 def measure_observables(qc: QuantumComputer, tomo_experiment: TomographyExperiment,
-                        n_shots: int = 10000, progress_callback=None, active_reset=False,
+                        n_shots: int = 10000,
+                        progress_callback:  Optional[Callable[[int, int], None]] = None,
+                        active_reset = False,
                         symmetrize_readout: Optional[str] = 'exhaustive',
                         calibrate_readout: Optional[str] = 'plus-eig',
-                        readout_symmetrize: Optional[str] = None):
+                        readout_symmetrize: Optional[str] = None,
+                        show_progress_bar: bool = False):
     """
     Measure all the observables in a TomographyExperiment.
 
@@ -846,6 +907,7 @@ def measure_observables(qc: QuantumComputer, tomo_experiment: TomographyExperime
         method supported is normalizing against the operator's expectation value in its +1
         eigenstate, which can be specified by setting this variable to 'plus-eig' (default value).
         The preceding symmetrization and this step together yield a more accurate estimation of the observable. Set to `None` if no calibration is desired.
+    :param show_progress_bar: displays a progress bar via tqdm if true.
     """
     if readout_symmetrize is not None:
         warnings.warn("'readout_symmetrize' has been renamed to 'symmetrize_readout'",
@@ -856,42 +918,25 @@ def measure_observables(qc: QuantumComputer, tomo_experiment: TomographyExperime
     if calibrate_readout is not None and symmetrize_readout is None:
         raise ValueError("Readout calibration only works with readout symmetrization turned on")
 
+    # generate programs for each group of simultaneous settings.
+    programs, meas_qubits = generate_experiment_programs(tomo_experiment, active_reset)
+
     # Outer loop over a collection of grouped settings for which we can simultaneously
     # estimate.
-    for i, settings in enumerate(tomo_experiment):
-
-        log.info(f"Collecting bitstrings for the {len(settings)} settings: {settings}")
-
-        # 1.1 Prepare a state according to the amalgam of all setting.in_state
-        total_prog = Program()
-        if active_reset:
-            total_prog += RESET()
-        max_weight_in_state = _max_weight_state(setting.in_state for setting in settings)
-        for oneq_state in max_weight_in_state.states:
-            total_prog += _one_q_state_prep(oneq_state)
-
-        # 1.2 Add in the program
-        total_prog += tomo_experiment.program
-
-        # 1.3 Measure the state according to setting.out_operator
-        max_weight_out_op = _max_weight_operator(setting.out_operator for setting in settings)
-        for qubit, op_str in max_weight_out_op:
-            total_prog += _local_pauli_eig_meas(op_str, qubit)
-
-        # 2. Symmetrization
-        qubits = max_weight_out_op.get_qubits()
+    for i, (prog, qubits, settings) in enumerate(zip(tqdm(programs, disable=not show_progress_bar),
+                                       meas_qubits, tomo_experiment)):
 
         if symmetrize_readout == 'exhaustive' and len(qubits) > 0:
-            bitstrings, d_qub_idx = _exhaustive_symmetrization(qc, qubits, n_shots, total_prog)
+            bitstrings, d_qub_idx = _exhaustive_symmetrization(qc, qubits, n_shots, prog)
 
         elif symmetrize_readout is None and len(qubits) > 0:
-            total_prog_no_symm = total_prog.copy()
+            total_prog_no_symm = prog.copy()
             ro = total_prog_no_symm.declare('ro', 'BIT', len(qubits))
             d_qub_idx = {}
-            for i, q in enumerate(qubits):
-                total_prog_no_symm += MEASURE(q, ro[i])
+            for j, q in enumerate(qubits):
+                total_prog_no_symm += MEASURE(q, ro[j])
                 # Keep track of qubit-classical register mapping via dict
-                d_qub_idx[q] = i
+                d_qub_idx[q] = j
             total_prog_no_symm.wrap_in_numshots_loop(n_shots)
             total_prog_no_symm_native = qc.compiler.quil_to_native_quil(total_prog_no_symm)
             total_prog_no_symm_bin = qc.compiler.native_quil_to_executable(total_prog_no_symm_native)

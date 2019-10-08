@@ -4,6 +4,7 @@ antlr4-python3-runtime
 requests
 six
 networkx >= 2.0.0
+tqdm
 
 # rigetti packages
 rpcq >= 2.7.2
