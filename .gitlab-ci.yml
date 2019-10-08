@@ -55,6 +55,19 @@ docs:
     - pandoc --from=markdown --to=rst --output=docs/source/changes.rst CHANGELOG.md
     - tox -e docs
 
+upload:
+  stage: deploy
+  image: python:3.6
+  tags:
+    - github
+  only:
+    refs:
+      - branches
+  script:
+    - make version > VERSION.txt
+    - make install && make dist
+    - make requirements && make upload
+
 test-docker:
   stage: test
   image: docker:stable
