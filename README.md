@@ -97,7 +97,7 @@ Joining the Forest Community
 ----------------------------
 
 If you'd like to get involved with pyQuil and Forest, joining the [Rigetti Forest Slack
-Workspace](https://join.slack.com/t/rigetti-forest/shared_invite/enQtNTUyNTE1ODg3MzE2LWExZWU5OTE4YTJhMmE2NGNjMThjOTM1MjlkYTA5ZmUxNTJlOTVmMWE0YjA3Y2M2YmQzNTZhNTBlMTYyODRjMzA)
+Workspace](https://join.slack.com/t/rigetti-forest/shared_invite/enQtNTUyNTE1ODg3MzE2LWQwNzBlMjZlMmNlN2M5MzQyZDlmOGViODQ5ODI0NWMwNmYzODY4YTc2ZjdjOTNmNzhiYTk2YjVhNTE2NTRkODY)
 is a great place to start! You can do so by clicking the invite link in the previous sentence,
 or in the badge at the top of this README. The Slack Workspace is a great place to ask general
 questions, join high-level design discussions, and hear about updates to pyQuil and the Forest SDK.
