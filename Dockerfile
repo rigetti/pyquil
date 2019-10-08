@@ -8,11 +8,12 @@ FROM rigetti/quilc:$quilc_version as quilc
 FROM rigetti/qvm:$qvm_version as qvm
 FROM python:$python_version
 
-# copy over the pre-built quilc binary from the first build stage
-COPY --from=quilc /src/quilc /src/quilc
+# copy over the pre-built quilc binary and tweedledum library from the first build stage
+COPY --from=quilc /usr/local/lib/libtweedledum.so /usr/local/lib/libtweedledum.so
+COPY --from=quilc /src/quilc/quilc /src/quilc/quilc
 
 # copy over the pre-built qvm binary from the second build stage
-COPY --from=qvm /src/qvm /src/qvm
+COPY --from=qvm /src/qvm/qvm /src/qvm/qvm
 
 # install the missing apt requirements that can't be copied over
 RUN echo "deb http://http.us.debian.org/debian/ testing non-free contrib main" >> /etc/apt/sources.list && \
