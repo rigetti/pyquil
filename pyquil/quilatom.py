@@ -44,7 +44,7 @@ class Qubit(QuilAtom):
     """
     Representation of a qubit.
 
-    :param int index: Index of the qubit.
+    :param index: Index of the qubit.
     """
 
     def __init__(self, index: int):
@@ -164,7 +164,7 @@ class Label(QuilAtom):
     """
     Representation of a label.
 
-    :param string label_name: The label name.
+    :param label_name: The label name.
     """
 
     def __init__(self, label_name: str):
@@ -320,10 +320,9 @@ def substitute(expr: ExpressionOrValue, d: ParameterSubstitutionsMap) -> Express
     Using a dictionary of substitutions ``d`` try and explicitly evaluate as much of ``expr`` as
     possible.
 
-    :param Expression expr: The expression whose parameters are substituted.
-    :param Mapping[Parameter,Union[int,float]] d: Numerical substitutions for parameters.
+    :param expr: The expression whose parameters are substituted.
+    :param d: Numerical substitutions for parameters.
     :return: A partially simplified Expression or a number.
-    :rtype: Union[Expression,int,float]
     """
     if isinstance(expr, Expression):
         return expr._substitute(d)
@@ -335,10 +334,9 @@ def substitute_array(a: Union[Sequence[Expression], np.array],
     """
     Apply ``substitute`` to all elements of an array ``a`` and return the resulting array.
 
-    :param Union[np.array,Sequence[Expression]] a: The expression array to substitute.
-    :param Mapping[Parameter,Union[int,float]] d: Numerical substitutions for parameters.
+    :param a: The expression array to substitute.
+    :param d: Numerical substitutions for parameters.
     :return: An array of partially substituted Expressions or numbers.
-    :rtype: np.array
     """
     a = np.asarray(a, order="C")
     return np.array([substitute(v, d) for v in a.flat]).reshape(a.shape)
@@ -509,9 +507,8 @@ def _expression_to_string(expression: ExpressionOrValue) -> str:
     Recursively converts an expression to a string taking into account precedence and associativity for placing
     parenthesis
 
-    :param Expression expression: expression involving parameters
+    :param expression: expression involving parameters
     :return: string such as '%x*(%y-4)'
-    :rtype: str
     """
     if isinstance(expression, BinaryExp):
         left = _expression_to_string(expression.op1)
@@ -547,9 +544,8 @@ def _contained_parameters(expression: ExpressionOrValue) -> Set[Parameter]:
     """
     Determine which parameters are contained in this expression.
 
-    :param Expression expression: expression involving parameters
+    :param expression: expression involving parameters
     :return: set of parameters contained in this expression
-    :rtype: set
     """
     if isinstance(expression, BinaryExp):
         return _contained_parameters(expression.op1) | _contained_parameters(expression.op2)
@@ -651,7 +647,7 @@ class Addr(MemoryReference):
     WARNING: Addr has been deprecated. Addr(c) instances are auto-replaced by MemoryReference("ro", c).
              Use MemoryReference instances.
 
-    :param int value: The classical address.
+    :param value: The classical address.
     """
 
     def __init__(self, value: int):
