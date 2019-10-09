@@ -16,7 +16,7 @@
 import numpy as np
 from warnings import warn
 from fractions import Fraction
-from typing import Any, Callable, ClassVar, Dict, List, Optional, Set, Sequence, Tuple, Union
+from typing import Any, Callable, ClassVar, List, Mapping, Optional, Set, Sequence, Tuple, Union
 
 
 class QuilAtom(object):
@@ -312,16 +312,16 @@ class Expression(object):
         return self
 
 
-ParameterSubstitutionsDict = Dict['Parameter', ExpressionValue]
+ParameterSubstitutionsMap = Mapping['Parameter', ExpressionValue]
 
 
-def substitute(expr: ExpressionOrValue, d: ParameterSubstitutionsDict) -> ExpressionOrValue:
+def substitute(expr: ExpressionOrValue, d: ParameterSubstitutionsMap) -> ExpressionOrValue:
     """
     Using a dictionary of substitutions ``d`` try and explicitly evaluate as much of ``expr`` as
     possible.
 
     :param Expression expr: The expression whose parameters are substituted.
-    :param Dict[Parameter,Union[int,float]] d: Numerical substitutions for parameters.
+    :param Mapping[Parameter,Union[int,float]] d: Numerical substitutions for parameters.
     :return: A partially simplified Expression or a number.
     :rtype: Union[Expression,int,float]
     """
@@ -331,12 +331,12 @@ def substitute(expr: ExpressionOrValue, d: ParameterSubstitutionsDict) -> Expres
 
 
 def substitute_array(a: Union[Sequence[Expression], np.array],
-                     d: ParameterSubstitutionsDict) -> np.array:
+                     d: ParameterSubstitutionsMap) -> np.array:
     """
     Apply ``substitute`` to all elements of an array ``a`` and return the resulting array.
 
     :param Union[np.array,Sequence[Expression]] a: The expression array to substitute.
-    :param Dict[Parameter,Union[int,float]] d: Numerical substitutions for parameters.
+    :param Mapping[Parameter,Union[int,float]] d: Numerical substitutions for parameters.
     :return: An array of partially substituted Expressions or numbers.
     :rtype: np.array
     """
@@ -355,7 +355,7 @@ class Parameter(QuilAtom, Expression):
     def out(self) -> str:
         return '%' + self.name
 
-    def _substitute(self, d: ParameterSubstitutionsDict) -> Union['Parameter', ExpressionValue]:
+    def _substitute(self, d: ParameterSubstitutionsMap) -> Union['Parameter', ExpressionValue]:
         return d.get(self, self)
 
     def __str__(self) -> str:
@@ -378,7 +378,7 @@ class Function(Expression):
         self.expression = expression
         self.fn = fn
 
-    def _substitute(self, d: ParameterSubstitutionsDict) -> Union['Function', ExpressionValue]:
+    def _substitute(self, d: ParameterSubstitutionsMap) -> Union['Function', ExpressionValue]:
         sop = substitute(self.expression, d)
         if isinstance(sop, Expression):
             return Function(self.name, sop, self.fn)
@@ -426,7 +426,7 @@ class BinaryExp(Expression):
         self.op1 = op1
         self.op2 = op2
 
-    def _substitute(self, d: ParameterSubstitutionsDict) -> Union['BinaryExp', ExpressionValue]:
+    def _substitute(self, d: ParameterSubstitutionsMap) -> Union['BinaryExp', ExpressionValue]:
         sop1, sop2 = substitute(self.op1, d), substitute(self.op2, d)
         return self.fn(sop1, sop2)
 

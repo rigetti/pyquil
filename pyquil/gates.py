@@ -14,7 +14,7 @@
 #    limitations under the License.
 ##############################################################################
 from warnings import warn
-from typing import Any, Callable, Dict, Optional, Tuple, Union, overload
+from typing import Any, Callable, Mapping, Optional, Tuple, Union, overload
 
 from pyquil.quilatom import (Addr, Expression, MemoryReference, MemoryReferenceDesignator,
                              MRefDesignatorOrImmediateInt, MRefDesignatorOrImmediateValue,
@@ -839,7 +839,7 @@ def GE(classical_reg1: MemoryReferenceDesignator,
     return ClassicalGreaterEqual(classical_reg1, classical_reg2, classical_reg3)
 
 
-QUANTUM_GATES: Dict[str, Callable[..., Gate]] = {
+QUANTUM_GATES: Mapping[str, Callable[..., Gate]] = {
     'I': I,
     'X': X,
     'Y': Y,
@@ -871,7 +871,7 @@ STANDARD_GATES = QUANTUM_GATES
 Alias for the above dictionary of quantum gates.
 """
 
-STANDARD_INSTRUCTIONS: Dict[str, Union[AbstractInstruction, Callable[..., AbstractInstruction]]] = {
+STANDARD_INSTRUCTIONS: Mapping[str, Union[AbstractInstruction, Callable[..., AbstractInstruction]]] = {
     'WAIT': WAIT,
     'RESET': RESET,
     'NOP': NOP,
