@@ -12,7 +12,7 @@ Changelog
     to quickly get started with compiling and simulating quantum programs! When
     running the image, a user will be dropped into an `ipython` REPL that has
     pyQuil and its requirements preinstalled, along with quilc and qvm servers
-    running in the background (@karalekas, gh-1035).
+    running in the background (@karalekas, gh-1035, gh-1039).
 
 ### Improvements and Changes
 
