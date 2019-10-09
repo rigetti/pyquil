@@ -32,8 +32,9 @@
 
 
 from copy import copy
+from warnings import warn
 
-from pyquil.quil import Measurement, Gate
+from pyquil.quil import Measurement, Gate, Pragma
 from pyquil.quilbase import _format_params
 from collections import defaultdict
 
@@ -129,11 +130,28 @@ def TIKZ_GATE(name, size=1, params=None, dagger=False):
         name += _format_params(params).replace("pi", "\pi")
     return cmd + "{{{name}}}".format(name=name)
 
+def TIKZ_GATE_GROUP(qubits, width, label):
+    num_qubits = max(qubits) - min(qubits) + 1
+    return "\\gategroup[{qubits},steps={width},style={{dashed, rounded corners,fill=blue!20, inner xsep=2pt}}, background]{{{label}}}".format(
+        qubits=num_qubits, width=width, label=label)
+
 def is_interval(indices):
     return all(j == i + 1 for i,j in zip(indices, indices[1:]))
 
 def interval(source, target):
     return list(range(min(source, target), max(source,target)+1))
+
+def scan_for_grouped_qubits(program):
+    qubits = set()
+    for instr in program:
+        if isinstance(instr, Pragma) and instr.command == "END_LATEX_GATE_GROUP":
+            return sorted(qubits)
+        elif isinstance(instr, Measurement):
+            qubits.add(instr.qubit.index)
+        elif isinstance(instr, Gate):
+            qubits = qubits.union(q.index for q in instr.qubits)
+    # no matching END_LATEX_GROUP
+    return None
 
 def body(circuit, settings):
     """
@@ -167,13 +185,39 @@ def body(circuit, settings):
     nop_to_latest_edge(all_qubits, offset=1)
 
     # fill lines
-    for instr in circuit:
+    for i,instr in enumerate(circuit):
         # TODO error on classical control flow
-        if isinstance(instr, Measurement):
+        if isinstance(instr, Pragma) and instr.command == 'LATEX_GATE_GROUP':
+            grouped_qubits = scan_for_grouped_qubits(circuit[i+1:])
+            if grouped_qubits is None:
+                raise ValueError("PRAGMA LATEX_GATE_GROUP found without matching END_LATEX_GATE_GROUP")
+            elif len(grouped_qubits) == 0:
+                warn("Ignoring empty gate group.")
+            else:
+                nop_to_latest_edge(grouped_qubits)
+                # we track the place where the grouping command will be INSERTED once we have reached
+                # the end of the block
+                group_op_index = qubit_clock(grouped_qubits[0])
+                # until then, business as usual
+        elif isinstance(instr, Pragma) and instr.command == 'END_LATEX_GATE_GROUP':
+            # add nop_to_latest_edge on grouped qubits
+            if grouped_qubits is None:
+                raise ValueError("PRAGMA END_LATEX_GATE_GROUP found, but there is no active gate group.")
+            elif len(grouped_qubits) == 0:
+                pass
+            else:
+                nop_to_latest_edge(grouped_qubits)
+                q = grouped_qubits[0]
+                # TODO label? we need to keep the pragma, also can allow for nested groups
+                lines[q][group_op_index] += " " + TIKZ_GATE_GROUP(grouped_qubits, qubit_clock(q)-group_op_index, "")
+                grouped_qubits = None
+        elif isinstance(instr, Measurement):
             lines[instr.qubit].append(TIKZ_MEASURE())
         elif isinstance(instr, Gate):
             if 'FORKED' in instr.modifiers:
                 raise ValueError("LaTeX output does not currently support FORKED modifiers: {}".format(instr))
+
+
             dagger = sum(m == 'DAGGER' for m in instr.modifiers) % 2 == 1
             controls = sum(m == 'CONTROLLED' for m in instr.modifiers)
             qubits = [qubit.index for qubit in instr.qubits]
