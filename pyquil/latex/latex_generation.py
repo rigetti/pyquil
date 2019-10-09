@@ -124,16 +124,16 @@ def TIKZ_GATE(name, size=1, params=None):
     cmd = r"\gate"
     if size > 1:
         cmd += "[wires={size}]".format(size=size)
-    # TODO: R_x etc
+    # TeXify names
+    if name in ["RX", "RY", "RZ"]:
+        name = name[0] + "_" + name[1].lower()
     if params:
-        name += _format_params(params)
+        # TODO we should do a better job than just dumb str.replace
+        name += _format_params(params).replace("pi", "\pi")
     return cmd + "{{{name}}}".format(name=name)
 
 def is_interval(indices):
-    for i,j in zip(indices, indices[1:]):
-        if j != i + 1:
-            return False
-    return True
+    return all(j == i + 1 for i,j in zip(indices, indices[1:]))
 
 def body(circuit, settings):
     """
@@ -175,7 +175,7 @@ def body(circuit, settings):
                 raise ValueError("LaTeX output does not currently support gate modifiers: {}".format(instr))
             qubits = [qubit.index for qubit in instr.qubits]
             if len(qubits) == 1:
-                lines[qubits[0]].append(TIKZ_GATE(instr.name))
+                lines[qubits[0]].append(TIKZ_GATE(instr.name, params=instr.params))
             else:
                 # fill to latest edge
                 nop_to_latest_edge(qubits)
