@@ -104,10 +104,11 @@ class QubitPlaceholder(QuilAtom):
         return [cls() for _ in range(n)]
 
 
+QubitOrPlaceholder = Union[Qubit, QubitPlaceholder]
 QubitDesignator = Union[Qubit, QubitPlaceholder, int]
 
 
-def unpack_qubit(qubit: QubitDesignator) -> Union[Qubit, QubitPlaceholder]:
+def unpack_qubit(qubit: QubitDesignator) -> QubitOrPlaceholder:
     """
     Get a qubit from an object.
 
@@ -127,8 +128,11 @@ def unpack_qubit(qubit: QubitDesignator) -> Union[Qubit, QubitPlaceholder]:
 # Like the Tuple, the List must be length 2, where the first item is a string and the second an
 # int. However, specifying Union[str, int] as the generic type argument to List doesn't sufficiently
 # constrain the types, and mypy gets confused in unpack_classical_reg, below. Hence, just specify
-# List here and add a "# type: ignore" comment to silence mypy --strict.
-MemoryReferenceDesignator = Union['MemoryReference', Tuple[str, int], List, str]  # type: ignore
+# List[Any] here.
+MemoryReferenceDesignator = Union['MemoryReference', Tuple[str, int], List[Any], str]
+MRefDesignatorOrImmediateInt = Union[MemoryReferenceDesignator, int]
+MRefDesignatorOrImmediateValue = Union[MemoryReferenceDesignator, int, float]
+MRefOrImmediateValue = Union['MemoryReference', int, float]
 
 
 def unpack_classical_reg(c: MemoryReferenceDesignator) -> 'MemoryReference':
@@ -202,6 +206,7 @@ class LabelPlaceholder(QuilAtom):
         return hash(id(self))
 
 
+LabelOrPlaceholder = Union[Label, LabelPlaceholder]
 ParameterDesignator = Union['Expression', 'MemoryReference', np.int_, int, float, complex]
 
 
