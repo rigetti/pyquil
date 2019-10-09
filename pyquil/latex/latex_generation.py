@@ -37,15 +37,10 @@ from pyquil.quil import Measurement, Gate
 from pyquil.quilbase import _format_params
 from collections import defaultdict
 
-
-ALLOCATE = "ALLOCATE"
-CZ = "CZ"
-CNOT = "CNOT"
-Z = "Z"
-SWAP = "SWAP"
-MEASURE = "MEASURE"
-X = "X"
-
+# TODO: consider what settings are meaningful
+# - texify names
+# - texify params
+# - ... ?
 
 def to_latex(circuit, settings=None):
     """
@@ -120,13 +115,15 @@ def TIKZ_NOP():
 def TIKZ_MEASURE():
     return r"\meter{}"
 
-def TIKZ_GATE(name, size=1, params=None):
+def TIKZ_GATE(name, size=1, params=None, dagger=False):
     cmd = r"\gate"
     if size > 1:
         cmd += "[wires={size}]".format(size=size)
     # TeXify names
     if name in ["RX", "RY", "RZ"]:
         name = name[0] + "_" + name[1].lower()
+    if dagger:
+        name += "^{\dagger}"
     if params:
         # TODO we should do a better job than just dumb str.replace
         name += _format_params(params).replace("pi", "\pi")
@@ -134,6 +131,9 @@ def TIKZ_GATE(name, size=1, params=None):
 
 def is_interval(indices):
     return all(j == i + 1 for i,j in zip(indices, indices[1:]))
+
+def interval(source, target):
+    return list(range(min(source, target), max(source,target)+1))
 
 def body(circuit, settings):
     """
@@ -147,16 +147,17 @@ def body(circuit, settings):
     :rtype: string
     """
 
-    # TODO we assume that qubit indices are remapped to the interval [0,1,...,k]
     all_qubits = range(min(circuit.get_qubits()), max(circuit.get_qubits()) + 1)
 
     # for each qubit, a list of quantikz commands
     lines = defaultdict(list)
 
     def qubit_clock(q):
+        "Get the current depth of the line on qubit q."
         return len(lines[q])
 
     def nop_to_latest_edge(qubits, offset=0):
+        "Add NOP instructions to qubit lines until they have the same clock values."
         latest = max(qubit_clock(q) for q in qubits) + offset
         for q in qubits:
             while qubit_clock(q) < latest:
@@ -167,41 +168,66 @@ def body(circuit, settings):
 
     # fill lines
     for instr in circuit:
+        # TODO error on classical control flow
         if isinstance(instr, Measurement):
             lines[instr.qubit].append(TIKZ_MEASURE())
         elif isinstance(instr, Gate):
-            # TODO add support for dagger and controlled modifiers
-            if instr.modifiers:
-                raise ValueError("LaTeX output does not currently support gate modifiers: {}".format(instr))
+            if 'FORKED' in instr.modifiers:
+                raise ValueError("LaTeX output does not currently support FORKED modifiers: {}".format(instr))
+            dagger = sum(m == 'DAGGER' for m in instr.modifiers) % 2 == 1
+            controls = sum(m == 'CONTROLLED' for m in instr.modifiers)
             qubits = [qubit.index for qubit in instr.qubits]
+            # the easy case is 1q operations
             if len(qubits) == 1:
-                lines[qubits[0]].append(TIKZ_GATE(instr.name, params=instr.params))
+                lines[qubits[0]].append(TIKZ_GATE(instr.name, params=instr.params, dagger=dagger))
             else:
-                # fill to latest edge
-                nop_to_latest_edge(qubits)
-
-                # dispatch on name
-                if instr.name == "CNOT":
+                # We have a bunch of special cases here for
+                # gates which are controlled etc but without explicit control
+                # modifiers.
+                if instr.name == "CNOT" and not instr.modifiers:
                     control, target = qubits
+                    displaced = set(qubits + interval(control,target))
+                    nop_to_latest_edge(displaced)
                     lines[control].append(TIKZ_CONTROL(control, target))
                     lines[target].append(TIKZ_CNOT_TARGET())
-                elif instr.name == "SWAP":
+                    nop_to_latest_edge(displaced)
+                elif instr.name == "SWAP" and not instr.modifiers:
                     source, target = qubits
+                    displaced = set(qubits + interval(source,target))
+                    nop_to_latest_edge(displaced)
                     lines[source].append(TIKZ_SWAP(source, target))
-                    lines[target].append(TIKZ_SWAP_TARGET(target))
-                elif instr.name == "CZ":
+                    lines[target].append(TIKZ_SWAP_TARGET())
+                    nop_to_latest_edge(displaced)
+                elif instr.name == "CZ" and not instr.modifiers:
                     # we destructure to make this show as a controlled-Z
                     control, target = qubits
+                    displaced = set(qubits + interval(control,target))
+                    nop_to_latest_edge(displaced)
                     lines[control].append(TIKZ_CONTROL(control, target))
                     lines[target].append(TIKZ_GATE("Z"))
-                else: # generic unitary
-                    if not is_interval(sorted(qubits)):
-                        raise ValueError("Unable to render instruction {} which spans non-adjacent qubits.".format(instr))
+                    nop_to_latest_edge(displaced)
+                elif instr.name == "CPHASE" and not instr.modifiers:
+                    control, target = qubits
+                    displaced = set(qubits + interval(control,target))
+                    nop_to_latest_edge(displaced)
+                    lines[control].append(TIKZ_CONTROL(control, target))
+                    lines[target].append(TIKZ_CPHASE_TARGET())
+                    nop_to_latest_edge(displaced)
+                else:
+                    # generic unitary
+                    nop_to_latest_edge(qubits)
 
-                    # we put the gate on the first line, and nop on the others
-                    qubit, *remaining = qubits
-                    lines[qubit].append(TIKZ_GATE(instr, size=len(qubits), params=instr.params))
-                    for q in remaining:
+                    control_qubits = qubits[:controls]
+                    target_qubits = qubits[controls:]
+                    if not is_interval(sorted(target_qubits)):
+                        raise ValueError("Unable to render instruction {} which targets non-adjacent qubits.".format(instr))
+
+                    for q in control_qubits:
+                        lines[q].append(TIKZ_CONTROL(q, target_qubits[0]))
+
+                    # we put the gate on the first target line, and nop on the others
+                    lines[target_qubits[0]].append(TIKZ_GATE(instr.name, size=len(qubits), params=instr.params, dagger=dagger))
+                    for q in target_qubits[1:]:
                         lines[q].append(TIKZ_NOP())
 
     # fill in qubit lines, leaving exposed wires on the right
