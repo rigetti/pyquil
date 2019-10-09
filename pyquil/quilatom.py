@@ -16,7 +16,7 @@
 import numpy as np
 from warnings import warn
 from fractions import Fraction
-from typing import Any, Callable, ClassVar, Dict, List, Optional, Set, Tuple, Union
+from typing import Any, Callable, ClassVar, Dict, List, Optional, Set, Sequence, Tuple, Union
 
 
 class QuilAtom(object):
@@ -330,12 +330,12 @@ def substitute(expr: ExpressionOrValue, d: ParameterSubstitutionsDict) -> Expres
     return expr
 
 
-def substitute_array(a: Union[List[Expression], np.array],
+def substitute_array(a: Union[Sequence[Expression], np.array],
                      d: ParameterSubstitutionsDict) -> np.array:
     """
     Apply ``substitute`` to all elements of an array ``a`` and return the resulting array.
 
-    :param Union[np.array,List] a: The expression array to substitute.
+    :param Union[np.array,Sequence[Expression]] a: The expression array to substitute.
     :param Dict[Parameter,Union[int,float]] d: Numerical substitutions for parameters.
     :return: An array of partially substituted Expressions or numbers.
     :rtype: np.array
