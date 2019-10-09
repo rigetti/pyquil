@@ -47,7 +47,7 @@ class Qubit(QuilAtom):
     :param int index: Index of the qubit.
     """
 
-    def __init__(self, index: int) -> None:
+    def __init__(self, index: int):
         if not (isinstance(index, int) and index >= 0):
             raise TypeError("Addr index must be a non-negative int")
         self.index = index
@@ -167,7 +167,7 @@ class Label(QuilAtom):
     :param string label_name: The label name.
     """
 
-    def __init__(self, label_name: str) -> None:
+    def __init__(self, label_name: str):
         self.name = label_name
 
     def out(self) -> str:
@@ -187,7 +187,7 @@ class Label(QuilAtom):
 
 
 class LabelPlaceholder(QuilAtom):
-    def __init__(self, prefix: str = "L") -> None:
+    def __init__(self, prefix: str = "L"):
         self.prefix = prefix
 
     def out(self) -> str:
@@ -349,7 +349,7 @@ class Parameter(QuilAtom, Expression):
     Parameters in Quil are represented as a label like '%x' for the parameter named 'x'.
     """
 
-    def __init__(self, name: str) -> None:
+    def __init__(self, name: str):
         self.name = name
 
     def out(self) -> str:
@@ -373,7 +373,7 @@ class Function(Expression):
     Supported functions in Quil are sin, cos, sqrt, exp, and cis
     """
     def __init__(self, name: str, expression: ExpressionOrValue,
-                 fn: Callable[[ExpressionValue], ExpressionValue]) -> None:
+                 fn: Callable[[ExpressionValue], ExpressionValue]):
         self.name = name
         self.expression = expression
         self.fn = fn
@@ -422,7 +422,7 @@ class BinaryExp(Expression):
     def fn(a: ExpressionOrValue, b: ExpressionOrValue) -> Union['BinaryExp', ExpressionValue]:
         raise NotImplementedError
 
-    def __init__(self, op1: ExpressionOrValue, op2: ExpressionOrValue) -> None:
+    def __init__(self, op1: ExpressionOrValue, op2: ExpressionOrValue):
         self.op1 = op1
         self.op2 = op2
 
@@ -448,7 +448,7 @@ class Add(BinaryExp):
     def fn(a: ExpressionOrValue, b: ExpressionOrValue) -> Union['Add', ExpressionValue]:
         return a + b
 
-    def __init__(self, op1: ExpressionOrValue, op2: ExpressionOrValue) -> None:
+    def __init__(self, op1: ExpressionOrValue, op2: ExpressionOrValue):
         super(Add, self).__init__(op1, op2)
 
 
@@ -461,7 +461,7 @@ class Sub(BinaryExp):
     def fn(a: ExpressionOrValue, b: ExpressionOrValue) -> Union['Sub', ExpressionValue]:
         return a - b
 
-    def __init__(self, op1: ExpressionOrValue, op2: ExpressionOrValue) -> None:
+    def __init__(self, op1: ExpressionOrValue, op2: ExpressionOrValue):
         super(Sub, self).__init__(op1, op2)
 
 
@@ -474,7 +474,7 @@ class Mul(BinaryExp):
     def fn(a: ExpressionOrValue, b: ExpressionOrValue) -> Union['Mul', ExpressionValue]:
         return a * b
 
-    def __init__(self, op1: ExpressionOrValue, op2: ExpressionOrValue) -> None:
+    def __init__(self, op1: ExpressionOrValue, op2: ExpressionOrValue):
         super(Mul, self).__init__(op1, op2)
 
 
@@ -487,7 +487,7 @@ class Div(BinaryExp):
     def fn(a: ExpressionOrValue, b: ExpressionOrValue) -> Union['Div', ExpressionValue]:
         return a / b
 
-    def __init__(self, op1: ExpressionOrValue, op2: ExpressionOrValue) -> None:
+    def __init__(self, op1: ExpressionOrValue, op2: ExpressionOrValue):
         super(Div, self).__init__(op1, op2)
 
 
@@ -500,7 +500,7 @@ class Pow(BinaryExp):
     def fn(a: ExpressionOrValue, b: ExpressionOrValue) -> Union['Pow', ExpressionValue]:
         return a ** b
 
-    def __init__(self, op1: ExpressionOrValue, op2: ExpressionOrValue) -> None:
+    def __init__(self, op1: ExpressionOrValue, op2: ExpressionOrValue):
         super(Pow, self).__init__(op1, op2)
 
 
@@ -600,7 +600,7 @@ class MemoryReference(QuilAtom, Expression):
         the declared variable is of length >1 or 1, resp.
     """
 
-    def __init__(self, name: str, offset: int = 0, declared_size: Optional[int] = None) -> None:
+    def __init__(self, name: str, offset: int = 0, declared_size: Optional[int] = None):
         if not isinstance(offset, int) or offset < 0:
             raise TypeError("MemoryReference offset must be a non-negative int")
         self.name = name
@@ -654,7 +654,7 @@ class Addr(MemoryReference):
     :param int value: The classical address.
     """
 
-    def __init__(self, value: int) -> None:
+    def __init__(self, value: int):
         warn("Addr objects have been deprecated. Defaulting to memory region \"ro\". Use MemoryReference instead.")
         if not isinstance(value, int) or value < 0:
             raise TypeError("Addr value must be a non-negative int")
