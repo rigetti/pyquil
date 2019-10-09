@@ -54,3 +54,15 @@ docs:
     - apt-get update && apt-get install -y pandoc
     - pandoc --from=markdown --to=rst --output=docs/source/changes.rst CHANGELOG.md
     - tox -e docs
+
+test-docker:
+  stage: test
+  image: docker:stable
+  tags:
+    - dockerd
+    - github
+  only:
+    refs:
+      - /^v(\d+\.)?(\d+\.)?(\d+)$/
+  script:
+    - docker run --rm $IMAGE:edge python -c "from pyquil import get_qc; qvm = get_qc('9q-qvm')"
