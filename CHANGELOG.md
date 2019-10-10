@@ -78,7 +78,8 @@ Changelog
     the `--runslow` option is specified for `pytest` (@kilimanjaro, gh-1001).
 -   `PauliSum` objects can now be constructed from strings via `from_compact_str()`
     and `PauliTerm.from_compact_str()` supports multi-qubit strings (@jlbosse, gh-984).
--   Type hints have been added to `pyquil.gates` and `pyquil.quilatom` modules (@appleby gh-999).
+-   Type hints have been added to the `pyquil.gates`, `pyquil.quilatom`, and `pyquil.quilbase`
+    modules (@appleby gh-999).
 
 ### Bugfixes
 
