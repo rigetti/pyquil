@@ -17,7 +17,7 @@ import numpy as np
 from warnings import warn
 from fractions import Fraction
 from typing import (Any, Callable, ClassVar, List, Mapping, NoReturn, Optional, Set, Sequence,
-                    Tuple, Union)
+                    Tuple, Union, cast)
 
 
 class QuilAtom(object):
@@ -414,7 +414,11 @@ def quil_exp(expression: ExpressionOrValue) -> Function:
 
 
 def quil_cis(expression: ExpressionOrValue) -> Function:
-    return Function('CIS', expression, lambda x: np.exp(1j * x))  # type: ignore
+    def _cis(x: ExpressionValue) -> complex:
+        # numpy doesn't ship with type stubs, so mypy assumes anything coming from numpy has type
+        # Any, hence we need to cast the return type to complex here to satisfy the type checker.
+        return cast(complex, np.exp(1j * x))
+    return Function('CIS', expression, _cis)
 
 
 class BinaryExp(Expression):
