@@ -16,7 +16,8 @@
 import numpy as np
 from warnings import warn
 from fractions import Fraction
-from typing import Any, Callable, ClassVar, List, Mapping, Optional, Set, Sequence, Tuple, Union
+from typing import (Any, Callable, ClassVar, List, Mapping, NoReturn, Optional, Set, Sequence,
+                    Tuple, Union)
 
 
 class QuilAtom(object):
@@ -70,6 +71,10 @@ class Qubit(QuilAtom):
 
 class QubitPlaceholder(QuilAtom):
     def out(self) -> str:
+        raise RuntimeError("Qubit {} has not been assigned an index".format(self))
+
+    @property
+    def index(self) -> NoReturn:
         raise RuntimeError("Qubit {} has not been assigned an index".format(self))
 
     def __str__(self) -> str:
