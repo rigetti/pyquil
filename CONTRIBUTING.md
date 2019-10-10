@@ -6,9 +6,9 @@ Welcome to pyQuil, and thanks for wanting to be a contributor! 🎉
 This guide is to help walk you through how to open issues and pull requests for the pyQuil
 project, as well as share some general how-tos for development, testing, and maintenance.
 
-If all you want to do is ask a question, you should do so in our 
-[Rigetti Forest Slack Workspace](https://join.slack.com/t/rigetti-forest/shared_invite/enQtNTUyNTE1ODg3MzE2LWExZWU5OTE4YTJhMmE2NGNjMThjOTM1MjlkYTA5ZmUxNTJlOTVmMWE0YjA3Y2M2YmQzNTZhNTBlMTYyODRjMzA)
-rather than opening an issue. Otherwise, read on to learn more!
+If all you want to do is ask a question, you should do so in our
+[Rigetti Forest Slack Workspace][slack-invite] rather than opening an issue. Otherwise,
+read on to learn more!
 
 This project and everyone participating in it is governed by pyQuil's
 [Code of Conduct](.github/CODE_OF_CONDUCT.md). In contributing, you are expected
@@ -302,3 +302,5 @@ the pyQuil project.
 [quality-label]: https://github.com/rigetti/pyquil/labels/quality%20%3Aart%3A
 [refactor-label]: https://github.com/rigetti/pyquil/labels/refactor%20%3Ahammer%3A
 [wip-label]: https://github.com/rigetti/pyquil/labels/work%20in%20progress%20%3Aconstruction%3A
+
+[slack-invite]: https://join.slack.com/t/rigetti-forest/shared_invite/enQtNTUyNTE1ODg3MzE2LWQwNzBlMjZlMmNlN2M5MzQyZDlmOGViODQ5ODI0NWMwNmYzODY4YTc2ZjdjOTNmNzhiYTk2YjVhNTE2NTRkODY
