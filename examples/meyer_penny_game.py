@@ -26,7 +26,7 @@ import numpy as np
 def meyer_penny_program():
     """
     Returns the program to simulate the Meyer-Penny Game
-    The full description is available in docs/source/examples.rst
+    The full description is available in ../docs/source/exercises.rst
 
     :return: pyQuil Program
     """

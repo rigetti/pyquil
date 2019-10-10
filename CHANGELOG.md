@@ -12,7 +12,7 @@ Changelog
     to quickly get started with compiling and simulating quantum programs! When
     running the image, a user will be dropped into an `ipython` REPL that has
     pyQuil and its requirements preinstalled, along with quilc and qvm servers
-    running in the background (@karalekas, gh-1035).
+    running in the background (@karalekas, gh-1035, gh-1039).
 
 ### Improvements and Changes
 
@@ -21,6 +21,8 @@ Changelog
 
 ### Bugfixes
 
+- Updated `examples/meyer_penny_game.py` with the correct path to the Meyer Penny game exercise in
+  `docs/source/exercises.rst` (@appleby, gh-1045).
 -   Fixed the Slack Workspace invite link in the README (@amyfbrown, gh-1042).
 
 [v2.12](https://github.com/rigetti/pyquil/compare/v2.11.0...v2.12.0) (September 28, 2019)
