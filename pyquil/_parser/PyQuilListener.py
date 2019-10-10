@@ -279,7 +279,11 @@ class PyQuilListener(QuilListener):
         if ctx.AND():
             self.result.append(ClassicalAnd(left, right))
         elif ctx.OR():
-            self.result.append(ClassicalOr(left, right))
+            if isinstance(right, MemoryReference):
+                self.result.append(ClassicalOr(left, right))
+            else:
+                raise RuntimeError("Right operand of deprecated OR instruction must be a"
+                                   f" MemoryReference, but found '{right}'")
         elif ctx.IOR():
             self.result.append(ClassicalInclusiveOr(left, right))
         elif ctx.XOR():

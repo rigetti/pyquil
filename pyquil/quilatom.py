@@ -137,6 +137,7 @@ def unpack_qubit(qubit: QubitDesignator) -> QubitOrPlaceholder:
 MemoryReferenceDesignator = Union['MemoryReference', Tuple[str, int], List[Any], str]
 MRefDesignatorOrImmediateInt = Union[MemoryReferenceDesignator, int]
 MRefDesignatorOrImmediateValue = Union[MemoryReferenceDesignator, int, float]
+MRefOrImmediateInt = Union['MemoryReference', int]
 MRefOrImmediateValue = Union['MemoryReference', int, float]
 
 

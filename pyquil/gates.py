@@ -612,7 +612,7 @@ def IOR(classical_reg1: MemoryReferenceDesignator,
 
     :param classical_reg1: The first classical register, which gets modified.
     :param classical_reg2: The second classical register or immediate value.
-    :return: A ClassicalOr instance.
+    :return: A ClassicalInclusiveOr instance.
     """
     left, right = unpack_reg_val_pair(classical_reg1, classical_reg2)
     return ClassicalInclusiveOr(left, right)
@@ -625,7 +625,7 @@ def XOR(classical_reg1: MemoryReferenceDesignator,
 
     :param classical_reg1: The first classical register, which gets modified.
     :param classical_reg2: The second classical register or immediate value.
-    :return: A ClassicalOr instance.
+    :return: A ClassicalExclusiveOr instance.
     """
     left, right = unpack_reg_val_pair(classical_reg1, classical_reg2)
     return ClassicalExclusiveOr(left, right)

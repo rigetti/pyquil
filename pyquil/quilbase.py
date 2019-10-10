@@ -23,8 +23,8 @@ from typing import (Any, Callable, ClassVar, Container, Dict, Iterable, List, Op
 from warnings import warn
 
 from pyquil.quilatom import (Expression, ExpressionOrValue, Label, LabelPlaceholder,
-                             LabelOrPlaceholder, MemoryReference, MRefDesignatorOrImmediateInt,
-                             MRefDesignatorOrImmediateValue, Parameter, ParameterDesignator, Qubit,
+                             LabelOrPlaceholder, MemoryReference, MRefOrImmediateInt,
+                             MRefOrImmediateValue, Parameter, ParameterDesignator, Qubit,
                              QubitDesignator, QubitOrPlaceholder, QubitPlaceholder,
                              _contained_parameters, format_parameter, unpack_qubit)
 
@@ -536,7 +536,7 @@ class LogicalBinaryOp(AbstractInstruction):
     """
     op: ClassVar[str]
 
-    def __init__(self, left: MemoryReference, right: MRefDesignatorOrImmediateInt):
+    def __init__(self, left: MemoryReference, right: MRefOrImmediateInt):
         if not isinstance(left, MemoryReference):
             raise TypeError("left operand should be an MemoryReference")
         if not isinstance(right, MemoryReference) and not isinstance(right, int):
@@ -595,7 +595,7 @@ class ArithmeticBinaryOp(AbstractInstruction):
     """
     op: ClassVar[str]
 
-    def __init__(self, left: MemoryReference, right: MRefDesignatorOrImmediateValue):
+    def __init__(self, left: MemoryReference, right: MRefOrImmediateValue):
         if not isinstance(left, MemoryReference):
             raise TypeError("left operand should be an MemoryReference")
         if not isinstance(right, MemoryReference) and not isinstance(right, int) and not isinstance(right, float):
@@ -645,7 +645,7 @@ class ClassicalMove(AbstractInstruction):
     """
     op = "MOVE"
 
-    def __init__(self, left: MemoryReference, right: MRefDesignatorOrImmediateValue):
+    def __init__(self, left: MemoryReference, right: MRefOrImmediateValue):
         if not isinstance(left, MemoryReference):
             raise TypeError("Left operand of MOVE should be an MemoryReference.  "
                             "Note that the order of the operands in pyQuil 2.0 has reversed from "
@@ -745,7 +745,7 @@ class ClassicalStore(AbstractInstruction):
 
     op = "STORE"
 
-    def __init__(self, target: str, left: MemoryReference, right: MRefDesignatorOrImmediateValue):
+    def __init__(self, target: str, left: MemoryReference, right: MRefOrImmediateValue):
         if not isinstance(left, MemoryReference):
             raise TypeError("left operand should be an MemoryReference")
         if not (isinstance(right, MemoryReference) or isinstance(right, int)
@@ -766,7 +766,7 @@ class ClassicalComparison(AbstractInstruction):
     op: ClassVar[str]
 
     def __init__(self, target: MemoryReference, left: MemoryReference,
-                 right: MRefDesignatorOrImmediateValue):
+                 right: MRefOrImmediateValue):
         if not isinstance(target, MemoryReference):
             raise TypeError("target operand should be an MemoryReference")
         if not isinstance(left, MemoryReference):
