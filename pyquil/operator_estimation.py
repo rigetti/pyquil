@@ -862,6 +862,10 @@ def measure_observables(qc: QuantumComputer, tomo_experiment: TomographyExperime
     if symmetrize_readout is not None:
         if symmetrize_readout == 'exhaustive':
             symm_type = -1
+        elif symmetrize_readout in [-1, 0, 1, 2, 3]:
+            symm_type = symmetrize_readout
+        else:
+            raise ValueError("Readout symmetrization must be an int from -1 to 3 inclusive.")
 
     # calibration readout only works with symmetrization turned on
     if calibrate_readout is not None and symm_type != -1:
@@ -892,11 +896,10 @@ def measure_observables(qc: QuantumComputer, tomo_experiment: TomographyExperime
 
         qubits = max_weight_out_op.get_qubits()
 
-        if len(qubits) == 0:
-            # looks like an identity operation
-            pass
-
-        bitstrings = qc.run_symmetrized_readout(total_prog, trials=n_shots)
+        # we don't need to do any actual measurement if the combined operator is simply the
+        # identity, i.e. weight=0. We handle this specially below.
+        if len(qubits) > 0:
+            bitstrings = qc.run_symmetrized_readout(total_prog, n_shots, symm_type, qubits)
 
         if progress_callback is not None:
             progress_callback(i, len(tomo_experiment))
@@ -925,23 +928,24 @@ def measure_observables(qc: QuantumComputer, tomo_experiment: TomographyExperime
                 continue
 
             # 3.3 Obtain statistics from result of experiment
-            obs_mean, obs_var = _stats_from_measurements(bitstrings, d_qub_idx, setting, n_shots, coeff)
+            obs_mean, obs_var = _stats_from_measurements(bitstrings,
+                                                         {q: idx for idx, q in enumerate(qubits)},
+                                                         setting, n_shots, coeff)
 
             if calibrate_readout == 'plus-eig':
                 # 4 Readout calibration
                 # 4.1 Obtain calibration program
                 calibr_prog = _calibration_program(qc, tomo_experiment, setting)
-                # 4.2 Perform symmetrization on the calibration program
-                if symmetrize_readout == 'exhaustive':
-                    qubs_calibr = setting.out_operator.get_qubits()
-                    calibr_shots = n_shots
-                    calibr_results, d_calibr_qub_idx = _exhaustive_symmetrization(qc, qubs_calibr, calibr_shots, calibr_prog)
+                calibr_qubs = setting.out_operator.get_qubits()
+                calibr_qub_dict = {q: idx for idx, q in enumerate(calibr_qubs)}
 
-                else:
-                    raise ValueError("Readout symmetrization method must be either 'exhaustive' or None")
+                # 4.2 Perform symmetrization on the calibration program
+                calibr_results = qc.run_symmetrized_readout(calibr_prog, n_shots, -1, calibr_qubs)
 
                 # 4.3 Obtain statistics from the measurement process
-                obs_calibr_mean, obs_calibr_var = _stats_from_measurements(calibr_results, d_calibr_qub_idx, setting, calibr_shots)
+                obs_calibr_mean, obs_calibr_var = _stats_from_measurements(calibr_results,
+                                                                           calibr_qub_dict,
+                                                                           setting, n_shots)
                 # 4.3 Calibrate the readout results
                 corrected_mean = obs_mean / obs_calibr_mean
                 corrected_var = ratio_variance(obs_mean, obs_var, obs_calibr_mean, obs_calibr_var)
@@ -950,12 +954,12 @@ def measure_observables(qc: QuantumComputer, tomo_experiment: TomographyExperime
                     setting=setting,
                     expectation=corrected_mean.item(),
                     std_err=np.sqrt(corrected_var).item(),
-                    total_counts=n_shots,
+                    total_counts=len(bitstrings),
                     raw_expectation=obs_mean.item(),
                     raw_std_err=np.sqrt(obs_var).item(),
                     calibration_expectation=obs_calibr_mean.item(),
                     calibration_std_err=np.sqrt(obs_calibr_var).item(),
-                    calibration_counts=calibr_shots,
+                    calibration_counts=len(calibr_results),
                 )
 
             elif calibrate_readout is None:
@@ -964,7 +968,7 @@ def measure_observables(qc: QuantumComputer, tomo_experiment: TomographyExperime
                     setting=setting,
                     expectation=obs_mean.item(),
                     std_err=np.sqrt(obs_var).item(),
-                    total_counts=n_shots,
+                    total_counts=len(bitstrings),
                 )
 
             else:
