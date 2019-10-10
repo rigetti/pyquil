@@ -924,7 +924,7 @@ def measure_observables(qc: QuantumComputer, tomo_experiment: TomographyExperime
     # Outer loop over a collection of grouped settings for which we can simultaneously
     # estimate.
     for i, (prog, qubits, settings) in enumerate(zip(tqdm(programs, disable=not show_progress_bar),
-                                        meas_qubits, tomo_experiment)):
+                                                     meas_qubits, tomo_experiment)):
 
         if symmetrize_readout == 'exhaustive' and len(qubits) > 0:
             bitstrings, d_qub_idx = _exhaustive_symmetrization(qc, qubits, n_shots, prog)
