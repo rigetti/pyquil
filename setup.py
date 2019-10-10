@@ -49,7 +49,7 @@ with open('pyquil/version.py', 'r') as f:
 
 # overwrite version.py in the source distribution
 with open('pyquil/version.py', 'w') as f:
-    f.write(f'__version__ = \'{__version__}\'\n')
+    f.write(f"__version__ = '{__version__}'\n")
 
 setup(
     name='pyquil',
