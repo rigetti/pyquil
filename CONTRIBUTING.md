@@ -45,6 +45,8 @@ Table of Contents
 
 - [Drafting a Release](#drafting-a-release)
 
+- [Publishing a Package on PyPI](#publishing-a-package-on-pypi)
+
 - [Issue and PR Labels](#issue-and-pr-labels)
 
 Ways to Contribute
