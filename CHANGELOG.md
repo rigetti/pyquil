@@ -25,6 +25,7 @@ Changelog
 
 -   Updated `examples/meyer_penny_game.py` with the correct path to the Meyer Penny
     game exercise in `docs/source/exercises.rst` (@appleby, gh-1045).
+-   Fixed the Slack Workspace invite link in the README (@amyfbrown, gh-1042).
 
 [v2.12](https://github.com/rigetti/pyquil/compare/v2.11.0...v2.12.0) (September 28, 2019)
 ----------------------------------------------------------------------------------------
