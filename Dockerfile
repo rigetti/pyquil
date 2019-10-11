@@ -15,7 +15,7 @@ COPY --from=quilc /src/quilc/quilc /src/quilc/quilc
 # copy over the pre-built qvm binary from the second build stage
 COPY --from=qvm /src/qvm/qvm /src/qvm/qvm
 
-# install the missing apt that aren't copied over
+# install the missing apt packages that aren't copied over
 RUN apt-get update && apt-get -yq dist-upgrade && \
     apt-get install --no-install-recommends -yq \
     clang-7 git libblas-dev libffi-dev liblapack-dev libzmq3-dev && \

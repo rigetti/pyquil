@@ -6,9 +6,9 @@ Welcome to pyQuil, and thanks for wanting to be a contributor! 🎉
 This guide is to help walk you through how to open issues and pull requests for the pyQuil
 project, as well as share some general how-tos for development, testing, and maintenance.
 
-If all you want to do is ask a question, you should do so in our 
-[Rigetti Forest Slack Workspace](https://join.slack.com/t/rigetti-forest/shared_invite/enQtNTUyNTE1ODg3MzE2LWExZWU5OTE4YTJhMmE2NGNjMThjOTM1MjlkYTA5ZmUxNTJlOTVmMWE0YjA3Y2M2YmQzNTZhNTBlMTYyODRjMzA)
-rather than opening an issue. Otherwise, read on to learn more!
+If all you want to do is ask a question, you should do so in our
+[Rigetti Forest Slack Workspace][slack-invite] rather than opening an issue. Otherwise,
+read on to learn more!
 
 This project and everyone participating in it is governed by pyQuil's
 [Code of Conduct](.github/CODE_OF_CONDUCT.md). In contributing, you are expected
@@ -44,6 +44,8 @@ Table of Contents
 - [Merging a Pull Request](#merging-a-pull-request)
 
 - [Drafting a Release](#drafting-a-release)
+
+- [Publishing a Package on PyPI](#publishing-a-package-on-pypi)
 
 - [Issue and PR Labels](#issue-and-pr-labels)
 
@@ -241,6 +243,37 @@ following steps:
    Changelog, but with level-3 headings changed to level-2 headings, and with all
    mid-bullet newlines removed.
 
+### Publishing a Package on PyPI
+
+After performing a release in GitHub, the next step is to build and push a new package
+to the Python Package Index (PyPI). This can be done locally in two steps (assuming you
+have the requisite credentials). First, run `make dist` from the top-level directory to
+create a source distribution. Next, run the following:
+
+```bash
+twine upload --repository pypi dist/*
+```
+
+Which will execute successfully if you have (1) installed all of pyQuil's requirements
+and (2) configured your `./pypirc` correctly. You can verify that the new package is
+there by visiting pyQuil's project page on PyPI [here](https://pypi.org/project/pyquil/).
+
+In addition to pushing to PyPI upon a new release, we also leverage Test PyPI as part
+of the CI pipeline to ensure package robustness and enable easier integration testing.
+Every commit to `master` results in a new package published on pyQuil's Test PyPI project
+page [here](https://test.pypi.org/project/pyquil/). These packages have an additional
+number as part of their versioning scheme, which corresponds to the number of commits
+the package is away from the latest tag (e.g. `v2.12.0.5` is 5 commits beyond `v2.12.0`),
+which can be determined via the command `git describe --tags`. If you wish to install a
+particular package from Test PyPI, run the following (changing the version as necessary):
+
+```bash
+PYQUIL_VERSION=2.12.0.7
+PYPI_URL=https://pypi.org/simple
+TEST_PYPI_URL=https://test.pypi.org/simple/
+pip install --index-url ${TEST_PYPI_URL} --extra-index-url ${PYPI_URL} pyquil==${PYQUIL_VERSION}
+```
+
 ### Issue and PR Labels
 
 We use a collection of labels to add metadata to the issues and pull requests in
@@ -269,3 +302,5 @@ the pyQuil project.
 [quality-label]: https://github.com/rigetti/pyquil/labels/quality%20%3Aart%3A
 [refactor-label]: https://github.com/rigetti/pyquil/labels/refactor%20%3Ahammer%3A
 [wip-label]: https://github.com/rigetti/pyquil/labels/work%20in%20progress%20%3Aconstruction%3A
+
+[slack-invite]: https://join.slack.com/t/rigetti-forest/shared_invite/enQtNTUyNTE1ODg3MzE2LWQwNzBlMjZlMmNlN2M5MzQyZDlmOGViODQ5ODI0NWMwNmYzODY4YTc2ZjdjOTNmNzhiYTk2YjVhNTE2NTRkODY

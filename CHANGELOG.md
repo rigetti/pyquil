@@ -18,11 +18,13 @@ Changelog
 
 -   Added a `Makefile` with some simple targets for performing common build
     operations like creating and uploading a package (@karalekas, gh-1032).
+-   As part of the CI, we now package and push to TestPyPI on every commit, which
+    de-risks breaking the `setup.py` and aids with testing (@karalekas, gh-1017).
 
 ### Bugfixes
 
-- Updated `examples/meyer_penny_game.py` with the correct path to the Meyer Penny game exercise in
-  `docs/source/exercises.rst` (@appleby, gh-1045).
+-   Updated `examples/meyer_penny_game.py` with the correct path to the Meyer Penny
+    game exercise in `docs/source/exercises.rst` (@appleby, gh-1045).
 -   Fixed the Slack Workspace invite link in the README (@amyfbrown, gh-1042).
 
 [v2.12](https://github.com/rigetti/pyquil/compare/v2.11.0...v2.12.0) (September 28, 2019)
