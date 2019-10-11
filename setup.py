@@ -36,7 +36,6 @@ Then you can either:
 if sys.version_info < (3, 6):
     raise ImportError(VERSION_ERROR)
 
-
 with open('VERSION.txt', 'r') as f:
     __version__ = f.read().strip()
 
