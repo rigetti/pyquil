@@ -1046,8 +1046,8 @@ def measure_observables(qc: QuantumComputer, tomo_experiment: TomographyExperime
             else:
                 raise ValueError("Calibration readout method must be either 'plus-eig' or None")
 
-    yield from calibrate_observable_estimates(qc, list(results), n_shots, -1,
-                                              tomo_experiment.program, active_reset)
+    yield from calibrate_observable_estimates(qc, results, n_shots, -1, tomo_experiment.program,
+                                              active_reset)
 
 
 def _ops_bool_to_prog(ops_bool: Tuple[bool], qubits: List[int]) -> Program:
