@@ -19,11 +19,11 @@ test-py36:
   image: python:3.6
   tags:
     - github
-  before_script:
-    - pip install tox
   script:
     - make -e config
-    - tox -e py36
+    - make install && make requirements
+    - make test
+  coverage: '/TOTAL.*\s(\d+)%/'
 
 test-py37:
   image: python:3.7
