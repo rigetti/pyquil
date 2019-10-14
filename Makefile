@@ -51,7 +51,7 @@ style:
 
 .PHONY: test
 test:
-	pytest -v --runslow --cov=pyquil
+	pytest -v --runslow --cov=pyquil pyquil
 
 .PHONY: upload
 upload:
