@@ -155,10 +155,10 @@ verify that everything looks right!
 
 ### Working with the Parser
 
-Working with the ANTLR parser involves some extra steps, see the
-[Parser README](pyquil/_parser/README.md) for more information. Note that you only need
-to install ANTLR if you want to change the grammar, simply running the parser involves
-no additional steps beyond installing PyQuil as usual.
+Working with the ANTLR parser involves some extra steps, so make sure to read the
+[Parser README](pyquil/_parser/README.md) if you plan on making changes to it. Note
+that you only need to install ANTLR if you want to change the grammar; simply running
+the parser involves no additional steps beyond installing pyQuil as usual.
 
 ### Using the Docker Image
 
@@ -173,15 +173,15 @@ to be persisted.
 The [`rigetti/forest`](https://hub.docker.com/r/rigetti/forest) Docker image is built
 and pushed to DockerHub automatically as part of the CI pipeline. Developers can also
 build the image locally by running `make docker` from the top-level directory. This
-creates an image tagged by a shortened version of the current git commit hash. To then
-start a container from this image, run:
+creates an image tagged by a shortened version of the current git commit hash (run
+`docker images` to see all local images). To then start a container from this image, run:
 
 ```bash
 docker run -it rigetti/forest:COMMIT_HASH
 ```
 
 Where `COMMIT_HASH` is replaced by the actual git commit hash. This will drop you into an
-`ipython` REPL with pyQuil installed and quilc / qvm servers running in the background.
+`ipython` REPL with pyQuil installed and `quilc` / `qvm` servers running in the background.
 Exiting the REPL (via `C-d`) will additionally shut down the Docker container and return
 you to the shell that ran the image.
 
@@ -191,7 +191,7 @@ This pinning ensures reproducibility, but requires that these versions be update
 as necessary. The section of the Dockerfile that would need to be edited looks like this:
 
 ```dockerfile
-ARG quilc_version=1.12.0
+ARG quilc_version=1.12.1
 ARG qvm_version=1.12.0
 ARG python_version=3.6
 ```
@@ -228,11 +228,11 @@ When merging PRs, we have a couple of guidelines:
 Once it is time to perform a release of pyQuil, the maintainer must perform the
 following steps:
 
-1. Push a commit to `master` that bumps the version of pyQuil in `pyquil/__init__.py` and
-   changes the latest heading in the Changelog from "in development" to the current date.
-   We try to follow [Semantic Versioning](https://semver.org/) (SemVer), which means that
-   versions correspond to `MAJOR.MINOR.PATCH`, and thus for most (hopefully backwards
-   compatible) releases, we should increment the `MINOR` version number.
+1. Push a commit to `master` that bumps the version of pyQuil in [`VERSION.txt`](VERSION.txt)
+   and changes the latest heading in the [Changelog](CHANGELOG.md) from "in development" to
+   the current date. We try to follow [Semantic Versioning](https://semver.org/) (SemVer),
+   which means that versions correspond to `MAJOR.MINOR.PATCH`, and thus for most (hopefully
+   backwards compatible) releases, we should increment the `MINOR` version number.
 
 2. Tag that commit with `git tag vX.Y.Z`, where `X.Y.Z` corresponds to the
    `MAJOR.MINOR.PATCH`version bump in the previous step, and push the tag to GitHub.
@@ -245,7 +245,7 @@ following steps:
 
 ### Publishing a Package on PyPI
 
-After performing a release in GitHub, the next step is to build and push a new package
+After performing a release on GitHub, the next step is to build and push a new package
 to the Python Package Index (PyPI). This can be done locally in two steps (assuming you
 have the requisite credentials). First, run `make dist` from the top-level directory to
 create a source distribution. Next, run the following:
@@ -255,7 +255,7 @@ twine upload --repository pypi dist/*
 ```
 
 Which will execute successfully if you have (1) installed all of pyQuil's requirements
-and (2) configured your `./pypirc` correctly. You can verify that the new package is
+and (2) configured your `~/.pypirc` correctly. You can verify that the new package is
 there by visiting pyQuil's project page on PyPI [here](https://pypi.org/project/pyquil/).
 
 In addition to pushing to PyPI upon a new release, we also leverage Test PyPI as part
@@ -268,7 +268,7 @@ which can be determined via the command `git describe --tags`. If you wish to in
 particular package from Test PyPI, run the following (changing the version as necessary):
 
 ```bash
-PYQUIL_VERSION=2.12.0.7
+PYQUIL_VERSION=2.12.0.8
 PYPI_URL=https://pypi.org/simple
 TEST_PYPI_URL=https://test.pypi.org/simple/
 pip install --index-url ${TEST_PYPI_URL} --extra-index-url ${PYPI_URL} pyquil==${PYQUIL_VERSION}
