@@ -69,6 +69,7 @@ upload-testpypi:
     - make version > VERSION.txt
     - make install && make dist
     - make requirements && make upload
+  allow_failure: true
 
 ####################################################################################################
 # RELEASE-ONLY JOBS
