@@ -95,6 +95,57 @@ def footer():
     """
     return "\\end{tikzcd}\n\\end{document}"
 
+def body(circuit, settings):
+    """
+    Return the body of the Latex document, including the entire circuit in
+    TikZ format.
+
+    :param Program circuit: The circuit to be drawn, represented as a pyquil program.
+    :param dict settings:
+
+    :return: Latex string to draw the entire circuit.
+    :rtype: string
+    """
+
+
+    diagram = DiagramBuilder(circuit).build()
+
+    # flush lines
+    quantikz_out = []
+    for qubit in diagram.all_qubits:
+        quantikz_out.append(" & ".join(diagram.lines[qubit]))
+
+    return " \\\\\n".join(quantikz_out)
+
+### Utils
+
+PRAGMA_BEGIN_GROUP = 'LATEX_GATE_GROUP'
+PRAGMA_END_GROUP = 'END_LATEX_GATE_GROUP'
+
+def is_interval(indices):
+    return all(j == i + 1 for i,j in zip(indices, indices[1:]))
+
+def interval(source, target):
+    return list(range(min(source, target), max(source,target)+1))
+
+
+SOURCE_TARGET_OP = {
+    "CNOT": (TIKZ_CONTROL, TIKZ_CNOT_TARGET),
+    "SWAP": (TIKZ_SWAP, TIKZ_SWAP_TARGET),
+    "CZ": (TIKZ_CONTROL, lambda: TIKZ_GATE("Z")),
+    "CPHASE": (TIKZ_CONTROL, TIKZ_CPHASE_TARGET)
+}
+
+def qubit_indices(instr):
+    if isinstance(instr, Measurement):
+        return [instr.qubit.index]
+    elif isinstance(instr, Gate):
+        return [qubit.index for qubit in instr.qubits]
+    else:
+        return []
+
+#### TikZ operators ###
+
 def TIKZ_CONTROL(control, target):
     return r"\ctrl{{{offset}}}".format(offset=target-control)
 
@@ -135,151 +186,150 @@ def TIKZ_GATE_GROUP(qubits, width, label):
     return "\\gategroup[{qubits},steps={width},style={{dashed, rounded corners,fill=blue!20, inner xsep=2pt}}, background]{{{label}}}".format(
         qubits=num_qubits, width=width, label=label)
 
-def is_interval(indices):
-    return all(j == i + 1 for i,j in zip(indices, indices[1:]))
+### DiagramState
 
-def interval(source, target):
-    return list(range(min(source, target), max(source,target)+1))
+class DiagramState:
+    def __init__(self, qubits):
+        self.all_qubits = range(min(qubits), max(qubits) + 1)
+        self.lines = defaultdict(list)
 
-def scan_for_grouped_qubits(program):
-    qubits = set()
-    for instr in program:
-        if isinstance(instr, Pragma) and instr.command == "END_LATEX_GATE_GROUP":
-            return sorted(qubits)
-        elif isinstance(instr, Measurement):
-            qubits.add(instr.qubit.index)
-        elif isinstance(instr, Gate):
-            qubits = qubits.union(q.index for q in instr.qubits)
-    # no matching END_LATEX_GROUP
-    return None
-
-def body(circuit, settings):
-    """
-    Return the body of the Latex document, including the entire circuit in
-    TikZ format.
-
-    :param Program circuit: The circuit to be drawn, represented as a pyquil program.
-    :param dict settings:
-
-    :return: Latex string to draw the entire circuit.
-    :rtype: string
-    """
-
-    all_qubits = range(min(circuit.get_qubits()), max(circuit.get_qubits()) + 1)
-
-    # for each qubit, a list of quantikz commands
-    lines = defaultdict(list)
-
-    def qubit_clock(q):
-        "Get the current depth of the line on qubit q."
-        return len(lines[q])
-
-    def nop_to_latest_edge(qubits, offset=0):
-        "Add NOP instructions to qubit lines until they have the same clock values."
-        latest = max(qubit_clock(q) for q in qubits) + offset
+    def extend_lines_to_common_edge(self, qubits, offset=0):
+        """
+        Add NOP operations on the lines associated with the given qubits, until
+        all lines are of the same width.
+        """
+        max_width = max(self.width(q) for q in qubits) + offset
         for q in qubits:
-            while qubit_clock(q) < latest:
-                lines[q].append(TIKZ_NOP())
+            while self.width(q) < max_width:
+                self.append(q, TIKZ_NOP())
 
-    # initial exposed wires
-    nop_to_latest_edge(all_qubits, offset=1)
+    def width(self, qubit):
+        """
+        The width of the diagram, in terms of the number of operations, on the
+        specified qubit line.
+        """
+        return len(self.lines[qubit])
 
-    # fill lines
-    for i,instr in enumerate(circuit):
-        # TODO error on classical control flow
-        if isinstance(instr, Pragma) and instr.command == 'LATEX_GATE_GROUP':
-            grouped_qubits = scan_for_grouped_qubits(circuit[i+1:])
-            if grouped_qubits is None:
-                raise ValueError("PRAGMA LATEX_GATE_GROUP found without matching END_LATEX_GATE_GROUP")
-            elif len(grouped_qubits) == 0:
-                warn("Ignoring empty gate group.")
-            else:
-                nop_to_latest_edge(grouped_qubits)
-                # we track the place where the grouping command will be INSERTED once we have reached
-                # the end of the block
-                group_op_index = qubit_clock(grouped_qubits[0])
-                # until then, business as usual
-        elif isinstance(instr, Pragma) and instr.command == 'END_LATEX_GATE_GROUP':
-            # add nop_to_latest_edge on grouped qubits
-            if grouped_qubits is None:
-                raise ValueError("PRAGMA END_LATEX_GATE_GROUP found, but there is no active gate group.")
-            elif len(grouped_qubits) == 0:
-                pass
-            else:
-                nop_to_latest_edge(grouped_qubits)
-                q = grouped_qubits[0]
-                # TODO label? we need to keep the pragma, also can allow for nested groups
-                lines[q][group_op_index] += " " + TIKZ_GATE_GROUP(grouped_qubits, qubit_clock(q)-group_op_index, "")
-                grouped_qubits = None
-        elif isinstance(instr, Measurement):
-            lines[instr.qubit].append(TIKZ_MEASURE())
-        elif isinstance(instr, Gate):
-            if 'FORKED' in instr.modifiers:
-                raise ValueError("LaTeX output does not currently support FORKED modifiers: {}".format(instr))
+    def append(self, qubit, op):
+        """
+        Add an operation to the rightmost edge of the specified qubit line.
+        """
+        self.lines[qubit].append(op)
 
+    def append_diagram(self, diagram, grouped=True):
+        """
+        Add all operations represented by the given diagram to their
+        corresponding qubit lines in this diagram.
+        """
+        grouped_qubits = diagram.all_qubits
+        diagram.extend_lines_to_common_edge(grouped_qubits)
+        # NOTE: this may create new lines, no big deal
+        self.extend_lines_to_common_edge(grouped_qubits)
+        # add tikz grouping command
+        if grouped:
+            q = grouped_qubits[0]
+            self.lines[q][-1] += " " + TIKZ_GATE_GROUP(grouped_qubits, diagram.width(q), "")
+        # append ops to this diagram
+        for q in diagram.all_qubits:
+            for op in diagram.lines[q]:
+                self.append(q, op)
+        return self
 
-            dagger = sum(m == 'DAGGER' for m in instr.modifiers) % 2 == 1
-            controls = sum(m == 'CONTROLLED' for m in instr.modifiers)
-            qubits = [qubit.index for qubit in instr.qubits]
-            # the easy case is 1q operations
-            if len(qubits) == 1:
-                lines[qubits[0]].append(TIKZ_GATE(instr.name, params=instr.params, dagger=dagger))
-            else:
-                # We have a bunch of special cases here for
-                # gates which are controlled etc but without explicit control
-                # modifiers.
-                if instr.name == "CNOT" and not instr.modifiers:
-                    control, target = qubits
-                    displaced = set(qubits + interval(control,target))
-                    nop_to_latest_edge(displaced)
-                    lines[control].append(TIKZ_CONTROL(control, target))
-                    lines[target].append(TIKZ_CNOT_TARGET())
-                    nop_to_latest_edge(displaced)
-                elif instr.name == "SWAP" and not instr.modifiers:
-                    source, target = qubits
-                    displaced = set(qubits + interval(source,target))
-                    nop_to_latest_edge(displaced)
-                    lines[source].append(TIKZ_SWAP(source, target))
-                    lines[target].append(TIKZ_SWAP_TARGET())
-                    nop_to_latest_edge(displaced)
-                elif instr.name == "CZ" and not instr.modifiers:
-                    # we destructure to make this show as a controlled-Z
-                    control, target = qubits
-                    displaced = set(qubits + interval(control,target))
-                    nop_to_latest_edge(displaced)
-                    lines[control].append(TIKZ_CONTROL(control, target))
-                    lines[target].append(TIKZ_GATE("Z"))
-                    nop_to_latest_edge(displaced)
-                elif instr.name == "CPHASE" and not instr.modifiers:
-                    control, target = qubits
-                    displaced = set(qubits + interval(control,target))
-                    nop_to_latest_edge(displaced)
-                    lines[control].append(TIKZ_CONTROL(control, target))
-                    lines[target].append(TIKZ_CPHASE_TARGET())
-                    nop_to_latest_edge(displaced)
+class DiagramBuilder:
+    def __init__(self, circuit):
+        self.circuit = circuit
+        self.diagram = None
+        self.index = 0
+
+    def build(self):
+        self.diagram = DiagramState(self.circuit.get_qubits())
+        self.index = 0
+
+        # initial exposed wires
+        self.diagram.extend_lines_to_common_edge(self.diagram.all_qubits, offset=1)
+
+        while self.index < len(self.circuit):
+            instr = self.circuit[self.index]
+            if isinstance(instr, Pragma) and instr.command == PRAGMA_BEGIN_GROUP:
+                self._build_group()
+            elif isinstance(instr, Pragma) and instr.command == PRAGMA_END_GROUP:
+                raise ValueError("PRAGMA {} found without matching {}.".format(PRAGMA_END_GROUP, PRAGMA_BEGIN_GROUP))
+            elif isinstance(instr, Measurement):
+                self._build_measure()
+            elif isinstance(instr, Gate):
+                if 'FORKED' in instr.modifiers:
+                    raise ValueError("LaTeX output does not currently support FORKED modifiers: {}".format(instr))
+                # the easy case is 1q operations
+                if len(instr.qubits) == 1:
+                    self._build_1q_unitary()
                 else:
-                    # generic unitary
-                    nop_to_latest_edge(qubits)
+                    if instr.name in SOURCE_TARGET_OP and not instr.modifiers:
+                        self._build_custom_source_target_op()
+                    else:
+                        self._build_generic_unitary()
+            else:
+                self.index += 1
 
-                    control_qubits = qubits[:controls]
-                    target_qubits = qubits[controls:]
-                    if not is_interval(sorted(target_qubits)):
-                        raise ValueError("Unable to render instruction {} which targets non-adjacent qubits.".format(instr))
+        self.diagram.extend_lines_to_common_edge(self.diagram.all_qubits, offset=1)
+        return self.diagram
 
-                    for q in control_qubits:
-                        lines[q].append(TIKZ_CONTROL(q, target_qubits[0]))
+    def _build_group(self):
+        instr = self.circuit[self.index]
+        if len(instr.args) > 1:
+            raise ValueError("PRAGMA {} expected exactly one argument.".format(PRAGMA_BEGIN_GROUP))
+        for j in range(self.index+1, len(self.circuit)):
+            if isinstance(self.circuit[j], Pragma) and self.circuit[j].command == PRAGMA_END_GROUP:
+                # recursively build the diagram for this block
+                block = DiagramBuilder(self.circuit[self.index+1:j]).build()
+                self.diagram.append_diagram(block)
+                # advance to the instruction following this one
+                self.index = j+1
+                return
 
-                    # we put the gate on the first target line, and nop on the others
-                    lines[target_qubits[0]].append(TIKZ_GATE(instr.name, size=len(qubits), params=instr.params, dagger=dagger))
-                    for q in target_qubits[1:]:
-                        lines[q].append(TIKZ_NOP())
+        raise ValueError("Unable to find PRAGMA {} matching {}".format(PRAGMA_END_GROUP, instr))
 
-    # fill in qubit lines, leaving exposed wires on the right
-    nop_to_latest_edge(all_qubits, offset=1)
+    def _build_measure(self):
+        instr = self.circuit[self.index]
+        self.diagram.append(instr.qubit.index, TIKZ_MEASURE())
+        self.index += 1
 
-    # flush lines
-    quantikz_out = []
-    for qubit in all_qubits:
-        quantikz_out.append(" & ".join(lines[qubit]))
+    def _build_custom_source_target_op(self):
+        instr = self.circuit[self.index]
+        source, target = qubit_indices(instr)
+        displaced = interval(source, target)
+        self.diagram.extend_lines_to_common_edge(displaced)
+        source_op, target_op = SOURCE_TARGET_OP[instr.name]
+        self.diagram.append(source, source_op(source, target))
+        self.diagram.append(target, target_op())
+        self.diagram.extend_lines_to_common_edge(displaced)
+        self.index += 1
 
-    return " \\\\\n".join(quantikz_out)
+    def _build_1q_unitary(self):
+        instr = self.circuit[self.index]
+        qubits = qubit_indices(instr)
+        dagger = sum(m == 'DAGGER' for m in instr.modifiers) % 2 == 1
+        self.diagram.append(qubits[0], TIKZ_GATE(instr.name, params=instr.params, dagger=dagger))
+        self.index += 1
+
+    def _build_generic_unitary(self):
+        instr = self.circuit[self.index]
+        qubits = qubit_indices(instr)
+        dagger = sum(m == 'DAGGER' for m in instr.modifiers) % 2 == 1
+        controls = sum(m == 'CONTROLLED' for m in instr.modifiers)
+
+        self.diagram.extend_lines_to_common_edge(qubits)
+
+        control_qubits = qubits[:controls]
+        target_qubits = qubits[controls:]
+        if not is_interval(sorted(target_qubits)):
+            raise ValueError("Unable to render instruction {} which targets non-adjacent qubits.".format(instr))
+
+        for q in control_qubits:
+            self.diagram.append(q, TIKZ_CONTROL(q, target_qubits[0]))
+
+        # we put the gate on the first target line, and nop on the others
+        self.diagram.append(target_qubits[0], TIKZ_GATE(instr.name, size=len(qubits), params=instr.params, dagger=dagger))
+        for q in target_qubits[1:]:
+            self.diagram.append(q, TIKZ_NOP())
+
+        self.index += 1
