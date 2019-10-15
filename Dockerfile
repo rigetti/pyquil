@@ -30,5 +30,5 @@ WORKDIR /src/pyquil
 RUN pip install -e .
 
 # use an entrypoint script to add startup commands (qvm & quilc server spinup)
-ENTRYPOINT ["./entrypoint.sh"]
+ENTRYPOINT ["/src/pyquil/entrypoint.sh"]
 CMD ["ipython"]
