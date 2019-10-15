@@ -1,7 +1,7 @@
 COMMIT_HASH=$(shell git rev-parse --short HEAD)
+DEFAULT_QUILC_URL=tcp://localhost:5555
+DEFAULT_QVM_URL=http://localhost:5000
 DOCKER_TAG=rigetti/forest:$(COMMIT_HASH)
-QUILC_URL=tcp://localhost:5555
-QVM_URL=http://localhost:5000
 
 .PHONY: all
 all: dist
@@ -15,8 +15,8 @@ clean:
 .PHONY: config
 config:
 	echo "[Rigetti Forest]" > ~/.forest_config
-	echo "qvm_address = ${QVM_URL}" >> ~/.forest_config
-	echo "quilc_address = ${QUILC_URL}" >> ~/.forest_config
+	echo "qvm_address = ${DEFAULT_QVM_URL}" >> ~/.forest_config
+	echo "quilc_address = ${DEFAULT_QUILC_URL}" >> ~/.forest_config
 	cat ~/.forest_config
 
 .PHONY: dist
