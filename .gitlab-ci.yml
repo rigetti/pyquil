@@ -4,8 +4,8 @@ include:
 
 variables:
   IMAGE: rigetti/forest
-  DEFAULT_QVM_URL: "http://qvm:5000"
-  DEFAULT_QUILC_URL: "tcp://quilc:5555"
+  QVM_URL: "http://qvm:5000"
+  QUILC_URL: "tcp://quilc:5555"
 
 services:
   - name: rigetti/qvm
@@ -20,7 +20,6 @@ test-py36:
   tags:
     - github
   script:
-    - make -e config
     - make install
     - make requirements
     - make test
