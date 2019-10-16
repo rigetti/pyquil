@@ -821,7 +821,7 @@ def generate_experiment_programs(tomo_experiment: TomographyExperiment,
     """
     Generate the programs necessary to estimate the observables in a TomographyExperiment.
     Grouping of settings to be run in parallel, e.g. by a call to group_experiments, should be
-    done before this method is called.
+    done before this function is called.
 
     .. CAUTION::
         One must be careful with compilation of the output programs before the appropriate MEASURE
@@ -830,7 +830,7 @@ def generate_experiment_programs(tomo_experiment: TomographyExperiment,
         should be measured.
 
     :param tomo_experiment: a single TomographyExperiment to be translated to a series of programs
-        that, when run serially, can be used to estimate each of obs_expt's observables.
+        that, when run serially, can be used to estimate each of its observables.
     :param active_reset: whether or not to begin the program by actively resetting. If true,
         execution of each of the returned programs in a loop on the QPU will generally be faster.
     :return: a list of programs along with a corresponding list of the groups of qubits that are
@@ -907,7 +907,7 @@ def measure_observables(qc: QuantumComputer, tomo_experiment: TomographyExperime
         method supported is normalizing against the operator's expectation value in its +1
         eigenstate, which can be specified by setting this variable to 'plus-eig' (default value).
         The preceding symmetrization and this step together yield a more accurate estimation of the observable. Set to `None` if no calibration is desired.
-    :param show_progress_bar: displays a progress bar via tqdm if true.
+    :param show_progress_bar: displays a progress bar if true.
     """
     if readout_symmetrize is not None:
         warnings.warn("'readout_symmetrize' has been renamed to 'symmetrize_readout'",
