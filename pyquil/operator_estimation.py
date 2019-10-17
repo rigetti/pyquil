@@ -823,15 +823,16 @@ def calibrate_observable_estimates(qc: QuantumComputer, expt_results: List[Exper
                                    show_progress_bar: bool = False) \
         -> Iterable[ExperimentResult]:
     """
-    Calibrates the expectation and std_err of the input expt_results and updates those estimates.
+    Calibrates the `expectation` and `std_err` of the input `expt_results` and updates those
+    estimates.
 
-    The input expt_results should be estimated with symmetrized readout error for this to work
+    The input `expt_results` should be estimated with symmetrized readout error for this to work
     properly. Calibration is done by measuring expectation values of eigenstates of the
     observable, which ideally should yield either +/- 1 but in practice will have magnitude less
     than 1. For default exhaustive_symmetrization the calibration expectation magnitude
-    averaged over all eigenvectors is recorded as calibration_expectation. The original
-    expectation is moved to raw_expectation and replaced with the old value scaled by the inverse
-    calibration expectation.
+    averaged over all eigenvectors is recorded as `calibration_expectation`. The original
+    `expectation` is moved to `raw_expectation` and replaced with the old value scaled by the
+    inverse calibration expectation.
 
     :param qc: a quantum computer object on which to run the programs necessary to calibrate each
         result.
@@ -855,7 +856,7 @@ def calibrate_observable_estimates(qc: QuantumComputer, expt_results: List[Exper
         for running on a QVM
     :param active_reset: whether or not to begin the program by actively resetting. If true,
         execution of each of the returned programs in a loop on the QPU will generally be faster.
-    :param show_progress_bar: displays a progress bar via tqdm if true.
+    :param show_progress_bar: displays a progress bar if true.
     :return: a copy of the input results with updated estimates and calibration results.
     """
     # get unique observables that will need to be calibrated
