@@ -846,7 +846,7 @@ def measure_observables(qc: QuantumComputer, tomo_experiment: TomographyExperime
 
         Note that (default) exhaustive symmetrization requires a number of QPU calls exponential in
         the number of qubits in the union of the support of the observables in any group of settings
-        in tomo_expt; the number of shots may need to be increased to accommodate this.
+        in ``tomo_experiment``; the number of shots may need to be increased to accommodate this.
         see :func:`run_symmetrized_readout` in api._quantum_computer for more information.
     :param calibrate_readout: Method used to calibrate the readout results. Currently, the only
         method supported is normalizing against the operator's expectation value in its +1
