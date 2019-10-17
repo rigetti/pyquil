@@ -10,6 +10,7 @@ rpcq >= 2.7.2
 
 # test deps
 pytest
+pytest-cov
 pytest-timeout
 pytest-rerunfailures
 requests-mock

@@ -1,6 +1,6 @@
 #!/usr/bin/env python
 ##############################################################################
-# Copyright 2016-2017 Rigetti Computing
+# Copyright 2016-2019 Rigetti Computing
 #
 #    Licensed under the Apache License, Version 2.0 (the "License");
 #    you may not use this file except in compliance with the License.
@@ -15,58 +15,51 @@
 #    limitations under the License.
 ##############################################################################
 
-import os
-import re
 import sys
 
 from setuptools import setup, find_packages
 
-HERE = os.path.abspath(os.path.dirname(__file__))
+VERSION_ERROR = """
+PyQuil 2.0+ requires Python 3
+
+To install the most recent version with support for Python 2, make sure you
+have pip >= 9.0 as well as setuptools >= 24.2:
+
+    pip install pip setuptools --upgrade
+
+Then you can either:
+
+    - Install an older version of PyQuil via pip install pyquil<2.0
+    - Upgrade your system to use Python 3.6
+"""
 
 if sys.version_info < (3, 6):
-    raise ImportError('\n'.join([
-        'PyQuil 2.0+ requires Python 3'
-        '',
-        'To install the most recent version with support for Python 2, make sure you',
-        'have pip >= 9.0 as well as setuptools >= 24.2:',
-        '',
-        ' $ pip install pip setuptools --upgrade',
-        '',
-        'Then you can either',
-        '',
-        '- install an older version of PyQuil:',
-        '',
-        " $ pip install 'pyquil<2.0'",
-        '',
-        '- Upgrade your system to use Python 3.', ]))
+    raise ImportError(VERSION_ERROR)
 
+with open('VERSION.txt', 'r') as f:
+    __version__ = f.read().strip()
 
-def read(*parts):
-    with open(os.path.join(HERE, *parts), 'r') as fp:
-        return fp.read()
+with open('README.md', 'r') as f:
+    long_description = f.read()
 
+# save the source code in version.py
+with open('pyquil/version.py', 'r') as f:
+    version_file_source = f.read()
 
-def find_version(*file_paths):
-    version_file = read(*file_paths)
-    version_match = re.search(r"^__version__ = ['\"]([^'\"]*)['\"]", version_file, re.M)
-    if version_match:
-        return version_match.group(1)
-    raise RuntimeError("Unable to find version string.")
-
-
-with open("README.md", "r") as fh:
-    long_description = fh.read()
+# overwrite version.py in the source distribution
+with open('pyquil/version.py', 'w') as f:
+    f.write(f"__version__ = '{__version__}'\n")
 
 setup(
-    name="pyquil",
-    version=find_version('pyquil', '__init__.py'),
-    author="Rigetti Computing",
-    author_email="softapps@rigetti.com",
-    description="A Python library to generate Quantum Instruction Language (Quil) Programs.",
+    name='pyquil',
+    version=__version__,
+    author='Rigetti Computing',
+    author_email='softapps@rigetti.com',
+    description='A Python library to generate Quantum Instruction Language (Quil) Programs.',
     long_description=long_description,
-    long_description_content_type="text/markdown",
-    url="https://github.com/rigetti/pyquil.git",
-    packages=find_packages(exclude=["*.tests", "*.tests.*", "tests.*", "tests"]),
+    long_description_content_type='text/markdown',
+    url='https://github.com/rigetti/pyquil.git',
+    packages=find_packages(exclude=['*.tests', '*.tests.*', 'tests.*', 'tests']),
     license='Apache-2.0',
     classifiers=[
         'Development Status :: 5 - Production/Stable',
@@ -88,5 +81,9 @@ setup(
         'immutables==0.6',
     ],
     keywords='quantum quil programming hybrid',
-    python_requires=">=3.6",
+    python_requires='>=3.6',
 )
+
+# restore version.py to its previous state
+with open('pyquil/version.py', 'w') as f:
+    f.write(version_file_source)
