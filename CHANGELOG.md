@@ -18,6 +18,9 @@ Changelog
 
 -   Added a `Makefile` with some simple targets for performing common build
     operations like creating and uploading a package (@karalekas, gh-1032).
+    
+-   Moved the program generation from `measure_observables` into its 
+    own private method (@kylegulshen, gh-1043).
 
 ### Bugfixes
 
