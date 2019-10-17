@@ -878,7 +878,7 @@ def measure_observables(qc: QuantumComputer, tomo_experiment: TomographyExperime
 
         log.info(f"Collecting bitstrings for the {len(settings)} settings: {settings}")
 
-        # 1.1 Prepare a state according to the amalgam of all setting.in_state
+        # Prepare a state according to the amalgam of all setting.in_state
         total_prog = Program()
         if active_reset:
             total_prog += RESET()
@@ -886,10 +886,10 @@ def measure_observables(qc: QuantumComputer, tomo_experiment: TomographyExperime
         for oneq_state in max_weight_in_state.states:
             total_prog += _one_q_state_prep(oneq_state)
 
-        # 1.2 Add in the program
+        # Add in the program
         total_prog += tomo_experiment.program
 
-        # 1.3 Measure the state according to setting.out_operator
+        # Measure the state according to setting.out_operator
         max_weight_out_op = _max_weight_operator(setting.out_operator for setting in settings)
         for qubit, op_str in max_weight_out_op:
             total_prog += _local_pauli_eig_meas(op_str, qubit)
@@ -899,24 +899,25 @@ def measure_observables(qc: QuantumComputer, tomo_experiment: TomographyExperime
         # we don't need to do any actual measurement if the combined operator is simply the
         # identity, i.e. weight=0. We handle this specially below.
         if len(qubits) > 0:
+            # obtain (optionally symmetrized) bitstring results for all of the qubits
             bitstrings = qc.run_symmetrized_readout(total_prog, n_shots, symm_type, qubits)
 
         if progress_callback is not None:
             progress_callback(i, len(tomo_experiment))
 
-        # 3. Post-process
+        # Post-process
         # Inner loop over the grouped settings. They only differ in which qubits' measurements
         # we include in the post-processing. For example, if `settings` is Z1, Z2, Z1Z2 and we
         # measure (n_shots, n_qubits=2) obs_strings then the full operator value involves selecting
         # either the first column, second column, or both and multiplying along the row.
         for setting in settings:
-            # 3.1 Get the term's coefficient so we can multiply it in later.
+            # Get the term's coefficient so we can multiply it in later.
             coeff = complex(setting.out_operator.coefficient)
             if not np.isclose(coeff.imag, 0):
                 raise ValueError(f"{setting}'s out_operator has a complex coefficient.")
             coeff = coeff.real
 
-            # 3.2 Special case for measuring the "identity" operator, which doesn't make much
+            # Special case for measuring the "identity" operator, which doesn't make much
             #     sense but should happen perfectly.
             if is_identity(setting.out_operator):
                 yield ExperimentResult(
@@ -927,26 +928,26 @@ def measure_observables(qc: QuantumComputer, tomo_experiment: TomographyExperime
                 )
                 continue
 
-            # 3.3 Obtain statistics from result of experiment
+            # Obtain statistics from result of experiment
             obs_mean, obs_var = _stats_from_measurements(bitstrings,
                                                          {q: idx for idx, q in enumerate(qubits)},
                                                          setting, n_shots, coeff)
 
             if calibrate_readout == 'plus-eig':
-                # 4 Readout calibration
-                # 4.1 Obtain calibration program
+                # Readout calibration
+                # Obtain calibration program
                 calibr_prog = _calibration_program(qc, tomo_experiment, setting)
                 calibr_qubs = setting.out_operator.get_qubits()
                 calibr_qub_dict = {q: idx for idx, q in enumerate(calibr_qubs)}
 
-                # 4.2 Perform symmetrization on the calibration program
+                # Perform symmetrization on the calibration program
                 calibr_results = qc.run_symmetrized_readout(calibr_prog, n_shots, -1, calibr_qubs)
 
-                # 4.3 Obtain statistics from the measurement process
+                # Obtain statistics from the measurement process
                 obs_calibr_mean, obs_calibr_var = _stats_from_measurements(calibr_results,
                                                                            calibr_qub_dict,
                                                                            setting, n_shots)
-                # 4.3 Calibrate the readout results
+                # Calibrate the readout results
                 corrected_mean = obs_mean / obs_calibr_mean
                 corrected_var = ratio_variance(obs_mean, obs_var, obs_calibr_mean, obs_calibr_var)
 
