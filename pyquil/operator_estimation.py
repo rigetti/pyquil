@@ -8,7 +8,6 @@ import warnings
 from json import JSONEncoder
 from operator import mul
 from typing import List, Union, Iterable, Tuple, Optional, Dict, Callable
-from tqdm import tqdm
 
 import networkx as nx
 import numpy as np
@@ -815,8 +814,8 @@ class ExperimentResult:
         }
 
 
-def generate_experiment_programs(tomo_experiment: TomographyExperiment,
-                                 active_reset: bool = False) \
+def _generate_experiment_programs(tomo_experiment: TomographyExperiment,
+                                  active_reset: bool = False) \
         -> Tuple[List[Program], List[List[int]]]:
     """
     Generate the programs necessary to estimate the observables in a TomographyExperiment.
@@ -878,8 +877,7 @@ def measure_observables(qc: QuantumComputer, tomo_experiment: TomographyExperime
                         active_reset: bool = False,
                         symmetrize_readout: Optional[str] = 'exhaustive',
                         calibrate_readout: Optional[str] = 'plus-eig',
-                        readout_symmetrize: Optional[str] = None,
-                        show_progress_bar: bool = False):
+                        readout_symmetrize: Optional[str] = None):
     """
     Measure all the observables in a TomographyExperiment.
 
@@ -906,8 +904,8 @@ def measure_observables(qc: QuantumComputer, tomo_experiment: TomographyExperime
     :param calibrate_readout: Method used to calibrate the readout results. Currently, the only
         method supported is normalizing against the operator's expectation value in its +1
         eigenstate, which can be specified by setting this variable to 'plus-eig' (default value).
-        The preceding symmetrization and this step together yield a more accurate estimation of the observable. Set to `None` if no calibration is desired.
-    :param show_progress_bar: displays a progress bar if true.
+        The preceding symmetrization and this step together yield a more accurate estimation of
+        the observable. Set to `None` if no calibration is desired.
     """
     if readout_symmetrize is not None:
         warnings.warn("'readout_symmetrize' has been renamed to 'symmetrize_readout'",
@@ -919,12 +917,11 @@ def measure_observables(qc: QuantumComputer, tomo_experiment: TomographyExperime
         raise ValueError("Readout calibration only works with readout symmetrization turned on")
 
     # generate programs for each group of simultaneous settings.
-    programs, meas_qubits = generate_experiment_programs(tomo_experiment, active_reset)
+    programs, meas_qubits = _generate_experiment_programs(tomo_experiment, active_reset)
 
     # Outer loop over a collection of grouped settings for which we can simultaneously
     # estimate.
-    for i, (prog, qubits, settings) in enumerate(zip(tqdm(programs, disable=not show_progress_bar),
-                                                     meas_qubits, tomo_experiment)):
+    for i, (prog, qubits, settings) in enumerate(zip(programs, meas_qubits, tomo_experiment)):
 
         if symmetrize_readout == 'exhaustive' and len(qubits) > 0:
             bitstrings, d_qub_idx = _exhaustive_symmetrization(qc, qubits, n_shots, prog)
