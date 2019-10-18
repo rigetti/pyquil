@@ -28,7 +28,7 @@ else:
 log = logging.getLogger(__name__)
 
 
-class SymmType(IntEnum):
+class SymmetrizationLevel(IntEnum):
     EXHAUSTIVE = -1
     NONE = 0
     ONE = 1
@@ -825,9 +825,8 @@ class ExperimentResult:
 
 def measure_observables(qc: QuantumComputer, tomo_experiment: TomographyExperiment,
                         n_shots: int = 10000, progress_callback=None, active_reset=False,
-                        symmetrize_readout: Optional[str] = 'None',
+                        symmetrize_readout: Union[int, str] = SymmetrizationLevel.EXHAUSTIVE,
                         calibrate_readout: Optional[str] = 'plus-eig',
-                        symm_type: Union[SymmType, int] = -1,
                         readout_symmetrize: Optional[str] = None):
     """
     Measure all the observables in a TomographyExperiment.
@@ -843,7 +842,7 @@ def measure_observables(qc: QuantumComputer, tomo_experiment: TomographyExperime
         to True is much faster but there is a ~1% error per qubit in the reset operation.
         Thermal noise from "traditional" reset is not routinely characterized but is of the same
         order.
-    :param symm_type: the level of readout symmetrization to perform for the estimation
+    :param symmetrize_readout: the level of readout symmetrization to perform for the estimation
         and optional calibration of each observable. The following integer levels are currently
         supported:
 
@@ -863,18 +862,20 @@ def measure_observables(qc: QuantumComputer, tomo_experiment: TomographyExperime
         The preceding symmetrization and this step together yield a more accurate estimation of the
         observable. Set to `None` if no calibration is desired.
     """
-    if readout_symmetrize is not None or symmetrize_readout != 'None':
-        warnings.warn("Symmetrization is now specified as an integer 'symm_type'.",
+    if readout_symmetrize is not None:
+        warnings.warn("'readout_symmetrize' has been renamed to 'symmetrize_readout'",
                       DeprecationWarning)
-        if readout_symmetrize is not None:
-            symmetrize_readout = readout_symmetrize
-        if symmetrize_readout == 'exhaustive':
-            symm_type = SymmType.EXHAUSTIVE
-        elif symmetrize_readout is None:
-            symm_type = SymmType.NONE
+        symmetrize_readout = readout_symmetrize
+
+    if symmetrize_readout is None:
+        symmetrize_readout = SymmetrizationLevel.NONE
+    elif symmetrize_readout == 'exhaustive':
+        symmetrize_readout = SymmetrizationLevel.EXHAUSTIVE
+    elif symmetrize_readout not in {level.value for level in SymmetrizationLevel}:
+        raise ValueError("'symmetrize_readout' must be an int from -1 to 3 inclusive.")
 
     # calibration readout only works with symmetrization turned on
-    if calibrate_readout is not None and symm_type != SymmType.EXHAUSTIVE:
+    if calibrate_readout is not None and symmetrize_readout != SymmetrizationLevel.EXHAUSTIVE:
         raise ValueError("Readout calibration only currently works with exhaustive readout "
                          "symmetrization turned on.")
 
@@ -906,7 +907,7 @@ def measure_observables(qc: QuantumComputer, tomo_experiment: TomographyExperime
         # identity, i.e. weight=0. We handle this specially below.
         if len(qubits) > 0:
             # obtain (optionally symmetrized) bitstring results for all of the qubits
-            bitstrings = qc.run_symmetrized_readout(total_prog, n_shots, symm_type, qubits)
+            bitstrings = qc.run_symmetrized_readout(total_prog, n_shots, symmetrize_readout, qubits)
 
         if progress_callback is not None:
             progress_callback(i, len(tomo_experiment))
