@@ -825,7 +825,7 @@ class ExperimentResult:
 
 def measure_observables(qc: QuantumComputer, tomo_experiment: TomographyExperiment,
                         n_shots: int = 10000, progress_callback=None, active_reset=False,
-                        symmetrize_readout: Union[int, str] = SymmetrizationLevel.EXHAUSTIVE,
+                        symmetrize_readout: int = SymmetrizationLevel.EXHAUSTIVE,
                         calibrate_readout: Optional[str] = 'plus-eig',
                         readout_symmetrize: Optional[str] = None):
     """
