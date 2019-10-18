@@ -17,8 +17,6 @@
 Module for working with Pauli algebras.
 """
 
-from __future__ import division
-
 import re
 from itertools import product
 import numpy as np

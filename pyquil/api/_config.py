@@ -16,7 +16,6 @@
 """
 Module for reading configuration information about api keys and user ids.
 """
-from __future__ import print_function
 from configparser import ConfigParser, NoSectionError, NoOptionError
 from os.path import expanduser, abspath
 from os import environ
