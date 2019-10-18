@@ -929,8 +929,12 @@ def measure_observables(qc: QuantumComputer, tomo_experiment: TomographyExperime
 
     if symmetrize_readout is None:
         symmetrize_readout = SymmetrizationLevel.NONE
+        warnings.warn("'symmetrize_readout' should now be an int, 0 instead of none.",
+                      DeprecationWarning)
     elif symmetrize_readout == 'exhaustive':
         symmetrize_readout = SymmetrizationLevel.EXHAUSTIVE
+        warnings.warn("'symmetrize_readout' should now be an int, -1 instead of 'exhaustive'.",
+                      DeprecationWarning)
     elif symmetrize_readout not in {level.value for level in SymmetrizationLevel}:
         raise ValueError("'symmetrize_readout' must be an int from -1 to 3 inclusive.")
 
