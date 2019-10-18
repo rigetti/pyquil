@@ -8,7 +8,6 @@ import warnings
 from json import JSONEncoder
 from operator import mul
 from typing import List, Union, Iterable, Tuple, Optional, Dict
-from tqdm import tqdm
 from copy import copy
 
 import networkx as nx
@@ -816,12 +815,10 @@ class ExperimentResult:
         }
 
 
-def calibrate_observable_estimates(qc: QuantumComputer, expt_results: List[ExperimentResult],
-                                   n_shots: int = 500, symm_type: int = -1,
-                                   noisy_program: Optional[Program] = None,
-                                   active_reset: bool = False,
-                                   show_progress_bar: bool = False) \
-        -> Iterable[ExperimentResult]:
+def _calibrate_observable_estimates(qc: QuantumComputer, expt_results: List[ExperimentResult],
+                                    n_shots: int = 500, symm_type: int = -1,
+                                    noisy_program: Optional[Program] = None,
+                                    active_reset: bool = False) -> Iterable[ExperimentResult]:
     """
     Calibrates the `expectation` and `std_err` of the input `expt_results` and updates those
     estimates.
@@ -856,15 +853,14 @@ def calibrate_observable_estimates(qc: QuantumComputer, expt_results: List[Exper
         for running on a QVM
     :param active_reset: whether or not to begin the program by actively resetting. If true,
         execution of each of the returned programs in a loop on the QPU will generally be faster.
-    :param show_progress_bar: displays a progress bar if true.
     :return: a copy of the input results with updated estimates and calibration results.
     """
     # get unique observables that will need to be calibrated
     observables = {copy(res.setting.out_operator) for res in expt_results}
 
     calibrations = {}
-    for obs in tqdm(observables, disable=not show_progress_bar):
-        prog = get_calibration_program(obs, noisy_program, active_reset)
+    for obs in observables:
+        prog = _get_calibration_program(obs, noisy_program, active_reset)
         meas_qs = obs.get_qubits()
         results = qc.run_symmetrized_readout(prog, n_shots, symm_type, meas_qs)
 
@@ -1047,8 +1043,8 @@ def measure_observables(qc: QuantumComputer, tomo_experiment: TomographyExperime
             else:
                 raise ValueError("Calibration readout method must be either 'plus-eig' or None")
 
-    yield from calibrate_observable_estimates(qc, results, n_shots, -1, tomo_experiment.program,
-                                              active_reset)
+    yield from _calibrate_observable_estimates(qc, results, n_shots, -1, tomo_experiment.program,
+                                               active_reset)
 
 
 def _ops_bool_to_prog(ops_bool: Tuple[bool], qubits: List[int]) -> Program:
@@ -1182,7 +1178,7 @@ def _calibration_program(qc: QuantumComputer, tomo_experiment: TomographyExperim
     :param setting: The particular tomographic observable to measure
     :return: Program performing the calibration
     """
-    warnings.warn("This method will be deprecated in favor of get_calibration_program.",
+    warnings.warn("This method will be deprecated in favor of _get_calibration_program.",
                   DeprecationWarning)
     # Inherit any noisy attributes from main Program, including gate definitions
     # and applications which can be handy in creating simulating noisy channels
@@ -1203,8 +1199,8 @@ def _calibration_program(qc: QuantumComputer, tomo_experiment: TomographyExperim
     return calibr_prog
 
 
-def get_calibration_program(observable: PauliTerm, noisy_program: Optional[Program] = None,
-                            active_reset: bool = False) -> Program:
+def _get_calibration_program(observable: PauliTerm, noisy_program: Optional[Program] = None,
+                             active_reset: bool = False) -> Program:
     """
     Get program required for calibrating the given observable.
     :param observable: observable to calibrate

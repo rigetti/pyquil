@@ -18,6 +18,8 @@ Changelog
 
 -   Added a `Makefile` with some simple targets for performing common build
     operations like creating and uploading a package (@karalekas, gh-1032).
+-   Moved calibration code from `measure_observables` into its own private
+    method (@kylegulshen, gh-1049). 
 
 ### Bugfixes
 
