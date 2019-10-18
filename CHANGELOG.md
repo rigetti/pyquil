@@ -23,7 +23,9 @@ Changelog
 -   As part of the CI, we now package and push to TestPyPI on every commit, which
     de-risks breaking the `setup.py` and aids with testing (@karalekas, gh-1017).
 -   We now calculate code coverage as part of the CI pipeline (@karalekas, gh-1052).
-
+-   Moved the program generation from `measure_observables` into its 
+    own private function (@kylegulshen, gh-1043).
+    
 ### Bugfixes
 
 -   Updated `examples/meyer_penny_game.py` with the correct path to the Meyer Penny
