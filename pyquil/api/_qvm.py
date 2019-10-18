@@ -19,7 +19,6 @@ from typing import List
 
 from requests.exceptions import ConnectionError
 from rpcq.messages import PyQuilExecutableResponse
-from six import integer_types
 
 from pyquil import __version__
 from pyquil.api._base_connection import (validate_qubit_list, validate_noise_probabilities,
@@ -120,7 +119,7 @@ programs run on this QVM.
 
         if random_seed is None:
             self.random_seed = None
-        elif isinstance(random_seed, integer_types) and random_seed >= 0:
+        elif isinstance(random_seed, int) and random_seed >= 0:
             self.random_seed = random_seed
         else:
             raise TypeError("random_seed should be None or a non-negative int")
@@ -215,7 +214,7 @@ programs run on this QVM.
         if not isinstance(quil_program, Program):
             raise TypeError("quil_program must be a Quil program object")
         qubits = validate_qubit_list(qubits)
-        if not isinstance(trials, integer_types):
+        if not isinstance(trials, int):
             raise TypeError("trials must be an integer")
 
         if self.noise_model is not None:
@@ -429,7 +428,7 @@ To read more about supplying noise to the QVM, see http://pyquil.readthedocs.io/
 
         if random_seed is None:
             self.random_seed = None
-        elif isinstance(random_seed, integer_types) and random_seed >= 0:
+        elif isinstance(random_seed, int) and random_seed >= 0:
             self.random_seed = random_seed
         else:
             raise TypeError("random_seed should be None or a non-negative int")

@@ -20,7 +20,6 @@ import numpy as np
 import pyquil.quil as pq
 from pyquil.gates import X
 from math import floor
-from six.moves import range
 
 
 def changed_bit_pos(a, b):
