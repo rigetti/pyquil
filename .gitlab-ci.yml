@@ -19,41 +19,61 @@ test-py36:
   image: python:3.6
   tags:
     - github
-  before_script:
-    - pip install tox
   script:
-    - make -e config
-    - tox -e py36
+    - make install
+    - make requirements
+    - make test
+  coverage: '/TOTAL.*\s(\d+)%/'
 
 test-py37:
   image: python:3.7
   tags:
     - github
-  before_script:
-    - pip install tox
   script:
-    - make -e config
-    - tox -e py37
+    - make install
+    - make requirements
+    - make test
 
 style:
   image: python:3.6
   tags:
     - github
-  before_script:
-    - pip install tox
   script:
-    - tox -e flake8
+    - make install
+    - make requirements
+    - make style
 
 docs:
   image: python:3.6
   tags:
     - github
-  before_script:
-    - pip install tox
   script:
     - apt-get update && apt-get install -y pandoc
-    - pandoc --from=markdown --to=rst --output=docs/source/changes.rst CHANGELOG.md
-    - tox -e docs
+    - make install
+    - make requirements
+    - make docs
+
+####################################################################################################
+# MASTER-ONLY JOBS
+####################################################################################################
+
+upload-testpypi:
+  stage: deploy
+  image: python:3.6
+  tags:
+    - github
+  only:
+    refs:
+      - master
+  script:
+    - make version > VERSION.txt
+    - make install && make dist
+    - make requirements && make upload
+  allow_failure: true
+
+####################################################################################################
+# RELEASE-ONLY JOBS
+####################################################################################################
 
 test-docker:
   stage: test
@@ -66,3 +86,18 @@ test-docker:
       - /^v(\d+\.)?(\d+\.)?(\d+)$/
   script:
     - docker run --rm $IMAGE:edge python -c "from pyquil import get_qc; qvm = get_qc('9q-qvm')"
+
+install-testpypi:
+  stage: test
+  image: python:3.6
+  tags:
+    - github
+  only:
+    refs:
+      - /^v(\d+\.)?(\d+\.)?(\d+)$/
+  variables:
+    PYPI_URL: https://pypi.org/simple
+    TEST_PYPI_URL: https://test.pypi.org/simple/
+  script:
+    - pip install --index-url ${TEST_PYPI_URL} --extra-index-url ${PYPI_URL} pyquil
+    - python -c "import pyquil"
