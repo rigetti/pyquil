@@ -7,7 +7,7 @@ PyQuil: Quantum programming in Python
 [![pypi downloads](https://img.shields.io/pypi/dm/pyquil.svg)](https://pypi.org/project/pyquil/)
 [![pypi version](https://img.shields.io/pypi/v/pyquil.svg)](https://pypi.org/project/pyquil/)
 [![conda-forge version](https://img.shields.io/conda/vn/conda-forge/pyquil.svg)](https://anaconda.org/conda-forge/pyquil)
-[![slack workspace](https://img.shields.io/badge/slack-rigetti--forest-812f82.svg?)](https://join.slack.com/t/rigetti-forest/shared_invite/enQtNTUyNTE1ODg3MzE2LWExZWU5OTE4YTJhMmE2NGNjMThjOTM1MjlkYTA5ZmUxNTJlOTVmMWE0YjA3Y2M2YmQzNTZhNTBlMTYyODRjMzA)
+[![slack workspace](https://img.shields.io/badge/slack-rigetti--forest-812f82.svg?)][slack_invite]
 
 PyQuil is a Python library for quantum programming using [Quil](https://arxiv.org/abs/1608.03355),
 the quantum instruction language developed at [Rigetti Computing](https://www.rigetti.com/).
@@ -97,7 +97,7 @@ Joining the Forest Community
 ----------------------------
 
 If you'd like to get involved with pyQuil and Forest, joining the [Rigetti Forest Slack
-Workspace](https://join.slack.com/t/rigetti-forest/shared_invite/enQtNTUyNTE1ODg3MzE2LWExZWU5OTE4YTJhMmE2NGNjMThjOTM1MjlkYTA5ZmUxNTJlOTVmMWE0YjA3Y2M2YmQzNTZhNTBlMTYyODRjMzA)
+Workspace][slack_invite]
 is a great place to start! You can do so by clicking the invite link in the previous sentence,
 or in the badge at the top of this README. The Slack Workspace is a great place to ask general
 questions, join high-level design discussions, and hear about updates to pyQuil and the Forest SDK.
@@ -122,6 +122,7 @@ Thanks for contributing to pyQuil! 🙂
 [help]: https://github.com/rigetti/pyquil/labels/help%20wanted%20%3Awave%3A
 [fork]: https://github.com/rigetti/pyquil/fork
 [pr]: https://github.com/rigetti/pyquil/compare
+[slack_invite]: https://join.slack.com/t/rigetti-forest/shared_invite/enQtNTUyNTE1ODg3MzE2LWQwNzBlMjZlMmNlN2M5MzQyZDlmOGViODQ5ODI0NWMwNmYzODY4YTc2ZjdjOTNmNzhiYTk2YjVhNTE2NTRkODY
 
 Running on the QPU
 ------------------

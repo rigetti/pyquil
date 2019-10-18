@@ -20,11 +20,15 @@ Changelog
     operations like creating and uploading a package (@karalekas, gh-1032).
 -   Replaced symmetrization in `operator_estimation` with functionality
     from `api._quantum_computer` (@kylegulshen, gh-1047).
+-   As part of the CI, we now package and push to TestPyPI on every commit, which
+    de-risks breaking the `setup.py` and aids with testing (@karalekas, gh-1017).
+-   We now calculate code coverage as part of the CI pipeline (@karalekas, gh-1052).
 
 ### Bugfixes
 
-- Updated `examples/meyer_penny_game.py` with the correct path to the Meyer Penny game exercise in
-  `docs/source/exercises.rst` (@appleby, gh-1045).
+-   Updated `examples/meyer_penny_game.py` with the correct path to the Meyer Penny
+    game exercise in `docs/source/exercises.rst` (@appleby, gh-1045).
+-   Fixed the Slack Workspace invite link in the README (@amyfbrown, gh-1042).
 
 [v2.12](https://github.com/rigetti/pyquil/compare/v2.11.0...v2.12.0) (September 28, 2019)
 ----------------------------------------------------------------------------------------
