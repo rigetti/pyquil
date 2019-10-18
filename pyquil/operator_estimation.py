@@ -814,9 +814,10 @@ class ExperimentResult:
         }
 
 
-def _generate_experiment_programs(tomo_experiment: TomographyExperiment,
-                                  active_reset: bool = False
-                                  ) -> Tuple[List[Program], List[List[int]]]:
+def _generate_experiment_programs(
+    tomo_experiment: TomographyExperiment,
+    active_reset: bool = False,
+) -> Tuple[List[Program], List[List[int]]]:
     """
     Generate the programs necessary to estimate the observables in a TomographyExperiment.
     Grouping of settings to be run in parallel, e.g. by a call to group_experiments, should be
