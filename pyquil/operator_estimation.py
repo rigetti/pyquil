@@ -946,35 +946,14 @@ def measure_observables(qc: QuantumComputer, tomo_experiment: TomographyExperime
     # generate programs for each group of simultaneous settings.
     programs, meas_qubits = _generate_experiment_programs(tomo_experiment, active_reset)
 
-    # Outer loop over a collection of grouped settings for which we can simultaneously
-    # estimate.
-    for i, settings in enumerate(tomo_experiment):
-
+    for i, (prog, qubits, settings) in enumerate(zip(programs, meas_qubits, tomo_experiment)):
         log.info(f"Collecting bitstrings for the {len(settings)} settings: {settings}")
-
-        # Prepare a state according to the amalgam of all setting.in_state
-        total_prog = Program()
-        if active_reset:
-            total_prog += RESET()
-        max_weight_in_state = _max_weight_state(setting.in_state for setting in settings)
-        for oneq_state in max_weight_in_state.states:
-            total_prog += _one_q_state_prep(oneq_state)
-
-        # Add in the program
-        total_prog += tomo_experiment.program
-
-        # Measure the state according to setting.out_operator
-        max_weight_out_op = _max_weight_operator(setting.out_operator for setting in settings)
-        for qubit, op_str in max_weight_out_op:
-            total_prog += _local_pauli_eig_meas(op_str, qubit)
-
-        qubits = max_weight_out_op.get_qubits()
 
         # we don't need to do any actual measurement if the combined operator is simply the
         # identity, i.e. weight=0. We handle this specially below.
         if len(qubits) > 0:
             # obtain (optionally symmetrized) bitstring results for all of the qubits
-            bitstrings = qc.run_symmetrized_readout(total_prog, n_shots, symmetrize_readout, qubits)
+            bitstrings = qc.run_symmetrized_readout(prog, n_shots, symmetrize_readout, qubits)
 
         if progress_callback is not None:
             progress_callback(i, len(tomo_experiment))
