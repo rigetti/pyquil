@@ -22,7 +22,7 @@ Changelog
     de-risks breaking the `setup.py` and aids with testing (@karalekas, gh-1017).
 -   We now calculate code coverage as part of the CI pipeline (@karalekas, gh-1052).
 -   Moved the program generation from `measure_observables` into its 
-    own private method (@kylegulshen, gh-1043).
+    own private function (@kylegulshen, gh-1043).
     
 ### Bugfixes
 
