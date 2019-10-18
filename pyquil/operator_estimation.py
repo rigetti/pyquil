@@ -18,6 +18,7 @@ from pyquil.api import QuantumComputer
 from pyquil.gates import *
 from pyquil.paulis import PauliTerm, sI, is_identity
 from math import pi
+from enum import IntEnum
 
 if sys.version_info < (3, 7):
     from pyquil.external.dataclasses import dataclass
@@ -25,6 +26,14 @@ else:
     from dataclasses import dataclass
 
 log = logging.getLogger(__name__)
+
+
+class SymmType(IntEnum):
+    EXHAUSTIVE = -1
+    NONE = 0
+    ONE = 1
+    TWO = 2
+    THREE = 3
 
 
 @dataclass(frozen=True)
@@ -816,8 +825,9 @@ class ExperimentResult:
 
 def measure_observables(qc: QuantumComputer, tomo_experiment: TomographyExperiment,
                         n_shots: int = 10000, progress_callback=None, active_reset=False,
-                        symmetrize_readout: Optional[Union[str, int]] = 'exhaustive',
+                        symmetrize_readout: Optional[str] = 'None',
                         calibrate_readout: Optional[str] = 'plus-eig',
+                        symm_type: Union[SymmType, int] = -1,
                         readout_symmetrize: Optional[str] = None):
     """
     Measure all the observables in a TomographyExperiment.
@@ -833,10 +843,9 @@ def measure_observables(qc: QuantumComputer, tomo_experiment: TomographyExperime
         to True is much faster but there is a ~1% error per qubit in the reset operation.
         Thermal noise from "traditional" reset is not routinely characterized but is of the same
         order.
-    :param symmetrize_readout: the level of readout symmetrization to perform for the estimation
-        and optional calibration of each observable. Specifying the string `exhaustive` is
-        equivalent to -1 below, whereas None is equivalent to 0 below. The following integer
-        levels are currently supported:
+    :param symm_type: the level of readout symmetrization to perform for the estimation
+        and optional calibration of each observable. The following integer levels are currently
+        supported:
 
         * -1 -- exhaustive symmetrization uses every possible combination of flips
         * 0 -- no symmetrization
@@ -851,24 +860,21 @@ def measure_observables(qc: QuantumComputer, tomo_experiment: TomographyExperime
     :param calibrate_readout: Method used to calibrate the readout results. Currently, the only
         method supported is normalizing against the operator's expectation value in its +1
         eigenstate, which can be specified by setting this variable to 'plus-eig' (default value).
-        The preceding symmetrization and this step together yield a more accurate estimation of the observable. Set to `None` if no calibration is desired.
+        The preceding symmetrization and this step together yield a more accurate estimation of the
+        observable. Set to `None` if no calibration is desired.
     """
-    if readout_symmetrize is not None:
-        warnings.warn("'readout_symmetrize' has been renamed to 'symmetrize_readout'",
+    if readout_symmetrize is not None or symmetrize_readout != 'None':
+        warnings.warn("Symmetrization is now specified as an integer 'symm_type'.",
                       DeprecationWarning)
-        symmetrize_readout = readout_symmetrize
-
-    symm_type = 0
-    if symmetrize_readout is not None:
+        if readout_symmetrize is not None:
+            symmetrize_readout = readout_symmetrize
         if symmetrize_readout == 'exhaustive':
-            symm_type = -1
-        elif symmetrize_readout in [-1, 0, 1, 2, 3]:
-            symm_type = symmetrize_readout
-        else:
-            raise ValueError("Readout symmetrization must be an int from -1 to 3 inclusive.")
+            symm_type = SymmType.EXHAUSTIVE
+        elif symmetrize_readout is None:
+            symm_type = SymmType.NONE
 
     # calibration readout only works with symmetrization turned on
-    if calibrate_readout is not None and symm_type != -1:
+    if calibrate_readout is not None and symm_type != SymmType.EXHAUSTIVE:
         raise ValueError("Readout calibration only currently works with exhaustive readout "
                          "symmetrization turned on.")
 
@@ -1053,49 +1059,6 @@ def ratio_variance(a: Union[float, np.ndarray],
     :param var_b: Variance in 'B'
     """
     return var_a / b**2 + (a**2 * var_b) / b**4
-
-
-def _exhaustive_symmetrization(qc: QuantumComputer, qubits: List[int],
-                               shots: int, prog: Program) -> (np.ndarray, Dict):
-    """
-    Perform exhaustive symmetrization
-
-    :param qc: A QuantumComputer which can run quantum programs
-    :param qubits: qubits on which the symmetrization program runs
-    :param shots: number of shots in the symmetrized program
-    :prog: program to symmetrize
-    :return: - the equivalent of a `run` output, but with exhaustive symmetrization
-             - dict keyed by qubit, valued by index of the numpy array containing
-                    bitstring results
-    """
-    # Symmetrize -- flip qubits pre-measurement
-    n_shots_symm = int(round(np.ceil(shots / 2**len(qubits))))
-    if n_shots_symm * 2**len(qubits) > shots:
-        warnings.warn(f"Symmetrization increasing number of shots from {shots} to {round(n_shots_symm * 2**len(qubits))}")
-    list_bitstrings_symm = []
-    for ops_bool in itertools.product([0, 1], repeat=len(qubits)):
-        total_prog_symm = prog.copy()
-        prog_symm = _ops_bool_to_prog(ops_bool, qubits)
-        total_prog_symm += prog_symm
-        # Run the experiment
-        dict_qub_idx = {}
-        ro = total_prog_symm.declare('ro', 'BIT', len(qubits))
-        for i, q in enumerate(qubits):
-            total_prog_symm += MEASURE(q, ro[i])
-            # Keep track of qubit-classical register mapping via dict
-            dict_qub_idx[q] = i
-        total_prog_symm.wrap_in_numshots_loop(n_shots_symm)
-        total_prog_symm_native = qc.compiler.quil_to_native_quil(total_prog_symm)
-        total_prog_symm_bin = qc.compiler.native_quil_to_executable(total_prog_symm_native)
-        bitstrings_symm = qc.run(total_prog_symm_bin)
-        # Flip the results post-measurement
-        bitstrings_symm = bitstrings_symm ^ ops_bool
-        # Gather together the symmetrized results into list
-        list_bitstrings_symm.append(bitstrings_symm)
-
-    # Gather together all the symmetrized results
-    bitstrings = reduce(lambda x, y: np.vstack((x, y)), list_bitstrings_symm)
-    return bitstrings, dict_qub_idx
 
 
 def _calibration_program(qc: QuantumComputer, tomo_experiment: TomographyExperiment,

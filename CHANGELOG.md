@@ -18,6 +18,8 @@ Changelog
 
 -   Added a `Makefile` with some simple targets for performing common build
     operations like creating and uploading a package (@karalekas, gh-1032).
+-   Replaced symmetrization in `operator_estimation` with functionality
+    from `api._quantum_computer` (@kylegulshen, gh-1047).
 
 ### Bugfixes
 
