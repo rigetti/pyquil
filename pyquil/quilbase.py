@@ -327,7 +327,7 @@ class DefGate(AbstractInstruction):
 
             :param element: {int, float, complex, str} The parameterized element to format.
             """
-            if isinstance(element, int) or isinstance(element, (float, complex, np.int_)):
+            if isinstance(element, (int, float, complex, np.int_)):
                 return format_parameter(element)
             elif isinstance(element, str):
                 return element
