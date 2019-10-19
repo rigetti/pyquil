@@ -501,11 +501,11 @@ Let's take a look at how we could use a ``CNOT`` gate in pyQuil.
 
     CNOT|10> =  (1+0j)|10>
     With outcome probabilities
-     {'00': 0.0, '01': 0.0, '10': 1.0, '11': 0.0}
+     {'00': 0.0, '01': 1.0, '10': 0.0, '11': 0.0} #changed the prob it should be '01' if q[0] is control bit
 
     CNOT|11> =  (1+0j)|01>
     With outcome probabilities
-     {'00': 0.0, '01': 1.0, '10': 0.0, '11': 0.0}
+     {'00': 0.0, '01': 0.0, '10': 1.0, '11': 0.0} #changed the prob it should be "10" at 1.0 
 
 
 The ``CNOT`` gate does what its name implies: the state of the second qubit is flipped
@@ -540,7 +540,7 @@ and :math:`|10\rangle` states:
 
     SWAP|01> =  (1+0j)|10>
     With outcome probabilities
-     {'00': 0.0, '01': 0.0, '10': 1.0, '11': 0.0}
+     {'00': 0.0, '01': 1.0, '10': 0.0, '11': 0.0} #changed the prob it should be '01' 1.0
 
 In summary, quantum computing operations are composed of a series of
 complex matrices applied to complex vectors. These matrices must be unitary (meaning that
