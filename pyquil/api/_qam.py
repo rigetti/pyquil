@@ -17,7 +17,7 @@ import warnings
 
 from abc import ABC, abstractmethod
 from collections import defaultdict
-from typing import List, Union
+from typing import List, Optional, Union
 
 import numpy as np
 from rpcq.messages import ParameterAref
@@ -102,7 +102,7 @@ class QAM(ABC):
             region_name: str,
             bitmask: List[int] = None,
             expectation: bool = False,
-            correlation: Union[bool, List[bool], List[List[bool]]] = False,
+            correlation: Optional[Union[List[int], List[List[int]]]] = None,
             mean: bool = False,
     ) -> np.ndarray:
         """
@@ -121,22 +121,26 @@ class QAM(ABC):
             return self._memory_results[region_name]
 
         bitstrings = self._memory_results[region_name].copy()
+
         if bitmask is not None:
             bitstrings = np.bitwise_xor(bitstrings, bitmask)
+
         if expectation:
             bitstrings[bitstrings == 1] = -1
             bitstrings[bitstrings == 0] = 1
-        if correlation is True:
+
+        if correlation is not None:
             region_size = len(bitstrings[0])
-            bitstrings = np.atleast_2d(np.prod(bitstrings, axis=1, where=[True] * region_size)).T
-        elif isinstance(correlation, list):
-            if isinstance(correlation[0], bool):
-                bitstrings = np.atleast_2d(np.prod(bitstrings, axis=1, where=correlation)).T
-            elif isinstance(correlation[0], list):
-                bitstrings = np.stack([np.prod(bitstrings, axis=1, where=c) for c in correlation],
-                                      axis=-1)
-            else:
-                raise ValueError('Elements of a correlation list must be bool or list')
+            if isinstance(correlation, list) and isinstance(correlation[0], int):
+                correlation = [correlation]
+
+            bits = []
+            for c in correlation:
+                where = np.zeros(region_size, dtype=bool)
+                np.put(where, c, np.array([True]))
+                bits.append(np.prod(bitstrings, axis=1, where=where))
+            bitstrings = np.stack(bits, axis=-1)
+
         if mean:
             bitstrings = np.mean(bitstrings, axis=0)
 

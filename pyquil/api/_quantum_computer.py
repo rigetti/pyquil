@@ -17,7 +17,7 @@ import re
 import socket
 import warnings
 from math import pi, log
-from typing import List, Dict, Tuple, Iterator, Union
+from typing import List, Dict, Tuple, Iterator, Optional, Union
 import itertools
 
 import subprocess
@@ -111,9 +111,9 @@ class QuantumComputer:
             executable: Executable,
             memory_map: Dict[str, List[Union[int, float]]] = None,
             *,
-            bitmask: List[int] = None,
+            bitmask: Optional[List[int]] = None,
             expectation: bool = False,
-            correlation: Union[bool, List[bool], List[List[bool]]] = False,
+            correlation: Optional[Union[List[int], List[List[int]]]] = None,
             mean: bool = False) -> np.ndarray:
         """
         Run a quil executable. If the executable contains declared parameters, then a memory
