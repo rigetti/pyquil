@@ -103,7 +103,7 @@ class QAM(ABC):
             bitmask: List[int] = None,
             expectation: bool = False,
             correlation: Optional[Union[List[int], List[List[int]]]] = None,
-            mean: bool = False,
+            statistics: bool = False,
     ) -> np.ndarray:
         """
         Reads from a memory region named region_name on the QAM.
@@ -120,17 +120,17 @@ class QAM(ABC):
         if not modify_output:
             return self._memory_results[region_name]
 
-        bitstrings = self._memory_results[region_name].copy()
+        output = self._memory_results[region_name].copy()
 
         if bitmask is not None:
-            bitstrings = np.bitwise_xor(bitstrings, bitmask)
+            output = np.bitwise_xor(output, bitmask)
 
         if expectation:
-            bitstrings[bitstrings == 1] = -1
-            bitstrings[bitstrings == 0] = 1
+            output[output == 1] = -1
+            output[output == 0] = 1
 
         if correlation is not None:
-            region_size = len(bitstrings[0])
+            region_size = len(output[0])
             if isinstance(correlation, list) and isinstance(correlation[0], int):
                 correlation = [correlation]
 
@@ -138,13 +138,15 @@ class QAM(ABC):
             for c in correlation:
                 where = np.zeros(region_size, dtype=bool)
                 np.put(where, c, np.array([True]))
-                bits.append(np.prod(bitstrings, axis=1, where=where))
-            bitstrings = np.stack(bits, axis=-1)
+                bits.append(np.prod(output, axis=1, where=where))
+            output = np.stack(bits, axis=-1)
 
-        if mean:
-            bitstrings = np.mean(bitstrings, axis=0)
+        if statistics:
+            means = np.mean(output, axis=0)
+            standard_errors = np.std(output, axis=0, ddof=1) / np.sqrt(len(output))
+            output = np.stack((means, standard_errors), axis=-1)
 
-        return bitstrings
+        return output
 
     @_record_call
     def read_from_memory_region(self, *, region_name: str):
