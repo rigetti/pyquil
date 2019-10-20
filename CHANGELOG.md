@@ -24,6 +24,7 @@ Changelog
 -   Moved the program generation from `measure_observables` into its own private
     function (@kylegulshen, gh-1043).
 -   All uses of `__future__` and `six` have been dropped (@karalekas, gh-1060).
+-   The `conftest.py` has been moved to the project root dir (@karalekas, gh-1064).
     
 ### Bugfixes
 
