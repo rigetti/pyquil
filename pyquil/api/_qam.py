@@ -101,7 +101,7 @@ class QAM(ABC):
             *,
             region_name: str,
             expectation: bool = False,
-            correllation: Union[bool, List[bool]] = False,
+            correlation: Union[bool, List[bool], List[List[bool]]] = False,
             mean: bool = False,
     ) -> np.ndarray:
         """
@@ -115,7 +115,7 @@ class QAM(ABC):
         """
         assert self.status == 'done'
 
-        modify_output = any([expectation, correllation, mean])
+        modify_output = any([expectation, correlation, mean])
         if not modify_output:
             return self._memory_results[region_name]
 
@@ -123,13 +123,20 @@ class QAM(ABC):
         if expectation:
             bitstrings[bitstrings == 1] = -1
             bitstrings[bitstrings == 0] = 1
-        if correllation is True:
+        if correlation is True:
             region_size = len(bitstrings[0])
-            bitstrings = np.prod(bitstrings, axis=1, where=[True] * region_size)
-        elif isinstance(correllation, list):
-            bitstrings = np.prod(bitstrings, axis=1, where=correllation)
+            bitstrings = np.atleast_2d(np.prod(bitstrings, axis=1, where=[True] * region_size)).T
+        elif isinstance(correlation, list):
+            if isinstance(correlation[0], bool):
+                bitstrings = np.atleast_2d(np.prod(bitstrings, axis=1, where=correlation)).T
+            elif isinstance(correlation[0], list):
+                bitstrings = np.stack([np.prod(bitstrings, axis=1, where=c) for c in correlation],
+                                      axis=-1)
+            else:
+                raise ValueError('Elements of a correlation list must be bool or list')
         if mean:
             bitstrings = np.mean(bitstrings, axis=0)
+
         return bitstrings
 
     @_record_call
