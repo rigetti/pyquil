@@ -17,6 +17,7 @@ import warnings
 
 from abc import ABC, abstractmethod
 from collections import defaultdict
+from typing import List, Union
 
 import numpy as np
 from rpcq.messages import ParameterAref
@@ -100,6 +101,7 @@ class QAM(ABC):
             *,
             region_name: str,
             expectation: bool = False,
+            correllation: Union[bool, List[bool]] = False,
             mean: bool = False,
     ) -> np.ndarray:
         """
@@ -113,7 +115,7 @@ class QAM(ABC):
         """
         assert self.status == 'done'
 
-        modify_output = any([expectation, mean])
+        modify_output = any([expectation, correllation, mean])
         if not modify_output:
             return self._memory_results[region_name]
 
@@ -121,6 +123,11 @@ class QAM(ABC):
         if expectation:
             bitstrings[bitstrings == 1] = -1
             bitstrings[bitstrings == 0] = 1
+        if correllation is True:
+            region_size = len(bitstrings[0])
+            bitstrings = np.prod(bitstrings, axis=1, where=[True] * region_size)
+        elif isinstance(correllation, list):
+            bitstrings = np.prod(bitstrings, axis=1, where=correllation)
         if mean:
             bitstrings = np.mean(bitstrings, axis=0)
         return bitstrings
