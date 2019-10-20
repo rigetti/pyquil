@@ -25,6 +25,8 @@ Changelog
     function (@kylegulshen, gh-1043).
 -   All uses of `__future__` and `six` have been dropped (@karalekas, gh-1060).
 -   The `conftest.py` has been moved to the project root dir (@karalekas, gh-1064).
+-   The code in `device.py` as been reorganized into a new `device` subdirectory
+    in a completely backwards-compatible fashion (@karalekas, gh-1066).
     
 ### Bugfixes
 
