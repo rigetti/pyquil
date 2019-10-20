@@ -94,7 +94,7 @@ class QAM(ABC):
         return self
 
     @_record_call
-    def read_memory(self, *, region_name: str):
+    def read_memory(self, *, region_name: str, expectation: bool = False):
         """
         Reads from a memory region named region_name on the QAM.
 
@@ -106,7 +106,15 @@ class QAM(ABC):
         """
         assert self.status == 'done'
 
-        return self._memory_results[region_name]
+        modify_output = any([expectation])
+        if not modify_output:
+            return self._memory_results[region_name]
+
+        bitstrings = self._memory_results[region_name].copy()
+        if expectation:
+            bitstrings[bitstrings == 1] = -1
+            bitstrings[bitstrings == 0] = 1
+        return bitstrings
 
     @_record_call
     def read_from_memory_region(self, *, region_name: str):

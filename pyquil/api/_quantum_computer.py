@@ -107,8 +107,11 @@ class QuantumComputer:
         return self.device.get_isa(oneq_type=oneq_type, twoq_type=twoq_type)
 
     @_record_call
-    def run(self, executable: Executable,
-            memory_map: Dict[str, List[Union[int, float]]] = None) -> np.ndarray:
+    def run(self,
+            executable: Executable,
+            memory_map: Dict[str, List[Union[int, float]]] = None,
+            *,
+            expectation: bool = False) -> np.ndarray:
         """
         Run a quil executable. If the executable contains declared parameters, then a memory
         map must be provided, which defines the runtime values of these parameters.
@@ -126,10 +129,11 @@ class QuantumComputer:
                     self.qam.write_memory(region_name=region_name, offset=offset, value=value)
         return self.qam.run() \
             .wait() \
-            .read_memory(region_name='ro')
+            .read_memory(region_name='ro', expectation=expectation)
 
     @_record_call
-    def run_symmetrized_readout(self, program: Program, trials: int, symm_type: int = 3,
+    def run_symmetrized_readout(
+            self, program: Program, trials: int, symm_type: int = 3,
                                     meas_qubits: List[int] = None) -> np.ndarray:
         r"""
         Run a quil program in such a way that the readout error is made symmetric. Enforcing
