@@ -16,7 +16,7 @@
 import warnings
 from abc import ABC, abstractmethod
 from collections import defaultdict
-from typing import Type, Dict, Tuple, Union, List, Sequence
+from typing import Type, Dict, Tuple, Union, List, Sequence, Optional
 
 import numpy as np
 from numpy.random.mtrand import RandomState
@@ -249,16 +249,14 @@ class PyQVM(QAM):
             self,
             *,
             region_name: str,
-            bitmask: List[int] = None,
-            expectation: bool = False,
-            correlation: Union[bool, List[bool], List[List[bool]]] = False,
-            mean: bool = False,
+            bitmask: Optional[List[int]] = None,
+            expectations: Optional[Union[List[int], List[List[int]]]] = None,
+            statistics: bool = False,
     ) -> np.ndarray:
         return np.asarray(super().read_memory(region_name=region_name,
                                               bitmask=bitmask,
-                                              expectation=expectation,
-                                              correlation=correlation,
-                                              mean=mean))
+                                              expectations=expectations,
+                                              statistics=statistics))
 
     def find_label(self, label: Label):
         """

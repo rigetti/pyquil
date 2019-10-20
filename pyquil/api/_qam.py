@@ -100,9 +100,8 @@ class QAM(ABC):
             self,
             *,
             region_name: str,
-            bitmask: List[int] = None,
-            expectation: bool = False,
-            correlation: Optional[Union[List[int], List[List[int]]]] = None,
+            bitmask: Optional[List[int]] = None,
+            expectations: Optional[Union[List[int], List[List[int]]]] = None,
             statistics: bool = False,
     ) -> np.ndarray:
         """
@@ -116,31 +115,33 @@ class QAM(ABC):
         """
         assert self.status == 'done'
 
-        modify_output = any([bitmask, expectation, correlation, mean])
+        modify_output = any([bitmask, expectations, statistics])
         if not modify_output:
             return self._memory_results[region_name]
 
         output = self._memory_results[region_name].copy()
 
+        # apply bitmask via XOR
         if bitmask is not None:
             output = np.bitwise_xor(output, bitmask)
 
-        if expectation:
+        # compute single-qubit and joint expectation values
+        if expectations is not None:
             output[output == 1] = -1
             output[output == 0] = 1
 
-        if correlation is not None:
             region_size = len(output[0])
-            if isinstance(correlation, list) and isinstance(correlation[0], int):
-                correlation = [correlation]
+            if isinstance(expectations, list) and isinstance(expectations[0], int):
+                expectations = [expectations]
 
             bits = []
-            for c in correlation:
+            for e in expectations:
                 where = np.zeros(region_size, dtype=bool)
-                np.put(where, c, np.array([True]))
+                np.put(where, e, np.array([True]))
                 bits.append(np.prod(output, axis=1, where=where))
             output = np.stack(bits, axis=-1)
 
+        # gather statistics (mean and standard error)
         if statistics:
             means = np.mean(output, axis=0)
             standard_errors = np.std(output, axis=0, ddof=1) / np.sqrt(len(output))

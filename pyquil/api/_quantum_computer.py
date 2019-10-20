@@ -112,8 +112,7 @@ class QuantumComputer:
             memory_map: Dict[str, List[Union[int, float]]] = None,
             *,
             bitmask: Optional[List[int]] = None,
-            expectation: bool = False,
-            correlation: Optional[Union[List[int], List[List[int]]]] = None,
+            expectations: Optional[Union[List[int], List[List[int]]]] = None,
             statistics: bool = False) -> np.ndarray:
         """
         Run a quil executable. If the executable contains declared parameters, then a memory
@@ -134,8 +133,7 @@ class QuantumComputer:
             .wait() \
             .read_memory(region_name='ro',
                          bitmask=bitmask,
-                         expectation=expectation,
-                         correlation=correlation,
+                         expectations=expectations,
                          statistics=statistics)
 
     @_record_call
