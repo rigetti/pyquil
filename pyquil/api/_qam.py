@@ -100,6 +100,7 @@ class QAM(ABC):
             self,
             *,
             region_name: str,
+            bitmask: List[int] = None,
             expectation: bool = False,
             correlation: Union[bool, List[bool], List[List[bool]]] = False,
             mean: bool = False,
@@ -115,11 +116,13 @@ class QAM(ABC):
         """
         assert self.status == 'done'
 
-        modify_output = any([expectation, correlation, mean])
+        modify_output = any([bitmask, expectation, correlation, mean])
         if not modify_output:
             return self._memory_results[region_name]
 
         bitstrings = self._memory_results[region_name].copy()
+        if bitmask is not None:
+            bitstrings = np.bitwise_xor(bitstrings, bitmask)
         if expectation:
             bitstrings[bitstrings == 1] = -1
             bitstrings[bitstrings == 0] = 1

@@ -111,6 +111,7 @@ class QuantumComputer:
             executable: Executable,
             memory_map: Dict[str, List[Union[int, float]]] = None,
             *,
+            bitmask: List[int] = None,
             expectation: bool = False,
             correlation: Union[bool, List[bool], List[List[bool]]] = False,
             mean: bool = False) -> np.ndarray:
@@ -132,6 +133,7 @@ class QuantumComputer:
         return self.qam.run() \
             .wait() \
             .read_memory(region_name='ro',
+                         bitmask=bitmask,
                          expectation=expectation,
                          correlation=correlation,
                          mean=mean)
