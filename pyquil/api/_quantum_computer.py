@@ -139,9 +139,11 @@ class QuantumComputer:
                          mean=mean)
 
     @_record_call
-    def run_symmetrized_readout(
-            self, program: Program, trials: int, symm_type: int = 3,
-                                    meas_qubits: List[int] = None) -> np.ndarray:
+    def run_symmetrized_readout(self,
+                                program: Program,
+                                trials: int,
+                                symm_type: int = 3,
+                                meas_qubits: List[int] = None) -> np.ndarray:
         r"""
         Run a quil program in such a way that the readout error is made symmetric. Enforcing
         symmetric readout error is useful in simplifying the assumptions in some near
