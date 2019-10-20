@@ -19,7 +19,6 @@
 import math
 from pyquil import Program, get_qc
 from pyquil.gates import H
-from six.moves import range
 
 
 def qubits_needed(number_of_sides):

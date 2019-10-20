@@ -23,12 +23,12 @@ from operator import mul
 
 import numpy as np
 import pytest
-from six.moves import range
 
-from pyquil.gates import I, RX, RZ, CNOT, H, X, PHASE
-from pyquil.paulis import PauliTerm, PauliSum, exponential_map, exponentiate_commuting_pauli_sum, \
-    ID, UnequalLengthWarning, exponentiate, trotterize, is_zero, check_commutation, commuting_sets, \
-    term_with_coeff, sI, sX, sY, sZ, ZERO, is_identity
+from pyquil.gates import RX, RZ, CNOT, H, X, PHASE
+from pyquil.paulis import (PauliTerm, PauliSum, exponential_map, exponentiate_commuting_pauli_sum,
+                           ID, UnequalLengthWarning, exponentiate, trotterize, is_zero,
+                           check_commutation, commuting_sets, term_with_coeff, sI, sX, sY, sZ,
+                           ZERO, is_identity)
 from pyquil.quil import Program
 
 

@@ -21,7 +21,6 @@ import warnings
 import itertools
 
 import numpy as np
-from six import integer_types
 
 OCTETS_PER_DOUBLE_FLOAT = 8
 OCTETS_PER_COMPLEX_DOUBLE = 2 * OCTETS_PER_DOUBLE_FLOAT
@@ -37,7 +36,8 @@ class Wavefunction(object):
         The elements of the wavefunction are ordered by bitstring. E.g., for two qubits the order
         is ``00, 01, 10, 11``, where the the bits **are ordered in reverse** by the qubit index,
         i.e., for qubits 0 and 1 the bitstring ``01`` indicates that qubit 0 is in the state 1.
-        See also :ref:`the related documentation section in the WavefunctionSimulator Overview <basis_ordering>`.
+        See also :ref:`the related documentation section in the WavefunctionSimulator Overview
+        <basis_ordering>`.
     """
 
     def __init__(self, amplitude_vector):
@@ -235,7 +235,7 @@ def _octet_bits(o):
     :return: The bits as a list in LSB-to-MSB order.
     :rtype: list
     """
-    if not isinstance(o, integer_types):
+    if not isinstance(o, int):
         raise TypeError("o should be an int")
     if not (0 <= o <= 255):
         raise ValueError("o should be between 0 and 255 inclusive")

@@ -14,7 +14,6 @@
 #    limitations under the License.
 ##############################################################################
 import numpy as np
-from six import integer_types
 from warnings import warn
 from fractions import Fraction
 
@@ -48,7 +47,7 @@ class Qubit(QuilAtom):
     """
 
     def __init__(self, index):
-        if not (isinstance(index, integer_types) and index >= 0):
+        if not (isinstance(index, int) and index >= 0):
             raise TypeError("Addr index must be a non-negative int")
         self.index = index
 
@@ -111,7 +110,7 @@ def unpack_qubit(qubit):
     :param qubit: An int or Qubit.
     :return: A Qubit instance
     """
-    if isinstance(qubit, integer_types):
+    if isinstance(qubit, int):
         return Qubit(qubit)
     elif isinstance(qubit, Qubit):
         return qubit
@@ -199,7 +198,7 @@ def format_parameter(element):
 
     :param element: {int, float, long, complex, Parameter} Formats a parameter for Quil output.
     """
-    if isinstance(element, integer_types) or isinstance(element, np.int_):
+    if isinstance(element, int) or isinstance(element, np.int_):
         return repr(element)
     elif isinstance(element, float):
         return _check_for_pi(element)
@@ -571,7 +570,7 @@ class MemoryReference(QuilAtom, Expression):
     """
 
     def __init__(self, name, offset=0, declared_size=None):
-        if not isinstance(offset, integer_types) or offset < 0:
+        if not isinstance(offset, int) or offset < 0:
             raise TypeError("MemoryReference offset must be a non-negative int")
         self.name = name
         self.offset = offset
@@ -626,6 +625,6 @@ class Addr(MemoryReference):
 
     def __init__(self, value):
         warn("Addr objects have been deprecated. Defaulting to memory region \"ro\". Use MemoryReference instead.")
-        if not isinstance(value, integer_types) or value < 0:
+        if not isinstance(value, int) or value < 0:
             raise TypeError("Addr value must be a non-negative int")
         super(Addr, self).__init__("ro", offset=value, declared_size=None)
