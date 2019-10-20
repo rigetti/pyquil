@@ -18,6 +18,7 @@ import warnings
 from abc import ABC, abstractmethod
 from collections import defaultdict
 
+import numpy as np
 from rpcq.messages import ParameterAref
 
 from pyquil.api._error_reporting import _record_call
@@ -94,7 +95,13 @@ class QAM(ABC):
         return self
 
     @_record_call
-    def read_memory(self, *, region_name: str, expectation: bool = False):
+    def read_memory(
+            self,
+            *,
+            region_name: str,
+            expectation: bool = False,
+            mean: bool = False,
+    ) -> np.ndarray:
         """
         Reads from a memory region named region_name on the QAM.
 
@@ -106,7 +113,7 @@ class QAM(ABC):
         """
         assert self.status == 'done'
 
-        modify_output = any([expectation])
+        modify_output = any([expectation, mean])
         if not modify_output:
             return self._memory_results[region_name]
 
@@ -114,6 +121,8 @@ class QAM(ABC):
         if expectation:
             bitstrings[bitstrings == 1] = -1
             bitstrings[bitstrings == 0] = 1
+        if mean:
+            bitstrings = np.mean(bitstrings, axis=0)
         return bitstrings
 
     @_record_call

@@ -111,7 +111,8 @@ class QuantumComputer:
             executable: Executable,
             memory_map: Dict[str, List[Union[int, float]]] = None,
             *,
-            expectation: bool = False) -> np.ndarray:
+            expectation: bool = False,
+            mean: bool = False) -> np.ndarray:
         """
         Run a quil executable. If the executable contains declared parameters, then a memory
         map must be provided, which defines the runtime values of these parameters.
@@ -129,7 +130,7 @@ class QuantumComputer:
                     self.qam.write_memory(region_name=region_name, offset=offset, value=value)
         return self.qam.run() \
             .wait() \
-            .read_memory(region_name='ro', expectation=expectation)
+            .read_memory(region_name='ro', expectation=expectation, mean=mean)
 
     @_record_call
     def run_symmetrized_readout(
