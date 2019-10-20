@@ -245,8 +245,20 @@ class PyQVM(QAM):
         self.status = 'done'
         return self
 
-    def read_memory(self, *, region_name: str):
-        return np.asarray(self._memory_results[region_name])
+    def read_memory(
+            self,
+            *,
+            region_name: str,
+            bitmask: List[int] = None,
+            expectation: bool = False,
+            correlation: Union[bool, List[bool], List[List[bool]]] = False,
+            mean: bool = False,
+    ) -> np.ndarray:
+        return np.asarray(super().read_memory(region_name=region_name,
+                                              bitmask=bitmask,
+                                              expectation=expectation,
+                                              correlation=correlation,
+                                              mean=mean))
 
     def find_label(self, label: Label):
         """
