@@ -31,7 +31,7 @@ log = logging.getLogger(__name__)
 class SymmetrizationLevel(IntEnum):
     EXHAUSTIVE = -1
     NONE = 0
-    ONE = 1
+    OA_STRENGTH_1 = 1
     TWO = 2
     THREE = 3
 
@@ -910,7 +910,7 @@ def measure_observables(qc: QuantumComputer, tomo_experiment: TomographyExperime
         * 0 -- no symmetrization
         * 1 -- symmetrization using an OA with strength 1
         * 2 -- symmetrization using an OA with strength 2
-        * 3 -- symmetrization using an OA with strength 3
+        * 3 -- symmetrization using an orthogonal array (OA) with strength 3
 
         Note that (default) exhaustive symmetrization requires a number of QPU calls exponential in
         the number of qubits in the union of the support of the observables in any group of settings
@@ -929,7 +929,7 @@ def measure_observables(qc: QuantumComputer, tomo_experiment: TomographyExperime
 
     if symmetrize_readout is None:
         symmetrize_readout = SymmetrizationLevel.NONE
-        warnings.warn("'symmetrize_readout' should now be an int, 0 instead of none.",
+        warnings.warn("'symmetrize_readout' should now be an int, 0 instead of None.",
                       DeprecationWarning)
     elif symmetrize_readout == 'exhaustive':
         symmetrize_readout = SymmetrizationLevel.EXHAUSTIVE
