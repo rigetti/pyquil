@@ -253,10 +253,15 @@ class QuantumComputer:
         return bitstring_dict
 
     @_record_call
-    def compile(self, program: Program,
-                to_native_gates: bool = True,
-                optimize: bool = True,
-                protoquil: bool = None) -> Union[BinaryExecutableResponse, PyQuilExecutableResponse]:
+    def compile(
+            self,
+            program: Program,
+            to_native_gates: bool = True,
+            optimize: bool = True,
+            protoquil_positional: bool = None,
+            *,
+            protoquil: bool = None,
+    ) -> Union[BinaryExecutableResponse, PyQuilExecutableResponse]:
         """
         A high-level interface to program compilation.
 
@@ -278,6 +283,17 @@ class QuantumComputer:
             to protoquil (executable on QPU). A value of ``None`` means defer to server.
         :return: An executable binary suitable for passing to :py:func:`QuantumComputer.run`.
         """
+        if protoquil_positional is not None:
+            warnings.warn('Setting "protoquil" via a positional argument has been deprecated and '
+                          'will be removed in a future release. Please set it as a keyword arg.',
+                          category=FutureWarning)
+            if protoquil is not None:
+                warnings.warn('You have set "protoquil" via both a positional and keyword argument.'
+                              'Continuing with the value of the keyword argument.',
+                              category=FutureWarning)
+            else:
+                protoquil = protoquil_positional
+
         if isinstance(self.qam, QPU):
             self.reset()
 
