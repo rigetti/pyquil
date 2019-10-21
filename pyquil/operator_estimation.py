@@ -32,8 +32,8 @@ class SymmetrizationLevel(IntEnum):
     EXHAUSTIVE = -1
     NONE = 0
     OA_STRENGTH_1 = 1
-    TWO = 2
-    THREE = 3
+    OA_STRENGTH_2 = 2
+    OA_STRENGTH_3 = 3
 
 
 @dataclass(frozen=True)
@@ -903,13 +903,13 @@ def measure_observables(qc: QuantumComputer, tomo_experiment: TomographyExperime
         Thermal noise from "traditional" reset is not routinely characterized but is of the same
         order.
     :param symmetrize_readout: the level of readout symmetrization to perform for the estimation
-        and optional calibration of each observable. The following integer levels are currently
-        supported:
+        and optional calibration of each observable. The following integer level, encapsulated in
+        `SymmetrizationLevel`, are currently supported:
 
         * -1 -- exhaustive symmetrization uses every possible combination of flips
         * 0 -- no symmetrization
-        * 1 -- symmetrization using an OA with strength 1
-        * 2 -- symmetrization using an OA with strength 2
+        * 1 -- symmetrization using an orthogonal array (OA) with strength 1
+        * 2 -- symmetrization using an orthogonal array (OA) with strength 2
         * 3 -- symmetrization using an orthogonal array (OA) with strength 3
 
         Note that (default) exhaustive symmetrization requires a number of QPU calls exponential in
@@ -935,8 +935,9 @@ def measure_observables(qc: QuantumComputer, tomo_experiment: TomographyExperime
         symmetrize_readout = SymmetrizationLevel.EXHAUSTIVE
         warnings.warn("'symmetrize_readout' should now be an int, -1 instead of 'exhaustive'.",
                       DeprecationWarning)
-    elif symmetrize_readout not in {level.value for level in SymmetrizationLevel}:
-        raise ValueError("'symmetrize_readout' must be an int from -1 to 3 inclusive.")
+    elif symmetrize_readout not in list(SymmetrizationLevel):
+        raise Exception(f'The symmetrize_readout argument must be one of the following ints '
+                        f'{list(SymmetrizationLevel)}')
 
     # calibration readout only works with symmetrization turned on
     if calibrate_readout is not None and symmetrize_readout != SymmetrizationLevel.EXHAUSTIVE:
