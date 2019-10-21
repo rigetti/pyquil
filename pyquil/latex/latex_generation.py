@@ -128,22 +128,6 @@ def is_interval(indices):
 def interval(source, target):
     return list(range(min(source, target), max(source,target)+1))
 
-
-SOURCE_TARGET_OP = {
-    "CNOT": (TIKZ_CONTROL, TIKZ_CNOT_TARGET),
-    "SWAP": (TIKZ_SWAP, TIKZ_SWAP_TARGET),
-    "CZ": (TIKZ_CONTROL, lambda: TIKZ_GATE("Z")),
-    "CPHASE": (TIKZ_CONTROL, TIKZ_CPHASE_TARGET)
-}
-
-def qubit_indices(instr):
-    if isinstance(instr, Measurement):
-        return [instr.qubit.index]
-    elif isinstance(instr, Gate):
-        return [qubit.index for qubit in instr.qubits]
-    else:
-        return []
-
 #### TikZ operators ###
 
 def TIKZ_CONTROL(control, target):
@@ -185,6 +169,21 @@ def TIKZ_GATE_GROUP(qubits, width, label):
     num_qubits = max(qubits) - min(qubits) + 1
     return "\\gategroup[{qubits},steps={width},style={{dashed, rounded corners,fill=blue!20, inner xsep=2pt}}, background]{{{label}}}".format(
         qubits=num_qubits, width=width, label=label)
+
+SOURCE_TARGET_OP = {
+    "CNOT": (TIKZ_CONTROL, TIKZ_CNOT_TARGET),
+    "SWAP": (TIKZ_SWAP, TIKZ_SWAP_TARGET),
+    "CZ": (TIKZ_CONTROL, lambda: TIKZ_GATE("Z")),
+    "CPHASE": (TIKZ_CONTROL, TIKZ_CPHASE_TARGET)
+}
+
+def qubit_indices(instr):
+    if isinstance(instr, Measurement):
+        return [instr.qubit.index]
+    elif isinstance(instr, Gate):
+        return [qubit.index for qubit in instr.qubits]
+    else:
+        return []
 
 ### DiagramState
 
