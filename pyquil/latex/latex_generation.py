@@ -43,6 +43,9 @@ from collections import defaultdict
 # - texify params
 # - ... ?
 
+# TODO: option (DENSE vs SPARSE)
+# TODO: option (qubit labels)
+
 def to_latex(circuit, settings=None):
     """
     Translates a given pyquil Program to a TikZ picture in a Latex document.
@@ -122,16 +125,16 @@ def body(circuit, settings):
 PRAGMA_BEGIN_GROUP = 'LATEX_GATE_GROUP'
 PRAGMA_END_GROUP = 'END_LATEX_GATE_GROUP'
 
-def is_interval(indices):
-    return all(j == i + 1 for i,j in zip(indices, indices[1:]))
-
-def interval(source, target):
-    return list(range(min(source, target), max(source,target)+1))
+SPARSE_QUBIT_INTERVAL = True
+LABEL_QUBIT_LINES = True
 
 #### TikZ operators ###
 
-def TIKZ_CONTROL(control, target):
-    return r"\ctrl{{{offset}}}".format(offset=target-control)
+def TIKZ_LEFT_KET(qubit):
+    return r"\lstick{{\ket{{q_{{{qubit}}}}}}}".format(qubit=qubit)
+
+def TIKZ_CONTROL(control, offset):
+    return r"\ctrl{{{offset}}}".format(offset=offset)
 
 def TIKZ_CNOT_TARGET():
     return r"\targ{}"
@@ -139,8 +142,8 @@ def TIKZ_CNOT_TARGET():
 def TIKZ_CPHASE_TARGET():
     return r"\control{}"
 
-def TIKZ_SWAP(source, target):
-    return "\swap{{{offset}}}".format(offset=target-source)
+def TIKZ_SWAP(source, offset):
+    return "\swap{{{offset}}}".format(offset=offset)
 
 def TIKZ_SWAP_TARGET():
     return r"\targX{}"
@@ -189,7 +192,7 @@ def qubit_indices(instr):
 
 class DiagramState:
     def __init__(self, qubits):
-        self.all_qubits = range(min(qubits), max(qubits) + 1)
+        self.all_qubits = sorted(qubits) if SPARSE_QUBIT_INTERVAL else range(min(qubits), max(qubits) + 1)
         self.lines = defaultdict(list)
 
     def extend_lines_to_common_edge(self, qubits, offset=0):
@@ -234,6 +237,17 @@ class DiagramState:
                 self.append(q, op)
         return self
 
+    def interval(self, low, high):
+        """
+        All qubits in the diagram, from low to high, inclusive.
+        """
+        full_interval = range(low, high+1)
+        qubits = list(set(full_interval) & set(self.all_qubits))
+        return sorted(qubits)
+
+    def is_interval(self, qubits):
+        return qubits == self.interval(min(qubits), max(qubits))
+
 class DiagramBuilder:
     def __init__(self, circuit):
         self.circuit = circuit
@@ -244,8 +258,11 @@ class DiagramBuilder:
         self.diagram = DiagramState(self.circuit.get_qubits())
         self.index = 0
 
-        # initial exposed wires
-        self.diagram.extend_lines_to_common_edge(self.diagram.all_qubits, offset=1)
+        if LABEL_QUBIT_LINES:
+            for qubit in self.diagram.all_qubits:
+                self.diagram.append(qubit, TIKZ_LEFT_KET(qubit))
+        else: # initial exposed wires
+            self.diagram.extend_lines_to_common_edge(self.diagram.all_qubits, offset=1)
 
         while self.index < len(self.circuit):
             instr = self.circuit[self.index]
@@ -295,10 +312,11 @@ class DiagramBuilder:
     def _build_custom_source_target_op(self):
         instr = self.circuit[self.index]
         source, target = qubit_indices(instr)
-        displaced = interval(source, target)
+        displaced = self.diagram.interval(min(source, target), max(source, target))
         self.diagram.extend_lines_to_common_edge(displaced)
         source_op, target_op = SOURCE_TARGET_OP[instr.name]
-        self.diagram.append(source, source_op(source, target))
+        offset = (len(displaced) - 1)*(-1 if source > target else 1)
+        self.diagram.append(source, source_op(source, offset))
         self.diagram.append(target, target_op())
         self.diagram.extend_lines_to_common_edge(displaced)
         self.index += 1
@@ -320,7 +338,7 @@ class DiagramBuilder:
 
         control_qubits = qubits[:controls]
         target_qubits = qubits[controls:]
-        if not is_interval(sorted(target_qubits)):
+        if not self.diagram.is_interval(sorted(target_qubits)):
             raise ValueError("Unable to render instruction {} which targets non-adjacent qubits.".format(instr))
 
         for q in control_qubits:
@@ -332,3 +350,4 @@ class DiagramBuilder:
             self.diagram.append(q, TIKZ_NOP())
 
         self.index += 1
+
