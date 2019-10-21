@@ -78,7 +78,7 @@ The compiler connection is also available directly via the property ``qc.compile
 precise class of this object changes based on context (e.g., ``QPUCompiler``,
 ``QVMCompiler``), but it always conforms to the interface laid out by ``pyquil.api._qac``:
 
-* ``compiler.quil_to_native_quil(program, protoquil)``: This method converts a Quil program into
+* ``compiler.quil_to_native_quil(program, *, protoquil)``: This method converts a Quil program into
   native Quil, according to the ISA that the compiler is initialized with.  The input parameter is
   specified as a :py:class:`~pyquil.quil.Program` object. The optional ``protoquil`` keyword
   argument instructs the compiler to restrict both its input and output to protoquil (Quil code that

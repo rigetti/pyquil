@@ -33,7 +33,7 @@ class AbstractCompiler(ABC):
         raise NotImplementedError
 
     @abstractmethod
-    def quil_to_native_quil(self, program: Program, protoquil=None) -> Program:
+    def quil_to_native_quil(self, program: Program, *, protoquil=None) -> Program:
         """
         Compile an arbitrary quil program according to the ISA of target_device.
 
