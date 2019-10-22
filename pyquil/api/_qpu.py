@@ -311,4 +311,8 @@ support at support@rigetti.com.""")
             return Client(new_endpoint, timeout)
 
         pyquil_config = PyquilConfig()
-        self.client = refresh_client(self.client, pyquil_config.qpu_url)
+        if pyquil_config.qpu_url is not None:
+            endpoint = pyquil_config.qpu_url
+        else:
+            endpoint = self.client.endpoint
+        self.client = refresh_client(self.client, endpoint)
