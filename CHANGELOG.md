@@ -28,7 +28,7 @@ Changelog
 -   Using `protoquil` as a positional argument to `qc.compile` has been deprecated,
     and it is now a keyword-only argument (@karalekas, gh-1071).
 -   In `QPU.reset()` check whether `pyquil_config.qpu_url` exists before changing
-    the endpoint (@kylegulshen, gh-1071).
+    the endpoint (@kylegulshen, gh-1072).
     
 ### Bugfixes
 
