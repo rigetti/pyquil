@@ -34,30 +34,48 @@
 from copy import copy
 from warnings import warn
 
+from pyquil import Program
 from pyquil.quil import Measurement, Gate, Pragma
-from pyquil.quilbase import _format_params
+from pyquil.quilatom import format_parameter
 from collections import defaultdict
+from dataclasses import dataclass
+from typing import Optional
 
-# TODO: consider what settings are meaningful
-# - texify names
-# - texify params
-# - ... ?
+@dataclass
+class DiagramSettings:
+    texify_numerical_constants: bool = True
+    """
+    Numerical constants (e.g. Pi) will be converted to pretty latex form.
+    """
 
-# TODO: option (DENSE vs SPARSE)
-# TODO: option (qubit labels)
+    impute_missing_qubits: bool = False
+    """
+    Include qubits with indices between those explicitly referenced in the Quil program.
 
-def to_latex(circuit, settings=None):
+    For example, if true, the diagram for `CNOT 0 2` would have three qubit lines: 0, 1, 2.
+    """
+
+    label_qubit_lines: bool = True
+    """
+    Label qubit lines.
+    """
+
+    abbreviate_controlled_rotations: bool = False
+    """
+    Write controlled rotations such as `RX(pi)` as `X_{\pi}`, instead of the longer `R_X(\pi)`
+    """
+
+def to_latex(circuit: Program, settings: Optional[DiagramSettings]=None):
     """
     Translates a given pyquil Program to a TikZ picture in a Latex document.
 
     :param Program circuit: The circuit to be drawn, represented as a pyquil program.
-    :param dict settings: An optional dictionary with settings for drawing the circuit.
-        See `get_default_settings` in `latex_config` for more information about what settings
-        should contain.
+    :param DiagramSettings settings: An optional object of settings controlling diagram rendering and layout.
     :return: LaTeX document string which can be compiled.
     :rtype: string
     """
-    settings = None
+    if settings is None:
+        settings = DiagramSettings()
     text = header(settings)
     text += "\n"
     text += body(circuit, settings)
@@ -111,22 +129,19 @@ def body(circuit, settings):
     """
 
 
-    diagram = DiagramBuilder(circuit).build()
+    diagram = DiagramBuilder(circuit, settings).build()
 
     # flush lines
     quantikz_out = []
-    for qubit in diagram.all_qubits:
+    for qubit in diagram.qubits:
         quantikz_out.append(" & ".join(diagram.lines[qubit]))
 
     return " \\\\\n".join(quantikz_out)
 
-### Utils
+### Constants ###
 
 PRAGMA_BEGIN_GROUP = 'LATEX_GATE_GROUP'
 PRAGMA_END_GROUP = 'END_LATEX_GATE_GROUP'
-
-SPARSE_QUBIT_INTERVAL = True
-LABEL_QUBIT_LINES = True
 
 #### TikZ operators ###
 
@@ -154,8 +169,22 @@ def TIKZ_NOP():
 def TIKZ_MEASURE():
     return r"\meter{}"
 
-def TIKZ_GATE(name, size=1, params=None, dagger=False):
+def _format_parameter(param, settings=None):
+    formatted = format_parameter(param)
+    if settings and settings.texify_numerical_constants:
+        # TODO we should do a better job than just dumb str.replace
+        formatted = formatted.replace("pi", "\pi")
+    return formatted
+
+def _format_parameters(params, settings=None):
+    return "(" + ",".join(_format_parameter(param, settings) for param in params) + ")"
+
+def TIKZ_GATE(name, size=1, params=None, dagger=False, settings=None):
     cmd = r"\gate"
+    if settings and settings.abbreviate_controlled_rotations and name in ["RX", "RY", "RZ"]:
+        name = name[1] + "_{{{param}}}".format(param=_format_parameter(params[0]))
+        return cmd + "{{{name}}}".format(name=name)
+    # now, handle the general case
     if size > 1:
         cmd += "[wires={size}]".format(size=size)
     # TeXify names
@@ -164,8 +193,7 @@ def TIKZ_GATE(name, size=1, params=None, dagger=False):
     if dagger:
         name += "^{\dagger}"
     if params:
-        # TODO we should do a better job than just dumb str.replace
-        name += _format_params(params).replace("pi", "\pi")
+        name += _format_parameters(params, settings)
     return cmd + "{{{name}}}".format(name=name)
 
 def TIKZ_GATE_GROUP(qubits, width, label):
@@ -192,7 +220,7 @@ def qubit_indices(instr):
 
 class DiagramState:
     def __init__(self, qubits):
-        self.all_qubits = sorted(qubits) if SPARSE_QUBIT_INTERVAL else range(min(qubits), max(qubits) + 1)
+        self.qubits = qubits
         self.lines = defaultdict(list)
 
     def extend_lines_to_common_edge(self, qubits, offset=0):
@@ -223,7 +251,7 @@ class DiagramState:
         Add all operations represented by the given diagram to their
         corresponding qubit lines in this diagram.
         """
-        grouped_qubits = diagram.all_qubits
+        grouped_qubits = diagram.qubits
         diagram.extend_lines_to_common_edge(grouped_qubits)
         # NOTE: this may create new lines, no big deal
         self.extend_lines_to_common_edge(grouped_qubits)
@@ -232,7 +260,7 @@ class DiagramState:
             q = grouped_qubits[0]
             self.lines[q][-1] += " " + TIKZ_GATE_GROUP(grouped_qubits, diagram.width(q), "")
         # append ops to this diagram
-        for q in diagram.all_qubits:
+        for q in diagram.qubits:
             for op in diagram.lines[q]:
                 self.append(q, op)
         return self
@@ -242,27 +270,30 @@ class DiagramState:
         All qubits in the diagram, from low to high, inclusive.
         """
         full_interval = range(low, high+1)
-        qubits = list(set(full_interval) & set(self.all_qubits))
+        qubits = list(set(full_interval) & set(self.qubits))
         return sorted(qubits)
 
     def is_interval(self, qubits):
         return qubits == self.interval(min(qubits), max(qubits))
 
 class DiagramBuilder:
-    def __init__(self, circuit):
+    def __init__(self, circuit, settings):
         self.circuit = circuit
+        self.settings = settings
         self.diagram = None
         self.index = 0
 
     def build(self):
-        self.diagram = DiagramState(self.circuit.get_qubits())
+        qubits = self.circuit.get_qubits()
+        all_qubits = range(min(qubits), max(qubits) + 1) if self.settings.impute_missing_qubits else sorted(qubits)
+        self.diagram = DiagramState(all_qubits)
         self.index = 0
 
-        if LABEL_QUBIT_LINES:
-            for qubit in self.diagram.all_qubits:
+        if self.settings.label_qubit_lines:
+            for qubit in self.diagram.qubits:
                 self.diagram.append(qubit, TIKZ_LEFT_KET(qubit))
         else: # initial exposed wires
-            self.diagram.extend_lines_to_common_edge(self.diagram.all_qubits, offset=1)
+            self.diagram.extend_lines_to_common_edge(self.diagram.qubits, offset=1)
 
         while self.index < len(self.circuit):
             instr = self.circuit[self.index]
@@ -286,7 +317,7 @@ class DiagramBuilder:
             else:
                 self.index += 1
 
-        self.diagram.extend_lines_to_common_edge(self.diagram.all_qubits, offset=1)
+        self.diagram.extend_lines_to_common_edge(self.diagram.qubits, offset=1)
         return self.diagram
 
     def _build_group(self):
@@ -325,7 +356,7 @@ class DiagramBuilder:
         instr = self.circuit[self.index]
         qubits = qubit_indices(instr)
         dagger = sum(m == 'DAGGER' for m in instr.modifiers) % 2 == 1
-        self.diagram.append(qubits[0], TIKZ_GATE(instr.name, params=instr.params, dagger=dagger))
+        self.diagram.append(qubits[0], TIKZ_GATE(instr.name, params=instr.params, dagger=dagger, settings=self.settings))
         self.index += 1
 
     def _build_generic_unitary(self):
