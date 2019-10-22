@@ -531,6 +531,9 @@ class PauliSum(object):
 
         return set(self.terms) == set(other.terms)
 
+    def __hash__(self):
+        return hash(frozenset(self.terms))
+
     def __str__(self):
         return " + ".join([str(term) for term in self.terms])
 
