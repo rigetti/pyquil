@@ -34,7 +34,7 @@ def test_fail_on_forked():
 def test_gate_group_pragma():
     "Check that to_latex does not fail on LATEX_GATE_GROUP pragma."
     p = Program()
-    p.inst(Pragma("LATEX_GATE_GROUP", ['foo']),
+    p.inst(Pragma("LATEX_GATE_GROUP", [], 'foo'),
            X(0),
            X(0),
            Pragma("END_LATEX_GATE_GROUP"),
@@ -47,7 +47,7 @@ def test_fail_on_bad_pragmas():
 
     # missing END_LATEX_GATE_GROUP
     with pytest.raises(ValueError):
-        _ = to_latex(Program(Pragma("LATEX_GATE_GROUP", ['foo']), X(0)))
+        _ = to_latex(Program(Pragma("LATEX_GATE_GROUP", [], 'foo'), X(0)))
 
     # missing LATEX_GATE_GROUP
     with pytest.raises(ValueError):

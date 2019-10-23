@@ -39,7 +39,7 @@ from pyquil.quil import Measurement, Gate, Pragma
 from pyquil.quilatom import format_parameter
 from pyquil.quilbase import AbstractInstruction
 from collections import defaultdict
-from dataclasses import dataclass
+from dataclasses import dataclass, replace
 from typing import Optional
 
 
@@ -89,6 +89,14 @@ class DiagramSettings:
     abbreviate_controlled_rotations: bool = False
     """
     Write controlled rotations such as `RX(pi)` as `X_{\\pi}`, instead of the longer `R_X(\\pi)`
+    """
+
+    qubit_line_open_wire_length: int = 1
+    """
+    The length by which qubit lines should be extended, at the right of the diagram, with open wires.
+
+    The default of 1 is the natural choice. The main reason for including this option is that it may
+    be appropriate for this to be 0 in subdiagrams.
     """
 
 
@@ -218,7 +226,7 @@ def _format_parameters(params, settings=None):
 def TIKZ_GATE(name, size=1, params=None, dagger=False, settings=None):
     cmd = r"\gate"
     if settings and settings.abbreviate_controlled_rotations and name in ["RX", "RY", "RZ"]:
-        name = name[1] + "_{{{param}}}".format(param=_format_parameter(params[0]))
+        name = name[1] + "_{{{param}}}".format(param=_format_parameter(params[0], settings))
         return cmd + "{{{name}}}".format(name=name)
     # now, handle the general case
     if size > 1:
@@ -283,23 +291,31 @@ class DiagramState:
         """
         self.lines[qubit].append(op)
 
-    def append_diagram(self, diagram, grouped=True):
+    def append_diagram(self, diagram, group=None):
         """
         Add all operations represented by the given diagram to their
         corresponding qubit lines in this diagram.
+
+        If group is not None, then a TIKZ_GATE_GROUP is created with the label indicated by group.
         """
         grouped_qubits = diagram.qubits
         diagram.extend_lines_to_common_edge(grouped_qubits)
         # NOTE: this may create new lines, no big deal
         self.extend_lines_to_common_edge(grouped_qubits)
-        # add tikz grouping command
-        if grouped:
-            q = grouped_qubits[0]
-            self.lines[q][-1] += " " + TIKZ_GATE_GROUP(grouped_qubits, diagram.width(q), "")
+
+        # record info for later (optional) group placement
+        # the group is marked with a rectangle. we compute the upper-left corner and the width of the rectangle
+        corner_row = grouped_qubits[0]
+        corner_col = len(self.lines[corner_row]) + 1
+        group_width = diagram.width(corner_row) - 1
+
         # append ops to this diagram
         for q in diagram.qubits:
             for op in diagram.lines[q]:
                 self.append(q, op)
+        # add tikz grouping command
+        if group is not None:
+            self.lines[corner_row][corner_col] += " " + TIKZ_GATE_GROUP(grouped_qubits, group_width, group)
         return self
 
     def interval(self, low, high):
@@ -370,7 +386,8 @@ class DiagramBuilder:
             else:
                 self.index += 1
 
-        self.diagram.extend_lines_to_common_edge(self.diagram.qubits, offset=1)
+        self.diagram.extend_lines_to_common_edge(self.diagram.qubits,
+                                                 offset=max(self.settings.qubit_line_open_wire_length, 0))
         return self.diagram
 
     def _build_group(self):
@@ -380,13 +397,20 @@ class DiagramBuilder:
         Advances the index beyond the ending pragma.
         """
         instr = self.circuit[self.index]
-        if len(instr.args) > 1:
-            raise ValueError("PRAGMA {} expected exactly one argument.".format(PRAGMA_BEGIN_GROUP))
-        for j in range(self.index + 1, len(self.circuit)):
+        if len(instr.args) != 0:
+            raise ValueError("PRAGMA {} expected a freeform string, or nothing at all.".format(PRAGMA_BEGIN_GROUP))
+        start = self.index + 1
+        # walk instructions until the group end
+        for j in range(start, len(self.circuit)):
             if isinstance(self.circuit[j], Pragma) and self.circuit[j].command == PRAGMA_END_GROUP:
                 # recursively build the diagram for this block
-                block = DiagramBuilder(self.circuit[(self.index + 1):j], self.settings).build()
-                self.diagram.append_diagram(block)
+                # we do not want labels here!
+                block_settings = replace(self.settings,
+                                         label_qubit_lines=False,
+                                         qubit_line_open_wire_length=0)
+                block = DiagramBuilder(self.circuit[start:j], block_settings).build()
+                block_name = instr.freeform_string if instr.freeform_string else ""
+                self.diagram.append_diagram(block, group=block_name)
                 # advance to the instruction following this one
                 self.index = j + 1
                 return
