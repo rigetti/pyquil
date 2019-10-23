@@ -35,11 +35,35 @@ from copy import copy
 from warnings import warn
 
 from pyquil import Program
-from pyquil.quil import Measurement, Gate, Pragma
+from pyquil.quil import Measurement, Gate, Pragma, Instruction
 from pyquil.quilatom import format_parameter
 from collections import defaultdict
 from dataclasses import dataclass
 from typing import Optional
+
+
+# Overview of LaTeX generation.
+#
+# The main entry point is the `to_latex` function below. Here are some high
+# points of the generation procedure:
+#
+# - The most basic building block are the TikZ operators, which are constructed
+#   by the functions below (e.g. TIKZ_CONTROL, TIKZ_NOP, TIKZ_MEASURE).
+# - TikZ operators are maintained by a DiagramState object, with roughly each
+#   qubit line in a diagram represented as a list of TikZ operators on the DiagramState.
+# - The DiagramBuilder is the actual driver. This traverses a Program and, for
+#   each instruction, performs a suitable manipulation of the DiagramState. At
+#   the end of this, the DiagramState is traversed and raw LaTeX is emitted.
+# - Most options are specified by DiagramSettings. One exception is this: it is possible
+#   to request that a certain subset of the program is rendered as a group (and colored
+#   as such). This is specified by a new pragma in the Program source:
+#
+#     PRAGMA LATEX_GATE_GROUP <name>?
+#     ...
+#     PRAGMA END_LATEX_GATE_GROUP
+#
+#   The <name> is optional, and will be used to label the group. Nested gate
+#   groups are currently not supported.
 
 
 @dataclass
@@ -67,9 +91,9 @@ class DiagramSettings:
     """
 
 
-def to_latex(circuit: Program, settings: Optional[DiagramSettings] = None):
+def to_latex(circuit: Program, settings: Optional[DiagramSettings] = None) -> str:
     """
-    Translates a given pyquil Program to a TikZ picture in a Latex document.
+    Translates a given pyquil Program to a TikZ picture in a LaTeX document.
 
     :param Program circuit: The circuit to be drawn, represented as a pyquil program.
     :param DiagramSettings settings: An optional object of settings controlling diagram rendering and layout.
@@ -88,7 +112,7 @@ def to_latex(circuit: Program, settings: Optional[DiagramSettings] = None):
 
 def header(settings):
     """
-    Writes the Latex header using the settings file.
+    Writes the LaTeX header using the settings file.
 
     The header includes all packages and defines all tikz styles.
 
@@ -103,8 +127,6 @@ def header(settings):
 
     init = (r"\begin{document}",
             r"\begin{tikzcd}")
-
-    # TODO: set styles?
 
     return "\n".join(("\n".join(packages), "\n".join(init)))
 
@@ -121,13 +143,13 @@ def footer():
 
 def body(circuit, settings):
     """
-    Return the body of the Latex document, including the entire circuit in
+    Return the body of the LaTeX document, including the entire circuit in
     TikZ format.
 
     :param Program circuit: The circuit to be drawn, represented as a pyquil program.
     :param dict settings:
 
-    :return: Latex string to draw the entire circuit.
+    :return: LaTeX string to draw the entire circuit.
     :rtype: string
     """
 
@@ -143,21 +165,11 @@ def body(circuit, settings):
 
 # Constants
 
-# Grouping in the rendered output is signalled by
-# enclosing it in pragmas:
-#
-#   PRAGMA LATEX_GATE_GROUP <name>?
-#   ...
-#   PRAGMA END_LATEX_GATE_GROUP
-#
-# The <name> is optional, and will be used to label the group. Nested gate
-# groups are currently not supported.
 
 PRAGMA_BEGIN_GROUP = 'LATEX_GATE_GROUP'
 PRAGMA_END_GROUP = 'END_LATEX_GATE_GROUP'
 
 # TikZ operators
-
 
 def TIKZ_LEFT_KET(qubit):
     return r"\lstick{{\ket{{q_{{{qubit}}}}}}}".format(qubit=qubit)
@@ -194,7 +206,6 @@ def TIKZ_MEASURE():
 def _format_parameter(param, settings=None):
     formatted = format_parameter(param)
     if settings and settings.texify_numerical_constants:
-        # TODO we should do a better job than just dumb str.replace
         formatted = formatted.replace("pi", r"\pi")
     return formatted
 
@@ -235,18 +246,15 @@ SOURCE_TARGET_OP = {
 }
 
 
-def qubit_indices(instr):
-    if isinstance(instr, Measurement):
-        return [instr.qubit.index]
-    elif isinstance(instr, Gate):
-        return [qubit.index for qubit in instr.qubits]
-    else:
-        return []
-
 # DiagramState
 
 
 class DiagramState:
+    """
+    A representation of a circuit diagram.
+
+    This maintains an ordered list of qubits, and for each qubit a 'line': that is, a list of TikZ operators.
+    """
     def __init__(self, qubits):
         self.qubits = qubits
         self.lines = defaultdict(list)
@@ -302,17 +310,32 @@ class DiagramState:
         return sorted(qubits)
 
     def is_interval(self, qubits):
+        """
+        Do the specified qubits correspond to an interval in this diagram?
+        """
         return qubits == self.interval(min(qubits), max(qubits))
 
 
 class DiagramBuilder:
+    """
+    Constructs DiagramStates from a given circuit and settings.
+
+    This is essentially a state machine, represented by a few instance variables and some mutually
+    recursive methods.
+    """
     def __init__(self, circuit, settings):
         self.circuit = circuit
         self.settings = settings
+        # partially constructed diagram
         self.diagram = None
+        # index into circuit. we maintain the invariant that circuit[0:index]
+        # has been processed, with the diagram updated accordingly
         self.index = 0
 
     def build(self):
+        """
+        Actually build the diagram.
+        """
         qubits = self.circuit.get_qubits()
         all_qubits = range(min(qubits), max(qubits) + 1) if self.settings.impute_missing_qubits else sorted(qubits)
         self.diagram = DiagramState(all_qubits)
@@ -350,6 +373,11 @@ class DiagramBuilder:
         return self.diagram
 
     def _build_group(self):
+        """
+        Update the partial diagram with the subcircuit delimited by the grouping PRAGMA.
+
+        Advances the index beyond the ending pragma.
+        """
         instr = self.circuit[self.index]
         if len(instr.args) > 1:
             raise ValueError("PRAGMA {} expected exactly one argument.".format(PRAGMA_BEGIN_GROUP))
@@ -365,11 +393,21 @@ class DiagramBuilder:
         raise ValueError("Unable to find PRAGMA {} matching {}".format(PRAGMA_END_GROUP, instr))
 
     def _build_measure(self):
+        """
+        Update the partial diagram with a measurement operation.
+
+        Advances the index by one.
+        """
         instr = self.circuit[self.index]
         self.diagram.append(instr.qubit.index, TIKZ_MEASURE())
         self.index += 1
 
     def _build_custom_source_target_op(self):
+        """
+        Update the partial diagram with a single operation involving a source and a target (e.g. a controlled gate, a swap).
+
+        Advances the index by one.
+        """
         instr = self.circuit[self.index]
         source, target = qubit_indices(instr)
         displaced = self.diagram.interval(min(source, target), max(source, target))
@@ -382,6 +420,11 @@ class DiagramBuilder:
         self.index += 1
 
     def _build_1q_unitary(self):
+        """
+        Update the partial diagram with a 1Q gate.
+
+        Advances the index by one.
+        """
         instr = self.circuit[self.index]
         qubits = qubit_indices(instr)
         dagger = sum(m == 'DAGGER' for m in instr.modifiers) % 2 == 1
@@ -389,6 +432,11 @@ class DiagramBuilder:
         self.index += 1
 
     def _build_generic_unitary(self):
+        """
+        Update the partial diagram with a unitary operation.
+
+        Advances the index by one.
+        """
         instr = self.circuit[self.index]
         qubits = qubit_indices(instr)
         dagger = sum(m == 'DAGGER' for m in instr.modifiers) % 2 == 1
@@ -410,3 +458,15 @@ class DiagramBuilder:
             self.diagram.append(q, TIKZ_NOP())
 
         self.index += 1
+
+
+def qubit_indices(instr: Instruction):
+    """
+    Get a list of indices associated with the given instruction.
+    """
+    if isinstance(instr, Measurement):
+        return [instr.qubit.index]
+    elif isinstance(instr, Gate):
+        return [qubit.index for qubit in instr.qubits]
+    else:
+        return []

@@ -7,9 +7,14 @@ from pyquil import Program
 from .latex_generation import to_latex
 
 
-def display(circuit: Program, settings=None, **image_options):
+def display(circuit: Program, settings=None, **image_options) -> Image:
     """
     Renders a PyQuil circuit as an IPython image object.
+
+    :param Program circuit: The circuit to be drawn, represented as a pyquil program.
+    :param DiagramSettings settings: An optional object of settings controlling diagram rendering and layout.
+    :return: PNG image render of the circuit.
+    :rtype: Image
     """
     pdflatex_path = shutil.which('pdflatex')
     convert_path = shutil.which('convert')
@@ -17,7 +22,7 @@ def display(circuit: Program, settings=None, **image_options):
     if pdflatex_path is None:
         raise FileNotFoundError("Unable to locate 'pdflatex'.")
     if convert_path is None:
-        raise FileNotFoundError("Unsable to locate 'convert'.")
+        raise FileNotFoundError("Unable to locate 'convert'.")
 
     with tempfile.TemporaryDirectory() as tmpdir:
         with open(os.path.join(tmpdir, 'diagram.tex'), 'w') as texfile:
