@@ -120,6 +120,11 @@ class QuantumComputer:
         :param executable: The program to run. You are responsible for compiling this first.
         :param memory_map: The mapping of declared parameters to their values. The values
             are a list of floats or integers.
+        :param bitmask: A list representing a bitmask that is XOR'ed with the resultant bitstrings.
+            Useful shorthand for running with readout symmetrization.
+        :param correlations: A list or list of lists denoting which bitstring correlations to
+            return, instead of the regular bitstring results. Useful shorthand for practical
+            applications which involve estimating a collection of observables.
         :return: A numpy array of shape (trials, len(ro-register)) that contains 0s and 1s.
         """
         self.qam.load(executable)
