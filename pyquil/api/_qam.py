@@ -110,6 +110,8 @@ class QAM(ABC):
         "ro" of type ``BIT``.
 
         :param region_name: The string naming the declared memory region.
+        :param bitmask: The
+        :param region_name: The string naming the declared memory region.
         :return: A list of values of the appropriate type.
         """
         assert self.status == 'done'
