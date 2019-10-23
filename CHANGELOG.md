@@ -29,6 +29,10 @@ Changelog
     and it is now a keyword-only argument (@karalekas, gh-1071).
 -   The code in `device.py` as been reorganized into a new `device` subdirectory
     in a completely backwards-compatible fashion (@karalekas, gh-1066).
+-   The `run` method of the `QuantumComputer` supports two new keyword arguments:
+    `bitmask` for selectively flipping the resultant bitstrings, and `correlations`
+    for returning single- and multi-qubit correlations instead of the typical
+    bitstring outcomes (@karalekas, gh-1070).
     
 ### Bugfixes
 
