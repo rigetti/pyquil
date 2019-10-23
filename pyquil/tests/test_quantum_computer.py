@@ -447,6 +447,7 @@ def test_qc_run_bitmask(qvm, compiler):
     assert np.allclose(qc.run(b, bitmask=[0, 1]), np.array([1, 0]))
     assert np.allclose(qc.run(b, bitmask=[1, 1]), np.array([0, 0]))
 
+
 def test_qc_run_correlations(qvm, compiler):
     qc = get_qc('9q-square-qvm')
     p = Program()
@@ -459,6 +460,7 @@ def test_qc_run_correlations(qvm, compiler):
     b = qc.compile(p)
     assert qc.run(b, correlations=[0, 1]) == np.array([1])
     assert qc.run(b, bitmask=[1, 0], correlations=[0, 1]) == np.array([-1])
+
 
 def test_nq_qvm_qc():
     for n_qubits in [2, 4, 7, 19]:
