@@ -432,6 +432,34 @@ def test_qc_run(qvm, compiler):
         assert bits.shape == (3,)
 
 
+def test_qc_run_bitmask(qvm, compiler):
+    qc = get_qc('9q-square-qvm')
+    p = Program()
+    p += X(0)
+    p += X(1)
+    ro = p.declare('ro', 'BIT', 2)
+    p += MEASURE(0, ro[0])
+    p += MEASURE(1, ro[1])
+    p.wrap_in_numshots_loop(1)
+    b = qc.compile(p)
+    assert np.allclose(qc.run(b, bitmask=[0, 0]), np.array([1, 1]))
+    assert np.allclose(qc.run(b, bitmask=[1, 0]), np.array([0, 1]))
+    assert np.allclose(qc.run(b, bitmask=[0, 1]), np.array([1, 0]))
+    assert np.allclose(qc.run(b, bitmask=[1, 1]), np.array([0, 0]))
+
+def test_qc_run_correlations(qvm, compiler):
+    qc = get_qc('9q-square-qvm')
+    p = Program()
+    p += H(0)
+    p += CNOT(0, 1)
+    ro = p.declare('ro', 'BIT', 2)
+    p += MEASURE(0, ro[0])
+    p += MEASURE(1, ro[1])
+    p.wrap_in_numshots_loop(1)
+    b = qc.compile(p)
+    assert qc.run(b, correlations=[0, 1]) == np.array([1])
+    assert qc.run(b, bitmask=[1, 0], correlations=[0, 1]) == np.array([-1])
+
 def test_nq_qvm_qc():
     for n_qubits in [2, 4, 7, 19]:
         qc = get_qc(f'{n_qubits}q-qvm')
