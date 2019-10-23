@@ -6,6 +6,7 @@ from IPython.display import Image
 from pyquil import Program
 from .latex_generation import to_latex
 
+
 def display(circuit: Program, settings=None, **image_options):
     """
     Renders a PyQuil circuit as an IPython image object.

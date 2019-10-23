@@ -41,6 +41,7 @@ from collections import defaultdict
 from dataclasses import dataclass
 from typing import Optional
 
+
 @dataclass
 class DiagramSettings:
     texify_numerical_constants: bool = True
@@ -62,10 +63,11 @@ class DiagramSettings:
 
     abbreviate_controlled_rotations: bool = False
     """
-    Write controlled rotations such as `RX(pi)` as `X_{\pi}`, instead of the longer `R_X(\pi)`
+    Write controlled rotations such as `RX(pi)` as `X_{\\pi}`, instead of the longer `R_X(\\pi)`
     """
 
-def to_latex(circuit: Program, settings: Optional[DiagramSettings]=None):
+
+def to_latex(circuit: Program, settings: Optional[DiagramSettings] = None):
     """
     Translates a given pyquil Program to a TikZ picture in a Latex document.
 
@@ -116,6 +118,7 @@ def footer():
     """
     return "\\end{tikzcd}\n\\end{document}"
 
+
 def body(circuit, settings):
     """
     Return the body of the Latex document, including the entire circuit in
@@ -128,7 +131,6 @@ def body(circuit, settings):
     :rtype: string
     """
 
-
     diagram = DiagramBuilder(circuit, settings).build()
 
     # flush lines
@@ -138,46 +140,68 @@ def body(circuit, settings):
 
     return " \\\\\n".join(quantikz_out)
 
-### Constants ###
+
+# Constants
+
+# Grouping in the rendered output is signalled by
+# enclosing it in pragmas:
+#
+#   PRAGMA LATEX_GATE_GROUP <name>?
+#   ...
+#   PRAGMA END_LATEX_GATE_GROUP
+#
+# The <name> is optional, and will be used to label the group. Nested gate
+# groups are currently not supported.
 
 PRAGMA_BEGIN_GROUP = 'LATEX_GATE_GROUP'
 PRAGMA_END_GROUP = 'END_LATEX_GATE_GROUP'
 
-#### TikZ operators ###
+# TikZ operators
+
 
 def TIKZ_LEFT_KET(qubit):
     return r"\lstick{{\ket{{q_{{{qubit}}}}}}}".format(qubit=qubit)
 
+
 def TIKZ_CONTROL(control, offset):
     return r"\ctrl{{{offset}}}".format(offset=offset)
+
 
 def TIKZ_CNOT_TARGET():
     return r"\targ{}"
 
+
 def TIKZ_CPHASE_TARGET():
     return r"\control{}"
 
+
 def TIKZ_SWAP(source, offset):
-    return "\swap{{{offset}}}".format(offset=offset)
+    return r"\swap{{{offset}}}".format(offset=offset)
+
 
 def TIKZ_SWAP_TARGET():
     return r"\targX{}"
 
+
 def TIKZ_NOP():
     return r"\qw"
 
+
 def TIKZ_MEASURE():
     return r"\meter{}"
+
 
 def _format_parameter(param, settings=None):
     formatted = format_parameter(param)
     if settings and settings.texify_numerical_constants:
         # TODO we should do a better job than just dumb str.replace
-        formatted = formatted.replace("pi", "\pi")
+        formatted = formatted.replace("pi", r"\pi")
     return formatted
+
 
 def _format_parameters(params, settings=None):
     return "(" + ",".join(_format_parameter(param, settings) for param in params) + ")"
+
 
 def TIKZ_GATE(name, size=1, params=None, dagger=False, settings=None):
     cmd = r"\gate"
@@ -191,22 +215,25 @@ def TIKZ_GATE(name, size=1, params=None, dagger=False, settings=None):
     if name in ["RX", "RY", "RZ"]:
         name = name[0] + "_" + name[1].lower()
     if dagger:
-        name += "^{\dagger}"
+        name += r"^{\dagger}"
     if params:
         name += _format_parameters(params, settings)
     return cmd + "{{{name}}}".format(name=name)
+
 
 def TIKZ_GATE_GROUP(qubits, width, label):
     num_qubits = max(qubits) - min(qubits) + 1
     return "\\gategroup[{qubits},steps={width},style={{dashed, rounded corners,fill=blue!20, inner xsep=2pt}}, background]{{{label}}}".format(
         qubits=num_qubits, width=width, label=label)
 
+
 SOURCE_TARGET_OP = {
     "CNOT": (TIKZ_CONTROL, TIKZ_CNOT_TARGET),
     "SWAP": (TIKZ_SWAP, TIKZ_SWAP_TARGET),
     "CZ": (TIKZ_CONTROL, lambda: TIKZ_GATE("Z")),
-    "CPHASE": (TIKZ_CONTROL, TIKZ_CPHASE_TARGET)
+    "CPHASE": (TIKZ_CONTROL, TIKZ_CPHASE_TARGET),
 }
+
 
 def qubit_indices(instr):
     if isinstance(instr, Measurement):
@@ -216,7 +243,8 @@ def qubit_indices(instr):
     else:
         return []
 
-### DiagramState
+# DiagramState
+
 
 class DiagramState:
     def __init__(self, qubits):
@@ -269,12 +297,13 @@ class DiagramState:
         """
         All qubits in the diagram, from low to high, inclusive.
         """
-        full_interval = range(low, high+1)
+        full_interval = range(low, high + 1)
         qubits = list(set(full_interval) & set(self.qubits))
         return sorted(qubits)
 
     def is_interval(self, qubits):
         return qubits == self.interval(min(qubits), max(qubits))
+
 
 class DiagramBuilder:
     def __init__(self, circuit, settings):
@@ -292,7 +321,7 @@ class DiagramBuilder:
         if self.settings.label_qubit_lines:
             for qubit in self.diagram.qubits:
                 self.diagram.append(qubit, TIKZ_LEFT_KET(qubit))
-        else: # initial exposed wires
+        else:  # initial exposed wires
             self.diagram.extend_lines_to_common_edge(self.diagram.qubits, offset=1)
 
         while self.index < len(self.circuit):
@@ -324,13 +353,13 @@ class DiagramBuilder:
         instr = self.circuit[self.index]
         if len(instr.args) > 1:
             raise ValueError("PRAGMA {} expected exactly one argument.".format(PRAGMA_BEGIN_GROUP))
-        for j in range(self.index+1, len(self.circuit)):
+        for j in range(self.index + 1, len(self.circuit)):
             if isinstance(self.circuit[j], Pragma) and self.circuit[j].command == PRAGMA_END_GROUP:
                 # recursively build the diagram for this block
-                block = DiagramBuilder(self.circuit[self.index+1:j]).build()
+                block = DiagramBuilder(self.circuit[(self.index + 1):j]).build()
                 self.diagram.append_diagram(block)
                 # advance to the instruction following this one
-                self.index = j+1
+                self.index = j + 1
                 return
 
         raise ValueError("Unable to find PRAGMA {} matching {}".format(PRAGMA_END_GROUP, instr))
@@ -346,7 +375,7 @@ class DiagramBuilder:
         displaced = self.diagram.interval(min(source, target), max(source, target))
         self.diagram.extend_lines_to_common_edge(displaced)
         source_op, target_op = SOURCE_TARGET_OP[instr.name]
-        offset = (len(displaced) - 1)*(-1 if source > target else 1)
+        offset = (-1 if source > target else 1) * (len(displaced) - 1)  # this is a directed quantity
         self.diagram.append(source, source_op(source, offset))
         self.diagram.append(target, target_op())
         self.diagram.extend_lines_to_common_edge(displaced)
@@ -381,4 +410,3 @@ class DiagramBuilder:
             self.diagram.append(q, TIKZ_NOP())
 
         self.index += 1
-
