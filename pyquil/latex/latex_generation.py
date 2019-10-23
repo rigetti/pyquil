@@ -180,6 +180,7 @@ PRAGMA_END_GROUP = 'END_LATEX_GATE_GROUP'
 
 # TikZ operators
 
+
 def TIKZ_LEFT_KET(qubit):
     return r"\lstick{{\ket{{q_{{{qubit}}}}}}}".format(qubit=qubit)
 

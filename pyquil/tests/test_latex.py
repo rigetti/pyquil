@@ -8,7 +8,7 @@ import pytest
 def test_to_latex():
     """A test to give full coverage of latex_generation."""
     p = Program()
-    p.inst(X(0), RX(1.0, 5), Y(0), CZ(0,2), SWAP(0,1), MEASURE(0, None),
+    p.inst(X(0), RX(1.0, 5), Y(0), CZ(0, 2), SWAP(0, 1), MEASURE(0, None),
            CNOT(2, 0), X(0).controlled(1), Y(0).dagger())
     _ = to_latex(p)
 
