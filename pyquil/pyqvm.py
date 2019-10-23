@@ -250,12 +250,12 @@ class PyQVM(QAM):
             *,
             region_name: str,
             bitmask: Optional[List[int]] = None,
-            expectations: Optional[Union[List[int], List[List[int]]]] = None,
+            correlations: Optional[Union[List[int], List[List[int]]]] = None,
             statistics: bool = False,
     ) -> np.ndarray:
         return np.asarray(super().read_memory(region_name=region_name,
                                               bitmask=bitmask,
-                                              expectations=expectations,
+                                              correlations=correlations,
                                               statistics=statistics))
 
     def find_label(self, label: Label):

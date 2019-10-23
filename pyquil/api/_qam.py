@@ -101,7 +101,7 @@ class QAM(ABC):
             *,
             region_name: str,
             bitmask: Optional[List[int]] = None,
-            expectations: Optional[Union[List[int], List[List[int]]]] = None,
+            correlations: Optional[Union[List[int], List[List[int]]]] = None,
     ) -> np.ndarray:
         """
         Reads from a memory region named region_name on the QAM.
@@ -114,7 +114,7 @@ class QAM(ABC):
         """
         assert self.status == 'done'
 
-        modify_output = any([bitmask, expectations])
+        modify_output = any([bitmask, correlations])
         if not modify_output:
             return self._memory_results[region_name]
 
@@ -124,21 +124,21 @@ class QAM(ABC):
         if bitmask is not None:
             output = np.bitwise_xor(output, bitmask)
 
-        # compute single-qubit and joint expectation values
-        if expectations is not None:
+        # compute single- and multi-qubit correlations
+        if correlations is not None:
             output[output == 1] = -1
             output[output == 0] = 1
 
             region_size = len(output[0])
-            if isinstance(expectations, list) and isinstance(expectations[0], int):
-                expectations = [expectations]
+            if isinstance(correlations, list) and isinstance(correlations[0], int):
+                correlations = [correlations]
 
-            bits = []
-            for e in expectations:
+            out = []
+            for c in correlations:
                 where = np.zeros(region_size, dtype=bool)
-                np.put(where, e, np.array([True]))
-                bits.append(np.prod(output, axis=1, where=where))
-            output = np.stack(bits, axis=-1)
+                np.put(where, c, np.array([True]))
+                out.append(np.prod(output, axis=1, where=where))
+            output = np.stack(out, axis=-1)
 
         return output
 
