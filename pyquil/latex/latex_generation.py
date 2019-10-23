@@ -35,8 +35,9 @@ from copy import copy
 from warnings import warn
 
 from pyquil import Program
-from pyquil.quil import Measurement, Gate, Pragma, Instruction
+from pyquil.quil import Measurement, Gate, Pragma
 from pyquil.quilatom import format_parameter
+from pyquil.quilbase import AbstractInstruction
 from collections import defaultdict
 from dataclasses import dataclass
 from typing import Optional
@@ -384,7 +385,7 @@ class DiagramBuilder:
         for j in range(self.index + 1, len(self.circuit)):
             if isinstance(self.circuit[j], Pragma) and self.circuit[j].command == PRAGMA_END_GROUP:
                 # recursively build the diagram for this block
-                block = DiagramBuilder(self.circuit[(self.index + 1):j]).build()
+                block = DiagramBuilder(self.circuit[(self.index + 1):j], self.settings).build()
                 self.diagram.append_diagram(block)
                 # advance to the instruction following this one
                 self.index = j + 1
@@ -460,7 +461,7 @@ class DiagramBuilder:
         self.index += 1
 
 
-def qubit_indices(instr: Instruction):
+def qubit_indices(instr: AbstractInstruction):
     """
     Get a list of indices associated with the given instruction.
     """
