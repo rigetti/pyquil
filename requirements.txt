@@ -3,6 +3,7 @@ numpy
 antlr4-python3-runtime
 requests
 networkx >= 2.0.0
+ipython # for pyquil.latex.ipython
 
 # rigetti packages
 rpcq >= 2.7.2

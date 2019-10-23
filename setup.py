@@ -75,6 +75,7 @@ setup(
         'requests',
         'networkx>=2.0.0',
         'rpcq>=2.7.2',
+        'ipython', # for pyquil.latex.ipython
 
         # dependency of contextvars, which we vendor
         'immutables==0.6',
