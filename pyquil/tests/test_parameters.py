@@ -2,8 +2,9 @@ from math import pi
 
 import numpy as np
 
-from pyquil.parameters import (Parameter, quil_sin, quil_cos, quil_sqrt, quil_exp, quil_cis,
-                               _contained_parameters, format_parameter, quil_cis, substitute, substitute_array)
+from pyquil.quilatom import (Parameter, quil_sin, quil_cos, quil_sqrt, quil_exp, quil_cis,
+                             _contained_parameters, format_parameter, quil_cis, substitute,
+                             substitute_array)
 
 
 def test_format_parameter():
@@ -14,13 +15,15 @@ def test_format_parameter():
         (1j, 'i'),
         (0 + 1j, 'i'),
         (-1j, '-i'),
+        (1e-15 + 1j, 'i'),
+        (1e-15 - 1j, '-i')
     ]
 
     for test_case in test_cases:
         assert format_parameter(test_case[0]) == test_case[1]
 
 
-# https://github.com/rigetticomputing/pyquil/issues/184
+# https://github.com/rigetti/pyquil/issues/184
 def test_pretty_print_pi():
     test_cases = [
         (0., '0'),
@@ -43,23 +46,23 @@ def test_expression_to_string():
     y = Parameter('y')
     assert str(y) == '%y'
 
-    assert str(x + y) == '%x+%y'
-    assert str(3 * x + y) == '3*%x+%y'
-    assert str(3 * (x + y)) == '3*(%x+%y)'
+    assert str(x + y) == '%x + %y'
+    assert str(3 * x + y) == '3*%x + %y'
+    assert str(3 * (x + y)) == '3*(%x + %y)'
 
-    assert str(x + y + 2) == '%x+%y+2'
-    assert str(x - y - 2) == '%x-%y-2'
-    assert str(x - (y - 2)) == '%x-(%y-2)'
+    assert str(x + y + 2) == '%x + %y + 2'
+    assert str(x - y - 2) == '%x - %y - 2'
+    assert str(x - (y - 2)) == '%x - (%y - 2)'
 
-    assert str((x + y) - 2) == '%x+%y-2'
-    assert str(x + (y - 2)) == '%x+%y-2'
+    assert str((x + y) - 2) == '%x + %y - 2'
+    assert str(x + (y - 2)) == '%x + %y - 2'
 
     assert str(x ** y ** 2) == '%x^%y^2'
     assert str(x ** (y ** 2)) == '%x^%y^2'
     assert str((x ** y) ** 2) == '(%x^%y)^2'
 
-    assert str(quil_sin(x)) == 'sin(%x)'
-    assert str(3 * quil_sin(x + y)) == '3*sin(%x+%y)'
+    assert str(quil_sin(x)) == 'SIN(%x)'
+    assert str(3 * quil_sin(x + y)) == '3*SIN(%x + %y)'
 
 
 def test_contained_parameters():

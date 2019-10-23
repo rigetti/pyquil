@@ -1,3 +1,18 @@
+##############################################################################
+# Copyright 2018 Rigetti Computing
+#
+#    Licensed under the Apache License, Version 2.0 (the "License");
+#    you may not use this file except in compliance with the License.
+#    You may obtain a copy of the License at
+#
+#        http://www.apache.org/licenses/LICENSE-2.0
+#
+#    Unless required by applicable law or agreed to in writing, software
+#    distributed under the License is distributed on an "AS IS" BASIS,
+#    WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+#    See the License for the specific language governing permissions and
+#    limitations under the License.
+##############################################################################
 """
 Module containing the Wavefunction object and methods for working with wavefunctions.
 """
@@ -6,7 +21,6 @@ import warnings
 import itertools
 
 import numpy as np
-from six import integer_types
 
 OCTETS_PER_DOUBLE_FLOAT = 8
 OCTETS_PER_COMPLEX_DOUBLE = 2 * OCTETS_PER_DOUBLE_FLOAT
@@ -14,22 +28,23 @@ OCTETS_PER_COMPLEX_DOUBLE = 2 * OCTETS_PER_DOUBLE_FLOAT
 
 class Wavefunction(object):
     """
-    Encapsulate a wavefunction representing a quantum state as returned by the QVM.
+    Encapsulate a wavefunction representing a quantum state
+    as returned by :py:class:`~pyquil.api.WavefunctionSimulator`.
 
     .. note::
 
         The elements of the wavefunction are ordered by bitstring. E.g., for two qubits the order
         is ``00, 01, 10, 11``, where the the bits **are ordered in reverse** by the qubit index,
         i.e., for qubits 0 and 1 the bitstring ``01`` indicates that qubit 0 is in the state 1.
-        See also :ref:`the related documentation section in the QVM Overview <basis-ordering>`.
+        See also :ref:`the related documentation section in the WavefunctionSimulator Overview
+        <basis_ordering>`.
     """
 
-    def __init__(self, amplitude_vector, classical_memory=None):
+    def __init__(self, amplitude_vector):
         """
         Initializes a wavefunction
 
         :param amplitude_vector: A numpy array of complex amplitudes
-        :param classical_memory: Any classical memory associated with this wavefunction result
         """
         if len(amplitude_vector) == 0 or len(amplitude_vector) & (len(amplitude_vector) - 1) != 0:
             raise TypeError("Amplitude vector must have a length that is a power of two")
@@ -39,8 +54,6 @@ class Wavefunction(object):
         if not np.isclose(sumprob, 1.0):
             raise ValueError("The wavefunction is not normalized. "
                              "The probabilities sum to {} instead of 1".format(sumprob))
-
-        self.classical_memory = classical_memory
 
     @staticmethod
     def ground(qubit_num):
@@ -61,36 +74,24 @@ class Wavefunction(object):
         return Wavefunction(amplitude_vector)
 
     @staticmethod
-    def from_bit_packed_string(coef_string, classical_addresses):
+    def from_bit_packed_string(coef_string):
         """
-        From a bit packed string, unpacks to get the wavefunction and classical measurement results
+        From a bit packed string, unpacks to get the wavefunction
         :param bytes coef_string:
-        :param list classical_addresses:
         :return:
         """
         num_octets = len(coef_string)
-        num_addresses = len(classical_addresses)
-        num_memory_octets = _round_to_next_multiple(num_addresses, 8) // 8
-        num_wavefunction_octets = num_octets - num_memory_octets
-
-        # Parse the classical memory
-        mem = []
-        for i in range(num_memory_octets):
-            octet = struct.unpack('B', coef_string[i:i + 1])[0]
-            mem.extend(_octet_bits(octet))
-
-        mem = mem[0:num_addresses]
 
         # Parse the wavefunction
-        wf = np.zeros(num_wavefunction_octets // OCTETS_PER_COMPLEX_DOUBLE, dtype=np.cfloat)
-        for i, p in enumerate(range(num_memory_octets, num_octets, OCTETS_PER_COMPLEX_DOUBLE)):
+        wf = np.zeros(num_octets // OCTETS_PER_COMPLEX_DOUBLE, dtype=np.cfloat)
+        for i, p in enumerate(range(0, num_octets, OCTETS_PER_COMPLEX_DOUBLE)):
             re_be = coef_string[p: p + OCTETS_PER_DOUBLE_FLOAT]
             im_be = coef_string[p + OCTETS_PER_DOUBLE_FLOAT: p + OCTETS_PER_COMPLEX_DOUBLE]
             re = struct.unpack('>d', re_be)[0]
             im = struct.unpack('>d', im_be)[0]
             wf[i] = complex(re, im)
 
-        return Wavefunction(wf, mem)
+        return Wavefunction(wf)
 
     def __len__(self):
         return len(self.amplitudes).bit_length() - 1
@@ -234,7 +235,7 @@ def _octet_bits(o):
     :return: The bits as a list in LSB-to-MSB order.
     :rtype: list
     """
-    if not isinstance(o, integer_types):
+    if not isinstance(o, int):
         raise TypeError("o should be an int")
     if not (0 <= o <= 255):
         raise ValueError("o should be between 0 and 255 inclusive")

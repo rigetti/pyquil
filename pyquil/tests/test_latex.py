@@ -8,7 +8,7 @@ def test_to_latex():
     """A test to give full coverage of latex_generation and latex_config."""
     qubits = range(3)
     p = Program()
-    p.inst(X(qubits[0]), Y(qubits[0]), CZ(qubits[0], qubits[2]), SWAP(qubits[0], qubits[1]), MEASURE(qubits[0]),
+    p.inst(X(qubits[0]), Y(qubits[0]), CZ(qubits[0], qubits[2]), SWAP(qubits[0], qubits[1]), MEASURE(qubits[0], None),
            CNOT(qubits[2], qubits[0]))
     _ = to_latex(p)
 

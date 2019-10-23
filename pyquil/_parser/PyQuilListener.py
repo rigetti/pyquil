@@ -15,9 +15,8 @@
 ##############################################################################
 
 import operator
-from typing import Any, List, Iterator, Callable
 from numbers import Number
-import sys
+from typing import Any, List, Iterator, Callable, Union
 
 import numpy as np
 from antlr4 import InputStream, CommonTokenStream, ParseTreeWalker
@@ -27,21 +26,24 @@ from antlr4.error.ErrorListener import ErrorListener
 from antlr4.error.Errors import InputMismatchException
 from numpy.ma import sin, cos, sqrt, exp
 
-from pyquil import parameters
-from pyquil.gates import STANDARD_GATES
-from pyquil.parameters import Parameter, Expression
-from pyquil.quilbase import Gate, DefGate, Measurement, Addr, JumpTarget, Label, Halt, Jump, JumpWhen, JumpUnless, \
-    Reset, Wait, ClassicalTrue, ClassicalFalse, ClassicalNot, ClassicalAnd, ClassicalOr, ClassicalMove, \
-    ClassicalExchange, Nop, RawInstr, Qubit, Pragma, AbstractInstruction
-
-if sys.version_info.major == 2:
-    from .gen2.QuilLexer import QuilLexer
-    from .gen2.QuilListener import QuilListener
-    from .gen2 .QuilParser import QuilParser
-elif sys.version_info.major == 3:
-    from .gen3.QuilLexer import QuilLexer
-    from .gen3.QuilListener import QuilListener
-    from .gen3.QuilParser import QuilParser
+from pyquil.gates import QUANTUM_GATES
+from pyquil.quilatom import (Addr, MemoryReference, Parameter, quil_cos, quil_cis, quil_exp,
+                             quil_sin, quil_sqrt)
+from pyquil.quilbase import (Gate, DefGate, DefPermutationGate, Measurement, JumpTarget, Label, Expression,
+                             Nop, Halt, Jump, JumpWhen, JumpUnless, Reset, Wait,
+                             ClassicalNot, ClassicalNeg, ClassicalAnd, ClassicalInclusiveOr,
+                             ClassicalExclusiveOr,
+                             ClassicalMove, ClassicalConvert, ClassicalExchange, ClassicalLoad,
+                             ClassicalStore,
+                             ClassicalEqual, ClassicalGreaterEqual, ClassicalGreaterThan,
+                             ClassicalLessEqual,
+                             ClassicalLessThan, ClassicalAdd, ClassicalSub, ClassicalMul,
+                             ClassicalDiv,
+                             RawInstr, Qubit, Pragma, Declare, AbstractInstruction,
+                             ClassicalTrue, ClassicalFalse, ClassicalOr, ResetQubit)
+from .gen3.QuilLexer import QuilLexer
+from .gen3.QuilListener import QuilListener
+from .gen3.QuilParser import QuilParser
 
 
 def run_parser(quil):
@@ -77,8 +79,8 @@ class CustomErrorListener(ErrorListener):
         expected_tokens = self.get_expected_tokens(recognizer, e.getExpectedTokens()) if e else []
 
         raise RuntimeError(
-            "Error encountered while parsing the quil program at line {} and column {}\n".format(line, column + 1) +
-            "Received an '{}' but was expecting one of [ {} ]".format(offendingSymbol.text, ', '.join(expected_tokens))
+            "Error encountered while parsing the quil program at line {} and column {}\n".format(line, column + 1)
+            + "Received an '{}' but was expecting one of [ {} ]".format(offendingSymbol.text, ', '.join(expected_tokens))
         )
 
     def get_expected_tokens(self, parser, interval_set):
@@ -102,36 +104,117 @@ class PyQuilListener(QuilListener):
     Functions are invoked when the parser reaches the various different constructs in Quil.
     """
     def __init__(self):
-        # type: () -> None
-        self.result = []    # type: List[AbstractInstruction]
+        self.result = []  # type: List[AbstractInstruction]
+        self.previous_result = None  # type: List[AbstractInstruction]
 
-    def exitDefGate(self, ctx):
-        # type: (QuilParser.DefGateContext) -> None
+    def exitDefGate(self, ctx: QuilParser.DefGateContext):
         gate_name = ctx.name().getText()
-        matrix = _matrix(ctx.matrix())
-        parameters = list(map(_variable, ctx.variable()))
-        self.result.append(DefGate(gate_name, matrix, parameters))
+        gate_type = ctx.gatetype()
+        if gate_type and gate_type.getText() == 'PERMUTATION':
+            permutation = _permutation(ctx.matrix())
+            self.result.append(DefPermutationGate(gate_name, permutation))
+        else:
+            matrix = _matrix(ctx.matrix())
+            parameters = [_variable(v) for v in ctx.variable()]
+            self.result.append(DefGate(gate_name, matrix, parameters))
 
-    def exitDefCircuit(self, ctx):
-        # type: (QuilParser.DefCircuitContext) -> None
-        self.result.append(RawInstr(ctx.getText()))
+    # DEFCIRCUIT parsing:
+    # When we enter a circuit definition we create a backup of the instructions seen up to that point. Then, when the
+    # listener continues walking through the circuit instructions it will add to an empty list. Once we leave the
+    # circuit we then take all those instructions, shove them into a RawInstr (since PyQuil has no support for circuit
+    # definitions yet), recover the backup, and then continue on our way.
 
-    def exitGate(self, ctx):
-        # type: (QuilParser.GateContext) -> None
+    def enterDefCircuit(self, ctx: QuilParser.DefCircuitContext) -> None:
+        self.previous_result = self.result
+        self.result = []
+
+    def exitDefCircuit(self, ctx: QuilParser.DefCircuitContext):
+        circuit_name = ctx.name().getText()
+        variables = [variable.getText() for variable in ctx.variable()]
+        qubitVariables = [qubitVariable.getText() for qubitVariable in ctx.qubitVariable()]
+        space = ' ' if qubitVariables else ''
+
+        if variables:
+            raw_defcircuit = 'DEFCIRCUIT {}({}){}{}:'.format(circuit_name, ', '.join(variables), space, ' '.join(qubitVariables))
+        else:
+            raw_defcircuit = 'DEFCIRCUIT {}{}{}:'.format(circuit_name, space, ' '.join(qubitVariables))
+
+        raw_defcircuit += '\n    '.join([''] + [instr.out() for instr in self.result])
+        self.previous_result.append(RawInstr(raw_defcircuit))
+
+        self.result = self.previous_result
+        self.previous_result = None
+
+    def exitGate(self, ctx: QuilParser.GateContext):
         gate_name = ctx.name().getText()
+        modifiers = [mod.getText() for mod in ctx.modifier()]
         params = list(map(_param, ctx.param()))
         qubits = list(map(_qubit, ctx.qubit()))
 
-        if gate_name in STANDARD_GATES:
-            if params:
-                self.result.append(STANDARD_GATES[gate_name](*params)(*qubits))
-            else:
-                self.result.append(STANDARD_GATES[gate_name](*qubits))
-        else:
-            self.result.append(Gate(gate_name, params, qubits))
+        # The parsed string 'DAGGER CONTROLLED X 0 1' gives
+        #   modifiers ['DAGGER', 'CONTROLLED']
+        #   qubits    ['0', '1']
+        #
+        # We will build such gates by applying modifiers from right to left,
+        # e.g. X 1 -> CONTROLLED X 0 1 -> DAGGER CONTROLLED X 0 1
 
-    def exitMeasure(self, ctx):
-        # type: (QuilParser.MeasureContext) -> None
+        # Some gate modifiers increase the arity of the base gate.
+        # The new qubit arguments prefix the old ones.
+        modifier_qubits = []
+        for m in modifiers:
+            if m in ["CONTROLLED", "FORKED"]:
+                modifier_qubits.append(qubits[len(modifier_qubits)])
+
+        base_qubits = qubits[len(modifier_qubits):]
+
+        # Each FORKED doubles the number of parameters,
+        # e.g. FORKED RX(0.5, 1.5) 0 1 has two.
+        forked_offset = len(params) >> modifiers.count("FORKED")
+        base_params = params[:forked_offset]
+
+        if gate_name in QUANTUM_GATES:
+            if base_params:
+                gate = QUANTUM_GATES[gate_name](*base_params, *base_qubits)
+            else:
+                gate = QUANTUM_GATES[gate_name](*base_qubits)
+        else:
+            gate = Gate(gate_name, base_params, base_qubits)
+
+        # Track the last param used (for FORKED)
+        for modifier in modifiers[::-1]:
+            if modifier == "CONTROLLED":
+                gate.controlled(modifier_qubits.pop())
+            elif modifier == "DAGGER":
+                gate.dagger()
+            elif modifier == 'FORKED':
+                gate.forked(modifier_qubits.pop(), params[forked_offset:(2 * forked_offset)])
+                forked_offset *= 2
+            else:
+                raise ValueError(f"Unsupported gate modifier {modifier}.")
+
+        self.result.append(gate)
+
+    def exitCircuitGate(self, ctx: QuilParser.CircuitGateContext):
+        """
+        PyQuil has no constructs yet for representing gate instructions within a DEFCIRCUIT (ie. gates where the qubits
+        are inputs to the call to the circuit). Therefore we parse them as a raw instructions.
+        """
+        gate_name = ctx.name().getText()
+        params = [param.getText() for param in ctx.param()]
+        qubits = [qubit.getText() for qubit in ctx.circuitQubit()]
+        if params:
+            self.result.append(RawInstr('{}({}) {}'.format(gate_name, ', '.join(params), ' '.join(qubits))))
+        else:
+            self.result.append(RawInstr('{} {}'.format(gate_name, ' '.join(qubits))))
+
+    def exitCircuitMeasure(self, ctx: QuilParser.CircuitMeasureContext):
+        qubit = ctx.circuitQubit().getText()
+        classical = None
+        if ctx.addr():
+            classical = ctx.addr().getText()
+        self.result.append(RawInstr(f'MEASURE {qubit} {classical}' if classical else f'MEASURE {qubit}'))
+
+    def exitMeasure(self, ctx: QuilParser.MeasureContext):
         qubit = _qubit(ctx.qubit())
         classical = None
         if ctx.addr():
@@ -160,7 +243,14 @@ class PyQuilListener(QuilListener):
 
     def exitResetState(self, ctx):
         # type: (QuilParser.ResetStateContext) -> None
-        self.result.append(Reset())
+        if ctx.qubit():
+            self.result.append(ResetQubit(_qubit(ctx.qubit())))
+        else:
+            self.result.append(Reset())
+
+    def exitCircuitResetState(self, ctx: QuilParser.ResetStateContext):
+        qubit = ctx.circuitQubit().getText()
+        self.result.append(RawInstr(f'RESET {qubit}'))
 
     def exitWait(self, ctx):
         # type: (QuilParser.WaitContext) -> None
@@ -174,21 +264,97 @@ class PyQuilListener(QuilListener):
             self.result.append(ClassicalFalse(_addr(ctx.addr())))
         elif ctx.NOT():
             self.result.append(ClassicalNot(_addr(ctx.addr())))
+        elif ctx.NEG():
+            self.result.append(ClassicalNeg(_addr(ctx.addr())))
 
-    def exitClassicalBinary(self, ctx):
-        # type: (QuilParser.ClassicalBinaryContext) -> None
+    def exitLogicalBinaryOp(self, ctx):
+        # type: (QuilParser.LogicalBinaryOpContext) -> None
+        left = _addr(ctx.addr(0))
+        right: Union[int, MemoryReference]
+        if ctx.INT():
+            right = int(ctx.INT().getText())
+        else:
+            right = _addr(ctx.addr(1))
+
         if ctx.AND():
-            self.result.append(ClassicalAnd(_addr(ctx.addr(0)), _addr(ctx.addr(1))))
+            self.result.append(ClassicalAnd(left, right))
         elif ctx.OR():
-            self.result.append(ClassicalOr(_addr(ctx.addr(0)), _addr(ctx.addr(1))))
-        elif ctx.MOVE():
-            self.result.append(ClassicalMove(_addr(ctx.addr(0)), _addr(ctx.addr(1))))
-        elif ctx.EXCHANGE():
-            self.result.append(ClassicalExchange(_addr(ctx.addr(0)), _addr(ctx.addr(1))))
+            self.result.append(ClassicalOr(left, right))
+        elif ctx.IOR():
+            self.result.append(ClassicalInclusiveOr(left, right))
+        elif ctx.XOR():
+            self.result.append(ClassicalExclusiveOr(left, right))
+
+    def exitArithmeticBinaryOp(self, ctx):
+        # type : (QuilParser.ArithmeticBinaryOpContext) -> None
+        left = _addr(ctx.addr(0))
+        if ctx.number():
+            right = _number(ctx.number())
+        else:
+            right = _addr(ctx.addr(1))
+
+        if ctx.ADD():
+            self.result.append(ClassicalAdd(left, right))
+        elif ctx.SUB():
+            self.result.append(ClassicalSub(left, right))
+        elif ctx.MUL():
+            self.result.append(ClassicalMul(left, right))
+        elif ctx.DIV():
+            self.result.append(ClassicalDiv(left, right))
+
+    def exitMove(self, ctx):
+        # type: (QuilParser.MoveContext) -> None
+        target = _addr(ctx.addr(0))
+        if ctx.number():
+            source = _number(ctx.number())
+        else:
+            source = _addr(ctx.addr(1))
+
+        self.result.append(ClassicalMove(target, source))
+
+    def exitExchange(self, ctx):
+        # type: (QuilParser.ExchangeContext) -> None
+        self.result.append(ClassicalExchange(_addr(ctx.addr(0)), _addr(ctx.addr(1))))
+
+    def exitConvert(self, ctx):
+        # type: (QuilParser.ConvertContext) -> None
+        self.result.append(ClassicalConvert(_addr(ctx.addr(0)), _addr(ctx.addr(1))))
+
+    def exitLoad(self, ctx):
+        # type: (QuilParser.LoadContext) -> None
+        self.result.append(ClassicalLoad(_addr(ctx.addr(0)), ctx.IDENTIFIER(), _addr(ctx.addr(1))))
+
+    def exitStore(self, ctx):
+        # type: (QuilParser.StoreContext) -> None
+        if ctx.number():
+            right = _number(ctx.number())
+        else:
+            right = _addr(ctx.addr(1))
+        self.result.append(ClassicalStore(ctx.IDENTIFIER(), _addr(ctx.addr(0)), right))
 
     def exitNop(self, ctx):
         # type: (QuilParser.NopContext) -> None
         self.result.append(Nop())
+
+    def exitClassicalComparison(self, ctx):
+        # type: (QuilParser.ClassicalComparisonContext) -> None
+        target = _addr(ctx.addr(0))
+        left = _addr(ctx.addr(1))
+        if ctx.number():
+            right = _number(ctx.number())
+        else:
+            right = _addr(ctx.addr(2))
+
+        if ctx.EQ():
+            self.result.append(ClassicalEqual(target, left, right))
+        elif ctx.GT():
+            self.result.append(ClassicalGreaterThan(target, left, right))
+        elif ctx.GE():
+            self.result.append(ClassicalGreaterEqual(target, left, right))
+        elif ctx.LT():
+            self.result.append(ClassicalLessThan(target, left, right))
+        elif ctx.LE():
+            self.result.append(ClassicalLessEqual(target, left, right))
 
     def exitInclude(self, ctx):
         # type: (QuilParser.IncludeContext) -> None
@@ -203,6 +369,24 @@ class PyQuilListener(QuilListener):
         else:
             self.result.append(Pragma(ctx.IDENTIFIER().getText(), args))
 
+    def exitMemoryDescriptor(self, ctx):
+        # type: (QuilParser.MemoryDescriptorContext) -> None
+        name = ctx.IDENTIFIER(0).getText()
+        memory_type = ctx.IDENTIFIER(1).getText()
+        if ctx.INT():
+            memory_size = int(ctx.INT().getText())
+        else:
+            memory_size = 1
+        if ctx.SHARING():
+            shared_region = ctx.IDENTIFIER(2).getText()
+            offsets = [(int(offset_ctx.INT().getText()), offset_ctx.IDENTIFIER().getText())
+                       for offset_ctx in ctx.offsetDescriptor()]
+        else:
+            shared_region = None
+            offsets = []
+        self.result.append(Declare(name, memory_type, memory_size,
+                                   shared_region=shared_region, offsets=offsets))
+
 
 """
 Helper functions for converting from ANTLR internals to PyQuil objects
@@ -216,9 +400,7 @@ def _qubit(qubit):
 
 def _param(param):
     # type: (QuilParser.ParamContext) -> Any
-    if param.dynamicParam():
-        raise NotImplementedError("dynamic parameters not supported yet")
-    elif param.expression():
+    if param.expression():
         return _expression(param.expression())
     else:
         raise RuntimeError("Unexpected param: " + param.getText())
@@ -237,9 +419,23 @@ def _matrix(matrix):
     return out
 
 
+def _permutation(matrix):
+    row = matrix.matrixRow()
+    if len(row) == 1:
+        return [_expression(e) for e in row[0].expression()]
+    else:
+        raise RuntimeError("Permutation gates are defined by a single row, but found " + str(len(row)) + " during parsing.")
+
+
 def _addr(classical):
-    # type: (QuilParser.AddrContext) -> Addr
-    return Addr(int(classical.classicalBit().getText()))
+    # type: (QuilParser.AddrContext) -> MemoryReference
+    if classical.IDENTIFIER() is not None:
+        if classical.INT() is not None:
+            return MemoryReference(str(classical.IDENTIFIER()), int(classical.INT().getText()))
+        else:
+            return MemoryReference(str(classical.IDENTIFIER()), 0)
+    else:
+        return Addr(int(classical.INT().getText()))
 
 
 def _label(label):
@@ -274,6 +470,8 @@ def _expression(expression):
             return -1 * _expression(expression.expression())
     elif isinstance(expression, QuilParser.FunctionExpContext):
         return _apply_function(expression.function(), _expression(expression.expression()))
+    elif isinstance(expression, QuilParser.AddrExpContext):
+        return _addr(expression.addr())
     elif isinstance(expression, QuilParser.NumberExpContext):
         return _number(expression.number())
     elif isinstance(expression, QuilParser.VariableExpContext):
@@ -295,15 +493,15 @@ def _apply_function(func, arg):
     # type: (QuilParser.FunctionContext, Any) -> Any
     if isinstance(arg, Expression):
         if func.SIN():
-            return parameters.quil_sin(arg)
+            return quil_sin(arg)
         elif func.COS():
-            return parameters.quil_cos(arg)
+            return quil_cos(arg)
         elif func.SQRT():
-            return parameters.quil_sqrt(arg)
+            return quil_sqrt(arg)
         elif func.EXP():
-            return parameters.quil_exp(arg)
+            return quil_exp(arg)
         elif func.CIS():
-            return parameters.quil_cis(arg)
+            return quil_cis(arg)
         else:
             raise RuntimeError("Unexpected function to apply: " + func.getText())
     else:
@@ -324,13 +522,13 @@ def _apply_function(func, arg):
 def _number(number):
     # type: (QuilParser.NumberContext) -> Any
     if number.realN():
-        return _real(number.realN())
+        return _sign(number) * _real(number.realN())
     elif number.imaginaryN():
-        return complex(0, _real(number.imaginaryN().realN()))
+        return _sign(number) * complex(0, _real(number.imaginaryN().realN()))
     elif number.I():
-        return complex(0, 1)
+        return _sign(number) * complex(0, 1)
     elif number.PI():
-        return np.pi
+        return _sign(number) * np.pi
     else:
         raise RuntimeError("Unexpected number: " + number.getText())
 
@@ -343,3 +541,7 @@ def _real(real):
         return int(real.getText())
     else:
         raise RuntimeError("Unexpected real: " + real.getText())
+
+
+def _sign(real):
+    return -1 if real.MINUS() else 1

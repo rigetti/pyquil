@@ -1,3 +1,4 @@
+docs/source/changes.rst
 
 # Created by https://www.gitignore.io/api/python,osx,pycharm
 
@@ -48,6 +49,7 @@ nosetests.xml
 coverage.xml
 *,cover
 .hypothesis/
+.pytest_cache/
 
 # Translations
 *.mo

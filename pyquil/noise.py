@@ -16,15 +16,15 @@
 """
 Module for creating and verifying noisy gate and readout definitions.
 """
-from __future__ import print_function
 from collections import namedtuple
+from typing import Sequence
 
 import numpy as np
 import sys
 
 from pyquil.gates import I, MEASURE, X
-from pyquil.parameters import format_parameter
 from pyquil.quilbase import Pragma, Gate
+from pyquil.quilatom import MemoryReference, format_parameter
 
 INFINITY = float("inf")
 "Used for infinite coherence times."
@@ -227,6 +227,40 @@ def append_kraus_to_gate(kraus_ops, gate_matrix):
     return [kj.dot(gate_matrix) for kj in kraus_ops]
 
 
+def pauli_kraus_map(probabilities):
+    r"""
+    Generate the Kraus operators corresponding to a pauli channel.
+
+    :params list|floats probabilities: The 4^num_qubits list of probabilities specifying the desired pauli channel.
+        There should be either 4 or 16 probabilities specified in the order I, X, Y, Z for 1 qubit
+        or II, IX, IY, IZ, XI, XX, XY, etc for 2 qubits.
+
+            For example::
+
+                The d-dimensional depolarizing channel \Delta parameterized as
+                \Delta(\rho) = p \rho + [(1-p)/d] I
+                is specified by the list of probabilities
+                [p + (1-p)/d, (1-p)/d,  (1-p)/d), ... , (1-p)/d)]
+
+    :return: A list of the 4^num_qubits Kraus operators that parametrize the map.
+    :rtype: list
+    """
+    if len(probabilities) not in [4, 16]:
+        raise ValueError("Currently we only support one or two qubits, "
+                         "so the provided list of probabilities must have length 4 or 16.")
+    if not np.allclose(sum(probabilities), 1.0, atol=1e-3):
+        raise ValueError("Probabilities must sum to one.")
+
+    paulis = [np.eye(2), np.array([[0, 1], [1, 0]]), np.array([[0, -1j], [1j, 0]]), np.array([[1, 0], [0, -1]])]
+
+    if len(probabilities) == 4:
+        operators = paulis
+    else:
+        operators = np.kron(paulis, paulis)
+
+    return [coeff * op for coeff, op in zip(np.sqrt(probabilities), operators)]
+
+
 def damping_kraus_map(p=0.10):
     """
     Generate the Kraus operators corresponding to an amplitude damping
@@ -289,29 +323,75 @@ def damping_after_dephasing(T1, T2, gate_time):
     :param float gate_time: The gate duration.
     :return: A list of Kraus operators.
     """
-    damping = damping_kraus_map(p=gate_time / float(T1)) if T1 != INFINITY else [np.eye(2)]
-    dephasing = dephasing_kraus_map(p=gate_time / float(T2)) if T2 != INFINITY else [np.eye(2)]
+    assert T1 >= 0
+    assert T2 >= 0
+
+    if T1 != INFINITY:
+        damping = damping_kraus_map(p=1 - np.exp(-float(gate_time) / float(T1)))
+    else:
+        damping = [np.eye(2)]
+
+    if T2 != INFINITY:
+        gamma_phi = float(gate_time) / float(T2)
+        if T1 != INFINITY:
+            if T2 > 2 * T1:
+                raise ValueError("T2 is upper bounded by 2 * T1")
+            gamma_phi -= float(gate_time) / float(2 * T1)
+
+        dephasing = dephasing_kraus_map(p=.5 * (1 - np.exp(-2 * gamma_phi)))
+    else:
+        dephasing = [np.eye(2)]
     return combine_kraus_maps(damping, dephasing)
 
 
 # You can only apply gate-noise to non-parametrized gates or parametrized gates at fixed parameters.
 NO_NOISE = ["RZ"]
-NOISY_GATES = {
-    ("I", ()): (np.eye(2), "NOISY-I"),
-    ("RX", (np.pi / 2,)): (np.array([[1, -1j],
-                                     [-1j, 1]]) / np.sqrt(2),
-                           "NOISY-RX-PLUS-90"),
-    ("RX", (-np.pi / 2,)): (np.array([[1, 1j],
-                                      [1j, 1]]) / np.sqrt(2),
-                            "NOISY-RX-MINUS-90"),
-    ("RX", (np.pi,)): (np.array([[0, -1j],
-                                 [-1j, 0]]),
-                       "NOISY-RX-PLUS-180"),
-    ("RX", (-np.pi,)): (np.array([[0, 1j],
-                                  [1j, 0]]),
-                        "NOISY-RX-MINUS-180"),
-    ("CZ", ()): (np.diag([1, 1, 1, -1]), "NOISY-CZ"),
-}
+ANGLE_TOLERANCE = 1e-10
+
+
+class NoisyGateUndefined(Exception):
+    """Raise when user attempts to use noisy gate outside of currently supported set."""
+    pass
+
+
+def get_noisy_gate(gate_name, params):
+    """
+    Look up the numerical gate representation and a proposed 'noisy' name.
+
+    :param str gate_name: The Quil gate name
+    :param Tuple[float] params: The gate parameters.
+    :return: A tuple (matrix, noisy_name) with the representation of the ideal gate matrix
+        and a proposed name for the noisy version.
+    :rtype: Tuple[np.array, str]
+    """
+    params = tuple(params)
+    if gate_name == "I":
+        assert params == ()
+        return np.eye(2), "NOISY-I"
+    if gate_name == "RX":
+        angle, = params
+        if np.isclose(angle, np.pi / 2, atol=ANGLE_TOLERANCE):
+            return (np.array([[1, -1j],
+                              [-1j, 1]]) / np.sqrt(2),
+                    "NOISY-RX-PLUS-90")
+        elif np.isclose(angle, -np.pi / 2, atol=ANGLE_TOLERANCE):
+            return (np.array([[1, 1j],
+                              [1j, 1]]) / np.sqrt(2),
+                    "NOISY-RX-MINUS-90")
+        elif np.isclose(angle, np.pi, atol=ANGLE_TOLERANCE):
+            return (np.array([[0, -1j],
+                              [-1j, 0]]),
+                    "NOISY-RX-PLUS-180")
+        elif np.isclose(angle, -np.pi, atol=ANGLE_TOLERANCE):
+            return (np.array([[0, 1j],
+                              [1j, 0]]),
+                    "NOISY-RX-MINUS-180")
+    elif gate_name == "CZ":
+        assert params == ()
+        return np.diag([1, 1, 1, -1]), "NOISY-CZ"
+    raise NoisyGateUndefined("Undefined gate and params: {}{}\n"
+                             "Please restrict yourself to I, RX(+/-pi), RX(+/-pi/2), CZ"
+                             .format(gate_name, params))
 
 
 def _get_program_gates(prog):
@@ -384,21 +464,18 @@ def _decoherence_noise_model(gates, T1=30e-6, T2=30e-6, gate_time_1q=50e-9,
         key = (g.name, tuple(g.params))
         if g.name in NO_NOISE:
             continue
-        if key in NOISY_GATES:
-            matrix, _ = NOISY_GATES[key]
-            if len(targets) == 1:
-                noisy_I = noisy_identities_1q[targets[0]]
-            else:
-                if len(targets) != 2:
-                    raise ValueError("Noisy gates on more than 2Q not currently supported")
+        matrix, _ = get_noisy_gate(g.name, g.params)
 
-                # note this ordering of the tensor factors is necessary due to how the QVM orders
-                # the wavefunction basis
-                noisy_I = tensor_kraus_maps(noisy_identities_2q[targets[1]],
-                                            noisy_identities_2q[targets[0]])
+        if len(targets) == 1:
+            noisy_I = noisy_identities_1q[targets[0]]
         else:
-            raise ValueError("Cannot create noisy version of {}. ".format(g) +
-                             "Please restrict yourself to CZ, RX(+/-pi/2), I, RZ(theta)")
+            if len(targets) != 2:
+                raise ValueError("Noisy gates on more than 2Q not currently supported")
+
+            # note this ordering of the tensor factors is necessary due to how the QVM orders
+            # the wavefunction basis
+            noisy_I = tensor_kraus_maps(noisy_identities_2q[targets[1]],
+                                        noisy_identities_2q[targets[0]])
         kraus_maps.append(KrausModel(g.name, tuple(g.params), targets,
                                      combine_kraus_maps(noisy_I, [matrix]),
                                      # FIXME (Nik): compute actual avg gate fidelity for this simple
@@ -410,6 +487,19 @@ def _decoherence_noise_model(gates, T1=30e-6, T2=30e-6, gate_time_1q=50e-9,
                               [1. - f_ro, f_ro]])
 
     return NoiseModel(kraus_maps, aprobs)
+
+
+def decoherence_noise_with_asymmetric_ro(gates: Sequence[Gate], p00=0.975, p11=0.911):
+    """Similar to :py:func:`_decoherence_noise_model`, but with asymmetric readout.
+
+    For simplicity, we use the default values for T1, T2, gate times, et al. and only allow
+    the specification of readout fidelities.
+    """
+    noise_model = _decoherence_noise_model(gates)
+    aprobs = np.array([[p00, 1 - p00],
+                       [1 - p11, p11]])
+    aprobs = {q: aprobs for q in noise_model.assignment_probs.keys()}
+    return NoiseModel(noise_model.gates, aprobs)
 
 
 def _noise_model_program_header(noise_model):
@@ -434,13 +524,13 @@ def _noise_model_program_header(noise_model):
 
         # obtain ideal gate matrix and new, noisy name by looking it up in the NOISY_GATES dict
         try:
-            ideal_gate, new_name = NOISY_GATES[k.gate, tuple(k.params)]
+            ideal_gate, new_name = get_noisy_gate(k.gate, tuple(k.params))
 
             # if ideal version of gate has not yet been DEFGATE'd, do this
             if new_name not in defgates:
                 p.defgate(new_name, ideal_gate)
                 defgates.add(new_name)
-        except KeyError:
+        except NoisyGateUndefined:
             print("WARNING: Could not find ideal gate definition for gate {}".format(k.gate),
                   file=sys.stderr)
             new_name = k.gate
@@ -468,11 +558,10 @@ def apply_noise_model(prog, noise_model):
     new_prog = _noise_model_program_header(noise_model)
     for i in prog:
         if isinstance(i, Gate):
-            key = (i.name, tuple(i.params))
-            if key in NOISY_GATES:
-                _, new_name = NOISY_GATES[key]
+            try:
+                _, new_name = get_noisy_gate(i.name, tuple(i.params))
                 new_prog += Gate(new_name, [], i.qubits)
-            else:
+            except NoisyGateUndefined:
                 new_prog += i
         else:
             new_prog += i
@@ -591,8 +680,8 @@ def _apply_local_transforms(p, ts):
         # 'ij,abcd...jklm...->abcd...iklm...' so it properly applies a "local"
         # transformation to a single tensor-index without changing the order of
         # indices
-        einsum_pat = ('ij,' + _CHARS[:idx] + 'j' + _CHARS[idx:nq - 1] +
-                      '->' + _CHARS[:idx] + 'i' + _CHARS[idx:nq - 1])
+        einsum_pat = ('ij,' + _CHARS[:idx] + 'j' + _CHARS[idx:nq - 1]
+                      + '->' + _CHARS[:idx] + 'i' + _CHARS[idx:nq - 1])
         p_corrected = np.einsum(einsum_pat, trafo_idx, p_corrected)
 
     return p_corrected
@@ -685,8 +774,8 @@ def estimate_assignment_probs(q, trials, cxn, p0=None):
     from pyquil.quil import Program
     if p0 is None:  # pragma no coverage
         p0 = Program()
-    results_i = np.sum(cxn.run(p0 + Program(I(q), MEASURE(q, 0)), [0], trials))
-    results_x = np.sum(cxn.run(p0 + Program(X(q), MEASURE(q, 0)), [0], trials))
+    results_i = np.sum(cxn.run(p0 + Program(I(q), MEASURE(q, MemoryReference("ro", 0))), [0], trials))
+    results_x = np.sum(cxn.run(p0 + Program(X(q), MEASURE(q, MemoryReference("ro", 0))), [0], trials))
 
     p00 = 1. - results_i / float(trials)
     p11 = results_x / float(trials)

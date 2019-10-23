@@ -6,20 +6,20 @@ Noise and Quantum Computation
 Modeling Noisy Quantum Gates
 ----------------------------
 
+.. begin import from GateNoiseModels.ipynb
+
 Pure States vs. Mixed States
 ~~~~~~~~~~~~~~~~~~~~~~~~~~~~
 
-Errors in quantum computing can introduce classical uncertainty in what the underlying state is.
-When this happens we sometimes need to consider not only wavefunctions but also probabilistic sums of
-wavefunctions when we are uncertain as to which one we have. For example, if we think that an X gate
-was accidentally applied to a qubit with a 50-50 chance then we would say that there is a 50% chance
-we have the :math:`\ket{0}` state and a 50% chance that we have a :math:`\ket{1}` state.
-This is called an "impure" or
-"mixed"state in that it isn't just a wavefunction (which is pure) but instead a distribution over
-wavefunctions. We describe this with something called a density matrix, which is generally an
-operator. Pure states have very simple density matrices that we can write as an outer product of a
-ket vector :math:`\ket{\psi}` with its own bra version :math:`\bra{\psi}=\ket{\psi}^\dagger`.
-For a pure state the density matrix is simply
+Errors in quantum computing can introduce classical uncertainty in what the underlying state is. When this happens we
+sometimes need to consider not only wavefunctions but also probabilistic sums of wavefunctions when we are uncertain as
+to which one we have. For example, if we think that an X gate was accidentally applied to a qubit with a 50-50 chance
+then we would say that there is a 50% chance we have the :math:`\ket{0}` state and a 50% chance that we have a
+:math:`\ket{1}` state. This is called an "impure" or "mixed"state in that it isn't just a wavefunction (which is pure)
+but instead a distribution over wavefunctions. We describe this with something called a density matrix, which is
+generally an operator. Pure states have very simple density matrices that we can write as an outer product of a ket
+vector :math:`\ket{\psi}` with its own bra version :math:`\bra{\psi}=\ket{\psi}^\dagger`. For a pure state the density
+matrix is simply
 
 .. math::
 
@@ -31,17 +31,15 @@ The expectation value of an operator for a mixed state is given by
 
    \langle X \rangle_\rho = \tr{X \rho}
 
-where :math:`\tr{\cdot}` is the trace of an operator, which is the sum of its diagonal elements
-which is independent of choice of basis.
-Pure state density matrices satisfy
+where :math:`\tr{\cdot}` is the trace of an operator, which is the sum of its diagonal elements, which is independent of
+choice of basis. Pure state density matrices satisfy
 
 .. math::
 
    \rho \text{ is pure } \Leftrightarrow \rho^2 = \rho
 
-which you can easily verify for :math:`\rho_\psi` assuming that the state is normalized.
-If we want to describe a situation with classical uncertainty between states :math:`\rho_1` and
-:math:`\rho_2`, then we can take their weighted sum
+which you can easily verify for :math:`\rho_\psi` assuming that the state is normalized. If we want to describe a
+situation with classical uncertainty between states :math:`\rho_1` and :math:`\rho_2`, then we can take their weighted sum
 
 .. math::
 
@@ -49,20 +47,18 @@ If we want to describe a situation with classical uncertainty between states :ma
 
 where :math:`p\in [0,1]` gives the classical probability that the state is :math:`\rho_1`.
 
-Note that classical uncertainty in the wavefunction is markedly different from superpositions.
-We can represent superpositions using wavefunctions, but use density matrices to describe
-distributions over wavefunctions. You can read more about density matrices here
-[DensityMatrix]_.
+Note that classical uncertainty in the wavefunction is markedly different from superpositions. We can represent
+superpositions using wavefunctions, but use density matrices to describe distributions over wavefunctions. You can read
+more about density matrices here [DensityMatrix]_.
 
 .. [DensityMatrix] https://en.wikipedia.org/wiki/Density_matrix
 
 Quantum Gate Errors
 ~~~~~~~~~~~~~~~~~~~
 
-For a quantum gate given by its unitary operator :math:`U`, a "quantum
-gate error" describes the scenario in which the actually induces
-transformation deviates from :math:`\ket{\psi} \mapsto U\ket{\psi}`.
-There are two basic types of quantum gate errors:
+For a quantum gate given by its unitary operator :math:`U`, a "quantum gate error" describes the scenario in which the
+actually induced transformation deviates from :math:`\ket{\psi} \mapsto U\ket{\psi}`. There are two basic types of
+quantum gate errors:
 
 1. **coherent errors** are those that preserve the purity of the input
    state, i.e., instead of the above mapping we carry out a perturbed,
@@ -76,7 +72,7 @@ There are two basic types of quantum gate errors:
    .. math::
 
 
-      \rho \mapsto \sum_{j=1}^n K_j\rho K_j^\dagger, 
+      \rho \mapsto \sum_{j=1}^m K_j\rho K_j^\dagger,
 
    where the operators :math:`\{K_1, K_2, \dots, K_m\}` are called
    Kraus operators and must obey
@@ -196,14 +192,14 @@ equation <https://en.wikipedia.org/wiki/Lindblad_equation>`__.
 Noisy Gates on the Rigetti QVM
 ------------------------------
 
-As of today, users of our Forest API can annotate their QUIL programs by
+As of today, users of our Forest SDK can annotate their Quil programs by
 certain pragma statements that inform the QVM that a particular gate on
 specific target qubits should be replaced by an imperfect realization
 given by a Kraus map.
 
 The QVM propagates **pure states** --- so how does it simulate noisy gates?
 It does so by yielding the correct outcomes **in the average over many
-executions of the QUIL program**: When the noisy version of a gate
+executions of the Quil program**: When the noisy version of a gate
 should be applied the QVM makes a random choice which Kraus operator is
 applied to the current state with a probability that ensures that the
 average over many executions is equivalent to the Kraus map. In
@@ -233,7 +229,7 @@ terms and rewrite it as
 .. math::
 
    \begin{align}
-   \overline{\rho_S'} & = 
+   \overline{\rho_S'} & =
      \sum_{\ell=1}^n \frac{N_\ell}{N}  p_{\ell}^{-1}K_{\ell}\ket{\psi'}_S \bra{\psi'}_SK_{\ell}^\dagger
    \end{align}
 
@@ -263,20 +259,19 @@ Getting Started
    matrices to obtain a very accurate noise model for a particular QPU.
 2. Define your Kraus operators as a list of numpy arrays
    ``kraus_ops = [K1, K2, ..., Km]``.
-3. For your QUIL program ``p``, call:
+3. For your Quil program ``p``, call:
 
    ::
 
        p.define_noisy_gate("MY_NOISY_GATE", [q1, q2], kraus_ops)
 
    where you should replace ``MY_NOISY_GATE`` with the gate of interest
-   and ``q1, q2`` the indices of the qubits.
+   and ``q1, q2`` with the indices of the qubits.
 
 **Scroll down for some examples!**
 
 .. code:: python
 
-    from __future__ import print_function
     import numpy as np
     import matplotlib.pyplot as plt
     from scipy.stats import binom
@@ -285,15 +280,16 @@ Getting Started
 
 .. code:: python
 
-    from pyquil.quil import Program, MEASURE
-    from pyquil.api.qvm import QVMConnection
-    from pyquil.job_results import wait_for_job
-    from pyquil.gates import CZ, H, I, X
+    from pyquil import Program, get_qc
+    from pyquil.gates import CZ, H, I, X, MEASURE
     from scipy.linalg import expm
 
 .. code:: python
 
-    cxn = QVMConnection()
+    # We could ask for "2q-noisy-qvm" but we will be specifying
+    # our noise model as PRAGMAs on the Program itself.
+    qc = get_qc('2q-qvm')
+
 
 Example 1: Amplitude Damping
 ~~~~~~~~~~~~~~~~~~~~~~~~~~~~
@@ -304,11 +300,11 @@ operators
 .. math::
 
 
-   K_1 = \begin{pmatrix} 
+   K_1 = \begin{pmatrix}
    1 & 0 \\
    0 & \sqrt{1-p}
    \end{pmatrix} \\
-   K_2 = \begin{pmatrix} 
+   K_2 = \begin{pmatrix}
    0 & \sqrt{p} \\
    0 & 0
    \end{pmatrix}
@@ -318,80 +314,73 @@ state decays to the :math:`\ket{0}` state.
 
 .. code:: python
 
-   def damping_channel(damp_prob=.1):
-       """
-       Generate the Kraus operators corresponding to an amplitude damping
-       noise channel.
+    def damping_channel(damp_prob=.1):
+        """
+        Generate the Kraus operators corresponding to an amplitude damping
+        noise channel.
 
-       :params float damp_prob: The one-step damping probability.
-       :return: A list [k1, k2] of the Kraus operators that parametrize the map.
-       :rtype: list
-       """
-       damping_op = np.sqrt(damp_prob) * np.array([[0, 1],
-                                                   [0, 0]])
+        :params float damp_prob: The one-step damping probability.
+        :return: A list [k1, k2] of the Kraus operators that parametrize the map.
+        :rtype: list
+        """
+        damping_op = np.sqrt(damp_prob) * np.array([[0, 1],
+                                                    [0, 0]])
 
-       residual_kraus = np.diag([1, np.sqrt(1-damp_prob)])
-       return [residual_kraus, damping_op]
+        residual_kraus = np.diag([1, np.sqrt(1-damp_prob)])
+        return [residual_kraus, damping_op]
 
-   def append_kraus_to_gate(kraus_ops, g):
-       """
-       Follow a gate `g` by a Kraus map described by `kraus_ops`.
+    def append_kraus_to_gate(kraus_ops, g):
+        """
+        Follow a gate `g` by a Kraus map described by `kraus_ops`.
 
-       :param list kraus_ops: The Kraus operators.
-       :param numpy.ndarray g: The unitary gate.
-       :return: A list of transformed Kraus operators.
-       """
-       return [kj.dot(g) for kj in kraus_ops]
+        :param list kraus_ops: The Kraus operators.
+        :param numpy.ndarray g: The unitary gate.
+        :return: A list of transformed Kraus operators.
+        """
+        return [kj.dot(g) for kj in kraus_ops]
 
 
-   def append_damping_to_gate(gate, damp_prob=.1):
-       """
-       Generate the Kraus operators corresponding to a given unitary
-       single qubit gate followed by an amplitude damping noise channel.
+    def append_damping_to_gate(gate, damp_prob=.1):
+        """
+        Generate the Kraus operators corresponding to a given unitary
+        single qubit gate followed by an amplitude damping noise channel.
 
-       :params np.ndarray|list gate: The 2x2 unitary gate matrix.
-       :params float damp_prob: The one-step damping probability.
-       :return: A list [k1, k2] of the Kraus operators that parametrize the map.
-       :rtype: list
-       """
-       return append_kraus_to_gate(damping_channel(damp_prob), gate)
+        :params np.ndarray|list gate: The 2x2 unitary gate matrix.
+        :params float damp_prob: The one-step damping probability.
+        :return: A list [k1, k2] of the Kraus operators that parametrize the map.
+        :rtype: list
+        """
+        return append_kraus_to_gate(damping_channel(damp_prob), gate)
 
 .. code:: python
 
     %%time
-    
+
     # single step damping probability
     damping_per_I = 0.02
-    
+
     # number of program executions
     trials = 200
-    
-    results = []
-    outcomes = []
+
+    results_damping = []
     lengths = np.arange(0, 201, 10, dtype=int)
     for jj, num_I in enumerate(lengths):
-        
-        print("{}/{}, ".format(jj, len(lengths)), end="")
-    
-        
+        print("\r{}/{}, ".format(jj, len(lengths)), end="")
+
+
         p = Program(X(0))
         # want increasing number of I-gates
         p.inst([I(0) for _ in range(num_I)])
-        p.inst(MEASURE(0, [0]))
-        
+        p.inst(MEASURE(0, 0))
+
         # overload identity I on qc 0
         p.define_noisy_gate("I", [0], append_damping_to_gate(np.eye(2), damping_per_I))
-        cxn.random_seed = int(num_I)
-        res = cxn.run(p, [0], trials=trials)
-        results.append([np.mean(res), np.std(res) / np.sqrt(trials)])
-        
-    results = np.array(results)
+        p.wrap_in_numshots_loop(trials)
+        qc.qam.random_seed = int(num_I)
+        res = qc.run(p)
+        results_damping.append([np.mean(res), np.std(res) / np.sqrt(trials)])
 
-
-.. parsed-literal::
-
-    0/21, 1/21, 2/21, 3/21, 4/21, 5/21, 6/21, 7/21, 8/21, 9/21, 10/21, 11/21, 12/21, 13/21, 14/21, 15/21, 16/21, 17/21, 18/21, 19/21, 20/21, CPU times: user 138 ms, sys: 19.2 ms, total: 157 ms
-    Wall time: 6.4 s
+    results_damping = np.array(results_damping)
 
 
 .. code:: python
@@ -412,11 +401,11 @@ state decays to the :math:`\ket{0}` state.
     plt.figure(figsize=(14, 6))
     plt.pcolor(dense_lengths, np.arange(trials+1)/trials, logpmf.T, cmap=cm, vmin=-4, vmax=logpmf.max())
     plt.plot(dense_lengths, survival_probs, c=BEIGE, label="Expected mean")
-    plt.errorbar(lengths, results[:,0], yerr=2*results[:,1], c=DARK_TEAL, 
+    plt.errorbar(lengths, results_damping[:,0], yerr=2*results_damping[:,1], c=DARK_TEAL,
                  label=r"noisy qvm, errorbars $ = \pm 2\hat{\sigma}$", marker="o")
     cb = plt.colorbar()
     cb.set_label(r"$\log_{10} \mathrm{Pr}(n_1; n_{\rm trials}, p_{\rm survival}(t))$", size=20)
-    
+
     plt.title("Amplitude damping model of a single qubit", size=20)
     plt.xlabel(r"Time $t$ [arb. units]", size=14)
     plt.ylabel(r"$n_1/n_{\rm trials}$", size=14)
@@ -454,13 +443,13 @@ outcomes:
 
 The Kraus operators for this are given by
 
-.. raw:: latex
+.. math::
 
    \begin{align}
    K'_1(p,q) = K_1(p)\otimes K_1(q) \\
    K'_2(p,q) = K_2(p)\otimes K_1(q) \\
    K'_3(p,q) = K_1(p)\otimes K_2(q) \\
-   K'_4(p,q) = K_2(p)\otimes K_2(q) 
+   K'_4(p,q) = K_2(p)\otimes K_2(q)
    \end{align}
 
 where we assumed a dephasing probability :math:`p` for the first qubit
@@ -477,7 +466,7 @@ of CZ with each Kraus operator
    K^{\rm CZ}_1(p,q) = K_1(p)\otimes K_1(q)U_{\rm CZ} \\
    K^{\rm CZ}_2(p,q) = K_2(p)\otimes K_1(q)U_{\rm CZ} \\
    K^{\rm CZ}_3(p,q) = K_1(p)\otimes K_2(q)U_{\rm CZ} \\
-   K^{\rm CZ}_4(p,q) = K_2(p)\otimes K_2(q)U_{\rm CZ} 
+   K^{\rm CZ}_4(p,q) = K_2(p)\otimes K_2(q)U_{\rm CZ}
    \end{align}
 
 **Note that this is not always accurate, because a CZ gate is often
@@ -490,34 +479,23 @@ good starting point.**
     def dephasing_kraus_map(p=.1):
         """
         Generate the Kraus operators corresponding to a dephasing channel.
-    
+
         :params float p: The one-step dephasing probability.
         :return: A list [k1, k2] of the Kraus operators that parametrize the map.
         :rtype: list
         """
         return [np.sqrt(1-p)*np.eye(2), np.sqrt(p)*np.diag([1, -1])]
-    
+
     def tensor_kraus_maps(k1, k2):
         """
         Generate the Kraus map corresponding to the composition
         of two maps on different qubits.
-        
+
         :param list k1: The Kraus operators for the first qubit.
         :param list k2: The Kraus operators for the second qubit.
         :return: A list of tensored Kraus operators.
         """
         return [np.kron(k1j, k2l) for k1j in k1 for k2l in k2]
-    
-    
-    def append_kraus_to_gate(kraus_ops, g):
-        """
-        Follow a gate `g` by a Kraus map described by `kraus_ops`.
-        
-        :param list kraus_ops: The Kraus operators.
-        :param numpy.ndarray g: The unitary gate.
-        :return: A list of transformed Kraus operators.
-        """
-        return [kj.dot(g) for kj in kraus_ops]
 
 
 .. code:: python
@@ -525,51 +503,45 @@ good starting point.**
     %%time
     # single step damping probabilities
     ps = np.linspace(.001, .5, 200)
-    
+
     # number of program executions
     trials = 500
-    
+
     results = []
-    
+
     for jj, p in enumerate(ps):
-    
+
         corrupted_CZ = append_kraus_to_gate(
         tensor_kraus_maps(
             dephasing_kraus_map(p),
             dephasing_kraus_map(p)
-        ), 
+        ),
         np.diag([1, 1, 1, -1]))
-    
-        
-        print("{}/{}, ".format(jj, len(ps)), end="")
-        
+
+
+        print("\r{}/{}, ".format(jj, len(ps)), end="")
+
         # make Bell-state
         p = Program(H(0), H(1), CZ(0,1), H(1))
-        
-        p.inst(MEASURE(0, [0]))
-        p.inst(MEASURE(1, [1]))
-        
+
+        p.inst(MEASURE(0, 0))
+        p.inst(MEASURE(1, 1))
+
         # overload identity I on qc 0
         p.define_noisy_gate("CZ", [0, 1], corrupted_CZ)
-        cxn.random_seed = jj
-        res = cxn.run(p, [0, 1], trials=trials)
+        p.wrap_in_numshots_loop(trials)
+        qc.qam.random_seed = jj
+        res = qc.run(p)
         results.append(res)
-        
+
     results = np.array(results)
-
-
-.. parsed-literal::
-
-    0/200, 1/200, 2/200, 3/200, 4/200, 5/200, 6/200, 7/200, 8/200, 9/200, 10/200, 11/200, 12/200, 13/200, 14/200, 15/200, 16/200, 17/200, 18/200, 19/200, 20/200, 21/200, 22/200, 23/200, 24/200, 25/200, 26/200, 27/200, 28/200, 29/200, 30/200, 31/200, 32/200, 33/200, 34/200, 35/200, 36/200, 37/200, 38/200, 39/200, 40/200, 41/200, 42/200, 43/200, 44/200, 45/200, 46/200, 47/200, 48/200, 49/200, 50/200, 51/200, 52/200, 53/200, 54/200, 55/200, 56/200, 57/200, 58/200, 59/200, 60/200, 61/200, 62/200, 63/200, 64/200, 65/200, 66/200, 67/200, 68/200, 69/200, 70/200, 71/200, 72/200, 73/200, 74/200, 75/200, 76/200, 77/200, 78/200, 79/200, 80/200, 81/200, 82/200, 83/200, 84/200, 85/200, 86/200, 87/200, 88/200, 89/200, 90/200, 91/200, 92/200, 93/200, 94/200, 95/200, 96/200, 97/200, 98/200, 99/200, 100/200, 101/200, 102/200, 103/200, 104/200, 105/200, 106/200, 107/200, 108/200, 109/200, 110/200, 111/200, 112/200, 113/200, 114/200, 115/200, 116/200, 117/200, 118/200, 119/200, 120/200, 121/200, 122/200, 123/200, 124/200, 125/200, 126/200, 127/200, 128/200, 129/200, 130/200, 131/200, 132/200, 133/200, 134/200, 135/200, 136/200, 137/200, 138/200, 139/200, 140/200, 141/200, 142/200, 143/200, 144/200, 145/200, 146/200, 147/200, 148/200, 149/200, 150/200, 151/200, 152/200, 153/200, 154/200, 155/200, 156/200, 157/200, 158/200, 159/200, 160/200, 161/200, 162/200, 163/200, 164/200, 165/200, 166/200, 167/200, 168/200, 169/200, 170/200, 171/200, 172/200, 173/200, 174/200, 175/200, 176/200, 177/200, 178/200, 179/200, 180/200, 181/200, 182/200, 183/200, 184/200, 185/200, 186/200, 187/200, 188/200, 189/200, 190/200, 191/200, 192/200, 193/200, 194/200, 195/200, 196/200, 197/200, 198/200, 199/200, CPU times: user 1.17 s, sys: 166 ms, total: 1.34 s
-    Wall time: 1min 49s
-
 
 .. code:: python
 
     Z1s = (2*results[:,:,0]-1.)
     Z2s = (2*results[:,:,1]-1.)
     Z1Z2s = Z1s * Z2s
-    
+
     Z1m = np.mean(Z1s, axis=1)
     Z2m = np.mean(Z2s, axis=1)
     Z1Z2m = np.mean(Z1Z2s, axis=1)
@@ -578,24 +550,25 @@ good starting point.**
 
     plt.figure(figsize=(14, 6))
     plt.axhline(y=1.0, color=FUSCHIA, alpha=.5, label="Bell state")
-    
+
     plt.plot(ps, Z1Z2m, "x", c=FUSCHIA, label=r"$\overline{Z_1 Z_2}$")
     plt.plot(ps, 1-2*ps, "--", c=FUSCHIA, label=r"$\langle Z_1 Z_2\rangle_{\rm theory}$")
-    
+
     plt.plot(ps, Z1m, "o", c=DARK_TEAL, label=r"$\overline{Z}_1$")
     plt.plot(ps, 0*ps, "--", c=DARK_TEAL, label=r"$\langle Z_1\rangle_{\rm theory}$")
-    
+
     plt.plot(ps, Z2m, "d", c="k", label=r"$\overline{Z}_2$")
     plt.plot(ps, 0*ps, "--", c="k", label=r"$\langle Z_2\rangle_{\rm theory}$")
-    
+
     plt.xlabel(r"Dephasing probability $p$", size=18)
     plt.ylabel(r"$Z$-moment", size=18)
     plt.title(r"$Z$-moments for a Bell-state prepared with dephased CZ", size=18)
     plt.xlim(0, .5)
     plt.legend(fontsize=18)
 
-
 .. image:: images/GateNoiseModels_20_1.png
+
+.. end import from GateNoiseModel.ipynb
 
 
 Adding Decoherence Noise
@@ -688,7 +661,7 @@ will want to use a compiler to do this step for you.
 Scan Over Noise Parameters
 ~~~~~~~~~~~~~~~~~~~~~~~~~~
 
-We perform a scan over three levels of noise each at 20 theta points.
+We perform a scan over three levels of noise, each at 20 theta points.
 
 Specifically, we investigate T1 values of 1, 3, and 10 us. By default,
 T2 = T1 / 2, 1 qubit gates take 50 ns, and 2 qubit gates take 150 ns.
@@ -777,11 +750,8 @@ Note that to run the code below you will need to install the `pandas` and `seabo
 
 .. image:: images/NoiseInvestigation_14_0.png
 
-Readout Noise Overview
+Modeling Readout Noise
 ----------------------
-
-Theoretical Overview
-~~~~~~~~~~~~~~~~~~~~
 
 Qubit-Readout can be corrupted in a variety of ways. The two most
 relevant error mechanisms on the Rigetti QPU right now are:
@@ -814,9 +784,9 @@ The most general type of measurement performed on a single qubit at a
 single time can be characterized by some set :math:`\mathcal{O}` of
 measurement outcomes, e.g., in the simplest case
 :math:`\mathcal{O} = \{0, 1\}`, and some unnormalized quantum channels
-(see notebook on gate noise models) that encapsulate 1. the probability
-of that outcome 2. how the qubit state is affected conditional on the
-measurement outcome.
+(see notebook on gate noise models) that encapsulate: 1. the probability
+of that outcome, and 2. how the qubit state is affected conditional on
+the measurement outcome.
 
 Here the *outcome* is understood as classical information that has been
 extracted from the quantum system.
@@ -843,10 +813,10 @@ set of projectors any two members satisfy
 
 and for a *complete* set we additionally demand that
 :math:`\sum_{x\in\mathcal{O}} \Pi_x = 1`. Following our introduction to
-gate noise, we write quantum states as density matrices as this is more
+gate noise, we write quantum states as density matrices, as this is more
 general and in closer correspondence with classical probability theory.
 
-With these the probability of outcome :math:`x` is given by
+With these, the probability of outcome :math:`x` is given by
 :math:`p(x) = \tr{\Pi_x \rho \Pi_x} = \tr{\Pi_x^2 \rho} = \tr{\Pi_x \rho}`
 and the post measurement state is
 
@@ -857,8 +827,9 @@ and the post measurement state is
 which is the projection postulate applied to mixed states.
 
 If we were a sloppy quantum programmer and accidentally erased the
-measurement outcome then our best guess for the post measurement state
-would be given by something that looks an awful lot like a Kraus map:
+measurement outcome, then our best guess for the post measurement
+state would be given by something that looks an awful lot like a Kraus
+map:
 
 .. math::
 
@@ -914,7 +885,7 @@ where
    p(x') & = \sum_{x\in\mathcal{O}} p(x'|x) p(x)  \\
    & = \tr{\sum_{x\in \mathcal{O}} p(x'|x) \Pi_x \rho \Pi_x} \\
    & = \tr{\rho \sum_{x\in \mathcal{O}} p(x'|x)\Pi_x} \\
-   & = \tr{\rho E_x'}.
+   & = \tr{\rho E_{x'}}.
    \end{aligned}
 
 where we have exploited the cyclical property of the trace
@@ -930,14 +901,14 @@ that must sum to 1:
 
 .. math::
 
-   \sum_{x'\in\mathcal{O}'} E_x' = \sum_{x\in\mathcal{O}}\underbrace{\left[\sum_{x'\in\mathcal{O}'} p(x'|x)\right]}_{1}\Pi_x = \sum_{x\in\mathcal{O}}\Pi_x = 1.
+   \sum_{x'\in\mathcal{O}'} E_{x'} = \sum_{x\in\mathcal{O}}\underbrace{\left[\sum_{x'\in\mathcal{O}'} p(x'|x)\right]}_{1}\Pi_x = \sum_{x\in\mathcal{O}}\Pi_x = 1.
 
 The above result is a type of generalized **Bayes' theorem** that is
 extremely useful for this type of (slightly) generalized measurement and
 the family of operators :math:`\{E_{x'}| x' \in \mathcal{O}'\}` whose
-expectations give the probabilities is called a **positive operator
+expectations given the probabilities is called a **positive operator
 valued measure** (POVM). These operators are not generally orthogonal
-nor valid projection operators but they naturally arise in this
+nor valid projection operators, but they naturally arise in this
 scenario. This is not yet the most general type of measurement, but it
 will get us pretty far.
 
@@ -964,12 +935,12 @@ Working with Readout Noise
 --------------------------
 
 1. Come up with a good guess for your readout noise parameters
-   :math:`p(0|0)` and :math:`p(1|1)`, the off-diagonals then follow from
+   :math:`p(0|0)` and :math:`p(1|1)`; the off-diagonals then follow from
    the normalization of :math:`P_{x'|x}`. If your assignment fidelity
    :math:`F` is given, and you assume that the classical bit flip noise
    is roughly symmetric, then a good approximation is to set
    :math:`p(0|0)=p(1|1)=F`.
-2. For your QUIL program ``p``, and a qubit index ``q`` call:
+2. For your Quil program ``p`` and a qubit index ``q`` call:
 
    ::
 
@@ -978,17 +949,10 @@ Working with Readout Noise
    where you should replace ``p00`` and ``p11`` with the assumed
    probabilities.
 
-Estimate :math:`P_{x'|x}` Yourself!
-~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
-
-You can also run some simple experiments to estimate the assignment
-probability matrix directly from a QPU.
-
 **Scroll down for some examples!**
 
 .. code:: python
 
-    from __future__ import print_function, division
     import numpy as np
     import matplotlib.pyplot as plt
     %matplotlib inline
@@ -1027,7 +991,7 @@ Example 1: Rabi Sequence with Noisy Readout
     for jj, theta in enumerate(thetas):
         for kk, p00 in enumerate(p00s):
             cxn.random_seed = hash((jj, kk))
-            p = Program(RX(theta)(0))
+            p = Program(RX(theta, 0))
             # assume symmetric noise p11 = p00
             p.define_noisy_readout(0, p00=p00, p11=p00)
             p.measure(0, 0)
@@ -1061,7 +1025,11 @@ Example 1: Rabi Sequence with Noisy Readout
 Example 2: Estimate the Assignment Probabilities
 ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
 
-**Estimate assignment probabilities for a perfect quantum computer**
+Here we will estimate :math:`P_{x'|x}` ourselves!
+You can run some simple experiments to estimate the assignment
+probability matrix directly from a QPU.
+
+**On a perfect quantum computer**
 
 .. code:: python
 
@@ -1072,7 +1040,7 @@ Example 2: Estimate the Assignment Probabilities
     array([[ 1.,  0.],
            [ 0.,  1.]])
 
-**Re-estimate assignment probabilities for an imperfect quantum computer**
+**On an imperfect quantum computer**
 
 .. code:: python
 
@@ -1194,7 +1162,7 @@ Uncorrupted probability for :math:`\left|000\right\rangle` and :math:`\left|111\
 As expected the outcomes ``000`` and ``111`` each have roughly
 probability :math:`1/2`.
 
-Corrupted probability for :math:`\left|011\right\rangle` and :math:`\left|100\right\rangle`
+Corrupted probability for :math:`\left|000\right\rangle` and :math:`\left|111\right\rangle`
 ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
 
 .. code:: python
@@ -1209,7 +1177,7 @@ Corrupted probability for :math:`\left|011\right\rangle` and :math:`\left|100\ri
 The noise-corrupted outcome probabilities deviate significantly from
 their ideal values!
 
-Corrected probability for :math:`\left|011\right\rangle` and :math:`\left|100\right\rangle`
+Corrected probability for :math:`\left|000\right\rangle` and :math:`\left|111\right\rangle`
 ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
 
 .. code:: python
@@ -1277,3 +1245,47 @@ Estimate :math:`\langle Z_0^{j} Z_1^{k} Z_2^{\ell}\rangle` for :math:`jkl=110, 0
 Overall the correction can restore the contrast in our multi-qubit observables,
 though we also see that the correction can lead to slightly non-physical expectations.
 This effect is reduced the more samples we take.
+
+
+Alternative: A global Pauli error model
+~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
+
+The Rigetti QVM has support for emulating certain types of noise models.
+One such model is *parametric Pauli noise*, which is defined by a
+set of 6 probabilities:
+
+-  The probabilities :math:`P_X`, :math:`P_Y`, and :math:`P_Z` which
+   define respectively the probability of a Pauli :math:`X`, :math:`Y`,
+   or :math:`Z` gate getting applied to *each* qubit after *every* gate
+   application. These probabilities are called the *gate noise
+   probabilities*.
+
+-  The probabilities :math:`P_X'`, :math:`P_Y'`, and :math:`P_Z'` which
+   define respectively the probability of a Pauli :math:`X`, :math:`Y`,
+   or :math:`Z` gate getting applied to the qubit being measured
+   *before* it is measured. These probabilities are called the
+   *measurement noise probabilities*.
+
+We can instantiate a noisy QVM by creating a new connection with these
+probabilities specified.
+
+.. code:: python
+
+    # 20% chance of a X gate being applied after gate applications and before measurements.
+    gate_noise_probs = [0.2, 0.0, 0.0]
+    meas_noise_probs = [0.2, 0.0, 0.0]
+    noisy_qvm = qvm(gate_noise=gate_noise_probs, measurement_noise=meas_noise_probs)
+
+We can test this by applying an :math:`X`-gate and measuring. Nominally,
+we should always measure ``1``.
+
+.. code:: python
+
+    p = Program().inst(X(0)).measure(0, 0)
+    print("Without Noise: {}".format(qvm.run(p, [0], 10)))
+    print("With Noise   : {}".format(noisy_qvm.run(p, [0], 10)))
+
+.. parsed-literal::
+
+    Without Noise: [[1], [1], [1], [1], [1], [1], [1], [1], [1], [1]]
+    With Noise   : [[0], [0], [0], [0], [0], [1], [1], [1], [1], [0]]

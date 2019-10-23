@@ -1,113 +1,141 @@
-# pyQuil
+PyQuil: Quantum programming in Python
+=====================================
 
-A library for easily generating Quil programs to be executed using the Rigetti Forest platform.
-pyQuil is licensed under the [Apache 2.0 license](https://github.com/rigetticomputing/pyQuil/blob/master/LICENSE).
+[![pipeline status](https://gitlab.com/rigetti/forest/pyquil/badges/master/pipeline.svg)](https://gitlab.com/rigetti/forest/pyquil/commits/master)
+[![build status](https://semaphoreci.com/api/v1/rigetti/pyquil/branches/master/shields_badge.svg)](https://semaphoreci.com/rigetti/pyquil)
+[![docs status](https://readthedocs.org/projects/pyquil/badge/?version=latest)](http://pyquil.readthedocs.io/en/latest/?badge=latest)
+[![pypi downloads](https://img.shields.io/pypi/dm/pyquil.svg)](https://pypi.org/project/pyquil/)
+[![pypi version](https://img.shields.io/pypi/v/pyquil.svg)](https://pypi.org/project/pyquil/)
+[![conda-forge version](https://img.shields.io/conda/vn/conda-forge/pyquil.svg)](https://anaconda.org/conda-forge/pyquil)
+[![slack workspace](https://img.shields.io/badge/slack-rigetti--forest-812f82.svg?)][slack_invite]
 
-[![Build Status](https://semaphoreci.com/api/v1/rigetti/pyquil/branches/master/badge.svg)](https://semaphoreci.com/rigetti/pyquil)
-[![Documentation Status](https://readthedocs.org/projects/pyquil/badge/?version=latest)](http://pyquil.readthedocs.io/en/latest/?badge=latest)
+PyQuil is a Python library for quantum programming using [Quil](https://arxiv.org/abs/1608.03355),
+the quantum instruction language developed at [Rigetti Computing](https://www.rigetti.com/).
+PyQuil serves three main functions:
 
-## Documentation
+- Easily generating Quil programs from quantum gates and classical operations
+- Compiling and simulating Quil programs using the [Quil Compiler](https://github.com/rigetti/quilc)
+  (quilc) and the [Quantum Virtual Machine](https://github.com/rigetti/qvm) (QVM)
+- Executing Quil programs on real quantum processors (QPUs) using
+  [Quantum Cloud Services](https://www.rigetti.com/qcs) (QCS)
 
-Documentation is hosted at [http://pyquil.readthedocs.io/en/latest/](http://pyquil.readthedocs.io/en/latest/)
+PyQuil has a ton of other features, which you can learn more about in the
+[docs](http://pyquil.readthedocs.io/en/latest/). However, you can also keep reading
+below to get started with running your first quantum program!
 
-## Installation
+Installation
+------------
 
-You can install pyQuil directly from the Python package manager `pip` using:
+**Please Note: PyQuil, along with quilc, the QVM, and other libraries, make up what
+is called the Forest SDK. To make full use of pyQuil's functionality, you will need
+to additionally have installed [quilc](https://github.com/rigetti/quilc) and the
+[QVM](https://github.com/rigetti/qvm). This can be done by following their respective
+READMEs, or by downloading them as binaries from [here](https://rigetti.com/forest).**
+
+PyQuil can be installed using `conda`, `pip`, or directly from source.
+
+To install pyQuil as a `conda` package from the conda-forge channel (recommended), do the following:
+
+```bash
+conda install -c conda-forge pyquil
 ```
+
+To instead install pyQuil as a PyPI package, do the following:
+
+```bash
 pip install pyquil
 ```
 
-To instead install pyQuil from source, clone this repository, `cd` into it, and run:
-```
+Finally, if you would prefer to install pyQuil directly from source, do the following
+from within the repository after cloning it:
+
+```bash
 pip install -e .
 ```
 
-## Connecting to the Rigetti Forest
+If you choose to use `pip`, we highly recommend installing pyQuil within a virtual environment.
 
-pyQuil can be used to build and manipulate Quil programs without restriction. However, to run
-programs (e.g., to get wavefunctions, get multishot experiment data), you will need an API key
-for [Rigetti Forest](http://forest.rigetti.com). This will allow you to run your programs on the
-Rigetti Quantum Virtual Machine (QVM) or on a real quantum processor (QPU).
+Getting Started
+---------------
 
-Once you have your key, run the following command to automatically set up your config:
-
-```
-pyquil-config-setup
-```
-
-You can also create the configuration file manually if you'd like and place it at `~/.pyquil_config`.
-The configuration file is in INI format and should contain all the information required to connect to Forest:
-
-```
-[Rigetti Forest]
-key: <Rigetti Forest API key>
-user_id: <Rigetti User ID>
-```
-
-You can change the location of this file by setting the `PYQUIL_CONFIG` environment variable.
-
-If you encounter errors or warnings trying to connect to Forest then see the full
-[Getting Started Guide](https://go.rigetti.com/getting-started)
-
-## Examples using the Rigetti QVM
-
-Here is how to construct a Bell state program and how to compute the amplitudes of its wavefunction:
+In just a few lines, we can use pyQuil with the Forest SDK to simulate a Bell state!
 
 ```python
->>> from pyquil.quil import Program
->>> from pyquil.api import QVMConnection
->>> from pyquil.gates import *
->>> qvm = QVMConnection()
->>> p = Program(H(0), CNOT(0,1))
-<pyquil.pyquil.Program object at 0x101ebfb50>
->>> qvm.wavefunction(p).amplitudes
-array([0.7071067811865475+0j, 0j, 0j, 0.7071067811865475+0j])
+from pyquil import get_qc, Program
+from pyquil.gates import CNOT, H, MEASURE
+ 
+qvm = get_qc('2q-qvm')
+ 
+p = Program()
+p += H(0)
+p += CNOT(0, 1)
+ro = p.declare('ro', 'BIT', 2)
+p += MEASURE(0, ro[0])
+p += MEASURE(1, ro[1])
+p.wrap_in_numshots_loop(10)
+ 
+qvm.run(p).tolist()
 ```
 
-How to do a simulated multishot experiment measuring qubits 0 and 1 of a Bell state. (Of course,
-each measurement pair will be `00` or `11`.)
+The output of the above program should look something like the following,
+the statistics of which are consistent with a two-qubit entangled state.
 
-```python
->>> from pyquil.quil import Program
->>> from pyquil.api import QVMConnection
->>> from pyquil.gates import *
->>> qvm = QVMConnection()
->>> p = Program()
->>> p.inst(H(0),
-...        CNOT(0, 1),
-...        MEASURE(0, 0),
-...        MEASURE(1, 1))
-<pyquil.pyquil.Program object at 0x101ebfc50>
->>> print p
-H 0
-CNOT 0 1
-MEASURE 0 [0]
-MEASURE 1 [1]
-
->>> qvm.run(p, [0, 1], 10)
-[[0, 0], [1, 1], [1, 1], [0, 0], [0, 0], [1, 1], [0, 0], [0, 0], [0, 0], [0, 0]]
+```
+[[0, 0],
+ [1, 1],
+ [1, 1],
+ [1, 1],
+ [1, 1],
+ [0, 0],
+ [0, 0],
+ [1, 1],
+ [0, 0],
+ [0, 0]]
 ```
 
-## Community
+Joining the Forest Community
+----------------------------
 
-Join the public Forest Slack channel at [http://slack.rigetti.com](http://slack.rigetti.com).
+If you'd like to get involved with pyQuil and Forest, joining the [Rigetti Forest Slack
+Workspace][slack_invite]
+is a great place to start! You can do so by clicking the invite link in the previous sentence,
+or in the badge at the top of this README. The Slack Workspace is a great place to ask general
+questions, join high-level design discussions, and hear about updates to pyQuil and the Forest SDK.
 
-The following projects have been contributed by community members:
+To go a step further and start contributing to the development of pyQuil, good first steps are
+[reporting a bug][bug], [requesting a feature][feature], or picking up one of the issues with the
+[good first issue][first] or [help wanted][help] labels. Once you find an issue to work
+on, make sure to [fork this repository][fork] and then [open a pull request][pr] once your changes
+are ready. For more information on all the ways you can contribute to pyQuil (along with
+some helpful tips for developers and maintainers) check out our
+[Contributing Guide](CONTRIBUTING.md)!
 
-- [Syntax Highlighting for Quil](https://github.com/JavaFXpert/quil-syntax-highlighter)
-  contributed by [James Weaver](https://github.com/JavaFXpert)
-- [Web Based Circuit Simulator](https://github.com/rasa97/quil-sim/tree/master)
-  contributed by [Ravisankar A V](https://github.com/rasa97)
-- [Quil in Javascript](https://github.com/mapmeld/jsquil)
-  contributed by [Nick Doiron](https://github.com/mapmeld)
+To see what people have contributed in the past, check out the [Changelog](CHANGELOG.md) for
+a detailed list of all announcements, improvements, changes, and bugfixes. The
+[Releases](https://github.com/rigetti/pyquil/releases) page for pyQuil contains similar
+information, but with links to the pull request for each change and its corresponding author.
+Thanks for contributing to pyQuil! 🙂
 
-## Developing PyQuil
+[bug]: https://github.com/rigetti/pyquil/issues/new?assignees=&labels=bug+%3Abug%3A&template=BUG_REPORT.md&title=
+[feature]: https://github.com/rigetti/pyquil/issues/new?assignees=&labels=enhancement+%3Asparkles%3A&template=FEATURE_REQUEST.md&title=
+[first]: https://github.com/rigetti/pyquil/labels/good%20first%20issue%20%3Ababy%3A
+[help]: https://github.com/rigetti/pyquil/labels/help%20wanted%20%3Awave%3A
+[fork]: https://github.com/rigetti/pyquil/fork
+[pr]: https://github.com/rigetti/pyquil/compare
+[slack_invite]: https://join.slack.com/t/rigetti-forest/shared_invite/enQtNTUyNTE1ODg3MzE2LWQwNzBlMjZlMmNlN2M5MzQyZDlmOGViODQ5ODI0NWMwNmYzODY4YTc2ZjdjOTNmNzhiYTk2YjVhNTE2NTRkODY
 
-To make changes to PyQuil itself see [DEVELOPMENT.md](DEVELOPMENT.md) for instructions on development and testing.
+Running on the QPU
+------------------
 
-## How to cite pyQuil and Forest
+Using the Forest SDK, you can simulate the operation of a real quantum processor. If you
+would like to run on the real QPUs in our lab in Berkeley, you can sign up for an account
+on [Quantum Cloud Services](https://www.rigetti.com/qcs)!
 
-If you use pyQuil, Grove, or other parts of the Rigetti Forest stack in your research, please cite it as follows:
+Citing pyQuil and Forest
+------------------------
+
+If you use pyQuil, Grove, or other parts of the Rigetti Forest stack in your research,
+please cite it as follows:
 
 BibTeX:
 ```
@@ -124,3 +152,9 @@ Text:
 R. Smith, M. J. Curtis and W. J. Zeng, "A Practical Quantum Instruction Set Architecture," (2016), 
   arXiv:1608.03355 [quant-ph], https://arxiv.org/abs/1608.03355
 ```
+
+License
+-------
+
+PyQuil is licensed under the
+[Apache License 2.0](https://github.com/rigetti/pyQuil/blob/master/LICENSE).

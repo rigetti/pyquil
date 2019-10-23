@@ -1,37 +1,62 @@
-# top-level pyquil Makefile
+COMMIT_HASH=$(shell git rev-parse --short HEAD)
+DEFAULT_QUILC_URL=tcp://localhost:5555
+DEFAULT_QVM_URL=http://localhost:5000
+DOCKER_TAG=rigetti/forest:$(COMMIT_HASH)
 
-PACKAGENAME = pyquil
-FILES = pyquil/*.py pyquil/api/*.py pyquil/latex/*.py pyquil/_parser/*.py
-# Kudos: Adapted from Auto-documenting default target 
-# https://marmelab.com/blog/2016/02/29/auto-documented-makefile.html
-help:
-	@grep -E '^[a-zA-Z_-]+:.*?## .*$$' $(MAKEFILE_LIST) | awk 'BEGIN {FS = ":.*?## "}; {printf "\033[36m%-12s\033[0m %s\n", $$1, $$2}'
+.PHONY: all
+all: dist
 
-test:		## Run unittests with current enviroment
-	@pytest $(PACKAGENAME)/tests
+.PHONY: clean
+clean:
+	rm -rf dist
+	rm -rf pyquil.egg-info
+	rm -rf .pytest_cache/
 
-testall:	## Run full test suite
-	@tox
+.PHONY: config
+config:
+	echo "[Rigetti Forest]" > ~/.forest_config
+	echo "qvm_address = ${DEFAULT_QVM_URL}" >> ~/.forest_config
+	echo "quilc_address = ${DEFAULT_QUILC_URL}" >> ~/.forest_config
+	cat ~/.forest_config
 
-coverage:	## Report test coverage
-	@pytest --cov=$(PACKAGENAME) --cov-report term-missing $(PACKAGENAME)/tests
+.PHONY: dist
+dist:
+	python setup.py sdist
 
-lint:		## Delint python source
-	@flake8 $(PACKAGENAME)
-
-typecheck:	## Static typechecking 
-	@mypy $(FILES)  --ignore-missing-imports --follow-imports=skip
-
-untyped:	## Report type errors and untyped functions
-	@mypy $(FILES) --ignore-missing-imports --follow-imports=skip --disallow-untyped-defs
-
-docs:		## Build documentation
-	$(MAKE) -C docs html
-
-antlr: 		## Rebuild antlr parser (Run after modification to antlr grammar ./pyquil/_parser/Quil.g4)
-	(cd pyquil/_parser && antlr4 -Dlanguage=Python2 -o gen2 Quil.g4)
-	(cd pyquil/_parser && antlr4 -Dlanguage=Python3 -o gen3 Quil.g4)
-
-
-.PHONY: help
 .PHONY: docs
+docs: CHANGELOG.md
+	pandoc --from=markdown --to=rst --output=docs/source/changes.rst CHANGELOG.md
+	make -C docs html
+
+.PHONY: docker
+docker: Dockerfile
+	docker build -t $(DOCKER_TAG) .
+
+.PHONY: info
+info:
+	python -V
+	pip freeze
+
+.PHONY: install
+install:
+	pip install -e .
+
+.PHONY: requirements
+requirements: requirements.txt
+	pip install -r requirements.txt
+
+.PHONY: style
+style:
+	flake8 pyquil
+
+.PHONY: test
+test:
+	pytest -v --runslow --cov=pyquil
+
+.PHONY: upload
+upload:
+	twine upload --repository-url https://test.pypi.org/legacy/ dist/*
+
+.PHONY: version
+version:
+	@git describe --tags | sed 's/v//' | sed 's/\(.*\)-.*/\1/'| sed 's/-/./'

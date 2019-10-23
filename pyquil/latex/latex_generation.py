@@ -34,7 +34,7 @@
 from copy import copy
 
 from pyquil.latex.latex_config import get_default_settings, header, footer
-from pyquil.quil import Measurement
+from pyquil.quil import Measurement, Gate
 from collections import namedtuple
 
 
@@ -54,8 +54,9 @@ def to_latex(circuit, settings=None):
     Translates a given pyquil Program to a TikZ picture in a Latex document.
 
     :param Program circuit: The circuit to be drawn, represented as a pyquil program.
-    :param dict settings: An optional dictionary with settings for drawing the circuit. See `get_default_settings`
-     in `latex_config` for more information about what settings should contain.
+    :param dict settings: An optional dictionary with settings for drawing the circuit.
+        See `get_default_settings` in `latex_config` for more information about what settings
+        should contain.
     :return: LaTeX document string which can be compiled.
     :rtype: string
     """
@@ -85,14 +86,16 @@ def body(circuit, settings):
         if isinstance(inst, Measurement):
             inst.qubits = [inst.qubit]
             inst.name = "MEASURE"
-        else:
-            qubits = inst.qubits
-        for qubit in qubits:
-            qubit_instruction_mapping[qubit.index] = []
+        elif isinstance(inst, Gate):
+            for qubit in inst.qubits:
+                qubit_instruction_mapping[qubit.index] = []
     for k, v in list(qubit_instruction_mapping.items()):
         v.append(command(ALLOCATE, [k], [], [k], k))
 
     for inst in circuit:
+        # Ignore everything that is neither a Gate nor a Measurement (e.g. a Pragma)
+        if not isinstance(inst, Gate) and not isinstance(inst, Measurement):
+            continue
         qubits = [qubit.index for qubit in inst.qubits]
         gate = inst.name
         # If this is a single qubit instruction.
@@ -114,12 +117,14 @@ def body(circuit, settings):
                 if gate == CZ:
                     ctrl_lines = list(explicit_lines)
                     ctrl_lines.remove(qubits[-1])
-                    qubit_instruction_mapping[qubit].append(command(Z, list(all_lines), list(ctrl_lines),
+                    qubit_instruction_mapping[qubit].append(command(Z, list(all_lines),
+                                                                    list(ctrl_lines),
                                                                     qubits[-1:], None))
                 elif gate == CNOT:
                     ctrl_lines = list(explicit_lines)
                     ctrl_lines.remove(qubits[-1])
-                    qubit_instruction_mapping[qubit].append(command(X, list(all_lines), list(ctrl_lines),
+                    qubit_instruction_mapping[qubit].append(command(X, list(all_lines),
+                                                                    list(ctrl_lines),
                                                                     qubits[-1:], None))
                 else:
                     qubit_instruction_mapping[qubit].append(command(gate, list(all_lines), [],
@@ -249,7 +254,7 @@ class CircuitTikzGenerator(object):
                     self.is_quantum[l] = False
             elif gate == ALLOCATE:
                 # Draw 'begin line'.
-                add_str = "\n\\node[none] ({}) at ({},-{}) {{$\Ket{{0}}{}$}};"
+                add_str = "\n\\node[none] ({}) at ({},-{}) {{$\\Ket{{0}}{}$}};"
                 id_str = ""
                 if self.settings['gates']['AllocateQubitGate']['draw_id']:
                     id_str = "^{{\\textcolor{{red}}{{{}}}}}".format(cmds[i].id)
@@ -341,7 +346,8 @@ class CircuitTikzGenerator(object):
         op = self._op(line)
         gate_str = ("\n\\node[xstyle] ({op}) at ({pos},-{line}) {{}};\n\\draw"
                     "[edgestyle] ({op}.north)--({op}.south);\n\\draw"
-                    "[edgestyle] ({op}.west)--({op}.east);").format(op=op, line=line, pos=self.pos[line])
+                    "[edgestyle] ({op}.west)--({op}.east);").format(op=op, line=line,
+                                                                    pos=self.pos[line])
         if len(ctrl_lines) > 0:
             for ctrl in ctrl_lines:
                 gate_str += self._phase(ctrl, self.pos[line])
@@ -534,7 +540,8 @@ class CircuitTikzGenerator(object):
             if l in used_lines:
                 tex_str += self._phase(l, pos)
             node2 = ("\n\\node[none,minimum height={}cm,outer sep=0] ({}) at"
-                     " ({},-{}) {{}};").format(gate_height, self._op(l, offset=1), pos + gate_width / 2., l)
+                     " ({},-{}) {{}};").format(gate_height, self._op(l, offset=1),
+                                               pos + gate_width / 2., l)
             node3 = node_str.format(self._op(l, offset=2), pos + gate_width, l)
             tex_str += node1 + node2 + node3
         tex_str += ("\n\\draw[operator,edgestyle,outer sep={width}cm]"

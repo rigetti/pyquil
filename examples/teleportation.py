@@ -1,4 +1,5 @@
 #!/usr/bin/env python
+
 ##############################################################################
 # Copyright 2016-2017 Rigetti Computing
 #
@@ -31,19 +32,22 @@ def teleport(start_index, end_index, ancilla_index):
     """
     program = make_bell_pair(end_index, ancilla_index)
 
+    ro = program.declare('ro', memory_size=3)
+
     # do the teleportation
     program.inst(CNOT(start_index, ancilla_index))
     program.inst(H(start_index))
 
     # measure the results and store them in classical registers [0] and [1]
-    program.measure(start_index, 0)
-    program.measure(ancilla_index, 1)
+    program.measure(start_index, ro[0])
+    program.measure(ancilla_index, ro[1])
 
-    program.if_then(1, X(2))
-    program.if_then(0, Z(2))
+    program.if_then(ro[1], X(2))
+    program.if_then(ro[0], Z(2))
 
-    program.measure(end_index, 2)
+    program.measure(end_index, ro[2])
 
+    print(program)
     return program
 
 
@@ -64,5 +68,3 @@ if __name__ == '__main__':
     teleport_demo = Program(H(0))
     teleport_demo += teleport(0, 2, 1)
     print("Teleporting |+> state: {}".format(qvm.run(teleport_demo, [2], 10)))
-
-    print(Program(X(0)).measure(0, 0).if_then(0, Program(X(1))))

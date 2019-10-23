@@ -1,12 +1,10 @@
 from collections import OrderedDict
 
 import numpy as np
-import pytest
-from mock import Mock
+from unittest.mock import Mock
 
-from pyquil.api import QPUConnection
 from pyquil.gates import CZ, RZ, RX, I, H
-from pyquil.noise import (damping_kraus_map, dephasing_kraus_map, tensor_kraus_maps,
+from pyquil.noise import (pauli_kraus_map, damping_kraus_map, dephasing_kraus_map, tensor_kraus_maps,
                           _get_program_gates, _decoherence_noise_model,
                           add_decoherence_noise, combine_kraus_maps, damping_after_dephasing,
                           INFINITY, apply_noise_model, _noise_model_program_header, KrausModel,
@@ -15,6 +13,22 @@ from pyquil.noise import (damping_kraus_map, dephasing_kraus_map, tensor_kraus_m
                           estimate_assignment_probs, NO_NOISE)
 from pyquil.quil import Pragma, Program
 from pyquil.quilbase import DefGate, Gate
+from pyquil.api import QVMConnection
+
+
+def test_pauli_kraus_map():
+    probabilities = [.1, .2, .3, .4]
+    k1, k2, k3, k4 = pauli_kraus_map(probabilities)
+    assert np.allclose(k1, np.sqrt(.1) * np.eye(2), atol=1 * 10 ** -8)
+    assert np.allclose(k2, np.sqrt(.2) * np.array([[0, 1.], [1., 0]]), atol=1 * 10 ** -8)
+    assert np.allclose(k3, np.sqrt(.3) * np.array([[0, -1.j], [1.j, 0]]), atol=1 * 10 ** -8)
+    assert np.allclose(k4, np.sqrt(.4) * np.array([[1, 0], [0, -1]]), atol=1 * 10 ** -8)
+
+    two_q_pauli_kmaps = pauli_kraus_map(np.kron(probabilities, list(reversed(probabilities))))
+    q1_pauli_kmaps = [k1, k2, k3, k4]
+    q2_pauli_kmaps = pauli_kraus_map(list(reversed(probabilities)))
+    tensor_kmaps = tensor_kraus_maps(q1_pauli_kmaps, q2_pauli_kmaps)
+    assert np.allclose(two_q_pauli_kmaps, tensor_kmaps)
 
 
 def test_damping_kraus_map():
@@ -52,23 +66,23 @@ def test_combine_kraus_maps():
 
 
 def test_damping_after_dephasing():
-    damping = damping_kraus_map()
-    dephasing = dephasing_kraus_map()
+    damping = damping_kraus_map(p=1 - np.exp(-.1))
+    dephasing = dephasing_kraus_map(p=.5 * (1 - np.exp(-.2)))
     ks_ref = combine_kraus_maps(damping, dephasing)
 
-    ks_actual = damping_after_dephasing(10, 10, 1)
+    ks_actual = damping_after_dephasing(20, 40 / 3., 2.)
     np.testing.assert_allclose(ks_actual, ks_ref)
 
 
 def test_noise_helpers():
-    gates = RX(np.pi / 2)(0), RX(-np.pi / 2)(1), I(1), CZ(0, 1)
+    gates = RX(np.pi / 2, 0), RX(-np.pi / 2, 1), I(1), CZ(0, 1)
     prog = Program(*gates)
     inferred_gates = _get_program_gates(prog)
     assert set(inferred_gates) == set(gates)
 
 
 def test_decoherence_noise():
-    prog = Program(RX(np.pi / 2)(0), CZ(0, 1), RZ(np.pi)(0))
+    prog = Program(RX(np.pi / 2, 0), CZ(0, 1), RZ(np.pi, 0))
     gates = _get_program_gates(prog)
     m1 = _decoherence_noise_model(gates, T1=INFINITY, T2=INFINITY, ro_fidelity=1.)
 
@@ -110,8 +124,8 @@ def test_decoherence_noise():
 
     # check that headers have been embedded
     headers = _noise_model_program_header(m3)
-    assert all((isinstance(i, Pragma) and i.command in ["ADD-KRAUS", "READOUT-POVM"]) or
-               isinstance(i, DefGate) for i in headers)
+    assert all((isinstance(i, Pragma) and i.command in ["ADD-KRAUS", "READOUT-POVM"])
+               or isinstance(i, DefGate) for i in headers)
     assert headers.out() in new_prog.out()
 
     # verify that high-level add_decoherence_noise reproduces new_prog
@@ -177,7 +191,7 @@ def test_readout_compensation():
 
 
 def test_estimate_assignment_probs():
-    cxn = Mock(spec=QPUConnection)
+    cxn = Mock(spec=QVMConnection)
     trials = 100
     p00 = .8
     p11 = .75
@@ -198,7 +212,21 @@ def test_estimate_assignment_probs():
 
 
 def test_apply_noise_model():
-    p = Program(RX(np.pi / 2)(0), RX(np.pi / 2)(1), CZ(0, 1), RX(np.pi / 2)(1))
+    p = Program(RX(np.pi / 2, 0), RX(np.pi / 2, 1), CZ(0, 1), RX(np.pi / 2, 1))
+    noise_model = _decoherence_noise_model(_get_program_gates(p))
+    pnoisy = apply_noise_model(p, noise_model)
+    for i in pnoisy:
+        if isinstance(i, DefGate):
+            pass
+        elif isinstance(i, Pragma):
+            assert i.command in ['ADD-KRAUS', 'READOUT-POVM']
+        elif isinstance(i, Gate):
+            assert i.name in NO_NOISE or not i.params
+
+
+def test_apply_noise_model_perturbed_angles():
+    eps = 1e-15
+    p = Program(RX(np.pi / 2 + eps, 0), RX(np.pi / 2 - eps, 1), CZ(0, 1), RX(np.pi / 2 + eps, 1))
     noise_model = _decoherence_noise_model(_get_program_gates(p))
     pnoisy = apply_noise_model(p, noise_model)
     for i in pnoisy:

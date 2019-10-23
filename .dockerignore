@@ -1,0 +1,14 @@
+.coveragerc
+.git
+.gitlab-ci.yml
+.gitignore
+.github
+docs
+ACKNOWLEDGEMENTS.md
+CHANGELOG.md
+CONTRIBUTING.md
+Makefile
+MANIFEST.in
+NOTICE.md
+readthedocs.yml
+tox.ini
