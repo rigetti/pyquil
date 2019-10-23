@@ -102,7 +102,6 @@ class QAM(ABC):
             region_name: str,
             bitmask: Optional[List[int]] = None,
             expectations: Optional[Union[List[int], List[List[int]]]] = None,
-            statistics: bool = False,
     ) -> np.ndarray:
         """
         Reads from a memory region named region_name on the QAM.
@@ -115,7 +114,7 @@ class QAM(ABC):
         """
         assert self.status == 'done'
 
-        modify_output = any([bitmask, expectations, statistics])
+        modify_output = any([bitmask, expectations])
         if not modify_output:
             return self._memory_results[region_name]
 
@@ -140,12 +139,6 @@ class QAM(ABC):
                 np.put(where, e, np.array([True]))
                 bits.append(np.prod(output, axis=1, where=where))
             output = np.stack(bits, axis=-1)
-
-        # gather statistics (mean and standard error)
-        if statistics:
-            means = np.mean(output, axis=0)
-            standard_errors = np.std(output, axis=0, ddof=1) / np.sqrt(len(output))
-            output = np.stack((means, standard_errors), axis=-1)
 
         return output
 
