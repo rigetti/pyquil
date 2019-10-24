@@ -28,6 +28,8 @@ Changelog
 -   Using `protoquil` as a positional argument to `qc.compile` has been deprecated,
     and it is now a keyword-only argument (@karalekas, gh-1071).
 -   `PauliSum` is now hashable (@ecpeterson, gh-1073).
+-   The code in `device.py` as been reorganized into a new `device` subdirectory
+    in a completely backwards-compatible fashion (@karalekas, gh-1066).
     
 ### Bugfixes
 
