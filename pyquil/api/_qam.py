@@ -140,8 +140,8 @@ class QAM(ABC):
             out = []
             for c in correlations:
                 where = np.zeros(region_size, dtype=bool)
-                np.put(where, c, np.array([True]))
-                out.append(np.prod(output, axis=1, where=where))
+                where[c] = True
+                out.append(np.prod(output[:, where], axis=1))
             output = np.stack(out, axis=-1)
 
         return output
