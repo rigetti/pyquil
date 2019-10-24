@@ -462,9 +462,9 @@ step in near-term algorithms like the variational quantum eigensolver (VQE).
      [1]
      [1]]
 
-We expect to get all 1s back because we're preparing the Bell state |00> + |11>, which means
+We expect to get all 1s back because we're preparing the Bell state ``|00> + |11>``, which means
 that the bitstring outcome will always be either "00" or "11". We can combine the two options,
-using the ``bitmask`` to feign the production of the (anti-correlated) Bell state |01> + |10>.
+using the ``bitmask`` to feign the production of the (anti-correlated) Bell state ``|01> + |10>``.
 
 .. code:: python
 
