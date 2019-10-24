@@ -112,7 +112,8 @@ class QAM(ABC):
         :param region_name: The string naming the declared memory region.
         :param bitmask: A list representing a bitmask that is XOR'ed with the resultant bitstrings.
         :param correlations: A list or list of lists denoting which bitstring correlations to
-            return, instead of the regular bitstring results.
+            return, instead of the regular bitstring results. Maps the 0 state to its +1
+            expectation value, and the 1 state to its -1 expectation value.
         :return: A list of values of the appropriate type.
         """
         assert self.status == 'done'

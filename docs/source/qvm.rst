@@ -385,6 +385,105 @@ for more details about declaring and accessing classical memory regions.
 
 .. _new_topology:
 
+Options for the ``.run(...)`` method
+____________________________________
+
+The ``.run(...)`` method has two keyword arguments that allow you to transform the output
+you get back from running on a simulator or QPU.
+
+The ``bitmask`` parameter allows you to selectively flip the bits that come out of the
+``QuantumComputer``. This is a particularly useful option when running with readout
+symmetrization, which is a critical component of any near-term application while we
+still only have access to noisy quantum hardware.
+
+.. code:: python
+
+    from pyquil import get_qc, Program
+    from pyquil.gates import X, MEASURE
+
+    qvm = get_qc('2q-qvm')
+
+    p = Program()
+    # no flip before measurement
+    ro = p.declare('ro', 'BIT', 1)
+    p += MEASURE(0, ro[0])
+    p.wrap_in_numshots_loop(1)
+
+    flipped_p = Program()
+    # flip before measurement
+    flipped_p += X(0)
+    ro = flipped_p.declare('ro', 'BIT', 1)
+    flipped_p += MEASURE(0, ro[0])
+    flipped_p.wrap_in_numshots_loop(1)
+
+    print(qvm.run(p))
+
+    print(qvm.run(flipped_p, bitmask=[1]))
+
+.. parsed-literal::
+
+    [[0]]
+    [[0]]
+
+The ``correlations`` parameter allows you to extract single- and multi-qubit correlations
+from the ``QuantumComputer``. To begin, the 0 state is mapped to its +1 expectation value,
+and the 1 state is mapped to its -1 expectation value. Then, the collection of correlations
+that are requested via the parameter are calculated and returned. This feature makes it easy
+to estimate expectation values of observables from bitstring outcomes, which is an integral
+step in near-term algorithms like the variational quantum eigensolver (VQE).
+
+.. code:: python
+
+    from pyquil import get_qc, Program
+    from pyquil.gates import CNOT, H, MEASURE
+
+    qvm = get_qc('2q-qvm')
+
+    p = Program()
+    p += H(0)
+    p += CNOT(0, 1)
+    ro = p.declare('ro', 'BIT', 2)
+    p += MEASURE(0, ro[0])
+    p += MEASURE(1, ro[1])
+    p.wrap_in_numshots_loop(10)
+
+    print(qvm.run(p, correlations=[0, 1]))
+
+.. parsed-literal::
+
+    [[1]
+     [1]
+     [1]
+     [1]
+     [1]
+     [1]
+     [1]
+     [1]
+     [1]
+     [1]]
+
+We expect to get all 1s back because we're preparing the Bell state |00> + |11>, which means
+that the bitstring outcome will always be either "00" or "11". We can combine the two options,
+using the ``bitmask`` to feign the production of the (anti-correlated) Bell state |01> + |10>.
+
+.. code:: python
+
+    # using the program and qvm from the previous block
+    print(qvm.run(p, bitmask=[0, 1], correlations=[0, 1]))
+
+.. parsed-literal::
+
+    [[-1]
+     [-1]
+     [-1]
+     [-1]
+     [-1]
+     [-1]
+     [-1]
+     [-1]
+     [-1]
+     [-1]]
+
 Providing Your Own Device Topology
 ----------------------------------
 
