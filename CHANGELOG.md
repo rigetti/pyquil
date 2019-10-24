@@ -29,6 +29,8 @@ Changelog
     and it is now a keyword-only argument (@karalekas, gh-1071).
 -   In `QPU.reset()` check whether `pyquil_config.qpu_url` exists before changing
     the endpoint (@kylegulshen, gh-1072).
+-   The code in `device.py` as been reorganized into a new `device` subdirectory
+    in a completely backwards-compatible fashion (@karalekas, gh-1066).
     
 ### Bugfixes
 
