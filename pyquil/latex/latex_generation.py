@@ -375,7 +375,7 @@ class DiagramBuilder:
                 self._build_measure()
             elif isinstance(instr, Gate):
                 if 'FORKED' in instr.modifiers:
-                    raise ValueError("LaTeX output does not currently support FORKED modifiers: {}".format(instr))
+                    raise ValueError("LaTeX output does not currently support FORKED modifiers: {}.".format(instr))
                 # the easy case is 1q operations
                 if len(instr.qubits) == 1:
                     self._build_1q_unitary()
@@ -416,7 +416,7 @@ class DiagramBuilder:
                 self.index = j + 1
                 return
 
-        raise ValueError("Unable to find PRAGMA {} matching {}".format(PRAGMA_END_GROUP, instr))
+        raise ValueError("Unable to find PRAGMA {} matching {}.".format(PRAGMA_END_GROUP, instr))
 
     def _build_measure(self):
         """
