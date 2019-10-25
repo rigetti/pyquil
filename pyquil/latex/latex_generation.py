@@ -30,7 +30,7 @@
 #   limitations under the License.
 ##############################################################################
 
-
+import sys
 from copy import copy
 from warnings import warn
 
@@ -39,9 +39,12 @@ from pyquil.quil import Measurement, Gate, Pragma
 from pyquil.quilatom import format_parameter
 from pyquil.quilbase import AbstractInstruction
 from collections import defaultdict
-from dataclasses import dataclass, replace
 from typing import Optional
 
+if sys.version_info < (3, 7):
+    from pyquil.external.dataclasses import dataclass, replace
+else:
+    from dataclasses import dataclass, replace
 
 # Overview of LaTeX generation.
 #
