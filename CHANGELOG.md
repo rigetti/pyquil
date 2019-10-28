@@ -21,7 +21,8 @@ Changelog
 -   Fixed string concatenation style (@peterjc, gh-1139).
 -   Improved reStructuredText markup in docstrings (@peterjc, gh-1141).
 -   Add helper to separate `ExperimentResults` by groups of qubits on
-    which their operator acts (@kylegulshen, gh-1078). 
+    which their operator acts (@kylegulshen, gh-1078).
+-   Add helper to merge `TomographyExperiment`s (@kylegulshen, gh-1077).
 
 ### Bugfixes
 
