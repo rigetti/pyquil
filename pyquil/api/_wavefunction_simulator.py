@@ -13,11 +13,10 @@
 #    See the License for the specific language governing permissions and
 #    limitations under the License.
 ##############################################################################
-from typing import List, Union, Optional, Dict, Any
+from typing import List, Union, Optional, Any
 from warnings import warn
 
 import numpy as np
-from six import integer_types
 
 from pyquil.api._base_connection import ForestConnection
 from pyquil.api._error_reporting import _record_call
@@ -45,7 +44,7 @@ class WavefunctionSimulator:
 
         if random_seed is None:
             self.random_seed = None
-        elif isinstance(random_seed, integer_types) and random_seed >= 0:
+        elif isinstance(random_seed, int) and random_seed >= 0:
             self.random_seed = random_seed
         else:
             raise TypeError("random_seed should be None or a non-negative int")

@@ -13,7 +13,6 @@
 #    See the License for the specific language governing permissions and
 #    limitations under the License.
 ##############################################################################
-from __future__ import print_function
 
 import re
 import warnings
@@ -23,7 +22,6 @@ from typing import Dict, Union, Sequence
 import numpy as np
 import requests
 from requests.adapters import HTTPAdapter
-from six import integer_types
 from urllib3 import Retry
 
 from pyquil import Program
@@ -144,7 +142,7 @@ def validate_qubit_list(qubit_list):
     """
     if not isinstance(qubit_list, (list, range)):
         raise TypeError("run_items must be a list")
-    if any(not isinstance(i, integer_types) or i < 0 for i in qubit_list):
+    if any(not isinstance(i, int) or i < 0 for i in qubit_list):
         raise TypeError("run_items list must contain positive integer values")
     return qubit_list
 
@@ -189,7 +187,7 @@ def run_and_measure_payload(quil_program, qubits, trials, random_seed):
     if not isinstance(quil_program, Program):
         raise TypeError("quil_program must be a Quil program object")
     qubits = validate_qubit_list(qubits)
-    if not isinstance(trials, integer_types):
+    if not isinstance(trials, int):
         raise TypeError("trials must be an integer")
 
     payload = {"type": TYPE_MULTISHOT_MEASURE,
@@ -244,7 +242,7 @@ def qvm_run_payload(quil_program, classical_addresses, trials,
     if not isinstance(quil_program, Program):
         raise TypeError("quil_program must be a Quil program object")
     classical_addresses = prepare_register_list(classical_addresses)
-    if not isinstance(trials, integer_types):
+    if not isinstance(trials, int):
         raise TypeError("trials must be an integer")
 
     payload = {"type": TYPE_MULTISHOT,

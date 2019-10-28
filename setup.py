@@ -73,7 +73,6 @@ setup(
         'numpy',
         'antlr4-python3-runtime',
         'requests',
-        'six',
         'networkx>=2.0.0',
         'rpcq>=2.7.2',
 

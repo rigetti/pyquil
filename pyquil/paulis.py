@@ -17,8 +17,6 @@
 Module for working with Pauli algebras.
 """
 
-from __future__ import division
-
 import re
 from itertools import product
 import numpy as np
@@ -29,13 +27,11 @@ from typing import Union
 from pyquil.quilatom import QubitPlaceholder
 
 from .quil import Program
-from .gates import I, H, RZ, RX, CNOT, X, PHASE, QUANTUM_GATES
+from .gates import H, RZ, RX, CNOT, X, PHASE, QUANTUM_GATES
 from numbers import Number
 from collections import OrderedDict
 from collections.abc import Sequence
 import warnings
-from six import integer_types as six_integer_types
-from six.moves import range
 
 PAULI_OPS = ["X", "Y", "Z", "I"]
 PAULI_PROD = {'ZZ': 'I', 'YY': 'I', 'XX': 'I', 'II': 'I',
@@ -55,7 +51,7 @@ class UnequalLengthWarning(Warning):
         super().__init__(*args, **kwargs)
 
 
-integer_types = six_integer_types + (np.int64, np.int32, np.int16, np.int8)
+integer_types = (int, np.int64, np.int32, np.int16, np.int8)
 """Explicitly include numpy integer dtypes (for python 3)."""
 
 HASH_PRECISION = 1e6

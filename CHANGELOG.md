@@ -23,7 +23,15 @@ Changelog
 -   As part of the CI, we now package and push to TestPyPI on every commit, which
     de-risks breaking the `setup.py` and aids with testing (@karalekas, gh-1017).
 -   We now calculate code coverage as part of the CI pipeline (@karalekas, gh-1052).
-
+-   Moved the program generation from `measure_observables` into its own private
+    function (@kylegulshen, gh-1043).
+-   All uses of `__future__` and `six` have been dropped (@karalekas, gh-1060).
+-   The `conftest.py` has been moved to the project root dir (@karalekas, gh-1064).
+-   Using `protoquil` as a positional argument to `qc.compile` has been deprecated,
+    and it is now a keyword-only argument (@karalekas, gh-1071).
+-   The code in `device.py` as been reorganized into a new `device` subdirectory
+    in a completely backwards-compatible fashion (@karalekas, gh-1066).
+    
 ### Bugfixes
 
 -   Updated `examples/meyer_penny_game.py` with the correct path to the Meyer Penny

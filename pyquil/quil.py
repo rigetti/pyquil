@@ -24,7 +24,6 @@ from collections import OrderedDict, defaultdict
 
 import numpy as np
 from rpcq.messages import NativeQuilMetadata
-from six import string_types
 from typing import List, Dict
 
 from pyquil._parser.PyQuilListener import run_parser
@@ -162,7 +161,7 @@ class Program(object):
                         else:
                             rest = [possible_params] + list(rest)
                         self.gate(op, params, rest)
-            elif isinstance(instruction, string_types):
+            elif isinstance(instruction, str):
                 self.inst(run_parser(instruction.strip()))
             elif isinstance(instruction, Program):
                 if id(self) == id(instruction):

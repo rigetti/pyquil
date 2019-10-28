@@ -118,12 +118,11 @@ full unit test suite will start!
 
 Some tests (particularly those related to operator estimation and readout symmetrization)
 require a nontrivial amount of computation. For this reason, they have been marked
-as slow and are not run by default unless `pytest` is given the `--runslow` option.
-You will additionally need to provide the `pyquil` directory to the command, as `pytest`
-doesn't try very hard to find the `conftest.py` file. The full command is as follows:
+as slow and are not run by default unless `pytest` is given the `--runslow` option,
+which is defined in the [`conftest.py`](conftest.py) file. The full command is as follows:
 
 ```bash
-pytest --runslow pyquil
+pytest --runslow
 ```
 
 For a full, up-to-date list of these slow tests, you may invoke (from the top-level directory):
@@ -135,11 +134,11 @@ grep -A 1 -r pytest.mark.slow  pyquil/tests/
 #### Seeded Tests
 
 When making considerable changes to `operator_estimation.py`, we recommend that you set the
-`pytest` option `--use-seed` to `False` to make sure you have not broken anything. Because
-this is another `conftest.py` option, you need to provide the directory again as above:
+`pytest` option `--use-seed` (as defined in [`conftest.py`](conftest.py)) to `False` to make
+sure you have not broken anything. Thus, the command is:
 
 ```bash
-pytest --use-seed=False pyquil
+pytest --use-seed=False
 ```
 
 #### Code Coverage
@@ -162,7 +161,7 @@ trying to accomplish. For example, if you want to carefully test the operator es
 code, run all of the slow tests, and also calculate code coverage, you could run:
 
 ```bash
-pytest --cov=pyquil --use-seed=False --runslow pyquil
+pytest --cov=pyquil --use-seed=False --runslow
 ```
 
 ### Building the Docs

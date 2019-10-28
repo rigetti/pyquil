@@ -15,6 +15,7 @@
 ##############################################################################
 
 import math
+import re
 import warnings
 from functools import reduce
 from itertools import product
@@ -22,15 +23,13 @@ from operator import mul
 
 import numpy as np
 import pytest
-import re
-from six.moves import range
 
-from pyquil.gates import I, RX, RZ, CNOT, H, X, PHASE
-from pyquil.paulis import PauliTerm, PauliSum, exponential_map, exponentiate_commuting_pauli_sum, \
-    ID, UnequalLengthWarning, exponentiate, trotterize, is_zero, check_commutation, commuting_sets, \
-    term_with_coeff, sI, sX, sY, sZ, ZERO, is_identity
+from pyquil.gates import RX, RZ, CNOT, H, X, PHASE
+from pyquil.paulis import (PauliTerm, PauliSum, exponential_map, exponentiate_commuting_pauli_sum,
+                           ID, UnequalLengthWarning, exponentiate, trotterize, is_zero,
+                           check_commutation, commuting_sets, term_with_coeff, sI, sX, sY, sZ, ZERO)
 from pyquil.quil import Program, address_qubits, get_default_qubit_mapping
-from pyquil.quilatom import QubitPlaceholder, Qubit
+from pyquil.quilatom import QubitPlaceholder
 
 
 def test_simplify_terms():

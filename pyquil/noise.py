@@ -16,7 +16,6 @@
 """
 Module for creating and verifying noisy gate and readout definitions.
 """
-from __future__ import print_function
 from collections import namedtuple
 from typing import Sequence
 
