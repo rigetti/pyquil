@@ -134,9 +134,10 @@ class ISA(_ISA):
                           key=lambda qubit: qubit.id),
             edges=sorted([Edge(targets=[int(q) for q in eid.split('-')],
                                type=e.get("type", DEFAULT_EDGE_TYPE),
-                               dead=e.get("dead", False))
+                               dead=e.get("dead", False),
+                               gates=[GateInfo(**g) for g in e.get("gates")])
                           for eid, e in d["2Q"].items()],
-                         key=lambda edge: edge.targets),
+                         key=lambda edge: edge.targets)
         )
 
 
@@ -205,8 +206,7 @@ def isa_from_digraph(graph: nx.Graph, oneq_type='Xhalves', twoq_type='CZ') -> IS
     all_qubits = list(range(max(graph.nodes) + 1))
     qubits = [Qubit(i, type=oneq_type, dead=i not in graph.nodes) for i in all_qubits]
     edges = [Edge((a, b), type=twoq_type, dead=False,
-                  gates=GateInfo(twoq_type, parameters=[], arguments=[a, b],
-                                 duration=100, fidelity=0.999)) for a, b in graph.edges]
+                  gates=[GateInfo(twoq_type, parameters=[], arguments=[a, b])]) for a, b in graph.edges]
     return ISA(qubits, edges)
 
 
