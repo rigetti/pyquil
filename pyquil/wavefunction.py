@@ -165,7 +165,7 @@ class Wavefunction(object):
                 round(amplitude.imag, decimal_digits) * 1.j
             if amplitude != 0.:
                 outcome_dict[outcome] = amplitude
-                pp_string += str(amplitude) + "|{}> + ".format(outcome)
+                pp_string += str(amplitude) + "|{}> + ".format(outcome[num_ancillas:])
         if len(pp_string) >= 3:
             pp_string = pp_string[:-3]  # remove the dangling + if it is there
         return pp_string
