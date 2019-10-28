@@ -23,4 +23,6 @@ def ibmq_yorktown():
         (1, 2), (3, 2),
         (3, 4), (4, 2)
     ])
-    return isa_from_digraph(graph, twoq_type='CNOT')
+    return Device(name="ibmq_yorktown",
+                  raw={"isa": isa_from_digraph(graph, twoq_type='CNOT').to_dict(),
+                       "specs": specs_from_graph(graph).to_dict()})
