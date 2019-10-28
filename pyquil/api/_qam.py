@@ -67,27 +67,15 @@ class QAM(ABC):
 
         :param region_name: Name of the declared memory region on the QAM.
         :param offset: Integer offset into the memory region to write to.
-        :param value: Value to store at the indicated location.
+        :param value: Value(s) to store at the indicated location.
         """
         assert self.status in ['loaded', 'done']
 
         aref = ParameterAref(name=region_name, index=offset)
-        self._variables_shim[aref] = value
-
-        return self
-
-    @_record_call
-    def write_memory(self, *, region_name: str, values: List[Union[int, float]] = None):
-        """
-        Writes a list of values into a memory region on the QAM.
-
-        :param region_name: Name of the declared memory region on the QAM.
-        :param values: Values to store at the indicated location.
-        """
-        assert self.status in ['loaded', 'done']
-
-        aref = ParameterAref(name=region_name, index=0)
-        for value in values:
+        if isinstance(value, List):
+            for v in value:
+                self._variables_shim[aref] = v
+        else:
             self._variables_shim[aref] = value
 
         return self
