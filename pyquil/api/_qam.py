@@ -85,7 +85,7 @@ class QAM(ABC):
         :param values: Values to store at the indicated location.
         """
         assert self.status in ['loaded', 'done']
-        
+
         aref = ParameterAref(name=region_name, index=0)
         for value in values:
             self._variables_shim[aref] = value

@@ -56,7 +56,8 @@ def ucc_circuit(theta):
     initial_prog = Program().inst(X(1), X(0))
 
     # compiled program
-    program = initial_prog + exponentiate(float(theta) * generator)  # float is required because pyquil has weird casting behavior
+    program = initial_prog + exponentiate(
+        float(theta) * generator)  # float is required because pyquil has weird casting behavior
     return program
 
 
@@ -102,7 +103,7 @@ if __name__ == "__main__":
         # generate the spin-adapted classical coupled-cluster amplitude to use as the input for the
         # circuit
         packed_amps = uccsd_singlet_get_packed_amplitudes(molecule.ccsd_single_amps, molecule.ccsd_double_amps,
-                                                     molecule.n_qubits, molecule.n_electrons)
+                                                          molecule.n_qubits, molecule.n_electrons)
         theta = packed_amps[-1]  # always take the doubles amplitude
 
         # now that we're done setting up the Hamiltonian and grabbing initial opt parameters
@@ -123,12 +124,11 @@ if __name__ == "__main__":
         observable = objective_fun(theta, hamiltonian=bk_mat, quantum_resource=qvm)
 
         result = minimize(objective_fun, x0=theta, args=(bk_mat, qvm), method='CG',
-                          options={'disp':True})
+                          options={'disp': True})
         ucc_energy.append(result.fun)
         fci_energy.append(molecule.fci_energy)
         hf_energy.append(molecule.hf_energy)
         print(w[0], molecule.fci_energy, tenergy, result.fun)
-
 
     plt.plot(bond_length, hf_energy, 'C1o-', label='HF')
     plt.plot(bond_length, ucc_energy, 'C0o-', label='UCC-VQE')
