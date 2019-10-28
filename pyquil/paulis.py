@@ -306,6 +306,9 @@ class PauliTerm(object):
         out = "%s*%s" % (self.coefficient, '*'.join(term_strs))
         return out
 
+    def __repr__(self):
+        return str(self)
+
     def compact_str(self):
         """A string representation of the Pauli term that is more compact than ``str(term)``
 
@@ -536,6 +539,9 @@ class PauliSum(object):
 
     def __str__(self):
         return " + ".join([str(term) for term in self.terms])
+
+    def __repr__(self):
+        return str(self)
 
     def __len__(self):
         """
