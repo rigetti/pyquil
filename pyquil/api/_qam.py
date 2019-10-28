@@ -79,11 +79,10 @@ class QAM(ABC):
     @_record_call
     def write_memory(self, *, region_name: str, values: List[Union[int, float]] = None):
         """
-        Writes a value into a memory region on the QAM at a specified offset.
+        Writes a list of values into a memory region on the QAM.
 
         :param region_name: Name of the declared memory region on the QAM.
-        :param offset: Integer offset into the memory region to write to.
-        :param value: Value to store at the indicated location.
+        :param values: Values to store at the indicated location.
         """
         assert self.status in ['loaded', 'done']
         
