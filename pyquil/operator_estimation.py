@@ -731,7 +731,7 @@ def get_results_by_qubit_groups(results: Iterable[ExperimentResult],
     qubit_groups = [tuple(sorted(group)) for group in qubit_groups]
     results_by_qubit_group = {group: [] for group in qubit_groups}
     for res in results:
-        res_qs = res.setting.observable.get_qubits()
+        res_qs = res.setting.out_operator.get_qubits()
 
         for group in qubit_groups:
             if set(res_qs).issubset(set(group)):

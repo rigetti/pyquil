@@ -20,6 +20,8 @@ Changelog
 -   Added type hints to `noise.py` (@rht, gh-1136).
 -   Fixed string concatenation style (@peterjc, gh-1139).
 -   Improved reStructuredText markup in docstrings (@peterjc, gh-1141).
+-   Add helper to separate `ExperimentResults` by groups of qubits on
+    which their operator acts (@kylegulshen, gh-1078). 
 
 ### Bugfixes
 
