@@ -147,28 +147,42 @@ class Wavefunction(object):
                 outcome_dict[outcome] = prob
         return outcome_dict
 
-    def pretty_print(self, decimal_digits: int = 2) -> str:
+    def pretty_print(self, decimal_digits: int = 2, ancillae: Optional[Sequence[int]] = None) -> str:
         """
         Returns a string repr of the wavefunction, ignoring all outcomes with approximately zero
         amplitude (up to a certain number of decimal digits) and rounding the amplitudes to
         decimal_digits.
 
         :param int decimal_digits: The number of digits to truncate to.
+        :param ancillae: The list of indices for ancillary qubits to omit.
         :return: A string representation of the wavefunction.
+        :rtype: str
         """
+
+        # Initialize bitmask as 1's complement of ancilla spec
+        if ancillae is None:
+            ancillae = []
+        mask = 0
+        for ancilla in ancillae:
+            mask |= (1 << ancilla)
+
         outcome_dict = {}
         qubit_num = len(self)
         pp_string = ""
         for index, amplitude in enumerate(self.amplitudes):
+            if index & mask != 0 and not np.isclose(amplitude, 0):
+                raise ValueError('Specified ancilla was found to have non-zero amplitude.')
             outcome = get_bitstring_from_index(index, qubit_num)
-            amplitude = (
-                round(amplitude.real, decimal_digits) + round(amplitude.imag, decimal_digits) * 1.0j
-            )
-            if amplitude != 0.0:
+            for ancilla in ancillae:
+                outcome = outcome[0:qubit_num - ancilla - 1] + outcome[qubit_num - ancilla:]
+            amplitude = round(amplitude.real, decimal_digits) + \
+                round(amplitude.imag, decimal_digits) * 1.j
+            if amplitude != 0.:
                 outcome_dict[outcome] = amplitude
                 pp_string += str(amplitude) + "|{}> + ".format(outcome)
         if len(pp_string) >= 3:
             pp_string = pp_string[:-3]  # remove the dangling + if it is there
+
         return pp_string
 
     def plot(self, qubit_subset: Optional[Sequence[int]] = None) -> None:

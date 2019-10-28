@@ -71,3 +71,20 @@ def test_sample(wvf):
     bitstrings = wvf.sample_bitstrings(n_samples=100)
     assert bitstrings.shape == (100, 2)
     assert [0, 0] in bitstrings
+
+
+def test_discardable_ancillae():
+    ro1 = "(0.71+0j)|0> + (0.71+0j)|1>"
+    ro2 = "(0.5+0j)|00> + (0.5+0j)|01> + (0.71+0j)|11>"
+    assert Wavefunction(1 / np.sqrt(2) * np.array(
+        [1., 1., 0., 0.]
+    )).pretty_print(ancillas=[1]) == ro1
+    assert Wavefunction(1 / np.sqrt(2) * np.array(
+        [1., 0., 1., 0.]
+    )).pretty_print(ancillas=[0]) == ro1
+    assert Wavefunction(1 / np.sqrt(2) * np.array(
+        [1., 0., 1., 0., 0., 0., 0., 0.]
+    )).pretty_print(ancillas=[0, 2]) == ro1
+    assert Wavefunction(1 / np.sqrt(2) * np.array(
+        [1 / np.sqrt(2), 1 / np.sqrt(2), 0., 0., 0., 1., 0., 0.]
+    )).pretty_print(ancillas=[1]) == ro2
