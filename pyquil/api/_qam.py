@@ -17,6 +17,7 @@ import warnings
 
 from abc import ABC, abstractmethod
 from collections import defaultdict
+from typing import List, Dict, Tuple, Iterator, Union
 
 from rpcq.messages import ParameterAref
 
@@ -72,6 +73,23 @@ class QAM(ABC):
 
         aref = ParameterAref(name=region_name, index=offset)
         self._variables_shim[aref] = value
+
+        return self
+
+    @_record_call
+    def write_memory(self, *, region_name: str, values: List[Union[int, float]] = None):
+        """
+        Writes a value into a memory region on the QAM at a specified offset.
+
+        :param region_name: Name of the declared memory region on the QAM.
+        :param offset: Integer offset into the memory region to write to.
+        :param value: Value to store at the indicated location.
+        """
+        assert self.status in ['loaded', 'done']
+        
+        aref = ParameterAref(name=region_name, index=0)
+        for value in values:
+            self._variables_shim[aref] = value
 
         return self
 
