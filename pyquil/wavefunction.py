@@ -145,13 +145,14 @@ class Wavefunction(object):
                 outcome_dict[outcome] = prob
         return outcome_dict
 
-    def pretty_print(self, decimal_digits=2):
+    def pretty_print(self, decimal_digits=2, num_ancillas=0):
         """
         Returns a string repr of the wavefunction, ignoring all outcomes with approximately zero
         amplitude (up to a certain number of decimal digits) and rounding the amplitudes to
         decimal_digits.
 
         :param int decimal_digits: The number of digits to truncate to.
+        :param int num_ancillas: The number of ancilliary qubits to truncate.
         :return: A dict with outcomes as keys and complex amplitudes as values.
         :rtype: str
         """
@@ -164,7 +165,7 @@ class Wavefunction(object):
                 round(amplitude.imag, decimal_digits) * 1.j
             if amplitude != 0.:
                 outcome_dict[outcome] = amplitude
-                pp_string += str(amplitude) + "|{}> + ".format(outcome)
+                pp_string += str(amplitude) + "|{}> + ".format(outcome[num_ancillas:])
         if len(pp_string) >= 3:
             pp_string = pp_string[:-3]  # remove the dangling + if it is there
         return pp_string
