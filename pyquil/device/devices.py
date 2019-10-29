@@ -4,7 +4,7 @@ from ._specs import Specs, specs_from_graph
 from ._isa import ISA, isa_from_graph, isa_from_digraph
 
 
-def ibmq_ourense():
+def ibmq_ourense(oneq_type='Xhalves', twoq_type='CNOT'):
     graph = nx.from_edgelist([
         (0, 1), (1, 0),
         (1, 2), (2, 1),
@@ -13,11 +13,11 @@ def ibmq_ourense():
     ])
 
     return Device(name="ibmq_ourense",
-                  raw={"isa": isa_from_digraph(graph, twoq_type='CNOT').to_dict(),
+                  raw={"isa": isa_from_digraph(graph, oneq_type=oneq_type, twoq_type=twoq_type).to_dict(),
                        "specs": specs_from_graph(graph).to_dict()})
 
 
-def ibmq_yorktown():
+def ibmq_yorktown(oneq_type='Xhalves', twoq_type='CNOT'):
     graph = nx.from_edgelist([
         (0, 1), (0, 2),
         (1, 2), (3, 2),
@@ -25,5 +25,7 @@ def ibmq_yorktown():
     ])
 
     return Device(name="ibmq_yorktown",
-                  raw={"isa": isa_from_digraph(graph, twoq_type='CNOT').to_dict(),
+                  raw={"isa": isa_from_digraph(graph, oneq_type=oneq_type, twoq_type=twoq_type).to_dict(),
+                       "specs": specs_from_graph(graph).to_dict()})
+
                        "specs": specs_from_graph(graph).to_dict()})
