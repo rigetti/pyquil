@@ -30,6 +30,7 @@ Changelog
 -   `PauliSum` objects are now hashable (@ecpeterson, gh-1073).
 -   The code in `device.py` as been reorganized into a new `device` subdirectory
     in a completely backwards-compatible fashion (@karalekas, gh-1066).
+-   `PauliTerm` and `PauliSum` now have `__repr__` methods (@karalekas, gh-1080).
     
 ### Bugfixes
 
