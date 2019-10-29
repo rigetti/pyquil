@@ -15,7 +15,7 @@
 ##############################################################################
 from pyquil.api._base_connection import get_json, ForestConnection
 from pyquil.api._config import PyquilConfig
-from pyquil.device import Device
+from pyquil.device import Device, _complete_isa_from_specs
 
 
 def list_devices(connection: ForestConnection = None):
@@ -107,6 +107,10 @@ def get_lattice(lattice_name: str = None):
     :return: A Device object.
     """
     raw_lattice = _get_raw_lattice_data(lattice_name)
+    # For devices based on lattice information pulled from Forest, we
+    # fill out default gate information where it is missing, using the
+    # device specs information.
+    raw_lattice["isa"] = _complete_isa_from_specs(raw_lattice["isa"], raw_lattice["specs"]).to_dict()
 
     return Device(raw_lattice["name"], raw_lattice)
 

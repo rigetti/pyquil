@@ -200,8 +200,8 @@ def isa_from_digraph(graph: nx.Graph, oneq_type='Xhalves', twoq_type='CZ') -> IS
     Generate an ISA object from a NetworkX graph, edges are considered directed.
 
     :param graph: The graph
-    :param oneq_type: The type of 1-qubit gate. Currently 'Xhalves'
-    :param twoq_type: The type of 2-qubit gate. One of 'CZ' or 'CPHASE'.
+    :param oneq_type: The type of 1-qubit gate.
+    :param twoq_type: The type of 2-qubit gate.
     """
     all_qubits = list(range(max(graph.nodes) + 1))
     qubits = [Qubit(i, type=oneq_type, dead=i not in graph.nodes) for i in all_qubits]

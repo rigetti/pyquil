@@ -120,32 +120,7 @@ class Device(AbstractDevice):
 
         This will raise an exception if the requested ISA is not supported by the device.
         """
-        if oneq_type is not None or twoq_type is not None:
-            raise ValueError("oneq_type and twoq_type are both fatally deprecated. If you want to "
-                             "make an ISA with custom gate types, you'll have to do it by hand.")
-
-        qubits = [Qubit(id=q.id, type=None, dead=q.dead, gates=[
-            MeasureInfo(operator="MEASURE", qubit=q.id, target="_",
-                        fidelity=self.specs.fROs()[q.id] or DEFAULT_MEASURE_FIDELITY,
-                        duration=DEFAULT_MEASURE_DURATION),
-            MeasureInfo(operator="MEASURE", qubit=q.id, target=None,
-                        fidelity=self.specs.fROs()[q.id] or DEFAULT_MEASURE_FIDELITY,
-                        duration=DEFAULT_MEASURE_DURATION),
-            GateInfo(operator="RZ", parameters=["_"], arguments=[q.id],
-                     duration=PERFECT_DURATION, fidelity=PERFECT_FIDELITY),
-            GateInfo(operator="RX", parameters=[0.0], arguments=[q.id],
-                     duration=DEFAULT_RX_DURATION, fidelity=PERFECT_FIDELITY)] + [
-                GateInfo(operator="RX", parameters=[param], arguments=[q.id],
-                         duration=DEFAULT_RX_DURATION,
-                         fidelity=self.specs.f1QRBs()[q.id] or DEFAULT_RX_FIDELITY)
-                for param in [np.pi, -np.pi, np.pi / 2, -np.pi / 2]])
-            for q in self._isa.qubits]
-        edges = [Edge(targets=e.targets, type=None, dead=e.dead, gates=[
-                    GateInfo(operator="CZ", parameters=[], arguments=["_", "_"],
-                             duration=DEFAULT_CZ_DURATION,
-                             fidelity=self.specs.fCZs()[tuple(e.targets)] or DEFAULT_CZ_FIDELITY)])
-                 for e in self._isa.edges]
-        return ISA(qubits, edges)
+        return self._isa
 
     def __str__(self):
         return '<Device {}>'.format(self.name)
@@ -181,3 +156,35 @@ class NxDevice(AbstractDevice):
 
     def edges(self) -> List[Tuple[int, int]]:
         return sorted(tuple(sorted(pair)) for pair in self.topology.edges)  # type: ignore
+
+
+def _complete_isa_from_specs(isa_dict: dict, specs_dict: dict) -> ISA:
+    """Produce an ISA where gate information has been updated to include
+    default spec information.
+    """
+    isa = ISA.from_dict(isa_dict)
+    specs = Specs.from_dict(specs_dict)
+
+    qubits = [Qubit(id=q.id, type=None, dead=q.dead, gates=[
+        MeasureInfo(operator="MEASURE", qubit=q.id, target="_",
+                    fidelity=specs.fROs()[q.id] or DEFAULT_MEASURE_FIDELITY,
+                    duration=DEFAULT_MEASURE_DURATION),
+        MeasureInfo(operator="MEASURE", qubit=q.id, target=None,
+                    fidelity=specs.fROs()[q.id] or DEFAULT_MEASURE_FIDELITY,
+                    duration=DEFAULT_MEASURE_DURATION),
+        GateInfo(operator="RZ", parameters=["_"], arguments=[q.id],
+                 duration=PERFECT_DURATION, fidelity=PERFECT_FIDELITY),
+        GateInfo(operator="RX", parameters=[0.0], arguments=[q.id],
+                 duration=DEFAULT_RX_DURATION, fidelity=PERFECT_FIDELITY)] + [
+                     GateInfo(operator="RX", parameters=[param], arguments=[q.id],
+                              duration=DEFAULT_RX_DURATION,
+                              fidelity=specs.f1QRBs()[q.id] or DEFAULT_RX_FIDELITY)
+                     for param in [np.pi, -np.pi, np.pi / 2, -np.pi / 2]])
+              for q in isa.qubits]
+    edges = [Edge(targets=e.targets, type=None, dead=e.dead, gates=[
+        GateInfo(operator="CZ", parameters=[], arguments=["_", "_"],
+                 duration=DEFAULT_CZ_DURATION,
+                 fidelity=specs.fCZs()[tuple(e.targets)] or DEFAULT_CZ_FIDELITY)])
+             for e in isa.edges]
+
+    return ISA(qubits=qubits, edges=edges)
