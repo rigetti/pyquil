@@ -903,8 +903,8 @@ def measure_observables(qc: QuantumComputer, tomo_experiment: TomographyExperime
         Thermal noise from "traditional" reset is not routinely characterized but is of the same
         order.
     :param symmetrize_readout: the level of readout symmetrization to perform for the estimation
-        and optional calibration of each observable. The following integer level, encapsulated in
-        `SymmetrizationLevel`, are currently supported:
+        and optional calibration of each observable. The following integer levels, encapsulated in
+        the ``SymmetrizationLevel`` integer enum, are currently supported:
 
         * -1 -- exhaustive symmetrization uses every possible combination of flips
         * 0 -- no symmetrization
