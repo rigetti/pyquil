@@ -41,6 +41,8 @@ Changelog
 -   Fixed the Slack Workspace invite link in the README (@amyfbrown, gh-1042).
 -   Fixed pretty printing of parameter expressions where π is involved
     (@notmgsk, gh-1076).
+-   Fixed a regression in `PyQVM.execute` that prevented it from running programs
+    containing user-defined gates (@appleby, gh-1067).
 
 [v2.12](https://github.com/rigetti/pyquil/compare/v2.11.0...v2.12.0) (September 28, 2019)
 ----------------------------------------------------------------------------------------
