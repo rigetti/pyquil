@@ -135,7 +135,7 @@ class ISA(_ISA):
             edges=sorted([Edge(targets=[int(q) for q in eid.split('-')],
                                type=e.get("type", DEFAULT_EDGE_TYPE),
                                dead=e.get("dead", False),
-                               gates=[GateInfo(**g) for g in e.get("gates")])
+                               gates=[GateInfo(**g) for g in e.get("gates")] if e.get("gates") else None)
                           for eid, e in d["2Q"].items()],
                          key=lambda edge: edge.targets)
         )
