@@ -20,7 +20,7 @@ from pyquil.operator_estimation import ExperimentSetting, TomographyExperiment, 
     TensorProductState, zeros_state, \
     group_experiments, group_experiments_greedy, ExperimentResult, measure_observables, \
     _ops_bool_to_prog, _stats_from_measurements, \
-    ratio_variance, _exhaustive_symmetrization, _calibration_program, \
+    ratio_variance, _calibration_program, \
     _pauli_to_product_state
 from pyquil.paulis import sI, sX, sY, sZ, PauliSum, PauliTerm
 
@@ -775,46 +775,6 @@ def test_measure_observables_2q_readout_error_one_measured(forest, use_seed):
     assert np.isclose(np.mean(raw_e), 0.849, atol=2e-2)
     assert np.isclose(np.mean(obs_e), 1.0, atol=2e-2)
     assert np.isclose(np.mean(cal_e), 0.849, atol=2e-2)
-
-
-@pytest.mark.flaky(reruns=1)
-def test_exhaustive_symmetrization_1q(forest):
-    qc = get_qc('9q-qvm')
-    qubs = [5]
-    n_shots = 2000
-    p = Program()
-    p00, p11 = 0.90, 0.80
-    p.define_noisy_readout(5, p00, p11)
-    bs_results, d_qub_idx = _exhaustive_symmetrization(qc, qubs, n_shots, p)
-    frac0 = np.count_nonzero(bs_results == 0) / n_shots
-    expected_frac0 = (p00 + p11) / 2
-
-    assert d_qub_idx == {5: 0}
-    assert np.isclose(frac0, expected_frac0, 2e-2)
-
-
-def test_exhaustive_symmetrization_2q(forest):
-    qc = get_qc('9q-qvm')
-    qubs = [5, 7]
-    n_shots = 5000
-    p = Program()
-    p5_00, p5_11 = 0.90, 0.80
-    p7_00, p7_11 = 0.99, 0.77
-    p.define_noisy_readout(5, p5_00, p5_11)
-    p.define_noisy_readout(7, p7_00, p7_11)
-
-    bs_results, d_qub_idx = _exhaustive_symmetrization(qc, qubs, n_shots, p)
-
-    assert d_qub_idx == {5: 0, 7: 1}
-
-    frac5_0 = np.count_nonzero(bs_results[:, d_qub_idx[5]] == 0) / n_shots
-    frac7_0 = np.count_nonzero(bs_results[:, d_qub_idx[7]] == 0) / n_shots
-
-    expected_frac5_0 = (p5_00 + p5_11) / 2
-    expected_frac7_0 = (p7_00 + p7_11) / 2
-
-    assert np.isclose(frac5_0, expected_frac5_0, 2e-2)
-    assert np.isclose(frac7_0, expected_frac7_0, 2e-2)
 
 
 def test_measure_observables_inherit_noise_errors(forest):
