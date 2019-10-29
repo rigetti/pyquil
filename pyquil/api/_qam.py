@@ -71,11 +71,12 @@ class QAM(ABC):
         """
         assert self.status in ['loaded', 'done']
 
-        aref = ParameterAref(name=region_name, index=offset)
         if isinstance(value, List):
-            for v in value:
+            for offset, v in enumerate(value):
+                aref = ParameterAref(name=region_name, index=offset)
                 self._variables_shim[aref] = v
         else:
+            aref = ParameterAref(name=region_name, index=offset)
             self._variables_shim[aref] = value
 
         return self
