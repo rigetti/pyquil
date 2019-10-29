@@ -105,7 +105,7 @@ class ISA(_ISA):
                      "target": i.target,
                      "duration": i.duration,
                      "fidelity": i.fidelity} for i in o.gates]
-            if o.gates is None and o.type != t:
+            if o.type != t:
                 d["type"] = o.type
             if o.dead:
                 d["dead"] = o.dead
