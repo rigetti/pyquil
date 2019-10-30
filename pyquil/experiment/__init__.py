@@ -1,3 +1,24 @@
+##############################################################################
+# Copyright 2016-2019 Rigetti Computing
+#
+#    Licensed under the Apache License, Version 2.0 (the "License");
+#    you may not use this file except in compliance with the License.
+#    You may obtain a copy of the License at
+#
+#        http://www.apache.org/licenses/LICENSE-2.0
+#
+#    Unless required by applicable law or agreed to in writing, software
+#    distributed under the License is distributed on an "AS IS" BASIS,
+#    WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+#    See the License for the specific language governing permissions and
+#    limitations under the License.
+##############################################################################
+"""
+Schema definition of a TomographyExperiment, which is a collection of ExperimentSetting
+objects and a main program body (or ansatz). This schema is widely useful for defining
+and executing many common types of algorithms / applications, including state and process
+tomography, and the variational quantum eigensolver.
+"""
 import json
 import logging
 import warnings
