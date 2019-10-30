@@ -235,4 +235,4 @@ class PersistentQVM:
         if not isinstance(quil_program, Program):
             raise TypeError(f"quil_program must be a Quil Program. Got {quil_program}.")
 
-        self.connection._qvm_ng_run_program_async(self.token, quil_program)
+        return self.connection._qvm_ng_run_program_async(self.token, quil_program)

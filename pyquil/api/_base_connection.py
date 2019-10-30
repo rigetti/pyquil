@@ -654,12 +654,12 @@ class ForestConnection:
         """
         payload = qvm_ng_run_program_async_payload(qvm_token, quil_program)
         response = post_json(self.session, self.qvm_ng_endpoint + "/", payload)
-        ok = response.json()
+        json = response.json()
 
-        if not isinstance(ok, bool):
-            raise TypeError(f"Malformed run-program-async response returned by the QVM: {ok}")
+        if not isinstance(json, dict) or "token" not in json or not is_valid_v4_uuid(json["token"]):
+            raise TypeError(f"Malformed JOB token returned by the QVM: {json}")
 
-        return ok
+        return json["token"]
 
     @_record_call
     def _qvm_ng_qvm_memory_estimate(self, simulation_method, allocation_method, num_qubits,
