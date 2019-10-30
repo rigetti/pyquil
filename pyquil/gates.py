@@ -30,34 +30,6 @@ from pyquil.quilbase import (AbstractInstruction, Gate, Halt, Reset, ResetQubit,
                              ClassicalAdd, ClassicalSub, ClassicalMul, ClassicalDiv)
 
 
-# These @overloads are needed to help mypy with type inference. Note that the order of the overloads
-# is important! According to the mypy docs, overloads should proceed from most-specific ->
-# least-specific type, and should appear in the same order as the isinstance checks in the
-# implementation body.
-#
-# https://mypy.readthedocs.io/en/latest/more_types.html#function-overloading
-# https://github.com/python/mypy/issues/1693
-@overload
-def unpack_reg_val_pair(classical_reg1: MemoryReferenceDesignator,
-                        classical_reg2: int) \
-                        -> Tuple[MemoryReference, int]:
-    ...
-
-
-@overload
-def unpack_reg_val_pair(classical_reg1: MemoryReferenceDesignator,
-                        classical_reg2: float) \
-                        -> Tuple[MemoryReference, float]:
-    ...
-
-
-@overload
-def unpack_reg_val_pair(classical_reg1: MemoryReferenceDesignator,
-                        classical_reg2: MemoryReferenceDesignator) \
-                        -> Tuple[MemoryReference, MemoryReference]:
-    ...
-
-
 def unpack_reg_val_pair(classical_reg1: MemoryReferenceDesignator,
                         classical_reg2: Union[MemoryReferenceDesignator, int, float]) \
                         -> Tuple[MemoryReference, Union[MemoryReference, int, float]]:
@@ -587,6 +559,7 @@ def AND(classical_reg1: MemoryReferenceDesignator,
     :return: A ClassicalAnd instance.
     """
     left, right = unpack_reg_val_pair(classical_reg1, classical_reg2)
+    assert isinstance(right, (MemoryReference, int))  # placate mypy
     return ClassicalAnd(left, right)
 
 
@@ -616,6 +589,7 @@ def IOR(classical_reg1: MemoryReferenceDesignator,
     :return: A ClassicalInclusiveOr instance.
     """
     left, right = unpack_reg_val_pair(classical_reg1, classical_reg2)
+    assert isinstance(right, (MemoryReference, int))  # placate mypy
     return ClassicalInclusiveOr(left, right)
 
 
@@ -630,6 +604,7 @@ def XOR(classical_reg1: MemoryReferenceDesignator,
     :return: A ClassicalExclusiveOr instance.
     """
     left, right = unpack_reg_val_pair(classical_reg1, classical_reg2)
+    assert isinstance(right, (MemoryReference, int))  # placate mypy
     return ClassicalExclusiveOr(left, right)
 
 
