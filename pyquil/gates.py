@@ -30,9 +30,10 @@ from pyquil.quilbase import (AbstractInstruction, Gate, Halt, Reset, ResetQubit,
                              ClassicalAdd, ClassicalSub, ClassicalMul, ClassicalDiv)
 
 
-def unpack_reg_val_pair(classical_reg1: MemoryReferenceDesignator,
-                        classical_reg2: Union[MemoryReferenceDesignator, int, float]) \
-                        -> Tuple[MemoryReference, Union[MemoryReference, int, float]]:
+def unpack_reg_val_pair(
+        classical_reg1: MemoryReferenceDesignator,
+        classical_reg2: Union[MemoryReferenceDesignator, int, float]
+) -> Tuple[MemoryReference, Union[MemoryReference, int, float]]:
     """
     Helper function for typechecking / type-coercing arguments to constructors for binary classical operators.
 
@@ -46,10 +47,11 @@ def unpack_reg_val_pair(classical_reg1: MemoryReferenceDesignator,
     return left, unpack_classical_reg(classical_reg2)
 
 
-def prepare_ternary_operands(classical_reg1: MemoryReferenceDesignator,
-                             classical_reg2: MemoryReferenceDesignator,
-                             classical_reg3: Union[MemoryReferenceDesignator, int, float]) \
-                             -> Tuple[MemoryReference, MemoryReference, Union[MemoryReference, int, float]]:
+def prepare_ternary_operands(
+        classical_reg1: MemoryReferenceDesignator,
+        classical_reg2: MemoryReferenceDesignator,
+        classical_reg3: Union[MemoryReferenceDesignator, int, float]
+) -> Tuple[MemoryReference, MemoryReference, Union[MemoryReference, int, float]]:
     """
     Helper function for typechecking / type-coercing arguments to constructors for ternary classical operators.
 
@@ -547,8 +549,7 @@ def NOT(classical_reg: MemoryReferenceDesignator) -> ClassicalNot:
 
 
 def AND(classical_reg1: MemoryReferenceDesignator,
-        classical_reg2: Union[MemoryReferenceDesignator, int]
-) -> ClassicalAnd:
+        classical_reg2: Union[MemoryReferenceDesignator, int]) -> ClassicalAnd:
     """
     Produce an AND instruction.
 
@@ -579,8 +580,7 @@ def OR(classical_reg1: MemoryReferenceDesignator,
 
 
 def IOR(classical_reg1: MemoryReferenceDesignator,
-        classical_reg2: Union[MemoryReferenceDesignator, int]
-) -> ClassicalInclusiveOr:
+        classical_reg2: Union[MemoryReferenceDesignator, int]) -> ClassicalInclusiveOr:
     """
     Produce an inclusive OR instruction.
 
@@ -594,8 +594,7 @@ def IOR(classical_reg1: MemoryReferenceDesignator,
 
 
 def XOR(classical_reg1: MemoryReferenceDesignator,
-        classical_reg2: Union[MemoryReferenceDesignator, int]
-) -> ClassicalExclusiveOr:
+        classical_reg2: Union[MemoryReferenceDesignator, int]) -> ClassicalExclusiveOr:
     """
     Produce an exclusive OR instruction.
 
