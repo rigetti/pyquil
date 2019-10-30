@@ -56,9 +56,13 @@ else:
 
 @dataclass
 class DiagramSettings:
+    """
+    Settings to control the layout and rendering of circuits.
+    """
+
     texify_numerical_constants: bool = True
     """
-    Numerical constants (e.g. Pi) will be converted to pretty latex form.
+    Convert numerical constants, such as pi, to LaTeX form.
     """
 
     impute_missing_qubits: bool = False
@@ -75,15 +79,17 @@ class DiagramSettings:
 
     abbreviate_controlled_rotations: bool = False
     """
-    Write controlled rotations such as `RX(pi)` as `X_{\\pi}`, instead of the longer `R_X(\\pi)`
+    Write controlled rotations in a compact form.
+
+    For example,  `RX(pi)` as `X_{\\pi}`, instead of the longer `R_X(\\pi)`
     """
 
     qubit_line_open_wire_length: int = 1
     """
-    The length by which qubit lines should be extended, at the right of the diagram, with open wires.
+    The length by which qubit lines should be extended with open wires at the right of the diagram.
 
-    The default of 1 is the natural choice. The main reason for including this option is that it may
-    be appropriate for this to be 0 in subdiagrams.
+    The default of 1 is the natural choice. The main reason for including this option
+    is that it may be appropriate for this to be 0 in subdiagrams.
     """
 
 

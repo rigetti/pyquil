@@ -14,21 +14,23 @@ def display(circuit: Program, settings: Optional[DiagramSettings] = None,
     """
     Displays a PyQuil circuit as an IPython image object.
 
-    For this to work, you need 'pdflatex' and 'convert' to be installed and
-    accessible via your shell path, as seen by Python.
+    .. note::
 
-    Further, your LaTeX installation should include class and style files for 'standalone',
-    'geometry', 'tikz', and 'quantikz'. If it does not, you may need to install these yourself.
+       For this to work, you need two external programs, ``pdflatex`` and ``convert``,
+       to be installed and accessible via your shell path.
 
-    The conversion process relies on two passes: first, 'pdflatex' is called to
-    render the tikz to a pdf. Second, Imagemagick's 'convert' is called to translate
-    this to a png image.
+       Further, your LaTeX installation should include class and style files for ``standalone``,
+       ``geometry``, ``tikz``, and ``quantikz``. If it does not, you need to install
+       these yourself.
 
     :param Program circuit: The circuit to be drawn, represented as a pyquil program.
     :param DiagramSettings settings: An optional object of settings controlling diagram rendering and layout.
     :return: PNG image render of the circuit.
-    :rtype: Image
+    :rtype: IPython.display.Image
     """
+    # The conversion process relies on two passes: first, 'pdflatex' is called to
+    # render the tikz to a pdf. Second, Imagemagick's 'convert' is called to translate
+    # this to a png image.
     pdflatex_path = shutil.which("pdflatex")
     convert_path = shutil.which("convert")
 
