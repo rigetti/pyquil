@@ -17,9 +17,8 @@ from warnings import warn
 from typing import Any, Callable, Mapping, Optional, Tuple, Union, overload
 
 from pyquil.quilatom import (Addr, Expression, MemoryReference, MemoryReferenceDesignator,
-                             MRefDesignatorOrImmediateInt, MRefDesignatorOrImmediateValue,
-                             MRefOrImmediateValue, Parameter, ParameterDesignator, Qubit,
-                             QubitDesignator, QubitPlaceholder, unpack_classical_reg, unpack_qubit)
+                             Parameter, ParameterDesignator, Qubit, QubitDesignator,
+                             QubitPlaceholder, unpack_classical_reg, unpack_qubit)
 from pyquil.quilbase import (AbstractInstruction, Gate, Halt, Reset, ResetQubit, Measurement, Nop,
                              Wait,
                              ClassicalNeg, ClassicalNot,
@@ -60,8 +59,8 @@ def unpack_reg_val_pair(classical_reg1: MemoryReferenceDesignator,
 
 
 def unpack_reg_val_pair(classical_reg1: MemoryReferenceDesignator,
-                        classical_reg2: MRefDesignatorOrImmediateValue) \
-                        -> Tuple[MemoryReference, MRefOrImmediateValue]:
+                        classical_reg2: Union[MemoryReferenceDesignator, int, float]) \
+                        -> Tuple[MemoryReference, Union[MemoryReference, int, float]]:
     """
     Helper function for typechecking / type-coercing arguments to constructors for binary classical operators.
 
@@ -77,8 +76,8 @@ def unpack_reg_val_pair(classical_reg1: MemoryReferenceDesignator,
 
 def prepare_ternary_operands(classical_reg1: MemoryReferenceDesignator,
                              classical_reg2: MemoryReferenceDesignator,
-                             classical_reg3: MRefDesignatorOrImmediateValue) \
-                             -> Tuple[MemoryReference, MemoryReference, MRefOrImmediateValue]:
+                             classical_reg3: Union[MemoryReferenceDesignator, int, float]) \
+                             -> Tuple[MemoryReference, MemoryReference, Union[MemoryReference, int, float]]:
     """
     Helper function for typechecking / type-coercing arguments to constructors for ternary classical operators.
 
@@ -576,7 +575,8 @@ def NOT(classical_reg: MemoryReferenceDesignator) -> ClassicalNot:
 
 
 def AND(classical_reg1: MemoryReferenceDesignator,
-        classical_reg2: MRefDesignatorOrImmediateInt) -> ClassicalAnd:
+        classical_reg2: Union[MemoryReferenceDesignator, int]
+) -> ClassicalAnd:
     """
     Produce an AND instruction.
 
@@ -606,7 +606,8 @@ def OR(classical_reg1: MemoryReferenceDesignator,
 
 
 def IOR(classical_reg1: MemoryReferenceDesignator,
-        classical_reg2: MRefDesignatorOrImmediateInt) -> ClassicalInclusiveOr:
+        classical_reg2: Union[MemoryReferenceDesignator, int]
+) -> ClassicalInclusiveOr:
     """
     Produce an inclusive OR instruction.
 
@@ -619,7 +620,8 @@ def IOR(classical_reg1: MemoryReferenceDesignator,
 
 
 def XOR(classical_reg1: MemoryReferenceDesignator,
-        classical_reg2: MRefDesignatorOrImmediateInt) -> ClassicalExclusiveOr:
+        classical_reg2: Union[MemoryReferenceDesignator, int]
+) -> ClassicalExclusiveOr:
     """
     Produce an exclusive OR instruction.
 
@@ -632,7 +634,7 @@ def XOR(classical_reg1: MemoryReferenceDesignator,
 
 
 def MOVE(classical_reg1: MemoryReferenceDesignator,
-         classical_reg2: MRefDesignatorOrImmediateValue) -> ClassicalMove:
+         classical_reg2: Union[MemoryReferenceDesignator, int, float]) -> ClassicalMove:
     """
     Produce a MOVE instruction.
 
@@ -674,7 +676,7 @@ def LOAD(target_reg: MemoryReferenceDesignator,
 
 def STORE(region_name: str,
           offset_reg: MemoryReferenceDesignator,
-          source: MRefDesignatorOrImmediateValue) -> ClassicalStore:
+          source: Union[MemoryReferenceDesignator, int, float]) -> ClassicalStore:
     """
     Produce a STORE instruction.
 
@@ -702,7 +704,7 @@ def CONVERT(classical_reg1: MemoryReferenceDesignator,
 
 
 def ADD(classical_reg: MemoryReferenceDesignator,
-        right: MRefDesignatorOrImmediateValue) -> ClassicalAdd:
+        right: Union[MemoryReferenceDesignator, int, float]) -> ClassicalAdd:
     """
     Produce an ADD instruction.
 
@@ -715,7 +717,7 @@ def ADD(classical_reg: MemoryReferenceDesignator,
 
 
 def SUB(classical_reg: MemoryReferenceDesignator,
-        right: MRefDesignatorOrImmediateValue) -> ClassicalSub:
+        right: Union[MemoryReferenceDesignator, int, float]) -> ClassicalSub:
     """
     Produce a SUB instruction.
 
@@ -728,7 +730,7 @@ def SUB(classical_reg: MemoryReferenceDesignator,
 
 
 def MUL(classical_reg: MemoryReferenceDesignator,
-        right: MRefDesignatorOrImmediateValue) -> ClassicalMul:
+        right: Union[MemoryReferenceDesignator, int, float]) -> ClassicalMul:
     """
     Produce a MUL instruction.
 
@@ -741,7 +743,7 @@ def MUL(classical_reg: MemoryReferenceDesignator,
 
 
 def DIV(classical_reg: MemoryReferenceDesignator,
-        right: MRefDesignatorOrImmediateValue) -> ClassicalDiv:
+        right: Union[MemoryReferenceDesignator, int, float]) -> ClassicalDiv:
     """
     Produce an DIV instruction.
 
@@ -755,7 +757,7 @@ def DIV(classical_reg: MemoryReferenceDesignator,
 
 def EQ(classical_reg1: MemoryReferenceDesignator,
        classical_reg2: MemoryReferenceDesignator,
-       classical_reg3: MRefDesignatorOrImmediateValue) -> ClassicalEqual:
+       classical_reg3: Union[MemoryReferenceDesignator, int, float]) -> ClassicalEqual:
     """
     Produce an EQ instruction.
 
@@ -773,7 +775,7 @@ def EQ(classical_reg1: MemoryReferenceDesignator,
 
 def LT(classical_reg1: MemoryReferenceDesignator,
        classical_reg2: MemoryReferenceDesignator,
-       classical_reg3: MRefDesignatorOrImmediateValue) -> ClassicalLessThan:
+       classical_reg3: Union[MemoryReferenceDesignator, int, float]) -> ClassicalLessThan:
     """
     Produce an LT instruction.
 
@@ -790,7 +792,7 @@ def LT(classical_reg1: MemoryReferenceDesignator,
 
 def LE(classical_reg1: MemoryReferenceDesignator,
        classical_reg2: MemoryReferenceDesignator,
-       classical_reg3: MRefDesignatorOrImmediateValue) -> ClassicalLessEqual:
+       classical_reg3: Union[MemoryReferenceDesignator, int, float]) -> ClassicalLessEqual:
     """
     Produce an LE instruction.
 
@@ -807,7 +809,7 @@ def LE(classical_reg1: MemoryReferenceDesignator,
 
 def GT(classical_reg1: MemoryReferenceDesignator,
        classical_reg2: MemoryReferenceDesignator,
-       classical_reg3: MRefDesignatorOrImmediateValue) -> ClassicalGreaterThan:
+       classical_reg3: Union[MemoryReferenceDesignator, int, float]) -> ClassicalGreaterThan:
     """
     Produce an GT instruction.
 
@@ -824,7 +826,7 @@ def GT(classical_reg1: MemoryReferenceDesignator,
 
 def GE(classical_reg1: MemoryReferenceDesignator,
        classical_reg2: MemoryReferenceDesignator,
-       classical_reg3: MRefDesignatorOrImmediateValue) -> ClassicalGreaterEqual:
+       classical_reg3: Union[MemoryReferenceDesignator, int, float]) -> ClassicalGreaterEqual:
     """
     Produce an GE instruction.
 

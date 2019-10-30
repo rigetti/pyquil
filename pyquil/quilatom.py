@@ -109,11 +109,10 @@ class QubitPlaceholder(QuilAtom):
         return [cls() for _ in range(n)]
 
 
-QubitOrPlaceholder = Union[Qubit, QubitPlaceholder]
 QubitDesignator = Union[Qubit, QubitPlaceholder, int]
 
 
-def unpack_qubit(qubit: QubitDesignator) -> QubitOrPlaceholder:
+def unpack_qubit(qubit: QubitDesignator) -> Union[Qubit, QubitPlaceholder]:
     """
     Get a qubit from an object.
 
@@ -135,10 +134,6 @@ def unpack_qubit(qubit: QubitDesignator) -> QubitOrPlaceholder:
 # constrain the types, and mypy gets confused in unpack_classical_reg, below. Hence, just specify
 # List[Any] here.
 MemoryReferenceDesignator = Union['MemoryReference', Tuple[str, int], List[Any], str]
-MRefDesignatorOrImmediateInt = Union[MemoryReferenceDesignator, int]
-MRefDesignatorOrImmediateValue = Union[MemoryReferenceDesignator, int, float]
-MRefOrImmediateInt = Union['MemoryReference', int]
-MRefOrImmediateValue = Union['MemoryReference', int, float]
 
 
 def unpack_classical_reg(c: MemoryReferenceDesignator) -> 'MemoryReference':
@@ -212,7 +207,6 @@ class LabelPlaceholder(QuilAtom):
         return hash(id(self))
 
 
-LabelOrPlaceholder = Union[Label, LabelPlaceholder]
 ParameterDesignator = Union['Expression', 'MemoryReference', np.int_, int, float, complex]
 
 
@@ -258,8 +252,8 @@ def format_parameter(element: ParameterDesignator) -> str:
     assert False, "Invalid parameter: %r" % element
 
 
-ExpressionValue = Union[int, float, complex]
-ExpressionOrValue = Union['Expression', ExpressionValue]
+ExpressionValueDesignator = Union[int, float, complex]
+ExpressionDesignator = Union['Expression', ExpressionValueDesignator]
 
 
 class Expression(object):
@@ -277,51 +271,51 @@ class Expression(object):
     def __repr__(self) -> str:
         return str(self.__class__.__name__) + '(' + ','.join(map(repr, self.__dict__.values())) + ')'
 
-    def __add__(self, other: ExpressionOrValue) -> 'Add':
+    def __add__(self, other: ExpressionDesignator) -> 'Add':
         return Add(self, other)
 
-    def __radd__(self, other: ExpressionOrValue) -> 'Add':
+    def __radd__(self, other: ExpressionDesignator) -> 'Add':
         return Add(other, self)
 
-    def __sub__(self, other: ExpressionOrValue) -> 'Sub':
+    def __sub__(self, other: ExpressionDesignator) -> 'Sub':
         return Sub(self, other)
 
-    def __rsub__(self, other: ExpressionOrValue) -> 'Sub':
+    def __rsub__(self, other: ExpressionDesignator) -> 'Sub':
         return Sub(other, self)
 
-    def __mul__(self, other: ExpressionOrValue) -> 'Mul':
+    def __mul__(self, other: ExpressionDesignator) -> 'Mul':
         return Mul(self, other)
 
-    def __rmul__(self, other: ExpressionOrValue) -> 'Mul':
+    def __rmul__(self, other: ExpressionDesignator) -> 'Mul':
         return Mul(other, self)
 
-    def __div__(self, other: ExpressionOrValue) -> 'Div':
+    def __div__(self, other: ExpressionDesignator) -> 'Div':
         return Div(self, other)
 
     __truediv__ = __div__
 
-    def __rdiv__(self, other: ExpressionOrValue) -> 'Div':
+    def __rdiv__(self, other: ExpressionDesignator) -> 'Div':
         return Div(other, self)
 
     __rtruediv__ = __rdiv__
 
-    def __pow__(self, other: ExpressionOrValue) -> 'Pow':
+    def __pow__(self, other: ExpressionDesignator) -> 'Pow':
         return Pow(self, other)
 
-    def __rpow__(self, other: ExpressionOrValue) -> 'Pow':
+    def __rpow__(self, other: ExpressionDesignator) -> 'Pow':
         return Pow(other, self)
 
     def __neg__(self) -> 'Mul':
         return Mul(-1, self)
 
-    def _substitute(self, d: Any) -> 'ExpressionOrValue':
+    def _substitute(self, d: Any) -> ExpressionDesignator:
         return self
 
 
-ParameterSubstitutionsMap = Mapping['Parameter', ExpressionValue]
+ParamSubstitutionsMapDesignator = Mapping['Parameter', ExpressionValueDesignator]
 
 
-def substitute(expr: ExpressionOrValue, d: ParameterSubstitutionsMap) -> ExpressionOrValue:
+def substitute(expr: ExpressionDesignator, d: ParamSubstitutionsMapDesignator) -> ExpressionDesignator:
     """
     Using a dictionary of substitutions ``d`` try and explicitly evaluate as much of ``expr`` as
     possible.
@@ -336,7 +330,7 @@ def substitute(expr: ExpressionOrValue, d: ParameterSubstitutionsMap) -> Express
 
 
 def substitute_array(a: Union[Sequence[Expression], np.array],
-                     d: ParameterSubstitutionsMap) -> np.array:
+                     d: ParamSubstitutionsMapDesignator) -> np.array:
     """
     Apply ``substitute`` to all elements of an array ``a`` and return the resulting array.
 
@@ -359,7 +353,7 @@ class Parameter(QuilAtom, Expression):
     def out(self) -> str:
         return '%' + self.name
 
-    def _substitute(self, d: ParameterSubstitutionsMap) -> Union['Parameter', ExpressionValue]:
+    def _substitute(self, d: ParamSubstitutionsMapDesignator) -> Union['Parameter', ExpressionValueDesignator]:
         return d.get(self, self)
 
     def __str__(self) -> str:
@@ -376,13 +370,13 @@ class Function(Expression):
     """
     Supported functions in Quil are sin, cos, sqrt, exp, and cis
     """
-    def __init__(self, name: str, expression: ExpressionOrValue,
-                 fn: Callable[[ExpressionValue], ExpressionValue]):
+    def __init__(self, name: str, expression: ExpressionDesignator,
+                 fn: Callable[[ExpressionValueDesignator], ExpressionValueDesignator]):
         self.name = name
         self.expression = expression
         self.fn = fn
 
-    def _substitute(self, d: ParameterSubstitutionsMap) -> Union['Function', ExpressionValue]:
+    def _substitute(self, d: ParamSubstitutionsMapDesignator) -> Union['Function', ExpressionValueDesignator]:
         sop = substitute(self.expression, d)
         if isinstance(sop, Expression):
             return Function(self.name, sop, self.fn)
@@ -397,24 +391,24 @@ class Function(Expression):
         return not self.__eq__(other)
 
 
-def quil_sin(expression: ExpressionOrValue) -> Function:
+def quil_sin(expression: ExpressionDesignator) -> Function:
     return Function('SIN', expression, np.sin)
 
 
-def quil_cos(expression: ExpressionOrValue) -> Function:
+def quil_cos(expression: ExpressionDesignator) -> Function:
     return Function('COS', expression, np.cos)
 
 
-def quil_sqrt(expression: ExpressionOrValue) -> Function:
+def quil_sqrt(expression: ExpressionDesignator) -> Function:
     return Function('SQRT', expression, np.sqrt)
 
 
-def quil_exp(expression: ExpressionOrValue) -> Function:
+def quil_exp(expression: ExpressionDesignator) -> Function:
     return Function('EXP', expression, np.exp)
 
 
-def quil_cis(expression: ExpressionOrValue) -> Function:
-    def _cis(x: ExpressionValue) -> complex:
+def quil_cis(expression: ExpressionDesignator) -> Function:
+    def _cis(x: ExpressionValueDesignator) -> complex:
         # numpy doesn't ship with type stubs, so mypy assumes anything coming from numpy has type
         # Any, hence we need to cast the return type to complex here to satisfy the type checker.
         return cast(complex, np.exp(1j * x))
@@ -427,14 +421,14 @@ class BinaryExp(Expression):
     associates: ClassVar[str]
 
     @staticmethod
-    def fn(a: ExpressionOrValue, b: ExpressionOrValue) -> Union['BinaryExp', ExpressionValue]:
+    def fn(a: ExpressionDesignator, b: ExpressionDesignator) -> Union['BinaryExp', ExpressionValueDesignator]:
         raise NotImplementedError
 
-    def __init__(self, op1: ExpressionOrValue, op2: ExpressionOrValue):
+    def __init__(self, op1: ExpressionDesignator, op2: ExpressionDesignator):
         self.op1 = op1
         self.op2 = op2
 
-    def _substitute(self, d: ParameterSubstitutionsMap) -> Union['BinaryExp', ExpressionValue]:
+    def _substitute(self, d: ParamSubstitutionsMapDesignator) -> Union['BinaryExp', ExpressionValueDesignator]:
         sop1, sop2 = substitute(self.op1, d), substitute(self.op2, d)
         return self.fn(sop1, sop2)
 
@@ -453,10 +447,10 @@ class Add(BinaryExp):
     associates = 'both'
 
     @staticmethod
-    def fn(a: ExpressionOrValue, b: ExpressionOrValue) -> Union['Add', ExpressionValue]:
+    def fn(a: ExpressionDesignator, b: ExpressionDesignator) -> Union['Add', ExpressionValueDesignator]:
         return a + b
 
-    def __init__(self, op1: ExpressionOrValue, op2: ExpressionOrValue):
+    def __init__(self, op1: ExpressionDesignator, op2: ExpressionDesignator):
         super(Add, self).__init__(op1, op2)
 
 
@@ -466,10 +460,10 @@ class Sub(BinaryExp):
     associates = 'left'
 
     @staticmethod
-    def fn(a: ExpressionOrValue, b: ExpressionOrValue) -> Union['Sub', ExpressionValue]:
+    def fn(a: ExpressionDesignator, b: ExpressionDesignator) -> Union['Sub', ExpressionValueDesignator]:
         return a - b
 
-    def __init__(self, op1: ExpressionOrValue, op2: ExpressionOrValue):
+    def __init__(self, op1: ExpressionDesignator, op2: ExpressionDesignator):
         super(Sub, self).__init__(op1, op2)
 
 
@@ -479,10 +473,10 @@ class Mul(BinaryExp):
     associates = 'both'
 
     @staticmethod
-    def fn(a: ExpressionOrValue, b: ExpressionOrValue) -> Union['Mul', ExpressionValue]:
+    def fn(a: ExpressionDesignator, b: ExpressionDesignator) -> Union['Mul', ExpressionValueDesignator]:
         return a * b
 
-    def __init__(self, op1: ExpressionOrValue, op2: ExpressionOrValue):
+    def __init__(self, op1: ExpressionDesignator, op2: ExpressionDesignator):
         super(Mul, self).__init__(op1, op2)
 
 
@@ -492,10 +486,10 @@ class Div(BinaryExp):
     associates = 'left'
 
     @staticmethod
-    def fn(a: ExpressionOrValue, b: ExpressionOrValue) -> Union['Div', ExpressionValue]:
+    def fn(a: ExpressionDesignator, b: ExpressionDesignator) -> Union['Div', ExpressionValueDesignator]:
         return a / b
 
-    def __init__(self, op1: ExpressionOrValue, op2: ExpressionOrValue):
+    def __init__(self, op1: ExpressionDesignator, op2: ExpressionDesignator):
         super(Div, self).__init__(op1, op2)
 
 
@@ -505,14 +499,14 @@ class Pow(BinaryExp):
     associates = 'right'
 
     @staticmethod
-    def fn(a: ExpressionOrValue, b: ExpressionOrValue) -> Union['Pow', ExpressionValue]:
+    def fn(a: ExpressionDesignator, b: ExpressionDesignator) -> Union['Pow', ExpressionValueDesignator]:
         return a ** b
 
-    def __init__(self, op1: ExpressionOrValue, op2: ExpressionOrValue):
+    def __init__(self, op1: ExpressionDesignator, op2: ExpressionDesignator):
         super(Pow, self).__init__(op1, op2)
 
 
-def _expression_to_string(expression: ExpressionOrValue) -> str:
+def _expression_to_string(expression: ExpressionDesignator) -> str:
     """
     Recursively converts an expression to a string taking into account precedence and associativity for placing
     parenthesis
@@ -550,7 +544,7 @@ def _expression_to_string(expression: ExpressionOrValue) -> str:
         return format_parameter(expression)
 
 
-def _contained_parameters(expression: ExpressionOrValue) -> Set[Parameter]:
+def _contained_parameters(expression: ExpressionDesignator) -> Set[Parameter]:
     """
     Determine which parameters are contained in this expression.
 

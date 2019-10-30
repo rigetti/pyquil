@@ -22,11 +22,10 @@ from typing import (Any, Callable, ClassVar, Container, Dict, Iterable, List, Op
                     Union)
 from warnings import warn
 
-from pyquil.quilatom import (Expression, ExpressionOrValue, Label, LabelPlaceholder,
-                             LabelOrPlaceholder, MemoryReference, MRefOrImmediateInt,
-                             MRefOrImmediateValue, Parameter, ParameterDesignator, Qubit,
-                             QubitDesignator, QubitOrPlaceholder, QubitPlaceholder,
-                             _contained_parameters, format_parameter, unpack_qubit)
+from pyquil.quilatom import (Expression, ExpressionDesignator, Label, LabelPlaceholder,
+                             MemoryReference, Parameter, ParameterDesignator, Qubit,
+                             QubitDesignator, QubitPlaceholder, _contained_parameters,
+                             format_parameter, unpack_qubit)
 
 
 class AbstractInstruction(object):
@@ -65,23 +64,23 @@ RESERVED_WORDS: Container[str] = [
 ]
 
 
-def _extract_qubit_index(qubit: QubitOrPlaceholder, index: bool = True) -> QubitDesignator:
+def _extract_qubit_index(qubit: Union[Qubit, QubitPlaceholder], index: bool = True) -> QubitDesignator:
     if (not index) or isinstance(qubit, QubitPlaceholder):
         return qubit
     return qubit.index
 
 
-def _format_qubit_str(qubit: QubitOrPlaceholder) -> str:
+def _format_qubit_str(qubit: Union[Qubit, QubitPlaceholder]) -> str:
     if isinstance(qubit, QubitPlaceholder):
         return "{%s}" % str(qubit)
     return str(qubit)
 
 
-def _format_qubits_str(qubits: Iterable[QubitOrPlaceholder]) -> str:
+def _format_qubits_str(qubits: Iterable[Union[Qubit, QubitPlaceholder]]) -> str:
     return " ".join([_format_qubit_str(qubit) for qubit in qubits])
 
 
-def _format_qubits_out(qubits: Iterable[QubitOrPlaceholder]) -> str:
+def _format_qubits_out(qubits: Iterable[Union[Qubit, QubitPlaceholder]]) -> str:
     return " ".join([qubit.out() for qubit in qubits])
 
 
@@ -95,7 +94,7 @@ class Gate(AbstractInstruction):
     """
 
     def __init__(self, name: str, params: Iterable[ParameterDesignator],
-                 qubits: Iterable[QubitOrPlaceholder]):
+                 qubits: Iterable[Union[Qubit, QubitPlaceholder]]):
         if not isinstance(name, str):
             raise TypeError("Gate name must be a string")
 
@@ -232,7 +231,7 @@ class Measurement(AbstractInstruction):
     This is the pyQuil object for a Quil measurement instruction.
     """
 
-    def __init__(self, qubit: QubitOrPlaceholder, classical_reg: Optional[MemoryReference]):
+    def __init__(self, qubit: Union[Qubit, QubitPlaceholder], classical_reg: Optional[MemoryReference]):
         if not isinstance(qubit, (Qubit, QubitPlaceholder)):
             raise TypeError("qubit should be a Qubit")
         if classical_reg is not None and not isinstance(classical_reg, MemoryReference):
@@ -262,7 +261,7 @@ class ResetQubit(AbstractInstruction):
     This is the pyQuil object for a Quil targeted reset instruction.
     """
 
-    def __init__(self, qubit: QubitOrPlaceholder):
+    def __init__(self, qubit: Union[Qubit, QubitPlaceholder]):
         if not isinstance(qubit, (Qubit, QubitPlaceholder)):
             raise TypeError("qubit should be a Qubit")
         self.qubit = qubit
@@ -333,7 +332,7 @@ class DefGate(AbstractInstruction):
 
         :returns: String representation of a gate
         """
-        def format_matrix_element(element: Union[ExpressionOrValue, str]) -> str:
+        def format_matrix_element(element: Union[ExpressionDesignator, str]) -> str:
             """
             Formats a parameterized matrix element.
 
@@ -419,7 +418,7 @@ class JumpTarget(AbstractInstruction):
     Representation of a target that can be jumped to.
     """
 
-    def __init__(self, label: LabelOrPlaceholder):
+    def __init__(self, label: Union[Label, LabelPlaceholder]):
         if not isinstance(label, (Label, LabelPlaceholder)):
             raise TypeError("label must be a Label")
         self.label = label
@@ -437,7 +436,7 @@ class JumpConditional(AbstractInstruction):
     """
     op: ClassVar[str]
 
-    def __init__(self, target: LabelOrPlaceholder, condition: MemoryReference):
+    def __init__(self, target: Union[Label, LabelPlaceholder], condition: MemoryReference):
         if not isinstance(target, (Label, LabelPlaceholder)):
             raise TypeError("target should be a Label")
         if not isinstance(condition, MemoryReference):
@@ -536,7 +535,7 @@ class LogicalBinaryOp(AbstractInstruction):
     """
     op: ClassVar[str]
 
-    def __init__(self, left: MemoryReference, right: MRefOrImmediateInt):
+    def __init__(self, left: MemoryReference, right: Union[MemoryReference, int]):
         if not isinstance(left, MemoryReference):
             raise TypeError("left operand should be an MemoryReference")
         if not isinstance(right, MemoryReference) and not isinstance(right, int):
@@ -595,7 +594,7 @@ class ArithmeticBinaryOp(AbstractInstruction):
     """
     op: ClassVar[str]
 
-    def __init__(self, left: MemoryReference, right: MRefOrImmediateValue):
+    def __init__(self, left: MemoryReference, right: Union[MemoryReference, int, float]):
         if not isinstance(left, MemoryReference):
             raise TypeError("left operand should be an MemoryReference")
         if not isinstance(right, MemoryReference) and not isinstance(right, int) and not isinstance(right, float):
@@ -645,7 +644,7 @@ class ClassicalMove(AbstractInstruction):
     """
     op = "MOVE"
 
-    def __init__(self, left: MemoryReference, right: MRefOrImmediateValue):
+    def __init__(self, left: MemoryReference, right: Union[MemoryReference, int, float]):
         if not isinstance(left, MemoryReference):
             raise TypeError("Left operand of MOVE should be an MemoryReference.  "
                             "Note that the order of the operands in pyQuil 2.0 has reversed from "
@@ -745,7 +744,7 @@ class ClassicalStore(AbstractInstruction):
 
     op = "STORE"
 
-    def __init__(self, target: str, left: MemoryReference, right: MRefOrImmediateValue):
+    def __init__(self, target: str, left: MemoryReference, right: Union[MemoryReference, int, float]):
         if not isinstance(left, MemoryReference):
             raise TypeError("left operand should be an MemoryReference")
         if not (isinstance(right, MemoryReference) or isinstance(right, int)
@@ -766,7 +765,7 @@ class ClassicalComparison(AbstractInstruction):
     op: ClassVar[str]
 
     def __init__(self, target: MemoryReference, left: MemoryReference,
-                 right: MRefOrImmediateValue):
+                 right: Union[MemoryReference, int, float]):
         if not isinstance(target, MemoryReference):
             raise TypeError("target operand should be an MemoryReference")
         if not isinstance(left, MemoryReference):
@@ -827,7 +826,7 @@ class Jump(AbstractInstruction):
     Representation of an unconditional jump instruction (JUMP).
     """
 
-    def __init__(self, target: LabelOrPlaceholder):
+    def __init__(self, target: Union[Label, LabelPlaceholder]):
         if not isinstance(target, (Label, LabelPlaceholder)):
             raise TypeError("target should be a Label")
         self.target = target
