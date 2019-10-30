@@ -13,22 +13,6 @@
 #    See the License for the specific language governing permissions and
 #    limitations under the License.
 ##############################################################################
-# THIS FILE IS DERIVED AND MODIFIED FROM PROJECTQ. COPYRIGHT PROVIDED HERE:
-#
-#   Copyright 2017 ProjectQ-Framework (www.projectq.ch)
-#
-#   Licensed under the Apache License, Version 2.0 (the "License");
-#   you may not use this file except in compliance with the License.
-#   You may obtain a copy of the License at
-#
-#       http://www.apache.org/licenses/LICENSE-2.0
-#
-#   Unless required by applicable law or agreed to in writing, software
-#   distributed under the License is distributed on an "AS IS" BASIS,
-#   WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
-#   See the License for the specific language governing permissions and
-#   limitations under the License.
-##############################################################################
 
 import sys
 from copy import copy
@@ -114,7 +98,7 @@ def to_latex(circuit: Program, settings: Optional[DiagramSettings] = None) -> st
     """
     if settings is None:
         settings = DiagramSettings()
-    text = header(settings)
+    text = header()
     text += "\n"
     text += body(circuit, settings)
     text += "\n"
@@ -122,13 +106,12 @@ def to_latex(circuit: Program, settings: Optional[DiagramSettings] = None) -> st
     return text
 
 
-def header(settings):
+def header():
     """
     Writes the LaTeX header using the settings file.
 
     The header includes all packages and defines all tikz styles.
 
-    :param dictionary settings: LaTeX settings for document.
     :return: Header of the LaTeX document.
     :rtype: string
     """
@@ -153,13 +136,13 @@ def footer():
     return "\\end{tikzcd}\n\\end{document}"
 
 
-def body(circuit, settings):
+def body(circuit: Program, settings: DiagramSettings):
     """
     Return the body of the LaTeX document, including the entire circuit in
     TikZ format.
 
     :param Program circuit: The circuit to be drawn, represented as a pyquil program.
-    :param dict settings:
+    :param DiagramSettings settings: Options controlling rendering and layout.
 
     :return: LaTeX string to draw the entire circuit.
     :rtype: string
