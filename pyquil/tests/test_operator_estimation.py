@@ -7,10 +7,10 @@ import pytest
 
 from pyquil import Program, get_qc
 from pyquil.api import WavefunctionSimulator
-from pyquil.experiment import TomographyExperiment
-from pyquil.experiment._setting import TensorProductState, SIC0, SIC1, SIC2, SIC3, plusX, plusY, \
-    minusY, plusZ, minusZ, zeros_state, ExperimentSetting
-from pyquil.gates import *
+from pyquil.experiment import (ExperimentSetting, SIC0, SIC1, SIC2, SIC3, TensorProductState,
+                               TomographyExperiment, minusY, minusZ, plusX, plusY, plusZ,
+                               zeros_state)
+from pyquil.gates import CNOT, CZ, H, I, RX, RY, RZ, X, Y
 from pyquil.operator_estimation import _one_q_sic_prep, \
     _max_weight_operator, _max_weight_state, _max_tpb_overlap, \
     group_experiments, measure_observables, \
