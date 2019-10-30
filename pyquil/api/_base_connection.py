@@ -392,11 +392,3 @@ class ForestConnection:
         response = post_json(self.session, self.sync_endpoint + "/", payload)
         unpacked_response = response.json()
         return unpacked_response
-
-    def _quilc_get_version_info(self) -> dict:
-        """
-        Return version information for quilc.
-
-        :return: Dictionary with version information
-        """
-        return get_json(self.session, self.sync_endpoint + '/version')
