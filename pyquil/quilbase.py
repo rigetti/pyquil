@@ -879,9 +879,6 @@ class Pragma(AbstractInstruction):
         return '<PRAGMA {}>'.format(self.command)
 
 
-DeclareOffsets = Iterable[Tuple[int, str]]
-
-
 class Declare(AbstractInstruction):
     """
     A DECLARE directive.
@@ -894,7 +891,7 @@ class Declare(AbstractInstruction):
 
     def __init__(self, name: str, memory_type: str, memory_size: int = 1,
                  shared_region: Optional[str] = None,
-                 offsets: Optional[DeclareOffsets] = None):
+                 offsets: Optional[Iterable[Tuple[int, str]]] = None):
         self.name = name
         self.memory_type = memory_type
         self.memory_size = memory_size
@@ -904,7 +901,7 @@ class Declare(AbstractInstruction):
             offsets = []
         self.offsets = offsets
 
-    def asdict(self) -> Dict[str, Union[DeclareOffsets, Optional[str], int]]:
+    def asdict(self) -> Dict[str, Union[Iterable[Tuple[int, str]], Optional[str], int]]:
         return {
             'name': self.name,
             'memory_type': self.memory_type,
