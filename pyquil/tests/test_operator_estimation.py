@@ -13,15 +13,15 @@ from pyquil.quilbase import Pragma
 from pyquil import Program, get_qc
 from pyquil.gates import *
 from pyquil.api import WavefunctionSimulator, QVMConnection
-from pyquil.operator_estimation import ExperimentSetting, TomographyExperiment, to_json, read_json, \
-    group_experiments, ExperimentResult, measure_observables, SIC0, SIC1, SIC2, SIC3, \
-    plusX, minusX, plusY, minusY, plusZ, minusZ, _one_q_sic_prep, \
+from pyquil.operator_estimation import group_experiments, ExperimentResult, measure_observables, _one_q_sic_prep, \
     _max_tpb_overlap, _max_weight_operator, _max_weight_state, _max_tpb_overlap, \
-    TensorProductState, zeros_state, \
-    group_experiments, group_experiments_greedy, ExperimentResult, measure_observables, \
+    group_experiments, group_experiments_greedy, measure_observables, \
     _ops_bool_to_prog, _stats_from_measurements, \
     ratio_variance, _calibration_program, \
     _pauli_to_product_state
+from pyquil.experiment import TomographyExperiment, to_json, read_json, ExperimentResult
+from pyquil.experiment._setting import TensorProductState, SIC0, SIC1, SIC2, SIC3, plusX, minusX, \
+    plusY, minusY, plusZ, minusZ, zeros_state, ExperimentSetting
 from pyquil.paulis import sI, sX, sY, sZ, PauliSum, PauliTerm
 
 
