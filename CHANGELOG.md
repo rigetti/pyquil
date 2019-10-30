@@ -27,14 +27,14 @@ Changelog
 -   The `conftest.py` has been moved to the project root dir (@karalekas, gh-1064).
 -   Using `protoquil` as a positional argument to `qc.compile` has been deprecated,
     and it is now a keyword-only argument (@karalekas, gh-1071).
--   In `QPU.reset()` check whether `pyquil_config.qpu_url` exists before changing
-    the endpoint (@kylegulshen, gh-1072).
     
 ### Bugfixes
 
 -   Updated `examples/meyer_penny_game.py` with the correct path to the Meyer Penny
     game exercise in `docs/source/exercises.rst` (@appleby, gh-1045).
 -   Fixed the Slack Workspace invite link in the README (@amyfbrown, gh-1042).
+-   `QPU.reset()` now checks whether `pyquil_config.qpu_url` exists before updating
+    the endpoint so as not to break custom connections (@kylegulshen, gh-1072).
 
 [v2.12](https://github.com/rigetti/pyquil/compare/v2.11.0...v2.12.0) (September 28, 2019)
 ----------------------------------------------------------------------------------------
