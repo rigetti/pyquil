@@ -12,10 +12,13 @@ from networkx.algorithms.approximation.clique import clique_removal
 
 from pyquil import Program
 from pyquil.api import QuantumComputer
+# import the full public API of the pyquil experiment module
 from pyquil.experiment import (_OneQState, _pauli_to_product_state, ExperimentResult,
-                               ExperimentSetting, SymmetrizationLevel, TensorProductState,
-                               TomographyExperiment)
-from pyquil.gates import *
+                               ExperimentSetting, OperatorEncoder, SIC0, SIC1, SIC2, SIC3,
+                               SymmetrizationLevel, TomographyExperiment, TensorProductState,
+                               minusX, minusY, minusZ, plusX, plusY, plusZ, read_json, to_json,
+                               zeros_state)
+from pyquil.gates import RESET, RX, RY, RZ, X
 from pyquil.paulis import PauliTerm, sI, is_identity
 
 
