@@ -296,7 +296,7 @@ class PauliTerm(object):
         """
         return other + -1. * self
 
-    def __str__(self):
+    def __repr__(self):
         term_strs = []
         for index in self._ops.keys():
             term_strs.append("%s%s" % (self[index], index))
@@ -531,7 +531,10 @@ class PauliSum(object):
 
         return set(self.terms) == set(other.terms)
 
-    def __str__(self):
+    def __hash__(self):
+        return hash(frozenset(self.terms))
+
+    def __repr__(self):
         return " + ".join([str(term) for term in self.terms])
 
     def __len__(self):
