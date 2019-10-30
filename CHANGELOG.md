@@ -39,6 +39,8 @@ Changelog
 -   Updated `examples/meyer_penny_game.py` with the correct path to the Meyer Penny
     game exercise in `docs/source/exercises.rst` (@appleby, gh-1045).
 -   Fixed the Slack Workspace invite link in the README (@amyfbrown, gh-1042).
+-   `QPU.reset()` now checks whether `pyquil_config.qpu_url` exists before updating
+    the endpoint so as not to break custom connections (@kylegulshen, gh-1072).
 -   Fixed pretty printing of parameter expressions where π is involved
     (@notmgsk, gh-1076).
 -   Fixed a regression in `PyQVM.execute` that prevented it from running programs
