@@ -33,6 +33,8 @@ Changelog
 -   The code in `device.py` as been reorganized into a new `device` subdirectory
     in a completely backwards-compatible fashion (@karalekas, gh-1066).
 -   `PauliTerm` and `PauliSum` now have `__repr__` methods (@karalekas, gh-1080).
+-   The experiment-schema-related code in `operator_estimation.py` has been moved
+    into a new `experiment` subdirectory (@karalekas, gh-1084).
     
 ### Bugfixes
 
