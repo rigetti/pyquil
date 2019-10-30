@@ -172,7 +172,7 @@ def validate_qubit_list(qubit_list):
 
 
 def validate_num_qubits(num_qubits):
-    if not isinstance(num_qubits, integer_types) or num_qubits < 0:
+    if not isinstance(num_qubits, int) or num_qubits < 0:
         raise TypeError("num_qubits must be a positive integer.")
 
 
@@ -440,7 +440,7 @@ def qvm_ng_run_program_async_payload(qvm_token, quil_program):
 def qvm_ng_qvm_memory_estimate_payload(simulation_method, allocation_method, num_qubits,
                                        measurement_noise, gate_noise):
     """REST payload for :py:func:`ForestConnection._qvm_ng_qvm_memory_estimate`"""
-    if not isinstance(num_qubits, integer_types) or num_qubits < 0:
+    if not isinstance(num_qubits, int) or num_qubits < 0:
         raise ValueError("num_qubits must be a positive integer.")
 
     validate_simulation_method(simulation_method)
@@ -465,7 +465,7 @@ def qvm_ng_qvm_memory_estimate_payload(simulation_method, allocation_method, num
 def qvm_ng_create_qvm_payload(simulation_method, allocation_method, num_qubits, measurement_noise,
                               gate_noise):
     """REST payload for :py:func:`ForestConnection._qvm_ng_create_qvm`"""
-    if not isinstance(num_qubits, integer_types) or num_qubits < 0:
+    if not isinstance(num_qubits, int) or num_qubits < 0:
         raise ValueError("num_qubits must be a positive integer.")
 
     validate_simulation_method(simulation_method)

@@ -15,7 +15,6 @@
 ##############################################################################
 from typing import Any, Dict, List, Optional
 
-from six import integer_types
 import numpy as np
 
 from pyquil.api._base_connection import (ForestConnection, QVMAllocationMethod, QVMSimulationMethod,
@@ -124,7 +123,7 @@ class PersistentQVM:
 
         if random_seed is None:
             self.random_seed = None
-        elif isinstance(random_seed, integer_types) and random_seed >= 0:
+        elif isinstance(random_seed, int) and random_seed >= 0:
             self.random_seed = random_seed
         else:
             raise TypeError("random_seed should be None or a non-negative int")
