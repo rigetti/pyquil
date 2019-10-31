@@ -13,6 +13,12 @@ Changelog
     running the image, a user will be dropped into an `ipython` REPL that has
     pyQuil and its requirements preinstalled, along with quilc and qvm servers
     running in the background (@karalekas, gh-1035, gh-1039).
+-   Circuit diagram generation has had a makeover! In particular, the
+    `pyquil.latex` module provides two mechanisms for generating diagrams from
+    pyQuil programs: `pyquil.latex.to_latex` generates human-readable LaTeX
+    output expressing a `Program` as a circuit diagram, and
+    `pyquil.latex.display` renders a `Program` as an `IPython.display.Image` for
+    inline viewing in Jupyter Notebooks (@kilimanjaro, gh-1074).
 
 ### Improvements and Changes
 
