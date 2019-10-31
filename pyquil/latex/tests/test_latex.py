@@ -1,12 +1,11 @@
+import pytest
+
 from pyquil.quil import Program, Pragma
 from pyquil.quilbase import Declare, Measurement
 from pyquil.quilatom import MemoryReference
 from pyquil.gates import X, Y, RX, CZ, SWAP, MEASURE, CNOT
 from pyquil.latex import to_latex, DiagramSettings
-
-from pyquil.latex.latex_generation import split_on_terminal_measures
-
-import pytest
+from pyquil.latex._diagram import split_on_terminal_measures
 
 
 def test_to_latex():
