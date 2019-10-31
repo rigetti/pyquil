@@ -14,19 +14,26 @@
 #    limitations under the License.
 ##############################################################################
 from warnings import warn
-from typing import Callable, Dict
-from pyquil.quilatom import unpack_qubit, unpack_classical_reg, MemoryReference, Addr, Qubit
-from pyquil.quilbase import (Measurement, Gate, Wait, Reset, Halt, Nop,
+from typing import Any, Callable, Mapping, Optional, Tuple, Union, overload
+
+from pyquil.quilatom import (Addr, Expression, MemoryReference, MemoryReferenceDesignator,
+                             Parameter, ParameterDesignator, Qubit, QubitDesignator,
+                             QubitPlaceholder, unpack_classical_reg, unpack_qubit)
+from pyquil.quilbase import (AbstractInstruction, Gate, Halt, Reset, ResetQubit, Measurement, Nop,
+                             Wait,
                              ClassicalNeg, ClassicalNot,
                              ClassicalAnd, ClassicalInclusiveOr, ClassicalExclusiveOr,
                              ClassicalEqual, ClassicalGreaterEqual, ClassicalGreaterThan,
                              ClassicalLessEqual, ClassicalLessThan,
                              ClassicalMove, ClassicalExchange, ClassicalConvert,
                              ClassicalLoad, ClassicalStore,
-                             ClassicalAdd, ClassicalSub, ClassicalMul, ClassicalDiv, ResetQubit)
+                             ClassicalAdd, ClassicalSub, ClassicalMul, ClassicalDiv)
 
 
-def unpack_reg_val_pair(classical_reg1, classical_reg2):
+def unpack_reg_val_pair(
+        classical_reg1: MemoryReferenceDesignator,
+        classical_reg2: Union[MemoryReferenceDesignator, int, float]
+) -> Tuple[MemoryReference, Union[MemoryReference, int, float]]:
     """
     Helper function for typechecking / type-coercing arguments to constructors for binary classical operators.
 
@@ -35,15 +42,16 @@ def unpack_reg_val_pair(classical_reg1, classical_reg2):
     :return: A pair of pyQuil objects suitable for use as operands.
     """
     left = unpack_classical_reg(classical_reg1)
-    if isinstance(classical_reg2, int) or isinstance(classical_reg2, float):
-        right = classical_reg2
-    else:
-        right = unpack_classical_reg(classical_reg2)
-
-    return left, right
+    if isinstance(classical_reg2, (float, int)):
+        return left, classical_reg2
+    return left, unpack_classical_reg(classical_reg2)
 
 
-def prepare_ternary_operands(classical_reg1, classical_reg2, classical_reg3):
+def prepare_ternary_operands(
+        classical_reg1: MemoryReferenceDesignator,
+        classical_reg2: MemoryReferenceDesignator,
+        classical_reg3: Union[MemoryReferenceDesignator, int, float]
+) -> Tuple[MemoryReference, MemoryReference, Union[MemoryReference, int, float]]:
     """
     Helper function for typechecking / type-coercing arguments to constructors for ternary classical operators.
 
@@ -58,13 +66,13 @@ def prepare_ternary_operands(classical_reg1, classical_reg2, classical_reg3):
     if isinstance(classical_reg2, int):
         raise TypeError("Left operand of comparison must be a memory address")
     classical_reg2 = unpack_classical_reg(classical_reg2)
-    if not isinstance(classical_reg3, int) and not isinstance(classical_reg3, float):
+    if not isinstance(classical_reg3, (float, int)):
         classical_reg3 = unpack_classical_reg(classical_reg3)
 
     return classical_reg1, classical_reg2, classical_reg3
 
 
-def I(qubit):
+def I(qubit: QubitDesignator) -> Gate:
     """Produces the I identity gate::
 
         I = [1, 0]
@@ -81,7 +89,7 @@ def I(qubit):
     return Gate(name="I", params=[], qubits=[unpack_qubit(qubit)])
 
 
-def X(qubit):
+def X(qubit: QubitDesignator) -> Gate:
     """Produces the X ("NOT") gate::
 
         X = [[0, 1],
@@ -95,7 +103,7 @@ def X(qubit):
     return Gate(name="X", params=[], qubits=[unpack_qubit(qubit)])
 
 
-def Y(qubit):
+def Y(qubit: QubitDesignator) -> Gate:
     """Produces the Y gate::
 
         Y = [[0, 0 - 1j],
@@ -109,7 +117,7 @@ def Y(qubit):
     return Gate(name="Y", params=[], qubits=[unpack_qubit(qubit)])
 
 
-def Z(qubit):
+def Z(qubit: QubitDesignator) -> Gate:
     """Produces the Z gate::
 
         Z = [[1,  0],
@@ -123,7 +131,7 @@ def Z(qubit):
     return Gate(name="Z", params=[], qubits=[unpack_qubit(qubit)])
 
 
-def H(qubit):
+def H(qubit: QubitDesignator) -> Gate:
     """Produces the Hadamard gate::
 
         H = (1 / sqrt(2)) * [[1,  1],
@@ -137,7 +145,7 @@ def H(qubit):
     return Gate(name="H", params=[], qubits=[unpack_qubit(qubit)])
 
 
-def S(qubit):
+def S(qubit: QubitDesignator) -> Gate:
     """Produces the S gate::
 
         S = [[1, 0],
@@ -151,7 +159,7 @@ def S(qubit):
     return Gate(name="S", params=[], qubits=[unpack_qubit(qubit)])
 
 
-def T(qubit):
+def T(qubit: QubitDesignator) -> Gate:
     """Produces the T gate::
 
         T = [[1, 0],
@@ -165,7 +173,7 @@ def T(qubit):
     return Gate(name="T", params=[], qubits=[unpack_qubit(qubit)])
 
 
-def RX(angle, qubit):
+def RX(angle: ParameterDesignator, qubit: QubitDesignator) -> Gate:
     """Produces the RX gate::
 
         RX(phi) = [[cos(phi / 2), -1j * sin(phi / 2)],
@@ -180,7 +188,7 @@ def RX(angle, qubit):
     return Gate(name="RX", params=[angle], qubits=[unpack_qubit(qubit)])
 
 
-def RY(angle, qubit):
+def RY(angle: ParameterDesignator, qubit: QubitDesignator) -> Gate:
     """Produces the RY gate::
 
         RY(phi) = [[cos(phi / 2), -sin(phi / 2)],
@@ -195,7 +203,7 @@ def RY(angle, qubit):
     return Gate(name="RY", params=[angle], qubits=[unpack_qubit(qubit)])
 
 
-def RZ(angle, qubit):
+def RZ(angle: ParameterDesignator, qubit: QubitDesignator) -> Gate:
     """Produces the RZ gate::
 
         RZ(phi) = [[cos(phi / 2) - 1j * sin(phi / 2), 0]
@@ -210,7 +218,7 @@ def RZ(angle, qubit):
     return Gate(name="RZ", params=[angle], qubits=[unpack_qubit(qubit)])
 
 
-def PHASE(angle, qubit):
+def PHASE(angle: ParameterDesignator, qubit: QubitDesignator) -> Gate:
     """Produces the PHASE gate::
 
         PHASE(phi) = [[1, 0],
@@ -225,7 +233,7 @@ def PHASE(angle, qubit):
     return Gate(name="PHASE", params=[angle], qubits=[unpack_qubit(qubit)])
 
 
-def CZ(control, target):
+def CZ(control: QubitDesignator, target: QubitDesignator) -> Gate:
     """Produces a controlled-Z gate::
 
         CZ = [[1, 0, 0,  0],
@@ -244,7 +252,7 @@ def CZ(control, target):
     return Gate(name="CZ", params=[], qubits=[unpack_qubit(q) for q in (control, target)])
 
 
-def CNOT(control, target):
+def CNOT(control: QubitDesignator, target: QubitDesignator) -> Gate:
     """Produces a controlled-NOT (controlled-X) gate::
 
         CNOT = [[1, 0, 0, 0],
@@ -262,7 +270,7 @@ def CNOT(control, target):
     return Gate(name="CNOT", params=[], qubits=[unpack_qubit(q) for q in (control, target)])
 
 
-def CCNOT(control1, control2, target):
+def CCNOT(control1: QubitDesignator, control2: QubitDesignator, target: QubitDesignator) -> Gate:
     """Produces a doubly-controlled NOT gate::
 
         CCNOT = [[1, 0, 0, 0, 0, 0, 0, 0],
@@ -287,7 +295,7 @@ def CCNOT(control1, control2, target):
     return Gate(name="CCNOT", params=[], qubits=qubits)
 
 
-def CPHASE00(angle, control, target):
+def CPHASE00(angle: ParameterDesignator, control: QubitDesignator, target: QubitDesignator) -> Gate:
     """Produces a controlled-phase gate that phases the ``|00>`` state::
 
         CPHASE00(phi) = diag([exp(1j * phi), 1, 1, 1])
@@ -304,7 +312,7 @@ def CPHASE00(angle, control, target):
     return Gate(name="CPHASE00", params=[angle], qubits=qubits)
 
 
-def CPHASE01(angle, control, target):
+def CPHASE01(angle: ParameterDesignator, control: QubitDesignator, target: QubitDesignator) -> Gate:
     """Produces a controlled-phase gate that phases the ``|01>`` state::
 
         CPHASE01(phi) = diag([1.0, exp(1j * phi), 1.0, 1.0])
@@ -322,7 +330,7 @@ def CPHASE01(angle, control, target):
     return Gate(name="CPHASE01", params=[angle], qubits=qubits)
 
 
-def CPHASE10(angle, control, target):
+def CPHASE10(angle: ParameterDesignator, control: QubitDesignator, target: QubitDesignator) -> Gate:
     """Produces a controlled-phase gate that phases the ``|10>`` state::
 
         CPHASE10(phi) = diag([1, 1, exp(1j * phi), 1])
@@ -340,7 +348,7 @@ def CPHASE10(angle, control, target):
     return Gate(name="CPHASE10", params=[angle], qubits=qubits)
 
 
-def CPHASE(angle, control, target):
+def CPHASE(angle: ParameterDesignator, control: QubitDesignator, target: QubitDesignator) -> Gate:
     """Produces a controlled-phase instruction::
 
         CPHASE(phi) = diag([1, 1, 1, exp(1j * phi)])
@@ -360,7 +368,7 @@ def CPHASE(angle, control, target):
     return Gate(name="CPHASE", params=[angle], qubits=qubits)
 
 
-def SWAP(q1, q2):
+def SWAP(q1: QubitDesignator, q2: QubitDesignator) -> Gate:
     """Produces a SWAP gate which swaps the state of two qubits::
 
         SWAP = [[1, 0, 0, 0],
@@ -376,7 +384,7 @@ def SWAP(q1, q2):
     return Gate(name="SWAP", params=[], qubits=[unpack_qubit(q) for q in (q1, q2)])
 
 
-def CSWAP(control, target_1, target_2):
+def CSWAP(control: QubitDesignator, target_1: QubitDesignator, target_2: QubitDesignator) -> Gate:
     """Produces a controlled-SWAP gate. This gate conditionally swaps the state of two qubits::
 
         CSWAP = [[1, 0, 0, 0, 0, 0, 0, 0],
@@ -390,15 +398,15 @@ def CSWAP(control, target_1, target_2):
 
 
     :param control: The control qubit.
-    :param target-1: The first target qubit.
-    :param target-2: The second target qubit. The two target states are swapped if the control is
+    :param target_1: The first target qubit.
+    :param target_2: The second target qubit. The two target states are swapped if the control is
         in the ``|1>`` state.
     """
     qubits = [unpack_qubit(q) for q in (control, target_1, target_2)]
     return Gate(name="CSWAP", params=[], qubits=qubits)
 
 
-def ISWAP(q1, q2):
+def ISWAP(q1: QubitDesignator, q2: QubitDesignator) -> Gate:
     """Produces an ISWAP gate::
 
         ISWAP = [[1, 0,  0,  0],
@@ -416,7 +424,7 @@ def ISWAP(q1, q2):
     return Gate(name="ISWAP", params=[], qubits=[unpack_qubit(q) for q in (q1, q2)])
 
 
-def PSWAP(angle, q1, q2):
+def PSWAP(angle: ParameterDesignator, q1: QubitDesignator, q2: QubitDesignator) -> Gate:
     """Produces a parameterized SWAP gate::
 
         PSWAP(phi) = [[1, 0,             0,             0],
@@ -443,16 +451,15 @@ manipulated by a CPU in a hybrid classical/quantum algorithm.
 """
 
 
-def RESET(qubit_index=None):
+def RESET(qubit_index: Optional[QubitDesignator] = None) -> Union[Reset, ResetQubit]:
     """
     Reset all qubits or just one specific qubit.
 
-    :param Optional[Union[integer_types, Qubit, QubitPlaceholder]] qubit_index: The qubit to reset.
+    :param qubit_index: The qubit to reset.
         This can be a qubit's index, a Qubit, or a QubitPlaceholder.
         If None, reset all qubits.
     :returns: A Reset or ResetQubit Quil AST expression corresponding to a global or targeted
         reset, respectively.
-    :rtype: Union[Reset, ResetQubit]
     """
     if qubit_index is not None:
         return ResetQubit(unpack_qubit(qubit_index))
@@ -475,7 +482,7 @@ This instruction ends the program.
 """
 
 
-def MEASURE(qubit, classical_reg):
+def MEASURE(qubit: QubitDesignator, classical_reg: Optional[MemoryReferenceDesignator]) -> Measurement:
     """
     Produce a MEASURE instruction.
 
@@ -495,7 +502,7 @@ def MEASURE(qubit, classical_reg):
     return Measurement(qubit, address)
 
 
-def TRUE(classical_reg):
+def TRUE(classical_reg: Union[MemoryReference, int]) -> ClassicalMove:
     """
     Produce a TRUE instruction.
 
@@ -508,7 +515,7 @@ def TRUE(classical_reg):
     return MOVE(classical_reg, 1)
 
 
-def FALSE(classical_reg):
+def FALSE(classical_reg: Union[MemoryReference, int]) -> ClassicalMove:
     """
     Produce a FALSE instruction.
 
@@ -521,7 +528,7 @@ def FALSE(classical_reg):
     return MOVE(classical_reg, 0)
 
 
-def NEG(classical_reg):
+def NEG(classical_reg: MemoryReferenceDesignator) -> ClassicalNeg:
     """
     Produce a NEG instruction.
 
@@ -531,7 +538,7 @@ def NEG(classical_reg):
     return ClassicalNeg(unpack_classical_reg(classical_reg))
 
 
-def NOT(classical_reg):
+def NOT(classical_reg: MemoryReferenceDesignator) -> ClassicalNot:
     """
     Produce a NOT instruction.
 
@@ -541,7 +548,8 @@ def NOT(classical_reg):
     return ClassicalNot(unpack_classical_reg(classical_reg))
 
 
-def AND(classical_reg1, classical_reg2):
+def AND(classical_reg1: MemoryReferenceDesignator,
+        classical_reg2: Union[MemoryReferenceDesignator, int]) -> ClassicalAnd:
     """
     Produce an AND instruction.
 
@@ -552,10 +560,12 @@ def AND(classical_reg1, classical_reg2):
     :return: A ClassicalAnd instance.
     """
     left, right = unpack_reg_val_pair(classical_reg1, classical_reg2)
+    assert isinstance(right, (MemoryReference, int))  # placate mypy
     return ClassicalAnd(left, right)
 
 
-def OR(classical_reg1, classical_reg2):
+def OR(classical_reg1: MemoryReferenceDesignator,
+       classical_reg2: MemoryReferenceDesignator) -> ClassicalInclusiveOr:
     """
     Produce an OR instruction.
 
@@ -569,31 +579,36 @@ def OR(classical_reg1, classical_reg2):
     return IOR(classical_reg2, classical_reg1)
 
 
-def IOR(classical_reg1, classical_reg2):
+def IOR(classical_reg1: MemoryReferenceDesignator,
+        classical_reg2: Union[MemoryReferenceDesignator, int]) -> ClassicalInclusiveOr:
     """
     Produce an inclusive OR instruction.
 
     :param classical_reg1: The first classical register, which gets modified.
     :param classical_reg2: The second classical register or immediate value.
-    :return: A ClassicalOr instance.
+    :return: A ClassicalInclusiveOr instance.
     """
     left, right = unpack_reg_val_pair(classical_reg1, classical_reg2)
+    assert isinstance(right, (MemoryReference, int))  # placate mypy
     return ClassicalInclusiveOr(left, right)
 
 
-def XOR(classical_reg1, classical_reg2):
+def XOR(classical_reg1: MemoryReferenceDesignator,
+        classical_reg2: Union[MemoryReferenceDesignator, int]) -> ClassicalExclusiveOr:
     """
     Produce an exclusive OR instruction.
 
     :param classical_reg1: The first classical register, which gets modified.
     :param classical_reg2: The second classical register or immediate value.
-    :return: A ClassicalOr instance.
+    :return: A ClassicalExclusiveOr instance.
     """
     left, right = unpack_reg_val_pair(classical_reg1, classical_reg2)
+    assert isinstance(right, (MemoryReference, int))  # placate mypy
     return ClassicalExclusiveOr(left, right)
 
 
-def MOVE(classical_reg1, classical_reg2):
+def MOVE(classical_reg1: MemoryReferenceDesignator,
+         classical_reg2: Union[MemoryReferenceDesignator, int, float]) -> ClassicalMove:
     """
     Produce a MOVE instruction.
 
@@ -605,7 +620,8 @@ def MOVE(classical_reg1, classical_reg2):
     return ClassicalMove(left, right)
 
 
-def EXCHANGE(classical_reg1, classical_reg2):
+def EXCHANGE(classical_reg1: MemoryReferenceDesignator,
+             classical_reg2: MemoryReferenceDesignator) -> ClassicalExchange:
     """
     Produce an EXCHANGE instruction.
 
@@ -618,7 +634,9 @@ def EXCHANGE(classical_reg1, classical_reg2):
     return ClassicalExchange(left, right)
 
 
-def LOAD(target_reg, region_name, offset_reg):
+def LOAD(target_reg: MemoryReferenceDesignator,
+         region_name: str,
+         offset_reg: MemoryReferenceDesignator) -> ClassicalLoad:
     """
     Produce a LOAD instruction.
 
@@ -630,7 +648,9 @@ def LOAD(target_reg, region_name, offset_reg):
     return ClassicalLoad(unpack_classical_reg(target_reg), region_name, unpack_classical_reg(offset_reg))
 
 
-def STORE(region_name, offset_reg, source):
+def STORE(region_name: str,
+          offset_reg: MemoryReferenceDesignator,
+          source: Union[MemoryReferenceDesignator, int, float]) -> ClassicalStore:
     """
     Produce a STORE instruction.
 
@@ -644,7 +664,8 @@ def STORE(region_name, offset_reg, source):
     return ClassicalStore(region_name, unpack_classical_reg(offset_reg), source)
 
 
-def CONVERT(classical_reg1, classical_reg2):
+def CONVERT(classical_reg1: MemoryReferenceDesignator,
+            classical_reg2: MemoryReferenceDesignator) -> ClassicalConvert:
     """
     Produce a CONVERT instruction.
 
@@ -656,7 +677,8 @@ def CONVERT(classical_reg1, classical_reg2):
                             unpack_classical_reg(classical_reg2))
 
 
-def ADD(classical_reg, right):
+def ADD(classical_reg: MemoryReferenceDesignator,
+        right: Union[MemoryReferenceDesignator, int, float]) -> ClassicalAdd:
     """
     Produce an ADD instruction.
 
@@ -668,7 +690,8 @@ def ADD(classical_reg, right):
     return ClassicalAdd(left, right)
 
 
-def SUB(classical_reg, right):
+def SUB(classical_reg: MemoryReferenceDesignator,
+        right: Union[MemoryReferenceDesignator, int, float]) -> ClassicalSub:
     """
     Produce a SUB instruction.
 
@@ -680,7 +703,8 @@ def SUB(classical_reg, right):
     return ClassicalSub(left, right)
 
 
-def MUL(classical_reg, right):
+def MUL(classical_reg: MemoryReferenceDesignator,
+        right: Union[MemoryReferenceDesignator, int, float]) -> ClassicalMul:
     """
     Produce a MUL instruction.
 
@@ -692,7 +716,8 @@ def MUL(classical_reg, right):
     return ClassicalMul(left, right)
 
 
-def DIV(classical_reg, right):
+def DIV(classical_reg: MemoryReferenceDesignator,
+        right: Union[MemoryReferenceDesignator, int, float]) -> ClassicalDiv:
     """
     Produce an DIV instruction.
 
@@ -704,7 +729,9 @@ def DIV(classical_reg, right):
     return ClassicalDiv(left, right)
 
 
-def EQ(classical_reg1, classical_reg2, classical_reg3):
+def EQ(classical_reg1: MemoryReferenceDesignator,
+       classical_reg2: MemoryReferenceDesignator,
+       classical_reg3: Union[MemoryReferenceDesignator, int, float]) -> ClassicalEqual:
     """
     Produce an EQ instruction.
 
@@ -720,7 +747,9 @@ def EQ(classical_reg1, classical_reg2, classical_reg3):
     return ClassicalEqual(classical_reg1, classical_reg2, classical_reg3)
 
 
-def LT(classical_reg1, classical_reg2, classical_reg3):
+def LT(classical_reg1: MemoryReferenceDesignator,
+       classical_reg2: MemoryReferenceDesignator,
+       classical_reg3: Union[MemoryReferenceDesignator, int, float]) -> ClassicalLessThan:
     """
     Produce an LT instruction.
 
@@ -735,7 +764,9 @@ def LT(classical_reg1, classical_reg2, classical_reg3):
     return ClassicalLessThan(classical_reg1, classical_reg2, classical_reg3)
 
 
-def LE(classical_reg1, classical_reg2, classical_reg3):
+def LE(classical_reg1: MemoryReferenceDesignator,
+       classical_reg2: MemoryReferenceDesignator,
+       classical_reg3: Union[MemoryReferenceDesignator, int, float]) -> ClassicalLessEqual:
     """
     Produce an LE instruction.
 
@@ -750,7 +781,9 @@ def LE(classical_reg1, classical_reg2, classical_reg3):
     return ClassicalLessEqual(classical_reg1, classical_reg2, classical_reg3)
 
 
-def GT(classical_reg1, classical_reg2, classical_reg3):
+def GT(classical_reg1: MemoryReferenceDesignator,
+       classical_reg2: MemoryReferenceDesignator,
+       classical_reg3: Union[MemoryReferenceDesignator, int, float]) -> ClassicalGreaterThan:
     """
     Produce an GT instruction.
 
@@ -765,7 +798,9 @@ def GT(classical_reg1, classical_reg2, classical_reg3):
     return ClassicalGreaterThan(classical_reg1, classical_reg2, classical_reg3)
 
 
-def GE(classical_reg1, classical_reg2, classical_reg3):
+def GE(classical_reg1: MemoryReferenceDesignator,
+       classical_reg2: MemoryReferenceDesignator,
+       classical_reg3: Union[MemoryReferenceDesignator, int, float]) -> ClassicalGreaterEqual:
     """
     Produce an GE instruction.
 
@@ -780,7 +815,7 @@ def GE(classical_reg1, classical_reg2, classical_reg3):
     return ClassicalGreaterEqual(classical_reg1, classical_reg2, classical_reg3)
 
 
-QUANTUM_GATES: Dict[str, Callable[..., Gate]] = {
+QUANTUM_GATES: Mapping[str, Callable[..., Gate]] = {
     'I': I,
     'X': X,
     'Y': Y,
@@ -812,7 +847,7 @@ STANDARD_GATES = QUANTUM_GATES
 Alias for the above dictionary of quantum gates.
 """
 
-STANDARD_INSTRUCTIONS = {
+STANDARD_INSTRUCTIONS: Mapping[str, Union[AbstractInstruction, Callable[..., AbstractInstruction]]] = {
     'WAIT': WAIT,
     'RESET': RESET,
     'NOP': NOP,

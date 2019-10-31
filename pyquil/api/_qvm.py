@@ -140,7 +140,7 @@ programs run on this QVM.
         """
         Return version information for the QVM.
 
-        :return: Dictionary with version information
+        :return: String with version information
         """
         return self._connection._qvm_get_version_info()
 
@@ -448,7 +448,7 @@ To read more about supplying noise to the QVM, see http://pyquil.readthedocs.io/
         """
         Return version information for the QVM.
 
-        :return: Dictionary with version information
+        :return: String with version information
         """
         return self.connection._qvm_get_version_info()
 
