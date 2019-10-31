@@ -101,8 +101,10 @@ def test_tomo_experiment():
 
 def test_tomo_experiment_pre_grouped():
     expts = [
-        [ExperimentSetting(TensorProductState(), sX(0) * sI(1)), ExperimentSetting(TensorProductState(), sI(0) * sX(1))],
-        [ExperimentSetting(TensorProductState(), sZ(0) * sI(1)), ExperimentSetting(TensorProductState(), sI(0) * sZ(1))],
+        [ExperimentSetting(TensorProductState(), sX(0) * sI(1)),
+         ExperimentSetting(TensorProductState(), sI(0) * sX(1))],
+        [ExperimentSetting(TensorProductState(), sZ(0) * sI(1)),
+         ExperimentSetting(TensorProductState(), sI(0) * sZ(1))],
     ]
 
     suite = TomographyExperiment(
@@ -125,8 +127,10 @@ def test_tomo_experiment_empty():
 
 def test_experiment_deser(tmpdir):
     expts = [
-        [ExperimentSetting(TensorProductState(), sX(0) * sI(1)), ExperimentSetting(TensorProductState(), sI(0) * sX(1))],
-        [ExperimentSetting(TensorProductState(), sZ(0) * sI(1)), ExperimentSetting(TensorProductState(), sI(0) * sZ(1))],
+        [ExperimentSetting(TensorProductState(), sX(0) * sI(1)),
+         ExperimentSetting(TensorProductState(), sI(0) * sX(1))],
+        [ExperimentSetting(TensorProductState(), sZ(0) * sI(1)),
+         ExperimentSetting(TensorProductState(), sI(0) * sZ(1))],
     ]
 
     suite = TomographyExperiment(
@@ -164,6 +168,7 @@ DEFGATE XGATE:
     1, 0
 """
 
+
 TRIMMED_PROG = """
 DEFGATE XGATE:
     0, 1
@@ -171,6 +176,7 @@ DEFGATE XGATE:
 
 X 0
 """
+
 
 def test_remove_reset_from_program():
     p = Program(DEFGATE_X)
