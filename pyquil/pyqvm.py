@@ -209,14 +209,17 @@ class PyQVM(QAM):
         self.wf_simulator.reset()
 
         # grab the gate definitions for future use
+        self._extract_defined_gates()
+
+        self.status = 'loaded'
+        return self
+
+    def _extract_defined_gates(self):
         self.defined_gates = dict()
         for dg in self.program.defined_gates:
             if dg.parameters is not None and len(dg.parameters) > 0:
                 raise NotImplementedError("PyQVM does not support parameterized DEFGATEs")
             self.defined_gates[dg.name] = dg.matrix
-
-        self.status = 'loaded'
-        return self
 
     def write_memory(self, *, region_name: str, offset: int = 0, value=None):
         assert self.status in ['loaded', 'done']
@@ -230,7 +233,7 @@ class PyQVM(QAM):
         self._memory_results = {}
         for _ in range(self.program.num_shots):
             self.wf_simulator.reset()
-            self.execute(self.program)
+            self._execute_program()
             for name in self.ram.keys():
                 self._memory_results.setdefault(name, list())
                 self._memory_results[name].append(self.ram[name])
@@ -431,6 +434,15 @@ class PyQVM(QAM):
         # return HALTED (i.e. program_counter is end of program)
         return self.program_counter == len(self.program)
 
+    def _execute_program(self):
+        self.program_counter = 0
+
+        halted = len(self.program) == 0
+        while not halted:
+            halted = self.transition()
+
+        return self
+
     def execute(self, program: Program):
         """
         Execute one outer loop of a program on the QVM.
@@ -441,13 +453,6 @@ class PyQVM(QAM):
 
         :return: ``self`` to support method chaining.
         """
-
-        # initialize program counter
         self.program = program
-        self.program_counter = 0
-
-        halted = len(program) == 0
-        while not halted:
-            halted = self.transition()
-
-        return self
+        self._extract_defined_gates()
+        return self._execute_program()

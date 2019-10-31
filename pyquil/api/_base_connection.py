@@ -347,7 +347,7 @@ class ForestConnection:
         return ram
 
     @_record_call
-    def _qvm_get_version_info(self) -> dict:
+    def _qvm_get_version_info(self) -> str:
         """
         Return version information for the QVM.
 

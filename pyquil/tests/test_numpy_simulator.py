@@ -14,7 +14,7 @@ from pyquil.reference_simulator import ReferenceWavefunctionSimulator
 from pyquil.tests.test_reference_wavefunction_simulator import _generate_random_program, \
     _generate_random_pauli
 from pyquil.quilatom import MemoryReference
-from pyquil.quilbase import Declare
+from pyquil.quilbase import Declare, DefGate
 
 
 def test_H_einsum():
@@ -200,6 +200,45 @@ def test_expectation_vs_ref_qvm(qvm, n_qubits):
         np_wf = NumpyWavefunctionSimulator(n_qubits=n_qubits).do_program(prog)
         np_exp = np_wf.expectation(operator=operator)
         np.testing.assert_allclose(ref_exp, np_exp, atol=1e-15)
+
+
+def test_defgate():
+    # regression test for https://github.com/rigetti/pyquil/issues/1059
+    theta = np.pi / 2
+    U = np.array([
+        [1, 0, 0, 0],
+        [0, 1, 0, 0],
+        [0, 0, np.cos(theta / 2), -1j * np.sin(theta / 2)],
+        [0, 0, -1j * np.sin(theta / 2), np.cos(theta / 2)]
+    ])
+
+    gate_definition = DefGate('U_test', U)
+    U_test = gate_definition.get_constructor()
+
+    p = Program()
+    p += gate_definition
+    p += X(1)
+    p += U_test(1, 0)
+    qam = PyQVM(n_qubits=2, quantum_simulator_type=NumpyWavefunctionSimulator)
+    qam.execute(p)
+    wf1 = qam.wf_simulator.wf
+    should_be = np.zeros((2, 2), dtype=np.complex128)
+    one_over_sqrt2 = 1 / np.sqrt(2)
+    should_be[0, 1] = one_over_sqrt2
+    should_be[1, 1] = -1j * one_over_sqrt2
+    np.testing.assert_allclose(wf1, should_be)
+
+    # Ensure the output of the custom U_test gate matches the standard RX gate. Something like
+    # RX(theta, 0).controlled(1) would be a more faithful reproduction of U_test, but
+    # NumpyWavefunctionSimulator doesn't (yet) support gate modifiers, so just apply the RX gate
+    # unconditionally.
+    p = Program()
+    p += X(1)
+    p += RX(theta, 0)
+    qam = PyQVM(n_qubits=2, quantum_simulator_type=NumpyWavefunctionSimulator)
+    qam.execute(p)
+    wf2 = qam.wf_simulator.wf
+    np.testing.assert_allclose(wf1, wf2)
 
 
 # The following tests are lovingly copied with light modification from the Cirq project
