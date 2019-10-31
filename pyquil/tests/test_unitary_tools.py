@@ -4,7 +4,7 @@ import pytest
 from pyquil import Program
 from pyquil import gate_matrices as mat
 from pyquil.gates import *
-from pyquil.operator_estimation import plusX, minusZ
+from pyquil.experiment import plusX, minusZ
 from pyquil.paulis import sX, sY, sZ
 from pyquil.unitary_tools import qubit_adjacent_lifted_gate, program_unitary, lifted_gate_matrix, \
     lifted_gate, lifted_pauli, lifted_state_operator

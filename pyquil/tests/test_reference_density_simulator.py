@@ -11,8 +11,8 @@ from pyquil.unitary_tools import lifted_gate_matrix
 from pyquil.paulis import sI, sX, sY, sZ
 from pyquil.device import NxDevice
 from pyquil.api import QuantumComputer
-from pyquil.operator_estimation import (measure_observables, ExperimentSetting,
-                                        TomographyExperiment, zeros_state)
+from pyquil.operator_estimation import (measure_observables)
+from pyquil.experiment import ExperimentSetting, TomographyExperiment, zeros_state
 from pyquil.tests.utils import DummyCompiler
 
 

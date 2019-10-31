@@ -18,6 +18,8 @@ Changelog
 
 -   Added a `Makefile` with some simple targets for performing common build
     operations like creating and uploading a package (@karalekas, gh-1032).
+-   Replaced symmetrization in `operator_estimation` with functionality contained
+    within `QuantumComputer.run_symmetrized_readout` (@kylegulshen, gh-1047).
 -   Moved calibration code from `measure_observables` into its own private
     function (@kylegulshen, gh-1049). 
 -   As part of the CI, we now package and push to TestPyPI on every commit, which
@@ -29,14 +31,24 @@ Changelog
 -   The `conftest.py` has been moved to the project root dir (@karalekas, gh-1064).
 -   Using `protoquil` as a positional argument to `qc.compile` has been deprecated,
     and it is now a keyword-only argument (@karalekas, gh-1071).
+-   `PauliSum` objects are now hashable (@ecpeterson, gh-1073).
 -   The code in `device.py` as been reorganized into a new `device` subdirectory
     in a completely backwards-compatible fashion (@karalekas, gh-1066).
+-   `PauliTerm` and `PauliSum` now have `__repr__` methods (@karalekas, gh-1080).
+-   The experiment-schema-related code in `operator_estimation.py` has been moved
+    into a new `experiment` subdirectory (@karalekas, gh-1084).
     
 ### Bugfixes
 
 -   Updated `examples/meyer_penny_game.py` with the correct path to the Meyer Penny
     game exercise in `docs/source/exercises.rst` (@appleby, gh-1045).
 -   Fixed the Slack Workspace invite link in the README (@amyfbrown, gh-1042).
+-   `QPU.reset()` now checks whether `pyquil_config.qpu_url` exists before updating
+    the endpoint so as not to break custom connections (@kylegulshen, gh-1072).
+-   Fixed pretty printing of parameter expressions where π is involved
+    (@notmgsk, gh-1076).
+-   Fixed a regression in `PyQVM.execute` that prevented it from running programs
+    containing user-defined gates (@appleby, gh-1067).
 
 [v2.12](https://github.com/rigetti/pyquil/compare/v2.11.0...v2.12.0) (September 28, 2019)
 ----------------------------------------------------------------------------------------
