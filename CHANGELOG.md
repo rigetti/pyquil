@@ -49,6 +49,7 @@ Changelog
     (@notmgsk, gh-1076).
 -   Fixed a regression in `PyQVM.execute` that prevented it from running programs
     containing user-defined gates (@appleby, gh-1067).
+-   Remove some stale code for pulling quilc version info (@notmgsk, gh-1089).
 
 [v2.12](https://github.com/rigetti/pyquil/compare/v2.11.0...v2.12.0) (September 28, 2019)
 ----------------------------------------------------------------------------------------
