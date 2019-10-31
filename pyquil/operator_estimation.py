@@ -4,12 +4,8 @@ import logging
 import warnings
 from math import pi
 from operator import mul
-<<<<<<< HEAD
-from typing import List, Union, Iterable, Tuple, Optional, Dict, Callable
 from copy import copy
-=======
 from typing import Callable, Dict, List, Union, Iterable, Tuple, Optional
->>>>>>> master
 
 import networkx as nx
 import numpy as np
