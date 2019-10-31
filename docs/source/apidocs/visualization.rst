@@ -18,6 +18,7 @@ Both of these functions take an optional :py:class:`~pyquil.latex.DiagramSetting
         ~DiagramSettings.label_qubit_lines
         ~DiagramSettings.abbreviate_controlled_rotations
         ~DiagramSettings.qubit_line_open_wire_length
+        ~DiagramSettings.right_align_terminal_measurements
 
 .. autofunction:: to_latex
 .. autofunction:: display

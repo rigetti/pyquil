@@ -1,6 +1,10 @@
 from pyquil.quil import Program, Pragma
+from pyquil.quilbase import Declare, Measurement
+from pyquil.quilatom import MemoryReference
 from pyquil.gates import X, Y, RX, CZ, SWAP, MEASURE, CNOT
 from pyquil.latex import to_latex, DiagramSettings
+
+from pyquil.latex.latex_generation import split_on_terminal_measures
 
 import pytest
 
@@ -44,7 +48,6 @@ def test_gate_group_pragma():
 
 def test_fail_on_bad_pragmas():
     "Check that to_latex raises an error when pragmas are imbalanced."
-
     # missing END_LATEX_GATE_GROUP
     with pytest.raises(ValueError):
         _ = to_latex(Program(Pragma("LATEX_GATE_GROUP", [], 'foo'), X(0)))
@@ -61,3 +64,27 @@ def test_fail_on_bad_pragmas():
                              X(1),
                              Pragma("END_LATEX_GATE_GROUP"),
                              Pragma("END_LATEX_GATE_GROUP")))
+
+
+def test_warn_on_pragma_with_trailing_measures():
+    "Check that to_latex warns when measurement alignment conflicts with gate group pragma."
+    with pytest.warns(UserWarning):
+        _ = to_latex(Program(Declare('ro', 'BIT'),
+                             Pragma("LATEX_GATE_GROUP"),
+                             MEASURE(0, MemoryReference('ro')),
+                             Pragma("END_LATEX_GATE_GROUP"),
+                             MEASURE(1, MemoryReference('ro'))))
+
+
+def test_split_measures():
+    """Check that we can split terminal measurements."""
+
+    prog = Program(Declare('ro', 'BIT'),
+                   X(0),
+                   MEASURE(0, MemoryReference('ro')),
+                   X(1),
+                   MEASURE(1, MemoryReference('ro')))
+    meas, instr = split_on_terminal_measures(prog)
+    assert len(meas) == 2
+    assert len(instr) == 3
+    assert all(isinstance(instr, Measurement) for instr in meas)

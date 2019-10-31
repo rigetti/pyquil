@@ -19,7 +19,7 @@ from copy import copy
 from warnings import warn
 
 from pyquil import Program
-from pyquil.quil import Measurement, Gate, Pragma
+from pyquil.quil import Measurement, Gate, Pragma, ResetQubit
 from pyquil.quilatom import format_parameter
 from pyquil.quilbase import AbstractInstruction
 from collections import defaultdict
@@ -90,6 +90,11 @@ class DiagramSettings:
 
     The default of 1 is the natural choice. The main reason for including this option
     is that it may be appropriate for this to be 0 in subdiagrams.
+    """
+
+    right_align_terminal_measurements: bool = True
+    """
+    Align measurement operations which appear at the end of the program.
     """
 
 
@@ -326,6 +331,40 @@ class DiagramState:
         return qubits == self.interval(min(qubits), max(qubits))
 
 
+def split_on_terminal_measures(program: Program):
+    """
+    Split a program into two lists of instructions:
+
+    1. A set of measurement instructions occuring as the final operation on their qubit.
+    2. The rest.
+    """
+    # handle the easy case explicitly (mainly to avoid warning when we can avoid it)
+    if not any(isinstance(instr, Measurement) for instr in program.instructions):
+        return [], program.instructions
+
+    seen_qubits = set()
+
+    measures = []
+    remaining = []
+    in_group = False
+    for instr in reversed(program.instructions):
+        if not in_group and isinstance(instr, Measurement) and instr.qubit not in seen_qubits:
+            measures.insert(0, instr)
+            seen_qubits.add(instr.qubit)
+        else:
+            remaining.insert(0, instr)
+            if isinstance(instr, (Gate, ResetQubit)):
+                seen_qubits |= instr.get_qubits()
+            elif isinstance(instr, Pragma):
+                if instr.command == PRAGMA_END_GROUP:
+                    warn("Alignment of terminal MEASURE operations may"
+                         "conflict with gate group declaration.")
+                    in_group = True
+                elif instr.command == PRAGMA_BEGIN_GROUP:
+                    in_group = False
+    return measures, remaining
+
+
 class DiagramBuilder:
     """
     Constructs DiagramStates from a given circuit and settings.
@@ -336,11 +375,14 @@ class DiagramBuilder:
     def __init__(self, circuit, settings):
         self.circuit = circuit
         self.settings = settings
+        # instructions currently being processed
+        self.working_instructions = None
+        # index into working instructions. we maintain the invariant that
+        # working_instructions[0:index] has been processed, with the diagram
+        # updated accordingly
+        self.index = 0
         # partially constructed diagram
         self.diagram = None
-        # index into circuit. we maintain the invariant that circuit[0:index]
-        # has been processed, with the diagram updated accordingly
-        self.index = 0
 
     def build(self):
         """
@@ -349,16 +391,26 @@ class DiagramBuilder:
         qubits = self.circuit.get_qubits()
         all_qubits = range(min(qubits), max(qubits) + 1) if self.settings.impute_missing_qubits else sorted(qubits)
         self.diagram = DiagramState(all_qubits)
-        self.index = 0
 
+        if self.settings.right_align_terminal_measurements:
+            measures, instructions = split_on_terminal_measures(self.circuit)
+        else:
+            measures, instructions = [], self.circuit.instructions
+
+        # setup the left fringe
         if self.settings.label_qubit_lines:
             for qubit in self.diagram.qubits:
                 self.diagram.append(qubit, TIKZ_LEFT_KET(qubit))
         else:  # initial exposed wires
             self.diagram.extend_lines_to_common_edge(self.diagram.qubits, offset=1)
 
-        while self.index < len(self.circuit):
-            instr = self.circuit[self.index]
+        # setup working state
+        self.working_instructions = instructions
+        self.index = 0
+
+        # main loop
+        while self.index < len(self.working_instructions):
+            instr = self.working_instructions[self.index]
             if isinstance(instr, Pragma) and instr.command == PRAGMA_BEGIN_GROUP:
                 self._build_group()
             elif isinstance(instr, Pragma) and instr.command == PRAGMA_END_GROUP:
@@ -379,6 +431,15 @@ class DiagramBuilder:
             else:
                 self.index += 1
 
+        self.diagram.extend_lines_to_common_edge(self.diagram.qubits)
+
+        # handle terminal measurements
+        self.index = 0
+        self.working_instructions = measures
+
+        for instr in self.working_instructions:
+            self._build_measure()
+
         self.diagram.extend_lines_to_common_edge(self.diagram.qubits,
                                                  offset=max(self.settings.qubit_line_open_wire_length, 0))
         return self.diagram
@@ -389,19 +450,20 @@ class DiagramBuilder:
 
         Advances the index beyond the ending pragma.
         """
-        instr = self.circuit[self.index]
+        instr = self.working_instructions[self.index]
         if len(instr.args) != 0:
             raise ValueError("PRAGMA {} expected a freeform string, or nothing at all.".format(PRAGMA_BEGIN_GROUP))
         start = self.index + 1
         # walk instructions until the group end
-        for j in range(start, len(self.circuit)):
-            if isinstance(self.circuit[j], Pragma) and self.circuit[j].command == PRAGMA_END_GROUP:
+        for j in range(start, len(self.working_instructions)):
+            if isinstance(self.working_instructions[j], Pragma) and self.working_instructions[j].command == PRAGMA_END_GROUP:
                 # recursively build the diagram for this block
                 # we do not want labels here!
                 block_settings = replace(self.settings,
                                          label_qubit_lines=False,
                                          qubit_line_open_wire_length=0)
-                block = DiagramBuilder(self.circuit[start:j], block_settings).build()
+                subcircuit = Program(self.working_instructions[start:j])
+                block = DiagramBuilder(subcircuit, block_settings).build()
                 block_name = instr.freeform_string if instr.freeform_string else ""
                 self.diagram.append_diagram(block, group=block_name)
                 # advance to the instruction following this one
@@ -416,7 +478,7 @@ class DiagramBuilder:
 
         Advances the index by one.
         """
-        instr = self.circuit[self.index]
+        instr = self.working_instructions[self.index]
         self.diagram.append(instr.qubit.index, TIKZ_MEASURE())
         self.index += 1
 
@@ -426,7 +488,7 @@ class DiagramBuilder:
 
         Advances the index by one.
         """
-        instr = self.circuit[self.index]
+        instr = self.working_instructions[self.index]
         source, target = qubit_indices(instr)
         displaced = self.diagram.interval(min(source, target), max(source, target))
         self.diagram.extend_lines_to_common_edge(displaced)
@@ -443,10 +505,11 @@ class DiagramBuilder:
 
         Advances the index by one.
         """
-        instr = self.circuit[self.index]
+        instr = self.working_instructions[self.index]
         qubits = qubit_indices(instr)
         dagger = sum(m == 'DAGGER' for m in instr.modifiers) % 2 == 1
-        self.diagram.append(qubits[0], TIKZ_GATE(instr.name, params=instr.params, dagger=dagger, settings=self.settings))
+        self.diagram.append(qubits[0], TIKZ_GATE(instr.name, params=instr.params,
+                                                 dagger=dagger, settings=self.settings))
         self.index += 1
 
     def _build_generic_unitary(self):
@@ -455,7 +518,7 @@ class DiagramBuilder:
 
         Advances the index by one.
         """
-        instr = self.circuit[self.index]
+        instr = self.working_instructions[self.index]
         qubits = qubit_indices(instr)
         dagger = sum(m == 'DAGGER' for m in instr.modifiers) % 2 == 1
         controls = sum(m == 'CONTROLLED' for m in instr.modifiers)
