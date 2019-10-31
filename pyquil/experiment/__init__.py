@@ -24,13 +24,14 @@ import logging
 import warnings
 from json import JSONEncoder
 from enum import IntEnum
-from typing import List, Union
+from typing import List, Union, Optional
 
 from pyquil import Program
 from pyquil.experiment._result import ExperimentResult
 from pyquil.experiment._setting import (_OneQState, _pauli_to_product_state, ExperimentSetting,
                                         SIC0, SIC1, SIC2, SIC3, TensorProductState, minusX, minusY,
                                         minusZ, plusX, plusY, plusZ, zeros_state)
+from pyquil.quilbase import Reset
 
 log = logging.getLogger(__name__)
 
@@ -57,7 +58,7 @@ def _abbrev_program(program: Program, max_len=10):
         program_lines = (program_lines[:first_n] + [f'... {excluded} instrs not shown ...']
                          + program_lines[-last_n:])
 
-    return '; '.join(program_lines)
+    return '   ' + '\n   '.join(program_lines)
 
 
 class TomographyExperiment:
@@ -85,12 +86,37 @@ class TomographyExperiment:
     This class will not group settings for you. Please see :py:func:`group_experiments` for
     a function that will automatically process a TomographyExperiment to group Experiments sharing
     a TPB.
+
+    :ivar settings: The collection of ExperimentSetting objects that define this experiment.
+    :ivar program: The main program body of this experiment. Also determines the ``shots``
+        and ``reset`` instance variables. The ``shots`` instance variable is the number of
+        shots to take per ExperimentSetting. The ``reset`` instance variable is whether to
+        actively reset qubits instead of waiting several times the coherence length for qubits
+        to decay to ``|0>`` naturally. Setting this to True is much faster but there is a ~1%
+        error per qubit in the reset operation. Thermal noise from "traditional" reset is not
+        routinely characterized but is of the same order.
+    :ivar symmetrization: the level of readout symmetrization to perform for the estimation
+        and optional calibration of each observable. The following integer levels, encapsulated in
+        the ``SymmetrizationLevel`` integer enum, are currently supported:
+
+        * -1 -- exhaustive symmetrization uses every possible combination of flips
+        * 0 -- no symmetrization
+        * 1 -- symmetrization using an orthogonal array (OA) with strength 1
+        * 2 -- symmetrization using an orthogonal array (OA) with strength 2
+        * 3 -- symmetrization using an orthogonal array (OA) with strength 3
+
+        Note that (default) exhaustive symmetrization requires a number of QPU calls exponential in
+        the number of qubits in the union of the support of the observables in any group of settings
+        in ``tomo_experiment``; the number of shots may need to be increased to accommodate this.
+        see :func:`run_symmetrized_readout` in api._quantum_computer for more information.
     """
 
     def __init__(self,
                  settings: Union[List[ExperimentSetting], List[List[ExperimentSetting]]],
                  program: Program,
-                 qubits: List[int] = None):
+                 qubits: Optional[List[int]] = None,
+                 *,
+                 symmetrization: int = SymmetrizationLevel.EXHAUSTIVE):
         if len(settings) == 0:
             settings = []
         else:
@@ -104,6 +130,15 @@ class TomographyExperiment:
             warnings.warn("The 'qubits' parameter has been deprecated and will be removed"
                           "in a future release of pyquil")
         self.qubits = qubits
+        self.symmetrization = SymmetrizationLevel(symmetrization)
+        self.shots = self.program.num_shots
+
+        if 'RESET' in self.program.out():
+            self.reset = True
+            # trim the RESET from the program because in measure_observables it is re-added
+            self.program = Program([inst for inst in self.program if not isinstance(inst, Reset)])
+        else:
+            self.reset = False
 
     def __len__(self):
         return len(self._settings)
@@ -166,13 +201,20 @@ class TomographyExperiment:
             first_n = abbrev_after // 2
             last_n = abbrev_after - first_n
             excluded = len(setting_strs) - abbrev_after
-            setting_strs = (setting_strs[:first_n] + [f'... {excluded} not shown ...',
-                                                      '... use e.settings_string() for all ...']
+            setting_strs = (setting_strs[:first_n] + [f'... {excluded} settings not shown ...']
                             + setting_strs[-last_n:])
-        return '\n'.join(setting_strs)
+        return '   ' + '\n   '.join(setting_strs)
 
-    def __str__(self):
-        return _abbrev_program(self.program) + '\n' + self.settings_string(abbrev_after=20)
+    def __repr__(self):
+        string = f'shots: {self.shots}\n'
+        if self.reset:
+            string += f'active reset: enabled\n'
+        else:
+            string += f'active reset: disabled\n'
+        string += f'symmetrization: {self.symmetrization} ({self.symmetrization.name.lower()})\n'
+        string += f'program:\n{_abbrev_program(self.program)}\n'
+        string += f'settings:\n{self.settings_string(abbrev_after=20)}'
+        return string
 
     def serializable(self):
         return {

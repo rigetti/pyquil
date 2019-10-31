@@ -12,6 +12,16 @@ from pyquil.gates import X, Y
 from pyquil.paulis import sI, sX, sY, sZ
 
 
+EXPERIMENT_REPR = """
+shots: 1
+active reset: disabled
+symmetrization: -1 (exhaustive)
+program:
+   X 0
+   Y 1
+"""
+
+
 def _generate_random_states(n_qubits, n_terms):
     oneq_states = [SIC0, SIC1, SIC2, SIC3, plusX, minusX, plusY, minusY, plusZ, minusZ]
     all_s_inds = np.random.randint(len(oneq_states), size=(n_terms, n_qubits))
@@ -84,8 +94,8 @@ def test_tomo_experiment():
         assert len(e2) == 1
         e2 = e2[0]
         assert e1 == e2
-    prog_str = str(suite).splitlines()[0]
-    assert prog_str == 'X 0; Y 1'
+    prog_str = str(suite).splitlines()[3:5]
+    assert prog_str == EXPERIMENT_REPR.splitlines()[4:6]
 
 
 def test_tomo_experiment_pre_grouped():
@@ -102,8 +112,8 @@ def test_tomo_experiment_pre_grouped():
     for es1, es2 in zip(expts, suite):
         for e1, e2 in zip(es1, es2):
             assert e1 == e2
-    prog_str = str(suite).splitlines()[0]
-    assert prog_str == 'X 0; Y 1'
+    prog_str = str(suite).splitlines()[3:5]
+    assert prog_str == EXPERIMENT_REPR.splitlines()[4:6]
 
 
 def test_tomo_experiment_empty():
