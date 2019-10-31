@@ -80,7 +80,7 @@ setup(
         'immutables==0.6',
     ],
     extras_require={
-        'display': ["ipython"]
+        'latex': ["ipython"]
     },
     keywords='quantum quil programming hybrid',
     python_requires='>=3.6',
