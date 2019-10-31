@@ -221,6 +221,9 @@ class TomographyExperiment:
             'type': 'TomographyExperiment',
             'settings': self._settings,
             'program': self.program.out(),
+            'symmetrization': self.symmetrization,
+            'shots': self.shots,
+            'reset': self.reset
         }
 
     def __eq__(self, other):
@@ -241,7 +244,8 @@ class OperatorEncoder(JSONEncoder):
 
 
 def to_json(fn, obj):
-    """Convenience method to save pyquil.operator_estimation objects as a JSON file.
+    """
+    Convenience method to save pyquil.experiment objects as a JSON file.
 
     See :py:func:`read_json`.
     """
@@ -252,14 +256,21 @@ def to_json(fn, obj):
 
 def _operator_object_hook(obj):
     if 'type' in obj and obj['type'] == 'TomographyExperiment':
-        return TomographyExperiment([[ExperimentSetting.from_str(s) for s in settings]
-                                     for settings in obj['settings']],
-                                    program=Program(obj['program']))
+        # I bet this doesn't work for grouped experiment settings
+        settings = [[ExperimentSetting.from_str(s) for s in stt] for stt in obj['settings']]
+        p = Program(obj['program'])
+        p.wrap_in_numshots_loop(obj['shots'])
+        ex = TomographyExperiment(settings=settings,
+                                  program=p,
+                                  symmetrization=obj['symmetrization'])
+        ex.reset = obj['reset']
+        return ex
     return obj
 
 
 def read_json(fn):
-    """Convenience method to read pyquil.operator_estimation objects from a JSON file.
+    """
+    Convenience method to read pyquil.experiment objects from a JSON file.
 
     See :py:func:`to_json`.
     """
