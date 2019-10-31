@@ -35,6 +35,8 @@ Changelog
 -   `PauliTerm` and `PauliSum` now have `__repr__` methods (@karalekas, gh-1080).
 -   The experiment-schema-related code in `operator_estimation.py` has been moved
     into a new `experiment` subdirectory (@karalekas, gh-1084).
+-   The keyword arguments to `measure_observables` are now captured as part of
+    the `TomographyExperiment` class (@karalekas, gh-1090).
     
 ### Bugfixes
 
