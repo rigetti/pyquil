@@ -5,10 +5,11 @@ import numpy as np
 import pytest
 
 from pyquil import Program
-from pyquil.experiment import (ExperimentSetting, SIC0, SIC1, SIC2, SIC3, TensorProductState,
-                               TomographyExperiment, plusX, minusX, plusY, minusY, plusZ, minusZ,
-                               read_json, to_json, zeros_state, ExperimentResult)
-from pyquil.gates import X, Y
+from pyquil.experiment import (_remove_reset_from_program, ExperimentSetting, SIC0, SIC1, SIC2,
+                               SIC3, TensorProductState, TomographyExperiment, plusX, minusX,
+                               plusY, minusY, plusZ, minusZ, read_json, to_json, zeros_state,
+                               ExperimentResult)
+from pyquil.gates import RESET, X, Y
 from pyquil.paulis import sI, sX, sY, sZ
 
 
@@ -155,3 +156,25 @@ def test_experiment_result():
         total_counts=100,
     )
     assert str(er) == 'X0_0→(1+0j)*Z0: 0.9 +- 0.05'
+
+
+DEFGATE_X = """
+DEFGATE XGATE:
+    0, 1
+    1, 0
+"""
+
+TRIMMED_PROG = """
+DEFGATE XGATE:
+    0, 1
+    1, 0
+
+X 0
+"""
+
+def test_remove_reset_from_program():
+    p = Program(DEFGATE_X)
+    p += RESET()
+    p += X(0)
+    new_p = _remove_reset_from_program(p)
+    assert '\n' + new_p.out() == TRIMMED_PROG

@@ -31,7 +31,8 @@ from pyquil.experiment._result import ExperimentResult
 from pyquil.experiment._setting import (_OneQState, _pauli_to_product_state, ExperimentSetting,
                                         SIC0, SIC1, SIC2, SIC3, TensorProductState, minusX, minusY,
                                         minusZ, plusX, plusY, plusZ, zeros_state)
-from pyquil.quilbase import Reset
+from pyquil.quilbase import DefPermutationGate, Reset
+
 
 log = logging.getLogger(__name__)
 
@@ -59,6 +60,25 @@ def _abbrev_program(program: Program, max_len=10):
                          + program_lines[-last_n:])
 
     return '   ' + '\n   '.join(program_lines)
+
+
+def _remove_reset_from_program(program: Program) -> Program:
+    """
+    Trim the RESET from a program because in measure_observables it is re-added.
+
+    :param program: Program to remove RESET(s) from.
+    :return: Trimmed Program.
+    """
+    definitions = [gate for gate in program.defined_gates]
+
+    p = Program([inst for inst in program if not isinstance(inst, Reset)])
+
+    for definition in definitions:
+        if isinstance(definition, DefPermutationGate):
+            p.inst(DefPermutationGate(definition.name, list(definition.permutation)))
+        else:
+            p.defgate(definition.name, definition.matrix, definition.parameters)
+    return p
 
 
 class TomographyExperiment:
@@ -135,8 +155,7 @@ class TomographyExperiment:
 
         if 'RESET' in self.program.out():
             self.reset = True
-            # trim the RESET from the program because in measure_observables it is re-added
-            self.program = Program([inst for inst in self.program if not isinstance(inst, Reset)])
+            self.program = _remove_reset_from_program(self.program)
         else:
             self.reset = False
 
