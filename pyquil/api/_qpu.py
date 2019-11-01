@@ -19,11 +19,12 @@ import warnings
 from typing import Dict, List, Optional, Tuple, Union
 
 import numpy as np
-from rpcq import Client
+from rpcq import Client, ClientAuthConfig
 from rpcq.messages import QPURequest, ParameterAref
 
 from pyquil import Program
 from pyquil.parser import parse
+from pyquil.api._auth import AuthClient
 from pyquil.api._config import PyquilConfig
 from pyquil.api._qam import QAM
 from pyquil.api._error_reporting import _record_call
@@ -71,7 +72,7 @@ def _extract_bitstrings(ro_sources: List[Optional[Tuple[int, int]]],
 
 class QPU(QAM):
     @_record_call
-    def __init__(self, endpoint: str, user: str = "pyquil-user", priority: int = 1) -> None:
+    def __init__(self, endpoint: Optional[str] = None, user: str = "pyquil-user", priority: int = 1) -> None:
         """
         A connection to the QPU.
 
@@ -80,25 +81,48 @@ class QPU(QAM):
         :param priority: The priority with which to insert jobs into the QPU queue. Lower
                          integers correspond to higher priority.
         """
-
-        if endpoint is None:
-            raise RuntimeError("""It looks like you've tried to run a program against a QPU but do
- not currently have a reservation on one. To reserve time on Rigetti
- QPUs, use the command line interface, qcs, which comes pre-installed
- in your QMI. From within your QMI, type:
-
-    qcs reserve --lattice <lattice-name>
-
-For more information, please see the docs at
-https://www.rigetti.com/qcs/docs/reservations or reach out to Rigetti
-support at support@rigetti.com.""")
-
-        self.client = Client(endpoint)
+        
+        self.endpoint = endpoint
         self.user = user
         self._last_results: Dict[str, np.ndarray] = {}
         self.priority = priority
 
         super().__init__()
+
+    def build_client(self):
+        config = PyquilConfig()
+        endpoint = _qpu_compiler_endpoint = next((url for url in [self.endpoint, config.qpu_url] if url is not None), None)
+        endpoint = self.endpoint or config.qpu_url
+        if endpoint is None:
+            raise RuntimeError("""It looks like you've tried to run a program against a QPU but do
+                not currently have a reservation on one. To reserve time on Rigetti
+                QPUs, use the command line interface, qcs, which comes pre-installed
+                in your QMI. From within your QMI, type:
+
+                    qcs reserve --lattice <lattice-name>
+
+                For more information, please see the docs at
+                https://www.rigetti.com/qcs/docs/reservations or reach out to Rigetti
+                support at support@rigetti.com.""")
+        if self.engagement is not None:
+            auth_config = ClientAuthConfig(
+                client_public_key=self.engagement.client_public_key,
+                client_secret_key=self.engagement.client_secret_key,
+                server_public_key=self.engagement.server_public_key
+            )
+            return Client(endpoint, auth_config=auth_config)
+        else:
+            return Client(endpoint)
+
+    @property
+    def client(self):
+        if not (self.engagement and self.engagement.is_valid() and self._client):
+            self._client = self.build_client()
+        return self._client
+
+    @property
+    def engagement(self):
+        return PyquilConfig().engagement
 
     def get_version_info(self) -> dict:
         """
@@ -155,9 +179,12 @@ support at support@rigetti.com.""")
         request = QPURequest(program=self._executable.program,
                              patch_values=self._build_patch_values(),
                              id=str(uuid.uuid4()))
+
+        # TODO: remove. quick n dirty benchmarking of executable sizes
+        import sys
+        print(sys.getsizeof(request))
         job_priority = run_priority if run_priority is not None else self.priority
-        job_id = self.client.call('execute_qpu_request', request=request, user=self.user,
-                                  priority=job_priority)
+        job_id = self.client.call('execute_qpu_request', request=request)
         results = self._get_buffers(job_id)
         ro_sources = self._executable.ro_sources
 
@@ -305,14 +332,4 @@ support at support@rigetti.com.""")
         """
         super().reset()
 
-        def refresh_client(client: Client, new_endpoint: str) -> Client:
-            timeout = client.timeout
-            client.close()
-            return Client(new_endpoint, timeout)
-
-        pyquil_config = PyquilConfig()
-        if pyquil_config.qpu_url is not None:
-            endpoint = pyquil_config.qpu_url
-        else:
-            endpoint = self.client.endpoint
-        self.client = refresh_client(self.client, endpoint)
+        self._client = None

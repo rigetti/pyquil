@@ -169,8 +169,8 @@ class QPUCompiler(AbstractCompiler):
     @_record_call
     def __init__(self,
                  quilc_endpoint: str,
-                 qpu_compiler_endpoint: Optional[str],
-                 device: AbstractDevice,
+                 qpu_compiler_endpoint: Optional[str] = None,
+                 device: AbstractDevice = None,
                  timeout: int = 10,
                  name: Optional[str] = None) -> None:
         """
@@ -183,6 +183,8 @@ class QPUCompiler(AbstractCompiler):
         :param name: Name of the lattice being targeted
         """
 
+        self.timeout = timeout
+
         if not quilc_endpoint.startswith('tcp://'):
             raise ValueError(f"PyQuil versions >= 2.4 can only talk to quilc "
                              f"versions >= 1.4 over network RPCQ.  You've supplied the "
@@ -193,14 +195,10 @@ class QPUCompiler(AbstractCompiler):
                              f"compiler_server_address line from your .forest_config file.")
 
         self.quilc_client = Client(quilc_endpoint, timeout=timeout)
-        if qpu_compiler_endpoint is not None:
-            self.qpu_compiler_client = Client(qpu_compiler_endpoint, timeout=timeout)
-        else:
-            self.qpu_compiler_client = None
-            warnings.warn("It looks like you are initializing a QPUCompiler object without a "
-                          "qpu_compiler_address. If you didn't do this manually, then "
-                          "you probably don't have a qpu_compiler_address entry in your "
-                          "~/.forest_config file, meaning that you are not engaged to the QPU.")
+
+        self.qpu_compiler_endpoint = qpu_compiler_endpoint
+        self._qpu_compiler_client = None
+
         self.target_device = TargetDevice(isa=device.get_isa().to_dict(),
                                           specs=None)
         self.name = name
@@ -211,6 +209,21 @@ class QPUCompiler(AbstractCompiler):
             warnings.warn(f'{e}. Compilation using quilc will not be available.')
         except QPUCompilerNotRunning as e:
             warnings.warn(f'{e}. Compilation using the QPU compiler will not be available.')
+
+    @property
+    def qpu_compiler_client(self):
+        if not self._qpu_compiler_client:
+            config = PyquilConfig()
+            print([self.qpu_compiler_endpoint, config.qpu_compiler_url])
+            _qpu_compiler_endpoint = next((url for url in [self.qpu_compiler_endpoint, config.qpu_compiler_url] if url is not None), None)
+            if _qpu_compiler_endpoint is not None:
+                self._qpu_compiler_client = Client(_qpu_compiler_endpoint, timeout=self.timeout)
+            else:
+                self._qpu_compiler_client = None
+                warnings.warn("It looks like you are trying to compile without a "
+                                "qpu_compiler_address. If you didn't do this manually, this "
+                                "could mean you're not currently engaged to the QPU.")
+        return self._qpu_compiler_client
 
     def connect(self):
         self._connect_quilc()
@@ -263,11 +276,6 @@ class QPUCompiler(AbstractCompiler):
                           "Program that hasn't been compiled via `quil_to_native_quil`. This is "
                           "ok if you've hand-compiled your program to our native gateset, "
                           "but be careful!")
-        if self.name is not None:
-            targeted_lattice = self.qpu_compiler_client.call('get_config_info')['lattice_name']
-            if targeted_lattice and targeted_lattice != self.name:
-                warnings.warn(f'You requested compilation for device {self.name}, '
-                              f'but you are engaged on device {targeted_lattice}.')
 
         arithmetic_request = RewriteArithmeticRequest(quil=nq_program.out())
         arithmetic_response = self.quilc_client.call('rewrite_arithmetic', arithmetic_request)
@@ -354,5 +362,4 @@ class QVMCompiler(AbstractCompiler):
         """
         Reset the state of the QPUCompiler Client connections.
         """
-        pyquil_config = PyquilConfig()
-        self.client = refresh_client(self.client, pyquil_config.quilc_url)
+        self._qpu_compiler_client = None

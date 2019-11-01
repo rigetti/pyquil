@@ -48,7 +48,8 @@ ExecutableDesignator = Union[BinaryExecutableResponse, PyQuilExecutableResponse]
 
 
 class QuantumComputer:
-    def __init__(self, *,
+    def __init__(self,
+                 *,
                  name: str,
                  qam: QAM,
                  device: AbstractDevice,
@@ -125,7 +126,9 @@ class QuantumComputer:
             for region_name, values_list in memory_map.items():
                 for offset, value in enumerate(values_list):
                     # TODO gh-658: have write_memory take a list rather than value + offset
-                    self.qam.write_memory(region_name=region_name, offset=offset, value=value)
+                    self.qam.write_memory(region_name=region_name,
+                                          offset=offset,
+                                          value=value)
         return self.qam.run() \
             .wait() \
             .read_memory(region_name='ro')
@@ -298,32 +301,38 @@ class QuantumComputer:
         :return: A numpy array of shape (trials, len(ro-register)) that contains 0s and 1s.
         """
         if not isinstance(symm_type, int):
-            raise ValueError("Symmetrization options are indicated by an int. See "
-                             "the docstrings for more information.")
+            raise ValueError(
+                "Symmetrization options are indicated by an int. See "
+                "the docstrings for more information.")
 
         if meas_qubits is None:
             meas_qubits = list(program.get_qubits())
 
         # It is desirable to have hundreds or thousands of trials more than the minimum
-        trials = _check_min_num_trials_for_symmetrized_readout(len(meas_qubits), trials, symm_type)
+        trials = _check_min_num_trials_for_symmetrized_readout(
+            len(meas_qubits), trials, symm_type)
 
-        sym_programs, flip_arrays = _symmetrization(program, meas_qubits, symm_type)
+        sym_programs, flip_arrays = _symmetrization(program, meas_qubits,
+                                                    symm_type)
 
         # Floor division so e.g. 9 // 8 = 1 and 17 // 8 = 2.
         num_shots_per_prog = trials // len(sym_programs)
 
         if num_shots_per_prog * len(sym_programs) < trials:
-            warnings.warn(f"The number of trials was modified from {trials} to "
-                          f"{num_shots_per_prog * len(sym_programs)}. To be consistent with the "
-                          f"number of trials required by the type of readout symmetrization "
-                          f"chosen.")
+            warnings.warn(
+                f"The number of trials was modified from {trials} to "
+                f"{num_shots_per_prog * len(sym_programs)}. To be consistent with the "
+                f"number of trials required by the type of readout symmetrization "
+                f"chosen.")
 
-        results = _measure_bitstrings(self, sym_programs, meas_qubits, num_shots_per_prog)
+        results = _measure_bitstrings(self, sym_programs, meas_qubits,
+                                      num_shots_per_prog)
 
         return _consolidate_symmetrization_outputs(results, flip_arrays)
 
     @_record_call
-    def run_and_measure(self, program: Program, trials: int) -> Dict[int, np.ndarray]:
+    def run_and_measure(self, program: Program,
+                        trials: int) -> Dict[int, np.ndarray]:
         """
         Run the provided state preparation program and measure all qubits.
 
@@ -409,11 +418,13 @@ class QuantumComputer:
             self.reset()
 
         flags = [to_native_gates, optimize]
-        assert all(flags) or all(not f for f in flags), "Must turn quilc all on or all off"
+        assert all(flags) or all(
+            not f for f in flags), "Must turn quilc all on or all off"
         quilc = all(flags)
 
         if quilc:
-            nq_program = self.compiler.quil_to_native_quil(program, protoquil=protoquil)
+            nq_program = self.compiler.quil_to_native_quil(program,
+                                                           protoquil=protoquil)
         else:
             nq_program = program
         binary = self.compiler.native_quil_to_executable(nq_program)
@@ -470,14 +481,18 @@ def _parse_name(name: str, as_qvm: bool, noisy: bool) -> Tuple[str, str, bool]:
     See :py:func:`get_qc` for examples of valid names + flags.
     """
     parts = name.split('-')
-    if len(parts) >= 2 and parts[-2] == 'noisy' and parts[-1] in ['qvm', 'pyqvm']:
+    if len(parts) >= 2 and parts[-2] == 'noisy' and parts[-1] in [
+            'qvm', 'pyqvm'
+    ]:
         if as_qvm is not None and (not as_qvm):
-            raise ValueError("The provided qc name indicates you are getting a noisy QVM, "
-                             "but you have specified `as_qvm=False`")
+            raise ValueError(
+                "The provided qc name indicates you are getting a noisy QVM, "
+                "but you have specified `as_qvm=False`")
 
         if noisy is not None and (not noisy):
-            raise ValueError("The provided qc name indicates you are getting a noisy QVM, "
-                             "but you have specified `noisy=False`")
+            raise ValueError(
+                "The provided qc name indicates you are getting a noisy QVM, "
+                "but you have specified `noisy=False`")
 
         qvm_type = parts[-1]
         noisy = True
@@ -486,8 +501,9 @@ def _parse_name(name: str, as_qvm: bool, noisy: bool) -> Tuple[str, str, bool]:
 
     if len(parts) >= 1 and parts[-1] in ['qvm', 'pyqvm']:
         if as_qvm is not None and (not as_qvm):
-            raise ValueError("The provided qc name indicates you are getting a QVM, "
-                             "but you have specified `as_qvm=False`")
+            raise ValueError(
+                "The provided qc name indicates you are getting a QVM, "
+                "but you have specified `as_qvm=False`")
         qvm_type = parts[-1]
         if noisy is None:
             noisy = False
@@ -526,10 +542,14 @@ def _canonicalize_name(prefix, qvm_type, noisy):
     return name
 
 
-def _get_qvm_or_pyqvm(qvm_type, connection, noise_model=None, device=None,
+def _get_qvm_or_pyqvm(qvm_type,
+                      connection,
+                      noise_model=None,
+                      device=None,
                       requires_executable=False):
     if qvm_type == 'qvm':
-        return QVM(connection=connection, noise_model=noise_model,
+        return QVM(connection=connection,
+                   noise_model=noise_model,
                    requires_executable=requires_executable)
     elif qvm_type == 'pyqvm':
         return PyQVM(n_qubits=device.qubit_topology().number_of_nodes())
@@ -537,7 +557,10 @@ def _get_qvm_or_pyqvm(qvm_type, connection, noise_model=None, device=None,
     raise ValueError("Unknown qvm type {}".format(qvm_type))
 
 
-def _get_qvm_qc(name: str, qvm_type: str, device: AbstractDevice, noise_model: NoiseModel = None,
+def _get_qvm_qc(name: str,
+                qvm_type: str,
+                device: AbstractDevice,
+                noise_model: NoiseModel = None,
                 requires_executable: bool = False,
                 connection: ForestConnection = None) -> QuantumComputer:
     """Construct a QuantumComputer backed by a QVM.
@@ -558,20 +581,20 @@ def _get_qvm_qc(name: str, qvm_type: str, device: AbstractDevice, noise_model: N
     if connection is None:
         connection = ForestConnection()
 
-    return QuantumComputer(name=name,
-                           qam=_get_qvm_or_pyqvm(
-                               qvm_type=qvm_type,
-                               connection=connection,
-                               noise_model=noise_model,
-                               device=device,
-                               requires_executable=requires_executable),
-                           device=device,
-                           compiler=QVMCompiler(
-                               device=device,
-                               endpoint=connection.compiler_endpoint))
+    return QuantumComputer(
+        name=name,
+        qam=_get_qvm_or_pyqvm(qvm_type=qvm_type,
+                              connection=connection,
+                              noise_model=noise_model,
+                              device=device,
+                              requires_executable=requires_executable),
+        device=device,
+        compiler=QVMCompiler(device=device,
+                             endpoint=connection.compiler_endpoint))
 
 
-def _get_qvm_with_topology(name: str, topology: nx.Graph,
+def _get_qvm_with_topology(name: str,
+                           topology: nx.Graph,
                            noisy: bool = False,
                            requires_executable: bool = True,
                            connection: ForestConnection = None,
@@ -595,14 +618,20 @@ def _get_qvm_with_topology(name: str, topology: nx.Graph,
     # Note to developers: consider making this function public and advertising it.
     device = NxDevice(topology=topology)
     if noisy:
-        noise_model = decoherence_noise_with_asymmetric_ro(gates=gates_in_isa(device.get_isa()))
+        noise_model = decoherence_noise_with_asymmetric_ro(
+            gates=gates_in_isa(device.get_isa()))
     else:
         noise_model = None
-    return _get_qvm_qc(name=name, qvm_type=qvm_type, connection=connection, device=device,
-                       noise_model=noise_model, requires_executable=requires_executable)
+    return _get_qvm_qc(name=name,
+                       qvm_type=qvm_type,
+                       connection=connection,
+                       device=device,
+                       noise_model=noise_model,
+                       requires_executable=requires_executable)
 
 
-def _get_9q_square_qvm(name: str, noisy: bool,
+def _get_9q_square_qvm(name: str,
+                       noisy: bool,
                        connection: ForestConnection = None,
                        qvm_type: str = 'qvm') -> QuantumComputer:
     """
@@ -618,14 +647,16 @@ def _get_9q_square_qvm(name: str, noisy: bool,
     :return: A pre-configured QuantumComputer
     """
     topology = nx.convert_node_labels_to_integers(nx.grid_2d_graph(3, 3))
-    return _get_qvm_with_topology(name=name, connection=connection,
+    return _get_qvm_with_topology(name=name,
+                                  connection=connection,
                                   topology=topology,
                                   noisy=noisy,
                                   requires_executable=True,
                                   qvm_type=qvm_type)
 
 
-def _get_unrestricted_qvm(name: str, noisy: bool,
+def _get_unrestricted_qvm(name: str,
+                          noisy: bool,
                           n_qubits: int = 34,
                           connection: ForestConnection = None,
                           qvm_type: str = 'qvm') -> QuantumComputer:
@@ -642,15 +673,18 @@ def _get_unrestricted_qvm(name: str, noisy: bool,
     :return: A pre-configured QuantumComputer
     """
     topology = nx.complete_graph(n_qubits)
-    return _get_qvm_with_topology(name=name, connection=connection,
+    return _get_qvm_with_topology(name=name,
+                                  connection=connection,
                                   topology=topology,
                                   noisy=noisy,
                                   requires_executable=False,
                                   qvm_type=qvm_type)
 
 
-def _get_qvm_based_on_real_device(name: str, device: Device,
-                                  noisy: bool, connection: ForestConnection = None,
+def _get_qvm_based_on_real_device(name: str,
+                                  device: Device,
+                                  noisy: bool,
+                                  connection: ForestConnection = None,
                                   qvm_type: str = 'qvm'):
     """
     A qvm with a based on a real device.
@@ -669,13 +703,19 @@ def _get_qvm_based_on_real_device(name: str, device: Device,
         noise_model = device.noise_model
     else:
         noise_model = None
-    return _get_qvm_qc(name=name, connection=connection, device=device,
-                       noise_model=noise_model, requires_executable=True,
+    return _get_qvm_qc(name=name,
+                       connection=connection,
+                       device=device,
+                       noise_model=noise_model,
+                       requires_executable=True,
                        qvm_type=qvm_type)
 
 
 @_record_call
-def get_qc(name: str, *, as_qvm: bool = None, noisy: bool = None,
+def get_qc(name: str,
+           *,
+           as_qvm: bool = None,
+           noisy: bool = None,
            connection: ForestConnection = None) -> QuantumComputer:
     """
     Get a quantum computer.
@@ -757,40 +797,54 @@ def get_qc(name: str, *, as_qvm: bool = None, noisy: bool = None,
         n_qubits = int(ma.group(1))
         if qvm_type is None:
             raise ValueError("Please name a valid device or run as a QVM")
-        return _get_unrestricted_qvm(name=name, connection=connection,
-                                     noisy=noisy, n_qubits=n_qubits, qvm_type=qvm_type)
+        return _get_unrestricted_qvm(name=name,
+                                     connection=connection,
+                                     noisy=noisy,
+                                     n_qubits=n_qubits,
+                                     qvm_type=qvm_type)
 
     # 3. Check for "9q-square" qvm
     if prefix == '9q-generic' or prefix == '9q-square':
         if prefix == '9q-generic':
-            warnings.warn("Please prefer '9q-square' instead of '9q-generic'", DeprecationWarning)
+            warnings.warn("Please prefer '9q-square' instead of '9q-generic'",
+                          DeprecationWarning)
 
         if qvm_type is None:
-            raise ValueError("The device '9q-square' is only available as a QVM")
-        return _get_9q_square_qvm(name=name, connection=connection, noisy=noisy, qvm_type=qvm_type)
+            raise ValueError(
+                "The device '9q-square' is only available as a QVM")
+        return _get_9q_square_qvm(name=name,
+                                  connection=connection,
+                                  noisy=noisy,
+                                  qvm_type=qvm_type)
 
     # 4. Not a special case, query the web for information about this device.
     device = get_lattice(prefix)
     if qvm_type is not None:
         # 4.1 QVM based on a real device.
-        return _get_qvm_based_on_real_device(name=name, device=device,
-                                             noisy=noisy, connection=connection, qvm_type=qvm_type)
+        return _get_qvm_based_on_real_device(name=name,
+                                             device=device,
+                                             noisy=noisy,
+                                             connection=connection,
+                                             qvm_type=qvm_type)
     else:
         # 4.2 A real device
         pyquil_config = PyquilConfig()
+        pyquil_config.set_lattice(name=prefix)
         if noisy is not None and noisy:
-            warnings.warn("You have specified `noisy=True`, but you're getting a QPU. This flag "
-                          "is meant for controlling noise models on QVMs.")
-        return QuantumComputer(name=name,
-                               qam=QPU(
-                                   endpoint=pyquil_config.qpu_url,
-                                   user=pyquil_config.user_id),
-                               device=device,
-                               compiler=QPUCompiler(
-                                   quilc_endpoint=pyquil_config.quilc_url,
-                                   qpu_compiler_endpoint=pyquil_config.qpu_compiler_url,
-                                   device=device,
-                                   name=prefix))
+            warnings.warn(
+                "You have specified `noisy=True`, but you're getting a QPU. This flag "
+                "is meant for controlling noise models on QVMs.")
+        return QuantumComputer(
+            name=name,
+            qam=QPU(endpoint=pyquil_config.qpu_url,
+                    user=pyquil_config.user_id,
+                    config=pyquil_config),
+            device=device,
+            compiler=QPUCompiler(
+                quilc_endpoint=pyquil_config.quilc_url,
+                qpu_compiler_endpoint=pyquil_config.qpu_compiler_url,
+                device=device,
+                name=prefix))
 
 
 @contextmanager
@@ -800,8 +854,10 @@ def local_qvm() -> Iterator[Tuple[subprocess.Popen, subprocess.Popen]]:
     .. deprecated:: 2.11
         Use py:func:`local_forest_runtime` instead.
     """
-    warnings.warn(DeprecationWarning("Use of pyquil.api.local_qvm has been deprecated.\n"
-                                     "Please use pyquil.api.local_forest_runtime instead."))
+    warnings.warn(
+        DeprecationWarning(
+            "Use of pyquil.api.local_qvm has been deprecated.\n"
+            "Please use pyquil.api.local_forest_runtime instead."))
     with local_forest_runtime() as (qvm, quilc):
         yield (qvm, quilc)
 
@@ -830,7 +886,8 @@ def local_forest_runtime(
         host: str = '127.0.0.1',
         qvm_port: int = 5000,
         quilc_port: int = 5555,
-        use_protoquil: bool = False) -> Iterator[Tuple[subprocess.Popen, subprocess.Popen]]:
+        use_protoquil: bool = False
+) -> Iterator[Tuple[subprocess.Popen, subprocess.Popen]]:
     """A context manager for local QVM and QUIL compiler.
 
     You must first have installed the `qvm` and `quilc` executables from
@@ -971,10 +1028,12 @@ def _symmetrization(program: Program, meas_qubits: List[int], symm_type: int = 3
         qubits were flipped.
     """
     if symm_type < -1 or symm_type > 3:
-        raise ValueError("symm_type must be one of the following ints [-1, 0, 1, 2, 3].")
+        raise ValueError(
+            "symm_type must be one of the following ints [-1, 0, 1, 2, 3].")
     elif symm_type == -1:
         # exhaustive = all possible binary strings
-        flip_matrix = np.asarray(list(itertools.product([0, 1], repeat=len(meas_qubits))))
+        flip_matrix = np.asarray(
+            list(itertools.product([0, 1], repeat=len(meas_qubits))))
     elif symm_type >= 0:
         flip_matrix = _construct_orthogonal_array(len(meas_qubits), symm_type)
 
@@ -996,7 +1055,8 @@ def _symmetrization(program: Program, meas_qubits: List[int], symm_type: int = 3
 
 
 def _consolidate_symmetrization_outputs(outputs: List[np.ndarray],
-                                        flip_arrays: List[Tuple[bool]]) -> np.ndarray:
+                                        flip_arrays: List[Tuple[bool]]
+                                        ) -> np.ndarray:
     """
     Given bitarray results from a series of symmetrization programs, appropriately flip output
     bits and consolidate results into new bitarrays.
@@ -1021,7 +1081,9 @@ def _consolidate_symmetrization_outputs(outputs: List[np.ndarray],
     return np.vstack(output)
 
 
-def _measure_bitstrings(qc, programs: List[Program], meas_qubits: List[int],
+def _measure_bitstrings(qc,
+                        programs: List[Program],
+                        meas_qubits: List[int],
                         num_shots: int = 600) -> List[np.ndarray]:
     """
     Wrapper for appending measure instructions onto each program, running the program,
@@ -1050,7 +1112,8 @@ def _measure_bitstrings(qc, programs: List[Program], meas_qubits: List[int],
     return results
 
 
-def _construct_orthogonal_array(num_qubits: int, strength: int = 3) -> np.ndarray:
+def _construct_orthogonal_array(num_qubits: int,
+                                strength: int = 3) -> np.ndarray:
     """
     Given a strength and number of qubits this function returns an Orthogonal Array (OA)
     on 'n' or more qubits. Sometimes the size of the returned array is larger than num_qubits;
@@ -1062,7 +1125,8 @@ def _construct_orthogonal_array(num_qubits: int, strength: int = 3) -> np.ndarra
     :return: a numpy array where the rows represent the different experiments
     """
     if strength < 0 or strength > 3:
-        raise ValueError("'strength' must be one of the following ints [0, 1, 2, 3].")
+        raise ValueError(
+            "'strength' must be one of the following ints [0, 1, 2, 3].")
     if strength == 0:
         # trivial flip matrix = an array of zeros
         flip_matrix = np.zeros((1, num_qubits)).astype(int)
@@ -1071,7 +1135,8 @@ def _construct_orthogonal_array(num_qubits: int, strength: int = 3) -> np.ndarra
         # `construct_strength_two_orthogonal_array` docstrings, for more details.
         zero_array = np.zeros((1, num_qubits))
         one_array = np.ones((1, num_qubits))
-        flip_matrix = np.concatenate((zero_array, one_array), axis=0).astype(int)
+        flip_matrix = np.concatenate((zero_array, one_array),
+                                     axis=0).astype(int)
     elif strength == 2:
         flip_matrix = _construct_strength_two_orthogonal_array(num_qubits)
     elif strength == 3:
@@ -1081,7 +1146,7 @@ def _construct_orthogonal_array(num_qubits: int, strength: int = 3) -> np.ndarra
 
 
 def _next_power_of_2(x):
-    return 1 if x == 0 else 2 ** (x - 1).bit_length()
+    return 1 if x == 0 else 2**(x - 1).bit_length()
 
 
 # The code below is directly copied from scipy see https://bit.ly/2RjAHJz, the docstrings have
@@ -1119,7 +1184,7 @@ def hadamard(n, dtype=int):
         lg2 = 0
     else:
         lg2 = int(log(n, 2))
-    if 2 ** lg2 != n:
+    if 2**lg2 != n:
         raise ValueError("n must be an positive integer, and n must be "
                          "a power of 2")
 
@@ -1208,14 +1273,18 @@ def _check_min_num_trials_for_symmetrized_readout(num_qubits: int, trials: int, 
     :return: possibly modified number of trials
     """
     if symm_type < -1 or symm_type > 3:
-        raise ValueError("symm_type must be one of the following ints [-1, 0, 1, 2, 3].")
+        raise ValueError(
+            "symm_type must be one of the following ints [-1, 0, 1, 2, 3].")
 
     if symm_type == -1:
-        min_num_trials = 2 ** num_qubits
+        min_num_trials = 2**num_qubits
     elif symm_type == 2:
+
         def _f(x):
             return 4 * x - 1
-        min_num_trials = min(_f(x) for x in range(1, 1024) if _f(x) >= num_qubits) + 1
+
+        min_num_trials = min(
+            _f(x) for x in range(1, 1024) if _f(x) >= num_qubits) + 1
     elif symm_type == 3:
         min_num_trials = _next_power_of_2(2 * num_qubits)
     else:
