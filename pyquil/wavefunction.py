@@ -152,7 +152,6 @@ class Wavefunction(object):
         decimal_digits.
 
         :param int decimal_digits: The number of digits to truncate to.
-        :param int num_ancillas: The number of ancilliary qubits to truncate.
         :return: A dict with outcomes as keys and complex amplitudes as values.
         :rtype: str
         """
