@@ -1,9 +1,9 @@
 import pytest
 
 from pyquil.quil import Program, Pragma
-from pyquil.quilbase import Declare, Measurement
-from pyquil.quilatom import MemoryReference
-from pyquil.gates import X, Y, RX, CZ, SWAP, MEASURE, CNOT
+from pyquil.quilbase import Declare, Measurement, JumpTarget, Jump
+from pyquil.quilatom import MemoryReference, Label
+from pyquil.gates import H, X, Y, RX, CZ, SWAP, MEASURE, CNOT, RESET, WAIT, MOVE
 from pyquil.latex import to_latex, DiagramSettings
 from pyquil.latex._diagram import split_on_terminal_measures
 
@@ -87,3 +87,25 @@ def test_split_measures():
     assert len(meas) == 2
     assert len(instr) == 3
     assert all(isinstance(instr, Measurement) for instr in meas)
+
+
+def test_unsupported_ops():
+    target = Label("target")
+    base_prog = Program(
+        Declare('reg1', 'BIT'),
+        Declare('reg2', 'BIT'),
+        H(0),
+        JumpTarget(target),
+        CNOT(0, 1))
+
+    bad_ops = [RESET(0),
+               WAIT,
+               Jump(target),
+               MOVE(MemoryReference('reg1'), MemoryReference('reg2'))]
+
+    assert to_latex(base_prog)
+
+    for op in bad_ops:
+        prog = base_prog + op
+        with pytest.raises(ValueError):
+            _ = to_latex(prog)

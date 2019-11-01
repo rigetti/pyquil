@@ -21,7 +21,13 @@ from warnings import warn
 from pyquil import Program
 from pyquil.quil import Measurement, Gate, Pragma, ResetQubit
 from pyquil.quilatom import format_parameter
-from pyquil.quilbase import AbstractInstruction
+from pyquil.quilbase import (AbstractInstruction,
+                             Wait, Reset, ResetQubit,
+                             JumpConditional, JumpWhen, JumpUnless, Jump,
+                             UnaryClassicalInstruction, LogicalBinaryOp, ArithmeticBinaryOp,
+                             ClassicalMove, ClassicalExchange, ClassicalConvert,
+                             ClassicalLoad, ClassicalStore, ClassicalComparison,
+                             RawInstr)
 from pyquil.latex.latex_generation import DiagramSettings
 from collections import defaultdict
 from typing import Optional
@@ -132,6 +138,14 @@ def body(circuit: Program, settings: DiagramSettings):
 
 PRAGMA_BEGIN_GROUP = 'LATEX_GATE_GROUP'
 PRAGMA_END_GROUP = 'END_LATEX_GATE_GROUP'
+
+UNSUPPORTED_INSTRUCTION_CLASSES = (
+    Wait, Reset, ResetQubit,
+    JumpConditional, JumpWhen, JumpUnless, Jump,
+    UnaryClassicalInstruction, LogicalBinaryOp, ArithmeticBinaryOp,
+    ClassicalMove, ClassicalExchange, ClassicalConvert, ClassicalLoad, ClassicalStore, ClassicalComparison,
+    RawInstr
+)
 
 # TikZ operators
 
@@ -377,7 +391,8 @@ class DiagramBuilder:
                 self._build_measure()
             elif isinstance(instr, Gate):
                 if 'FORKED' in instr.modifiers:
-                    raise ValueError("LaTeX output does not currently support FORKED modifiers: {}.".format(instr))
+                    raise ValueError("LaTeX output does not currently support"
+                                     "FORKED modifiers: {}.".format(instr))
                 # the easy case is 1q operations
                 if len(instr.qubits) == 1:
                     self._build_1q_unitary()
@@ -386,6 +401,9 @@ class DiagramBuilder:
                         self._build_custom_source_target_op()
                     else:
                         self._build_generic_unitary()
+            elif isinstance(instr, UNSUPPORTED_INSTRUCTION_CLASSES):
+                raise ValueError("LaTeX output does not currently support"
+                                 "the following instruction: {}".format(instr.out()))
             else:
                 self.index += 1
 
