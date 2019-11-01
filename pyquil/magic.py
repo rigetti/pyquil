@@ -102,7 +102,13 @@ def _if_statement(test, if_function, else_function) -> None:
             else_function()
 
 
-_EMPTY_ARGUMENTS = ast.arguments(args=[], vararg=None, kwonlyargs=[], kwarg=None, defaults=[], kw_defaults=[])
+_EMPTY_ARGUMENTS = ast.arguments(args=[],
+                                 posonlyargs=[],
+                                 vararg=None,
+                                 kwonlyargs=[],
+                                 kwarg=None,
+                                 defaults=[],
+                                 kw_defaults=[])
 
 
 class _IfTransformer(ast.NodeTransformer):
