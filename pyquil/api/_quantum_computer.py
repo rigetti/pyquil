@@ -844,6 +844,7 @@ def get_qc(name: str,
                 quilc_endpoint=pyquil_config.quilc_url,
                 qpu_compiler_endpoint=pyquil_config.qpu_compiler_url,
                 device=device,
+                config=pyquil_config,
                 name=prefix))
 
 

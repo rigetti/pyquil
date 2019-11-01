@@ -72,7 +72,7 @@ def _extract_bitstrings(ro_sources: List[Optional[Tuple[int, int]]],
 
 class QPU(QAM):
     @_record_call
-    def __init__(self, endpoint: Optional[str] = None, user: str = "pyquil-user", priority: int = 1) -> None:
+    def __init__(self, endpoint: Optional[str] = None, user: str = "pyquil-user", priority: int = 1, config: PyquilConfig = None) -> None:
         """
         A connection to the QPU.
 
@@ -81,7 +81,11 @@ class QPU(QAM):
         :param priority: The priority with which to insert jobs into the QPU queue. Lower
                          integers correspond to higher priority.
         """
-        
+        if config:
+            self.config = config
+        else:
+            self.config = PyquilConfig()
+
         self.endpoint = endpoint
         self.user = user
         self._last_results: Dict[str, np.ndarray] = {}
@@ -90,9 +94,8 @@ class QPU(QAM):
         super().__init__()
 
     def build_client(self):
-        config = PyquilConfig()
-        endpoint = _qpu_compiler_endpoint = next((url for url in [self.endpoint, config.qpu_url] if url is not None), None)
-        endpoint = self.endpoint or config.qpu_url
+        endpoint = next((url for url in [self.endpoint, self.config.qpu_url] if url is not None), None)
+        print("Endpoint:", endpoint)
         if endpoint is None:
             raise RuntimeError("""It looks like you've tried to run a program against a QPU but do
                 not currently have a reservation on one. To reserve time on Rigetti
@@ -105,6 +108,7 @@ class QPU(QAM):
                 https://www.rigetti.com/qcs/docs/reservations or reach out to Rigetti
                 support at support@rigetti.com.""")
         if self.engagement is not None:
+            print("Engaged!")
             auth_config = ClientAuthConfig(
                 client_public_key=self.engagement.client_public_key,
                 client_secret_key=self.engagement.client_secret_key,
@@ -122,7 +126,7 @@ class QPU(QAM):
 
     @property
     def engagement(self):
-        return PyquilConfig().engagement
+        return self.config.engagement
 
     def get_version_info(self) -> dict:
         """
@@ -182,7 +186,9 @@ class QPU(QAM):
 
         # TODO: remove. quick n dirty benchmarking of executable sizes
         import sys
-        print(sys.getsizeof(request))
+        from rpcq._base import to_msgpack
+        print(sys.getsizeof(to_msgpack(request)))
+
         job_priority = run_priority if run_priority is not None else self.priority
         job_id = self.client.call('execute_qpu_request', request=request)
         results = self._get_buffers(job_id)

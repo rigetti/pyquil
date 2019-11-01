@@ -34,7 +34,7 @@ CONFIG_PATHS = {
 }
 
 
-class PyquilConfigInstance(object):
+class PyquilConfig(object):
     FOREST_URL = {
         "env": "FOREST_SERVER_URL",
         "file": QCS_CONFIG,
@@ -262,13 +262,3 @@ class PyquilConfigInstance(object):
     @property
     def qpu_compiler_url(self):
         return self._env_or_config_or_default(**self.QPU_COMPILER_URL)
-
-
-class PyquilConfig(object):
-    instance = PyquilConfigInstance()
-
-    def __init__(self):
-        self.instance = PyquilConfig.instance
-
-    def __getattr__(self, name):
-        return getattr(self.instance, name)

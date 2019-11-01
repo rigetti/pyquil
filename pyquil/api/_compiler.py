@@ -51,19 +51,6 @@ class QPUCompilerNotRunning(Exception):
     pass
 
 
-def refresh_client(client: Client, new_endpoint: str) -> Client:
-    """
-    Refresh the state of an RPCQ Client object, providing it a new endpoint.
-
-    :param client: Stale RPCQ Client object
-    :param new_endpoint: New RPC endpoint to use
-    :return: New RPCQ Client object
-    """
-    timeout = client.timeout
-    client.close()
-    return Client(new_endpoint, timeout)
-
-
 def check_quilc_version(version_dict: Dict[str, str]):
     """
     Verify that there is no mismatch between pyquil and quilc versions.
@@ -172,6 +159,7 @@ class QPUCompiler(AbstractCompiler):
                  qpu_compiler_endpoint: Optional[str] = None,
                  device: AbstractDevice = None,
                  timeout: int = 10,
+                 config: PyquilConfig = None,
                  name: Optional[str] = None) -> None:
         """
         Client to communicate with the Compiler Server.
@@ -182,6 +170,11 @@ class QPUCompiler(AbstractCompiler):
         :param timeout: Number of seconds to wait for a response from the client.
         :param name: Name of the lattice being targeted
         """
+
+        if config:
+            self.config = config
+        else:
+            self.config = PyquilConfig()
 
         self.timeout = timeout
 
@@ -199,8 +192,7 @@ class QPUCompiler(AbstractCompiler):
         self.qpu_compiler_endpoint = qpu_compiler_endpoint
         self._qpu_compiler_client = None
 
-        self.target_device = TargetDevice(isa=device.get_isa().to_dict(),
-                                          specs=None)
+        self.target_device = TargetDevice(isa=device.get_isa().to_dict(), specs=None)
         self.name = name
 
         try:
@@ -213,9 +205,7 @@ class QPUCompiler(AbstractCompiler):
     @property
     def qpu_compiler_client(self):
         if not self._qpu_compiler_client:
-            config = PyquilConfig()
-            print([self.qpu_compiler_endpoint, config.qpu_compiler_url])
-            _qpu_compiler_endpoint = next((url for url in [self.qpu_compiler_endpoint, config.qpu_compiler_url] if url is not None), None)
+            _qpu_compiler_endpoint = next((url for url in [self.qpu_compiler_endpoint, self.config.qpu_compiler_url] if url is not None), None)
             if _qpu_compiler_endpoint is not None:
                 self._qpu_compiler_client = Client(_qpu_compiler_endpoint, timeout=self.timeout)
             else:
@@ -297,10 +287,12 @@ class QPUCompiler(AbstractCompiler):
         """
         Reset the state of the QPUCompiler Client connections.
         """
-        pyquil_config = PyquilConfig()
-        self.quilc_client = refresh_client(self.quilc_client, pyquil_config.quilc_url)
-        self.qpu_compiler_client = refresh_client(self.qpu_compiler_client,
-                                                  pyquil_config.qpu_compiler_url)
+        config = PyquilConfig()
+
+        timeout = self.quilc_client.timeout
+        self.quilc_client.close()
+        self.quilc_client = Client(config.quilc_url, timeout=timeout)
+        self._qpu_compiler_client = None
 
 
 class QVMCompiler(AbstractCompiler):
