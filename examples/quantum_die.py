@@ -58,7 +58,7 @@ def process_results(results):
     raw_results = results[0]
     processing_result = 0
     for each_qubit_measurement in raw_results:
-        processing_result = 2*processing_result + each_qubit_measurement
+        processing_result = 2 * processing_result + each_qubit_measurement
     # Convert from 0 indexed to 1 indexed
     die_value = processing_result + 1
     return die_value
@@ -76,5 +76,6 @@ if __name__ == '__main__':
     number_of_sides = int(input("Please enter number of sides: "))
     qvm = get_qvm(number_of_sides)
     die_value = roll_die(qvm, number_of_sides)
-    while die_value > number_of_sides: die_value = roll_die(qvm, number_of_sides)
+    while die_value > number_of_sides:
+        die_value = roll_die(qvm, number_of_sides)
     print(f"The result is: {die_value}")
