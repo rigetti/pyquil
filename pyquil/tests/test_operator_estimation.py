@@ -21,6 +21,7 @@ from pyquil.experiment import (
     plusY,
     plusZ,
     zeros_state,
+    ExperimentResult,
 )
 from pyquil.gates import CNOT, CZ, H, I, RX, RY, RZ, X, Y
 from pyquil.operator_estimation import (
