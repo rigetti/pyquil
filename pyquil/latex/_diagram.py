@@ -15,11 +15,10 @@
 ##############################################################################
 
 import sys
-from copy import copy
 from warnings import warn
 
 from pyquil import Program
-from pyquil.quil import Measurement, Gate, Pragma, ResetQubit
+from pyquil.quil import Measurement, Gate, Pragma
 from pyquil.quilatom import format_parameter
 from pyquil.quilbase import (AbstractInstruction,
                              Wait, Reset, ResetQubit,
