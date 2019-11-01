@@ -63,7 +63,8 @@ class QAM(ABC):
     @_record_call
     def write_memory(self, *, region_name: str, offset: int = 0, value=None):
         """
-        Writes a value into a memory region on the QAM at a specified offset.
+        Writes a value or chronologically unwraps a list of values into a memory region on
+        the QAM at a specified offset.
 
         :param region_name: Name of the declared memory region on the QAM.
         :param offset: Integer offset into the memory region to write to.
@@ -72,8 +73,8 @@ class QAM(ABC):
         assert self.status in ['loaded', 'done']
 
         if isinstance(value, List):
-            for offset, v in enumerate(value):
-                aref = ParameterAref(name=region_name, index=offset)
+            for index, v in enumerate(value):
+                aref = ParameterAref(name=region_name, index=offset + index)
                 self._variables_shim[aref] = v
         else:
             aref = ParameterAref(name=region_name, index=offset)
