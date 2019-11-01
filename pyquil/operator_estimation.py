@@ -604,7 +604,7 @@ def measure_observables(qc: QuantumComputer,
                     setting=setting,
                     expectation=obs_mean.item(),
                     std_err=np.sqrt(obs_var).item(),
-                    total_counts=n_shots)
+                    total_counts=shots)
                 )
 
             elif calibrate_readout is None:
@@ -619,7 +619,7 @@ def measure_observables(qc: QuantumComputer,
             else:
                 raise ValueError("Calibration readout method must be either 'plus-eig' or None")
 
-    yield from _calibrate_observable_estimates(qc, results, n_shots, -1, tomo_experiment.program,
+    yield from _calibrate_observable_estimates(qc, results, shots, -1, tomo_experiment.program,
                                                active_reset)
 
 
