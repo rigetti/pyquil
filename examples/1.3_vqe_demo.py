@@ -129,6 +129,7 @@ if __name__ == "__main__":
         hf_energy.append(molecule.hf_energy)
         print(w[0], molecule.fci_energy, tenergy, result.fun)
 
+
     plt.plot(bond_length, hf_energy, 'C1o-', label='HF')
     plt.plot(bond_length, ucc_energy, 'C0o-', label='UCC-VQE')
     plt.plot(bond_length, fci_energy, 'k-', label='FCI')
