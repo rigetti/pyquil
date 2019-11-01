@@ -37,6 +37,8 @@ Changelog
 -   `PauliTerm` and `PauliSum` now have `__repr__` methods (@karalekas, gh-1080).
 -   The experiment-schema-related code in `operator_estimation.py` has been moved
     into a new `experiment` subdirectory (@karalekas, gh-1084).
+-   The keyword arguments to `measure_observables` are now captured as part of
+    the `TomographyExperiment` class (@karalekas, gh-1090).
     
 ### Bugfixes
 
@@ -49,6 +51,7 @@ Changelog
     (@notmgsk, gh-1076).
 -   Fixed a regression in `PyQVM.execute` that prevented it from running programs
     containing user-defined gates (@appleby, gh-1067).
+-   Remove some stale code for pulling quilc version info (@notmgsk, gh-1089).
 
 [v2.12](https://github.com/rigetti/pyquil/compare/v2.11.0...v2.12.0) (September 28, 2019)
 ----------------------------------------------------------------------------------------
@@ -80,6 +83,8 @@ Changelog
     the `--runslow` option is specified for `pytest` (@kilimanjaro, gh-1001).
 -   `PauliSum` objects can now be constructed from strings via `from_compact_str()`
     and `PauliTerm.from_compact_str()` supports multi-qubit strings (@jlbosse, gh-984).
+-   Type hints have been added to the `pyquil.gates`, `pyquil.quilatom`, and `pyquil.quilbase`
+    modules (@appleby gh-999).
 
 ### Bugfixes
 

@@ -469,11 +469,12 @@ def _generate_experiment_programs(
     return programs, meas_qubits
 
 
-def measure_observables(qc: QuantumComputer, tomo_experiment: TomographyExperiment,
-                        n_shots: int = 10000,
+def measure_observables(qc: QuantumComputer,
+                        tomo_experiment: TomographyExperiment,
+                        n_shots: Optional[int] = None,
                         progress_callback: Optional[Callable[[int, int], None]] = None,
-                        active_reset: bool = False,
-                        symmetrize_readout: int = SymmetrizationLevel.EXHAUSTIVE,
+                        active_reset: Optional[bool] = None,
+                        symmetrize_readout: Optional[Union[int, str]] = 'None',
                         calibrate_readout: Optional[str] = 'plus-eig',
                         readout_symmetrize: Optional[str] = None) -> Iterable[ExperimentResult]:
     """
@@ -481,59 +482,79 @@ def measure_observables(qc: QuantumComputer, tomo_experiment: TomographyExperime
 
     :param qc: A QuantumComputer which can run quantum programs
     :param tomo_experiment: A suite of tomographic observables to measure
-    :param n_shots: The number of shots to take per ExperimentSetting
     :param progress_callback: If not None, this function is called each time a group of
         settings is run with arguments ``f(i, len(tomo_experiment)`` such that the progress
         is ``i / len(tomo_experiment)``.
-    :param active_reset: Whether to actively reset qubits instead of waiting several
-        times the coherence length for qubits to decay to ``|0>`` naturally. Setting this
-        to True is much faster but there is a ~1% error per qubit in the reset operation.
-        Thermal noise from "traditional" reset is not routinely characterized but is of the same
-        order.
-    :param symmetrize_readout: the level of readout symmetrization to perform for the estimation
-        and optional calibration of each observable. The following integer levels, encapsulated in
-        the ``SymmetrizationLevel`` integer enum, are currently supported:
-
-        * -1 -- exhaustive symmetrization uses every possible combination of flips
-        * 0 -- no symmetrization
-        * 1 -- symmetrization using an orthogonal array (OA) with strength 1
-        * 2 -- symmetrization using an orthogonal array (OA) with strength 2
-        * 3 -- symmetrization using an orthogonal array (OA) with strength 3
-
-        Note that (default) exhaustive symmetrization requires a number of QPU calls exponential in
-        the number of qubits in the union of the support of the observables in any group of settings
-        in ``tomo_experiment``; the number of shots may need to be increased to accommodate this.
-        see :func:`run_symmetrized_readout` in api._quantum_computer for more information.
     :param calibrate_readout: Method used to calibrate the readout results. Currently, the only
         method supported is normalizing against the operator's expectation value in its +1
         eigenstate, which can be specified by setting this variable to 'plus-eig' (default value).
         The preceding symmetrization and this step together yield a more accurate estimation of
         the observable. Set to `None` if no calibration is desired.
     """
-    if readout_symmetrize is not None:
-        warnings.warn("'readout_symmetrize' has been renamed to 'symmetrize_readout'",
-                      DeprecationWarning)
-        symmetrize_readout = readout_symmetrize
+    shots = tomo_experiment.shots
+    symmetrization = tomo_experiment.symmetrization
+    reset = tomo_experiment.reset
 
-    if symmetrize_readout is None:
-        symmetrize_readout = SymmetrizationLevel.NONE
-        warnings.warn("'symmetrize_readout' should now be an int, 0 instead of None.",
-                      DeprecationWarning)
-    elif symmetrize_readout == 'exhaustive':
-        symmetrize_readout = SymmetrizationLevel.EXHAUSTIVE
-        warnings.warn("'symmetrize_readout' should now be an int, -1 instead of 'exhaustive'.",
-                      DeprecationWarning)
-    elif symmetrize_readout not in list(SymmetrizationLevel):
-        raise Exception(f'The symmetrize_readout argument must be one of the following ints '
-                        f'{list(SymmetrizationLevel)}')
+    if n_shots is not None:
+        warnings.warn("'n_shots' has been deprecated; if you want to set the number of shots "
+                      "for this run of measure_observables please provide the number to "
+                      "Program.wrap_in_numshots_loop() for the Quil program that you provide "
+                      "when creating your TomographyExperiment object. For now, this value will "
+                      "override that in the TomographyExperiment, but eventually this keyword "
+                      "argument will be removed.",
+                      FutureWarning)
+        shots = n_shots
+    else:
+        if shots == 1:
+            warnings.warn("'n_shots' has been deprecated; if you want to set the number of shots "
+                          "for this run of measure_observables please provide the number to "
+                          "Program.wrap_in_numshots_loop() for the Quil program that you provide "
+                          "when creating your TomographyExperiment object. It looks like your "
+                          "TomographyExperiment object has shots = 1, so for now we will change "
+                          "that to 10000, which was the previous default value.",
+                          FutureWarning)
+            shots = 10000
+
+    if active_reset is not None:
+        warnings.warn("'active_reset' has been deprecated; if you want to enable active qubit "
+                      "reset please provide a Quil program that has a RESET instruction in it when "
+                      "creating your TomographyExperiment object. For now, this value will "
+                      "override that in the TomographyExperiment, but eventually this keyword "
+                      "argument will be removed.",
+                      FutureWarning)
+        reset = active_reset
+
+    if readout_symmetrize is not None and symmetrize_readout != 'None':
+        raise ValueError("'readout_symmetrize' and 'symmetrize_readout' are conflicting keyword "
+                         "arguments -- please provide only one.")
+
+    if readout_symmetrize is not None:
+        warnings.warn("'readout_symmetrize' has been deprecated; please provide the symmetrization "
+                      "level when creating your TomographyExperiment object. For now, this value "
+                      "will override that in the TomographyExperiment, but eventually this keyword "
+                      "argument will be removed.",
+                      FutureWarning)
+        symmetrization = SymmetrizationLevel(readout_symmetrize)
+
+    if symmetrize_readout != 'None':
+        warnings.warn("'symmetrize_readout' has been deprecated; please provide the symmetrization "
+                      "level when creating your TomographyExperiment object. For now, this value "
+                      "will override that in the TomographyExperiment, but eventually this keyword "
+                      "argument will be removed.",
+                      FutureWarning)
+        if symmetrize_readout is None:
+            symmetrize_readout = SymmetrizationLevel.NONE
+        elif symmetrize_readout == 'exhaustive':
+            symmetrize_readout = SymmetrizationLevel.EXHAUSTIVE
+        symmetrization = SymmetrizationLevel(symmetrize_readout)
 
     # calibration readout only works with symmetrization turned on
-    if calibrate_readout is not None and symmetrize_readout != SymmetrizationLevel.EXHAUSTIVE:
+    if calibrate_readout is not None and symmetrization != SymmetrizationLevel.EXHAUSTIVE:
         raise ValueError("Readout calibration only currently works with exhaustive readout "
                          "symmetrization turned on.")
 
     # generate programs for each group of simultaneous settings.
-    programs, meas_qubits = _generate_experiment_programs(tomo_experiment, active_reset)
+    programs, meas_qubits = _generate_experiment_programs(tomo_experiment, reset)
 
     results = []
     # Outer loop over a collection of grouped settings for which we can simultaneously
@@ -545,7 +566,7 @@ def measure_observables(qc: QuantumComputer, tomo_experiment: TomographyExperime
         # identity, i.e. weight=0. We handle this specially below.
         if len(qubits) > 0:
             # obtain (optionally symmetrized) bitstring results for all of the qubits
-            bitstrings = qc.run_symmetrized_readout(prog, n_shots, symmetrize_readout, qubits)
+            bitstrings = qc.run_symmetrized_readout(prog, shots, symmetrization, qubits)
 
         if progress_callback is not None:
             progress_callback(i, len(tomo_experiment))
@@ -553,7 +574,7 @@ def measure_observables(qc: QuantumComputer, tomo_experiment: TomographyExperime
         # Post-process
         # Inner loop over the grouped settings. They only differ in which qubits' measurements
         # we include in the post-processing. For example, if `settings` is Z1, Z2, Z1Z2 and we
-        # measure (n_shots, n_qubits=2) obs_strings then the full operator value involves selecting
+        # measure (shots, n_qubits=2) obs_strings then the full operator value involves selecting
         # either the first column, second column, or both and multiplying along the row.
         for setting in settings:
             # Get the term's coefficient so we can multiply it in later.
@@ -569,21 +590,22 @@ def measure_observables(qc: QuantumComputer, tomo_experiment: TomographyExperime
                     setting=setting,
                     expectation=coeff,
                     std_err=0.0,
-                    total_counts=n_shots,
+                    total_counts=shots,
                 )
                 continue
 
             # Obtain statistics from result of experiment
             obs_mean, obs_var = _stats_from_measurements(bitstrings,
                                                          {q: idx for idx, q in enumerate(qubits)},
-                                                         setting, n_shots, coeff)
+                                                         setting, shots, coeff)
 
             if calibrate_readout == 'plus-eig':
                 results.append(ExperimentResult(
                     setting=setting,
                     expectation=obs_mean.item(),
                     std_err=np.sqrt(obs_var).item(),
-                    total_counts=n_shots))
+                    total_counts=n_shots)
+                )
 
             elif calibrate_readout is None:
                 # No calibration
@@ -622,7 +644,7 @@ def _ops_bool_to_prog(ops_bool: Tuple[bool], qubits: List[int]) -> Program:
 
 def _stats_from_measurements(bs_results: np.ndarray, qubit_index_map: Dict,
                              setting: ExperimentSetting, n_shots: int,
-                             coeff: float = 1.0) -> Tuple[float]:
+                             coeff: float = 1.0) -> Tuple[float, float]:
     """
     :param bs_results: results from running `qc.run`
     :param qubit_index_map: dict mapping qubit to classical register index
