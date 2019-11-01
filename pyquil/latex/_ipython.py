@@ -22,8 +22,8 @@ from typing import Optional
 from IPython.display import Image
 
 from pyquil import Program
-from pyquil.latex.latex_generation import DiagramSettings
-from pyquil.latex._diagram import to_latex
+from pyquil.latex.latex_generation import to_latex
+from pyquil.latex._diagram import DiagramSettings
 
 
 def display(circuit: Program, settings: Optional[DiagramSettings] = None,

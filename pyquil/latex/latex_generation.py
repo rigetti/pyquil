@@ -15,52 +15,26 @@
 ##############################################################################
 
 import sys
+from typing import Optional
 
-if sys.version_info < (3, 7):
-    from pyquil.external.dataclasses import dataclass
-else:
-    from dataclasses import dataclass
+from pyquil import Program
+from pyquil.latex._diagram import header, body, footer, DiagramSettings
 
 
-@dataclass
-class DiagramSettings:
+def to_latex(circuit: Program, settings: Optional[DiagramSettings] = None) -> str:
     """
-    Settings to control the layout and rendering of circuits.
-    """
+    Translates a given pyquil Program to a TikZ picture in a LaTeX document.
 
-    texify_numerical_constants: bool = True
+    :param Program circuit: The circuit to be drawn, represented as a pyquil program.
+    :param DiagramSettings settings: An optional object of settings controlling diagram rendering and layout.
+    :return: LaTeX document string which can be compiled.
+    :rtype: string
     """
-    Convert numerical constants, such as pi, to LaTeX form.
-    """
-
-    impute_missing_qubits: bool = False
-    """
-    Include qubits with indices between those explicitly referenced in the Quil program.
-
-    For example, if true, the diagram for `CNOT 0 2` would have three qubit lines: 0, 1, 2.
-    """
-
-    label_qubit_lines: bool = True
-    """
-    Label qubit lines.
-    """
-
-    abbreviate_controlled_rotations: bool = False
-    """
-    Write controlled rotations in a compact form.
-
-    For example,  `RX(pi)` as `X_{\\pi}`, instead of the longer `R_X(\\pi)`
-    """
-
-    qubit_line_open_wire_length: int = 1
-    """
-    The length by which qubit lines should be extended with open wires at the right of the diagram.
-
-    The default of 1 is the natural choice. The main reason for including this option
-    is that it may be appropriate for this to be 0 in subdiagrams.
-    """
-
-    right_align_terminal_measurements: bool = True
-    """
-    Align measurement operations which appear at the end of the program.
-    """
+    if settings is None:
+        settings = DiagramSettings()
+    text = header()
+    text += "\n"
+    text += body(circuit, settings)
+    text += "\n"
+    text += footer()
+    return text
