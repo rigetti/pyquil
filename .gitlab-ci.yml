@@ -34,6 +34,15 @@ test-py37:
     - make requirements
     - make test
 
+test-py38:
+  image: python:3.8
+  tags:
+    - github
+  script:
+    - make install
+    - make requirements
+    - make test
+
 style:
   image: python:3.6
   tags:
