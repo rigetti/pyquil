@@ -6,7 +6,6 @@ import numpy as np
 import pytest
 
 from pyquil import Program, get_qc
-<<<<<<< 6428a91e2fa0850a1a00e2fa5ca210dd62cd9c07
 from pyquil.api import WavefunctionSimulator
 from pyquil.experiment import (
     ExperimentSetting,
@@ -19,6 +18,7 @@ from pyquil.experiment import (
     minusY,
     minusZ,
     plusX,
+    minusX,
     plusY,
     plusZ,
     zeros_state,
