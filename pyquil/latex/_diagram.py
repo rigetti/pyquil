@@ -79,82 +79,6 @@ class DiagramSettings:
     """
 
 
-# Overview of LaTeX generation.
-#
-# The main entry point is the `to_latex` function. Here are some high
-# points of the generation procedure:
-#
-# - The most basic building block are the TikZ operators, which are constructed
-#   by the functions below (e.g. TIKZ_CONTROL, TIKZ_NOP, TIKZ_MEASURE).
-# - TikZ operators are maintained by a DiagramState object, with roughly each
-#   qubit line in a diagram represented as a list of TikZ operators on the DiagramState.
-# - The DiagramBuilder is the actual driver. This traverses a Program and, for
-#   each instruction, performs a suitable manipulation of the DiagramState. At
-#   the end of this, the DiagramState is traversed and raw LaTeX is emitted.
-# - Most options are specified by DiagramSettings. One exception is this: it is possible
-#   to request that a certain subset of the program is rendered as a group (and colored
-#   as such). This is specified by a new pragma in the Program source:
-#
-#     PRAGMA LATEX_GATE_GROUP <name>?
-#     ...
-#     PRAGMA END_LATEX_GATE_GROUP
-#
-#   The <name> is optional, and will be used to label the group. Nested gate
-#   groups are currently not supported.
-
-
-def header():
-    """
-    Writes the LaTeX header using the settings file.
-
-    The header includes all packages and defines all tikz styles.
-
-    :return: Header of the LaTeX document.
-    :rtype: string
-    """
-    packages = (r"\documentclass[convert={density=300,outext=.png}]{standalone}",
-                r"\usepackage[margin=1in]{geometry}",
-                r"\usepackage{tikz}",
-                r"\usetikzlibrary{quantikz}")
-
-    init = (r"\begin{document}",
-            r"\begin{tikzcd}")
-
-    return "\n".join(("\n".join(packages), "\n".join(init)))
-
-
-def footer():
-    """
-    Return the footer of the LaTeX document.
-
-    :return: LaTeX document footer.
-    :rtype: string
-    """
-    return "\\end{tikzcd}\n\\end{document}"
-
-
-def body(circuit: Program, settings: DiagramSettings):
-    """
-    Return the body of the LaTeX document, including the entire circuit in
-    TikZ format.
-
-    :param Program circuit: The circuit to be drawn, represented as a pyquil program.
-    :param DiagramSettings settings: Options controlling rendering and layout.
-
-    :return: LaTeX string to draw the entire circuit.
-    :rtype: string
-    """
-
-    diagram = DiagramBuilder(circuit, settings).build()
-
-    # flush lines
-    quantikz_out = []
-    for qubit in diagram.qubits:
-        quantikz_out.append(" & ".join(diagram.lines[qubit]))
-
-    return " \\\\\n".join(quantikz_out)
-
-
 # Constants
 
 
@@ -165,9 +89,11 @@ UNSUPPORTED_INSTRUCTION_CLASSES = (
     Wait, Reset, ResetQubit,
     JumpConditional, JumpWhen, JumpUnless, Jump,
     UnaryClassicalInstruction, LogicalBinaryOp, ArithmeticBinaryOp,
-    ClassicalMove, ClassicalExchange, ClassicalConvert, ClassicalLoad, ClassicalStore, ClassicalComparison,
+    ClassicalMove, ClassicalExchange, ClassicalConvert,
+    ClassicalLoad, ClassicalStore, ClassicalComparison,
     RawInstr
 )
+
 
 # TikZ operators
 
@@ -235,8 +161,10 @@ def TIKZ_GATE(name, size=1, params=None, dagger=False, settings=None):
 
 def TIKZ_GATE_GROUP(qubits, width, label):
     num_qubits = max(qubits) - min(qubits) + 1
-    return "\\gategroup[{qubits},steps={width},style={{dashed, rounded corners,fill=blue!20, inner xsep=2pt}}, background]{{{label}}}".format(
-        qubits=num_qubits, width=width, label=label)
+    return "\\gategroup[{qubits},steps={width},style={{dashed, rounded corners," \
+           "fill=blue!20, inner xsep=2pt}}, background]{{{label}}}".format(qubits=num_qubits,
+                                                                           width=width,
+                                                                           label=label)
 
 
 SOURCE_TARGET_OP = {
@@ -247,14 +175,12 @@ SOURCE_TARGET_OP = {
 }
 
 
-# DiagramState
-
-
 class DiagramState:
     """
     A representation of a circuit diagram.
 
-    This maintains an ordered list of qubits, and for each qubit a 'line': that is, a list of TikZ operators.
+    This maintains an ordered list of qubits, and for each qubit a 'line': that is, a list of
+    TikZ operators.
     """
     def __init__(self, qubits):
         self.qubits = qubits
@@ -296,7 +222,8 @@ class DiagramState:
         self.extend_lines_to_common_edge(grouped_qubits)
 
         # record info for later (optional) group placement
-        # the group is marked with a rectangle. we compute the upper-left corner and the width of the rectangle
+        # the group is marked with a rectangle. we compute the upper-left corner and the width of
+        # the rectangle
         corner_row = grouped_qubits[0]
         corner_col = len(self.lines[corner_row]) + 1
         group_width = diagram.width(corner_row) - 1
@@ -307,10 +234,12 @@ class DiagramState:
                 self.append(q, op)
         # add tikz grouping command
         if group is not None:
-            self.lines[corner_row][corner_col] += " " + TIKZ_GATE_GROUP(grouped_qubits, group_width, group)
+            self.lines[corner_row][corner_col] += " " + TIKZ_GATE_GROUP(grouped_qubits,
+                                                                        group_width,
+                                                                        group)
         return self
 
-    def interval(self, low, high):
+    def interval(self, low, high) -> list:
         """
         All qubits in the diagram, from low to high, inclusive.
         """
@@ -318,14 +247,14 @@ class DiagramState:
         qubits = list(set(full_interval) & set(self.qubits))
         return sorted(qubits)
 
-    def is_interval(self, qubits):
+    def is_interval(self, qubits) -> bool:
         """
         Do the specified qubits correspond to an interval in this diagram?
         """
         return qubits == self.interval(min(qubits), max(qubits))
 
 
-def split_on_terminal_measures(program: Program):
+def split_on_terminal_measures(program: Program) -> tuple:
     """
     Split a program into two lists of instructions:
 
@@ -383,7 +312,8 @@ class DiagramBuilder:
         Actually build the diagram.
         """
         qubits = self.circuit.get_qubits()
-        all_qubits = range(min(qubits), max(qubits) + 1) if self.settings.impute_missing_qubits else sorted(qubits)
+        all_qubits = range(min(qubits), max(qubits) + 1) if self.settings.impute_missing_qubits \
+            else sorted(qubits)
         self.diagram = DiagramState(all_qubits)
 
         if self.settings.right_align_terminal_measurements:
@@ -408,7 +338,8 @@ class DiagramBuilder:
             if isinstance(instr, Pragma) and instr.command == PRAGMA_BEGIN_GROUP:
                 self._build_group()
             elif isinstance(instr, Pragma) and instr.command == PRAGMA_END_GROUP:
-                raise ValueError("PRAGMA {} found without matching {}.".format(PRAGMA_END_GROUP, PRAGMA_BEGIN_GROUP))
+                raise ValueError("PRAGMA {} found without matching {}.".format(PRAGMA_END_GROUP,
+                                                                               PRAGMA_BEGIN_GROUP))
             elif isinstance(instr, Measurement):
                 self._build_measure()
             elif isinstance(instr, Gate):
@@ -438,8 +369,9 @@ class DiagramBuilder:
         for instr in self.working_instructions:
             self._build_measure()
 
+        offset = max(self.settings.qubit_line_open_wire_length, 0)
         self.diagram.extend_lines_to_common_edge(self.diagram.qubits,
-                                                 offset=max(self.settings.qubit_line_open_wire_length, 0))
+                                                 offset=offset)
         return self.diagram
 
     def _build_group(self):
@@ -450,11 +382,13 @@ class DiagramBuilder:
         """
         instr = self.working_instructions[self.index]
         if len(instr.args) != 0:
-            raise ValueError("PRAGMA {} expected a freeform string, or nothing at all.".format(PRAGMA_BEGIN_GROUP))
+            raise ValueError(f"PRAGMA {PRAGMA_BEGIN_GROUP} expected a freeform string, or nothing "
+                             f"at all.")
         start = self.index + 1
         # walk instructions until the group end
         for j in range(start, len(self.working_instructions)):
-            if isinstance(self.working_instructions[j], Pragma) and self.working_instructions[j].command == PRAGMA_END_GROUP:
+            if isinstance(self.working_instructions[j], Pragma) \
+                    and self.working_instructions[j].command == PRAGMA_END_GROUP:
                 # recursively build the diagram for this block
                 # we do not want labels here!
                 block_settings = replace(self.settings,
@@ -482,7 +416,8 @@ class DiagramBuilder:
 
     def _build_custom_source_target_op(self):
         """
-        Update the partial diagram with a single operation involving a source and a target (e.g. a controlled gate, a swap).
+        Update the partial diagram with a single operation involving a source and a target
+        (e.g. a controlled gate, a swap).
 
         Advances the index by one.
         """
@@ -491,7 +426,7 @@ class DiagramBuilder:
         displaced = self.diagram.interval(min(source, target), max(source, target))
         self.diagram.extend_lines_to_common_edge(displaced)
         source_op, target_op = SOURCE_TARGET_OP[instr.name]
-        offset = (-1 if source > target else 1) * (len(displaced) - 1)  # this is a directed quantity
+        offset = (-1 if source > target else 1) * (len(displaced) - 1)  # a directed quantity
         self.diagram.append(source, source_op(source, offset))
         self.diagram.append(target, target_op())
         self.diagram.extend_lines_to_common_edge(displaced)
@@ -526,20 +461,22 @@ class DiagramBuilder:
         control_qubits = qubits[:controls]
         target_qubits = qubits[controls:]
         if not self.diagram.is_interval(sorted(target_qubits)):
-            raise ValueError("Unable to render instruction {} which targets non-adjacent qubits.".format(instr))
+            raise ValueError(f"Unable to render instruction {instr} which targets non-adjacent "
+                             f"qubits.")
 
         for q in control_qubits:
             self.diagram.append(q, TIKZ_CONTROL(q, target_qubits[0]))
 
         # we put the gate on the first target line, and nop on the others
-        self.diagram.append(target_qubits[0], TIKZ_GATE(instr.name, size=len(qubits), params=instr.params, dagger=dagger))
+        self.diagram.append(target_qubits[0], TIKZ_GATE(instr.name, size=len(qubits),
+                                                        params=instr.params, dagger=dagger))
         for q in target_qubits[1:]:
             self.diagram.append(q, TIKZ_NOP())
 
         self.index += 1
 
 
-def qubit_indices(instr: AbstractInstruction):
+def qubit_indices(instr: AbstractInstruction) -> list:
     """
     Get a list of indices associated with the given instruction.
     """
