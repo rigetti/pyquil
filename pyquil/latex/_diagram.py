@@ -162,8 +162,9 @@ def TIKZ_GATE(name, size=1, params=None, dagger=False, settings=None):
 def TIKZ_GATE_GROUP(qubits, width, label):
     num_qubits = max(qubits) - min(qubits) + 1
     return "\\gategroup[{qubits},steps={width},style={{dashed, rounded corners," \
-           "fill=blue!20, inner xsep=2pt}}, background]{{{label}}}".format(
-        qubits=num_qubits, width=width, label=label)
+           "fill=blue!20, inner xsep=2pt}}, background]{{{label}}}".format(qubits=num_qubits,
+                                                                           width=width,
+                                                                           label=label)
 
 
 SOURCE_TARGET_OP = {

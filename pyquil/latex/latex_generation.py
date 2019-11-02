@@ -20,6 +20,7 @@ from typing import Optional
 from pyquil import Program
 from pyquil.latex._diagram import DiagramSettings
 
+
 def to_latex(circuit: Program, settings: Optional[DiagramSettings] = None) -> str:
     from pyquil.latex._main import to_latex
     warnings.warn('"pyquil.latex.latex_generation.to_latex" has been moved -- please import it'
