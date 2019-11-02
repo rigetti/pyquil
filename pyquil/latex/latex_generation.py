@@ -14,26 +14,14 @@
 #    limitations under the License.
 ##############################################################################
 
+import warnings
 from typing import Optional
 
 from pyquil import Program
-from pyquil.latex._diagram import header, body, footer, DiagramSettings
-
+from pyquil.latex._diagram import DiagramSettings
 
 def to_latex(circuit: Program, settings: Optional[DiagramSettings] = None) -> str:
-    """
-    Translates a given pyquil Program to a TikZ picture in a LaTeX document.
-
-    :param Program circuit: The circuit to be drawn, represented as a pyquil program.
-    :param DiagramSettings settings: An optional object of settings controlling diagram rendering and layout.
-    :return: LaTeX document string which can be compiled.
-    :rtype: string
-    """
-    if settings is None:
-        settings = DiagramSettings()
-    text = header()
-    text += "\n"
-    text += body(circuit, settings)
-    text += "\n"
-    text += footer()
-    return text
+    from pyquil.latex._main import to_latex
+    warnings.warn('"pyquil.latex.latex_generation.to_latex" has been moved -- please import it'
+                  'as "from pyquil.latex import to_latex going forward"', FutureWarning)
+    return to_latex(circuit, settings)
