@@ -5,10 +5,10 @@ import numpy as np
 import pytest
 
 from pyquil import Program
-from pyquil.experiment import (_remove_reset_from_program, ExperimentSetting, SIC0, SIC1, SIC2,
-                               SIC3, TensorProductState, TomographyExperiment, plusX, minusX,
-                               plusY, minusY, plusZ, minusZ, read_json, to_json, zeros_state,
-                               ExperimentResult)
+from pyquil.experiment._main import _remove_reset_from_program
+from pyquil.experiment import (ExperimentSetting, SIC0, SIC1, SIC2, SIC3, TensorProductState,
+                               TomographyExperiment, plusX, minusX, plusY, minusY, plusZ, minusZ,
+                               read_json, to_json, zeros_state, ExperimentResult)
 from pyquil.gates import RESET, X, Y
 from pyquil.paulis import sI, sX, sY, sZ
 
