@@ -43,6 +43,9 @@ Changelog
     into a new `experiment` subdirectory (@karalekas, gh-1084).
 -   The keyword arguments to `measure_observables` are now captured as part of
     the `TomographyExperiment` class (@karalekas, gh-1090).
+-   Type hints have been added to the `pyquil.gates`, `pyquil.quilatom`, and
+    `pyquil.quilbase` modules (@appleby, gh-999).
+-   We now support Python 3.8 and it is tested in the CI (@karalekas, gh-1093).
     
 ### Bugfixes
 
@@ -87,8 +90,6 @@ Changelog
     the `--runslow` option is specified for `pytest` (@kilimanjaro, gh-1001).
 -   `PauliSum` objects can now be constructed from strings via `from_compact_str()`
     and `PauliTerm.from_compact_str()` supports multi-qubit strings (@jlbosse, gh-984).
--   Type hints have been added to the `pyquil.gates`, `pyquil.quilatom`, and `pyquil.quilbase`
-    modules (@appleby gh-999).
 
 ### Bugfixes
 
