@@ -54,7 +54,6 @@ class AuthClient:
         if isfile(self.config.auth_token_path):
             with open(self.config.auth_token_path, 'r') as f:
                 tokens = json.load(f)
-                print(tokens)
                 return tokens
         return {}
 
@@ -69,7 +68,6 @@ class AuthClient:
         """
         Get a new auth token from the auth server
         """
-        print("Refreshing --------------")
         current_tokens = self.fetch_auth_tokens_from_disk()
         refresh_token = current_tokens.get('refresh_token')
         if not refresh_token:
@@ -133,8 +131,6 @@ class AuthClient:
         query_response = self._send_graphql_with_auth(self.config.dispatch_url,
                                                       query, variables)
 
-        print(query_response)
-
         if query_response.get('errors'):
             raise RuntimeError(
                 f"Errors: {','.join(map(lambda error: error['message'], query_response.get('errors', [])))}"
@@ -184,6 +180,7 @@ class AuthClient:
             headers = dict(authorization=f'Bearer {self.access_token}')
             auth_kwargs = dict(**kwargs, **{'headers': headers})
             response = self._send_graphql(*args, **auth_kwargs)
+
         return response
 
     def _send_graphql(self, endpoint, query, variables, headers={}):

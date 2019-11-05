@@ -95,7 +95,6 @@ class QPU(QAM):
 
     def build_client(self):
         endpoint = next((url for url in [self.endpoint, self.config.qpu_url] if url is not None), None)
-        print("Endpoint:", endpoint)
         if endpoint is None:
             raise RuntimeError("""It looks like you've tried to run a program against a QPU but do
                 not currently have a reservation on one. To reserve time on Rigetti
@@ -108,7 +107,6 @@ class QPU(QAM):
                 https://www.rigetti.com/qcs/docs/reservations or reach out to Rigetti
                 support at support@rigetti.com.""")
         if self.engagement is not None:
-            print("Engaged!")
             auth_config = ClientAuthConfig(
                 client_public_key=self.engagement.client_public_key,
                 client_secret_key=self.engagement.client_secret_key,
@@ -183,11 +181,6 @@ class QPU(QAM):
         request = QPURequest(program=self._executable.program,
                              patch_values=self._build_patch_values(),
                              id=str(uuid.uuid4()))
-
-        # TODO: remove. quick n dirty benchmarking of executable sizes
-        import sys
-        from rpcq._base import to_msgpack
-        print(sys.getsizeof(to_msgpack(request)))
 
         job_priority = run_priority if run_priority is not None else self.priority
         job_id = self.client.call('execute_qpu_request', request=request)
