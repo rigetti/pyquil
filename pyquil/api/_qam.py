@@ -17,7 +17,6 @@ import warnings
 
 from abc import ABC, abstractmethod
 from collections import defaultdict
-from typing import Sequence, Union, Optional
 
 from rpcq.messages import ParameterAref
 
@@ -64,26 +63,16 @@ class QAM(ABC):
     def write_memory(self, *, region_name: str, offset: Optional[int] = None,
                      value: Optional[Union[int, float, Sequence[int], Sequence[float]]] = None):
         """
-        Writes a value or chronologically unwraps a list of values into a memory region on
-        the QAM at a specified offset.
+        Writes a value into a memory region on the QAM at a specified offset.
 
         :param region_name: Name of the declared memory region on the QAM.
         :param offset: Integer offset into the memory region to write to.
-        :param value: Value(s) to store at the indicated location.
+        :param value: Value to store at the indicated location.
         """
         assert self.status in ['loaded', 'done']
 
-        if isinstance(value, Sequence):
-            if offset is not None:
-                warnings.warn("offset should be None when value is a Sequence")
-            for index, v in enumerate(value):
-                aref = ParameterAref(name=region_name, index=offset + index)
-                self._variables_shim[aref] = v
-        else:
-            aref = ParameterAref(name=region_name, index=offset)
-            self._variables_shim[aref] = value
-
-        return self
+        aref = ParameterAref(name=region_name, index=offset)
+        self._variables_shim[aref] = value
 
     @abstractmethod
     def run(self):
