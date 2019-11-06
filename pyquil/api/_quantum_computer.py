@@ -17,7 +17,7 @@ import re
 import socket
 import warnings
 from math import pi, log
-from typing import List, Dict, Tuple, Iterator, Union
+from typing import List, Dict, Tuple, Iterator, Optional, Union
 import itertools
 
 import subprocess
@@ -36,6 +36,8 @@ from pyquil.api._qam import QAM
 from pyquil.api._qpu import QPU
 from pyquil.api._qvm import ForestConnection, QVM
 from pyquil.device import AbstractDevice, NxDevice, gates_in_isa, ISA, Device
+from pyquil.experiment import (ExperimentResult, TomographyExperiment, bitstrings_to_expectations,
+                               merge_memory_map_lists, build_symmetrization_memory_maps)
 from pyquil.gates import RX, MEASURE
 from pyquil.noise import decoherence_noise_with_asymmetric_ro, NoiseModel
 from pyquil.pyqvm import PyQVM
@@ -127,6 +129,68 @@ class QuantumComputer:
         return self.qam.run() \
             .wait() \
             .read_memory(region_name='ro')
+
+    @_record_call
+    def experiment(
+            self,
+            experiment: TomographyExperiment,
+            memory_map: Optional[Dict[str, List[Union[int, float]]]] = None
+    ) -> List[ExperimentResult]:
+        """
+
+        :param experiment:
+        :param memory_map:
+        :return:
+        """
+        experiment_program = experiment.generate_experiment_program()
+        executable = self.compile(experiment_program)
+
+        self.qam.load(executable)
+
+        if memory_map is None:
+            memory_map = {}
+
+        results = []
+        for settings in experiment:
+            # TODO: add support for grouped ExperimentSettings
+            setting = settings[0]
+
+            # assumes that experiments are defined starting at qubit 0
+            num_qubits = max(setting.out_operator.get_qubits()) + 1
+            experiment_setting_memory_map = setting.build_setting_memory_map()
+            symmetrization_memory_maps = build_symmetrization_memory_maps(num_qubits,
+                                                                          experiment.symmetrization)
+            merged_memory_maps = merge_memory_map_lists([experiment_setting_memory_map],
+                                                        symmetrization_memory_maps)
+
+            all_bitstrings = []
+            # TODO: accomplish symmetrization via batch endpoint
+            for merged_memory_map in merged_memory_maps:
+                final_memory_map = {**memory_map, **merged_memory_map}
+                bitstrings = self.run(executable, memory_map=final_memory_map)
+
+                if 'symmetrization' in final_memory_map:
+                    bitmask = np.array(np.array(final_memory_map['symmetrization']) / np.pi,
+                                       dtype=int)
+                    bitstrings = np.bitwise_xor(bitstrings, bitmask)
+                all_bitstrings.append(bitstrings)
+            symmetrized_bitstrings = np.concatenate(all_bitstrings)
+
+            # TODO: support simultaneous observables via multiple correlations
+            correlations = [setting.out_operator.get_qubits()]
+            expectations = bitstrings_to_expectations(symmetrized_bitstrings,
+                                                      correlations=correlations)
+
+            # TODO: add calibration and correction
+            mean = np.mean(expectations).item()
+            std_err = np.std(expectations, axis=0, ddof=1) / np.sqrt(len(expectations))
+            result = ExperimentResult(setting=setting,
+                                      expectation=mean,
+                                      std_err=std_err,
+                                      total_counts=len(expectations))
+            results.append(result)
+        return results
+
 
     @_record_call
     def run_symmetrized_readout(self, program: Program, trials: int, symm_type: int = 3,
