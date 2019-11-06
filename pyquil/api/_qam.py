@@ -17,7 +17,7 @@ import warnings
 
 from abc import ABC, abstractmethod
 from collections import defaultdict
-from typing import List, Dict, Tuple, Iterator, Union
+from typing import List
 
 from rpcq.messages import ParameterAref
 
