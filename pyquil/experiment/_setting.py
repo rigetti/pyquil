@@ -24,6 +24,8 @@ import warnings
 from typing import Iterable, Tuple
 
 from pyquil.paulis import PauliTerm, sI, is_identity
+from pyquil.experiment._memory import (pauli_term_to_measurement_memory_map,
+                                       pauli_term_to_preparation_memory_map)
 
 if sys.version_info < (3, 7):
     from pyquil.external.dataclasses import dataclass
@@ -234,3 +236,8 @@ class ExperimentSetting:
         instr, outstr = s.split('→')
         return ExperimentSetting(in_state=TensorProductState.from_str(instr),
                                  out_operator=PauliTerm.from_compact_str(outstr))
+
+    def build_setting_memory_map(self):
+        preparation_map = pauli_term_to_preparation_memory_map(self.in_operator)
+        measurement_map = pauli_term_to_measurement_memory_map(self.out_operator)
+        return {**preparation_map, **measurement_map}
