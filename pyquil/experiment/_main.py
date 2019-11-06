@@ -27,8 +27,12 @@ from enum import IntEnum
 from typing import List, Union, Optional
 
 from pyquil import Program
+from pyquil.experiment._program import (parameterized_single_qubit_measurement_basis,
+                                        parameterized_single_qubit_state_preparation,
+                                        parameterized_readout_symmetrization, measure_qubits)
 from pyquil.experiment._result import ExperimentResult
 from pyquil.experiment._setting import ExperimentSetting
+from pyquil.gates import RESET
 from pyquil.quilbase import DefPermutationGate, Reset
 
 
@@ -247,6 +251,53 @@ class TomographyExperiment:
         if not isinstance(other, TomographyExperiment):
             return False
         return self.serializable() == other.serializable()
+
+    def generate_experiment_program(self):
+        """
+
+        :return:
+        """
+        qubits = set()
+
+        for settings in self:
+            for qubit in settings[0].out_operator.get_qubits():
+                qubits.add(qubit)
+
+        p = Program()
+
+        if self.reset:
+            if 'RESET' in p.out():
+                raise ValueError('RESET already added to program')
+            p += RESET()
+
+        p += self.program
+
+        for settings in self:
+            if ('X' in str(settings[0].in_state)) or ('Y' in str(settings[0].in_state)):
+                if f'DECLARE preparation_' in self.program.out():
+                    raise ValueError(f'Memory "preparation_*" has been declared for this program.')
+                p += parameterized_single_qubit_state_preparation(qubits)
+                break
+
+        for settings in self:
+            if ('X' in str(settings[0].out_operator)) or ('Y' in str(settings[0].out_operator)):
+                if f'DECLARE measurement_' in self.program.out():
+                    raise ValueError(f'Memory "measurement_*" has been declared for this program.')
+                p += parameterized_single_qubit_measurement_basis(qubits)
+                break
+
+        if self.symmetrization != 0:
+            if f'DECLARE symmetrization' in self.program.out():
+                raise ValueError(f'Memory "symmetrization" has been declared for this program.')
+            p += parameterized_readout_symmetrization(qubits)
+
+        if 'DECLARE ro' in self.program.out():
+            raise ValueError('Memory "ro" has already been declared for this program.')
+        p += measure_qubits(qubits)
+
+        p.wrap_in_numshots_loop(self.shots)
+
+        return p
 
 
 class OperatorEncoder(JSONEncoder):
