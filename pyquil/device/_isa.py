@@ -153,7 +153,7 @@ def gates_in_isa(isa):
         if q.dead:
             # TODO: dead qubits may in the future lead to some implicit re-indexing
             continue
-        if q.type in ["Xhalves"]:
+        if q.type == "Xhalves":
             gates.extend([
                 Gate("I", [], [unpack_qubit(q.id)]),
                 Gate("RX", [np.pi / 2], [unpack_qubit(q.id)]),
@@ -162,6 +162,10 @@ def gates_in_isa(isa):
                 Gate("RX", [-np.pi], [unpack_qubit(q.id)]),
                 Gate("RZ", [THETA], [unpack_qubit(q.id)]),
             ])
+        elif q.type == "WILDCARD":
+            gates.extend([
+                Gate("_", "_", [unpack_qubit(q.id)])
+            ])
         else:  # pragma no coverage
             raise ValueError("Unknown qubit type: {}".format(q.type))
 
@@ -169,12 +173,25 @@ def gates_in_isa(isa):
         if e.dead:
             continue
         targets = [unpack_qubit(t) for t in e.targets]
-        if e.type in ["CZ", "ISWAP"]:
-            gates.append(Gate(e.type, [], targets))
-            gates.append(Gate(e.type, [], targets[::-1]))
-        elif e.type in ["CPHASE"]:
-            gates.append(Gate(e.type, [THETA], targets))
-            gates.append(Gate(e.type, [THETA], targets[::-1]))
+        edge_type = e.type if isinstance(e.type, list) else [e.type]
+        if "CZ" in edge_type:
+            gates.append(Gate("CZ", [], targets))
+            gates.append(Gate("CZ", [], targets[::-1]))
+        if "ISWAP" in edge_type:
+            gates.append(Gate("ISWAP", [], targets))
+            gates.append(Gate("ISWAP", [], targets[::-1]))
+        if "XYhalves" in edge_type:
+            gates.append(Gate("XY", [np.pi/2], targets))
+            gates.append(Gate("XY", [np.pi/2], targets[::-1]))
+        if "CPHASE" in edge_type:
+            gates.append(Gate("CPHASE", [THETA], targets))
+            gates.append(Gate("CPHASE", [THETA], targets[::-1]))
+        if "XY" in edge_type:
+            gates.append(Gate("XY", [THETA], targets))
+            gates.append(Gate("XY", [THETA], targets[::-1]))
+        if e.type in ["WILDCARD"]:
+            gates.append(Gate("_", "_", targets))
+            gates.append(Gate("_", "_", targets[::-1]))
         else:  # pragma no coverage
             raise ValueError("Unknown edge type: {}".format(e.type))
     return gates

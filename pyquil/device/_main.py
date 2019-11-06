@@ -29,6 +29,12 @@ PERFECT_FIDELITY = 1e0
 PERFECT_DURATION = 1 / 100
 DEFAULT_CZ_DURATION = 200
 DEFAULT_CZ_FIDELITY = 0.89
+DEFAULT_ISWAP_DURATION = 200
+DEFAULT_ISWAP_FIDELITY = 0.90
+DEFAULT_CPHASE_DURATION = 200
+DEFAULT_CPHASE_FIDELITY = 0.85
+DEFAULT_XY_DURATION = 200
+DEFAULT_XY_FIDELITY = 0.86
 DEFAULT_RX_DURATION = 50
 DEFAULT_RX_FIDELITY = 0.95
 DEFAULT_MEASURE_FIDELITY = 0.90
@@ -123,26 +129,71 @@ class Device(AbstractDevice):
             raise ValueError("oneq_type and twoq_type are both fatally deprecated. If you want to "
                              "make an ISA with custom gate types, you'll have to do it by hand.")
 
-        qubits = [Qubit(id=q.id, type=None, dead=q.dead, gates=[
-            MeasureInfo(operator="MEASURE", qubit=q.id, target="_",
-                        fidelity=self.specs.fROs()[q.id] or DEFAULT_MEASURE_FIDELITY,
-                        duration=DEFAULT_MEASURE_DURATION),
-            MeasureInfo(operator="MEASURE", qubit=q.id, target=None,
-                        fidelity=self.specs.fROs()[q.id] or DEFAULT_MEASURE_FIDELITY,
-                        duration=DEFAULT_MEASURE_DURATION),
-            GateInfo(operator="RZ", parameters=["_"], arguments=[q.id],
-                     duration=PERFECT_DURATION, fidelity=PERFECT_FIDELITY),
-            GateInfo(operator="RX", parameters=[0.0], arguments=[q.id],
-                     duration=DEFAULT_RX_DURATION, fidelity=PERFECT_FIDELITY)] + [
-                GateInfo(operator="RX", parameters=[param], arguments=[q.id],
-                         duration=DEFAULT_RX_DURATION,
-                         fidelity=self.specs.f1QRBs()[q.id] or DEFAULT_RX_FIDELITY)
-                for param in [np.pi, -np.pi, np.pi / 2, -np.pi / 2]])
+        def safely_get(attr, index, default):
+            if self.specs is None:
+                return default
+
+            getter = getattr(self.specs, attr, None)
+            if getter is None:
+                return default
+
+            array = getter()
+            if index < len(array):
+                return array[index]
+            else:
+                return default
+
+        def qubit_type_to_gates(q):
+            gates = [MeasureInfo(operator="MEASURE", qubit=q.id, target="_",
+                                 fidelity=safely_get("fROs", q.id, DEFAULT_MEASURE_FIDELITY),
+                                 duration=DEFAULT_MEASURE_DURATION),
+                     MeasureInfo(operator="MEASURE", qubit=q.id, target=None,
+                                 fidelity=safely_get("fROs", q.id, DEFAULT_MEASURE_FIDELITY),
+                                 duration=DEFAULT_MEASURE_DURATION)]
+            if q.type is None or "Xhalves" in q.type:
+                gates += [GateInfo(operator="RZ", parameters=["_"], arguments=[q.id],
+                                   duration=PERFECT_DURATION, fidelity=PERFECT_FIDELITY),
+                          GateInfo(operator="RX", parameters=[0.0], arguments=[q.id],
+                                   duration=DEFAULT_RX_DURATION, fidelity=PERFECT_FIDELITY)]
+                gates += [GateInfo(operator="RX", parameters=[param], arguments=[q.id],
+                                   duration=DEFAULT_RX_DURATION,
+                                   fidelity=safely_get("f1QRBs", q.id, DEFAULT_RX_FIDELITY))
+                          for param in [np.pi, -np.pi, np.pi / 2, -np.pi / 2]]
+            if q.type is not None and "WILDCARD" in q.type:
+                gates += [GateInfo(operator="_", parameters="_", arguments=[q.id],
+                                   duration=PERFECT_DURATION, fidelity=PERFECT_FIDELITY)]
+            return gates
+
+        def edge_type_to_gates(e):
+            gates = []
+            if e is None or "CZ" in e.type:
+                gates += [GateInfo(operator="CZ", parameters=[], arguments=["_", "_"],
+                                   duration=DEFAULT_CZ_DURATION,
+                                   fidelity=safely_get("fCZs", tuple(e.targets), DEFAULT_CZ_FIDELITY))]
+            if e is not None and "ISWAP" in e.type:
+                gates += [GateInfo(operator="ISWAP", parameters=[], arguments=["_", "_"],
+                                   duration=DEFAULT_ISWAP_DURATION,
+                                   fidelity=safely_get("fISWAPs", tuple(e.targets), DEFAULT_CZ_FIDELITY))]
+            if e is not None and "XYhalves" in e.type:
+                gates += [GateInfo(operator="XY", parameters=[np.pi/2], arguments=["_", "_"],
+                                   duration=DEFAULT_XY_DURATION,
+                                   fidelity=safely_get("fXYs", tuple(e.targets), DEFAULT_CZ_FIDELITY))]
+            if e is not None and "CPHASE" in e.type:
+                gates += [GateInfo(operator="CPHASE", parameters=["theta"], arguments=["_", "_"],
+                                   duration=DEFAULT_CPHASE_DURATION,
+                                   fidelity=safely_get("fCPHASEs", tuple(e.targets), DEFAULT_CZ_FIDELITY))]
+            if e is not None and "XY" in e.type:
+                gates += [GateInfo(operator="XY", parameters=["theta"], arguments=["_", "_"],
+                                   duration=DEFAULT_XY_DURATION,
+                                   fidelity=safely_get("fXYs", tuple(e.targets), DEFAULT_CZ_FIDELITY))]
+            if e is not None and "WILDCARD" in e.type:
+                gates += [GateInfo(operator="_", parameters="_", arguments=["_", "_"],
+                                   duration=PERFECT_DURATION, fidelity=PERFECT_FIDELITY)]
+            return gates
+
+        qubits = [Qubit(id=q.id, type=None, dead=q.dead, gates=qubit_type_to_gates(q))
             for q in self._isa.qubits]
-        edges = [Edge(targets=e.targets, type=None, dead=e.dead, gates=[
-                    GateInfo(operator="CZ", parameters=[], arguments=["_", "_"],
-                             duration=DEFAULT_CZ_DURATION,
-                             fidelity=self.specs.fCZs()[tuple(e.targets)] or DEFAULT_CZ_FIDELITY)])
+        edges = [Edge(targets=e.targets, type=None, dead=e.dead, gates=edge_type_to_gates(e))
                  for e in self._isa.edges]
         return ISA(qubits, edges)
 
