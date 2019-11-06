@@ -20,7 +20,9 @@ measurements that are aimed at estimating the expectation value of some observab
 import logging
 import sys
 import warnings
-from typing import Union
+from typing import List, Optional, Union
+
+import numpy as np
 
 from pyquil.experiment._setting import ExperimentSetting
 
@@ -31,6 +33,25 @@ else:
 
 
 log = logging.getLogger(__name__)
+
+
+def bitstrings_to_expectations(
+        bitstrings: np.ndarray,
+        correlations: Optional[List[List[int]]] = None
+) -> np.ndarray:
+    expectations: np.ndarray = 1 - 2 * bitstrings
+
+    if correlations is None:
+        return expectations
+
+    region_size = len(expectations[0])
+
+    e = []
+    for c in correlations:
+        where = np.zeros(region_size, dtype=bool)
+        where[c] = True
+        e.append(np.prod(expectations[:, where], axis=1))
+    return np.stack(e, axis=-1)
 
 
 @dataclass(frozen=True)
