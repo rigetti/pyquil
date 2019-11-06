@@ -22,7 +22,7 @@ QubitSpecs = namedtuple("_QubitSpecs", ["id", "fRO", "f1QRB", "f1QRB_std_err",
                                         "f1Q_simultaneous_RB", "f1Q_simultaneous_RB_std_err", "T1",
                                         "T2", "fActiveReset"])
 EdgeSpecs = namedtuple("_QubitQubitSpecs", ["targets", "fBellState", "fCZ", "fCZ_std_err",
-                                            "fCPHASE"])
+                                            "fCPHASE", "fXY", "fISWAP"])
 _Specs = namedtuple("_Specs", ["qubits_specs", "edges_specs"])
 
 
@@ -134,6 +134,26 @@ class Specs(_Specs):
         :rtype: Dict[tuple(int, int), float]
         """
         return {tuple(es.targets): es.fCZ for es in self.edges_specs}
+
+    def fISWAPs(self):
+        """
+        Get a dictionary of ISWAP fidelities (normalized to unity) from the specs,
+        keyed by targets (qubit-qubit pairs).
+
+        :return: A dictionary of ISWAP fidelities, normalized to unity.
+        :rtype: Dict[tuple(int, int), float]
+        """
+        return {tuple(es.targets): es.fISWAP for es in self.edges_specs}
+
+    def fXYs(self):
+        """
+        Get a dictionary of XY/2 fidelities (normalized to unity) from the specs,
+        keyed by targets (qubit-qubit pairs).
+
+        :return: A dictionary of XY/2 fidelities, normalized to unity.
+        :rtype: Dict[tuple(int, int), float]
+        """
+        return {tuple(es.targets): es.fXYs for es in self.edges_specs}
 
     def fCZ_std_errs(self):
         """
