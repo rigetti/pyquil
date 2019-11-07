@@ -8,6 +8,9 @@ Changelog
 
 ### Improvements and Changes
 
+-   Added a `make typecheck` target to run mypy over a subset of the pyquil sources,
+    and enabled typechecks in gitlab CI (@appleby, gh-1098).
+
 ### Bugfixes
 
 [v2.13](https://github.com/rigetti/pyquil/compare/v2.12.0...v2.13.0) (November 7, 2019)
@@ -56,7 +59,7 @@ Changelog
 -   Type hints have been added to the `pyquil.gates`, `pyquil.quilatom`, and
     `pyquil.quilbase` modules (@appleby, gh-999).
 -   We now support Python 3.8 and it is tested in the CI (@karalekas, gh-1093).
-    
+
 ### Bugfixes
 
 -   Updated `examples/meyer_penny_game.py` with the correct path to the Meyer Penny

@@ -52,6 +52,15 @@ style:
     - make requirements
     - make style
 
+typecheck:
+  image: python:3.6
+  tags:
+    - github
+  script:
+    - make install
+    - make requirements
+    - make typecheck
+
 docs:
   image: python:3.6
   tags:
