@@ -66,20 +66,24 @@ def pauli_term_to_euler_memory_map(
         suffix_gamma: str = 'gamma',
 ) -> Dict[str, List[float]]:
     """
-    Given a ``PauliTerm``, create a memory map corresponding to a ZXZXZ-decomposed single-qubit
-    gate. The intent is that this gate is used to prepare an eigenstate of the ``PauliTerm`` or
-    measure in the eigenbasis of the ``PauliTerm``, which is more clearly discernible from the
-    calling functions ``pauli_term_to_preparation_memory_map`` (for state preparation) and
-    ``pauli_term_to_measurement_memory_map`` (for measuring in different bases). This function
-    is not really meant to be used by itself, but rather by the aforementioned calling functions.
+    Given a ``PauliTerm``, create a memory map corresponding to a collection of ZXZXZ-decomposed
+    single-qubit gates. The intent is that these gate are used to prepare an eigenstate of the
+    ``PauliTerm`` or measure in the eigenbasis of the ``PauliTerm``, which is more clearly
+    discernible from the calling functions ``pauli_term_to_preparation_memory_map`` (for state
+    preparation) and ``pauli_term_to_measurement_memory_map`` (for measuring in different bases).
+    This function is not really meant to be used by itself, but rather by the aforementioned
+    calling functions.
 
     :param term: The ``PauliTerm`` in question.
     :param prefix: The prefix for the declared memory region labels. For example, if the prefix
         is "preparation" and the alpha, beta, and gamma suffixes are left as default, the labels
         would be "preparation_alpha", "preparation_beta", and "preparation_gamma".
-    :param tuple_x: A tuple of Euler angles as (alpha, beta, gamma) when the ``PauliTerm`` is ``X``.
-    :param tuple_y: A tuple of Euler angles as (alpha, beta, gamma) when the ``PauliTerm`` is ``Y``.
-    :param tuple_z: A tuple of Euler angles as (alpha, beta, gamma) when the ``PauliTerm`` is ``Z``.
+    :param tuple_x: A tuple of Euler angles as (alpha, beta, gamma) to be used for the ``X``
+        operators in the ``PauliTerm``.
+    :param tuple_y: A tuple of Euler angles as (alpha, beta, gamma) to be used for the ``Y``
+        operators in the ``PauliTerm``.
+    :param tuple_z: A tuple of Euler angles as (alpha, beta, gamma) to be used for the ``Z``
+        and ``I`` operators in the ``PauliTerm``.
     :param suffix_alpha: The suffix for the "alpha" memory region label, which corresponds to the
         first (rightmost) ``Z`` in the ZXZXZ decomposition. Defaults to "alpha".
     :param suffix_beta: The suffix for the "beta" memory region label, which corresponds to the
@@ -132,8 +136,20 @@ def pauli_term_to_preparation_memory_map(
         label: str = 'preparation',
 ) -> Dict[str, List[float]]:
     """
-    Given a ``PauliTerm``, create a memory map corresponding to a ZXZXZ-decomposed single-qubit
-    gate that prepares the plus one eigenstate of the ``PauliTerm``.
+    Given a ``PauliTerm``, create a memory map corresponding to the ZXZXZ-decomposed single-qubit
+    gates that prepare the plus one eigenstate of the ``PauliTerm``. For example, if we have the
+    following program:
+
+        RZ(preparation_alpha[0]) 0
+        RZ(pi/2) 0
+        RZ(preparation_beta[0]) 0
+        RX(-pi/2) 0
+        RZ(preparation_gamma[0]) 0
+
+    We can prepare the ``|+>`` state (by default we start in the ``|0>`` state) by providing the
+    following memory map (which corresponds to ``RY(pi/2)``):
+
+        {'preparation_alpha': [0.0], 'preparation_beta': [pi/2], 'preparation_gamma': [0.0]}
 
     :param term: The ``PauliTerm`` in question.
     :param label: The prefix to provide to ``pauli_term_to_euler_memory_map``, for labeling the
@@ -152,8 +168,21 @@ def pauli_term_to_measurement_memory_map(
         label: str = 'measurement',
 ) -> Dict[str, List[float]]:
     """
-    Given a ``PauliTerm``, create a memory map corresponding to a ZXZXZ-decomposed single-qubit
-    gate that measures in the eigenbasis of the ``PauliTerm``.
+    Given a ``PauliTerm``, create a memory map corresponding to the ZXZXZ-decomposed single-qubit
+    gates that allow for measurement in the eigenbasis of the ``PauliTerm``. For example, if we
+    have the following program:
+
+        RZ(measurement_alpha[0]) 0
+        RZ(pi/2) 0
+        RZ(measurement_beta[0]) 0
+        RX(-pi/2) 0
+        RZ(measurement_gamma[0]) 0
+        MEASURE 0 ro[0]
+
+    We can measure in the ``Y`` basis (by default we measure in the ``Z`` basis) by providing the
+    following memory map (which corresponds to ``RX(pi/2)``):
+
+        {'measurement_alpha': [pi/2], 'measurement_beta': [pi/2], 'measurement_gamma': [pi/2]}
 
     :param term: The ``PauliTerm`` in question.
     :param label: The prefix to provide to ``pauli_term_to_euler_memory_map``, for labeling the
@@ -173,6 +202,21 @@ def build_symmetrization_memory_maps(
         label: str = 'symmetrization'
 ) -> List[Dict[str, List[float]]]:
     """
+    Build a list of memory maps to be used in a program that is trying to perform readout
+    symmetrization via parametric compilation. For example, if we have the following program:
+
+        RX(symmetrization[0]) 0
+        RX(symmetrization[1]) 1
+        MEASURE 0 ro[0]
+        MEASURE 1 ro[1]
+
+    We can perform exhaustive readout symmetrization on our two qubits by providing the four
+    following memory maps, and then appropriately flipping the resultant bitstrings:
+
+        {'symmetrization': [0.0, 0.0]} -> XOR results with [0,0]
+        {'symmetrization': [0.0, pi]}  -> XOR results with [0,1]
+        {'symmetrization': [pi, 0.0]}  -> XOR results with [1,0]
+        {'symmetrization': [pi, pi]}   -> XOR results with [1,1]
 
     :param memory_size: Size of the memory region to symmetrize.
     :param symmetrization_level: Level of symmetrization to perform. See ``SymmetrizationLevel``.

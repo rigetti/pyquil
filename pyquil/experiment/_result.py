@@ -40,9 +40,9 @@ def bitstrings_to_expectations(
         correlations: Optional[List[List[int]]] = None
 ) -> np.ndarray:
     """
-    Given a list of bitstrings (represented as lists of bits), map them to expectation values and
-    return the desired correlations. If no correlations are given, then just the 1 -> -1, 0 -> 1
-    mapping is performed.
+    Given a list of bitstrings (each of which is represented as a list of bits), map them to
+    expectation values and return the desired correlations. If no correlations are given, then just
+    the 1 -> -1, 0 -> 1 mapping is performed.
 
     :param bitstrings: List of bitstrings to map.
     :param correlations: Correlations to calculate. Defaults to None, which is equivalent to the
