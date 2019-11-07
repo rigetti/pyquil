@@ -1,8 +1,8 @@
 Changelog
 =========
 
-[v2.13](https://github.com/rigetti/pyquil/compare/v2.12.0...master) (in development)
------------------------------------------------------------------------------------
+[v2.13](https://github.com/rigetti/pyquil/compare/v2.12.0...v2.13.0) (November 7, 2019)
+---------------------------------------------------------------------------------------
 
 ### Announcements
 
@@ -18,7 +18,8 @@ Changelog
     pyQuil programs: `pyquil.latex.to_latex` generates human-readable LaTeX
     output expressing a `Program` as a circuit diagram, and
     `pyquil.latex.display` renders a `Program` as an `IPython.display.Image` for
-    inline viewing in Jupyter Notebooks (@kilimanjaro, gh-1074).
+    inline viewing in Jupyter Notebooks. Learn more about these features in the
+    [new example notebook](examples/LaTeXQuilCircuits.ipynb) (@kilimanjaro, gh-1074).
 
 ### Improvements and Changes
 
