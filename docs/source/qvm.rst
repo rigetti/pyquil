@@ -354,7 +354,7 @@ The above program would be written in this way to execute with ``run``:
     qc = get_qc("8q-qvm")
 
     p = Program()
-    ro = p.declare('ro', 'BIT', 1)
+    ro = p.declare('ro', 'BIT', 2)
     p += X(0)
     p += MEASURE(0, ro[0])
     p += MEASURE(1, ro[1])
