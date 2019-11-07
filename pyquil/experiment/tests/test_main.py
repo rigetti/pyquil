@@ -3,7 +3,7 @@ from pyquil.experiment._main import _remove_reset_from_program
 from pyquil.experiment._program import (parameterized_readout_symmetrization,
                                         parameterized_single_qubit_measurement_basis,
                                         parameterized_single_qubit_state_preparation)
-from pyquil.experiment import (ExperimentSetting,TensorProductState, TomographyExperiment, plusZ,
+from pyquil.experiment import (ExperimentSetting, TensorProductState, TomographyExperiment, plusZ,
                                read_json, to_json)
 from pyquil.gates import MEASURE, RESET, X, Y
 from pyquil.paulis import sI, sX, sY, sZ
@@ -120,7 +120,7 @@ def test_generate_experiment_program():
 
     # 2Q exhaustive symmetrization
     p = Program()
-    s = ExperimentSetting(in_state=sZ(0)*sZ(1), out_operator=sZ(0)*sZ(1))
+    s = ExperimentSetting(in_state=sZ(0) * sZ(1), out_operator=sZ(0) * sZ(1))
     e = TomographyExperiment(settings=[s], program=p)
     exp = e.generate_experiment_program()
     test_exp = Program()
@@ -171,7 +171,7 @@ def test_generate_experiment_program():
 
     # multi-qubit state preparation and measurement
     p = Program()
-    s = ExperimentSetting(in_state=sZ(0)*sY(1), out_operator=sZ(0)*sX(1))
+    s = ExperimentSetting(in_state=sZ(0) * sY(1), out_operator=sZ(0) * sX(1))
     e = TomographyExperiment(settings=[s], program=p, symmetrization=0)
     exp = e.generate_experiment_program()
     test_exp = Program()

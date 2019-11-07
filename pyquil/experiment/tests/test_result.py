@@ -40,4 +40,3 @@ def test_experiment_result():
         total_counts=100,
     )
     assert str(er) == 'X0_0→(1+0j)*Z0: 0.9 +- 0.05'
-
