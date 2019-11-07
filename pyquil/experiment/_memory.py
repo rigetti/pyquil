@@ -233,7 +233,7 @@ def build_symmetrization_memory_maps(
     assignments = itertools.product(np.array([0, np.pi]), repeat=memory_size)
     memory_maps = []
     for a in assignments:
-        memory_maps.append({f'{label}': a})
+        memory_maps.append({f'{label}': list(a)})
     return memory_maps
 
 

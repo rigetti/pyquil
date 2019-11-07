@@ -1,15 +1,11 @@
-import functools
-from operator import mul
-
-import numpy as np
-import pytest
-
 from pyquil import Program
 from pyquil.experiment._main import _remove_reset_from_program
-from pyquil.experiment import (ExperimentSetting, SIC0, SIC1, SIC2, SIC3, TensorProductState,
-                               TomographyExperiment, plusX, minusX, plusY, minusY, plusZ, minusZ,
-                               read_json, to_json, zeros_state, ExperimentResult)
-from pyquil.gates import RESET, X, Y
+from pyquil.experiment._program import (parameterized_readout_symmetrization,
+                                        parameterized_single_qubit_measurement_basis,
+                                        parameterized_single_qubit_state_preparation)
+from pyquil.experiment import (ExperimentSetting,TensorProductState, TomographyExperiment, plusZ,
+                               read_json, to_json)
+from pyquil.gates import MEASURE, RESET, X, Y
 from pyquil.paulis import sI, sX, sY, sZ
 
 
@@ -21,62 +17,6 @@ program:
    X 0
    Y 1
 """
-
-
-def _generate_random_states(n_qubits, n_terms):
-    oneq_states = [SIC0, SIC1, SIC2, SIC3, plusX, minusX, plusY, minusY, plusZ, minusZ]
-    all_s_inds = np.random.randint(len(oneq_states), size=(n_terms, n_qubits))
-    states = []
-    for s_inds in all_s_inds:
-        state = functools.reduce(mul, (oneq_states[pi](i) for i, pi in enumerate(s_inds)),
-                                 TensorProductState([]))
-        states += [state]
-    return states
-
-
-def _generate_random_paulis(n_qubits, n_terms):
-    paulis = [sI, sX, sY, sZ]
-    all_op_inds = np.random.randint(len(paulis), size=(n_terms, n_qubits))
-    operators = []
-    for op_inds in all_op_inds:
-        op = functools.reduce(mul, (paulis[pi](i) for i, pi in enumerate(op_inds)), sI(0))
-        op *= np.random.uniform(-1, 1)
-        operators += [op]
-    return operators
-
-
-def test_experiment_setting():
-    in_states = _generate_random_states(n_qubits=4, n_terms=7)
-    out_ops = _generate_random_paulis(n_qubits=4, n_terms=7)
-    for ist, oop in zip(in_states, out_ops):
-        expt = ExperimentSetting(ist, oop)
-        assert str(expt) == expt.serializable()
-        expt2 = ExperimentSetting.from_str(str(expt))
-        assert expt == expt2
-        assert expt2.in_state == ist
-        assert expt2.out_operator == oop
-
-
-@pytest.mark.filterwarnings("ignore:ExperimentSetting")
-def test_setting_no_in_back_compat():
-    out_ops = _generate_random_paulis(n_qubits=4, n_terms=7)
-    for oop in out_ops:
-        expt = ExperimentSetting(TensorProductState(), oop)
-        expt2 = ExperimentSetting.from_str(str(expt))
-        assert expt == expt2
-        assert expt2.in_operator == sI()
-        assert expt2.out_operator == oop
-
-
-@pytest.mark.filterwarnings("ignore:ExperimentSetting")
-def test_setting_no_in():
-    out_ops = _generate_random_paulis(n_qubits=4, n_terms=7)
-    for oop in out_ops:
-        expt = ExperimentSetting(zeros_state(oop.get_qubits()), oop)
-        expt2 = ExperimentSetting.from_str(str(expt))
-        assert expt == expt2
-        assert expt2.in_operator == functools.reduce(mul, [sZ(q) for q in oop.get_qubits()], sI())
-        assert expt2.out_operator == oop
 
 
 def test_tomo_experiment():
@@ -142,26 +82,6 @@ def test_experiment_deser(tmpdir):
     assert suite == suite2
 
 
-def test_experiment_result_compat():
-    er = ExperimentResult(
-        setting=ExperimentSetting(plusX(0), sZ(0)),
-        expectation=0.9,
-        std_err=0.05,
-        total_counts=100,
-    )
-    assert str(er) == 'X0_0→(1+0j)*Z0: 0.9 +- 0.05'
-
-
-def test_experiment_result():
-    er = ExperimentResult(
-        setting=ExperimentSetting(plusX(0), sZ(0)),
-        expectation=0.9,
-        std_err=0.05,
-        total_counts=100,
-    )
-    assert str(er) == 'X0_0→(1+0j)*Z0: 0.9 +- 0.05'
-
-
 DEFGATE_X = """
 DEFGATE XGATE:
     0, 1
@@ -184,3 +104,81 @@ def test_remove_reset_from_program():
     p += X(0)
     new_p = _remove_reset_from_program(p)
     assert '\n' + new_p.out() == TRIMMED_PROG
+
+
+def test_generate_experiment_program():
+    # simplest example
+    p = Program()
+    s = ExperimentSetting(in_state=sZ(0), out_operator=sZ(0))
+    e = TomographyExperiment(settings=[s], program=p, symmetrization=0)
+    exp = e.generate_experiment_program()
+    test_exp = Program()
+    ro = test_exp.declare('ro', 'BIT')
+    test_exp += MEASURE(0, ro[0])
+    assert exp.out() == test_exp.out()
+    assert exp.num_shots == 1
+
+    # 2Q exhaustive symmetrization
+    p = Program()
+    s = ExperimentSetting(in_state=sZ(0)*sZ(1), out_operator=sZ(0)*sZ(1))
+    e = TomographyExperiment(settings=[s], program=p)
+    exp = e.generate_experiment_program()
+    test_exp = Program()
+    test_exp += parameterized_readout_symmetrization(2)
+    ro = test_exp.declare('ro', 'BIT', 2)
+    test_exp += MEASURE(0, ro[0])
+    test_exp += MEASURE(1, ro[1])
+    assert exp.out() == test_exp.out()
+    assert exp.num_shots == 1
+
+    # add shots
+    p = Program()
+    p.wrap_in_numshots_loop(1000)
+    s = ExperimentSetting(in_state=sZ(0), out_operator=sZ(0))
+    e = TomographyExperiment(settings=[s], program=p, symmetrization=0)
+    exp = e.generate_experiment_program()
+    test_exp = Program()
+    ro = test_exp.declare('ro', 'BIT')
+    test_exp += MEASURE(0, ro[0])
+    assert exp.out() == test_exp.out()
+    assert exp.num_shots == 1000
+
+    # active reset
+    p = Program()
+    p += RESET()
+    s = ExperimentSetting(in_state=sZ(0), out_operator=sZ(0))
+    e = TomographyExperiment(settings=[s], program=p, symmetrization=0)
+    exp = e.generate_experiment_program()
+    test_exp = Program()
+    test_exp += RESET()
+    ro = test_exp.declare('ro', 'BIT')
+    test_exp += MEASURE(0, ro[0])
+    assert exp.out() == test_exp.out()
+    assert exp.num_shots == 1
+
+    # state preparation and measurement
+    p = Program()
+    s = ExperimentSetting(in_state=sY(0), out_operator=sX(0))
+    e = TomographyExperiment(settings=[s], program=p, symmetrization=0)
+    exp = e.generate_experiment_program()
+    test_exp = Program()
+    test_exp += parameterized_single_qubit_state_preparation(1)
+    test_exp += parameterized_single_qubit_measurement_basis(1)
+    ro = test_exp.declare('ro', 'BIT')
+    test_exp += MEASURE(0, ro[0])
+    assert exp.out() == test_exp.out()
+    assert exp.num_shots == 1
+
+    # multi-qubit state preparation and measurement
+    p = Program()
+    s = ExperimentSetting(in_state=sZ(0)*sY(1), out_operator=sZ(0)*sX(1))
+    e = TomographyExperiment(settings=[s], program=p, symmetrization=0)
+    exp = e.generate_experiment_program()
+    test_exp = Program()
+    test_exp += parameterized_single_qubit_state_preparation(2)
+    test_exp += parameterized_single_qubit_measurement_basis(2)
+    ro = test_exp.declare('ro', 'BIT', 2)
+    test_exp += MEASURE(0, ro[0])
+    test_exp += MEASURE(1, ro[1])
+    assert exp.out() == test_exp.out()
+    assert exp.num_shots == 1
