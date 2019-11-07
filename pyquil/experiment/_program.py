@@ -21,7 +21,7 @@ from pyquil.gates import MEASURE, RX, RZ
 
 
 def parameterized_euler_rotations(
-        qubits: set,
+        num_qubits: int,
         *,
         prefix: str,
         label_alpha: str = 'alpha',
@@ -43,22 +43,22 @@ def parameterized_euler_rotations(
 
     p = Program()
 
-    expectation_alpha = p.declare(alpha_label, 'REAL', len(qubits))
-    expectation_beta = p.declare(beta_label, 'REAL', len(qubits))
-    expectation_gamma = p.declare(gamma_label, 'REAL', len(qubits))
+    alpha = p.declare(alpha_label, 'REAL', num_qubits)
+    beta = p.declare(beta_label, 'REAL', num_qubits)
+    gamma = p.declare(gamma_label, 'REAL', num_qubits)
 
-    for idx, q in enumerate(qubits):
-        p += RZ(expectation_alpha[idx], q)
+    for idx, q in enumerate(range(num_qubits)):
+        p += RZ(alpha[idx], q)
         p += RX(np.pi / 2, q)
-        p += RZ(expectation_beta[idx], q)
+        p += RZ(beta[idx], q)
         p += RX(-np.pi / 2, q)
-        p += RZ(expectation_gamma[idx], q)
+        p += RZ(gamma[idx], q)
 
     return p
 
 
 def parameterized_single_qubit_state_preparation(
-        qubits: set,
+        num_qubits: int,
         label: str = 'preparation',
 ) -> Program:
     """
@@ -67,11 +67,11 @@ def parameterized_single_qubit_state_preparation(
     :param label:
     :return:
     """
-    return parameterized_euler_rotations(qubits, prefix=label)
+    return parameterized_euler_rotations(num_qubits, prefix=label)
 
 
 def parameterized_single_qubit_measurement_basis(
-        qubits: set,
+        num_qubits: int,
         label: str = 'measurement',
 ) -> Program:
     """
@@ -80,11 +80,11 @@ def parameterized_single_qubit_measurement_basis(
     :param label:
     :return:
     """
-    return parameterized_euler_rotations(qubits, prefix=label)
+    return parameterized_euler_rotations(num_qubits, prefix=label)
 
 
 def parameterized_readout_symmetrization(
-        qubits: set,
+        num_qubits: int,
         label: str = 'symmetrization',
 ) -> Program:
     """
@@ -94,20 +94,20 @@ def parameterized_readout_symmetrization(
     :return:
     """
     p = Program()
-    symmetrization = p.declare(f'{label}', 'REAL', len(qubits))
-    for idx, q in enumerate(qubits):
+    symmetrization = p.declare(f'{label}', 'REAL', num_qubits)
+    for idx, q in enumerate(range(num_qubits)):
         p += RX(symmetrization[idx], q)
     return p
 
 
-def measure_qubits(qubits: set) -> Program:
+def measure_qubits(num_qubits: int) -> Program:
     """
 
     :param qubits:
     :return:
     """
     p = Program()
-    ro = p.declare('ro', 'BIT', len(qubits))
-    for idx, q in enumerate(qubits):
+    ro = p.declare('ro', 'BIT', num_qubits)
+    for idx, q in enumerate(range(num_qubits)):
         p += MEASURE(q, ro[idx])
     return p

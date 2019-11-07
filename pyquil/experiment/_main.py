@@ -257,11 +257,13 @@ class TomographyExperiment:
 
         :return:
         """
-        qubits = set()
-
+        num_qubits = 0
         for settings in self:
-            for qubit in settings[0].out_operator.get_qubits():
-                qubits.add(qubit)
+            max_qubit = max(settings[0].out_operator.get_qubits())
+            if max_qubit > num_qubits:
+                num_qubits = max_qubit
+
+        num_qubits += 1  # set to max(qubits) + 1
 
         p = Program()
 
@@ -276,24 +278,24 @@ class TomographyExperiment:
             if ('X' in str(settings[0].in_state)) or ('Y' in str(settings[0].in_state)):
                 if f'DECLARE preparation_' in self.program.out():
                     raise ValueError(f'Memory "preparation_*" has been declared for this program.')
-                p += parameterized_single_qubit_state_preparation(qubits)
+                p += parameterized_single_qubit_state_preparation(num_qubits)
                 break
 
         for settings in self:
             if ('X' in str(settings[0].out_operator)) or ('Y' in str(settings[0].out_operator)):
                 if f'DECLARE measurement_' in self.program.out():
                     raise ValueError(f'Memory "measurement_*" has been declared for this program.')
-                p += parameterized_single_qubit_measurement_basis(qubits)
+                p += parameterized_single_qubit_measurement_basis(num_qubits)
                 break
 
         if self.symmetrization != 0:
             if f'DECLARE symmetrization' in self.program.out():
                 raise ValueError(f'Memory "symmetrization" has been declared for this program.')
-            p += parameterized_readout_symmetrization(qubits)
+            p += parameterized_readout_symmetrization(num_qubits)
 
         if 'DECLARE ro' in self.program.out():
             raise ValueError('Memory "ro" has already been declared for this program.')
-        p += measure_qubits(qubits)
+        p += measure_qubits(num_qubits)
 
         p.wrap_in_numshots_loop(self.shots)
 
