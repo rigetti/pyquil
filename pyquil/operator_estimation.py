@@ -754,8 +754,13 @@ def merge_disjoint_experiments(experiments: List[TomographyExperiment],
                     for simult_settings in expt
                     for setting in simult_settings]
     merged_program = sum([expt.program for expt in experiments], Program())
+    merged_program.wrap_in_numshots_loop(max([expt.program.num_shots for expt in experiments]))
 
-    merged_expt = TomographyExperiment(all_settings, merged_program)
+    symm_levels = [expt.symmetrization for expt in experiments]
+    symm_level = max(symm_levels)
+    if SymmetrizationLevel.EXHAUSTIVE in symm_levels:
+        symm_level = SymmetrizationLevel.EXHAUSTIVE
+    merged_expt = TomographyExperiment(all_settings, merged_program, symmetrization=symm_level)
 
     if group_merged_settings:
         merged_expt = group_experiments(merged_expt)
