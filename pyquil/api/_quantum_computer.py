@@ -232,7 +232,6 @@ class QuantumComputer:
             results.append(result)
         return results
 
-
     @_record_call
     def run_symmetrized_readout(self, program: Program, trials: int, symm_type: int = 3,
                                     meas_qubits: List[int] = None) -> np.ndarray:
