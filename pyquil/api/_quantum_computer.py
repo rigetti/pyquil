@@ -137,10 +137,51 @@ class QuantumComputer:
             memory_map: Optional[Dict[str, List[Union[int, float]]]] = None
     ) -> List[ExperimentResult]:
         """
+        Run a ``TomographyExperiment`` on a QVM or QPU backend. A ``TomographyExperiment``
+        is composed of:
 
-        :param experiment:
-        :param memory_map:
-        :return:
+            - A main ``Program`` body (or ansatz).
+            - A collection of ``ExperimentSetting`` objects, each of which encodes a particular
+              state preparation and measurement.
+            - A ``SymmetrizationLevel`` for enacting different readout symmetrization strategies.
+            - A number of shots to collect for each (unsymmetrized) ``ExperimentSetting``.
+
+        Because the main ``Program`` is static from run to run of a ``TomographyExperiment``, we
+        can leverage our platform's Parametric Compilation feature. This means that the ``Program``
+        can be compiled only once, and the various alterations due to state preparation,
+        measurement, and symmetrization can all be realized at runtime by providing a
+        ``memory_map``. Thus, the steps in the ``experiment`` method are as follows:
+
+            - Generate a parameterized program corresponding to the ``TomographyExperiment``
+              (see the ``TomographyExperiment.generate_experiment_program()`` method for more
+              details on how it changes the main body program to support state preparation,
+              measurement, and symmetrization).
+            - Compile the parameterized program into a parametric (binary) executable, which
+              contains declared variables that can be assigned at runtime.
+            - For each ``ExperimentSetting`` in the ``TomographyExperiment``, we repeat the
+              following:
+
+                - Build a collection of memory maps that correspond to the various state
+                  preparation, measurement, and symmetrization specifications.
+                - Run the parametric executable on the QVM or QPU backend, providing the memory map
+                  to assign variables at runtime.
+                - Extract the desired statistics from the classified bitstrings that are produced
+                  by the QVM or QPU backend, and package them in an ``ExperimentResult`` object.
+
+            - Return the list of ``ExperimentResults``.
+
+        This method is extremely useful shorthand for running near-term applications and algorithms,
+        which often have this ansatz + settings structure.
+
+        :param experiment: The ``TomographyExperiment`` to run.
+        :param memory_map: A dictionary mapping declared variables / parameters to their values.
+            The values are a list of floats or integers. Each float or integer corresponds to
+            a particular classical memory register. The memory map provided to the ``experiment``
+            method corresponds to variables in the main body program that we would like to change
+            at runtime (e.g. the variational parameters provided to the ansatz of the variational
+            quantum eigensolver).
+        :return: A list of ``ExperimentResult`` objects containing the statistics gathered
+            according to the specifications of the ``TomographyExperiment``.
         """
         experiment_program = experiment.generate_experiment_program()
         executable = self.compile(experiment_program)

@@ -24,22 +24,44 @@ def parameterized_euler_rotations(
         num_qubits: int,
         *,
         prefix: str,
-        label_alpha: str = 'alpha',
-        label_beta: str = 'beta',
-        label_gamma: str = 'gamma',
+        suffix_alpha: str = 'alpha',
+        suffix_beta: str = 'beta',
+        suffix_gamma: str = 'gamma',
 ) -> Program:
     """
+    Given a number of qubits (n), build a ``Program`` containing a ZXZXZ-decomposed gate on each
+    qubit, where each ``RZ`` is parameterized by declared values with labels given by the "prefix"
+    and "suffix" arguments. Put more plainly, the resulting Quil program on n qubits is:
 
-    :param qubits:
-    :param prefix:
-    :param label_alpha:
-    :param label_beta:
-    :param label_gamma:
-    :return:
+        RZ(alpha_label[0]) 0
+        RZ(pi/2) 0
+        RZ(beta_label[0]) 0
+        RX(-pi/2) 0
+        RZ(gamma_label[0]) 0
+
+        ...
+
+        RZ(alpha_label[n-1]) n-1
+        RZ(pi/2) n-1
+        RZ(beta_label[0]) n-1
+        RX(-pi/2) n-1
+        RZ(gamma_label[n-1]) n-1
+
+    :param num_qubits: The number of qubits (n).
+    :param prefix: The prefix for the declared memory region labels. For example, if the prefix
+        is "preparation" and the alpha, beta, and gamma suffixes are left as default, the labels
+        would be "preparation_alpha", "preparation_beta", and "preparation_gamma".
+    :param suffix_alpha: The suffix for the "alpha" memory region label, which corresponds to the
+        first (rightmost) ``Z`` in the ZXZXZ decomposition. Defaults to "alpha".
+    :param suffix_beta: The suffix for the "beta" memory region label, which corresponds to the
+        second (middle) ``Z`` in the ZXZXZ decomposition. Defaults to "beta".
+    :param suffix_gamma: The suffix for the "gamma" memory region label, which corresponds to the
+        last (leftmost) ``Z`` in the ZXZXZ decomposition. Defaults to "gamma".
+    :return: A ``Program`` containing a 3 parameterized ``RZ``s and 2 fixed ``RX``s per qubit.
     """
-    alpha_label = f'{prefix}_{label_alpha}'
-    beta_label = f'{prefix}_{label_beta}'
-    gamma_label = f'{prefix}_{label_gamma}'
+    alpha_label = f'{prefix}_{suffix_alpha}'
+    beta_label = f'{prefix}_{suffix_beta}'
+    gamma_label = f'{prefix}_{suffix_gamma}'
 
     p = Program()
 
@@ -62,10 +84,12 @@ def parameterized_single_qubit_state_preparation(
         label: str = 'preparation',
 ) -> Program:
     """
+    Given a number of qubits, produce a program as in ``parameterized_euler_rotations`` where each
+    memory region is prefixed by ``label``, where label defaults to "preparation".
 
-    :param qubits:
-    :param label:
-    :return:
+    :param num_qubits: The number of qubits (n).
+    :param label: The prefix to use when declaring memory in ``parameterized_euler_rotations``.
+    :return: A parameterized ``Program`` that can be used to prepare a product state.
     """
     return parameterized_euler_rotations(num_qubits, prefix=label)
 
@@ -75,10 +99,12 @@ def parameterized_single_qubit_measurement_basis(
         label: str = 'measurement',
 ) -> Program:
     """
+    Given a number of qubits, produce a program as in ``parameterized_euler_rotations`` where each
+    memory region is prefixed by ``label``, where label defaults to "measurement".
 
-    :param qubits:
-    :param label:
-    :return:
+    :param num_qubits: The number of qubits (n).
+    :param label: The prefix to use when declaring memory in ``parameterized_euler_rotations``.
+    :return: A parameterized ``Program`` that can be used to measure in a multi-qubit Pauli basis.
     """
     return parameterized_euler_rotations(num_qubits, prefix=label)
 
@@ -88,10 +114,13 @@ def parameterized_readout_symmetrization(
         label: str = 'symmetrization',
 ) -> Program:
     """
+    Given a number of qubits (n), produce a ``Program`` with an ``RX`` instruction on qubits
+    0 through n-1, parameterized by memory regions label[0] through label[n-1], where "label"
+    defaults to "symmetrization".
 
-    :param qubits:
-    :param label:
-    :return:
+    :param num_qubits: The number of qubits (n).
+    :param label: The name of the declared memory region.
+    :return: A ``Program`` with parameterized ``RX`` gates on n qubits.
     """
     p = Program()
     symmetrization = p.declare(f'{label}', 'REAL', num_qubits)
@@ -102,9 +131,11 @@ def parameterized_readout_symmetrization(
 
 def measure_qubits(num_qubits: int) -> Program:
     """
+    Given a number of qubits (n), produce a ``Program`` with a ``MEASURE`` instruction on qubits
+    0 through n-1, with corresponding readout registers ro[0] through ro[n-1].
 
-    :param qubits:
-    :return:
+    :param num_qubits: The number of qubits (n).
+    :return: A ``Program`` that measures n qubits.
     """
     p = Program()
     ro = p.declare('ro', 'BIT', num_qubits)

@@ -254,8 +254,19 @@ class TomographyExperiment:
 
     def generate_experiment_program(self):
         """
+        Generate a parameterized program containing the main body program along with some additions
+        to support the various state preparation, measurement, and symmetrization specifications of
+        this ``TomographyExperiment``.
 
-        :return:
+        State preparation and measurement are achieved via ZXZXZ-decomposed single-qubit gates,
+        where the angles of each ``RZ`` rotation are declared parameters that can be assigned at
+        runtime. Symmetrization is achieved by putting an ``RX`` gate (also parameterized by a
+        declared value) before each ``MEASURE`` operation. In addition, a ``RESET`` operation
+        is prepended to the ``Program`` if the experiment has active qubit reset enabled. Finally,
+        each qubit specified in the settings is measured, and the number of shots is added.
+
+        :return: Parameterized ``Program`` that is capable of collecting statistics for every
+            ``ExperimentSetting`` in this ``TomographyExperiment``.
         """
         num_qubits = 0
         for settings in self:

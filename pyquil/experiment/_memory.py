@@ -24,18 +24,20 @@ from pyquil.paulis import PauliTerm
 
 def euler_angles_RX(theta: float) -> Tuple[float, float, float]:
     """
+    A tuple of angles which corresponds to a ZXZXZ-decomposed ``RX`` gate.
 
-    :param theta:
-    :return:
+    :param theta: The angle parameter for the ``RX`` gate.
+    :return: The corresponding Euler angles for that gate.
     """
     return (np.pi / 2, theta, np.pi / 2)
 
 
 def euler_angles_RY(theta: float) -> Tuple[float, float, float]:
     """
+    A tuple of angles which corresponds to a ZXZXZ-decomposed ``RY`` gate.
 
-    :param theta:
-    :return:
+    :param theta: The angle parameter for the ``RY`` gate.
+    :return: The corresponding Euler angles for that gate.
     """
     return (0.0, theta, 0.0)
 
@@ -59,29 +61,41 @@ def pauli_term_to_euler_memory_map(
         tuple_x: Tuple[float, float, float],
         tuple_y: Tuple[float, float, float],
         tuple_z: Tuple[float, float, float],
-        label_alpha: str = 'alpha',
-        label_beta: str = 'beta',
-        label_gamma: str = 'gamma',
+        suffix_alpha: str = 'alpha',
+        suffix_beta: str = 'beta',
+        suffix_gamma: str = 'gamma',
 ) -> Dict[str, List[float]]:
     """
+    Given a ``PauliTerm``, create a memory map corresponding to a ZXZXZ-decomposed single-qubit
+    gate. The intent is that this gate is used to prepare an eigenstate of the ``PauliTerm`` or
+    measure in the eigenbasis of the ``PauliTerm``, which is more clearly discernible from the
+    calling functions ``pauli_term_to_preparation_memory_map`` (for state preparation) and
+    ``pauli_term_to_measurement_memory_map`` (for measuring in different bases). This function
+    is not really meant to be used by itself, but rather by the aforementioned calling functions.
 
-    :param term:
-    :param prefix:
-    :param tuple_x:
-    :param tuple_y:
-    :param tuple_z:
-    :param label_alpha:
-    :param label_beta:
-    :param label_gamma:
-    :return:
+    :param term: The ``PauliTerm`` in question.
+    :param prefix: The prefix for the declared memory region labels. For example, if the prefix
+        is "preparation" and the alpha, beta, and gamma suffixes are left as default, the labels
+        would be "preparation_alpha", "preparation_beta", and "preparation_gamma".
+    :param tuple_x: A tuple of Euler angles as (alpha, beta, gamma) when the ``PauliTerm`` is ``X``.
+    :param tuple_y: A tuple of Euler angles as (alpha, beta, gamma) when the ``PauliTerm`` is ``Y``.
+    :param tuple_z: A tuple of Euler angles as (alpha, beta, gamma) when the ``PauliTerm`` is ``Z``.
+    :param suffix_alpha: The suffix for the "alpha" memory region label, which corresponds to the
+        first (rightmost) ``Z`` in the ZXZXZ decomposition. Defaults to "alpha".
+    :param suffix_beta: The suffix for the "beta" memory region label, which corresponds to the
+        second (middle) ``Z`` in the ZXZXZ decomposition. Defaults to "beta".
+    :param suffix_gamma: The suffix for the "gamma" memory region label, which corresponds to the
+        last (leftmost) ``Z`` in the ZXZXZ decomposition. Defaults to "gamma".
+    :return: Memory map dictionary containing three entries (three labels as keys and three lists
+        of angles as values).
     """
     # no need to provide a memory map when no rotations are necessary
     if ('X' not in term.pauli_string()) and ('Y' not in term.pauli_string()):
         return {}
 
-    alpha_label = f'{prefix}_{label_alpha}'
-    beta_label = f'{prefix}_{label_beta}'
-    gamma_label = f'{prefix}_{label_gamma}'
+    alpha_label = f'{prefix}_{suffix_alpha}'
+    beta_label = f'{prefix}_{suffix_beta}'
+    gamma_label = f'{prefix}_{suffix_gamma}'
 
     # assume the pauli indices are equivalent to the memory region
     memory_size = max(term.get_qubits()) + 1
@@ -118,10 +132,13 @@ def pauli_term_to_preparation_memory_map(
         label: str = 'preparation',
 ) -> Dict[str, List[float]]:
     """
+    Given a ``PauliTerm``, create a memory map corresponding to a ZXZXZ-decomposed single-qubit
+    gate that prepares the plus one eigenstate of the ``PauliTerm``.
 
-    :param term:
-    :param label:
-    :return:
+    :param term: The ``PauliTerm`` in question.
+    :param label: The prefix to provide to ``pauli_term_to_euler_memory_map``, for labeling the
+        declared memory regions. Defaults to "preparation".
+    :return: Memory map for preparing the desired state.
     """
     return pauli_term_to_euler_memory_map(term,
                                           prefix=label,
@@ -135,10 +152,13 @@ def pauli_term_to_measurement_memory_map(
         label: str = 'measurement',
 ) -> Dict[str, List[float]]:
     """
+    Given a ``PauliTerm``, create a memory map corresponding to a ZXZXZ-decomposed single-qubit
+    gate that measures in the eigenbasis of the ``PauliTerm``.
 
-    :param term:
-    :param label:
-    :return:
+    :param term: The ``PauliTerm`` in question.
+    :param label: The prefix to provide to ``pauli_term_to_euler_memory_map``, for labeling the
+        declared memory regions. Defaults to "measurement".
+    :return: Memory map for measuring in the desired basis.
     """
     return pauli_term_to_euler_memory_map(term,
                                           prefix=label,
@@ -154,10 +174,10 @@ def build_symmetrization_memory_maps(
 ) -> List[Dict[str, List[float]]]:
     """
 
-    :param size:
-    :param level:
-    :param label:
-    :return:
+    :param memory_size: Size of the memory region to symmetrize.
+    :param symmetrization_level: Level of symmetrization to perform. See ``SymmetrizationLevel``.
+    :param label: Name of the declared memory region. Defaults to "symmetrization".
+    :return: List of memory maps that performs the desired level of symmetrization.
     """
     if symmetrization_level == 0:
         return [{}]
@@ -178,10 +198,15 @@ def merge_memory_map_lists(
         mml2: List[Dict[str, List[float]]]
 ) -> List[Dict[str, List[float]]]:
     """
+    Given two lists of memory maps, produce the "cartesian product" of the memory maps:
 
-    :param mml1:
-    :param mml2:
-    :return:
+        merge_memory_map_lists([{a: 1}, {a: 2}], [{b: 3, c: 4}, {b: 5, c: 6}])
+
+        -> [{a: 1, b: 3, c: 4}, {a: 1, b: 5, c: 6}, {a: 2, b: 3, c: 4}, {a: 2, b: 5, c: 6}]
+
+    :param mml1: The first memory map list.
+    :param mml2: The second memory map list.
+    :return: A list of the merged memory maps.
     """
     if not mml1:
         return mml2
