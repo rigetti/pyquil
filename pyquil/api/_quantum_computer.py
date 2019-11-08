@@ -224,7 +224,7 @@ class QuantumComputer:
 
             # TODO: add calibration and correction
             mean = np.mean(expectations).item()
-            std_err = np.std(expectations, axis=0, ddof=1) / np.sqrt(len(expectations))
+            std_err = np.std(expectations, axis=0, ddof=1) / np.sqrt(len(expectations)).item()
             result = ExperimentResult(setting=setting,
                                       expectation=mean,
                                       std_err=std_err,
