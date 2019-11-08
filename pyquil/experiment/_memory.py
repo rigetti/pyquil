@@ -29,7 +29,7 @@ def euler_angles_RX(theta: float) -> Tuple[float, float, float]:
     :param theta: The angle parameter for the ``RX`` gate.
     :return: The corresponding Euler angles for that gate.
     """
-    return (np.pi / 2, theta, np.pi / 2)
+    return (np.pi / 2, theta, -np.pi / 2)
 
 
 def euler_angles_RY(theta: float) -> Tuple[float, float, float]:
