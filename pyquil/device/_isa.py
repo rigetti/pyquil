@@ -189,7 +189,7 @@ def gates_in_isa(isa):
         if "XY" in edge_type:
             gates.append(Gate("XY", [THETA], targets))
             gates.append(Gate("XY", [THETA], targets[::-1]))
-        if e.type in ["WILDCARD"]:
+        if "WILDCARD" in e.type:
             gates.append(Gate("_", "_", targets))
             gates.append(Gate("_", "_", targets[::-1]))
         else:  # pragma no coverage

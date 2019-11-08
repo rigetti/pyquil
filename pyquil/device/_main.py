@@ -138,7 +138,7 @@ class Device(AbstractDevice):
                 return default
 
             array = getter()
-            if index < len(array):
+            if (isinstance(index, int) and index < len(array)) or index in array:
                 return array[index]
             else:
                 return default
