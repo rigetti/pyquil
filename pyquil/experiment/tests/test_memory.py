@@ -34,4 +34,4 @@ def test_pauli_term_to_preparation_memory_map():
 def test_pauli_term_to_measurement_memory_map():
     assert pauli_term_to_measurement_memory_map(sY(1)) == {'measurement_alpha': [0.0, np.pi / 2],
                                                            'measurement_beta': [0.0, np.pi / 2],
-                                                           'measurement_gamma': [0.0, np.pi / 2]}
+                                                           'measurement_gamma': [0.0, -np.pi / 2]}
