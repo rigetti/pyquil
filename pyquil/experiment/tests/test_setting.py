@@ -74,4 +74,4 @@ def test_build_experiment_setting_memory_map():
                           'preparation_gamma': [0.0],
                           'measurement_alpha': [0.0, np.pi / 2],
                           'measurement_beta': [0.0, np.pi / 2],
-                          'measurement_gamma': [0.0, np.pi / 2]}
+                          'measurement_gamma': [0.0, -np.pi / 2]}
