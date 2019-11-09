@@ -138,10 +138,7 @@ class Device(AbstractDevice):
                 return default
 
             array = getter()
-            if index < len(array):
-                return array[index]
-            else:
-                return default
+            return array.get(index, default)
 
         def qubit_type_to_gates(q):
             gates = [MeasureInfo(operator="MEASURE", qubit=q.id, target="_",

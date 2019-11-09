@@ -13,21 +13,18 @@
 #    See the License for the specific language governing permissions and
 #    limitations under the License.
 ##############################################################################
+from typing import Callable, Mapping, Optional, Tuple, Union
 from warnings import warn
-from typing import Any, Callable, Mapping, Optional, Tuple, Union, overload
 
-from pyquil.quilatom import (Addr, Expression, MemoryReference, MemoryReferenceDesignator,
-                             Parameter, ParameterDesignator, Qubit, QubitDesignator,
-                             QubitPlaceholder, unpack_classical_reg, unpack_qubit)
+from pyquil.quilatom import (Addr, MemoryReference, MemoryReferenceDesignator, ParameterDesignator,
+                             QubitDesignator, unpack_classical_reg,  unpack_qubit)
 from pyquil.quilbase import (AbstractInstruction, Gate, Halt, Reset, ResetQubit, Measurement, Nop,
-                             Wait,
-                             ClassicalNeg, ClassicalNot,
-                             ClassicalAnd, ClassicalInclusiveOr, ClassicalExclusiveOr,
-                             ClassicalEqual, ClassicalGreaterEqual, ClassicalGreaterThan,
-                             ClassicalLessEqual, ClassicalLessThan,
-                             ClassicalMove, ClassicalExchange, ClassicalConvert,
-                             ClassicalLoad, ClassicalStore,
-                             ClassicalAdd, ClassicalSub, ClassicalMul, ClassicalDiv)
+                             Wait, ClassicalNeg, ClassicalNot, ClassicalAnd,
+                             ClassicalInclusiveOr, ClassicalExclusiveOr, ClassicalEqual,
+                             ClassicalGreaterEqual, ClassicalGreaterThan, ClassicalLessEqual,
+                             ClassicalLessThan, ClassicalMove, ClassicalExchange, ClassicalConvert,
+                             ClassicalLoad, ClassicalStore, ClassicalAdd, ClassicalSub,
+                             ClassicalMul, ClassicalDiv)
 
 
 def unpack_reg_val_pair(
@@ -422,6 +419,23 @@ def ISWAP(q1: QubitDesignator, q2: QubitDesignator) -> Gate:
     :returns: A Gate object.
     """
     return Gate(name="ISWAP", params=[], qubits=[unpack_qubit(q) for q in (q1, q2)])
+
+
+def XY(angle: ParameterDesignator, q1: QubitDesignator, q2: QubitDesignator) -> Gate:
+    """Produces a parameterized iSWAP gate::
+
+        XY(phi) = [[1, 0,               0,               0],
+                   [0, cos(phi/2),      1j * sin(phi/2), 0],
+                   [0, 1j * sin(phi/2), cos(phi/2),      0],
+                   [0, 0,               0,               1]]
+
+
+    :param angle: The angle of the phase to apply to the swapped states in radians.
+    :param q1: Qubit 1.
+    :param q2: Qubit 2.
+    :returns: A Gate object.
+    """
+    return Gate(name="XY", params=[angle], qubits=[unpack_qubit(q) for q in (q1, q2)])
 
 
 def PSWAP(angle: ParameterDesignator, q1: QubitDesignator, q2: QubitDesignator) -> Gate:
@@ -837,7 +851,8 @@ QUANTUM_GATES: Mapping[str, Callable[..., Gate]] = {
     'SWAP': SWAP,
     'CSWAP': CSWAP,
     'ISWAP': ISWAP,
-    'PSWAP': PSWAP}
+    'PSWAP': PSWAP,
+    'XY': XY}
 """
 Dictionary of quantum gate functions keyed by gate names.
 """

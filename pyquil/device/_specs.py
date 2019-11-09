@@ -238,7 +238,9 @@ class Specs(_Specs):
                     'fBellState': es.fBellState,
                     'fCZ': es.fCZ,
                     'fCZ_std_err': es.fCZ_std_err,
-                    'fCPHASE': es.fCPHASE
+                    'fCPHASE': es.fCPHASE,
+                    'fXY': es.fXYs,
+                    'fISWAP': es.fISWAP
                 } for es in self.edges_specs
             }
         }
@@ -269,7 +271,9 @@ class Specs(_Specs):
                                           fBellState=especs.get('fBellState'),
                                           fCZ=especs.get('fCZ'),
                                           fCZ_std_err=especs.get('fCZ_std_err'),
-                                          fCPHASE=especs.get('fCPHASE'))
+                                          fCPHASE=especs.get('fCPHASE'),
+                                          fXY=especs.get('fXY'),
+                                          fISWAP=especs.get('fISWAP'))
                                 for e, especs in d["2Q"].items()],
                                key=lambda edge_specs: edge_specs.targets)
         )
