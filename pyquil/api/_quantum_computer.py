@@ -152,23 +152,27 @@ class QuantumComputer:
         measurement, and symmetrization can all be realized at runtime by providing a
         ``memory_map``. Thus, the steps in the ``experiment`` method are as follows:
 
-            - Generate a parameterized program corresponding to the ``TomographyExperiment``
-              (see the ``TomographyExperiment.generate_experiment_program()`` method for more
-              details on how it changes the main body program to support state preparation,
-              measurement, and symmetrization).
-            - Compile the parameterized program into a parametric (binary) executable, which
-              contains declared variables that can be assigned at runtime.
-            - For each ``ExperimentSetting`` in the ``TomographyExperiment``, we repeat the
-              following:
+            1. Check to see if this ``TomographyExperiment`` has already been loaded into this
+               ``QuantumComputer`` object. If so, skip to step 2. Otherwise, do the following:
 
-                - Build a collection of memory maps that correspond to the various state
-                  preparation, measurement, and symmetrization specifications.
-                - Run the parametric executable on the QVM or QPU backend, providing the memory map
-                  to assign variables at runtime.
-                - Extract the desired statistics from the classified bitstrings that are produced
-                  by the QVM or QPU backend, and package them in an ``ExperimentResult`` object.
+                a. Generate a parameterized program corresponding to the ``TomographyExperiment``
+                   (see the ``TomographyExperiment.generate_experiment_program()`` method for more
+                   details on how it changes the main body program to support state preparation,
+                   measurement, and symmetrization).
+                b. Compile the parameterized program into a parametric (binary) executable, which
+                   contains declared variables that can be assigned at runtime.
 
-            - Return the list of ``ExperimentResults``.
+            2. For each ``ExperimentSetting`` in the ``TomographyExperiment``, we repeat the
+               following:
+
+                a. Build a collection of memory maps that correspond to the various state
+                   preparation, measurement, and symmetrization specifications.
+                b. Run the parametric executable on the QVM or QPU backend, providing the memory map
+                   to assign variables at runtime.
+                c. Extract the desired statistics from the classified bitstrings that are produced
+                   by the QVM or QPU backend, and package them in an ``ExperimentResult`` object.
+
+            3. Return the list of ``ExperimentResults``.
 
         This method is extremely useful shorthand for running near-term applications and algorithms,
         which often have this ansatz + settings structure.
@@ -183,10 +187,13 @@ class QuantumComputer:
         :return: A list of ``ExperimentResult`` objects containing the statistics gathered
             according to the specifications of the ``TomographyExperiment``.
         """
-        experiment_program = experiment.generate_experiment_program()
-        executable = self.compile(experiment_program)
-
-        self.qam.load(executable)
+        executable = self.qam._executable
+        # if this experiment was the last experiment run on this QuantumComputer,
+        # then use the executable that is already loaded into the object
+        if self.qam._experiment != experiment:
+            experiment_program = experiment.generate_experiment_program()
+            executable = self.compile(experiment_program)
+            self.qam._experiment = experiment
 
         if memory_map is None:
             memory_map = {}
