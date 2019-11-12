@@ -177,20 +177,25 @@ def gates_in_isa(isa):
         if "CZ" in edge_type:
             gates.append(Gate("CZ", [], targets))
             gates.append(Gate("CZ", [], targets[::-1]))
+            continue
         if "ISWAP" in edge_type:
             gates.append(Gate("ISWAP", [], targets))
             gates.append(Gate("ISWAP", [], targets[::-1]))
+            continue
         if "CPHASE" in edge_type:
             gates.append(Gate("CPHASE", [THETA], targets))
             gates.append(Gate("CPHASE", [THETA], targets[::-1]))
+            continue
         if "XY" in edge_type:
             gates.append(Gate("XY", [THETA], targets))
             gates.append(Gate("XY", [THETA], targets[::-1]))
+            continue
         if "WILDCARD" in e.type:
             gates.append(Gate("_", "_", targets))
             gates.append(Gate("_", "_", targets[::-1]))
-        else:  # pragma no coverage
-            raise ValueError("Unknown edge type: {}".format(e.type))
+            continue
+
+        raise ValueError("Unknown edge type: {}".format(e.type))
     return gates
 
 
