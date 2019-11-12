@@ -188,7 +188,7 @@ class Device(AbstractDevice):
             return gates
 
         qubits = [Qubit(id=q.id, type=None, dead=q.dead, gates=qubit_type_to_gates(q))
-            for q in self._isa.qubits]
+                  for q in self._isa.qubits]
         edges = [Edge(targets=e.targets, type=None, dead=e.dead, gates=edge_type_to_gates(e))
                  for e in self._isa.edges]
         return ISA(qubits, edges)
