@@ -445,10 +445,10 @@ def PSWAP(angle: ParameterDesignator, q1: QubitDesignator, q2: QubitDesignator) 
 def XY(angle: ParameterDesignator, q1: QubitDesignator, q2: QubitDesignator) -> Gate:
     """Produces a parameterized ISWAP gate::
 
-        XY(phi) = [[1,             0,             0, 0],
-                   [0,      cos(phi), 1j * sin(phi), 0],
-                   [0, 1j * sin(phi),      cos(phi), 0],
-                   [0,             0,             0, 1]
+        XY(phi) = [[1,               0,               0, 0],
+                   [0,      cos(phi/2), 1j * sin(phi/2), 0],
+                   [0, 1j * sin(phi/2),      cos(phi/2), 0],
+                   [0,               0,               0, 1]
 
     :param angle: The angle of the rotation to apply to the population 1 subspace.
     :param q1: Qubit 1.
