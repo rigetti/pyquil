@@ -180,9 +180,6 @@ def gates_in_isa(isa):
         if "ISWAP" in edge_type:
             gates.append(Gate("ISWAP", [], targets))
             gates.append(Gate("ISWAP", [], targets[::-1]))
-        if "XYhalves" in edge_type:
-            gates.append(Gate("XY", [np.pi/2], targets))
-            gates.append(Gate("XY", [np.pi/2], targets[::-1]))
         if "CPHASE" in edge_type:
             gates.append(Gate("CPHASE", [THETA], targets))
             gates.append(Gate("CPHASE", [THETA], targets[::-1]))

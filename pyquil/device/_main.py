@@ -173,19 +173,15 @@ class Device(AbstractDevice):
             if e is not None and "ISWAP" in e.type:
                 gates += [GateInfo(operator="ISWAP", parameters=[], arguments=["_", "_"],
                                    duration=DEFAULT_ISWAP_DURATION,
-                                   fidelity=safely_get("fISWAPs", tuple(e.targets), DEFAULT_CZ_FIDELITY))]
-            if e is not None and "XYhalves" in e.type:
-                gates += [GateInfo(operator="XY", parameters=[np.pi/2], arguments=["_", "_"],
-                                   duration=DEFAULT_XY_DURATION,
-                                   fidelity=safely_get("fXYs", tuple(e.targets), DEFAULT_CZ_FIDELITY))]
+                                   fidelity=safely_get("fISWAPs", tuple(e.targets), DEFAULT_ISWAP_FIDELITY))]
             if e is not None and "CPHASE" in e.type:
                 gates += [GateInfo(operator="CPHASE", parameters=["theta"], arguments=["_", "_"],
                                    duration=DEFAULT_CPHASE_DURATION,
-                                   fidelity=safely_get("fCPHASEs", tuple(e.targets), DEFAULT_CZ_FIDELITY))]
+                                   fidelity=safely_get("fCPHASEs", tuple(e.targets), DEFAULT_CPHASE_FIDELITY))]
             if e is not None and "XY" in e.type:
                 gates += [GateInfo(operator="XY", parameters=["theta"], arguments=["_", "_"],
                                    duration=DEFAULT_XY_DURATION,
-                                   fidelity=safely_get("fXYs", tuple(e.targets), DEFAULT_CZ_FIDELITY))]
+                                   fidelity=safely_get("fXYs", tuple(e.targets), DEFAULT_XY_FIDELITY))]
             if e is not None and "WILDCARD" in e.type:
                 gates += [GateInfo(operator="_", parameters="_", arguments=["_", "_"],
                                    duration=PERFECT_DURATION, fidelity=PERFECT_FIDELITY)]
