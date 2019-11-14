@@ -147,7 +147,7 @@ class Specs(_Specs):
 
     def fXYs(self):
         """
-        Get a dictionary of XY/2 fidelities (normalized to unity) from the specs,
+        Get a dictionary of XY(pi) fidelities (normalized to unity) from the specs,
         keyed by targets (qubit-qubit pairs).
 
         :return: A dictionary of XY/2 fidelities, normalized to unity.
