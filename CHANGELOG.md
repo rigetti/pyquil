@@ -11,6 +11,8 @@ Changelog
 -   Type hints have been added to the `PauliTerm` class (@rht, gh-1075).
 -   The `rigetti/forest` Docker image now has less noisy output due to changes
     to `entrypoint.sh` (@karalekas, gh-1105).
+-   Added a `make typecheck` target to run mypy over a subset of the pyquil sources,
+    and enabled typechecks in gitlab CI (@appleby, gh-1098).
 
 ### Bugfixes
 
