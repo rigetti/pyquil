@@ -9,6 +9,8 @@ Changelog
 ### Improvements and Changes
 
 -   Type hints have been added to the `PauliTerm` class (@rht, gh-1075).
+-   The `rigetti/forest` Docker image now has less noisy output due to changes
+    to `entrypoint.sh` (@karalekas, gh-1105).
 
 ### Bugfixes
 
