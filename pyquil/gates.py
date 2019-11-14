@@ -853,7 +853,8 @@ QUANTUM_GATES: Mapping[str, Callable[..., Gate]] = {
     'SWAP': SWAP,
     'CSWAP': CSWAP,
     'ISWAP': ISWAP,
-    'PSWAP': PSWAP}
+    'PSWAP': PSWAP,
+    'XY': XY}
 """
 Dictionary of quantum gate functions keyed by gate names.
 """
