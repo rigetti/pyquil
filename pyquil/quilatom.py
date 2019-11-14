@@ -16,6 +16,8 @@
 import numpy as np
 from warnings import warn
 from fractions import Fraction
+from typing import (Any, Callable, ClassVar, List, Mapping, NoReturn, Optional, Set, Sequence,
+                    Tuple, Union, cast)
 
 
 class QuilAtom(object):
@@ -23,19 +25,19 @@ class QuilAtom(object):
     Abstract class for atomic elements of Quil.
     """
 
-    def out(self):
+    def out(self) -> str:
         raise NotImplementedError()
 
-    def __str__(self):
+    def __str__(self) -> str:
         raise NotImplementedError()
 
-    def __eq__(self, other):
+    def __eq__(self, other: object) -> bool:
         raise NotImplementedError()
 
-    def __ne__(self, other):
+    def __ne__(self, other: object) -> bool:
         return not self.__eq__(other)
 
-    def __hash__(self):
+    def __hash__(self) -> int:
         raise NotImplementedError()
 
 
@@ -43,48 +45,52 @@ class Qubit(QuilAtom):
     """
     Representation of a qubit.
 
-    :param int index: Index of the qubit.
+    :param index: Index of the qubit.
     """
 
-    def __init__(self, index):
+    def __init__(self, index: int):
         if not (isinstance(index, int) and index >= 0):
             raise TypeError("Addr index must be a non-negative int")
         self.index = index
 
-    def out(self):
+    def out(self) -> str:
         return str(self.index)
 
-    def __str__(self):
+    def __str__(self) -> str:
         return str(self.index)
 
-    def __repr__(self):
+    def __repr__(self) -> str:
         return "<Qubit {0}>".format(self.index)
 
-    def __hash__(self):
+    def __hash__(self) -> int:
         return hash(self.index)
 
-    def __eq__(self, other):
+    def __eq__(self, other: object) -> bool:
         return isinstance(other, Qubit) and other.index == self.index
 
 
 class QubitPlaceholder(QuilAtom):
-    def out(self):
+    def out(self) -> str:
         raise RuntimeError("Qubit {} has not been assigned an index".format(self))
 
-    def __str__(self):
+    @property
+    def index(self) -> NoReturn:
+        raise RuntimeError("Qubit {} has not been assigned an index".format(self))
+
+    def __str__(self) -> str:
         return "q{}".format(id(self))
 
-    def __repr__(self):
+    def __repr__(self) -> str:
         return "<QubitPlaceholder {}>".format(id(self))
 
-    def __hash__(self):
+    def __hash__(self) -> int:
         return hash(id(self))
 
-    def __eq__(self, other):
+    def __eq__(self, other: object) -> bool:
         return isinstance(other, QubitPlaceholder) and id(other) == id(self)
 
     @classmethod
-    def register(cls, n):
+    def register(cls, n: int) -> List['QubitPlaceholder']:
         """Return a 'register' of ``n`` QubitPlaceholders.
 
         >>> qs = QubitPlaceholder.register(8) # a qubyte
@@ -103,12 +109,15 @@ class QubitPlaceholder(QuilAtom):
         return [cls() for _ in range(n)]
 
 
-def unpack_qubit(qubit):
+QubitDesignator = Union[Qubit, QubitPlaceholder, int]
+
+
+def unpack_qubit(qubit: QubitDesignator) -> Union[Qubit, QubitPlaceholder]:
     """
     Get a qubit from an object.
 
-    :param qubit: An int or Qubit.
-    :return: A Qubit instance
+    :param qubit: the qubit designator to unpack.
+    :return: A Qubit or QubitPlaceholder instance
     """
     if isinstance(qubit, int):
         return Qubit(qubit)
@@ -117,10 +126,17 @@ def unpack_qubit(qubit):
     elif isinstance(qubit, QubitPlaceholder):
         return qubit
     else:
-        raise TypeError("qubit should be an int or Qubit instance")
+        raise TypeError("qubit should be an int or Qubit or QubitPlaceholder instance")
 
 
-def unpack_classical_reg(c):
+# Like the Tuple, the List must be length 2, where the first item is a string and the second an
+# int. However, specifying Union[str, int] as the generic type argument to List doesn't sufficiently
+# constrain the types, and mypy gets confused in unpack_classical_reg, below. Hence, just specify
+# List[Any] here.
+MemoryReferenceDesignator = Union['MemoryReference', Tuple[str, int], List[Any], str]
+
+
+def unpack_classical_reg(c: MemoryReferenceDesignator) -> 'MemoryReference':
     """
     Get the address for a classical register.
 
@@ -149,54 +165,57 @@ class Label(QuilAtom):
     """
     Representation of a label.
 
-    :param string label_name: The label name.
+    :param label_name: The label name.
     """
 
-    def __init__(self, label_name):
+    def __init__(self, label_name: str):
         self.name = label_name
 
-    def out(self):
+    def out(self) -> str:
         return "@{name}".format(name=self.name)
 
-    def __str__(self):
+    def __str__(self) -> str:
         return "@{name}".format(name=self.name)
 
-    def __repr__(self):
+    def __repr__(self) -> str:
         return "<Label {0}>".format(repr(self.name))
 
-    def __eq__(self, other):
+    def __eq__(self, other: object) -> bool:
         return isinstance(other, Label) and other.name == self.name
 
-    def __hash__(self):
+    def __hash__(self) -> int:
         return hash(self.name)
 
 
 class LabelPlaceholder(QuilAtom):
-    def __init__(self, prefix="L"):
+    def __init__(self, prefix: str = "L"):
         self.prefix = prefix
 
-    def out(self):
+    def out(self) -> str:
         raise RuntimeError("Label has not been assigned a name")
 
-    def __str__(self):
+    def __str__(self) -> str:
         return repr(self)
 
-    def __repr__(self):
+    def __repr__(self) -> str:
         return "<LabelPlaceholder {} {}>".format(self.prefix, id(self))
 
-    def __eq__(self, other):
+    def __eq__(self, other: object) -> bool:
         return isinstance(other, LabelPlaceholder) and id(other) == id(self)
 
-    def __hash__(self):
+    def __hash__(self) -> int:
         return hash(id(self))
 
 
-def format_parameter(element):
+ParameterDesignator = Union['Expression', 'MemoryReference', np.int_, int, float, complex]
+
+
+def format_parameter(element: ParameterDesignator) -> str:
     """
     Formats a particular parameter. Essentially the same as built-in formatting except using 'i' instead of 'j' for
     the imaginary number.
 
-    :param element: {int, float, long, complex, Parameter} Formats a parameter for Quil output.
+    :param element: The parameter to format for Quil output.
     """
     if isinstance(element, int) or isinstance(element, np.int_):
         return repr(element)
@@ -230,9 +249,11 @@ def format_parameter(element):
         return str(element)
     elif isinstance(element, Expression):
         return _expression_to_string(element)
-    elif isinstance(element, MemoryReference):
-        return element.out()
     assert False, "Invalid parameter: %r" % element
+
+
+ExpressionValueDesignator = Union[int, float, complex]
+ExpressionDesignator = Union['Expression', ExpressionValueDesignator]
 
 
 class Expression(object):
@@ -244,77 +265,78 @@ class Expression(object):
 
     This class overrides all the Python operators that are supported by Quil.
     """
-    def __str__(self):
+    def __str__(self) -> str:
         return _expression_to_string(self)
 
-    def __repr__(self):
+    def __repr__(self) -> str:
         return str(self.__class__.__name__) + '(' + ','.join(map(repr, self.__dict__.values())) + ')'
 
-    def __add__(self, other):
+    def __add__(self, other: ExpressionDesignator) -> 'Add':
         return Add(self, other)
 
-    def __radd__(self, other):
+    def __radd__(self, other: ExpressionDesignator) -> 'Add':
         return Add(other, self)
 
-    def __sub__(self, other):
+    def __sub__(self, other: ExpressionDesignator) -> 'Sub':
         return Sub(self, other)
 
-    def __rsub__(self, other):
+    def __rsub__(self, other: ExpressionDesignator) -> 'Sub':
         return Sub(other, self)
 
-    def __mul__(self, other):
+    def __mul__(self, other: ExpressionDesignator) -> 'Mul':
         return Mul(self, other)
 
-    def __rmul__(self, other):
+    def __rmul__(self, other: ExpressionDesignator) -> 'Mul':
         return Mul(other, self)
 
-    def __div__(self, other):
+    def __div__(self, other: ExpressionDesignator) -> 'Div':
         return Div(self, other)
 
     __truediv__ = __div__
 
-    def __rdiv__(self, other):
+    def __rdiv__(self, other: ExpressionDesignator) -> 'Div':
         return Div(other, self)
 
     __rtruediv__ = __rdiv__
 
-    def __pow__(self, other):
+    def __pow__(self, other: ExpressionDesignator) -> 'Pow':
         return Pow(self, other)
 
-    def __rpow__(self, other):
+    def __rpow__(self, other: ExpressionDesignator) -> 'Pow':
         return Pow(other, self)
 
-    def __neg__(self):
+    def __neg__(self) -> 'Mul':
         return Mul(-1, self)
 
-    def _substitute(self, d):
+    def _substitute(self, d: Any) -> ExpressionDesignator:
         return self
 
 
-def substitute(expr, d):
+ParamSubstitutionsMapDesignator = Mapping['Parameter', ExpressionValueDesignator]
+
+
+def substitute(expr: ExpressionDesignator, d: ParamSubstitutionsMapDesignator) -> ExpressionDesignator:
     """
     Using a dictionary of substitutions ``d`` try and explicitly evaluate as much of ``expr`` as
     possible.
 
-    :param Expression expr: The expression whose parameters are substituted.
-    :param Dict[Parameter,Union[int,float]] d: Numerical substitutions for parameters.
+    :param expr: The expression whose parameters are substituted.
+    :param d: Numerical substitutions for parameters.
     :return: A partially simplified Expression or a number.
-    :rtype: Union[Expression,int,float]
     """
-    try:
+    if isinstance(expr, Expression):
         return expr._substitute(d)
-    except AttributeError:
-        return expr
+    return expr
 
 
-def substitute_array(a, d):
+def substitute_array(a: Union[Sequence[Expression], np.array],
+                     d: ParamSubstitutionsMapDesignator) -> np.array:
     """
     Apply ``substitute`` to all elements of an array ``a`` and return the resulting array.
 
-    :param Union[np.array,List] a: The expression array to substitute.
-    :param Dict[Parameter,Union[int,float]] d: Numerical substitutions for parameters.
+    :param a: The expression array to substitute.
+    :param d: Numerical substitutions for parameters.
     :return: An array of partially substituted Expressions or numbers.
-    :rtype: np.array
     """
     a = np.asarray(a, order="C")
     return np.array([substitute(v, d) for v in a.flat]).reshape(a.shape)
@@ -325,22 +347,22 @@ class Parameter(QuilAtom, Expression):
     Parameters in Quil are represented as a label like '%x' for the parameter named 'x'.
     """
 
-    def __init__(self, name):
+    def __init__(self, name: str):
         self.name = name
 
-    def out(self):
+    def out(self) -> str:
         return '%' + self.name
 
-    def _substitute(self, d):
+    def _substitute(self, d: ParamSubstitutionsMapDesignator) -> Union['Parameter', ExpressionValueDesignator]:
         return d.get(self, self)
 
-    def __str__(self):
+    def __str__(self) -> str:
         return '%' + self.name
 
-    def __hash__(self):
+    def __hash__(self) -> int:
         return hash(self.name)
 
-    def __eq__(self, other):
+    def __eq__(self, other: object) -> bool:
         return isinstance(other, Parameter) and other.name == self.name
 
 
@@ -348,69 +370,74 @@ class Function(Expression):
     """
     Supported functions in Quil are sin, cos, sqrt, exp, and cis
     """
-    def __init__(self, name, expression, fn):
+    def __init__(self, name: str, expression: ExpressionDesignator,
+                 fn: Callable[[ExpressionValueDesignator], ExpressionValueDesignator]):
         self.name = name
         self.expression = expression
         self.fn = fn
 
-    def _substitute(self, d):
+    def _substitute(self, d: ParamSubstitutionsMapDesignator) -> Union['Function', ExpressionValueDesignator]:
         sop = substitute(self.expression, d)
         if isinstance(sop, Expression):
             return Function(self.name, sop, self.fn)
         return self.fn(sop)
 
-    def __eq__(self, other):
+    def __eq__(self, other: object) -> bool:
         return (isinstance(other, Function)
                 and self.name == other.name
                 and self.expression == other.expression)
 
-    def __neq__(self, other):
+    def __neq__(self, other: 'Function') -> bool:
         return not self.__eq__(other)
 
 
-def quil_sin(expression):
+def quil_sin(expression: ExpressionDesignator) -> Function:
     return Function('SIN', expression, np.sin)
 
 
-def quil_cos(expression):
+def quil_cos(expression: ExpressionDesignator) -> Function:
     return Function('COS', expression, np.cos)
 
 
-def quil_sqrt(expression):
+def quil_sqrt(expression: ExpressionDesignator) -> Function:
     return Function('SQRT', expression, np.sqrt)
 
 
-def quil_exp(expression):
+def quil_exp(expression: ExpressionDesignator) -> Function:
     return Function('EXP', expression, np.exp)
 
 
-def quil_cis(expression):
-    return Function('CIS', expression, lambda x: np.exp(1j * x))
+def quil_cis(expression: ExpressionDesignator) -> Function:
+    def _cis(x: ExpressionValueDesignator) -> complex:
+        # numpy doesn't ship with type stubs, so mypy assumes anything coming from numpy has type
+        # Any, hence we need to cast the return type to complex here to satisfy the type checker.
+        return cast(complex, np.exp(1j * x))
+    return Function('CIS', expression, _cis)
 
 
 class BinaryExp(Expression):
-    operator = None     # type: str
-    precedence = None   # type: int
-    associates = None   # type: str
+    operator: ClassVar[str]
+    precedence: ClassVar[int]
+    associates: ClassVar[str]
 
     @staticmethod
-    def fn(a, b):
+    def fn(a: ExpressionDesignator, b: ExpressionDesignator) -> Union['BinaryExp', ExpressionValueDesignator]:
         raise NotImplementedError
 
-    def __init__(self, op1, op2):
+    def __init__(self, op1: ExpressionDesignator, op2: ExpressionDesignator):
         self.op1 = op1
         self.op2 = op2
 
-    def _substitute(self, d):
+    def _substitute(self, d: ParamSubstitutionsMapDesignator) -> Union['BinaryExp', ExpressionValueDesignator]:
         sop1, sop2 = substitute(self.op1, d), substitute(self.op2, d)
         return self.fn(sop1, sop2)
 
-    def __eq__(self, other):
+    def __eq__(self, other: object) -> bool:
         return (isinstance(other, type(self))
                 and self.op1 == other.op1
                 and self.op2 == other.op2)
 
-    def __neq__(self, other):
+    def __neq__(self, other: 'BinaryExp') -> bool:
         return not self.__eq__(other)
 
 
@@ -420,10 +447,10 @@ class Add(BinaryExp):
     associates = 'both'
 
     @staticmethod
-    def fn(a, b):
+    def fn(a: ExpressionDesignator, b: ExpressionDesignator) -> Union['Add', ExpressionValueDesignator]:
         return a + b
 
-    def __init__(self, op1, op2):
+    def __init__(self, op1: ExpressionDesignator, op2: ExpressionDesignator):
         super(Add, self).__init__(op1, op2)
 
 
@@ -433,10 +460,10 @@ class Sub(BinaryExp):
     associates = 'left'
 
     @staticmethod
-    def fn(a, b):
+    def fn(a: ExpressionDesignator, b: ExpressionDesignator) -> Union['Sub', ExpressionValueDesignator]:
         return a - b
 
-    def __init__(self, op1, op2):
+    def __init__(self, op1: ExpressionDesignator, op2: ExpressionDesignator):
         super(Sub, self).__init__(op1, op2)
 
 
@@ -446,10 +473,10 @@ class Mul(BinaryExp):
     associates = 'both'
 
     @staticmethod
-    def fn(a, b):
+    def fn(a: ExpressionDesignator, b: ExpressionDesignator) -> Union['Mul', ExpressionValueDesignator]:
         return a * b
 
-    def __init__(self, op1, op2):
+    def __init__(self, op1: ExpressionDesignator, op2: ExpressionDesignator):
         super(Mul, self).__init__(op1, op2)
 
 
@@ -459,10 +486,10 @@ class Div(BinaryExp):
     associates = 'left'
 
     @staticmethod
-    def fn(a, b):
+    def fn(a: ExpressionDesignator, b: ExpressionDesignator) -> Union['Div', ExpressionValueDesignator]:
         return a / b
 
-    def __init__(self, op1, op2):
+    def __init__(self, op1: ExpressionDesignator, op2: ExpressionDesignator):
         super(Div, self).__init__(op1, op2)
 
 
@@ -472,21 +499,20 @@ class Pow(BinaryExp):
     associates = 'right'
 
     @staticmethod
-    def fn(a, b):
+    def fn(a: ExpressionDesignator, b: ExpressionDesignator) -> Union['Pow', ExpressionValueDesignator]:
         return a ** b
 
-    def __init__(self, op1, op2):
+    def __init__(self, op1: ExpressionDesignator, op2: ExpressionDesignator):
         super(Pow, self).__init__(op1, op2)
 
 
-def _expression_to_string(expression):
+def _expression_to_string(expression: ExpressionDesignator) -> str:
     """
     Recursively converts an expression to a string taking into account precedence and associativity for placing
     parenthesis
 
-    :param Expression expression: expression involving parameters
+    :param expression: expression involving parameters
     :return: string such as '%x*(%y-4)'
-    :rtype: str
     """
     if isinstance(expression, BinaryExp):
         left = _expression_to_string(expression.op1)
@@ -502,6 +528,12 @@ def _expression_to_string(expression):
                 or expression.precedence == expression.op2.precedence
                 and expression.associates in ('right', 'both')):
             right = '(' + right + ')'
+        # If op2 is a float, it will maybe represented as a multiple
+        # of pi in right. If that is the case, then we need to take
+        # extra care to insert parens. See gh-943.
+        elif isinstance(expression.op2, float) and (
+                ("pi" in right and right != "pi")):
+            right = '(' + right + ')'
 
         return left + expression.operator + right
     elif isinstance(expression, Function):
@@ -512,13 +544,12 @@ def _expression_to_string(expression):
         return format_parameter(expression)
 
 
-def _contained_parameters(expression):
+def _contained_parameters(expression: ExpressionDesignator) -> Set[Parameter]:
     """
     Determine which parameters are contained in this expression.
 
-    :param Expression expression: expression involving parameters
+    :param expression: expression involving parameters
     :return: set of parameters contained in this expression
-    :rtype: set
     """
     if isinstance(expression, BinaryExp):
         return _contained_parameters(expression.op1) | _contained_parameters(expression.op2)
@@ -530,13 +561,13 @@ def _contained_parameters(expression):
         return set()
 
 
-def _check_for_pi(element):
+def _check_for_pi(element: float) -> str:
     """
     Check to see if there exists a rational number r = p/q
     in reduced form for which the difference between element/np.pi
     and r is small and q <= 8.
 
-    :param element: float
+    :param element: the number to check
     :return element: pretty print string if true, else standard representation.
     """
     frac = Fraction(element / np.pi).limit_denominator(8)
@@ -569,37 +600,37 @@ class MemoryReference(QuilAtom, Expression):
         the declared variable is of length >1 or 1, resp.
     """
 
-    def __init__(self, name, offset=0, declared_size=None):
+    def __init__(self, name: str, offset: int = 0, declared_size: Optional[int] = None):
         if not isinstance(offset, int) or offset < 0:
             raise TypeError("MemoryReference offset must be a non-negative int")
         self.name = name
         self.offset = offset
         self.declared_size = declared_size
 
-    def out(self):
+    def out(self) -> str:
         if self.declared_size is not None and self.declared_size == 1 and self.offset == 0:
             return "{}".format(self.name)
         else:
             return "{}[{}]".format(self.name, self.offset)
 
-    def __str__(self):
+    def __str__(self) -> str:
         if self.declared_size is not None and self.declared_size == 1 and self.offset == 0:
             return "{}".format(self.name)
         else:
             return "{}[{}]".format(self.name, self.offset)
 
-    def __repr__(self):
+    def __repr__(self) -> str:
         return "<MRef {}[{}]>".format(self.name, self.offset)
 
-    def __eq__(self, other):
+    def __eq__(self, other: object) -> bool:
         return (isinstance(other, MemoryReference)
                 and other.name == self.name
                 and other.offset == self.offset)
 
-    def __hash__(self):
+    def __hash__(self) -> int:
         return hash((self.name, self.offset))
 
-    def __getitem__(self, offset):
+    def __getitem__(self, offset: int) -> 'MemoryReference':
         if self.offset != 0:
             raise ValueError("Please only index off of the base MemoryReference (offset = 0)")
 
@@ -620,10 +651,10 @@ class Addr(MemoryReference):
     WARNING: Addr has been deprecated. Addr(c) instances are auto-replaced by MemoryReference("ro", c).
              Use MemoryReference instances.
 
-    :param int value: The classical address.
+    :param value: The classical address.
     """
 
-    def __init__(self, value):
+    def __init__(self, value: int):
         warn("Addr objects have been deprecated. Defaulting to memory region \"ro\". Use MemoryReference instead.")
         if not isinstance(value, int) or value < 0:
             raise TypeError("Addr value must be a non-negative int")

@@ -64,7 +64,9 @@ setup(
     classifiers=[
         'Development Status :: 5 - Production/Stable',
         'License :: OSI Approved :: Apache Software License',
-        'Programming Language :: Python :: 3',
+        'Programming Language :: Python :: 3.6',
+        'Programming Language :: Python :: 3.7',
+        'Programming Language :: Python :: 3.8',
         'Operating System :: OS Independent',
     ],
     install_requires=[
@@ -79,6 +81,9 @@ setup(
         # dependency of contextvars, which we vendor
         'immutables==0.6',
     ],
+    extras_require={
+        'latex': ["ipython"]
+    },
     keywords='quantum quil programming hybrid',
     python_requires='>=3.6',
 )

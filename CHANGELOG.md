@@ -1,8 +1,19 @@
 Changelog
 =========
 
-[v2.13](https://github.com/rigetti/pyquil/compare/v2.12.0...master) (in development)
+[v2.14](https://github.com/rigetti/pyquil/compare/v2.13.0...master) (in development)
 -----------------------------------------------------------------------------------
+
+### Announcements
+
+### Improvements and Changes
+
+-   Type hints have been added to the `PauliTerm` class (@rht, gh-1075).
+
+### Bugfixes
+
+[v2.13](https://github.com/rigetti/pyquil/compare/v2.12.0...v2.13.0) (November 7, 2019)
+---------------------------------------------------------------------------------------
 
 ### Announcements
 
@@ -13,11 +24,20 @@ Changelog
     running the image, a user will be dropped into an `ipython` REPL that has
     pyQuil and its requirements preinstalled, along with quilc and qvm servers
     running in the background (@karalekas, gh-1035, gh-1039).
+-   Circuit diagram generation has had a makeover! In particular, the
+    `pyquil.latex` module provides two mechanisms for generating diagrams from
+    pyQuil programs: `pyquil.latex.to_latex` generates human-readable LaTeX
+    output expressing a `Program` as a circuit diagram, and
+    `pyquil.latex.display` renders a `Program` as an `IPython.display.Image` for
+    inline viewing in Jupyter Notebooks. Learn more about these features in the
+    [new example notebook](examples/LaTeXQuilCircuits.ipynb) (@kilimanjaro, gh-1074).
 
 ### Improvements and Changes
 
 -   Added a `Makefile` with some simple targets for performing common build
     operations like creating and uploading a package (@karalekas, gh-1032).
+-   Replaced symmetrization in `operator_estimation` with functionality contained
+    within `QuantumComputer.run_symmetrized_readout` (@kylegulshen, gh-1047).
 -   As part of the CI, we now package and push to TestPyPI on every commit, which
     de-risks breaking the `setup.py` and aids with testing (@karalekas, gh-1017).
 -   We now calculate code coverage as part of the CI pipeline (@karalekas, gh-1052).
@@ -27,14 +47,30 @@ Changelog
 -   The `conftest.py` has been moved to the project root dir (@karalekas, gh-1064).
 -   Using `protoquil` as a positional argument to `qc.compile` has been deprecated,
     and it is now a keyword-only argument (@karalekas, gh-1071).
+-   `PauliSum` objects are now hashable (@ecpeterson, gh-1073).
 -   The code in `device.py` as been reorganized into a new `device` subdirectory
-    in a completely backwards-compatible fashion (@karalekas, gh-1066).
-    
+    in a completely backwards-compatible fashion (@karalekas, gh-1066, gh-1094).
+-   `PauliTerm` and `PauliSum` now have `__repr__` methods (@karalekas, gh-1080).
+-   The experiment-schema-related code in `operator_estimation.py` has been moved
+    into a new `experiment` subdirectory (@karalekas, gh-1084, gh-1094).
+-   The keyword arguments to `measure_observables` are now captured as part of
+    the `TomographyExperiment` class (@karalekas, gh-1090).
+-   Type hints have been added to the `pyquil.gates`, `pyquil.quilatom`, and
+    `pyquil.quilbase` modules (@appleby, gh-999).
+-   We now support Python 3.8 and it is tested in the CI (@karalekas, gh-1093).
+
 ### Bugfixes
 
 -   Updated `examples/meyer_penny_game.py` with the correct path to the Meyer Penny
     game exercise in `docs/source/exercises.rst` (@appleby, gh-1045).
 -   Fixed the Slack Workspace invite link in the README (@amyfbrown, gh-1042).
+-   `QPU.reset()` now checks whether `pyquil_config.qpu_url` exists before updating
+    the endpoint so as not to break custom connections (@kylegulshen, gh-1072).
+-   Fixed pretty printing of parameter expressions where π is involved
+    (@notmgsk, gh-1076).
+-   Fixed a regression in `PyQVM.execute` that prevented it from running programs
+    containing user-defined gates (@appleby, gh-1067).
+-   Remove some stale code for pulling quilc version info (@notmgsk, gh-1089).
 
 [v2.12](https://github.com/rigetti/pyquil/compare/v2.11.0...v2.12.0) (September 28, 2019)
 ----------------------------------------------------------------------------------------

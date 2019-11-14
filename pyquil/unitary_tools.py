@@ -18,7 +18,7 @@ from typing import Union, List
 import numpy as np
 
 from pyquil.gate_matrices import SWAP, STATES, QUANTUM_GATES
-from pyquil.operator_estimation import TensorProductState
+from pyquil.experiment import TensorProductState
 from pyquil.paulis import PauliSum, PauliTerm
 from pyquil.quilbase import Gate, _strip_modifiers
 from pyquil.quilatom import Parameter

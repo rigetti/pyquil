@@ -42,7 +42,7 @@ from pyquil.pyqvm import PyQVM
 from pyquil.quil import Program, validate_supported_quil
 
 
-Executable = Union[BinaryExecutableResponse, PyQuilExecutableResponse]
+ExecutableDesignator = Union[BinaryExecutableResponse, PyQuilExecutableResponse]
 
 
 class QuantumComputer:
@@ -107,7 +107,7 @@ class QuantumComputer:
         return self.device.get_isa(oneq_type=oneq_type, twoq_type=twoq_type)
 
     @_record_call
-    def run(self, executable: Executable,
+    def run(self, executable: ExecutableDesignator,
             memory_map: Dict[str, List[Union[int, float]]] = None) -> np.ndarray:
         """
         Run a quil executable. If the executable contains declared parameters, then a memory
@@ -259,7 +259,7 @@ class QuantumComputer:
             protoquil_positional: bool = None,
             *,
             protoquil: bool = None,
-    ) -> Union[BinaryExecutableResponse, PyQuilExecutableResponse]:
+    ) -> ExecutableDesignator:
         """
         A high-level interface to program compilation.
 

@@ -8,7 +8,8 @@ import numpy as np
 import pytest
 
 from pyquil.api import WavefunctionSimulator
-from pyquil.gates import *
+from pyquil.gates import (CNOT, CPHASE, H, HALT, I, MEASURE, MOVE, PHASE, RESET, RX, RY, RZ, SWAP,
+                          X, QUANTUM_GATES)
 from pyquil.paulis import PauliTerm, exponentiate, sZ, sX, sI, sY
 from pyquil.pyqvm import PyQVM
 from pyquil.quil import Program

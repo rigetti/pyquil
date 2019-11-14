@@ -7,6 +7,9 @@ networkx >= 2.0.0
 # rigetti packages
 rpcq >= 2.7.2
 
+# optional latex deps
+ipython
+
 # test deps
 pytest
 pytest-cov

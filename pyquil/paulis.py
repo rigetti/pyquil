@@ -22,7 +22,7 @@ from itertools import product
 import numpy as np
 import copy
 
-from typing import Union
+from typing import Dict, FrozenSet, Iterable, Iterator, List, Optional, Tuple, Union
 
 from pyquil.quilatom import QubitPlaceholder
 
@@ -81,7 +81,7 @@ class PauliTerm(object):
         if op not in PAULI_OPS:
             raise ValueError(f"{op} is not a valid Pauli operator")
 
-        self._ops = OrderedDict()
+        self._ops: Dict[int, str] = OrderedDict()
         if op != "I":
             if not _valid_qubit(index):
                 raise ValueError(f"{index} is not a valid qubit")
@@ -90,7 +90,7 @@ class PauliTerm(object):
             raise ValueError("coefficient of PauliTerm must be a Number.")
         self.coefficient = complex(coefficient)
 
-    def id(self, sort_ops=True):
+    def id(self, sort_ops: bool = True) -> str:
         """
         Returns an identifier string for the PauliTerm (ignoring the coefficient).
 
@@ -119,18 +119,18 @@ class PauliTerm(object):
         else:
             return ''.join("{}{}".format(p, q) for q, p in self._ops.items())
 
-    def operations_as_set(self):
+    def operations_as_set(self) -> FrozenSet[Tuple[int, str]]:
         """
         Return a frozenset of operations in this term.
 
         Use this in place of :py:func:`id` if the order of operations in the term does not
         matter.
 
-        :return: frozenset of (op_str, coefficient) representing Pauli operations
+        :return: frozenset of (qubit, op_str) representing Pauli operations
         """
         return frozenset(self._ops.items())
 
-    def __eq__(self, other):
+    def __eq__(self, other: object) -> bool:
         if not isinstance(other, (PauliTerm, PauliSum)):
             raise TypeError("Can't compare PauliTerm with object of type {}.".format(type(other)))
         elif isinstance(other, PauliSum):
@@ -139,21 +139,21 @@ class PauliTerm(object):
             return (self.operations_as_set() == other.operations_as_set()
                     and np.isclose(self.coefficient, other.coefficient))
 
-    def __hash__(self):
+    def __hash__(self) -> int:
         return hash((
             round(self.coefficient.real * HASH_PRECISION),
             round(self.coefficient.imag * HASH_PRECISION),
             self.operations_as_set()
         ))
 
-    def __len__(self):
+    def __len__(self) -> int:
         """
         The length of the PauliTerm is the number of Pauli operators in the term. A term that
         consists of only a scalar has a length of zero.
         """
         return len(self._ops)
 
-    def copy(self):
+    def copy(self) -> 'PauliTerm':
         """
         Properly creates a new PauliTerm, with a completely new dictionary
         of operators
@@ -170,22 +170,22 @@ class PauliTerm(object):
         return new_term
 
     @property
-    def program(self):
+    def program(self) -> Program:
         return Program([QUANTUM_GATES[gate](q) for q, gate in self])
 
-    def get_qubits(self):
+    def get_qubits(self) -> List[int]:
         """Gets all the qubits that this PauliTerm operates on.
         """
         return list(self._ops.keys())
 
-    def __getitem__(self, i):
+    def __getitem__(self, i: int) -> str:
         return self._ops.get(i, "I")
 
-    def __iter__(self):
+    def __iter__(self) -> Iterator[Tuple[int, str]]:
         for i in self.get_qubits():
             yield i, self[i]
 
-    def _multiply_factor(self, factor, index):
+    def _multiply_factor(self, factor: str, index: int) -> 'PauliTerm':
         new_term = PauliTerm("I", 0)
         new_coeff = self.coefficient
         new_ops = self._ops.copy()
@@ -203,13 +203,13 @@ class PauliTerm(object):
 
         return new_term
 
-    def __mul__(self, term):
+    def __mul__(self, term: Union['PauliTerm', 'PauliSum', Number]) -> Union['PauliTerm', 'PauliSum']:
         """Multiplies this Pauli Term with another PauliTerm, PauliSum, or number according to the
         Pauli algebra rules.
 
         :param term: (PauliTerm or PauliSum or Number) A term to multiply by.
         :returns: The product of this PauliTerm and term.
-        :rtype: PauliTerm
+        :rtype: PauliTerm or PauliSum
         """
         if isinstance(term, Number):
             return term_with_coeff(self, self.coefficient * term)
@@ -224,7 +224,7 @@ class PauliTerm(object):
 
             return term_with_coeff(new_term, new_term.coefficient * new_coeff)
 
-    def __rmul__(self, other):
+    def __rmul__(self, other: Number) -> 'PauliTerm':
         """Multiplies this PauliTerm with another object, probably a number.
 
         :param other: A number or PauliTerm to multiply by
@@ -234,7 +234,7 @@ class PauliTerm(object):
         assert isinstance(other, Number)
         return self * other
 
-    def __pow__(self, power):
+    def __pow__(self, power: int) -> 'PauliTerm':
         """Raises this PauliTerm to power.
 
         :param int power: The power to raise this PauliTerm to.
@@ -253,10 +253,10 @@ class PauliTerm(object):
             result *= self
         return result
 
-    def __add__(self, other):
+    def __add__(self, other: Union['PauliTerm', 'PauliSum', Number]) -> 'PauliSum':
         """Adds this PauliTerm with another one.
 
-        :param other: A PauliTerm object or a Number
+        :param other: A PauliTerm object, a PauliSum object, or a Number
         :returns: A PauliSum object representing the sum of this PauliTerm and other
         :rtype: PauliSum
         """
@@ -268,7 +268,7 @@ class PauliTerm(object):
             new_sum = PauliSum([self, other])
             return new_sum.simplify()
 
-    def __radd__(self, other):
+    def __radd__(self, other: Number) -> 'PauliTerm':
         """Adds this PauliTerm with a Number.
 
         :param other: A PauliTerm object or a Number
@@ -278,7 +278,7 @@ class PauliTerm(object):
         assert isinstance(other, Number)
         return PauliTerm("I", 0, other) + self
 
-    def __sub__(self, other):
+    def __sub__(self, other: Union['PauliTerm', Number]) -> 'PauliSum':
         """Subtracts a PauliTerm from this one.
 
         :param other: A PauliTerm object or a Number
@@ -287,7 +287,7 @@ class PauliTerm(object):
         """
         return self + -1. * other
 
-    def __rsub__(self, other):
+    def __rsub__(self, other: Union['PauliTerm', Number]) -> 'PauliSum':
         """Subtracts this PauliTerm from a Number or PauliTerm.
 
         :param other: A PauliTerm object or a Number
@@ -296,7 +296,7 @@ class PauliTerm(object):
         """
         return other + -1. * self
 
-    def __str__(self):
+    def __repr__(self) -> str:
         term_strs = []
         for index in self._ops.keys():
             term_strs.append("%s%s" % (self[index], index))
@@ -306,7 +306,7 @@ class PauliTerm(object):
         out = "%s*%s" % (self.coefficient, '*'.join(term_strs))
         return out
 
-    def compact_str(self):
+    def compact_str(self) -> str:
         """A string representation of the Pauli term that is more compact than ``str(term)``
 
         >>> term = 2.0 * sX(1)* sZ(2)
@@ -318,7 +318,7 @@ class PauliTerm(object):
         return f'{self.coefficient}*{self.id(sort_ops=False)}'
 
     @classmethod
-    def from_list(cls, terms_list, coefficient=1.0):
+    def from_list(cls, terms_list: List[Tuple[str, int]], coefficient: float = 1.0) -> 'PauliTerm':
         """
         Allocates a Pauli Term from a list of operators and indices. This is more efficient than
         multiplying together individual terms.
@@ -351,7 +351,7 @@ class PauliTerm(object):
         return pterm
 
     @classmethod
-    def from_compact_str(cls, str_pauli_term):
+    def from_compact_str(cls, str_pauli_term: str) -> 'PauliTerm':
         """Construct a PauliTerm from the result of str(pauli_term)
         """
         # split into str_coef, str_op at first '*'' outside parenthesis
@@ -389,12 +389,12 @@ class PauliTerm(object):
 
         return op
 
-    def pauli_string(self, qubits=None):
+    def pauli_string(self, qubits: Optional[Iterable[int]] = None) -> str:
         """
         Return a string representation of this PauliTerm without its coefficient and with
         implicit qubit indices.
 
-        If a list of qubits is provided, each character in the resulting string represents
+        If an iterable of qubits is provided, each character in the resulting string represents
         a Pauli operator on the corresponding qubit. If qubit indices are not provided as input,
         the returned string will be all non-identity operators in the order. This doesn't make
         much sense, so please provide a list of qubits. Not providing a list of qubits is
@@ -408,7 +408,7 @@ class PauliTerm(object):
         >>> p.pauli_string(qubits=[0, 2])
         "XI"
 
-        :param list qubits: The list of qubits to represent, given as ints. If None, defaults to
+        :param iterable of qubits: The iterable of qubits to represent, given as ints. If None, defaults to
             all qubits in this PauliTerm.
         :return: The string representation of this PauliTerm, sans coefficient
         """
@@ -421,21 +421,21 @@ class PauliTerm(object):
 
 
 # For convenience, a shorthand for several operators.
-def ID():
+def ID() -> PauliTerm:
     """
     The identity operator.
     """
     return PauliTerm("I", 0, 1)
 
 
-def ZERO():
+def ZERO() -> PauliTerm:
     """
     The zero operator.
     """
     return PauliTerm("I", 0, 0)
 
 
-def sI(q=None):
+def sI(q: Optional[int] = None) -> PauliTerm:
     """
     A function that returns the identity operator, optionally on a particular qubit.
 
@@ -448,7 +448,7 @@ def sI(q=None):
     return PauliTerm("I", q)
 
 
-def sX(q):
+def sX(q: int) -> PauliTerm:
     """
     A function that returns the sigma_X operator on a particular qubit.
 
@@ -459,7 +459,7 @@ def sX(q):
     return PauliTerm("X", q)
 
 
-def sY(q):
+def sY(q: int) -> PauliTerm:
     """
     A function that returns the sigma_Y operator on a particular qubit.
 
@@ -470,7 +470,7 @@ def sY(q):
     return PauliTerm("Y", q)
 
 
-def sZ(q):
+def sZ(q: int) -> PauliTerm:
     """
     A function that returns the sigma_Z operator on a particular qubit.
 
@@ -481,7 +481,7 @@ def sZ(q):
     return PauliTerm("Z", q)
 
 
-def term_with_coeff(term, coeff):
+def term_with_coeff(term: PauliTerm, coeff: Number) -> PauliTerm:
     """
     Change the coefficient of a PauliTerm.
 
@@ -531,7 +531,10 @@ class PauliSum(object):
 
         return set(self.terms) == set(other.terms)
 
-    def __str__(self):
+    def __hash__(self):
+        return hash(frozenset(self.terms))
+
+    def __repr__(self):
         return " + ".join([str(term) for term in self.terms])
 
     def __len__(self):

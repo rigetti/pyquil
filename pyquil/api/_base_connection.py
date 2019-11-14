@@ -260,26 +260,6 @@ def qvm_run_payload(quil_program, classical_addresses, trials,
     return payload
 
 
-def quilc_compile_payload(quil_program, isa, specs):
-    """REST payload for :py:func:`ForestConnection._quilc_compile`"""
-    if not quil_program:
-        raise ValueError("You have attempted to compile an empty program."
-                         " Please provide an actual program.")
-    if not isinstance(quil_program, Program):
-        raise TypeError("quil_program must be a Program object.")
-    if not isinstance(isa, ISA):
-        raise TypeError("isa must be an ISA object.")
-    if not isinstance(specs, Specs):
-        raise TypeError("specs must be a Specs object.")
-
-    payload = {"uncompiled-quil": quil_program.out(),
-               "target-device": {
-                   "isa": isa.to_dict(),
-                   "specs": specs.to_dict()}}
-
-    return payload
-
-
 class ForestConnection:
     @_record_call
     def __init__(self, sync_endpoint=None, compiler_endpoint=None, forest_cloud_endpoint=None):
@@ -367,7 +347,7 @@ class ForestConnection:
         return ram
 
     @_record_call
-    def _qvm_get_version_info(self) -> dict:
+    def _qvm_get_version_info(self) -> str:
         """
         Return version information for the QVM.
 
@@ -380,23 +360,3 @@ class ForestConnection:
         except ValueError:
             raise TypeError(f'Malformed version string returned by the QVM: {response.text}')
         return qvm_version
-
-    def _quilc_compile(self, quil_program, isa, specs):
-        """
-        Sends a quilc job to Forest.
-
-        Users should use :py:func:`LocalCompiler.quil_to_native_quil` instead of calling this
-        directly.
-        """
-        payload = quilc_compile_payload(quil_program, isa, specs)
-        response = post_json(self.session, self.sync_endpoint + "/", payload)
-        unpacked_response = response.json()
-        return unpacked_response
-
-    def _quilc_get_version_info(self) -> dict:
-        """
-        Return version information for quilc.
-
-        :return: Dictionary with version information
-        """
-        return get_json(self.session, self.sync_endpoint + '/version')
