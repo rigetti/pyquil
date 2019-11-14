@@ -73,7 +73,7 @@ class QAM(ABC):
 
         aref = ParameterAref(name=region_name, index=offset)
         self._variables_shim[aref] = value
-        
+
         return self
 
     @abstractmethod
