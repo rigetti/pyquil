@@ -17,7 +17,7 @@ import warnings
 
 from abc import ABC, abstractmethod
 from collections import defaultdict
-from typing import Sequence, Union
+from typing import Sequence, Union, Optional
 
 from rpcq.messages import ParameterAref
 
@@ -61,7 +61,7 @@ class QAM(ABC):
         return self
 
     @_record_call
-    def write_memory(self, *, region_name: str, offset: int = 0, value: Union[Sequence[int], Sequence[float]] = None):
+    def write_memory(self, *, region_name: str, offset: int = 0, value: Optional[Union[Sequence[int], Sequence[float]]] = None):
         """
         Writes a value or chronologically unwraps a list of values into a memory region on
         the QAM at a specified offset.
