@@ -9,6 +9,7 @@ Changelog
 ### Improvements and Changes
 
 -   Type hints have been added to the `PauliTerm` class (@rht, gh-1075).
+-   The QAM's 'Write_Memory()' now accepts either a Sequence of values or a single value.
 
 ### Bugfixes
 
