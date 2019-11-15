@@ -22,7 +22,8 @@ QubitSpecs = namedtuple("_QubitSpecs", ["id", "fRO", "f1QRB", "f1QRB_std_err",
                                         "f1Q_simultaneous_RB", "f1Q_simultaneous_RB_std_err", "T1",
                                         "T2", "fActiveReset"])
 EdgeSpecs = namedtuple("_QubitQubitSpecs", ["targets", "fBellState", "fCZ", "fCZ_std_err",
-                                            "fCPHASE", "fXY", "fISWAP"])
+                                            "fCPHASE", "fCPHASE_std_err", "fXY", "fXY_std_err",
+                                            "fISWAP", "fISWAP_std_err"])
 _Specs = namedtuple("_Specs", ["qubits_specs", "edges_specs"])
 
 
@@ -145,6 +146,16 @@ class Specs(_Specs):
         """
         return {tuple(es.targets): es.fISWAP for es in self.edges_specs}
 
+    def fISWAP_std_errs(self):
+        """
+        Get a dictionary of the standard errors of the ISWAP fidelities from the specs,
+        keyed by targets (qubit-qubit pairs).
+
+        :return: A dictionary of ISWAP fidelities, normalized to unity.
+        :rtype: Dict[tuple(int, int), float]
+        """
+        return {tuple(es.targets): es.fISWAP_std_err for es in self.edges_specs}
+
     def fXYs(self):
         """
         Get a dictionary of XY(pi) fidelities (normalized to unity) from the specs,
@@ -154,6 +165,16 @@ class Specs(_Specs):
         :rtype: Dict[tuple(int, int), float]
         """
         return {tuple(es.targets): es.fXY for es in self.edges_specs}
+
+    def fXY_std_errs(self):
+        """
+        Get a dictionary of the standard errors of the XY fidelities from the specs,
+        keyed by targets (qubit-qubit pairs).
+
+        :return: A dictionary of XY fidelities, normalized to unity.
+        :rtype: Dict[tuple(int, int), float]
+        """
+        return {tuple(es.targets): es.fXY_std_err for es in self.edges_specs}
 
     def fCZ_std_errs(self):
         """
@@ -239,8 +260,11 @@ class Specs(_Specs):
                     'fCZ': es.fCZ,
                     'fCZ_std_err': es.fCZ_std_err,
                     'fCPHASE': es.fCPHASE,
+                    'fCPHASE_std_err': es.fCPHASE_std_err,
                     'fXY': es.fXY,
-                    'fISWAP': es.fISWAP
+                    'fXY_std_err': es.fXY_std_err,
+                    'fISWAP': es.fISWAP,
+                    'fISWAP_std_err': es.fISWAP_std_err
                 } for es in self.edges_specs
             }
         }
@@ -272,8 +296,11 @@ class Specs(_Specs):
                                           fCZ=especs.get('fCZ'),
                                           fCZ_std_err=especs.get('fCZ_std_err'),
                                           fCPHASE=especs.get('fCPHASE'),
+                                          fCPHASE_std_err=especs.get('fCPHASE_std_err'),
                                           fXY=especs.get('fXY'),
-                                          fISWAP=especs.get('fISWAP'))
+                                          fXY_std_err=especs.get('fXY_std_err'),
+                                          fISWAP=especs.get('fISWAP'),
+                                          fISWAP_std_err=especs.get('fISWAP_std_err'))
                                 for e, especs in d["2Q"].items()],
                                key=lambda edge_specs: edge_specs.targets)
         )
