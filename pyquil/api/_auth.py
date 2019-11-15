@@ -24,7 +24,7 @@ class AuthClient:
 
     @property
     def auth_token_refresh_endpoint(self):
-        return join(self.config.forest_url, 'auth/idp/v1/token')
+        return join(self.config.forest_url, 'auth/idp/oauth2/v1/token')
 
     @property
     def auth_tokens(self):

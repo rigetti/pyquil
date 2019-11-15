@@ -61,7 +61,7 @@ class PyquilConfig(object):
         "section": "Rigetti Forest",
         "name": "dispatch_url",
         "engagement_key": None,
-        "default": "https://dispatch.qcs.rigetti.com/graphql/"
+        "default": "https://dispatch.services.qcs.rigetti.com/graphql/"
     }
 
     # The url to the website, for use with OAuth redirect
@@ -190,7 +190,7 @@ class PyquilConfig(object):
             pass
 
         # If no local configuration is available, certain values are provided
-        #   by the dispatch server. 
+        #   by the dispatch service.
         try:
             if engagement_key is not None:
                 self._attempt_engagement = True
