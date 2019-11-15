@@ -228,7 +228,8 @@ QUANTUM_GATES = {
     'ISWAP': ISWAP,
     'PSWAP': PSWAP,
     'BARENCO': BARENCO,
-    'CZ': CZ
+    'CZ': CZ,
+    'XY': XY
 }
 
 
