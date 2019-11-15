@@ -110,17 +110,16 @@ class AuthClient:
               message
               engagement {
                 type
-                clientKeys {
-                  secret
-                  public
+                qpu {
+                    endpoint
+                    credentials {
+                        clientPublic
+                        clientSecret
+                        serverPublic
+                    }
                 }
-                serverKeys {
-                  secret
-                  public
-                }
-                endpoints {
-                  compiler
-                  qpu
+                compiler {
+                    endpoint
                 }
                 expiresAt
               }
@@ -143,17 +142,20 @@ class AuthClient:
                     'success') is True:
                 engagement_data = engagement_response.get('engagement', {})
                 self._engagement = Engagement(
-                    client_secret_key=engagement_data.get(
-                        'clientKeys', {}).get('secret', '').encode('utf-8'),
-                    client_public_key=engagement_data.get(
-                        'clientKeys', {}).get('public', '').encode('utf-8'),
-                    server_public_key=engagement_data.get(
-                        'serverKeys', {}).get('public', '').encode('utf-8'),
+                    client_secret_key=engagement_data.get('qpu', {}).get(
+                        'credentials', {}).get('clientSecret',
+                                               '').encode('utf-8'),
+                    client_public_key=engagement_data.get('qpu', {}).get(
+                        'credentials', {}).get('clientPublic',
+                                               '').encode('utf-8'),
+                    server_public_key=engagement_data.get('qpu', {}).get(
+                        'credentials', {}).get('serverPublic',
+                                               '').encode('utf-8'),
                     expires_at=engagement_data.get('expiresAt', {}),
-                    qpu_endpoint=engagement_data.get('endpoints',
-                                                     {}).get('qpu'),
+                    qpu_endpoint=engagement_data.get('qpu',
+                                                     {}).get('endpoint'),
                     qpu_compiler_endpoint=engagement_data.get(
-                        'endpoints', {}).get('compiler'))
+                        'compiler', {}).get('endpoint'))
             else:
                 raise EngagementFailedError(
                     f"Unable to engage {lattice_name}:",
@@ -202,7 +204,8 @@ class AuthClient:
             result = response.json()
             return result
         except Exception as e:
-            print("Unable to parse json from:", response.text())
+            print(f"Unable to parse json from endpoint {endpoint}:",
+                  response.text)
             raise e
 
 

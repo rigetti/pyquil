@@ -43,8 +43,7 @@ def decode_buffer(buffer: dict) -> np.ndarray:
 
 
 def _extract_bitstrings(ro_sources: List[Optional[Tuple[int, int]]],
-                        buffers: Dict[str, np.ndarray]
-                        ) -> np.ndarray:
+                        buffers: Dict[str, np.ndarray]) -> np.ndarray:
     """
     De-mux qubit readout results and assemble them into the ro-bitstrings in the correct order.
 
@@ -72,7 +71,11 @@ def _extract_bitstrings(ro_sources: List[Optional[Tuple[int, int]]],
 
 class QPU(QAM):
     @_record_call
-    def __init__(self, endpoint: Optional[str] = None, user: str = "pyquil-user", priority: int = 1, config: PyquilConfig = None) -> None:
+    def __init__(self,
+                 endpoint: Optional[str] = None,
+                 user: str = "pyquil-user",
+                 priority: int = 1,
+                 config: PyquilConfig = None) -> None:
         """
         A connection to the QPU.
 
@@ -94,9 +97,11 @@ class QPU(QAM):
         super().__init__()
 
     def build_client(self):
-        endpoint = next((url for url in [self.endpoint, self.config.qpu_url] if url is not None), None)
+        endpoint = next((url for url in [self.endpoint, self.config.qpu_url]
+                         if url is not None), None)
         if endpoint is None:
-            raise RuntimeError("""It looks like you've tried to run a program against a QPU but do
+            raise RuntimeError(
+                """It looks like you've tried to run a program against a QPU but do
                 not currently have a reservation on one. To reserve time on Rigetti
                 QPUs, use the command line interface, qcs, which comes pre-installed
                 in your QMI. From within your QMI, type:
@@ -110,15 +115,15 @@ class QPU(QAM):
             auth_config = ClientAuthConfig(
                 client_public_key=self.engagement.client_public_key,
                 client_secret_key=self.engagement.client_secret_key,
-                server_public_key=self.engagement.server_public_key
-            )
+                server_public_key=self.engagement.server_public_key)
             return Client(endpoint, auth_config=auth_config)
         else:
             return Client(endpoint)
 
     @property
     def client(self):
-        if not (self.engagement and self.engagement.is_valid() and self._client):
+        if not (self.engagement and self.engagement.is_valid()
+                and self._client):
             self._client = self.build_client()
         return self._client
 
@@ -173,9 +178,10 @@ class QPU(QAM):
         # and QPU.run() to be interchangeable. QPU.run() needs the
         # supplied executable to have been compiled, QVM.run() does not.
         if isinstance(self._executable, Program):
-            raise TypeError("It looks like you have provided a Program where an Executable"
-                            " is expected. Please use QuantumComputer.compile() to compile"
-                            " your program.")
+            raise TypeError(
+                "It looks like you have provided a Program where an Executable"
+                " is expected. Please use QuantumComputer.compile() to compile"
+                " your program.")
         super().run()
 
         request = QPURequest(program=self._executable.program,
@@ -190,9 +196,10 @@ class QPU(QAM):
         if results:
             bitstrings = _extract_bitstrings(ro_sources, results)
         elif not ro_sources:
-            warnings.warn("You are running a QPU program with no MEASURE instructions. "
-                          "The result of this program will always be an empty array. Are "
-                          "you sure you didn't mean to measure some of your qubits?")
+            warnings.warn(
+                "You are running a QPU program with no MEASURE instructions. "
+                "The result of this program will always be an empty array. Are "
+                "you sure you didn't mean to measure some of your qubits?")
             bitstrings = np.zeros((0, 0), dtype=np.int64)
         else:
             bitstrings = None
@@ -222,12 +229,16 @@ class QPU(QAM):
 
         # Initialize our patch table
         if hasattr(self._executable, "recalculation_table"):
-            memory_ref_names = list(set(mr.name for mr in self._executable.recalculation_table.keys()))
+            memory_ref_names = list(
+                set(mr.name
+                    for mr in self._executable.recalculation_table.keys()))
             if memory_ref_names != []:
-                assert len(memory_ref_names) == 1, ("We expected only one declared memory region for "
-                                                    "the gate parameter arithmetic replacement references.")
+                assert len(memory_ref_names) == 1, (
+                    "We expected only one declared memory region for "
+                    "the gate parameter arithmetic replacement references.")
                 memory_reference_name = memory_ref_names[0]
-                patch_values[memory_reference_name] = [0.0] * len(self._executable.recalculation_table)
+                patch_values[memory_reference_name] = [0.0] * len(
+                    self._executable.recalculation_table)
 
         for name, spec in self._executable.memory_descriptors.items():
             # NOTE: right now we fake reading out measurement values into classical memory
@@ -296,12 +307,15 @@ class QPU(QAM):
         if not hasattr(self._executable, "recalculation_table"):
             # No recalculation table, no work to be done here.
             return
-        for memory_reference, expression in self._executable.recalculation_table.items():
+        for memory_reference, expression in self._executable.recalculation_table.items(
+        ):
             # Replace the user-declared memory references with any values the user has written,
             # coerced to a float because that is how we declared it.
-            self._variables_shim[memory_reference] = float(self._resolve_memory_references(expression))
+            self._variables_shim[memory_reference] = float(
+                self._resolve_memory_references(expression))
 
-    def _resolve_memory_references(self, expression: Expression) -> Union[float, int]:
+    def _resolve_memory_references(self, expression: Expression
+                                   ) -> Union[float, int]:
         """
         Traverse the given Expression, and replace any Memory References with whatever values
         have been so far provided by the user for those memory spaces. Declared memory defaults
@@ -314,15 +328,20 @@ class QPU(QAM):
             right = self._resolve_memory_references(expression.op2)
             return expression.fn(left, right)
         elif isinstance(expression, Function):
-            return expression.fn(self._resolve_memory_references(expression.expression))
+            return expression.fn(
+                self._resolve_memory_references(expression.expression))
         elif isinstance(expression, Parameter):
-            raise ValueError(f"Unexpected Parameter in gate expression: {expression}")
+            raise ValueError(
+                f"Unexpected Parameter in gate expression: {expression}")
         elif isinstance(expression, float) or isinstance(expression, int):
             return expression
         elif isinstance(expression, MemoryReference):
-            return self._variables_shim.get(ParameterAref(name=expression.name, index=expression.offset), 0)
+            return self._variables_shim.get(
+                ParameterAref(name=expression.name, index=expression.offset),
+                0)
         else:
-            raise ValueError(f"Unexpected expression in gate parameter: {expression}")
+            raise ValueError(
+                f"Unexpected expression in gate parameter: {expression}")
 
     @_record_call
     def reset(self):
