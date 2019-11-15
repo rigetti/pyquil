@@ -16,6 +16,8 @@ Changelog
 
 ### Bugfixes
 
+- Fixed a bug in the LaTeX output of controlled unitary operations (@kilimanjaro, gh-1103).
+
 [v2.13](https://github.com/rigetti/pyquil/compare/v2.12.0...v2.13.0) (November 7, 2019)
 ---------------------------------------------------------------------------------------
 
