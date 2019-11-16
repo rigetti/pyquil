@@ -13,6 +13,7 @@ Changelog
     to `entrypoint.sh` (@karalekas, gh-1105).
 -   Added a `make typecheck` target to run mypy over a subset of the pyquil sources,
     and enabled typechecks in gitlab CI (@appleby, gh-1098).
+-   Added support for the `XY` gate family in `Program`s and in ISAs (@ecpeterson, gh-1096).
 
 ### Bugfixes
 

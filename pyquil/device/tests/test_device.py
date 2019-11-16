@@ -65,10 +65,14 @@ def test_specs(specs_dict):
                        T1=18e-6, T2=11e-6, fActiveReset=None)
         ],
         edges_specs=[
-            EdgeSpecs(targets=[0, 1], fBellState=0.90, fCZ=0.89, fCZ_std_err=0.01, fCPHASE=0.88),
-            EdgeSpecs(targets=[0, 2], fBellState=0.92, fCZ=0.91, fCZ_std_err=0.20, fCPHASE=0.90),
-            EdgeSpecs(targets=[0, 3], fBellState=0.89, fCZ=0.88, fCZ_std_err=0.03, fCPHASE=0.87),
-            EdgeSpecs(targets=[1, 2], fBellState=0.91, fCZ=0.90, fCZ_std_err=0.12, fCPHASE=0.89),
+            EdgeSpecs(targets=[0, 1], fBellState=0.90, fCZ=0.89, fCZ_std_err=0.01, fCPHASE=0.88,
+                      fISWAP=None, fXY=None, fISWAP_std_err=None, fXY_std_err=None, fCPHASE_std_err=None),
+            EdgeSpecs(targets=[0, 2], fBellState=0.92, fCZ=0.91, fCZ_std_err=0.20, fCPHASE=0.90,
+                      fISWAP=None, fXY=None, fISWAP_std_err=None, fXY_std_err=None, fCPHASE_std_err=None),
+            EdgeSpecs(targets=[0, 3], fBellState=0.89, fCZ=0.88, fCZ_std_err=0.03, fCPHASE=0.87,
+                      fISWAP=None, fXY=None, fISWAP_std_err=None, fXY_std_err=None, fCPHASE_std_err=None),
+            EdgeSpecs(targets=[1, 2], fBellState=0.91, fCZ=0.90, fCZ_std_err=0.12, fCPHASE=0.89,
+                      fISWAP=None, fXY=None, fISWAP_std_err=None, fXY_std_err=None, fCPHASE_std_err=None),
         ])
 
     assert specs == Specs.from_dict(specs.to_dict())

@@ -70,6 +70,9 @@ Currently includes:
     PSWAP(:math:`\phi`) - phi-phase-swap
     :math:`\begin{pmatrix} 1&0&0&0 \\ 0&0&e^{i\phi}&0 \\ 0&e^{i\phi}&0&0 \\ 0&0&0&1 \end{pmatrix}`
 
+    XY(:math:`\phi`) - XY-interaction
+    :math:`\begin{pmatrix} 1&0&0&0 \\ 0&\cos(\phi/2)&i\sin(\phi/2)&0 \\ 0&i\sin(\phi/2)&\cos(\phi/2)&0 \\ 0&0&0&1 \end{pmatrix}`
+
 Specialized gates / internal utility gates:
     BARENCO(:math:`\alpha, \phi, \theta`) - Barenco gate
     :math:`\begin{pmatrix} 1&0&0&0 \\ 0&1&0&0 \\ 0&0&e^{i\phi} \cos\theta & -i e^{i(\alpha-\phi)}
@@ -181,6 +184,13 @@ def PSWAP(phi):
                      [0, 0, 0, 1]])
 
 
+def XY(phi):
+    return np.array([[1, 0, 0, 0],
+                     [0, np.cos(phi / 2), 1j * np.sin(phi / 2), 0],
+                     [0, 1j * np.sin(phi / 2), np.cos(phi / 2), 0],
+                     [0, 0, 0, 1]])
+
+
 # Utility gates for internal QVM use
 P0 = np.array([[1, 0], [0, 0]])
 
@@ -218,7 +228,8 @@ QUANTUM_GATES = {
     'ISWAP': ISWAP,
     'PSWAP': PSWAP,
     'BARENCO': BARENCO,
-    'CZ': CZ
+    'CZ': CZ,
+    'XY': XY
 }
 
 
