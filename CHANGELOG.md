@@ -9,12 +9,13 @@ Changelog
 ### Improvements and Changes
 
 -   Type hints have been added to the `PauliTerm` class (@rht, gh-1075).
--   The `rigetti/forest` Docker image now has less noisy output due to changes
-    to `entrypoint.sh` (@karalekas, gh-1105).
--   Added a `make typecheck` target to run mypy over a subset of the pyquil sources,
-    and enabled typechecks in gitlab CI (@appleby, gh-1098).
--   Added support for the `XY` gate family in `Program`s and in `ISA`s (@ecpeterson,
-    gh-1096, gh-1107).
+-   The `rigetti/forest` Docker image now has less noisy output due to stdout and
+    stderr redirection to log files `entrypoint.sh` (@karalekas, gh-1105).
+-   Added a `make typecheck` target to run `mypy` over a subset of the pyquil
+    sources, and enabled typechecks in the GitLab CI pipeline (@appleby, gh-1098).
+-   Added support for the `XY` (parameterized `iSWAP`) gate family in `Program`s
+    and in `ISA`s (@ecpeterson, gh-1096, gh-1107).
+-   Removed the `tox.ini` and `readthedocs.yml` files (@karalekas, gh-1108).
 
 ### Bugfixes
 
