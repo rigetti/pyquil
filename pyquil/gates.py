@@ -442,6 +442,22 @@ def PSWAP(angle: ParameterDesignator, q1: QubitDesignator, q2: QubitDesignator) 
     return Gate(name="PSWAP", params=[angle], qubits=[unpack_qubit(q) for q in (q1, q2)])
 
 
+def XY(angle: ParameterDesignator, q1: QubitDesignator, q2: QubitDesignator) -> Gate:
+    """Produces a parameterized ISWAP gate::
+
+        XY(phi) = [[1,               0,               0, 0],
+                   [0,      cos(phi/2), 1j * sin(phi/2), 0],
+                   [0, 1j * sin(phi/2),      cos(phi/2), 0],
+                   [0,               0,               0, 1]
+
+    :param angle: The angle of the rotation to apply to the population 1 subspace.
+    :param q1: Qubit 1.
+    :param q2: Qubit 2.
+    :returns: A Gate object.
+    """
+    return Gate(name="XY", params=[angle], qubits=[unpack_qubit(q) for q in (q1, q2)])
+
+
 WAIT = Wait()
 """
 This instruction tells the quantum computation to halt. Typically these is used while classical memory is being
@@ -837,7 +853,8 @@ QUANTUM_GATES: Mapping[str, Callable[..., Gate]] = {
     'SWAP': SWAP,
     'CSWAP': CSWAP,
     'ISWAP': ISWAP,
-    'PSWAP': PSWAP}
+    'PSWAP': PSWAP,
+    'XY': XY}
 """
 Dictionary of quantum gate functions keyed by gate names.
 """

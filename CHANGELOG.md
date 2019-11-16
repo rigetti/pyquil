@@ -2,16 +2,28 @@ Changelog
 =========
 
 [v2.14](https://github.com/rigetti/pyquil/compare/v2.13.0...master) (in development)
------------------------------------------------------------------------------------
+------------------------------------------------------------------------------------
 
 ### Announcements
 
 ### Improvements and Changes
 
 -   Type hints have been added to the `PauliTerm` class (@rht, gh-1075).
--   `QAM.write_memory` now accepts either a Sequence of values or a single value. (@tommy-moffat, gh-658)
+-   The `rigetti/forest` Docker image now has less noisy output due to changes
+    to `entrypoint.sh` (@karalekas, gh-1105).
+-   Added a `make typecheck` target to run mypy over a subset of the pyquil sources,
+    and enabled typechecks in gitlab CI (@appleby, gh-1098).
+-   Added support for the `XY` gate family in `Program`s and in `ISA`s (@ecpeterson,
+    gh-1096, gh-1107).
+-   `QAM.write_memory` now accepts either a `Sequence` of values or a single value
+    (@tommy-moffat, gh-1079).
 
 ### Bugfixes
+
+-   Fixed a bug in the LaTeX output of controlled unitary operations (@kilimanjaro,
+    gh-1103).
+-   Fixed an example of using the `qc.run` method in the docs to correctly declare
+    the size of a memory register (@appleby, gh-1099).
 
 [v2.13](https://github.com/rigetti/pyquil/compare/v2.12.0...v2.13.0) (November 7, 2019)
 ---------------------------------------------------------------------------------------
