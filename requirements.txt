@@ -18,7 +18,6 @@ pytest-rerunfailures
 requests-mock
 flake8
 mypy
-tox
 
 # docs
 sphinx
