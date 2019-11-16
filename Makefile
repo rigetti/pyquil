@@ -53,6 +53,12 @@ style:
 test:
 	pytest -v --runslow --cov=pyquil
 
+# The dream is to one day run mypy on the whole tree. For now, limit
+# checks to known-good files.
+.PHONY: typecheck
+typecheck:
+	mypy pyquil/quilatom.py pyquil/quilbase.py pyquil/gates.py
+
 .PHONY: upload
 upload:
 	twine upload --repository-url https://test.pypi.org/legacy/ dist/*

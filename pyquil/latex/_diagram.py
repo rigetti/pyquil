@@ -465,10 +465,11 @@ class DiagramBuilder:
                              f"qubits.")
 
         for q in control_qubits:
-            self.diagram.append(q, TIKZ_CONTROL(q, target_qubits[0]))
+            offset = target_qubits[0] - q
+            self.diagram.append(q, TIKZ_CONTROL(q, offset))
 
         # we put the gate on the first target line, and nop on the others
-        self.diagram.append(target_qubits[0], TIKZ_GATE(instr.name, size=len(qubits),
+        self.diagram.append(target_qubits[0], TIKZ_GATE(instr.name, size=len(target_qubits),
                                                         params=instr.params, dagger=dagger))
         for q in target_qubits[1:]:
             self.diagram.append(q, TIKZ_NOP())

@@ -109,3 +109,18 @@ def test_unsupported_ops():
         prog = base_prog + op
         with pytest.raises(ValueError):
             _ = to_latex(prog)
+
+
+def test_controlled_gate():
+    prog = Program(H(2).controlled(3))
+    # This is hardcoded, but better than nothing
+    expected = r"""
+    \begin{tikzcd}
+    \lstick{\ket{q_{2}}} & \gate{H} &  \qw \\
+    \lstick{\ket{q_{3}}} & \ctrl{-1} & \qw
+    \end{tikzcd}
+    """.strip().split()
+
+    actual = to_latex(prog).split()
+    start_idx = actual.index('\\begin{tikzcd}')
+    assert expected == actual[start_idx:start_idx + len(expected)]
