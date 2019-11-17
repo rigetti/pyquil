@@ -22,7 +22,8 @@ from itertools import product
 import numpy as np
 import copy
 
-from typing import Callable, Dict, FrozenSet, Iterable, Iterator, List, Optional, Tuple, Union
+from typing import Callable, Dict, FrozenSet, Iterable, Iterator, List, Optional, Sequence, Tuple, Union
+from pyquil.quilatom import ExpressionValueDesignator
 
 from pyquil.quilatom import QubitPlaceholder
 
@@ -30,11 +31,10 @@ from .quil import Program
 from .gates import H, RZ, RX, CNOT, X, PHASE, QUANTUM_GATES
 from numbers import Number
 from collections import OrderedDict
-from collections.abc import Sequence
 import warnings
 
-NumberT = Union[int, float, complex]
-PauliT = Union['PauliTerm', 'PauliSum', NumberT]
+PauliDesignator = Union['PauliTerm', 'PauliSum']
+PauliT = Union[PauliDesignator, ExpressionValueDesignator]
 
 PAULI_OPS = ["X", "Y", "Z", "I"]
 PAULI_PROD = {'ZZ': 'I', 'YY': 'I', 'XX': 'I', 'II': 'I',
@@ -73,7 +73,7 @@ class PauliTerm(object):
     """A term is a product of Pauli operators operating on different qubits.
     """
 
-    def __init__(self, op: str, index: int, coefficient: NumberT = 1.0):
+    def __init__(self, op: str, index: int, coefficient: ExpressionValueDesignator = 1.0):
         """ Create a new Pauli Term with a Pauli operator at a particular index and a leading
         coefficient.
 
@@ -206,7 +206,7 @@ class PauliTerm(object):
 
         return new_term
 
-    def __mul__(self, term: PauliT) -> Union['PauliTerm', 'PauliSum']:
+    def __mul__(self, term: PauliT) -> PauliDesignator:
         """Multiplies this Pauli Term with another PauliTerm, PauliSum, or number according to the
         Pauli algebra rules.
 
@@ -505,7 +505,7 @@ class PauliSum(object):
     """A sum of one or more PauliTerms.
     """
 
-    def __init__(self, terms: List[PauliTerm]):
+    def __init__(self, terms: Sequence[PauliTerm]):
         """
         :param Sequence terms: A Sequence of PauliTerms.
         """
@@ -684,7 +684,7 @@ class PauliSum(object):
         """
         return simplify_pauli_sum(self)
 
-    def get_programs(self) -> Tuple[List[Program], List[NumberT]]:
+    def get_programs(self) -> Tuple[List[Program], np.ndarray]:
         """
         Get a Pyquil Program corresponding to each term in the PauliSum and a coefficient
         for each program
@@ -751,7 +751,7 @@ def simplify_pauli_sum(pauli_sum: PauliSum) -> PauliSum:
     return PauliSum(terms)
 
 
-def check_commutation(pauli_list: List[PauliTerm], pauli_two: PauliTerm) -> bool:
+def check_commutation(pauli_list: Sequence[PauliTerm], pauli_two: PauliTerm) -> bool:
     """
     Check if commuting a PauliTerm commutes with a list of other terms by natural calculation.
     Uses the result in Section 3 of arXiv:1405.5749v2, modified slightly here to check for the
@@ -808,7 +808,7 @@ def commuting_sets(pauli_terms: PauliSum) -> List[List[PauliTerm]]:
     return groups
 
 
-def is_identity(term: Union['PauliTerm', 'PauliSum']) -> bool:
+def is_identity(term: PauliDesignator) -> bool:
     """
     Tests to see if a PauliTerm or PauliSum is a scalar multiple of identity
 
@@ -973,7 +973,7 @@ def suzuki_trotter(trotter_order: int, trotter_steps: int) -> List[Tuple[float, 
     return order_slices
 
 
-def is_zero(pauli_object: Union[PauliTerm, PauliSum]) -> bool:
+def is_zero(pauli_object: PauliDesignator) -> bool:
     """
     Tests to see if a PauliTerm or PauliSum is zero.
 
@@ -989,8 +989,8 @@ def is_zero(pauli_object: Union[PauliTerm, PauliSum]) -> bool:
         raise TypeError("is_zero only checks PauliTerms and PauliSum objects!")
 
 
-def trotterize(first_pauli_term: PauliTerm, second_pauli_term: PauliTerm, trotter_order: Optional[int] = 1,
-               trotter_steps: Optional[int] = 1) -> Program:
+def trotterize(first_pauli_term: PauliTerm, second_pauli_term: PauliTerm, trotter_order: int = 1,
+               trotter_steps: int = 1) -> Program:
     """
     Create a Quil program that approximates exp( (A + B)t) where A and B are
     PauliTerm operators.
