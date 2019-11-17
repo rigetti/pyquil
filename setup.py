@@ -39,7 +39,8 @@ if sys.version_info < (3, 6):
 with open('VERSION.txt', 'r') as f:
     __version__ = f.read().strip()
 
-with open('README.md', 'r') as f:
+# Specify UTF-8 to guard against systems that default to an ASCII locale.
+with open('README.md', 'r', encoding='utf-8') as f:
     long_description = f.read()
 
 # save the source code in version.py

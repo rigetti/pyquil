@@ -266,7 +266,8 @@ def to_json(fn, obj):
 
     See :py:func:`read_json`.
     """
-    with open(fn, 'w') as f:
+    # Specify UTF-8 to guard against systems that default to an ASCII locale.
+    with open(fn, 'w', encoding='utf-8') as f:
         json.dump(obj, f, cls=OperatorEncoder, indent=2, ensure_ascii=False)
     return fn
 
@@ -291,5 +292,6 @@ def read_json(fn):
 
     See :py:func:`to_json`.
     """
-    with open(fn) as f:
+    # Specify UTF-8 to guard against systems that default to an ASCII locale.
+    with open(fn, encoding='utf-8') as f:
         return json.load(f, object_hook=_operator_object_hook)
