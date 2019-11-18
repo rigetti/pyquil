@@ -51,6 +51,7 @@ TYPE_RESUME = "resume"
 TYPE_QVM_INFO = "qvm-info"
 TYPE_JOB_INFO = "job-info"
 TYPE_JOB_RESULT = "job-result"
+TYPE_DELETE_JOB = "delete-job"
 
 
 class QVMSimulationMethod(Enum):
@@ -540,6 +541,12 @@ def qvm_ng_job_result_payload(token):
     return {"type": TYPE_JOB_RESULT, "job-token": token}
 
 
+def qvm_ng_delete_job_payload(token):
+    """REST payload for :py:func:`ForestConnection._qvm_ng_delete_job`"""
+    validate_job_token(token)
+    return {"type": TYPE_DELETE_JOB, "job-token": token}
+
+
 class ForestConnection:
     @_record_call
     def __init__(self, sync_endpoint=None, compiler_endpoint=None, forest_cloud_endpoint=None,
@@ -794,6 +801,15 @@ class ForestConnection:
         response = post_json(self.session, self.qvm_ng_endpoint + "/", payload)
         # TODO(appleby): this might not return JSON
         return response.json()
+
+    @_record_call
+    def _qvm_ng_delete_job(self, token) -> bool:
+        """
+        Run a Forest ``delete_job`` job.
+        """
+        payload = qvm_ng_delete_job_payload(token)
+        response = post_json(self.session, self.qvm_ng_endpoint + "/", payload)
+        return response.ok
 
     @_record_call
     def _qvm_ng_get_version_info(self) -> dict:

@@ -121,6 +121,26 @@ def get_job_result(job_token: str, connection: Optional[ForestConnection] = None
     return connection._qvm_ng_job_result(job_token)
 
 
+@_record_call
+def delete_job(job_token: str, connection: Optional[ForestConnection] = None) -> bool:
+    """
+    Delete the async job associated with ``job_token``.
+
+    :param job_token: a valid job token returned by ``run_program_async``.
+    :param connection: An optional :py:class:`ForestConnection` object.  If not specified, the
+        default values for URL endpoints will be used, and your API key will be read from
+        ~/.pyquil_config.  If you deign to change any of these parameters, pass your own
+        :py:class:`ForestConnection` object.
+    :return: True on success
+    """
+    validate_job_token(job_token)
+
+    if connection is None:
+        connection = ForestConnection()
+
+    return connection._qvm_ng_delete_job(job_token)
+
+
 class PersistentQVM:
     """
     Represents a connection to a PersistentQVM.

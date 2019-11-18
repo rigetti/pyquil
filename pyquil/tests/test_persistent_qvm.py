@@ -7,7 +7,7 @@ import numpy as np
 
 from pyquil import Program
 from pyquil.api import (ForestConnection, PersistentQVM, QVMSimulationMethod, QVMAllocationMethod,
-                        get_job_info, get_job_result, get_qvm_memory_estimate)
+                        delete_job, get_job_info, get_job_result, get_qvm_memory_estimate)
 from pyquil.api._errors import QVMError
 from pyquil.gates import MEASURE, RX, WAIT, X
 from pyquil.tests.utils import is_qvm_version_string
@@ -203,6 +203,7 @@ def test_wait_resume(forest_app_ng: ForestConnection):
     _wait_for_pqvm(pqvm, "READY")
     result = get_job_result(job_token)
     assert result == {}
+    delete_job(job_token)
 
     # It's an error to call resume on pqvm that's not in the WAITING state
     with pytest.raises(QVMError):
@@ -223,6 +224,7 @@ def test_wait_resume(forest_app_ng: ForestConnection):
     _wait_for_pqvm(pqvm, "READY")
     _check_mem_equal(pqvm.read_memory({"ro": True}), {"ro": [[1]]})
     _check_mem_equal(get_job_result(job_token), {"ro": [[1]]})
+    delete_job(job_token)
 
 
 def test_pqvm_run_program(forest_app_ng: ForestConnection):
@@ -265,3 +267,4 @@ def test_job_info(forest_app_ng: ForestConnection):
     _wait_for_job(job_token, "RUNNING")
     pqvm.resume()
     _wait_for_job(job_token, "FINISHED")
+    delete_job(job_token)
