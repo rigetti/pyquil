@@ -81,6 +81,26 @@ def get_qvm_memory_estimate(num_qubits: int,
 
 
 @_record_call
+def get_job_info(job_token: str, connection: Optional[ForestConnection] = None) -> Dict[str, Any]:
+    """
+    Fetch the status of the async job associated with ``job_token``.
+
+    :param job_token: a valid job token returned by ``run_program_async``.
+    :param connection: An optional :py:class:`ForestConnection` object.  If not specified, the
+        default values for URL endpoints will be used, and your API key will be read from
+        ~/.pyquil_config.  If you deign to change any of these parameters, pass your own
+        :py:class:`ForestConnection` object.
+    :return: a dict with the async job's status info
+    """
+    validate_job_token(job_token)
+
+    if connection is None:
+        connection = ForestConnection()
+
+    return connection._qvm_ng_job_info(job_token)
+
+
+@_record_call
 def get_job_result(job_token: str, connection: Optional[ForestConnection] = None):
     """
     Fetch the result of the async job associated with ``job_token``.

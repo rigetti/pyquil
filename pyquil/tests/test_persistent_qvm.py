@@ -7,7 +7,7 @@ import numpy as np
 
 from pyquil import Program
 from pyquil.api import (ForestConnection, PersistentQVM, QVMSimulationMethod, QVMAllocationMethod,
-                        get_job_result, get_qvm_memory_estimate)
+                        get_job_info, get_job_result, get_qvm_memory_estimate)
 from pyquil.api._errors import QVMError
 from pyquil.gates import MEASURE, RX, WAIT, X
 from pyquil.tests.utils import is_qvm_version_string
@@ -29,6 +29,23 @@ def _check_mem_equal(a: MemoryContentsDict, b: MemoryContentsDict) -> None:
     assert a.keys() == b.keys()
     for k in a:
         assert np.array_equal(a[k], b[k])
+
+
+def _wait_for(get, key, value):
+    for _ in range(10):
+        info = get()
+        if info[key] == value:
+            break
+        time.sleep(0.01)
+    assert get()[key] == value
+
+
+def _wait_for_pqvm(pqvm, state):
+    _wait_for(lambda: pqvm.get_qvm_info(), "state", state)
+
+
+def _wait_for_job(job_token, status):
+    _wait_for(lambda: get_job_info(job_token), "status", status)
 
 
 def test_pqvm_version(forest_app_ng: ForestConnection):
@@ -180,18 +197,10 @@ def test_write_memory(forest_app_ng: ForestConnection):
 def test_wait_resume(forest_app_ng: ForestConnection):
     pqvm = PersistentQVM(num_qubits=2, connection=forest_app_ng)
 
-    def wait_for_it(state):
-        for _ in range(10):
-            info = pqvm.get_qvm_info()
-            if info["state"] == state:
-                break
-            time.sleep(0.1)
-        assert pqvm.get_qvm_info()["state"] == state
-
     job_token = pqvm.run_program_async(Program("WAIT"))
-    wait_for_it("WAITING")
+    _wait_for_pqvm(pqvm, "WAITING")
     pqvm.resume()
-    wait_for_it("READY")
+    _wait_for_pqvm(pqvm, "READY")
     result = get_job_result(job_token)
     assert result == {}
 
@@ -208,10 +217,10 @@ def test_wait_resume(forest_app_ng: ForestConnection):
     p += MEASURE(0, ro)
     job_token = pqvm.run_program_async(p)
 
-    wait_for_it("WAITING")
+    _wait_for_pqvm(pqvm, "WAITING")
     pqvm.write_memory({"theta": [math.pi]})
     pqvm.resume()
-    wait_for_it("READY")
+    _wait_for_pqvm(pqvm, "READY")
     _check_mem_equal(pqvm.read_memory({"ro": True}), {"ro": [[1]]})
     _check_mem_equal(get_job_result(job_token), {"ro": [[1]]})
 
@@ -247,3 +256,12 @@ def test_pqvm_run_program_with_pauli_noise(forest_app_ng: ForestConnection):
                          gate_noise=[1.0, 0.0, 0.0])
     mem = pqvm.run_program(p)
     _check_mem_equal(mem, {'ro': [[1]]})
+
+
+def test_job_info(forest_app_ng: ForestConnection):
+    pqvm = PersistentQVM(num_qubits=2, connection=forest_app_ng)
+    job_token = pqvm.run_program_async(Program("WAIT"))
+
+    _wait_for_job(job_token, "RUNNING")
+    pqvm.resume()
+    _wait_for_job(job_token, "FINISHED")

@@ -49,6 +49,7 @@ TYPE_READ_MEMORY_QVM = "read-memory"
 TYPE_WRITE_MEMORY_QVM = "write-memory"
 TYPE_RESUME = "resume"
 TYPE_QVM_INFO = "qvm-info"
+TYPE_JOB_INFO = "job-info"
 TYPE_JOB_RESULT = "job-result"
 
 
@@ -527,6 +528,12 @@ def qvm_ng_qvm_info_payload(token):
     return {"type": TYPE_QVM_INFO, "qvm-token": token}
 
 
+def qvm_ng_job_info_payload(token):
+    """REST payload for :py:func:`ForestConnection._qvm_ng_job_info`"""
+    validate_job_token(token)
+    return {"type": TYPE_JOB_INFO, "job-token": token}
+
+
 def qvm_ng_job_result_payload(token):
     """REST payload for :py:func:`ForestConnection._qvm_ng_job_result`"""
     validate_job_token(token)
@@ -766,6 +773,15 @@ class ForestConnection:
         Run a Forest ``qvm_info`` job.
         """
         payload = qvm_ng_qvm_info_payload(token)
+        response = post_json(self.session, self.qvm_ng_endpoint + "/", payload)
+        return response.json()
+
+    @_record_call
+    def _qvm_ng_job_info(self, token):
+        """
+        Run a Forest ``job_info`` job.
+        """
+        payload = qvm_ng_job_info_payload(token)
         response = post_json(self.session, self.qvm_ng_endpoint + "/", payload)
         return response.json()
 
