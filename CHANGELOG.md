@@ -14,7 +14,7 @@ Changelog
 -   Added a `make typecheck` target to run mypy over a subset of the pyquil sources,
     and enabled typechecks in gitlab CI (@appleby, gh-1098).
 -   Added support for the `XY` gate family in `Program`s and in `ISA`s (@ecpeterson,
-    gh-1096, gh-1107).
+    gh-1096, gh-1107, gh-1111).
 
 ### Bugfixes
 
