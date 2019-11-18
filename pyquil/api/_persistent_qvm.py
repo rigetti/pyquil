@@ -19,7 +19,8 @@ import numpy as np
 
 from pyquil.api._base_connection import (ForestConnection, QVMAllocationMethod, QVMSimulationMethod,
                                          validate_allocation_method, validate_num_qubits,
-                                         validate_persistent_qvm_token, validate_simulation_method)
+                                         validate_job_token, validate_persistent_qvm_token,
+                                         validate_simulation_method)
 from pyquil.api._error_reporting import _record_call
 from pyquil.api._qvm import QVMNotRunning, QVMVersionMismatch, validate_noise_probabilities
 from pyquil.quil import Program, get_classical_addresses_from_program
@@ -77,6 +78,27 @@ def get_qvm_memory_estimate(num_qubits: int,
 
     return connection._qvm_ng_qvm_memory_estimate(simulation_method, allocation_method,
                                                   num_qubits, measurement_noise, gate_noise)
+
+
+@_record_call
+def get_job_result(job_token: str, connection: Optional[ForestConnection] = None):
+    """
+    Fetch the result of the async job associated with ``job_token``.
+
+    The return type varies depending on the async job that was run.
+
+    :param job_token: a valid job token returned by ``run_program_async``.
+    :param connection: An optional :py:class:`ForestConnection` object.  If not specified, the
+        default values for URL endpoints will be used, and your API key will be read from
+        ~/.pyquil_config.  If you deign to change any of these parameters, pass your own
+        :py:class:`ForestConnection` object.
+    """
+    validate_job_token(job_token)
+
+    if connection is None:
+        connection = ForestConnection()
+
+    return connection._qvm_ng_job_result(job_token)
 
 
 class PersistentQVM:

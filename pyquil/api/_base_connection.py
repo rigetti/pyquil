@@ -49,6 +49,7 @@ TYPE_READ_MEMORY_QVM = "read-memory"
 TYPE_WRITE_MEMORY_QVM = "write-memory"
 TYPE_RESUME = "resume"
 TYPE_QVM_INFO = "qvm-info"
+TYPE_JOB_RESULT = "job-result"
 
 
 class QVMSimulationMethod(Enum):
@@ -188,6 +189,16 @@ def is_valid_v4_uuid(uuid_string):
         return False
     else:
         return uid.version == 4
+
+
+def validate_job_token(job_token):
+    """
+    Check that job_token is a valid async job token.
+
+    :param str job_token: The async job token string.
+    """
+    if not is_valid_v4_uuid(job_token):
+        raise ValueError("job_token must be a valid v4 UUID. Got {job_token}.")
 
 
 def validate_persistent_qvm_token(qvm_token):
@@ -516,6 +527,12 @@ def qvm_ng_qvm_info_payload(token):
     return {"type": TYPE_QVM_INFO, "qvm-token": token}
 
 
+def qvm_ng_job_result_payload(token):
+    """REST payload for :py:func:`ForestConnection._qvm_ng_job_result`"""
+    validate_job_token(token)
+    return {"type": TYPE_JOB_RESULT, "job-token": token}
+
+
 class ForestConnection:
     @_record_call
     def __init__(self, sync_endpoint=None, compiler_endpoint=None, forest_cloud_endpoint=None,
@@ -750,6 +767,16 @@ class ForestConnection:
         """
         payload = qvm_ng_qvm_info_payload(token)
         response = post_json(self.session, self.qvm_ng_endpoint + "/", payload)
+        return response.json()
+
+    @_record_call
+    def _qvm_ng_job_result(self, token):
+        """
+        Run a Forest ``job_result`` job.
+        """
+        payload = qvm_ng_job_result_payload(token)
+        response = post_json(self.session, self.qvm_ng_endpoint + "/", payload)
+        # TODO(appleby): this might not return JSON
         return response.json()
 
     @_record_call
