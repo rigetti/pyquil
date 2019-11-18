@@ -14,7 +14,7 @@ Changelog
 -   Added a `make typecheck` target to run `mypy` over a subset of the pyquil
     sources, and enabled typechecks in the GitLab CI pipeline (@appleby, gh-1098).
 -   Added support for the `XY` (parameterized `iSWAP`) gate family in `Program`s
-    and in `ISA`s (@ecpeterson, gh-1096, gh-1107).
+    and in `ISA`s (@ecpeterson, gh-1096, gh-1107, gh-1111).
 -   Removed the `tox.ini` and `readthedocs.yml` files (@karalekas, gh-1108).
 
 ### Bugfixes
@@ -23,6 +23,9 @@ Changelog
     gh-1103).
 -   Fixed an example of using the `qc.run` method in the docs to correctly declare
     the size of a memory register (@appleby, gh-1099).
+-   Specify UTF-8 encoding when opening files that might contain non-ascii characters,
+    such as when reading the pyquil README.md file in setup.py or when serializing /
+    deserializing pyquil.experiment objects to/from JSON (@appleby, gh-1102).
 
 [v2.13](https://github.com/rigetti/pyquil/compare/v2.12.0...v2.13.0) (November 7, 2019)
 ---------------------------------------------------------------------------------------
