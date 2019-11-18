@@ -316,6 +316,8 @@ def specs_from_graph(graph: nx.Graph):
                          f1Q_simultaneous_RB=0.99, f1Q_simultaneous_RB_std_err=0.02, T1=30e-6,
                          T2=30e-6, fActiveReset=0.99)
               for q in graph.nodes]
-    especs = [EdgeSpecs(targets=(q1, q2), fBellState=0.90, fCZ=0.90, fCZ_std_err=0.05, fCPHASE=0.80)
+    especs = [EdgeSpecs(targets=(q1, q2), fBellState=0.90, fCZ=0.90, fCZ_std_err=0.05,
+                        fCPHASE=0.80, fCPHASE_std_err=0.05, fXY=0.86, fXY_std_err=0.05,
+                        fISWAP=0.90, fISWAP_std_err=0.05)
               for q1, q2 in graph.edges]
     return Specs(qspecs, especs)
