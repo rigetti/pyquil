@@ -40,8 +40,8 @@ TYPE_MULTISHOT_MEASURE = "multishot-measure"
 TYPE_WAVEFUNCTION = "wavefunction"
 
 # The following RPC methods are only available in qvm-ng.
+TYPE_CREATE_JOB = "create-job"
 TYPE_RUN_PROGRAM = "run-program"
-TYPE_RUN_PROGRAM_ASYNC = "run-program-async"
 TYPE_QVM_MEMORY_ESTIMATE = "qvm-memory-estimate"
 TYPE_CREATE_QVM = "create-qvm"
 TYPE_DELETE_QVM = "delete-qvm"
@@ -420,21 +420,12 @@ def qvm_ng_run_program_payload(quil_program, qvm_token, simulation_method, alloc
     return payload
 
 
-def qvm_ng_run_program_async_payload(qvm_token, quil_program):
-    """REST payload for :py:func:`ForestConnection._qvm_ng_run_program_async`"""
-    if not quil_program:
-        raise ValueError("You have attempted to run an empty program."
-                         " Please provide gates or measure instructions to your program.")
-    if not isinstance(quil_program, Program):
-        raise TypeError("quil_program must be a Quil program object")
+def qvm_ng_create_job_payload(sub_request_payload):
+    """REST payload for a create-job qvm ng request."""
+    if not isinstance(sub_request_payload, dict):
+        raise TypeError("sub_request_payload must be a dict.")
 
-    validate_persistent_qvm_token(qvm_token)
-
-    payload = {"type": TYPE_RUN_PROGRAM_ASYNC,
-               "qvm-token": qvm_token,
-               "compiled-quil": quil_program.out()}
-
-    return payload
+    return {"type": TYPE_CREATE_JOB, "sub-request": sub_request_payload}
 
 
 def qvm_ng_qvm_memory_estimate_payload(simulation_method, allocation_method, num_qubits,
@@ -637,8 +628,8 @@ class ForestConnection:
         Run a Forest ``run_program`` job on a QVM.
         """
         payload = qvm_ng_run_program_payload(quil_program, qvm_token, simulation_method,
-                                             allocation_method, classical_addresses, measurement_noise,
-                                             gate_noise)
+                                             allocation_method, classical_addresses,
+                                             measurement_noise, gate_noise)
         response = post_json(self.session, self.qvm_ng_endpoint + "/", payload)
         ram = response.json()
 
@@ -648,11 +639,16 @@ class ForestConnection:
         return ram
 
     @_record_call
-    def _qvm_ng_run_program_async(self, qvm_token, quil_program) -> bool:
+    def _qvm_ng_run_program_async(self, quil_program, qvm_token, simulation_method,
+                                  allocation_method, classical_addresses, measurement_noise,
+                                  gate_noise) -> str:
         """
-        Run a Forest ``run_program_async`` job on a QVM.
+        Run a Forest ``run_program`` job asynchronously on a QVM.
         """
-        payload = qvm_ng_run_program_async_payload(qvm_token, quil_program)
+        sub_request_payload = qvm_ng_run_program_payload(
+            quil_program, qvm_token, simulation_method, allocation_method, classical_addresses,
+            measurement_noise, gate_noise)
+        payload = qvm_ng_create_job_payload(sub_request_payload)
         response = post_json(self.session, self.qvm_ng_endpoint + "/", payload)
         json = response.json()
 

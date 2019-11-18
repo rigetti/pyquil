@@ -226,13 +226,20 @@ class PersistentQVM:
                                                    gate_noise=None)
 
     @_record_call
-    def run_program_async(self, quil_program: Program) -> None:
+    def run_program_async(self, quil_program: Program) -> str:
         """
-        Like ``run_program``, but run the program asynchronously, for effect.
+        Like ``run_program``, but run the program asynchronously.
 
         :param quil_program: the Quil program to run.
         """
         if not isinstance(quil_program, Program):
             raise TypeError(f"quil_program must be a Quil Program. Got {quil_program}.")
 
-        return self.connection._qvm_ng_run_program_async(self.token, quil_program)
+        classical_addresses = get_classical_addresses_from_program(quil_program)
+        return self.connection._qvm_ng_run_program_async(quil_program=quil_program,
+                                                         qvm_token=self.token,
+                                                         simulation_method=None,
+                                                         allocation_method=None,
+                                                         classical_addresses=classical_addresses,
+                                                         measurement_noise=None,
+                                                         gate_noise=None)
