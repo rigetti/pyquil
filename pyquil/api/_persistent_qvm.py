@@ -19,8 +19,9 @@ import numpy as np
 
 from pyquil.api._base_connection import (ForestConnection, QVMAllocationMethod, QVMSimulationMethod,
                                          validate_allocation_method, validate_num_qubits,
-                                         validate_job_token, validate_persistent_qvm_token,
-                                         validate_simulation_method)
+                                         validate_job_sub_request, validate_job_token,
+                                         validate_persistent_qvm_token, validate_simulation_method,
+                                         qvm_ng_run_program_payload)
 from pyquil.api._error_reporting import _record_call
 from pyquil.api._qvm import QVMNotRunning, QVMVersionMismatch, validate_noise_probabilities
 from pyquil.quil import Program, get_classical_addresses_from_program
@@ -80,65 +81,68 @@ def get_qvm_memory_estimate(num_qubits: int,
                                                   num_qubits, measurement_noise, gate_noise)
 
 
-@_record_call
-def get_job_info(job_token: str, connection: Optional[ForestConnection] = None) -> Dict[str, Any]:
-    """
-    Fetch the status of the async job associated with ``job_token``.
+class AsyncJob:
+    def __init__(self, sub_request: Dict[str, Any], connection: Optional[ForestConnection] = None):
+        """
+        :param sub_request: a dict representing the JSON payload for the RPC method that will be run
+            asynchronously.  At a minimum, this must contain a key "type" specifying the RPC method
+            to run, along with keys/values for the RPC parameters expected by the requested RPC
+            method.
+        :param connection: A connection to the Forest web API.
+        """
+        validate_job_sub_request(sub_request)
 
-    :param job_token: a valid job token returned by ``run_program_async``.
-    :param connection: An optional :py:class:`ForestConnection` object.  If not specified, the
-        default values for URL endpoints will be used, and your API key will be read from
-        ~/.pyquil_config.  If you deign to change any of these parameters, pass your own
-        :py:class:`ForestConnection` object.
-    :return: a dict with the async job's status info
-    """
-    validate_job_token(job_token)
+        if connection is None:
+            connection = ForestConnection()
 
-    if connection is None:
-        connection = ForestConnection()
+        self.connection = connection
+        self.connect()
+        self.token = self.connection._qvm_ng_create_job(sub_request)
 
-    return connection._qvm_ng_job_info(job_token)
+    def __del__(self) -> None:
+        self.close()
 
+    def connect(self) -> None:
+        try:
+            version = self.get_version_info()
+            check_qvm_ng_version(version)
+        except ConnectionError:
+            raise QVMNotRunning(f'No QVM-NG server running at {self.connection.qvm_ng_endpoint}')
 
-@_record_call
-def get_job_result(job_token: str, connection: Optional[ForestConnection] = None):
-    """
-    Fetch the result of the async job associated with ``job_token``.
+    def close(self) -> None:
+        if self.connection is not None:
+            self.connection._qvm_ng_delete_job(self.token)
+            self.connection = None
 
-    The return type varies depending on the async job that was run.
+    @_record_call
+    def get_version_info(self) -> str:
+        """
+        Return version information for the connected QVM.
 
-    :param job_token: a valid job token returned by ``run_program_async``.
-    :param connection: An optional :py:class:`ForestConnection` object.  If not specified, the
-        default values for URL endpoints will be used, and your API key will be read from
-        ~/.pyquil_config.  If you deign to change any of these parameters, pass your own
-        :py:class:`ForestConnection` object.
-    """
-    validate_job_token(job_token)
+        :return: String with version information
+        """
+        return self.connection._qvm_ng_get_version_info()
 
-    if connection is None:
-        connection = ForestConnection()
+    @_record_call
+    def get_job_info(self) -> Dict[str, Any]:
+        """
+        Fetch the status of this ``AsyncJob``.
 
-    return connection._qvm_ng_job_result(job_token)
+        :return: a dict with the async job's status info
+        """
+        return self.connection._qvm_ng_job_info(self.token)
 
+    @_record_call
+    def get_job_result(self):
+        """
+        Fetch the result of this ``AsyncJob``.  This call will block waiting for the job to
+        complete.
 
-@_record_call
-def delete_job(job_token: str, connection: Optional[ForestConnection] = None) -> bool:
-    """
-    Delete the async job associated with ``job_token``.
+        The return type varies depending on the async job that was run.
 
-    :param job_token: a valid job token returned by ``run_program_async``.
-    :param connection: An optional :py:class:`ForestConnection` object.  If not specified, the
-        default values for URL endpoints will be used, and your API key will be read from
-        ~/.pyquil_config.  If you deign to change any of these parameters, pass your own
-        :py:class:`ForestConnection` object.
-    :return: True on success
-    """
-    validate_job_token(job_token)
-
-    if connection is None:
-        connection = ForestConnection()
-
-    return connection._qvm_ng_delete_job(job_token)
+        :return: the job results
+        """
+        return self.connection._qvm_ng_job_result(self.token)
 
 
 class PersistentQVM:
@@ -192,6 +196,7 @@ class PersistentQVM:
 
         if connection is None:
             connection = ForestConnection()
+
         self.connection = connection
         self.connect()
         self.token = self.connection._qvm_ng_create_qvm(simulation_method,
@@ -201,7 +206,7 @@ class PersistentQVM:
                                                         gate_noise)
 
     def __del__(self) -> None:
-        self.connection._qvm_ng_delete_qvm(self.token)
+        self.close()
 
     def connect(self) -> None:
         try:
@@ -209,6 +214,11 @@ class PersistentQVM:
             check_qvm_ng_version(version)
         except ConnectionError:
             raise QVMNotRunning(f'No QVM-NG server running at {self.connection.qvm_ng_endpoint}')
+
+    def close(self) -> None:
+        if self.connection is not None:
+            self.connection._qvm_ng_delete_qvm(self.token)
+            self.connection = None
 
     @_record_call
     def get_version_info(self) -> str:
@@ -288,20 +298,22 @@ class PersistentQVM:
                                                    gate_noise=None)
 
     @_record_call
-    def run_program_async(self, quil_program: Program) -> str:
+    def run_program_async(self, quil_program: Program) -> AsyncJob:
         """
         Like ``run_program``, but run the program asynchronously.
 
         :param quil_program: the Quil program to run.
+        :return: an ``AsyncJob`` running the requested ``Program``.
         """
         if not isinstance(quil_program, Program):
             raise TypeError(f"quil_program must be a Quil Program. Got {quil_program}.")
 
         classical_addresses = get_classical_addresses_from_program(quil_program)
-        return self.connection._qvm_ng_run_program_async(quil_program=quil_program,
-                                                         qvm_token=self.token,
-                                                         simulation_method=None,
-                                                         allocation_method=None,
-                                                         classical_addresses=classical_addresses,
-                                                         measurement_noise=None,
-                                                         gate_noise=None)
+        sub_request = qvm_ng_run_program_payload(quil_program=quil_program,
+                                                 qvm_token=self.token,
+                                                 simulation_method=None,
+                                                 allocation_method=None,
+                                                 classical_addresses=classical_addresses,
+                                                 measurement_noise=None,
+                                                 gate_noise=None)
+        return AsyncJob(sub_request, connection=self.connection)

@@ -6,8 +6,8 @@ import pytest
 import numpy as np
 
 from pyquil import Program
-from pyquil.api import (ForestConnection, PersistentQVM, QVMSimulationMethod, QVMAllocationMethod,
-                        delete_job, get_job_info, get_job_result, get_qvm_memory_estimate)
+from pyquil.api import (ForestConnection, AsyncJob, PersistentQVM, QVMSimulationMethod,
+                        QVMAllocationMethod, get_qvm_memory_estimate)
 from pyquil.api._errors import QVMError
 from pyquil.gates import MEASURE, RX, WAIT, X
 from pyquil.tests.utils import is_qvm_version_string
@@ -44,14 +44,15 @@ def _wait_for_pqvm(pqvm, state):
     _wait_for(lambda: pqvm.get_qvm_info(), "state", state)
 
 
-def _wait_for_job(job_token, status):
-    _wait_for(lambda: get_job_info(job_token), "status", status)
+def _wait_for_job(job, status):
+    _wait_for(lambda: job.get_job_info(), "status", status)
 
 
 def test_pqvm_version(forest_app_ng: ForestConnection):
     pqvm = PersistentQVM(num_qubits=0, connection=forest_app_ng)
     version = pqvm.get_version_info()
     assert is_qvm_version_string(version)
+    pqvm.close()
 
 
 def test_qvm_memory_estimate(forest_app_ng: ForestConnection):
@@ -92,6 +93,7 @@ def test_pqvm_create_and_info(forest_app_ng: ForestConnection):
     assert info['qvm-type'] == 'PURE-STATE-QVM'
     assert info['num-qubits'] == 0
     assert info['metadata']['allocation-method'] == 'NATIVE'
+    pqvm.close()
 
     pqvm = PersistentQVM(num_qubits=1, connection=forest_app_ng,
                          allocation_method=QVMAllocationMethod.FOREIGN)
@@ -99,6 +101,7 @@ def test_pqvm_create_and_info(forest_app_ng: ForestConnection):
     assert info['qvm-type'] == 'PURE-STATE-QVM'
     assert info['num-qubits'] == 1
     assert info['metadata']['allocation-method'] == 'FOREIGN'
+    pqvm.close()
 
     pqvm = PersistentQVM(num_qubits=2, connection=forest_app_ng,
                          simulation_method=QVMSimulationMethod.FULL_DENSITY_MATRIX)
@@ -106,6 +109,7 @@ def test_pqvm_create_and_info(forest_app_ng: ForestConnection):
     assert info['qvm-type'] == 'DENSITY-QVM'
     assert info['num-qubits'] == 2
     assert info['metadata']['allocation-method'] == 'NATIVE'
+    pqvm.close()
 
     pqvm = PersistentQVM(num_qubits=3, connection=forest_app_ng,
                          simulation_method=QVMSimulationMethod.FULL_DENSITY_MATRIX,
@@ -114,6 +118,7 @@ def test_pqvm_create_and_info(forest_app_ng: ForestConnection):
     assert info['qvm-type'] == 'DENSITY-QVM'
     assert info['num-qubits'] == 3
     assert info['metadata']['allocation-method'] == 'FOREIGN'
+    pqvm.close()
 
 
 def test_pqvm_read_memory(forest_app_ng: ForestConnection):
@@ -134,6 +139,7 @@ def test_pqvm_read_memory(forest_app_ng: ForestConnection):
     # Request memory at a specific offset.
     pqvm.run_program(Program("DECLARE byte BIT[8]\nX 0\nMEASURE 0 byte[4]"))
     _check_mem_equal(pqvm.read_memory({"byte": [4]}), {"byte": [[1]]})
+    pqvm.close()
 
 
 def test_write_memory(forest_app_ng: ForestConnection):
@@ -192,18 +198,19 @@ def test_write_memory(forest_app_ng: ForestConnection):
     # tuple of values
     pqvm.write_memory({"theta": (4.1, 3.1, 2.1, 1.1)})
     _check_mem_equal(pqvm.read_memory({"theta": True}), {"theta": [[4.1, 3.1, 2.1, 1.1]]})
+    pqvm.close()
 
 
 def test_wait_resume(forest_app_ng: ForestConnection):
     pqvm = PersistentQVM(num_qubits=2, connection=forest_app_ng)
 
-    job_token = pqvm.run_program_async(Program("WAIT"))
+    job = pqvm.run_program_async(Program("WAIT"))
     _wait_for_pqvm(pqvm, "WAITING")
     pqvm.resume()
     _wait_for_pqvm(pqvm, "READY")
-    result = get_job_result(job_token)
+    result = job.get_job_result()
     assert result == {}
-    delete_job(job_token)
+    job.close()
 
     # It's an error to call resume on pqvm that's not in the WAITING state
     with pytest.raises(QVMError):
@@ -216,15 +223,16 @@ def test_wait_resume(forest_app_ng: ForestConnection):
     p += WAIT
     p += RX(theta, 0)
     p += MEASURE(0, ro)
-    job_token = pqvm.run_program_async(p)
+    job = pqvm.run_program_async(p)
 
     _wait_for_pqvm(pqvm, "WAITING")
     pqvm.write_memory({"theta": [math.pi]})
     pqvm.resume()
     _wait_for_pqvm(pqvm, "READY")
     _check_mem_equal(pqvm.read_memory({"ro": True}), {"ro": [[1]]})
-    _check_mem_equal(get_job_result(job_token), {"ro": [[1]]})
-    delete_job(job_token)
+    _check_mem_equal(job.get_job_result(), {"ro": [[1]]})
+    job.close()
+    pqvm.close()
 
 
 def test_pqvm_run_program(forest_app_ng: ForestConnection):
@@ -240,6 +248,7 @@ def test_pqvm_run_program(forest_app_ng: ForestConnection):
                                  allocation_method=allocation_method)
             mem = pqvm.run_program(p)
             _check_mem_equal(mem, {'ro': [[1]]})
+            pqvm.close()
 
 
 def test_pqvm_run_program_with_pauli_noise(forest_app_ng: ForestConnection):
@@ -252,19 +261,22 @@ def test_pqvm_run_program_with_pauli_noise(forest_app_ng: ForestConnection):
                          measurement_noise=[1.0, 0.0, 0.0])
     mem = pqvm.run_program(p)
     assert mem == {'ro': [[0]]}
+    pqvm.close()
 
     pqvm = PersistentQVM(num_qubits=2, connection=forest_app_ng,
                          measurement_noise=[1.0, 0.0, 0.0],
                          gate_noise=[1.0, 0.0, 0.0])
     mem = pqvm.run_program(p)
     _check_mem_equal(mem, {'ro': [[1]]})
+    pqvm.close()
 
 
 def test_job_info(forest_app_ng: ForestConnection):
     pqvm = PersistentQVM(num_qubits=2, connection=forest_app_ng)
-    job_token = pqvm.run_program_async(Program("WAIT"))
+    job = pqvm.run_program_async(Program("WAIT"))
 
-    _wait_for_job(job_token, "RUNNING")
+    _wait_for_job(job, "RUNNING")
     pqvm.resume()
-    _wait_for_job(job_token, "FINISHED")
-    delete_job(job_token)
+    _wait_for_job(job, "FINISHED")
+    job.close()
+    pqvm.close()

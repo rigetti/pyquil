@@ -48,10 +48,11 @@ TYPE_DELETE_QVM = "delete-qvm"
 TYPE_READ_MEMORY_QVM = "read-memory"
 TYPE_WRITE_MEMORY_QVM = "write-memory"
 TYPE_RESUME = "resume"
+TYPE_CREATE_JOB = "create-job"
+TYPE_DELETE_JOB = "delete-job"
 TYPE_QVM_INFO = "qvm-info"
 TYPE_JOB_INFO = "job-info"
 TYPE_JOB_RESULT = "job-result"
-TYPE_DELETE_JOB = "delete-job"
 
 
 class QVMSimulationMethod(Enum):
@@ -193,6 +194,19 @@ def is_valid_v4_uuid(uuid_string):
         return uid.version == 4
 
 
+def validate_job_sub_request(sub_request):
+    """
+    Check that sub_request looks like a valid JSON request payload.
+
+    :param sub_request: a dict representing a payload for a JSON request.
+    """
+    if not isinstance(sub_request, dict):
+        raise TypeError(f"sub_request must be a dict. Got {sub_request}.")
+
+    if "type" not in sub_request:
+        raise ValueError(f'sub_request must contain a "type" key. Got {sub_request}.')
+
+
 def validate_job_token(job_token):
     """
     Check that job_token is a valid async job token.
@@ -200,7 +214,7 @@ def validate_job_token(job_token):
     :param str job_token: The async job token string.
     """
     if not is_valid_v4_uuid(job_token):
-        raise ValueError("job_token must be a valid v4 UUID. Got {job_token}.")
+        raise ValueError(f"job_token must be a valid v4 UUID. Got {job_token}.")
 
 
 def validate_persistent_qvm_token(qvm_token):
@@ -210,7 +224,7 @@ def validate_persistent_qvm_token(qvm_token):
     :param str qvm_token: The persistent QVM token string.
     """
     if not is_valid_v4_uuid(qvm_token):
-        raise ValueError("qvm_token must be a valid v4 UUID. Got {qvm_token}.")
+        raise ValueError(f"qvm_token must be a valid v4 UUID. Got {qvm_token}.")
 
 
 def validate_allocation_method(allocation_method):
@@ -433,12 +447,10 @@ def qvm_ng_run_program_payload(quil_program, qvm_token, simulation_method, alloc
     return payload
 
 
-def qvm_ng_create_job_payload(sub_request_payload):
+def qvm_ng_create_job_payload(sub_request):
     """REST payload for a create-job qvm ng request."""
-    if not isinstance(sub_request_payload, dict):
-        raise TypeError("sub_request_payload must be a dict.")
-
-    return {"type": TYPE_CREATE_JOB, "sub-request": sub_request_payload}
+    validate_job_sub_request(sub_request)
+    return {"type": TYPE_CREATE_JOB, "sub-request": sub_request}
 
 
 def qvm_ng_qvm_memory_estimate_payload(simulation_method, allocation_method, num_qubits,
@@ -670,25 +682,6 @@ class ForestConnection:
         return ram
 
     @_record_call
-    def _qvm_ng_run_program_async(self, quil_program, qvm_token, simulation_method,
-                                  allocation_method, classical_addresses, measurement_noise,
-                                  gate_noise) -> str:
-        """
-        Run a Forest ``run_program`` job asynchronously on a QVM.
-        """
-        sub_request_payload = qvm_ng_run_program_payload(
-            quil_program, qvm_token, simulation_method, allocation_method, classical_addresses,
-            measurement_noise, gate_noise)
-        payload = qvm_ng_create_job_payload(sub_request_payload)
-        response = post_json(self.session, self.qvm_ng_endpoint + "/", payload)
-        json = response.json()
-
-        if not isinstance(json, dict) or "token" not in json or not is_valid_v4_uuid(json["token"]):
-            raise TypeError(f"Malformed JOB token returned by the QVM: {json}")
-
-        return json["token"]
-
-    @_record_call
     def _qvm_ng_qvm_memory_estimate(self, simulation_method, allocation_method, num_qubits,
                                     measurement_noise, gate_noise) -> int:
         """
@@ -784,6 +777,29 @@ class ForestConnection:
         return response.json()
 
     @_record_call
+    def _qvm_ng_create_job(self, sub_request) -> str:
+        """
+        Run a Forest ``create_job`` job.
+        """
+        payload = qvm_ng_create_job_payload(sub_request)
+        response = post_json(self.session, self.qvm_ng_endpoint + "/", payload)
+        json = response.json()
+
+        if not isinstance(json, dict) or "token" not in json or not is_valid_v4_uuid(json["token"]):
+            raise TypeError(f"Malformed JOB token returned by the QVM: {json}")
+
+        return json["token"]
+
+    @_record_call
+    def _qvm_ng_delete_job(self, token) -> bool:
+        """
+        Run a Forest ``delete_job`` job.
+        """
+        payload = qvm_ng_delete_job_payload(token)
+        response = post_json(self.session, self.qvm_ng_endpoint + "/", payload)
+        return response.ok
+
+    @_record_call
     def _qvm_ng_job_info(self, token):
         """
         Run a Forest ``job_info`` job.
@@ -801,15 +817,6 @@ class ForestConnection:
         response = post_json(self.session, self.qvm_ng_endpoint + "/", payload)
         # TODO(appleby): this might not return JSON
         return response.json()
-
-    @_record_call
-    def _qvm_ng_delete_job(self, token) -> bool:
-        """
-        Run a Forest ``delete_job`` job.
-        """
-        payload = qvm_ng_delete_job_payload(token)
-        response = post_json(self.session, self.qvm_ng_endpoint + "/", payload)
-        return response.ok
 
     @_record_call
     def _qvm_ng_get_version_info(self) -> dict:
