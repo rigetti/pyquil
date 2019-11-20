@@ -20,7 +20,7 @@ import uuid
 import warnings
 from enum import Enum
 from json.decoder import JSONDecodeError
-from typing import Dict, Iterable, List, Tuple, Union, Sequence
+from typing import Any, Dict, Iterable, List, Optional, Tuple, Union, Sequence, cast
 
 import numpy as np
 import requests
@@ -175,16 +175,21 @@ def validate_qubit_list(qubit_list):
     return qubit_list
 
 
-def validate_num_qubits(num_qubits):
+def validate_num_qubits(num_qubits: int) -> None:
+    """
+    Check that num_qubits is a non-negative integer.
+
+    :param num_qubits: the number to validate.
+    """
     if not isinstance(num_qubits, int) or num_qubits < 0:
-        raise TypeError("num_qubits must be a positive integer.")
+        raise TypeError("num_qubits must be a non-negative integer.")
 
 
-def is_valid_v4_uuid(uuid_string):
+def is_valid_v4_uuid(uuid_string: str) -> bool:
     """
     Is uuid_string a valid string representation of a v4 UUID?
 
-    :param str uuid_string: The UUID string to check.
+    :param uuid_string: The UUID string to check.
     """
     try:
         uid = uuid.UUID(uuid_string)
@@ -194,7 +199,7 @@ def is_valid_v4_uuid(uuid_string):
         return uid.version == 4
 
 
-def validate_job_sub_request(sub_request):
+def validate_job_sub_request(sub_request: Dict[str, Any]) -> None:
     """
     Check that sub_request looks like a valid JSON request payload.
 
@@ -207,42 +212,42 @@ def validate_job_sub_request(sub_request):
         raise ValueError(f'sub_request must contain a "type" key. Got {sub_request}.')
 
 
-def validate_job_token(job_token):
+def validate_job_token(job_token: str) -> None:
     """
     Check that job_token is a valid async job token.
 
-    :param str job_token: The async job token string.
+    :param job_token: The async job token string.
     """
     if not is_valid_v4_uuid(job_token):
         raise ValueError(f"job_token must be a valid v4 UUID. Got {job_token}.")
 
 
-def validate_persistent_qvm_token(qvm_token):
+def validate_persistent_qvm_token(qvm_token: str) -> None:
     """
     Check that qvm_token is a valid persistent QVM token.
 
-    :param str qvm_token: The persistent QVM token string.
+    :param qvm_token: The persistent QVM token string.
     """
     if not is_valid_v4_uuid(qvm_token):
         raise ValueError(f"qvm_token must be a valid v4 UUID. Got {qvm_token}.")
 
 
-def validate_allocation_method(allocation_method):
+def validate_allocation_method(allocation_method: QVMAllocationMethod) -> None:
     """
     Check that allocation_method is a valid QVM allocation method.
 
-    :param QVMAllocationMethod allocation_method: The allocation method.
+    :param allocation_method: The allocation method.
     """
     if not isinstance(allocation_method, QVMAllocationMethod):
         raise TypeError("allocation_method must be a QVMAllocationMethod. "
                         f"Got '{allocation_method}'.")
 
 
-def validate_simulation_method(simulation_method):
+def validate_simulation_method(simulation_method: QVMSimulationMethod) -> None:
     """
     Check that simulation_method is a valid QVM simulation method.
 
-    :param QVMSimulationMethod simulation_method: The simulation method.
+    :param simulation_method: The simulation method.
     """
     if not isinstance(simulation_method, QVMSimulationMethod):
         raise TypeError("simulation_method must be a QVMSimulationMethod. "
@@ -254,8 +259,8 @@ ClassicalRegisterValue = Union[int, float, complex]
 
 def prepare_memory_contents(
         register_dict: Dict[str, Union[List[Tuple[int, ClassicalRegisterValue]],
-                                       Iterable[ClassicalRegisterValue]]]) \
-        -> Dict[str, List[Tuple[int, ClassicalRegisterValue]]]:
+                                       Iterable[ClassicalRegisterValue]]]
+) -> Dict[str, List[Tuple[int, ClassicalRegisterValue]]]:
     """
     Canonicalize memory contents for the payload.
 
@@ -410,8 +415,14 @@ def qvm_run_payload(quil_program, classical_addresses, trials,
     return payload
 
 
-def qvm_ng_run_program_payload(quil_program, qvm_token, simulation_method, allocation_method,
-                               classical_addresses, measurement_noise, gate_noise, random_seed):
+def qvm_ng_run_program_payload(quil_program: Program,
+                               qvm_token: Optional[str],
+                               simulation_method: QVMSimulationMethod,
+                               allocation_method: QVMAllocationMethod,
+                               classical_addresses: Dict[str, Union[bool, Sequence[int]]],
+                               measurement_noise: Optional[List[float]],
+                               gate_noise: Optional[List[float]],
+                               random_seed: Optional[int]) -> Dict[str, Any]:
     """REST payload for :py:func:`ForestConnection._qvm_ng_run_program`"""
     if not quil_program:
         raise ValueError("You have attempted to run an empty program."
@@ -449,14 +460,17 @@ def qvm_ng_run_program_payload(quil_program, qvm_token, simulation_method, alloc
     return payload
 
 
-def qvm_ng_create_job_payload(sub_request):
+def qvm_ng_create_job_payload(sub_request: Dict[str, Any]) -> Dict[str, Any]:
     """REST payload for a create-job qvm ng request."""
     validate_job_sub_request(sub_request)
     return {"type": TYPE_CREATE_JOB, "sub-request": sub_request}
 
 
-def qvm_ng_qvm_memory_estimate_payload(simulation_method, allocation_method, num_qubits,
-                                       measurement_noise, gate_noise):
+def qvm_ng_qvm_memory_estimate_payload(simulation_method: QVMSimulationMethod,
+                                       allocation_method: QVMAllocationMethod,
+                                       num_qubits: int,
+                                       measurement_noise: Optional[List[float]],
+                                       gate_noise: Optional[List[float]]) -> Dict[str, Any]:
     """REST payload for :py:func:`ForestConnection._qvm_ng_qvm_memory_estimate`"""
     if not isinstance(num_qubits, int) or num_qubits < 0:
         raise ValueError("num_qubits must be a positive integer.")
@@ -480,8 +494,11 @@ def qvm_ng_qvm_memory_estimate_payload(simulation_method, allocation_method, num
     return payload
 
 
-def qvm_ng_create_qvm_payload(simulation_method, allocation_method, num_qubits, measurement_noise,
-                              gate_noise):
+def qvm_ng_create_qvm_payload(simulation_method: QVMSimulationMethod,
+                              allocation_method: QVMAllocationMethod,
+                              num_qubits: int,
+                              measurement_noise: Optional[List[float]],
+                              gate_noise: Optional[List[float]]) -> Dict[str, Any]:
     """REST payload for :py:func:`ForestConnection._qvm_ng_create_qvm`"""
     if not isinstance(num_qubits, int) or num_qubits < 0:
         raise ValueError("num_qubits must be a positive integer.")
@@ -505,13 +522,15 @@ def qvm_ng_create_qvm_payload(simulation_method, allocation_method, num_qubits, 
     return payload
 
 
-def qvm_ng_delete_qvm_payload(token):
+def qvm_ng_delete_qvm_payload(token: str) -> Dict[str, Any]:
     """REST payload for :py:func:`ForestConnection._qvm_ng_delete_qvm`"""
     validate_persistent_qvm_token(token)
     return {"type": TYPE_DELETE_QVM, "qvm-token": token}
 
 
-def qvm_ng_read_memory_payload(qvm_token, classical_addresses):
+def qvm_ng_read_memory_payload(
+        qvm_token: str, classical_addresses: Dict[str, Union[bool, Sequence[int]]]
+) -> Dict[str, Any]:
     """REST payload for :py:func:`ForestConnection._qvm_ng_read_memory`"""
     validate_persistent_qvm_token(qvm_token)
     classical_addresses = prepare_register_list(classical_addresses)
@@ -521,41 +540,45 @@ def qvm_ng_read_memory_payload(qvm_token, classical_addresses):
     return payload
 
 
-def qvm_ng_write_memory_payload(qvm_token, memory_contents):
+def qvm_ng_write_memory_payload(
+        qvm_token: str,
+        memory_contents: Dict[str, Union[List[Tuple[int, ClassicalRegisterValue]],
+                                         Iterable[ClassicalRegisterValue]]]
+) -> Dict[str, Any]:
     """REST payload for :py:func:`ForestConnection._qvm_ng_write_memory`"""
     validate_persistent_qvm_token(qvm_token)
-    memory_contents = prepare_memory_contents(memory_contents)
+    prepared_memory_contents = prepare_memory_contents(memory_contents)
     payload = {"type": TYPE_WRITE_MEMORY_QVM,
-               "memory-contents": memory_contents,
+               "memory-contents": prepared_memory_contents,
                "qvm-token": qvm_token}
     return payload
 
 
-def qvm_ng_resume_payload(qvm_token):
+def qvm_ng_resume_payload(qvm_token: str) -> Dict[str, Any]:
     """REST payload for :py:func:`ForestConnection._qvm_ng_resume`"""
     validate_persistent_qvm_token(qvm_token)
     return {"type": TYPE_RESUME, "qvm-token": qvm_token}
 
 
-def qvm_ng_qvm_info_payload(token):
+def qvm_ng_qvm_info_payload(token: str) -> Dict[str, Any]:
     """REST payload for :py:func:`ForestConnection._qvm_ng_qvm_info`"""
     validate_persistent_qvm_token(token)
     return {"type": TYPE_QVM_INFO, "qvm-token": token}
 
 
-def qvm_ng_job_info_payload(token):
+def qvm_ng_job_info_payload(token: str) -> Dict[str, Any]:
     """REST payload for :py:func:`ForestConnection._qvm_ng_job_info`"""
     validate_job_token(token)
     return {"type": TYPE_JOB_INFO, "job-token": token}
 
 
-def qvm_ng_job_result_payload(token):
+def qvm_ng_job_result_payload(token: str) -> Dict[str, Any]:
     """REST payload for :py:func:`ForestConnection._qvm_ng_job_result`"""
     validate_job_token(token)
     return {"type": TYPE_JOB_RESULT, "job-token": token}
 
 
-def qvm_ng_delete_job_payload(token):
+def qvm_ng_delete_job_payload(token: str) -> Dict[str, Any]:
     """REST payload for :py:func:`ForestConnection._qvm_ng_delete_job`"""
     validate_job_token(token)
     return {"type": TYPE_DELETE_JOB, "job-token": token}
@@ -668,8 +691,15 @@ class ForestConnection:
 
     @_record_call
     def _qvm_ng_run_program(
-            self, quil_program, qvm_token, simulation_method, allocation_method,
-            classical_addresses, measurement_noise, gate_noise, random_seed
+            self,
+            quil_program: Program,
+            qvm_token: Optional[str],
+            simulation_method: QVMSimulationMethod,
+            allocation_method: QVMAllocationMethod,
+            classical_addresses: Dict[str, Union[bool, Sequence[int]]],
+            measurement_noise: Optional[List[float]],
+            gate_noise: Optional[List[float]],
+            random_seed: Optional[int]
     ) -> np.ndarray:
         """
         Run a Forest ``run_program`` job on a QVM.
@@ -686,8 +716,14 @@ class ForestConnection:
         return ram
 
     @_record_call
-    def _qvm_ng_qvm_memory_estimate(self, simulation_method, allocation_method, num_qubits,
-                                    measurement_noise, gate_noise) -> int:
+    def _qvm_ng_qvm_memory_estimate(
+            self,
+            simulation_method: QVMSimulationMethod,
+            allocation_method: QVMAllocationMethod,
+            num_qubits: int,
+            measurement_noise: Optional[List[float]],
+            gate_noise: Optional[List[float]]
+    ) -> int:
         """
         Run a Forest ``get_memory_estimate`` job.
         """
@@ -705,8 +741,14 @@ class ForestConnection:
         return json["bytes"]
 
     @_record_call
-    def _qvm_ng_create_qvm(self, simulation_method, allocation_method, num_qubits, measurement_noise,
-                           gate_noise) -> str:
+    def _qvm_ng_create_qvm(
+            self,
+            simulation_method: QVMSimulationMethod,
+            allocation_method: QVMAllocationMethod,
+            num_qubits: int,
+            measurement_noise: Optional[List[float]],
+            gate_noise: Optional[List[float]]
+    ) -> str:
         """
         Run a Forest ``create_qvm`` job.
         """
@@ -718,19 +760,26 @@ class ForestConnection:
         if not isinstance(json, dict) or "token" not in json or not is_valid_v4_uuid(json["token"]):
             raise TypeError(f"Malformed persistent QVM token returned by the QVM: {json}")
 
+        assert isinstance(json["token"], str)  # placate mypy. is_valid_v4_uuid guarantees it.
         return json["token"]
 
     @_record_call
-    def _qvm_ng_delete_qvm(self, token) -> bool:
+    def _qvm_ng_delete_qvm(self, token: str) -> bool:
         """
         Run a Forest ``delete_qvm`` job.
         """
         payload = qvm_ng_delete_qvm_payload(token)
         response = post_json(self.session, self.qvm_ng_endpoint + "/", payload)
-        return response.ok
+        ok = response.ok
+        assert isinstance(ok, bool)  # placate mypy
+        return ok
 
     @_record_call
-    def _qvm_ng_read_memory(self, qvm_token, classical_addresses) -> np.ndarray:
+    def _qvm_ng_read_memory(
+            self,
+            qvm_token: str,
+            classical_addresses: Dict[str, Union[bool, Sequence[int]]]
+    ) -> np.ndarray:
         """
         Run a Forest ``read_memory`` job.
         """
@@ -744,7 +793,12 @@ class ForestConnection:
         return ram
 
     @_record_call
-    def _qvm_ng_write_memory(self, qvm_token, memory_contents) -> None:
+    def _qvm_ng_write_memory(
+            self,
+            qvm_token: str,
+            memory_contents: Dict[str, Union[List[Tuple[int, ClassicalRegisterValue]],
+                                             Iterable[ClassicalRegisterValue]]]
+    ) -> bool:
         """
         Run a Forest ``write_memory`` job.
         """
@@ -758,7 +812,7 @@ class ForestConnection:
         return ok
 
     @_record_call
-    def _qvm_ng_resume(self, qvm_token) -> None:
+    def _qvm_ng_resume(self, qvm_token: str) -> bool:
         """
         Run a Forest ``resume`` job.
         """
@@ -772,7 +826,7 @@ class ForestConnection:
         return ok
 
     @_record_call
-    def _qvm_ng_qvm_info(self, token) -> dict:
+    def _qvm_ng_qvm_info(self, token: str) -> Dict[str, Any]:
         """
         Run a Forest ``qvm_info`` job.
         """
@@ -781,7 +835,7 @@ class ForestConnection:
         return response.json()
 
     @_record_call
-    def _qvm_ng_create_job(self, sub_request) -> str:
+    def _qvm_ng_create_job(self, sub_request: Dict[str, Any]) -> str:
         """
         Run a Forest ``create_job`` job.
         """
@@ -792,28 +846,35 @@ class ForestConnection:
         if not isinstance(json, dict) or "token" not in json or not is_valid_v4_uuid(json["token"]):
             raise TypeError(f"Malformed JOB token returned by the QVM: {json}")
 
-        return json["token"]
+        return cast(str, json["token"])
 
     @_record_call
-    def _qvm_ng_delete_job(self, token) -> bool:
+    def _qvm_ng_delete_job(self, token: str) -> bool:
         """
         Run a Forest ``delete_job`` job.
         """
         payload = qvm_ng_delete_job_payload(token)
         response = post_json(self.session, self.qvm_ng_endpoint + "/", payload)
-        return response.ok
+        ok = response.ok
+        assert isinstance(ok, bool)  # placate mypy
+        return ok
 
     @_record_call
-    def _qvm_ng_job_info(self, token):
+    def _qvm_ng_job_info(self, token: str) -> Dict[str, Any]:
         """
         Run a Forest ``job_info`` job.
         """
         payload = qvm_ng_job_info_payload(token)
         response = post_json(self.session, self.qvm_ng_endpoint + "/", payload)
-        return response.json()
+        info = response.json()
+
+        if not isinstance(info, dict):
+            raise TypeError(f"Malformed job info response returned by the QVM: {info}")
+
+        return info
 
     @_record_call
-    def _qvm_ng_job_result(self, token):
+    def _qvm_ng_job_result(self, token: str) -> Any:
         """
         Run a Forest ``job_result`` job.
         """
@@ -823,7 +884,7 @@ class ForestConnection:
         return response.json()
 
     @_record_call
-    def _qvm_ng_get_version_info(self) -> dict:
+    def _qvm_ng_get_version_info(self) -> str:
         """
         Return version information for the QVM-NG.
 
@@ -835,4 +896,6 @@ class ForestConnection:
             qvm_version = split_version_string[0]
         except ValueError:
             raise TypeError(f"Malformed version string returned by the QVM: {response.text}")
+
+        assert isinstance(qvm_version, str)  # placate mypy
         return qvm_version
