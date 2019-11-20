@@ -9,7 +9,7 @@ def parse_equals(quil_string, *instructions):
     assert expected == actual
 
 
-def is_qvm_version_string(version_string: str):
+def is_qvm_version_string(version_string: str) -> bool:
     parts = version_string.split('.')
     try:
         map(int, parts)
