@@ -22,7 +22,7 @@ from itertools import product
 import numpy as np
 import copy
 
-from typing import Dict, FrozenSet, Iterable, Iterator, List, Optional, Tuple, Union
+from typing import Callable, Dict, FrozenSet, Iterable, Iterator, List, Optional, Sequence, Tuple, Union
 
 from pyquil.quilatom import QubitPlaceholder
 
@@ -30,8 +30,10 @@ from .quil import Program
 from .gates import H, RZ, RX, CNOT, X, PHASE, QUANTUM_GATES
 from numbers import Number
 from collections import OrderedDict
-from collections.abc import Sequence
 import warnings
+
+PauliCoefficientDesignator = Union[int, float, complex]
+PauliDesignator = Union['PauliTerm', 'PauliSum']
 
 PAULI_OPS = ["X", "Y", "Z", "I"]
 PAULI_PROD = {'ZZ': 'I', 'YY': 'I', 'XX': 'I', 'II': 'I',
@@ -61,7 +63,7 @@ can't use np.isclose() for hashing terms though.
 """
 
 
-def _valid_qubit(index):
+def _valid_qubit(index: int) -> bool:
     return ((isinstance(index, integer_types) and index >= 0)
             or isinstance(index, QubitPlaceholder))
 
@@ -70,7 +72,7 @@ class PauliTerm(object):
     """A term is a product of Pauli operators operating on different qubits.
     """
 
-    def __init__(self, op: str, index: int, coefficient: Union[int, float, complex] = 1.0):
+    def __init__(self, op: str, index: int, coefficient: PauliCoefficientDesignator = 1.0):
         """ Create a new Pauli Term with a Pauli operator at a particular index and a leading
         coefficient.
 
@@ -203,7 +205,7 @@ class PauliTerm(object):
 
         return new_term
 
-    def __mul__(self, term: Union['PauliTerm', 'PauliSum', Number]) -> Union['PauliTerm', 'PauliSum']:
+    def __mul__(self, term: Union[PauliDesignator, PauliCoefficientDesignator]) -> PauliDesignator:
         """Multiplies this Pauli Term with another PauliTerm, PauliSum, or number according to the
         Pauli algebra rules.
 
@@ -224,7 +226,7 @@ class PauliTerm(object):
 
             return term_with_coeff(new_term, new_term.coefficient * new_coeff)
 
-    def __rmul__(self, other: Number) -> 'PauliTerm':
+    def __rmul__(self, other: PauliCoefficientDesignator) -> 'PauliTerm':
         """Multiplies this PauliTerm with another object, probably a number.
 
         :param other: A number or PauliTerm to multiply by
@@ -253,7 +255,7 @@ class PauliTerm(object):
             result *= self
         return result
 
-    def __add__(self, other: Union['PauliTerm', 'PauliSum', Number]) -> 'PauliSum':
+    def __add__(self, other: Union[PauliDesignator, PauliCoefficientDesignator]) -> 'PauliSum':
         """Adds this PauliTerm with another one.
 
         :param other: A PauliTerm object, a PauliSum object, or a Number
@@ -268,10 +270,10 @@ class PauliTerm(object):
             new_sum = PauliSum([self, other])
             return new_sum.simplify()
 
-    def __radd__(self, other: Number) -> 'PauliTerm':
+    def __radd__(self, other: PauliCoefficientDesignator) -> 'PauliTerm':
         """Adds this PauliTerm with a Number.
 
-        :param other: A PauliTerm object or a Number
+        :param other: A Number
         :returns: A new PauliTerm
         :rtype: PauliTerm
         """
@@ -481,7 +483,7 @@ def sZ(q: int) -> PauliTerm:
     return PauliTerm("Z", q)
 
 
-def term_with_coeff(term: PauliTerm, coeff: Number) -> PauliTerm:
+def term_with_coeff(term: PauliTerm, coeff: PauliCoefficientDesignator) -> PauliTerm:
     """
     Change the coefficient of a PauliTerm.
 
@@ -502,7 +504,7 @@ class PauliSum(object):
     """A sum of one or more PauliTerms.
     """
 
-    def __init__(self, terms):
+    def __init__(self, terms: Sequence[PauliTerm]):
         """
         :param Sequence terms: A Sequence of PauliTerms.
         """
@@ -514,7 +516,7 @@ class PauliSum(object):
         else:
             self.terms = terms
 
-    def __eq__(self, other):
+    def __eq__(self, other: object) -> bool:
         """Equality testing to see if two PauliSum's are equivalent.
 
         :param PauliSum other: The PauliSum to compare this PauliSum with.
@@ -531,19 +533,19 @@ class PauliSum(object):
 
         return set(self.terms) == set(other.terms)
 
-    def __hash__(self):
+    def __hash__(self) -> int:
         return hash(frozenset(self.terms))
 
-    def __repr__(self):
+    def __repr__(self) -> str:
         return " + ".join([str(term) for term in self.terms])
 
-    def __len__(self):
+    def __len__(self) -> int:
         """
         The length of the PauliSum is the number of PauliTerms in the sum.
         """
         return len(self.terms)
 
-    def __getitem__(self, item):
+    def __getitem__(self, item: int) -> PauliTerm:
         """
         :param int item: The index of the term in the sum to return
         :return: The PauliTerm at the index-th position in the PauliSum
@@ -551,10 +553,10 @@ class PauliSum(object):
         """
         return self.terms[item]
 
-    def __iter__(self):
+    def __iter__(self) -> Iterator[PauliTerm]:
         return self.terms.__iter__()
 
-    def __mul__(self, other):
+    def __mul__(self, other: Union[PauliDesignator, PauliCoefficientDesignator]) -> 'PauliSum':
         """
         Multiplies together this PauliSum with PauliSum, PauliTerm or Number objects. The new term
         is then simplified according to the Pauli Algebra rules.
@@ -574,7 +576,7 @@ class PauliSum(object):
         new_sum = PauliSum(new_terms)
         return new_sum.simplify()
 
-    def __rmul__(self, other):
+    def __rmul__(self, other: PauliCoefficientDesignator) -> 'PauliSum':
         """
         Multiples together this PauliSum with PauliSum, PauliTerm or Number objects. The new term
         is then simplified according to the Pauli Algebra rules.
@@ -589,7 +591,7 @@ class PauliSum(object):
             term.coefficient *= other
         return PauliSum(new_terms).simplify()
 
-    def __pow__(self, power):
+    def __pow__(self, power: int) -> 'PauliSum':
         """Raises this PauliSum to power.
 
         :param int power: The power to raise this PauliSum to.
@@ -614,7 +616,7 @@ class PauliSum(object):
             result *= self
         return result
 
-    def __add__(self, other):
+    def __add__(self, other: Union[PauliDesignator, PauliCoefficientDesignator]) -> 'PauliSum':
         """
         Adds together this PauliSum with PauliSum, PauliTerm or Number objects. The new term
         is then simplified according to the Pauli Algebra rules.
@@ -632,19 +634,19 @@ class PauliSum(object):
         new_sum = PauliSum(new_terms)
         return new_sum.simplify()
 
-    def __radd__(self, other):
+    def __radd__(self, other: PauliCoefficientDesignator) -> 'PauliSum':
         """
-        Adds together this PauliSum with PauliSum, PauliTerm or Number objects. The new term
+        Adds together this PauliSum with a Number object. The new term
         is then simplified according to the Pauli Algebra rules.
 
-        :param other: a PauliSum, PauliTerm or Number object
+        :param other: A Number
         :return: A new PauliSum object given by the addition.
         :rtype: PauliSum
         """
         assert isinstance(other, Number)
         return self + other
 
-    def __sub__(self, other):
+    def __sub__(self, other: Union[PauliDesignator, PauliCoefficientDesignator]) -> 'PauliSum':
         """
         Finds the difference of this PauliSum with PauliSum, PauliTerm or Number objects. The new
         term is then simplified according to the Pauli Algebra rules.
@@ -655,7 +657,7 @@ class PauliSum(object):
         """
         return self + -1. * other
 
-    def __rsub__(self, other):
+    def __rsub__(self, other: Union[PauliDesignator, PauliCoefficientDesignator]) -> 'PauliSum':
         """
         Finds the different of this PauliSum with PauliSum, PauliTerm or Number objects. The new
         term is then simplified according to the Pauli Algebra rules.
@@ -666,7 +668,7 @@ class PauliSum(object):
         """
         return other + -1. * self
 
-    def get_qubits(self):
+    def get_qubits(self) -> List[int]:
         """
         The support of all the operators in the PauliSum object.
 
@@ -675,13 +677,13 @@ class PauliSum(object):
         """
         return list(set().union(*[term.get_qubits() for term in self.terms]))
 
-    def simplify(self):
+    def simplify(self) -> 'PauliSum':
         """
         Simplifies the sum of Pauli operators according to Pauli algebra rules.
         """
         return simplify_pauli_sum(self)
 
-    def get_programs(self):
+    def get_programs(self) -> Tuple[List[Program], np.ndarray]:
         """
         Get a Pyquil Program corresponding to each term in the PauliSum and a coefficient
         for each program
@@ -692,7 +694,7 @@ class PauliSum(object):
         coefficients = np.array([term.coefficient for term in self.terms])
         return programs, coefficients
 
-    def compact_str(self):
+    def compact_str(self) -> str:
         """A string representation of the PauliSum that is more compact than ``str(pauli_sum)``
 
         >>> pauli_sum = 2.0 * sX(1)* sZ(2) + 1.5 * sY(2)
@@ -704,7 +706,7 @@ class PauliSum(object):
         return "+".join([term.compact_str() for term in self.terms])
 
     @classmethod
-    def from_compact_str(cls, str_pauli_sum):
+    def from_compact_str(cls, str_pauli_sum: str) -> 'PauliSum':
         """Construct a PauliSum from the result of str(pauli_sum)
         """
         # split str_pauli_sum only at "+" outside of parenthesis to allow
@@ -715,7 +717,7 @@ class PauliSum(object):
         return cls(terms).simplify()
 
 
-def simplify_pauli_sum(pauli_sum):
+def simplify_pauli_sum(pauli_sum: PauliSum) -> PauliSum:
     """Simplify the sum of Pauli operators according to Pauli algebra rules."""
 
     # You might want to use a defaultdict(list) here, but don't because
@@ -748,7 +750,7 @@ def simplify_pauli_sum(pauli_sum):
     return PauliSum(terms)
 
 
-def check_commutation(pauli_list, pauli_two):
+def check_commutation(pauli_list: Sequence[PauliTerm], pauli_two: PauliTerm) -> bool:
     """
     Check if commuting a PauliTerm commutes with a list of other terms by natural calculation.
     Uses the result in Section 3 of arXiv:1405.5749v2, modified slightly here to check for the
@@ -761,7 +763,7 @@ def check_commutation(pauli_list, pauli_two):
     :rtype: bool
     """
 
-    def coincident_parity(p1, p2):
+    def coincident_parity(p1: PauliTerm, p2: PauliTerm) -> bool:
         non_similar = 0
         p1_indices = set(p1._ops.keys())
         p2_indices = set(p2._ops.keys())
@@ -776,7 +778,7 @@ def check_commutation(pauli_list, pauli_two):
     return True
 
 
-def commuting_sets(pauli_terms):
+def commuting_sets(pauli_terms: PauliSum) -> List[List[PauliTerm]]:
     """Gather the Pauli terms of pauli_terms variable into commuting sets
 
     Uses algorithm defined in (Raeisi, Wiebe, Sanders, arXiv:1108.4318, 2011)
@@ -805,7 +807,7 @@ def commuting_sets(pauli_terms):
     return groups
 
 
-def is_identity(term):
+def is_identity(term: PauliDesignator) -> bool:
     """
     Tests to see if a PauliTerm or PauliSum is a scalar multiple of identity
 
@@ -822,7 +824,7 @@ def is_identity(term):
         raise TypeError("is_identity only checks PauliTerms and PauliSum objects!")
 
 
-def exponentiate(term: PauliTerm):
+def exponentiate(term: PauliTerm) -> Program:
     """
     Creates a pyQuil program that simulates the unitary evolution exp(-1j * term)
 
@@ -833,7 +835,7 @@ def exponentiate(term: PauliTerm):
     return exponential_map(term)(1.0)
 
 
-def exponential_map(term):
+def exponential_map(term: PauliTerm) -> Callable[[float], Program]:
     """
     Returns a function f(alpha) that constructs the Program corresponding to exp(-1j*alpha*term).
 
@@ -847,7 +849,7 @@ def exponential_map(term):
     coeff = term.coefficient.real
     term.coefficient = term.coefficient.real
 
-    def exp_wrap(param):
+    def exp_wrap(param: float) -> Program:
         prog = Program()
         if is_identity(term):
             prog.inst(X(0))
@@ -863,7 +865,7 @@ def exponential_map(term):
     return exp_wrap
 
 
-def exponentiate_commuting_pauli_sum(pauli_sum):
+def exponentiate_commuting_pauli_sum(pauli_sum: PauliSum) -> Callable[[float], Program]:
     """
     Returns a function that maps all substituent PauliTerms and sums them into a program. NOTE: Use
     this function with care. Substituent PauliTerms should commute.
@@ -877,13 +879,13 @@ def exponentiate_commuting_pauli_sum(pauli_sum):
 
     fns = [exponential_map(term) for term in pauli_sum]
 
-    def combined_exp_wrap(param):
+    def combined_exp_wrap(param: float) -> Program:
         return Program([f(param) for f in fns])
 
     return combined_exp_wrap
 
 
-def _exponentiate_general_case(pauli_term, param):
+def _exponentiate_general_case(pauli_term: PauliTerm, param: float) -> Program:
     """
     Returns a Quil (Program()) object corresponding to the exponential of
     the pauli_term object, i.e. exp[-1.0j * param * pauli_term]
@@ -894,7 +896,7 @@ def _exponentiate_general_case(pauli_term, param):
     :rtype: Program
     """
 
-    def reverse_hack(p):
+    def reverse_hack(p: Program) -> Program:
         # A hack to produce a *temporary* program which reverses p.
         revp = Program()
         revp.inst(list(reversed(p.instructions)))
@@ -935,7 +937,7 @@ def _exponentiate_general_case(pauli_term, param):
     return quil_prog
 
 
-def suzuki_trotter(trotter_order, trotter_steps):
+def suzuki_trotter(trotter_order: int, trotter_steps: int) -> List[Tuple[float, int]]:
     """
     Generate trotterization coefficients for a given number of Trotter steps.
 
@@ -970,7 +972,7 @@ def suzuki_trotter(trotter_order, trotter_steps):
     return order_slices
 
 
-def is_zero(pauli_object):
+def is_zero(pauli_object: PauliDesignator) -> bool:
     """
     Tests to see if a PauliTerm or PauliSum is zero.
 
@@ -986,8 +988,8 @@ def is_zero(pauli_object):
         raise TypeError("is_zero only checks PauliTerms and PauliSum objects!")
 
 
-def trotterize(first_pauli_term, second_pauli_term, trotter_order=1,
-               trotter_steps=1):
+def trotterize(first_pauli_term: PauliTerm, second_pauli_term: PauliTerm, trotter_order: int = 1,
+               trotter_steps: int = 1) -> Program:
     """
     Create a Quil program that approximates exp( (A + B)t) where A and B are
     PauliTerm operators.
