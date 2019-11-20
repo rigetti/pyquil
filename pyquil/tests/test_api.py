@@ -32,11 +32,12 @@ from rpcq import Server
 from rpcq.messages import BinaryExecutableRequest, BinaryExecutableResponse
 
 from pyquil.api import QVMConnection, QPUCompiler, get_qc, QVMCompiler
-from pyquil.api._base_connection import (validate_allocation_method, validate_noise_probabilities,
+from pyquil.api._base_connection import (validate_allocation_method, validate_job_sub_request,
+                                         validate_job_token, validate_noise_probabilities,
                                          validate_num_qubits, validate_persistent_qvm_token,
                                          validate_qubit_list, validate_simulation_method,
-                                         prepare_register_list, QVMAllocationMethod,
-                                         QVMSimulationMethod)
+                                         prepare_memory_contents, prepare_register_list,
+                                         QVMAllocationMethod, QVMSimulationMethod)
 from pyquil.device import ISA, NxDevice
 from pyquil.gates import CNOT, H, MEASURE, PHASE, Z, RZ, RX, CZ
 from pyquil.paulis import PauliTerm
@@ -233,9 +234,28 @@ def test_validate_allocation_method():
         validate_allocation_method("foreign")
     with pytest.raises(TypeError):
         validate_allocation_method(0)
-
     validate_allocation_method(QVMAllocationMethod.NATIVE)
     validate_allocation_method(QVMAllocationMethod.FOREIGN)
+
+
+def test_validate_job_sub_request():
+    with pytest.raises(TypeError):
+        validate_job_sub_request(["not a dict"])
+    with pytest.raises(ValueError):
+        validate_job_sub_request({"no-type-key": "run-program"})
+    validate_job_sub_request({"type": "version"})
+
+
+def test_validate_job_token():
+    with pytest.raises(ValueError):
+        validate_job_token("hey")
+    with pytest.raises(ValueError):
+        validate_job_token(uuid.uuid4())
+    with pytest.raises(ValueError):
+        validate_job_token(uuid.uuid4().bytes)
+    with pytest.raises(ValueError):
+        validate_job_token(uuid.uuid4().int)
+    validate_job_token(str(uuid.uuid4()))
 
 
 def test_validate_noise_probabilities():
@@ -249,7 +269,6 @@ def test_validate_noise_probabilities():
         validate_noise_probabilities([0.5, 0.5, 0.5])
     with pytest.raises(ValueError):
         validate_noise_probabilities([-0.5, -0.5, -0.5])
-
     validate_noise_probabilities([0.0, 0.0, 0.0])
     validate_noise_probabilities([1.0, 0.0, 0.0])
     validate_noise_probabilities([0.0, 1.0, 0.0])
@@ -265,7 +284,6 @@ def test_validate_num_qubits():
         validate_num_qubits(0.0)
     with pytest.raises(TypeError):
         validate_num_qubits("1")
-
     validate_num_qubits(0)
     validate_num_qubits(1)
     validate_num_qubits(10)
@@ -281,7 +299,6 @@ def test_validate_persistent_qvm_token():
         validate_persistent_qvm_token(uuid.uuid4().bytes)
     with pytest.raises(ValueError):
         validate_persistent_qvm_token(uuid.uuid4().int)
-
     validate_persistent_qvm_token(str(uuid.uuid4()))
 
 
@@ -290,7 +307,6 @@ def test_validate_qubit_list():
         validate_qubit_list([-1, 1])
     with pytest.raises(TypeError):
         validate_qubit_list(['a', 0], 1)
-
     validate_qubit_list([0])
     validate_qubit_list([0, 1])
     validate_qubit_list([1, 1])
@@ -307,9 +323,29 @@ def test_validate_simulation_method():
         validate_allocation_method("full-density-matrix")
     with pytest.raises(TypeError):
         validate_allocation_method(0)
-
     validate_simulation_method(QVMSimulationMethod.PURE_STATE)
     validate_simulation_method(QVMSimulationMethod.FULL_DENSITY_MATRIX)
+
+
+def test_prepare_memory_contents():
+    with pytest.raises(TypeError):
+        prepare_memory_contents(["not a dict"])
+    with pytest.raises(TypeError):
+        prepare_memory_contents({42: [0]})  # invalid key
+    with pytest.raises(TypeError):
+        prepare_memory_contents({"ro": "invalid value"})
+    with pytest.raises(TypeError):
+        prepare_memory_contents({"ro": ["invalid value"]})
+    with pytest.raises(TypeError):
+        prepare_memory_contents({"ro": [(-1, 0)]})  # invalid index -1
+    with pytest.raises(TypeError):
+        prepare_memory_contents({"ro": [(0, "invalid value")]})
+    with pytest.raises(ValueError):
+        prepare_memory_contents({"ro": []})  # empty list
+    assert prepare_memory_contents({"ro": [0, 1, 3]}) == {"ro": [(0, 0), (1, 1), (2, 3)]}
+    assert prepare_memory_contents({"ro": (0, 1, 3)}) == {"ro": [(0, 0), (1, 1), (2, 3)]}
+    assert prepare_memory_contents({"ro": [(0, 0), (2, 3)]}) == {"ro": [(0, 0), (2, 3)]}
+    assert prepare_memory_contents({"ro": ((0, 0), (2, 3))}) == {"ro": [(0, 0), (2, 3)]}
 
 
 def test_prepare_register_list():

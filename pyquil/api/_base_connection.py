@@ -277,8 +277,11 @@ def prepare_memory_contents(
         raise TypeError(f"register_dict must be a dict but got {register_dict}")
 
     for reg_name, vs in register_dict.items():
+        if not isinstance(reg_name, str):
+            raise TypeError(f"All register_dict keys must be strings that name a memory region."
+                            f"Got '{reg_name}'.")
         if not isinstance(vs, collections.abc.Iterable) or isinstance(vs, str):
-            raise TypeError(f"Values for register '{reg_name}' must be a non-string Sequence."
+            raise TypeError(f"Values for register '{reg_name}' must be a non-string Iterable."
                             f" Got '{vs}'.")
 
         vlist = list(vs)
@@ -290,15 +293,14 @@ def prepare_memory_contents(
         # Allow the caller to specify an Iterable of dense values, rather than (index, value) pairs.
         if not isinstance(vlist[0], tuple):
             vlist = [(i, v) for i, v in enumerate(vlist)]
-            register_dict[reg_name] = vlist
 
         for i, v in vlist:
             if i < 0:
                 raise TypeError(f"Negative index {i} into classical register {reg_name} is invalid.")
-            if not (isinstance(v, int) or isinstance(v, float) or isinstance(v, complex)):
+            if not isinstance(v, (int, float, complex)):
                 raise TypeError(f"Value for classical register {reg_name}[{i}] must be of type int,"
                                 f" float, or complex. Got '{v}'.")
-
+        register_dict[reg_name] = vlist
     return register_dict
 
 
