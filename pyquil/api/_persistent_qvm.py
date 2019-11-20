@@ -20,15 +20,15 @@ import numpy as np
 
 from pyquil.api._base_connection import (ForestConnection, QVMAllocationMethod, QVMSimulationMethod,
                                          validate_allocation_method, validate_num_qubits,
-                                         validate_job_sub_request, validate_job_token,
-                                         validate_persistent_qvm_token, validate_simulation_method,
-                                         qvm_ng_run_program_payload)
+                                         validate_noise_probabilities, validate_job_sub_request,
+                                         validate_job_token, validate_persistent_qvm_token,
+                                         validate_simulation_method, qvm_ng_run_program_payload)
 from pyquil.api._error_reporting import _record_call
-from pyquil.api._qvm import QVMNotRunning, QVMVersionMismatch, validate_noise_probabilities
+from pyquil.api._qvm import QVMNotRunning, QVMVersionMismatch
 from pyquil.quil import Program, get_classical_addresses_from_program
 
 
-def check_qvm_ng_version(version: str):
+def check_qvm_ng_version(version: str) -> None:
     """
     Verify that there is no mismatch between pyquil and QVM versions.
 
@@ -106,12 +106,19 @@ class AsyncJob:
     def __enter__(self) -> "AsyncJob":
         return self
 
+    # If the return type annotation here is changed to bool, mypy complains:
+    #
+    #     "bool" is invalid as return type for "__exit__" that always returns False. Use
+    #     "typing_extensions.Literal[False]" as the return type or change it to "None". If return
+    #     type of "__exit__" implies that it may return True, the context manager may swallow
+    #     exceptions
+    #
+    # Use None for now to placate mypy and avoid a dependency on typing_extensions.
     def __exit__(self,
                  exc_type: Optional[Type[BaseException]],
                  exc_value: Optional[BaseException],
-                 traceback: Optional[TracebackType]) -> bool:
+                 traceback: Optional[TracebackType]) -> None:
         self.close()
-        return False
 
     def connect(self) -> None:
         try:
@@ -222,12 +229,19 @@ class PersistentQVM:
     def __enter__(self) -> "PersistentQVM":
         return self
 
+    # If the return type annotation here is changed to bool, mypy complains:
+    #
+    #     "bool" is invalid as return type for "__exit__" that always returns False. Use
+    #     "typing_extensions.Literal[False]" as the return type or change it to "None". If return
+    #     type of "__exit__" implies that it may return True, the context manager may swallow
+    #     exceptions
+    #
+    # Use None for now to placate mypy and avoid a dependency on typing_extensions.
     def __exit__(self,
                  exc_type: Optional[Type[BaseException]],
                  exc_value: Optional[BaseException],
-                 traceback: Optional[TracebackType]) -> bool:
+                 traceback: Optional[TracebackType]) -> None:
         self.close()
-        return False
 
     def connect(self) -> None:
         try:
