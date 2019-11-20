@@ -411,7 +411,7 @@ def qvm_run_payload(quil_program, classical_addresses, trials,
 
 
 def qvm_ng_run_program_payload(quil_program, qvm_token, simulation_method, allocation_method,
-                               classical_addresses, measurement_noise, gate_noise):
+                               classical_addresses, measurement_noise, gate_noise, random_seed):
     """REST payload for :py:func:`ForestConnection._qvm_ng_run_program`"""
     if not quil_program:
         raise ValueError("You have attempted to run an empty program."
@@ -443,6 +443,8 @@ def qvm_ng_run_program_payload(quil_program, qvm_token, simulation_method, alloc
         payload["measurement-noise"] = measurement_noise
     if gate_noise is not None:
         payload["gate-noise"] = gate_noise
+    if random_seed is not None:
+        payload['rng-seed'] = random_seed
 
     return payload
 
@@ -665,14 +667,16 @@ class ForestConnection:
         return qvm_version
 
     @_record_call
-    def _qvm_ng_run_program(self, quil_program, qvm_token, simulation_method, allocation_method,
-                            classical_addresses, measurement_noise, gate_noise) -> np.ndarray:
+    def _qvm_ng_run_program(
+            self, quil_program, qvm_token, simulation_method, allocation_method,
+            classical_addresses, measurement_noise, gate_noise, random_seed
+    ) -> np.ndarray:
         """
         Run a Forest ``run_program`` job on a QVM.
         """
         payload = qvm_ng_run_program_payload(quil_program, qvm_token, simulation_method,
                                              allocation_method, classical_addresses,
-                                             measurement_noise, gate_noise)
+                                             measurement_noise, gate_noise, random_seed)
         response = post_json(self.session, self.qvm_ng_endpoint + "/", payload)
         ram = response.json()
 

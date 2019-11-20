@@ -316,7 +316,8 @@ class PersistentQVM:
                                                    allocation_method=None,
                                                    classical_addresses=classical_addresses,
                                                    measurement_noise=None,
-                                                   gate_noise=None)
+                                                   gate_noise=None,
+                                                   random_seed=self.random_seed)
 
     @_record_call
     def run_program_async(self, quil_program: Program) -> AsyncJob:
@@ -336,5 +337,6 @@ class PersistentQVM:
                                                  allocation_method=None,
                                                  classical_addresses=classical_addresses,
                                                  measurement_noise=None,
-                                                 gate_noise=None)
+                                                 gate_noise=None,
+                                                 random_seed=self.random_seed)
         return AsyncJob(sub_request, connection=self.connection)

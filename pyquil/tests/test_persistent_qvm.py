@@ -9,7 +9,7 @@ from pyquil import Program
 from pyquil.api import (ForestConnection, AsyncJob, PersistentQVM, QVMSimulationMethod,
                         QVMAllocationMethod, get_qvm_memory_estimate)
 from pyquil.api._errors import QVMError
-from pyquil.gates import MEASURE, RX, WAIT, X
+from pyquil.gates import H, MEASURE, RX, WAIT, X
 from pyquil.tests.utils import is_qvm_version_string
 
 
@@ -264,3 +264,29 @@ def test_job_info(forest_app_ng: ForestConnection):
             _wait_for_job(job, "RUNNING")
             pqvm.resume()
             _wait_for_job(job, "FINISHED")
+
+
+def test_random_seed(forest_app_ng: ForestConnection):
+    with pytest.raises(TypeError):
+        # random_seed must be an integer
+        PersistentQVM(num_qubits=2, connection=forest_app_ng, random_seed=1.0)
+
+    p = Program()
+    ro = p.declare('ro', 'BIT', 1)
+    p += H(0)
+    p += MEASURE(0, ro)
+
+    # similar to test_sync_wavefunction in test_api.py, we run a stochastic program and assert we
+    # always get the same result, due to the fixed random_seed.
+    with PersistentQVM(num_qubits=1, connection=forest_app_ng, random_seed=0) as pqvm:
+        assert pqvm.random_seed == 0
+        first = pqvm.run_program(p)['ro'][0][0]
+        assert all(first == pqvm.run_program(p)['ro'][0][0] for _ in range(10))
+
+    # now check that random_seed=None produces at least one different result.
+    with PersistentQVM(num_qubits=1, connection=forest_app_ng) as pqvm:
+        assert pqvm.random_seed is None
+        first = pqvm.run_program(p)['ro'][0][0]
+        # Increase the number of iterations to 20 for this test, so that you need to be
+        # astronomically unlucky to get a spurious failure here.
+        assert any(first != pqvm.run_program(p)['ro'][0][0] for _ in range(20))
