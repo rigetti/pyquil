@@ -13,7 +13,8 @@
 #    See the License for the specific language governing permissions and
 #    limitations under the License.
 ##############################################################################
-from typing import Any, Dict, List, Optional
+from types import TracebackType
+from typing import Any, Dict, List, Optional, Type
 
 import numpy as np
 
@@ -101,6 +102,16 @@ class AsyncJob:
 
     def __del__(self) -> None:
         self.close()
+
+    def __enter__(self) -> 'AsyncJob':
+        return self
+
+    def __exit__(self,
+                 exc_type: Optional[Type[BaseException]],
+                 exc_value: Optional[BaseException],
+                 traceback: Optional[TracebackType]) -> bool:
+        self.close()
+        return False
 
     def connect(self) -> None:
         try:
@@ -207,6 +218,16 @@ class PersistentQVM:
 
     def __del__(self) -> None:
         self.close()
+
+    def __enter__(self) -> 'PersistentQVM':
+        return self
+
+    def __exit__(self,
+                 exc_type: Optional[Type[BaseException]],
+                 exc_value: Optional[BaseException],
+                 traceback: Optional[TracebackType]) -> bool:
+        self.close()
+        return False
 
     def connect(self) -> None:
         try:

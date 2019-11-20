@@ -49,10 +49,9 @@ def _wait_for_job(job, status):
 
 
 def test_pqvm_version(forest_app_ng: ForestConnection):
-    pqvm = PersistentQVM(num_qubits=0, connection=forest_app_ng)
-    version = pqvm.get_version_info()
-    assert is_qvm_version_string(version)
-    pqvm.close()
+    with PersistentQVM(num_qubits=0, connection=forest_app_ng) as pqvm:
+        version = pqvm.get_version_info()
+        assert is_qvm_version_string(version)
 
 
 def test_qvm_memory_estimate(forest_app_ng: ForestConnection):
@@ -88,151 +87,141 @@ def test_qvm_memory_estimate(forest_app_ng: ForestConnection):
 
 
 def test_pqvm_create_and_info(forest_app_ng: ForestConnection):
-    pqvm = PersistentQVM(num_qubits=0, connection=forest_app_ng)
-    info = pqvm.get_qvm_info()
-    assert info['qvm-type'] == 'PURE-STATE-QVM'
-    assert info['num-qubits'] == 0
-    assert info['metadata']['allocation-method'] == 'NATIVE'
-    pqvm.close()
+    with PersistentQVM(num_qubits=0, connection=forest_app_ng) as pqvm:
+        info = pqvm.get_qvm_info()
+        assert info['qvm-type'] == 'PURE-STATE-QVM'
+        assert info['num-qubits'] == 0
+        assert info['metadata']['allocation-method'] == 'NATIVE'
 
-    pqvm = PersistentQVM(num_qubits=1, connection=forest_app_ng,
-                         allocation_method=QVMAllocationMethod.FOREIGN)
-    info = pqvm.get_qvm_info()
-    assert info['qvm-type'] == 'PURE-STATE-QVM'
-    assert info['num-qubits'] == 1
-    assert info['metadata']['allocation-method'] == 'FOREIGN'
-    pqvm.close()
+    with PersistentQVM(num_qubits=1, connection=forest_app_ng,
+                       allocation_method=QVMAllocationMethod.FOREIGN) as pqvm:
+        info = pqvm.get_qvm_info()
+        assert info['qvm-type'] == 'PURE-STATE-QVM'
+        assert info['num-qubits'] == 1
+        assert info['metadata']['allocation-method'] == 'FOREIGN'
 
-    pqvm = PersistentQVM(num_qubits=2, connection=forest_app_ng,
-                         simulation_method=QVMSimulationMethod.FULL_DENSITY_MATRIX)
-    info = pqvm.get_qvm_info()
-    assert info['qvm-type'] == 'DENSITY-QVM'
-    assert info['num-qubits'] == 2
-    assert info['metadata']['allocation-method'] == 'NATIVE'
-    pqvm.close()
+    with PersistentQVM(num_qubits=2, connection=forest_app_ng,
+                       simulation_method=QVMSimulationMethod.FULL_DENSITY_MATRIX) as pqvm:
+        info = pqvm.get_qvm_info()
+        assert info['qvm-type'] == 'DENSITY-QVM'
+        assert info['num-qubits'] == 2
+        assert info['metadata']['allocation-method'] == 'NATIVE'
 
-    pqvm = PersistentQVM(num_qubits=3, connection=forest_app_ng,
-                         simulation_method=QVMSimulationMethod.FULL_DENSITY_MATRIX,
-                         allocation_method=QVMAllocationMethod.FOREIGN)
-    info = pqvm.get_qvm_info()
-    assert info['qvm-type'] == 'DENSITY-QVM'
-    assert info['num-qubits'] == 3
-    assert info['metadata']['allocation-method'] == 'FOREIGN'
-    pqvm.close()
+    with PersistentQVM(num_qubits=3, connection=forest_app_ng,
+                       simulation_method=QVMSimulationMethod.FULL_DENSITY_MATRIX,
+                       allocation_method=QVMAllocationMethod.FOREIGN) as pqvm:
+        info = pqvm.get_qvm_info()
+        assert info['qvm-type'] == 'DENSITY-QVM'
+        assert info['num-qubits'] == 3
+        assert info['metadata']['allocation-method'] == 'FOREIGN'
 
 
 def test_pqvm_read_memory(forest_app_ng: ForestConnection):
-    pqvm = PersistentQVM(num_qubits=2, connection=forest_app_ng)
-    _check_mem_equal(pqvm.read_memory({}), {})
+    with PersistentQVM(num_qubits=2, connection=forest_app_ng) as pqvm:
+        _check_mem_equal(pqvm.read_memory({}), {})
 
-    # No classical memory has been configured yet.
-    with pytest.raises(QVMError):
-        pqvm.read_memory({"ro": True})
+        # No classical memory has been configured yet.
+        with pytest.raises(QVMError):
+            pqvm.read_memory({"ro": True})
 
-    pqvm.run_program(Program("DECLARE ro BIT"))
-    _check_mem_equal(pqvm.read_memory({"ro": True}), {"ro": [[0]]})
+        pqvm.run_program(Program("DECLARE ro BIT"))
+        _check_mem_equal(pqvm.read_memory({"ro": True}), {"ro": [[0]]})
 
-    # The ro register exists, but nothing else.
-    with pytest.raises(QVMError):
-        pqvm.read_memory({"foo": True})
+        # The ro register exists, but nothing else.
+        with pytest.raises(QVMError):
+            pqvm.read_memory({"foo": True})
 
-    # Request memory at a specific offset.
-    pqvm.run_program(Program("DECLARE byte BIT[8]\nX 0\nMEASURE 0 byte[4]"))
-    _check_mem_equal(pqvm.read_memory({"byte": [4]}), {"byte": [[1]]})
-    pqvm.close()
+        # Request memory at a specific offset.
+        pqvm.run_program(Program("DECLARE byte BIT[8]\nX 0\nMEASURE 0 byte[4]"))
+        _check_mem_equal(pqvm.read_memory({"byte": [4]}), {"byte": [[1]]})
 
 
 def test_write_memory(forest_app_ng: ForestConnection):
-    pqvm = PersistentQVM(num_qubits=2, connection=forest_app_ng)
     p = Program()
     p.declare("ro", "BIT", 2)
     p.declare("theta", "REAL", 4)
-    pqvm.run_program(p)
 
-    with pytest.raises(TypeError):
-        pqvm.write_memory("ro")
+    with PersistentQVM(num_qubits=2, connection=forest_app_ng) as pqvm:
+        pqvm.run_program(p)
 
-    with pytest.raises(TypeError):
-        pqvm.write_memory(("ro", 2))
+        with pytest.raises(TypeError):
+            pqvm.write_memory("ro")
 
-    with pytest.raises(TypeError):
-        pqvm.write_memory({"ro": 1})
+        with pytest.raises(TypeError):
+            pqvm.write_memory(("ro", 2))
 
-    with pytest.raises(TypeError):
-        pqvm.write_memory({"ro": "2"})
+        with pytest.raises(TypeError):
+            pqvm.write_memory({"ro": 1})
 
-    with pytest.raises(TypeError):
-        pqvm.write_memory({"ro": object()})
+        with pytest.raises(TypeError):
+            pqvm.write_memory({"ro": "2"})
 
-    with pytest.raises(TypeError):
-        # str is invalid value type
-        pqvm.write_memory({"ro": [(1, "hey")]})
+        with pytest.raises(TypeError):
+            pqvm.write_memory({"ro": object()})
 
-    with pytest.raises(TypeError):
-        # index cannot be negative
-        pqvm.write_memory({"ro": [(-1, 1)]})
+        with pytest.raises(TypeError):
+            # str is invalid value type
+            pqvm.write_memory({"ro": [(1, "hey")]})
 
-    with pytest.raises(ValueError):
-        # empty values not allowed
-        pqvm.write_memory({"ro": []})
+        with pytest.raises(TypeError):
+            # index cannot be negative
+            pqvm.write_memory({"ro": [(-1, 1)]})
 
-    with pytest.raises(ValueError):
-        # value must be 2-tuple
-        pqvm.write_memory({"ro": [(1, 2, 3)]})
+        with pytest.raises(ValueError):
+            # empty values not allowed
+            pqvm.write_memory({"ro": []})
 
-    _check_mem_equal(pqvm.read_memory({"ro": True}), {"ro": [[0, 0]]})
-    _check_mem_equal(pqvm.read_memory({"theta": True}), {"theta": [[0.0, 0.0, 0.0, 0.0]]})
+        with pytest.raises(ValueError):
+            # value must be 2-tuple
+            pqvm.write_memory({"ro": [(1, 2, 3)]})
 
-    # sparse (index, value) encoding
-    pqvm.write_memory({"ro": [(1, 1)]})
-    _check_mem_equal(pqvm.read_memory({"ro": True}), {"ro": [[0, 1]]})
+        _check_mem_equal(pqvm.read_memory({"ro": True}), {"ro": [[0, 0]]})
+        _check_mem_equal(pqvm.read_memory({"theta": True}), {"theta": [[0.0, 0.0, 0.0, 0.0]]})
 
-    # range
-    pqvm.write_memory({"ro": reversed(range(2))})
-    _check_mem_equal(pqvm.read_memory({"ro": True}), {"ro": [[1, 0]]})
+        # sparse (index, value) encoding
+        pqvm.write_memory({"ro": [(1, 1)]})
+        _check_mem_equal(pqvm.read_memory({"ro": True}), {"ro": [[0, 1]]})
 
-    # numpy array
-    pqvm.write_memory({"theta": np.arange(0.0, 4.0, 1.0)})
-    _check_mem_equal(pqvm.read_memory({"theta": True}), {"theta": [[0.0, 1.0, 2.0, 3.0]]})
+        # range
+        pqvm.write_memory({"ro": reversed(range(2))})
+        _check_mem_equal(pqvm.read_memory({"ro": True}), {"ro": [[1, 0]]})
 
-    # tuple of values
-    pqvm.write_memory({"theta": (4.1, 3.1, 2.1, 1.1)})
-    _check_mem_equal(pqvm.read_memory({"theta": True}), {"theta": [[4.1, 3.1, 2.1, 1.1]]})
-    pqvm.close()
+        # numpy array
+        pqvm.write_memory({"theta": np.arange(0.0, 4.0, 1.0)})
+        _check_mem_equal(pqvm.read_memory({"theta": True}), {"theta": [[0.0, 1.0, 2.0, 3.0]]})
+
+        # tuple of values
+        pqvm.write_memory({"theta": (4.1, 3.1, 2.1, 1.1)})
+        _check_mem_equal(pqvm.read_memory({"theta": True}), {"theta": [[4.1, 3.1, 2.1, 1.1]]})
 
 
 def test_wait_resume(forest_app_ng: ForestConnection):
-    pqvm = PersistentQVM(num_qubits=2, connection=forest_app_ng)
+    with PersistentQVM(num_qubits=2, connection=forest_app_ng) as pqvm:
+        with pqvm.run_program_async(Program("WAIT")) as job:
+            _wait_for_pqvm(pqvm, "WAITING")
+            pqvm.resume()
+            _wait_for_pqvm(pqvm, "READY")
+            result = job.get_job_result()
+            assert result == {}
 
-    job = pqvm.run_program_async(Program("WAIT"))
-    _wait_for_pqvm(pqvm, "WAITING")
-    pqvm.resume()
-    _wait_for_pqvm(pqvm, "READY")
-    result = job.get_job_result()
-    assert result == {}
-    job.close()
+        # It's an error to call resume on pqvm that's not in the WAITING state
+        with pytest.raises(QVMError):
+            pqvm.resume()
 
-    # It's an error to call resume on pqvm that's not in the WAITING state
-    with pytest.raises(QVMError):
-        pqvm.resume()
-
-    # Slightly more realistic example with a write_memory / resume / read_memory cycle.
-    p = Program()
-    theta = p.declare("theta", "REAL")
-    ro = p.declare("ro", "BIT")
-    p += WAIT
-    p += RX(theta, 0)
-    p += MEASURE(0, ro)
-    job = pqvm.run_program_async(p)
-
-    _wait_for_pqvm(pqvm, "WAITING")
-    pqvm.write_memory({"theta": [math.pi]})
-    pqvm.resume()
-    _wait_for_pqvm(pqvm, "READY")
-    _check_mem_equal(pqvm.read_memory({"ro": True}), {"ro": [[1]]})
-    _check_mem_equal(job.get_job_result(), {"ro": [[1]]})
-    job.close()
-    pqvm.close()
+        # Slightly more realistic example with a write_memory / resume / read_memory cycle.
+        p = Program()
+        theta = p.declare("theta", "REAL")
+        ro = p.declare("ro", "BIT")
+        p += WAIT
+        p += RX(theta, 0)
+        p += MEASURE(0, ro)
+        with pqvm.run_program_async(p) as job:
+            _wait_for_pqvm(pqvm, "WAITING")
+            pqvm.write_memory({"theta": [math.pi]})
+            pqvm.resume()
+            _wait_for_pqvm(pqvm, "READY")
+            _check_mem_equal(pqvm.read_memory({"ro": True}), {"ro": [[1]]})
+            _check_mem_equal(job.get_job_result(), {"ro": [[1]]})
 
 
 def test_pqvm_run_program(forest_app_ng: ForestConnection):
@@ -257,26 +246,21 @@ def test_pqvm_run_program_with_pauli_noise(forest_app_ng: ForestConnection):
     p += X(0)
     p += MEASURE(0, "ro")
 
-    pqvm = PersistentQVM(num_qubits=2, connection=forest_app_ng,
-                         measurement_noise=[1.0, 0.0, 0.0])
-    mem = pqvm.run_program(p)
-    assert mem == {'ro': [[0]]}
-    pqvm.close()
+    with PersistentQVM(num_qubits=2, connection=forest_app_ng,
+                       measurement_noise=[1.0, 0.0, 0.0]) as pqvm:
+        mem = pqvm.run_program(p)
+        assert mem == {'ro': [[0]]}
 
-    pqvm = PersistentQVM(num_qubits=2, connection=forest_app_ng,
-                         measurement_noise=[1.0, 0.0, 0.0],
-                         gate_noise=[1.0, 0.0, 0.0])
-    mem = pqvm.run_program(p)
-    _check_mem_equal(mem, {'ro': [[1]]})
-    pqvm.close()
+    with PersistentQVM(num_qubits=2, connection=forest_app_ng,
+                       measurement_noise=[1.0, 0.0, 0.0],
+                       gate_noise=[1.0, 0.0, 0.0]) as pqvm:
+        mem = pqvm.run_program(p)
+        _check_mem_equal(mem, {'ro': [[1]]})
 
 
 def test_job_info(forest_app_ng: ForestConnection):
-    pqvm = PersistentQVM(num_qubits=2, connection=forest_app_ng)
-    job = pqvm.run_program_async(Program("WAIT"))
-
-    _wait_for_job(job, "RUNNING")
-    pqvm.resume()
-    _wait_for_job(job, "FINISHED")
-    job.close()
-    pqvm.close()
+    with PersistentQVM(num_qubits=2, connection=forest_app_ng) as pqvm:
+        with pqvm.run_program_async(Program("WAIT")) as job:
+            _wait_for_job(job, "RUNNING")
+            pqvm.resume()
+            _wait_for_job(job, "FINISHED")
