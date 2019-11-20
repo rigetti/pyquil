@@ -226,7 +226,7 @@ class PauliTerm(object):
 
             return term_with_coeff(new_term, new_term.coefficient * new_coeff)
 
-    def __rmul__(self, other: Number) -> 'PauliTerm':
+    def __rmul__(self, other: PauliCoefficientDesignator) -> 'PauliTerm':
         """Multiplies this PauliTerm with another object, probably a number.
 
         :param other: A number or PauliTerm to multiply by
@@ -270,10 +270,10 @@ class PauliTerm(object):
             new_sum = PauliSum([self, other])
             return new_sum.simplify()
 
-    def __radd__(self, other: Number) -> 'PauliTerm':
+    def __radd__(self, other: PauliCoefficientDesignator) -> 'PauliTerm':
         """Adds this PauliTerm with a Number.
 
-        :param other: A PauliTerm object or a Number
+        :param other: A Number
         :returns: A new PauliTerm
         :rtype: PauliTerm
         """
@@ -483,7 +483,7 @@ def sZ(q: int) -> PauliTerm:
     return PauliTerm("Z", q)
 
 
-def term_with_coeff(term: PauliTerm, coeff: Number) -> PauliTerm:
+def term_with_coeff(term: PauliTerm, coeff: PauliCoefficientDesignator) -> PauliTerm:
     """
     Change the coefficient of a PauliTerm.
 
@@ -576,7 +576,7 @@ class PauliSum(object):
         new_sum = PauliSum(new_terms)
         return new_sum.simplify()
 
-    def __rmul__(self, other: Number) -> 'PauliSum':
+    def __rmul__(self, other: PauliCoefficientDesignator) -> 'PauliSum':
         """
         Multiples together this PauliSum with PauliSum, PauliTerm or Number objects. The new term
         is then simplified according to the Pauli Algebra rules.
@@ -634,12 +634,12 @@ class PauliSum(object):
         new_sum = PauliSum(new_terms)
         return new_sum.simplify()
 
-    def __radd__(self, other: Union[PauliDesignator, PauliCoefficientDesignator]) -> 'PauliSum':
+    def __radd__(self, other: PauliCoefficientDesignator) -> 'PauliSum':
         """
-        Adds together this PauliSum with PauliSum, PauliTerm or Number objects. The new term
+        Adds together this PauliSum with a Number object. The new term
         is then simplified according to the Pauli Algebra rules.
 
-        :param other: a PauliSum, PauliTerm or Number object
+        :param other: A Number
         :return: A new PauliSum object given by the addition.
         :rtype: PauliSum
         """
