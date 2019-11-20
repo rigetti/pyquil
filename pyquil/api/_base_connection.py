@@ -99,11 +99,11 @@ def parse_error(res):
     except JSONDecodeError:
         raise UnknownApiError(res.text)
 
-    if 'error_type' not in body:
+    if "error_type" not in body:
         raise UnknownApiError(str(body))
 
-    error_type = body['error_type']
-    status = body['status']
+    error_type = body["error_type"]
+    status = body["status"]
 
     if re.search(r"[0-9]+ qubits were requested, but the QVM is limited to [0-9]+ qubits.", status):
         return TooManyQubitsError(status)
@@ -122,7 +122,7 @@ def get_session():
     config = PyquilConfig()
     session = requests.Session()
     retry_adapter = HTTPAdapter(max_retries=Retry(total=3,
-                                                  method_whitelist=['POST'],
+                                                  method_whitelist=["POST"],
                                                   status_forcelist=[502, 503, 504, 521, 523],
                                                   backoff_factor=0.2,
                                                   raise_on_status=False))
@@ -136,7 +136,7 @@ def get_session():
                             "X-Api-Key": config.api_key})
 
     session.headers.update({
-        'Content-Type': 'application/json; charset=utf-8'
+        "Content-Type": "application/json; charset=utf-8"
     })
 
     return session
@@ -346,7 +346,7 @@ def run_and_measure_payload(quil_program, qubits, trials, random_seed):
                "compiled-quil": quil_program.out()}
 
     if random_seed is not None:
-        payload['rng-seed'] = random_seed
+        payload["rng-seed"] = random_seed
 
     return payload
 
@@ -356,11 +356,11 @@ def wavefunction_payload(quil_program, random_seed):
     if not isinstance(quil_program, Program):
         raise TypeError("quil_program must be a Quil program object")
 
-    payload = {'type': TYPE_WAVEFUNCTION,
-               'compiled-quil': quil_program.out()}
+    payload = {"type": TYPE_WAVEFUNCTION,
+               "compiled-quil": quil_program.out()}
 
     if random_seed is not None:
-        payload['rng-seed'] = random_seed
+        payload["rng-seed"] = random_seed
 
     return payload
 
@@ -373,12 +373,12 @@ def expectation_payload(prep_prog, operator_programs, random_seed):
     if not isinstance(prep_prog, Program):
         raise TypeError("prep_prog variable must be a Quil program object")
 
-    payload = {'type': TYPE_EXPECTATION,
-               'state-preparation': prep_prog.out(),
-               'operators': [x.out() for x in operator_programs]}
+    payload = {"type": TYPE_EXPECTATION,
+               "state-preparation": prep_prog.out(),
+               "operators": [x.out() for x in operator_programs]}
 
     if random_seed is not None:
-        payload['rng-seed'] = random_seed
+        payload["rng-seed"] = random_seed
 
     return payload
 
@@ -405,7 +405,7 @@ def qvm_run_payload(quil_program, classical_addresses, trials,
     if gate_noise is not None:
         payload["gate-noise"] = gate_noise
     if random_seed is not None:
-        payload['rng-seed'] = random_seed
+        payload["rng-seed"] = random_seed
 
     return payload
 
@@ -444,7 +444,7 @@ def qvm_ng_run_program_payload(quil_program, qvm_token, simulation_method, alloc
     if gate_noise is not None:
         payload["gate-noise"] = gate_noise
     if random_seed is not None:
-        payload['rng-seed'] = random_seed
+        payload["rng-seed"] = random_seed
 
     return payload
 
@@ -658,12 +658,12 @@ class ForestConnection:
 
         :return: String of QVM version
         """
-        response = post_json(self.session, self.sync_endpoint, {'type': 'version'})
+        response = post_json(self.session, self.sync_endpoint, {"type": "version"})
         split_version_string = response.text.split()
         try:
             qvm_version = split_version_string[0]
         except ValueError:
-            raise TypeError(f'Malformed version string returned by the QVM: {response.text}')
+            raise TypeError(f"Malformed version string returned by the QVM: {response.text}")
         return qvm_version
 
     @_record_call
@@ -697,7 +697,7 @@ class ForestConnection:
         response = post_json(self.session, self.qvm_ng_endpoint + "/", payload)
         json = response.json()
 
-        if not isinstance(json, dict) or "bytes" not in json or not isinstance(json['bytes'], int):
+        if not isinstance(json, dict) or "bytes" not in json or not isinstance(json["bytes"], int):
             raise TypeError(f"Malformed persistent QVM token returned by the QVM: {json}")
 
         # TODO(appleby): maybe this should return the whole json response object rather than just
@@ -829,10 +829,10 @@ class ForestConnection:
 
         :return: String of QVM version
         """
-        response = post_json(self.session, self.qvm_ng_endpoint, {'type': 'version'})
+        response = post_json(self.session, self.qvm_ng_endpoint, {"type": "version"})
         split_version_string = response.text.split()
         try:
             qvm_version = split_version_string[0]
         except ValueError:
-            raise TypeError(f'Malformed version string returned by the QVM: {response.text}')
+            raise TypeError(f"Malformed version string returned by the QVM: {response.text}")
         return qvm_version

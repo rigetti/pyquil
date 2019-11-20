@@ -34,10 +34,10 @@ def check_qvm_ng_version(version: str):
 
     :param version: The version of the QVM
     """
-    major, minor, patch = map(int, version.split('.'))
+    major, minor, patch = map(int, version.split("."))
     if major == 1 and minor < 11:
-        raise QVMVersionMismatch('Must use QVM >= 1.11.0 with the PersistentQVM, but you '
-                                 f'have QVM {version}.')
+        raise QVMVersionMismatch("Must use QVM >= 1.11.0 with the PersistentQVM, but you "
+                                 f"have QVM {version}.")
 
 
 @_record_call
@@ -103,7 +103,7 @@ class AsyncJob:
     def __del__(self) -> None:
         self.close()
 
-    def __enter__(self) -> 'AsyncJob':
+    def __enter__(self) -> "AsyncJob":
         return self
 
     def __exit__(self,
@@ -118,7 +118,7 @@ class AsyncJob:
             version = self.get_version_info()
             check_qvm_ng_version(version)
         except ConnectionError:
-            raise QVMNotRunning(f'No QVM-NG server running at {self.connection.qvm_ng_endpoint}')
+            raise QVMNotRunning(f"No QVM-NG server running at {self.connection.qvm_ng_endpoint}")
 
     def close(self) -> None:
         if self.connection is not None:
@@ -219,7 +219,7 @@ class PersistentQVM:
     def __del__(self) -> None:
         self.close()
 
-    def __enter__(self) -> 'PersistentQVM':
+    def __enter__(self) -> "PersistentQVM":
         return self
 
     def __exit__(self,
@@ -234,7 +234,7 @@ class PersistentQVM:
             version = self.get_version_info()
             check_qvm_ng_version(version)
         except ConnectionError:
-            raise QVMNotRunning(f'No QVM-NG server running at {self.connection.qvm_ng_endpoint}')
+            raise QVMNotRunning(f"No QVM-NG server running at {self.connection.qvm_ng_endpoint}")
 
     def close(self) -> None:
         if self.connection is not None:
