@@ -102,7 +102,8 @@ if __name__ == "__main__":
         # generate the spin-adapted classical coupled-cluster amplitude to use as the input for the
         # circuit
         packed_amps = uccsd_singlet_get_packed_amplitudes(molecule.ccsd_single_amps, molecule.ccsd_double_amps,
-                                                     molecule.n_qubits, molecule.n_electrons)
+                                                          molecule.n_qubits, molecule.n_electrons)
+
         theta = packed_amps[-1]  # always take the doubles amplitude
 
         # now that we're done setting up the Hamiltonian and grabbing initial opt parameters
