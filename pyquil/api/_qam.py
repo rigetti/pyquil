@@ -61,7 +61,8 @@ class QAM(ABC):
         return self
 
     @_record_call
-    def write_memory(self, *, region_name: str, offset: int = 0, value: Optional[Union[int, float, Sequence[int], Sequence[float]]] = None):
+    def write_memory(self, *, region_name: str, offset: int = None,
+                     value: Optional[Union[int, float, Sequence[int], Sequence[float]]] = None):
         """
         Writes a value or chronologically unwraps a list of values into a memory region on
         the QAM at a specified offset.
@@ -73,6 +74,8 @@ class QAM(ABC):
         assert self.status in ['loaded', 'done']
 
         if isinstance(value, Sequence):
+            if offset != None:
+                warnings.warn("offset should be None when value is a Sequence")
             for index, v in enumerate(value):
                 aref = ParameterAref(name=region_name, index=offset + index)
                 self._variables_shim[aref] = v
