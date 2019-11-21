@@ -74,7 +74,7 @@ class QAM(ABC):
         assert self.status in ['loaded', 'done']
 
         if isinstance(value, Sequence):
-            if offset != None:
+            if offset is not None:
                 warnings.warn("offset should be None when value is a Sequence")
             for index, v in enumerate(value):
                 aref = ParameterAref(name=region_name, index=offset + index)
