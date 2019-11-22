@@ -1,18 +1,9 @@
 import numpy as np
 
-from pyquil.experiment._memory import (build_symmetrization_memory_maps,
-                                       merge_memory_map_lists,
+from pyquil.experiment._memory import (merge_memory_map_lists,
                                        pauli_term_to_preparation_memory_map,
                                        pauli_term_to_measurement_memory_map)
 from pyquil.paulis import sX, sY
-
-
-def test_build_symmetrization_memory_maps():
-    memory_maps = [{'symmetrization': [0.0, 0.0]},
-                   {'symmetrization': [0.0, np.pi]},
-                   {'symmetrization': [np.pi, 0.0]},
-                   {'symmetrization': [np.pi, np.pi]}]
-    assert build_symmetrization_memory_maps(2) == memory_maps
 
 
 def test_merge_memory_map_lists():

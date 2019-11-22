@@ -1,3 +1,5 @@
+import numpy as np
+
 from pyquil import Program
 from pyquil.experiment._main import _remove_reset_from_program
 from pyquil.experiment._program import (parameterized_readout_symmetrization,
@@ -124,7 +126,7 @@ def test_generate_experiment_program():
     e = TomographyExperiment(settings=[s], program=p)
     exp = e.generate_experiment_program()
     test_exp = Program()
-    test_exp += parameterized_readout_symmetrization(2)
+    test_exp += parameterized_readout_symmetrization([0, 1])
     ro = test_exp.declare('ro', 'BIT', 2)
     test_exp += MEASURE(0, ro[0])
     test_exp += MEASURE(1, ro[1])
@@ -162,8 +164,8 @@ def test_generate_experiment_program():
     e = TomographyExperiment(settings=[s], program=p, symmetrization=0)
     exp = e.generate_experiment_program()
     test_exp = Program()
-    test_exp += parameterized_single_qubit_state_preparation(1)
-    test_exp += parameterized_single_qubit_measurement_basis(1)
+    test_exp += parameterized_single_qubit_state_preparation([0])
+    test_exp += parameterized_single_qubit_measurement_basis([0])
     ro = test_exp.declare('ro', 'BIT')
     test_exp += MEASURE(0, ro[0])
     assert exp.out() == test_exp.out()
@@ -175,10 +177,34 @@ def test_generate_experiment_program():
     e = TomographyExperiment(settings=[s], program=p, symmetrization=0)
     exp = e.generate_experiment_program()
     test_exp = Program()
-    test_exp += parameterized_single_qubit_state_preparation(2)
-    test_exp += parameterized_single_qubit_measurement_basis(2)
+    test_exp += parameterized_single_qubit_state_preparation([0, 1])
+    test_exp += parameterized_single_qubit_measurement_basis([0, 1])
     ro = test_exp.declare('ro', 'BIT', 2)
     test_exp += MEASURE(0, ro[0])
     test_exp += MEASURE(1, ro[1])
     assert exp.out() == test_exp.out()
     assert exp.num_shots == 1
+
+
+def test_build_experiment_setting_memory_map():
+    p = Program()
+    s = ExperimentSetting(in_state=sX(0), out_operator=sZ(0) * sY(1))
+    e = TomographyExperiment(settings=[s], program=p)
+    memory_map = e.build_setting_memory_map(s)
+    assert memory_map == {'preparation_alpha': [0.0],
+                          'preparation_beta': [np.pi / 2],
+                          'preparation_gamma': [0.0],
+                          'measurement_alpha': [0.0, np.pi / 2],
+                          'measurement_beta': [0.0, np.pi / 2],
+                          'measurement_gamma': [0.0, -np.pi / 2]}
+
+
+def test_build_symmetrization_memory_maps():
+    p = Program()
+    s = ExperimentSetting(in_state=sZ(0) * sZ(1), out_operator=sZ(0) * sZ(1))
+    e = TomographyExperiment(settings=[s], program=p)
+    memory_maps = [{'symmetrization': [0.0, 0.0]},
+                   {'symmetrization': [0.0, np.pi]},
+                   {'symmetrization': [np.pi, 0.0]},
+                   {'symmetrization': [np.pi, np.pi]}]
+    assert e.build_symmetrization_memory_maps([0, 1]) == memory_maps

@@ -64,14 +64,3 @@ def test_setting_no_in():
         assert expt == expt2
         assert expt2.in_operator == functools.reduce(mul, [sZ(q) for q in oop.get_qubits()], sI())
         assert expt2.out_operator == oop
-
-
-def test_build_experiment_setting_memory_map():
-    setting = ExperimentSetting(in_state=sX(0), out_operator=sY(1))
-    memory_map = setting.build_setting_memory_map()
-    assert memory_map == {'preparation_alpha': [0.0],
-                          'preparation_beta': [np.pi / 2],
-                          'preparation_gamma': [0.0],
-                          'measurement_alpha': [0.0, np.pi / 2],
-                          'measurement_beta': [0.0, np.pi / 2],
-                          'measurement_gamma': [0.0, -np.pi / 2]}

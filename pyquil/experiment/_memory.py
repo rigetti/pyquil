@@ -186,47 +186,6 @@ def pauli_term_to_measurement_memory_map(
                                           tuple_z=M_Z)
 
 
-def build_symmetrization_memory_maps(
-        memory_size: int,
-        symmetrization_level: int = SymmetrizationLevel.EXHAUSTIVE,
-        label: str = 'symmetrization'
-) -> List[Dict[str, List[float]]]:
-    """
-    Build a list of memory maps to be used in a program that is trying to perform readout
-    symmetrization via parametric compilation. For example, if we have the following program:
-
-        RX(symmetrization[0]) 0
-        RX(symmetrization[1]) 1
-        MEASURE 0 ro[0]
-        MEASURE 1 ro[1]
-
-    We can perform exhaustive readout symmetrization on our two qubits by providing the four
-    following memory maps, and then appropriately flipping the resultant bitstrings:
-
-        {'symmetrization': [0.0, 0.0]} -> XOR results with [0,0]
-        {'symmetrization': [0.0, pi]}  -> XOR results with [0,1]
-        {'symmetrization': [pi, 0.0]}  -> XOR results with [1,0]
-        {'symmetrization': [pi, pi]}   -> XOR results with [1,1]
-
-    :param memory_size: Size of the memory region to symmetrize.
-    :param symmetrization_level: Level of symmetrization to perform. See ``SymmetrizationLevel``.
-    :param label: Name of the declared memory region. Defaults to "symmetrization".
-    :return: List of memory maps that performs the desired level of symmetrization.
-    """
-    if symmetrization_level == SymmetrizationLevel.NONE:
-        return [{}]
-
-    # TODO: add support for orthogonal arrays
-    if symmetrization_level != SymmetrizationLevel.EXHAUSTIVE:
-        raise ValueError('We only support exhaustive symmetrization for now.')
-
-    assignments = itertools.product(np.array([0, np.pi]), repeat=memory_size)
-    memory_maps = []
-    for a in assignments:
-        memory_maps.append({f'{label}': list(a)})
-    return memory_maps
-
-
 def merge_memory_map_lists(
         mml1: List[Dict[str, List[float]]],
         mml2: List[Dict[str, List[float]]]

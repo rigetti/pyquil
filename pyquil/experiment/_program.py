@@ -14,6 +14,8 @@
 #    limitations under the License.
 ##############################################################################
 
+from typing import Sequence
+
 import numpy as np
 
 from pyquil import Program
@@ -21,7 +23,7 @@ from pyquil.gates import MEASURE, RX, RZ
 
 
 def parameterized_euler_rotations(
-        num_qubits: int,
+        qubits: Sequence[int],
         *,
         prefix: str,
         suffix_alpha: str = 'alpha',
@@ -47,7 +49,7 @@ def parameterized_euler_rotations(
         RX(-pi/2) n-1
         RZ(gamma_label[n-1]) n-1
 
-    :param num_qubits: The number of qubits (n).
+    :param qubits: The number of qubits (n).
     :param prefix: The prefix for the declared memory region labels. For example, if the prefix
         is "preparation" and the alpha, beta, and gamma suffixes are left as default, the labels
         would be "preparation_alpha", "preparation_beta", and "preparation_gamma".
@@ -65,11 +67,11 @@ def parameterized_euler_rotations(
 
     p = Program()
 
-    alpha = p.declare(alpha_label, 'REAL', num_qubits)
-    beta = p.declare(beta_label, 'REAL', num_qubits)
-    gamma = p.declare(gamma_label, 'REAL', num_qubits)
+    alpha = p.declare(alpha_label, 'REAL', len(qubits))
+    beta = p.declare(beta_label, 'REAL', len(qubits))
+    gamma = p.declare(gamma_label, 'REAL', len(qubits))
 
-    for idx, q in enumerate(range(num_qubits)):
+    for idx, q in enumerate(qubits):
         p += RZ(alpha[idx], q)
         p += RX(np.pi / 2, q)
         p += RZ(beta[idx], q)
@@ -80,37 +82,37 @@ def parameterized_euler_rotations(
 
 
 def parameterized_single_qubit_state_preparation(
-        num_qubits: int,
+        qubits: Sequence[int],
         label: str = 'preparation',
 ) -> Program:
     """
     Given a number of qubits, produce a program as in ``parameterized_euler_rotations`` where each
     memory region is prefixed by ``label``, where label defaults to "preparation".
 
-    :param num_qubits: The number of qubits (n).
+    :param qubits: The number of qubits (n).
     :param label: The prefix to use when declaring memory in ``parameterized_euler_rotations``.
     :return: A parameterized ``Program`` that can be used to prepare a product state.
     """
-    return parameterized_euler_rotations(num_qubits, prefix=label)
+    return parameterized_euler_rotations(qubits, prefix=label)
 
 
 def parameterized_single_qubit_measurement_basis(
-        num_qubits: int,
+        qubits: Sequence[int],
         label: str = 'measurement',
 ) -> Program:
     """
     Given a number of qubits, produce a program as in ``parameterized_euler_rotations`` where each
     memory region is prefixed by ``label``, where label defaults to "measurement".
 
-    :param num_qubits: The number of qubits (n).
+    :param qubits: The number of qubits (n).
     :param label: The prefix to use when declaring memory in ``parameterized_euler_rotations``.
     :return: A parameterized ``Program`` that can be used to measure in a multi-qubit Pauli basis.
     """
-    return parameterized_euler_rotations(num_qubits, prefix=label)
+    return parameterized_euler_rotations(qubits, prefix=label)
 
 
 def parameterized_readout_symmetrization(
-        num_qubits: int,
+        qubits: Sequence[int],
         label: str = 'symmetrization',
 ) -> Program:
     """
@@ -118,27 +120,27 @@ def parameterized_readout_symmetrization(
     0 through n-1, parameterized by memory regions label[0] through label[n-1], where "label"
     defaults to "symmetrization".
 
-    :param num_qubits: The number of qubits (n).
+    :param qubits: The number of qubits (n).
     :param label: The name of the declared memory region.
     :return: A ``Program`` with parameterized ``RX`` gates on n qubits.
     """
     p = Program()
-    symmetrization = p.declare(f'{label}', 'REAL', num_qubits)
-    for idx, q in enumerate(range(num_qubits)):
+    symmetrization = p.declare(f'{label}', 'REAL', len(qubits))
+    for idx, q in enumerate(qubits):
         p += RX(symmetrization[idx], q)
     return p
 
 
-def measure_qubits(num_qubits: int) -> Program:
+def measure_qubits(qubits: Sequence[int]) -> Program:
     """
     Given a number of qubits (n), produce a ``Program`` with a ``MEASURE`` instruction on qubits
     0 through n-1, with corresponding readout registers ro[0] through ro[n-1].
 
-    :param num_qubits: The number of qubits (n).
+    :param qubits: The number of qubits (n).
     :return: A ``Program`` that measures n qubits.
     """
     p = Program()
-    ro = p.declare('ro', 'BIT', num_qubits)
-    for idx, q in enumerate(range(num_qubits)):
+    ro = p.declare('ro', 'BIT', len(qubits))
+    for idx, q in enumerate(qubits):
         p += MEASURE(q, ro[idx])
     return p

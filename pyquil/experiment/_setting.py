@@ -236,14 +236,3 @@ class ExperimentSetting:
         instr, outstr = s.split('→')
         return ExperimentSetting(in_state=TensorProductState.from_str(instr),
                                  out_operator=PauliTerm.from_compact_str(outstr))
-
-    def build_setting_memory_map(self):
-        """
-        Build the memory map corresponding to the state preparation and measurement specifications
-        encoded in this ``ExperimentSetting``.
-
-        :return: Memory map for state prep and measurement.
-        """
-        preparation_map = pauli_term_to_preparation_memory_map(self.in_operator)
-        measurement_map = pauli_term_to_measurement_memory_map(self.out_operator)
-        return {**preparation_map, **measurement_map}

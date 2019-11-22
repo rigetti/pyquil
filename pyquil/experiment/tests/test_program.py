@@ -13,7 +13,7 @@ def test_measure_qubits():
     ro = p.declare('ro', 'BIT', 2)
     p += MEASURE(0, ro[0])
     p += MEASURE(1, ro[1])
-    assert measure_qubits(2).out() == p.out()
+    assert measure_qubits([0, 1]).out() == p.out()
 
 
 def test_parameterized_single_qubit_measurement_basis():
@@ -27,7 +27,7 @@ def test_parameterized_single_qubit_measurement_basis():
         p += RZ(beta[idx], q)
         p += RX(-np.pi / 2, q)
         p += RZ(gamma[idx], q)
-    assert parameterized_single_qubit_measurement_basis(2).out() == p.out()
+    assert parameterized_single_qubit_measurement_basis([0, 1]).out() == p.out()
 
 
 def test_parameterized_single_qubit_state_preparation():
@@ -45,7 +45,7 @@ def test_parameterized_single_qubit_state_preparation():
     p += RZ(beta[1], 1)
     p += RX(-np.pi / 2, 1)
     p += RZ(gamma[1], 1)
-    assert parameterized_single_qubit_state_preparation(2).out() == p.out()
+    assert parameterized_single_qubit_state_preparation([0, 1]).out() == p.out()
 
 
 def test_parameterized_readout_symmetrization():
@@ -53,4 +53,4 @@ def test_parameterized_readout_symmetrization():
     symmetrization = p.declare('symmetrization', 'REAL', 2)
     p += RX(symmetrization[0], 0)
     p += RX(symmetrization[1], 1)
-    assert parameterized_readout_symmetrization(2).out() == p.out()
+    assert parameterized_readout_symmetrization([0, 1]).out() == p.out()
