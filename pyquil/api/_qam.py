@@ -135,5 +135,6 @@ class QAM(ABC):
         self._variables_shim = {}
         self._executable = None
         self._memory_results = defaultdict(lambda: None)
+        self._experiment = None
 
         self.status = 'connected'

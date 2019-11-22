@@ -23,24 +23,23 @@ import json
 import logging
 import warnings
 from json import JSONEncoder
-from enum import IntEnum
-from typing import List, Union, Optional
+from typing import Dict, List, Optional, Sequence, Union
 
 from pyquil import Program
+from pyquil.experiment._memory import (pauli_term_to_measurement_memory_map,
+                                       pauli_term_to_preparation_memory_map)
+from pyquil.experiment._program import (parameterized_single_qubit_measurement_basis,
+                                        parameterized_single_qubit_state_preparation,
+                                        parameterized_readout_symmetrization, measure_qubits)
 from pyquil.experiment._result import ExperimentResult
 from pyquil.experiment._setting import ExperimentSetting
-from pyquil.quilbase import DefPermutationGate, Reset
+from pyquil.experiment._symmetrization import SymmetrizationLevel
+from pyquil.gates import RESET
+from pyquil.paulis import PauliTerm
+from pyquil.quilbase import DefPermutationGate, Reset, ResetQubit
 
 
 log = logging.getLogger(__name__)
-
-
-class SymmetrizationLevel(IntEnum):
-    EXHAUSTIVE = -1
-    NONE = 0
-    OA_STRENGTH_1 = 1
-    OA_STRENGTH_2 = 2
-    OA_STRENGTH_3 = 3
 
 
 def _abbrev_program(program: Program, max_len=10):
@@ -247,6 +246,160 @@ class TomographyExperiment:
         if not isinstance(other, TomographyExperiment):
             return False
         return self.serializable() == other.serializable()
+
+    def get_meas_qubits(self) -> list:
+        """
+        Return the sorted list of qubits that are involved in the all the out_operators of the
+        settings for this ``TomographyExperiment`` object.
+        """
+        meas_qubits = set()
+        for settings in self:
+            meas_qubits.update(settings[0].out_operator.get_qubits())
+        return sorted(meas_qubits)
+
+    def get_meas_registers(self, qubits: Optional[Sequence] = None) -> list:
+        """
+        Return the sorted list of memory registers corresponding to the list of qubits provided.
+        If no qubits are provided, just returns the list of numbers from 0 to n-1 where n is the
+        number of qubits resulting from the ``get_meas_qubits`` method.
+        """
+        meas_qubits = self.get_meas_qubits()
+
+        if qubits is None:
+            return list(range(len(meas_qubits)))
+
+        meas_registers = []
+        for q in qubits:
+            meas_registers.append(meas_qubits.index(q))
+        return sorted(meas_registers)
+
+    def generate_experiment_program(self):
+        """
+        Generate a parameterized program containing the main body program along with some additions
+        to support the various state preparation, measurement, and symmetrization specifications of
+        this ``TomographyExperiment``.
+
+        State preparation and measurement are achieved via ZXZXZ-decomposed single-qubit gates,
+        where the angles of each ``RZ`` rotation are declared parameters that can be assigned at
+        runtime. Symmetrization is achieved by putting an ``RX`` gate (also parameterized by a
+        declared value) before each ``MEASURE`` operation. In addition, a ``RESET`` operation
+        is prepended to the ``Program`` if the experiment has active qubit reset enabled. Finally,
+        each qubit specified in the settings is measured, and the number of shots is added.
+
+        :return: Parameterized ``Program`` that is capable of collecting statistics for every
+            ``ExperimentSetting`` in this ``TomographyExperiment``.
+        """
+        meas_qubits = self.get_meas_qubits()
+
+        p = Program()
+
+        if self.reset:
+            if any(isinstance(instr, (Reset, ResetQubit)) for instr in self.program):
+                raise ValueError('RESET already added to program')
+            p += RESET()
+
+        p += self.program
+
+        for settings in self:
+            if ('X' in str(settings[0].in_state)) or ('Y' in str(settings[0].in_state)):
+                if f'DECLARE preparation_alpha' in self.program.out():
+                    raise ValueError(f'Memory "preparation_alpha" has been declared already.')
+                if f'DECLARE preparation_beta' in self.program.out():
+                    raise ValueError(f'Memory "preparation_beta" has been declared already.')
+                if f'DECLARE preparation_gamma' in self.program.out():
+                    raise ValueError(f'Memory "preparation_gamma" has been declared already.')
+                p += parameterized_single_qubit_state_preparation(meas_qubits)
+                break
+
+        for settings in self:
+            if ('X' in str(settings[0].out_operator)) or ('Y' in str(settings[0].out_operator)):
+                if f'DECLARE measurement_alpha' in self.program.out():
+                    raise ValueError(f'Memory "measurement_alpha" has been declared already.')
+                if f'DECLARE measurement_beta' in self.program.out():
+                    raise ValueError(f'Memory "measurement_beta" has been declared already.')
+                if f'DECLARE measurement_gamma' in self.program.out():
+                    raise ValueError(f'Memory "measurement_gamma" has been declared already.')
+                p += parameterized_single_qubit_measurement_basis(meas_qubits)
+                break
+
+        if self.symmetrization != 0:
+            if f'DECLARE symmetrization' in self.program.out():
+                raise ValueError(f'Memory "symmetrization" has been declared already.')
+            p += parameterized_readout_symmetrization(meas_qubits)
+
+        if 'DECLARE ro' in self.program.out():
+            raise ValueError('Memory "ro" has already been declared for this program.')
+        p += measure_qubits(meas_qubits)
+
+        p.wrap_in_numshots_loop(self.shots)
+
+        return p
+
+    def build_setting_memory_map(self, setting: ExperimentSetting) -> Dict:
+        """
+        Build the memory map corresponding to the state preparation and measurement specifications
+        encoded in the provided ``ExperimentSetting``, taking into account the full set of qubits
+        that are present in ``TomographyExperiment`` object.
+
+        :return: Memory map for state prep and measurement.
+        """
+        meas_qubits = self.get_meas_qubits()
+
+        in_pt = PauliTerm.from_list([(op, meas_qubits.index(q)) for q, op in setting.in_operator])
+        out_pt = PauliTerm.from_list([(op, meas_qubits.index(q)) for q, op in setting.out_operator])
+
+        preparation_map = pauli_term_to_preparation_memory_map(in_pt)
+        measurement_map = pauli_term_to_measurement_memory_map(out_pt)
+
+        return {**preparation_map, **measurement_map}
+
+    def build_symmetrization_memory_maps(
+            self,
+            qubits: Sequence[int],
+            label: str = 'symmetrization'
+    ) -> List[Dict[str, List[float]]]:
+        """
+        Build a list of memory maps to be used in a program that is trying to perform readout
+        symmetrization via parametric compilation. For example, if we have the following program:
+
+            RX(symmetrization[0]) 0
+            RX(symmetrization[1]) 1
+            MEASURE 0 ro[0]
+            MEASURE 1 ro[1]
+
+        We can perform exhaustive readout symmetrization on our two qubits by providing the four
+        following memory maps, and then appropriately flipping the resultant bitstrings:
+
+            {'symmetrization': [0.0, 0.0]} -> XOR results with [0,0]
+            {'symmetrization': [0.0, pi]}  -> XOR results with [0,1]
+            {'symmetrization': [pi, 0.0]}  -> XOR results with [1,0]
+            {'symmetrization': [pi, pi]}   -> XOR results with [1,1]
+
+        :param qubits: List of qubits to symmetrize readout for.
+        :param label: Name of the declared memory region. Defaults to "symmetrization".
+        :return: List of memory maps that performs the desired level of symmetrization.
+        """
+        num_meas_registers = len(self.get_meas_qubits())
+        symm_registers = self.get_meas_registers(qubits)
+
+        if self.symmetrization == SymmetrizationLevel.NONE:
+            return [{}]
+
+        # TODO: add support for orthogonal arrays
+        if self.symmetrization != SymmetrizationLevel.EXHAUSTIVE:
+            raise ValueError('We only support exhaustive symmetrization for now.')
+
+        import numpy as np
+        import itertools
+
+        assignments = itertools.product(np.array([0, np.pi]), repeat=len(symm_registers))
+        memory_maps = []
+        for a in assignments:
+            zeros = np.zeros(num_meas_registers)
+            for idx, r in enumerate(symm_registers):
+                zeros[r] = a[idx]
+            memory_maps.append({f'{label}': list(zeros)})
+        return memory_maps
 
 
 class OperatorEncoder(JSONEncoder):
