@@ -62,7 +62,8 @@ class QAM(ABC):
 
     @_record_call
     def write_memory(self, *, region_name: str, offset: int = None,
-                     value: Optional[Union[int, float, Sequence[int], Sequence[float]]] = None):        """
+                     value: Optional[Union[int, float, Sequence[int], Sequence[float]]] = None):
+        """
         Writes a value or chronologically unwraps a list of values into a memory region on
         the QAM at a specified offset.
 
