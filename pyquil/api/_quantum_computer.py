@@ -17,7 +17,7 @@ import re
 import socket
 import warnings
 from math import pi, log
-from typing import List, Dict, Tuple, Iterator, Optional, Union
+from typing import List, Dict, Tuple, Iterator, Mapping, Optional, Sequence, Union
 import itertools
 
 import subprocess
@@ -134,7 +134,7 @@ class QuantumComputer:
     def experiment(
             self,
             experiment: TomographyExperiment,
-            memory_map: Optional[Dict[str, List[Union[int, float]]]] = None
+            memory_map: Optional[Mapping[str, Sequence[Union[int, float]]]] = None
     ) -> List[ExperimentResult]:
         """
         Run a ``TomographyExperiment`` on a QVM or QPU backend. A ``TomographyExperiment``
@@ -172,7 +172,7 @@ class QuantumComputer:
                 c. Extract the desired statistics from the classified bitstrings that are produced
                    by the QVM or QPU backend, and package them in an ``ExperimentResult`` object.
 
-            3. Return the list of ``ExperimentResults``.
+            3. Return the list of ``ExperimentResult``s.
 
         This method is extremely useful shorthand for running near-term applications and algorithms,
         which often have this ansatz + settings structure.
@@ -201,6 +201,8 @@ class QuantumComputer:
         results = []
         for settings in experiment:
             # TODO: add support for grouped ExperimentSettings
+            if len(settings) > 1:
+                raise ValueError('We only support length-1 settings for now.')
             setting = settings[0]
 
             # assumes that experiments are defined starting at qubit 0
@@ -227,11 +229,11 @@ class QuantumComputer:
             # TODO: support simultaneous observables via multiple correlations
             correlations = [setting.out_operator.get_qubits()]
             expectations = bitstrings_to_expectations(symmetrized_bitstrings,
-                                                      correlations=correlations)
+                                                      joint_expectations=correlations)
 
             # TODO: add calibration and correction
             mean = np.mean(expectations).item()
-            std_err = np.std(expectations, axis=0, ddof=1) / np.sqrt(len(expectations)).item()
+            std_err = (np.std(expectations, axis=0, ddof=1) / np.sqrt(len(expectations))).item()
             result = ExperimentResult(setting=setting,
                                       expectation=mean,
                                       std_err=std_err,

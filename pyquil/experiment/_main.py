@@ -33,7 +33,7 @@ from pyquil.experiment._program import (parameterized_single_qubit_measurement_b
 from pyquil.experiment._result import ExperimentResult
 from pyquil.experiment._setting import ExperimentSetting
 from pyquil.gates import RESET
-from pyquil.quilbase import DefPermutationGate, Reset
+from pyquil.quilbase import DefPermutationGate, Reset, ResetQubit
 
 
 log = logging.getLogger(__name__)
@@ -279,7 +279,7 @@ class TomographyExperiment:
         p = Program()
 
         if self.reset:
-            if 'RESET' in p.out():
+            if any(isinstance(instr, (Reset, ResetQubit)) for instr in self.program):
                 raise ValueError('RESET already added to program')
             p += RESET()
 

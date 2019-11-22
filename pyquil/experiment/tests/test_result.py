@@ -14,11 +14,11 @@ def test_bitstrings_to_expectations():
 
     assert np.allclose(bitstrings_to_expectations(bitstrings),
                        np.array([[1, 1], [1, -1], [-1, 1], [-1, -1]]))
-    assert np.allclose(bitstrings_to_expectations(bitstrings, correlations=[[0]]),
+    assert np.allclose(bitstrings_to_expectations(bitstrings, joint_expectations=[[0]]),
                        np.array([[1], [1], [-1], [-1]]))
-    assert np.allclose(bitstrings_to_expectations(bitstrings, correlations=[[1]]),
+    assert np.allclose(bitstrings_to_expectations(bitstrings, joint_expectations=[[1]]),
                        np.array([[1], [-1], [1], [-1]]))
-    assert np.allclose(bitstrings_to_expectations(bitstrings, correlations=[[0, 1]]),
+    assert np.allclose(bitstrings_to_expectations(bitstrings, joint_expectations=[[0, 1]]),
                        np.array([[1], [-1], [-1], [1]]))
 
 

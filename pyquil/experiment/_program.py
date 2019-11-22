@@ -34,7 +34,7 @@ def parameterized_euler_rotations(
     and "suffix" arguments. Put more plainly, the resulting Quil program on n qubits is:
 
         RZ(alpha_label[0]) 0
-        RZ(pi/2) 0
+        RX(pi/2) 0
         RZ(beta_label[0]) 0
         RX(-pi/2) 0
         RZ(gamma_label[0]) 0
@@ -42,7 +42,7 @@ def parameterized_euler_rotations(
         ...
 
         RZ(alpha_label[n-1]) n-1
-        RZ(pi/2) n-1
+        RX(pi/2) n-1
         RZ(beta_label[0]) n-1
         RX(-pi/2) n-1
         RZ(gamma_label[n-1]) n-1

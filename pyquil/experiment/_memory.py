@@ -108,25 +108,14 @@ def pauli_term_to_euler_memory_map(
                   beta_label: [0.0] * memory_size,
                   gamma_label: [0.0] * memory_size}
 
+    tuples = {'X': tuple_x, 'Y': tuple_y, 'Z': tuple_z, 'I': tuple_z}
+
     for qubit, operator in term:
-        if operator == 'X':
-            memory_map[alpha_label][qubit] = tuple_x[0]
-            memory_map[beta_label][qubit] = tuple_x[1]
-            memory_map[gamma_label][qubit] = tuple_x[2]
-        elif operator == 'Y':
-            memory_map[alpha_label][qubit] = tuple_y[0]
-            memory_map[beta_label][qubit] = tuple_y[1]
-            memory_map[gamma_label][qubit] = tuple_y[2]
-        elif operator == 'Z':
-            memory_map[alpha_label][qubit] = tuple_z[0]
-            memory_map[beta_label][qubit] = tuple_z[1]
-            memory_map[gamma_label][qubit] = tuple_z[2]
-        elif operator == 'I':
-            memory_map[alpha_label][qubit] = tuple_z[0]
-            memory_map[beta_label][qubit] = tuple_z[1]
-            memory_map[gamma_label][qubit] = tuple_z[2]
-        else:
+        if operator not in tuples:
             raise ValueError(f'Unknown operator {operator}')
+        memory_map[alpha_label][qubit] = tuples[operator][0]
+        memory_map[beta_label][qubit] = tuples[operator][1]
+        memory_map[gamma_label][qubit] = tuples[operator][2]
 
     return memory_map
 
@@ -141,7 +130,7 @@ def pauli_term_to_preparation_memory_map(
     following program:
 
         RZ(preparation_alpha[0]) 0
-        RZ(pi/2) 0
+        RX(pi/2) 0
         RZ(preparation_beta[0]) 0
         RX(-pi/2) 0
         RZ(preparation_gamma[0]) 0
@@ -173,7 +162,7 @@ def pauli_term_to_measurement_memory_map(
     have the following program:
 
         RZ(measurement_alpha[0]) 0
-        RZ(pi/2) 0
+        RX(pi/2) 0
         RZ(measurement_beta[0]) 0
         RX(-pi/2) 0
         RZ(measurement_gamma[0]) 0
