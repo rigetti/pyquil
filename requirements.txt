@@ -5,7 +5,7 @@ requests
 networkx >= 2.0.0
 
 # rigetti packages
-rpcq >= 2.7.2
+-e git://github.com/rigetti/rpcq.git@22bd61fdee8e481661fd558d96fc6afb90aed892#egg=rpcq
 
 # optional latex deps
 ipython
