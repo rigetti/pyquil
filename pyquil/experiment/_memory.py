@@ -213,7 +213,7 @@ def build_symmetrization_memory_maps(
     :param label: Name of the declared memory region. Defaults to "symmetrization".
     :return: List of memory maps that performs the desired level of symmetrization.
     """
-    if symmetrization_level == SymmetrizationLevel.EXHAUSTIVE:
+    if symmetrization_level == SymmetrizationLevel.NONE:
         return [{}]
 
     # TODO: add support for orthogonal arrays
