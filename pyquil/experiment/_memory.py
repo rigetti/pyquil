@@ -20,6 +20,7 @@ from typing import Dict, List, Tuple
 import numpy as np
 
 from pyquil.paulis import PauliTerm
+from pyquil.experiment._symmetrization import SymmetrizationLevel
 
 
 def euler_angles_RX(theta: float) -> Tuple[float, float, float]:
@@ -187,7 +188,7 @@ def pauli_term_to_measurement_memory_map(
 
 def build_symmetrization_memory_maps(
         memory_size: int,
-        symmetrization_level: int = -1,
+        symmetrization_level: int = SymmetrizationLevel.EXHAUSTIVE,
         label: str = 'symmetrization'
 ) -> List[Dict[str, List[float]]]:
     """
@@ -212,11 +213,11 @@ def build_symmetrization_memory_maps(
     :param label: Name of the declared memory region. Defaults to "symmetrization".
     :return: List of memory maps that performs the desired level of symmetrization.
     """
-    if symmetrization_level == 0:
+    if symmetrization_level == SymmetrizationLevel.EXHAUSTIVE:
         return [{}]
 
     # TODO: add support for orthogonal arrays
-    if symmetrization_level != -1:
+    if symmetrization_level != SymmetrizationLevel.EXHAUSTIVE:
         raise ValueError('We only support exhaustive symmetrization for now.')
 
     assignments = itertools.product(np.array([0, np.pi]), repeat=memory_size)

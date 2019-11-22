@@ -23,7 +23,6 @@ import json
 import logging
 import warnings
 from json import JSONEncoder
-from enum import IntEnum
 from typing import List, Union, Optional
 
 from pyquil import Program
@@ -32,19 +31,12 @@ from pyquil.experiment._program import (parameterized_single_qubit_measurement_b
                                         parameterized_readout_symmetrization, measure_qubits)
 from pyquil.experiment._result import ExperimentResult
 from pyquil.experiment._setting import ExperimentSetting
+from pyquil.experiment._symmetrization import SymmetrizationLevel
 from pyquil.gates import RESET
 from pyquil.quilbase import DefPermutationGate, Reset, ResetQubit
 
 
 log = logging.getLogger(__name__)
-
-
-class SymmetrizationLevel(IntEnum):
-    EXHAUSTIVE = -1
-    NONE = 0
-    OA_STRENGTH_1 = 1
-    OA_STRENGTH_2 = 2
-    OA_STRENGTH_3 = 3
 
 
 def _abbrev_program(program: Program, max_len=10):
