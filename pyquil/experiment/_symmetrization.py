@@ -16,6 +16,7 @@
 
 from enum import IntEnum
 
+
 class SymmetrizationLevel(IntEnum):
     EXHAUSTIVE = -1
     NONE = 0

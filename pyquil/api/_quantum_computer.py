@@ -172,7 +172,7 @@ class QuantumComputer:
                 c. Extract the desired statistics from the classified bitstrings that are produced
                    by the QVM or QPU backend, and package them in an ``ExperimentResult`` object.
 
-            3. Return the list of ``ExperimentResult``s.
+            3. Return the list of ``ExperimentResult`` objects.
 
         This method is extremely useful shorthand for running near-term applications and algorithms,
         which often have this ansatz + settings structure.
