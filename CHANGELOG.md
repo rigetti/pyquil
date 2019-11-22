@@ -15,8 +15,6 @@ Changelog
     and enabled typechecks in gitlab CI (@appleby, gh-1098).
 -   Added support for the `XY` gate family in `Program`s and in `ISA`s (@ecpeterson,
     gh-1096, gh-1107).
--   `QAM.write_memory` now accepts either a `Sequence` of values or a single value
-    (@tommy-moffat, gh-1079).
 
 ### Bugfixes
 
