@@ -249,4 +249,4 @@ def test_run_expects_executable(qvm, qpu_compiler):
 
 def test_qpu_not_engaged_error():
     with pytest.raises(RuntimeError):
-        qpu = QPU(None)
+        qpu = QPU().build_client()
