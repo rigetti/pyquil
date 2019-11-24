@@ -8,6 +8,8 @@ Changelog
 
 ### Improvements and Changes
 
+-   Some of the type hints have been added to the `Program` class (@rht, gh-1115)
+
 ### Bugfixes
 
 [v2.15](https://github.com/rigetti/pyquil/compare/v2.14.0...v2.15.0) (December 20, 2019)
