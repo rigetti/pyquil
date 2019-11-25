@@ -35,7 +35,9 @@ from pyquil.quilbase import (DefGate, Gate, Measurement, Pragma, AbstractInstruc
 
 # for typing purpose
 from typing import Any, Dict, List, Iterable, Optional, Set, Union
-from pyquil.quilatom import Parameter, ParameterDesignator
+from pyquil.quilatom import (MemoryReferenceDesignator, Parameter, ParameterDesignator,
+                             QubitDesignator)
+
 
 class Program(object):
     """A list of pyQuil instructions that comprise a quantum program.
@@ -342,7 +344,7 @@ class Program(object):
                 self.inst(MEASURE(qubit_index, classical_reg))
         return self
 
-    def while_do(self, classical_reg: int, q_program: 'Program') -> 'Program':
+    def while_do(self, classical_reg: MemoryReferenceDesignator, q_program: 'Program') -> 'Program':
         """
         While a classical register at index classical_reg is 1, loop q_program
 
@@ -359,7 +361,7 @@ class Program(object):
               JUMP @START
               LABEL @END
 
-        :param int classical_reg: The classical register to check
+        :param MemoryReferenceDesignator classical_reg: The classical register to check
         :param Program q_program: The Quil program to loop.
         :return: The Quil Program with the loop instructions added.
         :rtype: Program
@@ -367,13 +369,13 @@ class Program(object):
         label_start = LabelPlaceholder("START")
         label_end = LabelPlaceholder("END")
         self.inst(JumpTarget(label_start))
-        self.inst(JumpUnless(target=label_end, condition=classical_reg))
+        self.inst(JumpUnless(target=label_end, condition=unpack_classical_reg(classical_reg)))
         self.inst(q_program)
         self.inst(Jump(label_start))
         self.inst(JumpTarget(label_end))
         return self
 
-    def if_then(self, classical_reg: int, if_program: 'Program', else_program: Optional['Program'] = None) -> 'Program':
+    def if_then(self, classical_reg: MemoryReferenceDesignator, if_program: 'Program', else_program: Optional['Program'] = None) -> 'Program':
         """
         If the classical register at index classical reg is 1, run if_program, else run
         else_program.
@@ -394,7 +396,7 @@ class Program(object):
               instrA...
               LABEL @END
 
-        :param int classical_reg: The classical register to check as the condition
+        :param MemoryReferenceDesignator classical_reg: The classical register to check as the condition
         :param Program if_program: A Quil program to execute if classical_reg is 1
         :param Program else_program: A Quil program to execute if classical_reg is 0. This
             argument is optional and defaults to an empty Program.
@@ -418,7 +420,7 @@ class Program(object):
         Get a new qubit.
 
         :return: A qubit.
-        :rtype: Qubit
+        :rtype: QubitPlaceholder
         """
         warnings.warn("`alloc` is deprecated and will be removed in a future version of pyQuil. "
                       "Please create a `QubitPlaceholder` directly", DeprecationWarning)
@@ -489,7 +491,7 @@ class Program(object):
             [''],
         ))
 
-    def get_qubits(self, indices: bool = True) -> Set[int]:
+    def get_qubits(self, indices: bool = True) -> Set[QubitDesignator]:
         """
         Returns all of the qubit indices used in this program, including gate applications and
         allocated qubits. e.g.
@@ -510,7 +512,7 @@ class Program(object):
         """
         qubits = set()
         for instr in self.instructions:
-            if isinstance(instr, (Gate, Measurement)):
+            if isinstance(instr, (Gate, Measurement, ResetQubit)):
                 qubits |= instr.get_qubits(indices=indices)
         return qubits
 
