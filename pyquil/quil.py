@@ -512,7 +512,7 @@ class Program(object):
         """
         qubits = set()
         for instr in self.instructions:
-            if isinstance(instr, (Gate, Measurement, ResetQubit)):
+            if isinstance(instr, (Gate, Measurement)):
                 qubits |= instr.get_qubits(indices=indices)
         return qubits
 
