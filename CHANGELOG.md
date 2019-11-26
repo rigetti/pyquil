@@ -1,12 +1,10 @@
 Changelog
 =========
 
-[v2.14](https://github.com/rigetti/pyquil/compare/v2.13.0...master) (in development)
-------------------------------------------------------------------------------------
+[v2.14](https://github.com/rigetti/pyquil/compare/v2.13.0...master) (November 25, 2019)
+---------------------------------------------------------------------------------------
 
 ### Announcements
-
-### Improvements and Changes
 
 -   There is a new `QuantumComputer.experiment` method for running a collection of
     quantum programs as defined by a `TomographyExperiment`. These objects have a
@@ -18,6 +16,9 @@ Changelog
     the QVM or QPU). For more information check out the API documentation sections
     on the [Quantum Computer](docs/source/apidocs/quantum_computer.rst) and on the
     [Experiment Module](docs/source/apidocs/experiment.rst) (@karalekas, gh-1100).
+
+### Improvements and Changes
+
 -   Type hints have been added to the `PauliTerm` class (@rht, gh-1075).
 -   The `rigetti/forest` Docker image now has less noisy output due to stdout and
     stderr redirection to log files `entrypoint.sh` (@karalekas, gh-1105).
