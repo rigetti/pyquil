@@ -14,6 +14,9 @@ Changelog
 
 ### Bugfixes
 
+-   Minor fixes for examples/1.3_vqe_demo.py and examples/quantum_walk.ipynb
+    (@appleby, gh-1116).
+
 [v2.14](https://github.com/rigetti/pyquil/compare/v2.13.0...v2.14.0) (November 25, 2019)
 ----------------------------------------------------------------------------------------
 
