@@ -15,12 +15,12 @@ from openfermion.transforms import symmetry_conserving_bravyi_kitaev, get_fermio
 from openfermion.utils import uccsd_singlet_get_packed_amplitudes
 
 from forestopenfermion import qubitop_to_pyquilpauli
-from referenceqvm.unitary_generator import tensor_up
 
 from pyquil.quil import Program
 from pyquil.paulis import sX, sY, exponentiate, PauliSum
 from pyquil.gates import X, I
 from pyquil.api import QVMConnection
+from pyquil.unitary_tools import tensor_up
 
 from grove.measurements.estimation import estimate_locally_commuting_operator
 
@@ -61,7 +61,7 @@ def ucc_circuit(theta):
 
 
 def objective_fun(theta, hamiltonian=None,
-                  quantum_resource=QVMConnection(sync_endpoint='http://localhost:5000')):
+                  quantum_resource=QVMConnection(endpoint='http://localhost:5000')):
     """
     Evaluate the Hamiltonian bny operator averaging
 
@@ -89,7 +89,7 @@ def objective_fun(theta, hamiltonian=None,
 
 
 if __name__ == "__main__":
-    qvm = QVMConnection(sync_endpoint='http://localhost:5000')
+    qvm = QVMConnection(endpoint='http://localhost:5000')
     bond_length = np.linspace(0.25, 3, 30)
     ucc_energy = []
     fci_energy = []
@@ -110,7 +110,7 @@ if __name__ == "__main__":
         ucc_program = ucc_circuit(theta)
 
         paulis_bk_hamiltonian = qubitop_to_pyquilpauli(bk_hamiltonian)
-        bk_mat = tensor_up(paulis_bk_hamiltonian, 2)
+        bk_mat = tensor_up(paulis_bk_hamiltonian, [0, 1])
 
         w, v = np.linalg.eigh(bk_mat)
 
