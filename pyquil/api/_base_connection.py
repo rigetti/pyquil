@@ -28,6 +28,7 @@ from pyquil import Program
 from pyquil.api._config import PyquilConfig
 from pyquil.api._error_reporting import _record_call
 from pyquil.api._errors import error_mapping, UnknownApiError, TooManyQubitsError
+from pyquil.api._logger import logger
 from pyquil.device import Specs, ISA
 from pyquil.wavefunction import Wavefunction
 
@@ -41,6 +42,7 @@ def get_json(session, url, params: dict = None):
     """
     Get JSON from a Forest endpoint.
     """
+    logger.debug(f"Sending request to {url}: {params}")
     res = session.get(url, params=params)
     if res.status_code >= 400:
         raise parse_error(res)
@@ -51,6 +53,7 @@ def post_json(session, url, json):
     """
     Post JSON to the Forest endpoint.
     """
+    logger.debug(f"Sending request to {url}: {json}")
     res = session.post(url, json=json)
     if res.status_code >= 400:
         raise parse_error(res)

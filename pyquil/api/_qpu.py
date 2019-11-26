@@ -26,6 +26,7 @@ from pyquil import Program
 from pyquil.parser import parse
 from pyquil.api._auth import AuthClient
 from pyquil.api._config import PyquilConfig
+from pyquil.api._logger import logger, UserMessageError
 from pyquil.api._qam import QAM
 from pyquil.api._error_reporting import _record_call
 from pyquil.quilatom import MemoryReference, BinaryExp, Function, Parameter, Expression
@@ -100,7 +101,7 @@ class QPU(QAM):
         endpoint = next((url for url in [self.endpoint, self.config.qpu_url]
                          if url is not None), None)
         if endpoint is None:
-            raise RuntimeError(
+            raise UserMessageError(
                 """It looks like you've tried to run a program against a QPU but do
                 not currently have a reservation on one. To reserve time on Rigetti
                 QPUs, use the command line interface, qcs, which comes pre-installed
@@ -111,14 +112,10 @@ class QPU(QAM):
                 For more information, please see the docs at
                 https://www.rigetti.com/qcs/docs/reservations or reach out to Rigetti
                 support at support@rigetti.com.""")
-        if self.engagement is not None:
-            auth_config = ClientAuthConfig(
-                client_public_key=self.engagement.client_public_key,
-                client_secret_key=self.engagement.client_secret_key,
-                server_public_key=self.engagement.server_public_key)
-            return Client(endpoint, auth_config=auth_config)
-        else:
-            return Client(endpoint)
+
+        logger.debug(f"QPU Client connecting to {endpoint}")
+        
+        return Client(endpoint, auth_config=self.client_auth_config)
 
     @property
     def client(self):
@@ -126,6 +123,14 @@ class QPU(QAM):
                 and self._client):
             self._client = self.build_client()
         return self._client
+
+    @property
+    def client_auth_config(self) -> Optional[ClientAuthConfig]:
+        if self.engagement is not None:
+            return ClientAuthConfig(
+                client_public_key=self.engagement.client_public_key,
+                client_secret_key=self.engagement.client_secret_key,
+                server_public_key=self.engagement.server_public_key)
 
     @property
     def engagement(self):
