@@ -1,7 +1,7 @@
 Changelog
 =========
 
-[v2.15](https://github.com/rigetti/pyquil/compare/v2.14.0...master) (in development)
+[v2.15](https://github.com/rigetti/pyquil/compare/v2.15.0...master) (in development)
 ------------------------------------------------------------------------------------
 
 ### Announcements
@@ -14,6 +14,9 @@ Changelog
     `docs` directories, and thus the whole repository (@tommy-moffat, gh-1113).
 -   `DEFGATE ... AS PAULI-SUM` is now supported (@ecpeterson, gh-1125).
 -   Add unit test for validating Trotterization order (@jmbr, gh-1120).
+-   Update authentication mechanism to Forest server. Preferentially use
+    credentials found at `~/.qcs/user_auth_credentials` and fallback to
+    `~/.qcs/qmi_auth_credentials`. (@erichulburd, gh-1117)
 
 ### Bugfixes
 
@@ -195,8 +198,8 @@ Changelog
     the underlying `QVM`/`QPU` and `QVMCompiler`/`QPUCompiler` objects,
     which should resolve bugs that arise due to stale clients/connections
     (@karalekas, gh-872).
--   In addition to the simultaneous 1Q RB fidelities contained in device 
-    specs prior to this release, there are now 1Q RB fidelities for 
+-   In addition to the simultaneous 1Q RB fidelities contained in device
+    specs prior to this release, there are now 1Q RB fidelities for
     non-simultaneous gate operation. The names of these fields have been
     changed for clarity, and standard errors for both fidelities have been
     added as well. Finally, deprecation warnings have been added regarding

@@ -14,10 +14,14 @@ PyQuil Configuration Files
 Network endpoints for the Rigetti Forest infrastructure and information pertaining to QPU access are
 stored in a pair of configuration files. These files are located by default at ``~/.qcs_config`` and ``~/.forest_config``.
 The location can be changed by setting the environment variables ``QCS_CONFIG`` or ``FOREST_CONFIG`` to point to the new
-location.
+location. When running on a QMI, the configuration files are automatically managed so as to
+point to the correct endpoints.
 
-When running on a QMI, the values in these configuration files are automatically managed so as to
-point to the correct endpoints. When running locally, configuration files are not necessary. Thus, the average
+Authentication credentials for Forest server are read from ``~/.qcs/user_auth_token``. You may download
+user auth credentials at https://qcs.rigetti.com/auth/token. When running on a QMI, authentication credentials
+are read from ``~/.qcs/qmi_auth_token``.
+
+When running locally, configuration files are not necessary. Thus, the average
 user will not have to do any work to get their configuration files set up.
 
 If for some reason you want to use an atypical configuration, you may need to modify these files.
@@ -31,7 +35,6 @@ The default QCS config file on any QMI looks similar to the following:
     # .qcs_config
     [Rigetti Forest]
     url = https://forest-server.qcs.rigetti.com
-    key = 4fd12391-11eb-52ec-35c2-262765ae4c4f
     user_id = 4fd12391-11eb-52ec-35c2-262765ae4c4f
 
     [QPU]
@@ -40,7 +43,6 @@ The default QCS config file on any QMI looks similar to the following:
 where
 
  -  ``url`` is the endpoint that pyQuil hits for device information and for the 2.0 endpoints,
- -  ``key`` stores the Forest 1.X API key,
  -  ``user_id`` stores a Forest 2.0 user ID, and
  -  ``exec_on_engage`` specifies the shell command that the QMI will launch when the QMI becomes QPU-engaged. It
     would have no effect if you are running locally, but is important if you are running on the QMI. By default, it runs the
