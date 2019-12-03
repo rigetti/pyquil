@@ -86,7 +86,7 @@ PRAGMA_BEGIN_GROUP = 'LATEX_GATE_GROUP'
 PRAGMA_END_GROUP = 'END_LATEX_GATE_GROUP'
 
 UNSUPPORTED_INSTRUCTION_CLASSES = (
-    Wait, Reset, ResetQubit,
+    Wait,
     JumpConditional, JumpWhen, JumpUnless, Jump,
     UnaryClassicalInstruction, LogicalBinaryOp, ArithmeticBinaryOp,
     ClassicalMove, ClassicalExchange, ClassicalConvert,
