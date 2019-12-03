@@ -19,6 +19,11 @@ Module for reading configuration information about api keys and user ids.
 from configparser import ConfigParser, NoSectionError, NoOptionError
 from os.path import expanduser, abspath
 from os import environ
+import json
+import logging
+from typing import List, Dict
+
+_log = logging.getLogger(__name__)
 
 # `.qcs_config` is for content (mostly) related to QCS: the QCS front end stacks endpoint (`url`)
 # for querying all QCS data: devices, reservations, etc. etc., and the `exec_on_engage` that the
@@ -40,14 +45,6 @@ class PyquilConfig(object):
         "default": "https://forest-server.qcs.rigetti.com"
     }
 
-    API_KEY = {
-        "env": "FOREST_API_KEY",
-        "file": QCS_CONFIG,
-        "section": "Rigetti Forest",
-        "name": "key",
-        "default": None
-    }
-
     USER_ID = {
         "env": "FOREST_USER_ID",
         "file": QCS_CONFIG,
@@ -62,6 +59,22 @@ class PyquilConfig(object):
         "section": "QPU",
         "name": "exec_on_engage",
         "default": ""
+    }
+
+    QMI_AUTH_TOKEN_PATH = {
+        "env": "QMI_AUTH_TOKEN_PATH",
+        "file": QCS_CONFIG,
+        "section": "Rigetti Forest",
+        "name": "qmi_auth_token_path",
+        "default": "~/.qcs/qmi_auth_token"
+    }
+
+    USER_AUTH_TOKEN_PATH = {
+        "env": "USER_AUTH_TOKEN_PATH",
+        "file": QCS_CONFIG,
+        "section": "Rigetti Forest",
+        "name": "user_auth_token_path",
+        "default": "~/.qcs/user_auth_token"
     }
 
     QPU_URL = {
@@ -96,15 +109,21 @@ class PyquilConfig(object):
         "default": None
     }
 
-    def __init__(self):
+    def __init__(self, config_paths: Dict[str, str] = CONFIG_PATHS):
         self.configparsers = {}
-        for env_name, default_path in CONFIG_PATHS.items():
+        for env_name, default_path in config_paths.items():
             default_path = expanduser(default_path)
             path = environ.get(env_name, default_path)
 
             cp = ConfigParser()
             cp.read(abspath(path))
+            print(env_name, abspath(path))
             self.configparsers[env_name] = cp
+        self._parse_auth_tokens()
+
+    def _parse_auth_tokens(self):
+        self.user_auth_token = _parse_auth_token(self.user_auth_token_path, ['access_token', 'refresh_token', 'scope'])
+        self.qmi_auth_token = _parse_auth_token(self.qmi_auth_token_path, ['access_token', 'refresh_token'])
 
     def _env_or_config_or_default(self, env=None, file=None, section=None, name=None, default=None):
         """
@@ -125,12 +144,35 @@ class PyquilConfig(object):
             return default
 
     @property
-    def api_key(self):
-        return self._env_or_config_or_default(**self.API_KEY)
-
-    @property
     def user_id(self):
         return self._env_or_config_or_default(**self.USER_ID)
+
+    @property
+    def qmi_auth_token_path(self):
+        return self._env_or_config_or_default(**self.QMI_AUTH_TOKEN_PATH)
+
+    def update_qmi_auth_token(self, qmi_auth_token):
+        self.qmi_auth_token = qmi_auth_token
+        with open(self.qmi_auth_token_path, 'w') as f:
+            json.dump(qmi_auth_token, f)
+
+    @property
+    def user_auth_token_path(self):
+        return self._env_or_config_or_default(**self.USER_AUTH_TOKEN_PATH)
+
+    def update_user_auth_token(self, user_auth_token):
+        self.user_auth_token = user_auth_token
+        with open(self.user_auth_token_path, 'w') as f:
+            json.dump(user_auth_token, f)
+
+    @property
+    def qcs_auth_headers(self):
+        if self.user_auth_token is not None:
+            return {'Authorization': 'Bearer %s' % self.user_auth_token['access_token']}
+        if self.qmi_auth_token is not None:
+            return {'X-QMI-AUTH-TOKEN': self.qmi_auth_token['access_token']}
+        # WARN: This authentication mechanism is deprecated.
+        return {'X-User-Id': self.user_id}
 
     @property
     def forest_url(self):
@@ -155,3 +197,37 @@ class PyquilConfig(object):
     @property
     def qpu_compiler_url(self):
         return self._env_or_config_or_default(**self.QPU_COMPILER_URL)
+
+    @property
+    def qcs_url(self):
+        return self.forest_url.replace('forest-server.', '')
+
+    def assert_valid_auth_credential(self):
+        """
+        assert_valid_auth_credential will check to make sure the user has a valid
+        auth credential configured. This assertion is made lazily - it is called
+        only after the user has received a 401 or 403 from forest server. See
+        _base_connection.py::ForestSession#_refresh_auth_token.
+        """
+        if self.user_auth_token is None and self.qmi_auth_token is None:
+            raise ValueError(f'Your configuration does not have valid authentication credentials. \
+Please visit {self.qcs_url}/auth/token to download credentials \
+and save to {self.user_auth_token_path}.')
+
+
+def _parse_auth_token(path, required_keys: List[str]):
+    try:
+        with open(abspath(path), 'r') as f:
+            token = json.load(f)
+            invalid_values = [k for k in required_keys if token.get(k).__class__ != str]
+            if len(invalid_values) != 0:
+                _log.warning(f'Failed to parse auth token at {path}.')
+                _log.warning(f'Invalid {invalid_values}.')
+                return None
+            return token
+    except json.decoder.JSONDecodeError:
+        _log.warning(f'Failed to parse auth token at {path}. Invalid JSON.')
+        return None
+    except FileNotFoundError:
+        _log.debug(f'Auth token at {path} not found.')
+        return None

@@ -30,6 +30,9 @@ from pyquil.api._error_reporting import _record_call
 from pyquil.api._errors import error_mapping, UnknownApiError, TooManyQubitsError
 from pyquil.device import Specs, ISA
 from pyquil.wavefunction import Wavefunction
+import logging
+
+_log = logging.getLogger(__name__)
 
 TYPE_EXPECTATION = "expectation"
 TYPE_MULTISHOT = "multishot"
@@ -92,7 +95,7 @@ def get_session():
     :rtype: Session
     """
     config = PyquilConfig()
-    session = requests.Session()
+    session = ForestSession(config)
     retry_adapter = HTTPAdapter(max_retries=Retry(total=3,
                                                   method_whitelist=['POST'],
                                                   status_forcelist=[502, 503, 504, 521, 523],
@@ -103,9 +106,7 @@ def get_session():
     session.mount("https://", retry_adapter)
 
     # We need this to get binary payload for the wavefunction call.
-    session.headers.update({"Accept": "application/octet-stream",
-                            "X-User-Id": config.user_id,
-                            "X-Api-Key": config.api_key})
+    session.headers.update({"Accept": "application/octet-stream"})
 
     session.headers.update({
         'Content-Type': 'application/json; charset=utf-8'
@@ -258,6 +259,73 @@ def qvm_run_payload(quil_program, classical_addresses, trials,
         payload['rng-seed'] = random_seed
 
     return payload
+
+
+class ForestSession(requests.Session):
+    """
+    ForestSession inherits from requests.Session. It is responsible for adding
+    authentication headers to Forest server requests. Upon receiving a 401 or 403
+    response, it will attempt to refresh the auth credential and update the
+    PyquilConfig, which in turn writes the refreshed auth credential to file.
+    """
+    def __init__(self, config: PyquilConfig, **kwargs):
+        super().__init__(**kwargs)
+        self.config = config
+        self.headers.update(config.qcs_auth_headers)
+
+    def _refresh_auth_token(self):
+        self.config.assert_valid_auth_credential()
+        if self.config.user_auth_token is not None:
+            return self._refresh_user_auth_token()
+        elif self.config.qmi_auth_token is not None:
+            return self._refresh_qmi_auth_token()
+        return False
+
+    def _refresh_user_auth_token(self):
+        url = '%s/auth/idp/oauth2/v1/token' % self.config.forest_url
+        headers = {
+            'Content-Type': 'application/x-www-form-urlencoded',
+            'Cache-Control': 'no-cache',
+            'Accept': 'application/json'}
+        data = {
+            'grant_type': 'refresh_token',
+            'scope': self.config.user_auth_token['scope'],
+            'refresh_token': self.config.user_auth_token['refresh_token']}
+        response = super().request('POST', url, data=data, headers=headers)
+        if response.status_code == 200:
+            self.config.update_user_auth_token(response.json())
+            self.headers.update(self.config.qcs_auth_headers)
+            return True
+
+        _log.warning(f'Failed to refresh your auth token at {self.config.user_auth_token_path}.')
+        return False
+
+    def _refresh_qmi_auth_token(self):
+        url = '%s/auth/qmi/refresh' % self.config.forest_url
+        headers = {
+            'Content-Type': 'application/json',
+            'Accept': 'application/json'}
+        data = self.config.qmi_auth_token
+        response = super().request('POST', url, json=data, headers=headers)
+        if response.status_code == 200:
+            self.config.update_qmi_auth_token(response.json())
+            self.headers.update(self.config.qcs_auth_headers)
+            return True
+
+        _log.warning(f'Failed to refresh your auth token at {self.config.qmi_auth_token_path}.')
+        return False
+
+    def request(self, *args, **kwargs):
+        """
+        request is a wrapper around requests.Session#request that checks for
+        401 and 403 response statuses and refreshes the auth credential
+        accordingly.
+        """
+        response = super().request(*args, **kwargs)
+        if response.status_code in {401, 403}:
+            if self._refresh_auth_token():
+                response = super().request(*args, **kwargs)
+        return response
 
 
 class ForestConnection:
