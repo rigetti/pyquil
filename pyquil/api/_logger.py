@@ -18,6 +18,8 @@ import logging
 import os
 import sys
 
+logging.basicConfig(format='%(levelname)s - %(message)s',)
+
 level = os.getenv('LOG_LEVEL', 'INFO').upper()
 
 logger = logging.getLogger(__name__)
