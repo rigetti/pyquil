@@ -946,7 +946,7 @@ def suzuki_trotter(trotter_order: int, trotter_steps: int) -> List[Tuple[float, 
     to the A operator, o=1 corresponds to the B operator, and w is the
     coefficient in the exponential. For example, a second order Suzuki-Trotter
     approximation to exp(A + B) results in the following
-    [(0.5/trotter_steps, 0), (1/trotteri_steps, 1),
+    [(0.5/trotter_steps, 0), (1/trotter_steps, 1),
     (0.5/trotter_steps, 0)] * trotter_steps.
 
     :param int trotter_order: order of Suzuki-Trotter approximation
