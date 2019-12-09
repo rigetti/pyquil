@@ -10,6 +10,10 @@ Changelog
 
 ### Bugfixes
 
+-   Don't attach pipes to stdout/stderr when starting quilc and qvm processes in
+    `local_forest_runtime`. This prevents the pipe buffers from getting full and
+    causing hung quilc/qvm for long running processes (@appleby, gh-1122).
+
 [v2.15](https://github.com/rigetti/pyquil/compare/v2.14.0...v2.15.0) (December 20, 2019)
 ----------------------------------------------------------------------------------------
 
