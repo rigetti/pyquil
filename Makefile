@@ -47,7 +47,7 @@ requirements: requirements.txt
 
 .PHONY: style
 style:
-	flake8 pyquil
+	flake8
 
 .PHONY: test
 test:
