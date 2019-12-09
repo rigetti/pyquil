@@ -20,9 +20,9 @@ test_config_paths = {
 
 def test_forest_session_request_authenticated_with_user_token():
     config = PyquilConfig(test_config_paths)
-    config.configparsers['QCS_CONFIG'].set('Rigetti Forest', 'qmi_auth_token_path', fixture_path('qmi_auth_token_invalid.json'))
-    config.configparsers['QCS_CONFIG'].set('Rigetti Forest', 'user_auth_token_path', fixture_path('user_auth_token_valid.json'))
-    config.configparsers['QCS_CONFIG'].set('Rigetti Forest', 'url', 'mock://forest')
+    config.config_parsers['QCS_CONFIG'].set('Rigetti Forest', 'qmi_auth_token_path', fixture_path('qmi_auth_token_invalid.json'))
+    config.config_parsers['QCS_CONFIG'].set('Rigetti Forest', 'user_auth_token_path', fixture_path('user_auth_token_valid.json'))
+    config.config_parsers['QCS_CONFIG'].set('Rigetti Forest', 'url', 'mock://forest')
     config._parse_auth_tokens()
 
     session = ForestSession(config)
@@ -43,13 +43,13 @@ def test_forest_session_request_authenticated_with_user_token():
 
 def test_forest_session_request_authenticated_with_qmi_auth():
     config = PyquilConfig(test_config_paths)
-    config.configparsers['QCS_CONFIG'].set(
+    config.config_parsers['QCS_CONFIG'].set(
         'Rigetti Forest', 'qmi_auth_token_path',
         fixture_path('qmi_auth_token_valid.json'))
-    config.configparsers['QCS_CONFIG'].set(
+    config.config_parsers['QCS_CONFIG'].set(
         'Rigetti Forest', 'user_auth_token_path',
         fixture_path('user_auth_token_invalid.json'))
-    config.configparsers['QCS_CONFIG'].set('Rigetti Forest', 'url', 'mock://forest')
+    config.config_parsers['QCS_CONFIG'].set('Rigetti Forest', 'url', 'mock://forest')
     config._parse_auth_tokens()
 
     session = ForestSession(config)
@@ -70,13 +70,13 @@ def test_forest_session_request_authenticated_with_qmi_auth():
 
 def test_forest_session_request_refresh_user_auth_token():
     config = PyquilConfig(test_config_paths)
-    config.configparsers['QCS_CONFIG'].set(
+    config.config_parsers['QCS_CONFIG'].set(
         'Rigetti Forest', 'qmi_auth_token_path',
         fixture_path('qmi_auth_token_invalid.json'))
-    config.configparsers['QCS_CONFIG'].set(
+    config.config_parsers['QCS_CONFIG'].set(
         'Rigetti Forest', 'user_auth_token_path',
         fixture_path('user_auth_token_valid.json'))
-    config.configparsers['QCS_CONFIG'].set('Rigetti Forest', 'url', 'mock://forest')
+    config.config_parsers['QCS_CONFIG'].set('Rigetti Forest', 'url', 'mock://forest')
     config._parse_auth_tokens()
 
     session = ForestSession(config)
@@ -101,8 +101,8 @@ def test_forest_session_request_refresh_user_auth_token():
     mock_adapter.register_uri('POST', refresh_url, status_code=200, json=new_user_auth_token, additional_matcher=refresh_matcher)
 
     # refresh will write the new auth tokens to file. Do not over-write text fixture data.
-    config.configparsers['QCS_CONFIG'].set('Rigetti Forest', 'qmi_auth_token_path', '/tmp/qmi_auth_token_invalid.json')
-    config.configparsers['QCS_CONFIG'].set('Rigetti Forest', 'user_auth_token_path', '/tmp/user_auth_token_valid.json')
+    config.config_parsers['QCS_CONFIG'].set('Rigetti Forest', 'qmi_auth_token_path', '/tmp/qmi_auth_token_invalid.json')
+    config.config_parsers['QCS_CONFIG'].set('Rigetti Forest', 'user_auth_token_path', '/tmp/user_auth_token_valid.json')
     devices = session.get(url).json()
     assert len(devices) == 1
     assert devices[0]['id'] == 0
@@ -110,13 +110,13 @@ def test_forest_session_request_refresh_user_auth_token():
 
 def test_forest_session_request_refresh_qmi_auth_token():
     config = PyquilConfig(test_config_paths)
-    config.configparsers['QCS_CONFIG'].set(
+    config.config_parsers['QCS_CONFIG'].set(
         'Rigetti Forest', 'qmi_auth_token_path',
         fixture_path('qmi_auth_token_valid.json'))
-    config.configparsers['QCS_CONFIG'].set(
+    config.config_parsers['QCS_CONFIG'].set(
         'Rigetti Forest', 'user_auth_token_path',
         fixture_path('user_auth_token_invalid.json'))
-    config.configparsers['QCS_CONFIG'].set('Rigetti Forest', 'url', 'mock://forest')
+    config.config_parsers['QCS_CONFIG'].set('Rigetti Forest', 'url', 'mock://forest')
     config._parse_auth_tokens()
 
     session = ForestSession(config)
@@ -141,8 +141,8 @@ def test_forest_session_request_refresh_qmi_auth_token():
     mock_adapter.register_uri('POST', refresh_url, status_code=200, json=new_user_auth_token, additional_matcher=refresh_matcher)
 
     # refresh will write the new auth tokens to file. Do not over-write text fixture data.
-    config.configparsers['QCS_CONFIG'].set('Rigetti Forest', 'qmi_auth_token_path', '/tmp/qmi_auth_token_invalid.json')
-    config.configparsers['QCS_CONFIG'].set('Rigetti Forest', 'user_auth_token_path', '/tmp/user_auth_token_valid.json')
+    config.config_parsers['QCS_CONFIG'].set('Rigetti Forest', 'qmi_auth_token_path', '/tmp/qmi_auth_token_invalid.json')
+    config.config_parsers['QCS_CONFIG'].set('Rigetti Forest', 'user_auth_token_path', '/tmp/user_auth_token_valid.json')
     devices = session.get(url).json()
     assert len(devices) == 1
     assert devices[0]['id'] == 0

@@ -14,26 +14,25 @@
 #    limitations under the License.
 ##############################################################################
 
+import json
 import re
+import time
 import warnings
 from json.decoder import JSONDecodeError
-from typing import Dict, Union, Sequence
+from typing import Dict, Optional, Union, Sequence
 
 import numpy as np
 import requests
 from requests.adapters import HTTPAdapter
 from urllib3 import Retry
 
-from pyquil import Program
+from pyquil import Program, __version__
 from pyquil.api._config import PyquilConfig
 from pyquil.api._error_reporting import _record_call
 from pyquil.api._errors import error_mapping, UnknownApiError, TooManyQubitsError
-from pyquil.api._logger import logger
+from pyquil.api._logger import logger, UserMessageError
 from pyquil.device import Specs, ISA
 from pyquil.wavefunction import Wavefunction
-import logging
-
-_log = logging.getLogger(__name__)
 
 TYPE_EXPECTATION = "expectation"
 TYPE_MULTISHOT = "multishot"
@@ -90,15 +89,14 @@ def parse_error(res):
     return error_cls(status)
 
 
-def get_session():
+def get_session(*args, **kwargs):
     """
     Create a requests session to access the REST API
 
     :return: requests session
     :rtype: Session
     """
-    config = PyquilConfig()
-    session = ForestSession(config)
+    session = ForestSession(*args, **kwargs)
     retry_adapter = HTTPAdapter(max_retries=Retry(total=3,
                                                   method_whitelist=['POST'],
                                                   status_forcelist=[502, 503, 504, 521, 523],
@@ -270,11 +268,112 @@ class ForestSession(requests.Session):
     authentication headers to Forest server requests. Upon receiving a 401 or 403
     response, it will attempt to refresh the auth credential and update the
     PyquilConfig, which in turn writes the refreshed auth credential to file.
+
+    Encapsulates the operations required for authorization & encryption
+      with the QPU.
+
+    Two operations are involved in authorization:
+      * Requesting & storing a user authentication token, used to authenticate calls
+        to Forest, Dispatch, and other Rigetti services
+      * Requesting a Curve ZeroMQ keypair for connection to the QPU. The response to
+        this request also comes with service endpoints: compiler server and QPU
+
+    The authentication tokens are of the standard JWT format and are issued by Forest Server.
+      The refresh token is only used to renew the access token, which is used for all transactions
+      and is valid for a short period of time.
+
+    In wrapping the PyQuilConfig object, it provides that object with a callback to
+      retrieve a valid engagement when needed, because the engagement is maintained here
+      but is used by the config to provide service endpoints.
     """
-    def __init__(self, config: PyquilConfig, **kwargs):
+    def __init__(self, config: Optional[PyquilConfig] = None, lattice_name: Optional[str] = None, **kwargs):
         super().__init__(**kwargs)
-        self.config = config
-        self.headers.update(config.qcs_auth_headers)
+        if config is not None:
+            self.config = config
+        else:
+            self.config = PyquilConfig()
+        self.config.get_engagement = self.engagement
+        self._engagement = None
+        self.headers.update(self.config.qcs_auth_headers)
+        self.headers['User-Agent'] = f"PyQuil/{__version__}"
+        self.lattice_name = lattice_name
+
+    def engage(self) -> None:
+        """
+        The heart of the QPU authorization process, `engage` makes a request to
+          the dispatch server for the information needed to communicate with the QPU.
+
+        This is a standard GraphQL request, authenticated using the access token
+          retrieved from Forest Server.
+
+        The response includes the endpoints to the QPU and QPU Compiler Server,
+          along with the set of keys necessary to connect to the QPU and the time at
+          which that key set expires.
+        """
+        query = '''
+          mutation Engage($name: String!) {
+            engage(input: { lattice: { name: $name }}) {
+              success
+              message
+              engagement {
+                type
+                qpu {
+                    endpoint
+                    credentials {
+                        clientPublic
+                        clientSecret
+                        serverPublic
+                    }
+                }
+                compiler {
+                    endpoint
+                }
+                expiresAt
+              }
+            }
+          }
+        '''
+        if not self.lattice_name:
+            logger.warning(f"ForestSession requires lattice_name in order to engage")
+            return
+        logger.info(f"Requesting engagement from {self.config.dispatch_url}")
+        variables = dict(name=self.lattice_name)
+        query_response = self.request_graphql(self.config.dispatch_url, query=query, variables=variables)
+        logger.debug(f"Received response to engagement request: {query_response}")
+
+        if query_response.get('errors'):
+            error_messages = map(lambda error: error['message'], query_response.get('errors', []))
+            raise UserMessageError(
+                f"Failed to engage: {','.join(error_messages)}"
+            )
+
+        if query_response is not None:
+            engagement_response = query_response.get('data',{}).get('engage', None)
+            if engagement_response and engagement_response.get('success') is True:
+                logger.info(f"Engagement successful")
+                engagement_data = engagement_response.get('engagement', {})
+                engagement = Engagement(
+                    client_secret_key=engagement_data.get('qpu', {}).get('credentials', {}).get('clientSecret', '').encode('utf-8'),
+                    client_public_key=engagement_data.get('qpu', {}).get('credentials', {}).get('clientPublic', '').encode('utf-8'),
+                    server_public_key=engagement_data.get('qpu', {}).get('credentials', {}).get('serverPublic', '').encode('utf-8'),
+                    expires_at=engagement_data.get('expiresAt', {}),
+                    qpu_endpoint=engagement_data.get('qpu', {}).get('endpoint'),
+                    qpu_compiler_endpoint=engagement_data.get('compiler', {}).get('endpoint'))
+            else:
+                raise UserMessageError(
+                    f"Unable to engage {self.lattice_name}: {engagement_response.get('message', 'No message')}"
+                )
+
+        self._engagement = engagement
+
+    def engagement(self):
+        """
+        Returns memoized engagement information, if still valid - or requests a new engagement,
+          and stores and returns that.
+        """
+        if not (self._engagement and self._engagement.is_valid()):
+            self.engage()
+        return self._engagement
 
     def _refresh_auth_token(self):
         self.config.assert_valid_auth_credential()
@@ -300,7 +399,7 @@ class ForestSession(requests.Session):
             self.headers.update(self.config.qcs_auth_headers)
             return True
 
-        _log.warning(f'Failed to refresh your auth token at {self.config.user_auth_token_path}.')
+        logger.warning(f'Failed to refresh your user auth token at {self.config.user_auth_token_path}. Server response: {response.text}')
         return False
 
     def _refresh_qmi_auth_token(self):
@@ -315,7 +414,7 @@ class ForestSession(requests.Session):
             self.headers.update(self.config.qcs_auth_headers)
             return True
 
-        _log.warning(f'Failed to refresh your auth token at {self.config.qmi_auth_token_path}.')
+        logger.warning(f'Failed to refresh your QMI auth token at {self.config.qmi_auth_token_path}. Server response: {response.text}')
         return False
 
     def request(self, *args, **kwargs):
@@ -329,6 +428,35 @@ class ForestSession(requests.Session):
             if self._refresh_auth_token():
                 response = super().request(*args, **kwargs)
         return response
+
+    def _request_graphql(self, url: str, query: dict, variables: dict) -> dict:
+        """
+        Makes a single graphql request using the session credentials, throwing an error
+           if the response is not valid JSON
+
+        Returns the JSON parsed from the response
+        """
+        response = super().post(url, json=dict(query=query, variables=variables))
+        try:
+            result = response.json()
+            logger.debug(f"Received response from {url}: {result}")
+            return result
+        except JSONDecodeError as e:
+            logger.exception(f"Unable to parse json response from endpoint {url}:", response.text)
+            raise e
+
+    def request_graphql(self, *args, **kwargs) -> dict:
+        """
+        Makes a GraphQL request using session credentials, refreshing them once if the server
+           identifies them as expired
+        """
+        result = self._request_graphql(*args, **kwargs)
+        errors = result.get('errors', [])
+        token_is_expired = any(error.get('extensions', {}).get('code') == 'AUTH_TOKEN_EXPIRED' for error in errors)
+        if token_is_expired:
+            if self._refresh_auth_token():
+                result = self._request_graphql(*args, **kwargs)
+        return result
 
 
 class ForestConnection:
@@ -431,3 +559,45 @@ class ForestConnection:
         except ValueError:
             raise TypeError(f'Malformed version string returned by the QVM: {response.text}')
         return qvm_version
+
+
+class Engagement:
+    """
+    An Engagement stores all the information retrieved via an engagement request sent to
+      the dispatch server.
+    """
+    def __init__(self, client_public_key: bytes, client_secret_key: bytes,
+                 server_public_key: bytes, expires_at, qpu_endpoint,
+                 qpu_compiler_endpoint):
+        self.client_public_key = client_public_key
+        self.client_secret_key = client_secret_key
+        self.server_public_key = server_public_key
+        self.expires_at = float(expires_at) if expires_at else None
+        self.qpu_endpoint = qpu_endpoint
+        self.qpu_compiler_endpoint = qpu_compiler_endpoint
+        logger.debug(f"New engagement created: {self}")
+
+    def is_valid(self) -> bool:
+        """
+        Return true if an engagement is valid for use, false if it is missing required
+          fields
+
+        An 'invalid' engagement is one which will not grant access to the QPU.
+        """
+        return all([
+            self.client_public_key is not None,
+            self.client_secret_key is not None,
+            self.server_public_key is not None,
+            (self.expires_at is None
+             or self.expires_at > time.time()), self.qpu_endpoint is not None
+        ])
+
+    def __str__(self):
+        return (f"""
+            Client public key: {self.client_public_key}
+            Client secret key: {self.client_secret_key}
+            Server public key: {self.server_public_key}
+            Expiration time: {self.expires_at}
+            QPU Endpoint: {self.qpu_endpoint}
+            QPU Compiler Endpoint: {self.qpu_compiler_endpoint}
+            """)

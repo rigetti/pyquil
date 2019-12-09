@@ -79,10 +79,10 @@ def list_lattices(device_name: str = None, num_qubits: int = None,
           accessible soon, but in the meanwhile, you'll have to use default QVM configurations and
           to use `list_quantum_computers` with `qpus = False`.
 
-        * You do have user authentication credentials, but it is invalid. You can visit
+        * You do have user authentication credentials, but they are invalid. You can visit
           https://qcs.rigetti.com/auth/token and save to ~/.qcs/user_auth_token to update your
           authentication credentials. Alternatively, you may provide the path to your credentials in
-          your config file or  with the USER_AUTH_TOKEN_PATH environment variable.
+          your config file or with the USER_AUTH_TOKEN_PATH environment variable.
 
           [Rigetti Forest]
           user_auth_token_path = ~/.qcs/my_auth_credentials

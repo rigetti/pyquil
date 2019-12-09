@@ -24,7 +24,6 @@ from rpcq.messages import QPURequest, ParameterAref
 
 from pyquil import Program
 from pyquil.parser import parse
-from pyquil.api._auth import AuthClient
 from pyquil.api._config import PyquilConfig
 from pyquil.api._logger import logger, UserMessageError
 from pyquil.api._qam import QAM
@@ -80,7 +79,9 @@ class QPU(QAM):
         """
         A connection to the QPU.
 
-        :param endpoint: Address to connect to the QPU server.
+        :param endpoint: Address to connect to the QPU server. If not provided, the 
+            endpoint provided by engagement with dispatch is used. One or both must be
+            available and valid.
         :param user: A string identifying who's running jobs.
         :param priority: The priority with which to insert jobs into the QPU queue. Lower
                          integers correspond to higher priority.
@@ -114,7 +115,7 @@ class QPU(QAM):
                 support at support@rigetti.com.""")
 
         logger.debug(f"QPU Client connecting to {endpoint}")
-        
+
         return Client(endpoint, auth_config=self.client_auth_config)
 
     @property

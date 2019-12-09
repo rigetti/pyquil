@@ -2,6 +2,7 @@ import pytest
 import os
 import requests_mock
 from pyquil.api._config import PyquilConfig
+from pyquil.api._logger import UserMessageError
 
 
 def fixture_path(path: str) -> str:
@@ -40,22 +41,22 @@ def test_config_qcs_auth_headers_valid_qmi_token():
 
 def test_config_assert_valid_auth_credential():
     config = PyquilConfig(test_config_paths)
-    config.configparsers['QCS_CONFIG'].set(
+    config.config_parsers['QCS_CONFIG'].set(
         'Rigetti Forest', 'qmi_auth_token_path',
         fixture_path('qmi_auth_token_invalid.json'))
-    config.configparsers['QCS_CONFIG'].set(
+    config.config_parsers['QCS_CONFIG'].set(
         'Rigetti Forest', 'user_auth_token_path',
         fixture_path('user_auth_token_invalid.json'))
     config._parse_auth_tokens()
     assert config.user_auth_token is None
     assert config.qmi_auth_token is None
-    with pytest.raises(ValueError) as excinfo:
+    with pytest.raises(UserMessageError) as excinfo:
         config.assert_valid_auth_credential()
 
-    config.configparsers['QCS_CONFIG'].set(
+    config.config_parsers['QCS_CONFIG'].set(
         'Rigetti Forest', 'qmi_auth_token_path',
         fixture_path('qmi_auth_token_valid.json'))
-    config.configparsers['QCS_CONFIG'].set(
+    config.config_parsers['QCS_CONFIG'].set(
         'Rigetti Forest', 'user_auth_token_path',
         fixture_path('user_auth_token_valid.json'))
     config._parse_auth_tokens()

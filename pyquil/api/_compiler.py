@@ -29,6 +29,7 @@ from pyquil import __version__
 from pyquil.api._config import PyquilConfig
 from pyquil.api._qac import AbstractCompiler
 from pyquil.api._error_reporting import _record_call
+from pyquil.api._logger import UserMessageError
 from pyquil.device import AbstractDevice
 from pyquil.parser import parse_program
 from pyquil.quil import Program, Measurement, Declare
@@ -208,11 +209,6 @@ class QPUCompiler(AbstractCompiler):
             _qpu_compiler_endpoint = next((url for url in [self.qpu_compiler_endpoint, self.config.qpu_compiler_url] if url is not None), None)
             if _qpu_compiler_endpoint is not None:
                 self._qpu_compiler_client = Client(_qpu_compiler_endpoint, timeout=self.timeout)
-            else:
-                self._qpu_compiler_client = None
-                warnings.warn("It looks like you are trying to compile without a "
-                                "qpu_compiler_address. If you didn't do this manually, this "
-                                "could mean you're not currently engaged to the QPU.")
         return self._qpu_compiler_client
 
     def connect(self):
@@ -225,13 +221,13 @@ class QPUCompiler(AbstractCompiler):
             quilc_version_dict = self.quilc_client.call('get_version_info', rpc_timeout=1)
             check_quilc_version(quilc_version_dict)
         except TimeoutError:
-            raise QuilcNotRunning(f'No quilc server running at {self.quilc_client.endpoint}')
+            raise QuilcNotRunning(f'No quilc server reachable at {self.quilc_client.endpoint}')
 
     def _connect_qpu_compiler(self):
         try:
             self.qpu_compiler_client.call('get_version_info', rpc_timeout=1)
         except TimeoutError:
-            raise QPUCompilerNotRunning('No QPU compiler server running at '
+            raise QPUCompilerNotRunning('No QPU compiler server reachable at '
                                         f'{self.qpu_compiler_client.endpoint}')
 
     def get_version_info(self) -> dict:
@@ -255,9 +251,9 @@ class QPUCompiler(AbstractCompiler):
     @_record_call
     def native_quil_to_executable(self, nq_program: Program) -> Optional[BinaryExecutableResponse]:
         if not self.qpu_compiler_client:
-            raise ValueError("It looks like you're trying to compile to an executable, but "
-                             "do not have access to the QPU compiler endpoint. Make sure you "
-                             "are engaged to the QPU before trying to do this.")
+            raise UserMessageError("It looks like you're trying to compile to an executable, but "
+                                   "do not have access to the QPU compiler endpoint. Make sure you "
+                                   "are engaged to the QPU before trying to do this.")
 
         self._connect_qpu_compiler()
 
@@ -287,11 +283,10 @@ class QPUCompiler(AbstractCompiler):
         """
         Reset the state of the QPUCompiler Client connections.
         """
-        config = PyquilConfig()
 
         timeout = self.quilc_client.timeout
         self.quilc_client.close()
-        self.quilc_client = Client(config.quilc_url, timeout=timeout)
+        self.quilc_client = Client(self.config.quilc_url, timeout=timeout)
         self._qpu_compiler_client = None
 
 

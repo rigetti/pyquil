@@ -27,6 +27,7 @@ import networkx as nx
 import numpy as np
 from rpcq.messages import BinaryExecutableResponse, PyQuilExecutableResponse
 
+from pyquil.api._base_connection import get_session
 from pyquil.api._compiler import QPUCompiler, QVMCompiler
 from pyquil.api._config import PyquilConfig
 from pyquil.api._devices import get_lattice, list_lattices
@@ -829,7 +830,7 @@ def get_qc(name: str,
     else:
         # 4.2 A real device
         pyquil_config = PyquilConfig()
-        pyquil_config.set_lattice(name=prefix)
+        session = get_session(config=pyquil_config, lattice_name=prefix)
         if noisy is not None and noisy:
             warnings.warn(
                 "You have specified `noisy=True`, but you're getting a QPU. This flag "
@@ -838,13 +839,13 @@ def get_qc(name: str,
             name=name,
             qam=QPU(endpoint=pyquil_config.qpu_url,
                     user=pyquil_config.user_id,
-                    config=pyquil_config),
+                    config=session.config),
             device=device,
             compiler=QPUCompiler(
                 quilc_endpoint=pyquil_config.quilc_url,
                 qpu_compiler_endpoint=pyquil_config.qpu_compiler_url,
                 device=device,
-                config=pyquil_config,
+                config=session.config,
                 name=prefix))
 
 
