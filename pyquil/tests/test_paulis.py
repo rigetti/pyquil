@@ -22,8 +22,6 @@ from itertools import product
 from operator import mul
 
 import numpy as np
-import scipy
-import scipy.linalg
 import pytest
 
 from pyquil.gates import RX, RZ, CNOT, H, X, PHASE
@@ -443,6 +441,11 @@ def test_trotterize():
 
 
 def test_trotterize_order():
+    def expmi(hermitian_matrix):
+        """Compute the matrix exponential of -1j * hermitian_matrix."""
+        L, Q = np.linalg.eigh(hermitian_matrix)
+        return Q @ np.diag(np.exp(-1j * L)) @ Q.conj().T
+
     def error(order, time_step_length):
         a_pauli = time_step_length * sZ(0) * sY(1) * sX(2)
         a_program = a_pauli.program
@@ -456,7 +459,7 @@ def test_trotterize_order():
         a = program_unitary(a_program, num_qubits)
         b = program_unitary(b_program, num_qubits)
         a_plus_b = a + b
-        exp_a_plus_b = scipy.linalg.expm(-1j * time_step_length * a_plus_b)
+        exp_a_plus_b = expmi(time_step_length * a_plus_b)
 
         trotter_program = trotterize(a_pauli, b_pauli, trotter_order=order)
         trotter = program_unitary(trotter_program, num_qubits)
@@ -467,7 +470,7 @@ def test_trotterize_order():
     for order in [1, 2, 3, 4]:
         ys = [error(order, float(x)) for x in xs]
         p = np.polyfit(np.log10(xs), np.log10(ys), 1)
-        assert p[0] >= order     # Ensure the slope matches the order.
+        assert p[0] >= order, f'Bound not satisfied with order={order}: the slope is {p[0]}'
 
 
 def test_is_zero():
