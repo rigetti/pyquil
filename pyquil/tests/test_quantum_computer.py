@@ -1,12 +1,13 @@
 import itertools
 import random
+import socket
 
 import networkx as nx
 import numpy as np
 import pytest
 
 from pyquil import Program, get_qc, list_quantum_computers
-from pyquil.api import QVM, QuantumComputer, local_forest_runtime
+from pyquil.api import ForestConnection, QVM, QuantumComputer, local_forest_runtime
 from pyquil.tests.utils import DummyCompiler
 from pyquil.api._quantum_computer import (_symmetrization, _flip_array_to_prog,
                                           _construct_orthogonal_array,
@@ -610,3 +611,41 @@ def test_orthogonal_array():
             oa = _construct_orthogonal_array(num_q, strength=strength)
             for _ in range(10):
                 check_random_columns(oa, strength)
+
+
+# The timeout is required here because the bug we are regression testing results in a hung process
+# when the buffers for stdout/stderr that quilc and qvm were previously logging to fill up. Without
+# the timeout, a failing test might hang indefinitely.
+@pytest.mark.timeout(5)
+def test_local_forest_runtime_multiple_requests():
+    # https://github.com/rigetti/pyquil/issues/1110
+
+    # Grab a pair of unused local ports to run quilc and qvm on. We want unused ports to ensure that
+    # local_forest_runtime actually starts new quilc and qvm processes, rather than just falling
+    # back to any pre-existing processes listening on the standard ports. There is a race here since
+    # something else might come along and grab the ports after we close the sockets but before we
+    # start up the local_forest_runtime, but it feels like an unlikely enough edge case that it's
+    # not worth worrying about or jumping through SO_REUSEPORT hoops.
+    qvm_port = quilc_port = None
+    with socket.socket(socket.AF_INET, socket.SOCK_STREAM) as s1:
+        s1.bind(('127.0.0.1', 0))
+        qvm_port = s1.getsockname()[1]
+
+    with socket.socket(socket.AF_INET, socket.SOCK_STREAM) as s2:
+        s2.bind(('127.0.0.1', 0))
+        quilc_port = s2.getsockname()[1]
+
+    with local_forest_runtime(qvm_port=qvm_port, quilc_port=quilc_port):
+        fc = ForestConnection(sync_endpoint=f"http://127.0.0.1:{qvm_port}",
+                              compiler_endpoint=f"tcp://127.0.0.1:{quilc_port}")
+        device = NxDevice(nx.complete_graph(1))
+        qc_forest = QuantumComputer(
+            name='testy!',
+            qam=QVM(connection=fc),
+            device=device,
+            compiler=DummyCompiler()
+        )
+        p = Program(I(0), MEASURE(0, "ro"))
+        p.declare("ro")
+        for i in range(150):
+            assert np.array_equal(qc_forest.run(p), [[0]])
