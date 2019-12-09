@@ -9,6 +9,7 @@ from pyquil import Program, get_qc
 from pyquil.api import QuantumComputer, QPU, QPUCompiler
 from pyquil.api._compiler import _collect_classical_memory_write_locations
 from pyquil.api._config import PyquilConfig
+from pyquil.api._logger import UserMessageError
 from pyquil.api._qpu import _extract_bitstrings
 from pyquil.device import NxDevice
 from pyquil.gates import I, X
@@ -248,5 +249,5 @@ def test_run_expects_executable(qvm, qpu_compiler):
 
 
 def test_qpu_not_engaged_error():
-    with pytest.raises(RuntimeError):
+    with pytest.raises(UserMessageError):
         qpu = QPU().build_client()
