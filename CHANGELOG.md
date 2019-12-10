@@ -6,6 +6,17 @@ Changelog
 
 ### Announcements
 
+-   PyQuil now supports encryption for communication with the QPU. It does so
+    by requesting an `Engagement` from Forest Dispatch, which includes the keys
+    necessary for encryption along with the endpoints to use. This also means that
+    engagement is possible from the first second of a reservation, without waiting
+    for a configuration file to be written with service endpoints. (@kalzoo)
+-   The log level can now be controlled with the `LOG_LEVEL` environment variable.
+    Set to `LOG_LEVEL=DEBUG` to help diagnose problems.
+-   Certain errors will no longer print their entire stack trace outside of `DEBUG`
+    mode, for a cleaner console and better user experience. This is only true for 
+    errors where the cause is well known.
+
 ### Improvements and Changes
 
 -   LaTeX circuit output now ignores `RESET` instructions by default, rendering
@@ -17,6 +28,9 @@ Changelog
 -   Update authentication mechanism to Forest server. Preferentially use
     credentials found at `~/.qcs/user_auth_credentials` and fallback to
     `~/.qcs/qmi_auth_credentials`. (@erichulburd, gh-1117)
+-   `QPU` and `QPUCompiler` objects now take an optional `PyquilConfig` object as 
+    the `config` parameter, which can offer custom behavior regarding endpoints
+    and engagements. Both are backward-compatible. (@kalzoo)
 
 ### Bugfixes
 
