@@ -4,7 +4,43 @@ import requests_mock
 from configparser import ConfigParser
 from pyquil.api._base_connection import ForestSession
 from pyquil.api._config import PyquilConfig
+from pyquil.api._logger import UserMessageError
 import urllib.parse
+
+
+@pytest.fixture
+def successful_engagement_response():
+    return {
+        'engage': {
+            'success': True,
+            'message': "Good job, you engaged all by yourself",
+            'engagement': {
+                'type': 'RESERVATION',
+                'qpu': {
+                    'endpoint': 'tcp://fake.url:12345',
+                    'credentials': {
+                        'clientPublic': 'abc123',
+                        'clientSecret': 'abc123',
+                        'serverPublic': 'abc123'
+                    }
+                },
+                'compiler': {
+                    'endpoint': 'tcp://fake.url:12346'
+                },
+                'expiresAt': '9999999999.0'
+            }
+        }
+    }
+
+@pytest.fixture
+def failed_engagement_response():
+    return {
+        'engage': {
+            'success': False,
+            'message': "That did not work",
+            'engagement': None
+        }
+    }
 
 
 def fixture_path(path: str) -> str:
@@ -146,3 +182,88 @@ def test_forest_session_request_refresh_qmi_auth_token():
     devices = session.get(url).json()
     assert len(devices) == 1
     assert devices[0]['id'] == 0
+
+
+def test_forest_session_request_engagement(successful_engagement_response):
+    """
+    The QPU Endpoint address provided by engagement should be available to the 
+      PyQuilConfig object.
+    """
+    config = PyquilConfig(test_config_paths)
+    config.config_parsers['FOREST_CONFIG'].remove_section('Rigetti Forest')
+    config.config_parsers['QCS_CONFIG'].set(
+        'Rigetti Forest', 'user_auth_token_path',
+        fixture_path('user_auth_token_invalid.json'))
+    config.config_parsers['QCS_CONFIG'].set('Rigetti Forest', 'url', 'mock://forest')
+    config.config_parsers['QCS_CONFIG'].set('Rigetti Forest', 'dispatch_url', 'mock://dispatch')
+    config._parse_auth_tokens()
+
+    session = ForestSession(config, 'fake-lattice')
+    mock_adapter = requests_mock.Adapter()
+    session.mount('mock', mock_adapter)
+
+    url = config.dispatch_url
+    response_list = [
+        # access token from ./data/user_auth_token_valid.json.
+        {'status_code': 200, 'json': {'data': successful_engagement_response }},
+    ]
+    mock_adapter.register_uri('POST', url, response_list=response_list)
+
+    assert config.qpu_url == successful_engagement_response['engage']['engagement']['qpu']['endpoint']
+    assert config.qpu_compiler_url == successful_engagement_response['engage']['engagement']['compiler']['endpoint']
+
+
+def test_forest_session_engagement_not_requested_if_config_present(successful_engagement_response):
+    """
+    Engagement is the source-of-last-resort for configuration data. If all endpoints are
+      provided elsewhere, then engagement should never be requested.
+    """
+    config = PyquilConfig(test_config_paths)
+    config.config_parsers['QCS_CONFIG'].set(
+        'Rigetti Forest', 'user_auth_token_path',
+        fixture_path('user_auth_token_invalid.json'))
+    config.config_parsers['QCS_CONFIG'].set('Rigetti Forest', 'url', 'mock://forest')
+    config.config_parsers['QCS_CONFIG'].set('Rigetti Forest', 'dispatch_url', 'mock://dispatch')
+    config._parse_auth_tokens()
+
+    session = ForestSession(config, 'fake-lattice')
+    mock_adapter = requests_mock.Adapter()
+    session.mount('mock', mock_adapter)
+
+    url = config.dispatch_url
+    response_list = [
+        # access token from ./data/user_auth_token_valid.json.
+        {'status_code': 200, 'json': {'data': successful_engagement_response }},
+    ]
+    mock_adapter.register_uri('POST', url, response_list=response_list)
+
+    assert len(mock_adapter.request_history) == 0
+    assert config.qpu_url == config.config_parsers['FOREST_CONFIG'].get('Rigetti Forest', 'qpu_endpoint_address')
+
+
+def test_forest_session_request_engagement_failure(failed_engagement_response):
+    """
+    If engagement fails, no QPU URL is available to the client.
+    """
+    config = PyquilConfig(test_config_paths)
+    config.config_parsers['FOREST_CONFIG'].remove_section('Rigetti Forest')
+    config.config_parsers['QCS_CONFIG'].set(
+        'Rigetti Forest', 'user_auth_token_path',
+        fixture_path('user_auth_token_invalid.json'))
+    config.config_parsers['QCS_CONFIG'].set('Rigetti Forest', 'url', 'mock://forest')
+    config.config_parsers['QCS_CONFIG'].set('Rigetti Forest', 'dispatch_url', 'mock://dispatch')
+    config._parse_auth_tokens()
+
+    session = ForestSession(config, 'fake-lattice')
+    mock_adapter = requests_mock.Adapter()
+    session.mount('mock', mock_adapter)
+
+    url = config.dispatch_url
+    response_list = [
+        # access token from ./data/user_auth_token_valid.json.
+        {'status_code': 200, 'json': {'data': failed_engagement_response }},
+    ]
+    mock_adapter.register_uri('POST', url, response_list=response_list)
+
+    with pytest.raises(UserMessageError):
+        assert config.qpu_url is None
