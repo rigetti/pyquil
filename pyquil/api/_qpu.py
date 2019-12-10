@@ -79,7 +79,7 @@ class QPU(QAM):
         """
         A connection to the QPU.
 
-        :param endpoint: Address to connect to the QPU server. If not provided, the 
+        :param endpoint: Address to connect to the QPU server. If not provided, the
             endpoint provided by engagement with dispatch is used. One or both must be
             available and valid.
         :param user: A string identifying who's running jobs.

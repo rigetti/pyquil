@@ -348,7 +348,7 @@ class ForestSession(requests.Session):
             )
 
         if query_response is not None:
-            engagement_response = query_response.get('data',{}).get('engage', None)
+            engagement_response = query_response.get('data', {}).get('engage', None)
             if engagement_response and engagement_response.get('success') is True:
                 logger.info(f"Engagement successful")
                 engagement_data = engagement_response.get('engagement', {})

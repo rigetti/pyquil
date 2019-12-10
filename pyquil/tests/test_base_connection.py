@@ -32,6 +32,7 @@ def successful_engagement_response():
         }
     }
 
+
 @pytest.fixture
 def failed_engagement_response():
     return {
@@ -186,7 +187,7 @@ def test_forest_session_request_refresh_qmi_auth_token():
 
 def test_forest_session_request_engagement(successful_engagement_response):
     """
-    The QPU Endpoint address provided by engagement should be available to the 
+    The QPU Endpoint address provided by engagement should be available to the
       PyQuilConfig object.
     """
     config = PyquilConfig(test_config_paths)
@@ -205,7 +206,7 @@ def test_forest_session_request_engagement(successful_engagement_response):
     url = config.dispatch_url
     response_list = [
         # access token from ./data/user_auth_token_valid.json.
-        {'status_code': 200, 'json': {'data': successful_engagement_response }},
+        {'status_code': 200, 'json': {'data': successful_engagement_response}},
     ]
     mock_adapter.register_uri('POST', url, response_list=response_list)
 
@@ -233,7 +234,7 @@ def test_forest_session_engagement_not_requested_if_config_present(successful_en
     url = config.dispatch_url
     response_list = [
         # access token from ./data/user_auth_token_valid.json.
-        {'status_code': 200, 'json': {'data': successful_engagement_response }},
+        {'status_code': 200, 'json': {'data': successful_engagement_response}},
     ]
     mock_adapter.register_uri('POST', url, response_list=response_list)
 
@@ -261,7 +262,7 @@ def test_forest_session_request_engagement_failure(failed_engagement_response):
     url = config.dispatch_url
     response_list = [
         # access token from ./data/user_auth_token_valid.json.
-        {'status_code': 200, 'json': {'data': failed_engagement_response }},
+        {'status_code': 200, 'json': {'data': failed_engagement_response}},
     ]
     mock_adapter.register_uri('POST', url, response_list=response_list)
 
