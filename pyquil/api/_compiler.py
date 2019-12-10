@@ -157,10 +157,10 @@ class QPUCompiler(AbstractCompiler):
     @_record_call
     def __init__(self,
                  quilc_endpoint: str,
+                 device: AbstractDevice,
                  qpu_compiler_endpoint: Optional[str] = None,
-                 device: AbstractDevice = None,
                  timeout: int = 10,
-                 config: PyquilConfig = None,
+                 config: Optional[PyquilConfig] = None,
                  name: Optional[str] = None) -> None:
         """
         Client to communicate with the Compiler Server.
@@ -206,7 +206,7 @@ class QPUCompiler(AbstractCompiler):
     @property
     def qpu_compiler_client(self):
         if not self._qpu_compiler_client:
-            _qpu_compiler_endpoint = next((url for url in [self.qpu_compiler_endpoint, self.config.qpu_compiler_url] if url is not None), None)
+            _qpu_compiler_endpoint = self.qpu_compiler_endpoint or self.config.qpu_compiler_url
             if _qpu_compiler_endpoint is not None:
                 self._qpu_compiler_client = Client(_qpu_compiler_endpoint, timeout=self.timeout)
         return self._qpu_compiler_client
@@ -281,7 +281,7 @@ class QPUCompiler(AbstractCompiler):
     @_record_call
     def reset(self):
         """
-        Reset the state of the QPUCompiler Client connections.
+        Reset the state of the QPUCompiler Client connections
         """
 
         timeout = self.quilc_client.timeout
@@ -347,6 +347,8 @@ class QVMCompiler(AbstractCompiler):
     @_record_call
     def reset(self):
         """
-        Reset the state of the QPUCompiler Client connections.
+        Reset the state of the QVMCompiler quilc connection
         """
-        self._qpu_compiler_client = None
+        timeout = self.client.timeout
+        self.client.close()
+        self.client = Client(self.endpoint, timeout=timeout)

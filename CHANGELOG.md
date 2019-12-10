@@ -10,12 +10,12 @@ Changelog
     by requesting an `Engagement` from Forest Dispatch, which includes the keys
     necessary for encryption along with the endpoints to use. This also means that
     engagement is possible from the first second of a reservation, without waiting
-    for a configuration file to be written with service endpoints. (@kalzoo)
+    for a configuration file to be written with service endpoints. (@kalzoo, gh-1123)
 -   The log level can now be controlled with the `LOG_LEVEL` environment variable.
-    Set to `LOG_LEVEL=DEBUG` to help diagnose problems.
+    Set to `LOG_LEVEL=DEBUG` to help diagnose problems. (@kalzoo, gh-1123)
 -   Certain errors will no longer print their entire stack trace outside of `DEBUG`
     mode, for a cleaner console and better user experience. This is only true for 
-    errors where the cause is well known.
+    errors where the cause is well known. (@kalzoo, gh-1123)
 
 ### Improvements and Changes
 
@@ -30,7 +30,7 @@ Changelog
     `~/.qcs/qmi_auth_credentials`. (@erichulburd, gh-1117)
 -   `QPU` and `QPUCompiler` objects now take an optional `PyquilConfig` object as 
     the `config` parameter, which can offer custom behavior regarding endpoints
-    and engagements. Both are backward-compatible. (@kalzoo)
+    and engagements. Both are backward-compatible. (@kalzoo, gh-1123)
 
 ### Bugfixes
 

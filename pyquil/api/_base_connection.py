@@ -40,22 +40,22 @@ TYPE_MULTISHOT_MEASURE = "multishot-measure"
 TYPE_WAVEFUNCTION = "wavefunction"
 
 
-def get_json(session, url, params: dict = None):
+def get_json(session, url, params: dict = None) -> dict:
     """
     Get JSON from a Forest endpoint.
     """
-    logger.debug(f"Sending request to {url}: {params}")
+    logger.debug(f"Sending GET request to {url}. Params: {params}")
     res = session.get(url, params=params)
     if res.status_code >= 400:
         raise parse_error(res)
     return res.json()
 
 
-def post_json(session, url, json):
+def post_json(session, url, json) -> requests.models.Response:
     """
     Post JSON to the Forest endpoint.
     """
-    logger.debug(f"Sending request to {url}: {json}")
+    logger.debug(f"Sending POST request to {url}. Body: {json}")
     res = session.post(url, json=json)
     if res.status_code >= 400:
         raise parse_error(res)
@@ -334,12 +334,10 @@ class ForestSession(requests.Session):
           }
         '''
         if not self.lattice_name:
-            logger.warning(f"ForestSession requires lattice_name in order to engage")
-            return
+            raise ValueError("ForestSession requires lattice_name in order to engage")
         logger.info(f"Requesting engagement from {self.config.dispatch_url}")
         variables = dict(name=self.lattice_name)
         query_response = self.request_graphql(self.config.dispatch_url, query=query, variables=variables)
-        logger.debug(f"Received response to engagement request: {query_response}")
 
         if query_response.get('errors'):
             error_messages = map(lambda error: error['message'], query_response.get('errors', []))
@@ -366,7 +364,7 @@ class ForestSession(requests.Session):
 
         self._engagement = engagement
 
-    def engagement(self):
+    def engagement(self) -> Optional['Engagement']:
         """
         Returns memoized engagement information, if still valid - or requests a new engagement,
           and stores and returns that.
@@ -375,7 +373,7 @@ class ForestSession(requests.Session):
             self.engage()
         return self._engagement
 
-    def _refresh_auth_token(self):
+    def _refresh_auth_token(self) -> bool:
         self.config.assert_valid_auth_credential()
         if self.config.user_auth_token is not None:
             return self._refresh_user_auth_token()
@@ -383,7 +381,7 @@ class ForestSession(requests.Session):
             return self._refresh_qmi_auth_token()
         return False
 
-    def _refresh_user_auth_token(self):
+    def _refresh_user_auth_token(self) -> bool:
         url = '%s/auth/idp/oauth2/v1/token' % self.config.forest_url
         headers = {
             'Content-Type': 'application/x-www-form-urlencoded',
@@ -402,7 +400,7 @@ class ForestSession(requests.Session):
         logger.warning(f'Failed to refresh your user auth token at {self.config.user_auth_token_path}. Server response: {response.text}')
         return False
 
-    def _refresh_qmi_auth_token(self):
+    def _refresh_qmi_auth_token(self) -> bool:
         url = '%s/auth/qmi/refresh' % self.config.forest_url
         headers = {
             'Content-Type': 'application/json',
@@ -417,7 +415,7 @@ class ForestSession(requests.Session):
         logger.warning(f'Failed to refresh your QMI auth token at {self.config.qmi_auth_token_path}. Server response: {response.text}')
         return False
 
-    def request(self, *args, **kwargs):
+    def request(self, *args, **kwargs) -> requests.models.Response:
         """
         request is a wrapper around requests.Session#request that checks for
         401 and 403 response statuses and refreshes the auth credential
@@ -429,7 +427,7 @@ class ForestSession(requests.Session):
                 response = super().request(*args, **kwargs)
         return response
 
-    def _request_graphql(self, url: str, query: dict, variables: dict) -> dict:
+    def _request_graphql(self, url: str, query: str, variables: dict) -> dict:
         """
         Makes a single graphql request using the session credentials, throwing an error
            if the response is not valid JSON
@@ -567,8 +565,8 @@ class Engagement:
       the dispatch server.
     """
     def __init__(self, client_public_key: bytes, client_secret_key: bytes,
-                 server_public_key: bytes, expires_at, qpu_endpoint,
-                 qpu_compiler_endpoint):
+                 server_public_key: bytes, expires_at: Union[int, float, str], qpu_endpoint: str,
+                 qpu_compiler_endpoint: str):
         self.client_public_key = client_public_key
         self.client_secret_key = client_secret_key
         self.server_public_key = server_public_key
@@ -595,7 +593,7 @@ class Engagement:
     def __str__(self):
         return (f"""
             Client public key: {self.client_public_key}
-            Client secret key: {self.client_secret_key}
+            Client secret key: masked ({len(self.client_secret_key)} B)
             Server public key: {self.server_public_key}
             Expiration time: {self.expires_at}
             QPU Endpoint: {self.qpu_endpoint}

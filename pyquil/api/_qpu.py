@@ -99,8 +99,7 @@ class QPU(QAM):
         super().__init__()
 
     def build_client(self):
-        endpoint = next((url for url in [self.endpoint, self.config.qpu_url]
-                         if url is not None), None)
+        endpoint = self.endpoint or self.config.qpu_url
         if endpoint is None:
             raise UserMessageError(
                 """It looks like you've tried to run a program against a QPU but do
