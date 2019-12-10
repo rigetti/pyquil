@@ -586,8 +586,8 @@ class Engagement:
             self.client_public_key is not None,
             self.client_secret_key is not None,
             self.server_public_key is not None,
-            (self.expires_at is None
-             or self.expires_at > time.time()), self.qpu_endpoint is not None
+            (self.expires_at is None or self.expires_at > time.time()), 
+            self.qpu_endpoint is not None
         ])
 
     def __str__(self):
