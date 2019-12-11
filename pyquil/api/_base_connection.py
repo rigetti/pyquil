@@ -345,22 +345,21 @@ class ForestSession(requests.Session):
                 f"Failed to engage: {','.join(error_messages)}"
             )
 
-        if query_response is not None:
-            engagement_response = query_response.get('data', {}).get('engage', None)
-            if engagement_response and engagement_response.get('success') is True:
-                logger.info(f"Engagement successful")
-                engagement_data = engagement_response.get('engagement', {})
-                engagement = Engagement(
-                    client_secret_key=engagement_data.get('qpu', {}).get('credentials', {}).get('clientSecret', '').encode('utf-8'),
-                    client_public_key=engagement_data.get('qpu', {}).get('credentials', {}).get('clientPublic', '').encode('utf-8'),
-                    server_public_key=engagement_data.get('qpu', {}).get('credentials', {}).get('serverPublic', '').encode('utf-8'),
-                    expires_at=engagement_data.get('expiresAt', {}),
-                    qpu_endpoint=engagement_data.get('qpu', {}).get('endpoint'),
-                    qpu_compiler_endpoint=engagement_data.get('compiler', {}).get('endpoint'))
-            else:
-                raise UserMessageError(
-                    f"Unable to engage {self.lattice_name}: {engagement_response.get('message', 'No message')}"
-                )
+        engagement_response = query_response.get('data', {}).get('engage', None)
+        if engagement_response and engagement_response.get('success') is True:
+            logger.info(f"Engagement successful")
+            engagement_data = engagement_response.get('engagement', {})
+            engagement = Engagement(
+                client_secret_key=engagement_data.get('qpu', {}).get('credentials', {}).get('clientSecret', '').encode('utf-8'),
+                client_public_key=engagement_data.get('qpu', {}).get('credentials', {}).get('clientPublic', '').encode('utf-8'),
+                server_public_key=engagement_data.get('qpu', {}).get('credentials', {}).get('serverPublic', '').encode('utf-8'),
+                expires_at=engagement_data.get('expiresAt', {}),
+                qpu_endpoint=engagement_data.get('qpu', {}).get('endpoint'),
+                qpu_compiler_endpoint=engagement_data.get('compiler', {}).get('endpoint'))
+        else:
+            raise UserMessageError(
+                f"Unable to engage {self.lattice_name}: {engagement_response.get('message', 'No message')}"
+            )
 
         self._engagement = engagement
 
@@ -436,9 +435,7 @@ class ForestSession(requests.Session):
         """
         response = super().post(url, json=dict(query=query, variables=variables))
         try:
-            result = response.json()
-            logger.debug(f"Received response from {url}: {result}")
-            return result
+            return response.json()
         except JSONDecodeError as e:
             logger.exception(f"Unable to parse json response from endpoint {url}:", response.text)
             raise e
@@ -586,11 +583,11 @@ class Engagement:
             self.client_public_key is not None,
             self.client_secret_key is not None,
             self.server_public_key is not None,
-            (self.expires_at is None or self.expires_at > time.time()), 
+            (self.expires_at is None or self.expires_at > time.time()),
             self.qpu_endpoint is not None
         ])
 
-    def __str__(self):
+    def __str__(self) -> str:
         return (f"""
             Client public key: {self.client_public_key}
             Client secret key: masked ({len(self.client_secret_key)} B)

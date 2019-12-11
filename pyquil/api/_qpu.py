@@ -24,10 +24,11 @@ from rpcq.messages import QPURequest, ParameterAref
 
 from pyquil import Program
 from pyquil.parser import parse
+from pyquil.api._base_connection import Engagement
 from pyquil.api._config import PyquilConfig
+from pyquil.api._error_reporting import _record_call
 from pyquil.api._logger import logger, UserMessageError
 from pyquil.api._qam import QAM
-from pyquil.api._error_reporting import _record_call
 from pyquil.quilatom import MemoryReference, BinaryExp, Function, Parameter, Expression
 
 
@@ -75,7 +76,7 @@ class QPU(QAM):
                  endpoint: Optional[str] = None,
                  user: str = "pyquil-user",
                  priority: int = 1,
-                 config: PyquilConfig = None) -> None:
+                 config: Optional[PyquilConfig] = None) -> None:
         """
         A connection to the QPU.
 
@@ -85,6 +86,7 @@ class QPU(QAM):
         :param user: A string identifying who's running jobs.
         :param priority: The priority with which to insert jobs into the QPU queue. Lower
                          integers correspond to higher priority.
+        :param config: PyQuilConfig object, which provides endpoint & engagement values
         """
         if config:
             self.config = config
@@ -98,7 +100,7 @@ class QPU(QAM):
 
         super().__init__()
 
-    def build_client(self):
+    def build_client(self) -> Client:
         endpoint = self.endpoint or self.config.qpu_url
         if endpoint is None:
             raise UserMessageError(
@@ -118,9 +120,8 @@ class QPU(QAM):
         return Client(endpoint, auth_config=self.client_auth_config)
 
     @property
-    def client(self):
-        if not (self.engagement and self.engagement.is_valid()
-                and self._client):
+    def client(self) -> Client:
+        if not (self.engagement and self.engagement.is_valid() and self._client):
             self._client = self.build_client()
         return self._client
 
@@ -133,7 +134,7 @@ class QPU(QAM):
                 server_public_key=self.engagement.server_public_key)
 
     @property
-    def engagement(self):
+    def engagement(self) -> Engagement:
         return self.config.engagement
 
     def get_version_info(self) -> dict:
@@ -174,9 +175,7 @@ class QPU(QAM):
         only do measurements where there is a 1-to-1 mapping between qubits and classical
         addresses.
 
-        :param run_priority: The priority with which to insert jobs into the QPU queue. Lower
-                             integers correspond to higher priority. If not specified, the QPU
-                             object's default priority is used.
+        :param run_priority: (Deprecated) Unused, argument provided for backwards compatibility
         :return: The QPU object itself.
         """
         # This prevents a common error where users expect QVM.run()
@@ -193,7 +192,6 @@ class QPU(QAM):
                              patch_values=self._build_patch_values(),
                              id=str(uuid.uuid4()))
 
-        job_priority = run_priority if run_priority is not None else self.priority
         job_id = self.client.call('execute_qpu_request', request=request)
         results = self._get_buffers(job_id)
         ro_sources = self._executable.ro_sources
@@ -312,15 +310,13 @@ class QPU(QAM):
         if not hasattr(self._executable, "recalculation_table"):
             # No recalculation table, no work to be done here.
             return
-        for memory_reference, expression in self._executable.recalculation_table.items(
-        ):
+        for memory_reference, expression in self._executable.recalculation_table.items():
             # Replace the user-declared memory references with any values the user has written,
             # coerced to a float because that is how we declared it.
             self._variables_shim[memory_reference] = float(
                 self._resolve_memory_references(expression))
 
-    def _resolve_memory_references(self, expression: Expression
-                                   ) -> Union[float, int]:
+    def _resolve_memory_references(self, expression: Expression) -> Union[float, int]:
         """
         Traverse the given Expression, and replace any Memory References with whatever values
         have been so far provided by the user for those memory spaces. Declared memory defaults

@@ -22,7 +22,7 @@ from configparser import ConfigParser, NoSectionError, NoOptionError
 from os import environ, path
 from os.path import expanduser, abspath
 from os import environ
-from typing import Callable, Dict, List, Optional
+from typing import Callable, Dict, Iterable, Optional
 
 from pyquil.api._logger import logger, UserMessageError
 
@@ -97,11 +97,11 @@ class PyquilConfig(object):
         "default": "~/.qcs/user_auth_token"
     }
 
-    QCS_UI_URL = {
-        "env": "QCS_UI_URL",
+    QCS_URL = {
+        "env": "QCS_URL",
         "file": FOREST_CONFIG,
         "section": "Rigetti Forest",
-        "name": "qcs_ui_url",
+        "name": "qcs_url",
         "default": 'https://qcs.rigetti.com'
     }
 
@@ -226,16 +226,11 @@ class PyquilConfig(object):
             return {'Authorization': 'Bearer %s' % self.user_auth_token['access_token']}
         if self.qmi_auth_token is not None:
             return {'X-QMI-AUTH-TOKEN': self.qmi_auth_token['access_token']}
-        # WARN: This authentication mechanism is deprecated.
-        return {'X-User-Id': self.user_id}
+        return {}
 
     @property
     def qcs_url(self):
-        return self.forest_url.replace('forest-server.', '')
-
-    @property
-    def qcs_ui_url(self):
-        return self._env_or_config_or_default(**self.QCS_UI_URL)
+        return self._env_or_config_or_default(**self.QCS_URL)
 
     @property
     def qpu_compiler_url(self):
@@ -271,7 +266,7 @@ class PyquilConfig(object):
     def user_id(self):
         return self._env_or_config_or_default(**self.USER_ID)
 
-    def assert_valid_auth_credential(self):
+    def assert_valid_auth_credential(self) -> None:
         """
         assert_valid_auth_credential will check to make sure the user has a valid
         auth credential configured. This assertion is made lazily - it is called
@@ -281,15 +276,15 @@ class PyquilConfig(object):
         if self.user_auth_token is None and self.qmi_auth_token is None:
             raise UserMessageError(
                 f'Your configuration does not have valid authentication credentials. \
-Please visit {self.qcs_ui_url}/auth/token to download credentials \
+Please visit {self.qcs_url}/auth/token to download credentials \
 and save to {self.user_auth_token_path}.')
 
 
-def _parse_auth_token(path, required_keys: List[str]):
+def _parse_auth_token(path, required_keys: Iterable[str]) -> Optional[dict]:
     try:
         with open(abspath(expanduser(path)), 'r') as f:
             token = json.load(f)
-            invalid_values = [k for k in required_keys if token.get(k).__class__ != str]
+            invalid_values = [k for k in required_keys if not isinstance(token.get(k), str)]
             if len(invalid_values) != 0:
                 logger.warning(f'Failed to parse auth token at {path}.')
                 logger.warning(f'Invalid {invalid_values}.')

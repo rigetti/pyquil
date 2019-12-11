@@ -1,11 +1,14 @@
 import pytest
 import os
 import requests_mock
+import urllib.parse
+
 from configparser import ConfigParser
+
 from pyquil.api._base_connection import ForestSession
 from pyquil.api._config import PyquilConfig
 from pyquil.api._logger import UserMessageError
-import urllib.parse
+from pyquil.tests.utils import fixture_path
 
 
 @pytest.fixture
@@ -42,11 +45,6 @@ def failed_engagement_response():
             'engagement': None
         }
     }
-
-
-def fixture_path(path: str) -> str:
-    dir_path = os.path.dirname(os.path.realpath(__file__))
-    return os.path.join(dir_path, 'data', path)
 
 
 test_config_paths = {

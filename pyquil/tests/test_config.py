@@ -1,13 +1,10 @@
 import pytest
 import os
 import requests_mock
+
 from pyquil.api._config import PyquilConfig
 from pyquil.api._logger import UserMessageError
-
-
-def fixture_path(path: str) -> str:
-    dir_path = os.path.dirname(os.path.realpath(__file__))
-    return os.path.join(dir_path, 'data', path)
+from pyquil.tests.utils import fixture_path
 
 
 test_config_paths = {
@@ -50,7 +47,7 @@ def test_config_assert_valid_auth_credential():
     config._parse_auth_tokens()
     assert config.user_auth_token is None
     assert config.qmi_auth_token is None
-    with pytest.raises(UserMessageError) as excinfo:
+    with pytest.raises(UserMessageError):
         config.assert_valid_auth_credential()
 
     config.config_parsers['QCS_CONFIG'].set(

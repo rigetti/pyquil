@@ -157,8 +157,8 @@ class QPUCompiler(AbstractCompiler):
     @_record_call
     def __init__(self,
                  quilc_endpoint: str,
+                 qpu_compiler_endpoint: Optional[str],
                  device: AbstractDevice,
-                 qpu_compiler_endpoint: Optional[str] = None,
                  timeout: int = 10,
                  config: Optional[PyquilConfig] = None,
                  name: Optional[str] = None) -> None:
@@ -169,6 +169,7 @@ class QPUCompiler(AbstractCompiler):
         :param qpu_compiler_endpoint: TCP or IPC endpoint of the QPU Compiler
         :param device: PyQuil Device object to use as compilation target
         :param timeout: Number of seconds to wait for a response from the client.
+        :param config: PyQuilConfig object, which provides endpoint & engagement values
         :param name: Name of the lattice being targeted
         """
 
@@ -204,26 +205,26 @@ class QPUCompiler(AbstractCompiler):
             warnings.warn(f'{e}. Compilation using the QPU compiler will not be available.')
 
     @property
-    def qpu_compiler_client(self):
+    def qpu_compiler_client(self) -> Optional[Client]:
         if not self._qpu_compiler_client:
             _qpu_compiler_endpoint = self.qpu_compiler_endpoint or self.config.qpu_compiler_url
             if _qpu_compiler_endpoint is not None:
                 self._qpu_compiler_client = Client(_qpu_compiler_endpoint, timeout=self.timeout)
         return self._qpu_compiler_client
 
-    def connect(self):
+    def connect(self) -> None:
         self._connect_quilc()
         if self.qpu_compiler_client:
             self._connect_qpu_compiler()
 
-    def _connect_quilc(self):
+    def _connect_quilc(self) -> None:
         try:
             quilc_version_dict = self.quilc_client.call('get_version_info', rpc_timeout=1)
             check_quilc_version(quilc_version_dict)
         except TimeoutError:
             raise QuilcNotRunning(f'No quilc server reachable at {self.quilc_client.endpoint}')
 
-    def _connect_qpu_compiler(self):
+    def _connect_qpu_compiler(self) -> None:
         try:
             self.qpu_compiler_client.call('get_version_info', rpc_timeout=1)
         except TimeoutError:
@@ -309,6 +310,7 @@ class QVMCompiler(AbstractCompiler):
                              f"environment variable and removing (or correcting) the "
                              f"compiler_server_address line from your .forest_config file.")
 
+        self.endpoint = endpoint
         self.client = Client(endpoint, timeout=timeout)
         self.target_device = TargetDevice(isa=device.get_isa().to_dict(),
                                           specs=None)
@@ -318,7 +320,7 @@ class QVMCompiler(AbstractCompiler):
         except QuilcNotRunning as e:
             warnings.warn(f'{e}. Compilation using quilc will not be available.')
 
-    def connect(self):
+    def connect(self) -> None:
         try:
             version_dict = self.get_version_info()
             check_quilc_version(version_dict)
@@ -345,7 +347,7 @@ class QVMCompiler(AbstractCompiler):
             attributes=_extract_attribute_dictionary_from_program(nq_program))
 
     @_record_call
-    def reset(self):
+    def reset(self) -> None:
         """
         Reset the state of the QVMCompiler quilc connection
         """
