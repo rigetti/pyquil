@@ -8,6 +8,10 @@ Changelog
 
 ### Improvements and Changes
 
+- LaTeX circuit output now ignores `RESET` instructions by default, rendering
+  instead the (equivalent) program with `RESET` omitted. (@kilimanjaro,
+  gh-1118).
+
 ### Bugfixes
 
 [v2.14](https://github.com/rigetti/pyquil/compare/v2.13.0...v2.14.0) (November 25, 2019)
