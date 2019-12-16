@@ -423,7 +423,7 @@ class DefGateByPaulis(DefGate):
             raise TypeError("Gate name must be a string")
 
         if gate_name in RESERVED_WORDS:
-            raise ValueError("Cannot use {} for a gate name since it's a reserved word".format(name))
+            raise ValueError("Cannot use {} for a gate name since it's a reserved word".format(gate_name))
 
         self.name = gate_name
         self.parameters = parameters
