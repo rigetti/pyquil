@@ -24,7 +24,7 @@ import copy
 
 from typing import Callable, Dict, FrozenSet, Iterable, Iterator, List, Optional, Sequence, Tuple, Union
 
-from pyquil.quilatom import QubitPlaceholder, FormalArgument
+from pyquil.quilatom import QubitPlaceholder, FormalArgument, Expression
 
 from .quil import Program
 from .gates import H, RZ, RX, CNOT, X, PHASE, QUANTUM_GATES
@@ -32,7 +32,8 @@ from numbers import Number
 from collections import OrderedDict
 import warnings
 
-PauliCoefficientDesignator = Union[int, float, complex]
+PauliCoefficientDesignator = Union[int, float, complex, Expression]
+PauliTargetDesignator = Union[int, FormalArgument]
 PauliDesignator = Union['PauliTerm', 'PauliSum']
 
 PAULI_OPS = ["X", "Y", "Z", "I"]
@@ -73,7 +74,7 @@ class PauliTerm(object):
     """A term is a product of Pauli operators operating on different qubits.
     """
 
-    def __init__(self, op: str, index: int, coefficient: PauliCoefficientDesignator = 1.0):
+    def __init__(self, op: str, index: PauliTargetDesignator, coefficient: PauliCoefficientDesignator = 1.0):
         """ Create a new Pauli Term with a Pauli operator at a particular index and a leading
         coefficient.
 
