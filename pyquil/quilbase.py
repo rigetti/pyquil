@@ -414,6 +414,10 @@ class DefPermutationGate(DefGate):
 
 
 class DefGateByPaulis(DefGate):
+    """
+    Records a gate definition as the exponentiation of a PauliSum.
+    """
+
     def __init__(self, gate_name, parameters, arguments, body):
         if not isinstance(gate_name, str):
             raise TypeError("Gate name must be a string")
