@@ -675,6 +675,22 @@ def test_reuse_placeholder():
     assert p.out() == 'H 0\nH 1\nCNOT 0 1\n'
 
 
+def test_pauli_gate():
+    s = """DEFGATE U(%beta) p q AS PAULI-SUM:
+    ZZ(-1*%beta/4) p q
+    Z(%beta/4) p
+    Z(%beta/4) q
+
+DEFGATE V:
+    1.0, 0
+    0, 1.0
+
+U(2.0) 1 0
+"""
+    p = Program(s)
+    assert p.out() == s
+
+
 def test_prog_merge():
     prog_0 = Program(X(0))
     prog_1 = Program(Y(0))

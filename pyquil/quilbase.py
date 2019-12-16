@@ -415,10 +415,10 @@ class DefPermutationGate(DefGate):
 
 class DefGateByPaulis(DefGate):
     def __init__(self, gate_name, parameters, arguments, body):
-        if not isinstance(name, str):
+        if not isinstance(gate_name, str):
             raise TypeError("Gate name must be a string")
 
-        if name in RESERVED_WORDS:
+        if gate_name in RESERVED_WORDS:
             raise ValueError("Cannot use {} for a gate name since it's a reserved word".format(name))
 
         self.name = gate_name
