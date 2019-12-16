@@ -119,7 +119,7 @@ class PyQuilListener(QuilListener):
             parameters = [_variable(v) for v in ctx.variable()]
             self.result.append(DefGate(gate_name, matrix, parameters))
 
-    def exitDefGateAsPauli(self, ctx:QuilParser.DefGateAsPauliContext):
+    def exitDefGateAsPauli(self, ctx: QuilParser.DefGateAsPauliContext):
         from pyquil.paulis import PauliSum
         gate_name = ctx.name().getText()
         parameters = [_variable(c) for c in ctx.variable()]
