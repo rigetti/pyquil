@@ -7,6 +7,7 @@ grammar Quil;
 quil                : allInstr? ( NEWLINE+ allInstr )* NEWLINE* EOF ;
 
 allInstr            : defGate
+                    | defGateAsPauli
                     | defCircuit
                     | instr
                     ;
@@ -47,6 +48,7 @@ modifier            : CONTROLLED
 // D. Gate Definitions
 
 defGate             : DEFGATE name (( LPAREN variable ( COMMA variable )* RPAREN ) | ( AS gatetype ))? COLON NEWLINE matrix ;
+defGateAsPauli      : DEFGATE name ( LPAREN ( variable ( COMMA variable )* )? RPAREN ) qubitVariable+ AS PAULISUM COLON NEWLINE pauliTerms ;
 
 variable            : PERCENTAGE IDENTIFIER ;
 gatetype            : MATRIX
@@ -54,6 +56,9 @@ gatetype            : MATRIX
 
 matrix              : ( matrixRow NEWLINE )* matrixRow ;
 matrixRow           : TAB expression ( COMMA expression )* ;
+
+pauliTerms          : ( pauliTerm NEWLINE )* pauliTerm;
+pauliTerm           : TAB IDENTIFIER LPAREN expression RPAREN qubitVariable+ ;
 
 // E. Circuits
 
@@ -171,6 +176,7 @@ OFFSET              : 'OFFSET' ;
 AS                  : 'AS' ;
 MATRIX              : 'MATRIX' ;
 PERMUTATION         : 'PERMUTATION' ;
+PAULISUM            : 'PAULI-SUM';
 
 NEG                 : 'NEG' ;
 NOT                 : 'NOT' ;

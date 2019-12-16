@@ -89,6 +89,15 @@ class QuilListener(ParseTreeListener):
         pass
 
 
+    # Enter a parse tree produced by QuilParser#defGateAsPauli.
+    def enterDefGateAsPauli(self, ctx:QuilParser.DefGateAsPauliContext):
+        pass
+
+    # Exit a parse tree produced by QuilParser#defGateAsPauli.
+    def exitDefGateAsPauli(self, ctx:QuilParser.DefGateAsPauliContext):
+        pass
+
+
     # Enter a parse tree produced by QuilParser#variable.
     def enterVariable(self, ctx:QuilParser.VariableContext):
         pass
@@ -122,6 +131,24 @@ class QuilListener(ParseTreeListener):
 
     # Exit a parse tree produced by QuilParser#matrixRow.
     def exitMatrixRow(self, ctx:QuilParser.MatrixRowContext):
+        pass
+
+
+    # Enter a parse tree produced by QuilParser#pauliTerms.
+    def enterPauliTerms(self, ctx:QuilParser.PauliTermsContext):
+        pass
+
+    # Exit a parse tree produced by QuilParser#pauliTerms.
+    def exitPauliTerms(self, ctx:QuilParser.PauliTermsContext):
+        pass
+
+
+    # Enter a parse tree produced by QuilParser#pauliTerm.
+    def enterPauliTerm(self, ctx:QuilParser.PauliTermContext):
+        pass
+
+    # Exit a parse tree produced by QuilParser#pauliTerm.
+    def exitPauliTerm(self, ctx:QuilParser.PauliTermContext):
         pass
 
 

@@ -69,6 +69,32 @@ class Qubit(QuilAtom):
         return isinstance(other, Qubit) and other.index == self.index
 
 
+class FormalArgument(QuilAtom):
+    """
+        Representation of a formal argument associated with a DEFCIRCUIT or DEFGATE ... AS PAULI-SUM form.
+        """
+
+    def __init__(self, name):
+        if not isinstance(name, str):
+            raise TypeError("Formal arguments must be named by a string.")
+        self.name = name
+
+    def out(self):
+        return str(self)
+
+    def __str__(self):
+        return self.name
+
+    def __repr__(self):
+        return f"<FormalArgument {self.name}>"
+
+    def __hash__(self):
+        return hash(self.name)
+
+    def __eq__(self, other):
+        return isinstance(other, FormalArgument) and other.name == self.name
+
+
 class QubitPlaceholder(QuilAtom):
     def out(self) -> str:
         raise RuntimeError("Qubit {} has not been assigned an index".format(self))

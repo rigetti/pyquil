@@ -413,6 +413,30 @@ class DefPermutationGate(DefGate):
         return int(np.log2(len(self.permutation)))
 
 
+class DefGateByPaulis(DefGate):
+    def __init__(self, gate_name, parameters, arguments, body):
+        if not isinstance(name, str):
+            raise TypeError("Gate name must be a string")
+
+        if name in RESERVED_WORDS:
+            raise ValueError("Cannot use {} for a gate name since it's a reserved word".format(name))
+        
+        self.name = gate_name
+        self.parameters = parameters
+        self.arguments = arguments
+        self.body = body
+
+    def out(self) -> str:
+        out = ""
+        for term in self.body:
+            args, word = zip(*term._ops.items())
+            out += f"    {''.join(word)}({term.coefficient}) " + " ".join(map(str, args)) + "\n"
+        return f"DEFGATE {self.name}({', '.join(map(str, self.parameters))}) {' '.join(map(str, self.arguments))} AS PAULI-SUM:\n" + out
+
+    def num_args(self) -> int:
+        return len(self.arguments)
+
+
 class JumpTarget(AbstractInstruction):
     """
     Representation of a target that can be jumped to.

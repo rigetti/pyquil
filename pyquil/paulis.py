@@ -24,7 +24,7 @@ import copy
 
 from typing import Callable, Dict, FrozenSet, Iterable, Iterator, List, Optional, Sequence, Tuple, Union
 
-from pyquil.quilatom import QubitPlaceholder
+from pyquil.quilatom import QubitPlaceholder, FormalArgument
 
 from .quil import Program
 from .gates import H, RZ, RX, CNOT, X, PHASE, QUANTUM_GATES
@@ -65,7 +65,8 @@ can't use np.isclose() for hashing terms though.
 
 def _valid_qubit(index: int) -> bool:
     return ((isinstance(index, integer_types) and index >= 0)
-            or isinstance(index, QubitPlaceholder))
+            or isinstance(index, QubitPlaceholder)
+            or isinstance(index, FormalArgument))
 
 
 class PauliTerm(object):
@@ -88,9 +89,9 @@ class PauliTerm(object):
             if not _valid_qubit(index):
                 raise ValueError(f"{index} is not a valid qubit")
             self._ops[index] = op
-        if not isinstance(coefficient, Number):
-            raise ValueError("coefficient of PauliTerm must be a Number.")
-        self.coefficient = complex(coefficient)
+        # if not isinstance(coefficient, Number):
+        #     raise ValueError("coefficient of PauliTerm must be a Number.")
+        self.coefficient = coefficient  # complex(coefficient)
 
     def id(self, sort_ops: bool = True) -> str:
         """
@@ -347,9 +348,9 @@ class PauliTerm(object):
         for op, index in terms_list:
             if op != "I":
                 pterm._ops[index] = op
-        if not isinstance(coefficient, Number):
-            raise ValueError("coefficient of PauliTerm must be a Number.")
-        pterm.coefficient = complex(coefficient)
+        # if not isinstance(coefficient, Number):
+        #     raise ValueError("coefficient of PauliTerm must be a Number.")
+        pterm.coefficient = coefficient  # complex(coefficient)
         return pterm
 
     @classmethod

@@ -28,8 +28,9 @@ from numpy.ma import sin, cos, sqrt, exp
 
 from pyquil.gates import QUANTUM_GATES
 from pyquil.quilatom import (Addr, MemoryReference, Parameter, quil_cos, quil_cis, quil_exp,
-                             quil_sin, quil_sqrt)
-from pyquil.quilbase import (Gate, DefGate, DefPermutationGate, Measurement, JumpTarget, Label, Expression,
+                             quil_sin, quil_sqrt, FormalArgument)
+from pyquil.quilbase import (Gate, DefGate, DefPermutationGate, DefGateByPaulis,
+                             Measurement, JumpTarget, Label, Expression,
                              Nop, Halt, Jump, JumpWhen, JumpUnless, Reset, Wait,
                              ClassicalNot, ClassicalNeg, ClassicalAnd, ClassicalInclusiveOr,
                              ClassicalExclusiveOr,
@@ -117,6 +118,14 @@ class PyQuilListener(QuilListener):
             matrix = _matrix(ctx.matrix())
             parameters = [_variable(v) for v in ctx.variable()]
             self.result.append(DefGate(gate_name, matrix, parameters))
+
+    def exitDefGateAsPauli(self, ctx:QuilParser.DefGateAsPauliContext):
+        from pyquil.paulis import PauliSum
+        gate_name = ctx.name().getText()
+        parameters = [_variable(c) for c in ctx.variable()]
+        arguments = [_formalQubit(q) for q in ctx.qubitVariable()]
+        body = PauliSum([_pauliTerm(t) for t in ctx.pauliTerms().pauliTerm()])
+        self.result.append(DefGateByPaulis(gate_name, parameters, arguments, body))
 
     # DEFCIRCUIT parsing:
     # When we enter a circuit definition we create a backup of the instructions seen up to that point. Then, when the
@@ -395,6 +404,19 @@ class PyQuilListener(QuilListener):
 """
 Helper functions for converting from ANTLR internals to PyQuil objects
 """
+
+
+def _formalQubit(fq):
+    return FormalArgument(fq.getText())
+
+
+def _pauliTerm(term):
+    # type: (QuilParser.PauliTermContext) -> PauliTerm
+    from pyquil.paulis import PauliTerm
+    letters = term.IDENTIFIER().getText()
+    args = [_formalQubit(q) for q in term.qubitVariable()]
+    coeff = _expression(term.expression())
+    return PauliTerm.from_list(list(zip(letters, args)), coeff)
 
 
 def _qubit(qubit):
