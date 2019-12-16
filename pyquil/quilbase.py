@@ -420,7 +420,7 @@ class DefGateByPaulis(DefGate):
 
         if name in RESERVED_WORDS:
             raise ValueError("Cannot use {} for a gate name since it's a reserved word".format(name))
-        
+
         self.name = gate_name
         self.parameters = parameters
         self.arguments = arguments
