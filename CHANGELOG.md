@@ -11,6 +11,7 @@ Changelog
 - LaTeX circuit output now ignores `RESET` instructions by default, rendering
   instead the (equivalent) program with `RESET` omitted. (@kilimanjaro,
   gh-1118).
+- `DEFGATE ... AS PAULI-SUM` is now supported (@ecpeterson, gh-1125).
 
 ### Bugfixes
 
