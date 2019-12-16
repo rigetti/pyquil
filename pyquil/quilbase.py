@@ -418,7 +418,8 @@ class DefGateByPaulis(DefGate):
     Records a gate definition as the exponentiation of a PauliSum.
     """
 
-    def __init__(self, gate_name, parameters, arguments, body):
+    # actually, body is of type PauliSum, but circular imports are no good
+    def __init__(self, gate_name: str, parameters: list, arguments: list, body):  # type: ignore
         if not isinstance(gate_name, str):
             raise TypeError("Gate name must be a string")
 
@@ -431,11 +432,12 @@ class DefGateByPaulis(DefGate):
         self.body = body
 
     def out(self) -> str:
-        out = ""
+        out = f"DEFGATE {self.name}({', '.join(map(str, self.parameters))}) "  # type: ignore
+        out += f"{' '.join(map(str, self.arguments))} AS PAULI-SUM:\n"
         for term in self.body:
             args, word = zip(*term._ops.items())
             out += f"    {''.join(word)}({term.coefficient}) " + " ".join(map(str, args)) + "\n"
-        return f"DEFGATE {self.name}({', '.join(map(str, self.parameters))}) {' '.join(map(str, self.arguments))} AS PAULI-SUM:\n" + out
+        return out
 
     def num_args(self) -> int:
         return len(self.arguments)
