@@ -89,9 +89,10 @@ class PauliTerm(object):
             if not _valid_qubit(index):
                 raise ValueError(f"{index} is not a valid qubit")
             self._ops[index] = op
-        # if not isinstance(coefficient, Number):
-        #     raise ValueError("coefficient of PauliTerm must be a Number.")
-        self.coefficient = coefficient  # complex(coefficient)
+        if isinstance(coefficient, Number):
+            self.coefficient = complex(coefficient)
+        else:
+            self.coefficient = coefficient
 
     def id(self, sort_ops: bool = True) -> str:
         """
@@ -348,9 +349,10 @@ class PauliTerm(object):
         for op, index in terms_list:
             if op != "I":
                 pterm._ops[index] = op
-        # if not isinstance(coefficient, Number):
-        #     raise ValueError("coefficient of PauliTerm must be a Number.")
-        pterm.coefficient = coefficient  # complex(coefficient)
+        if isinstance(coefficient, Number):
+            pterm.coefficient = complex(coefficient)
+        else:
+            pterm.coefficient = coefficient
         return pterm
 
     @classmethod
