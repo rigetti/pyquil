@@ -783,16 +783,20 @@ def get_qc(name: str, *, as_qvm: bool = None, noisy: bool = None,
         if noisy is not None and noisy:
             warnings.warn("You have specified `noisy=True`, but you're getting a QPU. This flag "
                           "is meant for controlling noise models on QVMs.")
-        return QuantumComputer(name=name,
-                               qam=QPU(endpoint=pyquil_config.qpu_url,
+
+        qpu = QPU(endpoint=pyquil_config.qpu_url,
                                        user=pyquil_config.user_id,
-                                       config=session.config),
-                               device=device,
-                               compiler=QPUCompiler(quilc_endpoint=pyquil_config.quilc_url,
+                                       config=session.config)
+
+        compiler = QPUCompiler(quilc_endpoint=pyquil_config.quilc_url,
                                                     qpu_compiler_endpoint=pyquil_config.qpu_compiler_url,
                                                     device=device,
                                                     config=session.config,
-                                                    name=prefix))
+                                                    name=prefix)
+        return QuantumComputer(name=name,
+                               qam=qpu,
+                               device=device,
+                               compiler=compiler)
 
 
 @contextmanager

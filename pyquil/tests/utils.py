@@ -10,6 +10,11 @@ def fixture_path(path: str) -> str:
     return os.path.join(dir_path, 'data', path)
 
 
+def api_fixture_path(path: str) -> str:
+    dir_path = os.path.dirname(os.path.realpath(__file__))
+    return os.path.join(dir_path, '../api/tests/data', path)
+
+
 def parse_equals(quil_string, *instructions):
     expected = list(instructions)
     actual = parse(quil_string)

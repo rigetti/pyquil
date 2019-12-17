@@ -77,7 +77,7 @@ setup(
         'antlr4-python3-runtime',
         'requests',
         'networkx>=2.0.0',
-        'rpcq>=2.7.2',
+        'rpcq>=3.0.0',
 
         # dependency of contextvars, which we vendor
         'immutables==0.6',

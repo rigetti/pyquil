@@ -27,7 +27,8 @@ from pyquil.parser import parse
 from pyquil.api._base_connection import Engagement
 from pyquil.api._config import PyquilConfig
 from pyquil.api._error_reporting import _record_call
-from pyquil.api._logger import logger, UserMessageError
+from pyquil.api._errors import UserMessageError
+from pyquil.api._logger import logger
 from pyquil.api._qam import QAM
 from pyquil.quilatom import MemoryReference, BinaryExp, Function, Parameter, Expression
 
@@ -83,10 +84,10 @@ class QPU(QAM):
         :param endpoint: Address to connect to the QPU server. If not provided, the
             endpoint provided by engagement with dispatch is used. One or both must be
             available and valid.
-        :param user: A string identifying who's running jobs.
-        :param priority: The priority with which to insert jobs into the QPU queue. Lower
+        :param user: [deprecated] A string identifying who's running jobs.
+        :param priority: [deprecated] The priority with which to insert jobs into the QPU queue. Lower
                          integers correspond to higher priority.
-        :param config: PyQuilConfig object, which provides endpoint & engagement values
+        :param config: PyQuilConfig object, which provides endpoint & engagement values.
         """
         if config:
             self.config = config
@@ -94,9 +95,7 @@ class QPU(QAM):
             self.config = PyquilConfig()
 
         self.endpoint = endpoint
-        self.user = user
         self._last_results: Dict[str, np.ndarray] = {}
-        self.priority = priority
 
         super().__init__()
 
@@ -329,11 +328,9 @@ class QPU(QAM):
             right = self._resolve_memory_references(expression.op2)
             return expression.fn(left, right)
         elif isinstance(expression, Function):
-            return expression.fn(
-                self._resolve_memory_references(expression.expression))
+            return expression.fn(self._resolve_memory_references(expression.expression))
         elif isinstance(expression, Parameter):
-            raise ValueError(
-                f"Unexpected Parameter in gate expression: {expression}")
+            raise ValueError(f"Unexpected Parameter in gate expression: {expression}")
         elif isinstance(expression, float) or isinstance(expression, int):
             return expression
         elif isinstance(expression, MemoryReference):
@@ -341,8 +338,7 @@ class QPU(QAM):
                 ParameterAref(name=expression.name, index=expression.offset),
                 0)
         else:
-            raise ValueError(
-                f"Unexpected expression in gate parameter: {expression}")
+            raise ValueError(f"Unexpected expression in gate parameter: {expression}")
 
     @_record_call
     def reset(self):

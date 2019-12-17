@@ -13,18 +13,14 @@
 #    See the License for the specific language governing permissions and
 #    limitations under the License.
 ##############################################################################
-"""
-Module for reading configuration information about api keys and user ids.
-"""
 import json
-
 from configparser import ConfigParser, NoSectionError, NoOptionError
 from os import environ, path
 from os.path import expanduser, abspath
-from os import environ
-from typing import Callable, Dict, Iterable, Optional
+from typing import Dict, Iterable, Optional
 
-from pyquil.api._logger import logger, UserMessageError
+from pyquil.api._errors import UserMessageError
+from pyquil.api._logger import logger
 
 # `.qcs_config` is for content (mostly) related to QCS: the QCS front end stacks endpoint (`url`)
 # for querying all QCS data: devices, reservations, etc. etc., and the `exec_on_engage` that the
@@ -43,11 +39,11 @@ CONFIG_PATHS = {
 class PyquilConfig(object):
     """
     The PyQuilConfig object holds the configuration necessary to communicate with Rigetti systems,
-        to include file paths for configuration files on disk, authentication tokens, and endpoint URL's.
+        to include authentication tokens, endpoint URL's, and file paths for configuration files on disk.
 
-    :attribute get_engagement: a callback to fetch a currently valid engagement from which to read
-        configuration parameters (ie, QPU_URL) as needed. This allows the engagement to be fetched and
-        maintained elsewhere (ie, by ForestSession or manually)
+    :attribute get_engagement: A callback to fetch a currently valid engagement from which to read
+        configuration parameters (i.e., QPU_URL) as needed. This allows the engagement to be fetched and
+        maintained elsewhere (i.e., by ForestSession or manually).
     """
     FOREST_URL = {
         "env": "FOREST_SERVER_URL",
@@ -158,24 +154,27 @@ class PyquilConfig(object):
         self._parse_auth_tokens()
 
     def _parse_auth_tokens(self):
-        self.user_auth_token = _parse_auth_token(self.user_auth_token_path, ['access_token', 'refresh_token', 'scope'])
-        self.qmi_auth_token = _parse_auth_token(self.qmi_auth_token_path, ['access_token', 'refresh_token'])
+        self.user_auth_token = _parse_auth_token(
+            self.user_auth_token_path,
+            ['access_token', 'refresh_token', 'scope'])
+        self.qmi_auth_token = _parse_auth_token(
+            self.qmi_auth_token_path, ['access_token', 'refresh_token'])
 
     def _env_or_config_or_default(self,
                                   env=None,
                                   file=None,
                                   section=None,
                                   name=None,
-                                  engagement_key=None,
-                                  default=None):
+                                  default=None,
+                                  engagement_key=None):
         """
         Get the value of the environment variable or config file value.
         The environment variable takes precedence.
 
         :param env: The environment variable name.
         :param name: The config file key.
-        :param engagement_key: The attribute name by which this value can be read from an engagement.
-            If None, then this value is not provided by engagement.
+        :param engagement_key: The attribute name by which this value can be read from
+            an engagement. If None, then this value is not provided by engagement.
         :return: The value or None if not found
         """
 
@@ -189,9 +188,10 @@ class PyquilConfig(object):
             return self.config_parsers[file].get(section, name)
         except (NoSectionError, NoOptionError, KeyError):
             pass
-
-        # If no local configuration is available, certain values are provided
-        #   by the dispatch service.
+        """
+        If no local configuration is available, certain values are provided
+            by the dispatch service.
+        """
         try:
             if engagement_key is not None and self.engagement is not None:
                 return getattr(self.engagement, engagement_key)
@@ -218,12 +218,16 @@ class PyquilConfig(object):
 
     @property
     def qmi_auth_token_path(self):
-        return path.expanduser(self._env_or_config_or_default(**self.QMI_AUTH_TOKEN_PATH))
+        return path.expanduser(
+            self._env_or_config_or_default(**self.QMI_AUTH_TOKEN_PATH))
 
     @property
     def qcs_auth_headers(self):
         if self.user_auth_token is not None:
-            return {'Authorization': 'Bearer %s' % self.user_auth_token['access_token']}
+            return {
+                'Authorization':
+                f'Bearer {self.user_auth_token["access_token"]}'
+            }
         if self.qmi_auth_token is not None:
             return {'X-QMI-AUTH-TOKEN': self.qmi_auth_token['access_token']}
         return {}
@@ -260,7 +264,8 @@ class PyquilConfig(object):
 
     @property
     def user_auth_token_path(self):
-        return path.expanduser(self._env_or_config_or_default(**self.USER_AUTH_TOKEN_PATH))
+        return path.expanduser(
+            self._env_or_config_or_default(**self.USER_AUTH_TOKEN_PATH))
 
     @property
     def user_id(self):
@@ -275,16 +280,19 @@ class PyquilConfig(object):
         """
         if self.user_auth_token is None and self.qmi_auth_token is None:
             raise UserMessageError(
-                f'Your configuration does not have valid authentication credentials. \
-Please visit {self.qcs_url}/auth/token to download credentials \
-and save to {self.user_auth_token_path}.')
+                f'Your configuration does not have valid authentication credentials.'
+                f'Please visit {self.qcs_url}/auth/token to download credentials'
+                f'and save to {self.user_auth_token_path}.'
+            )
 
 
 def _parse_auth_token(path, required_keys: Iterable[str]) -> Optional[dict]:
     try:
         with open(abspath(expanduser(path)), 'r') as f:
             token = json.load(f)
-            invalid_values = [k for k in required_keys if not isinstance(token.get(k), str)]
+            invalid_values = [
+                k for k in required_keys if not isinstance(token.get(k), str)
+            ]
             if len(invalid_values) != 0:
                 logger.warning(f'Failed to parse auth token at {path}.')
                 logger.warning(f'Invalid {invalid_values}.')

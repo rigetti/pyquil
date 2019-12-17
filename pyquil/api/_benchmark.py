@@ -18,7 +18,6 @@ from rpcq import Client
 from rpcq.messages import (RandomizedBenchmarkingRequest, RandomizedBenchmarkingResponse,
                            ConjugateByCliffordRequest, ConjugateByCliffordResponse)
 
-from pyquil.api._base_connection import post_json
 from pyquil.api._config import PyquilConfig
 from pyquil.api._error_reporting import _record_call
 from pyquil.api._qac import AbstractBenchmarker

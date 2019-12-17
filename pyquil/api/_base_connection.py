@@ -14,7 +14,6 @@
 #    limitations under the License.
 ##############################################################################
 
-import json
 import re
 import time
 import warnings
@@ -29,8 +28,8 @@ from urllib3 import Retry
 from pyquil import Program, __version__
 from pyquil.api._config import PyquilConfig
 from pyquil.api._error_reporting import _record_call
-from pyquil.api._errors import error_mapping, UnknownApiError, TooManyQubitsError
-from pyquil.api._logger import logger, UserMessageError
+from pyquil.api._errors import error_mapping, UserMessageError, UnknownApiError, TooManyQubitsError
+from pyquil.api._logger import logger
 from pyquil.device import Specs, ISA
 from pyquil.wavefunction import Wavefunction
 
@@ -350,12 +349,23 @@ class ForestSession(requests.Session):
             logger.info(f"Engagement successful")
             engagement_data = engagement_response.get('engagement', {})
             engagement = Engagement(
-                client_secret_key=engagement_data.get('qpu', {}).get('credentials', {}).get('clientSecret', '').encode('utf-8'),
-                client_public_key=engagement_data.get('qpu', {}).get('credentials', {}).get('clientPublic', '').encode('utf-8'),
-                server_public_key=engagement_data.get('qpu', {}).get('credentials', {}).get('serverPublic', '').encode('utf-8'),
+                client_secret_key=engagement_data.get('qpu', {})
+                                                 .get('credentials', {})
+                                                 .get('clientSecret', '')
+                                                 .encode('utf-8'),
+                client_public_key=engagement_data.get('qpu', {})
+                                                 .get('credentials', {})
+                                                 .get('clientPublic', '')
+                                                 .encode('utf-8'),
+                server_public_key=engagement_data.get('qpu', {})
+                                                 .get('credentials', {})
+                                                 .get('serverPublic', '')
+                                                 .encode('utf-8'),
                 expires_at=engagement_data.get('expiresAt', {}),
-                qpu_endpoint=engagement_data.get('qpu', {}).get('endpoint'),
-                qpu_compiler_endpoint=engagement_data.get('compiler', {}).get('endpoint'))
+                qpu_endpoint=engagement_data.get('qpu', {})
+                                            .get('endpoint'),
+                qpu_compiler_endpoint=engagement_data.get('compiler', {})
+                                                     .get('endpoint'))
         else:
             raise UserMessageError(
                 f"Unable to engage {self.lattice_name}: {engagement_response.get('message', 'No message')}"
@@ -396,7 +406,10 @@ class ForestSession(requests.Session):
             self.headers.update(self.config.qcs_auth_headers)
             return True
 
-        logger.warning(f'Failed to refresh your user auth token at {self.config.user_auth_token_path}. Server response: {response.text}')
+        logger.warning(
+            f'Failed to refresh your user auth token at {self.config.user_auth_token_path}. '
+            'Server response: {response.text}'
+        )
         return False
 
     def _refresh_qmi_auth_token(self) -> bool:
@@ -411,7 +424,10 @@ class ForestSession(requests.Session):
             self.headers.update(self.config.qcs_auth_headers)
             return True
 
-        logger.warning(f'Failed to refresh your QMI auth token at {self.config.qmi_auth_token_path}. Server response: {response.text}')
+        logger.warning(
+            f'Failed to refresh your QMI auth token at {self.config.qmi_auth_token_path}. '
+            'Server response: {response.text}'
+        )
         return False
 
     def request(self, *args, **kwargs) -> requests.models.Response:
@@ -447,7 +463,9 @@ class ForestSession(requests.Session):
         """
         result = self._request_graphql(*args, **kwargs)
         errors = result.get('errors', [])
-        token_is_expired = any(error.get('extensions', {}).get('code') == 'AUTH_TOKEN_EXPIRED' for error in errors)
+        token_is_expired = any(
+            error.get('extensions', {}).get('code') == 'AUTH_TOKEN_EXPIRED' for error in errors
+        )
         if token_is_expired:
             if self._refresh_auth_token():
                 result = self._request_graphql(*args, **kwargs)
@@ -588,11 +606,9 @@ class Engagement:
         ])
 
     def __str__(self) -> str:
-        return (f"""
-            Client public key: {self.client_public_key}
-            Client secret key: masked ({len(self.client_secret_key)} B)
-            Server public key: {self.server_public_key}
-            Expiration time: {self.expires_at}
-            QPU Endpoint: {self.qpu_endpoint}
-            QPU Compiler Endpoint: {self.qpu_compiler_endpoint}
-            """)
+        return (f"""Client public key: {self.client_public_key}
+Client secret key: masked ({len(self.client_secret_key)} B)
+Server public key: {self.server_public_key}
+Expiration time: {self.expires_at}
+QPU Endpoint: {self.qpu_endpoint}
+QPU Compiler Endpoint: {self.qpu_compiler_endpoint}""")

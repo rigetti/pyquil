@@ -14,7 +14,6 @@
 #    limitations under the License.
 ##############################################################################
 import logging
-
 import warnings
 from typing import Dict, Any, List, Optional, Tuple
 from collections import Counter
@@ -29,7 +28,7 @@ from pyquil import __version__
 from pyquil.api._config import PyquilConfig
 from pyquil.api._qac import AbstractCompiler
 from pyquil.api._error_reporting import _record_call
-from pyquil.api._logger import UserMessageError
+from pyquil.api._errors import UserMessageError
 from pyquil.device import AbstractDevice
 from pyquil.parser import parse_program
 from pyquil.quil import Program, Measurement, Declare
@@ -160,8 +159,8 @@ class QPUCompiler(AbstractCompiler):
                  qpu_compiler_endpoint: Optional[str],
                  device: AbstractDevice,
                  timeout: int = 10,
-                 config: Optional[PyquilConfig] = None,
-                 name: Optional[str] = None) -> None:
+                 name: Optional[str] = None,
+                 config: Optional[PyquilConfig] = None) -> None:
         """
         Client to communicate with the Compiler Server.
 
@@ -282,7 +281,7 @@ class QPUCompiler(AbstractCompiler):
     @_record_call
     def reset(self):
         """
-        Reset the state of the QPUCompiler Client connections
+        Reset the state of the QPUCompiler Client connections.
         """
 
         timeout = self.quilc_client.timeout

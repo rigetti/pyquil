@@ -16,7 +16,6 @@
 
 import logging
 import os
-import sys
 
 logging.basicConfig(format='%(levelname)s - %(message)s',)
 
@@ -26,30 +25,3 @@ logger = logging.getLogger(__name__)
 logger.setLevel(level)
 
 logger.debug(f"Log level: {logger.level}")
-
-
-def exception_handler(exception_type, exception, traceback, debug_hook=sys.excepthook):
-    """
-    This allows us to suppress tracebacks for UserMessageError outside of debug mode
-      by overriding the default exception handler.
-    """
-    if logger.level <= logging.DEBUG or exception_type is not UserMessageError:
-        debug_hook(exception_type, exception, traceback)
-
-
-sys.excepthook = exception_handler
-
-
-class UserMessageError(Exception):
-    """
-    A special class of error which only displays its traceback when the program
-      is run in debug mode (eg, with `LOG_LEVEL=DEBUG`).
-
-    The purpose of this is to improve the user experience, reducing noise in
-      the case of errors for which the cause is known.
-    """
-    def __init__(self, message):
-        if logger.level <= logging.DEBUG:
-            super().__init__(message)
-        else:
-            logger.error(message)
