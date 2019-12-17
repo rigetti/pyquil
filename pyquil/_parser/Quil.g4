@@ -48,7 +48,7 @@ modifier            : CONTROLLED
 // D. Gate Definitions
 
 defGate             : DEFGATE name (( LPAREN variable ( COMMA variable )* RPAREN ) | ( AS gatetype ))? COLON NEWLINE matrix ;
-defGateAsPauli      : DEFGATE name ( LPAREN ( variable ( COMMA variable )* )? RPAREN ) qubitVariable+ AS PAULISUM COLON NEWLINE pauliTerms ;
+defGateAsPauli      : DEFGATE name ( LPAREN variable ( COMMA variable )* RPAREN )? qubitVariable+ AS PAULISUM COLON NEWLINE pauliTerms ;
 
 variable            : PERCENTAGE IDENTIFIER ;
 gatetype            : MATRIX

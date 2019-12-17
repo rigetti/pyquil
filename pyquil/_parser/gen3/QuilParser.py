@@ -28,7 +28,7 @@ def serializedATN():
         buf.write("\3\b\3\b\3\t\3\t\3\n\3\n\3\n\3\n\3\n\3\n\7\n\u00ca\n\n")
         buf.write("\f\n\16\n\u00cd\13\n\3\n\3\n\3\n\3\n\5\n\u00d3\n\n\3\n")
         buf.write("\3\n\3\n\3\n\3\13\3\13\3\13\3\13\3\13\3\13\7\13\u00df")
-        buf.write("\n\13\f\13\16\13\u00e2\13\13\5\13\u00e4\n\13\3\13\3\13")
+        buf.write("\n\13\f\13\16\13\u00e2\13\13\3\13\3\13\5\13\u00e6\n\13")
         buf.write("\3\13\6\13\u00e9\n\13\r\13\16\13\u00ea\3\13\3\13\3\13")
         buf.write("\3\13\3\13\3\13\3\f\3\f\3\f\3\r\3\r\3\16\3\16\3\16\7\16")
         buf.write("\u00fb\n\16\f\16\16\16\u00fe\13\16\3\16\3\16\3\17\3\17")
@@ -126,12 +126,12 @@ def serializedATN():
         buf.write("\3\2\2\2\u00d2\u00d0\3\2\2\2\u00d2\u00d3\3\2\2\2\u00d3")
         buf.write("\u00d4\3\2\2\2\u00d4\u00d5\7F\2\2\u00d5\u00d6\7L\2\2\u00d6")
         buf.write("\u00d7\5\32\16\2\u00d7\23\3\2\2\2\u00d8\u00d9\7\3\2\2")
-        buf.write("\u00d9\u00da\5\n\6\2\u00da\u00e3\7B\2\2\u00db\u00e0\5")
+        buf.write("\u00d9\u00e5\5\n\6\2\u00da\u00db\7B\2\2\u00db\u00e0\5")
         buf.write("\26\f\2\u00dc\u00dd\7A\2\2\u00dd\u00df\5\26\f\2\u00de")
         buf.write("\u00dc\3\2\2\2\u00df\u00e2\3\2\2\2\u00e0\u00de\3\2\2\2")
-        buf.write("\u00e0\u00e1\3\2\2\2\u00e1\u00e4\3\2\2\2\u00e2\u00e0\3")
-        buf.write("\2\2\2\u00e3\u00db\3\2\2\2\u00e3\u00e4\3\2\2\2\u00e4\u00e5")
-        buf.write("\3\2\2\2\u00e5\u00e6\7C\2\2\u00e6\u00e8\3\2\2\2\u00e7")
+        buf.write("\u00e0\u00e1\3\2\2\2\u00e1\u00e3\3\2\2\2\u00e2\u00e0\3")
+        buf.write("\2\2\2\u00e3\u00e4\7C\2\2\u00e4\u00e6\3\2\2\2\u00e5\u00da")
+        buf.write("\3\2\2\2\u00e5\u00e6\3\2\2\2\u00e6\u00e8\3\2\2\2\u00e7")
         buf.write("\u00e9\5$\23\2\u00e8\u00e7\3\2\2\2\u00e9\u00ea\3\2\2\2")
         buf.write("\u00ea\u00e8\3\2\2\2\u00ea\u00eb\3\2\2\2\u00eb\u00ec\3")
         buf.write("\2\2\2\u00ec\u00ed\7\23\2\2\u00ed\u00ee\7\26\2\2\u00ee")
@@ -262,7 +262,7 @@ def serializedATN():
         buf.write("\u021dm\3\2\2\2\u021e\u021f\5p9\2\u021f\u0220\7.\2\2\u0220")
         buf.write("o\3\2\2\2\u0221\u0222\t\f\2\2\u0222q\3\2\2\2\64sx}\u0083")
         buf.write("\u008c\u00a0\u00a5\u00af\u00b4\u00b9\u00cb\u00d2\u00e0")
-        buf.write("\u00e3\u00ea\u00fc\u0107\u010f\u011c\u0126\u012b\u0130")
+        buf.write("\u00e5\u00ea\u00fc\u0107\u010f\u011c\u0126\u012b\u0130")
         buf.write("\u013b\u0144\u0149\u014e\u0153\u0157\u015d\u0165\u016e")
         buf.write("\u0172\u0177\u018e\u0198\u019f\u01a2\u01b0\u01b6\u01bc")
         buf.write("\u01c2\u01d6\u01dd\u01e9\u01ed\u0201\u020c\u020e\u0216")
@@ -1291,6 +1291,13 @@ class QuilParser ( Parser ):
         def LPAREN(self):
             return self.getToken(QuilParser.LPAREN, 0)
 
+        def variable(self, i:int=None):
+            if i is None:
+                return self.getTypedRuleContexts(QuilParser.VariableContext)
+            else:
+                return self.getTypedRuleContext(QuilParser.VariableContext,i)
+
+
         def RPAREN(self):
             return self.getToken(QuilParser.RPAREN, 0)
 
@@ -1299,13 +1306,6 @@ class QuilParser ( Parser ):
                 return self.getTypedRuleContexts(QuilParser.QubitVariableContext)
             else:
                 return self.getTypedRuleContext(QuilParser.QubitVariableContext,i)
-
-
-        def variable(self, i:int=None):
-            if i is None:
-                return self.getTypedRuleContexts(QuilParser.VariableContext)
-            else:
-                return self.getTypedRuleContext(QuilParser.VariableContext,i)
 
 
         def COMMA(self, i:int=None):
@@ -1339,13 +1339,12 @@ class QuilParser ( Parser ):
             self.match(QuilParser.DEFGATE)
             self.state = 215
             self.name()
-
-            self.state = 216
-            self.match(QuilParser.LPAREN)
-            self.state = 225
+            self.state = 227
             self._errHandler.sync(self)
             _la = self._input.LA(1)
-            if _la==QuilParser.PERCENTAGE:
+            if _la==QuilParser.LPAREN:
+                self.state = 216
+                self.match(QuilParser.LPAREN)
                 self.state = 217
                 self.variable()
                 self.state = 222
@@ -1360,10 +1359,10 @@ class QuilParser ( Parser ):
                     self._errHandler.sync(self)
                     _la = self._input.LA(1)
 
+                self.state = 225
+                self.match(QuilParser.RPAREN)
 
 
-            self.state = 227
-            self.match(QuilParser.RPAREN)
             self.state = 230 
             self._errHandler.sync(self)
             _la = self._input.LA(1)

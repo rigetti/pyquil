@@ -24,7 +24,7 @@ import copy
 
 from typing import Callable, Dict, FrozenSet, Iterable, Iterator, List, Optional, Sequence, Tuple, Union
 
-from pyquil.quilatom import QubitPlaceholder, FormalArgument, Expression
+from pyquil.quilatom import QubitPlaceholder, FormalArgument, Expression, ExpressionDesignator
 
 from .quil import Program
 from .gates import H, RZ, RX, CNOT, X, PHASE, QUANTUM_GATES
@@ -32,7 +32,6 @@ from numbers import Number
 from collections import OrderedDict
 import warnings
 
-PauliCoefficientDesignator = Union[int, float, complex, Expression]
 PauliTargetDesignator = Union[int, FormalArgument]
 PauliDesignator = Union['PauliTerm', 'PauliSum']
 
@@ -74,7 +73,7 @@ class PauliTerm(object):
     """A term is a product of Pauli operators operating on different qubits.
     """
 
-    def __init__(self, op: str, index: PauliTargetDesignator, coefficient: PauliCoefficientDesignator = 1.0):
+    def __init__(self, op: str, index: PauliTargetDesignator, coefficient: ExpressionDesignator = 1.0):
         """ Create a new Pauli Term with a Pauli operator at a particular index and a leading
         coefficient.
 
@@ -90,6 +89,9 @@ class PauliTerm(object):
             if not _valid_qubit(index):
                 raise ValueError(f"{index} is not a valid qubit")
             self._ops[index] = op
+
+        self.coefficient: Union[complex, Expression]
+
         if isinstance(coefficient, Number):
             self.coefficient = complex(coefficient)
         else:
@@ -208,7 +210,7 @@ class PauliTerm(object):
 
         return new_term
 
-    def __mul__(self, term: Union[PauliDesignator, PauliCoefficientDesignator]) -> PauliDesignator:
+    def __mul__(self, term: Union[PauliDesignator, ExpressionDesignator]) -> PauliDesignator:
         """Multiplies this Pauli Term with another PauliTerm, PauliSum, or number according to the
         Pauli algebra rules.
 
@@ -229,7 +231,7 @@ class PauliTerm(object):
 
             return term_with_coeff(new_term, new_term.coefficient * new_coeff)
 
-    def __rmul__(self, other: PauliCoefficientDesignator) -> 'PauliTerm':
+    def __rmul__(self, other: ExpressionDesignator) -> 'PauliTerm':
         """Multiplies this PauliTerm with another object, probably a number.
 
         :param other: A number or PauliTerm to multiply by
@@ -258,7 +260,7 @@ class PauliTerm(object):
             result *= self
         return result
 
-    def __add__(self, other: Union[PauliDesignator, PauliCoefficientDesignator]) -> 'PauliSum':
+    def __add__(self, other: Union[PauliDesignator, ExpressionDesignator]) -> 'PauliSum':
         """Adds this PauliTerm with another one.
 
         :param other: A PauliTerm object, a PauliSum object, or a Number
@@ -273,7 +275,7 @@ class PauliTerm(object):
             new_sum = PauliSum([self, other])
             return new_sum.simplify()
 
-    def __radd__(self, other: PauliCoefficientDesignator) -> 'PauliTerm':
+    def __radd__(self, other: ExpressionDesignator) -> 'PauliTerm':
         """Adds this PauliTerm with a Number.
 
         :param other: A Number
@@ -487,7 +489,7 @@ def sZ(q: int) -> PauliTerm:
     return PauliTerm("Z", q)
 
 
-def term_with_coeff(term: PauliTerm, coeff: PauliCoefficientDesignator) -> PauliTerm:
+def term_with_coeff(term: PauliTerm, coeff: ExpressionDesignator) -> PauliTerm:
     """
     Change the coefficient of a PauliTerm.
 
@@ -560,7 +562,7 @@ class PauliSum(object):
     def __iter__(self) -> Iterator[PauliTerm]:
         return self.terms.__iter__()
 
-    def __mul__(self, other: Union[PauliDesignator, PauliCoefficientDesignator]) -> 'PauliSum':
+    def __mul__(self, other: Union[PauliDesignator, ExpressionDesignator]) -> 'PauliSum':
         """
         Multiplies together this PauliSum with PauliSum, PauliTerm or Number objects. The new term
         is then simplified according to the Pauli Algebra rules.
@@ -580,7 +582,7 @@ class PauliSum(object):
         new_sum = PauliSum(new_terms)
         return new_sum.simplify()
 
-    def __rmul__(self, other: PauliCoefficientDesignator) -> 'PauliSum':
+    def __rmul__(self, other: ExpressionDesignator) -> 'PauliSum':
         """
         Multiples together this PauliSum with PauliSum, PauliTerm or Number objects. The new term
         is then simplified according to the Pauli Algebra rules.
@@ -620,7 +622,7 @@ class PauliSum(object):
             result *= self
         return result
 
-    def __add__(self, other: Union[PauliDesignator, PauliCoefficientDesignator]) -> 'PauliSum':
+    def __add__(self, other: Union[PauliDesignator, ExpressionDesignator]) -> 'PauliSum':
         """
         Adds together this PauliSum with PauliSum, PauliTerm or Number objects. The new term
         is then simplified according to the Pauli Algebra rules.
@@ -638,7 +640,7 @@ class PauliSum(object):
         new_sum = PauliSum(new_terms)
         return new_sum.simplify()
 
-    def __radd__(self, other: PauliCoefficientDesignator) -> 'PauliSum':
+    def __radd__(self, other: ExpressionDesignator) -> 'PauliSum':
         """
         Adds together this PauliSum with a Number object. The new term
         is then simplified according to the Pauli Algebra rules.
@@ -650,7 +652,7 @@ class PauliSum(object):
         assert isinstance(other, Number)
         return self + other
 
-    def __sub__(self, other: Union[PauliDesignator, PauliCoefficientDesignator]) -> 'PauliSum':
+    def __sub__(self, other: Union[PauliDesignator, ExpressionDesignator]) -> 'PauliSum':
         """
         Finds the difference of this PauliSum with PauliSum, PauliTerm or Number objects. The new
         term is then simplified according to the Pauli Algebra rules.
@@ -661,7 +663,7 @@ class PauliSum(object):
         """
         return self + -1. * other
 
-    def __rsub__(self, other: Union[PauliDesignator, PauliCoefficientDesignator]) -> 'PauliSum':
+    def __rsub__(self, other: Union[PauliDesignator, ExpressionDesignator]) -> 'PauliSum':
         """
         Finds the different of this PauliSum with PauliSum, PauliTerm or Number objects. The new
         term is then simplified according to the Pauli Algebra rules.
