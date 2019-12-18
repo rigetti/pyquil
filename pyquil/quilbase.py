@@ -19,13 +19,17 @@ Contains the core pyQuil objects that correspond to Quil instructions.
 import collections
 import numpy as np
 from typing import (Any, Callable, ClassVar, Container, Dict, Iterable, List, Optional, Set, Tuple,
-                    Union)
+                    Union, TYPE_CHECKING)
 from warnings import warn
 
 from pyquil.quilatom import (Expression, ExpressionDesignator, Label, LabelPlaceholder,
                              MemoryReference, Parameter, ParameterDesignator, Qubit,
                              QubitDesignator, QubitPlaceholder, _contained_parameters,
                              format_parameter, unpack_qubit)
+
+
+if TYPE_CHECKING:
+    from pyquil.paulis import PauliSum
 
 
 class AbstractInstruction(object):
@@ -411,6 +415,42 @@ class DefPermutationGate(DefGate):
         :return: The number of qubit arguments the gate takes.
         """
         return int(np.log2(len(self.permutation)))
+
+
+class DefGateByPaulis(DefGate):
+    """
+    Records a gate definition as the exponentiation of a PauliSum.
+    """
+
+    def __init__(self,
+                 gate_name: str,
+                 parameters: List[Parameter],
+                 arguments: List[QubitDesignator],
+                 body: 'PauliSum'):
+        if not isinstance(gate_name, str):
+            raise TypeError("Gate name must be a string")
+
+        if gate_name in RESERVED_WORDS:
+            raise ValueError(f"Cannot use {gate_name} for a gate name since it's a reserved word")
+
+        self.name = gate_name
+        self.parameters = parameters
+        self.arguments = arguments
+        self.body = body
+
+    def out(self) -> str:
+        out = f"DEFGATE {self.name}"
+        if self.parameters is not None:
+            out += f"({', '.join(map(str, self.parameters))}) "
+        out += f"{' '.join(map(str, self.arguments))} AS PAULI-SUM:\n"
+        for term in self.body:
+            args = term._ops.keys()
+            word = term._ops.values()
+            out += f"    {''.join(word)}({term.coefficient}) " + " ".join(map(str, args)) + "\n"
+        return out
+
+    def num_args(self) -> int:
+        return len(self.arguments)
 
 
 class JumpTarget(AbstractInstruction):

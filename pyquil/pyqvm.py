@@ -31,7 +31,7 @@ from pyquil.quilbase import Gate, Measurement, ResetQubit, DefGate, JumpTarget, 
     ArithmeticBinaryOp, ClassicalAdd, ClassicalSub, ClassicalMul, ClassicalDiv, ClassicalMove, \
     ClassicalExchange, ClassicalConvert, ClassicalLoad, ClassicalStore, ClassicalComparison, \
     ClassicalEqual, ClassicalLessThan, ClassicalLessEqual, ClassicalGreaterThan, \
-    ClassicalGreaterEqual, Jump, Pragma, Declare, RawInstr
+    ClassicalGreaterEqual, Jump, Pragma, Declare, RawInstr, DefGateByPaulis, DefPermutationGate
 from pyquil.quilatom import Label, MemoryReference
 
 import logging
@@ -219,6 +219,8 @@ class PyQVM(QAM):
         for dg in self.program.defined_gates:
             if dg.parameters is not None and len(dg.parameters) > 0:
                 raise NotImplementedError("PyQVM does not support parameterized DEFGATEs")
+            if isinstance(dg, DefPermutationGate) or isinstance(dg, DefGateByPaulis):
+                raise NotImplementedError("PyQVM does not support DEFGATE ... AS MATRIX | PAULI-SUM.")
             self.defined_gates[dg.name] = dg.matrix
 
     def write_memory(self, *, region_name: str, offset: int = 0, value=None):
