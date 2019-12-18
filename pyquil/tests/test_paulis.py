@@ -29,6 +29,7 @@ from pyquil.paulis import (PauliTerm, PauliSum, exponential_map, exponentiate_co
                            ID, UnequalLengthWarning, exponentiate, trotterize, is_zero,
                            check_commutation, commuting_sets, term_with_coeff, sI, sX, sY, sZ,
                            ZERO, is_identity)
+from pyquil.unitary_tools import program_unitary
 from pyquil.quil import Program
 
 
@@ -432,6 +433,39 @@ def test_trotterize():
                                   H(0), RZ(1.5, 0), H(0), RZ(-4.0 / 3.0, 0),
                                   H(0), RZ(-2.0 / 24, 0), H(0), RZ(2.0, 0)])
     assert prog == result_prog
+
+
+def test_trotterize_order():
+    def expmi(hermitian_matrix):
+        """Compute the matrix exponential of -1j * hermitian_matrix."""
+        L, Q = np.linalg.eigh(hermitian_matrix)
+        return Q @ np.diag(np.exp(-1j * L)) @ Q.conj().T
+
+    def error(order, time_step_length):
+        a_pauli = time_step_length * sZ(0) * sY(1) * sX(2)
+        a_program = a_pauli.program
+
+        b_pauli = time_step_length * sX(0) * sZ(1) * sY(2)
+        b_program = b_pauli.program
+
+        num_qubits = len(a_program.get_qubits())
+        assert num_qubits == len(b_program.get_qubits())
+
+        a = program_unitary(a_program, num_qubits)
+        b = program_unitary(b_program, num_qubits)
+        a_plus_b = a + b
+        exp_a_plus_b = expmi(time_step_length * a_plus_b)
+
+        trotter_program = trotterize(a_pauli, b_pauli, trotter_order=order)
+        trotter = program_unitary(trotter_program, num_qubits)
+
+        return np.linalg.norm(exp_a_plus_b - trotter, np.inf)
+
+    xs = 10**np.logspace(-1, -6, 10)
+    for order in [1, 2, 3, 4]:
+        ys = [error(order, float(x)) for x in xs]
+        p = np.polyfit(np.log10(xs), np.log10(ys), 1)
+        assert p[0] >= order, f'Bound not satisfied with order={order}: the slope is {p[0]}'
 
 
 def test_is_zero():

@@ -13,10 +13,11 @@ Changelog
 -   Broadened the scope of `flake8` compliance to the include the `examples` and
     `docs` directories, and thus the whole repository (@tommy-moffat, gh-1113).
 -   `DEFGATE ... AS PAULI-SUM` is now supported (@ecpeterson, gh-1125).
+-   Add unit test for validating Trotterization order (@jmbr, gh-1120).
 
 ### Bugfixes
 
--   Minor fixes for examples/1.3_vqe_demo.py and examples/quantum_walk.ipynb
+-   Minor fixes for `examples/1.3_vqe_demo.py` and `examples/quantum_walk.ipynb`
     (@appleby, gh-1116).
 
 [v2.14](https://github.com/rigetti/pyquil/compare/v2.13.0...v2.14.0) (November 25, 2019)
