@@ -101,7 +101,7 @@ class QPU(QAM):
 
         super().__init__()
 
-    def build_client(self) -> Client:
+    def _build_client(self) -> Client:
         endpoint = self.endpoint or self.config.qpu_url
         if endpoint is None:
             raise UserMessageError(
@@ -123,7 +123,7 @@ support at support@rigetti.com.""")
     @property
     def client(self) -> Client:
         if not (self.config.get_engagement() and self.config.get_engagement().is_valid() and self._client):
-            self._client = self.build_client()
+            self._client = self._build_client()
         return self._client
 
     @property
