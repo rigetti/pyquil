@@ -37,11 +37,6 @@ def isclose(a, b, rel_tol=1e-10, abs_tol=0.0):
     return abs(a - b) <= max(rel_tol * max(abs(a), abs(b)), abs_tol)
 
 
-def test_init_pauli_term():
-    with pytest.raises(ValueError):
-        PauliTerm('X', 0, 'a')
-
-
 def test_simplify_terms():
     term = PauliTerm('Z', 0) * -1.0 * PauliTerm('Z', 0)
     assert term.id() == ''

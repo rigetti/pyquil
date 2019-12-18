@@ -15,12 +15,12 @@ from openfermion.transforms import symmetry_conserving_bravyi_kitaev, get_fermio
 from openfermion.utils import uccsd_singlet_get_packed_amplitudes
 
 from forestopenfermion import qubitop_to_pyquilpauli
-from referenceqvm.unitary_generator import tensor_up
 
 from pyquil.quil import Program
 from pyquil.paulis import sX, sY, exponentiate, PauliSum
 from pyquil.gates import X, I
 from pyquil.api import QVMConnection
+from pyquil.unitary_tools import tensor_up
 
 from grove.measurements.estimation import estimate_locally_commuting_operator
 
@@ -61,7 +61,7 @@ def ucc_circuit(theta):
 
 
 def objective_fun(theta, hamiltonian=None,
-                  quantum_resource=QVMConnection(sync_endpoint='http://localhost:5000')):
+                  quantum_resource=QVMConnection(endpoint='http://localhost:5000')):
     """
     Evaluate the Hamiltonian bny operator averaging
 
@@ -89,7 +89,7 @@ def objective_fun(theta, hamiltonian=None,
 
 
 if __name__ == "__main__":
-    qvm = QVMConnection(sync_endpoint='http://localhost:5000')
+    qvm = QVMConnection(endpoint='http://localhost:5000')
     bond_length = np.linspace(0.25, 3, 30)
     ucc_energy = []
     fci_energy = []
@@ -102,7 +102,7 @@ if __name__ == "__main__":
         # generate the spin-adapted classical coupled-cluster amplitude to use as the input for the
         # circuit
         packed_amps = uccsd_singlet_get_packed_amplitudes(molecule.ccsd_single_amps, molecule.ccsd_double_amps,
-                                                     molecule.n_qubits, molecule.n_electrons)
+                                                          molecule.n_qubits, molecule.n_electrons)
         theta = packed_amps[-1]  # always take the doubles amplitude
 
         # now that we're done setting up the Hamiltonian and grabbing initial opt parameters
@@ -110,7 +110,7 @@ if __name__ == "__main__":
         ucc_program = ucc_circuit(theta)
 
         paulis_bk_hamiltonian = qubitop_to_pyquilpauli(bk_hamiltonian)
-        bk_mat = tensor_up(paulis_bk_hamiltonian, 2)
+        bk_mat = tensor_up(paulis_bk_hamiltonian, [0, 1])
 
         w, v = np.linalg.eigh(bk_mat)
 
@@ -123,12 +123,11 @@ if __name__ == "__main__":
         observable = objective_fun(theta, hamiltonian=bk_mat, quantum_resource=qvm)
 
         result = minimize(objective_fun, x0=theta, args=(bk_mat, qvm), method='CG',
-                          options={'disp':True})
+                          options={'disp': True})
         ucc_energy.append(result.fun)
         fci_energy.append(molecule.fci_energy)
         hf_energy.append(molecule.hf_energy)
         print(w[0], molecule.fci_energy, tenergy, result.fun)
-
 
     plt.plot(bond_length, hf_energy, 'C1o-', label='HF')
     plt.plot(bond_length, ucc_energy, 'C0o-', label='UCC-VQE')

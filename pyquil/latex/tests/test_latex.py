@@ -98,8 +98,7 @@ def test_unsupported_ops():
         JumpTarget(target),
         CNOT(0, 1))
 
-    bad_ops = [RESET(0),
-               WAIT,
+    bad_ops = [WAIT,
                Jump(target),
                MOVE(MemoryReference('reg1'), MemoryReference('reg2'))]
 
