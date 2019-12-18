@@ -4,3 +4,5 @@ scipy
 networkx
 jupyter
 matplotlib
+forestopenfermion
+openfermionpsi4
