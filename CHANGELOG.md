@@ -7,7 +7,9 @@ Changelog
 ### Announcements
 
 ### Improvements and Changes
--   Broadened the scope of flake8 compliance to the entire repo (including examples, docs, etc.) (@tommy-moffat, gh-1113)
+
+-   Broadened the scope of flake8 compliance to the entire repo (including examples,
+    docs, etc.) (@tommy-moffat, gh-1113)
 
 ### Bugfixes
 
