@@ -71,8 +71,8 @@ class Qubit(QuilAtom):
 
 class FormalArgument(QuilAtom):
     """
-        Representation of a formal argument associated with a DEFCIRCUIT or DEFGATE ... AS PAULI-SUM form.
-        """
+    Representation of a formal argument associated with a DEFCIRCUIT or DEFGATE ... AS PAULI-SUM form.
+    """
 
     def __init__(self, name: str):
         if not isinstance(name, str):
