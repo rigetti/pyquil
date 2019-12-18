@@ -14,9 +14,11 @@
 #    limitations under the License.
 ##############################################################################
 import json
+import warnings
 from configparser import ConfigParser, NoSectionError, NoOptionError
 from os import environ, path
 from os.path import expanduser, abspath
+from types import MappingProxyType
 from typing import Dict, Iterable, Optional
 
 from pyquil.api._errors import UserMessageError
@@ -30,20 +32,21 @@ QCS_CONFIG = "QCS_CONFIG"
 # `.forest_config`, for content related to the Forest SDK, such as ip addresses for the various
 # servers to which users submit quil & jobs (qvm, compiler, qpu, etc.)
 FOREST_CONFIG = "FOREST_CONFIG"
-CONFIG_PATHS = {
+CONFIG_PATHS = MappingProxyType({
     "QCS_CONFIG": "~/.qcs_config",
     "FOREST_CONFIG": "~/.forest_config"
-}
+})
 
 
 class PyquilConfig(object):
     """
-    The PyQuilConfig object holds the configuration necessary to communicate with Rigetti systems,
-        to include authentication tokens, endpoint URL's, and file paths for configuration files on disk.
+    The PyQuilConfig object holds the configuration necessary to communicate with Rigetti systems
+        such as authentication tokens, endpoint URLs, and file paths for configuration files
+        on disk.
 
     :attribute get_engagement: A callback to fetch a currently valid engagement from which to read
-        configuration parameters (i.e., QPU_URL) as needed. This allows the engagement to be fetched and
-        maintained elsewhere (i.e., by ForestSession or manually).
+        configuration parameters (i.e., QPU_URL) as needed. This allows the engagement to be fetched
+         and maintained elsewhere (i.e., by ForestSession or manually).
     """
     FOREST_URL = {
         "env": "FOREST_SERVER_URL",
@@ -51,6 +54,14 @@ class PyquilConfig(object):
         "section": "Rigetti Forest",
         "name": "url",
         "default": "https://forest-server.qcs.rigetti.com"
+    }
+
+    API_KEY = {
+        "env": "FOREST_API_KEY",
+        "file": QCS_CONFIG,
+        "section": "Rigetti Forest",
+        "name": "key",
+        "default": None
     }
 
     USER_ID = {
@@ -137,7 +148,7 @@ class PyquilConfig(object):
 
     def __init__(self, config_paths: Dict[str, str] = CONFIG_PATHS):
         """
-        :param config_paths: the paths to the various configuration files read by PyQuil
+        :param config_paths: The paths to the various configuration files read by pyQuil.
         """
 
         # The engagement callback can be added by config consumers after construction
@@ -193,36 +204,39 @@ class PyquilConfig(object):
             by the dispatch service.
         """
         try:
-            if engagement_key is not None and self.engagement is not None:
-                return getattr(self.engagement, engagement_key)
+            if engagement_key is not None and self.get_engagement() is not None:
+                return getattr(self.get_engagement(), engagement_key)
         except AttributeError:
             pass
 
         return default
 
     @property
-    def dispatch_url(self):
+    def api_key(self) -> Optional[str]:
+        warnings.warn('PyQuilConfig#api_key is deprecated, unused by Rigetti services, and will '
+                      'be removed in a future release.',
+                      category=FutureWarning)
+        return self._env_or_config_or_default(**self.API_KEY)
+
+    @property
+    def dispatch_url(self) -> str:
         return self._env_or_config_or_default(**self.DISPATCH_URL)
 
     @property
-    def engage_cmd(self):
+    def engage_cmd(self) -> str:
         return self._env_or_config_or_default(**self.ENGAGE_CMD)
 
     @property
-    def engagement(self):
-        return self.get_engagement()
-
-    @property
-    def forest_url(self):
+    def forest_url(self) -> str:
         return self._env_or_config_or_default(**self.FOREST_URL)
 
     @property
-    def qmi_auth_token_path(self):
+    def qmi_auth_token_path(self) -> str:
         return path.expanduser(
             self._env_or_config_or_default(**self.QMI_AUTH_TOKEN_PATH))
 
     @property
-    def qcs_auth_headers(self):
+    def qcs_auth_headers(self) -> dict:
         if self.user_auth_token is not None:
             return {
                 'Authorization':
@@ -233,42 +247,42 @@ class PyquilConfig(object):
         return {}
 
     @property
-    def qcs_url(self):
+    def qcs_url(self) -> Optional[str]:
         return self._env_or_config_or_default(**self.QCS_URL)
 
     @property
-    def qpu_compiler_url(self):
+    def qpu_compiler_url(self) -> Optional[str]:
         return self._env_or_config_or_default(**self.QPU_COMPILER_URL)
 
     @property
-    def qpu_url(self):
+    def qpu_url(self) -> Optional[str]:
         return self._env_or_config_or_default(**self.QPU_URL)
 
     @property
-    def quilc_url(self):
+    def quilc_url(self) -> str:
         return self._env_or_config_or_default(**self.QUILC_URL)
 
     @property
-    def qvm_url(self):
+    def qvm_url(self) -> str:
         return self._env_or_config_or_default(**self.QVM_URL)
 
-    def update_user_auth_token(self, user_auth_token):
+    def update_user_auth_token(self, user_auth_token) -> None:
         self.user_auth_token = user_auth_token
         with open(self.user_auth_token_path, 'w') as f:
             json.dump(user_auth_token, f)
 
-    def update_qmi_auth_token(self, qmi_auth_token):
+    def update_qmi_auth_token(self, qmi_auth_token) -> None:
         self.qmi_auth_token = qmi_auth_token
         with open(self.qmi_auth_token_path, 'w') as f:
             json.dump(qmi_auth_token, f)
 
     @property
-    def user_auth_token_path(self):
+    def user_auth_token_path(self) -> str:
         return path.expanduser(
             self._env_or_config_or_default(**self.USER_AUTH_TOKEN_PATH))
 
     @property
-    def user_id(self):
+    def user_id(self) -> Optional[str]:
         return self._env_or_config_or_default(**self.USER_ID)
 
     def assert_valid_auth_credential(self) -> None:
@@ -286,21 +300,18 @@ class PyquilConfig(object):
             )
 
 
-def _parse_auth_token(path, required_keys: Iterable[str]) -> Optional[dict]:
+def _parse_auth_token(path: str, required_keys: Iterable[str]) -> Optional[dict]:
     try:
         with open(abspath(expanduser(path)), 'r') as f:
             token = json.load(f)
             invalid_values = [
                 k for k in required_keys if not isinstance(token.get(k), str)
             ]
-            if len(invalid_values) != 0:
-                logger.warning(f'Failed to parse auth token at {path}.')
-                logger.warning(f'Invalid {invalid_values}.')
-                return None
-            return token
+            if len(invalid_values) == 0:
+                return token
+            logger.warning(f'Failed to parse auth token at {path}.')
+            logger.warning(f'Invalid {invalid_values}.')
     except json.decoder.JSONDecodeError:
         logger.warning(f'Failed to parse auth token at {path}. Invalid JSON.')
-        return None
     except FileNotFoundError:
-        logger.debug(f'Auth token at {path} not found.')
-        return None
+        logger.debug('Auth token at %s not found.', path)

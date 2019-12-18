@@ -24,4 +24,4 @@ level = os.getenv('LOG_LEVEL', 'INFO').upper()
 logger = logging.getLogger(__name__)
 logger.setLevel(level)
 
-logger.debug(f"Log level: {logger.level}")
+logger.debug("Log level: %s", logger.level)

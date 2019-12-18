@@ -27,10 +27,7 @@ Changelog
 -   Add unit test for validating Trotterization order (@jmbr, gh-1120).
 -   Update authentication mechanism to Forest server. Preferentially use
     credentials found at `~/.qcs/user_auth_credentials` and fallback to
-    `~/.qcs/qmi_auth_credentials`. (@erichulburd, gh-1117)
--   `QPU` and `QPUCompiler` objects now take an optional `PyquilConfig` object as 
-    the `config` parameter, which can offer custom behavior regarding endpoints
-    and engagements. Both are backward-compatible. (@kalzoo, gh-1123)
+    `~/.qcs/qmi_auth_credentials`. (@erichulburd, gh-1123)
 
 ### Bugfixes
 

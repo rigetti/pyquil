@@ -82,10 +82,10 @@ class QPU(QAM):
         A connection to the QPU.
 
         :param endpoint: Address to connect to the QPU server. If not provided, the
-            endpoint provided by engagement with dispatch is used. One or both must be
-            available and valid.
-        :param user: [deprecated] A string identifying who's running jobs.
-        :param priority: [deprecated] The priority with which to insert jobs into the QPU queue. Lower
+                         endpoint provided by engagement with dispatch is used. One or both must be
+                         available and valid.
+        :param user: A string identifying who's running jobs.
+        :param priority: The priority with which to insert jobs into the QPU queue. Lower
                          integers correspond to higher priority.
         :param config: PyQuilConfig object, which provides endpoint & engagement values.
         """
@@ -95,6 +95,8 @@ class QPU(QAM):
             self.config = PyquilConfig()
 
         self.endpoint = endpoint
+        self.priority = priority
+        self.user = user
         self._last_results: Dict[str, np.ndarray] = {}
 
         super().__init__()
@@ -104,37 +106,33 @@ class QPU(QAM):
         if endpoint is None:
             raise UserMessageError(
                 """It looks like you've tried to run a program against a QPU but do
-                not currently have a reservation on one. To reserve time on Rigetti
-                QPUs, use the command line interface, qcs, which comes pre-installed
-                in your QMI. From within your QMI, type:
+not currently have a reservation on one. To reserve time on Rigetti
+QPUs, use the command line interface, qcs, which comes pre-installed
+in your QMI. From within your QMI, type:
 
-                    qcs reserve --lattice <lattice-name>
+    qcs reserve --lattice <lattice-name>
 
-                For more information, please see the docs at
-                https://www.rigetti.com/qcs/docs/reservations or reach out to Rigetti
-                support at support@rigetti.com.""")
+For more information, please see the docs at
+https://www.rigetti.com/qcs/docs/reservations or reach out to Rigetti
+support at support@rigetti.com.""")
 
-        logger.debug(f"QPU Client connecting to {endpoint}")
+        logger.debug("QPU Client connecting to %s", endpoint)
 
         return Client(endpoint, auth_config=self.client_auth_config)
 
     @property
     def client(self) -> Client:
-        if not (self.engagement and self.engagement.is_valid() and self._client):
+        if not (self.config.get_engagement() and self.config.get_engagement().is_valid() and self._client):
             self._client = self.build_client()
         return self._client
 
     @property
     def client_auth_config(self) -> Optional[ClientAuthConfig]:
-        if self.engagement is not None:
+        if self.config.get_engagement() is not None:
             return ClientAuthConfig(
-                client_public_key=self.engagement.client_public_key,
-                client_secret_key=self.engagement.client_secret_key,
-                server_public_key=self.engagement.server_public_key)
-
-    @property
-    def engagement(self) -> Engagement:
-        return self.config.engagement
+                client_public_key=self.config.get_engagement().client_public_key,
+                client_secret_key=self.config.get_engagement().client_secret_key,
+                server_public_key=self.config.get_engagement().server_public_key)
 
     def get_version_info(self) -> dict:
         """
@@ -174,7 +172,9 @@ class QPU(QAM):
         only do measurements where there is a 1-to-1 mapping between qubits and classical
         addresses.
 
-        :param run_priority: (Deprecated) Unused, argument provided for backwards compatibility
+        :param run_priority: The priority with which to insert jobs into the QPU queue. Lower
+                             integers correspond to higher priority. If not specified, the QPU
+                             object's default priority is used.
         :return: The QPU object itself.
         """
         # This prevents a common error where users expect QVM.run()
@@ -191,7 +191,11 @@ class QPU(QAM):
                              patch_values=self._build_patch_values(),
                              id=str(uuid.uuid4()))
 
-        job_id = self.client.call('execute_qpu_request', request=request)
+        job_priority = run_priority if run_priority is not None else self.priority
+        job_id = self.client.call('execute_qpu_request',
+                                  request=request,
+                                  user=self.user,
+                                  priority=job_priority)
         results = self._get_buffers(job_id)
         ro_sources = self._executable.ro_sources
 

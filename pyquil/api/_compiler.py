@@ -168,8 +168,8 @@ class QPUCompiler(AbstractCompiler):
         :param qpu_compiler_endpoint: TCP or IPC endpoint of the QPU Compiler
         :param device: PyQuil Device object to use as compilation target
         :param timeout: Number of seconds to wait for a response from the client.
-        :param config: PyQuilConfig object, which provides endpoint & engagement values
         :param name: Name of the lattice being targeted
+        :param config: PyQuilConfig object, which provides endpoint & engagement values
         """
 
         if config:
@@ -204,7 +204,7 @@ class QPUCompiler(AbstractCompiler):
             warnings.warn(f'{e}. Compilation using the QPU compiler will not be available.')
 
     @property
-    def qpu_compiler_client(self) -> Optional[Client]:
+    def qpu_compiler_client(self) -> Client:
         if not self._qpu_compiler_client:
             _qpu_compiler_endpoint = self.qpu_compiler_endpoint or self.config.qpu_compiler_url
             if _qpu_compiler_endpoint is not None:
@@ -348,7 +348,7 @@ class QVMCompiler(AbstractCompiler):
     @_record_call
     def reset(self) -> None:
         """
-        Reset the state of the QVMCompiler quilc connection
+        Reset the state of the QVMCompiler quilc connection.
         """
         timeout = self.client.timeout
         self.client.close()

@@ -43,7 +43,7 @@ def get_json(session, url, params: dict = None) -> dict:
     """
     Get JSON from a Forest endpoint.
     """
-    logger.debug(f"Sending GET request to {url}. Params: {params}")
+    logger.debug(f"Sending GET request to %s. Params: %s", url, params)
     res = session.get(url, params=params)
     if res.status_code >= 400:
         raise parse_error(res)
@@ -54,7 +54,7 @@ def post_json(session, url, json) -> requests.models.Response:
     """
     Post JSON to the Forest endpoint.
     """
-    logger.debug(f"Sending POST request to {url}. Body: {json}")
+    logger.debug(f"Sending POST request to %s. Body: %s", url, json)
     res = session.post(url, json=json)
     if res.status_code >= 400:
         raise parse_error(res)
@@ -269,45 +269,50 @@ class ForestSession(requests.Session):
     PyquilConfig, which in turn writes the refreshed auth credential to file.
 
     Encapsulates the operations required for authorization & encryption
-      with the QPU.
+    with the QPU.
 
     Two operations are involved in authorization:
-      * Requesting & storing a user authentication token, used to authenticate calls
-        to Forest, Dispatch, and other Rigetti services
-      * Requesting a Curve ZeroMQ keypair for connection to the QPU. The response to
-        this request also comes with service endpoints: compiler server and QPU
+
+    * Requesting & storing a user authentication token, used to authenticate calls
+    to Forest, Dispatch, and other Rigetti services
+    * Requesting a Curve ZeroMQ keypair for connection to the QPU. The response to
+    this request also comes with service endpoints: compiler server and QPU
 
     The authentication tokens are of the standard JWT format and are issued by Forest Server.
-      The refresh token is only used to renew the access token, which is used for all transactions
-      and is valid for a short period of time.
+
+    The refresh token is only used to renew the access token, which is used for all transactions
+    and is valid for a short period of time.
 
     In wrapping the PyQuilConfig object, it provides that object with a callback to
-      retrieve a valid engagement when needed, because the engagement is maintained here
-      but is used by the config to provide service endpoints.
+    retrieve a valid engagement when needed, because the engagement is maintained here
+    but is used by the config to provide service endpoints.
     """
-    def __init__(self, config: Optional[PyquilConfig] = None, lattice_name: Optional[str] = None, **kwargs):
+    def __init__(self,
+                 config: Optional[PyquilConfig] = None,
+                 lattice_name: Optional[str] = None,
+                 **kwargs):
         super().__init__(**kwargs)
         if config is not None:
             self.config = config
         else:
             self.config = PyquilConfig()
-        self.config.get_engagement = self.engagement
+        self.config.get_engagement = self.get_engagement
         self._engagement = None
         self.headers.update(self.config.qcs_auth_headers)
         self.headers['User-Agent'] = f"PyQuil/{__version__}"
         self.lattice_name = lattice_name
 
-    def engage(self) -> None:
+    def _engage(self) -> None:
         """
-        The heart of the QPU authorization process, `engage` makes a request to
-          the dispatch server for the information needed to communicate with the QPU.
+        The heart of the QPU authorization process, ``engage`` makes a request to
+        the dispatch server for the information needed to communicate with the QPU.
 
         This is a standard GraphQL request, authenticated using the access token
-          retrieved from Forest Server.
+        retrieved from Forest Server.
 
         The response includes the endpoints to the QPU and QPU Compiler Server,
-          along with the set of keys necessary to connect to the QPU and the time at
-          which that key set expires.
+        along with the set of keys necessary to connect to the QPU and the time at
+        which that key set expires.
         """
         query = '''
           mutation Engage($name: String!) {
@@ -336,7 +341,7 @@ class ForestSession(requests.Session):
             raise ValueError("ForestSession requires lattice_name in order to engage")
         logger.info(f"Requesting engagement from {self.config.dispatch_url}")
         variables = dict(name=self.lattice_name)
-        query_response = self.request_graphql(self.config.dispatch_url, query=query, variables=variables)
+        query_response = self._request_graphql_retry(self.config.dispatch_url, query=query, variables=variables)
 
         if query_response.get('errors'):
             error_messages = map(lambda error: error['message'], query_response.get('errors', []))
@@ -373,13 +378,13 @@ class ForestSession(requests.Session):
 
         self._engagement = engagement
 
-    def engagement(self) -> Optional['Engagement']:
+    def get_engagement(self) -> Optional['Engagement']:
         """
         Returns memoized engagement information, if still valid - or requests a new engagement,
-          and stores and returns that.
+            and stores and returns that.
         """
         if not (self._engagement and self._engagement.is_valid()):
-            self.engage()
+            self._engage()
         return self._engagement
 
     def _refresh_auth_token(self) -> bool:
@@ -391,7 +396,7 @@ class ForestSession(requests.Session):
         return False
 
     def _refresh_user_auth_token(self) -> bool:
-        url = '%s/auth/idp/oauth2/v1/token' % self.config.forest_url
+        url = f'{self.config.forest_url}/auth/idp/oauth2/v1/token'
         headers = {
             'Content-Type': 'application/x-www-form-urlencoded',
             'Cache-Control': 'no-cache',
@@ -408,12 +413,12 @@ class ForestSession(requests.Session):
 
         logger.warning(
             f'Failed to refresh your user auth token at {self.config.user_auth_token_path}. '
-            'Server response: {response.text}'
+            f'Server response: {response.text}'
         )
         return False
 
     def _refresh_qmi_auth_token(self) -> bool:
-        url = '%s/auth/qmi/refresh' % self.config.forest_url
+        url = f'{self.config.forest_url}/auth/qmi/refresh'
         headers = {
             'Content-Type': 'application/json',
             'Accept': 'application/json'}
@@ -426,7 +431,7 @@ class ForestSession(requests.Session):
 
         logger.warning(
             f'Failed to refresh your QMI auth token at {self.config.qmi_auth_token_path}. '
-            'Server response: {response.text}'
+            f'Server response: {response.text}'
         )
         return False
 
@@ -445,9 +450,9 @@ class ForestSession(requests.Session):
     def _request_graphql(self, url: str, query: str, variables: dict) -> dict:
         """
         Makes a single graphql request using the session credentials, throwing an error
-           if the response is not valid JSON
+        if the response is not valid JSON.
 
-        Returns the JSON parsed from the response
+        Returns the JSON parsed from the response.
         """
         response = super().post(url, json=dict(query=query, variables=variables))
         try:
@@ -456,10 +461,16 @@ class ForestSession(requests.Session):
             logger.exception(f"Unable to parse json response from endpoint {url}:", response.text)
             raise e
 
-    def request_graphql(self, *args, **kwargs) -> dict:
+    def _request_graphql_retry(self, *args, **kwargs) -> dict:
         """
         Makes a GraphQL request using session credentials, refreshing them once if the server
-           identifies them as expired
+        identifies them as expired.
+
+        Determining whether a call has failed to a GraphQL endpoint is less axiomatic than for a
+        REST interface, and so here we follow the pattern set by Rigetti services, which return an
+        HTTP 200 response with an array of errors. If any of those errors cite an expired
+        authentication token, we refresh the token to clear that error. Note that other error
+        messages will not trigger a retry.
         """
         result = self._request_graphql(*args, **kwargs)
         errors = result.get('errors', [])
@@ -588,7 +599,7 @@ class Engagement:
         self.expires_at = float(expires_at) if expires_at else None
         self.qpu_endpoint = qpu_endpoint
         self.qpu_compiler_endpoint = qpu_compiler_endpoint
-        logger.debug(f"New engagement created: {self}")
+        logger.debug(f"New engagement created: \n%s", self)
 
     def is_valid(self) -> bool:
         """

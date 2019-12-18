@@ -5,11 +5,6 @@ from pyquil.api._qac import AbstractCompiler
 from pyquil import Program
 
 
-def fixture_path(path: str) -> str:
-    dir_path = os.path.dirname(os.path.realpath(__file__))
-    return os.path.join(dir_path, 'data', path)
-
-
 def api_fixture_path(path: str) -> str:
     dir_path = os.path.dirname(os.path.realpath(__file__))
     return os.path.join(dir_path, '../api/tests/data', path)
