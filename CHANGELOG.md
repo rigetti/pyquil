@@ -8,10 +8,11 @@ Changelog
 
 ### Improvements and Changes
 
-- LaTeX circuit output now ignores `RESET` instructions by default, rendering
-  instead the (equivalent) program with `RESET` omitted. (@kilimanjaro,
-  gh-1118).
-- `DEFGATE ... AS PAULI-SUM` is now supported (@ecpeterson, gh-1125).
+-   LaTeX circuit output now ignores `RESET` instructions by default, rendering
+    instead the (equivalent) program with `RESET` omitted (@kilimanjaro, gh-1118).
+-   Broadened the scope of `flake8` compliance to the include the `examples` and
+    `docs` directories, and thus the whole repository (@tommy-moffat, gh-1113).
+-   `DEFGATE ... AS PAULI-SUM` is now supported (@ecpeterson, gh-1125).
 
 ### Bugfixes
 

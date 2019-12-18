@@ -26,6 +26,12 @@
 #
 # needs_sphinx = '1.0'
 
+import sphinx_rtd_theme
+from pyquil import __version__
+
+import subprocess
+import os
+
 # Add any Sphinx extension module names here, as strings. They can be
 # extensions coming with Sphinx (named 'sphinx.ext.*') or your custom
 # ones.
@@ -45,9 +51,6 @@ extensions = [
 
 autosummary_generate = True
 autoclass_content = "both"
-
-import sphinx_rtd_theme
-from pyquil import __version__
 
 # Add any paths that contain templates here, relative to this directory.
 templates_path = ['_templates']
@@ -375,9 +378,6 @@ mathjax_config = {
 }
 
 # fun little hack to always build the rst changelog from the markdown
-
-import subprocess
-import os
 
 dirname = os.path.dirname(__file__)
 
