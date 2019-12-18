@@ -8,26 +8,30 @@ Changelog
 
 -   PyQuil now supports encryption for communication with the QPU. It does so
     by requesting an `Engagement` from Forest Dispatch, which includes the keys
-    necessary for encryption along with the endpoints to use. This also means that
-    engagement is possible from the first second of a reservation, without waiting
-    for a configuration file to be written with service endpoints. (@kalzoo, gh-1123)
+    necessary for encryption along with the endpoints to use. This workflow is
+    managed by the new `ForestSession` class, and in the general case is
+    transparent to the user. (@kalzoo, gh-1123)
+
+### Improvements and Changes
+
+-   Broadened the scope of `flake8` compliance to the include the `examples` and
+    `docs` directories, and thus the whole repository (@tommy-moffat, gh-1113).
+<<<<<<< HEAD
+-   `DEFGATE ... AS PAULI-SUM` is now supported (@ecpeterson, gh-1125).
+-   Add unit test for validating Trotterization order (@jmbr, gh-1120).
+=======
+-   LaTeX circuit output now ignores `RESET` instructions by default, rendering
+    instead the (equivalent) program with `RESET` omitted (@kilimanjaro, gh-1118)
+>>>>>>> Update CHANGELOG
+-   Update authentication mechanism to Forest server. Preferentially use
+    credentials found at `~/.qcs/user_auth_credentials` and fallback to
+    `~/.qcs/qmi_auth_credentials`. (@erichulburd, gh-1123)
 -   The log level can now be controlled with the `LOG_LEVEL` environment variable.
     Set to `LOG_LEVEL=DEBUG` to help diagnose problems. (@kalzoo, gh-1123)
 -   Certain errors will no longer print their entire stack trace outside of `DEBUG`
     mode, for a cleaner console and better user experience. This is only true for 
     errors where the cause is well known. (@kalzoo, gh-1123)
-
-### Improvements and Changes
-
--   LaTeX circuit output now ignores `RESET` instructions by default, rendering
-    instead the (equivalent) program with `RESET` omitted (@kilimanjaro, gh-1118).
--   Broadened the scope of `flake8` compliance to the include the `examples` and
-    `docs` directories, and thus the whole repository (@tommy-moffat, gh-1113).
 -   `DEFGATE ... AS PAULI-SUM` is now supported (@ecpeterson, gh-1125).
--   Add unit test for validating Trotterization order (@jmbr, gh-1120).
--   Update authentication mechanism to Forest server. Preferentially use
-    credentials found at `~/.qcs/user_auth_credentials` and fallback to
-    `~/.qcs/qmi_auth_credentials`. (@erichulburd, gh-1123)
 
 ### Bugfixes
 
