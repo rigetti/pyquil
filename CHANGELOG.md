@@ -8,6 +8,8 @@ Changelog
 
 ### Improvements and Changes
 
+-  Include unit test for Trotterization (@jmbr, gh-1120).
+
 ### Bugfixes
 
 [v2.14](https://github.com/rigetti/pyquil/compare/v2.13.0...v2.14.0) (November 25, 2019)
