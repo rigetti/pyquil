@@ -7,6 +7,7 @@ Changelog
 ### Announcements
 
 ### Improvements and Changes
+-   Broadened the scope of flake8 compliance to the entire repo (including examples, docs, etc.) (@tommy-moffat, gh-1113)
 
 ### Bugfixes
 
@@ -37,7 +38,6 @@ Changelog
     and in `ISA`s (@ecpeterson, gh-1096, gh-1107, gh-1111).
 -   Removed the `tox.ini` and `readthedocs.yml` files (@karalekas, gh-1108).
 -   Type hints have been added to the `PauliSum` class (@rht, gh-1104).
--   Broadened the scope of flake8 compliance to the entire repo (including examples, docs, etc.) (@tommy-moffat, gh-1113)
 
 ### Bugfixes
 
