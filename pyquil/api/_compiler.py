@@ -14,15 +14,19 @@
 #    limitations under the License.
 ##############################################################################
 import logging
+import sys
 import warnings
+from requests.exceptions import RequestException
 from typing import Dict, Any, List, Optional, Tuple
 from collections import Counter
 
 from rpcq import Client
+from rpcq._base import Message, to_json, from_json
 from rpcq.messages import (BinaryExecutableRequest, BinaryExecutableResponse,
                            NativeQuilRequest, TargetDevice,
                            PyQuilExecutableResponse, ParameterSpec,
                            RewriteArithmeticRequest)
+from urllib.parse import urljoin
 
 from pyquil import __version__
 from pyquil.api._base_connection import ForestSession, get_session
@@ -32,6 +36,11 @@ from pyquil.api._errors import UserMessageError
 from pyquil.device import AbstractDevice
 from pyquil.parser import parse_program
 from pyquil.quil import Program, Measurement, Declare
+
+if sys.version_info < (3, 7):
+    from pyquil.external.dataclasses import dataclass
+else:
+    from dataclasses import dataclass
 
 
 _log = logging.getLogger(__name__)
@@ -196,6 +205,7 @@ class QPUCompiler(AbstractCompiler):
         self.qpu_compiler_endpoint = qpu_compiler_endpoint
         self._qpu_compiler_client = None
 
+        self._device = device
         self.target_device = TargetDevice(isa=device.get_isa().to_dict(), specs=None)
         self.name = name
 
@@ -211,7 +221,22 @@ class QPUCompiler(AbstractCompiler):
         if not self._qpu_compiler_client:
             endpoint = self.qpu_compiler_endpoint or self.session.config.qpu_compiler_url
             if endpoint is not None:
-                self._qpu_compiler_client = Client(endpoint, timeout=self.timeout)
+                if endpoint.startswith(('http://', 'https://')):
+                    device_endpoint = urljoin(
+                        endpoint,
+                        f'devices/{self._device._raw["device_name"]}/'
+                    )
+                    self._qpu_compiler_client = HTTPCompilerClient(
+                        endpoint=device_endpoint,
+                        session=self.session
+                    )
+                elif endpoint.startswith('tcp://'):
+                    self._qpu_compiler_client = Client(endpoint, timeout=self.timeout)
+                else:
+                    raise UserMessageError(
+                        'Invalid endpoint provided to QPUCompiler. Expected protocol in [http://, '
+                        f'https://, tcp://], but received endpoint {endpoint}'
+                    )
         return self._qpu_compiler_client
 
     def connect(self) -> None:
@@ -352,3 +377,71 @@ class QVMCompiler(AbstractCompiler):
         timeout = self.client.timeout
         self.client.close()
         self.client = Client(self.endpoint, timeout=timeout)
+
+
+@dataclass
+class HTTPCompilerClient:
+    """
+    A class which partially implements the interface of rpcq.Client, to allow the QPUCompiler to
+    send compilation requests over HTTP(S) rather than ZeroMQ.
+
+    :param endpoint: The base url to which rpcq methods will be appended.
+    :param session: The ForestSession object which manages headers and authentication.
+    """
+
+    endpoint: str
+    session: ForestSession
+
+    def call(self,
+             method: str,
+             payload: Optional[Message] = None,
+             *,
+             rpc_timeout: int = 30) -> Message:
+        """
+        A partially-compatible implementation of rpcq.Client#call, which allows calling rpcq
+        methods over HTTP following the scheme:
+
+            POST <endpoint>/<method>
+            body: json-serialized <payload>
+
+        This implementation is meant for use only with the QPUCompiler and is not intended to be
+        a fully-compatible port of rpcq from ZeroMQ to HTTP.
+
+        If the request succeeds (per HTTP response code), the body of the response is parsed into
+        an RPCQ Message.
+
+        If the request fails, the response body should be a JSON object with a ``message`` field
+        indicating the cause of the failure. If present, that message is delivered to the user.
+
+        :param payload: The rpcq message body.
+        :param rpc_timeout: The number of seconds to wait to read data back from the service
+            after connection.
+            @see https://requests.readthedocs.io/en/master/user/advanced/#timeouts
+        """
+        url = urljoin(self.endpoint, method)
+
+        if payload:
+            body = to_json(payload)
+        else:
+            body = None
+
+        response = self.session.post(url, json=body, timeout=(1, rpc_timeout))
+
+        try:
+            response.raise_for_status()
+        except RequestException as e:
+            message = f'QPU Compiler {method} failed: '
+
+            try:
+                contents = response.json()
+            except Exception:
+                contents = None
+
+            if contents and contents.get('message'):
+                message += contents.get('message')
+            else:
+                message += 'please try again or contact support.'
+
+            raise UserMessageError(message) from e
+
+        return from_json(response.text)

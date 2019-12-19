@@ -28,6 +28,7 @@ Changelog
     mode, for a cleaner console and better user experience. This is only true for 
     errors where the cause is well known. (@kalzoo, gh-1123)
 -   `DEFGATE ... AS PAULI-SUM` is now supported (@ecpeterson, gh-1125).
+-   Connection to the QPU compiler supports both ZeroMQ and HTTP(S) (@kalzoo, gh-1127).
 
 ### Bugfixes
 
