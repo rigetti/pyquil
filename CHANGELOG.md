@@ -6,14 +6,28 @@ Changelog
 
 ### Announcements
 
+-   PyQuil now supports encryption for communication with the QPU. It does so
+    by requesting an `Engagement` from Forest Dispatch, which includes the keys
+    necessary for encryption along with the endpoints to use. This workflow is
+    managed by the new `ForestSession` class, and in the general case is
+    transparent to the user. (@kalzoo, gh-1123)
+
 ### Improvements and Changes
 
--   LaTeX circuit output now ignores `RESET` instructions by default, rendering
-    instead the (equivalent) program with `RESET` omitted (@kilimanjaro, gh-1118).
 -   Broadened the scope of `flake8` compliance to the include the `examples` and
     `docs` directories, and thus the whole repository (@tommy-moffat, gh-1113).
--   `DEFGATE ... AS PAULI-SUM` is now supported (@ecpeterson, gh-1125).
+-   LaTeX circuit output now ignores `RESET` instructions by default, rendering
+    instead the (equivalent) program with `RESET` omitted (@kilimanjaro, gh-1118)
 -   Add unit test for validating Trotterization order (@jmbr, gh-1120).
+-   Update authentication mechanism to Forest server. Preferentially use
+    credentials found at `~/.qcs/user_auth_credentials` and fallback to
+    `~/.qcs/qmi_auth_credentials`. (@erichulburd, gh-1123)
+-   The log level can now be controlled with the `LOG_LEVEL` environment variable.
+    Set to `LOG_LEVEL=DEBUG` to help diagnose problems. (@kalzoo, gh-1123)
+-   Certain errors will no longer print their entire stack trace outside of `DEBUG`
+    mode, for a cleaner console and better user experience. This is only true for 
+    errors where the cause is well known. (@kalzoo, gh-1123)
+-   `DEFGATE ... AS PAULI-SUM` is now supported (@ecpeterson, gh-1125).
 
 ### Bugfixes
 
@@ -195,8 +209,8 @@ Changelog
     the underlying `QVM`/`QPU` and `QVMCompiler`/`QPUCompiler` objects,
     which should resolve bugs that arise due to stale clients/connections
     (@karalekas, gh-872).
--   In addition to the simultaneous 1Q RB fidelities contained in device 
-    specs prior to this release, there are now 1Q RB fidelities for 
+-   In addition to the simultaneous 1Q RB fidelities contained in device
+    specs prior to this release, there are now 1Q RB fidelities for
     non-simultaneous gate operation. The names of these fields have been
     changed for clarity, and standard errors for both fidelities have been
     added as well. Finally, deprecation warnings have been added regarding

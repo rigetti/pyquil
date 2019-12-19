@@ -1,6 +1,13 @@
+import os
+
 from pyquil.parser import parse
 from pyquil.api._qac import AbstractCompiler
 from pyquil import Program
+
+
+def api_fixture_path(path: str) -> str:
+    dir_path = os.path.dirname(os.path.realpath(__file__))
+    return os.path.join(dir_path, '../api/tests/data', path)
 
 
 def parse_equals(quil_string, *instructions):

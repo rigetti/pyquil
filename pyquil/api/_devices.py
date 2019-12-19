@@ -79,14 +79,13 @@ def list_lattices(device_name: str = None, num_qubits: int = None,
           accessible soon, but in the meanwhile, you'll have to use default QVM configurations and
           to use `list_quantum_computers` with `qpus = False`.
 
-        * You do have user authentication information, but it is missing or modified.  You can find
-          this either in the environment variables FOREST_API_KEY and FOREST_USER_ID or in the
-          config file (stored by default at ~/.qcs_config, but with location settable through the
-          environment variable QCS_CONFIG), which contains the subsection
+        * You do have user authentication credentials, but they are invalid. You can visit
+          https://qcs.rigetti.com/auth/token and save to ~/.qcs/user_auth_token to update your
+          authentication credentials. Alternatively, you may provide the path to your credentials in
+          your config file or with the USER_AUTH_TOKEN_PATH environment variable.
 
           [Rigetti Forest]
-          user_id = your_user_id
-          key = your_api_key
+          user_auth_token_path = ~/.qcs/my_auth_credentials
 
         * You're missing an address for the Forest 2.0 server endpoint, or the address is invalid.
           This too can be set through the environment variable FOREST_URL or by changing the
@@ -126,8 +125,8 @@ def _get_raw_lattice_data(lattice_name: str = None):
     """
     from pyquil.api._base_connection import get_session, get_json
     from requests.exceptions import MissingSchema
-    session = get_session()
     config = PyquilConfig()
+    session = get_session(config=config)
 
     try:
         res = get_json(session, f"{config.forest_url}/lattices/{lattice_name}")

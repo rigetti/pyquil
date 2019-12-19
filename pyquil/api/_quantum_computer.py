@@ -27,6 +27,7 @@ import networkx as nx
 import numpy as np
 from rpcq.messages import BinaryExecutableResponse, PyQuilExecutableResponse
 
+from pyquil.api._base_connection import get_session
 from pyquil.api._compiler import QPUCompiler, QVMCompiler
 from pyquil.api._config import PyquilConfig
 from pyquil.api._devices import get_lattice, list_lattices
@@ -778,19 +779,25 @@ def get_qc(name: str, *, as_qvm: bool = None, noisy: bool = None,
     else:
         # 4.2 A real device
         pyquil_config = PyquilConfig()
+        session = get_session(config=pyquil_config, lattice_name=prefix)
         if noisy is not None and noisy:
             warnings.warn("You have specified `noisy=True`, but you're getting a QPU. This flag "
                           "is meant for controlling noise models on QVMs.")
-        return QuantumComputer(name=name,
-                               qam=QPU(
-                                   endpoint=pyquil_config.qpu_url,
-                                   user=pyquil_config.user_id),
+
+        qpu = QPU(endpoint=None,
+                  user=pyquil_config.user_id,
+                  session=session)
+
+        compiler = QPUCompiler(quilc_endpoint=None,
+                               qpu_compiler_endpoint=None,
                                device=device,
-                               compiler=QPUCompiler(
-                                   quilc_endpoint=pyquil_config.quilc_url,
-                                   qpu_compiler_endpoint=pyquil_config.qpu_compiler_url,
-                                   device=device,
-                                   name=prefix))
+                               name=prefix,
+                               session=session)
+
+        return QuantumComputer(name=name,
+                               qam=qpu,
+                               device=device,
+                               compiler=compiler)
 
 
 @contextmanager
