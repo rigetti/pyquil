@@ -24,7 +24,6 @@ from rpcq.messages import QPURequest, ParameterAref
 
 from pyquil import Program
 from pyquil.parser import parse
-from pyquil.api._base_connection import Engagement
 from pyquil.api._config import PyquilConfig
 from pyquil.api._error_reporting import _record_call
 from pyquil.api._errors import UserMessageError
@@ -77,6 +76,7 @@ class QPU(QAM):
                  endpoint: Optional[str] = None,
                  user: str = "pyquil-user",
                  priority: int = 1,
+                 *,
                  config: Optional[PyquilConfig] = None) -> None:
         """
         A connection to the QPU.
@@ -118,7 +118,7 @@ support at support@rigetti.com.""")
 
         logger.debug("QPU Client connecting to %s", endpoint)
 
-        return Client(endpoint, auth_config=self.client_auth_config)
+        return Client(endpoint, auth_config=self._get_client_auth_config())
 
     @property
     def client(self) -> Client:
@@ -126,8 +126,7 @@ support at support@rigetti.com.""")
             self._client = self._build_client()
         return self._client
 
-    @property
-    def client_auth_config(self) -> Optional[ClientAuthConfig]:
+    def _get_client_auth_config(self) -> Optional[ClientAuthConfig]:
         if self.config.get_engagement() is not None:
             return ClientAuthConfig(
                 client_public_key=self.config.get_engagement().client_public_key,

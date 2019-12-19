@@ -160,6 +160,7 @@ class QPUCompiler(AbstractCompiler):
                  device: AbstractDevice,
                  timeout: int = 10,
                  name: Optional[str] = None,
+                 *,
                  config: Optional[PyquilConfig] = None) -> None:
         """
         Client to communicate with the Compiler Server.

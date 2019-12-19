@@ -33,8 +33,8 @@ QCS_CONFIG = "QCS_CONFIG"
 # servers to which users submit quil & jobs (qvm, compiler, qpu, etc.)
 FOREST_CONFIG = "FOREST_CONFIG"
 CONFIG_PATHS = MappingProxyType({
-    "QCS_CONFIG": "~/.qcs_config",
-    "FOREST_CONFIG": "~/.forest_config"
+    QCS_CONFIG: "~/.qcs_config",
+    FOREST_CONFIG: "~/.forest_config"
 })
 
 

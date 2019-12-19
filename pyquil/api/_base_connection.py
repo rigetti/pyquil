@@ -43,7 +43,7 @@ def get_json(session, url, params: dict = None) -> dict:
     """
     Get JSON from a Forest endpoint.
     """
-    logger.debug(f"Sending GET request to %s. Params: %s", url, params)
+    logger.debug("Sending GET request to %s. Params: %s", url, params)
     res = session.get(url, params=params)
     if res.status_code >= 400:
         raise parse_error(res)
@@ -54,7 +54,7 @@ def post_json(session, url, json) -> requests.models.Response:
     """
     Post JSON to the Forest endpoint.
     """
-    logger.debug(f"Sending POST request to %s. Body: %s", url, json)
+    logger.debug("Sending POST request to %s. Body: %s", url, json)
     res = session.post(url, json=json)
     if res.status_code >= 400:
         raise parse_error(res)
@@ -339,7 +339,7 @@ class ForestSession(requests.Session):
         '''
         if not self.lattice_name:
             raise ValueError("ForestSession requires lattice_name in order to engage")
-        logger.info(f"Requesting engagement from {self.config.dispatch_url}")
+        logger.debug("Requesting engagement from %s", self.config.dispatch_url)
         variables = dict(name=self.lattice_name)
         query_response = self._request_graphql_retry(self.config.dispatch_url, query=query, variables=variables)
 
@@ -351,7 +351,7 @@ class ForestSession(requests.Session):
 
         engagement_response = query_response.get('data', {}).get('engage', None)
         if engagement_response and engagement_response.get('success') is True:
-            logger.info(f"Engagement successful")
+            logger.debug("Engagement successful")
             engagement_data = engagement_response.get('engagement', {})
             engagement = Engagement(
                 client_secret_key=engagement_data.get('qpu', {})
@@ -378,7 +378,7 @@ class ForestSession(requests.Session):
 
         self._engagement = engagement
 
-    def get_engagement(self) -> Optional['Engagement']:
+    def get_engagement(self) -> 'Engagement':
         """
         Returns memoized engagement information, if still valid - or requests a new engagement,
             and stores and returns that.
@@ -599,7 +599,7 @@ class Engagement:
         self.expires_at = float(expires_at) if expires_at else None
         self.qpu_endpoint = qpu_endpoint
         self.qpu_compiler_endpoint = qpu_compiler_endpoint
-        logger.debug(f"New engagement created: \n%s", self)
+        logger.debug("New engagement created: \n%s", self)
 
     def is_valid(self) -> bool:
         """
