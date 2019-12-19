@@ -16,13 +16,9 @@ Changelog
 
 -   Broadened the scope of `flake8` compliance to the include the `examples` and
     `docs` directories, and thus the whole repository (@tommy-moffat, gh-1113).
-<<<<<<< HEAD
--   `DEFGATE ... AS PAULI-SUM` is now supported (@ecpeterson, gh-1125).
--   Add unit test for validating Trotterization order (@jmbr, gh-1120).
-=======
 -   LaTeX circuit output now ignores `RESET` instructions by default, rendering
     instead the (equivalent) program with `RESET` omitted (@kilimanjaro, gh-1118)
->>>>>>> Update CHANGELOG
+-   Add unit test for validating Trotterization order (@jmbr, gh-1120).
 -   Update authentication mechanism to Forest server. Preferentially use
     credentials found at `~/.qcs/user_auth_credentials` and fallback to
     `~/.qcs/qmi_auth_credentials`. (@erichulburd, gh-1123)
