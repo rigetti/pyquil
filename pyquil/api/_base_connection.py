@@ -288,21 +288,19 @@ class ForestSession(requests.Session):
     but is used by the config to provide service endpoints.
     """
     def __init__(self,
-                 config: Optional[PyquilConfig] = None,
+                 *,
+                 config: PyquilConfig,
                  lattice_name: Optional[str] = None,
                  **kwargs):
         super().__init__(**kwargs)
-        if config is not None:
-            self.config = config
-        else:
-            self.config = PyquilConfig()
+        self.config = config
         self.config.get_engagement = self.get_engagement
         self._engagement = None
         self.headers.update(self.config.qcs_auth_headers)
         self.headers['User-Agent'] = f"PyQuil/{__version__}"
         self.lattice_name = lattice_name
 
-    def _engage(self) -> None:
+    def _engage(self) -> Optional['Engagement']:
         """
         The heart of the QPU authorization process, ``engage`` makes a request to
         the dispatch server for the information needed to communicate with the QPU.
@@ -338,7 +336,9 @@ class ForestSession(requests.Session):
           }
         '''
         if not self.lattice_name:
-            raise ValueError("ForestSession requires lattice_name in order to engage")
+            logger.debug("ForestSession requires lattice_name in order to engage")
+            return
+
         logger.debug("Requesting engagement from %s", self.config.dispatch_url)
         variables = dict(name=self.lattice_name)
         query_response = self._request_graphql_retry(self.config.dispatch_url, query=query, variables=variables)
@@ -353,7 +353,7 @@ class ForestSession(requests.Session):
         if engagement_response and engagement_response.get('success') is True:
             logger.debug("Engagement successful")
             engagement_data = engagement_response.get('engagement', {})
-            engagement = Engagement(
+            return Engagement(
                 client_secret_key=engagement_data.get('qpu', {})
                                                  .get('credentials', {})
                                                  .get('clientSecret', '')
@@ -376,15 +376,13 @@ class ForestSession(requests.Session):
                 f"Unable to engage {self.lattice_name}: {engagement_response.get('message', 'No message')}"
             )
 
-        self._engagement = engagement
-
-    def get_engagement(self) -> 'Engagement':
+    def get_engagement(self) -> Optional['Engagement']:
         """
-        Returns memoized engagement information, if still valid - or requests a new engagement,
-            and stores and returns that.
+        Returns memoized engagement information, if still valid - or requests a new engagement
+        and then stores and returns that.
         """
         if not (self._engagement and self._engagement.is_valid()):
-            self._engage()
+            self._engagement = self._engage()
         return self._engagement
 
     def _refresh_auth_token(self) -> bool:
@@ -506,7 +504,7 @@ class ForestConnection:
         self.sync_endpoint = sync_endpoint
         self.compiler_endpoint = compiler_endpoint
         self.forest_cloud_endpoint = forest_cloud_endpoint
-        self.session = get_session()
+        self.session = get_session(config=pyquil_config)
 
     @_record_call
     def _run_and_measure(self, quil_program, qubits, trials, random_seed) -> np.ndarray:

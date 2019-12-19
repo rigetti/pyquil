@@ -125,8 +125,8 @@ def _get_raw_lattice_data(lattice_name: str = None):
     """
     from pyquil.api._base_connection import get_session, get_json
     from requests.exceptions import MissingSchema
-    session = get_session()
     config = PyquilConfig()
+    session = get_session(config=config)
 
     try:
         res = get_json(session, f"{config.forest_url}/lattices/{lattice_name}")

@@ -24,7 +24,7 @@ from rpcq.messages import QPURequest, ParameterAref
 
 from pyquil import Program
 from pyquil.parser import parse
-from pyquil.api._config import PyquilConfig
+from pyquil.api._base_connection import ForestSession, get_session
 from pyquil.api._error_reporting import _record_call
 from pyquil.api._errors import UserMessageError
 from pyquil.api._logger import logger
@@ -77,7 +77,7 @@ class QPU(QAM):
                  user: str = "pyquil-user",
                  priority: int = 1,
                  *,
-                 config: Optional[PyquilConfig] = None) -> None:
+                 session: Optional[ForestSession] = None) -> None:
         """
         A connection to the QPU.
 
@@ -87,12 +87,12 @@ class QPU(QAM):
         :param user: A string identifying who's running jobs.
         :param priority: The priority with which to insert jobs into the QPU queue. Lower
                          integers correspond to higher priority.
-        :param config: PyQuilConfig object, which provides endpoint & engagement values.
+        :param session: ForestSession object, which manages engagement and configuration.
         """
-        if config:
-            self.config = config
-        else:
-            self.config = PyquilConfig()
+        if not (session or endpoint):
+            raise ValueError("QPU requires either `session` or `endpoint`.")
+
+        self.session = session
 
         self.endpoint = endpoint
         self.priority = priority
@@ -102,7 +102,7 @@ class QPU(QAM):
         super().__init__()
 
     def _build_client(self) -> Client:
-        endpoint = self.endpoint or self.config.qpu_url
+        endpoint = self.endpoint or (self.session and self.session.config.qpu_url)
         if endpoint is None:
             raise UserMessageError(
                 """It looks like you've tried to run a program against a QPU but do
@@ -122,16 +122,24 @@ support at support@rigetti.com.""")
 
     @property
     def client(self) -> Client:
-        if not (self.config.get_engagement() and self.config.get_engagement().is_valid() and self._client):
+        if self.session:
+            if not (self.session.config.get_engagement()
+                    and self.session.config.get_engagement().is_valid()
+                    and self._client):
+                self._client = self._build_client()
+        elif not self._client:
             self._client = self._build_client()
+
         return self._client
 
     def _get_client_auth_config(self) -> Optional[ClientAuthConfig]:
-        if self.config.get_engagement() is not None:
+        if not self.session:
+            return
+        if self.session.config.get_engagement() is not None:
             return ClientAuthConfig(
-                client_public_key=self.config.get_engagement().client_public_key,
-                client_secret_key=self.config.get_engagement().client_secret_key,
-                server_public_key=self.config.get_engagement().server_public_key)
+                client_public_key=self.session.config.get_engagement().client_public_key,
+                client_secret_key=self.session.config.get_engagement().client_secret_key,
+                server_public_key=self.session.config.get_engagement().server_public_key)
 
     def get_version_info(self) -> dict:
         """

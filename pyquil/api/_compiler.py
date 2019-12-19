@@ -25,7 +25,7 @@ from rpcq.messages import (BinaryExecutableRequest, BinaryExecutableResponse,
                            RewriteArithmeticRequest)
 
 from pyquil import __version__
-from pyquil.api._config import PyquilConfig
+from pyquil.api._base_connection import ForestSession, get_session
 from pyquil.api._qac import AbstractCompiler
 from pyquil.api._error_reporting import _record_call
 from pyquil.api._errors import UserMessageError
@@ -155,32 +155,34 @@ def _collect_memory_descriptors(program: Program) -> Dict[str, ParameterSpec]:
 class QPUCompiler(AbstractCompiler):
     @_record_call
     def __init__(self,
-                 quilc_endpoint: str,
+                 quilc_endpoint: Optional[str],
                  qpu_compiler_endpoint: Optional[str],
                  device: AbstractDevice,
                  timeout: int = 10,
                  name: Optional[str] = None,
                  *,
-                 config: Optional[PyquilConfig] = None) -> None:
+                 session: Optional[ForestSession] = None) -> None:
         """
         Client to communicate with the Compiler Server.
 
-        :param quilc_endpoint: TCP or IPC endpoint of the Quil Compiler (quilc)
-        :param qpu_compiler_endpoint: TCP or IPC endpoint of the QPU Compiler
-        :param device: PyQuil Device object to use as compilation target
+        :param quilc_endpoint: TCP or IPC endpoint of the Quil Compiler (quilc).
+        :param qpu_compiler_endpoint: TCP or IPC endpoint of the QPU Compiler.
+        :param device: PyQuil Device object to use as compilation target.
         :param timeout: Number of seconds to wait for a response from the client.
-        :param name: Name of the lattice being targeted
-        :param config: PyQuilConfig object, which provides endpoint & engagement values
+        :param name: Name of the lattice being targeted.
+        :param session: ForestSession object, which manages engagement and configuration.
         """
 
-        if config:
-            self.config = config
-        else:
-            self.config = PyquilConfig()
+        if not (session or (quilc_endpoint and qpu_compiler_endpoint)):
+            raise ValueError("QPUCompiler requires either `session` or both of `quilc_endpoint` and "
+                             "`qpu_compiler_endpoint`.")
 
+        self.session = session
         self.timeout = timeout
 
-        if not quilc_endpoint.startswith('tcp://'):
+        _quilc_endpoint = quilc_endpoint or self.session.config.quilc_url
+
+        if not _quilc_endpoint.startswith('tcp://'):
             raise ValueError(f"PyQuil versions >= 2.4 can only talk to quilc "
                              f"versions >= 1.4 over network RPCQ.  You've supplied the "
                              f"endpoint '{quilc_endpoint}', but this doesn't look like a network "
@@ -189,7 +191,7 @@ class QPUCompiler(AbstractCompiler):
                              f"environment variable and removing (or correcting) the "
                              f"compiler_server_address line from your .forest_config file.")
 
-        self.quilc_client = Client(quilc_endpoint, timeout=timeout)
+        self.quilc_client = Client(_quilc_endpoint, timeout=timeout)
 
         self.qpu_compiler_endpoint = qpu_compiler_endpoint
         self._qpu_compiler_client = None
@@ -207,9 +209,9 @@ class QPUCompiler(AbstractCompiler):
     @property
     def qpu_compiler_client(self) -> Client:
         if not self._qpu_compiler_client:
-            _qpu_compiler_endpoint = self.qpu_compiler_endpoint or self.config.qpu_compiler_url
-            if _qpu_compiler_endpoint is not None:
-                self._qpu_compiler_client = Client(_qpu_compiler_endpoint, timeout=self.timeout)
+            endpoint = self.qpu_compiler_endpoint or self.session.config.qpu_compiler_url
+            if endpoint is not None:
+                self._qpu_compiler_client = Client(endpoint, timeout=self.timeout)
         return self._qpu_compiler_client
 
     def connect(self) -> None:
@@ -284,10 +286,6 @@ class QPUCompiler(AbstractCompiler):
         """
         Reset the state of the QPUCompiler Client connections.
         """
-
-        timeout = self.quilc_client.timeout
-        self.quilc_client.close()
-        self.quilc_client = Client(self.config.quilc_url, timeout=timeout)
         self._qpu_compiler_client = None
 
 

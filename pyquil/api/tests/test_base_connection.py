@@ -57,7 +57,7 @@ def test_forest_session_request_authenticated_with_user_token():
     config.config_parsers['QCS_CONFIG'].set('Rigetti Forest', 'url', 'mock://forest')
     config._parse_auth_tokens()
 
-    session = ForestSession(config)
+    session = ForestSession(config=config)
     mock_adapter = requests_mock.Adapter()
     session.mount('mock', mock_adapter)
 
@@ -84,7 +84,7 @@ def test_forest_session_request_authenticated_with_qmi_auth():
     config.config_parsers['QCS_CONFIG'].set('Rigetti Forest', 'url', 'mock://forest')
     config._parse_auth_tokens()
 
-    session = ForestSession(config)
+    session = ForestSession(config=config)
     mock_adapter = requests_mock.Adapter()
     session.mount('mock', mock_adapter)
 
@@ -111,7 +111,7 @@ def test_forest_session_request_refresh_user_auth_token():
     config.config_parsers['QCS_CONFIG'].set('Rigetti Forest', 'url', 'mock://forest')
     config._parse_auth_tokens()
 
-    session = ForestSession(config)
+    session = ForestSession(config=config)
     mock_adapter = requests_mock.Adapter()
     session.mount('mock', mock_adapter)
 
@@ -180,7 +180,7 @@ def test_forest_session_request_refresh_qmi_auth_token():
     config.config_parsers['QCS_CONFIG'].set('Rigetti Forest', 'url', 'mock://forest')
     config._parse_auth_tokens()
 
-    session = ForestSession(config)
+    session = ForestSession(config=config)
     mock_adapter = requests_mock.Adapter()
     session.mount('mock', mock_adapter)
 
@@ -248,7 +248,7 @@ def test_forest_session_request_engagement():
     config.config_parsers['QCS_CONFIG'].set('Rigetti Forest', 'dispatch_url', 'mock://dispatch')
     config._parse_auth_tokens()
 
-    session = ForestSession(config, 'fake-lattice')
+    session = ForestSession(config=config, lattice_name='fake-lattice')
     mock_adapter = requests_mock.Adapter()
     session.mount('mock', mock_adapter)
 
@@ -283,7 +283,7 @@ def test_forest_session_engagement_not_requested_if_config_present():
     config.config_parsers['QCS_CONFIG'].set('Rigetti Forest', 'dispatch_url', 'mock://dispatch')
     config._parse_auth_tokens()
 
-    session = ForestSession(config, 'fake-lattice')
+    session = ForestSession(config=config, lattice_name='fake-lattice')
     mock_adapter = requests_mock.Adapter()
     session.mount('mock', mock_adapter)
 
@@ -318,7 +318,7 @@ def test_forest_session_request_engagement_failure():
     config.config_parsers['QCS_CONFIG'].set('Rigetti Forest', 'dispatch_url', 'mock://dispatch')
     config._parse_auth_tokens()
 
-    session = ForestSession(config, 'fake-lattice')
+    session = ForestSession(config=config, lattice_name='fake-lattice')
     mock_adapter = requests_mock.Adapter()
     session.mount('mock', mock_adapter)
 
