@@ -8,7 +8,7 @@ variables:
   QUILC_URL: "tcp://quilc:5555"
 
 services:
-  - name: rigetti/qvm:1.14.0
+  - name: rigetti/qvm
     alias: qvm
     command: ["-S"]
   - name: rigetti/quilc
