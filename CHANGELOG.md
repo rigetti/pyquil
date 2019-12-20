@@ -33,6 +33,8 @@ Changelog
 
 ### Bugfixes
 
+-   Pinned the `mypy` version to work around issue with nested types causing the
+    `make typecheck` CI job to fail (@erichulburd, gh-1119).
 -   Minor fixes for `examples/1.3_vqe_demo.py` and `examples/quantum_walk.ipynb`
     (@appleby, gh-1116).
 
