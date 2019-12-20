@@ -30,6 +30,7 @@ Changelog
     the cause is well known. (@kalzoo, gh-1123)
 -   Connection to the QPU compiler now supports both ZeroMQ and HTTP(S)
     (@kalzoo, gh-1127).
+-   Bump quilc / qvm parent Docker images to v1.15.1 (@karalekas, gh-1128).
 
 ### Bugfixes
 
