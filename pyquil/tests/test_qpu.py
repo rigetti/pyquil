@@ -7,6 +7,7 @@ from rpcq.messages import ParameterAref
 from pyquil.parser import parse
 from pyquil import Program, get_qc
 from pyquil.api import QuantumComputer, QPU, QPUCompiler
+from pyquil.api._base_connection import Engagement, get_session
 from pyquil.api._compiler import _collect_classical_memory_write_locations
 from pyquil.api._config import PyquilConfig
 from pyquil.api._errors import UserMessageError
@@ -251,3 +252,58 @@ def test_run_expects_executable(qvm, qpu_compiler):
 def test_qpu_not_engaged_error():
     with pytest.raises(ValueError):
         qpu = QPU()
+
+
+def test_qpu_does_not_engage_without_session():
+    qpu = QPU(endpoint='tcp://fake.qpu:50052')
+
+    assert qpu._get_client_auth_config() is None
+
+
+def test_qpu_reengage_when_invalid():
+    config = PyquilConfig()
+    engagement = Engagement(
+        server_public_key=b'abc123',
+        client_public_key=b'abc123',
+        client_secret_key=b'abc123',
+        expires_at=9999999999.0,
+        qpu_endpoint='tcp://fake.qpu:50053',
+        qpu_compiler_endpoint='tcp://fake.compiler:5555'
+    )
+
+    assert engagement.is_valid()
+
+    session = get_session(config=config)
+    config._engagement_requested = True
+    config.get_engagement = lambda: engagement
+
+    qpu = QPU(session=session)
+
+    assert qpu._client_engagement is None
+    assert qpu._get_client_auth_config() is not None
+    assert qpu._client_engagement is engagement
+
+    # By expiring the previous engagement, we expect QPU to attempt to re-engage
+    engagement.expires_at = 0.0
+    assert not engagement.is_valid()
+
+    new_engagement = Engagement(
+        server_public_key=b'abc12345',
+        client_public_key=b'abc12345',
+        client_secret_key=b'abc12345',
+        expires_at=9999999999.0,
+        qpu_endpoint='tcp://fake.qpu:50053',
+        qpu_compiler_endpoint='tcp://fake.compiler:5555'
+    )
+
+    config.get_engagement = lambda: new_engagement
+
+    new_auth_config = qpu._get_client_auth_config()
+    assert new_auth_config is not None
+    assert new_auth_config.client_public_key == new_engagement.client_public_key
+    assert qpu._client_engagement is new_engagement
+
+    new_engagement.expires_at = 0.0
+    config.get_engagement = lambda: None
+
+    assert qpu._get_client_auth_config() is None
