@@ -57,3 +57,16 @@ def test_config_assert_valid_auth_credential():
     assert config.user_auth_token is not None
     assert config.qmi_auth_token is not None
     config.assert_valid_auth_credential()
+
+
+def test_engagement_not_requested_when_unnecessary():
+    config = PyquilConfig(TEST_CONFIG_PATHS)
+    config.config_parsers['FOREST_CONFIG'].set('Rigetti Forest',
+                                               'qpu_compiler_address',
+                                               'tcp://fake_compiler:5555')
+    config.config_parsers['FOREST_CONFIG'].set('Rigetti Forest',
+                                               'qpu_endpoint_address',
+                                               'tcp://fake_qpu:5555')
+    assert config.qpu_compiler_url == 'tcp://fake_compiler:5555'
+    assert config.qpu_url == 'tcp://fake_qpu:5555'
+    assert config.engagement is None

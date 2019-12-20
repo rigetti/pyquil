@@ -154,6 +154,9 @@ class PyquilConfig(object):
         # The engagement callback can be added by config consumers after construction
         self.get_engagement = lambda: None
 
+        # Whether engagement has been requested in order to provide any config values
+        self._engagement_requested = False
+
         self.config_parsers = {}
         for env_name, default_path in config_paths.items():
             default_path = expanduser(default_path)
@@ -205,6 +208,7 @@ class PyquilConfig(object):
         """
         try:
             if engagement_key is not None and self.get_engagement() is not None:
+                self._engagement_requested = True
                 return getattr(self.get_engagement(), engagement_key)
         except AttributeError:
             pass
@@ -225,6 +229,16 @@ class PyquilConfig(object):
     @property
     def engage_cmd(self) -> str:
         return self._env_or_config_or_default(**self.ENGAGE_CMD)
+
+    @property
+    def engagement(self) -> Optional['Engagement']:
+        """
+        An Engagement should only be made available to consumers if it was used to retrieve a
+        configuration value.
+        """
+        if not self._engagement_requested:
+            return
+        return self.get_engagement()
 
     @property
     def forest_url(self) -> str:

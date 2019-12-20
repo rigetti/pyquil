@@ -97,6 +97,7 @@ class QPU(QAM):
         self.endpoint = endpoint
         self.priority = priority
         self.user = user
+        self._client_engagement = None
         self._last_results: Dict[str, np.ndarray] = {}
 
         super().__init__()
@@ -122,24 +123,27 @@ support at support@rigetti.com.""")
 
     @property
     def client(self) -> Client:
-        if self.session:
-            if not (self.session.config.get_engagement()
-                    and self.session.config.get_engagement().is_valid()
-                    and self._client):
-                self._client = self._build_client()
-        elif not self._client:
+        """
+        Return a memoized client with a valid engagement if it exists; otherwise, build a new one
+        and return it. If this QPU object does not have a ForestSession, then engagement is not
+        applicable.
+        """
+        engagement_is_valid = self._client_engagement and self._client_engagement.is_valid()
+        if not (self._client and (self.session is None or engagement_is_valid)):
             self._client = self._build_client()
-
         return self._client
 
     def _get_client_auth_config(self) -> Optional[ClientAuthConfig]:
         if not self.session:
             return
-        if self.session.config.get_engagement() is not None:
+        if self.session.config.engagement is not None:
+            # We store the engagement used to construct this client so that we can later check
+            # for validity
+            self._client_engagement = self.session.config.engagement
             return ClientAuthConfig(
-                client_public_key=self.session.config.get_engagement().client_public_key,
-                client_secret_key=self.session.config.get_engagement().client_secret_key,
-                server_public_key=self.session.config.get_engagement().server_public_key)
+                client_public_key=self._client_engagement.client_public_key,
+                client_secret_key=self._client_engagement.client_secret_key,
+                server_public_key=self._client_engagement.server_public_key)
 
     def get_version_info(self) -> dict:
         """
