@@ -8,8 +8,7 @@ FROM rigetti/quilc:$quilc_version as quilc
 FROM rigetti/qvm:$qvm_version as qvm
 FROM python:$python_version
 
-# copy over the pre-built quilc binary and tweedledum library from the first build stage
-COPY --from=quilc /usr/local/lib/libtweedledum.so /usr/local/lib/libtweedledum.so
+# copy over the pre-built quilc binary from the first build stage
 COPY --from=quilc /src/quilc/quilc /src/quilc/quilc
 
 # copy over the pre-built qvm binary from the second build stage
@@ -18,7 +17,7 @@ COPY --from=qvm /src/qvm/qvm /src/qvm/qvm
 # install the missing apt packages that aren't copied over
 RUN apt-get update && apt-get -yq dist-upgrade && \
     apt-get install --no-install-recommends -yq \
-    clang-7 git libblas-dev libffi-dev liblapack-dev libzmq3-dev && \
+    git libblas-dev libffi-dev liblapack-dev libzmq3-dev && \
     rm -rf /var/lib/apt/lists/*
 
 # install ipython
