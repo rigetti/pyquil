@@ -290,18 +290,17 @@ class Program(object):
         """
         return self.inst(Pragma("NO-NOISE"))
 
-    def measure(self, qubit_index: int, classical_reg: int) -> 'Program':
+    def measure(self, qubit: QubitDesignator, classical_reg: Optional[MemoryReferenceDesignator]) -> 'Program':
         """
         Measures a qubit at qubit_index and puts the result in classical_reg
 
-        :param int qubit_index: The address of the qubit to measure.
-        :param int classical_reg: The address of the classical bit to store the result.
-            Set to None to measure for effect (discard result).
+        :param qubit: The qubit to measure.
+        :param classical_reg: The classical register to measure into, or None.
         :returns: The Quil Program with the appropriate measure instruction appended, e.g.
                   MEASURE 0 [1]
         :rtype: Program
         """
-        return self.inst(MEASURE(qubit_index, classical_reg))
+        return self.inst(MEASURE(qubit, classical_reg))
 
     def reset(self, qubit_index: Optional[int] = None) -> 'Program':
         """
