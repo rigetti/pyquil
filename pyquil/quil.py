@@ -20,23 +20,21 @@ import itertools
 import types
 import warnings
 from collections import OrderedDict, defaultdict
+from typing import Any, Dict, List, Iterable, Optional, Set, Union
 
 import numpy as np
 from rpcq.messages import NativeQuilMetadata
 
 from pyquil._parser.PyQuilListener import run_parser
 from pyquil.noise import _check_kraus_ops, _create_kraus_pragmas, pauli_kraus_map
-from pyquil.quilatom import (LabelPlaceholder, MemoryReference, QubitPlaceholder,
-                             format_parameter, unpack_classical_reg, unpack_qubit)
+from pyquil.quilatom import (LabelPlaceholder, MemoryReference, MemoryReferenceDesignator,
+                             Parameter, ParameterDesignator, QubitDesignator,
+                             QubitPlaceholder, format_parameter, unpack_classical_reg,
+                             unpack_qubit)
 from pyquil.gates import MEASURE, H, RESET
 from pyquil.quilbase import (DefGate, Gate, Measurement, Pragma, AbstractInstruction, Qubit,
                              Jump, Label, JumpConditional, JumpTarget, JumpUnless, JumpWhen,
                              Declare, Halt, Reset, ResetQubit, DefPermutationGate)
-
-# for typing purpose
-from typing import Any, Dict, List, Iterable, Optional, Set, Union
-from pyquil.quilatom import (MemoryReferenceDesignator, Parameter, ParameterDesignator,
-                             QubitDesignator)
 
 
 class Program(object):
