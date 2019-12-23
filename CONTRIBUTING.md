@@ -101,16 +101,16 @@ for the linter (`flake8`) and formatter (`black`). If `make formatcheck` fails, 
 you with a diff, which you can resolve by running `make format`.  Black is very opinionated, but
 saves a lot of time by removing the need for style nitpicks in PR review. We only deviate from its
 default behavior in one category: we choose to use a line length of 100 rather than the Black
-default of 88.
+default of 88 (this is configured in the [`pyproject.toml`](pyproject.toml) file).
 
 In addition to linting and formatting, we are in the process of rolling out the use of type hints
 for all parameters and return values, using the [PEP 484 syntax][pep-484]. This is being done on
 a file-by-file basis, and for ones that have been completed we now have a `make typecheck` command
 that will enforce the use of types in those files as part of the CI. When a file is transitioned,
-it should be added to the list in the `typecheck` target of the `Makefile`. Because we use the
-`typing` module, types (e.g. `type` and `rtype` entries) should be omitted when writing (useful)
-[Sphinx-style](https://sphinx-rtd-tutorial.readthedocs.io/en/latest/docstrings.html) docstrings
-for classes, methods, and functions.
+it should be added to the list in the `typecheck` target of the [`Makefile`](Makefile). Because we
+use the `typing` module, types (e.g. `type` and `rtype` entries) should be omitted when writing
+(useful) [Sphinx-style](https://sphinx-rtd-tutorial.readthedocs.io/en/latest/docstrings.html)
+docstrings for classes, methods, and functions.
 
 [pep-484]: https://www.python.org/dev/peps/pep-0484/
 
