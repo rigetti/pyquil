@@ -32,6 +32,10 @@ docs: CHANGELOG.md
 docker: Dockerfile
 	docker build -t $(DOCKER_TAG) .
 
+.PHONY: format
+format:
+	black --line-length=100 --exclude="/(\.eggs|\.git|\.hg|\.mypy_cache|\.nox|\.tox|\.venv|_build|buck-out|build|dist)/|gen3|external" --target-version=py36 pyquil
+
 .PHONY: info
 info:
 	python -V
