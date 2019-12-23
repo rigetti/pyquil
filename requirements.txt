@@ -18,6 +18,7 @@ pytest-rerunfailures
 requests-mock
 flake8
 mypy==0.740
+black
 
 # docs
 sphinx
