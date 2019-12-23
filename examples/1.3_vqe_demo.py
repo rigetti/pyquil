@@ -23,6 +23,8 @@ from pyquil.unitary_tools import tensor_up
 
 from grove.measurements.estimation import estimate_locally_commuting_operator
 
+QVM_CONNECTION = QVMConnection(endpoint="http://localhost:5000")
+
 
 def get_h2_dimer(bond_length):
     # Set molecule parameters.
@@ -59,7 +61,7 @@ def ucc_circuit(theta):
 
 
 def objective_fun(
-    theta, hamiltonian=None, quantum_resource=QVMConnection(endpoint="http://localhost:5000")
+    theta, hamiltonian=None, quantum_resource=QVM_CONNECTION
 ):
     """
     Evaluate the Hamiltonian bny operator averaging

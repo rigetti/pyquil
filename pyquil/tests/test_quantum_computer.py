@@ -421,7 +421,7 @@ def test_qc_run(qvm, compiler):
     qc = get_qc("9q-square-noisy-qvm")
     bs = qc.run_and_measure(Program(X(0)), trials=3)
     assert len(bs) == 9
-    for q, bits in bs.items():
+    for _, bits in bs.items():
         assert bits.shape == (3,)
 
 
