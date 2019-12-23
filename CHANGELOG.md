@@ -8,7 +8,7 @@ Changelog
 
 ### Improvements and Changes
 
--   Some of the type hints have been added to the `Program` class (@rht, gh-1115)
+-   Added some type hints to the `Program` class (@rht, gh-1115).
 
 ### Bugfixes
 
@@ -42,7 +42,7 @@ Changelog
     set to `LOG_LEVEL=DEBUG` to help diagnose problems. In addition, certain errors
     will no longer print their entire stack trace outside of `DEBUG` mode, for a
     cleaner console and better user experience. This is only true for errors where
-    the cause is well known. (@kalzoo, gh-1123)
+    the cause is well known (@kalzoo, gh-1123).
 -   Connection to the QPU compiler now supports both ZeroMQ and HTTP(S)
     (@kalzoo, gh-1127).
 -   Bump quilc / qvm parent Docker images to v1.15.1 (@karalekas, gh-1128).
