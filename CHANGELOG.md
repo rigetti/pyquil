@@ -9,6 +9,9 @@ Changelog
 ### Improvements and Changes
 
 -   Added some type hints to the `Program` class (@rht, gh-1115).
+-   Use [Black](https://black.readthedocs.io/en/stable/index.html) for code style
+    and enforce it (along with a line length of 100) via the `style` (`flake8`)
+    and `formatcheck` (`black --check`) CI jobs (@karalekas, gh-1132).
 
 ### Bugfixes
 
