@@ -1,3 +1,4 @@
 [flake8]
-ignore = E501,E999,E741,E126,E127,F401,F403,F405,F811,F841,E743,W503
+max-line-length = 100
+ignore = E203,E999,E741,E126,E127,F401,F403,F405,F811,F841,E743,W503
 exclude = gen3,external

@@ -2,19 +2,24 @@ import pytest
 import numpy as np
 import itertools
 
-from pyquil.wavefunction import get_bitstring_from_index, Wavefunction, _round_to_next_multiple, _octet_bits
+from pyquil.wavefunction import (
+    get_bitstring_from_index,
+    Wavefunction,
+    _round_to_next_multiple,
+    _octet_bits,
+)
 
 
 @pytest.fixture()
 def wvf():
-    amps = np.array([1.0, 1.j, 0.000005, 0.02])
-    amps /= np.sqrt(np.sum(np.abs(amps)**2))
+    amps = np.array([1.0, 1.0j, 0.000005, 0.02])
+    amps /= np.sqrt(np.sum(np.abs(amps) ** 2))
     return Wavefunction(amps)
 
 
 def test_get_bitstring_from_index():
-    assert get_bitstring_from_index(0, 2) == '00'
-    assert get_bitstring_from_index(3, 3) == '011'
+    assert get_bitstring_from_index(0, 2) == "00"
+    assert get_bitstring_from_index(3, 3) == "011"
 
     with pytest.raises(IndexError):
         get_bitstring_from_index(10, 2)
@@ -64,7 +69,7 @@ def test_octet_bits():
 def test_probabilities(wvf):
     n_qubits = 2
     bitstrings = [list(x) for x in itertools.product((0, 1), repeat=n_qubits)]
-    prob_keys = [''.join(str(b) for b in bs) for bs in bitstrings]
+    prob_keys = ["".join(str(b) for b in bs) for bs in bitstrings]
     prob_dict = wvf.get_outcome_probs()
     probs1 = np.array([prob_dict[x] for x in prob_keys])
     probs2 = wvf.probabilities()

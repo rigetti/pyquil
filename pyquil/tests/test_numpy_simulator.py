@@ -6,45 +6,52 @@ import pytest
 from pyquil import Program
 from pyquil.gate_matrices import QUANTUM_GATES as GATES
 from pyquil.gates import *
-from pyquil.numpy_simulator import targeted_einsum, NumpyWavefunctionSimulator, \
-    all_bitstrings, targeted_tensordot, _term_expectation
+from pyquil.numpy_simulator import (
+    targeted_einsum,
+    NumpyWavefunctionSimulator,
+    all_bitstrings,
+    targeted_tensordot,
+    _term_expectation,
+)
 from pyquil.paulis import sZ, sX
 from pyquil.pyqvm import PyQVM
 from pyquil.reference_simulator import ReferenceWavefunctionSimulator
-from pyquil.tests.test_reference_wavefunction_simulator import _generate_random_program, \
-    _generate_random_pauli
+from pyquil.tests.test_reference_wavefunction_simulator import (
+    _generate_random_program,
+    _generate_random_pauli,
+)
 from pyquil.quilatom import MemoryReference
 from pyquil.quilbase import Declare, DefGate
 
 
 def test_H_einsum():
-    h_mat = GATES['H']
+    h_mat = GATES["H"]
     one_q_wfn = np.zeros((2,), dtype=np.complex128)
-    one_q_wfn[0] = 1 + 0.j
+    one_q_wfn[0] = 1 + 0.0j
     one_q_wfn = targeted_einsum(gate=h_mat, wf=one_q_wfn, wf_target_inds=[0])
     np.testing.assert_allclose(one_q_wfn, 1 / np.sqrt(2) * np.ones(2))
 
 
 def test_H_tensordot():
-    h_mat = GATES['H']
+    h_mat = GATES["H"]
     one_q_wfn = np.zeros((2,), dtype=np.complex128)
-    one_q_wfn[0] = 1 + 0.j
+    one_q_wfn[0] = 1 + 0.0j
     one_q_wfn = targeted_tensordot(gate=h_mat, wf=one_q_wfn, wf_target_inds=[0])
     np.testing.assert_allclose(one_q_wfn, 1 / np.sqrt(2) * np.ones(2))
 
 
 def test_wfn_ordering_einsum():
-    h_mat = GATES['H']
+    h_mat = GATES["H"]
     two_q_wfn = np.zeros((2, 2), dtype=np.complex128)
-    two_q_wfn[0, 0] = 1 + 0.j
+    two_q_wfn[0, 0] = 1 + 0.0j
     two_q_wfn = targeted_einsum(gate=h_mat, wf=two_q_wfn, wf_target_inds=[0])
     np.testing.assert_allclose(two_q_wfn[:, 0], 1 / np.sqrt(2) * np.ones(2))
 
 
 def test_wfn_ordering_tensordot():
-    h_mat = GATES['H']
+    h_mat = GATES["H"]
     two_q_wfn = np.zeros((2, 2), dtype=np.complex128)
-    two_q_wfn[0, 0] = 1 + 0.j
+    two_q_wfn[0, 0] = 1 + 0.0j
     two_q_wfn = targeted_tensordot(gate=h_mat, wf=two_q_wfn, wf_target_inds=[0])
     np.testing.assert_allclose(two_q_wfn[:, 0], 1 / np.sqrt(2) * np.ones(2))
 
@@ -98,13 +105,10 @@ def test_einsum_simulator_10q():
 
 def test_measure():
     qam = PyQVM(n_qubits=3, quantum_simulator_type=NumpyWavefunctionSimulator)
-    qam.execute(Program(
-        Declare("ro", "BIT", 64),
-        H(0),
-        CNOT(0, 1),
-        MEASURE(0, MemoryReference("ro", 63))
-    ))
-    measured_bit = qam.ram['ro'][-1]
+    qam.execute(
+        Program(Declare("ro", "BIT", 64), H(0), CNOT(0, 1), MEASURE(0, MemoryReference("ro", 63)))
+    )
+    measured_bit = qam.ram["ro"][-1]
     should_be = np.zeros((2, 2, 2))
     if measured_bit == 1:
         should_be[1, 1, 0] = 1
@@ -136,15 +140,18 @@ def test_vs_ref_simulator(n_qubits, prog_length, include_measures):
         seed = None
 
     for _ in range(10):
-        prog = _generate_random_program(n_qubits=n_qubits, length=prog_length,
-                                        include_measures=include_measures)
-        ref_qam = PyQVM(n_qubits=n_qubits, seed=seed,
-                        quantum_simulator_type=ReferenceWavefunctionSimulator)
+        prog = _generate_random_program(
+            n_qubits=n_qubits, length=prog_length, include_measures=include_measures
+        )
+        ref_qam = PyQVM(
+            n_qubits=n_qubits, seed=seed, quantum_simulator_type=ReferenceWavefunctionSimulator
+        )
         ref_qam.execute(prog)
         ref_wf = ref_qam.wf_simulator.wf
 
-        es_qam = PyQVM(n_qubits=n_qubits, seed=seed,
-                       quantum_simulator_type=NumpyWavefunctionSimulator)
+        es_qam = PyQVM(
+            n_qubits=n_qubits, seed=seed, quantum_simulator_type=NumpyWavefunctionSimulator
+        )
         es_qam.execute(prog)
         es_wf = es_qam.wf_simulator.wf
         # einsum has its wavefunction as a vector of shape (2, 2, 2, ...) where qubits are indexed
@@ -205,14 +212,16 @@ def test_expectation_vs_ref_qvm(qvm, n_qubits):
 def test_defgate():
     # regression test for https://github.com/rigetti/pyquil/issues/1059
     theta = np.pi / 2
-    U = np.array([
-        [1, 0, 0, 0],
-        [0, 1, 0, 0],
-        [0, 0, np.cos(theta / 2), -1j * np.sin(theta / 2)],
-        [0, 0, -1j * np.sin(theta / 2), np.cos(theta / 2)]
-    ])
+    U = np.array(
+        [
+            [1, 0, 0, 0],
+            [0, 1, 0, 0],
+            [0, 0, np.cos(theta / 2), -1j * np.sin(theta / 2)],
+            [0, 0, -1j * np.sin(theta / 2), np.cos(theta / 2)],
+        ]
+    )
 
-    gate_definition = DefGate('U_test', U)
+    gate_definition = DefGate("U_test", U)
     U_test = gate_definition.get_constructor()
 
     p = Program()
@@ -260,6 +269,7 @@ def test_defgate():
 # See the License for the specific language governing permissions and
 # limitations under the License.
 
+
 def kron(*matrices: np.ndarray) -> np.ndarray:
     """Computes the kronecker product of a sequence of matrices.
 
@@ -284,25 +294,22 @@ def test_einsum_matches_kron_then_dot():
     i = np.eye(2)
 
     np.testing.assert_allclose(
-        targeted_einsum(gate=m,
-                        wf=t.reshape((2, 2, 2)),
-                        wf_target_inds=[0]),
+        targeted_einsum(gate=m, wf=t.reshape((2, 2, 2)), wf_target_inds=[0]),
         np.dot(kron(m, i, i), t).reshape((2, 2, 2)),
-        atol=1e-8)
+        atol=1e-8,
+    )
 
     np.testing.assert_allclose(
-        targeted_einsum(gate=m,
-                        wf=t.reshape((2, 2, 2)),
-                        wf_target_inds=[1]),
+        targeted_einsum(gate=m, wf=t.reshape((2, 2, 2)), wf_target_inds=[1]),
         np.dot(kron(i, m, i), t).reshape((2, 2, 2)),
-        atol=1e-8)
+        atol=1e-8,
+    )
 
     np.testing.assert_allclose(
-        targeted_einsum(gate=m,
-                        wf=t.reshape((2, 2, 2)),
-                        wf_target_inds=[2]),
+        targeted_einsum(gate=m, wf=t.reshape((2, 2, 2)), wf_target_inds=[2]),
         np.dot(kron(i, i, m), t).reshape((2, 2, 2)),
-        atol=1e-8)
+        atol=1e-8,
+    )
 
 
 def test_tensordot_matches_kron_then_dot():
@@ -311,80 +318,47 @@ def test_tensordot_matches_kron_then_dot():
     i = np.eye(2)
 
     np.testing.assert_allclose(
-        targeted_tensordot(m,
-                           t.reshape((2, 2, 2)),
-                           [0]),
+        targeted_tensordot(m, t.reshape((2, 2, 2)), [0]),
         np.dot(kron(m, i, i), t).reshape((2, 2, 2)),
-        atol=1e-8)
+        atol=1e-8,
+    )
 
     np.testing.assert_allclose(
-        targeted_tensordot(m,
-                           t.reshape((2, 2, 2)),
-                           [1]),
+        targeted_tensordot(m, t.reshape((2, 2, 2)), [1]),
         np.dot(kron(i, m, i), t).reshape((2, 2, 2)),
-        atol=1e-8)
+        atol=1e-8,
+    )
 
     np.testing.assert_allclose(
-        targeted_tensordot(m,
-                           t.reshape((2, 2, 2)),
-                           [2]),
+        targeted_tensordot(m, t.reshape((2, 2, 2)), [2]),
         np.dot(kron(i, i, m), t).reshape((2, 2, 2)),
-        atol=1e-8)
+        atol=1e-8,
+    )
 
 
 def test_einsum_reorders_matrices():
     t = np.eye(4).reshape((2, 2, 2, 2))
-    m = np.array([
-        1, 0, 0, 0,
-        0, 1, 0, 0,
-        0, 0, 0, 1,
-        0, 0, 1, 0,
-    ]).reshape((2, 2, 2, 2))
+    m = np.array([1, 0, 0, 0, 0, 1, 0, 0, 0, 0, 0, 1, 0, 0, 1, 0]).reshape((2, 2, 2, 2))
+
+    np.testing.assert_allclose(targeted_einsum(gate=m, wf=t, wf_target_inds=[0, 1]), m, atol=1e-8)
 
     np.testing.assert_allclose(
-        targeted_einsum(gate=m,
-                        wf=t,
-                        wf_target_inds=[0, 1]),
-        m,
-        atol=1e-8)
-
-    np.testing.assert_allclose(
-        targeted_einsum(gate=m,
-                        wf=t,
-                        wf_target_inds=[1, 0]),
-        np.array([
-            1, 0, 0, 0,
-            0, 0, 0, 1,
-            0, 0, 1, 0,
-            0, 1, 0, 0,
-        ]).reshape((2, 2, 2, 2)),
-        atol=1e-8)
+        targeted_einsum(gate=m, wf=t, wf_target_inds=[1, 0]),
+        np.array([1, 0, 0, 0, 0, 0, 0, 1, 0, 0, 1, 0, 0, 1, 0, 0]).reshape((2, 2, 2, 2)),
+        atol=1e-8,
+    )
 
 
 def test_tensordot_reorders_matrices():
     t = np.eye(4).reshape((2, 2, 2, 2))
-    m = np.array([
-        1, 0, 0, 0,
-        0, 1, 0, 0,
-        0, 0, 0, 1,
-        0, 0, 1, 0,
-    ]).reshape((2, 2, 2, 2))
+    m = np.array([1, 0, 0, 0, 0, 1, 0, 0, 0, 0, 0, 1, 0, 0, 1, 0]).reshape((2, 2, 2, 2))
 
     np.testing.assert_allclose(
-        targeted_tensordot(gate=m,
-                           wf=t,
-                           wf_target_inds=[0, 1]),
-        m,
-        atol=1e-8)
+        targeted_tensordot(gate=m, wf=t, wf_target_inds=[0, 1]), m, atol=1e-8
+    )
 
     np.testing.assert_allclose(
-        targeted_tensordot(gate=m,
-                           wf=t,
-                           wf_target_inds=[1, 0]),
-        np.array([
-            1, 0, 0, 0,
-            0, 0, 0, 1,
-            0, 0, 1, 0,
-            0, 1, 0, 0,
-        ]).reshape((2, 2, 2, 2)),
-        atol=1e-8)
+        targeted_tensordot(gate=m, wf=t, wf_target_inds=[1, 0]),
+        np.array([1, 0, 0, 0, 0, 0, 0, 1, 0, 0, 1, 0, 0, 1, 0, 0]).reshape((2, 2, 2, 2)),
+        atol=1e-8,
+    )

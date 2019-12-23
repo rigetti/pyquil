@@ -6,6 +6,9 @@ DOCKER_TAG=rigetti/forest:$(COMMIT_HASH)
 .PHONY: all
 all: dist
 
+.PHONY: checkall
+checkall: formatcheck style typecheck
+
 .PHONY: clean
 clean:
 	rm -rf dist
@@ -31,6 +34,14 @@ docs: CHANGELOG.md
 .PHONY: docker
 docker: Dockerfile
 	docker build -t $(DOCKER_TAG) .
+
+.PHONY: format
+format:
+	black pyquil
+
+.PHONY: formatcheck
+formatcheck:
+	black --check --diff pyquil
 
 .PHONY: info
 info:

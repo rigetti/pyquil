@@ -10,6 +10,7 @@ even if PyQuil changes.
 from pyquil.quil import Program
 from pyquil.gates import H, CNOT
 from pyquil.api import QVMConnection
+
 # construct a Bell State program
 p = Program(H(0), CNOT(0, 1))
 # run the program on a QVM

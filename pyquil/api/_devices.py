@@ -42,12 +42,13 @@ def list_devices(connection: ForestConnection = None):
         connection = ForestConnection()
 
     session = connection.session
-    url = connection.forest_cloud_endpoint + '/devices'
+    url = connection.forest_cloud_endpoint + "/devices"
     return sorted(get_json(session, url)["devices"].keys())
 
 
-def list_lattices(device_name: str = None, num_qubits: int = None,
-                  connection: ForestConnection = None):
+def list_lattices(
+    device_name: str = None, num_qubits: int = None, connection: ForestConnection = None
+):
     """
     Query the Forest 2.0 server for its knowledge of lattices.  Optionally filters by underlying
     device name and lattice qubit count.
@@ -63,13 +64,14 @@ def list_lattices(device_name: str = None, num_qubits: int = None,
     session = connection.session
     url = connection.forest_cloud_endpoint + "/lattices"
     try:
-        response = get_json(session, url,
-                            params={"device_name": device_name,
-                                    "num_qubits": num_qubits})
+        response = get_json(
+            session, url, params={"device_name": device_name, "num_qubits": num_qubits}
+        )
 
         return response["lattices"]
     except Exception as e:
-        raise ValueError("""
+        raise ValueError(
+            """
         list_lattices encountered an error when querying the Forest 2.0 endpoint.
 
         Some common causes for this error include:
@@ -95,7 +97,10 @@ def list_lattices(device_name: str = None, num_qubits: int = None,
           url = https://forest-server.qcs.rigetti.com
 
         For the record, here's the original exception: {}
-        """.format(repr(e)))
+        """.format(
+                repr(e)
+            )
+        )
 
 
 def get_lattice(lattice_name: str = None):
@@ -125,19 +130,22 @@ def _get_raw_lattice_data(lattice_name: str = None):
     """
     from pyquil.api._base_connection import get_session, get_json
     from requests.exceptions import MissingSchema
+
     config = PyquilConfig()
     session = get_session(config=config)
 
     try:
         res = get_json(session, f"{config.forest_url}/lattices/{lattice_name}")
     except MissingSchema:
-        raise ValueError(f"Error finding lattice `{lattice_name}` at Forest 2.0 server "
-                         f"""endpoint `{config.forest_url}`.
+        raise ValueError(
+            f"Error finding lattice `{lattice_name}` at Forest 2.0 server "
+            f"""endpoint `{config.forest_url}`.
 
     Most likely, you're missing an address for the Forest 2.0 server endpoint, or the
     address is invalid. This can be set through the environment variable FOREST_URL or
     by changing the following lines in the QCS config file (by default, at ~/.qcs_config):
 
       [Rigetti Forest]
-      url = https://rigetti.com/valid/forest/url""")
+      url = https://rigetti.com/valid/forest/url"""
+        )
     return res["lattice"]

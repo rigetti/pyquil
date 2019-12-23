@@ -39,12 +39,13 @@ def decode_buffer(buffer: dict) -> np.ndarray:
     :param buffer: Dictionary with 'data' byte array, 'dtype', and 'shape' fields
     :return: NumPy array of decoded data
     """
-    buf = np.frombuffer(buffer['data'], dtype=buffer['dtype'])
-    return buf.reshape(buffer['shape'])
+    buf = np.frombuffer(buffer["data"], dtype=buffer["dtype"])
+    return buf.reshape(buffer["shape"])
 
 
-def _extract_bitstrings(ro_sources: List[Optional[Tuple[int, int]]],
-                        buffers: Dict[str, np.ndarray]) -> np.ndarray:
+def _extract_bitstrings(
+    ro_sources: List[Optional[Tuple[int, int]]], buffers: Dict[str, np.ndarray]
+) -> np.ndarray:
     """
     De-mux qubit readout results and assemble them into the ro-bitstrings in the correct order.
 
@@ -72,12 +73,14 @@ def _extract_bitstrings(ro_sources: List[Optional[Tuple[int, int]]],
 
 class QPU(QAM):
     @_record_call
-    def __init__(self,
-                 endpoint: Optional[str] = None,
-                 user: str = "pyquil-user",
-                 priority: int = 1,
-                 *,
-                 session: Optional[ForestSession] = None) -> None:
+    def __init__(
+        self,
+        endpoint: Optional[str] = None,
+        user: str = "pyquil-user",
+        priority: int = 1,
+        *,
+        session: Optional[ForestSession] = None,
+    ) -> None:
         """
         A connection to the QPU.
 
@@ -115,7 +118,8 @@ in your QMI. From within your QMI, type:
 
 For more information, please see the docs at
 https://www.rigetti.com/qcs/docs/reservations or reach out to Rigetti
-support at support@rigetti.com.""")
+support at support@rigetti.com."""
+            )
 
         logger.debug("QPU Client connecting to %s", endpoint)
 
@@ -143,7 +147,8 @@ support at support@rigetti.com.""")
             return ClientAuthConfig(
                 client_public_key=self._client_engagement.client_public_key,
                 client_secret_key=self._client_engagement.client_secret_key,
-                server_public_key=self._client_engagement.server_public_key)
+                server_public_key=self._client_engagement.server_public_key,
+            )
 
     def get_version_info(self) -> dict:
         """
@@ -151,7 +156,7 @@ support at support@rigetti.com.""")
 
         :return: Dictionary of version information.
         """
-        return self.client.call('get_version_info')
+        return self.client.call("get_version_info")
 
     @_record_call
     def load(self, executable):
@@ -195,18 +200,20 @@ support at support@rigetti.com.""")
             raise TypeError(
                 "It looks like you have provided a Program where an Executable"
                 " is expected. Please use QuantumComputer.compile() to compile"
-                " your program.")
+                " your program."
+            )
         super().run()
 
-        request = QPURequest(program=self._executable.program,
-                             patch_values=self._build_patch_values(),
-                             id=str(uuid.uuid4()))
+        request = QPURequest(
+            program=self._executable.program,
+            patch_values=self._build_patch_values(),
+            id=str(uuid.uuid4()),
+        )
 
         job_priority = run_priority if run_priority is not None else self.priority
-        job_id = self.client.call('execute_qpu_request',
-                                  request=request,
-                                  user=self.user,
-                                  priority=job_priority)
+        job_id = self.client.call(
+            "execute_qpu_request", request=request, user=self.user, priority=job_priority
+        )
         results = self._get_buffers(job_id)
         ro_sources = self._executable.ro_sources
 
@@ -216,7 +223,8 @@ support at support@rigetti.com.""")
             warnings.warn(
                 "You are running a QPU program with no MEASURE instructions. "
                 "The result of this program will always be an empty array. Are "
-                "you sure you didn't mean to measure some of your qubits?")
+                "you sure you didn't mean to measure some of your qubits?"
+            )
             bitstrings = np.zeros((0, 0), dtype=np.int64)
         else:
             bitstrings = None
@@ -234,7 +242,7 @@ support at support@rigetti.com.""")
         :param job_id: Unique identifier for the job in question
         :return: Decoded buffers or throw an error
         """
-        buffers = self.client.call('get_buffers', job_id, wait=True)
+        buffers = self.client.call("get_buffers", job_id, wait=True)
         return {k: decode_buffer(v) for k, v in buffers.items()}
 
     def _build_patch_values(self) -> dict:
@@ -247,21 +255,23 @@ support at support@rigetti.com.""")
         # Initialize our patch table
         if hasattr(self._executable, "recalculation_table"):
             memory_ref_names = list(
-                set(mr.name
-                    for mr in self._executable.recalculation_table.keys()))
+                set(mr.name for mr in self._executable.recalculation_table.keys())
+            )
             if memory_ref_names != []:
                 assert len(memory_ref_names) == 1, (
                     "We expected only one declared memory region for "
-                    "the gate parameter arithmetic replacement references.")
+                    "the gate parameter arithmetic replacement references."
+                )
                 memory_reference_name = memory_ref_names[0]
                 patch_values[memory_reference_name] = [0.0] * len(
-                    self._executable.recalculation_table)
+                    self._executable.recalculation_table
+                )
 
         for name, spec in self._executable.memory_descriptors.items():
             # NOTE: right now we fake reading out measurement values into classical memory
             if name == "ro":
                 continue
-            initial_value = 0.0 if spec.type == 'REAL' else 0
+            initial_value = 0.0 if spec.type == "REAL" else 0
             patch_values[name] = [initial_value] * spec.length
 
         # Fill in our patch table
@@ -328,7 +338,8 @@ support at support@rigetti.com.""")
             # Replace the user-declared memory references with any values the user has written,
             # coerced to a float because that is how we declared it.
             self._variables_shim[memory_reference] = float(
-                self._resolve_memory_references(expression))
+                self._resolve_memory_references(expression)
+            )
 
     def _resolve_memory_references(self, expression: Expression) -> Union[float, int]:
         """
@@ -350,8 +361,8 @@ support at support@rigetti.com.""")
             return expression
         elif isinstance(expression, MemoryReference):
             return self._variables_shim.get(
-                ParameterAref(name=expression.name, index=expression.offset),
-                0)
+                ParameterAref(name=expression.name, index=expression.offset), 0
+            )
         else:
             raise ValueError(f"Unexpected expression in gate parameter: {expression}")
 

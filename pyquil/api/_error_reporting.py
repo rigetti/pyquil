@@ -75,8 +75,9 @@ class CallLogKey:
     kwargs: Dict[str, Any]
 
     def __hash__(self):
-        finger_print = (self.name,) + tuple(self.args) + tuple(
-            sorted(self.kwargs.items(), key=lambda i: i[0]))
+        finger_print = (
+            (self.name,) + tuple(self.args) + tuple(sorted(self.kwargs.items(), key=lambda i: i[0]))
+        )
         return hash(finger_print)
 
     def __repr__(self):
@@ -113,10 +114,7 @@ def json_serialization_helper(o):
 
 
 def generate_system_info():
-    system_info = {
-        "python_version": sys.version,
-        "pyquil_version": pyquil.__version__,
-    }
+    system_info = {"python_version": sys.version, "pyquil_version": pyquil.__version__}
 
     return system_info
 
@@ -148,20 +146,27 @@ class ErrorContext(object):
         :param trace: inspect.trace object from the frame that caught the error.
         :return: ErrorReport object
         """
-        stack_trace = [StacktraceFrame(name=item.function,
-                                       filename=item.filename,
-                                       line_number=item.lineno,
-                                       locals={k: serialize_object_for_logging(v)
-                                               for (k, v) in item.frame.f_locals.items()})
-                       for item in trace]
+        stack_trace = [
+            StacktraceFrame(
+                name=item.function,
+                filename=item.filename,
+                line_number=item.lineno,
+                locals={
+                    k: serialize_object_for_logging(v) for (k, v) in item.frame.f_locals.items()
+                },
+            )
+            for item in trace
+        ]
 
         system_info = generate_system_info()
 
-        report = ErrorReport(stack_trace=stack_trace,
-                             timestamp=datetime.utcnow(),
-                             exception=exception,
-                             system_info=system_info,
-                             call_log=flatten_log(self.log))
+        report = ErrorReport(
+            stack_trace=stack_trace,
+            timestamp=datetime.utcnow(),
+            exception=exception,
+            system_info=system_info,
+            call_log=flatten_log(self.log),
+        )
 
         return report
 
@@ -174,7 +179,9 @@ log file to "{}".
 Along with a description of what you were doing when the error occurred, send this file to
 Rigetti Computing support by email at support@rigetti.com for assistance.
 >>> PYQUIL_PROTECT <<<
-""".format(os.path.abspath(self.filename))
+""".format(
+            os.path.abspath(self.filename)
+        )
 
         _log.warning(warn_msg)
 
@@ -226,22 +233,26 @@ def _record_call(func):
 
         # log a call as about to take place
         if global_error_context is not None:
-            key = CallLogKey(name=func.__name__,
-                             args=[serialize_object_for_logging(arg) for arg in args],
-                             kwargs={k: serialize_object_for_logging(v) for k, v in kwargs.items()})
+            key = CallLogKey(
+                name=func.__name__,
+                args=[serialize_object_for_logging(arg) for arg in args],
+                kwargs={k: serialize_object_for_logging(v) for k, v in kwargs.items()},
+            )
 
-            pre_entry = CallLogValue(timestamp_in=datetime.utcnow(),
-                                     timestamp_out=None,
-                                     return_value=None)
+            pre_entry = CallLogValue(
+                timestamp_in=datetime.utcnow(), timestamp_out=None, return_value=None
+            )
             global_error_context.log[key] = pre_entry
 
         val = func(*args, **kwargs)
 
         # poke the return value of that call in
         if global_error_context is not None:
-            post_entry = CallLogValue(timestamp_in=pre_entry.timestamp_in,
-                                      timestamp_out=datetime.utcnow(),
-                                      return_value=serialize_object_for_logging(val))
+            post_entry = CallLogValue(
+                timestamp_in=pre_entry.timestamp_in,
+                timestamp_out=datetime.utcnow(),
+                return_value=serialize_object_for_logging(val),
+            )
             global_error_context.log[key] = post_entry
 
         return val

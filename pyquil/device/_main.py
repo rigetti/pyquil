@@ -20,8 +20,7 @@ from typing import List, Tuple
 import networkx as nx
 import numpy as np
 
-from pyquil.device._isa import (Edge, GateInfo, ISA, MeasureInfo, Qubit, isa_from_graph,
-                                isa_to_graph)
+from pyquil.device._isa import Edge, GateInfo, ISA, MeasureInfo, Qubit, isa_from_graph, isa_to_graph
 from pyquil.device._specs import Specs, specs_from_graph
 from pyquil.noise import NoiseModel
 
@@ -42,7 +41,6 @@ DEFAULT_MEASURE_DURATION = 2000
 
 
 class AbstractDevice(ABC):
-
     @abstractmethod
     def qubits(self):
         """
@@ -56,7 +54,7 @@ class AbstractDevice(ABC):
         """
 
     @abstractmethod
-    def get_isa(self, oneq_type='Xhalves', twoq_type='CZ') -> ISA:
+    def get_isa(self, oneq_type="Xhalves", twoq_type="CZ") -> ISA:
         """
         Construct an ISA suitable for targeting by compilation.
 
@@ -97,10 +95,11 @@ class Device(AbstractDevice):
         self._raw = raw
 
         # TODO: Introduce distinction between supported ISAs and target ISA
-        self._isa = ISA.from_dict(raw['isa']) if 'isa' in raw and raw['isa'] != {} else None
-        self.specs = Specs.from_dict(raw['specs']) if raw.get('specs') else None
-        self.noise_model = NoiseModel.from_dict(raw['noise_model']) \
-            if raw.get('noise_model') else None
+        self._isa = ISA.from_dict(raw["isa"]) if "isa" in raw and raw["isa"] != {} else None
+        self.specs = Specs.from_dict(raw["specs"]) if raw.get("specs") else None
+        self.noise_model = (
+            NoiseModel.from_dict(raw["noise_model"]) if raw.get("noise_model") else None
+        )
 
     @property
     def isa(self):
@@ -126,8 +125,10 @@ class Device(AbstractDevice):
         This will raise an exception if the requested ISA is not supported by the device.
         """
         if oneq_type is not None or twoq_type is not None:
-            raise ValueError("oneq_type and twoq_type are both fatally deprecated. If you want to "
-                             "make an ISA with custom gate types, you'll have to do it by hand.")
+            raise ValueError(
+                "oneq_type and twoq_type are both fatally deprecated. If you want to "
+                "make an ISA with custom gate types, you'll have to do it by hand."
+            )
 
         def safely_get(attr, index, default):
             if self.specs is None:
@@ -144,57 +145,127 @@ class Device(AbstractDevice):
                 return default
 
         def qubit_type_to_gates(q):
-            gates = [MeasureInfo(operator="MEASURE", qubit=q.id, target="_",
-                                 fidelity=safely_get("fROs", q.id, DEFAULT_MEASURE_FIDELITY),
-                                 duration=DEFAULT_MEASURE_DURATION),
-                     MeasureInfo(operator="MEASURE", qubit=q.id, target=None,
-                                 fidelity=safely_get("fROs", q.id, DEFAULT_MEASURE_FIDELITY),
-                                 duration=DEFAULT_MEASURE_DURATION)]
+            gates = [
+                MeasureInfo(
+                    operator="MEASURE",
+                    qubit=q.id,
+                    target="_",
+                    fidelity=safely_get("fROs", q.id, DEFAULT_MEASURE_FIDELITY),
+                    duration=DEFAULT_MEASURE_DURATION,
+                ),
+                MeasureInfo(
+                    operator="MEASURE",
+                    qubit=q.id,
+                    target=None,
+                    fidelity=safely_get("fROs", q.id, DEFAULT_MEASURE_FIDELITY),
+                    duration=DEFAULT_MEASURE_DURATION,
+                ),
+            ]
             if q.type is None or "Xhalves" in q.type:
-                gates += [GateInfo(operator="RZ", parameters=["_"], arguments=[q.id],
-                                   duration=PERFECT_DURATION, fidelity=PERFECT_FIDELITY),
-                          GateInfo(operator="RX", parameters=[0.0], arguments=[q.id],
-                                   duration=DEFAULT_RX_DURATION, fidelity=PERFECT_FIDELITY)]
-                gates += [GateInfo(operator="RX", parameters=[param], arguments=[q.id],
-                                   duration=DEFAULT_RX_DURATION,
-                                   fidelity=safely_get("f1QRBs", q.id, DEFAULT_RX_FIDELITY))
-                          for param in [np.pi, -np.pi, np.pi / 2, -np.pi / 2]]
+                gates += [
+                    GateInfo(
+                        operator="RZ",
+                        parameters=["_"],
+                        arguments=[q.id],
+                        duration=PERFECT_DURATION,
+                        fidelity=PERFECT_FIDELITY,
+                    ),
+                    GateInfo(
+                        operator="RX",
+                        parameters=[0.0],
+                        arguments=[q.id],
+                        duration=DEFAULT_RX_DURATION,
+                        fidelity=PERFECT_FIDELITY,
+                    ),
+                ]
+                gates += [
+                    GateInfo(
+                        operator="RX",
+                        parameters=[param],
+                        arguments=[q.id],
+                        duration=DEFAULT_RX_DURATION,
+                        fidelity=safely_get("f1QRBs", q.id, DEFAULT_RX_FIDELITY),
+                    )
+                    for param in [np.pi, -np.pi, np.pi / 2, -np.pi / 2]
+                ]
             if q.type is not None and "WILDCARD" in q.type:
-                gates += [GateInfo(operator="_", parameters="_", arguments=[q.id],
-                                   duration=PERFECT_DURATION, fidelity=PERFECT_FIDELITY)]
+                gates += [
+                    GateInfo(
+                        operator="_",
+                        parameters="_",
+                        arguments=[q.id],
+                        duration=PERFECT_DURATION,
+                        fidelity=PERFECT_FIDELITY,
+                    )
+                ]
             return gates
 
         def edge_type_to_gates(e):
             gates = []
             if e is None or "CZ" in e.type:
-                gates += [GateInfo(operator="CZ", parameters=[], arguments=["_", "_"],
-                                   duration=DEFAULT_CZ_DURATION,
-                                   fidelity=safely_get("fCZs", tuple(e.targets), DEFAULT_CZ_FIDELITY))]
+                gates += [
+                    GateInfo(
+                        operator="CZ",
+                        parameters=[],
+                        arguments=["_", "_"],
+                        duration=DEFAULT_CZ_DURATION,
+                        fidelity=safely_get("fCZs", tuple(e.targets), DEFAULT_CZ_FIDELITY),
+                    )
+                ]
             if e is not None and "ISWAP" in e.type:
-                gates += [GateInfo(operator="ISWAP", parameters=[], arguments=["_", "_"],
-                                   duration=DEFAULT_ISWAP_DURATION,
-                                   fidelity=safely_get("fISWAPs", tuple(e.targets), DEFAULT_ISWAP_FIDELITY))]
+                gates += [
+                    GateInfo(
+                        operator="ISWAP",
+                        parameters=[],
+                        arguments=["_", "_"],
+                        duration=DEFAULT_ISWAP_DURATION,
+                        fidelity=safely_get("fISWAPs", tuple(e.targets), DEFAULT_ISWAP_FIDELITY),
+                    )
+                ]
             if e is not None and "CPHASE" in e.type:
-                gates += [GateInfo(operator="CPHASE", parameters=["theta"], arguments=["_", "_"],
-                                   duration=DEFAULT_CPHASE_DURATION,
-                                   fidelity=safely_get("fCPHASEs", tuple(e.targets), DEFAULT_CPHASE_FIDELITY))]
+                gates += [
+                    GateInfo(
+                        operator="CPHASE",
+                        parameters=["theta"],
+                        arguments=["_", "_"],
+                        duration=DEFAULT_CPHASE_DURATION,
+                        fidelity=safely_get("fCPHASEs", tuple(e.targets), DEFAULT_CPHASE_FIDELITY),
+                    )
+                ]
             if e is not None and "XY" in e.type:
-                gates += [GateInfo(operator="XY", parameters=["theta"], arguments=["_", "_"],
-                                   duration=DEFAULT_XY_DURATION,
-                                   fidelity=safely_get("fXYs", tuple(e.targets), DEFAULT_XY_FIDELITY))]
+                gates += [
+                    GateInfo(
+                        operator="XY",
+                        parameters=["theta"],
+                        arguments=["_", "_"],
+                        duration=DEFAULT_XY_DURATION,
+                        fidelity=safely_get("fXYs", tuple(e.targets), DEFAULT_XY_FIDELITY),
+                    )
+                ]
             if e is not None and "WILDCARD" in e.type:
-                gates += [GateInfo(operator="_", parameters="_", arguments=["_", "_"],
-                                   duration=PERFECT_DURATION, fidelity=PERFECT_FIDELITY)]
+                gates += [
+                    GateInfo(
+                        operator="_",
+                        parameters="_",
+                        arguments=["_", "_"],
+                        duration=PERFECT_DURATION,
+                        fidelity=PERFECT_FIDELITY,
+                    )
+                ]
             return gates
 
-        qubits = [Qubit(id=q.id, type=None, dead=q.dead, gates=qubit_type_to_gates(q))
-                  for q in self._isa.qubits]
-        edges = [Edge(targets=e.targets, type=None, dead=e.dead, gates=edge_type_to_gates(e))
-                 for e in self._isa.edges]
+        qubits = [
+            Qubit(id=q.id, type=None, dead=q.dead, gates=qubit_type_to_gates(q))
+            for q in self._isa.qubits
+        ]
+        edges = [
+            Edge(targets=e.targets, type=None, dead=e.dead, gates=edge_type_to_gates(e))
+            for e in self._isa.edges
+        ]
         return ISA(qubits, edges)
 
     def __str__(self):
-        return '<Device {}>'.format(self.name)
+        return "<Device {}>".format(self.name)
 
     def __repr__(self):
         return str(self)
@@ -216,7 +287,7 @@ class NxDevice(AbstractDevice):
     def qubit_topology(self):
         return self.topology
 
-    def get_isa(self, oneq_type='Xhalves', twoq_type='CZ'):
+    def get_isa(self, oneq_type="Xhalves", twoq_type="CZ"):
         return isa_from_graph(self.topology, oneq_type=oneq_type, twoq_type=twoq_type)
 
     def get_specs(self):

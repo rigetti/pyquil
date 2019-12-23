@@ -68,13 +68,14 @@ def header() -> str:
 
     :return: Header of the LaTeX document.
     """
-    packages = (r"\documentclass[convert={density=300,outext=.png}]{standalone}",
-                r"\usepackage[margin=1in]{geometry}",
-                r"\usepackage{tikz}",
-                r"\usetikzlibrary{quantikz}")
+    packages = (
+        r"\documentclass[convert={density=300,outext=.png}]{standalone}",
+        r"\usepackage[margin=1in]{geometry}",
+        r"\usepackage{tikz}",
+        r"\usetikzlibrary{quantikz}",
+    )
 
-    init = (r"\begin{document}",
-            r"\begin{tikzcd}")
+    init = (r"\begin{document}", r"\begin{tikzcd}")
 
     return "\n".join(("\n".join(packages), "\n".join(init)))
 

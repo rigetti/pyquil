@@ -28,8 +28,9 @@ from pyquil.wavefunction import Wavefunction
 
 class WavefunctionSimulator:
     @_record_call
-    def __init__(self, connection: ForestConnection = None,
-                 random_seed: Optional[int] = None) -> None:
+    def __init__(
+        self, connection: ForestConnection = None, random_seed: Optional[int] = None
+    ) -> None:
         """
         A simulator that propagates a wavefunction representation of a quantum state.
 
@@ -50,8 +51,7 @@ class WavefunctionSimulator:
             raise TypeError("random_seed should be None or a non-negative int")
 
     @_record_call
-    def wavefunction(self, quil_program: Program,
-                     memory_map: Any = None) -> Wavefunction:
+    def wavefunction(self, quil_program: Program, memory_map: Any = None) -> Wavefunction:
         """
         Simulate a Quil program and return the wavefunction.
 
@@ -77,13 +77,17 @@ class WavefunctionSimulator:
         if memory_map is not None:
             quil_program = self.augment_program_with_memory_values(quil_program, memory_map)
 
-        return self.connection._wavefunction(quil_program=quil_program,
-                                             random_seed=self.random_seed)
+        return self.connection._wavefunction(
+            quil_program=quil_program, random_seed=self.random_seed
+        )
 
     @_record_call
-    def expectation(self, prep_prog: Program,
-                    pauli_terms: Union[PauliSum, List[PauliTerm]],
-                    memory_map: Any = None) -> Union[float, np.ndarray]:
+    def expectation(
+        self,
+        prep_prog: Program,
+        pauli_terms: Union[PauliSum, List[PauliTerm]],
+        memory_map: Any = None,
+    ) -> Union[float, np.ndarray]:
         """
         Calculate the expectation value of Pauli operators given a state prepared by prep_program.
 
@@ -129,8 +133,13 @@ class WavefunctionSimulator:
         return results
 
     @_record_call
-    def run_and_measure(self, quil_program: Program, qubits: List[int] = None, trials: int = 1,
-                        memory_map: Any = None) -> np.ndarray:
+    def run_and_measure(
+        self,
+        quil_program: Program,
+        qubits: List[int] = None,
+        trials: int = 1,
+        memory_map: Any = None,
+    ) -> np.ndarray:
         """
         Run a Quil program once to determine the final wavefunction, and measure multiple times.
 
@@ -170,9 +179,9 @@ class WavefunctionSimulator:
         if memory_map is not None:
             quil_program = self.augment_program_with_memory_values(quil_program, memory_map)
 
-        return self.connection._run_and_measure(quil_program=quil_program, qubits=qubits,
-                                                trials=trials,
-                                                random_seed=self.random_seed)
+        return self.connection._run_and_measure(
+            quil_program=quil_program, qubits=qubits, trials=trials, random_seed=self.random_seed
+        )
 
     @staticmethod
     def augment_program_with_memory_values(quil_program, memory_map):
@@ -185,9 +194,11 @@ class WavefunctionSimulator:
         if len(memory_map.keys()) == 0:
             return quil_program
         elif isinstance(list(memory_map.keys())[0], MemoryReference):
-            warn("Use of memory_map values of type Dict[MemoryReference, Any] have been "
-                 "deprecated.  Please use Dict[str, List[Union[int, float]]], as with "
-                 "QuantumComputer.run .")
+            warn(
+                "Use of memory_map values of type Dict[MemoryReference, Any] have been "
+                "deprecated.  Please use Dict[str, List[Union[int, float]]], as with "
+                "QuantumComputer.run ."
+            )
             for k, v in memory_map.items():
                 p += MOVE(k, v)
         elif isinstance(list(memory_map.keys())[0], str):

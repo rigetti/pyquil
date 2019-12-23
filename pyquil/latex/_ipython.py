@@ -26,9 +26,7 @@ from pyquil.latex._main import to_latex
 from pyquil.latex._diagram import DiagramSettings
 
 
-def display(circuit: Program,
-            settings: Optional[DiagramSettings] = None,
-            **image_options) -> Image:
+def display(circuit: Program, settings: Optional[DiagramSettings] = None, **image_options) -> Image:
     """
     Displays a PyQuil circuit as an IPython image object.
 
@@ -42,7 +40,8 @@ def display(circuit: Program,
        these yourself.
 
     :param Program circuit: The circuit to be drawn, represented as a pyquil program.
-    :param DiagramSettings settings: An optional object of settings controlling diagram rendering and layout.
+    :param DiagramSettings settings: An optional object of settings controlling diagram rendering
+        and layout.
     :return: PNG image render of the circuit.
     :rtype: IPython.display.Image
     """
@@ -61,10 +60,10 @@ def display(circuit: Program,
         with open(os.path.join(tmpdir, "diagram.tex"), "w") as texfile:
             texfile.write(to_latex(circuit, settings))
 
-        result = subprocess.run([pdflatex_path, "-halt-on-error",
-                                 "-output-directory", tmpdir,
-                                 texfile.name],
-                                stdout=subprocess.PIPE)
+        result = subprocess.run(
+            [pdflatex_path, "-halt-on-error", "-output-directory", tmpdir, texfile.name],
+            stdout=subprocess.PIPE,
+        )
         if result.returncode != 0:
             msg = "'pdflatex' terminated with return code {}.".format(result.returncode)
             # NOTE: pdflatex writes all error messages to stdout
@@ -75,8 +74,7 @@ def display(circuit: Program,
         png = os.path.join(tmpdir, "diagram.png")
         pdf = os.path.join(tmpdir, "diagram.pdf")
 
-        result = subprocess.run([convert_path, "-density", "300", pdf, png],
-                                 stderr=subprocess.PIPE)
+        result = subprocess.run([convert_path, "-density", "300", pdf, png], stderr=subprocess.PIPE)
         if result.returncode != 0:
             msg = "'convert' terminated with return code {}.".format(result.returncode)
             if result.stderr:

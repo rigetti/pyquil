@@ -71,8 +71,9 @@ class AbstractBenchmarker(ABC):
         """
 
     @abstractmethod
-    def generate_rb_sequence(self, depth: int, gateset: List[Gate],
-                             seed: int = None, interleaver: Program = None) -> List[Program]:
+    def generate_rb_sequence(
+        self, depth: int, gateset: List[Gate], seed: int = None, interleaver: Program = None
+    ) -> List[Program]:
         """
         Construct a randomized benchmarking experiment on the given qubits, decomposing into
         gateset. If interleaver is not provided, the returned sequence will have the form

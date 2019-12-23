@@ -81,8 +81,10 @@ class ReferenceWavefunctionSimulator(AbstractQuantumSimulator):
         :return: An array of shape (n_samples, n_qubits)
         """
         if self.rs is None:
-            raise ValueError("You have tried to perform a stochastic operation without setting the "
-                             "random state of the simulator. Might I suggest using a PyQVM object?")
+            raise ValueError(
+                "You have tried to perform a stochastic operation without setting the "
+                "random state of the simulator. Might I suggest using a PyQVM object?"
+            )
         probabilities = np.abs(self.wf) ** 2
         possible_bitstrings = all_bitstrings(self.n_qubits)
         inds = self.rs.choice(2 ** self.n_qubits, n_samples, p=probabilities)
@@ -120,8 +122,10 @@ class ReferenceWavefunctionSimulator(AbstractQuantumSimulator):
         :return: measured bit
         """
         if self.rs is None:
-            raise ValueError("You have tried to perform a stochastic operation without setting the "
-                             "random state of the simulator. Might I suggest using a PyQVM object?")
+            raise ValueError(
+                "You have tried to perform a stochastic operation without setting the "
+                "random state of the simulator. Might I suggest using a PyQVM object?"
+            )
         # lift projective measure operator to Hilbert space
         # prob(0) = <psi P0 | P0 psi> = psi* . P0* . P0 . psi
         measure_0 = lifted_gate_matrix(matrix=P0, qubit_inds=[qubit], n_qubits=self.n_qubits)
@@ -162,8 +166,9 @@ class ReferenceWavefunctionSimulator(AbstractQuantumSimulator):
         self.wf[0] = complex(1.0, 0)
         return self
 
-    def do_post_gate_noise(self, noise_type: str, noise_prob: float,
-                           qubits: List[int]) -> 'AbstractQuantumSimulator':
+    def do_post_gate_noise(
+        self, noise_type: str, noise_prob: float, qubits: List[int]
+    ) -> "AbstractQuantumSimulator":
         raise NotImplementedError("The reference wavefunction simulator cannot handle noise")
 
 
@@ -221,13 +226,16 @@ class ReferenceDensitySimulator(AbstractQuantumSimulator):
         if rows != cols:
             raise ValueError("The state matrix is not square.")
         if self.n_qubits != int(np.log2(rows)):
-            raise ValueError("The state matrix is not defined on the same numbers of qubits as "
-                             "the QVM.")
+            raise ValueError(
+                "The state matrix is not defined on the same numbers of qubits as the QVM."
+            )
         if _is_valid_quantum_state(state_matrix):
             self.initial_density = state_matrix
         else:
-            raise ValueError("The state matrix is not valid. It must be Hermitian, trace one, "
-                             "and have non-negative eigenvalues.")
+            raise ValueError(
+                "The state matrix is not valid. It must be Hermitian, trace one, "
+                "and have non-negative eigenvalues."
+            )
         return self
 
     def sample_bitstrings(self, n_samples, tol_factor: float = 1e8):
@@ -242,8 +250,10 @@ class ReferenceDensitySimulator(AbstractQuantumSimulator):
         :return: An array of shape (n_samples, n_qubits)
         """
         if self.rs is None:
-            raise ValueError("You have tried to perform a stochastic operation without setting the "
-                             "random state of the simulator. Might I suggest using a PyQVM object?")
+            raise ValueError(
+                "You have tried to perform a stochastic operation without setting the "
+                "random state of the simulator. Might I suggest using a PyQVM object?"
+            )
 
         # for np.real_if_close the actual tolerance is (machine_eps * tol_factor),
         # where `machine_epsilon = np.finfo(float).eps`. If we use tol_factor = 1e8, then the
@@ -259,7 +269,7 @@ class ReferenceDensitySimulator(AbstractQuantumSimulator):
         bitstrings = np.flip(bitstrings, axis=1)  # qubit ordering: 0 on the left.
         return bitstrings
 
-    def do_gate(self, gate: Gate) -> 'AbstractQuantumSimulator':
+    def do_gate(self, gate: Gate) -> "AbstractQuantumSimulator":
         """
         Perform a gate.
 
@@ -269,8 +279,9 @@ class ReferenceDensitySimulator(AbstractQuantumSimulator):
         self.density = unitary.dot(self.density).dot(np.conj(unitary).T)
         return self
 
-    def do_gate_matrix(self, matrix: np.ndarray,
-                       qubits: Sequence[int]) -> 'AbstractQuantumSimulator':
+    def do_gate_matrix(
+        self, matrix: np.ndarray, qubits: Sequence[int]
+    ) -> "AbstractQuantumSimulator":
         """
         Apply an arbitrary unitary; not necessarily a named gate.
 
@@ -289,8 +300,10 @@ class ReferenceDensitySimulator(AbstractQuantumSimulator):
         :return: The measurement result. A 1 or a 0.
         """
         if self.rs is None:
-            raise ValueError("You have tried to perform a stochastic operation without setting the "
-                             "random state of the simulator. Might I suggest using a PyQVM object?")
+            raise ValueError(
+                "You have tried to perform a stochastic operation without setting the "
+                "random state of the simulator. Might I suggest using a PyQVM object?"
+            )
         measure_0 = lifted_gate_matrix(matrix=P0, qubit_inds=[qubit], n_qubits=self.n_qubits)
         prob_zero = np.trace(measure_0 @ self.density)
 
@@ -309,7 +322,7 @@ class ReferenceDensitySimulator(AbstractQuantumSimulator):
     def expectation(self, operator: Union[PauliTerm, PauliSum]):
         raise NotImplementedError("To implement")
 
-    def reset(self) -> 'AbstractQuantumSimulator':
+    def reset(self) -> "AbstractQuantumSimulator":
         """
         Resets the current state of ReferenceDensitySimulator ``self.density`` to
         ``self.initial_density``.
@@ -328,8 +341,9 @@ class ReferenceDensitySimulator(AbstractQuantumSimulator):
         for q in qubits:
             new_density = np.zeros_like(self.density)
             for kraus_op in kraus_ops:
-                lifted_kraus_op = lifted_gate_matrix(matrix=kraus_op, qubit_inds=[q],
-                                                     n_qubits=self.n_qubits)
+                lifted_kraus_op = lifted_gate_matrix(
+                    matrix=kraus_op, qubit_inds=[q], n_qubits=self.n_qubits
+                )
                 new_density += lifted_kraus_op.dot(self.density).dot(np.conj(lifted_kraus_op.T))
             self.density = new_density
         return self

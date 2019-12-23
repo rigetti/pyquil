@@ -13,10 +13,7 @@ from pyquil.tests.utils import DummyCompiler
 def test_qc_expectation(forest):
     device = NxDevice(nx.complete_graph(2))
     qc = QuantumComputer(
-        name='testy!',
-        qam=QVM(connection=forest),
-        device=device,
-        compiler=DummyCompiler()
+        name="testy!", qam=QVM(connection=forest), device=device, compiler=DummyCompiler()
     )
 
     # bell state program
@@ -54,10 +51,7 @@ def test_qc_expectation(forest):
 def test_qc_expectation_larger_lattice(forest):
     device = NxDevice(nx.complete_graph(4))
     qc = QuantumComputer(
-        name='testy!',
-        qam=QVM(connection=forest),
-        device=device,
-        compiler=DummyCompiler()
+        name="testy!", qam=QVM(connection=forest), device=device, compiler=DummyCompiler()
     )
 
     q0 = 2

@@ -36,42 +36,42 @@ import os
 # extensions coming with Sphinx (named 'sphinx.ext.*') or your custom
 # ones.
 extensions = [
-    'sphinx.ext.autodoc',
-    'sphinx.ext.autosummary',
-    'sphinx.ext.doctest',
-    'sphinx.ext.intersphinx',
-    'sphinx.ext.todo',
-    'sphinx.ext.coverage',
-    'sphinx.ext.mathjax',
-    'sphinx.ext.ifconfig',
-    'sphinx.ext.viewcode',
-    'sphinx_autodoc_typehints',
-    'nbsphinx',
+    "sphinx.ext.autodoc",
+    "sphinx.ext.autosummary",
+    "sphinx.ext.doctest",
+    "sphinx.ext.intersphinx",
+    "sphinx.ext.todo",
+    "sphinx.ext.coverage",
+    "sphinx.ext.mathjax",
+    "sphinx.ext.ifconfig",
+    "sphinx.ext.viewcode",
+    "sphinx_autodoc_typehints",
+    "nbsphinx",
 ]
 
 autosummary_generate = True
 autoclass_content = "both"
 
 # Add any paths that contain templates here, relative to this directory.
-templates_path = ['_templates']
+templates_path = ["_templates"]
 
 # The suffix(es) of source filenames.
 # You can specify multiple suffix as a list of string:
 #
 # source_suffix = ['.rst', '.md']
-source_suffix = '.rst'
+source_suffix = ".rst"
 
 # The encoding of source files.
 #
 # source_encoding = 'utf-8-sig'
 
 # The master toctree document.
-master_doc = 'index'
+master_doc = "index"
 
 # General information about the project.
-project = u'pyQuil'
-copyright = u'2019, Rigetti Computing'
-author = u'Rigetti Computing'
+project = "pyQuil"
+copyright = "2019, Rigetti Computing"
+author = "Rigetti Computing"
 
 # The version info for the project you're documenting, acts as replacement for
 # |version| and |release|, also used in various other places throughout the
@@ -123,7 +123,7 @@ exclude_patterns = []
 # show_authors = False
 
 # The name of the Pygments (syntax highlighting) style to use.
-pygments_style = 'sphinx'
+pygments_style = "sphinx"
 
 # A list of ignored prefixes for module index sorting.
 # modindex_common_prefix = []
@@ -139,7 +139,7 @@ todo_include_todos = True
 # The theme to use for HTML and HTML Help pages.  See the documentation for
 # a list of builtin themes.
 #
-html_theme = 'sphinx_rtd_theme'
+html_theme = "sphinx_rtd_theme"
 
 # Theme options are theme-specific and customize the look and feel of a theme
 # further.  For a list of options available for each theme, see the
@@ -176,11 +176,7 @@ html_theme_path = [sphinx_rtd_theme.get_html_theme_path()]
 html_static_path = ["_static"]
 
 # See https://rackerlabs.github.io/docs-rackspace/tools/rtd-tables.html for details
-html_context = {
-    'css_files': [
-        '_static/theme_overrides.css',  # override wide tables in RTD theme
-    ],
-}
+html_context = {"css_files": ["_static/theme_overrides.css"]}  # override wide tables in RTD theme
 
 # Add any extra paths that contain custom files (such as robots.txt or
 # .htaccess) here, relative to this directory. These files are copied
@@ -260,7 +256,7 @@ html_context = {
 # html_search_scorer = 'scorer.js'
 
 # Output file base name for HTML help builder.
-htmlhelp_basename = 'pyQuildoc'
+htmlhelp_basename = "pyQuildoc"
 
 # -- Options for LaTeX output ---------------------------------------------
 
@@ -268,15 +264,12 @@ latex_elements = {
     # The paper size ('letterpaper' or 'a4paper').
     #
     # 'papersize': 'letterpaper',
-
     # The font size ('10pt', '11pt' or '12pt').
     #
     # 'pointsize': '10pt',
-
     # Additional stuff for the LaTeX preamble.
     #
     # 'preamble': '',
-
     # Latex figure (float) alignment
     #
     # 'figure_align': 'htbp',
@@ -286,8 +279,7 @@ latex_elements = {
 # (source start file, target name, title,
 #  author, documentclass [howto, manual, or own class]).
 latex_documents = [
-    (master_doc, 'pyQuil.tex', u'pyQuil Documentation',
-     u'Rigetti Computing', 'manual'),
+    (master_doc, "pyQuil.tex", "pyQuil Documentation", "Rigetti Computing", "manual")
 ]
 
 # The name of an image file (relative to this directory) to place at the top of
@@ -321,10 +313,7 @@ latex_documents = [
 
 # One entry per manual page. List of tuples
 # (source start file, name, description, authors, manual section).
-man_pages = [
-    (master_doc, 'pyquil', u'pyQuil Documentation',
-     [author], 1)
-]
+man_pages = [(master_doc, "pyquil", "pyQuil Documentation", [author], 1)]
 
 # If true, show URL addresses after external links.
 #
@@ -337,9 +326,15 @@ man_pages = [
 # (source start file, target name, title, author,
 #  dir menu entry, description, category)
 texinfo_documents = [
-    (master_doc, 'pyQuil', u'pyQuil Documentation',
-     author, 'pyQuil', 'One line description of project.',
-     'Miscellaneous'),
+    (
+        master_doc,
+        "pyQuil",
+        "pyQuil Documentation",
+        author,
+        "pyQuil",
+        "One line description of project.",
+        "Miscellaneous",
+    )
 ]
 
 # Documents to append as an appendix to all manuals.
@@ -360,19 +355,22 @@ texinfo_documents = [
 
 
 # Example configuration for intersphinx: refer to the Python standard library.
-intersphinx_mapping = {'https://docs.python.org/3/': None}
+intersphinx_mapping = {"https://docs.python.org/3/": None}
 
 mathjax_config = {
-    'TeX': {
-        'Macros': {
-            'sket': ["\\left|\\left. #1 \\right\\rangle\\!\\right\\rangle", 1],
-            'sbra': ["\\left\\langle\\!\\left\\langle #1 \\right.\\right|", 1],
-            'sbraket': ["\\left\\langle\\!\\left\\langle #1 | #2 \\right\\rangle\\!\\right\\rangle", 2],
-            'ket': ["\\left| #1 \\right\\rangle", 1],
-            'bra': ["\\left\\langle #1 \\right|", 1],
-            'braket': ["\\left\\langle #1 | #2 \\right\\rangle", 2],
-            'vect': ["\\text{vec}\\left(#1\\right)", 1],
-            'tr': ["\\text{Tr}\\left(#1\\right)", 1]
+    "TeX": {
+        "Macros": {
+            "sket": ["\\left|\\left. #1 \\right\\rangle\\!\\right\\rangle", 1],
+            "sbra": ["\\left\\langle\\!\\left\\langle #1 \\right.\\right|", 1],
+            "sbraket": [
+                "\\left\\langle\\!\\left\\langle #1 | #2 \\right\\rangle\\!\\right\\rangle",
+                2,
+            ],
+            "ket": ["\\left| #1 \\right\\rangle", 1],
+            "bra": ["\\left\\langle #1 \\right|", 1],
+            "braket": ["\\left\\langle #1 | #2 \\right\\rangle", 2],
+            "vect": ["\\text{vec}\\left(#1\\right)", 1],
+            "tr": ["\\text{Tr}\\left(#1\\right)", 1],
         }
     }
 }
@@ -383,10 +381,16 @@ dirname = os.path.dirname(__file__)
 
 
 def builder_inited_handler(app):
-    subprocess.call(['pandoc', '--from=markdown', '--to=rst',
-                     f'--output={dirname}/changes.rst',
-                     f'{dirname}/../../CHANGELOG.md'])
+    subprocess.call(
+        [
+            "pandoc",
+            "--from=markdown",
+            "--to=rst",
+            f"--output={dirname}/changes.rst",
+            f"{dirname}/../../CHANGELOG.md",
+        ]
+    )
 
 
 def setup(app):
-    app.connect('builder-inited', builder_inited_handler)
+    app.connect("builder-inited", builder_inited_handler)

@@ -32,7 +32,7 @@ def teleport(start_index, end_index, ancilla_index):
     """
     program = make_bell_pair(end_index, ancilla_index)
 
-    ro = program.declare('ro', memory_size=3)
+    ro = program.declare("ro", memory_size=3)
 
     # do the teleportation
     program.inst(CNOT(start_index, ancilla_index))
@@ -51,7 +51,7 @@ def teleport(start_index, end_index, ancilla_index):
     return program
 
 
-if __name__ == '__main__':
+if __name__ == "__main__":
     qvm = api.QVMConnection()
 
     # initialize qubit 0 in |1>

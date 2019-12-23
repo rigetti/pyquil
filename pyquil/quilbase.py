@@ -18,14 +18,37 @@ Contains the core pyQuil objects that correspond to Quil instructions.
 """
 import collections
 import numpy as np
-from typing import (Any, Callable, ClassVar, Container, Dict, Iterable, List, Optional, Set, Tuple,
-                    Union, TYPE_CHECKING)
+from typing import (
+    Any,
+    Callable,
+    ClassVar,
+    Container,
+    Dict,
+    Iterable,
+    List,
+    Optional,
+    Set,
+    Tuple,
+    Union,
+    TYPE_CHECKING,
+)
 from warnings import warn
 
-from pyquil.quilatom import (Expression, ExpressionDesignator, Label, LabelPlaceholder,
-                             MemoryReference, Parameter, ParameterDesignator, Qubit,
-                             QubitDesignator, QubitPlaceholder, _contained_parameters,
-                             format_parameter, unpack_qubit)
+from pyquil.quilatom import (
+    Expression,
+    ExpressionDesignator,
+    Label,
+    LabelPlaceholder,
+    MemoryReference,
+    Parameter,
+    ParameterDesignator,
+    Qubit,
+    QubitDesignator,
+    QubitPlaceholder,
+    _contained_parameters,
+    format_parameter,
+    unpack_qubit,
+)
 
 
 if TYPE_CHECKING:
@@ -54,21 +77,49 @@ class AbstractInstruction(object):
 
 
 RESERVED_WORDS: Container[str] = [
-    'DEFGATE', 'DEFCIRCUIT', 'MEASURE',
-    'LABEL', 'HALT', 'JUMP', 'JUMP-WHEN', 'JUMP-UNLESS',
-    'RESET', 'WAIT', 'NOP', 'INCLUDE', 'PRAGMA',
-    'DECLARE',
-    'NEG', 'NOT', 'AND', 'IOR', 'XOR',
-    'MOVE', 'EXCHANGE', 'CONVERT',
-    'ADD', 'SUB', 'MUL', 'DIV',
-    'EQ', 'GT', 'GE', 'LT', 'LE',
-    'LOAD', 'STORE',
+    "DEFGATE",
+    "DEFCIRCUIT",
+    "MEASURE",
+    "LABEL",
+    "HALT",
+    "JUMP",
+    "JUMP-WHEN",
+    "JUMP-UNLESS",
+    "RESET",
+    "WAIT",
+    "NOP",
+    "INCLUDE",
+    "PRAGMA",
+    "DECLARE",
+    "NEG",
+    "NOT",
+    "AND",
+    "IOR",
+    "XOR",
+    "MOVE",
+    "EXCHANGE",
+    "CONVERT",
+    "ADD",
+    "SUB",
+    "MUL",
+    "DIV",
+    "EQ",
+    "GT",
+    "GE",
+    "LT",
+    "LE",
+    "LOAD",
+    "STORE",
     # to be removed:
-    'TRUE', 'FALSE', 'OR'
+    "TRUE",
+    "FALSE",
+    "OR",
 ]
 
 
-def _extract_qubit_index(qubit: Union[Qubit, QubitPlaceholder], index: bool = True) -> QubitDesignator:
+def _extract_qubit_index(
+    qubit: Union[Qubit, QubitPlaceholder], index: bool = True
+) -> QubitDesignator:
     if (not index) or isinstance(qubit, QubitPlaceholder):
         return qubit
     return qubit.index
@@ -97,13 +148,19 @@ class Gate(AbstractInstruction):
     This is the pyQuil object for a quantum gate instruction.
     """
 
-    def __init__(self, name: str, params: Iterable[ParameterDesignator],
-                 qubits: Iterable[Union[Qubit, QubitPlaceholder]]):
+    def __init__(
+        self,
+        name: str,
+        params: Iterable[ParameterDesignator],
+        qubits: Iterable[Union[Qubit, QubitPlaceholder]],
+    ):
         if not isinstance(name, str):
             raise TypeError("Gate name must be a string")
 
         if name in RESERVED_WORDS:
-            raise ValueError("Cannot use {} for a gate name since it's a reserved word".format(name))
+            raise ValueError(
+                "Cannot use {} for a gate name since it's a reserved word".format(name)
+            )
 
         if not isinstance(params, collections.abc.Iterable):
             raise TypeError("Gate params must be an Iterable")
@@ -130,15 +187,19 @@ class Gate(AbstractInstruction):
     def out(self) -> str:
         if self.params:
             return "{}{}{} {}".format(
-                ' '.join(self.modifiers) + ' ' if self.modifiers else '',
-                self.name, _format_params(self.params),
-                _format_qubits_out(self.qubits))
+                " ".join(self.modifiers) + " " if self.modifiers else "",
+                self.name,
+                _format_params(self.params),
+                _format_qubits_out(self.qubits),
+            )
         else:
             return "{}{} {}".format(
-                ' '.join(self.modifiers) + ' ' if self.modifiers else '',
-                self.name, _format_qubits_out(self.qubits))
+                " ".join(self.modifiers) + " " if self.modifiers else "",
+                self.name,
+                _format_qubits_out(self.qubits),
+            )
 
-    def controlled(self, control_qubit: QubitDesignator) -> 'Gate':
+    def controlled(self, control_qubit: QubitDesignator) -> "Gate":
         """
         Add the CONTROLLED modifier to the gate with the given control qubit.
         """
@@ -149,14 +210,17 @@ class Gate(AbstractInstruction):
 
         return self
 
-    def forked(self, fork_qubit: QubitDesignator, alt_params: List[ParameterDesignator]) -> 'Gate':
+    def forked(self, fork_qubit: QubitDesignator, alt_params: List[ParameterDesignator]) -> "Gate":
         """
-        Add the FORKED modifier to the gate with the given fork qubit and given additional parameters.
+        Add the FORKED modifier to the gate with the given fork qubit and given additional
+        parameters.
         """
         if not isinstance(alt_params, list):
             raise TypeError("Gate params must be a list")
         if len(self.params) != len(alt_params):
-            raise ValueError("Expected {} parameters but received {}".format(len(self.params), len(alt_params)))
+            raise ValueError(
+                "Expected {} parameters but received {}".format(len(self.params), len(alt_params))
+            )
 
         fork_qubit = unpack_qubit(fork_qubit)
 
@@ -166,7 +230,7 @@ class Gate(AbstractInstruction):
 
         return self
 
-    def dagger(self) -> 'Gate':
+    def dagger(self) -> "Gate":
         """
         Add the DAGGER modifier to the gate.
         """
@@ -180,13 +244,17 @@ class Gate(AbstractInstruction):
     def __str__(self) -> str:
         if self.params:
             return "{}{}{} {}".format(
-                ' '.join(self.modifiers) + ' ' if self.modifiers else '',
-                self.name, _format_params(self.params),
-                _format_qubits_str(self.qubits))
+                " ".join(self.modifiers) + " " if self.modifiers else "",
+                self.name,
+                _format_params(self.params),
+                _format_qubits_str(self.qubits),
+            )
         else:
             return "{}{} {}".format(
-                ' '.join(self.modifiers) + ' ' if self.modifiers else '',
-                self.name, _format_qubits_str(self.qubits))
+                " ".join(self.modifiers) + " " if self.modifiers else "",
+                self.name,
+                _format_qubits_str(self.qubits),
+            )
 
 
 def _strip_modifiers(gate: Gate, limit: Optional[int] = None) -> Gate:
@@ -211,21 +279,19 @@ def _strip_modifiers(gate: Gate, limit: Optional[int] = None) -> Gate:
     qubit_index = 0
     param_index = len(gate.params)
     for m in gate.modifiers[:limit]:
-        if m == 'CONTROLLED':
+        if m == "CONTROLLED":
             qubit_index += 1
-        elif m == 'FORKED':
+        elif m == "FORKED":
             if param_index % 2 != 0:
                 raise ValueError("FORKED gate has an invalid number of parameters.")
             param_index //= 2
             qubit_index += 1
-        elif m == 'DAGGER':
+        elif m == "DAGGER":
             pass
         else:
             raise TypeError("Unsupported gate modifier {}".format(m))
 
-    stripped = Gate(gate.name,
-                    gate.params[:param_index],
-                    gate.qubits[qubit_index:])
+    stripped = Gate(gate.name, gate.params[:param_index], gate.qubits[qubit_index:])
     stripped.modifiers = gate.modifiers[limit:]
     return stripped
 
@@ -235,7 +301,9 @@ class Measurement(AbstractInstruction):
     This is the pyQuil object for a Quil measurement instruction.
     """
 
-    def __init__(self, qubit: Union[Qubit, QubitPlaceholder], classical_reg: Optional[MemoryReference]):
+    def __init__(
+        self, qubit: Union[Qubit, QubitPlaceholder], classical_reg: Optional[MemoryReference]
+    ):
         if not isinstance(qubit, (Qubit, QubitPlaceholder)):
             raise TypeError("qubit should be a Qubit")
         if classical_reg is not None and not isinstance(classical_reg, MemoryReference):
@@ -289,13 +357,19 @@ class DefGate(AbstractInstruction):
     :param parameters: list of parameters that are used in this gate
     """
 
-    def __init__(self, name: str, matrix: Union[List[List[Any]], np.ndarray, np.matrix],
-                 parameters: Optional[List[Parameter]] = None):
+    def __init__(
+        self,
+        name: str,
+        matrix: Union[List[List[Any]], np.ndarray, np.matrix],
+        parameters: Optional[List[Parameter]] = None,
+    ):
         if not isinstance(name, str):
             raise TypeError("Gate name must be a string")
 
         if name in RESERVED_WORDS:
-            raise ValueError("Cannot use {} for a gate name since it's a reserved word".format(name))
+            raise ValueError(
+                "Cannot use {} for a gate name since it's a reserved word".format(name)
+            )
 
         if isinstance(matrix, list):
             rows = len(matrix)
@@ -317,12 +391,18 @@ class DefGate(AbstractInstruction):
             if not isinstance(parameters, list):
                 raise TypeError("Paramaters must be a list")
 
-            expressions = [elem for row in self.matrix for elem in row if isinstance(elem, Expression)]
+            expressions = [
+                elem for row in self.matrix for elem in row if isinstance(elem, Expression)
+            ]
             used_params = {param for exp in expressions for param in _contained_parameters(exp)}
 
             if set(parameters) != used_params:
-                raise ValueError("Parameters list does not match parameters actually used in gate matrix:\n"
-                                 "Parameters in argument: {}, Parameters in matrix: {}".format(parameters, used_params))
+                raise ValueError(
+                    "Parameters list does not match parameters actually used in gate matrix:\n"
+                    "Parameters in argument: {}, Parameters in matrix: {}".format(
+                        parameters, used_params
+                    )
+                )
         else:
             is_unitary = np.allclose(np.eye(rows), self.matrix.dot(self.matrix.T.conj()))
             if not is_unitary:
@@ -336,6 +416,7 @@ class DefGate(AbstractInstruction):
 
         :returns: String representation of a gate
         """
+
         def format_matrix_element(element: Union[ExpressionDesignator, str]) -> str:
             """
             Formats a parameterized matrix element.
@@ -352,7 +433,7 @@ class DefGate(AbstractInstruction):
                 raise TypeError("Invalid matrix element: %r" % element)
 
         if self.parameters:
-            result = "DEFGATE {}({}):\n".format(self.name, ', '.join(map(str, self.parameters)))
+            result = "DEFGATE {}({}):\n".format(self.name, ", ".join(map(str, self.parameters)))
         else:
             result = "DEFGATE {}:\n".format(self.name)
 
@@ -369,10 +450,13 @@ class DefGate(AbstractInstruction):
                   `mygate.get_constructor()(1) applies the gate to qubit 1.`
         """
         if self.parameters:
-            return lambda *params: lambda *qubits: \
-                Gate(name=self.name, params=list(params), qubits=list(map(unpack_qubit, qubits)))
+            return lambda *params: lambda *qubits: Gate(
+                name=self.name, params=list(params), qubits=list(map(unpack_qubit, qubits))
+            )
         else:
-            return lambda *qubits: Gate(name=self.name, params=[], qubits=list(map(unpack_qubit, qubits)))
+            return lambda *qubits: Gate(
+                name=self.name, params=[], qubits=list(map(unpack_qubit, qubits))
+            )
 
     def num_args(self) -> int:
         """
@@ -388,7 +472,9 @@ class DefPermutationGate(DefGate):
             raise TypeError("Gate name must be a string")
 
         if name in RESERVED_WORDS:
-            raise ValueError("Cannot use {} for a gate name since it's a reserved word".format(name))
+            raise ValueError(
+                "Cannot use {} for a gate name since it's a reserved word".format(name)
+            )
 
         if isinstance(permutation, list):
             elts = len(permutation)
@@ -407,7 +493,7 @@ class DefPermutationGate(DefGate):
         self.parameters = None
 
     def out(self) -> str:
-        body = ', '.join([str(p) for p in self.permutation])
+        body = ", ".join([str(p) for p in self.permutation])
         return f"DEFGATE {self.name} AS PERMUTATION:\n    {body}"
 
     def num_args(self) -> int:
@@ -422,11 +508,13 @@ class DefGateByPaulis(DefGate):
     Records a gate definition as the exponentiation of a PauliSum.
     """
 
-    def __init__(self,
-                 gate_name: str,
-                 parameters: List[Parameter],
-                 arguments: List[QubitDesignator],
-                 body: 'PauliSum'):
+    def __init__(
+        self,
+        gate_name: str,
+        parameters: List[Parameter],
+        arguments: List[QubitDesignator],
+        body: "PauliSum",
+    ):
         if not isinstance(gate_name, str):
             raise TypeError("Gate name must be a string")
 
@@ -474,6 +562,7 @@ class JumpConditional(AbstractInstruction):
     """
     Abstract representation of an conditional jump instruction.
     """
+
     op: ClassVar[str]
 
     def __init__(self, target: Union[Label, LabelPlaceholder], condition: MemoryReference):
@@ -492,6 +581,7 @@ class JumpWhen(JumpConditional):
     """
     The JUMP-WHEN instruction.
     """
+
     op = "JUMP-WHEN"
 
 
@@ -499,6 +589,7 @@ class JumpUnless(JumpConditional):
     """
     The JUMP-UNLESS instruction.
     """
+
     op = "JUMP-UNLESS"
 
 
@@ -506,6 +597,7 @@ class SimpleInstruction(AbstractInstruction):
     """
     Abstract class for simple instructions with no arguments.
     """
+
     op: ClassVar[str]
 
     def out(self) -> str:
@@ -516,6 +608,7 @@ class Halt(SimpleInstruction):
     """
     The HALT instruction.
     """
+
     op = "HALT"
 
 
@@ -523,6 +616,7 @@ class Wait(SimpleInstruction):
     """
     The WAIT instruction.
     """
+
     op = "WAIT"
 
 
@@ -530,6 +624,7 @@ class Reset(SimpleInstruction):
     """
     The RESET instruction.
     """
+
     op = "RESET"
 
 
@@ -537,6 +632,7 @@ class Nop(SimpleInstruction):
     """
     The NOP instruction.
     """
+
     op = "NOP"
 
 
@@ -544,6 +640,7 @@ class UnaryClassicalInstruction(AbstractInstruction):
     """
     The abstract class for unary classical instructions.
     """
+
     op: ClassVar[str]
 
     def __init__(self, target: MemoryReference):
@@ -559,6 +656,7 @@ class ClassicalNeg(UnaryClassicalInstruction):
     """
     The NEG instruction.
     """
+
     op = "NEG"
 
 
@@ -566,6 +664,7 @@ class ClassicalNot(UnaryClassicalInstruction):
     """
     The NOT instruction.
     """
+
     op = "NOT"
 
 
@@ -573,6 +672,7 @@ class LogicalBinaryOp(AbstractInstruction):
     """
     The abstract class for binary logical classical instructions.
     """
+
     op: ClassVar[str]
 
     def __init__(self, left: MemoryReference, right: Union[MemoryReference, int]):
@@ -589,7 +689,8 @@ class LogicalBinaryOp(AbstractInstruction):
 
 class ClassicalAnd(LogicalBinaryOp):
     """
-    WARNING: The operand order for ClassicalAnd has changed.  In pyQuil versions <= 1.9, AND had signature
+    WARNING: The operand order for ClassicalAnd has changed.  In pyQuil versions <= 1.9, AND had
+    signature
 
         AND %source %target
 
@@ -605,6 +706,7 @@ class ClassicalInclusiveOr(LogicalBinaryOp):
     """
     The IOR instruction.
     """
+
     op = "IOR"
 
 
@@ -612,6 +714,7 @@ class ClassicalExclusiveOr(LogicalBinaryOp):
     """
     The XOR instruction.
     """
+
     op = "XOR"
 
 
@@ -621,10 +724,12 @@ class ClassicalOr(ClassicalInclusiveOr):
     """
 
     def __init__(self, left: MemoryReference, right: MemoryReference):
-        warn("ClassicalOr has been deprecated. Replacing with "
-             "ClassicalInclusiveOr. Use ClassicalInclusiveOr instead. "
-             "NOTE: The operands to ClassicalInclusiveOr are inverted from "
-             "ClassicalOr.")
+        warn(
+            "ClassicalOr has been deprecated. Replacing with "
+            "ClassicalInclusiveOr. Use ClassicalInclusiveOr instead. "
+            "NOTE: The operands to ClassicalInclusiveOr are inverted from "
+            "ClassicalOr."
+        )
         super().__init__(right, left)
 
 
@@ -632,12 +737,17 @@ class ArithmeticBinaryOp(AbstractInstruction):
     """
     The abstract class for binary arithmetic classical instructions.
     """
+
     op: ClassVar[str]
 
     def __init__(self, left: MemoryReference, right: Union[MemoryReference, int, float]):
         if not isinstance(left, MemoryReference):
             raise TypeError("left operand should be an MemoryReference")
-        if not isinstance(right, MemoryReference) and not isinstance(right, int) and not isinstance(right, float):
+        if (
+            not isinstance(right, MemoryReference)
+            and not isinstance(right, int)
+            and not isinstance(right, float)
+        ):
             raise TypeError("right operand should be an MemoryReference or a numeric literal")
         self.left = left
         self.right = right
@@ -650,6 +760,7 @@ class ClassicalAdd(ArithmeticBinaryOp):
     """
     The ADD instruction.
     """
+
     op = "ADD"
 
 
@@ -657,6 +768,7 @@ class ClassicalSub(ArithmeticBinaryOp):
     """
     The SUB instruction.
     """
+
     op = "SUB"
 
 
@@ -664,6 +776,7 @@ class ClassicalMul(ArithmeticBinaryOp):
     """
     The MUL instruction.
     """
+
     op = "MUL"
 
 
@@ -671,6 +784,7 @@ class ClassicalDiv(ArithmeticBinaryOp):
     """
     The DIV instruction.
     """
+
     op = "DIV"
 
 
@@ -682,16 +796,24 @@ class ClassicalMove(AbstractInstruction):
              In pyQuil 1.9, the order of operands was MOVE <source> <target>.
              These have reversed.
     """
+
     op = "MOVE"
 
     def __init__(self, left: MemoryReference, right: Union[MemoryReference, int, float]):
         if not isinstance(left, MemoryReference):
-            raise TypeError("Left operand of MOVE should be an MemoryReference.  "
-                            "Note that the order of the operands in pyQuil 2.0 has reversed from "
-                            "the order of pyQuil 1.9 .")
-        if not isinstance(right, MemoryReference) and not isinstance(right, int) and not isinstance(right, float):
-            raise TypeError("Right operand of MOVE should be an MemoryReference "
-                            "or a numeric literal")
+            raise TypeError(
+                "Left operand of MOVE should be an MemoryReference.  "
+                "Note that the order of the operands in pyQuil 2.0 has reversed from "
+                "the order of pyQuil 1.9 ."
+            )
+        if (
+            not isinstance(right, MemoryReference)
+            and not isinstance(right, int)
+            and not isinstance(right, float)
+        ):
+            raise TypeError(
+                "Right operand of MOVE should be an MemoryReference " "or a numeric literal"
+            )
         self.left = left
         self.right = right
 
@@ -784,11 +906,14 @@ class ClassicalStore(AbstractInstruction):
 
     op = "STORE"
 
-    def __init__(self, target: str, left: MemoryReference, right: Union[MemoryReference, int, float]):
+    def __init__(
+        self, target: str, left: MemoryReference, right: Union[MemoryReference, int, float]
+    ):
         if not isinstance(left, MemoryReference):
             raise TypeError("left operand should be an MemoryReference")
-        if not (isinstance(right, MemoryReference) or isinstance(right, int)
-                or isinstance(right, float)):
+        if not (
+            isinstance(right, MemoryReference) or isinstance(right, int) or isinstance(right, float)
+        ):
             raise TypeError("right operand should be an MemoryReference or an int or float.")
         self.target = target
         self.left = left
@@ -802,16 +927,22 @@ class ClassicalComparison(AbstractInstruction):
     """
     Abstract class for ternary comparison instructions.
     """
+
     op: ClassVar[str]
 
-    def __init__(self, target: MemoryReference, left: MemoryReference,
-                 right: Union[MemoryReference, int, float]):
+    def __init__(
+        self,
+        target: MemoryReference,
+        left: MemoryReference,
+        right: Union[MemoryReference, int, float],
+    ):
         if not isinstance(target, MemoryReference):
             raise TypeError("target operand should be an MemoryReference")
         if not isinstance(left, MemoryReference):
             raise TypeError("left operand should be an MemoryReference")
-        if not (isinstance(right, MemoryReference) or isinstance(right, int)
-                or isinstance(right, float)):
+        if not (
+            isinstance(right, MemoryReference) or isinstance(right, int) or isinstance(right, float)
+        ):
             raise TypeError("right operand should be an MemoryReference or an int or float.")
         self.target = target
         self.left = left
@@ -885,23 +1016,29 @@ class Pragma(AbstractInstruction):
 
     """
 
-    def __init__(self, command: str,
-                 args: Iterable[Union[QubitDesignator, str]] = (),
-                 freeform_string: str = ""):
+    def __init__(
+        self,
+        command: str,
+        args: Iterable[Union[QubitDesignator, str]] = (),
+        freeform_string: str = "",
+    ):
         if not isinstance(command, str):
             raise TypeError("Pragma's require an identifier.")
 
         if not isinstance(args, collections.abc.Iterable):
             raise TypeError("Pragma arguments must be an Iterable: {}".format(args))
         for a in args:
-            if not (isinstance(a, str)
-                    or isinstance(a, int)
-                    or isinstance(a, QubitPlaceholder)
-                    or isinstance(a, Qubit)):
+            if not (
+                isinstance(a, str)
+                or isinstance(a, int)
+                or isinstance(a, QubitPlaceholder)
+                or isinstance(a, Qubit)
+            ):
                 raise TypeError("Pragma arguments must be strings or integers: {}".format(a))
         if not isinstance(freeform_string, str):
-            raise TypeError("The freeform string argument must be a string: {}".format(
-                freeform_string))
+            raise TypeError(
+                "The freeform string argument must be a string: {}".format(freeform_string)
+            )
 
         self.command = command
         self.args = tuple(args)
@@ -912,11 +1049,11 @@ class Pragma(AbstractInstruction):
         if self.args:
             ret += " {}".format(" ".join(str(a) for a in self.args))
         if self.freeform_string:
-            ret += " \"{}\"".format(self.freeform_string)
+            ret += ' "{}"'.format(self.freeform_string)
         return ret
 
     def __repr__(self) -> str:
-        return '<PRAGMA {}>'.format(self.command)
+        return "<PRAGMA {}>".format(self.command)
 
 
 class Declare(AbstractInstruction):
@@ -929,9 +1066,14 @@ class Declare(AbstractInstruction):
 
     """
 
-    def __init__(self, name: str, memory_type: str, memory_size: int = 1,
-                 shared_region: Optional[str] = None,
-                 offsets: Optional[Iterable[Tuple[int, str]]] = None):
+    def __init__(
+        self,
+        name: str,
+        memory_type: str,
+        memory_size: int = 1,
+        shared_region: Optional[str] = None,
+        offsets: Optional[Iterable[Tuple[int, str]]] = None,
+    ):
         self.name = name
         self.memory_type = memory_type
         self.memory_size = memory_size
@@ -943,11 +1085,11 @@ class Declare(AbstractInstruction):
 
     def asdict(self) -> Dict[str, Union[Iterable[Tuple[int, str]], Optional[str], int]]:
         return {
-            'name': self.name,
-            'memory_type': self.memory_type,
-            'memory_size': self.memory_size,
-            'shared_region': self.shared_region,
-            'offsets': self.offsets,
+            "name": self.name,
+            "memory_type": self.memory_type,
+            "memory_size": self.memory_size,
+            "shared_region": self.shared_region,
+            "offsets": self.offsets,
         }
 
     def out(self) -> str:
@@ -960,7 +1102,7 @@ class Declare(AbstractInstruction):
         return ret
 
     def __repr__(self) -> str:
-        return '<DECLARE {}>'.format(self.name)
+        return "<DECLARE {}>".format(self.name)
 
 
 class RawInstr(AbstractInstruction):
@@ -977,4 +1119,4 @@ class RawInstr(AbstractInstruction):
         return self.instr
 
     def __repr__(self) -> str:
-        return '<RawInstr {}>'.format(self.instr)
+        return "<RawInstr {}>".format(self.instr)

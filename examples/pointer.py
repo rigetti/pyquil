@@ -59,7 +59,7 @@ def controlled(num_ptr_bits, U):
     """
     d = 2 ** (1 + num_ptr_bits)
     m = np.eye(d)
-    m[d - 2:, d - 2:] = U
+    m[d - 2 :, d - 2 :] = U
     return m
 
 
@@ -115,6 +115,6 @@ def pointer_gate(num_qubits, U):
     return program
 
 
-if __name__ == '__main__':
+if __name__ == "__main__":
     H = np.matrix([[1, 1], [1, -1]]) / np.sqrt(2)
     print(pointer_gate(11, H))

@@ -49,14 +49,14 @@ class QAM(ABC):
 
         :param executable: Load a compiled executable onto the QAM.
         """
-        if self.status == 'loaded':
+        if self.status == "loaded":
             warnings.warn("Overwriting previously loaded executable.")
-        assert self.status in ['connected', 'done', 'loaded']
+        assert self.status in ["connected", "done", "loaded"]
 
         self._variables_shim = {}
         self._executable = executable
         self._memory_results = defaultdict(lambda: None)
-        self.status = 'loaded'
+        self.status = "loaded"
         return self
 
     @_record_call
@@ -68,7 +68,7 @@ class QAM(ABC):
         :param offset: Integer offset into the memory region to write to.
         :param value: Value to store at the indicated location.
         """
-        assert self.status in ['loaded', 'done']
+        assert self.status in ["loaded", "done"]
 
         aref = ParameterAref(name=region_name, index=offset)
         self._variables_shim[aref] = value
@@ -80,7 +80,7 @@ class QAM(ABC):
         """
         Reset the program counter on a QAM and run its loaded Quil program.
         """
-        self.status = 'running'
+        self.status = "running"
 
         return self
 
@@ -89,8 +89,8 @@ class QAM(ABC):
         """
         Blocks until the QPU enters the halted state.
         """
-        assert self.status == 'running'
-        self.status = 'done'
+        assert self.status == "running"
+        self.status = "done"
         return self
 
     @_record_call
@@ -104,7 +104,7 @@ class QAM(ABC):
         :param region_name: The string naming the declared memory region.
         :return: A list of values of the appropriate type.
         """
-        assert self.status == 'done'
+        assert self.status == "done"
 
         return self._memory_results[region_name]
 
@@ -119,9 +119,11 @@ class QAM(ABC):
         :param region_name: The string naming the declared memory region.
         :return: A list of values of the appropriate type.
         """
-        warnings.warn("pyquil.api._qam.QAM.read_from_memory_region is deprecated, please use "
-                      "pyquil.api._qam.QAM.read_memory instead.",
-                      DeprecationWarning)
+        warnings.warn(
+            "pyquil.api._qam.QAM.read_from_memory_region is deprecated, please use "
+            "pyquil.api._qam.QAM.read_memory instead.",
+            DeprecationWarning,
+        )
 
         return self.read_memory(region_name=region_name)
 
@@ -137,4 +139,4 @@ class QAM(ABC):
         self._memory_results = defaultdict(lambda: None)
         self._experiment = None
 
-        self.status = 'connected'
+        self.status = "connected"

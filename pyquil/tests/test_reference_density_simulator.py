@@ -6,37 +6,53 @@ import pyquil.gate_matrices as qmats
 from pyquil import Program
 from pyquil.gates import *
 from pyquil.pyqvm import PyQVM
-from pyquil.reference_simulator import (ReferenceDensitySimulator, _is_valid_quantum_state)
+from pyquil.reference_simulator import ReferenceDensitySimulator, _is_valid_quantum_state
 from pyquil.unitary_tools import lifted_gate_matrix
 from pyquil.paulis import sI, sX, sY, sZ
 from pyquil.device import NxDevice
 from pyquil.api import QuantumComputer
-from pyquil.operator_estimation import (measure_observables)
+from pyquil.operator_estimation import measure_observables
 from pyquil.experiment import ExperimentSetting, TomographyExperiment, zeros_state
 from pyquil.tests.utils import DummyCompiler
 
 
 def test_qaoa_density():
-    wf_true = [0.00167784 + 1.00210180e-05 * 1j, 0.50000000 - 4.99997185e-01 * 1j,
-               0.50000000 - 4.99997185e-01 * 1j, 0.00167784 + 1.00210180e-05 * 1j]
+    wf_true = [
+        0.00167784 + 1.00210180e-05 * 1j,
+        0.50000000 - 4.99997185e-01 * 1j,
+        0.50000000 - 4.99997185e-01 * 1j,
+        0.00167784 + 1.00210180e-05 * 1j,
+    ]
     wf_true = np.reshape(np.array(wf_true), (4, 1))
     rho_true = np.dot(wf_true, np.conj(wf_true).T)
     prog = Program()
-    prog.inst([RY(np.pi / 2, 0), RX(np.pi, 0),
-               RY(np.pi / 2, 1), RX(np.pi, 1),
-               CNOT(0, 1), RX(-np.pi / 2, 1), RY(4.71572463191, 1),
-               RX(np.pi / 2, 1), CNOT(0, 1),
-               RX(-2 * 2.74973750579, 0), RX(-2 * 2.74973750579, 1)])
+    prog.inst(
+        [
+            RY(np.pi / 2, 0),
+            RX(np.pi, 0),
+            RY(np.pi / 2, 1),
+            RX(np.pi, 1),
+            CNOT(0, 1),
+            RX(-np.pi / 2, 1),
+            RY(4.71572463191, 1),
+            RX(np.pi / 2, 1),
+            CNOT(0, 1),
+            RX(-2 * 2.74973750579, 0),
+            RX(-2 * 2.74973750579, 1),
+        ]
+    )
 
-    qam = PyQVM(n_qubits=2, quantum_simulator_type=ReferenceDensitySimulator) \
-        .execute(prog)
+    qam = PyQVM(n_qubits=2, quantum_simulator_type=ReferenceDensitySimulator).execute(prog)
     rho = qam.wf_simulator.density
     np.testing.assert_allclose(rho_true, rho, atol=1e-8)
 
 
 def test_larger_qaoa_density():
     prog = Program(
-        H(0), H(1), H(2), H(3),
+        H(0),
+        H(1),
+        H(2),
+        H(3),
         X(0),
         PHASE(0.3928244130249029, 0),
         X(0),
@@ -76,22 +92,31 @@ def test_larger_qaoa_density():
         H(2),
         H(3),
         RZ(-0.77868204192240842, 3),
-        H(3)
+        H(3),
     )
 
-    qam = PyQVM(n_qubits=4, quantum_simulator_type=ReferenceDensitySimulator) \
-        .execute(prog)
+    qam = PyQVM(n_qubits=4, quantum_simulator_type=ReferenceDensitySimulator).execute(prog)
     rho_test = qam.wf_simulator.density
-    wf_true = np.array([8.43771693e-05 - 0.1233845 * 1j, -1.24927731e-01 + 0.00329533 * 1j,
-                        -1.24927731e-01 + 0.00329533 * 1j,
-                        -2.50040954e-01 + 0.12661547 * 1j,
-                        -1.24927731e-01 + 0.00329533 * 1j, -4.99915497e-01 - 0.12363516 * 1j,
-                        -2.50040954e-01 + 0.12661547 * 1j, -1.24927731e-01 + 0.00329533 * 1j,
-                        -1.24927731e-01 + 0.00329533 * 1j, -2.50040954e-01 + 0.12661547 * 1j,
-                        -4.99915497e-01 - 0.12363516 * 1j, -1.24927731e-01 + 0.00329533 * 1j,
-                        -2.50040954e-01 + 0.12661547 * 1j, -1.24927731e-01 + 0.00329533 * 1j,
-                        -1.24927731e-01 + 0.00329533 * 1j,
-                        8.43771693e-05 - 0.1233845 * 1j])
+    wf_true = np.array(
+        [
+            8.43771693e-05 - 0.1233845 * 1j,
+            -1.24927731e-01 + 0.00329533 * 1j,
+            -1.24927731e-01 + 0.00329533 * 1j,
+            -2.50040954e-01 + 0.12661547 * 1j,
+            -1.24927731e-01 + 0.00329533 * 1j,
+            -4.99915497e-01 - 0.12363516 * 1j,
+            -2.50040954e-01 + 0.12661547 * 1j,
+            -1.24927731e-01 + 0.00329533 * 1j,
+            -1.24927731e-01 + 0.00329533 * 1j,
+            -2.50040954e-01 + 0.12661547 * 1j,
+            -4.99915497e-01 - 0.12363516 * 1j,
+            -1.24927731e-01 + 0.00329533 * 1j,
+            -2.50040954e-01 + 0.12661547 * 1j,
+            -1.24927731e-01 + 0.00329533 * 1j,
+            -1.24927731e-01 + 0.00329533 * 1j,
+            8.43771693e-05 - 0.1233845 * 1j,
+        ]
+    )
 
     wf_true = np.reshape(wf_true, (2 ** 4, 1))
     rho_true = np.dot(wf_true, np.conj(wf_true).T)
@@ -112,8 +137,11 @@ def _random_1q_density():
 
 def test_kraus_application_bitflip():
     p = 0.372
-    qam = PyQVM(n_qubits=1, quantum_simulator_type=ReferenceDensitySimulator,
-                post_gate_noise_probabilities={'bit_flip': p})
+    qam = PyQVM(
+        n_qubits=1,
+        quantum_simulator_type=ReferenceDensitySimulator,
+        post_gate_noise_probabilities={"bit_flip": p},
+    )
     initial_density = _random_1q_density()
     qam.wf_simulator.density = initial_density
     qam.execute(Program(I(0)))
@@ -123,8 +151,11 @@ def test_kraus_application_bitflip():
 
 def test_kraus_application_phaseflip():
     p = 0.372
-    qam = PyQVM(n_qubits=1, quantum_simulator_type=ReferenceDensitySimulator,
-                post_gate_noise_probabilities={'phase_flip': p})
+    qam = PyQVM(
+        n_qubits=1,
+        quantum_simulator_type=ReferenceDensitySimulator,
+        post_gate_noise_probabilities={"phase_flip": p},
+    )
     initial_density = _random_1q_density()
     qam.wf_simulator.density = initial_density
     qam.execute(Program(I(0)))
@@ -135,8 +166,11 @@ def test_kraus_application_phaseflip():
 
 def test_kraus_application_bitphaseflip():
     p = 0.372
-    qam = PyQVM(n_qubits=1, quantum_simulator_type=ReferenceDensitySimulator,
-                post_gate_noise_probabilities={'bitphase_flip': p})
+    qam = PyQVM(
+        n_qubits=1,
+        quantum_simulator_type=ReferenceDensitySimulator,
+        post_gate_noise_probabilities={"bitphase_flip": p},
+    )
     initial_density = _random_1q_density()
     qam.wf_simulator.density = initial_density
     qam.execute(Program(I(0)))
@@ -147,64 +181,81 @@ def test_kraus_application_bitphaseflip():
 
 def test_kraus_application_relaxation():
     p = 0.372
-    qam = PyQVM(n_qubits=1, quantum_simulator_type=ReferenceDensitySimulator,
-                post_gate_noise_probabilities={'relaxation': p})
+    qam = PyQVM(
+        n_qubits=1,
+        quantum_simulator_type=ReferenceDensitySimulator,
+        post_gate_noise_probabilities={"relaxation": p},
+    )
     rho = _random_1q_density()
     qam.wf_simulator.density = rho
     qam.execute(Program(I(0)))
 
-    final_density = np.array([[rho[0, 0] + rho[1, 1] * p, np.sqrt(1 - p) * rho[0, 1]],
-                              [np.sqrt(1 - p) * rho[1, 0], (1 - p) * rho[1, 1]]])
+    final_density = np.array(
+        [
+            [rho[0, 0] + rho[1, 1] * p, np.sqrt(1 - p) * rho[0, 1]],
+            [np.sqrt(1 - p) * rho[1, 0], (1 - p) * rho[1, 1]],
+        ]
+    )
     np.testing.assert_allclose(final_density, qam.wf_simulator.density)
 
 
 def test_kraus_application_dephasing():
     p = 0.372
-    qam = PyQVM(n_qubits=1, quantum_simulator_type=ReferenceDensitySimulator,
-                post_gate_noise_probabilities={'dephasing': p})
+    qam = PyQVM(
+        n_qubits=1,
+        quantum_simulator_type=ReferenceDensitySimulator,
+        post_gate_noise_probabilities={"dephasing": p},
+    )
     rho = _random_1q_density()
     qam.wf_simulator.density = rho
     qam.execute(Program(I(0)))
-    final_density = np.array([[rho[0, 0], (1 - p) * rho[0, 1]],
-                              [(1 - p) * rho[1, 0], rho[1, 1]]])
+    final_density = np.array([[rho[0, 0], (1 - p) * rho[0, 1]], [(1 - p) * rho[1, 0], rho[1, 1]]])
     np.testing.assert_allclose(final_density, qam.wf_simulator.density)
 
 
 def test_kraus_application_depolarizing():
     p = 0.372
-    qam = PyQVM(n_qubits=1, quantum_simulator_type=ReferenceDensitySimulator,
-                post_gate_noise_probabilities={'depolarizing': p})
+    qam = PyQVM(
+        n_qubits=1,
+        quantum_simulator_type=ReferenceDensitySimulator,
+        post_gate_noise_probabilities={"depolarizing": p},
+    )
     rho = _random_1q_density()
     qam.wf_simulator.density = rho
     qam.execute(Program(I(0)))
 
-    final_density = (1 - p) * rho + (p / 3) * (qmats.X.dot(rho).dot(qmats.X)
-                                               + qmats.Y.dot(rho).dot(qmats.Y)
-                                               + qmats.Z.dot(rho).dot(qmats.Z))
+    final_density = (1 - p) * rho + (p / 3) * (
+        qmats.X.dot(rho).dot(qmats.X)
+        + qmats.Y.dot(rho).dot(qmats.Y)
+        + qmats.Z.dot(rho).dot(qmats.Z)
+    )
     np.testing.assert_allclose(final_density, qam.wf_simulator.density)
 
 
 def test_kraus_compound_T1T2_application():
     p1 = 0.372
     p2 = 0.45
-    qam = PyQVM(n_qubits=1, quantum_simulator_type=ReferenceDensitySimulator,
-                post_gate_noise_probabilities={'relaxation': p1,
-                                               'dephasing': p2})
+    qam = PyQVM(
+        n_qubits=1,
+        quantum_simulator_type=ReferenceDensitySimulator,
+        post_gate_noise_probabilities={"relaxation": p1, "dephasing": p2},
+    )
     rho = _random_1q_density()
     qam.wf_simulator.density = rho
     qam.execute(Program(I(0)))
 
-    final_density = np.array([[rho[0, 0] + rho[1, 1] * p1, (1 - p2) * np.sqrt(1 - p1) * rho[0, 1]],
-                              [(1 - p2) * np.sqrt(1 - p1) * rho[1, 0], (1 - p1) * rho[1, 1]]])
+    final_density = np.array(
+        [
+            [rho[0, 0] + rho[1, 1] * p1, (1 - p2) * np.sqrt(1 - p1) * rho[0, 1]],
+            [(1 - p2) * np.sqrt(1 - p1) * rho[1, 0], (1 - p1) * rho[1, 1]],
+        ]
+    )
     np.testing.assert_allclose(final_density, qam.wf_simulator.density)
 
 
 @pytest.mark.xfail(reason="We don't support different noise parameters for 2q vs 1q gates!")
 def test_multiqubit_decay_bellstate():
-    program = Program(
-        RY(np.pi / 3, 0),
-        CNOT(0, 1)
-    )
+    program = Program(RY(np.pi / 3, 0), CNOT(0, 1))
 
     # commence manually dotting the above program
     initial_density = np.zeros((4, 4), dtype=complex)
@@ -256,9 +307,11 @@ def test_multiqubit_decay_bellstate():
             new_density += operator.dot(state).dot(np.conj(operator).T)
         state = new_density
 
-    qam = PyQVM(n_qubits=2, quantum_simulator_type=ReferenceDensitySimulator,
-                post_gate_noise_probabilities={'relaxation': p1,
-                                               'dephasing': p2})
+    qam = PyQVM(
+        n_qubits=2,
+        quantum_simulator_type=ReferenceDensitySimulator,
+        post_gate_noise_probabilities={"relaxation": p1, "dephasing": p2},
+    )
     qam.execute(program)
 
     assert np.allclose(qam.wf_simulator.density, state)
@@ -275,11 +328,12 @@ def test_for_negative_probabilities():
 
     # make a quantum computer object
     device = NxDevice(nx.complete_graph(1))
-    qc_density = QuantumComputer(name='testy!',
-                                 qam=PyQVM(n_qubits=1,
-                                           quantum_simulator_type=ReferenceDensitySimulator),
-                                 device=device,
-                                 compiler=DummyCompiler())
+    qc_density = QuantumComputer(
+        name="testy!",
+        qam=PyQVM(n_qubits=1, quantum_simulator_type=ReferenceDensitySimulator),
+        device=device,
+        compiler=DummyCompiler(),
+    )
 
     # initialize with a pure state
     initial_density = np.array([[1.0, 0.0], [0.0, 0.0]])
@@ -289,7 +343,7 @@ def test_for_negative_probabilities():
         list(measure_observables(qc=qc_density, tomo_experiment=experiment_1q, n_shots=3000))
     except ValueError as e:
         # the error is from np.random.choice by way of self.rs.choice in ReferenceDensitySimulator
-        assert str(e) != 'probabilities are not non-negative'
+        assert str(e) != "probabilities are not non-negative"
 
     # initialize with a mixed state
     initial_density = np.array([[0.9, 0.0], [0.0, 0.1]])
@@ -298,7 +352,7 @@ def test_for_negative_probabilities():
     try:
         list(measure_observables(qc=qc_density, tomo_experiment=experiment_1q, n_shots=3000))
     except ValueError as e:
-        assert str(e) != 'probabilities are not non-negative'
+        assert str(e) != "probabilities are not non-negative"
 
 
 def test_set_initial_state():
@@ -308,16 +362,17 @@ def test_set_initial_state():
 
     # run prog
     prog = Program(I(0))
-    ro = prog.declare('ro', 'BIT', 1)
+    ro = prog.declare("ro", "BIT", 1)
     prog += MEASURE(0, ro[0])
 
     # make a quantum computer object
     device = NxDevice(nx.complete_graph(1))
-    qc_density = QuantumComputer(name='testy!',
-                                 qam=PyQVM(n_qubits=1,
-                                           quantum_simulator_type=ReferenceDensitySimulator),
-                                 device=device,
-                                 compiler=DummyCompiler())
+    qc_density = QuantumComputer(
+        name="testy!",
+        qam=PyQVM(n_qubits=1, quantum_simulator_type=ReferenceDensitySimulator),
+        device=device,
+        compiler=DummyCompiler(),
+    )
 
     qc_density.qam.wf_simulator.set_initial_state(rho1).reset()
 

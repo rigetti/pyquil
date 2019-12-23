@@ -27,14 +27,38 @@ from rpcq.messages import NativeQuilMetadata
 
 from pyquil._parser.PyQuilListener import run_parser
 from pyquil.noise import _check_kraus_ops, _create_kraus_pragmas, pauli_kraus_map
-from pyquil.quilatom import (LabelPlaceholder, MemoryReference, MemoryReferenceDesignator,
-                             Parameter, ParameterDesignator, QubitDesignator,
-                             QubitPlaceholder, format_parameter, unpack_classical_reg,
-                             unpack_qubit)
+from pyquil.quilatom import (
+    LabelPlaceholder,
+    MemoryReference,
+    MemoryReferenceDesignator,
+    Parameter,
+    ParameterDesignator,
+    QubitDesignator,
+    QubitPlaceholder,
+    format_parameter,
+    unpack_classical_reg,
+    unpack_qubit,
+)
 from pyquil.gates import MEASURE, H, RESET
-from pyquil.quilbase import (DefGate, Gate, Measurement, Pragma, AbstractInstruction, Qubit,
-                             Jump, Label, JumpConditional, JumpTarget, JumpUnless, JumpWhen,
-                             Declare, Halt, Reset, ResetQubit, DefPermutationGate)
+from pyquil.quilbase import (
+    DefGate,
+    Gate,
+    Measurement,
+    Pragma,
+    AbstractInstruction,
+    Qubit,
+    Jump,
+    Label,
+    JumpConditional,
+    JumpTarget,
+    JumpUnless,
+    JumpWhen,
+    Declare,
+    Halt,
+    Reset,
+    ResetQubit,
+    DefPermutationGate,
+)
 
 
 class Program(object):
@@ -46,6 +70,7 @@ class Program(object):
     >>> p += H(0)
     >>> p += CNOT(0, 1)
     """
+
     def __init__(self, *instructions: AbstractInstruction):
         self._defined_gates = []
         # Implementation note: the key difference between the private _instructions and
@@ -70,7 +95,7 @@ class Program(object):
         # Note to developers: Have you changed this method? Have you changed the fields which
         # live on `Program`? Please update `Program.copy()`!
 
-    def copy_everything_except_instructions(self) -> 'Program':
+    def copy_everything_except_instructions(self) -> "Program":
         """
         Copy all the members that live on a Program object.
 
@@ -83,7 +108,7 @@ class Program(object):
         new_prog.num_shots = self.num_shots
         return new_prog
 
-    def copy(self) -> 'Program':
+    def copy(self) -> "Program":
         """
         Perform a shallow copy of this program.
 
@@ -113,7 +138,7 @@ class Program(object):
 
         return self._synthesized_instructions
 
-    def inst(self, *instructions: AbstractInstruction) -> 'Program':
+    def inst(self, *instructions: AbstractInstruction) -> "Program":
         """
         Mutates the Program object by appending new instructions.
 
@@ -177,8 +202,9 @@ class Program(object):
             elif isinstance(instruction, DefGate):
                 defined_gate_names = [gate.name for gate in self._defined_gates]
                 if instruction.name in defined_gate_names:
-                    warnings.warn("Gate {} has already been defined in this program"
-                                  .format(instruction.name))
+                    warnings.warn(
+                        "Gate {} has already been defined in this program".format(instruction.name)
+                    )
 
                 self._defined_gates.append(instruction)
             elif isinstance(instruction, AbstractInstruction):
@@ -189,7 +215,12 @@ class Program(object):
 
         return self
 
-    def gate(self, name: str, params: Iterable[ParameterDesignator], qubits: Iterable[Union[Qubit, QubitPlaceholder]]) -> 'Program':
+    def gate(
+        self,
+        name: str,
+        params: Iterable[ParameterDesignator],
+        qubits: Iterable[Union[Qubit, QubitPlaceholder]],
+    ) -> "Program":
         """
         Add a gate to the program.
 
@@ -198,7 +229,7 @@ class Program(object):
             The matrix elements along each axis are ordered by bitstring. For two qubits the order
             is ``00, 01, 10, 11``, where the the bits **are ordered in reverse** by the qubit index,
             i.e., for qubits 0 and 1 the bitstring ``01`` indicates that qubit 0 is in the state 1.
-            See also :ref:`the related documentation section in the WavefunctionSimulator Overview <basis_ordering>`.
+            See also :ref:`the related docs in the WavefunctionSimulator Overview <basis_ordering>`.
 
         :param name: The name of the gate.
         :param params: Parameters to send to the gate.
@@ -207,7 +238,12 @@ class Program(object):
         """
         return self.inst(Gate(name, params, [unpack_qubit(q) for q in qubits]))
 
-    def defgate(self, name: str, matrix: Union[List[List[Any]], np.ndarray, np.matrix], parameters: Optional[List[Parameter]] = None) -> 'Program':
+    def defgate(
+        self,
+        name: str,
+        matrix: Union[List[List[Any]], np.ndarray, np.matrix],
+        parameters: Optional[List[Parameter]] = None,
+    ) -> "Program":
         """
         Define a new static gate.
 
@@ -216,7 +252,7 @@ class Program(object):
             The matrix elements along each axis are ordered by bitstring. For two qubits the order
             is ``00, 01, 10, 11``, where the the bits **are ordered in reverse** by the qubit index,
             i.e., for qubits 0 and 1 the bitstring ``01`` indicates that qubit 0 is in the state 1.
-            See also :ref:`the related documentation section in the WavefunctionSimulator Overview <basis_ordering>`.
+            See also :ref:`the related docs in the WavefunctionSimulator Overview <basis_ordering>`.
 
 
         :param name: The name of the gate.
@@ -235,7 +271,7 @@ class Program(object):
             The matrix elements along each axis are ordered by bitstring. For two qubits the order
             is ``00, 01, 10, 11``, where the the bits **are ordered in reverse** by the qubit index,
             i.e., for qubits 0 and 1 the bitstring ``01`` indicates that qubit 0 is in the state 1.
-            See also :ref:`the related documentation section in the WavefunctionSimulator Overview <basis_ordering>`.
+            See also :ref:`the related docs in the WavefunctionSimulator Overview <basis_ordering>`.
 
 
         :param str name: The name of the gate.
@@ -262,9 +298,9 @@ class Program(object):
         :return: The Program with an appended READOUT-POVM Pragma.
         :rtype: Program
         """
-        if not 0. <= p00 <= 1.:
+        if not 0.0 <= p00 <= 1.0:
             raise ValueError("p00 must be in the interval [0,1].")
-        if not 0. <= p11 <= 1.:
+        if not 0.0 <= p11 <= 1.0:
             raise ValueError("p11 must be in the interval [0,1].")
         if not (isinstance(qubit, int) or isinstance(qubit, QubitPlaceholder)):
             raise TypeError("qubit must be a non-negative integer, or QubitPlaceholder.")
@@ -272,12 +308,12 @@ class Program(object):
             raise ValueError("qubit cannot be negative.")
         p00 = float(p00)
         p11 = float(p11)
-        aprobs = [p00, 1. - p11, 1. - p00, p11]
+        aprobs = [p00, 1.0 - p11, 1.0 - p00, p11]
         aprobs_str = "({})".format(" ".join(format_parameter(p) for p in aprobs))
         pragma = Pragma("READOUT-POVM", [qubit], aprobs_str)
         return self.inst(pragma)
 
-    def no_noise(self) -> 'Program':
+    def no_noise(self) -> "Program":
         """
         Prevent a noisy gate definition from being applied to the immediately following Gate
         instruction.
@@ -286,7 +322,9 @@ class Program(object):
         """
         return self.inst(Pragma("NO-NOISE"))
 
-    def measure(self, qubit: QubitDesignator, classical_reg: Optional[MemoryReferenceDesignator]) -> 'Program':
+    def measure(
+        self, qubit: QubitDesignator, classical_reg: Optional[MemoryReferenceDesignator]
+    ) -> "Program":
         """
         Measures a qubit at qubit_index and puts the result in classical_reg
 
@@ -297,7 +335,7 @@ class Program(object):
         """
         return self.inst(MEASURE(qubit, classical_reg))
 
-    def reset(self, qubit_index: Optional[int] = None) -> 'Program':
+    def reset(self, qubit_index: Optional[int] = None) -> "Program":
         """
         Reset all qubits or just a specific qubit at qubit_index.
 
@@ -329,7 +367,7 @@ class Program(object):
             qubit_inds = self.get_qubits(indices=True)
             if len(qubit_inds) == 0:
                 return self
-            ro = self.declare('ro', 'BIT', max(qubit_inds) + 1)
+            ro = self.declare("ro", "BIT", max(qubit_inds) + 1)
             for qi in qubit_inds:
                 self.inst(MEASURE(qi, ro[qi]))
         else:
@@ -337,7 +375,7 @@ class Program(object):
                 self.inst(MEASURE(qubit_index, classical_reg))
         return self
 
-    def while_do(self, classical_reg: MemoryReferenceDesignator, q_program: 'Program') -> 'Program':
+    def while_do(self, classical_reg: MemoryReferenceDesignator, q_program: "Program") -> "Program":
         """
         While a classical register at index classical_reg is 1, loop q_program
 
@@ -367,7 +405,12 @@ class Program(object):
         self.inst(JumpTarget(label_end))
         return self
 
-    def if_then(self, classical_reg: MemoryReferenceDesignator, if_program: 'Program', else_program: Optional['Program'] = None) -> 'Program':
+    def if_then(
+        self,
+        classical_reg: MemoryReferenceDesignator,
+        if_program: "Program",
+        else_program: Optional["Program"] = None,
+    ) -> "Program":
         """
         If the classical register at index classical reg is 1, run if_program, else run
         else_program.
@@ -412,11 +455,14 @@ class Program(object):
 
         :return: A qubit.
         """
-        warnings.warn("`alloc` is deprecated and will be removed in a future version of pyQuil. "
-                      "Please create a `QubitPlaceholder` directly", DeprecationWarning)
+        warnings.warn(
+            "`alloc` is deprecated and will be removed in a future version of pyQuil. "
+            "Please create a `QubitPlaceholder` directly",
+            DeprecationWarning,
+        )
         return QubitPlaceholder()
 
-    def declare(self, name, memory_type='BIT', memory_size=1, shared_region=None, offsets=None):
+    def declare(self, name, memory_type="BIT", memory_size=1, shared_region=None, offsets=None):
         """DECLARE a quil variable
 
         This adds the declaration to the current program and returns a MemoryReference to the
@@ -443,11 +489,18 @@ class Program(object):
         :return: a MemoryReference to the start of the declared memory region, ie a memory
             reference to ``name[0]``.
         """
-        self.inst(Declare(name=name, memory_type=memory_type, memory_size=memory_size,
-                          shared_region=shared_region, offsets=offsets))
+        self.inst(
+            Declare(
+                name=name,
+                memory_type=memory_type,
+                memory_size=memory_size,
+                shared_region=shared_region,
+                offsets=offsets,
+            )
+        )
         return MemoryReference(name=name, declared_size=memory_size)
 
-    def wrap_in_numshots_loop(self, shots: int) -> 'Program':
+    def wrap_in_numshots_loop(self, shots: int) -> "Program":
         """
         Wraps a Quil program in a loop that re-runs the same program many times.
 
@@ -465,21 +518,25 @@ class Program(object):
 
         :param allow_placeholders: Whether to complain if the program contains placeholders.
         """
-        return '\n'.join(itertools.chain(
-            (dg.out() for dg in self._defined_gates),
-            (instr.out(allow_placeholders=allow_placeholders) for instr in self.instructions),
-            [''],
-        ))
+        return "\n".join(
+            itertools.chain(
+                (dg.out() for dg in self._defined_gates),
+                (instr.out(allow_placeholders=allow_placeholders) for instr in self.instructions),
+                [""],
+            )
+        )
 
     def out(self) -> str:
         """
         Serializes the Quil program to a string suitable for submitting to the QVM or QPU.
         """
-        return '\n'.join(itertools.chain(
-            (dg.out() for dg in self._defined_gates),
-            (instr.out() for instr in self.instructions),
-            [''],
-        ))
+        return "\n".join(
+            itertools.chain(
+                (dg.out() for dg in self._defined_gates),
+                (instr.out() for instr in self.instructions),
+                [""],
+            )
+        )
 
     def get_qubits(self, indices: bool = True) -> Set[QubitDesignator]:
         """
@@ -561,8 +618,7 @@ class Program(object):
 
         # This is a bit hacky. Gate.dagger() mutates the gate object,
         # rather than returning a fresh (and daggered) copy.
-        return Program([instr.dagger() for instr
-                        in reversed(Program(self.out())._instructions)])
+        return Program([instr.dagger() for instr in reversed(Program(self.out())._instructions)])
 
     def _synthesize(self):
         """
@@ -616,7 +672,11 @@ class Program(object):
         :param index: The action at the specified index.
         :return:
         """
-        return Program(self.instructions[index]) if isinstance(index, slice) else self.instructions[index]
+        return (
+            Program(self.instructions[index])
+            if isinstance(index, slice)
+            else self.instructions[index]
+        )
 
     def __iter__(self):
         """
@@ -642,11 +702,13 @@ class Program(object):
         This may not be suitable for submission to a QPU or QVM for example if
         your program contains unaddressed QubitPlaceholders
         """
-        return '\n'.join(itertools.chain(
-            (str(dg) for dg in self._defined_gates),
-            (str(instr) for instr in self.instructions),
-            [''],
-        ))
+        return "\n".join(
+            itertools.chain(
+                (str(dg) for dg in self._defined_gates),
+                (str(instr) for instr in self.instructions),
+                [""],
+            )
+        )
 
 
 def _what_type_of_qubit_does_it_use(program):
@@ -714,8 +776,9 @@ def get_default_qubit_mapping(program):
     """
     fake_qubits, real_qubits, qubits = _what_type_of_qubit_does_it_use(program)
     if real_qubits:
-        warnings.warn("This program contains integer qubits, "
-                      "so getting a mapping doesn't make sense.")
+        warnings.warn(
+            "This program contains integer qubits, so getting a mapping doesn't make sense."
+        )
         return {q: q for q in qubits}
     return {qp: Qubit(i) for i, qp in enumerate(qubits)}
 
@@ -738,8 +801,10 @@ def address_qubits(program, qubit_mapping=None):
     fake_qubits, real_qubits, qubits = _what_type_of_qubit_does_it_use(program)
     if real_qubits:
         if qubit_mapping is not None:
-            warnings.warn("A qubit mapping was provided but the program does not "
-                          "contain any placeholders to map!")
+            warnings.warn(
+                "A qubit mapping was provided but the program does not "
+                "contain any placeholders to map!"
+            )
         return program
 
     if qubit_mapping is None:
@@ -864,7 +929,7 @@ def implicitly_declare_ro(instructions: List[AbstractInstruction]):
             if instr.classical_reg is None:
                 continue
 
-            if instr.classical_reg.name == 'ro':
+            if instr.classical_reg.name == "ro":
                 ro_addrs += [instr.classical_reg.offset]
             else:
                 # The user has used a classical register named something other than "ro"
@@ -874,11 +939,13 @@ def implicitly_declare_ro(instructions: List[AbstractInstruction]):
     if len(ro_addrs) == 0:
         return instructions
 
-    warnings.warn("Please DECLARE all memory. I'm adding a declaration for the `ro` register, "
-                  "but I won't do this for you in the future.")
+    warnings.warn(
+        "Please DECLARE all memory. I'm adding a declaration for the `ro` register, "
+        "but I won't do this for you in the future."
+    )
 
     new_instr = instructions.copy()
-    new_instr.insert(0, Declare(name='ro', memory_type='BIT', memory_size=max(ro_addrs) + 1))
+    new_instr.insert(0, Declare(name="ro", memory_type="BIT", memory_size=max(ro_addrs) + 1))
     return new_instr
 
 
@@ -886,14 +953,16 @@ def merge_with_pauli_noise(prog_list: Iterable, probabilities: List, qubits: Lis
     """
     Insert pauli noise channels between each item in the list of programs.
     This noise channel is implemented as a single noisy identity gate acting on the provided qubits.
-    This method does not rely on merge_programs and so avoids the inclusion of redundant Kraus Pragmas
-    that would occur if merge_programs was called directly on programs with distinct noisy gate definitions.
+    This method does not rely on merge_programs and so avoids the inclusion of redundant Kraus
+    Pragmas that would occur if merge_programs was called directly on programs with distinct noisy
+    gate definitions.
 
     :param prog_list: an iterable such as a program or a list of programs.
-        If a program is provided, a single noise gate will be applied after each gate in the program.
-        If a list of programs is provided, the noise gate will be applied after each program.
-    :param probabilities: The 4^num_qubits list of probabilities specifying the desired pauli channel.
-        There should be either 4 or 16 probabilities specified in the order
+        If a program is provided, a single noise gate will be applied after each gate in the
+        program. If a list of programs is provided, the noise gate will be applied after each
+        program.
+    :param probabilities: The 4^num_qubits list of probabilities specifying the desired pauli
+        channel. There should be either 4 or 16 probabilities specified in the order
         I, X, Y, Z or II, IX, IY, IZ, XI, XX, XY, etc respectively.
     :param qubits: a list of the qubits that the noisy gate should act on.
     :return: A single program with noisy gates inserted between each element of the program list.

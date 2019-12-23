@@ -12,12 +12,31 @@ from networkx.algorithms.approximation.clique import clique_removal
 
 from pyquil import Program
 from pyquil.api import QuantumComputer
+
 # import the full public API of the pyquil experiment module
-from pyquil.experiment import (_OneQState, _pauli_to_product_state, ExperimentResult,
-                               ExperimentSetting, OperatorEncoder, SIC0, SIC1, SIC2, SIC3,
-                               SymmetrizationLevel, TomographyExperiment, TensorProductState,
-                               minusX, minusY, minusZ, plusX, plusY, plusZ, read_json, to_json,
-                               zeros_state)
+from pyquil.experiment import (
+    _OneQState,
+    _pauli_to_product_state,
+    ExperimentResult,
+    ExperimentSetting,
+    OperatorEncoder,
+    SIC0,
+    SIC1,
+    SIC2,
+    SIC3,
+    SymmetrizationLevel,
+    TomographyExperiment,
+    TensorProductState,
+    minusX,
+    minusY,
+    minusZ,
+    plusX,
+    plusY,
+    plusZ,
+    read_json,
+    to_json,
+    zeros_state,
+)
 from pyquil.gates import RESET, RX, RY, RZ, X
 from pyquil.paulis import PauliTerm, sI, is_identity
 
@@ -31,11 +50,7 @@ def _one_q_sic_prep(index, qubit):
         return Program()
 
     theta = 2 * np.arccos(1 / np.sqrt(3))
-    zx_plane_rotation = Program([
-        RX(-pi / 2, qubit),
-        RZ(theta - pi, qubit),
-        RX(-pi / 2, qubit),
-    ])
+    zx_plane_rotation = Program([RX(-pi / 2, qubit), RZ(theta - pi, qubit), RX(-pi / 2, qubit)])
 
     if index == 1:
         return zx_plane_rotation
@@ -46,33 +61,33 @@ def _one_q_sic_prep(index, qubit):
     elif index == 3:
         return zx_plane_rotation + RZ(2 * pi / 3, qubit)
 
-    raise ValueError(f'Bad SIC index: {index}')
+    raise ValueError(f"Bad SIC index: {index}")
 
 
 def _one_q_pauli_prep(label, index, qubit):
     """Prepare the index-th eigenstate of the pauli operator given by label."""
     if index not in [0, 1]:
-        raise ValueError(f'Bad Pauli index: {index}')
+        raise ValueError(f"Bad Pauli index: {index}")
 
-    if label == 'X':
+    if label == "X":
         if index == 0:
             return Program(RY(pi / 2, qubit))
         else:
             return Program(RY(-pi / 2, qubit))
 
-    elif label == 'Y':
+    elif label == "Y":
         if index == 0:
             return Program(RX(-pi / 2, qubit))
         else:
             return Program(RX(pi / 2, qubit))
 
-    elif label == 'Z':
+    elif label == "Z":
         if index == 0:
             return Program()
         else:
             return Program(RX(pi, qubit))
 
-    raise ValueError(f'Bad Pauli label: {label}')
+    raise ValueError(f"Bad Pauli label: {label}")
 
 
 def _one_q_state_prep(oneq_state: _OneQState):
@@ -81,9 +96,9 @@ def _one_q_state_prep(oneq_state: _OneQState):
     Either SIC[0-3], X[0-1], Y[0-1], or Z[0-1].
     """
     label = oneq_state.label
-    if label == 'SIC':
+    if label == "SIC":
         return _one_q_sic_prep(oneq_state.index, oneq_state.qubit)
-    elif label in ['X', 'Y', 'Z']:
+    elif label in ["X", "Y", "Z"]:
         return _one_q_pauli_prep(label, oneq_state.index, oneq_state.qubit)
     else:
         raise ValueError(f"Bad state label: {label}")
@@ -96,13 +111,13 @@ def _local_pauli_eig_meas(op, idx):
     Program are essentially the Hermitian conjugates of those in :py:func:`_one_q_pauli_prep`)
 
     """
-    if op == 'X':
+    if op == "X":
         return Program(RY(-pi / 2, idx))
-    elif op == 'Y':
+    elif op == "Y":
         return Program(RX(pi / 2, idx))
-    elif op == 'Z':
+    elif op == "Z":
         return Program()
-    raise ValueError(f'Unknown operation {op}')
+    raise ValueError(f"Unknown operation {op}")
 
 
 def construct_tpb_graph(experiments: TomographyExperiment):
@@ -111,13 +126,13 @@ def construct_tpb_graph(experiments: TomographyExperiment):
     """
     g = nx.Graph()
     for expt in experiments:
-        assert len(expt) == 1, 'already grouped?'
+        assert len(expt) == 1, "already grouped?"
         expt = expt[0]
 
         if expt not in g:
             g.add_node(expt, count=1)
         else:
-            g.nodes[expt]['count'] += 1
+            g.nodes[expt]["count"] += 1
 
     for expt1, expt2 in itertools.combinations(experiments, r=2):
         expt1 = expt1[0]
@@ -150,7 +165,7 @@ def group_experiments_clique_removal(experiments: TomographyExperiment) -> Tomog
         new_cliq = []
         for expt in cliq:
             # duplicate `count` times
-            new_cliq += [expt] * g.nodes[expt]['count']
+            new_cliq += [expt] * g.nodes[expt]["count"]
 
         new_cliqs += [new_cliq]
 
@@ -214,7 +229,7 @@ def _max_tpb_overlap(tomo_expt: TomographyExperiment):
     # loop through ExperimentSettings of the TomographyExperiment
     for expt_setting in tomo_expt:
         # no need to group already grouped TomographyExperiment
-        assert len(expt_setting) == 1, 'already grouped?'
+        assert len(expt_setting) == 1, "already grouped?"
         expt_setting = expt_setting[0]
         # calculate max overlap of expt_setting with keys of diagonal_sets
         # keep track of whether a shared tpb was found
@@ -228,13 +243,17 @@ def _max_tpb_overlap(tomo_expt: TomographyExperiment):
             # conditional is True if expt_setting can be inserted into the current es_list.
             if diag_in_term is not None and diag_out_term is not None:
                 found_tpb = True
-                assert len(diag_in_term) >= len(es.in_state), \
-                    "Highest weight in-state can't be smaller than the given in-state"
-                assert len(diag_out_term) >= len(es.out_operator), \
-                    "Highest weight out-PauliTerm can't be smaller than the given out-PauliTerm"
+                assert len(diag_in_term) >= len(
+                    es.in_state
+                ), "Highest weight in-state can't be smaller than the given in-state"
+                assert len(diag_out_term) >= len(
+                    es.out_operator
+                ), "Highest weight out-PauliTerm can't be smaller than the given out-PauliTerm"
 
                 # update the diagonalizing basis (key of dict) if necessary
-                if len(diag_in_term) > len(es.in_state) or len(diag_out_term) > len(es.out_operator):
+                if len(diag_in_term) > len(es.in_state) or len(diag_out_term) > len(
+                    es.out_operator
+                ):
                     del diagonal_sets[es]
                     new_es = ExperimentSetting(diag_in_term, diag_out_term)
                     diagonal_sets[new_es] = trial_es_list
@@ -264,8 +283,9 @@ def group_experiments_greedy(tomo_expt: TomographyExperiment):
     return grouped_tomo_expt
 
 
-def group_experiments(experiments: TomographyExperiment,
-                      method: str = 'greedy') -> TomographyExperiment:
+def group_experiments(
+    experiments: TomographyExperiment, method: str = "greedy"
+) -> TomographyExperiment:
     """
     Group experiments that are diagonal in a shared tensor product basis (TPB) to minimize number
     of QPU runs.
@@ -314,17 +334,16 @@ def group_experiments(experiments: TomographyExperiment,
     :return: a tomography experiment with all the same settings, just grouped according to shared
         TPBs.
     """
-    allowed_methods = ['greedy', 'clique-removal']
+    allowed_methods = ["greedy", "clique-removal"]
     assert method in allowed_methods, f"'method' should be one of {allowed_methods}."
-    if method == 'greedy':
+    if method == "greedy":
         return group_experiments_greedy(experiments)
-    elif method == 'clique-removal':
+    elif method == "clique-removal":
         return group_experiments_clique_removal(experiments)
 
 
 def _generate_experiment_programs(
-    tomo_experiment: TomographyExperiment,
-    active_reset: bool = False,
+    tomo_experiment: TomographyExperiment, active_reset: bool = False
 ) -> Tuple[List[Program], List[List[int]]]:
     """
     Generate the programs necessary to estimate the observables in a TomographyExperiment.
@@ -358,8 +377,9 @@ def _generate_experiment_programs(
         max_weight_in_state = _max_weight_state(setting.in_state for setting in settings)
         if max_weight_in_state is None:
             raise ValueError(
-                'Input states are not compatible. Re-group the experiment settings '
-                'so that groups of parallel settings have compatible input states.')
+                "Input states are not compatible. Re-group the experiment settings "
+                "so that groups of parallel settings have compatible input states."
+            )
         for oneq_state in max_weight_in_state.states:
             total_prog += _one_q_state_prep(oneq_state)
 
@@ -369,8 +389,10 @@ def _generate_experiment_programs(
         # Prepare for measurement state according to setting.out_operator
         max_weight_out_op = _max_weight_operator(setting.out_operator for setting in settings)
         if max_weight_out_op is None:
-            raise ValueError('Observables not compatible. Re-group the experiment settings '
-                             'so that groups of parallel settings have compatible observables.')
+            raise ValueError(
+                "Observables not compatible. Re-group the experiment settings "
+                "so that groups of parallel settings have compatible observables."
+            )
         for qubit, op_str in max_weight_out_op:
             total_prog += _local_pauli_eig_meas(op_str, qubit)
 
@@ -380,14 +402,16 @@ def _generate_experiment_programs(
     return programs, meas_qubits
 
 
-def measure_observables(qc: QuantumComputer,
-                        tomo_experiment: TomographyExperiment,
-                        n_shots: Optional[int] = None,
-                        progress_callback: Optional[Callable[[int, int], None]] = None,
-                        active_reset: Optional[bool] = None,
-                        symmetrize_readout: Optional[Union[int, str]] = 'None',
-                        calibrate_readout: Optional[str] = 'plus-eig',
-                        readout_symmetrize: Optional[str] = None):
+def measure_observables(
+    qc: QuantumComputer,
+    tomo_experiment: TomographyExperiment,
+    n_shots: Optional[int] = None,
+    progress_callback: Optional[Callable[[int, int], None]] = None,
+    active_reset: Optional[bool] = None,
+    symmetrize_readout: Optional[Union[int, str]] = "None",
+    calibrate_readout: Optional[str] = "plus-eig",
+    readout_symmetrize: Optional[str] = None,
+):
     """
     Measure all the observables in a TomographyExperiment.
 
@@ -407,62 +431,76 @@ def measure_observables(qc: QuantumComputer,
     reset = tomo_experiment.reset
 
     if n_shots is not None:
-        warnings.warn("'n_shots' has been deprecated; if you want to set the number of shots "
-                      "for this run of measure_observables please provide the number to "
-                      "Program.wrap_in_numshots_loop() for the Quil program that you provide "
-                      "when creating your TomographyExperiment object. For now, this value will "
-                      "override that in the TomographyExperiment, but eventually this keyword "
-                      "argument will be removed.",
-                      FutureWarning)
+        warnings.warn(
+            "'n_shots' has been deprecated; if you want to set the number of shots "
+            "for this run of measure_observables please provide the number to "
+            "Program.wrap_in_numshots_loop() for the Quil program that you provide "
+            "when creating your TomographyExperiment object. For now, this value will "
+            "override that in the TomographyExperiment, but eventually this keyword "
+            "argument will be removed.",
+            FutureWarning,
+        )
         shots = n_shots
     else:
         if shots == 1:
-            warnings.warn("'n_shots' has been deprecated; if you want to set the number of shots "
-                          "for this run of measure_observables please provide the number to "
-                          "Program.wrap_in_numshots_loop() for the Quil program that you provide "
-                          "when creating your TomographyExperiment object. It looks like your "
-                          "TomographyExperiment object has shots = 1, so for now we will change "
-                          "that to 10000, which was the previous default value.",
-                          FutureWarning)
+            warnings.warn(
+                "'n_shots' has been deprecated; if you want to set the number of shots "
+                "for this run of measure_observables please provide the number to "
+                "Program.wrap_in_numshots_loop() for the Quil program that you provide "
+                "when creating your TomographyExperiment object. It looks like your "
+                "TomographyExperiment object has shots = 1, so for now we will change "
+                "that to 10000, which was the previous default value.",
+                FutureWarning,
+            )
             shots = 10000
 
     if active_reset is not None:
-        warnings.warn("'active_reset' has been deprecated; if you want to enable active qubit "
-                      "reset please provide a Quil program that has a RESET instruction in it when "
-                      "creating your TomographyExperiment object. For now, this value will "
-                      "override that in the TomographyExperiment, but eventually this keyword "
-                      "argument will be removed.",
-                      FutureWarning)
+        warnings.warn(
+            "'active_reset' has been deprecated; if you want to enable active qubit "
+            "reset please provide a Quil program that has a RESET instruction in it when "
+            "creating your TomographyExperiment object. For now, this value will "
+            "override that in the TomographyExperiment, but eventually this keyword "
+            "argument will be removed.",
+            FutureWarning,
+        )
         reset = active_reset
 
-    if readout_symmetrize is not None and symmetrize_readout != 'None':
-        raise ValueError("'readout_symmetrize' and 'symmetrize_readout' are conflicting keyword "
-                         "arguments -- please provide only one.")
+    if readout_symmetrize is not None and symmetrize_readout != "None":
+        raise ValueError(
+            "'readout_symmetrize' and 'symmetrize_readout' are conflicting keyword "
+            "arguments -- please provide only one."
+        )
 
     if readout_symmetrize is not None:
-        warnings.warn("'readout_symmetrize' has been deprecated; please provide the symmetrization "
-                      "level when creating your TomographyExperiment object. For now, this value "
-                      "will override that in the TomographyExperiment, but eventually this keyword "
-                      "argument will be removed.",
-                      FutureWarning)
+        warnings.warn(
+            "'readout_symmetrize' has been deprecated; please provide the symmetrization "
+            "level when creating your TomographyExperiment object. For now, this value "
+            "will override that in the TomographyExperiment, but eventually this keyword "
+            "argument will be removed.",
+            FutureWarning,
+        )
         symmetrization = SymmetrizationLevel(readout_symmetrize)
 
-    if symmetrize_readout != 'None':
-        warnings.warn("'symmetrize_readout' has been deprecated; please provide the symmetrization "
-                      "level when creating your TomographyExperiment object. For now, this value "
-                      "will override that in the TomographyExperiment, but eventually this keyword "
-                      "argument will be removed.",
-                      FutureWarning)
+    if symmetrize_readout != "None":
+        warnings.warn(
+            "'symmetrize_readout' has been deprecated; please provide the symmetrization "
+            "level when creating your TomographyExperiment object. For now, this value "
+            "will override that in the TomographyExperiment, but eventually this keyword "
+            "argument will be removed.",
+            FutureWarning,
+        )
         if symmetrize_readout is None:
             symmetrize_readout = SymmetrizationLevel.NONE
-        elif symmetrize_readout == 'exhaustive':
+        elif symmetrize_readout == "exhaustive":
             symmetrize_readout = SymmetrizationLevel.EXHAUSTIVE
         symmetrization = SymmetrizationLevel(symmetrize_readout)
 
     # calibration readout only works with symmetrization turned on
     if calibrate_readout is not None and symmetrization != SymmetrizationLevel.EXHAUSTIVE:
-        raise ValueError("Readout calibration only currently works with exhaustive readout "
-                         "symmetrization turned on.")
+        raise ValueError(
+            "Readout calibration only currently works with exhaustive readout "
+            "symmetrization turned on."
+        )
 
     # generate programs for each group of simultaneous settings.
     programs, meas_qubits = _generate_experiment_programs(tomo_experiment, reset)
@@ -495,19 +533,16 @@ def measure_observables(qc: QuantumComputer,
             #     sense but should happen perfectly.
             if is_identity(setting.out_operator):
                 yield ExperimentResult(
-                    setting=setting,
-                    expectation=coeff,
-                    std_err=0.0,
-                    total_counts=shots,
+                    setting=setting, expectation=coeff, std_err=0.0, total_counts=shots
                 )
                 continue
 
             # Obtain statistics from result of experiment
-            obs_mean, obs_var = _stats_from_measurements(bitstrings,
-                                                         {q: idx for idx, q in enumerate(qubits)},
-                                                         setting, shots, coeff)
+            obs_mean, obs_var = _stats_from_measurements(
+                bitstrings, {q: idx for idx, q in enumerate(qubits)}, setting, shots, coeff
+            )
 
-            if calibrate_readout == 'plus-eig':
+            if calibrate_readout == "plus-eig":
                 # Readout calibration
                 # Obtain calibration program
                 calibr_prog = _calibration_program(qc, tomo_experiment, setting)
@@ -515,15 +550,14 @@ def measure_observables(qc: QuantumComputer,
                 calibr_qub_dict = {q: idx for idx, q in enumerate(calibr_qubs)}
 
                 # Perform symmetrization on the calibration program
-                calibr_results = qc.run_symmetrized_readout(calibr_prog,
-                                                            shots,
-                                                            SymmetrizationLevel.EXHAUSTIVE,
-                                                            calibr_qubs)
+                calibr_results = qc.run_symmetrized_readout(
+                    calibr_prog, shots, SymmetrizationLevel.EXHAUSTIVE, calibr_qubs
+                )
 
                 # Obtain statistics from the measurement process
-                obs_calibr_mean, obs_calibr_var = _stats_from_measurements(calibr_results,
-                                                                           calibr_qub_dict,
-                                                                           setting, shots)
+                obs_calibr_mean, obs_calibr_var = _stats_from_measurements(
+                    calibr_results, calibr_qub_dict, setting, shots
+                )
                 # Calibrate the readout results
                 corrected_mean = obs_mean / obs_calibr_mean
                 corrected_var = ratio_variance(obs_mean, obs_var, obs_calibr_mean, obs_calibr_var)
@@ -572,9 +606,13 @@ def _ops_bool_to_prog(ops_bool: Tuple[bool], qubits: List[int]) -> Program:
     return prog
 
 
-def _stats_from_measurements(bs_results: np.ndarray, qubit_index_map: Dict,
-                             setting: ExperimentSetting, n_shots: int,
-                             coeff: float = 1.0) -> Tuple[float, float]:
+def _stats_from_measurements(
+    bs_results: np.ndarray,
+    qubit_index_map: Dict,
+    setting: ExperimentSetting,
+    n_shots: int,
+    coeff: float = 1.0,
+) -> Tuple[float, float]:
     """
     :param bs_results: results from running `qc.run`
     :param qubit_index_map: dict mapping qubit to classical register index
@@ -597,10 +635,12 @@ def _stats_from_measurements(bs_results: np.ndarray, qubit_index_map: Dict,
     return obs_mean, obs_var
 
 
-def ratio_variance(a: Union[float, np.ndarray],
-                   var_a: Union[float, np.ndarray],
-                   b: Union[float, np.ndarray],
-                   var_b: Union[float, np.ndarray]) -> Union[float, np.ndarray]:
+def ratio_variance(
+    a: Union[float, np.ndarray],
+    var_a: Union[float, np.ndarray],
+    b: Union[float, np.ndarray],
+    var_b: Union[float, np.ndarray],
+) -> Union[float, np.ndarray]:
     r"""
     Given random variables 'A' and 'B', compute the variance on the ratio Y = A/B. Denote the
     mean of the random variables as a = E[A] and b = E[B] while the variances are var_a = Var[A]
@@ -622,18 +662,19 @@ def ratio_variance(a: Union[float, np.ndarray],
     See the following for more details:
       - https://doi.org/10.1002/(SICI)1097-0320(20000401)39:4<300::AID-CYTO8>3.0.CO;2-O
       - http://www.stat.cmu.edu/~hseltman/files/ratio.pdf
-      - https://en.wikipedia.org/wiki/Taylor_expansions_for_the_moments_of_functions_of_random_variables
+      - https://w.wiki/EMh
 
     :param a: Mean of 'A', to be used as the numerator in a ratio.
     :param var_a: Variance in 'A'
     :param b: Mean of 'B', to be used as the numerator in a ratio.
     :param var_b: Variance in 'B'
     """
-    return var_a / b**2 + (a**2 * var_b) / b**4
+    return var_a / b ** 2 + (a ** 2 * var_b) / b ** 4
 
 
-def _calibration_program(qc: QuantumComputer, tomo_experiment: TomographyExperiment,
-                         setting: ExperimentSetting) -> Program:
+def _calibration_program(
+    qc: QuantumComputer, tomo_experiment: TomographyExperiment, setting: ExperimentSetting
+) -> Program:
     """
     Program required for calibration in a tomography-like experiment.
 
@@ -648,10 +689,14 @@ def _calibration_program(qc: QuantumComputer, tomo_experiment: TomographyExperim
     # and applications which can be handy in creating simulating noisy channels
     calibr_prog = Program()
     # Inherit readout errro instructions from main Program
-    readout_povm_instruction = [i for i in tomo_experiment.program.out().split('\n') if 'PRAGMA READOUT-POVM' in i]
+    readout_povm_instruction = [
+        i for i in tomo_experiment.program.out().split("\n") if "PRAGMA READOUT-POVM" in i
+    ]
     calibr_prog += readout_povm_instruction
     # Inherit any definitions of noisy gates from main Program
-    kraus_instructions = [i for i in tomo_experiment.program.out().split('\n') if 'PRAGMA ADD-KRAUS' in i]
+    kraus_instructions = [
+        i for i in tomo_experiment.program.out().split("\n") if "PRAGMA ADD-KRAUS" in i
+    ]
     calibr_prog += kraus_instructions
     # Prepare the +1 eigenstate for the out operator
     for q, op in setting.out_operator.operations_as_set():

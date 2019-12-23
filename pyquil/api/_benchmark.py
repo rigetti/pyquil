@@ -15,8 +15,12 @@
 ##############################################################################
 import rpcq
 from rpcq import Client
-from rpcq.messages import (RandomizedBenchmarkingRequest, RandomizedBenchmarkingResponse,
-                           ConjugateByCliffordRequest, ConjugateByCliffordResponse)
+from rpcq.messages import (
+    RandomizedBenchmarkingRequest,
+    RandomizedBenchmarkingResponse,
+    ConjugateByCliffordRequest,
+    ConjugateByCliffordResponse,
+)
 
 from pyquil.api._config import PyquilConfig
 from pyquil.api._error_reporting import _record_call
@@ -62,12 +66,15 @@ class BenchmarkConnection(AbstractBenchmarker):
         payload = ConjugateByCliffordRequest(
             clifford=clifford.out(),
             pauli=rpcq.messages.PauliTerm(
-                indices=list(indices_and_terms[0]), symbols=list(indices_and_terms[1])))
+                indices=list(indices_and_terms[0]), symbols=list(indices_and_terms[1])
+            ),
+        )
         response: ConjugateByCliffordResponse = self.client.call(
-            'conjugate_pauli_by_clifford', payload)
+            "conjugate_pauli_by_clifford", payload
+        )
         phase_factor, paulis = response.phase, response.pauli
 
-        pauli_out = PauliTerm("I", 0, 1.j ** phase_factor)
+        pauli_out = PauliTerm("I", 0, 1.0j ** phase_factor)
         clifford_qubits = clifford.get_qubits()
         pauli_qubits = pauli_in.get_qubits()
         all_qubits = sorted(set(pauli_qubits).union(set(clifford_qubits)))
@@ -115,17 +122,17 @@ class BenchmarkConnection(AbstractBenchmarker):
         qubits = len(gateset_as_program.get_qubits())
         gateset_for_api = gateset_as_program.out().splitlines()
         if interleaver:
-            assert(isinstance(interleaver, Program))
+            assert isinstance(interleaver, Program)
             interleaver = interleaver.out()
 
         depth = int(depth)  # needs to be jsonable, no np.int64 please!
 
-        payload = RandomizedBenchmarkingRequest(depth=depth,
-                                                qubits=qubits,
-                                                gateset=gateset_for_api,
-                                                seed=seed,
-                                                interleaver=interleaver)
-        response = self.client.call('generate_rb_sequence', payload)  # type: RandomizedBenchmarkingResponse
+        payload = RandomizedBenchmarkingRequest(
+            depth=depth, qubits=qubits, gateset=gateset_for_api, seed=seed, interleaver=interleaver
+        )
+        response = self.client.call(
+            "generate_rb_sequence", payload
+        )  # type: RandomizedBenchmarkingResponse
 
         programs = []
         for clifford in response.sequence:

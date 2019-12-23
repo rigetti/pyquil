@@ -31,7 +31,7 @@ def meyer_penny_program():
     :return: pyQuil Program
     """
     prog = pq.Program()
-    ro = prog.declare('ro', memory_size=2)
+    ro = prog.declare("ro", memory_size=2)
     picard_register = ro[1]
     answer_register = ro[0]
 
@@ -56,8 +56,7 @@ def meyer_penny_program():
 if __name__ == "__main__":
     n_trials = 10
     qvm = api.QVMConnection()
-    outcomes = np.asarray(qvm.run(meyer_penny_program(), [0, 1],
-                                  trials=n_trials))
+    outcomes = np.asarray(qvm.run(meyer_penny_program(), [0, 1], trials=n_trials))
 
     print("Number of games: {}".format(n_trials))
     print("Q's winning average: {}".format(outcomes[:, 0].mean()))
