@@ -420,7 +420,7 @@ class DiagramBuilder:
         instr = self.working_instructions[self.index]
         if len(instr.args) != 0:
             raise ValueError(
-                f"PRAGMA {PRAGMA_BEGIN_GROUP} expected a freeform string, or nothing " f"at all."
+                f"PRAGMA {PRAGMA_BEGIN_GROUP} expected a freeform string, or nothing at all."
             )
         start = self.index + 1
         # walk instructions until the group end
@@ -504,7 +504,7 @@ class DiagramBuilder:
         target_qubits = qubits[controls:]
         if not self.diagram.is_interval(sorted(target_qubits)):
             raise ValueError(
-                f"Unable to render instruction {instr} which targets non-adjacent " f"qubits."
+                f"Unable to render instruction {instr} which targets non-adjacent qubits."
             )
 
         for q in control_qubits:

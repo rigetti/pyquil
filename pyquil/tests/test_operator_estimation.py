@@ -303,7 +303,7 @@ def test_group_experiments_greedy():
             [
                 ExperimentSetting(
                     TensorProductState.from_str(
-                        "Z0_7 * Y0_8 * Z0_1 * Y0_4 * " "Z0_2 * Y0_5 * Y0_0 * X0_6"
+                        "Z0_7 * Y0_8 * Z0_1 * Y0_4 * Z0_2 * Y0_5 * Y0_0 * X0_6"
                     ),
                     PauliTerm.from_compact_str("(1+0j)*Z4X8Y5X3Y7Y1"),
                 ),

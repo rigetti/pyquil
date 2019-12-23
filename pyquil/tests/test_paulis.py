@@ -707,7 +707,7 @@ def test_from_list():
 def test_ordered():
     term = sZ(3) * sZ(2) * sZ(1)
     prog = exponential_map(term)(0.5)
-    assert prog.out() == "CNOT 3 2\n" "CNOT 2 1\n" "RZ(1.0) 1\n" "CNOT 2 1\n" "CNOT 3 2\n"
+    assert prog.out() == "CNOT 3 2\nCNOT 2 1\nRZ(1.0) 1\nCNOT 2 1\nCNOT 3 2\n"
 
 
 def test_numpy_integer_types():

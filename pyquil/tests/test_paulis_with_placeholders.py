@@ -677,7 +677,7 @@ def test_ordered():
     mapping = {x: i for i, x in enumerate(q)}
     term = sZ(q[3]) * sZ(q[2]) * sZ(q[1])
     prog = address_qubits(exponential_map(term)(0.5), mapping)
-    assert prog.out() == "CNOT 3 2\n" "CNOT 2 1\n" "RZ(1.0) 1\n" "CNOT 2 1\n" "CNOT 3 2\n"
+    assert prog.out() == "CNOT 3 2\nCNOT 2 1\nRZ(1.0) 1\nCNOT 2 1\nCNOT 3 2\n"
 
 
 def test_simplify():

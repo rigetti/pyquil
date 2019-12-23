@@ -239,13 +239,13 @@ def test_program_slice():
 def test_prog_init():
     p = Program()
     p.inst(Declare("ro", "BIT"), X(0)).measure(0, MemoryReference("ro", 0))
-    assert p.out() == ("DECLARE ro BIT[1]\n" "X 0\n" "MEASURE 0 ro[0]\n")
+    assert p.out() == ("DECLARE ro BIT[1]\nX 0\nMEASURE 0 ro[0]\n")
 
 
 def test_classical_regs():
     p = Program()
     p.inst(Declare("ro", "BIT", 2), X(0)).measure(0, MemoryReference("ro", 1))
-    assert p.out() == ("DECLARE ro BIT[2]\n" "X 0\n" "MEASURE 0 ro[1]\n")
+    assert p.out() == ("DECLARE ro BIT[2]\nX 0\nMEASURE 0 ro[1]\n")
 
 
 def test_simple_instructions():
@@ -261,7 +261,7 @@ def test_unary_classicals():
         NOT(MemoryReference("ro", 2)),
         NEG(MemoryReference("ro", 3)),
     )
-    assert p.out() == "MOVE ro[0] 1\n" "MOVE ro[1] 0\n" "NOT ro[2]\n" "NEG ro[3]\n"
+    assert p.out() == "MOVE ro[0] 1\nMOVE ro[1] 0\nNOT ro[2]\nNEG ro[3]\n"
 
 
 def test_binary_classicals():
@@ -382,7 +382,7 @@ def test_measurement_calls():
         MEASURE(0, MemoryReference("ro", 1)),
         MEASURE(0, MemoryReference("ro", 1)),
     )
-    assert p.out() == ("DECLARE ro BIT[2]\n" "MEASURE 0 ro[1]\n" "MEASURE 0 ro[1]\n")
+    assert p.out() == ("DECLARE ro BIT[2]\nMEASURE 0 ro[1]\nMEASURE 0 ro[1]\n")
 
 
 def test_measure_all():
@@ -390,7 +390,7 @@ def test_measure_all():
     mem = p.declare("ro", memory_size=4)
     p.measure_all((0, mem[0]), (1, mem[1]), (2, mem[3]))
     assert (
-        p.out() == "DECLARE ro BIT[4]\n" "MEASURE 0 ro[0]\n" "MEASURE 1 ro[1]\n" "MEASURE 2 ro[3]\n"
+        p.out() == "DECLARE ro BIT[4]\nMEASURE 0 ro[0]\nMEASURE 1 ro[1]\nMEASURE 2 ro[3]\n"
     )
 
     p = Program([H(idx) for idx in range(4)])
@@ -405,7 +405,7 @@ def test_measure_all():
 
 def test_dagger():
     p = Program(X(0), H(0))
-    assert p.dagger().out() == "DAGGER H 0\n" "DAGGER X 0\n"
+    assert p.dagger().out() == "DAGGER H 0\nDAGGER X 0\n"
 
     p = Program(X(0), MEASURE(0, MemoryReference("ro", 0)))
     with pytest.raises(ValueError) as e:
@@ -435,7 +435,7 @@ def test_construction_syntax():
         .inst(Declare("ro", "BIT", 2), X(0), Y(1), Z(0))
         .measure(0, MemoryReference("ro", 1))
     )
-    assert p.out() == ("DECLARE ro BIT[2]\n" "X 0\n" "Y 1\n" "Z 0\n" "MEASURE 0 ro[1]\n")
+    assert p.out() == ("DECLARE ro BIT[2]\nX 0\nY 1\nZ 0\nMEASURE 0 ro[1]\n")
     p = (
         Program()
         .inst(Declare("ro", "BIT", 3), X(0))
@@ -444,7 +444,7 @@ def test_construction_syntax():
         .inst(MEASURE(1, MemoryReference("ro", 2)))
     )
     assert p.out() == (
-        "DECLARE ro BIT[3]\n" "X 0\n" "Y 1\n" "MEASURE 0 ro[1]\n" "MEASURE 1 ro[2]\n"
+        "DECLARE ro BIT[3]\nX 0\nY 1\nMEASURE 0 ro[1]\nMEASURE 1 ro[2]\n"
     )
     p = (
         Program()
@@ -454,7 +454,7 @@ def test_construction_syntax():
         .measure(0, MemoryReference("ro", 0))
     )
     assert p.out() == (
-        "DECLARE ro BIT[2]\n" "X 0\n" "MEASURE 0 ro[1]\n" "Y 1\n" "X 0\n" "MEASURE 0 ro[0]\n"
+        "DECLARE ro BIT[2]\nX 0\nMEASURE 0 ro[1]\nY 1\nX 0\nMEASURE 0 ro[0]\n"
     )
 
 
@@ -708,7 +708,7 @@ def test_qubit_placeholder_new():
     p.inst(X(q3))  # X 4
     p = address_qubits(p, {q1: 1, q2: 3, q3: 4, q0: 0, qxxx: 2})
 
-    assert p.out() == "H 0\n" "CNOT 1 3\n" "H 2\n" "X 4\n"
+    assert p.out() == "H 0\nCNOT 1 3\nH 2\nX 4\n"
 
 
 def test_multiaddress():
@@ -724,11 +724,11 @@ def test_multiaddress():
     with pytest.raises(RuntimeError):
         _ = p.out()  # make sure the original isn't affected
 
-    assert p1.out() == "CNOT 0 1\n" "RZ(1.0) 1\n" "CNOT 0 1\n"
+    assert p1.out() == "CNOT 0 1\nRZ(1.0) 1\nCNOT 0 1\n"
 
     p2 = address_qubits(p, map2)
-    assert p1.out() == "CNOT 0 1\n" "RZ(1.0) 1\n" "CNOT 0 1\n"
-    assert p2.out() == "CNOT 9 10\n" "RZ(1.0) 10\n" "CNOT 9 10\n"
+    assert p1.out() == "CNOT 0 1\nRZ(1.0) 1\nCNOT 0 1\n"
+    assert p2.out() == "CNOT 9 10\nRZ(1.0) 10\nCNOT 9 10\n"
 
 
 def test_multiple_instantiate():
@@ -1140,12 +1140,12 @@ PRAGMA READOUT-POVM 1 "(0.9 0.19999999999999996 0.09999999999999998 0.8)"
 def test_implicit_declare():
     with pytest.warns(UserWarning):
         program = Program(MEASURE(0, MemoryReference("ro", 0)))
-        assert program.out() == ("DECLARE ro BIT[1]\n" "MEASURE 0 ro[0]\n")
+        assert program.out() == ("DECLARE ro BIT[1]\nMEASURE 0 ro[0]\n")
 
 
 def test_no_implicit_declare():
     program = Program(Declare("read_out", "BIT", 5), MEASURE(0, MemoryReference("read_out", 4)))
-    assert program.out() == ("DECLARE read_out BIT[5]\n" "MEASURE 0 read_out[4]\n")
+    assert program.out() == ("DECLARE read_out BIT[5]\nMEASURE 0 read_out[4]\n")
 
 
 def test_no_implicit_declare_2():

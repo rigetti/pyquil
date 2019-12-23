@@ -306,7 +306,7 @@ class PyQVM(QAM):
                 if label == action.label:
                     return index
 
-        raise RuntimeError("Improper program - Jump Target not found in the " "input program!")
+        raise RuntimeError("Improper program - Jump Target not found in the input program!")
 
     def transition(self):
         """
@@ -469,7 +469,7 @@ class PyQVM(QAM):
 
         elif isinstance(instruction, RawInstr):
             raise NotImplementedError(
-                "PyQVM does not support raw instructions. " "Parse your program"
+                "PyQVM does not support raw instructions. Parse your program"
             )
 
         elif isinstance(instruction, Halt):

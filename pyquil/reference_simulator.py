@@ -227,7 +227,7 @@ class ReferenceDensitySimulator(AbstractQuantumSimulator):
             raise ValueError("The state matrix is not square.")
         if self.n_qubits != int(np.log2(rows)):
             raise ValueError(
-                "The state matrix is not defined on the same numbers of qubits as " "the QVM."
+                "The state matrix is not defined on the same numbers of qubits as the QVM."
             )
         if _is_valid_quantum_state(state_matrix):
             self.initial_density = state_matrix

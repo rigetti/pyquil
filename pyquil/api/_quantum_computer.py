@@ -953,7 +953,7 @@ def local_forest_runtime(
     # with 127.0.0.1 to use a valid IP when checking if the port is in use.
     if _port_used(host if host != "0.0.0.0" else "127.0.0.1", qvm_port):
         warning_msg = (
-            "Unable to start qvm server, since the specified " "port {} is in use."
+            "Unable to start qvm server, since the specified port {} is in use."
         ).format(qvm_port)
         warnings.warn(RuntimeWarning(warning_msg))
     else:
@@ -962,7 +962,7 @@ def local_forest_runtime(
 
     if _port_used(host if host != "0.0.0.0" else "127.0.0.1", quilc_port):
         warning_msg = (
-            "Unable to start quilc server, since the specified " "port {} is in use."
+            "Unable to start quilc server, since the specified port {} is in use."
         ).format(quilc_port)
         warnings.warn(RuntimeWarning(warning_msg))
     else:
@@ -1194,7 +1194,7 @@ def hadamard(n, dtype=int):
     else:
         lg2 = int(log(n, 2))
     if 2 ** lg2 != n:
-        raise ValueError("n must be an positive integer, and n must be " "a power of 2")
+        raise ValueError("n must be an positive integer, and n must be a power of 2")
 
     H = np.array([[1]], dtype=dtype)
 

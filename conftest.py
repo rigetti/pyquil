@@ -175,7 +175,7 @@ def local_qvm_quilc():
     """Execute test with local qvm and quilc running"""
     if shutil.which("qvm") is None or shutil.which("quilc") is None:
         return pytest.skip(
-            "This test requires 'qvm' and 'quilc' " "executables to be installed locally."
+            "This test requires 'qvm' and 'quilc' executables to be installed locally."
         )
 
     with local_forest_runtime() as context:

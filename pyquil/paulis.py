@@ -438,7 +438,7 @@ class PauliTerm(object):
             try:
                 coef = complex(str_coef)
             except ValueError:
-                raise ValueError("Could not parse the coefficient " f"{str_coef}")
+                raise ValueError(f"Could not parse the coefficient {str_coef}")
 
         op = sI() * coef
         if str_op == "I":
@@ -448,7 +448,7 @@ class PauliTerm(object):
         str_op = re.sub(r"\*", "", str_op)
         if not re.match(r"^(([XYZ])(\d+))+$", str_op):
             raise ValueError(
-                f"Could not parse operator string {str_op}. " r"It should match ^(([XYZ])(\d+))+$"
+                fr"Could not parse operator string {str_op}. It should match ^(([XYZ])(\d+))+$"
             )
 
         for factor in re.finditer(r"([XYZ])(\d+)", str_op):
@@ -635,7 +635,7 @@ class PauliSum(object):
         """
         if not isinstance(other, (Number, PauliTerm, PauliSum)):
             raise ValueError(
-                "Cannot multiply PauliSum by term that is not a Number, PauliTerm, or" "PauliSum"
+                "Cannot multiply PauliSum by term that is not a Number, PauliTerm, or PauliSum"
             )
         elif isinstance(other, PauliSum):
             other_terms = other.terms

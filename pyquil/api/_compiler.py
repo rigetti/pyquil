@@ -153,7 +153,7 @@ def _collect_classical_memory_write_locations(program: Program) -> List[Optional
         return [ro_sources.get(i) for i in range(ro_size)]
     elif ro_sources:
         raise ValueError(
-            "Found MEASURE instructions, but no 'ro' or 'ro_table' " "region was declared."
+            "Found MEASURE instructions, but no 'ro' or 'ro_table' region was declared."
         )
     else:
         return []
@@ -273,7 +273,7 @@ class QPUCompiler(AbstractCompiler):
             self.qpu_compiler_client.call("get_version_info", rpc_timeout=1)
         except TimeoutError:
             raise QPUCompilerNotRunning(
-                "No QPU compiler server reachable at " f"{self.qpu_compiler_client.endpoint}"
+                f"No QPU compiler server reachable at {self.qpu_compiler_client.endpoint}"
             )
 
     def get_version_info(self) -> dict:
