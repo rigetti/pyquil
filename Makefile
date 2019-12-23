@@ -34,7 +34,11 @@ docker: Dockerfile
 
 .PHONY: format
 format:
-	black --line-length=100 --exclude="/(\.eggs|\.git|\.hg|\.mypy_cache|\.nox|\.tox|\.venv|_build|buck-out|build|dist)/|gen3|external" --target-version=py36 pyquil
+	black pyquil
+
+.PHONY: formatcheck
+formatcheck:
+	black --check --diff pyquil
 
 .PHONY: info
 info:
