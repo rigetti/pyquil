@@ -56,15 +56,15 @@ M_Z = (0.0, 0.0, 0.0)
 
 
 def pauli_term_to_euler_memory_map(
-        term: PauliTerm,
-        *,
-        prefix: str,
-        tuple_x: Tuple[float, float, float],
-        tuple_y: Tuple[float, float, float],
-        tuple_z: Tuple[float, float, float],
-        suffix_alpha: str = 'alpha',
-        suffix_beta: str = 'beta',
-        suffix_gamma: str = 'gamma',
+    term: PauliTerm,
+    *,
+    prefix: str,
+    tuple_x: Tuple[float, float, float],
+    tuple_y: Tuple[float, float, float],
+    tuple_z: Tuple[float, float, float],
+    suffix_alpha: str = "alpha",
+    suffix_beta: str = "beta",
+    suffix_gamma: str = "gamma",
 ) -> Dict[str, List[float]]:
     """
     Given a ``PauliTerm``, create a memory map corresponding to a collection of ZXZXZ-decomposed
@@ -95,25 +95,27 @@ def pauli_term_to_euler_memory_map(
         of angles as values).
     """
     # no need to provide a memory map when no rotations are necessary
-    if ('X' not in term.pauli_string()) and ('Y' not in term.pauli_string()):
+    if ("X" not in term.pauli_string()) and ("Y" not in term.pauli_string()):
         return {}
 
-    alpha_label = f'{prefix}_{suffix_alpha}'
-    beta_label = f'{prefix}_{suffix_beta}'
-    gamma_label = f'{prefix}_{suffix_gamma}'
+    alpha_label = f"{prefix}_{suffix_alpha}"
+    beta_label = f"{prefix}_{suffix_beta}"
+    gamma_label = f"{prefix}_{suffix_gamma}"
 
     # assume the pauli indices are equivalent to the memory region
     memory_size = max(term.get_qubits()) + 1
 
-    memory_map = {alpha_label: [0.0] * memory_size,
-                  beta_label: [0.0] * memory_size,
-                  gamma_label: [0.0] * memory_size}
+    memory_map = {
+        alpha_label: [0.0] * memory_size,
+        beta_label: [0.0] * memory_size,
+        gamma_label: [0.0] * memory_size,
+    }
 
-    tuples = {'X': tuple_x, 'Y': tuple_y, 'Z': tuple_z, 'I': tuple_z}
+    tuples = {"X": tuple_x, "Y": tuple_y, "Z": tuple_z, "I": tuple_z}
 
     for qubit, operator in term:
         if operator not in tuples:
-            raise ValueError(f'Unknown operator {operator}')
+            raise ValueError(f"Unknown operator {operator}")
         memory_map[alpha_label][qubit] = tuples[operator][0]
         memory_map[beta_label][qubit] = tuples[operator][1]
         memory_map[gamma_label][qubit] = tuples[operator][2]
@@ -122,8 +124,7 @@ def pauli_term_to_euler_memory_map(
 
 
 def pauli_term_to_preparation_memory_map(
-        term: PauliTerm,
-        label: str = 'preparation',
+    term: PauliTerm, label: str = "preparation"
 ) -> Dict[str, List[float]]:
     """
     Given a ``PauliTerm``, create a memory map corresponding to the ZXZXZ-decomposed single-qubit
@@ -146,16 +147,11 @@ def pauli_term_to_preparation_memory_map(
         declared memory regions. Defaults to "preparation".
     :return: Memory map for preparing the desired state.
     """
-    return pauli_term_to_euler_memory_map(term,
-                                          prefix=label,
-                                          tuple_x=P_X,
-                                          tuple_y=P_Y,
-                                          tuple_z=P_Z)
+    return pauli_term_to_euler_memory_map(term, prefix=label, tuple_x=P_X, tuple_y=P_Y, tuple_z=P_Z)
 
 
 def pauli_term_to_measurement_memory_map(
-        term: PauliTerm,
-        label: str = 'measurement',
+    term: PauliTerm, label: str = "measurement"
 ) -> Dict[str, List[float]]:
     """
     Given a ``PauliTerm``, create a memory map corresponding to the ZXZXZ-decomposed single-qubit
@@ -179,16 +175,11 @@ def pauli_term_to_measurement_memory_map(
         declared memory regions. Defaults to "measurement".
     :return: Memory map for measuring in the desired basis.
     """
-    return pauli_term_to_euler_memory_map(term,
-                                          prefix=label,
-                                          tuple_x=M_X,
-                                          tuple_y=M_Y,
-                                          tuple_z=M_Z)
+    return pauli_term_to_euler_memory_map(term, prefix=label, tuple_x=M_X, tuple_y=M_Y, tuple_z=M_Z)
 
 
 def merge_memory_map_lists(
-        mml1: List[Dict[str, List[float]]],
-        mml2: List[Dict[str, List[float]]]
+    mml1: List[Dict[str, List[float]]], mml2: List[Dict[str, List[float]]]
 ) -> List[Dict[str, List[float]]]:
     """
     Given two lists of memory maps, produce the "cartesian product" of the memory maps:

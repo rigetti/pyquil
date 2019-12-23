@@ -14,9 +14,9 @@ from pyquil.quilbase import Declare, MemoryReference
 
 def test_qvm_run_pqer(forest: ForestConnection):
     qvm = QVM(connection=forest, gate_noise=[0.01] * 3)
-    p = Program(Declare('ro', 'BIT'), X(0), MEASURE(0, MemoryReference('ro')))
+    p = Program(Declare("ro", "BIT"), X(0), MEASURE(0, MemoryReference("ro")))
     p.wrap_in_numshots_loop(1000)
-    nq = PyQuilExecutableResponse(program=p.out(), attributes={'num_shots': 1000})
+    nq = PyQuilExecutableResponse(program=p.out(), attributes={"num_shots": 1000})
     qvm.load(nq)
     qvm.run()
     qvm.wait()
@@ -27,7 +27,7 @@ def test_qvm_run_pqer(forest: ForestConnection):
 
 def test_qvm_run_just_program(forest: ForestConnection):
     qvm = QVM(connection=forest, gate_noise=[0.01] * 3)
-    p = Program(Declare('ro', 'BIT'), X(0), MEASURE(0, MemoryReference('ro')))
+    p = Program(Declare("ro", "BIT"), X(0), MEASURE(0, MemoryReference("ro")))
     p.wrap_in_numshots_loop(1000)
     qvm.load(p)
     qvm.run()
@@ -39,16 +39,16 @@ def test_qvm_run_just_program(forest: ForestConnection):
 
 def test_qvm_run_only_pqer(forest: ForestConnection):
     qvm = QVM(connection=forest, gate_noise=[0.01] * 3, requires_executable=True)
-    p = Program(Declare('ro', 'BIT'), X(0), MEASURE(0, MemoryReference('ro')))
+    p = Program(Declare("ro", "BIT"), X(0), MEASURE(0, MemoryReference("ro")))
     p.wrap_in_numshots_loop(1000)
 
     with pytest.raises(TypeError) as e:
         qvm.load(p)
         qvm.run()
         qvm.wait()
-    assert e.match(r'.*Make sure you have explicitly compiled your program.*')
+    assert e.match(r".*Make sure you have explicitly compiled your program.*")
 
-    nq = PyQuilExecutableResponse(program=p.out(), attributes={'num_shots': 1000})
+    nq = PyQuilExecutableResponse(program=p.out(), attributes={"num_shots": 1000})
     qvm.load(nq)
     qvm.run()
     qvm.wait()
@@ -60,7 +60,7 @@ def test_qvm_run_only_pqer(forest: ForestConnection):
 def test_qvm_run_no_measure(forest: ForestConnection):
     qvm = QVM(connection=forest)
     p = Program(X(0))
-    nq = PyQuilExecutableResponse(program=p.out(), attributes={'num_shots': 100})
+    nq = PyQuilExecutableResponse(program=p.out(), attributes={"num_shots": 100})
     qvm.load(nq).run().wait()
     bitstrings = qvm.read_memory(region_name="ro")
     assert bitstrings.shape == (100, 0)
@@ -79,7 +79,7 @@ def test_qvm_version(forest: ForestConnection):
     version = qvm.get_version_info()
 
     def is_a_version_string(version_string: str):
-        parts = version_string.split('.')
+        parts = version_string.split(".")
         try:
             map(int, parts)
         except ValueError:

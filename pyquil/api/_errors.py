@@ -165,6 +165,7 @@ class UserMessageError(Exception):
     The purpose of this is to improve the user experience, reducing noise in
       the case of errors for which the cause is known.
     """
+
     def __init__(self, message):
         if logger.level <= logging.DEBUG:
             super().__init__(message)
@@ -184,12 +185,12 @@ and copy the above message into a GitHub issue at:
 # NB: Some errors are not included here if they are only returned by async endpoints
 # The source of truth for this mapping is the _errors.py file on the server
 error_mapping = {
-    'device_offline': DeviceOfflineError,
-    'device_retuning': DeviceRetuningError,
-    'invalid_input': InvalidInputError,
-    'invalid_user': InvalidUserError,
-    'job_not_found': JobNotFoundError,
-    'missing_permissions': MissingPermissionsError,
-    'quilc_error': QUILCError,
-    'qvm_error': QVMError,
+    "device_offline": DeviceOfflineError,
+    "device_retuning": DeviceRetuningError,
+    "invalid_input": InvalidInputError,
+    "invalid_user": InvalidUserError,
+    "job_not_found": JobNotFoundError,
+    "missing_permissions": MissingPermissionsError,
+    "quilc_error": QUILCError,
+    "qvm_error": QVMError,
 }

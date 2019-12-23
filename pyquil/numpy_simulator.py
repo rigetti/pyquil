@@ -44,10 +44,7 @@ from pyquil.reference_simulator import AbstractQuantumSimulator
 from pyquil.unitary_tools import all_bitstrings
 
 
-def targeted_einsum(gate: np.ndarray,
-                    wf: np.ndarray,
-                    wf_target_inds: List[int]
-                    ) -> np.ndarray:
+def targeted_einsum(gate: np.ndarray, wf: np.ndarray, wf_target_inds: List[int]) -> np.ndarray:
     """Left-multiplies the given axes of the wf tensor by the given gate matrix.
 
     Note that the matrix must have a compatible tensor structure.
@@ -87,15 +84,12 @@ def targeted_einsum(gate: np.ndarray,
     # It might be worth re-investigating memory savings with `out` when numpy 1.15 becomes
     # commonplace.
 
-    return np.einsum(gate, input_indices,
-                     wf, data_indices,
-                     output_indices)
+    return np.einsum(gate, input_indices, wf, data_indices, output_indices)
 
 
-def targeted_tensordot(gate: np.ndarray,
-                       wf: np.ndarray,
-                       wf_target_inds: Sequence[int]
-                       ) -> np.ndarray:
+def targeted_tensordot(
+    gate: np.ndarray, wf: np.ndarray, wf_target_inds: Sequence[int]
+) -> np.ndarray:
     """Left-multiplies the given axes of the wf tensor by the given gate matrix.
 
     Compare with :py:func:`targeted_einsum`. The semantics of these two functions should be
@@ -147,9 +141,7 @@ def get_measure_probabilities(wf, qubit):
     n_qubits = len(wf.shape)
     all_inds = list(range(n_qubits))
 
-    return np.einsum(np.conj(wf), all_inds,
-                     wf, all_inds,
-                     [int(qubit)])
+    return np.einsum(np.conj(wf), all_inds, wf, all_inds, [int(qubit)])
 
 
 def _get_gate_tensor_and_qubits(gate: Gate):
@@ -217,8 +209,10 @@ class NumpyWavefunctionSimulator(AbstractQuantumSimulator):
         :return: An array of shape (n_samples, n_qubits)
         """
         if self.rs is None:
-            raise ValueError("You have tried to perform a stochastic operation without setting the "
-                             "random state of the simulator. Might I suggest using a PyQVM object?")
+            raise ValueError(
+                "You have tried to perform a stochastic operation without setting the "
+                "random state of the simulator. Might I suggest using a PyQVM object?"
+            )
 
         # note on reshape: it puts bitstrings in lexicographical order.
         # would you look at that .. _all_bitstrings returns things in lexicographical order!
@@ -236,8 +230,10 @@ class NumpyWavefunctionSimulator(AbstractQuantumSimulator):
         :return: measured bit
         """
         if self.rs is None:
-            raise ValueError("You have tried to perform a stochastic operation without setting the "
-                             "random state of the simulator. Might I suggest using a PyQVM object?")
+            raise ValueError(
+                "You have tried to perform a stochastic operation without setting the "
+                "random state of the simulator. Might I suggest using a PyQVM object?"
+            )
 
         # Get probabilities
         measurement_probs = get_measure_probabilities(self.wf, qubit)
@@ -247,15 +243,15 @@ class NumpyWavefunctionSimulator(AbstractQuantumSimulator):
 
         # Zero out amplitudes corresponding to non-measured bistrings
         other_bit = (measured_bit + 1) % 2
-        other_bit_indices = (slice(None),) * qubit + \
-                            (other_bit,) + \
-                            (slice(None),) * (self.n_qubits - qubit - 1)
+        other_bit_indices = (
+            (slice(None),) * qubit + (other_bit,) + (slice(None),) * (self.n_qubits - qubit - 1)
+        )
         self.wf[other_bit_indices] = 0
 
         # Re-normalize amplitudes corresponding to measured bistrings
-        meas_bit_indices = (slice(None),) * qubit + \
-                           (measured_bit,) + \
-                           (slice(None),) * (self.n_qubits - qubit - 1)
+        meas_bit_indices = (
+            (slice(None),) * qubit + (measured_bit,) + (slice(None),) * (self.n_qubits - qubit - 1)
+        )
         self.wf[meas_bit_indices] /= np.sqrt(measurement_probs[measured_bit])
         return measured_bit
 
@@ -272,8 +268,9 @@ class NumpyWavefunctionSimulator(AbstractQuantumSimulator):
         self.wf = targeted_tensordot(gate=gate_matrix, wf=self.wf, wf_target_inds=qubit_inds)
         return self
 
-    def do_gate_matrix(self, matrix: np.ndarray,
-                       qubits: Sequence[int]) -> 'AbstractQuantumSimulator':
+    def do_gate_matrix(
+        self, matrix: np.ndarray, qubits: Sequence[int]
+    ) -> "AbstractQuantumSimulator":
         """
         Apply an arbitrary unitary; not necessarily a named gate.
 
@@ -312,6 +309,7 @@ class NumpyWavefunctionSimulator(AbstractQuantumSimulator):
         self.wf[(0,) * self.n_qubits] = complex(1.0, 0)
         return self
 
-    def do_post_gate_noise(self, noise_type: str, noise_prob: float,
-                           qubits: List[int]) -> 'AbstractQuantumSimulator':
+    def do_post_gate_noise(
+        self, noise_type: str, noise_prob: float, qubits: List[int]
+    ) -> "AbstractQuantumSimulator":
         raise NotImplementedError("The numpy simulator cannot handle noise")

@@ -23,6 +23,10 @@ from pyquil.latex._diagram import DiagramSettings
 
 def to_latex(circuit: Program, settings: Optional[DiagramSettings] = None) -> str:
     from pyquil.latex._main import to_latex
-    warnings.warn('"pyquil.latex.latex_generation.to_latex" has been moved -- please import it'
-                  'as "from pyquil.latex import to_latex going forward"', FutureWarning)
+
+    warnings.warn(
+        '"pyquil.latex.latex_generation.to_latex" has been moved -- please import it'
+        'as "from pyquil.latex import to_latex going forward"',
+        FutureWarning,
+    )
     return to_latex(circuit, settings)

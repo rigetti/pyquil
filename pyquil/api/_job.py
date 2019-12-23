@@ -22,7 +22,7 @@ from pyquil.api._errors import CancellationError, QVMError, QPUError, QUILCError
 from pyquil.parser import parse_program
 from pyquil.wavefunction import Wavefunction
 
-ROUND_TRIP_JOB_TIME = 3.  # 3 second average round trip job time.
+ROUND_TRIP_JOB_TIME = 3.0  # 3 second average round trip job time.
 
 
 class Job(object):
@@ -33,6 +33,7 @@ class Job(object):
     They transition to RUNNING when they have been started
     Finally they are marked as FINISHED, ERROR, or CANCELLED once completed
     """
+
     def __init__(self, raw, machine):
         self._raw = raw
         self._machine = machine
@@ -43,13 +44,13 @@ class Job(object):
         Job id
         :rtype: str
         """
-        return self._raw['jobId']
+        return self._raw["jobId"]
 
     def is_done(self):
         """
         Has the job completed yet?
         """
-        return self._raw['status'] in ('FINISHED', 'ERROR', 'CANCELLED')
+        return self._raw["status"] in ("FINISHED", "ERROR", "CANCELLED")
 
     def result(self):
         """
@@ -61,49 +62,50 @@ class Job(object):
         if not self.is_done():
             raise ValueError("Cannot get a result for a program that isn't completed.")
 
-        if self._raw['status'] == 'CANCELLED':
-            raise CancellationError(self._raw['result'])
-        elif self._raw['status'] == 'ERROR':
-            if self._machine == 'QVM':
-                raise QVMError(self._raw['result'])
-            elif self._machine == 'QPU':
-                raise QPUError(self._raw['result'])
-            elif self._machine == 'QUILC':
-                raise QUILCError(self._raw['result'])
+        if self._raw["status"] == "CANCELLED":
+            raise CancellationError(self._raw["result"])
+        elif self._raw["status"] == "ERROR":
+            if self._machine == "QVM":
+                raise QVMError(self._raw["result"])
+            elif self._machine == "QPU":
+                raise QPUError(self._raw["result"])
+            elif self._machine == "QUILC":
+                raise QUILCError(self._raw["result"])
             else:
-                raise UnknownApiError(self._raw['result'])
+                raise UnknownApiError(self._raw["result"])
 
-        if self._raw['program']['type'] == 'wavefunction':
+        if self._raw["program"]["type"] == "wavefunction":
             return Wavefunction.from_bit_packed_string(
-                base64.b64decode(self._raw['result']), self._raw['program']['addresses'])
-        elif self._raw['program']['type'] in ['multishot', 'multishot-measure', 'expectation']:
-            return np.asarray(self._raw['result'])
+                base64.b64decode(self._raw["result"]), self._raw["program"]["addresses"]
+            )
+        elif self._raw["program"]["type"] in ["multishot", "multishot-measure", "expectation"]:
+            return np.asarray(self._raw["result"])
         else:
-            return self._raw['result']
+            return self._raw["result"]
 
     def is_queued(self):
         """
         Is the job still in the Forest queue?
         """
-        return self._raw['status'] == 'QUEUED'
+        return self._raw["status"] == "QUEUED"
 
     def is_running(self):
         """
         Is the job currently running?
         """
-        return self._raw['status'] == 'RUNNING'
+        return self._raw["status"] == "RUNNING"
 
     def is_queued_for_compilation(self):
         """
         Is the job still in the Forest compilation queue?
         """
-        return self._raw['status'] == 'QUEUED_FOR_COMPILATION'
+        return self._raw["status"] == "QUEUED_FOR_COMPILATION"
 
     def is_compiling(self):
         """
         Is the job actively compiling?
         """
-        return self._raw['status'] == 'COMPILING'
+        return self._raw["status"] == "COMPILING"
 
     def position_in_queue(self):
         """
@@ -111,7 +113,7 @@ class Job(object):
         If the job is not queued, this will return None
         """
         if self.is_queued():
-            return int(self._raw['position_in_queue'])
+            return int(self._raw["position_in_queue"])
 
     def estimated_time_left_in_queue(self):
         """
@@ -130,7 +132,7 @@ class Job(object):
         if not self.is_done():
             raise ValueError("Cannot get running time for a program that isn't completed.")
         try:
-            running_time = float(self._raw['running_time'].split()[0])
+            running_time = float(self._raw["running_time"].split()[0])
         except (ValueError, KeyError, IndexError):
             raise UnknownApiError(str(self._raw))
         return running_time
@@ -144,19 +146,24 @@ class Job(object):
         if not self.is_done():
             raise ValueError("Cannot get time in queue for a program that isn't completed.")
         try:
-            time_in_queue = float(self._raw['time_in_queue'].split()[0])
+            time_in_queue = float(self._raw["time_in_queue"].split()[0])
         except (ValueError, KeyError, IndexError):
             raise UnknownApiError(str(self._raw))
         return time_in_queue
 
     def get(self):
-        warnings.warn("""
+        warnings.warn(
+            """
         Running get() on a Job is now a no-op.
         To query for updated results, use .get_job(job.job_id) on a QVMConnection/QPUConnection instead
-        """, stacklevel=2)
+        """,
+            stacklevel=2,
+        )
 
     def decode(self):
-        warnings.warn(""".decode() on a Job result is deprecated in favor of .result()""", stacklevel=2)
+        warnings.warn(
+            """.decode() on a Job result is deprecated in favor of .result()""", stacklevel=2
+        )
         return self.result()
 
     def _get_metadata(self, key):
@@ -207,7 +214,7 @@ class Job(object):
         else:
             # if we failed too early to even get a "compiled-quil" field,
             # then alert the user to that problem instead
-            if self._raw['status'] == 'ERROR':
+            if self._raw["status"] == "ERROR":
                 return self.result()
 
     def topological_swaps(self):

@@ -27,7 +27,7 @@ if sys.version_info < (3, 7):
 else:
     from contextvars import ContextVar
 
-_program_context = ContextVar('program')
+_program_context = ContextVar("program")
 
 
 def program_context() -> Program:
@@ -102,13 +102,9 @@ def _if_statement(test, if_function, else_function) -> None:
             else_function()
 
 
-_EMPTY_ARGUMENTS = ast.arguments(args=[],
-                                 posonlyargs=[],
-                                 vararg=None,
-                                 kwonlyargs=[],
-                                 kwarg=None,
-                                 defaults=[],
-                                 kw_defaults=[])
+_EMPTY_ARGUMENTS = ast.arguments(
+    args=[], posonlyargs=[], vararg=None, kwonlyargs=[], kwarg=None, defaults=[], kw_defaults=[]
+)
 
 
 class _IfTransformer(ast.NodeTransformer):
@@ -129,34 +125,45 @@ class _IfTransformer(ast.NodeTransformer):
             print('something is broken')
         _if_statement(1 + 1 == 2, _if_branch, _else_branch)
     """
+
     def visit_If(self, node):
         # Must recursively visit the body of both the if and else bodies to handle any nested if and else statements
         # This also conveniently handles elif since those are just treated as a nested if/else within the else branch
         # See: https://greentreesnakes.readthedocs.io/en/latest/nodes.html#If
         node = self.generic_visit(node)
 
-        if_function = ast.FunctionDef(name='_if_branch', body=node.body, decorator_list=[], args=_EMPTY_ARGUMENTS)
-        else_function = ast.FunctionDef(name='_else_branch', body=node.orelse, decorator_list=[], args=_EMPTY_ARGUMENTS)
+        if_function = ast.FunctionDef(
+            name="_if_branch", body=node.body, decorator_list=[], args=_EMPTY_ARGUMENTS
+        )
+        else_function = ast.FunctionDef(
+            name="_else_branch", body=node.orelse, decorator_list=[], args=_EMPTY_ARGUMENTS
+        )
 
-        if_function_name = ast.Name(id='_if_branch', ctx=ast.Load())
-        else_function_name = ast.Name(id='_else_branch', ctx=ast.Load())
+        if_function_name = ast.Name(id="_if_branch", ctx=ast.Load())
+        else_function_name = ast.Name(id="_else_branch", ctx=ast.Load())
 
         if node.orelse:
             return [
                 if_function,
                 else_function,
-                ast.Expr(ast.Call(
-                    func=ast.Name(id='_if_statement', ctx=ast.Load()),
-                    args=[node.test, if_function_name, else_function_name],
-                    keywords=[]))
+                ast.Expr(
+                    ast.Call(
+                        func=ast.Name(id="_if_statement", ctx=ast.Load()),
+                        args=[node.test, if_function_name, else_function_name],
+                        keywords=[],
+                    )
+                ),
             ]
         else:
             return [
                 if_function,
-                ast.Expr(ast.Call(
-                    func=ast.Name(id='_if_statement', ctx=ast.Load()),
-                    args=[node.test, if_function_name, ast.NameConstant(None)],
-                    keywords=[]))
+                ast.Expr(
+                    ast.Call(
+                        func=ast.Name(id="_if_statement", ctx=ast.Load()),
+                        args=[node.test, if_function_name, ast.NameConstant(None)],
+                        keywords=[],
+                    )
+                ),
             ]
 
 
@@ -179,10 +186,10 @@ def _rewrite_function(f):
     _IfTransformer().visit(tree)
 
     ast.fix_missing_locations(tree)
-    tree.body[0].name = f.__name__ + '_patched'
+    tree.body[0].name = f.__name__ + "_patched"
     tree.body[0].decorator_list = []
 
-    compiled = compile(tree, filename='<ast>', mode='exec')
+    compiled = compile(tree, filename="<ast>", mode="exec")
     # The first f_back here gets to the body of magicquil() and the second f_back gets to the user's call site which
     # is what we want. If we didn't add these manually to the globals it wouldn't be possible to call other @magicquil
     # functions from within a @magicquil function.
@@ -190,7 +197,7 @@ def _rewrite_function(f):
     # For reasons I don't quite understand it's critical to add locals() here otherwise the function will disappear and
     # we won't be able to return it below
     exec(compiled, {**prev_globals, **globals()}, locals())
-    return locals()[f.__name__ + '_patched']
+    return locals()[f.__name__ + "_patched"]
 
 
 def magicquil(f):

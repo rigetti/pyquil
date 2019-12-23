@@ -95,16 +95,23 @@ class ISA(_ISA):
             d = {}
             if o.gates is not None:
                 d["gates"] = [
-                    {"operator": i.operator,
-                     "parameters": i.parameters,
-                     "arguments": i.arguments,
-                     "fidelity": i.fidelity,
-                     "duration": i.duration} if isinstance(i, GateInfo) else
-                    {"operator": "MEASURE",
-                     "qubit": i.qubit,
-                     "target": i.target,
-                     "duration": i.duration,
-                     "fidelity": i.fidelity} for i in o.gates]
+                    {
+                        "operator": i.operator,
+                        "parameters": i.parameters,
+                        "arguments": i.arguments,
+                        "fidelity": i.fidelity,
+                        "duration": i.duration,
+                    }
+                    if isinstance(i, GateInfo)
+                    else {
+                        "operator": "MEASURE",
+                        "qubit": i.qubit,
+                        "target": i.target,
+                        "duration": i.duration,
+                        "fidelity": i.fidelity,
+                    }
+                    for i in o.gates
+                ]
             if o.gates is None and o.type != t:
                 d["type"] = o.type
             if o.dead:
@@ -113,8 +120,10 @@ class ISA(_ISA):
 
         return {
             "1Q": {"{}".format(q.id): _maybe_configure(q, DEFAULT_QUBIT_TYPE) for q in self.qubits},
-            "2Q": {"{}-{}".format(*edge.targets): _maybe_configure(edge, DEFAULT_EDGE_TYPE)
-                   for edge in self.edges}
+            "2Q": {
+                "{}-{}".format(*edge.targets): _maybe_configure(edge, DEFAULT_EDGE_TYPE)
+                for edge in self.edges
+            },
         }
 
     @staticmethod
@@ -127,16 +136,28 @@ class ISA(_ISA):
         :rtype: ISA
         """
         return ISA(
-            qubits=sorted([Qubit(id=int(qid),
-                                 type=q.get("type", DEFAULT_QUBIT_TYPE),
-                                 dead=q.get("dead", False))
-                           for qid, q in d["1Q"].items()],
-                          key=lambda qubit: qubit.id),
-            edges=sorted([Edge(targets=[int(q) for q in eid.split('-')],
-                               type=e.get("type", DEFAULT_EDGE_TYPE),
-                               dead=e.get("dead", False))
-                          for eid, e in d["2Q"].items()],
-                         key=lambda edge: edge.targets),
+            qubits=sorted(
+                [
+                    Qubit(
+                        id=int(qid),
+                        type=q.get("type", DEFAULT_QUBIT_TYPE),
+                        dead=q.get("dead", False),
+                    )
+                    for qid, q in d["1Q"].items()
+                ],
+                key=lambda qubit: qubit.id,
+            ),
+            edges=sorted(
+                [
+                    Edge(
+                        targets=[int(q) for q in eid.split("-")],
+                        type=e.get("type", DEFAULT_EDGE_TYPE),
+                        dead=e.get("dead", False),
+                    )
+                    for eid, e in d["2Q"].items()
+                ],
+                key=lambda edge: edge.targets,
+            ),
         )
 
 
@@ -154,18 +175,18 @@ def gates_in_isa(isa):
             # TODO: dead qubits may in the future lead to some implicit re-indexing
             continue
         if q.type == "Xhalves":
-            gates.extend([
-                Gate("I", [], [unpack_qubit(q.id)]),
-                Gate("RX", [np.pi / 2], [unpack_qubit(q.id)]),
-                Gate("RX", [-np.pi / 2], [unpack_qubit(q.id)]),
-                Gate("RX", [np.pi], [unpack_qubit(q.id)]),
-                Gate("RX", [-np.pi], [unpack_qubit(q.id)]),
-                Gate("RZ", [THETA], [unpack_qubit(q.id)]),
-            ])
+            gates.extend(
+                [
+                    Gate("I", [], [unpack_qubit(q.id)]),
+                    Gate("RX", [np.pi / 2], [unpack_qubit(q.id)]),
+                    Gate("RX", [-np.pi / 2], [unpack_qubit(q.id)]),
+                    Gate("RX", [np.pi], [unpack_qubit(q.id)]),
+                    Gate("RX", [-np.pi], [unpack_qubit(q.id)]),
+                    Gate("RZ", [THETA], [unpack_qubit(q.id)]),
+                ]
+            )
         elif q.type == "WILDCARD":
-            gates.extend([
-                Gate("_", "_", [unpack_qubit(q.id)])
-            ])
+            gates.extend([Gate("_", "_", [unpack_qubit(q.id)])])
         else:  # pragma no coverage
             raise ValueError("Unknown qubit type: {}".format(q.type))
 
@@ -199,7 +220,7 @@ def gates_in_isa(isa):
     return gates
 
 
-def isa_from_graph(graph: nx.Graph, oneq_type='Xhalves', twoq_type='CZ') -> ISA:
+def isa_from_graph(graph: nx.Graph, oneq_type="Xhalves", twoq_type="CZ") -> ISA:
     """
     Generate an ISA object from a NetworkX graph.
 

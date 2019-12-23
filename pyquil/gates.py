@@ -16,23 +16,53 @@
 from warnings import warn
 from typing import Any, Callable, Mapping, Optional, Tuple, Union, overload
 
-from pyquil.quilatom import (Addr, Expression, MemoryReference, MemoryReferenceDesignator,
-                             Parameter, ParameterDesignator, Qubit, QubitDesignator,
-                             QubitPlaceholder, unpack_classical_reg, unpack_qubit)
-from pyquil.quilbase import (AbstractInstruction, Gate, Halt, Reset, ResetQubit, Measurement, Nop,
-                             Wait,
-                             ClassicalNeg, ClassicalNot,
-                             ClassicalAnd, ClassicalInclusiveOr, ClassicalExclusiveOr,
-                             ClassicalEqual, ClassicalGreaterEqual, ClassicalGreaterThan,
-                             ClassicalLessEqual, ClassicalLessThan,
-                             ClassicalMove, ClassicalExchange, ClassicalConvert,
-                             ClassicalLoad, ClassicalStore,
-                             ClassicalAdd, ClassicalSub, ClassicalMul, ClassicalDiv)
+from pyquil.quilatom import (
+    Addr,
+    Expression,
+    MemoryReference,
+    MemoryReferenceDesignator,
+    Parameter,
+    ParameterDesignator,
+    Qubit,
+    QubitDesignator,
+    QubitPlaceholder,
+    unpack_classical_reg,
+    unpack_qubit,
+)
+from pyquil.quilbase import (
+    AbstractInstruction,
+    Gate,
+    Halt,
+    Reset,
+    ResetQubit,
+    Measurement,
+    Nop,
+    Wait,
+    ClassicalNeg,
+    ClassicalNot,
+    ClassicalAnd,
+    ClassicalInclusiveOr,
+    ClassicalExclusiveOr,
+    ClassicalEqual,
+    ClassicalGreaterEqual,
+    ClassicalGreaterThan,
+    ClassicalLessEqual,
+    ClassicalLessThan,
+    ClassicalMove,
+    ClassicalExchange,
+    ClassicalConvert,
+    ClassicalLoad,
+    ClassicalStore,
+    ClassicalAdd,
+    ClassicalSub,
+    ClassicalMul,
+    ClassicalDiv,
+)
 
 
 def unpack_reg_val_pair(
-        classical_reg1: MemoryReferenceDesignator,
-        classical_reg2: Union[MemoryReferenceDesignator, int, float]
+    classical_reg1: MemoryReferenceDesignator,
+    classical_reg2: Union[MemoryReferenceDesignator, int, float],
 ) -> Tuple[MemoryReference, Union[MemoryReference, int, float]]:
     """
     Helper function for typechecking / type-coercing arguments to constructors for binary classical operators.
@@ -48,9 +78,9 @@ def unpack_reg_val_pair(
 
 
 def prepare_ternary_operands(
-        classical_reg1: MemoryReferenceDesignator,
-        classical_reg2: MemoryReferenceDesignator,
-        classical_reg3: Union[MemoryReferenceDesignator, int, float]
+    classical_reg1: MemoryReferenceDesignator,
+    classical_reg2: MemoryReferenceDesignator,
+    classical_reg3: Union[MemoryReferenceDesignator, int, float],
 ) -> Tuple[MemoryReference, MemoryReference, Union[MemoryReference, int, float]]:
     """
     Helper function for typechecking / type-coercing arguments to constructors for ternary classical operators.
@@ -498,7 +528,9 @@ This instruction ends the program.
 """
 
 
-def MEASURE(qubit: QubitDesignator, classical_reg: Optional[MemoryReferenceDesignator]) -> Measurement:
+def MEASURE(
+    qubit: QubitDesignator, classical_reg: Optional[MemoryReferenceDesignator]
+) -> Measurement:
     """
     Produce a MEASURE instruction.
 
@@ -510,8 +542,10 @@ def MEASURE(qubit: QubitDesignator, classical_reg: Optional[MemoryReferenceDesig
     if classical_reg is None:
         address = None
     elif isinstance(classical_reg, int):
-        warn("Indexing measurement addresses by integers is deprecated. "
-             + "Replacing this with the MemoryReference ro[i] instead.")
+        warn(
+            "Indexing measurement addresses by integers is deprecated. "
+            + "Replacing this with the MemoryReference ro[i] instead."
+        )
         address = MemoryReference("ro", classical_reg)
     else:
         address = unpack_classical_reg(classical_reg)
@@ -564,8 +598,9 @@ def NOT(classical_reg: MemoryReferenceDesignator) -> ClassicalNot:
     return ClassicalNot(unpack_classical_reg(classical_reg))
 
 
-def AND(classical_reg1: MemoryReferenceDesignator,
-        classical_reg2: Union[MemoryReferenceDesignator, int]) -> ClassicalAnd:
+def AND(
+    classical_reg1: MemoryReferenceDesignator, classical_reg2: Union[MemoryReferenceDesignator, int]
+) -> ClassicalAnd:
     """
     Produce an AND instruction.
 
@@ -580,8 +615,9 @@ def AND(classical_reg1: MemoryReferenceDesignator,
     return ClassicalAnd(left, right)
 
 
-def OR(classical_reg1: MemoryReferenceDesignator,
-       classical_reg2: MemoryReferenceDesignator) -> ClassicalInclusiveOr:
+def OR(
+    classical_reg1: MemoryReferenceDesignator, classical_reg2: MemoryReferenceDesignator
+) -> ClassicalInclusiveOr:
     """
     Produce an OR instruction.
 
@@ -595,8 +631,9 @@ def OR(classical_reg1: MemoryReferenceDesignator,
     return IOR(classical_reg2, classical_reg1)
 
 
-def IOR(classical_reg1: MemoryReferenceDesignator,
-        classical_reg2: Union[MemoryReferenceDesignator, int]) -> ClassicalInclusiveOr:
+def IOR(
+    classical_reg1: MemoryReferenceDesignator, classical_reg2: Union[MemoryReferenceDesignator, int]
+) -> ClassicalInclusiveOr:
     """
     Produce an inclusive OR instruction.
 
@@ -609,8 +646,9 @@ def IOR(classical_reg1: MemoryReferenceDesignator,
     return ClassicalInclusiveOr(left, right)
 
 
-def XOR(classical_reg1: MemoryReferenceDesignator,
-        classical_reg2: Union[MemoryReferenceDesignator, int]) -> ClassicalExclusiveOr:
+def XOR(
+    classical_reg1: MemoryReferenceDesignator, classical_reg2: Union[MemoryReferenceDesignator, int]
+) -> ClassicalExclusiveOr:
     """
     Produce an exclusive OR instruction.
 
@@ -623,8 +661,10 @@ def XOR(classical_reg1: MemoryReferenceDesignator,
     return ClassicalExclusiveOr(left, right)
 
 
-def MOVE(classical_reg1: MemoryReferenceDesignator,
-         classical_reg2: Union[MemoryReferenceDesignator, int, float]) -> ClassicalMove:
+def MOVE(
+    classical_reg1: MemoryReferenceDesignator,
+    classical_reg2: Union[MemoryReferenceDesignator, int, float],
+) -> ClassicalMove:
     """
     Produce a MOVE instruction.
 
@@ -636,8 +676,9 @@ def MOVE(classical_reg1: MemoryReferenceDesignator,
     return ClassicalMove(left, right)
 
 
-def EXCHANGE(classical_reg1: MemoryReferenceDesignator,
-             classical_reg2: MemoryReferenceDesignator) -> ClassicalExchange:
+def EXCHANGE(
+    classical_reg1: MemoryReferenceDesignator, classical_reg2: MemoryReferenceDesignator
+) -> ClassicalExchange:
     """
     Produce an EXCHANGE instruction.
 
@@ -650,9 +691,9 @@ def EXCHANGE(classical_reg1: MemoryReferenceDesignator,
     return ClassicalExchange(left, right)
 
 
-def LOAD(target_reg: MemoryReferenceDesignator,
-         region_name: str,
-         offset_reg: MemoryReferenceDesignator) -> ClassicalLoad:
+def LOAD(
+    target_reg: MemoryReferenceDesignator, region_name: str, offset_reg: MemoryReferenceDesignator
+) -> ClassicalLoad:
     """
     Produce a LOAD instruction.
 
@@ -661,12 +702,16 @@ def LOAD(target_reg: MemoryReferenceDesignator,
     :param offset_reg: Offset into region of memory to load from. Must be a MemoryReference.
     :return: A ClassicalLoad instance.
     """
-    return ClassicalLoad(unpack_classical_reg(target_reg), region_name, unpack_classical_reg(offset_reg))
+    return ClassicalLoad(
+        unpack_classical_reg(target_reg), region_name, unpack_classical_reg(offset_reg)
+    )
 
 
-def STORE(region_name: str,
-          offset_reg: MemoryReferenceDesignator,
-          source: Union[MemoryReferenceDesignator, int, float]) -> ClassicalStore:
+def STORE(
+    region_name: str,
+    offset_reg: MemoryReferenceDesignator,
+    source: Union[MemoryReferenceDesignator, int, float],
+) -> ClassicalStore:
     """
     Produce a STORE instruction.
 
@@ -680,8 +725,9 @@ def STORE(region_name: str,
     return ClassicalStore(region_name, unpack_classical_reg(offset_reg), source)
 
 
-def CONVERT(classical_reg1: MemoryReferenceDesignator,
-            classical_reg2: MemoryReferenceDesignator) -> ClassicalConvert:
+def CONVERT(
+    classical_reg1: MemoryReferenceDesignator, classical_reg2: MemoryReferenceDesignator
+) -> ClassicalConvert:
     """
     Produce a CONVERT instruction.
 
@@ -689,12 +735,14 @@ def CONVERT(classical_reg1: MemoryReferenceDesignator,
     :param classical_reg2: MemoryReference to read from.
     :return: A ClassicalConvert instance.
     """
-    return ClassicalConvert(unpack_classical_reg(classical_reg1),
-                            unpack_classical_reg(classical_reg2))
+    return ClassicalConvert(
+        unpack_classical_reg(classical_reg1), unpack_classical_reg(classical_reg2)
+    )
 
 
-def ADD(classical_reg: MemoryReferenceDesignator,
-        right: Union[MemoryReferenceDesignator, int, float]) -> ClassicalAdd:
+def ADD(
+    classical_reg: MemoryReferenceDesignator, right: Union[MemoryReferenceDesignator, int, float]
+) -> ClassicalAdd:
     """
     Produce an ADD instruction.
 
@@ -706,8 +754,9 @@ def ADD(classical_reg: MemoryReferenceDesignator,
     return ClassicalAdd(left, right)
 
 
-def SUB(classical_reg: MemoryReferenceDesignator,
-        right: Union[MemoryReferenceDesignator, int, float]) -> ClassicalSub:
+def SUB(
+    classical_reg: MemoryReferenceDesignator, right: Union[MemoryReferenceDesignator, int, float]
+) -> ClassicalSub:
     """
     Produce a SUB instruction.
 
@@ -719,8 +768,9 @@ def SUB(classical_reg: MemoryReferenceDesignator,
     return ClassicalSub(left, right)
 
 
-def MUL(classical_reg: MemoryReferenceDesignator,
-        right: Union[MemoryReferenceDesignator, int, float]) -> ClassicalMul:
+def MUL(
+    classical_reg: MemoryReferenceDesignator, right: Union[MemoryReferenceDesignator, int, float]
+) -> ClassicalMul:
     """
     Produce a MUL instruction.
 
@@ -732,8 +782,9 @@ def MUL(classical_reg: MemoryReferenceDesignator,
     return ClassicalMul(left, right)
 
 
-def DIV(classical_reg: MemoryReferenceDesignator,
-        right: Union[MemoryReferenceDesignator, int, float]) -> ClassicalDiv:
+def DIV(
+    classical_reg: MemoryReferenceDesignator, right: Union[MemoryReferenceDesignator, int, float]
+) -> ClassicalDiv:
     """
     Produce an DIV instruction.
 
@@ -745,9 +796,11 @@ def DIV(classical_reg: MemoryReferenceDesignator,
     return ClassicalDiv(left, right)
 
 
-def EQ(classical_reg1: MemoryReferenceDesignator,
-       classical_reg2: MemoryReferenceDesignator,
-       classical_reg3: Union[MemoryReferenceDesignator, int, float]) -> ClassicalEqual:
+def EQ(
+    classical_reg1: MemoryReferenceDesignator,
+    classical_reg2: MemoryReferenceDesignator,
+    classical_reg3: Union[MemoryReferenceDesignator, int, float],
+) -> ClassicalEqual:
     """
     Produce an EQ instruction.
 
@@ -756,16 +809,18 @@ def EQ(classical_reg1: MemoryReferenceDesignator,
     :param classical_reg3: Right comparison operand.
     :return: A ClassicalEqual instance.
     """
-    classical_reg1, classical_reg2, classical_reg3 = prepare_ternary_operands(classical_reg1,
-                                                                              classical_reg2,
-                                                                              classical_reg3)
+    classical_reg1, classical_reg2, classical_reg3 = prepare_ternary_operands(
+        classical_reg1, classical_reg2, classical_reg3
+    )
 
     return ClassicalEqual(classical_reg1, classical_reg2, classical_reg3)
 
 
-def LT(classical_reg1: MemoryReferenceDesignator,
-       classical_reg2: MemoryReferenceDesignator,
-       classical_reg3: Union[MemoryReferenceDesignator, int, float]) -> ClassicalLessThan:
+def LT(
+    classical_reg1: MemoryReferenceDesignator,
+    classical_reg2: MemoryReferenceDesignator,
+    classical_reg3: Union[MemoryReferenceDesignator, int, float],
+) -> ClassicalLessThan:
     """
     Produce an LT instruction.
 
@@ -774,15 +829,17 @@ def LT(classical_reg1: MemoryReferenceDesignator,
     :param classical_reg3: Right comparison operand.
     :return: A ClassicalLessThan instance.
     """
-    classical_reg1, classical_reg2, classical_reg3 = prepare_ternary_operands(classical_reg1,
-                                                                              classical_reg2,
-                                                                              classical_reg3)
+    classical_reg1, classical_reg2, classical_reg3 = prepare_ternary_operands(
+        classical_reg1, classical_reg2, classical_reg3
+    )
     return ClassicalLessThan(classical_reg1, classical_reg2, classical_reg3)
 
 
-def LE(classical_reg1: MemoryReferenceDesignator,
-       classical_reg2: MemoryReferenceDesignator,
-       classical_reg3: Union[MemoryReferenceDesignator, int, float]) -> ClassicalLessEqual:
+def LE(
+    classical_reg1: MemoryReferenceDesignator,
+    classical_reg2: MemoryReferenceDesignator,
+    classical_reg3: Union[MemoryReferenceDesignator, int, float],
+) -> ClassicalLessEqual:
     """
     Produce an LE instruction.
 
@@ -791,15 +848,17 @@ def LE(classical_reg1: MemoryReferenceDesignator,
     :param classical_reg3: Right comparison operand.
     :return: A ClassicalLessEqual instance.
     """
-    classical_reg1, classical_reg2, classical_reg3 = prepare_ternary_operands(classical_reg1,
-                                                                              classical_reg2,
-                                                                              classical_reg3)
+    classical_reg1, classical_reg2, classical_reg3 = prepare_ternary_operands(
+        classical_reg1, classical_reg2, classical_reg3
+    )
     return ClassicalLessEqual(classical_reg1, classical_reg2, classical_reg3)
 
 
-def GT(classical_reg1: MemoryReferenceDesignator,
-       classical_reg2: MemoryReferenceDesignator,
-       classical_reg3: Union[MemoryReferenceDesignator, int, float]) -> ClassicalGreaterThan:
+def GT(
+    classical_reg1: MemoryReferenceDesignator,
+    classical_reg2: MemoryReferenceDesignator,
+    classical_reg3: Union[MemoryReferenceDesignator, int, float],
+) -> ClassicalGreaterThan:
     """
     Produce an GT instruction.
 
@@ -808,15 +867,17 @@ def GT(classical_reg1: MemoryReferenceDesignator,
     :param classical_reg3: Right comparison operand.
     :return: A ClassicalGreaterThan instance.
     """
-    classical_reg1, classical_reg2, classical_reg3 = prepare_ternary_operands(classical_reg1,
-                                                                              classical_reg2,
-                                                                              classical_reg3)
+    classical_reg1, classical_reg2, classical_reg3 = prepare_ternary_operands(
+        classical_reg1, classical_reg2, classical_reg3
+    )
     return ClassicalGreaterThan(classical_reg1, classical_reg2, classical_reg3)
 
 
-def GE(classical_reg1: MemoryReferenceDesignator,
-       classical_reg2: MemoryReferenceDesignator,
-       classical_reg3: Union[MemoryReferenceDesignator, int, float]) -> ClassicalGreaterEqual:
+def GE(
+    classical_reg1: MemoryReferenceDesignator,
+    classical_reg2: MemoryReferenceDesignator,
+    classical_reg3: Union[MemoryReferenceDesignator, int, float],
+) -> ClassicalGreaterEqual:
     """
     Produce an GE instruction.
 
@@ -825,36 +886,37 @@ def GE(classical_reg1: MemoryReferenceDesignator,
     :param classical_reg3: Right comparison operand.
     :return: A ClassicalGreaterEqual instance.
     """
-    classical_reg1, classical_reg2, classical_reg3 = prepare_ternary_operands(classical_reg1,
-                                                                              classical_reg2,
-                                                                              classical_reg3)
+    classical_reg1, classical_reg2, classical_reg3 = prepare_ternary_operands(
+        classical_reg1, classical_reg2, classical_reg3
+    )
     return ClassicalGreaterEqual(classical_reg1, classical_reg2, classical_reg3)
 
 
 QUANTUM_GATES: Mapping[str, Callable[..., Gate]] = {
-    'I': I,
-    'X': X,
-    'Y': Y,
-    'Z': Z,
-    'H': H,
-    'S': S,
-    'T': T,
-    'PHASE': PHASE,
-    'RX': RX,
-    'RY': RY,
-    'RZ': RZ,
-    'CZ': CZ,
-    'CNOT': CNOT,
-    'CCNOT': CCNOT,
-    'CPHASE00': CPHASE00,
-    'CPHASE01': CPHASE01,
-    'CPHASE10': CPHASE10,
-    'CPHASE': CPHASE,
-    'SWAP': SWAP,
-    'CSWAP': CSWAP,
-    'ISWAP': ISWAP,
-    'PSWAP': PSWAP,
-    'XY': XY}
+    "I": I,
+    "X": X,
+    "Y": Y,
+    "Z": Z,
+    "H": H,
+    "S": S,
+    "T": T,
+    "PHASE": PHASE,
+    "RX": RX,
+    "RY": RY,
+    "RZ": RZ,
+    "CZ": CZ,
+    "CNOT": CNOT,
+    "CCNOT": CCNOT,
+    "CPHASE00": CPHASE00,
+    "CPHASE01": CPHASE01,
+    "CPHASE10": CPHASE10,
+    "CPHASE": CPHASE,
+    "SWAP": SWAP,
+    "CSWAP": CSWAP,
+    "ISWAP": ISWAP,
+    "PSWAP": PSWAP,
+    "XY": XY,
+}
 """
 Dictionary of quantum gate functions keyed by gate names.
 """
@@ -864,37 +926,43 @@ STANDARD_GATES = QUANTUM_GATES
 Alias for the above dictionary of quantum gates.
 """
 
-STANDARD_INSTRUCTIONS: Mapping[str, Union[AbstractInstruction, Callable[..., AbstractInstruction]]] = {
-    'WAIT': WAIT,
-    'RESET': RESET,
-    'NOP': NOP,
-    'HALT': HALT,
-    'MEASURE': MEASURE,
-    'TRUE': TRUE,
-    'FALSE': FALSE,
-    'NOT': NOT,
-    'AND': AND,
-    'OR': OR,
-    'MOVE': MOVE,
-    'EXCHANGE': EXCHANGE,
-    'IOR': IOR,
-    'XOR': XOR,
-    'NEG': NEG,
-    'ADD': ADD,
-    'SUB': SUB,
-    'MUL': MUL,
-    'DIV': DIV,
-    'EQ': EQ,
-    'GT': GT,
-    'GE': GE,
-    'LE': LE,
-    'LT': LT,
-    'LOAD': LOAD,
-    'STORE': STORE,
-    'CONVERT': CONVERT}
+STANDARD_INSTRUCTIONS: Mapping[
+    str, Union[AbstractInstruction, Callable[..., AbstractInstruction]]
+] = {
+    "WAIT": WAIT,
+    "RESET": RESET,
+    "NOP": NOP,
+    "HALT": HALT,
+    "MEASURE": MEASURE,
+    "TRUE": TRUE,
+    "FALSE": FALSE,
+    "NOT": NOT,
+    "AND": AND,
+    "OR": OR,
+    "MOVE": MOVE,
+    "EXCHANGE": EXCHANGE,
+    "IOR": IOR,
+    "XOR": XOR,
+    "NEG": NEG,
+    "ADD": ADD,
+    "SUB": SUB,
+    "MUL": MUL,
+    "DIV": DIV,
+    "EQ": EQ,
+    "GT": GT,
+    "GE": GE,
+    "LE": LE,
+    "LT": LT,
+    "LOAD": LOAD,
+    "STORE": STORE,
+    "CONVERT": CONVERT,
+}
 """
 Dictionary of standard instruction functions keyed by instruction names.
 """
 
-__all__ = list(QUANTUM_GATES.keys()) + list(STANDARD_INSTRUCTIONS.keys()) + \
-          ['Gate', 'QUANTUM_GATES', 'STANDARD_GATES', 'STANDARD_INSTRUCTIONS']
+__all__ = (
+    list(QUANTUM_GATES.keys())
+    + list(STANDARD_INSTRUCTIONS.keys())
+    + ["Gate", "QUANTUM_GATES", "STANDARD_GATES", "STANDARD_INSTRUCTIONS"]
+)

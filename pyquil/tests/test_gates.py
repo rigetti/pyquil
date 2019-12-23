@@ -1,10 +1,30 @@
 import pytest
-from pyquil.gates import (CNOT, CPHASE, CPHASE00, CPHASE01, CPHASE10, CZ, H, I, ISWAP, PHASE, PSWAP,
-                          RX, RY, RZ, S, SWAP, T, X, Y, Z)
+from pyquil.gates import (
+    CNOT,
+    CPHASE,
+    CPHASE00,
+    CPHASE01,
+    CPHASE10,
+    CZ,
+    H,
+    I,
+    ISWAP,
+    PHASE,
+    PSWAP,
+    RX,
+    RY,
+    RZ,
+    S,
+    SWAP,
+    T,
+    X,
+    Y,
+    Z,
+)
 from pyquil.quilbase import _strip_modifiers
 
 
-@pytest.fixture(params=[I, X, Y, Z, H, S, T, ])
+@pytest.fixture(params=[I, X, Y, Z, H, S, T])
 def oneq_gate(request):
     return request.param
 
@@ -19,7 +39,7 @@ def twoq_gate(request):
     return request.param
 
 
-@pytest.fixture(params=[CPHASE, CPHASE00, CPHASE01, CPHASE10, PSWAP, ])
+@pytest.fixture(params=[CPHASE, CPHASE00, CPHASE01, CPHASE10, PSWAP])
 def param_twoq_gate(request):
     return request.param
 
@@ -60,10 +80,10 @@ def test_twoq_gate(twoq_gate):
 
 def test_twoq_gate_kwarg(twoq_gate):
     func_name = twoq_gate.__name__
-    if func_name.startswith('C'):
-        qubits = {'control': 234, 'target': 567}
-    elif 'SWAP' in func_name:
-        qubits = {'q1': 234, 'q2': 567}
+    if func_name.startswith("C"):
+        qubits = {"control": 234, "target": 567}
+    elif "SWAP" in func_name:
+        qubits = {"q1": 234, "q2": 567}
     else:
         raise ValueError()
 
@@ -81,10 +101,10 @@ def test_param_twoq_gate(param_twoq_gate):
 
 def test_param_twoq_gate_kwarg(param_twoq_gate):
     func_name = param_twoq_gate.__name__
-    if func_name.startswith('C'):
-        qubits = {'control': 234, 'target': 567}
-    elif 'SWAP' in func_name:
-        qubits = {'q1': 234, 'q2': 567}
+    if func_name.startswith("C"):
+        qubits = {"control": 234, "target": 567}
+    elif "SWAP" in func_name:
+        qubits = {"q1": 234, "q2": 567}
     else:
         raise ValueError()
     g = param_twoq_gate(angle=0.2, **qubits)
@@ -122,11 +142,7 @@ def test_dagger_controlled_gate():
 
 
 def test_mixed_gate_modifiers():
-    g = RX(0.1, 3) \
-        .forked(2, [0.2]) \
-        .controlled(1) \
-        .dagger() \
-        .forked(0, [0.3, 0.4])
+    g = RX(0.1, 3).forked(2, [0.2]).controlled(1).dagger().forked(0, [0.3, 0.4])
     assert g.out() == "FORKED DAGGER CONTROLLED FORKED RX(0.1,0.2,0.3,0.4) 0 1 2 3"
 
 

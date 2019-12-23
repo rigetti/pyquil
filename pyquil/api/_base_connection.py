@@ -75,11 +75,11 @@ def parse_error(res):
     except JSONDecodeError:
         raise UnknownApiError(res.text)
 
-    if 'error_type' not in body:
+    if "error_type" not in body:
         raise UnknownApiError(str(body))
 
-    error_type = body['error_type']
-    status = body['status']
+    error_type = body["error_type"]
+    status = body["status"]
 
     if re.search(r"[0-9]+ qubits were requested, but the QVM is limited to [0-9]+ qubits.", status):
         return TooManyQubitsError(status)
@@ -96,11 +96,15 @@ def get_session(*args, **kwargs):
     :rtype: Session
     """
     session = ForestSession(*args, **kwargs)
-    retry_adapter = HTTPAdapter(max_retries=Retry(total=3,
-                                                  method_whitelist=['POST'],
-                                                  status_forcelist=[502, 503, 504, 521, 523],
-                                                  backoff_factor=0.2,
-                                                  raise_on_status=False))
+    retry_adapter = HTTPAdapter(
+        max_retries=Retry(
+            total=3,
+            method_whitelist=["POST"],
+            status_forcelist=[502, 503, 504, 521, 523],
+            backoff_factor=0.2,
+            raise_on_status=False,
+        )
+    )
 
     session.mount("http://", retry_adapter)
     session.mount("https://", retry_adapter)
@@ -108,9 +112,7 @@ def get_session(*args, **kwargs):
     # We need this to get binary payload for the wavefunction call.
     session.headers.update({"Accept": "application/octet-stream"})
 
-    session.headers.update({
-        'Content-Type': 'application/json; charset=utf-8'
-    })
+    session.headers.update({"Content-Type": "application/json; charset=utf-8"})
 
     return session
 
@@ -167,7 +169,7 @@ def prepare_register_list(register_dict: Dict[str, Union[bool, Sequence[int]]]):
 
     for k, v in register_dict.items():
         if isinstance(v, bool):
-            assert v    # If boolean v must be True
+            assert v  # If boolean v must be True
             continue
 
         indices = [int(x) for x in v]  # support ranges, numpy, ...
@@ -182,8 +184,10 @@ def prepare_register_list(register_dict: Dict[str, Union[bool, Sequence[int]]]):
 def run_and_measure_payload(quil_program, qubits, trials, random_seed):
     """REST payload for :py:func:`ForestConnection._run_and_measure`"""
     if not quil_program:
-        raise ValueError("You have attempted to run an empty program."
-                         " Please provide gates or measure instructions to your program.")
+        raise ValueError(
+            "You have attempted to run an empty program."
+            " Please provide gates or measure instructions to your program."
+        )
 
     if not isinstance(quil_program, Program):
         raise TypeError("quil_program must be a Quil program object")
@@ -191,13 +195,15 @@ def run_and_measure_payload(quil_program, qubits, trials, random_seed):
     if not isinstance(trials, int):
         raise TypeError("trials must be an integer")
 
-    payload = {"type": TYPE_MULTISHOT_MEASURE,
-               "qubits": list(qubits),
-               "trials": trials,
-               "compiled-quil": quil_program.out()}
+    payload = {
+        "type": TYPE_MULTISHOT_MEASURE,
+        "qubits": list(qubits),
+        "trials": trials,
+        "compiled-quil": quil_program.out(),
+    }
 
     if random_seed is not None:
-        payload['rng-seed'] = random_seed
+        payload["rng-seed"] = random_seed
 
     return payload
 
@@ -207,11 +213,10 @@ def wavefunction_payload(quil_program, random_seed):
     if not isinstance(quil_program, Program):
         raise TypeError("quil_program must be a Quil program object")
 
-    payload = {'type': TYPE_WAVEFUNCTION,
-               'compiled-quil': quil_program.out()}
+    payload = {"type": TYPE_WAVEFUNCTION, "compiled-quil": quil_program.out()}
 
     if random_seed is not None:
-        payload['rng-seed'] = random_seed
+        payload["rng-seed"] = random_seed
 
     return payload
 
@@ -224,39 +229,46 @@ def expectation_payload(prep_prog, operator_programs, random_seed):
     if not isinstance(prep_prog, Program):
         raise TypeError("prep_prog variable must be a Quil program object")
 
-    payload = {'type': TYPE_EXPECTATION,
-               'state-preparation': prep_prog.out(),
-               'operators': [x.out() for x in operator_programs]}
+    payload = {
+        "type": TYPE_EXPECTATION,
+        "state-preparation": prep_prog.out(),
+        "operators": [x.out() for x in operator_programs],
+    }
 
     if random_seed is not None:
-        payload['rng-seed'] = random_seed
+        payload["rng-seed"] = random_seed
 
     return payload
 
 
-def qvm_run_payload(quil_program, classical_addresses, trials,
-                    measurement_noise, gate_noise, random_seed):
+def qvm_run_payload(
+    quil_program, classical_addresses, trials, measurement_noise, gate_noise, random_seed
+):
     """REST payload for :py:func:`ForestConnection._qvm_run`"""
     if not quil_program:
-        raise ValueError("You have attempted to run an empty program."
-                         " Please provide gates or measure instructions to your program.")
+        raise ValueError(
+            "You have attempted to run an empty program."
+            " Please provide gates or measure instructions to your program."
+        )
     if not isinstance(quil_program, Program):
         raise TypeError("quil_program must be a Quil program object")
     classical_addresses = prepare_register_list(classical_addresses)
     if not isinstance(trials, int):
         raise TypeError("trials must be an integer")
 
-    payload = {"type": TYPE_MULTISHOT,
-               "addresses": classical_addresses,
-               "trials": trials,
-               "compiled-quil": quil_program.out()}
+    payload = {
+        "type": TYPE_MULTISHOT,
+        "addresses": classical_addresses,
+        "trials": trials,
+        "compiled-quil": quil_program.out(),
+    }
 
     if measurement_noise is not None:
         payload["measurement-noise"] = measurement_noise
     if gate_noise is not None:
         payload["gate-noise"] = gate_noise
     if random_seed is not None:
-        payload['rng-seed'] = random_seed
+        payload["rng-seed"] = random_seed
 
     return payload
 
@@ -287,20 +299,17 @@ class ForestSession(requests.Session):
     retrieve a valid engagement when needed, because the engagement is maintained here
     but is used by the config to provide service endpoints.
     """
-    def __init__(self,
-                 *,
-                 config: PyquilConfig,
-                 lattice_name: Optional[str] = None,
-                 **kwargs):
+
+    def __init__(self, *, config: PyquilConfig, lattice_name: Optional[str] = None, **kwargs):
         super().__init__(**kwargs)
         self.config = config
         self.config.get_engagement = self.get_engagement
         self._engagement = None
         self.headers.update(self.config.qcs_auth_headers)
-        self.headers['User-Agent'] = f"PyQuil/{__version__}"
+        self.headers["User-Agent"] = f"PyQuil/{__version__}"
         self.lattice_name = lattice_name
 
-    def _engage(self) -> Optional['Engagement']:
+    def _engage(self) -> Optional["Engagement"]:
         """
         The heart of the QPU authorization process, ``engage`` makes a request to
         the dispatch server for the information needed to communicate with the QPU.
@@ -312,7 +321,7 @@ class ForestSession(requests.Session):
         along with the set of keys necessary to connect to the QPU and the time at
         which that key set expires.
         """
-        query = '''
+        query = """
           mutation Engage($name: String!) {
             engage(input: { lattice: { name: $name }}) {
               success
@@ -334,49 +343,48 @@ class ForestSession(requests.Session):
               }
             }
           }
-        '''
+        """
         if not self.lattice_name:
             logger.debug("ForestSession requires lattice_name in order to engage")
             return
 
         logger.debug("Requesting engagement from %s", self.config.dispatch_url)
         variables = dict(name=self.lattice_name)
-        query_response = self._request_graphql_retry(self.config.dispatch_url, query=query, variables=variables)
+        query_response = self._request_graphql_retry(
+            self.config.dispatch_url, query=query, variables=variables
+        )
 
-        if query_response.get('errors'):
-            error_messages = map(lambda error: error['message'], query_response.get('errors', []))
-            raise UserMessageError(
-                f"Failed to engage: {','.join(error_messages)}"
-            )
+        if query_response.get("errors"):
+            error_messages = map(lambda error: error["message"], query_response.get("errors", []))
+            raise UserMessageError(f"Failed to engage: {','.join(error_messages)}")
 
-        engagement_response = query_response.get('data', {}).get('engage', None)
-        if engagement_response and engagement_response.get('success') is True:
+        engagement_response = query_response.get("data", {}).get("engage", None)
+        if engagement_response and engagement_response.get("success") is True:
             logger.debug("Engagement successful")
-            engagement_data = engagement_response.get('engagement', {})
+            engagement_data = engagement_response.get("engagement", {})
             return Engagement(
-                client_secret_key=engagement_data.get('qpu', {})
-                                                 .get('credentials', {})
-                                                 .get('clientSecret', '')
-                                                 .encode('utf-8'),
-                client_public_key=engagement_data.get('qpu', {})
-                                                 .get('credentials', {})
-                                                 .get('clientPublic', '')
-                                                 .encode('utf-8'),
-                server_public_key=engagement_data.get('qpu', {})
-                                                 .get('credentials', {})
-                                                 .get('serverPublic', '')
-                                                 .encode('utf-8'),
-                expires_at=engagement_data.get('expiresAt', {}),
-                qpu_endpoint=engagement_data.get('qpu', {})
-                                            .get('endpoint'),
-                qpu_compiler_endpoint=engagement_data.get('compiler', {})
-                                                     .get('endpoint'))
+                client_secret_key=engagement_data.get("qpu", {})
+                .get("credentials", {})
+                .get("clientSecret", "")
+                .encode("utf-8"),
+                client_public_key=engagement_data.get("qpu", {})
+                .get("credentials", {})
+                .get("clientPublic", "")
+                .encode("utf-8"),
+                server_public_key=engagement_data.get("qpu", {})
+                .get("credentials", {})
+                .get("serverPublic", "")
+                .encode("utf-8"),
+                expires_at=engagement_data.get("expiresAt", {}),
+                qpu_endpoint=engagement_data.get("qpu", {}).get("endpoint"),
+                qpu_compiler_endpoint=engagement_data.get("compiler", {}).get("endpoint"),
+            )
         else:
             raise UserMessageError(
                 f"Unable to engage {self.lattice_name}: {engagement_response.get('message', 'No message')}"
             )
 
-    def get_engagement(self) -> Optional['Engagement']:
+    def get_engagement(self) -> Optional["Engagement"]:
         """
         Returns memoized engagement information, if still valid - or requests a new engagement
         and then stores and returns that.
@@ -394,42 +402,42 @@ class ForestSession(requests.Session):
         return False
 
     def _refresh_user_auth_token(self) -> bool:
-        url = f'{self.config.forest_url}/auth/idp/oauth2/v1/token'
+        url = f"{self.config.forest_url}/auth/idp/oauth2/v1/token"
         headers = {
-            'Content-Type': 'application/x-www-form-urlencoded',
-            'Cache-Control': 'no-cache',
-            'Accept': 'application/json'}
+            "Content-Type": "application/x-www-form-urlencoded",
+            "Cache-Control": "no-cache",
+            "Accept": "application/json",
+        }
         data = {
-            'grant_type': 'refresh_token',
-            'scope': self.config.user_auth_token['scope'],
-            'refresh_token': self.config.user_auth_token['refresh_token']}
-        response = super().request('POST', url, data=data, headers=headers)
+            "grant_type": "refresh_token",
+            "scope": self.config.user_auth_token["scope"],
+            "refresh_token": self.config.user_auth_token["refresh_token"],
+        }
+        response = super().request("POST", url, data=data, headers=headers)
         if response.status_code == 200:
             self.config.update_user_auth_token(response.json())
             self.headers.update(self.config.qcs_auth_headers)
             return True
 
         logger.warning(
-            f'Failed to refresh your user auth token at {self.config.user_auth_token_path}. '
-            f'Server response: {response.text}'
+            f"Failed to refresh your user auth token at {self.config.user_auth_token_path}. "
+            f"Server response: {response.text}"
         )
         return False
 
     def _refresh_qmi_auth_token(self) -> bool:
-        url = f'{self.config.forest_url}/auth/qmi/refresh'
-        headers = {
-            'Content-Type': 'application/json',
-            'Accept': 'application/json'}
+        url = f"{self.config.forest_url}/auth/qmi/refresh"
+        headers = {"Content-Type": "application/json", "Accept": "application/json"}
         data = self.config.qmi_auth_token
-        response = super().request('POST', url, json=data, headers=headers)
+        response = super().request("POST", url, json=data, headers=headers)
         if response.status_code == 200:
             self.config.update_qmi_auth_token(response.json())
             self.headers.update(self.config.qcs_auth_headers)
             return True
 
         logger.warning(
-            f'Failed to refresh your QMI auth token at {self.config.qmi_auth_token_path}. '
-            f'Server response: {response.text}'
+            f"Failed to refresh your QMI auth token at {self.config.qmi_auth_token_path}. "
+            f"Server response: {response.text}"
         )
         return False
 
@@ -471,9 +479,9 @@ class ForestSession(requests.Session):
         messages will not trigger a retry.
         """
         result = self._request_graphql(*args, **kwargs)
-        errors = result.get('errors', [])
+        errors = result.get("errors", [])
         token_is_expired = any(
-            error.get('extensions', {}).get('code') == 'AUTH_TOKEN_EXPIRED' for error in errors
+            error.get("extensions", {}).get("code") == "AUTH_TOKEN_EXPIRED" for error in errors
         )
         if token_is_expired:
             if self._refresh_auth_token():
@@ -540,24 +548,29 @@ class ForestConnection:
         this directly.
         """
         if isinstance(operator_programs, Program):
-            warnings.warn("You have provided a Program rather than a list of Programs. The results "
-                          "from expectation will be line-wise expectation values of the "
-                          "operator_programs.", SyntaxWarning)
+            warnings.warn(
+                "You have provided a Program rather than a list of Programs. The results "
+                "from expectation will be line-wise expectation values of the "
+                "operator_programs.",
+                SyntaxWarning,
+            )
 
         payload = expectation_payload(prep_prog, operator_programs, random_seed)
         response = post_json(self.session, self.sync_endpoint + "/qvm", payload)
         return np.asarray(response.json())
 
     @_record_call
-    def _qvm_run(self, quil_program, classical_addresses, trials,
-                 measurement_noise, gate_noise, random_seed) -> np.ndarray:
+    def _qvm_run(
+        self, quil_program, classical_addresses, trials, measurement_noise, gate_noise, random_seed
+    ) -> np.ndarray:
         """
         Run a Forest ``run`` job on a QVM.
 
         Users should use :py:func:`QVM.run` instead of calling this directly.
         """
-        payload = qvm_run_payload(quil_program, classical_addresses, trials,
-                                  measurement_noise, gate_noise, random_seed)
+        payload = qvm_run_payload(
+            quil_program, classical_addresses, trials, measurement_noise, gate_noise, random_seed
+        )
         response = post_json(self.session, self.sync_endpoint + "/qvm", payload)
 
         ram = response.json()
@@ -574,12 +587,12 @@ class ForestConnection:
 
         :return: String of QVM version
         """
-        response = post_json(self.session, self.sync_endpoint, {'type': 'version'})
+        response = post_json(self.session, self.sync_endpoint, {"type": "version"})
         split_version_string = response.text.split()
         try:
             qvm_version = split_version_string[0]
         except ValueError:
-            raise TypeError(f'Malformed version string returned by the QVM: {response.text}')
+            raise TypeError(f"Malformed version string returned by the QVM: {response.text}")
         return qvm_version
 
 
@@ -588,9 +601,16 @@ class Engagement:
     An Engagement stores all the information retrieved via an engagement request sent to
       the dispatch server.
     """
-    def __init__(self, client_public_key: bytes, client_secret_key: bytes,
-                 server_public_key: bytes, expires_at: Union[int, float, str], qpu_endpoint: str,
-                 qpu_compiler_endpoint: str):
+
+    def __init__(
+        self,
+        client_public_key: bytes,
+        client_secret_key: bytes,
+        server_public_key: bytes,
+        expires_at: Union[int, float, str],
+        qpu_endpoint: str,
+        qpu_compiler_endpoint: str,
+    ):
         self.client_public_key = client_public_key
         self.client_secret_key = client_secret_key
         self.server_public_key = server_public_key
@@ -606,18 +626,20 @@ class Engagement:
 
         An 'invalid' engagement is one which will not grant access to the QPU.
         """
-        return all([
-            self.client_public_key is not None,
-            self.client_secret_key is not None,
-            self.server_public_key is not None,
-            (self.expires_at is None or self.expires_at > time.time()),
-            self.qpu_endpoint is not None
-        ])
+        return all(
+            [
+                self.client_public_key is not None,
+                self.client_secret_key is not None,
+                self.server_public_key is not None,
+                (self.expires_at is None or self.expires_at > time.time()),
+                self.qpu_endpoint is not None,
+            ]
+        )
 
     def __str__(self) -> str:
-        return (f"""Client public key: {self.client_public_key}
+        return f"""Client public key: {self.client_public_key}
 Client secret key: masked ({len(self.client_secret_key)} B)
 Server public key: {self.server_public_key}
 Expiration time: {self.expires_at}
 QPU Endpoint: {self.qpu_endpoint}
-QPU Compiler Endpoint: {self.qpu_compiler_endpoint}""")
+QPU Compiler Endpoint: {self.qpu_compiler_endpoint}"""

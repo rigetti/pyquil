@@ -107,38 +107,42 @@ def PHASE(phi):
 
 
 def RX(phi):
-    return np.array([[np.cos(phi / 2.0), -1j * np.sin(phi / 2.0)],
-                     [-1j * np.sin(phi / 2.0), np.cos(phi / 2.0)]])
+    return np.array(
+        [[np.cos(phi / 2.0), -1j * np.sin(phi / 2.0)], [-1j * np.sin(phi / 2.0), np.cos(phi / 2.0)]]
+    )
 
 
 def RY(phi):
-    return np.array([[np.cos(phi / 2.0), -np.sin(phi / 2.0)],
-                     [np.sin(phi / 2.0), np.cos(phi / 2.0)]])
+    return np.array(
+        [[np.cos(phi / 2.0), -np.sin(phi / 2.0)], [np.sin(phi / 2.0), np.cos(phi / 2.0)]]
+    )
 
 
 def RZ(phi):
-    return np.array([[np.cos(phi / 2.0) - 1j * np.sin(phi / 2.0), 0],
-                     [0, np.cos(phi / 2.0) + 1j * np.sin(phi / 2.0)]])
+    return np.array(
+        [
+            [np.cos(phi / 2.0) - 1j * np.sin(phi / 2.0), 0],
+            [0, np.cos(phi / 2.0) + 1j * np.sin(phi / 2.0)],
+        ]
+    )
 
 
-CZ = np.array([[1, 0, 0, 0],
-               [0, 1, 0, 0],
-               [0, 0, 1, 0],
-               [0, 0, 0, -1]])
+CZ = np.array([[1, 0, 0, 0], [0, 1, 0, 0], [0, 0, 1, 0], [0, 0, 0, -1]])
 
-CNOT = np.array([[1, 0, 0, 0],
-                 [0, 1, 0, 0],
-                 [0, 0, 0, 1],
-                 [0, 0, 1, 0]])
+CNOT = np.array([[1, 0, 0, 0], [0, 1, 0, 0], [0, 0, 0, 1], [0, 0, 1, 0]])
 
-CCNOT = np.array([[1, 0, 0, 0, 0, 0, 0, 0],
-                  [0, 1, 0, 0, 0, 0, 0, 0],
-                  [0, 0, 1, 0, 0, 0, 0, 0],
-                  [0, 0, 0, 1, 0, 0, 0, 0],
-                  [0, 0, 0, 0, 1, 0, 0, 0],
-                  [0, 0, 0, 0, 0, 1, 0, 0],
-                  [0, 0, 0, 0, 0, 0, 0, 1],
-                  [0, 0, 0, 0, 0, 0, 1, 0]])
+CCNOT = np.array(
+    [
+        [1, 0, 0, 0, 0, 0, 0, 0],
+        [0, 1, 0, 0, 0, 0, 0, 0],
+        [0, 0, 1, 0, 0, 0, 0, 0],
+        [0, 0, 0, 1, 0, 0, 0, 0],
+        [0, 0, 0, 0, 1, 0, 0, 0],
+        [0, 0, 0, 0, 0, 1, 0, 0],
+        [0, 0, 0, 0, 0, 0, 0, 1],
+        [0, 0, 0, 0, 0, 0, 1, 0],
+    ]
+)
 
 
 def CPHASE00(phi):
@@ -157,38 +161,39 @@ def CPHASE(phi):
     return np.diag([1.0, 1.0, 1.0, np.exp(1j * phi)])
 
 
-SWAP = np.array([[1, 0, 0, 0],
-                 [0, 0, 1, 0],
-                 [0, 1, 0, 0],
-                 [0, 0, 0, 1]])
+SWAP = np.array([[1, 0, 0, 0], [0, 0, 1, 0], [0, 1, 0, 0], [0, 0, 0, 1]])
 
-CSWAP = np.array([[1, 0, 0, 0, 0, 0, 0, 0],
-                  [0, 1, 0, 0, 0, 0, 0, 0],
-                  [0, 0, 1, 0, 0, 0, 0, 0],
-                  [0, 0, 0, 1, 0, 0, 0, 0],
-                  [0, 0, 0, 0, 1, 0, 0, 0],
-                  [0, 0, 0, 0, 0, 0, 1, 0],
-                  [0, 0, 0, 0, 0, 1, 0, 0],
-                  [0, 0, 0, 0, 0, 0, 0, 1]])
+CSWAP = np.array(
+    [
+        [1, 0, 0, 0, 0, 0, 0, 0],
+        [0, 1, 0, 0, 0, 0, 0, 0],
+        [0, 0, 1, 0, 0, 0, 0, 0],
+        [0, 0, 0, 1, 0, 0, 0, 0],
+        [0, 0, 0, 0, 1, 0, 0, 0],
+        [0, 0, 0, 0, 0, 0, 1, 0],
+        [0, 0, 0, 0, 0, 1, 0, 0],
+        [0, 0, 0, 0, 0, 0, 0, 1],
+    ]
+)
 
-ISWAP = np.array([[1, 0, 0, 0],
-                  [0, 0, 1j, 0],
-                  [0, 1j, 0, 0],
-                  [0, 0, 0, 1]])
+ISWAP = np.array([[1, 0, 0, 0], [0, 0, 1j, 0], [0, 1j, 0, 0], [0, 0, 0, 1]])
 
 
 def PSWAP(phi):
-    return np.array([[1, 0, 0, 0],
-                     [0, 0, np.exp(1j * phi), 0],
-                     [0, np.exp(1j * phi), 0, 0],
-                     [0, 0, 0, 1]])
+    return np.array(
+        [[1, 0, 0, 0], [0, 0, np.exp(1j * phi), 0], [0, np.exp(1j * phi), 0, 0], [0, 0, 0, 1]]
+    )
 
 
 def XY(phi):
-    return np.array([[1, 0, 0, 0],
-                     [0, np.cos(phi / 2), 1j * np.sin(phi / 2), 0],
-                     [0, 1j * np.sin(phi / 2), np.cos(phi / 2), 0],
-                     [0, 0, 0, 1]])
+    return np.array(
+        [
+            [1, 0, 0, 0],
+            [0, np.cos(phi / 2), 1j * np.sin(phi / 2), 0],
+            [0, 1j * np.sin(phi / 2), np.cos(phi / 2), 0],
+            [0, 0, 0, 1],
+        ]
+    )
 
 
 # Utility gates for internal QVM use
@@ -199,37 +204,40 @@ P1 = np.array([[0, 0], [0, 1]])
 
 # Specialized useful gates; not officially in standard gate set
 def BARENCO(alpha, phi, theta):
-    lower_unitary = np.array([
-        [np.exp(1j * phi) * np.cos(theta), -1j * np.exp(1j * (alpha - phi)) * np.sin(theta)],
-        [-1j * np.exp(1j * (alpha + phi)) * np.sin(theta), np.exp(1j * alpha) * np.cos(theta)]])
+    lower_unitary = np.array(
+        [
+            [np.exp(1j * phi) * np.cos(theta), -1j * np.exp(1j * (alpha - phi)) * np.sin(theta)],
+            [-1j * np.exp(1j * (alpha + phi)) * np.sin(theta), np.exp(1j * alpha) * np.cos(theta)],
+        ]
+    )
     return np.kron(P0, np.eye(2)) + np.kron(P1, lower_unitary)
 
 
 QUANTUM_GATES = {
-    'I': I,
-    'X': X,
-    'Y': Y,
-    'Z': Z,
-    'H': H,
-    'S': S,
-    'T': T,
-    'PHASE': PHASE,
-    'RX': RX,
-    'RY': RY,
-    'RZ': RZ,
-    'CNOT': CNOT,
-    'CCNOT': CCNOT,
-    'CPHASE00': CPHASE00,
-    'CPHASE01': CPHASE01,
-    'CPHASE10': CPHASE10,
-    'CPHASE': CPHASE,
-    'SWAP': SWAP,
-    'CSWAP': CSWAP,
-    'ISWAP': ISWAP,
-    'PSWAP': PSWAP,
-    'BARENCO': BARENCO,
-    'CZ': CZ,
-    'XY': XY
+    "I": I,
+    "X": X,
+    "Y": Y,
+    "Z": Z,
+    "H": H,
+    "S": S,
+    "T": T,
+    "PHASE": PHASE,
+    "RX": RX,
+    "RY": RY,
+    "RZ": RZ,
+    "CNOT": CNOT,
+    "CCNOT": CCNOT,
+    "CPHASE00": CPHASE00,
+    "CPHASE01": CPHASE01,
+    "CPHASE10": CPHASE10,
+    "CPHASE": CPHASE,
+    "SWAP": SWAP,
+    "CSWAP": CSWAP,
+    "ISWAP": ISWAP,
+    "PSWAP": PSWAP,
+    "BARENCO": BARENCO,
+    "CZ": CZ,
+    "XY": XY,
 }
 
 
@@ -290,12 +298,12 @@ def bitphase_flip_operators(p):
 
 
 KRAUS_OPS = {
-    'relaxation': relaxation_operators,
-    'dephasing': dephasing_operators,
-    'depolarizing': depolarizing_operators,
-    'phase_flip': phase_flip_operators,
-    'bit_flip': bit_flip_operators,
-    'bitphase_flip': bitphase_flip_operators,
+    "relaxation": relaxation_operators,
+    "dephasing": dephasing_operators,
+    "depolarizing": depolarizing_operators,
+    "phase_flip": phase_flip_operators,
+    "bit_flip": bit_flip_operators,
+    "bitphase_flip": bitphase_flip_operators,
 }
 
 SIC0 = np.array([1, 0])
@@ -310,27 +318,22 @@ For more information, please see http://info.phys.unm.edu/~caves/reports/infopov
 """
 
 STATES = {
-    'X': [
-        np.array([1, 1]) / np.sqrt(2),
-        np.array([1, -1]) / np.sqrt(2),
-    ],
-    'Y': [
-        np.array([1, 1j]) / np.sqrt(2),
-        np.array([1, -1j]) / np.sqrt(2),
-    ],
-    'Z': [
-        np.array([1, 0]),
-        np.array([0, 1]),
-    ],
-    'SIC': [
-        SIC0,
-        SIC1,
-        SIC2,
-        SIC3,
-    ]
+    "X": [np.array([1, 1]) / np.sqrt(2), np.array([1, -1]) / np.sqrt(2)],
+    "Y": [np.array([1, 1j]) / np.sqrt(2), np.array([1, -1j]) / np.sqrt(2)],
+    "Z": [np.array([1, 0]), np.array([0, 1])],
+    "SIC": [SIC0, SIC1, SIC2, SIC3],
 }
 
-__all__ = list(QUANTUM_GATES.keys()) + ['relaxation_operators', 'dephasing_operators',
-                                        'depolarizing_operators', 'phase_flip_operators',
-                                        'bit_flip_operators', 'bitphase_flip_operators',
-                                        'STATES', 'SIC0', 'SIC1', 'SIC2', 'SIC3']
+__all__ = list(QUANTUM_GATES.keys()) + [
+    "relaxation_operators",
+    "dephasing_operators",
+    "depolarizing_operators",
+    "phase_flip_operators",
+    "bit_flip_operators",
+    "bitphase_flip_operators",
+    "STATES",
+    "SIC0",
+    "SIC1",
+    "SIC2",
+    "SIC3",
+]

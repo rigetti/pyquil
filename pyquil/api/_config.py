@@ -32,10 +32,7 @@ QCS_CONFIG = "QCS_CONFIG"
 # `.forest_config`, for content related to the Forest SDK, such as ip addresses for the various
 # servers to which users submit quil & jobs (qvm, compiler, qpu, etc.)
 FOREST_CONFIG = "FOREST_CONFIG"
-CONFIG_PATHS = MappingProxyType({
-    QCS_CONFIG: "~/.qcs_config",
-    FOREST_CONFIG: "~/.forest_config"
-})
+CONFIG_PATHS = MappingProxyType({QCS_CONFIG: "~/.qcs_config", FOREST_CONFIG: "~/.forest_config"})
 
 
 class PyquilConfig(object):
@@ -48,12 +45,13 @@ class PyquilConfig(object):
         configuration parameters (i.e., QPU_URL) as needed. This allows the engagement to be fetched
          and maintained elsewhere (i.e., by ForestSession or manually).
     """
+
     FOREST_URL = {
         "env": "FOREST_SERVER_URL",
         "file": QCS_CONFIG,
         "section": "Rigetti Forest",
         "name": "url",
-        "default": "https://forest-server.qcs.rigetti.com"
+        "default": "https://forest-server.qcs.rigetti.com",
     }
 
     API_KEY = {
@@ -61,7 +59,7 @@ class PyquilConfig(object):
         "file": QCS_CONFIG,
         "section": "Rigetti Forest",
         "name": "key",
-        "default": None
+        "default": None,
     }
 
     USER_ID = {
@@ -69,7 +67,7 @@ class PyquilConfig(object):
         "file": QCS_CONFIG,
         "section": "Rigetti Forest",
         "name": "user_id",
-        "default": None
+        "default": None,
     }
 
     DISPATCH_URL = {
@@ -77,7 +75,7 @@ class PyquilConfig(object):
         "file": QCS_CONFIG,
         "section": "Rigetti Forest",
         "name": "dispatch_url",
-        "default": "https://dispatch.services.qcs.rigetti.com/graphql"
+        "default": "https://dispatch.services.qcs.rigetti.com/graphql",
     }
 
     ENGAGE_CMD = {
@@ -85,7 +83,7 @@ class PyquilConfig(object):
         "file": QCS_CONFIG,
         "section": "QPU",
         "name": "exec_on_engage",
-        "default": ""
+        "default": "",
     }
 
     QMI_AUTH_TOKEN_PATH = {
@@ -93,7 +91,7 @@ class PyquilConfig(object):
         "file": QCS_CONFIG,
         "section": "Rigetti Forest",
         "name": "qmi_auth_token_path",
-        "default": "~/.qcs/qmi_auth_token"
+        "default": "~/.qcs/qmi_auth_token",
     }
 
     USER_AUTH_TOKEN_PATH = {
@@ -101,7 +99,7 @@ class PyquilConfig(object):
         "file": QCS_CONFIG,
         "section": "Rigetti Forest",
         "name": "user_auth_token_path",
-        "default": "~/.qcs/user_auth_token"
+        "default": "~/.qcs/user_auth_token",
     }
 
     QCS_URL = {
@@ -109,7 +107,7 @@ class PyquilConfig(object):
         "file": FOREST_CONFIG,
         "section": "Rigetti Forest",
         "name": "qcs_url",
-        "default": 'https://qcs.rigetti.com'
+        "default": "https://qcs.rigetti.com",
     }
 
     QPU_URL = {
@@ -117,8 +115,8 @@ class PyquilConfig(object):
         "file": FOREST_CONFIG,
         "section": "Rigetti Forest",
         "name": "qpu_endpoint_address",
-        "engagement_key": 'qpu_endpoint',
-        "default": None
+        "engagement_key": "qpu_endpoint",
+        "default": None,
     }
 
     QVM_URL = {
@@ -126,7 +124,7 @@ class PyquilConfig(object):
         "file": FOREST_CONFIG,
         "section": "Rigetti Forest",
         "name": "qvm_address",
-        "default": "http://127.0.0.1:5000"
+        "default": "http://127.0.0.1:5000",
     }
 
     QUILC_URL = {
@@ -134,7 +132,7 @@ class PyquilConfig(object):
         "file": FOREST_CONFIG,
         "section": "Rigetti Forest",
         "name": "quilc_address",
-        "default": "tcp://127.0.0.1:5555"
+        "default": "tcp://127.0.0.1:5555",
     }
 
     QPU_COMPILER_URL = {
@@ -142,8 +140,8 @@ class PyquilConfig(object):
         "file": FOREST_CONFIG,
         "section": "Rigetti Forest",
         "name": "qpu_compiler_address",
-        "engagement_key": 'qpu_compiler_endpoint',
-        "default": None
+        "engagement_key": "qpu_compiler_endpoint",
+        "default": None,
     }
 
     def __init__(self, config_paths: Dict[str, str] = CONFIG_PATHS):
@@ -169,18 +167,15 @@ class PyquilConfig(object):
 
     def _parse_auth_tokens(self):
         self.user_auth_token = _parse_auth_token(
-            self.user_auth_token_path,
-            ['access_token', 'refresh_token', 'scope'])
+            self.user_auth_token_path, ["access_token", "refresh_token", "scope"]
+        )
         self.qmi_auth_token = _parse_auth_token(
-            self.qmi_auth_token_path, ['access_token', 'refresh_token'])
+            self.qmi_auth_token_path, ["access_token", "refresh_token"]
+        )
 
-    def _env_or_config_or_default(self,
-                                  env=None,
-                                  file=None,
-                                  section=None,
-                                  name=None,
-                                  default=None,
-                                  engagement_key=None):
+    def _env_or_config_or_default(
+        self, env=None, file=None, section=None, name=None, default=None, engagement_key=None
+    ):
         """
         Get the value of the environment variable or config file value.
         The environment variable takes precedence.
@@ -217,9 +212,11 @@ class PyquilConfig(object):
 
     @property
     def api_key(self) -> Optional[str]:
-        warnings.warn('PyQuilConfig#api_key is deprecated, unused by Rigetti services, and will '
-                      'be removed in a future release.',
-                      category=FutureWarning)
+        warnings.warn(
+            "PyQuilConfig#api_key is deprecated, unused by Rigetti services, and will "
+            "be removed in a future release.",
+            category=FutureWarning,
+        )
         return self._env_or_config_or_default(**self.API_KEY)
 
     @property
@@ -231,7 +228,7 @@ class PyquilConfig(object):
         return self._env_or_config_or_default(**self.ENGAGE_CMD)
 
     @property
-    def engagement(self) -> Optional['Engagement']:
+    def engagement(self) -> Optional["Engagement"]:
         """
         An Engagement should only be made available to consumers if it was used to retrieve a
         configuration value.
@@ -246,18 +243,14 @@ class PyquilConfig(object):
 
     @property
     def qmi_auth_token_path(self) -> str:
-        return path.expanduser(
-            self._env_or_config_or_default(**self.QMI_AUTH_TOKEN_PATH))
+        return path.expanduser(self._env_or_config_or_default(**self.QMI_AUTH_TOKEN_PATH))
 
     @property
     def qcs_auth_headers(self) -> dict:
         if self.user_auth_token is not None:
-            return {
-                'Authorization':
-                f'Bearer {self.user_auth_token["access_token"]}'
-            }
+            return {"Authorization": f'Bearer {self.user_auth_token["access_token"]}'}
         if self.qmi_auth_token is not None:
-            return {'X-QMI-AUTH-TOKEN': self.qmi_auth_token['access_token']}
+            return {"X-QMI-AUTH-TOKEN": self.qmi_auth_token["access_token"]}
         return {}
 
     @property
@@ -282,18 +275,17 @@ class PyquilConfig(object):
 
     def update_user_auth_token(self, user_auth_token) -> None:
         self.user_auth_token = user_auth_token
-        with open(self.user_auth_token_path, 'w') as f:
+        with open(self.user_auth_token_path, "w") as f:
             json.dump(user_auth_token, f)
 
     def update_qmi_auth_token(self, qmi_auth_token) -> None:
         self.qmi_auth_token = qmi_auth_token
-        with open(self.qmi_auth_token_path, 'w') as f:
+        with open(self.qmi_auth_token_path, "w") as f:
             json.dump(qmi_auth_token, f)
 
     @property
     def user_auth_token_path(self) -> str:
-        return path.expanduser(
-            self._env_or_config_or_default(**self.USER_AUTH_TOKEN_PATH))
+        return path.expanduser(self._env_or_config_or_default(**self.USER_AUTH_TOKEN_PATH))
 
     @property
     def user_id(self) -> Optional[str]:
@@ -308,24 +300,22 @@ class PyquilConfig(object):
         """
         if self.user_auth_token is None and self.qmi_auth_token is None:
             raise UserMessageError(
-                f'Your configuration does not have valid authentication credentials.'
-                f'Please visit {self.qcs_url}/auth/token to download credentials'
-                f'and save to {self.user_auth_token_path}.'
+                f"Your configuration does not have valid authentication credentials."
+                f"Please visit {self.qcs_url}/auth/token to download credentials"
+                f"and save to {self.user_auth_token_path}."
             )
 
 
 def _parse_auth_token(path: str, required_keys: Iterable[str]) -> Optional[dict]:
     try:
-        with open(abspath(expanduser(path)), 'r') as f:
+        with open(abspath(expanduser(path)), "r") as f:
             token = json.load(f)
-            invalid_values = [
-                k for k in required_keys if not isinstance(token.get(k), str)
-            ]
+            invalid_values = [k for k in required_keys if not isinstance(token.get(k), str)]
             if len(invalid_values) == 0:
                 return token
-            logger.warning(f'Failed to parse auth token at {path}.')
-            logger.warning(f'Invalid {invalid_values}.')
+            logger.warning(f"Failed to parse auth token at {path}.")
+            logger.warning(f"Invalid {invalid_values}.")
     except json.decoder.JSONDecodeError:
-        logger.warning(f'Failed to parse auth token at {path}. Invalid JSON.')
+        logger.warning(f"Failed to parse auth token at {path}. Invalid JSON.")
     except FileNotFoundError:
-        logger.debug('Auth token at %s not found.', path)
+        logger.debug("Auth token at %s not found.", path)

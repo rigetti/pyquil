@@ -26,11 +26,16 @@ from json import JSONEncoder
 from typing import Dict, List, Optional, Sequence, Union
 
 from pyquil import Program
-from pyquil.experiment._memory import (pauli_term_to_measurement_memory_map,
-                                       pauli_term_to_preparation_memory_map)
-from pyquil.experiment._program import (parameterized_single_qubit_measurement_basis,
-                                        parameterized_single_qubit_state_preparation,
-                                        parameterized_readout_symmetrization, measure_qubits)
+from pyquil.experiment._memory import (
+    pauli_term_to_measurement_memory_map,
+    pauli_term_to_preparation_memory_map,
+)
+from pyquil.experiment._program import (
+    parameterized_single_qubit_measurement_basis,
+    parameterized_single_qubit_state_preparation,
+    parameterized_readout_symmetrization,
+    measure_qubits,
+)
 from pyquil.experiment._result import ExperimentResult
 from pyquil.experiment._setting import ExperimentSetting
 from pyquil.experiment._symmetrization import SymmetrizationLevel
@@ -53,10 +58,13 @@ def _abbrev_program(program: Program, max_len=10):
         first_n = max_len // 2
         last_n = max_len - first_n
         excluded = len(program_lines) - max_len
-        program_lines = (program_lines[:first_n] + [f'... {excluded} instrs not shown ...']
-                         + program_lines[-last_n:])
+        program_lines = (
+            program_lines[:first_n]
+            + [f"... {excluded} instrs not shown ..."]
+            + program_lines[-last_n:]
+        )
 
-    return '   ' + '\n   '.join(program_lines)
+    return "   " + "\n   ".join(program_lines)
 
 
 def _remove_reset_from_program(program: Program) -> Program:
@@ -128,12 +136,14 @@ class TomographyExperiment:
         see :func:`run_symmetrized_readout` in api._quantum_computer for more information.
     """
 
-    def __init__(self,
-                 settings: Union[List[ExperimentSetting], List[List[ExperimentSetting]]],
-                 program: Program,
-                 qubits: Optional[List[int]] = None,
-                 *,
-                 symmetrization: int = SymmetrizationLevel.EXHAUSTIVE):
+    def __init__(
+        self,
+        settings: Union[List[ExperimentSetting], List[List[ExperimentSetting]]],
+        program: Program,
+        qubits: Optional[List[int]] = None,
+        *,
+        symmetrization: int = SymmetrizationLevel.EXHAUSTIVE,
+    ):
         if len(settings) == 0:
             settings = []
         else:
@@ -144,13 +154,15 @@ class TomographyExperiment:
         self._settings = settings  # type: List[List[ExperimentSetting]]
         self.program = program
         if qubits is not None:
-            warnings.warn("The 'qubits' parameter has been deprecated and will be removed"
-                          "in a future release of pyquil")
+            warnings.warn(
+                "The 'qubits' parameter has been deprecated and will be removed"
+                "in a future release of pyquil"
+            )
         self.qubits = qubits
         self.symmetrization = SymmetrizationLevel(symmetrization)
         self.shots = self.program.num_shots
 
-        if 'RESET' in self.program.out():
+        if "RESET" in self.program.out():
             self.reset = True
             self.program = _remove_reset_from_program(self.program)
         else:
@@ -207,9 +219,10 @@ class TomographyExperiment:
         return self._settings.sort(key, reverse)
 
     def setting_strings(self):
-        yield from ('{i}: {st_str}'.format(i=i, st_str=', '.join(str(setting)
-                                                                 for setting in settings))
-                    for i, settings in enumerate(self._settings))
+        yield from (
+            "{i}: {st_str}".format(i=i, st_str=", ".join(str(setting) for setting in settings))
+            for i, settings in enumerate(self._settings)
+        )
 
     def settings_string(self, abbrev_after=None):
         setting_strs = list(self.setting_strings())
@@ -217,29 +230,32 @@ class TomographyExperiment:
             first_n = abbrev_after // 2
             last_n = abbrev_after - first_n
             excluded = len(setting_strs) - abbrev_after
-            setting_strs = (setting_strs[:first_n] + [f'... {excluded} settings not shown ...']
-                            + setting_strs[-last_n:])
-        return '   ' + '\n   '.join(setting_strs)
+            setting_strs = (
+                setting_strs[:first_n]
+                + [f"... {excluded} settings not shown ..."]
+                + setting_strs[-last_n:]
+            )
+        return "   " + "\n   ".join(setting_strs)
 
     def __repr__(self):
-        string = f'shots: {self.shots}\n'
+        string = f"shots: {self.shots}\n"
         if self.reset:
-            string += f'active reset: enabled\n'
+            string += f"active reset: enabled\n"
         else:
-            string += f'active reset: disabled\n'
-        string += f'symmetrization: {self.symmetrization} ({self.symmetrization.name.lower()})\n'
-        string += f'program:\n{_abbrev_program(self.program)}\n'
-        string += f'settings:\n{self.settings_string(abbrev_after=20)}'
+            string += f"active reset: disabled\n"
+        string += f"symmetrization: {self.symmetrization} ({self.symmetrization.name.lower()})\n"
+        string += f"program:\n{_abbrev_program(self.program)}\n"
+        string += f"settings:\n{self.settings_string(abbrev_after=20)}"
         return string
 
     def serializable(self):
         return {
-            'type': 'TomographyExperiment',
-            'settings': self._settings,
-            'program': self.program.out(),
-            'symmetrization': self.symmetrization,
-            'shots': self.shots,
-            'reset': self.reset
+            "type": "TomographyExperiment",
+            "settings": self._settings,
+            "program": self.program.out(),
+            "symmetrization": self.symmetrization,
+            "shots": self.shots,
+            "reset": self.reset,
         }
 
     def __eq__(self, other):
@@ -295,39 +311,39 @@ class TomographyExperiment:
 
         if self.reset:
             if any(isinstance(instr, (Reset, ResetQubit)) for instr in self.program):
-                raise ValueError('RESET already added to program')
+                raise ValueError("RESET already added to program")
             p += RESET()
 
         p += self.program
 
         for settings in self:
-            if ('X' in str(settings[0].in_state)) or ('Y' in str(settings[0].in_state)):
-                if f'DECLARE preparation_alpha' in self.program.out():
+            if ("X" in str(settings[0].in_state)) or ("Y" in str(settings[0].in_state)):
+                if f"DECLARE preparation_alpha" in self.program.out():
                     raise ValueError(f'Memory "preparation_alpha" has been declared already.')
-                if f'DECLARE preparation_beta' in self.program.out():
+                if f"DECLARE preparation_beta" in self.program.out():
                     raise ValueError(f'Memory "preparation_beta" has been declared already.')
-                if f'DECLARE preparation_gamma' in self.program.out():
+                if f"DECLARE preparation_gamma" in self.program.out():
                     raise ValueError(f'Memory "preparation_gamma" has been declared already.')
                 p += parameterized_single_qubit_state_preparation(meas_qubits)
                 break
 
         for settings in self:
-            if ('X' in str(settings[0].out_operator)) or ('Y' in str(settings[0].out_operator)):
-                if f'DECLARE measurement_alpha' in self.program.out():
+            if ("X" in str(settings[0].out_operator)) or ("Y" in str(settings[0].out_operator)):
+                if f"DECLARE measurement_alpha" in self.program.out():
                     raise ValueError(f'Memory "measurement_alpha" has been declared already.')
-                if f'DECLARE measurement_beta' in self.program.out():
+                if f"DECLARE measurement_beta" in self.program.out():
                     raise ValueError(f'Memory "measurement_beta" has been declared already.')
-                if f'DECLARE measurement_gamma' in self.program.out():
+                if f"DECLARE measurement_gamma" in self.program.out():
                     raise ValueError(f'Memory "measurement_gamma" has been declared already.')
                 p += parameterized_single_qubit_measurement_basis(meas_qubits)
                 break
 
         if self.symmetrization != 0:
-            if f'DECLARE symmetrization' in self.program.out():
+            if f"DECLARE symmetrization" in self.program.out():
                 raise ValueError(f'Memory "symmetrization" has been declared already.')
             p += parameterized_readout_symmetrization(meas_qubits)
 
-        if 'DECLARE ro' in self.program.out():
+        if "DECLARE ro" in self.program.out():
             raise ValueError('Memory "ro" has already been declared for this program.')
         p += measure_qubits(meas_qubits)
 
@@ -354,9 +370,7 @@ class TomographyExperiment:
         return {**preparation_map, **measurement_map}
 
     def build_symmetrization_memory_maps(
-            self,
-            qubits: Sequence[int],
-            label: str = 'symmetrization'
+        self, qubits: Sequence[int], label: str = "symmetrization"
     ) -> List[Dict[str, List[float]]]:
         """
         Build a list of memory maps to be used in a program that is trying to perform readout
@@ -387,7 +401,7 @@ class TomographyExperiment:
 
         # TODO: add support for orthogonal arrays
         if self.symmetrization != SymmetrizationLevel.EXHAUSTIVE:
-            raise ValueError('We only support exhaustive symmetrization for now.')
+            raise ValueError("We only support exhaustive symmetrization for now.")
 
         import numpy as np
         import itertools
@@ -398,7 +412,7 @@ class TomographyExperiment:
             zeros = np.zeros(num_meas_registers)
             for idx, r in enumerate(symm_registers):
                 zeros[r] = a[idx]
-            memory_maps.append({f'{label}': list(zeros)})
+            memory_maps.append({f"{label}": list(zeros)})
         return memory_maps
 
 
@@ -420,21 +434,21 @@ def to_json(fn, obj):
     See :py:func:`read_json`.
     """
     # Specify UTF-8 to guard against systems that default to an ASCII locale.
-    with open(fn, 'w', encoding='utf-8') as f:
+    with open(fn, "w", encoding="utf-8") as f:
         json.dump(obj, f, cls=OperatorEncoder, indent=2, ensure_ascii=False)
     return fn
 
 
 def _operator_object_hook(obj):
-    if 'type' in obj and obj['type'] == 'TomographyExperiment':
+    if "type" in obj and obj["type"] == "TomographyExperiment":
         # I bet this doesn't work for grouped experiment settings
-        settings = [[ExperimentSetting.from_str(s) for s in stt] for stt in obj['settings']]
-        p = Program(obj['program'])
-        p.wrap_in_numshots_loop(obj['shots'])
-        ex = TomographyExperiment(settings=settings,
-                                  program=p,
-                                  symmetrization=obj['symmetrization'])
-        ex.reset = obj['reset']
+        settings = [[ExperimentSetting.from_str(s) for s in stt] for stt in obj["settings"]]
+        p = Program(obj["program"])
+        p.wrap_in_numshots_loop(obj["shots"])
+        ex = TomographyExperiment(
+            settings=settings, program=p, symmetrization=obj["symmetrization"]
+        )
+        ex.reset = obj["reset"]
         return ex
     return obj
 
@@ -446,5 +460,5 @@ def read_json(fn):
     See :py:func:`to_json`.
     """
     # Specify UTF-8 to guard against systems that default to an ASCII locale.
-    with open(fn, encoding='utf-8') as f:
+    with open(fn, encoding="utf-8") as f:
         return json.load(f, object_hook=_operator_object_hook)

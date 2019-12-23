@@ -23,12 +23,12 @@ from pyquil.gates import MEASURE, RX, RZ
 
 
 def parameterized_euler_rotations(
-        qubits: Sequence[int],
-        *,
-        prefix: str,
-        suffix_alpha: str = 'alpha',
-        suffix_beta: str = 'beta',
-        suffix_gamma: str = 'gamma',
+    qubits: Sequence[int],
+    *,
+    prefix: str,
+    suffix_alpha: str = "alpha",
+    suffix_beta: str = "beta",
+    suffix_gamma: str = "gamma",
 ) -> Program:
     """
     Given a number of qubits (n), build a ``Program`` containing a ZXZXZ-decomposed gate on each
@@ -61,15 +61,15 @@ def parameterized_euler_rotations(
         last (leftmost) ``Z`` in the ZXZXZ decomposition. Defaults to "gamma".
     :return: A ``Program`` containing a 3 parameterized ``RZ``s and 2 fixed ``RX``s per qubit.
     """
-    alpha_label = f'{prefix}_{suffix_alpha}'
-    beta_label = f'{prefix}_{suffix_beta}'
-    gamma_label = f'{prefix}_{suffix_gamma}'
+    alpha_label = f"{prefix}_{suffix_alpha}"
+    beta_label = f"{prefix}_{suffix_beta}"
+    gamma_label = f"{prefix}_{suffix_gamma}"
 
     p = Program()
 
-    alpha = p.declare(alpha_label, 'REAL', len(qubits))
-    beta = p.declare(beta_label, 'REAL', len(qubits))
-    gamma = p.declare(gamma_label, 'REAL', len(qubits))
+    alpha = p.declare(alpha_label, "REAL", len(qubits))
+    beta = p.declare(beta_label, "REAL", len(qubits))
+    gamma = p.declare(gamma_label, "REAL", len(qubits))
 
     for idx, q in enumerate(qubits):
         p += RZ(alpha[idx], q)
@@ -82,8 +82,7 @@ def parameterized_euler_rotations(
 
 
 def parameterized_single_qubit_state_preparation(
-        qubits: Sequence[int],
-        label: str = 'preparation',
+    qubits: Sequence[int], label: str = "preparation"
 ) -> Program:
     """
     Given a number of qubits, produce a program as in ``parameterized_euler_rotations`` where each
@@ -97,8 +96,7 @@ def parameterized_single_qubit_state_preparation(
 
 
 def parameterized_single_qubit_measurement_basis(
-        qubits: Sequence[int],
-        label: str = 'measurement',
+    qubits: Sequence[int], label: str = "measurement"
 ) -> Program:
     """
     Given a number of qubits, produce a program as in ``parameterized_euler_rotations`` where each
@@ -112,8 +110,7 @@ def parameterized_single_qubit_measurement_basis(
 
 
 def parameterized_readout_symmetrization(
-        qubits: Sequence[int],
-        label: str = 'symmetrization',
+    qubits: Sequence[int], label: str = "symmetrization"
 ) -> Program:
     """
     Given a number of qubits (n), produce a ``Program`` with an ``RX`` instruction on qubits
@@ -125,7 +122,7 @@ def parameterized_readout_symmetrization(
     :return: A ``Program`` with parameterized ``RX`` gates on n qubits.
     """
     p = Program()
-    symmetrization = p.declare(f'{label}', 'REAL', len(qubits))
+    symmetrization = p.declare(f"{label}", "REAL", len(qubits))
     for idx, q in enumerate(qubits):
         p += RX(symmetrization[idx], q)
     return p
@@ -140,7 +137,7 @@ def measure_qubits(qubits: Sequence[int]) -> Program:
     :return: A ``Program`` that measures n qubits.
     """
     p = Program()
-    ro = p.declare('ro', 'BIT', len(qubits))
+    ro = p.declare("ro", "BIT", len(qubits))
     for idx, q in enumerate(qubits):
         p += MEASURE(q, ro[idx])
     return p

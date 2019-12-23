@@ -20,13 +20,26 @@ from warnings import warn
 from pyquil import Program
 from pyquil.quil import Measurement, Gate, Pragma
 from pyquil.quilatom import format_parameter
-from pyquil.quilbase import (AbstractInstruction,
-                             Wait, Reset, ResetQubit,
-                             JumpConditional, JumpWhen, JumpUnless, Jump,
-                             UnaryClassicalInstruction, LogicalBinaryOp, ArithmeticBinaryOp,
-                             ClassicalMove, ClassicalExchange, ClassicalConvert,
-                             ClassicalLoad, ClassicalStore, ClassicalComparison,
-                             RawInstr)
+from pyquil.quilbase import (
+    AbstractInstruction,
+    Wait,
+    Reset,
+    ResetQubit,
+    JumpConditional,
+    JumpWhen,
+    JumpUnless,
+    Jump,
+    UnaryClassicalInstruction,
+    LogicalBinaryOp,
+    ArithmeticBinaryOp,
+    ClassicalMove,
+    ClassicalExchange,
+    ClassicalConvert,
+    ClassicalLoad,
+    ClassicalStore,
+    ClassicalComparison,
+    RawInstr,
+)
 from collections import defaultdict
 
 if sys.version_info < (3, 7):
@@ -82,16 +95,25 @@ class DiagramSettings:
 # Constants
 
 
-PRAGMA_BEGIN_GROUP = 'LATEX_GATE_GROUP'
-PRAGMA_END_GROUP = 'END_LATEX_GATE_GROUP'
+PRAGMA_BEGIN_GROUP = "LATEX_GATE_GROUP"
+PRAGMA_END_GROUP = "END_LATEX_GATE_GROUP"
 
 UNSUPPORTED_INSTRUCTION_CLASSES = (
     Wait,
-    JumpConditional, JumpWhen, JumpUnless, Jump,
-    UnaryClassicalInstruction, LogicalBinaryOp, ArithmeticBinaryOp,
-    ClassicalMove, ClassicalExchange, ClassicalConvert,
-    ClassicalLoad, ClassicalStore, ClassicalComparison,
-    RawInstr
+    JumpConditional,
+    JumpWhen,
+    JumpUnless,
+    Jump,
+    UnaryClassicalInstruction,
+    LogicalBinaryOp,
+    ArithmeticBinaryOp,
+    ClassicalMove,
+    ClassicalExchange,
+    ClassicalConvert,
+    ClassicalLoad,
+    ClassicalStore,
+    ClassicalComparison,
+    RawInstr,
 )
 
 
@@ -161,10 +183,12 @@ def TIKZ_GATE(name, size=1, params=None, dagger=False, settings=None):
 
 def TIKZ_GATE_GROUP(qubits, width, label):
     num_qubits = max(qubits) - min(qubits) + 1
-    return "\\gategroup[{qubits},steps={width},style={{dashed, rounded corners," \
-           "fill=blue!20, inner xsep=2pt}}, background]{{{label}}}".format(qubits=num_qubits,
-                                                                           width=width,
-                                                                           label=label)
+    return (
+        "\\gategroup[{qubits},steps={width},style={{dashed, rounded corners,"
+        "fill=blue!20, inner xsep=2pt}}, background]{{{label}}}".format(
+            qubits=num_qubits, width=width, label=label
+        )
+    )
 
 
 SOURCE_TARGET_OP = {
@@ -182,6 +206,7 @@ class DiagramState:
     This maintains an ordered list of qubits, and for each qubit a 'line': that is, a list of
     TikZ operators.
     """
+
     def __init__(self, qubits):
         self.qubits = qubits
         self.lines = defaultdict(list)
@@ -234,9 +259,9 @@ class DiagramState:
                 self.append(q, op)
         # add tikz grouping command
         if group is not None:
-            self.lines[corner_row][corner_col] += " " + TIKZ_GATE_GROUP(grouped_qubits,
-                                                                        group_width,
-                                                                        group)
+            self.lines[corner_row][corner_col] += " " + TIKZ_GATE_GROUP(
+                grouped_qubits, group_width, group
+            )
         return self
 
     def interval(self, low, high) -> list:
@@ -280,8 +305,10 @@ def split_on_terminal_measures(program: Program) -> tuple:
                 seen_qubits |= instr.get_qubits()
             elif isinstance(instr, Pragma):
                 if instr.command == PRAGMA_END_GROUP:
-                    warn("Alignment of terminal MEASURE operations may"
-                         "conflict with gate group declaration.")
+                    warn(
+                        "Alignment of terminal MEASURE operations may"
+                        "conflict with gate group declaration."
+                    )
                     in_group = True
                 elif instr.command == PRAGMA_BEGIN_GROUP:
                     in_group = False
@@ -295,6 +322,7 @@ class DiagramBuilder:
     This is essentially a state machine, represented by a few instance variables and some mutually
     recursive methods.
     """
+
     def __init__(self, circuit, settings):
         self.circuit = circuit
         self.settings = settings
@@ -312,8 +340,11 @@ class DiagramBuilder:
         Actually build the diagram.
         """
         qubits = self.circuit.get_qubits()
-        all_qubits = range(min(qubits), max(qubits) + 1) if self.settings.impute_missing_qubits \
+        all_qubits = (
+            range(min(qubits), max(qubits) + 1)
+            if self.settings.impute_missing_qubits
             else sorted(qubits)
+        )
         self.diagram = DiagramState(all_qubits)
 
         if self.settings.right_align_terminal_measurements:
@@ -338,14 +369,19 @@ class DiagramBuilder:
             if isinstance(instr, Pragma) and instr.command == PRAGMA_BEGIN_GROUP:
                 self._build_group()
             elif isinstance(instr, Pragma) and instr.command == PRAGMA_END_GROUP:
-                raise ValueError("PRAGMA {} found without matching {}.".format(PRAGMA_END_GROUP,
-                                                                               PRAGMA_BEGIN_GROUP))
+                raise ValueError(
+                    "PRAGMA {} found without matching {}.".format(
+                        PRAGMA_END_GROUP, PRAGMA_BEGIN_GROUP
+                    )
+                )
             elif isinstance(instr, Measurement):
                 self._build_measure()
             elif isinstance(instr, Gate):
-                if 'FORKED' in instr.modifiers:
-                    raise ValueError("LaTeX output does not currently support"
-                                     "FORKED modifiers: {}.".format(instr))
+                if "FORKED" in instr.modifiers:
+                    raise ValueError(
+                        "LaTeX output does not currently support"
+                        "FORKED modifiers: {}.".format(instr)
+                    )
                 # the easy case is 1q operations
                 if len(instr.qubits) == 1:
                     self._build_1q_unitary()
@@ -355,8 +391,10 @@ class DiagramBuilder:
                     else:
                         self._build_generic_unitary()
             elif isinstance(instr, UNSUPPORTED_INSTRUCTION_CLASSES):
-                raise ValueError("LaTeX output does not currently support"
-                                 "the following instruction: {}".format(instr.out()))
+                raise ValueError(
+                    "LaTeX output does not currently support"
+                    "the following instruction: {}".format(instr.out())
+                )
             else:
                 self.index += 1
 
@@ -370,8 +408,7 @@ class DiagramBuilder:
             self._build_measure()
 
         offset = max(self.settings.qubit_line_open_wire_length, 0)
-        self.diagram.extend_lines_to_common_edge(self.diagram.qubits,
-                                                 offset=offset)
+        self.diagram.extend_lines_to_common_edge(self.diagram.qubits, offset=offset)
         return self.diagram
 
     def _build_group(self):
@@ -382,18 +419,21 @@ class DiagramBuilder:
         """
         instr = self.working_instructions[self.index]
         if len(instr.args) != 0:
-            raise ValueError(f"PRAGMA {PRAGMA_BEGIN_GROUP} expected a freeform string, or nothing "
-                             f"at all.")
+            raise ValueError(
+                f"PRAGMA {PRAGMA_BEGIN_GROUP} expected a freeform string, or nothing " f"at all."
+            )
         start = self.index + 1
         # walk instructions until the group end
         for j in range(start, len(self.working_instructions)):
-            if isinstance(self.working_instructions[j], Pragma) \
-                    and self.working_instructions[j].command == PRAGMA_END_GROUP:
+            if (
+                isinstance(self.working_instructions[j], Pragma)
+                and self.working_instructions[j].command == PRAGMA_END_GROUP
+            ):
                 # recursively build the diagram for this block
                 # we do not want labels here!
-                block_settings = replace(self.settings,
-                                         label_qubit_lines=False,
-                                         qubit_line_open_wire_length=0)
+                block_settings = replace(
+                    self.settings, label_qubit_lines=False, qubit_line_open_wire_length=0
+                )
                 subcircuit = Program(self.working_instructions[start:j])
                 block = DiagramBuilder(subcircuit, block_settings).build()
                 block_name = instr.freeform_string if instr.freeform_string else ""
@@ -440,9 +480,11 @@ class DiagramBuilder:
         """
         instr = self.working_instructions[self.index]
         qubits = qubit_indices(instr)
-        dagger = sum(m == 'DAGGER' for m in instr.modifiers) % 2 == 1
-        self.diagram.append(qubits[0], TIKZ_GATE(instr.name, params=instr.params,
-                                                 dagger=dagger, settings=self.settings))
+        dagger = sum(m == "DAGGER" for m in instr.modifiers) % 2 == 1
+        self.diagram.append(
+            qubits[0],
+            TIKZ_GATE(instr.name, params=instr.params, dagger=dagger, settings=self.settings),
+        )
         self.index += 1
 
     def _build_generic_unitary(self):
@@ -453,24 +495,27 @@ class DiagramBuilder:
         """
         instr = self.working_instructions[self.index]
         qubits = qubit_indices(instr)
-        dagger = sum(m == 'DAGGER' for m in instr.modifiers) % 2 == 1
-        controls = sum(m == 'CONTROLLED' for m in instr.modifiers)
+        dagger = sum(m == "DAGGER" for m in instr.modifiers) % 2 == 1
+        controls = sum(m == "CONTROLLED" for m in instr.modifiers)
 
         self.diagram.extend_lines_to_common_edge(qubits)
 
         control_qubits = qubits[:controls]
         target_qubits = qubits[controls:]
         if not self.diagram.is_interval(sorted(target_qubits)):
-            raise ValueError(f"Unable to render instruction {instr} which targets non-adjacent "
-                             f"qubits.")
+            raise ValueError(
+                f"Unable to render instruction {instr} which targets non-adjacent " f"qubits."
+            )
 
         for q in control_qubits:
             offset = target_qubits[0] - q
             self.diagram.append(q, TIKZ_CONTROL(q, offset))
 
         # we put the gate on the first target line, and nop on the others
-        self.diagram.append(target_qubits[0], TIKZ_GATE(instr.name, size=len(target_qubits),
-                                                        params=instr.params, dagger=dagger))
+        self.diagram.append(
+            target_qubits[0],
+            TIKZ_GATE(instr.name, size=len(target_qubits), params=instr.params, dagger=dagger),
+        )
         for q in target_qubits[1:]:
             self.diagram.append(q, TIKZ_NOP())
 

@@ -15,13 +15,9 @@ def test_wavefunction(forest: ForestConnection):
     # pass it to the constructor of WavefunctionSimulator() but it is not
     # necessary.
     wfnsim = WavefunctionSimulator()
-    bell = Program(
-        H(0),
-        CNOT(0, 1),
-    )
+    bell = Program(H(0), CNOT(0, 1))
     wfn = wfnsim.wavefunction(bell)
-    np.testing.assert_allclose(wfn.amplitudes,
-                               1 / np.sqrt(2) * np.array([1, 0, 0, 1]))
+    np.testing.assert_allclose(wfn.amplitudes, 1 / np.sqrt(2) * np.array([1, 0, 0, 1]))
     np.testing.assert_allclose(wfn.probabilities(), [0.5, 0, 0, 0.5])
     assert wfn.pretty_print() == "(0.71+0j)|00> + (0.71+0j)|11>"
 
@@ -44,16 +40,8 @@ def test_expectation(forest: ForestConnection):
     # pass it to the constructor of WavefunctionSimulator() but it is not
     # necessary.
     wfnsim = WavefunctionSimulator()
-    bell = Program(
-        H(0),
-        CNOT(0, 1),
-    )
-    expects = wfnsim.expectation(bell, [
-        sZ(0) * sZ(1),
-        sZ(0),
-        sZ(1),
-        sX(0) * sX(1),
-    ])
+    bell = Program(H(0), CNOT(0, 1))
+    expects = wfnsim.expectation(bell, [sZ(0) * sZ(1), sZ(0), sZ(1), sX(0) * sX(1)])
     assert expects.size == 4
     np.testing.assert_allclose(expects, [1, 0, 0, 1])
 
@@ -69,10 +57,7 @@ def test_run_and_measure(forest: ForestConnection):
     # pass it to the constructor of WavefunctionSimulator() but it is not
     # necessary.
     wfnsim = WavefunctionSimulator()
-    bell = Program(
-        H(0),
-        CNOT(0, 1),
-    )
+    bell = Program(H(0), CNOT(0, 1))
     bitstrings = wfnsim.run_and_measure(bell, trials=1000)
     parity = np.sum(bitstrings, axis=1) % 2
     assert np.all(parity == 0)
@@ -84,10 +69,7 @@ def test_run_and_measure_qubits(forest: ForestConnection):
     # pass it to the constructor of WavefunctionSimulator() but it is not
     # necessary.
     wfnsim = WavefunctionSimulator()
-    bell = Program(
-        H(0),
-        CNOT(0, 1),
-    )
+    bell = Program(H(0), CNOT(0, 1))
     bitstrings = wfnsim.run_and_measure(bell, qubits=[0, 100], trials=1000)
     assert np.all(bitstrings[:, 1] == 0)
     assert 0.4 < np.mean(bitstrings[:, 0]) < 0.6

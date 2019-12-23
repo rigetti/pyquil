@@ -21,11 +21,16 @@ from requests.exceptions import ConnectionError
 from rpcq.messages import PyQuilExecutableResponse
 
 from pyquil import __version__
-from pyquil.api._base_connection import (validate_qubit_list, validate_noise_probabilities,
-                                         TYPE_MULTISHOT_MEASURE, TYPE_WAVEFUNCTION,
-                                         TYPE_EXPECTATION, post_json, ForestConnection)
-from pyquil.api._compiler import (QVMCompiler,
-                                  _extract_program_from_pyquil_executable_response)
+from pyquil.api._base_connection import (
+    validate_qubit_list,
+    validate_noise_probabilities,
+    TYPE_MULTISHOT_MEASURE,
+    TYPE_WAVEFUNCTION,
+    TYPE_EXPECTATION,
+    post_json,
+    ForestConnection,
+)
+from pyquil.api._compiler import QVMCompiler, _extract_program_from_pyquil_executable_response
 from pyquil.api._config import PyquilConfig
 from pyquil.api._error_reporting import _record_call
 from pyquil.api._qam import QAM
@@ -51,10 +56,12 @@ def check_qvm_version(version: str):
 
     :param version: The version of the QVM
     """
-    major, minor, patch = map(int, version.split('.'))
+    major, minor, patch = map(int, version.split("."))
     if major == 1 and minor < 8:
-        raise QVMVersionMismatch('Must use QVM >= 1.8.0 with pyquil >= 2.8.0, but you '
-                                 f'have QVM {version} and pyquil {__version__}')
+        raise QVMVersionMismatch(
+            "Must use QVM >= 1.8.0 with pyquil >= 2.8.0, but you "
+            f"have QVM {version} and pyquil {__version__}"
+        )
 
 
 class QVMConnection(object):
@@ -63,9 +70,15 @@ class QVMConnection(object):
     """
 
     @_record_call
-    def __init__(self, device=None, endpoint=None,
-                 gate_noise=None, measurement_noise=None, random_seed=None,
-                 compiler_endpoint=None):
+    def __init__(
+        self,
+        device=None,
+        endpoint=None,
+        gate_noise=None,
+        measurement_noise=None,
+        random_seed=None,
+        compiler_endpoint=None,
+    ):
         """
         Constructor for QVMConnection. Sets up any necessary security, and establishes the noise
         model to use.
@@ -90,25 +103,29 @@ class QVMConnection(object):
             pyquil_config = PyquilConfig()
             compiler_endpoint = pyquil_config.quilc_url
 
-        if (device is not None and device.noise_model is not None) and \
-                (gate_noise is not None or measurement_noise is not None):
-            raise ValueError("""
+        if (device is not None and device.noise_model is not None) and (
+            gate_noise is not None or measurement_noise is not None
+        ):
+            raise ValueError(
+                """
 You have attempted to supply the QVM with both a device noise model
 (by having supplied a device argument), as well as either gate_noise
 or measurement_noise. At this time, only one may be supplied.
 
 To read more about supplying noise to the QVM, see http://pyquil.readthedocs.io/en/latest/noise_models.html#support-for-noisy-gates-on-the-rigetti-qvm.
-""")
+"""
+            )
 
         if device is not None and device.noise_model is None:
-            warnings.warn("""
+            warnings.warn(
+                """
 You have supplied the QVM with a device that does not have a noise model. No noise will be added to
 programs run on this QVM.
-""")
+"""
+            )
 
         self.noise_model = device.noise_model if device else None
-        self.compiler = QVMCompiler(endpoint=compiler_endpoint, device=device) if device \
-            else None
+        self.compiler = QVMCompiler(endpoint=compiler_endpoint, device=device) if device else None
 
         self.sync_endpoint = endpoint
 
@@ -133,7 +150,7 @@ programs run on this QVM.
             version_dict = self.get_version_info()
             check_qvm_version(version_dict)
         except ConnectionError:
-            raise QVMNotRunning(f'No QVM server running at {self._connection.sync_endpoint}')
+            raise QVMNotRunning(f"No QVM server running at {self._connection.sync_endpoint}")
 
     @_record_call
     def get_version_info(self):
@@ -145,8 +162,7 @@ programs run on this QVM.
         return self._connection._qvm_get_version_info()
 
     @_record_call
-    def run(self, quil_program, classical_addresses: List[int] = None,
-            trials=1):
+    def run(self, quil_program, classical_addresses: List[int] = None, trials=1):
         """
         Run a Quil program multiple times, accumulating the values deposited in
         a list of classical addresses.
@@ -165,19 +181,26 @@ programs run on this QVM.
             caddresses = get_classical_addresses_from_program(quil_program)
 
         else:
-            caddresses = {'ro': classical_addresses}
+            caddresses = {"ro": classical_addresses}
 
-        buffers = self._connection._qvm_run(quil_program, caddresses, trials,
-                                            self.measurement_noise, self.gate_noise,
-                                            self.random_seed)
+        buffers = self._connection._qvm_run(
+            quil_program,
+            caddresses,
+            trials,
+            self.measurement_noise,
+            self.gate_noise,
+            self.random_seed,
+        )
 
         if len(buffers) == 0:
             return []
-        if 'ro' in buffers:
-            return buffers['ro'].tolist()
+        if "ro" in buffers:
+            return buffers["ro"].tolist()
 
-        raise ValueError("You are using QVMConnection.run with multiple readout registers not "
-                         "named `ro`. Please use the new `QuantumComputer` abstraction.")
+        raise ValueError(
+            "You are using QVMConnection.run with multiple readout registers not "
+            "named `ro`. Please use the new `QuantumComputer` abstraction."
+        )
 
     @_record_call
     def run_and_measure(self, quil_program, qubits, trials=1):
@@ -208,8 +231,10 @@ programs run on this QVM.
     @_record_call
     def _run_and_measure_payload(self, quil_program, qubits, trials):
         if not quil_program:
-            raise ValueError("You have attempted to run an empty program."
-                             " Please provide gates or measure instructions to your program.")
+            raise ValueError(
+                "You have attempted to run an empty program."
+                " Please provide gates or measure instructions to your program."
+            )
 
         if not isinstance(quil_program, Program):
             raise TypeError("quil_program must be a Quil program object")
@@ -221,10 +246,12 @@ programs run on this QVM.
             compiled_program = self.compiler.quil_to_native_quil(quil_program)
             quil_program = apply_noise_model(compiled_program, self.noise_model)
 
-        payload = {"type": TYPE_MULTISHOT_MEASURE,
-                   "qubits": list(qubits),
-                   "trials": trials,
-                   "compiled-quil": quil_program.out()}
+        payload = {
+            "type": TYPE_MULTISHOT_MEASURE,
+            "qubits": list(qubits),
+            "trials": trials,
+            "compiled-quil": quil_program.out(),
+        }
 
         self._maybe_add_noise_to_payload(payload)
         self._add_rng_seed_to_payload(payload)
@@ -264,8 +291,7 @@ programs run on this QVM.
         if not isinstance(quil_program, Program):
             raise TypeError("quil_program must be a Quil program object")
 
-        payload = {'type': TYPE_WAVEFUNCTION,
-                   'compiled-quil': quil_program.out()}
+        payload = {"type": TYPE_WAVEFUNCTION, "compiled-quil": quil_program.out()}
 
         self._maybe_add_noise_to_payload(payload)
         self._add_rng_seed_to_payload(payload)
@@ -305,7 +331,9 @@ programs run on this QVM.
         if isinstance(operator_programs, Program):
             warnings.warn(
                 "You have provided a Program rather than a list of Programs. The results from expectation "
-                "will be line-wise expectation values of the operator_programs.", SyntaxWarning)
+                "will be line-wise expectation values of the operator_programs.",
+                SyntaxWarning,
+            )
 
         payload = self._expectation_payload(prep_prog, operator_programs)
         response = post_json(self.session, self.sync_endpoint + "/qvm", payload)
@@ -354,9 +382,11 @@ programs run on this QVM.
         if not isinstance(prep_prog, Program):
             raise TypeError("prep_prog variable must be a Quil program object")
 
-        payload = {'type': TYPE_EXPECTATION,
-                   'state-preparation': prep_prog.out(),
-                   'operators': [x.out() for x in operator_programs]}
+        payload = {
+            "type": TYPE_EXPECTATION,
+            "state-preparation": prep_prog.out(),
+            "operators": [x.out() for x in operator_programs],
+        }
 
         self._add_rng_seed_to_payload(payload)
 
@@ -376,19 +406,20 @@ programs run on this QVM.
         Add a random seed to the payload.
         """
         if self.random_seed is not None:
-            payload['rng-seed'] = self.random_seed
+            payload["rng-seed"] = self.random_seed
 
 
 class QVM(QAM):
     @_record_call
-    def __init__(self,
-                 connection: ForestConnection,
-                 noise_model=None,
-                 gate_noise=None,
-                 measurement_noise=None,
-                 random_seed=None,
-                 requires_executable=False,
-                 ) -> None:
+    def __init__(
+        self,
+        connection: ForestConnection,
+        noise_model=None,
+        gate_noise=None,
+        measurement_noise=None,
+        random_seed=None,
+        requires_executable=False,
+    ) -> None:
         """
         A virtual machine that classically emulates the execution of Quil programs.
 
@@ -410,13 +441,15 @@ class QVM(QAM):
         super().__init__()
 
         if (noise_model is not None) and (gate_noise is not None or measurement_noise is not None):
-            raise ValueError("""
+            raise ValueError(
+                """
 You have attempted to supply the QVM with both a Kraus noise model
 (by supplying a `noise_model` argument), as well as either `gate_noise`
 or `measurement_noise`. At this time, only one may be supplied.
 
 To read more about supplying noise to the QVM, see http://pyquil.readthedocs.io/en/latest/noise_models.html#support-for-noisy-gates-on-the-rigetti-qvm.
-""")
+"""
+            )
 
         self.noise_model = noise_model
         self.connection = connection
@@ -441,7 +474,7 @@ To read more about supplying noise to the QVM, see http://pyquil.readthedocs.io/
             version_dict = self.get_version_info()
             check_qvm_version(version_dict)
         except ConnectionError:
-            raise QVMNotRunning(f'No QVM server running at {self.connection.sync_endpoint}')
+            raise QVMNotRunning(f"No QVM server running at {self.connection.sync_endpoint}")
 
     @_record_call
     def get_version_info(self):
@@ -469,19 +502,23 @@ To read more about supplying noise to the QVM, see http://pyquil.readthedocs.io/
             if isinstance(executable, PyQuilExecutableResponse):
                 executable = _extract_program_from_pyquil_executable_response(executable)
             else:
-                raise TypeError("`executable` argument must be a `PyQuilExecutableResponse`. Make "
-                                "sure you have explicitly compiled your program via `qc.compile` "
-                                "or `qc.compiler.native_quil_to_executable(...)` for more "
-                                "fine-grained control. This explicit step is required for running "
-                                "on a QPU.")
+                raise TypeError(
+                    "`executable` argument must be a `PyQuilExecutableResponse`. Make "
+                    "sure you have explicitly compiled your program via `qc.compile` "
+                    "or `qc.compiler.native_quil_to_executable(...)` for more "
+                    "fine-grained control. This explicit step is required for running "
+                    "on a QPU."
+                )
         else:
             if isinstance(executable, PyQuilExecutableResponse):
                 executable = _extract_program_from_pyquil_executable_response(executable)
             elif isinstance(executable, Program):
                 pass
             else:
-                raise TypeError("`executable` argument must be a `PyQuilExecutableResponse` or a "
-                                "`Program`. You provided {}".format(type(executable)))
+                raise TypeError(
+                    "`executable` argument must be a `PyQuilExecutableResponse` or a "
+                    "`Program`. You provided {}".format(type(executable))
+                )
 
         return super().load(executable)
 
@@ -510,12 +547,14 @@ To read more about supplying noise to the QVM, see http://pyquil.readthedocs.io/
 
         quil_program = self.augment_program_with_memory_values(quil_program)
 
-        self._memory_results = self.connection._qvm_run(quil_program=quil_program,
-                                                        classical_addresses=classical_addresses,
-                                                        trials=trials,
-                                                        measurement_noise=self.measurement_noise,
-                                                        gate_noise=self.gate_noise,
-                                                        random_seed=self.random_seed)
+        self._memory_results = self.connection._qvm_run(
+            quil_program=quil_program,
+            classical_addresses=classical_addresses,
+            trials=trials,
+            measurement_noise=self.measurement_noise,
+            gate_noise=self.gate_noise,
+            random_seed=self.random_seed,
+        )
 
         if "ro" not in self._memory_results or len(self._memory_results["ro"]) == 0:
             self._memory_results["ro"] = np.zeros((trials, 0), dtype=np.int64)

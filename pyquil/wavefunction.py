@@ -52,8 +52,10 @@ class Wavefunction(object):
         self.amplitudes = np.asarray(amplitude_vector)
         sumprob = np.sum(self.probabilities())
         if not np.isclose(sumprob, 1.0):
-            raise ValueError("The wavefunction is not normalized. "
-                             "The probabilities sum to {} instead of 1".format(sumprob))
+            raise ValueError(
+                "The wavefunction is not normalized. "
+                "The probabilities sum to {} instead of 1".format(sumprob)
+            )
 
     @staticmethod
     def ground(qubit_num):
@@ -69,7 +71,7 @@ class Wavefunction(object):
         :return: A Wavefunction in the ground state
         :rtype: Wavefunction
         """
-        amplitude_vector = np.zeros(2**qubit_num)
+        amplitude_vector = np.zeros(2 ** qubit_num)
         amplitude_vector[0] = 1.0
         return Wavefunction(amplitude_vector)
 
@@ -85,10 +87,10 @@ class Wavefunction(object):
         # Parse the wavefunction
         wf = np.zeros(num_octets // OCTETS_PER_COMPLEX_DOUBLE, dtype=np.cfloat)
         for i, p in enumerate(range(0, num_octets, OCTETS_PER_COMPLEX_DOUBLE)):
-            re_be = coef_string[p: p + OCTETS_PER_DOUBLE_FLOAT]
-            im_be = coef_string[p + OCTETS_PER_DOUBLE_FLOAT: p + OCTETS_PER_COMPLEX_DOUBLE]
-            re = struct.unpack('>d', re_be)[0]
-            im = struct.unpack('>d', im_be)[0]
+            re_be = coef_string[p : p + OCTETS_PER_DOUBLE_FLOAT]
+            im_be = coef_string[p + OCTETS_PER_DOUBLE_FLOAT : p + OCTETS_PER_COMPLEX_DOUBLE]
+            re = struct.unpack(">d", re_be)[0]
+            im = struct.unpack(">d", im_be)[0]
             wf[i] = complex(re, im)
 
         return Wavefunction(wf)
@@ -141,7 +143,7 @@ class Wavefunction(object):
         for index, amplitude in enumerate(self.amplitudes):
             outcome = get_bitstring_from_index(index, qubit_num)
             prob = round(abs(amplitude) ** 2, decimal_digits)
-            if prob != 0.:
+            if prob != 0.0:
                 outcome_dict[outcome] = prob
         return outcome_dict
 
@@ -160,9 +162,10 @@ class Wavefunction(object):
         pp_string = ""
         for index, amplitude in enumerate(self.amplitudes):
             outcome = get_bitstring_from_index(index, qubit_num)
-            amplitude = round(amplitude.real, decimal_digits) + \
-                round(amplitude.imag, decimal_digits) * 1.j
-            if amplitude != 0.:
+            amplitude = (
+                round(amplitude.real, decimal_digits) + round(amplitude.imag, decimal_digits) * 1.0j
+            )
+            if amplitude != 0.0:
                 outcome_dict[outcome] = amplitude
                 pp_string += str(amplitude) + "|{}> + ".format(outcome)
         if len(pp_string) >= 3:
@@ -176,17 +179,20 @@ class Wavefunction(object):
         :param list qubit_subset: Optional parameter used for plotting a subset of the Hilbert space.
         """
         import matplotlib.pyplot as plt
+
         prob_dict = self.get_outcome_probs()
         if qubit_subset:
             sub_dict = {}
             qubit_num = len(self)
             for i in qubit_subset:
-                if i > (2**qubit_num - 1):
+                if i > (2 ** qubit_num - 1):
                     raise IndexError("Index {} too large for {} qubits.".format(i, qubit_num))
                 else:
-                    sub_dict[get_bitstring_from_index(i, qubit_num)] = prob_dict[get_bitstring_from_index(i, qubit_num)]
+                    sub_dict[get_bitstring_from_index(i, qubit_num)] = prob_dict[
+                        get_bitstring_from_index(i, qubit_num)
+                    ]
             prob_dict = sub_dict
-        plt.bar(range(len(prob_dict)), prob_dict.values(), align='center', color='#6CAFB7')
+        plt.bar(range(len(prob_dict)), prob_dict.values(), align="center", color="#6CAFB7")
         plt.xticks(range(len(prob_dict)), prob_dict.keys())
         plt.show()
 
@@ -211,9 +217,9 @@ def get_bitstring_from_index(index, qubit_num):
     :return: the bitstring
     :rtype: str
     """
-    if index > (2**qubit_num - 1):
+    if index > (2 ** qubit_num - 1):
         raise IndexError("Index {} too large for {} qubits.".format(index, qubit_num))
-    return bin(index)[2:].rjust(qubit_num, '0')
+    return bin(index)[2:].rjust(qubit_num, "0")
 
 
 def _round_to_next_multiple(n, m):

@@ -6,8 +6,14 @@ from pyquil import gate_matrices as mat
 from pyquil.gates import *
 from pyquil.experiment import plusX, minusZ
 from pyquil.paulis import sX, sY, sZ
-from pyquil.unitary_tools import qubit_adjacent_lifted_gate, program_unitary, lifted_gate_matrix, \
-    lifted_gate, lifted_pauli, lifted_state_operator
+from pyquil.unitary_tools import (
+    qubit_adjacent_lifted_gate,
+    program_unitary,
+    lifted_gate_matrix,
+    lifted_gate,
+    lifted_pauli,
+    lifted_state_operator,
+)
 from pyquil.quilatom import MemoryReference, Parameter
 from pyquil.quilbase import Declare
 
@@ -22,10 +28,7 @@ def test_random_gates():
 def test_random_gates_2():
     p = Program().inst([H(0), X(1), Y(2), Z(3)])
     test_unitary = program_unitary(p, n_qubits=4)
-    actual_unitary = np.kron(mat.Z,
-                             np.kron(mat.Y,
-                                     np.kron(mat.X,
-                                             mat.H)))
+    actual_unitary = np.kron(mat.Z, np.kron(mat.Y, np.kron(mat.X, mat.H)))
     assert np.allclose(test_unitary, actual_unitary)
 
 
@@ -33,9 +36,11 @@ def test_random_gates_3():
     p = Program(X(2), CNOT(2, 1), CNOT(1, 0))
     test_unitary = program_unitary(p, n_qubits=3)
     # gates are multiplied in 'backwards' order
-    actual_unitary = np.kron(np.eye(2 ** 1), mat.QUANTUM_GATES['CNOT']) \
-        .dot(np.kron(mat.QUANTUM_GATES['CNOT'], np.eye(2 ** 1))) \
-        .dot(np.kron(mat.QUANTUM_GATES['X'], np.eye(2 ** 2)))
+    actual_unitary = (
+        np.kron(np.eye(2 ** 1), mat.QUANTUM_GATES["CNOT"])
+        .dot(np.kron(mat.QUANTUM_GATES["CNOT"], np.eye(2 ** 1)))
+        .dot(np.kron(mat.QUANTUM_GATES["X"], np.eye(2 ** 2)))
+    )
     np.testing.assert_allclose(actual_unitary, test_unitary)
 
 
@@ -46,14 +51,28 @@ def test_identity():
 
 
 def test_qaoa_unitary():
-    wf_true = [0.00167784 + 1.00210180e-05 * 1j, 0.50000000 - 4.99997185e-01 * 1j,
-               0.50000000 - 4.99997185e-01 * 1j, 0.00167784 + 1.00210180e-05 * 1j]
+    wf_true = [
+        0.00167784 + 1.00210180e-05 * 1j,
+        0.50000000 - 4.99997185e-01 * 1j,
+        0.50000000 - 4.99997185e-01 * 1j,
+        0.00167784 + 1.00210180e-05 * 1j,
+    ]
 
-    prog = Program([RY(np.pi / 2, 0), RX(np.pi, 0),
-                    RY(np.pi / 2, 1), RX(np.pi, 1),
-                    CNOT(0, 1), RX(-np.pi / 2, 1), RY(4.71572463191, 1),
-                    RX(np.pi / 2, 1), CNOT(0, 1),
-                    RX(-2 * 2.74973750579, 0), RX(-2 * 2.74973750579, 1)])
+    prog = Program(
+        [
+            RY(np.pi / 2, 0),
+            RX(np.pi, 0),
+            RY(np.pi / 2, 1),
+            RX(np.pi, 1),
+            CNOT(0, 1),
+            RX(-np.pi / 2, 1),
+            RY(4.71572463191, 1),
+            RX(np.pi / 2, 1),
+            CNOT(0, 1),
+            RX(-2 * 2.74973750579, 0),
+            RX(-2 * 2.74973750579, 1),
+        ]
+    )
 
     test_unitary = program_unitary(prog, n_qubits=2)
     wf_test = np.zeros(4)
@@ -63,7 +82,7 @@ def test_qaoa_unitary():
 
 
 def test_unitary_measure():
-    prog = Program(Declare('ro', 'BIT'), H(0), H(1), MEASURE(0, MemoryReference("ro", 0)))
+    prog = Program(Declare("ro", "BIT"), H(0), H(1), MEASURE(0, MemoryReference("ro", 0)))
     with pytest.raises(ValueError):
         program_unitary(prog, n_qubits=2)
 
@@ -114,15 +133,13 @@ def test_lifted_swap_8():
 
 def test_two_qubit_gates_1():
     unitary_test = lifted_gate_matrix(mat.CNOT, [1, 0], 2)
-    unitary_true = np.kron(mat.P0, np.eye(2)) + \
-                   np.kron(mat.P1, mat.X)
+    unitary_true = np.kron(mat.P0, np.eye(2)) + np.kron(mat.P1, mat.X)
     assert np.allclose(unitary_test, unitary_true)
 
 
 def test_two_qubit_gates_2():
     unitary_test = lifted_gate_matrix(mat.CNOT, [0, 1], 2)
-    unitary_true = np.kron(np.eye(2), mat.P0) + \
-                   np.kron(mat.X, mat.P1)
+    unitary_true = np.kron(np.eye(2), mat.P0) + np.kron(mat.X, mat.P1)
     assert np.allclose(unitary_test, unitary_true)
 
 
@@ -384,8 +401,7 @@ def test_lifted_state_operator():
     assert proj_one.shape == (2, 2)
 
     np.testing.assert_allclose(
-        np.kron(proj_one, proj_plus),
-        lifted_state_operator(xz_state, qubits=[5, 6]),
+        np.kron(proj_one, proj_plus), lifted_state_operator(xz_state, qubits=[5, 6])
     )
 
 
@@ -402,8 +418,7 @@ def test_lifted_state_operator_backwards_qubits():
     assert proj_one.shape == (2, 2)
 
     np.testing.assert_allclose(
-        np.kron(proj_plus, proj_one),
-        lifted_state_operator(xz_state, qubits=[6, 5]),
+        np.kron(proj_plus, proj_one), lifted_state_operator(xz_state, qubits=[6, 5])
     )
 
 

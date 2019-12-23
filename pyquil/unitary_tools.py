@@ -77,9 +77,9 @@ def qubit_adjacent_lifted_gate(i, matrix, n_qubits):
     :rtype: sparse_array
     """
     n_rows, n_cols = matrix.shape
-    assert n_rows == n_cols, 'Matrix must be square'
+    assert n_rows == n_cols, "Matrix must be square"
     gate_size = np.log2(n_rows)
-    assert gate_size == int(gate_size), 'Matrix must be 2^n by 2^n'
+    assert gate_size == int(gate_size), "Matrix must be 2^n by 2^n"
     gate_size = int(gate_size)
 
     # Outer-product to lift gate to complete Hilbert space
@@ -210,20 +210,20 @@ def permutation_arbitrary(qubit_inds, n_qubits):
     while not made_it:
         array = range(len(qubit_inds)) if right else range(len(qubit_inds))[::-1]
         for i in array:
-            pmod, qubit_arr = two_swap_helper(np.where(qubit_arr == qubit_inds[i])[0][0],
-                                              final_map[i], n_qubits,
-                                              qubit_arr)
+            pmod, qubit_arr = two_swap_helper(
+                np.where(qubit_arr == qubit_inds[i])[0][0], final_map[i], n_qubits, qubit_arr
+            )
 
             # update permutation matrix
             perm = pmod.dot(perm)
-            if np.allclose(qubit_arr[final_map[-1]:final_map[0] + 1][::-1], qubit_inds):
+            if np.allclose(qubit_arr[final_map[-1] : final_map[0] + 1][::-1], qubit_inds):
                 made_it = True
                 break
 
         # for next iteration, go in opposite direction
         right = not right
 
-    assert np.allclose(qubit_arr[final_map[-1]:final_map[0] + 1][::-1], qubit_inds)
+    assert np.allclose(qubit_arr[final_map[-1] : final_map[0] + 1][::-1], qubit_inds)
     return perm, qubit_arr[::-1], start_i
 
 
@@ -243,22 +243,21 @@ def lifted_gate_matrix(matrix: np.ndarray, qubit_inds: List[int], n_qubits: int)
     :return: A 2^n by 2^n lifted version of the unitary matrix acting on the specified qubits.
     """
     n_rows, n_cols = matrix.shape
-    assert n_rows == n_cols, 'Matrix must be square'
+    assert n_rows == n_cols, "Matrix must be square"
     gate_size = np.log2(n_rows)
-    assert gate_size == int(gate_size), 'Matrix must be 2^n by 2^n'
+    assert gate_size == int(gate_size), "Matrix must be 2^n by 2^n"
     gate_size = int(gate_size)
 
     pi_permutation_matrix, final_map, start_i = permutation_arbitrary(qubit_inds, n_qubits)
     if start_i > 0:
-        check = final_map[-gate_size - start_i:-start_i]
+        check = final_map[-gate_size - start_i : -start_i]
     else:
         # Python can't deal with `arr[:-0]`
-        check = final_map[-gate_size - start_i:]
+        check = final_map[-gate_size - start_i :]
     np.testing.assert_allclose(check, qubit_inds)
 
     v_matrix = qubit_adjacent_lifted_gate(start_i, matrix, n_qubits)
-    return np.dot(np.conj(pi_permutation_matrix.T),
-                  np.dot(v_matrix, pi_permutation_matrix))
+    return np.dot(np.conj(pi_permutation_matrix.T), np.dot(v_matrix, pi_permutation_matrix))
 
 
 def lifted_gate(gate: Gate, n_qubits: int):
@@ -296,23 +295,23 @@ def lifted_gate(gate: Gate, n_qubits: int):
     # We recurse on this structure using _gate_matrix below.
 
     def _gate_matrix(gate: Gate):
-        if len(gate.modifiers) == 0:         # base case
+        if len(gate.modifiers) == 0:  # base case
             if len(gate.params) > 0:
                 return QUANTUM_GATES[gate.name](*gate.params)
             else:
                 return QUANTUM_GATES[gate.name]
         else:
             mod = gate.modifiers[0]
-            if mod == 'DAGGER':
+            if mod == "DAGGER":
                 child = _strip_modifiers(gate, limit=1)
                 return _gate_matrix(child).conj().T
-            elif mod == 'CONTROLLED':
+            elif mod == "CONTROLLED":
                 child = _strip_modifiers(gate, limit=1)
                 matrix = _gate_matrix(child)
                 return np.kron(zero, np.eye(*matrix.shape)) + np.kron(one, matrix)
-            elif mod == 'FORKED':
+            elif mod == "FORKED":
                 assert len(gate.params) % 2 == 0
-                p0, p1 = gate.params[:len(gate.params) // 2], gate.params[len(gate.params) // 2:]
+                p0, p1 = gate.params[: len(gate.params) // 2], gate.params[len(gate.params) // 2 :]
                 child = _strip_modifiers(gate, limit=1)
                 # handle the first half of the FORKED params
                 child.params = p0
@@ -326,9 +325,9 @@ def lifted_gate(gate: Gate, n_qubits: int):
 
     matrix = _gate_matrix(gate)
 
-    return lifted_gate_matrix(matrix=matrix,
-                              qubit_inds=[q.index for q in gate.qubits],
-                              n_qubits=n_qubits)
+    return lifted_gate_matrix(
+        matrix=matrix, qubit_inds=[q.index for q in gate.qubits], n_qubits=n_qubits
+    )
 
 
 def program_unitary(program, n_qubits):

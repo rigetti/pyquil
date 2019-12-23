@@ -88,7 +88,7 @@ class KrausModel(_KrausModel):
         :rtype: Dict[str,Any]
         """
         res = self._asdict()
-        res['kraus_ops'] = [[k.real.tolist(), k.imag.tolist()] for k in self.kraus_ops]
+        res["kraus_ops"] = [[k.real.tolist(), k.imag.tolist()] for k in self.kraus_ops]
         return res
 
     @staticmethod
@@ -101,8 +101,8 @@ class KrausModel(_KrausModel):
         :return: The deserialized KrausModel.
         :rtype: KrausModel
         """
-        kraus_ops = [KrausModel.unpack_kraus_matrix(k) for k in d['kraus_ops']]
-        return KrausModel(d['gate'], d['params'], d['targets'], kraus_ops, d['fidelity'])
+        kraus_ops = [KrausModel.unpack_kraus_matrix(k) for k in d["kraus_ops"]]
+        return KrausModel(d["gate"], d["params"], d["targets"], kraus_ops, d["fidelity"])
 
     def __eq__(self, other):
         return isinstance(other, KrausModel) and self.to_dict() == other.to_dict()
@@ -190,12 +190,14 @@ def _check_kraus_ops(n, kraus_ops):
     for k in kraus_ops:
         if not np.shape(k) == (2 ** n, 2 ** n):
             raise ValueError(
-                "Kraus operators for {0} qubits must have shape {1}x{1}: {2}".format(n, 2 ** n, k))
+                "Kraus operators for {0} qubits must have shape {1}x{1}: {2}".format(n, 2 ** n, k)
+            )
 
     kdk_sum = sum(np.transpose(k).conjugate().dot(k) for k in kraus_ops)
     if not np.allclose(kdk_sum, np.eye(2 ** n), atol=1e-3):
         raise ValueError(
-            "Kraus operator not correctly normalized: sum_j K_j^*K_j == {}".format(kdk_sum))
+            "Kraus operator not correctly normalized: sum_j K_j^*K_j == {}".format(kdk_sum)
+        )
 
 
 def _create_kraus_pragmas(name, qubit_indices, kraus_ops):
@@ -209,10 +211,14 @@ def _create_kraus_pragmas(name, qubit_indices, kraus_ops):
     :rtype: str
     """
 
-    pragmas = [Pragma("ADD-KRAUS",
-                      [name] + list(qubit_indices),
-                      "({})".format(" ".join(map(format_parameter, np.ravel(k)))))
-               for k in kraus_ops]
+    pragmas = [
+        Pragma(
+            "ADD-KRAUS",
+            [name] + list(qubit_indices),
+            "({})".format(" ".join(map(format_parameter, np.ravel(k)))),
+        )
+        for k in kraus_ops
+    ]
     return pragmas
 
 
@@ -246,12 +252,19 @@ def pauli_kraus_map(probabilities):
     :rtype: list
     """
     if len(probabilities) not in [4, 16]:
-        raise ValueError("Currently we only support one or two qubits, "
-                         "so the provided list of probabilities must have length 4 or 16.")
+        raise ValueError(
+            "Currently we only support one or two qubits, "
+            "so the provided list of probabilities must have length 4 or 16."
+        )
     if not np.allclose(sum(probabilities), 1.0, atol=1e-3):
         raise ValueError("Probabilities must sum to one.")
 
-    paulis = [np.eye(2), np.array([[0, 1], [1, 0]]), np.array([[0, -1j], [1j, 0]]), np.array([[1, 0], [0, -1]])]
+    paulis = [
+        np.eye(2),
+        np.array([[0, 1], [1, 0]]),
+        np.array([[0, -1j], [1j, 0]]),
+        np.array([[1, 0], [0, -1]]),
+    ]
 
     if len(probabilities) == 4:
         operators = paulis
@@ -270,8 +283,7 @@ def damping_kraus_map(p=0.10):
     :return: A list [k1, k2] of the Kraus operators that parametrize the map.
     :rtype: list
     """
-    damping_op = np.sqrt(p) * np.array([[0, 1],
-                                        [0, 0]])
+    damping_op = np.sqrt(p) * np.array([[0, 1], [0, 0]])
 
     residual_kraus = np.diag([1, np.sqrt(1 - p)])
     return [residual_kraus, damping_op]
@@ -338,7 +350,7 @@ def damping_after_dephasing(T1, T2, gate_time):
                 raise ValueError("T2 is upper bounded by 2 * T1")
             gamma_phi -= float(gate_time) / float(2 * T1)
 
-        dephasing = dephasing_kraus_map(p=.5 * (1 - np.exp(-2 * gamma_phi)))
+        dephasing = dephasing_kraus_map(p=0.5 * (1 - np.exp(-2 * gamma_phi)))
     else:
         dephasing = [np.eye(2)]
     return combine_kraus_maps(damping, dephasing)
@@ -351,6 +363,7 @@ ANGLE_TOLERANCE = 1e-10
 
 class NoisyGateUndefined(Exception):
     """Raise when user attempts to use noisy gate outside of currently supported set."""
+
     pass
 
 
@@ -371,27 +384,20 @@ def get_noisy_gate(gate_name, params):
     if gate_name == "RX":
         angle, = params
         if np.isclose(angle, np.pi / 2, atol=ANGLE_TOLERANCE):
-            return (np.array([[1, -1j],
-                              [-1j, 1]]) / np.sqrt(2),
-                    "NOISY-RX-PLUS-90")
+            return (np.array([[1, -1j], [-1j, 1]]) / np.sqrt(2), "NOISY-RX-PLUS-90")
         elif np.isclose(angle, -np.pi / 2, atol=ANGLE_TOLERANCE):
-            return (np.array([[1, 1j],
-                              [1j, 1]]) / np.sqrt(2),
-                    "NOISY-RX-MINUS-90")
+            return (np.array([[1, 1j], [1j, 1]]) / np.sqrt(2), "NOISY-RX-MINUS-90")
         elif np.isclose(angle, np.pi, atol=ANGLE_TOLERANCE):
-            return (np.array([[0, -1j],
-                              [-1j, 0]]),
-                    "NOISY-RX-PLUS-180")
+            return (np.array([[0, -1j], [-1j, 0]]), "NOISY-RX-PLUS-180")
         elif np.isclose(angle, -np.pi, atol=ANGLE_TOLERANCE):
-            return (np.array([[0, 1j],
-                              [1j, 0]]),
-                    "NOISY-RX-MINUS-180")
+            return (np.array([[0, 1j], [1j, 0]]), "NOISY-RX-MINUS-180")
     elif gate_name == "CZ":
         assert params == ()
         return np.diag([1, 1, 1, -1]), "NOISY-CZ"
-    raise NoisyGateUndefined("Undefined gate and params: {}{}\n"
-                             "Please restrict yourself to I, RX(+/-pi), RX(+/-pi/2), CZ"
-                             .format(gate_name, params))
+    raise NoisyGateUndefined(
+        "Undefined gate and params: {}{}\n"
+        "Please restrict yourself to I, RX(+/-pi), RX(+/-pi/2), CZ".format(gate_name, params)
+    )
 
 
 def _get_program_gates(prog):
@@ -405,8 +411,9 @@ def _get_program_gates(prog):
     return sorted({i for i in prog if isinstance(i, Gate)}, key=lambda g: g.out())
 
 
-def _decoherence_noise_model(gates, T1=30e-6, T2=30e-6, gate_time_1q=50e-9,
-                             gate_time_2q=150e-09, ro_fidelity=0.95):
+def _decoherence_noise_model(
+    gates, T1=30e-6, T2=30e-6, gate_time_1q=50e-9, gate_time_2q=150e-09, ro_fidelity=0.95
+):
     """
     The default noise parameters
 
@@ -474,17 +481,23 @@ def _decoherence_noise_model(gates, T1=30e-6, T2=30e-6, gate_time_1q=50e-9,
 
             # note this ordering of the tensor factors is necessary due to how the QVM orders
             # the wavefunction basis
-            noisy_I = tensor_kraus_maps(noisy_identities_2q[targets[1]],
-                                        noisy_identities_2q[targets[0]])
-        kraus_maps.append(KrausModel(g.name, tuple(g.params), targets,
-                                     combine_kraus_maps(noisy_I, [matrix]),
-                                     # FIXME (Nik): compute actual avg gate fidelity for this simple
-                                     # noise model
-                                     1.0))
+            noisy_I = tensor_kraus_maps(
+                noisy_identities_2q[targets[1]], noisy_identities_2q[targets[0]]
+            )
+        kraus_maps.append(
+            KrausModel(
+                g.name,
+                tuple(g.params),
+                targets,
+                combine_kraus_maps(noisy_I, [matrix]),
+                # FIXME (Nik): compute actual avg gate fidelity for this simple
+                # noise model
+                1.0,
+            )
+        )
     aprobs = {}
     for q, f_ro in ro_fidelity.items():
-        aprobs[q] = np.array([[f_ro, 1. - f_ro],
-                              [1. - f_ro, f_ro]])
+        aprobs[q] = np.array([[f_ro, 1.0 - f_ro], [1.0 - f_ro, f_ro]])
 
     return NoiseModel(kraus_maps, aprobs)
 
@@ -496,8 +509,7 @@ def decoherence_noise_with_asymmetric_ro(gates: Sequence[Gate], p00=0.975, p11=0
     the specification of readout fidelities.
     """
     noise_model = _decoherence_noise_model(gates)
-    aprobs = np.array([[p00, 1 - p00],
-                       [1 - p11, p11]])
+    aprobs = np.array([[p00, 1 - p00], [1 - p11, p11]])
     aprobs = {q: aprobs for q in noise_model.assignment_probs.keys()}
     return NoiseModel(noise_model.gates, aprobs)
 
@@ -518,6 +530,7 @@ def _noise_model_program_header(noise_model):
     :rtype: pyquil.quil.Program
     """
     from pyquil.quil import Program
+
     p = Program()
     defgates = set()
     for k in noise_model.gates:
@@ -531,8 +544,10 @@ def _noise_model_program_header(noise_model):
                 p.defgate(new_name, ideal_gate)
                 defgates.add(new_name)
         except NoisyGateUndefined:
-            print("WARNING: Could not find ideal gate definition for gate {}".format(k.gate),
-                  file=sys.stderr)
+            print(
+                "WARNING: Could not find ideal gate definition for gate {}".format(k.gate),
+                file=sys.stderr,
+            )
             new_name = k.gate
 
         # define noisy version of gate on specific targets
@@ -568,8 +583,9 @@ def apply_noise_model(prog, noise_model):
     return new_prog
 
 
-def add_decoherence_noise(prog, T1=30e-6, T2=30e-6, gate_time_1q=50e-9, gate_time_2q=150e-09,
-                          ro_fidelity=0.95):
+def add_decoherence_noise(
+    prog, T1=30e-6, T2=30e-6, gate_time_1q=50e-9, gate_time_2q=150e-09, ro_fidelity=0.95
+):
     """
     Add generic damping and dephasing noise to a program.
 
@@ -613,7 +629,7 @@ def add_decoherence_noise(prog, T1=30e-6, T2=30e-6, gate_time_1q=50e-9, gate_tim
         T2=T2,
         gate_time_1q=gate_time_1q,
         gate_time_2q=gate_time_2q,
-        ro_fidelity=ro_fidelity
+        ro_fidelity=ro_fidelity,
     )
     return apply_noise_model(prog, noise_model)
 
@@ -647,11 +663,11 @@ def estimate_bitstring_probs(results):
     """
     nshots, nq = np.shape(results)
     outcomes = np.array([int("".join(map(str, r)), 2) for r in results])
-    probs = np.histogram(outcomes, bins=np.arange(-.5, 2 ** nq, 1))[0] / float(nshots)
+    probs = np.histogram(outcomes, bins=np.arange(-0.5, 2 ** nq, 1))[0] / float(nshots)
     return _bitstring_probs_by_qubit(probs)
 
 
-_CHARS = 'klmnopqrstuvwxyzabcdefgh0123456789'
+_CHARS = "klmnopqrstuvwxyzabcdefgh0123456789"
 
 
 def _apply_local_transforms(p, ts):
@@ -680,8 +696,16 @@ def _apply_local_transforms(p, ts):
         # 'ij,abcd...jklm...->abcd...iklm...' so it properly applies a "local"
         # transformation to a single tensor-index without changing the order of
         # indices
-        einsum_pat = ('ij,' + _CHARS[:idx] + 'j' + _CHARS[idx:nq - 1]
-                      + '->' + _CHARS[:idx] + 'i' + _CHARS[idx:nq - 1])
+        einsum_pat = (
+            "ij,"
+            + _CHARS[:idx]
+            + "j"
+            + _CHARS[idx : nq - 1]
+            + "->"
+            + _CHARS[:idx]
+            + "i"
+            + _CHARS[idx : nq - 1]
+        )
         p_corrected = np.einsum(einsum_pat, trafo_idx, p_corrected)
 
     return p_corrected
@@ -751,8 +775,7 @@ def bitstring_probs_to_z_moments(p):
 
     :rtype: np.array
     """
-    zmat = np.array([[1, 1],
-                     [1, -1]])
+    zmat = np.array([[1, 1], [1, -1]])
     return _apply_local_transforms(p, (zmat for _ in range(p.ndim)))
 
 
@@ -772,12 +795,16 @@ def estimate_assignment_probs(q, trials, cxn, p0=None):
     :rtype: np.array
     """
     from pyquil.quil import Program
+
     if p0 is None:  # pragma no coverage
         p0 = Program()
-    results_i = np.sum(cxn.run(p0 + Program(I(q), MEASURE(q, MemoryReference("ro", 0))), [0], trials))
-    results_x = np.sum(cxn.run(p0 + Program(X(q), MEASURE(q, MemoryReference("ro", 0))), [0], trials))
+    results_i = np.sum(
+        cxn.run(p0 + Program(I(q), MEASURE(q, MemoryReference("ro", 0))), [0], trials)
+    )
+    results_x = np.sum(
+        cxn.run(p0 + Program(X(q), MEASURE(q, MemoryReference("ro", 0))), [0], trials)
+    )
 
-    p00 = 1. - results_i / float(trials)
+    p00 = 1.0 - results_i / float(trials)
     p11 = results_x / float(trials)
-    return np.array([[p00, 1 - p11],
-                     [1 - p00, p11]])
+    return np.array([[p00, 1 - p11], [1 - p00, p11]])

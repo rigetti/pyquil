@@ -25,10 +25,26 @@ import numpy as np
 import pytest
 
 from pyquil.gates import RX, RZ, CNOT, H, X, PHASE
-from pyquil.paulis import (PauliTerm, PauliSum, exponential_map, exponentiate_commuting_pauli_sum,
-                           ID, UnequalLengthWarning, exponentiate, trotterize, is_zero,
-                           check_commutation, commuting_sets, term_with_coeff, sI, sX, sY, sZ,
-                           ZERO, is_identity)
+from pyquil.paulis import (
+    PauliTerm,
+    PauliSum,
+    exponential_map,
+    exponentiate_commuting_pauli_sum,
+    ID,
+    UnequalLengthWarning,
+    exponentiate,
+    trotterize,
+    is_zero,
+    check_commutation,
+    commuting_sets,
+    term_with_coeff,
+    sI,
+    sX,
+    sY,
+    sZ,
+    ZERO,
+    is_identity,
+)
 from pyquil.unitary_tools import program_unitary
 from pyquil.quil import Program
 
@@ -38,31 +54,31 @@ def isclose(a, b, rel_tol=1e-10, abs_tol=0.0):
 
 
 def test_simplify_terms():
-    term = PauliTerm('Z', 0) * -1.0 * PauliTerm('Z', 0)
-    assert term.id() == ''
+    term = PauliTerm("Z", 0) * -1.0 * PauliTerm("Z", 0)
+    assert term.id() == ""
     assert term.coefficient == -1.0
 
-    term = PauliTerm('Z', 0) + PauliTerm('Z', 0, 1.0)
-    assert str(term) == '(2+0j)*Z0'
+    term = PauliTerm("Z", 0) + PauliTerm("Z", 0, 1.0)
+    assert str(term) == "(2+0j)*Z0"
 
 
 def test_get_qubits():
-    term = PauliTerm('Z', 0) * PauliTerm('X', 1)
+    term = PauliTerm("Z", 0) * PauliTerm("X", 1)
     assert term.get_qubits() == [0, 1]
 
-    sum_term = PauliTerm('X', 0, 0.5) + 0.5j * PauliTerm('Y', 10) * PauliTerm('Y', 0, 0.5j)
+    sum_term = PauliTerm("X", 0, 0.5) + 0.5j * PauliTerm("Y", 10) * PauliTerm("Y", 0, 0.5j)
     assert sum_term.get_qubits() == [0, 10]
 
 
 def test_simplify_term_id_1():
-    term = PauliTerm('I', 0, 0.5)
-    assert term.id() == ''
+    term = PauliTerm("I", 0, 0.5)
+    assert term.id() == ""
     assert term.coefficient == 0.5
 
 
 def test_simplify_term_id_2():
     term = 0.5 * ID()
-    assert term.id() == ''
+    assert term.id() == ""
     assert term.coefficient == 0.5
 
 
@@ -70,57 +86,60 @@ def test_simplify_term_id_3():
     s = 0.25 + 0.25 * ID()
     terms = s.terms
     assert len(terms) == 1
-    assert terms[0].id() == ''
+    assert terms[0].id() == ""
     assert terms[0].coefficient == 0.5
 
 
 def test_simplify_term_single():
-    term = PauliTerm('Z', 0) * PauliTerm('I', 1) * PauliTerm('X', 2, 0.5j) * PauliTerm('Z', 0, 1.0)
-    assert term.id() == 'X2'
+    term = PauliTerm("Z", 0) * PauliTerm("I", 1) * PauliTerm("X", 2, 0.5j) * PauliTerm("Z", 0, 1.0)
+    assert term.id() == "X2"
     assert term.coefficient == 0.5j
 
 
 def test_simplify_term_xz():
-    term1 = (-0.5 * PauliTerm('X', 0)) * (-1.0 * PauliTerm('Z', 0))
-    term2 = -0.5 * PauliTerm('X', 0) * (-1.0) * PauliTerm('Z', 0)
-    term3 = 0.5 * PauliTerm('X', 0) * PauliTerm('Z', 0)
+    term1 = (-0.5 * PauliTerm("X", 0)) * (-1.0 * PauliTerm("Z", 0))
+    term2 = -0.5 * PauliTerm("X", 0) * (-1.0) * PauliTerm("Z", 0)
+    term3 = 0.5 * PauliTerm("X", 0) * PauliTerm("Z", 0)
     for term in [term1, term2, term3]:
-        assert term.id() == 'Y0'
+        assert term.id() == "Y0"
         assert term.coefficient == -0.5j
 
 
 def test_simplify_term_multindex():
-    term = (PauliTerm('X', 0, coefficient=-0.5)
-            * PauliTerm('Z', 0, coefficient=-1.0) * PauliTerm('X', 2, 0.5))
-    assert term.id(sort_ops=False) == 'Y0X2'
+    term = (
+        PauliTerm("X", 0, coefficient=-0.5)
+        * PauliTerm("Z", 0, coefficient=-1.0)
+        * PauliTerm("X", 2, 0.5)
+    )
+    assert term.id(sort_ops=False) == "Y0X2"
     assert term.coefficient == -0.25j
 
 
 def test_simplify_sum_terms():
-    sum_term = PauliSum([PauliTerm('X', 0, 0.5), PauliTerm('Z', 0, 0.5j)])
+    sum_term = PauliSum([PauliTerm("X", 0, 0.5), PauliTerm("Z", 0, 0.5j)])
     str_sum_term = str(sum_term + sum_term)
-    assert str_sum_term == '(1+0j)*X0 + 1j*Z0' or str_sum_term == '1j*Z0 + (1+0j)*X0'
-    sum_term = PauliSum([PauliTerm('X', 0, 0.5), PauliTerm('X', 0, 0.5)])
-    assert str(sum_term.simplify()) == '(1+0j)*X0'
+    assert str_sum_term == "(1+0j)*X0 + 1j*Z0" or str_sum_term == "1j*Z0 + (1+0j)*X0"
+    sum_term = PauliSum([PauliTerm("X", 0, 0.5), PauliTerm("X", 0, 0.5)])
+    assert str(sum_term.simplify()) == "(1+0j)*X0"
 
     # test the simplify on multiplication
-    sum_term = PauliSum([PauliTerm('X', 0, 0.5), PauliTerm('X', 0, 0.5)])
-    assert str(sum_term * sum_term) == '(1+0j)*I'
+    sum_term = PauliSum([PauliTerm("X", 0, 0.5), PauliTerm("X", 0, 0.5)])
+    assert str(sum_term * sum_term) == "(1+0j)*I"
 
 
 def test_copy():
-    term = PauliTerm('X', 0, 0.5) * PauliTerm('X', 1, 0.5)
+    term = PauliTerm("X", 0, 0.5) * PauliTerm("X", 1, 0.5)
     new_term = term.copy()
 
-    term = term * PauliTerm('X', 2, 0.5)
-    new_term = new_term * PauliTerm('X', 2, 0.5)
+    term = term * PauliTerm("X", 2, 0.5)
+    new_term = new_term * PauliTerm("X", 2, 0.5)
 
     assert term == new_term  # value equality
     assert term is not new_term  # ref inequality
     assert term._ops is not new_term._ops
 
-    term = PauliTerm('X', 0, 0.5) * PauliTerm('X', 1, 0.5)
-    new_term = term * PauliTerm('X', 2, 0.5)
+    term = PauliTerm("X", 0, 0.5) * PauliTerm("X", 1, 0.5)
+    new_term = term * PauliTerm("X", 2, 0.5)
     assert term != new_term
     assert term is not new_term
     assert term._ops is not new_term._ops
@@ -159,14 +178,14 @@ def test_ids():
     term_2 = PauliTerm("X", 5, 5) * PauliTerm("Z", 0, 1.0) * PauliTerm("Z", 1, 1.0)
     with pytest.warns(FutureWarning) as w:
         assert term_1.id() == term_2.id()
-    assert 'should be avoided' in str(w[0])
+    assert "should be avoided" in str(w[0])
 
 
 def test_ids_no_sort():
     term_1 = PauliTerm("Z", 0, 1.0) * PauliTerm("Z", 1, 1.0) * PauliTerm("X", 5, 5)
     term_2 = PauliTerm("X", 5, 5) * PauliTerm("Z", 0, 1.0) * PauliTerm("Z", 1, 1.0)
-    assert term_1.id(sort_ops=False) == 'Z0Z1X5'
-    assert term_2.id(sort_ops=False) == 'X5Z0Z1'
+    assert term_1.id(sort_ops=False) == "Z0Z1X5"
+    assert term_2.id(sort_ops=False) == "X5Z0Z1"
 
 
 def test_operations_as_set():
@@ -177,29 +196,29 @@ def test_operations_as_set():
 
 def test_pauliop_inputs():
     with pytest.raises(ValueError):
-        PauliTerm('X', -2)
+        PauliTerm("X", -2)
 
 
 def test_pauli_sum():
-    q_plus = 0.5 * PauliTerm('X', 0) + 0.5j * PauliTerm('Y', 0)
-    the_sum = q_plus * PauliSum([PauliTerm('X', 0)])
+    q_plus = 0.5 * PauliTerm("X", 0) + 0.5j * PauliTerm("Y", 0)
+    the_sum = q_plus * PauliSum([PauliTerm("X", 0)])
     term_strings = [str(x) for x in the_sum.terms]
-    assert '(0.5+0j)*I' in term_strings
-    assert '(0.5+0j)*Z0' in term_strings
+    assert "(0.5+0j)*I" in term_strings
+    assert "(0.5+0j)*Z0" in term_strings
     assert len(term_strings) == 2
     assert len(the_sum.terms) == 2
 
-    the_sum = q_plus * PauliTerm('X', 0)
+    the_sum = q_plus * PauliTerm("X", 0)
     term_strings = [str(x) for x in the_sum.terms]
-    assert '(0.5+0j)*I' in term_strings
-    assert '(0.5+0j)*Z0' in term_strings
+    assert "(0.5+0j)*I" in term_strings
+    assert "(0.5+0j)*Z0" in term_strings
     assert len(term_strings) == 2
     assert len(the_sum.terms) == 2
 
-    the_sum = PauliTerm('X', 0) * q_plus
+    the_sum = PauliTerm("X", 0) * q_plus
     term_strings = [str(x) for x in the_sum.terms]
-    assert '(0.5+0j)*I' in term_strings
-    assert '(-0.5+0j)*Z0' in term_strings
+    assert "(0.5+0j)*I" in term_strings
+    assert "(-0.5+0j)*Z0" in term_strings
     assert len(term_strings) == 2
     assert len(the_sum.terms) == 2
 
@@ -312,8 +331,9 @@ def test_exponentiate_bp0_ZY():
     generator = PauliTerm("Y", 0, 1.0) * PauliTerm("Z", 1, 1.0)
     para_prog = exponential_map(generator)
     prog = para_prog(1)
-    result_prog = Program().inst([RX(math.pi / 2.0, 0), CNOT(0, 1), RZ(2.0, qubit=1),
-                                  CNOT(0, 1), RX(-math.pi / 2, 0)])
+    result_prog = Program().inst(
+        [RX(math.pi / 2.0, 0), CNOT(0, 1), RZ(2.0, qubit=1), CNOT(0, 1), RX(-math.pi / 2, 0)]
+    )
     assert prog == result_prog
 
 
@@ -322,8 +342,9 @@ def test_exponentiate_bp1_YZ():
     generator = PauliTerm("Z", 0, 1.0) * PauliTerm("Y", 1, 1.0)
     para_prog = exponential_map(generator)
     prog = para_prog(1)
-    result_prog = Program().inst([RX(math.pi / 2.0, 1), CNOT(0, 1),
-                                  RZ(2.0, 1), CNOT(0, 1), RX(-math.pi / 2.0, 1)])
+    result_prog = Program().inst(
+        [RX(math.pi / 2.0, 1), CNOT(0, 1), RZ(2.0, 1), CNOT(0, 1), RX(-math.pi / 2.0, 1)]
+    )
     assert prog == result_prog
 
 
@@ -332,32 +353,54 @@ def test_exponentiate_3cob():
     generator = PauliTerm("Z", 0, 1.0) * PauliTerm("Y", 1, 1.0) * PauliTerm("X", 2, 1.0)
     para_prog = exponential_map(generator)
     prog = para_prog(1)
-    result_prog = Program().inst([RX(math.pi / 2.0, 1), H(2), CNOT(0, 1),
-                                  CNOT(1, 2), RZ(2.0, 2), CNOT(1, 2),
-                                  CNOT(0, 1), RX(-math.pi / 2.0, 1), H(2)])
+    result_prog = Program().inst(
+        [
+            RX(math.pi / 2.0, 1),
+            H(2),
+            CNOT(0, 1),
+            CNOT(1, 2),
+            RZ(2.0, 2),
+            CNOT(1, 2),
+            CNOT(0, 1),
+            RX(-math.pi / 2.0, 1),
+            H(2),
+        ]
+    )
     assert prog == result_prog
 
 
 def test_exponentiate_3ns():
     # testing circuit for 3-terms non-sequential
-    generator = (PauliTerm("Y", 0, 1.0)
-                 * PauliTerm("I", 1, 1.0)
-                 * PauliTerm("Y", 2, 1.0)
-                 * PauliTerm("Y", 3, 1.0))
+    generator = (
+        PauliTerm("Y", 0, 1.0)
+        * PauliTerm("I", 1, 1.0)
+        * PauliTerm("Y", 2, 1.0)
+        * PauliTerm("Y", 3, 1.0)
+    )
     para_prog = exponential_map(generator)
     prog = para_prog(1)
-    result_prog = Program().inst([RX(math.pi / 2.0, 0), RX(math.pi / 2.0, 2),
-                                  RX(math.pi / 2.0, 3), CNOT(0, 2),
-                                  CNOT(2, 3), RZ(2.0, 3), CNOT(2, 3),
-                                  CNOT(0, 2), RX(-math.pi / 2.0, 0),
-                                  RX(-math.pi / 2.0, 2), RX(-math.pi / 2.0, 3)])
+    result_prog = Program().inst(
+        [
+            RX(math.pi / 2.0, 0),
+            RX(math.pi / 2.0, 2),
+            RX(math.pi / 2.0, 3),
+            CNOT(0, 2),
+            CNOT(2, 3),
+            RZ(2.0, 3),
+            CNOT(2, 3),
+            CNOT(0, 2),
+            RX(-math.pi / 2.0, 0),
+            RX(-math.pi / 2.0, 2),
+            RX(-math.pi / 2.0, 3),
+        ]
+    )
     assert prog == result_prog
 
 
 def test_exponentiate_commuting_pauli_sum():
-    pauli_sum = PauliSum([PauliTerm('Z', 0, 0.5), PauliTerm('Z', 1, 0.5)])
-    prog = Program().inst(RZ(1., 0)).inst(RZ(1., 1))
-    result_prog = exponentiate_commuting_pauli_sum(pauli_sum)(1.)
+    pauli_sum = PauliSum([PauliTerm("Z", 0, 0.5), PauliTerm("Z", 1, 0.5)])
+    prog = Program().inst(RZ(1.0, 0)).inst(RZ(1.0, 1))
+    result_prog = exponentiate_commuting_pauli_sum(pauli_sum)(1.0)
     assert prog == result_prog
 
 
@@ -398,8 +441,7 @@ def test_trotterize():
         trotterize(term_one, term_two, trotter_order=5)
 
     prog = trotterize(term_one, term_one)
-    result_prog = Program().inst([H(0), RZ(2.0, 0), H(0), H(0),
-                                  RZ(2.0, 0), H(0)])
+    result_prog = Program().inst([H(0), RZ(2.0, 0), H(0), H(0), RZ(2.0, 0), H(0)])
     assert prog == result_prog
 
     # trotter_order 1 steps 1
@@ -409,29 +451,56 @@ def test_trotterize():
 
     # trotter_order 1 steps 2
     prog = trotterize(term_one, term_two, trotter_steps=2)
-    result_prog = Program().inst([H(0), RZ(1.0, 0), H(0), RZ(1.0, 0),
-                                  H(0), RZ(1.0, 0), H(0), RZ(1.0, 0)])
+    result_prog = Program().inst(
+        [H(0), RZ(1.0, 0), H(0), RZ(1.0, 0), H(0), RZ(1.0, 0), H(0), RZ(1.0, 0)]
+    )
     assert prog == result_prog
 
     # trotter_order 2 steps 1
     prog = trotterize(term_one, term_two, trotter_order=2)
-    result_prog = Program().inst([H(0), RZ(1.0, 0), H(0), RZ(2.0, 0),
-                                  H(0), RZ(1.0, 0), H(0)])
+    result_prog = Program().inst([H(0), RZ(1.0, 0), H(0), RZ(2.0, 0), H(0), RZ(1.0, 0), H(0)])
     assert prog == result_prog
 
     # trotter_order 2 steps 2
     prog = trotterize(term_one, term_two, trotter_order=2, trotter_steps=2)
-    result_prog = Program().inst([H(0), RZ(0.5, 0), H(0), RZ(1.0, 0),
-                                  H(0), RZ(0.5, 0), H(0),
-                                  H(0), RZ(0.5, 0), H(0), RZ(1.0, 0),
-                                  H(0), RZ(0.5, 0), H(0)])
+    result_prog = Program().inst(
+        [
+            H(0),
+            RZ(0.5, 0),
+            H(0),
+            RZ(1.0, 0),
+            H(0),
+            RZ(0.5, 0),
+            H(0),
+            H(0),
+            RZ(0.5, 0),
+            H(0),
+            RZ(1.0, 0),
+            H(0),
+            RZ(0.5, 0),
+            H(0),
+        ]
+    )
     assert prog == result_prog
 
     # trotter_order 3 steps 1
     prog = trotterize(term_one, term_two, trotter_order=3, trotter_steps=1)
-    result_prog = Program().inst([H(0), RZ(14.0 / 24, 0), H(0), RZ(4.0 / 3.0, 0),
-                                  H(0), RZ(1.5, 0), H(0), RZ(-4.0 / 3.0, 0),
-                                  H(0), RZ(-2.0 / 24, 0), H(0), RZ(2.0, 0)])
+    result_prog = Program().inst(
+        [
+            H(0),
+            RZ(14.0 / 24, 0),
+            H(0),
+            RZ(4.0 / 3.0, 0),
+            H(0),
+            RZ(1.5, 0),
+            H(0),
+            RZ(-4.0 / 3.0, 0),
+            H(0),
+            RZ(-2.0 / 24, 0),
+            H(0),
+            RZ(2.0, 0),
+        ]
+    )
     assert prog == result_prog
 
 
@@ -461,11 +530,11 @@ def test_trotterize_order():
 
         return np.linalg.norm(exp_a_plus_b - trotter, np.inf)
 
-    xs = 10**np.logspace(-1, -6, 10)
+    xs = 10 ** np.logspace(-1, -6, 10)
     for order in [1, 2, 3, 4]:
         ys = [error(order, float(x)) for x in xs]
         p = np.polyfit(np.log10(xs), np.log10(ys), 1)
-        assert p[0] >= order, f'Bound not satisfied with order={order}: the slope is {p[0]}'
+        assert p[0] >= order, f"Bound not satisfied with order={order}: the slope is {p[0]}"
 
 
 def test_is_zero():
@@ -494,10 +563,12 @@ def test_check_commutation():
 
 def _commutator(t1, t2):
     with warnings.catch_warnings():
-        warnings.filterwarnings('ignore',
-                                message=r"The term .+ will be combined with .+, "
-                                        r"but they have different orders of operations.*",
-                                category=UserWarning)
+        warnings.filterwarnings(
+            "ignore",
+            message=r"The term .+ will be combined with .+, "
+            r"but they have different orders of operations.*",
+            category=UserWarning,
+        )
         return t1 * t2 + -1 * t2 * t1
 
 
@@ -561,7 +632,7 @@ def test_term_powers():
     with pytest.raises(ValueError):
         pauli_terms[0] ** -1
     # Test to make sure large powers can be computed
-    (PauliTerm('X', 0, 2) * PauliTerm('Y', 0, 2)) ** 400
+    (PauliTerm("X", 0, 2) * PauliTerm("Y", 0, 2)) ** 400
 
 
 def test_sum_power():
@@ -579,14 +650,18 @@ def test_term_equality():
     with pytest.raises(TypeError):
         sI(0) != 0
     assert sI(0) == sI(0)
-    assert PauliTerm('X', 10, 1 + 1.j) == PauliTerm('X', 10, 1 + 1.j)
-    assert PauliTerm('X', 10, 1 + 1.j) + PauliTerm('X', 10, 1 + 1.j) != PauliTerm('X', 10, 1 + 1.j)
-    assert PauliTerm('X', 10, 1 + 1.j) != PauliTerm('X', 10, 1 + 1.j) + PauliTerm('X', 10, 1 + 1.j)
+    assert PauliTerm("X", 10, 1 + 1.0j) == PauliTerm("X", 10, 1 + 1.0j)
+    assert PauliTerm("X", 10, 1 + 1.0j) + PauliTerm("X", 10, 1 + 1.0j) != PauliTerm(
+        "X", 10, 1 + 1.0j
+    )
+    assert PauliTerm("X", 10, 1 + 1.0j) != PauliTerm("X", 10, 1 + 1.0j) + PauliTerm(
+        "X", 10, 1 + 1.0j
+    )
 
 
 def test_term_with_coeff():
-    assert PauliTerm('X', 0, 1.j) == term_with_coeff(sX(0), 1.j)
-    assert PauliTerm('X', 0, -1.0) == term_with_coeff(sX(0), -1)
+    assert PauliTerm("X", 0, 1.0j) == term_with_coeff(sX(0), 1.0j)
+    assert PauliTerm("X", 0, -1.0) == term_with_coeff(sX(0), -1)
     with pytest.raises(ValueError):
         term_with_coeff(sI(0), None)
 
@@ -632,11 +707,7 @@ def test_from_list():
 def test_ordered():
     term = sZ(3) * sZ(2) * sZ(1)
     prog = exponential_map(term)(0.5)
-    assert prog.out() == "CNOT 3 2\n" \
-                         "CNOT 2 1\n" \
-                         "RZ(1.0) 1\n" \
-                         "CNOT 2 1\n" \
-                         "CNOT 3 2\n"
+    assert prog.out() == "CNOT 3 2\n" "CNOT 2 1\n" "RZ(1.0) 1\n" "CNOT 2 1\n" "CNOT 3 2\n"
 
 
 def test_numpy_integer_types():
@@ -666,7 +737,7 @@ def test_simplify_warning():
         tsum = t1 + t2
 
     assert tsum == 2 * sZ(0) * sZ(1)
-    assert str(e[0].message).startswith('The term Z1Z0 will be combined with Z0Z1')
+    assert str(e[0].message).startswith("The term Z1Z0 will be combined with Z0Z1")
 
 
 def test_pauli_string():
@@ -680,13 +751,13 @@ def test_pauli_string():
 
 def test_str():
     term = 2.0 * sX(1) * sX(2)
-    assert str(term) == '(2+0j)*X1*X2'
-    assert term.compact_str() == '(2+0j)*X1X2'
+    assert str(term) == "(2+0j)*X1*X2"
+    assert term.compact_str() == "(2+0j)*X1X2"
 
 
 def test_from_str():
     with pytest.raises(ValueError):
-        PauliTerm.from_compact_str('1*A0→1*Z0')
+        PauliTerm.from_compact_str("1*A0→1*Z0")
 
 
 def test_is_identity():
@@ -724,7 +795,7 @@ def test_pauli_term_from_str():
 
 def test_pauli_sum_from_str():
     # this also tests PauliTerm.from_compact_str() since it gets called
-    Sum = (1.5 + .5j) * sX(0) * sZ(2) + 0.7 * sZ(1)
+    Sum = (1.5 + 0.5j) * sX(0) * sZ(2) + 0.7 * sZ(1)
     another_str = "(1.5 + 0.5j)*X0*Z2+.7*Z1"
     assert PauliSum.from_compact_str(str(Sum)) == Sum
     assert PauliSum.from_compact_str(Sum.compact_str()) == Sum
@@ -736,7 +807,7 @@ def test_pauli_sum_from_str():
     assert PauliSum.from_compact_str(the_str) == Sum
 
     # test sums containing the identity
-    Sum = (1.5 + .5j) * sX(0) * sZ(2) + 0.7 * sI(1)
+    Sum = (1.5 + 0.5j) * sX(0) * sZ(2) + 0.7 * sI(1)
     the_str = "(1.5 + 0.5j)*X0*Z2+.7*I"
     assert PauliSum.from_compact_str(the_str) == Sum
 

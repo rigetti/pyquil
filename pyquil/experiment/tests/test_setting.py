@@ -4,9 +4,21 @@ from operator import mul
 import numpy as np
 import pytest
 
-from pyquil.experiment._setting import (ExperimentSetting, SIC0, SIC1, SIC2, SIC3,
-                                        TensorProductState, minusX, minusY, minusZ, plusX, plusY,
-                                        plusZ, zeros_state)
+from pyquil.experiment._setting import (
+    ExperimentSetting,
+    SIC0,
+    SIC1,
+    SIC2,
+    SIC3,
+    TensorProductState,
+    minusX,
+    minusY,
+    minusZ,
+    plusX,
+    plusY,
+    plusZ,
+    zeros_state,
+)
 from pyquil.paulis import sI, sX, sY, sZ
 
 
@@ -15,8 +27,9 @@ def _generate_random_states(n_qubits, n_terms):
     all_s_inds = np.random.randint(len(oneq_states), size=(n_terms, n_qubits))
     states = []
     for s_inds in all_s_inds:
-        state = functools.reduce(mul, (oneq_states[pi](i) for i, pi in enumerate(s_inds)),
-                                 TensorProductState([]))
+        state = functools.reduce(
+            mul, (oneq_states[pi](i) for i, pi in enumerate(s_inds)), TensorProductState([])
+        )
         states += [state]
     return states
 
