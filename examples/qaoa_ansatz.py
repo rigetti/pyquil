@@ -41,7 +41,7 @@ init_state_prog = Program([H(i) for i in nodes])
 h_cost = -0.5 * sum(sI(nodes[0]) - sZ(i) * sZ(j) for i, j in graph)
 
 # The driver Hamiltonian is the sum of the application of \sigma_x^i for all qubits i.
-h_driver = -1. * sum(sX(i) for i in nodes)
+h_driver = -1.0 * sum(sX(i) for i in nodes)
 
 
 def qaoa_ansatz(gammas, betas):
@@ -54,15 +54,19 @@ def qaoa_ansatz(gammas, betas):
     :return: The QAOA ansatz program.
     :rtype: Program.
     """
-    return Program([exponentiate_commuting_pauli_sum(h_cost)(g)
-                    + exponentiate_commuting_pauli_sum(h_driver)(b)
-                    for g, b in zip(gammas, betas)])
+    return Program(
+        [
+            exponentiate_commuting_pauli_sum(h_cost)(g)
+            + exponentiate_commuting_pauli_sum(h_driver)(b)
+            for g, b in zip(gammas, betas)
+        ]
+    )
 
 
 # Create a program, the state initialization plus a QAOA ansatz program, for P = 2.
-program = init_state_prog + qaoa_ansatz([0., 0.5], [0.75, 1.])
+program = init_state_prog + qaoa_ansatz([0.0, 0.5], [0.75, 1.0])
 
 # Initialize the QVM and run the program.
-qc = get_qc('9q-generic-qvm')
+qc = get_qc("9q-generic-qvm")
 
 results = qc.run_and_measure(program, trials=2)

@@ -8,7 +8,9 @@ import sys
 import numpy as np
 import matplotlib.pyplot as plt
 
-from scipy.optimize import minimize  # for real runs I recommend using ADAM optimizer because momentum helps with noise
+from scipy.optimize import (
+    minimize,
+)  # for real runs I recommend using ADAM optimizer because momentum helps with noise
 from openfermionpsi4 import run_psi4
 from openfermion.hamiltonians import MolecularData
 from openfermion.transforms import symmetry_conserving_bravyi_kitaev, get_fermion_operator
@@ -27,19 +29,16 @@ from grove.measurements.estimation import estimate_locally_commuting_operator
 
 def get_h2_dimer(bond_length):
     # Set molecule parameters.
-    basis = 'sto-3g'
+    basis = "sto-3g"
     multiplicity = 1
     charge = 0
-    geometry = [('H', [0.0, 0.0, 0.0]), ('H', [0.0, 0.0, bond_length])]
+    geometry = [("H", [0.0, 0.0, 0.0]), ("H", [0.0, 0.0, bond_length])]
     molecule = MolecularData(geometry, basis, multiplicity, charge)
-    molecule.filename = "./" + molecule.filename.split('/')[-1]
+    molecule.filename = "./" + molecule.filename.split("/")[-1]
     # Run Psi4.
-    molecule = run_psi4(molecule,
-                        run_scf=True,
-                        run_mp2=False,
-                        run_cisd=False,
-                        run_ccsd=True,
-                        run_fci=True)
+    molecule = run_psi4(
+        molecule, run_scf=True, run_mp2=False, run_cisd=False, run_ccsd=True, run_fci=True
+    )
     return molecule
 
 
@@ -56,12 +55,15 @@ def ucc_circuit(theta):
     initial_prog = Program().inst(X(1), X(0))
 
     # compiled program
-    program = initial_prog + exponentiate(float(theta) * generator)  # float is required because pyquil has weird casting behavior
+    program = initial_prog + exponentiate(
+        float(theta) * generator
+    )  # float is required because pyquil has weird casting behavior
     return program
 
 
-def objective_fun(theta, hamiltonian=None,
-                  quantum_resource=QVMConnection(endpoint='http://localhost:5000')):
+def objective_fun(
+    theta, hamiltonian=None, quantum_resource=QVMConnection(endpoint="http://localhost:5000")
+):
     """
     Evaluate the Hamiltonian bny operator averaging
 
@@ -74,9 +76,12 @@ def objective_fun(theta, hamiltonian=None,
         return 1.0
 
     if isinstance(hamiltonian, PauliSum):
-        result = estimate_locally_commuting_operator(ucc_circuit(theta), hamiltonian,
-                                                     1.0E-6, quantum_resource=quantum_resource)
-        result = result[0][0].real  # first output is expected value, second is variance, third is shots
+        result = estimate_locally_commuting_operator(
+            ucc_circuit(theta), hamiltonian, 1.0e-6, quantum_resource=quantum_resource
+        )
+        result = result[0][
+            0
+        ].real  # first output is expected value, second is variance, third is shots
     elif isinstance(hamiltonian, np.ndarray) and isinstance(quantum_resource, QVMConnection):
         wf = quantum_resource.wavefunction(ucc_circuit(theta))
         wf = wf.amplitudes.reshape((-1, 1))
@@ -89,7 +94,7 @@ def objective_fun(theta, hamiltonian=None,
 
 
 if __name__ == "__main__":
-    qvm = QVMConnection(endpoint='http://localhost:5000')
+    qvm = QVMConnection(endpoint="http://localhost:5000")
     bond_length = np.linspace(0.25, 3, 30)
     ucc_energy = []
     fci_energy = []
@@ -101,8 +106,12 @@ if __name__ == "__main__":
 
         # generate the spin-adapted classical coupled-cluster amplitude to use as the input for the
         # circuit
-        packed_amps = uccsd_singlet_get_packed_amplitudes(molecule.ccsd_single_amps, molecule.ccsd_double_amps,
-                                                          molecule.n_qubits, molecule.n_electrons)
+        packed_amps = uccsd_singlet_get_packed_amplitudes(
+            molecule.ccsd_single_amps,
+            molecule.ccsd_double_amps,
+            molecule.n_qubits,
+            molecule.n_electrons,
+        )
         theta = packed_amps[-1]  # always take the doubles amplitude
 
         # now that we're done setting up the Hamiltonian and grabbing initial opt parameters
@@ -122,18 +131,19 @@ if __name__ == "__main__":
         # observable = objective_fun(theta, hamiltonian=paulis_bk_hamiltonian, quantum_resource=qvm)
         observable = objective_fun(theta, hamiltonian=bk_mat, quantum_resource=qvm)
 
-        result = minimize(objective_fun, x0=theta, args=(bk_mat, qvm), method='CG',
-                          options={'disp': True})
+        result = minimize(
+            objective_fun, x0=theta, args=(bk_mat, qvm), method="CG", options={"disp": True}
+        )
         ucc_energy.append(result.fun)
         fci_energy.append(molecule.fci_energy)
         hf_energy.append(molecule.hf_energy)
         print(w[0], molecule.fci_energy, tenergy, result.fun)
 
-    plt.plot(bond_length, hf_energy, 'C1o-', label='HF')
-    plt.plot(bond_length, ucc_energy, 'C0o-', label='UCC-VQE')
-    plt.plot(bond_length, fci_energy, 'k-', label='FCI')
-    plt.xlabel(r'Bond Distance [$\AA$]', fontsize=14)
-    plt.ylabel('Energy [Hartree]', fontsize=14)
-    plt.legend(loc='upper right', fontsize=13)
+    plt.plot(bond_length, hf_energy, "C1o-", label="HF")
+    plt.plot(bond_length, ucc_energy, "C0o-", label="UCC-VQE")
+    plt.plot(bond_length, fci_energy, "k-", label="FCI")
+    plt.xlabel(r"Bond Distance [$\AA$]", fontsize=14)
+    plt.ylabel("Energy [Hartree]", fontsize=14)
+    plt.legend(loc="upper right", fontsize=13)
     plt.tight_layout()
     plt.show()

@@ -8,30 +8,27 @@ from pyquil.gates import H, CNOT, MEASURE
 
 def run_bell_high_level(n_shots=1000):
     # Step 1. Get a device. Either a QVM or a QPU
-    qc = get_qc('9q-generic-qvm')
+    qc = get_qc("9q-generic-qvm")
     q = [4, 5]  # qubits
 
     # Step 2. Construct your program
-    program = Program(
-        H(q[0]),
-        CNOT(q[0], q[1])
-    )
+    program = Program(H(q[0]), CNOT(q[0], q[1]))
 
     # Step 3. Run
     results = qc.run_and_measure(program, trials=n_shots)
 
     # Bincount bitstrings
     ints = sum(results[q[i]] * 2 ** i for i in range(len(q)))
-    print('bincounts', np.bincount(ints))
+    print("bincounts", np.bincount(ints))
 
     # Check parity
     parities = (results[q[0]] + results[q[1]]) % 2
-    print('avg parity', np.mean(parities))
+    print("avg parity", np.mean(parities))
 
 
 def run_bell_medium_level(n_shots=1000):
     # Step 1. Get a device. Either a QVM or a QPU
-    qc = get_qc('9q-generic-qvm')
+    qc = get_qc("9q-generic-qvm")
     q = [4, 5]  # qubits
 
     # Step 2. Construct your program
@@ -40,7 +37,7 @@ def run_bell_medium_level(n_shots=1000):
     program += CNOT(q[0], q[1])
 
     # Step 2.1. Manage read-out memory
-    ro = program.declare('ro', memory_type='BIT', memory_size=2)
+    ro = program.declare("ro", memory_type="BIT", memory_size=2)
     program += MEASURE(q[0], ro[0])
     program += MEASURE(q[1], ro[1])
 
@@ -54,16 +51,16 @@ def run_bell_medium_level(n_shots=1000):
     # Bincount bitstrings
     basis = np.array([2 ** i for i in range(len(q))])
     ints = np.sum(bitstrings * basis, axis=1)
-    print('bincounts', np.bincount(ints))
+    print("bincounts", np.bincount(ints))
 
     # Check parity
     parities = np.sum(bitstrings, axis=1) % 2
-    print('avg parity', np.mean(parities))
+    print("avg parity", np.mean(parities))
 
 
 def run_bell_low_level(n_shots=1000):
     # Step 1. Get some device components
-    qc = get_qc('9q-generic-qvm')
+    qc = get_qc("9q-generic-qvm")
     compiler = qc.compiler
     qam = qc.qam
     del qc
@@ -76,7 +73,7 @@ def run_bell_low_level(n_shots=1000):
     program += CNOT(q[0], q[1])
 
     # Step 2.1. Manage read-out memory
-    ro = program.declare('ro', memory_type='BIT', memory_size=2)
+    ro = program.declare("ro", memory_type="BIT", memory_size=2)
     program += MEASURE(q[0], ro[0])
     program += MEASURE(q[1], ro[1])
 
@@ -86,22 +83,19 @@ def run_bell_low_level(n_shots=1000):
     # Step 3. Compile and run
     nq_program = compiler.quil_to_native_quil(program)
     executable = compiler.native_quil_to_executable(nq_program)
-    bitstrings = qam.load(executable) \
-        .run() \
-        .wait() \
-        .read_memory(region_name="ro")
+    bitstrings = qam.load(executable).run().wait().read_memory(region_name="ro")
 
     # Bincount bitstrings
     basis = np.array([2 ** i for i in range(len(q))])
     ints = np.sum(bitstrings * basis, axis=1)
-    print('bincounts', np.bincount(ints))
+    print("bincounts", np.bincount(ints))
 
     # Check parity
     parities = np.sum(bitstrings, axis=1) % 2
-    print('avg parity', np.mean(parities))
+    print("avg parity", np.mean(parities))
 
 
-if __name__ == '__main__':
+if __name__ == "__main__":
     run_bell_high_level()
     run_bell_medium_level()
     run_bell_low_level()

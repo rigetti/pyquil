@@ -41,7 +41,7 @@ def die_program(number_of_sides):
     """
     prog = Program()
     n_qubits = qubits_needed(number_of_sides)
-    ro = prog.declare('ro', 'BIT', n_qubits)
+    ro = prog.declare("ro", "BIT", n_qubits)
     # Hadamard initialize.
     for q in range(n_qubits):
         prog.inst(H(q))
@@ -72,7 +72,7 @@ def roll_die(qvm, number_of_sides):
     return process_results(qvm.run(die_compiled))
 
 
-if __name__ == '__main__':
+if __name__ == "__main__":
     number_of_sides = int(input("Please enter number of sides: "))
     qvm = get_qvm(number_of_sides)
     die_value = roll_die(qvm, number_of_sides)
