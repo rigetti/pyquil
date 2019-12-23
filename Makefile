@@ -6,6 +6,10 @@ DOCKER_TAG=rigetti/forest:$(COMMIT_HASH)
 .PHONY: all
 all: dist
 
+.PHONY: checkall
+checkall:
+	formatcheck style typecheck
+
 .PHONY: clean
 clean:
 	rm -rf dist

@@ -112,6 +112,13 @@ use the `typing` module, types (e.g. `type` and `rtype` entries) should be omitt
 (useful) [Sphinx-style](https://sphinx-rtd-tutorial.readthedocs.io/en/latest/docstrings.html)
 docstrings for classes, methods, and functions.
 
+As useful shorthand, all of these style-related tests can be run locally with a single command,
+by running the following:
+
+```bash
+make checkall
+```
+
 [pep-484]: https://www.python.org/dev/peps/pep-0484/
 
 ### Running the Unit Tests
