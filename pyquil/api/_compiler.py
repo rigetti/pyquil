@@ -34,7 +34,7 @@ from rpcq.messages import (
 from urllib.parse import urljoin
 
 from pyquil import __version__
-from pyquil.api._base_connection import ForestSession, get_session
+from pyquil.api._base_connection import ForestSession
 from pyquil.api._qac import AbstractCompiler
 from pyquil.api._error_reporting import _record_call
 from pyquil.api._errors import UserMessageError

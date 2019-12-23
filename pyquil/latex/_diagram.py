@@ -23,7 +23,6 @@ from pyquil.quilatom import format_parameter
 from pyquil.quilbase import (
     AbstractInstruction,
     Wait,
-    Reset,
     ResetQubit,
     JumpConditional,
     JumpWhen,

@@ -30,7 +30,6 @@ from pyquil.api._config import PyquilConfig
 from pyquil.api._error_reporting import _record_call
 from pyquil.api._errors import error_mapping, UserMessageError, UnknownApiError, TooManyQubitsError
 from pyquil.api._logger import logger
-from pyquil.device import Specs, ISA
 from pyquil.wavefunction import Wavefunction
 
 TYPE_EXPECTATION = "expectation"

@@ -3,7 +3,7 @@ import pytest
 
 from pyquil import Program
 from pyquil import gate_matrices as mat
-from pyquil.gates import *
+from pyquil.gates import CCNOT, CNOT, CZ, H, MEASURE, PHASE, RX, RY, RZ, X, Y, Z
 from pyquil.experiment import plusX, minusZ
 from pyquil.paulis import sX, sY, sZ
 from pyquil.unitary_tools import (

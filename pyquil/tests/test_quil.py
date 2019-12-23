@@ -406,7 +406,7 @@ def test_dagger():
     assert p.dagger().out() == "DAGGER H 0\nDAGGER X 0\n"
 
     p = Program(X(0), MEASURE(0, MemoryReference("ro", 0)))
-    with pytest.raises(ValueError) as e:
+    with pytest.raises(ValueError):
         p.dagger().out()
 
     # ensure that modifiers are preserved https://github.com/rigetti/pyquil/pull/914
@@ -1385,12 +1385,10 @@ def test_params_pi_and_precedence():
     exp = str(prog[0].params[0])
     assert _eval_as_np_pi(trivial_pi) == _eval_as_np_pi(exp)
 
-    less_trivial_pi = "3 * theta[0] * 2 / (pi)"
     prog = Program(f"RX({trivial_pi}) 0")
     exp = str(prog[0].params[0])
     assert _eval_as_np_pi(trivial_pi) == _eval_as_np_pi(exp)
 
-    more_less_trivial_pi = "3 / (theta[0] / (pi + 1)) / pi"
     prog = Program(f"RX({trivial_pi}) 0")
     exp = str(prog[0].params[0])
     assert _eval_as_np_pi(trivial_pi) == _eval_as_np_pi(exp)

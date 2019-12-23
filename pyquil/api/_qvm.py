@@ -34,7 +34,6 @@ from pyquil.api._compiler import QVMCompiler, _extract_program_from_pyquil_execu
 from pyquil.api._config import PyquilConfig
 from pyquil.api._error_reporting import _record_call
 from pyquil.api._qam import QAM
-from pyquil.device import Device
 from pyquil.gates import MOVE, MemoryReference
 from pyquil.noise import apply_noise_model
 from pyquil.paulis import PauliSum

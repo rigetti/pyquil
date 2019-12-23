@@ -1,13 +1,11 @@
-import networkx as nx
 import numpy as np
 import pytest
 
 from rpcq.messages import PyQuilExecutableResponse
 
 from pyquil import Program
-from pyquil.api import QVM, ForestConnection, QVMCompiler
+from pyquil.api import ForestConnection, QVM
 from pyquil.api._compiler import _extract_program_from_pyquil_executable_response
-from pyquil.device import NxDevice
 from pyquil.gates import MEASURE, X, CNOT, H
 from pyquil.quilbase import Declare, MemoryReference
 

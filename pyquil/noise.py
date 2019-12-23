@@ -468,7 +468,6 @@ def _decoherence_noise_model(
     kraus_maps = []
     for g in gates:
         targets = tuple(t.index for t in g.qubits)
-        key = (g.name, tuple(g.params))
         if g.name in NO_NOISE:
             continue
         matrix, _ = get_noisy_gate(g.name, g.params)

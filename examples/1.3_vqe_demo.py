@@ -2,7 +2,6 @@
 This is a demo of VQE through the forest stack. We will do the H2 binding from the Google paper
 using OpenFermion to generate Hamiltonians and Forest to simulate the system
 """
-import sys
 import numpy as np
 import matplotlib.pyplot as plt
 
@@ -18,7 +17,7 @@ from forestopenfermion import qubitop_to_pyquilpauli
 
 from pyquil.quil import Program
 from pyquil.paulis import sX, sY, exponentiate, PauliSum
-from pyquil.gates import X, I
+from pyquil.gates import X
 from pyquil.api import QVMConnection
 from pyquil.unitary_tools import tensor_up
 

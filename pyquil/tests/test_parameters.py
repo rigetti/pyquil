@@ -8,7 +8,6 @@ from pyquil.quilatom import (
     quil_cos,
     quil_sqrt,
     quil_exp,
-    quil_cis,
     _contained_parameters,
     format_parameter,
     quil_cis,

@@ -7,7 +7,6 @@ import pytest
 
 from pyquil import Program, get_qc, list_quantum_computers
 from pyquil.api import QVM, QuantumComputer, local_forest_runtime
-from pyquil.tests.utils import DummyCompiler
 from pyquil.api._quantum_computer import (
     _symmetrization,
     _flip_array_to_prog,
@@ -21,7 +20,7 @@ from pyquil.api._quantum_computer import (
     _check_min_num_trials_for_symmetrized_readout,
 )
 from pyquil.device import NxDevice, gates_in_isa
-from pyquil.gates import *
+from pyquil.gates import CNOT, H, I, MEASURE, RX, X
 from pyquil.quilbase import Declare, MemoryReference
 from pyquil.noise import decoherence_noise_with_asymmetric_ro
 from pyquil.pyqvm import PyQVM

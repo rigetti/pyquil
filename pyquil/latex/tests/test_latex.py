@@ -3,7 +3,7 @@ import pytest
 from pyquil.quil import Program, Pragma
 from pyquil.quilbase import Declare, Measurement, JumpTarget, Jump
 from pyquil.quilatom import MemoryReference, Label
-from pyquil.gates import H, X, Y, RX, CZ, SWAP, MEASURE, CNOT, RESET, WAIT, MOVE
+from pyquil.gates import H, X, Y, RX, CZ, SWAP, MEASURE, CNOT, WAIT, MOVE
 from pyquil.latex import to_latex, DiagramSettings
 from pyquil.latex._diagram import split_on_terminal_measures
 

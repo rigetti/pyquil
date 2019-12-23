@@ -5,7 +5,7 @@ import pytest
 
 from pyquil import Program
 from pyquil.gate_matrices import QUANTUM_GATES as GATES
-from pyquil.gates import *
+from pyquil.gates import CCNOT, CNOT, H, MEASURE, RX, X
 from pyquil.numpy_simulator import (
     targeted_einsum,
     NumpyWavefunctionSimulator,

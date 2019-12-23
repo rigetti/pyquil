@@ -1,4 +1,12 @@
-from pyquil.magic import *
+from pyquil.magic import (
+    CNOT,
+    H,
+    I,
+    MEASURE,
+    X,
+    Program,
+    magicquil,
+)
 
 
 @magicquil

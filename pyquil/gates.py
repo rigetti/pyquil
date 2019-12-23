@@ -14,18 +14,14 @@
 #    limitations under the License.
 ##############################################################################
 from warnings import warn
-from typing import Any, Callable, Mapping, Optional, Tuple, Union, overload
+from typing import Callable, Mapping, Optional, Tuple, Union
 
 from pyquil.quilatom import (
     Addr,
-    Expression,
     MemoryReference,
     MemoryReferenceDesignator,
-    Parameter,
     ParameterDesignator,
-    Qubit,
     QubitDesignator,
-    QubitPlaceholder,
     unpack_classical_reg,
     unpack_qubit,
 )
