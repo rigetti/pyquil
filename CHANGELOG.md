@@ -10,6 +10,7 @@ Changelog
 
 <<<<<<< HEAD
 <<<<<<< HEAD
+<<<<<<< HEAD
 -   Type hints have been added to the `quil.py` file (@rht, gh-1115, gh-1134).
 -   Use [Black](https://black.readthedocs.io/en/stable/index.html) for code style
     and enforce it (along with a line length of 100) via the `style` (`flake8`)
@@ -40,7 +41,7 @@ Changelog
 -   Use `dataclasses` instead of `namedtuples` in the `pyquil/device` module, and
     add type annotations to the entire module (@karalekas, gh-1149).
 -   `QAM.write_memory` now accepts either a `Sequence` of values or a single
-    value. (@tommy-moffat, gh-658)
+    value (@tommy-moffat, gh-1114).
 
 ### Bugfixes
 
