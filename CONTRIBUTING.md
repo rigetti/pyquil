@@ -92,18 +92,27 @@ Developer How-Tos
 
 ### Style Guidelines
 
-We use `flake8` to automatically lint the code and enforce style requirements as part of the
-CI pipeline. You can run these style tests yourself locally by running `flake8 pyquil` (or
-`make style`) in the top-level directory of the repository. If you aren't presented with any
-errors, then that means your code is good enough for the linter. In addition to these tests,
-we have a collection of self-imposed style guidelines regarding typing, docstrings, and line
-length:
+We use [Black](https://black.readthedocs.io/en/stable/index.html) and `flake8` to automatically
+lint the code and enforce style requirements as part of the CI pipeline. You can run these style
+tests yourself locally by running `make style` (to check for violations of the `flake8` rules)
+and `make formatcheck` (to see if `black` would reformat the code) in the top-level directory of
+the repository. If you aren't presented with any errors, then that means your code is good enough
+for the linter (`flake8`) and formatter (`black`). If `make formatcheck` fails, it will present
+you with a diff, which you can resolve by running `make format`.  Black is very opinionated, but
+saves a lot of time by removing the need for style nitpicks in PR review. We only deviate from its
+default behavior in one category: we choose to use a line length of 100 rather than the Black
+default of 88.
 
-1. Use type hints for parameters and return types with the
-   [PEP 484 syntax](https://www.python.org/dev/peps/pep-0484/).
-2. Write useful [Sphinx-style](https://sphinx-rtd-tutorial.readthedocs.io/en/latest/docstrings.html)
-   docstrings, but without the `type` and `rtype` entries (use type hints instead).
-3. Limit line length to 100 characters in code and documentation.
+In addition to linting and formatting, we are in the process of rolling out the use of type hints
+for all parameters and return values, using the [PEP 484 syntax][pep-484]. This is being done on
+a file-by-file basis, and for ones that have been completed we now have a `make typecheck` command
+that will enforce the use of types in those files as part of the CI. When a file is transitioned,
+it should be added to the list in the `typecheck` target of the `Makefile`. Because we use the
+`typing` module, types (e.g. `type` and `rtype` entries) should be omitted when writing (useful)
+[Sphinx-style](https://sphinx-rtd-tutorial.readthedocs.io/en/latest/docstrings.html) docstrings
+for classes, methods, and functions.
+
+[pep-484]: https://www.python.org/dev/peps/pep-0484/
 
 ### Running the Unit Tests
 
