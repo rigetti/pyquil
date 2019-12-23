@@ -892,8 +892,8 @@ def local_forest_runtime(
     else:
         qvm_cmd = ['qvm', '-S', '--host', host, '-p', str(qvm_port)]
         qvm = subprocess.Popen(qvm_cmd,
-                               stdout=subprocess.PIPE,
-                               stderr=subprocess.PIPE)
+                               stdout=subprocess.DEVNULL,
+                               stderr=subprocess.DEVNULL)
 
     if _port_used(host if host != '0.0.0.0' else '127.0.0.1', quilc_port):
         warning_msg = ("Unable to start quilc server, since the specified "
@@ -906,8 +906,8 @@ def local_forest_runtime(
             quilc_cmd += ['-P']
 
         quilc = subprocess.Popen(quilc_cmd,
-                                 stdout=subprocess.PIPE,
-                                 stderr=subprocess.PIPE)
+                                 stdout=subprocess.DEVNULL,
+                                 stderr=subprocess.DEVNULL)
 
     # Return context
     try:
