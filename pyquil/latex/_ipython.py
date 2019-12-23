@@ -40,7 +40,8 @@ def display(circuit: Program, settings: Optional[DiagramSettings] = None, **imag
        these yourself.
 
     :param Program circuit: The circuit to be drawn, represented as a pyquil program.
-    :param DiagramSettings settings: An optional object of settings controlling diagram rendering and layout.
+    :param DiagramSettings settings: An optional object of settings controlling diagram rendering
+        and layout.
     :return: PNG image render of the circuit.
     :rtype: IPython.display.Image
     """

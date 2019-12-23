@@ -132,8 +132,9 @@ class CustomErrorListener(ErrorListener):
     def get_expected_tokens(self, parser, interval_set):
         # type: (QuilParser, IntervalSet) -> Iterator
         """
-        Like the default getExpectedTokens method except that it will fallback to the rule name if the token isn't a
-        literal. For instance, instead of <INVALID> for  integer it will return the rule name: INT
+        Like the default getExpectedTokens method except that it will fallback to the rule name if
+        the token isn't a literal. For instance, instead of <INVALID> for  integer it will return
+        the rule name: INT
         """
         for tok in interval_set:
             literal_name = parser.literalNames[tok]
@@ -175,10 +176,11 @@ class PyQuilListener(QuilListener):
         self.result.append(DefGateByPaulis(gate_name, parameters, arguments, body))
 
     # DEFCIRCUIT parsing:
-    # When we enter a circuit definition we create a backup of the instructions seen up to that point. Then, when the
-    # listener continues walking through the circuit instructions it will add to an empty list. Once we leave the
-    # circuit we then take all those instructions, shove them into a RawInstr (since PyQuil has no support for circuit
-    # definitions yet), recover the backup, and then continue on our way.
+    # When we enter a circuit definition we create a backup of the instructions seen up to that
+    # point. Then, when the listener continues walking through the circuit instructions it will
+    # add to an empty list. Once we leave the circuit we then take all those instructions, shove
+    # them into a RawInstr (since PyQuil has no support for circuit definitions yet), recover the
+    # backup, and then continue on our way.
 
     def enterDefCircuit(self, ctx: QuilParser.DefCircuitContext) -> None:
         self.previous_result = self.result
@@ -256,8 +258,9 @@ class PyQuilListener(QuilListener):
 
     def exitCircuitGate(self, ctx: QuilParser.CircuitGateContext):
         """
-        PyQuil has no constructs yet for representing gate instructions within a DEFCIRCUIT (ie. gates where the qubits
-        are inputs to the call to the circuit). Therefore we parse them as a raw instructions.
+        PyQuil has no constructs yet for representing gate instructions within a DEFCIRCUIT (i.e.
+        gates where the qubits are inputs to the call to the circuit). Therefore we parse them as a
+        raw instructions.
         """
         gate_name = ctx.name().getText()
         params = [param.getText() for param in ctx.param()]
@@ -539,7 +542,8 @@ def _label(label):
 def _expression(expression):
     # type: (QuilParser.ExpressionContext) -> Any
     """
-    NB: Order of operations is already dealt with by the grammar. Here we can simply match on the type.
+    NB: Order of operations is already dealt with by the grammar. Here we can simply match on the
+    type.
     """
     if isinstance(expression, QuilParser.ParenthesisExpContext):
         return _expression(expression.expression())

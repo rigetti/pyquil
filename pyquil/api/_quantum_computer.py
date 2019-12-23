@@ -915,8 +915,8 @@ def local_forest_runtime(
     won't be started.
 
     .. note::
-        Only processes started by this context manager will be terminated on exit, no external process will
-        be touched.
+        Only processes started by this context manager will be terminated on exit, no external
+        process will be touched.
 
 
     >>> from pyquil import get_qc, Program

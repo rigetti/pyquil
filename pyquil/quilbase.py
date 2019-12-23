@@ -212,7 +212,8 @@ class Gate(AbstractInstruction):
 
     def forked(self, fork_qubit: QubitDesignator, alt_params: List[ParameterDesignator]) -> "Gate":
         """
-        Add the FORKED modifier to the gate with the given fork qubit and given additional parameters.
+        Add the FORKED modifier to the gate with the given fork qubit and given additional
+        parameters.
         """
         if not isinstance(alt_params, list):
             raise TypeError("Gate params must be a list")
@@ -688,7 +689,8 @@ class LogicalBinaryOp(AbstractInstruction):
 
 class ClassicalAnd(LogicalBinaryOp):
     """
-    WARNING: The operand order for ClassicalAnd has changed.  In pyQuil versions <= 1.9, AND had signature
+    WARNING: The operand order for ClassicalAnd has changed.  In pyQuil versions <= 1.9, AND had
+    signature
 
         AND %source %target
 

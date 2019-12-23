@@ -381,7 +381,8 @@ class ForestSession(requests.Session):
             )
         else:
             raise UserMessageError(
-                f"Unable to engage {self.lattice_name}: {engagement_response.get('message', 'No message')}"
+                f"Unable to engage {self.lattice_name}: "
+                f"{engagement_response.get('message', 'No message')}"
             )
 
     def get_engagement(self) -> Optional["Engagement"]:

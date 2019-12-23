@@ -1,8 +1,6 @@
 """
-This is a demo of VQE through the forest stack. We will do the H2 binding from the Google paper using
-OpenFermion to generate Hamiltonians and Forest to simulate the system
-
-
+This is a demo of VQE through the forest stack. We will do the H2 binding from the Google paper
+using OpenFermion to generate Hamiltonians and Forest to simulate the system
 """
 import sys
 import numpy as np

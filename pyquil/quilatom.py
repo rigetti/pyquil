@@ -83,7 +83,8 @@ class Qubit(QuilAtom):
 
 class FormalArgument(QuilAtom):
     """
-    Representation of a formal argument associated with a DEFCIRCUIT or DEFGATE ... AS PAULI-SUM form.
+    Representation of a formal argument associated with a DEFCIRCUIT or DEFGATE ... AS PAULI-SUM
+    form.
     """
 
     def __init__(self, name: str):
@@ -178,7 +179,8 @@ def unpack_classical_reg(c: MemoryReferenceDesignator) -> "MemoryReference":
     """
     Get the address for a classical register.
 
-    :param c: A list of length 2, a pair, a string (to be interpreted as name[0]), or a MemoryReference.
+    :param c: A list of length 2, a pair, a string (to be interpreted as name[0]), or a
+        MemoryReference.
     :return: The address as a MemoryReference.
     """
     if isinstance(c, list) or isinstance(c, tuple):
@@ -250,8 +252,8 @@ ParameterDesignator = Union["Expression", "MemoryReference", np.int_, int, float
 
 def format_parameter(element: ParameterDesignator) -> str:
     """
-    Formats a particular parameter. Essentially the same as built-in formatting except using 'i' instead of 'j' for
-    the imaginary number.
+    Formats a particular parameter. Essentially the same as built-in formatting except using 'i'
+    instead of 'j' for the imaginary number.
 
     :param element: The parameter to format for Quil output.
     """
@@ -296,10 +298,11 @@ ExpressionDesignator = Union["Expression", ExpressionValueDesignator]
 
 class Expression(object):
     """
-    Expression involving some unbound parameters. Parameters in Quil are represented as a label like '%x' for the
-    parameter named 'x'. An example expression therefore may be '%x*(%y/4)'.
+    Expression involving some unbound parameters. Parameters in Quil are represented as a label
+    like '%x' for the parameter named 'x'. An example expression therefore may be '%x*(%y/4)'.
 
-    Expressions may also have function calls, supported functions in Quil are sin, cos, sqrt, exp, and cis
+    Expressions may also have function calls, supported functions in Quil are sin, cos, sqrt, exp,
+    and cis.
 
     This class overrides all the Python operators that are supported by Quil.
     """
@@ -576,8 +579,8 @@ class Pow(BinaryExp):
 
 def _expression_to_string(expression: ExpressionDesignator) -> str:
     """
-    Recursively converts an expression to a string taking into account precedence and associativity for placing
-    parenthesis
+    Recursively converts an expression to a string taking into account precedence and associativity
+    for placing parenthesis.
 
     :param expression: expression involving parameters
     :return: string such as '%x*(%y-4)'
@@ -719,15 +722,16 @@ class Addr(MemoryReference):
     """
     Representation of a classical bit address.
 
-    WARNING: Addr has been deprecated. Addr(c) instances are auto-replaced by MemoryReference("ro", c).
-             Use MemoryReference instances.
+    WARNING: Addr has been deprecated. Addr(c) instances are auto-replaced by
+             MemoryReference("ro", c). Use MemoryReference instances.
 
     :param value: The classical address.
     """
 
     def __init__(self, value: int):
         warn(
-            'Addr objects have been deprecated. Defaulting to memory region "ro". Use MemoryReference instead.'
+            'Addr objects have been deprecated. Defaulting to memory region "ro". Use '
+            "MemoryReference instead."
         )
         if not isinstance(value, int) or value < 0:
             raise TypeError("Addr value must be a non-negative int")

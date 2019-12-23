@@ -176,7 +176,8 @@ class Wavefunction(object):
         """
         Plots a bar chart with bitstring on the x axis and probability on the y axis.
 
-        :param list qubit_subset: Optional parameter used for plotting a subset of the Hilbert space.
+        :param list qubit_subset: Optional parameter used for plotting a subset of the Hilbert
+            space.
         """
         import matplotlib.pyplot as plt
 

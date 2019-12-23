@@ -71,7 +71,10 @@ Currently includes:
     :math:`\begin{pmatrix} 1&0&0&0 \\ 0&0&e^{i\phi}&0 \\ 0&e^{i\phi}&0&0 \\ 0&0&0&1 \end{pmatrix}`
 
     XY(:math:`\phi`) - XY-interaction
-    :math:`\begin{pmatrix} 1&0&0&0 \\ 0&\cos(\phi/2)&i\sin(\phi/2)&0 \\ 0&i\sin(\phi/2)&\cos(\phi/2)&0 \\ 0&0&0&1 \end{pmatrix}`
+    :math:`\begin{pmatrix} 1&0&0&0 \\
+                           0&\cos(\phi/2)&i\sin(\phi/2)&0 \\
+                           0&i\sin(\phi/2)&\cos(\phi/2)&0 \\
+                           0&0&0&1 \end{pmatrix}`
 
 Specialized gates / internal utility gates:
     BARENCO(:math:`\alpha, \phi, \theta`) - Barenco gate

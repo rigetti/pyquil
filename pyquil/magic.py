@@ -65,11 +65,12 @@ def _if_statement(test, if_function, else_function) -> None:
     """
     Evaluate an if statement within a @magicquil block.
 
-    If the test value is a Quil MemoryReference then unwind it into quil code equivalent to an if then statement using jumps. Both
-    sides of the if statement need to be evaluated and placed into separate Programs, which is why we create new
-    program contexts for their evaluation.
+    If the test value is a Quil MemoryReference then unwind it into quil code equivalent to an if
+    then statement using jumps. Both sides of the if statement need to be evaluated and placed into
+    separate Programs, which is why we create new program contexts for their evaluation.
 
-    If the test value is not a Quil MemoryReference then fall back to what Python would normally do with an if statement.
+    If the test value is not a Quil MemoryReference then fall back to what Python would normally do
+    with an if statement.
 
     Params are:
         if <test>:
@@ -109,8 +110,8 @@ _EMPTY_ARGUMENTS = ast.arguments(
 
 class _IfTransformer(ast.NodeTransformer):
     """
-    Transformer that unwraps the if and else branches into separate inner functions and then wraps them in a call to
-    _if_statement. For example:
+    Transformer that unwraps the if and else branches into separate inner functions and then wraps
+    them in a call to _if_statement. For example:
 
         if 1 + 1 == 2:
             print('math works')
@@ -127,8 +128,9 @@ class _IfTransformer(ast.NodeTransformer):
     """
 
     def visit_If(self, node):
-        # Must recursively visit the body of both the if and else bodies to handle any nested if and else statements
-        # This also conveniently handles elif since those are just treated as a nested if/else within the else branch
+        # Must recursively visit the body of both the if and else bodies to handle any nested if
+        # and else statements. This also conveniently handles elif since those are just treated
+        # as a nested if/else within the else branch.
         # See: https://greentreesnakes.readthedocs.io/en/latest/nodes.html#If
         node = self.generic_visit(node)
 
@@ -169,8 +171,8 @@ class _IfTransformer(ast.NodeTransformer):
 
 def _rewrite_function(f):
     """
-    Rewrite a function so that any if/else branches are intercepted and their behavior can be overridden. This is
-    accomplished using 3 steps:
+    Rewrite a function so that any if/else branches are intercepted and their behavior can be
+    overridden. This is accomplished using 3 steps:
 
     1. Get the source of the function and then rewrite the AST using _IfTransformer
     2. Do some small fixups to the tree to make sure
@@ -190,20 +192,21 @@ def _rewrite_function(f):
     tree.body[0].decorator_list = []
 
     compiled = compile(tree, filename="<ast>", mode="exec")
-    # The first f_back here gets to the body of magicquil() and the second f_back gets to the user's call site which
-    # is what we want. If we didn't add these manually to the globals it wouldn't be possible to call other @magicquil
-    # functions from within a @magicquil function.
+    # The first f_back here gets to the body of magicquil() and the second f_back gets to the
+    # user's call site which is what we want. If we didn't add these manually to the globals it
+    # wouldn't be possible to call other @magicquil functions from within a @magicquil function.
     prev_globals = inspect.currentframe().f_back.f_back.f_globals
-    # For reasons I don't quite understand it's critical to add locals() here otherwise the function will disappear and
-    # we won't be able to return it below
+    # For reasons I don't quite understand it's critical to add locals() here otherwise the
+    # function will disappear and we won't be able to return it below
     exec(compiled, {**prev_globals, **globals()}, locals())
     return locals()[f.__name__ + "_patched"]
 
 
 def magicquil(f):
     """
-    Decorator to enable a more convenient syntax for writing quil programs. With this decorator there is no need to
-    keep track of a Program object and regular Python if/else branches can be used for classical control flow.
+    Decorator to enable a more convenient syntax for writing quil programs. With this decorator
+    there is no need to keep track of a Program object and regular Python if/else branches can be
+    used for classical control flow.
 
     Example usage:
 

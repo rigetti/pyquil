@@ -475,8 +475,8 @@ class PauliTerm(object):
         >>> p.pauli_string(qubits=[0, 2])
         "XI"
 
-        :param iterable of qubits: The iterable of qubits to represent, given as ints. If None, defaults to
-            all qubits in this PauliTerm.
+        :param iterable of qubits: The iterable of qubits to represent, given as ints. If None,
+            defaults to all qubits in this PauliTerm.
         :return: The string representation of this PauliTerm, sans coefficient
         """
         if qubits is None:

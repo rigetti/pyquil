@@ -153,10 +153,8 @@ class Job(object):
 
     def get(self):
         warnings.warn(
-            """
-        Running get() on a Job is now a no-op.
-        To query for updated results, use .get_job(job.job_id) on a QVMConnection/QPUConnection instead
-        """,
+            "Running get() on a Job is now a no-op. To query for updated results, "
+            "use .get_job(job.job_id) on a QVMConnection/QPUConnection instead.",
             stacklevel=2,
         )
 

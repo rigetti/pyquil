@@ -112,7 +112,8 @@ You have attempted to supply the QVM with both a device noise model
 (by having supplied a device argument), as well as either gate_noise
 or measurement_noise. At this time, only one may be supplied.
 
-To read more about supplying noise to the QVM, see http://pyquil.readthedocs.io/en/latest/noise_models.html#support-for-noisy-gates-on-the-rigetti-qvm.
+To read more about supplying noise to the QVM, see
+http://pyquil.readthedocs.io/en/latest/noise_models.html#support-for-noisy-gates-on-the-rigetti-qvm.
 """
             )
 
@@ -318,8 +319,8 @@ programs run on this QVM.
                 return np.real_if_close(np.dot(coefs, expect_coeffs))
 
         :param Program prep_prog: Quil program for state preparation.
-        :param list operator_programs: A list of Programs, each specifying an operator whose expectation to compute.
-            Default is a list containing only the empty Program.
+        :param list operator_programs: A list of Programs, each specifying an operator whose
+            expectation to compute. Default is a list containing only the empty Program.
         :return: Expectation values of the operators.
         :rtype: List[float]
         """
@@ -330,8 +331,8 @@ programs run on this QVM.
 
         if isinstance(operator_programs, Program):
             warnings.warn(
-                "You have provided a Program rather than a list of Programs. The results from expectation "
-                "will be line-wise expectation values of the operator_programs.",
+                "You have provided a Program rather than a list of Programs. The results from "
+                "expectation will be line-wise expectation values of the operator_programs.",
                 SyntaxWarning,
             )
 
@@ -447,7 +448,8 @@ You have attempted to supply the QVM with both a Kraus noise model
 (by supplying a `noise_model` argument), as well as either `gate_noise`
 or `measurement_noise`. At this time, only one may be supplied.
 
-To read more about supplying noise to the QVM, see http://pyquil.readthedocs.io/en/latest/noise_models.html#support-for-noisy-gates-on-the-rigetti-qvm.
+To read more about supplying noise to the QVM, see
+http://pyquil.readthedocs.io/en/latest/noise_models.html#support-for-noisy-gates-on-the-rigetti-qvm.
 """
             )
 

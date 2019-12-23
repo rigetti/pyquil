@@ -65,8 +65,8 @@ DEFGATE HADAMARD:
 
 
 def test_def_gate_with_variables():
-    # Note that technically the RX gate includes -i instead of just i but this messes a bit with the test since
-    # it's not smart enough to figure out that -1*i == -i
+    # Note that technically the RX gate includes -i instead of just i but this messes a bit with
+    # the test since it's not smart enough to figure out that -1*i == -i
     theta = Parameter("theta")
     rx = np.array(
         [
@@ -86,7 +86,11 @@ def test_def_gate_with_variables():
 
 def test_def_gate_as():
     perm_gate_str = "DEFGATE CCNOT AS PERMUTATION:\n    0, 1, 2, 3, 4, 5, 7, 6".strip()
-    matrix_gate_str = "DEFGATE CNOT AS MATRIX:\n    1.0, 0.0, 0.0, 0.0\n    0.0, 1.0, 0.0, 0.0\n    0.0, 0.0, 0.0, 1.0\n    0.0, 0.0, 1.0, 0.0".strip()
+    matrix_gate_str = """DEFGATE CNOT AS MATRIX:
+    1.0, 0.0, 0.0, 0.0
+    0.0, 1.0, 0.0, 0.0
+    0.0, 0.0, 0.0, 1.0
+    0.0, 0.0, 1.0, 0.0""".strip()
     unknown_gate_str = "DEFGATE CCNOT AS UNKNOWNTYPE:\n    0, 1, 2, 3, 4, 5, 7, 6".strip()
 
     parse(perm_gate_str)
@@ -96,7 +100,11 @@ def test_def_gate_as():
 
 
 def test_def_gate_as_matrix():
-    matrix_gate_str = "DEFGATE CNOT AS MATRIX:\n    1.0, 0.0, 0.0, 0.0\n    0.0, 1.0, 0.0, 0.0\n    0.0, 0.0, 0.0, 1.0\n    0.0, 0.0, 1.0, 0.0".strip()
+    matrix_gate_str = """DEFGATE CNOT AS MATRIX:
+    1.0, 0.0, 0.0, 0.0
+    0.0, 1.0, 0.0, 0.0
+    0.0, 0.0, 0.0, 1.0
+    0.0, 0.0, 1.0, 0.0""".strip()
     parsed = parse(matrix_gate_str)
 
     assert len(parsed) == 1
@@ -121,7 +129,9 @@ def test_def_gate_as_permutation():
     assert isinstance(parsed[0], DefPermutationGate)
 
     # perm gates are defined by a single row of entries, unlike general defgates
-    bad_perm_gate_str = "DEFGATE CCNOT AS PERMUTATION:\n    0, 1, 2, 3, 4, 5, 7, 6\n    0, 1, 2, 3, 4, 5, 7, 6".strip()
+    bad_perm_gate_str = """DEFGATE CCNOT AS PERMUTATION:
+    0, 1, 2, 3, 4, 5, 7, 6
+    0, 1, 2, 3, 4, 5, 7, 6""".strip()
     with pytest.raises(RuntimeError):
         parse(bad_perm_gate_str)
 

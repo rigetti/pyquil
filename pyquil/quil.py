@@ -229,7 +229,7 @@ class Program(object):
             The matrix elements along each axis are ordered by bitstring. For two qubits the order
             is ``00, 01, 10, 11``, where the the bits **are ordered in reverse** by the qubit index,
             i.e., for qubits 0 and 1 the bitstring ``01`` indicates that qubit 0 is in the state 1.
-            See also :ref:`the related documentation section in the WavefunctionSimulator Overview <basis_ordering>`.
+            See also :ref:`the related docs in the WavefunctionSimulator Overview <basis_ordering>`.
 
         :param name: The name of the gate.
         :param params: Parameters to send to the gate.
@@ -252,7 +252,7 @@ class Program(object):
             The matrix elements along each axis are ordered by bitstring. For two qubits the order
             is ``00, 01, 10, 11``, where the the bits **are ordered in reverse** by the qubit index,
             i.e., for qubits 0 and 1 the bitstring ``01`` indicates that qubit 0 is in the state 1.
-            See also :ref:`the related documentation section in the WavefunctionSimulator Overview <basis_ordering>`.
+            See also :ref:`the related docs in the WavefunctionSimulator Overview <basis_ordering>`.
 
 
         :param name: The name of the gate.
@@ -271,7 +271,7 @@ class Program(object):
             The matrix elements along each axis are ordered by bitstring. For two qubits the order
             is ``00, 01, 10, 11``, where the the bits **are ordered in reverse** by the qubit index,
             i.e., for qubits 0 and 1 the bitstring ``01`` indicates that qubit 0 is in the state 1.
-            See also :ref:`the related documentation section in the WavefunctionSimulator Overview <basis_ordering>`.
+            See also :ref:`the related docs in the WavefunctionSimulator Overview <basis_ordering>`.
 
 
         :param str name: The name of the gate.
@@ -953,14 +953,16 @@ def merge_with_pauli_noise(prog_list: Iterable, probabilities: List, qubits: Lis
     """
     Insert pauli noise channels between each item in the list of programs.
     This noise channel is implemented as a single noisy identity gate acting on the provided qubits.
-    This method does not rely on merge_programs and so avoids the inclusion of redundant Kraus Pragmas
-    that would occur if merge_programs was called directly on programs with distinct noisy gate definitions.
+    This method does not rely on merge_programs and so avoids the inclusion of redundant Kraus
+    Pragmas that would occur if merge_programs was called directly on programs with distinct noisy
+    gate definitions.
 
     :param prog_list: an iterable such as a program or a list of programs.
-        If a program is provided, a single noise gate will be applied after each gate in the program.
-        If a list of programs is provided, the noise gate will be applied after each program.
-    :param probabilities: The 4^num_qubits list of probabilities specifying the desired pauli channel.
-        There should be either 4 or 16 probabilities specified in the order
+        If a program is provided, a single noise gate will be applied after each gate in the
+        program. If a list of programs is provided, the noise gate will be applied after each
+        program.
+    :param probabilities: The 4^num_qubits list of probabilities specifying the desired pauli
+        channel. There should be either 4 or 16 probabilities specified in the order
         I, X, Y, Z or II, IX, IY, IZ, XI, XX, XY, etc respectively.
     :param qubits: a list of the qubits that the noisy gate should act on.
     :return: A single program with noisy gates inserted between each element of the program list.

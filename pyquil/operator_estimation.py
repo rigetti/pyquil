@@ -662,7 +662,7 @@ def ratio_variance(
     See the following for more details:
       - https://doi.org/10.1002/(SICI)1097-0320(20000401)39:4<300::AID-CYTO8>3.0.CO;2-O
       - http://www.stat.cmu.edu/~hseltman/files/ratio.pdf
-      - https://en.wikipedia.org/wiki/Taylor_expansions_for_the_moments_of_functions_of_random_variables
+      - https://w.wiki/EMh
 
     :param a: Mean of 'A', to be used as the numerator in a ratio.
     :param var_a: Variance in 'A'

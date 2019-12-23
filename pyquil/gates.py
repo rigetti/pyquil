@@ -65,10 +65,12 @@ def unpack_reg_val_pair(
     classical_reg2: Union[MemoryReferenceDesignator, int, float],
 ) -> Tuple[MemoryReference, Union[MemoryReference, int, float]]:
     """
-    Helper function for typechecking / type-coercing arguments to constructors for binary classical operators.
+    Helper function for typechecking / type-coercing arguments to constructors for binary classical
+    operators.
 
     :param classical_reg1: Specifier for the classical memory address to be modified.
-    :param classical_reg2: Specifier for the second argument: a classical memory address or an immediate value.
+    :param classical_reg2: Specifier for the second argument: a classical memory address or an
+        immediate value.
     :return: A pair of pyQuil objects suitable for use as operands.
     """
     left = unpack_classical_reg(classical_reg1)
@@ -83,11 +85,13 @@ def prepare_ternary_operands(
     classical_reg3: Union[MemoryReferenceDesignator, int, float],
 ) -> Tuple[MemoryReference, MemoryReference, Union[MemoryReference, int, float]]:
     """
-    Helper function for typechecking / type-coercing arguments to constructors for ternary classical operators.
+    Helper function for typechecking / type-coercing arguments to constructors for ternary
+    classical operators.
 
     :param classical_reg1: Specifier for the classical memory address to be modified.
     :param classical_reg2: Specifier for the left operand: a classical memory address.
-    :param classical_reg3: Specifier for the right operand: a classical memory address or an immediate value.
+    :param classical_reg3: Specifier for the right operand: a classical memory address or an
+        immediate value.
     :return: A triple of pyQuil objects suitable for use as operands.
     """
     if isinstance(classical_reg1, int):
@@ -490,8 +494,8 @@ def XY(angle: ParameterDesignator, q1: QubitDesignator, q2: QubitDesignator) -> 
 
 WAIT = Wait()
 """
-This instruction tells the quantum computation to halt. Typically these is used while classical memory is being
-manipulated by a CPU in a hybrid classical/quantum algorithm.
+This instruction tells the quantum computation to halt. Typically these is used while classical
+memory is being manipulated by a CPU in a hybrid classical/quantum algorithm.
 
 :returns: A Wait object.
 """
@@ -746,7 +750,8 @@ def ADD(
     """
     Produce an ADD instruction.
 
-    :param classical_reg: Left operand for the arithmetic operation. Also serves as the store target.
+    :param classical_reg: Left operand for the arithmetic operation. Also serves as the store
+        target.
     :param right: Right operand for the arithmetic operation.
     :return: A ClassicalAdd instance.
     """
@@ -760,7 +765,8 @@ def SUB(
     """
     Produce a SUB instruction.
 
-    :param classical_reg: Left operand for the arithmetic operation. Also serves as the store target.
+    :param classical_reg: Left operand for the arithmetic operation. Also serves as the store
+        target.
     :param right: Right operand for the arithmetic operation.
     :return: A ClassicalSub instance.
     """
@@ -774,7 +780,8 @@ def MUL(
     """
     Produce a MUL instruction.
 
-    :param classical_reg: Left operand for the arithmetic operation. Also serves as the store target.
+    :param classical_reg: Left operand for the arithmetic operation. Also serves as the store
+        target.
     :param right: Right operand for the arithmetic operation.
     :return: A ClassicalMul instance.
     """
@@ -788,7 +795,8 @@ def DIV(
     """
     Produce an DIV instruction.
 
-    :param classical_reg: Left operand for the arithmetic operation. Also serves as the store target.
+    :param classical_reg: Left operand for the arithmetic operation. Also serves as the store
+        target.
     :param right: Right operand for the arithmetic operation.
     :return: A ClassicalDiv instance.
     """
