@@ -119,7 +119,7 @@ As useful shorthand, all of these style-related tests can be run locally with a 
 by running the following:
 
 ```bash
-make checkall
+make check-all
 ```
 
 [bugbear]: https://github.com/PyCQA/flake8-bugbear
