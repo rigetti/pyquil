@@ -8,6 +8,8 @@ Changelog
 
 ### Improvements and Changes
 
+-   Some of the type hints have been added to the `Program` class (@rht, gh-1115)
+
 ### Bugfixes
 
 -   Don't attach pipes to stdout/stderr when starting quilc and qvm processes in
