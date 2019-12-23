@@ -389,9 +389,7 @@ def test_measure_all():
     p = Program()
     mem = p.declare("ro", memory_size=4)
     p.measure_all((0, mem[0]), (1, mem[1]), (2, mem[3]))
-    assert (
-        p.out() == "DECLARE ro BIT[4]\nMEASURE 0 ro[0]\nMEASURE 1 ro[1]\nMEASURE 2 ro[3]\n"
-    )
+    assert p.out() == "DECLARE ro BIT[4]\nMEASURE 0 ro[0]\nMEASURE 1 ro[1]\nMEASURE 2 ro[3]\n"
 
     p = Program([H(idx) for idx in range(4)])
     p.measure_all()
@@ -443,9 +441,7 @@ def test_construction_syntax():
         .measure(0, MemoryReference("ro", 1))
         .inst(MEASURE(1, MemoryReference("ro", 2)))
     )
-    assert p.out() == (
-        "DECLARE ro BIT[3]\nX 0\nY 1\nMEASURE 0 ro[1]\nMEASURE 1 ro[2]\n"
-    )
+    assert p.out() == ("DECLARE ro BIT[3]\nX 0\nY 1\nMEASURE 0 ro[1]\nMEASURE 1 ro[2]\n")
     p = (
         Program()
         .inst(Declare("ro", "BIT", 2), X(0))
@@ -453,9 +449,7 @@ def test_construction_syntax():
         .inst(Y(1), X(0))
         .measure(0, MemoryReference("ro", 0))
     )
-    assert p.out() == (
-        "DECLARE ro BIT[2]\nX 0\nMEASURE 0 ro[1]\nY 1\nX 0\nMEASURE 0 ro[0]\n"
-    )
+    assert p.out() == ("DECLARE ro BIT[2]\nX 0\nMEASURE 0 ro[1]\nY 1\nX 0\nMEASURE 0 ro[0]\n")
 
 
 def test_singles():

@@ -468,9 +468,7 @@ class PyQVM(QAM):
             self.program_counter += 1
 
         elif isinstance(instruction, RawInstr):
-            raise NotImplementedError(
-                "PyQVM does not support raw instructions. Parse your program"
-            )
+            raise NotImplementedError("PyQVM does not support raw instructions. Parse your program")
 
         elif isinstance(instruction, Halt):
             return True
