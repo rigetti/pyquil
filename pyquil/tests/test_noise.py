@@ -107,7 +107,7 @@ def test_decoherence_noise():
     for g in m1.gates:
         # with infinite coherence time all kraus maps should only have a single, unitary kraus op
         assert len(g.kraus_ops) == 1
-        k0, = g.kraus_ops
+        (k0,) = g.kraus_ops
         # check unitarity
         k0dk0 = k0.dot(k0.conjugate().transpose())
         assert np.allclose(k0dk0, np.eye(k0dk0.shape[0]))

@@ -382,7 +382,7 @@ def get_noisy_gate(gate_name, params):
         assert params == ()
         return np.eye(2), "NOISY-I"
     if gate_name == "RX":
-        angle, = params
+        (angle,) = params
         if np.isclose(angle, np.pi / 2, atol=ANGLE_TOLERANCE):
             return (np.array([[1, -1j], [-1j, 1]]) / np.sqrt(2), "NOISY-RX-PLUS-90")
         elif np.isclose(angle, -np.pi / 2, atol=ANGLE_TOLERANCE):
