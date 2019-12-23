@@ -15,6 +15,43 @@ services:
     alias: quilc
     command: ["-R"]
 
+build-docs:
+  image: python:3.6
+  tags:
+    - github
+  script:
+    - apt-get update && apt-get install -y pandoc
+    - make install
+    - make requirements
+    - make docs
+
+check-format:
+  image: python:3.6
+  tags:
+    - github
+  script:
+    - make install
+    - make requirements
+    - make check-format
+
+check-style:
+  image: python:3.6
+  tags:
+    - github
+  script:
+    - make install
+    - make requirements
+    - make check-style
+
+check-types:
+  image: python:3.6
+  tags:
+    - github
+  script:
+    - make install
+    - make requirements
+    - make check-types
+
 test-py36:
   image: python:3.6
   tags:
@@ -42,43 +79,6 @@ test-py38:
     - make install
     - make requirements
     - make test
-
-style:
-  image: python:3.6
-  tags:
-    - github
-  script:
-    - make install
-    - make requirements
-    - make style
-
-typecheck:
-  image: python:3.6
-  tags:
-    - github
-  script:
-    - make install
-    - make requirements
-    - make typecheck
-
-formatcheck:
-  image: python:3.6
-  tags:
-    - github
-  script:
-    - make install
-    - make requirements
-    - make formatcheck
-
-docs:
-  image: python:3.6
-  tags:
-    - github
-  script:
-    - apt-get update && apt-get install -y pandoc
-    - make install
-    - make requirements
-    - make docs
 
 ####################################################################################################
 # MASTER-ONLY JOBS

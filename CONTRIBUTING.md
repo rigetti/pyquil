@@ -93,23 +93,24 @@ Developer How-Tos
 
 We use [Black](https://black.readthedocs.io/en/stable/index.html) and `flake8` to automatically
 lint the code and enforce style requirements as part of the CI pipeline. You can run these style
-tests yourself locally by running `make style` (to check for violations of the `flake8` rules)
-and `make formatcheck` (to see if `black` would reformat the code) in the top-level directory of
+tests yourself locally by running `make check-style` (to check for violations of the `flake8` rules)
+and `make check-format` (to see if `black` would reformat the code) in the top-level directory of
 the repository. If you aren't presented with any errors, then that means your code is good enough
-for the linter (`flake8`) and formatter (`black`). If `make formatcheck` fails, it will present
+for the linter (`flake8`) and formatter (`black`). If `make check-format` fails, it will present
 you with a diff, which you can resolve by running `make format`. Black is very opinionated, but
 saves a lot of time by removing the need for style nitpicks in PR review. We only deviate from its
 default behavior in one category: we choose to use a line length of 100 rather than the Black
 default of 88 (this is configured in the [`pyproject.toml`](pyproject.toml) file). As for `flake8`,
 we ignore a couple of its rules (all for good reasons), and the specific configuration can be
-found in the [`.flake8`](.flake8) file.
+found in the [`.flake8`](.flake8) file. We additionally use the [`flake8-bugbear`][bugbear]
+plugin to add a collection of helpful and commonly observed style rules.
 
 In addition to linting and formatting, we are in the process of rolling out the use of type hints
 for all parameters and return values, using the [PEP 484 syntax][pep-484]. This is being done on
-a file-by-file basis, and for ones that have been completed we now have a `make typecheck` command
+a file-by-file basis, and for ones that have been completed we now have a `make check-types` command
 that will enforce the use of types in those files as part of the CI, using the popular static
 typechecker [mypy](http://mypy-lang.org/). When a file is transitioned, it should be added to the
-list in the `typecheck` target of the [`Makefile`](Makefile). For more information on the specific
+list in the `check-types` target of the [`Makefile`](Makefile). For more information on the specific
 configuration of `mypy` that we use for typechecking, please refer to the [`mypy.ini`](mypy.ini)
 file. Also, because we use the `typing` module, types (e.g. `type` and `rtype` entries) should be
 omitted when writing (useful) [Sphinx-style][sphinx] docstrings for classes, methods, and functions.
@@ -121,6 +122,7 @@ by running the following:
 make checkall
 ```
 
+[bugbear]: https://github.com/PyCQA/flake8-bugbear
 [pep-484]: https://www.python.org/dev/peps/pep-0484/
 [sphinx]: https://sphinx-rtd-tutorial.readthedocs.io/en/latest/docstrings.html
 
