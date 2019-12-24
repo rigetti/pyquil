@@ -778,7 +778,7 @@ def get_default_qubit_mapping(program: Program) -> Dict[Union[Qubit, QubitPlaceh
 
 
 def address_qubits(
-    program: Program, qubit_mapping: Optional[QubitPlaceholder, Union[Qubit, int]] = None
+    program: Program, qubit_mapping: Optional[Dict[QubitPlaceholder, Union[Qubit, int]]] = None
 ) -> Program:
     """
     Takes a program which contains placeholders and assigns them all defined values.
