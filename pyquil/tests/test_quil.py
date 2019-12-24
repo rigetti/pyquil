@@ -1376,7 +1376,7 @@ def test_placeholders_preserves_modifiers():
 
 
 def _eval_as_np_pi(exp):
-    eval(exp.replace("pi", repr(np.pi)).replace("theta[0]", "1"))
+    return eval(exp.replace("pi", repr(np.pi)).replace("theta[0]", "1"))
 
 
 def test_params_pi_and_precedence():
