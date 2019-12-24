@@ -10,7 +10,7 @@ The website should be updated to use this idiomatic program once Forest 2 is rel
 """
 
 from pyquil import Program, get_qc
-from pyquil.gates import *
+from pyquil.gates import H, CNOT
 
 # construct a Bell State program
 p = Program(H(0), CNOT(0, 1))

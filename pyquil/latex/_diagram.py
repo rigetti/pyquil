@@ -23,7 +23,6 @@ from pyquil.quilatom import format_parameter
 from pyquil.quilbase import (
     AbstractInstruction,
     Wait,
-    Reset,
     ResetQubit,
     JumpConditional,
     JumpWhen,
@@ -404,7 +403,7 @@ class DiagramBuilder:
         self.index = 0
         self.working_instructions = measures
 
-        for instr in self.working_instructions:
+        for _ in self.working_instructions:
             self._build_measure()
 
         offset = max(self.settings.qubit_line_open_wire_length, 0)

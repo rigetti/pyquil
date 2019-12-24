@@ -2,7 +2,6 @@
 This is a demo of VQE through the forest stack. We will do the H2 binding from the Google paper
 using OpenFermion to generate Hamiltonians and Forest to simulate the system
 """
-import sys
 import numpy as np
 import matplotlib.pyplot as plt
 
@@ -18,11 +17,13 @@ from forestopenfermion import qubitop_to_pyquilpauli
 
 from pyquil.quil import Program
 from pyquil.paulis import sX, sY, exponentiate, PauliSum
-from pyquil.gates import X, I
+from pyquil.gates import X
 from pyquil.api import QVMConnection
 from pyquil.unitary_tools import tensor_up
 
 from grove.measurements.estimation import estimate_locally_commuting_operator
+
+QVM_CONNECTION = QVMConnection(endpoint="http://localhost:5000")
 
 
 def get_h2_dimer(bond_length):
@@ -60,7 +61,7 @@ def ucc_circuit(theta):
 
 
 def objective_fun(
-    theta, hamiltonian=None, quantum_resource=QVMConnection(endpoint="http://localhost:5000")
+    theta, hamiltonian=None, quantum_resource=QVM_CONNECTION
 ):
     """
     Evaluate the Hamiltonian bny operator averaging

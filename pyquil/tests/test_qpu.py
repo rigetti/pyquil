@@ -10,7 +10,6 @@ from pyquil.api import QuantumComputer, QPU, QPUCompiler
 from pyquil.api._base_connection import Engagement, get_session
 from pyquil.api._compiler import _collect_classical_memory_write_locations
 from pyquil.api._config import PyquilConfig
-from pyquil.api._errors import UserMessageError
 from pyquil.api._qpu import _extract_bitstrings
 from pyquil.device import NxDevice
 from pyquil.gates import I, X
@@ -246,12 +245,12 @@ def test_run_expects_executable(qvm, qpu_compiler):
 
     p = Program(X(0))
     with pytest.raises(TypeError):
-        result = qc.run(p)
+        qc.run(p)
 
 
 def test_qpu_not_engaged_error():
     with pytest.raises(ValueError):
-        qpu = QPU()
+        QPU()
 
 
 def test_qpu_does_not_engage_without_session():

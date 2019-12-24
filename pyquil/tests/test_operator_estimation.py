@@ -162,7 +162,7 @@ def test_no_complex_coeffs(forest):
         [ExperimentSetting(TensorProductState(), 1.0j * sY(0))], program=Program(X(0))
     )
     with pytest.raises(ValueError):
-        res = list(measure_observables(qc, suite, n_shots=2000))
+        list(measure_observables(qc, suite, n_shots=2000))
 
 
 def test_max_weight_operator_1():
@@ -415,7 +415,7 @@ def test_measure_observables_no_symm_calibr_raises_error(forest):
     exptsetting = ExperimentSetting(plusZ(0), sX(0))
     suite = TomographyExperiment([exptsetting], program=Program(I(0)), symmetrization=0)
     with pytest.raises(ValueError):
-        result = list(measure_observables(qc, suite, calibrate_readout="plus-eig"))
+        list(measure_observables(qc, suite, calibrate_readout="plus-eig"))
 
 
 def test_ops_bool_to_prog():

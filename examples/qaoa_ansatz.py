@@ -26,7 +26,6 @@ from pyquil import get_qc
 from pyquil.quil import Program
 from pyquil.gates import H
 from pyquil.paulis import sI, sX, sZ, exponentiate_commuting_pauli_sum
-from pyquil.api import QVMConnection
 
 # Create a 4-node array graph: 0-1-2-3.
 graph = [(0, 1), (1, 2), (2, 3)]

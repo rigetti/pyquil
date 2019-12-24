@@ -16,7 +16,37 @@
 import numpy as np
 import pytest
 
-from pyquil.gates import *
+from pyquil.gates import (
+    ADD,
+    AND,
+    CNOT,
+    CONVERT,
+    CPHASE00,
+    DIV,
+    EQ,
+    EXCHANGE,
+    Gate,
+    GE,
+    GT,
+    H,
+    IOR,
+    LE,
+    LOAD,
+    LT,
+    MEASURE,
+    MOVE,
+    MUL,
+    NOP,
+    NOT,
+    RESET,
+    RX,
+    STORE,
+    SUB,
+    SWAP,
+    WAIT,
+    X,
+    XOR,
+)
 from pyquil.parser import parse
 from pyquil.quilatom import MemoryReference, Parameter, quil_cos, quil_sin
 from pyquil.quilbase import Declare, Reset, ResetQubit

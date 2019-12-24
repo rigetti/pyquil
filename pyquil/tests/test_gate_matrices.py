@@ -11,21 +11,16 @@ import numpy as np
 
 
 def test_singleq():
-    I = QUANTUM_GATES["I"]
-    assert np.isclose(I, np.eye(2)).all()
-    X = QUANTUM_GATES["X"]
-    assert np.isclose(X, np.array([[0, 1], [1, 0]])).all()
-    Y = QUANTUM_GATES["Y"]
-    assert np.isclose(Y, np.array([[0, -1j], [1j, 0]])).all()
-    Z = QUANTUM_GATES["Z"]
-    assert np.isclose(Z, np.array([[1, 0], [0, -1]])).all()
+    assert np.isclose(QUANTUM_GATES["I"], np.eye(2)).all()
+    assert np.isclose(QUANTUM_GATES["X"], np.array([[0, 1], [1, 0]])).all()
+    assert np.isclose(QUANTUM_GATES["Y"], np.array([[0, -1j], [1j, 0]])).all()
+    assert np.isclose(QUANTUM_GATES["Z"], np.array([[1, 0], [0, -1]])).all()
 
-    H = QUANTUM_GATES["H"]
-    assert np.isclose(H, (1.0 / np.sqrt(2)) * np.array([[1, 1], [1, -1]])).all()
-    S = QUANTUM_GATES["S"]
-    assert np.isclose(S, np.array([[1.0, 0], [0, 1j]])).all()
-    T = QUANTUM_GATES["T"]
-    assert np.isclose(T, np.array([[1.0, 0.0], [0.0, np.exp(1.0j * np.pi / 4.0)]])).all()
+    assert np.isclose(QUANTUM_GATES["H"], (1.0 / np.sqrt(2)) * np.array([[1, 1], [1, -1]])).all()
+    assert np.isclose(QUANTUM_GATES["S"], np.array([[1.0, 0], [0, 1j]])).all()
+    assert np.isclose(
+        QUANTUM_GATES["T"], np.array([[1.0, 0.0], [0.0, np.exp(1.0j * np.pi / 4.0)]])
+    ).all()
 
 
 def test_parametric():

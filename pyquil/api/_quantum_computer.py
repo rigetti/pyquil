@@ -1199,7 +1199,7 @@ def hadamard(n, dtype=int):
     H = np.array([[1]], dtype=dtype)
 
     # Sylvester's construction
-    for i in range(0, lg2):
+    for _ in range(0, lg2):
         H = np.vstack((np.hstack((H, H)), np.hstack((H, -H))))
 
     return H

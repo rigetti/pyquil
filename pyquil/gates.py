@@ -14,18 +14,17 @@
 #    limitations under the License.
 ##############################################################################
 from warnings import warn
-from typing import Any, Callable, Mapping, Optional, Tuple, Union, overload
+from typing import Callable, Mapping, Optional, Tuple, Union
+
+import numpy as np
 
 from pyquil.quilatom import (
     Addr,
     Expression,
     MemoryReference,
     MemoryReferenceDesignator,
-    Parameter,
     ParameterDesignator,
-    Qubit,
     QubitDesignator,
-    QubitPlaceholder,
     unpack_classical_reg,
     unpack_qubit,
 )
@@ -382,7 +381,15 @@ def CPHASE10(angle: ParameterDesignator, control: QubitDesignator, target: Qubit
     return Gate(name="CPHASE10", params=[angle], qubits=qubits)
 
 
-def CPHASE(angle: ParameterDesignator, control: QubitDesignator, target: QubitDesignator) -> Gate:
+# NOTE: We don't use ParameterDesignator here because of the following Sphinx error. This error
+# can be resolved by importing Expression, but then flake8 complains about an unused import:
+#   Cannot resolve forward reference in type annotations of "pyquil.gates.CPHASE":
+#   name 'Expression' is not defined
+def CPHASE(
+    angle: Union[Expression, MemoryReference, np.int_, int, float, complex],
+    control: QubitDesignator,
+    target: QubitDesignator,
+) -> Gate:
     """Produces a controlled-phase instruction::
 
         CPHASE(phi) = diag([1, 1, 1, exp(1j * phi)])

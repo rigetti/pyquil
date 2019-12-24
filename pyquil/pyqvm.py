@@ -15,8 +15,7 @@
 ##############################################################################
 import warnings
 from abc import ABC, abstractmethod
-from collections import defaultdict
-from typing import Type, Dict, Tuple, Union, List, Sequence
+from typing import Dict, List, Sequence, Type, Union
 
 import numpy as np
 from numpy.random.mtrand import RandomState
@@ -52,15 +51,6 @@ from pyquil.quilbase import (
     ClassicalDiv,
     ClassicalMove,
     ClassicalExchange,
-    ClassicalConvert,
-    ClassicalLoad,
-    ClassicalStore,
-    ClassicalComparison,
-    ClassicalEqual,
-    ClassicalLessThan,
-    ClassicalLessEqual,
-    ClassicalGreaterThan,
-    ClassicalGreaterEqual,
     Jump,
     Pragma,
     Declare,

@@ -776,7 +776,7 @@ def test_identity_no_qubit():
 
 def test_qubit_validation():
     with pytest.raises(ValueError):
-        op = sX(None)
+        sX(None)
 
 
 def test_pauli_term_from_str():

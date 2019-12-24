@@ -4,7 +4,7 @@ import networkx as nx
 
 import pyquil.gate_matrices as qmats
 from pyquil import Program
-from pyquil.gates import *
+from pyquil.gates import CNOT, H, I, MEASURE, PHASE, RX, RY, RZ, X
 from pyquil.pyqvm import PyQVM
 from pyquil.reference_simulator import ReferenceDensitySimulator, _is_valid_quantum_state
 from pyquil.unitary_tools import lifted_gate_matrix

@@ -24,7 +24,7 @@ from rpcq.messages import QPURequest, ParameterAref
 
 from pyquil import Program
 from pyquil.parser import parse
-from pyquil.api._base_connection import ForestSession, get_session
+from pyquil.api._base_connection import ForestSession
 from pyquil.api._error_reporting import _record_call
 from pyquil.api._errors import UserMessageError
 from pyquil.api._logger import logger

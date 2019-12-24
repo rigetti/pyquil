@@ -6,8 +6,21 @@ DOCKER_TAG=rigetti/forest:$(COMMIT_HASH)
 .PHONY: all
 all: dist
 
-.PHONY: checkall
-checkall: formatcheck style typecheck
+.PHONY: check-all
+check-all: check-format check-types check-style
+
+.PHONY: check-format
+check-format:
+	black --check --diff pyquil
+
+# The dream is to one day run mypy on the whole tree. For now, limit checks to known-good files.
+.PHONY: check-types
+check-types:
+	mypy pyquil/quilatom.py pyquil/quilbase.py pyquil/gates.py
+
+.PHONY: check-style
+check-style:
+	flake8
 
 .PHONY: clean
 clean:
@@ -39,10 +52,6 @@ docker: Dockerfile
 format:
 	black pyquil
 
-.PHONY: formatcheck
-formatcheck:
-	black --check --diff pyquil
-
 .PHONY: info
 info:
 	python -V
@@ -56,19 +65,9 @@ install:
 requirements: requirements.txt
 	pip install -r requirements.txt
 
-.PHONY: style
-style:
-	flake8
-
 .PHONY: test
 test:
 	pytest -v --runslow --cov=pyquil
-
-# The dream is to one day run mypy on the whole tree. For now, limit
-# checks to known-good files.
-.PHONY: typecheck
-typecheck:
-	mypy pyquil/quilatom.py pyquil/quilbase.py pyquil/gates.py
 
 .PHONY: upload
 upload:

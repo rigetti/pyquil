@@ -18,7 +18,6 @@ from typing import List, Union, Sequence
 import numpy as np
 from numpy.random.mtrand import RandomState
 
-from pyquil import Program
 from pyquil.gate_matrices import QUANTUM_GATES
 from pyquil.paulis import PauliTerm, PauliSum
 from pyquil.quilbase import Gate

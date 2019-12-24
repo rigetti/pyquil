@@ -20,7 +20,6 @@ from typing import Dict, List, Tuple
 import numpy as np
 
 from pyquil.paulis import PauliTerm
-from pyquil.experiment._symmetrization import SymmetrizationLevel
 
 
 def euler_angles_RX(theta: float) -> Tuple[float, float, float]:

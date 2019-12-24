@@ -1,5 +1,4 @@
 import pytest
-import os
 
 from pyquil.api._config import PyquilConfig
 from pyquil.api._errors import UserMessageError

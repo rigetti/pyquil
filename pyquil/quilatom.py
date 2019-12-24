@@ -289,7 +289,7 @@ def format_parameter(element: ParameterDesignator) -> str:
         return str(element)
     elif isinstance(element, Expression):
         return _expression_to_string(element)
-    assert False, "Invalid parameter: %r" % element
+    raise AssertionError("Invalid parameter: %r" % element)
 
 
 ExpressionValueDesignator = Union[int, float, complex]

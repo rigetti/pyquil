@@ -12,6 +12,10 @@ Changelog
 -   Use [Black](https://black.readthedocs.io/en/stable/index.html) for code style
     and enforce it (along with a line length of 100) via the `style` (`flake8`)
     and `formatcheck` (`black --check`) CI jobs (@karalekas, gh-1132).
+-   Ignore fewer `flake8` style rules, add the `flake8-bugbear` plugin, and
+    rename the style-related `Makefile` targets and CI jobs so that they have
+    a uniform naming convention: `check-all`, `check-format`, `check-style`,
+    and `check-types` (@karalekas, gh-1133).
 
 ### Bugfixes
 

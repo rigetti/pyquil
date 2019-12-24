@@ -17,8 +17,8 @@ exclude = '''
     | build
     | dist
   )/
-  | gen3             # pyquil-specific
-  | external
+  | external         # pyquil-specific
+  | gen3
 
 )
 '''

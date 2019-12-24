@@ -39,7 +39,7 @@ from pyquil.quilatom import (
     unpack_classical_reg,
     unpack_qubit,
 )
-from pyquil.gates import MEASURE, H, RESET
+from pyquil.gates import MEASURE, RESET
 from pyquil.quilbase import (
     DefGate,
     Gate,
@@ -65,7 +65,7 @@ class Program(object):
     """A list of pyQuil instructions that comprise a quantum program.
 
     >>> from pyquil import Program
-    >>> from pyquil.gates import *
+    >>> from pyquil.gates import H, CNOT
     >>> p = Program()
     >>> p += H(0)
     >>> p += CNOT(0, 1)

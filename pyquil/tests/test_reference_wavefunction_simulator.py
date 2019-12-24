@@ -922,7 +922,7 @@ def include_measures(request):
 
 
 def test_vs_lisp_qvm(qvm, n_qubits, prog_length):
-    for repeat_i in range(10):
+    for _ in range(10):
         prog = _generate_random_program(n_qubits=n_qubits, length=prog_length)
         lisp_wf = WavefunctionSimulator()
         # force lisp wfs to allocate all qubits
@@ -960,7 +960,7 @@ def _generate_random_pauli(n_qubits, n_terms):
 
 
 def test_expectation_vs_lisp_qvm(qvm, n_qubits):
-    for repeat_i in range(20):
+    for _ in range(20):
         prog = _generate_random_program(n_qubits=n_qubits, length=10)
         operator = _generate_random_pauli(n_qubits=n_qubits, n_terms=5)
         lisp_wf = WavefunctionSimulator()

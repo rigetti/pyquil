@@ -3,7 +3,7 @@ from collections import OrderedDict
 import numpy as np
 from unittest.mock import Mock
 
-from pyquil.gates import CZ, RZ, RX, I, H
+from pyquil.gates import CZ, I, RX, RZ
 from pyquil.noise import (
     pauli_kraus_map,
     damping_kraus_map,
@@ -134,7 +134,6 @@ def test_decoherence_noise():
 
     # verify that gate names are translated
     new_prog = apply_noise_model(prog, m3)
-    new_gates = _get_program_gates(new_prog)
 
     # check that headers have been embedded
     headers = _noise_model_program_header(m3)

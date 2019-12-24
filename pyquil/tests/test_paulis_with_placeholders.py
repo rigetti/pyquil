@@ -172,7 +172,7 @@ def test_ids():
     # Not sortable
     with pytest.raises(TypeError):
         with pytest.warns(FutureWarning):
-            t = term_1.id() == term_2.id()
+            term_1.id() == term_2.id()
 
 
 def test_ids_no_sort():
@@ -669,7 +669,7 @@ def test_from_list():
 
     with pytest.raises(ValueError):
         # terms are not on disjoint qubits
-        pterm = PauliTerm.from_list([("X", q[0]), ("Y", q[0])])
+        PauliTerm.from_list([("X", q[0]), ("Y", q[0])])
 
 
 def test_ordered():

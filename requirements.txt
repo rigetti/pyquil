@@ -11,14 +11,15 @@ rpcq >= 3.0.0
 ipython
 
 # test deps
+black
+flake8
+flake8-bugbear
+mypy==0.740
 pytest
 pytest-cov
 pytest-timeout
 pytest-rerunfailures
 requests-mock
-flake8
-mypy==0.740
-black
 
 # docs
 sphinx
