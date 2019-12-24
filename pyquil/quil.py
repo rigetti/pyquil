@@ -20,7 +20,7 @@ import itertools
 import types
 import warnings
 from collections import OrderedDict, defaultdict
-from typing import Any, Dict, List, Iterable, Optional, Sequence, Set, Union
+from typing import Any, Dict, List, Iterable, Optional, Sequence, Set, Tuple, Union
 
 import numpy as np
 from rpcq.messages import NativeQuilMetadata
@@ -72,11 +72,11 @@ class Program(object):
     """
 
     def __init__(self, *instructions: AbstractInstruction):
-        self._defined_gates = []
+        self._defined_gates: List[DefGate] = []
         # Implementation note: the key difference between the private _instructions and
         # the public instructions property below is that the private _instructions list
         # may contain placeholder labels.
-        self._instructions = []
+        self._instructions: List[AbstractInstruction] = []
 
         # Performance optimization: as stated above _instructions may contain placeholder
         # labels so the program must first be have its labels instantiated.
@@ -138,7 +138,9 @@ class Program(object):
 
         return self._synthesized_instructions
 
-    def inst(self, *instructions: AbstractInstruction) -> "Program":
+    def inst(
+        self, *instructions: Union[Sequence[Any], str, "Program", DefGate, AbstractInstruction]
+    ) -> "Program":
         """
         Mutates the Program object by appending new instructions.
 
@@ -348,13 +350,15 @@ class Program(object):
         """
         return self.inst(RESET(qubit_index))
 
-    def measure_all(self, *qubit_reg_pairs):
+    def measure_all(
+        self, *qubit_reg_pairs: Tuple[QubitDesignator, Optional[MemoryReferenceDesignator]]
+    ) -> "Program":
         """
         Measures many qubits into their specified classical bits, in the order
         they were entered. If no qubit/register pairs are provided, measure all qubits present in
         the program into classical addresses of the same index.
 
-        :param Tuple qubit_reg_pairs: Tuples of qubit indices paired with classical bits.
+        :param qubit_reg_pairs: Tuples of qubit indices paired with classical bits.
         :return: The Quil Program with the appropriate measure instructions appended, e.g.
 
         .. code::
@@ -362,8 +366,6 @@ class Program(object):
                   MEASURE 0 [1]
                   MEASURE 1 [2]
                   MEASURE 2 [3]
-
-        :rtype: Program
         """
         if qubit_reg_pairs == ():
             qubit_inds = self.get_qubits(indices=True)
@@ -464,7 +466,14 @@ class Program(object):
         )
         return QubitPlaceholder()
 
-    def declare(self, name, memory_type="BIT", memory_size=1, shared_region=None, offsets=None):
+    def declare(
+        self,
+        name: str,
+        memory_type: str = "BIT",
+        memory_size: int = 1,
+        shared_region: Optional[str] = None,
+        offsets: Optional[Iterable[Tuple[int, str]]] = None,
+    ) -> MemoryReference:
         """DECLARE a quil variable
 
         This adds the declaration to the current program and returns a MemoryReference to the
@@ -578,18 +587,17 @@ class Program(object):
         except ValueError:
             return False
 
-    def pop(self):
+    def pop(self) -> AbstractInstruction:
         """
         Pops off the last instruction.
 
         :return: The instruction that was popped.
-        :rtype: tuple
         """
         res = self._instructions.pop()
         self._synthesized_instructions = None
         return res
 
-    def dagger(self, inv_dict=None, suffix="-INV"):
+    def dagger(self, inv_dict: None = None, suffix: str = "-INV") -> "Program":
         """
         Creates the conjugate transpose of the Quil program. The program must
         contain only gate applications.
@@ -598,8 +606,6 @@ class Program(object):
         for backwards compatibility and have no effect.
 
         :return: The Quil program's inverse
-        :rtype: Program
-
         """
         if any(not isinstance(instr, Gate) for instr in self._instructions):
             raise ValueError("Program to be daggered must contain only gate applications")
@@ -608,7 +614,7 @@ class Program(object):
         # rather than returning a fresh (and daggered) copy.
         return Program([instr.dagger() for instr in reversed(Program(self.out())._instructions)])
 
-    def _synthesize(self):
+    def _synthesize(self) -> "Program":
         """
         Assigns all placeholder labels to actual values and implicitly declares the ``ro``
         register for backwards compatibility.
@@ -630,30 +636,28 @@ class Program(object):
         self._synthesized_instructions = implicitly_declare_ro(self._synthesized_instructions)
         return self
 
-    def __add__(self, other):
+    def __add__(self, other: "Program") -> "Program":
         """
         Concatenate two programs together, returning a new one.
 
-        :param Program other: Another program or instruction to concatenate to this one.
+        :param other: Another program or instruction to concatenate to this one.
         :return: A newly concatenated program.
-        :rtype: Program
         """
         p = Program()
         p.inst(self)
         p.inst(other)
         return p
 
-    def __iadd__(self, other):
+    def __iadd__(self, other: "Program") -> "Program":
         """
         Concatenate two programs together using +=, returning a new one.
 
-        :param Program other: Another program or instruction to concatenate to this one.
+        :param other: Another program or instruction to concatenate to this one.
         :return: A newly concatenated program.
-        :rtype: Program
         """
         return self.inst(other)
 
-    def __getitem__(self, index):
+    def __getitem__(self, index: Any) -> "Program":
         """
         Allows indexing into the program to get an action.
 
@@ -666,7 +670,7 @@ class Program(object):
             else self.instructions[index]
         )
 
-    def __iter__(self):
+    def __iter__(self) -> Iterable[AbstractInstruction]:
         """
         Allow built in iteration through a program's instructions, e.g. [a for a in Program(X(0))]
 
@@ -699,7 +703,9 @@ class Program(object):
         )
 
 
-def _what_type_of_qubit_does_it_use(program):
+def _what_type_of_qubit_does_it_use(
+    program: Program,
+) -> Tuple[bool, bool, List[Union[Qubit, QubitPlaceholder]]]:
     """Helper function to peruse through a program's qubits.
 
     This function will also enforce the condition that a Program uses either all placeholders
@@ -752,7 +758,7 @@ def _what_type_of_qubit_does_it_use(program):
     return has_placeholders, has_real_qubits, list(qubits.keys())
 
 
-def get_default_qubit_mapping(program):
+def get_default_qubit_mapping(program: Program) -> Dict[Union[Qubit, QubitPlaceholder], Qubit]:
     """
     Takes a program which contains qubit placeholders and provides a mapping to the integers
     0 through N-1.
@@ -771,7 +777,9 @@ def get_default_qubit_mapping(program):
     return {qp: Qubit(i) for i, qp in enumerate(qubits)}
 
 
-def address_qubits(program, qubit_mapping=None):
+def address_qubits(
+    program: Program, qubit_mapping: Optional[QubitPlaceholder, Union[Qubit, int]] = None
+) -> Program:
     """
     Takes a program which contains placeholders and assigns them all defined values.
 
@@ -837,7 +845,11 @@ def address_qubits(program, qubit_mapping=None):
     return new_program
 
 
-def _get_label(placeholder, label_mapping, label_i):
+def _get_label(
+    placeholder: Union[Label, LabelPlaceholder],
+    label_mapping: Dict[Union[Label, LabelPlaceholder], Label],
+    label_i: int,
+) -> Tuple[Label, Dict[Union[Label, LabelPlaceholder], Label], int]:
     """Helper function to either get the appropriate label for a given placeholder or generate
     a new label and update the mapping.
 
@@ -852,7 +864,7 @@ def _get_label(placeholder, label_mapping, label_i):
     return new_target, label_mapping, label_i
 
 
-def instantiate_labels(instructions):
+def instantiate_labels(instructions: Iterable[AbstractInstruction]) -> List[AbstractInstruction]:
     """
     Takes an iterable of instructions which may contain label placeholders and assigns
     them all defined values.
@@ -879,7 +891,7 @@ def instantiate_labels(instructions):
     return result
 
 
-def implicitly_declare_ro(instructions: List[AbstractInstruction]):
+def implicitly_declare_ro(instructions: List[AbstractInstruction]) -> List[AbstractInstruction]:
     """
     Implicitly declare a register named ``ro`` for backwards compatibility with Quil 1.
 
@@ -966,7 +978,7 @@ def merge_with_pauli_noise(prog_list: Iterable, probabilities: List, qubits: Lis
     return p
 
 
-def merge_programs(prog_list):
+def merge_programs(prog_list: List[Program]) -> Program:
     """
     Merges a list of pyQuil programs into a single one by appending them in sequence.
     If multiple programs in the list contain the same gate and/or noisy gate definition
@@ -974,9 +986,8 @@ def merge_programs(prog_list):
     with the same name appear multiple times in the program list, each will be applied once
     in the order of last occurrence.
 
-    :param list prog_list: A list of pyquil programs
+    :param prog_list: A list of pyquil programs
     :return: a single pyQuil program
-    :rtype: Program
     """
     definitions = [gate for prog in prog_list for gate in Program(prog).defined_gates]
     seen = {}
@@ -1006,11 +1017,11 @@ def merge_programs(prog_list):
     return p
 
 
-def get_classical_addresses_from_program(program) -> Dict[str, List[int]]:
+def get_classical_addresses_from_program(program: Program) -> Dict[str, List[int]]:
     """
     Returns a sorted list of classical addresses found in the MEASURE instructions in the program.
 
-    :param Program program: The program from which to get the classical addresses.
+    :param program: The program from which to get the classical addresses.
     :return: A mapping from memory region names to lists of offsets appearing in the program.
     """
     addresses: Dict[str, List[int]] = defaultdict(list)
