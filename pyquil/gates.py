@@ -381,7 +381,8 @@ def CPHASE10(angle: ParameterDesignator, control: QubitDesignator, target: Qubit
     return Gate(name="CPHASE10", params=[angle], qubits=qubits)
 
 
-# NOTE: We don't use ParameterDesignator here because of the following Sphinx error
+# NOTE: We don't use ParameterDesignator here because of the following Sphinx error. This error
+# can be resolved by importing Expression, but then flake8 complains about an unused import:
 #   Cannot resolve forward reference in type annotations of "pyquil.gates.CPHASE":
 #   name 'Expression' is not defined
 def CPHASE(

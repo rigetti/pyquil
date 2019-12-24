@@ -134,7 +134,6 @@ def test_decoherence_noise():
 
     # verify that gate names are translated
     new_prog = apply_noise_model(prog, m3)
-    _get_program_gates(new_prog)
 
     # check that headers have been embedded
     headers = _noise_model_program_header(m3)

@@ -1385,10 +1385,12 @@ def test_params_pi_and_precedence():
     exp = str(prog[0].params[0])
     assert _eval_as_np_pi(trivial_pi) == _eval_as_np_pi(exp)
 
-    prog = Program(f"RX({trivial_pi}) 0")
+    less_trivial_pi = "3 * theta[0] * 2 / (pi)"
+    prog = Program(f"RX({less_trivial_pi}) 0")
     exp = str(prog[0].params[0])
     assert _eval_as_np_pi(trivial_pi) == _eval_as_np_pi(exp)
 
-    prog = Program(f"RX({trivial_pi}) 0")
+    more_less_trivial_pi = "3 / (theta[0] / (pi + 1)) / pi"
+    prog = Program(f"RX({more_less_trivial_pi}) 0")
     exp = str(prog[0].params[0])
     assert _eval_as_np_pi(trivial_pi) == _eval_as_np_pi(exp)
