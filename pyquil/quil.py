@@ -20,7 +20,7 @@ import itertools
 import types
 import warnings
 from collections import OrderedDict, defaultdict
-from typing import Any, Dict, List, Iterable, Optional, Sequence, Set, Tuple, Union
+from typing import Any, Dict, Generator, List, Iterable, Optional, Sequence, Set, Tuple, Union
 
 import numpy as np
 from rpcq.messages import NativeQuilMetadata
@@ -28,11 +28,13 @@ from rpcq.messages import NativeQuilMetadata
 from pyquil._parser.PyQuilListener import run_parser
 from pyquil.noise import _check_kraus_ops, _create_kraus_pragmas, pauli_kraus_map
 from pyquil.quilatom import (
+    Label,
     LabelPlaceholder,
     MemoryReference,
     MemoryReferenceDesignator,
     Parameter,
     ParameterDesignator,
+    Qubit,
     QubitDesignator,
     QubitPlaceholder,
     format_parameter,
@@ -46,9 +48,7 @@ from pyquil.quilbase import (
     Measurement,
     Pragma,
     AbstractInstruction,
-    Qubit,
     Jump,
-    Label,
     JumpConditional,
     JumpTarget,
     JumpUnless,
@@ -61,6 +61,17 @@ from pyquil.quilbase import (
 )
 
 
+InstructionDesignator = Union[
+    AbstractInstruction,
+    DefGate,
+    "Program",
+    List[Any],
+    Tuple[Any, ...],
+    str,  # required to be a pyquil program
+    Generator[Any, Any, Any],
+]
+
+
 class Program(object):
     """A list of pyQuil instructions that comprise a quantum program.
 
@@ -71,7 +82,7 @@ class Program(object):
     >>> p += CNOT(0, 1)
     """
 
-    def __init__(self, *instructions: AbstractInstruction):
+    def __init__(self, *instructions: InstructionDesignator):
         self._defined_gates: List[DefGate] = []
         # Implementation note: the key difference between the private _instructions and
         # the public instructions property below is that the private _instructions list
@@ -122,7 +133,7 @@ class Program(object):
         return new_prog
 
     @property
-    def defined_gates(self) -> List[Gate]:
+    def defined_gates(self) -> List[DefGate]:
         """
         A list of defined gates on the program.
         """
@@ -138,9 +149,7 @@ class Program(object):
 
         return self._synthesized_instructions
 
-    def inst(
-        self, *instructions: Union[Sequence[Any], str, "Program", DefGate, AbstractInstruction]
-    ) -> "Program":
+    def inst(self, *instructions: InstructionDesignator) -> "Program":
         """
         Mutates the Program object by appending new instructions.
 
@@ -183,7 +192,7 @@ class Program(object):
                     else:
                         params = []
                         possible_params = instruction[1]
-                        rest = instruction[2:]
+                        rest: Sequence[Any] = instruction[2:]
                         if isinstance(possible_params, list):
                             params = possible_params
                         else:
@@ -553,7 +562,7 @@ class Program(object):
             wrapping :py:class:`Qubit` object
         :return: A set of all the qubit indices used in this program
         """
-        qubits = set()
+        qubits: Set[QubitDesignator] = set()
         for instr in self.instructions:
             if isinstance(instr, (Gate, Measurement)):
                 qubits |= instr.get_qubits(indices=indices)
@@ -872,7 +881,7 @@ def instantiate_labels(instructions: Iterable[AbstractInstruction]) -> List[Abst
     :return: list of instructions with all label placeholders assigned to real labels.
     """
     label_i = 1
-    result = []
+    result: List[AbstractInstruction] = []
     label_mapping = dict()
     for instr in instructions:
         if isinstance(instr, Jump) and isinstance(instr.target, LabelPlaceholder):
@@ -949,7 +958,9 @@ def implicitly_declare_ro(instructions: List[AbstractInstruction]) -> List[Abstr
     return new_instr
 
 
-def merge_with_pauli_noise(prog_list: Iterable, probabilities: List, qubits: List) -> Program:
+def merge_with_pauli_noise(
+    prog_list: Iterable[Program], probabilities: List[float], qubits: Sequence[Any]
+) -> Program:
     """
     Insert pauli noise channels between each item in the list of programs.
     This noise channel is implemented as a single noisy identity gate acting on the provided qubits.
@@ -990,7 +1001,7 @@ def merge_programs(prog_list: List[Program]) -> Program:
     :return: a single pyQuil program
     """
     definitions = [gate for prog in prog_list for gate in Program(prog).defined_gates]
-    seen = {}
+    seen: Dict[str, List[DefGate]] = {}
     # Collect definitions in reverse order and reapply definitions in reverse
     # collected order to ensure that the last occurrence of a definition is applied last.
     for definition in reversed(definitions):
