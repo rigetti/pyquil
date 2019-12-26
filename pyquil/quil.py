@@ -20,7 +20,7 @@ import itertools
 import types
 import warnings
 from collections import OrderedDict, defaultdict
-from typing import Any, Dict, List, Iterable, Optional, Set, Union
+from typing import Any, Dict, List, Iterable, Optional, Sequence, Set, Union
 
 import numpy as np
 from rpcq.messages import NativeQuilMetadata
@@ -262,7 +262,9 @@ class Program(object):
         """
         return self.inst(DefGate(name, matrix, parameters))
 
-    def define_noisy_gate(self, name, qubit_indices, kraus_ops):
+    def define_noisy_gate(
+        self, name: str, qubit_indices: Sequence[Any], kraus_ops: Sequence[Any]
+    ) -> "Program":
         """
         Overload a static ideal gate with a noisy one defined in terms of a Kraus map.
 
@@ -274,29 +276,29 @@ class Program(object):
             See also :ref:`the related docs in the WavefunctionSimulator Overview <basis_ordering>`.
 
 
-        :param str name: The name of the gate.
-        :param tuple|list qubit_indices: The qubits it acts on.
-        :param tuple|list kraus_ops: The Kraus operators.
+        :param name: The name of the gate.
+        :param qubit_indices: The qubits it acts on.
+        :param kraus_ops: The Kraus operators.
         :return: The Program instance
-        :rtype: Program
         """
         kraus_ops = [np.asarray(k, dtype=np.complex128) for k in kraus_ops]
         _check_kraus_ops(len(qubit_indices), kraus_ops)
         return self.inst(_create_kraus_pragmas(name, tuple(qubit_indices), kraus_ops))
 
-    def define_noisy_readout(self, qubit, p00, p11):
+    def define_noisy_readout(
+        self, qubit: Union[int, QubitPlaceholder], p00: float, p11: float
+    ) -> "Program":
         """
         For this program define a classical bit flip readout error channel parametrized by
         ``p00`` and ``p11``. This models the effect of thermal noise that corrupts the readout
         signal **after** it has interrogated the qubit.
 
-        :param int|QubitPlaceholder qubit: The qubit with noisy readout.
-        :param float p00: The probability of obtaining the measurement result 0 given that the qubit
+        :param qubit: The qubit with noisy readout.
+        :param p00: The probability of obtaining the measurement result 0 given that the qubit
           is in state 0.
-        :param float p11: The probability of obtaining the measurement result 1 given that the qubit
+        :param p11: The probability of obtaining the measurement result 1 given that the qubit
           is in state 1.
         :return: The Program with an appended READOUT-POVM Pragma.
-        :rtype: Program
         """
         if not 0.0 <= p00 <= 1.0:
             raise ValueError("p00 must be in the interval [0,1].")

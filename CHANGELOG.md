@@ -16,7 +16,7 @@ Changelog
     rename the style-related `Makefile` targets and CI jobs so that they have
     a uniform naming convention: `check-all`, `check-format`, `check-style`,
     and `check-types` (@karalekas, gh-1133).
--   Added type hints to `noise.py` (@rht, gh-1136)
+-   Added type hints to `noise.py` (@rht, gh-1136).
 
 ### Bugfixes
 

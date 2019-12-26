@@ -16,7 +16,7 @@ check-format:
 # The dream is to one day run mypy on the whole tree. For now, limit checks to known-good files.
 .PHONY: check-types
 check-types:
-	mypy pyquil/quilatom.py pyquil/quilbase.py pyquil/gates.py
+	mypy pyquil/quilatom.py pyquil/quilbase.py pyquil/gates.py pyquil/noise.py
 
 .PHONY: check-style
 check-style:

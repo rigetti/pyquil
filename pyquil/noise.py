@@ -17,16 +17,16 @@
 Module for creating and verifying noisy gate and readout definitions.
 """
 from collections import namedtuple
-from typing import Any, Dict, List, Optional, Sequence, Set, Tuple, Union
+from typing import Any, Dict, Iterable, List, Optional, Sequence, Set, Tuple, TYPE_CHECKING, Union
 
 import numpy as np
 import sys
 
 from pyquil.gates import I, MEASURE, X
 from pyquil.quilbase import Pragma, Gate
-from pyquil.quilatom import MemoryReference, format_parameter
+from pyquil.quilatom import MemoryReference, format_parameter, ParameterDesignator
 
-if False:  # used in mypy
+if TYPE_CHECKING:
     from pyquil.quil import Program
     from pyquil.api import QPUConnection, QVMConnection
 
@@ -163,7 +163,7 @@ class NoiseModel(_NoiseModel):
             assignment_probs={int(qid): np.array(a) for qid, a in d["assignment_probs"].items()},
         )
 
-    def gates_by_name(self, name: str) -> Sequence[KrausModel]:
+    def gates_by_name(self, name: str) -> List[KrausModel]:
         """
         Return all defined noisy gates of a particular gate name.
 
@@ -235,7 +235,7 @@ def append_kraus_to_gate(
     return [kj.dot(gate_matrix) for kj in kraus_ops]
 
 
-def pauli_kraus_map(probabilities: List[float]) -> List[np.ndarray]:
+def pauli_kraus_map(probabilities: Sequence[float]) -> List[np.ndarray]:
     r"""
     Generate the Kraus operators corresponding to a pauli channel.
 
@@ -368,7 +368,7 @@ class NoisyGateUndefined(Exception):
     pass
 
 
-def get_noisy_gate(gate_name: str, params: Tuple[float, ...]) -> Tuple[np.ndarray, str]:
+def get_noisy_gate(gate_name: str, params: Iterable[ParameterDesignator]) -> Tuple[np.ndarray, str]:
     """
     Look up the numerical gate representation and a proposed 'noisy' name.
 
@@ -677,7 +677,7 @@ def estimate_bitstring_probs(results: np.ndarray) -> np.ndarray:
 _CHARS = "klmnopqrstuvwxyzabcdefgh0123456789"
 
 
-def _apply_local_transforms(p: np.ndarray, ts: Sequence[np.ndarray]) -> np.ndarray:
+def _apply_local_transforms(p: np.ndarray, ts: Iterable[np.ndarray]) -> np.ndarray:
     """
     Given a 2d array of single shot results (outer axis iterates over shots, inner axis over bits)
     and a list of assignment probability matrices (one for each bit in the readout, ordered like
