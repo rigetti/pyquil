@@ -514,20 +514,6 @@ class Program(object):
         self.num_shots = shots
         return self
 
-    def _out(self, allow_placeholders):
-        """
-        Converts the Quil program to a readable string.
-
-        :param allow_placeholders: Whether to complain if the program contains placeholders.
-        """
-        return "\n".join(
-            itertools.chain(
-                (dg.out() for dg in self._defined_gates),
-                (instr.out(allow_placeholders=allow_placeholders) for instr in self.instructions),
-                [""],
-            )
-        )
-
     def out(self) -> str:
         """
         Serializes the Quil program to a string suitable for submitting to the QVM or QPU.

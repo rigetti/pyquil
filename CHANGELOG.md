@@ -27,6 +27,7 @@ Changelog
 -   Pass a sequence to np.vstack to avoid a FutureWarning, and add a protoquil keyword
     argument to MyLazyCompiler.quil_to_native_quil to avoid a TypeError in in the
     migration2-qc notebook (@appleby, gh-1138).
+-   Removed unused method `Program._out()` in quil.py (@rht, gh-1137).
 
 [v2.15](https://github.com/rigetti/pyquil/compare/v2.14.0...v2.15.0) (December 20, 2019)
 ----------------------------------------------------------------------------------------
