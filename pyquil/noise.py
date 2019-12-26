@@ -28,7 +28,7 @@ from pyquil.quilatom import MemoryReference, format_parameter, ParameterDesignat
 
 if TYPE_CHECKING:
     from pyquil.quil import Program
-    from pyquil.api import QPUConnection, QVMConnection
+    from pyquil.api import QPUConnection, QVMConnection  # noqa: F401
 
 INFINITY = float("inf")
 "Used for infinite coherence times."
