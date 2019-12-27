@@ -812,7 +812,7 @@ class ClassicalMove(AbstractInstruction):
             and not isinstance(right, float)
         ):
             raise TypeError(
-                "Right operand of MOVE should be an MemoryReference " "or a numeric literal"
+                "Right operand of MOVE should be an MemoryReference or a numeric literal"
             )
         self.left = left
         self.right = right

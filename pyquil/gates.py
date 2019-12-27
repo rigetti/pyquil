@@ -555,7 +555,7 @@ def MEASURE(
     elif isinstance(classical_reg, int):
         warn(
             "Indexing measurement addresses by integers is deprecated. "
-            + "Replacing this with the MemoryReference ro[i] instead."
+            "Replacing this with the MemoryReference ro[i] instead."
         )
         address = MemoryReference("ro", classical_reg)
     else:
