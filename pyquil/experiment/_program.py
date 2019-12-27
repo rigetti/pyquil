@@ -33,16 +33,14 @@ def parameterized_euler_rotations(
     """
     Given a number of qubits (n), build a ``Program`` containing a ZXZXZ-decomposed gate on each
     qubit, where each ``RZ`` is parameterized by declared values with labels given by the "prefix"
-    and "suffix" arguments. Put more plainly, the resulting Quil program on n qubits is:
+    and "suffix" arguments. Put more plainly, the resulting Quil program on n qubits is::
 
         RZ(alpha_label[0]) 0
         RX(pi/2) 0
         RZ(beta_label[0]) 0
         RX(-pi/2) 0
         RZ(gamma_label[0]) 0
-
         ...
-
         RZ(alpha_label[n-1]) n-1
         RX(pi/2) n-1
         RZ(beta_label[0]) n-1
