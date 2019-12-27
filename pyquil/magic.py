@@ -113,12 +113,16 @@ class _IfTransformer(ast.NodeTransformer):
     Transformer that unwraps the if and else branches into separate inner functions and then wraps
     them in a call to _if_statement. For example:
 
+    .. code-block:: python
+
         if 1 + 1 == 2:
             print('math works')
         else:
             print('something is broken')
 
     would be transformed into:
+
+    .. code-block:: python
 
         def _if_branch():
             print('math works')
@@ -209,6 +213,8 @@ def magicquil(f):
     used for classical control flow.
 
     Example usage:
+
+    .. code-block:: python
 
         @magicquil
         def fast_reset(q1):
