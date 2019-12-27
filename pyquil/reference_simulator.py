@@ -158,7 +158,7 @@ class ReferenceWavefunctionSimulator(AbstractQuantumSimulator):
 
     def reset(self):
         """
-        Reset the wavefunction to the |000...00> state.
+        Reset the wavefunction to the ``|000...00>`` state.
 
         :return: ``self`` to support method chaining.
         """
@@ -174,10 +174,10 @@ class ReferenceWavefunctionSimulator(AbstractQuantumSimulator):
 
 def zero_state_matrix(n_qubits: int) -> np.ndarray:
     """
-    Construct a matrix corresponding to the tensor product of `n` ground states |0><0|.
+    Construct a matrix corresponding to the tensor product of `n` ground states ``|0><0|``.
 
     :param n_qubits: The number of qubits.
-    :return: The state matrix  |000...0><000...0| for `n_qubits`.
+    :return: The state matrix  ``|000...0><000...0|`` for `n_qubits`.
     """
     state_matrix = np.zeros((2 ** n_qubits, 2 ** n_qubits), dtype=np.complex128)
     state_matrix[0, 0] = complex(1.0, 0)
@@ -209,15 +209,15 @@ class ReferenceDensitySimulator(AbstractQuantumSimulator):
         """
         This method is the correct way (TM) to update the initial state matrix that is
         initialized every time reset() is called. The default initial state of
-        ReferenceDensitySimulator is |000...00>.
+        ReferenceDensitySimulator is ``|000...00>``.
 
         Note that the current state matrix, i.e. ``self.density`` is not affected by this
         method; you must change it directly or else call reset() after calling this method.
 
         To restore default state initialization behavior of ReferenceDensitySimulator pass in
-        a ``state_matrix`` equal to the default initial state on `n_qubits` (i.e. |000...00>) and
-        then call ``reset()``. We have provided a helper function ``n_qubit_zero_state`` in the
-        ``reference_simulator.py`` module to simplify this step.
+        a ``state_matrix`` equal to the default initial state on `n_qubits` (i.e. ``|000...00>``)
+        and then call ``reset()``. We have provided a helper function ``n_qubit_zero_state``
+        in the ``reference_simulator.py`` module to simplify this step.
 
         :param state_matrix: numpy.ndarray or None.
         :return: ``self`` to support method chaining.
