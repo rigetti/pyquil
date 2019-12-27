@@ -20,7 +20,19 @@ import itertools
 import types
 import warnings
 from collections import OrderedDict, defaultdict
-from typing import Any, Dict, Generator, List, Iterable, Optional, Sequence, Set, Tuple, Union
+from typing import (
+    Any,
+    Dict,
+    Generator,
+    List,
+    Iterable,
+    Iterator,
+    Optional,
+    Sequence,
+    Set,
+    Tuple,
+    Union,
+)
 
 import numpy as np
 from rpcq.messages import NativeQuilMetadata
@@ -657,7 +669,7 @@ class Program(object):
         p.inst(other)
         return p
 
-    def __iadd__(self, other: "Program") -> "Program":
+    def __iadd__(self, other: object) -> "Program":
         """
         Concatenate two programs together using +=, returning a new one.
 
@@ -679,7 +691,7 @@ class Program(object):
             else self.instructions[index]
         )
 
-    def __iter__(self) -> Iterable[AbstractInstruction]:
+    def __iter__(self) -> Iterator[AbstractInstruction]:
         """
         Allow built in iteration through a program's instructions, e.g. [a for a in Program(X(0))]
 
