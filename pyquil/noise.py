@@ -683,13 +683,14 @@ def _apply_local_transforms(p: np.ndarray, ts: Iterable[np.ndarray]) -> np.ndarr
     and a list of assignment probability matrices (one for each bit in the readout, ordered like
     the inner axis of results) apply local 2x2 matrices to each bit index.
 
-    :param p: An array that enumerates a function indexed by bitstrings::
+    :param p: An array that enumerates a function indexed by
+        bitstrings::
 
             f(ijk...) = p[i,j,k,...]
 
     :param ts: A sequence of 2x2 transform-matrices, one for each bit.
     :return: ``p_transformed`` an array with as many dimensions as there are bits with the result of
-        contracting p along each axis by the corresponding bit transformation.
+        contracting p along each axis by the corresponding bit transformation::
 
             p_transformed[ijk...] = f'(ijk...) = sum_lmn... ts[0][il] ts[1][jm] ts[2][kn] f(lmn...)
     """
