@@ -293,28 +293,30 @@ support at support@rigetti.com."""
         Update self._variables_shim with the final values to be patched into the gate parameters,
         according to the arithmetic expressions in the original program.
 
-        For example:
+        For example::
 
             DECLARE theta REAL
             DECLARE beta REAL
             RZ(3 * theta) 0
             RZ(beta+theta) 0
 
-        gets translated to:
+        gets translated to::
 
             DECLARE theta REAL
             DECLARE __P REAL[2]
             RZ(__P[0]) 0
             RZ(__P[1]) 0
 
-        and the recalculation table will contain:
+        and the recalculation table will contain::
 
-        {
-            ParameterAref('__P', 0): Mul(3.0, <MemoryReference theta[0]>),
-            ParameterAref('__P', 1): Add(<MemoryReference beta[0]>, <MemoryReference theta[0]>)
-        }
+            {
+                ParameterAref('__P', 0): Mul(3.0, <MemoryReference theta[0]>),
+                ParameterAref('__P', 1): Add(<MemoryReference beta[0]>, <MemoryReference theta[0]>)
+            }
 
         Let's say we've made the following two function calls:
+
+        .. code-block:: python
 
             qpu.write_memory(region_name='theta', value=0.5)
             qpu.write_memory(region_name='beta', value=0.1)
@@ -322,12 +324,14 @@ support at support@rigetti.com."""
         After executing this function, our self.variables_shim in the above example would contain
         the following:
 
-        {
-            ParameterAref('theta', 0): 0.5,
-            ParameterAref('beta', 0): 0.1,
-            ParameterAref('__P', 0): 1.5,       # (3.0) * theta[0]
-            ParameterAref('__P', 1): 0.6        # beta[0] + theta[0]
-        }
+        .. code-block:: python
+
+            {
+                ParameterAref('theta', 0): 0.5,
+                ParameterAref('beta', 0): 0.1,
+                ParameterAref('__P', 0): 1.5,       # (3.0) * theta[0]
+                ParameterAref('__P', 1): 0.6        # beta[0] + theta[0]
+            }
 
         Once the _variables_shim is filled, execution continues as with regular binary patching.
         """
