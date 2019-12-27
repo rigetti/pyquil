@@ -43,7 +43,7 @@ class PyquilConfig(object):
 
     :attribute get_engagement: A callback to fetch a currently valid engagement from which to read
         configuration parameters (i.e., QPU_URL) as needed. This allows the engagement to be fetched
-         and maintained elsewhere (i.e., by ForestSession or manually).
+        and maintained elsewhere (i.e., by ForestSession or manually).
     """
 
     FOREST_URL = {
