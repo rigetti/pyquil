@@ -24,6 +24,9 @@ Changelog
 -   Don't attach pipes to stdout/stderr when starting quilc and qvm processes in
     `local_forest_runtime`. This prevents the pipe buffers from getting full and
     causing hung quilc/qvm for long running processes (@appleby, gh-1122).
+-   Pass a sequence to np.vstack to avoid a FutureWarning, and add a protoquil keyword
+    argument to MyLazyCompiler.quil_to_native_quil to avoid a TypeError in in the
+    migration2-qc notebook (@appleby, gh-1138).
 
 [v2.15](https://github.com/rigetti/pyquil/compare/v2.14.0...v2.15.0) (December 20, 2019)
 ----------------------------------------------------------------------------------------
