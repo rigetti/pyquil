@@ -286,7 +286,7 @@ class Program(object):
         return self.inst(DefGate(name, matrix, parameters))
 
     def define_noisy_gate(
-        self, name: str, qubit_indices: Sequence[Any], kraus_ops: Sequence[Any]
+        self, name: str, qubit_indices: Sequence[int], kraus_ops: Sequence[Any]
     ) -> "Program":
         """
         Overload a static ideal gate with a noisy one defined in terms of a Kraus map.
@@ -834,7 +834,7 @@ def address_qubits(
         else:
             raise ValueError("Qubit mapping must map to type Qubit or int (but not both)")
 
-    result = []
+    result: List[AbstractInstruction] = []
     for instr in program:
         # Remap qubits on Gate, Measurement, and ResetQubit instructions
         if isinstance(instr, Gate):
@@ -847,7 +847,7 @@ def address_qubits(
         elif isinstance(instr, ResetQubit):
             result.append(ResetQubit(qubit_mapping[instr.qubit]))
         elif isinstance(instr, Pragma):
-            new_args = []
+            new_args: List[Union[Qubit, int, str]] = []
             for arg in instr.args:
                 # Pragmas can have arguments that represent things besides qubits, so here we
                 # make sure to just look up the QubitPlaceholders.
@@ -892,7 +892,7 @@ def instantiate_labels(instructions: Iterable[AbstractInstruction]) -> List[Abst
     """
     label_i = 1
     result: List[AbstractInstruction] = []
-    label_mapping = dict()
+    label_mapping: Dict[LabelPlaceholder, Label] = dict()
     for instr in instructions:
         if isinstance(instr, Jump) and isinstance(instr.target, LabelPlaceholder):
             new_target, label_mapping, label_i = _get_label(instr.target, label_mapping, label_i)
@@ -969,7 +969,7 @@ def implicitly_declare_ro(instructions: List[AbstractInstruction]) -> List[Abstr
 
 
 def merge_with_pauli_noise(
-    prog_list: Iterable[Program], probabilities: Sequence[float], qubits: Sequence[Any]
+    prog_list: Iterable[Program], probabilities: Sequence[float], qubits: Sequence[int]
 ) -> Program:
     """
     Insert pauli noise channels between each item in the list of programs.
