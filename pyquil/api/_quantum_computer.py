@@ -1021,11 +1021,13 @@ def _symmetrization(
     qubits are flipped in each program.
 
     The symmetrization types are specified by an int; the types available are:
-    -1 -- exhaustive symmetrization uses every possible combination of flips
-     0 -- trivial that is no symmetrization
-     1 -- symmetrization using an OA with strength 1
-     2 -- symmetrization using an OA with strength 2
-     3 -- symmetrization using an OA with strength 3
+
+    * -1 -- exhaustive symmetrization uses every possible combination of flips
+    *  0 -- trivial that is no symmetrization
+    *  1 -- symmetrization using an OA with strength 1
+    *  2 -- symmetrization using an OA with strength 2
+    *  3 -- symmetrization using an OA with strength 3
+
     In the context of readout symmetrization the strength of the orthogonal array enforces the
     symmetry of the marginal confusion matrices.
 
@@ -1165,19 +1167,23 @@ def hadamard(n, dtype=int):
     Construct a Hadamard matrix.
     Constructs an n-by-n Hadamard matrix, using Sylvester's
     construction.  `n` must be a power of 2.
+
     Parameters
     ----------
     n : int
         The order of the matrix.  `n` must be a power of 2.
     dtype : numpy dtype
         The data type of the array to be constructed.
+
     Returns
     -------
     H : (n, n) ndarray
         The Hadamard matrix.
+
     Notes
     -----
     .. versionadded:: 0.8.0
+
     Examples
     --------
     >>> hadamard(2, dtype=complex)

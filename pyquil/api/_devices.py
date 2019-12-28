@@ -53,11 +53,13 @@ def list_lattices(
     Query the Forest 2.0 server for its knowledge of lattices.  Optionally filters by underlying
     device name and lattice qubit count.
 
-    :return: A dictionary keyed on lattice names and valued in dictionaries of the form
-             {
-               "device_name": device_name,
-               "qubits": num_qubits
-             }
+    :return: A dictionary keyed on lattice names and valued in dictionaries of the
+        form::
+
+            {
+                "device_name": device_name,
+                "qubits": num_qubits
+            }
     """
     if connection is None:
         connection = ForestConnection()
@@ -84,17 +86,17 @@ def list_lattices(
         * You do have user authentication credentials, but they are invalid. You can visit
           https://qcs.rigetti.com/auth/token and save to ~/.qcs/user_auth_token to update your
           authentication credentials. Alternatively, you may provide the path to your credentials in
-          your config file or with the USER_AUTH_TOKEN_PATH environment variable.
+          your config file or with the USER_AUTH_TOKEN_PATH environment variable::
 
-          [Rigetti Forest]
-          user_auth_token_path = ~/.qcs/my_auth_credentials
+              [Rigetti Forest]
+              user_auth_token_path = ~/.qcs/my_auth_credentials
 
         * You're missing an address for the Forest 2.0 server endpoint, or the address is invalid.
           This too can be set through the environment variable FOREST_URL or by changing the
-          following lines in the QCS config file:
+          following lines in the QCS config file::
 
-          [Rigetti Forest]
-          url = https://forest-server.qcs.rigetti.com
+              [Rigetti Forest]
+              url = https://forest-server.qcs.rigetti.com
 
         For the record, here's the original exception: {}
         """.format(
@@ -119,14 +121,15 @@ def _get_raw_lattice_data(lattice_name: str = None):
     """
     Produces a dictionary of raw data for a lattice as queried from the Forest 2.0 server.
 
-    Returns a dictionary of the form
-    {
-        "name":        the name of the lattice as a string,
-        "device_name": the name of the device, given as a string, that the lattice lies on,
-        "specs":       a Specs object, serialized as a dictionary,
-        "isa":         an ISA object, serialized as a dictionary,
-        "noise_model": a NoiseModel object, serialized as a dictionary
-    }
+    Returns a dictionary of the form::
+
+        {
+            "name":        the name of the lattice as a string,
+            "device_name": the name of the device, given as a string, that the lattice lies on,
+            "specs":       a Specs object, serialized as a dictionary,
+            "isa":         an ISA object, serialized as a dictionary,
+            "noise_model": a NoiseModel object, serialized as a dictionary
+        }
     """
     from pyquil.api._base_connection import get_session, get_json
     from requests.exceptions import MissingSchema
@@ -143,9 +146,9 @@ def _get_raw_lattice_data(lattice_name: str = None):
 
     Most likely, you're missing an address for the Forest 2.0 server endpoint, or the
     address is invalid. This can be set through the environment variable FOREST_URL or
-    by changing the following lines in the QCS config file (by default, at ~/.qcs_config):
+    by changing the following lines in the QCS config file (by default, at ~/.qcs_config)::
 
-      [Rigetti Forest]
-      url = https://rigetti.com/valid/forest/url"""
+       [Rigetti Forest]
+       url = https://rigetti.com/valid/forest/url"""
         )
     return res["lattice"]

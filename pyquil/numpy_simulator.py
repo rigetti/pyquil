@@ -300,7 +300,7 @@ class NumpyWavefunctionSimulator(AbstractQuantumSimulator):
 
     def reset(self):
         """
-        Reset the wavefunction to the |000...00> state.
+        Reset the wavefunction to the ``|000...00>`` state.
 
         :return: ``self`` to support method chaining.
         """

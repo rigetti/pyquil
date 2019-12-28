@@ -133,7 +133,7 @@ class TomographyExperiment:
         Note that (default) exhaustive symmetrization requires a number of QPU calls exponential in
         the number of qubits in the union of the support of the observables in any group of settings
         in ``tomo_experiment``; the number of shots may need to be increased to accommodate this.
-        see :func:`run_symmetrized_readout` in api._quantum_computer for more information.
+        see :py:func:`run_symmetrized_readout` in api._quantum_computer for more information.
     """
 
     def __init__(

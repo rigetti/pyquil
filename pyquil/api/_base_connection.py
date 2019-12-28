@@ -285,9 +285,9 @@ class ForestSession(requests.Session):
     Two operations are involved in authorization:
 
     * Requesting & storing a user authentication token, used to authenticate calls
-    to Forest, Dispatch, and other Rigetti services
+      to Forest, Dispatch, and other Rigetti services
     * Requesting a Curve ZeroMQ keypair for connection to the QPU. The response to
-    this request also comes with service endpoints: compiler server and QPU
+      this request also comes with service endpoints: compiler server and QPU
 
     The authentication tokens are of the standard JWT format and are issued by Forest Server.
 
