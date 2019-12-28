@@ -105,12 +105,12 @@ class Program(object):
         # labels so the program must first be have its labels instantiated.
         # _synthesized_instructions is simply a cache on the result of the _synthesize()
         # method.  It is marked as None whenever new instructions are added.
-        self._synthesized_instructions = None
+        self._synthesized_instructions: Optional[List[AbstractInstruction]] = None
 
         self.inst(*instructions)
 
         # Filled in with quil_to_native_quil
-        self.native_quil_metadata = None  # type: NativeQuilMetadata
+        self.native_quil_metadata: Optional[NativeQuilMetadata] = None
 
         # default number of shots to loop through
         self.num_shots = 1
@@ -618,7 +618,7 @@ class Program(object):
         self._synthesized_instructions = None
         return res
 
-    def dagger(self, inv_dict: None = None, suffix: str = "-INV") -> "Program":
+    def dagger(self, inv_dict: Optional[Any] = None, suffix: str = "-INV") -> "Program":
         """
         Creates the conjugate transpose of the Quil program. The program must
         contain only gate applications.
@@ -657,7 +657,7 @@ class Program(object):
         self._synthesized_instructions = implicitly_declare_ro(self._synthesized_instructions)
         return self
 
-    def __add__(self, other: "Program") -> "Program":
+    def __add__(self, other: InstructionDesignator) -> "Program":
         """
         Concatenate two programs together, returning a new one.
 
@@ -669,7 +669,7 @@ class Program(object):
         p.inst(other)
         return p
 
-    def __iadd__(self, other: object) -> "Program":
+    def __iadd__(self, other: InstructionDesignator) -> "Program":
         """
         Concatenate two programs together using +=, returning a new one.
 
@@ -678,7 +678,7 @@ class Program(object):
         """
         return self.inst(other)
 
-    def __getitem__(self, index: Any) -> "Program":
+    def __getitem__(self, index: Union[slice, int]) -> "Program":
         """
         Allows indexing into the program to get an action.
 
@@ -867,10 +867,8 @@ def address_qubits(
 
 
 def _get_label(
-    placeholder: Union[Label, LabelPlaceholder],
-    label_mapping: Dict[Union[Label, LabelPlaceholder], Label],
-    label_i: int,
-) -> Tuple[Label, Dict[Union[Label, LabelPlaceholder], Label], int]:
+    placeholder: LabelPlaceholder, label_mapping: Dict[LabelPlaceholder, Label], label_i: int,
+) -> Tuple[Label, Dict[LabelPlaceholder, Label], int]:
     """Helper function to either get the appropriate label for a given placeholder or generate
     a new label and update the mapping.
 
@@ -971,7 +969,7 @@ def implicitly_declare_ro(instructions: List[AbstractInstruction]) -> List[Abstr
 
 
 def merge_with_pauli_noise(
-    prog_list: Iterable[Program], probabilities: List[float], qubits: Sequence[Any]
+    prog_list: Iterable[Program], probabilities: Sequence[float], qubits: Sequence[Any]
 ) -> Program:
     """
     Insert pauli noise channels between each item in the list of programs.
@@ -1001,7 +999,7 @@ def merge_with_pauli_noise(
     return p
 
 
-def merge_programs(prog_list: List[Program]) -> Program:
+def merge_programs(prog_list: Sequence[Program]) -> Program:
     """
     Merges a list of pyQuil programs into a single one by appending them in sequence.
     If multiple programs in the list contain the same gate and/or noisy gate definition
