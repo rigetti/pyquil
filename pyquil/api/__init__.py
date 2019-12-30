@@ -22,7 +22,6 @@ __all__ = [
     "QVMConnection",
     "QVMCompiler",
     "QPUCompiler",
-    "Job",
     "Device",
     "ForestConnection",
     "pyquil_protect",
@@ -44,7 +43,6 @@ from pyquil.api._base_connection import ForestConnection
 from pyquil.api._benchmark import BenchmarkConnection, get_benchmarker
 from pyquil.api._compiler import QVMCompiler, QPUCompiler
 from pyquil.api._error_reporting import pyquil_protect
-from pyquil.api._job import Job
 from pyquil.api._qam import QAM
 from pyquil.api._qpu import QPU
 from pyquil.api._quantum_computer import (
@@ -57,39 +55,6 @@ from pyquil.api._quantum_computer import (
 from pyquil.api._qvm import QVMConnection, QVM
 from pyquil.api._wavefunction_simulator import WavefunctionSimulator
 from pyquil.device import Device
-
-
-class SyncConnection(QVMConnection):
-    def __init__(self, *args, **kwargs):
-        warnings.warn(
-            "SyncConnection has been renamed to QVMConnection and will be removed in the future",
-            stacklevel=2,
-        )
-        super(SyncConnection, self).__init__(*args, **kwargs)
-
-
-class JobConnection(object):
-    def __init__(self, *args, **kwargs):
-        raise DeprecationWarning(
-            """
-JobConnection has been deprecated and will be removed in a future version.
-Use QVMConnection instead.
-
-Note that QVMConnection behaves differently than JobConnection did:
-run(), run_and_measure(), wavefunction(), and expectation() all now directly
-return the result of the program instead of returning a JobResult object.
-
-This means you need to replace constructs like this:
-    qvm = JobConnection()
-    job = qvm.run(program, ...)
-    wait_for_job(job)
-    result = job.result()
-with just this:
-    qvm = JobConnection()
-    result = qvm.run(program, ...)
-
-For more information see https://go.rigetti.com/connections\n"""
-        )
 
 
 class QPUConnection(QPU):
