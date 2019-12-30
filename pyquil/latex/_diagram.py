@@ -15,11 +15,12 @@
 ##############################################################################
 
 import sys
+from collections import defaultdict
+from typing import Iterable, List, Sequence, Mapping, Optional, Set, Tuple, cast
 from warnings import warn
 
-from pyquil import Program
-from pyquil.quil import Measurement, Gate, Pragma
-from pyquil.quilatom import format_parameter
+from pyquil.quil import Program
+from pyquil.quilatom import ParameterDesignator, QubitDesignator, format_parameter
 from pyquil.quilbase import (
     AbstractInstruction,
     Wait,
@@ -38,8 +39,10 @@ from pyquil.quilbase import (
     ClassicalStore,
     ClassicalComparison,
     RawInstr,
+    Measurement,
+    Gate,
+    Pragma,
 )
-from collections import defaultdict
 
 if sys.version_info < (3, 7):
     from pyquil.external.dataclasses import dataclass, replace
@@ -119,52 +122,63 @@ UNSUPPORTED_INSTRUCTION_CLASSES = (
 # TikZ operators
 
 
-def TIKZ_LEFT_KET(qubit):
+def TIKZ_LEFT_KET(qubit: int) -> str:
     return r"\lstick{{\ket{{q_{{{qubit}}}}}}}".format(qubit=qubit)
 
 
-def TIKZ_CONTROL(control, offset):
+def TIKZ_CONTROL(control: int, offset: int) -> str:
     return r"\ctrl{{{offset}}}".format(offset=offset)
 
 
-def TIKZ_CNOT_TARGET():
+def TIKZ_CNOT_TARGET() -> str:
     return r"\targ{}"
 
 
-def TIKZ_CPHASE_TARGET():
+def TIKZ_CPHASE_TARGET() -> str:
     return r"\control{}"
 
 
-def TIKZ_SWAP(source, offset):
+def TIKZ_SWAP(source: int, offset: int) -> str:
     return r"\swap{{{offset}}}".format(offset=offset)
 
 
-def TIKZ_SWAP_TARGET():
+def TIKZ_SWAP_TARGET() -> str:
     return r"\targX{}"
 
 
-def TIKZ_NOP():
+def TIKZ_NOP() -> str:
     return r"\qw"
 
 
-def TIKZ_MEASURE():
+def TIKZ_MEASURE() -> str:
     return r"\meter{}"
 
 
-def _format_parameter(param, settings=None):
+def _format_parameter(
+    param: ParameterDesignator, settings: Optional[DiagramSettings] = None
+) -> str:
     formatted = format_parameter(param)
     if settings and settings.texify_numerical_constants:
         formatted = formatted.replace("pi", r"\pi")
     return formatted
 
 
-def _format_parameters(params, settings=None):
+def _format_parameters(
+    params: Iterable[ParameterDesignator], settings: Optional[DiagramSettings] = None
+) -> str:
     return "(" + ",".join(_format_parameter(param, settings) for param in params) + ")"
 
 
-def TIKZ_GATE(name, size=1, params=None, dagger=False, settings=None):
+def TIKZ_GATE(
+    name: str,
+    size: int = 1,
+    params: Optional[Sequence[ParameterDesignator]] = None,
+    dagger: bool = False,
+    settings: Optional[DiagramSettings] = None,
+) -> str:
     cmd = r"\gate"
-    if settings and settings.abbreviate_controlled_rotations and name in ["RX", "RY", "RZ"]:
+    rotations = ["RX", "RY", "RZ"]
+    if settings and settings.abbreviate_controlled_rotations and name in rotations and params:
         name = name[1] + "_{{{param}}}".format(param=_format_parameter(params[0], settings))
         return cmd + "{{{name}}}".format(name=name)
     # now, handle the general case
@@ -180,7 +194,7 @@ def TIKZ_GATE(name, size=1, params=None, dagger=False, settings=None):
     return cmd + "{{{name}}}".format(name=name)
 
 
-def TIKZ_GATE_GROUP(qubits, width, label):
+def TIKZ_GATE_GROUP(qubits: Sequence[int], width: int, label: str) -> str:
     num_qubits = max(qubits) - min(qubits) + 1
     return (
         "\\gategroup[{qubits},steps={width},style={{dashed, rounded corners,"
@@ -206,11 +220,11 @@ class DiagramState:
     TikZ operators.
     """
 
-    def __init__(self, qubits):
+    def __init__(self, qubits: Sequence[int]):
         self.qubits = qubits
-        self.lines = defaultdict(list)
+        self.lines: Mapping[int, List[str]] = defaultdict(list)
 
-    def extend_lines_to_common_edge(self, qubits, offset=0):
+    def extend_lines_to_common_edge(self, qubits: Iterable[int], offset: int = 0) -> None:
         """
         Add NOP operations on the lines associated with the given qubits, until
         all lines are of the same width.
@@ -220,20 +234,22 @@ class DiagramState:
             while self.width(q) < max_width:
                 self.append(q, TIKZ_NOP())
 
-    def width(self, qubit):
+    def width(self, qubit: int) -> int:
         """
         The width of the diagram, in terms of the number of operations, on the
         specified qubit line.
         """
         return len(self.lines[qubit])
 
-    def append(self, qubit, op):
+    def append(self, qubit: int, op: str) -> None:
         """
         Add an operation to the rightmost edge of the specified qubit line.
         """
         self.lines[qubit].append(op)
 
-    def append_diagram(self, diagram, group=None):
+    def append_diagram(
+        self, diagram: "DiagramState", group: Optional[str] = None
+    ) -> "DiagramState":
         """
         Add all operations represented by the given diagram to their
         corresponding qubit lines in this diagram.
@@ -263,7 +279,7 @@ class DiagramState:
             )
         return self
 
-    def interval(self, low, high) -> list:
+    def interval(self, low: int, high: int) -> List[int]:
         """
         All qubits in the diagram, from low to high, inclusive.
         """
@@ -271,14 +287,16 @@ class DiagramState:
         qubits = list(set(full_interval) & set(self.qubits))
         return sorted(qubits)
 
-    def is_interval(self, qubits) -> bool:
+    def is_interval(self, qubits: Sequence[int]) -> bool:
         """
         Do the specified qubits correspond to an interval in this diagram?
         """
         return qubits == self.interval(min(qubits), max(qubits))
 
 
-def split_on_terminal_measures(program: Program) -> tuple:
+def split_on_terminal_measures(
+    program: Program,
+) -> Tuple[List[AbstractInstruction], List[AbstractInstruction]]:
     """
     Split a program into two lists of instructions:
 
@@ -289,10 +307,10 @@ def split_on_terminal_measures(program: Program) -> tuple:
     if not any(isinstance(instr, Measurement) for instr in program.instructions):
         return [], program.instructions
 
-    seen_qubits = set()
+    seen_qubits: Set[QubitDesignator] = set()
 
-    measures = []
-    remaining = []
+    measures: List[AbstractInstruction] = []
+    remaining: List[AbstractInstruction] = []
     in_group = False
     for instr in reversed(program.instructions):
         if not in_group and isinstance(instr, Measurement) and instr.qubit not in seen_qubits:
@@ -322,23 +340,23 @@ class DiagramBuilder:
     recursive methods.
     """
 
-    def __init__(self, circuit, settings):
+    def __init__(self, circuit: Program, settings: DiagramSettings):
         self.circuit = circuit
         self.settings = settings
         # instructions currently being processed
-        self.working_instructions = None
+        self.working_instructions: Optional[List[AbstractInstruction]] = None
         # index into working instructions. we maintain the invariant that
         # working_instructions[0:index] has been processed, with the diagram
         # updated accordingly
         self.index = 0
         # partially constructed diagram
-        self.diagram = None
+        self.diagram: Optional[DiagramState] = None
 
-    def build(self):
+    def build(self) -> DiagramState:
         """
         Actually build the diagram.
         """
-        qubits = self.circuit.get_qubits()
+        qubits = cast(Set[int], self.circuit.get_qubits(indices=True))
         all_qubits = (
             range(min(qubits), max(qubits) + 1)
             if self.settings.impute_missing_qubits
@@ -410,13 +428,15 @@ class DiagramBuilder:
         self.diagram.extend_lines_to_common_edge(self.diagram.qubits, offset=offset)
         return self.diagram
 
-    def _build_group(self):
+    def _build_group(self) -> None:
         """
         Update the partial diagram with the subcircuit delimited by the grouping PRAGMA.
 
         Advances the index beyond the ending pragma.
         """
+        assert self.working_instructions is not None
         instr = self.working_instructions[self.index]
+        assert isinstance(instr, Pragma)
         if len(instr.args) != 0:
             raise ValueError(
                 f"PRAGMA {PRAGMA_BEGIN_GROUP} expected a freeform string, or nothing at all."
@@ -424,18 +444,17 @@ class DiagramBuilder:
         start = self.index + 1
         # walk instructions until the group end
         for j in range(start, len(self.working_instructions)):
-            if (
-                isinstance(self.working_instructions[j], Pragma)
-                and self.working_instructions[j].command == PRAGMA_END_GROUP
-            ):
+            instruction_j = self.working_instructions[j]
+            if isinstance(instruction_j, Pragma) and instruction_j.command == PRAGMA_END_GROUP:
                 # recursively build the diagram for this block
                 # we do not want labels here!
-                block_settings = replace(
+                block_settings = replace(  # type: ignore
                     self.settings, label_qubit_lines=False, qubit_line_open_wire_length=0
                 )
-                subcircuit = Program(self.working_instructions[start:j])
+                subcircuit = Program(*self.working_instructions[start:j])
                 block = DiagramBuilder(subcircuit, block_settings).build()
                 block_name = instr.freeform_string if instr.freeform_string else ""
+                assert self.diagram is not None
                 self.diagram.append_diagram(block, group=block_name)
                 # advance to the instruction following this one
                 self.index = j + 1
@@ -443,25 +462,31 @@ class DiagramBuilder:
 
         raise ValueError("Unable to find PRAGMA {} matching {}.".format(PRAGMA_END_GROUP, instr))
 
-    def _build_measure(self):
+    def _build_measure(self) -> None:
         """
         Update the partial diagram with a measurement operation.
 
         Advances the index by one.
         """
+        assert self.working_instructions is not None
         instr = self.working_instructions[self.index]
+        assert isinstance(instr, Measurement)
+        assert self.diagram is not None
         self.diagram.append(instr.qubit.index, TIKZ_MEASURE())
         self.index += 1
 
-    def _build_custom_source_target_op(self):
+    def _build_custom_source_target_op(self) -> None:
         """
         Update the partial diagram with a single operation involving a source and a target
         (e.g. a controlled gate, a swap).
 
         Advances the index by one.
         """
+        assert self.working_instructions is not None
         instr = self.working_instructions[self.index]
+        assert isinstance(instr, Gate)
         source, target = qubit_indices(instr)
+        assert self.diagram is not None
         displaced = self.diagram.interval(min(source, target), max(source, target))
         self.diagram.extend_lines_to_common_edge(displaced)
         source_op, target_op = SOURCE_TARGET_OP[instr.name]
@@ -471,32 +496,39 @@ class DiagramBuilder:
         self.diagram.extend_lines_to_common_edge(displaced)
         self.index += 1
 
-    def _build_1q_unitary(self):
+    def _build_1q_unitary(self) -> None:
         """
         Update the partial diagram with a 1Q gate.
 
         Advances the index by one.
         """
+        assert self.working_instructions is not None
         instr = self.working_instructions[self.index]
+        assert isinstance(instr, Gate)
         qubits = qubit_indices(instr)
         dagger = sum(m == "DAGGER" for m in instr.modifiers) % 2 == 1
+
+        assert self.diagram is not None
         self.diagram.append(
             qubits[0],
             TIKZ_GATE(instr.name, params=instr.params, dagger=dagger, settings=self.settings),
         )
         self.index += 1
 
-    def _build_generic_unitary(self):
+    def _build_generic_unitary(self) -> None:
         """
         Update the partial diagram with a unitary operation.
 
         Advances the index by one.
         """
+        assert self.working_instructions is not None
         instr = self.working_instructions[self.index]
+        assert isinstance(instr, Gate)
         qubits = qubit_indices(instr)
         dagger = sum(m == "DAGGER" for m in instr.modifiers) % 2 == 1
         controls = sum(m == "CONTROLLED" for m in instr.modifiers)
 
+        assert self.diagram is not None
         self.diagram.extend_lines_to_common_edge(qubits)
 
         control_qubits = qubits[:controls]
@@ -521,7 +553,7 @@ class DiagramBuilder:
         self.index += 1
 
 
-def qubit_indices(instr: AbstractInstruction) -> list:
+def qubit_indices(instr: AbstractInstruction) -> List[int]:
     """
     Get a list of indices associated with the given instruction.
     """
