@@ -17,19 +17,21 @@ Changelog
     rename the style-related `Makefile` targets and CI jobs so that they have
     a uniform naming convention: `check-all`, `check-format`, `check-style`,
     and `check-types` (@karalekas, gh-1133).
--   Added type hints to `noise.py` (@rht, gh-1136).
--   Fixed string concatenation style (@peterjc, gh-1139).
+-   Added type hints to `noise.py`, began verifying in the CI (@rht, gh-1136).
 -   Improved reStructuredText markup in docstrings (@peterjc, gh-1141).
+-   Added typing to the `pyquil/latex` module and added the module to the
+    `check-types` CI job (@karalekas, gh-1142).
 
 ### Bugfixes
 
 -   Don't attach pipes to stdout/stderr when starting quilc and qvm processes in
     `local_forest_runtime`. This prevents the pipe buffers from getting full and
     causing hung quilc/qvm for long running processes (@appleby, gh-1122).
--   Pass a sequence to np.vstack to avoid a FutureWarning, and add a protoquil keyword
-    argument to MyLazyCompiler.quil_to_native_quil to avoid a TypeError in in the
-    migration2-qc notebook (@appleby, gh-1138).
--   Removed unused method `Program._out()` in quil.py (@rht, gh-1137).
+-   Pass a sequence to `np.vstack` to avoid a `FutureWarning`, and add a protoquil
+    keyword argument to `MyLazyCompiler.quil_to_native_quil` to avoid a `TypeError`
+    in the `migration2-qc.ipynb` notebook (@appleby, gh-1138).
+-   Removed unused method `Program._out()` in `quil.py` (@rht, gh-1137).
+-   Fixed string concatenation style, caused by `black` (@peterjc, gh-1139).
 
 [v2.15](https://github.com/rigetti/pyquil/compare/v2.14.0...v2.15.0) (December 20, 2019)
 ----------------------------------------------------------------------------------------
