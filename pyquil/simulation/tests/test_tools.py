@@ -8,7 +8,7 @@ from pyquil.paulis import sX, sY, sZ
 from pyquil.quilatom import MemoryReference, Parameter
 from pyquil.quilbase import Declare
 from pyquil.simulation import matrices as mat
-from pyquil.unitary_tools import (
+from pyquil.simulation.tools import (
     qubit_adjacent_lifted_gate,
     program_unitary,
     lifted_gate_matrix,

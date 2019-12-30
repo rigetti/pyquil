@@ -8,7 +8,7 @@ from pyquil.paulis import PauliTerm, PauliSum
 from pyquil.pyqvm import AbstractQuantumSimulator
 from pyquil.quilbase import Gate
 from pyquil.simulation.matrices import P0, P1, KRAUS_OPS, QUANTUM_GATES
-from pyquil.unitary_tools import lifted_gate_matrix, lifted_gate, all_bitstrings
+from pyquil.simulation.tools import lifted_gate_matrix, lifted_gate, all_bitstrings
 
 
 def _term_expectation(wf, term: PauliTerm, n_qubits):

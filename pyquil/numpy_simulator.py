@@ -22,7 +22,6 @@ from pyquil.paulis import PauliTerm, PauliSum
 from pyquil.quilbase import Gate
 from pyquil.reference_simulator import AbstractQuantumSimulator
 from pyquil.simulation.matrices import QUANTUM_GATES
-
 # The following function is lovingly copied from the Cirq project
 # https://github.com/quantumlib/Cirq
 #
@@ -40,7 +39,7 @@ from pyquil.simulation.matrices import QUANTUM_GATES
 # WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
 # See the License for the specific language governing permissions and
 # limitations under the License.
-from pyquil.unitary_tools import all_bitstrings
+from pyquil.simulation.tools import all_bitstrings
 
 
 def targeted_einsum(gate: np.ndarray, wf: np.ndarray, wf_target_inds: List[int]) -> np.ndarray:

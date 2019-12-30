@@ -45,8 +45,8 @@ from pyquil.paulis import (
     ZERO,
     is_identity,
 )
-from pyquil.unitary_tools import program_unitary
 from pyquil.quil import Program
+from pyquil.simulation.tools import program_unitary
 
 
 def isclose(a, b, rel_tol=1e-10, abs_tol=0.0):
