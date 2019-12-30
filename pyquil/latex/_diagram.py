@@ -445,8 +445,7 @@ class DiagramBuilder:
         # walk instructions until the group end
         for j in range(start, len(self.working_instructions)):
             instruction_j = self.working_instructions[j]
-            assert isinstance(instruction_j, Pragma)
-            if instruction_j.command == PRAGMA_END_GROUP:
+            if isinstance(instruction_j, Pragma) and instruction_j.command == PRAGMA_END_GROUP:
                 # recursively build the diagram for this block
                 # we do not want labels here!
                 block_settings = replace(  # type: ignore
