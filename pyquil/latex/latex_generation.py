@@ -17,8 +17,8 @@
 import warnings
 from typing import Optional
 
-from pyquil import Program
 from pyquil.latex._diagram import DiagramSettings
+from pyquil.quil import Program
 
 
 def to_latex(circuit: Program, settings: Optional[DiagramSettings] = None) -> str:

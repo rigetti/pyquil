@@ -15,18 +15,20 @@
 ##############################################################################
 
 import os
-import subprocess
 import shutil
+import subprocess
 import tempfile
-from typing import Optional
 from IPython.display import Image
+from typing import Any, Optional
 
-from pyquil import Program
 from pyquil.latex._main import to_latex
 from pyquil.latex._diagram import DiagramSettings
+from pyquil.quil import Program
 
 
-def display(circuit: Program, settings: Optional[DiagramSettings] = None, **image_options) -> Image:
+def display(
+    circuit: Program, settings: Optional[DiagramSettings] = None, **image_options: Any
+) -> Image:
     """
     Displays a PyQuil circuit as an IPython image object.
 
@@ -39,11 +41,9 @@ def display(circuit: Program, settings: Optional[DiagramSettings] = None, **imag
        ``geometry``, ``tikz``, and ``quantikz``. If it does not, you need to install
        these yourself.
 
-    :param Program circuit: The circuit to be drawn, represented as a pyquil program.
-    :param DiagramSettings settings: An optional object of settings controlling diagram rendering
-        and layout.
+    :param circuit: The circuit to be drawn, represented as a pyquil program.
+    :param settings: An optional object of settings controlling diagram rendering and layout.
     :return: PNG image render of the circuit.
-    :rtype: IPython.display.Image
     """
     # The conversion process relies on two passes: first, 'pdflatex' is called to
     # render the tikz to a pdf. Second, Imagemagick's 'convert' is called to translate
