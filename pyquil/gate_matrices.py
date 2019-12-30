@@ -16,7 +16,7 @@
 
 import warnings
 
-from pyquil.simulation.matrices import *
+from pyquil.simulation.matrices import *  # noqa: F401, F403
 
 warnings.warn(
     "The code in pyquil.gate_matrices has been moved to pyquil.simulation.matrices, "
