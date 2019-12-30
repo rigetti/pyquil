@@ -18,6 +18,8 @@ Changelog
     and `check-types` (@karalekas, gh-1133).
 -   Added type hints to `noise.py`, began verifying in the CI (@rht, gh-1136).
 -   Improved reStructuredText markup in docstrings (@peterjc, gh-1141).
+-   Add helper to separate `ExperimentResults` by groups of qubits on
+    which their operator acts (@kylegulshen, gh-1078).
 -   Added typing to the `pyquil/latex` module and added the module to the
     `check-types` CI job (@karalekas, gh-1142).
 
