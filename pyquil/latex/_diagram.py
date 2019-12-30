@@ -15,6 +15,7 @@
 ##############################################################################
 
 import sys
+from collections import defaultdict
 from typing import Iterable, List, Sequence, Mapping, Optional, Set, Tuple, cast
 from warnings import warn
 
@@ -42,7 +43,6 @@ from pyquil.quilbase import (
     Gate,
     Pragma,
 )
-from collections import defaultdict
 
 if sys.version_info < (3, 7):
     from pyquil.external.dataclasses import dataclass, replace

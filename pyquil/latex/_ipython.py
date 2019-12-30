@@ -15,15 +15,15 @@
 ##############################################################################
 
 import os
-import subprocess
 import shutil
+import subprocess
 import tempfile
-from typing import Any, Optional
 from IPython.display import Image
+from typing import Any, Optional
 
-from pyquil.quil import Program
 from pyquil.latex._main import to_latex
 from pyquil.latex._diagram import DiagramSettings
+from pyquil.quil import Program
 
 
 def display(
