@@ -200,7 +200,7 @@ def _check_kraus_ops(n: int, kraus_ops: Sequence[np.ndarray]) -> None:
 
 
 def _create_kraus_pragmas(
-    name: str, qubit_indices: Sequence[Any], kraus_ops: Sequence[np.ndarray]
+    name: str, qubit_indices: Sequence[int], kraus_ops: Sequence[np.ndarray]
 ) -> List[Pragma]:
     """
     Generate the pragmas to define a Kraus map for a specific gate on some qubits.
@@ -214,7 +214,7 @@ def _create_kraus_pragmas(
     pragmas = [
         Pragma(
             "ADD-KRAUS",
-            [name] + list(qubit_indices),
+            (name,) + tuple(qubit_indices),
             "({})".format(" ".join(map(format_parameter, np.ravel(k)))),
         )
         for k in kraus_ops

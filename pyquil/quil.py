@@ -19,7 +19,7 @@ Module for creating and defining Quil programs.
 import itertools
 import types
 import warnings
-from collections import OrderedDict, defaultdict
+from collections import defaultdict
 from typing import (
     Any,
     Dict,
@@ -32,6 +32,7 @@ from typing import (
     Set,
     Tuple,
     Union,
+    cast,
     no_type_check,
 )
 
@@ -128,7 +129,8 @@ class Program(object):
         new_prog = Program()
         new_prog._defined_gates = self._defined_gates.copy()
         if self.native_quil_metadata is not None:
-            new_prog.native_quil_metadata = self.native_quil_metadata.copy()
+            # TODO: remove this type: ignore once rpcq._base.Message gets type hints.
+            new_prog.native_quil_metadata = self.native_quil_metadata.copy()  # type: ignore
         new_prog.num_shots = self.num_shots
         return new_prog
 
@@ -390,9 +392,18 @@ class Program(object):
                   MEASURE 2 [3]
         """
         if qubit_reg_pairs == ():
-            qubit_inds = self.get_qubits(indices=True)
-            if len(qubit_inds) == 0:
+            qubits = self.get_qubits(indices=True)
+            if len(qubits) == 0:
                 return self
+            if any(isinstance(q, QubitPlaceholder) for q in qubits):
+                raise ValueError(
+                    "Attempted to call measure_all on a Program that contains QubitPlaceholders. "
+                    "You must either provide the qubit_reg_pairs argument to describe how to map "
+                    "these QubitPlaceholders to memory registers, or else first call "
+                    "pyquil.quil.address_qubits to instantiate the QubitPlaceholders."
+                )
+            # Help mypy determine that qubits does not contain any QubitPlaceholders.
+            qubit_inds = cast(List[int], qubits)
             ro = self.declare("ro", "BIT", max(qubit_inds) + 1)
             for qi in qubit_inds:
                 self.inst(MEASURE(qi, ro[qi]))
@@ -632,9 +643,11 @@ class Program(object):
         if any(not isinstance(instr, Gate) for instr in self._instructions):
             raise ValueError("Program to be daggered must contain only gate applications")
 
-        # This is a bit hacky. Gate.dagger() mutates the gate object,
-        # rather than returning a fresh (and daggered) copy.
-        return Program([instr.dagger() for instr in reversed(Program(self.out())._instructions)])
+        # This is a bit hacky. Gate.dagger() mutates the gate object, rather than returning a fresh
+        # (and daggered) copy. Also, mypy doesn't understand that we already asserted that every
+        # instr in _instructions is a Gate, above, so help mypy out with a cast.
+        surely_gate_instructions = cast(List[Gate], Program(self.out())._instructions)
+        return Program([instr.dagger() for instr in reversed(surely_gate_instructions)])
 
     def _synthesize(self) -> "Program":
         """
@@ -743,7 +756,7 @@ def _what_type_of_qubit_does_it_use(
     # We probably want to index qubits in the order they are encountered in the program
     # so an ordered set would be nice. Python doesn't *have* an ordered set. Use the keys
     # of an ordered dictionary instead
-    qubits = OrderedDict()
+    qubits = {}
 
     for instr in program:
         if isinstance(instr, Gate):
@@ -795,7 +808,9 @@ def get_default_qubit_mapping(program: Program) -> Dict[Union[Qubit, QubitPlaceh
         warnings.warn(
             "This program contains integer qubits, so getting a mapping doesn't make sense."
         )
-        return {q: q for q in qubits}
+        # _what_type_of_qubit_does_it_use ensures that if real_qubits is True, then qubits contains
+        # only real Qubits, not QubitPlaceholders. Help mypy figure this out with cast.
+        return {q: cast(Qubit, q) for q in qubits}
     return {qp: Qubit(i) for i, qp in enumerate(qubits)}
 
 
