@@ -23,7 +23,19 @@ import json
 import logging
 import warnings
 from json import JSONEncoder
-from typing import Any, Callable, Dict, Generator, List, Mapping, Optional, Sequence, Set, Union, cast
+from typing import (
+    Any,
+    Callable,
+    Dict,
+    Generator,
+    List,
+    Mapping,
+    Optional,
+    Sequence,
+    Set,
+    Union,
+    cast,
+)
 
 from pyquil.experiment._memory import (
     pauli_term_to_measurement_memory_map,
@@ -182,10 +194,10 @@ class TomographyExperiment:
     def __delitem__(self, key: int) -> None:
         self._settings.__delitem__(key)
 
-    def __iter__(self) -> Generator[ExperimentSetting]:
+    def __iter__(self) -> Generator[List[ExperimentSetting], None, None]:
         yield from self._settings
 
-    def __reversed__(self) -> Generator[ExperimentSetting]:
+    def __reversed__(self) -> Generator[List[ExperimentSetting], None, None]:
         yield from reversed(self._settings)
 
     def __contains__(self, item: List[ExperimentSetting]) -> bool:
@@ -217,10 +229,12 @@ class TomographyExperiment:
     def reverse(self) -> None:
         return self._settings.reverse()
 
-    def sort(self, key: Optional[Callable[[List[ExperimentSetting]], Any]] = None, reverse: bool = False) -> None:
+    def sort(
+        self, key: Optional[Callable[[List[ExperimentSetting]], Any]] = None, reverse: bool = False
+    ) -> None:
         return self._settings.sort(key=key, reverse=reverse)
 
-    def setting_strings(self) -> Generator[str]:
+    def setting_strings(self) -> Generator[str, None, None]:
         yield from (
             "{i}: {st_str}".format(i=i, st_str=", ".join(str(setting) for setting in settings))
             for i, settings in enumerate(self._settings)

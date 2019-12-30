@@ -34,7 +34,7 @@ else:
 log = logging.getLogger(__name__)
 
 
-@dataclass(frozen=True)  # type: ignore
+@dataclass(frozen=True)
 class _OneQState:
     """
     A description of a named one-qubit quantum state.
@@ -59,7 +59,7 @@ class _OneQState:
         return _OneQState(label=ma.group(1), index=int(ma.group(2)), qubit=int(ma.group(3)))
 
 
-@dataclass(frozen=True)  # type: ignore
+@dataclass(frozen=True)
 class TensorProductState:
     """
     A description of a multi-qubit quantum state that is a tensor product of many _OneQStates
@@ -89,7 +89,7 @@ class TensorProductState:
                 return oneq_state
         raise IndexError()
 
-    def __iter__(self) -> Generator[_OneQState]:
+    def __iter__(self) -> Generator[_OneQState, None, None]:
         yield from self.states
 
     def __len__(self) -> int:
@@ -138,42 +138,42 @@ def SIC1(q: int) -> TensorProductState:
 
 
 def SIC2(q: int) -> TensorProductState:
-    return TensorProductState([_OneQState("SIC", 2, q)])
+    return TensorProductState([_OneQState(label="SIC", index=2, qubit=q)])
 
 
 def SIC3(q: int) -> TensorProductState:
-    return TensorProductState([_OneQState("SIC", 3, q)])
+    return TensorProductState([_OneQState(label="SIC", index=3, qubit=q)])
 
 
 def plusX(q: int) -> TensorProductState:
-    return TensorProductState([_OneQState("X", 0, q)])
+    return TensorProductState([_OneQState(label="X", index=0, qubit=q)])
 
 
 def minusX(q: int) -> TensorProductState:
-    return TensorProductState([_OneQState("X", 1, q)])
+    return TensorProductState([_OneQState(label="X", index=1, qubit=q)])
 
 
 def plusY(q: int) -> TensorProductState:
-    return TensorProductState([_OneQState("Y", 0, q)])
+    return TensorProductState([_OneQState(label="Y", index=0, qubit=q)])
 
 
 def minusY(q: int) -> TensorProductState:
-    return TensorProductState([_OneQState("Y", 1, q)])
+    return TensorProductState([_OneQState(label="Y", index=1, qubit=q)])
 
 
 def plusZ(q: int) -> TensorProductState:
-    return TensorProductState([_OneQState("Z", 0, q)])
+    return TensorProductState([_OneQState(label="Z", index=0, qubit=q)])
 
 
 def minusZ(q: int) -> TensorProductState:
-    return TensorProductState([_OneQState("Z", 1, q)])
+    return TensorProductState([_OneQState(label="Z", index=1, qubit=q)])
 
 
 def zeros_state(qubits: Iterable[int]) -> TensorProductState:
-    return TensorProductState([_OneQState("Z", 0, q) for q in qubits])
+    return TensorProductState([_OneQState(label="Z", index=0, qubit=q) for q in qubits])
 
 
-@dataclass(frozen=True, init=False)  # type: ignore
+@dataclass(frozen=True, init=False)
 class ExperimentSetting:
     """
     Input and output settings for a tomography-like experiment.

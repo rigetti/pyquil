@@ -67,7 +67,7 @@ def bitstrings_to_expectations(
     return np.stack(e, axis=-1)
 
 
-@dataclass(frozen=True)  # type: ignore
+@dataclass(frozen=True)
 class ExperimentResult:
     """An expectation and standard deviation for the measurement of one experiment setting
     in a tomographic experiment.
@@ -81,26 +81,26 @@ class ExperimentResult:
     expectation: Union[float, complex]
     total_counts: int
     std_err: Optional[Union[float, complex]] = None
-    raw_expectation:  Optional[Union[float, complex]] = None
-    raw_std_err:  Optional[float] = None
-    calibration_expectation:  Optional[Union[float, complex]] = None
-    calibration_std_err:  Optional[Union[float, complex]] = None
-    calibration_counts:  Optional[int] = None
+    raw_expectation: Optional[Union[float, complex]] = None
+    raw_std_err: Optional[float] = None
+    calibration_expectation: Optional[Union[float, complex]] = None
+    calibration_std_err: Optional[Union[float, complex]] = None
+    calibration_counts: Optional[int] = None
 
     def __init__(
         self,
         setting: ExperimentSetting,
         expectation: Union[float, complex],
         total_counts: int,
-        stddev:  Optional[Union[float, complex]] = None,
-        std_err:  Optional[Union[float, complex]] = None,
-        raw_expectation:  Optional[Union[float, complex]] = None,
-        raw_stddev:  Optional[float] = None,
-        raw_std_err:  Optional[float] = None,
-        calibration_expectation:  Optional[Union[float, complex]] = None,
-        calibration_stddev:  Optional[Union[float, complex]] = None,
-        calibration_std_err:  Optional[Union[float, complex]] = None,
-        calibration_counts:  Optional[int] = None,
+        stddev: Optional[Union[float, complex]] = None,
+        std_err: Optional[Union[float, complex]] = None,
+        raw_expectation: Optional[Union[float, complex]] = None,
+        raw_stddev: Optional[float] = None,
+        raw_std_err: Optional[float] = None,
+        calibration_expectation: Optional[Union[float, complex]] = None,
+        calibration_stddev: Optional[Union[float, complex]] = None,
+        calibration_std_err: Optional[Union[float, complex]] = None,
+        calibration_counts: Optional[int] = None,
     ):
 
         object.__setattr__(self, "setting", setting)
@@ -125,7 +125,7 @@ class ExperimentResult:
             calibration_std_err = calibration_stddev
         object.__setattr__(self, "calibration_std_err", calibration_std_err)
 
-    def get_stddev(self) ->  Optional[Union[float, complex]]:
+    def get_stddev(self) -> Optional[Union[float, complex]]:
         warnings.warn("'stddev' has been renamed to 'std_err'")
         return self.std_err
 
@@ -135,7 +135,7 @@ class ExperimentResult:
 
     stddev = property(get_stddev, set_stddev)
 
-    def get_raw_stddev(self) ->  Optional[float]:
+    def get_raw_stddev(self) -> Optional[float]:
         warnings.warn("'raw_stddev' has been renamed to 'raw_std_err'")
         return self.raw_std_err
 
@@ -145,7 +145,7 @@ class ExperimentResult:
 
     raw_stddev = property(get_raw_stddev, set_raw_stddev)
 
-    def get_calibration_stddev(self) ->  Optional[Union[float, complex]]:
+    def get_calibration_stddev(self) -> Optional[Union[float, complex]]:
         warnings.warn("'calibration_stddev' has been renamed to 'calibration_std_err'")
         return self.calibration_std_err
 
