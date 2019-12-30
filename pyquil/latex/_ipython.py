@@ -41,11 +41,9 @@ def display(
        ``geometry``, ``tikz``, and ``quantikz``. If it does not, you need to install
        these yourself.
 
-    :param Program circuit: The circuit to be drawn, represented as a pyquil program.
-    :param DiagramSettings settings: An optional object of settings controlling diagram rendering
-        and layout.
+    :param circuit: The circuit to be drawn, represented as a pyquil program.
+    :param settings: An optional object of settings controlling diagram rendering and layout.
     :return: PNG image render of the circuit.
-    :rtype: IPython.display.Image
     """
     # The conversion process relies on two passes: first, 'pdflatex' is called to
     # render the tikz to a pdf. Second, Imagemagick's 'convert' is called to translate

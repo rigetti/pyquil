@@ -224,7 +224,7 @@ class DiagramState:
         self.qubits = qubits
         self.lines: Mapping[int, List[str]] = defaultdict(list)
 
-    def extend_lines_to_common_edge(self, qubits: Sequence[int], offset: int = 0) -> None:
+    def extend_lines_to_common_edge(self, qubits: Iterable[int], offset: int = 0) -> None:
         """
         Add NOP operations on the lines associated with the given qubits, until
         all lines are of the same width.
@@ -356,7 +356,7 @@ class DiagramBuilder:
         """
         Actually build the diagram.
         """
-        qubits = cast(Set[int], self.circuit.get_qubits())
+        qubits = cast(Set[int], self.circuit.get_qubits(indices=True))
         all_qubits = (
             range(min(qubits), max(qubits) + 1)
             if self.settings.impute_missing_qubits
