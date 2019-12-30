@@ -32,6 +32,7 @@ from typing import (
     Set,
     Tuple,
     Union,
+    no_type_check,
 )
 
 import numpy as np
@@ -798,6 +799,7 @@ def get_default_qubit_mapping(program: Program) -> Dict[Union[Qubit, QubitPlaceh
     return {qp: Qubit(i) for i, qp in enumerate(qubits)}
 
 
+@no_type_check
 def address_qubits(
     program: Program, qubit_mapping: Optional[Dict[QubitPlaceholder, Union[Qubit, int]]] = None
 ) -> Program:
