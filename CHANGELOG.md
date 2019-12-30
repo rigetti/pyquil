@@ -8,8 +8,7 @@ Changelog
 
 ### Improvements and Changes
 
--   Some of the type hints have been added to the `quil.py` file
-    (@rht, gh-1115, gh-1134).
+-   Type hints have been added to the `quil.py` file (@rht, gh-1115, gh-1134).
 -   Use [Black](https://black.readthedocs.io/en/stable/index.html) for code style
     and enforce it (along with a line length of 100) via the `style` (`flake8`)
     and `formatcheck` (`black --check`) CI jobs (@karalekas, gh-1132).
