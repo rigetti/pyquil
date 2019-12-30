@@ -18,7 +18,6 @@ from pyquil.experiment import (
     minusY,
     minusZ,
     plusX,
-    minusX,
     plusY,
     plusZ,
     zeros_state,
@@ -36,7 +35,6 @@ from pyquil.operator_estimation import (
     ratio_variance,
     _calibration_program,
     _pauli_to_product_state,
-    merge_disjoint_experiments,
 )
 from pyquil.paulis import sI, sX, sY, sZ, PauliSum, PauliTerm
 from pyquil.quilbase import Pragma
@@ -2144,18 +2142,3 @@ def test_unitary_state_fidelity_readout_error(forest, use_seed):
     # how close is this state to |0>
     expected_fidelity = (np.cos(theta / 2)) ** 2
     np.testing.assert_allclose(expected_fidelity, estimated_fidelity, atol=2e-2)
-
-
-def test_merge_disjoint_experiments():
-    sett1 = ExperimentSetting(TensorProductState(), sX(0) * sY(1))
-    sett2 = ExperimentSetting(plusZ(1), sY(1))
-    sett3 = ExperimentSetting(plusZ(0), sX(0))
-    sett4 = ExperimentSetting(minusX(1), sY(1))
-    sett5 = ExperimentSetting(TensorProductState(), sZ(2))
-
-    expt1 = TomographyExperiment(settings=[sett1, sett2], program=Program(X(1)))
-    expt2 = TomographyExperiment(settings=[sett3, sett4], program=Program(Z(0)))
-    expt3 = TomographyExperiment(settings=[sett5], program=Program())
-
-    merged_expt = merge_disjoint_experiments([expt1, expt2, expt3])
-    assert len(merged_expt) == 2
