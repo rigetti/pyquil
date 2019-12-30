@@ -32,7 +32,8 @@ from pyquil.experiment import (
     to_json,
     zeros_state,
 )
-from pyquil.experiment._group import (_max_weight_state,
+from pyquil.experiment._group import (
+    _max_weight_state,
     _max_weight_operator,
     group_settings as group_experiments,
 )

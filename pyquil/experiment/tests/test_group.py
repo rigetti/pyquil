@@ -3,9 +3,19 @@ import pytest
 
 from pyquil.experiment._main import TomographyExperiment
 from pyquil.experiment._result import ExperimentResult
-from pyquil.experiment._setting import ExperimentSetting, plusX, minusX, plusZ, minusZ, plusY, \
-    TensorProductState, zeros_state, _pauli_to_product_state
-from pyquil.experiment._group import (get_results_by_qubit_groups,
+from pyquil.experiment._setting import (
+    ExperimentSetting,
+    plusX,
+    minusX,
+    plusZ,
+    minusZ,
+    plusY,
+    TensorProductState,
+    zeros_state,
+    _pauli_to_product_state,
+)
+from pyquil.experiment._group import (
+    get_results_by_qubit_groups,
     merge_disjoint_experiments,
     group_settings,
     _max_weight_operator,
