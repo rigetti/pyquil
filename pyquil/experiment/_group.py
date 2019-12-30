@@ -47,12 +47,14 @@ def get_results_by_qubit_groups(
         corresponding value is the list of experiment results whose observables measure some
         subset of that qubit group. The result order is maintained within each group.
     """
-    qubit_groups = [tuple(sorted(group)) for group in qubit_groups]
-    results_by_qubit_group = {group: [] for group in qubit_groups}
+    tuple_groups = [tuple(sorted(group)) for group in qubit_groups]
+    results_by_qubit_group: Dict[Tuple[int, ...], List[ExperimentResult]] = {
+        group: [] for group in tuple_groups
+    }
     for res in results:
         res_qs = res.setting.out_operator.get_qubits()
 
-        for group in qubit_groups:
+        for group in tuple_groups:
             if set(res_qs).issubset(set(group)):
                 results_by_qubit_group[group].append(res)
 
