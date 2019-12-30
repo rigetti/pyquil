@@ -18,7 +18,7 @@ The main entry point to the LaTeX generation functionality in pyQuil.
 """
 from typing import Optional
 
-from pyquil import Program
+from pyquil.quil import Program
 from pyquil.latex._diagram import DiagramBuilder, DiagramSettings
 
 

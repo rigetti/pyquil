@@ -17,7 +17,7 @@
 import warnings
 from typing import Optional
 
-from pyquil import Program
+from pyquil.quil import Program
 from pyquil.latex._diagram import DiagramSettings
 
 
