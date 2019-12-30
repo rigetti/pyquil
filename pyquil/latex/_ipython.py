@@ -18,8 +18,9 @@ import os
 import shutil
 import subprocess
 import tempfile
-from IPython.display import Image
 from typing import Any, Optional
+
+from IPython.display import Image
 
 from pyquil.latex._main import to_latex
 from pyquil.latex._diagram import DiagramSettings
