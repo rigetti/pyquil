@@ -1,14 +1,9 @@
-import functools
-import itertools
 import logging
 import warnings
 from math import pi
-from operator import mul
-from typing import Callable, Dict, List, Union, Iterable, Tuple, Optional
+from typing import Callable, Dict, List, Union, Tuple, Optional
 
-import networkx as nx
 import numpy as np
-from networkx.algorithms.approximation.clique import clique_removal
 
 from pyquil import Program
 from pyquil.api import QuantumComputer
@@ -37,8 +32,12 @@ from pyquil.experiment import (
     to_json,
     zeros_state,
 )
+from pyquil.experiment._group import (_max_weight_state,
+    _max_weight_operator,
+    group_settings as group_experiments,
+)
 from pyquil.gates import RESET, RX, RY, RZ, X
-from pyquil.paulis import PauliTerm, sI, is_identity
+from pyquil.paulis import is_identity
 
 
 log = logging.getLogger(__name__)
@@ -118,230 +117,6 @@ def _local_pauli_eig_meas(op, idx):
     elif op == "Z":
         return Program()
     raise ValueError(f"Unknown operation {op}")
-
-
-def construct_tpb_graph(experiments: TomographyExperiment):
-    """
-    Construct a graph where an edge signifies two experiments are diagonal in a TPB.
-    """
-    g = nx.Graph()
-    for expt in experiments:
-        assert len(expt) == 1, "already grouped?"
-        expt = expt[0]
-
-        if expt not in g:
-            g.add_node(expt, count=1)
-        else:
-            g.nodes[expt]["count"] += 1
-
-    for expt1, expt2 in itertools.combinations(experiments, r=2):
-        expt1 = expt1[0]
-        expt2 = expt2[0]
-
-        if expt1 == expt2:
-            continue
-
-        max_weight_in = _max_weight_state([expt1.in_state, expt2.in_state])
-        max_weight_out = _max_weight_operator([expt1.out_operator, expt2.out_operator])
-        if max_weight_in is not None and max_weight_out is not None:
-            g.add_edge(expt1, expt2)
-
-    return g
-
-
-def group_experiments_clique_removal(experiments: TomographyExperiment) -> TomographyExperiment:
-    """
-    Group experiments that are diagonal in a shared tensor product basis (TPB) to minimize number
-    of QPU runs, using a graph clique removal algorithm.
-
-    :param experiments: a tomography experiment
-    :return: a tomography experiment with all the same settings, just grouped according to shared
-        TPBs.
-    """
-    g = construct_tpb_graph(experiments)
-    _, cliqs = clique_removal(g)
-    new_cliqs = []
-    for cliq in cliqs:
-        new_cliq = []
-        for expt in cliq:
-            # duplicate `count` times
-            new_cliq += [expt] * g.nodes[expt]["count"]
-
-        new_cliqs += [new_cliq]
-
-    return TomographyExperiment(new_cliqs, program=experiments.program)
-
-
-def _max_weight_operator(ops: Iterable[PauliTerm]) -> Union[None, PauliTerm]:
-    """Construct a PauliTerm operator by taking the non-identity single-qubit operator at each
-    qubit position.
-
-    This function will return ``None`` if the input operators do not share a natural tensor
-    product basis.
-
-    For example, the max_weight_operator of ["XI", "IZ"] is "XZ". Asking for the max weight
-    operator of something like ["XI", "ZI"] will return None.
-    """
-    mapping = dict()  # type: Dict[int, str]
-    for op in ops:
-        for idx, op_str in op:
-            if idx in mapping:
-                if mapping[idx] != op_str:
-                    return None
-            else:
-                mapping[idx] = op_str
-    op = functools.reduce(mul, (PauliTerm(op, q) for q, op in mapping.items()), sI())
-    return op
-
-
-def _max_weight_state(states: Iterable[TensorProductState]) -> Union[None, TensorProductState]:
-    """Construct a TensorProductState by taking the single-qubit state at each
-    qubit position.
-
-    This function will return ``None`` if the input states are not compatible
-
-    For example, the max_weight_state of ["(+X, q0)", "(-Z, q1)"] is "(+X, q0; -Z q1)". Asking for
-    the max weight state of something like ["(+X, q0)", "(+Z, q0)"] will return None.
-    """
-    mapping = dict()  # type: Dict[int, _OneQState]
-    for state in states:
-        for oneq_state in state.states:
-            if oneq_state.qubit in mapping:
-                if mapping[oneq_state.qubit] != oneq_state:
-                    return None
-            else:
-                mapping[oneq_state.qubit] = oneq_state
-    return TensorProductState(list(mapping.values()))
-
-
-def _max_tpb_overlap(
-    tomo_expt: TomographyExperiment,
-) -> Dict[ExperimentSetting, List[ExperimentSetting]]:
-    """
-    Given an input TomographyExperiment, provide a dictionary indicating which ExperimentSettings
-    share a tensor product basis
-
-    :param tomo_expt: TomographyExperiment, from which to group ExperimentSettings that share a tpb
-        and can be run together
-    :return: dictionary keyed with ExperimentSetting (specifying a tpb), and with each value being a
-            list of ExperimentSettings (diagonal in that tpb)
-    """
-    # initialize empty dictionary
-    diagonal_sets = {}
-    # loop through ExperimentSettings of the TomographyExperiment
-    for expt_setting in tomo_expt:
-        # no need to group already grouped TomographyExperiment
-        assert len(expt_setting) == 1, "already grouped?"
-        expt_setting = expt_setting[0]
-        # calculate max overlap of expt_setting with keys of diagonal_sets
-        # keep track of whether a shared tpb was found
-        found_tpb = False
-        # loop through dict items
-        for es, es_list in diagonal_sets.items():
-            trial_es_list = es_list + [expt_setting]
-            diag_in_term = _max_weight_state(expst.in_state for expst in trial_es_list)
-            diag_out_term = _max_weight_operator(expst.out_operator for expst in trial_es_list)
-            # max_weight_xxx returns None if the set of xxx's don't share a TPB, so the following
-            # conditional is True if expt_setting can be inserted into the current es_list.
-            if diag_in_term is not None and diag_out_term is not None:
-                found_tpb = True
-                assert len(diag_in_term) >= len(
-                    es.in_state
-                ), "Highest weight in-state can't be smaller than the given in-state"
-                assert len(diag_out_term) >= len(
-                    es.out_operator
-                ), "Highest weight out-PauliTerm can't be smaller than the given out-PauliTerm"
-
-                # update the diagonalizing basis (key of dict) if necessary
-                if len(diag_in_term) > len(es.in_state) or len(diag_out_term) > len(
-                    es.out_operator
-                ):
-                    del diagonal_sets[es]
-                    new_es = ExperimentSetting(diag_in_term, diag_out_term)
-                    diagonal_sets[new_es] = trial_es_list
-                else:
-                    diagonal_sets[es] = trial_es_list
-                break
-
-        if not found_tpb:
-            # made it through entire dict without finding any ExperimentSetting with shared tpb,
-            # so need to make a new item
-            diagonal_sets[expt_setting] = [expt_setting]
-
-    return diagonal_sets
-
-
-def group_experiments_greedy(tomo_expt: TomographyExperiment):
-    """
-    Greedy method to group ExperimentSettings in a given TomographyExperiment
-
-    :param tomo_expt: TomographyExperiment to group ExperimentSettings within
-    :return: TomographyExperiment, with grouped ExperimentSettings according to whether
-        it consists of PauliTerms diagonal in the same tensor product basis
-    """
-    diag_sets = _max_tpb_overlap(tomo_expt)
-    grouped_expt_settings_list = list(diag_sets.values())
-    grouped_tomo_expt = TomographyExperiment(grouped_expt_settings_list, program=tomo_expt.program)
-    return grouped_tomo_expt
-
-
-def group_experiments(
-    experiments: TomographyExperiment, method: str = "greedy"
-) -> TomographyExperiment:
-    """
-    Group experiments that are diagonal in a shared tensor product basis (TPB) to minimize number
-    of QPU runs.
-
-    .. rubric:: Background
-
-    Given some PauliTerm operator, the 'natural' tensor product basis to
-    diagonalize this term is the one which diagonalizes each Pauli operator in the
-    product term-by-term.
-
-    For example, X(1) * Z(0) would be diagonal in the 'natural' tensor product basis
-    ``{(|0> +/- |1>)/Sqrt[2]} * {|0>, |1>}``, whereas Z(1) * X(0) would be diagonal
-    in the 'natural' tpb ``{|0>, |1>} * {(|0> +/- |1>)/Sqrt[2]}``. The two operators
-    commute but are not diagonal in each others 'natural' tpb (in fact, they are
-    anti-diagonal in each others 'natural' tpb). This function tests whether two
-    operators given as PauliTerms are both diagonal in each others 'natural' tpb.
-
-    Note that for the given example of X(1) * Z(0) and Z(1) * X(0), we can construct
-    the following basis which simultaneously diagonalizes both operators::
-
-      -- |0>' = |0> (|+>) + |1> (|->)
-      -- |1>' = |0> (|+>) - |1> (|->)
-      -- |2>' = |0> (|->) + |1> (|+>)
-      -- |3>' = |0> (-|->) + |1> (|+>)
-
-    In this basis, X Z looks like diag(1, -1, 1, -1), and Z X looks like diag(1, 1, -1, -1).
-    Notice however that this basis cannot be constructed with single-qubit operations, as each
-    of the basis vectors are entangled states.
-
-
-    .. rubric:: Methods
-
-    The "greedy" method will keep a running set of 'buckets' into which grouped ExperimentSettings
-    will be placed. Each new ExperimentSetting considered is assigned to the first applicable
-    bucket and a new bucket is created if there are no applicable buckets.
-
-    The "clique-removal" method maps the term grouping problem onto Max Clique graph problem.
-    This method constructs a NetworkX graph where an edge exists between two settings that
-    share an nTPB and then uses networkx's algorithm for clique removal. This method can give
-    you marginally better groupings in certain circumstances, but constructing the
-    graph is pretty slow so "greedy" is the default.
-
-    :param experiments: a tomography experiment
-    :param method: method used for grouping; the allowed methods are one of
-        ['greedy', 'clique-removal']
-    :return: a tomography experiment with all the same settings, just grouped according to shared
-        TPBs.
-    """
-    allowed_methods = ["greedy", "clique-removal"]
-    assert method in allowed_methods, f"'method' should be one of {allowed_methods}."
-    if method == "greedy":
-        return group_experiments_greedy(experiments)
-    elif method == "clique-removal":
-        return group_experiments_clique_removal(experiments)
 
 
 def _generate_experiment_programs(

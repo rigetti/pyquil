@@ -23,6 +23,9 @@ Changelog
 -   Add helper to separate `ExperimentResults` by groups of qubits on
     which their operator acts (@kylegulshen, gh-1078).
 -   Add helper to merge `TomographyExperiment`s (@kylegulshen, gh-1077).
+-   Move `group_experiments` from `operator_estimation` to `_group` in the
+    `experiment` module; rename to `group_settings` but maintain backwards
+    compatibility (@kylegulshen, gh-1077).
 
 ### Bugfixes
 

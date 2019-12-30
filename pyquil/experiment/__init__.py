@@ -19,4 +19,5 @@ from pyquil.experiment._setting import (
     zeros_state,
 )
 from pyquil.experiment._symmetrization import SymmetrizationLevel
-from pyquil.experiment._group import get_results_by_qubit_groups, merge_disjoint_experiments
+from pyquil.experiment._group import get_results_by_qubit_groups, merge_disjoint_experiments, \
+    group_settings
