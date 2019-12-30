@@ -214,7 +214,9 @@ def _max_weight_state(states: Iterable[TensorProductState]) -> Union[None, Tenso
     return TensorProductState(list(mapping.values()))
 
 
-def _max_tpb_overlap(tomo_expt: TomographyExperiment):
+def _max_tpb_overlap(
+    tomo_expt: TomographyExperiment,
+) -> Dict[ExperimentSetting, List[ExperimentSetting]]:
     """
     Given an input TomographyExperiment, provide a dictionary indicating which ExperimentSettings
     share a tensor product basis
