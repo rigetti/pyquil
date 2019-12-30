@@ -14,7 +14,7 @@
 #    limitations under the License.
 ##############################################################################
 import warnings
-from typing import Union, List, Sequence
+from typing import Any, List, Optional, Sequence, Tuple, Union, cast
 
 import numpy as np
 from numpy.random.mtrand import RandomState
@@ -26,7 +26,7 @@ from pyquil.simulation.matrices import P0, P1, KRAUS_OPS, QUANTUM_GATES
 from pyquil.simulation.tools import lifted_gate_matrix, lifted_gate, all_bitstrings
 
 
-def _term_expectation(wf, term: PauliTerm, n_qubits):
+def _term_expectation(wf: np.ndarray, term: PauliTerm, n_qubits: int) -> Any:
     # Computes <psi|XYZ..XXZ|psi>
     wf2 = wf
     for qubit_i, op_str in term._ops.items():
@@ -40,7 +40,9 @@ def _term_expectation(wf, term: PauliTerm, n_qubits):
     return term.coefficient * (wf.conj().T @ wf2)
 
 
-def _is_valid_quantum_state(state_matrix: np.ndarray, rtol=1e-05, atol=1e-08) -> bool:
+def _is_valid_quantum_state(
+    state_matrix: np.ndarray, rtol: float = 1e-05, atol: float = 1e-08
+) -> bool:
     """
     Checks if a quantum state is valid, i.e. the matrix is Hermitian; trace one, and that the
     eigenvalues are non-negative.
@@ -64,7 +66,7 @@ def _is_valid_quantum_state(state_matrix: np.ndarray, rtol=1e-05, atol=1e-08) ->
 
 
 class ReferenceWavefunctionSimulator(AbstractQuantumSimulator):
-    def __init__(self, n_qubits: int, rs: RandomState = None):
+    def __init__(self, n_qubits: int, rs: Optional[RandomState] = None):
         """
         A wavefunction simulator that prioritizes readability over performance.
 
@@ -80,13 +82,15 @@ class ReferenceWavefunctionSimulator(AbstractQuantumSimulator):
         :param rs: a RandomState (should be shared with the owning :py:class:`PyQVM`) for
             doing anything stochastic. A value of ``None`` disallows doing anything stochastic.
         """
+        super().__init__(n_qubits=n_qubits, rs=rs)
+
         self.n_qubits = n_qubits
         self.rs = rs
 
         self.wf = np.zeros(2 ** n_qubits, dtype=np.complex128)
         self.wf[0] = complex(1.0, 0)
 
-    def sample_bitstrings(self, n_samples):
+    def sample_bitstrings(self, n_samples: int) -> np.ndarray:
         """
         Sample bitstrings from the distribution defined by the wavefunction.
 
@@ -107,7 +111,7 @@ class ReferenceWavefunctionSimulator(AbstractQuantumSimulator):
         bitstrings = np.flip(bitstrings, axis=1)  # qubit ordering: 0 on the left.
         return bitstrings
 
-    def do_gate(self, gate: Gate):
+    def do_gate(self, gate: Gate) -> "ReferenceWavefunctionSimulator":
         """
         Perform a gate.
 
@@ -117,7 +121,9 @@ class ReferenceWavefunctionSimulator(AbstractQuantumSimulator):
         self.wf = unitary.dot(self.wf)
         return self
 
-    def do_gate_matrix(self, matrix: np.ndarray, qubits: Sequence[int]):
+    def do_gate_matrix(
+        self, matrix: np.ndarray, qubits: Sequence[int]
+    ) -> "ReferenceWavefunctionSimulator":
         """
         Apply an arbitrary unitary; not necessarily a named gate.
 
@@ -159,7 +165,7 @@ class ReferenceWavefunctionSimulator(AbstractQuantumSimulator):
             self.wf = unitary.dot(self.wf)
             return 1
 
-    def expectation(self, operator: Union[PauliTerm, PauliSum]):
+    def expectation(self, operator: Union[PauliTerm, PauliSum]) -> float:
         """
         Compute the expectation of an operator.
 
@@ -171,7 +177,7 @@ class ReferenceWavefunctionSimulator(AbstractQuantumSimulator):
 
         return sum(_term_expectation(self.wf, term, n_qubits=self.n_qubits) for term in operator)
 
-    def reset(self):
+    def reset(self) -> "ReferenceWavefunctionSimulator":
         """
         Reset the wavefunction to the ``|000...00>`` state.
 
@@ -215,12 +221,15 @@ class ReferenceDensitySimulator(AbstractQuantumSimulator):
         doing anything stochastic. A value of ``None`` disallows doing anything stochastic.
     """
 
-    def __init__(self, n_qubits: int, rs: RandomState = None):
+    def __init__(self, n_qubits: int, rs: Optional[RandomState] = None):
+        super().__init__(n_qubits=n_qubits, rs=rs)
+
         self.n_qubits = n_qubits
         self.rs = rs
+        self.density: Optional[np.ndarray] = None
         self.set_initial_state(zero_state_matrix(n_qubits)).reset()
 
-    def set_initial_state(self, state_matrix: np.ndarray):
+    def set_initial_state(self, state_matrix: np.ndarray) -> "ReferenceDensitySimulator":
         """
         This method is the correct way (TM) to update the initial state matrix that is
         initialized every time reset() is called. The default initial state of
@@ -253,7 +262,7 @@ class ReferenceDensitySimulator(AbstractQuantumSimulator):
             )
         return self
 
-    def sample_bitstrings(self, n_samples, tol_factor: float = 1e8):
+    def sample_bitstrings(self, n_samples: int, tol_factor: float = 1e8) -> np.ndarray:
         """
         Sample bitstrings from the distribution defined by the wavefunction.
 
@@ -334,7 +343,7 @@ class ReferenceDensitySimulator(AbstractQuantumSimulator):
             self.density = unitary.dot(self.density).dot(np.conj(unitary.T))
             return 1
 
-    def expectation(self, operator: Union[PauliTerm, PauliSum]):
+    def expectation(self, operator: Union[PauliTerm, PauliSum]) -> complex:
         raise NotImplementedError("To implement")
 
     def reset(self) -> "AbstractQuantumSimulator":
@@ -347,8 +356,10 @@ class ReferenceDensitySimulator(AbstractQuantumSimulator):
         self.density = self.initial_density
         return self
 
-    def do_post_gate_noise(self, noise_type: str, noise_prob: float, qubits: List[int]):
-        kraus_ops = KRAUS_OPS[noise_type](p=noise_prob)
+    def do_post_gate_noise(
+        self, noise_type: str, noise_prob: float, qubits: List[int]
+    ) -> "ReferenceDensitySimulator":
+        kraus_ops = cast(Tuple[np.ndarray, ...], KRAUS_OPS[noise_type](p=noise_prob))
         if np.isclose(noise_prob, 0.0):
             warnings.warn(f"Skipping {noise_type} post-gate noise because noise_prob is close to 0")
             return self

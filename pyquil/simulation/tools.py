@@ -13,18 +13,19 @@
 #    See the License for the specific language governing permissions and
 #    limitations under the License.
 ##############################################################################
-from typing import Union, List
+from typing import List, Sequence, Tuple, Union
 
 import numpy as np
 
-from pyquil.experiment import TensorProductState
+from pyquil.experiment._setting import TensorProductState
 from pyquil.paulis import PauliSum, PauliTerm
+from pyquil.quil import Program
 from pyquil.quilatom import Parameter
 from pyquil.quilbase import Gate, _strip_modifiers
 from pyquil.simulation.matrices import SWAP, STATES, QUANTUM_GATES
 
 
-def all_bitstrings(n_bits):
+def all_bitstrings(n_bits: int) -> np.ndarray:
     """All bitstrings in lexicographical order as a 2d np.ndarray.
 
     This should be the same as ``np.array(list(itertools.product([0,1], repeat=n_bits)))``
@@ -46,7 +47,7 @@ def all_bitstrings(n_bits):
     return out
 
 
-def qubit_adjacent_lifted_gate(i, matrix, n_qubits):
+def qubit_adjacent_lifted_gate(i: int, matrix: np.ndarray, n_qubits: int) -> np.ndarray:
     """
     Lifts input k-qubit gate on adjacent qubits starting from qubit i
     to complete Hilbert space of dimension 2 ** num_qubits.
@@ -68,13 +69,12 @@ def qubit_adjacent_lifted_gate(i, matrix, n_qubits):
     right (in a little-endian fashion), gates are still lifted to apply
     on qubits in increasing index (right-to-left) order.
 
-    :param int i: starting qubit to lift matrix from (incr. index order)
-    :param np.array matrix: the matrix to be lifted
-    :param int n_qubits: number of overall qubits present in space
+    :param i: starting qubit to lift matrix from (incr. index order)
+    :param matrix: the matrix to be lifted
+    :param n_qubits: number of overall qubits present in space
 
     :return: matrix representation of operator acting on the
         complete Hilbert space of all num_qubits.
-    :rtype: sparse_array
     """
     n_rows, n_cols = matrix.shape
     assert n_rows == n_cols, "Matrix must be square"
@@ -93,7 +93,9 @@ def qubit_adjacent_lifted_gate(i, matrix, n_qubits):
     return np.kron(top_matrix, np.kron(matrix, bottom_matrix))
 
 
-def two_swap_helper(j, k, num_qubits, qubit_map):
+def two_swap_helper(
+    j: int, k: int, num_qubits: int, qubit_map: np.ndarray
+) -> Tuple[np.ndarray, np.ndarray]:
     """
     Generate the permutation matrix that permutes two single-particle Hilbert
     spaces into adjacent positions.
@@ -109,14 +111,12 @@ def two_swap_helper(j, k, num_qubits, qubit_map):
     Done in preparation for arbitrary 2-qubit gate application on ADJACENT
     qubits.
 
-    :param int j: starting qubit index
-    :param int k: ending qubit index
-    :param int num_qubits: number of qubits in Hilbert space
-    :param np.array qubit_map: current index mapping of qubits
-
+    :param j: starting qubit index
+    :param k: ending qubit index
+    :param num_qubits: number of qubits in Hilbert space
+    :param qubit_map: current index mapping of qubits
     :return: tuple of swap matrix for the specified permutation,
              and the new qubit_map, after permutation is made
-    :rtype: tuple (np.array, np.array)
     """
     if not (0 <= j < num_qubits and 0 <= k < num_qubits):
         raise ValueError("Permutation SWAP index not valid")
@@ -141,7 +141,9 @@ def two_swap_helper(j, k, num_qubits, qubit_map):
     return perm, new_qubit_map
 
 
-def permutation_arbitrary(qubit_inds, n_qubits):
+def permutation_arbitrary(
+    qubit_inds: Sequence[int], n_qubits: int
+) -> Tuple[np.ndarray, np.ndarray, int]:
     """
     Generate the permutation matrix that permutes an arbitrary number of
     single-particle Hilbert spaces into adjacent positions.
@@ -169,16 +171,14 @@ def permutation_arbitrary(qubit_inds, n_qubits):
     Done in preparation for arbitrary gate application on
     adjacent qubits.
 
-    :param qubit_inds: (int) Qubit indices in the order the gate is
+    :param qubit_inds: Qubit indices in the order the gate is
         applied to.
-    :param int n_qubits: Number of qubits in system
-
+    :param n_qubits: Number of qubits in system
     :return:
         perm - permutation matrix providing the desired qubit reordering
         qubit_arr - new indexing of qubits presented in left to right
             decreasing index order. Should be identical to passed 'args'.
         start_i - starting index to lift gate from
-    :rtype:  tuple (sparse_array, np.array, int)
     """
     # Begin construction of permutation
     perm = np.eye(2 ** n_qubits, dtype=np.complex128)
@@ -227,7 +227,7 @@ def permutation_arbitrary(qubit_inds, n_qubits):
     return perm, qubit_arr[::-1], start_i
 
 
-def lifted_gate_matrix(matrix: np.ndarray, qubit_inds: List[int], n_qubits: int):
+def lifted_gate_matrix(matrix: np.ndarray, qubit_inds: Sequence[int], n_qubits: int) -> np.ndarray:
     """
     Lift a unitary matrix to act on the specified qubits in a full ``n_qubits``-qubit
     Hilbert space.
@@ -260,7 +260,7 @@ def lifted_gate_matrix(matrix: np.ndarray, qubit_inds: List[int], n_qubits: int)
     return np.dot(np.conj(pi_permutation_matrix.T), np.dot(v_matrix, pi_permutation_matrix))
 
 
-def lifted_gate(gate: Gate, n_qubits: int):
+def lifted_gate(gate: Gate, n_qubits: int) -> np.ndarray:
     """
     Lift a pyquil :py:class:`Gate` in a full ``n_qubits``-qubit Hilbert space.
 
@@ -294,7 +294,7 @@ def lifted_gate(gate: Gate, n_qubits: int):
     #
     # We recurse on this structure using _gate_matrix below.
 
-    def _gate_matrix(gate: Gate):
+    def _gate_matrix(gate: Gate) -> np.ndarray:
         if len(gate.modifiers) == 0:  # base case
             if len(gate.params) > 0:
                 return QUANTUM_GATES[gate.name](*gate.params)
@@ -330,7 +330,7 @@ def lifted_gate(gate: Gate, n_qubits: int):
     )
 
 
-def program_unitary(program, n_qubits):
+def program_unitary(program: Program, n_qubits: int) -> np.ndarray:
     """
     Return the unitary of a pyQuil program.
 
@@ -347,7 +347,7 @@ def program_unitary(program, n_qubits):
     return umat
 
 
-def lifted_pauli(pauli_sum: Union[PauliSum, PauliTerm], qubits: List[int]):
+def lifted_pauli(pauli_sum: Union[PauliSum, PauliTerm], qubits: List[int]) -> np.ndarray:
     """
     Takes a PauliSum object along with a list of
     qubits and returns a matrix corresponding the tensor representation of the
@@ -371,7 +371,7 @@ def lifted_pauli(pauli_sum: Union[PauliSum, PauliTerm], qubits: List[int]):
 
     :param pauli_sum: Pauli representation of an operator
     :param qubits: list of qubits in the order they will be represented in the resultant matrix.
-    :returns: matrix representation of the pauli_sum operator
+    :return: matrix representation of the pauli_sum operator
     """
     if isinstance(pauli_sum, PauliTerm):
         pauli_sum = PauliSum([pauli_sum])
@@ -389,7 +389,7 @@ def lifted_pauli(pauli_sum: Union[PauliSum, PauliTerm], qubits: List[int]):
     return result_hilbert
 
 
-def tensor_up(pauli_sum: Union[PauliSum, PauliTerm], qubits: List[int]):
+def tensor_up(pauli_sum: Union[PauliSum, PauliTerm], qubits: List[int]) -> np.ndarray:
     """
     Takes a PauliSum object along with a list of
     qubits and returns a matrix corresponding the tensor representation of the
@@ -400,12 +400,12 @@ def tensor_up(pauli_sum: Union[PauliSum, PauliTerm], qubits: List[int]):
 
     :param pauli_sum: Pauli representation of an operator
     :param qubits: list of qubits in the order they will be represented in the resultant matrix.
-    :returns: matrix representation of the pauli_sum operator
+    :return: matrix representation of the pauli_sum operator
     """
     return lifted_pauli(pauli_sum=pauli_sum, qubits=qubits)
 
 
-def lifted_state_operator(state: TensorProductState, qubits: List[int]):
+def lifted_state_operator(state: TensorProductState, qubits: List[int]) -> np.ndarray:
     """Take a TensorProductState along with a list of qubits and return a matrix
     corresponding to the tensored-up representation of the states' density operator form.
 

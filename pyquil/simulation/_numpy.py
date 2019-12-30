@@ -13,15 +13,15 @@
 #    See the License for the specific language governing permissions and
 #    limitations under the License.
 ##############################################################################
-from typing import List, Union, Sequence
+from typing import Any, List, Optional, Sequence, Tuple, Union
 
 import numpy as np
 from numpy.random.mtrand import RandomState
 
 from pyquil.paulis import PauliTerm, PauliSum
+from pyquil.pyqvm import AbstractQuantumSimulator
 from pyquil.quilbase import Gate
 from pyquil.simulation.matrices import QUANTUM_GATES
-from pyquil.simulation._reference import AbstractQuantumSimulator
 
 # The following function is lovingly copied from the Cirq project
 # https://github.com/quantumlib/Cirq
@@ -129,7 +129,7 @@ def targeted_tensordot(
     return wf.transpose(axes_ordering)
 
 
-def get_measure_probabilities(wf, qubit):
+def get_measure_probabilities(wf: np.ndarray, qubit: int) -> np.ndarray:
     """
     Get the probabilities of measuring a qubit.
 
@@ -143,7 +143,7 @@ def get_measure_probabilities(wf, qubit):
     return np.einsum(np.conj(wf), all_inds, wf, all_inds, [int(qubit)])
 
 
-def _get_gate_tensor_and_qubits(gate: Gate):
+def _get_gate_tensor_and_qubits(gate: Gate) -> Tuple[np.ndarray, List[int]]:
     """Given a gate ``Instruction``, turn it into a matrix and extract qubit indices.
 
     :param gate: the instruction
@@ -162,7 +162,7 @@ def _get_gate_tensor_and_qubits(gate: Gate):
     return tensor, qubit_inds
 
 
-def _term_expectation(wf, term: PauliTerm):
+def _term_expectation(wf: np.ndarray, term: PauliTerm) -> Any:
     # Computes <psi|XYZ..XXZ|psi>
     wf2 = wf
     for qubit_i, op_str in term._ops.items():
@@ -176,7 +176,7 @@ def _term_expectation(wf, term: PauliTerm):
 
 
 class NumpyWavefunctionSimulator(AbstractQuantumSimulator):
-    def __init__(self, n_qubits, rs: RandomState = None):
+    def __init__(self, n_qubits: int, rs: Optional[RandomState] = None):
         """
         A wavefunction simulator that uses numpy's tensordot or einsum to update a state vector
 
@@ -192,13 +192,15 @@ class NumpyWavefunctionSimulator(AbstractQuantumSimulator):
         :param rs: a RandomState (should be shared with the owning :py:class:`PyQVM`) for
             doing anything stochastic. A value of ``None`` disallows doing anything stochastic.
         """
+        super().__init__(n_qubits=n_qubits, rs=rs)
+
         self.n_qubits = n_qubits
         self.rs = rs
 
         self.wf = np.zeros((2,) * n_qubits, dtype=np.complex128)
         self.wf[(0,) * n_qubits] = complex(1.0, 0)
 
-    def sample_bitstrings(self, n_samples):
+    def sample_bitstrings(self, n_samples: int) -> np.ndarray:
         """
         Sample bitstrings from the distribution defined by the wavefunction.
 
@@ -254,7 +256,7 @@ class NumpyWavefunctionSimulator(AbstractQuantumSimulator):
         self.wf[meas_bit_indices] /= np.sqrt(measurement_probs[measured_bit])
         return measured_bit
 
-    def do_gate(self, gate: Gate):
+    def do_gate(self, gate: Gate) -> "NumpyWavefunctionSimulator":
         """
         Perform a gate.
 
@@ -269,7 +271,7 @@ class NumpyWavefunctionSimulator(AbstractQuantumSimulator):
 
     def do_gate_matrix(
         self, matrix: np.ndarray, qubits: Sequence[int]
-    ) -> "AbstractQuantumSimulator":
+    ) -> "NumpyWavefunctionSimulator":
         """
         Apply an arbitrary unitary; not necessarily a named gate.
 
@@ -286,7 +288,7 @@ class NumpyWavefunctionSimulator(AbstractQuantumSimulator):
         self.wf = targeted_tensordot(gate=tensor, wf=self.wf, wf_target_inds=qubits)
         return self
 
-    def expectation(self, operator: Union[PauliTerm, PauliSum]):
+    def expectation(self, operator: Union[PauliTerm, PauliSum]) -> float:
         """
         Compute the expectation of an operator.
 
@@ -298,7 +300,7 @@ class NumpyWavefunctionSimulator(AbstractQuantumSimulator):
 
         return sum(_term_expectation(self.wf, term) for term in operator)
 
-    def reset(self):
+    def reset(self) -> "NumpyWavefunctionSimulator":
         """
         Reset the wavefunction to the ``|000...00>`` state.
 

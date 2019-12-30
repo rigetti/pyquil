@@ -102,8 +102,10 @@ Specialized gates / internal utility gates:
     P1 - project-onto-one
     :math:`\begin{pmatrix} 0 & 0 \\ 0 & 1 \end{pmatrix}`
 """
-import numpy as np
 import cmath
+from typing import Tuple
+
+import numpy as np
 
 I = np.array([[1.0, 0.0], [0.0, 1.0]])
 
@@ -120,23 +122,23 @@ S = np.array([[1.0, 0.0], [0.0, 1.0j]])
 T = np.array([[1.0, 0.0], [0.0, cmath.exp(1.0j * np.pi / 4.0)]])
 
 
-def PHASE(phi):
+def PHASE(phi: float) -> np.ndarray:
     return np.array([[1.0, 0.0], [0.0, np.exp(1j * phi)]])
 
 
-def RX(phi):
+def RX(phi: float) -> np.ndarray:
     return np.array(
         [[np.cos(phi / 2.0), -1j * np.sin(phi / 2.0)], [-1j * np.sin(phi / 2.0), np.cos(phi / 2.0)]]
     )
 
 
-def RY(phi):
+def RY(phi: float) -> np.ndarray:
     return np.array(
         [[np.cos(phi / 2.0), -np.sin(phi / 2.0)], [np.sin(phi / 2.0), np.cos(phi / 2.0)]]
     )
 
 
-def RZ(phi):
+def RZ(phi: float) -> np.ndarray:
     return np.array(
         [
             [np.cos(phi / 2.0) - 1j * np.sin(phi / 2.0), 0],
@@ -163,19 +165,19 @@ CCNOT = np.array(
 )
 
 
-def CPHASE00(phi):
+def CPHASE00(phi: float) -> np.ndarray:
     return np.diag([np.exp(1j * phi), 1.0, 1.0, 1.0])
 
 
-def CPHASE01(phi):
+def CPHASE01(phi: float) -> np.ndarray:
     return np.diag([1.0, np.exp(1j * phi), 1.0, 1.0])
 
 
-def CPHASE10(phi):
+def CPHASE10(phi: float) -> np.ndarray:
     return np.diag([1.0, 1.0, np.exp(1j * phi), 1.0])
 
 
-def CPHASE(phi):
+def CPHASE(phi: float) -> np.ndarray:
     return np.diag([1.0, 1.0, 1.0, np.exp(1j * phi)])
 
 
@@ -197,13 +199,13 @@ CSWAP = np.array(
 ISWAP = np.array([[1, 0, 0, 0], [0, 0, 1j, 0], [0, 1j, 0, 0], [0, 0, 0, 1]])
 
 
-def PSWAP(phi):
+def PSWAP(phi: float) -> np.ndarray:
     return np.array(
         [[1, 0, 0, 0], [0, 0, np.exp(1j * phi), 0], [0, np.exp(1j * phi), 0, 0], [0, 0, 0, 1]]
     )
 
 
-def XY(phi):
+def XY(phi: float) -> np.ndarray:
     return np.array(
         [
             [1, 0, 0, 0],
@@ -221,7 +223,7 @@ P1 = np.array([[0, 0], [0, 1]])
 
 
 # Specialized useful gates; not officially in standard gate set
-def BARENCO(alpha, phi, theta):
+def BARENCO(alpha: float, phi: float, theta: float) -> np.ndarray:
     lower_unitary = np.array(
         [
             [np.exp(1j * phi) * np.cos(theta), -1j * np.exp(1j * (alpha - phi)) * np.sin(theta)],
@@ -259,7 +261,7 @@ QUANTUM_GATES = {
 }
 
 
-def relaxation_operators(p):
+def relaxation_operators(p: float) -> Tuple[np.ndarray, np.ndarray]:
     """
     Return the amplitude damping Kraus operators
     """
@@ -268,7 +270,7 @@ def relaxation_operators(p):
     return k0, k1
 
 
-def dephasing_operators(p):
+def dephasing_operators(p: float) -> Tuple[np.ndarray, np.ndarray]:
     """
     Return the phase damping Kraus operators
     """
@@ -277,7 +279,7 @@ def dephasing_operators(p):
     return k0, k1
 
 
-def depolarizing_operators(p):
+def depolarizing_operators(p: float) -> Tuple[np.ndarray, np.ndarray, np.ndarray, np.ndarray]:
     """
     Return the phase damping Kraus operators
     """
@@ -288,7 +290,7 @@ def depolarizing_operators(p):
     return k0, k1, k2, k3
 
 
-def phase_flip_operators(p):
+def phase_flip_operators(p: float) -> Tuple[np.ndarray, np.ndarray]:
     """
     Return the phase flip kraus operators
     """
@@ -297,7 +299,7 @@ def phase_flip_operators(p):
     return k0, k1
 
 
-def bit_flip_operators(p):
+def bit_flip_operators(p: float) -> Tuple[np.ndarray, np.ndarray]:
     """
     Return the phase flip kraus operators
     """
@@ -306,7 +308,7 @@ def bit_flip_operators(p):
     return k0, k1
 
 
-def bitphase_flip_operators(p):
+def bitphase_flip_operators(p: float) -> Tuple[np.ndarray, np.ndarray]:
     """
     Return the bitphase flip kraus operators
     """
