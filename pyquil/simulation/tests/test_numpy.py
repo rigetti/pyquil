@@ -5,20 +5,20 @@ import pytest
 
 from pyquil import Program
 from pyquil.gates import CCNOT, CNOT, H, MEASURE, RX, X
-from pyquil.numpy_simulator import (
+from pyquil.paulis import sZ, sX
+from pyquil.pyqvm import PyQVM
+from pyquil.quilatom import MemoryReference
+from pyquil.quilbase import Declare, DefGate
+from pyquil.simulation._numpy import (
     targeted_einsum,
     NumpyWavefunctionSimulator,
     all_bitstrings,
     targeted_tensordot,
     _term_expectation,
 )
-from pyquil.paulis import sZ, sX
-from pyquil.pyqvm import PyQVM
-from pyquil.quilatom import MemoryReference
-from pyquil.quilbase import Declare, DefGate
-from pyquil.reference_simulator import ReferenceWavefunctionSimulator
+from pyquil.simulation._reference import ReferenceWavefunctionSimulator
 from pyquil.simulation.matrices import QUANTUM_GATES as GATES
-from pyquil.tests.test_reference_wavefunction_simulator import (
+from pyquil.simulation.tests.test_reference_wavefunction import (
     _generate_random_program,
     _generate_random_pauli,
 )
