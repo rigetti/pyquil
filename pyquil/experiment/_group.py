@@ -2,9 +2,9 @@ from typing import Iterable, Sequence, Dict, Tuple, List
 from pyquil.experiment import ExperimentResult
 
 
-def get_results_by_qubit_groups(results: Iterable[ExperimentResult],
-                                qubit_groups: Sequence[Sequence[int]]) \
-        -> Dict[Tuple[int, ...], List[ExperimentResult]]:
+def get_results_by_qubit_groups(
+    results: Iterable[ExperimentResult], qubit_groups: Sequence[Sequence[int]]
+) -> Dict[Tuple[int, ...], List[ExperimentResult]]:
     """
     Organizes ExperimentResults by the group of qubits on which the observable of the result acts.
 
