@@ -159,7 +159,7 @@ class Program(object):
         """
         if self._synthesized_instructions is None:
             self._synthesize()
-
+        assert self._synthesized_instructions is not None
         return self._synthesized_instructions
 
     def inst(self, *instructions: InstructionDesignator) -> "Program":
@@ -203,7 +203,7 @@ class Program(object):
                         else:
                             self.measure(instruction[1], instruction[2])
                     else:
-                        params = []
+                        params: List[ParameterDesignator] = []
                         possible_params = instruction[1]
                         rest: Sequence[Any] = instruction[2:]
                         if isinstance(possible_params, list):
@@ -679,7 +679,7 @@ class Program(object):
         """
         return self.inst(other)
 
-    def __getitem__(self, index: Union[slice, int]) -> "Program":
+    def __getitem__(self, index: Union[slice, int]) -> Union[AbstractInstruction, "Program"]:
         """
         Allows indexing into the program to get an action.
 
