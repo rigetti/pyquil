@@ -23,9 +23,8 @@ import json
 import logging
 import warnings
 from json import JSONEncoder
-from typing import Dict, List, Optional, Sequence, Union
+from typing import Any, Callable, Dict, Generator, List, Mapping, Optional, Sequence, Set, Union, cast
 
-from pyquil import Program
 from pyquil.experiment._memory import (
     pauli_term_to_measurement_memory_map,
     pauli_term_to_preparation_memory_map,
@@ -41,13 +40,14 @@ from pyquil.experiment._setting import ExperimentSetting
 from pyquil.experiment._symmetrization import SymmetrizationLevel
 from pyquil.gates import RESET
 from pyquil.paulis import PauliTerm
+from pyquil.quil import Program
 from pyquil.quilbase import DefPermutationGate, Reset, ResetQubit
 
 
 log = logging.getLogger(__name__)
 
 
-def _abbrev_program(program: Program, max_len=10):
+def _abbrev_program(program: Program, max_len: int = 10) -> str:
     """Create an abbreviated string representation of a Program.
 
     This will join all instructions onto a single line joined by '; '. If the number of
@@ -76,7 +76,7 @@ def _remove_reset_from_program(program: Program) -> Program:
     """
     definitions = [gate for gate in program.defined_gates]
 
-    p = Program([inst for inst in program if not isinstance(inst, Reset)])
+    p = Program(*[inst for inst in program if not isinstance(inst, Reset)])
 
     for definition in definitions:
         if isinstance(definition, DefPermutationGate):
@@ -145,13 +145,15 @@ class TomographyExperiment:
         symmetrization: int = SymmetrizationLevel.EXHAUSTIVE,
     ):
         if len(settings) == 0:
-            settings = []
+            s: List[List[ExperimentSetting]] = []
         else:
             if isinstance(settings[0], ExperimentSetting):
                 # convenience wrapping in lists of length 1
-                settings = [[expt] for expt in settings]
+                s = [[expt] for expt in cast(List[ExperimentSetting], settings)]
+            else:
+                s = cast(List[List[ExperimentSetting]], settings)
 
-        self._settings = settings  # type: List[List[ExperimentSetting]]
+        self._settings = s  # type: List[List[ExperimentSetting]]
         self.program = program
         if qubits is not None:
             warnings.warn(
@@ -168,63 +170,63 @@ class TomographyExperiment:
         else:
             self.reset = False
 
-    def __len__(self):
+    def __len__(self) -> int:
         return len(self._settings)
 
-    def __getitem__(self, item):
+    def __getitem__(self, item: int) -> List[ExperimentSetting]:
         return self._settings[item]
 
-    def __setitem__(self, key, value):
+    def __setitem__(self, key: int, value: List[ExperimentSetting]) -> None:
         self._settings[key] = value
 
-    def __delitem__(self, key):
+    def __delitem__(self, key: int) -> None:
         self._settings.__delitem__(key)
 
-    def __iter__(self):
+    def __iter__(self) -> Generator[ExperimentSetting]:
         yield from self._settings
 
-    def __reversed__(self):
+    def __reversed__(self) -> Generator[ExperimentSetting]:
         yield from reversed(self._settings)
 
-    def __contains__(self, item):
+    def __contains__(self, item: List[ExperimentSetting]) -> bool:
         return item in self._settings
 
-    def append(self, expts):
+    def append(self, expts: Union[ExperimentSetting, List[ExperimentSetting]]) -> None:
         if not isinstance(expts, list):
             expts = [expts]
         return self._settings.append(expts)
 
-    def count(self, expt):
+    def count(self, expt: List[ExperimentSetting]) -> int:
         return self._settings.count(expt)
 
-    def index(self, expt, start=None, stop=None):
+    def index(self, expt: List[ExperimentSetting], start: int = 0, stop: int = 0) -> int:
         return self._settings.index(expt, start, stop)
 
-    def extend(self, expts):
+    def extend(self, expts: List[List[ExperimentSetting]]) -> None:
         return self._settings.extend(expts)
 
-    def insert(self, index, expt):
+    def insert(self, index: int, expt: List[ExperimentSetting]) -> None:
         return self._settings.insert(index, expt)
 
-    def pop(self, index=None):
+    def pop(self, index: int = 0) -> List[ExperimentSetting]:
         return self._settings.pop(index)
 
-    def remove(self, expt):
+    def remove(self, expt: List[ExperimentSetting]) -> None:
         return self._settings.remove(expt)
 
-    def reverse(self):
+    def reverse(self) -> None:
         return self._settings.reverse()
 
-    def sort(self, key=None, reverse=False):
-        return self._settings.sort(key, reverse)
+    def sort(self, key: Optional[Callable[[List[ExperimentSetting]], Any]] = None, reverse: bool = False) -> None:
+        return self._settings.sort(key=key, reverse=reverse)
 
-    def setting_strings(self):
+    def setting_strings(self) -> Generator[str]:
         yield from (
             "{i}: {st_str}".format(i=i, st_str=", ".join(str(setting) for setting in settings))
             for i, settings in enumerate(self._settings)
         )
 
-    def settings_string(self, abbrev_after=None):
+    def settings_string(self, abbrev_after: Optional[int] = None) -> str:
         setting_strs = list(self.setting_strings())
         if abbrev_after is not None and len(setting_strs) > abbrev_after:
             first_n = abbrev_after // 2
@@ -237,7 +239,7 @@ class TomographyExperiment:
             )
         return "   " + "\n   ".join(setting_strs)
 
-    def __repr__(self):
+    def __repr__(self) -> str:
         string = f"shots: {self.shots}\n"
         if self.reset:
             string += f"active reset: enabled\n"
@@ -248,7 +250,7 @@ class TomographyExperiment:
         string += f"settings:\n{self.settings_string(abbrev_after=20)}"
         return string
 
-    def serializable(self):
+    def serializable(self) -> Mapping[str, Any]:
         return {
             "type": "TomographyExperiment",
             "settings": self._settings,
@@ -258,22 +260,22 @@ class TomographyExperiment:
             "reset": self.reset,
         }
 
-    def __eq__(self, other):
+    def __eq__(self, other: Any) -> bool:
         if not isinstance(other, TomographyExperiment):
             return False
         return self.serializable() == other.serializable()
 
-    def get_meas_qubits(self) -> list:
+    def get_meas_qubits(self) -> List[int]:
         """
         Return the sorted list of qubits that are involved in the all the out_operators of the
         settings for this ``TomographyExperiment`` object.
         """
-        meas_qubits = set()
+        meas_qubits: Set[int] = set()
         for settings in self:
             meas_qubits.update(settings[0].out_operator.get_qubits())
         return sorted(meas_qubits)
 
-    def get_meas_registers(self, qubits: Optional[Sequence] = None) -> list:
+    def get_meas_registers(self, qubits: Optional[Sequence[int]] = None) -> List[int]:
         """
         Return the sorted list of memory registers corresponding to the list of qubits provided.
         If no qubits are provided, just returns the list of numbers from 0 to n-1 where n is the
@@ -289,7 +291,7 @@ class TomographyExperiment:
             meas_registers.append(meas_qubits.index(q))
         return sorted(meas_registers)
 
-    def generate_experiment_program(self):
+    def generate_experiment_program(self) -> Program:
         """
         Generate a parameterized program containing the main body program along with some additions
         to support the various state preparation, measurement, and symmetrization specifications of
@@ -351,7 +353,7 @@ class TomographyExperiment:
 
         return p
 
-    def build_setting_memory_map(self, setting: ExperimentSetting) -> Dict:
+    def build_setting_memory_map(self, setting: ExperimentSetting) -> Dict[str, List[float]]:
         """
         Build the memory map corresponding to the state preparation and measurement specifications
         encoded in the provided ``ExperimentSetting``, taking into account the full set of qubits
@@ -417,7 +419,7 @@ class TomographyExperiment:
 
 
 class OperatorEncoder(JSONEncoder):
-    def default(self, o):
+    def default(self, o: Any) -> Any:
         if isinstance(o, ExperimentSetting):
             return o.serializable()
         if isinstance(o, TomographyExperiment):
@@ -427,7 +429,7 @@ class OperatorEncoder(JSONEncoder):
         return o
 
 
-def to_json(fn, obj):
+def to_json(fn: str, obj: Any) -> str:
     """
     Convenience method to save pyquil.experiment objects as a JSON file.
 
@@ -439,7 +441,7 @@ def to_json(fn, obj):
     return fn
 
 
-def _operator_object_hook(obj):
+def _operator_object_hook(obj: Mapping[str, Any]) -> Union[Mapping[str, Any], TomographyExperiment]:
     if "type" in obj and obj["type"] == "TomographyExperiment":
         # I bet this doesn't work for grouped experiment settings
         settings = [[ExperimentSetting.from_str(s) for s in stt] for stt in obj["settings"]]
@@ -453,7 +455,7 @@ def _operator_object_hook(obj):
     return obj
 
 
-def read_json(fn):
+def read_json(fn: str) -> Any:
     """
     Convenience method to read pyquil.experiment objects from a JSON file.
 
