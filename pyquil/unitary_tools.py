@@ -17,11 +17,11 @@ from typing import Union, List
 
 import numpy as np
 
-from pyquil.gate_matrices import SWAP, STATES, QUANTUM_GATES
 from pyquil.experiment import TensorProductState
 from pyquil.paulis import PauliSum, PauliTerm
-from pyquil.quilbase import Gate, _strip_modifiers
 from pyquil.quilatom import Parameter
+from pyquil.quilbase import Gate, _strip_modifiers
+from pyquil.simulation.matrices import SWAP, STATES, QUANTUM_GATES
 
 
 def all_bitstrings(n_bits):

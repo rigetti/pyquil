@@ -18,10 +18,10 @@ from typing import List, Union, Sequence
 import numpy as np
 from numpy.random.mtrand import RandomState
 
-from pyquil.gate_matrices import QUANTUM_GATES
 from pyquil.paulis import PauliTerm, PauliSum
 from pyquil.quilbase import Gate
 from pyquil.reference_simulator import AbstractQuantumSimulator
+from pyquil.simulation.matrices import QUANTUM_GATES
 
 # The following function is lovingly copied from the Cirq project
 # https://github.com/quantumlib/Cirq

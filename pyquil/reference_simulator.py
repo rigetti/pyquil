@@ -1,13 +1,13 @@
 import warnings
+from typing import Union, List, Sequence
 
 import numpy as np
 from numpy.random.mtrand import RandomState
-from typing import Union, List, Sequence
 
-from pyquil.gate_matrices import P0, P1, KRAUS_OPS, QUANTUM_GATES
 from pyquil.paulis import PauliTerm, PauliSum
 from pyquil.pyqvm import AbstractQuantumSimulator
 from pyquil.quilbase import Gate
+from pyquil.simulation.matrices import P0, P1, KRAUS_OPS, QUANTUM_GATES
 from pyquil.unitary_tools import lifted_gate_matrix, lifted_gate, all_bitstrings
 
 

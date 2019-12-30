@@ -4,7 +4,6 @@ import numpy as np
 import pytest
 
 from pyquil import Program
-from pyquil.gate_matrices import QUANTUM_GATES as GATES
 from pyquil.gates import CCNOT, CNOT, H, MEASURE, RX, X
 from pyquil.numpy_simulator import (
     targeted_einsum,
@@ -15,13 +14,14 @@ from pyquil.numpy_simulator import (
 )
 from pyquil.paulis import sZ, sX
 from pyquil.pyqvm import PyQVM
+from pyquil.quilatom import MemoryReference
+from pyquil.quilbase import Declare, DefGate
 from pyquil.reference_simulator import ReferenceWavefunctionSimulator
+from pyquil.simulation.matrices import QUANTUM_GATES as GATES
 from pyquil.tests.test_reference_wavefunction_simulator import (
     _generate_random_program,
     _generate_random_pauli,
 )
-from pyquil.quilatom import MemoryReference
-from pyquil.quilbase import Declare, DefGate
 
 
 def test_H_einsum():
