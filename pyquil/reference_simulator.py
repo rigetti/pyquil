@@ -16,7 +16,7 @@
 
 import warnings
 
-from pyquil.simulation import (  # noqa: F401
+from pyquil.simulation._reference import (  # noqa: F401
     ReferenceDensitySimulator,
     ReferenceWavefunctionSimulator,
     zero_state_matrix,

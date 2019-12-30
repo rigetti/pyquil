@@ -16,7 +16,7 @@
 
 import warnings
 
-from pyquil.simulation import (  # noqa: F401
+from pyquil.simulation._numpy import (  # noqa: F401
     NumpyWavefunctionSimulator,
     get_measure_probabilities,
     targeted_einsum,
