@@ -52,8 +52,9 @@ def get_results_by_qubit_groups(
     return results_by_qubit_group
 
 
-def merge_disjoint_experiments(experiments: List[TomographyExperiment],
-                               group_merged_settings: bool = True) -> TomographyExperiment:
+def merge_disjoint_experiments(
+    experiments: List[TomographyExperiment], group_merged_settings: bool = True
+) -> TomographyExperiment:
     """
     Merges the list of experiments into a single experiment that runs the sum of the individual
     experiment programs and contains all of the combined experiment settings.
@@ -88,13 +89,14 @@ def merge_disjoint_experiments(experiments: List[TomographyExperiment],
         if expt.program.get_qubits().intersection(used_qubits):
             raise ValueError(
                 "Experiment programs act on some shared set of qubits and cannot be "
-                "merged unambiguously.")
+                "merged unambiguously."
+            )
         used_qubits = used_qubits.union(expt.program.get_qubits())
 
     # get a flat list of all settings, to be regrouped later
-    all_settings = [setting for expt in experiments
-                    for simult_settings in expt
-                    for setting in simult_settings]
+    all_settings = [
+        setting for expt in experiments for simult_settings in expt for setting in simult_settings
+    ]
     merged_program = sum([expt.program for expt in experiments], Program())
     merged_program.wrap_in_numshots_loop(max([expt.program.num_shots for expt in experiments]))
 

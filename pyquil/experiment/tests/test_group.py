@@ -1,12 +1,6 @@
 from pyquil.experiment._main import TomographyExperiment
 from pyquil.experiment._result import ExperimentResult
-from pyquil.experiment._setting import (
-    ExperimentSetting,
-    plusX,
-    minusX,
-    plusZ,
-    TensorProductState
-)
+from pyquil.experiment._setting import ExperimentSetting, plusX, minusX, plusZ, TensorProductState
 from pyquil.experiment._group import get_results_by_qubit_groups, merge_disjoint_experiments
 from pyquil.gates import X, Z
 from pyquil.paulis import sZ, sX, sY
