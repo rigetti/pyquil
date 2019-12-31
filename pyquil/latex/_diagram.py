@@ -448,7 +448,7 @@ class DiagramBuilder:
             if isinstance(instruction_j, Pragma) and instruction_j.command == PRAGMA_END_GROUP:
                 # recursively build the diagram for this block
                 # we do not want labels here!
-                block_settings = replace(  # type: ignore
+                block_settings = replace(
                     self.settings, label_qubit_lines=False, qubit_line_open_wire_length=0
                 )
                 subcircuit = Program(*self.working_instructions[start:j])
