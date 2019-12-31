@@ -1,3 +1,8 @@
+from pyquil.experiment._group import (
+    merge_disjoint_experiments,
+    get_results_by_qubit_groups,
+    group_settings,
+)
 from pyquil.experiment._main import OperatorEncoder, TomographyExperiment, read_json, to_json
 from pyquil.experiment._memory import merge_memory_map_lists
 from pyquil.experiment._result import ExperimentResult, bitstrings_to_expectations
@@ -19,8 +24,3 @@ from pyquil.experiment._setting import (
     zeros_state,
 )
 from pyquil.experiment._symmetrization import SymmetrizationLevel
-from pyquil.experiment._group import (
-    get_results_by_qubit_groups,
-    merge_disjoint_experiments,
-    group_settings,
-)

@@ -20,12 +20,12 @@ Changelog
 -   Improved reStructuredText markup in docstrings (@peterjc, gh-1141).
 -   Add helper to separate `ExperimentResults` by groups of qubits on
     which their operator acts (@kylegulshen, gh-1078).
--   Add helper to merge `TomographyExperiment`s (@kylegulshen, gh-1077).
--   Move `group_experiments` from `operator_estimation` to `_group` in the
-    `experiment` module; rename to `group_settings` but maintain backwards
-    compatibility (@kylegulshen, gh-1077).
 -   Added typing to the `pyquil/latex` module and added the module to the
     `check-types` CI job (@karalekas, gh-1142).
+-   Add helper to merge `TomographyExperiment`s in the experiment module's
+    `_group` file. Move `group_experiments` from `operator_estimation`
+    to `_group` in the; rename to `group_settings` but maintain backwards
+    compatibility (@kylegulshen, gh-1077).
 
 ### Bugfixes
 

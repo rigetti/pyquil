@@ -35,7 +35,10 @@ from pyquil.experiment import (
 from pyquil.experiment._group import (
     _max_weight_state,
     _max_weight_operator,
+    construct_tpb_graph,
     group_settings as group_experiments,
+    group_settings_clique_removal as group_experiments_clique_removal,
+    group_settings_greedy as group_experiments_greedy,
 )
 from pyquil.gates import RESET, RX, RY, RZ, X
 from pyquil.paulis import is_identity
