@@ -13,19 +13,20 @@
 #    See the License for the specific language governing permissions and
 #    limitations under the License.
 ##############################################################################
-from typing import Iterable, Sequence, Dict, Tuple, List, Union
-import networkx as nx
-from networkx.algorithms.approximation.clique import clique_removal
 import functools
 import itertools
 from operator import mul
+from typing import Dict, List, Iterable, Sequence, Set, Tuple, Union, cast
 
-from pyquil.experiment._result import ExperimentResult
+import networkx as nx
+from networkx.algorithms.approximation.clique import clique_removal
+
 from pyquil.experiment._main import TomographyExperiment
-from pyquil.experiment._symmetrization import SymmetrizationLevel
+from pyquil.experiment._result import ExperimentResult
 from pyquil.experiment._setting import ExperimentSetting, TensorProductState, _OneQState
-from pyquil import Program
+from pyquil.experiment._symmetrization import SymmetrizationLevel
 from pyquil.paulis import PauliTerm, sI
+from pyquil.quil import Program
 
 
 def get_results_by_qubit_groups(
@@ -93,14 +94,14 @@ def merge_disjoint_experiments(
     :param group_merged_settings: By default group the settings of the merged experiment.
     :return: a single experiment that runs the summed program and all settings.
     """
-    used_qubits = set()
+    used_qubits: Set[int] = set()
     for expt in experiments:
         if expt.program.get_qubits().intersection(used_qubits):
             raise ValueError(
                 "Experiment programs act on some shared set of qubits and cannot be "
                 "merged unambiguously."
             )
-        used_qubits = used_qubits.union(expt.program.get_qubits())
+        used_qubits = used_qubits.union(cast(Set[int], expt.program.get_qubits()))
 
     # get a flat list of all settings, to be regrouped later
     all_settings = [
@@ -121,31 +122,33 @@ def merge_disjoint_experiments(
     return merged_expt
 
 
-def construct_tpb_graph(experiments: TomographyExperiment):
+def construct_tpb_graph(experiments: TomographyExperiment) -> nx.Graph:
     """
     Construct a graph where an edge signifies two experiments are diagonal in a TPB.
     """
     g = nx.Graph()
     for expt in experiments:
         assert len(expt) == 1, "already grouped?"
-        expt = expt[0]
+        unpacked_expt = expt[0]
 
-        if expt not in g:
-            g.add_node(expt, count=1)
+        if unpacked_expt not in g:
+            g.add_node(unpacked_expt, count=1)
         else:
-            g.nodes[expt]["count"] += 1
+            g.nodes[unpacked_expt]["count"] += 1
 
     for expt1, expt2 in itertools.combinations(experiments, r=2):
-        expt1 = expt1[0]
-        expt2 = expt2[0]
+        unpacked_expt1 = expt1[0]
+        unpacked_expt2 = expt2[0]
 
-        if expt1 == expt2:
+        if unpacked_expt1 == unpacked_expt2:
             continue
 
-        max_weight_in = _max_weight_state([expt1.in_state, expt2.in_state])
-        max_weight_out = _max_weight_operator([expt1.out_operator, expt2.out_operator])
+        max_weight_in = _max_weight_state([unpacked_expt1.in_state, unpacked_expt2.in_state])
+        max_weight_out = _max_weight_operator(
+            [unpacked_expt1.out_operator, unpacked_expt2.out_operator]
+        )
         if max_weight_in is not None and max_weight_out is not None:
-            g.add_edge(expt1, expt2)
+            g.add_edge(unpacked_expt1, unpacked_expt2)
 
     return g
 
@@ -161,9 +164,9 @@ def group_settings_clique_removal(experiments: TomographyExperiment) -> Tomograp
     """
     g = construct_tpb_graph(experiments)
     _, cliqs = clique_removal(g)
-    new_cliqs = []
+    new_cliqs: List[List[ExperimentSetting]] = []
     for cliq in cliqs:
-        new_cliq = []
+        new_cliq: List[ExperimentSetting] = []
         for expt in cliq:
             # duplicate `count` times
             new_cliq += [expt] * g.nodes[expt]["count"]
@@ -228,18 +231,18 @@ def _max_tpb_overlap(
             list of ExperimentSettings (diagonal in that tpb)
     """
     # initialize empty dictionary
-    diagonal_sets = {}
+    diagonal_sets: Dict[ExperimentSetting, List[ExperimentSetting]] = {}
     # loop through ExperimentSettings of the TomographyExperiment
     for expt_setting in tomo_expt:
         # no need to group already grouped TomographyExperiment
         assert len(expt_setting) == 1, "already grouped?"
-        expt_setting = expt_setting[0]
+        unpacked_expt_setting = expt_setting[0]
         # calculate max overlap of expt_setting with keys of diagonal_sets
         # keep track of whether a shared tpb was found
         found_tpb = False
         # loop through dict items
         for es, es_list in diagonal_sets.items():
-            trial_es_list = es_list + [expt_setting]
+            trial_es_list = es_list + [unpacked_expt_setting]
             diag_in_term = _max_weight_state(expst.in_state for expst in trial_es_list)
             diag_out_term = _max_weight_operator(expst.out_operator for expst in trial_es_list)
             # max_weight_xxx returns None if the set of xxx's don't share a TPB, so the following
@@ -267,12 +270,12 @@ def _max_tpb_overlap(
         if not found_tpb:
             # made it through entire dict without finding any ExperimentSetting with shared tpb,
             # so need to make a new item
-            diagonal_sets[expt_setting] = [expt_setting]
+            diagonal_sets[unpacked_expt_setting] = [unpacked_expt_setting]
 
     return diagonal_sets
 
 
-def group_settings_greedy(tomo_expt: TomographyExperiment):
+def group_settings_greedy(tomo_expt: TomographyExperiment) -> TomographyExperiment:
     """
     Greedy method to group ExperimentSettings in a given TomographyExperiment
 
@@ -337,9 +340,10 @@ def group_settings(
     :return: a tomography experiment with all the same settings, just grouped according to shared
         TPBs.
     """
-    allowed_methods = ["greedy", "clique-removal"]
-    assert method in allowed_methods, f"'method' should be one of {allowed_methods}."
     if method == "greedy":
         return group_settings_greedy(experiments)
     elif method == "clique-removal":
         return group_settings_clique_removal(experiments)
+    else:
+        allowed_methods = ["greedy", "clique-removal"]
+        raise ValueError(f"'method' should be one of {allowed_methods}.")
