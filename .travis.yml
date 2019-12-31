@@ -1,4 +1,10 @@
 language: python
+
+addons:
+  apt:
+    packages:
+      - pandoc
+
 python:
   - '3.7'
 env:
