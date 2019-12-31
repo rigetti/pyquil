@@ -22,6 +22,9 @@ Changelog
     which their operator acts (@kylegulshen, gh-1078).
 -   Added typing to the `pyquil/latex` module and added the module to the
     `check-types` CI job (@karalekas, gh-1142).
+-   The code in `gate_matrices.py`, `numpy_simulator.py`, `reference_simulator.py`,
+    and `unitary_tools.py` has been typed and reorganized into a new `simulation`
+    subdirectory, maintaining backwards compatibility (@karalekas, gh-1143).
 
 ### Bugfixes
 
