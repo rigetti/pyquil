@@ -30,6 +30,7 @@ before_install:
 install:
   - make install
   - make requirements
+  - pip install --upgrade pytest
 
 script:
   - make $TARGET
