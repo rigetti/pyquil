@@ -29,6 +29,8 @@ Changelog
 -   The code in `gate_matrices.py`, `numpy_simulator.py`, `reference_simulator.py`,
     and `unitary_tools.py` has been typed and reorganized into a new `simulation`
     subdirectory, maintaining backwards compatibility (@karalekas, gh-1143).
+-   Added a `.travis.yml` file to enable Travis CI for external-contributor builds,
+    and upgraded GitLab CI style checks to py37 (@karalekas, gh-1145).
 
 ### Bugfixes
 
