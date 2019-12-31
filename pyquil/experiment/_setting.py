@@ -68,7 +68,7 @@ class TensorProductState:
 
     states: List[_OneQState]
 
-    def __init__(self, states: Optional[List[_OneQState]] = None):
+    def __init__(self, states: Optional[Iterable[_OneQState]] = None):
         if states is None:
             states = []
         object.__setattr__(self, "states", list(states))

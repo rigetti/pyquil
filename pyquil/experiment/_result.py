@@ -20,7 +20,7 @@ measurements that are aimed at estimating the expectation value of some observab
 import logging
 import sys
 import warnings
-from typing import Any, List, Mapping, Optional, Union
+from typing import Any, Dict, List, Optional, Union
 
 import numpy as np
 
@@ -161,7 +161,7 @@ class ExperimentResult:
     def __repr__(self) -> str:
         return f"ExperimentResult[{self}]"
 
-    def serializable(self) -> Mapping[str, Any]:
+    def serializable(self) -> Dict[str, Any]:
         return {
             "type": "ExperimentResult",
             "setting": self.setting,

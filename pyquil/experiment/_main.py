@@ -165,7 +165,7 @@ class TomographyExperiment:
             else:
                 s = cast(List[List[ExperimentSetting]], settings)
 
-        self._settings = s  # type: List[List[ExperimentSetting]]
+        self._settings = s
         self.program = program
         if qubits is not None:
             warnings.warn(
@@ -206,7 +206,7 @@ class TomographyExperiment:
     def append(self, expts: Union[ExperimentSetting, List[ExperimentSetting]]) -> None:
         if not isinstance(expts, list):
             expts = [expts]
-        return self._settings.append(expts)
+        self._settings.append(expts)
 
     def count(self, expt: List[ExperimentSetting]) -> int:
         return self._settings.count(expt)
@@ -215,19 +215,19 @@ class TomographyExperiment:
         return self._settings.index(expt, start, stop)
 
     def extend(self, expts: List[List[ExperimentSetting]]) -> None:
-        return self._settings.extend(expts)
+        self._settings.extend(expts)
 
     def insert(self, index: int, expt: List[ExperimentSetting]) -> None:
-        return self._settings.insert(index, expt)
+        self._settings.insert(index, expt)
 
     def pop(self, index: int = 0) -> List[ExperimentSetting]:
         return self._settings.pop(index)
 
     def remove(self, expt: List[ExperimentSetting]) -> None:
-        return self._settings.remove(expt)
+        self._settings.remove(expt)
 
     def reverse(self) -> None:
-        return self._settings.reverse()
+        self._settings.reverse()
 
     def sort(
         self, key: Optional[Callable[[List[ExperimentSetting]], Any]] = None, reverse: bool = False
@@ -264,7 +264,7 @@ class TomographyExperiment:
         string += f"settings:\n{self.settings_string(abbrev_after=20)}"
         return string
 
-    def serializable(self) -> Mapping[str, Any]:
+    def serializable(self) -> Dict[str, Any]:
         return {
             "type": "TomographyExperiment",
             "settings": self._settings,
@@ -274,7 +274,7 @@ class TomographyExperiment:
             "reset": self.reset,
         }
 
-    def __eq__(self, other: Any) -> bool:
+    def __eq__(self, other: object) -> bool:
         if not isinstance(other, TomographyExperiment):
             return False
         return self.serializable() == other.serializable()
