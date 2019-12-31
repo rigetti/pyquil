@@ -1,0 +1,16 @@
+language: python
+python:
+  - '3.7'
+env:
+  - TARGET=build-docs
+  - TARGET=check-format
+  - TARGET=check-types
+  - TARGET=check-style
+  - TARGET=test
+jobs:
+  include:
+    - python: '3.6'
+      env: TARGET=test
+    - python: '3.8'
+      env: TARGET=test
+script: make $TARGET
