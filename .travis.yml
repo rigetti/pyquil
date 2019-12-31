@@ -13,4 +13,17 @@ jobs:
       env: TARGET=test
     - python: '3.8'
       env: TARGET=test
-script: make $TARGET
+
+services:
+  - docker
+
+before_install:
+  - docker run --rm -itd -p 5555:5555 rigetti/quilc -R
+  - docker run --rm -itd -p 5000:5000 rigetti/qvm -S
+
+install:
+  - make install
+  - make requirements
+
+script:
+  - make $TARGET
