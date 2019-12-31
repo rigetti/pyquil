@@ -16,7 +16,7 @@ services:
     command: ["-R"]
 
 build-docs:
-  image: python:3.6
+  image: python:3.7
   tags:
     - github
   script:
@@ -26,7 +26,7 @@ build-docs:
     - make docs
 
 check-format:
-  image: python:3.6
+  image: python:3.7
   tags:
     - github
   script:
@@ -35,7 +35,7 @@ check-format:
     - make check-format
 
 check-style:
-  image: python:3.6
+  image: python:3.7
   tags:
     - github
   script:
@@ -44,7 +44,7 @@ check-style:
     - make check-style
 
 check-types:
-  image: python:3.6
+  image: python:3.7
   tags:
     - github
   script:
