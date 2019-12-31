@@ -22,10 +22,13 @@ Changelog
     which their operator acts (@kylegulshen, gh-1078).
 -   Added typing to the `pyquil/latex` module and added the module to the
     `check-types` CI job (@karalekas, gh-1142).
--   Add helper to merge `TomographyExperiment`s in the experiment module's
-    `_group` file. Move `group_experiments` from `operator_estimation`
-    to `_group` in the; rename to `group_settings` but maintain backwards
+-   Add helper to merge `TomographyExperiment`s in the `experiment` module's
+    `_group.py` file. Move `group_experiments` from `operator_estimation.py`
+    to `_group.py` and rename to `group_settings` but maintain backwards
     compatibility (@kylegulshen, gh-1077).
+-   The code in `gate_matrices.py`, `numpy_simulator.py`, `reference_simulator.py`,
+    and `unitary_tools.py` has been typed and reorganized into a new `simulation`
+    subdirectory, maintaining backwards compatibility (@karalekas, gh-1143).
 
 ### Bugfixes
 

@@ -2,11 +2,13 @@ import numpy as np
 import pytest
 
 from pyquil import Program
-from pyquil import gate_matrices as mat
-from pyquil.gates import CCNOT, CNOT, CZ, H, MEASURE, PHASE, RX, RY, RZ, X, Y, Z
 from pyquil.experiment import plusX, minusZ
+from pyquil.gates import CCNOT, CNOT, CZ, H, MEASURE, PHASE, RX, RY, RZ, X, Y, Z
 from pyquil.paulis import sX, sY, sZ
-from pyquil.unitary_tools import (
+from pyquil.quilatom import MemoryReference, Parameter
+from pyquil.quilbase import Declare
+from pyquil.simulation import matrices as mat
+from pyquil.simulation.tools import (
     qubit_adjacent_lifted_gate,
     program_unitary,
     lifted_gate_matrix,
@@ -14,8 +16,6 @@ from pyquil.unitary_tools import (
     lifted_pauli,
     lifted_state_operator,
 )
-from pyquil.quilatom import MemoryReference, Parameter
-from pyquil.quilbase import Declare
 
 
 def test_random_gates():

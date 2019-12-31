@@ -1,18 +1,18 @@
+import networkx as nx
 import numpy as np
 import pytest
-import networkx as nx
 
-import pyquil.gate_matrices as qmats
+import pyquil.simulation.matrices as qmats
 from pyquil import Program
-from pyquil.gates import CNOT, H, I, MEASURE, PHASE, RX, RY, RZ, X
-from pyquil.pyqvm import PyQVM
-from pyquil.reference_simulator import ReferenceDensitySimulator, _is_valid_quantum_state
-from pyquil.unitary_tools import lifted_gate_matrix
-from pyquil.paulis import sI, sX, sY, sZ
-from pyquil.device import NxDevice
 from pyquil.api import QuantumComputer
-from pyquil.operator_estimation import measure_observables
+from pyquil.device import NxDevice
 from pyquil.experiment import ExperimentSetting, TomographyExperiment, zeros_state
+from pyquil.gates import CNOT, H, I, MEASURE, PHASE, RX, RY, RZ, X
+from pyquil.operator_estimation import measure_observables
+from pyquil.paulis import sI, sX, sY, sZ
+from pyquil.pyqvm import PyQVM
+from pyquil.simulation._reference import ReferenceDensitySimulator, _is_valid_quantum_state
+from pyquil.simulation.tools import lifted_gate_matrix
 from pyquil.tests.utils import DummyCompiler
 
 

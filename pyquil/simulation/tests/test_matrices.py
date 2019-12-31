@@ -1,4 +1,6 @@
-from pyquil.gate_matrices import (
+import numpy as np
+
+from pyquil.simulation.matrices import (
     QUANTUM_GATES,
     relaxation_operators,
     dephasing_operators,
@@ -7,7 +9,6 @@ from pyquil.gate_matrices import (
     phase_flip_operators,
     bitphase_flip_operators,
 )
-import numpy as np
 
 
 def test_singleq():

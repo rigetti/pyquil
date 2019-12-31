@@ -2,26 +2,23 @@
 This is a demo of VQE through the forest stack. We will do the H2 binding from the Google paper
 using OpenFermion to generate Hamiltonians and Forest to simulate the system
 """
-import numpy as np
 import matplotlib.pyplot as plt
-
-from scipy.optimize import (
-    minimize,
-)  # for real runs I recommend using ADAM optimizer because momentum helps with noise
-from openfermionpsi4 import run_psi4
+import numpy as np
+from forestopenfermion import qubitop_to_pyquilpauli
+from grove.measurements.estimation import estimate_locally_commuting_operator
 from openfermion.hamiltonians import MolecularData
 from openfermion.transforms import symmetry_conserving_bravyi_kitaev, get_fermion_operator
 from openfermion.utils import uccsd_singlet_get_packed_amplitudes
+from openfermionpsi4 import run_psi4
+from scipy.optimize import (
+    minimize,
+)  # for real runs I recommend using ADAM optimizer because momentum helps with noise
 
-from forestopenfermion import qubitop_to_pyquilpauli
-
-from pyquil.quil import Program
-from pyquil.paulis import sX, sY, exponentiate, PauliSum
-from pyquil.gates import X
 from pyquil.api import QVMConnection
-from pyquil.unitary_tools import tensor_up
-
-from grove.measurements.estimation import estimate_locally_commuting_operator
+from pyquil.gates import X
+from pyquil.paulis import sX, sY, exponentiate, PauliSum
+from pyquil.quil import Program
+from pyquil.simulation.tools import tensor_up
 
 QVM_CONNECTION = QVMConnection(endpoint="http://localhost:5000")
 

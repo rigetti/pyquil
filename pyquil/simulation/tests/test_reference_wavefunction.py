@@ -28,9 +28,9 @@ from pyquil.gates import (
 from pyquil.paulis import PauliTerm, exponentiate, sZ, sX, sI, sY
 from pyquil.pyqvm import PyQVM
 from pyquil.quil import Program
-from pyquil.reference_simulator import ReferenceWavefunctionSimulator
 from pyquil.quilatom import MemoryReference
 from pyquil.quilbase import Declare
+from pyquil.simulation._reference import ReferenceWavefunctionSimulator
 
 QFT_8_INSTRUCTIONS = [
     H(7),

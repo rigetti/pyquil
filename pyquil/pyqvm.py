@@ -13,17 +13,20 @@
 #    See the License for the specific language governing permissions and
 #    limitations under the License.
 ##############################################################################
+import logging
 import warnings
 from abc import ABC, abstractmethod
 from typing import Dict, List, Sequence, Type, Union
 
 import numpy as np
 from numpy.random.mtrand import RandomState
+from rpcq.messages import PyQuilExecutableResponse
 
 from pyquil.api import QAM
 from pyquil.api._compiler import _extract_program_from_pyquil_executable_response
 from pyquil.paulis import PauliTerm, PauliSum
 from pyquil.quil import Program
+from pyquil.quilatom import Label, MemoryReference
 from pyquil.quilbase import (
     Gate,
     Measurement,
@@ -58,11 +61,6 @@ from pyquil.quilbase import (
     DefGateByPaulis,
     DefPermutationGate,
 )
-from pyquil.quilatom import Label, MemoryReference
-
-import logging
-
-from rpcq.messages import PyQuilExecutableResponse
 
 log = logging.getLogger(__name__)
 
@@ -191,11 +189,11 @@ class PyQVM(QAM):
         """
         if quantum_simulator_type is None:
             if post_gate_noise_probabilities is None:
-                from pyquil.numpy_simulator import NumpyWavefunctionSimulator
+                from pyquil.simulation._numpy import NumpyWavefunctionSimulator
 
                 quantum_simulator_type = NumpyWavefunctionSimulator
             else:
-                from pyquil.reference_simulator import ReferenceDensitySimulator
+                from pyquil.simulation._reference import ReferenceDensitySimulator
 
                 log.info("Using ReferenceDensitySimulator as the backend for PyQVM")
                 quantum_simulator_type = ReferenceDensitySimulator
