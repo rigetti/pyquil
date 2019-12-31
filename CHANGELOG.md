@@ -22,6 +22,10 @@ Changelog
     which their operator acts (@kylegulshen, gh-1078).
 -   Added typing to the `pyquil/latex` module and added the module to the
     `check-types` CI job (@karalekas, gh-1142).
+-   Add helper to merge `TomographyExperiment`s in the experiment module's
+    `_group` file. Move `group_experiments` from `operator_estimation`
+    to `_group` in the; rename to `group_settings` but maintain backwards
+    compatibility (@kylegulshen, gh-1077).
 
 ### Bugfixes
 
