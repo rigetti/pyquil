@@ -32,7 +32,9 @@ Changelog
 -   Added a `.travis.yml` file to enable Travis CI for external-contributor builds,
     and upgraded GitLab CI style checks to py37 (@karalekas, gh-1145).
 -   Delete `api/_job.py`, `JobConnection`, and `SyncConnection`, which have been
-    deprecated for over a year and a half (@karalekas, gh-1145).
+    deprecated for over a year and a half (@karalekas, gh-1144).
+-   Added typing to the `pyquil/experiment` module and added the module to the
+    `check-types` CI job (@karalekas, gh-1146).
 
 ### Bugfixes
 

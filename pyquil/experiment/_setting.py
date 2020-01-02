@@ -21,7 +21,7 @@ import logging
 import re
 import sys
 import warnings
-from typing import Iterable, Tuple
+from typing import Any, FrozenSet, Generator, Iterable, List, Optional, cast
 
 from pyquil.paulis import PauliTerm, sI, is_identity
 
@@ -48,11 +48,11 @@ class _OneQState:
     index: int
     qubit: int
 
-    def __str__(self):
+    def __str__(self) -> str:
         return f"{self.label}{self.index}_{self.qubit}"
 
     @classmethod
-    def from_str(cls, s):
+    def from_str(cls, s: str) -> "_OneQState":
         ma = re.match(r"\s*(\w+)(\d+)_(\d+)\s*", s)
         if ma is None:
             raise ValueError(f"Couldn't parse '{s}'")
@@ -66,52 +66,52 @@ class TensorProductState:
     states.
     """
 
-    states: Tuple[_OneQState]
+    states: List[_OneQState]
 
-    def __init__(self, states=None):
+    def __init__(self, states: Optional[Iterable[_OneQState]] = None):
         if states is None:
-            states = tuple()
-        object.__setattr__(self, "states", tuple(states))
+            states = []
+        object.__setattr__(self, "states", list(states))
 
-    def __mul__(self, other):
+    def __mul__(self, other: "TensorProductState") -> "TensorProductState":
         return TensorProductState(self.states + other.states)
 
-    def __str__(self):
+    def __str__(self) -> str:
         return " * ".join(str(s) for s in self.states)
 
-    def __repr__(self):
+    def __repr__(self) -> str:
         return f"TensorProductState[{self}]"
 
-    def __getitem__(self, qubit):
+    def __getitem__(self, qubit: int) -> _OneQState:
         """Return the _OneQState at the given qubit."""
         for oneq_state in self.states:
             if oneq_state.qubit == qubit:
                 return oneq_state
         raise IndexError()
 
-    def __iter__(self):
+    def __iter__(self) -> Generator[_OneQState, None, None]:
         yield from self.states
 
-    def __len__(self):
+    def __len__(self) -> int:
         return len(self.states)
 
-    def states_as_set(self):
+    def states_as_set(self) -> FrozenSet[_OneQState]:
         return frozenset(self.states)
 
-    def __eq__(self, other):
+    def __eq__(self, other: Any) -> bool:
         if not isinstance(other, TensorProductState):
             return False
 
         return self.states_as_set() == other.states_as_set()
 
-    def __hash__(self):
+    def __hash__(self) -> int:
         return hash(self.states_as_set())
 
     @classmethod
-    def from_str(cls, s):
+    def from_str(cls, s: str) -> "TensorProductState":
         if s == "":
             return TensorProductState()
-        return TensorProductState(tuple(_OneQState.from_str(x) for x in s.split("*")))
+        return TensorProductState(list(_OneQState.from_str(x) for x in s.split("*")))
 
 
 def _pauli_to_product_state(in_state: PauliTerm) -> TensorProductState:
@@ -119,59 +119,58 @@ def _pauli_to_product_state(in_state: PauliTerm) -> TensorProductState:
     Convert a Pauli term to a TensorProductState.
     """
     if is_identity(in_state):
-        in_state = TensorProductState()
+        return TensorProductState()
     else:
-        in_state = TensorProductState(
+        return TensorProductState(
             [
                 _OneQState(label=pauli_label, index=0, qubit=qubit)
                 for qubit, pauli_label in in_state._ops.items()
             ]
         )
-    return in_state
 
 
-def SIC0(q):
-    return TensorProductState((_OneQState("SIC", 0, q),))
+def SIC0(q: int) -> TensorProductState:
+    return TensorProductState([_OneQState(label="SIC", index=0, qubit=q)])
 
 
-def SIC1(q):
-    return TensorProductState((_OneQState("SIC", 1, q),))
+def SIC1(q: int) -> TensorProductState:
+    return TensorProductState([_OneQState(label="SIC", index=1, qubit=q)])
 
 
-def SIC2(q):
-    return TensorProductState((_OneQState("SIC", 2, q),))
+def SIC2(q: int) -> TensorProductState:
+    return TensorProductState([_OneQState(label="SIC", index=2, qubit=q)])
 
 
-def SIC3(q):
-    return TensorProductState((_OneQState("SIC", 3, q),))
+def SIC3(q: int) -> TensorProductState:
+    return TensorProductState([_OneQState(label="SIC", index=3, qubit=q)])
 
 
-def plusX(q):
-    return TensorProductState((_OneQState("X", 0, q),))
+def plusX(q: int) -> TensorProductState:
+    return TensorProductState([_OneQState(label="X", index=0, qubit=q)])
 
 
-def minusX(q):
-    return TensorProductState((_OneQState("X", 1, q),))
+def minusX(q: int) -> TensorProductState:
+    return TensorProductState([_OneQState(label="X", index=1, qubit=q)])
 
 
-def plusY(q):
-    return TensorProductState((_OneQState("Y", 0, q),))
+def plusY(q: int) -> TensorProductState:
+    return TensorProductState([_OneQState(label="Y", index=0, qubit=q)])
 
 
-def minusY(q):
-    return TensorProductState((_OneQState("Y", 1, q),))
+def minusY(q: int) -> TensorProductState:
+    return TensorProductState([_OneQState(label="Y", index=1, qubit=q)])
 
 
-def plusZ(q):
-    return TensorProductState((_OneQState("Z", 0, q),))
+def plusZ(q: int) -> TensorProductState:
+    return TensorProductState([_OneQState(label="Z", index=0, qubit=q)])
 
 
-def minusZ(q):
-    return TensorProductState((_OneQState("Z", 1, q),))
+def minusZ(q: int) -> TensorProductState:
+    return TensorProductState([_OneQState(label="Z", index=1, qubit=q)])
 
 
-def zeros_state(qubits: Iterable[int]):
-    return TensorProductState(_OneQState("Z", 0, q) for q in qubits)
+def zeros_state(qubits: Iterable[int]) -> TensorProductState:
+    return TensorProductState([_OneQState(label="Z", index=0, qubit=q) for q in qubits])
 
 
 @dataclass(frozen=True, init=False)
@@ -205,7 +204,7 @@ class ExperimentSetting:
         object.__setattr__(self, "out_operator", out_operator)
 
     @property
-    def in_operator(self):
+    def in_operator(self) -> PauliTerm:
         warnings.warn(
             "ExperimentSetting.in_operator is deprecated in favor of in_state", stacklevel=2
         )
@@ -218,21 +217,22 @@ class ExperimentSetting:
             if oneq_state.index != 0:
                 raise ValueError(f"Can't shim {oneq_state} into a pauli term. Use in_state.")
 
-            pt *= PauliTerm(op=oneq_state.label, index=oneq_state.qubit)
+            new_pt = pt * PauliTerm(op=oneq_state.label, index=oneq_state.qubit)
+            pt = cast(PauliTerm, new_pt)
 
         return pt
 
-    def __str__(self):
+    def __str__(self) -> str:
         return f"{self.in_state}→{self.out_operator.compact_str()}"
 
-    def __repr__(self):
+    def __repr__(self) -> str:
         return f"ExperimentSetting[{self}]"
 
-    def serializable(self):
+    def serializable(self) -> str:
         return str(self)
 
     @classmethod
-    def from_str(cls, s: str):
+    def from_str(cls, s: str) -> "ExperimentSetting":
         """The opposite of str(expt)"""
         instr, outstr = s.split("→")
         return ExperimentSetting(
