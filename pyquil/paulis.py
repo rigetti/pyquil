@@ -44,7 +44,7 @@ from numbers import Number
 from collections import OrderedDict
 import warnings
 
-PauliTargetDesignator = Union[int, FormalArgument]
+PauliTargetDesignator = Union[int, FormalArgument, QubitPlaceholder]
 PauliDesignator = Union["PauliTerm", "PauliSum"]
 
 PAULI_OPS = ["X", "Y", "Z", "I"]
