@@ -13,104 +13,105 @@
 #    See the License for the specific language governing permissions and
 #    limitations under the License.
 ##############################################################################
+import sys
 import warnings
-from collections import namedtuple
+from typing import Any, Dict, Optional, Sequence, Tuple
 
 import networkx as nx
 
-QubitSpecs = namedtuple(
-    "_QubitSpecs",
-    [
-        "id",
-        "fRO",
-        "f1QRB",
-        "f1QRB_std_err",
-        "f1Q_simultaneous_RB",
-        "f1Q_simultaneous_RB_std_err",
-        "T1",
-        "T2",
-        "fActiveReset",
-    ],
-)
-EdgeSpecs = namedtuple(
-    "_QubitQubitSpecs",
-    [
-        "targets",
-        "fBellState",
-        "fCZ",
-        "fCZ_std_err",
-        "fCPHASE",
-        "fCPHASE_std_err",
-        "fXY",
-        "fXY_std_err",
-        "fISWAP",
-        "fISWAP_std_err",
-    ],
-)
-_Specs = namedtuple("_Specs", ["qubits_specs", "edges_specs"])
+if sys.version_info < (3, 7):
+    from pyquil.external.dataclasses import dataclass
+else:
+    from dataclasses import dataclass
 
 
-class Specs(_Specs):
+@dataclass
+class QubitSpecs:
+    id: int
+    fRO: Optional[float]
+    f1QRB: Optional[float]
+    f1QRB_std_err: Optional[float]
+    f1Q_simultaneous_RB: Optional[float]
+    f1Q_simultaneous_RB_std_err: Optional[float]
+    T1: Optional[float]
+    T2: Optional[float]
+    fActiveReset: Optional[float]
+
+
+@dataclass
+class EdgeSpecs:
+    targets: Tuple[int, ...]
+    fBellState: Optional[float]
+    fCZ: Optional[float]
+    fCZ_std_err: Optional[float]
+    fCPHASE: Optional[float]
+    fCPHASE_std_err: Optional[float]
+    fXY: Optional[float]
+    fXY_std_err: Optional[float]
+    fISWAP: Optional[float]
+    fISWAP_std_err: Optional[float]
+
+
+@dataclass
+class Specs:
     """
     Basic specifications for the device, such as gate fidelities and coherence times.
 
-    :ivar List[QubitSpecs] qubits_specs: The specs associated with individual qubits.
-    :ivar List[EdgesSpecs] edges_specs: The specs associated with edges, or qubit-qubit pairs.
+    :ivar qubits_specs: The specs associated with individual qubits.
+    :ivar edges_specs: The specs associated with edges, or qubit-qubit pairs.
     """
 
-    def f1QRBs(self):
+    qubits_specs: Sequence[QubitSpecs]
+    edges_specs: Sequence[EdgeSpecs]
+
+    def f1QRBs(self) -> Dict[int, Optional[float]]:
         """
         Get a dictionary of single-qubit randomized benchmarking fidelities (for individual gate
         operation, normalized to unity) from the specs, keyed by qubit index.
 
         :return: A dictionary of 1Q RB fidelities, normalized to unity.
-        :rtype: Dict[int, float]
         """
         return {qs.id: qs.f1QRB for qs in self.qubits_specs}
 
-    def f1QRB_std_errs(self):
+    def f1QRB_std_errs(self) -> Dict[int, Optional[float]]:
         """
         Get a dictionary of the standard errors of single-qubit randomized
         benchmarking fidelities (for individual gate operation, normalized to unity)
         from the specs, keyed by qubit index.
 
         :return: A dictionary of 1Q RB fidelity standard errors, normalized to unity.
-        :rtype: Dict[int, float]
         """
         return {qs.id: qs.f1QRB_std_err for qs in self.qubits_specs}
 
-    def f1Q_simultaneous_RBs(self):
+    def f1Q_simultaneous_RBs(self) -> Dict[int, Optional[float]]:
         """
         Get a dictionary of single-qubit randomized benchmarking fidelities (for simultaneous gate
         operation across the chip, normalized to unity) from the specs, keyed by qubit index.
 
         :return: A dictionary of simultaneous 1Q RB fidelities, normalized to unity.
-        :rtype: Dict[int, float]
         """
         return {qs.id: qs.f1Q_simultaneous_RB for qs in self.qubits_specs}
 
-    def f1Q_simultaneous_RB_std_errs(self):
+    def f1Q_simultaneous_RB_std_errs(self) -> Dict[int, Optional[float]]:
         """
         Get a dictionary of the standard errors of single-qubit randomized
         benchmarking fidelities (for simultaneous gate operation across the chip, normalized to
         unity) from the specs, keyed by qubit index.
 
         :return: A dictionary of simultaneous 1Q RB fidelity standard errors, normalized to unity.
-        :rtype: Dict[int, float]
         """
         return {qs.id: qs.f1Q_simultaneous_RB_std_err for qs in self.qubits_specs}
 
-    def fROs(self):
+    def fROs(self) -> Dict[int, Optional[float]]:
         """
         Get a dictionary of single-qubit readout fidelities (normalized to unity)
         from the specs, keyed by qubit index.
 
         :return: A dictionary of RO fidelities, normalized to unity.
-        :rtype: Dict[int, float]
         """
         return {qs.id: qs.fRO for qs in self.qubits_specs}
 
-    def fActiveResets(self):
+    def fActiveResets(self) -> Dict[int, Optional[float]]:
         """
         Get a dictionary of single-qubit active reset fidelities (normalized to unity) from the
         specs, keyed by qubit index.
@@ -119,31 +120,28 @@ class Specs(_Specs):
         """
         return {qs.id: qs.fActiveReset for qs in self.qubits_specs}
 
-    def T1s(self):
+    def T1s(self) -> Dict[int, Optional[float]]:
         """
         Get a dictionary of T1s (in seconds) from the specs, keyed by qubit index.
 
         :return: A dictionary of T1s, in seconds.
-        :rtype: Dict[int, float]
         """
         return {qs.id: qs.T1 for qs in self.qubits_specs}
 
-    def T2s(self):
+    def T2s(self) -> Dict[int, Optional[float]]:
         """
         Get a dictionary of T2s (in seconds) from the specs, keyed by qubit index.
 
         :return: A dictionary of T2s, in seconds.
-        :rtype: Dict[int, float]
         """
         return {qs.id: qs.T2 for qs in self.qubits_specs}
 
-    def fBellStates(self):
+    def fBellStates(self) -> Dict[Tuple[int, ...], Optional[float]]:
         """
         Get a dictionary of two-qubit Bell state fidelities (normalized to unity)
         from the specs, keyed by targets (qubit-qubit pairs).
 
         :return: A dictionary of Bell state fidelities, normalized to unity.
-        :rtype: Dict[tuple(int, int), float]
         """
         warnings.warn(
             DeprecationWarning(
@@ -153,73 +151,66 @@ class Specs(_Specs):
         )
         return {tuple(es.targets): es.fBellState for es in self.edges_specs}
 
-    def fCZs(self):
+    def fCZs(self) -> Dict[Tuple[int, ...], Optional[float]]:
         """
         Get a dictionary of CZ fidelities (normalized to unity) from the specs,
         keyed by targets (qubit-qubit pairs).
 
         :return: A dictionary of CZ fidelities, normalized to unity.
-        :rtype: Dict[tuple(int, int), float]
         """
         return {tuple(es.targets): es.fCZ for es in self.edges_specs}
 
-    def fISWAPs(self):
+    def fISWAPs(self) -> Dict[Tuple[int, ...], Optional[float]]:
         """
         Get a dictionary of ISWAP fidelities (normalized to unity) from the specs,
         keyed by targets (qubit-qubit pairs).
 
         :return: A dictionary of ISWAP fidelities, normalized to unity.
-        :rtype: Dict[tuple(int, int), float]
         """
         return {tuple(es.targets): es.fISWAP for es in self.edges_specs}
 
-    def fISWAP_std_errs(self):
+    def fISWAP_std_errs(self) -> Dict[Tuple[int, ...], Optional[float]]:
         """
         Get a dictionary of the standard errors of the ISWAP fidelities from the specs,
         keyed by targets (qubit-qubit pairs).
 
         :return: A dictionary of ISWAP fidelities, normalized to unity.
-        :rtype: Dict[tuple(int, int), float]
         """
         return {tuple(es.targets): es.fISWAP_std_err for es in self.edges_specs}
 
-    def fXYs(self):
+    def fXYs(self) -> Dict[Tuple[int, ...], Optional[float]]:
         """
         Get a dictionary of XY(pi) fidelities (normalized to unity) from the specs,
         keyed by targets (qubit-qubit pairs).
 
         :return: A dictionary of XY/2 fidelities, normalized to unity.
-        :rtype: Dict[tuple(int, int), float]
         """
         return {tuple(es.targets): es.fXY for es in self.edges_specs}
 
-    def fXY_std_errs(self):
+    def fXY_std_errs(self) -> Dict[Tuple[int, ...], Optional[float]]:
         """
         Get a dictionary of the standard errors of the XY fidelities from the specs,
         keyed by targets (qubit-qubit pairs).
 
         :return: A dictionary of XY fidelities, normalized to unity.
-        :rtype: Dict[tuple(int, int), float]
         """
         return {tuple(es.targets): es.fXY_std_err for es in self.edges_specs}
 
-    def fCZ_std_errs(self):
+    def fCZ_std_errs(self) -> Dict[Tuple[int, ...], Optional[float]]:
         """
         Get a dictionary of the standard errors of the CZ fidelities from the specs,
         keyed by targets (qubit-qubit pairs).
 
         :return: A dictionary of CZ fidelities, normalized to unity.
-        :rtype: Dict[tuple(int, int), float]
         """
         return {tuple(es.targets): es.fCZ_std_err for es in self.edges_specs}
 
-    def fCPHASEs(self):
+    def fCPHASEs(self) -> Dict[Tuple[int, ...], Optional[float]]:
         """
         Get a dictionary of CPHASE fidelities (normalized to unity) from the specs,
         keyed by targets (qubit-qubit pairs).
 
         :return: A dictionary of CPHASE fidelities, normalized to unity.
-        :rtype: Dict[tuple(int, int), float]
         """
         warnings.warn(
             DeprecationWarning(
@@ -229,7 +220,7 @@ class Specs(_Specs):
         )
         return {tuple(es.targets): es.fCPHASE for es in self.edges_specs}
 
-    def to_dict(self):
+    def to_dict(self) -> Dict[str, Any]:
         """
         Create a JSON-serializable representation of the device Specs.
 
@@ -270,7 +261,6 @@ class Specs(_Specs):
             }
 
         :return: A dctionary representation of self.
-        :rtype: Dict[str, Any]
         """
         return {
             "1Q": {
@@ -303,13 +293,12 @@ class Specs(_Specs):
         }
 
     @staticmethod
-    def from_dict(d):
+    def from_dict(d: Dict[str, Any]) -> "Specs":
         """
         Re-create the Specs from a dictionary representation.
 
-        :param Dict[str, Any] d: The dictionary representation.
+        :param d: The dictionary representation.
         :return: The restored Specs.
-        :rtype: Specs
         """
         return Specs(
             qubits_specs=sorted(
@@ -332,7 +321,7 @@ class Specs(_Specs):
             edges_specs=sorted(
                 [
                     EdgeSpecs(
-                        targets=[int(q) for q in e.split("-")],
+                        targets=tuple(int(q) for q in e.split("-")),
                         fBellState=especs.get("fBellState"),
                         fCZ=especs.get("fCZ"),
                         fCZ_std_err=especs.get("fCZ_std_err"),
@@ -350,7 +339,7 @@ class Specs(_Specs):
         )
 
 
-def specs_from_graph(graph: nx.Graph):
+def specs_from_graph(graph: nx.Graph) -> Specs:
     """
     Generate a Specs object from a NetworkX graph with placeholder values for the actual specs.
 

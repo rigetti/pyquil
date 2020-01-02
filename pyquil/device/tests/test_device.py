@@ -55,10 +55,10 @@ def test_isa(isa_dict):
             Qubit(id=3, type="Xhalves", dead=True),
         ],
         edges=[
-            Edge(targets=[0, 1], type="CZ", dead=False),
-            Edge(targets=[0, 2], type="CPHASE", dead=False),
-            Edge(targets=[0, 3], type="CZ", dead=True),
-            Edge(targets=[1, 2], type="ISWAP", dead=False),
+            Edge(targets=(0, 1), type="CZ", dead=False),
+            Edge(targets=(0, 2), type="CPHASE", dead=False),
+            Edge(targets=(0, 3), type="CZ", dead=True),
+            Edge(targets=(1, 2), type="ISWAP", dead=False),
         ],
     )
     assert isa == ISA.from_dict(isa.to_dict())
@@ -115,7 +115,7 @@ def test_specs(specs_dict):
         ],
         edges_specs=[
             EdgeSpecs(
-                targets=[0, 1],
+                targets=(0, 1),
                 fBellState=0.90,
                 fCZ=0.89,
                 fCZ_std_err=0.01,
@@ -127,7 +127,7 @@ def test_specs(specs_dict):
                 fCPHASE_std_err=None,
             ),
             EdgeSpecs(
-                targets=[0, 2],
+                targets=(0, 2),
                 fBellState=0.92,
                 fCZ=0.91,
                 fCZ_std_err=0.20,
@@ -139,7 +139,7 @@ def test_specs(specs_dict):
                 fCPHASE_std_err=None,
             ),
             EdgeSpecs(
-                targets=[0, 3],
+                targets=(0, 3),
                 fBellState=0.89,
                 fCZ=0.88,
                 fCZ_std_err=0.03,
@@ -151,7 +151,7 @@ def test_specs(specs_dict):
                 fCPHASE_std_err=None,
             ),
             EdgeSpecs(
-                targets=[1, 2],
+                targets=(1, 2),
                 fBellState=0.91,
                 fCZ=0.90,
                 fCZ_std_err=0.12,

@@ -13,8 +13,8 @@
 #    See the License for the specific language governing permissions and
 #    limitations under the License.
 ##############################################################################
-from collections import namedtuple
-from typing import Union
+import sys
+from typing import Any, Dict, List, Optional, Sequence, Tuple, Union
 
 import networkx as nx
 import numpy as np
@@ -22,35 +22,64 @@ import numpy as np
 from pyquil.quilatom import Parameter, unpack_qubit
 from pyquil.quilbase import Gate
 
-THETA = Parameter("theta")
-"Used as the symbolic parameter in RZ, CPHASE gates."
+if sys.version_info < (3, 7):
+    from pyquil.external.dataclasses import dataclass
+else:
+    from dataclasses import dataclass
 
 DEFAULT_QUBIT_TYPE = "Xhalves"
 DEFAULT_EDGE_TYPE = "CZ"
-
-Qubit = namedtuple("Qubit", ["id", "type", "dead", "gates"])
-Edge = namedtuple("Edge", ["targets", "type", "dead", "gates"])
-_ISA = namedtuple("_ISA", ["qubits", "edges"])
-
-MeasureInfo = namedtuple("MeasureInfo", ["operator", "qubit", "target", "duration", "fidelity"])
-GateInfo = namedtuple("GateInfo", ["operator", "parameters", "arguments", "duration", "fidelity"])
-
-# make Qubit and Edge arguments optional
-Qubit.__new__.__defaults__ = (None,) * len(Qubit._fields)
-Edge.__new__.__defaults__ = (None,) * len(Edge._fields)
-MeasureInfo.__new__.__defaults__ = (None,) * len(MeasureInfo._fields)
-GateInfo.__new__.__defaults__ = (None,) * len(GateInfo._fields)
+THETA = Parameter("theta")
+"Used as the symbolic parameter in RZ, CPHASE gates."
 
 
-class ISA(_ISA):
+@dataclass
+class MeasureInfo:
+    operator: Optional[str] = None
+    qubit: Optional[int] = None
+    target: Optional[Union[int, str]] = None
+    duration: Optional[float] = None
+    fidelity: Optional[float] = None
+
+
+@dataclass
+class GateInfo:
+    operator: Optional[str] = None
+    parameters: Optional[Sequence[Union[str, float]]] = None
+    arguments: Optional[Sequence[Union[str, float]]] = None
+    duration: Optional[float] = None
+    fidelity: Optional[float] = None
+
+
+@dataclass
+class Qubit:
+    id: int
+    type: Optional[str] = None
+    dead: Optional[bool] = None
+    gates: Optional[Sequence[Union[GateInfo, MeasureInfo]]] = None
+
+
+@dataclass
+class Edge:
+    targets: Tuple[int, ...]
+    type: Optional[str] = None
+    dead: Optional[bool] = None
+    gates: Optional[Sequence[GateInfo]] = None
+
+
+@dataclass
+class ISA:
     """
     Basic Instruction Set Architecture specification.
 
-    :ivar Sequence[Qubit] qubits: The qubits associated with the ISA.
-    :ivar Sequence[Edge] edges: The multi-qubit gates.
+    :ivar qubits: The qubits associated with the ISA.
+    :ivar edges: The multi-qubit gates.
     """
 
-    def to_dict(self):
+    qubits: Sequence[Qubit]
+    edges: Sequence[Edge]
+
+    def to_dict(self) -> Dict[str, Any]:
         """
         Create a JSON-serializable representation of the ISA.
 
@@ -80,19 +109,17 @@ class ISA(_ISA):
             }
 
         :return: A dictionary representation of self.
-        :rtype: Dict[str, Any]
         """
 
-        def _maybe_configure(o, t):
-            # type: (Union[Qubit,Edge], str) -> dict
+        def _maybe_configure(o: Union[Qubit, Edge], t: str) -> Dict[str, Optional[Any]]:
             """
             Exclude default values from generated dictionary.
 
-            :param Union[Qubit,Edge] o: The object to serialize
-            :param str t: The default value for ``o.type``.
+            :param o: The object to serialize
+            :param t: The default value for ``o.type``.
             :return: d
             """
-            d = {}
+            d: Dict[str, Optional[Any]] = {}
             if o.gates is not None:
                 d["gates"] = [
                     {
@@ -127,13 +154,12 @@ class ISA(_ISA):
         }
 
     @staticmethod
-    def from_dict(d):
+    def from_dict(d: Dict[str, Any]) -> "ISA":
         """
         Re-create the ISA from a dictionary representation.
 
-        :param Dict[str,Any] d: The dictionary representation.
+        :param d: The dictionary representation.
         :return: The restored ISA.
-        :rtype: ISA
         """
         return ISA(
             qubits=sorted(
@@ -150,7 +176,7 @@ class ISA(_ISA):
             edges=sorted(
                 [
                     Edge(
-                        targets=[int(q) for q in eid.split("-")],
+                        targets=tuple(int(q) for q in eid.split("-")),
                         type=e.get("type", DEFAULT_EDGE_TYPE),
                         dead=e.get("dead", False),
                     )
@@ -161,13 +187,12 @@ class ISA(_ISA):
         )
 
 
-def gates_in_isa(isa):
+def gates_in_isa(isa: ISA) -> List[Gate]:
     """
     Generate the full gateset associated with an ISA.
 
-    :param ISA isa: The instruction set architecture for a QPU.
+    :param isa: The instruction set architecture for a QPU.
     :return: A sequence of Gate objects encapsulating all gates compatible with the ISA.
-    :rtype: Sequence[Gate]
     """
     gates = []
     for q in isa.qubits:
@@ -211,6 +236,7 @@ def gates_in_isa(isa):
             gates.append(Gate("XY", [THETA], targets))
             gates.append(Gate("XY", [THETA], targets[::-1]))
             continue
+        assert e.type is not None
         if "WILDCARD" in e.type:
             gates.append(Gate("_", "_", targets))
             gates.append(Gate("_", "_", targets[::-1]))
@@ -220,7 +246,7 @@ def gates_in_isa(isa):
     return gates
 
 
-def isa_from_graph(graph: nx.Graph, oneq_type="Xhalves", twoq_type="CZ") -> ISA:
+def isa_from_graph(graph: nx.Graph, oneq_type: str = "Xhalves", twoq_type: str = "CZ") -> ISA:
     """
     Generate an ISA object from a NetworkX graph.
 
@@ -230,7 +256,7 @@ def isa_from_graph(graph: nx.Graph, oneq_type="Xhalves", twoq_type="CZ") -> ISA:
     """
     all_qubits = list(range(max(graph.nodes) + 1))
     qubits = [Qubit(i, type=oneq_type, dead=i not in graph.nodes) for i in all_qubits]
-    edges = [Edge(sorted((a, b)), type=twoq_type, dead=False) for a, b in graph.edges]
+    edges = [Edge(tuple(sorted((a, b))), type=twoq_type, dead=False) for a, b in graph.edges]
     return ISA(qubits, edges)
 
 
