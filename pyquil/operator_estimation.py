@@ -1,37 +1,15 @@
 import logging
 import warnings
 from math import pi
-from typing import Callable, Dict, List, Union, Tuple, Optional
+from typing import Callable, Dict, Generator, List, Union, Tuple, Optional, cast
 
 import numpy as np
 
-from pyquil import Program
 from pyquil.api import QuantumComputer
+from pyquil.quil import Program
+from pyquil.quilatom import QubitDesignator
 
 # import the full public API of the pyquil experiment module
-from pyquil.experiment import (
-    _OneQState,
-    _pauli_to_product_state,
-    ExperimentResult,
-    ExperimentSetting,
-    OperatorEncoder,
-    SIC0,
-    SIC1,
-    SIC2,
-    SIC3,
-    SymmetrizationLevel,
-    TomographyExperiment,
-    TensorProductState,
-    minusX,
-    minusY,
-    minusZ,
-    plusX,
-    plusY,
-    plusZ,
-    read_json,
-    to_json,
-    zeros_state,
-)
 from pyquil.experiment._group import (
     _max_weight_state,
     _max_weight_operator,
@@ -40,14 +18,36 @@ from pyquil.experiment._group import (
     group_settings_clique_removal as group_experiments_clique_removal,
     group_settings_greedy as group_experiments_greedy,
 )
-from pyquil.experiment._result import ratio_variance
+from pyquil.experiment._main import (
+    OperatorEncoder,
+    TomographyExperiment,
+)
+from pyquil.experiment._result import ExperimentResult, ratio_variance
+from pyquil.experiment._setting import (
+    _OneQState,
+    _pauli_to_product_state,
+    ExperimentSetting,
+    SIC0,
+    SIC1,
+    SIC2,
+    SIC3,
+    TensorProductState,
+    minusX,
+    minusY,
+    minusZ,
+    plusX,
+    plusY,
+    plusZ,
+    zeros_state,
+)
+from pyquil.experiment._symmetrization import SymmetrizationLevel
 from pyquil.gates import RESET, RX, RY, RZ, X
 from pyquil.paulis import is_identity
 
 log = logging.getLogger(__name__)
 
 
-def _one_q_sic_prep(index, qubit):
+def _one_q_sic_prep(index: int, qubit: QubitDesignator) -> Program:
     """Prepare the index-th SIC basis state."""
     if index == 0:
         return Program()
@@ -67,7 +67,7 @@ def _one_q_sic_prep(index, qubit):
     raise ValueError(f"Bad SIC index: {index}")
 
 
-def _one_q_pauli_prep(label, index, qubit):
+def _one_q_pauli_prep(label: str, index: int, qubit: QubitDesignator) -> Program:
     """Prepare the index-th eigenstate of the pauli operator given by label."""
     if index not in [0, 1]:
         raise ValueError(f"Bad Pauli index: {index}")
@@ -93,7 +93,7 @@ def _one_q_pauli_prep(label, index, qubit):
     raise ValueError(f"Bad Pauli label: {label}")
 
 
-def _one_q_state_prep(oneq_state: _OneQState):
+def _one_q_state_prep(oneq_state: _OneQState) -> Program:
     """Prepare a one qubit state.
 
     Either SIC[0-3], X[0-1], Y[0-1], or Z[0-1].
@@ -107,7 +107,7 @@ def _one_q_state_prep(oneq_state: _OneQState):
         raise ValueError(f"Bad state label: {label}")
 
 
-def _local_pauli_eig_meas(op, idx):
+def _local_pauli_eig_meas(op: str, idx: QubitDesignator) -> Program:
     """
     Generate gate sequence to measure in the eigenbasis of a Pauli operator, assuming
     we are only able to measure in the Z eigenbasis. (Note: The unitary operations of this
@@ -192,7 +192,7 @@ def measure_observables(
     symmetrize_readout: Optional[Union[int, str]] = "None",
     calibrate_readout: Optional[str] = "plus-eig",
     readout_symmetrize: Optional[str] = None,
-):
+) -> Generator[ExperimentResult, None, None]:
     """
     Measure all the observables in a TomographyExperiment.
 
@@ -305,7 +305,7 @@ def measure_observables(
         # either the first column, second column, or both and multiplying along the row.
         for setting in settings:
             # Get the term's coefficient so we can multiply it in later.
-            coeff = complex(setting.out_operator.coefficient)
+            coeff = complex(cast(complex, setting.out_operator.coefficient))
             if not np.isclose(coeff.imag, 0):
                 raise ValueError(f"{setting}'s out_operator has a complex coefficient.")
             coeff = coeff.real
@@ -389,11 +389,11 @@ def _ops_bool_to_prog(ops_bool: Tuple[bool], qubits: List[int]) -> Program:
 
 def _stats_from_measurements(
     bs_results: np.ndarray,
-    qubit_index_map: Dict,
+    qubit_index_map: Dict[int, int],
     setting: ExperimentSetting,
     n_shots: int,
     coeff: float = 1.0,
-) -> Tuple[float, float]:
+) -> Tuple[np.ndarray, np.ndarray]:
     """
     :param bs_results: results from running `qc.run`
     :param qubit_index_map: dict mapping qubit to classical register index
