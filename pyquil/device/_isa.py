@@ -111,7 +111,7 @@ class ISA:
         :return: A dictionary representation of self.
         """
 
-        def _maybe_configure(o: Union[Qubit, Edge], t: str) -> Dict[str, Optional[Any]]:
+        def _maybe_configure(o: Union[Qubit, Edge], t: str) -> Dict[str, Any]:
             """
             Exclude default values from generated dictionary.
 
@@ -119,7 +119,7 @@ class ISA:
             :param t: The default value for ``o.type``.
             :return: d
             """
-            d: Dict[str, Optional[Any]] = {}
+            d: Dict[str, Any] = {}
             if o.gates is not None:
                 d["gates"] = [
                     {

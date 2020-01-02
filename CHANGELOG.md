@@ -35,6 +35,8 @@ Changelog
     deprecated for over a year and a half (@karalekas, gh-1144).
 -   Added typing to the `pyquil/experiment` module and added the module to the
     `check-types` CI job (@karalekas, gh-1146).
+-   Use `dataclasses` instead of `namedtuples` in the `pyquil/device` module, and
+    add type annotations to the entire module (@karalekas, gh-1149).
 
 ### Bugfixes
 
