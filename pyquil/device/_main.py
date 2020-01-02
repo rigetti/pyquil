@@ -15,7 +15,7 @@
 ##############################################################################
 import warnings
 from abc import ABC, abstractmethod
-from typing import List, Tuple
+from typing import Any, Dict, List, Optional, Tuple, Union
 
 import networkx as nx
 import numpy as np
@@ -42,7 +42,7 @@ DEFAULT_MEASURE_DURATION = 2000
 
 class AbstractDevice(ABC):
     @abstractmethod
-    def qubits(self):
+    def qubits(self) -> List[int]:
         """
         A sorted list of qubits in the device topology.
         """
@@ -54,7 +54,7 @@ class AbstractDevice(ABC):
         """
 
     @abstractmethod
-    def get_isa(self, oneq_type="Xhalves", twoq_type="CZ") -> ISA:
+    def get_isa(self, oneq_type: str = "Xhalves", twoq_type: str = "CZ") -> ISA:
         """
         Construct an ISA suitable for targeting by compilation.
 
@@ -65,7 +65,7 @@ class AbstractDevice(ABC):
         """
 
     @abstractmethod
-    def get_specs(self) -> Specs:
+    def get_specs(self) -> Optional[Specs]:
         """
         Construct a Specs object required by compilation
         """
@@ -86,7 +86,7 @@ class Device(AbstractDevice):
     :ivar NoiseModel noise_model: The noise model for the device.
     """
 
-    def __init__(self, name, raw):
+    def __init__(self, name: str, raw: Dict[str, Any]):
         """
         :param name: name of the device
         :param raw: raw JSON response from the server with additional information about this device.
@@ -102,23 +102,25 @@ class Device(AbstractDevice):
         )
 
     @property
-    def isa(self):
+    def isa(self) -> Optional[ISA]:
         warnings.warn("Accessing the static ISA is deprecated. Use `get_isa`", DeprecationWarning)
         return self._isa
 
-    def qubits(self):
+    def qubits(self) -> List[int]:
+        assert self._isa is not None
         return sorted(q.id for q in self._isa.qubits if not q.dead)
 
     def qubit_topology(self) -> nx.Graph:
         """
         The connectivity of qubits in this device given as a NetworkX graph.
         """
+        assert self._isa is not None
         return isa_to_graph(self._isa)
 
-    def get_specs(self):
+    def get_specs(self) -> Optional[Specs]:
         return self.specs
 
-    def get_isa(self, oneq_type=None, twoq_type=None) -> ISA:
+    def get_isa(self, oneq_type: Optional[str] = None, twoq_type: Optional[str] = None) -> ISA:
         """
         Construct an ISA suitable for targeting by compilation.
 
@@ -130,7 +132,7 @@ class Device(AbstractDevice):
                 "make an ISA with custom gate types, you'll have to do it by hand."
             )
 
-        def safely_get(attr, index, default):
+        def safely_get(attr: str, index: Union[int, Tuple[int, ...]], default: Any) -> Any:
             if self.specs is None:
                 return default
 
@@ -144,8 +146,8 @@ class Device(AbstractDevice):
             else:
                 return default
 
-        def qubit_type_to_gates(q):
-            gates = [
+        def qubit_type_to_gates(q: Qubit) -> List[Union[GateInfo, MeasureInfo]]:
+            gates: List[Union[GateInfo, MeasureInfo]] = [
                 MeasureInfo(
                     operator="MEASURE",
                     qubit=q.id,
@@ -200,9 +202,9 @@ class Device(AbstractDevice):
                 ]
             return gates
 
-        def edge_type_to_gates(e):
-            gates = []
-            if e is None or "CZ" in e.type:
+        def edge_type_to_gates(e: Edge) -> List[GateInfo]:
+            gates: List[GateInfo] = []
+            if e is None or isinstance(e.type, str) and "CZ" in e.type:
                 gates += [
                     GateInfo(
                         operator="CZ",
@@ -212,7 +214,7 @@ class Device(AbstractDevice):
                         fidelity=safely_get("fCZs", tuple(e.targets), DEFAULT_CZ_FIDELITY),
                     )
                 ]
-            if e is not None and "ISWAP" in e.type:
+            if e is None or isinstance(e.type, str) and "ISWAP" in e.type:
                 gates += [
                     GateInfo(
                         operator="ISWAP",
@@ -222,7 +224,7 @@ class Device(AbstractDevice):
                         fidelity=safely_get("fISWAPs", tuple(e.targets), DEFAULT_ISWAP_FIDELITY),
                     )
                 ]
-            if e is not None and "CPHASE" in e.type:
+            if e is None or isinstance(e.type, str) and "CPHASE" in e.type:
                 gates += [
                     GateInfo(
                         operator="CPHASE",
@@ -232,7 +234,7 @@ class Device(AbstractDevice):
                         fidelity=safely_get("fCPHASEs", tuple(e.targets), DEFAULT_CPHASE_FIDELITY),
                     )
                 ]
-            if e is not None and "XY" in e.type:
+            if e is None or isinstance(e.type, str) and "XY" in e.type:
                 gates += [
                     GateInfo(
                         operator="XY",
@@ -242,7 +244,7 @@ class Device(AbstractDevice):
                         fidelity=safely_get("fXYs", tuple(e.targets), DEFAULT_XY_FIDELITY),
                     )
                 ]
-            if e is not None and "WILDCARD" in e.type:
+            if e is None or isinstance(e.type, str) and "WILDCARD" in e.type:
                 gates += [
                     GateInfo(
                         operator="_",
@@ -254,6 +256,7 @@ class Device(AbstractDevice):
                 ]
             return gates
 
+        assert self._isa is not None
         qubits = [
             Qubit(id=q.id, type=None, dead=q.dead, gates=qubit_type_to_gates(q))
             for q in self._isa.qubits
@@ -264,10 +267,10 @@ class Device(AbstractDevice):
         ]
         return ISA(qubits, edges)
 
-    def __str__(self):
+    def __str__(self) -> str:
         return "<Device {}>".format(self.name)
 
-    def __repr__(self):
+    def __repr__(self) -> str:
         return str(self)
 
 
@@ -284,17 +287,17 @@ class NxDevice(AbstractDevice):
     def __init__(self, topology: nx.Graph) -> None:
         self.topology = topology
 
-    def qubit_topology(self):
+    def qubit_topology(self) -> nx.Graph:
         return self.topology
 
-    def get_isa(self, oneq_type="Xhalves", twoq_type="CZ"):
+    def get_isa(self, oneq_type: str = "Xhalves", twoq_type: str = "CZ") -> ISA:
         return isa_from_graph(self.topology, oneq_type=oneq_type, twoq_type=twoq_type)
 
-    def get_specs(self):
+    def get_specs(self) -> Specs:
         return specs_from_graph(self.topology)
 
     def qubits(self) -> List[int]:
         return sorted(self.topology.nodes)
 
-    def edges(self) -> List[Tuple[int, int]]:
-        return sorted(tuple(sorted(pair)) for pair in self.topology.edges)  # type: ignore
+    def edges(self) -> List[Tuple[Any, ...]]:
+        return sorted(tuple(sorted(pair)) for pair in self.topology.edges)
