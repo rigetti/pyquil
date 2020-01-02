@@ -23,10 +23,10 @@ import numpy as np
 import copy
 
 from typing import (
-    Any,
     Callable,
     Dict,
     FrozenSet,
+    Hashable,
     Iterable,
     Iterator,
     List,
@@ -95,8 +95,12 @@ PAULI_COEFF = {
 
 
 class UnequalLengthWarning(Warning):
-    def __init__(self, *args: Any, **kwargs: Any):
-        super().__init__(*args, **kwargs)
+    def __init__(self, *args: object, **kwargs: object):
+        # TODO: remove this "type: ignore" comment once mypy is upgraded to a version with a more
+        # recent typeshed that contains the following fix:
+        # https://github.com/python/typeshed/pull/1704
+        # https://github.com/python/mypy/pull/8139
+        super().__init__(*args, **kwargs)  # type: ignore
 
 
 integer_types = (int, np.int64, np.int32, np.int16, np.int8)
@@ -177,7 +181,7 @@ class PauliTerm(object):
         else:
             return "".join("{}{}".format(p, q) for q, p in self._ops.items())
 
-    def operations_as_set(self) -> FrozenSet[Tuple[int, str]]:
+    def operations_as_set(self) -> FrozenSet[Tuple[PauliTargetDesignator, str]]:
         """
         Return a frozenset of operations in this term.
 
@@ -773,7 +777,7 @@ def simplify_pauli_sum(pauli_sum: PauliSum) -> PauliSum:
 
     # You might want to use a defaultdict(list) here, but don't because
     # we want to do our best to preserve the order of terms.
-    like_terms: Dict[Any, List[PauliTerm]] = OrderedDict()
+    like_terms: Dict[Hashable, List[PauliTerm]] = OrderedDict()
     for term in pauli_sum.terms:
         key = term.operations_as_set()
         if key in like_terms:
@@ -895,7 +899,6 @@ def exponential_map(term: PauliTerm) -> Callable[[float], Program]:
     :param term: A pauli term to exponentiate
     :returns: A function that takes an angle parameter and returns a program.
     """
-    assert isinstance(term.coefficient, complex)
     if not np.isclose(np.imag(term.coefficient), 0.0):
         raise TypeError("PauliTerm coefficient must be real")
 
