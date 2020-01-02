@@ -17,7 +17,7 @@ check-format:
 .PHONY: check-types
 check-types:
 	mypy pyquil/quilatom.py pyquil/quilbase.py pyquil/gates.py pyquil/noise.py \
-		pyquil/quil.py pyquil/latex pyquil/simulation pyquil/experiment
+		pyquil/quil.py pyquil/latex pyquil/simulation pyquil/experiment pyquil/device
 
 .PHONY: check-style
 check-style:
