@@ -20,7 +20,7 @@ measurements that are aimed at estimating the expectation value of some observab
 import logging
 import sys
 import warnings
-from typing import List, Optional, Union
+from typing import Any, Dict, List, Optional, Union
 
 import numpy as np
 
@@ -80,27 +80,27 @@ class ExperimentResult:
     setting: ExperimentSetting
     expectation: Union[float, complex]
     total_counts: int
-    std_err: Union[float, complex] = None
-    raw_expectation: Union[float, complex] = None
-    raw_std_err: float = None
-    calibration_expectation: Union[float, complex] = None
-    calibration_std_err: Union[float, complex] = None
-    calibration_counts: int = None
+    std_err: Optional[Union[float, complex]] = None
+    raw_expectation: Optional[Union[float, complex]] = None
+    raw_std_err: Optional[float] = None
+    calibration_expectation: Optional[Union[float, complex]] = None
+    calibration_std_err: Optional[Union[float, complex]] = None
+    calibration_counts: Optional[int] = None
 
     def __init__(
         self,
         setting: ExperimentSetting,
         expectation: Union[float, complex],
         total_counts: int,
-        stddev: Union[float, complex] = None,
-        std_err: Union[float, complex] = None,
-        raw_expectation: Union[float, complex] = None,
-        raw_stddev: float = None,
-        raw_std_err: float = None,
-        calibration_expectation: Union[float, complex] = None,
-        calibration_stddev: Union[float, complex] = None,
-        calibration_std_err: Union[float, complex] = None,
-        calibration_counts: int = None,
+        stddev: Optional[Union[float, complex]] = None,
+        std_err: Optional[Union[float, complex]] = None,
+        raw_expectation: Optional[Union[float, complex]] = None,
+        raw_stddev: Optional[float] = None,
+        raw_std_err: Optional[float] = None,
+        calibration_expectation: Optional[Union[float, complex]] = None,
+        calibration_stddev: Optional[Union[float, complex]] = None,
+        calibration_std_err: Optional[Union[float, complex]] = None,
+        calibration_counts: Optional[int] = None,
     ):
 
         object.__setattr__(self, "setting", setting)
@@ -125,43 +125,43 @@ class ExperimentResult:
             calibration_std_err = calibration_stddev
         object.__setattr__(self, "calibration_std_err", calibration_std_err)
 
-    def get_stddev(self) -> Union[float, complex]:
+    def get_stddev(self) -> Optional[Union[float, complex]]:
         warnings.warn("'stddev' has been renamed to 'std_err'")
         return self.std_err
 
-    def set_stddev(self, value: Union[float, complex]):
+    def set_stddev(self, value: Union[float, complex]) -> None:
         warnings.warn("'stddev' has been renamed to 'std_err'")
         object.__setattr__(self, "std_err", value)
 
     stddev = property(get_stddev, set_stddev)
 
-    def get_raw_stddev(self) -> float:
+    def get_raw_stddev(self) -> Optional[float]:
         warnings.warn("'raw_stddev' has been renamed to 'raw_std_err'")
         return self.raw_std_err
 
-    def set_raw_stddev(self, value: float):
+    def set_raw_stddev(self, value: float) -> None:
         warnings.warn("'raw_stddev' has been renamed to 'raw_std_err'")
         object.__setattr__(self, "raw_std_err", value)
 
     raw_stddev = property(get_raw_stddev, set_raw_stddev)
 
-    def get_calibration_stddev(self) -> Union[float, complex]:
+    def get_calibration_stddev(self) -> Optional[Union[float, complex]]:
         warnings.warn("'calibration_stddev' has been renamed to 'calibration_std_err'")
         return self.calibration_std_err
 
-    def set_calibration_stddev(self, value: Union[float, complex]):
+    def set_calibration_stddev(self, value: Union[float, complex]) -> None:
         warnings.warn("'calibration_stddev' has been renamed to 'calibration_std_err'")
         object.__setattr__(self, "calibration_std_err", value)
 
     calibration_stddev = property(get_calibration_stddev, set_calibration_stddev)
 
-    def __str__(self):
+    def __str__(self) -> str:
         return f"{self.setting}: {self.expectation} +- {self.std_err}"
 
-    def __repr__(self):
+    def __repr__(self) -> str:
         return f"ExperimentResult[{self}]"
 
-    def serializable(self):
+    def serializable(self) -> Dict[str, Any]:
         return {
             "type": "ExperimentResult",
             "setting": self.setting,

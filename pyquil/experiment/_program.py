@@ -18,8 +18,8 @@ from typing import Sequence
 
 import numpy as np
 
-from pyquil import Program
 from pyquil.gates import MEASURE, RX, RZ
+from pyquil.quil import Program
 
 
 def parameterized_euler_rotations(
