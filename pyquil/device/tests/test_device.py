@@ -45,25 +45,6 @@ def kraus_model_RX90_dict():
     }
 
 
-def test_isa(isa_dict):
-    isa = ISA.from_dict(isa_dict)
-    assert isa == ISA(
-        qubits=[
-            Qubit(id=0, type="Xhalves", dead=False),
-            Qubit(id=1, type="Xhalves", dead=False),
-            Qubit(id=2, type="Xhalves", dead=False),
-            Qubit(id=3, type="Xhalves", dead=True),
-        ],
-        edges=[
-            Edge(targets=(0, 1), type="CZ", dead=False),
-            Edge(targets=(0, 2), type="CPHASE", dead=False),
-            Edge(targets=(0, 3), type="CZ", dead=True),
-            Edge(targets=(1, 2), type="ISWAP", dead=False),
-        ],
-    )
-    assert isa == ISA.from_dict(isa.to_dict())
-
-
 def test_specs(specs_dict):
     specs = Specs.from_dict(specs_dict)
     assert specs == Specs(
@@ -262,21 +243,6 @@ def test_gates_in_isa(isa_dict):
     assert CPHASE(THETA, 0, 2) in gates
 
 
-def test_isa_from_graph():
-    fc = nx.complete_graph(3)
-    isa = isa_from_graph(fc)
-    isad = isa.to_dict()
-
-    assert set(isad.keys()) == {"1Q", "2Q"}
-    assert sorted(int(q) for q in isad["1Q"].keys()) == list(range(3))
-    for v in isad["1Q"].values():
-        assert v == {}
-
-    assert sorted(isad["2Q"]) == ["0-1", "0-2", "1-2"]
-    for v in isad["2Q"].values():
-        assert v == {}
-
-
 def test_isa_from_graph_order():
     # since node 16 appears first, even though we ask for the edge (15,16) the networkx internal
     # representation will have it as (16,15)
@@ -286,21 +252,6 @@ def test_isa_from_graph_order():
     for k in isad["2Q"]:
         q1, q2 = k.split("-")
         assert q1 < q2
-
-
-def test_isa_from_graph_cphase():
-    fc = nx.complete_graph(3)
-    isa = isa_from_graph(fc, twoq_type="CPHASE")
-    isad = isa.to_dict()
-
-    assert set(isad.keys()) == {"1Q", "2Q"}
-    assert sorted(int(q) for q in isad["1Q"].keys()) == list(range(3))
-    for v in isad["1Q"].values():
-        assert v == {}
-
-    assert sorted(isad["2Q"]) == ["0-1", "0-2", "1-2"]
-    for v in isad["2Q"].values():
-        assert v == {"type": "CPHASE"}
 
 
 def test_isa_to_graph(isa_dict):
