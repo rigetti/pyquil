@@ -223,7 +223,7 @@ def convert_gate_type_to_gate_information(gate_type: Union[str, List[str]]):
         if type_keyword == "XY":
             gate_information.extend([GateInfo("XY", ["theta"], ["_", "_"])])
             continue
-        raise ValueError("Unknown edge type: {}".format(e.type))
+        raise ValueError("Unknown edge type: {}".format(type_keyword))
 
     return gate_information
 
@@ -289,7 +289,7 @@ def gates_in_isa(isa: ISA) -> List[Gate]:
 
 def isa_from_graph(graph: nx.Graph,
                    oneq_type: str = "Xhalves",
-                   twoq_type: Optional[Union[str,List[str]]] = None) -> ISA:
+                   twoq_type: Optional[Union[str, List[str]]] = None) -> ISA:
     """
     Generate an ISA object from a NetworkX graph.
 
@@ -299,9 +299,12 @@ def isa_from_graph(graph: nx.Graph,
     """
     all_qubits = list(range(max(graph.nodes) + 1))
     qubits = [Qubit(i, type=oneq_type, dead=i not in graph.nodes) for i in all_qubits]
-    edges = [Edge(tuple(sorted((a, b))),
-                  type=["CZ", "XY"] if twoq_type is None else twoq_type,
-                  dead=False) for a, b in graph.edges]
+    edges = [
+        Edge(
+            tuple(sorted((a, b))), type=["CZ", "XY"] if twoq_type is None else twoq_type, dead=False
+        )
+        for a, b in graph.edges
+    ]
     return ISA(qubits, edges)
 
 
