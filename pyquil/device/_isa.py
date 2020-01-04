@@ -246,14 +246,18 @@ def gates_in_isa(isa: ISA) -> List[Gate]:
     return gates
 
 
-def isa_from_graph(graph: nx.Graph, oneq_type: str = "Xhalves", twoq_type: str = "CZ") -> ISA:
+def isa_from_graph(graph: nx.Graph,
+                   oneq_type: str = "Xhalves",
+                   twoq_type: Optional[Union[str,List[str]]] = None) -> ISA:
     """
     Generate an ISA object from a NetworkX graph.
 
     :param graph: The graph
     :param oneq_type: The type of 1-qubit gate. Currently 'Xhalves'
-    :param twoq_type: The type of 2-qubit gate. One of 'CZ' or 'CPHASE'.
+    :param twoq_type: The type of 2-qubit gate. One or more of 'CZ', 'CPHASE', 'ISWAP', 'XY'.
     """
+    if twoq_type is None:
+        twoq_type = ["CZ", "XY"]
     all_qubits = list(range(max(graph.nodes) + 1))
     qubits = [Qubit(i, type=oneq_type, dead=i not in graph.nodes) for i in all_qubits]
     edges = [Edge(tuple(sorted((a, b))), type=twoq_type, dead=False) for a, b in graph.edges]
