@@ -290,9 +290,9 @@ class NxDevice(AbstractDevice):
     def qubit_topology(self) -> nx.Graph:
         return self.topology
 
-    def get_isa(self,
-                oneq_type: str = "Xhalves",
-                twoq_type: Optional[Union[str, List[str]]] = None) -> ISA:
+    def get_isa(
+        self, oneq_type: str = "Xhalves", twoq_type: Optional[Union[str, List[str]]] = None
+    ) -> ISA:
         return isa_from_graph(self.topology, oneq_type=oneq_type, twoq_type=twoq_type)
 
     def get_specs(self) -> Specs:

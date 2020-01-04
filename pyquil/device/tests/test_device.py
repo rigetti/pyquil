@@ -5,8 +5,6 @@ import pytest
 from pyquil.device import (
     Device,
     ISA,
-    Qubit,
-    Edge,
     Specs,
     QubitSpecs,
     EdgeSpecs,

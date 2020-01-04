@@ -207,8 +207,7 @@ def convert_gate_type_to_gate_information(gate_type: Union[str, List[str]]):
                 ]
             )
         elif type_keyword == "WILDCARD":
-            gate_information.extend([GateInfo("_", "_", ["_"]),
-                                     GateInfo("_", "_", ["_", "_"])])
+            gate_information.extend([GateInfo("_", "_", ["_"]), GateInfo("_", "_", ["_", "_"])])
         elif type_keyword == "CZ":
             gate_information.extend([GateInfo("CZ", [], ["_", "_"])])
         elif type_keyword == "ISWAP":
@@ -282,9 +281,9 @@ def gates_in_isa(isa: ISA) -> List[Gate]:
     return gates
 
 
-def isa_from_graph(graph: nx.Graph,
-                   oneq_type: str = "Xhalves",
-                   twoq_type: Optional[Union[str, List[str]]] = None) -> ISA:
+def isa_from_graph(
+    graph: nx.Graph, oneq_type: str = "Xhalves", twoq_type: Optional[Union[str, List[str]]] = None
+) -> ISA:
     """
     Generate an ISA object from a NetworkX graph.
 
