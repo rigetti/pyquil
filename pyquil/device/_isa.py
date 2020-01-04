@@ -206,24 +206,19 @@ def convert_gate_type_to_gate_information(gate_type: Union[str, List[str]]):
                     GateInfo("RZ", ["theta"], ["_"]),
                 ]
             )
-            continue
-        if type_keyword == "WILDCARD":
+        elif type_keyword == "WILDCARD":
             gate_information.extend([GateInfo("_", "_", ["_"]),
                                      GateInfo("_", "_", ["_", "_"])])
-            continue
-        if type_keyword == "CZ":
+        elif type_keyword == "CZ":
             gate_information.extend([GateInfo("CZ", [], ["_", "_"])])
-            continue
-        if type_keyword == "ISWAP":
+        elif type_keyword == "ISWAP":
             gate_information.extend([GateInfo("ISWAP", [], ["_", "_"])])
-            continue
-        if type_keyword == "CPHASE":
+        elif type_keyword == "CPHASE":
             gate_information.extend([GateInfo("CPHASE", ["theta"], ["_", "_"])])
-            continue
-        if type_keyword == "XY":
+        elif type_keyword == "XY":
             gate_information.extend([GateInfo("XY", ["theta"], ["_", "_"])])
-            continue
-        raise ValueError("Unknown edge type: {}".format(type_keyword))
+        else:
+            raise ValueError("Unknown edge type: {}".format(type_keyword))
 
     return gate_information
 
@@ -296,6 +291,7 @@ def isa_from_graph(graph: nx.Graph,
     :param graph: The graph
     :param oneq_type: The type of 1-qubit gate. Currently 'Xhalves'
     :param twoq_type: The type of 2-qubit gate. One or more of 'CZ', 'CPHASE', 'ISWAP', 'XY'.
+                      The default, None, is a synonym for ["CZ", "XY"].
     """
     all_qubits = list(range(max(graph.nodes) + 1))
     qubits = [Qubit(i, type=oneq_type, dead=i not in graph.nodes) for i in all_qubits]
