@@ -111,7 +111,7 @@ class ISA:
         :return: A dictionary representation of self.
         """
 
-        def _maybe_configure(o: Union[Qubit, Edge], t: str) -> Dict[str, Any]:
+        def _maybe_configure(o: Union[Qubit, Edge], t: Union[str, List[str]]) -> Dict[str, Any]:
             """
             Exclude default values from generated dictionary.
 
@@ -120,27 +120,28 @@ class ISA:
             :return: d
             """
             d: Dict[str, Any] = {}
-            if o.gates is not None:
-                d["gates"] = [
-                    {
-                        "operator": i.operator,
-                        "parameters": i.parameters,
-                        "arguments": i.arguments,
-                        "fidelity": i.fidelity,
-                        "duration": i.duration,
-                    }
-                    if isinstance(i, GateInfo)
-                    else {
-                        "operator": "MEASURE",
-                        "qubit": i.qubit,
-                        "target": i.target,
-                        "duration": i.duration,
-                        "fidelity": i.fidelity,
-                    }
-                    for i in o.gates
-                ]
-            if o.gates is None and o.type != t:
-                d["type"] = o.type
+            inferred_gates = o.gates
+            if o.gates is None:
+                inferred_type = o.type if o.type != t else t
+                inferred_gates = convert_gate_type_to_gate_information(inferred_type)
+            d["gates"] = [
+                {
+                    "operator": i.operator,
+                    "parameters": i.parameters,
+                    "arguments": i.arguments,
+                    "fidelity": i.fidelity,
+                    "duration": i.duration,
+                }
+                if isinstance(i, GateInfo)
+                else {
+                    "operator": "MEASURE",
+                    "qubit": i.qubit,
+                    "target": i.target,
+                    "duration": i.duration,
+                    "fidelity": i.fidelity,
+                }
+                for i in inferred_gates
+            ]
             if o.dead:
                 d["dead"] = o.dead
             return d
@@ -185,6 +186,46 @@ class ISA:
                 key=lambda edge: edge.targets,
             ),
         )
+
+
+def convert_gate_type_to_gate_information(gate_type: Union[str, List[str]]):
+    if isinstance(gate_type, str):
+        gate_type = [gate_type]
+
+    gate_information = []
+
+    for type_keyword in gate_type:
+        if type_keyword == "Xhalves":
+            gate_information.extend(
+                [
+                    GateInfo("I", [], ["_"]),
+                    GateInfo("RX", [np.pi / 2], ["_"]),
+                    GateInfo("RX", [-np.pi / 2], ["_"]),
+                    GateInfo("RX", [np.pi], ["_"]),
+                    GateInfo("RX", [-np.pi], ["_"]),
+                    GateInfo("RZ", ["theta"], ["_"]),
+                ]
+            )
+            continue
+        if type_keyword == "WILDCARD":
+            gate_information.extend([GateInfo("_", "_", ["_"]),
+                                     GateInfo("_", "_", ["_", "_"])])
+            continue
+        if type_keyword == "CZ":
+            gate_information.extend([GateInfo("CZ", [], ["_", "_"])])
+            continue
+        if type_keyword == "ISWAP":
+            gate_information.extend([GateInfo("ISWAP", [], ["_", "_"])])
+            continue
+        if type_keyword == "CPHASE":
+            gate_information.extend([GateInfo("CPHASE", ["theta"], ["_", "_"])])
+            continue
+        if type_keyword == "XY":
+            gate_information.extend([GateInfo("XY", ["theta"], ["_", "_"])])
+            continue
+        raise ValueError("Unknown edge type: {}".format(e.type))
+
+    return gate_information
 
 
 def gates_in_isa(isa: ISA) -> List[Gate]:
@@ -256,11 +297,11 @@ def isa_from_graph(graph: nx.Graph,
     :param oneq_type: The type of 1-qubit gate. Currently 'Xhalves'
     :param twoq_type: The type of 2-qubit gate. One or more of 'CZ', 'CPHASE', 'ISWAP', 'XY'.
     """
-    if twoq_type is None:
-        twoq_type = ["CZ", "XY"]
     all_qubits = list(range(max(graph.nodes) + 1))
     qubits = [Qubit(i, type=oneq_type, dead=i not in graph.nodes) for i in all_qubits]
-    edges = [Edge(tuple(sorted((a, b))), type=twoq_type, dead=False) for a, b in graph.edges]
+    edges = [Edge(tuple(sorted((a, b))),
+                  type=["CZ", "XY"] if twoq_type is None else twoq_type,
+                  dead=False) for a, b in graph.edges]
     return ISA(qubits, edges)
 
 
