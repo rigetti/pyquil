@@ -139,6 +139,19 @@ class QuantumComputer:
         return self.qam.run().wait().read_memory(region_name="ro")
 
     @_record_call
+    def calibrate(self, experiment: TomographyExperiment) -> List[ExperimentResult]:
+        """
+        Perform readout calibration on the various multi-qubit observables involved in the provided
+        ``TomographyExperiment``.
+
+        :param experiment: The ``TomographyExperiment`` to calibrate readout error for.
+        :return: A list of ``ExperimentResult`` objects that contain the expectation values that
+            correspond to the scale factors resulting from symmetric readout error.
+        """
+        calibration_experiment = experiment.generate_calibration_experiment()
+        return self.experiment(calibration_experiment)
+
+    @_record_call
     def experiment(
         self,
         experiment: TomographyExperiment,

@@ -23,6 +23,7 @@ EXPERIMENT_REPR = """
 shots: 1
 active reset: disabled
 symmetrization: -1 (exhaustive)
+calibration: 1 (plus_eigenstate)
 program:
    X 0
    Y 1
