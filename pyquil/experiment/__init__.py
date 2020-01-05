@@ -5,7 +5,7 @@ from pyquil.experiment._group import (
 )
 from pyquil.experiment._main import OperatorEncoder, TomographyExperiment, read_json, to_json
 from pyquil.experiment._memory import merge_memory_map_lists
-from pyquil.experiment._result import ExperimentResult, bitstrings_to_expectations
+from pyquil.experiment._result import ExperimentResult, bitstrings_to_expectations, ratio_variance
 from pyquil.experiment._setting import (
     _OneQState,
     _pauli_to_product_state,

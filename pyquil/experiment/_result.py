@@ -35,38 +35,6 @@ else:
 log = logging.getLogger(__name__)
 
 
-def bitstrings_to_expectations(
-    bitstrings: np.ndarray, joint_expectations: Optional[List[List[int]]] = None
-) -> np.ndarray:
-    """
-    Given an array of bitstrings (each of which is represented as an array of bits), map them to
-    expectation values and return the desired correlations. If no correlations are given, then just
-    the 1 -> -1, 0 -> 1 mapping is performed.
-
-    :param bitstrings: Array of bitstrings to map.
-    :param joint_expectations: Joint expectation values to calculate. Each entry is a list which
-        contains the qubits to use in calculating the joint expectation value. Entries of length
-        one just calculate single-qubit expectation values. Defaults to None, which is equivalent
-        to the list of single-qubit expectations [[0], [1], ..., [n-1]] for bitstrings of length n.
-    :return: An array of expectation values, of the same length as the array of bitstrings. The
-        "width" could be different than the length of an individual bitstring (n) depending on
-        the value of the ``joint_expectations`` parameter.
-    """
-    expectations: np.ndarray = 1 - 2 * bitstrings
-
-    if joint_expectations is None:
-        return expectations
-
-    region_size = len(expectations[0])
-
-    e = []
-    for c in joint_expectations:
-        where = np.zeros(region_size, dtype=bool)
-        where[c] = True
-        e.append(np.prod(expectations[:, where], axis=1))
-    return np.stack(e, axis=-1)
-
-
 @dataclass(frozen=True)
 class ExperimentResult:
     """An expectation and standard deviation for the measurement of one experiment setting
@@ -174,3 +142,72 @@ class ExperimentResult:
             "calibration_std_err": self.calibration_std_err,
             "calibration_counts": self.calibration_counts,
         }
+
+
+def bitstrings_to_expectations(
+    bitstrings: np.ndarray, joint_expectations: Optional[List[List[int]]] = None
+) -> np.ndarray:
+    """
+    Given an array of bitstrings (each of which is represented as an array of bits), map them to
+    expectation values and return the desired correlations. If no correlations are given, then just
+    the 1 -> -1, 0 -> 1 mapping is performed.
+
+    :param bitstrings: Array of bitstrings to map.
+    :param joint_expectations: Joint expectation values to calculate. Each entry is a list which
+        contains the qubits to use in calculating the joint expectation value. Entries of length
+        one just calculate single-qubit expectation values. Defaults to None, which is equivalent
+        to the list of single-qubit expectations [[0], [1], ..., [n-1]] for bitstrings of length n.
+    :return: An array of expectation values, of the same length as the array of bitstrings. The
+        "width" could be different than the length of an individual bitstring (n) depending on
+        the value of the ``joint_expectations`` parameter.
+    """
+    expectations: np.ndarray = 1 - 2 * bitstrings
+
+    if joint_expectations is None:
+        return expectations
+
+    region_size = len(expectations[0])
+
+    e = []
+    for c in joint_expectations:
+        where = np.zeros(region_size, dtype=bool)
+        where[c] = True
+        e.append(np.prod(expectations[:, where], axis=1))
+    return np.stack(e, axis=-1)
+
+
+def ratio_variance(
+    a: Union[float, np.ndarray],
+    var_a: Union[float, np.ndarray],
+    b: Union[float, np.ndarray],
+    var_b: Union[float, np.ndarray],
+) -> Union[float, np.ndarray]:
+    r"""
+    Given random variables 'A' and 'B', compute the variance on the ratio Y = A/B. Denote the
+    mean of the random variables as a = E[A] and b = E[B] while the variances are var_a = Var[A]
+    and var_b = Var[B] and the covariance as Cov[A,B]. The following expression approximates the
+    variance of Y
+
+    Var[Y] \approx (a/b) ^2 * ( var_a /a^2 + var_b / b^2 - 2 * Cov[A,B]/(a*b) )
+
+    We assume the covariance of A and B is negligible, resting on the assumption that A and B
+    are independently measured. The expression above rests on the assumption that B is non-zero,
+    an assumption which we expect to hold true in most cases, but makes no such assumptions
+    about A. If we allow E[A] = 0, then calculating the expression above via numpy would complain
+    about dividing by zero. Instead, we can re-write the above expression as
+
+    Var[Y] \approx var_a /b^2 + (a^2 * var_b) / b^4
+
+    where we have dropped the covariance term as noted above.
+
+    See the following for more details:
+      - https://doi.org/10.1002/(SICI)1097-0320(20000401)39:4<300::AID-CYTO8>3.0.CO;2-O
+      - http://www.stat.cmu.edu/~hseltman/files/ratio.pdf
+      - https://w.wiki/EMh
+
+    :param a: Mean of 'A', to be used as the numerator in a ratio.
+    :param var_a: Variance in 'A'
+    :param b: Mean of 'B', to be used as the numerator in a ratio.
+    :param var_b: Variance in 'B'
+    """
+    return var_a / b ** 2 + (a ** 2 * var_b) / b ** 4
