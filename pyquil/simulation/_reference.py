@@ -30,6 +30,7 @@ def _term_expectation(wf: np.ndarray, term: PauliTerm, n_qubits: int) -> Any:
     # Computes <psi|XYZ..XXZ|psi>
     wf2 = wf
     for qubit_i, op_str in term._ops.items():
+        assert isinstance(qubit_i, int)
         # Re-use QUANTUM_GATES since it has X, Y, Z
         op_mat = QUANTUM_GATES[op_str]
         op_mat = lifted_gate_matrix(matrix=op_mat, qubit_inds=[qubit_i], n_qubits=n_qubits)

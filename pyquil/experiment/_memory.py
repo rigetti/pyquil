@@ -15,7 +15,7 @@
 ##############################################################################
 
 import itertools
-from typing import Dict, List, Tuple
+from typing import Dict, List, Tuple, cast
 
 import numpy as np
 
@@ -102,7 +102,7 @@ def pauli_term_to_euler_memory_map(
     gamma_label = f"{prefix}_{suffix_gamma}"
 
     # assume the pauli indices are equivalent to the memory region
-    memory_size = max(term.get_qubits()) + 1
+    memory_size = max(cast(List[int], term.get_qubits())) + 1
 
     memory_map = {
         alpha_label: [0.0] * memory_size,
@@ -113,6 +113,7 @@ def pauli_term_to_euler_memory_map(
     tuples = {"X": tuple_x, "Y": tuple_y, "Z": tuple_z, "I": tuple_z}
 
     for qubit, operator in term:
+        assert isinstance(qubit, int)
         if operator not in tuples:
             raise ValueError(f"Unknown operator {operator}")
         memory_map[alpha_label][qubit] = tuples[operator][0]
