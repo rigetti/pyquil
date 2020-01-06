@@ -602,7 +602,10 @@ Helper functions for converting from ANTLR internals to PyQuil objects
 
 
 def _formalQubit(fq):
-    return FormalArgument(fq.getText())
+    try:
+        return _qubit(fq)
+    except:
+        return FormalArgument(fq.getText())
 
 
 def _pauliTerm(term):
