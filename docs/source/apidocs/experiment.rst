@@ -31,17 +31,22 @@ Schema
         ~TomographyExperiment.generate_experiment_program
         ~TomographyExperiment.build_setting_memory_map
         ~TomographyExperiment.build_symmetrization_memory_maps
-
-.. autoclass:: SymmetrizationLevel
+        ~TomographyExperiment.generate_calibration_experiment
 
 .. autoclass:: pyquil.experiment.ExperimentSetting
 
 .. autoclass:: pyquil.experiment.ExperimentResult
 
+.. autoclass:: pyquil.experiment.SymmetrizationLevel
+
+.. autoclass:: pyquil.experiment.CalibrationMethod
+
 Utilities
 ---------
 
 .. autofunction:: pyquil.experiment.bitstrings_to_expectations
+.. autofunction:: pyquil.experiment.correct_experiment_result
 .. autofunction:: pyquil.experiment.merge_memory_map_lists
+.. autofunction:: pyquil.experiment.ratio_variance
 .. autofunction:: pyquil.experiment.read_json
 .. autofunction:: pyquil.experiment.to_json

@@ -1,3 +1,4 @@
+from pyquil.experiment._calibration import CalibrationMethod
 from pyquil.experiment._group import (
     merge_disjoint_experiments,
     get_results_by_qubit_groups,
