@@ -189,6 +189,7 @@ def _max_weight_operator(ops: Iterable[PauliTerm]) -> Union[None, PauliTerm]:
     mapping = dict()  # type: Dict[int, str]
     for op in ops:
         for idx, op_str in op:
+            assert isinstance(idx, int)
             if idx in mapping:
                 if mapping[idx] != op_str:
                     return None

@@ -123,7 +123,7 @@ def _pauli_to_product_state(in_state: PauliTerm) -> TensorProductState:
     else:
         return TensorProductState(
             [
-                _OneQState(label=pauli_label, index=0, qubit=qubit)
+                _OneQState(label=pauli_label, index=0, qubit=cast(int, qubit))
                 for qubit, pauli_label in in_state._ops.items()
             ]
         )
