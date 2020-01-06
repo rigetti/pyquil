@@ -39,12 +39,14 @@ from pyquil.api._qvm import ForestConnection, QVM
 from pyquil.device import AbstractDevice, NxDevice, gates_in_isa, ISA, Device
 from pyquil.experiment import (
     ExperimentResult,
+    ExperimentSetting,
     TomographyExperiment,
     bitstrings_to_expectations,
     merge_memory_map_lists,
 )
 from pyquil.gates import RX, MEASURE
 from pyquil.noise import decoherence_noise_with_asymmetric_ro, NoiseModel
+from pyquil.paulis import PauliTerm
 from pyquil.pyqvm import PyQVM
 from pyquil.quil import Program, validate_supported_quil
 
@@ -247,17 +249,37 @@ class QuantumComputer:
                 all_bitstrings.append(bitstrings)
             symmetrized_bitstrings = np.concatenate(all_bitstrings)
 
-            # TODO: support simultaneous observables via multiple correlations
             joint_expectations = [experiment.get_meas_registers(qubits)]
+            if setting.additional_expectations:
+                joint_expectations += setting.additional_expectations
             expectations = bitstrings_to_expectations(
                 symmetrized_bitstrings, joint_expectations=joint_expectations
             )
 
-            # TODO: add calibration and correction
-            mean = np.mean(expectations).item()
-            std_err = (np.std(expectations, axis=0, ddof=1) / np.sqrt(len(expectations))).item()
+            means = np.mean(expectations, axis=0)
+            std_errs = np.std(expectations, axis=0, ddof=1) / np.sqrt(len(expectations))
+
+            joint_results = []
+            for qubit_subset, mean, std_err in zip(joint_expectations, means, std_errs):
+                out_operator = PauliTerm.from_list(
+                    [(setting.out_operator[i], i) for i in qubit_subset]
+                )
+                s = ExperimentSetting(
+                    in_state=setting.in_state,
+                    out_operator=out_operator,
+                    additional_expectations=None,
+                )
+                r = ExperimentResult(
+                    setting=s, expectation=mean, std_err=std_err, total_counts=len(expectations)
+                )
+                joint_results.append(r)
+
             result = ExperimentResult(
-                setting=setting, expectation=mean, std_err=std_err, total_counts=len(expectations)
+                setting=setting,
+                expectation=joint_results[0].expectation,
+                std_err=joint_results[0].std_err,
+                total_counts=joint_results[0].total_counts,
+                additional_results=joint_results[1:],
             )
             results.append(result)
         return results

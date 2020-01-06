@@ -447,7 +447,7 @@ class TomographyExperiment:
             memory_maps.append({f"{label}": list(zeros)})
         return memory_maps
 
-    def generate_calibration_experiment(self):
+    def generate_calibration_experiment(self) -> "TomographyExperiment":
         """
         Generate another ``TomographyExperiment`` object that can be used to calibrate the various
         multi-qubit observables involved in this ``TomographyExperiment``. This is achieved by
@@ -468,7 +468,9 @@ class TomographyExperiment:
         for settings in self:
             calibration_settings.append(
                 ExperimentSetting(
-                    in_state=settings[0].out_operator, out_operator=settings[0].out_operator
+                    in_state=settings[0].out_operator,
+                    out_operator=settings[0].out_operator,
+                    additional_expectations=settings[0].additional_expectations,
                 )
             )
 

@@ -54,6 +54,7 @@ class ExperimentResult:
     calibration_expectation: Optional[Union[float, complex]] = None
     calibration_std_err: Optional[Union[float, complex]] = None
     calibration_counts: Optional[int] = None
+    additional_results: Optional[List["ExperimentResult"]] = None
 
     def __init__(
         self,
@@ -69,6 +70,7 @@ class ExperimentResult:
         calibration_stddev: Optional[Union[float, complex]] = None,
         calibration_std_err: Optional[Union[float, complex]] = None,
         calibration_counts: Optional[int] = None,
+        additional_results: Optional[List["ExperimentResult"]] = None,
     ):
 
         object.__setattr__(self, "setting", setting)
@@ -77,6 +79,7 @@ class ExperimentResult:
         object.__setattr__(self, "raw_expectation", raw_expectation)
         object.__setattr__(self, "calibration_expectation", calibration_expectation)
         object.__setattr__(self, "calibration_counts", calibration_counts)
+        object.__setattr__(self, "additional_results", additional_results)
 
         if stddev is not None:
             warnings.warn("'stddev' has been renamed to 'std_err'")
@@ -149,8 +152,8 @@ def bitstrings_to_expectations(
 ) -> np.ndarray:
     """
     Given an array of bitstrings (each of which is represented as an array of bits), map them to
-    expectation values and return the desired correlations. If no correlations are given, then just
-    the 1 -> -1, 0 -> 1 mapping is performed.
+    expectation values and return the desired joint expectation values. If no joint expectations
+    are desired, then just the 1 -> -1, 0 -> 1 mapping is performed.
 
     :param bitstrings: Array of bitstrings to map.
     :param joint_expectations: Joint expectation values to calculate. Each entry is a list which

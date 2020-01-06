@@ -21,7 +21,7 @@ import logging
 import re
 import sys
 import warnings
-from typing import Any, FrozenSet, Generator, Iterable, List, Optional, cast
+from typing import Any, FrozenSet, Generator, Iterable, List, Optional, Union, cast
 
 from pyquil.paulis import PauliTerm, sI, is_identity
 
@@ -192,8 +192,14 @@ class ExperimentSetting:
 
     in_state: TensorProductState
     out_operator: PauliTerm
+    additional_expectations: Optional[List[List[int]]] = None
 
-    def __init__(self, in_state: TensorProductState, out_operator: PauliTerm):
+    def __init__(
+        self,
+        in_state: Union[TensorProductState, PauliTerm],
+        out_operator: PauliTerm,
+        additional_expectations: Optional[List[List[int]]] = None,
+    ):
         # For backwards compatibility, handle in_state specified by PauliTerm.
         if isinstance(in_state, PauliTerm):
             warnings.warn(
@@ -202,6 +208,7 @@ class ExperimentSetting:
             in_state = _pauli_to_product_state(in_state)
         object.__setattr__(self, "in_state", in_state)
         object.__setattr__(self, "out_operator", out_operator)
+        object.__setattr__(self, "additional_expectations", additional_expectations)
 
     @property
     def in_operator(self) -> PauliTerm:
