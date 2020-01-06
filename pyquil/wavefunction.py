@@ -164,20 +164,21 @@ class Wavefunction(object):
             ancillae = []
         mask = 0
         for ancilla in ancillae:
-            mask |= (1 << ancilla)
+            mask |= 1 << ancilla
 
         outcome_dict = {}
         qubit_num = len(self)
         pp_string = ""
         for index, amplitude in enumerate(self.amplitudes):
             if index & mask != 0 and not np.isclose(amplitude, 0):
-                raise ValueError('Specified ancilla was found to have non-zero amplitude.')
+                raise ValueError("Specified ancilla was found to have non-zero amplitude.")
             outcome = get_bitstring_from_index(index, qubit_num)
             for ancilla in ancillae:
-                outcome = outcome[0:qubit_num - ancilla - 1] + outcome[qubit_num - ancilla:]
-            amplitude = round(amplitude.real, decimal_digits) + \
-                round(amplitude.imag, decimal_digits) * 1.j
-            if amplitude != 0.:
+                outcome = outcome[0 : qubit_num - ancilla - 1] + outcome[qubit_num - ancilla :]
+            amplitude = (
+                round(amplitude.real, decimal_digits) + round(amplitude.imag, decimal_digits) * 1.0j
+            )
+            if amplitude != 0.0:
                 outcome_dict[outcome] = amplitude
                 pp_string += str(amplitude) + "|{}> + ".format(outcome)
         if len(pp_string) >= 3:
