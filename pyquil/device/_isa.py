@@ -14,7 +14,7 @@
 #    limitations under the License.
 ##############################################################################
 import sys
-from typing import Any, Dict, List, Optional, Sequence, Tuple, Union
+from typing import Any, Dict, List, Optional, Sequence, Tuple, Union, cast
 
 import networkx as nx
 import numpy as np
@@ -36,7 +36,7 @@ THETA = Parameter("theta")
 @dataclass
 class MeasureInfo:
     operator: Optional[str] = None
-    qubit: Optional[int] = None
+    qubit: Optional[Union[int, str]] = None
     target: Optional[Union[int, str]] = None
     duration: Optional[float] = None
     fidelity: Optional[float] = None
@@ -62,7 +62,7 @@ class Qubit:
 @dataclass
 class Edge:
     targets: Tuple[int, ...]
-    type: Optional[str] = None
+    type: Optional[Union[List[str], str]] = None
     dead: Optional[bool] = None
     gates: Optional[Sequence[GateInfo]] = None
 
@@ -120,10 +120,13 @@ class ISA:
             :return: d
             """
             d: Dict[str, Any] = {}
-            inferred_gates = o.gates
+
             if o.gates is None or len(o.gates) == 0:
                 inferred_type = o.type if (o.type is not None and o.type != t) else t
                 inferred_gates = convert_gate_type_to_gate_information(inferred_type)
+            else:
+                inferred_gates = cast(List[Union[GateInfo, MeasureInfo]], o.gates)
+
             d["gates"] = [
                 {
                     "operator": i.operator,
@@ -188,11 +191,13 @@ class ISA:
         )
 
 
-def convert_gate_type_to_gate_information(gate_type: Union[str, List[str]]):
+def convert_gate_type_to_gate_information(
+    gate_type: Union[str, List[str]]
+) -> List[Union[GateInfo, MeasureInfo]]:
     if isinstance(gate_type, str):
         gate_type = [gate_type]
 
-    gate_information = []
+    gate_information: List[Union[GateInfo, MeasureInfo]] = []
 
     for type_keyword in gate_type:
         if type_keyword == "Xhalves":
@@ -204,6 +209,8 @@ def convert_gate_type_to_gate_information(gate_type: Union[str, List[str]]):
                     GateInfo("RX", [np.pi], ["_"]),
                     GateInfo("RX", [-np.pi], ["_"]),
                     GateInfo("RZ", ["theta"], ["_"]),
+                    MeasureInfo(operator="MEASURE", qubit="_", target="_"),
+                    MeasureInfo(operator="MEASURE", qubit="_", target=None),
                 ]
             )
         elif type_keyword == "WILDCARD":
@@ -254,6 +261,7 @@ def gates_in_isa(isa: ISA) -> List[Gate]:
         if e.dead:
             continue
         targets = [unpack_qubit(t) for t in e.targets]
+        assert e.type is not None
         edge_type = e.type if isinstance(e.type, list) else [e.type]
         if "CZ" in edge_type:
             gates.append(Gate("CZ", [], targets))
