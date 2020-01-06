@@ -6,6 +6,13 @@ Changelog
 
 ### Announcements
 
+-   There is a new `QuantumComputer.calibration` method for performing readout
+    calibration on a provided `TomographyExperiment`, and utilities for applying
+    the results of the calibration to correct for symmetrized readout error. In
+    addition, `ExperimentSetting` objects now have an `additional_expectations`
+    attribute for extracting simultaneously measurable expectation values from a
+    single setting when using `QuantumComputer.experiment` (@karalekas, gh-1152).
+
 ### Improvements and Changes
 
 -   Type hints have been added to the `quil.py` file (@rht, gh-1115, gh-1134).
