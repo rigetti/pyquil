@@ -121,8 +121,8 @@ class ISA:
             """
             d: Dict[str, Any] = {}
             inferred_gates = o.gates
-            if o.gates is None:
-                inferred_type = o.type if o.type != t else t
+            if o.gates is None or len(o.gates) == 0:
+                inferred_type = o.type if (o.type is not None and o.type != t) else t
                 inferred_gates = convert_gate_type_to_gate_information(inferred_type)
             d["gates"] = [
                 {
