@@ -61,9 +61,13 @@ class QAM(ABC):
         return self
 
     @_record_call
-    def write_memory(self, *, region_name: str, offset: Optional[int] = None,
-                     value: Optional[Union[int, float, Sequence[int],
-                                           Sequence[float]]] = None):
+    def write_memory(
+        self,
+        *,
+        region_name: str,
+        offset: Optional[int] = None,
+        value: Optional[Union[int, float, Sequence[int], Sequence[float]]] = None,
+    ):
         """
         Writes a value or unwraps a list of values into a memory region on
         the QAM at a specified offset.
@@ -80,15 +84,18 @@ class QAM(ABC):
             warnings.warn("offset should be None when value is a Sequence")
 
         if isinstance(value, Sequence):
-            assert all(isinstance(v, type(value[0])) for v in value), \
-                "Element of 'value' must be of uniform type"
-            if region_name in self._variables_shim.keys() and len(value) > \
-                    len(self._variables_shim[region_name]) - offset:
-                raise ValueError('Value sequence exceeds memory region size')
+            assert all(
+                isinstance(v, type(value[0])) for v in value
+            ), "Element of 'value' must be of uniform type"
+            if (
+                region_name in self._variables_shim.keys()
+                and len(value) > len(self._variables_shim[region_name]) - offset
+            ):
+                raise ValueError("Value sequence exceeds memory region size")
 
             for index, v in enumerate(value):
                 if not isinstance(v, type(value[0])):
-                    raise TypeError('Value sequence is not of uniform type')
+                    raise TypeError("Value sequence is not of uniform type")
 
                 aref = ParameterAref(name=region_name, index=offset + index)
                 self._variables_shim[aref] = v

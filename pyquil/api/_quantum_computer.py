@@ -134,9 +134,7 @@ class QuantumComputer:
         if memory_map:
             for region_name, values_list in memory_map.items():
                 self.qam.write_memory(region_name=region_name, value=values_list)
-        return self.qam.run() \
-            .wait() \
-            .read_memory(region_name='ro')
+        return self.qam.run().wait().read_memory(region_name="ro")
 
     @_record_call
     def experiment(
