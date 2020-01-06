@@ -77,17 +77,17 @@ def test_discardable_ancillae():
     ro1 = "(0.71+0j)|0> + (0.71+0j)|1>"
     ro2 = "(0.5+0j)|00> + (0.5+0j)|01> + (0.71+0j)|11>"
     assert (
-        Wavefunction(1 / np.sqrt(2) * np.array([1.0, 1.0, 0.0, 0.0])).pretty_print(ancillas=[1])
+        Wavefunction(1 / np.sqrt(2) * np.array([1.0, 1.0, 0.0, 0.0])).pretty_print(ancillae=[1])
         == ro1
     )
     assert (
-        Wavefunction(1 / np.sqrt(2) * np.array([1.0, 0.0, 1.0, 0.0])).pretty_print(ancillas=[0])
+        Wavefunction(1 / np.sqrt(2) * np.array([1.0, 0.0, 1.0, 0.0])).pretty_print(ancillae=[0])
         == ro1
     )
     assert (
         Wavefunction(
             1 / np.sqrt(2) * np.array([1.0, 0.0, 1.0, 0.0, 0.0, 0.0, 0.0, 0.0])
-        ).pretty_print(ancillas=[0, 2])
+        ).pretty_print(ancillae=[0, 2])
         == ro1
     )
     assert (
@@ -95,6 +95,6 @@ def test_discardable_ancillae():
             1
             / np.sqrt(2)
             * np.array([1 / np.sqrt(2), 1 / np.sqrt(2), 0.0, 0.0, 0.0, 1.0, 0.0, 0.0])
-        ).pretty_print(ancillas=[1])
+        ).pretty_print(ancillae=[1])
         == ro2
     )
