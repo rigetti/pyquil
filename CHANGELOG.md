@@ -50,6 +50,8 @@ Changelog
     value (@tommy-moffat, gh-1114).
 -   Added type hints for all remaining top-level files (@karalekas, gh-1150).
 -   Added type annotations to the whole `pyquil.api` module (@karalekas, gh-1157).
+-   Added the functionality to discard unwanted ancillia qubits from
+    pretty-printed bitstrings (@tommy-moffat, gh-1083).
 
 ### Bugfixes
 
@@ -129,8 +131,6 @@ Changelog
     and in `ISA`s (@ecpeterson, gh-1096, gh-1107, gh-1111).
 -   Removed the `tox.ini` and `readthedocs.yml` files (@karalekas, gh-1108).
 -   Type hints have been added to the `PauliSum` class (@rht, gh-1104).
--   Added the functionality to discard unwanted ancilliary qubits from pretty-printed
-    bitstrings (@tommy-moffat, gh-1083).
 
 ### Bugfixes
 
