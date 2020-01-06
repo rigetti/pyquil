@@ -286,7 +286,7 @@ class TomographyExperiment:
         """
         meas_qubits: Set[int] = set()
         for settings in self:
-            meas_qubits.update(settings[0].out_operator.get_qubits())
+            meas_qubits.update(cast(List[int], settings[0].out_operator.get_qubits()))
         return sorted(meas_qubits)
 
     def get_meas_registers(self, qubits: Optional[Sequence[int]] = None) -> List[int]:
@@ -377,8 +377,12 @@ class TomographyExperiment:
         """
         meas_qubits = self.get_meas_qubits()
 
-        in_pt = PauliTerm.from_list([(op, meas_qubits.index(q)) for q, op in setting.in_operator])
-        out_pt = PauliTerm.from_list([(op, meas_qubits.index(q)) for q, op in setting.out_operator])
+        in_pt = PauliTerm.from_list(
+            [(op, meas_qubits.index(cast(int, q))) for q, op in setting.in_operator]
+        )
+        out_pt = PauliTerm.from_list(
+            [(op, meas_qubits.index(cast(int, q))) for q, op in setting.out_operator]
+        )
 
         preparation_map = pauli_term_to_preparation_memory_map(in_pt)
         measurement_map = pauli_term_to_measurement_memory_map(out_pt)

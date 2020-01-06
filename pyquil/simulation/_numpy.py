@@ -166,6 +166,7 @@ def _term_expectation(wf: np.ndarray, term: PauliTerm) -> Any:
     # Computes <psi|XYZ..XXZ|psi>
     wf2 = wf
     for qubit_i, op_str in term._ops.items():
+        assert isinstance(qubit_i, int)
         # Re-use QUANTUM_GATES since it has X, Y, Z
         op_mat = QUANTUM_GATES[op_str]
         wf2 = targeted_tensordot(gate=op_mat, wf=wf2, wf_target_inds=[qubit_i])
