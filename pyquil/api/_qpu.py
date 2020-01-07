@@ -140,10 +140,10 @@ support at support@rigetti.com."""
     def _get_client_auth_config(self) -> Optional[ClientAuthConfig]:
         if not self.session:
             return
-        if self.session.config.engagement is not None:
+        if self.session.get_engagement() is not None:
             # We store the engagement used to construct this client so that we can later check
             # for validity
-            self._client_engagement = self.session.config.engagement
+            self._client_engagement = self.session.get_engagement()
             return ClientAuthConfig(
                 client_public_key=self._client_engagement.client_public_key,
                 client_secret_key=self._client_engagement.client_secret_key,
