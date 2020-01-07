@@ -175,11 +175,12 @@ def _generate_experiment_programs(
                 "so that groups of parallel settings have compatible observables."
             )
         for qubit, op_str in max_weight_out_op:
+            assert isinstance(qubit, int)
             total_prog += _local_pauli_eig_meas(op_str, qubit)
 
         programs.append(total_prog)
 
-        meas_qubits.append(max_weight_out_op.get_qubits())
+        meas_qubits.append(cast(List[int], max_weight_out_op.get_qubits()))
     return programs, meas_qubits
 
 
@@ -328,7 +329,7 @@ def measure_observables(
                 # Obtain calibration program
                 calibr_prog = _calibration_program(qc, tomo_experiment, setting)
                 calibr_qubs = setting.out_operator.get_qubits()
-                calibr_qub_dict = {q: idx for idx, q in enumerate(calibr_qubs)}
+                calibr_qub_dict = {cast(int, q): idx for idx, q in enumerate(calibr_qubs)}
 
                 # Perform symmetrization on the calibration program
                 calibr_results = qc.run_symmetrized_readout(
@@ -403,7 +404,7 @@ def _stats_from_measurements(
     :return: tuple specifying (mean, variance)
     """
     # Identify classical register indices to select
-    idxs = [qubit_index_map[q] for q, _ in setting.out_operator]
+    idxs = [qubit_index_map[cast(int, q)] for q, _ in setting.out_operator]
     # Pick columns corresponding to qubits with a non-identity out_operation
     obs_strings = bs_results[:, idxs]
     # Transform bits to eigenvalues; ie (+1, -1)
@@ -444,9 +445,11 @@ def _calibration_program(
     calibr_prog += kraus_instructions
     # Prepare the +1 eigenstate for the out operator
     for q, op in setting.out_operator.operations_as_set():
+        assert isinstance(q, int)
         calibr_prog += _one_q_pauli_prep(label=op, index=0, qubit=q)
     # Measure the out operator in this state
     for q, op in setting.out_operator.operations_as_set():
+        assert isinstance(q, int)
         calibr_prog += _local_pauli_eig_meas(op, q)
 
     return calibr_prog
