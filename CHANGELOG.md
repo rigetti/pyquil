@@ -44,7 +44,7 @@ Changelog
     `check-types` CI job (@karalekas, gh-1146).
 -   Use `dataclasses` instead of `namedtuples` in the `pyquil/device` module, and
     add type annotations to the entire module (@karalekas, gh-1149).
--   Mypy errors of paulis.py have been reduced (@rht, gh-1147).
+-   Reduced the number of `mypy` errors in `paulis.py` (@rht, gh-1147).
 -   Compile to XY gates as well as CZ gates on dummy QVMs (@ecpeterson, gh-1151).
 
 ### Bugfixes
