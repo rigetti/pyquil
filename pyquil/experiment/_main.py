@@ -298,6 +298,7 @@ class TomographyExperiment:
         """
         meas_qubits: Set[int] = set()
         for settings in self:
+            assert len(settings) == 1
             meas_qubits.update(cast(List[int], settings[0].out_operator.get_qubits()))
         return sorted(meas_qubits)
 
@@ -345,6 +346,7 @@ class TomographyExperiment:
         p += self.program
 
         for settings in self:
+            assert len(settings) == 1
             if ("X" in str(settings[0].in_state)) or ("Y" in str(settings[0].in_state)):
                 if f"DECLARE preparation_alpha" in self.program.out():
                     raise ValueError(f'Memory "preparation_alpha" has been declared already.')
@@ -356,6 +358,7 @@ class TomographyExperiment:
                 break
 
         for settings in self:
+            assert len(settings) == 1
             if ("X" in str(settings[0].out_operator)) or ("Y" in str(settings[0].out_operator)):
                 if f"DECLARE measurement_alpha" in self.program.out():
                     raise ValueError(f'Memory "measurement_alpha" has been declared already.')
@@ -466,6 +469,7 @@ class TomographyExperiment:
 
         calibration_settings = []
         for settings in self:
+            assert len(settings) == 1
             calibration_settings.append(
                 ExperimentSetting(
                     in_state=settings[0].out_operator,

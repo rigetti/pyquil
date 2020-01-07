@@ -188,6 +188,10 @@ class ExperimentSetting:
     program consistent. This class represents the (start, measure) pairs. Typically a large
     number of these :py:class:`ExperimentSetting` objects will be created and grouped into
     a :py:class:`TomographyExperiment`.
+
+    :ivar additional_expectations: A list of lists, where each inner list specifies a qubit subset
+        to calculate the joint expectation value for. This attribute allows users to extract
+        simultaneously measurable expectation values from a single experiment setting.
     """
 
     in_state: TensorProductState
