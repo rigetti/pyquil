@@ -48,6 +48,7 @@ Changelog
 -   Compile to XY gates as well as CZ gates on dummy QVMs (@ecpeterson, gh-1151).
 -   `QAM.write_memory` now accepts either a `Sequence` of values or a single
     value (@tommy-moffat, gh-1114).
+-   Added type hints for all remaining top-level files (@karalekas, gh-1150).
 
 ### Bugfixes
 
