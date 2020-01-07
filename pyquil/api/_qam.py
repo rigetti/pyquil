@@ -17,6 +17,7 @@ import warnings
 
 from abc import ABC, abstractmethod
 from collections import defaultdict
+from typing import Sequence, Union, Optional
 
 from rpcq.messages import ParameterAref
 
@@ -60,18 +61,47 @@ class QAM(ABC):
         return self
 
     @_record_call
-    def write_memory(self, *, region_name: str, offset: int = 0, value=None):
+    def write_memory(
+        self,
+        *,
+        region_name: str,
+        offset: Optional[int] = None,
+        value: Optional[Union[int, float, Sequence[int], Sequence[float]]] = None,
+    ):
         """
-        Writes a value into a memory region on the QAM at a specified offset.
+        Writes a value or unwraps a list of values into a memory region on
+        the QAM at a specified offset.
 
         :param region_name: Name of the declared memory region on the QAM.
         :param offset: Integer offset into the memory region to write to.
-        :param value: Value to store at the indicated location.
+        :param value: Value(s) to store at the indicated location.
         """
         assert self.status in ["loaded", "done"]
 
-        aref = ParameterAref(name=region_name, index=offset)
-        self._variables_shim[aref] = value
+        if offset is None:
+            offset = 0
+        elif isinstance(value, Sequence):
+            warnings.warn("offset should be None when value is a Sequence")
+
+        if isinstance(value, Sequence):
+            assert all(
+                isinstance(v, type(value[0])) for v in value
+            ), "Element of 'value' must be of uniform type"
+            if (
+                region_name in self._variables_shim.keys()
+                and len(value) > len(self._variables_shim[region_name]) - offset
+            ):
+                raise ValueError("Value sequence exceeds memory region size")
+
+            for index, v in enumerate(value):
+                if not isinstance(v, type(value[0])):
+                    raise TypeError("Value sequence is not of uniform type")
+
+                aref = ParameterAref(name=region_name, index=offset + index)
+                self._variables_shim[aref] = v
+        else:
+            aref = ParameterAref(name=region_name, index=offset)
+            self._variables_shim[aref] = value
 
         return self
 
