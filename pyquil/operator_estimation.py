@@ -1,7 +1,7 @@
 import logging
 import warnings
 from math import pi
-from typing import Callable, Dict, Generator, List, Union, Tuple, Optional, cast
+from typing import Callable, Generator, List, Mapping, Union, Tuple, Optional, cast
 
 import numpy as np
 
@@ -306,7 +306,8 @@ def measure_observables(
         # either the first column, second column, or both and multiplying along the row.
         for setting in settings:
             # Get the term's coefficient so we can multiply it in later.
-            coeff = complex(cast(complex, setting.out_operator.coefficient))
+            coeff = setting.out_operator.coefficient
+            assert isinstance(coeff, complex)
             if not np.isclose(coeff.imag, 0):
                 raise ValueError(f"{setting}'s out_operator has a complex coefficient.")
             coeff = coeff.real
@@ -390,7 +391,7 @@ def _ops_bool_to_prog(ops_bool: Tuple[bool], qubits: List[int]) -> Program:
 
 def _stats_from_measurements(
     bs_results: np.ndarray,
-    qubit_index_map: Dict[int, int],
+    qubit_index_map: Mapping[int, int],
     setting: ExperimentSetting,
     n_shots: int,
     coeff: float = 1.0,

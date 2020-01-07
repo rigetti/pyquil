@@ -119,7 +119,7 @@ can't use np.isclose() for hashing terms though.
 """
 
 
-def _valid_qubit(index: Union[PauliTargetDesignator, QubitPlaceholder]) -> bool:
+def _valid_qubit(index: Optional[Union[PauliTargetDesignator, QubitPlaceholder]]) -> bool:
     return (
         (isinstance(index, integer_types) and index >= 0)
         or isinstance(index, QubitPlaceholder)
@@ -149,15 +149,13 @@ class PauliTerm(object):
 
         self._ops: Dict[PauliTargetDesignator, str] = OrderedDict()
         if op != "I":
-            assert index is not None
             if not _valid_qubit(index):
                 raise ValueError(f"{index} is not a valid qubit")
+            assert index is not None
             self._ops[index] = op
 
-        self.coefficient: Union[complex, Expression]
-
         if isinstance(coefficient, Number):
-            self.coefficient = complex(coefficient)
+            self.coefficient: Union[complex, Expression] = complex(coefficient)
         else:
             self.coefficient = coefficient
 
@@ -919,7 +917,7 @@ def exponential_map(term: PauliTerm) -> Callable[[float], Program]:
     :param term: A pauli term to exponentiate
     :returns: A function that takes an angle parameter and returns a program.
     """
-    assert isinstance(term.coefficient, complex)
+    assert isinstance(term.coefficient, (float, complex))
 
     if not np.isclose(np.imag(term.coefficient), 0.0):
         raise TypeError("PauliTerm coefficient must be real")
@@ -1005,7 +1003,7 @@ def _exponentiate_general_case(pauli_term: PauliTerm, param: float) -> Program:
     # building rotation circuit
     quil_prog += change_to_z_basis
     quil_prog += cnot_seq
-    assert isinstance(pauli_term.coefficient, complex) and highest_target_index is not None
+    assert isinstance(pauli_term.coefficient, (float, complex)) and highest_target_index is not None
     quil_prog.inst(RZ(2.0 * pauli_term.coefficient * param, highest_target_index))
     quil_prog += reverse_hack(cnot_seq)
     quil_prog += change_to_original_basis
@@ -1075,10 +1073,10 @@ def is_zero(pauli_object: PauliDesignator) -> bool:
     :returns: True if PauliTerm is zero, False otherwise
     """
     if isinstance(pauli_object, PauliTerm):
-        assert isinstance(pauli_object.coefficient, complex)
+        assert isinstance(pauli_object.coefficient, (float, complex))
         return bool(np.isclose(pauli_object.coefficient, 0))
     elif isinstance(pauli_object, PauliSum):
-        assert isinstance(pauli_object.terms[0].coefficient, complex)
+        assert isinstance(pauli_object.terms[0].coefficient, (float, complex))
         return len(pauli_object.terms) == 1 and np.isclose(pauli_object.terms[0].coefficient, 0)
     else:
         raise TypeError("is_zero only checks PauliTerms and PauliSum objects!")

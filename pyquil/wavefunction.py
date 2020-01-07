@@ -103,7 +103,7 @@ class Wavefunction(object):
     def __getitem__(self, index: int) -> Any:
         return self.amplitudes[index]
 
-    def __setitem__(self, key: int, value: float) -> None:
+    def __setitem__(self, key: int, value: complex) -> None:
         self.amplitudes[key] = value
 
     def __str__(self) -> str:
@@ -221,17 +221,6 @@ def get_bitstring_from_index(index: int, qubit_num: int) -> str:
     if index > (2 ** qubit_num - 1):
         raise IndexError("Index {} too large for {} qubits.".format(index, qubit_num))
     return bin(index)[2:].rjust(qubit_num, "0")
-
-
-def _round_to_next_multiple(n: float, m: int) -> float:
-    """
-    Round up the the next multiple.
-
-    :param n: The number to round up.
-    :param m: The multiple.
-    :return: The rounded number
-    """
-    return n if n % m == 0 else n + m - n % m
 
 
 def _octet_bits(o: int) -> List[int]:

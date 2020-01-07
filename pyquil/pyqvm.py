@@ -16,7 +16,7 @@
 import logging
 import warnings
 from abc import ABC, abstractmethod
-from typing import Dict, List, Optional, Sequence, Type, Union, cast
+from typing import Dict, List, Optional, Sequence, Type, Union
 
 import numpy as np
 from numpy.random.mtrand import RandomState
@@ -199,14 +199,14 @@ class PyQVM(QAM):
                 quantum_simulator_type = ReferenceDensitySimulator
 
         self.n_qubits = n_qubits
-        self.ram: Dict[str, List[int]] = {}
+        self.ram: Dict[str, List[Union[int, float]]] = {}
 
         if post_gate_noise_probabilities is None:
             post_gate_noise_probabilities = {}
         self.post_gate_noise_probabilities = post_gate_noise_probabilities
 
         self.program: Optional[Program] = None
-        self.program_counter: Optional[int] = None
+        self.program_counter: int = 0
         self.defined_gates: Dict[str, np.ndarray] = dict()
 
         # private implementation details
@@ -310,7 +310,7 @@ class PyQVM(QAM):
 
         :return: whether the QAM should halt after this transition.
         """
-        assert self.program is not None and self.program_counter is not None
+        assert self.program is not None
         instruction = self.program[self.program_counter]
 
         if isinstance(instruction, Gate):
@@ -327,7 +327,6 @@ class PyQVM(QAM):
                     noise_type, noise_prob, qubits=[q.index for q in instruction.qubits]
                 )
 
-            assert self.program_counter is not None
             self.program_counter += 1
 
         elif isinstance(instruction, Measurement):
@@ -335,7 +334,6 @@ class PyQVM(QAM):
             meas_reg: Optional[MemoryReference] = instruction.classical_reg
             assert meas_reg is not None
             self.ram[meas_reg.name][meas_reg.offset] = measured_val
-            assert self.program_counter is not None
             self.program_counter += 1
 
         elif isinstance(instruction, Declare):
@@ -345,12 +343,10 @@ class PyQVM(QAM):
             self.ram[instruction.name] = np.zeros(
                 instruction.memory_size, dtype=QUIL_TO_NUMPY_DTYPE[instruction.memory_type]
             )
-            assert self.program_counter is not None
             self.program_counter += 1
 
         elif isinstance(instruction, Pragma):
             # TODO: more stringent checks for what's being pragma'd and warnings
-            assert self.program_counter is not None
             self.program_counter += 1
 
         elif isinstance(instruction, Jump):
@@ -359,7 +355,6 @@ class PyQVM(QAM):
 
         elif isinstance(instruction, JumpTarget):
             # Label; pass straight over
-            assert self.program_counter is not None
             self.program_counter += 1
 
         elif isinstance(instruction, JumpConditional):
@@ -384,7 +379,6 @@ class PyQVM(QAM):
                 self.program_counter = dest_index
             else:
                 # not jumping: hop over this JumpConditional
-                assert self.program_counter is not None
                 self.program_counter += 1
 
         elif isinstance(instruction, UnaryClassicalInstruction):
@@ -404,7 +398,6 @@ class PyQVM(QAM):
             else:
                 raise TypeError("Invalid UnaryClassicalInstruction")
 
-            assert self.program_counter is not None
             self.program_counter += 1
 
         elif isinstance(instruction, (LogicalBinaryOp, ArithmeticBinaryOp, ClassicalMove)):
@@ -414,13 +407,16 @@ class PyQVM(QAM):
                 right_ind = instruction.right
                 right_val = self.ram[right_ind.name][right_ind.offset]
             else:
-                right_val = cast(int, instruction.right)
+                right_val = instruction.right
 
             if isinstance(instruction, ClassicalAnd):
-                new_val = left_val & right_val
+                assert isinstance(left_val, int) and isinstance(right_val, int)
+                new_val: Union[int, float] = left_val & right_val
             elif isinstance(instruction, ClassicalInclusiveOr):
+                assert isinstance(left_val, int) and isinstance(right_val, int)
                 new_val = left_val | right_val
             elif isinstance(instruction, ClassicalExclusiveOr):
+                assert isinstance(left_val, int) and isinstance(right_val, int)
                 new_val = left_val ^ right_val
             elif isinstance(instruction, ClassicalAdd):
                 new_val = left_val + right_val
@@ -429,13 +425,12 @@ class PyQVM(QAM):
             elif isinstance(instruction, ClassicalMul):
                 new_val = left_val * right_val
             elif isinstance(instruction, ClassicalDiv):
-                new_val = int(left_val / right_val)
+                new_val = left_val / right_val
             elif isinstance(instruction, ClassicalMove):
                 new_val = right_val
             else:
                 raise ValueError("Unknown BinaryOp {}".format(type(instruction)))
             self.ram[left_ind.name][left_ind.offset] = new_val
-            assert self.program_counter is not None
             self.program_counter += 1
 
         elif isinstance(instruction, ClassicalExchange):
@@ -447,12 +442,10 @@ class PyQVM(QAM):
                 right_ind_ex.offset
             ]
             self.ram[right_ind_ex.name][right_ind_ex.offset] = tmp
-            assert self.program_counter is not None
             self.program_counter += 1
 
         elif isinstance(instruction, Reset):
             self.wf_simulator.reset()
-            assert self.program_counter is not None
             self.program_counter += 1
 
         elif isinstance(instruction, ResetQubit):
@@ -460,19 +453,16 @@ class PyQVM(QAM):
 
         elif isinstance(instruction, Wait):
             warnings.warn("WAIT does nothing for a noiseless simulator")
-            assert self.program_counter is not None
             self.program_counter += 1
 
         elif isinstance(instruction, Nop):
             # well that was easy
-            assert self.program_counter is not None
             self.program_counter += 1
 
         elif isinstance(instruction, DefGate):
             if instruction.parameters is not None and len(instruction.parameters) > 0:
                 raise NotImplementedError("PyQVM does not support parameterized DEFGATEs")
             self.defined_gates[instruction.name] = instruction.name
-            assert self.program_counter is not None
             self.program_counter += 1
 
         elif isinstance(instruction, RawInstr):
