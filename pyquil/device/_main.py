@@ -204,7 +204,13 @@ class Device(AbstractDevice):
 
         def edge_type_to_gates(e: Edge) -> List[GateInfo]:
             gates: List[GateInfo] = []
-            if e is None or isinstance(e.type, str) and "CZ" in e.type:
+            if (
+                e is None
+                or isinstance(e.type, str)
+                and "CZ" == e.type
+                or isinstance(e.type, list)
+                and "CZ" in e.type
+            ):
                 gates += [
                     GateInfo(
                         operator="CZ",
@@ -214,7 +220,13 @@ class Device(AbstractDevice):
                         fidelity=safely_get("fCZs", tuple(e.targets), DEFAULT_CZ_FIDELITY),
                     )
                 ]
-            if e is None or isinstance(e.type, str) and "ISWAP" in e.type:
+            if (
+                e is None
+                or isinstance(e.type, str)
+                and "ISWAP" == e.type
+                or isinstance(e.type, list)
+                and "ISWAP" in e.type
+            ):
                 gates += [
                     GateInfo(
                         operator="ISWAP",
@@ -224,7 +236,13 @@ class Device(AbstractDevice):
                         fidelity=safely_get("fISWAPs", tuple(e.targets), DEFAULT_ISWAP_FIDELITY),
                     )
                 ]
-            if e is None or isinstance(e.type, str) and "CPHASE" in e.type:
+            if (
+                e is None
+                or isinstance(e.type, str)
+                and "CPHASE" == e.type
+                or isinstance(e.type, list)
+                and "CPHASE" in e.type
+            ):
                 gates += [
                     GateInfo(
                         operator="CPHASE",
@@ -234,7 +252,13 @@ class Device(AbstractDevice):
                         fidelity=safely_get("fCPHASEs", tuple(e.targets), DEFAULT_CPHASE_FIDELITY),
                     )
                 ]
-            if e is None or isinstance(e.type, str) and "XY" in e.type:
+            if (
+                e is None
+                or isinstance(e.type, str)
+                and "XY" == e.type
+                or isinstance(e.type, list)
+                and "XY" in e.type
+            ):
                 gates += [
                     GateInfo(
                         operator="XY",
@@ -244,7 +268,13 @@ class Device(AbstractDevice):
                         fidelity=safely_get("fXYs", tuple(e.targets), DEFAULT_XY_FIDELITY),
                     )
                 ]
-            if e is None or isinstance(e.type, str) and "WILDCARD" in e.type:
+            if (
+                e is None
+                or isinstance(e.type, str)
+                and "WILDCARD" == e.type
+                or isinstance(e.type, list)
+                and "WILDCARD" in e.type
+            ):
                 gates += [
                     GateInfo(
                         operator="_",
@@ -290,7 +320,9 @@ class NxDevice(AbstractDevice):
     def qubit_topology(self) -> nx.Graph:
         return self.topology
 
-    def get_isa(self, oneq_type: str = "Xhalves", twoq_type: str = "CZ") -> ISA:
+    def get_isa(
+        self, oneq_type: str = "Xhalves", twoq_type: Optional[Union[str, List[str]]] = None
+    ) -> ISA:
         return isa_from_graph(self.topology, oneq_type=oneq_type, twoq_type=twoq_type)
 
     def get_specs(self) -> Specs:
