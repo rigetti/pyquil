@@ -40,10 +40,6 @@ class PyquilConfig(object):
     The PyQuilConfig object holds the configuration necessary to communicate with Rigetti systems
         such as authentication tokens, endpoint URLs, and file paths for configuration files
         on disk.
-
-    :attribute get_engagement: A callback to fetch a currently valid engagement from which to read
-        configuration parameters (i.e., QPU_URL) as needed. This allows the engagement to be fetched
-        and maintained elsewhere (i.e., by ForestSession or manually).
     """
 
     FOREST_URL = {
@@ -115,7 +111,6 @@ class PyquilConfig(object):
         "file": FOREST_CONFIG,
         "section": "Rigetti Forest",
         "name": "qpu_endpoint_address",
-        "engagement_key": "qpu_endpoint",
         "default": None,
     }
 
@@ -140,7 +135,6 @@ class PyquilConfig(object):
         "file": FOREST_CONFIG,
         "section": "Rigetti Forest",
         "name": "qpu_compiler_address",
-        "engagement_key": "qpu_compiler_endpoint",
         "default": None,
     }
 
@@ -148,12 +142,6 @@ class PyquilConfig(object):
         """
         :param config_paths: The paths to the various configuration files read by pyQuil.
         """
-
-        # The engagement callback can be added by config consumers after construction
-        self.get_engagement = lambda: None
-
-        # Whether engagement has been requested in order to provide any config values
-        self._engagement_requested = False
 
         self.config_parsers = {}
         for env_name, default_path in config_paths.items():
@@ -173,17 +161,13 @@ class PyquilConfig(object):
             self.qmi_auth_token_path, ["access_token", "refresh_token"]
         )
 
-    def _env_or_config_or_default(
-        self, env=None, file=None, section=None, name=None, default=None, engagement_key=None
-    ):
+    def _env_or_config_or_default(self, env=None, file=None, section=None, name=None, default=None):
         """
         Get the value of the environment variable or config file value.
         The environment variable takes precedence.
 
         :param env: The environment variable name.
         :param name: The config file key.
-        :param engagement_key: The attribute name by which this value can be read from
-            an engagement. If None, then this value is not provided by engagement.
         :return: The value or None if not found
         """
 
@@ -196,16 +180,6 @@ class PyquilConfig(object):
         try:
             return self.config_parsers[file].get(section, name)
         except (NoSectionError, NoOptionError, KeyError):
-            pass
-        """
-        If no local configuration is available, certain values are provided
-            by the dispatch service.
-        """
-        try:
-            if engagement_key is not None and self.get_engagement() is not None:
-                self._engagement_requested = True
-                return getattr(self.get_engagement(), engagement_key)
-        except AttributeError:
             pass
 
         return default
@@ -226,16 +200,6 @@ class PyquilConfig(object):
     @property
     def engage_cmd(self) -> str:
         return self._env_or_config_or_default(**self.ENGAGE_CMD)
-
-    @property
-    def engagement(self) -> Optional["Engagement"]:
-        """
-        An Engagement should only be made available to consumers if it was used to retrieve a
-        configuration value.
-        """
-        if not self._engagement_requested:
-            return
-        return self.get_engagement()
 
     @property
     def forest_url(self) -> str:

@@ -238,7 +238,7 @@ class QPUCompiler(AbstractCompiler):
     @property
     def qpu_compiler_client(self) -> Client:
         if not self._qpu_compiler_client:
-            endpoint = self.qpu_compiler_endpoint or self.session.config.qpu_compiler_url
+            endpoint = self.qpu_compiler_endpoint or self.session.qpu_compiler_url
             if endpoint is not None:
                 if endpoint.startswith(("http://", "https://")):
                     device_endpoint = urljoin(

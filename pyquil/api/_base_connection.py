@@ -94,6 +94,8 @@ def get_session(*args, **kwargs):
     :return: requests session
     :rtype: Session
     """
+    if "config" not in kwargs:
+        kwargs["config"] = PyquilConfig()
     session = ForestSession(*args, **kwargs)
     retry_adapter = HTTPAdapter(
         max_retries=Retry(
@@ -302,11 +304,26 @@ class ForestSession(requests.Session):
     def __init__(self, *, config: PyquilConfig, lattice_name: Optional[str] = None, **kwargs):
         super().__init__(**kwargs)
         self.config = config
-        self.config.get_engagement = self.get_engagement
         self._engagement = None
         self.headers.update(self.config.qcs_auth_headers)
         self.headers["User-Agent"] = f"PyQuil/{__version__}"
         self.lattice_name = lattice_name
+
+    @property
+    def qpu_url(self) -> Optional[str]:
+        if self.config.qpu_url is not None:
+            return self.config.qpu_url
+        if self.get_engagement() is not None:
+            return self.get_engagement().qpu_endpoint
+        return None
+
+    @property
+    def qpu_compiler_url(self) -> Optional[str]:
+        if self.config.qpu_compiler_url is not None:
+            return self.config.qpu_compiler_url
+        if self.get_engagement() is not None:
+            return self.get_engagement().qpu_compiler_endpoint
+        return None
 
     def _engage(self) -> Optional["Engagement"]:
         """

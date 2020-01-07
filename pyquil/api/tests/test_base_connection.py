@@ -234,10 +234,10 @@ def test_forest_session_request_engagement():
     mock_adapter.register_uri("POST", url, response_list=response_list)
 
     assert (
-        config.qpu_url == SUCCESSFUL_ENGAGEMENT_RESPONSE["engage"]["engagement"]["qpu"]["endpoint"]
+        session.qpu_url == SUCCESSFUL_ENGAGEMENT_RESPONSE["engage"]["engagement"]["qpu"]["endpoint"]
     )
     assert (
-        config.qpu_compiler_url
+        session.qpu_compiler_url
         == SUCCESSFUL_ENGAGEMENT_RESPONSE["engage"]["engagement"]["compiler"]["endpoint"]
     )
 
@@ -267,7 +267,7 @@ def test_forest_session_engagement_not_requested_if_config_present():
     mock_adapter.register_uri("POST", url, response_list=response_list)
 
     assert len(mock_adapter.request_history) == 0
-    assert config.qpu_url == config.config_parsers["FOREST_CONFIG"].get(
+    assert session.qpu_url == config.config_parsers["FOREST_CONFIG"].get(
         "Rigetti Forest", "qpu_endpoint_address"
     )
 
@@ -297,4 +297,4 @@ def test_forest_session_request_engagement_failure():
     mock_adapter.register_uri("POST", url, response_list=response_list)
 
     with pytest.raises(UserMessageError):
-        assert config.qpu_url is None
+        assert session.qpu_url is None

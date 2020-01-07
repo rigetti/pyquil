@@ -24,7 +24,7 @@ from rpcq.messages import QPURequest, ParameterAref
 
 from pyquil import Program
 from pyquil.parser import parse
-from pyquil.api._base_connection import ForestSession
+from pyquil.api._base_connection import ForestSession, get_session
 from pyquil.api._error_reporting import _record_call
 from pyquil.api._errors import UserMessageError
 from pyquil.api._logger import logger
@@ -106,7 +106,7 @@ class QPU(QAM):
         super().__init__()
 
     def _build_client(self) -> Client:
-        endpoint = self.endpoint or (self.session and self.session.config.qpu_url)
+        endpoint = self.endpoint or (self.session and self.session.qpu_url)
         if endpoint is None:
             raise UserMessageError(
                 """It looks like you've tried to run a program against a QPU but do
@@ -142,7 +142,7 @@ support at support@rigetti.com."""
             return
         if self.session.get_engagement() is not None:
             # We store the engagement used to construct this client so that we can later check
-            # for validity
+            # for validity.
             self._client_engagement = self.session.get_engagement()
             return ClientAuthConfig(
                 client_public_key=self._client_engagement.client_public_key,
@@ -378,3 +378,13 @@ support at support@rigetti.com."""
         super().reset()
 
         self._client = None
+
+
+def initialize_qpu_with_session(lattice_name: str, **kwargs) -> QPU:
+    """
+    initialize_qpu_with_session is a convenience function to initialize
+    a QPU with a ForestSession. Note, Engagement requires a lattice_name
+    so it is a required argument here.
+    """
+    forest_session = get_session(lattice_name=lattice_name)
+    return QPU(session=forest_session, **kwargs)
