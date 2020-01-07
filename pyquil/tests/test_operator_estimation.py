@@ -28,7 +28,6 @@ from pyquil.operator_estimation import (
     measure_observables,
     _ops_bool_to_prog,
     _stats_from_measurements,
-    ratio_variance,
     _calibration_program,
 )
 from pyquil.paulis import sI, sX, sY, sZ, PauliSum
@@ -235,28 +234,6 @@ def test_stats_from_measurements():
     obs_mean, obs_var = _stats_from_measurements(bs_results, d_qub_idx, setting, n_shots)
     assert obs_mean == -1.0
     assert obs_var == 0.0
-
-
-def test_ratio_variance_float():
-    a, b, var_a, var_b = 1.0, 2.0, 0.1, 0.05
-    ab_ratio_var = ratio_variance(a, var_a, b, var_b)
-    assert ab_ratio_var == 0.028125
-
-
-def test_ratio_variance_numerator_zero():
-    # denominator can't be zero, but numerator can be
-    a, b, var_a, var_b = 0.0, 2.0, 0.1, 0.05
-    ab_ratio_var = ratio_variance(a, var_a, b, var_b)
-    assert ab_ratio_var == 0.025
-
-
-def test_ratio_variance_array():
-    a = np.array([1.0, 10.0, 100.0])
-    b = np.array([2.0, 20.0, 200.0])
-    var_a = np.array([0.1, 1.0, 10.0])
-    var_b = np.array([0.05, 0.5, 5.0])
-    ab_ratio_var = ratio_variance(a, var_a, b, var_b)
-    np.testing.assert_allclose(ab_ratio_var, np.array([0.028125, 0.0028125, 0.00028125]))
 
 
 def test_measure_observables_uncalibrated_asymmetric_readout(forest, use_seed):

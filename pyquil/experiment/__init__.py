@@ -1,3 +1,4 @@
+from pyquil.experiment._calibration import CalibrationMethod
 from pyquil.experiment._group import (
     merge_disjoint_experiments,
     get_results_by_qubit_groups,
@@ -5,7 +6,12 @@ from pyquil.experiment._group import (
 )
 from pyquil.experiment._main import OperatorEncoder, TomographyExperiment, read_json, to_json
 from pyquil.experiment._memory import merge_memory_map_lists
-from pyquil.experiment._result import ExperimentResult, bitstrings_to_expectations
+from pyquil.experiment._result import (
+    ExperimentResult,
+    bitstrings_to_expectations,
+    correct_experiment_result,
+    ratio_variance,
+)
 from pyquil.experiment._setting import (
     _OneQState,
     _pauli_to_product_state,

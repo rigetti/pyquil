@@ -16,6 +16,7 @@ Quantum Computer
         :template: autosumm.rst
 
         ~QuantumComputer.run
+        ~QuantumComputer.calibrate
         ~QuantumComputer.experiment
         ~QuantumComputer.run_and_measure
         ~QuantumComputer.run_symmetrized_readout
