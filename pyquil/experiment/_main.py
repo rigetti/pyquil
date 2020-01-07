@@ -37,6 +37,7 @@ from typing import (
     cast,
 )
 
+from pyquil.experiment._calibration import CalibrationMethod
 from pyquil.experiment._memory import (
     pauli_term_to_measurement_memory_map,
     pauli_term_to_preparation_memory_map,
@@ -155,6 +156,7 @@ class TomographyExperiment:
         qubits: Optional[List[int]] = None,
         *,
         symmetrization: int = SymmetrizationLevel.EXHAUSTIVE,
+        calibration: int = CalibrationMethod.PLUS_EIGENSTATE,
     ):
         if len(settings) == 0:
             s: List[List[ExperimentSetting]] = []
@@ -174,6 +176,15 @@ class TomographyExperiment:
             )
         self.qubits = qubits
         self.symmetrization = SymmetrizationLevel(symmetrization)
+        if self.symmetrization != SymmetrizationLevel.EXHAUSTIVE:
+            if type(calibration) == int and calibration != 0:
+                warnings.warn(
+                    "Calibration is only supported for exhaustive symmetrization, "
+                    "thus setting self.calibration = 0 (CalibrationMethod.NONE)."
+                )
+            self.calibration = CalibrationMethod.NONE
+        else:
+            self.calibration = CalibrationMethod(calibration)
         self.shots = self.program.num_shots
 
         if "RESET" in self.program.out():
@@ -260,6 +271,7 @@ class TomographyExperiment:
         else:
             string += f"active reset: disabled\n"
         string += f"symmetrization: {self.symmetrization} ({self.symmetrization.name.lower()})\n"
+        string += f"calibration: {self.calibration} ({self.calibration.name.lower()})\n"
         string += f"program:\n{_abbrev_program(self.program)}\n"
         string += f"settings:\n{self.settings_string(abbrev_after=20)}"
         return string
@@ -286,6 +298,7 @@ class TomographyExperiment:
         """
         meas_qubits: Set[int] = set()
         for settings in self:
+            assert len(settings) == 1
             meas_qubits.update(cast(List[int], settings[0].out_operator.get_qubits()))
         return sorted(meas_qubits)
 
@@ -333,6 +346,7 @@ class TomographyExperiment:
         p += self.program
 
         for settings in self:
+            assert len(settings) == 1
             if ("X" in str(settings[0].in_state)) or ("Y" in str(settings[0].in_state)):
                 if f"DECLARE preparation_alpha" in self.program.out():
                     raise ValueError(f'Memory "preparation_alpha" has been declared already.')
@@ -344,6 +358,7 @@ class TomographyExperiment:
                 break
 
         for settings in self:
+            assert len(settings) == 1
             if ("X" in str(settings[0].out_operator)) or ("Y" in str(settings[0].out_operator)):
                 if f"DECLARE measurement_alpha" in self.program.out():
                     raise ValueError(f'Memory "measurement_alpha" has been declared already.')
@@ -434,6 +449,49 @@ class TomographyExperiment:
                 zeros[r] = a[idx]
             memory_maps.append({f"{label}": list(zeros)})
         return memory_maps
+
+    def generate_calibration_experiment(self) -> "TomographyExperiment":
+        """
+        Generate another ``TomographyExperiment`` object that can be used to calibrate the various
+        multi-qubit observables involved in this ``TomographyExperiment``. This is achieved by
+        preparing the plus-one (minus-one) eigenstate of each ``out_operator``, and measuring the
+        resulting expectation value of the same ``out_operator``. Ideally, this would always give
+        +1 (-1), but when symmetric readout error is present the effect is to scale the resultant
+        expectations by some constant factor. Determining this scale factor is what we call
+        *readout calibration*, and then the readout error in subsequent measurements can then be
+        mitigated by simply dividing by the scale factor.
+
+        :return: A new ``TomographyExperiment`` that can calibrate the readout error of all the
+            observables involved in this experiment.
+        """
+        if self.calibration != CalibrationMethod.PLUS_EIGENSTATE:
+            raise ValueError('We currently only support the "plus eigenstate" calibration method.')
+
+        calibration_settings = []
+        for settings in self:
+            assert len(settings) == 1
+            calibration_settings.append(
+                ExperimentSetting(
+                    in_state=settings[0].out_operator,
+                    out_operator=settings[0].out_operator,
+                    additional_expectations=settings[0].additional_expectations,
+                )
+            )
+
+        calibration_program = Program()
+        if self.reset:
+            calibration_program += RESET()
+        calibration_program.wrap_in_numshots_loop(self.shots)
+
+        if self.symmetrization != SymmetrizationLevel.EXHAUSTIVE:
+            raise ValueError("We currently only support calibration for exhaustive symmetrization")
+
+        return TomographyExperiment(
+            settings=calibration_settings,
+            program=calibration_program,
+            symmetrization=SymmetrizationLevel.EXHAUSTIVE,
+            calibration=CalibrationMethod.NONE,
+        )
 
 
 class OperatorEncoder(JSONEncoder):

@@ -575,7 +575,7 @@ def apply_noise_model(prog: "Program", noise_model: NoiseModel) -> "Program":
     """
     new_prog = _noise_model_program_header(noise_model)
     for i in prog:
-        if isinstance(i, Gate):
+        if isinstance(i, Gate) and noise_model.gates:
             try:
                 _, new_name = get_noisy_gate(i.name, tuple(i.params))
                 new_prog += Gate(new_name, [], i.qubits)

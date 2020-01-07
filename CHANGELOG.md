@@ -6,6 +6,13 @@ Changelog
 
 ### Announcements
 
+-   There is a new `QuantumComputer.calibration` method for performing readout
+    calibration on a provided `TomographyExperiment`, and utilities for applying
+    the results of the calibration to correct for symmetrized readout error. In
+    addition, `ExperimentSetting` objects now have an `additional_expectations`
+    attribute for extracting simultaneously measurable expectation values from a
+    single setting when using `QuantumComputer.experiment` (@karalekas, gh-1152).
+
 ### Improvements and Changes
 
 -   Type hints have been added to the `quil.py` file (@rht, gh-1115, gh-1134).
@@ -37,7 +44,7 @@ Changelog
     `check-types` CI job (@karalekas, gh-1146).
 -   Use `dataclasses` instead of `namedtuples` in the `pyquil/device` module, and
     add type annotations to the entire module (@karalekas, gh-1149).
--   Mypy errors of paulis.py have been reduced (@rht, gh-1147).
+-   Reduced the number of `mypy` errors in `paulis.py` (@rht, gh-1147).
 -   Compile to XY gates as well as CZ gates on dummy QVMs (@ecpeterson, gh-1151).
 
 ### Bugfixes
