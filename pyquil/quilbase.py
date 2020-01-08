@@ -1158,9 +1158,9 @@ class Pulse(AbstractInstruction):
         self.nonblocking = nonblocking
 
     def out(self) -> str:
-        return (
-            f'{"NONBLOCKING " if self.nonblocking else ""}PULSE {self.frame} {self.waveform.out()}'
-        )
+        result = "NONBLOCKING " if self.nonblocking else ""
+        result += f"PULSE {self.frame} {self.waveform.out()}"
+        return result
 
 
 class SetFrequency(AbstractInstruction):
@@ -1222,10 +1222,9 @@ class Capture(AbstractInstruction):
         self.nonblocking = nonblocking
 
     def out(self) -> str:
-        return (
-            f'{"NONBLOCKING " if self.nonblocking else ""}CAPTURE {self.frame} {self.waveform.out()}'
-            + (" " + self.memory_region.out() if self.memory_region is not None else "")
-        )
+        result = "NONBLOCKING " if self.nonblocking else ""
+        result += f"CAPTURE {self.frame} {self.waveform.out()} {self.memory_region.out()}"
+        return result
 
 
 class RawCapture(AbstractInstruction):
@@ -1242,7 +1241,9 @@ class RawCapture(AbstractInstruction):
         self.nonblocking = nonblocking
 
     def out(self) -> str:
-        return f'{"NONBLOCKING " if self.nonblocking else ""}RAW-CAPTURE {self.frame} {self.duration} {self.memory_region.out()}'
+        result = "NONBLOCKING " if self.nonblocking else ""
+        result += f"RAW-CAPTURE {self.frame} {self.duration} {self.memory_region.out()}"
+        return result
 
 
 class DelayFrames(AbstractInstruction):
