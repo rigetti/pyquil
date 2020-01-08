@@ -15,12 +15,11 @@
 ##############################################################################
 import warnings
 import numpy as np
-from typing import List
+from typing import Any, Dict, List, Optional, Sequence, Union, cast
 
 from requests.exceptions import ConnectionError
 from rpcq.messages import PyQuilExecutableResponse
 
-from pyquil import __version__
 from pyquil.api._base_connection import (
     validate_qubit_list,
     validate_noise_probabilities,
@@ -34,10 +33,13 @@ from pyquil.api._compiler import QVMCompiler, _extract_program_from_pyquil_execu
 from pyquil.api._config import PyquilConfig
 from pyquil.api._error_reporting import _record_call
 from pyquil.api._qam import QAM
-from pyquil.gates import MOVE, MemoryReference
-from pyquil.noise import apply_noise_model
-from pyquil.paulis import PauliSum
+from pyquil.device._main import Device
+from pyquil.gates import MOVE
+from pyquil.noise import NoiseModel, apply_noise_model
+from pyquil.paulis import PauliSum, PauliTerm
 from pyquil.quil import Program, get_classical_addresses_from_program, percolate_declares
+from pyquil.quilatom import MemoryReference
+from pyquil.version import __version__
 from pyquil.wavefunction import Wavefunction
 
 
@@ -49,7 +51,7 @@ class QVMNotRunning(Exception):
     pass
 
 
-def check_qvm_version(version: str):
+def check_qvm_version(version: str) -> None:
     """
     Verify that there is no mismatch between pyquil and QVM versions.
 
@@ -71,28 +73,26 @@ class QVMConnection(object):
     @_record_call
     def __init__(
         self,
-        device=None,
-        endpoint=None,
-        gate_noise=None,
-        measurement_noise=None,
-        random_seed=None,
-        compiler_endpoint=None,
+        device: Optional[Device] = None,
+        endpoint: Optional[str] = None,
+        gate_noise: Optional[List[float]] = None,
+        measurement_noise: Optional[List[float]] = None,
+        random_seed: Optional[int] = None,
+        compiler_endpoint: Optional[str] = None,
     ):
         """
         Constructor for QVMConnection. Sets up any necessary security, and establishes the noise
         model to use.
 
-        :param Device device: The optional device, from which noise will be added by default to all
-                              programs run on this instance.
+        :param device: The optional device, from which noise will be added by default to all
+            programs run on this instance.
         :param endpoint: The endpoint of the server for running small jobs
         :param gate_noise: A list of three numbers [Px, Py, Pz] indicating the probability of an X,
-                           Y, or Z gate getting applied to each qubit after a gate application or
-                           reset. (default None)
+            Y, or Z gate getting applied to each qubit after a gate application or reset.
         :param measurement_noise: A list of three numbers [Px, Py, Pz] indicating the probability of
-                                  an X, Y, or Z gate getting applied before a a measurement.
-                                  (default None)
+            an X, Y, or Z gate getting applied before a a measurement.
         :param random_seed: A seed for the QVM's random number generators. Either None (for an
-                            automatically generated seed) or a non-negative integer.
+            automatically generated seed) or a non-negative integer.
         """
         if endpoint is None:
             pyquil_config = PyquilConfig()
@@ -145,7 +145,7 @@ programs run on this QVM.
         self.session = self._connection.session  # backwards compatibility
         self.connect()
 
-    def connect(self):
+    def connect(self) -> None:
         try:
             version_dict = self.get_version_info()
             check_qvm_version(version_dict)
@@ -153,29 +153,33 @@ programs run on this QVM.
             raise QVMNotRunning(f"No QVM server running at {self._connection.sync_endpoint}")
 
     @_record_call
-    def get_version_info(self):
+    def get_version_info(self) -> str:
         """
         Return version information for the QVM.
 
         :return: String with version information
         """
-        return self._connection._qvm_get_version_info()
+        return cast(str, self._connection._qvm_get_version_info())
 
     @_record_call
-    def run(self, quil_program, classical_addresses: List[int] = None, trials=1):
+    def run(
+        self,
+        quil_program: Program,
+        classical_addresses: Optional[List[int]] = None,
+        trials: int = 1,
+    ) -> List[List[int]]:
         """
         Run a Quil program multiple times, accumulating the values deposited in
         a list of classical addresses.
 
-        :param Program quil_program: A Quil program.
+        :param quil_program: A Quil program.
         :param classical_addresses: The classical memory to retrieve. Specified as a list of
             integers that index into a readout register named ``ro``. This function--and
             particularly this argument--are included for backwards compatibility and will
             be removed in the future.
-        :param int trials: Number of shots to collect.
+        :param trials: Number of shots to collect.
         :return: A list of dictionaries of bits. Each dictionary corresponds to the values in
             `classical_addresses`.
-        :rtype: list
         """
         if classical_addresses is None:
             caddresses = get_classical_addresses_from_program(quil_program)
@@ -195,7 +199,7 @@ programs run on this QVM.
         if len(buffers) == 0:
             return []
         if "ro" in buffers:
-            return buffers["ro"].tolist()
+            return cast(List[List[int]], buffers["ro"].tolist())
 
         raise ValueError(
             "You are using QVMConnection.run with multiple readout registers not "
@@ -203,7 +207,9 @@ programs run on this QVM.
         )
 
     @_record_call
-    def run_and_measure(self, quil_program, qubits, trials=1):
+    def run_and_measure(
+        self, quil_program: Program, qubits: Sequence[int], trials: int = 1
+    ) -> List[List[int]]:
         """
         Run a Quil program once to determine the final wavefunction, and measure multiple times.
 
@@ -213,11 +219,10 @@ programs run on this QVM.
             and the outcomes sampled from *different* ``run_and_measure`` calls *generally sample
             different bitstring distributions*.
 
-        :param Program quil_program: A Quil program.
-        :param list|range qubits: A list of qubits.
-        :param int trials: Number of shots to collect.
+        :param quil_program: A Quil program.
+        :param qubits: A list of qubits.
+        :param trials: Number of shots to collect.
         :return: A list of a list of bits.
-        :rtype: list
         """
         # Developer note: This code is for backwards compatibility. It can't be replaced with
         # ForestConnection._run_and_measure because we've turned off the ability to set
@@ -225,11 +230,14 @@ programs run on this QVM.
         # using a noise model with this function)
 
         payload = self._run_and_measure_payload(quil_program, qubits, trials)
+        assert self.sync_endpoint is not None
         response = post_json(self.session, self.sync_endpoint + "/qvm", payload)
-        return response.json()
+        return cast(List[List[int]], response.json())
 
     @_record_call
-    def _run_and_measure_payload(self, quil_program, qubits, trials):
+    def _run_and_measure_payload(
+        self, quil_program: Program, qubits: Sequence[int], trials: int
+    ) -> Dict[str, Any]:
         if not quil_program:
             raise ValueError(
                 "You have attempted to run an empty program."
@@ -243,6 +251,7 @@ programs run on this QVM.
             raise TypeError("trials must be an integer")
 
         if self.noise_model is not None:
+            assert self.compiler is not None
             compiled_program = self.compiler.quil_to_native_quil(quil_program)
             quil_program = apply_noise_model(compiled_program, self.noise_model)
 
@@ -259,7 +268,7 @@ programs run on this QVM.
         return payload
 
     @_record_call
-    def wavefunction(self, quil_program):
+    def wavefunction(self, quil_program: Program) -> Wavefunction:
         """
         Simulate a Quil program and get the wavefunction back.
 
@@ -269,9 +278,8 @@ programs run on this QVM.
             and the wavefunctions returned by *different* ``wavefunction`` calls *will generally be
             different*.
 
-        :param Program quil_program: A Quil program.
+        :param quil_program: A Quil program.
         :return: A Wavefunction object representing the state of the QVM.
-        :rtype: Wavefunction
         """
         # Developer note: This code is for backwards compatibility. It can't be replaced with
         # ForestConnection._wavefunction because we've turned off the ability to set
@@ -279,11 +287,12 @@ programs run on this QVM.
         # using a noise model with this function)
 
         payload = self._wavefunction_payload(quil_program)
+        assert self.sync_endpoint is not None
         response = post_json(self.session, self.sync_endpoint + "/qvm", payload)
         return Wavefunction.from_bit_packed_string(response.content)
 
     @_record_call
-    def _wavefunction_payload(self, quil_program):
+    def _wavefunction_payload(self, quil_program: Program) -> Dict[str, Any]:
         # Developer note: This code is for backwards compatibility. It can't be replaced with
         # _base_connection._wavefunction_payload because we've turned off the ability to set
         # `needs_compilation` (that usually indicates the user is doing something iffy like
@@ -299,7 +308,9 @@ programs run on this QVM.
         return payload
 
     @_record_call
-    def expectation(self, prep_prog, operator_programs=None):
+    def expectation(
+        self, prep_prog: Program, operator_programs: Optional[List[Program]] = None
+    ) -> List[float]:
         """
         Calculate the expectation value of operators given a state prepared by
         prep_program.
@@ -317,11 +328,10 @@ programs run on this QVM.
                 expect_coeffs = np.array(cxn.expectation(prep_program, operator_programs=progs))
                 return np.real_if_close(np.dot(coefs, expect_coeffs))
 
-        :param Program prep_prog: Quil program for state preparation.
-        :param list operator_programs: A list of Programs, each specifying an operator whose
+        :param prep_prog: Quil program for state preparation.
+        :param operator_programs: A list of Programs, each specifying an operator whose
             expectation to compute. Default is a list containing only the empty Program.
         :return: Expectation values of the operators.
-        :rtype: List[float]
         """
         # Developer note: This code is for backwards compatibility. It can't be replaced with
         # ForestConnection._expectation because we've turned off the ability to set
@@ -336,11 +346,14 @@ programs run on this QVM.
             )
 
         payload = self._expectation_payload(prep_prog, operator_programs)
+        assert self.sync_endpoint is not None
         response = post_json(self.session, self.sync_endpoint + "/qvm", payload)
-        return response.json()
+        return cast(List[float], response.json())
 
     @_record_call
-    def pauli_expectation(self, prep_prog, pauli_terms):
+    def pauli_expectation(
+        self, prep_prog: Program, pauli_terms: Union[Sequence[PauliTerm], PauliSum]
+    ) -> Union[float, List[float]]:
         """
         Calculate the expectation value of Pauli operators given a state prepared by prep_program.
 
@@ -375,7 +388,9 @@ programs run on this QVM.
             return sum(results)
         return results
 
-    def _expectation_payload(self, prep_prog, operator_programs):
+    def _expectation_payload(
+        self, prep_prog: Program, operator_programs: Optional[List[Program]]
+    ) -> Dict[str, Any]:
         if operator_programs is None:
             operator_programs = [Program()]
 
@@ -392,7 +407,7 @@ programs run on this QVM.
 
         return payload
 
-    def _maybe_add_noise_to_payload(self, payload):
+    def _maybe_add_noise_to_payload(self, payload: Dict[str, Any]) -> None:
         """
         Set the gate noise and measurement noise of a payload.
         """
@@ -401,7 +416,7 @@ programs run on this QVM.
         if self.gate_noise is not None:
             payload["gate-noise"] = self.gate_noise
 
-    def _add_rng_seed_to_payload(self, payload):
+    def _add_rng_seed_to_payload(self, payload: Dict[str, Any]) -> None:
         """
         Add a random seed to the payload.
         """
@@ -414,11 +429,11 @@ class QVM(QAM):
     def __init__(
         self,
         connection: ForestConnection,
-        noise_model=None,
-        gate_noise=None,
-        measurement_noise=None,
-        random_seed=None,
-        requires_executable=False,
+        noise_model: Optional[NoiseModel] = None,
+        gate_noise: Optional[List[float]] = None,
+        measurement_noise: Optional[List[float]] = None,
+        random_seed: Optional[int] = None,
+        requires_executable: bool = False,
     ) -> None:
         """
         A virtual machine that classically emulates the execution of Quil programs.
@@ -470,7 +485,7 @@ http://pyquil.readthedocs.io/en/latest/noise_models.html#support-for-noisy-gates
         self.requires_executable = requires_executable
         self.connect()
 
-    def connect(self):
+    def connect(self) -> None:
         try:
             version_dict = self.get_version_info()
             check_qvm_version(version_dict)
@@ -478,16 +493,16 @@ http://pyquil.readthedocs.io/en/latest/noise_models.html#support-for-noisy-gates
             raise QVMNotRunning(f"No QVM server running at {self.connection.sync_endpoint}")
 
     @_record_call
-    def get_version_info(self):
+    def get_version_info(self) -> str:
         """
         Return version information for the QVM.
 
         :return: String with version information
         """
-        return self.connection._qvm_get_version_info()
+        return cast(str, self.connection._qvm_get_version_info())
 
     @_record_call
-    def load(self, executable):
+    def load(self, executable: Union[Program, PyQuilExecutableResponse]) -> "QVM":
         """
         Initialize a QAM and load a program to be executed with a call to :py:func:`run`.
 
@@ -521,10 +536,10 @@ http://pyquil.readthedocs.io/en/latest/noise_models.html#support-for-noisy-gates
                     "`Program`. You provided {}".format(type(executable))
                 )
 
-        return super().load(executable)
+        return cast("QVM", super().load(executable))
 
     @_record_call
-    def run(self):
+    def run(self) -> "QVM":
         """
         Run a Quil program on the QVM multiple times and return the values stored in the
         classical registers designated by the classical_addresses parameter.
@@ -562,7 +577,7 @@ http://pyquil.readthedocs.io/en/latest/noise_models.html#support-for-noisy-gates
 
         return self
 
-    def augment_program_with_memory_values(self, quil_program):
+    def augment_program_with_memory_values(self, quil_program: Program) -> Program:
         p = Program()
 
         for k, v in self._variables_shim.items():
@@ -573,7 +588,7 @@ http://pyquil.readthedocs.io/en/latest/noise_models.html#support-for-noisy-gates
         return percolate_declares(p)
 
     @_record_call
-    def reset(self):
+    def reset(self) -> None:
         """
         Reset the state of the underlying QAM, and the QVM connection information.
         """

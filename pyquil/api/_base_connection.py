@@ -13,23 +13,29 @@
 #    See the License for the specific language governing permissions and
 #    limitations under the License.
 ##############################################################################
-
 import re
 import time
 import warnings
 from json.decoder import JSONDecodeError
-from typing import Dict, Optional, Union, Sequence
+from typing import Any, Dict, List, Optional, Sequence, Tuple, Union, cast
 
 import numpy as np
 import requests
 from requests.adapters import HTTPAdapter
 from urllib3 import Retry
 
-from pyquil import Program, __version__
 from pyquil.api._config import PyquilConfig
 from pyquil.api._error_reporting import _record_call
-from pyquil.api._errors import error_mapping, UserMessageError, UnknownApiError, TooManyQubitsError
+from pyquil.api._errors import (
+    error_mapping,
+    ApiError,
+    UserMessageError,
+    UnknownApiError,
+    TooManyQubitsError,
+)
 from pyquil.api._logger import logger
+from pyquil.quil import Program
+from pyquil.version import __version__
 from pyquil.wavefunction import Wavefunction
 
 TYPE_EXPECTATION = "expectation"
@@ -38,7 +44,7 @@ TYPE_MULTISHOT_MEASURE = "multishot-measure"
 TYPE_WAVEFUNCTION = "wavefunction"
 
 
-def get_json(session, url, params: dict = None) -> dict:
+def get_json(session: requests.Session, url: str, params: Optional[Dict[Any, Any]] = None) -> Any:
     """
     Get JSON from a Forest endpoint.
     """
@@ -49,7 +55,7 @@ def get_json(session, url, params: dict = None) -> dict:
     return res.json()
 
 
-def post_json(session, url, json) -> requests.models.Response:
+def post_json(session: requests.Session, url: str, json: Any) -> requests.models.Response:
     """
     Post JSON to the Forest endpoint.
     """
@@ -60,7 +66,7 @@ def post_json(session, url, json) -> requests.models.Response:
     return res
 
 
-def parse_error(res):
+def parse_error(res: requests.Response) -> ApiError:
     """
     Every server error should contain a "status" field with a human readable explanation of
     what went wrong as well as a "error_type" field indicating the kind of error that can be mapped
@@ -87,7 +93,7 @@ def parse_error(res):
     return error_cls(status)
 
 
-def get_session(*args, **kwargs):
+def get_session(*args: Any, **kwargs: Any) -> "ForestSession":
     """
     Create a requests session to access the REST API
 
@@ -116,7 +122,7 @@ def get_session(*args, **kwargs):
     return session
 
 
-def validate_noise_probabilities(noise_parameter):
+def validate_noise_probabilities(noise_parameter: Optional[List[float]]) -> None:
     """
     Is noise_parameter a valid specification of noise probabilities for depolarizing noise?
 
@@ -136,7 +142,7 @@ def validate_noise_probabilities(noise_parameter):
         raise ValueError("noise_parameter values should all be non-negative")
 
 
-def validate_qubit_list(qubit_list):
+def validate_qubit_list(qubit_list: Sequence[int]) -> Sequence[int]:
     """
     Check the validity of qubits for the payload.
 
@@ -149,7 +155,9 @@ def validate_qubit_list(qubit_list):
     return qubit_list
 
 
-def prepare_register_list(register_dict: Dict[str, Union[bool, Sequence[int]]]):
+def prepare_register_list(
+    register_dict: Dict[str, Union[bool, Sequence[int]]]
+) -> Dict[str, Union[bool, Sequence[int]]]:
     """
     Canonicalize classical addresses for the payload and ready MemoryReference instances
     for serialization.
@@ -180,7 +188,9 @@ def prepare_register_list(register_dict: Dict[str, Union[bool, Sequence[int]]]):
     return register_dict
 
 
-def run_and_measure_payload(quil_program, qubits, trials, random_seed):
+def run_and_measure_payload(
+    quil_program: Program, qubits: Sequence[int], trials: int, random_seed: int
+) -> Dict[str, object]:
     """REST payload for :py:func:`ForestConnection._run_and_measure`"""
     if not quil_program:
         raise ValueError(
@@ -207,12 +217,12 @@ def run_and_measure_payload(quil_program, qubits, trials, random_seed):
     return payload
 
 
-def wavefunction_payload(quil_program, random_seed):
+def wavefunction_payload(quil_program: Program, random_seed: int) -> Dict[str, object]:
     """REST payload for :py:func:`ForestConnection._wavefunction`"""
     if not isinstance(quil_program, Program):
         raise TypeError("quil_program must be a Quil program object")
 
-    payload = {"type": TYPE_WAVEFUNCTION, "compiled-quil": quil_program.out()}
+    payload: Dict[str, object] = {"type": TYPE_WAVEFUNCTION, "compiled-quil": quil_program.out()}
 
     if random_seed is not None:
         payload["rng-seed"] = random_seed
@@ -220,7 +230,9 @@ def wavefunction_payload(quil_program, random_seed):
     return payload
 
 
-def expectation_payload(prep_prog, operator_programs, random_seed):
+def expectation_payload(
+    prep_prog: Program, operator_programs: Optional[List[Program]], random_seed: int
+) -> Dict[str, object]:
     """REST payload for :py:func:`ForestConnection._expectation`"""
     if operator_programs is None:
         operator_programs = [Program()]
@@ -228,7 +240,7 @@ def expectation_payload(prep_prog, operator_programs, random_seed):
     if not isinstance(prep_prog, Program):
         raise TypeError("prep_prog variable must be a Quil program object")
 
-    payload = {
+    payload: Dict[str, object] = {
         "type": TYPE_EXPECTATION,
         "state-preparation": prep_prog.out(),
         "operators": [x.out() for x in operator_programs],
@@ -241,8 +253,13 @@ def expectation_payload(prep_prog, operator_programs, random_seed):
 
 
 def qvm_run_payload(
-    quil_program, classical_addresses, trials, measurement_noise, gate_noise, random_seed
-):
+    quil_program: Program,
+    classical_addresses: Dict[str, Union[bool, Sequence[int]]],
+    trials: int,
+    measurement_noise: Optional[Tuple[float, float, float]],
+    gate_noise: Optional[Tuple[float, float, float]],
+    random_seed: Optional[int],
+) -> Dict[str, object]:
     """REST payload for :py:func:`ForestConnection._qvm_run`"""
     if not quil_program:
         raise ValueError(
@@ -299,11 +316,11 @@ class ForestSession(requests.Session):
     but is used by the config to provide service endpoints.
     """
 
-    def __init__(self, *, config: PyquilConfig, lattice_name: Optional[str] = None, **kwargs):
-        super().__init__(**kwargs)
+    def __init__(self, *, config: PyquilConfig, lattice_name: Optional[str] = None):
+        super().__init__()
         self.config = config
         self.config.get_engagement = self.get_engagement
-        self._engagement = None
+        self._engagement: Optional["Engagement"] = None
         self.headers.update(self.config.qcs_auth_headers)
         self.headers["User-Agent"] = f"PyQuil/{__version__}"
         self.lattice_name = lattice_name
@@ -345,7 +362,7 @@ class ForestSession(requests.Session):
         """
         if not self.lattice_name:
             logger.debug("ForestSession requires lattice_name in order to engage")
-            return
+            return None
 
         logger.debug("Requesting engagement from %s", self.config.dispatch_url)
         variables = dict(name=self.lattice_name)
@@ -354,7 +371,8 @@ class ForestSession(requests.Session):
         )
 
         if query_response.get("errors"):
-            error_messages = map(lambda error: error["message"], query_response.get("errors", []))
+            errors = query_response.get("errors", [])
+            error_messages = map(lambda error: error["message"], errors)  # type: ignore
             raise UserMessageError(f"Failed to engage: {','.join(error_messages)}")
 
         engagement_response = query_response.get("data", {}).get("engage", None)
@@ -408,6 +426,7 @@ class ForestSession(requests.Session):
             "Cache-Control": "no-cache",
             "Accept": "application/json",
         }
+        assert self.config.user_auth_token is not None
         data = {
             "grant_type": "refresh_token",
             "scope": self.config.user_auth_token["scope"],
@@ -441,7 +460,7 @@ class ForestSession(requests.Session):
         )
         return False
 
-    def request(self, *args, **kwargs) -> requests.models.Response:
+    def request(self, *args: Any, **kwargs: Any) -> requests.models.Response:
         """
         request is a wrapper around requests.Session#request that checks for
         401 and 403 response statuses and refreshes the auth credential
@@ -453,7 +472,7 @@ class ForestSession(requests.Session):
                 response = super().request(*args, **kwargs)
         return response
 
-    def _request_graphql(self, url: str, query: str, variables: dict) -> dict:
+    def _request_graphql(self, url: str, query: str, variables: Dict[Any, Any]) -> Dict[Any, Any]:
         """
         Makes a single graphql request using the session credentials, throwing an error
         if the response is not valid JSON.
@@ -462,12 +481,12 @@ class ForestSession(requests.Session):
         """
         response = super().post(url, json=dict(query=query, variables=variables))
         try:
-            return response.json()
+            return cast(Dict[Any, Any], response.json())
         except JSONDecodeError as e:
             logger.exception(f"Unable to parse json response from endpoint {url}:", response.text)
             raise e
 
-    def _request_graphql_retry(self, *args, **kwargs) -> dict:
+    def _request_graphql_retry(self, *args: Any, **kwargs: Any) -> Dict[Any, Any]:
         """
         Makes a GraphQL request using session credentials, refreshing them once if the server
         identifies them as expired.
@@ -491,7 +510,12 @@ class ForestSession(requests.Session):
 
 class ForestConnection:
     @_record_call
-    def __init__(self, sync_endpoint=None, compiler_endpoint=None, forest_cloud_endpoint=None):
+    def __init__(
+        self,
+        sync_endpoint: Optional[str] = None,
+        compiler_endpoint: Optional[str] = None,
+        forest_cloud_endpoint: Optional[str] = None,
+    ):
         """
         Represents a connection to Forest containing methods to wrap all possible API endpoints.
 
@@ -515,7 +539,9 @@ class ForestConnection:
         self.session = get_session(config=pyquil_config)
 
     @_record_call
-    def _run_and_measure(self, quil_program, qubits, trials, random_seed) -> np.ndarray:
+    def _run_and_measure(
+        self, quil_program: Program, qubits: Sequence[int], trials: int, random_seed: int
+    ) -> np.ndarray:
         """
         Run a Forest ``run_and_measure`` job.
 
@@ -523,11 +549,12 @@ class ForestConnection:
         this directly.
         """
         payload = run_and_measure_payload(quil_program, qubits, trials, random_seed)
+        assert self.sync_endpoint is not None
         response = post_json(self.session, self.sync_endpoint + "/qvm", payload)
         return np.asarray(response.json())
 
     @_record_call
-    def _wavefunction(self, quil_program, random_seed) -> Wavefunction:
+    def _wavefunction(self, quil_program: Program, random_seed: int) -> Wavefunction:
         """
         Run a Forest ``wavefunction`` job.
 
@@ -536,11 +563,14 @@ class ForestConnection:
         """
 
         payload = wavefunction_payload(quil_program, random_seed)
+        assert self.sync_endpoint is not None
         response = post_json(self.session, self.sync_endpoint + "/qvm", payload)
         return Wavefunction.from_bit_packed_string(response.content)
 
     @_record_call
-    def _expectation(self, prep_prog, operator_programs, random_seed) -> np.ndarray:
+    def _expectation(
+        self, prep_prog: Program, operator_programs: List[Program], random_seed: int
+    ) -> np.ndarray:
         """
         Run a Forest ``expectation`` job.
 
@@ -556,12 +586,19 @@ class ForestConnection:
             )
 
         payload = expectation_payload(prep_prog, operator_programs, random_seed)
+        assert self.sync_endpoint is not None
         response = post_json(self.session, self.sync_endpoint + "/qvm", payload)
         return np.asarray(response.json())
 
     @_record_call
     def _qvm_run(
-        self, quil_program, classical_addresses, trials, measurement_noise, gate_noise, random_seed
+        self,
+        quil_program: Program,
+        classical_addresses: Dict[str, Union[bool, Sequence[int]]],
+        trials: int,
+        measurement_noise: Optional[Tuple[float, float, float]],
+        gate_noise: Optional[Tuple[float, float, float]],
+        random_seed: Optional[int],
     ) -> np.ndarray:
         """
         Run a Forest ``run`` job on a QVM.
@@ -571,6 +608,7 @@ class ForestConnection:
         payload = qvm_run_payload(
             quil_program, classical_addresses, trials, measurement_noise, gate_noise, random_seed
         )
+        assert self.sync_endpoint is not None
         response = post_json(self.session, self.sync_endpoint + "/qvm", payload)
 
         ram = response.json()
@@ -587,6 +625,7 @@ class ForestConnection:
 
         :return: String of QVM version
         """
+        assert self.sync_endpoint is not None
         response = post_json(self.session, self.sync_endpoint, {"type": "version"})
         split_version_string = response.text.split()
         try:
@@ -642,4 +681,4 @@ Client secret key: masked ({len(self.client_secret_key)} B)
 Server public key: {self.server_public_key}
 Expiration time: {self.expires_at}
 QPU Endpoint: {self.qpu_endpoint}
-QPU Compiler Endpoint: {self.qpu_compiler_endpoint}"""
+QPU Compiler Endpoint: {self.qpu_compiler_endpoint}"""  # type: ignore

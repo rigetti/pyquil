@@ -16,23 +16,24 @@
 from collections import defaultdict
 import uuid
 import warnings
-from typing import Dict, List, Optional, Tuple, Union
+from typing import Any, Dict, List, Optional, Tuple, Union, cast
 
 import numpy as np
-from rpcq import Client, ClientAuthConfig
-from rpcq.messages import QPURequest, ParameterAref
+from rpcq._client import Client, ClientAuthConfig
+from rpcq.messages import BinaryExecutableResponse, QPURequest, ParameterAref
 
-from pyquil import Program
 from pyquil.parser import parse
-from pyquil.api._base_connection import ForestSession
+from pyquil.api._base_connection import Engagement, ForestSession
 from pyquil.api._error_reporting import _record_call
 from pyquil.api._errors import UserMessageError
 from pyquil.api._logger import logger
 from pyquil.api._qam import QAM
-from pyquil.quilatom import MemoryReference, BinaryExp, Function, Parameter, Expression
+from pyquil.quil import Program
+from pyquil.quilatom import MemoryReference, BinaryExp, Function, Parameter, ExpressionDesignator
+from pyquil.quilbase import Gate
 
 
-def decode_buffer(buffer: dict) -> np.ndarray:
+def decode_buffer(buffer: Dict[str, Any]) -> np.ndarray:
     """
     Translate a DataBuffer into a numpy array.
 
@@ -100,13 +101,19 @@ class QPU(QAM):
         self.endpoint = endpoint
         self.priority = priority
         self.user = user
-        self._client_engagement = None
+        self._client: Optional[Client] = None
+        self._client_engagement: Optional[Engagement] = None
         self._last_results: Dict[str, np.ndarray] = {}
 
         super().__init__()
 
     def _build_client(self) -> Client:
-        endpoint = self.endpoint or (self.session and self.session.config.qpu_url)
+        endpoint: Optional[str] = None
+        if self.endpoint:
+            endpoint = self.endpoint
+        elif self.session and self.session.config.qpu_url:
+            endpoint = self.session.config.qpu_url
+
         if endpoint is None:
             raise UserMessageError(
                 """It looks like you've tried to run a program against a QPU but do
@@ -138,9 +145,7 @@ support at support@rigetti.com."""
         return self._client
 
     def _get_client_auth_config(self) -> Optional[ClientAuthConfig]:
-        if not self.session:
-            return
-        if self.session.config.engagement is not None:
+        if self.session and self.session.config.engagement is not None:
             # We store the engagement used to construct this client so that we can later check
             # for validity
             self._client_engagement = self.session.config.engagement
@@ -149,17 +154,18 @@ support at support@rigetti.com."""
                 client_secret_key=self._client_engagement.client_secret_key,
                 server_public_key=self._client_engagement.server_public_key,
             )
+        return None
 
-    def get_version_info(self) -> dict:
+    def get_version_info(self) -> Dict[str, Any]:
         """
         Return version information for this QPU's execution engine and its dependencies.
 
         :return: Dictionary of version information.
         """
-        return self.client.call("get_version_info")
+        return cast(Dict[str, Any], self.client.call("get_version_info"))
 
     @_record_call
-    def load(self, executable):
+    def load(self, executable: BinaryExecutableResponse) -> "QPU":
         """
         Initialize a QAM into a fresh state. Load the executable and parse the expressions
         in the recalculation table (if any) into pyQuil Expression objects.
@@ -168,17 +174,17 @@ support at support@rigetti.com."""
         """
         super().load(executable)
         if hasattr(self._executable, "recalculation_table"):
-            recalculation_table = self._executable.recalculation_table
+            recalculation_table = self._executable.recalculation_table  # type: ignore
             for memory_reference, recalc_rule in recalculation_table.items():
                 # We can only parse complete lines of Quil, so we wrap the arithmetic expression
                 # in a valid Quil instruction to parse it.
                 # TODO: This hack should be replaced after #687
-                expression = parse(f"RZ({recalc_rule}) 0")[0].params[0]
+                expression = cast(Gate, parse(f"RZ({recalc_rule}) 0")[0]).params[0]
                 recalculation_table[memory_reference] = expression
         return self
 
     @_record_call
-    def run(self, run_priority: Optional[int] = None):
+    def run(self, run_priority: Optional[int] = None) -> "QPU":
         """
         Run a pyquil program on the QPU.
 
@@ -204,6 +210,7 @@ support at support@rigetti.com."""
             )
         super().run()
 
+        assert self._executable is not None
         request = QPURequest(
             program=self._executable.program,
             patch_values=self._build_patch_values(),
@@ -215,7 +222,7 @@ support at support@rigetti.com."""
             "execute_qpu_request", request=request, user=self.user, priority=job_priority
         )
         results = self._get_buffers(job_id)
-        ro_sources = self._executable.ro_sources
+        ro_sources = self._executable.ro_sources  # type: ignore
 
         if results:
             bitstrings = _extract_bitstrings(ro_sources, results)
@@ -245,7 +252,7 @@ support at support@rigetti.com."""
         buffers = self.client.call("get_buffers", job_id, wait=True)
         return {k: decode_buffer(v) for k, v in buffers.items()}
 
-    def _build_patch_values(self) -> dict:
+    def _build_patch_values(self) -> Dict[str, List[Union[int, float]]]:
         patch_values = {}
 
         # Now that we are about to run, we have to resolve any gate parameter arithmetic that was
@@ -255,7 +262,7 @@ support at support@rigetti.com."""
         # Initialize our patch table
         if hasattr(self._executable, "recalculation_table"):
             memory_ref_names = list(
-                set(mr.name for mr in self._executable.recalculation_table.keys())
+                set(mr.name for mr in self._executable.recalculation_table.keys())  # type: ignore
             )
             if memory_ref_names != []:
                 assert len(memory_ref_names) == 1, (
@@ -264,9 +271,10 @@ support at support@rigetti.com."""
                 )
                 memory_reference_name = memory_ref_names[0]
                 patch_values[memory_reference_name] = [0.0] * len(
-                    self._executable.recalculation_table
+                    self._executable.recalculation_table  # type: ignore
                 )
 
+        assert isinstance(self._executable, BinaryExecutableResponse)
         for name, spec in self._executable.memory_descriptors.items():
             # NOTE: right now we fake reading out measurement values into classical memory
             if name == "ro":
@@ -288,7 +296,7 @@ support at support@rigetti.com."""
 
         return patch_values
 
-    def _update_variables_shim_with_recalculation_table(self):
+    def _update_variables_shim_with_recalculation_table(self) -> None:
         """
         Update self._variables_shim with the final values to be patched into the gate parameters,
         according to the arithmetic expressions in the original program.
@@ -338,14 +346,12 @@ support at support@rigetti.com."""
         if not hasattr(self._executable, "recalculation_table"):
             # No recalculation table, no work to be done here.
             return
-        for memory_reference, expression in self._executable.recalculation_table.items():
+        for mref, expression in self._executable.recalculation_table.items():  # type: ignore
             # Replace the user-declared memory references with any values the user has written,
             # coerced to a float because that is how we declared it.
-            self._variables_shim[memory_reference] = float(
-                self._resolve_memory_references(expression)
-            )
+            self._variables_shim[mref] = float(self._resolve_memory_references(expression))
 
-    def _resolve_memory_references(self, expression: Expression) -> Union[float, int]:
+    def _resolve_memory_references(self, expression: ExpressionDesignator) -> Union[float, int]:
         """
         Traverse the given Expression, and replace any Memory References with whatever values
         have been so far provided by the user for those memory spaces. Declared memory defaults
@@ -356,12 +362,15 @@ support at support@rigetti.com."""
         if isinstance(expression, BinaryExp):
             left = self._resolve_memory_references(expression.op1)
             right = self._resolve_memory_references(expression.op2)
-            return expression.fn(left, right)
+            return cast(Union[float, int], expression.fn(left, right))
         elif isinstance(expression, Function):
-            return expression.fn(self._resolve_memory_references(expression.expression))
+            return cast(
+                Union[float, int],
+                expression.fn(self._resolve_memory_references(expression.expression)),
+            )
         elif isinstance(expression, Parameter):
             raise ValueError(f"Unexpected Parameter in gate expression: {expression}")
-        elif isinstance(expression, float) or isinstance(expression, int):
+        elif isinstance(expression, (float, int)):
             return expression
         elif isinstance(expression, MemoryReference):
             return self._variables_shim.get(
@@ -371,7 +380,7 @@ support at support@rigetti.com."""
             raise ValueError(f"Unexpected expression in gate parameter: {expression}")
 
     @_record_call
-    def reset(self):
+    def reset(self) -> None:
         """
         Reset the state of the underlying QAM, and the QPU Client connection.
         """

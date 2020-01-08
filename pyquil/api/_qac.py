@@ -14,17 +14,19 @@
 #    limitations under the License.
 ##############################################################################
 from abc import ABC, abstractmethod
-from typing import List
+from typing import Any, Dict, List, Optional, Union
 
-from pyquil import Program
-from pyquil.quil import Gate
+from rpcq.messages import BinaryExecutableResponse, PyQuilExecutableResponse
+
 from pyquil.paulis import PauliTerm
+from pyquil.quil import Program
+from pyquil.quilbase import Gate
 
 
 class AbstractCompiler(ABC):
     """The abstract interface for a compiler."""
 
-    def get_version_info(self) -> dict:
+    def get_version_info(self) -> Dict[str, Any]:
         """
         Return version information for this compiler and its dependencies.
 
@@ -33,7 +35,7 @@ class AbstractCompiler(ABC):
         raise NotImplementedError
 
     @abstractmethod
-    def quil_to_native_quil(self, program: Program, *, protoquil=None) -> Program:
+    def quil_to_native_quil(self, program: Program, *, protoquil: Optional[bool] = None) -> Program:
         """
         Compile an arbitrary quil program according to the ISA of target_device.
 
@@ -43,7 +45,9 @@ class AbstractCompiler(ABC):
         """
 
     @abstractmethod
-    def native_quil_to_executable(self, nq_program: Program):
+    def native_quil_to_executable(
+        self, nq_program: Program
+    ) -> Union[BinaryExecutableResponse, PyQuilExecutableResponse]:
         """
         Compile a native quil program to a binary executable.
 
@@ -51,7 +55,7 @@ class AbstractCompiler(ABC):
         :return: An (opaque) binary executable
         """
 
-    def reset(self):
+    def reset(self) -> None:
         pass
 
 
@@ -72,7 +76,11 @@ class AbstractBenchmarker(ABC):
 
     @abstractmethod
     def generate_rb_sequence(
-        self, depth: int, gateset: List[Gate], seed: int = None, interleaver: Program = None
+        self,
+        depth: int,
+        gateset: List[Gate],
+        seed: Optional[int] = None,
+        interleaver: Optional[Program] = None,
     ) -> List[Program]:
         """
         Construct a randomized benchmarking experiment on the given qubits, decomposing into

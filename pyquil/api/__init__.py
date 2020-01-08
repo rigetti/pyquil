@@ -17,6 +17,7 @@
 Module for facilitating connections to the QVM / QPU.
 """
 import warnings
+from typing import Any
 
 __all__ = [
     "QVMConnection",
@@ -54,11 +55,11 @@ from pyquil.api._quantum_computer import (
 )
 from pyquil.api._qvm import QVMConnection, QVM
 from pyquil.api._wavefunction_simulator import WavefunctionSimulator
-from pyquil.device import Device
+from pyquil.device._main import Device
 
 
 class QPUConnection(QPU):
-    def __init__(self, *args, **kwargs):
+    def __init__(self, *args: Any, **kwargs: Any):
         warnings.warn(
             "QPUConnection's semantics have changed for Forest 2. Consider using "
             "pyquil.get_qc('...') instead of creating this object directly. "

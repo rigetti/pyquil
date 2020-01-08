@@ -20,7 +20,7 @@ check-types:
 		pyquil/operator_estimation.py pyquil/parser.py pyquil/paulis.py pyquil/pyqvm.py \
 		pyquil/quil.py pyquil/quilatom.py pyquil/quilbase.py pyquil/reference_simulator.py \
 		pyquil/unitary_tools.py pyquil/version.py pyquil/wavefunction.py \
-		pyquil/device pyquil/experiment pyquil/latex pyquil/simulation
+		pyquil/api pyquil/device pyquil/experiment pyquil/latex pyquil/simulation
 
 .PHONY: check-style
 check-style:
