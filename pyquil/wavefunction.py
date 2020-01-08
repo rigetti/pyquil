@@ -154,23 +154,26 @@ class Wavefunction(object):
         decimal_digits.
 
         :param int decimal_digits: The number of digits to truncate to.
+<<<<<<< HEAD
         :param ancillae: The list of indices for ancillary qubits to omit.
         :return: A string representation of the wavefunction.
+=======
+        :param ancillae: The list of indices for ancilla qubits to omit.
+        :return: A dict with outcomes as keys and complex amplitudes as values.
+>>>>>>> Typos and formatting
         :rtype: str
         """
 
-        # Initialize bitmask as 1's complement of ancilla spec
         if ancillae is None:
             ancillae = []
-        mask = 0
-        for ancilla in ancillae:
-            mask |= 1 << ancilla
 
         outcome_dict = {}
         qubit_num = len(self)
         pp_string = ""
         for index, amplitude in enumerate(self.amplitudes):
             outcome = get_bitstring_from_index(index, qubit_num)
+
+            # Remove each ancilla qubit from the outcome bitstring
             for ancilla in ancillae:
                 outcome = outcome[0 : qubit_num - ancilla - 1] + outcome[qubit_num - ancilla :]
             amplitude = (

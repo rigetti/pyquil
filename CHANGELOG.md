@@ -50,7 +50,7 @@ Changelog
     value (@tommy-moffat, gh-1114).
 -   Added type hints for all remaining top-level files (@karalekas, gh-1150).
 -   Added type annotations to the whole `pyquil.api` module (@karalekas, gh-1157).
--   Added the functionality to discard unwanted ancillia qubits from
+-   Added the functionality to discard unwanted ancilla qubits from
     pretty-printed bitstrings (@tommy-moffat, gh-1083).
 
 ### Bugfixes
