@@ -6,7 +6,7 @@ import pyquil.simulation.matrices as qmats
 from pyquil import Program
 from pyquil.api import QuantumComputer
 from pyquil.device import NxDevice
-from pyquil.experiment import ExperimentSetting, TomographyExperiment, zeros_state
+from pyquil.experiment import ExperimentSetting, Experiment, zeros_state
 from pyquil.gates import CNOT, H, I, MEASURE, PHASE, RX, RY, RZ, X
 from pyquil.operator_estimation import measure_observables
 from pyquil.paulis import sI, sX, sY, sZ
@@ -324,7 +324,7 @@ def test_for_negative_probabilities():
 
     # make TomographyExperiment
     expt_settings = [ExperimentSetting(zeros_state([0]), pt) for pt in [sI(0), sX(0), sY(0), sZ(0)]]
-    experiment_1q = TomographyExperiment(settings=expt_settings, program=prog)
+    experiment_1q = Experiment(settings=expt_settings, program=prog)
 
     # make a quantum computer object
     device = NxDevice(nx.complete_graph(1))

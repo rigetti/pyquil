@@ -1,7 +1,7 @@
 import itertools
 import pytest
 
-from pyquil.experiment._main import TomographyExperiment
+from pyquil.experiment._main import Experiment
 from pyquil.experiment._result import ExperimentResult
 from pyquil.experiment._setting import (
     ExperimentSetting,
@@ -63,9 +63,9 @@ def test_merge_disjoint_experiments():
     sett4 = ExperimentSetting(minusX(1), sY(1))
     sett5 = ExperimentSetting(TensorProductState(), sZ(2))
 
-    expt1 = TomographyExperiment(settings=[sett1, sett2], program=Program(X(1)))
-    expt2 = TomographyExperiment(settings=[sett3, sett4], program=Program(Z(0)))
-    expt3 = TomographyExperiment(settings=[sett5], program=Program())
+    expt1 = Experiment(settings=[sett1, sett2], program=Program(X(1)))
+    expt2 = Experiment(settings=[sett3, sett4], program=Program(Z(0)))
+    expt3 = Experiment(settings=[sett5], program=Program())
 
     merged_expt = merge_disjoint_experiments([expt1, expt2, expt3])
     assert len(merged_expt) == 2
@@ -100,7 +100,7 @@ def test_group_experiments(grouping_method):
         ExperimentSetting(TensorProductState(), sZ(0) * sI(1)),
         ExperimentSetting(TensorProductState(), sI(0) * sZ(1)),
     ]
-    suite = TomographyExperiment(expts, Program())
+    suite = Experiment(expts, Program())
     grouped_suite = group_settings(suite, method=grouping_method)
     assert len(suite) == 4
     assert len(grouped_suite) == 2
@@ -191,7 +191,7 @@ def test_max_tpb_overlap_1():
         ExperimentSetting(plusX(2) * plusZ(1), sY(2) * sZ(0)),
     ]
     tomo_expt_program = Program(H(0), H(1), H(2))
-    tomo_expt = TomographyExperiment(tomo_expt_settings, tomo_expt_program)
+    tomo_expt = Experiment(tomo_expt_settings, tomo_expt_program)
     expected_dict = {
         ExperimentSetting(plusX(0) * plusZ(1) * plusX(2), sZ(0) * sY(1) * sY(2)): [
             ExperimentSetting(plusZ(1) * plusX(0), sY(2) * sY(1)),
@@ -207,7 +207,7 @@ def test_max_tpb_overlap_2():
         PauliTerm.from_compact_str("(1+0j)*Z4X8Y5X3Y7Y1"),
     )
     p = Program(H(0), H(1), H(2))
-    tomo_expt = TomographyExperiment([expt_setting], p)
+    tomo_expt = Experiment([expt_setting], p)
     expected_dict = {expt_setting: [expt_setting]}
     assert expected_dict == _max_tpb_overlap(tomo_expt)
 
@@ -220,13 +220,13 @@ def test_max_tpb_overlap_3():
     )
     expt_setting2 = ExperimentSetting(plusZ(7), sY(1))
     p = Program(H(0), H(1), H(2))
-    tomo_expt2 = TomographyExperiment([expt_setting, expt_setting2], p)
+    tomo_expt2 = Experiment([expt_setting, expt_setting2], p)
     expected_dict2 = {expt_setting: [expt_setting, expt_setting2]}
     assert expected_dict2 == _max_tpb_overlap(tomo_expt2)
 
 
 def test_group_experiments_greedy():
-    ungrouped_tomo_expt = TomographyExperiment(
+    ungrouped_tomo_expt = Experiment(
         [
             [
                 ExperimentSetting(
@@ -239,7 +239,7 @@ def test_group_experiments_greedy():
         program=Program(H(0), H(1), H(2)),
     )
     grouped_tomo_expt = group_settings(ungrouped_tomo_expt, method="greedy")
-    expected_grouped_tomo_expt = TomographyExperiment(
+    expected_grouped_tomo_expt = Experiment(
         [
             [
                 ExperimentSetting(

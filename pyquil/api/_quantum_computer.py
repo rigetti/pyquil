@@ -38,7 +38,7 @@ from pyquil.api._qpu import QPU
 from pyquil.api._qvm import QVM
 from pyquil.device._main import AbstractDevice, Device, NxDevice
 from pyquil.device._isa import gates_in_isa, ISA
-from pyquil.experiment._main import TomographyExperiment
+from pyquil.experiment._main import Experiment
 from pyquil.experiment._memory import merge_memory_map_lists
 from pyquil.experiment._result import ExperimentResult, bitstrings_to_expectations
 from pyquil.experiment._setting import ExperimentSetting
@@ -137,12 +137,12 @@ class QuantumComputer:
         return self.qam.run().wait().read_memory(region_name="ro")
 
     @_record_call
-    def calibrate(self, experiment: TomographyExperiment) -> List[ExperimentResult]:
+    def calibrate(self, experiment: Experiment) -> List[ExperimentResult]:
         """
         Perform readout calibration on the various multi-qubit observables involved in the provided
-        ``TomographyExperiment``.
+        ``Experiment``.
 
-        :param experiment: The ``TomographyExperiment`` to calibrate readout error for.
+        :param experiment: The ``Experiment`` to calibrate readout error for.
         :return: A list of ``ExperimentResult`` objects that contain the expectation values that
             correspond to the scale factors resulting from symmetric readout error.
         """
@@ -152,12 +152,11 @@ class QuantumComputer:
     @_record_call
     def experiment(
         self,
-        experiment: TomographyExperiment,
+        experiment: Experiment,
         memory_map: Optional[Mapping[str, Sequence[Union[int, float]]]] = None,
     ) -> List[ExperimentResult]:
         """
-        Run a ``TomographyExperiment`` on a QVM or QPU backend. A ``TomographyExperiment``
-        is composed of:
+        Run an ``Experiment`` on a QVM or QPU backend. An ``Experiment`` is composed of:
 
             - A main ``Program`` body (or ansatz).
             - A collection of ``ExperimentSetting`` objects, each of which encodes a particular
@@ -165,24 +164,23 @@ class QuantumComputer:
             - A ``SymmetrizationLevel`` for enacting different readout symmetrization strategies.
             - A number of shots to collect for each (unsymmetrized) ``ExperimentSetting``.
 
-        Because the main ``Program`` is static from run to run of a ``TomographyExperiment``, we
-        can leverage our platform's Parametric Compilation feature. This means that the ``Program``
-        can be compiled only once, and the various alterations due to state preparation,
-        measurement, and symmetrization can all be realized at runtime by providing a
-        ``memory_map``. Thus, the steps in the ``experiment`` method are as follows:
+        Because the main ``Program`` is static from run to run of an ``Experiment``, we can leverage
+        our platform's Parametric Compilation feature. This means that the ``Program`` can be
+        compiled only once, and the various alterations due to state preparation, measurement,
+        and symmetrization can all be realized at runtime by providing a ``memory_map``. Thus, the
+        steps in the ``experiment`` method are as follows:
 
-            1. Check to see if this ``TomographyExperiment`` has already been loaded into this
+            1. Check to see if this ``Experiment`` has already been loaded into this
                ``QuantumComputer`` object. If so, skip to step 2. Otherwise, do the following:
 
-                a. Generate a parameterized program corresponding to the ``TomographyExperiment``
-                   (see the ``TomographyExperiment.generate_experiment_program()`` method for more
+                a. Generate a parameterized program corresponding to the ``Experiment``
+                   (see the ``Experiment.generate_experiment_program()`` method for more
                    details on how it changes the main body program to support state preparation,
                    measurement, and symmetrization).
                 b. Compile the parameterized program into a parametric (binary) executable, which
                    contains declared variables that can be assigned at runtime.
 
-            2. For each ``ExperimentSetting`` in the ``TomographyExperiment``, we repeat the
-               following:
+            2. For each ``ExperimentSetting`` in the ``Experiment``, we repeat the following:
 
                 a. Build a collection of memory maps that correspond to the various state
                    preparation, measurement, and symmetrization specifications.
@@ -196,7 +194,7 @@ class QuantumComputer:
         This method is extremely useful shorthand for running near-term applications and algorithms,
         which often have this ansatz + settings structure.
 
-        :param experiment: The ``TomographyExperiment`` to run.
+        :param experiment: The ``Experiment`` to run.
         :param memory_map: A dictionary mapping declared variables / parameters to their values.
             The values are a list of floats or integers. Each float or integer corresponds to
             a particular classical memory register. The memory map provided to the ``experiment``
@@ -204,7 +202,7 @@ class QuantumComputer:
             at runtime (e.g. the variational parameters provided to the ansatz of the variational
             quantum eigensolver).
         :return: A list of ``ExperimentResult`` objects containing the statistics gathered
-            according to the specifications of the ``TomographyExperiment``.
+            according to the specifications of the ``Experiment``.
         """
         executable = self.qam._executable
         # if this experiment was the last experiment run on this QuantumComputer,

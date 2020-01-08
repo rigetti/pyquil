@@ -10,7 +10,7 @@ from pyquil.experiment._program import (
 from pyquil.experiment import (
     ExperimentSetting,
     TensorProductState,
-    TomographyExperiment,
+    Experiment,
     plusZ,
     read_json,
     to_json,
@@ -36,7 +36,7 @@ def test_tomo_experiment():
         ExperimentSetting(plusZ(0), sZ(0)),
     ]
 
-    suite = TomographyExperiment(settings=expts, program=Program(X(0), Y(1)))
+    suite = Experiment(settings=expts, program=Program(X(0), Y(1)))
     assert len(suite) == 2
     for e1, e2 in zip(expts, suite):
         # experiment suite puts in groups of length 1
@@ -59,7 +59,7 @@ def test_tomo_experiment_pre_grouped():
         ],
     ]
 
-    suite = TomographyExperiment(settings=expts, program=Program(X(0), Y(1)))
+    suite = Experiment(settings=expts, program=Program(X(0), Y(1)))
     assert len(suite) == 2  # number of groups
     for es1, es2 in zip(expts, suite):
         for e1, e2 in zip(es1, es2):
@@ -69,7 +69,7 @@ def test_tomo_experiment_pre_grouped():
 
 
 def test_tomo_experiment_empty():
-    suite = TomographyExperiment([], program=Program(X(0)))
+    suite = Experiment([], program=Program(X(0)))
     assert len(suite) == 0
     assert str(suite.program) == "X 0\n"
 
@@ -86,7 +86,7 @@ def test_experiment_deser(tmpdir):
         ],
     ]
 
-    suite = TomographyExperiment(settings=expts, program=Program(X(0), Y(1)))
+    suite = Experiment(settings=expts, program=Program(X(0), Y(1)))
     to_json(f"{tmpdir}/suite.json", suite)
     suite2 = read_json(f"{tmpdir}/suite.json")
     assert suite == suite2
@@ -120,7 +120,7 @@ def test_generate_experiment_program():
     # simplest example
     p = Program()
     s = ExperimentSetting(in_state=sZ(0), out_operator=sZ(0))
-    e = TomographyExperiment(settings=[s], program=p, symmetrization=0)
+    e = Experiment(settings=[s], program=p, symmetrization=0)
     exp = e.generate_experiment_program()
     test_exp = Program()
     ro = test_exp.declare("ro", "BIT")
@@ -131,7 +131,7 @@ def test_generate_experiment_program():
     # 2Q exhaustive symmetrization
     p = Program()
     s = ExperimentSetting(in_state=sZ(0) * sZ(1), out_operator=sZ(0) * sZ(1))
-    e = TomographyExperiment(settings=[s], program=p)
+    e = Experiment(settings=[s], program=p)
     exp = e.generate_experiment_program()
     test_exp = Program()
     test_exp += parameterized_readout_symmetrization([0, 1])
@@ -145,7 +145,7 @@ def test_generate_experiment_program():
     p = Program()
     p.wrap_in_numshots_loop(1000)
     s = ExperimentSetting(in_state=sZ(0), out_operator=sZ(0))
-    e = TomographyExperiment(settings=[s], program=p, symmetrization=0)
+    e = Experiment(settings=[s], program=p, symmetrization=0)
     exp = e.generate_experiment_program()
     test_exp = Program()
     ro = test_exp.declare("ro", "BIT")
@@ -157,7 +157,7 @@ def test_generate_experiment_program():
     p = Program()
     p += RESET()
     s = ExperimentSetting(in_state=sZ(0), out_operator=sZ(0))
-    e = TomographyExperiment(settings=[s], program=p, symmetrization=0)
+    e = Experiment(settings=[s], program=p, symmetrization=0)
     exp = e.generate_experiment_program()
     test_exp = Program()
     test_exp += RESET()
@@ -169,7 +169,7 @@ def test_generate_experiment_program():
     # state preparation and measurement
     p = Program()
     s = ExperimentSetting(in_state=sY(0), out_operator=sX(0))
-    e = TomographyExperiment(settings=[s], program=p, symmetrization=0)
+    e = Experiment(settings=[s], program=p, symmetrization=0)
     exp = e.generate_experiment_program()
     test_exp = Program()
     test_exp += parameterized_single_qubit_state_preparation([0])
@@ -182,7 +182,7 @@ def test_generate_experiment_program():
     # multi-qubit state preparation and measurement
     p = Program()
     s = ExperimentSetting(in_state=sZ(0) * sY(1), out_operator=sZ(0) * sX(1))
-    e = TomographyExperiment(settings=[s], program=p, symmetrization=0)
+    e = Experiment(settings=[s], program=p, symmetrization=0)
     exp = e.generate_experiment_program()
     test_exp = Program()
     test_exp += parameterized_single_qubit_state_preparation([0, 1])
@@ -197,7 +197,7 @@ def test_generate_experiment_program():
 def test_build_experiment_setting_memory_map():
     p = Program()
     s = ExperimentSetting(in_state=sX(0), out_operator=sZ(0) * sY(1))
-    e = TomographyExperiment(settings=[s], program=p)
+    e = Experiment(settings=[s], program=p)
     memory_map = e.build_setting_memory_map(s)
     assert memory_map == {
         "preparation_alpha": [0.0],
@@ -212,7 +212,7 @@ def test_build_experiment_setting_memory_map():
 def test_build_symmetrization_memory_maps():
     p = Program()
     s = ExperimentSetting(in_state=sZ(0) * sZ(1), out_operator=sZ(0) * sZ(1))
-    e = TomographyExperiment(settings=[s], program=p)
+    e = Experiment(settings=[s], program=p)
     memory_maps = [
         {"symmetrization": [0.0, 0.0]},
         {"symmetrization": [0.0, np.pi]},

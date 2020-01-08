@@ -2,7 +2,7 @@ Experiment
 ==========
 
 The ``experiment`` module offers a schema and utilities for succinctly expressing commonly
-used applications and algorithms in near-term quantum programming. A ``TomographyExperiment``
+used applications and algorithms in near-term quantum programming. An ``Experiment`` object
 is intended to be consumed by the ``QuantumComputer.experiment`` method.
 
 **NOTE**: When working with the `experiment` method, the following declared memory labels are
@@ -18,7 +18,7 @@ reserved:
 Schema
 ------
 
-.. autoclass:: pyquil.experiment.TomographyExperiment
+.. autoclass:: pyquil.experiment.Experiment
 
    .. rubric:: Methods
 
@@ -26,12 +26,12 @@ Schema
         :toctree: autogen
         :template: autosumm.rst
 
-        ~TomographyExperiment.get_meas_qubits
-        ~TomographyExperiment.get_meas_registers
-        ~TomographyExperiment.generate_experiment_program
-        ~TomographyExperiment.build_setting_memory_map
-        ~TomographyExperiment.build_symmetrization_memory_maps
-        ~TomographyExperiment.generate_calibration_experiment
+        ~Experiment.get_meas_qubits
+        ~Experiment.get_meas_registers
+        ~Experiment.generate_experiment_program
+        ~Experiment.build_setting_memory_map
+        ~Experiment.build_symmetrization_memory_maps
+        ~Experiment.generate_calibration_experiment
 
 .. autoclass:: pyquil.experiment.ExperimentSetting
 

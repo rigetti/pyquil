@@ -23,7 +23,7 @@ import numpy as np
 from rpcq.messages import BinaryExecutableResponse, ParameterAref, PyQuilExecutableResponse
 
 from pyquil.api._error_reporting import _record_call
-from pyquil.experiment._main import TomographyExperiment
+from pyquil.experiment._main import Experiment
 
 
 class QAMError(RuntimeError):
@@ -160,6 +160,6 @@ class QAM(ABC):
         self._variables_shim = {}
         self._executable = None
         self._memory_results = defaultdict(lambda: None)
-        self._experiment: Optional[TomographyExperiment] = None
+        self._experiment: Optional[Experiment] = None
 
         self.status = "connected"
