@@ -19,7 +19,7 @@ Module containing the Wavefunction object and methods for working with wavefunct
 import itertools
 import struct
 import warnings
-from typing import Any, Dict, List, Optional, Sequence
+from typing import Dict, Iterator, List, Optional, Sequence, cast
 
 import numpy as np
 
@@ -97,11 +97,11 @@ class Wavefunction(object):
     def __len__(self) -> int:
         return len(self.amplitudes).bit_length() - 1
 
-    def __iter__(self) -> Any:
-        return self.amplitudes.__iter__()
+    def __iter__(self) -> Iterator[complex]:
+        return cast(Iterator[complex], self.amplitudes.__iter__())
 
-    def __getitem__(self, index: int) -> Any:
-        return self.amplitudes[index]
+    def __getitem__(self, index: int) -> complex:
+        return cast(complex, self.amplitudes[index])
 
     def __setitem__(self, key: int, value: complex) -> None:
         self.amplitudes[key] = value

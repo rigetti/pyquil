@@ -321,9 +321,7 @@ class PauliTerm(object):
 
         result = ID()
         for _ in range(power):
-            pow = result * self
-            assert isinstance(pow, PauliTerm)
-            result = pow
+            result = cast(PauliTerm, result * self)
         return result
 
     def __add__(self, other: Union[PauliDesignator, ExpressionDesignator]) -> "PauliSum":
@@ -344,14 +342,14 @@ class PauliTerm(object):
         """Adds this PauliTerm with a Number.
 
         :param other: A Number
-        :returns: A new PauliTerm
+        :returns: A new PauliSum
         """
         return PauliTerm("I", 0, other) + self
 
     def __sub__(self, other: Union["PauliTerm", ExpressionDesignator]) -> "PauliSum":
         """Subtracts a PauliTerm from this one.
 
-        :param other: A PauliTerm object or a Number
+        :param other: A PauliTerm object, a number, or an Expression
         :returns: A PauliSum object representing the difference of this PauliTerm and term
         """
         return self + -1.0 * other
@@ -984,7 +982,7 @@ def _exponentiate_general_case(pauli_term: PauliTerm, param: float) -> Program:
     highest_target_index = None
 
     for index, op in pauli_term:
-        assert isinstance(index, int) or isinstance(index, QubitPlaceholder)
+        assert isinstance(index, (int, QubitPlaceholder))
         if "X" == op:
             change_to_z_basis.inst(H(index))
             change_to_original_basis.inst(H(index))
