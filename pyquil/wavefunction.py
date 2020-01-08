@@ -168,11 +168,10 @@ class Wavefunction(object):
         qubit_num = len(self)
         pp_string = ""
         for index, amplitude in enumerate(self.amplitudes):
-            outcome = get_bitstring_from_index(index, qubit_num)
-
-            # Remove each ancilla qubit from the outcome bitstring
-            for ancilla in ancillae:
-                outcome = outcome[0 : qubit_num - ancilla - 1] + outcome[qubit_num - ancilla :]
+            outcome = ""
+            for (i, c) in enumerate(get_bitstring_from_index(index, qubit_num)):
+                if qubit_num - i - 1 not in ancillae:  # don't include ancilla qubits
+                    outcome += c
             amplitude = (
                 round(amplitude.real, decimal_digits) + round(amplitude.imag, decimal_digits) * 1.0j
             )
