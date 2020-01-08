@@ -19,10 +19,13 @@ from configparser import ConfigParser, NoSectionError, NoOptionError
 from os import environ, path
 from os.path import expanduser, abspath
 from types import MappingProxyType
-from typing import Dict, Iterable, Optional
+from typing import Callable, Dict, Iterable, Mapping, Optional, TYPE_CHECKING, cast
 
 from pyquil.api._errors import UserMessageError
 from pyquil.api._logger import logger
+
+if TYPE_CHECKING:
+    from pyquil.api._base_connection import Engagement
 
 # `.qcs_config` is for content (mostly) related to QCS: the QCS front end stacks endpoint (`url`)
 # for querying all QCS data: devices, reservations, etc. etc., and the `exec_on_engage` that the
@@ -32,7 +35,10 @@ QCS_CONFIG = "QCS_CONFIG"
 # `.forest_config`, for content related to the Forest SDK, such as ip addresses for the various
 # servers to which users submit quil & jobs (qvm, compiler, qpu, etc.)
 FOREST_CONFIG = "FOREST_CONFIG"
-CONFIG_PATHS = MappingProxyType({QCS_CONFIG: "~/.qcs_config", FOREST_CONFIG: "~/.forest_config"})
+CONFIG_PATHS = cast(
+    Mapping[str, str],
+    MappingProxyType({QCS_CONFIG: "~/.qcs_config", FOREST_CONFIG: "~/.forest_config"}),
+)
 
 
 class PyquilConfig(object):
@@ -144,18 +150,18 @@ class PyquilConfig(object):
         "default": None,
     }
 
-    def __init__(self, config_paths: Dict[str, str] = CONFIG_PATHS):
+    def __init__(self, config_paths: Mapping[str, str] = CONFIG_PATHS):
         """
         :param config_paths: The paths to the various configuration files read by pyQuil.
         """
 
         # The engagement callback can be added by config consumers after construction
-        self.get_engagement = lambda: None
+        self.get_engagement: Optional[Callable[..., Optional[Engagement]]] = lambda: None
 
         # Whether engagement has been requested in order to provide any config values
         self._engagement_requested = False
 
-        self.config_parsers = {}
+        self.config_parsers: Dict[str, ConfigParser] = {}
         for env_name, default_path in config_paths.items():
             default_path = expanduser(default_path)
             path = environ.get(env_name, default_path)
@@ -165,7 +171,7 @@ class PyquilConfig(object):
             self.config_parsers[env_name] = cp
         self._parse_auth_tokens()
 
-    def _parse_auth_tokens(self):
+    def _parse_auth_tokens(self) -> None:
         self.user_auth_token = _parse_auth_token(
             self.user_auth_token_path, ["access_token", "refresh_token", "scope"]
         )
@@ -174,8 +180,14 @@ class PyquilConfig(object):
         )
 
     def _env_or_config_or_default(
-        self, env=None, file=None, section=None, name=None, default=None, engagement_key=None
-    ):
+        self,
+        env: Optional[str] = None,
+        file: Optional[str] = None,
+        section: Optional[str] = None,
+        name: Optional[str] = None,
+        default: Optional[str] = None,
+        engagement_key: Optional[str] = None,
+    ) -> Optional[str]:
         """
         Get the value of the environment variable or config file value.
         The environment variable takes precedence.
@@ -188,11 +200,13 @@ class PyquilConfig(object):
         """
 
         # If it's an envvar, that overrides all other options
+        assert env is not None
         env_val = environ.get(env)
         if env_val is not None:
             return env_val
 
         # Otherwise, use the values in the config files from disk
+        assert file is not None and section is not None and name is not None
         try:
             return self.config_parsers[file].get(section, name)
         except (NoSectionError, NoOptionError, KeyError):
@@ -201,10 +215,11 @@ class PyquilConfig(object):
         If no local configuration is available, certain values are provided
             by the dispatch service.
         """
+        assert self.get_engagement is not None
         try:
             if engagement_key is not None and self.get_engagement() is not None:
                 self._engagement_requested = True
-                return getattr(self.get_engagement(), engagement_key)
+                return cast(str, getattr(self.get_engagement(), engagement_key))
         except AttributeError:
             pass
 
@@ -220,11 +235,11 @@ class PyquilConfig(object):
         return self._env_or_config_or_default(**self.API_KEY)
 
     @property
-    def dispatch_url(self) -> str:
+    def dispatch_url(self) -> Optional[str]:
         return self._env_or_config_or_default(**self.DISPATCH_URL)
 
     @property
-    def engage_cmd(self) -> str:
+    def engage_cmd(self) -> Optional[str]:
         return self._env_or_config_or_default(**self.ENGAGE_CMD)
 
     @property
@@ -234,19 +249,22 @@ class PyquilConfig(object):
         configuration value.
         """
         if not self._engagement_requested:
-            return
+            return None
+        assert self.get_engagement is not None
         return self.get_engagement()
 
     @property
-    def forest_url(self) -> str:
+    def forest_url(self) -> Optional[str]:
         return self._env_or_config_or_default(**self.FOREST_URL)
 
     @property
     def qmi_auth_token_path(self) -> str:
-        return path.expanduser(self._env_or_config_or_default(**self.QMI_AUTH_TOKEN_PATH))
+        value = self._env_or_config_or_default(**self.QMI_AUTH_TOKEN_PATH)
+        assert value is not None
+        return path.expanduser(value)
 
     @property
-    def qcs_auth_headers(self) -> dict:
+    def qcs_auth_headers(self) -> Dict[str, str]:
         if self.user_auth_token is not None:
             return {"Authorization": f'Bearer {self.user_auth_token["access_token"]}'}
         if self.qmi_auth_token is not None:
@@ -266,26 +284,28 @@ class PyquilConfig(object):
         return self._env_or_config_or_default(**self.QPU_URL)
 
     @property
-    def quilc_url(self) -> str:
+    def quilc_url(self) -> Optional[str]:
         return self._env_or_config_or_default(**self.QUILC_URL)
 
     @property
-    def qvm_url(self) -> str:
+    def qvm_url(self) -> Optional[str]:
         return self._env_or_config_or_default(**self.QVM_URL)
 
-    def update_user_auth_token(self, user_auth_token) -> None:
+    def update_user_auth_token(self, user_auth_token: Dict[str, str]) -> None:
         self.user_auth_token = user_auth_token
         with open(self.user_auth_token_path, "w") as f:
             json.dump(user_auth_token, f)
 
-    def update_qmi_auth_token(self, qmi_auth_token) -> None:
+    def update_qmi_auth_token(self, qmi_auth_token: Dict[str, str]) -> None:
         self.qmi_auth_token = qmi_auth_token
         with open(self.qmi_auth_token_path, "w") as f:
             json.dump(qmi_auth_token, f)
 
     @property
     def user_auth_token_path(self) -> str:
-        return path.expanduser(self._env_or_config_or_default(**self.USER_AUTH_TOKEN_PATH))
+        value = self._env_or_config_or_default(**self.USER_AUTH_TOKEN_PATH)
+        assert value is not None
+        return path.expanduser(value)
 
     @property
     def user_id(self) -> Optional[str]:
@@ -306,10 +326,10 @@ class PyquilConfig(object):
             )
 
 
-def _parse_auth_token(path: str, required_keys: Iterable[str]) -> Optional[dict]:
+def _parse_auth_token(path: str, required_keys: Iterable[str]) -> Optional[Dict[str, str]]:
     try:
         with open(abspath(expanduser(path)), "r") as f:
-            token = json.load(f)
+            token: Dict[str, str] = json.load(f)
             invalid_values = [k for k in required_keys if not isinstance(token.get(k), str)]
             if len(invalid_values) == 0:
                 return token
@@ -319,3 +339,4 @@ def _parse_auth_token(path: str, required_keys: Iterable[str]) -> Optional[dict]
         logger.warning(f"Failed to parse auth token at {path}. Invalid JSON.")
     except FileNotFoundError:
         logger.debug("Auth token at %s not found.", path)
+    return None

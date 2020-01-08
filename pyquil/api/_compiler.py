@@ -17,11 +17,11 @@ import logging
 import sys
 import warnings
 from requests.exceptions import RequestException
-from typing import Dict, Any, List, Optional, Tuple
+from typing import Dict, Any, List, Optional, Tuple, Union, cast
 from collections import Counter
 
-from rpcq import Client
 from rpcq._base import Message, to_json, from_json
+from rpcq._client import Client
 from rpcq.messages import (
     BinaryExecutableRequest,
     BinaryExecutableResponse,
@@ -30,17 +30,19 @@ from rpcq.messages import (
     PyQuilExecutableResponse,
     ParameterSpec,
     RewriteArithmeticRequest,
+    RewriteArithmeticResponse,
 )
 from urllib.parse import urljoin
 
-from pyquil import __version__
 from pyquil.api._base_connection import ForestSession
 from pyquil.api._qac import AbstractCompiler
 from pyquil.api._error_reporting import _record_call
 from pyquil.api._errors import UserMessageError
-from pyquil.device import AbstractDevice
+from pyquil.device._main import AbstractDevice, Device
 from pyquil.parser import parse_program
-from pyquil.quil import Program, Measurement, Declare
+from pyquil.quil import Program
+from pyquil.quilbase import Measurement, Declare
+from pyquil.version import __version__
 
 if sys.version_info < (3, 7):
     from pyquil.external.dataclasses import dataclass
@@ -65,7 +67,7 @@ class QPUCompilerNotRunning(Exception):
     pass
 
 
-def check_quilc_version(version_dict: Dict[str, str]):
+def check_quilc_version(version_dict: Dict[str, str]) -> None:
     """
     Verify that there is no mismatch between pyquil and quilc versions.
 
@@ -206,7 +208,12 @@ class QPUCompiler(AbstractCompiler):
         self.session = session
         self.timeout = timeout
 
-        _quilc_endpoint = quilc_endpoint or self.session.config.quilc_url
+        if quilc_endpoint:
+            _quilc_endpoint = quilc_endpoint
+        elif self.session and self.session.config.quilc_url:
+            _quilc_endpoint = self.session.config.quilc_url
+        else:
+            raise ValueError("Must provide a 'quilc_endpoint' or a 'session'")
 
         if not _quilc_endpoint.startswith("tcp://"):
             raise ValueError(
@@ -222,10 +229,11 @@ class QPUCompiler(AbstractCompiler):
         self.quilc_client = Client(_quilc_endpoint, timeout=timeout)
 
         self.qpu_compiler_endpoint = qpu_compiler_endpoint
-        self._qpu_compiler_client = None
+        self._qpu_compiler_client: Optional[Union[Client, HTTPCompilerClient]] = None
 
         self._device = device
-        self.target_device = TargetDevice(isa=device.get_isa().to_dict(), specs=None)
+        td = TargetDevice(isa=device.get_isa().to_dict(), specs=None)  # type: ignore
+        self.target_device = td
         self.name = name
 
         try:
@@ -236,11 +244,17 @@ class QPUCompiler(AbstractCompiler):
             warnings.warn(f"{e}. Compilation using the QPU compiler will not be available.")
 
     @property
-    def qpu_compiler_client(self) -> Client:
+    def qpu_compiler_client(self) -> Optional[Union[Client, "HTTPCompilerClient"]]:
         if not self._qpu_compiler_client:
-            endpoint = self.qpu_compiler_endpoint or self.session.config.qpu_compiler_url
+            endpoint: Optional[str] = None
+            if self.qpu_compiler_endpoint:
+                endpoint = self.qpu_compiler_endpoint
+            elif self.session:
+                endpoint = self.session.config.qpu_compiler_url
+
             if endpoint is not None:
                 if endpoint.startswith(("http://", "https://")):
+                    assert isinstance(self._device, Device) and self.session is not None
                     device_endpoint = urljoin(
                         endpoint, f'devices/{self._device._raw["device_name"]}/'
                     )
@@ -254,6 +268,11 @@ class QPUCompiler(AbstractCompiler):
                         "Invalid endpoint provided to QPUCompiler. Expected protocol in [http://, "
                         f"https://, tcp://], but received endpoint {endpoint}"
                     )
+
+        assert (
+            isinstance(self._qpu_compiler_client, (Client, HTTPCompilerClient))
+            or self._qpu_compiler_client is None
+        )
         return self._qpu_compiler_client
 
     def connect(self) -> None:
@@ -269,6 +288,7 @@ class QPUCompiler(AbstractCompiler):
             raise QuilcNotRunning(f"No quilc server reachable at {self.quilc_client.endpoint}")
 
     def _connect_qpu_compiler(self) -> None:
+        assert self.qpu_compiler_client is not None
         try:
             self.qpu_compiler_client.call("get_version_info", rpc_timeout=1)
         except TimeoutError:
@@ -276,7 +296,7 @@ class QPUCompiler(AbstractCompiler):
                 f"No QPU compiler server reachable at {self.qpu_compiler_client.endpoint}"
             )
 
-    def get_version_info(self) -> dict:
+    def get_version_info(self) -> Dict[str, Any]:
         quilc_version_info = self.quilc_client.call("get_version_info", rpc_timeout=1)
         if self.qpu_compiler_client:
             qpu_compiler_version_info = self.qpu_compiler_client.call(
@@ -286,12 +306,12 @@ class QPUCompiler(AbstractCompiler):
         return {"quilc": quilc_version_info}
 
     @_record_call
-    def quil_to_native_quil(self, program: Program, *, protoquil=None) -> Program:
+    def quil_to_native_quil(self, program: Program, *, protoquil: Optional[bool] = None) -> Program:
         self._connect_quilc()
         request = NativeQuilRequest(quil=program.out(), target_device=self.target_device)
         response = self.quilc_client.call(
             "quil_to_native_quil", request, protoquil=protoquil
-        ).asdict()  # type: Dict
+        ).asdict()
         nq_program = parse_program(response["quil"])
         nq_program.native_quil_metadata = response["metadata"]
         nq_program.num_shots = program.num_shots
@@ -317,23 +337,29 @@ class QPUCompiler(AbstractCompiler):
             )
 
         arithmetic_request = RewriteArithmeticRequest(quil=nq_program.out())
-        arithmetic_response = self.quilc_client.call("rewrite_arithmetic", arithmetic_request)
+        arithmetic_response: RewriteArithmeticResponse = cast(
+            RewriteArithmeticResponse,
+            self.quilc_client.call("rewrite_arithmetic", arithmetic_request),
+        )
 
         request = BinaryExecutableRequest(
             quil=arithmetic_response.quil, num_shots=nq_program.num_shots
         )
-        response = self.qpu_compiler_client.call("native_quil_to_binary", request)
+        response: BinaryExecutableResponse = cast(
+            BinaryExecutableResponse,
+            self.qpu_compiler_client.call("native_quil_to_binary", request),
+        )
 
         # hack! we're storing a little extra info in the executable binary that we don't want to
         # expose to anyone outside of our own private lives: not the user, not the Forest server,
         # not anyone.
-        response.recalculation_table = arithmetic_response.recalculation_table
+        response.recalculation_table = arithmetic_response.recalculation_table  # type: ignore
         response.memory_descriptors = _collect_memory_descriptors(nq_program)
         response.ro_sources = _collect_classical_memory_write_locations(nq_program)
         return response
 
     @_record_call
-    def reset(self):
+    def reset(self) -> None:
         """
         Reset the state of the QPUCompiler Client connections.
         """
@@ -363,7 +389,8 @@ class QVMCompiler(AbstractCompiler):
 
         self.endpoint = endpoint
         self.client = Client(endpoint, timeout=timeout)
-        self.target_device = TargetDevice(isa=device.get_isa().to_dict(), specs=None)
+        td = TargetDevice(isa=device.get_isa().to_dict(), specs=None)  # type: ignore
+        self.target_device = td
 
         try:
             self.connect()
@@ -377,16 +404,14 @@ class QVMCompiler(AbstractCompiler):
         except TimeoutError:
             raise QuilcNotRunning(f"No quilc server running at {self.client.endpoint}")
 
-    def get_version_info(self) -> dict:
-        return self.client.call("get_version_info", rpc_timeout=1)
+    def get_version_info(self) -> Dict[str, Any]:
+        return cast(Dict[str, Any], self.client.call("get_version_info", rpc_timeout=1))
 
     @_record_call
-    def quil_to_native_quil(self, program: Program, *, protoquil=None) -> Program:
+    def quil_to_native_quil(self, program: Program, *, protoquil: Optional[bool] = None) -> Program:
         self.connect()
         request = NativeQuilRequest(quil=program.out(), target_device=self.target_device)
-        response = self.client.call(
-            "quil_to_native_quil", request, protoquil=protoquil
-        ).asdict()  # type: Dict
+        response = self.client.call("quil_to_native_quil", request, protoquil=protoquil).asdict()
         nq_program = parse_program(response["quil"])
         nq_program.native_quil_metadata = response["metadata"]
         nq_program.num_shots = program.num_shots
@@ -405,7 +430,7 @@ class QVMCompiler(AbstractCompiler):
         Reset the state of the QVMCompiler quilc connection.
         """
         timeout = self.client.timeout
-        self.client.close()
+        self.client.close()  # type: ignore
         self.client = Client(self.endpoint, timeout=timeout)
 
 
@@ -449,7 +474,7 @@ class HTTPCompilerClient:
         url = urljoin(self.endpoint, method)
 
         if payload:
-            body = to_json(payload)
+            body = to_json(payload)  # type: ignore
         else:
             body = None
 
@@ -472,4 +497,4 @@ class HTTPCompilerClient:
 
             raise UserMessageError(message) from e
 
-        return from_json(response.text)
+        return cast(Message, from_json(response.text))  # type: ignore

@@ -49,6 +49,7 @@ Changelog
 -   `QAM.write_memory` now accepts either a `Sequence` of values or a single
     value (@tommy-moffat, gh-1114).
 -   Added type hints for all remaining top-level files (@karalekas, gh-1150).
+-   Added type annotations to the whole `pyquil.api` module (@karalekas, gh-1157).
 
 ### Bugfixes
 

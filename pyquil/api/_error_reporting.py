@@ -20,16 +20,17 @@ IMPORTANT NOTE: THIS MODULE USES GLOBAL STATE AND IS NOT ESPECIALLY THREAD-SAFE.
                 If your threaded code is experiencing pyQuil errors, you'll have to track
                 your own state and not use this convenient decorator.
 """
+import inspect
+import json
+import logging
 import os
 import sys
-import json
-import inspect
 from datetime import datetime, date
-from typing import List, Dict, Any
-import logging
 from functools import wraps
+from typing import List, Dict, Any, Callable, Optional
 
-import pyquil
+from pyquil.quil import Program
+from pyquil.version import __version__
 
 if sys.version_info < (3, 7):
     from pyquil.external.dataclasses import dataclass, is_dataclass, asdict
@@ -45,11 +46,11 @@ class ErrorReport:
     Dump of the current state of a pyQuil program.
     """
 
-    stack_trace: list
+    stack_trace: List["StacktraceFrame"]
     timestamp: date
-    call_log: dict
+    call_log: Dict[str, "CallLogValue"]
     exception: Exception  # noqa: E701
-    system_info: dict
+    system_info: Dict[str, str]
 
 
 @dataclass
@@ -61,7 +62,7 @@ class StacktraceFrame:
     name: str
     filename: str
     line_number: int
-    locals: dict
+    locals: Dict[str, str]
 
 
 @dataclass(eq=True, frozen=True)
@@ -74,13 +75,13 @@ class CallLogKey:
     args: List[str]
     kwargs: Dict[str, Any]
 
-    def __hash__(self):
+    def __hash__(self) -> int:
         finger_print = (
             (self.name,) + tuple(self.args) + tuple(sorted(self.kwargs.items(), key=lambda i: i[0]))
         )
         return hash(finger_print)
 
-    def __repr__(self):
+    def __repr__(self) -> str:
         ret = self.name + "("
         for item in self.args:
             ret += repr(item) + ", "
@@ -98,11 +99,11 @@ class CallLogValue:
     """
 
     timestamp_in: date
-    timestamp_out: date
-    return_value: str
+    timestamp_out: Optional[date]
+    return_value: Optional[str]
 
 
-def json_serialization_helper(o):
+def json_serialization_helper(o: object) -> Any:
     if is_dataclass(o):
         return asdict(o)
     elif isinstance(o, datetime):
@@ -113,20 +114,20 @@ def json_serialization_helper(o):
         raise TypeError("unable to serialize object {}".format(o))
 
 
-def generate_system_info():
-    system_info = {"python_version": sys.version, "pyquil_version": pyquil.__version__}
+def generate_system_info() -> Dict[str, str]:
+    system_info = {"python_version": sys.version, "pyquil_version": __version__}
 
     return system_info
 
 
-def serialize_object_for_logging(o):
-    if isinstance(o, pyquil.Program):
+def serialize_object_for_logging(o: object) -> str:
+    if isinstance(o, Program):
         return str(o)
     else:
         return repr(o)
 
 
-def flatten_log(log):
+def flatten_log(log: Dict[CallLogKey, CallLogValue]) -> Dict[str, CallLogValue]:
     return {repr(k): v for k, v in log.items()}
 
 
@@ -138,7 +139,7 @@ class ErrorContext(object):
     log: Dict[CallLogKey, CallLogValue] = {}
     filename = "pyquil_error.log"
 
-    def generate_report(self, exception, trace):
+    def generate_report(self, exception: Exception, trace: List[inspect.FrameInfo]) -> ErrorReport:
         """
         Handle an error generated in a routine decorated with the pyQuil error handler.
 
@@ -170,7 +171,7 @@ class ErrorContext(object):
 
         return report
 
-    def dump_error(self, exception, trace):
+    def dump_error(self, exception: Exception, trace: List[inspect.FrameInfo]) -> None:
         warn_msg = """
 >>> PYQUIL_PROTECT <<<
 An uncaught exception was raised in a function wrapped in pyquil_protect.  We are writing out a
@@ -193,15 +194,17 @@ Rigetti Computing support by email at support@rigetti.com for assistance.
         fh.close()
 
 
-global_error_context = None
+global_error_context: Optional[ErrorContext] = None
 
 
-def pyquil_protect(func, log_filename="pyquil_error.log"):
+def pyquil_protect(
+    func: Callable[..., Any], log_filename: str = "pyquil_error.log"
+) -> Callable[..., Any]:
     """
     A decorator that sets up an error context, captures errors, and tears down the context.
     """
 
-    def pyquil_protect_wrapper(*args, **kwargs):
+    def pyquil_protect_wrapper(*args: Any, **kwargs: Any) -> Any:
         global global_error_context
 
         old_error_context = global_error_context
@@ -213,6 +216,7 @@ def pyquil_protect(func, log_filename="pyquil_error.log"):
             global_error_context = old_error_context
             return val
         except Exception as e:
+            assert global_error_context is not None
             global_error_context.dump_error(e, inspect.trace())
             global_error_context = old_error_context
             raise
@@ -220,7 +224,7 @@ def pyquil_protect(func, log_filename="pyquil_error.log"):
     return pyquil_protect_wrapper
 
 
-def _record_call(func):
+def _record_call(func: Callable[..., Any]) -> Callable[..., Any]:
     """
     A decorator that logs a call into the global error context.
 
@@ -228,7 +232,7 @@ def _record_call(func):
     """
 
     @wraps(func)
-    def wrapper(*args, **kwargs):
+    def wrapper(*args: Any, **kwargs: Any) -> Any:
         global global_error_context
 
         # log a call as about to take place

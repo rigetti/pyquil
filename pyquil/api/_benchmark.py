@@ -13,8 +13,10 @@
 #    See the License for the specific language governing permissions and
 #    limitations under the License.
 ##############################################################################
+from typing import List, Optional, Sequence, cast
+
 import rpcq
-from rpcq import Client
+from rpcq._client import Client
 from rpcq.messages import (
     RandomizedBenchmarkingRequest,
     RandomizedBenchmarkingResponse,
@@ -27,6 +29,7 @@ from pyquil.api._error_reporting import _record_call
 from pyquil.api._qac import AbstractBenchmarker
 from pyquil.paulis import PauliTerm, is_identity
 from pyquil.quil import address_qubits, Program
+from pyquil.quilbase import Gate
 
 
 class BenchmarkConnection(AbstractBenchmarker):
@@ -35,7 +38,7 @@ class BenchmarkConnection(AbstractBenchmarker):
     """
 
     @_record_call
-    def __init__(self, endpoint=None, timeout=None):
+    def __init__(self, endpoint: str, timeout: Optional[float] = None):
         """
         Client to communicate with the benchmarking data endpoint.
 
@@ -45,7 +48,7 @@ class BenchmarkConnection(AbstractBenchmarker):
         self.client = Client(endpoint, timeout=timeout)
 
     @_record_call
-    def apply_clifford_to_pauli(self, clifford, pauli_in):
+    def apply_clifford_to_pauli(self, clifford: Program, pauli_in: PauliTerm) -> PauliTerm:
         r"""
         Given a circuit that consists only of elements of the Clifford group,
         return its action on a PauliTerm.
@@ -53,8 +56,8 @@ class BenchmarkConnection(AbstractBenchmarker):
         In particular, for Clifford C, and Pauli P, this returns the PauliTerm
         representing CPC^{\dagger}.
 
-        :param Program clifford: A Program that consists only of Clifford operations.
-        :param PauliTerm pauli_in: A PauliTerm to be acted on by clifford via conjugation.
+        :param clifford: A Program that consists only of Clifford operations.
+        :param pauli_in: A PauliTerm to be acted on by clifford via conjugation.
         :return: A PauliTerm corresponding to clifford * pauli_in * clifford^{\dagger}
         """
         # do nothing if `pauli_in` is the identity
@@ -77,15 +80,23 @@ class BenchmarkConnection(AbstractBenchmarker):
         pauli_out = PauliTerm("I", 0, 1.0j ** phase_factor)
         clifford_qubits = clifford.get_qubits()
         pauli_qubits = pauli_in.get_qubits()
-        all_qubits = sorted(set(pauli_qubits).union(set(clifford_qubits)))
+        all_qubits = sorted(
+            set(cast(List[int], pauli_qubits)).union(set(cast(List[int], clifford_qubits)))
+        )
         # The returned pauli will have specified its value on all_qubits, sorted by index.
         #  This is maximal set of qubits that can be affected by this conjugation.
         for i, pauli in enumerate(paulis):
-            pauli_out *= PauliTerm(pauli, all_qubits[i])
-        return pauli_out * pauli_in.coefficient
+            pauli_out = cast(PauliTerm, pauli_out * PauliTerm(pauli, all_qubits[i]))
+        return cast(PauliTerm, pauli_out * pauli_in.coefficient)
 
     @_record_call
-    def generate_rb_sequence(self, depth, gateset, seed=None, interleaver=None):
+    def generate_rb_sequence(
+        self,
+        depth: int,
+        gateset: Sequence[Gate],
+        seed: Optional[int] = None,
+        interleaver: Optional[Program] = None,
+    ) -> List[Program]:
         """
         Construct a randomized benchmarking experiment on the given qubits, decomposing into
         gateset. If interleaver is not provided, the returned sequence will have the form
@@ -102,9 +113,9 @@ class BenchmarkConnection(AbstractBenchmarker):
         The JSON response is a list of lists of indices, or Nones. In the former case, they are the
         index of the gate in the gateset.
 
-        :param int depth: The number of Clifford gates to include in the randomized benchmarking
+        :param depth: The number of Clifford gates to include in the randomized benchmarking
          experiment. This is different than the number of gates in the resulting experiment.
-        :param list gateset: A list of pyquil gates to decompose the Clifford elements into. These
+        :param gateset: A list of pyquil gates to decompose the Clifford elements into. These
          must generate the clifford group on the qubits of interest. e.g. for one qubit
          [RZ(np.pi/2), RX(np.pi/2)].
         :param seed: A positive integer used to seed the PRNG.
@@ -121,14 +132,19 @@ class BenchmarkConnection(AbstractBenchmarker):
         gateset_as_program = address_qubits(sum(gateset, Program()))
         qubits = len(gateset_as_program.get_qubits())
         gateset_for_api = gateset_as_program.out().splitlines()
+        interleaver_out: Optional[str] = None
         if interleaver:
             assert isinstance(interleaver, Program)
-            interleaver = interleaver.out()
+            interleaver_out = interleaver.out()
 
         depth = int(depth)  # needs to be jsonable, no np.int64 please!
 
         payload = RandomizedBenchmarkingRequest(
-            depth=depth, qubits=qubits, gateset=gateset_for_api, seed=seed, interleaver=interleaver
+            depth=depth,
+            qubits=qubits,
+            gateset=gateset_for_api,
+            seed=seed,
+            interleaver=interleaver_out,
         )
         response = self.client.call(
             "generate_rb_sequence", payload
@@ -147,7 +163,7 @@ class BenchmarkConnection(AbstractBenchmarker):
         return list(reversed(programs))
 
 
-def get_benchmarker(endpoint: str = None, timeout: float = 10):
+def get_benchmarker(endpoint: Optional[str] = None, timeout: float = 10) -> BenchmarkConnection:
     """
     Retrieve an instance of the appropriate AbstractBenchmarker subclass for a given endpoint.
 

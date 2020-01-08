@@ -13,7 +13,7 @@
 #    See the License for the specific language governing permissions and
 #    limitations under the License.
 ##############################################################################
-from typing import List, Union, Optional, Any
+from typing import Dict, List, Union, Optional, Any, Set, cast
 from warnings import warn
 
 import numpy as np
@@ -21,7 +21,8 @@ import numpy as np
 from pyquil.api._base_connection import ForestConnection
 from pyquil.api._error_reporting import _record_call
 from pyquil.paulis import PauliSum, PauliTerm
-from pyquil.quil import Program, MemoryReference, percolate_declares
+from pyquil.quil import Program, percolate_declares
+from pyquil.quilatom import MemoryReference
 from pyquil.gates import MOVE
 from pyquil.wavefunction import Wavefunction
 
@@ -29,7 +30,7 @@ from pyquil.wavefunction import Wavefunction
 class WavefunctionSimulator:
     @_record_call
     def __init__(
-        self, connection: ForestConnection = None, random_seed: Optional[int] = None
+        self, connection: Optional[ForestConnection] = None, random_seed: Optional[int] = None
     ) -> None:
         """
         A simulator that propagates a wavefunction representation of a quantum state.
@@ -77,8 +78,9 @@ class WavefunctionSimulator:
         if memory_map is not None:
             quil_program = self.augment_program_with_memory_values(quil_program, memory_map)
 
-        return self.connection._wavefunction(
-            quil_program=quil_program, random_seed=self.random_seed
+        return cast(
+            Wavefunction,
+            self.connection._wavefunction(quil_program=quil_program, random_seed=self.random_seed),
         )
 
     @_record_call
@@ -136,9 +138,11 @@ class WavefunctionSimulator:
     def run_and_measure(
         self,
         quil_program: Program,
-        qubits: List[int] = None,
+        qubits: Optional[List[int]] = None,
         trials: int = 1,
-        memory_map: Any = None,
+        memory_map: Optional[
+            Union[Dict[str, List[Union[int, float]]], Dict[MemoryReference, Any]]
+        ] = None,
     ) -> np.ndarray:
         """
         Run a Quil program once to determine the final wavefunction, and measure multiple times.
@@ -174,7 +178,7 @@ class WavefunctionSimulator:
         :return: An array of measurement results (0 or 1) of shape (trials, len(qubits))
         """
         if qubits is None:
-            qubits = sorted(quil_program.get_qubits(indices=True))
+            qubits = sorted(cast(Set[int], quil_program.get_qubits(indices=True)))
 
         if memory_map is not None:
             quil_program = self.augment_program_with_memory_values(quil_program, memory_map)
@@ -184,7 +188,10 @@ class WavefunctionSimulator:
         )
 
     @staticmethod
-    def augment_program_with_memory_values(quil_program, memory_map):
+    def augment_program_with_memory_values(
+        quil_program: Program,
+        memory_map: Union[Dict[str, List[Union[int, float]]], Dict[MemoryReference, Any]],
+    ) -> Program:
         p = Program()
 
         # we stupidly allowed memory_map to be of type Dict[MemoryReference, Any], whereas qc.run
@@ -204,7 +211,7 @@ class WavefunctionSimulator:
         elif isinstance(list(memory_map.keys())[0], str):
             for name, arr in memory_map.items():
                 for index, value in enumerate(arr):
-                    p += MOVE(MemoryReference(name, offset=index), value)
+                    p += MOVE(MemoryReference(cast(str, name), offset=index), value)
         else:
             raise TypeError("Bad memory_map type; expected Dict[str, List[Union[int, float]]].")
 

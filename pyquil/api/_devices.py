@@ -13,12 +13,16 @@
 #    See the License for the specific language governing permissions and
 #    limitations under the License.
 ##############################################################################
-from pyquil.api._base_connection import get_json, ForestConnection
+from typing import Dict, List, Optional, cast
+
+from requests.exceptions import MissingSchema
+
+from pyquil.api._base_connection import get_json, get_session, ForestConnection
 from pyquil.api._config import PyquilConfig
-from pyquil.device import Device
+from pyquil.device._main import Device
 
 
-def list_devices(connection: ForestConnection = None):
+def list_devices(connection: Optional[ForestConnection] = None) -> List[str]:
     """
     Query the Forest 2.0 server for a list of underlying QPU devices.
 
@@ -42,13 +46,16 @@ def list_devices(connection: ForestConnection = None):
         connection = ForestConnection()
 
     session = connection.session
+    assert connection.forest_cloud_endpoint is not None
     url = connection.forest_cloud_endpoint + "/devices"
     return sorted(get_json(session, url)["devices"].keys())
 
 
 def list_lattices(
-    device_name: str = None, num_qubits: int = None, connection: ForestConnection = None
-):
+    device_name: Optional[str] = None,
+    num_qubits: Optional[int] = None,
+    connection: Optional[ForestConnection] = None,
+) -> Dict[str, str]:
     """
     Query the Forest 2.0 server for its knowledge of lattices.  Optionally filters by underlying
     device name and lattice qubit count.
@@ -64,13 +71,14 @@ def list_lattices(
     if connection is None:
         connection = ForestConnection()
     session = connection.session
+    assert connection.forest_cloud_endpoint is not None
     url = connection.forest_cloud_endpoint + "/lattices"
     try:
         response = get_json(
             session, url, params={"device_name": device_name, "num_qubits": num_qubits}
         )
 
-        return response["lattices"]
+        return cast(Dict[str, str], response["lattices"])
     except Exception as e:
         raise ValueError(
             """
@@ -105,7 +113,7 @@ def list_lattices(
         )
 
 
-def get_lattice(lattice_name: str = None):
+def get_lattice(lattice_name: Optional[str] = None) -> Device:
     """
     Construct a Device object to match the Forest 2.0 server's understanding of the named lattice.
 
@@ -117,7 +125,7 @@ def get_lattice(lattice_name: str = None):
     return Device(raw_lattice["name"], raw_lattice)
 
 
-def _get_raw_lattice_data(lattice_name: str = None):
+def _get_raw_lattice_data(lattice_name: Optional[str] = None) -> Dict[str, str]:
     """
     Produces a dictionary of raw data for a lattice as queried from the Forest 2.0 server.
 
@@ -131,8 +139,6 @@ def _get_raw_lattice_data(lattice_name: str = None):
             "noise_model": a NoiseModel object, serialized as a dictionary
         }
     """
-    from pyquil.api._base_connection import get_session, get_json
-    from requests.exceptions import MissingSchema
 
     config = PyquilConfig()
     session = get_session(config=config)
@@ -151,4 +157,4 @@ def _get_raw_lattice_data(lattice_name: str = None):
        [Rigetti Forest]
        url = https://rigetti.com/valid/forest/url"""
         )
-    return res["lattice"]
+    return cast(Dict[str, str], res["lattice"])

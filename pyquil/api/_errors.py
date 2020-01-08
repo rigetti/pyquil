@@ -16,10 +16,18 @@
 
 import logging
 import sys
+from types import TracebackType
+from typing import Callable, Type
+
 from pyquil.api._logger import logger
 
 
-def exception_handler(exception_type, exception, traceback, debug_hook=sys.excepthook):
+def exception_handler(
+    exception_type: Type[BaseException],
+    exception: BaseException,
+    traceback: TracebackType,
+    debug_hook: Callable[..., None] = sys.excepthook,
+) -> None:
     """
     This allows us to suppress tracebacks for UserMessageError outside of debug mode
       by overriding the default exception handler.
@@ -28,30 +36,30 @@ def exception_handler(exception_type, exception, traceback, debug_hook=sys.excep
         debug_hook(exception_type, exception, traceback)
 
 
-sys.excepthook = exception_handler
+sys.excepthook = exception_handler  # type: ignore
 
 
 class ApiError(RuntimeError):
-    def __init__(self, server_status, explanation):
+    def __init__(self, server_status: str, explanation: str):
         super(ApiError, self).__init__(self, server_status)
         self.server_status = server_status
         self.explanation = explanation
 
-    def __repr__(self):
+    def __repr__(self) -> str:
         return repr(str(self))
 
-    def __str__(self):
+    def __str__(self) -> str:
         return "{}\n{}".format(self.server_status, self.explanation)
 
 
 class CancellationError(ApiError):
-    def __init__(self, server_status):
+    def __init__(self, server_status: str):
         explanation = "Please try resubmitting the job again."
         super(CancellationError, self).__init__(server_status, explanation)
 
 
 class DeviceOfflineError(ApiError):
-    def __init__(self, server_status):
+    def __init__(self, server_status: str):
         explanation = """
 The device you requested is offline. Use the following code to check for the
 currently available devices:
@@ -62,7 +70,7 @@ currently available devices:
 
 
 class DeviceRetuningError(ApiError):
-    def __init__(self, server_status):
+    def __init__(self, server_status: str):
         explanation = """
 The device you requested is temporarily down for retuning. Use the following
 code to check for the currently available devices:
@@ -73,7 +81,7 @@ code to check for the currently available devices:
 
 
 class InvalidInputError(ApiError):
-    def __init__(self, server_status):
+    def __init__(self, server_status: str):
         explanation = """
 The server returned the above error because something was wrong with the HTTP
 request sent to it. This could be due to a bug in the server or a bug in your
@@ -84,7 +92,7 @@ describe the problem in a GitHub issue at:
 
 
 class InvalidUserError(ApiError):
-    def __init__(self, server_status):
+    def __init__(self, server_status: str):
         explanation = """
 There was an issue validating your Forest account!
 Have you run the `pyquil-config-setup` command yet?
@@ -95,7 +103,7 @@ If you do not yet have a Forest account then sign up for one at:
 
 
 class JobNotFoundError(ApiError):
-    def __init__(self, server_status):
+    def __init__(self, server_status: str):
         explanation = """
 The above job may have been deleted manually or due to some bug in the server.
 If you suspect this to be a bug then please describe the problem in a Github
@@ -105,7 +113,7 @@ issue at:
 
 
 class MissingPermissionsError(ApiError):
-    def __init__(self, server_status):
+    def __init__(self, server_status: str):
         explanation = """
 Your account may not be whitelisted for QPU access. To request the appropriate
 permissions please read the information located at:
@@ -114,7 +122,7 @@ permissions please read the information located at:
 
 
 class QPUError(ApiError):
-    def __init__(self, server_status):
+    def __init__(self, server_status: str):
         explanation = """
 The QPU returned the above error. This could be due to a bug in the server or a
 bug in your code. If you suspect this to be a bug in pyQuil or Rigetti Forest,
@@ -124,7 +132,7 @@ then please describe the problem in a GitHub issue at:
 
 
 class QVMError(ApiError):
-    def __init__(self, server_status):
+    def __init__(self, server_status: str):
         explanation = """
 The QVM returned the above error. This could be due to a bug in the server or a
 bug in your code. If you suspect this to be a bug in pyQuil or Rigetti Forest,
@@ -134,7 +142,7 @@ then please describe the problem in a GitHub issue at:
 
 
 class QUILCError(ApiError):
-    def __init__(self, server_status):
+    def __init__(self, server_status: str):
         explanation = """
 QUILC returned the above error. This could be due to a bug in the server or a
 bug in your code. If you suspect this to be a bug in pyQuil or Rigetti Forest,
@@ -144,7 +152,7 @@ then please describe the problem in a GitHub issue at:
 
 
 class TooManyQubitsError(ApiError):
-    def __init__(self, server_status):
+    def __init__(self, server_status: str):
         explanation = """
 You requested too many qubits on the QVM. More qubits are available when you use
 the queue. Pass the use_queue parameter to QVMConnection to enable additional
@@ -166,7 +174,7 @@ class UserMessageError(Exception):
       the case of errors for which the cause is known.
     """
 
-    def __init__(self, message):
+    def __init__(self, message: str):
         if logger.level <= logging.DEBUG:
             super().__init__(message)
         else:
@@ -174,7 +182,7 @@ class UserMessageError(Exception):
 
 
 class UnknownApiError(ApiError):
-    def __init__(self, server_status):
+    def __init__(self, server_status: str):
         explanation = """
 The server has failed to return a proper response. Please describe the problem
 and copy the above message into a GitHub issue at:
