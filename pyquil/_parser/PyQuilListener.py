@@ -604,7 +604,7 @@ Helper functions for converting from ANTLR internals to PyQuil objects
 def _formalQubit(fq):
     try:
         return _qubit(fq)
-    except:
+    except ValueError:
         return FormalArgument(fq.getText())
 
 

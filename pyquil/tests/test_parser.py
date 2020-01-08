@@ -49,7 +49,6 @@ from pyquil.gates import (
 )
 from pyquil.parser import parse
 from pyquil.quilatom import (
-    Addr,
     MemoryReference,
     Frame,
     Waveform,
@@ -535,6 +534,12 @@ def test_parsing_delay():
         'DELAY 0 "ro_tx" "ro_rx"  1.0',
         DelayFrames([Frame([Qubit(0)], "ro_tx"), Frame([Qubit(0)], "ro_rx")], 1.0),
     )
+
+
+def test_parsing_fence():
+    parse_equals("FENCE 0", Fence([Qubit(0)]))
+    parse_equals("FENCE 0 1", Fence([Qubit(0), Qubit(1)]))
+    parse_equals("FENCE q s", Fence([FormalArgument("q"), FormalArgument("s")]))
 
 
 def test_parsing_defwaveform():
