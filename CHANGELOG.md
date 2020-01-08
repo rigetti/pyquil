@@ -6,12 +6,13 @@ Changelog
 
 ### Announcements
 
--   There is a new `QuantumComputer.calibration` method for performing readout
-    calibration on a provided `TomographyExperiment`, and utilities for applying
-    the results of the calibration to correct for symmetrized readout error. In
-    addition, `ExperimentSetting` objects now have an `additional_expectations`
-    attribute for extracting simultaneously measurable expectation values from a
-    single setting when using `QuantumComputer.experiment` (@karalekas, gh-1152).
+-   The `TomographyExperiment` class has been renamed to `Experiment`. In addition,
+    there is a new `QuantumComputer.calibration` method for performing readout
+    calibration on a provided `Experiment`, and utilities for applying the results
+    of the calibration to correct for symmetrized readout error. `ExperimentSetting`
+    objects now also have an `additional_expectations` attribute for extracting
+    simultaneously measurable expectation values from a single setting when using
+    `QuantumComputer.experiment` (@karalekas, gh-1152, gh-1158).
 
 ### Improvements and Changes
 
