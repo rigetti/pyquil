@@ -814,20 +814,19 @@ class AffineKernelFamily(QuilAtom):
 
     NOTE: At present, we support only families of size 1.
 
-    :param kernels: List  (or, in the case of a family of size 1, waveform) of individual kernel waveforms.
-    :param matrix: Matrix (or, in the case of a family of size 1, scalar)   by which to recombine kernel convolutions.
-    :param offset: Vector (or, in the case of a family of size 1, offset)   by which to offset recombined kernel convolutions.
+    :param kernels: List of kernel waveforms.
+    :param matrix: A complex 2D array, by which to recombine kernel convolutions.
+    :param offset: A real 1D array, by which to offset recombined kernel convolutions.
     """
 
     def __init__(
-        self,
-        kernels: Union[Waveform, List[Waveform]],
-        matrix: Union[complex, np.ndarray],
-        offset: Union[float, np.ndarray],
+        self, kernels: List[Waveform], matrix: np.ndarray, offset: np.ndarray,
     ):
-        assert isinstance(kernels, Waveform)
-        assert isinstance(matrix, complex)
-        assert isinstance(offset, float)
+        assert len(kernels) == 1
+        assert isinstance(kernels[0], Waveform)
+        assert matrix.shape == (1, 1)
+        assert offset.shape == (1,)
+
         self.kernels = kernels
         self.matrix = matrix
         self.offset = offset
@@ -841,10 +840,14 @@ class AffineKernelFamily(QuilAtom):
         )
 
     def __hash__(self) -> int:
-        return hash((self.kernels, self.matrix, self.offset))
+        return hash((self.kernels[0], self.matrix[0, 0], self.offset[0]))
 
     def out(self) -> str:
-        return f"{self.matrix}*({self.kernels})+({self.offset})"
+        return f"{self.matrix[0,0]}*({self.kernels[0]})+({self.offset[0]})"
 
     def __str__(self) -> str:
         return self.out()
+
+    @property
+    def size(self) -> int:
+        return len(self.kernels)
