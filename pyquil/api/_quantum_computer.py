@@ -119,7 +119,7 @@ class QuantumComputer:
     def run(
         self,
         executable: ExecutableDesignator,
-        memory_map: Optional[Dict[str, List[Union[int, float]]]] = None,
+        memory_map: Optional[Mapping[str, Sequence[Union[int, float]]]] = None,
     ) -> np.ndarray:
         """
         Run a quil executable. If the executable contains declared parameters, then a memory

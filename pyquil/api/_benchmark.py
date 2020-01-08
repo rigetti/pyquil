@@ -13,7 +13,7 @@
 #    See the License for the specific language governing permissions and
 #    limitations under the License.
 ##############################################################################
-from typing import List, Optional, cast
+from typing import List, Optional, Sequence, cast
 
 import rpcq
 from rpcq._client import Client
@@ -93,7 +93,7 @@ class BenchmarkConnection(AbstractBenchmarker):
     def generate_rb_sequence(
         self,
         depth: int,
-        gateset: List[Gate],
+        gateset: Sequence[Gate],
         seed: Optional[int] = None,
         interleaver: Optional[Program] = None,
     ) -> List[Program]:

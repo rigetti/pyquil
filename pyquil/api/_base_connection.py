@@ -17,7 +17,7 @@ import re
 import time
 import warnings
 from json.decoder import JSONDecodeError
-from typing import Any, Dict, List, Optional, Sequence, Tuple, Union, cast
+from typing import Any, Dict, Iterable, List, Optional, Sequence, Tuple, Union, cast
 
 import numpy as np
 import requests
@@ -146,12 +146,12 @@ def validate_qubit_list(qubit_list: Sequence[int]) -> Sequence[int]:
     """
     Check the validity of qubits for the payload.
 
-    :param list|range qubit_list: List of qubits to be validated.
+    :param qubit_list: List of qubits to be validated.
     """
-    if not isinstance(qubit_list, (list, range)):
-        raise TypeError("run_items must be a list")
+    if not isinstance(qubit_list, Sequence):
+        raise TypeError("'qubit_list' must be of type 'Sequence'")
     if any(not isinstance(i, int) or i < 0 for i in qubit_list):
-        raise TypeError("run_items list must contain positive integer values")
+        raise TypeError("'qubit_list' must contain positive integer values")
     return qubit_list
 
 
@@ -231,7 +231,7 @@ def wavefunction_payload(quil_program: Program, random_seed: int) -> Dict[str, o
 
 
 def expectation_payload(
-    prep_prog: Program, operator_programs: Optional[List[Program]], random_seed: int
+    prep_prog: Program, operator_programs: Optional[Iterable[Program]], random_seed: int
 ) -> Dict[str, object]:
     """REST payload for :py:func:`ForestConnection._expectation`"""
     if operator_programs is None:
@@ -533,6 +533,7 @@ class ForestConnection:
         if forest_cloud_endpoint is None:
             forest_cloud_endpoint = pyquil_config.forest_url
 
+        assert sync_endpoint is not None
         self.sync_endpoint = sync_endpoint
         self.compiler_endpoint = compiler_endpoint
         self.forest_cloud_endpoint = forest_cloud_endpoint
@@ -549,7 +550,6 @@ class ForestConnection:
         this directly.
         """
         payload = run_and_measure_payload(quil_program, qubits, trials, random_seed)
-        assert self.sync_endpoint is not None
         response = post_json(self.session, self.sync_endpoint + "/qvm", payload)
         return np.asarray(response.json())
 
@@ -563,13 +563,12 @@ class ForestConnection:
         """
 
         payload = wavefunction_payload(quil_program, random_seed)
-        assert self.sync_endpoint is not None
         response = post_json(self.session, self.sync_endpoint + "/qvm", payload)
         return Wavefunction.from_bit_packed_string(response.content)
 
     @_record_call
     def _expectation(
-        self, prep_prog: Program, operator_programs: List[Program], random_seed: int
+        self, prep_prog: Program, operator_programs: Iterable[Program], random_seed: int
     ) -> np.ndarray:
         """
         Run a Forest ``expectation`` job.
@@ -586,7 +585,6 @@ class ForestConnection:
             )
 
         payload = expectation_payload(prep_prog, operator_programs, random_seed)
-        assert self.sync_endpoint is not None
         response = post_json(self.session, self.sync_endpoint + "/qvm", payload)
         return np.asarray(response.json())
 
@@ -608,7 +606,6 @@ class ForestConnection:
         payload = qvm_run_payload(
             quil_program, classical_addresses, trials, measurement_noise, gate_noise, random_seed
         )
-        assert self.sync_endpoint is not None
         response = post_json(self.session, self.sync_endpoint + "/qvm", payload)
 
         ram = response.json()
@@ -625,7 +622,6 @@ class ForestConnection:
 
         :return: String of QVM version
         """
-        assert self.sync_endpoint is not None
         response = post_json(self.session, self.sync_endpoint, {"type": "version"})
         split_version_string = response.text.split()
         try:

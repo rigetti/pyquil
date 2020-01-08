@@ -15,7 +15,7 @@
 ##############################################################################
 import warnings
 import numpy as np
-from typing import Any, Dict, List, Optional, Sequence, Union, cast
+from typing import Any, Dict, Iterable, List, Mapping, Optional, Sequence, Union, cast
 
 from requests.exceptions import ConnectionError
 from rpcq.messages import PyQuilExecutableResponse
@@ -165,7 +165,7 @@ programs run on this QVM.
     def run(
         self,
         quil_program: Program,
-        classical_addresses: Optional[List[int]] = None,
+        classical_addresses: Optional[Sequence[int]] = None,
         trials: int = 1,
     ) -> List[List[int]]:
         """
@@ -182,7 +182,9 @@ programs run on this QVM.
             `classical_addresses`.
         """
         if classical_addresses is None:
-            caddresses = get_classical_addresses_from_program(quil_program)
+            caddresses: Mapping[str, Sequence[int]] = get_classical_addresses_from_program(
+                quil_program
+            )
 
         else:
             caddresses = {"ro": classical_addresses}
@@ -309,7 +311,7 @@ programs run on this QVM.
 
     @_record_call
     def expectation(
-        self, prep_prog: Program, operator_programs: Optional[List[Program]] = None
+        self, prep_prog: Program, operator_programs: Optional[Iterable[Program]] = None
     ) -> List[float]:
         """
         Calculate the expectation value of operators given a state prepared by
@@ -389,7 +391,7 @@ programs run on this QVM.
         return results
 
     def _expectation_payload(
-        self, prep_prog: Program, operator_programs: Optional[List[Program]]
+        self, prep_prog: Program, operator_programs: Optional[Iterable[Program]]
     ) -> Dict[str, Any]:
         if operator_programs is None:
             operator_programs = [Program()]

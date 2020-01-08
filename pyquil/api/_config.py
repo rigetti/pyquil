@@ -19,7 +19,7 @@ from configparser import ConfigParser, NoSectionError, NoOptionError
 from os import environ, path
 from os.path import expanduser, abspath
 from types import MappingProxyType
-from typing import Callable, Dict, Iterable, Optional, TYPE_CHECKING, cast
+from typing import Callable, Dict, Iterable, Mapping, Optional, TYPE_CHECKING, cast
 
 from pyquil.api._errors import UserMessageError
 from pyquil.api._logger import logger
@@ -36,7 +36,7 @@ QCS_CONFIG = "QCS_CONFIG"
 # servers to which users submit quil & jobs (qvm, compiler, qpu, etc.)
 FOREST_CONFIG = "FOREST_CONFIG"
 CONFIG_PATHS = cast(
-    Dict[str, str],
+    Mapping[str, str],
     MappingProxyType({QCS_CONFIG: "~/.qcs_config", FOREST_CONFIG: "~/.forest_config"}),
 )
 
@@ -150,7 +150,7 @@ class PyquilConfig(object):
         "default": None,
     }
 
-    def __init__(self, config_paths: Dict[str, str] = CONFIG_PATHS):
+    def __init__(self, config_paths: Mapping[str, str] = CONFIG_PATHS):
         """
         :param config_paths: The paths to the various configuration files read by pyQuil.
         """

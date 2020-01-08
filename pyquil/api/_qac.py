@@ -14,7 +14,7 @@
 #    limitations under the License.
 ##############################################################################
 from abc import ABC, abstractmethod
-from typing import Any, Dict, List, Optional, Union
+from typing import Any, Dict, List, Optional, Sequence, Union
 
 from rpcq.messages import BinaryExecutableResponse, PyQuilExecutableResponse
 
@@ -78,7 +78,7 @@ class AbstractBenchmarker(ABC):
     def generate_rb_sequence(
         self,
         depth: int,
-        gateset: List[Gate],
+        gateset: Sequence[Gate],
         seed: Optional[int] = None,
         interleaver: Optional[Program] = None,
     ) -> List[Program]:
