@@ -147,20 +147,17 @@ class Wavefunction(object):
                 outcome_dict[outcome] = prob
         return outcome_dict
 
-    def pretty_print(self, decimal_digits: int = 2, ancillae: Optional[Sequence[int]] = None) -> str:
+    def pretty_print(
+        self, decimal_digits: int = 2, ancillae: Optional[Sequence[int]] = None
+    ) -> str:
         """
         Returns a string repr of the wavefunction, ignoring all outcomes with approximately zero
         amplitude (up to a certain number of decimal digits) and rounding the amplitudes to
         decimal_digits.
 
         :param int decimal_digits: The number of digits to truncate to.
-<<<<<<< HEAD
-        :param ancillae: The list of indices for ancillary qubits to omit.
-        :return: A string representation of the wavefunction.
-=======
         :param ancillae: The list of indices for ancilla qubits to omit.
         :return: A dict with outcomes as keys and complex amplitudes as values.
->>>>>>> Typos and formatting
         :rtype: str
         """
 
