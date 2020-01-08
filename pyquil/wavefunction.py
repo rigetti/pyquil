@@ -16,9 +16,10 @@
 """
 Module containing the Wavefunction object and methods for working with wavefunctions.
 """
+import itertools
 import struct
 import warnings
-import itertools
+from typing import Dict, Iterator, List, Optional, Sequence, cast
 
 import numpy as np
 
@@ -40,7 +41,7 @@ class Wavefunction(object):
         <basis_ordering>`.
     """
 
-    def __init__(self, amplitude_vector):
+    def __init__(self, amplitude_vector: np.ndarray):
         """
         Initializes a wavefunction
 
@@ -58,29 +59,27 @@ class Wavefunction(object):
             )
 
     @staticmethod
-    def ground(qubit_num):
+    def ground(qubit_num: int) -> "Wavefunction":
         warnings.warn("ground() has been deprecated in favor of zeros()", stacklevel=2)
         return Wavefunction.zeros(qubit_num)
 
     @staticmethod
-    def zeros(qubit_num):
+    def zeros(qubit_num: int) -> "Wavefunction":
         """
         Constructs the groundstate wavefunction for a given number of qubits.
 
-        :param int qubit_num:
+        :param qubit_num:
         :return: A Wavefunction in the ground state
-        :rtype: Wavefunction
         """
         amplitude_vector = np.zeros(2 ** qubit_num)
         amplitude_vector[0] = 1.0
         return Wavefunction(amplitude_vector)
 
     @staticmethod
-    def from_bit_packed_string(coef_string):
+    def from_bit_packed_string(coef_string: bytes) -> "Wavefunction":
         """
         From a bit packed string, unpacks to get the wavefunction
-        :param bytes coef_string:
-        :return:
+        :param coef_string:
         """
         num_octets = len(coef_string)
 
@@ -95,26 +94,26 @@ class Wavefunction(object):
 
         return Wavefunction(wf)
 
-    def __len__(self):
+    def __len__(self) -> int:
         return len(self.amplitudes).bit_length() - 1
 
-    def __iter__(self):
-        return self.amplitudes.__iter__()
+    def __iter__(self) -> Iterator[complex]:
+        return cast(Iterator[complex], self.amplitudes.__iter__())
 
-    def __getitem__(self, index):
-        return self.amplitudes[index]
+    def __getitem__(self, index: int) -> complex:
+        return cast(complex, self.amplitudes[index])
 
-    def __setitem__(self, key, value):
+    def __setitem__(self, key: int, value: complex) -> None:
         self.amplitudes[key] = value
 
-    def __str__(self):
+    def __str__(self) -> str:
         return self.pretty_print(decimal_digits=10)
 
-    def probabilities(self):
+    def probabilities(self) -> np.ndarray:
         """Returns an array of probabilities in lexicographical order"""
         return np.abs(self.amplitudes) ** 2
 
-    def get_outcome_probs(self):
+    def get_outcome_probs(self) -> Dict[str, float]:
         """
         Parses a wavefunction (array of complex amplitudes) and returns a dictionary of
         outcomes and associated probabilities.
@@ -129,14 +128,15 @@ class Wavefunction(object):
             outcome_dict[outcome] = abs(amplitude) ** 2
         return outcome_dict
 
-    def pretty_print_probabilities(self, decimal_digits=2):
+    def pretty_print_probabilities(self, decimal_digits: int = 2) -> Dict[str, float]:
         """
+        TODO: This doesn't seem like it is named correctly...
+
         Prints outcome probabilities, ignoring all outcomes with approximately zero probabilities
         (up to a certain number of decimal digits) and rounding the probabilities to decimal_digits.
 
         :param int decimal_digits: The number of digits to truncate to.
         :return: A dict with outcomes as keys and probabilities as values.
-        :rtype: dict
         """
         outcome_dict = {}
         qubit_num = len(self)
@@ -147,15 +147,14 @@ class Wavefunction(object):
                 outcome_dict[outcome] = prob
         return outcome_dict
 
-    def pretty_print(self, decimal_digits=2):
+    def pretty_print(self, decimal_digits: int = 2) -> str:
         """
         Returns a string repr of the wavefunction, ignoring all outcomes with approximately zero
         amplitude (up to a certain number of decimal digits) and rounding the amplitudes to
         decimal_digits.
 
         :param int decimal_digits: The number of digits to truncate to.
-        :return: A dict with outcomes as keys and complex amplitudes as values.
-        :rtype: str
+        :return: A string representation of the wavefunction.
         """
         outcome_dict = {}
         qubit_num = len(self)
@@ -172,12 +171,13 @@ class Wavefunction(object):
             pp_string = pp_string[:-3]  # remove the dangling + if it is there
         return pp_string
 
-    def plot(self, qubit_subset=None):
+    def plot(self, qubit_subset: Optional[Sequence[int]] = None) -> None:
         """
+        TODO: calling this will error because of matplotlib
+
         Plots a bar chart with bitstring on the x axis and probability on the y axis.
 
-        :param list qubit_subset: Optional parameter used for plotting a subset of the Hilbert
-            space.
+        :param qubit_subset: Optional parameter used for plotting a subset of the Hilbert space.
         """
         import matplotlib.pyplot as plt
 
@@ -197,7 +197,7 @@ class Wavefunction(object):
         plt.xticks(range(len(prob_dict)), prob_dict.keys())
         plt.show()
 
-    def sample_bitstrings(self, n_samples):
+    def sample_bitstrings(self, n_samples: int) -> np.ndarray:
         """
         Sample bitstrings from the distribution defined by the wavefunction.
 
@@ -210,7 +210,7 @@ class Wavefunction(object):
         return bitstrings
 
 
-def get_bitstring_from_index(index, qubit_num):
+def get_bitstring_from_index(index: int, qubit_num: int) -> str:
     """
     Returns the bitstring in lexical order that corresponds to the given index in 0 to 2^(qubit_num)
     :param int index:
@@ -223,24 +223,12 @@ def get_bitstring_from_index(index, qubit_num):
     return bin(index)[2:].rjust(qubit_num, "0")
 
 
-def _round_to_next_multiple(n, m):
-    """
-    Round up the the next multiple.
-
-    :param n: The number to round up.
-    :param m: The multiple.
-    :return: The rounded number
-    """
-    return n if n % m == 0 else n + m - n % m
-
-
-def _octet_bits(o):
+def _octet_bits(o: int) -> List[int]:
     """
     Get the bits of an octet.
 
     :param o: The octets.
     :return: The bits as a list in LSB-to-MSB order.
-    :rtype: list
     """
     if not isinstance(o, int):
         raise TypeError("o should be an int")

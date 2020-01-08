@@ -16,9 +16,11 @@ check-format:
 # The dream is to one day run mypy on the whole tree. For now, limit checks to known-good files.
 .PHONY: check-types
 check-types:
-	mypy pyquil/gates.py pyquil/gate_matrices.py pyquil/noise.py pyquil/numpy_simulator.py \
+	mypy pyquil/gate_matrices.py pyquil/gates.py pyquil/noise.py pyquil/numpy_simulator.py \
+		pyquil/operator_estimation.py pyquil/parser.py pyquil/paulis.py pyquil/pyqvm.py \
 		pyquil/quil.py pyquil/quilatom.py pyquil/quilbase.py pyquil/reference_simulator.py \
-		pyquil/unitary_tools.py pyquil/latex pyquil/simulation pyquil/experiment pyquil/device
+		pyquil/unitary_tools.py pyquil/version.py pyquil/wavefunction.py \
+		pyquil/device pyquil/experiment pyquil/latex pyquil/simulation
 
 .PHONY: check-style
 check-style:

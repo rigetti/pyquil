@@ -5,7 +5,6 @@ import itertools
 from pyquil.wavefunction import (
     get_bitstring_from_index,
     Wavefunction,
-    _round_to_next_multiple,
     _octet_bits,
 )
 
@@ -46,16 +45,6 @@ def test_ground_state():
     ground = Wavefunction.zeros(2)
     assert len(ground) == 2
     assert ground.amplitudes[0] == 1.0
-
-
-def test_rounding():
-    for i in range(8):
-        if 0 == i % 8:
-            assert i == _round_to_next_multiple(i, 8)
-        else:
-            assert 8 == _round_to_next_multiple(i, 8)
-            assert 16 == _round_to_next_multiple(i + 8, 8)
-            assert 24 == _round_to_next_multiple(i + 16, 8)
 
 
 def test_octet_bits():
