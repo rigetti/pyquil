@@ -4,7 +4,7 @@ import numpy as np
 from pyquil import Program
 from pyquil.api import QVM, QuantumComputer, get_qc
 from pyquil.device import NxDevice
-from pyquil.experiment import ExperimentSetting, TomographyExperiment
+from pyquil.experiment import ExperimentSetting, Experiment
 from pyquil.gates import CNOT, H, RESET, X
 from pyquil.noise import NoiseModel
 from pyquil.paulis import sX, sY, sZ
@@ -29,7 +29,7 @@ def test_qc_expectation(forest):
     sy = ExperimentSetting(in_state=sZ(0) * sZ(1), out_operator=sY(0) * sY(1))
     sz = ExperimentSetting(in_state=sZ(0) * sZ(1), out_operator=sZ(0) * sZ(1))
 
-    e = TomographyExperiment(settings=[sx, sy, sz], program=p)
+    e = Experiment(settings=[sx, sy, sz], program=p)
 
     results = qc.experiment(e)
 
@@ -70,7 +70,7 @@ def test_qc_expectation_larger_lattice(forest):
     sy = ExperimentSetting(in_state=sZ(q0) * sZ(q1), out_operator=sY(q0) * sY(q1))
     sz = ExperimentSetting(in_state=sZ(q0) * sZ(q1), out_operator=sZ(q0) * sZ(q1))
 
-    e = TomographyExperiment(settings=[sx, sy, sz], program=p)
+    e = Experiment(settings=[sx, sy, sz], program=p)
 
     results = qc.experiment(e)
 
@@ -111,7 +111,7 @@ def test_qc_calibration_1q(forest):
 
     # Z experiment
     sz = ExperimentSetting(in_state=sZ(0), out_operator=sZ(0))
-    e = TomographyExperiment(settings=[sz], program=p)
+    e = Experiment(settings=[sz], program=p)
 
     results = qc.calibrate(e)
 
@@ -135,7 +135,7 @@ def test_qc_calibration_2q(forest):
 
     # ZZ experiment
     sz = ExperimentSetting(in_state=sZ(0) * sZ(1), out_operator=sZ(0) * sZ(1))
-    e = TomographyExperiment(settings=[sz], program=p)
+    e = Experiment(settings=[sz], program=p)
 
     results = qc.calibrate(e)
 
@@ -160,7 +160,7 @@ def test_qc_joint_expectation(forest):
     sz = ExperimentSetting(
         in_state=sZ(0) * sZ(1), out_operator=sZ(0) * sZ(1), additional_expectations=[[0], [1]]
     )
-    e = TomographyExperiment(settings=[sz], program=p)
+    e = Experiment(settings=[sz], program=p)
 
     results = qc.experiment(e)
 
@@ -192,7 +192,7 @@ def test_qc_joint_calibration(forest):
     sz = ExperimentSetting(
         in_state=sZ(0) * sZ(1), out_operator=sZ(0) * sZ(1), additional_expectations=[[0], [1]]
     )
-    e = TomographyExperiment(settings=[sz], program=p)
+    e = Experiment(settings=[sz], program=p)
 
     results = qc.experiment(e)
 

@@ -21,7 +21,7 @@ from typing import Dict, List, Iterable, Sequence, Set, Tuple, Union, cast
 import networkx as nx
 from networkx.algorithms.approximation.clique import clique_removal
 
-from pyquil.experiment._main import TomographyExperiment
+from pyquil.experiment._main import Experiment
 from pyquil.experiment._result import ExperimentResult
 from pyquil.experiment._setting import ExperimentSetting, TensorProductState, _OneQState
 from pyquil.experiment._symmetrization import SymmetrizationLevel
@@ -43,7 +43,7 @@ def get_results_by_qubit_groups(
     multiple groups.
 
     :param qubit_groups: groups of qubits for which you want the pertinent results.
-    :param results: ExperimentResults from running an TomographyExperiment
+    :param results: ExperimentResults from running an Experiment
     :return: a dictionary whose keys are individual groups of qubits (as sorted tuples). The
         corresponding value is the list of experiment results whose observables measure some
         subset of that qubit group. The result order is maintained within each group.
@@ -63,13 +63,13 @@ def get_results_by_qubit_groups(
 
 
 def merge_disjoint_experiments(
-    experiments: List[TomographyExperiment], group_merged_settings: bool = True
-) -> TomographyExperiment:
+    experiments: List[Experiment], group_merged_settings: bool = True
+) -> Experiment:
     """
     Merges the list of experiments into a single experiment that runs the sum of the individual
     experiment programs and contains all of the combined experiment settings.
 
-    A group of TomographyExperiments whose programs operate on disjoint sets of qubits can be
+    A group of Experiments whose programs operate on disjoint sets of qubits can be
     'parallelized' so that the total number of runs can be reduced after grouping the settings.
     Settings which act on disjoint sets of qubits can be automatically estimated from the same
     run on the quantum computer.
@@ -114,7 +114,7 @@ def merge_disjoint_experiments(
     symm_level = max(symm_levels)
     if SymmetrizationLevel.EXHAUSTIVE in symm_levels:
         symm_level = SymmetrizationLevel.EXHAUSTIVE
-    merged_expt = TomographyExperiment(all_settings, merged_program, symmetrization=symm_level)
+    merged_expt = Experiment(all_settings, merged_program, symmetrization=symm_level)
 
     if group_merged_settings:
         merged_expt = group_settings(merged_expt)
@@ -122,7 +122,7 @@ def merge_disjoint_experiments(
     return merged_expt
 
 
-def construct_tpb_graph(experiments: TomographyExperiment) -> nx.Graph:
+def construct_tpb_graph(experiments: Experiment) -> nx.Graph:
     """
     Construct a graph where an edge signifies two experiments are diagonal in a TPB.
     """
@@ -153,7 +153,7 @@ def construct_tpb_graph(experiments: TomographyExperiment) -> nx.Graph:
     return g
 
 
-def group_settings_clique_removal(experiments: TomographyExperiment) -> TomographyExperiment:
+def group_settings_clique_removal(experiments: Experiment) -> Experiment:
     """
     Group experiments that are diagonal in a shared tensor product basis (TPB) to minimize number
     of QPU runs, using a graph clique removal algorithm.
@@ -173,7 +173,7 @@ def group_settings_clique_removal(experiments: TomographyExperiment) -> Tomograp
 
         new_cliqs += [new_cliq]
 
-    return TomographyExperiment(new_cliqs, program=experiments.program)
+    return Experiment(new_cliqs, program=experiments.program)
 
 
 def _max_weight_operator(ops: Iterable[PauliTerm]) -> Union[None, PauliTerm]:
@@ -219,23 +219,21 @@ def _max_weight_state(states: Iterable[TensorProductState]) -> Union[None, Tenso
     return TensorProductState(list(mapping.values()))
 
 
-def _max_tpb_overlap(
-    tomo_expt: TomographyExperiment,
-) -> Dict[ExperimentSetting, List[ExperimentSetting]]:
+def _max_tpb_overlap(tomo_expt: Experiment,) -> Dict[ExperimentSetting, List[ExperimentSetting]]:
     """
-    Given an input TomographyExperiment, provide a dictionary indicating which ExperimentSettings
+    Given an input Experiment, provide a dictionary indicating which ExperimentSettings
     share a tensor product basis
 
-    :param tomo_expt: TomographyExperiment, from which to group ExperimentSettings that share a tpb
+    :param tomo_expt: Experiment, from which to group ExperimentSettings that share a tpb
         and can be run together
     :return: dictionary keyed with ExperimentSetting (specifying a tpb), and with each value being a
             list of ExperimentSettings (diagonal in that tpb)
     """
     # initialize empty dictionary
     diagonal_sets: Dict[ExperimentSetting, List[ExperimentSetting]] = {}
-    # loop through ExperimentSettings of the TomographyExperiment
+    # loop through ExperimentSettings of the Experiment
     for expt_setting in tomo_expt:
-        # no need to group already grouped TomographyExperiment
+        # no need to group already grouped Experiment
         assert len(expt_setting) == 1, "already grouped?"
         unpacked_expt_setting = expt_setting[0]
         # calculate max overlap of expt_setting with keys of diagonal_sets
@@ -276,23 +274,21 @@ def _max_tpb_overlap(
     return diagonal_sets
 
 
-def group_settings_greedy(tomo_expt: TomographyExperiment) -> TomographyExperiment:
+def group_settings_greedy(tomo_expt: Experiment) -> Experiment:
     """
-    Greedy method to group ExperimentSettings in a given TomographyExperiment
+    Greedy method to group ExperimentSettings in a given Experiment
 
-    :param tomo_expt: TomographyExperiment to group ExperimentSettings within
-    :return: TomographyExperiment, with grouped ExperimentSettings according to whether
+    :param tomo_expt: Experiment to group ExperimentSettings within
+    :return: Experiment, with grouped ExperimentSettings according to whether
         it consists of PauliTerms diagonal in the same tensor product basis
     """
     diag_sets = _max_tpb_overlap(tomo_expt)
     grouped_expt_settings_list = list(diag_sets.values())
-    grouped_tomo_expt = TomographyExperiment(grouped_expt_settings_list, program=tomo_expt.program)
+    grouped_tomo_expt = Experiment(grouped_expt_settings_list, program=tomo_expt.program)
     return grouped_tomo_expt
 
 
-def group_settings(
-    experiments: TomographyExperiment, method: str = "greedy"
-) -> TomographyExperiment:
+def group_settings(experiments: Experiment, method: str = "greedy") -> Experiment:
     """
     Group experiments that are diagonal in a shared tensor product basis (TPB) to minimize number
     of QPU runs.

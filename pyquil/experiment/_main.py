@@ -14,7 +14,7 @@
 #    limitations under the License.
 ##############################################################################
 """
-Schema definition of a TomographyExperiment, which is a collection of ExperimentSetting
+Schema definition of a Experiment, which is a collection of ExperimentSetting
 objects and a main program body (or ansatz). This schema is widely useful for defining
 and executing many common types of algorithms / applications, including state and process
 tomography, and the variational quantum eigensolver.
@@ -99,7 +99,7 @@ def _remove_reset_from_program(program: Program) -> Program:
     return p
 
 
-class TomographyExperiment:
+class Experiment:
     """
     A tomography-like experiment.
 
@@ -122,7 +122,7 @@ class TomographyExperiment:
     will expand it to a list of length-1-lists.
 
     This class will not group settings for you. Please see :py:func:`group_experiments` for
-    a function that will automatically process a TomographyExperiment to group Experiments sharing
+    a function that will automatically process a Experiment to group Experiments sharing
     a TPB.
 
     :ivar settings: The collection of ExperimentSetting objects that define this experiment.
@@ -278,7 +278,7 @@ class TomographyExperiment:
 
     def serializable(self) -> Dict[str, Any]:
         return {
-            "type": "TomographyExperiment",
+            "type": "Experiment",
             "settings": self._settings,
             "program": self.program.out(),
             "symmetrization": self.symmetrization,
@@ -287,14 +287,14 @@ class TomographyExperiment:
         }
 
     def __eq__(self, other: object) -> bool:
-        if not isinstance(other, TomographyExperiment):
+        if not isinstance(other, Experiment):
             return False
         return self.serializable() == other.serializable()
 
     def get_meas_qubits(self) -> List[int]:
         """
         Return the sorted list of qubits that are involved in the all the out_operators of the
-        settings for this ``TomographyExperiment`` object.
+        settings for this ``Experiment`` object.
         """
         meas_qubits: Set[int] = set()
         for settings in self:
@@ -322,7 +322,7 @@ class TomographyExperiment:
         """
         Generate a parameterized program containing the main body program along with some additions
         to support the various state preparation, measurement, and symmetrization specifications of
-        this ``TomographyExperiment``.
+        this ``Experiment``.
 
         State preparation and measurement are achieved via ZXZXZ-decomposed single-qubit gates,
         where the angles of each ``RZ`` rotation are declared parameters that can be assigned at
@@ -332,7 +332,7 @@ class TomographyExperiment:
         each qubit specified in the settings is measured, and the number of shots is added.
 
         :return: Parameterized ``Program`` that is capable of collecting statistics for every
-            ``ExperimentSetting`` in this ``TomographyExperiment``.
+            ``ExperimentSetting`` in this ``Experiment``.
         """
         meas_qubits = self.get_meas_qubits()
 
@@ -386,7 +386,7 @@ class TomographyExperiment:
         """
         Build the memory map corresponding to the state preparation and measurement specifications
         encoded in the provided ``ExperimentSetting``, taking into account the full set of qubits
-        that are present in ``TomographyExperiment`` object.
+        that are present in the ``Experiment`` object.
 
         :return: Memory map for state prep and measurement.
         """
@@ -450,18 +450,18 @@ class TomographyExperiment:
             memory_maps.append({f"{label}": list(zeros)})
         return memory_maps
 
-    def generate_calibration_experiment(self) -> "TomographyExperiment":
+    def generate_calibration_experiment(self) -> "Experiment":
         """
-        Generate another ``TomographyExperiment`` object that can be used to calibrate the various
-        multi-qubit observables involved in this ``TomographyExperiment``. This is achieved by
-        preparing the plus-one (minus-one) eigenstate of each ``out_operator``, and measuring the
-        resulting expectation value of the same ``out_operator``. Ideally, this would always give
-        +1 (-1), but when symmetric readout error is present the effect is to scale the resultant
-        expectations by some constant factor. Determining this scale factor is what we call
-        *readout calibration*, and then the readout error in subsequent measurements can then be
-        mitigated by simply dividing by the scale factor.
+        Generate another ``Experiment`` object that can be used to calibrate the various multi-qubit
+        observables involved in this ``Experiment``. This is achieved by preparing the plus-one
+        (minus-one) eigenstate of each ``out_operator``, and measuring the resulting expectation
+        value of the same ``out_operator``. Ideally, this would always give +1 (-1), but when
+        symmetric readout error is present the effect is to scale the resultant expectations by some
+        constant factor. Determining this scale factor is what we call *readout calibration*, and
+        then the readout error in subsequent measurements can then be mitigated by simply dividing
+        by the scale factor.
 
-        :return: A new ``TomographyExperiment`` that can calibrate the readout error of all the
+        :return: A new ``Experiment`` that can calibrate the readout error of all the
             observables involved in this experiment.
         """
         if self.calibration != CalibrationMethod.PLUS_EIGENSTATE:
@@ -486,7 +486,7 @@ class TomographyExperiment:
         if self.symmetrization != SymmetrizationLevel.EXHAUSTIVE:
             raise ValueError("We currently only support calibration for exhaustive symmetrization")
 
-        return TomographyExperiment(
+        return Experiment(
             settings=calibration_settings,
             program=calibration_program,
             symmetrization=SymmetrizationLevel.EXHAUSTIVE,
@@ -494,11 +494,35 @@ class TomographyExperiment:
         )
 
 
+class TomographyExperiment(Experiment):
+    """
+    A tomography-like experiment. Has been renamed to ``Experiment``.
+    """
+
+    def __init__(
+        self,
+        settings: Union[List[ExperimentSetting], List[List[ExperimentSetting]]],
+        program: Program,
+        qubits: Optional[List[int]] = None,
+        *,
+        symmetrization: int = SymmetrizationLevel.EXHAUSTIVE,
+        calibration: int = CalibrationMethod.PLUS_EIGENSTATE,
+    ):
+        warnings.warn("'TomographyExperiment' has been renamed to 'Experiment'")
+        super().__init__(
+            settings=settings,
+            program=program,
+            qubits=qubits,
+            symmetrization=symmetrization,
+            calibration=calibration,
+        )
+
+
 class OperatorEncoder(JSONEncoder):
     def default(self, o: Any) -> Any:
         if isinstance(o, ExperimentSetting):
             return o.serializable()
-        if isinstance(o, TomographyExperiment):
+        if isinstance(o, Experiment):
             return o.serializable()
         if isinstance(o, ExperimentResult):
             return o.serializable()
@@ -517,15 +541,13 @@ def to_json(fn: str, obj: Any) -> str:
     return fn
 
 
-def _operator_object_hook(obj: Mapping[str, Any]) -> Union[Mapping[str, Any], TomographyExperiment]:
-    if "type" in obj and obj["type"] == "TomographyExperiment":
+def _operator_object_hook(obj: Mapping[str, Any]) -> Union[Mapping[str, Any], Experiment]:
+    if "type" in obj and obj["type"] in ["Experiment", "TomographyExperiment"]:
         # I bet this doesn't work for grouped experiment settings
         settings = [[ExperimentSetting.from_str(s) for s in stt] for stt in obj["settings"]]
         p = Program(obj["program"])
         p.wrap_in_numshots_loop(obj["shots"])
-        ex = TomographyExperiment(
-            settings=settings, program=p, symmetrization=obj["symmetrization"]
-        )
+        ex = Experiment(settings=settings, program=p, symmetrization=obj["symmetrization"])
         ex.reset = obj["reset"]
         return ex
     return obj

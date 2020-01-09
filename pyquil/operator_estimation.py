@@ -19,6 +19,7 @@ from pyquil.experiment._group import (
     group_settings_greedy as group_experiments_greedy,
 )
 from pyquil.experiment._main import (
+    Experiment,
     OperatorEncoder,
     TomographyExperiment,
 )
@@ -124,7 +125,7 @@ def _local_pauli_eig_meas(op: str, idx: QubitDesignator) -> Program:
 
 
 def _generate_experiment_programs(
-    tomo_experiment: TomographyExperiment, active_reset: bool = False
+    tomo_experiment: Experiment, active_reset: bool = False
 ) -> Tuple[List[Program], List[List[int]]]:
     """
     Generate the programs necessary to estimate the observables in a TomographyExperiment.
@@ -186,7 +187,7 @@ def _generate_experiment_programs(
 
 def measure_observables(
     qc: QuantumComputer,
-    tomo_experiment: TomographyExperiment,
+    tomo_experiment: Experiment,
     n_shots: Optional[int] = None,
     progress_callback: Optional[Callable[[int, int], None]] = None,
     active_reset: Optional[bool] = None,
@@ -419,7 +420,7 @@ def _stats_from_measurements(
 
 
 def _calibration_program(
-    qc: QuantumComputer, tomo_experiment: TomographyExperiment, setting: ExperimentSetting
+    qc: QuantumComputer, tomo_experiment: Experiment, setting: ExperimentSetting
 ) -> Program:
     """
     Program required for calibration in a tomography-like experiment.
