@@ -322,7 +322,7 @@ def test_for_negative_probabilities():
     # trivial program to do state tomography on
     prog = Program(I(0))
 
-    # make TomographyExperiment
+     # make an Experiment
     expt_settings = [ExperimentSetting(zeros_state([0]), pt) for pt in [sI(0), sX(0), sY(0), sZ(0)]]
     experiment_1q = Experiment(settings=expt_settings, program=prog)
 
