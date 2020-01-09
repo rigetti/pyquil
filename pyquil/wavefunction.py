@@ -158,7 +158,6 @@ class Wavefunction(object):
         :param int decimal_digits: The number of digits to truncate to.
         :param ancillae: The list of indices for ancilla qubits to omit.
         :return: A dict with outcomes as keys and complex amplitudes as values.
-        :rtype: str
         """
 
         if ancillae is None:
