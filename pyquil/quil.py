@@ -72,6 +72,13 @@ from pyquil.quilbase import (
     Halt,
     Reset,
     ResetQubit,
+    Pulse,
+    Capture,
+    RawCapture,
+    SetFrequency,
+    SetPhase,
+    SwapPhase,
+    SetScale,
     DefPermutationGate,
     DefCalibration,
     DefFrame,
@@ -611,7 +618,21 @@ class Program(object):
         """
         qubits: Set[QubitDesignator] = set()
         for instr in self.instructions:
-            if isinstance(instr, (Gate, Measurement)):
+            if isinstance(
+                instr,
+                (
+                    Gate,
+                    Measurement,
+                    ResetQubit,
+                    Pulse,
+                    Capture,
+                    RawCapture,
+                    SetFrequency,
+                    SetPhase,
+                    SwapPhase,
+                    SetScale,
+                ),
+            ):
                 qubits |= instr.get_qubits(indices=indices)
         return qubits
 
