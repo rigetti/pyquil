@@ -34,6 +34,7 @@ from typing import (
     Tuple,
     Union,
     TYPE_CHECKING,
+    cast,
 )
 from warnings import warn
 
@@ -145,6 +146,13 @@ def _extract_qubit_index(
     if (not index) or isinstance(qubit, QubitPlaceholder):
         return qubit
     return qubit.index
+
+
+def _get_frame_qubits(frame: Frame, index: bool = True) -> Set[QubitDesignator]:
+    for q in frame.qubits:
+        if isinstance(q, FormalArgument):
+            raise ValueError(f"Attempted to extract FormalArgument where a Qubit is expected.")
+    return {_extract_qubit_index(q, index) for q in cast(List[Qubit], frame.qubits)}
 
 
 def _format_qubit_str(qubit: Union[Qubit, QubitPlaceholder, FormalArgument]) -> str:
@@ -1162,6 +1170,9 @@ class Pulse(AbstractInstruction):
         result += f"PULSE {self.frame} {self.waveform.out()}"
         return result
 
+    def get_qubits(self, indices: bool = True) -> Set[QubitDesignator]:
+        return _get_frame_qubits(self.frame, indices)
+
 
 class SetFrequency(AbstractInstruction):
     def __init__(self, frame: Frame, freq: ParameterDesignator):
@@ -1170,6 +1181,9 @@ class SetFrequency(AbstractInstruction):
 
     def out(self) -> str:
         return f"SET-FREQUENCY {self.frame} {self.freq}"
+
+    def get_qubits(self, indices: bool = True) -> Set[QubitDesignator]:
+        return _get_frame_qubits(self.frame, indices)
 
 
 class SetPhase(AbstractInstruction):
@@ -1180,6 +1194,9 @@ class SetPhase(AbstractInstruction):
     def out(self) -> str:
         return f"SET-PHASE {self.frame} {self.phase}"
 
+    def get_qubits(self, indices: bool = True) -> Set[QubitDesignator]:
+        return _get_frame_qubits(self.frame, indices)
+
 
 class ShiftPhase(AbstractInstruction):
     def __init__(self, frame: Frame, phase: ParameterDesignator):
@@ -1188,6 +1205,9 @@ class ShiftPhase(AbstractInstruction):
 
     def out(self) -> str:
         return f"SHIFT-PHASE {self.frame} {self.phase}"
+
+    def get_qubits(self, indices: bool = True) -> Set[QubitDesignator]:
+        return _get_frame_qubits(self.frame, indices)
 
 
 class SwapPhase(AbstractInstruction):
@@ -1198,6 +1218,9 @@ class SwapPhase(AbstractInstruction):
     def out(self) -> str:
         return f"SWAP-PHASE {self.frameA} {self.frameB}"
 
+    def get_qubits(self, indices: bool = True) -> Set[QubitDesignator]:
+        return _get_frame_qubits(self.frameA, indices) | _get_frame_qubits(self.frameB, indices)
+
 
 class SetScale(AbstractInstruction):
     def __init__(self, frame: Frame, scale: ParameterDesignator):
@@ -1206,6 +1229,9 @@ class SetScale(AbstractInstruction):
 
     def out(self) -> str:
         return f"SET-SCALE {self.frame} {self.scale}"
+
+    def get_qubits(self, indices: bool = True) -> Set[QubitDesignator]:
+        return _get_frame_qubits(self.frame, indices)
 
 
 class Capture(AbstractInstruction):
@@ -1223,8 +1249,12 @@ class Capture(AbstractInstruction):
 
     def out(self) -> str:
         result = "NONBLOCKING " if self.nonblocking else ""
-        result += f"CAPTURE {self.frame} {self.waveform.out()} {self.memory_region.out()}"
+        result += f"CAPTURE {self.frame} {self.waveform.out()}"
+        result += f"  {self.memory_region.out()}" if self.memory_region else ""
         return result
+
+    def get_qubits(self, indices: bool = True) -> Set[QubitDesignator]:
+        return _get_frame_qubits(self.frame, indices)
 
 
 class RawCapture(AbstractInstruction):
@@ -1244,6 +1274,9 @@ class RawCapture(AbstractInstruction):
         result = "NONBLOCKING " if self.nonblocking else ""
         result += f"RAW-CAPTURE {self.frame} {self.duration} {self.memory_region.out()}"
         return result
+
+    def get_qubits(self, indices: bool = True) -> Set[QubitDesignator]:
+        return _get_frame_qubits(self.frame, indices)
 
 
 class DelayFrames(AbstractInstruction):
