@@ -720,7 +720,7 @@ def test_bit_flip_channel_fidelity(forest, use_seed):
     p = Program(Pragma("PRESERVE_BLOCK"), I(0), Pragma("END_PRESERVE_BLOCK"))
     p.define_noisy_gate("I", [0], kraus_ops)
 
-    # prepare TomographyExperiment
+    # prepare Experiment
     process_exp = Experiment(settings=expt_list, program=p)
     # list to store experiment results
     expts = []
