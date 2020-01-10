@@ -206,9 +206,7 @@ class ExperimentSetting:
     ):
         # For backwards compatibility, handle in_state specified by PauliTerm.
         if isinstance(in_state, PauliTerm):
-            warnings.warn(
-                "Please specify in_state as a TensorProductState", DeprecationWarning, stacklevel=2
-            )
+            warnings.warn("Please specify in_state as a TensorProductState", DeprecationWarning)
             in_state = _pauli_to_product_state(in_state)
         object.__setattr__(self, "in_state", in_state)
         object.__setattr__(self, "out_operator", out_operator)
@@ -217,7 +215,7 @@ class ExperimentSetting:
     @property
     def in_operator(self) -> PauliTerm:
         warnings.warn(
-            "ExperimentSetting.in_operator is deprecated in favor of in_state", stacklevel=2
+            "ExperimentSetting.in_operator is deprecated in favor of in_state", DeprecationWarning
         )
 
         # Backwards compat
