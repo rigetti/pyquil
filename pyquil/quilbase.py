@@ -55,6 +55,7 @@ from pyquil.quilatom import (
     _contained_parameters,
     format_parameter,
     unpack_qubit,
+    _complex_str,
 )
 
 
@@ -1347,10 +1348,8 @@ class DefWaveform(AbstractInstruction):
             ret += ")"
         ret += f" {self.sample_rate} :\n    "
 
-        def _iq_str(iq: Union[Complex, Expression]) -> str:
-            return str(iq) if isinstance(iq, Expression) else f"{iq.real} + ({iq.imag})*i"
 
-        ret += ", ".join(map(_iq_str, self.entries))
+        ret += ", ".join(map(_complex_str, self.entries))
         return ret
 
 
