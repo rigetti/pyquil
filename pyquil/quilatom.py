@@ -14,6 +14,7 @@
 #    limitations under the License.
 ##############################################################################
 import numpy as np
+from numbers import Complex
 from warnings import warn
 from fractions import Fraction
 from typing import (
@@ -767,6 +768,13 @@ class Frame(QuilAtom):
         return " ".join([q.out() for q in self.qubits]) + f' "{self.name}"'
 
 
+def _complex_str(iq: Union[Any]) -> str:
+    if isinstance(iq, Complex):
+        return f"{iq.real}" if iq.imag == 0.0 else f"{iq.real} + ({iq.imag})*i"
+    else:
+        return str(iq)
+
+
 class Waveform(QuilAtom):
     """
     Representation of a Waveform reference.
@@ -798,10 +806,8 @@ class Waveform(QuilAtom):
         if len(self.params) == 0:
             return ret
         else:
-            (first_name, first_value), *params = list(self.params.items())
-            ret += f"({first_name}: {first_value}"
-            for (param_name, param_value) in params:
-                ret += f", {param_name}: {param_value}"
+            ret += "("
+            ret += ", ".join(f"{name}: {_complex_str(value)}" for name, value in self.params.items())
             return ret + ")"
 
     def __str__(self) -> str:
@@ -843,7 +849,13 @@ class AffineKernelFamily(QuilAtom):
         return hash((self.kernels[0], self.matrix[0, 0], self.offset[0]))
 
     def out(self) -> str:
-        return f"{self.matrix[0,0]}*({self.kernels[0]})+({self.offset[0]})"
+        ret = ""
+        if self.matrix[0,0] != 1.0:
+            ret += _complex_str(self.matrix[0,0]) + "*"
+        ret += self.kernels[0].out()
+        if self.offset[0] != 0.0:
+            ret += "+" + _complex_str(self.offset[0])
+        return ret
 
     def __str__(self) -> str:
         return self.out()
