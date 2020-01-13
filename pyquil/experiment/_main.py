@@ -54,7 +54,7 @@ from pyquil.experiment._symmetrization import SymmetrizationLevel
 from pyquil.gates import RESET
 from pyquil.paulis import PauliTerm
 from pyquil.quil import Program
-from pyquil.quilbase import DefPermutationGate, Reset, ResetQubit
+from pyquil.quilbase import Reset, ResetQubit
 
 
 log = logging.getLogger(__name__)
@@ -87,15 +87,12 @@ def _remove_reset_from_program(program: Program) -> Program:
     :param program: Program to remove RESET(s) from.
     :return: Trimmed Program.
     """
-    definitions = [gate for gate in program.defined_gates]
+    p = program.copy_everything_except_instructions()
 
-    p = Program(*[inst for inst in program if not isinstance(inst, Reset)])
+    for inst in program:
+        if not isinstance(inst, (Reset, ResetQubit)):
+            p.inst(inst)
 
-    for definition in definitions:
-        if isinstance(definition, DefPermutationGate):
-            p.inst(DefPermutationGate(definition.name, list(definition.permutation)))
-        else:
-            p.defgate(definition.name, definition.matrix, definition.parameters)
     return p
 
 
