@@ -37,6 +37,7 @@ instr               : fence
                     | pragma
                     | pulse
                     | setFrequency
+                    | shiftFrequency
                     | setPhase
                     | shiftPhase
                     | swapPhase
@@ -176,6 +177,7 @@ capture             : NONBLOCKING? CAPTURE frame waveform addr ; // TODO: augmen
 rawCapture          : NONBLOCKING? RAWCAPTURE frame expression addr ;
 
 setFrequency        : SETFREQUENCY frame expression ;
+shiftFrequency      : SHIFTFREQUENCY frame expression ;
 setPhase            : SETPHASE frame expression ;
 shiftPhase          : SHIFTPHASE frame expression ;
 swapPhase           : SWAPPHASE frame frame ;
@@ -291,6 +293,7 @@ NONBLOCKING         : 'NONBLOCKING' ;
 PULSE               : 'PULSE' ;
 SAMPLERATE          : 'SAMPLE-RATE' ;
 SETFREQUENCY        : 'SET-FREQUENCY' ;
+SHIFTFREQUENCY      : 'SHIFT-FREQUENCY' ;
 SETPHASE            : 'SET-PHASE' ;
 SETSCALE            : 'SET-SCALE' ;
 SHIFTPHASE          : 'SHIFT-PHASE' ;
