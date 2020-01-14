@@ -75,6 +75,7 @@ from pyquil.quilbase import (
     RawInstr,
     Pulse,
     SetFrequency,
+    ShiftFrequency,
     SetPhase,
     ShiftPhase,
     SwapPhase,
@@ -502,6 +503,7 @@ def test_parsing_frame_mutations():
         ("SHIFT-PHASE", ShiftPhase),
         ("SET-SCALE", SetScale),
         ("SET-FREQUENCY", SetFrequency),
+        ("SHIFT-FREQUENCY", ShiftFrequency),
     ]
     frames = [
         ('0 "rf"', Frame([Qubit(0)], "rf")),

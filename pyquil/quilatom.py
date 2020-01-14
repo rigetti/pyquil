@@ -807,7 +807,9 @@ class Waveform(QuilAtom):
             return ret
         else:
             ret += "("
-            ret += ", ".join(f"{name}: {_complex_str(value)}" for name, value in self.params.items())
+            ret += ", ".join(
+                f"{name}: {_complex_str(value)}" for name, value in self.params.items()
+            )
             return ret + ")"
 
     def __str__(self) -> str:
@@ -850,8 +852,8 @@ class AffineKernelFamily(QuilAtom):
 
     def out(self) -> str:
         ret = ""
-        if self.matrix[0,0] != 1.0:
-            ret += _complex_str(self.matrix[0,0]) + "*"
+        if self.matrix[0, 0] != 1.0:
+            ret += _complex_str(self.matrix[0, 0]) + "*"
         ret += self.kernels[0].out()
         if self.offset[0] != 0.0:
             ret += "+" + _complex_str(self.offset[0])
