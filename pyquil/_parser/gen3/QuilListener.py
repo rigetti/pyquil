@@ -674,6 +674,15 @@ class QuilListener(ParseTreeListener):
         pass
 
 
+    # Enter a parse tree produced by QuilParser#shiftFrequency.
+    def enterShiftFrequency(self, ctx:QuilParser.ShiftFrequencyContext):
+        pass
+
+    # Exit a parse tree produced by QuilParser#shiftFrequency.
+    def exitShiftFrequency(self, ctx:QuilParser.ShiftFrequencyContext):
+        pass
+
+
     # Enter a parse tree produced by QuilParser#setPhase.
     def enterSetPhase(self, ctx:QuilParser.SetPhaseContext):
         pass
