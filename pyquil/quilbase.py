@@ -1188,6 +1188,18 @@ class SetFrequency(AbstractInstruction):
         return _get_frame_qubits(self.frame, indices)
 
 
+class ShiftFrequency(AbstractInstruction):
+    def __init__(self, frame: Frame, offset: ParameterDesignator):
+        self.frame = frame
+        self.offset = offset
+
+    def out(self) -> str:
+        return f"SHIFT-FREQUENCY {self.frame} {self.offset}"
+
+    def get_qubits(self, indices: bool = True) -> Set[QubitDesignator]:
+        return _get_frame_qubits(self.frame, indices)
+
+
 class SetPhase(AbstractInstruction):
     def __init__(self, frame: Frame, phase: ParameterDesignator):
         self.frame = frame
@@ -1348,7 +1360,6 @@ class DefWaveform(AbstractInstruction):
                 ret += f", {param}"
             ret += ")"
         ret += f" {self.sample_rate} :\n    "
-
 
         ret += ", ".join(map(_complex_str, self.entries))
         return ret
