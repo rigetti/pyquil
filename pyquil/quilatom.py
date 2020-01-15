@@ -858,9 +858,9 @@ class AffineKernelFamily(QuilAtom):
             ret += _complex_str(self.matrix[0, 0]) + "*"
         ret += self.waveforms[0].out()
         if self.offset[0] > 0.0:
-            ret += "+" + _complex_str(self.offset[0])
+            ret = "(" + ret + " + " + _complex_str(self.offset[0]) + ")"
         elif self.offset[0] < 0.0:
-            ret += "-" + _complex_str(-self.offset[0])
+            ret = "(" + ret +  " - " + _complex_str(-self.offset[0]) + ")"
 
         return ret
 

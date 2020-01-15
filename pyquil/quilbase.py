@@ -1264,7 +1264,7 @@ class Capture(AbstractInstruction):
     def out(self) -> str:
         result = "NONBLOCKING " if self.nonblocking else ""
         result += f"CAPTURE {self.frame} {self.kernel.out()}"
-        result += f"  {self.memory_region.out()}" if self.memory_region else ""
+        result += f" {self.memory_region.out()}" if self.memory_region else ""
         return result
 
     def get_qubits(self, indices: bool = True) -> Set[QubitDesignator]:
