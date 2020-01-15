@@ -173,7 +173,7 @@ defCalibration      : DEFCAL name (LPAREN param ( COMMA param )* RPAREN)? formal
 defMeasCalibration  : DEFCAL MEASURE formalQubit ( name )? COLON ( NEWLINE TAB instr )* ;
 
 pulse               : NONBLOCKING? PULSE frame waveform ;
-capture             : NONBLOCKING? CAPTURE frame waveform addr ; // TODO: augment this to parse affine kernels
+capture             : NONBLOCKING? CAPTURE frame affineKernelExp addr ;
 rawCapture          : NONBLOCKING? RAWCAPTURE frame expression addr ;
 
 setFrequency        : SETFREQUENCY frame expression ;
@@ -190,6 +190,14 @@ formalQubit         : qubit | qubitVariable ;
 namedParam          : IDENTIFIER COLON expression ;
 waveform            : name (LPAREN namedParam ( COMMA namedParam )* RPAREN)? ;
 frame               : formalQubit+ STRING ;
+affineKernelExp     : LPAREN affineKernelExp RPAREN                  #parenthesisKernelExp
+                    | sign affineKernelExp                           #signedKernelExp
+                    | expression TIMES affineKernelExp               #leftMulKernelExp
+                    | affineKernelExp ( TIMES | DIV ) expression     #rightMulDivKernelExp
+                    | expression ( PLUS | MINUS ) affineKernelExp    #leftAddSubKernelExp
+                    | affineKernelExp ( PLUS | MINUS ) expression    #rightAddSubKernelExp
+                    | waveform                                       #waveformKernelExp
+                    ;
 
 // built-in waveform types include: "flat", "gaussian", "draggaussian", "erfsquare"
 
