@@ -34,6 +34,7 @@ from pyquil.quilatom import (
     Waveform,
     Frame,
     FormalArgument,
+    AffineKernelFamily,
     quil_cos,
     quil_cis,
     quil_exp,
@@ -569,11 +570,11 @@ class PyQuilListener(QuilListener):
 
     def exitCapture(self, ctx: QuilParser.CaptureContext):
         frame = _frame(ctx.frame())
-        waveform = _waveform(ctx.waveform())
+        kernel = _affineKernelFamily(ctx.affineKernelExp())
         memory_region = _addr(ctx.addr())
         self.result.append(
             Capture(
-                frame, waveform, memory_region, nonblocking=True if ctx.NONBLOCKING() else False
+                frame, kernel, memory_region, nonblocking=True if ctx.NONBLOCKING() else False
             )
         )
 
@@ -714,6 +715,44 @@ def _expression(expression):
         return _variable(expression.variable())
 
     raise RuntimeError("Unexpected expression type:" + expression.getText())
+
+
+def _affineKernelFamily(ctx):
+    def expression():
+        return _expression(ctx.expression()) # ...
+    def kernel():
+        return _affineKernelFamily(ctx.affineKernelExp())
+    def waveform():
+        return _waveform(ctx.waveform())
+
+    if isinstance(ctx, QuilParser.ParenthesisKernelExpContext):
+        return kernel()
+    elif isinstance(ctx, QuilParser.SignedKernelExpContext):
+        if ctx.sign().PLUS():
+            return kernel()
+        else:
+            return -kernel()
+    elif isinstance(ctx, QuilParser.LeftMulKernelExpContext):
+        return expression() * kernel()
+    elif isinstance(ctx, QuilParser.RightMulDivKernelExpContext):
+        if expression.TIMES():
+            return  kernel() * expression()
+        elif expression.DIVIDE():
+            return kernel() / expression()
+    elif isinstance(ctx, QuilParser.LeftAddSubKernelExpContext):
+        if ctx.PLUS():
+            return expression() + kernel()
+        elif ctx.MINUS():
+            return expression() - kernel()
+    elif isinstance(ctx, QuilParser.RightAddSubKernelExpContext):
+        if ctx.PLUS():
+            return kernel() + expression()
+        elif ctx.MINUS():
+            return kernel() - expression()
+    elif isinstance(ctx, QuilParser.WaveformKernelExpContext):
+        return AffineKernelFamily([waveform()], np.array([[1.0]]), np.array([0.0]))
+
+
 
 
 def _named_parameters(params):
