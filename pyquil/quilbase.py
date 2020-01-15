@@ -1188,12 +1188,12 @@ class SetFrequency(AbstractInstruction):
 
 
 class ShiftFrequency(AbstractInstruction):
-    def __init__(self, frame: Frame, offset: ParameterDesignator):
+    def __init__(self, frame: Frame, freq: ParameterDesignator):
         self.frame = frame
-        self.offset = offset
+        self.freq = freq
 
     def out(self) -> str:
-        return f"SHIFT-FREQUENCY {self.frame} {self.offset}"
+        return f"SHIFT-FREQUENCY {self.frame} {self.freq}"
 
     def get_qubits(self, indices: bool = True) -> Set[QubitDesignator]:
         return _get_frame_qubits(self.frame, indices)
