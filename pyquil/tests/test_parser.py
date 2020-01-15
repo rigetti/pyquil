@@ -52,6 +52,7 @@ from pyquil.quilatom import (
     MemoryReference,
     Frame,
     Waveform,
+    AffineKernelFamily,
     Mul,
     Div,
     FormalArgument,
@@ -481,6 +482,36 @@ def test_parsing_capture():
         "DECLARE iq REAL[2]\n" 'NONBLOCKING CAPTURE 0 "ro_rx" flat(duration: 1.0, iq: 1.0) iq',
         Declare("iq", "REAL", 2),
         Capture(Frame([Qubit(0)], "ro_rx"), wf, MemoryReference("iq"), nonblocking=True),
+    )
+
+
+def test_parsing_capture_affine_kernel():
+    wf = Waveform("flat", {"duration": 1.0, "iq": 1.0})
+    kernel = AffineKernelFamily([wf], np.array([[2.0]]), np.array([-5.0]))
+    expected = [
+        Declare("iq", "REAL", 2),
+        Capture(Frame([Qubit(0)], "ro_rx"), kernel, MemoryReference("iq"))
+    ]
+    parse_equals(
+        "DECLARE iq REAL[2]\n"
+        'CAPTURE 0 "ro_rx" 2*flat(duration: 1.0, iq: 1.0)-5 iq',
+        *expected
+    )
+
+    parse_equals(
+        "DECLARE iq REAL[2]\n"
+        'CAPTURE 0 "ro_rx" (2*flat(duration: 1.0, iq: 1.0))-5 iq',
+        *expected
+    )
+    parse_equals(
+        "DECLARE iq REAL[2]\n"
+        'CAPTURE 0 "ro_rx" 2*(flat(duration: 1.0, iq: 1.0)-2.5) iq',
+        *expected
+    )
+    parse_equals(
+        "DECLARE iq REAL[2]\n"
+        'CAPTURE 0 "ro_rx" (2*flat(duration: 1.0, iq: 1.0)-5) iq',
+        *expected
     )
 
 
