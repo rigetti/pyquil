@@ -816,6 +816,8 @@ class Waveform(QuilAtom):
         return self.out()
 
 
+# TODO: eventually support generic expressions in arithmetic,
+#       but for now, just hardcoded constants
 class AffineKernelFamily(QuilAtom):
     """
     Representation of a family of affine kernels.
@@ -855,8 +857,11 @@ class AffineKernelFamily(QuilAtom):
         if self.matrix[0, 0] != 1.0:
             ret += _complex_str(self.matrix[0, 0]) + "*"
         ret += self.kernels[0].out()
-        if self.offset[0] != 0.0:
+        if self.offset[0] > 0.0:
             ret += "+" + _complex_str(self.offset[0])
+        elif self.offset[0] < 0.0:
+            ret += "-" + _complex_str(-self.offset[0])
+
         return ret
 
     def __str__(self) -> str:
@@ -865,3 +870,48 @@ class AffineKernelFamily(QuilAtom):
     @property
     def size(self) -> int:
         return len(self.kernels)
+
+    def __add__(self, other: Complex) -> "AffineKernelFamily":
+        if not isinstance(other, Complex):
+            raise TypeError(f"Unable to add {other} to affine kernel family.")
+        return AffineKernelFamily(self.kernels, self.matrix, self.offset + other)
+
+    def __radd__(self, other: Complex) -> "AffineKernelFamily":
+        if not isinstance(other, Complex):
+            raise TypeError(f"Unable to add {other} to affine kernel family.")
+        return AffineKernelFamily(self.kernels, self.matrix, self.offset + other)
+
+    def __sub__(self, other: Complex) -> "AffineKernelFamily":
+        if not isinstance(other, Complex):
+            raise TypeError(f"Unable to subtract {other} from affine kernel family.")
+        return self + (-other)
+
+    def __rsub__(self, other: Complex) -> "AffineKernelFamily":
+        if not isinstance(other, Complex):
+            raise TypeError(f"Unable to subtract affine kernel family from {other}.")
+        return (-self) + other
+
+    def __mul__(self, other: Complex) -> "AffineKernelFamily":
+        if not isinstance(other, Complex):
+            raise TypeError(f"Unable to multiply affine kernel family by {other}")
+        return AffineKernelFamily(self.kernels, self.matrix*other, self.offset*other)
+
+    def __rmul__(self, other: Complex) -> "AffineKernelFamily":
+        if not isinstance(other, Complex):
+            raise TypeError(f"Unable to multiply affine kernel family by {other}")
+        return AffineKernelFamily(self.kernels, self.matrix*other, self.offset*other)
+
+    def __div__(self, other: Complex) -> "AffineKernelFamily":
+        if not isinstance(other, Complex):
+            raise TypeError(f"Unable to divide affine kernel family by {other}.")
+        return self * (1/other)
+
+    __truediv__ = __div__
+
+    def __rdiv__(self, other: Any) -> "AffineKernelFamily":
+        raise TypeError(f"Unable to divide. Affine kernel families do not have a multiplicative inverse!")
+
+    __rtruediv__ = __rdiv__
+
+    def __neg__(self) -> "AffineKernelFamily":
+        return (-1)*self

@@ -48,6 +48,7 @@ from pyquil.quilatom import (
     ParameterDesignator,
     Frame,
     Waveform,
+    AffineKernelFamily,
     Qubit,
     QubitDesignator,
     QubitPlaceholder,
@@ -1251,18 +1252,18 @@ class Capture(AbstractInstruction):
     def __init__(
         self,
         frame: Frame,
-        waveform: Waveform,
+        kernel: AffineKernelFamily,
         memory_region: MemoryReference,
         nonblocking: bool = False,
     ):
         self.frame = frame
-        self.waveform = waveform
+        self.kernel = kernel
         self.memory_region = memory_region
         self.nonblocking = nonblocking
 
     def out(self) -> str:
         result = "NONBLOCKING " if self.nonblocking else ""
-        result += f"CAPTURE {self.frame} {self.waveform.out()}"
+        result += f"CAPTURE {self.frame} {self.kernel.out()}"
         result += f"  {self.memory_region.out()}" if self.memory_region else ""
         return result
 
