@@ -544,8 +544,8 @@ class PyQuilListener(QuilListener):
 
     def exitShiftFrequency(self, ctx: QuilParser.ShiftFrequencyContext):
         frame = _frame(ctx.frame())
-        offset = _expression(ctx.expression())
-        self.result.append(ShiftFrequency(frame, offset))
+        freq = _expression(ctx.expression())
+        self.result.append(ShiftFrequency(frame, freq))
 
     def exitSetPhase(self, ctx: QuilParser.SetPhaseContext):
         frame = _frame(ctx.frame())
