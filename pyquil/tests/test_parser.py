@@ -515,6 +515,20 @@ def test_parsing_capture_affine_kernel():
     )
 
 
+def test_parsing_capture_filter():
+    wf = Waveform('q0_ro_rx_filter', {})
+    kernel = AffineKernelFamily([wf], np.array([[1.0]]), np.array([-0.0007475490783600097]))
+    expected = [
+        Declare("iq", "REAL", 2),
+        Capture(Frame([Qubit(0)], "ro_rx"), kernel, MemoryReference("iq"), nonblocking=True)
+    ]
+    parse_equals(
+        "DECLARE iq REAL[2]\n"
+        'NONBLOCKING CAPTURE 0 "ro_rx" q0_ro_rx_filter - 0.0007475490783600097 iq[0]',
+        *expected
+    )
+
+
 def test_parsing_raw_capture():
     parse_equals(
         "DECLARE iqs REAL[200000]\n" 'RAW-CAPTURE 0 "ro_rx" 0.001 iqs',
