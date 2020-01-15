@@ -824,20 +824,20 @@ class AffineKernelFamily(QuilAtom):
 
     NOTE: At present, we support only families of size 1.
 
-    :param kernels: List of kernel waveforms.
+    :param waveforms: List of kernel waveforms.
     :param matrix: A complex 2D array, by which to recombine kernel convolutions.
     :param offset: A real 1D array, by which to offset recombined kernel convolutions.
     """
 
     def __init__(
-        self, kernels: List[Waveform], matrix: np.ndarray, offset: np.ndarray,
+        self, waveforms: List[Waveform], matrix: np.ndarray, offset: np.ndarray,
     ):
-        assert len(kernels) == 1
-        assert isinstance(kernels[0], Waveform)
+        assert len(waveforms) == 1
+        assert isinstance(waveforms[0], Waveform)
         assert matrix.shape == (1, 1)
         assert offset.shape == (1,)
 
-        self.kernels = kernels
+        self.waveforms = waveforms
         self.matrix = matrix
         self.offset = offset
 
@@ -846,17 +846,17 @@ class AffineKernelFamily(QuilAtom):
             isinstance(other, AffineKernelFamily)
             and self.offset == other.offset
             and self.matrix == other.matrix
-            and self.kernels == other.kernels
+            and self.waveforms == other.waveforms
         )
 
     def __hash__(self) -> int:
-        return hash((self.kernels[0], self.matrix[0, 0], self.offset[0]))
+        return hash((self.waveforms[0], self.matrix[0, 0], self.offset[0]))
 
     def out(self) -> str:
         ret = ""
         if self.matrix[0, 0] != 1.0:
             ret += _complex_str(self.matrix[0, 0]) + "*"
-        ret += self.kernels[0].out()
+        ret += self.waveforms[0].out()
         if self.offset[0] > 0.0:
             ret += "+" + _complex_str(self.offset[0])
         elif self.offset[0] < 0.0:
@@ -869,17 +869,17 @@ class AffineKernelFamily(QuilAtom):
 
     @property
     def size(self) -> int:
-        return len(self.kernels)
+        return len(self.waveforms)
 
     def __add__(self, other: Complex) -> "AffineKernelFamily":
         if not isinstance(other, Complex):
             raise TypeError(f"Unable to add {other} to affine kernel family.")
-        return AffineKernelFamily(self.kernels, self.matrix, self.offset + other)
+        return AffineKernelFamily(self.waveforms, self.matrix, self.offset + other)
 
     def __radd__(self, other: Complex) -> "AffineKernelFamily":
         if not isinstance(other, Complex):
             raise TypeError(f"Unable to add {other} to affine kernel family.")
-        return AffineKernelFamily(self.kernels, self.matrix, self.offset + other)
+        return AffineKernelFamily(self.waveforms, self.matrix, self.offset + other)
 
     def __sub__(self, other: Complex) -> "AffineKernelFamily":
         if not isinstance(other, Complex):
@@ -894,12 +894,12 @@ class AffineKernelFamily(QuilAtom):
     def __mul__(self, other: Complex) -> "AffineKernelFamily":
         if not isinstance(other, Complex):
             raise TypeError(f"Unable to multiply affine kernel family by {other}")
-        return AffineKernelFamily(self.kernels, self.matrix*other, self.offset*other)
+        return AffineKernelFamily(self.waveforms, self.matrix*other, self.offset*other)
 
     def __rmul__(self, other: Complex) -> "AffineKernelFamily":
         if not isinstance(other, Complex):
             raise TypeError(f"Unable to multiply affine kernel family by {other}")
-        return AffineKernelFamily(self.kernels, self.matrix*other, self.offset*other)
+        return AffineKernelFamily(self.waveforms, self.matrix*other, self.offset*other)
 
     def __div__(self, other: Complex) -> "AffineKernelFamily":
         if not isinstance(other, Complex):
