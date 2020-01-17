@@ -66,6 +66,7 @@ def test_engagement_not_requested_when_unnecessary():
     config.config_parsers["FOREST_CONFIG"].set(
         "Rigetti Forest", "qpu_endpoint_address", "tcp://fake_qpu:5555"
     )
+    # because get_enagement has not been set on PyquilConfig, these would
+    # throw assertion errors if they attempt to request engagement.
     assert config.qpu_compiler_url == "tcp://fake_compiler:5555"
     assert config.qpu_url == "tcp://fake_qpu:5555"
-    assert config.engagement is None

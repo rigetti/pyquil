@@ -273,11 +273,9 @@ def test_qpu_reengage_when_invalid():
     assert engagement.is_valid()
 
     session = get_session(config=config)
-    config._engagement_requested = True
-    config.get_engagement = lambda: engagement
-
+    session._engagement = engagement
+    assert session.config.get_engagement() == engagement
     qpu = QPU(session=session)
-
     assert qpu._client_engagement is None
     assert qpu._get_client_auth_config() is not None
     assert qpu._client_engagement is engagement
@@ -295,7 +293,8 @@ def test_qpu_reengage_when_invalid():
         qpu_compiler_endpoint="tcp://fake.compiler:5555",
     )
 
-    config.get_engagement = lambda: new_engagement
+    session._engagement = new_engagement
+    assert session.config.get_engagement() == new_engagement
 
     new_auth_config = qpu._get_client_auth_config()
     assert new_auth_config is not None

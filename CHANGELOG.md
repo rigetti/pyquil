@@ -25,6 +25,8 @@ Changelog
 
 ### Improvements and Changes
 
+-   Non-PyquilConfig code should not reference PyquilConfig state to get engagement
+    (@erichulburd, gh-1162).
 -   Type hints have been added to the `quil.py` file (@rht, gh-1115, gh-1134).
 -   Use [Black](https://black.readthedocs.io/en/stable/index.html) for code style
     and enforce it (along with a line length of 100) via the `style` (`flake8`)
