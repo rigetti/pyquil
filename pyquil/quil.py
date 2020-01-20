@@ -75,7 +75,9 @@ from pyquil.quilbase import (
     Capture,
     RawCapture,
     SetFrequency,
+    ShiftFrequency,
     SetPhase,
+    ShiftPhase,
     SwapPhase,
     SetScale,
     DefPermutationGate,
@@ -635,7 +637,7 @@ class Program(object):
                 qubits |= instr.get_qubits(indices=indices)
         return qubits
 
-    def is_protoquil(self) -> bool:
+    def is_protoquil(self, quilt:bool = False) -> bool:
         """
         Protoquil programs may only contain gates, Pragmas, and RESET. It may not contain
         classical instructions or jumps.
@@ -643,7 +645,10 @@ class Program(object):
         :return: True if the Program is Protoquil, False otherwise
         """
         try:
-            validate_protoquil(self)
+            if quilt:
+                validate_protoquil_or_quilt(self)
+            else:
+                validate_protoquil(self)
             return True
         except ValueError:
             return False
@@ -1156,6 +1161,29 @@ def validate_protoquil(program: Program) -> None:
     :param program: The Quil program to validate.
     """
     valid_instruction_types = tuple([Pragma, Declare, Gate, Reset, ResetQubit, Measurement])
+    for instr in program.instructions:
+        if not isinstance(instr, valid_instruction_types):
+            # Instructions like MOVE, NOT, JUMP, JUMP-UNLESS will fail here
+            raise ValueError(f"ProtoQuil validation failed: {instr} is not allowed.")
+
+
+def validate_protoquil_or_quilt(program: Program) -> None:
+    """
+    Ensure that a program is valid ProtoQuil or Quilt, otherwise raise a ValueError.
+    Protoquil is a subset of Quil which excludes control flow and classical instructions.
+
+    :param program: The Quil(t) program to validate.
+    """
+    valid_instruction_types = tuple([Pragma, Declare, Halt,
+                                     Gate, Measurement,
+                                     Reset, ResetQubit,
+                                     ShiftFrequency, SetFrequency, SetScale,
+                                     ShiftPhase, SetPhase, SwapPhase,
+                                     Pulse, Capture, RawCapture,
+                                     DefCalibration,
+                                     DefFrame,
+                                     DefMeasureCalibration,
+                                     DefWaveform])
     for instr in program.instructions:
         if not isinstance(instr, valid_instruction_types):
             # Instructions like MOVE, NOT, JUMP, JUMP-UNLESS will fail here
