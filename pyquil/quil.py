@@ -1180,7 +1180,7 @@ def validate_protoquil_or_quilt(program: Program) -> None:
     valid_instruction_types = tuple([Pragma, Declare, Halt,
                                      Gate, Measurement,
                                      Reset, ResetQubit,
-                                     DelayQubit, DelayFrames, Fence,
+                                     DelayQubits, DelayFrames, Fence,
                                      ShiftFrequency, SetFrequency, SetScale,
                                      ShiftPhase, SetPhase, SwapPhase,
                                      Pulse, Capture, RawCapture,
