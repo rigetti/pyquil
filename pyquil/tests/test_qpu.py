@@ -27,7 +27,11 @@ def test_qpu_run():
             name="pyQuil test QC",
             qam=QPU(endpoint=config.qpu_url, user="pyQuil test suite"),
             device=device,
-            compiler=QPUCompiler(endpoint=config.compiler_url, device=device),
+            compiler=QPUCompiler(
+                quilc_endpoint=config.quilc_url,
+                qpu_compiler_endpoint=config.qpu_compiler_url,
+                device=device,
+            ),
         )
         bitstrings = qc.run_and_measure(program=Program(X(0)), trials=1000)
         assert bitstrings[0].shape == (1000,)
@@ -139,7 +143,12 @@ def mock_qpu():
 def qpu_compiler(test_device):
     try:
         config = PyquilConfig()
-        compiler = QPUCompiler(endpoint=config.qpu_compiler_url, device=test_device, timeout=0.5)
+        compiler = QPUCompiler(
+            quilc_endpoint=config.quilc_url,
+            qpu_compiler_endpoint=config.qpu_compiler_url,
+            device=test_device,
+            timeout=0.5,
+        )
         compiler.quil_to_native_quil(Program(I(0)))
         return compiler
     except Exception as e:
