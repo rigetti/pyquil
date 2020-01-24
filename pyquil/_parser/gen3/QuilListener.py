@@ -728,6 +728,15 @@ class QuilListener(ParseTreeListener):
         pass
 
 
+    # Enter a parse tree produced by QuilParser#fenceAll.
+    def enterFenceAll(self, ctx:QuilParser.FenceAllContext):
+        pass
+
+    # Exit a parse tree produced by QuilParser#fenceAll.
+    def exitFenceAll(self, ctx:QuilParser.FenceAllContext):
+        pass
+
+
     # Enter a parse tree produced by QuilParser#fence.
     def enterFence(self, ctx:QuilParser.FenceContext):
         pass

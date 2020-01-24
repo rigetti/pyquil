@@ -1326,6 +1326,13 @@ class DelayQubits(AbstractInstruction):
         return f"DELAY {_format_qubits_str(self.qubits)} {self.duration}"
 
 
+class FenceAll(SimpleInstruction):
+    """
+    The FENCE instruction.
+    """
+
+    op = "FENCE"
+
 class Fence(AbstractInstruction):
     def __init__(self, qubits: List[Union[Qubit, FormalArgument]]):
         self.qubits = qubits
