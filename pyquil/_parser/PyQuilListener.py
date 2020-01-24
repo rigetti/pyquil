@@ -101,6 +101,7 @@ from pyquil.quilbase import (
     DelayFrames,
     DelayQubits,
     Fence,
+    FenceAll,
 )
 from .gen3.QuilLexer import QuilLexer
 from .gen3.QuilListener import QuilListener
@@ -601,6 +602,9 @@ class PyQuilListener(QuilListener):
     def exitFence(self, ctx: QuilParser.FenceContext):
         qubits = list(map(_formalQubit, ctx.formalQubit()))
         self.result.append(Fence(qubits))
+
+    def exitFenceAll(self, ctx: QuilParser.FenceContext):
+        self.result.append(FenceAll())
 
 
 """
