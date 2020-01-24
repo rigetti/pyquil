@@ -86,6 +86,7 @@ from pyquil.quilbase import (
     DelayQubits,
     DelayFrames,
     Fence,
+    FenceAll,
     DefCalibration,
     DefMeasureCalibration,
     DefFrame,
@@ -587,6 +588,7 @@ def test_parsing_fence():
     parse_equals("FENCE 0", Fence([Qubit(0)]))
     parse_equals("FENCE 0 1", Fence([Qubit(0), Qubit(1)]))
     parse_equals("FENCE q s", Fence([FormalArgument("q"), FormalArgument("s")]))
+    parse_equals("FENCE", FenceAll())
 
 
 def test_parsing_defwaveform():
