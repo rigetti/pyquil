@@ -17,6 +17,7 @@ allInstr            : defGate
                     ;
 
 instr               : fence
+                    | fenceAll
                     | delay
                     | gate
                     | measure
@@ -184,6 +185,7 @@ swapPhase           : SWAPPHASE frame frame ;
 setScale            : SETSCALE frame expression ;
 
 delay               : DELAY formalQubit+ STRING* expression ;
+fenceAll            : FENCE ;
 fence               : FENCE formalQubit+ ;
 
 formalQubit         : qubit | qubitVariable ;
