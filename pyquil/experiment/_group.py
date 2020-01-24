@@ -173,7 +173,9 @@ def group_settings_clique_removal(experiments: Experiment) -> Experiment:
 
         new_cliqs += [new_cliq]
 
-    return Experiment(new_cliqs, program=experiments.program)
+    return Experiment(
+        new_cliqs, program=experiments.program, symmetrization=experiments.symmetrization,
+    )
 
 
 def _max_weight_operator(ops: Iterable[PauliTerm]) -> Union[None, PauliTerm]:
@@ -284,7 +286,11 @@ def group_settings_greedy(tomo_expt: Experiment) -> Experiment:
     """
     diag_sets = _max_tpb_overlap(tomo_expt)
     grouped_expt_settings_list = list(diag_sets.values())
-    grouped_tomo_expt = Experiment(grouped_expt_settings_list, program=tomo_expt.program)
+    grouped_tomo_expt = Experiment(
+        grouped_expt_settings_list,
+        program=tomo_expt.program,
+        symmetrization=tomo_expt.symmetrization,
+    )
     return grouped_tomo_expt
 
 
