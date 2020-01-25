@@ -9,13 +9,14 @@ Changelog
 ### Improvements and Changes
 
 -   Pin the `antlr4-python3-runtime` package to below `v4.8` (@karalekas, gh-1163).
+-   Expand upon the [acknowledgements](ACKNOWLEDGEMENTS.md) (@karalekas, gh-1165).
 
 ### Bugfixes
 
-- Replace references to non-existent ``endpoint`` init arg when constructing
-  ``QPUCompiler``s in ``test_qpu.py`` (@appleby, gh-1164).
-- Preserve program metadata when constructing and manipulating `Experiment`
-  objects (@kilimanjaro, gh-1160).
+-   Replace references to non-existent `endpoint` init arg when constructing
+    `QPUCompiler`s in `test_qpu.py` (@appleby, gh-1164).
+-   Preserve program metadata when constructing and manipulating `Experiment`
+    objects (@kilimanjaro, gh-1160).
 
 [v2.16](https://github.com/rigetti/pyquil/compare/v2.15.0...v2.16.0) (January 10, 2020)
 ---------------------------------------------------------------------------------------
