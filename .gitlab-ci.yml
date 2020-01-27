@@ -1,8 +1,9 @@
-# other GitLab CI YAML files to pull jobs and job templates from
+# other GitLab CI YAML files to pull jobs and job templates from -- note that there is an
+# additional "forest" directory here, as the GitLab version of the repo is used by include
 include:
-  - project: rigetti/gitlab-pipelines
+  - project: rigetti/forest/gitlab-pipelines
     file: docker.gitlab-ci.yml
-  - project: rigetti/gitlab-pipelines
+  - project: rigetti/forest/gitlab-pipelines
     file: python.gitlab-ci.yml
 
 # global build variables
