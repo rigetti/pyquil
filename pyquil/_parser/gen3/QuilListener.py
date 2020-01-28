@@ -584,6 +584,15 @@ class QuilListener(ParseTreeListener):
         pass
 
 
+    # Enter a parse tree produced by QuilParser#waveformName.
+    def enterWaveformName(self, ctx:QuilParser.WaveformNameContext):
+        pass
+
+    # Exit a parse tree produced by QuilParser#waveformName.
+    def exitWaveformName(self, ctx:QuilParser.WaveformNameContext):
+        pass
+
+
     # Enter a parse tree produced by QuilParser#defFrame.
     def enterDefFrame(self, ctx:QuilParser.DefFrameContext):
         pass

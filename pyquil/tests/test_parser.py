@@ -486,7 +486,7 @@ def test_parsing_capture():
     )
 
 
-def test_parsing_capture_affine_kernel():
+def test_parsing_capture_affine_kernel_parametric():
     wf = Waveform("flat", {"duration": 1.0, "iq": 1.0})
     kernel = AffineKernelFamily([wf], np.array([[2.0]]), np.array([-5.0]))
     expected = [
@@ -516,8 +516,40 @@ def test_parsing_capture_affine_kernel():
     )
 
 
+def test_parsing_capture_affine_kernel_funky_name():
+    wf = Waveform("q0_ro_rx/filter", [])
+    kernel = AffineKernelFamily([wf], np.array([[2.0]]), np.array([-5.0]))
+    expected = [
+        Declare("iq", "REAL", 2),
+        Capture(Frame([Qubit(0)], "ro_rx"), kernel, MemoryReference("iq"))
+    ]
+    parse_equals(
+        "DECLARE iq REAL[2]\n"
+        'CAPTURE 0 "ro_rx" 2*q0_ro_rx/filter - 5 iq',
+        *expected
+    )
+
+    parse_equals(
+        "DECLARE iq REAL[2]\n"
+        'CAPTURE 0 "ro_rx" (2*q0_ro_rx/filter)-5 iq',
+        *expected
+    )
+    parse_equals(
+        "DECLARE iq REAL[2]\n"
+        'CAPTURE 0 "ro_rx" 2*(q0_ro_rx/filter - 2.5) iq',
+        *expected
+    )
+    parse_equals(
+        "DECLARE iq REAL[2]\n"
+        'CAPTURE 0 "ro_rx" (2*q0_ro_rx/filter - 5) iq',
+        *expected
+    )
+    with pytest.raises(RuntimeError):
+        parse('CAPTURE 0 "ro_rx" q0_ro_rx/filter-5 iq')
+
+
 def test_parsing_capture_filter():
-    wf = Waveform('q0_ro_rx_filter', {})
+    wf = Waveform('q0_ro_rx/filter', {})
     kernel = AffineKernelFamily([wf], np.array([[1.0]]), np.array([-0.0007475490783600097]))
     expected = [
         Declare("iq", "REAL", 2),
@@ -525,9 +557,10 @@ def test_parsing_capture_filter():
     ]
     parse_equals(
         "DECLARE iq REAL[2]\n"
-        'NONBLOCKING CAPTURE 0 "ro_rx" q0_ro_rx_filter - 0.0007475490783600097 iq[0]',
+        'NONBLOCKING CAPTURE 0 "ro_rx" q0_ro_rx/filter - 0.0007475490783600097 iq[0]',
         *expected
     )
+
 
 
 def test_parsing_raw_capture():
@@ -604,6 +637,10 @@ def test_parsing_defwaveform():
         DefWaveform(
             "foo", [Parameter("theta")], 1.0, [1 + 2j, 1 - 2j, Mul(3.0, Parameter("theta"))]
         ),
+    )
+    parse_equals(
+        "DEFWAVEFORM q0_ro_rx/filter 1.0:\n    1.0, 1.0, 1.0",
+        DefWaveform("q0_ro_rx/filter", [], 1.0, [1.0, 1.0, 1.0])
     )
 
 
