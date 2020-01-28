@@ -43,6 +43,8 @@ Table of Contents
 
 - [Merging a Pull Request](#merging-a-pull-request)
 
+- [Managing the CI Pipelines](#managing-the-ci-pipelines)
+
 - [Drafting a Release](#drafting-a-release)
 
 - [Publishing a Package on PyPI](#publishing-a-package-on-pypi)
@@ -223,7 +225,7 @@ replacement for locally installing the Forest SDK, as Docker containers are ephe
 filesystems, and therefore are not the best solution when the data they produce need
 to be persisted.
 
-The [`rigetti/forest`](https://hub.docker.com/r/rigetti/forest) Docker image is built
+The [`rigetti/forest`][docker-forest] Docker image is built
 and pushed to DockerHub automatically as part of the CI pipeline. Developers can also
 build the image locally by running `make docker` from the top-level directory. This
 creates an image tagged by a shortened version of the current git commit hash (run
@@ -279,6 +281,43 @@ When merging PRs, we have a couple of guidelines:
    merged. We use this to keep track of overall release progress, along with the
    [Changelog](CHANGELOG.md).
 
+### Managing the CI Pipelines
+
+The CI/CD pipelines that underpin pyQuil are critical for supporting the job of its maintainer.
+They validate formatting, style, correctness, and good code practice, and also build and
+distribute the repository via [PyPI][pypi] and DockerHub, all with minimal human intervention.
+These pipelines almost always work as expected, but every now and then something goes wrong
+and it requires a deeper dive.
+
+We use a collection of services for CI/CD -- [GitLab CI][gitlab-ci], [Travis CI][travis-ci],
+and [Semaphore CI][semaphore-ci]. Semaphore is eventually going to be removed, as it has
+been wholly replaced by Travis. The reason that we use more than a single service stems from
+GitLab's inability to currently handle forks, and being able to build pull requests from
+external contributors is important for supporting a developer community. We could switch over
+entirely to Travis, but the rest of Rigetti's software stack uses GitLab CI, and it's also not
+unheard of for software to build on two CI/CD services as a sort of "double checking."
+
+The configuration for GitLab CI is contained in the [`.gitlab-ci.yml`](.gitlab-ci.yml).
+GitLab, like Travis (which is configured in [`.travis.yml`](.travis.yml)), builds the docs,
+performs various style checks, run the unit tests on a variety of Python versions. However,
+it has additional responsibilities that Travis does not. For example, GitLab builds the
+[`rigetti/forest`][docker-forest] Docker image, handles release-related activities, and
+also pushes a source distribution to [Test PyPI][test-pypi] on every commit to master. At
+the top of the GitLab CI YAML, there is also an `include` section which references files not
+present in the pyQuil repository. These are in the [rigetti/gitlab-pipelines][gitlab-pipelines]
+repository, and they contain template jobs that are used in the pyQuil pipelines via the
+`extends` keyword. Finally, the configuration for the Sempahore pipelines is not
+source-controlled but rather is only available via the web interface, which is accessible
+via the link above.
+
+[docker-forest]: https://hub.docker.com/r/rigetti/forest
+[gitlab-ci]: https://gitlab.com/rigetti/forest/pyquil/pipelines
+[gitlab-pipelines]: https://github.com/rigetti/gitlab-pipelines
+[pypi]: https://pypi.org/project/pyquil/
+[semaphore-ci]: https://semaphoreci.com/rigetti/pyquil
+[test-pypi]: https://test.pypi.org/project/pyquil/
+[travis-ci]: https://travis-ci.org/rigetti/pyquil
+
 ### Drafting a Release
 
 Once it is time to perform a release of pyQuil, the maintainer must perform the
@@ -314,16 +353,16 @@ twine upload --repository pypi dist/*
 
 Which will execute successfully if you have (1) installed all of pyQuil's requirements
 and (2) configured your `~/.pypirc` correctly. You can verify that the new package is
-there by visiting pyQuil's project page on PyPI [here](https://pypi.org/project/pyquil/).
+there by visiting pyQuil's project page on PyPI [here][pypi].
 
 In addition to pushing to PyPI upon a new release, we also leverage Test PyPI as part
 of the CI pipeline to ensure package robustness and enable easier integration testing.
 Every commit to `master` results in a new package published on pyQuil's Test PyPI project
-page [here](https://test.pypi.org/project/pyquil/). These packages have an additional
-number as part of their versioning scheme, which corresponds to the number of commits
-the package is away from the latest tag (e.g. `v2.12.0.8` is 8 commits beyond `v2.12.0`),
-which can be determined via the command `git describe --tags`. If you wish to install a
-particular package from Test PyPI, run the following (changing the version as necessary):
+page [here][test-pypi]. These packages have an additional number as part of their versioning
+scheme, which corresponds to the number of commits the package is away from the latest tag
+(e.g. `v2.12.0.8` is 8 commits beyond `v2.12.0`), which can be determined via the command
+`git describe --tags`. If you wish to install a particular package from Test PyPI, run the
+following (changing the version as necessary):
 
 ```bash
 PYQUIL_VERSION=2.12.0.8
