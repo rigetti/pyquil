@@ -165,11 +165,13 @@ realN               : FLOAT | INT ;
 
 // Analog control
 
+waveformName        : name (DIVIDE name)? ;
+
 defFrame            : DEFFRAME frame ( COLON frameSpec+ )? ;
 frameSpec           : NEWLINE TAB frameAttr COLON ( expression | STRING ) ;
 frameAttr           : SAMPLERATE | INITIALFREQUENCY | DIRECTION ;
 
-defWaveform         : DEFWAVEFORM name ( LPAREN param (COMMA param)* RPAREN )? realN COLON NEWLINE matrix ;
+defWaveform         : DEFWAVEFORM waveformName ( LPAREN param (COMMA param)* RPAREN )? realN COLON NEWLINE matrix ;
 defCalibration      : DEFCAL name (LPAREN param ( COMMA param )* RPAREN)? formalQubit+ COLON ( NEWLINE TAB instr )* ;
 defMeasCalibration  : DEFCAL MEASURE formalQubit ( name )? COLON ( NEWLINE TAB instr )* ;
 
@@ -190,7 +192,7 @@ fence               : FENCE formalQubit+ ;
 
 formalQubit         : qubit | qubitVariable ;
 namedParam          : IDENTIFIER COLON expression ;
-waveform            : name (LPAREN namedParam ( COMMA namedParam )* RPAREN)? ;
+waveform            : waveformName (LPAREN namedParam ( COMMA namedParam )* RPAREN)? ;
 frame               : formalQubit+ STRING ;
 affineKernelExp     : LPAREN affineKernelExp RPAREN                  #parenthesisKernelExp
                     | sign affineKernelExp                           #signedKernelExp
