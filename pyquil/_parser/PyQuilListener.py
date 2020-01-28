@@ -528,7 +528,7 @@ class PyQuilListener(QuilListener):
         self.result.append(DefMeasureCalibration(qubit, memory_reference, instrs))
 
     def exitDefWaveform(self, ctx: QuilParser.DefWaveformContext):
-        name = ctx.name().getText()
+        name = _waveform_name(ctx.waveformName())
         parameters = [param.getText() for param in ctx.param()]
         sample_rate = float(ctx.realN().getText())
         entries = sum(_matrix(ctx.matrix()), [])
@@ -835,10 +835,18 @@ def _sign(real):
     return -1 if real.MINUS() else 1
 
 
-def _waveform(wf):
+def _waveform(ctx: QuilParser.WaveformContext) -> Waveform:
     # type: (QuilParser.WaveformContext) -> Waveform
-    param_dict = _named_parameters(wf.namedParam())
-    return Waveform(wf.name().getText(), param_dict)
+    name = _waveform_name(ctx.waveformName())
+    if '-' in name:
+        raise RuntimeError(f"Waveform names may not contain hyphens: {name}. "
+                           "If expressing subtraction in an affine kernel, please use spaces or parentheses to resolve this ambiguity.")
+    param_dict = _named_parameters(ctx.namedParam())
+    return Waveform(name, param_dict)
+
+
+def _waveform_name(ctx: QuilParser.WaveformNameContext) -> str:
+    return  "/".join([spec.getText() for spec in ctx.name()])
 
 
 def _str_contents(x):
