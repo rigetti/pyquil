@@ -1,12 +1,18 @@
+# other GitLab CI YAML files to pull jobs and job templates from -- note that there is an
+# additional "forest" directory here, as the GitLab version of the repo is used by include
 include:
-  - project: rigetti/ci
-    file: pipelines/docker.gitlab-ci.yml
+  - project: rigetti/forest/gitlab-pipelines
+    file: docker.gitlab-ci.yml
+  - project: rigetti/forest/gitlab-pipelines
+    file: python.gitlab-ci.yml
 
+# global build variables
 variables:
   IMAGE: rigetti/forest
   QVM_URL: "http://qvm:5000"
   QUILC_URL: "tcp://quilc:5555"
 
+# Docker images to spin up along with the various CI jobs
 services:
   - name: rigetti/qvm
     alias: qvm
@@ -15,93 +21,97 @@ services:
     alias: quilc
     command: ["-R"]
 
+####################################################################################################
+# EVERY-COMMIT JOBS
+####################################################################################################
+
+# build the Sphinx documentation
+# for all Python jobs, see rigetti/gitlab-pipelines/python.gitlab-ci.yml
 build-docs:
+  extends: .python
   image: python:3.6
-  tags:
-    - github
   script:
     - apt-get update && apt-get install -y pandoc
-    - make install
-    - make requirements
     - make docs
 
+# validate code format against Black
 check-format:
-  image: python:3.7
-  tags:
-    - github
+  extends: .python
   script:
-    - make install
-    - make requirements
     - make check-format
 
+# validate code style against flake8
 check-style:
-  image: python:3.7
-  tags:
-    - github
+  extends: .python
   script:
-    - make install
-    - make requirements
     - make check-style
 
+# perform static type checking with mypy
 check-types:
-  image: python:3.7
-  tags:
-    - github
+  extends: .python
   script:
-    - make install
-    - make requirements
     - make check-types
 
+# run the unit tests with Python 3.6
 test-py36:
+  extends: .python
   image: python:3.6
-  tags:
-    - github
   script:
-    - make install
-    - make requirements
+    - make test
+
+# run the unit tests with Python 3.7, and report coverage
+test-py37:
+  extends: .python
+  script:
     - make test
   coverage: '/TOTAL.*\s(\d+)%/'
 
-test-py37:
-  image: python:3.7
-  tags:
-    - github
-  script:
-    - make install
-    - make requirements
-    - make test
-
+# run the unit tests with Python 3.8
 test-py38:
+  extends: .python
   image: python:3.8
-  tags:
-    - github
   script:
-    - make install
-    - make requirements
     - make test
 
 ####################################################################################################
 # MASTER-ONLY JOBS
 ####################################################################################################
 
+# create a Docker image from this master commit (see rigetti/gitlab-pipelines/docker.gitlab-ci.yml)
+docker-edge:
+  extends: .docker-edge
+
+# upload the source distribution of this master commit to TestPyPI
 upload-testpypi:
+  extends: .python
   stage: deploy
   image: python:3.6
-  tags:
-    - github
   only:
     refs:
       - master
   script:
     - make version > VERSION.txt
-    - make install && make dist
-    - make requirements && make upload
+    - make dist
+    - make upload
   allow_failure: true
+
+####################################################################################################
+# BRANCH-ONLY JOBS
+####################################################################################################
+
+# create a Docker image from this branch commit (see rigetti/gitlab-pipelines/docker.gitlab-ci.yml)
+docker-branch:
+  extends: .docker-branch
 
 ####################################################################################################
 # RELEASE-ONLY JOBS
 ####################################################################################################
 
+# create a Docker image from this release (see rigetti/gitlab-pipelines/docker.gitlab-ci.yml)
+docker-stable:
+  extends: .docker-stable
+
+# test that the latest Docker image doesn't error when performing simple tasks
 test-docker:
   stage: test
   image: docker:stable
@@ -114,6 +124,7 @@ test-docker:
   script:
     - docker run --rm $IMAGE:edge python -c "from pyquil import get_qc; qvm = get_qc('9q-qvm')"
 
+# test that installing from TestPyPI completes successfully
 install-testpypi:
   stage: test
   image: python:3.6

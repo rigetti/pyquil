@@ -10,6 +10,9 @@ Changelog
 
 -   Pin the `antlr4-python3-runtime` package to below `v4.8` (@karalekas, gh-1163).
 -   Expand upon the [acknowledgements](ACKNOWLEDGEMENTS.md) (@karalekas, gh-1165).
+-   Use the [gitlab-pipelines](https://github.com/rigetti/gitlab-pipelines)
+    repository's template YAMLs in the `.gitlab-ci.yml`, and add a section to
+    `CONTRIBUTING.md` about the CI/CD pipelines (@karalekas, gh-1166).
 
 ### Bugfixes
 
