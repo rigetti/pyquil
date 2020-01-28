@@ -299,7 +299,7 @@ unheard of for software to build on two CI/CD services as a sort of "double chec
 
 The configuration for GitLab CI is contained in the [`.gitlab-ci.yml`](.gitlab-ci.yml).
 GitLab, like Travis (which is configured in [`.travis.yml`](.travis.yml)), builds the docs,
-performs various style checks, run the unit tests on a variety of Python versions. However,
+performs various style checks, and runs the unit tests on a variety of Python versions. However,
 it has additional responsibilities that Travis does not. For example, GitLab builds the
 [`rigetti/forest`][docker-forest] Docker image, handles release-related activities, and
 also pushes a source distribution to [Test PyPI][test-pypi] on every commit to master. At
