@@ -24,8 +24,8 @@ PyQuil has a ton of other features, which you can learn more about in the
 [docs](http://pyquil.readthedocs.io/en/latest/). However, you can also keep reading
 below to get started with running your first quantum program!
 
-Quickstart: Interactive tutorial notebooks
-------------------------------------------
+Quickstart with interactive tutorial notebooks
+----------------------------------------------
 
 Without installing anything, you can quickly get started with quantum programming by exploring
 our interactive [Jupyter][jupyter] notebook tutorials and examples. To run them in a preconfigured
