@@ -42,15 +42,14 @@ Installation
 [![conda-forge][conda-forge-badge]][conda-forge-badge]
 [![conda-rigetti][conda-rigetti-badge]][conda-rigetti-repo]
 
-PyQuil can be installed using `conda`, `pip`, or directly from source.
-
-To install pyQuil from PyPI (via `pip`), do the following:
+PyQuil can be installed using `conda`, `pip`, or from source. To install it from PyPI (via `pip`),
+do the following:
 
 ```bash
 pip install pyquil
 ```
 
-To install pyQuil from source, do the following from within the repository after cloning it:
+To instead install pyQuil from source, do the following from within the repository after cloning it:
 
 ```bash
 pip install -e .
@@ -58,13 +57,13 @@ pip install -e .
 
 If you choose to use `pip`, we highly recommend installing pyQuil within a virtual environment.
 
-**NOTE**: PyQuil, along with quilc, the QVM, and other libraries, make up what
-is called the Forest SDK. To make full use of pyQuil's functionality, you will need
-to additionally have installed [quilc](https://github.com/rigetti/quilc) and the
-[QVM](https://github.com/rigetti/qvm). For more information, check out the docs.
+**NOTE**: PyQuil, along with quilc, the QVM, and other libraries, make up what is called the Forest
+SDK. To make full use of pyQuil, you will need to additionally have installed
+[quilc](https://github.com/rigetti/quilc) and the [QVM](https://github.com/rigetti/qvm).
+For more information, check out the docs!
 
-Getting started
----------------
+Running your first quantum program
+----------------------------------
 
 In just a few lines, we can use pyQuil with the Forest SDK to simulate a Bell state!
 
@@ -101,9 +100,6 @@ the statistics of which are consistent with a two-qubit entangled state.
  [0, 0]]
 ```
 
-Running on a real quantum processor
------------------------------------
-
 Using the Forest SDK, you can simulate the operation of a real quantum processor (QPU). If you
 would like to run on the real QPUs in our lab in Berkeley, you can sign up for an account
 on [Quantum Cloud Services](https://www.rigetti.com/qcs) (QCS)!
@@ -136,8 +132,8 @@ Citing pyQuil, Forest, and Quantum Cloud Services
 
 [![zenodo][zenodo-badge]][zenodo-doi]
 
-If you use pyQuil, Grove, or other parts of the Rigetti Forest SDK in your research, please cite
-the original [Quil specification][quil-paper] using the following BibTeX snippet:
+If you use pyQuil, Grove, or other parts of the Forest SDK in your research, please cite
+the [Quil specification][quil-paper] using the following BibTeX snippet:
 
 ```bibtex
 @misc{smith2016practical,
