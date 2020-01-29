@@ -1,8 +1,0 @@
-seaborn
-pandas
-scipy
-networkx
-jupyter
-matplotlib
-forestopenfermion
-openfermionpsi4
