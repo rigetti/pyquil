@@ -81,7 +81,9 @@ setup(
         # dependency of contextvars, which we vendor
         "immutables==0.6",
     ],
-    extras_require={"latex": ["ipython"]},
+    extras_require={"latex": ["ipython"],
+                    "tutorials": ["forest-benchmarking", "jupyter", "matplotlib", "seaborn",
+                                  "pandas", "scipy", "tqdm"]},
     keywords="quantum quil programming hybrid",
     python_requires=">=3.6",
 )
