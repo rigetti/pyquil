@@ -6,13 +6,11 @@ PyQuil: Quantum programming in Python
 [![docs][docs-badge]][docs-repo]
 [![coverage][coverage-badge]][coverage-repo]
 [![pepy][pepy-badge]][pepy-repo]
+[![docker][docker-badge]][docker-repo]
 [![pypi][pypi-badge]][pypi-repo]
 [![slack][slack-badge]][slack-invite]
-[![black][black-badge]][black-repo]
 
 [binder]: https://mybinder.org/v2/gh/rigetti/forest-tutorials/master?urlpath=lab/tree/Welcome.ipynb
-[black-repo]: https://github.com/psf/black
-[black-badge]: https://img.shields.io/badge/code%20style-black-000000.svg
 [conda-forge-badge]: https://img.shields.io/conda/vn/conda-forge/pyquil.svg
 [conda-forge-repo]: https://anaconda.org/conda-forge/pyquil
 [conda-rigetti-badge]: https://img.shields.io/conda/vn/rigetti/pyquil?label=conda-rigetti
@@ -62,7 +60,6 @@ continue onto the next section for instructions on installing pyQuil and the For
 Installation
 ------------
 
-[![docker][docker-badge]][docker-repo]
 [![pypi][pypi-badge]][pypi-repo]
 [![conda-forge][conda-forge-badge]][conda-forge-badge]
 [![conda-rigetti][conda-rigetti-badge]][conda-rigetti-repo]
