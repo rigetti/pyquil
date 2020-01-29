@@ -6,6 +6,18 @@ Changelog
 
 ### Announcements
 
+-   In order to make the pyQuil examples more accessible, we recently made a new
+    repository,[rigetti/forest-tutorials][forest-tutorials], which is set up so
+    that the example notebooks can be run via a web browser in a preconfigured
+    execution environment on [Binder][mybinder]. The pyQuil README now has a
+    "launch binder" badge for running these tutorial notebooks, as well as a
+    "Quickstart" section explaining how they work. To run the tutorial notebooks,
+    click the badge in the README or the link [here][binder] (@karalekas, gh-1167).
+
+[binder]: https://mybinder.org/v2/gh/rigetti/forest-tutorials/master?urlpath=lab/tree/Welcome.ipynb
+[forest-tutorials]: https://github.com/rigetti/forest-tutorials
+[mybinder]: https://mybinder.org
+
 ### Improvements and Changes
 
 -   Pin the `antlr4-python3-runtime` package to below `v4.8` (@karalekas, gh-1163).

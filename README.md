@@ -1,16 +1,20 @@
 PyQuil: Quantum programming in Python
 =====================================
 
+[![Binder](https://mybinder.org/badge_logo.svg)][binder]
 [![pipeline status](https://gitlab.com/rigetti/forest/pyquil/badges/master/pipeline.svg)](https://gitlab.com/rigetti/forest/pyquil/commits/master)
-[![build status](https://semaphoreci.com/api/v1/rigetti/pyquil/branches/master/shields_badge.svg)](https://semaphoreci.com/rigetti/pyquil)
 [![docs status](https://readthedocs.org/projects/pyquil/badge/?version=latest)](http://pyquil.readthedocs.io/en/latest/?badge=latest)
 [![pypi downloads](https://img.shields.io/pypi/dm/pyquil.svg)](https://pypi.org/project/pyquil/)
 [![pypi version](https://img.shields.io/pypi/v/pyquil.svg)](https://pypi.org/project/pyquil/)
 [![slack workspace](https://img.shields.io/badge/slack-rigetti--forest-812f82.svg?)][slack_invite]
 [![code-style][black-badge]][black-repo]
 
+[binder]: https://mybinder.org/v2/gh/rigetti/forest-tutorials/master?urlpath=lab/tree/Welcome.ipynb
 [black-repo]: https://github.com/psf/black
 [black-badge]: https://img.shields.io/badge/code%20style-black-000000.svg
+[forest-tutorials]: https://github.com/rigetti/forest-tutorials
+[jupyter]: https://jupyter.org/
+[mybinder]: https://mybinder.org
 
 PyQuil is a Python library for quantum programming using [Quil](https://arxiv.org/abs/1608.03355),
 the quantum instruction language developed at [Rigetti Computing](https://www.rigetti.com/).
@@ -25,6 +29,17 @@ PyQuil serves three main functions:
 PyQuil has a ton of other features, which you can learn more about in the
 [docs](http://pyquil.readthedocs.io/en/latest/). However, you can also keep reading
 below to get started with running your first quantum program!
+
+Quickstart
+----------
+
+Without installing anything, you can quickly get started with quantum programming by exploring
+our interactive [Jupyter][jupyter] notebook tutorials and examples. To run them in a preconfigured
+execution environment on [Binder][mybinder], click the "launch binder" badge at the top of the
+README or the link [here][binder]! If you'd like to add your own tutorial, or update an existing
+one, please make a pull request to the [rigetti/forest-tutorials][forest-tutorials] repository
+directly. If you'd rather set everything up locally, or are interested in contributing to pyQuil,
+continue onto the next section for instructions on installing pyQuil and the Forest SDK.
 
 Installation
 ------------

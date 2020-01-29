@@ -27,6 +27,8 @@ Table of Contents
 
 - [Making a Pull Request](#making-a-pull-request)
 
+- [Adding a Tutorial Notebook](#adding-a-tutorial-notebook)
+
 [Developer How-Tos](#developer-how-tos)
 
 - [Style Guidelines](#style-guidelines)
@@ -87,6 +89,20 @@ the next step is to [open a pull request](https://github.com/rigetti/pyquil/comp
 We've made opening one easy by providing a [Pull Request Template](.github/PULL_REQUEST_TEMPLATE.md)
 that includes a checklist of things to complete before asking for code review. We look
 forward to reviewing your work! 🙂
+
+### Adding a Tutorial Notebook
+
+You may have noticed that the `examples` directory has been removed from pyQuil, and a
+"launch binder" badge was added to the README. We decided to move all the example notebooks
+into a separate repository, [rigetti/forest-tutorials][forest-tutorials], so that they could
+be run on [Binder][mybinder], which provides a web-based setup-free execution environment
+for [Jupyter][jupyter] notebooks. We're always looking for new tutorials to help people
+learn about quantum programming, so if you'd like to contribute one, make a pull request
+to that repository directly!
+
+[forest-tutorials]: https://github.com/rigetti/forest-tutorials
+[jupyter]: https://jupyter.org/
+[mybinder]: https://mybinder.org
 
 Developer How-Tos
 -----------------

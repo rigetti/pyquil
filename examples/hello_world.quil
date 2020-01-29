@@ -1,3 +1,0 @@
-DECLARE ro BIT[1]
-X 0
-MEASURE 0 ro[0]
