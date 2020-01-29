@@ -5,8 +5,8 @@ PyQuil: Quantum programming in Python
 [![gitlab][gitlab-badge]][gitlab-repo]
 [![docs][docs-badge]][docs-repo]
 [![coverage][coverage-badge]][coverage-repo]
-[![pepy][pepy-badge]][pepy-repo]
 [![docker][docker-badge]][docker-repo]
+[![pepy][pepy-badge]][pepy-repo]
 [![pypi][pypi-badge]][pypi-repo]
 [![slack][slack-badge]][slack-invite]
 
