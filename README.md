@@ -42,28 +42,15 @@ Installation
 [![conda-forge][conda-forge-badge]][conda-forge-badge]
 [![conda-rigetti][conda-rigetti-badge]][conda-rigetti-repo]
 
-**Please Note: PyQuil, along with quilc, the QVM, and other libraries, make up what
-is called the Forest SDK. To make full use of pyQuil's functionality, you will need
-to additionally have installed [quilc](https://github.com/rigetti/quilc) and the
-[QVM](https://github.com/rigetti/qvm). This can be done by following their respective
-READMEs, or by downloading them as binaries from [here](https://rigetti.com/forest).**
-
 PyQuil can be installed using `conda`, `pip`, or directly from source.
 
-To install pyQuil as a `conda` package from the conda-forge channel (recommended), do the following:
-
-```bash
-conda install -c conda-forge pyquil
-```
-
-To instead install pyQuil as a PyPI package, do the following:
+To install pyQuil from PyPI (via `pip`), do the following:
 
 ```bash
 pip install pyquil
 ```
 
-Finally, if you would prefer to install pyQuil directly from source, do the following
-from within the repository after cloning it:
+To install pyQuil from source, do the following from within the repository after cloning it:
 
 ```bash
 pip install -e .
@@ -71,7 +58,12 @@ pip install -e .
 
 If you choose to use `pip`, we highly recommend installing pyQuil within a virtual environment.
 
-Getting Started
+**NOTE**: PyQuil, along with quilc, the QVM, and other libraries, make up what
+is called the Forest SDK. To make full use of pyQuil's functionality, you will need
+to additionally have installed [quilc](https://github.com/rigetti/quilc) and the
+[QVM](https://github.com/rigetti/qvm). For more information, check out the docs.
+
+Getting started
 ---------------
 
 In just a few lines, we can use pyQuil with the Forest SDK to simulate a Bell state!
@@ -109,7 +101,14 @@ the statistics of which are consistent with a two-qubit entangled state.
  [0, 0]]
 ```
 
-Joining the Forest Community
+Running on a real quantum processor
+-----------------------------------
+
+Using the Forest SDK, you can simulate the operation of a real quantum processor (QPU). If you
+would like to run on the real QPUs in our lab in Berkeley, you can sign up for an account
+on [Quantum Cloud Services](https://www.rigetti.com/qcs) (QCS)!
+
+Joining the Forest community
 ----------------------------
 
 If you'd like to get involved with pyQuil and Forest, joining the
@@ -132,20 +131,13 @@ a detailed list of all announcements, improvements, changes, and bugfixes. The
 information, but with links to the pull request for each change and its corresponding author.
 Thanks for contributing to pyQuil! 🙂
 
-Running on the QPU
-------------------
-
-Using the Forest SDK, you can simulate the operation of a real quantum processor. If you
-would like to run on the real QPUs in our lab in Berkeley, you can sign up for an account
-on [Quantum Cloud Services](https://www.rigetti.com/qcs) (QCS)!
-
-Citing pyQuil, Forest, and QCS
-------------------------------
+Citing pyQuil, Forest, and Quantum Cloud Services
+-------------------------------------------------
 
 [![zenodo][zenodo-badge]][zenodo-doi]
 
-If you use pyQuil, Grove, or other parts of the Rigetti Forest SDK in your research,
-please cite the original Quil specification using the following BibTeX snippet:
+If you use pyQuil, Grove, or other parts of the Rigetti Forest SDK in your research, please cite
+the original [Quil specification][quil-paper] using the following BibTeX snippet:
 
 ```bibtex
 @misc{smith2016practical,
@@ -159,8 +151,8 @@ please cite the original Quil specification using the following BibTeX snippet:
 ```
 
 Additionally, if your research involves taking data on Rigetti quantum processors (QPUs) via
-the Quantum Cloud Services (QCS) platform, please reference the QCS paper using the following
-BibTeX snippet:
+the Quantum Cloud Services (QCS) platform, please reference the [QCS paper][qcs-paper] using the
+following BibTeX snippet:
 
 ```bibtex
 @misc{karalekas2020quantumclassical,
@@ -203,6 +195,9 @@ PyQuil is licensed under the
 [slack-badge]: https://img.shields.io/badge/slack-rigetti--forest-812f82.svg?
 [zenodo-badge]: https://zenodo.org/badge/DOI/10.5281/zenodo.3604432.svg
 [zenodo-doi]: https://doi.org/10.5281/zenodo.3604432
+
+[qcs-paper]: https://arxiv.org/abs/2001.04449
+[quil-paper]: https://arxiv.org/abs/1608.03355
 
 [bug]: https://github.com/rigetti/pyquil/issues/new?assignees=&labels=bug+%3Abug%3A&template=BUG_REPORT.md&title=
 [feature]: https://github.com/rigetti/pyquil/issues/new?assignees=&labels=enhancement+%3Asparkles%3A&template=FEATURE_REQUEST.md&title=
