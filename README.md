@@ -1,20 +1,38 @@
 PyQuil: Quantum programming in Python
 =====================================
 
-[![Binder](https://mybinder.org/badge_logo.svg)][binder]
-[![pipeline status](https://gitlab.com/rigetti/forest/pyquil/badges/master/pipeline.svg)](https://gitlab.com/rigetti/forest/pyquil/commits/master)
-[![docs status](https://readthedocs.org/projects/pyquil/badge/?version=latest)](http://pyquil.readthedocs.io/en/latest/?badge=latest)
-[![pypi downloads](https://img.shields.io/pypi/dm/pyquil.svg)](https://pypi.org/project/pyquil/)
-[![pypi version](https://img.shields.io/pypi/v/pyquil.svg)](https://pypi.org/project/pyquil/)
-[![slack workspace](https://img.shields.io/badge/slack-rigetti--forest-812f82.svg?)][slack_invite]
-[![code-style][black-badge]][black-repo]
+[![binder](https://mybinder.org/badge_logo.svg)][binder]
+[![gitlab][gitlab-badge]][gitlab-repo]
+[![docs][docs-badge]][docs-repo]
+[![coverage][coverage-badge]][coverage-repo]
+[![pepy][pepy-badge]][pepy-repo]
+[![pypi][pypi-badge]][pypi-repo]
+[![slack][slack-badge]][slack-invite]
+[![black][black-badge]][black-repo]
 
 [binder]: https://mybinder.org/v2/gh/rigetti/forest-tutorials/master?urlpath=lab/tree/Welcome.ipynb
 [black-repo]: https://github.com/psf/black
 [black-badge]: https://img.shields.io/badge/code%20style-black-000000.svg
+[conda-forge-badge]: https://img.shields.io/conda/vn/conda-forge/pyquil.svg
+[conda-forge-repo]: https://anaconda.org/conda-forge/pyquil
+[conda-rigetti-badge]: https://img.shields.io/conda/vn/rigetti/pyquil?label=conda-rigetti
+[conda-rigetti-repo]: https://anaconda.org/rigetti/pyquil
+[coverage-badge]: https://coveralls.io/repos/github/rigetti/pyquil/badge.svg?branch=more-badges
+[coverage-repo]: https://coveralls.io/github/rigetti/pyquil?branch=more-badges
+[docker-badge]: https://img.shields.io/docker/pulls/rigetti/forest
+[docker-repo]: https://hub.docker.com/r/rigetti/forest
+[docs-badge]: https://readthedocs.org/projects/pyquil/badge/?version=latest
+[docs-repo]: http://pyquil.readthedocs.io/en/latest/?badge=latest
 [forest-tutorials]: https://github.com/rigetti/forest-tutorials
+[gitlab-badge]: https://img.shields.io/gitlab/pipeline/rigetti/pyquil
+[gitlab-repo]: https://gitlab.com/rigetti/forest/pyquil
 [jupyter]: https://jupyter.org/
 [mybinder]: https://mybinder.org
+[pepy-badge]: https://pepy.tech/badge/pyquil
+[pepy-repo]: https://pepy.tech/project/pyquil
+[pypi-badge]: https://img.shields.io/pypi/v/pyquil.svg
+[pypi-repo]: https://pypi.org/project/pyquil/
+[slack-badge]: https://img.shields.io/badge/slack-rigetti--forest-812f82.svg?
 
 PyQuil is a Python library for quantum programming using [Quil](https://arxiv.org/abs/1608.03355),
 the quantum instruction language developed at [Rigetti Computing](https://www.rigetti.com/).
@@ -43,6 +61,11 @@ continue onto the next section for instructions on installing pyQuil and the For
 
 Installation
 ------------
+
+[![docker][docker-badge]][docker-repo]
+[![pypi][pypi-badge]][pypi-repo]
+[![conda-forge][conda-forge-badge]][conda-forge-badge]
+[![conda-rigetti][conda-rigetti-badge]][conda-rigetti-repo]
 
 **Please Note: PyQuil, along with quilc, the QVM, and other libraries, make up what
 is called the Forest SDK. To make full use of pyQuil's functionality, you will need
@@ -115,7 +138,7 @@ Joining the Forest Community
 ----------------------------
 
 If you'd like to get involved with pyQuil and Forest, joining the [Rigetti Forest Slack
-Workspace][slack_invite]
+Workspace][slack-invite]
 is a great place to start! You can do so by clicking the invite link in the previous sentence,
 or in the badge at the top of this README. The Slack Workspace is a great place to ask general
 questions, join high-level design discussions, and hear about updates to pyQuil and the Forest SDK.
@@ -140,7 +163,7 @@ Thanks for contributing to pyQuil! 🙂
 [help]: https://github.com/rigetti/pyquil/labels/help%20wanted%20%3Awave%3A
 [fork]: https://github.com/rigetti/pyquil/fork
 [pr]: https://github.com/rigetti/pyquil/compare
-[slack_invite]: https://join.slack.com/t/rigetti-forest/shared_invite/enQtNTUyNTE1ODg3MzE2LWQwNzBlMjZlMmNlN2M5MzQyZDlmOGViODQ5ODI0NWMwNmYzODY4YTc2ZjdjOTNmNzhiYTk2YjVhNTE2NTRkODY
+[slack-invite]: https://join.slack.com/t/rigetti-forest/shared_invite/enQtNTUyNTE1ODg3MzE2LWQwNzBlMjZlMmNlN2M5MzQyZDlmOGViODQ5ODI0NWMwNmYzODY4YTc2ZjdjOTNmNzhiYTk2YjVhNTE2NTRkODY
 
 Running on the QPU
 ------------------

@@ -7,7 +7,7 @@ Changelog
 ### Announcements
 
 -   In order to make the pyQuil examples more accessible, we recently made a new
-    repository,[rigetti/forest-tutorials][forest-tutorials], which is set up so
+    repository, [rigetti/forest-tutorials][forest-tutorials], which is set up so
     that the example notebooks can be run via a web browser in a preconfigured
     execution environment on [Binder][mybinder]. The pyQuil README now has a
     "launch binder" badge for running these tutorial notebooks, as well as a
@@ -21,8 +21,9 @@ Changelog
 ### Improvements and Changes
 
 -   Pin the `antlr4-python3-runtime` package to below `v4.8` (@karalekas, gh-1163).
--   Expand upon the [acknowledgements](ACKNOWLEDGEMENTS.md) (@karalekas, gh-1165).
--   Use the [gitlab-pipelines](https://github.com/rigetti/gitlab-pipelines)
+-   Expand upon the [acknowledgements](ACKNOWLEDGEMENTS.md) file to mention
+    contributions from pre-QCS and list previous maintainers (@karalekas, gh-1165).
+-   Use the [rigetti/gitlab-pipelines](https://github.com/rigetti/gitlab-pipelines)
     repository's template YAMLs in the `.gitlab-ci.yml`, and add a section to
     `CONTRIBUTING.md` about the CI/CD pipelines (@karalekas, gh-1166).
 
