@@ -24,8 +24,8 @@ PyQuil has a ton of other features, which you can learn more about in the
 [docs](http://pyquil.readthedocs.io/en/latest/). However, you can also keep reading
 below to get started with running your first quantum program!
 
-Quickstart
-----------
+Quickstart: Interactive tutorial notebooks
+------------------------------------------
 
 Without installing anything, you can quickly get started with quantum programming by exploring
 our interactive [Jupyter][jupyter] notebook tutorials and examples. To run them in a preconfigured
@@ -35,8 +35,8 @@ visit the [rigetti/forest-tutorials][forest-tutorials] repository. If you'd rath
 up locally, or are interested in contributing to pyQuil, continue onto the next section for
 instructions on installing pyQuil and the Forest SDK.
 
-Installation
-------------
+Installing pyQuil and the Forest SDK
+------------------------------------
 
 [![pypi][pypi-badge]][pypi-repo]
 [![conda-forge][conda-forge-badge]][conda-forge-badge]
@@ -57,7 +57,7 @@ pip install -e .
 
 If you choose to use `pip`, we highly recommend installing pyQuil within a virtual environment.
 
-**NOTE**: PyQuil, along with quilc, the QVM, and other libraries, make up what is called the Forest
+PyQuil, along with quilc, the QVM, and other libraries, make up what is called the Forest
 SDK. To make full use of pyQuil, you will need to additionally have installed
 [quilc](https://github.com/rigetti/quilc) and the [QVM](https://github.com/rigetti/qvm).
 For more information, check out the docs!
