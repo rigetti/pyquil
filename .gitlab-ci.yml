@@ -73,6 +73,12 @@ test-py38:
   script:
     - make test
 
+# test for coverage using coveralls
+test-coverage:
+  extends: .python
+  script:
+    - make coverage
+
 ####################################################################################################
 # MASTER-ONLY JOBS
 ####################################################################################################
