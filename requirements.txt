@@ -12,6 +12,7 @@ ipython
 
 # test deps
 black
+coveralls
 flake8
 flake8-bugbear
 mypy==0.740
