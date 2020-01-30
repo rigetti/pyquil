@@ -26,6 +26,7 @@ Changelog
 -   Use the [rigetti/gitlab-pipelines](https://github.com/rigetti/gitlab-pipelines)
     repository's template YAMLs in the `.gitlab-ci.yml`, and add a section to
     `CONTRIBUTING.md` about the CI/CD pipelines (@karalekas, gh-1166).
+-   Add another round of improvements to the README (@karalekas, gh-1168).
 
 ### Bugfixes
 
