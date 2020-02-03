@@ -176,7 +176,7 @@ defCalibration      : DEFCAL name (LPAREN param ( COMMA param )* RPAREN)? formal
 defMeasCalibration  : DEFCAL MEASURE formalQubit ( name )? COLON ( NEWLINE TAB instr )* ;
 
 pulse               : NONBLOCKING? PULSE frame waveform ;
-capture             : NONBLOCKING? CAPTURE frame affineKernelExp addr ;
+capture             : NONBLOCKING? CAPTURE frame waveform addr ;
 rawCapture          : NONBLOCKING? RAWCAPTURE frame expression addr ;
 
 setFrequency        : SETFREQUENCY frame expression ;
