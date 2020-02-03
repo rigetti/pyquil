@@ -353,8 +353,8 @@ def serializedATN():
         buf.write("\u02c8\7B\2\2\u02c8\u02c9\5\u009eP\2\u02c9\u02ca\5\u009c")
         buf.write("O\2\u02ca\u0081\3\2\2\2\u02cb\u02cd\7A\2\2\u02cc\u02cb")
         buf.write("\3\2\2\2\u02cc\u02cd\3\2\2\2\u02cd\u02ce\3\2\2\2\u02ce")
-        buf.write("\u02cf\79\2\2\u02cf\u02d0\5\u009eP\2\u02d0\u02d1\5\u00a0")
-        buf.write("Q\2\u02d1\u02d2\5\64\33\2\u02d2\u0083\3\2\2\2\u02d3\u02d5")
+        buf.write("\u02cf\79\2\2\u02cf\u02d0\5\u009eP\2\u02d0\u02d1\5\u009c")
+        buf.write("O\2\u02d1\u02d2\5\64\33\2\u02d2\u0083\3\2\2\2\u02d3\u02d5")
         buf.write("\7A\2\2\u02d4\u02d3\3\2\2\2\u02d4\u02d5\3\2\2\2\u02d5")
         buf.write("\u02d6\3\2\2\2\u02d6\u02d7\7J\2\2\u02d7\u02d8\5\u009e")
         buf.write("P\2\u02d8\u02d9\5f\64\2\u02d9\u02da\5\64\33\2\u02da\u0085")
@@ -5684,8 +5684,8 @@ class QuilParser ( Parser ):
             return self.getTypedRuleContext(QuilParser.FrameContext,0)
 
 
-        def affineKernelExp(self):
-            return self.getTypedRuleContext(QuilParser.AffineKernelExpContext,0)
+        def waveform(self):
+            return self.getTypedRuleContext(QuilParser.WaveformContext,0)
 
 
         def addr(self):
@@ -5729,7 +5729,7 @@ class QuilParser ( Parser ):
             self.state = 717
             self.frame()
             self.state = 718
-            self.affineKernelExp(0)
+            self.waveform()
             self.state = 719
             self.addr()
         except RecognitionException as re:

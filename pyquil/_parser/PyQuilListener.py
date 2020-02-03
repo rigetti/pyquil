@@ -571,7 +571,7 @@ class PyQuilListener(QuilListener):
 
     def exitCapture(self, ctx: QuilParser.CaptureContext):
         frame = _frame(ctx.frame())
-        kernel = _affineKernelFamily(ctx.affineKernelExp())
+        kernel = _waveform(ctx.waveform())
         memory_region = _addr(ctx.addr())
         self.result.append(
             Capture(
