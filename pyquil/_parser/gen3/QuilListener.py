@@ -791,69 +791,6 @@ class QuilListener(ParseTreeListener):
         pass
 
 
-    # Enter a parse tree produced by QuilParser#leftAddSubKernelExp.
-    def enterLeftAddSubKernelExp(self, ctx:QuilParser.LeftAddSubKernelExpContext):
-        pass
-
-    # Exit a parse tree produced by QuilParser#leftAddSubKernelExp.
-    def exitLeftAddSubKernelExp(self, ctx:QuilParser.LeftAddSubKernelExpContext):
-        pass
-
-
-    # Enter a parse tree produced by QuilParser#waveformKernelExp.
-    def enterWaveformKernelExp(self, ctx:QuilParser.WaveformKernelExpContext):
-        pass
-
-    # Exit a parse tree produced by QuilParser#waveformKernelExp.
-    def exitWaveformKernelExp(self, ctx:QuilParser.WaveformKernelExpContext):
-        pass
-
-
-    # Enter a parse tree produced by QuilParser#rightAddSubKernelExp.
-    def enterRightAddSubKernelExp(self, ctx:QuilParser.RightAddSubKernelExpContext):
-        pass
-
-    # Exit a parse tree produced by QuilParser#rightAddSubKernelExp.
-    def exitRightAddSubKernelExp(self, ctx:QuilParser.RightAddSubKernelExpContext):
-        pass
-
-
-    # Enter a parse tree produced by QuilParser#signedKernelExp.
-    def enterSignedKernelExp(self, ctx:QuilParser.SignedKernelExpContext):
-        pass
-
-    # Exit a parse tree produced by QuilParser#signedKernelExp.
-    def exitSignedKernelExp(self, ctx:QuilParser.SignedKernelExpContext):
-        pass
-
-
-    # Enter a parse tree produced by QuilParser#leftMulKernelExp.
-    def enterLeftMulKernelExp(self, ctx:QuilParser.LeftMulKernelExpContext):
-        pass
-
-    # Exit a parse tree produced by QuilParser#leftMulKernelExp.
-    def exitLeftMulKernelExp(self, ctx:QuilParser.LeftMulKernelExpContext):
-        pass
-
-
-    # Enter a parse tree produced by QuilParser#rightMulDivKernelExp.
-    def enterRightMulDivKernelExp(self, ctx:QuilParser.RightMulDivKernelExpContext):
-        pass
-
-    # Exit a parse tree produced by QuilParser#rightMulDivKernelExp.
-    def exitRightMulDivKernelExp(self, ctx:QuilParser.RightMulDivKernelExpContext):
-        pass
-
-
-    # Enter a parse tree produced by QuilParser#parenthesisKernelExp.
-    def enterParenthesisKernelExp(self, ctx:QuilParser.ParenthesisKernelExpContext):
-        pass
-
-    # Exit a parse tree produced by QuilParser#parenthesisKernelExp.
-    def exitParenthesisKernelExp(self, ctx:QuilParser.ParenthesisKernelExpContext):
-        pass
-
-
     # Enter a parse tree produced by QuilParser#keyword.
     def enterKeyword(self, ctx:QuilParser.KeywordContext):
         pass

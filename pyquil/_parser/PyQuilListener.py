@@ -491,7 +491,10 @@ class PyQuilListener(QuilListener):
 
     def exitDefFrame(self, ctx: QuilParser.DefFrameContext):
         def _value(item):
-            if item.frameAttr().getText() == "DIRECTION":
+            attr = item.frameAttr().getText()
+            if  attr == "DIRECTION":
+                return _str_contents(item.STRING().getText())
+            elif attr == "HARDWARE-OBJECT":
                 return _str_contents(item.STRING().getText())
             else:
                 return _expression(item.expression())
