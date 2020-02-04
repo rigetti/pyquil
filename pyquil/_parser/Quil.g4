@@ -169,7 +169,7 @@ waveformName        : name (DIVIDE name)? ;
 
 defFrame            : DEFFRAME frame ( COLON frameSpec+ )? ;
 frameSpec           : NEWLINE TAB frameAttr COLON ( expression | STRING ) ;
-frameAttr           : SAMPLERATE | INITIALFREQUENCY | DIRECTION ;
+frameAttr           : SAMPLERATE | INITIALFREQUENCY | DIRECTION | HARDWAREOBJECT ;
 
 defWaveform         : DEFWAVEFORM waveformName ( LPAREN param (COMMA param)* RPAREN )? realN COLON NEWLINE matrix ;
 defCalibration      : DEFCAL name (LPAREN param ( COMMA param )* RPAREN)? formalQubit+ COLON ( NEWLINE TAB instr )* ;
@@ -194,14 +194,6 @@ formalQubit         : qubit | qubitVariable ;
 namedParam          : IDENTIFIER COLON expression ;
 waveform            : waveformName (LPAREN namedParam ( COMMA namedParam )* RPAREN)? ;
 frame               : formalQubit+ STRING ;
-affineKernelExp     : LPAREN affineKernelExp RPAREN                  #parenthesisKernelExp
-                    | sign affineKernelExp                           #signedKernelExp
-                    | expression TIMES affineKernelExp               #leftMulKernelExp
-                    | affineKernelExp ( TIMES | DIV ) expression     #rightMulDivKernelExp
-                    | expression ( PLUS | MINUS ) affineKernelExp    #leftAddSubKernelExp
-                    | affineKernelExp ( PLUS | MINUS ) expression    #rightAddSubKernelExp
-                    | waveform                                       #waveformKernelExp
-                    ;
 
 // built-in waveform types include: "flat", "gaussian", "draggaussian", "erfsquare"
 
@@ -300,6 +292,7 @@ DEFWAVEFORM         : 'DEFWAVEFORM' ;
 DELAY               : 'DELAY' ;
 DIRECTION           : 'DIRECTION' ;
 FENCE               : 'FENCE' ;
+HARDWAREOBJECT      : 'HARDWARE-OBJECT' ;
 INITIALFREQUENCY    : 'INITIAL-FREQUENCY' ;
 NONBLOCKING         : 'NONBLOCKING' ;
 PULSE               : 'PULSE' ;
