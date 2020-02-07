@@ -3,26 +3,41 @@ from collections import OrderedDict
 import numpy as np
 from unittest.mock import Mock
 
-from pyquil.gates import CZ, RZ, RX, I, H
-from pyquil.noise import (pauli_kraus_map, damping_kraus_map, dephasing_kraus_map, tensor_kraus_maps,
-                          _get_program_gates, _decoherence_noise_model,
-                          add_decoherence_noise, combine_kraus_maps, damping_after_dephasing,
-                          INFINITY, apply_noise_model, _noise_model_program_header, KrausModel,
-                          NoiseModel, corrupt_bitstring_probs, correct_bitstring_probs,
-                          estimate_bitstring_probs, bitstring_probs_to_z_moments,
-                          estimate_assignment_probs, NO_NOISE)
+from pyquil.gates import CZ, I, RX, RZ
+from pyquil.noise import (
+    pauli_kraus_map,
+    damping_kraus_map,
+    dephasing_kraus_map,
+    tensor_kraus_maps,
+    _get_program_gates,
+    _decoherence_noise_model,
+    add_decoherence_noise,
+    combine_kraus_maps,
+    damping_after_dephasing,
+    INFINITY,
+    apply_noise_model,
+    _noise_model_program_header,
+    KrausModel,
+    NoiseModel,
+    corrupt_bitstring_probs,
+    correct_bitstring_probs,
+    estimate_bitstring_probs,
+    bitstring_probs_to_z_moments,
+    estimate_assignment_probs,
+    NO_NOISE,
+)
 from pyquil.quil import Pragma, Program
 from pyquil.quilbase import DefGate, Gate
 from pyquil.api import QVMConnection
 
 
 def test_pauli_kraus_map():
-    probabilities = [.1, .2, .3, .4]
+    probabilities = [0.1, 0.2, 0.3, 0.4]
     k1, k2, k3, k4 = pauli_kraus_map(probabilities)
-    assert np.allclose(k1, np.sqrt(.1) * np.eye(2), atol=1 * 10 ** -8)
-    assert np.allclose(k2, np.sqrt(.2) * np.array([[0, 1.], [1., 0]]), atol=1 * 10 ** -8)
-    assert np.allclose(k3, np.sqrt(.3) * np.array([[0, -1.j], [1.j, 0]]), atol=1 * 10 ** -8)
-    assert np.allclose(k4, np.sqrt(.4) * np.array([[1, 0], [0, -1]]), atol=1 * 10 ** -8)
+    assert np.allclose(k1, np.sqrt(0.1) * np.eye(2), atol=1 * 10 ** -8)
+    assert np.allclose(k2, np.sqrt(0.2) * np.array([[0, 1.0], [1.0, 0]]), atol=1 * 10 ** -8)
+    assert np.allclose(k3, np.sqrt(0.3) * np.array([[0, -1.0j], [1.0j, 0]]), atol=1 * 10 ** -8)
+    assert np.allclose(k4, np.sqrt(0.4) * np.array([[1, 0], [0, -1]]), atol=1 * 10 ** -8)
 
     two_q_pauli_kmaps = pauli_kraus_map(np.kron(probabilities, list(reversed(probabilities))))
     q1_pauli_kmaps = [k1, k2, k3, k4]
@@ -66,11 +81,11 @@ def test_combine_kraus_maps():
 
 
 def test_damping_after_dephasing():
-    damping = damping_kraus_map(p=1 - np.exp(-.1))
-    dephasing = dephasing_kraus_map(p=.5 * (1 - np.exp(-.2)))
+    damping = damping_kraus_map(p=1 - np.exp(-0.1))
+    dephasing = dephasing_kraus_map(p=0.5 * (1 - np.exp(-0.2)))
     ks_ref = combine_kraus_maps(damping, dephasing)
 
-    ks_actual = damping_after_dephasing(20, 40 / 3., 2.)
+    ks_actual = damping_after_dephasing(20, 40 / 3.0, 2.0)
     np.testing.assert_allclose(ks_actual, ks_ref)
 
 
@@ -84,7 +99,7 @@ def test_noise_helpers():
 def test_decoherence_noise():
     prog = Program(RX(np.pi / 2, 0), CZ(0, 1), RZ(np.pi, 0))
     gates = _get_program_gates(prog)
-    m1 = _decoherence_noise_model(gates, T1=INFINITY, T2=INFINITY, ro_fidelity=1.)
+    m1 = _decoherence_noise_model(gates, T1=INFINITY, T2=INFINITY, ro_fidelity=1.0)
 
     # with no readout error, assignment_probs = identity matrix
     assert np.allclose(m1.assignment_probs[0], np.eye(2))
@@ -92,15 +107,14 @@ def test_decoherence_noise():
     for g in m1.gates:
         # with infinite coherence time all kraus maps should only have a single, unitary kraus op
         assert len(g.kraus_ops) == 1
-        k0, = g.kraus_ops
+        (k0,) = g.kraus_ops
         # check unitarity
         k0dk0 = k0.dot(k0.conjugate().transpose())
         assert np.allclose(k0dk0, np.eye(k0dk0.shape[0]))
 
     # verify that selective (by qubit) dephasing and readout infidelity is working
-    m2 = _decoherence_noise_model(gates, T1=INFINITY, T2={0: 30e-6}, ro_fidelity={0: .95, 1: 1.0})
-    assert np.allclose(m2.assignment_probs[0], [[.95, 0.05],
-                                                [.05, .95]])
+    m2 = _decoherence_noise_model(gates, T1=INFINITY, T2={0: 30e-6}, ro_fidelity={0: 0.95, 1: 1.0})
+    assert np.allclose(m2.assignment_probs[0], [[0.95, 0.05], [0.05, 0.95]])
     assert np.allclose(m2.assignment_probs[1], np.eye(2))
     for g in m2.gates:
         if 0 in g.targets:
@@ -120,12 +134,14 @@ def test_decoherence_noise():
 
     # verify that gate names are translated
     new_prog = apply_noise_model(prog, m3)
-    new_gates = _get_program_gates(new_prog)
 
     # check that headers have been embedded
     headers = _noise_model_program_header(m3)
-    assert all((isinstance(i, Pragma) and i.command in ["ADD-KRAUS", "READOUT-POVM"])
-               or isinstance(i, DefGate) for i in headers)
+    assert all(
+        (isinstance(i, Pragma) and i.command in ["ADD-KRAUS", "READOUT-POVM"])
+        or isinstance(i, DefGate)
+        for i in headers
+    )
     assert headers.out() in new_prog.out()
 
     # verify that high-level add_decoherence_noise reproduces new_prog
@@ -134,21 +150,23 @@ def test_decoherence_noise():
 
 
 def test_kraus_model():
-    km = KrausModel('I', (5.,), (0, 1), [np.array([[1 + 1j]])], 1.0)
+    km = KrausModel("I", (5.0,), (0, 1), [np.array([[1 + 1j]])], 1.0)
     d = km.to_dict()
-    assert d == OrderedDict([
-        ('gate', km.gate),
-        ('params', km.params),
-        ('targets', (0, 1)),
-        ('kraus_ops', [[[[1.]], [[1.0]]]]),
-        ('fidelity', 1.0)
-    ])
+    assert d == OrderedDict(
+        [
+            ("gate", km.gate),
+            ("params", km.params),
+            ("targets", (0, 1)),
+            ("kraus_ops", [[[[1.0]], [[1.0]]]]),
+            ("fidelity", 1.0),
+        ]
+    )
     assert KrausModel.from_dict(d) == km
 
 
 def test_noise_model():
-    km1 = KrausModel('I', (5.,), (0, 1), [np.array([[1 + 1j]])], 1.0)
-    km2 = KrausModel('RX', (np.pi / 2,), (0,), [np.array([[1 + 1j]])], 1.0)
+    km1 = KrausModel("I", (5.0,), (0, 1), [np.array([[1 + 1j]])], 1.0)
+    km2 = KrausModel("RX", (np.pi / 2,), (0,), [np.array([[1 + 1j]])], 1.0)
     nm = NoiseModel([km1, km2], {0: np.eye(2), 1: np.eye(2)})
 
     assert nm == NoiseModel.from_dict(nm.to_dict())
@@ -161,9 +179,9 @@ def test_readout_compensation():
     p = np.random.rand(2, 2, 2, 2, 2, 2)
     p /= p.sum()
 
-    aps = [np.eye(2) + .2 * (np.random.rand(2, 2) - 1) for _ in range(p.ndim)]
+    aps = [np.eye(2) + 0.2 * (np.random.rand(2, 2) - 1) for _ in range(p.ndim)]
     for ap in aps:
-        ap.flat[ap.flat < 0] = 0.
+        ap.flat[ap.flat < 0] = 0.0
         ap /= ap.sum()
         assert np.alltrue(ap >= 0)
 
@@ -175,32 +193,31 @@ def test_readout_compensation():
 
     results = [[0, 0, 0]] * 100 + [[0, 1, 1]] * 200
     p1 = estimate_bitstring_probs(results)
-    assert np.isclose(p1[0, 0, 0], 1. / 3.)
-    assert np.isclose(p1[0, 1, 1], 2. / 3.)
-    assert np.isclose(p1.sum(), 1.)
+    assert np.isclose(p1[0, 0, 0], 1.0 / 3.0)
+    assert np.isclose(p1[0, 1, 1], 2.0 / 3.0)
+    assert np.isclose(p1.sum(), 1.0)
 
     zm = bitstring_probs_to_z_moments(p1)
     assert np.isclose(zm[0, 0, 0], 1)
     assert np.isclose(zm[1, 0, 0], 1)
-    assert np.isclose(zm[0, 1, 0], -1. / 3)
-    assert np.isclose(zm[0, 0, 1], -1. / 3)
-    assert np.isclose(zm[0, 1, 1], 1.)
-    assert np.isclose(zm[1, 1, 0], -1. / 3)
-    assert np.isclose(zm[1, 0, 1], -1. / 3)
-    assert np.isclose(zm[1, 1, 1], 1.)
+    assert np.isclose(zm[0, 1, 0], -1.0 / 3)
+    assert np.isclose(zm[0, 0, 1], -1.0 / 3)
+    assert np.isclose(zm[0, 1, 1], 1.0)
+    assert np.isclose(zm[1, 1, 0], -1.0 / 3)
+    assert np.isclose(zm[1, 0, 1], -1.0 / 3)
+    assert np.isclose(zm[1, 1, 1], 1.0)
 
 
 def test_estimate_assignment_probs():
     cxn = Mock(spec=QVMConnection)
     trials = 100
-    p00 = .8
-    p11 = .75
+    p00 = 0.8
+    p11 = 0.75
     cxn.run.side_effect = [
         [[0]] * int(round(p00 * trials)) + [[1]] * int(round((1 - p00) * trials)),
-        [[1]] * int(round(p11 * trials)) + [[0]] * int(round((1 - p11) * trials))
+        [[1]] * int(round(p11 * trials)) + [[0]] * int(round((1 - p11) * trials)),
     ]
-    ap_target = np.array([[p00, 1 - p11],
-                          [1 - p00, p11]])
+    ap_target = np.array([[p00, 1 - p11], [1 - p00, p11]])
 
     povm_pragma = Pragma("READOUT-POVM", (0, "({} {} {} {})".format(*ap_target.flatten())))
     ap = estimate_assignment_probs(0, trials, cxn, Program(povm_pragma))
@@ -219,7 +236,7 @@ def test_apply_noise_model():
         if isinstance(i, DefGate):
             pass
         elif isinstance(i, Pragma):
-            assert i.command in ['ADD-KRAUS', 'READOUT-POVM']
+            assert i.command in ["ADD-KRAUS", "READOUT-POVM"]
         elif isinstance(i, Gate):
             assert i.name in NO_NOISE or not i.params
 
@@ -233,6 +250,6 @@ def test_apply_noise_model_perturbed_angles():
         if isinstance(i, DefGate):
             pass
         elif isinstance(i, Pragma):
-            assert i.command in ['ADD-KRAUS', 'READOUT-POVM']
+            assert i.command in ["ADD-KRAUS", "READOUT-POVM"]
         elif isinstance(i, Gate):
             assert i.name in NO_NOISE or not i.params

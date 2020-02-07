@@ -16,12 +16,52 @@
 import numpy as np
 import pytest
 
-from pyquil.gates import *
+from pyquil.gates import (
+    ADD,
+    AND,
+    CNOT,
+    CONVERT,
+    CPHASE00,
+    DIV,
+    EQ,
+    EXCHANGE,
+    Gate,
+    GE,
+    GT,
+    H,
+    IOR,
+    LE,
+    LOAD,
+    LT,
+    MEASURE,
+    MOVE,
+    MUL,
+    NOP,
+    NOT,
+    RESET,
+    RX,
+    STORE,
+    SUB,
+    SWAP,
+    WAIT,
+    X,
+    XOR,
+)
 from pyquil.parser import parse
 from pyquil.quilatom import MemoryReference, Parameter, quil_cos, quil_sin
 from pyquil.quilbase import Declare, Reset, ResetQubit
-from pyquil.quilbase import Label, JumpTarget, Jump, JumpWhen, JumpUnless, DefGate, DefPermutationGate, Qubit, Pragma, \
-    RawInstr
+from pyquil.quilbase import (
+    Label,
+    JumpTarget,
+    Jump,
+    JumpWhen,
+    JumpUnless,
+    DefGate,
+    DefPermutationGate,
+    Qubit,
+    Pragma,
+    RawInstr,
+)
 from pyquil.tests.utils import parse_equals
 
 
@@ -37,10 +77,10 @@ def test_standard_gates():
 
 
 def test_def_gate():
-    sqrt_x = DefGate("SQRT-X", np.array([[0.5 + 0.5j, 0.5 - 0.5j],
-                                         [0.5 - 0.5j, 0.5 + 0.5j]]))
-    hadamard = DefGate("HADAMARD", np.array([[1 / np.sqrt(2), 1 / np.sqrt(2)],
-                                             [1 / np.sqrt(2), -1 / np.sqrt(2)]]))
+    sqrt_x = DefGate("SQRT-X", np.array([[0.5 + 0.5j, 0.5 - 0.5j], [0.5 - 0.5j, 0.5 + 0.5j]]))
+    hadamard = DefGate(
+        "HADAMARD", np.array([[1 / np.sqrt(2), 1 / np.sqrt(2)], [1 / np.sqrt(2), -1 / np.sqrt(2)]])
+    )
     defgates = """
 DEFGATE SQRT-X:
     0.5+0.5i, 0.5-0.5i
@@ -55,23 +95,33 @@ DEFGATE HADAMARD:
 
 
 def test_def_gate_with_variables():
-    # Note that technically the RX gate includes -i instead of just i but this messes a bit with the test since
-    # it's not smart enough to figure out that -1*i == -i
-    theta = Parameter('theta')
-    rx = np.array([[quil_cos(theta / 2), 1j * quil_sin(theta / 2)],
-                   [1j * quil_sin(theta / 2), quil_cos(theta / 2)]])
+    # Note that technically the RX gate includes -i instead of just i but this messes a bit with
+    # the test since it's not smart enough to figure out that -1*i == -i
+    theta = Parameter("theta")
+    rx = np.array(
+        [
+            [quil_cos(theta / 2), 1j * quil_sin(theta / 2)],
+            [1j * quil_sin(theta / 2), quil_cos(theta / 2)],
+        ]
+    )
 
-    defgate = 'DEFGATE RX(%theta):\n' \
-              '    COS(%theta/2), i*SIN(%theta/2)\n' \
-              '    i*SIN(%theta/2), COS(%theta/2)\n\n'
+    defgate = (
+        "DEFGATE RX(%theta):\n"
+        "    COS(%theta/2), i*SIN(%theta/2)\n"
+        "    i*SIN(%theta/2), COS(%theta/2)\n\n"
+    )
 
-    parse_equals(defgate, DefGate('RX', rx, [theta]))
+    parse_equals(defgate, DefGate("RX", rx, [theta]))
 
 
 def test_def_gate_as():
-    perm_gate_str = 'DEFGATE CCNOT AS PERMUTATION:\n    0, 1, 2, 3, 4, 5, 7, 6'.strip()
-    matrix_gate_str = 'DEFGATE CNOT AS MATRIX:\n    1.0, 0.0, 0.0, 0.0\n    0.0, 1.0, 0.0, 0.0\n    0.0, 0.0, 0.0, 1.0\n    0.0, 0.0, 1.0, 0.0'.strip()
-    unknown_gate_str = 'DEFGATE CCNOT AS UNKNOWNTYPE:\n    0, 1, 2, 3, 4, 5, 7, 6'.strip()
+    perm_gate_str = "DEFGATE CCNOT AS PERMUTATION:\n    0, 1, 2, 3, 4, 5, 7, 6".strip()
+    matrix_gate_str = """DEFGATE CNOT AS MATRIX:
+    1.0, 0.0, 0.0, 0.0
+    0.0, 1.0, 0.0, 0.0
+    0.0, 0.0, 0.0, 1.0
+    0.0, 0.0, 1.0, 0.0""".strip()
+    unknown_gate_str = "DEFGATE CCNOT AS UNKNOWNTYPE:\n    0, 1, 2, 3, 4, 5, 7, 6".strip()
 
     parse(perm_gate_str)
     parse(matrix_gate_str)
@@ -80,7 +130,11 @@ def test_def_gate_as():
 
 
 def test_def_gate_as_matrix():
-    matrix_gate_str = 'DEFGATE CNOT AS MATRIX:\n    1.0, 0.0, 0.0, 0.0\n    0.0, 1.0, 0.0, 0.0\n    0.0, 0.0, 0.0, 1.0\n    0.0, 0.0, 1.0, 0.0'.strip()
+    matrix_gate_str = """DEFGATE CNOT AS MATRIX:
+    1.0, 0.0, 0.0, 0.0
+    0.0, 1.0, 0.0, 0.0
+    0.0, 0.0, 0.0, 1.0
+    0.0, 0.0, 1.0, 0.0""".strip()
     parsed = parse(matrix_gate_str)
 
     assert len(parsed) == 1
@@ -91,13 +145,13 @@ def test_def_gate_as_matrix():
 def test_def_permutation_gate():
     perm_gate = DefPermutationGate("CCNOT", [0, 1, 2, 3, 4, 5, 7, 6])
 
-    perm_gate_str = 'DEFGATE CCNOT AS PERMUTATION:\n    0, 1, 2, 3, 4, 5, 7, 6'.strip()
+    perm_gate_str = "DEFGATE CCNOT AS PERMUTATION:\n    0, 1, 2, 3, 4, 5, 7, 6".strip()
 
     parse_equals(perm_gate_str, perm_gate)
 
 
 def test_def_gate_as_permutation():
-    perm_gate_str = 'DEFGATE CCNOT AS PERMUTATION:\n    0, 1, 2, 3, 4, 5, 7, 6'.strip()
+    perm_gate_str = "DEFGATE CCNOT AS PERMUTATION:\n    0, 1, 2, 3, 4, 5, 7, 6".strip()
     parsed = parse(perm_gate_str)
 
     assert len(parsed) == 1
@@ -105,7 +159,9 @@ def test_def_gate_as_permutation():
     assert isinstance(parsed[0], DefPermutationGate)
 
     # perm gates are defined by a single row of entries, unlike general defgates
-    bad_perm_gate_str = 'DEFGATE CCNOT AS PERMUTATION:\n    0, 1, 2, 3, 4, 5, 7, 6\n    0, 1, 2, 3, 4, 5, 7, 6'.strip()
+    bad_perm_gate_str = """DEFGATE CCNOT AS PERMUTATION:
+    0, 1, 2, 3, 4, 5, 7, 6
+    0, 1, 2, 3, 4, 5, 7, 6""".strip()
     with pytest.raises(RuntimeError):
         parse(bad_perm_gate_str)
 
@@ -139,7 +195,7 @@ def test_expressions():
     _expr("123.456i", complex(0, 123.456))
     _expr("+123.456i", complex(0, 123.456))
     # Edge case: making the whole complex number negative makes the real part -0.0
-    _expr("-123.456i", complex(-0., -123.456))
+    _expr("-123.456i", complex(-0.0, -123.456))
     _expr("777+123.456i", complex(777, 123.456))
     _expr("777-123.456i", complex(777, -123.456))
     _expr("+777-123.456i", complex(777, -123.456))
@@ -177,7 +233,9 @@ def test_expressions():
     _expr("-3+4", 1)
     _expr("-(3+4)", -7)
     _expr("-(3-4)", 1)
-    _expr("-0.1423778799706841+0.5434363975682295i", complex(-0.1423778799706841, 0.5434363975682295))
+    _expr(
+        "-0.1423778799706841+0.5434363975682295i", complex(-0.1423778799706841, 0.5434363975682295)
+    )
 
 
 def test_measure():
@@ -199,13 +257,21 @@ def test_others():
 
 
 def test_memory_commands():
-    parse_equals("DECLARE mem OCTET[32] SHARING mem2 OFFSET 16 REAL OFFSET 32 REAL",
-                 Declare("mem", "OCTET", 32, shared_region="mem2", offsets=[(16, "REAL"), (32, "REAL")]))
-    parse_equals("STORE mem ro[2] ro[0]", STORE("mem", MemoryReference("ro", 2), MemoryReference("ro", 0)))
+    parse_equals(
+        "DECLARE mem OCTET[32] SHARING mem2 OFFSET 16 REAL OFFSET 32 REAL",
+        Declare("mem", "OCTET", 32, shared_region="mem2", offsets=[(16, "REAL"), (32, "REAL")]),
+    )
+    parse_equals(
+        "STORE mem ro[2] ro[0]", STORE("mem", MemoryReference("ro", 2), MemoryReference("ro", 0))
+    )
     parse_equals("STORE mem ro[2] 7", STORE("mem", MemoryReference("ro", 2), 7))
-    parse_equals("LOAD ro[8] mem mem[4]", LOAD(MemoryReference("ro", 8), "mem", MemoryReference("mem", 4)))
+    parse_equals(
+        "LOAD ro[8] mem mem[4]", LOAD(MemoryReference("ro", 8), "mem", MemoryReference("mem", 4))
+    )
     parse_equals("CONVERT ro[1] ro[2]", CONVERT(MemoryReference("ro", 1), MemoryReference("ro", 2)))
-    parse_equals("EXCHANGE ro[0] ro[1]", EXCHANGE(MemoryReference("ro", 0), MemoryReference("ro", 1)))
+    parse_equals(
+        "EXCHANGE ro[0] ro[1]", EXCHANGE(MemoryReference("ro", 0), MemoryReference("ro", 1))
+    )
     parse_equals("MOVE mem[2] 4", MOVE(MemoryReference("mem", 2), 4))
     parse_equals("MOVE mem[2] -4", MOVE(MemoryReference("mem", 2), -4))
     parse_equals("MOVE mem[2] -4.1", MOVE(MemoryReference("mem", 2), -4.1))
@@ -227,42 +293,52 @@ def test_classical():
     parse_equals("SUB mem[0] -1.2", SUB(MemoryReference("mem", 0), -1.2))
     parse_equals("MUL mem[0] -1.2", MUL(MemoryReference("mem", 0), -1.2))
     parse_equals("DIV mem[0] -1.2", DIV(MemoryReference("mem", 0), -1.2))
-    parse_equals("EQ comp[1] ro[3] ro[2]",
-                 EQ(MemoryReference("comp", 1), MemoryReference("ro", 3), MemoryReference("ro", 2)))
-    parse_equals("LT comp[1] ro[3] ro[2]",
-                 LT(MemoryReference("comp", 1), MemoryReference("ro", 3), MemoryReference("ro", 2)))
-    parse_equals("LE comp[1] ro[3] ro[2]",
-                 LE(MemoryReference("comp", 1), MemoryReference("ro", 3), MemoryReference("ro", 2)))
-    parse_equals("GT comp[1] ro[3] ro[2]",
-                 GT(MemoryReference("comp", 1), MemoryReference("ro", 3), MemoryReference("ro", 2)))
-    parse_equals("GE comp[1] ro[3] ro[2]",
-                 GE(MemoryReference("comp", 1), MemoryReference("ro", 3), MemoryReference("ro", 2)))
-    parse_equals("EQ comp[1] ro[3] 0",
-                 EQ(MemoryReference("comp", 1), MemoryReference("ro", 3), 0))
-    parse_equals("LT comp[1] ro[3] 1",
-                 LT(MemoryReference("comp", 1), MemoryReference("ro", 3), 1))
-    parse_equals("LE comp[1] ro[3] 2",
-                 LE(MemoryReference("comp", 1), MemoryReference("ro", 3), 2))
-    parse_equals("GT comp[1] ro[3] 3",
-                 GT(MemoryReference("comp", 1), MemoryReference("ro", 3), 3))
-    parse_equals("GE comp[1] ro[3] 4",
-                 GE(MemoryReference("comp", 1), MemoryReference("ro", 3), 4))
-    parse_equals("EQ comp[1] ro[3] 0.0",
-                 EQ(MemoryReference("comp", 1), MemoryReference("ro", 3), 0.0))
-    parse_equals("LT comp[1] ro[3] 1.1",
-                 LT(MemoryReference("comp", 1), MemoryReference("ro", 3), 1.1))
-    parse_equals("LE comp[1] ro[3] 2.2",
-                 LE(MemoryReference("comp", 1), MemoryReference("ro", 3), 2.2))
-    parse_equals("GT comp[1] ro[3] 3.3",
-                 GT(MemoryReference("comp", 1), MemoryReference("ro", 3), 3.3))
-    parse_equals("GE comp[1] ro[3] 4.4",
-                 GE(MemoryReference("comp", 1), MemoryReference("ro", 3), 4.4))
+    parse_equals(
+        "EQ comp[1] ro[3] ro[2]",
+        EQ(MemoryReference("comp", 1), MemoryReference("ro", 3), MemoryReference("ro", 2)),
+    )
+    parse_equals(
+        "LT comp[1] ro[3] ro[2]",
+        LT(MemoryReference("comp", 1), MemoryReference("ro", 3), MemoryReference("ro", 2)),
+    )
+    parse_equals(
+        "LE comp[1] ro[3] ro[2]",
+        LE(MemoryReference("comp", 1), MemoryReference("ro", 3), MemoryReference("ro", 2)),
+    )
+    parse_equals(
+        "GT comp[1] ro[3] ro[2]",
+        GT(MemoryReference("comp", 1), MemoryReference("ro", 3), MemoryReference("ro", 2)),
+    )
+    parse_equals(
+        "GE comp[1] ro[3] ro[2]",
+        GE(MemoryReference("comp", 1), MemoryReference("ro", 3), MemoryReference("ro", 2)),
+    )
+    parse_equals("EQ comp[1] ro[3] 0", EQ(MemoryReference("comp", 1), MemoryReference("ro", 3), 0))
+    parse_equals("LT comp[1] ro[3] 1", LT(MemoryReference("comp", 1), MemoryReference("ro", 3), 1))
+    parse_equals("LE comp[1] ro[3] 2", LE(MemoryReference("comp", 1), MemoryReference("ro", 3), 2))
+    parse_equals("GT comp[1] ro[3] 3", GT(MemoryReference("comp", 1), MemoryReference("ro", 3), 3))
+    parse_equals("GE comp[1] ro[3] 4", GE(MemoryReference("comp", 1), MemoryReference("ro", 3), 4))
+    parse_equals(
+        "EQ comp[1] ro[3] 0.0", EQ(MemoryReference("comp", 1), MemoryReference("ro", 3), 0.0)
+    )
+    parse_equals(
+        "LT comp[1] ro[3] 1.1", LT(MemoryReference("comp", 1), MemoryReference("ro", 3), 1.1)
+    )
+    parse_equals(
+        "LE comp[1] ro[3] 2.2", LE(MemoryReference("comp", 1), MemoryReference("ro", 3), 2.2)
+    )
+    parse_equals(
+        "GT comp[1] ro[3] 3.3", GT(MemoryReference("comp", 1), MemoryReference("ro", 3), 3.3)
+    )
+    parse_equals(
+        "GE comp[1] ro[3] 4.4", GE(MemoryReference("comp", 1), MemoryReference("ro", 3), 4.4)
+    )
 
 
 def test_pragma():
-    parse_equals('PRAGMA gate_time H "10 ns"', Pragma('gate_time', ['H'], '10 ns'))
-    parse_equals('PRAGMA qubit 0', Pragma('qubit', [0]))
-    parse_equals('PRAGMA NO-NOISE', Pragma('NO-NOISE'))
+    parse_equals('PRAGMA gate_time H "10 ns"', Pragma("gate_time", ["H"], "10 ns"))
+    parse_equals("PRAGMA qubit 0", Pragma("qubit", [0]))
+    parse_equals("PRAGMA NO-NOISE", Pragma("NO-NOISE"))
 
 
 def test_invalid():
@@ -351,9 +427,4 @@ def test_parse_forked():
 
 def test_messy_modifiers():
     s = "FORKED DAGGER CONTROLLED FORKED RX(0.1,0.2,0.3,0.4) 0 1 2 3"
-    parse_equals(s,
-                 RX(0.1, 3)
-                 .forked(2, [0.2])
-                 .controlled(1)
-                 .dagger()
-                 .forked(0, [0.3, 0.4]))
+    parse_equals(s, RX(0.1, 3).forked(2, [0.2]).controlled(1).dagger().forked(0, [0.3, 0.4]))

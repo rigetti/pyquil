@@ -1,10 +1,25 @@
 COMMIT_HASH=$(shell git rev-parse --short HEAD)
+DEFAULT_QUILC_URL=tcp://localhost:5555
+DEFAULT_QVM_URL=http://localhost:5000
 DOCKER_TAG=rigetti/forest:$(COMMIT_HASH)
-QUILC_URL=tcp://localhost:5555
-QVM_URL=http://localhost:5000
 
 .PHONY: all
 all: dist
+
+.PHONY: check-all
+check-all: check-format check-types check-style
+
+.PHONY: check-format
+check-format:
+	black --check --diff pyquil
+
+.PHONY: check-types
+check-types:
+	mypy .
+
+.PHONY: check-style
+check-style:
+	flake8
 
 .PHONY: clean
 clean:
@@ -15,9 +30,13 @@ clean:
 .PHONY: config
 config:
 	echo "[Rigetti Forest]" > ~/.forest_config
-	echo "qvm_address = ${QVM_URL}" >> ~/.forest_config
-	echo "quilc_address = ${QUILC_URL}" >> ~/.forest_config
+	echo "qvm_address = ${DEFAULT_QVM_URL}" >> ~/.forest_config
+	echo "quilc_address = ${DEFAULT_QUILC_URL}" >> ~/.forest_config
 	cat ~/.forest_config
+
+.PHONY: coverage
+coverage:
+	coveralls
 
 .PHONY: dist
 dist:
@@ -32,6 +51,10 @@ docs: CHANGELOG.md
 docker: Dockerfile
 	docker build -t $(DOCKER_TAG) .
 
+.PHONY: format
+format:
+	black pyquil
+
 .PHONY: info
 info:
 	python -V
@@ -45,14 +68,14 @@ install:
 requirements: requirements.txt
 	pip install -r requirements.txt
 
-.PHONY: style
-style:
-	flake8 pyquil
-
 .PHONY: test
 test:
-	pytest
+	pytest -v --runslow --cov=pyquil
 
 .PHONY: upload
 upload:
 	twine upload --repository-url https://test.pypi.org/legacy/ dist/*
+
+.PHONY: version
+version:
+	@git describe --tags | sed 's/v//' | sed 's/\(.*\)-.*/\1/'| sed 's/-/./'

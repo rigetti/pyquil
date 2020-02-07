@@ -1,8 +1,191 @@
 Changelog
 =========
 
-[v2.13](https://github.com/rigetti/pyquil/compare/v2.12.0...master) (in development)
------------------------------------------------------------------------------------
+[v2.18](https://github.com/rigetti/pyquil/compare/v2.17.0...master) (in development)
+------------------------------------------------------------------------------------
+
+### Announcements
+
+### Improvements and Changes
+
+### Bugfixes
+
+[v2.17](https://github.com/rigetti/pyquil/compare/v2.16.0...v2.17.0) (January 30, 2020)
+---------------------------------------------------------------------------------------
+
+### Announcements
+
+-   In order to make the pyQuil examples more accessible, we recently made a new
+    repository, [rigetti/forest-tutorials][forest-tutorials], which is set up so
+    that the example notebooks can be run via a web browser in a preconfigured
+    execution environment on [Binder][mybinder]. The pyQuil README now has a
+    "launch binder" badge for running these tutorial notebooks, as well as a
+    "Quickstart" section explaining how they work. To run the tutorial notebooks,
+    click the badge in the README or the link [here][binder] (@karalekas, gh-1167).
+
+[binder]: https://mybinder.org/v2/gh/rigetti/forest-tutorials/master?urlpath=lab/tree/Welcome.ipynb
+[forest-tutorials]: https://github.com/rigetti/forest-tutorials
+[mybinder]: https://mybinder.org
+
+### Improvements and Changes
+
+-   Pin the `antlr4-python3-runtime` package to below `v4.8` (@karalekas, gh-1163).
+-   Expand upon the [acknowledgements](ACKNOWLEDGEMENTS.md) file to mention
+    contributions from pre-QCS and list previous maintainers (@karalekas, gh-1165).
+-   Use the [rigetti/gitlab-pipelines](https://github.com/rigetti/gitlab-pipelines)
+    repository's template YAMLs in the `.gitlab-ci.yml`, and add a section to
+    `CONTRIBUTING.md` about the CI/CD pipelines (@karalekas, gh-1166).
+-   Add another round of improvements to the README (@karalekas, gh-1168).
+
+### Bugfixes
+
+-   Replace references to non-existent `endpoint` init arg when constructing
+    `QPUCompiler`s in `test_qpu.py` (@appleby, gh-1164).
+-   Preserve program metadata when constructing and manipulating `Experiment`
+    objects (@kilimanjaro, gh-1160).
+
+[v2.16](https://github.com/rigetti/pyquil/compare/v2.15.0...v2.16.0) (January 10, 2020)
+---------------------------------------------------------------------------------------
+
+### Announcements
+
+-   The `TomographyExperiment` class has been renamed to `Experiment`. In addition,
+    there is a new `QuantumComputer.calibration` method for performing readout
+    calibration on a provided `Experiment`, and utilities for applying the results
+    of the calibration to correct for symmetrized readout error. `ExperimentSetting`
+    objects now also have an `additional_expectations` attribute for extracting
+    simultaneously measurable expectation values from a single setting when using
+    `QuantumComputer.experiment` (@karalekas, gh-1152, gh-1158).
+
+### Improvements and Changes
+
+-   Type hints have been added to the `quil.py` file (@rht, gh-1115, gh-1134).
+-   Use [Black](https://black.readthedocs.io/en/stable/index.html) for code style
+    and enforce it (along with a line length of 100) via the `style` (`flake8`)
+    and `formatcheck` (`black --check`) CI jobs (@karalekas, gh-1132).
+-   Ignore fewer `flake8` style rules, add the `flake8-bugbear` plugin, and
+    rename the style-related `Makefile` targets and CI jobs so that they have
+    a uniform naming convention: `check-all`, `check-format`, `check-style`,
+    and `check-types` (@karalekas, gh-1133).
+-   Added type hints to `noise.py`, began verifying in the CI (@rht, gh-1136).
+-   Improved reStructuredText markup in docstrings (@peterjc, gh-1141).
+-   Add helper to separate `ExperimentResults` by groups of qubits on
+    which their operator acts (@kylegulshen, gh-1078).
+-   Added typing to the `pyquil/latex` module and added the module to the
+    `check-types` CI job (@karalekas, gh-1142).
+-   Add helper to merge `TomographyExperiment`s in the `experiment` module's
+    `_group.py` file. Move `group_experiments` from `operator_estimation.py`
+    to `_group.py` and rename to `group_settings` but maintain backwards
+    compatibility (@kylegulshen, gh-1077).
+-   The code in `gate_matrices.py`, `numpy_simulator.py`, `reference_simulator.py`,
+    and `unitary_tools.py` has been typed and reorganized into a new `simulation`
+    subdirectory, maintaining backwards compatibility (@karalekas, gh-1143).
+-   Added a `.travis.yml` file to enable Travis CI for external-contributor builds,
+    and upgraded GitLab CI style checks to py37 (@karalekas, gh-1145).
+-   Delete `api/_job.py`, `JobConnection`, and `SyncConnection`, which have been
+    deprecated for over a year and a half (@karalekas, gh-1144).
+-   Added typing to the `pyquil/experiment` module and added the module to the
+    `check-types` CI job (@karalekas, gh-1146).
+-   Use `dataclasses` instead of `namedtuples` in the `pyquil/device` module, and
+    add type annotations to the entire module (@karalekas, gh-1149).
+-   Reduced the number of `mypy` errors in `paulis.py` (@rht, gh-1147).
+-   Compile to XY gates as well as CZ gates on dummy QVMs (@ecpeterson, gh-1151).
+-   `QAM.write_memory` now accepts either a `Sequence` of values or a single
+    value (@tommy-moffat, gh-1114).
+-   Added type hints for all remaining top-level files (@karalekas, gh-1150).
+-   Added type annotations to the whole `pyquil.api` module (@karalekas, gh-1157).
+
+### Bugfixes
+
+-   Don't attach pipes to stdout/stderr when starting quilc and qvm processes in
+    `local_forest_runtime`. This prevents the pipe buffers from getting full and
+    causing hung quilc/qvm for long running processes (@appleby, gh-1122).
+-   Pass a sequence to `np.vstack` to avoid a `FutureWarning`, and add a protoquil
+    keyword argument to `MyLazyCompiler.quil_to_native_quil` to avoid a `TypeError`
+    in the `migration2-qc.ipynb` notebook (@appleby, gh-1138).
+-   Removed unused method `Program._out()` in `quil.py` (@rht, gh-1137).
+-   Fixed string concatenation style, caused by `black` (@peterjc, gh-1139).
+
+[v2.15](https://github.com/rigetti/pyquil/compare/v2.14.0...v2.15.0) (December 20, 2019)
+----------------------------------------------------------------------------------------
+
+### Announcements
+
+-   PyQuil now supports encryption for communication with the QPU. It does so
+    by requesting an `Engagement` from Forest Dispatch, which includes the keys
+    necessary for encryption along with the endpoints to use. This workflow is
+    managed by the new `ForestSession` class, and in the general case is
+    transparent to the user (@kalzoo, gh-1123).
+
+### Improvements and Changes
+
+-   LaTeX circuit output now ignores `RESET` instructions by default, rendering
+    instead the (equivalent) program with `RESET` omitted (@kilimanjaro, gh-1118)
+-   Broadened the scope of `flake8` compliance to the include the `examples` and
+    `docs` directories, and thus the whole repository (@tommy-moffat, gh-1113).
+-   `DEFGATE ... AS PAULI-SUM` is now supported (@ecpeterson, gh-1125).
+-   Add unit test for validating Trotterization order (@jmbr, gh-1120).
+-   Updated the authentication mechanism to Forest server. Preferentially use
+    credentials found at `~/.qcs/user_auth_credentials` and fall back to
+    `~/.qcs/qmi_auth_credentials` (@erichulburd, gh-1123).
+-   The log level can now be controlled with the `LOG_LEVEL` environment variable,
+    set to `LOG_LEVEL=DEBUG` to help diagnose problems. In addition, certain errors
+    will no longer print their entire stack trace outside of `DEBUG` mode, for a
+    cleaner console and better user experience. This is only true for errors where
+    the cause is well known (@kalzoo, gh-1123).
+-   Connection to the QPU compiler now supports both ZeroMQ and HTTP(S)
+    (@kalzoo, gh-1127).
+-   Bump quilc / qvm parent Docker images to v1.15.1 (@karalekas, gh-1128).
+
+### Bugfixes
+
+-   Pinned the `mypy` version to work around issue with nested types causing the
+    `make typecheck` CI job to fail (@erichulburd, gh-1119).
+-   Minor fixes for `examples/1.3_vqe_demo.py` and `examples/quantum_walk.ipynb`
+    (@appleby, gh-1116).
+-   Only request engagement from Forest Dispatch when QPU and QPU Compiler addresses
+    are not provided by other configuration sources (@kalzoo, gh-1130).
+
+[v2.14](https://github.com/rigetti/pyquil/compare/v2.13.0...v2.14.0) (November 25, 2019)
+----------------------------------------------------------------------------------------
+
+### Announcements
+
+-   There is a new `QuantumComputer.experiment` method for running a collection of
+    quantum programs as defined by a `TomographyExperiment`. These objects have a
+    main program body and a collection of state preparation and measurement
+    specifications, which capture the structure of many near-term applications
+    and algorithms like the variational quantum eigensolver (VQE). In addition,
+    the `TomographyExperiment` encodes information about symmetrization, active
+    qubit reset, and the number of shots to perform on the quantum backend (e.g.
+    the QVM or QPU). For more information check out the API documentation sections
+    on the [Quantum Computer](docs/source/apidocs/quantum_computer.rst) and on the
+    [Experiment Module](docs/source/apidocs/experiment.rst) (@karalekas, gh-1100).
+
+### Improvements and Changes
+
+-   Type hints have been added to the `PauliTerm` class (@rht, gh-1075).
+-   The `rigetti/forest` Docker image now has less noisy output due to stdout and
+    stderr redirection to log files `entrypoint.sh` (@karalekas, gh-1105).
+-   Added a `make typecheck` target to run `mypy` over a subset of the pyquil
+    sources, and enabled typechecks in the GitLab CI pipeline (@appleby, gh-1098).
+-   Added support for the `XY` (parameterized `iSWAP`) gate family in `Program`s
+    and in `ISA`s (@ecpeterson, gh-1096, gh-1107, gh-1111).
+-   Removed the `tox.ini` and `readthedocs.yml` files (@karalekas, gh-1108).
+-   Type hints have been added to the `PauliSum` class (@rht, gh-1104).
+
+### Bugfixes
+
+-   Fixed a bug in the LaTeX output of controlled unitary operations (@kilimanjaro,
+    gh-1103).
+-   Fixed an example of using the `qc.run` method in the docs to correctly declare
+    the size of a memory register (@appleby, gh-1099).
+-   Specify UTF-8 encoding when opening files that might contain non-ascii characters,
+    such as when reading the pyquil README.md file in setup.py or when serializing /
+    deserializing pyquil.experiment objects to/from JSON (@appleby, gh-1102).
+
+[v2.13](https://github.com/rigetti/pyquil/compare/v2.12.0...v2.13.0) (November 7, 2019)
+---------------------------------------------------------------------------------------
 
 ### Announcements
 
@@ -13,17 +196,53 @@ Changelog
     running the image, a user will be dropped into an `ipython` REPL that has
     pyQuil and its requirements preinstalled, along with quilc and qvm servers
     running in the background (@karalekas, gh-1035, gh-1039).
+-   Circuit diagram generation has had a makeover! In particular, the
+    `pyquil.latex` module provides two mechanisms for generating diagrams from
+    pyQuil programs: `pyquil.latex.to_latex` generates human-readable LaTeX
+    output expressing a `Program` as a circuit diagram, and
+    `pyquil.latex.display` renders a `Program` as an `IPython.display.Image` for
+    inline viewing in Jupyter Notebooks. Learn more about these features in the
+    [new example notebook](examples/LaTeXQuilCircuits.ipynb) (@kilimanjaro, gh-1074).
 
 ### Improvements and Changes
 
 -   Added a `Makefile` with some simple targets for performing common build
     operations like creating and uploading a package (@karalekas, gh-1032).
+-   Replaced symmetrization in `operator_estimation` with functionality contained
+    within `QuantumComputer.run_symmetrized_readout` (@kylegulshen, gh-1047).
+-   As part of the CI, we now package and push to TestPyPI on every commit, which
+    de-risks breaking the `setup.py` and aids with testing (@karalekas, gh-1017).
+-   We now calculate code coverage as part of the CI pipeline (@karalekas, gh-1052).
+-   Moved the program generation from `measure_observables` into its own private
+    function (@kylegulshen, gh-1043).
+-   All uses of `__future__` and `six` have been dropped (@karalekas, gh-1060).
+-   The `conftest.py` has been moved to the project root dir (@karalekas, gh-1064).
+-   Using `protoquil` as a positional argument to `qc.compile` has been deprecated,
+    and it is now a keyword-only argument (@karalekas, gh-1071).
+-   `PauliSum` objects are now hashable (@ecpeterson, gh-1073).
+-   The code in `device.py` as been reorganized into a new `device` subdirectory
+    in a completely backwards-compatible fashion (@karalekas, gh-1066, gh-1094).
+-   `PauliTerm` and `PauliSum` now have `__repr__` methods (@karalekas, gh-1080).
+-   The experiment-schema-related code in `operator_estimation.py` has been moved
+    into a new `experiment` subdirectory (@karalekas, gh-1084, gh-1094).
+-   The keyword arguments to `measure_observables` are now captured as part of
+    the `TomographyExperiment` class (@karalekas, gh-1090).
+-   Type hints have been added to the `pyquil.gates`, `pyquil.quilatom`, and
+    `pyquil.quilbase` modules (@appleby, gh-999).
+-   We now support Python 3.8 and it is tested in the CI (@karalekas, gh-1093).
 
 ### Bugfixes
 
-- Updated `examples/meyer_penny_game.py` with the correct path to the Meyer Penny game exercise in
-  `docs/source/exercises.rst` (@appleby, gh-1045).
+-   Updated `examples/meyer_penny_game.py` with the correct path to the Meyer Penny
+    game exercise in `docs/source/exercises.rst` (@appleby, gh-1045).
 -   Fixed the Slack Workspace invite link in the README (@amyfbrown, gh-1042).
+-   `QPU.reset()` now checks whether `pyquil_config.qpu_url` exists before updating
+    the endpoint so as not to break custom connections (@kylegulshen, gh-1072).
+-   Fixed pretty printing of parameter expressions where π is involved
+    (@notmgsk, gh-1076).
+-   Fixed a regression in `PyQVM.execute` that prevented it from running programs
+    containing user-defined gates (@appleby, gh-1067).
+-   Remove some stale code for pulling quilc version info (@notmgsk, gh-1089).
 
 [v2.12](https://github.com/rigetti/pyquil/compare/v2.11.0...v2.12.0) (September 28, 2019)
 ----------------------------------------------------------------------------------------
@@ -102,8 +321,8 @@ Changelog
     the underlying `QVM`/`QPU` and `QVMCompiler`/`QPUCompiler` objects,
     which should resolve bugs that arise due to stale clients/connections
     (@karalekas, gh-872).
--   In addition to the simultaneous 1Q RB fidelities contained in device 
-    specs prior to this release, there are now 1Q RB fidelities for 
+-   In addition to the simultaneous 1Q RB fidelities contained in device
+    specs prior to this release, there are now 1Q RB fidelities for
     non-simultaneous gate operation. The names of these fields have been
     changed for clarity, and standard errors for both fidelities have been
     added as well. Finally, deprecation warnings have been added regarding

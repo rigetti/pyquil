@@ -1,2 +1,5 @@
 [run]
-omit = pyquil/tests/*,pyquil/_parser/gen2/*,pyquil/_parser/gen3/*
+omit =
+    pyquil/_parser/gen3/*
+    pyquil/external/*
+    pyquil/tests/*

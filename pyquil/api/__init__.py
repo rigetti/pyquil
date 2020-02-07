@@ -17,61 +17,53 @@
 Module for facilitating connections to the QVM / QPU.
 """
 import warnings
+from typing import Any
 
-__all__ = ['QVMConnection', 'QVMCompiler', 'QPUCompiler',
-           'Job', 'Device', 'ForestConnection', 'pyquil_protect',
-           'WavefunctionSimulator', 'QuantumComputer',
-           'list_quantum_computers', 'get_qc', 'local_forest_runtime', 'local_qvm',
-           'QAM', 'QVM', 'QPU', 'QPUConnection',
-           'BenchmarkConnection', 'get_benchmarker']
+__all__ = [
+    "QVMConnection",
+    "QVMCompiler",
+    "QPUCompiler",
+    "Device",
+    "ForestConnection",
+    "pyquil_protect",
+    "WavefunctionSimulator",
+    "QuantumComputer",
+    "list_quantum_computers",
+    "get_qc",
+    "local_forest_runtime",
+    "local_qvm",
+    "QAM",
+    "QVM",
+    "QPU",
+    "QPUConnection",
+    "BenchmarkConnection",
+    "get_benchmarker",
+]
 
 from pyquil.api._base_connection import ForestConnection
 from pyquil.api._benchmark import BenchmarkConnection, get_benchmarker
 from pyquil.api._compiler import QVMCompiler, QPUCompiler
 from pyquil.api._error_reporting import pyquil_protect
-from pyquil.api._job import Job
 from pyquil.api._qam import QAM
 from pyquil.api._qpu import QPU
-from pyquil.api._quantum_computer import (QuantumComputer, list_quantum_computers,
-                                          get_qc, local_forest_runtime, local_qvm)
+from pyquil.api._quantum_computer import (
+    QuantumComputer,
+    list_quantum_computers,
+    get_qc,
+    local_forest_runtime,
+    local_qvm,
+)
 from pyquil.api._qvm import QVMConnection, QVM
 from pyquil.api._wavefunction_simulator import WavefunctionSimulator
-from pyquil.device import Device
-
-
-class SyncConnection(QVMConnection):
-    def __init__(self, *args, **kwargs):
-        warnings.warn("SyncConnection has been renamed to QVMConnection and will be removed in the future",
-                      stacklevel=2)
-        super(SyncConnection, self).__init__(*args, **kwargs)
-
-
-class JobConnection(object):
-    def __init__(self, *args, **kwargs):
-        raise DeprecationWarning("""
-JobConnection has been deprecated and will be removed in a future version.
-Use QVMConnection instead.
-
-Note that QVMConnection behaves differently than JobConnection did:
-run(), run_and_measure(), wavefunction(), and expectation() all now directly
-return the result of the program instead of returning a JobResult object.
-
-This means you need to replace constructs like this:
-    qvm = JobConnection()
-    job = qvm.run(program, ...)
-    wait_for_job(job)
-    result = job.result()
-with just this:
-    qvm = JobConnection()
-    result = qvm.run(program, ...)
-
-For more information see https://go.rigetti.com/connections\n""")
+from pyquil.device._main import Device
 
 
 class QPUConnection(QPU):
-    def __init__(self, *args, **kwargs):
-        warnings.warn("QPUConnection's semantics have changed for Forest 2. Consider using "
-                      "pyquil.get_qc('...') instead of creating this object directly. "
-                      "Please consult the migration guide for full details.",
-                      DeprecationWarning)
+    def __init__(self, *args: Any, **kwargs: Any):
+        warnings.warn(
+            "QPUConnection's semantics have changed for Forest 2. Consider using "
+            "pyquil.get_qc('...') instead of creating this object directly. "
+            "Please consult the migration guide for full details.",
+            DeprecationWarning,
+        )
         super(QPU, self).__init__(*args, **kwargs)

@@ -1,20 +1,26 @@
 # runtime deps
 numpy
-antlr4-python3-runtime
+antlr4-python3-runtime >= 4.7.2, < 4.8
 requests
-six
 networkx >= 2.0.0
 
 # rigetti packages
-rpcq >= 2.7.2
+rpcq >= 3.0.0
+
+# optional latex deps
+ipython
 
 # test deps
+black
+coveralls
+flake8
+flake8-bugbear
+mypy==0.740
 pytest
+pytest-cov
 pytest-timeout
 pytest-rerunfailures
 requests-mock
-flake8
-tox
 
 # docs
 sphinx
@@ -28,3 +34,6 @@ twine
 
 # depdendency of contextvars, which we vendor
 immutables==0.6
+
+# pinning for mypy incompatibility
+ruamel.yaml <= 0.16.5

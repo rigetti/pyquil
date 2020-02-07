@@ -99,6 +99,8 @@ Contents
    apidocs/simulators
    apidocs/noise
    apidocs/operator_estimation
+   apidocs/visualization
+   apidocs/experiment
 
 Indices and Tables
 ------------------

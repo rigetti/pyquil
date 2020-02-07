@@ -17,10 +17,13 @@ import warnings
 
 from abc import ABC, abstractmethod
 from collections import defaultdict
+from typing import Dict, Sequence, Union, Optional
 
-from rpcq.messages import ParameterAref
+import numpy as np
+from rpcq.messages import BinaryExecutableResponse, ParameterAref, PyQuilExecutableResponse
 
 from pyquil.api._error_reporting import _record_call
+from pyquil.experiment._main import Experiment
 
 
 class QAMError(RuntimeError):
@@ -39,62 +42,82 @@ class QAM(ABC):
     """
 
     @_record_call
-    def __init__(self):
+    def __init__(self) -> None:
         self.reset()
 
     @_record_call
-    def load(self, executable):
+    def load(self, executable: Union[BinaryExecutableResponse, PyQuilExecutableResponse]) -> "QAM":
         """
         Initialize a QAM into a fresh state.
 
         :param executable: Load a compiled executable onto the QAM.
         """
-        if self.status == 'loaded':
+        self.status: str
+        if self.status == "loaded":
             warnings.warn("Overwriting previously loaded executable.")
-        assert self.status in ['connected', 'done', 'loaded']
+        assert self.status in ["connected", "done", "loaded"]
 
-        self._variables_shim = {}
-        self._executable = executable
-        self._memory_results = defaultdict(lambda: None)
-        self.status = 'loaded'
+        self._variables_shim: Dict[ParameterAref, Union[int, float]] = {}
+        self._executable: Optional[
+            Union[BinaryExecutableResponse, PyQuilExecutableResponse]
+        ] = executable
+        self._memory_results: Optional[Dict[str, np.ndarray]] = defaultdict(lambda: None)
+        self.status = "loaded"
         return self
 
     @_record_call
-    def write_memory(self, *, region_name: str, offset: int = 0, value=None):
+    def write_memory(
+        self,
+        *,
+        region_name: str,
+        value: Union[int, float, Sequence[int], Sequence[float]],
+        offset: Optional[int] = None,
+    ) -> "QAM":
         """
-        Writes a value into a memory region on the QAM at a specified offset.
+        Writes a value or unwraps a list of values into a memory region on
+        the QAM at a specified offset.
 
         :param region_name: Name of the declared memory region on the QAM.
         :param offset: Integer offset into the memory region to write to.
-        :param value: Value to store at the indicated location.
+        :param value: Value(s) to store at the indicated location.
         """
-        assert self.status in ['loaded', 'done']
+        assert self.status in ["loaded", "done"]
 
-        aref = ParameterAref(name=region_name, index=offset)
-        self._variables_shim[aref] = value
+        if offset is None:
+            offset = 0
+        elif isinstance(value, Sequence):
+            warnings.warn("offset should be None when value is a Sequence")
+
+        if isinstance(value, (int, float)):
+            aref = ParameterAref(name=region_name, index=offset)
+            self._variables_shim[aref] = value
+        else:
+            for index, v in enumerate(value):
+                aref = ParameterAref(name=region_name, index=offset + index)
+                self._variables_shim[aref] = v
 
         return self
 
     @abstractmethod
-    def run(self):
+    def run(self) -> "QAM":
         """
         Reset the program counter on a QAM and run its loaded Quil program.
         """
-        self.status = 'running'
+        self.status = "running"
 
         return self
 
     @_record_call
-    def wait(self):
+    def wait(self) -> "QAM":
         """
         Blocks until the QPU enters the halted state.
         """
-        assert self.status == 'running'
-        self.status = 'done'
+        assert self.status == "running"
+        self.status = "done"
         return self
 
     @_record_call
-    def read_memory(self, *, region_name: str):
+    def read_memory(self, *, region_name: str) -> np.ndarray:
         """
         Reads from a memory region named region_name on the QAM.
 
@@ -104,12 +127,12 @@ class QAM(ABC):
         :param region_name: The string naming the declared memory region.
         :return: A list of values of the appropriate type.
         """
-        assert self.status == 'done'
-
+        assert self.status == "done"
+        assert self._memory_results is not None
         return self._memory_results[region_name]
 
     @_record_call
-    def read_from_memory_region(self, *, region_name: str):
+    def read_from_memory_region(self, *, region_name: str) -> np.ndarray:
         """
         Reads from a memory region named region_name on the QAM.
 
@@ -119,14 +142,16 @@ class QAM(ABC):
         :param region_name: The string naming the declared memory region.
         :return: A list of values of the appropriate type.
         """
-        warnings.warn("pyquil.api._qam.QAM.read_from_memory_region is deprecated, please use "
-                      "pyquil.api._qam.QAM.read_memory instead.",
-                      DeprecationWarning)
+        warnings.warn(
+            "pyquil.api._qam.QAM.read_from_memory_region is deprecated, please use "
+            "pyquil.api._qam.QAM.read_memory instead.",
+            DeprecationWarning,
+        )
 
         return self.read_memory(region_name=region_name)
 
     @_record_call
-    def reset(self):
+    def reset(self) -> None:
         """
         Reset the Quantum Abstract Machine to its initial state, which is particularly useful
         when it has gotten into an unwanted state. This can happen, for example, if the QAM
@@ -135,5 +160,6 @@ class QAM(ABC):
         self._variables_shim = {}
         self._executable = None
         self._memory_results = defaultdict(lambda: None)
+        self._experiment: Optional[Experiment] = None
 
-        self.status = 'connected'
+        self.status = "connected"

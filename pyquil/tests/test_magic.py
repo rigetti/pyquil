@@ -1,4 +1,12 @@
-from pyquil.magic import *
+from pyquil.magic import (
+    CNOT,
+    H,
+    I,
+    MEASURE,
+    X,
+    Program,
+    magicquil,
+)
 
 
 @magicquil
@@ -8,7 +16,7 @@ def bell_state(q1, q2):
 
 
 def test_bell_state():
-    assert bell_state(0, 1) == Program('H 0\nCNOT 0 1')
+    assert bell_state(0, 1) == Program("H 0\nCNOT 0 1")
 
 
 @magicquil
@@ -21,7 +29,9 @@ def fast_reset(q1):
 
 
 def test_fast_reset():
-    assert fast_reset(0) == Program('DECLARE ro BIT\nMEASURE 0 ro[0]').if_then(("ro", 0), Program('X 0'), Program('I 0'))
+    assert fast_reset(0) == Program("DECLARE ro BIT\nMEASURE 0 ro[0]").if_then(
+        ("ro", 0), Program("X 0"), Program("I 0")
+    )
 
 
 @magicquil
@@ -32,7 +42,9 @@ def no_else(q1):
 
 
 def test_no_else():
-    assert no_else(0) == Program('DECLARE ro BIT\nMEASURE 0 ro[0]').if_then(("ro", 0), Program('X 0'))
+    assert no_else(0) == Program("DECLARE ro BIT\nMEASURE 0 ro[0]").if_then(
+        ("ro", 0), Program("X 0")
+    )
 
 
 @magicquil
@@ -46,8 +58,9 @@ def with_elif(q1, q2):
 
 
 def test_with_elif():
-    assert with_elif(0, 1) == Program('DECLARE ro BIT[2]\nMEASURE 0 ro[0]\nMEASURE 1 ro[1]')\
-        .if_then(("ro", 0), Program('X 0'), Program().if_then(("ro", 1), Program('X 1')))
+    assert with_elif(0, 1) == Program(
+        "DECLARE ro BIT[2]\nMEASURE 0 ro[0]\nMEASURE 1 ro[1]"
+    ).if_then(("ro", 0), Program("X 0"), Program().if_then(("ro", 1), Program("X 1")))
 
 
 @magicquil
@@ -57,7 +70,7 @@ def calls_another(q1, q2, q3):
 
 
 def test_calls_another():
-    assert calls_another(0, 1, 2) == Program('H 0\nCNOT 0 1\nCNOT 1 2')
+    assert calls_another(0, 1, 2) == Program("H 0\nCNOT 0 1\nCNOT 1 2")
 
 
 @magicquil
@@ -69,4 +82,4 @@ def still_works_with_bools():
 
 
 def test_stills_works_with_bools():
-    assert still_works_with_bools() == Program('H 0')
+    assert still_works_with_bools() == Program("H 0")

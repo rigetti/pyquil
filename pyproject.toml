@@ -1,0 +1,24 @@
+[tool.black]
+line-length = 100
+target-version = ['py36']
+include = '\.pyi?$'
+exclude = '''
+
+(
+  /(
+      \.eggs         # black-default
+    | \.git
+    | \.hg
+    | \.mypy_cache
+    | \.tox
+    | \.venv
+    | _build
+    | buck-out
+    | build
+    | dist
+  )/
+  | external         # pyquil-specific
+  | gen3
+
+)
+'''

@@ -20,12 +20,9 @@ Functions
     get_noisy_gate
     _decoherence_noise_model
     decoherence_noise_with_asymmetric_ro
-    apply_noise_model
-    add_decoherence_noise
     estimate_bitstring_probs
     corrupt_bitstring_probs
     bitstring_probs_to_z_moments
-    estimate_assignment_probs
 
 
 Classes
