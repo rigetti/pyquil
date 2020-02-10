@@ -18,7 +18,7 @@ PyQuil serves three main functions:
 - Compiling and simulating Quil programs using the [Quil Compiler](https://github.com/rigetti/quilc)
   (quilc) and the [Quantum Virtual Machine](https://github.com/rigetti/qvm) (QVM)
 - Executing Quil programs on real quantum processors (QPUs) using
-  [Quantum Cloud Services](https://www.rigetti.com/qcs) (QCS)
+  [Quantum Cloud Services][qcs-paper] (QCS)
 
 PyQuil has a ton of other features, which you can learn more about in the
 [docs](http://pyquil.readthedocs.io/en/latest/). However, you can also keep reading
@@ -102,7 +102,7 @@ the statistics of which are consistent with a two-qubit entangled state.
 
 Using the Forest SDK, you can simulate the operation of a real quantum processor (QPU). If you
 would like to run on the real QPUs in our lab in Berkeley, you can sign up for an account
-on [Quantum Cloud Services](https://www.rigetti.com/qcs) (QCS)!
+on [Quantum Cloud Services][qcs-request-access] (QCS)!
 
 Joining the Forest community
 ----------------------------
@@ -188,6 +188,7 @@ PyQuil is licensed under the
 [pepy-repo]: https://pepy.tech/project/pyquil
 [pypi-badge]: https://img.shields.io/pypi/v/pyquil.svg
 [pypi-repo]: https://pypi.org/project/pyquil/
+[qcs-request-access]: https://qcs.rigetti.com/request-access
 [slack-badge]: https://img.shields.io/badge/slack-rigetti--forest-812f82.svg?
 [zenodo-badge]: https://zenodo.org/badge/DOI/10.5281/zenodo.3604432.svg
 [zenodo-doi]: https://doi.org/10.5281/zenodo.3604432
