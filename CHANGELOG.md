@@ -11,6 +11,7 @@ Changelog
 ### Bugfixes
 
 -   Fixed the QCS access request link in the README (@amyfbrown, gh-1171).
+-   Fix the SDK download link and instructions in the docs (@amyfbrown, gh-1173).
 
 [v2.17](https://github.com/rigetti/pyquil/compare/v2.16.0...v2.17.0) (January 30, 2020)
 ---------------------------------------------------------------------------------------
