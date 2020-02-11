@@ -48,7 +48,7 @@ The Forest 2.0 Downloadable SDK Preview currently contains:
 The QVM and the compiler are packed as program binaries that are accessed through the command line. Both of them provide
 support for direct command-line interaction, as well as a server mode. The :ref:`server mode <server>` is required for use with pyQuil.
 
-`Request the Forest SDK here <http://rigetti.com/forest>`__. You'll receive an email right away with the download links
+`Download the Forest SDK here <https://qcs.rigetti.com/sdk-downloads>`__, where you can find links
 for macOS, Linux (.deb), Linux (.rpm), and Linux (bare-bones).
 
 All installation mechanisms, except the bare-bones package, require administrative privileges to install. To use the QVM
@@ -61,7 +61,8 @@ and Quil Compiler from the bare-bones package, you will have to install the prer
 
 Installing on macOS
 -------------------
-Mount the file ``forest-sdk.dmg`` by double clicking on it in your email. From there, open ``forest-sdk.pkg`` by
+Download the macOS distribution by clicking on the appropriate link on the `SDK download page<https://qcs.rigetti.com/sdk-downloads>`__.
+Mount the file ``forest-sdk.dmg`` by double clicking on it in your Downloads folder. From there, open ``forest-sdk.pkg`` by
 double-clicking on it. Follow the installation instructions.
 
 Upon successful installation, one should be able to open a new terminal window and run the following two commands:
@@ -84,7 +85,7 @@ To uninstall, delete the following files:
 Installing the QVM and Compiler on Linux (deb)
 ----------------------------------------------
 
-Download the Debian distribution by clicking on the link in your email. Unpack the tarball and change to that directory
+Download the Debian distribution by clicking on the appropriate link on the `SDK download page<https://qcs.rigetti.com/sdk-downloads>`__. Unpack the tarball and change to that directory
 by doing:
 
 ::
@@ -115,7 +116,7 @@ To uninstall, type:
 Installing the QVM and Compiler on Linux (rpm)
 ----------------------------------------------
 
-Download the RPM-based distribution by clicking on the link in your email. Unpack the tarball and change to that
+Download the RPM-based distribution by clicking on the appropriate link on the `SDK download page<https://qcs.rigetti.com/sdk-downloads>`__. Unpack the tarball and change to that
 directory by doing:
 
 ::
