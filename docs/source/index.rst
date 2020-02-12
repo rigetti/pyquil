@@ -8,7 +8,7 @@
 Welcome to the Docs for the Forest SDK!
 =======================================
 
-The Rigetti Forest `Software Development Kit <http://rigetti.com/forest>`_ includes pyQuil, the Rigetti Quil Compiler
+The Rigetti Forest `Software Development Kit <https://qcs.rigetti.com/sdk-downloads>`_ includes pyQuil, the Rigetti Quil Compiler
 (quilc), and the Quantum Virtual Machine (qvm).
 
 **Longtime users of Rigetti Forest will notice a few changes.** First, the SDK now contains a downloadable compiler and a
@@ -54,7 +54,7 @@ in pyquil's docs:
    concert with traditional processors to run hybrid quantum-classical algorithms. For references on problems addressable
    with near-term quantum computers, see `Quantum Computing in the NISQ era and beyond <https://arxiv.org/abs/1801.00862>`_.
 
-Our flagship product `Quantum Cloud Services <https://rigetti.com/qcs>`_ offers users an on-premise, dedicated access
+Our flagship product `Quantum Cloud Services <https://qcs.rigetti.com/request-access>`_ offers users an on-premise, dedicated access
 point to our quantum computers. This access point is a fully-configured VM, which we call a Quantum Machine Image. A QMI
 is bundled with the same downloadable SDK mentioned above, and a command line interface (CLI), which is used for
 scheduling compute time on our quantum computers. To sign up for our waitlist, please click the link above. If you'd like
@@ -62,7 +62,7 @@ to access to our quantum computers for research, please email support@rigetti.co
 
 .. note::
 
-    To join our user community, connect to the `Rigetti Slack workspace <https://rigetti-forest.slack.com>`_ using `this invite <https://join.slack.com/t/rigetti-forest/shared_invite/enQtNTUyNTE1ODg3MzE2LWExZWU5OTE4YTJhMmE2NGNjMThjOTM1MjlkYTA5ZmUxNTJlOTVmMWE0YjA3Y2M2YmQzNTZhNTBlMTYyODRjMzA>`_.
+    To join our user community, connect to the `Rigetti Slack workspace <https://rigetti-forest.slack.com>`_ using `this invite <https://rigetti-forest.slack.com/join/shared_invite/enQtNTUyNTE1ODg3MzE2LWQwNzBlMjZlMmNlN2M5MzQyZDlmOGViODQ5ODI0NWMwNmYzODY4YTc2ZjdjOTNmNzhiYTk2YjVhNTE2NTRkODY>`_.
 
 Contents
 --------
