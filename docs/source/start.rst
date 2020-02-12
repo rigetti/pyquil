@@ -49,7 +49,7 @@ The QVM and the compiler are packed as program binaries that are accessed throug
 support for direct command-line interaction, as well as a server mode. The :ref:`server mode <server>` is required for use with pyQuil.
 
 `Download the Forest SDK here <https://qcs.rigetti.com/sdk-downloads>`__, where you can find links
-for macOS, Linux (.deb), Linux (.rpm), and Linux (bare-bones).
+for Windows, macOS, Linux (.deb), Linux (.rpm), and Linux (bare-bones).
 
 All installation mechanisms, except the bare-bones package, require administrative privileges to install. To use the QVM
 and Quil Compiler from the bare-bones package, you will have to install the prerequisite dependencies on your own.
@@ -59,9 +59,23 @@ and Quil Compiler from the bare-bones package, you will have to install the prer
    You can also find the open source code for `quilc <http://github.com/rigetti/quilc>`__ and `qvm <http://github.com/rigetti/qvm>`__
    on GitHub, where you can find instructions for compiling, installing, and contributing to the compiler and QVM.
 
+Installing on Windows
+---------------------
+Download the Windows distribution by clicking on the appropriate link on the `SDK download page <https://qcs.rigetti.com/sdk-downloads>`__.
+Open the file ``forest-sdk.msi`` by double clicking on it in your Downloads folder, and follow the system prompts.
+
+Upon successful installation, one should be able to open a new terminal window and run the following two commands:
+
+::
+
+    qvm --version
+    quilc --version
+
+To uninstall the Forest SDK, search for "Add or remove programs" in the Windows search bar. Click on "Add or remove programs" and, in the resulting window, search for "Forest SDK for Windows" in the list of applications and click on "Uninstall" to remove it.
+
 Installing on macOS
 -------------------
-Download the macOS distribution by clicking on the appropriate link on the `SDK download page<https://qcs.rigetti.com/sdk-downloads>`__.
+Download the macOS distribution by clicking on the appropriate link on the `SDK download page <https://qcs.rigetti.com/sdk-downloads>`__.
 Mount the file ``forest-sdk.dmg`` by double clicking on it in your Downloads folder. From there, open ``forest-sdk.pkg`` by
 double-clicking on it. Follow the installation instructions.
 
@@ -85,7 +99,7 @@ To uninstall, delete the following files:
 Installing the QVM and Compiler on Linux (deb)
 ----------------------------------------------
 
-Download the Debian distribution by clicking on the appropriate link on the `SDK download page<https://qcs.rigetti.com/sdk-downloads>`__. Unpack the tarball and change to that directory
+Download the Debian distribution by clicking on the appropriate link on the `SDK download page <https://qcs.rigetti.com/sdk-downloads>`__. Unpack the tarball and change to that directory
 by doing:
 
 ::
@@ -116,7 +130,7 @@ To uninstall, type:
 Installing the QVM and Compiler on Linux (rpm)
 ----------------------------------------------
 
-Download the RPM-based distribution by clicking on the appropriate link on the `SDK download page<https://qcs.rigetti.com/sdk-downloads>`__. Unpack the tarball and change to that
+Download the RPM-based distribution by clicking on the appropriate link on the `SDK download page <https://qcs.rigetti.com/sdk-downloads>`__. Unpack the tarball and change to that
 directory by doing:
 
 ::
