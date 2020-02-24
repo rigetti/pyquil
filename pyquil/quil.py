@@ -68,7 +68,6 @@ from pyquil.quilbase import (
     JumpUnless,
     JumpWhen,
     Declare,
-    Halt,
     Reset,
     ResetQubit,
     DefPermutationGate,
@@ -1125,7 +1124,7 @@ def validate_supported_quil(program: Program) -> None:
     """
     gates_seen = False
     measured_qubits: Set[int] = set()
-    for i, instr in enumerate(program.instructions):
+    for instr in program.instructions:
         if isinstance(instr, Pragma) or isinstance(instr, Declare):
             continue
         elif isinstance(instr, Gate):
