@@ -45,7 +45,7 @@ from pyquil.quilatom import (
 )
 
 from .quil import Program
-from .gates import H, RZ, RX, CNOT, X, PHASE, QUANTUM_GATES
+from .gates import H, RZ, RX, CNOT, QUANTUM_GATES
 from numbers import Number
 from collections import OrderedDict
 import warnings
@@ -920,21 +920,20 @@ def exponential_map(term: PauliTerm) -> Callable[[float], Program]:
     if not np.isclose(np.imag(term.coefficient), 0.0):
         raise TypeError("PauliTerm coefficient must be real")
 
-    coeff = term.coefficient.real
     term.coefficient = term.coefficient.real
 
-    def exp_wrap(param: float) -> Program:
-        prog = Program()
-        if is_identity(term):
-            prog.inst(X(0))
-            prog.inst(PHASE(-param * coeff, 0))
-            prog.inst(X(0))
-            prog.inst(PHASE(-param * coeff, 0))
-        elif is_zero(term):
-            pass
-        else:
+    if is_zero(term) or is_identity(term):
+
+        def exp_wrap(param: float) -> Program:
+            prog = Program()
+            return prog
+
+    else:
+
+        def exp_wrap(param: float) -> Program:
+            prog = Program()
             prog += _exponentiate_general_case(term, param)
-        return prog
+            return prog
 
     return exp_wrap
 

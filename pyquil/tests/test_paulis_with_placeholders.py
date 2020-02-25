@@ -24,7 +24,7 @@ from operator import mul
 import numpy as np
 import pytest
 
-from pyquil.gates import RX, RZ, CNOT, H, X, PHASE
+from pyquil.gates import RX, RZ, CNOT, H
 from pyquil.paulis import (
     PauliTerm,
     PauliSum,
@@ -398,14 +398,14 @@ def test_exponentiate_identity():
     generator = PauliTerm("I", q[1], 1.0)
     para_prog = exponential_map(generator)
     prog = para_prog(1)
-    result_prog = Program().inst([X(q[0]), PHASE(-1.0, q[0]), X(q[0]), PHASE(-1.0, q[0])])
-    assert address_qubits(prog) == address_qubits(result_prog)
+    result_prog = Program()
+    assert prog == result_prog
 
     generator = PauliTerm("I", q[10], 0.08)
     para_prog = exponential_map(generator)
     prog = para_prog(1)
-    result_prog = Program().inst([X(q[0]), PHASE(-0.08, q[0]), X(q[0]), PHASE(-0.08, q[0])])
-    assert address_qubits(prog) == address_qubits(result_prog)
+    result_prog = Program()
+    assert prog == result_prog
 
 
 def test_trotterize():
