@@ -1235,7 +1235,6 @@ I 0
 CZ 2 3
 MEASURE 2 ro[2]
 MEASURE 3 ro[3]
-HALT
 """
         )
     )
@@ -1252,7 +1251,6 @@ CZ 2 3
 MEASURE 2 ro[2]
 X 3
 MEASURE 3 ro[3]
-HALT
 """
         )
     )

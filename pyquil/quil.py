@@ -68,7 +68,6 @@ from pyquil.quilbase import (
     JumpUnless,
     JumpWhen,
     Declare,
-    Halt,
     Reset,
     ResetQubit,
     DefPermutationGate,
@@ -609,8 +608,7 @@ class Program(object):
         """
         Whether the program can be compiled to the hardware to execute on a QPU. These Quil
         programs are more restricted than Protoquil: for instance, RESET must be before any
-        gates or MEASUREs, MEASURE on a qubit must be after any gates on that qubit, and
-        no instructions can occur after HALT.
+        gates or MEASUREs, and MEASURE on a qubit must be after any gates on that qubit.
 
         :return: True if the Program is supported Quil, False otherwise
         """
@@ -1109,7 +1107,7 @@ def validate_protoquil(program: Program) -> None:
 
     :param program: The Quil program to validate.
     """
-    valid_instruction_types = tuple([Pragma, Declare, Halt, Gate, Reset, ResetQubit, Measurement])
+    valid_instruction_types = tuple([Pragma, Declare, Gate, Reset, ResetQubit, Measurement])
     for instr in program.instructions:
         if not isinstance(instr, valid_instruction_types):
             # Instructions like MOVE, NOT, JUMP, JUMP-UNLESS will fail here
@@ -1120,18 +1118,15 @@ def validate_supported_quil(program: Program) -> None:
     """
     Ensure that a program is supported Quil which can run on any QPU, otherwise raise a ValueError.
     We support a global RESET before any gates, and MEASUREs on each qubit after any gates
-    on that qubit. PRAGMAs and DECLAREs are always allowed, and a final HALT instruction is allowed.
+    on that qubit. PRAGMAs and DECLAREs are always allowed.
 
     :param program: The Quil program to validate.
     """
     gates_seen = False
     measured_qubits: Set[int] = set()
-    for i, instr in enumerate(program.instructions):
+    for instr in program.instructions:
         if isinstance(instr, Pragma) or isinstance(instr, Declare):
             continue
-        elif isinstance(instr, Halt):
-            if i != len(program.instructions) - 1:
-                raise ValueError(f"Cannot have instructions after HALT")
         elif isinstance(instr, Gate):
             gates_seen = True
             if any(q.index in measured_qubits for q in instr.qubits):
