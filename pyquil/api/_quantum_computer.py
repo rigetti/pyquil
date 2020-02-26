@@ -285,6 +285,7 @@ class QuantumComputer:
         trials: int,
         symm_type: int = 3,
         meas_qubits: Optional[List[int]] = None,
+        memory_map: Optional[Mapping[str, Sequence[Union[int, float]]]] = None
     ) -> np.ndarray:
         r"""
         Run a quil program in such a way that the readout error is made symmetric. Enforcing
@@ -366,7 +367,7 @@ class QuantumComputer:
                 f"chosen."
             )
 
-        results = _measure_bitstrings(self, sym_programs, meas_qubits, num_shots_per_prog)
+        results = _measure_bitstrings(self, sym_programs, meas_qubits, num_shots_per_prog, memory_map=memory_map)
 
         return _consolidate_symmetrization_outputs(results, flip_arrays)
 
@@ -1146,7 +1147,7 @@ def _consolidate_symmetrization_outputs(
 
 
 def _measure_bitstrings(
-    qc: QuantumComputer, programs: List[Program], meas_qubits: List[int], num_shots: int = 600
+    qc: QuantumComputer, programs: List[Program], meas_qubits: List[int], num_shots: int = 600, memory_map: Optional[Mapping[str, Sequence[Union[int, float]]]] = None
 ) -> List[np.ndarray]:
     """
     Wrapper for appending measure instructions onto each program, running the program,
@@ -1170,7 +1171,7 @@ def _measure_bitstrings(
         prog.wrap_in_numshots_loop(num_shots)
         prog = qc.compiler.quil_to_native_quil(prog)
         exe = qc.compiler.native_quil_to_executable(prog)
-        shots = qc.run(exe)
+        shots = qc.run(exe, memory_map=memory_map)
         results.append(shots)
     return results
 
