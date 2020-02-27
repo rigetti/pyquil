@@ -527,7 +527,7 @@ good starting point.**
         p.inst(MEASURE(0, 0))
         p.inst(MEASURE(1, 1))
 
-        # overload identity I on qc 0
+        # overload CZ on qc 0
         p.define_noisy_gate("CZ", [0, 1], corrupted_CZ)
         p.wrap_in_numshots_loop(trials)
         qc.qam.random_seed = jj
