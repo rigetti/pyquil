@@ -285,7 +285,7 @@ class QuantumComputer:
         trials: int,
         symm_type: int = 3,
         meas_qubits: Optional[List[int]] = None,
-        memory_map: Optional[Mapping[str, Sequence[Union[int, float]]]] = None
+        memory_map: Optional[Mapping[str, Sequence[Union[int, float]]]] = None,
     ) -> np.ndarray:
         r"""
         Run a quil program in such a way that the readout error is made symmetric. Enforcing
@@ -340,6 +340,8 @@ class QuantumComputer:
         :param symm_type: the type of symmetrization
         :param meas_qubits: An advanced feature. The groups of measurement qubits. Only these
             qubits will be symmetrized over, even if the program acts on other qubits.
+        :param memory_map: The mapping of declared parameters to their values. The values
+            are a list of floats or integers.
         :return: A numpy array of shape (trials, len(ro-register)) that contains 0s and 1s.
         """
         if not isinstance(symm_type, int):
@@ -367,7 +369,9 @@ class QuantumComputer:
                 f"chosen."
             )
 
-        results = _measure_bitstrings(self, sym_programs, meas_qubits, num_shots_per_prog, memory_map=memory_map)
+        results = _measure_bitstrings(
+            self, sym_programs, meas_qubits, num_shots_per_prog, memory_map=memory_map
+        )
 
         return _consolidate_symmetrization_outputs(results, flip_arrays)
 
@@ -1147,7 +1151,11 @@ def _consolidate_symmetrization_outputs(
 
 
 def _measure_bitstrings(
-    qc: QuantumComputer, programs: List[Program], meas_qubits: List[int], num_shots: int = 600, memory_map: Optional[Mapping[str, Sequence[Union[int, float]]]] = None
+    qc: QuantumComputer,
+    programs: List[Program],
+    meas_qubits: List[int],
+    num_shots: int = 600,
+    memory_map: Optional[Mapping[str, Sequence[Union[int, float]]]] = None,
 ) -> List[np.ndarray]:
     """
     Wrapper for appending measure instructions onto each program, running the program,
@@ -1157,6 +1165,8 @@ def _measure_bitstrings(
     :param programs: a list of programs to run
     :param meas_qubits: groups of qubits to measure for each program
     :param num_shots: the number of shots to run for each program
+    :param memory_map: The mapping of declared parameters to their values. The values
+            are a list of floats or integers.
     :return: a len(programs) long list of num_shots by num_meas_qubits bit arrays of results for
         each program.
     """

@@ -14,6 +14,7 @@ Changelog
 -   Fix the SDK download link and instructions in the docs (@amyfbrown, gh-1173).
 -   Removed HALT from valid Protoquil / supported Quil. (@kilimanjaro, gh-1176).
 -   Fix error in comment in Noise and Quantum Computation page (@jlapeyre gh-1180)
+-   Add `memory_map` argument to `run_symmetrized_readout` (@amyfbrown, gh-1184).
 
 [v2.17](https://github.com/rigetti/pyquil/compare/v2.16.0...v2.17.0) (January 30, 2020)
 ---------------------------------------------------------------------------------------

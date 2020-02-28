@@ -298,6 +298,34 @@ def test_run_symmetrized_readout_error():
         print(qc.run_symmetrized_readout(prog, trials, sym_type))
 
 
+def test_run_symmetrized_readout_with_parameters(forest):
+    device = NxDevice(nx.complete_graph(3))
+    noise_model = decoherence_noise_with_asymmetric_ro(gates=gates_in_isa(device.get_isa()))
+    qc = QuantumComputer(
+        name="testy!",
+        qam=QVM(connection=forest, noise_model=noise_model),
+        device=device,
+        compiler=DummyCompiler(),
+    )
+
+    bitstrings = qc.run_symmetrized_readout(
+        program=Program(
+            Declare(name="alpha", memory_type="REAL"),
+            Declare(name="beta", memory_type="REAL"),
+            RX(MemoryReference("alpha"), 0),
+            RX(MemoryReference("beta"), 1),
+        ),
+        trials=1000,
+        memory_map={"alpha": [0.0], "beta": [np.pi]},
+    )
+
+    assert bitstrings.shape == (1000, 2)
+
+    p10 = np.mean(bitstrings[:, 0])
+    p01 = 1 - np.mean(bitstrings[:, 1])
+    assert p01 - p10 < 0.05
+
+
 def test_list_qc():
     qc_names = list_quantum_computers(qpus=False)
     # TODO: update with deployed qpus
