@@ -1,7 +1,7 @@
 Changelog
 =========
 
-[v2.18](https://github.com/rigetti/pyquil/compare/v2.17.0...master) (in development)
+[v2.18](https://github.com/rigetti/pyquil/compare/v2.17.0...master) (March 3, 2020)
 ------------------------------------------------------------------------------------
 
 ### Announcements
