@@ -51,6 +51,8 @@ Table of Contents
 
 - [Publishing a Package on PyPI](#publishing-a-package-on-pypi)
 
+- [Publishing a Package on conda-forge](#publishing-a-package-on-conda-forge)
+
 - [Issue and PR Labels](#issue-and-pr-labels)
 
 Ways to Contribute
@@ -286,7 +288,7 @@ When merging PRs, we have a couple of guidelines:
 2. Always use the "squash and merge" option so that every PR corresponds to one commit.
    This keeps the git history clean and encourages many small (quickly reviewable) PRs
    rather than behemoth ones with lots of commits.
-   
+
 3. When pressing the merge button, each commit message will be turned into a bullet point
    below the title of the issue. Make sure to truncate the PR title to ~50 characters
    (unless completely impossible) so it fits on one line in the commit history, and delete
@@ -386,6 +388,75 @@ PYPI_URL=https://pypi.org/simple
 TEST_PYPI_URL=https://test.pypi.org/simple/
 pip install --index-url ${TEST_PYPI_URL} --extra-index-url ${PYPI_URL} pyquil==${PYQUIL_VERSION}
 ```
+
+### Publishing a Package on conda-forge
+
+pyQuil and its dependencies (including rpcq) are also packaged and published to conda-forge and to
+[rigetti's own conda channel][rigetti-conda]. These conda packages are built from the
+[pyquil-feedstock] and [rpcq-feedstock] repositories.
+
+Once a new pyQuil version is published to PyPI, a conda-forge bot should notice the new version and
+will automatically open a PR to update the feedstock's recipe. Follow the instructions in the bot's
+PR description and review the changes before merging. If any of the package dependencies have
+changed, for example, you will need to manually update the feedstock's `recipe/meta.yaml` file to
+match.
+
+See the [conda-forge docs][conda-forge-docs] for more info.
+
+Once the bot's PR has been merged to master, conda-forge should automatically upload the new package
+to the conda-forge channel. For pyQuil, you can check that this was successful by making sure the
+[pyQuil package on conda-forge][pyquil-conda-forge] shows the correct latest version.
+
+Once the new pyQuil and rpcq packages are published to conda-forge, you can install them like so:
+
+``` bash
+PYQUIL_VERSION=2.18.0 # replace this with the newly-published version
+conda create -n pyquil-${PYQUIL_VERSION}-test -c conda-forge python=3.6 pyquil=${PYQUIL_VERSION}
+conda activate pyquil-${PYQUIL_VERSION}-test
+```
+
+#### Copying a Package from conda-forge to the Rigetti Channel
+
+Assuming that the packages on conda-forge are in good working order, the final step is to copy them
+over to [rigetti's private channel][rigetti-conda]. Assuming you are an admin of the rigetti org on
+anaconda.org and you have the [anaconda-client installed][install-anaconda-client], you can copy the
+packages over like so:
+
+``` bash
+PYQUIL_VERSION=2.18.0 # replace this with the newly-published version
+anaconda login # only needed if not already logged in
+anaconda copy conda-forge/pyquil/${PYQUIL_VERSION} --to-owner rigetti
+```
+
+Likewise for the rpcq package, if necessary.
+
+See the [anaconda cloud docs][anaconda-cloud-docs] for more info on managing packages in the rigetti
+channel.
+
+
+#### Additional Third-party Packages in the Rigetti Channel
+
+In addition to pyQuil and rpcq, the [rigetti channel][rigetti-conda] includes any third-party
+packages that are pyQuil dependencies which are *not* included in the default conda channel. The
+idea is that pyQuil should be installable with only the default and rigetti channels enabled,
+without requiring the user to enable the conda-forge channel. As a result, if pyQuil's dependencies
+on any of these third-party packages changes, the new version of the third-party package also needs
+to be copied to the rigetti channel.
+
+The process for copying third-party packages is exactly the same as described for copying rigetti
+packages, above. For example, to copy version 4.7.2 of the `antlr-python-runtime` package:
+
+``` bash
+anaconda copy conda-forge/antlr-python-runtime/4.7.2 --to-owner rigetti
+```
+
+[rigetti-conda]: https://anaconda.org/rigetti
+[pyquil-conda-forge]: https://anaconda.org/conda-forge/pyquil
+[conda-forge-docs]: https://conda-forge.org/docs/
+[pyquil-feedstock]: https://github.com/conda-forge/pyquil-feedstock
+[rpcq-feedstock]: https://github.com/conda-forge/rpcq-feedstock
+[anaconda-cloud-docs]: https://docs.anaconda.com/anaconda-cloud/
+[install-anaconda-client]: https://docs.anaconda.com/anaconda-cloud/user-guide/getting-started/#installing-anaconda-client
 
 ### Issue and PR Labels
 

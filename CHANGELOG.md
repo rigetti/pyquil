@@ -8,6 +8,9 @@ Changelog
 
 ### Improvements and Changes
 
+-   Add a section to `CONTRIBUTING.md` about publishing packages to conda-forge
+    (@appleby, gh-1186).
+
 ### Bugfixes
 
 [v2.18](https://github.com/rigetti/pyquil/compare/v2.17.0...v2.18.0) (March 3, 2020)
