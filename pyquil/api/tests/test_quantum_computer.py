@@ -5,7 +5,7 @@ from pyquil import Program
 from pyquil.api import QVM, QuantumComputer, get_qc
 from pyquil.device import NxDevice
 from pyquil.experiment import ExperimentSetting, Experiment
-from pyquil.gates import CNOT, H, RESET, X
+from pyquil.gates import CNOT, H, RESET, RX, X
 from pyquil.noise import NoiseModel
 from pyquil.paulis import sX, sY, sZ
 from pyquil.tests.utils import DummyCompiler
@@ -205,3 +205,30 @@ def test_qc_joint_calibration(forest):
     # Z1 expectation value for state |01> with 95% RO fid on both qubits is about 0.9
     assert np.isclose(results[0].additional_results[1].expectation, 0.9, atol=0.01)
     assert results[0].additional_results[1].total_counts == 40000
+
+
+def test_qc_expectation_on_qvm_that_requires_executable(forest):
+    # regression test for https://github.com/rigetti/forest-tutorials/issues/2
+    device = NxDevice(nx.complete_graph(2))
+    qc = QuantumComputer(
+        name="testy!",
+        qam=QVM(connection=forest, requires_executable=True),
+        device=device,
+        compiler=DummyCompiler(),
+    )
+
+    p = Program()
+    theta = p.declare("theta", "REAL")
+    p += RESET()
+    p += RX(theta, 0)
+    p.wrap_in_numshots_loop(2)
+
+    sx = ExperimentSetting(in_state=sZ(0) * sZ(1), out_operator=sX(0) * sX(1))
+    e = Experiment(settings=[sx], program=p)
+
+    thetas = np.linspace(start=-np.pi / 2, stop=np.pi / 2, num=3)
+
+    # Here we verify that multiple calls to qc.experiment with the same experiment backed by a QVM
+    # that requires_exectutable does not raise an exception.
+    for theta in thetas:
+        qc.experiment(e, memory_map={"theta": [theta]})
