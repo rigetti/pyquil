@@ -1,7 +1,10 @@
 import os
 
+from rpcq.messages import PyQuilExecutableResponse
+
 from pyquil.parser import parse
 from pyquil.api._qac import AbstractCompiler
+from pyquil.api._compiler import _extract_attribute_dictionary_from_program
 from pyquil import Program
 
 
@@ -24,4 +27,7 @@ class DummyCompiler(AbstractCompiler):
         return program
 
     def native_quil_to_executable(self, nq_program: Program):
-        return nq_program
+        return PyQuilExecutableResponse(
+            program=nq_program.out(),
+            attributes=_extract_attribute_dictionary_from_program(nq_program),
+        )

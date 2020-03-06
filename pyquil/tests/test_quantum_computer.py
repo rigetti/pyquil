@@ -446,7 +446,9 @@ def test_qc_compile():
     qc.compiler = DummyCompiler()
     prog = Program()
     prog += H(0)
-    prog1 = qc.compile(prog)
+    exe = qc.compile(prog)
+    prog1 = Program(exe.program)
+    assert isinstance(exe, PyQuilExecutableResponse)
     assert prog1 == prog
 
 
