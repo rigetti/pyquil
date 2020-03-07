@@ -340,8 +340,6 @@ class Experiment:
                 raise ValueError("RESET already added to program")
             p += RESET()
 
-        p += self.program
-
         for settings in self:
             assert len(settings) == 1
             if ("X" in str(settings[0].in_state)) or ("Y" in str(settings[0].in_state)):
@@ -353,6 +351,8 @@ class Experiment:
                     raise ValueError(f'Memory "preparation_gamma" has been declared already.')
                 p += parameterized_single_qubit_state_preparation(meas_qubits)
                 break
+
+        p += self.program
 
         for settings in self:
             assert len(settings) == 1
