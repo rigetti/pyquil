@@ -10,6 +10,8 @@ Changelog
 
 -   Add a section to `CONTRIBUTING.md` about publishing packages to conda-forge
     (@appleby, gh-1186).
+-   Correctly insert state preparation code in `Experiment`s *before* main program code
+    (@notmgsk, gh-1189).
 
 ### Bugfixes
 
