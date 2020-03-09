@@ -24,6 +24,7 @@ Changelog
 
 -   Fixed the QCS access request link in the README (@amyfbrown, gh-1171).
 -   Fix the SDK download link and instructions in the docs (@amyfbrown, gh-1173).
+-   Fix broken link to example now in forest-tutorials (@jlapeyre, gh-1181).
 -   Removed HALT from valid Protoquil / supported Quil. (@kilimanjaro, gh-1176).
 -   Fix error in comment in Noise and Quantum Computation page (@jlapeyre gh-1180)
 
