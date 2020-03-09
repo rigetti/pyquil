@@ -5,7 +5,7 @@ from pyquil import Program
 from pyquil.api import QVM, QuantumComputer, get_qc
 from pyquil.device import NxDevice
 from pyquil.experiment import ExperimentSetting, Experiment
-from pyquil.gates import CNOT, H, RESET, RX, X
+from pyquil.gates import CNOT, H, RESET, RY, X
 from pyquil.noise import NoiseModel
 from pyquil.paulis import sX, sY, sZ
 from pyquil.tests.utils import DummyCompiler
@@ -220,15 +220,29 @@ def test_qc_expectation_on_qvm_that_requires_executable(forest):
     p = Program()
     theta = p.declare("theta", "REAL")
     p += RESET()
-    p += RX(theta, 0)
-    p.wrap_in_numshots_loop(2)
+    p += RY(theta, 0)
+    p.wrap_in_numshots_loop(10000)
 
-    sx = ExperimentSetting(in_state=sZ(0) * sZ(1), out_operator=sX(0) * sX(1))
+    sx = ExperimentSetting(in_state=sZ(0), out_operator=sX(0))
     e = Experiment(settings=[sx], program=p)
 
-    thetas = np.linspace(start=-np.pi / 2, stop=np.pi / 2, num=3)
+    thetas = [-np.pi / 2, 0.0, np.pi / 2]
+    results = []
 
-    # Here we verify that multiple calls to qc.experiment with the same experiment backed by a QVM
-    # that requires_exectutable does not raise an exception.
+    # Verify that multiple calls to qc.experiment with the same experiment backed by a QVM that
+    # requires_exectutable does not raise an exception.
     for theta in thetas:
-        qc.experiment(e, memory_map={"theta": [theta]})
+        results.append(qc.experiment(e, memory_map={"theta": [theta]}))
+
+    assert np.isclose(results[0][0].expectation, -1.0, atol=0.01)
+    assert np.isclose(results[0][0].std_err, 0)
+    assert results[0][0].total_counts == 20000
+
+    # bounds on atol and std_err here are a little loose to try and avoid test flakiness.
+    assert np.isclose(results[1][0].expectation, 0.0, atol=0.1)
+    assert results[1][0].std_err < 0.01
+    assert results[1][0].total_counts == 20000
+
+    assert np.isclose(results[2][0].expectation, 1.0, atol=0.01)
+    assert np.isclose(results[2][0].std_err, 0)
+    assert results[2][0].total_counts == 20000
