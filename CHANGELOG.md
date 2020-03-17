@@ -13,6 +13,9 @@ Changelog
 
 ### Bugfixes
 
+-   Fix flakiness in `test_run` in `pyquil/test/test_quantum_computer.py`
+    (@appleby, gh-1190).
+
 [v2.18](https://github.com/rigetti/pyquil/compare/v2.17.0...v2.18.0) (March 3, 2020)
 ------------------------------------------------------------------------------------
 
