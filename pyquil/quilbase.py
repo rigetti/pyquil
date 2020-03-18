@@ -201,7 +201,7 @@ class Gate(AbstractInstruction):
 
     def controlled(self, control_qubits: Union[QubitDesignator, list]) -> "Gate":
         """
-        Add the CONTROLLED modifier to the gate with the given control qubit.
+        Add the CONTROLLED modifier to the gate with the given control qubit or list of control qubits.
         """
         if isinstance(control_qubits, list):
             if len(control_qubits) == 0:
@@ -213,7 +213,6 @@ class Gate(AbstractInstruction):
                 self.qubits.insert(0, control_qubit)
 
                 return self.controlled(control_qubits[1:])
-
 
         control_qubit = unpack_qubit(control_qubits)
 
