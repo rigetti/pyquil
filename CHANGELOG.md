@@ -10,6 +10,7 @@ Changelog
 
 -   Add a section to `CONTRIBUTING.md` about publishing packages to conda-forge
     (@appleby, gh-1186).
+-   Controlled gates syntax sugar (@adamglos92, gh-1192)
 
 ### Bugfixes
 
