@@ -399,7 +399,7 @@ control qubit ``0`` and target qubit ``1``
 
 To produce the doubly-controlled NOT gate (``CCNOT``) with
 control qubits ``0`` and ``1`` and target qubit ``2`` you can stack
-the ``controlled`` modifier, or simply put a list of controlled qubits
+the ``controlled`` modifier, or simply pass a list of control qubits
 
 .. code:: python
 
