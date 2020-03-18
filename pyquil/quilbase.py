@@ -199,7 +199,7 @@ class Gate(AbstractInstruction):
                 _format_qubits_out(self.qubits),
             )
 
-    def controlled(self, control_qubits: Union[QubitDesignator, list]) -> "Gate":
+    def controlled(self, control_qubits: Union[QubitDesignator, List[QubitDesignator]]) -> "Gate":
         """
         Add the CONTROLLED modifier to the gate with the given control qubit or list of control
         qubits.
