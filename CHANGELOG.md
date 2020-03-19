@@ -10,7 +10,7 @@ Changelog
 
 -   Add a section to `CONTRIBUTING.md` about publishing packages to conda-forge
     (@appleby, gh-1186).
--   Controlled gates syntax sugar (@adamglos92, gh-1192)
+-   `controlled` modifier now accepts either a Sequence of control qubits or a single control qubit. Previously, only a single control qubit was supported (@adamglos92, gh-1192)
 
 ### Bugfixes
 
