@@ -31,6 +31,7 @@ from typing import (
     Tuple,
     Union,
     TYPE_CHECKING,
+    Sequence,
 )
 from warnings import warn
 
@@ -199,28 +200,24 @@ class Gate(AbstractInstruction):
                 _format_qubits_out(self.qubits),
             )
 
-    def controlled(self, control_qubits: Union[QubitDesignator, List[QubitDesignator]]) -> "Gate":
+    def controlled(
+        self, control_qubit: Union[QubitDesignator, Sequence[QubitDesignator]]
+    ) -> "Gate":
         """
-        Add the CONTROLLED modifier to the gate with the given control qubit or list of control
+        Add the CONTROLLED modifier to the gate with the given control qubit or Sequence of control
         qubits.
         """
-        if isinstance(control_qubits, list):
-            if len(control_qubits) == 0:
-                return self
-            else:
-                control_qubit = unpack_qubit(control_qubits[0])
-
+        if isinstance(control_qubit, Sequence):
+            for qubit in control_qubit:
+                qubit = unpack_qubit(qubit)
                 self.modifiers.insert(0, "CONTROLLED")
-                self.qubits.insert(0, control_qubit)
-
-                return self.controlled(control_qubits[1:])
-
-        control_qubit = unpack_qubit(control_qubits)
-
-        self.modifiers.insert(0, "CONTROLLED")
-        self.qubits.insert(0, control_qubit)
-
-        return self
+                self.qubits.insert(0, qubit)
+            return self
+        else:
+            control_qubit = unpack_qubit(control_qubit)
+            self.modifiers.insert(0, "CONTROLLED")
+            self.qubits.insert(0, control_qubit)
+            return self
 
     def forked(self, fork_qubit: QubitDesignator, alt_params: List[ParameterDesignator]) -> "Gate":
         """
