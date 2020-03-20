@@ -121,6 +121,8 @@ def test_controlled_gate():
     # for backwards compatibility
     g = X(0).controlled(control_qubit=1)
     assert g.out() == "CONTROLLED X 1 0"
+    g = X(0).controlled([])
+    assert g.out() == "X 0"
 
 
 def test_dagger_gate():
