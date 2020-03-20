@@ -27,11 +27,11 @@ from typing import (
     Iterable,
     List,
     Optional,
+    Sequence,
     Set,
     Tuple,
     Union,
     TYPE_CHECKING,
-    Sequence,
 )
 from warnings import warn
 
