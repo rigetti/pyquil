@@ -27,6 +27,7 @@ from typing import (
     Iterable,
     List,
     Optional,
+    Sequence,
     Set,
     Tuple,
     Union,
@@ -199,15 +200,18 @@ class Gate(AbstractInstruction):
                 _format_qubits_out(self.qubits),
             )
 
-    def controlled(self, control_qubit: QubitDesignator) -> "Gate":
+    def controlled(
+        self, control_qubit: Union[QubitDesignator, Sequence[QubitDesignator]]
+    ) -> "Gate":
         """
-        Add the CONTROLLED modifier to the gate with the given control qubit.
+        Add the CONTROLLED modifier to the gate with the given control qubit or Sequence of control
+        qubits.
         """
-        control_qubit = unpack_qubit(control_qubit)
-
-        self.modifiers.insert(0, "CONTROLLED")
-        self.qubits.insert(0, control_qubit)
-
+        control_qubit = control_qubit if isinstance(control_qubit, Sequence) else [control_qubit]
+        for qubit in control_qubit:
+            qubit = unpack_qubit(qubit)
+            self.modifiers.insert(0, "CONTROLLED")
+            self.qubits.insert(0, qubit)
         return self
 
     def forked(self, fork_qubit: QubitDesignator, alt_params: List[ParameterDesignator]) -> "Gate":
