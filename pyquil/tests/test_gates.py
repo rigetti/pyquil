@@ -119,7 +119,7 @@ def test_controlled_gate():
     g = X(0).controlled([1, 2])
     assert g.out() == "CONTROLLED CONTROLLED X 2 1 0"
     # for backwards compatibility
-    g = X(0).controlled(**{"control_qubit": 1})
+    g = X(0).controlled(control_qubit=1)
     assert g.out() == "CONTROLLED X 1 0"
 
 
