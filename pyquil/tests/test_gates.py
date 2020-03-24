@@ -116,6 +116,8 @@ def test_controlled_gate():
     assert g.out() == "CONTROLLED X 1 0"
     g = X(0).controlled(1).controlled(2)
     assert g.out() == "CONTROLLED CONTROLLED X 2 1 0"
+    g = X(0).controlled([1])
+    assert g.out() == "CONTROLLED X 1 0"
     g = X(0).controlled([1, 2])
     assert g.out() == "CONTROLLED CONTROLLED X 2 1 0"
     # for backwards compatibility
