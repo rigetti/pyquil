@@ -137,6 +137,27 @@ def test_forked_gate():
     assert g.out() == "FORKED RX(0,1.0) 1 0"
     g = RX(0.0, 0).forked(1, [1.0]).forked(2, [2.0, 3.0])
     assert g.out() == "FORKED FORKED RX(0,1.0,2.0,3.0) 2 1 0"
+    g = RX(0.0, 0).forked([1], [1.0])
+    assert g.out() == "FORKED RX(0,1.0) 1 0"
+    g = RX(0.0, 0).forked([1, 2], [1.0, 2.0, 3.0])
+    assert g.out() == "FORKED FORKED RX(0,1.0,2.0,3.0) 2 1 0"
+    # for backwards compatibility
+    g = RX(0.0, 0).forked(fork_qubit=1, alt_params=[1.0])
+    assert g.out() == "FORKED RX(0,1.0) 1 0"
+    g = RX(0.0, 0).forked([], [])
+    assert g.out() == "RX(0) 0"
+
+    # alt_params not a Sequence
+    with pytest.raises(TypeError):
+        RX(0.0, 0).forked(1, {1.0})
+
+    # too many alt_params
+    with pytest.raises(ValueError):
+        RX(0.0, 0).forked(1, [1.0, 2.0])
+
+    # too few alt_params
+    with pytest.raises(ValueError):
+        RX(0.0, 0).forked([1, 2], [1.0, 2.0])
 
 
 def test_dagger_controlled_gate():

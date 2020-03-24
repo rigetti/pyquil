@@ -214,23 +214,38 @@ class Gate(AbstractInstruction):
             self.qubits.insert(0, qubit)
         return self
 
-    def forked(self, fork_qubit: QubitDesignator, alt_params: List[ParameterDesignator]) -> "Gate":
+    def forked(
+        self,
+        fork_qubit: Union[QubitDesignator, Sequence[QubitDesignator]],
+        alt_params: Sequence[ParameterDesignator],
+    ) -> "Gate":
         """
-        Add the FORKED modifier to the gate with the given fork qubit and given additional
-        parameters.
+        Add the FORKED modifier to the gate with the given fork qubit or Sequence of qubits and
+        given additional parameters.
         """
-        if not isinstance(alt_params, list):
-            raise TypeError("Gate params must be a list")
-        if len(self.params) != len(alt_params):
+        fork_qubits = fork_qubit if isinstance(fork_qubit, Sequence) else [fork_qubit]
+
+        if not isinstance(alt_params, Sequence):
+            raise TypeError("Gate params must be a Sequence")
+
+        expected_num_params = len(self.params) * (2 ** len(fork_qubits) - 1)
+        actual_num_params = len(alt_params)
+
+        if expected_num_params != actual_num_params:
             raise ValueError(
-                "Expected {} parameters but received {}".format(len(self.params), len(alt_params))
+                f"Expected {expected_num_params} parameters but received {actual_num_params}"
             )
 
-        fork_qubit = unpack_qubit(fork_qubit)
+        start = 0
+        step = len(self.params)
 
-        self.modifiers.insert(0, "FORKED")
-        self.qubits.insert(0, fork_qubit)
-        self.params += alt_params
+        for qubit in fork_qubits:
+            qubit = unpack_qubit(qubit)
+            self.modifiers.insert(0, "FORKED")
+            self.qubits.insert(0, qubit)
+            self.params += alt_params[start : start + step]
+            start = start + step
+            step *= 2
 
         return self
 
