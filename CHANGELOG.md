@@ -10,7 +10,12 @@ Changelog
 
 -   Add a section to `CONTRIBUTING.md` about publishing packages to conda-forge
     (@appleby, gh-1186).
--   `controlled` modifier now accepts either a Sequence of control qubits or a single control qubit. Previously, only a single control qubit was supported (@adamglos92, gh-1196)
+-   The `controlled` modifier now accepts either a Sequence of control qubits or a
+    single control qubit. Previously, only a single control qubit was supported
+    (@adamglos92, gh-1196)
+-   The `forked` modifier now accepts either a Sequence of control qubits or a
+    single control qubit. Previously, only a single control qubit was supported
+    (@appleby, gh-1198)
 
 ### Bugfixes
 
