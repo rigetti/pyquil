@@ -12,8 +12,15 @@ Changelog
     (@appleby, gh-1186).
 -   Correctly insert state preparation code in `Experiment`s *before* main program code
     (@notmgsk, gh-1189).
+-   `controlled` modifier now accepts either a Sequence of control qubits or a single control qubit. Previously, only a single control qubit was supported (@adamglos92, gh-1196).
 
 ### Bugfixes
+
+-   Fix flakiness in `test_run` in `pyquil/test/test_quantum_computer.py`
+    (@appleby, gh-1190).
+-   Fix a bug in QuantumComputer.experiment that resulted in a TypeError being
+    raised when called multiple times on the same experiment when the underlying QAM
+    was a QVM based on a physical device (@appleby, gh-1188).
 
 [v2.18](https://github.com/rigetti/pyquil/compare/v2.17.0...v2.18.0) (March 3, 2020)
 ------------------------------------------------------------------------------------
@@ -26,6 +33,7 @@ Changelog
 
 -   Fixed the QCS access request link in the README (@amyfbrown, gh-1171).
 -   Fix the SDK download link and instructions in the docs (@amyfbrown, gh-1173).
+-   Fix broken link to example now in forest-tutorials (@jlapeyre, gh-1181).
 -   Removed HALT from valid Protoquil / supported Quil. (@kilimanjaro, gh-1176).
 -   Fix error in comment in Noise and Quantum Computation page (@jlapeyre gh-1180)
 

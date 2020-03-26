@@ -198,6 +198,9 @@ def test_device_stuff():
     assert isa.edges[0].targets == (0, 4)
 
 
+# We sometimes narrowly miss the np.mean(parity) < 0.15 assertion, below. Alternatively, that upper
+# bound could be relaxed.
+@pytest.mark.flaky(reruns=1)
 def test_run(forest):
     device = NxDevice(nx.complete_graph(3))
     qc = QuantumComputer(
@@ -443,7 +446,9 @@ def test_qc_compile():
     qc.compiler = DummyCompiler()
     prog = Program()
     prog += H(0)
-    prog1 = qc.compile(prog)
+    exe = qc.compile(prog)
+    prog1 = Program(exe.program)
+    assert isinstance(exe, PyQuilExecutableResponse)
     assert prog1 == prog
 
 

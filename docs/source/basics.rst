@@ -397,6 +397,15 @@ control qubit ``0`` and target qubit ``1``
 
    prog = Program(X(1).controlled(0))
 
+To produce the doubly-controlled NOT gate (``CCNOT``) with
+control qubits ``0`` and ``1`` and target qubit ``2`` you can stack
+the ``controlled`` modifier, or simply pass a list of control qubits
+
+.. code:: python
+
+   prog = Program(X(2).controlled(0).controlled(1))
+   prog = Program(X(2).controlled([0, 1]))
+
 You can achieve the oft-used `control-off` gate (flip the target qubit
 ``1`` if the control qubit ``0`` is zero) with
 

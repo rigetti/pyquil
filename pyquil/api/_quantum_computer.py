@@ -207,10 +207,23 @@ class QuantumComputer:
         executable = self.qam._executable
         # if this experiment was the last experiment run on this QuantumComputer,
         # then use the executable that is already loaded into the object
-        if self.qam._experiment != experiment:
+        if executable is None or self.qam._experiment != experiment:
             experiment_program = experiment.generate_experiment_program()
             executable = self.compile(experiment_program)
             self.qam._experiment = experiment
+        elif (
+            isinstance(self.qam, QVM)
+            and isinstance(executable, Program)
+            and self.qam.requires_executable
+        ):
+            # HACK HACK HACK. If QVM.requires_executable is true, then QVM.load will raise an
+            # exception if the executable is not a PyQuilExecutableResponse. However, if it *is* a
+            # PyQuilExecutableResponse, QVM.load will unpack the underlying Program object and pass
+            # that along to QAM.load, which saves it in self._executable. Since we reuse the saved
+            # executable here as long as the experiment hasn't changed, we need to re-compile it
+            # into a PyQuilExecutableResponse, otherwise the call to self.run below will fail when
+            # it attempts to load this non-binary executable.
+            executable = self.compiler.native_quil_to_executable(executable)
 
         if memory_map is None:
             memory_map = {}
