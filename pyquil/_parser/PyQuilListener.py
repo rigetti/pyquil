@@ -34,7 +34,6 @@ from pyquil.quilatom import (
     Waveform,
     Frame,
     FormalArgument,
-    AffineKernelFamily,
     quil_cos,
     quil_cis,
     quil_exp,
@@ -723,44 +722,6 @@ def _expression(expression):
     raise RuntimeError("Unexpected expression type:" + expression.getText())
 
 
-def _affineKernelFamily(ctx):
-    def expression():
-        return _expression(ctx.expression()) # ...
-    def kernel():
-        return _affineKernelFamily(ctx.affineKernelExp())
-    def waveform():
-        return _waveform(ctx.waveform())
-
-    if isinstance(ctx, QuilParser.ParenthesisKernelExpContext):
-        return kernel()
-    elif isinstance(ctx, QuilParser.SignedKernelExpContext):
-        if ctx.sign().PLUS():
-            return kernel()
-        else:
-            return -kernel()
-    elif isinstance(ctx, QuilParser.LeftMulKernelExpContext):
-        return expression() * kernel()
-    elif isinstance(ctx, QuilParser.RightMulDivKernelExpContext):
-        if expression.TIMES():
-            return  kernel() * expression()
-        elif expression.DIVIDE():
-            return kernel() / expression()
-    elif isinstance(ctx, QuilParser.LeftAddSubKernelExpContext):
-        if ctx.PLUS():
-            return expression() + kernel()
-        elif ctx.MINUS():
-            return expression() - kernel()
-    elif isinstance(ctx, QuilParser.RightAddSubKernelExpContext):
-        if ctx.PLUS():
-            return kernel() + expression()
-        elif ctx.MINUS():
-            return kernel() - expression()
-    elif isinstance(ctx, QuilParser.WaveformKernelExpContext):
-        return AffineKernelFamily([waveform()], np.array([[1.0]]), np.array([0.0]))
-
-
-
-
 def _named_parameters(params):
     ret = dict()
     for param in params:
@@ -840,9 +801,6 @@ def _sign(real):
 def _waveform(ctx: QuilParser.WaveformContext) -> Waveform:
     # type: (QuilParser.WaveformContext) -> Waveform
     name = _waveform_name(ctx.waveformName())
-    if '-' in name:
-        raise RuntimeError(f"Waveform names may not contain hyphens: {name}. "
-                           "If expressing subtraction in an affine kernel, please use spaces or parentheses to resolve this ambiguity.")
     param_dict = _named_parameters(ctx.namedParam())
     return Waveform(name, param_dict)
 
