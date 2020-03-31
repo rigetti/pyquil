@@ -1347,7 +1347,6 @@ class DefWaveform(AbstractInstruction):
         self,
         name: str,
         parameters: List[Parameter],
-        sample_rate: float,
         entries: List[Union[Complex, Expression]],
     ):
         self.name = name
@@ -1356,7 +1355,6 @@ class DefWaveform(AbstractInstruction):
         for e in entries:
             if not isinstance(e, (Complex, Expression)):
                 raise TypeError(f"Unsupported waveform entry {e}")
-        self.sample_rate = sample_rate
 
     def out(self) -> str:
         ret = f"DEFWAVEFORM {self.name}"
@@ -1367,7 +1365,7 @@ class DefWaveform(AbstractInstruction):
             for param in params:
                 ret += f", {param}"
             ret += ")"
-        ret += f" {self.sample_rate} :\n    "
+        ret += f":\n    "
 
         ret += ", ".join(map(_complex_str, self.entries))
         return ret
