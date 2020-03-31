@@ -533,9 +533,8 @@ class PyQuilListener(QuilListener):
     def exitDefWaveform(self, ctx: QuilParser.DefWaveformContext):
         name = _waveform_name(ctx.waveformName())
         parameters = [param.getText() for param in ctx.param()]
-        sample_rate = float(ctx.realN().getText())
         entries = sum(_matrix(ctx.matrix()), [])
-        self.result.append(DefWaveform(name, parameters, sample_rate, entries))
+        self.result.append(DefWaveform(name, parameters, entries))
 
     def exitPulse(self, ctx: QuilParser.PulseContext):
         frame = _frame(ctx.frame())
