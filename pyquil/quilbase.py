@@ -48,7 +48,6 @@ from pyquil.quilatom import (
     ParameterDesignator,
     Frame,
     Waveform,
-    AffineKernelFamily,
     Qubit,
     QubitDesignator,
     QubitPlaceholder,
@@ -1252,7 +1251,7 @@ class Capture(AbstractInstruction):
     def __init__(
         self,
         frame: Frame,
-        kernel: AffineKernelFamily,
+        kernel: Waveform,
         memory_region: MemoryReference,
         nonblocking: bool = False,
     ):
