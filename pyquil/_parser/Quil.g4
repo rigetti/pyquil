@@ -171,7 +171,7 @@ defFrame            : DEFFRAME frame ( COLON frameSpec+ )? ;
 frameSpec           : NEWLINE TAB frameAttr COLON ( expression | STRING ) ;
 frameAttr           : SAMPLERATE | INITIALFREQUENCY | DIRECTION | HARDWAREOBJECT ;
 
-defWaveform         : DEFWAVEFORM waveformName ( LPAREN param (COMMA param)* RPAREN )? realN COLON NEWLINE matrix ;
+defWaveform         : DEFWAVEFORM waveformName ( LPAREN param (COMMA param)* RPAREN )? COLON NEWLINE matrix ;
 defCalibration      : DEFCAL name (LPAREN param ( COMMA param )* RPAREN)? formalQubit+ COLON ( NEWLINE TAB instr )* ;
 defMeasCalibration  : DEFCAL MEASURE formalQubit ( name )? COLON ( NEWLINE TAB instr )* ;
 
