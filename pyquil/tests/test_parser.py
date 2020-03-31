@@ -52,7 +52,6 @@ from pyquil.quilatom import (
     MemoryReference,
     Frame,
     Waveform,
-    AffineKernelFamily,
     Mul,
     Div,
     FormalArgument,
@@ -486,83 +485,6 @@ def test_parsing_capture():
     )
 
 
-def test_parsing_capture_affine_kernel_parametric():
-    wf = Waveform("flat", {"duration": 1.0, "iq": 1.0})
-    kernel = AffineKernelFamily([wf], np.array([[2.0]]), np.array([-5.0]))
-    expected = [
-        Declare("iq", "REAL", 2),
-        Capture(Frame([Qubit(0)], "ro_rx"), kernel, MemoryReference("iq"))
-    ]
-    parse_equals(
-        "DECLARE iq REAL[2]\n"
-        'CAPTURE 0 "ro_rx" 2*flat(duration: 1.0, iq: 1.0)-5 iq',
-        *expected
-    )
-
-    parse_equals(
-        "DECLARE iq REAL[2]\n"
-        'CAPTURE 0 "ro_rx" (2*flat(duration: 1.0, iq: 1.0))-5 iq',
-        *expected
-    )
-    parse_equals(
-        "DECLARE iq REAL[2]\n"
-        'CAPTURE 0 "ro_rx" 2*(flat(duration: 1.0, iq: 1.0)-2.5) iq',
-        *expected
-    )
-    parse_equals(
-        "DECLARE iq REAL[2]\n"
-        'CAPTURE 0 "ro_rx" (2*flat(duration: 1.0, iq: 1.0)-5) iq',
-        *expected
-    )
-
-
-def test_parsing_capture_affine_kernel_funky_name():
-    wf = Waveform("q0_ro_rx/filter", [])
-    kernel = AffineKernelFamily([wf], np.array([[2.0]]), np.array([-5.0]))
-    expected = [
-        Declare("iq", "REAL", 2),
-        Capture(Frame([Qubit(0)], "ro_rx"), kernel, MemoryReference("iq"))
-    ]
-    parse_equals(
-        "DECLARE iq REAL[2]\n"
-        'CAPTURE 0 "ro_rx" 2*q0_ro_rx/filter - 5 iq',
-        *expected
-    )
-
-    parse_equals(
-        "DECLARE iq REAL[2]\n"
-        'CAPTURE 0 "ro_rx" (2*q0_ro_rx/filter)-5 iq',
-        *expected
-    )
-    parse_equals(
-        "DECLARE iq REAL[2]\n"
-        'CAPTURE 0 "ro_rx" 2*(q0_ro_rx/filter - 2.5) iq',
-        *expected
-    )
-    parse_equals(
-        "DECLARE iq REAL[2]\n"
-        'CAPTURE 0 "ro_rx" (2*q0_ro_rx/filter - 5) iq',
-        *expected
-    )
-    with pytest.raises(RuntimeError):
-        parse('CAPTURE 0 "ro_rx" q0_ro_rx/filter-5 iq')
-
-
-def test_parsing_capture_filter():
-    wf = Waveform('q0_ro_rx/filter', {})
-    kernel = AffineKernelFamily([wf], np.array([[1.0]]), np.array([-0.0007475490783600097]))
-    expected = [
-        Declare("iq", "REAL", 2),
-        Capture(Frame([Qubit(0)], "ro_rx"), kernel, MemoryReference("iq"), nonblocking=True)
-    ]
-    parse_equals(
-        "DECLARE iq REAL[2]\n"
-        'NONBLOCKING CAPTURE 0 "ro_rx" q0_ro_rx/filter - 0.0007475490783600097 iq[0]',
-        *expected
-    )
-
-
-
 def test_parsing_raw_capture():
     parse_equals(
         "DECLARE iqs REAL[200000]\n" 'RAW-CAPTURE 0 "ro_rx" 0.001 iqs',
@@ -626,21 +548,21 @@ def test_parsing_fence():
 
 def test_parsing_defwaveform():
     parse_equals(
-        "DEFWAVEFORM foo 1.0:\n" "    1.0, 1.0, 1.0\n", DefWaveform("foo", [], 1.0, [1.0, 1.0, 1.0])
+        "DEFWAVEFORM foo:\n" "    1.0, 1.0, 1.0\n", DefWaveform("foo", [], [1.0, 1.0, 1.0])
     )
     parse_equals(
-        "DEFWAVEFORM foo 1.0:\n" "    1.0+2.0*i, 1.0-2.0*i, 3.0\n",
-        DefWaveform("foo", [], 1.0, [1 + 2j, 1 - 2j, 3 + 0j]),
+        "DEFWAVEFORM foo:\n" "    1.0+2.0*i, 1.0-2.0*i, 3.0\n",
+        DefWaveform("foo", [], [1 + 2j, 1 - 2j, 3 + 0j]),
     )
     parse_equals(
-        "DEFWAVEFORM foo(%theta) 1.0:\n" "    1.0+2.0*i, 1.0-2.0*i, 3.0*%theta\n",
+        "DEFWAVEFORM foo(%theta):\n" "    1.0+2.0*i, 1.0-2.0*i, 3.0*%theta\n",
         DefWaveform(
-            "foo", [Parameter("theta")], 1.0, [1 + 2j, 1 - 2j, Mul(3.0, Parameter("theta"))]
+            "foo", [Parameter("theta")], [1 + 2j, 1 - 2j, Mul(3.0, Parameter("theta"))]
         ),
     )
     parse_equals(
-        "DEFWAVEFORM q0_ro_rx/filter 1.0:\n    1.0, 1.0, 1.0",
-        DefWaveform("q0_ro_rx/filter", [], 1.0, [1.0, 1.0, 1.0])
+        "DEFWAVEFORM q0_ro_rx/filter:\n    1.0, 1.0, 1.0",
+        DefWaveform("q0_ro_rx/filter", [], [1.0, 1.0, 1.0])
     )
 
 
