@@ -2,7 +2,6 @@ PyQuil: Quantum programming in Python
 =====================================
 
 [![binder](https://mybinder.org/badge_logo.svg)][binder]
-[![gitlab][gitlab-badge]][gitlab-repo]
 [![docs][docs-badge]][docs-repo]
 [![coverage][coverage-badge]][coverage-repo]
 [![docker][docker-badge]][docker-repo]
@@ -180,8 +179,6 @@ PyQuil is licensed under the
 [docs-badge]: https://readthedocs.org/projects/pyquil/badge/?version=latest
 [docs-repo]: http://pyquil.readthedocs.io/en/latest/?badge=latest
 [forest-tutorials]: https://github.com/rigetti/forest-tutorials
-[gitlab-badge]: https://img.shields.io/gitlab/pipeline/rigetti/pyquil
-[gitlab-repo]: https://gitlab.com/rigetti/forest/pyquil
 [jupyter]: https://jupyter.org/
 [mybinder]: https://mybinder.org
 [pepy-badge]: https://pepy.tech/badge/pyquil
