@@ -16,6 +16,12 @@
 """
 Contains the core pyQuil objects that correspond to Quil instructions.
 """
+import sys
+if sys.version_info < (3, 7):
+    from pyquil.external.dataclasses import dataclass
+else:
+    from dataclasses import dataclass
+
 import collections
 import numpy as np
 from numbers import Complex

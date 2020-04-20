@@ -16,6 +16,7 @@
 
 import operator
 from numbers import Number
+from inspect import signature
 from typing import Any, List, Iterator, Callable, Union
 
 import numpy as np
@@ -31,6 +32,7 @@ from pyquil.quilatom import (
     Addr,
     MemoryReference,
     Parameter,
+    WaveformReference,
     Waveform,
     Frame,
     FormalArgument,
@@ -39,6 +41,10 @@ from pyquil.quilatom import (
     quil_exp,
     quil_sin,
     quil_sqrt,
+)
+from pyquil.quiltwaveforms import (
+    WAVEFORM_CLASSES,
+    _from_dict,
 )
 from pyquil.quilbase import (
     Gate,
@@ -531,6 +537,8 @@ class PyQuilListener(QuilListener):
 
     def exitDefWaveform(self, ctx: QuilParser.DefWaveformContext):
         name = _waveform_name(ctx.waveformName())
+        if name in WAVEFORM_CLASSES:
+            raise ValueError(f"Attempted to redefine built-in template waveform {name}.")
         parameters = [param.getText() for param in ctx.param()]
         entries = sum(_matrix(ctx.matrix()), [])
         self.result.append(DefWaveform(name, parameters, entries))
@@ -802,7 +810,10 @@ def _waveform(ctx: QuilParser.WaveformContext) -> Waveform:
     # type: (QuilParser.WaveformContext) -> Waveform
     name = _waveform_name(ctx.waveformName())
     param_dict = _named_parameters(ctx.namedParam())
-    return Waveform(name, param_dict)
+    if param_dict:
+        return _from_dict(name, param_dict)
+    else:
+        return WaveformReference(name)
 
 
 def _waveform_name(ctx: QuilParser.WaveformNameContext) -> str:

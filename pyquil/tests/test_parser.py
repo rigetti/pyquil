@@ -51,7 +51,8 @@ from pyquil.parser import parse
 from pyquil.quilatom import (
     MemoryReference,
     Frame,
-    Waveform,
+    TemplateWaveform,
+    WaveformReference,
     Mul,
     Div,
     FormalArgument,
@@ -91,6 +92,7 @@ from pyquil.quilbase import (
     DefFrame,
     DefWaveform,
 )
+from pyquil.quiltwaveforms import FlatWaveform, GaussianWaveform, DragGaussianWaveform, ErfSquareWaveform
 from pyquil.tests.utils import parse_equals
 
 
@@ -459,8 +461,40 @@ def test_messy_modifiers():
     parse_equals(s, RX(0.1, 3).forked(2, [0.2]).controlled(1).dagger().forked(0, [0.3, 0.4]))
 
 
+def test_parse_template_waveforms():
+    def wf_agrees(wf_str: str, wf: TemplateWaveform):
+        frame = Frame([Qubit(0)], "rf")
+        pulse_str = 'PULSE 0 "rf" ' + wf_str
+        parse_equals(pulse_str, Pulse(frame, wf))
+
+    wf_agrees("flat(duration: 1.0, iq: 2.0)",
+              FlatWaveform(duration=1.0, iq=2.0))
+    wf_agrees("flat(duration: 1.0, iq: 2)",
+              FlatWaveform(duration=1.0, iq=2.0))
+    wf_agrees("flat(iq: 2.0, duration: 1.0)",
+              FlatWaveform(duration=1.0, iq=2.0))
+    wf_agrees("flat(duration: 1.0, iq: 1 + 2.0*i)",
+              FlatWaveform(duration=1.0, iq=1.0+2.0j))
+    wf_agrees("flat(duration: 1.0, iq: 1.0, detuning: 1e-5)",
+              FlatWaveform(duration=1.0, iq=1.0, detuning=1e-5))
+    wf_agrees("flat(duration: 1.0, iq: 1.0, scale: 0.5)",
+              FlatWaveform(duration=1.0, iq=1.0, scale=0.5))
+    wf_agrees("gaussian(fwhm: 2.0, t0: 1.0, duration: 3.0)",
+              GaussianWaveform(duration=3.0, fwhm=2.0, t0=1.0))
+    wf_agrees("drag_gaussian(fwhm: 2.0, t0: 1.0, anh: 5.0, alpha: 3.0, duration: 5.0)",
+              DragGaussianWaveform(duration=5.0, fwhm=2.0, t0=1.0, anh=5.0, alpha=3.0))
+    wf_agrees("erf_square(risetime: 0.5, pad_left: 1.0, pad_right: 0.0, duration: 3.0)",
+              ErfSquareWaveform(duration=3.0, risetime=0.5, pad_left=1.0, pad_right=0.0))
+
+
+def test_parse_template_waveform_strict_values():
+    prog = """DECLARE foo REAL[2]
+PULSE 0 "rf" flat(duration: 1.0, iq: foo)"""
+    with pytest.raises(ValueError):
+        parse(prog)
+
 def test_parse_pulse():
-    wf = Waveform("flat", {"duration": 1.0, "iq": 1.0})
+    wf = FlatWaveform(duration=1.0, iq=1.0)
     parse_equals('PULSE 0 "rf" flat(duration: 1.0, iq: 1.0)', Pulse(Frame([Qubit(0)], "rf"), wf))
     parse_equals(
         'PULSE 0 1 "ff" flat(duration: 1.0, iq: 1.0)', Pulse(Frame([Qubit(0), Qubit(1)], "ff"), wf)
@@ -472,7 +506,7 @@ def test_parse_pulse():
 
 
 def test_parsing_capture():
-    wf = Waveform("flat", {"duration": 1.0, "iq": 1.0})
+    wf = FlatWaveform(duration=1.0, iq=1.0)
     parse_equals(
         "DECLARE iq REAL[2]\n" 'CAPTURE 0 "ro_rx" flat(duration: 1.0, iq: 1.0) iq',
         Declare("iq", "REAL", 2),
@@ -605,7 +639,7 @@ def test_parsing_defcal():
 
 def test_parsing_defcal_measure():
     parse_equals("DEFCAL MEASURE 0:\n" "    NOP\n", DefMeasureCalibration(Qubit(0), None, [NOP]))
-    wf = Waveform("flat", {"duration": 1.0, "iq": 1.0 + 0.0j})
+    wf = FlatWaveform(duration=1.0, iq=1.0)
     # TODO: note that in a calibration body, reference to the formal argument addr parses
     #       as a memoryreference.
     parse_equals(
