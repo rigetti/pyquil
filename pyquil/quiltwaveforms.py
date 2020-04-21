@@ -13,8 +13,14 @@ from typing import List, Optional
 
 from pyquil.quilatom import TemplateWaveform, _complex_str, Expression, substitute
 
+# NOTE: With dataclasses, one cannot comfortably rely on both default arguments
+# and inheritence. We explicitly manage these fields here.
+OPTIONAL_FIELDS = ['detuning', 'scale', 'phase']
 
-def _optional_fields(wf: TemplateWaveform) -> List[str]:
+def _extract_optional_fields(kwargs):
+    return {field: kwargs.get(field, None) for field in OPTIONAL_FIELDS}
+
+def _optional_field_strs(wf: TemplateWaveform) -> List[str]:
     result = []
     if getattr(wf, 'detuning', None) is not None:
         result.append(f"detuning: {wf.detuning}")
@@ -23,19 +29,6 @@ def _optional_fields(wf: TemplateWaveform) -> List[str]:
     if getattr(wf, 'phase', None) is not None:
         result.append(f"phase: {wf.phase}")
     return result
-
-def _update_envelope(wf: TemplateWaveform, iqs: np.ndarray, rate: float) -> np.ndarray:
-    scale = getattr(wf, 'scale', 1.0)
-    phase = getattr(wf, 'phase', 0.0)
-    detuning = getattr(wf, 'detuning', 0.0)
-
-    iqs *= (
-        scale
-        * np.exp(1j * 2 * np.pi * phase)
-        * np.exp(1j * 2 * np.pi * detuning * np.arange(len(iqs))) / rate
-    )
-
-    return iqs
 
 
 @dataclass
@@ -47,21 +40,17 @@ class FlatWaveform(TemplateWaveform):
     iq: Complex
     """ A raw IQ value. """
 
-    scale: Optional[float] = None
-    """ An optional global scaling factor. """
-
-    phase: Optional[float] = None
-    """ An optional phase shift factor. """
-
-    detuning: Optional[float] = None
-    """ An optional frequency detuning factor. """
+    def __init__(self, **kwargs):
+        super().__init__(duration=kwargs['duration'],
+                         **_extract_optional_fields(kwargs))
+        self.iq = kwargs['iq']
 
     def out(self) -> str:
         output = "flat("
         output += ", ".join(
             [f'duration: {self.duration}',
              f'iq: {_complex_str(self.iq)}'] +
-            _optional_fields(self)
+            _optional_field_strs(self)
         )
         output += ")"
         return output
@@ -71,7 +60,7 @@ class FlatWaveform(TemplateWaveform):
 
     def samples(self, rate: float) -> np.ndarray:
         iqs = np.full(self.num_samples(rate), self.iq, dtype=np.complex128)
-        return _update_envelope(self, iqs, rate)
+        return self._update_envelope(iqs, rate)
 
 
 @dataclass
@@ -84,14 +73,11 @@ class GaussianWaveform(TemplateWaveform):
     t0: float
     """ The center time coordinate of the Gaussian (seconds). """
 
-    scale: Optional[float] = None
-    """ An optional global scaling factor. """
-
-    phase: Optional[float] = None
-    """ An optional phase shift factor. """
-
-    detuning: Optional[float] = None
-    """ An optional frequency detuning factor. """
+    def __init__(self, **kwargs):
+        super().__init__(duration=kwargs['duration'],
+                         **_extract_optional_fields(kwargs))
+        self.fwhm = kwargs['fwhm']
+        self.t0 = kwargs['t0']
 
     def out(self) -> str:
         output = "gaussian("
@@ -99,7 +85,7 @@ class GaussianWaveform(TemplateWaveform):
             [f'duration: {self.duration}',
              f'fwhm: {self.fwhm}',
              f't0: {self.t0}'] +
-            _optional_fields(self)
+            _optional_field_strs(self)
         )
         output += ")"
         return output
@@ -111,7 +97,7 @@ class GaussianWaveform(TemplateWaveform):
         ts = np.arange(self.num_samples(rate), dtype=np.complex128) / rate
         sigma = 0.5 * self.fwhm / np.sqrt(2.0 * np.log(2.0))
         iqs = np.exp(-0.5*(ts-self.t0) ** 2 / sigma ** 2)
-        return _update_envelope(self, iqs, rate)
+        return self._update_envelope(iqs, rate)
 
 @dataclass
 class DragGaussianWaveform(TemplateWaveform):
@@ -129,14 +115,13 @@ class DragGaussianWaveform(TemplateWaveform):
     alpha: float
     """ Dimensionles DRAG parameter. """
 
-    scale: Optional[float] = None
-    """ An optional global scaling factor. """
-
-    phase: Optional[float] = None
-    """ An optional phase shift factor. """
-
-    detuning: Optional[float] = None
-    """ An optional frequency detuning factor. """
+    def __init__(self, **kwargs):
+        super().__init__(duration=kwargs['duration'],
+                         **_extract_optional_fields(kwargs))
+        self.fwhm = kwargs['fwhm']
+        self.t0 = kwargs['t0']
+        self.anh = kwargs['anh']
+        self.alpha = kwargs['alpha']
 
     def out(self) -> str:
         output = "drag_gaussian("
@@ -146,7 +131,7 @@ class DragGaussianWaveform(TemplateWaveform):
              f't0: {self.t0}',
              f'anh: {self.anh}',
              f'alpha: {self.alpha}'] +
-            _optional_fields(self)
+            _optional_field_strs(self)
         )
         output += ")"
         return output
@@ -160,7 +145,7 @@ class DragGaussianWaveform(TemplateWaveform):
         env = np.exp(-0.5 * (ts - t0) ** 2 / sigma ** 2)
         env_der = (alpha * (1.0 / (2 * np.pi * anh * sigma ** 2))) * (ts - t0) * env
         iqs = env + 1.0j * env_der
-        return _update_envelope(self, iqs, rate)
+        return self._update_envelope(iqs, rate)
 
 
 @dataclass
@@ -174,14 +159,12 @@ class ErfSquareWaveform(TemplateWaveform):
     pad_right: float
     """ Amount of zero-padding to add to the right of the pulse (secodns). """
 
-    scale: Optional[float] = None
-    """ An optional global scaling factor. """
-
-    phase: Optional[float] = None
-    """ An optional phase shift factor. """
-
-    detuning: Optional[float] = None
-    """ An optional frequency detuning factor. """
+    def __init__(self, **kwargs):
+        super().__init__(duration=kwargs['duration'],
+                         **_extract_optional_fields(kwargs))
+        self.risetime = kwargs['risetime']
+        self.pad_left = kwargs['pad_left']
+        self.pad_right = kwargs['pad_right']
 
     def out(self) -> str:
         output = "erf_square("
@@ -189,7 +172,7 @@ class ErfSquareWaveform(TemplateWaveform):
             [f'risetime: {self.risetime}',
              f'pad_left: {self.pad_left}',
              f'pad_right: {self.pad_right}'] +
-            _optional_fields(self)
+            _optional_field_strs(self)
         )
         output += ")"
         return output
@@ -207,8 +190,12 @@ class ErfSquareWaveform(TemplateWaveform):
         zeros_left = np.zeros(np.ceil(self.pad_left * rate), dtype=np.complex128)
         zeros_right = np.zeros(np.ceil(self.pad_left * rate), dtype=np.complex128)
         iqs = np.concatenate((zeros_left, vals, zeros_right))
-        return _update_envelope(self, iqs, rate)
+        return self._update_envelope(iqs, rate)
 
+
+@dataclass
+class BoxcarAverageKernel(TemplateWaveform):
+    pass
 
 WAVEFORM_CLASSES = {
     'flat': FlatWaveform,
@@ -228,10 +215,10 @@ def _from_dict(name: str, params: dict) -> TemplateWaveform:
     if name not in WAVEFORM_CLASSES:
         raise ValueError(f"Unknown template waveform {name}.")
     cls = WAVEFORM_CLASSES[name]
-    sig = signature(cls.__init__)
+    fields = cls.__dataclass_fields__
 
     for param, value in params.items():
-        if param not in sig.parameters or param == 'self':
+        if param not in fields:
             raise ValueError(f"Unexpected parameter '{param}' in {name}.")
 
         if isinstance(value, Expression):
@@ -245,11 +232,10 @@ def _from_dict(name: str, params: dict) -> TemplateWaveform:
             pass
         else:
             raise ValueError(f"Unable to resolve parameter '{param}' in template {name} to a constant value.")
-    for param, properties in sig.parameters.items():
-        if param == 'self':
-            continue
-        if param not in params and properties.default == properties.empty:
-            raise ValueError(f"Expected parameter '{param}' in {name}.")
+
+    for field in fields:
+        if field not in params and field not in OPTIONAL_FIELDS:
+            raise ValueError(f"Missing parameter '{field}' in {name}.")
 
 
     return cls(**params)
