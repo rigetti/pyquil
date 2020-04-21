@@ -154,15 +154,15 @@ following BibTeX snippet:
     title = {A quantum-classical cloud platform optimized for variational hybrid algorithms},
     author = {Peter J Karalekas and Nikolas A Tezak and Eric C Peterson
               and Colm A Ryan and Marcus P da Silva and Robert S Smith},
-    url = {https://doi.org/10.1088%2F2058-9565%2Fab7559},
-    doi = {10.1088/2058-9565/ab7559},
     year = 2020,
     month = {apr},
     publisher = {{IOP} Publishing},
     journal = {Quantum Science and Technology},
     volume = {5},
     number = {2},
-    pages = {024003}
+    pages = {024003},
+    doi = {10.1088/2058-9565/ab7559},
+    url = {https://doi.org/10.1088%2F2058-9565%2Fab7559},
 }
 ```
 
