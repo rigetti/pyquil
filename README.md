@@ -150,16 +150,25 @@ the Quantum Cloud Services (QCS) platform, please reference the [QCS paper][qcs-
 following BibTeX snippet:
 
 ```bibtex
-@misc{karalekas2020quantumclassical,
-    title={A quantum-classical cloud platform optimized for variational hybrid algorithms},
-    author={Peter J. Karalekas and Nikolas A. Tezak and Eric C. Peterson
-            and Colm A. Ryan and Marcus P. da Silva and Robert S. Smith},
-    year={2020},
-    eprint={2001.04449},
-    archivePrefix={arXiv},
-    primaryClass={quant-ph}
+@article{Karalekas_2020,
+    title = {A quantum-classical cloud platform optimized for variational hybrid algorithms},
+    author = {Peter J Karalekas and Nikolas A Tezak and Eric C Peterson
+              and Colm A Ryan and Marcus P da Silva and Robert S Smith},
+    url = {https://doi.org/10.1088%2F2058-9565%2Fab7559},
+    doi = {10.1088/2058-9565/ab7559},
+    year = 2020,
+    month = {apr},
+    publisher = {{IOP} Publishing},
+    journal = {Quantum Science and Technology},
+    volume = {5},
+    number = {2},
+    pages = {024003}
 }
 ```
+
+The preprint of the QCS paper is available on [arXiv][qcs-arxiv], and the supplementary
+interactive notebooks and datasets for the paper can be found in the [rigetti/qcs-paper][qcs-repo]
+repository.
 
 License
 -------
@@ -187,10 +196,12 @@ PyQuil is licensed under the
 [pypi-repo]: https://pypi.org/project/pyquil/
 [qcs-request-access]: https://qcs.rigetti.com/request-access
 [slack-badge]: https://img.shields.io/badge/slack-rigetti--forest-812f82.svg?
-[zenodo-badge]: https://zenodo.org/badge/DOI/10.5281/zenodo.3604432.svg
-[zenodo-doi]: https://doi.org/10.5281/zenodo.3604432
+[zenodo-badge]: https://zenodo.org/badge/DOI/10.5281/zenodo.3553165.svg
+[zenodo-doi]: https://doi.org/10.5281/zenodo.3553165
 
-[qcs-paper]: https://arxiv.org/abs/2001.04449
+[qcs-arxiv]: https://arxiv.org/abs/2001.04449
+[qcs-paper]: https://dx.doi.org/10.1088/2058-9565/ab7559
+[qcs-repo]: https://github.com/rigetti/qcs-paper
 [quil-paper]: https://arxiv.org/abs/1608.03355
 
 [bug]: https://github.com/rigetti/pyquil/issues/new?assignees=&labels=bug+%3Abug%3A&template=BUG_REPORT.md&title=
