@@ -495,18 +495,25 @@ class PyQuilListener(QuilListener):
         )
 
     def exitDefFrame(self, ctx: QuilParser.DefFrameContext):
-        def _value(item):
-            attr = item.frameAttr().getText()
-            if  attr == "DIRECTION":
-                return _str_contents(item.STRING().getText())
-            elif attr == "HARDWARE-OBJECT":
-                return _str_contents(item.STRING().getText())
-            else:
-                return _expression(item.expression())
-
+        options = {}
         frame = _frame(ctx.frame())
-        options = {item.frameAttr().getText(): _value(item) for item in ctx.frameSpec()}
-        self.result.append(DefFrame(frame, options))
+        def _add_option(item):
+            attr = item.frameAttr().getText()
+            if attr == "DIRECTION":
+                options['direction'] = _str_contents(item.STRING().getText())
+            elif attr == "HARDWARE-OBJECT":
+                options['hardware_object'] = _str_contents(item.STRING().getText())
+            elif attr == "INITIAL-FREQUENCY":
+                options['initial_frequency'] = _expression(item.expression())
+            elif attr == "SAMPLE-RATE":
+                options['sample_rate'] = _expression(item.expression())
+            else:
+                raise ValueError(f"Unexpected attribute {attr} in definition of frame {frame}")
+
+        for item in ctx.frameSpec():
+            _add_option(item)
+
+        self.result.append(DefFrame(frame, **options))
 
     def enterDefCalibration(self, ctx: QuilParser.DefCalibrationContext):
         self.previous_result = self.result

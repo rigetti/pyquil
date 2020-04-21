@@ -1419,18 +1419,34 @@ class DefMeasureCalibration(AbstractInstruction):
         return ret
 
 
+@dataclass
 class DefFrame(AbstractInstruction):
-    def __init__(self, frame: Frame, options: Optional[Mapping[str, Any]] = None):
-        if options is None:
-            options = {}
-        self.frame = frame
-        self.options = options
+    frame: Frame
+    """ The frame being defined. """
+
+    direction: Optional[str] = None
+    """ The direction of the frame, i.e. 'tx' or 'rx'. """
+
+    initial_frequency: Optional[float] = None
+    """ The initial frequency of the frame. """
+
+    hardware_object: Optional[str] = None
+    """ The name of the hardware object associated to the frame. """
+
+    sample_rate: Optional[float] = None
+    """ The sample rate of the frame [Hz]. """
 
     def out(self) -> str:
         r = f"DEFFRAME {self.frame.out()}"
-        if len(self.options) > 0:
+        options = [
+            (self.direction, 'DIRECTION'),
+            (self.initial_frequency, 'INITIAL-FREQUENCY'),
+            (self.hardware_object, 'HARDWARE-OBJECT'),
+            (self.sample_rate, 'SAMPLE-RATE')
+        ]
+        if any(value for (value, name) in options):
             r += ":"
-            for name, value in self.options.items():
+            for value, name in options:
                 if isinstance(value, str):
                     value = f'"{value}"'
                 r += f"\n    {name}: {value}"

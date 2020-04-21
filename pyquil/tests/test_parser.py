@@ -605,19 +605,16 @@ def test_parsing_defframe():
     parse_equals('DEFFRAME 1 0 "ff"', DefFrame(Frame([Qubit(1), Qubit(0)], "ff")))
     parse_equals(
         'DEFFRAME 0 "rf":\n' "    SAMPLE-RATE: 2.0\n",
-        DefFrame(Frame([Qubit(0)], "rf"), options={"SAMPLE-RATE": 2.0}),
+        DefFrame(Frame([Qubit(0)], "rf"), sample_rate=2.0),
     )
     parse_equals(
         'DEFFRAME 0 "rf":\n'
         "    SAMPLE-RATE: 2.0\n"
         "    INITIAL-FREQUENCY: 10\n",  # TODO: should this parse as a float?
-        DefFrame(Frame([Qubit(0)], "rf"), options={"SAMPLE-RATE": 2.0, "INITIAL-FREQUENCY": 10}),
+        DefFrame(Frame([Qubit(0)], "rf"), sample_rate=2.0, initial_frequency=10),
     )
     with pytest.raises(RuntimeError):
-        parse_equals(
-            'DEFFRAME 0 "rf":\n' "    UNSUPPORTED: 2.0\n",
-            DefFrame(Frame([Qubit(0)], "rf"), options={"UNSUPPORTED": 2.0}),
-        )
+        parse('DEFFRAME 0 "rf":\n' "    UNSUPPORTED: 2.0\n")
 
 
 def test_parsing_defcal():
