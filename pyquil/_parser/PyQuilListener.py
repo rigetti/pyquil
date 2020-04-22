@@ -44,7 +44,7 @@ from pyquil.quilatom import (
 )
 from pyquil.quiltwaveforms import (
     WAVEFORM_CLASSES,
-    _from_dict,
+    _wf_from_dict,
 )
 from pyquil.quilbase import (
     Gate,
@@ -818,7 +818,7 @@ def _waveform(ctx: QuilParser.WaveformContext) -> Waveform:
     name = _waveform_name(ctx.waveformName())
     param_dict = _named_parameters(ctx.namedParam())
     if param_dict:
-        return _from_dict(name, param_dict)
+        return _wf_from_dict(name, param_dict)
     else:
         return WaveformReference(name)
 

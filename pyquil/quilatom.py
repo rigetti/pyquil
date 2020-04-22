@@ -790,16 +790,6 @@ class TemplateWaveform(QuilAtom):
     duration: float
     """ The duration [seconds] of the waveform. """
 
-    scale: Optional[float]
-    """ An optional global scaling factor. """
-
-    phase: Optional[float]
-    """ An optional phase shift factor. """
-
-    detuning: Optional[float]
-    """ An optional frequency detuning factor. """
-
-
     def num_samples(self, rate: float) -> int:
         """The number of samples in the reference implementation of the waveform.
 
@@ -831,9 +821,9 @@ class TemplateWaveform(QuilAtom):
         """Update a pulse envelope according to to the generic shape parameters ('scale',
 'phase', 'detuning')."""
 
-        scale = self.scale if self.scale else 1.0
-        phase = self.phase if self.phase else 0.0
-        detuning = self.detuning if self.detuning else 0.0
+        scale = getattr(self, 'scale', 1.0)
+        phase = getattr(self, 'phase', 0.0)
+        detuning = getattr(self, 'detuning', 0.0)
 
         iqs *= (
             scale

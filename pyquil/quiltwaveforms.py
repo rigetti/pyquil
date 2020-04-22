@@ -14,14 +14,10 @@ from typing import List, Optional
 
 from pyquil.quilatom import TemplateWaveform, _complex_str, Expression, substitute
 
-# NOTE: With dataclasses, one cannot comfortably rely on both default arguments
-# and inheritence. We explicitly manage these fields here.
-OPTIONAL_FIELDS = ['detuning', 'scale', 'phase']
-
-def _extract_optional_fields(kwargs):
-    return {field: kwargs.get(field, None) for field in OPTIONAL_FIELDS}
 
 def _optional_field_strs(wf: TemplateWaveform) -> List[str]:
+    """Utility to get the printed representations of optional template
+    parameters."""
     result = []
     if getattr(wf, 'detuning', None) is not None:
         result.append(f"detuning: {wf.detuning}")
@@ -41,10 +37,14 @@ class FlatWaveform(TemplateWaveform):
     iq: Complex
     """ A raw IQ value. """
 
-    def __init__(self, **kwargs):
-        super().__init__(duration=kwargs['duration'],
-                         **_extract_optional_fields(kwargs))
-        self.iq = kwargs['iq']
+    scale: Optional[float] = None
+    """ An optional global scaling factor. """
+
+    phase: Optional[float] = None
+    """ An optional phase shift factor. """
+
+    detuning: Optional[float] = None
+    """ An optional frequency detuning factor. """
 
     def out(self) -> str:
         output = "flat("
@@ -74,11 +74,14 @@ class GaussianWaveform(TemplateWaveform):
     t0: float
     """ The center time coordinate of the Gaussian (seconds). """
 
-    def __init__(self, **kwargs):
-        super().__init__(duration=kwargs['duration'],
-                         **_extract_optional_fields(kwargs))
-        self.fwhm = kwargs['fwhm']
-        self.t0 = kwargs['t0']
+    scale: Optional[float] = None
+    """ An optional global scaling factor. """
+
+    phase: Optional[float] = None
+    """ An optional phase shift factor. """
+
+    detuning: Optional[float] = None
+    """ An optional frequency detuning factor. """
 
     def out(self) -> str:
         output = "gaussian("
@@ -116,13 +119,14 @@ class DragGaussianWaveform(TemplateWaveform):
     alpha: float
     """ Dimensionles DRAG parameter. """
 
-    def __init__(self, **kwargs):
-        super().__init__(duration=kwargs['duration'],
-                         **_extract_optional_fields(kwargs))
-        self.fwhm = kwargs['fwhm']
-        self.t0 = kwargs['t0']
-        self.anh = kwargs['anh']
-        self.alpha = kwargs['alpha']
+    scale: Optional[float] = None
+    """ An optional global scaling factor. """
+
+    phase: Optional[float] = None
+    """ An optional phase shift factor. """
+
+    detuning: Optional[float] = None
+    """ An optional frequency detuning factor. """
 
     def out(self) -> str:
         output = "drag_gaussian("
@@ -160,12 +164,14 @@ class ErfSquareWaveform(TemplateWaveform):
     pad_right: float
     """ Amount of zero-padding to add to the right of the pulse (secodns). """
 
-    def __init__(self, **kwargs):
-        super().__init__(duration=kwargs['duration'],
-                         **_extract_optional_fields(kwargs))
-        self.risetime = kwargs['risetime']
-        self.pad_left = kwargs['pad_left']
-        self.pad_right = kwargs['pad_right']
+    scale: Optional[float] = None
+    """ An optional global scaling factor. """
+
+    phase: Optional[float] = None
+    """ An optional phase shift factor. """
+
+    detuning: Optional[float] = None
+    """ An optional frequency detuning factor. """
 
     def out(self) -> str:
         output = "erf_square("
@@ -197,6 +203,16 @@ class ErfSquareWaveform(TemplateWaveform):
 
 @dataclass
 class BoxcarAveragerKernel(TemplateWaveform):
+
+    scale: Optional[float] = None
+    """ An optional global scaling factor. """
+
+    phase: Optional[float] = None
+    """ An optional phase shift factor. """
+
+    detuning: Optional[float] = None
+    """ An optional frequency detuning factor. """
+
     def out(self) -> str:
         output = "boxcar_kernel("
         output += ", ".join(
@@ -222,7 +238,7 @@ WAVEFORM_CLASSES = {
 }
 
 
-def _from_dict(name: str, params: dict) -> TemplateWaveform:
+def _wf_from_dict(name: str, params: dict) -> TemplateWaveform:
     """Construct a TemplateWaveform from a name and a dictionary of properties.
     :param name: The Quilt name of the template.
     :param params: A mapping from parameter names to their corresponding values.
@@ -251,11 +267,8 @@ def _from_dict(name: str, params: dict) -> TemplateWaveform:
         else:
             raise ValueError(f"Unable to resolve parameter '{param}' in template {name} to a constant value.")
 
-    for field in fields:
-        if field not in params:
-            if field in OPTIONAL_FIELDS:
-                params[field] = None
-            else:
-                raise ValueError(f"Missing parameter '{field}' in {name}.")
+    for field, spec in fields.items():
+        if field not in params and spec.default is not None:
+            raise ValueError(f"Missing parameter '{field}' in {name}.")
 
     return cls(**params)
