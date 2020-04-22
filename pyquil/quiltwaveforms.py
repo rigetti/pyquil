@@ -197,11 +197,13 @@ class ErfSquareWaveform(TemplateWaveform):
 class BoxcarAverageKernel(TemplateWaveform):
     pass
 
+
 WAVEFORM_CLASSES = {
     'flat': FlatWaveform,
     'gaussian': GaussianWaveform,
     'drag_gaussian': DragGaussianWaveform,
     'erf_square': ErfSquareWaveform,
+    'boxcar_kernel': BoxcarAverageKernel,
 }
 
 
