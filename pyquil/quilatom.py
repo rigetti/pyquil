@@ -746,7 +746,7 @@ class Addr(MemoryReference):
         super(Addr, self).__init__("ro", offset=value, declared_size=None)
 
 
-@dataclass
+@dataclass(eq=True, frozen=True)
 class Frame(QuilAtom):
     """
     Representation of a frame descriptor.
@@ -759,8 +759,8 @@ class Frame(QuilAtom):
     """ The name of the frame. """
 
     def __init__(self, qubits, name):
-        self.qubits = tuple(qubits)
-        self.name = name
+        object.__setattr__(self, 'qubits', tuple(qubits))
+        object.__setattr__(self, 'name', name)
 
     def __str__(self) -> str:
         return self.out()

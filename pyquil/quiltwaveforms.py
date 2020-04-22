@@ -4,6 +4,7 @@ if sys.version_info < (3, 7):
 else:
     from dataclasses import dataclass
 
+from copy import copy
 import numpy as np
 from scipy.special import erf
 from numbers import Complex, Real
@@ -169,7 +170,8 @@ class ErfSquareWaveform(TemplateWaveform):
     def out(self) -> str:
         output = "erf_square("
         output += ", ".join(
-            [f'risetime: {self.risetime}',
+            [f'duration: {self.duration}',
+             f'risetime: {self.risetime}',
              f'pad_left: {self.pad_left}',
              f'pad_right: {self.pad_right}'] +
             _optional_field_strs(self)
@@ -194,8 +196,21 @@ class ErfSquareWaveform(TemplateWaveform):
 
 
 @dataclass
-class BoxcarAverageKernel(TemplateWaveform):
-    pass
+class BoxcarAveragerKernel(TemplateWaveform):
+    def out(self) -> str:
+        output = "boxcar_kernel("
+        output += ", ".join(
+            [f'duration: {self.duration}'] +
+            _optional_field_strs(self)
+        )
+        output += ")"
+        return output
+
+    def __str__(self) -> str:
+        return self.out()
+
+    def samples(self, rate: float) -> np.ndarray:
+        raise NotImplementedError()
 
 
 WAVEFORM_CLASSES = {
@@ -203,7 +218,7 @@ WAVEFORM_CLASSES = {
     'gaussian': GaussianWaveform,
     'drag_gaussian': DragGaussianWaveform,
     'erf_square': ErfSquareWaveform,
-    'boxcar_kernel': BoxcarAverageKernel,
+    'boxcar_kernel': BoxcarAveragerKernel,
 }
 
 
@@ -214,6 +229,7 @@ def _from_dict(name: str, params: dict) -> TemplateWaveform:
 
     :returns: A template waveform.
     """
+    params = copy(params)
     if name not in WAVEFORM_CLASSES:
         raise ValueError(f"Unknown template waveform {name}.")
     cls = WAVEFORM_CLASSES[name]
@@ -236,8 +252,10 @@ def _from_dict(name: str, params: dict) -> TemplateWaveform:
             raise ValueError(f"Unable to resolve parameter '{param}' in template {name} to a constant value.")
 
     for field in fields:
-        if field not in params and field not in OPTIONAL_FIELDS:
-            raise ValueError(f"Missing parameter '{field}' in {name}.")
-
+        if field not in params:
+            if field in OPTIONAL_FIELDS:
+                params[field] = None
+            else:
+                raise ValueError(f"Missing parameter '{field}' in {name}.")
 
     return cls(**params)
