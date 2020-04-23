@@ -43,7 +43,7 @@ from pyquil.quilatom import (
     quil_sqrt,
 )
 from pyquil.quiltwaveforms import (
-    WAVEFORM_CLASSES,
+    _waveform_classes,
     _wf_from_dict,
 )
 from pyquil.quilbase import (
@@ -544,7 +544,7 @@ class PyQuilListener(QuilListener):
 
     def exitDefWaveform(self, ctx: QuilParser.DefWaveformContext):
         name = _waveform_name(ctx.waveformName())
-        if name in WAVEFORM_CLASSES:
+        if name in _waveform_classes:
             raise ValueError(f"Attempted to redefine built-in template waveform {name}.")
         parameters = [param.getText() for param in ctx.param()]
         entries = sum(_matrix(ctx.matrix()), [])

@@ -10,25 +10,73 @@ from scipy.special import erf
 from numbers import Complex, Real
 from inspect import signature
 
-from typing import List, Optional
+from typing import List, Optional, Dict
 
 from pyquil.quilatom import TemplateWaveform, _complex_str, Expression, substitute
 
 
+_waveform_classes = {}
+""" A mapping from Quilt wavefom names to their corresponding classes. """
+
+
+def waveform(name: str):
+    """ Define a Quilt wavefom with the given name. """
+    def wrap(cls):
+        cls = dataclass(cls)
+        _waveform_classes[name] = cls
+        return cls
+
+    return wrap
+
+
+def _wf_from_dict(name: str, params: dict) -> TemplateWaveform:
+    """Construct a TemplateWaveform from a name and a dictionary of properties.
+    :param name: The Quilt name of the template.
+    :param params: A mapping from parameter names to their corresponding values.
+
+    :returns: A template waveform.
+    """
+    params = copy(params)
+    if name not in _waveform_classes:
+        raise ValueError(f"Unknown template waveform {name}.")
+    cls = _waveform_classes[name]
+    fields = cls.__dataclass_fields__
+
+    for param, value in params.items():
+        if param not in fields:
+            raise ValueError(f"Unexpected parameter '{param}' in {name}.")
+
+        if isinstance(value, Expression):
+            value = substitute(value, {})
+
+        if isinstance(value, Real):
+            # normalize to float
+            params[param] = float(value)
+        elif isinstance(value, Complex):
+            # no normalization needed
+            pass
+        else:
+            raise ValueError(f"Unable to resolve parameter '{param}' in template {name} to a constant value.")
+
+    for field, spec in fields.items():
+        if field not in params and spec.default is not None:
+            raise ValueError(f"Missing parameter '{field}' in {name}.")
+
+    return cls(**params)
+
+
 def _optional_field_strs(wf: TemplateWaveform) -> List[str]:
-    """Utility to get the printed representations of optional template
-    parameters."""
+    """Get the printed representations of optional template parameters."""
     result = []
-    if getattr(wf, 'detuning', None) is not None:
-        result.append(f"detuning: {wf.detuning}")
-    if getattr(wf, 'scale', None) is not None:
-        result.append(f"scale: {wf.scale}")
-    if getattr(wf, 'phase', None) is not None:
-        result.append(f"phase: {wf.phase}")
+    for field, spec in wf.__dataclass_fields__.items():
+        if spec.default is None:
+            value = getattr(wf, field, None)
+            if value is not None:
+                result.append(f"{field}: {value}")
     return result
 
 
-@dataclass
+@waveform("flat")
 class FlatWaveform(TemplateWaveform):
     """
     A flat (constant) waveform.
@@ -64,7 +112,7 @@ class FlatWaveform(TemplateWaveform):
         return self._update_envelope(iqs, rate)
 
 
-@dataclass
+@waveform("gaussian")
 class GaussianWaveform(TemplateWaveform):
     """ A Gaussian pulse. """
 
@@ -103,7 +151,8 @@ class GaussianWaveform(TemplateWaveform):
         iqs = np.exp(-0.5*(ts-self.t0) ** 2 / sigma ** 2)
         return self._update_envelope(iqs, rate)
 
-@dataclass
+
+@waveform("drag_gaussian")
 class DragGaussianWaveform(TemplateWaveform):
     """ A DRAG Gaussian pulse. """
 
@@ -153,7 +202,7 @@ class DragGaussianWaveform(TemplateWaveform):
         return self._update_envelope(iqs, rate)
 
 
-@dataclass
+@waveform("erf_square")
 class ErfSquareWaveform(TemplateWaveform):
     """ A pulse with a flat top and edges that are error functions (erf). """
 
@@ -201,7 +250,7 @@ class ErfSquareWaveform(TemplateWaveform):
         return self._update_envelope(iqs, rate)
 
 
-@dataclass
+@waveform("boxcar_kernel")
 class BoxcarAveragerKernel(TemplateWaveform):
 
     scale: Optional[float] = None
@@ -227,48 +276,3 @@ class BoxcarAveragerKernel(TemplateWaveform):
 
     def samples(self, rate: float) -> np.ndarray:
         raise NotImplementedError()
-
-
-WAVEFORM_CLASSES = {
-    'flat': FlatWaveform,
-    'gaussian': GaussianWaveform,
-    'drag_gaussian': DragGaussianWaveform,
-    'erf_square': ErfSquareWaveform,
-    'boxcar_kernel': BoxcarAveragerKernel,
-}
-
-
-def _wf_from_dict(name: str, params: dict) -> TemplateWaveform:
-    """Construct a TemplateWaveform from a name and a dictionary of properties.
-    :param name: The Quilt name of the template.
-    :param params: A mapping from parameter names to their corresponding values.
-
-    :returns: A template waveform.
-    """
-    params = copy(params)
-    if name not in WAVEFORM_CLASSES:
-        raise ValueError(f"Unknown template waveform {name}.")
-    cls = WAVEFORM_CLASSES[name]
-    fields = cls.__dataclass_fields__
-
-    for param, value in params.items():
-        if param not in fields:
-            raise ValueError(f"Unexpected parameter '{param}' in {name}.")
-
-        if isinstance(value, Expression):
-            value = substitute(value, {})
-
-        if isinstance(value, Real):
-            # normalize to float
-            params[param] = float(value)
-        elif isinstance(value, Complex):
-            # no normalization needed
-            pass
-        else:
-            raise ValueError(f"Unable to resolve parameter '{param}' in template {name} to a constant value.")
-
-    for field, spec in fields.items():
-        if field not in params and spec.default is not None:
-            raise ValueError(f"Missing parameter '{field}' in {name}.")
-
-    return cls(**params)
