@@ -348,6 +348,6 @@ class BoxcarAveragerKernel(TemplateWaveform):
         return self.out()
 
     def samples(self, rate: float) -> np.ndarray:
-        iqs = np.full(self.num_samples(rate), 1.0, dtype=np.complex128)
-        iqs /= len(iqs)
+        n = self.num_samples(rate)
+        iqs = np.full(n, 1.0/n, dtype=np.complex128)
         return self._update_envelope(iqs, rate)

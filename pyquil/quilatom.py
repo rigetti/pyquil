@@ -836,7 +836,7 @@ class TemplateWaveform(QuilAtom):
 
         iqs *= (
             scale
-            * np.exp(1j * 2 * np.pi * phase)
+            * np.exp(1j * phase)
             * np.exp(1j * 2 * np.pi * detuning * np.arange(len(iqs)) / rate)
         )
 
