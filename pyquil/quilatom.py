@@ -15,11 +15,6 @@
 ##############################################################################
 
 import sys
-if sys.version_info < (3, 7):
-    from pyquil.external.dataclasses import dataclass
-else:
-    from dataclasses import dataclass
-
 import numpy as np
 from numbers import Complex
 from warnings import warn
@@ -38,6 +33,12 @@ from typing import (
     Union,
     cast,
 )
+
+
+if sys.version_info < (3, 7):
+    from pyquil.external.dataclasses import dataclass
+else:
+    from dataclasses import dataclass
 
 
 class QuilAtom(object):
@@ -759,8 +760,8 @@ class Frame(QuilAtom):
     """ The name of the frame. """
 
     def __init__(self, qubits, name):
-        object.__setattr__(self, 'qubits', tuple(qubits))
-        object.__setattr__(self, 'name', name)
+        object.__setattr__(self, "qubits", tuple(qubits))
+        object.__setattr__(self, "name", name)
 
     def __str__(self) -> str:
         return self.out()
@@ -801,7 +802,6 @@ class TemplateWaveform(QuilAtom):
 
         """
         return int(np.ceil(self.duration * rate))
-
 
     def samples(self, rate: float) -> np.ndarray:
         """A reference implementation of waveform sample generation.

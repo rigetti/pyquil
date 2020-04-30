@@ -496,16 +496,17 @@ class PyQuilListener(QuilListener):
     def exitDefFrame(self, ctx: QuilParser.DefFrameContext):
         options = {}
         frame = _frame(ctx.frame())
+
         def _add_option(item):
             attr = item.frameAttr().getText()
             if attr == "DIRECTION":
-                options['direction'] = _str_contents(item.STRING().getText())
+                options["direction"] = _str_contents(item.STRING().getText())
             elif attr == "HARDWARE-OBJECT":
-                options['hardware_object'] = _str_contents(item.STRING().getText())
+                options["hardware_object"] = _str_contents(item.STRING().getText())
             elif attr == "INITIAL-FREQUENCY":
-                options['initial_frequency'] = _expression(item.expression())
+                options["initial_frequency"] = _expression(item.expression())
             elif attr == "SAMPLE-RATE":
-                options['sample_rate'] = _expression(item.expression())
+                options["sample_rate"] = _expression(item.expression())
             else:
                 raise ValueError(f"Unexpected attribute {attr} in definition of frame {frame}")
 
@@ -589,9 +590,7 @@ class PyQuilListener(QuilListener):
         kernel = _waveform(ctx.waveform())
         memory_region = _addr(ctx.addr())
         self.result.append(
-            Capture(
-                frame, kernel, memory_region, nonblocking=True if ctx.NONBLOCKING() else False
-            )
+            Capture(frame, kernel, memory_region, nonblocking=True if ctx.NONBLOCKING() else False)
         )
 
     def exitRawCapture(self, ctx: QuilParser.RawCaptureContext):
@@ -823,7 +822,7 @@ def _waveform(ctx: QuilParser.WaveformContext) -> Waveform:
 
 
 def _waveform_name(ctx: QuilParser.WaveformNameContext) -> str:
-    return  "/".join([spec.getText() for spec in ctx.name()])
+    return "/".join([spec.getText() for spec in ctx.name()])
 
 
 def _str_contents(x):

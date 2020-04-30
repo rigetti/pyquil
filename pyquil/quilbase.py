@@ -17,11 +17,6 @@
 Contains the core pyQuil objects that correspond to Quil instructions.
 """
 import sys
-if sys.version_info < (3, 7):
-    from pyquil.external.dataclasses import dataclass
-else:
-    from dataclasses import dataclass
-
 import collections
 import numpy as np
 from numbers import Complex
@@ -32,7 +27,6 @@ from typing import (
     Container,
     Dict,
     Iterable,
-    Mapping,
     List,
     Optional,
     Sequence,
@@ -67,6 +61,11 @@ from pyquil.quilatom import (
 
 if TYPE_CHECKING:
     from pyquil.paulis import PauliSum
+
+if sys.version_info < (3, 7):
+    from pyquil.external.dataclasses import dataclass
+else:
+    from dataclasses import dataclass
 
 
 class AbstractInstruction(object):
@@ -1337,6 +1336,7 @@ class FenceAll(SimpleInstruction):
 
     op = "FENCE"
 
+
 class Fence(AbstractInstruction):
     def __init__(self, qubits: List[Union[Qubit, FormalArgument]]):
         self.qubits = qubits
@@ -1348,10 +1348,7 @@ class Fence(AbstractInstruction):
 
 class DefWaveform(AbstractInstruction):
     def __init__(
-        self,
-        name: str,
-        parameters: List[Parameter],
-        entries: List[Union[Complex, Expression]],
+        self, name: str, parameters: List[Parameter], entries: List[Union[Complex, Expression]],
     ):
         self.name = name
         self.parameters = parameters
@@ -1439,10 +1436,10 @@ class DefFrame(AbstractInstruction):
     def out(self) -> str:
         r = f"DEFFRAME {self.frame.out()}"
         options = [
-            (self.direction, 'DIRECTION'),
-            (self.initial_frequency, 'INITIAL-FREQUENCY'),
-            (self.hardware_object, 'HARDWARE-OBJECT'),
-            (self.sample_rate, 'SAMPLE-RATE')
+            (self.direction, "DIRECTION"),
+            (self.initial_frequency, "INITIAL-FREQUENCY"),
+            (self.hardware_object, "HARDWARE-OBJECT"),
+            (self.sample_rate, "SAMPLE-RATE"),
         ]
         if any(value for (value, name) in options):
             r += ":"

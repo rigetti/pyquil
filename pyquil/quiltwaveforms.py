@@ -1,18 +1,17 @@
 import sys
-if sys.version_info < (3, 7):
-    from pyquil.external.dataclasses import dataclass
-else:
-    from dataclasses import dataclass
-
 from copy import copy
 import numpy as np
 from scipy.special import erf
 from numbers import Complex, Real
-from inspect import signature
 
-from typing import List, Optional, Dict
+from typing import List, Optional
 
 from pyquil.quilatom import TemplateWaveform, _complex_str, Expression, substitute
+
+if sys.version_info < (3, 7):
+    from pyquil.external.dataclasses import dataclass
+else:
+    from dataclasses import dataclass
 
 
 _waveform_classes = {}
@@ -25,6 +24,7 @@ decorator.
 
 def waveform(name: str):
     """ Define a Quilt wavefom with the given name. """
+
     def wrap(cls):
         cls = dataclass(cls)
         _waveform_classes[name] = cls
@@ -60,7 +60,9 @@ def _wf_from_dict(name: str, params: dict) -> TemplateWaveform:
             # no normalization needed
             pass
         else:
-            raise ValueError(f"Unable to resolve parameter '{param}' in template {name} to a constant value.")
+            raise ValueError(
+                f"Unable to resolve parameter '{param}' in template {name} to a constant value."
+            )
 
     for field, spec in fields.items():
         if field not in params and spec.default is not None:
@@ -101,9 +103,8 @@ class FlatWaveform(TemplateWaveform):
     def out(self) -> str:
         output = "flat("
         output += ", ".join(
-            [f'duration: {self.duration}',
-             f'iq: {_complex_str(self.iq)}'] +
-            _optional_field_strs(self)
+            [f"duration: {self.duration}", f"iq: {_complex_str(self.iq)}"]
+            + _optional_field_strs(self)
         )
         output += ")"
         return output
@@ -138,10 +139,8 @@ class GaussianWaveform(TemplateWaveform):
     def out(self) -> str:
         output = "gaussian("
         output += ", ".join(
-            [f'duration: {self.duration}',
-             f'fwhm: {self.fwhm}',
-             f't0: {self.t0}'] +
-            _optional_field_strs(self)
+            [f"duration: {self.duration}", f"fwhm: {self.fwhm}", f"t0: {self.t0}"]
+            + _optional_field_strs(self)
         )
         output += ")"
         return output
@@ -152,7 +151,7 @@ class GaussianWaveform(TemplateWaveform):
     def samples(self, rate: float) -> np.ndarray:
         ts = np.arange(self.num_samples(rate), dtype=np.complex128) / rate
         sigma = 0.5 * self.fwhm / np.sqrt(2.0 * np.log(2.0))
-        iqs = np.exp(-0.5*(ts-self.t0) ** 2 / sigma ** 2)
+        iqs = np.exp(-0.5 * (ts - self.t0) ** 2 / sigma ** 2)
         return self._update_envelope(iqs, rate)
 
 
@@ -184,12 +183,14 @@ class DragGaussianWaveform(TemplateWaveform):
     def out(self) -> str:
         output = "drag_gaussian("
         output += ", ".join(
-            [f'duration: {self.duration}',
-             f'fwhm: {self.fwhm}',
-             f't0: {self.t0}',
-             f'anh: {self.anh}',
-             f'alpha: {self.alpha}'] +
-            _optional_field_strs(self)
+            [
+                f"duration: {self.duration}",
+                f"fwhm: {self.fwhm}",
+                f"t0: {self.t0}",
+                f"anh: {self.anh}",
+                f"alpha: {self.alpha}",
+            ]
+            + _optional_field_strs(self)
         )
         output += ")"
         return output
@@ -239,17 +240,18 @@ class HrmGaussianWaveform(TemplateWaveform):
     detuning: Optional[float] = None
     """ An optional frequency detuning factor. """
 
-
     def out(self) -> str:
         output = "hrm_gaussian("
         output += ", ".join(
-            [f'duration: {self.duration}',
-             f'fwhm: {self.fwhm}',
-             f't0: {self.t0}',
-             f'anh: {self.anh}',
-             f'alpha: {self.alpha}',
-             f'second_order_hrm_coeff: {self.second_order_hrm_coeff}'] +
-            _optional_field_strs(self)
+            [
+                f"duration: {self.duration}",
+                f"fwhm: {self.fwhm}",
+                f"t0: {self.t0}",
+                f"anh: {self.anh}",
+                f"alpha: {self.alpha}",
+                f"second_order_hrm_coeff: {self.second_order_hrm_coeff}",
+            ]
+            + _optional_field_strs(self)
         )
         output += ")"
         return output
@@ -298,11 +300,13 @@ class ErfSquareWaveform(TemplateWaveform):
     def out(self) -> str:
         output = "erf_square("
         output += ", ".join(
-            [f'duration: {self.duration}',
-             f'risetime: {self.risetime}',
-             f'pad_left: {self.pad_left}',
-             f'pad_right: {self.pad_right}'] +
-            _optional_field_strs(self)
+            [
+                f"duration: {self.duration}",
+                f"risetime: {self.risetime}",
+                f"pad_left: {self.pad_left}",
+                f"pad_right: {self.pad_right}",
+            ]
+            + _optional_field_strs(self)
         )
         output += ")"
         return output
@@ -314,7 +318,7 @@ class ErfSquareWaveform(TemplateWaveform):
         ts = np.arange(self.num_samples(rate), dtype=np.complex128) / rate
         fwhm = 0.5 * self.risetime
         t1 = fwhm
-        t2 = self.duration-fwhm
+        t2 = self.duration - fwhm
         sigma = 0.5 * fwhm / np.sqrt(2.0 * np.log(2.0))
         vals = 0.5 * (erf((ts - t1) / sigma) - erf((ts - t2) / sigma))
         zeros_left = np.zeros(int(np.ceil(self.pad_left * rate)), dtype=np.complex128)
@@ -337,10 +341,7 @@ class BoxcarAveragerKernel(TemplateWaveform):
 
     def out(self) -> str:
         output = "boxcar_kernel("
-        output += ", ".join(
-            [f'duration: {self.duration}'] +
-            _optional_field_strs(self)
-        )
+        output += ", ".join([f"duration: {self.duration}"] + _optional_field_strs(self))
         output += ")"
         return output
 
@@ -349,5 +350,5 @@ class BoxcarAveragerKernel(TemplateWaveform):
 
     def samples(self, rate: float) -> np.ndarray:
         n = self.num_samples(rate)
-        iqs = np.full(n, 1.0/n, dtype=np.complex128)
+        iqs = np.full(n, 1.0 / n, dtype=np.complex128)
         return self._update_envelope(iqs, rate)

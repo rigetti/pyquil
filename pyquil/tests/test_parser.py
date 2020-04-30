@@ -52,7 +52,6 @@ from pyquil.quilatom import (
     MemoryReference,
     Frame,
     TemplateWaveform,
-    WaveformReference,
     Mul,
     Div,
     FormalArgument,
@@ -98,7 +97,7 @@ from pyquil.quiltwaveforms import (
     DragGaussianWaveform,
     ErfSquareWaveform,
     HrmGaussianWaveform,
-    BoxcarAveragerKernel
+    BoxcarAveragerKernel,
 )
 from pyquil.tests.utils import parse_equals
 
@@ -474,29 +473,37 @@ def test_parse_template_waveforms():
         pulse_str = 'PULSE 0 "rf" ' + wf_str
         parse_equals(pulse_str, Pulse(frame, wf))
 
-    wf_agrees("flat(duration: 1.0, iq: 2.0)",
-              FlatWaveform(duration=1.0, iq=2.0))
-    wf_agrees("flat(duration: 1.0, iq: 2)",
-              FlatWaveform(duration=1.0, iq=2.0))
-    wf_agrees("flat(iq: 2.0, duration: 1.0)",
-              FlatWaveform(duration=1.0, iq=2.0))
-    wf_agrees("flat(duration: 1.0, iq: 1 + 2.0*i)",
-              FlatWaveform(duration=1.0, iq=1.0+2.0j))
-    wf_agrees("flat(duration: 1.0, iq: 1.0, detuning: 1e-5)",
-              FlatWaveform(duration=1.0, iq=1.0, detuning=1e-5))
-    wf_agrees("flat(duration: 1.0, iq: 1.0, scale: 0.5)",
-              FlatWaveform(duration=1.0, iq=1.0, scale=0.5))
-    wf_agrees("gaussian(fwhm: 2.0, t0: 1.0, duration: 3.0)",
-              GaussianWaveform(duration=3.0, fwhm=2.0, t0=1.0))
-    wf_agrees("drag_gaussian(fwhm: 2.0, t0: 1.0, anh: 5.0, alpha: 3.0, duration: 5.0)",
-              DragGaussianWaveform(duration=5.0, fwhm=2.0, t0=1.0, anh=5.0, alpha=3.0))
-    wf_agrees("hrm_gaussian(fwhm: 2.0, t0: 1.0, anh: 5.0, alpha: 3.0, duration: 5.0, second_order_hrm_coeff: 0.5)",
-              HrmGaussianWaveform(duration=5.0, fwhm=2.0, t0=1.0, anh=5.0, alpha=3.0, second_order_hrm_coeff=0.5))
-    wf_agrees("erf_square(risetime: 0.5, pad_left: 1.0, pad_right: 0.0, duration: 3.0)",
-              ErfSquareWaveform(duration=3.0, risetime=0.5, pad_left=1.0, pad_right=0.0))
-    wf_agrees("boxcar_kernel(duration: 1.0)",
-              BoxcarAveragerKernel(duration=1.0)
+    wf_agrees("flat(duration: 1.0, iq: 2.0)", FlatWaveform(duration=1.0, iq=2.0))
+    wf_agrees("flat(duration: 1.0, iq: 2)", FlatWaveform(duration=1.0, iq=2.0))
+    wf_agrees("flat(iq: 2.0, duration: 1.0)", FlatWaveform(duration=1.0, iq=2.0))
+    wf_agrees("flat(duration: 1.0, iq: 1 + 2.0*i)", FlatWaveform(duration=1.0, iq=1.0 + 2.0j))
+    wf_agrees(
+        "flat(duration: 1.0, iq: 1.0, detuning: 1e-5)",
+        FlatWaveform(duration=1.0, iq=1.0, detuning=1e-5),
     )
+    wf_agrees(
+        "flat(duration: 1.0, iq: 1.0, scale: 0.5)", FlatWaveform(duration=1.0, iq=1.0, scale=0.5)
+    )
+    wf_agrees(
+        "gaussian(fwhm: 2.0, t0: 1.0, duration: 3.0)",
+        GaussianWaveform(duration=3.0, fwhm=2.0, t0=1.0),
+    )
+    wf_agrees(
+        "drag_gaussian(fwhm: 2.0, t0: 1.0, anh: 5.0, alpha: 3.0, duration: 5.0)",
+        DragGaussianWaveform(duration=5.0, fwhm=2.0, t0=1.0, anh=5.0, alpha=3.0),
+    )
+    wf_agrees(
+        "hrm_gaussian(fwhm: 2.0, t0: 1.0, anh: 5.0, alpha: 3.0, "
+        + "             duration: 5.0, second_order_hrm_coeff: 0.5)".strip(),
+        HrmGaussianWaveform(
+            duration=5.0, fwhm=2.0, t0=1.0, anh=5.0, alpha=3.0, second_order_hrm_coeff=0.5
+        ),
+    )
+    wf_agrees(
+        "erf_square(risetime: 0.5, pad_left: 1.0, pad_right: 0.0, duration: 3.0)",
+        ErfSquareWaveform(duration=3.0, risetime=0.5, pad_left=1.0, pad_right=0.0),
+    )
+    wf_agrees("boxcar_kernel(duration: 1.0)", BoxcarAveragerKernel(duration=1.0))
 
     # missing required field
     with pytest.raises(ValueError):
@@ -611,13 +618,11 @@ def test_parsing_defwaveform():
     )
     parse_equals(
         "DEFWAVEFORM foo(%theta):\n" "    1.0+2.0*i, 1.0-2.0*i, 3.0*%theta\n",
-        DefWaveform(
-            "foo", [Parameter("theta")], [1 + 2j, 1 - 2j, Mul(3.0, Parameter("theta"))]
-        ),
+        DefWaveform("foo", [Parameter("theta")], [1 + 2j, 1 - 2j, Mul(3.0, Parameter("theta"))]),
     )
     parse_equals(
         "DEFWAVEFORM q0_ro_rx/filter:\n    1.0, 1.0, 1.0",
-        DefWaveform("q0_ro_rx/filter", [], [1.0, 1.0, 1.0])
+        DefWaveform("q0_ro_rx/filter", [], [1.0, 1.0, 1.0]),
     )
 
 
