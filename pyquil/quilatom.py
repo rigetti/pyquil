@@ -13,6 +13,8 @@
 #    See the License for the specific language governing permissions and
 #    limitations under the License.
 ##############################################################################
+
+import sys
 import numpy as np
 from numbers import Complex
 from warnings import warn
@@ -31,6 +33,12 @@ from typing import (
     Union,
     cast,
 )
+
+
+if sys.version_info < (3, 7):
+    from pyquil.external.dataclasses import dataclass
+else:
+    from dataclasses import dataclass
 
 
 class QuilAtom(object):
@@ -739,27 +747,21 @@ class Addr(MemoryReference):
         super(Addr, self).__init__("ro", offset=value, declared_size=None)
 
 
+@dataclass(eq=True, frozen=True)
 class Frame(QuilAtom):
     """
     Representation of a frame descriptor.
-
-    :param qubits: List of qubits associated to the frame.
-    :param name: String name associated to the frame.
     """
 
-    def __init__(self, qubits: List[Union[Qubit, FormalArgument]], name: str):
-        assert isinstance(qubits, list)
-        assert isinstance(name, str)
-        self.name = name
-        self.qubits = qubits
+    qubits: Tuple[Union[Qubit, FormalArgument], ...]
+    """ A tuple of qubits on which the frame exists. """
 
-    def __eq__(self, other: object) -> bool:
-        return (
-            isinstance(other, Frame) and (self.name == other.name) and (self.qubits == other.qubits)
-        )
+    name: str
+    """ The name of the frame. """
 
-    def __hash__(self) -> int:
-        return hash((self.name, tuple(self.qubits)))
+    def __init__(self, qubits, name):
+        object.__setattr__(self, "qubits", tuple(qubits))
+        object.__setattr__(self, "name", name)
 
     def __str__(self) -> str:
         return self.out()
@@ -768,49 +770,85 @@ class Frame(QuilAtom):
         return " ".join([q.out() for q in self.qubits]) + f' "{self.name}"'
 
 
-def _complex_str(iq: Union[Any]) -> str:
+@dataclass
+class WaveformReference(QuilAtom):
+    """
+    Representation of a Waveform reference.
+    """
+
+    name: str
+    """ The name of the waveform. """
+
+    def out(self) -> str:
+        return self.name
+
+    def __str__(self) -> str:
+        return self.out()
+
+
+@dataclass
+class TemplateWaveform(QuilAtom):
+    duration: float
+    """ The duration [seconds] of the waveform. """
+
+    def num_samples(self, rate: float) -> int:
+        """The number of samples in the reference implementation of the waveform.
+
+        Note: this does not include any hardware-enforced alignment (cf.
+        documentation for `samples`).
+
+        :param rate: The sample rate, in Hz.
+        :return: The number of samples.
+
+        """
+        return int(np.ceil(self.duration * rate))
+
+    def samples(self, rate: float) -> np.ndarray:
+        """A reference implementation of waveform sample generation.
+
+        Note: this is close but not always exactly equivalent to the actual IQ
+        values produced by the waveform generators on Rigetti hardware. The
+        actual ADC process imposes some alignment constraints on the waveform
+        duration (in particular, it must be compatible with the clock rate).
+
+        :param rate: The sample rate, in Hz.
+        :returns: An array of complex samples.
+
+        """
+        raise NotImplementedError()
+
+    def _update_envelope(self, iqs: np.ndarray, rate: float) -> np.ndarray:
+        """Update a pulse envelope by optional shape parameters.
+
+        The optional parameters are: 'scale', 'phase', 'detuning'.
+
+        :param iqs: The basic pulse envelope.
+        :param rate: The sample rate (in Hz).
+        :return: The updated pulse envelope.
+        """
+
+        def default(obj, val):
+            return obj if obj is not None else val
+
+        scale = default(self.scale, 1.0)
+        phase = default(self.phase, 0.0)
+        detuning = default(self.detuning, 0.0)
+
+        iqs *= (
+            scale
+            * np.exp(1j * phase)
+            * np.exp(1j * 2 * np.pi * detuning * np.arange(len(iqs)) / rate)
+        )
+
+        return iqs
+
+
+Waveform = Union[WaveformReference, TemplateWaveform]
+
+
+def _complex_str(iq: Any) -> str:
+    """ Convert a number to a string. """
     if isinstance(iq, Complex):
         return f"{iq.real}" if iq.imag == 0.0 else f"{iq.real} + ({iq.imag})*i"
     else:
         return str(iq)
-
-
-class Waveform(QuilAtom):
-    """
-    Representation of a Waveform reference.
-
-    :param name: Name of the waveform definition.
-    :param params: Dict of numerical parameters to supply to the waveform definition.
-    """
-
-    def __init__(self, name: str, params: Mapping[str, float]):
-        self.name = name
-        self.params = params
-
-    def __eq__(self, other: object) -> bool:
-        return (
-            isinstance(other, Waveform) and self.name == other.name and self.params == other.params
-        )
-
-    def __hash__(self) -> int:
-        h = hash(self.name)
-        for key, val in self.params.items():
-            if isinstance(val, list):
-                h ^= hash((key, tuple(val)))
-            else:
-                h ^= hash((key, val))
-        return h
-
-    def out(self) -> str:
-        ret = self.name
-        if len(self.params) == 0:
-            return ret
-        else:
-            ret += "("
-            ret += ", ".join(
-                f"{name}: {_complex_str(value)}" for name, value in self.params.items()
-            )
-            return ret + ")"
-
-    def __str__(self) -> str:
-        return self.out()

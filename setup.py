@@ -74,6 +74,7 @@ setup(
         # The minimum spec for a working pyquil install.
         # note to developers: this should be a subset of requirements.txt
         "numpy",
+        "scipy",
         "antlr4-python3-runtime>=4.7.2,<4.8",
         "requests",
         "networkx>=2.0.0",
