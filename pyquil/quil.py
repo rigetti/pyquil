@@ -62,6 +62,7 @@ from pyquil.quilbase import (
     Gate,
     Measurement,
     Pragma,
+    Halt,
     AbstractInstruction,
     Jump,
     JumpConditional,
@@ -643,7 +644,7 @@ class Program(object):
                 qubits |= instr.get_qubits(indices=indices)
         return qubits
 
-    def is_protoquil(self, quilt:bool = False) -> bool:
+    def is_protoquil(self, quilt: bool = False) -> bool:
         """
         Protoquil programs may only contain gates, Pragmas, and RESET. It may not contain
         classical instructions or jumps.
@@ -1180,17 +1181,34 @@ def validate_protoquil_or_quilt(program: Program) -> None:
 
     :param program: The Quil(t) program to validate.
     """
-    valid_instruction_types = tuple([Pragma, Declare, Halt,
-                                     Gate, Measurement,
-                                     Reset, ResetQubit,
-                                     DelayQubits, DelayFrames, Fence, FenceAll,
-                                     ShiftFrequency, SetFrequency, SetScale,
-                                     ShiftPhase, SetPhase, SwapPhase,
-                                     Pulse, Capture, RawCapture,
-                                     DefCalibration,
-                                     DefFrame,
-                                     DefMeasureCalibration,
-                                     DefWaveform])
+    valid_instruction_types = tuple(
+        [
+            Pragma,
+            Declare,
+            Halt,
+            Gate,
+            Measurement,
+            Reset,
+            ResetQubit,
+            DelayQubits,
+            DelayFrames,
+            Fence,
+            FenceAll,
+            ShiftFrequency,
+            SetFrequency,
+            SetScale,
+            ShiftPhase,
+            SetPhase,
+            SwapPhase,
+            Pulse,
+            Capture,
+            RawCapture,
+            DefCalibration,
+            DefFrame,
+            DefMeasureCalibration,
+            DefWaveform,
+        ]
+    )
     for instr in program.instructions:
         if not isinstance(instr, valid_instruction_types):
             # Instructions like MOVE, NOT, JUMP, JUMP-UNLESS will fail here

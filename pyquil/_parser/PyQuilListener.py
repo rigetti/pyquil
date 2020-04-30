@@ -31,6 +31,7 @@ from pyquil.quilatom import (
     Addr,
     MemoryReference,
     Parameter,
+    WaveformReference,
     Waveform,
     Frame,
     FormalArgument,
@@ -39,6 +40,10 @@ from pyquil.quilatom import (
     quil_exp,
     quil_sin,
     quil_sqrt,
+)
+from pyquil.quiltwaveforms import (
+    _waveform_classes,
+    _wf_from_dict,
 )
 from pyquil.quilbase import (
     Gate,
@@ -489,18 +494,26 @@ class PyQuilListener(QuilListener):
         )
 
     def exitDefFrame(self, ctx: QuilParser.DefFrameContext):
-        def _value(item):
-            attr = item.frameAttr().getText()
-            if  attr == "DIRECTION":
-                return _str_contents(item.STRING().getText())
-            elif attr == "HARDWARE-OBJECT":
-                return _str_contents(item.STRING().getText())
-            else:
-                return _expression(item.expression())
-
+        options = {}
         frame = _frame(ctx.frame())
-        options = {item.frameAttr().getText(): _value(item) for item in ctx.frameSpec()}
-        self.result.append(DefFrame(frame, options))
+
+        def _add_option(item):
+            attr = item.frameAttr().getText()
+            if attr == "DIRECTION":
+                options["direction"] = _str_contents(item.STRING().getText())
+            elif attr == "HARDWARE-OBJECT":
+                options["hardware_object"] = _str_contents(item.STRING().getText())
+            elif attr == "INITIAL-FREQUENCY":
+                options["initial_frequency"] = _expression(item.expression())
+            elif attr == "SAMPLE-RATE":
+                options["sample_rate"] = _expression(item.expression())
+            else:
+                raise ValueError(f"Unexpected attribute {attr} in definition of frame {frame}")
+
+        for item in ctx.frameSpec():
+            _add_option(item)
+
+        self.result.append(DefFrame(frame, **options))
 
     def enterDefCalibration(self, ctx: QuilParser.DefCalibrationContext):
         self.previous_result = self.result
@@ -531,6 +544,8 @@ class PyQuilListener(QuilListener):
 
     def exitDefWaveform(self, ctx: QuilParser.DefWaveformContext):
         name = _waveform_name(ctx.waveformName())
+        if name in _waveform_classes:
+            raise ValueError(f"Attempted to redefine built-in template waveform {name}.")
         parameters = [param.getText() for param in ctx.param()]
         entries = sum(_matrix(ctx.matrix()), [])
         self.result.append(DefWaveform(name, parameters, entries))
@@ -575,9 +590,7 @@ class PyQuilListener(QuilListener):
         kernel = _waveform(ctx.waveform())
         memory_region = _addr(ctx.addr())
         self.result.append(
-            Capture(
-                frame, kernel, memory_region, nonblocking=True if ctx.NONBLOCKING() else False
-            )
+            Capture(frame, kernel, memory_region, nonblocking=True if ctx.NONBLOCKING() else False)
         )
 
     def exitRawCapture(self, ctx: QuilParser.RawCaptureContext):
@@ -802,11 +815,14 @@ def _waveform(ctx: QuilParser.WaveformContext) -> Waveform:
     # type: (QuilParser.WaveformContext) -> Waveform
     name = _waveform_name(ctx.waveformName())
     param_dict = _named_parameters(ctx.namedParam())
-    return Waveform(name, param_dict)
+    if param_dict:
+        return _wf_from_dict(name, param_dict)
+    else:
+        return WaveformReference(name)
 
 
 def _waveform_name(ctx: QuilParser.WaveformNameContext) -> str:
-    return  "/".join([spec.getText() for spec in ctx.name()])
+    return "/".join([spec.getText() for spec in ctx.name()])
 
 
 def _str_contents(x):
