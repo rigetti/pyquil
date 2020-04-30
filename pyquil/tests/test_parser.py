@@ -92,7 +92,14 @@ from pyquil.quilbase import (
     DefFrame,
     DefWaveform,
 )
-from pyquil.quiltwaveforms import FlatWaveform, GaussianWaveform, DragGaussianWaveform, ErfSquareWaveform
+from pyquil.quiltwaveforms import (
+    FlatWaveform,
+    GaussianWaveform,
+    DragGaussianWaveform,
+    ErfSquareWaveform,
+    HrmGaussianWaveform,
+    BoxcarAveragerKernel
+)
 from pyquil.tests.utils import parse_equals
 
 
@@ -483,8 +490,21 @@ def test_parse_template_waveforms():
               GaussianWaveform(duration=3.0, fwhm=2.0, t0=1.0))
     wf_agrees("drag_gaussian(fwhm: 2.0, t0: 1.0, anh: 5.0, alpha: 3.0, duration: 5.0)",
               DragGaussianWaveform(duration=5.0, fwhm=2.0, t0=1.0, anh=5.0, alpha=3.0))
+    wf_agrees("hrm_gaussian(fwhm: 2.0, t0: 1.0, anh: 5.0, alpha: 3.0, duration: 5.0, second_order_hrm_coeff: 0.5)",
+              HrmGaussianWaveform(duration=5.0, fwhm=2.0, t0=1.0, anh=5.0, alpha=3.0, second_order_hrm_coeff=0.5))
     wf_agrees("erf_square(risetime: 0.5, pad_left: 1.0, pad_right: 0.0, duration: 3.0)",
               ErfSquareWaveform(duration=3.0, risetime=0.5, pad_left=1.0, pad_right=0.0))
+    wf_agrees("boxcar_kernel(duration: 1.0)",
+              BoxcarAveragerKernel(duration=1.0)
+    )
+
+    # missing required field
+    with pytest.raises(ValueError):
+        parse('PULSE 0 "rf" flat(duration: 1.0)')
+
+    # undefined template
+    with pytest.raises(ValueError):
+        parse('PULSE 0 "rf" undefined_template(duration: 1)')
 
 
 def test_parse_template_waveform_strict_values():
@@ -492,6 +512,7 @@ def test_parse_template_waveform_strict_values():
 PULSE 0 "rf" flat(duration: 1.0, iq: foo)"""
     with pytest.raises(ValueError):
         parse(prog)
+
 
 def test_parse_pulse():
     wf = FlatWaveform(duration=1.0, iq=1.0)
