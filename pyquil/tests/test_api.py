@@ -28,10 +28,7 @@ import numpy as np
 import pytest
 import requests_mock
 from rpcq import Server
-from rpcq.messages import (
-    BinaryExecutableRequest,
-    BinaryExecutableResponse,
-)
+from rpcq.messages import QuiltBinaryExecutableRequest, QuiltBinaryExecutableResponse
 
 from pyquil.api import QVMConnection, QPUCompiler, get_qc, QVMCompiler
 from pyquil.api._base_connection import (
@@ -276,10 +273,13 @@ mock_qpu_compiler_server = Server()
 
 
 @mock_qpu_compiler_server.rpc_handler
-def native_quil_to_binary(payload: BinaryExecutableRequest) -> BinaryExecutableResponse:
-    assert Program(payload.quil).out() == COMPILED_BELL_STATE.out()
+def native_quilt_to_binary(payload: QuiltBinaryExecutableRequest) -> QuiltBinaryExecutableResponse:
+    assert Program(payload.quilt).out() == COMPILED_BELL_STATE.out()
     time.sleep(0.1)
-    return BinaryExecutableResponse(program=COMPILED_BYTES_ARRAY)
+    return QuiltBinaryExecutableResponse(
+        program=COMPILED_BYTES_ARRAY,
+        debug={}
+    )
 
 
 @mock_qpu_compiler_server.rpc_handler

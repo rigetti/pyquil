@@ -20,7 +20,7 @@ from typing import Any, Dict, List, Optional, Tuple, Union, cast
 
 import numpy as np
 from rpcq._client import Client, ClientAuthConfig
-from rpcq.messages import BinaryExecutableResponse, QPURequest, ParameterAref
+from rpcq.messages import QuiltBinaryExecutableResponse, QPURequest, ParameterAref
 
 from pyquil.parser import parse
 from pyquil.api._base_connection import Engagement, ForestSession
@@ -165,7 +165,7 @@ support at support@rigetti.com."""
         return cast(Dict[str, Any], self.client.call("get_version_info"))
 
     @_record_call
-    def load(self, executable: BinaryExecutableResponse) -> "QPU":
+    def load(self, executable: QuiltBinaryExecutableResponse) -> "QPU":
         """
         Initialize a QAM into a fresh state. Load the executable and parse the expressions
         in the recalculation table (if any) into pyQuil Expression objects.
@@ -274,7 +274,7 @@ support at support@rigetti.com."""
                     self._executable.recalculation_table  # type: ignore
                 )
 
-        assert isinstance(self._executable, BinaryExecutableResponse)
+        assert isinstance(self._executable, QuiltBinaryExecutableResponse)
         for name, spec in self._executable.memory_descriptors.items():
             # NOTE: right now we fake reading out measurement values into classical memory
             if name == "ro":
