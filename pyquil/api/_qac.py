@@ -16,7 +16,7 @@
 from abc import ABC, abstractmethod
 from typing import Any, Dict, List, Optional, Sequence, Union
 
-from rpcq.messages import BinaryExecutableResponse, PyQuilExecutableResponse
+from rpcq.messages import QuiltBinaryExecutableResponse, PyQuilExecutableResponse
 
 from pyquil.paulis import PauliTerm
 from pyquil.quil import Program
@@ -47,7 +47,7 @@ class AbstractCompiler(ABC):
     @abstractmethod
     def native_quil_to_executable(
         self, nq_program: Program
-    ) -> Union[BinaryExecutableResponse, PyQuilExecutableResponse]:
+    ) -> Union[QuiltBinaryExecutableResponse, PyQuilExecutableResponse]:
         """
         Compile a native quil program to a binary executable.
 

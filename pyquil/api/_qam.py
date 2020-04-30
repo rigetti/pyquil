@@ -20,7 +20,7 @@ from collections import defaultdict
 from typing import Dict, Sequence, Union, Optional
 
 import numpy as np
-from rpcq.messages import BinaryExecutableResponse, ParameterAref, PyQuilExecutableResponse
+from rpcq.messages import QuiltBinaryExecutableResponse, ParameterAref, PyQuilExecutableResponse
 
 from pyquil.api._error_reporting import _record_call
 from pyquil.experiment._main import Experiment
@@ -46,7 +46,7 @@ class QAM(ABC):
         self.reset()
 
     @_record_call
-    def load(self, executable: Union[BinaryExecutableResponse, PyQuilExecutableResponse]) -> "QAM":
+    def load(self, executable: Union[QuiltBinaryExecutableResponse, PyQuilExecutableResponse]) -> "QAM":
         """
         Initialize a QAM into a fresh state.
 
@@ -59,7 +59,7 @@ class QAM(ABC):
 
         self._variables_shim: Dict[ParameterAref, Union[int, float]] = {}
         self._executable: Optional[
-            Union[BinaryExecutableResponse, PyQuilExecutableResponse]
+            Union[QuiltBinaryExecutableResponse, PyQuilExecutableResponse]
         ] = executable
         self._memory_results: Optional[Dict[str, np.ndarray]] = defaultdict(lambda: None)
         self.status = "loaded"
