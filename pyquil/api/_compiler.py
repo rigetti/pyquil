@@ -23,8 +23,10 @@ from collections import Counter
 from rpcq._base import Message, to_json, from_json
 from rpcq._client import Client
 from rpcq.messages import (
-    BinaryExecutableRequest,
-    BinaryExecutableResponse,
+    QuiltCalibrationsRequest,
+    QuiltCalibrationsResponse,
+    QuiltBinaryExecutableRequest,
+    QuiltBinaryExecutableResponse,
     NativeQuilRequest,
     TargetDevice,
     PyQuilExecutableResponse,
@@ -321,7 +323,7 @@ class QPUCompiler(AbstractCompiler):
         return nq_program
 
     @_record_call
-    def native_quil_to_executable(self, nq_program: Program) -> Optional[BinaryExecutableResponse]:
+    def native_quil_to_executable(self, nq_program: Program, *, debug: bool = False) -> Optional[QuiltBinaryExecutableResponse]:
         if not self.qpu_compiler_client:
             raise UserMessageError(
                 "It looks like you're trying to compile to an executable, but "
@@ -333,12 +335,13 @@ class QPUCompiler(AbstractCompiler):
 
         arithmetic_response = rewrite_arithmetic(nq_program)
 
-        request = BinaryExecutableRequest(
-            quil=arithmetic_response.quil, num_shots=nq_program.num_shots
+        request = QuiltBinaryExecutableRequest(
+            quilt=arithmetic_response.quil,
+            num_shots=nq_program.num_shots
         )
-        response: BinaryExecutableResponse = cast(
-            BinaryExecutableResponse,
-            self.qpu_compiler_client.call("native_quil_to_binary", request),
+        response: QuiltBinaryExecutableResponse = cast(
+            QuiltBinaryExecutableResponse,
+            self.qpu_compiler_client.call("native_quilt_to_binary", request),
         )
 
         # hack! we're storing a little extra info in the executable binary that we don't want to
@@ -347,7 +350,18 @@ class QPUCompiler(AbstractCompiler):
         response.recalculation_table = arithmetic_response.recalculation_table  # type: ignore
         response.memory_descriptors = _collect_memory_descriptors(nq_program)
         response.ro_sources = _collect_classical_memory_write_locations(nq_program)
+        if not debug:
+            response.debug = {}
+
         return response
+
+    @_record_call
+    def get_quilt_calibrations(self) -> Program:
+        self._connect_qpu_compiler()
+        request = QuiltCalibrationsRequest(target_device=self.target_device)
+        response = self.qpu_compiler_client.call("get_quilt_calibrations", request)
+        calibration_program = parse_program(response.quilt)
+        return calibration_program
 
     @_record_call
     def reset(self) -> None:
@@ -492,3 +506,4 @@ class HTTPCompilerClient:
             raise UserMessageError(message) from e
 
         return cast(Message, from_json(response.text))  # type: ignore
+

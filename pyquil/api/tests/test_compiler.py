@@ -2,7 +2,7 @@ import math
 import pytest
 import requests_mock
 
-from rpcq.core_messages import BinaryExecutableResponse
+from rpcq.core_messages import QuiltBinaryExecutableResponse
 
 from pyquil import Program
 from pyquil.api._base_connection import get_session
@@ -24,9 +24,10 @@ def simple_program():
 
 SIMPLE_RESPONSE = {
     "program": "bAsE64==",
+    "debug": {},
     "memory_descriptors": {},
     "ro_sources": [],
-    "_type": "BinaryExecutableResponse",
+    "_type": "QuiltBinaryExecutableResponse",
 }
 
 DUMMY_ISA_DICT = {"1Q": {"0": {}, "1": {}}, "2Q": {"0-1": {}}}
@@ -60,7 +61,7 @@ def test_http_compilation(compiler):
 
     mock_adapter.register_uri(
         "POST",
-        f"{mock_url}/devices/{device_name}/native_quil_to_binary",
+        f"{mock_url}/devices/{device_name}/native_quilt_to_binary",
         status_code=200,
         json=SIMPLE_RESPONSE,
         headers=headers,
@@ -80,7 +81,7 @@ def test_http_compilation(compiler):
         compiler.quil_to_native_quil(simple_program())
     )
 
-    assert isinstance(compilation_result, BinaryExecutableResponse)
+    assert isinstance(compilation_result, QuiltBinaryExecutableResponse)
     assert compilation_result.program == SIMPLE_RESPONSE["program"]
 
 
@@ -108,7 +109,7 @@ def test_http_compilation_failure(compiler):
 
     mock_adapter.register_uri(
         "POST",
-        f"{mock_url}/devices/{device_name}/native_quil_to_binary",
+        f"{mock_url}/devices/{device_name}/native_quilt_to_binary",
         status_code=500,
         json={"message": "test compilation failed"},
         headers=headers,
