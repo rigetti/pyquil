@@ -16,7 +16,6 @@
 
 import operator
 from numbers import Number
-from inspect import signature
 from typing import Any, List, Iterator, Callable, Union
 
 import numpy as np

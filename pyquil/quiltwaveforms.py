@@ -16,7 +16,11 @@ from pyquil.quilatom import TemplateWaveform, _complex_str, Expression, substitu
 
 
 _waveform_classes = {}
-""" A mapping from Quilt wavefom names to their corresponding classes. """
+"""A mapping from Quilt wavefom names to their corresponding classes.
+
+This should not be mutated directly, but rather filled by the @waveform
+decorator.
+"""
 
 
 def waveform(name: str):
@@ -31,9 +35,9 @@ def waveform(name: str):
 
 def _wf_from_dict(name: str, params: dict) -> TemplateWaveform:
     """Construct a TemplateWaveform from a name and a dictionary of properties.
+
     :param name: The Quilt name of the template.
     :param params: A mapping from parameter names to their corresponding values.
-
     :returns: A template waveform.
     """
     params = copy(params)
@@ -269,6 +273,7 @@ class HrmGaussianWaveform(TemplateWaveform):
         )
         iqs = env + 1.0j * env_der
         return self._update_envelope(iqs, rate)
+
 
 @waveform("erf_square")
 class ErfSquareWaveform(TemplateWaveform):

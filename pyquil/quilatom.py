@@ -804,7 +804,7 @@ class TemplateWaveform(QuilAtom):
 
 
     def samples(self, rate: float) -> np.ndarray:
-        """A reference implementation of waveform generation.
+        """A reference implementation of waveform sample generation.
 
         Note: this is close but not always exactly equivalent to the actual IQ
         values produced by the waveform generators on Rigetti hardware. The
@@ -818,8 +818,14 @@ class TemplateWaveform(QuilAtom):
         raise NotImplementedError()
 
     def _update_envelope(self, iqs: np.ndarray, rate: float) -> np.ndarray:
-        """Update a pulse envelope according to to the generic shape parameters ('scale',
-'phase', 'detuning')."""
+        """Update a pulse envelope by optional shape parameters.
+
+        The optional parameters are: 'scale', 'phase', 'detuning'.
+
+        :param iqs: The basic pulse envelope.
+        :param rate: The sample rate (in Hz).
+        :return: The updated pulse envelope.
+        """
 
         def default(obj, val):
             return obj if obj is not None else val
@@ -840,7 +846,8 @@ class TemplateWaveform(QuilAtom):
 Waveform = Union[WaveformReference, TemplateWaveform]
 
 
-def _complex_str(iq: Union[Any]) -> str:
+def _complex_str(iq: Any) -> str:
+    """ Convert a number to a string. """
     if isinstance(iq, Complex):
         return f"{iq.real}" if iq.imag == 0.0 else f"{iq.real} + ({iq.imag})*i"
     else:
