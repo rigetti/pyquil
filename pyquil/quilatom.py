@@ -800,7 +800,7 @@ class TemplateWaveform(QuilAtom):
         :return: The number of samples.
 
         """
-        return np.ceil(self.duration * rate)
+        return int(np.ceil(self.duration * rate))
 
 
     def samples(self, rate: float) -> np.ndarray:
@@ -821,14 +821,17 @@ class TemplateWaveform(QuilAtom):
         """Update a pulse envelope according to to the generic shape parameters ('scale',
 'phase', 'detuning')."""
 
-        scale = getattr(self, 'scale', 1.0)
-        phase = getattr(self, 'phase', 0.0)
-        detuning = getattr(self, 'detuning', 0.0)
+        def default(obj, val):
+            return obj if obj is not None else val
+
+        scale = default(self.scale, 1.0)
+        phase = default(self.phase, 0.0)
+        detuning = default(self.detuning, 0.0)
 
         iqs *= (
             scale
             * np.exp(1j * 2 * np.pi * phase)
-            * np.exp(1j * 2 * np.pi * detuning * np.arange(len(iqs))) / rate
+            * np.exp(1j * 2 * np.pi * detuning * np.arange(len(iqs)) / rate)
         )
 
         return iqs
