@@ -8,6 +8,9 @@ Changelog
 
 ### Improvements and Changes
 
+-   Added a PyQuil only `rewrite_arithmetic` handler, deprecating the previous
+    RPC call to `quilc` in `native_quil_to_executable` (@kilimanjaro, gh-1210).
+
 ### Bugfixes
 
 [v2.19](https://github.com/rigetti/pyquil/compare/v2.18.0...v2.19.0) (March 26, 2020)
