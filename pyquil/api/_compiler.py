@@ -29,8 +29,6 @@ from rpcq.messages import (
     TargetDevice,
     PyQuilExecutableResponse,
     ParameterSpec,
-    RewriteArithmeticRequest,
-    RewriteArithmeticResponse,
 )
 from urllib.parse import urljoin
 
@@ -38,6 +36,7 @@ from pyquil.api._base_connection import ForestSession
 from pyquil.api._qac import AbstractCompiler
 from pyquil.api._error_reporting import _record_call
 from pyquil.api._errors import UserMessageError
+from pyquil.api._rewrite_arithmetic import rewrite_arithmetic
 from pyquil.device._main import AbstractDevice, Device
 from pyquil.parser import parse_program
 from pyquil.quil import Program
@@ -336,11 +335,7 @@ class QPUCompiler(AbstractCompiler):
                 "but be careful!"
             )
 
-        arithmetic_request = RewriteArithmeticRequest(quil=nq_program.out())
-        arithmetic_response: RewriteArithmeticResponse = cast(
-            RewriteArithmeticResponse,
-            self.quilc_client.call("rewrite_arithmetic", arithmetic_request),
-        )
+        arithmetic_response = rewrite_arithmetic(nq_program)
 
         request = BinaryExecutableRequest(
             quil=arithmetic_response.quil, num_shots=nq_program.num_shots

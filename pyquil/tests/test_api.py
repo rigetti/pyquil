@@ -28,7 +28,10 @@ import numpy as np
 import pytest
 import requests_mock
 from rpcq import Server
-from rpcq.messages import BinaryExecutableRequest, BinaryExecutableResponse
+from rpcq.messages import (
+    BinaryExecutableRequest,
+    BinaryExecutableResponse,
+)
 
 from pyquil.api import QVMConnection, QPUCompiler, get_qc, QVMCompiler
 from pyquil.api._base_connection import (
