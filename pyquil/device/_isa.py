@@ -204,6 +204,7 @@ def convert_gate_type_to_gate_information(
             gate_information.extend(
                 [
                     GateInfo("I", [], ["_"]),
+                    GateInfo("RX", [0], ["_"]),
                     GateInfo("RX", [np.pi / 2], ["_"]),
                     GateInfo("RX", [-np.pi / 2], ["_"]),
                     GateInfo("RX", [np.pi], ["_"]),
