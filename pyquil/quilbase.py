@@ -1434,17 +1434,23 @@ class DefFrame(AbstractInstruction):
     sample_rate: Optional[float] = None
     """ The sample rate of the frame [Hz]. """
 
+    center_frequency: Optional[float] = None
+    """ The 'center' frequency of the frame, used for detuning arithmetic. """
+
     def out(self) -> str:
         r = f"DEFFRAME {self.frame.out()}"
         options = [
             (self.direction, "DIRECTION"),
             (self.initial_frequency, "INITIAL-FREQUENCY"),
+            (self.center_frequency, "CENTER-FREQUENCY"),
             (self.hardware_object, "HARDWARE-OBJECT"),
             (self.sample_rate, "SAMPLE-RATE"),
         ]
         if any(value for (value, name) in options):
             r += ":"
             for value, name in options:
+                if value is None:
+                    continue
                 if isinstance(value, str):
                     value = f'"{value}"'
                 r += f"\n    {name}: {value}"
