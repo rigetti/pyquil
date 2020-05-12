@@ -1,10 +1,20 @@
 from numbers import Real
 
-from pyquil.quil import Program
-from pyquil.quilatom import MemoryReference, Expression
+from pyquil import Program
+from pyquil.quilatom import (
+    MemoryReference,
+    Expression,
+    Sub,
+    Div
+)
 from pyquil.quilbase import (
     Declare,
     Gate,
+    SetFrequency,
+    ShiftFrequency,
+    SetScale,
+    SetPhase,
+    ShiftPhase
 )
 from rpcq.messages import ParameterSpec, ParameterAref, RewriteArithmeticResponse
 
@@ -68,6 +78,19 @@ def rewrite_arithmetic(prog: Program) -> RewriteArithmeticResponse:
     mref_name = f"__P{suffix}"
     mref_idx = 0
 
+    def expr_mref(expr: object) -> MemoryReference:
+        """ Get a suitable MemoryReference for a given expression. """
+        nonlocal mref_idx
+        expr = str(expr)
+        if expr in seen_exprs:
+            return seen_exprs[expr]
+        new_mref = MemoryReference(mref_name, mref_idx)
+        seen_exprs[expr] = new_mref
+        mref_idx += 1
+        recalculation_table[aref(new_mref)] = expr
+        return new_mref
+
+
     for inst in prog:
         if isinstance(inst, Gate):
             new_params = []
@@ -76,17 +99,45 @@ def rewrite_arithmetic(prog: Program) -> RewriteArithmeticResponse:
                     new_params.append(param)
                 elif isinstance(param, Expression):
                     expr = str(param)
-                    if expr in seen_exprs:
-                        new_params.append(seen_exprs[expr])
-                    else:
-                        new_mref = MemoryReference(mref_name, mref_idx)
-                        seen_exprs[expr] = new_mref
-                        mref_idx += 1
-                        recalculation_table[aref(new_mref)] = expr
-                        new_params.append(new_mref)
+                    new_params.append(expr_mref(expr))
                 else:
                     raise ValueError(f"Unknown parameter type {type(param)} in {inst}.")
             updated.inst(Gate(inst.name, new_params, inst.qubits))
+        elif isinstance(inst, (SetFrequency, ShiftFrequency)):
+            if isinstance(inst.freq, Real):
+                updated.inst(inst)
+                continue
+            try:
+                fdefn = prog.frames[inst.frame]
+            except KeyError:
+                raise ValueError(f"Unable to rewrite {inst} without DEFFRAME {inst.frame}.")
+            if fdefn.sample_rate is None:
+                raise ValueError(f"Unable to rewrite {inst} on frame with undefined SAMPLE-RATE.")
+            if fdefn.center_frequency:
+                expr = Sub(inst.freq, fdefn.center_frequency)
+            else:
+                expr = inst.freq
+            expr = Div(
+                expr,
+                fdefn.sample_rate
+            )
+            expr = str(expr)
+            updated.inst(inst.__class__(inst.frame, expr_mref(expr)))
+        elif isinstance(inst, (SetPhase, ShiftPhase)):
+            if isinstance(inst.phase, Real):
+                updated.inst(inst)
+            else:
+                expr = str(inst.phase)
+                updated.inst(inst.__class__(inst.frame, expr_mref(expr)))
+        elif isinstance(inst, SetScale):
+            if isinstance(inst.scale, Real):
+                updated.inst(inst)
+            else:
+                # scale is in [-4,4)
+                # binary patching assumes periodic with period 1
+                # so we divide by 8...
+                expr = str(Div(inst.scale, 8))
+                updated.inst(SetScale(inst.frame, expr_mref(expr)))
         else:
             updated.inst(inst)
 
