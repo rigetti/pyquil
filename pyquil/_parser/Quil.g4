@@ -169,7 +169,7 @@ waveformName        : name (DIVIDE name)? ;
 
 defFrame            : DEFFRAME frame ( COLON frameSpec+ )? ;
 frameSpec           : NEWLINE TAB frameAttr COLON ( expression | STRING ) ;
-frameAttr           : SAMPLERATE | INITIALFREQUENCY | DIRECTION | HARDWAREOBJECT ;
+frameAttr           : SAMPLERATE | INITIALFREQUENCY | DIRECTION | HARDWAREOBJECT | CENTERFREQUENCY;
 
 defWaveform         : DEFWAVEFORM waveformName ( LPAREN param (COMMA param)* RPAREN )? COLON NEWLINE matrix ;
 defCalibration      : DEFCAL name (LPAREN param ( COMMA param )* RPAREN)? formalQubit+ COLON ( NEWLINE TAB instr )* ;
@@ -207,7 +207,7 @@ keyword             : DEFGATE | DEFCIRCUIT | MEASURE | LABEL | HALT | JUMP | JUM
                     | PERMUTATION | NEG | NOT | TRUE | FALSE | AND | IOR | XOR | OR | ADD | SUB | MUL
                     | DIV | MOVE | EXCHANGE | CONVERT | EQ | GT | GE | LT | LE | LOAD | STORE | PI | I
                     | SIN | COS | SQRT | EXP | CIS | CAPTURE | DEFCAL | DEFFRAME | DEFWAVEFORM
-                    | DELAY | DIRECTION | FENCE | INITIALFREQUENCY | NONBLOCKING | PULSE | SAMPLERATE
+                    | DELAY | DIRECTION | FENCE | INITIALFREQUENCY | CENTERFREQUENCY | NONBLOCKING | PULSE | SAMPLERATE
                     | SETFREQUENCY | SETPHASE | SETSCALE | SHIFTPHASE | SWAPPHASE | RAWCAPTURE
                     | CONTROLLED | DAGGER | FORKED ;
 
@@ -294,6 +294,7 @@ DIRECTION           : 'DIRECTION' ;
 FENCE               : 'FENCE' ;
 HARDWAREOBJECT      : 'HARDWARE-OBJECT' ;
 INITIALFREQUENCY    : 'INITIAL-FREQUENCY' ;
+CENTERFREQUENCY     : 'CENTER-FREQUENCY' ;
 NONBLOCKING         : 'NONBLOCKING' ;
 PULSE               : 'PULSE' ;
 SAMPLERATE          : 'SAMPLE-RATE' ;
