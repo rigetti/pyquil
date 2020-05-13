@@ -507,7 +507,7 @@ class PyQuilListener(QuilListener):
                 options["initial_frequency"] = _expression(item.expression())
             elif attr == "SAMPLE-RATE":
                 options["sample_rate"] = _expression(item.expression())
-            elif attr == "CENTER_FREQUENCY":
+            elif attr == "CENTER-FREQUENCY":
                 options["center_frequency"] = _expression(item.expression())
             else:
                 raise ValueError(f"Unexpected attribute {attr} in definition of frame {frame}")
