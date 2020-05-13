@@ -20,8 +20,10 @@ def test_rewrite_arithmetic_simple_mref():
     response = rewrite_arithmetic(prog)
     assert response == RewriteArithmeticResponse(
         original_memory_descriptors={"theta": ParameterSpec(length=1, type="REAL")},
-        quil=Program("DECLARE theta REAL[1]", "RZ(theta[0]) 0").out(),
-        recalculation_table={},
+        quil=Program(
+            "DECLARE __P1 REAL[1]", "DECLARE theta REAL[1]", "RZ(__P1[0]) 0"
+        ).out(),
+        recalculation_table={ParameterAref(index=0, name='__P1'): 'theta[0]/(2*pi)'},
     )
 
 
@@ -36,7 +38,7 @@ def test_rewrite_arithmetic_duplicate_exprs():
 
     assert response == RewriteArithmeticResponse(
         original_memory_descriptors={"theta": ParameterSpec(length=1, type="REAL")},
-        recalculation_table={ParameterAref(index=0, name="__P1"): "theta[0]*1.5"},
+        recalculation_table={ParameterAref(index=0, name="__P1"): "theta[0]*1.5/(2*pi)"},
         quil=Program(
             "DECLARE __P1 REAL[1]", "DECLARE theta REAL[1]", "RZ(__P1[0]) 0", "RX(__P1[0]) 0"
         ).out(),
@@ -53,8 +55,8 @@ def test_rewrite_arithmetic_mixed():
         "beta": ParameterSpec(length=1, type="REAL"),
     }
     assert response.recalculation_table == {
-        ParameterAref(index=0, name="__P2"): "3*theta[0]",
-        ParameterAref(index=1, name="__P2"): "beta[0] + theta[0]",
+        ParameterAref(index=0, name="__P2"): "3*theta[0]/(2*pi)",
+        ParameterAref(index=1, name="__P2"): "(beta[0] + theta[0])/(2*pi)",
     }
     assert (
         response.quil
@@ -129,7 +131,7 @@ def test_rewrite_arithmetic_frequency():
 
 
 
-def test_rewrited_arithmetic_mixed():
+def test_rewrite_arithmetic_mixed_mutations():
     fdefn = DefFrame(
         frame=Frame([Qubit(0)], "rf"),
         center_frequency=10.0,
