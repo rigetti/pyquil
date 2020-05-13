@@ -1,4 +1,5 @@
 from numbers import Real
+import numpy as np
 
 from pyquil import Program
 from pyquil.quilatom import (
@@ -95,10 +96,12 @@ def rewrite_arithmetic(prog: Program) -> RewriteArithmeticResponse:
         if isinstance(inst, Gate):
             new_params = []
             for param in inst.params:
-                if isinstance(param, (Real, MemoryReference)):
+                if isinstance(param, Real):
                     new_params.append(param)
                 elif isinstance(param, Expression):
-                    expr = str(param)
+                    # Quil gate angles are in radians,
+                    # but downstream processing expects revolutions
+                    expr = str(Div(param, 2*np.pi))
                     new_params.append(expr_mref(expr))
                 else:
                     raise ValueError(f"Unknown parameter type {type(param)} in {inst}.")

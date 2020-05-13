@@ -288,10 +288,6 @@ support at support@rigetti.com."""
             if k.name == "ro":
                 continue
 
-            # floats stored in tsunami memory are expected to be in revolutions rather than radians.
-            if isinstance(v, float):
-                v /= 2 * np.pi
-
             patch_values[k.name][k.index] = v
 
         return patch_values
