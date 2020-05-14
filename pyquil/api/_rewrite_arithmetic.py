@@ -130,7 +130,9 @@ def rewrite_arithmetic(prog: Program) -> RewriteArithmeticResponse:
             if isinstance(inst.phase, Real):
                 updated.inst(inst)
             else:
-                expr = str(inst.phase)
+                # Quil phases are in radians
+                # but downstream processing expects revolutions
+                expr = str(Div(inst.phase, 2*np.pi))
                 updated.inst(inst.__class__(inst.frame, expr_mref(expr)))
         elif isinstance(inst, SetScale):
             if isinstance(inst.scale, Real):
