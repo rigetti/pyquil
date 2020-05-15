@@ -20,7 +20,7 @@ from typing import Any, Dict, List, Optional, Tuple, Union, cast
 
 import numpy as np
 from rpcq._client import Client, ClientAuthConfig
-from rpcq.messages import QuiltBinaryExecutableResponse, QPURequest, ParameterAref
+from rpcq.messages import QuiltBinaryExecutableResponse, QPURequest, ParameterAref, ParameterSpec
 
 from pyquil.parser import parse
 from pyquil.api._base_connection import Engagement, ForestSession
@@ -43,33 +43,59 @@ def decode_buffer(buffer: Dict[str, Any]) -> np.ndarray:
     buf = np.frombuffer(buffer["data"], dtype=buffer["dtype"])
     return buf.reshape(buffer["shape"])
 
+def _extract_memory_regions(
+        memory_descriptors: Dict[str, ParameterSpec],
+        ro_sources: List[Tuple[MemoryReference, str]],
+        buffers: Dict[str, np.ndarray]
+) -> Dict[str, np.ndarray]:
+    def parse_mref(val: str) -> MemoryReference:
+        try:
+            if val[-1] == "]":
+                name, offset = val.split("[")
+                return MemoryReference(name, int(offset[:-1]))
+            else:
+                return MemoryReference(val)
+        except Exception as e:
+            raise ValueError(f"Unable to parse memory reference {val}.")
 
-def _extract_bitstrings(
-    ro_sources: List[Optional[Tuple[int, int]]], buffers: Dict[str, np.ndarray]
-) -> np.ndarray:
-    """
-    De-mux qubit readout results and assemble them into the ro-bitstrings in the correct order.
-
-    :param ro_sources: Specification of the ro_sources, cf
-        :py:func:`pyquil.api._compiler._collect_classical_memory_write_locations`.
-        It is a list whose value ``(q, m)`` at index ``addr`` records that the ``m``-th measurement
-        of qubit ``q`` was measured into ``ro`` address ``addr``. A value of `None` means nothing
-        was measured into ``ro`` address ``addr``.
-    :param buffers: A dictionary of readout results returned from the qpu.
-    :return: A numpy array of shape ``(num_shots, len(ro_sources))`` with the readout bits.
-    """
     # hack to extract num_shots indirectly from the shape of the returned data
     first, *rest = buffers.values()
     num_shots = first.shape[0]
-    bitstrings = np.zeros((num_shots, len(ro_sources)), dtype=np.int64)
-    for col_idx, src in enumerate(ro_sources):
-        if src:
-            qubit, meas_idx = src
-            buf = buffers[f"q{qubit}"]
-            if buf.ndim == 1:
-                buf = buf.reshape((num_shots, 1))
-            bitstrings[:, col_idx] = buf[:, meas_idx]
-    return bitstrings
+
+    def alloc(spec):
+        dtype = {
+            'BIT': np.int64,
+            'INTEGER': np.int64,
+            'REAL': np.float64,
+            'FLOAT': np.float64,
+        }
+        try:
+            return np.ndarray((num_shots, spec.length), dtype=dtype[spec.type])
+        except KeyError:
+            raise ValueError(f"Unexpected memory type {spec.type}.")
+
+    regions = {
+        name: alloc(memory_descriptors[name]) for name in memory_descriptors
+    }
+    for mstr, key in ro_sources:
+        mref = parse_mref(mstr)
+        buf = buffers[key]
+        if buf.ndim == 1:
+            buf = buf.reshape((num_shots, 1))
+
+        if np.iscomplexobj(buf):
+            buf = np.column_stack((buf.real, buf.imag))
+        _,width = buf.shape
+
+        end = mref.offset + width
+        region_width = memory_descriptors[mref.name].length
+        if end > region_width:
+            raise ValueError(f"Attempted to fill {mref.name}[{mref.offset}, {end})"
+                             f"but the declared region has width {region_width}.")
+
+        regions[mref.name][:,mref.offset:end] = buf
+
+    return regions
 
 
 class QPU(QAM):
@@ -224,20 +250,23 @@ support at support@rigetti.com."""
         results = self._get_buffers(job_id)
         ro_sources = self._executable.ro_sources  # type: ignore
 
+        self._memory_results = defaultdict(lambda: None)
         if results:
-            bitstrings = _extract_bitstrings(ro_sources, results)
+            extracted = _extract_memory_regions(
+                self._executable.memory_descriptors,
+                ro_sources,
+                results
+            )
+            for name, array in extracted.items():
+                self._memory_results[name] = array
         elif not ro_sources:
             warnings.warn(
                 "You are running a QPU program with no MEASURE instructions. "
                 "The result of this program will always be an empty array. Are "
                 "you sure you didn't mean to measure some of your qubits?"
             )
-            bitstrings = np.zeros((0, 0), dtype=np.int64)
-        else:
-            bitstrings = None
+            self._memory_results['ro'] = np.zeros((0, 0), dtype=np.int64)
 
-        self._memory_results = defaultdict(lambda: None)
-        self._memory_results["ro"] = bitstrings
         self._last_results = results
 
         return self
