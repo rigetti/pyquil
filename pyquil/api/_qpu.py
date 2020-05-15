@@ -43,12 +43,20 @@ def decode_buffer(buffer: Dict[str, Any]) -> np.ndarray:
     buf = np.frombuffer(buffer["data"], dtype=buffer["dtype"])
     return buf.reshape(buffer["shape"])
 
-
 def _extract_memory_regions(
-    memory_descriptors: Dict[str, ParameterSpec],
-    ro_sources: List[Tuple[MemoryReference, str]],
-    buffers: Dict[str, np.ndarray],
+        memory_descriptors: Dict[str, ParameterSpec],
+        ro_sources: List[Tuple[MemoryReference, str]],
+        buffers: Dict[str, np.ndarray]
 ) -> Dict[str, np.ndarray]:
+    def parse_mref(val: str) -> MemoryReference:
+        try:
+            if val[-1] == "]":
+                name, offset = val.split("[")
+                return MemoryReference(name, int(offset[:-1]))
+            else:
+                return MemoryReference(val)
+        except Exception as e:
+            raise ValueError(f"Unable to parse memory reference {val}.")
 
     # hack to extract num_shots indirectly from the shape of the returned data
     first, *rest = buffers.values()

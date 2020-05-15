@@ -42,7 +42,7 @@ from pyquil.device._main import AbstractDevice, Device
 from pyquil.parser import parse_program
 from pyquil.quil import Program
 from pyquil.quilatom import MemoryReference
-from pyquil.quilbase import Declare
+from pyquil.quilbase import Measurement, Declare, Pragma
 from pyquil.version import __version__
 
 if sys.version_info < (3, 7):
