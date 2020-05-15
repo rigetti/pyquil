@@ -42,7 +42,8 @@ from pyquil.api._rewrite_arithmetic import rewrite_arithmetic
 from pyquil.device._main import AbstractDevice, Device
 from pyquil.parser import parse_program
 from pyquil.quil import Program
-from pyquil.quilbase import Measurement, Declare
+from pyquil.quilatom import MemoryReference
+from pyquil.quilbase import Measurement, Declare, Pragma
 from pyquil.version import __version__
 
 if sys.version_info < (3, 7):
@@ -108,58 +109,6 @@ def _extract_program_from_pyquil_executable_response(response: PyQuilExecutableR
     for attr, val in response.attributes.items():
         setattr(p, attr, val)
     return p
-
-
-def _collect_classical_memory_write_locations(program: Program) -> List[Optional[Tuple[int, int]]]:
-    """Collect classical memory locations that are the destination of MEASURE instructions
-
-    These locations are important for munging output buffers returned from the QPU
-    server to the shape expected by the user.
-
-    This is secretly stored on BinaryExecutableResponse. We're careful to make sure
-    these objects are json serializable.
-
-    :return: list whose value `(q, m)` at index `addr` records that the `m`-th measurement of
-        qubit `q` was measured into `ro` address `addr`. A value of `None` means nothing was
-        measured into `ro` address `addr`.
-    """
-    ro_size = None
-    for instr in program:
-        if isinstance(instr, Declare) and instr.name == "ro":
-            if ro_size is not None:
-                raise ValueError(
-                    "I found multiple places where a register named `ro` is declared! "
-                    "Please only declare one register named `ro`."
-                )
-            ro_size = instr.memory_size
-
-    measures_by_qubit: Dict[int, int] = Counter()
-    ro_sources: Dict[int, Tuple[int, int]] = {}
-
-    for instr in program:
-        if isinstance(instr, Measurement):
-            q = instr.qubit.index
-            if instr.classical_reg:
-                offset = instr.classical_reg.offset
-                assert instr.classical_reg.name == "ro", instr.classical_reg.name
-                if offset in ro_sources:
-                    _log.warning(
-                        f"Overwriting the measured result in register "
-                        f"{instr.classical_reg} from qubit {ro_sources[offset]} "
-                        f"to qubit {q}"
-                    )
-                # we track how often each qubit is measured (per shot) and into which register it is
-                # measured in its n-th measurement.
-                ro_sources[offset] = (q, measures_by_qubit[q])
-            measures_by_qubit[q] += 1
-    if ro_size:
-        return [ro_sources.get(i) for i in range(ro_size)]
-    elif ro_sources:
-        raise ValueError(
-            "Found MEASURE instructions, but no 'ro' or 'ro_table' region was declared."
-        )
-    else:
-        return []
 
 
 def _collect_memory_descriptors(program: Program) -> Dict[str, ParameterSpec]:
@@ -352,7 +301,6 @@ class QPUCompiler(AbstractCompiler):
         # not anyone.
         response.recalculation_table = arithmetic_response.recalculation_table  # type: ignore
         response.memory_descriptors = _collect_memory_descriptors(nq_program)
-        response.ro_sources = _collect_classical_memory_write_locations(nq_program)
         if not debug:
             response.debug = {}
 
