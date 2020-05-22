@@ -84,6 +84,19 @@ def check_quilc_version(version_dict: Dict[str, str]) -> None:
         )
 
 
+def parse_mref(val: str) -> MemoryReference:
+    """ Parse a memory reference from its string representation. """
+    val = val.strip()
+    try:
+        if val[-1] == "]":
+            name, offset = val.split("[")
+            return MemoryReference(name, int(offset[:-1]))
+        else:
+            return MemoryReference(val)
+    except Exception as e:
+        raise ValueError(f"Unable to parse memory reference {val}.")
+
+
 def _extract_attribute_dictionary_from_program(program: Program) -> Dict[str, Any]:
     """
     Collects the attributes from PYQUIL_PROGRAM_PROPERTIES on the Program object program
@@ -282,14 +295,6 @@ class QPUCompiler(AbstractCompiler):
 
         self._connect_qpu_compiler()
 
-        if nq_program.native_quil_metadata is None:
-            warnings.warn(
-                "It looks like you're trying to call `native_quil_to_binary` on a "
-                "Program that hasn't been compiled via `quil_to_native_quil`. This is "
-                "ok if you've hand-compiled your program to our native gateset, "
-                "but be careful!"
-            )
-
         arithmetic_response = rewrite_arithmetic(nq_program)
 
         request = QuiltBinaryExecutableRequest(
@@ -306,6 +311,8 @@ class QPUCompiler(AbstractCompiler):
         # not anyone.
         response.recalculation_table = arithmetic_response.recalculation_table  # type: ignore
         response.memory_descriptors = _collect_memory_descriptors(nq_program)
+        # Convert strings to MemoryReference for downstream processing.
+        response.ro_sources = [(parse_mref(mref),source) for mref, source in response.ro_sources]
         if not debug:
             response.debug = {}
 

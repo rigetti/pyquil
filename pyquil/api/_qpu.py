@@ -48,15 +48,6 @@ def _extract_memory_regions(
         ro_sources: List[Tuple[MemoryReference, str]],
         buffers: Dict[str, np.ndarray]
 ) -> Dict[str, np.ndarray]:
-    def parse_mref(val: str) -> MemoryReference:
-        try:
-            if val[-1] == "]":
-                name, offset = val.split("[")
-                return MemoryReference(name, int(offset[:-1]))
-            else:
-                return MemoryReference(val)
-        except Exception as e:
-            raise ValueError(f"Unable to parse memory reference {val}.")
 
     # hack to extract num_shots indirectly from the shape of the returned data
     first, *rest = buffers.values()
@@ -74,11 +65,16 @@ def _extract_memory_regions(
         except KeyError:
             raise ValueError(f"Unexpected memory type {spec.type}.")
 
-    regions = {
-        name: alloc(memory_descriptors[name]) for name in memory_descriptors
-    }
-    for mstr, key in ro_sources:
-        mref = parse_mref(mstr)
+    regions = {}
+
+    for mref, key in ro_sources:
+        # Translation sometimes introduces ro_sources that the user didn't ask for.
+        # That's fine, we just ignore them.
+        if mref.name not in memory_descriptors:
+            continue
+        elif mref.name not in regions:
+            regions[mref.name] = alloc(memory_descriptors[mref.name])
+
         buf = buffers[key]
         if buf.ndim == 1:
             buf = buf.reshape((num_shots, 1))
@@ -291,7 +287,7 @@ support at support@rigetti.com."""
         # Initialize our patch table
         if hasattr(self._executable, "recalculation_table"):
             memory_ref_names = list(
-                set(mr.name for mr in self._executable.recalculation_table.keys())  # type: ignore
+                set(mr.name for mr in self._executable.recalculation_table.keys())
             )
             if memory_ref_names != []:
                 assert len(memory_ref_names) == 1, (
@@ -306,17 +302,14 @@ support at support@rigetti.com."""
         assert isinstance(self._executable, QuiltBinaryExecutableResponse)
         for name, spec in self._executable.memory_descriptors.items():
             # NOTE: right now we fake reading out measurement values into classical memory
-            if name == "ro":
+            # hence we omit them here from the patch table.
+            if any(name == mref.name for mref,_ in self._executable.ro_sources):
                 continue
             initial_value = 0.0 if spec.type == "REAL" else 0
             patch_values[name] = [initial_value] * spec.length
 
         # Fill in our patch table
         for k, v in self._variables_shim.items():
-            # NOTE: right now we fake reading out measurement values into classical memory
-            if k.name == "ro":
-                continue
-
             patch_values[k.name][k.index] = v
 
         return patch_values
