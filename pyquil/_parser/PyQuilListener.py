@@ -40,6 +40,7 @@ from pyquil.quilatom import (
     quil_exp,
     quil_sin,
     quil_sqrt,
+    _contained_mrefs,
 )
 from pyquil.quiltwaveforms import (
     _waveform_classes,
@@ -524,6 +525,11 @@ class PyQuilListener(QuilListener):
     def exitDefCalibration(self, ctx: QuilParser.DefCalibrationContext):
         name = ctx.name().getText()
         parameters = list(map(_param, ctx.param()))
+        for p in parameters:
+            mrefs = _contained_mrefs(p)
+            if mrefs:
+                raise ValueError(f"Unexpected memory references {mrefs} in DEFCAL {name}. Did you forget a '%'?")
+
         qubits = list(map(_formalQubit, ctx.formalQubit()))
         instrs = self.result
 

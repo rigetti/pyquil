@@ -681,3 +681,10 @@ def test_parsing_defcal_measure():
 
     # TODO: we actually don't have a way to execute a capture without a memory reference
     # what does this mean for something like 'MEASURE 0'?
+
+
+def test_parse_defcal_error_on_mref():
+    assert parse('DEFCAL RX(%theta) 0:\n    NOP')
+    with pytest.raises(ValueError):
+        parse('DEFCAL RX(theta) 0:\n    NOP')
+    
