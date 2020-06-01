@@ -91,6 +91,11 @@ from pyquil.quilbase import (
     DefMeasureCalibration,
     DefWaveform,
 )
+from pyquil.quiltcalibrations import (
+    CalibrationMatch,
+    expand_calibration,
+    match_calibration,
+)
 
 
 InstructionDesignator = Union[
@@ -643,6 +648,33 @@ class Program(object):
             ):
                 qubits |= instr.get_qubits(indices=indices)
         return qubits
+
+    def match_calibrations(self, instr: AbstractInstruction) -> Optional[CalibrationMatch]:
+        """
+        Get the calibration matching the provided instruction.
+
+        Note: preference is given to later calibrations, i.e. in a program with
+
+          DEFCAL X 0:
+              <a>
+
+          DEFCAL X 0:
+             <b>
+
+        the second calibration, with body <b>, would be the calibration matching `X 0`.
+        """
+        for cal in reversed(self.calibrations):
+            match = match_calibration(instr, cal)
+            if match is not None:
+                return match
+
+    def calibrate(self, instr: AbstractInstruction) -> List[AbstractInstruction]:
+        match = self.match_calibrations(instr)
+        if match is not None:
+            return expand_calibration(match)
+        else:
+            return [instr]
+
 
     def is_protoquil(self, quilt: bool = False) -> bool:
         """
