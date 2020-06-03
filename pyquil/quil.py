@@ -663,6 +663,8 @@ class Program(object):
 
         the second calibration, with body <b>, would be the calibration matching `X 0`.
         """
+        if not isinstance(instr, (Gate, Measurement)):
+            return None
         for cal in reversed(self.calibrations):
             match = match_calibration(instr, cal)
             if match is not None:
