@@ -670,6 +670,11 @@ class Program(object):
             if match is not None:
                 return match
 
+    def get_calibration(self, instr: AbstractInstruction) -> Optional[Union[DefCalibration, DefMeasureCalibration]]:
+        match = self.match_calibrations(instr)
+        if match:
+            return match.cal
+
     def calibrate(self, instr: AbstractInstruction) -> List[AbstractInstruction]:
         match = self.match_calibrations(instr)
         if match is not None:
