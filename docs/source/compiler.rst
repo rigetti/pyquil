@@ -79,14 +79,17 @@ The compiler connection is also available directly via the property ``qc.compile
 precise class of this object changes based on context (e.g., ``QPUCompiler``,
 ``QVMCompiler``), but it always conforms to the interface laid out by ``pyquil.api._qac``:
 
-* ``compiler.quil_to_native_quil(program, *, protoquil)``: This method converts a Quil program into
-  native Quil, according to the ISA that the compiler is initialized with.  The input parameter is
-  specified as a :py:class:`~pyquil.quil.Program` object. The optional ``protoquil`` keyword
-  argument instructs the compiler to restrict both its input and output to protoquil (Quil code that
-  can be executed on a QPU). If the server is started with the ``-P`` option, or you specify
-  ``protoquil=True`` the returned ``Program`` object will be equipped with a ``.metadata`` property
-  that gives extraneous information about the compilation output (e.g., gate depth, as well as many
-  others).  This call blocks until Quil compilation finishes.
+* ``compiler.quil_to_native_quil(program, *, protoquil, state_aware``: This method converts a Quil
+  program into native Quil, according to the ISA that the compiler is initialized with. The input
+  parameter is specified as a :py:class:`~pyquil.quil.Program` object. The optional ``protoquil``
+  keyword argument instructs the compiler to restrict both its input and output to protoquil (Quil
+  code that can be executed on a QPU). If the server is started with the ``-P`` option, or you
+  specify ``protoquil=True`` the returned ``Program`` object will be equipped with a ``.metadata``
+  property that gives extraneous information about the compilation output (e.g., gate depth, as well
+  as many others). If you provide ``state_aware=True`` the compiler will assume that your quantum
+  state begins in ``|00...0>`` which allows it to perform more aggressive techniques to reduce the
+  size of the program. For example the program ``CZ(0, 1)`` is compiled into a no-operation with
+  this flag enabled.  This call blocks until Quil compilation finishes.
 * ``compiler.native_quil_to_executable(nq_program)``: This method converts a native Quil program, which
   is promised to consist only of native gates for a given ISA, into an executable suitable for
   submission to one of a QVM or a QPU.  This call blocks until the executable is generated.
@@ -99,7 +102,7 @@ the previous example snippet is identical to the following:
 
     from pyquil.quil import Pragma, Program
     from pyquil.api import get_qc
-    from pyquil.gates import CNOT, H
+    from pyquil.gates import CZ, CNOT, H
 
     qc = get_qc("9q-square-qvm")
 
@@ -110,6 +113,9 @@ the previous example snippet is identical to the following:
 
     ep = qc.compiler.native_quil_to_executable(np)
     print(ep.program) # here ep is of type PyquilExecutableResponse, which is not always inspectable
+
+    p = Program(CZ(0, 1))
+    print(qc.compiler.quil_to_native_quil(p, state_aware=True).program) # Prints empty program
 
 
 Legal compiler input

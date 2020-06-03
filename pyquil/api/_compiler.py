@@ -305,11 +305,17 @@ class QPUCompiler(AbstractCompiler):
         return {"quilc": quilc_version_info}
 
     @_record_call
-    def quil_to_native_quil(self, program: Program, *, protoquil: Optional[bool] = None) -> Program:
+    def quil_to_native_quil(
+        self,
+        program: Program,
+        *,
+        protoquil: Optional[bool] = None,
+        state_aware: Optional[bool] = None,
+    ) -> Program:
         self._connect_quilc()
         request = NativeQuilRequest(quil=program.out(), target_device=self.target_device)
         response = self.quilc_client.call(
-            "quil_to_native_quil", request, protoquil=protoquil
+            "quil_to_native_quil", request, protoquil=protoquil, state_aware=state_aware
         ).asdict()
         nq_program = parse_program(response["quil"])
         nq_program.native_quil_metadata = response["metadata"]
@@ -403,10 +409,18 @@ class QVMCompiler(AbstractCompiler):
         return cast(Dict[str, Any], self.client.call("get_version_info", rpc_timeout=1))
 
     @_record_call
-    def quil_to_native_quil(self, program: Program, *, protoquil: Optional[bool] = None) -> Program:
+    def quil_to_native_quil(
+        self,
+        program: Program,
+        *,
+        protoquil: Optional[bool] = None,
+        state_aware: Optional[bool] = None,
+    ) -> Program:
         self.connect()
         request = NativeQuilRequest(quil=program.out(), target_device=self.target_device)
-        response = self.client.call("quil_to_native_quil", request, protoquil=protoquil).asdict()
+        response = self.client.call(
+            "quil_to_native_quil", request, protoquil=protoquil, state_aware=state_aware
+        ).asdict()
         nq_program = parse_program(response["quil"])
         nq_program.native_quil_metadata = response["metadata"]
         nq_program.num_shots = program.num_shots

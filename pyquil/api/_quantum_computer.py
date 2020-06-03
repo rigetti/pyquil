@@ -433,6 +433,7 @@ class QuantumComputer:
         protoquil_positional: Optional[bool] = None,
         *,
         protoquil: Optional[bool] = None,
+        state_aware: Optional[bool] = None,
     ) -> ExecutableDesignator:
         """
         A high-level interface to program compilation.
@@ -453,6 +454,8 @@ class QuantumComputer:
         :param optimize: Whether to optimize the program to reduce the number of operations.
         :param protoquil: Whether to restrict the input program to and the compiled program
             to protoquil (executable on QPU). A value of ``None`` means defer to server.
+        :param state_aware: Perform compilation assuming the quantum state begins in a
+            well-known state (i.e. |000...0>).
         :return: An executable binary suitable for passing to :py:func:`QuantumComputer.run`.
         """
         if protoquil_positional is not None:
@@ -478,7 +481,9 @@ class QuantumComputer:
         quilc = all(flags)
 
         if quilc:
-            nq_program = self.compiler.quil_to_native_quil(program, protoquil=protoquil)
+            nq_program = self.compiler.quil_to_native_quil(
+                program, protoquil=protoquil, state_aware=state_aware
+            )
         else:
             nq_program = program
         binary = self.compiler.native_quil_to_executable(nq_program)
