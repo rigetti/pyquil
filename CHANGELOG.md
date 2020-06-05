@@ -1,7 +1,9 @@
 Changelog
 =========
 
-[v2.20](https://github.com/rigetti/pyquil/compare/v2.19.0...master) (in development)
+[v2.21](https://github.com/rigetti/pyquil/compare/v2.20.0..master) (in development)
+
+[v2.20](https://github.com/rigetti/pyquil/compare/v2.19.0..v2.20.0) (June 5, 2020)
 ------------------------------------------------------------------------------------
 
 ### Announcements
@@ -12,6 +14,9 @@ Changelog
     RPC call to `quilc` in `native_quil_to_executable` (@kilimanjaro, gh-1210).
 
 ### Bugfixes
+
+-   Fix link in documentation (@notmgsk, gh-1204).
+-   Add `RX(0) _` to the native gates of a N-q qvm (@notmgsk, gh-1211).
 
 [v2.19](https://github.com/rigetti/pyquil/compare/v2.18.0...v2.19.0) (March 26, 2020)
 ------------------------------------------------------------------------------------
