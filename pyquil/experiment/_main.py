@@ -264,9 +264,9 @@ class Experiment:
     def __repr__(self) -> str:
         string = f"shots: {self.shots}\n"
         if self.reset:
-            string += f"active reset: enabled\n"
+            string += "active reset: enabled\n"
         else:
-            string += f"active reset: disabled\n"
+            string += "active reset: disabled\n"
         string += f"symmetrization: {self.symmetrization} ({self.symmetrization.name.lower()})\n"
         string += f"calibration: {self.calibration} ({self.calibration.name.lower()})\n"
         string += f"program:\n{_abbrev_program(self.program)}\n"
@@ -343,12 +343,12 @@ class Experiment:
         for settings in self:
             assert len(settings) == 1
             if ("X" in str(settings[0].in_state)) or ("Y" in str(settings[0].in_state)):
-                if f"DECLARE preparation_alpha" in self.program.out():
-                    raise ValueError(f'Memory "preparation_alpha" has been declared already.')
-                if f"DECLARE preparation_beta" in self.program.out():
-                    raise ValueError(f'Memory "preparation_beta" has been declared already.')
-                if f"DECLARE preparation_gamma" in self.program.out():
-                    raise ValueError(f'Memory "preparation_gamma" has been declared already.')
+                if "DECLARE preparation_alpha" in self.program.out():
+                    raise ValueError('Memory "preparation_alpha" has been declared already.')
+                if "DECLARE preparation_beta" in self.program.out():
+                    raise ValueError('Memory "preparation_beta" has been declared already.')
+                if "DECLARE preparation_gamma" in self.program.out():
+                    raise ValueError('Memory "preparation_gamma" has been declared already.')
                 p += parameterized_single_qubit_state_preparation(meas_qubits)
                 break
 
@@ -357,18 +357,18 @@ class Experiment:
         for settings in self:
             assert len(settings) == 1
             if ("X" in str(settings[0].out_operator)) or ("Y" in str(settings[0].out_operator)):
-                if f"DECLARE measurement_alpha" in self.program.out():
-                    raise ValueError(f'Memory "measurement_alpha" has been declared already.')
-                if f"DECLARE measurement_beta" in self.program.out():
-                    raise ValueError(f'Memory "measurement_beta" has been declared already.')
-                if f"DECLARE measurement_gamma" in self.program.out():
-                    raise ValueError(f'Memory "measurement_gamma" has been declared already.')
+                if "DECLARE measurement_alpha" in self.program.out():
+                    raise ValueError('Memory "measurement_alpha" has been declared already.')
+                if "DECLARE measurement_beta" in self.program.out():
+                    raise ValueError('Memory "measurement_beta" has been declared already.')
+                if "DECLARE measurement_gamma" in self.program.out():
+                    raise ValueError('Memory "measurement_gamma" has been declared already.')
                 p += parameterized_single_qubit_measurement_basis(meas_qubits)
                 break
 
         if self.symmetrization != 0:
-            if f"DECLARE symmetrization" in self.program.out():
-                raise ValueError(f'Memory "symmetrization" has been declared already.')
+            if "DECLARE symmetrization" in self.program.out():
+                raise ValueError('Memory "symmetrization" has been declared already.')
             p += parameterized_readout_symmetrization(meas_qubits)
 
         if "DECLARE ro" in self.program.out():
