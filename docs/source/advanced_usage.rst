@@ -48,7 +48,7 @@ where
     would have no effect if you are running locally, but is important if you are running on the QMI. By default, it runs the
     ``exec_on_engage.sh`` shell script. It's best to leave the configuration as is, and edit that script.
     More documentation about ``exec_on_engage.sh`` can be found in the QCS docs
-    `here <https://www.rigetti.com/qcs/docs/guides#queuing-programs-for-auto-execution>`_.
+    `here <https://www.rigetti.com/qcs-docs>`_.
 
 The Forest config file on any QMI has these contents, with specific IP addresses filled in:
 
