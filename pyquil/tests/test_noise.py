@@ -81,12 +81,23 @@ def test_combine_kraus_maps():
 
 
 def test_damping_after_dephasing():
-    damping = damping_kraus_map(p=1 - np.exp(-0.1))
-    dephasing = dephasing_kraus_map(p=0.5 * (1 - np.exp(-0.2)))
-    ks_ref = combine_kraus_maps(damping, dephasing)
+    gate_time = 1
+    T1 = 10
+    T2 = 3
+    kraus_map = damping_after_dephasing(T1, T2, gate_time)
 
-    ks_actual = damping_after_dephasing(20, 40 / 3.0, 2.0)
-    np.testing.assert_allclose(ks_actual, ks_ref)
+    # Density matrix for the |+> state
+    rho = 0.5*np.ones((2, 2))
+
+    # See Eq. 7.144 of Nielsen and Chuang 
+    target_rho = [[1 - 0.5*np.exp(-gate_time/T1), 0.5*np.exp(-gate_time/T2)],
+                  [0.5*np.exp(-gate_time/T2), 0.5*np.exp(-gate_time/T1)]] 
+
+    noisy_rho = np.zeros((2, 2))
+    for op in kraus_map:
+        noisy_rho += op@rho@(op.T.conj())
+
+    np.testing.assert_allclose(noisy_rho, target_rho)
 
 
 def test_noise_helpers():
