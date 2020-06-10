@@ -46,7 +46,7 @@ from pyquil.quilatom import (
 
 from .quil import Program
 from .gates import H, RZ, RX, CNOT, X, PHASE, QUANTUM_GATES
-from numbers import Number
+from numbers import Number, Complex
 from collections import OrderedDict
 import warnings
 
@@ -211,7 +211,7 @@ class PauliTerm(object):
             )
 
     def __hash__(self) -> int:
-        assert isinstance(self.coefficient, complex)
+        assert isinstance(self.coefficient, Complex)
         return hash(
             (
                 round(self.coefficient.real * HASH_PRECISION),
@@ -634,7 +634,7 @@ class PauliSum(object):
         :param other: a PauliSum, PauliTerm or Number object
         :return: A new PauliSum object given by the multiplication.
         """
-        if not isinstance(other, (Expression, int, complex, float, PauliTerm, PauliSum)):
+        if not isinstance(other, (Expression, Number, PauliTerm, PauliSum)):
             raise ValueError(
                 "Cannot multiply PauliSum by term that is not a Number, PauliTerm, or PauliSum"
             )
@@ -697,7 +697,7 @@ class PauliSum(object):
         """
         if isinstance(other, PauliTerm):
             other_sum = PauliSum([other])
-        elif isinstance(other, (Expression, int, complex, float)):
+        elif isinstance(other, (Expression, Number)):
             other_sum = PauliSum([other * ID()])
         else:
             other_sum = other
@@ -915,7 +915,7 @@ def exponential_map(term: PauliTerm) -> Callable[[float], Program]:
     :param term: A pauli term to exponentiate
     :returns: A function that takes an angle parameter and returns a program.
     """
-    assert isinstance(term.coefficient, (float, complex))
+    assert isinstance(term.coefficient, Complex)
 
     if not np.isclose(np.imag(term.coefficient), 0.0):
         raise TypeError("PauliTerm coefficient must be real")
@@ -1001,7 +1001,7 @@ def _exponentiate_general_case(pauli_term: PauliTerm, param: float) -> Program:
     # building rotation circuit
     quil_prog += change_to_z_basis
     quil_prog += cnot_seq
-    assert isinstance(pauli_term.coefficient, (float, complex)) and highest_target_index is not None
+    assert isinstance(pauli_term.coefficient, Complex) and highest_target_index is not None
     quil_prog.inst(RZ(2.0 * pauli_term.coefficient * param, highest_target_index))
     quil_prog += reverse_hack(cnot_seq)
     quil_prog += change_to_original_basis
@@ -1071,10 +1071,10 @@ def is_zero(pauli_object: PauliDesignator) -> bool:
     :returns: True if PauliTerm is zero, False otherwise
     """
     if isinstance(pauli_object, PauliTerm):
-        assert isinstance(pauli_object.coefficient, (float, complex))
+        assert isinstance(pauli_object.coefficient, Complex)
         return bool(np.isclose(pauli_object.coefficient, 0))
     elif isinstance(pauli_object, PauliSum):
-        assert isinstance(pauli_object.terms[0].coefficient, (float, complex))
+        assert isinstance(pauli_object.terms[0].coefficient, Complex)
         return len(pauli_object.terms) == 1 and np.isclose(pauli_object.terms[0].coefficient, 0)
     else:
         raise TypeError("is_zero only checks PauliTerms and PauliSum objects!")

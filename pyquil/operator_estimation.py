@@ -1,6 +1,7 @@
 import logging
 import warnings
 from math import pi
+from numbers import Complex
 from typing import Callable, Generator, List, Mapping, Union, Tuple, Optional, cast
 
 import numpy as np
@@ -308,7 +309,7 @@ def measure_observables(
         for setting in settings:
             # Get the term's coefficient so we can multiply it in later.
             coeff = setting.out_operator.coefficient
-            assert isinstance(coeff, complex)
+            assert isinstance(coeff, Complex)
             if not np.isclose(coeff.imag, 0):
                 raise ValueError(f"{setting}'s out_operator has a complex coefficient.")
             coeff = coeff.real
