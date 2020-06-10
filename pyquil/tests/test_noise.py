@@ -87,15 +87,17 @@ def test_damping_after_dephasing():
     kraus_map = damping_after_dephasing(T1, T2, gate_time)
 
     # Density matrix for the |+> state
-    rho = 0.5*np.ones((2, 2))
+    rho = 0.5 * np.ones((2, 2))
 
-    # See Eq. 7.144 of Nielsen and Chuang 
-    target_rho = [[1 - 0.5*np.exp(-gate_time/T1), 0.5*np.exp(-gate_time/T2)],
-                  [0.5*np.exp(-gate_time/T2), 0.5*np.exp(-gate_time/T1)]] 
+    # See Eq. 7.144 of Nielsen and Chuang
+    target_rho = [
+        [1 - 0.5 * np.exp(-gate_time / T1), 0.5 * np.exp(-gate_time / T2)],
+        [0.5 * np.exp(-gate_time / T2), 0.5 * np.exp(-gate_time / T1)],
+    ]
 
     noisy_rho = np.zeros((2, 2))
     for op in kraus_map:
-        noisy_rho += op@rho@(op.T.conj())
+        noisy_rho += op @ rho @ (op.T.conj())
 
     np.testing.assert_allclose(noisy_rho, target_rho)
 
