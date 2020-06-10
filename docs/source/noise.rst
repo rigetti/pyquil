@@ -428,7 +428,7 @@ For a single qubit the dephasing Kraus operators are
    K_1(p) = \sqrt{1-p} I_2 \\
    K_2(p) = \sqrt{p} \sigma_Z
 
-where :math:`p = 1 - \exp(-T_2/T_{\rm gate})` is the probability that
+where :math:`p = (1 - \exp(-T_{\rm gate}/T_2))/2` is the probability that
 the qubit is dephased over the time interval of interest, :math:`I_2` is
 the :math:`2\times 2`-identity matrix and :math:`\sigma_Z` is the
 Pauli-Z operator.
