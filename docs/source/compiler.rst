@@ -18,8 +18,9 @@ hardware.
 Interacting with the Compiler
 -----------------------------
 
-After :ref:`downloading the SDK <sdkinstall>`, the Quil Compiler, ``quilc`` is available on your local machine.
-You can initialize a local ``quilc`` server by typing ``quilc -S`` into your terminal. You should see the following message.
+After :ref:`downloading the SDK <sdkinstall>`, the Quil Compiler, ``quilc`` is available on your
+local machine. You can initialize a local ``quilc`` server by typing ``quilc -R`` into your
+terminal. You should see the following message.
 
 .. code:: text
 
@@ -114,25 +115,27 @@ the previous example snippet is identical to the following:
 Legal compiler input
 --------------------
 
-The QPU is not able to execute all possible Quil programs.  At present, a Quil program qualifies for execution if has the following form:
+The QPU is not able to execute all possible Quil programs. At present, a Quil program qualifies for
+execution if has the following form:
 
-* The program may or may not begin with a ``RESET`` instruction.  (If provided, the QPU will actively
-  reset the state of the quantum device to the ground state before program execution.  If omitted,
-  the QPU will wait for a relaxation period to pass before program execution instead.)
-* This is then followed by a block of native quantum gates.  A gate is native if it is of the form
-  ``RZ(θ)`` for any value ``θ``, ``RX(k*π/2)`` for an integer ``k``, or ``CZ q0 q1`` for ``q0``, ``q1``
-  a pair of qubits participating in a qubit-qubit interaction.
+* The program may begin with a ``RESET`` instruction. (If provided, the QPU will actively reset the
+  state of the quantum device to the ground state before program execution. If omitted, the QPU will
+  wait for a relaxation period to pass before program execution instead.)
+* This is then followed by a block of native quantum gates. A gate is native if it is of the form
+  ``RZ(θ)`` for any value ``θ``, ``RX(k*π/2)`` for an integer ``k``, or ``CZ q0 q1`` for ``q0``,
+  ``q1`` a pair of qubits participating in a qubit-qubit interaction. Some devices provide the
+  ``XY(θ) q0 q1`` two qubit gate.
 * This is then followed by a block of ``MEASURE`` instructions.
 
 To instruct the compiler to produce Quil code that can be executed on a QPU, you can use the
-``protoquil`` keyword in a call to `compiler.quil_to_native_quil(program, protoquil=True)` or
-`qc.compile(program, protoquil=True)`.
+``protoquil`` keyword in a call to ``compiler.quil_to_native_quil(program, protoquil=True)`` or
+``qc.compile(program, protoquil=True)``.
 
 .. note::
 
    If your compiler server is started with the protoquil option ``-P`` (as is the case for your QMI
-   compiler) then specifying ``protoquil=False`` will override the server and force disable
-   protoquil. Specifying ``protoquil=None`` defers to the server.
+   compiler) then specifying ``protoquil=False`` will override the server and forcefully disable
+   protoquil. Specifying ``protoquil=None`` defers to the server's choice.
 
 Compilation metadata
 --------------------
@@ -142,8 +145,8 @@ will return both the compiled program and a dictionary of statistics for the com
 dictionary contains the keys
 
 - ``final_rewiring``: see section below on rewirings.
-- ``gate_depth``: the longest subsequence of compiled instructions whereadjaction instructions share
-  resources.
+- ``gate_depth``: the longest subsequence of compiled instructions where adjaction instructions
+  share resources.
 - ``multiqubit_gate_depth``: like ``gate_depth`` but restricted to multi-qubit gates.
 - ``gate_volume``: total number of gates in the compiled program.
 - ``program_duration``: program duration with parallel executation of gates (using hard-coded values
@@ -334,12 +337,11 @@ behavior. The possible options are:
   quick initial scan of the entire program.
 
 .. note::
-   ``NAIVE`` rewiring is the default, and for the most part, it
-   follows the "Do What I Mean" (DWIM) principle. It is the least
-   sophisticated, but attempts to follow what the user has constructed
-   with their program. Choosing another rewiring, such as ``PARTIAL``,
-   may lead to higher-performing programs because the compiler has
-   more freedom to optimize the layout of the gates on the qubits.
+
+``PARTIAL`` rewiring is the default, and for the most part, it attempts to produce a program whose
+overall fidelity is maximized. This can lead to programs using qubits not in the original program,
+which may or may not be what you want. Choosing another rewiring, such as ``NAIVE``, may produce
+more intuitive compilation results though with poorer program fidelity.
   
 Common Error Messages
 ---------------------
@@ -349,6 +351,8 @@ follow:
 
 + ``! ! ! Error: Matrices do not lie in the same projective class.`` The compiler attempted to
   decompose an operator as native Quil instructions, and the resulting instructions do not match the
-  original operator.  This can happen when the original operator is not a unitary matrix, and could
+  original operator. This can happen when the original operator is not a unitary matrix, and could
   indicate an invalid ``DEFGATE`` block. In some rare circumstances, it can also happen due to
-  floating point precision issues.
+  floating point precision issues. In the latter case, the issue is resolved simply by recompiling
+  the program. If you issue cannot be solved, please contact support@rigetti.com or post an issue to
+  `the github project page. <https://github.com/rigetti/quilc/issues>`_
