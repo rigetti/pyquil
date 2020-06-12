@@ -337,11 +337,10 @@ behavior. The possible options are:
   quick initial scan of the entire program.
 
 .. note::
-
-``PARTIAL`` rewiring is the default, and for the most part, it attempts to produce a program whose
-overall fidelity is maximized. This can lead to programs using qubits not in the original program,
-which may or may not be what you want. Choosing another rewiring, such as ``NAIVE``, may produce
-more intuitive compilation results though with poorer program fidelity.
+   ``PARTIAL`` rewiring is the default, and for the most part, it attempts to produce a program whose
+   overall fidelity is maximized. This can lead to programs using qubits not in the original program,
+   which may or may not be what you want. Choosing another rewiring, such as ``NAIVE``, may produce
+   more intuitive compilation results though with poorer program fidelity.
   
 Common Error Messages
 ---------------------
