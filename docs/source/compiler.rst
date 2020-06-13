@@ -18,7 +18,7 @@ hardware.
 Interacting with the Compiler
 -----------------------------
 
-After :ref:`downloading the SDK <sdkinstall>`, the Quil Compiler, ``quilc`` is available on your
+After :ref:`installing the SDK <sdkinstall>`, the Quil Compiler, ``quilc`` is available on your
 local machine. You can initialize a local ``quilc`` server by typing ``quilc -R`` into your
 terminal. You should see the following message.
 
@@ -145,7 +145,7 @@ will return both the compiled program and a dictionary of statistics for the com
 dictionary contains the keys
 
 - ``final_rewiring``: see section below on rewirings.
-- ``gate_depth``: the longest subsequence of compiled instructions where adjaction instructions
+- ``gate_depth``: the longest subsequence of compiled instructions where adjacent instructions
   share resources.
 - ``multiqubit_gate_depth``: like ``gate_depth`` but restricted to multi-qubit gates.
 - ``gate_volume``: total number of gates in the compiled program.
