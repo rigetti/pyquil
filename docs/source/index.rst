@@ -81,6 +81,7 @@ Contents
    compiler
    noise
    advanced_usage
+   troubleshooting
    exercises
    changes
    intro
