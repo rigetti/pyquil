@@ -351,7 +351,7 @@ def damping_after_dephasing(T1: float, T2: float, gate_time: float) -> List[np.n
                 raise ValueError("T2 is upper bounded by 2 * T1")
             gamma_phi -= float(gate_time) / float(2 * T1)
 
-        dephasing = dephasing_kraus_map(p=0.5 * (1 - np.exp(-2 * gamma_phi)))
+        dephasing = dephasing_kraus_map(p=0.5 * (1 - np.exp(-gamma_phi)))
     else:
         dephasing = [np.eye(2)]
     return combine_kraus_maps(damping, dephasing)

@@ -21,6 +21,10 @@ Changelog
 
 -   Use numeric abstract base classes for type checking (@kilimanjaro, gh-1219).
 
+### Bugfixes
+
+-   Fix damping after dephasing noise model (@max-radin, gh-1217).
+
 [v2.20](https://github.com/rigetti/pyquil/compare/v2.19.0..v2.20.0) (June 5, 2020)
 ------------------------------------------------------------------------------------
 
