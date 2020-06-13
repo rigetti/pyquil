@@ -325,22 +325,22 @@ rewiring, which is controlled by ``PRAGMA INITIAL_REWIRING``. The syntax is as f
 Including this `before any non-pragmas` will allow the compiler to alter its rewiring
 behavior. The possible options are:
 
-+ ``NAIVE`` (default): The compiler will start with an identity mapping as the initial
-  rewiring.  In particular, qubits will **not** be rewired unless the program
-  requests a qubit-qubit interaction not natively available on the QPU.
-+ ``PARTIAL``: The compiler will start with nothing assigned to each
++ ``PARTIAL`` (default): The compiler will start with nothing assigned to each
   physical qubit. Then, it will fill in the logical-to-physical mapping as it
   encounters new qubits in the program, making its best guess for where they
   should be placed.
++ ``NAIVE``: The compiler will start with an identity mapping as the initial
+  rewiring.  In particular, qubits will **not** be rewired unless the program
+  requests a qubit-qubit interaction not natively available on the QPU.
 + ``RANDOM``: the compiler will start with a random permutation.
 + ``GREEDY``: the compiler will make a guess for the initial rewiring based on a
   quick initial scan of the entire program.
 
 .. note::
-   ``PARTIAL`` rewiring is the default, and for the most part, it attempts to produce a program whose
-   overall fidelity is maximized. This can lead to programs using qubits not in the original program,
-   which may or may not be what you want. Choosing another rewiring, such as ``NAIVE``, may produce
-   more intuitive compilation results though with poorer program fidelity.
+   The default option, ``PARTIAL``, may lead to higher-performing programs because the compiler has
+   more freedom to optimize the layout of the gates on the qubits. ``NAIVE``, a simpler option,
+   follows the "Do What I Mean" (DWIM) principle. It is the least sophisticated, but attempts to
+   follow what the user has constructed with their program.
   
 Common Error Messages
 ---------------------
