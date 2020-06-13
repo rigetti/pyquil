@@ -10,15 +10,6 @@ Changelog
 
 -   Documentation for Compiler, Advanced Usage, and Troubleshooting sections updated
     (@notmgsk, gh-1220).
-
-### Bugfixes
-
-### Announcements
-
-### Improvements and Changes
-
-### Bugfixes
-
 -   Use numeric abstract base classes for type checking (@kilimanjaro, gh-1219).
 
 ### Bugfixes
