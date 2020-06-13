@@ -12,19 +12,14 @@ PyQuil Configuration Files
 ~~~~~~~~~~~~~~~~~~~~~~~~~~
 
 Network endpoints for the Rigetti Forest infrastructure and information pertaining to QPU access are
-stored in a pair of configuration files. These files are located by default at ``~/.qcs_config`` and ``~/.forest_config``.
-The location can be changed by setting the environment variables ``QCS_CONFIG`` or ``FOREST_CONFIG`` to point to the new
-location. When running on a QMI, the configuration files are automatically managed so as to
-point to the correct endpoints.
+stored in configuration files located by default at ``~/.qcs_config`` and ``~/.forest_config``.
+The file paths can be customized by setting the environment variables ``QCS_CONFIG`` or 
+``FOREST_CONFIG``, respectively.
 
-Authentication credentials for Forest server are read from ``~/.qcs/user_auth_token``. You may download
-user auth credentials at https://qcs.rigetti.com/auth/token. When running on a QMI, authentication credentials
-are read from ``~/.qcs/qmi_auth_token``.
+These files are present on your QMI, and the default configuration will work for most users.
 
-When running locally, configuration files are not necessary. Thus, the average
-user will not have to do any work to get their configuration files set up.
-
-If for some reason you want to use an atypical configuration, you may need to modify these files.
+Authentication credentials for Forest server are read from ``~/.qcs/user_auth_token``
+(note: no file extension). You can download this token from https://qcs.rigetti.com/auth/token.
 
 .. exec on engage
 
@@ -42,42 +37,99 @@ The default QCS config file on any QMI looks similar to the following:
 
 where
 
- -  ``url`` is the endpoint that pyQuil hits for device information and for the 2.0 endpoints,
- -  ``user_id`` stores a Forest 2.0 user ID, and
+ -  ``url`` is the endpoint that pyQuil uses for device information
  -  ``exec_on_engage`` specifies the shell command that the QMI will launch when the QMI becomes QPU-engaged. It
     would have no effect if you are running locally, but is important if you are running on the QMI. By default, it runs the
     ``exec_on_engage.sh`` shell script. It's best to leave the configuration as is, and edit that script.
     More documentation about ``exec_on_engage.sh`` can be found in the QCS docs
     `here <https://www.rigetti.com/qcs-docs>`_.
 
-The Forest config file on any QMI has these contents, with specific IP addresses filled in:
-
-::
-
-    # .forest_config
-    [Rigetti Forest]
-    qpu_endpoint_address = None
-    qvm_address = http://10.1.165.XX:5000
-    compiler_server_address = tcp://10.1.165.XX:5555
-
-where
-
- -  ``qpu_endpoint_address`` is the endpoint where pyQuil will try to communicate with the QPU orchestrating service
-    during QPU-engagement. It may not appear until your QMI engages, and furthermore will have no effect if you are
-    running locally. It's best to leave this alone. If you obtain access to one of our QPUs, we will fill it in for you.
- -  ``qvm_address`` is the endpoint where pyQuil will try to communicate with the Rigetti Quantum Virtual Machine.
-    On a QMI, this points to the provided QVM instance. On a local installation, this should be set to the server endpoint
-    for a locally running QVM instance. However, pyQuil will use the default value ``http://localhost:5000`` if this file
-    isn't found, which is the correct endpoint when you run the QVM locally with ``qvm -S``.
- -  ``compiler_server_address``: This is the endpoint where pyQuil will try to communicate with the compiler server. On a
-    QMI, this points to a provided compiler server instance. On a local installation, this should be set to the server
-    endpoint for a locally running ``quilc`` instance. However, pyQuil will use the default value ``tcp://localhost:5555``
-    if this isn't set, which is the correct endpoint when you run ``quilc`` locally with ``quilc -S``.
-
 .. note::
-
+     
      PyQuil itself reads these values out using the helper class ``pyquil._config.PyquilConfig``. PyQuil users should not
      ever need to touch this class directly.
+
+If you'd like to change your pyQuil configuration, you can do so in your runtime environment or by
+editing these configuration files. All configuration options derive their values from one of three
+places, in decreasing order of precedence:
+
+1. The runtime environment, set using `export <https://pubs.opengroup.org/onlinepubs/9699919799/utilities/V3_chap02.html#export>`_
+   in Unix-based platforms, and `setx <https://ss64.com/nt/setx.html>`_ in Windows.
+2. QCS configuration files noted above: ``.qcs_config`` and ``.forest_config``, or their
+   user-configured file paths. The two are not interchangeable; each config value will be looked up
+   in exactly one of these files.
+3. The default values specified in ``pyquil.api._config``. These should not be changed by any Pyquil
+   user, as doing so may lead to difficult-to-debug behavior.
+
+These are all the configuration options available to you, and where they can be set:
+
+.. list-table:: PyQuil Configuration Options
+   :widths: 50 50 50
+   :header-rows: 1
+
+   * - Setting
+     - Environment
+     - Configuration File
+   * - Forest Server URL
+
+       Source of device information
+     - ``FOREST_URL``
+     - ``.qcs_config``
+
+       Key: ``url``
+   * - Dispatch URL
+
+       Provides QPU engagement authorization
+     - ``FOREST_DISPATCH_URL``
+     - ``.qcs_config``
+
+       Key: ``dispatch_url``
+   * - User Authentication Token Path
+
+       File path to the authentication token
+       obtained from `qcs <https://qcs.rigetti.com/auth/token>`_.
+     - ``USER_AUTH_TOKEN_PATH``
+     - ``.qcs_config``
+
+       Key: ``user_auth_token_path``
+   * - QCS URL
+
+       QCS website
+     - ``QCS_URL``
+     - ``.qcs_config``
+
+       Key: ``qcs_url``
+   * - QPU URL
+
+       Send binaries to the QPU
+     - ``QPU_URL``
+     - ``.forest_config``
+
+       Key: ``qpu_endpoint_address``
+   * - QVM URL
+
+       Simulator
+     - ``QCS_URL``
+     - ``.forest_config``
+
+       Key: ``qvm_address``
+   * - QPU Compiler URL
+
+       Send native Quil and receive a binary
+     - ``QPU_COMPILER_URL``
+     - ``.forest_config``
+
+       Key: ``qpu_compiler_address``
+   * - Local Compiler URL
+
+       Send Quil and receive native Quil
+     - ``QUILC_URL``
+     - ``.forest_config``
+
+       Key: ``qpu_compiler_address``
+
+The configuration options omitted from this table but present in ``pyquil.api._config`` are
+deprecated and should not be used.
 
 Using Qubit Placeholders
 ~~~~~~~~~~~~~~~~~~~~~~~~
