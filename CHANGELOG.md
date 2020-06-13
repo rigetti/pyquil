@@ -2,6 +2,16 @@ Changelog
 =========
 
 [v2.21](https://github.com/rigetti/pyquil/compare/v2.20.0..master) (in development)
+------------------------------------------------------------------------------------
+
+### Announcements
+
+### Improvements and Changes
+
+-   Documentation for Compiler, Advanced Usage, and Troubleshooting sections updated
+    (@notmgsk, gh-1220).
+
+### Bugfixes
 
 [v2.20](https://github.com/rigetti/pyquil/compare/v2.19.0..v2.20.0) (June 5, 2020)
 ------------------------------------------------------------------------------------
