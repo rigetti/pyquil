@@ -209,7 +209,7 @@ class Gate(AbstractInstruction):
             raise TypeError("Gate arguments must be an Iterable")
 
         for qubit in qubits:
-            if not isinstance(qubit, (Qubit, QubitPlaceholder)):
+            if not isinstance(qubit, (Qubit, QubitPlaceholder, FormalArgument)):
                 raise TypeError("Gate arguments must all be Qubits")
 
         qubits_list = list(qubits)
@@ -347,7 +347,7 @@ class Measurement(AbstractInstruction):
     def __init__(
         self, qubit: Union[Qubit, QubitPlaceholder], classical_reg: Optional[MemoryReference]
     ):
-        if not isinstance(qubit, (Qubit, QubitPlaceholder)):
+        if not isinstance(qubit, (Qubit, QubitPlaceholder, FormalArgument)):
             raise TypeError("qubit should be a Qubit")
         if classical_reg is not None and not isinstance(classical_reg, MemoryReference):
             raise TypeError("classical_reg should be None or a MemoryReference instance")
