@@ -151,7 +151,7 @@ def test_rewrite_arithmetic_mixed_mutations():
         original_memory_descriptors={"theta": ParameterSpec(length=1, type="REAL")},
         recalculation_table={
             ParameterAref(index=0, name='__P1'): '(theta[0] - 10.0)/20.0',
-            ParameterAref(index=1, name='__P1'): 'theta[0]',
+            ParameterAref(index=1, name='__P1'): 'theta[0]/(2*pi)',
             ParameterAref(index=2, name='__P1'): 'theta[0]/8'},
         quil=Program(
             fdefn,
