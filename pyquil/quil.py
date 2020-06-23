@@ -593,7 +593,7 @@ class Program(object):
         self.num_shots = shots
         return self
 
-    def out(self) -> str:
+    def out(self, calibrations: Optional[bool] = True) -> str:
         """
         Serializes the Quil program to a string suitable for submitting to the QVM or QPU.
         """
@@ -603,7 +603,7 @@ class Program(object):
                 (dg.out() for dg in self._defined_gates),
                 (wf.out() for wf in self.waveforms.values()),
                 (fdef.out() for fdef in self.frames.values()),
-                (cal.out() for cal in self.calibrations),
+                (cal.out() for cal in self.calibrations) if calibrations else (),
                 (instr.out() for instr in self.instructions),
                 [""],
             )
