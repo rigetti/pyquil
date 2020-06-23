@@ -67,7 +67,7 @@ class BenchmarkConnection(AbstractBenchmarker):
         indices_and_terms = list(zip(*list(pauli_in.operations_as_set())))
 
         payload = ConjugateByCliffordRequest(
-            clifford=clifford.out(),
+            clifford=clifford.out(calibrations=False),
             pauli=rpcq.messages.PauliTerm(
                 indices=list(indices_and_terms[0]), symbols=list(indices_and_terms[1])
             ),
@@ -135,7 +135,7 @@ class BenchmarkConnection(AbstractBenchmarker):
         interleaver_out: Optional[str] = None
         if interleaver:
             assert isinstance(interleaver, Program)
-            interleaver_out = interleaver.out()
+            interleaver_out = interleaver.out(calibrations=False)
 
         depth = int(depth)  # needs to be jsonable, no np.int64 please!
 
@@ -153,6 +153,8 @@ class BenchmarkConnection(AbstractBenchmarker):
         programs = []
         for clifford in response.sequence:
             clifford_program = Program()
+            if interleaver:
+                clifford_program.calibrations = interleaver.calibrations
             # Like below, we reversed the order because the API currently hands back the Clifford
             # decomposition right-to-left.
             for index in reversed(clifford):
