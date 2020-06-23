@@ -261,7 +261,7 @@ programs run on this QVM.
             "type": TYPE_MULTISHOT_MEASURE,
             "qubits": list(qubits),
             "trials": trials,
-            "compiled-quil": quil_program.out(),
+            "compiled-quil": quil_program.out(calibrations=False),
         }
 
         self._maybe_add_noise_to_payload(payload)
@@ -302,7 +302,7 @@ programs run on this QVM.
         if not isinstance(quil_program, Program):
             raise TypeError("quil_program must be a Quil program object")
 
-        payload = {"type": TYPE_WAVEFUNCTION, "compiled-quil": quil_program.out()}
+        payload = {"type": TYPE_WAVEFUNCTION, "compiled-quil": quil_program.out(calibrations=False)}
 
         self._maybe_add_noise_to_payload(payload)
         self._add_rng_seed_to_payload(payload)
@@ -401,8 +401,8 @@ programs run on this QVM.
 
         payload = {
             "type": TYPE_EXPECTATION,
-            "state-preparation": prep_prog.out(),
-            "operators": [x.out() for x in operator_programs],
+            "state-preparation": prep_prog.out(calibrations=False),
+            "operators": [x.out(calibrations=False) for x in operator_programs],
         }
 
         self._add_rng_seed_to_payload(payload)
