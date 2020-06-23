@@ -774,6 +774,9 @@ class Program(object):
         p = Program()
         p.inst(self)
         p.inst(other)
+        p.calibrations = self.calibrations
+        if isinstance(other, Program):
+            p.calibrations += other.calibrations
         return p
 
     def __iadd__(self, other: InstructionDesignator) -> "Program":
@@ -783,7 +786,10 @@ class Program(object):
         :param other: Another program or instruction to concatenate to this one.
         :return: A newly concatenated program.
         """
-        return self.inst(other)
+        self.inst(other)
+        if isinstance(other, Program):
+            self.calibrations += other.calibrations
+        return self
 
     def __getitem__(self, index: Union[slice, int]) -> Union[AbstractInstruction, "Program"]:
         """
