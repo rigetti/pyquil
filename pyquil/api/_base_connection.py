@@ -208,7 +208,7 @@ def run_and_measure_payload(
         "type": TYPE_MULTISHOT_MEASURE,
         "qubits": list(qubits),
         "trials": trials,
-        "compiled-quil": quil_program.out(),
+        "compiled-quil": quil_program.out(calibrations=False),
     }
 
     if random_seed is not None:
@@ -222,7 +222,7 @@ def wavefunction_payload(quil_program: Program, random_seed: int) -> Dict[str, o
     if not isinstance(quil_program, Program):
         raise TypeError("quil_program must be a Quil program object")
 
-    payload: Dict[str, object] = {"type": TYPE_WAVEFUNCTION, "compiled-quil": quil_program.out()}
+    payload: Dict[str, object] = {"type": TYPE_WAVEFUNCTION, "compiled-quil": quil_program.out(calibrations=False)}
 
     if random_seed is not None:
         payload["rng-seed"] = random_seed
@@ -242,8 +242,8 @@ def expectation_payload(
 
     payload: Dict[str, object] = {
         "type": TYPE_EXPECTATION,
-        "state-preparation": prep_prog.out(),
-        "operators": [x.out() for x in operator_programs],
+        "state-preparation": prep_prog.out(calibrations=False),
+        "operators": [x.out(calibrations=False) for x in operator_programs],
     }
 
     if random_seed is not None:
@@ -276,7 +276,7 @@ def qvm_run_payload(
         "type": TYPE_MULTISHOT,
         "addresses": classical_addresses,
         "trials": trials,
-        "compiled-quil": quil_program.out(),
+        "compiled-quil": quil_program.out(calibrations=False),
     }
 
     if measurement_noise is not None:

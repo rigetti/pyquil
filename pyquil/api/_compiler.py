@@ -275,19 +275,15 @@ class QPUCompiler(AbstractCompiler):
     @_record_call
     def quil_to_native_quil(self, program: Program, *, protoquil: Optional[bool] = None) -> Program:
         self._connect_quilc()
-        try:
-            quilt_calibrations = program.calibrations
-            program.calibrations = []
-            request = NativeQuilRequest(quil=program.out(), target_device=self.target_device)
-            response = self.quilc_client.call(
-                "quil_to_native_quil", request, protoquil=protoquil
-            ).asdict()
-            nq_program = parse_program(response["quil"])
-            nq_program.native_quil_metadata = response["metadata"]
-            nq_program.num_shots = program.num_shots
-            nq_program.calibrations = quilt_calibrations
-        finally:
-            program.calibrations = quilt_calibrations
+        request = NativeQuilRequest(quil=program.out(calibrations=False),
+                                    target_device=self.target_device)
+        response = self.quilc_client.call(
+            "quil_to_native_quil", request, protoquil=protoquil
+        ).asdict()
+        nq_program = parse_program(response["quil"])
+        nq_program.native_quil_metadata = response["metadata"]
+        nq_program.num_shots = program.num_shots
+        nq_program.calibrations = program.calibrations
         return nq_program
 
     @_record_call
