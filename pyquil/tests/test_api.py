@@ -321,6 +321,7 @@ def test_quil_to_native_quil(compiler):
     )
 
 
+@pytest.mark.skip(reason="Deprecated.")
 def test_native_quil_to_binary(server, mock_qpu_compiler):
     p = COMPILED_BELL_STATE.copy()
     p.wrap_in_numshots_loop(10)
