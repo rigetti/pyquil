@@ -160,7 +160,7 @@ class QubitPlaceholder(QuilAtom):
 QubitDesignator = Union[Qubit, QubitPlaceholder, int]
 
 
-def unpack_qubit(qubit: QubitDesignator) -> Union[Qubit, QubitPlaceholder]:
+def unpack_qubit(qubit: QubitDesignator) -> Union[Qubit, QubitPlaceholder, FormalArgument]:
     """
     Get a qubit from an object.
 
@@ -172,6 +172,8 @@ def unpack_qubit(qubit: QubitDesignator) -> Union[Qubit, QubitPlaceholder]:
     elif isinstance(qubit, Qubit):
         return qubit
     elif isinstance(qubit, QubitPlaceholder):
+        return qubit
+    elif isinstance(qubit, FormalArgument):
         return qubit
     else:
         raise TypeError("qubit should be an int or Qubit or QubitPlaceholder instance")
