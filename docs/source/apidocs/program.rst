@@ -47,6 +47,15 @@ Program
         ~Program.while_do
         ~Program.if_then
 
+    .. rubric:: Quilt Routines
+    .. autosummary::
+        :toctree: autogen
+        :template: autosumm.rst
+
+        ~Program.get_calibration
+        ~Program.match_calibrations
+        ~Program.calibrate
+
     .. rubric:: Utility Methods
     .. autosummary::
         :toctree: autogen
