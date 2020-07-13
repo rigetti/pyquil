@@ -87,6 +87,15 @@ Contents
    intro
 
 .. toctree::
+   :maxdepth: 3
+   :caption: Quilt Tutorials
+
+   quilt_getting_started
+   quilt_waveforms
+   quilt_parametric
+   quilt_raw_capture
+
+.. toctree::
    :maxdepth: 1
    :caption: API Reference
 
