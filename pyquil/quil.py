@@ -651,7 +651,7 @@ class Program(object):
 
     def match_calibrations(self, instr: AbstractInstruction) -> Optional[CalibrationMatch]:
         """
-        Get the calibration matching the provided instruction.
+        Attempt to match a calibration to the provided instruction.
 
         Note: preference is given to later calibrations, i.e. in a program with
 
@@ -662,6 +662,9 @@ class Program(object):
              <b>
 
         the second calibration, with body <b>, would be the calibration matching `X 0`.
+
+        :param instr: An instruction.
+        :returns: a CalibrationMatch object, if one can be found.
         """
         if not isinstance(instr, (Gate, Measurement)):
             return None
@@ -671,11 +674,29 @@ class Program(object):
                 return match
 
     def get_calibration(self, instr: AbstractInstruction) -> Optional[Union[DefCalibration, DefMeasureCalibration]]:
+        """
+        Get the calibration corresponding to the provided instruction.
+
+        :param instr: An instruction.
+        :returns: A matching Quilt calibration definition, if one exists.
+        """
         match = self.match_calibrations(instr)
         if match:
             return match.cal
 
     def calibrate(self, instr: AbstractInstruction) -> List[AbstractInstruction]:
+        """
+        Expand an instruction into its calibrated definition.
+
+        If a calibration definition matches the provided instruction, then the definition
+        body is returned with appropriate substitutions made for parameters and qubit
+        arguments. If no calibration definition matches, then the original instruction
+        is returned.
+
+        :param instr: An instruction.
+        :returns: A list of instructions, with the active calibration expanded.
+        """
+        # TODO: recursively expand?
         match = self.match_calibrations(instr)
         if match is not None:
             return expand_calibration(match)
