@@ -46,7 +46,9 @@ class QAM(ABC):
         self.reset()
 
     @_record_call
-    def load(self, executable: Union[QuiltBinaryExecutableResponse, PyQuilExecutableResponse]) -> "QAM":
+    def load(
+        self, executable: Union[QuiltBinaryExecutableResponse, PyQuilExecutableResponse]
+    ) -> "QAM":
         """
         Initialize a QAM into a fresh state.
 

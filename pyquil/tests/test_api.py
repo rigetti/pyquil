@@ -276,10 +276,7 @@ mock_qpu_compiler_server = Server()
 def native_quilt_to_binary(payload: QuiltBinaryExecutableRequest) -> QuiltBinaryExecutableResponse:
     assert Program(payload.quilt).out() == COMPILED_BELL_STATE.out()
     time.sleep(0.1)
-    return QuiltBinaryExecutableResponse(
-        program=COMPILED_BYTES_ARRAY,
-        debug={}
-    )
+    return QuiltBinaryExecutableResponse(program=COMPILED_BYTES_ARRAY, debug={})
 
 
 @mock_qpu_compiler_server.rpc_handler

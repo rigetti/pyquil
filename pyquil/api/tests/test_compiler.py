@@ -197,15 +197,12 @@ def test_compile_with_quilt_calibrations(compiler):
     )
 
     program = simple_program()
-    q = FormalArgument('q')
+    q = FormalArgument("q")
     defn = DefCalibration(
-        "H", [], [q],
-        [RZ(math.pi/2, q),
-         RX(math.pi/2, q),
-         RZ(math.pi/2, q)]
+        "H", [], [q], [RZ(math.pi / 2, q), RX(math.pi / 2, q), RZ(math.pi / 2, q)]
     )
     cals = [defn]
-    program.calibrations = cals
+    program._calibrations = cals
     # this should more or less pass through
     compilation_result = compiler.quil_to_native_quil(program, protoquil=True)
     assert compilation_result.calibrations == cals

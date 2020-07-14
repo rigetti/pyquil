@@ -21,12 +21,16 @@ import numpy as np
 from pyquil.quilatom import (
     Addr,
     Expression,
+    FormalArgument,
+    Frame,
     MemoryReference,
     MemoryReferenceDesignator,
     ParameterDesignator,
     QubitDesignator,
+    Qubit,
     unpack_classical_reg,
     unpack_qubit,
+    Waveform,
 )
 from pyquil.quilbase import (
     AbstractInstruction,
@@ -56,6 +60,19 @@ from pyquil.quilbase import (
     ClassicalSub,
     ClassicalMul,
     ClassicalDiv,
+    Pulse,
+    SetFrequency,
+    ShiftFrequency,
+    SetPhase,
+    ShiftPhase,
+    SwapPhase,
+    SetScale,
+    Capture,
+    RawCapture,
+    DelayFrames,
+    DelayQubits,
+    FenceAll,
+    Fence,
 )
 
 
@@ -907,6 +924,168 @@ def GE(
     return ClassicalGreaterEqual(classical_reg1, classical_reg2, classical_reg3)
 
 
+def PULSE(frame: Frame, waveform: Waveform, nonblocking: bool = False) -> Pulse:
+    """
+    Produce a PULSE instruction.
+
+    :param frame: The frame on which to apply the pulse.
+    :param waveform: The pulse waveform.
+    :param nonblocking: A flag indicating whether the pulse is NONBLOCKING.
+    :return: A Pulse instance.
+    """
+    return Pulse(frame, waveform, nonblocking)
+
+
+def SET_FREQUENCY(frame: Frame, freq: ParameterDesignator) -> SetFrequency:
+    """
+    Produce a SET-FREQUENCY instruction.
+
+    :param frame: The frame on which to set the frequency.
+    :param freq: The frequency value, in Hz.
+    :returns: A SetFrequency instance.
+    """
+    return SetFrequency(frame, freq)
+
+
+def SHIFT_FREQUENCY(frame: Frame, freq: ParameterDesignator) -> ShiftFrequency:
+    """
+    Produce a SHIFT-FREQUENCY instruction.
+
+    :param frame: The frame on which to shift the frequency.
+    :param freq: The value, in Hz, to add to the existing frequency.
+    :returns: A ShiftFrequency instance.
+    """
+    return ShiftFrequency(frame, freq)
+
+
+def SET_PHASE(frame: Frame, phase: ParameterDesignator) -> SetPhase:
+    """
+    Produce a SET-PHASE instruction.
+
+    :param frame: The frame on which to set the phase.
+    :param phase: The new phase value, in radians.
+    :returns: A SetPhase instance.
+    """
+    return SetPhase(frame, phase)
+
+
+def SHIFT_PHASE(frame: Frame, phase: ParameterDesignator) -> ShiftPhase:
+    """
+    Produce a SHIFT-PHASE instruction.
+
+    :param frame: The frame on which to shift the phase.
+    :param phase: The value, in radians, to add to the existing phase.
+    :returns: A ShiftPhase instance.
+    """
+    return ShiftPhase(frame, phase)
+
+
+def SWAP_PHASE(frameA: Frame, frameB: Frame) -> SwapPhase:
+    """
+    Produce a SWAP-PHASE instruction.
+
+    :param frameA: A frame.
+    :param frameB: A frame.
+    :returns: A SwapPhase instance.
+    """
+    return SwapPhase(frameA, frameB)
+
+
+def SET_SCALE(frame: Frame, scale: ParameterDesignator) -> SetScale:
+    """
+    Produce a SET-SCALE instruction.
+
+    :param frame: The frame on which to set the scale.
+    :param scale: The scaling factor.
+    :returns: A SetScale instance.
+    """
+    return SetScale(frame, scale)
+
+
+def CAPTURE(
+    frame: Frame,
+    kernel: Waveform,
+    memory_region: MemoryReferenceDesignator,
+    nonblocking: bool = False,
+) -> Capture:
+    """
+    Produce a CAPTURE instruction.
+
+    :param frame: The frame on which to capture an IQ value.
+    :param kernel: The integrating kernel for the capture.
+    :param memory_region: The classical memory region to store the resulting IQ value.
+    :param nonblocking: A flag indicating whether the capture is NONBLOCKING.
+    :returns: A Capture instance.
+    """
+    memory_region = unpack_classical_reg(memory_region)
+    return Capture(frame, kernel, memory_region, nonblocking)
+
+
+def RAW_CAPTURE(
+    frame: Frame,
+    duration: float,
+    memory_region: MemoryReferenceDesignator,
+    nonblocking: bool = False,
+) -> RawCapture:
+    """
+    Produce a RAW-CAPTURE instruction.
+
+    :param frame: The frame on which to capture raw values.
+    :param duration: The duration of the capture, in seconds.
+    :param memory_region: The classical memory region to store the resulting raw values.
+    :param nonblocking: A flag indicating whether the capture is NONBLOCKING.
+    :returns: A RawCapture instance.
+    """
+    memory_region = unpack_classical_reg(memory_region)
+    return RawCapture(frame, duration, memory_region, nonblocking)
+
+
+def DELAY(*args) -> Union[DelayFrames, DelayQubits]:
+    """
+    Produce a DELAY instruction.
+
+    Note: There are two variants of DELAY. One appliest to specific frames on some
+    qubit, e.g. `DELAY 0 "rf" "ff" 1.0` delays the `"rf"` and `"ff"` frames on 0.
+    It is also possible to delay all frames on some qubits, e.g. `DELAY 0 1.0`.
+
+    :param args: A list of delay targets, ending with a duration.
+    :returns: A DelayFrames or DelayQubits instance.
+    """
+    if len(args) < 2:
+        raise ValueError(
+            "Expected DELAY(t1,...,tn, duration). In particular, there must be at least one target, as well as a duration."
+        )
+    targets, duration = args[:-1], args[-1]
+    if not isinstance(duration, ParameterDesignator):
+        raise TypeError("The last argument of DELAY must be a real or parametric duration.")
+
+    if all(isinstance(t, Frame) for t in targets):
+        return DelayFrames(targets, duration)
+    elif all(isinstance(t, (int, Qubit, FormalArgument)) for t in targets):
+        targets = [Qubit(t) if isinstance(t, int) else t for t in targets]
+        return DelayQubits(targets, duration)
+    else:
+        raise TypeError(
+            "DELAY targets must be either (i) a list of frames, or (ii) a list of qubits / formal arguments."
+        )
+
+
+def FENCE(*qubits: Union[int, Qubit, FormalArgument]) -> Union[FenceAll, Fence]:
+    """
+    Produce a FENCE instruction.
+
+    Note: If no qubits are specified, then this is interpreted as a global FENCE.
+
+    :params qubits: A list of qubits or formal arguments.
+    :returns: A Fence or FenceAll instance.
+    """
+    if qubits:
+        qubits = [Qubit(t) if isinstance(t, int) else t for t in qubits]
+        return Fence(qubits)
+    else:
+        return FenceAll()
+
+
 QUANTUM_GATES: Mapping[str, Callable[..., Gate]] = {
     "I": I,
     "X": X,
@@ -939,6 +1118,24 @@ Dictionary of quantum gate functions keyed by gate names.
 STANDARD_GATES = QUANTUM_GATES
 """
 Alias for the above dictionary of quantum gates.
+"""
+
+
+QUILT_INSTRUCTIONS: Mapping[str, Callable[..., AbstractInstruction]] = {
+    "PULSE": PULSE,
+    "SET-FREQUENCY": SET_FREQUENCY,
+    "SHIFT-FREQUENCY": SHIFT_FREQUENCY,
+    "SET-PHASE": SET_PHASE,
+    "SHIFT-PHASE": SHIFT_PHASE,
+    "SWAP-PHASE": SWAP_PHASE,
+    "SET-SCALE": SET_SCALE,
+    "CAPTURE": CAPTURE,
+    "RAW-CAPTURE": RAW_CAPTURE,
+    "DELAY": DELAY,
+    "FENCE": FENCE,
+}
+"""
+Dictionary of Quilt AST construction functions keyed by instruction name.
 """
 
 STANDARD_INSTRUCTIONS: Mapping[
@@ -978,6 +1175,7 @@ Dictionary of standard instruction functions keyed by instruction names.
 
 __all__ = (
     list(QUANTUM_GATES.keys())
+    + list(QUILT_INSTRUCTIONS.keys())
     + list(STANDARD_INSTRUCTIONS.keys())
-    + ["Gate", "QUANTUM_GATES", "STANDARD_GATES", "STANDARD_INSTRUCTIONS"]
+    + ["Gate", "QUANTUM_GATES", "STANDARD_GATES", "QUILT_INSTRUCTIONS", "STANDARD_INSTRUCTIONS"]
 )

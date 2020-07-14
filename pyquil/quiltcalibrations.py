@@ -72,8 +72,9 @@ def fill_placeholders(obj, placeholder_values: Dict[Union[FormalArgument, Parame
             return obj
         elif isinstance(obj, Expression):
             # defer to the usual PyQuil substitution
-            return substitute(obj, {k:v for k,v in placeholder_values.items()
-                                    if isinstance(k, Parameter)})
+            return substitute(
+                obj, {k: v for k, v in placeholder_values.items() if isinstance(k, Parameter)}
+            )
         elif isinstance(obj, FormalArgument):
             return placeholder_values[obj]
         elif isinstance(obj, Frame):
@@ -120,18 +121,20 @@ def fill_placeholders(obj, placeholder_values: Dict[Union[FormalArgument, Parame
                 attrs = specs[type(obj)]
                 updated = copy(obj)
                 for attr in attrs:
-                    setattr(updated, attr,
-                            fill_placeholders(getattr(updated, attr), placeholder_values))
+                    setattr(
+                        updated, attr, fill_placeholders(getattr(updated, attr), placeholder_values)
+                    )
                 return updated
             else:
                 raise ValueError(f"Unable to fill placeholders in object {obj}.")
     except Exception as e:
         raise e
-        #raise ValueError(f"Unable to fill placeholders in  object {obj}.")
+        # raise ValueError(f"Unable to fill placeholders in  object {obj}.")
 
 
-
-def match_calibration(instr: AbstractInstruction, cal: Union[DefCalibration, DefMeasureCalibration]) -> Optional[CalibrationMatch]:
+def match_calibration(
+    instr: AbstractInstruction, cal: Union[DefCalibration, DefMeasureCalibration]
+) -> Optional[CalibrationMatch]:
     """Match a calibration definition to an instruction.
 
     On a successful match, return a (possibly empty) dictionary mapping calibration

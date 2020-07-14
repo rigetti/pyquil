@@ -222,7 +222,10 @@ def wavefunction_payload(quil_program: Program, random_seed: int) -> Dict[str, o
     if not isinstance(quil_program, Program):
         raise TypeError("quil_program must be a Quil program object")
 
-    payload: Dict[str, object] = {"type": TYPE_WAVEFUNCTION, "compiled-quil": quil_program.out(calibrations=False)}
+    payload: Dict[str, object] = {
+        "type": TYPE_WAVEFUNCTION,
+        "compiled-quil": quil_program.out(calibrations=False),
+    }
 
     if random_seed is not None:
         payload["rng-seed"] = random_seed
