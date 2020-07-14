@@ -13,6 +13,9 @@ Program
 
         ~Program.instructions
         ~Program.defined_gates
+        ~Program.calibrations
+        ~Program.waveforms
+        ~Program.frames
         ~Program.out
         ~Program.get_qubits
         ~Program.is_protoquil
