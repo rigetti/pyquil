@@ -16,12 +16,12 @@ can be created using the function documented in this section::
 Native gates for Rigetti QPUs
 -----------------------------
 
-Physical quantum processors can enact a subset of all named gates. Luckily,
-a small set of gates is universal for quantum computation, so all named gates
-can be enacted by suitable combinations of physically realizable gates. Rigetti's
-superconducting quantum processors can perform :py:func:`RX` with ``angle=+-pi/2`` or
-``angle=+-pi``, :py:func:`RZ` with an arbitrary angle, and :py:func:`CZ` interactions
-between neighboring qubits. Rigetti QPUs can natively measure in the computational (Z) basis.
+Physical quantum processors can enact a subset of all named gates. Luckily, a small set of gates is
+universal for quantum computation, so all named gates can be enacted by suitable combinations of
+physically realizable gates. Rigetti's superconducting quantum processors can perform :py:func:`RX`
+with ``angle=+-pi/2`` or ``angle=+-pi``, :py:func:`RZ` with an arbitrary angle, :py:func:`CZ` and
+parametric :py:func:`XY` interactions between neighboring qubits. Rigetti QPUs can natively measure
+in the computational (Z) basis.
 
 .. autosummary::
     :toctree: autogen
@@ -30,6 +30,7 @@ between neighboring qubits. Rigetti QPUs can natively measure in the computation
     RX
     RZ
     CZ
+    XY
     MEASURE
 
 
@@ -63,6 +64,7 @@ set (ISA). The full list of quantum gates and classical Quil instructions is enu
     :template: autosumm.rst
 
     CZ
+    XY
     CNOT
     CCNOT
     CPHASE00

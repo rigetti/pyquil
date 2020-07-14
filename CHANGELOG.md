@@ -1,7 +1,7 @@
 Changelog
 =========
 
-[v2.21](https://github.com/rigetti/pyquil/compare/v2.20.0..master) (in development)
+[dev](https://github.com/rigetti/pyquil/compare/v2.20.0..master) (in development)
 ------------------------------------------------------------------------------------
 
 ### Announcements
@@ -11,6 +11,7 @@ Changelog
 -   Documentation for Compiler, Advanced Usage, and Troubleshooting sections updated
     (@notmgsk, gh-1220).
 -   Use numeric abstract base classes for type checking (@kilimanjaro, gh-1219).
+-   Add XY to docs (@notmgsk, gh-1226).
 
 ### Bugfixes
 

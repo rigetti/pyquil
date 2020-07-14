@@ -106,7 +106,7 @@ The following gates methods come standard with Quil and ``gates.py``:
 
 -  Phase gates: ``PHASE(theta)``, ``S``, ``T``
 
--  Controlled phase gates: ``CZ``, ``CPHASE00(alpha)``,
+-  Controlled phase gates: ``CZ``, ``XY``, ``CPHASE00(alpha)``,
    ``CPHASE01(alpha)``, ``CPHASE10(alpha)``, ``CPHASE(alpha)``
 
 -  Cartesian rotation gates: ``RX(theta)``, ``RY(theta)``, ``RZ(theta)``
