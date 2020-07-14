@@ -43,10 +43,11 @@ def decode_buffer(buffer: Dict[str, Any]) -> np.ndarray:
     buf = np.frombuffer(buffer["data"], dtype=buffer["dtype"])
     return buf.reshape(buffer["shape"])
 
+
 def _extract_memory_regions(
-        memory_descriptors: Dict[str, ParameterSpec],
-        ro_sources: List[Tuple[MemoryReference, str]],
-        buffers: Dict[str, np.ndarray]
+    memory_descriptors: Dict[str, ParameterSpec],
+    ro_sources: List[Tuple[MemoryReference, str]],
+    buffers: Dict[str, np.ndarray],
 ) -> Dict[str, np.ndarray]:
 
     # hack to extract num_shots indirectly from the shape of the returned data
@@ -55,10 +56,10 @@ def _extract_memory_regions(
 
     def alloc(spec):
         dtype = {
-            'BIT': np.int64,
-            'INTEGER': np.int64,
-            'REAL': np.float64,
-            'FLOAT': np.float64,
+            "BIT": np.int64,
+            "INTEGER": np.int64,
+            "REAL": np.float64,
+            "FLOAT": np.float64,
         }
         try:
             return np.ndarray((num_shots, spec.length), dtype=dtype[spec.type])
@@ -81,15 +82,17 @@ def _extract_memory_regions(
 
         if np.iscomplexobj(buf):
             buf = np.column_stack((buf.real, buf.imag))
-        _,width = buf.shape
+        _, width = buf.shape
 
         end = mref.offset + width
         region_width = memory_descriptors[mref.name].length
         if end > region_width:
-            raise ValueError(f"Attempted to fill {mref.name}[{mref.offset}, {end})"
-                             f"but the declared region has width {region_width}.")
+            raise ValueError(
+                f"Attempted to fill {mref.name}[{mref.offset}, {end})"
+                f"but the declared region has width {region_width}."
+            )
 
-        regions[mref.name][:,mref.offset:end] = buf
+        regions[mref.name][:, mref.offset : end] = buf
 
     return regions
 
@@ -249,9 +252,7 @@ support at support@rigetti.com."""
         self._memory_results = defaultdict(lambda: None)
         if results:
             extracted = _extract_memory_regions(
-                self._executable.memory_descriptors,
-                ro_sources,
-                results
+                self._executable.memory_descriptors, ro_sources, results
             )
             for name, array in extracted.items():
                 self._memory_results[name] = array
@@ -261,7 +262,7 @@ support at support@rigetti.com."""
                 "The result of this program will always be an empty array. Are "
                 "you sure you didn't mean to measure some of your qubits?"
             )
-            self._memory_results['ro'] = np.zeros((0, 0), dtype=np.int64)
+            self._memory_results["ro"] = np.zeros((0, 0), dtype=np.int64)
 
         self._last_results = results
 
@@ -303,7 +304,7 @@ support at support@rigetti.com."""
         for name, spec in self._executable.memory_descriptors.items():
             # NOTE: right now we fake reading out measurement values into classical memory
             # hence we omit them here from the patch table.
-            if any(name == mref.name for mref,_ in self._executable.ro_sources):
+            if any(name == mref.name for mref, _ in self._executable.ro_sources):
                 continue
             initial_value = 0.0 if spec.type == "REAL" else 0
             patch_values[name] = [initial_value] * spec.length

@@ -275,19 +275,22 @@ class QPUCompiler(AbstractCompiler):
     @_record_call
     def quil_to_native_quil(self, program: Program, *, protoquil: Optional[bool] = None) -> Program:
         self._connect_quilc()
-        request = NativeQuilRequest(quil=program.out(calibrations=False),
-                                    target_device=self.target_device)
+        request = NativeQuilRequest(
+            quil=program.out(calibrations=False), target_device=self.target_device
+        )
         response = self.quilc_client.call(
             "quil_to_native_quil", request, protoquil=protoquil
         ).asdict()
         nq_program = parse_program(response["quil"])
         nq_program.native_quil_metadata = response["metadata"]
         nq_program.num_shots = program.num_shots
-        nq_program.calibrations = program.calibrations
+        nq_program._calibrations = program.calibrations
         return nq_program
 
     @_record_call
-    def native_quil_to_executable(self, nq_program: Program, *, debug: bool = False) -> Optional[QuiltBinaryExecutableResponse]:
+    def native_quil_to_executable(
+        self, nq_program: Program, *, debug: bool = False
+    ) -> Optional[QuiltBinaryExecutableResponse]:
         if not self.qpu_compiler_client:
             raise UserMessageError(
                 "It looks like you're trying to compile to an executable, but "
@@ -300,8 +303,7 @@ class QPUCompiler(AbstractCompiler):
         arithmetic_response = rewrite_arithmetic(nq_program)
 
         request = QuiltBinaryExecutableRequest(
-            quilt=arithmetic_response.quil,
-            num_shots=nq_program.num_shots
+            quilt=arithmetic_response.quil, num_shots=nq_program.num_shots
         )
         response: QuiltBinaryExecutableResponse = cast(
             QuiltBinaryExecutableResponse,
@@ -314,7 +316,7 @@ class QPUCompiler(AbstractCompiler):
         response.recalculation_table = arithmetic_response.recalculation_table  # type: ignore
         response.memory_descriptors = _collect_memory_descriptors(nq_program)
         # Convert strings to MemoryReference for downstream processing.
-        response.ro_sources = [(parse_mref(mref),source) for mref, source in response.ro_sources]
+        response.ro_sources = [(parse_mref(mref), source) for mref, source in response.ro_sources]
         if not debug:
             response.debug = {}
 
@@ -322,6 +324,10 @@ class QPUCompiler(AbstractCompiler):
 
     @_record_call
     def get_quilt_calibrations(self) -> Program:
+        """
+        Get the Quilt calibrations associated with the underlying QPU.
+
+        :returns: A Program object containing the calibration definitions. """
         self._connect_qpu_compiler()
         request = QuiltCalibrationsRequest(target_device=self.target_device)
         response = self.qpu_compiler_client.call("get_quilt_calibrations", request)
@@ -471,4 +477,3 @@ class HTTPCompilerClient:
             raise UserMessageError(message) from e
 
         return cast(Message, from_json(response.text))  # type: ignore
-

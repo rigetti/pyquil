@@ -2,12 +2,7 @@ from numbers import Real
 import numpy as np
 
 from pyquil import Program
-from pyquil.quilatom import (
-    MemoryReference,
-    Expression,
-    Sub,
-    Div
-)
+from pyquil.quilatom import MemoryReference, Expression, Sub, Div
 from pyquil.quilbase import (
     Declare,
     Gate,
@@ -15,7 +10,7 @@ from pyquil.quilbase import (
     ShiftFrequency,
     SetScale,
     SetPhase,
-    ShiftPhase
+    ShiftPhase,
 )
 from rpcq.messages import ParameterSpec, ParameterAref, RewriteArithmeticResponse
 
@@ -91,7 +86,6 @@ def rewrite_arithmetic(prog: Program) -> RewriteArithmeticResponse:
         recalculation_table[aref(new_mref)] = expr
         return new_mref
 
-
     for inst in prog:
         if isinstance(inst, Gate):
             new_params = []
@@ -101,7 +95,7 @@ def rewrite_arithmetic(prog: Program) -> RewriteArithmeticResponse:
                 elif isinstance(param, Expression):
                     # Quil gate angles are in radians,
                     # but downstream processing expects revolutions
-                    expr = str(Div(param, 2*np.pi))
+                    expr = str(Div(param, 2 * np.pi))
                     new_params.append(expr_mref(expr))
                 else:
                     raise ValueError(f"Unknown parameter type {type(param)} in {inst}.")
@@ -120,10 +114,7 @@ def rewrite_arithmetic(prog: Program) -> RewriteArithmeticResponse:
                 expr = Sub(inst.freq, fdefn.center_frequency)
             else:
                 expr = inst.freq
-            expr = Div(
-                expr,
-                fdefn.sample_rate
-            )
+            expr = Div(expr, fdefn.sample_rate)
             expr = str(expr)
             updated.inst(inst.__class__(inst.frame, expr_mref(expr)))
         elif isinstance(inst, (SetPhase, ShiftPhase)):
@@ -132,7 +123,7 @@ def rewrite_arithmetic(prog: Program) -> RewriteArithmeticResponse:
             else:
                 # Quil phases are in radians
                 # but downstream processing expects revolutions
-                expr = str(Div(inst.phase, 2*np.pi))
+                expr = str(Div(inst.phase, 2 * np.pi))
                 updated.inst(inst.__class__(inst.frame, expr_mref(expr)))
         elif isinstance(inst, SetScale):
             if isinstance(inst.scale, Real):
