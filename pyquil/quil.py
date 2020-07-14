@@ -121,9 +121,11 @@ class Program(object):
 
     def __init__(self, *instructions: InstructionDesignator):
         self._defined_gates: List[DefGate] = []
-        self.calibrations: List[Union[DefCalibration, DefMeasureCalibration]] = []
-        self.waveforms: Dict[str, DefWaveform] = {}
-        self.frames: Dict[Frame, DefFrame] = {}
+
+        self._calibrations: List[Union[DefCalibration, DefMeasureCalibration]] = []
+        self._waveforms: Dict[str, DefWaveform] = {}
+        self._frames: Dict[Frame, DefFrame] = {}
+
         # Implementation note: the key difference between the private _instructions and
         # the public instructions property below is that the private _instructions list
         # may contain placeholder labels.
@@ -146,6 +148,21 @@ class Program(object):
         # Note to developers: Have you changed this method? Have you changed the fields which
         # live on `Program`? Please update `Program.copy()`!
 
+    @property
+    def calibrations(self) -> List[Union[DefCalibration, DefMeasureCalibration]]:
+        """ A list of Quilt calibration definitions. """
+        return self._calibrations
+
+    @property
+    def waveforms(self) -> Dict[str, DefWaveform]:
+        """ A mapping from waveform names to their corresponding definitions. """
+        return self._waveforms
+
+    @property
+    def frames(self) -> Dict[Frame, DefFrame]:
+        """ A mapping from Quilt frames to their definitions. """
+        return self._frames
+
     def copy_everything_except_instructions(self) -> "Program":
         """
         Copy all the members that live on a Program object.
@@ -153,10 +170,10 @@ class Program(object):
         :return: a new Program
         """
         new_prog = Program()
-        new_prog.calibrations = self.calibrations.copy()
-        new_prog.waveforms = self.waveforms.copy()
+        new_prog._calibrations = self.calibrations.copy()
+        new_prog._waveforms = self.waveforms.copy()
         new_prog._defined_gates = self._defined_gates.copy()
-        new_prog.frames = self.frames.copy()
+        new_prog._frames = self.frames.copy()
         if self.native_quil_metadata is not None:
             # TODO: remove this type: ignore once rpcq._base.Message gets type hints.
             new_prog.native_quil_metadata = self.native_quil_metadata.copy()  # type: ignore
@@ -673,7 +690,9 @@ class Program(object):
             if match is not None:
                 return match
 
-    def get_calibration(self, instr: AbstractInstruction) -> Optional[Union[DefCalibration, DefMeasureCalibration]]:
+    def get_calibration(
+        self, instr: AbstractInstruction
+    ) -> Optional[Union[DefCalibration, DefMeasureCalibration]]:
         """
         Get the calibration corresponding to the provided instruction.
 
@@ -702,7 +721,6 @@ class Program(object):
             return expand_calibration(match)
         else:
             return [instr]
-
 
     def is_protoquil(self, quilt: bool = False) -> bool:
         """
@@ -795,9 +813,9 @@ class Program(object):
         p = Program()
         p.inst(self)
         p.inst(other)
-        p.calibrations = self.calibrations
+        p._calibrations = self.calibrations
         if isinstance(other, Program):
-            p.calibrations += other.calibrations
+            p.calibrations.extend(other.calibrations)
         return p
 
     def __iadd__(self, other: InstructionDesignator) -> "Program":
@@ -809,7 +827,7 @@ class Program(object):
         """
         self.inst(other)
         if isinstance(other, Program):
-            self.calibrations += other.calibrations
+            self.calibrations.extend(other.calibrations)
         return self
 
     def __getitem__(self, index: Union[slice, int]) -> Union[AbstractInstruction, "Program"]:
