@@ -779,7 +779,8 @@ class Frame(QuilAtom):
     """ The name of the frame. """
 
     def __init__(self, qubits, name):
-        object.__setattr__(self, "qubits", tuple(qubits))
+        qubits = tuple(Qubit(q) if isinstance(q, int) else q for q in qubits)
+        object.__setattr__(self, "qubits", qubits)
         object.__setattr__(self, "name", name)
 
     def __str__(self) -> str:

@@ -684,7 +684,6 @@ def test_parsing_defcal_measure():
 
 
 def test_parse_defcal_error_on_mref():
-    assert parse('DEFCAL RX(%theta) 0:\n    NOP')
+    assert parse("DEFCAL RX(%theta) 0:\n    NOP")
     with pytest.raises(ValueError):
-        parse('DEFCAL RX(theta) 0:\n    NOP')
-    
+        parse("DEFCAL RX(theta) 0:\n    NOP")

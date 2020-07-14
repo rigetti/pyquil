@@ -33,7 +33,6 @@ from pyquil.quilbase import (
 )
 
 
-
 def test_waveform_samples():
     # this is a very naive check: can we sample from the built-in template
     # waveforms?
@@ -163,13 +162,9 @@ def test_measure_calibration_match():
 
 
 def test_apply_match_shift_phase():
-    settings = {FormalArgument("q"): Qubit(0),
-                Parameter("theta"): np.pi
-    }
+    settings = {FormalArgument("q"): Qubit(0), Parameter("theta"): np.pi}
 
-    instr = ShiftPhase(
-        Frame([FormalArgument("q")], "ff"), Parameter("theta") / (2.0 * np.pi)
-    )
+    instr = ShiftPhase(Frame([FormalArgument("q")], "ff"), Parameter("theta") / (2.0 * np.pi))
 
     actual = fill_placeholders(instr, settings)
 
@@ -179,9 +174,7 @@ def test_apply_match_shift_phase():
 
 
 def test_apply_match_delay_qubits():
-    settings = {FormalArgument("q"): Qubit(0),
-                Parameter("foo"): 1.0
-    }
+    settings = {FormalArgument("q"): Qubit(0), Parameter("foo"): 1.0}
 
     instr = DelayQubits([Qubit(1), FormalArgument("q")], duration=Parameter("foo"))
 
@@ -193,14 +186,14 @@ def test_apply_match_delay_qubits():
 
 
 def test_program_match_last():
-    first = DefCalibration('X', [], [Qubit(0)], ['foo'])
-    second = DefCalibration('X', [], [Qubit(0)], ['bar'])
+    first = DefCalibration("X", [], [Qubit(0)], ["foo"])
+    second = DefCalibration("X", [], [Qubit(0)], ["bar"])
     prog = Program(first, second)
-    match =  prog.match_calibrations(Gate('X', [], [Qubit(0)]))
+    match = prog.match_calibrations(Gate("X", [], [Qubit(0)]))
     assert match == CalibrationMatch(cal=second, settings={})
 
 
 def test_program_calibrate():
     prog = Program('DEFCAL RZ(%theta) q:\n    SHIFT-PHASE q "rf" -%theta')
-    calibrated = prog.calibrate(Gate('RZ', [np.pi], [Qubit(0)]))
+    calibrated = prog.calibrate(Gate("RZ", [np.pi], [Qubit(0)]))
     assert calibrated == Program('SHIFT-PHASE 0 "rf" -pi').instructions

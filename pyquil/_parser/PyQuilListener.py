@@ -528,7 +528,9 @@ class PyQuilListener(QuilListener):
         for p in parameters:
             mrefs = _contained_mrefs(p)
             if mrefs:
-                raise ValueError(f"Unexpected memory references {mrefs} in DEFCAL {name}. Did you forget a '%'?")
+                raise ValueError(
+                    f"Unexpected memory references {mrefs} in DEFCAL {name}. Did you forget a '%'?"
+                )
 
         qubits = list(map(_formalQubit, ctx.formalQubit()))
         instrs = self.result
