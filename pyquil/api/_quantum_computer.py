@@ -455,7 +455,7 @@ class QuantumComputer:
         :param protoquil: Whether to restrict the input program to and the compiled program
             to protoquil (executable on QPU). A value of ``None`` means defer to server.
         :param state_aware: Perform compilation assuming the quantum state begins in a
-            well-known state (i.e. |000...0>).
+            well-known state (i.e. ``|000...0>``).
         :return: An executable binary suitable for passing to :py:func:`QuantumComputer.run`.
         """
         if protoquil_positional is not None:
