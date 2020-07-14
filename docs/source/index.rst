@@ -101,6 +101,7 @@ Contents
 
    apidocs/program
    apidocs/gates
+   apidocs/waveforms
    apidocs/pauli
    apidocs/quantum_computer
    apidocs/compilers
