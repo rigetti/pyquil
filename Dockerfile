@@ -1,6 +1,6 @@
 # specify the dependency versions (can be overriden with --build_arg)
-ARG quilc_version=1.16.1
-ARG qvm_version=1.15.3
+ARG quilc_version=1.20.0
+ARG qvm_version=1.17.1
 ARG python_version=3.6
 
 # use multi-stage builds to independently pull dependency versions
