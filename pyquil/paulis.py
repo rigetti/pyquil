@@ -697,7 +697,7 @@ class PauliSum(object):
         """
         if isinstance(other, PauliTerm):
             other_sum = PauliSum([other])
-        elif isinstance(other, (Expression, Number)):
+        elif isinstance(other, (Expression, Number, complex)):
             other_sum = PauliSum([other * ID()])
         else:
             other_sum = other
