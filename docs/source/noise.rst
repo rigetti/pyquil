@@ -778,7 +778,7 @@ This section provides the necessary theoretical foundation for
 accurately modeling noisy quantum measurements on superconducting
 quantum processors. It relies on some of the abstractions (density
 matrices, Kraus maps) introduced in our notebook on `gate noise
-models <https://github.com/rigetti/forest-tutorials/notebooks/GateNoiseModels.ipynb>`__.
+models <https://github.com/rigetti/forest-tutorials/blob/master/notebooks/GateNoiseModels.ipynb>`__.
 
 The most general type of measurement performed on a single qubit at a
 single time can be characterized by some set :math:`\mathcal{O}` of
