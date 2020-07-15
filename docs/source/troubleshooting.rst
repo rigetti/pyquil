@@ -27,9 +27,11 @@ to help!
 3. Run your script with debug logging enabled. If you're running a script, you can enable that
    using an environment variable:
 
-   .. code::
+   .. code:: python
 
     LOG_LEVEL=DEBUG pyquil my_script.py
+
+   If you're running a notebook, then you can change the log level within your code:
 
    .. code:: python
 
@@ -38,6 +40,6 @@ to help!
 
     logger.setLevel(logging.DEBUG)
 
-If the problem still isn't clear, then we can help! Please send your debug log to us, 
-along with the contents of your ``~/.qcs_config`` and ``~/.forest_config`` files, at our
-`support page <https://rigetti.zendesk.com>`_. Thanks for using pyQuil!
+   If the problem still isn't clear, then we can help! Please send your debug log to us, 
+   along with the contents of your ``~/.qcs_config`` and ``~/.forest_config`` files, at our
+   `support page <https://rigetti.zendesk.com>`_. Thanks for using pyQuil!
