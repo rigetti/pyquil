@@ -157,7 +157,7 @@ def _extract_qubit_index(
 def _get_frame_qubits(frame: Frame, index: bool = True) -> Set[QubitDesignator]:
     for q in frame.qubits:
         if isinstance(q, FormalArgument):
-            raise ValueError(f"Attempted to extract FormalArgument where a Qubit is expected.")
+            raise ValueError("Attempted to extract FormalArgument where a Qubit is expected.")
     return {_extract_qubit_index(q, index) for q in cast(List[Qubit], frame.qubits)}
 
 
@@ -1367,7 +1367,7 @@ class DefWaveform(AbstractInstruction):
             for param in params:
                 ret += f", {param}"
             ret += ")"
-        ret += f":\n    "
+        ret += ":\n    "
 
         ret += ", ".join(map(_complex_str, self.entries))
         return ret
