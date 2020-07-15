@@ -42,24 +42,28 @@ build-docs:
     - make docs
     - cp -r docs/build/html public
     - echo "Generated docs are now viewable at $CI_ENVIRONMENT_URL"
+  services: []
 
 # validate code format against Black
 check-format:
   extends: .python
   script:
     - make check-format
+  services: []
 
 # validate code style against flake8
 check-style:
   extends: .python
   script:
     - make check-style
+  services: []
 
 # perform static type checking with mypy
 check-types:
   extends: .python
   script:
     - make check-types
+  services: []
 
 # run the unit tests with Python 3.6
 test-py36:
