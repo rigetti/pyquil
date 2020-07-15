@@ -828,7 +828,7 @@ def get_qc(
     QVMs you must use :py:func:`qc.compile` or :py:func:`qc.compiler.native_quil_to_executable`
     prior to :py:func:`qc.run`.
 
-    The Rigetti QVM must be downloaded from https://www.rigetti.com/forest and run as a server
+    The Rigetti QVM must be downloaded from https://qcs.rigetti.com/sdk-downloads and run as a server
     alongside your python program. To use pyQuil's built-in QVM, replace all ``"-qvm"`` suffixes
     with ``"-pyqvm"``::
 
@@ -969,7 +969,7 @@ def local_forest_runtime(
     """A context manager for local QVM and QUIL compiler.
 
     You must first have installed the `qvm` and `quilc` executables from
-    the forest SDK. [https://www.rigetti.com/forest]
+    the forest SDK. [https://qcs.rigetti.com/sdk-downloads]
 
     This context manager will ensure that the designated ports are not used, start up `qvm` and
     `quilc` proccesses if possible and terminate them when the context is exited.

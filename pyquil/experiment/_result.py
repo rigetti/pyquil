@@ -247,7 +247,7 @@ def ratio_variance(
     where we have dropped the covariance term as noted above.
 
     See the following for more details:
-      - https://doi.org/10.1002/(SICI)1097-0320(20000401)39:4<300::AID-CYTO8>3.0.CO;2-O
+      - https://doi.org/10.1002/(SICI)1097-0320(20000401)39:4%3C300::AID-CYTO8%3E3.0.CO;2-O
       - http://www.stat.cmu.edu/~hseltman/files/ratio.pdf
       - https://w.wiki/EMh
 
