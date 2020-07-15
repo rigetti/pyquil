@@ -1,8 +1,6 @@
 import sys
 from copy import copy
-import numpy as np
 
-from numbers import Real
 from typing import Union, Dict, List, Any, Optional
 
 if sys.version_info < (3, 7):
