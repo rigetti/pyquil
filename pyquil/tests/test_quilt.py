@@ -6,7 +6,6 @@ from pyquil.quilatom import (
     Parameter,
     FormalArgument,
     Frame,
-    WaveformReference,
 )
 from pyquil.quiltwaveforms import (
     FlatWaveform,
@@ -20,14 +19,11 @@ from pyquil.quiltcalibrations import (
     CalibrationMatch,
     fill_placeholders,
     match_calibration,
-    expand_calibration,
 )
 from pyquil.quilbase import (
     Gate,
     DefCalibration,
-    Capture,
     ShiftPhase,
-    Pulse,
     DelayQubits,
     Qubit,
 )
@@ -75,7 +71,7 @@ def _match(cal, instr):
     # get the first line, remove trailing colon if present
     cal_header = cal.splitlines()[0].strip().replace(":", "")
     # convert to quil ast
-    full_calibration = cal_header + f":\n    NOP\n\n"
+    full_calibration = cal_header + ":\n    NOP\n\n"
     cal = Program(full_calibration).calibrations[0]
 
     # we pull the last instr (omitting implicit DECLARE)

@@ -1053,7 +1053,8 @@ def DELAY(*args) -> Union[DelayFrames, DelayQubits]:
     """
     if len(args) < 2:
         raise ValueError(
-            "Expected DELAY(t1,...,tn, duration). In particular, there must be at least one target, as well as a duration."
+            "Expected DELAY(t1,...,tn, duration). In particular, there "
+            "must be at least one target, as well as a duration."
         )
     targets, duration = args[:-1], args[-1]
     if not isinstance(duration, ParameterDesignator):
@@ -1066,7 +1067,8 @@ def DELAY(*args) -> Union[DelayFrames, DelayQubits]:
         return DelayQubits(targets, duration)
     else:
         raise TypeError(
-            "DELAY targets must be either (i) a list of frames, or (ii) a list of qubits / formal arguments."
+            "DELAY targets must be either (i) a list of frames, or "
+            "(ii) a list of qubits / formal arguments."
         )
 
 
