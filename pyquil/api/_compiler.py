@@ -17,14 +17,12 @@ import logging
 import sys
 import warnings
 from requests.exceptions import RequestException
-from typing import Dict, Any, List, Optional, Tuple, Union, cast
-from collections import Counter
+from typing import Dict, Any, Optional, Union, cast
 
 from rpcq._base import Message, to_json, from_json
 from rpcq._client import Client
 from rpcq.messages import (
     QuiltCalibrationsRequest,
-    QuiltCalibrationsResponse,
     QuiltBinaryExecutableRequest,
     QuiltBinaryExecutableResponse,
     NativeQuilRequest,
@@ -43,7 +41,7 @@ from pyquil.device._main import AbstractDevice, Device
 from pyquil.parser import parse_program
 from pyquil.quil import Program
 from pyquil.quilatom import MemoryReference
-from pyquil.quilbase import Measurement, Declare, Pragma
+from pyquil.quilbase import Declare
 from pyquil.version import __version__
 
 if sys.version_info < (3, 7):
@@ -93,7 +91,7 @@ def parse_mref(val: str) -> MemoryReference:
             return MemoryReference(name, int(offset[:-1]))
         else:
             return MemoryReference(val)
-    except Exception as e:
+    except Exception:
         raise ValueError(f"Unable to parse memory reference {val}.")
 
 
