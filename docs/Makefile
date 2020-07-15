@@ -2,7 +2,10 @@
 #
 
 # You can set these variables from the command line.
-SPHINXOPTS    = -W -b linkcheck # treat warnings as errors, validate all external URLs
+
+ # (-W) treat warnings as errors but (--keep-going) continue to the end
+ # (-b linkcheck) validate all external URLs as live
+SPHINXOPTS    = -W --keep-going -b linkcheck
 SPHINXBUILD   = sphinx-build
 SOURCEDIR     = source
 BUILDDIR      = build
