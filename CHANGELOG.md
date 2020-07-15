@@ -832,7 +832,7 @@ constructing and running quantum programs. This release contains many
 major changes including:
 
 1.  The introduction of [Quantum Cloud
-    Services](https://www.rigetti.com/qcs). Access Rigetti\'s QPUs from
+    Services](https://qcs.rigetti.com). Access Rigetti\'s QPUs from
     co-located classical compute resources for minimal latency. The web
     API for running QVM and QPU jobs has been deprecated and cannot be
     accessed with pyQuil 2.0
