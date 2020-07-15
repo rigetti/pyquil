@@ -28,11 +28,20 @@ services:
 # build the Sphinx documentation
 # for all Python jobs, see rigetti/gitlab-pipelines/python.gitlab-ci.yml
 build-docs:
+  artifacts:
+    paths:
+      - public
+    expire_in: 1 week
+  environment:
+    name: review/$CI_COMMIT_REF_SLUG
+    url: "https://rigetti.gitlab.io/-/forest/pyquil/-/jobs/$CI_JOB_ID/artifacts/public/index.html"
   extends: .python
   image: python:3.6
   script:
     - apt-get update && apt-get install -y pandoc
     - make docs
+    - cp -r docs/build/html public
+    - echo "Generated docs are now viewable at $CI_ENVIRONMENT_URL"
 
 # validate code format against Black
 check-format:
