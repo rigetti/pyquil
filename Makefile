@@ -45,6 +45,7 @@ dist:
 .PHONY: docs
 docs: CHANGELOG.md
 	pandoc --from=markdown --to=rst --output=docs/source/changes.rst CHANGELOG.md
+	make -C docs linkcheck
 	make -C docs html
 
 .PHONY: docker
