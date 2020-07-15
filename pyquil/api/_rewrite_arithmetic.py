@@ -1,12 +1,14 @@
 from numbers import Real
 
-from pyquil import Program
+from pyquil.quil import Program
 from pyquil.quilatom import MemoryReference, Expression
 from pyquil.quilbase import (
     Declare,
     Gate,
 )
 from rpcq.messages import ParameterSpec, ParameterAref, RewriteArithmeticResponse
+
+from typing import Dict
 
 
 def rewrite_arithmetic(prog: Program) -> RewriteArithmeticResponse:
@@ -56,7 +58,7 @@ def rewrite_arithmetic(prog: Program) -> RewriteArithmeticResponse:
     updated = prog.copy_everything_except_instructions()
     old_descriptors = {inst.name: spec(inst) for inst in prog if isinstance(inst, Declare)}
     recalculation_table = {}
-    seen_exprs = {}
+    seen_exprs: Dict[str, MemoryReference] = {}
 
     # generate a unique name. it's nice to do this in a deterministic fashion
     # rather than globbing in a UUID
