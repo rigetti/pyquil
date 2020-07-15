@@ -178,9 +178,9 @@ about the Wavefunction Simulator :ref:`here <wavefunction_simulator>`.
 The Quantum Processing Unit (QPU)
 ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
 
-To access a QPU endpoint, you will have to `sign up <https://www.rigetti.com/>`_ for Quantum Cloud Services (QCS).
+To access a QPU endpoint, you will have to `sign up <https://qcs.rigetti.com/>`_ for Quantum Cloud Services (QCS).
 Documentation for getting started with your Quantum Machine Image (QMI) is found
-`here <https://www.rigetti.com/qcs/docs/intro-to-qcs>`_. Using QCS, you will ``ssh`` into your QMI, and reserve a
+`here <https://www.rigetti.com/qcs-docs>`_. Using QCS, you will ``ssh`` into your QMI, and reserve a
 QPU lattice for a particular time block.
 
 When your reservation begins, you will be authorized to access the QPU. A configuration file will be
@@ -268,8 +268,8 @@ All of this can be accomplished with :py:func:`~pyquil.api.get_qc`.
 
 For now, you will have to join QCS to get ``QPU_LATTICE_NAME`` by running the
 ``qcs lattices`` command from your QMI. Access to the QPU is only possible from a QMI, during a booked reservation.
-If this sounds unfamiliar, check out our `documentation for QCS <https://www.rigetti.com/qcs/docs/intro-to-qcs>`_
-and `join the waitlist <https://www.rigetti.com/>`_.
+If this sounds unfamiliar, check out our `documentation for QCS <https://www.rigetti.com/qcs-docs>`_
+and `join the waitlist <https://qcs.rigetti.com/>`_.
 
 For more information about creating and adding your own noise models, check out :ref:`noise`.
 
