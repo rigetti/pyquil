@@ -1,7 +1,7 @@
 Changelog
 =========
 
-[dev](https://github.com/rigetti/pyquil/compare/v2.21.0..master) (in development)
+[dev](https://github.com/rigetti/pyquil/compare/v2.21.1..master) (in development)
 ------------------------------------------------------------------------------------
 
 ### Announcements
@@ -9,6 +9,20 @@ Changelog
 ### Improvements and Changes
 
 ### Bugfixes
+
+[v2.21.1](https://github.com/rigetti/pyquil/compare/v2.21.0..v2.21.1) (in development)
+------------------------------------------------------------------------------------
+
+### Announcements
+
+-   This is just a cosmetic updated, to trigger a new docker build.
+
+### Improvements and Changes
+
+### Bugfixes
+
+-   Fix type hinting (@notmgsk, gh-1230)
+
 
 [v2.21.0](https://github.com/rigetti/pyquil/compare/v2.20.0..v2.21.0) (July 14, 2020)
 ------------------------------------------------------------------------------------
