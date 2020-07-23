@@ -21,7 +21,7 @@ from pyquil.experiment._setting import TensorProductState
 from pyquil.paulis import PauliSum, PauliTerm
 from pyquil.quil import Program
 from pyquil.quilatom import Parameter
-from pyquil.quilbase import Gate, _strip_modifiers
+from pyquil.quilbase import Gate, Halt, _strip_modifiers
 from pyquil.simulation.matrices import SWAP, STATES, QUANTUM_GATES
 
 
@@ -342,8 +342,13 @@ def program_unitary(program: Program, n_qubits: int) -> np.ndarray:
         if isinstance(instruction, Gate):
             unitary = lifted_gate(gate=instruction, n_qubits=n_qubits)
             umat = unitary.dot(umat)
+        elif isinstance(instruction, Halt):
+            pass
         else:
-            raise ValueError("Can only compute program unitary for programs composed of `Gate`s")
+            raise ValueError(
+                "Can only compute program unitary for programs composed of `Gate`s. "
+                f"Found unsupported instruction: {instruction}"
+            )
     return umat
 
 
