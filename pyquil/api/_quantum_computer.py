@@ -828,9 +828,9 @@ def get_qc(
     QVMs you must use :py:func:`qc.compile` or :py:func:`qc.compiler.native_quil_to_executable`
     prior to :py:func:`qc.run`.
 
-    The Rigetti QVM must be downloaded from https://qcs.rigetti.com/sdk-downloads and run as a server
-    alongside your python program. To use pyQuil's built-in QVM, replace all ``"-qvm"`` suffixes
-    with ``"-pyqvm"``::
+    The Rigetti QVM must be downloaded from https://qcs.rigetti.com/sdk-downloads and run as a
+    server alongside your python program. To use pyQuil's built-in QVM, replace all ``"-qvm"``
+    suffixes with ``"-pyqvm"``::
 
         >>> qc = get_qc("5q-pyqvm")
 
