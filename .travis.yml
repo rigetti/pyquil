@@ -33,4 +33,5 @@ install:
   - pip install --upgrade pytest
 
 script:
+  - echo $(docker run --rm rigetti/quilc --version)
   - make $TARGET
