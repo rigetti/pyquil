@@ -45,6 +45,7 @@ from pyquil.paulis import PauliTerm
 from pyquil.quil import Program
 from pyquil.quilbase import Halt, Declare
 from pyquil.quilatom import MemoryReference
+from pyquil.simulation.tools import program_unitary
 
 EMPTY_PROGRAM = Program()
 BELL_STATE = Program(H(0), CNOT(0, 1))
@@ -315,8 +316,9 @@ def mock_qpu_compiler(request, m_endpoints, compiler: QVMCompiler):
 
 def test_quil_to_native_quil(compiler):
     response = compiler.quil_to_native_quil(BELL_STATE)
-    print(response)
-    assert response.out() == COMPILED_BELL_STATE.out()
+    assert np.allclose(
+        program_unitary(response, n_qubits=2), program_unitary(COMPILED_BELL_STATE, n_qubits=2)
+    )
 
 
 def test_native_quil_to_binary(server, mock_qpu_compiler):
