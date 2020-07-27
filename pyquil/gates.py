@@ -14,7 +14,7 @@
 #    limitations under the License.
 ##############################################################################
 from warnings import warn
-from typing import Callable, Mapping, Optional, Tuple, Union
+from typing import Callable, Mapping, Optional, Tuple, Union, Iterable
 
 import numpy as np
 
@@ -34,6 +34,7 @@ from pyquil.quilatom import (
 )
 from pyquil.quilbase import (
     AbstractInstruction,
+    Declare,
     Gate,
     Halt,
     Reset,
@@ -554,6 +555,16 @@ This instruction ends the program.
 
 :returns: A Halt object.
 """
+
+
+def DECLARE(
+    name: str,
+    memory_type: str = "BIT",
+    memory_size: int = 1,
+    shared_region: Optional[str] = None,
+    offsets: Optional[Iterable[Tuple[int, str]]] = None,
+) -> MemoryReference:
+    return Declare(name=name, memory_type=memory_type, memory_size=memory_size, shared_region=shared_region, offsets=offsets)
 
 
 def MEASURE(
@@ -1145,6 +1156,7 @@ STANDARD_INSTRUCTIONS: Mapping[
 ] = {
     "WAIT": WAIT,
     "RESET": RESET,
+    "DECLARE": DECLARE,
     "NOP": NOP,
     "HALT": HALT,
     "MEASURE": MEASURE,
@@ -1177,7 +1189,7 @@ Dictionary of standard instruction functions keyed by instruction names.
 
 __all__ = (
     list(QUANTUM_GATES.keys())
-    + list(QUILT_INSTRUCTIONS.keys())
+    + list(fn.__name__ for fn in QUILT_INSTRUCTIONS.values())
     + list(STANDARD_INSTRUCTIONS.keys())
     + ["Gate", "QUANTUM_GATES", "STANDARD_GATES", "QUILT_INSTRUCTIONS", "STANDARD_INSTRUCTIONS"]
 )
