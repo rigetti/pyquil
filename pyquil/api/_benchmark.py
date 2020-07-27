@@ -154,7 +154,7 @@ class BenchmarkConnection(AbstractBenchmarker):
         for clifford in response.sequence:
             clifford_program = Program()
             if interleaver:
-                clifford_program.calibrations = interleaver.calibrations
+                clifford_program._calibrations = interleaver.calibrations
             # Like below, we reversed the order because the API currently hands back the Clifford
             # decomposition right-to-left.
             for index in reversed(clifford):
