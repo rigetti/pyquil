@@ -1,7 +1,7 @@
 Changelog
 =========
 
-[dev](https://github.com/rigetti/pyquil/compare/v2.21.1..master) (in development)
+[v2.22.0](https://github.com/rigetti/pyquil/compare/v2.22.0..master) (in development)
 ------------------------------------------------------------------------------------
 
 ### Announcements
@@ -10,7 +10,19 @@ Changelog
 
 ### Bugfixes
 
-[v2.21.1](https://github.com/rigetti/pyquil/compare/v2.21.0..v2.21.1) (in development)
+[v2.21.1](https://github.com/rigetti/pyquil/compare/v2.21.0..v2.22.0) (July 30, 2020)
+------------------------------------------------------------------------------------
+
+### Announcements
+
+### Improvements and Changes
+
+-   Various improvements and updates to the documentation.
+
+### Bugfixes
+
+
+[v2.21.1](https://github.com/rigetti/pyquil/compare/v2.21.0..v2.21.1) (July 15, 2020)
 ------------------------------------------------------------------------------------
 
 ### Announcements
