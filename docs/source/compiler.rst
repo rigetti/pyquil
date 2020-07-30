@@ -314,6 +314,79 @@ comments serve the same purpose: ``# Entering rewiring: #(n0 n1 ... nk)`` indica
 qubit labeled ``j`` in the program has been assigned to lie on the physical qubit labeled ``nj`` on
 the device.  This is strictly for human-readability: these comments are discarded and have no effect.
 
+.. _swaps:
+
+SWAPs
+*****
+
+When the compiler needs to move an instruction's qubits closer it will insert ``SWAP`` gates which
+can be costly. If, however, the swaps are inserted at the very beginning of the program, the
+compiler can treat them as `virtual` swaps which do not appear in the resulting program but instead
+affect the initial rewiring of the program.
+
+For example, consider running a ``CZ`` on non-neighboring qubits on a linear device:
+
+.. code:: python
+
+   import networkx as nx
+   from pyquil import Program, get_qc
+   from pyquil.api._quantum_computer import _get_qvm_with_topology
+   from pyquil.gates import CZ
+
+   graph = nx.from_edgelist([(0, 1), (1, 2)])
+   qc = _get_qvm_with_topology(name="line", topology=graph)
+
+   p = Program(CZ(0, 2))
+   print(qc.compile(p).program)
+
+   CZ 2 1
+
+We see that the resulting program has only a single ``CZ`` even though the original program would
+usually require the insertion of a ``SWAP`` gate. The compiler instead opted to just relabel (or
+rewire) the qubits, thus not inflating the number of gates in the result.
+
+For larger and more complex programs (with more entanglement) it may not always be possible to avoid
+inserting swaps. For example, the following program requires a ``SWAP`` that increases its gate depth:
+
+.. code:: python
+
+   import networkx as nx
+   from pyquil import Program, get_qc
+   from pyquil.api._quantum_computer import _get_qvm_with_topology
+   from pyquil.gates import H, CZ
+
+   graph = nx.from_edgelist([(0, 1), (1, 2)])
+   qc = _get_qvm_with_topology(name="line", topology=graph)
+
+   p = Program(CZ(0, 1), H(0), CZ(1, 2), CZ(0, 2))
+   print(qc.compile(p).program)
+
+   CZ 2 1
+   RX(-pi/2) 2
+   RX(-pi/2) 2
+   CZ 2 1
+   CZ 1 0
+   RZ(pi/2) 1
+   RX(-pi/2) 1
+   RX(-pi/2) 1
+   RX(-pi/2) 2
+   RX(pi/2) 2
+   XY(pi) 2 1
+   RX(-pi/2) 1
+   CZ 1 0
+   RZ(pi/2) 1
+   RX(pi/2) 2
+   RX(pi/2) 2
+
+.. note::
+
+   ``SWAP`` gates generally cost three ``CZ`` gates or three ``XY`` gates. However, if your device
+   has `both` ``CZ`` and ``XY`` gates available, then the compiler can produce a ``SWAP`` gate that
+   uses only `two` two-qubit gates (one ``CZ`` and one ``XY``).
+
+Initial rewiring
+****************
+
 In addition, you have some control over how the compiler constructs its
 rewiring, which is controlled by ``PRAGMA INITIAL_REWIRING``. The syntax is as follows.
 
@@ -325,25 +398,175 @@ rewiring, which is controlled by ``PRAGMA INITIAL_REWIRING``. The syntax is as f
    PRAGMA INITIAL_REWIRING "<type>"
 
 Including this `before any non-pragmas` will allow the compiler to alter its rewiring
-behavior. The possible options are:
+behavior.
 
-+ ``PARTIAL`` (default): The compiler will start with nothing assigned to each
-  physical qubit. Then, it will fill in the logical-to-physical mapping as it
-  encounters new qubits in the program, making its best guess for where they
-  should be placed.
-+ ``NAIVE``: The compiler will start with an identity mapping as the initial
-  rewiring.  In particular, qubits will **not** be rewired unless the program
-  requests a qubit-qubit interaction not natively available on the QPU.
-+ ``RANDOM``: the compiler will start with a random permutation.
-+ ``GREEDY``: the compiler will make a guess for the initial rewiring based on a
-  quick initial scan of the entire program.
+The default initial rewiring strategy
+^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
 
 .. note::
-   The default option, ``PARTIAL``, may lead to higher-performing programs because the compiler has
-   more freedom to optimize the layout of the gates on the qubits. ``NAIVE``, a simpler option,
-   follows the "Do What I Mean" (DWIM) principle. It is the least sophisticated, but attempts to
-   follow what the user has constructed with their program.
-  
+
+   Each initial rewiring strategy is described in more detail after the discussion about defaults.
+
+When no ``INITIAL_REWIRING`` pragma is provided the compiler will choose one of two options
+depending on the program:
+
++ ``NAIVE``: The qubits used in all instructions in the program satisfy the topological constraints of the device.
+
++ ``PARTIAL``: Otherwise.
+
+For example, if your program consists of two-qubit instructions where the qubits in each instruction are nearest neighbors on the device, the compiler will employ the native strategy:
+
+.. code:: python
+
+   from pyquil import Program, get_qc
+   from pyquil.gates import CZ
+
+   qc = get_qc("Aspen-8", as_qvm=True)
+   p = Program(CZ(3, 4))
+
+   print(qc.compile(p).program)
+
+   CZ 3 4
+
+In the above example, `CZ 3 4` touches qubits that are already nearest neighbors (and support a
+`CZ` instruction) and so the compiler employs the naive strategy (and thus does not rewire those
+qubits to use better ones).
+
+If however, the program uses qubits that `must` be rewired, then the compiler defaults to the
+partial strategy:
+
+.. code:: python
+
+   from pyquil import Program, get_qc
+   from pyquil.gates import CZ
+
+   qc = get_qc("Aspen-8", as_qvm=True)
+   p = Program(CZ(3, 4))
+
+   print(qc.compile(p).program)
+
+   RZ(-pi/2) 0
+   RX(pi/2) 0
+   RZ(-pi/2) 0
+   RZ(pi/2) 1
+   XY(pi) 1 0
+   RZ(pi/2) 1
+   RX(pi/2) 1
+   RZ(-pi/2) 1
+   XY(pi) 1 0
+   RZ(-pi/2) 0
+   RX(-pi/2) 0
+
+.. _naive_rewiring:
+
+NAIVE
+^^^^^
+
+In this mode, the compiler chooses the ``naive`` mapping between logical qubits and physical qubits,
+where logical qubit ``i`` is assigned to physical qubit ``i``. With this initial rewiring, the
+compiler will generally **not** move an instruction's qubits around even if it results in a poor
+execution fidelity. For example assume that ``Aspen-8`` has a low-fidelity ``CZ 0 1``, then
+compiling this program with naive rewiring will **not** move the ``CZ`` to a better qubit pair:
+
+.. code:: python
+
+   from pyquil import Program, get_qc
+   from pyquil.gates import CZ
+
+   qc = get_qc("Aspen-8", as_qvm=True)
+   p = Program('PRAGMA INITIAL_REWIRING "NAIVE"', CZ(0, 1))
+
+   print(qc.compile(p).program)
+
+   PRAGMA INITIAL_REWIRING "NAIVE"
+   CZ 0 1
+
+If, however, your program includes an instruction that does **not** use neighboring qubits the
+compiler will be required to insert swaps (virtual or real, see swaps_) that might affect the
+logical-physical qubit mapping. For example,
+
+.. code:: python
+
+   from pyquil import Program, get_qc
+   from pyquil.gates import CZ
+
+   qc = get_qc("Aspen-8", as_qvm=True)
+   p = Program('PRAGMA INITIAL_REWIRING "NAIVE"', CZ(0, 2))
+
+   print(qc.compile(p).program)
+
+   PRAGMA INITIAL_REWIRING "NAIVE"
+   CZ 6 5
+
+In the above program ``CZ 0 2`` is not a native instruction (meaning it cannot be directly executed
+on the target device) and so the compiler must insert a swap (virtual, in this case) into the
+program. When rewiring must occur in this mode it is **not** guaranteed that the resulting program
+will have optimal fidelity.
+
+.. _partial_rewiring:
+
+PARTIAL
+^^^^^^^
+
+In this mode, the compiler begins with an empty mapping from logical qubits to physical
+qubits. During the progression of compilation this mapping will be filled-in, and thus at any point
+the mapping is said to be `partial`. Generally this gives the compiler the opportunity to assign a
+logical-to-physical qubit mapping that optimizes the fidelity of the resulting program by
+incorporating fidelity information about any qubit in the device ISA.
+
+For example, if the instruction ``CZ 0 1`` has poor fidelity, under the partial rewiring strategy
+the compiler can find an alternative that improves the program fidelity:
+
+.. code:: python
+
+   from pyquil import Program, get_qc
+   from pyquil.gates import CZ
+
+   qc = get_qc("Aspen-8", as_qvm=True)
+   p = Program('PRAGMA INITIAL_REWIRING "PARTIAL"', CZ(0, 1))
+
+   print(qc.compile(p).program)
+
+   PRAGMA INITIAL_REWIRING "PARTIAL"
+   CZ 20 27
+
+Here the compiler sees that the instruction ``CZ 20 27`` will produce a program with better fidelity
+and so opts to reassign qubits in the original program.
+
+.. _greedy_rewiring:
+
+GREEDY
+^^^^^^
+
+In this mode, the compiler chooses an initial mapping between logical and physical qubits based upon
+a greedy optimization of the `distances` between qubits used in the program and those available on
+the device. When compared to the ``PARTIAL`` strategy it is generally more efficient because it uses
+a simple heuristic; however, it will also produce a program with worse overall fidelity. If
+compilation feels too slow and you're willing to trade fidelity for compilation speed, then you may
+see success with this strategy.
+
+Which strategy should I use?
+^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+
+Generally, as quantum software engineers, we want to maximize the execution fidelity of our
+programs. In other cases, however, for example in QCVV, we want to have more control about where
+instructions are placed.
+
+.. list-table:: Choosing an initial rewiring strategy
+   :widths: 70 30
+   :header-rows: 1
+
+   * - Desired effect
+     - Recommended initial rewiring strategy
+   * - Maximize program execution fidelity
+     - ``PARTIAL``
+   * - Preserve, where possible, the qubits used in the input program
+     - ``NAIVE``
+   * - Faster qubit allocation at expense of fidelity
+     - ``GREEDY``
+
+Note that each of these have drawbacks described in the sections above.
+
 Common Error Messages
 ---------------------
 
