@@ -15,6 +15,7 @@
 ##############################################################################
 from warnings import warn
 from typing import Callable, Mapping, Optional, Tuple, Union, Iterable
+from numbers import Real
 
 import numpy as np
 
@@ -1068,7 +1069,7 @@ def DELAY(*args) -> Union[DelayFrames, DelayQubits]:
             "must be at least one target, as well as a duration."
         )
     targets, duration = args[:-1], args[-1]
-    if not isinstance(duration, ParameterDesignator):
+    if not isinstance(duration, (Expression, Real)):
         raise TypeError("The last argument of DELAY must be a real or parametric duration.")
 
     if all(isinstance(t, Frame) for t in targets):
