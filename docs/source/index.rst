@@ -88,8 +88,9 @@ Contents
 
 .. toctree::
    :maxdepth: 3
-   :caption: Quilt Tutorials
+   :caption: Quilt
 
+   quilt_proposal
    quilt_getting_started
    quilt_waveforms
    quilt_parametric
