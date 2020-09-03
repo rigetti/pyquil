@@ -173,7 +173,7 @@ class PyquilConfig(object):
 
     def _parse_auth_tokens(self) -> None:
         self.user_auth_token = _parse_auth_token(
-            self.user_auth_token_path, ["access_token", "refresh_token", "scope"]
+            self.user_auth_token_path, ["access_token", "refresh_token"]
         )
         self.qmi_auth_token = _parse_auth_token(
             self.qmi_auth_token_path, ["access_token", "refresh_token"]
