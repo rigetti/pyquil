@@ -284,7 +284,11 @@ class QPUCompiler(AbstractCompiler):
             quilc_version_dict = self.quilc_client.call("get_version_info")
             check_quilc_version(quilc_version_dict)
         except TimeoutError:
-            raise QuilcNotRunning(f"No quilc server reachable at {self.quilc_client.endpoint}")
+            raise QuilcNotRunning(
+                f"Request to quilc at {self.quilc_client.endpoint} timed out. "
+                "This could mean that quilc is not running, is not reachable, or is "
+                "responding slowly."
+            )
 
     def _connect_qpu_compiler(self) -> None:
         assert self.qpu_compiler_client is not None
@@ -292,7 +296,9 @@ class QPUCompiler(AbstractCompiler):
             self.qpu_compiler_client.call("get_version_info")
         except TimeoutError:
             raise QPUCompilerNotRunning(
-                f"No QPU compiler server reachable at {self.qpu_compiler_client.endpoint}"
+                f"Request to the QPU Compiler at {self.qpu_compiler_client.endpoint} "
+                "timed out. "
+                "This could mean that the service is not reachable or is responding slowly."
             )
 
     def get_version_info(self) -> Dict[str, Any]:
@@ -395,7 +401,11 @@ class QVMCompiler(AbstractCompiler):
             version_dict = self.get_version_info()
             check_quilc_version(version_dict)
         except TimeoutError:
-            raise QuilcNotRunning(f"No quilc server running at {self.client.endpoint}")
+            raise QuilcNotRunning(
+                f"Request to quilc at {self.client.endpoint} timed out. "
+                "This could mean that quilc is not running, is not reachable, or is "
+                "responding slowly."
+            )
 
     def get_version_info(self) -> Dict[str, Any]:
         return cast(Dict[str, Any], self.client.call("get_version_info"))
