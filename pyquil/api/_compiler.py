@@ -462,8 +462,7 @@ class HTTPCompilerClient:
         indicating the cause of the failure. If present, that message is delivered to the user.
 
         :param payload: The rpcq message body.
-        :param rpc_timeout: The number of seconds to wait to read data back from the service
-            after connection.
+        :param rpc_timeout: The number of seconds to wait for each of 'connection' and 'response'.
             @see https://requests.readthedocs.io/en/master/user/advanced/#timeouts
         """
         url = urljoin(self.endpoint, method)
@@ -473,7 +472,7 @@ class HTTPCompilerClient:
         else:
             body = None
 
-        response = self.session.post(url, json=body, timeout=(1, rpc_timeout))
+        response = self.session.post(url, json=body, timeout=rpc_timeout)
 
         try:
             response.raise_for_status()
