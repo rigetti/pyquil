@@ -1,5 +1,4 @@
 {
   "access_token": "ok",
-  "refresh_token": "ok",
-  "scopish": "notwhatwe'relookingfor"
+  "refresh_token_invalid": "invalid"
 }
