@@ -1,12 +1,14 @@
 Changelog
 =========
 
-[v2.22.0](https://github.com/rigetti/pyquil/compare/v2.22.0..master) (in development)
+[v2.23.0](https://github.com/rigetti/pyquil/compare/v2.22.0..master) (In development)
 ------------------------------------------------------------------------------------
 
 ### Announcements
 
 ### Improvements and Changes
+
+- Compiler connection timeouts are now entirely user-configurable (@kalzoo, gh-1246)
 
 ### Bugfixes
 
