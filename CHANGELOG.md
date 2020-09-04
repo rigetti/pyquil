@@ -10,7 +10,7 @@ Changelog
 
 ### Bugfixes
 
-[v2.21.1](https://github.com/rigetti/pyquil/compare/v2.21.0..v2.22.0) (July 30, 2020)
+[v2.22.0](https://github.com/rigetti/pyquil/compare/v2.21.1..v2.22.0) (August 3, 2020)
 ------------------------------------------------------------------------------------
 
 ### Announcements
@@ -27,7 +27,7 @@ Changelog
 
 ### Announcements
 
--   This is just a cosmetic updated, to trigger a new docker build.
+-   This is just a cosmetic update, to trigger a new docker build.
 
 ### Improvements and Changes
 
