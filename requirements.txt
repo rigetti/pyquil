@@ -11,7 +11,7 @@ rpcq >= 3.0.0
 ipython
 
 # test deps
-black
+black==19.10b0
 coveralls
 flake8
 flake8-bugbear
