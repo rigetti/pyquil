@@ -476,24 +476,25 @@ class DefPermutationGate(DefGate):
             raise TypeError("Gate name must be a string")
 
         if name in RESERVED_WORDS:
+            raise ValueError(f"Cannot use {name} for a gate name since it's a reserved word")
+
+        if not isinstance(permutation, (list, np.ndarray)):
             raise ValueError(
-                "Cannot use {} for a gate name since it's a reserved word".format(name)
+                f"Permutation must be a list or NumPy array, got value of type {type(permutation)}"
             )
 
-        if isinstance(permutation, list):
-            elts = len(permutation)
-        elif isinstance(permutation, np.ndarray):
-            elts, cols = permutation.shape
-            if cols != 1:
-                raise ValueError("Permutation must have shape (N, 1)")
-        else:
-            raise ValueError("Permutation must be a list or NumPy array")
+        permutation = np.asarray(permutation)
 
+        ndim = permutation.ndim
+        if 1 != ndim:
+            raise ValueError(f"Permutation must have dimension 1, got {permutation.ndim}")
+
+        elts = permutation.shape[0]
         if 0 != elts & (elts - 1):
-            raise ValueError("Dimension of permutation must be a power of 2, got {0}".format(elts))
+            raise ValueError(f"Dimension of permutation must be a power of 2, got {elts}")
 
         self.name = name
-        self.permutation = np.asarray(permutation)
+        self.permutation = permutation
         self.parameters = None
 
     def out(self) -> str:
