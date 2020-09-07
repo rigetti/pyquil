@@ -1,7 +1,17 @@
 Changelog
 =========
 
-[v2.23.0](https://github.com/rigetti/pyquil/compare/v2.22.0..master) (In development)
+[v2.24.0](https://github.com/rigetti/pyquil/compare/v2.23.0..master) (In development)
+------------------------------------------------------------------------------------
+
+### Announcements
+
+### Improvements and Changes
+
+### Bugfixes
+
+
+[v2.23.0](https://github.com/rigetti/pyquil/compare/v2.22.0..v2.23.0) (September 7, 2020)
 ------------------------------------------------------------------------------------
 
 ### Announcements
@@ -11,6 +21,8 @@ Changelog
 - Compiler connection timeouts are now entirely user-configurable (@kalzoo, gh-1246)
 
 ### Bugfixes
+
+- Do not issue a warning if OAuth2 token returns a string (@erichulburd, gh-1244)
 
 [v2.22.0](https://github.com/rigetti/pyquil/compare/v2.21.1..v2.22.0) (August 3, 2020)
 ------------------------------------------------------------------------------------
