@@ -117,6 +117,23 @@ docker-branch:
 docker-stable:
   extends: .docker-stable
 
+# upload the source distribution of this master commit to TestPyPI
+upload-pypi:
+  extends: .python
+  stage: deploy
+  image: python:3.6
+  only:
+    refs:
+      - /^v(\d+\.)?(\d+\.)?(\d+)$/
+  except:
+    refs:
+      - branches
+  script:
+    - make version > VERSION.txt
+    - make dist
+    - make TWINE_REPOSITORY_URL=pypi upload
+  allow_failure: false
+
 # test that the latest Docker image doesn't error when performing simple tasks
 test-docker:
   stage: test
