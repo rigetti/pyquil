@@ -1,7 +1,7 @@
 Changelog
 =========
 
-[v2.24.0](https://github.com/rigetti/pyquil/compare/v2.23.0..master) (In development)
+[v2.24.0](https://github.com/rigetti/pyquil/compare/v2.23.1..master) (In development)
 ------------------------------------------------------------------------------------
 
 ### Announcements
@@ -10,6 +10,18 @@ Changelog
 
 ### Bugfixes
 
+[v2.23.1](https://github.com/rigetti/pyquil/compare/v2.23.0..v2.23.1) (September 9, 2020)
+------------------------------------------------------------------------------------
+
+### Announcements
+
+### Improvements and Changes
+
+- Push new pyquil versions to pypi as part of CI/CD pipelines (@notmgsk, gh-1249)
+
+### Bugfixes
+
+- Allow `np.ndarray` in `DefPermutationGate` (@notmgsk, gh-1248)
 
 [v2.23.0](https://github.com/rigetti/pyquil/compare/v2.22.0..v2.23.0) (September 7, 2020)
 ------------------------------------------------------------------------------------
