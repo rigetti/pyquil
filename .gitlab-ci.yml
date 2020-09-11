@@ -131,7 +131,7 @@ upload-pypi:
   script:
     - make version > VERSION.txt
     - make dist
-    - make TWINE_REPOSITORY_URL=pypi upload
+    - make TWINE_REPOSITORY_URL=https://upload.pypi.org/legacy/ upload
   allow_failure: false
 
 # test that the latest Docker image doesn't error when performing simple tasks
