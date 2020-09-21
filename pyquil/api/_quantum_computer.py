@@ -425,15 +425,15 @@ class QuantumComputer:
                 return q
             else:
                 raise TypeError(
-                    "Cannot run and measure program with " f"unaddressed QubitPlaceholders: {q}"
+                    f"Cannot run and measure program with unaddressed QubitPlaceholders: {q}"
                 )
 
         program = program.copy()
         validate_supported_quil(program)
         ro = program.declare("ro", "BIT", len(self.qubits()))
-        measure_all = isinstance(self.qam, QVM) and self.qam.noise_model is not None
-        qubits_to_measure = (
-            self.qubits() if not measure_all else map(unwrap_qubit, program.get_qubits())
+        measure_used = isinstance(self.qam, QVM) and self.qam.noise_model is None
+        qubits_to_measure = set(
+            map(unwrap_qubit, program.get_qubits()) if measure_used else self.qubits()
         )
         for i, q in enumerate(qubits_to_measure):
             program.inst(MEASURE(q, ro[i]))
