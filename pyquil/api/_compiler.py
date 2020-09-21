@@ -186,7 +186,6 @@ def _collect_classical_memory_write_locations(program: Program) -> List[Optional
         return []
 
 
-
 class QPUCompiler(AbstractCompiler):
     @_record_call
     def __init__(
