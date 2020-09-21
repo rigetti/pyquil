@@ -565,7 +565,13 @@ def DECLARE(
     shared_region: Optional[str] = None,
     offsets: Optional[Iterable[Tuple[int, str]]] = None,
 ) -> MemoryReference:
-    return Declare(name=name, memory_type=memory_type, memory_size=memory_size, shared_region=shared_region, offsets=offsets)
+    return Declare(
+        name=name,
+        memory_type=memory_type,
+        memory_size=memory_size,
+        shared_region=shared_region,
+        offsets=offsets,
+    )
 
 
 def MEASURE(
