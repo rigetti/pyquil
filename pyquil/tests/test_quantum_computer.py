@@ -473,6 +473,22 @@ def test_run_and_measure(local_qvm_quilc):
     assert bitstring_array.shape == (trials, len(qc.qubits()))
 
 
+def test_run_and_measure_noiseless_qvm():
+    """ Test that run_and_measure works as expected on a noiseless QVM. """
+    qc = get_qc("9q-square-qvm")
+    prog = Program(X(0))
+    trials = 1
+    bitstrings = qc.run_and_measure(prog, trials)
+    bitstring_array = np.vstack([bitstrings[q] for q in qc.qubits()]).T
+    # Test for appropriate shape
+    assert bitstring_array.shape == (trials, len(qc.qubits()))
+    # Test that X(0) flipped qubit 0.
+    assert bitstring_array[0, 0] == 1
+    # Test that all remaining qubits were measured and found to be in
+    # state |0>.
+    assert all(bitstring_array[0][1:] == np.zeros(len(qc.qubits()) - 1))
+
+
 def test_qvm_compile_pickiness(forest):
     p = Program(Declare("ro", "BIT"), X(0), MEASURE(0, MemoryReference("ro")))
     p.wrap_in_numshots_loop(1000)
