@@ -47,7 +47,7 @@ from pyquil.noise import decoherence_noise_with_asymmetric_ro, NoiseModel
 from pyquil.paulis import PauliTerm
 from pyquil.pyqvm import PyQVM
 from pyquil.quil import Program, validate_supported_quil
-from pyquil.quilatom import Qubit, QubitDesignator
+from pyquil.quilatom import qubit_index
 
 
 ExecutableDesignator = Union[BinaryExecutableResponse, PyQuilExecutableResponse]
@@ -417,23 +417,12 @@ class QuantumComputer:
         :return: A dictionary keyed by qubit index where the corresponding value is a 1D array of
             measured bits.
         """
-
-        def unwrap_qubit(q: QubitDesignator) -> int:
-            if isinstance(q, Qubit):
-                return q.index
-            elif isinstance(q, int):
-                return q
-            else:
-                raise TypeError(
-                    f"Cannot run and measure program with unaddressed QubitPlaceholders: {q}"
-                )
-
         program = program.copy()
         validate_supported_quil(program)
         ro = program.declare("ro", "BIT", len(self.qubits()))
         measure_used = isinstance(self.qam, QVM) and self.qam.noise_model is None
         qubits_to_measure = set(
-            map(unwrap_qubit, program.get_qubits()) if measure_used else self.qubits()
+            map(qubit_index, program.get_qubits()) if measure_used else self.qubits()
         )
         for i, q in enumerate(qubits_to_measure):
             program.inst(MEASURE(q, ro[i]))

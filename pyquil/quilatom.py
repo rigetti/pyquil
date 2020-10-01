@@ -168,6 +168,21 @@ def unpack_qubit(qubit: QubitDesignator) -> Union[Qubit, QubitPlaceholder]:
         raise TypeError("qubit should be an int or Qubit or QubitPlaceholder instance")
 
 
+def qubit_index(qubit: QubitDesignator) -> int:
+    """
+    Get the index of a QubitDesignator.
+
+    :param qubit: the qubit desginator.
+    :return: An int that is the qubit index.
+    """
+    if isinstance(qubit, Qubit):
+        return qubit.index
+    elif isinstance(qubit, int):
+        return qubit
+    else:
+        raise TypeError(f"Cannot unwrap unaddressed QubitPlaceholder: {qubit}")
+
+
 # Like the Tuple, the List must be length 2, where the first item is a string and the second an
 # int. However, specifying Union[str, int] as the generic type argument to List doesn't sufficiently
 # constrain the types, and mypy gets confused in unpack_classical_reg, below. Hence, just specify
