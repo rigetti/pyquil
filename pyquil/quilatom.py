@@ -172,7 +172,7 @@ def qubit_index(qubit: QubitDesignator) -> int:
     """
     Get the index of a QubitDesignator.
 
-    :param qubit: the qubit desginator.
+    :param qubit: the qubit designator.
     :return: An int that is the qubit index.
     """
     if isinstance(qubit, Qubit):
