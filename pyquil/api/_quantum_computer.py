@@ -47,6 +47,7 @@ from pyquil.noise import decoherence_noise_with_asymmetric_ro, NoiseModel
 from pyquil.paulis import PauliTerm
 from pyquil.pyqvm import PyQVM
 from pyquil.quil import Program, validate_supported_quil
+from pyquil.quilatom import qubit_index
 
 
 ExecutableDesignator = Union[BinaryExecutableResponse, PyQuilExecutableResponse]
@@ -388,9 +389,6 @@ class QuantumComputer:
         """
         Run the provided state preparation program and measure all qubits.
 
-        This will measure all the qubits on this QuantumComputer, not just qubits
-        that are used in the program.
-
         The returned data is a dictionary keyed by qubit index because qubits for a given
         QuantumComputer may be non-contiguous and non-zero-indexed. To turn this dictionary
         into a 2d numpy array of bitstrings, consider::
@@ -398,6 +396,14 @@ class QuantumComputer:
             bitstrings = qc.run_and_measure(...)
             bitstring_array = np.vstack([bitstrings[q] for q in qc.qubits()]).T
             bitstring_array.shape  # (trials, len(qc.qubits()))
+
+        .. note::
+
+            If the target :py:class:`QuantumComputer` is a noiseless :py:class:`QVM` then
+            only the qubits explicitly used in the program will be measured. Otherwise all
+            qubits will be measured. In some circumstances this can exhaust the memory
+            available to the simulator, and this may be manifested by the QVM failing to
+            respond or timeout.
 
         .. note::
 
@@ -414,14 +420,20 @@ class QuantumComputer:
         program = program.copy()
         validate_supported_quil(program)
         ro = program.declare("ro", "BIT", len(self.qubits()))
-        for i, q in enumerate(self.qubits()):
+        measure_used = isinstance(self.qam, QVM) and self.qam.noise_model is None
+        qubits_to_measure = set(
+            map(qubit_index, program.get_qubits()) if measure_used else self.qubits()
+        )
+        for i, q in enumerate(qubits_to_measure):
             program.inst(MEASURE(q, ro[i]))
         program.wrap_in_numshots_loop(trials)
         executable = self.compile(program)
         bitstring_array = self.run(executable=executable)
         bitstring_dict = {}
-        for i, q in enumerate(self.qubits()):
+        for i, q in enumerate(qubits_to_measure):
             bitstring_dict[q] = bitstring_array[:, i]
+        for q in set(self.qubits()) - set(qubits_to_measure):
+            bitstring_dict[q] = np.zeros(trials)
         return bitstring_dict
 
     @_record_call
