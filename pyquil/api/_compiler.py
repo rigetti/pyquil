@@ -137,6 +137,8 @@ def _collect_memory_descriptors(program: Program) -> Dict[str, ParameterSpec]:
     }
 
 
+# TODO This should be deleted once native_quil_to_executable no longer
+# uses it.
 def _collect_classical_memory_write_locations(program: Program) -> List[Optional[Tuple[int, int]]]:
     """Collect classical memory locations that are the destination of MEASURE instructions
     These locations are important for munging output buffers returned from the QPU
@@ -147,6 +149,7 @@ def _collect_classical_memory_write_locations(program: Program) -> List[Optional
         qubit `q` was measured into `ro` address `addr`. A value of `None` means nothing was
         measured into `ro` address `addr`.
     """
+    from pyquil.quilbase import Measurement, Declare
     ro_size = None
     for instr in program:
         if isinstance(instr, Declare) and instr.name == "ro":
@@ -157,8 +160,7 @@ def _collect_classical_memory_write_locations(program: Program) -> List[Optional
                 )
             ro_size = instr.memory_size
 
-    measures_by_qubit: Dict[int, int] = Counter()
-    ro_sources: Dict[int, Tuple[int, int]] = {}
+    ro_sources: Dict[int, Tuple[MemoryReference, str]] = {}
 
     for instr in program:
         if isinstance(instr, Measurement):
@@ -174,8 +176,7 @@ def _collect_classical_memory_write_locations(program: Program) -> List[Optional
                     )
                 # we track how often each qubit is measured (per shot) and into which register it is
                 # measured in its n-th measurement.
-                ro_sources[offset] = (q, measures_by_qubit[q])
-            measures_by_qubit[q] += 1
+                ro_sources[offset] = (MemoryReference(name='ro', offset=offset), f"q{q}")
     if ro_size:
         return [ro_sources.get(i) for i in range(ro_size)]
     elif ro_sources:
@@ -357,13 +358,18 @@ class QPUCompiler(AbstractCompiler):
             self.qpu_compiler_client.call("native_quilt_to_binary", request),
         )
 
-        # hack! we're storing a little extra info in the executable binary that we don't want to
-        # expose to anyone outside of our own private lives: not the user, not the Forest server,
-        # not anyone.
         response.recalculation_table = arithmetic_response.recalculation_table  # type: ignore
         response.memory_descriptors = _collect_memory_descriptors(nq_program)
+
         # Convert strings to MemoryReference for downstream processing.
         response.ro_sources = [(parse_mref(mref), source) for mref, source in response.ro_sources]
+
+        # TODO (kalzoo): this is a temporary workaround to migrate memory location parsing from
+        # the client side (where it was pre-quilt) to the service side. In some cases, the service
+        # won't return ro_sources, and so we can fall back to parsing the change on the client side.
+        if response.ro_sources == []:
+            response.ro_sources = _collect_classical_memory_write_locations(nq_program)
+
         if not debug:
             response.debug = {}
 
