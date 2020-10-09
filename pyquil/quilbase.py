@@ -1299,7 +1299,7 @@ class RawCapture(AbstractInstruction):
 
 
 class DelayFrames(AbstractInstruction):
-    def __init__(self, frames: List[Frame], duration: ParameterDesignator):
+    def __init__(self, frames: List[Frame], duration: float):
 
         # all frames should be on the same qubits
         if len(frames) == 0:
@@ -1322,7 +1322,7 @@ class DelayFrames(AbstractInstruction):
 
 
 class DelayQubits(AbstractInstruction):
-    def __init__(self, qubits: List[Union[Qubit, FormalArgument]], duration: ParameterDesignator):
+    def __init__(self, qubits: List[Union[Qubit, FormalArgument]], duration: float):
         self.qubits = qubits
         self.duration = duration
 
