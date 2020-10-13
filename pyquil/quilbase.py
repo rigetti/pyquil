@@ -1280,7 +1280,7 @@ class RawCapture(AbstractInstruction):
     def __init__(
         self,
         frame: Frame,
-        duration: ParameterDesignator,
+        duration: float,
         memory_region: MemoryReference,
         nonblocking: bool = False,
     ):
