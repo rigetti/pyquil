@@ -196,7 +196,7 @@ class PyQuilListener(QuilListener):
 
         gate_name = ctx.name().getText()
         parameters = [_variable(c) for c in ctx.variable()]
-        arguments = [_qubitVariable(q) for q in ctx.qubitVariable()]
+        arguments = [_formalQubit(q) for q in ctx.qubitVariable()]
         body = PauliSum([_pauliTerm(t) for t in ctx.pauliTerms().pauliTerm()])
         self.result.append(DefGateByPaulis(gate_name, parameters, arguments, body))
 
@@ -636,7 +636,7 @@ Helper functions for converting from ANTLR internals to PyQuil objects
 """
 
 
-def _qubitVariable(fq):
+def _formalQubit(fq):
     return FormalArgument(fq.getText())
 
 
@@ -644,7 +644,7 @@ def _qubitOrFormal(fq):
     try:
         return _qubit(fq)
     except ValueError:
-        return _qubitVariable(fq)
+        return _formalQubit(fq)
 
 
 def _pauliTerm(term):
@@ -652,7 +652,7 @@ def _pauliTerm(term):
     from pyquil.paulis import PauliTerm
 
     letters = term.IDENTIFIER().getText()
-    args = [_qubitVariable(q) for q in term.qubitVariable()]
+    args = [_formalQubit(q) for q in term.qubitVariable()]
     coeff = _expression(term.expression())
     return PauliTerm.from_list(list(zip(letters, args)), coeff)
 
