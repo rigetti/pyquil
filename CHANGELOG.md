@@ -1,12 +1,14 @@
 Changelog
 =========
 
-[v2.24.0](https://github.com/rigetti/pyquil/compare/v2.23.1..master) (In development)
+[next](https://github.com/rigetti/pyquil/compare/v2.23.1..master) (In development)
 ------------------------------------------------------------------------------------
 
 ### Announcements
 
 ### Improvements and Changes
+
+- Include a `py.typed` so that libraries that depend on pyquil can validate their typing against it (@notmgsk, #1256)
 
 ### Bugfixes
 
