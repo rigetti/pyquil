@@ -196,7 +196,7 @@ class PyQuilListener(QuilListener):
 
         gate_name = ctx.name().getText()
         parameters = [_variable(c) for c in ctx.variable()]
-        arguments = [_formalQubit(q) for q in ctx.qubitVariable()]
+        arguments = [_qubitVariable(q) for q in ctx.qubitVariable()]
         body = PauliSum([_pauliTerm(t) for t in ctx.pauliTerms().pauliTerm()])
         self.result.append(DefGateByPaulis(gate_name, parameters, arguments, body))
 
@@ -532,7 +532,7 @@ class PyQuilListener(QuilListener):
                     f"Unexpected memory references {mrefs} in DEFCAL {name}. Did you forget a '%'?"
                 )
 
-        qubits = list(map(_formalQubit, ctx.formalQubit()))
+        qubits = list(map(_qubitOrFormal, ctx.qubitOrFormal()))
         instrs = self.result
 
         self.result = self.previous_result
@@ -545,7 +545,7 @@ class PyQuilListener(QuilListener):
 
     def exitDefMeasCalibration(self, ctx: QuilParser.DefMeasCalibrationContext):
         memory_reference = FormalArgument(ctx.name().getText()) if ctx.name() else None
-        qubit = _formalQubit(ctx.formalQubit())
+        qubit = _qubitOrFormal(ctx.qubitOrFormal())
         instrs = self.result
 
         self.result = self.previous_result
@@ -614,7 +614,7 @@ class PyQuilListener(QuilListener):
         )
 
     def exitDelay(self, ctx: QuilParser.DelayContext):
-        qubits = [_formalQubit(q) for q in ctx.formalQubit()]
+        qubits = [_qubitOrFormal(q) for q in ctx.qubitOrFormal()]
         explicit_frames = [s.getText().strip('"') for s in ctx.STRING()]
         duration = _expression(ctx.expression())
         if explicit_frames:
@@ -624,7 +624,7 @@ class PyQuilListener(QuilListener):
         self.result.append(delay)
 
     def exitFence(self, ctx: QuilParser.FenceContext):
-        qubits = list(map(_formalQubit, ctx.formalQubit()))
+        qubits = list(map(_qubitOrFormal, ctx.qubitOrFormal()))
         self.result.append(Fence(qubits))
 
     def exitFenceAll(self, ctx: QuilParser.FenceContext):
@@ -636,11 +636,15 @@ Helper functions for converting from ANTLR internals to PyQuil objects
 """
 
 
-def _formalQubit(fq):
+def _qubitVariable(fq):
+    return FormalArgument(fq.getText())
+
+
+def _qubitOrFormal(fq):
     try:
         return _qubit(fq)
     except ValueError:
-        return FormalArgument(fq.getText())
+        return _qubitVariable(fq)
 
 
 def _pauliTerm(term):
@@ -648,7 +652,7 @@ def _pauliTerm(term):
     from pyquil.paulis import PauliTerm
 
     letters = term.IDENTIFIER().getText()
-    args = [_formalQubit(q) for q in term.qubitVariable()]
+    args = [_qubitVariable(q) for q in term.qubitVariable()]
     coeff = _expression(term.expression())
     return PauliTerm.from_list(list(zip(letters, args)), coeff)
 
@@ -841,6 +845,6 @@ def _str_contents(x):
 
 def _frame(frame):
     # type (QuilParser.FrameContext) -> Frame
-    qubits = [_formalQubit(q) for q in frame.formalQubit()]
+    qubits = [_qubitOrFormal(q) for q in frame.qubitOrFormal()]
     name = _str_contents(frame.STRING().getText())
     return Frame(qubits, name)

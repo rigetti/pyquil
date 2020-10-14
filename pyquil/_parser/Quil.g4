@@ -172,8 +172,8 @@ frameSpec           : NEWLINE TAB frameAttr COLON ( expression | STRING ) ;
 frameAttr           : SAMPLERATE | INITIALFREQUENCY | DIRECTION | HARDWAREOBJECT | CENTERFREQUENCY;
 
 defWaveform         : DEFWAVEFORM waveformName ( LPAREN param (COMMA param)* RPAREN )? COLON NEWLINE matrix ;
-defCalibration      : DEFCAL name (LPAREN param ( COMMA param )* RPAREN)? formalQubit+ COLON ( NEWLINE TAB instr )* ;
-defMeasCalibration  : DEFCAL MEASURE formalQubit ( name )? COLON ( NEWLINE TAB instr )* ;
+defCalibration      : DEFCAL name (LPAREN param ( COMMA param )* RPAREN)? qubitOrFormal+ COLON ( NEWLINE TAB instr )* ;
+defMeasCalibration  : DEFCAL MEASURE qubitOrFormal ( name )? COLON ( NEWLINE TAB instr )* ;
 
 pulse               : NONBLOCKING? PULSE frame waveform ;
 capture             : NONBLOCKING? CAPTURE frame waveform addr ;
@@ -186,14 +186,14 @@ shiftPhase          : SHIFTPHASE frame expression ;
 swapPhase           : SWAPPHASE frame frame ;
 setScale            : SETSCALE frame expression ;
 
-delay               : DELAY formalQubit+ STRING* expression ;
+delay               : DELAY qubitOrFormal+ STRING* expression ;
 fenceAll            : FENCE ;
-fence               : FENCE formalQubit+ ;
+fence               : FENCE qubitOrFormal+ ;
 
-formalQubit         : qubit | qubitVariable ;
+qubitOrFormal       : qubit | qubitVariable ;
 namedParam          : IDENTIFIER COLON expression ;
 waveform            : waveformName (LPAREN namedParam ( COMMA namedParam )* RPAREN)? ;
-frame               : formalQubit+ STRING ;
+frame               : qubitOrFormal+ STRING ;
 
 // built-in waveform types include: "flat", "gaussian", "draggaussian", "erfsquare"
 
