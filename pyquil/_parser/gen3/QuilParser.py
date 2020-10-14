@@ -1,9 +1,12 @@
-# Generated from Quil.g4 by ANTLR 4.7.2
+# Generated from Quil.g4 by ANTLR 4.8
 # encoding: utf-8
 from antlr4 import *
 from io import StringIO
-from typing.io import TextIO
 import sys
+if sys.version_info[1] > 5:
+	from typing import TextIO
+else:
+	from typing.io import TextIO
 
 
 def serializedATN():
@@ -523,7 +526,7 @@ class QuilParser ( Parser ):
     RULE_delay = 72
     RULE_fenceAll = 73
     RULE_fence = 74
-    RULE_formalQubit = 75
+    RULE_qubitOrFormal = 75
     RULE_namedParam = 76
     RULE_waveform = 77
     RULE_frame = 78
@@ -545,7 +548,7 @@ class QuilParser ( Parser ):
                    "defWaveform", "defCalibration", "defMeasCalibration", 
                    "pulse", "capture", "rawCapture", "setFrequency", "shiftFrequency", 
                    "setPhase", "shiftPhase", "swapPhase", "setScale", "delay", 
-                   "fenceAll", "fence", "formalQubit", "namedParam", "waveform", 
+                   "fenceAll", "fence", "qubitOrFormal", "namedParam", "waveform", 
                    "frame", "keyword" ]
 
     EOF = Token.EOF
@@ -649,7 +652,7 @@ class QuilParser ( Parser ):
 
     def __init__(self, input:TokenStream, output:TextIO = sys.stdout):
         super().__init__(input, output)
-        self.checkVersion("4.7.2")
+        self.checkVersion("4.8")
         self._interp = ParserATNSimulator(self, self.atn, self.decisionsToDFA, self.sharedContextCache)
         self._predicates = None
 
@@ -5372,11 +5375,11 @@ class QuilParser ( Parser ):
         def RPAREN(self):
             return self.getToken(QuilParser.RPAREN, 0)
 
-        def formalQubit(self, i:int=None):
+        def qubitOrFormal(self, i:int=None):
             if i is None:
-                return self.getTypedRuleContexts(QuilParser.FormalQubitContext)
+                return self.getTypedRuleContexts(QuilParser.QubitOrFormalContext)
             else:
-                return self.getTypedRuleContext(QuilParser.FormalQubitContext,i)
+                return self.getTypedRuleContext(QuilParser.QubitOrFormalContext,i)
 
 
         def NEWLINE(self, i:int=None):
@@ -5458,7 +5461,7 @@ class QuilParser ( Parser ):
             _la = self._input.LA(1)
             while True:
                 self.state = 674
-                self.formalQubit()
+                self.qubitOrFormal()
                 self.state = 677 
                 self._errHandler.sync(self)
                 _la = self._input.LA(1)
@@ -5503,8 +5506,8 @@ class QuilParser ( Parser ):
         def MEASURE(self):
             return self.getToken(QuilParser.MEASURE, 0)
 
-        def formalQubit(self):
-            return self.getTypedRuleContext(QuilParser.FormalQubitContext,0)
+        def qubitOrFormal(self):
+            return self.getTypedRuleContext(QuilParser.QubitOrFormalContext,0)
 
 
         def COLON(self):
@@ -5559,7 +5562,7 @@ class QuilParser ( Parser ):
             self.state = 689
             self.match(QuilParser.MEASURE)
             self.state = 690
-            self.formalQubit()
+            self.qubitOrFormal()
             self.state = 692
             self._errHandler.sync(self)
             _la = self._input.LA(1)
@@ -6122,11 +6125,11 @@ class QuilParser ( Parser ):
             return self.getTypedRuleContext(QuilParser.ExpressionContext,0)
 
 
-        def formalQubit(self, i:int=None):
+        def qubitOrFormal(self, i:int=None):
             if i is None:
-                return self.getTypedRuleContexts(QuilParser.FormalQubitContext)
+                return self.getTypedRuleContexts(QuilParser.QubitOrFormalContext)
             else:
-                return self.getTypedRuleContext(QuilParser.FormalQubitContext,i)
+                return self.getTypedRuleContext(QuilParser.QubitOrFormalContext,i)
 
 
         def STRING(self, i:int=None):
@@ -6164,7 +6167,7 @@ class QuilParser ( Parser ):
             while _alt!=2 and _alt!=ATN.INVALID_ALT_NUMBER:
                 if _alt == 1:
                     self.state = 751
-                    self.formalQubit()
+                    self.qubitOrFormal()
 
                 else:
                     raise NoViableAltException(self)
@@ -6242,11 +6245,11 @@ class QuilParser ( Parser ):
         def FENCE(self):
             return self.getToken(QuilParser.FENCE, 0)
 
-        def formalQubit(self, i:int=None):
+        def qubitOrFormal(self, i:int=None):
             if i is None:
-                return self.getTypedRuleContexts(QuilParser.FormalQubitContext)
+                return self.getTypedRuleContexts(QuilParser.QubitOrFormalContext)
             else:
-                return self.getTypedRuleContext(QuilParser.FormalQubitContext,i)
+                return self.getTypedRuleContext(QuilParser.QubitOrFormalContext,i)
 
 
         def getRuleIndex(self):
@@ -6277,7 +6280,7 @@ class QuilParser ( Parser ):
             _la = self._input.LA(1)
             while True:
                 self.state = 767
-                self.formalQubit()
+                self.qubitOrFormal()
                 self.state = 770 
                 self._errHandler.sync(self)
                 _la = self._input.LA(1)
@@ -6293,7 +6296,7 @@ class QuilParser ( Parser ):
         return localctx
 
 
-    class FormalQubitContext(ParserRuleContext):
+    class QubitOrFormalContext(ParserRuleContext):
 
         def __init__(self, parser, parent:ParserRuleContext=None, invokingState:int=-1):
             super().__init__(parent, invokingState)
@@ -6308,23 +6311,23 @@ class QuilParser ( Parser ):
 
 
         def getRuleIndex(self):
-            return QuilParser.RULE_formalQubit
+            return QuilParser.RULE_qubitOrFormal
 
         def enterRule(self, listener:ParseTreeListener):
-            if hasattr( listener, "enterFormalQubit" ):
-                listener.enterFormalQubit(self)
+            if hasattr( listener, "enterQubitOrFormal" ):
+                listener.enterQubitOrFormal(self)
 
         def exitRule(self, listener:ParseTreeListener):
-            if hasattr( listener, "exitFormalQubit" ):
-                listener.exitFormalQubit(self)
+            if hasattr( listener, "exitQubitOrFormal" ):
+                listener.exitQubitOrFormal(self)
 
 
 
 
-    def formalQubit(self):
+    def qubitOrFormal(self):
 
-        localctx = QuilParser.FormalQubitContext(self, self._ctx, self.state)
-        self.enterRule(localctx, 150, self.RULE_formalQubit)
+        localctx = QuilParser.QubitOrFormalContext(self, self._ctx, self.state)
+        self.enterRule(localctx, 150, self.RULE_qubitOrFormal)
         try:
             self.state = 774
             self._errHandler.sync(self)
@@ -6496,11 +6499,11 @@ class QuilParser ( Parser ):
         def STRING(self):
             return self.getToken(QuilParser.STRING, 0)
 
-        def formalQubit(self, i:int=None):
+        def qubitOrFormal(self, i:int=None):
             if i is None:
-                return self.getTypedRuleContexts(QuilParser.FormalQubitContext)
+                return self.getTypedRuleContexts(QuilParser.QubitOrFormalContext)
             else:
-                return self.getTypedRuleContext(QuilParser.FormalQubitContext,i)
+                return self.getTypedRuleContext(QuilParser.QubitOrFormalContext,i)
 
 
         def getRuleIndex(self):
@@ -6529,7 +6532,7 @@ class QuilParser ( Parser ):
             _la = self._input.LA(1)
             while True:
                 self.state = 794
-                self.formalQubit()
+                self.qubitOrFormal()
                 self.state = 797 
                 self._errHandler.sync(self)
                 _la = self._input.LA(1)

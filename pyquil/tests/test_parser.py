@@ -687,3 +687,10 @@ def test_parse_defcal_error_on_mref():
     assert parse("DEFCAL RX(%theta) 0:\n    NOP")
     with pytest.raises(ValueError):
         parse("DEFCAL RX(theta) 0:\n    NOP")
+
+
+def test_parse_defgate_as_pauli():
+    """ Check that DEFGATE AS PAULI-SUM takes only qubit variables (for now). """
+    assert parse("DEFGATE RY(%theta) q AS PAULI-SUM:\n    Y(-%theta/2) q")
+    with pytest.raises(RuntimeError):
+        parse("DEFGATE RY(%theta) 0 AS PAULI-SUM:\n    Y(-%theta/2) 0")

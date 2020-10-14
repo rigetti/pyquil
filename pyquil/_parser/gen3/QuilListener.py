@@ -1,4 +1,4 @@
-# Generated from Quil.g4 by ANTLR 4.7.2
+# Generated from Quil.g4 by ANTLR 4.8
 from antlr4 import *
 if __name__ is not None and "." in __name__:
     from .QuilParser import QuilParser
@@ -755,12 +755,12 @@ class QuilListener(ParseTreeListener):
         pass
 
 
-    # Enter a parse tree produced by QuilParser#formalQubit.
-    def enterFormalQubit(self, ctx:QuilParser.FormalQubitContext):
+    # Enter a parse tree produced by QuilParser#qubitOrFormal.
+    def enterQubitOrFormal(self, ctx:QuilParser.QubitOrFormalContext):
         pass
 
-    # Exit a parse tree produced by QuilParser#formalQubit.
-    def exitFormalQubit(self, ctx:QuilParser.FormalQubitContext):
+    # Exit a parse tree produced by QuilParser#qubitOrFormal.
+    def exitQubitOrFormal(self, ctx:QuilParser.QubitOrFormalContext):
         pass
 
 
@@ -800,3 +800,5 @@ class QuilListener(ParseTreeListener):
         pass
 
 
+
+del QuilParser
