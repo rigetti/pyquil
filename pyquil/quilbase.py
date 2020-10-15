@@ -192,7 +192,7 @@ class Gate(AbstractInstruction):
         self,
         name: str,
         params: Iterable[ParameterDesignator],
-        qubits: Iterable[Union[Qubit, QubitPlaceholder]],
+        qubits: Iterable[Union[Qubit, QubitPlaceholder, FormalArgument]],
     ):
         if not isinstance(name, str):
             raise TypeError("Gate name must be a string")
