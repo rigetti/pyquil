@@ -592,8 +592,7 @@ def _parse_name(
 
 
 def _canonicalize_name(prefix: str, qvm_type: Optional[str], noisy: bool) -> str:
-    """Take the output of _parse_name to create a canonical name.
-    """
+    """Take the output of _parse_name to create a canonical name."""
     if noisy:
         noise_suffix = "-noisy"
     else:

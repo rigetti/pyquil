@@ -1025,7 +1025,9 @@ def address_qubits(
 
 
 def _get_label(
-    placeholder: LabelPlaceholder, label_mapping: Dict[LabelPlaceholder, Label], label_i: int,
+    placeholder: LabelPlaceholder,
+    label_mapping: Dict[LabelPlaceholder, Label],
+    label_i: int,
 ) -> Tuple[Label, Dict[LabelPlaceholder, Label], int]:
     """Helper function to either get the appropriate label for a given placeholder or generate
     a new label and update the mapping.

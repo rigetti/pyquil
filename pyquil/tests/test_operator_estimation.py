@@ -1354,7 +1354,7 @@ def test_calibrated_symmetric_readout_nontrivial_1q_state(forest, use_seed):
 
 
 def test_measure_2q_observable_raw_statistics(forest, use_seed):
-    """ Testing that we get correct exhaustively symmetrized statistics
+    """Testing that we get correct exhaustively symmetrized statistics
         in terms of readout errors.
     Note: this only tests for exhaustive symmetrization in the presence
         of uncorrelated errors
@@ -1405,7 +1405,7 @@ def test_measure_2q_observable_raw_statistics(forest, use_seed):
 
 
 def test_raw_statistics_2q_nontrivial_nonentangled_state(forest, use_seed):
-    """ Testing that we get correct exhaustively symmetrized statistics
+    """Testing that we get correct exhaustively symmetrized statistics
         in terms of readout errors, even for non-trivial 2q nonentangled states
     Note: this only tests for exhaustive symmetrization in the presence
         of uncorrelated errors
@@ -1479,7 +1479,7 @@ def test_raw_statistics_2q_nontrivial_nonentangled_state(forest, use_seed):
 
 
 def test_raw_statistics_2q_nontrivial_entangled_state(forest, use_seed):
-    """ Testing that we get correct exhaustively symmetrized statistics
+    """Testing that we get correct exhaustively symmetrized statistics
         in terms of readout errors, even for non-trivial 2q entangled states.
     Note: this only tests for exhaustive symmetrization in the presence
         of uncorrelated errors
@@ -1542,7 +1542,7 @@ def test_raw_statistics_2q_nontrivial_entangled_state(forest, use_seed):
 
 @pytest.mark.flaky(reruns=1)
 def test_corrected_statistics_2q_nontrivial_nonentangled_state(forest, use_seed):
-    """ Testing that we can successfully correct for observed statistics
+    """Testing that we can successfully correct for observed statistics
         in the presence of readout errors, even for 2q nontrivial but
         nonentangled states.
     Note: this only tests for exhaustive symmetrization in the presence

@@ -55,7 +55,7 @@ class CalibrationMatch:
 
 
 def fill_placeholders(obj, placeholder_values: Dict[Union[FormalArgument, Parameter], Any]):
-    """ Update Parameter and FormalArgument references in objects with
+    """Update Parameter and FormalArgument references in objects with
     their corresponding definitions.
 
     It is an error if the object has a Parameter or FormalArgument reference without

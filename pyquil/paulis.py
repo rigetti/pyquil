@@ -128,8 +128,7 @@ def _valid_qubit(index: Optional[Union[PauliTargetDesignator, QubitPlaceholder]]
 
 
 class PauliTerm(object):
-    """A term is a product of Pauli operators operating on different qubits.
-    """
+    """A term is a product of Pauli operators operating on different qubits."""
 
     def __init__(
         self,
@@ -137,7 +136,7 @@ class PauliTerm(object):
         index: Optional[PauliTargetDesignator],
         coefficient: ExpressionDesignator = 1.0,
     ):
-        """ Create a new Pauli Term with a Pauli operator at a particular index and a leading
+        """Create a new Pauli Term with a Pauli operator at a particular index and a leading
         coefficient.
 
         :param op: The Pauli operator as a string "X", "Y", "Z", or "I"
@@ -248,8 +247,7 @@ class PauliTerm(object):
         return Program([QUANTUM_GATES[gate](q) for q, gate in self])
 
     def get_qubits(self) -> List[PauliTargetDesignator]:
-        """Gets all the qubits that this PauliTerm operates on.
-        """
+        """Gets all the qubits that this PauliTerm operates on."""
         return list(self._ops.keys())
 
     def __getitem__(self, i: PauliTargetDesignator) -> str:
@@ -423,8 +421,7 @@ class PauliTerm(object):
 
     @classmethod
     def from_compact_str(cls, str_pauli_term: str) -> "PauliTerm":
-        """Construct a PauliTerm from the result of str(pauli_term)
-        """
+        """Construct a PauliTerm from the result of str(pauli_term)"""
         # split into str_coef, str_op at first '*'' outside parenthesis
         try:
             str_coef, str_op = re.split(r"\*(?![^(]*\))", str_pauli_term, maxsplit=1)
@@ -571,8 +568,7 @@ def term_with_coeff(term: PauliTerm, coeff: ExpressionDesignator) -> PauliTerm:
 
 
 class PauliSum(object):
-    """A sum of one or more PauliTerms.
-    """
+    """A sum of one or more PauliTerms."""
 
     def __init__(self, terms: Sequence[PauliTerm]):
         """
@@ -778,8 +774,7 @@ class PauliSum(object):
 
     @classmethod
     def from_compact_str(cls, str_pauli_sum: str) -> "PauliSum":
-        """Construct a PauliSum from the result of str(pauli_sum)
-        """
+        """Construct a PauliSum from the result of str(pauli_sum)"""
         # split str_pauli_sum only at "+" outside of parenthesis to allow
         # e.g. "0.5*X0 + (0.5+0j)*Z2"
         str_terms = re.split(r"\+(?![^(]*\))", str_pauli_sum)

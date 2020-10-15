@@ -150,6 +150,7 @@ def _collect_classical_memory_write_locations(program: Program) -> List[Optional
         measured into `ro` address `addr`.
     """
     from pyquil.quilbase import Measurement, Declare
+
     ro_size = None
     for instr in program:
         if isinstance(instr, Declare) and instr.name == "ro":
@@ -176,7 +177,7 @@ def _collect_classical_memory_write_locations(program: Program) -> List[Optional
                     )
                 # we track how often each qubit is measured (per shot) and into which register it is
                 # measured in its n-th measurement.
-                ro_sources[offset] = (MemoryReference(name='ro', offset=offset), f"q{q}")
+                ro_sources[offset] = (MemoryReference(name="ro", offset=offset), f"q{q}")
     if ro_size:
         return [ro_sources.get(i) for i in range(ro_size)]
     elif ro_sources:
@@ -380,7 +381,7 @@ class QPUCompiler(AbstractCompiler):
         """
         Get the Quilt calibrations associated with the underlying QPU.
 
-        :returns: A Program object containing the calibration definitions. """
+        :returns: A Program object containing the calibration definitions."""
         self._connect_qpu_compiler()
         request = QuiltCalibrationsRequest(target_device=self.target_device)
         response = self.qpu_compiler_client.call("get_quilt_calibrations", request)
