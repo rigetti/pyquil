@@ -30,11 +30,17 @@ from pyquil.gates import H
 
 def test_results_by_qubit_groups():
     er1 = ExperimentResult(
-        setting=ExperimentSetting(plusX(0), sZ(0)), expectation=0.0, std_err=0.0, total_counts=1,
+        setting=ExperimentSetting(plusX(0), sZ(0)),
+        expectation=0.0,
+        std_err=0.0,
+        total_counts=1,
     )
 
     er2 = ExperimentResult(
-        setting=ExperimentSetting(plusX(0), sZ(1)), expectation=0.0, std_err=0.0, total_counts=1,
+        setting=ExperimentSetting(plusX(0), sZ(1)),
+        expectation=0.0,
+        std_err=0.0,
+        total_counts=1,
     )
 
     er3 = ExperimentResult(
