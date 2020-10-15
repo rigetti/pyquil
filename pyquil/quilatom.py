@@ -160,7 +160,9 @@ class QubitPlaceholder(QuilAtom):
 QubitDesignator = Union[Qubit, QubitPlaceholder, int]
 
 
-def unpack_qubit(qubit: Union[QubitDesignator, FormalArgument]) -> Union[Qubit, QubitPlaceholder, FormalArgument]:
+def unpack_qubit(
+    qubit: Union[QubitDesignator, FormalArgument]
+) -> Union[Qubit, QubitPlaceholder, FormalArgument]:
     """
     Get a qubit from an object.
 

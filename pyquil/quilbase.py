@@ -1349,7 +1349,10 @@ class Fence(AbstractInstruction):
 
 class DefWaveform(AbstractInstruction):
     def __init__(
-        self, name: str, parameters: List[Parameter], entries: List[Union[Complex, Expression]],
+        self,
+        name: str,
+        parameters: List[Parameter],
+        entries: List[Union[Complex, Expression]],
     ):
         self.name = name
         self.parameters = parameters
