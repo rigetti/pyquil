@@ -196,6 +196,7 @@ support at support@rigetti.com."""
 
         :param executable: Load a compiled executable onto the QAM.
         """
+        self._executable: QuiltBinaryExecutableResponse
         super().load(executable)
         if hasattr(self._executable, "recalculation_table"):
             recalculation_table = self._executable.recalculation_table  # type: ignore
