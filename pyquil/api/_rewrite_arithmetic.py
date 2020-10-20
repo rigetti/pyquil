@@ -1,7 +1,7 @@
 from numbers import Real
 import numpy as np
 
-from pyquil import Program
+from pyquil.quil import Program
 from pyquil.quilatom import MemoryReference, Expression, Sub, Div
 from pyquil.quilbase import (
     Declare,
