@@ -1254,6 +1254,14 @@ def validate_protoquil(program: Program) -> None:
     :param program: The Quil program to validate.
     """
     valid_instruction_types = tuple([Pragma, Declare, Gate, Reset, ResetQubit, Measurement])
+    if program.calibrations:
+        raise ValueError(f"ProtoQuil validation failed: Quilt calibrations are not allowed.")
+    if program.waveforms:
+        raise ValueError(
+            f"ProtoQuil validation failed: Quilt waveform definitions are not allowed."
+        )
+    if program.frames:
+        raise ValueError(f"ProtoQuil validation failed: Quilt frame definitions are not allowed.")
     for instr in program.instructions:
         if not isinstance(instr, valid_instruction_types):
             # Instructions like MOVE, NOT, JUMP, JUMP-UNLESS will fail here
