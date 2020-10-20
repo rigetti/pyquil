@@ -345,7 +345,7 @@ class Measurement(AbstractInstruction):
     """
 
     def __init__(
-        self, qubit: Union[Qubit, QubitPlaceholder], classical_reg: Optional[MemoryReference]
+        self, qubit: Union[Qubit, QubitPlaceholder, FormalArgument], classical_reg: Optional[MemoryReference]
     ):
         if not isinstance(qubit, (Qubit, QubitPlaceholder, FormalArgument)):
             raise TypeError("qubit should be a Qubit")
