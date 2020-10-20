@@ -826,7 +826,6 @@ def _sign(real):
 
 
 def _waveform(ctx: QuilParser.WaveformContext) -> Waveform:
-    # type: (QuilParser.WaveformContext) -> Waveform
     name = _waveform_name(ctx.waveformName())
     param_dict = _named_parameters(ctx.namedParam())
     if param_dict:
@@ -843,8 +842,7 @@ def _str_contents(x):
     return x.strip('"')
 
 
-def _frame(frame):
-    # type (QuilParser.FrameContext) -> Frame
+def _frame(frame: QuilParser.FrameContext) -> Frame:
     qubits = [_qubitOrFormal(q) for q in frame.qubitOrFormal()]
     name = _str_contents(frame.STRING().getText())
     return Frame(qubits, name)
