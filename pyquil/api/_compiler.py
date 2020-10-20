@@ -354,7 +354,7 @@ class QPUCompiler(AbstractCompiler):
         request = QuiltBinaryExecutableRequest(
             quilt=arithmetic_response.quil, num_shots=nq_program.num_shots
         )
-        response: QuiltBinaryExecutableResponse = cast(
+        response = cast(
             QuiltBinaryExecutableResponse,
             self.qpu_compiler_client.call(
                 "native_quilt_to_binary", request, rpc_timeout=self.timeout
