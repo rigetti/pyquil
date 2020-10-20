@@ -376,8 +376,8 @@ class ResetQubit(AbstractInstruction):
     This is the pyQuil object for a Quil targeted reset instruction.
     """
 
-    def __init__(self, qubit: Union[Qubit, QubitPlaceholder]):
-        if not isinstance(qubit, (Qubit, QubitPlaceholder)):
+    def __init__(self, qubit: Union[Qubit, QubitPlaceholder, FormalArgument]):
+        if not isinstance(qubit, (Qubit, QubitPlaceholder, FormalArgument)):
             raise TypeError("qubit should be a Qubit")
         self.qubit = qubit
 
