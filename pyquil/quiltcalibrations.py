@@ -51,7 +51,7 @@ class CalibrationDoesntMatch(Exception):
 @dataclass
 class CalibrationMatch:
     cal: Union[DefCalibration, DefMeasureCalibration]
-    settings: Dict[Union[FormalArgument, Parameter], any]
+    settings: Dict[Union[FormalArgument, Parameter], Any]
 
 
 def fill_placeholders(obj, placeholder_values: Dict[Union[FormalArgument, Parameter], Any]):
