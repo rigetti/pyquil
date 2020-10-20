@@ -287,9 +287,10 @@ support at support@rigetti.com."""
         self._update_variables_shim_with_recalculation_table()
 
         # Initialize our patch table
-        if hasattr(self._executable, "recalculation_table"):
+        recalculation_table = getattr(self._executable, "recalculation_table", None)
+        if recalculation_table is not None:
             memory_ref_names = list(
-                set(mr.name for mr in self._executable.recalculation_table.keys())
+                set(mr.name for mr in recalculation_table.keys())
             )
             if memory_ref_names != []:
                 assert len(memory_ref_names) == 1, (
@@ -298,7 +299,7 @@ support at support@rigetti.com."""
                 )
                 memory_reference_name = memory_ref_names[0]
                 patch_values[memory_reference_name] = [0.0] * len(
-                    self._executable.recalculation_table  # type: ignore
+                    recalculation_table
                 )
 
         assert isinstance(self._executable, QuiltBinaryExecutableResponse)
