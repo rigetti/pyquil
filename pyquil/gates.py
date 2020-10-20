@@ -1104,8 +1104,7 @@ def FENCE(*qubits: Union[int, Qubit, FormalArgument]) -> Union[FenceAll, Fence]:
     :returns: A Fence or FenceAll instance.
     """
     if qubits:
-        qubits = [Qubit(t) if isinstance(t, int) else t for t in qubits]
-        return Fence(qubits)
+        return Fence([Qubit(t) if isinstance(t, int) else t for t in qubits])
     else:
         return FenceAll()
 
