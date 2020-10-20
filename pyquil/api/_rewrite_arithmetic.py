@@ -67,7 +67,7 @@ def rewrite_arithmetic(prog: Program) -> RewriteArithmeticResponse:
 
     updated = prog.copy_everything_except_instructions()
     old_descriptors = {inst.name: spec(inst) for inst in prog if isinstance(inst, Declare)}
-    recalculation_table = {}
+    recalculation_table: Dict[ParameterAref, str] = {}
     seen_exprs: Dict[str, MemoryReference] = {}
 
     # generate a unique name. it's nice to do this in a deterministic fashion
