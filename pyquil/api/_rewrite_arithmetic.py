@@ -92,7 +92,7 @@ def rewrite_arithmetic(prog: Program) -> RewriteArithmeticResponse:
 
     for inst in prog:
         if isinstance(inst, Gate):
-            new_params = []
+            new_params: List[Union[Real, MemoryReference]] = []
             for param in inst.params:
                 if isinstance(param, Real):
                     new_params.append(param)
