@@ -683,12 +683,13 @@ class Program(object):
         :param instr: An instruction.
         :returns: a CalibrationMatch object, if one can be found.
         """
-        if not isinstance(instr, (Gate, Measurement)):
-            return None
-        for cal in reversed(self.calibrations):
-            match = match_calibration(instr, cal)
-            if match is not None:
-                return match
+        if isinstance(instr, (Gate, Measurement)):
+            for cal in reversed(self.calibrations):
+                match = match_calibration(instr, cal)
+                if match is not None:
+                    return match
+
+        return None
 
     def get_calibration(
         self, instr: AbstractInstruction
