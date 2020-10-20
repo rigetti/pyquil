@@ -564,7 +564,7 @@ def DECLARE(
     memory_size: int = 1,
     shared_region: Optional[str] = None,
     offsets: Optional[Iterable[Tuple[int, str]]] = None,
-) -> MemoryReference:
+) -> Declare:
     return Declare(
         name=name,
         memory_type=memory_type,
