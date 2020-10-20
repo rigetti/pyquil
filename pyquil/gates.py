@@ -14,7 +14,7 @@
 #    limitations under the License.
 ##############################################################################
 from warnings import warn
-from typing import Callable, Mapping, Optional, Tuple, Union, Iterable
+from typing import Callable, Mapping, Optional, Tuple, Union, Iterable, no_type_check
 from numbers import Real
 
 import numpy as np
@@ -1058,13 +1058,17 @@ def RAW_CAPTURE(
     return RawCapture(frame, duration, memory_region, nonblocking)
 
 
+# Mypy doesn't support a complex type hint here on args. Particularly,
+# you can't tell Mypy that args should always begin with a int, and end with a
+
+@no_type_check
 def DELAY(*args) -> Union[DelayFrames, DelayQubits]:
     """
     Produce a DELAY instruction.
 
     Note: There are two variants of DELAY. One appliest to specific frames on some
     qubit, e.g. `DELAY 0 "rf" "ff" 1.0` delays the `"rf"` and `"ff"` frames on 0.
-    It is also possible to delay all frames on some qubits, e.g. `DELAY 0 1.0`.
+    It is also possible to delay all frames on some qubits, e.g. `DELAY 0 1 2 1.0`.
 
     :param args: A list of delay targets, ending with a duration.
     :returns: A DelayFrames or DelayQubits instance.
