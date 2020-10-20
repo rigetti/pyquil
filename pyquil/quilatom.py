@@ -104,6 +104,10 @@ class FormalArgument(QuilAtom):
     def out(self) -> str:
         return str(self)
 
+    @property
+    def index(self) -> NoReturn:
+        raise RuntimeError(f"Cannot derive an index from a FormalArgument {self}")
+
     def __str__(self) -> str:
         return self.name
 
