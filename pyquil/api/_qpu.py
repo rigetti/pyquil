@@ -53,7 +53,7 @@ def _extract_memory_regions(
     first, *rest = buffers.values()
     num_shots = first.shape[0]
 
-    def alloc(spec):
+    def alloc(spec: ParameterSpec) -> np.array:
         dtype = {
             "BIT": np.int64,
             "INTEGER": np.int64,
