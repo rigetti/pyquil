@@ -934,7 +934,13 @@ def _what_type_of_qubit_does_it_use(
     if has_placeholders and has_real_qubits:
         raise ValueError("Your program mixes instantiated qubits with placeholders")
 
-    return has_placeholders, has_real_qubits, list(qubits.keys())
+    # The isinstance checks above make sure that if any qubit is a
+    # FormalArgument (which is permitted by Gate.qubits), then an
+    # error should be raised. Unfortunately this doesn't help mypy
+    # narrow down the return type, so gotta cast.
+    return has_placeholders, has_real_qubits, cast(
+        List[Union[Qubit, QubitPlaceholder]], list(qubits.keys())
+    )
 
 
 def get_default_qubit_mapping(program: Program) -> Dict[Union[Qubit, QubitPlaceholder], Qubit]:
