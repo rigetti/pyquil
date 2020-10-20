@@ -161,7 +161,7 @@ class QubitPlaceholder(QuilAtom):
         return [cls() for _ in range(n)]
 
 
-QubitDesignator = Union[Qubit, QubitPlaceholder, int]
+QubitDesignator = Union[Qubit, QubitPlaceholder, FormalArgument, int]
 
 
 def unpack_qubit(
