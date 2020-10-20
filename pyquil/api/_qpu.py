@@ -65,7 +65,7 @@ def _extract_memory_regions(
         except KeyError:
             raise ValueError(f"Unexpected memory type {spec.type}.")
 
-    regions = {}
+    regions: Dict[str, np.array] = {}
 
     for mref, key in ro_sources:
         # Translation sometimes introduces ro_sources that the user didn't ask for.
