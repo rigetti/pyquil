@@ -704,6 +704,8 @@ class Program(object):
         if match:
             return match.cal
 
+        return None
+
     def calibrate(self, instr: AbstractInstruction) -> List[AbstractInstruction]:
         """
         Expand an instruction into its calibrated definition.
