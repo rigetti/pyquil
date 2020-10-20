@@ -139,7 +139,7 @@ def _collect_memory_descriptors(program: Program) -> Dict[str, ParameterSpec]:
 
 # TODO This should be deleted once native_quil_to_executable no longer
 # uses it.
-def _collect_classical_memory_write_locations(program: Program) -> List[Optional[Tuple[int, int]]]:
+def _collect_classical_memory_write_locations(program: Program) -> List[Optional[Tuple[MemoryReference, str]]]:
     """Collect classical memory locations that are the destination of MEASURE instructions
     These locations are important for munging output buffers returned from the QPU
     server to the shape expected by the user.
