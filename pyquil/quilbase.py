@@ -147,11 +147,11 @@ RESERVED_WORDS: Container[str] = [
 
 
 def _extract_qubit_index(
-    qubit: Union[Qubit, QubitPlaceholder], index: bool = True
+    qubit: Union[Qubit, QubitPlaceholder, FormalArgument], index: bool = True
 ) -> QubitDesignator:
-    if (not index) or isinstance(qubit, QubitPlaceholder):
-        return qubit
-    return qubit.index
+    if index and isinstance(qubit, Qubit):
+        return qubit.index
+    return qubit
 
 
 def _get_frame_qubits(frame: Frame, index: bool = True) -> Set[QubitDesignator]:
