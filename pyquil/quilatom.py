@@ -868,7 +868,7 @@ class TemplateWaveform(QuilAtom):
         :return: The updated pulse envelope.
         """
 
-        def default(obj, val):
+        def default(obj: Optional[float], val: float) -> float:
             return obj if obj is not None else val
 
         scale = default(self.scale, 1.0)
