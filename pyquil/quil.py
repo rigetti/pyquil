@@ -620,7 +620,7 @@ class Program(object):
                 (dg.out() for dg in self._defined_gates),
                 (wf.out() for wf in self.waveforms.values()),
                 (fdef.out() for fdef in self.frames.values()),
-                (cal.out() for cal in self.calibrations) if calibrations else (),
+                (cal.out() for cal in self.calibrations) if calibrations else list(),
                 (instr.out() for instr in self.instructions),
                 [""],
             )
