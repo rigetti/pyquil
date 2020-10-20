@@ -23,6 +23,7 @@ from rpcq._base import Message, to_json, from_json
 from rpcq._client import Client
 from rpcq.messages import (
     QuiltCalibrationsRequest,
+    QuiltCalibrationsResponse,
     QuiltBinaryExecutableRequest,
     QuiltBinaryExecutableResponse,
     NativeQuilRequest,
