@@ -248,7 +248,7 @@ support at support@rigetti.com."""
             "execute_qpu_request", request=request, user=self.user, priority=job_priority
         )
         results = self._get_buffers(job_id)
-        ro_sources = self._executable.ro_sources  # type: ignore
+        ro_sources = self._executable.ro_sources
 
         self._memory_results = defaultdict(lambda: None)
         if results:
