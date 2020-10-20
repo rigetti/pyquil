@@ -384,7 +384,16 @@ class QPUCompiler(AbstractCompiler):
         :returns: A Program object containing the calibration definitions."""
         self._connect_qpu_compiler()
         request = QuiltCalibrationsRequest(target_device=self.target_device)
-        response = self.qpu_compiler_client.call("get_quilt_calibrations", request)
+        if not self.qpu_compiler_client:
+            raise UserMessageError(
+                # TODO Improve this error message with a reference to
+                # the pyquil config docs?
+                "It looks like you're trying to request Quilt calibrations, but "
+                "do not have access to the QPU compiler endpoint. Make sure you "
+                "are engaged to the QPU or have configured qpu_compiler_endpoint "
+                "in your pyquil configuration."
+            )
+        response = cast(QuiltCalibrationsResponse, self.qpu_compiler_client.call("get_quilt_calibrations", request))
         calibration_program = parse_program(response.quilt)
         return calibration_program
 
