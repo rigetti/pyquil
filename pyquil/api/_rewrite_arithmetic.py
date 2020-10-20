@@ -14,9 +14,13 @@ from pyquil.quilbase import (
 )
 from rpcq.messages import ParameterSpec, ParameterAref, RewriteArithmeticResponse
 
-from typing import Dict
+from typing import Dict, Sequence, Union, List, no_type_check
 
 
+# TODO
+# The various reassignments to the variable expr make it difficult
+# to tie the typing down.
+@no_type_check
 def rewrite_arithmetic(prog: Program) -> RewriteArithmeticResponse:
     """Rewrite compound arithmetic expressions.
 
