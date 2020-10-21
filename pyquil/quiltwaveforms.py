@@ -14,8 +14,8 @@ else:
     from dataclasses import dataclass
 
 
-_waveform_classes = {}
-"""A mapping from Quilt wavefom names to their corresponding classes.
+_waveform_classes: Dict[str, type] = {}
+"""A mapping from Quilt waveform names to their corresponding classes.
 
 This should not be mutated directly, but rather filled by the @waveform
 decorator.
