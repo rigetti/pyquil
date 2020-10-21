@@ -1059,8 +1059,9 @@ def RAW_CAPTURE(
 
 
 # Mypy doesn't support a complex type hint here on args. Particularly,
-# you can't tell Mypy that args should always begin with a int, and end with a
-
+# you can't tell Mypy that args should always begin with a int, end
+# with a float, and everything in between should be of a particular
+# type T.
 @no_type_check
 def DELAY(*args) -> Union[DelayFrames, DelayQubits]:
     """
