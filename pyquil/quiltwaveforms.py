@@ -75,7 +75,7 @@ def _wf_from_dict(name: str, params: Dict[str, Union[Expression, Real, Complex]]
 def _optional_field_strs(wf: TemplateWaveform) -> List[str]:
     """Get the printed representations of optional template parameters."""
     result = []
-    for field, spec in wf.__dataclass_fields__.items():
+    for field, spec in getattr(wf, "__dataclass_fields__", {}).items():
         if spec.default is None:
             value = getattr(wf, field, None)
             if value is not None:
