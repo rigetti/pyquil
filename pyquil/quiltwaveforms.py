@@ -4,7 +4,7 @@ import numpy as np
 from scipy.special import erf
 from numbers import Complex, Real
 
-from typing import List, Optional
+from typing import Dict, Union, List, Optional, no_type_check
 
 from pyquil.quilatom import TemplateWaveform, _complex_str, Expression, substitute
 
