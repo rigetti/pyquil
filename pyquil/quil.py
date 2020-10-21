@@ -52,6 +52,7 @@ from pyquil.quilatom import (
     Qubit,
     QubitDesignator,
     QubitPlaceholder,
+    FormalArgument,
     format_parameter,
     unpack_classical_reg,
     unpack_qubit,
@@ -455,6 +456,10 @@ class Program(object):
                     "You must either provide the qubit_reg_pairs argument to describe how to map "
                     "these QubitPlaceholders to memory registers, or else first call "
                     "pyquil.quil.address_qubits to instantiate the QubitPlaceholders."
+                )
+            if any(isinstance(q, FormalArgument) for q in qubits):
+                raise ValueError(
+                    "Cannot call measure_all on a Program that contains FormalArguments."
                 )
             # Help mypy determine that qubits does not contain any QubitPlaceholders.
             qubit_inds = cast(List[int], qubits)
