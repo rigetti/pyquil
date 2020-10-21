@@ -22,6 +22,7 @@ decorator.
 """
 
 
+@no_type_check
 def waveform(name: str):
     """ Define a Quilt wavefom with the given name. """
 
