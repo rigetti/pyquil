@@ -22,12 +22,11 @@ decorator.
 """
 
 
-@no_type_check
-def waveform(name: str):
+def waveform(name: str) -> Callable[[type], type]:
     """ Define a Quilt wavefom with the given name. """
 
-    def wrap(cls):
-        cls = dataclass(cls)
+    def wrap(cls: type) -> type:
+        cls: type = dataclass(cls)
         _waveform_classes[name] = cls
         return cls
 
