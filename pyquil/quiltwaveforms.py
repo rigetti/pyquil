@@ -45,7 +45,7 @@ def _wf_from_dict(name: str, params: Dict[str, Union[Expression, Real, Complex]]
     if name not in _waveform_classes:
         raise ValueError(f"Unknown template waveform {name}.")
     cls = _waveform_classes[name]
-    fields = cls.__dataclass_fields__
+    fields = getattr(cls, "__dataclass_fields__", {})
 
     for param, value in params.items():
         if param not in fields:
