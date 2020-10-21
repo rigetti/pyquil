@@ -1,7 +1,7 @@
 import sys
 from copy import copy
 
-from typing import Union, Dict, List, Any, Optional
+from typing import Union, Dict, List, Any, Optional, no_type_check
 
 if sys.version_info < (3, 7):
     from pyquil.external.dataclasses import dataclass
@@ -54,6 +54,7 @@ class CalibrationMatch:
     settings: Dict[Union[FormalArgument, Parameter], Any]
 
 
+@no_type_check
 def fill_placeholders(obj, placeholder_values: Dict[Union[FormalArgument, Parameter], Any]):
     """Update Parameter and FormalArgument references in objects with
     their corresponding definitions.
@@ -140,8 +141,9 @@ def match_calibration(
 
     On a failure, return None.
     """
-    settings = {}
+    settings: Dict[Any, Any] = {}
 
+    @no_type_check
     def unpack_field(cal_field, instr_field):
         if isinstance(cal_field, (Parameter, FormalArgument)):
             if instr_field is None:
