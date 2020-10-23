@@ -222,6 +222,8 @@ class PyquilConfig(object):
                 return cast(str, getattr(self.get_engagement(), engagement_key))
         except AttributeError:
             pass
+        except UserMessageError:
+            pass
 
         return default
 
