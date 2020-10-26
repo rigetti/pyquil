@@ -1,10 +1,8 @@
-import pytest
 import requests_mock
 import urllib.parse
 
 from pyquil.api._base_connection import ForestSession
 from pyquil.api._config import PyquilConfig
-from pyquil.api._errors import UserMessageError
 from pyquil.tests.utils import api_fixture_path
 
 
