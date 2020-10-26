@@ -513,6 +513,16 @@ class QVMCompiler(AbstractCompiler):
         self.quilc_client.rpc_timeout = timeout
 
 
+    @_record_call
+    def get_quilt_calibrations(self) -> Program:
+        """
+        See ``QPUCompiler.get_quilt_calibrations()``.
+
+        Note: this currently provides an empty ``Program`` since the QVM does not support Quilt.
+        """
+        return Program()
+
+
 @dataclass
 class HTTPCompilerClient:
     """
