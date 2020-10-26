@@ -859,7 +859,13 @@ class TemplateWaveform(QuilAtom):
         raise NotImplementedError()
 
 
-def _update_envelope(iqs: np.ndarray, rate: float, scale: Optional[float], phase: Optional[float], detuning: Optional[float]) -> np.ndarray:
+def _update_envelope(
+    iqs: np.ndarray,
+    rate: float,
+    scale: Optional[float],
+    phase: Optional[float],
+    detuning: Optional[float],
+) -> np.ndarray:
     """Update a pulse envelope by optional shape parameters.
 
     The optional parameters are: 'scale', 'phase', 'detuning'.
@@ -868,6 +874,7 @@ def _update_envelope(iqs: np.ndarray, rate: float, scale: Optional[float], phase
     :param rate: The sample rate (in Hz).
     :return: The updated pulse envelope.
     """
+
     def default(obj: Optional[float], val: float) -> float:
         return obj if obj is not None else val
 
@@ -876,12 +883,11 @@ def _update_envelope(iqs: np.ndarray, rate: float, scale: Optional[float], phase
     detuning = default(detuning, 0.0)
 
     iqs *= (
-        scale
-        * np.exp(1j * phase)
-        * np.exp(1j * 2 * np.pi * detuning * np.arange(len(iqs)) / rate)
+        scale * np.exp(1j * phase) * np.exp(1j * 2 * np.pi * detuning * np.arange(len(iqs)) / rate)
     )
 
     return iqs
+
 
 Waveform = Union[WaveformReference, TemplateWaveform]
 
