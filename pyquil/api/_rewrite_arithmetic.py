@@ -14,7 +14,7 @@ from pyquil.quilbase import (
 )
 from rpcq.messages import ParameterSpec, ParameterAref, RewriteArithmeticResponse
 
-from typing import Dict, Sequence, Union, List, no_type_check
+from typing import Dict, Union, List, no_type_check
 
 
 # TODO

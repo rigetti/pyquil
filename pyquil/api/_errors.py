@@ -181,13 +181,13 @@ class UserMessageError(Exception):
         else:
             self.message = message
 
-    def __str__(self):
+    def __str__(self) -> str:
         if logger.level <= logging.DEBUG:
             return super(UserMessageError, self).__str__()
         else:
             return f"ERROR: {self.message}"
 
-    def __repr__(self):
+    def __repr__(self) -> str:
         if logger.level <= logging.DEBUG:
             return super(UserMessageError, self).__repr__()
         else:

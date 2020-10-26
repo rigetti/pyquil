@@ -949,8 +949,10 @@ def _what_type_of_qubit_does_it_use(
     # FormalArgument (which is permitted by Gate.qubits), then an
     # error should be raised. Unfortunately this doesn't help mypy
     # narrow down the return type, so gotta cast.
-    return has_placeholders, has_real_qubits, cast(
-        List[Union[Qubit, QubitPlaceholder]], list(qubits.keys())
+    return (
+        has_placeholders,
+        has_real_qubits,
+        cast(List[Union[Qubit, QubitPlaceholder]], list(qubits.keys())),
     )
 
 
@@ -1045,9 +1047,7 @@ def address_qubits(
 
 
 def _get_label(
-    placeholder: LabelPlaceholder,
-    label_mapping: Dict[LabelPlaceholder, Label],
-    label_i: int,
+    placeholder: LabelPlaceholder, label_mapping: Dict[LabelPlaceholder, Label], label_i: int,
 ) -> Tuple[Label, Dict[LabelPlaceholder, Label], int]:
     """Helper function to either get the appropriate label for a given placeholder or generate
     a new label and update the mapping.
@@ -1275,13 +1275,11 @@ def validate_protoquil(program: Program) -> None:
     """
     valid_instruction_types = tuple([Pragma, Declare, Gate, Reset, ResetQubit, Measurement])
     if program.calibrations:
-        raise ValueError(f"ProtoQuil validation failed: Quilt calibrations are not allowed.")
+        raise ValueError("ProtoQuil validation failed: Quilt calibrations are not allowed.")
     if program.waveforms:
-        raise ValueError(
-            f"ProtoQuil validation failed: Quilt waveform definitions are not allowed."
-        )
+        raise ValueError("ProtoQuil validation failed: Quilt waveform definitions are not allowed.")
     if program.frames:
-        raise ValueError(f"ProtoQuil validation failed: Quilt frame definitions are not allowed.")
+        raise ValueError("ProtoQuil validation failed: Quilt frame definitions are not allowed.")
     for instr in program.instructions:
         if not isinstance(instr, valid_instruction_types):
             # Instructions like MOVE, NOT, JUMP, JUMP-UNLESS will fail here

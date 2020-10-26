@@ -345,7 +345,9 @@ class Measurement(AbstractInstruction):
     """
 
     def __init__(
-        self, qubit: Union[Qubit, QubitPlaceholder, FormalArgument], classical_reg: Optional[MemoryReference]
+        self,
+        qubit: Union[Qubit, QubitPlaceholder, FormalArgument],
+        classical_reg: Optional[MemoryReference],
     ):
         if not isinstance(qubit, (Qubit, QubitPlaceholder, FormalArgument)):
             raise TypeError("qubit should be a Qubit")
@@ -1349,10 +1351,7 @@ class Fence(AbstractInstruction):
 
 class DefWaveform(AbstractInstruction):
     def __init__(
-        self,
-        name: str,
-        parameters: List[Parameter],
-        entries: List[Union[Complex, Expression]],
+        self, name: str, parameters: List[Parameter], entries: List[Union[Complex, Expression]],
     ):
         self.name = name
         self.parameters = parameters

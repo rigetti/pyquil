@@ -174,9 +174,7 @@ def group_settings_clique_removal(experiments: Experiment) -> Experiment:
         new_cliqs += [new_cliq]
 
     return Experiment(
-        new_cliqs,
-        program=experiments.program,
-        symmetrization=experiments.symmetrization,
+        new_cliqs, program=experiments.program, symmetrization=experiments.symmetrization,
     )
 
 
@@ -223,9 +221,7 @@ def _max_weight_state(states: Iterable[TensorProductState]) -> Union[None, Tenso
     return TensorProductState(list(mapping.values()))
 
 
-def _max_tpb_overlap(
-    tomo_expt: Experiment,
-) -> Dict[ExperimentSetting, List[ExperimentSetting]]:
+def _max_tpb_overlap(tomo_expt: Experiment,) -> Dict[ExperimentSetting, List[ExperimentSetting]]:
     """
     Given an input Experiment, provide a dictionary indicating which ExperimentSettings
     share a tensor product basis
