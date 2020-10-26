@@ -822,8 +822,12 @@ class Program(object):
         p.inst(self)
         p.inst(other)
         p._calibrations = self.calibrations
+        p._waveforms = self.waveforms
+        p._frames = self.frames
         if isinstance(other, Program):
             p.calibrations.extend(other.calibrations)
+            p.waveforms.update(other.waveforms)
+            p.frames.update(other.frames)
         return p
 
     def __iadd__(self, other: InstructionDesignator) -> "Program":
@@ -836,6 +840,8 @@ class Program(object):
         self.inst(other)
         if isinstance(other, Program):
             self.calibrations.extend(other.calibrations)
+            self.waveforms.update(other.waveforms)
+            self.frames.update(other.frames)
         return self
 
     def __getitem__(self, index: Union[slice, int]) -> Union[AbstractInstruction, "Program"]:
