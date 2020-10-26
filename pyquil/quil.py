@@ -615,7 +615,7 @@ class Program(object):
         self.num_shots = shots
         return self
 
-    def out(self, calibrations: Optional[bool] = True) -> str:
+    def out(self, *, calibrations: Optional[bool] = True) -> str:
         """
         Serializes the Quil program to a string suitable for submitting to the QVM or QPU.
         """
