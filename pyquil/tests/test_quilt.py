@@ -193,3 +193,41 @@ def test_program_calibrate():
     prog = Program('DEFCAL RZ(%theta) q:\n    SHIFT-PHASE q "rf" -%theta')
     calibrated = prog.calibrate(Gate("RZ", [np.pi], [Qubit(0)]))
     assert calibrated == Program('SHIFT-PHASE 0 "rf" -pi').instructions
+
+
+def test_merge_programs_with_quilt_features():
+    prog_1 = Program("""
+DEFCAL RZ(%theta) q:
+    SHIFT-PHASE q "rf" -%theta
+""")
+    prog_2 = Program() + prog_1
+    assert(len(prog_2.calibrations) == 1)
+    prog_2 = prog_1 + Program()
+    assert(len(prog_2.calibrations) == 1)
+    prog_2 = Program()
+    prog_2 += prog_1
+    assert(len(prog_2.calibrations) == 1)
+
+    prog_1 = Program("""
+DEFFRAME 0 "rf":
+    SAMPLE-RATE: 2.0
+""")
+    prog_2 = Program() + prog_1
+    assert(len(prog_2.frames) == 1)
+    prog_2 = prog_1 + Program()
+    assert(len(prog_2.frames) == 1)
+    prog_2 = Program()
+    prog_2 += prog_1
+    assert(len(prog_2.frames) == 1)
+
+    prog_1 = Program("""
+DEFWAVEFORM foo:
+    1.0, 1.0, 1.0
+""")
+    prog_2 = Program() + prog_1
+    assert(len(prog_2.waveforms) == 1)
+    prog_2 = prog_1 + Program()
+    assert(len(prog_2.waveforms) == 1)
+    prog_2 = Program()
+    prog_2 += prog_1
+    assert(len(prog_2.waveforms) == 1)
