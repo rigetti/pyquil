@@ -295,4 +295,3 @@ def test_forest_session_request_engagement_failure():
         {"status_code": 200, "json": {"data": FAILED_ENGAGEMENT_RESPONSE}}
     ]
     mock_adapter.register_uri("POST", url, response_list=response_list)
-
