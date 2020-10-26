@@ -149,12 +149,13 @@ def test_invalid_protocol():
     )
 
     with pytest.raises(UserMessageError):
-        QPUCompiler(
+        x = QPUCompiler(
             quilc_endpoint=session.config.quilc_url,
             qpu_compiler_endpoint=mock_url,
             device=device,
             session=session,
         )
+        x.qpu_compiler_client
 
 
 def test_compile_with_quilt_calibrations(compiler):
