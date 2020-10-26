@@ -289,18 +289,14 @@ support at support@rigetti.com."""
         # Initialize our patch table
         recalculation_table = getattr(self._executable, "recalculation_table", None)
         if recalculation_table is not None:
-            memory_ref_names = list(
-                set(mr.name for mr in recalculation_table.keys())
-            )
+            memory_ref_names = list(set(mr.name for mr in recalculation_table.keys()))
             if memory_ref_names != []:
                 assert len(memory_ref_names) == 1, (
                     "We expected only one declared memory region for "
                     "the gate parameter arithmetic replacement references."
                 )
                 memory_reference_name = memory_ref_names[0]
-                patch_values[memory_reference_name] = [0.0] * len(
-                    recalculation_table
-                )
+                patch_values[memory_reference_name] = [0.0] * len(recalculation_table)
 
         assert isinstance(self._executable, QuiltBinaryExecutableResponse)
         for name, spec in self._executable.memory_descriptors.items():

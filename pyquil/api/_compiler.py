@@ -140,7 +140,9 @@ def _collect_memory_descriptors(program: Program) -> Dict[str, ParameterSpec]:
 
 # TODO This should be deleted once native_quil_to_executable no longer
 # uses it.
-def _collect_classical_memory_write_locations(program: Program) -> List[Optional[Tuple[MemoryReference, str]]]:
+def _collect_classical_memory_write_locations(
+    program: Program,
+) -> List[Optional[Tuple[MemoryReference, str]]]:
     """Collect classical memory locations that are the destination of MEASURE instructions
     These locations are important for munging output buffers returned from the QPU
     server to the shape expected by the user.
@@ -394,7 +396,10 @@ class QPUCompiler(AbstractCompiler):
                 "are engaged to the QPU or have configured qpu_compiler_endpoint "
                 "in your pyquil configuration."
             )
-        response = cast(QuiltCalibrationsResponse, self.qpu_compiler_client.call("get_quilt_calibrations", request))
+        response = cast(
+            QuiltCalibrationsResponse,
+            self.qpu_compiler_client.call("get_quilt_calibrations", request),
+        )
         calibration_program = parse_program(response.quilt)
         return calibration_program
 
@@ -476,7 +481,6 @@ class QVMCompiler(AbstractCompiler):
         timeout = self.client.timeout
         self.client.close()  # type: ignore
         self.client = Client(self.endpoint, timeout=timeout)
-
 
     @_record_call
     def get_quilt_calibrations(self) -> Program:

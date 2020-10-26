@@ -16,11 +16,11 @@ check-format:
 
 .PHONY: check-types
 check-types:
-	mypy .
+	mypy pyquil
 
 .PHONY: check-style
 check-style:
-	flake8
+	flake8 pyquil
 
 .PHONY: clean
 clean:
