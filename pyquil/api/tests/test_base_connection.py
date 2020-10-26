@@ -296,5 +296,3 @@ def test_forest_session_request_engagement_failure():
     ]
     mock_adapter.register_uri("POST", url, response_list=response_list)
 
-    with pytest.raises(UserMessageError):
-        assert config.qpu_url is None
