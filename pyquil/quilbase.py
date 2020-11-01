@@ -1045,7 +1045,7 @@ class Jump(AbstractInstruction):
 
     def __init__(self, target: Union[Label, LabelPlaceholder]):
         if not isinstance(target, (Label, LabelPlaceholder)):
-            raise TypeError("target should be a Label")
+            raise TypeError("target should be a Label: {target}")
         self.target = target
 
     def out(self) -> str:
@@ -1069,10 +1069,10 @@ class Pragma(AbstractInstruction):
         freeform_string: str = "",
     ):
         if not isinstance(command, str):
-            raise TypeError("Pragma's require an identifier.")
+            raise TypeError(f"Pragma's require an identifier: {command}")
 
         if not isinstance(args, collections.abc.Iterable):
-            raise TypeError("Pragma arguments must be an Iterable: {}".format(args))
+            raise TypeError(f"Pragma arguments must be an Iterable: {args}")
         for a in args:
             if not (
                 isinstance(a, str)
@@ -1080,10 +1080,10 @@ class Pragma(AbstractInstruction):
                 or isinstance(a, QubitPlaceholder)
                 or isinstance(a, Qubit)
             ):
-                raise TypeError("Pragma arguments must be strings or integers: {}".format(a))
+                raise TypeError(f"Pragma arguments must be strings or integers: {a}")
         if not isinstance(freeform_string, str):
             raise TypeError(
-                "The freeform string argument must be a string: {}".format(freeform_string)
+                f"The freeform string argument must be a string: {freeform_string}"
             )
 
         self.command = command
