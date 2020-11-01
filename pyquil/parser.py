@@ -18,7 +18,7 @@ Module for parsing Quil programs from text into PyQuil objects
 """
 from typing import List
 
-from pyquil._parser.PyQuilListener import run_parser
+from pyquil._parser.parser import run_parser
 from pyquil.quil import Program
 from pyquil.quilbase import AbstractInstruction
 
@@ -33,11 +33,12 @@ def parse_program(quil: str) -> Program:
     return Program(parse(quil))
 
 
-def parse(quil: str) -> List[AbstractInstruction]:
+def parse(program: str) -> List[AbstractInstruction]:
     """
     Parse a raw Quil program and return a corresponding list of PyQuil objects.
 
     :param str quil: a single or multiline Quil program
     :return: list of instructions
     """
-    return run_parser(quil)
+    p = run_parser(program)
+    return p

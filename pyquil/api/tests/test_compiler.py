@@ -100,6 +100,28 @@ def test_http_compilation(compiler):
     assert compilation_result.program == SIMPLE_RESPONSE["program"]
 
 
+def test_invalid_protocol():
+    device_name = "test_device"
+    mock_url = "not-http-or-tcp://mock-qpu-compiler"
+
+    config = PyquilConfig(TEST_CONFIG_PATHS)
+    session = get_session(config=config)
+    mock_adapter = requests_mock.Adapter()
+    session.mount("", mock_adapter)
+    device = Device(
+        name="not_actually_device_name", raw={"device_name": device_name, "isa": DUMMY_ISA_DICT}
+    )
+
+    with pytest.raises(UserMessageError):
+        x = QPUCompiler(
+            quilc_endpoint=session.config.quilc_url,
+            qpu_compiler_endpoint=mock_url,
+            device=device,
+            session=session,
+        )
+        x.qpu_compiler_client
+
+
 def test_http_compilation_failure(compiler):
     device_name = "test_device"
     mock_url = "http://mock-qpu-compiler"
@@ -155,28 +177,6 @@ def test_http_compilation_failure(compiler):
         compiler.native_quil_to_executable(native_quil)
 
     assert "test compilation failed" in str(excinfo.value)
-
-
-def test_invalid_protocol():
-    device_name = "test_device"
-    mock_url = "not-http-or-tcp://mock-qpu-compiler"
-
-    config = PyquilConfig(TEST_CONFIG_PATHS)
-    session = get_session(config=config)
-    mock_adapter = requests_mock.Adapter()
-    session.mount("", mock_adapter)
-    device = Device(
-        name="not_actually_device_name", raw={"device_name": device_name, "isa": DUMMY_ISA_DICT}
-    )
-
-    with pytest.raises(UserMessageError):
-        x = QPUCompiler(
-            quilc_endpoint=session.config.quilc_url,
-            qpu_compiler_endpoint=mock_url,
-            device=device,
-            session=session,
-        )
-        x.qpu_compiler_client
 
 
 def test_compile_with_quilt_calibrations(compiler):

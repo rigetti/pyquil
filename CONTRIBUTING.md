@@ -228,10 +228,7 @@ verify that everything looks right!
 
 ### Working with the Parser
 
-Working with the ANTLR parser involves some extra steps, so make sure to read the
-[Parser README](pyquil/_parser/README.md) if you plan on making changes to it. Note
-that you only need to install ANTLR if you want to change the grammar; simply running
-the parser involves no additional steps beyond installing pyQuil as usual.
+The parser is implemented with Lark. See the [parser README](pyquil/_parser/README.md).
 
 ### Using the Docker Image
 

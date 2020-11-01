@@ -76,6 +76,7 @@ def _match(cal, instr):
     # convert to quil ast
     full_calibration = cal_header + ":\n    NOP\n\n"
     cal = Program(full_calibration).calibrations[0]
+    print(cal)
 
     # we pull the last instr (omitting implicit DECLARE)
     instr = Program(instr)[-1]

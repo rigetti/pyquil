@@ -152,6 +152,7 @@ def _collect_classical_memory_write_locations(
         qubit `q` was measured into `ro` address `addr`. A value of `None` means nothing was
         measured into `ro` address `addr`.
     """
+    # TODO(notmgsk): move these imports up
     from pyquil.quilbase import Measurement, Declare
 
     ro_size = None
@@ -411,7 +412,7 @@ class QPUCompiler(AbstractCompiler):
             self.qpu_compiler_client.call("get_quilt_calibrations", request),
         )
         calibration_program = parse_program(response.quilt)
-        return calibration_program
+        return Program(calibration_program)
 
     @_record_call
     def refresh_calibration_program(self) -> None:

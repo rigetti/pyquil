@@ -39,7 +39,8 @@ from typing import (
 import numpy as np
 from rpcq.messages import NativeQuilMetadata
 
-from pyquil._parser.PyQuilListener import run_parser
+from pyquil._parser.parser import run_parser
+
 from pyquil.noise import _check_kraus_ops, _create_kraus_pragmas, pauli_kraus_map
 from pyquil.quilatom import (
     Label,
