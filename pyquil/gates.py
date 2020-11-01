@@ -1067,7 +1067,7 @@ def DELAY(*args) -> Union[DelayFrames, DelayQubits]:
     """
     Produce a DELAY instruction.
 
-    Note: There are two variants of DELAY. One appliest to specific frames on some
+    Note: There are two variants of DELAY. One applies to specific frames on some
     qubit, e.g. `DELAY 0 "rf" "ff" 1.0` delays the `"rf"` and `"ff"` frames on 0.
     It is also possible to delay all frames on some qubits, e.g. `DELAY 0 1 2 1.0`.
 
@@ -1091,7 +1091,8 @@ def DELAY(*args) -> Union[DelayFrames, DelayQubits]:
     else:
         raise TypeError(
             "DELAY targets must be either (i) a list of frames, or "
-            "(ii) a list of qubits / formal arguments."
+            "(ii) a list of qubits / formal arguments. "
+            f"Got {args}."
         )
 
 
