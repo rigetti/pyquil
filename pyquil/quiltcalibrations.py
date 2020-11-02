@@ -16,7 +16,6 @@ from pyquil.quilatom import (
     MemoryReference,
     Parameter,
     Qubit,
-    qubit_index,
     TemplateWaveform,
     WaveformReference,
 )
@@ -166,7 +165,7 @@ def match_calibration(
             for cal_param, instr_param in zip(cal.parameters, instr.params):
                 unpack_field(cal_param, instr_param)
             for cal_arg, instr_arg in zip(cal.qubits, instr.qubits):
-                unpack_field(qubit_index(cal_arg), qubit_index(instr_arg))
+                unpack_field(cal_arg, instr_arg)
             return CalibrationMatch(cal, settings)
         except CalibrationDoesntMatch:
             return None
