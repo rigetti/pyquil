@@ -1082,9 +1082,7 @@ class Pragma(AbstractInstruction):
             ):
                 raise TypeError(f"Pragma arguments must be strings or integers: {a}")
         if not isinstance(freeform_string, str):
-            raise TypeError(
-                f"The freeform string argument must be a string: {freeform_string}"
-            )
+            raise TypeError(f"The freeform string argument must be a string: {freeform_string}")
 
         self.command = command
         self.args = tuple(args)
