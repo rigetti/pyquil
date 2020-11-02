@@ -42,6 +42,7 @@ from pyquil.quilatom import (
     FormalArgument,
     Expression,
     ExpressionDesignator,
+    MemoryReference
 )
 
 from .quil import Program
@@ -908,7 +909,7 @@ def exponentiate(term: PauliTerm) -> Program:
     return exponential_map(term)(1.0)
 
 
-def exponential_map(term: PauliTerm) -> Callable[[float], Program]:
+def exponential_map(term: PauliTerm) -> Callable[[Union[float, MemoryReference]], Program]:
     """
     Returns a function f(alpha) that constructs the Program corresponding to exp(-1j*alpha*term).
 
@@ -939,7 +940,7 @@ def exponential_map(term: PauliTerm) -> Callable[[float], Program]:
     return exp_wrap
 
 
-def exponentiate_commuting_pauli_sum(pauli_sum: PauliSum) -> Callable[[float], Program]:
+def exponentiate_commuting_pauli_sum(pauli_sum: PauliSum) -> Callable[[Union[float, MemoryReference]], Program]:
     """
     Returns a function that maps all substituent PauliTerms and sums them into a program. NOTE: Use
     this function with care. Substituent PauliTerms should commute.
