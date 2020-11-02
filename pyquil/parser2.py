@@ -438,25 +438,35 @@ class QuilTransformer(Transformer):
     pos = v_args(inline=True)(operator.pos)
 
 
-import json
+parser = Lark(
+    grammar,
+    start="quil",
+    parser="lalr",
+    transformer=QuilTransformer(),
+    maybe_placeholders=True,
+    debug=True,
+)
 
-with open("/tmp/aspen-8-quilt-calibrations.txt") as f:
-    data = json.load(f)["quilt"]
 
-try:
-    parser = Lark(
-        grammar,
-        start="quil",
-        parser="lalr",
-        transformer=QuilTransformer(),
-        maybe_placeholders=True,
-        debug=True,
-    )
-    from time import time
-    t = time()
-    p = Program(parser.parse(data))
-    print(f"{time() - t}s")
-    print(len(data.splitlines()))
-except UnexpectedToken as e:
-    print(data.splitlines()[e.line - 1])
-    raise RuntimeError(e)
+def parse(program: str) -> Program:
+    p = Program(parser.parse(program))
+    return p
+
+# import json
+
+# with open("/tmp/aspen-8-quilt-calibrations.txt") as f:
+#     data = json.load(f)["quilt"]
+
+# try:
+
+#     from time import time
+
+#     t = time()
+#     p = Program(parser.parse(data))
+#     print(f"{time() - t}s")
+#     t = time()
+#     p = Program(data)
+#     print(f"{time() - t}s")
+# except UnexpectedToken as e:
+#     print(data.splitlines()[e.line - 1])
+#     raise RuntimeError(e)
