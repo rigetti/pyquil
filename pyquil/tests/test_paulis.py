@@ -669,10 +669,8 @@ def test_term_with_coeff():
 def test_sum_equality():
     pauli_sum = sY(0) - sX(0)
     assert pauli_sum != 2 * pauli_sum
-    with pytest.warns(UnequalLengthWarning):
-        assert pauli_sum != pauli_sum + sZ(0)
-    with pytest.warns(UnequalLengthWarning):
-        assert pauli_sum + sZ(0) != pauli_sum
+    assert pauli_sum != pauli_sum + sZ(0)
+    assert pauli_sum + sZ(0) != pauli_sum
     assert pauli_sum != sY(1) - sX(1)
     assert pauli_sum == -1.0 * sX(0) + sY(0)
     assert pauli_sum == pauli_sum * 1.0
@@ -726,18 +724,14 @@ def test_simplify():
 def test_dont_simplify():
     t1 = sZ(0) * sZ(1)
     t2 = sZ(2) * sZ(3)
-    with pytest.warns(UnequalLengthWarning):
-        assert (t1 + t2) != 2 * sZ(0) * sZ(1)
+    assert (t1 + t2) != 2 * sZ(0) * sZ(1)
 
 
 def test_simplify_warning():
     t1 = sZ(0) * sZ(1)
     t2 = sZ(1) * sZ(0)
-    with pytest.warns(UserWarning) as e:
-        tsum = t1 + t2
-
+    tsum = t1 + t2
     assert tsum == 2 * sZ(0) * sZ(1)
-    assert str(e[0].message).startswith("The term Z1Z0 will be combined with Z0Z1")
 
 
 def test_pauli_string():

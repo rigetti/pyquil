@@ -452,7 +452,6 @@ class PyQVM(QAM):
             raise NotImplementedError("Need to implement in wf simulator")
 
         elif isinstance(instruction, Wait):
-            warnings.warn("WAIT does nothing for a noiseless simulator")
             self.program_counter += 1
 
         elif isinstance(instruction, Nop):

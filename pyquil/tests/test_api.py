@@ -321,13 +321,10 @@ def test_quil_to_native_quil(compiler):
     )
 
 
-def test_native_quil_to_binary(server, mock_qpu_compiler):
+def test_native_quil_to_executable(server, mock_qpu_compiler):
     p = COMPILED_BELL_STATE.copy()
     p.wrap_in_numshots_loop(10)
-    # `native_quil_to_executable` will warn us that we haven't constructed our
-    # program via `quil_to_native_quil`.
-    with pytest.warns(UserWarning):
-        response = mock_qpu_compiler.native_quil_to_executable(p)
+    response = mock_qpu_compiler.native_quil_to_executable(p)
     assert response.program == COMPILED_BYTES_ARRAY
 
 
