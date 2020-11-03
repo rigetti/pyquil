@@ -31,7 +31,6 @@ from pyquil.paulis import (
     exponential_map,
     exponentiate_commuting_pauli_sum,
     ID,
-    UnequalLengthWarning,
     exponentiate,
     trotterize,
     is_zero,
