@@ -9,8 +9,16 @@ Changelog
 ### Improvements and Changes
 
 - Include a `py.typed` so that libraries that depend on pyquil can validate their typing against it (@notmgsk, #1256)
+- Removed warnings expected in normal workflows that cannot be avoided
+  programmatically. This included the warning about passing native Quil to
+  `native_quil_to_executable`. Documentation has been updated to clarify
+  expected behavior (@mhodson-rigetti, gh-1267).
 
 ### Bugfixes
+
+- Fixed incorrect return type hint for the `exponential_map` function, which
+  now accepts both `float` and `MemoryReference` types for exponentiation
+  (@mhodson-rigetti, gh-1243).
 
 [v2.23.1](https://github.com/rigetti/pyquil/compare/v2.23.0..v2.23.1) (September 9, 2020)
 ------------------------------------------------------------------------------------
