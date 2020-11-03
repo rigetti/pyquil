@@ -331,14 +331,6 @@ class QPUCompiler(AbstractCompiler):
 
         self._connect_qpu_compiler()
 
-        if nq_program.native_quil_metadata is None:
-            warnings.warn(
-                "It looks like you're trying to call `native_quil_to_binary` on a "
-                "Program that hasn't been compiled via `quil_to_native_quil`. This is "
-                "ok if you've hand-compiled your program to our native gateset, "
-                "but be careful!"
-            )
-
         arithmetic_response = rewrite_arithmetic(nq_program)
 
         request = BinaryExecutableRequest(

@@ -636,10 +636,8 @@ def test_sum_equality():
     q0, q1 = QubitPlaceholder.register(2)
     pauli_sum = sY(q0) - sX(q0)
     assert pauli_sum != 2 * pauli_sum
-    with pytest.warns(UnequalLengthWarning):
-        assert pauli_sum != pauli_sum + sZ(q0)
-    with pytest.warns(UnequalLengthWarning):
-        assert pauli_sum + sZ(q0) != pauli_sum
+    assert pauli_sum != pauli_sum + sZ(q0)
+    assert pauli_sum + sZ(q0) != pauli_sum
     assert pauli_sum != sY(q1) - sX(q1)
     assert pauli_sum == -1.0 * sX(q0) + sY(q0)
     assert pauli_sum == pauli_sum * 1.0
@@ -691,16 +689,12 @@ def test_dont_simplify():
     q = QubitPlaceholder.register(8)
     t1 = sZ(q[0]) * sZ(q[1])
     t2 = sZ(q[2]) * sZ(q[3])
-    with pytest.warns(UnequalLengthWarning):
-        assert (t1 + t2) != 2 * sZ(q[0]) * sZ(q[1])
+    assert (t1 + t2) != 2 * sZ(q[0]) * sZ(q[1])
 
 
 def test_simplify_warning():
     q = QubitPlaceholder.register(8)
     t1 = sZ(q[0]) * sZ(q[1])
     t2 = sZ(q[1]) * sZ(q[0])
-    with pytest.warns(UserWarning) as e:
-        tsum = t1 + t2
-
+    tsum = t1 + t2
     assert tsum == 2 * sZ(q[0]) * sZ(q[1])
-    assert "will be combined with" in str(e[0].message)

@@ -192,7 +192,8 @@ support at support@rigetti.com."""
         an array of shape (trials, classical_addresses). The mapping of qubit to
         classical address is backed out from MEASURE instructions in the program, so
         only do measurements where there is a 1-to-1 mapping between qubits and classical
-        addresses.
+        addresses. If no MEASURE instructions are present in the program, a 0-by-0 array is
+        returned.
 
         :param run_priority: The priority with which to insert jobs into the QPU queue. Lower
                              integers correspond to higher priority. If not specified, the QPU
@@ -227,11 +228,6 @@ support at support@rigetti.com."""
         if results:
             bitstrings = _extract_bitstrings(ro_sources, results)
         elif not ro_sources:
-            warnings.warn(
-                "You are running a QPU program with no MEASURE instructions. "
-                "The result of this program will always be an empty array. Are "
-                "you sure you didn't mean to measure some of your qubits?"
-            )
             bitstrings = np.zeros((0, 0), dtype=np.int64)
         else:
             bitstrings = None

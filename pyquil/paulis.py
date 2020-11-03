@@ -600,7 +600,6 @@ class PauliSum(object):
         elif isinstance(other, PauliTerm):
             return self == PauliSum([other])
         elif len(self.terms) != len(other.terms):
-            warnings.warn(UnequalLengthWarning("These PauliSums have a different number of terms."))
             return False
 
         return set(self.terms) == set(other.terms)
@@ -790,7 +789,12 @@ class PauliSum(object):
 
 
 def simplify_pauli_sum(pauli_sum: PauliSum) -> PauliSum:
-    """Simplify the sum of Pauli operators according to Pauli algebra rules."""
+    """
+    Simplify the sum of Pauli operators according to Pauli algebra rules.
+
+    Warning: The simplified expression may re-order pauli operations, and may
+    impact the observed performance when running on the QPU.
+    """
 
     # You might want to use a defaultdict(list) here, but don't because
     # we want to do our best to preserve the order of terms.
@@ -809,17 +813,6 @@ def simplify_pauli_sum(pauli_sum: PauliSum) -> PauliSum:
             terms.append(first_term)
         else:
             coeff = sum(t.coefficient for t in term_list)
-            for t in term_list:
-                if list(t._ops.items()) != list(first_term._ops.items()):
-                    warnings.warn(
-                        "The term {} will be combined with {}, but they have different "
-                        "orders of operations. This doesn't matter for QVM or "
-                        "wavefunction simulation but may be important when "
-                        "running on an actual device.".format(
-                            t.id(sort_ops=False), first_term.id(sort_ops=False)
-                        )
-                    )
-
             if not np.isclose(coeff, 0.0):
                 terms.append(term_with_coeff(term_list[0], coeff))
     return PauliSum(terms)
