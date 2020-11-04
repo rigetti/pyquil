@@ -1,12 +1,9 @@
-# Generated from Quil.g4 by ANTLR 4.8
+# Generated from Quil.g4 by ANTLR 4.7.2
 # encoding: utf-8
 from antlr4 import *
 from io import StringIO
+from typing.io import TextIO
 import sys
-if sys.version_info[1] > 5:
-	from typing import TextIO
-else:
-	from typing.io import TextIO
 
 
 def serializedATN():
@@ -160,44 +157,44 @@ def serializedATN():
         buf.write("\3\2\2\2\u00f0\u00f2\3\2\2\2\u00f1\u00ef\3\2\2\2\u00f2")
         buf.write("\u00f3\7W\2\2\u00f3\u00f5\3\2\2\2\u00f4\u00e9\3\2\2\2")
         buf.write("\u00f4\u00f5\3\2\2\2\u00f5\u00f7\3\2\2\2\u00f6\u00f8\5")
-        buf.write("\f\7\2\u00f7\u00f6\3\2\2\2\u00f8\u00f9\3\2\2\2\u00f9\u00f7")
-        buf.write("\3\2\2\2\u00f9\u00fa\3\2\2\2\u00fa\t\3\2\2\2\u00fb\u00fc")
-        buf.write("\7P\2\2\u00fc\13\3\2\2\2\u00fd\u00fe\7Q\2\2\u00fe\r\3")
-        buf.write("\2\2\2\u00ff\u0100\5f\64\2\u0100\17\3\2\2\2\u0101\u0102")
-        buf.write("\t\2\2\2\u0102\21\3\2\2\2\u0103\u0104\7\3\2\2\u0104\u0112")
-        buf.write("\5\n\6\2\u0105\u0106\7V\2\2\u0106\u010b\5\26\f\2\u0107")
-        buf.write("\u0108\7U\2\2\u0108\u010a\5\26\f\2\u0109\u0107\3\2\2\2")
-        buf.write("\u010a\u010d\3\2\2\2\u010b\u0109\3\2\2\2\u010b\u010c\3")
-        buf.write("\2\2\2\u010c\u010e\3\2\2\2\u010d\u010b\3\2\2\2\u010e\u010f")
-        buf.write("\7W\2\2\u010f\u0113\3\2\2\2\u0110\u0111\7\23\2\2\u0111")
-        buf.write("\u0113\5\30\r\2\u0112\u0105\3\2\2\2\u0112\u0110\3\2\2")
-        buf.write("\2\u0112\u0113\3\2\2\2\u0113\u0114\3\2\2\2\u0114\u0115")
-        buf.write("\7Z\2\2\u0115\u0116\7`\2\2\u0116\u0117\5\32\16\2\u0117")
-        buf.write("\23\3\2\2\2\u0118\u0119\7\3\2\2\u0119\u0125\5\n\6\2\u011a")
-        buf.write("\u011b\7V\2\2\u011b\u0120\5\26\f\2\u011c\u011d\7U\2\2")
-        buf.write("\u011d\u011f\5\26\f\2\u011e\u011c\3\2\2\2\u011f\u0122")
-        buf.write("\3\2\2\2\u0120\u011e\3\2\2\2\u0120\u0121\3\2\2\2\u0121")
-        buf.write("\u0123\3\2\2\2\u0122\u0120\3\2\2\2\u0123\u0124\7W\2\2")
-        buf.write("\u0124\u0126\3\2\2\2\u0125\u011a\3\2\2\2\u0125\u0126\3")
-        buf.write("\2\2\2\u0126\u0128\3\2\2\2\u0127\u0129\5$\23\2\u0128\u0127")
-        buf.write("\3\2\2\2\u0129\u012a\3\2\2\2\u012a\u0128\3\2\2\2\u012a")
-        buf.write("\u012b\3\2\2\2\u012b\u012c\3\2\2\2\u012c\u012d\7\23\2")
-        buf.write("\2\u012d\u012e\7\26\2\2\u012e\u012f\7Z\2\2\u012f\u0130")
-        buf.write("\7`\2\2\u0130\u0131\5\36\20\2\u0131\25\3\2\2\2\u0132\u0133")
-        buf.write("\7[\2\2\u0133\u0134\7P\2\2\u0134\27\3\2\2\2\u0135\u0136")
-        buf.write("\t\3\2\2\u0136\31\3\2\2\2\u0137\u0138\5\34\17\2\u0138")
-        buf.write("\u0139\7`\2\2\u0139\u013b\3\2\2\2\u013a\u0137\3\2\2\2")
-        buf.write("\u013b\u013e\3\2\2\2\u013c\u013a\3\2\2\2\u013c\u013d\3")
-        buf.write("\2\2\2\u013d\u013f\3\2\2\2\u013e\u013c\3\2\2\2\u013f\u0140")
-        buf.write("\5\34\17\2\u0140\33\3\2\2\2\u0141\u0142\7_\2\2\u0142\u0147")
-        buf.write("\5f\64\2\u0143\u0144\7U\2\2\u0144\u0146\5f\64\2\u0145")
-        buf.write("\u0143\3\2\2\2\u0146\u0149\3\2\2\2\u0147\u0145\3\2\2\2")
-        buf.write("\u0147\u0148\3\2\2\2\u0148\35\3\2\2\2\u0149\u0147\3\2")
-        buf.write("\2\2\u014a\u014b\5 \21\2\u014b\u014c\7`\2\2\u014c\u014e")
-        buf.write("\3\2\2\2\u014d\u014a\3\2\2\2\u014e\u0151\3\2\2\2\u014f")
-        buf.write("\u014d\3\2\2\2\u014f\u0150\3\2\2\2\u0150\u0152\3\2\2\2")
-        buf.write("\u0151\u014f\3\2\2\2\u0152\u0153\5 \21\2\u0153\37\3\2")
-        buf.write("\2\2\u0154\u0155\7_\2\2\u0155\u0156\7P\2\2\u0156\u0157")
+        buf.write("\u0098M\2\u00f7\u00f6\3\2\2\2\u00f8\u00f9\3\2\2\2\u00f9")
+        buf.write("\u00f7\3\2\2\2\u00f9\u00fa\3\2\2\2\u00fa\t\3\2\2\2\u00fb")
+        buf.write("\u00fc\7P\2\2\u00fc\13\3\2\2\2\u00fd\u00fe\7Q\2\2\u00fe")
+        buf.write("\r\3\2\2\2\u00ff\u0100\5f\64\2\u0100\17\3\2\2\2\u0101")
+        buf.write("\u0102\t\2\2\2\u0102\21\3\2\2\2\u0103\u0104\7\3\2\2\u0104")
+        buf.write("\u0112\5\n\6\2\u0105\u0106\7V\2\2\u0106\u010b\5\26\f\2")
+        buf.write("\u0107\u0108\7U\2\2\u0108\u010a\5\26\f\2\u0109\u0107\3")
+        buf.write("\2\2\2\u010a\u010d\3\2\2\2\u010b\u0109\3\2\2\2\u010b\u010c")
+        buf.write("\3\2\2\2\u010c\u010e\3\2\2\2\u010d\u010b\3\2\2\2\u010e")
+        buf.write("\u010f\7W\2\2\u010f\u0113\3\2\2\2\u0110\u0111\7\23\2\2")
+        buf.write("\u0111\u0113\5\30\r\2\u0112\u0105\3\2\2\2\u0112\u0110")
+        buf.write("\3\2\2\2\u0112\u0113\3\2\2\2\u0113\u0114\3\2\2\2\u0114")
+        buf.write("\u0115\7Z\2\2\u0115\u0116\7`\2\2\u0116\u0117\5\32\16\2")
+        buf.write("\u0117\23\3\2\2\2\u0118\u0119\7\3\2\2\u0119\u0125\5\n")
+        buf.write("\6\2\u011a\u011b\7V\2\2\u011b\u0120\5\26\f\2\u011c\u011d")
+        buf.write("\7U\2\2\u011d\u011f\5\26\f\2\u011e\u011c\3\2\2\2\u011f")
+        buf.write("\u0122\3\2\2\2\u0120\u011e\3\2\2\2\u0120\u0121\3\2\2\2")
+        buf.write("\u0121\u0123\3\2\2\2\u0122\u0120\3\2\2\2\u0123\u0124\7")
+        buf.write("W\2\2\u0124\u0126\3\2\2\2\u0125\u011a\3\2\2\2\u0125\u0126")
+        buf.write("\3\2\2\2\u0126\u0128\3\2\2\2\u0127\u0129\5$\23\2\u0128")
+        buf.write("\u0127\3\2\2\2\u0129\u012a\3\2\2\2\u012a\u0128\3\2\2\2")
+        buf.write("\u012a\u012b\3\2\2\2\u012b\u012c\3\2\2\2\u012c\u012d\7")
+        buf.write("\23\2\2\u012d\u012e\7\26\2\2\u012e\u012f\7Z\2\2\u012f")
+        buf.write("\u0130\7`\2\2\u0130\u0131\5\36\20\2\u0131\25\3\2\2\2\u0132")
+        buf.write("\u0133\7[\2\2\u0133\u0134\7P\2\2\u0134\27\3\2\2\2\u0135")
+        buf.write("\u0136\t\3\2\2\u0136\31\3\2\2\2\u0137\u0138\5\34\17\2")
+        buf.write("\u0138\u0139\7`\2\2\u0139\u013b\3\2\2\2\u013a\u0137\3")
+        buf.write("\2\2\2\u013b\u013e\3\2\2\2\u013c\u013a\3\2\2\2\u013c\u013d")
+        buf.write("\3\2\2\2\u013d\u013f\3\2\2\2\u013e\u013c\3\2\2\2\u013f")
+        buf.write("\u0140\5\34\17\2\u0140\33\3\2\2\2\u0141\u0142\7_\2\2\u0142")
+        buf.write("\u0147\5f\64\2\u0143\u0144\7U\2\2\u0144\u0146\5f\64\2")
+        buf.write("\u0145\u0143\3\2\2\2\u0146\u0149\3\2\2\2\u0147\u0145\3")
+        buf.write("\2\2\2\u0147\u0148\3\2\2\2\u0148\35\3\2\2\2\u0149\u0147")
+        buf.write("\3\2\2\2\u014a\u014b\5 \21\2\u014b\u014c\7`\2\2\u014c")
+        buf.write("\u014e\3\2\2\2\u014d\u014a\3\2\2\2\u014e\u0151\3\2\2\2")
+        buf.write("\u014f\u014d\3\2\2\2\u014f\u0150\3\2\2\2\u0150\u0152\3")
+        buf.write("\2\2\2\u0151\u014f\3\2\2\2\u0152\u0153\5 \21\2\u0153\37")
+        buf.write("\3\2\2\2\u0154\u0155\7_\2\2\u0155\u0156\7P\2\2\u0156\u0157")
         buf.write("\7V\2\2\u0157\u0158\5f\64\2\u0158\u015a\7W\2\2\u0159\u015b")
         buf.write("\5$\23\2\u015a\u0159\3\2\2\2\u015b\u015c\3\2\2\2\u015c")
         buf.write("\u015a\3\2\2\2\u015c\u015d\3\2\2\2\u015d!\3\2\2\2\u015e")
@@ -652,7 +649,7 @@ class QuilParser ( Parser ):
 
     def __init__(self, input:TokenStream, output:TextIO = sys.stdout):
         super().__init__(input, output)
-        self.checkVersion("4.8")
+        self.checkVersion("4.7.2")
         self._interp = ParserATNSimulator(self, self.atn, self.decisionsToDFA, self.sharedContextCache)
         self._predicates = None
 
@@ -1240,11 +1237,11 @@ class QuilParser ( Parser ):
         def RPAREN(self):
             return self.getToken(QuilParser.RPAREN, 0)
 
-        def qubit(self, i:int=None):
+        def qubitOrFormal(self, i:int=None):
             if i is None:
-                return self.getTypedRuleContexts(QuilParser.QubitContext)
+                return self.getTypedRuleContexts(QuilParser.QubitOrFormalContext)
             else:
-                return self.getTypedRuleContext(QuilParser.QubitContext,i)
+                return self.getTypedRuleContext(QuilParser.QubitOrFormalContext,i)
 
 
         def COMMA(self, i:int=None):
@@ -1315,11 +1312,11 @@ class QuilParser ( Parser ):
             _la = self._input.LA(1)
             while True:
                 self.state = 244
-                self.qubit()
+                self.qubitOrFormal()
                 self.state = 247 
                 self._errHandler.sync(self)
                 _la = self._input.LA(1)
-                if not (_la==QuilParser.INT):
+                if not (_la==QuilParser.IDENTIFIER or _la==QuilParser.INT):
                     break
 
         except RecognitionException as re:
