@@ -723,12 +723,22 @@ class Program(object):
         :param instr: An instruction.
         :returns: A list of instructions, with the active calibration expanded.
         """
-        # TODO: recursively expand?
-        match = self.match_calibrations(instr)
-        if match is not None:
-            return expand_calibration(match)
-        else:
-            return [instr]
+        # TODO: Test for infinite loop
+        queue = [instr]
+        expanded_instrs = []
+        while len(queue) > 0:
+            instr, *queue = queue
+
+            if not isinstance(instr, (Gate, Measurement)):
+                expanded_instrs.append(instr)
+            else:
+                match = self.match_calibrations(instr)
+                if match is not None:
+                    expanded_instrs += expand_calibration(match)
+                else:
+                    expanded_instrs.append(instr)
+
+        return expanded_instrs
 
     def is_protoquil(self, quilt: bool = False) -> bool:
         """
