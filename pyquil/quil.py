@@ -734,7 +734,7 @@ class Program(object):
             else:
                 match = self.match_calibrations(instr)
                 if match is not None:
-                    expanded_instrs += expand_calibration(match)
+                    queue += expand_calibration(match)
                 else:
                     expanded_instrs.append(instr)
 
