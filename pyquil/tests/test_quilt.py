@@ -195,6 +195,19 @@ def test_program_calibrate():
     assert calibrated == Program('SHIFT-PHASE 0 "rf" -pi').instructions
 
 
+def test_program_calibrate_recursive():
+    # Not a realistic example :)
+    prog = Program("""
+DEFCAL RX(%theta) q:
+    RY(%theta) q
+
+DEFCAL RZ(%theta) q:
+    RX(%theta) q
+""")
+    calibrated = prog.calibrate(Gate("RZ", [np.pi], [Qubit(0)]))
+    assert calibrated == Program("RY(pi) 0").instructions
+
+
 def test_merge_programs_with_quilt_features():
     prog_1 = Program(
         """
