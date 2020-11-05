@@ -378,11 +378,6 @@ def test_pragma():
     parse_equals("PRAGMA NO-NOISE", Pragma("NO-NOISE"))
 
 
-def test_invalid():
-    with pytest.raises(RuntimeError):
-        parse("H X")
-
-
 def test_empty_program():
     parse_equals("")
 
