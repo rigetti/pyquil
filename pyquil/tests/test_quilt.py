@@ -1,3 +1,5 @@
+import pytest
+
 import numpy as np
 
 from pyquil.quil import Program
@@ -197,15 +199,64 @@ def test_program_calibrate():
 
 def test_program_calibrate_recursive():
     # Not a realistic example :)
-    prog = Program("""
+    prog = Program(
+        """
 DEFCAL RX(%theta) q:
     RY(%theta) q
 
 DEFCAL RZ(%theta) q:
     RX(%theta) q
-""")
+"""
+    )
     calibrated = prog.calibrate(Gate("RZ", [np.pi], [Qubit(0)]))
     assert calibrated == Program("RY(pi) 0").instructions
+
+
+def test_program_calibrate_cyclic_error():
+    prog = Program(
+        """
+DEFCAL RZ(%theta) q:
+    RZ(%theta) q
+"""
+    )
+    with pytest.raises(RuntimeError):
+        calibrated = prog.calibrate(Gate("RZ", [np.pi], [Qubit(0)]))
+
+    prog = Program(
+        """
+DEFCAL RX(%theta) q:
+    RZ(%theta) q
+
+DEFCAL RZ(%theta) q:
+    RX(%theta) q
+"""
+    )
+    with pytest.raises(RuntimeError):
+        calibrated = prog.calibrate(Gate("RZ", [np.pi], [Qubit(0)]))
+
+    prog = Program(
+        """
+DEFCAL RX(%theta) q:
+    RZ(0) q
+
+DEFCAL RZ(%theta) q:
+    RX(%theta) q
+"""
+    )
+    with pytest.raises(RuntimeError):
+        calibrated = prog.calibrate(Gate("RZ", [np.pi], [Qubit(0)]))
+
+    prog = Program(
+        """
+DEFCAL RX(%theta) q:
+    RZ(%theta) q
+
+DEFCAL RZ(%theta) q:
+    RX(0) q
+"""
+    )
+    with pytest.raises(RuntimeError):
+        calibrated = prog.calibrate(Gate("RZ", [np.pi], [Qubit(0)]))
 
 
 def test_merge_programs_with_quilt_features():
