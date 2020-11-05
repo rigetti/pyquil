@@ -220,7 +220,7 @@ DEFCAL RZ(%theta) q:
 """
     )
     with pytest.raises(RuntimeError):
-        calibrated = prog.calibrate(Gate("RZ", [np.pi], [Qubit(0)]))
+        prog.calibrate(Gate("RZ", [np.pi], [Qubit(0)]))
 
     prog = Program(
         """
@@ -232,7 +232,7 @@ DEFCAL RZ(%theta) q:
 """
     )
     with pytest.raises(RuntimeError):
-        calibrated = prog.calibrate(Gate("RZ", [np.pi], [Qubit(0)]))
+        prog.calibrate(Gate("RZ", [np.pi], [Qubit(0)]))
 
     prog = Program(
         """
@@ -244,7 +244,7 @@ DEFCAL RZ(%theta) q:
 """
     )
     with pytest.raises(RuntimeError):
-        calibrated = prog.calibrate(Gate("RZ", [np.pi], [Qubit(0)]))
+        prog.calibrate(Gate("RZ", [np.pi], [Qubit(0)]))
 
     prog = Program(
         """
@@ -256,7 +256,7 @@ DEFCAL RZ(%theta) q:
 """
     )
     with pytest.raises(RuntimeError):
-        calibrated = prog.calibrate(Gate("RZ", [np.pi], [Qubit(0)]))
+        prog.calibrate(Gate("RZ", [np.pi], [Qubit(0)]))
 
 
 def test_merge_programs_with_quilt_features():
