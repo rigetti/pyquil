@@ -1,14 +1,32 @@
 Changelog
 =========
 
-[next](https://github.com/rigetti/pyquil/compare/v2.23.1..master) (In development)
+[next](https://github.com/rigetti/pyquil/compare/v2.24.0..master) (In development)
 ------------------------------------------------------------------------------------
 
 ### Announcements
 
 ### Improvements and Changes
 
-- Include a `py.typed` so that libraries that depend on pyquil can validate their typing against it (@notmgsk, #1256)
+### Bugfixes
+
+
+[v2.24.0](https://github.com/rigetti/pyquil/compare/v2.23.1..v2.24.0) (In development)
+------------------------------------------------------------------------------------
+
+### Announcements
+
+### Improvements and Changes
+
+- `run_and_measure` now only measures the qubits that are used in a program
+  (rather than all qubits on the device) when the target QAM is a QVM without
+  noise. This prevents the QVM from exhausting memory when it tries to allocate
+  for e.g. 32 qubits when only e.g. 2 qubits are used in the program (@notmgsk,
+  #1252).
+
+- Include a `py.typed` so that libraries that depend on pyquil can
+  validate their typing against it (@notmgsk, #1256).
+
 - Removed warnings expected in normal workflows that cannot be avoided
   programmatically. This included the warning about passing native Quil to
   `native_quil_to_executable`. Documentation has been updated to clarify
