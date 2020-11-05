@@ -11,7 +11,7 @@ Changelog
 ### Bugfixes
 
 
-[v2.24.0](https://github.com/rigetti/pyquil/compare/v2.23.1..v2.24.0) (In development)
+[v2.24.0](https://github.com/rigetti/pyquil/compare/v2.23.1..v2.24.0) (November 5, 2020)
 ------------------------------------------------------------------------------------
 
 ### Announcements
