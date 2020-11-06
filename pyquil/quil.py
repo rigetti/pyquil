@@ -725,7 +725,6 @@ class Program(object):
         :param instr: An instruction.
         :returns: A list of instructions, with the active calibrations expanded.
         """
-        # TODO: Test for infinite loop
         queue = [instr]
         calibrated_instructions: List[AbstractInstruction] = []
         seen_instructions: Dict[AbstractInstruction, bool] = {}
