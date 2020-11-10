@@ -1,20 +1,22 @@
-from typing import List
 import operator
 
 from lark import Lark, Transformer, v_args
-from lark.exceptions import UnexpectedToken
 
 import numpy as np
 
 from pyquil.quil import Program
 from pyquil.quilbase import (
-    AbstractInstruction,
+    DefGate,
+    DefPermutationGate,
+    DefGateByPaulis,
+    # TODO DefCircuit
     DefWaveform,
     Qubit,
     FormalArgument,
     Frame,
     Pulse,
     Fence,
+    FenceAll,
     DefCalibration,
     DefFrame,
     Parameter,
@@ -22,242 +24,73 @@ from pyquil.quilbase import (
     Capture,
     MemoryReference,
     Pragma,
+    RawInstr,
 )
 from pyquil.quiltwaveforms import _wf_from_dict
 from pyquil.quilatom import WaveformReference
-from pyquil.gates import DELAY, SHIFT_PHASE
-
-grammar = """
-quil : all_instr*
-
-?all_instr : def_frame
-           | def_waveform
-           | def_calibration
-
-?instr : fence
-       | pulse
-       | delay
-       | shift_phase
-       | declare
-       | capture
-       | pragma
-
-def_frame : "DEFFRAME" frame ( ":" frame_spec+ )?
-frame_spec : _NEWLINE_TAB frame_attr ":" (expression | "\\"" name "\\"" )
-!frame_attr : "SAMPLE-RATE"
-            | "INITIAL-FREQUENCY"
-            | "DIRECTION"
-            | "HARDWARE-OBJECT"
-            | "CENTER-FREQUENCY"
-
-def_waveform : "DEFWAVEFORM" waveform_name params ":" matrix
-
-def_calibration : "DEFCAL" name params qubit_designators ":" indented_instrs
-
-indented_instrs : ( (_NEWLINE_TAB instr)* )?
-
-params : ( "(" param ("," param)* ")" )?
-?param : expression
-
-matrix : ( _NEWLINE_TAB matrix_row )*
-matrix_row : expression ( "," expression )*
-
-?expression         : product
-                    | expression "+" product -> add
-                    | expression "-" product -> sub
-?product            : power
-                    | product "*" power -> mul
-                    | product "/" power -> div
-?power              : atom
-                    | atom "^" power -> pow
-?atom               : number
-                    | "-" atom -> neg
-                    | "+" atom -> pos
-                    | FUNCTION "(" expression ")" -> apply_fun
-                    | "(" expression ")"
-                    | variable
-
-variable : "%" IDENTIFIER
-
-// Instructions
-
-fence : "FENCE" qubit_designators
-
-pulse : [ NONBLOCKING ] "PULSE" frame waveform
-
-?delay : delay_qubits | delay_frames
-delay_qubits : "DELAY" qubit_designators expression
-delay_frames : "DELAY" qubit_designator ( "\\"" name "\\"" )+ expression
-
-shift_phase : "SHIFT-PHASE" frame expression
-
-declare : "DECLARE" IDENTIFIER IDENTIFIER [ "[" INT "]" ] [ "SHARING" IDENTIFIER ( offset_descriptor )* ]
-?offset_descriptor : "OFFSET" INT IDENTIFIER
-
-capture : [ NONBLOCKING ] "CAPTURE" frame waveform addr
-addr : IDENTIFIER -> addr | ( [ IDENTIFIER ] "[" INT "]" ) -> addr_subscript
-
-pragma : "PRAGMA" ( IDENTIFIER | keyword ) pragma_name* string
-// Why can't I int_n here?
-!pragma_name : IDENTIFIER | keyword | INT
-
-// Qubits, frames, waveforms
-qubit_designators : ( qubit_designator+ )?
-?qubit_designator : qubit | qubit_variable
-qubit : int_n
-qubit_variable : IDENTIFIER
-named_param : IDENTIFIER ":" expression
-waveform : waveform_name ( "(" named_param ( "," named_param )* ")" )?
-waveform_name : name ( "/" name )?
-frame : qubit_designators+ "\\"" name "\\""
-
-FUNCTION            : "sin" | "cos" | "sqrt" | "exp" | "cis"
-// Numbers
-?number             : (int_n|float_n) "i" -> imag
-                    | int_n
-                    | float_n
-                    | "i" -> i
-                    | "pi" -> pi
-
-int_n               : INT
-float_n             : FLOAT
+from pyquil.gates import DELAY, SHIFT_PHASE, QUANTUM_GATES, Gate
+from pyquil.paulis import PauliTerm
 
 
-// Lexer
-keyword             : DEFGATE | DEFCIRCUIT | MEASURE | LABEL | HALT | JUMP | JUMPWHEN | JUMPUNLESS
-                    | RESET | WAIT | NOP | INCLUDE | PRAGMA | DECLARE | SHARING | OFFSET | AS | MATRIX
-                    | PERMUTATION | NEG | NOT | TRUE | FALSE | AND | IOR | XOR | OR | ADD | SUB | MUL
-                    | DIV | MOVE | EXCHANGE | CONVERT | EQ | GT | GE | LT | LE | LOAD | STORE | PI | I
-                    | SIN | COS | SQRT | EXP | CIS | CAPTURE | DEFCAL | DEFFRAME | DEFWAVEFORM
-                    | DELAY | FENCE | INITIALFREQUENCY | CENTERFREQUENCY | NONBLOCKING | PULSE | SAMPLERATE
-                    | SETFREQUENCY | SETPHASE | SETSCALE | SHIFTPHASE | SWAPPHASE | RAWCAPTURE | FILTERNODE
-                    | CONTROLLED | DAGGER | FORKED
-
-// Keywords
-
-DEFGATE             : "DEFGATE"
-DEFCIRCUIT          : "DEFCIRCUIT"
-MEASURE             : "MEASURE"
-
-LABEL               : "LABEL"
-HALT                : "HALT"
-JUMP                : "JUMP"
-JUMPWHEN            : "JUMP-WHEN"
-JUMPUNLESS          : "JUMP-UNLESS"
-
-RESET               : "RESET"
-WAIT                : "WAIT"
-NOP                 : "NOP"
-INCLUDE             : "INCLUDE"
-PRAGMA              : "PRAGMA"
-
-DECLARE             : "DECLARE"
-SHARING             : "SHARING"
-OFFSET              : "OFFSET"
-
-AS                  : "AS"
-MATRIX              : "MATRIX"
-PERMUTATION         : "PERMUTATION"
-PAULISUM            : "PAULI-SUM"
-
-NEG                 : "NEG"
-NOT                 : "NOT"
-TRUE                : "TRUE"  // Deprecated
-FALSE               : "FALSE"  // Deprecated
-
-AND                 : "AND"
-IOR                 : "IOR"
-XOR                 : "XOR"
-OR                  : "OR"    // Deprecated
-
-ADD                 : "ADD"
-SUB                 : "SUB"
-MUL                 : "MUL"
-DIV                 : "DIV"
-
-MOVE                : "MOVE"
-EXCHANGE            : "EXCHANGE"
-CONVERT             : "CONVERT"
-
-EQ                  : "EQ"
-GT                  : "GT"
-GE                  : "GE"
-LT                  : "LT"
-LE                  : "LE"
-
-LOAD                : "LOAD"
-STORE               : "STORE"
-
-PI                  : "pi"
-I                   : "i"
-
-SIN                 : "SIN"
-COS                 : "COS"
-SQRT                : "SQRT"
-EXP                 : "EXP"
-CIS                 : "CIS"
-
-// Operators
-
-PLUS                : "+"
-MINUS               : "-"
-TIMES               : "*"
-DIVIDE              : "/"
-POWER               : "^"
-
-// analog keywords
-
-CAPTURE             : "CAPTURE"
-DEFCAL              : "DEFCAL"
-DEFFRAME            : "DEFFRAME"
-DEFWAVEFORM         : "DEFWAVEFORM"
-DELAY               : "DELAY"
-FENCE               : "FENCE"
-HARDWAREOBJECT      : "HARDWARE-OBJECT"
-INITIALFREQUENCY    : "INITIAL-FREQUENCY"
-CENTERFREQUENCY     : "CENTER-FREQUENCY"
-NONBLOCKING         : "NONBLOCKING"
-PULSE               : "PULSE"
-SAMPLERATE          : "SAMPLE-RATE"
-SETFREQUENCY        : "SET-FREQUENCY"
-SHIFTFREQUENCY      : "SHIFT-FREQUENCY"
-SETPHASE            : "SET-PHASE"
-SETSCALE            : "SET-SCALE"
-SHIFTPHASE          : "SHIFT-PHASE"
-SWAPPHASE           : "SWAP-PHASE"
-RAWCAPTURE          : "RAW-CAPTURE"
-FILTERNODE          : "FILTER-NODE"
-
-// Modifiers
-
-CONTROLLED          : "CONTROLLED"
-DAGGER              : "DAGGER"
-FORKED              : "FORKED"
-
-// Common
-name                : IDENTIFIER
-IDENTIFIER          : ("_"|LETTER) [ ("_"|"-"|LETTER|DIGIT)* ("_"|LETTER|DIGIT) ]
-string              : ESCAPED_STRING
-_NEWLINE_TAB        : NEWLINE "    "
-%import common.DIGIT
-%import common.ESCAPED_STRING
-%import common._STRING_INNER
-%import common.FLOAT
-%import common.INT
-%import common.LETTER
-%import common.NEWLINE
-%import common.WS
-%ignore WS
-
-"""
+grammar = open("./grammar.lark").read()
 
 
 class QuilTransformer(Transformer):
     def quil(self, instructions):
         return instructions
 
-    def indented_instrs(self, instrs):
-        return list(instrs)
+    indented_instrs = list
+
+    @v_args(inline=True)
+    def def_gate_matrix(self, name, variables, matrix):
+        return DefGate(name, matrix=matrix, parameters=variables)
+
+    @v_args(inline=True)
+    def def_gate_as(self, name, gate_type, matrix):
+        if gate_type is None or gate_type == "MATRIX":
+            return self.def_gate_matrix(name, variables=None, matrix=matrix)
+        else:
+            return DefPermutationGate(name, permutation=matrix)
+
+    @v_args(inline=True)
+    def gate_type(self, gate_type):
+        valid_gate_types = (
+            "MATRIX",
+            "PERMUTATION",
+        )
+        if str(gate_type) in valid_gate_types:
+            return str(gate_type)
+        else:
+            raise ValueError(
+                f"Unsupported gate type in DEFGATE: {str(gate_type)}. "
+                f"Supported gate types: {valid_gate_types}."
+            )
+
+    @v_args(inline=True)
+    def def_pauli_gate(self, name, variables, qubits, terms):
+        pg = DefGateByPaulis(name, parameters=variables, arguments=qubits, body=terms)
+        return pg
+
+    pauli_terms = list
+
+    @v_args(inline=True)
+    def pauli_term(self, name, expression, qubits):
+        return PauliTerm.from_list(list(zip(name, qubits)), expression)
+
+    @v_args(inline=True)
+    def def_circuit(self, name, variables, qubits, instrs):
+        space = " " if qubits else ""
+        if variables:
+            raw_defcircuit = "DEFCIRCUIT {}({}){}{}:".format(
+                name, ", ".join(variables), space, " ".join(map(str, qubits))
+            )
+        else:
+            raw_defcircuit = "DEFCIRCUIT {}{}{}:".format(
+                name, space, " ".join(map(str, qubits))
+            )
+
+        raw_defcircuit += "\n    ".join([""] + [str(instr) for instr in instrs])
+        return raw_defcircuit
 
     @v_args(inline=True)
     def def_frame(self, frame, *specs):
@@ -296,6 +129,46 @@ class QuilTransformer(Transformer):
         return dc
 
     @v_args(inline=True)
+    def gate(self, modifiers, name, params, qubits):
+        # TODO Don't like this.
+        modifiers = modifiers or []
+        params = params or []
+
+        # Some gate modifiers increase the arity of the base gate. The
+        # new qubit arguments prefix the old ones.
+        modifier_qubits = []
+        for m in modifiers:
+            if m in ["CONTROLLED", "FORKED"]:
+                modifier_qubits.append(qubits[len(modifier_qubits)])
+
+        base_qubits = qubits[len(modifier_qubits):]
+        forked_offset = len(params) >> modifiers.count("FORKED")
+        base_params = params[:forked_offset]
+
+        if name in QUANTUM_GATES:
+            if base_params:
+                gate = QUANTUM_GATES[name](*base_params, *base_qubits)
+            else:
+                gate = QUANTUM_GATES[name](*base_qubits)
+        else:
+            gate = Gate(name, base_params, base_qubits)
+
+        for modifier in modifiers[::-1]:
+            if modifier == "CONTROLLED":
+                gate.controlled(modifier_qubits.pop())
+            elif modifier == "DAGGER":
+                gate.dagger()
+            elif modifier == "FORKED":
+                gate.forked(modifier_qubits.pop(), params[forked_offset:(2*forked_offset)])
+            else:
+                raise ValueError(f"Unsupported gate modifier {modifier}.")
+
+        return gate
+
+    modifiers = list
+    modifier = v_args(inline=True)(str)
+
+    @v_args(inline=True)
     def frame(self, qubits, name):
         f = Frame(qubits, name)
         return f
@@ -306,9 +179,11 @@ class QuilTransformer(Transformer):
         return p
 
     @v_args(inline=True)
-    def fence(self, qubits):
+    def fence_some(self, qubits):
         f = Fence(list(qubits))
         return f
+
+    fence_all = v_args(inline=True)(FenceAll)
 
     @v_args(inline=True)
     def declare(self, name, memory_type, memory_size, *sharing):
@@ -396,12 +271,18 @@ class QuilTransformer(Transformer):
         return list(qubits)
 
     qubit = v_args(inline=True)(Qubit)
+    qubits = list
     qubit_variable = v_args(inline=True)(FormalArgument)
+    qubit_variables = list
+    
 
     @v_args(inline=True)
     def variable(self, var):
         variable = Parameter(str(var))
         return variable
+
+    def variables(self, variables):
+        return list(variables)
 
     @v_args(inline=True)
     def i(self):
@@ -437,20 +318,19 @@ class QuilTransformer(Transformer):
     neg = v_args(inline=True)(operator.neg)
     pos = v_args(inline=True)(operator.pos)
 
-
 parser = Lark(
     grammar,
     start="quil",
     parser="lalr",
     transformer=QuilTransformer(),
     maybe_placeholders=True,
-    debug=True,
+#    debug=True,
 )
 
-
 def parse(program: str) -> Program:
-    p = Program(parser.parse(program))
+    p = parser.parse(program)
     return p
+
 
 # import json
 
