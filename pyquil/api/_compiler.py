@@ -42,7 +42,7 @@ from pyquil.device._main import AbstractDevice, Device
 from pyquil.parser import parse_program
 from pyquil.quil import Program
 from pyquil.quilatom import MemoryReference
-from pyquil.quilbase import Declare
+from pyquil.quilbase import Declare, DefCalibration, DefMeasureCalibration
 from pyquil.version import __version__
 
 if sys.version_info < (3, 7):
@@ -245,6 +245,7 @@ class QPUCompiler(AbstractCompiler):
 
         self.qpu_compiler_endpoint = qpu_compiler_endpoint
         self._qpu_compiler_client: Optional[Union[Client, HTTPCompilerClient]] = None
+        self._calibrations = None
 
         self._device = device
         td = TargetDevice(isa=device.get_isa().to_dict(), specs=None)  # type: ignore
@@ -354,8 +355,10 @@ class QPUCompiler(AbstractCompiler):
 
         arithmetic_response = rewrite_arithmetic(nq_program)
 
+        nq_program_calibrated = self.expand_calibrations(nq_program)
+
         request = QuiltBinaryExecutableRequest(
-            quilt=arithmetic_response.quil, num_shots=nq_program.num_shots
+            quilt=arithmetic_response.quil, num_shots=nq_program_calibrated.num_shots
         )
         response = cast(
             QuiltBinaryExecutableResponse,
@@ -380,7 +383,7 @@ class QPUCompiler(AbstractCompiler):
         return response
 
     @_record_call
-    def get_quilt_calibrations(self) -> Program:
+    def get_calibrations(self) -> List[Union[DefCalibration, DefMeasureCalibration]]:
         """
         Get the Quilt calibrations associated with the underlying QPU.
 
@@ -401,7 +404,37 @@ class QPUCompiler(AbstractCompiler):
             self.qpu_compiler_client.call("get_quilt_calibrations", request),
         )
         calibration_program = parse_program(response.quilt)
-        return calibration_program
+        return calibration_program.calibrations
+
+    @_record_call
+    def refresh_calibrations(self) -> None:
+        """Refresh the calibrations cache."""
+        self._calibrations = self.get_calibrations()
+
+    @property
+    def calibrations(self) -> List[Union[DefCalibration, DefMeasureCalibration]]:
+        """Cached calibrations."""
+        if self._calibrations is None:
+            self.refresh_calibrations()
+
+        if self._calibrations is None:
+            raise RuntimeError("Could not refresh calibrations")
+        else:
+            return self._calibrations
+
+    @_record_call
+    def expand_calibrations(self, program: Program, discard_defcals: bool = True) -> Program:
+        calibrated_program = program.copy_everything_except_instructions()
+        # Prepend the system's calibrations to the user's calibrations
+        calibrated_program._calibrations = self.calibrations + calibrated_program.calibrations
+        for instruction in program:
+            calibrated_instruction = calibrated_program.calibrate(instruction)
+            calibrated_program.inst(calibrated_instruction)
+
+        if discard_defcals:
+            calibrated_program._calibrations = []
+
+        return calibrated_program
 
     @_record_call
     def reset(self) -> None:
@@ -483,13 +516,21 @@ class QVMCompiler(AbstractCompiler):
         self.client = Client(self.endpoint, timeout=timeout)
 
     @_record_call
-    def get_quilt_calibrations(self) -> Program:
+    def get_calibrations(self) -> List[Union[DefCalibration, DefMeasureCalibration]]:
         """
-        See ``QPUCompiler.get_quilt_calibrations()``.
+        See ``QPUCompiler.get_calibrations()``.
 
-        Note: this currently provides an empty ``Program`` since the QVM does not support Quilt.
+        Note: this currently provides an empty list because the QVM does not support Quilt.
         """
-        return Program()
+        return []
+
+    @_record_call
+    def refresh_calibrations(self) -> None:
+        pass
+
+    @property
+    def calibrations(self) -> List[Union[DefCalibration, DefMeasureCalibration]]:
+        return []
 
 
 @dataclass

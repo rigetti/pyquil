@@ -32,6 +32,11 @@ SIMPLE_RESPONSE = {
     "_type": "QuiltBinaryExecutableResponse",
 }
 
+CALIBRATIONS_RESPONSE = {
+    "_type": "QuiltCalibrationsResponse",
+    "quilt": "",
+}
+
 DUMMY_ISA_DICT = {"1Q": {"0": {}, "1": {}}, "2Q": {"0-1": {}}}
 
 TEST_CONFIG_PATHS = {
@@ -66,6 +71,14 @@ def test_http_compilation(compiler):
         f"{mock_url}/devices/{device_name}/native_quilt_to_binary",
         status_code=200,
         json=SIMPLE_RESPONSE,
+        headers=headers,
+    )
+
+    mock_adapter.register_uri(
+        "POST",
+        f"{mock_url}/devices/{device_name}/get_quilt_calibrations",
+        status_code=200,
+        json=CALIBRATIONS_RESPONSE,
         headers=headers,
     )
 
@@ -114,6 +127,14 @@ def test_http_compilation_failure(compiler):
         f"{mock_url}/devices/{device_name}/native_quilt_to_binary",
         status_code=500,
         json={"message": "test compilation failed"},
+        headers=headers,
+    )
+
+    mock_adapter.register_uri(
+        "POST",
+        f"{mock_url}/devices/{device_name}/get_quilt_calibrations",
+        status_code=200,
+        json=CALIBRATIONS_RESPONSE,
         headers=headers,
     )
 
@@ -209,3 +230,82 @@ def test_compile_with_quilt_calibrations(compiler):
     assert compilation_result.calibrations == cals
     assert program.calibrations == cals
     assert compilation_result == program
+
+
+# TODO(notmgsk): Is this sufficient coverage?
+@pytest.mark.parametrize(
+    "calibrations_program_text,user_program_text",
+    [
+        (
+            """
+DEFCAL I 0:
+    SHIFT-PHASE 0 "rz" 1.0
+""",
+            "I 0",
+        ),
+        (
+            """
+DEFCAL I 0:
+    SHIFT-PHASE 0 "rz" 2.0
+""",
+            """
+DEFCAL I 0:
+    SHIFT-PHASE 0 "rz" 1.0
+
+I 0""",
+        ),
+        (
+            """
+DEFCAL I 0:
+    SHIFT-PHASE 0 "rz" 2.0
+""",
+            """
+I 0
+
+DEFCAL I 0:
+    SHIFT-PHASE 0 "rz" 1.0
+""",
+        ),
+    ],
+)
+def test_expand_calibrations_order(calibrations_program_text, user_program_text):
+    device_name = "test_device"
+    mock_url = "http://mock-qpu-compiler"
+
+    config = PyquilConfig(TEST_CONFIG_PATHS)
+    session = get_session(config=config)
+    mock_adapter = requests_mock.Adapter()
+    session.mount("http://", mock_adapter)
+
+    headers = {
+        # access token from ./data/user_auth_token_valid.json.
+        "Authorization": "Bearer secret"
+    }
+    mock_adapter.register_uri(
+        "POST",
+        f"{mock_url}/devices/{device_name}/get_version_info",
+        status_code=200,
+        json={},
+        headers=headers,
+    )
+
+    device = Device(
+        name="not_actually_device_name", raw={"device_name": device_name, "isa": DUMMY_ISA_DICT}
+    )
+
+    compiler = QPUCompiler(
+        quilc_endpoint=session.config.quilc_url,
+        qpu_compiler_endpoint=mock_url,
+        device=device,
+        session=session,
+    )
+    calibrations_program = Program(calibrations_program_text)
+    compiler._calibrations = calibrations_program.calibrations
+
+    program = Program(user_program_text)
+    calibrated_program = compiler.expand_calibrations(program)
+    assert calibrated_program == Program('SHIFT-PHASE 0 "rz" 1.0')
+    calibrated_program = compiler.expand_calibrations(program, discard_defcals=False)
+    assert calibrated_program == calibrations_program + Program(program.calibrations) + Program(
+        'SHIFT-PHASE 0 "rz" 1.0'
+    )
