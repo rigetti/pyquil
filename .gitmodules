@@ -1,0 +1,3 @@
+[submodule "quillang"]
+	path = docs/quil
+	url = https://github.com/rigetti/quil.git
