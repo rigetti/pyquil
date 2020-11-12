@@ -80,3 +80,11 @@ upload:
 .PHONY: version
 version:
 	@git describe --tags | sed 's/v//' | sed 's/\(.*\)-.*/\1/'| sed 's/-/./'
+
+docs/quil/grammars/Quil.g4:
+	git submodule init
+	git submodule update
+
+.PHONY: generate-parser
+generate-parser: docs/quil/grammars/Quil.g4
+	cd docs/quil/grammars && antlr -Dlanguage=Python3 -o ../../../pyquil/_parser/gen3 Quil.g4
