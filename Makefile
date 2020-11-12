@@ -71,7 +71,7 @@ requirements: requirements.txt
 
 .PHONY: test
 test:
-	pytest -v --runslow --cov=pyquil
+	pytest -s -v --runslow --cov=pyquil
 
 .PHONY: upload
 upload:
