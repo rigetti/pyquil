@@ -1,3 +1,4 @@
+import pkgutil
 import operator
 
 from lark import Lark, Transformer, v_args
@@ -34,7 +35,7 @@ from pyquil.gates import DELAY, SHIFT_PHASE, QUANTUM_GATES, Gate
 from pyquil.paulis import PauliTerm
 
 
-grammar = open("./grammar.lark").read()
+grammar = pkgutil.get_data("pyquil", "grammar.lark").decode()
 
 
 class QuilTransformer(Transformer):
