@@ -18,6 +18,7 @@ from pyquil.quilbase import (
     Fence,
     FenceAll,
     DefCalibration,
+    DefMeasureCalibration,
     DefFrame,
     Parameter,
     Declare,
@@ -127,6 +128,12 @@ class QuilTransformer(Transformer):
     def def_calibration(self, name, params, qubits, instructions):
         dc = DefCalibration(name, params, qubits, instructions)
         return dc
+
+    @v_args(inline=True)
+    def def_measure_calibration(self, qubit, name, instructions):
+        mref = FormalArgument(name) if name else None
+        dmc = DefMeasureCalibration(qubit, mref, instructions)
+        return dmc
 
     @v_args(inline=True)
     def gate(self, modifiers, name, params, qubits):

@@ -1,0 +1,253 @@
+quil : all_instr*
+
+?all_instr : def_gate
+           | def_circuit
+           | (def_frame _NEWLINE?)
+           | (def_waveform _NEWLINE?)
+           | (def_calibration _NEWLINE?)
+           | (def_measure_calibration _NEWLINE?)
+           | (instr _NEWLINE?)
+
+?instr : fence
+       | pulse
+       | delay
+       | shift_phase
+       | declare
+       | capture
+       | pragma
+       | (gate _NEWLINE?)
+       | nop
+
+
+def_gate : "DEFGATE" name [ variables ] ":" matrix -> def_gate_matrix
+         | "DEFGATE" name "AS" gate_type ":" _NEWLINE_TAB matrix_row -> def_gate_as
+         | "DEFGATE" name [ variables ] qubit_variables "AS" "PAULI-SUM" ":" pauli_terms -> def_pauli_gate
+
+!gate_type : "MATRIX" | "PERMUTATION"
+pauli_terms : ( _NEWLINE_TAB pauli_term )*
+pauli_term : name "(" expression ")" qubit_variables
+
+def_circuit : "DEFCIRCUIT" name [ variables ] qubit_designators ":" indented_instrs
+
+def_frame : "DEFFRAME" frame ( ":" frame_spec+ )?
+frame_spec : _NEWLINE_TAB frame_attr ":" (expression | "\"" name "\"" )
+!frame_attr : "SAMPLE-RATE"
+            | "INITIAL-FREQUENCY"
+            | "DIRECTION"
+            | "HARDWARE-OBJECT"
+            | "CENTER-FREQUENCY"
+
+def_waveform : "DEFWAVEFORM" waveform_name params ":" matrix
+
+def_calibration : "DEFCAL" name params qubit_designators ":" indented_instrs
+
+def_measure_calibration : "DEFCAL" "MEASURE" qubit_designator [ name ] ":" indented_instrs
+
+gate : [ modifiers ] name [ params ] qubit_designators
+
+modifiers : modifier+
+!modifier : "CONTROLLED" | "DAGGER" | "FORKED"
+
+indented_instrs : (_NEWLINE_TAB instr)+
+
+params : ( "(" param ("," param)* ")" )?
+?param : expression
+
+matrix : ( _NEWLINE_TAB matrix_row )*
+matrix_row : expression ( "," expression )*
+
+?expression         : product
+                    | expression "+" product -> add
+                    | expression "-" product -> sub
+?product            : power
+                    | product "*" power -> mul
+                    | product "/" power -> div
+?power              : atom
+                    | atom "^" power -> pow
+?atom               : number
+                    | "-" atom -> neg
+                    | "+" atom -> pos
+                    | FUNCTION "(" expression ")" -> apply_fun
+                    | "(" expression ")"
+                    | variable
+
+variables: ( "(" variable ( "," variable )* ")" )?
+variable : "%" IDENTIFIER
+
+// Instructions
+
+fence : "FENCE" -> fence_all
+      | "FENCE" qubit_designators -> fence_some
+
+pulse : [ NONBLOCKING ] "PULSE" frame waveform
+
+?delay : delay_qubits | delay_frames
+delay_qubits : "DELAY" qubit_designators expression
+delay_frames : "DELAY" qubit_designator ( "\"" name "\"" )+ expression
+
+shift_phase : "SHIFT-PHASE" frame expression
+
+declare : "DECLARE" IDENTIFIER IDENTIFIER [ "[" INT "]" ] [ "SHARING" IDENTIFIER ( offset_descriptor )* ]
+?offset_descriptor : "OFFSET" INT IDENTIFIER
+
+capture : [ NONBLOCKING ] "CAPTURE" frame waveform addr
+addr : IDENTIFIER -> addr | ( [ IDENTIFIER ] "[" INT "]" ) -> addr_subscript
+
+pragma : "PRAGMA" ( IDENTIFIER | keyword ) pragma_name* string
+// Why can't I int_n here?
+!pragma_name : IDENTIFIER | keyword | INT
+
+nop : "NOP"
+
+// Qubits, frames, waveforms
+qubit_designators : ( qubit_designator+ )
+?qubit_designator : qubit | qubit_variable
+qubits : qubit+
+qubit : int_n
+qubit_variables : ( qubit_variable+ )
+qubit_variable : IDENTIFIER
+named_param : IDENTIFIER ":" expression
+waveform : waveform_name ( "(" named_param ( "," named_param )* ")" )?
+waveform_name : name ( "/" name )?
+frame : qubit_designators "\"" name "\""
+
+FUNCTION            : "sin" | "cos" | "sqrt" | "exp" | "cis"
+// Numbers
+?number             : (int_n|float_n) "i" -> imag
+                    | int_n
+                    | float_n
+                    | "i" -> i
+                    | "pi" -> pi
+
+int_n               : INT
+float_n             : FLOAT
+
+
+// Lexer
+keyword             : DEFGATE | DEFCIRCUIT | MEASURE | LABEL | HALT | JUMP | JUMPWHEN | JUMPUNLESS
+                    | RESET | WAIT | NOP | INCLUDE | PRAGMA | DECLARE | SHARING | OFFSET | AS | MATRIX
+                    | PERMUTATION | NEG | NOT | TRUE | FALSE | AND | IOR | XOR | OR | ADD | SUB | MUL
+                    | DIV | MOVE | EXCHANGE | CONVERT | EQ | GT | GE | LT | LE | LOAD | STORE | PI | I
+                    | SIN | COS | SQRT | EXP | CIS | CAPTURE | DEFCAL | DEFFRAME | DEFWAVEFORM
+                    | DELAY | FENCE | INITIALFREQUENCY | CENTERFREQUENCY | NONBLOCKING | PULSE | SAMPLERATE
+                    | SETFREQUENCY | SETPHASE | SETSCALE | SHIFTPHASE | SWAPPHASE | RAWCAPTURE | FILTERNODE
+                    | CONTROLLED | DAGGER | FORKED
+
+// Keywords
+
+DEFGATE             : "DEFGATE"
+DEFCIRCUIT          : "DEFCIRCUIT"
+MEASURE             : "MEASURE"
+
+LABEL               : "LABEL"
+HALT                : "HALT"
+JUMP                : "JUMP"
+JUMPWHEN            : "JUMP-WHEN"
+JUMPUNLESS          : "JUMP-UNLESS"
+
+RESET               : "RESET"
+WAIT                : "WAIT"
+NOP                 : "NOP"
+INCLUDE             : "INCLUDE"
+PRAGMA              : "PRAGMA"
+
+DECLARE             : "DECLARE"
+SHARING             : "SHARING"
+OFFSET              : "OFFSET"
+
+AS                  : "AS"
+MATRIX              : "MATRIX"
+PERMUTATION         : "PERMUTATION"
+PAULISUM            : "PAULI-SUM"
+
+NEG                 : "NEG"
+NOT                 : "NOT"
+TRUE                : "TRUE"  // Deprecated
+FALSE               : "FALSE"  // Deprecated
+
+AND                 : "AND"
+IOR                 : "IOR"
+XOR                 : "XOR"
+OR                  : "OR"    // Deprecated
+
+ADD                 : "ADD"
+SUB                 : "SUB"
+MUL                 : "MUL"
+DIV                 : "DIV"
+
+MOVE                : "MOVE"
+EXCHANGE            : "EXCHANGE"
+CONVERT             : "CONVERT"
+
+EQ                  : "EQ"
+GT                  : "GT"
+GE                  : "GE"
+LT                  : "LT"
+LE                  : "LE"
+
+LOAD                : "LOAD"
+STORE               : "STORE"
+
+PI                  : "pi"
+I                   : "i"
+
+SIN                 : "SIN"
+COS                 : "COS"
+SQRT                : "SQRT"
+EXP                 : "EXP"
+CIS                 : "CIS"
+
+// Operators
+
+PLUS                : "+"
+MINUS               : "-"
+TIMES               : "*"
+DIVIDE              : "/"
+POWER               : "^"
+
+// analog keywords
+
+CAPTURE             : "CAPTURE"
+DEFCAL              : "DEFCAL"
+DEFFRAME            : "DEFFRAME"
+DEFWAVEFORM         : "DEFWAVEFORM"
+DELAY               : "DELAY"
+FENCE               : "FENCE"
+HARDWAREOBJECT      : "HARDWARE-OBJECT"
+INITIALFREQUENCY    : "INITIAL-FREQUENCY"
+CENTERFREQUENCY     : "CENTER-FREQUENCY"
+NONBLOCKING         : "NONBLOCKING"
+PULSE               : "PULSE"
+SAMPLERATE          : "SAMPLE-RATE"
+SETFREQUENCY        : "SET-FREQUENCY"
+SHIFTFREQUENCY      : "SHIFT-FREQUENCY"
+SETPHASE            : "SET-PHASE"
+SETSCALE            : "SET-SCALE"
+SHIFTPHASE          : "SHIFT-PHASE"
+SWAPPHASE           : "SWAP-PHASE"
+RAWCAPTURE          : "RAW-CAPTURE"
+FILTERNODE          : "FILTER-NODE"
+
+// Modifiers
+
+CONTROLLED          : "CONTROLLED"
+DAGGER              : "DAGGER"
+FORKED              : "FORKED"
+
+// Common
+name                : IDENTIFIER
+IDENTIFIER          : ("_"|LETTER) [ ("_"|"-"|LETTER|DIGIT)* ("_"|LETTER|DIGIT) ]
+string              : ESCAPED_STRING
+_NEWLINE_TAB        : NEWLINE "    "
+_NEWLINE            : NEWLINE
+%import common.DIGIT
+%import common.ESCAPED_STRING
+%import common._STRING_INNER
+%import common.FLOAT
+%import common.INT
+%import common.LETTER
+%import common.NEWLINE
+%import common.WS
+%import common.WS_INLINE
+%ignore WS_INLINE
+%ignore /^\n/
