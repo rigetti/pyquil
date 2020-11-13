@@ -26,6 +26,7 @@ from pyquil.quilbase import (
     MemoryReference,
     Pragma,
     RawInstr,
+    Nop,
 )
 from pyquil.quiltwaveforms import _wf_from_dict
 from pyquil.quilatom import WaveformReference
@@ -248,6 +249,10 @@ class QuilTransformer(Transformer):
 
         p = Pragma(str(name), args=args, freeform_string=freeform_string)
         return p
+
+    @v_args(inline=True)
+    def nop(self):
+        return Nop()
 
     @v_args(inline=True)
     def waveform(self, name, *params):
