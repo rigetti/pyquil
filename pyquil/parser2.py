@@ -28,10 +28,48 @@ from pyquil.quilbase import (
     Pragma,
     RawInstr,
     Nop,
+    JumpTarget,
+    Jump,
+    JumpWhen,
+    JumpUnless,
+    Reset,
+    ResetQubit,
+    Wait,
+    ClassicalStore,
+    ClassicalLoad,
+    ClassicalConvert,
+    ClassicalExchange,
+    ClassicalMove,
+    ClassicalNeg,
+    ClassicalNot,
+    ClassicalTrue,
+    ClassicalFalse,
+    ClassicalAnd,
+    ClassicalOr,
+    ClassicalInclusiveOr,
+    ClassicalExclusiveOr,
+    ClassicalAdd,
+    ClassicalSub,
+    ClassicalMul,
+    ClassicalDiv,
+    ClassicalEqual,
+    ClassicalGreaterEqual,
+    ClassicalGreaterThan,
+    ClassicalLessThan,
+    ClassicalLessEqual,
 )
 from pyquil.quiltwaveforms import _wf_from_dict
-from pyquil.quilatom import WaveformReference
-from pyquil.gates import DELAY, SHIFT_PHASE, QUANTUM_GATES, Gate
+from pyquil.quilatom import (
+    WaveformReference,
+    Expression,
+    quil_sqrt,
+    quil_sin,
+    quil_cos,
+    quil_cis,
+    quil_exp,
+    Label,
+)
+from pyquil.gates import DELAY, SHIFT_PHASE, QUANTUM_GATES, MEASURE, Gate
 from pyquil.paulis import PauliTerm
 
 
@@ -46,15 +84,15 @@ class QuilTransformer(Transformer):
 
     @v_args(inline=True)
     def def_gate_matrix(self, name, variables, matrix):
+        print(name)
+        print(matrix)
         return DefGate(name, matrix=matrix, parameters=variables)
 
     @v_args(inline=True)
-    def def_gate_as(self, name, gate_type, matrix):
-        if gate_type is None or gate_type == "MATRIX":
-            return self.def_gate_matrix(name, variables=None, matrix=matrix)
-        else:
-            return DefPermutationGate(name, permutation=matrix)
+    def def_gate_as_permutation(self, name, matrix):
+        return DefPermutationGate(name, permutation=matrix)
 
+    # TODO(notmgsk): Remove?
     @v_args(inline=True)
     def gate_type(self, gate_type):
         valid_gate_types = (
@@ -88,9 +126,7 @@ class QuilTransformer(Transformer):
                 name, ", ".join(variables), space, " ".join(map(str, qubits))
             )
         else:
-            raw_defcircuit = "DEFCIRCUIT {}{}{}:".format(
-                name, space, " ".join(map(str, qubits))
-            )
+            raw_defcircuit = "DEFCIRCUIT {}{}{}:".format(name, space, " ".join(map(str, qubits)))
 
         raw_defcircuit += "\n    ".join([""] + [str(instr) for instr in instrs])
         return raw_defcircuit
@@ -150,7 +186,7 @@ class QuilTransformer(Transformer):
             if m in ["CONTROLLED", "FORKED"]:
                 modifier_qubits.append(qubits[len(modifier_qubits)])
 
-        base_qubits = qubits[len(modifier_qubits):]
+        base_qubits = qubits[len(modifier_qubits) :]
         forked_offset = len(params) >> modifiers.count("FORKED")
         base_params = params[:forked_offset]
 
@@ -168,7 +204,7 @@ class QuilTransformer(Transformer):
             elif modifier == "DAGGER":
                 gate.dagger()
             elif modifier == "FORKED":
-                gate.forked(modifier_qubits.pop(), params[forked_offset:(2*forked_offset)])
+                gate.forked(modifier_qubits.pop(), params[forked_offset : (2 * forked_offset)])
             else:
                 raise ValueError(f"Unsupported gate modifier {modifier}.")
 
@@ -252,8 +288,107 @@ class QuilTransformer(Transformer):
         return p
 
     @v_args(inline=True)
+    def measure(self, qubit, address):
+        return MEASURE(qubit, address)
+
+    @v_args(inline=True)
     def nop(self):
         return Nop()
+
+    @v_args(inline=True)
+    def def_label(self, label):
+        return JumpTarget(label)
+
+    @v_args(inline=True)
+    def jump(self, label):
+        return Jump(label)
+
+    @v_args(inline=True)
+    def jump_when(self, label, address):
+        return JumpWhen(label, address)
+
+    @v_args(inline=True)
+    def jump_unless(self, label, address):
+        return JumpUnless(label, address)
+
+    label = v_args(inline=True)(Label)
+
+    @v_args(inline=True)
+    def reset(self, qubit):
+        if qubit:
+            return ResetQubit(qubit)
+        else:
+            return Reset()
+
+    @v_args(inline=True)
+    def wait(self):
+        return Wait()
+
+    @v_args(inline=True)
+    def store(self, left, subscript, right):
+        return ClassicalStore(left, subscript, right)
+
+    @v_args(inline=True)
+    def load(self, left, right, subscript):
+        return ClassicalLoad(left, right, subscript)
+
+    @v_args(inline=True)
+    def convert(self, left, right):
+        return ClassicalConvert(left, right)
+
+    @v_args(inline=True)
+    def exchange(self, left, right):
+        return ClassicalExchange(left, right)
+
+    @v_args(inline=True)
+    def move(self, left, right):
+        return ClassicalMove(left, right)
+
+    @v_args(inline=True)
+    def classical_unary(self, op, target):
+        if op == "TRUE":
+            return ClassicalTrue(target)
+        elif op == "FALSE":
+            return ClassicalFalse(target)
+        elif op == "NEG":
+            return ClassicalNeg(target)
+        elif op == "NOT":
+            return ClassicalNot(target)
+
+    @v_args(inline=True)
+    def logical_binary_op(self, op, left, right):
+        if op == "AND":
+            return ClassicalAnd(left, right)
+        elif op == "OR":
+            return ClassicalOr(left, right)
+        elif op == "IOR":
+            return ClassicalInclusiveOr(left, right)
+        elif op == "XOR":
+            return ClassicalExclusiveOr(left, right)
+
+    @v_args(inline=True)
+    def arithmetic_binary_op(self, op, left, right):
+        if op == "ADD":
+            return ClassicalAdd(left, right)
+        elif op == "SUB":
+            return ClassicalSub(left, right)
+        elif op == "MUL":
+            return ClassicalMul(left, right)
+        elif op == "DIV":
+            return ClassicalDiv(left, right)
+
+    @v_args(inline=True)
+    def classical_comparison(self, op, target, left, right):
+        if op == "EQ":
+            return ClassicalEqual(target, left, right)
+        elif op == "GT":
+            return ClassicalGreaterThan(target, left, right)
+        elif op == "GE":
+            return ClassicalGreaterEqual(target, left, right)
+        elif op == "LT":
+            return ClassicalLessThan(target, left, right)
+        elif op == "LE":
+            return ClassicalLessEqual(target, left, right)
 
     @v_args(inline=True)
     def waveform(self, name, *params):
@@ -287,7 +422,6 @@ class QuilTransformer(Transformer):
     qubits = list
     qubit_variable = v_args(inline=True)(FormalArgument)
     qubit_variables = list
-    
 
     @v_args(inline=True)
     def variable(self, var):
@@ -302,6 +436,10 @@ class QuilTransformer(Transformer):
         return 1j
 
     @v_args(inline=True)
+    def imag(self, number):
+        return number * 1j
+
+    @v_args(inline=True)
     def pi(self):
         return np.pi
 
@@ -311,17 +449,27 @@ class QuilTransformer(Transformer):
     name = v_args(inline=True)(str)
     string = v_args(inline=True)(str)
 
+    @v_args(inline=True)
+    def signed_number(self, sign, number):
+        if sign and sign == "-":
+            return -number
+        else:
+            return number
+
+    # TODO(notmgsk): These were originally lowercase. Is that required
+    # by the language spec?
+    @v_args(inline=True)
     def apply_fun(self, fun, arg):
-        if fun == "sin":
-            return np.sin(arg)
-        if fun == "cos":
-            return np.cos(arg)
-        if fun == "sqrt":
-            return np.sqrt(arg)
-        if fun == "exp":
-            return np.exp(arg)
-        if fun == "cis":
-            return np.cos(arg) + 1j * np.sin(arg)
+        if fun == "SIN":
+            return quil_sin(arg) if isinstance(arg, Expression) else np.sin(arg)
+        if fun == "COS":
+            return quil_cos(arg) if isinstance(arg, Expression) else np.cos(arg)
+        if fun == "SQRT":
+            return quil_sqrt(arg) if isinstance(arg, Expression) else np.sqrt(arg)
+        if fun == "EXP":
+            return quil_exp(arg) if isinstance(arg, Expression) else np.exp(arg)
+        if fun == "CIS":
+            return quil_cis(arg) if isinstance(arg, Expression) else np.cos(arg) + 1j * np.sin(arg)
 
     add = v_args(inline=True)(operator.add)
     sub = v_args(inline=True)(operator.sub)
@@ -331,14 +479,16 @@ class QuilTransformer(Transformer):
     neg = v_args(inline=True)(operator.neg)
     pos = v_args(inline=True)(operator.pos)
 
+
 parser = Lark(
     grammar,
     start="quil",
     parser="lalr",
     transformer=QuilTransformer(),
     maybe_placeholders=True,
-#    debug=True,
+    #    debug=True,
 )
+
 
 def parse(program: str) -> Program:
     p = parser.parse(program)

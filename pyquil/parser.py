@@ -18,9 +18,13 @@ Module for parsing Quil programs from text into PyQuil objects
 """
 from typing import List
 
+from lark import UnexpectedToken, Token
+
 from pyquil._parser.PyQuilListener import run_parser
 from pyquil.quil import Program
 from pyquil.quilbase import AbstractInstruction
+
+import pyquil.parser2
 
 
 def parse_program(quil: str) -> Program:
@@ -40,4 +44,4 @@ def parse(quil: str) -> List[AbstractInstruction]:
     :param str quil: a single or multiline Quil program
     :return: list of instructions
     """
-    return run_parser(quil)
+    return pyquil.parser2.parse(quil)

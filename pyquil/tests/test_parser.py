@@ -13,6 +13,8 @@
 #    See the License for the specific language governing permissions and
 #    limitations under the License.
 ##############################################################################
+from lark import Token, UnexpectedToken, UnexpectedCharacters
+
 import numpy as np
 import pytest
 
@@ -162,8 +164,10 @@ def test_def_gate_as():
 
     parse(perm_gate_str)
     parse(matrix_gate_str)
-    with pytest.raises(RuntimeError):
+    with pytest.raises(UnexpectedToken) as excp:
         parse(unknown_gate_str)
+
+    assert excp.value.token == Token("IDENTIFIER", "UNKNOWNTYPE")
 
 
 def test_def_gate_as_matrix():
@@ -199,8 +203,10 @@ def test_def_gate_as_permutation():
     bad_perm_gate_str = """DEFGATE CCNOT AS PERMUTATION:
     0, 1, 2, 3, 4, 5, 7, 6
     0, 1, 2, 3, 4, 5, 7, 6""".strip()
-    with pytest.raises(RuntimeError):
+    with pytest.raises(UnexpectedToken) as excp:
         parse(bad_perm_gate_str)
+
+    assert excp.value.token.type == "_NEWLINE_TAB"
 
 
 def test_parameters():
@@ -668,7 +674,7 @@ def test_parsing_defcal_measure():
     parse_equals(
         "DEFCAL MEASURE q addr:\n"
         '    PULSE q "ro_tx" flat(duration: 1.0, iq: 1.0+0.0*i)\n'
-        '    CAPTURE q "ro_rx" flat(duration: 1.0, iq: 1.0+0*i) addr[0]',
+        '    CAPTURE q "ro_rx" flat(duration: 1.0, iq: 1.0+0*i) addr[0]\n',
         DefMeasureCalibration(
             FormalArgument("q"),
             FormalArgument("addr"),
@@ -692,5 +698,7 @@ def test_parse_defcal_error_on_mref():
 def test_parse_defgate_as_pauli():
     """ Check that DEFGATE AS PAULI-SUM takes only qubit variables (for now). """
     assert parse("DEFGATE RY(%theta) q AS PAULI-SUM:\n    Y(-%theta/2) q")
-    with pytest.raises(RuntimeError):
-        parse("DEFGATE RY(%theta) 0 AS PAULI-SUM:\n    Y(-%theta/2) 0")
+    with pytest.raises(UnexpectedToken) as excp:
+        parse("DEFGATE RY(%theta) 0 AS PAULI-SUM:\n    Y(-%theta/2) q")
+
+    assert excp.value.token == Token("INT", "0")

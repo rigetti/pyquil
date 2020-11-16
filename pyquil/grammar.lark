@@ -1,12 +1,12 @@
-quil : all_instr*
+quil : (all_instr _NEWLINE?)*
 
 ?all_instr : def_gate
            | def_circuit
-           | (def_frame _NEWLINE?)
-           | (def_waveform _NEWLINE?)
-           | (def_calibration _NEWLINE?)
-           | (def_measure_calibration _NEWLINE?)
-           | (instr _NEWLINE?)
+           | def_frame
+           | def_waveform
+           | def_calibration
+           | def_measure_calibration
+           | instr
 
 ?instr : fence
        | pulse
@@ -15,12 +15,27 @@ quil : all_instr*
        | declare
        | capture
        | pragma
-       | (gate _NEWLINE?)
+       | measure
+       | gate
        | nop
-
+       | def_label
+       | jump
+       | jump_when
+       | jump_unless
+       | reset
+       | wait
+       | store
+       | load
+       | convert
+       | exchange
+       | move
+       | classical_unary
+       | classical_binary
+       | classical_comparison
 
 def_gate : "DEFGATE" name [ variables ] ":" matrix -> def_gate_matrix
-         | "DEFGATE" name "AS" gate_type ":" _NEWLINE_TAB matrix_row -> def_gate_as
+         | "DEFGATE" name "AS" "MATRIX" [ variables ] ":" matrix -> def_gate_matrix
+         | "DEFGATE" name "AS" "PERMUTATION" ":" _NEWLINE_TAB matrix_row -> def_gate_as_permutation
          | "DEFGATE" name [ variables ] qubit_variables "AS" "PAULI-SUM" ":" pauli_terms -> def_pauli_gate
 
 !gate_type : "MATRIX" | "PERMUTATION"
@@ -97,7 +112,28 @@ pragma : "PRAGMA" ( IDENTIFIER | keyword ) pragma_name* string
 // Why can't I int_n here?
 !pragma_name : IDENTIFIER | keyword | INT
 
+measure : "MEASURE" qubit [ addr ]
+
 nop : "NOP"
+
+def_label : "LABEL" label
+jump : "JUMP" label
+jump_when : "JUMP-WHEN" label addr
+jump_unless : "JUMP-UNLESS" label addr
+label : "@" name
+
+reset : "RESET" [ qubit ]
+wait : "WAIT"
+store : "STORE" name addr ( addr | number )
+load : "LOAD" addr name addr
+convert : "CONVERT" addr addr
+exchange : "EXCHANGE" addr addr
+move : "MOVE" addr ( addr | signed_number )
+!classical_unary : ( "NEG" |  "NOT" | "TRUE" | "FALSE" ) addr
+?classical_binary : logical_binary_op | arithmetic_binary_op
+!logical_binary_op : ( "AND" | "OR" | "IOR" | "XOR" ) addr (addr | int_n )
+!arithmetic_binary_op : ( "ADD" | "SUB" | "MUL" | "DIV" ) addr ( addr | signed_number )
+!classical_comparison : ( "EQ" | "GT" | "GE" | "LT" | "LE" ) addr addr ( addr | signed_number )
 
 // Qubits, frames, waveforms
 qubit_designators : ( qubit_designator+ )
@@ -111,7 +147,7 @@ waveform : waveform_name ( "(" named_param ( "," named_param )* ")" )?
 waveform_name : name ( "/" name )?
 frame : qubit_designators "\"" name "\""
 
-FUNCTION            : "sin" | "cos" | "sqrt" | "exp" | "cis"
+FUNCTION            : "SIN" | "COS" | "SQRT" | "EXP" | "CIS"
 // Numbers
 ?number             : (int_n|float_n) "i" -> imag
                     | int_n
@@ -122,6 +158,7 @@ FUNCTION            : "sin" | "cos" | "sqrt" | "exp" | "cis"
 int_n               : INT
 float_n             : FLOAT
 
+!signed_number : [ "+" | "-" ] number
 
 // Lexer
 keyword             : DEFGATE | DEFCIRCUIT | MEASURE | LABEL | HALT | JUMP | JUMPWHEN | JUMPUNLESS
