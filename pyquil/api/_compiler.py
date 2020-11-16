@@ -182,7 +182,7 @@ class QPUCompiler(AbstractCompiler):
         quilc_endpoint: Optional[str],
         qpu_compiler_endpoint: Optional[str],
         device: AbstractDevice,
-        timeout: int = 10,
+        timeout: float = 10,
         name: Optional[str] = None,
         *,
         session: Optional[ForestSession] = None,
@@ -365,6 +365,14 @@ class QPUCompiler(AbstractCompiler):
         # property.
         return self.quilc_client
 
+    def set_timeout(self, timeout: float) -> None:
+        """Set timeout for compilation."""
+        if timeout < 0:
+            raise ValueError(f"Cannot set timeout to negative value {timeout}")
+
+        self.timeout = timeout
+        self.client.rpc_timeout = timeout
+
 
 class QVMCompiler(AbstractCompiler):
     @_record_call
@@ -436,6 +444,14 @@ class QVMCompiler(AbstractCompiler):
         timeout = self.client.timeout
         self.client.close()  # type: ignore
         self.client = Client(self.endpoint, timeout=timeout)
+
+    def set_timeout(self, timeout: float) -> None:
+        """Set timeout for compilation."""
+        if timeout < 0:
+            raise ValueError(f"Cannot set timeout to negative value {timeout}")
+
+        self.timeout = timeout
+        self.client.rpc_timeout = timeout
 
 
 @dataclass
