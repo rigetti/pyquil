@@ -113,6 +113,21 @@ the previous example snippet is identical to the following:
     ep = qc.compiler.native_quil_to_executable(np)
     print(ep.program) # here ep is of type PyquilExecutableResponse, which is not always inspectable
 
+Timeouts
+--------
+
+If your circuit is sufficiently complex the compiler may require more time than is permitted by
+default (``10`` seconds). To relax this timeout, you may set the `rpc_timeout` property:
+
+.. code:: python
+    qc = get_qc(...)
+    qc.compiler.client.rpc_timeout = 100 # 100 seconds
+
+Prior to version 2.25, when targeting a QPU the process was only slightly different:
+
+.. code:: python
+    qc = get_qc(...)
+    qc.compiler.quilc_client.rpc_timeout = 100 # 100 seconds
 
 Legal compiler input
 --------------------

@@ -356,6 +356,15 @@ class QPUCompiler(AbstractCompiler):
         """
         self._qpu_compiler_client = None
 
+    @property
+    def client(self):
+        """Return the `Client` for the compiler (i.e. quilc, not translation service)."""
+        # TODO(notmgsk): This was introduced around 2.25 to provide
+        # feature parity with QVMCompiler which provides a client
+        # property, whereas QPUCompiler provides a quilc_client
+        # property.
+        return self.quilc_client
+
 
 class QVMCompiler(AbstractCompiler):
     @_record_call
