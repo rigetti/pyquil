@@ -120,18 +120,21 @@ If your circuit is sufficiently complex the compiler may require more time than 
 default (``10`` seconds). To relax this timeout, you may use the `set_timeout` method:
 
 .. code:: python
+
     qc = get_qc(...)
     qc.compiler.set_timeout(100) # 100 seconds
 
 Prior to version 2.25, process was slightly different. For a QVM
 
 .. code:: python
+
     qc = get_qc(..., as_qvm=True)
     qc.compiler.client.rpc_timeout = 100 # 100 seconds
 
 While for the QPU,
 
 .. code:: python
+
     qc = get_qc(..., as_qvm=False)
     qc.compiler.quilc_client.rpc_timeout = 100 # 100 seconds
 
