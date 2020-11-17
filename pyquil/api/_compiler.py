@@ -338,7 +338,9 @@ class QPUCompiler(AbstractCompiler):
         )
         response: BinaryExecutableResponse = cast(
             BinaryExecutableResponse,
-            self.qpu_compiler_client.call("native_quil_to_binary", request),
+            self.qpu_compiler_client.call(
+                "native_quil_to_binary", request, rpc_timeout=self.timeout
+            ),
         )
 
         # hack! we're storing a little extra info in the executable binary that we don't want to
