@@ -291,3 +291,4 @@ _NEWLINE            : NEWLINE
 %import common.WS_INLINE
 %ignore WS_INLINE
 %ignore /^\n/
+%ignore /#[^\n]*/
