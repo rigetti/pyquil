@@ -11,9 +11,15 @@ quil : (all_instr _NEWLINE?)*
 ?instr : fence
        | pulse
        | delay
+       | set_frequency
+       | shift_frequency
        | shift_phase
+       | set_phase
+       | swap_phase
+       | set_scale
        | declare
        | capture
+       | raw_capture
        | pragma
        | measure
        | gate
@@ -103,19 +109,27 @@ delay_qubits : "DELAY" qubit_designators expression
              | "DELAY" qubit_designators
 delay_frames : "DELAY" qubit_designator ( "\"" name "\"" )+ expression
 
+set_frequency : "SET-FREQUENCY" frame expression
+shift_frequency : "SHIFT-FREQUENCY" frame expression
 shift_phase : "SHIFT-PHASE" frame expression
+set_phase : "SET-PHASE" frame expression
+swap_phase : "SWAP-PHASE" frame frame
+set_scale : "SET-SCALE" frame expression
 
 declare : "DECLARE" IDENTIFIER IDENTIFIER [ "[" INT "]" ] [ "SHARING" IDENTIFIER ( offset_descriptor )* ]
 ?offset_descriptor : "OFFSET" INT IDENTIFIER
 
 capture : [ NONBLOCKING ] "CAPTURE" frame waveform addr
+raw_capture : [ NONBLOCKING ] "RAW-CAPTURE" frame expression addr
 addr : IDENTIFIER -> addr | ( [ IDENTIFIER ] "[" INT "]" ) -> addr_subscript
 
-pragma : "PRAGMA" ( IDENTIFIER | keyword ) pragma_name* string
-// Why can't I int_n here?
-!pragma_name : IDENTIFIER | keyword | INT
+pragma : "PRAGMA" ( IDENTIFIER | keyword ) pragma_name*
+       | "PRAGMA" ( IDENTIFIER | keyword ) pragma_name* string -> pragma_freeform_string
 
-measure : "MEASURE" qubit [ addr ]
+// Why can't I int_n here?
+?pragma_name : IDENTIFIER | keyword | INT
+
+measure : "MEASURE" qubit_designator [ addr ]
 
 nop : "NOP"
 

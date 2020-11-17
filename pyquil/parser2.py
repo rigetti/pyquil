@@ -24,6 +24,7 @@ from pyquil.quilbase import (
     Parameter,
     Declare,
     Capture,
+    RawCapture,
     MemoryReference,
     Pragma,
     RawInstr,
@@ -69,7 +70,7 @@ from pyquil.quilatom import (
     quil_exp,
     Label,
 )
-from pyquil.gates import DELAY, SHIFT_PHASE, QUANTUM_GATES, MEASURE, Gate
+from pyquil.gates import DELAY, SHIFT_PHASE, SET_PHASE, SWAP_PHASE, SET_SCALE, SET_FREQUENCY, SHIFT_FREQUENCY, QUANTUM_GATES, MEASURE, Gate
 from pyquil.paulis import PauliTerm
 
 
@@ -247,7 +248,12 @@ class QuilTransformer(Transformer):
 
     @v_args(inline=True)
     def capture(self, nonblocking, frame, waveform, addr):
-        c = Capture(frame, waveform, addr)
+        c = Capture(frame, waveform, addr, nonblocking=nonblocking)
+        return c
+
+    @v_args(inline=True)
+    def raw_capture(self, nonblocking, frame, expression, addr):
+        c = RawCapture(frame, expression, addr, nonblocking=nonblocking)
         return c
 
     @v_args(inline=True)
@@ -289,14 +295,42 @@ class QuilTransformer(Transformer):
         return SHIFT_PHASE(frame, expression)
 
     @v_args(inline=True)
+    def set_phase(self, frame, expression):
+        return SET_PHASE(frame, expression)
+
+    @v_args(inline=True)
+    def set_scale(self, frame, expression):
+        return SET_SCALE(frame, expression)
+
+    @v_args(inline=True)
+    def set_frequency(self, frame, expression):
+        return SET_FREQUENCY(frame, expression)
+
+    @v_args(inline=True)
+    def shift_frequency(self, frame, expression):
+        return SHIFT_FREQUENCY(frame, expression)
+
+    @v_args(inline=True)
+    def swap_phase(self, framea, frameb):
+        return SWAP_PHASE(framea, frameb)
+
+    @v_args(inline=True)
     def pragma(self, name, *pragma_names_and_string):
+        args = list(map(str, pragma_names_and_string))
+        p = Pragma(str(name), args=args)
+        return p
+
+    @v_args(inline=True)
+    def pragma_freeform_string(self, name, *pragma_names_and_string):
         if len(pragma_names_and_string) == 1:
             freeform_string = pragma_names_and_string[0]
             args = ()
         else:
             *args_identifiers, freeform_string = pragma_names_and_string
-            args = map(str, args_identifiers)
-
+            args = list(map(str, args_identifiers))
+        # Strip the quotes from start/end of string which are matched
+        # by the Lark grammar
+        freeform_string = freeform_string[1:-1]
         p = Pragma(str(name), args=args, freeform_string=freeform_string)
         return p
 
