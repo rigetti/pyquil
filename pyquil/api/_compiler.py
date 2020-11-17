@@ -358,15 +358,6 @@ class QPUCompiler(AbstractCompiler):
         """
         self._qpu_compiler_client = None
 
-    @property
-    def client(self) -> Client:
-        """Return the `Client` for the compiler (i.e. quilc, not translation service)."""
-        # TODO(notmgsk): This was introduced around 2.25 to provide
-        # feature parity with QVMCompiler which provides a client
-        # property, whereas QPUCompiler provides a quilc_client
-        # property.
-        return self.quilc_client
-
     def set_timeout(self, timeout: float) -> None:
         """
         Set timeout for each individual stage of compilation.
@@ -378,7 +369,7 @@ class QPUCompiler(AbstractCompiler):
             raise ValueError(f"Cannot set timeout to negative value {timeout}")
 
         self.timeout = timeout
-        self.client.rpc_timeout = timeout
+        self.quilc_client.rpc_timeout = timeout
 
 
 class QVMCompiler(AbstractCompiler):
@@ -452,13 +443,27 @@ class QVMCompiler(AbstractCompiler):
         self.client.close()  # type: ignore
         self.client = Client(self.endpoint, timeout=timeout)
 
+    @property
+    def quilc_client(self) -> Client:
+        """Return the `Client` for the compiler (i.e. quilc, not translation service)."""
+        # TODO(notmgsk): This was introduced around 2.25 to provide
+        # feature parity with QVMCompiler which provides a client
+        # property, whereas QPUCompiler provides a quilc_client
+        # property.
+        return self.client
+
     def set_timeout(self, timeout: float) -> None:
-        """Set timeout for compilation."""
+        """
+        Set timeout for each individual stage of compilation.
+
+        :param timeout: Timeout value for each compilation stage, in seconds. If the stage does not
+            complete within this threshold, an exception is raised.
+        """
         if timeout < 0:
             raise ValueError(f"Cannot set timeout to negative value {timeout}")
 
         self.timeout = timeout
-        self.client.rpc_timeout = timeout
+        self.quilc_client.rpc_timeout = timeout
 
 
 @dataclass
