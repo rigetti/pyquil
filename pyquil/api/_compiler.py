@@ -478,7 +478,7 @@ class HTTPCompilerClient:
     session: ForestSession
 
     def call(
-        self, method: str, payload: Optional[Message] = None, *, rpc_timeout: int = 30
+        self, method: str, payload: Optional[Message] = None, *, rpc_timeout: float = 30
     ) -> Message:
         """
         A partially-compatible implementation of rpcq.Client#call, which allows calling rpcq
