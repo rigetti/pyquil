@@ -123,7 +123,6 @@ default (``10`` seconds). To change this timeout, either use the `compiler_timeo
 .. code:: python
 
     qc = get_qc(..., compiler_timeout=100) # 100 seconds
-    qc.compiler.set_timeout(100) # 100 seconds
 
 or use the `set_timeout` method on the compiler object:
 
