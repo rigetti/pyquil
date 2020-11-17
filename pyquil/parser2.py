@@ -188,7 +188,7 @@ class QuilTransformer(Transformer):
             if m in ["CONTROLLED", "FORKED"]:
                 modifier_qubits.append(qubits[len(modifier_qubits)])
 
-        base_qubits = qubits[len(modifier_qubits) :]
+        base_qubits = qubits[len(modifier_qubits):]
         forked_offset = len(params) >> modifiers.count("FORKED")
         base_params = params[:forked_offset]
 
