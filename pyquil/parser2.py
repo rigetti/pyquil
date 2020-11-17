@@ -207,6 +207,7 @@ class QuilTransformer(Transformer):
                 gate.dagger()
             elif modifier == "FORKED":
                 gate.forked(modifier_qubits.pop(), params[forked_offset : (2 * forked_offset)])
+                forked_offset *= 2
             else:
                 raise ValueError(f"Unsupported gate modifier {modifier}.")
 
