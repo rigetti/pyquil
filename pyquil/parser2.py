@@ -129,7 +129,7 @@ class QuilTransformer(Transformer):
             raw_defcircuit = "DEFCIRCUIT {}{}{}:".format(name, space, " ".join(map(str, qubits)))
 
         raw_defcircuit += "\n    ".join([""] + [str(instr) for instr in instrs])
-        return raw_defcircuit
+        return RawInstr(raw_defcircuit)
 
     @v_args(inline=True)
     def def_frame(self, frame, *specs):
