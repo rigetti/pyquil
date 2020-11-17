@@ -117,7 +117,15 @@ Timeouts
 --------
 
 If your circuit is sufficiently complex the compiler may require more time than is permitted by
-default (``10`` seconds). To change this timeout use the `set_timeout` method:
+default (``10`` seconds). To change this timeout, either use the `compiler_timeout` option to
+`get_qc`
+
+.. code:: python
+
+    qc = get_qc(..., compiler_timeout=100) # 100 seconds
+    qc.compiler.set_timeout(100) # 100 seconds
+
+or use the `set_timeout` method on the compiler object:
 
 .. code:: python
 
