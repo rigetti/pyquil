@@ -368,7 +368,12 @@ class QPUCompiler(AbstractCompiler):
         return self.quilc_client
 
     def set_timeout(self, timeout: float) -> None:
-        """Set timeout for compilation."""
+        """
+        Set timeout for each individual stage of compilation.
+
+        :param timeout: Timeout value for each compilation stage, in seconds. If the stage does not
+            complete within this threshold, an exception is raised.
+        """
         if timeout < 0:
             raise ValueError(f"Cannot set timeout to negative value {timeout}")
 
