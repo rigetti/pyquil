@@ -380,6 +380,8 @@ class QVMCompiler(AbstractCompiler):
 
         :param endpoint: TCP or IPC endpoint of the Compiler Server
         :param device: PyQuil Device object to use as compilation target
+        :param timeout: Timeout value for each compilation stage, in seconds. If the stage does not
+            complete within this threshold, an exception is raised.
         """
 
         if not endpoint.startswith("tcp://"):

@@ -892,6 +892,8 @@ def get_qc(
     :param connection: An optional :py:class:`ForestConnection` object. If not specified,
         the default values for URL endpoints will be used. If you deign to change any
         of these parameters, pass your own :py:class:`ForestConnection` object.
+    :param compiler_timeout: The number of seconds after which a compilation request will raise
+        a TimeoutError.
     :return: A pre-configured QuantumComputer
     """
     # 1. Parse name, check for redundant options, canonicalize names.

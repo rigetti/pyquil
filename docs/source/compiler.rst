@@ -132,6 +132,8 @@ or use the `set_timeout` method on the compiler object:
     qc = get_qc(...)
     qc.compiler.set_timeout(100) # 100 seconds
 
+The timeout is specified in units of seconds.
+
 Legal compiler input
 --------------------
 
