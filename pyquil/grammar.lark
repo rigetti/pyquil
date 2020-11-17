@@ -97,7 +97,10 @@ fence : "FENCE" -> fence_all
 pulse : [ NONBLOCKING ] "PULSE" frame waveform
 
 ?delay : delay_qubits | delay_frames
+// TODO(notmgsk): this is a tremendously ugly hack.
+// See the comment for QuilTransformer#delay_qubits.
 delay_qubits : "DELAY" qubit_designators expression
+             | "DELAY" qubit_designators
 delay_frames : "DELAY" qubit_designator ( "\"" name "\"" )+ expression
 
 shift_phase : "SHIFT-PHASE" frame expression

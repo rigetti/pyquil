@@ -263,7 +263,17 @@ class QuilTransformer(Transformer):
         return (int(offset), str(name))
 
     @v_args(inline=True)
-    def delay_qubits(self, qubits, delay_amount):
+    def delay_qubits(self, qubits, delay_amount=None):
+        # TODO(notmgsk): This is a very nasty hack. I can't quite get
+        # the Lark grammar to recognize the last token (i.e. 1) in
+        # `DELAY 0 1` as the delay amount. I think it's because it
+        # matches 1 as a qubit rather than an expression (in the
+        # grammar). Then again I would expect look-ahead to see that
+        # it matches expression too, so it should give that
+        # preference. How do we encode that priority?
+        if delay_amount is None:
+            delay_amount = int(qubits[-1].index)
+            qubits = qubits[:-1]
         d = DELAY(*[*qubits, delay_amount])
         return d
 
