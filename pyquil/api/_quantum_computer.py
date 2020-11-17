@@ -668,7 +668,7 @@ def _get_qvm_qc(
         ),
         device=device,
         compiler=QVMCompiler(
-            device=device, endpoint=connection.compiler_endpoint, compiler_timeout=compiler_timeout
+            device=device, endpoint=connection.compiler_endpoint, timeout=compiler_timeout
         ),
     )
 
