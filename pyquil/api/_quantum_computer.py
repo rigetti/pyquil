@@ -637,6 +637,7 @@ def _get_qvm_qc(
     noise_model: Optional[NoiseModel] = None,
     requires_executable: bool = False,
     connection: Optional[ForestConnection] = None,
+    compiler_timeout: float = 10,
 ) -> QuantumComputer:
     """Construct a QuantumComputer backed by a QVM.
 
@@ -666,7 +667,9 @@ def _get_qvm_qc(
             requires_executable=requires_executable,
         ),
         device=device,
-        compiler=QVMCompiler(device=device, endpoint=connection.compiler_endpoint),
+        compiler=QVMCompiler(
+            device=device, endpoint=connection.compiler_endpoint, timeout=compiler_timeout
+        ),
     )
 
 
@@ -677,6 +680,7 @@ def _get_qvm_with_topology(
     requires_executable: bool = True,
     connection: Optional[ForestConnection] = None,
     qvm_type: str = "qvm",
+    compiler_timeout: float = 10,
 ) -> QuantumComputer:
     """Construct a QVM with the provided topology.
 
@@ -709,11 +713,16 @@ def _get_qvm_with_topology(
         device=device,
         noise_model=noise_model,
         requires_executable=requires_executable,
+        compiler_timeout=compiler_timeout,
     )
 
 
 def _get_9q_square_qvm(
-    name: str, noisy: bool, connection: Optional[ForestConnection] = None, qvm_type: str = "qvm"
+    name: str,
+    noisy: bool,
+    connection: Optional[ForestConnection] = None,
+    qvm_type: str = "qvm",
+    compiler_timeout: float = 10,
 ) -> QuantumComputer:
     """
     A nine-qubit 3x3 square lattice.
@@ -735,6 +744,7 @@ def _get_9q_square_qvm(
         noisy=noisy,
         requires_executable=True,
         qvm_type=qvm_type,
+        compiler_timeout=compiler_timeout,
     )
 
 
@@ -744,6 +754,7 @@ def _get_unrestricted_qvm(
     n_qubits: int = 34,
     connection: Optional[ForestConnection] = None,
     qvm_type: str = "qvm",
+    compiler_timeout: float = 10,
 ) -> QuantumComputer:
     """
     A qvm with a fully-connected topology.
@@ -765,6 +776,7 @@ def _get_unrestricted_qvm(
         noisy=noisy,
         requires_executable=False,
         qvm_type=qvm_type,
+        compiler_timeout=compiler_timeout,
     )
 
 
@@ -774,6 +786,7 @@ def _get_qvm_based_on_real_device(
     noisy: bool,
     connection: Optional[ForestConnection] = None,
     qvm_type: str = "qvm",
+    compiler_timeout: float = 10,
 ) -> QuantumComputer:
     """
     A qvm with a based on a real device.
@@ -799,6 +812,7 @@ def _get_qvm_based_on_real_device(
         noise_model=noise_model,
         requires_executable=True,
         qvm_type=qvm_type,
+        compiler_timeout=compiler_timeout,
     )
 
 
@@ -809,6 +823,7 @@ def get_qc(
     as_qvm: Optional[bool] = None,
     noisy: Optional[bool] = None,
     connection: Optional[ForestConnection] = None,
+    compiler_timeout: float = 10,
 ) -> QuantumComputer:
     """
     Get a quantum computer.
@@ -877,6 +892,8 @@ def get_qc(
     :param connection: An optional :py:class:`ForestConnection` object. If not specified,
         the default values for URL endpoints will be used. If you deign to change any
         of these parameters, pass your own :py:class:`ForestConnection` object.
+    :param compiler_timeout: The number of seconds after which a compilation request will raise
+        a TimeoutError.
     :return: A pre-configured QuantumComputer
     """
     # 1. Parse name, check for redundant options, canonicalize names.
@@ -891,7 +908,12 @@ def get_qc(
         if qvm_type is None:
             raise ValueError("Please name a valid device or run as a QVM")
         return _get_unrestricted_qvm(
-            name=name, connection=connection, noisy=noisy, n_qubits=n_qubits, qvm_type=qvm_type
+            name=name,
+            connection=connection,
+            noisy=noisy,
+            n_qubits=n_qubits,
+            qvm_type=qvm_type,
+            compiler_timeout=compiler_timeout,
         )
 
     # 3. Check for "9q-square" qvm
@@ -901,14 +923,25 @@ def get_qc(
 
         if qvm_type is None:
             raise ValueError("The device '9q-square' is only available as a QVM")
-        return _get_9q_square_qvm(name=name, connection=connection, noisy=noisy, qvm_type=qvm_type)
+        return _get_9q_square_qvm(
+            name=name,
+            connection=connection,
+            noisy=noisy,
+            qvm_type=qvm_type,
+            compiler_timeout=compiler_timeout,
+        )
 
     # 4. Not a special case, query the web for information about this device.
     device = get_lattice(prefix)
     if qvm_type is not None:
         # 4.1 QVM based on a real device.
         return _get_qvm_based_on_real_device(
-            name=name, device=device, noisy=noisy, connection=connection, qvm_type=qvm_type
+            name=name,
+            device=device,
+            noisy=noisy,
+            connection=connection,
+            qvm_type=qvm_type,
+            compiler_timeout=compiler_timeout,
         )
     else:
         # 4.2 A real device
@@ -928,6 +961,7 @@ def get_qc(
             device=device,
             name=prefix,
             session=session,
+            timeout=compiler_timeout,
         )
 
         return QuantumComputer(name=name, qam=qpu, device=device, compiler=compiler)

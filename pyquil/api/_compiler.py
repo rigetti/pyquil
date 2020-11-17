@@ -182,7 +182,7 @@ class QPUCompiler(AbstractCompiler):
         quilc_endpoint: Optional[str],
         qpu_compiler_endpoint: Optional[str],
         device: AbstractDevice,
-        timeout: int = 10,
+        timeout: float = 10,
         name: Optional[str] = None,
         *,
         session: Optional[ForestSession] = None,
@@ -338,7 +338,9 @@ class QPUCompiler(AbstractCompiler):
         )
         response: BinaryExecutableResponse = cast(
             BinaryExecutableResponse,
-            self.qpu_compiler_client.call("native_quil_to_binary", request),
+            self.qpu_compiler_client.call(
+                "native_quil_to_binary", request, rpc_timeout=self.timeout
+            ),
         )
 
         # hack! we're storing a little extra info in the executable binary that we don't want to
@@ -356,6 +358,19 @@ class QPUCompiler(AbstractCompiler):
         """
         self._qpu_compiler_client = None
 
+    def set_timeout(self, timeout: float) -> None:
+        """
+        Set timeout for each individual stage of compilation.
+
+        :param timeout: Timeout value for each compilation stage, in seconds. If the stage does not
+            complete within this threshold, an exception is raised.
+        """
+        if timeout < 0:
+            raise ValueError(f"Cannot set timeout to negative value {timeout}")
+
+        self.timeout = timeout
+        self.quilc_client.rpc_timeout = timeout
+
 
 class QVMCompiler(AbstractCompiler):
     @_record_call
@@ -365,6 +380,8 @@ class QVMCompiler(AbstractCompiler):
 
         :param endpoint: TCP or IPC endpoint of the Compiler Server
         :param device: PyQuil Device object to use as compilation target
+        :param timeout: Timeout value for each compilation stage, in seconds. If the stage does not
+            complete within this threshold, an exception is raised.
         """
 
         if not endpoint.startswith("tcp://"):
@@ -428,6 +445,24 @@ class QVMCompiler(AbstractCompiler):
         self.client.close()  # type: ignore
         self.client = Client(self.endpoint, timeout=timeout)
 
+    @property
+    def quilc_client(self) -> Client:
+        """Return the `Client` for the compiler (i.e. quilc, not translation service)."""
+        return self.client
+
+    def set_timeout(self, timeout: float) -> None:
+        """
+        Set timeout for each individual stage of compilation.
+
+        :param timeout: Timeout value for each compilation stage, in seconds. If the stage does not
+            complete within this threshold, an exception is raised.
+        """
+        if timeout < 0:
+            raise ValueError(f"Cannot set timeout to negative value {timeout}")
+
+        self.timeout = timeout
+        self.quilc_client.rpc_timeout = timeout
+
 
 @dataclass
 class HTTPCompilerClient:
@@ -443,7 +478,7 @@ class HTTPCompilerClient:
     session: ForestSession
 
     def call(
-        self, method: str, payload: Optional[Message] = None, *, rpc_timeout: int = 30
+        self, method: str, payload: Optional[Message] = None, *, rpc_timeout: float = 30
     ) -> Message:
         """
         A partially-compatible implementation of rpcq.Client#call, which allows calling rpcq

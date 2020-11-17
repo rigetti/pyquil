@@ -113,6 +113,25 @@ the previous example snippet is identical to the following:
     ep = qc.compiler.native_quil_to_executable(np)
     print(ep.program) # here ep is of type PyquilExecutableResponse, which is not always inspectable
 
+Timeouts
+--------
+
+If your circuit is sufficiently complex the compiler may require more time than is permitted by
+default (``10`` seconds). To change this timeout, either use the `compiler_timeout` option to
+`get_qc`
+
+.. code:: python
+
+    qc = get_qc(..., compiler_timeout=100) # 100 seconds
+
+or use the `set_timeout` method on the compiler object:
+
+.. code:: python
+
+    qc = get_qc(...)
+    qc.compiler.set_timeout(100) # 100 seconds
+
+The timeout is specified in units of seconds.
 
 Legal compiler input
 --------------------

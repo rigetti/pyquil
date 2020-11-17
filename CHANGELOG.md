@@ -8,8 +8,14 @@ Changelog
 
 ### Improvements and Changes
 
-### Bugfixes
+- Timeout configuration has been revamped. `get_qc` now accepts a `compiler_timeout`
+  option, and `QVMCompiler` and `QPUCompiler` provide a `set_timeout` method, which should
+  greatly simplify the task of changing the default timeout. `QVMCompiler` also provides a
+  `quilc_client` property so that it shares the same interface as
+  `QPUCompiler`. Documentation has been updated to reflect these changes (@notmgsk,
+  @kalzoo, #1273).
 
+### Bugfixes
 
 [v2.24.0](https://github.com/rigetti/pyquil/compare/v2.23.1..v2.24.0) (November 5, 2020)
 ------------------------------------------------------------------------------------
