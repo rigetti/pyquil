@@ -120,6 +120,8 @@ class QuilTransformer(Transformer):
 
     @v_args(inline=True)
     def def_circuit(self, name, variables, qubits, instrs):
+        # TODO(notmgsk): yuck
+        qubits = qubits if qubits else []
         space = " " if qubits else ""
         if variables:
             raw_defcircuit = "DEFCIRCUIT {}({}){}{}:".format(
