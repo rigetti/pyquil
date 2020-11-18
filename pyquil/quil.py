@@ -728,7 +728,7 @@ class Program(object):
         """
         queue = [instr]
         calibrated_instructions: List[AbstractInstruction] = []
-        seen_instructions: Dict[AbstractInstruction, bool] = {}
+        seen_instructions: Set[AbstractInstruction] = set()
 
         while len(queue) > 0:
             next_instruction, *queue = queue
@@ -745,7 +745,7 @@ class Program(object):
                                 f"Recursive calibration of {instr} produced a cyclic path."
                             )
                         else:
-                            seen_instructions[expanded_instruction] = True
+                            seen_instructions |= {expanded_instruction}
                     queue += expanded_instructions
                 else:
                     calibrated_instructions.append(next_instruction)
