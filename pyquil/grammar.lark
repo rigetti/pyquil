@@ -91,6 +91,7 @@ matrix_row : expression ( "," expression )*
                     | FUNCTION "(" expression ")" -> apply_fun
                     | "(" expression ")"
                     | variable
+                    | addr
 
 variables: ( "(" variable ( "," variable )* ")" )?
 variable : "%" IDENTIFIER
