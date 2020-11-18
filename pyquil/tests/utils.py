@@ -16,8 +16,6 @@ def api_fixture_path(path: str) -> str:
 def parse_equals(quil_string, *instructions):
     expected = list(instructions)
     actual = parse(quil_string)
-    print(expected[0])
-    print(actual[0])
     assert expected == actual
 
 
