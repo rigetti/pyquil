@@ -88,7 +88,7 @@ matrix_row : expression ( "," expression )*
 ?atom               : number
                     | "-" atom -> neg
                     | "+" atom -> pos
-                    | FUNCTION "(" expression ")" -> apply_fun
+                    | function "(" expression ")" -> apply_fun
                     | "(" expression ")"
                     | variable
                     | addr
@@ -165,7 +165,7 @@ waveform : waveform_name ( "(" named_param ( "," named_param )* ")" )?
 waveform_name : name ( "/" name )?
 frame : qubit_designators "\"" name "\""
 
-FUNCTION            : "SIN" | "COS" | "SQRT" | "EXP" | "CIS"
+!function            : "SIN" | "COS" | "SQRT" | "EXP" | "CIS"
 // Numbers
 ?number             : (int_n|float_n) "i" -> imag
                     | int_n
