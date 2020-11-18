@@ -214,32 +214,34 @@ DEFCAL RZ(%theta) q:
 
 @pytest.mark.parametrize(
     "program_text",
-    ("""
+    (
+        """
 DEFCAL RZ(%theta) q:
     RZ(%theta) q
 """,
-     """
+        """
 DEFCAL RX(%theta) q:
     RZ(%theta) q
 
 DEFCAL RZ(%theta) q:
     RX(%theta) q
 """,
-     """
+        """
 DEFCAL RX(%theta) q:
     RZ(0) q
 
 DEFCAL RZ(%theta) q:
     RX(%theta) q
 """,
-     """
+        """
 DEFCAL RX(%theta) q:
     RZ(%theta) q
 
 DEFCAL RZ(%theta) q:
     RX(0) q
-"""
-     ))
+""",
+    ),
+)
 def test_program_calibrate_cyclic_error(program_text):
     prog = Program(program_text)
     with pytest.raises(RuntimeError):
