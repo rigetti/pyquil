@@ -44,7 +44,11 @@ from pyquil.quilbase import (
 )
 
 
-class CalibrationDoesntMatch(Exception):
+class CalibrationError(Exception):
+    pass
+
+
+class CalibrationDoesntMatch(CalibrationError):
     pass
 
 
@@ -125,7 +129,7 @@ def fill_placeholders(obj, placeholder_values: Dict[Union[FormalArgument, Parame
                     )
                 return updated
             else:
-                raise ValueError(f"Unable to fill placeholders in object {obj}.")
+                raise CalibrationError(f"Unable to fill placeholders in object {obj}.")
     except Exception as e:
         raise e
         # raise ValueError(f"Unable to fill placeholders in  object {obj}.")

@@ -18,6 +18,7 @@ from pyquil.quiltwaveforms import (
     BoxcarAveragerKernel,
 )
 from pyquil.quiltcalibrations import (
+    CalibrationError,
     CalibrationMatch,
     fill_placeholders,
     match_calibration,
@@ -243,7 +244,7 @@ DEFCAL RZ(%theta) q:
 )
 def test_program_calibrate_cyclic_error(program_text):
     prog = Program(program_text)
-    with pytest.raises(RuntimeError):
+    with pytest.raises(CalibrationError):
         prog.calibrate(Gate("RZ", [np.pi], [Qubit(0)]))
 
 

@@ -93,6 +93,7 @@ from pyquil.quilbase import (
     DefWaveform,
 )
 from pyquil.quiltcalibrations import (
+    CalibrationError,
     CalibrationMatch,
     expand_calibration,
     match_calibration,
@@ -740,7 +741,7 @@ class Program(object):
                     expanded_instructions = expand_calibration(match)
                     for expanded_instruction in expanded_instructions:
                         if expanded_instruction in seen_instructions:
-                            raise RuntimeError(
+                            raise CalibrationError(
                                 f"Recursive calibration of {instr} produced a cyclic path."
                             )
                         else:
