@@ -239,8 +239,10 @@ class QuilTransformer(Transformer):
         shared, *offsets = sharing
         d = Declare(
             str(name),
-            str(memory_type),
-            int(memory_size),
+            memory_type=str(memory_type),
+            # TODO(notmgsk): This is bad. What if the default changes
+            # and we forget to change it here?
+            memory_size=int(memory_size) if memory_size else 1,
             shared_region=str(shared) if shared else None,
             offsets=offsets if shared else None,
         )
