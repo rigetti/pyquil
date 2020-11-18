@@ -69,6 +69,7 @@ from pyquil.quilatom import (
     quil_cis,
     quil_exp,
     Label,
+    _contained_mrefs,
 )
 from pyquil.gates import DELAY, SHIFT_PHASE, SET_PHASE, SWAP_PHASE, SET_SCALE, SET_FREQUENCY, SHIFT_FREQUENCY, QUANTUM_GATES, MEASURE, Gate
 from pyquil.paulis import PauliTerm
@@ -167,6 +168,12 @@ class QuilTransformer(Transformer):
 
     @v_args(inline=True)
     def def_calibration(self, name, params, qubits, instructions):
+        for p in params:
+            mrefs = _contained_mrefs(p)
+            if mrefs:
+                raise ValueError(
+                    f"Unexpected memory references {mrefs} in DEFCAL {name}. Did you forget a '%'?"
+                )
         dc = DefCalibration(name, params, qubits, instructions)
         return dc
 
@@ -527,6 +534,8 @@ class QuilTransformer(Transformer):
     pow = v_args(inline=True)(operator.pow)
     neg = v_args(inline=True)(operator.neg)
     pos = v_args(inline=True)(operator.pos)
+    function = v_args(inline=True)(str)
+    keyword = v_args(inline=True)(str)
 
 
 parser = Lark(

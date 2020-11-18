@@ -523,10 +523,11 @@ def test_parse_template_waveforms():
 def test_parse_template_waveform_strict_values():
     prog = """DECLARE foo REAL[2]
 PULSE 0 "rf" flat(duration: 1.0, iq: foo)"""
-    with pytest.raises(UnexpectedToken) as excp:
+    # TODO(notmgsk): This deserves a more principled error. The error
+    # is raised due to the value "foo" in the waveform template, which
+    # is unknown to the template system.
+    with pytest.raises(ValueError):
         parse(prog)
-
-    assert excp.value.token == Token("IDENTIFIER", "foo")
 
 
 def test_parse_pulse():
@@ -695,10 +696,8 @@ def test_parsing_defcal_measure():
 
 def test_parse_defcal_error_on_mref():
     assert parse("DEFCAL RX(%theta) 0:\n    NOP")
-    with pytest.raises(UnexpectedToken) as excp:
+    with pytest.raises(ValueError):
         parse("DEFCAL RX(theta) 0:\n    NOP")
-
-    assert excp.value.token == Token("IDENTIFIER", "theta")
 
 
 def test_parse_defgate_as_pauli():
