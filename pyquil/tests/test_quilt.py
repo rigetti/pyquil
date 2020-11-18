@@ -198,7 +198,6 @@ def test_program_calibrate():
 
 
 def test_program_calibrate_recursive():
-    # Not a realistic example :)
     prog = Program(
         """
 DEFCAL RX(%theta) q:
