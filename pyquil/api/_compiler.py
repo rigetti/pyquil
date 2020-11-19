@@ -245,7 +245,7 @@ class QPUCompiler(AbstractCompiler):
 
         self.qpu_compiler_endpoint = qpu_compiler_endpoint
         self._qpu_compiler_client: Optional[Union[Client, HTTPCompilerClient]] = None
-        self._calibrations = None
+        self._calibration_program = None
 
         self._device = device
         td = TargetDevice(isa=device.get_isa().to_dict(), specs=None)  # type: ignore
@@ -383,9 +383,14 @@ class QPUCompiler(AbstractCompiler):
         return response
 
     @_record_call
-    def get_calibrations(self) -> Program:
+    def get_calibration_program(self) -> Program:
         """
-        Get the Quilt calibrations associated with the underlying QPU.
+        Get the Quilt calibration program associated with the underlying QPU.
+
+        A calibration program contains a number of DEFCAL, DEFWAVEFORM, and
+        DEFFRAME instructions. In sum, those instructions describe how a Quilt
+        program should be translated into analog instructions for execution on
+        hardware.
 
         :returns: A Program object containing the calibration definitions."""
         self._connect_qpu_compiler()
@@ -407,25 +412,25 @@ class QPUCompiler(AbstractCompiler):
         return calibration_program
 
     @_record_call
-    def refresh_calibrations(self) -> None:
-        """Refresh the calibrations cache."""
-        self._calibrations = self.get_calibrations()
+    def refresh_calibration_program(self) -> None:
+        """Refresh the calibration program cache."""
+        self._calibration_program = self.get_calibration_program()
 
     @property
-    def calibrations(self) -> Program:
+    def calibration_program(self) -> Program:
         """Cached calibrations."""
-        if self._calibrations is None:
-            self.refresh_calibrations()
+        if self._calibration_program is None:
+            self.refresh_calibration_program()
 
-        if self._calibrations is None:
+        if self._calibration_program is None:
             raise RuntimeError("Could not refresh calibrations")
         else:
-            return self._calibrations
+            return self._calibration_program
 
     @_record_call
     def expand_calibrations(self, program: Program, discard_defcals: bool = True) -> Program:
         # Prepend the system's calibrations to the user's calibrations
-        calibrated_program = self.calibrations + program.copy_everything_except_instructions()
+        calibrated_program = self.calibration_program + program.copy_everything_except_instructions()
         for instruction in program:
             calibrated_instruction = calibrated_program.calibrate(instruction)
             calibrated_program.inst(calibrated_instruction)
@@ -515,20 +520,20 @@ class QVMCompiler(AbstractCompiler):
         self.client = Client(self.endpoint, timeout=timeout)
 
     @_record_call
-    def get_calibrations(self) -> Program:
+    def get_calibration_program(self) -> Program:
         """
-        See ``QPUCompiler.get_calibrations()``.
+        See ``QPUCompiler.get_calibration_program()``.
 
         Note: this currently provides an empty Program because the QVM does not support Quilt.
         """
         return Program()
 
     @_record_call
-    def refresh_calibrations(self) -> None:
+    def refresh_calibration_program(self) -> None:
         pass
 
     @property
-    def calibrations(self) -> Program:
+    def calibration_program(self) -> Program:
         return Program()
 
 

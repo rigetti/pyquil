@@ -302,7 +302,7 @@ def test_expand_calibrations_order(calibrations_program_text, user_program_text)
     calibrations_program = Program(calibrations_program_text)
     # Override the calibrations / prevent an API call to grab
     # calibrations
-    compiler._calibrations = calibrations_program
+    compiler._calibration_program = calibrations_program
 
     program = Program(user_program_text)
     calibrated_program = compiler.expand_calibrations(program)
