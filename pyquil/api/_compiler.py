@@ -383,7 +383,7 @@ class QPUCompiler(AbstractCompiler):
         return response
 
     @_record_call
-    def get_calibrations(self) -> List[Union[DefCalibration, DefMeasureCalibration]]:
+    def get_calibrations(self) -> Program:
         """
         Get the Quilt calibrations associated with the underlying QPU.
 
@@ -404,7 +404,7 @@ class QPUCompiler(AbstractCompiler):
             self.qpu_compiler_client.call("get_quilt_calibrations", request),
         )
         calibration_program = parse_program(response.quilt)
-        return calibration_program.calibrations
+        return calibration_program
 
     @_record_call
     def refresh_calibrations(self) -> None:
@@ -412,7 +412,7 @@ class QPUCompiler(AbstractCompiler):
         self._calibrations = self.get_calibrations()
 
     @property
-    def calibrations(self) -> List[Union[DefCalibration, DefMeasureCalibration]]:
+    def calibrations(self) -> Program:
         """Cached calibrations."""
         if self._calibrations is None:
             self.refresh_calibrations()
@@ -424,9 +424,8 @@ class QPUCompiler(AbstractCompiler):
 
     @_record_call
     def expand_calibrations(self, program: Program, discard_defcals: bool = True) -> Program:
-        calibrated_program = program.copy_everything_except_instructions()
         # Prepend the system's calibrations to the user's calibrations
-        calibrated_program._calibrations = self.calibrations + calibrated_program.calibrations
+        calibrated_program = self.calibrations + program.copy_everything_except_instructions()
         for instruction in program:
             calibrated_instruction = calibrated_program.calibrate(instruction)
             calibrated_program.inst(calibrated_instruction)
@@ -516,21 +515,21 @@ class QVMCompiler(AbstractCompiler):
         self.client = Client(self.endpoint, timeout=timeout)
 
     @_record_call
-    def get_calibrations(self) -> List[Union[DefCalibration, DefMeasureCalibration]]:
+    def get_calibrations(self) -> Program:
         """
         See ``QPUCompiler.get_calibrations()``.
 
-        Note: this currently provides an empty list because the QVM does not support Quilt.
+        Note: this currently provides an empty Program because the QVM does not support Quilt.
         """
-        return []
+        return Program()
 
     @_record_call
     def refresh_calibrations(self) -> None:
         pass
 
     @property
-    def calibrations(self) -> List[Union[DefCalibration, DefMeasureCalibration]]:
-        return []
+    def calibrations(self) -> Program:
+        return Program()
 
 
 @dataclass

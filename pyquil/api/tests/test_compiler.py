@@ -300,7 +300,9 @@ def test_expand_calibrations_order(calibrations_program_text, user_program_text)
         session=session,
     )
     calibrations_program = Program(calibrations_program_text)
-    compiler._calibrations = calibrations_program.calibrations
+    # Override the calibrations / prevent an API call to grab
+    # calibrations
+    compiler._calibrations = calibrations_program
 
     program = Program(user_program_text)
     calibrated_program = compiler.expand_calibrations(program)
