@@ -236,7 +236,7 @@ class PyQuilListener(QuilListener):
         gate_name = ctx.name().getText()
         modifiers = [mod.getText() for mod in ctx.modifier()]
         params = list(map(_param, ctx.param()))
-        qubits = list(map(_qubit, ctx.qubit()))
+        qubits = list(map(_qubitOrFormal, ctx.qubitOrFormal()))
 
         # The parsed string 'DAGGER CONTROLLED X 0 1' gives
         #   modifiers ['DAGGER', 'CONTROLLED']

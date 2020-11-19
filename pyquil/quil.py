@@ -93,6 +93,7 @@ from pyquil.quilbase import (
     DefWaveform,
 )
 from pyquil.quiltcalibrations import (
+    CalibrationError,
     CalibrationMatch,
     expand_calibration,
     match_calibration,
@@ -718,17 +719,38 @@ class Program(object):
         If a calibration definition matches the provided instruction, then the definition
         body is returned with appropriate substitutions made for parameters and qubit
         arguments. If no calibration definition matches, then the original instruction
-        is returned.
+        is returned. Calibrations are performed recursively, so that if a calibrated
+        instruction produces an instruction that has a corresponding calibration, it
+        will be expanded, and so on.
 
         :param instr: An instruction.
-        :returns: A list of instructions, with the active calibration expanded.
+        :returns: A list of instructions, with the active calibrations expanded.
         """
-        # TODO: recursively expand?
-        match = self.match_calibrations(instr)
-        if match is not None:
-            return expand_calibration(match)
-        else:
-            return [instr]
+        queue = [instr]
+        calibrated_instructions: List[AbstractInstruction] = []
+        seen_instructions: Set[AbstractInstruction] = set()
+
+        while len(queue) > 0:
+            next_instruction, *queue = queue
+
+            if not isinstance(next_instruction, (Gate, Measurement)):
+                calibrated_instructions.append(next_instruction)
+            else:
+                match = self.match_calibrations(next_instruction)
+                if match is not None:
+                    expanded_instructions = expand_calibration(match)
+                    for expanded_instruction in expanded_instructions:
+                        if expanded_instruction in seen_instructions:
+                            raise CalibrationError(
+                                f"Recursive calibration of {instr} produced a cyclic path."
+                            )
+                        else:
+                            seen_instructions |= {expanded_instruction}
+                    queue += expanded_instructions
+                else:
+                    calibrated_instructions.append(next_instruction)
+
+        return calibrated_instructions
 
     def is_protoquil(self, quilt: bool = False) -> bool:
         """
