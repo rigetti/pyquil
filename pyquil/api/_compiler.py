@@ -430,7 +430,9 @@ class QPUCompiler(AbstractCompiler):
     @_record_call
     def expand_calibrations(self, program: Program, discard_defcals: bool = True) -> Program:
         # Prepend the system's calibrations to the user's calibrations
-        calibrated_program = self.calibration_program + program.copy_everything_except_instructions()
+        calibrated_program = (
+            self.calibration_program + program.copy_everything_except_instructions()
+        )
         for instruction in program:
             calibrated_instruction = calibrated_program.calibrate(instruction)
             calibrated_program.inst(calibrated_instruction)
