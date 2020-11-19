@@ -152,6 +152,7 @@ def _collect_classical_memory_write_locations(
         qubit `q` was measured into `ro` address `addr`. A value of `None` means nothing was
         measured into `ro` address `addr`.
     """
+    # TODO(notmgsk): move these imports up
     from pyquil.quilbase import Measurement, Declare
 
     ro_size = None
