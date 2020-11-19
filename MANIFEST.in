@@ -1,3 +1,2 @@
 include README.md
 include VERSION.txt
-include pyquil/grammar.lark
