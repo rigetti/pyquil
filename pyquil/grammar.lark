@@ -39,6 +39,7 @@ quil : (all_instr _NEWLINE?)*
        | classical_unary
        | classical_binary
        | classical_comparison
+       | include
 
 def_gate : "DEFGATE" name [ variables ] ":" matrix -> def_gate_matrix
          | "DEFGATE" name "AS" "MATRIX" [ variables ] ":" matrix -> def_gate_matrix
@@ -136,6 +137,8 @@ measure : "MEASURE" qubit_designator [ addr ]
 halt : "HALT"
 
 nop : "NOP"
+
+include : "INCLUDE" string
 
 def_label : "LABEL" label
 jump : "JUMP" label

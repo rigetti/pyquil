@@ -369,6 +369,10 @@ class QuilTransformer(Transformer):
         return NOP
 
     @v_args(inline=True)
+    def include(self, string):
+        return RawInstr(f"INCLUDE {string}")
+
+    @v_args(inline=True)
     def def_label(self, label):
         return JumpTarget(label)
 
