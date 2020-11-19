@@ -22,6 +22,7 @@ quil : (all_instr _NEWLINE?)*
        | raw_capture
        | pragma
        | measure
+       | halt
        | gate
        | nop
        | def_label
@@ -131,6 +132,8 @@ pragma : "PRAGMA" ( IDENTIFIER | keyword ) pragma_name*
 ?pragma_name : IDENTIFIER | keyword | INT
 
 measure : "MEASURE" qubit_designator [ addr ]
+
+halt : "HALT"
 
 nop : "NOP"
 

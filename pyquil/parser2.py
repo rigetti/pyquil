@@ -29,7 +29,6 @@ from pyquil.quilbase import (
     MemoryReference,
     Pragma,
     RawInstr,
-    Nop,
     JumpTarget,
     Jump,
     JumpWhen,
@@ -82,6 +81,8 @@ from pyquil.gates import (
     SHIFT_FREQUENCY,
     QUANTUM_GATES,
     MEASURE,
+    HALT,
+    NOP,
     Gate,
 )
 from pyquil.paulis import PauliTerm
@@ -360,8 +361,12 @@ class QuilTransformer(Transformer):
         return MEASURE(qubit, address)
 
     @v_args(inline=True)
+    def halt(self):
+        return HALT
+
+    @v_args(inline=True)
     def nop(self):
-        return Nop()
+        return NOP
 
     @v_args(inline=True)
     def def_label(self, label):
