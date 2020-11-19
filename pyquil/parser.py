@@ -18,9 +18,6 @@ Module for parsing Quil programs from text into PyQuil objects
 """
 from typing import List
 
-from lark import UnexpectedToken, Token
-
-from pyquil._parser.PyQuilListener import run_parser
 from pyquil.quil import Program
 from pyquil.quilbase import AbstractInstruction
 

@@ -401,8 +401,9 @@ class QPUCompiler(AbstractCompiler):
             self.qpu_compiler_client.call("get_quilt_calibrations", request),
         )
         import pyquil.parser2 as p2
+
         calibration_program = p2.parse(response.quilt)
-        return calibration_program
+        return Program(calibration_program)
 
     @_record_call
     def reset(self) -> None:
