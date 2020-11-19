@@ -1,12 +1,13 @@
 import pkgutil
 import operator
+from typing import List
 
 from lark import Lark, Transformer, v_args
 
 import numpy as np
 
-from pyquil.quil import Program
 from pyquil.quilbase import (
+    AbstractInstruction,
     DefGate,
     DefPermutationGate,
     DefGateByPaulis,
@@ -559,7 +560,7 @@ parser = Lark(
 )
 
 
-def parse(program: str) -> Program:
+def parse(program: str) -> List[AbstractInstruction]:
     p = parser.parse(program)
     return p
 
