@@ -43,10 +43,11 @@ def decode_buffer(buffer: Dict[str, Any]) -> np.ndarray:
     buf = np.frombuffer(buffer["data"], dtype=buffer["dtype"])
     return buf.reshape(buffer["shape"])
 
+
 def _extract_memory_regions(
-        memory_descriptors: Dict[str, ParameterSpec],
-        ro_sources: List[Tuple[MemoryReference, str]],
-        buffers: Dict[str, np.ndarray]
+    memory_descriptors: Dict[str, ParameterSpec],
+    ro_sources: List[Tuple[MemoryReference, str]],
+    buffers: Dict[str, np.ndarray],
 ) -> Dict[str, np.ndarray]:
 
     # hack to extract num_shots indirectly from the shape of the returned data

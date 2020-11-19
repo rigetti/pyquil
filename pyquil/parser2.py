@@ -71,7 +71,18 @@ from pyquil.quilatom import (
     Label,
     _contained_mrefs,
 )
-from pyquil.gates import DELAY, SHIFT_PHASE, SET_PHASE, SWAP_PHASE, SET_SCALE, SET_FREQUENCY, SHIFT_FREQUENCY, QUANTUM_GATES, MEASURE, Gate
+from pyquil.gates import (
+    DELAY,
+    SHIFT_PHASE,
+    SET_PHASE,
+    SWAP_PHASE,
+    SET_SCALE,
+    SET_FREQUENCY,
+    SHIFT_FREQUENCY,
+    QUANTUM_GATES,
+    MEASURE,
+    Gate,
+)
 from pyquil.paulis import PauliTerm
 
 
@@ -196,7 +207,7 @@ class QuilTransformer(Transformer):
             if m in ["CONTROLLED", "FORKED"]:
                 modifier_qubits.append(qubits[len(modifier_qubits)])
 
-        base_qubits = qubits[len(modifier_qubits):]
+        base_qubits = qubits[len(modifier_qubits) :]
         forked_offset = len(params) >> modifiers.count("FORKED")
         base_params = params[:forked_offset]
 
