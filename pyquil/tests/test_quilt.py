@@ -1,3 +1,5 @@
+import pytest
+
 import numpy as np
 
 from pyquil.quil import Program
@@ -16,6 +18,7 @@ from pyquil.quiltwaveforms import (
     BoxcarAveragerKernel,
 )
 from pyquil.quiltcalibrations import (
+    CalibrationError,
     CalibrationMatch,
     fill_placeholders,
     match_calibration,
@@ -193,6 +196,56 @@ def test_program_calibrate():
     prog = Program('DEFCAL RZ(%theta) q:\n    SHIFT-PHASE q "rf" -%theta')
     calibrated = prog.calibrate(Gate("RZ", [np.pi], [Qubit(0)]))
     assert calibrated == Program('SHIFT-PHASE 0 "rf" -pi').instructions
+
+
+def test_program_calibrate_recursive():
+    prog = Program(
+        """
+DEFCAL RX(%theta) q:
+    RY(%theta) q
+
+DEFCAL RZ(%theta) q:
+    RX(%theta) q
+"""
+    )
+    calibrated = prog.calibrate(Gate("RZ", [np.pi], [Qubit(0)]))
+    assert calibrated == Program("RY(pi) 0").instructions
+
+
+@pytest.mark.parametrize(
+    "program_text",
+    (
+        """
+DEFCAL RZ(%theta) q:
+    RZ(%theta) q
+""",
+        """
+DEFCAL RX(%theta) q:
+    RZ(%theta) q
+
+DEFCAL RZ(%theta) q:
+    RX(%theta) q
+""",
+        """
+DEFCAL RX(%theta) q:
+    RZ(0) q
+
+DEFCAL RZ(%theta) q:
+    RX(%theta) q
+""",
+        """
+DEFCAL RX(%theta) q:
+    RZ(%theta) q
+
+DEFCAL RZ(%theta) q:
+    RX(0) q
+""",
+    ),
+)
+def test_program_calibrate_cyclic_error(program_text):
+    prog = Program(program_text)
+    with pytest.raises(CalibrationError):
+        prog.calibrate(Gate("RZ", [np.pi], [Qubit(0)]))
 
 
 def test_merge_programs_with_quilt_features():
