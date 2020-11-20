@@ -17,7 +17,6 @@
 Module containing the Wavefunction object and methods for working with wavefunctions.
 """
 import itertools
-import struct
 import warnings
 from typing import Dict, Iterator, List, Optional, Sequence, cast
 
@@ -81,18 +80,9 @@ class Wavefunction(object):
         From a bit packed string, unpacks to get the wavefunction
         :param coef_string:
         """
-        num_octets = len(coef_string)
-
-        # Parse the wavefunction
-        wf = np.zeros(num_octets // OCTETS_PER_COMPLEX_DOUBLE, dtype=np.cfloat)
-        for i, p in enumerate(range(0, num_octets, OCTETS_PER_COMPLEX_DOUBLE)):
-            re_be = coef_string[p : p + OCTETS_PER_DOUBLE_FLOAT]
-            im_be = coef_string[p + OCTETS_PER_DOUBLE_FLOAT : p + OCTETS_PER_COMPLEX_DOUBLE]
-            re = struct.unpack(">d", re_be)[0]
-            im = struct.unpack(">d", im_be)[0]
-            wf[i] = complex(re, im)
-
-        return Wavefunction(wf)
+        num_cfloat = len(coef_string) // OCTETS_PER_COMPLEX_DOUBLE
+        amplitude_vector = np.ndarray(shape=(num_cfloat,), buffer=coef_string, dtype=">c16")
+        return Wavefunction(amplitude_vector)
 
     def __len__(self) -> int:
         return len(self.amplitudes).bit_length() - 1

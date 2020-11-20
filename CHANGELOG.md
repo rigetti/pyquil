@@ -8,6 +8,8 @@ Changelog
 
 ### Improvements and Changes
 
+- Unpacking bitstrings is significantly faster (@mhodson-rigetti, @notmgsk, #1276).
+
 ### Bugfixes
 
 
