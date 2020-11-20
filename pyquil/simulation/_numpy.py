@@ -22,6 +22,7 @@ from pyquil.paulis import PauliTerm, PauliSum
 from pyquil.pyqvm import AbstractQuantumSimulator
 from pyquil.quilbase import Gate
 from pyquil.simulation.matrices import QUANTUM_GATES
+from pyquil.simulation.tools import lifted_gate
 
 # The following function is lovingly copied from the Cirq project
 # https://github.com/quantumlib/Cirq
@@ -149,11 +150,7 @@ def _get_gate_tensor_and_qubits(gate: Gate) -> Tuple[np.ndarray, List[int]]:
     :param gate: the instruction
     :return: tensor, qubit_inds.
     """
-    if len(gate.params) > 0:
-        matrix = QUANTUM_GATES[gate.name](*gate.params)
-    else:
-        matrix = QUANTUM_GATES[gate.name]
-
+    matrix = lifted_gate(gate, n_qubits=len(gate.qubits))
     qubit_inds = [q.index for q in gate.qubits]
 
     # e.g. 2-qubit matrix is 4x4; turns into (2,2,2,2) tensor.
