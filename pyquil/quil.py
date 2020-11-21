@@ -728,27 +728,34 @@ class Program(object):
         """
         queue = [instr]
         calibrated_instructions: List[AbstractInstruction] = []
-        seen_instructions: Set[AbstractInstruction] = set()
+
+        # Record which instructions have so far been expanded here to ensure that we don't
+        # enter an infinite loop
+        expanded_instructions: Set[AbstractInstruction] = set()
 
         while len(queue) > 0:
             next_instruction, *queue = queue
 
-            if not isinstance(next_instruction, (Gate, Measurement)):
-                calibrated_instructions.append(next_instruction)
-            else:
+            if isinstance(next_instruction, (Gate, Measurement)):
                 match = self.match_calibrations(next_instruction)
-                if match is not None:
-                    expanded_instructions = expand_calibration(match)
-                    for expanded_instruction in expanded_instructions:
-                        if expanded_instruction in seen_instructions:
-                            raise CalibrationError(
-                                f"Recursive calibration of {instr} produced a cyclic path."
-                            )
-                        else:
-                            seen_instructions |= {expanded_instruction}
-                    queue += expanded_instructions
-                else:
+                if match is None:
                     calibrated_instructions.append(next_instruction)
+                else:
+                    new_instructions = expand_calibration(match)
+                    expanded_instructions.add(next_instruction)
+
+                    previously_expanded_instructions = set(new_instructions).intersection(
+                        expanded_instructions
+                    )
+                    if len(previously_expanded_instructions) > 0:
+                        raise CalibrationError(
+                            f"Calibration of {instr} produced a cyclic path; "
+                            f"instructions {previously_expanded_instructions} have "
+                            "already been expanded."
+                        )
+                    queue += new_instructions
+            else:
+                calibrated_instructions.append(next_instruction)
 
         return calibrated_instructions
 
