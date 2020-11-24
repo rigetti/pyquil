@@ -18,7 +18,7 @@ from pyquil.quiltwaveforms import (
     BoxcarAveragerKernel,
 )
 from pyquil.quiltcalibrations import (
-    CalibrationError,
+    CalibrationRecursionError,
     CalibrationMatch,
     fill_placeholders,
     match_calibration,
@@ -192,24 +192,96 @@ def test_program_match_last():
     assert match == CalibrationMatch(cal=second, settings={})
 
 
-def test_program_calibrate():
-    prog = Program('DEFCAL RZ(%theta) q:\n    SHIFT-PHASE q "rf" -%theta')
-    calibrated = prog.calibrate(Gate("RZ", [np.pi], [Qubit(0)]))
-    assert calibrated == Program('SHIFT-PHASE 0 "rf" -pi').instructions
+@pytest.mark.parametrize(
+    "program_input,gate,program_output",
+    [
+        (
+            Program(
+                """
+DEFCAL RZ(%theta) q:
+    SHIFT-PHASE q "rf" -%theta
+"""
+            ),
+            Gate("RZ", [np.pi], [Qubit(0)]),
+            Program('SHIFT-PHASE 0 "rf" -pi'),
+        ),
+        (
+            Program(
+                """
+DEFCAL A(%theta) q:
+    SHIFT-PHASE q "rf" -%theta
 
+DEFCAL RZ(%theta) q:
+    SHIFT-PHASE q "rf" -%theta
+    A(%theta) q
+"""
+            ),
+            Gate("RZ", [np.pi], [Qubit(0)]),
+            Program('SHIFT-PHASE 0 "rf" -pi', 'SHIFT-PHASE 0 "rf" -pi'),
+        ),
+        (
+            Program(
+                """
+DEFCAL A(%theta) q:
+    RX(%theta) q
 
-def test_program_calibrate_recursive():
-    prog = Program(
-        """
+DEFCAL B(%theta) q:
+    RY(%theta) q
+DEFCAL RZ(%theta) q:
+    A(%theta) q
+    B(%theta) q
+    A(%theta) q
+"""
+            ),
+            Gate("RZ", [np.pi], [Qubit(0)]),
+            Program("RX(pi) 0", "RY(pi) 0", "RX(pi) 0"),
+        ),
+        (
+            Program(
+                """
 DEFCAL RX(%theta) q:
     RY(%theta) q
 
 DEFCAL RZ(%theta) q:
     RX(%theta) q
 """
-    )
-    calibrated = prog.calibrate(Gate("RZ", [np.pi], [Qubit(0)]))
-    assert calibrated == Program("RY(pi) 0").instructions
+            ),
+            Gate("RZ", [np.pi], [Qubit(0)]),
+            Program("RY(pi) 0"),
+        ),
+        (
+            Program(
+                """
+DEFCAL RY(pi) 0:
+    I 0
+DEFCAL RZ(0) 0:
+    RY(pi) 0
+DEFCAL RX(0) 0:
+    RY(pi) 0
+    RZ(0) 0
+"""
+            ),
+            Gate("RX", [0], [Qubit(0)]),
+            Program("I 0", "I 0"),
+        ),
+        (
+            Program(
+                """
+DEFCAL RX(%theta) 0:
+    RX(%theta / 2) 0
+
+DEFCAL RX(pi / 4) 0:
+    I 0
+"""
+            ),
+            Gate("RX", [np.pi], [Qubit(0)]),
+            Program("I 0"),
+        ),
+    ],
+)
+def test_program_calibrate(program_input, gate, program_output):
+    calibrated = program_input.calibrate(gate)
+    assert Program(calibrated) == program_output
 
 
 @pytest.mark.parametrize(
@@ -240,11 +312,18 @@ DEFCAL RX(%theta) q:
 DEFCAL RZ(%theta) q:
     RX(0) q
 """,
+        """
+DEFCAL RZ(%theta) q:
+    RZ(0) q
+
+DEFCAL RZ(0) q:
+    RZ(pi) q
+""",
     ),
 )
 def test_program_calibrate_cyclic_error(program_text):
     prog = Program(program_text)
-    with pytest.raises(CalibrationError):
+    with pytest.raises(CalibrationRecursionError):
         prog.calibrate(Gate("RZ", [np.pi], [Qubit(0)]))
 
 

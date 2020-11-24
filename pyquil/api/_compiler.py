@@ -556,7 +556,6 @@ class QVMCompiler(AbstractCompiler):
         self.timeout = timeout
         self.quilc_client.rpc_timeout = timeout
 
-
     @_record_call
     def get_calibration_program(self) -> Program:
         """

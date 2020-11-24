@@ -48,6 +48,10 @@ class CalibrationError(Exception):
     pass
 
 
+class CalibrationRecursionError(CalibrationError):
+    pass
+
+
 class CalibrationDoesntMatch(CalibrationError):
     pass
 

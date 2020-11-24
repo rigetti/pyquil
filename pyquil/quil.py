@@ -93,7 +93,7 @@ from pyquil.quilbase import (
     DefWaveform,
 )
 from pyquil.quiltcalibrations import (
-    CalibrationError,
+    CalibrationRecursionError,
     CalibrationMatch,
     expand_calibration,
     match_calibration,
@@ -712,7 +712,7 @@ class Program(object):
 
         return None
 
-    def calibrate(self, instr: AbstractInstruction) -> List[AbstractInstruction]:
+    def calibrate(self, instruction: AbstractInstruction) -> List[AbstractInstruction]:
         """
         Expand an instruction into its calibrated definition.
 
@@ -723,41 +723,29 @@ class Program(object):
         instruction produces an instruction that has a corresponding calibration, it
         will be expanded, and so on.
 
+        Note: If there exists a cycle in the calibration definitions, this function will
+        catch a RecursionError and re-raise it as a CalibrationRecursionError.
+
         :param instr: An instruction.
         :returns: A list of instructions, with the active calibrations expanded.
         """
-        queue = [instr]
-        calibrated_instructions: List[AbstractInstruction] = []
-
-        # Record which instructions have so far been expanded here to ensure that we don't
-        # enter an infinite loop
-        expanded_instructions: Set[AbstractInstruction] = set()
-
-        while len(queue) > 0:
-            next_instruction, *queue = queue
-
-            if isinstance(next_instruction, (Gate, Measurement)):
-                match = self.match_calibrations(next_instruction)
-                if match is None:
-                    calibrated_instructions.append(next_instruction)
-                else:
-                    new_instructions = expand_calibration(match)
-                    expanded_instructions.add(next_instruction)
-
-                    previously_expanded_instructions = set(new_instructions).intersection(
-                        expanded_instructions
-                    )
-                    if len(previously_expanded_instructions) > 0:
-                        raise CalibrationError(
-                            f"Calibration of {instr} produced a cyclic path; "
-                            f"instructions {previously_expanded_instructions} have "
-                            "already been expanded."
-                        )
-                    queue += new_instructions
-            else:
-                calibrated_instructions.append(next_instruction)
-
-        return calibrated_instructions
+        # NOTE(notmgsk): This implementation doesn't provide much context to
+        # the user about where a cycle was hit, but it does greatly simplify
+        # the logic by assuming that a RecursionError implies a cycle. That's
+        # not guaranteed since a RecursionError could in theory hit by a
+        # sufficiently pathological deeply nested calibration path. So
+        # pathological that we shouldn't account for that situation.
+        match = self.match_calibrations(instruction)
+        if match is not None:
+            expansions = expand_calibration(match)
+            # TODO(notmgsk): using sum() to flatten a list is probably not
+            # great
+            try:
+                return sum([self.calibrate(expansion) for expansion in expansions], [])
+            except RecursionError as e:
+                raise CalibrationRecursionError(e)
+        else:
+            return [instruction]
 
     def is_protoquil(self, quilt: bool = False) -> bool:
         """
