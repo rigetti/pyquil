@@ -412,7 +412,7 @@ class QPUCompiler(AbstractCompiler):
             self.qpu_compiler_client.call("get_quilt_calibrations", request),
         )
         calibration_program = parse_program(response.quilt)
-        return Program(calibration_program)
+        return calibration_program
 
     @_record_call
     def refresh_calibration_program(self) -> None:
