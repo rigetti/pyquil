@@ -232,7 +232,6 @@ def test_compile_with_quilt_calibrations(compiler):
     assert compilation_result == program
 
 
-# TODO(notmgsk): Is this sufficient coverage?
 @pytest.mark.parametrize(
     "calibrations_program_text,user_program_text",
     [
