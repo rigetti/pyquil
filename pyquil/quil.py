@@ -93,7 +93,7 @@ from pyquil.quilbase import (
     DefWaveform,
 )
 from pyquil.quiltcalibrations import (
-    CalibrationRecursionError,
+    CalibrationError,
     CalibrationMatch,
     expand_calibration,
     match_calibration,
@@ -725,18 +725,19 @@ class Program(object):
         arguments. If no calibration definition matches, then the original instruction
         is returned. Calibrations are performed recursively, so that if a calibrated
         instruction produces an instruction that has a corresponding calibration, it
-        will be expanded, and so on.
+        will be expanded, and so on. If a cycle is encountered, a CalibrationError is
+        raised.
 
-        Note: If there exists a cycle in the calibration definitions, this function will
-        catch a RecursionError and re-raise it as a CalibrationRecursionError.
-
-        :param instr: An instruction.
+        :param instruction: An instruction.
+        :param previously_calibrated_instructions: A set of instructions that are the
+            results of calibration expansions in the direct ancestry of `instruction`.
+            Used to catch cyclic calibration expansions.
         :returns: A list of instructions, with the active calibrations expanded.
         """
         if previously_calibrated_instructions is None:
             previously_calibrated_instructions = set()
         elif instruction in previously_calibrated_instructions:
-            raise CalibrationRecursionError(
+            raise CalibrationError(
                 f"The instruction {instruction} appears in the set of "
                 f"previously calibrated instructions {previously_calibrated_instructions}"
                 " and would therefore result in a cyclic non-terminating expansion."
