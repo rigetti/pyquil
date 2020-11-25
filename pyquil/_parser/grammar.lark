@@ -129,7 +129,6 @@ addr : IDENTIFIER -> addr | ( [ IDENTIFIER ] "[" INT "]" ) -> addr_subscript
 pragma : "PRAGMA" ( IDENTIFIER | keyword ) pragma_name*
        | "PRAGMA" ( IDENTIFIER | keyword ) pragma_name* string -> pragma_freeform_string
 
-// Why can't I int_n here?
 ?pragma_name : IDENTIFIER | keyword | INT
 
 measure : "MEASURE" qubit_designator [ addr ]
