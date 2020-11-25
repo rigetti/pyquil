@@ -712,7 +712,11 @@ class Program(object):
 
         return None
 
-    def calibrate(self, instruction: AbstractInstruction) -> List[AbstractInstruction]:
+    def calibrate(
+        self,
+        instruction: AbstractInstruction,
+        previously_calibrated_instructions: Optional[Set[AbstractInstruction]] = None,
+    ) -> List[AbstractInstruction]:
         """
         Expand an instruction into its calibrated definition.
 
@@ -729,21 +733,27 @@ class Program(object):
         :param instr: An instruction.
         :returns: A list of instructions, with the active calibrations expanded.
         """
-        # NOTE(notmgsk): This implementation doesn't provide much context to
-        # the user about where a cycle was hit, but it does greatly simplify
-        # the logic by assuming that a RecursionError implies a cycle. That's
-        # not guaranteed since a RecursionError could in theory hit by a
-        # sufficiently pathological deeply nested calibration path. So
-        # pathological that we shouldn't account for that situation.
+        if previously_calibrated_instructions is None:
+            previously_calibrated_instructions = set()
+        elif instruction in previously_calibrated_instructions:
+            raise CalibrationRecursionError(
+                f"The instruction {instruction} appears in the set of "
+                f"previously calibrated instructions {previously_calibrated_instructions}"
+                " and would therefore result in a cyclic non-terminating expansion."
+            )
+        else:
+            previously_calibrated_instructions = previously_calibrated_instructions.union(
+                {instruction}
+            )
         match = self.match_calibrations(instruction)
         if match is not None:
-            expansions = expand_calibration(match)
-            # TODO(notmgsk): using sum() to flatten a list is probably not
-            # great
-            try:
-                return sum([self.calibrate(expansion) for expansion in expansions], [])
-            except RecursionError as e:
-                raise CalibrationRecursionError(e)
+            return sum(
+                [
+                    self.calibrate(expansion, previously_calibrated_instructions)
+                    for expansion in expand_calibration(match)
+                ],
+                [],
+            )
         else:
             return [instruction]
 
