@@ -1,0 +1,61 @@
+# specify the dependency versions (can be overriden with --build_arg)
+ARG quilc_version=1.20.0
+ARG qvm_version=1.17.1
+ARG python_version=3.6
+
+# use multi-stage builds to independently pull dependency versions
+FROM rigetti/quilc:$quilc_version as quilc
+FROM rigetti/qvm:$qvm_version as qvm
+FROM python:$python_version
+
+# copy over the pre-built quilc binary from the first build stage
+COPY --from=quilc /src/quilc/quilc /src/quilc/quilc
+
+# copy over the pre-built qvm binary from the second build stage
+COPY --from=qvm /src/qvm/qvm /src/qvm/qvm
+
+# install the missing apt packages that aren't copied over
+RUN apt-get update && apt-get -yq dist-upgrade && \
+    apt-get install --no-install-recommends -yq \
+    git libblas-dev libffi-dev liblapack-dev libzmq3-dev && \
+    rm -rf /var/lib/apt/lists/*
+
+# install ipython
+RUN pip install --no-cache-dir ipython
+
+# copy over files and install requirements
+#ADD . /src/pyquil
+#WORKDIR /src/pyquil
+#RUN pip install -e .
+
+# Create new user
+ENV PQ_USER=pyquil
+RUN useradd --create-home -s /bin/bash $PQ_USER
+ENV PQ_DIR=/home/$PQ_USER
+
+ENV PATH="${PQ_DIR}/.local/bin:${PATH}"
+
+# copy over files and install requirements
+ADD . /src/pyquil
+WORKDIR /src/pyquil
+RUN pip install -e .
+
+# SET ROOT PERMISSION FOR ALL USERS
+RUN chown -R $PQ_USER:$PQ_USER /home/$PQ_USER/
+RUN usermod -aG sudo $PQ_USER
+RUN echo '%sudo ALL=(ALL) NOPASSWD:ALL' >> /etc/sudoers
+
+USER $PQ_USER
+
+WORKDIR $PQ_DIR
+
+RUN pip3 -q install pip --upgrade && pip3 install jupyterlab voila
+RUN mkdir -p pyquil-notebooks && chown $PQ_USER:$PQ_USER pyquil-notebooks
+
+
+# use an entrypoint script to add startup commands (qvm & quilc server spinup)
+ENTRYPOINT ["/src/pyquil/entrypoint.sh"]
+CMD [ "ipython" ]
+
+# RUN JUPYTER ON PORT 8889
+CMD [ "jupyter" , "notebook",  "--ip=0.0.0.0", "--port=8889", "--notebook-dir=./pyquil-notebooks", "--no-browser" ]

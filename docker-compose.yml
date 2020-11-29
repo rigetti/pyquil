@@ -1,0 +1,13 @@
+version: '2'
+services:
+  pyquil:
+    container_name: pyquil-container
+    build:
+      context: ./
+      dockerfile: ./Dockerfile_pyquil
+    ports:
+      - "9889:8889"
+    volumes:
+      - ./notebooks:/home/pyquil/pyquil-notebooks
+    restart: unless-stopped
+

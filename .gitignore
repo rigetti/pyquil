@@ -183,3 +183,6 @@ fabric.properties
 
 ### VSCode ###
 **/.vscode/
+
+### Jupyter checkpoints ###
+notebooks/.ipynb_checkpoints
