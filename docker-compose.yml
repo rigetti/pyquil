@@ -4,7 +4,7 @@ services:
     container_name: pyquil-container
     build:
       context: ./
-      dockerfile: ./Dockerfile_pyquil
+      dockerfile: ./Dockerfile_jupyter
     ports:
       - "9889:8889"
     volumes:
