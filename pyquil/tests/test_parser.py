@@ -487,9 +487,6 @@ def test_parse_template_waveforms():
 def test_parse_template_waveform_strict_values():
     prog = """DECLARE foo REAL[2]
 PULSE 0 "rf" flat(duration: 1.0, iq: foo)"""
-    # TODO(notmgsk): This deserves a more principled error. The error
-    # is raised due to the value "foo" in the waveform template, which
-    # is unknown to the template system.
     with pytest.raises(ValueError):
         parse(prog)
 
