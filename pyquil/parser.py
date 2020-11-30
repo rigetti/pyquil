@@ -33,12 +33,12 @@ def parse_program(quil: str) -> Program:
     return Program(parse(quil))
 
 
-def parse(program: str) -> List[AbstractInstruction]:
+def parse(quil: str) -> List[AbstractInstruction]:
     """
     Parse a raw Quil program and return a corresponding list of PyQuil objects.
 
     :param str quil: a single or multiline Quil program
     :return: list of instructions
     """
-    p = run_parser(program)
+    p = run_parser(quil)
     return p
