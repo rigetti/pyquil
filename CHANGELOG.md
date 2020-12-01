@@ -9,6 +9,7 @@ Changelog
 ### Improvements and Changes
 
 - Unpacking bitstrings is significantly faster (@mhodson-rigetti, @notmgsk, #1276).
+- Parsing is now performed using Lark rather than ANTLR (@notmgsk, #1278).
 
 ### Bugfixes
 

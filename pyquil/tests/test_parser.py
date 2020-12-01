@@ -13,6 +13,8 @@
 #    See the License for the specific language governing permissions and
 #    limitations under the License.
 ##############################################################################
+from lark import Token, UnexpectedToken
+
 import numpy as np
 import pytest
 
@@ -162,8 +164,10 @@ def test_def_gate_as():
 
     parse(perm_gate_str)
     parse(matrix_gate_str)
-    with pytest.raises(RuntimeError):
+    with pytest.raises(UnexpectedToken) as excp:
         parse(unknown_gate_str)
+
+    assert excp.value.token == Token("IDENTIFIER", "UNKNOWNTYPE")
 
 
 def test_def_gate_as_matrix():
@@ -199,8 +203,10 @@ def test_def_gate_as_permutation():
     bad_perm_gate_str = """DEFGATE CCNOT AS PERMUTATION:
     0, 1, 2, 3, 4, 5, 7, 6
     0, 1, 2, 3, 4, 5, 7, 6""".strip()
-    with pytest.raises(RuntimeError):
+    with pytest.raises(UnexpectedToken) as excp:
         parse(bad_perm_gate_str)
+
+    assert excp.value.token.type == "_NEWLINE_TAB"
 
 
 def test_parameters():
@@ -409,37 +415,6 @@ RESET 5
     parse_equals(reset_qubit, ResetQubit(Qubit(5)))
 
 
-def test_defcircuit_measure_qubit():
-    defcircuit_measure_named_qubits = """
-DEFCIRCUIT test_defcirc_measure_named a b:
-    MEASURE a b
-""".strip()
-    defcircuit_measure_qubits = """
-DEFCIRCUIT test_defcirc_measure_qubits:
-    MEASURE 0 ro
-""".strip()
-    defcircuit_measure_qubits_mixed = """
-DEFCIRCUIT test_defcirc_measure_mixed q:
-    MEASURE q ro
-""".strip()
-    parse_equals(defcircuit_measure_named_qubits, RawInstr(defcircuit_measure_named_qubits))
-    parse_equals(defcircuit_measure_qubits, RawInstr(defcircuit_measure_qubits))
-    parse_equals(defcircuit_measure_qubits_mixed, RawInstr(defcircuit_measure_qubits_mixed))
-
-
-def test_defcircuit_reset_named_qubit():
-    defcircuit_reset_named_qubit = """
-DEFCIRCUIT test_defcirc_reset_named_qubit a:
-    RESET a
-""".strip()
-    defcircuit_reset_qubit = """
-DEFCIRCUIT test_defcirc_reset_qubit:
-    RESET 1
-""".strip()
-    parse_equals(defcircuit_reset_named_qubit, RawInstr(defcircuit_reset_named_qubit))
-    parse_equals(defcircuit_reset_qubit, RawInstr(defcircuit_reset_qubit))
-
-
 def test_parse_dagger():
     s = "DAGGER X 0"
     parse_equals(s, X(0).dagger())
@@ -634,8 +609,10 @@ def test_parsing_defframe():
         "    INITIAL-FREQUENCY: 10\n",  # TODO: should this parse as a float?
         DefFrame(Frame([Qubit(0)], "rf"), sample_rate=2.0, initial_frequency=10),
     )
-    with pytest.raises(RuntimeError):
+    with pytest.raises(UnexpectedToken) as excp:
         parse('DEFFRAME 0 "rf":\n' "    UNSUPPORTED: 2.0\n")
+
+    assert excp.value.token == Token("IDENTIFIER", "UNSUPPORTED")
 
 
 def test_parsing_defcal():
@@ -663,7 +640,7 @@ def test_parsing_defcal_measure():
     parse_equals(
         "DEFCAL MEASURE q addr:\n"
         '    PULSE q "ro_tx" flat(duration: 1.0, iq: 1.0+0.0*i)\n'
-        '    CAPTURE q "ro_rx" flat(duration: 1.0, iq: 1.0+0*i) addr[0]',
+        '    CAPTURE q "ro_rx" flat(duration: 1.0, iq: 1.0+0*i) addr[0]\n',
         DefMeasureCalibration(
             FormalArgument("q"),
             FormalArgument("addr"),
@@ -687,5 +664,7 @@ def test_parse_defcal_error_on_mref():
 def test_parse_defgate_as_pauli():
     """ Check that DEFGATE AS PAULI-SUM takes only qubit variables (for now). """
     assert parse("DEFGATE RY(%theta) q AS PAULI-SUM:\n    Y(-%theta/2) q")
-    with pytest.raises(RuntimeError):
-        parse("DEFGATE RY(%theta) 0 AS PAULI-SUM:\n    Y(-%theta/2) 0")
+    with pytest.raises(UnexpectedToken) as excp:
+        parse("DEFGATE RY(%theta) 0 AS PAULI-SUM:\n    Y(-%theta/2) q")
+
+    assert excp.value.token == Token("INT", "0")
