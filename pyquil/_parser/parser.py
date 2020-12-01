@@ -11,7 +11,6 @@ from pyquil.quilbase import (
     DefGate,
     DefPermutationGate,
     DefGateByPaulis,
-    # TODO DefCircuit
     DefWaveform,
     Qubit,
     FormalArgument,
