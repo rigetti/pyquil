@@ -6,10 +6,26 @@ Changelog
 
 ### Announcements
 
+- Quil-T brings the dimension of time to your quantum programs! Quil-T is an extension of
+  Quil which allows one to develop quantum programs at the level of pulses and waveforms
+  and brings an unprecedented level of fine-grained control over the QPU.
+
 ### Improvements and Changes
 
 - Unpacking bitstrings is significantly faster (@mhodson-rigetti, @notmgsk, #1276).
-- Parsing is now performed using Lark rather than ANTLR (@notmgsk, #1278).
+- Parsing is now performed using Lark rather than ANTLR, often allowing a 10x improvement
+  in parsing large and complex programs (@notmgsk, #1278).
+- Gates now generally allow a "formal" qubit label as in `DEFCIRCUIT`, rather than
+  requiring a numeric index (#1257).
+- `Program` objects come with additional Quil-T related properties, such as
+  `calibrations`, `waveforms`, and `frames` (#1257).
+- The `AbstractCompiler` classes come with tools for performing calibration of
+  programs. Namely, `get_calibration_program` provides a program for calibrating against
+  recent QPU settings, and `expand_calibrations` expands all instructions in a program
+  using their associated calibrations (#1257).
+- `rewrite_arithmetic` now converts phase angle from radians to revolutions (#1257).
+- Readout is more permissive, and does not require the destination to be named `"ro"`
+  (#1257).
 
 ### Bugfixes
 
