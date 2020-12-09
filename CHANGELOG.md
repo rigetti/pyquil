@@ -26,6 +26,10 @@ Changelog
 - `rewrite_arithmetic` now converts phase angle from radians to revolutions (#1257).
 - Readout is more permissive, and does not require the destination to be named `"ro"`
   (#1257).
+- The default value for `QPU_COMPILER_URL` has been updated to point to Rigetti's
+  translation service. This changes allows one to use the translation service to translate
+  a Quil-T program and receive the binary payload without having a QPU reservation
+  (#1257).
 
 ### Bugfixes
 
