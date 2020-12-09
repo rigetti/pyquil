@@ -353,7 +353,7 @@ class QPUCompiler(AbstractCompiler):
 
         arithmetic_response = rewrite_arithmetic(nq_program)
 
-        nq_program_calibrated = self.expand_calibrations(arithmetic_response.quil)
+        nq_program_calibrated = self.expand_calibrations(Program(arithmetic_response.quil))
 
         request = QuiltBinaryExecutableRequest(
             quilt=str(nq_program_calibrated), num_shots=nq_program_calibrated.num_shots
