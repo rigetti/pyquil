@@ -21,8 +21,7 @@ Changelog
   `calibrations`, `waveforms`, and `frames` (#1257).
 - The `AbstractCompiler` classes come with tools for performing calibration of
   programs. Namely, `get_calibration_program` provides a program for calibrating against
-  recent QPU settings, and `expand_calibrations` expands all instructions in a program
-  using their associated calibrations (#1257).
+  recent QPU settings (#1257).
 - `rewrite_arithmetic` now converts phase angle from radians to revolutions (#1257).
 - Readout is more permissive, and does not require the destination to be named `"ro"`
   (#1257).

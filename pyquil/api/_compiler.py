@@ -353,10 +353,8 @@ class QPUCompiler(AbstractCompiler):
 
         arithmetic_response = rewrite_arithmetic(nq_program)
 
-        nq_program_calibrated = self.expand_calibrations(nq_program)
-
         request = QuiltBinaryExecutableRequest(
-            quilt=arithmetic_response.quil, num_shots=nq_program_calibrated.num_shots
+            quilt=arithmetic_response.quil, num_shots=nq_program.num_shots
         )
         response = cast(
             QuiltBinaryExecutableResponse,
@@ -426,21 +424,6 @@ class QPUCompiler(AbstractCompiler):
             raise RuntimeError("Could not refresh calibrations")
         else:
             return self._calibration_program
-
-    @_record_call
-    def expand_calibrations(self, program: Program, discard_defcals: bool = True) -> Program:
-        # Prepend the system's calibrations to the user's calibrations
-        calibrated_program = (
-            self.calibration_program + program.copy_everything_except_instructions()
-        )
-        for instruction in program:
-            calibrated_instruction = calibrated_program.calibrate(instruction)
-            calibrated_program.inst(calibrated_instruction)
-
-        if discard_defcals:
-            calibrated_program._calibrations = []
-
-        return calibrated_program
 
     @_record_call
     def reset(self) -> None:
