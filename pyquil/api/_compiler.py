@@ -353,10 +353,10 @@ class QPUCompiler(AbstractCompiler):
 
         arithmetic_response = rewrite_arithmetic(nq_program)
 
-        nq_program_calibrated = self.expand_calibrations(nq_program)
+        nq_program_calibrated = self.expand_calibrations(arithmetic_response.quil)
 
         request = QuiltBinaryExecutableRequest(
-            quilt=arithmetic_response.quil, num_shots=nq_program_calibrated.num_shots
+            quilt=str(nq_program_calibrated), num_shots=nq_program_calibrated.num_shots
         )
         response = cast(
             QuiltBinaryExecutableResponse,
