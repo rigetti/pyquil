@@ -366,7 +366,7 @@ class QPUCompiler(AbstractCompiler):
         )
 
         response.recalculation_table = arithmetic_response.recalculation_table  # type: ignore
-        response.memory_descriptors = _collect_memory_descriptors(nq_program)
+        response.memory_descriptors = _collect_memory_descriptors(nq_program_calibrated)
 
         # Convert strings to MemoryReference for downstream processing.
         response.ro_sources = [(parse_mref(mref), source) for mref, source in response.ro_sources]
@@ -375,7 +375,7 @@ class QPUCompiler(AbstractCompiler):
         # the client side (where it was pre-quilt) to the service side. In some cases, the service
         # won't return ro_sources, and so we can fall back to parsing the change on the client side.
         if response.ro_sources == []:
-            response.ro_sources = _collect_classical_memory_write_locations(nq_program)
+            response.ro_sources = _collect_classical_memory_write_locations(nq_program_calibrated)
 
         if not debug:
             response.debug = {}
