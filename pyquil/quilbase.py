@@ -123,7 +123,7 @@ RESERVED_WORDS: Container[str] = [
     "LE",
     "LOAD",
     "STORE",
-    # Quilt additions:
+    # Quil-T additions:
     "DEFCAL",
     "DEFFRAME",
     "DEFWAVEFORM",

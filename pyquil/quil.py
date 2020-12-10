@@ -153,7 +153,7 @@ class Program(object):
 
     @property
     def calibrations(self) -> List[Union[DefCalibration, DefMeasureCalibration]]:
-        """ A list of Quilt calibration definitions. """
+        """ A list of Quil-T calibration definitions. """
         return self._calibrations
 
     @property
@@ -163,7 +163,7 @@ class Program(object):
 
     @property
     def frames(self) -> Dict[Frame, DefFrame]:
-        """ A mapping from Quilt frames to their definitions. """
+        """ A mapping from Quil-T frames to their definitions. """
         return self._frames
 
     def copy_everything_except_instructions(self) -> "Program":
@@ -705,7 +705,7 @@ class Program(object):
         Get the calibration corresponding to the provided instruction.
 
         :param instr: An instruction.
-        :returns: A matching Quilt calibration definition, if one exists.
+        :returns: A matching Quil-T calibration definition, if one exists.
         """
         match = self.match_calibrations(instr)
         if match:
@@ -1297,10 +1297,10 @@ def percolate_declares(program: Program) -> Program:
 
 def validate_protoquil(program: Program, quilt: bool = False) -> None:
     """
-    Ensure that a program is valid ProtoQuil or Quilt, otherwise raise a ValueError.
+    Ensure that a program is valid ProtoQuil or Quil-T, otherwise raise a ValueError.
     Protoquil is a subset of Quil which excludes control flow and classical instructions.
 
-    :param quilt: Validate the program as Quilt.
+    :param quilt: Validate the program as Quil-T.
     :param program: The Quil program to validate.
     """
     """
@@ -1341,14 +1341,14 @@ def validate_protoquil(program: Program, quilt: bool = False) -> None:
     else:
         valid_instruction_types = tuple([Pragma, Declare, Gate, Reset, ResetQubit, Measurement])
         if program.calibrations:
-            raise ValueError("ProtoQuil validation failed: Quilt calibrations are not allowed.")
+            raise ValueError("ProtoQuil validation failed: Quil-T calibrations are not allowed.")
         if program.waveforms:
             raise ValueError(
-                "ProtoQuil validation failed: Quilt waveform definitions are not allowed."
+                "ProtoQuil validation failed: Quil-T waveform definitions are not allowed."
             )
         if program.frames:
             raise ValueError(
-                "ProtoQuil validation failed: Quilt frame definitions are not allowed."
+                "ProtoQuil validation failed: Quil-T frame definitions are not allowed."
             )
 
     for instr in program.instructions:
