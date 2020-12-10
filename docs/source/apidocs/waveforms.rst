@@ -1,5 +1,5 @@
 Quil-T Waveforms
-===============
+================
 
 .. currentmodule:: pyquil.quiltwaveforms
 
