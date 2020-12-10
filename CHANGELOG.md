@@ -10,7 +10,7 @@ Changelog
 
 ### Bugfixes
 
-[v2.26.0](https://github.com/rigetti/pyquil/compare/v2.25.0..v2.26.0) (December 9, 2020)
+[v2.26.0](https://github.com/rigetti/pyquil/compare/v2.25.0..v2.26.0) (December 10, 2020)
 ------------------------------------------------------------------------------------
 ### Announcements
 
