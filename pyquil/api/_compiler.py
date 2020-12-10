@@ -17,14 +17,15 @@ import logging
 import sys
 import warnings
 from requests.exceptions import RequestException
-from typing import Dict, Any, List, Optional, Tuple, Union, cast
-from collections import Counter
+from typing import Dict, Any, Optional, Union, cast, List, Tuple
 
 from rpcq._base import Message, to_json, from_json
 from rpcq._client import Client
 from rpcq.messages import (
-    BinaryExecutableRequest,
-    BinaryExecutableResponse,
+    QuiltCalibrationsRequest,
+    QuiltCalibrationsResponse,
+    QuiltBinaryExecutableRequest,
+    QuiltBinaryExecutableResponse,
     NativeQuilRequest,
     TargetDevice,
     PyQuilExecutableResponse,
@@ -40,6 +41,7 @@ from pyquil.api._rewrite_arithmetic import rewrite_arithmetic
 from pyquil.device._main import AbstractDevice, Device
 from pyquil.parser import parse_program
 from pyquil.quil import Program
+from pyquil.quilatom import MemoryReference
 from pyquil.quilbase import Measurement, Declare
 from pyquil.version import __version__
 
@@ -81,6 +83,19 @@ def check_quilc_version(version_dict: Dict[str, str]) -> None:
         )
 
 
+def parse_mref(val: str) -> MemoryReference:
+    """ Parse a memory reference from its string representation. """
+    val = val.strip()
+    try:
+        if val[-1] == "]":
+            name, offset = val.split("[")
+            return MemoryReference(name, int(offset[:-1]))
+        else:
+            return MemoryReference(val)
+    except Exception:
+        raise ValueError(f"Unable to parse memory reference {val}.")
+
+
 def _extract_attribute_dictionary_from_program(program: Program) -> Dict[str, Any]:
     """
     Collects the attributes from PYQUIL_PROGRAM_PROPERTIES on the Program object program
@@ -108,15 +123,31 @@ def _extract_program_from_pyquil_executable_response(response: PyQuilExecutableR
     return p
 
 
-def _collect_classical_memory_write_locations(program: Program) -> List[Optional[Tuple[int, int]]]:
-    """Collect classical memory locations that are the destination of MEASURE instructions
-
-    These locations are important for munging output buffers returned from the QPU
-    server to the shape expected by the user.
+def _collect_memory_descriptors(program: Program) -> Dict[str, ParameterSpec]:
+    """Collect Declare instructions that are important for building the patch table.
 
     This is secretly stored on BinaryExecutableResponse. We're careful to make sure
     these objects are json serializable.
 
+    :return: A dictionary of variable names to specs about the declared region.
+    """
+    return {
+        instr.name: ParameterSpec(type=instr.memory_type, length=instr.memory_size)
+        for instr in program
+        if isinstance(instr, Declare)
+    }
+
+
+# TODO This should be deleted once native_quil_to_executable no longer
+# uses it.
+def _collect_classical_memory_write_locations(
+    program: Program,
+) -> List[Optional[Tuple[MemoryReference, str]]]:
+    """Collect classical memory locations that are the destination of MEASURE instructions
+    These locations are important for munging output buffers returned from the QPU
+    server to the shape expected by the user.
+    This is secretly stored on BinaryExecutableResponse. We're careful to make sure
+    these objects are json serializable.
     :return: list whose value `(q, m)` at index `addr` records that the `m`-th measurement of
         qubit `q` was measured into `ro` address `addr`. A value of `None` means nothing was
         measured into `ro` address `addr`.
@@ -131,8 +162,7 @@ def _collect_classical_memory_write_locations(program: Program) -> List[Optional
                 )
             ro_size = instr.memory_size
 
-    measures_by_qubit: Dict[int, int] = Counter()
-    ro_sources: Dict[int, Tuple[int, int]] = {}
+    ro_sources: Dict[int, Tuple[MemoryReference, str]] = {}
 
     for instr in program:
         if isinstance(instr, Measurement):
@@ -148,8 +178,7 @@ def _collect_classical_memory_write_locations(program: Program) -> List[Optional
                     )
                 # we track how often each qubit is measured (per shot) and into which register it is
                 # measured in its n-th measurement.
-                ro_sources[offset] = (q, measures_by_qubit[q])
-            measures_by_qubit[q] += 1
+                ro_sources[offset] = (MemoryReference(name="ro", offset=offset), f"q{q}")
     if ro_size:
         return [ro_sources.get(i) for i in range(ro_size)]
     elif ro_sources:
@@ -158,21 +187,6 @@ def _collect_classical_memory_write_locations(program: Program) -> List[Optional
         )
     else:
         return []
-
-
-def _collect_memory_descriptors(program: Program) -> Dict[str, ParameterSpec]:
-    """Collect Declare instructions that are important for building the patch table.
-
-    This is secretly stored on BinaryExecutableResponse. We're careful to make sure
-    these objects are json serializable.
-
-    :return: A dictionary of variable names to specs about the declared region.
-    """
-    return {
-        instr.name: ParameterSpec(type=instr.memory_type, length=instr.memory_size)
-        for instr in program
-        if isinstance(instr, Declare)
-    }
 
 
 class QPUCompiler(AbstractCompiler):
@@ -229,6 +243,7 @@ class QPUCompiler(AbstractCompiler):
 
         self.qpu_compiler_endpoint = qpu_compiler_endpoint
         self._qpu_compiler_client: Optional[Union[Client, HTTPCompilerClient]] = None
+        self._calibration_program = None
 
         self._device = device
         td = TargetDevice(isa=device.get_isa().to_dict(), specs=None)  # type: ignore
@@ -311,17 +326,22 @@ class QPUCompiler(AbstractCompiler):
     @_record_call
     def quil_to_native_quil(self, program: Program, *, protoquil: Optional[bool] = None) -> Program:
         self._connect_quilc()
-        request = NativeQuilRequest(quil=program.out(), target_device=self.target_device)
+        request = NativeQuilRequest(
+            quil=program.out(calibrations=False), target_device=self.target_device
+        )
         response = self.quilc_client.call(
             "quil_to_native_quil", request, protoquil=protoquil
         ).asdict()
         nq_program = parse_program(response["quil"])
         nq_program.native_quil_metadata = response["metadata"]
         nq_program.num_shots = program.num_shots
+        nq_program._calibrations = program.calibrations
         return nq_program
 
     @_record_call
-    def native_quil_to_executable(self, nq_program: Program) -> Optional[BinaryExecutableResponse]:
+    def native_quil_to_executable(
+        self, nq_program: Program, *, debug: bool = False
+    ) -> Optional[QuiltBinaryExecutableResponse]:
         if not self.qpu_compiler_client:
             raise UserMessageError(
                 "It looks like you're trying to compile to an executable, but "
@@ -333,23 +353,77 @@ class QPUCompiler(AbstractCompiler):
 
         arithmetic_response = rewrite_arithmetic(nq_program)
 
-        request = BinaryExecutableRequest(
-            quil=arithmetic_response.quil, num_shots=nq_program.num_shots
+        request = QuiltBinaryExecutableRequest(
+            quilt=arithmetic_response.quil, num_shots=nq_program.num_shots
         )
-        response: BinaryExecutableResponse = cast(
-            BinaryExecutableResponse,
+        response = cast(
+            QuiltBinaryExecutableResponse,
             self.qpu_compiler_client.call(
-                "native_quil_to_binary", request, rpc_timeout=self.timeout
+                "native_quilt_to_binary", request, rpc_timeout=self.timeout
             ),
         )
 
-        # hack! we're storing a little extra info in the executable binary that we don't want to
-        # expose to anyone outside of our own private lives: not the user, not the Forest server,
-        # not anyone.
         response.recalculation_table = arithmetic_response.recalculation_table  # type: ignore
         response.memory_descriptors = _collect_memory_descriptors(nq_program)
-        response.ro_sources = _collect_classical_memory_write_locations(nq_program)
+
+        # Convert strings to MemoryReference for downstream processing.
+        response.ro_sources = [(parse_mref(mref), source) for mref, source in response.ro_sources]
+
+        # TODO (kalzoo): this is a temporary workaround to migrate memory location parsing from
+        # the client side (where it was pre-quilt) to the service side. In some cases, the service
+        # won't return ro_sources, and so we can fall back to parsing the change on the client side.
+        if response.ro_sources == []:
+            response.ro_sources = _collect_classical_memory_write_locations(nq_program)
+
+        if not debug:
+            response.debug = {}
+
         return response
+
+    @_record_call
+    def get_calibration_program(self) -> Program:
+        """
+        Get the Quilt calibration program associated with the underlying QPU.
+
+        A calibration program contains a number of DEFCAL, DEFWAVEFORM, and
+        DEFFRAME instructions. In sum, those instructions describe how a Quilt
+        program should be translated into analog instructions for execution on
+        hardware.
+
+        :returns: A Program object containing the calibration definitions."""
+        self._connect_qpu_compiler()
+        request = QuiltCalibrationsRequest(target_device=self.target_device)
+        if not self.qpu_compiler_client:
+            raise UserMessageError(
+                # TODO Improve this error message with a reference to
+                # the pyquil config docs?
+                "It looks like you're trying to request Quilt calibrations, but "
+                "do not have access to the QPU compiler endpoint. Make sure you "
+                "are engaged to the QPU or have configured qpu_compiler_endpoint "
+                "in your pyquil configuration."
+            )
+        response = cast(
+            QuiltCalibrationsResponse,
+            self.qpu_compiler_client.call("get_quilt_calibrations", request),
+        )
+        calibration_program = parse_program(response.quilt)
+        return calibration_program
+
+    @_record_call
+    def refresh_calibration_program(self) -> None:
+        """Refresh the calibration program cache."""
+        self._calibration_program = self.get_calibration_program()
+
+    @property
+    def calibration_program(self) -> Program:
+        """Cached calibrations."""
+        if self._calibration_program is None:
+            self.refresh_calibration_program()
+
+        if self._calibration_program is None:
+            raise RuntimeError("Could not refresh calibrations")
+        else:
+            return self._calibration_program
 
     @_record_call
     def reset(self) -> None:
@@ -462,6 +536,23 @@ class QVMCompiler(AbstractCompiler):
 
         self.timeout = timeout
         self.quilc_client.rpc_timeout = timeout
+
+    @_record_call
+    def get_calibration_program(self) -> Program:
+        """
+        See ``QPUCompiler.get_calibration_program()``.
+
+        Note: this currently provides an empty Program because the QVM does not support Quilt.
+        """
+        return Program()
+
+    @_record_call
+    def refresh_calibration_program(self) -> None:
+        pass
+
+    @property
+    def calibration_program(self) -> Program:
+        return Program()
 
 
 @dataclass

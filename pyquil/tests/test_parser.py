@@ -13,6 +13,8 @@
 #    See the License for the specific language governing permissions and
 #    limitations under the License.
 ##############################################################################
+from lark import Token, UnexpectedToken
+
 import numpy as np
 import pytest
 
@@ -48,9 +50,21 @@ from pyquil.gates import (
     XOR,
 )
 from pyquil.parser import parse
-from pyquil.quilatom import MemoryReference, Parameter, quil_cos, quil_sin
-from pyquil.quilbase import Declare, Reset, ResetQubit
+from pyquil.quilatom import (
+    MemoryReference,
+    Frame,
+    TemplateWaveform,
+    Mul,
+    Div,
+    FormalArgument,
+    Parameter,
+    quil_cos,
+    quil_sin,
+)
 from pyquil.quilbase import (
+    Declare,
+    Reset,
+    ResetQubit,
     Label,
     JumpTarget,
     Jump,
@@ -61,6 +75,31 @@ from pyquil.quilbase import (
     Qubit,
     Pragma,
     RawInstr,
+    Pulse,
+    SetFrequency,
+    ShiftFrequency,
+    SetPhase,
+    ShiftPhase,
+    SwapPhase,
+    SetScale,
+    Capture,
+    RawCapture,
+    DelayQubits,
+    DelayFrames,
+    Fence,
+    FenceAll,
+    DefCalibration,
+    DefMeasureCalibration,
+    DefFrame,
+    DefWaveform,
+)
+from pyquil.quiltwaveforms import (
+    FlatWaveform,
+    GaussianWaveform,
+    DragGaussianWaveform,
+    ErfSquareWaveform,
+    HrmGaussianWaveform,
+    BoxcarAveragerKernel,
 )
 from pyquil.tests.utils import parse_equals
 
@@ -125,8 +164,10 @@ def test_def_gate_as():
 
     parse(perm_gate_str)
     parse(matrix_gate_str)
-    with pytest.raises(RuntimeError):
+    with pytest.raises(UnexpectedToken) as excp:
         parse(unknown_gate_str)
+
+    assert excp.value.token == Token("IDENTIFIER", "UNKNOWNTYPE")
 
 
 def test_def_gate_as_matrix():
@@ -162,8 +203,10 @@ def test_def_gate_as_permutation():
     bad_perm_gate_str = """DEFGATE CCNOT AS PERMUTATION:
     0, 1, 2, 3, 4, 5, 7, 6
     0, 1, 2, 3, 4, 5, 7, 6""".strip()
-    with pytest.raises(RuntimeError):
+    with pytest.raises(UnexpectedToken) as excp:
         parse(bad_perm_gate_str)
+
+    assert excp.value.token.type == "_NEWLINE_TAB"
 
 
 def test_parameters():
@@ -341,11 +384,6 @@ def test_pragma():
     parse_equals("PRAGMA NO-NOISE", Pragma("NO-NOISE"))
 
 
-def test_invalid():
-    with pytest.raises(RuntimeError):
-        parse("H X")
-
-
 def test_empty_program():
     parse_equals("")
 
@@ -377,37 +415,6 @@ RESET 5
     parse_equals(reset_qubit, ResetQubit(Qubit(5)))
 
 
-def test_defcircuit_measure_qubit():
-    defcircuit_measure_named_qubits = """
-DEFCIRCUIT test_defcirc_measure_named a b:
-    MEASURE a b
-""".strip()
-    defcircuit_measure_qubits = """
-DEFCIRCUIT test_defcirc_measure_qubits:
-    MEASURE 0 ro
-""".strip()
-    defcircuit_measure_qubits_mixed = """
-DEFCIRCUIT test_defcirc_measure_mixed q:
-    MEASURE q ro
-""".strip()
-    parse_equals(defcircuit_measure_named_qubits, RawInstr(defcircuit_measure_named_qubits))
-    parse_equals(defcircuit_measure_qubits, RawInstr(defcircuit_measure_qubits))
-    parse_equals(defcircuit_measure_qubits_mixed, RawInstr(defcircuit_measure_qubits_mixed))
-
-
-def test_defcircuit_reset_named_qubit():
-    defcircuit_reset_named_qubit = """
-DEFCIRCUIT test_defcirc_reset_named_qubit a:
-    RESET a
-""".strip()
-    defcircuit_reset_qubit = """
-DEFCIRCUIT test_defcirc_reset_qubit:
-    RESET 1
-""".strip()
-    parse_equals(defcircuit_reset_named_qubit, RawInstr(defcircuit_reset_named_qubit))
-    parse_equals(defcircuit_reset_qubit, RawInstr(defcircuit_reset_qubit))
-
-
 def test_parse_dagger():
     s = "DAGGER X 0"
     parse_equals(s, X(0).dagger())
@@ -428,3 +435,236 @@ def test_parse_forked():
 def test_messy_modifiers():
     s = "FORKED DAGGER CONTROLLED FORKED RX(0.1,0.2,0.3,0.4) 0 1 2 3"
     parse_equals(s, RX(0.1, 3).forked(2, [0.2]).controlled(1).dagger().forked(0, [0.3, 0.4]))
+
+
+def test_parse_template_waveforms():
+    def wf_agrees(wf_str: str, wf: TemplateWaveform):
+        frame = Frame([Qubit(0)], "rf")
+        pulse_str = 'PULSE 0 "rf" ' + wf_str
+        parse_equals(pulse_str, Pulse(frame, wf))
+
+    wf_agrees("flat(duration: 1.0, iq: 2.0)", FlatWaveform(duration=1.0, iq=2.0))
+    wf_agrees("flat(duration: 1.0, iq: 2)", FlatWaveform(duration=1.0, iq=2.0))
+    wf_agrees("flat(iq: 2.0, duration: 1.0)", FlatWaveform(duration=1.0, iq=2.0))
+    wf_agrees("flat(duration: 1.0, iq: 1 + 2.0*i)", FlatWaveform(duration=1.0, iq=1.0 + 2.0j))
+    wf_agrees(
+        "flat(duration: 1.0, iq: 1.0, detuning: 1e-5)",
+        FlatWaveform(duration=1.0, iq=1.0, detuning=1e-5),
+    )
+    wf_agrees(
+        "flat(duration: 1.0, iq: 1.0, scale: 0.5)", FlatWaveform(duration=1.0, iq=1.0, scale=0.5)
+    )
+    wf_agrees(
+        "gaussian(fwhm: 2.0, t0: 1.0, duration: 3.0)",
+        GaussianWaveform(duration=3.0, fwhm=2.0, t0=1.0),
+    )
+    wf_agrees(
+        "drag_gaussian(fwhm: 2.0, t0: 1.0, anh: 5.0, alpha: 3.0, duration: 5.0)",
+        DragGaussianWaveform(duration=5.0, fwhm=2.0, t0=1.0, anh=5.0, alpha=3.0),
+    )
+    wf_agrees(
+        "hrm_gaussian(fwhm: 2.0, t0: 1.0, anh: 5.0, alpha: 3.0, "
+        + "             duration: 5.0, second_order_hrm_coeff: 0.5)".strip(),
+        HrmGaussianWaveform(
+            duration=5.0, fwhm=2.0, t0=1.0, anh=5.0, alpha=3.0, second_order_hrm_coeff=0.5
+        ),
+    )
+    wf_agrees(
+        "erf_square(risetime: 0.5, pad_left: 1.0, pad_right: 0.0, duration: 3.0)",
+        ErfSquareWaveform(duration=3.0, risetime=0.5, pad_left=1.0, pad_right=0.0),
+    )
+    wf_agrees("boxcar_kernel(duration: 1.0)", BoxcarAveragerKernel(duration=1.0))
+
+    # missing required field
+    with pytest.raises(ValueError):
+        parse('PULSE 0 "rf" flat(duration: 1.0)')
+
+    # undefined template
+    with pytest.raises(ValueError):
+        parse('PULSE 0 "rf" undefined_template(duration: 1)')
+
+
+def test_parse_template_waveform_strict_values():
+    prog = """DECLARE foo REAL[2]
+PULSE 0 "rf" flat(duration: 1.0, iq: foo)"""
+    with pytest.raises(ValueError):
+        parse(prog)
+
+
+def test_parse_pulse():
+    wf = FlatWaveform(duration=1.0, iq=1.0)
+    parse_equals('PULSE 0 "rf" flat(duration: 1.0, iq: 1.0)', Pulse(Frame([Qubit(0)], "rf"), wf))
+    parse_equals(
+        'PULSE 0 1 "ff" flat(duration: 1.0, iq: 1.0)', Pulse(Frame([Qubit(0), Qubit(1)], "ff"), wf)
+    )
+    parse_equals(
+        'NONBLOCKING PULSE 0 "rf" flat(duration: 1.0, iq: 1.0)',
+        Pulse(Frame([Qubit(0)], "rf"), wf, nonblocking=True),
+    )
+
+
+def test_parsing_capture():
+    wf = FlatWaveform(duration=1.0, iq=1.0)
+    parse_equals(
+        "DECLARE iq REAL[2]\n" 'CAPTURE 0 "ro_rx" flat(duration: 1.0, iq: 1.0) iq',
+        Declare("iq", "REAL", 2),
+        Capture(Frame([Qubit(0)], "ro_rx"), wf, MemoryReference("iq")),
+    )
+    parse_equals(
+        "DECLARE iq REAL[2]\n" 'NONBLOCKING CAPTURE 0 "ro_rx" flat(duration: 1.0, iq: 1.0) iq',
+        Declare("iq", "REAL", 2),
+        Capture(Frame([Qubit(0)], "ro_rx"), wf, MemoryReference("iq"), nonblocking=True),
+    )
+
+
+def test_parsing_raw_capture():
+    parse_equals(
+        "DECLARE iqs REAL[200000]\n" 'RAW-CAPTURE 0 "ro_rx" 0.001 iqs',
+        Declare("iqs", "REAL", 200000),
+        RawCapture(Frame([Qubit(0)], "ro_rx"), 0.001, MemoryReference("iqs")),
+    )
+    parse_equals(
+        "DECLARE iqs REAL[200000]\n" 'NONBLOCKING RAW-CAPTURE 0 "ro_rx" 0.001 iqs',
+        Declare("iqs", "REAL", 200000),
+        RawCapture(Frame([Qubit(0)], "ro_rx"), 0.001, MemoryReference("iqs"), nonblocking=True),
+    )
+
+
+def test_parsing_frame_mutations():
+    ops = [
+        ("SET-PHASE", SetPhase),
+        ("SHIFT-PHASE", ShiftPhase),
+        ("SET-SCALE", SetScale),
+        ("SET-FREQUENCY", SetFrequency),
+        ("SHIFT-FREQUENCY", ShiftFrequency),
+    ]
+    frames = [
+        ('0 "rf"', Frame([Qubit(0)], "rf")),
+        ('0 1 "ff"', Frame([Qubit(0), Qubit(1)], "ff")),
+        ('1 0 "ff"', Frame([Qubit(1), Qubit(0)], "ff")),
+    ]
+    values = [("1", 1), ("1.0", 1.0), ("pi/2", np.pi / 2)]  # TODO: should we require a float here?
+    for op_str, op in ops:
+        for frame_str, frame in frames:
+            for val_str, val in values:
+                parse_equals(f"{op_str} {frame_str} {val_str}", op(frame, val))
+
+
+def test_parsing_swap_phase():
+    parse_equals(
+        'SWAP-PHASE 0 "rf" 1 "rf"', SwapPhase(Frame([Qubit(0)], "rf"), Frame([Qubit(1)], "rf"))
+    )
+    parse_equals(
+        'SWAP-PHASE 0 1 "ff" 1 0 "ff"',
+        SwapPhase(Frame([Qubit(0), Qubit(1)], "ff"), Frame([Qubit(1), Qubit(0)], "ff")),
+    )
+
+
+def test_parsing_delay():
+    parse_equals("DELAY 0 1.0", DelayQubits([Qubit(0)], 1.0))
+    parse_equals("DELAY 0 1", DelayQubits([Qubit(0)], 1))
+    parse_equals("DELAY 0 1 1e-6", DelayQubits([Qubit(0), Qubit(1)], 1e-6))
+    parse_equals('DELAY 0 "rf" 1.0', DelayFrames([Frame([Qubit(0)], "rf")], 1.0))
+    parse_equals(
+        'DELAY 0 "ro_tx" "ro_rx"  1.0',
+        DelayFrames([Frame([Qubit(0)], "ro_tx"), Frame([Qubit(0)], "ro_rx")], 1.0),
+    )
+
+
+def test_parsing_fence():
+    parse_equals("FENCE 0", Fence([Qubit(0)]))
+    parse_equals("FENCE 0 1", Fence([Qubit(0), Qubit(1)]))
+    parse_equals("FENCE q s", Fence([FormalArgument("q"), FormalArgument("s")]))
+    parse_equals("FENCE", FenceAll())
+
+
+def test_parsing_defwaveform():
+    parse_equals(
+        "DEFWAVEFORM foo:\n" "    1.0, 1.0, 1.0\n", DefWaveform("foo", [], [1.0, 1.0, 1.0])
+    )
+    parse_equals(
+        "DEFWAVEFORM foo:\n" "    1.0+2.0*i, 1.0-2.0*i, 3.0\n",
+        DefWaveform("foo", [], [1 + 2j, 1 - 2j, 3 + 0j]),
+    )
+    parse_equals(
+        "DEFWAVEFORM foo(%theta):\n" "    1.0+2.0*i, 1.0-2.0*i, 3.0*%theta\n",
+        DefWaveform("foo", [Parameter("theta")], [1 + 2j, 1 - 2j, Mul(3.0, Parameter("theta"))]),
+    )
+    parse_equals(
+        "DEFWAVEFORM q0_ro_rx/filter:\n    1.0, 1.0, 1.0",
+        DefWaveform("q0_ro_rx/filter", [], [1.0, 1.0, 1.0]),
+    )
+
+
+def test_parsing_defframe():
+    parse_equals('DEFFRAME 0 "rf"', DefFrame(Frame([Qubit(0)], "rf")))
+    parse_equals('DEFFRAME 1 0 "ff"', DefFrame(Frame([Qubit(1), Qubit(0)], "ff")))
+    parse_equals(
+        'DEFFRAME 0 "rf":\n' "    SAMPLE-RATE: 2.0\n",
+        DefFrame(Frame([Qubit(0)], "rf"), sample_rate=2.0),
+    )
+    parse_equals(
+        'DEFFRAME 0 "rf":\n'
+        "    SAMPLE-RATE: 2.0\n"
+        "    INITIAL-FREQUENCY: 10\n",  # TODO: should this parse as a float?
+        DefFrame(Frame([Qubit(0)], "rf"), sample_rate=2.0, initial_frequency=10),
+    )
+    with pytest.raises(UnexpectedToken) as excp:
+        parse('DEFFRAME 0 "rf":\n' "    UNSUPPORTED: 2.0\n")
+
+    assert excp.value.token == Token("IDENTIFIER", "UNSUPPORTED")
+
+
+def test_parsing_defcal():
+    parse_equals("DEFCAL X 0:\n" "    NOP\n", DefCalibration("X", [], [Qubit(0)], [NOP]))
+    parse_equals(
+        "DEFCAL X q:\n" "    NOP\n" "    NOP\n",
+        DefCalibration("X", [], [FormalArgument("q")], [NOP, NOP]),
+    )
+    parse_equals(
+        "DEFCAL RZ(%theta) 0:\n" '    SHIFT-PHASE 0 "rf" %theta/(-2*pi)\n',
+        DefCalibration(
+            "RZ",
+            [Parameter("theta")],
+            [Qubit(0)],
+            [ShiftPhase(Frame([Qubit(0)], "rf"), Div(Parameter("theta"), -2 * np.pi))],
+        ),
+    )
+
+
+def test_parsing_defcal_measure():
+    parse_equals("DEFCAL MEASURE 0:\n" "    NOP\n", DefMeasureCalibration(Qubit(0), None, [NOP]))
+    wf = FlatWaveform(duration=1.0, iq=1.0)
+    # TODO: note that in a calibration body, reference to the formal argument addr parses
+    #       as a memoryreference.
+    parse_equals(
+        "DEFCAL MEASURE q addr:\n"
+        '    PULSE q "ro_tx" flat(duration: 1.0, iq: 1.0+0.0*i)\n'
+        '    CAPTURE q "ro_rx" flat(duration: 1.0, iq: 1.0+0*i) addr[0]\n',
+        DefMeasureCalibration(
+            FormalArgument("q"),
+            FormalArgument("addr"),
+            [
+                Pulse(Frame([FormalArgument("q")], "ro_tx"), wf),
+                Capture(Frame([FormalArgument("q")], "ro_rx"), wf, MemoryReference("addr")),
+            ],
+        ),
+    )
+
+    # TODO: we actually don't have a way to execute a capture without a memory reference
+    # what does this mean for something like 'MEASURE 0'?
+
+
+def test_parse_defcal_error_on_mref():
+    assert parse("DEFCAL RX(%theta) 0:\n    NOP")
+    with pytest.raises(ValueError):
+        parse("DEFCAL RX(theta) 0:\n    NOP")
+
+
+def test_parse_defgate_as_pauli():
+    """ Check that DEFGATE AS PAULI-SUM takes only qubit variables (for now). """
+    assert parse("DEFGATE RY(%theta) q AS PAULI-SUM:\n    Y(-%theta/2) q")
+    with pytest.raises(UnexpectedToken) as excp:
+        parse("DEFGATE RY(%theta) 0 AS PAULI-SUM:\n    Y(-%theta/2) q")
+
+    assert excp.value.token == Token("INT", "0")

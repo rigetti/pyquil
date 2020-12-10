@@ -78,6 +78,7 @@ test-coverage:
   extends: .python
   script:
     - make coverage
+  allow_failure: true
 
 ####################################################################################################
 # MASTER-ONLY JOBS

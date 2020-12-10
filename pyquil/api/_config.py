@@ -147,7 +147,7 @@ class PyquilConfig(object):
         "section": "Rigetti Forest",
         "name": "qpu_compiler_address",
         "engagement_key": "qpu_compiler_endpoint",
-        "default": None,
+        "default": "https://translation.services.production.qcs.rigetti.com",
     }
 
     def __init__(self, config_paths: Mapping[str, str] = CONFIG_PATHS):
@@ -221,6 +221,8 @@ class PyquilConfig(object):
                 self._engagement_requested = True
                 return cast(str, getattr(self.get_engagement(), engagement_key))
         except AttributeError:
+            pass
+        except UserMessageError:
             pass
 
         return default

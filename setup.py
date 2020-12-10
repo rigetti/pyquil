@@ -61,7 +61,8 @@ setup(
     long_description_content_type="text/markdown",
     url="https://github.com/rigetti/pyquil.git",
     packages=find_packages(exclude=["*.tests", "*.tests.*", "tests.*", "tests"]),
-    package_data={"pyquil": ["py.typed"]},
+    package_data={"pyquil": ["py.typed"],
+                  "pyquil._parser": ["grammar.lark"]},
     license="Apache-2.0",
     classifiers=[
         "Development Status :: 5 - Production/Stable",
@@ -75,7 +76,8 @@ setup(
         # The minimum spec for a working pyquil install.
         # note to developers: this should be a subset of requirements.txt
         "numpy",
-        "antlr4-python3-runtime>=4.7.2,<4.8",
+        "scipy",
+        "lark",
         "requests",
         "networkx>=2.0.0",
         "rpcq>=3.0.0",

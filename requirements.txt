@@ -1,6 +1,7 @@
 # runtime deps
 numpy
-antlr4-python3-runtime >= 4.7.2, < 4.8
+scipy
+lark
 requests
 networkx >= 2.0.0
 
@@ -14,7 +15,7 @@ ipython
 black==19.10b0
 coveralls
 flake8
-flake8-bugbear
+flake8-bugbear==20.1.4
 mypy==0.740
 pytest
 pytest-cov
@@ -28,6 +29,7 @@ sphinx_rtd_theme
 sphinx_autodoc_typehints>=1.11.0
 ipykernel
 nbsphinx
+recommonmark
 
 # pypi
 twine

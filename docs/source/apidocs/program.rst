@@ -13,6 +13,9 @@ Program
 
         ~Program.instructions
         ~Program.defined_gates
+        ~Program.calibrations
+        ~Program.waveforms
+        ~Program.frames
         ~Program.out
         ~Program.get_qubits
         ~Program.is_protoquil
@@ -46,6 +49,15 @@ Program
 
         ~Program.while_do
         ~Program.if_then
+
+    .. rubric:: Quilt Routines
+    .. autosummary::
+        :toctree: autogen
+        :template: autosumm.rst
+
+        ~Program.get_calibration
+        ~Program.match_calibrations
+        ~Program.calibrate
 
     .. rubric:: Utility Methods
     .. autosummary::

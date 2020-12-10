@@ -25,7 +25,7 @@ from contextlib import contextmanager
 
 import networkx as nx
 import numpy as np
-from rpcq.messages import BinaryExecutableResponse, PyQuilExecutableResponse
+from rpcq.messages import QuiltBinaryExecutableResponse, PyQuilExecutableResponse
 
 from pyquil.api._base_connection import ForestConnection, get_session
 from pyquil.api._compiler import QPUCompiler, QVMCompiler
@@ -50,7 +50,7 @@ from pyquil.quil import Program, validate_supported_quil
 from pyquil.quilatom import qubit_index
 
 
-ExecutableDesignator = Union[BinaryExecutableResponse, PyQuilExecutableResponse]
+ExecutableDesignator = Union[QuiltBinaryExecutableResponse, PyQuilExecutableResponse]
 
 
 class QuantumComputer:
@@ -592,8 +592,7 @@ def _parse_name(
 
 
 def _canonicalize_name(prefix: str, qvm_type: Optional[str], noisy: bool) -> str:
-    """Take the output of _parse_name to create a canonical name.
-    """
+    """Take the output of _parse_name to create a canonical name."""
     if noisy:
         noise_suffix = "-noisy"
     else:

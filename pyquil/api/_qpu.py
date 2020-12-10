@@ -15,11 +15,12 @@
 ##############################################################################
 from collections import defaultdict
 import uuid
+import warnings
 from typing import Any, Dict, List, Optional, Tuple, Union, cast
 
 import numpy as np
 from rpcq._client import Client, ClientAuthConfig
-from rpcq.messages import BinaryExecutableResponse, QPURequest, ParameterAref
+from rpcq.messages import QuiltBinaryExecutableResponse, QPURequest, ParameterAref, ParameterSpec
 
 from pyquil.parser import parse
 from pyquil.api._base_connection import Engagement, ForestSession
@@ -43,32 +44,57 @@ def decode_buffer(buffer: Dict[str, Any]) -> np.ndarray:
     return buf.reshape(buffer["shape"])
 
 
-def _extract_bitstrings(
-    ro_sources: List[Optional[Tuple[int, int]]], buffers: Dict[str, np.ndarray]
-) -> np.ndarray:
-    """
-    De-mux qubit readout results and assemble them into the ro-bitstrings in the correct order.
+def _extract_memory_regions(
+    memory_descriptors: Dict[str, ParameterSpec],
+    ro_sources: List[Tuple[MemoryReference, str]],
+    buffers: Dict[str, np.ndarray],
+) -> Dict[str, np.ndarray]:
 
-    :param ro_sources: Specification of the ro_sources, cf
-        :py:func:`pyquil.api._compiler._collect_classical_memory_write_locations`.
-        It is a list whose value ``(q, m)`` at index ``addr`` records that the ``m``-th measurement
-        of qubit ``q`` was measured into ``ro`` address ``addr``. A value of `None` means nothing
-        was measured into ``ro`` address ``addr``.
-    :param buffers: A dictionary of readout results returned from the qpu.
-    :return: A numpy array of shape ``(num_shots, len(ro_sources))`` with the readout bits.
-    """
     # hack to extract num_shots indirectly from the shape of the returned data
     first, *rest = buffers.values()
     num_shots = first.shape[0]
-    bitstrings = np.zeros((num_shots, len(ro_sources)), dtype=np.int64)
-    for col_idx, src in enumerate(ro_sources):
-        if src:
-            qubit, meas_idx = src
-            buf = buffers[f"q{qubit}"]
-            if buf.ndim == 1:
-                buf = buf.reshape((num_shots, 1))
-            bitstrings[:, col_idx] = buf[:, meas_idx]
-    return bitstrings
+
+    def alloc(spec: ParameterSpec) -> np.array:
+        dtype = {
+            "BIT": np.int64,
+            "INTEGER": np.int64,
+            "REAL": np.float64,
+            "FLOAT": np.float64,
+        }
+        try:
+            return np.ndarray((num_shots, spec.length), dtype=dtype[spec.type])
+        except KeyError:
+            raise ValueError(f"Unexpected memory type {spec.type}.")
+
+    regions: Dict[str, np.array] = {}
+
+    for mref, key in ro_sources:
+        # Translation sometimes introduces ro_sources that the user didn't ask for.
+        # That's fine, we just ignore them.
+        if mref.name not in memory_descriptors:
+            continue
+        elif mref.name not in regions:
+            regions[mref.name] = alloc(memory_descriptors[mref.name])
+
+        buf = buffers[key]
+        if buf.ndim == 1:
+            buf = buf.reshape((num_shots, 1))
+
+        if np.iscomplexobj(buf):
+            buf = np.column_stack((buf.real, buf.imag))
+        _, width = buf.shape
+
+        end = mref.offset + width
+        region_width = memory_descriptors[mref.name].length
+        if end > region_width:
+            raise ValueError(
+                f"Attempted to fill {mref.name}[{mref.offset}, {end})"
+                f"but the declared region has width {region_width}."
+            )
+
+        regions[mref.name][:, mref.offset : end] = buf
+
+    return regions
 
 
 class QPU(QAM):
@@ -164,13 +190,14 @@ support at support@rigetti.com."""
         return cast(Dict[str, Any], self.client.call("get_version_info"))
 
     @_record_call
-    def load(self, executable: BinaryExecutableResponse) -> "QPU":
+    def load(self, executable: QuiltBinaryExecutableResponse) -> "QPU":
         """
         Initialize a QAM into a fresh state. Load the executable and parse the expressions
         in the recalculation table (if any) into pyQuil Expression objects.
 
         :param executable: Load a compiled executable onto the QAM.
         """
+        self._executable: QuiltBinaryExecutableResponse
         super().load(executable)
         if hasattr(self._executable, "recalculation_table"):
             recalculation_table = self._executable.recalculation_table  # type: ignore
@@ -222,17 +249,23 @@ support at support@rigetti.com."""
             "execute_qpu_request", request=request, user=self.user, priority=job_priority
         )
         results = self._get_buffers(job_id)
-        ro_sources = self._executable.ro_sources  # type: ignore
-
-        if results:
-            bitstrings = _extract_bitstrings(ro_sources, results)
-        elif not ro_sources:
-            bitstrings = np.zeros((0, 0), dtype=np.int64)
-        else:
-            bitstrings = None
+        ro_sources = self._executable.ro_sources
 
         self._memory_results = defaultdict(lambda: None)
-        self._memory_results["ro"] = bitstrings
+        if results:
+            extracted = _extract_memory_regions(
+                self._executable.memory_descriptors, ro_sources, results
+            )
+            for name, array in extracted.items():
+                self._memory_results[name] = array
+        elif not ro_sources:
+            warnings.warn(
+                "You are running a QPU program with no MEASURE instructions. "
+                "The result of this program will always be an empty array. Are "
+                "you sure you didn't mean to measure some of your qubits?"
+            )
+            self._memory_results["ro"] = np.zeros((0, 0), dtype=np.int64)
+
         self._last_results = results
 
         return self
@@ -255,38 +288,28 @@ support at support@rigetti.com."""
         self._update_variables_shim_with_recalculation_table()
 
         # Initialize our patch table
-        if hasattr(self._executable, "recalculation_table"):
-            memory_ref_names = list(
-                set(mr.name for mr in self._executable.recalculation_table.keys())  # type: ignore
-            )
+        recalculation_table = getattr(self._executable, "recalculation_table", None)
+        if recalculation_table is not None:
+            memory_ref_names = list(set(mr.name for mr in recalculation_table.keys()))
             if memory_ref_names != []:
                 assert len(memory_ref_names) == 1, (
                     "We expected only one declared memory region for "
                     "the gate parameter arithmetic replacement references."
                 )
                 memory_reference_name = memory_ref_names[0]
-                patch_values[memory_reference_name] = [0.0] * len(
-                    self._executable.recalculation_table  # type: ignore
-                )
+                patch_values[memory_reference_name] = [0.0] * len(recalculation_table)
 
-        assert isinstance(self._executable, BinaryExecutableResponse)
+        assert isinstance(self._executable, QuiltBinaryExecutableResponse)
         for name, spec in self._executable.memory_descriptors.items():
             # NOTE: right now we fake reading out measurement values into classical memory
-            if name == "ro":
+            # hence we omit them here from the patch table.
+            if any(name == mref.name for mref, _ in self._executable.ro_sources):
                 continue
             initial_value = 0.0 if spec.type == "REAL" else 0
             patch_values[name] = [initial_value] * spec.length
 
         # Fill in our patch table
         for k, v in self._variables_shim.items():
-            # NOTE: right now we fake reading out measurement values into classical memory
-            if k.name == "ro":
-                continue
-
-            # floats stored in tsunami memory are expected to be in revolutions rather than radians.
-            if isinstance(v, float):
-                v /= 2 * np.pi
-
             patch_values[k.name][k.index] = v
 
         return patch_values

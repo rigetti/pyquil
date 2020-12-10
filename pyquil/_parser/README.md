@@ -4,26 +4,14 @@ The Quil Parser
 Introduction
 ------------
 
-This package contains a number of items useful for parsing Quil programs, both with or without
-pyQuil. It uses the ANTLR4 parser generator framework.
+This package contains a number of items useful for parsing Quil programs, both with or
+without pyQuil. It uses [Lark](https://github.com/lark-parser/lark) for quick and
+efficient parsing of Quil.
 
-`Quil.g4` - This is the definitive reference grammar for Quil as described in the Quil paper.
-It is used to generate the Python parser as well as parsers in other programming languages.
-
-`PyQuilListener.py` - When the parser successfully consumes a Quil program it invokes various
-callbacks after encountering different parts of the AST (gates, expressions, etc). This is the
-code that creates the pyQuil instructions.
-
-`gen3/` - Generated parser code for Python 3. Should be checked in but not hand modified.
-
-Running ANTLR
--------------
-
-1. Install [ANTLR4](http://www.antlr.org/) and alias it to `antlr4`
-2. Navigate to this directory (`pyquil/_parser`)
-3. Generate the Python 3 parser code: `antlr4 -Dlanguage=Python3 -o gen3 Quil.g4` 
+- `grammar.lark` defines the Quil grammar in the Lark grammar format.
+- `parser.py` translates the Lark parse tree into pyQuil instruction objects.
 
 References
 ----------
 
-Excellent ANTLR tutorial: https://tomassetti.me/antlr-mega-tutorial
+- Lark documentation: https://lark-parser.readthedocs.io/

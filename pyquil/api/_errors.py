@@ -32,8 +32,9 @@ def exception_handler(
     This allows us to suppress tracebacks for UserMessageError outside of debug mode
       by overriding the default exception handler.
     """
-    if logger.level <= logging.DEBUG or exception_type is not UserMessageError:
-        debug_hook(exception_type, exception, traceback)
+    if logger.level > logging.DEBUG and exception_type is UserMessageError:
+        exception.__traceback__ = None
+    debug_hook(exception_type, exception, traceback)
 
 
 sys.excepthook = exception_handler  # type: ignore
@@ -178,7 +179,19 @@ class UserMessageError(Exception):
         if logger.level <= logging.DEBUG:
             super().__init__(message)
         else:
-            logger.error(message)
+            self.message = message
+
+    def __str__(self) -> str:
+        if logger.level <= logging.DEBUG:
+            return super(UserMessageError, self).__str__()
+        else:
+            return f"ERROR: {self.message}"
+
+    def __repr__(self) -> str:
+        if logger.level <= logging.DEBUG:
+            return super(UserMessageError, self).__repr__()
+        else:
+            return f"UserMessageError: {str(self)}"
 
 
 class UnknownApiError(ApiError):

@@ -13,7 +13,10 @@
 #    See the License for the specific language governing permissions and
 #    limitations under the License.
 ##############################################################################
+
+import sys
 import numpy as np
+from numbers import Complex
 from warnings import warn
 from fractions import Fraction
 from typing import (
@@ -30,6 +33,12 @@ from typing import (
     Union,
     cast,
 )
+
+
+if sys.version_info < (3, 7):
+    from pyquil.external.dataclasses import dataclass
+else:
+    from dataclasses import dataclass
 
 
 class QuilAtom(object):
@@ -84,7 +93,7 @@ class Qubit(QuilAtom):
 class FormalArgument(QuilAtom):
     """
     Representation of a formal argument associated with a DEFCIRCUIT or DEFGATE ... AS PAULI-SUM
-    form.
+    or DEFCAL form.
     """
 
     def __init__(self, name: str):
@@ -94,6 +103,10 @@ class FormalArgument(QuilAtom):
 
     def out(self) -> str:
         return str(self)
+
+    @property
+    def index(self) -> NoReturn:
+        raise RuntimeError(f"Cannot derive an index from a FormalArgument {self}")
 
     def __str__(self) -> str:
         return self.name
@@ -148,10 +161,12 @@ class QubitPlaceholder(QuilAtom):
         return [cls() for _ in range(n)]
 
 
-QubitDesignator = Union[Qubit, QubitPlaceholder, int]
+QubitDesignator = Union[Qubit, QubitPlaceholder, FormalArgument, int]
 
 
-def unpack_qubit(qubit: QubitDesignator) -> Union[Qubit, QubitPlaceholder]:
+def unpack_qubit(
+    qubit: Union[QubitDesignator, FormalArgument]
+) -> Union[Qubit, QubitPlaceholder, FormalArgument]:
     """
     Get a qubit from an object.
 
@@ -163,6 +178,8 @@ def unpack_qubit(qubit: QubitDesignator) -> Union[Qubit, QubitPlaceholder]:
     elif isinstance(qubit, Qubit):
         return qubit
     elif isinstance(qubit, QubitPlaceholder):
+        return qubit
+    elif isinstance(qubit, FormalArgument):
         return qubit
     else:
         raise TypeError("qubit should be an int or Qubit or QubitPlaceholder instance")
@@ -751,3 +768,133 @@ class Addr(MemoryReference):
         if not isinstance(value, int) or value < 0:
             raise TypeError("Addr value must be a non-negative int")
         super(Addr, self).__init__("ro", offset=value, declared_size=None)
+
+
+def _contained_mrefs(expression: ExpressionDesignator) -> Set[MemoryReference]:
+    """
+    Determine which memory references are contained in this expression.
+
+    :param expression: expression involving parameters
+    :return: set of parameters contained in this expression
+    """
+    if isinstance(expression, BinaryExp):
+        return _contained_mrefs(expression.op1) | _contained_mrefs(expression.op2)
+    elif isinstance(expression, Function):
+        return _contained_mrefs(expression.expression)
+    elif isinstance(expression, MemoryReference):
+        return {expression}
+    else:
+        return set()
+
+
+@dataclass(eq=True, frozen=True)
+class Frame(QuilAtom):
+    """
+    Representation of a frame descriptor.
+    """
+
+    qubits: Tuple[Union[Qubit, FormalArgument], ...]
+    """ A tuple of qubits on which the frame exists. """
+
+    name: str
+    """ The name of the frame. """
+
+    def __init__(self, qubits: Sequence[Union[int, Qubit, FormalArgument]], name: str):
+        qubits = tuple(Qubit(q) if isinstance(q, int) else q for q in qubits)
+        object.__setattr__(self, "qubits", qubits)
+        object.__setattr__(self, "name", name)
+
+    def __str__(self) -> str:
+        return self.out()
+
+    def out(self) -> str:
+        return " ".join([q.out() for q in self.qubits]) + f' "{self.name}"'
+
+
+@dataclass
+class WaveformReference(QuilAtom):
+    """
+    Representation of a Waveform reference.
+    """
+
+    name: str
+    """ The name of the waveform. """
+
+    def out(self) -> str:
+        return self.name
+
+    def __str__(self) -> str:
+        return self.out()
+
+
+@dataclass
+class TemplateWaveform(QuilAtom):
+    duration: float
+    """ The duration [seconds] of the waveform. """
+
+    def num_samples(self, rate: float) -> int:
+        """The number of samples in the reference implementation of the waveform.
+
+        Note: this does not include any hardware-enforced alignment (cf.
+        documentation for `samples`).
+
+        :param rate: The sample rate, in Hz.
+        :return: The number of samples.
+
+        """
+        return int(np.ceil(self.duration * rate))
+
+    def samples(self, rate: float) -> np.ndarray:
+        """A reference implementation of waveform sample generation.
+
+        Note: this is close but not always exactly equivalent to the actual IQ
+        values produced by the waveform generators on Rigetti hardware. The
+        actual ADC process imposes some alignment constraints on the waveform
+        duration (in particular, it must be compatible with the clock rate).
+
+        :param rate: The sample rate, in Hz.
+        :returns: An array of complex samples.
+
+        """
+        raise NotImplementedError()
+
+
+def _update_envelope(
+    iqs: np.ndarray,
+    rate: float,
+    scale: Optional[float],
+    phase: Optional[float],
+    detuning: Optional[float],
+) -> np.ndarray:
+    """Update a pulse envelope by optional shape parameters.
+
+    The optional parameters are: 'scale', 'phase', 'detuning'.
+
+    :param iqs: The basic pulse envelope.
+    :param rate: The sample rate (in Hz).
+    :return: The updated pulse envelope.
+    """
+
+    def default(obj: Optional[float], val: float) -> float:
+        return obj if obj is not None else val
+
+    scale = default(scale, 1.0)
+    phase = default(phase, 0.0)
+    detuning = default(detuning, 0.0)
+
+    iqs *= (
+        scale * np.exp(1j * phase) * np.exp(1j * 2 * np.pi * detuning * np.arange(len(iqs)) / rate)
+    )
+
+    return iqs
+
+
+Waveform = Union[WaveformReference, TemplateWaveform]
+
+
+def _complex_str(iq: Any) -> str:
+    """ Convert a number to a string. """
+    if isinstance(iq, Complex):
+        return f"{iq.real}" if iq.imag == 0.0 else f"{iq.real} + ({iq.imag})*i"
+    else:
+        return str(iq)

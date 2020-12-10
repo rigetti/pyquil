@@ -86,6 +86,7 @@ from pyquil.quilbase import (
     Qubit,
     JumpWhen,
     Declare,
+    DefCalibration,
     ClassicalNot,
     DefPermutationGate,
 )
@@ -1331,6 +1332,12 @@ def test_is_protoquil():
     with pytest.raises(ValueError):
         validate_protoquil(prog)
     assert not prog.is_protoquil()
+
+    prog = Program(DefCalibration("I", [], [Qubit(0)], []), I(0))
+    with pytest.raises(ValueError):
+        validate_protoquil(prog)
+    assert not prog.is_protoquil()
+    assert prog.is_protoquil(quilt=True)
 
 
 def test_subtracting_memory_regions():

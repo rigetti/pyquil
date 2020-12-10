@@ -39,7 +39,8 @@ from typing import (
 import numpy as np
 from rpcq.messages import NativeQuilMetadata
 
-from pyquil._parser.PyQuilListener import run_parser
+from pyquil._parser.parser import run_parser
+
 from pyquil.noise import _check_kraus_ops, _create_kraus_pragmas, pauli_kraus_map
 from pyquil.quilatom import (
     Label,
@@ -48,9 +49,11 @@ from pyquil.quilatom import (
     MemoryReferenceDesignator,
     Parameter,
     ParameterDesignator,
+    Frame,
     Qubit,
     QubitDesignator,
     QubitPlaceholder,
+    FormalArgument,
     format_parameter,
     unpack_classical_reg,
     unpack_qubit,
@@ -61,6 +64,7 @@ from pyquil.quilbase import (
     Gate,
     Measurement,
     Pragma,
+    Halt,
     AbstractInstruction,
     Jump,
     JumpConditional,
@@ -70,7 +74,30 @@ from pyquil.quilbase import (
     Declare,
     Reset,
     ResetQubit,
+    DelayFrames,
+    DelayQubits,
+    Fence,
+    FenceAll,
+    Pulse,
+    Capture,
+    RawCapture,
+    SetFrequency,
+    ShiftFrequency,
+    SetPhase,
+    ShiftPhase,
+    SwapPhase,
+    SetScale,
     DefPermutationGate,
+    DefCalibration,
+    DefFrame,
+    DefMeasureCalibration,
+    DefWaveform,
+)
+from pyquil.quiltcalibrations import (
+    CalibrationError,
+    CalibrationMatch,
+    expand_calibration,
+    match_calibration,
 )
 
 
@@ -97,6 +124,11 @@ class Program(object):
 
     def __init__(self, *instructions: InstructionDesignator):
         self._defined_gates: List[DefGate] = []
+
+        self._calibrations: List[Union[DefCalibration, DefMeasureCalibration]] = []
+        self._waveforms: Dict[str, DefWaveform] = {}
+        self._frames: Dict[Frame, DefFrame] = {}
+
         # Implementation note: the key difference between the private _instructions and
         # the public instructions property below is that the private _instructions list
         # may contain placeholder labels.
@@ -119,6 +151,21 @@ class Program(object):
         # Note to developers: Have you changed this method? Have you changed the fields which
         # live on `Program`? Please update `Program.copy()`!
 
+    @property
+    def calibrations(self) -> List[Union[DefCalibration, DefMeasureCalibration]]:
+        """ A list of Quilt calibration definitions. """
+        return self._calibrations
+
+    @property
+    def waveforms(self) -> Dict[str, DefWaveform]:
+        """ A mapping from waveform names to their corresponding definitions. """
+        return self._waveforms
+
+    @property
+    def frames(self) -> Dict[Frame, DefFrame]:
+        """ A mapping from Quilt frames to their definitions. """
+        return self._frames
+
     def copy_everything_except_instructions(self) -> "Program":
         """
         Copy all the members that live on a Program object.
@@ -126,7 +173,10 @@ class Program(object):
         :return: a new Program
         """
         new_prog = Program()
+        new_prog._calibrations = self.calibrations.copy()
+        new_prog._waveforms = self.waveforms.copy()
         new_prog._defined_gates = self._defined_gates.copy()
+        new_prog._frames = self.frames.copy()
         if self.native_quil_metadata is not None:
             # TODO: remove this type: ignore once rpcq._base.Message gets type hints.
             new_prog.native_quil_metadata = self.native_quil_metadata.copy()  # type: ignore
@@ -232,6 +282,14 @@ class Program(object):
                     )
 
                 self._defined_gates.append(instruction)
+            elif isinstance(instruction, DefCalibration) or isinstance(
+                instruction, DefMeasureCalibration
+            ):
+                self.calibrations.append(instruction)
+            elif isinstance(instruction, DefWaveform):
+                self.waveforms[instruction.name] = instruction
+            elif isinstance(instruction, DefFrame):
+                self.frames[instruction.frame] = instruction
             elif isinstance(instruction, AbstractInstruction):
                 self._instructions.append(instruction)
                 self._synthesized_instructions = None
@@ -401,6 +459,10 @@ class Program(object):
                     "these QubitPlaceholders to memory registers, or else first call "
                     "pyquil.quil.address_qubits to instantiate the QubitPlaceholders."
                 )
+            if any(isinstance(q, FormalArgument) for q in qubits):
+                raise ValueError(
+                    "Cannot call measure_all on a Program that contains FormalArguments."
+                )
             # Help mypy determine that qubits does not contain any QubitPlaceholders.
             qubit_inds = cast(List[int], qubits)
             ro = self.declare("ro", "BIT", max(qubit_inds) + 1)
@@ -555,13 +617,17 @@ class Program(object):
         self.num_shots = shots
         return self
 
-    def out(self) -> str:
+    def out(self, *, calibrations: Optional[bool] = True) -> str:
         """
         Serializes the Quil program to a string suitable for submitting to the QVM or QPU.
         """
+
         return "\n".join(
             itertools.chain(
                 (dg.out() for dg in self._defined_gates),
+                (wf.out() for wf in self.waveforms.values()),
+                (fdef.out() for fdef in self.frames.values()),
+                (cal.out() for cal in self.calibrations) if calibrations else list(),
                 (instr.out() for instr in self.instructions),
                 [""],
             )
@@ -587,11 +653,113 @@ class Program(object):
         """
         qubits: Set[QubitDesignator] = set()
         for instr in self.instructions:
-            if isinstance(instr, (Gate, Measurement)):
+            if isinstance(
+                instr,
+                (
+                    Gate,
+                    Measurement,
+                    ResetQubit,
+                    Pulse,
+                    Capture,
+                    RawCapture,
+                    ShiftFrequency,
+                    SetFrequency,
+                    SetPhase,
+                    ShiftPhase,
+                    SwapPhase,
+                    SetScale,
+                ),
+            ):
                 qubits |= instr.get_qubits(indices=indices)
         return qubits
 
-    def is_protoquil(self) -> bool:
+    def match_calibrations(self, instr: AbstractInstruction) -> Optional[CalibrationMatch]:
+        """
+        Attempt to match a calibration to the provided instruction.
+
+        Note: preference is given to later calibrations, i.e. in a program with
+
+          DEFCAL X 0:
+              <a>
+
+          DEFCAL X 0:
+             <b>
+
+        the second calibration, with body <b>, would be the calibration matching `X 0`.
+
+        :param instr: An instruction.
+        :returns: a CalibrationMatch object, if one can be found.
+        """
+        if isinstance(instr, (Gate, Measurement)):
+            for cal in reversed(self.calibrations):
+                match = match_calibration(instr, cal)
+                if match is not None:
+                    return match
+
+        return None
+
+    def get_calibration(
+        self, instr: AbstractInstruction
+    ) -> Optional[Union[DefCalibration, DefMeasureCalibration]]:
+        """
+        Get the calibration corresponding to the provided instruction.
+
+        :param instr: An instruction.
+        :returns: A matching Quilt calibration definition, if one exists.
+        """
+        match = self.match_calibrations(instr)
+        if match:
+            return match.cal
+
+        return None
+
+    def calibrate(
+        self,
+        instruction: AbstractInstruction,
+        previously_calibrated_instructions: Optional[Set[AbstractInstruction]] = None,
+    ) -> List[AbstractInstruction]:
+        """
+        Expand an instruction into its calibrated definition.
+
+        If a calibration definition matches the provided instruction, then the definition
+        body is returned with appropriate substitutions made for parameters and qubit
+        arguments. If no calibration definition matches, then the original instruction
+        is returned. Calibrations are performed recursively, so that if a calibrated
+        instruction produces an instruction that has a corresponding calibration, it
+        will be expanded, and so on. If a cycle is encountered, a CalibrationError is
+        raised.
+
+        :param instruction: An instruction.
+        :param previously_calibrated_instructions: A set of instructions that are the
+            results of calibration expansions in the direct ancestry of `instruction`.
+            Used to catch cyclic calibration expansions.
+        :returns: A list of instructions, with the active calibrations expanded.
+        """
+        if previously_calibrated_instructions is None:
+            previously_calibrated_instructions = set()
+        elif instruction in previously_calibrated_instructions:
+            raise CalibrationError(
+                f"The instruction {instruction} appears in the set of "
+                f"previously calibrated instructions {previously_calibrated_instructions}"
+                " and would therefore result in a cyclic non-terminating expansion."
+            )
+        else:
+            previously_calibrated_instructions = previously_calibrated_instructions.union(
+                {instruction}
+            )
+        match = self.match_calibrations(instruction)
+        if match is not None:
+            return sum(
+                [
+                    self.calibrate(expansion, previously_calibrated_instructions)
+                    for expansion in expand_calibration(match)
+                ],
+                [],
+            )
+        else:
+            return [instruction]
+
+    def is_protoquil(self, quilt: bool = False) -> bool:
         """
         Protoquil programs may only contain gates, Pragmas, and RESET. It may not contain
         classical instructions or jumps.
@@ -599,7 +767,10 @@ class Program(object):
         :return: True if the Program is Protoquil, False otherwise
         """
         try:
-            validate_protoquil(self)
+            if quilt:
+                validate_protoquil(self, quilt=quilt)
+            else:
+                validate_protoquil(self)
             return True
         except ValueError:
             return False
@@ -679,6 +850,13 @@ class Program(object):
         p = Program()
         p.inst(self)
         p.inst(other)
+        p._calibrations = self.calibrations
+        p._waveforms = self.waveforms
+        p._frames = self.frames
+        if isinstance(other, Program):
+            p.calibrations.extend(other.calibrations)
+            p.waveforms.update(other.waveforms)
+            p.frames.update(other.frames)
         return p
 
     def __iadd__(self, other: InstructionDesignator) -> "Program":
@@ -688,7 +866,12 @@ class Program(object):
         :param other: Another program or instruction to concatenate to this one.
         :return: A newly concatenated program.
         """
-        return self.inst(other)
+        self.inst(other)
+        if isinstance(other, Program):
+            self.calibrations.extend(other.calibrations)
+            self.waveforms.update(other.waveforms)
+            self.frames.update(other.frames)
+        return self
 
     def __getitem__(self, index: Union[slice, int]) -> Union[AbstractInstruction, "Program"]:
         """
@@ -730,6 +913,9 @@ class Program(object):
         return "\n".join(
             itertools.chain(
                 (str(dg) for dg in self._defined_gates),
+                (str(wf) for wf in self.waveforms.values()),
+                (str(fdef) for fdef in self.frames.values()),
+                (str(cal) for cal in self.calibrations),
                 (str(instr) for instr in self.instructions),
                 [""],
             )
@@ -788,7 +974,15 @@ def _what_type_of_qubit_does_it_use(
     if has_placeholders and has_real_qubits:
         raise ValueError("Your program mixes instantiated qubits with placeholders")
 
-    return has_placeholders, has_real_qubits, list(qubits.keys())
+    # The isinstance checks above make sure that if any qubit is a
+    # FormalArgument (which is permitted by Gate.qubits), then an
+    # error should be raised. Unfortunately this doesn't help mypy
+    # narrow down the return type, so gotta cast.
+    return (
+        has_placeholders,
+        has_real_qubits,
+        cast(List[Union[Qubit, QubitPlaceholder]], list(qubits.keys())),
+    )
 
 
 def get_default_qubit_mapping(program: Program) -> Dict[Union[Qubit, QubitPlaceholder], Qubit]:
@@ -1014,6 +1208,7 @@ def merge_with_pauli_noise(
     return p
 
 
+# TODO: does this need modification?
 def merge_programs(prog_list: Sequence[Program]) -> Program:
     """
     Merges a list of pyQuil programs into a single one by appending them in sequence.
@@ -1080,7 +1275,7 @@ def get_classical_addresses_from_program(program: Program) -> Dict[str, List[int
 
 def percolate_declares(program: Program) -> Program:
     """
-    Move all the DECLARE statements to the top of the program. Return a fresh obejct.
+    Move all the DECLARE statements to the top of the program. Return a fresh object.
 
     :param program: Perhaps jumbled program.
     :return: Program with DECLAREs all at the top and otherwise the same sorted contents.
@@ -1100,14 +1295,62 @@ def percolate_declares(program: Program) -> Program:
     return p
 
 
-def validate_protoquil(program: Program) -> None:
+def validate_protoquil(program: Program, quilt: bool = False) -> None:
+    """
+    Ensure that a program is valid ProtoQuil or Quilt, otherwise raise a ValueError.
+    Protoquil is a subset of Quil which excludes control flow and classical instructions.
+
+    :param quilt: Validate the program as Quilt.
+    :param program: The Quil program to validate.
+    """
     """
     Ensure that a program is valid ProtoQuil, otherwise raise a ValueError.
     Protoquil is a subset of Quil which excludes control flow and classical instructions.
 
     :param program: The Quil program to validate.
     """
-    valid_instruction_types = tuple([Pragma, Declare, Gate, Reset, ResetQubit, Measurement])
+    if quilt:
+        valid_instruction_types = tuple(
+            [
+                Pragma,
+                Declare,
+                Halt,
+                Gate,
+                Measurement,
+                Reset,
+                ResetQubit,
+                DelayQubits,
+                DelayFrames,
+                Fence,
+                FenceAll,
+                ShiftFrequency,
+                SetFrequency,
+                SetScale,
+                ShiftPhase,
+                SetPhase,
+                SwapPhase,
+                Pulse,
+                Capture,
+                RawCapture,
+                DefCalibration,
+                DefFrame,
+                DefMeasureCalibration,
+                DefWaveform,
+            ]
+        )
+    else:
+        valid_instruction_types = tuple([Pragma, Declare, Gate, Reset, ResetQubit, Measurement])
+        if program.calibrations:
+            raise ValueError("ProtoQuil validation failed: Quilt calibrations are not allowed.")
+        if program.waveforms:
+            raise ValueError(
+                "ProtoQuil validation failed: Quilt waveform definitions are not allowed."
+            )
+        if program.frames:
+            raise ValueError(
+                "ProtoQuil validation failed: Quilt frame definitions are not allowed."
+            )
+
     for instr in program.instructions:
         if not isinstance(instr, valid_instruction_types):
             # Instructions like MOVE, NOT, JUMP, JUMP-UNLESS will fail here

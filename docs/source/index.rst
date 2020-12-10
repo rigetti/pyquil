@@ -87,11 +87,22 @@ Contents
    intro
 
 .. toctree::
+   :maxdepth: 3
+   :caption: Quil-T
+
+   quilt
+   quilt_getting_started
+   quilt_waveforms
+   quilt_parametric
+   quilt_raw_capture
+
+.. toctree::
    :maxdepth: 1
    :caption: API Reference
 
    apidocs/program
    apidocs/gates
+   apidocs/waveforms
    apidocs/pauli
    apidocs/quantum_computer
    apidocs/compilers
