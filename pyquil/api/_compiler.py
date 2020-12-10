@@ -383,10 +383,10 @@ class QPUCompiler(AbstractCompiler):
     @_record_call
     def get_calibration_program(self) -> Program:
         """
-        Get the Quilt calibration program associated with the underlying QPU.
+        Get the Quil-T calibration program associated with the underlying QPU.
 
         A calibration program contains a number of DEFCAL, DEFWAVEFORM, and
-        DEFFRAME instructions. In sum, those instructions describe how a Quilt
+        DEFFRAME instructions. In sum, those instructions describe how a Quil-T
         program should be translated into analog instructions for execution on
         hardware.
 
@@ -397,7 +397,7 @@ class QPUCompiler(AbstractCompiler):
             raise UserMessageError(
                 # TODO Improve this error message with a reference to
                 # the pyquil config docs?
-                "It looks like you're trying to request Quilt calibrations, but "
+                "It looks like you're trying to request Quil-T calibrations, but "
                 "do not have access to the QPU compiler endpoint. Make sure you "
                 "are engaged to the QPU or have configured qpu_compiler_endpoint "
                 "in your pyquil configuration."
@@ -542,7 +542,7 @@ class QVMCompiler(AbstractCompiler):
         """
         See ``QPUCompiler.get_calibration_program()``.
 
-        Note: this currently provides an empty Program because the QVM does not support Quilt.
+        Note: this currently provides an empty Program because the QVM does not support Quil-T.
         """
         return Program()
 

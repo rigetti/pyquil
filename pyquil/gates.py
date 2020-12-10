@@ -1160,7 +1160,7 @@ QUILT_INSTRUCTIONS: Mapping[str, Callable[..., AbstractInstruction]] = {
     "FENCE": FENCE,
 }
 """
-Dictionary of Quilt AST construction functions keyed by instruction name.
+Dictionary of Quil-T AST construction functions keyed by instruction name.
 """
 
 STANDARD_INSTRUCTIONS: Mapping[

@@ -15,7 +15,7 @@ else:
 
 
 _waveform_classes: Dict[str, type] = {}
-"""A mapping from Quilt waveform names to their corresponding classes.
+"""A mapping from Quil-T waveform names to their corresponding classes.
 
 This should not be mutated directly, but rather filled by the @waveform
 decorator.
@@ -23,7 +23,7 @@ decorator.
 
 
 def waveform(name: str) -> Callable[[type], type]:
-    """ Define a Quilt wavefom with the given name. """
+    """ Define a Quil-T wavefom with the given name. """
 
     def wrap(cls: type) -> type:
         cls: type = dataclass(cls)
@@ -39,7 +39,7 @@ def _wf_from_dict(
 ) -> TemplateWaveform:
     """Construct a TemplateWaveform from a name and a dictionary of properties.
 
-    :param name: The Quilt name of the template.
+    :param name: The Quil-T name of the template.
     :param params: A mapping from parameter names to their corresponding values.
     :returns: A template waveform.
     """
