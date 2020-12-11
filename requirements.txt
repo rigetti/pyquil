@@ -6,7 +6,7 @@ requests
 networkx >= 2.0.0
 
 # rigetti packages
-rpcq >= 3.0.0
+rpcq >= 3.6.0
 
 # optional latex deps
 ipython
