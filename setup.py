@@ -80,7 +80,7 @@ setup(
         "lark",
         "requests",
         "networkx>=2.0.0",
-        "rpcq>=3.0.0",
+        "rpcq>=3.6.0",
         # dependency of contextvars, which we vendor
         "immutables==0.6",
     ],
