@@ -340,8 +340,17 @@ class QPUCompiler(AbstractCompiler):
 
     @_record_call
     def native_quil_to_executable(
-        self, nq_program: Program, *, debug: bool = False
+        self, nq_program: Program, *, debug: bool = False, expand_calibrations: bool = True,
     ) -> Optional[QuiltBinaryExecutableResponse]:
+        """
+        Compile a native quil program to a binary executable.
+
+        :param nq_program: Native quil to compile
+        :param debug: Include debug information in the response
+        :param expand_calibrations: Expand calibrations locally,
+            rather than expanding calibrations on the translation service
+        :return: An (opaque) binary executable
+        """
         if not self.qpu_compiler_client:
             raise UserMessageError(
                 "It looks like you're trying to compile to an executable, but "
@@ -351,7 +360,10 @@ class QPUCompiler(AbstractCompiler):
 
         self._connect_qpu_compiler()
 
-        arithmetic_response = rewrite_arithmetic(nq_program)
+        nq_program_calibrated = (
+            self.expand_calibrations(nq_program) if expand_calibrations else nq_program
+        )
+        arithmetic_response = rewrite_arithmetic(nq_program_calibrated)
 
         request = QuiltBinaryExecutableRequest(
             quilt=arithmetic_response.quil, num_shots=nq_program.num_shots
@@ -363,6 +375,7 @@ class QPUCompiler(AbstractCompiler):
             ),
         )
 
+        # TODO(notmgsk): use nq_program_calibrated?
         response.recalculation_table = arithmetic_response.recalculation_table  # type: ignore
         response.memory_descriptors = _collect_memory_descriptors(nq_program)
 
@@ -424,6 +437,20 @@ class QPUCompiler(AbstractCompiler):
             raise RuntimeError("Could not refresh calibrations")
         else:
             return self._calibration_program
+
+    def expand_calibrations(self, program: Program, discard_defcals: bool = True) -> Program:
+        # Prepend the system's calibrations to the user's calibrations
+        calibrated_program = (
+            self.calibration_program + program.copy_everything_except_instructions()
+        )
+        for instruction in program:
+            calibrated_instruction = calibrated_program.calibrate(instruction)
+            calibrated_program.inst(calibrated_instruction)
+
+        if discard_defcals:
+            calibrated_program._calibrations = []
+
+        return calibrated_program
 
     @_record_call
     def reset(self) -> None:
