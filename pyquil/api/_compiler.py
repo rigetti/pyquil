@@ -351,13 +351,6 @@ class QPUCompiler(AbstractCompiler):
             rather than expanding calibrations on the translation service
         :return: An (opaque) binary executable
         """
-        if not self.qpu_compiler_client:
-            raise UserMessageError(
-                "It looks like you're trying to compile to an executable, but "
-                "do not have access to the QPU compiler endpoint. Make sure you "
-                "are engaged to the QPU before trying to do this."
-            )
-
         self._connect_qpu_compiler()
 
         nq_program_calibrated = (
