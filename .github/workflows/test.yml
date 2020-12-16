@@ -1,0 +1,95 @@
+name: Tests
+
+on:
+  push:
+    branches: [ master ]
+  pull_request:
+    branches: [ master ]
+
+
+  workflow_dispatch:
+
+jobs:
+  docs:
+    name: Build and test documentation
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v2
+      - name: Set up Python 3.7
+        uses: actions/setup-python@v2
+        with:
+          python-version: '3.7'
+      - name: Build and test the documentation
+        run: |
+          sudo apt update
+          sudo apt install pandoc
+          make install
+          make requirements
+          make docs
+  check-format:
+    name: Check formatting
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v2
+      - name: Set up Python 3.7
+        uses: actions/setup-python@v2
+        with:
+          python-version: '3.7'
+      - name: Check format
+        run: |
+          sudo apt update
+          make install
+          make requirements
+          make check-format
+  check-style:
+    name: Check style
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v2
+      - name: Set up Python 3.7
+        uses: actions/setup-python@v2
+        with:
+          python-version: '3.7'
+      - name: Check style
+        run: |
+          sudo apt update
+          make install
+          make requirements
+          make check-style
+  check-types:
+    name: Check types
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v2
+      - name: Set up Python 3.7
+        uses: actions/setup-python@v2
+        with:
+          python-version: '3.7'
+      - name: Check types
+        run: |
+          sudo apt update
+          make install
+          make requirements
+          make check-types
+  test-pyquil:
+    name: Test pyQuil
+    runs-on: ubuntu-latest
+    strategy:
+      matrix:
+        python-version: [3.6] #, 3.7, 3.8]
+    steps:
+      - uses: actions/checkout@v2
+      - name: Set up Python ${{ matrix.python-version }}
+        uses: actions/setup-python@v2
+        with:
+          python-version: ${{ matrix.python-version }}
+      - name: Test pyQuil (Python ${{ matrix.python-version }})
+        run: |
+          sudo apt update
+          make install
+          make requirements
+          pip install --upgrade pytest
+          docker run --rm -itd -p 5555:5555 rigetti/quilc -R
+          docker run --rm -itd -p 5000:5000 rigetti/qvm -S
+          make test
+          
