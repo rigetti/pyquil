@@ -18,6 +18,7 @@ from lark import Token, UnexpectedToken
 import numpy as np
 import pytest
 
+from pyquil import Program
 from pyquil.gates import (
     ADD,
     AND,
@@ -668,3 +669,29 @@ def test_parse_defgate_as_pauli():
         parse("DEFGATE RY(%theta) 0 AS PAULI-SUM:\n    Y(-%theta/2) q")
 
     assert excp.value.token == Token("INT", "0")
+
+
+@pytest.mark.parametrize(
+    "program",
+    ["""# comment on first line
+H 0
+""",
+     """H 0 # mid-line comment on first line
+H 0
+""",
+     """H 0
+# comment on second line
+H 0
+""",
+     """H 0
+H 0 # mid-line comment on second line
+""",
+     """H 0
+# comment on last line with newline
+""",
+     """H 0
+# comment on last line without newline""",
+     ]
+)
+def test_parse_comments(program):
+    p = Program(program)
