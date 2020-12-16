@@ -363,7 +363,7 @@ class QPUCompiler(AbstractCompiler):
         )
         response = cast(
             QuiltBinaryExecutableResponse,
-            self.qpu_compiler_client.call(
+            self.qpu_compiler_client.call(  # type: ignore
                 "native_quilt_to_binary", request, rpc_timeout=self.timeout
             ),
         )
