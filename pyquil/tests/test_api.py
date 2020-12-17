@@ -313,9 +313,11 @@ def mock_qpu_compiler(request, m_endpoints, compiler: QVMCompiler):
 
 def test_quil_to_native_quil(compiler):
     response = compiler.quil_to_native_quil(BELL_STATE)
-    assert np.allclose(
-        program_unitary(response, n_qubits=2), program_unitary(COMPILED_BELL_STATE, n_qubits=2)
-    )
+    p_unitary = program_unitary(response, n_qubits=2)
+    compiled_p_unitary = program_unitary(COMPILED_BELL_STATE, n_qubits=2)
+    from pyquil.simulation.tools import scale_out_phase
+
+    assert np.allclose(p_unitary, scale_out_phase(compiled_p_unitary, p_unitary))
 
 
 @pytest.mark.skip(reason="Deprecated.")

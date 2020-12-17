@@ -429,3 +429,27 @@ def lifted_state_operator(state: TensorProductState, qubits: List[int]) -> np.nd
         state_matrix = state_vector @ state_vector.conj().T
         mat = np.kron(state_matrix, mat)
     return mat
+
+
+def scale_out_phase(unitary1: np.ndarray, unitary2: np.ndarray) -> np.ndarray:
+    """
+    Returns a matrix m equal to unitary1/θ where ɑ satisfies unitary2
+    = e^(iθ)·unitary1.
+
+    :param unitary1: The unitary matrix from which the constant of
+        proportionality should be scaled-out.
+    :param unitary2: The reference matrix.
+
+    :return: A matrix (same shape as the input matrices) with the
+             constant of proportionality scaled-out.
+    """
+    # h/t quilc
+    rescale_value = 1.0
+    goodness_value = 0.0
+
+    for j in range(unitary1.shape[0]):
+        if np.abs(unitary1[j, 0]) > goodness_value:
+            goodness_value = np.abs(unitary1[j, 0])
+            rescale_value = unitary2[j, 0] / unitary1[j, 0]
+
+    return rescale_value * unitary1
