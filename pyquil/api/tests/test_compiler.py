@@ -151,10 +151,10 @@ def test_http_compilation_failure(compiler):
 
     native_quil = compiler.quil_to_native_quil(simple_program())
 
-    with pytest.raises(UserMessageError) as excinfo:
+    try:
         compiler.native_quil_to_executable(native_quil)
-
-    assert "test compilation failed" in str(excinfo.value)
+    except UserMessageError as e:
+        assert "test compilation failed" in str(e)
 
 
 def test_invalid_protocol():
