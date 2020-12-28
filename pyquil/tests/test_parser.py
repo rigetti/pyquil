@@ -673,25 +673,26 @@ def test_parse_defgate_as_pauli():
 
 @pytest.mark.parametrize(
     "program",
-    ["""# comment on first line
+    [
+        """# comment on first line
 H 0
 """,
-     """H 0 # mid-line comment on first line
+        """H 0 # mid-line comment on first line
 H 0
 """,
-     """H 0
+        """H 0
 # comment on second line
 H 0
 """,
-     """H 0
+        """H 0
 H 0 # mid-line comment on second line
 """,
-     """H 0
+        """H 0
 # comment on last line with newline
 """,
-     """H 0
+        """H 0
 # comment on last line without newline""",
-     ]
+    ],
 )
 def test_parse_comments(program):
-    p = Program(program)
+    Program(program)
