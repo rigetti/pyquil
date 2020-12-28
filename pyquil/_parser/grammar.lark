@@ -1,6 +1,7 @@
 quil : (all_instr _NEWLINE?)*
 
-?all_instr : def_gate
+?all_instr : COMMENT
+           | def_gate
            | def_circuit
            | def_frame
            | def_waveform
@@ -40,6 +41,8 @@ quil : (all_instr _NEWLINE?)*
        | classical_binary
        | classical_comparison
        | include
+
+COMMENT : "#" /[^\n]*/ NEWLINE
 
 def_gate : "DEFGATE" name [ variables ] ":" matrix -> def_gate_matrix
          | "DEFGATE" name "AS" "MATRIX" [ variables ] ":" matrix -> def_gate_matrix
