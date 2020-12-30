@@ -43,6 +43,10 @@ def test_pauli_sums_parsing():
     result = parse_pauli_str("0.5*X0 + (0.5+0j)*Z2")
     assert result == 0.5 * sX(0) + (0.5 + 0j) * sZ(2)
 
+    # test case from test_setting using _generate_random_paulis
+    result = parse_pauli_str("(-0.5751426877923431+0j)*Y0X1X3")
+    assert result == (-0.5751426877923431+0j)*sY(0)*sX(1)*sX(3)
+
 
 def test_complex_number_parsing():
     assert parse_pauli_str("(1+0j) * X1") == (1.0 + 0j) * sX(1)

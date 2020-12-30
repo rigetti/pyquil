@@ -27,9 +27,10 @@ PAULI_GRAMMAR = r"""
 ?coefficient: NUMBER
             | complex -> to_complex
 
-?complex: "(" NUMBER "+" NUMBER "j" ")"
+?complex: "(" SIGNED_NUMBER "+" NUMBER "j" ")"
 
 %import common.INT
+%import common.SIGNED_NUMBER
 %import common.NUMBER
 %import common.WS_INLINE
 
