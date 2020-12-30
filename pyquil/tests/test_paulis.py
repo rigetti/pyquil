@@ -777,8 +777,6 @@ def test_pauli_term_from_str():
     # tests that should _not_ fail are in test_pauli_sum_from_str
     with pytest.raises(UnexpectedToken):
         PauliTerm.from_compact_str("10")
-    with pytest.raises(UnexpectedToken):
-        PauliTerm.from_compact_str("1.0X0")
     with pytest.raises(UnexpectedCharacters):
         PauliTerm.from_compact_str("(1.0+9i)*X0")
     with pytest.raises(UnexpectedCharacters, match="Expecting:"):
