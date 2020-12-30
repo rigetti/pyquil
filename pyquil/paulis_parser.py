@@ -11,6 +11,7 @@ PAULI_GRAMMAR = r"""
 
 ?pauli_term: operator_term
            | coefficient "*" pauli_term -> op_term_with_coefficient
+           | coefficient pauli_term -> op_term_with_coefficient
            | pauli_term "*" coefficient -> coefficient_with_op_term
            | pauli_term "*" pauli_term -> op_term_with_op_term
            | pauli_term pauli_term -> op_term_with_op_term

@@ -106,9 +106,9 @@ def test_pauli_terms_parsing():
     result = parse_pauli_str(".5*X0")
     assert result == 0.5 * sX(0)
 
-    # TODO: do we want to support even shorter notation like ??
-    # result = parse_pauli_str(".5X0")
-    # assert result == 0.5 * sX(0)
+    # we can now support even shorter notation like this
+    result = parse_pauli_str(".5X0")
+    assert result == 0.5 * sX(0)
 
     # Obviously the coefficients can also be complex, so we need to
     # support this:
