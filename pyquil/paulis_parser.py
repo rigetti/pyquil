@@ -4,13 +4,19 @@ from typing import Callable
 
 from lark import Lark, Token, Transformer, v_args
 
-PAULI_GRAMMAR = """
+PAULI_GRAMMAR = r"""
+?start: pauli_term
+      | start "-" start -> pauli_sub_pauli
+      | start "+" start -> pauli_add_pauli
 
-?start: operator_term
-      | coefficient "*" operator_term -> op_term_with_coefficient
+?pauli_term: operator_term
+           | coefficient "*" pauli_term -> op_term_with_coefficient
+           | pauli_term "*" coefficient -> coefficient_with_op_term
+           | pauli_term "*" pauli_term -> op_term_with_op_term
+           | pauli_term pauli_term -> op_term_with_op_term
 
 ?operator_term: operator_with_index
-             | "I"                 -> op_i
+              | "I"                 -> op_i
 
 ?operator_with_index: operator_taking_index INT -> op_with_index
 
@@ -28,6 +34,7 @@ PAULI_GRAMMAR = """
 %import common.WS_INLINE
 
 %ignore WS_INLINE
+
 """
 
 
@@ -61,10 +68,27 @@ class PauliTree(Transformer):
         coeff = coeff if isinstance(coeff, complex) else float(coeff.value)
         return coeff * op
 
+    def coefficient_with_op_term(self, op, coeff):
+        # This shouldn't be necessary, the grammar should take care
+        # of it.
+        return self.op_term_with_coefficient(coeff, op)
+
+    def op_term_with_op_term(self, first, second):
+        return first * second
+
     def to_complex(self, *args):
         assert len(args[0].children) == 2, "Parsing error"
         real, imag = args[0].children
         return float(real.value) + float(imag.value) * 1j
+
+    def pauli_mul_pauli(self, first, second):
+        return first * second
+
+    def pauli_sub_pauli(self, first, second):
+        return first - second
+
+    def pauli_add_pauli(self, first, second):
+        return first + second
 
 
 @lru_cache(maxsize=None)
@@ -77,7 +101,9 @@ def pauli_parser() -> Lark:
 
     :return: An instance of a Lark parser for Pauli strings
     """
-    return Lark(PAULI_GRAMMAR, parser='lalr', transformer=PauliTree())
+    return Lark(PAULI_GRAMMAR,
+                parser='lalr',
+                transformer=PauliTree())
 
 
 def parse_pauli_str(data: str):
@@ -94,8 +120,6 @@ def parse_pauli_str(data: str):
 
     Note: "X", "Y" and "Z" are always followed by the qubit index,
           but "I" being the identity is not.
-
-    So we need to support
     """
     parser = pauli_parser()
     return parser.parse(data)

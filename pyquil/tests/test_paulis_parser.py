@@ -10,8 +10,38 @@ from pyquil.paulis import (
 from pyquil.paulis_parser import parse_pauli_str
 
 
-def test_paulis_parser_basic_sanity():
-    pass
+def test_pauli_sums_parsing():
+    result = parse_pauli_str("(1.5 + 0.5j)*X0*Z2")
+    assert result == (1.5 + 0.5j) * sX(0) * sZ(2)
+
+    # the `.compact_str()` method on PauliSum can also return this
+    result = parse_pauli_str("(1.5+0.5j)*X0Z2")
+    assert result == (1.5 + 0.5j) * sX(0) * sZ(2)
+
+    result = parse_pauli_str("(1.5 + 0.5j)*X0 + (1.0 + 0.25j)*Z2")
+    assert result == (1.5 + 0.5j) * sX(0) + (1.0 + 0.25j) * sZ(2)
+
+    result = parse_pauli_str("(1.5 + 0.5j)*X0 + 1.5 * Z2")
+    assert result == (1.5 + 0.5j) * sX(0) + 1.5 * sZ(2)
+
+    result = parse_pauli_str("(1.5 + 0.5j)*X0*Z2+.7*I")
+    assert result == (1.5 + 0.5j) * sX(0) * sZ(2) + 0.7 * sI(0)
+
+    # check sums of length one
+    result = parse_pauli_str("1*Y0*Y1")
+    assert result == 1 * sY(0) * sY(1)
+
+    # Here we reverse the multiplication of .7 and I
+    result = parse_pauli_str("(1.5 + 0.5j)*X0*Z2+I * .7")
+    assert result == (1.5 + 0.5j) * sX(0) * sZ(2) + 0.7 * sI(0)
+
+    # ...and check the simplification...
+    result = parse_pauli_str("1*Y0*X0 + (0+1j)*Z0 + 2*Y1")
+    assert result == 2 * sY(1)
+
+    # test case from PauliSum docstring
+    result = parse_pauli_str("0.5*X0 + (0.5+0j)*Z2")
+    assert result == 0.5 * sX(0) + (0.5 + 0j) * sZ(2)
 
 
 def test_complex_number_parsing():
@@ -23,6 +53,11 @@ def test_complex_number_parsing():
         # If someone uses 'i' instead of 'j' we get a useful message
         # in an UnexpectedToken exception stating what's acceptable
         parse_pauli_str("(1 + 0i) * X1")
+
+    with raises(UnexpectedToken, match="Expected one of:"):
+        # If someone accidentally uses '*' instead of '+' in the
+        # complex number, we get a useful error message
+        parse_pauli_str("(1 * 0.25j) * X1")
 
 
 def test_pauli_terms_parsing():
@@ -78,20 +113,6 @@ def test_pauli_terms_parsing():
 
     result = parse_pauli_str("(1.0 + 0j) * X0")
     assert result == (1.0 + 0j) * sX(0)
-
-
-def test_pauli_parser_parentheses():
-    """ TODO: check that nested parentheses (ie. for coefficients) are
-        parsed and executed in the correct order
-    """
-    pass
-
-
-def test_pauli_sum_parsing():
-    """ TODO: check that multiple PauliTerms are parsed and executed
-        correctly
-    """
-    pass
 
 
 if __name__ == '__main__':
