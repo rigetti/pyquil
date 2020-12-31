@@ -1,7 +1,7 @@
 Changelog
 =========
 
-[next](https://github.com/rigetti/pyquil/compare/v2.26.0..master) (In development)
+[next](https://github.com/rigetti/pyquil/compare/v2.27.0..master) (In development)
 ------------------------------------------------------------------------------------
 
 ### Announcements
@@ -10,8 +10,27 @@ Changelog
 
 ### Bugfixes
 
+[v2.27.0](https://github.com/rigetti/pyquil/compare/v2.26.0..v2.27.0) (December 30, 2020)
+------------------------------------------------------------------------------------
+
+### Announcements
+
+- Switched to Github Actions.
+
+### Improvements and Changes
+
+- Bump RPCQ dependency to 3.6.0 (@notmgsk, #1286).
+- Tests can be run in parallel (@notmgsk, #1289).
+
+### Bugfixes
+
+- Fix hanging test due to ZMQ bug (@notmgsk).
+- Fix unitary comparison in Quil compilation test (@notmgsk).
+- Fix parsing comments in Lark grammar (@notmgsk, #1290).
+
 [v2.26.0](https://github.com/rigetti/pyquil/compare/v2.25.0..v2.26.0) (December 10, 2020)
 ------------------------------------------------------------------------------------
+
 ### Announcements
 
 - Quil-T brings the dimension of time to your quantum programs! Quil-T is an extension of
