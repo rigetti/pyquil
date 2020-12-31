@@ -3,6 +3,9 @@ from typing import Callable
 
 from lark import Lark, Token, Transformer, v_args
 
+from pyquil.paulis import PauliTerm, sI, sX, sY, sZ
+
+
 PAULI_GRAMMAR = r"""
 ?start: pauli_term
       | start "-" start -> pauli_sub_pauli
@@ -43,39 +46,31 @@ PAULI_GRAMMAR = r"""
 class PauliTree(Transformer):  # type: ignore
     """ The imports here are lazy to prevent cyclic import issues """
 
-    def op_x(self) -> Callable:
-        from pyquil.paulis import sX
-
+    def op_x(self) -> Callable[[int], PauliTerm]:
         return sX
 
-    def op_y(self) -> Callable:
-        from pyquil.paulis import sY
-
+    def op_y(self) -> Callable[[int], PauliTerm]:
         return sY
 
-    def op_z(self) -> Callable:
-        from pyquil.paulis import sZ
-
+    def op_z(self) -> Callable[[int], PauliTerm]:
         return sZ
 
-    def op_i(self) -> "PauliTerm":
-        from pyquil.paulis import sI
+    def op_i(self) -> PauliTerm:
+        return sI()
 
-        return sI(0)
-
-    def op_with_index(self, op: Callable, index: Token) -> "PauliTerm":
+    def op_with_index(self, op: Callable, index: Token) -> PauliTerm:
         return op(int(index.value))
 
-    def op_term_with_coefficient(self, coeff, op) -> "PauliTerm":
+    def op_term_with_coefficient(self, coeff, op) -> PauliTerm:
         coeff = coeff if isinstance(coeff, complex) else float(coeff.value)
         return coeff * op
 
-    def coefficient_with_op_term(self, op, coeff) -> "PauliTerm":
+    def coefficient_with_op_term(self, op, coeff) -> PauliTerm:
         # This shouldn't be necessary, the grammar should take care
         # of it.
         return self.op_term_with_coefficient(coeff, op)
 
-    def op_term_with_op_term(self, first, second) -> "PauliTerm":
+    def op_term_with_op_term(self, first, second) -> PauliTerm:
         return first * second
 
     def to_complex(self, *args) -> complex:
@@ -83,13 +78,13 @@ class PauliTree(Transformer):  # type: ignore
         real, imag = args[0].children
         return float(real.value) + float(imag.value) * 1j
 
-    def pauli_mul_pauli(self, first, second) -> "PauliTerm":
+    def pauli_mul_pauli(self, first, second) -> PauliTerm:
         return first * second
 
-    def pauli_sub_pauli(self, first, second) -> "PauliTerm":
+    def pauli_sub_pauli(self, first, second) -> PauliTerm:
         return first - second
 
-    def pauli_add_pauli(self, first, second) -> "PauliTerm":
+    def pauli_add_pauli(self, first, second) -> PauliTerm:
         return first + second
 
 
@@ -106,7 +101,7 @@ def pauli_parser() -> Lark:
     return Lark(PAULI_GRAMMAR, parser="lalr", transformer=PauliTree())
 
 
-def parse_pauli_str(data: str) -> "PauliTerm":
+def parse_pauli_str(data: str) -> PauliTerm:
     """
     Examples of Pauli Strings:
 

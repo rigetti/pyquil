@@ -44,7 +44,6 @@ from pyquil.quilatom import (
     ExpressionDesignator,
     MemoryReference,
 )
-from .paulis_parser import parse_pauli_str
 
 from .quil import Program
 from .gates import H, RZ, RX, CNOT, X, PHASE, QUANTUM_GATES
@@ -424,6 +423,8 @@ class PauliTerm(object):
     @classmethod
     def from_compact_str(cls, str_pauli_term: str) -> "PauliTerm":
         """Construct a PauliTerm from the result of str(pauli_term)"""
+        from .paulis_parser import parse_pauli_str
+
         return parse_pauli_str(str_pauli_term)
 
     def pauli_string(self, qubits: Optional[Iterable[int]] = None) -> str:
