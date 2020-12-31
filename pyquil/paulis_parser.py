@@ -40,59 +40,56 @@ PAULI_GRAMMAR = r"""
 
 
 @v_args(inline=True)
-class PauliTree(Transformer):
+class PauliTree(Transformer):  # type: ignore
     """ The imports here are lazy to prevent cyclic import issues """
 
-    def __init__(self):
-        self.vars = {}
-
-    def op_x(self):
+    def op_x(self) -> Callable:
         from pyquil.paulis import sX
 
         return sX
 
-    def op_y(self):
+    def op_y(self) -> Callable:
         from pyquil.paulis import sY
 
         return sY
 
-    def op_z(self):
+    def op_z(self) -> Callable:
         from pyquil.paulis import sZ
 
         return sZ
 
-    def op_i(self):
+    def op_i(self) -> "PauliTerm":
         from pyquil.paulis import sI
 
         return sI(0)
 
-    def op_with_index(self, op: Callable, index: Token):
+    def op_with_index(self, op: Callable, index: Token) -> "PauliTerm":
         return op(int(index.value))
 
-    def op_term_with_coefficient(self, coeff, op):
+    def op_term_with_coefficient(self, coeff, op) -> "PauliTerm":
         coeff = coeff if isinstance(coeff, complex) else float(coeff.value)
         return coeff * op
 
-    def coefficient_with_op_term(self, op, coeff):
+    def coefficient_with_op_term(self, op, coeff) -> "PauliTerm":
         # This shouldn't be necessary, the grammar should take care
         # of it.
         return self.op_term_with_coefficient(coeff, op)
 
-    def op_term_with_op_term(self, first, second):
+    def op_term_with_op_term(self, first, second) -> "PauliTerm":
         return first * second
 
-    def to_complex(self, *args):
+    def to_complex(self, *args) -> complex:
         assert len(args[0].children) == 2, "Parsing error"
         real, imag = args[0].children
         return float(real.value) + float(imag.value) * 1j
 
-    def pauli_mul_pauli(self, first, second):
+    def pauli_mul_pauli(self, first, second) -> "PauliTerm":
         return first * second
 
-    def pauli_sub_pauli(self, first, second):
+    def pauli_sub_pauli(self, first, second) -> "PauliTerm":
         return first - second
 
-    def pauli_add_pauli(self, first, second):
+    def pauli_add_pauli(self, first, second) -> "PauliTerm":
         return first + second
 
 
@@ -109,7 +106,7 @@ def pauli_parser() -> Lark:
     return Lark(PAULI_GRAMMAR, parser="lalr", transformer=PauliTree())
 
 
-def parse_pauli_str(data: str):
+def parse_pauli_str(data: str) -> "PauliTerm":
     """
     Examples of Pauli Strings:
 
