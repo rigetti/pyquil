@@ -45,7 +45,7 @@ def test_pauli_sums_parsing():
 
     # test case from test_setting using _generate_random_paulis
     result = parse_pauli_str("(-0.5751426877923431+0j)*Y0X1X3")
-    assert result == (-0.5751426877923431+0j)*sY(0)*sX(1)*sX(3)
+    assert result == (-0.5751426877923431 + 0j) * sY(0) * sX(1) * sX(3)
 
 
 def test_complex_number_parsing():
@@ -117,8 +117,3 @@ def test_pauli_terms_parsing():
 
     result = parse_pauli_str("(1.0 + 0j) * X0")
     assert result == (1.0 + 0j) * sX(0)
-
-
-if __name__ == '__main__':
-    import pytest
-    pytest.main([__file__])

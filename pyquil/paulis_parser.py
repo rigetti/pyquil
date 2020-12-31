@@ -1,4 +1,3 @@
-
 from functools import lru_cache
 from typing import Callable
 
@@ -24,7 +23,7 @@ PAULI_GRAMMAR = r"""
 ?operator_taking_index: "X"        -> op_x
                       | "Y"        -> op_y
                       | "Z"        -> op_z
-                      
+
 ?coefficient: NUMBER
             | complex -> to_complex
 
@@ -49,18 +48,22 @@ class PauliTree(Transformer):
 
     def op_x(self):
         from pyquil.paulis import sX
+
         return sX
 
     def op_y(self):
         from pyquil.paulis import sY
+
         return sY
 
     def op_z(self):
         from pyquil.paulis import sZ
+
         return sZ
 
     def op_i(self):
         from pyquil.paulis import sI
+
         return sI(0)
 
     def op_with_index(self, op: Callable, index: Token):
@@ -103,9 +106,7 @@ def pauli_parser() -> Lark:
 
     :return: An instance of a Lark parser for Pauli strings
     """
-    return Lark(PAULI_GRAMMAR,
-                parser='lalr',
-                transformer=PauliTree())
+    return Lark(PAULI_GRAMMAR, parser="lalr", transformer=PauliTree())
 
 
 def parse_pauli_str(data: str):
@@ -125,10 +126,3 @@ def parse_pauli_str(data: str):
     """
     parser = pauli_parser()
     return parser.parse(data)
-
-
-if __name__ == '__main__':
-    from pyquil.paulis import sI, sX, sY, sZ
-    assert parse_pauli_str("I") == sI(0)
-    assert parse_pauli_str("Z1") == sZ(1)
-    assert parse_pauli_str("Z1") == (1.0 + 0j) * sZ(1)
