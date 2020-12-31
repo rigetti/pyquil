@@ -1,9 +1,9 @@
 from functools import lru_cache
-from typing import Callable
+from typing import Callable, Tuple, Union
 
-from lark import Lark, Token, Transformer, v_args
+from lark import Lark, Token, Transformer, Tree, v_args
 
-from pyquil.paulis import PauliTerm, sI, sX, sY, sZ
+from pyquil.paulis import PauliSum, PauliTerm, sI, sX, sY, sZ
 
 
 PAULI_GRAMMAR = r"""
@@ -58,33 +58,28 @@ class PauliTree(Transformer):  # type: ignore
     def op_i(self) -> PauliTerm:
         return sI()
 
-    def op_with_index(self, op: Callable, index: Token) -> PauliTerm:
+    def op_with_index(self, op: Callable[[int], PauliTerm], index: Token) -> PauliTerm:
         return op(int(index.value))
 
-    def op_term_with_coefficient(self, coeff, op) -> PauliTerm:
+    def op_term_with_coefficient(self, coeff: Union[complex, Tree], op: PauliTerm) -> PauliTerm:
         coeff = coeff if isinstance(coeff, complex) else float(coeff.value)
         return coeff * op
 
-    def coefficient_with_op_term(self, op, coeff) -> PauliTerm:
-        # This shouldn't be necessary, the grammar should take care
-        # of it.
+    def coefficient_with_op_term(self, op: PauliTerm, coeff: Union[complex, Tree]) -> PauliTerm:
         return self.op_term_with_coefficient(coeff, op)
 
-    def op_term_with_op_term(self, first, second) -> PauliTerm:
+    def op_term_with_op_term(self, first: PauliTerm, second: PauliTerm) -> PauliTerm:
         return first * second
 
-    def to_complex(self, *args) -> complex:
+    def to_complex(self, *args: Tuple[Tree, Tree]) -> complex:
         assert len(args[0].children) == 2, "Parsing error"
         real, imag = args[0].children
         return float(real.value) + float(imag.value) * 1j
 
-    def pauli_mul_pauli(self, first, second) -> PauliTerm:
+    def pauli_mul_pauli(self, first: PauliTerm, second: PauliTerm) -> PauliTerm:
         return first * second
 
-    def pauli_sub_pauli(self, first, second) -> PauliTerm:
-        return first - second
-
-    def pauli_add_pauli(self, first, second) -> PauliTerm:
+    def pauli_add_pauli(self, first: PauliTerm, second: PauliTerm) -> PauliSum:
         return first + second
 
 
@@ -101,7 +96,7 @@ def pauli_parser() -> Lark:
     return Lark(PAULI_GRAMMAR, parser="lalr", transformer=PauliTree())
 
 
-def parse_pauli_str(data: str) -> PauliTerm:
+def parse_pauli_str(data: str) -> Union[Tree, PauliTerm]:
     """
     Examples of Pauli Strings:
 
