@@ -322,8 +322,8 @@ class PyquilConfig(object):
         """
         if self.user_auth_token is None and self.qmi_auth_token is None:
             raise UserMessageError(
-                f"Your configuration does not have valid authentication credentials."
-                f"Please visit {self.qcs_url}/auth/token to download credentials"
+                "Your configuration does not have valid authentication credentials. "
+                f"Please visit {self.qcs_url}/auth/token to download credentials "
                 f"and save to {self.user_auth_token_path}."
             )
 
