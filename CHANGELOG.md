@@ -9,6 +9,8 @@ Changelog
 
 ### Bugfixes
 
+- Fix key error for unmeasured memory regions (@notmgsk, @ameyer-rigetti, #1156)
+
 [v2.28.0](https://github.com/rigetti/pyquil/compare/v2.27.0..v2.28.0) (January 26, 2021)
 ------------------------------------------------------------------------------------
 
