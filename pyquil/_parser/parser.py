@@ -121,7 +121,7 @@ class QuilTransformer(Transformer):  # type: ignore
         space = " " if qubits else ""
         if variables:
             raw_defcircuit = "DEFCIRCUIT {}({}){}{}:".format(
-                name, ", ".join(variables), space, " ".join(map(str, qubits))
+                name, ", ".join(map(str, variables)), space, " ".join(map(str, qubits))
             )
         else:
             raw_defcircuit = "DEFCIRCUIT {}{}{}:".format(name, space, " ".join(map(str, qubits)))

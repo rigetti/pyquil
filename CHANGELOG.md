@@ -10,6 +10,8 @@ Changelog
 
 ### Bugfixes
 
+- Fix parsing error for parameterized `DEFCIRUCIT`s (@ameyer-rigetti, #1295)
+
 [v2.27.0](https://github.com/rigetti/pyquil/compare/v2.26.0..v2.27.0) (December 30, 2020)
 ------------------------------------------------------------------------------------
 
