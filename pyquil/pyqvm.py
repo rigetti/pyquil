@@ -211,7 +211,7 @@ class PyQVM(QAM):
         # private implementation details
         self._qubit_to_ram: Optional[Dict[int, int]] = None
         self._ro_size: Optional[int] = None
-        self._memory_results: Optional[Dict[str, np.ndarray]] = None
+        self._memory_results = {}
 
         self.rs = np.random.RandomState(seed=seed)
         self.wf_simulator = quantum_simulator_type(n_qubits=n_qubits, rs=self.rs)
@@ -226,7 +226,7 @@ class PyQVM(QAM):
         # initialize program counter
         self.program = program
         self.program_counter = 0
-        self._memory_results = None
+        self._memory_results = {}
 
         # clear RAM, although it's not strictly clear if this should happen here
         self.ram = {}

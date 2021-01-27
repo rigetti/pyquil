@@ -41,6 +41,8 @@ class QAM(ABC):
     pretend to be a QPI-compliant quantum computer.
     """
 
+    _memory_results: Dict[str, np.ndarray]
+
     @_record_call
     def __init__(self) -> None:
         self.reset()
@@ -63,7 +65,7 @@ class QAM(ABC):
         self._executable: Optional[
             Union[QuiltBinaryExecutableResponse, PyQuilExecutableResponse]
         ] = executable
-        self._memory_results: Optional[Dict[str, np.ndarray]] = defaultdict(lambda: None)
+        self._memory_results = defaultdict(lambda: None)
         self.status = "loaded"
         return self
 
