@@ -2,8 +2,10 @@
 numpy
 scipy
 lark
+qcs-api-client == 0.*
 requests
 networkx >= 2.0.0
+
 
 # rigetti packages
 rpcq >= 3.6.0
