@@ -310,6 +310,10 @@ support at support@rigetti.com."""
 
         # Fill in our patch table
         for k, v in self._variables_shim.items():
+            if k.name not in patch_values:
+                raise KeyError(f"{k.name} is not one of the valid memory descriptors: {patch_values.keys()}")
+            if k.index >= len(patch_values[k.name]):
+                raise IndexError(f"{k.name} has more parameter values ({k.index}) than expected ({len(patch[k.name])})")
             patch_values[k.name][k.index] = v
 
         return patch_values
