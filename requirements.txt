@@ -1,8 +1,8 @@
 # runtime deps
-numpy
+numpy==1.19.*  # TODO: update to ^1.20 before v3
 scipy
 lark
-qcs-api-client == 0.*
+qcs-api-client == 0.6.2.dev1088410470  # TODO: update before v3
 requests
 networkx >= 2.0.0
 
@@ -24,7 +24,7 @@ pytest-xdist # parallel execution
 pytest-cov
 pytest-timeout
 pytest-rerunfailures
-requests-mock
+pytest-httpx
 
 # docs
 sphinx>=3.0.0

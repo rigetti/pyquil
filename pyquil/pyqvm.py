@@ -19,10 +19,8 @@ from typing import Dict, List, Optional, Sequence, Type, Union
 
 import numpy as np
 from numpy.random.mtrand import RandomState
-from rpcq.messages import PyQuilExecutableResponse
 
-from pyquil.api import QAM
-from pyquil.api._compiler import _extract_program_from_pyquil_executable_response
+from pyquil.api import QAM, QuantumExecutable
 from pyquil.paulis import PauliTerm, PauliSum
 from pyquil.quil import Program
 from pyquil.quilatom import Label, LabelPlaceholder, MemoryReference
@@ -217,14 +215,12 @@ class PyQVM(QAM):
         self.wf_simulator = quantum_simulator_type(n_qubits=n_qubits, rs=self.rs)
         self._last_measure_program_loc = None
 
-    def load(self, executable: Union[Program, PyQuilExecutableResponse]) -> "PyQVM":
-        if isinstance(executable, PyQuilExecutableResponse):
-            program = _extract_program_from_pyquil_executable_response(executable)
-        else:
-            program = executable
+    def load(self, executable: QuantumExecutable) -> "PyQVM":
+        if not isinstance(executable, Program):
+            raise TypeError("`executable` argument must be a `Program`.")
 
         # initialize program counter
-        self.program = program
+        self.program = executable
         self.program_counter = 0
         self._memory_results = {}
 
