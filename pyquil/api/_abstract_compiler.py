@@ -13,18 +13,79 @@
 #    See the License for the specific language governing permissions and
 #    limitations under the License.
 ##############################################################################
+import sys
 from abc import ABC, abstractmethod
 from typing import Any, Dict, List, Optional, Sequence, Union
 
-from rpcq.messages import QuiltBinaryExecutableResponse, PyQuilExecutableResponse
+from rpcq.messages import (
+    NativeQuilRequest,
+    TargetDevice,
+    ParameterSpec,
+    ParameterAref,
+)
 
+from pyquil.api import Client
+from pyquil.api._error_reporting import _record_call
+from pyquil.device import AbstractDevice
+from pyquil.parser import parse_program
 from pyquil.paulis import PauliTerm
 from pyquil.quil import Program
+from pyquil.quilatom import MemoryReference, ExpressionDesignator
 from pyquil.quilbase import Gate
+from pyquil.version import __version__
+
+if sys.version_info < (3, 7):
+    from rpcq.external.dataclasses import dataclass
+else:
+    from dataclasses import dataclass
+
+
+class QuilcVersionMismatch(Exception):
+    pass
+
+
+class QuilcNotRunning(Exception):
+    pass
+
+
+@dataclass()
+class EncryptedProgram:
+    """
+    Encrypted binary, executable on a QPU.
+    """
+
+    program: str
+    """String representation of an encrypted Quil program."""
+
+    memory_descriptors: Dict[str, ParameterSpec]
+    """Descriptors for memory executable's regions, mapped by name."""
+
+    ro_sources: Dict[MemoryReference, str]
+    """Readout sources, mapped by memory reference."""
+
+    recalculation_table: Dict[ParameterAref, ExpressionDesignator]
+    """A mapping from memory references to the original gate arithmetic."""
+
+
+QuantumExecutable = Union[EncryptedProgram, Program]
 
 
 class AbstractCompiler(ABC):
     """The abstract interface for a compiler."""
+
+    device: AbstractDevice
+    _client: Client
+    _timeout: float
+
+    def __init__(self, *, device: AbstractDevice, client: Optional[Client], timeout: float) -> None:
+        self.device = device
+        self._client = client or Client()
+
+        if not self._client.quilc_url.startswith("tcp://"):
+            raise ValueError(
+                f"Expected compiler URL '{self._client.quilc_url}' to start with 'tcp://'"
+            )
+        self.set_timeout(timeout)
 
     def get_version_info(self) -> Dict[str, Any]:
         """
@@ -32,9 +93,12 @@ class AbstractCompiler(ABC):
 
         :return: Dictionary of version information.
         """
-        raise NotImplementedError
+        quilc_version_info = self._client.compiler_rpcq_request(
+            "get_version_info", timeout=self._timeout,
+        )
+        return {"quilc": quilc_version_info}
 
-    @abstractmethod
+    @_record_call
     def quil_to_native_quil(self, program: Program, *, protoquil: Optional[bool] = None) -> Program:
         """
         Compile an arbitrary quil program according to the ISA of target_device.
@@ -43,11 +107,35 @@ class AbstractCompiler(ABC):
         :param protoquil: Whether to restrict to protoquil (``None`` means defer to server)
         :return: Native quil and compiler metadata
         """
+        self._connect()
+        target_device = TargetDevice(isa=self.device.get_isa().to_dict(), specs={})
+        request = NativeQuilRequest(
+            quil=program.out(calibrations=False), target_device=target_device
+        )
+        response = self._client.compiler_rpcq_request(
+            "quil_to_native_quil", request, protoquil=protoquil, timeout=self._timeout,
+        ).asdict()
+        nq_program = parse_program(response["quil"])
+        nq_program.native_quil_metadata = response["metadata"]
+        nq_program.num_shots = program.num_shots
+        nq_program._calibrations = program.calibrations
+        return nq_program
+
+    def _connect(self) -> None:
+        try:
+            quilc_version_dict = self._client.compiler_rpcq_request(
+                "get_version_info", timeout=self._timeout
+            )
+            _check_quilc_version(quilc_version_dict)
+        except TimeoutError:
+            raise QuilcNotRunning(
+                f"Request to quilc at {self._client.quilc_url} timed out. "
+                "This could mean that quilc is not running, is not reachable, or is "
+                "responding slowly."
+            )
 
     @abstractmethod
-    def native_quil_to_executable(
-        self, nq_program: Program
-    ) -> Union[QuiltBinaryExecutableResponse, PyQuilExecutableResponse]:
+    def native_quil_to_executable(self, nq_program: Program) -> QuantumExecutable:
         """
         Compile a native quil program to a binary executable.
 
@@ -55,8 +143,39 @@ class AbstractCompiler(ABC):
         :return: An (opaque) binary executable
         """
 
+    def set_timeout(self, timeout: float) -> None:
+        """
+        Set timeout for each individual stage of compilation.
+
+        :param timeout: Timeout value for each compilation stage, in seconds. If the stage does not
+            complete within this threshold, an exception is raised.
+        """
+        if timeout < 0:
+            raise ValueError(f"Cannot set timeout to negative value {timeout}")
+
+        self._timeout = timeout
+
+    @_record_call
     def reset(self) -> None:
-        pass
+        """
+        Reset the state of the this compiler client.
+        """
+        self._client.reset()
+
+
+def _check_quilc_version(version_dict: Dict[str, str]) -> None:
+    """
+    Verify that there is no mismatch between pyquil and quilc versions.
+
+    :param version_dict: Dictionary containing version information about quilc.
+    """
+    quilc_version = version_dict["quilc"]
+    major, minor, patch = map(int, quilc_version.split("."))
+    if major == 1 and minor < 8:
+        raise QuilcVersionMismatch(
+            "Must use quilc >= 1.8.0 with pyquil >= 2.8.0, but you "
+            f"have quilc {quilc_version} and pyquil {__version__}"
+        )
 
 
 class AbstractBenchmarker(ABC):

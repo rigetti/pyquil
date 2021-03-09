@@ -1,10 +1,9 @@
 import os
 
-from rpcq.messages import PyQuilExecutableResponse
-
+from pyquil.api import Client
+from pyquil.device import AbstractDevice
 from pyquil.parser import parse
-from pyquil.api._qac import AbstractCompiler
-from pyquil.api._compiler import _extract_attribute_dictionary_from_program
+from pyquil.api._abstract_compiler import AbstractCompiler
 from pyquil import Program
 
 
@@ -20,6 +19,9 @@ def parse_equals(quil_string, *instructions):
 
 
 class DummyCompiler(AbstractCompiler):
+    def __init__(self, device: AbstractDevice, client: Client):
+        super().__init__(device=device, client=client, timeout=10)  # type: ignore
+
     def get_version_info(self):
         return {}
 
@@ -27,7 +29,4 @@ class DummyCompiler(AbstractCompiler):
         return program
 
     def native_quil_to_executable(self, nq_program: Program):
-        return PyQuilExecutableResponse(
-            program=nq_program.out(),
-            attributes=_extract_attribute_dictionary_from_program(nq_program),
-        )
+        return nq_program

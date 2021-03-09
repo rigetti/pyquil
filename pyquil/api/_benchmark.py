@@ -16,7 +16,6 @@
 from typing import List, Optional, Sequence, cast
 
 import rpcq
-from rpcq._client import Client
 from rpcq.messages import (
     RandomizedBenchmarkingRequest,
     RandomizedBenchmarkingResponse,
@@ -24,9 +23,9 @@ from rpcq.messages import (
     ConjugateByCliffordResponse,
 )
 
-from pyquil.api._config import PyquilConfig
+from pyquil.api import Client
 from pyquil.api._error_reporting import _record_call
-from pyquil.api._qac import AbstractBenchmarker
+from pyquil.api._abstract_compiler import AbstractBenchmarker
 from pyquil.paulis import PauliTerm, is_identity
 from pyquil.quil import address_qubits, Program
 from pyquil.quilbase import Gate
@@ -38,14 +37,17 @@ class BenchmarkConnection(AbstractBenchmarker):
     """
 
     @_record_call
-    def __init__(self, endpoint: str, timeout: Optional[float] = None):
+    def __init__(self, *, client: Optional[Client] = None, timeout: float = 10):
         """
         Client to communicate with the benchmarking data endpoint.
 
-        :param endpoint: TCP or IPC endpoint of the Compiler Server
+
+        :param client: Optional QCS client. If none is provided, a default client will be created.
+        :param timeout: Time limit for requests, in seconds.
         """
 
-        self.client = Client(endpoint, timeout=timeout)
+        self._client = client or Client()
+        self._timeout = timeout
 
     @_record_call
     def apply_clifford_to_pauli(self, clifford: Program, pauli_in: PauliTerm) -> PauliTerm:
@@ -72,8 +74,8 @@ class BenchmarkConnection(AbstractBenchmarker):
                 indices=list(indices_and_terms[0]), symbols=list(indices_and_terms[1])
             ),
         )
-        response: ConjugateByCliffordResponse = self.client.call(
-            "conjugate_pauli_by_clifford", payload
+        response: ConjugateByCliffordResponse = self._client.compiler_rpcq_request(
+            "conjugate_pauli_by_clifford", payload, timeout=self._timeout
         )
         phase_factor, paulis = response.phase, response.pauli
 
@@ -146,8 +148,8 @@ class BenchmarkConnection(AbstractBenchmarker):
             seed=seed,
             interleaver=interleaver_out,
         )
-        response = self.client.call(
-            "generate_rb_sequence", payload
+        response = self._client.compiler_rpcq_request(
+            "generate_rb_sequence", payload, timeout=self._timeout
         )  # type: RandomizedBenchmarkingResponse
 
         programs = []
@@ -163,19 +165,3 @@ class BenchmarkConnection(AbstractBenchmarker):
         # The programs are returned in "textbook style" right-to-left order. To compose them into
         #  the correct pyquil program, we reverse the order.
         return list(reversed(programs))
-
-
-def get_benchmarker(endpoint: Optional[str] = None, timeout: float = 10) -> BenchmarkConnection:
-    """
-    Retrieve an instance of the appropriate AbstractBenchmarker subclass for a given endpoint.
-
-    :param endpoint: Benchmarking sequence server address. Defaults to the setting in the user's
-                     pyQuil config.
-    :param timeout: Number of seconds to wait before giving up on a call.
-    :return: Instance of an AbstractBenchmarker subclass, connected to the given endpoint.
-    """
-    if endpoint is None:
-        config = PyquilConfig()
-        endpoint = config.quilc_url
-
-    return BenchmarkConnection(endpoint=endpoint, timeout=timeout)

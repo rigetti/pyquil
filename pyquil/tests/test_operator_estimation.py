@@ -6,7 +6,7 @@ import numpy as np
 import pytest
 
 from pyquil import Program, get_qc
-from pyquil.api import WavefunctionSimulator
+from pyquil.api import WavefunctionSimulator, Client
 from pyquil.experiment import (
     ExperimentSetting,
     SIC0,
@@ -34,7 +34,7 @@ from pyquil.paulis import sI, sX, sY, sZ, PauliSum
 from pyquil.quilbase import Pragma
 
 
-def test_measure_observables(forest):
+def test_measure_observables(client: Client):
     expts = [
         ExperimentSetting(TensorProductState(), o1 * o2)
         for o1, o2 in itertools.product([sI(0), sX(0), sY(0), sZ(0)], [sI(1), sX(1), sY(1), sZ(1)])
@@ -44,7 +44,7 @@ def test_measure_observables(forest):
     gsuite = group_experiments(suite)
     assert len(gsuite) == 3 * 3  # can get all the terms with I for free in this case
 
-    qc = get_qc("2q-qvm")
+    qc = get_qc("2q-qvm", client=client)
     for res in measure_observables(qc, gsuite, n_shots=2000):
         if res.setting.out_operator in [sI(), sZ(0), sZ(1), sZ(0) * sZ(1)]:
             assert np.abs(res.expectation) > 0.9
@@ -76,13 +76,13 @@ def _random_2q_programs(n_progs=3):
 
 
 @pytest.mark.slow
-def test_measure_observables_many_progs(forest):
+def test_measure_observables_many_progs(client: Client):
     expts = [
         ExperimentSetting(TensorProductState(), o1 * o2)
         for o1, o2 in itertools.product([sI(0), sX(0), sY(0), sZ(0)], [sI(1), sX(1), sY(1), sZ(1)])
     ]
 
-    qc = get_qc("2q-qvm")
+    qc = get_qc("2q-qvm", client=client)
     qc.qam.random_seed = 0
     for prog in _random_2q_programs():
         suite = Experiment(expts, program=prog)
@@ -90,7 +90,7 @@ def test_measure_observables_many_progs(forest):
         gsuite = group_experiments(suite)
         assert len(gsuite) == 3 * 3  # can get all the terms with I for free in this case
 
-        wfn = WavefunctionSimulator()
+        wfn = WavefunctionSimulator(client=client)
         wfn_exps = {}
         for expt in expts:
             wfn_exps[expt] = wfn.expectation(gsuite.program, PauliSum([expt.out_operator]))
@@ -115,8 +115,8 @@ def test_append():
     assert (len(str(suite))) > 0
 
 
-def test_no_complex_coeffs(forest):
-    qc = get_qc("2q-qvm")
+def test_no_complex_coeffs(client: Client):
+    qc = get_qc("2q-qvm", client=client)
     suite = Experiment(
         [ExperimentSetting(TensorProductState(), 1.0j * sY(0))], program=Program(X(0))
     )
@@ -124,15 +124,15 @@ def test_no_complex_coeffs(forest):
         list(measure_observables(qc, suite, n_shots=2000))
 
 
-def test_identity(forest):
-    qc = get_qc("2q-qvm")
+def test_identity(client: Client):
+    qc = get_qc("2q-qvm", client=client)
     suite = Experiment([ExperimentSetting(plusZ(0), 0.123 * sI(0))], program=Program(X(0)))
     result = list(measure_observables(qc, suite))[0]
     assert result.expectation == 0.123
 
 
-def test_sic_process_tomo(forest):
-    qc = get_qc("2q-qvm")
+def test_sic_process_tomo(client: Client):
+    qc = get_qc("2q-qvm", client=client)
     process = Program(X(0))
     settings = []
     for in_state in [SIC0, SIC1, SIC2, SIC3]:
@@ -144,7 +144,7 @@ def test_sic_process_tomo(forest):
     assert len(results) == 4 * 4
 
 
-def test_measure_observables_symmetrize(forest):
+def test_measure_observables_symmetrize(client: Client):
     """
     Symmetrization alone should not change the outcome on the QVM
     """
@@ -157,7 +157,7 @@ def test_measure_observables_symmetrize(forest):
     gsuite = group_experiments(suite)
     assert len(gsuite) == 3 * 3  # can get all the terms with I for free in this case
 
-    qc = get_qc("2q-qvm")
+    qc = get_qc("2q-qvm", client=client)
     for res in measure_observables(qc, gsuite, calibrate_readout=None):
         if res.setting.out_operator in [sI(), sZ(0), sZ(1), sZ(0) * sZ(1)]:
             assert np.abs(res.expectation) > 0.9
@@ -165,7 +165,7 @@ def test_measure_observables_symmetrize(forest):
             assert np.abs(res.expectation) < 0.1
 
 
-def test_measure_observables_symmetrize_calibrate(forest):
+def test_measure_observables_symmetrize_calibrate(client: Client):
     """
     Symmetrization + calibration should not change the outcome on the QVM
     """
@@ -178,7 +178,7 @@ def test_measure_observables_symmetrize_calibrate(forest):
     gsuite = group_experiments(suite)
     assert len(gsuite) == 3 * 3  # can get all the terms with I for free in this case
 
-    qc = get_qc("2q-qvm")
+    qc = get_qc("2q-qvm", client=client)
     for res in measure_observables(qc, gsuite):
         if res.setting.out_operator in [sI(), sZ(0), sZ(1), sZ(0) * sZ(1)]:
             assert np.abs(res.expectation) > 0.9
@@ -186,19 +186,19 @@ def test_measure_observables_symmetrize_calibrate(forest):
             assert np.abs(res.expectation) < 0.1
 
 
-def test_measure_observables_zero_expectation(forest):
+def test_measure_observables_zero_expectation(client: Client):
     """
     Testing case when expectation value of observable should be close to zero
     """
-    qc = get_qc("2q-qvm")
+    qc = get_qc("2q-qvm", client=client)
     exptsetting = ExperimentSetting(plusZ(0), sX(0))
     suite = Experiment([exptsetting], program=Program(I(0)))
     result = list(measure_observables(qc, suite))[0]
     np.testing.assert_almost_equal(result.expectation, 0.0, decimal=1)
 
 
-def test_measure_observables_no_symm_calibr_raises_error(forest):
-    qc = get_qc("2q-qvm")
+def test_measure_observables_no_symm_calibr_raises_error(client: Client):
+    qc = get_qc("2q-qvm", client=client)
     exptsetting = ExperimentSetting(plusZ(0), sX(0))
     suite = Experiment([exptsetting], program=Program(I(0)), symmetrization=0)
     with pytest.raises(ValueError):
@@ -234,8 +234,8 @@ def test_stats_from_measurements():
     assert obs_var == 0.0
 
 
-def test_measure_observables_uncalibrated_asymmetric_readout(forest, use_seed):
-    qc = get_qc("1q-qvm")
+def test_measure_observables_uncalibrated_asymmetric_readout(client: Client, use_seed: bool):
+    qc = get_qc("1q-qvm", client=client)
     if use_seed:
         qc.qam.random_seed = 0
         np.random.seed(0)
@@ -263,8 +263,8 @@ def test_measure_observables_uncalibrated_asymmetric_readout(forest, use_seed):
     assert np.isclose(np.mean(expect_arr[2::3]), expected_expectation_z_basis, atol=2e-2)
 
 
-def test_measure_observables_uncalibrated_symmetric_readout(forest, use_seed):
-    qc = get_qc("1q-qvm")
+def test_measure_observables_uncalibrated_symmetric_readout(client: Client, use_seed: bool):
+    qc = get_qc("1q-qvm", client=client)
     if use_seed:
         qc.qam.random_seed = 0
         np.random.seed(0)
@@ -294,9 +294,9 @@ def test_measure_observables_uncalibrated_symmetric_readout(forest, use_seed):
     assert np.isclose(np.mean(uncalibr_e[2::3]), expected_expectation_z_basis, atol=2e-2)
 
 
-def test_measure_observables_calibrated_symmetric_readout(forest, use_seed):
+def test_measure_observables_calibrated_symmetric_readout(client: Client, use_seed: bool):
     # expecting the result +1 for calibrated readout
-    qc = get_qc("1q-qvm")
+    qc = get_qc("1q-qvm", client=client)
     if use_seed:
         qc.qam.random_seed = 0
         np.random.seed(0)
@@ -320,9 +320,9 @@ def test_measure_observables_calibrated_symmetric_readout(forest, use_seed):
     np.testing.assert_allclose(results, 1.0, atol=2e-2)
 
 
-def test_measure_observables_result_zero_symmetrization_calibration(forest, use_seed):
+def test_measure_observables_result_zero_symmetrization_calibration(client: Client, use_seed: bool):
     # expecting expectation value to be 0 with symmetrization/calibration
-    qc = get_qc("9q-qvm")
+    qc = get_qc("9q-qvm", client=client)
     if use_seed:
         qc.qam.random_seed = 0
         np.random.seed(0)
@@ -353,10 +353,10 @@ def test_measure_observables_result_zero_symmetrization_calibration(forest, use_
     np.testing.assert_allclose(raw_results, 0.0, atol=2e-2)
 
 
-def test_measure_observables_result_zero_no_noisy_readout(forest, use_seed):
+def test_measure_observables_result_zero_no_noisy_readout(client: Client, use_seed: bool):
     # expecting expectation value to be 0 with no symmetrization/calibration
     # and no noisy readout
-    qc = get_qc("9q-qvm")
+    qc = get_qc("9q-qvm", client=client)
     if use_seed:
         qc.qam.random_seed = 0
         np.random.seed(0)
@@ -381,9 +381,9 @@ def test_measure_observables_result_zero_no_noisy_readout(forest, use_seed):
     np.testing.assert_allclose(results, 0.0, atol=2e-2)
 
 
-def test_measure_observables_result_zero_no_symm_calibr(forest, use_seed):
+def test_measure_observables_result_zero_no_symm_calibr(client: Client, use_seed: bool):
     # expecting expectation value to be nonzero with symmetrization/calibration
-    qc = get_qc("9q-qvm")
+    qc = get_qc("9q-qvm", client=client)
     if use_seed:
         qc.qam.random_seed = 3
         np.random.seed(0)
@@ -411,9 +411,9 @@ def test_measure_observables_result_zero_no_symm_calibr(forest, use_seed):
     np.testing.assert_allclose(results, expected_result, atol=2e-2)
 
 
-def test_measure_observables_2q_readout_error_one_measured(forest, use_seed):
+def test_measure_observables_2q_readout_error_one_measured(client: Client, use_seed: bool):
     # 2q readout errors, but only 1 qubit measured
-    qc = get_qc("9q-qvm")
+    qc = get_qc("9q-qvm", client=client)
     if use_seed:
         qc.qam.random_seed = 3
         np.random.seed(0)
@@ -441,8 +441,8 @@ def test_measure_observables_2q_readout_error_one_measured(forest, use_seed):
     assert np.isclose(np.mean(cal_e), 0.849, atol=2e-2)
 
 
-def test_measure_observables_inherit_noise_errors(forest):
-    qc = get_qc("3q-qvm")
+def test_measure_observables_inherit_noise_errors(client: Client):
+    qc = get_qc("3q-qvm", client=client)
     # specify simplest experiments
     expt1 = ExperimentSetting(TensorProductState(), sZ(0))
     expt2 = ExperimentSetting(TensorProductState(), sZ(1))
@@ -491,8 +491,8 @@ PRAGMA ADD-KRAUS H 2 "(0.0 0.31622776601683794 0.31622776601683794 0.0)"
     assert calibr_prog3.out() == Program(expected_prog).out()
 
 
-def test_expectations_sic0(forest, use_seed):
-    qc = get_qc("1q-qvm")
+def test_expectations_sic0(client: Client, use_seed: bool):
+    qc = get_qc("1q-qvm", client=client)
     if use_seed:
         qc.qam.random_seed = 0
         np.random.seed(0)
@@ -517,8 +517,8 @@ def test_expectations_sic0(forest, use_seed):
     np.testing.assert_allclose(results, expected_results, atol=2e-2)
 
 
-def test_expectations_sic1(forest, use_seed):
-    qc = get_qc("1q-qvm")
+def test_expectations_sic1(client: Client, use_seed: bool):
+    qc = get_qc("1q-qvm", client=client)
     if use_seed:
         qc.qam.random_seed = 0
         np.random.seed(0)
@@ -543,8 +543,8 @@ def test_expectations_sic1(forest, use_seed):
     np.testing.assert_allclose(results, expected_results, atol=2e-2)
 
 
-def test_expectations_sic2(forest, use_seed):
-    qc = get_qc("1q-qvm")
+def test_expectations_sic2(client: Client, use_seed: bool):
+    qc = get_qc("1q-qvm", client=client)
     if use_seed:
         qc.qam.random_seed = 0
         np.random.seed(0)
@@ -575,8 +575,8 @@ def test_expectations_sic2(forest, use_seed):
     np.testing.assert_allclose(results, expected_results, atol=2e-2)
 
 
-def test_expectations_sic3(forest, use_seed):
-    qc = get_qc("1q-qvm")
+def test_expectations_sic3(client: Client, use_seed: bool):
+    qc = get_qc("1q-qvm", client=client)
     if use_seed:
         qc.qam.random_seed = 0
         np.random.seed(0)
@@ -607,11 +607,11 @@ def test_expectations_sic3(forest, use_seed):
     np.testing.assert_allclose(results, expected_results, atol=2e-2)
 
 
-def test_sic_conditions(forest):
+def test_sic_conditions(client: Client):
     """
     Test that the SIC states indeed yield SIC-POVMs
     """
-    wfn_sim = WavefunctionSimulator()
+    wfn_sim = WavefunctionSimulator(client=client)
 
     # condition (i) -- sum of all projectors equal identity times dimensionality
     result = np.zeros((2, 2))
@@ -647,8 +647,8 @@ def test_sic_conditions(forest):
         assert np.isclose(np.trace(proj_a.dot(proj_b)), 1 / 3)
 
 
-def test_measure_observables_grouped_expts(forest, use_seed):
-    qc = get_qc("3q-qvm")
+def test_measure_observables_grouped_expts(client: Client, use_seed: bool):
+    qc = get_qc("3q-qvm", client=client)
 
     if use_seed:
         num_simulations = 1
@@ -690,11 +690,11 @@ def _point_channel_fidelity_estimate(v, dim=2):
     return (1.0 + np.sum(v) + dim) / (dim * (dim + 1))
 
 
-def test_bit_flip_channel_fidelity(forest, use_seed):
+def test_bit_flip_channel_fidelity(client: Client, use_seed: bool):
     """
     We use Eqn (5) of https://arxiv.org/abs/quant-ph/0701138 to compare the fidelity
     """
-    qc = get_qc("1q-qvm")
+    qc = get_qc("1q-qvm", client=client)
     if use_seed:
         np.random.seed(0)
         qc.qam.random_seed = 0
@@ -738,11 +738,11 @@ def test_bit_flip_channel_fidelity(forest, use_seed):
     np.testing.assert_allclose(expected_fidelity, estimated_fidelity, atol=2e-2)
 
 
-def test_dephasing_channel_fidelity(forest, use_seed):
+def test_dephasing_channel_fidelity(client: Client, use_seed: bool):
     """
     We use Eqn (5) of https://arxiv.org/abs/quant-ph/0701138 to compare the fidelity
     """
-    qc = get_qc("1q-qvm")
+    qc = get_qc("1q-qvm", client=client)
     if use_seed:
         qc.qam.random_seed = 0
         np.random.seed(0)
@@ -783,11 +783,11 @@ def test_dephasing_channel_fidelity(forest, use_seed):
     np.testing.assert_allclose(expected_fidelity, estimated_fidelity, atol=2e-2)
 
 
-def test_depolarizing_channel_fidelity(forest, use_seed):
+def test_depolarizing_channel_fidelity(client: Client, use_seed: bool):
     """
     We use Eqn (5) of https://arxiv.org/abs/quant-ph/0701138 to compare the fidelity
     """
-    qc = get_qc("1q-qvm")
+    qc = get_qc("1q-qvm", client=client)
     if use_seed:
         qc.qam.random_seed = 0
         np.random.seed(0)
@@ -830,11 +830,11 @@ def test_depolarizing_channel_fidelity(forest, use_seed):
     np.testing.assert_allclose(expected_fidelity, estimated_fidelity, atol=2e-2)
 
 
-def test_unitary_channel_fidelity(forest, use_seed):
+def test_unitary_channel_fidelity(client: Client, use_seed: bool):
     """
     We use Eqn (5) of https://arxiv.org/abs/quant-ph/0701138 to compare the fidelity
     """
-    qc = get_qc("1q-qvm")
+    qc = get_qc("1q-qvm", client=client)
     if use_seed:
         qc.qam.random_seed = 0
         np.random.seed(0)
@@ -869,11 +869,11 @@ def test_unitary_channel_fidelity(forest, use_seed):
     np.testing.assert_allclose(expected_fidelity, estimated_fidelity, atol=2e-2)
 
 
-def test_bit_flip_channel_fidelity_readout_error(forest, use_seed):
+def test_bit_flip_channel_fidelity_readout_error(client: Client, use_seed: bool):
     """
     We use Eqn (5) of https://arxiv.org/abs/quant-ph/0701138 to compare the fidelity
     """
-    qc = get_qc("1q-qvm")
+    qc = get_qc("1q-qvm", client=client)
     if use_seed:
         qc.qam.random_seed = 0
         np.random.seed(0)
@@ -918,11 +918,11 @@ def test_bit_flip_channel_fidelity_readout_error(forest, use_seed):
     np.testing.assert_allclose(expected_fidelity, estimated_fidelity, atol=2e-2)
 
 
-def test_dephasing_channel_fidelity_readout_error(forest, use_seed):
+def test_dephasing_channel_fidelity_readout_error(client: Client, use_seed: bool):
     """
     We use Eqn (5) of https://arxiv.org/abs/quant-ph/0701138 to compare the fidelity
     """
-    qc = get_qc("1q-qvm")
+    qc = get_qc("1q-qvm", client=client)
     if use_seed:
         qc.qam.random_seed = 0
         np.random.seed(0)
@@ -965,11 +965,11 @@ def test_dephasing_channel_fidelity_readout_error(forest, use_seed):
     np.testing.assert_allclose(expected_fidelity, estimated_fidelity, atol=2e-2)
 
 
-def test_depolarizing_channel_fidelity_readout_error(forest, use_seed):
+def test_depolarizing_channel_fidelity_readout_error(client: Client, use_seed: bool):
     """
     We use Eqn (5) of https://arxiv.org/abs/quant-ph/0701138 to compare the fidelity
     """
-    qc = get_qc("1q-qvm")
+    qc = get_qc("1q-qvm", client=client)
     if use_seed:
         qc.qam.random_seed = 0
         np.random.seed(0)
@@ -1014,11 +1014,11 @@ def test_depolarizing_channel_fidelity_readout_error(forest, use_seed):
     np.testing.assert_allclose(expected_fidelity, estimated_fidelity, atol=2e-2)
 
 
-def test_unitary_channel_fidelity_readout_error(forest, use_seed):
+def test_unitary_channel_fidelity_readout_error(client: Client, use_seed: bool):
     """
     We use Eqn (5) of https://arxiv.org/abs/quant-ph/0701138 to compare the fidelity
     """
-    qc = get_qc("1q-qvm")
+    qc = get_qc("1q-qvm", client=client)
     if use_seed:
         qc.qam.random_seed = 0
         np.random.seed(0)
@@ -1055,13 +1055,13 @@ def test_unitary_channel_fidelity_readout_error(forest, use_seed):
     np.testing.assert_allclose(expected_fidelity, estimated_fidelity, atol=2e-2)
 
 
-def test_2q_unitary_channel_fidelity_readout_error(forest, use_seed):
+def test_2q_unitary_channel_fidelity_readout_error(client: Client, use_seed: bool):
     """
     We use Eqn (5) of https://arxiv.org/abs/quant-ph/0701138 to compare the fidelity
     This tests if our dimensionality factors are correct, even in the presence
     of readout errors
     """
-    qc = get_qc("2q-qvm")
+    qc = get_qc("2q-qvm", client=client)
     if use_seed:
         qc.qam.random_seed = 0
         np.random.seed(0)
@@ -1132,9 +1132,9 @@ def test_2q_unitary_channel_fidelity_readout_error(forest, use_seed):
     np.testing.assert_allclose(expected_fidelity, estimated_fidelity, atol=2e-2)
 
 
-def test_measure_1q_observable_raw_expectation(forest, use_seed):
+def test_measure_1q_observable_raw_expectation(client: Client, use_seed: bool):
     # testing that we get correct raw expectation in terms of readout errors
-    qc = get_qc("1q-qvm")
+    qc = get_qc("1q-qvm", client=client)
     if use_seed:
         qc.qam.random_seed = 0
         np.random.seed(0)
@@ -1161,9 +1161,9 @@ def test_measure_1q_observable_raw_expectation(forest, use_seed):
     np.testing.assert_allclose(result, expected_result, atol=2e-2)
 
 
-def test_measure_1q_observable_raw_variance(forest, use_seed):
+def test_measure_1q_observable_raw_variance(client: Client, use_seed: bool):
     # testing that we get correct raw std_err in terms of readout errors
-    qc = get_qc("1q-qvm")
+    qc = get_qc("1q-qvm", client=client)
     if use_seed:
         qc.qam.random_seed = 0
         np.random.seed(0)
@@ -1192,9 +1192,9 @@ def test_measure_1q_observable_raw_variance(forest, use_seed):
     np.testing.assert_allclose(result, expected_result, atol=2e-2)
 
 
-def test_measure_1q_observable_calibration_expectation(forest, use_seed):
+def test_measure_1q_observable_calibration_expectation(client: Client, use_seed: bool):
     # testing that we get correct calibration expectation in terms of readout errors
-    qc = get_qc("1q-qvm")
+    qc = get_qc("1q-qvm", client=client)
     if use_seed:
         qc.qam.random_seed = 0
         np.random.seed(0)
@@ -1221,9 +1221,9 @@ def test_measure_1q_observable_calibration_expectation(forest, use_seed):
     np.testing.assert_allclose(result, expected_result, atol=2e-2)
 
 
-def test_measure_1q_observable_calibration_variance(forest, use_seed):
+def test_measure_1q_observable_calibration_variance(client: Client, use_seed: bool):
     # testing that we get correct calibration std_err in terms of readout errors
-    qc = get_qc("1q-qvm")
+    qc = get_qc("1q-qvm", client=client)
     if use_seed:
         qc.qam.random_seed = 0
         np.random.seed(0)
@@ -1252,8 +1252,8 @@ def test_measure_1q_observable_calibration_variance(forest, use_seed):
     np.testing.assert_allclose(result, expected_result, atol=2e-2)
 
 
-def test_uncalibrated_asymmetric_readout_nontrivial_1q_state(forest, use_seed):
-    qc = get_qc("1q-qvm")
+def test_uncalibrated_asymmetric_readout_nontrivial_1q_state(client: Client, use_seed: bool):
+    qc = get_qc("1q-qvm", client=client)
     if use_seed:
         qc.qam.random_seed = 0
         np.random.seed(0)
@@ -1286,8 +1286,8 @@ def test_uncalibrated_asymmetric_readout_nontrivial_1q_state(forest, use_seed):
     assert np.isclose(np.mean(expect_arr), expected_expectation, atol=2e-2)
 
 
-def test_uncalibrated_symmetric_readout_nontrivial_1q_state(forest, use_seed):
-    qc = get_qc("1q-qvm")
+def test_uncalibrated_symmetric_readout_nontrivial_1q_state(client: Client, use_seed: bool):
+    qc = get_qc("1q-qvm", client=client)
     if use_seed:
         qc.qam.random_seed = 0
         np.random.seed(0)
@@ -1321,8 +1321,8 @@ def test_uncalibrated_symmetric_readout_nontrivial_1q_state(forest, use_seed):
     assert np.isclose(np.mean(expect_arr), expected_expectation, atol=2e-2)
 
 
-def test_calibrated_symmetric_readout_nontrivial_1q_state(forest, use_seed):
-    qc = get_qc("1q-qvm")
+def test_calibrated_symmetric_readout_nontrivial_1q_state(client: Client, use_seed: bool):
+    qc = get_qc("1q-qvm", client=client)
     if use_seed:
         qc.qam.random_seed = 0
         np.random.seed(0)
@@ -1353,13 +1353,13 @@ def test_calibrated_symmetric_readout_nontrivial_1q_state(forest, use_seed):
     assert np.isclose(np.mean(expect_arr), expected_expectation, atol=2e-2)
 
 
-def test_measure_2q_observable_raw_statistics(forest, use_seed):
+def test_measure_2q_observable_raw_statistics(client: Client, use_seed: bool):
     """Testing that we get correct exhaustively symmetrized statistics
         in terms of readout errors.
     Note: this only tests for exhaustive symmetrization in the presence
         of uncorrelated errors
     """
-    qc = get_qc("2q-qvm")
+    qc = get_qc("2q-qvm", client=client)
     if use_seed:
         qc.qam.random_seed = 0
         np.random.seed(0)
@@ -1404,13 +1404,13 @@ def test_measure_2q_observable_raw_statistics(forest, use_seed):
     np.testing.assert_allclose(result_std_err, simulated_std_err, atol=2e-2)
 
 
-def test_raw_statistics_2q_nontrivial_nonentangled_state(forest, use_seed):
+def test_raw_statistics_2q_nontrivial_nonentangled_state(client: Client, use_seed: bool):
     """Testing that we get correct exhaustively symmetrized statistics
         in terms of readout errors, even for non-trivial 2q nonentangled states
     Note: this only tests for exhaustive symmetrization in the presence
         of uncorrelated errors
     """
-    qc = get_qc("2q-qvm")
+    qc = get_qc("2q-qvm", client=client)
     if use_seed:
         qc.qam.random_seed = 0
         np.random.seed(0)
@@ -1478,13 +1478,13 @@ def test_raw_statistics_2q_nontrivial_nonentangled_state(forest, use_seed):
     np.testing.assert_allclose(result_std_err, simulated_std_err, atol=2e-2)
 
 
-def test_raw_statistics_2q_nontrivial_entangled_state(forest, use_seed):
+def test_raw_statistics_2q_nontrivial_entangled_state(client: Client, use_seed: bool):
     """Testing that we get correct exhaustively symmetrized statistics
         in terms of readout errors, even for non-trivial 2q entangled states.
     Note: this only tests for exhaustive symmetrization in the presence
         of uncorrelated errors
     """
-    qc = get_qc("2q-qvm")
+    qc = get_qc("2q-qvm", client=client)
     if use_seed:
         qc.qam.random_seed = 0
         np.random.seed(0)
@@ -1541,14 +1541,14 @@ def test_raw_statistics_2q_nontrivial_entangled_state(forest, use_seed):
 
 
 @pytest.mark.flaky(reruns=1)
-def test_corrected_statistics_2q_nontrivial_nonentangled_state(forest, use_seed):
+def test_corrected_statistics_2q_nontrivial_nonentangled_state(client: Client, use_seed: bool):
     """Testing that we can successfully correct for observed statistics
         in the presence of readout errors, even for 2q nontrivial but
         nonentangled states.
     Note: this only tests for exhaustive symmetrization in the presence
         of uncorrelated errors
     """
-    qc = get_qc("2q-qvm")
+    qc = get_qc("2q-qvm", client=client)
     if use_seed:
         qc.qam.random_seed = 0
         np.random.seed(13)
@@ -1597,8 +1597,8 @@ def _point_state_fidelity_estimate(v, dim=2):
     return (1.0 + np.sum(v)) / dim
 
 
-def test_bit_flip_state_fidelity(forest, use_seed):
-    qc = get_qc("1q-qvm")
+def test_bit_flip_state_fidelity(client: Client, use_seed: bool):
+    qc = get_qc("1q-qvm", client=client)
     if use_seed:
         qc.qam.random_seed = 0
         np.random.seed(0)
@@ -1638,8 +1638,8 @@ def test_bit_flip_state_fidelity(forest, use_seed):
     np.testing.assert_allclose(expected_fidelity, estimated_fidelity, atol=2e-2)
 
 
-def test_dephasing_state_fidelity(forest, use_seed):
-    qc = get_qc("1q-qvm")
+def test_dephasing_state_fidelity(client: Client, use_seed: bool):
+    qc = get_qc("1q-qvm", client=client)
     if use_seed:
         qc.qam.random_seed = 0
         np.random.seed(0)
@@ -1677,8 +1677,8 @@ def test_dephasing_state_fidelity(forest, use_seed):
     np.testing.assert_allclose(expected_fidelity, estimated_fidelity, atol=2e-2)
 
 
-def test_depolarizing_state_fidelity(forest, use_seed):
-    qc = get_qc("1q-qvm")
+def test_depolarizing_state_fidelity(client: Client, use_seed: bool):
+    qc = get_qc("1q-qvm", client=client)
     if use_seed:
         qc.qam.random_seed = 0
         np.random.seed(0)
@@ -1718,8 +1718,8 @@ def test_depolarizing_state_fidelity(forest, use_seed):
     np.testing.assert_allclose(expected_fidelity, estimated_fidelity, atol=2e-2)
 
 
-def test_unitary_state_fidelity(forest, use_seed):
-    qc = get_qc("1q-qvm")
+def test_unitary_state_fidelity(client: Client, use_seed: bool):
+    qc = get_qc("1q-qvm", client=client)
     if use_seed:
         qc.qam.random_seed = 0
         np.random.seed(0)
@@ -1751,8 +1751,8 @@ def test_unitary_state_fidelity(forest, use_seed):
     np.testing.assert_allclose(expected_fidelity, estimated_fidelity, atol=2e-2)
 
 
-def test_bit_flip_state_fidelity_readout_error(forest, use_seed):
-    qc = get_qc("1q-qvm")
+def test_bit_flip_state_fidelity_readout_error(client: Client, use_seed: bool):
+    qc = get_qc("1q-qvm", client=client)
     if use_seed:
         qc.qam.random_seed = 0
         np.random.seed(0)
@@ -1793,8 +1793,8 @@ def test_bit_flip_state_fidelity_readout_error(forest, use_seed):
     np.testing.assert_allclose(expected_fidelity, estimated_fidelity, atol=2e-2)
 
 
-def test_dephasing_state_fidelity_readout_error(forest, use_seed):
-    qc = get_qc("1q-qvm")
+def test_dephasing_state_fidelity_readout_error(client: Client, use_seed: bool):
+    qc = get_qc("1q-qvm", client=client)
     if use_seed:
         qc.qam.random_seed = 0
         np.random.seed(0)
@@ -1833,8 +1833,8 @@ def test_dephasing_state_fidelity_readout_error(forest, use_seed):
     np.testing.assert_allclose(expected_fidelity, estimated_fidelity, atol=2e-2)
 
 
-def test_depolarizing_state_fidelity_readout_error(forest, use_seed):
-    qc = get_qc("1q-qvm")
+def test_depolarizing_state_fidelity_readout_error(client: Client, use_seed: bool):
+    qc = get_qc("1q-qvm", client=client)
     if use_seed:
         qc.qam.random_seed = 0
         np.random.seed(0)
@@ -1875,8 +1875,8 @@ def test_depolarizing_state_fidelity_readout_error(forest, use_seed):
     np.testing.assert_allclose(expected_fidelity, estimated_fidelity, atol=2e-2)
 
 
-def test_unitary_state_fidelity_readout_error(forest, use_seed):
-    qc = get_qc("1q-qvm")
+def test_unitary_state_fidelity_readout_error(client: Client, use_seed: bool):
+    qc = get_qc("1q-qvm", client=client)
     if use_seed:
         qc.qam.random_seed = 0
         np.random.seed(0)

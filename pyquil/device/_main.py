@@ -86,6 +86,7 @@ class Device(AbstractDevice):
     :ivar NoiseModel noise_model: The noise model for the device.
     """
 
+    # TODO(andrew): update this to take a new ISA object
     def __init__(self, name: str, raw: Dict[str, Any]):
         """
         :param name: name of the device

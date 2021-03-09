@@ -29,7 +29,7 @@ from datetime import datetime, date
 from functools import wraps
 from typing import List, Dict, Any, Callable, Optional
 
-from pyquil.quil import Program
+from pyquil import Program
 from pyquil.version import __version__
 
 if sys.version_info < (3, 7):
