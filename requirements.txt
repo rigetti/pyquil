@@ -1,5 +1,5 @@
 # runtime deps
-numpy
+numpy==1.19.*
 scipy
 lark
 requests
