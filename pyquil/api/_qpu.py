@@ -99,9 +99,7 @@ def _extract_memory_regions(
 
 class QPU(QAM):
     @_record_call
-    def __init__(
-        self, *, quantum_processor_id: str, client: Optional[Client] = None, priority: int = 1
-    ) -> None:
+    def __init__(self, *, quantum_processor_id: str, client: Optional[Client] = None, priority: int = 1) -> None:
         """
         A connection to the QPU.
 
@@ -174,16 +172,17 @@ class QPU(QAM):
 
         job_priority = run_priority if run_priority is not None else self.priority
         job_id = self._client.processor_rpcq_request(
-            self.quantum_processor_id, "execute_qpu_request", request, priority=job_priority,
+            self.quantum_processor_id,
+            "execute_qpu_request",
+            request,
+            priority=job_priority,
         )
         results = self._get_buffers(job_id)
         ro_sources = self.executable.ro_sources
 
         self._memory_results = defaultdict(lambda: None)
         if results:
-            extracted = _extract_memory_regions(
-                self.executable.memory_descriptors, ro_sources, results
-            )
+            extracted = _extract_memory_regions(self.executable.memory_descriptors, ro_sources, results)
             for name, array in extracted.items():
                 self._memory_results[name] = array
         elif not ro_sources:
@@ -205,9 +204,7 @@ class QPU(QAM):
         :param job_id: Unique identifier for the job in question
         :return: Decoded buffers or throw an error
         """
-        buffers = self._client.processor_rpcq_request(
-            self.quantum_processor_id, "get_buffers", job_id, wait=True
-        )
+        buffers = self._client.processor_rpcq_request(self.quantum_processor_id, "get_buffers", job_id, wait=True)
         return {k: decode_buffer(v) for k, v in buffers.items()}
 
     def _build_patch_values(self) -> Dict[str, List[Union[int, float]]]:
@@ -318,8 +315,6 @@ class QPU(QAM):
         elif isinstance(expression, (float, int)):
             return expression
         elif isinstance(expression, MemoryReference):
-            return self._variables_shim.get(
-                ParameterAref(name=expression.name, index=expression.offset), 0
-            )
+            return self._variables_shim.get(ParameterAref(name=expression.name, index=expression.offset), 0)
         else:
             raise ValueError(f"Unexpected expression in gate parameter: {expression}")

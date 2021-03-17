@@ -1,19 +1,20 @@
-import numpy as np
-import pytest
 import json
 import os
 from pathlib import Path
-from requests import RequestException
 from typing import Dict, Any
 
+import numpy as np
+import pytest
 from qcs_api_client.client._configuration import QCSClientConfiguration
 from qcs_api_client.models import InstructionSetArchitecture
+
 from pyquil.api import (
     QVMConnection,
     QVMCompiler,
     Client,
     BenchmarkConnection,
 )
+from pyquil.api._qvm import QVMVersionMismatch
 from pyquil.device import QCSDevice, CompilerDevice
 from pyquil.device.transformers.graph_to_compiler_isa import (
     DEFAULT_1Q_GATES,
@@ -21,15 +22,11 @@ from pyquil.device.transformers.graph_to_compiler_isa import (
     _transform_edge_operation_to_gates,
     _transform_qubit_operation_to_gates,
 )
-from pyquil.api._errors import UnknownApiError
-from pyquil.api._abstract_compiler import QuilcNotRunning, QuilcVersionMismatch
-from pyquil.api._qvm import QVMNotRunning, QVMVersionMismatch
 from pyquil.external.rpcq import CompilerISA
 from pyquil.gates import I
 from pyquil.paulis import sX
 from pyquil.quil import Program
 from pyquil.tests.utils import DummyCompiler
-
 
 DIR_PATH = os.path.dirname(os.path.realpath(__file__))
 
@@ -141,23 +138,18 @@ def qvm(client: Client):
         qvm = QVMConnection(client=client, random_seed=52)
         qvm.run(Program(I(0)), [])
         return qvm
-    except (RequestException, QVMNotRunning, UnknownApiError) as e:
-        return pytest.skip("This test requires QVM connection: {}".format(e))
     except QVMVersionMismatch as e:
         return pytest.skip("This test requires a different version of the QVM: {}".format(e))
+    except Exception as e:
+        return pytest.skip("This test requires QVM connection: {}".format(e))
 
 
 @pytest.fixture()
 def compiler(compiler_device: CompilerDevice, client: Client):
-    try:
-        compiler = QVMCompiler(device=compiler_device, client=client, timeout=1)
-        program = Program(I(0))
-        compiler.quil_to_native_quil(program)
-        return compiler
-    except (RequestException, QuilcNotRunning, UnknownApiError, TimeoutError) as e:
-        return pytest.skip("This test requires compiler connection: {}".format(e))
-    except QuilcVersionMismatch as e:
-        return pytest.skip("This test requires a different version of quilc: {}".format(e))
+    compiler = QVMCompiler(device=compiler_device, client=client, timeout=1)
+    program = Program(I(0))
+    compiler.quil_to_native_quil(program)
+    return compiler
 
 
 @pytest.fixture()
@@ -180,14 +172,9 @@ def client(qcs_client_configuration: QCSClientConfiguration) -> Client:
 
 @pytest.fixture(scope="session")
 def benchmarker(client: Client):
-    try:
-        bm = BenchmarkConnection(client=client, timeout=2)
-        bm.apply_clifford_to_pauli(Program(I(0)), sX(0))
-        return bm
-    except (RequestException, TimeoutError) as e:
-        return pytest.skip(
-            "This test requires a running local benchmarker endpoint (ie quilc): {}".format(e)
-        )
+    bm = BenchmarkConnection(client=client, timeout=2)
+    bm.apply_clifford_to_pauli(Program(I(0)), sX(0))
+    return bm
 
 
 def _str_to_bool(s: str):

@@ -93,9 +93,7 @@ def qubit_adjacent_lifted_gate(i: int, matrix: np.ndarray, n_qubits: int) -> np.
     return np.kron(top_matrix, np.kron(matrix, bottom_matrix))
 
 
-def two_swap_helper(
-    j: int, k: int, num_qubits: int, qubit_map: np.ndarray
-) -> Tuple[np.ndarray, np.ndarray]:
+def two_swap_helper(j: int, k: int, num_qubits: int, qubit_map: np.ndarray) -> Tuple[np.ndarray, np.ndarray]:
     """
     Generate the permutation matrix that permutes two single-particle Hilbert
     spaces into adjacent positions.
@@ -141,9 +139,7 @@ def two_swap_helper(
     return perm, new_qubit_map
 
 
-def permutation_arbitrary(
-    qubit_inds: Sequence[int], n_qubits: int
-) -> Tuple[np.ndarray, np.ndarray, int]:
+def permutation_arbitrary(qubit_inds: Sequence[int], n_qubits: int) -> Tuple[np.ndarray, np.ndarray, int]:
     """
     Generate the permutation matrix that permutes an arbitrary number of
     single-particle Hilbert spaces into adjacent positions.
@@ -325,9 +321,7 @@ def lifted_gate(gate: Gate, n_qubits: int) -> np.ndarray:
 
     matrix = _gate_matrix(gate)
 
-    return lifted_gate_matrix(
-        matrix=matrix, qubit_inds=[q.index for q in gate.qubits], n_qubits=n_qubits
-    )
+    return lifted_gate_matrix(matrix=matrix, qubit_inds=[q.index for q in gate.qubits], n_qubits=n_qubits)
 
 
 def program_unitary(program: Program, n_qubits: int) -> np.ndarray:

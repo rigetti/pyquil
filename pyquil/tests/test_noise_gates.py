@@ -45,7 +45,10 @@ def test_get_qvm_noise_supported_gates_from_aspen8_isa(qcs_aspen8_device, noise_
             assert RZ(THETA, q) in gates
 
     for edge in qcs_aspen8_device._isa.architecture.edges:
-        if (edge.node_ids[0], edge.node_ids[1],) in ASPEN_8_EDGES_NO_CZ:
+        if (
+            edge.node_ids[0],
+            edge.node_ids[1],
+        ) in ASPEN_8_EDGES_NO_CZ:
             continue
         assert CZ(edge.node_ids[0], edge.node_ids[1]) in gates
         assert CZ(edge.node_ids[1], edge.node_ids[0]) in gates

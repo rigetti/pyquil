@@ -86,9 +86,7 @@ def targeted_einsum(gate: np.ndarray, wf: np.ndarray, wf_target_inds: List[int])
     return np.einsum(gate, input_indices, wf, data_indices, output_indices)
 
 
-def targeted_tensordot(
-    gate: np.ndarray, wf: np.ndarray, wf_target_inds: Sequence[int]
-) -> np.ndarray:
+def targeted_tensordot(gate: np.ndarray, wf: np.ndarray, wf_target_inds: Sequence[int]) -> np.ndarray:
     """Left-multiplies the given axes of the wf tensor by the given gate matrix.
 
     Compare with :py:func:`targeted_einsum`. The semantics of these two functions should be
@@ -245,15 +243,11 @@ class NumpyWavefunctionSimulator(AbstractQuantumSimulator):
 
         # Zero out amplitudes corresponding to non-measured bistrings
         other_bit = (measured_bit + 1) % 2
-        other_bit_indices = (
-            (slice(None),) * qubit + (other_bit,) + (slice(None),) * (self.n_qubits - qubit - 1)
-        )
+        other_bit_indices = (slice(None),) * qubit + (other_bit,) + (slice(None),) * (self.n_qubits - qubit - 1)
         self.wf[other_bit_indices] = 0
 
         # Re-normalize amplitudes corresponding to measured bistrings
-        meas_bit_indices = (
-            (slice(None),) * qubit + (measured_bit,) + (slice(None),) * (self.n_qubits - qubit - 1)
-        )
+        meas_bit_indices = (slice(None),) * qubit + (measured_bit,) + (slice(None),) * (self.n_qubits - qubit - 1)
         self.wf[meas_bit_indices] /= np.sqrt(measurement_probs[measured_bit])
         return measured_bit
 
@@ -270,9 +264,7 @@ class NumpyWavefunctionSimulator(AbstractQuantumSimulator):
         self.wf = targeted_tensordot(gate=gate_matrix, wf=self.wf, wf_target_inds=qubit_inds)
         return self
 
-    def do_gate_matrix(
-        self, matrix: np.ndarray, qubits: Sequence[int]
-    ) -> "NumpyWavefunctionSimulator":
+    def do_gate_matrix(self, matrix: np.ndarray, qubits: Sequence[int]) -> "NumpyWavefunctionSimulator":
         """
         Apply an arbitrary unitary; not necessarily a named gate.
 
@@ -311,7 +303,5 @@ class NumpyWavefunctionSimulator(AbstractQuantumSimulator):
         self.wf[(0,) * self.n_qubits] = complex(1.0, 0)
         return self
 
-    def do_post_gate_noise(
-        self, noise_type: str, noise_prob: float, qubits: List[int]
-    ) -> "AbstractQuantumSimulator":
+    def do_post_gate_noise(self, noise_type: str, noise_prob: float, qubits: List[int]) -> "AbstractQuantumSimulator":
         raise NotImplementedError("The numpy simulator cannot handle noise")

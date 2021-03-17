@@ -108,7 +108,9 @@ def _make_wildcard_1q_gates() -> List[GateInfo]:
     return [GateInfo(operator="_", parameters=["_"], arguments=["_"])]
 
 
-def _transform_qubit_operation_to_gates(operation_name: str,) -> List[Union[GateInfo, MeasureInfo]]:
+def _transform_qubit_operation_to_gates(
+    operation_name: str,
+) -> List[Union[GateInfo, MeasureInfo]]:
     if operation_name == Supported1QGate.I:
         return cast(List[Union[GateInfo, MeasureInfo]], _make_i_gates())
     elif operation_name == Supported1QGate.RX:

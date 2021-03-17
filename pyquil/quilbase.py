@@ -146,9 +146,7 @@ RESERVED_WORDS: Container[str] = [
 ]
 
 
-def _extract_qubit_index(
-    qubit: Union[Qubit, QubitPlaceholder, FormalArgument], index: bool = True
-) -> QubitDesignator:
+def _extract_qubit_index(qubit: Union[Qubit, QubitPlaceholder, FormalArgument], index: bool = True) -> QubitDesignator:
     if index and isinstance(qubit, Qubit):
         return qubit.index
     return qubit
@@ -198,9 +196,7 @@ class Gate(AbstractInstruction):
             raise TypeError("Gate name must be a string")
 
         if name in RESERVED_WORDS:
-            raise ValueError(
-                "Cannot use {} for a gate name since it's a reserved word".format(name)
-            )
+            raise ValueError("Cannot use {} for a gate name since it's a reserved word".format(name))
 
         if not isinstance(params, collections.abc.Iterable):
             raise TypeError("Gate params must be an Iterable")
@@ -239,9 +235,7 @@ class Gate(AbstractInstruction):
                 _format_qubits_out(self.qubits),
             )
 
-    def controlled(
-        self, control_qubit: Union[QubitDesignator, Sequence[QubitDesignator]]
-    ) -> "Gate":
+    def controlled(self, control_qubit: Union[QubitDesignator, Sequence[QubitDesignator]]) -> "Gate":
         """
         Add the CONTROLLED modifier to the gate with the given control qubit or Sequence of control
         qubits.
@@ -261,9 +255,7 @@ class Gate(AbstractInstruction):
         if not isinstance(alt_params, list):
             raise TypeError("Gate params must be a list")
         if len(self.params) != len(alt_params):
-            raise ValueError(
-                "Expected {} parameters but received {}".format(len(self.params), len(alt_params))
-            )
+            raise ValueError("Expected {} parameters but received {}".format(len(self.params), len(alt_params)))
 
         fork_qubit = unpack_qubit(fork_qubit)
 
@@ -412,9 +404,7 @@ class DefGate(AbstractInstruction):
             raise TypeError("Gate name must be a string")
 
         if name in RESERVED_WORDS:
-            raise ValueError(
-                "Cannot use {} for a gate name since it's a reserved word".format(name)
-            )
+            raise ValueError("Cannot use {} for a gate name since it's a reserved word".format(name))
 
         if isinstance(matrix, list):
             rows = len(matrix)
@@ -436,17 +426,13 @@ class DefGate(AbstractInstruction):
             if not isinstance(parameters, list):
                 raise TypeError("Paramaters must be a list")
 
-            expressions = [
-                elem for row in self.matrix for elem in row if isinstance(elem, Expression)
-            ]
+            expressions = [elem for row in self.matrix for elem in row if isinstance(elem, Expression)]
             used_params = {param for exp in expressions for param in _contained_parameters(exp)}
 
             if set(parameters) != used_params:
                 raise ValueError(
                     "Parameters list does not match parameters actually used in gate matrix:\n"
-                    "Parameters in argument: {}, Parameters in matrix: {}".format(
-                        parameters, used_params
-                    )
+                    "Parameters in argument: {}, Parameters in matrix: {}".format(parameters, used_params)
                 )
         else:
             is_unitary = np.allclose(np.eye(rows), self.matrix.dot(self.matrix.T.conj()))
@@ -499,9 +485,7 @@ class DefGate(AbstractInstruction):
                 name=self.name, params=list(params), qubits=list(map(unpack_qubit, qubits))
             )
         else:
-            return lambda *qubits: Gate(
-                name=self.name, params=[], qubits=list(map(unpack_qubit, qubits))
-            )
+            return lambda *qubits: Gate(name=self.name, params=[], qubits=list(map(unpack_qubit, qubits)))
 
     def num_args(self) -> int:
         """
@@ -520,9 +504,7 @@ class DefPermutationGate(DefGate):
             raise ValueError(f"Cannot use {name} for a gate name since it's a reserved word")
 
         if not isinstance(permutation, (list, np.ndarray)):
-            raise ValueError(
-                f"Permutation must be a list or NumPy array, got value of type {type(permutation)}"
-            )
+            raise ValueError(f"Permutation must be a list or NumPy array, got value of type {type(permutation)}")
 
         permutation = np.asarray(permutation)
 
@@ -789,11 +771,7 @@ class ArithmeticBinaryOp(AbstractInstruction):
     def __init__(self, left: MemoryReference, right: Union[MemoryReference, int, float]):
         if not isinstance(left, MemoryReference):
             raise TypeError("left operand should be an MemoryReference")
-        if (
-            not isinstance(right, MemoryReference)
-            and not isinstance(right, int)
-            and not isinstance(right, float)
-        ):
+        if not isinstance(right, MemoryReference) and not isinstance(right, int) and not isinstance(right, float):
             raise TypeError("right operand should be an MemoryReference or a numeric literal")
         self.left = left
         self.right = right
@@ -852,14 +830,8 @@ class ClassicalMove(AbstractInstruction):
                 "Note that the order of the operands in pyQuil 2.0 has reversed from "
                 "the order of pyQuil 1.9 ."
             )
-        if (
-            not isinstance(right, MemoryReference)
-            and not isinstance(right, int)
-            and not isinstance(right, float)
-        ):
-            raise TypeError(
-                "Right operand of MOVE should be an MemoryReference or a numeric literal"
-            )
+        if not isinstance(right, MemoryReference) and not isinstance(right, int) and not isinstance(right, float):
+            raise TypeError("Right operand of MOVE should be an MemoryReference or a numeric literal")
         self.left = left
         self.right = right
 
@@ -952,14 +924,10 @@ class ClassicalStore(AbstractInstruction):
 
     op = "STORE"
 
-    def __init__(
-        self, target: str, left: MemoryReference, right: Union[MemoryReference, int, float]
-    ):
+    def __init__(self, target: str, left: MemoryReference, right: Union[MemoryReference, int, float]):
         if not isinstance(left, MemoryReference):
             raise TypeError("left operand should be an MemoryReference")
-        if not (
-            isinstance(right, MemoryReference) or isinstance(right, int) or isinstance(right, float)
-        ):
+        if not (isinstance(right, MemoryReference) or isinstance(right, int) or isinstance(right, float)):
             raise TypeError("right operand should be an MemoryReference or an int or float.")
         self.target = target
         self.left = left
@@ -986,9 +954,7 @@ class ClassicalComparison(AbstractInstruction):
             raise TypeError("target operand should be an MemoryReference")
         if not isinstance(left, MemoryReference):
             raise TypeError("left operand should be an MemoryReference")
-        if not (
-            isinstance(right, MemoryReference) or isinstance(right, int) or isinstance(right, float)
-        ):
+        if not (isinstance(right, MemoryReference) or isinstance(right, int) or isinstance(right, float)):
             raise TypeError("right operand should be an MemoryReference or an int or float.")
         self.target = target
         self.left = left
@@ -1075,10 +1041,7 @@ class Pragma(AbstractInstruction):
             raise TypeError(f"Pragma arguments must be an Iterable: {args}")
         for a in args:
             if not (
-                isinstance(a, str)
-                or isinstance(a, int)
-                or isinstance(a, QubitPlaceholder)
-                or isinstance(a, Qubit)
+                isinstance(a, str) or isinstance(a, int) or isinstance(a, QubitPlaceholder) or isinstance(a, Qubit)
             ):
                 raise TypeError(f"Pragma arguments must be strings or integers: {a}")
         if not isinstance(freeform_string, str):
@@ -1305,9 +1268,7 @@ class DelayFrames(AbstractInstruction):
         if len(frames) == 0:
             raise ValueError("DELAY expected nonempty list of frames.")
         if len(set(tuple(f.qubits) for f in frames)) != 1:
-            raise ValueError(
-                "DELAY with explicit frames requires all frames are on the same qubits."
-            )
+            raise ValueError("DELAY with explicit frames requires all frames are on the same qubits.")
 
         self.frames = frames
         self.duration = duration
@@ -1349,7 +1310,10 @@ class Fence(AbstractInstruction):
 
 class DefWaveform(AbstractInstruction):
     def __init__(
-        self, name: str, parameters: List[Parameter], entries: List[Union[Complex, Expression]],
+        self,
+        name: str,
+        parameters: List[Parameter],
+        entries: List[Union[Complex, Expression]],
     ):
         self.name = name
         self.parameters = parameters

@@ -32,7 +32,7 @@ from pyquil.paulis import PauliTerm
 from pyquil.quil import Program
 from pyquil.quilatom import MemoryReference, ExpressionDesignator
 from pyquil.quilbase import Gate
-from pyquil.version import __version__
+from pyquil._version import pyquil_version
 
 if sys.version_info < (3, 7):
     from rpcq.external.dataclasses import dataclass
@@ -82,9 +82,7 @@ class AbstractCompiler(ABC):
         self._client = client or Client()
 
         if not self._client.quilc_url.startswith("tcp://"):
-            raise ValueError(
-                f"Expected compiler URL '{self._client.quilc_url}' to start with 'tcp://'"
-            )
+            raise ValueError(f"Expected compiler URL '{self._client.quilc_url}' to start with 'tcp://'")
         self.set_timeout(timeout)
 
     def get_version_info(self) -> Dict[str, Any]:
@@ -94,7 +92,8 @@ class AbstractCompiler(ABC):
         :return: Dictionary of version information.
         """
         quilc_version_info = self._client.compiler_rpcq_request(
-            "get_version_info", timeout=self._timeout,
+            "get_version_info",
+            timeout=self._timeout,
         )
         return {"quilc": quilc_version_info}
 
@@ -114,7 +113,10 @@ class AbstractCompiler(ABC):
             target_device=compiler_isa_to_target_device(compiler_isa),
         )
         response = self._client.compiler_rpcq_request(
-            "quil_to_native_quil", request, protoquil=protoquil, timeout=self._timeout,
+            "quil_to_native_quil",
+            request,
+            protoquil=protoquil,
+            timeout=self._timeout,
         ).asdict()
         nq_program = parse_program(response["quil"])
         nq_program.native_quil_metadata = response["metadata"]
@@ -124,9 +126,7 @@ class AbstractCompiler(ABC):
 
     def _connect(self) -> None:
         try:
-            quilc_version_dict = self._client.compiler_rpcq_request(
-                "get_version_info", timeout=self._timeout
-            )
+            quilc_version_dict = self._client.compiler_rpcq_request("get_version_info", timeout=self._timeout)
             _check_quilc_version(quilc_version_dict)
         except TimeoutError:
             raise QuilcNotRunning(
@@ -175,7 +175,7 @@ def _check_quilc_version(version_dict: Dict[str, str]) -> None:
     if major == 1 and minor < 8:
         raise QuilcVersionMismatch(
             "Must use quilc >= 1.8.0 with pyquil >= 2.8.0, but you "
-            f"have quilc {quilc_version} and pyquil {__version__}"
+            f"have quilc {quilc_version} and pyquil {pyquil_version}"
         )
 
 

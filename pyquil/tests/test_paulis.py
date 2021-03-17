@@ -105,11 +105,7 @@ def test_simplify_term_xz():
 
 
 def test_simplify_term_multindex():
-    term = (
-        PauliTerm("X", 0, coefficient=-0.5)
-        * PauliTerm("Z", 0, coefficient=-1.0)
-        * PauliTerm("X", 2, 0.5)
-    )
+    term = PauliTerm("X", 0, coefficient=-0.5) * PauliTerm("Z", 0, coefficient=-1.0) * PauliTerm("X", 2, 0.5)
     assert term.id(sort_ops=False) == "Y0X2"
     assert term.coefficient == -0.25j
 
@@ -330,9 +326,7 @@ def test_exponentiate_bp0_ZY():
     generator = PauliTerm("Y", 0, 1.0) * PauliTerm("Z", 1, 1.0)
     para_prog = exponential_map(generator)
     prog = para_prog(1)
-    result_prog = Program().inst(
-        [RX(math.pi / 2.0, 0), CNOT(0, 1), RZ(2.0, qubit=1), CNOT(0, 1), RX(-math.pi / 2, 0)]
-    )
+    result_prog = Program().inst([RX(math.pi / 2.0, 0), CNOT(0, 1), RZ(2.0, qubit=1), CNOT(0, 1), RX(-math.pi / 2, 0)])
     assert prog == result_prog
 
 
@@ -341,9 +335,7 @@ def test_exponentiate_bp1_YZ():
     generator = PauliTerm("Z", 0, 1.0) * PauliTerm("Y", 1, 1.0)
     para_prog = exponential_map(generator)
     prog = para_prog(1)
-    result_prog = Program().inst(
-        [RX(math.pi / 2.0, 1), CNOT(0, 1), RZ(2.0, 1), CNOT(0, 1), RX(-math.pi / 2.0, 1)]
-    )
+    result_prog = Program().inst([RX(math.pi / 2.0, 1), CNOT(0, 1), RZ(2.0, 1), CNOT(0, 1), RX(-math.pi / 2.0, 1)])
     assert prog == result_prog
 
 
@@ -370,12 +362,7 @@ def test_exponentiate_3cob():
 
 def test_exponentiate_3ns():
     # testing circuit for 3-terms non-sequential
-    generator = (
-        PauliTerm("Y", 0, 1.0)
-        * PauliTerm("I", 1, 1.0)
-        * PauliTerm("Y", 2, 1.0)
-        * PauliTerm("Y", 3, 1.0)
-    )
+    generator = PauliTerm("Y", 0, 1.0) * PauliTerm("I", 1, 1.0) * PauliTerm("Y", 2, 1.0) * PauliTerm("Y", 3, 1.0)
     para_prog = exponential_map(generator)
     prog = para_prog(1)
     result_prog = Program().inst(
@@ -450,9 +437,7 @@ def test_trotterize():
 
     # trotter_order 1 steps 2
     prog = trotterize(term_one, term_two, trotter_steps=2)
-    result_prog = Program().inst(
-        [H(0), RZ(1.0, 0), H(0), RZ(1.0, 0), H(0), RZ(1.0, 0), H(0), RZ(1.0, 0)]
-    )
+    result_prog = Program().inst([H(0), RZ(1.0, 0), H(0), RZ(1.0, 0), H(0), RZ(1.0, 0), H(0), RZ(1.0, 0)])
     assert prog == result_prog
 
     # trotter_order 2 steps 1
@@ -564,8 +549,7 @@ def _commutator(t1, t2):
     with warnings.catch_warnings():
         warnings.filterwarnings(
             "ignore",
-            message=r"The term .+ will be combined with .+, "
-            r"but they have different orders of operations.*",
+            message=r"The term .+ will be combined with .+, " r"but they have different orders of operations.*",
             category=UserWarning,
         )
         return t1 * t2 + -1 * t2 * t1
@@ -650,12 +634,8 @@ def test_term_equality():
         sI(0) != 0
     assert sI(0) == sI(0)
     assert PauliTerm("X", 10, 1 + 1.0j) == PauliTerm("X", 10, 1 + 1.0j)
-    assert PauliTerm("X", 10, 1 + 1.0j) + PauliTerm("X", 10, 1 + 1.0j) != PauliTerm(
-        "X", 10, 1 + 1.0j
-    )
-    assert PauliTerm("X", 10, 1 + 1.0j) != PauliTerm("X", 10, 1 + 1.0j) + PauliTerm(
-        "X", 10, 1 + 1.0j
-    )
+    assert PauliTerm("X", 10, 1 + 1.0j) + PauliTerm("X", 10, 1 + 1.0j) != PauliTerm("X", 10, 1 + 1.0j)
+    assert PauliTerm("X", 10, 1 + 1.0j) != PauliTerm("X", 10, 1 + 1.0j) + PauliTerm("X", 10, 1 + 1.0j)
 
 
 def test_term_with_coeff():

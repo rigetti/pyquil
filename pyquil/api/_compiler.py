@@ -118,9 +118,7 @@ class QPUCompiler(AbstractCompiler):
             ),
         )
 
-        ro_sources = cast(
-            List[List[str]], [] if response.ro_sources == UNSET else response.ro_sources
-        )
+        ro_sources = cast(List[List[str]], [] if response.ro_sources == UNSET else response.ro_sources)
 
         def to_expression(rule: str) -> ExpressionDesignator:
             # We can only parse complete lines of Quil, so we wrap the arithmetic expression
@@ -133,17 +131,14 @@ class QPUCompiler(AbstractCompiler):
             memory_descriptors=_collect_memory_descriptors(nq_program),
             ro_sources={parse_mref(mref): source for mref, source in ro_sources},
             recalculation_table={
-                mref: to_expression(rule)
-                for mref, rule in arithmetic_response.recalculation_table.items()
+                mref: to_expression(rule) for mref, rule in arithmetic_response.recalculation_table.items()
             },
         )
 
     def _get_calibration_program(self) -> Program:
         response = cast(
             GetQuiltCalibrationsResponse,
-            self._client.qcs_request(
-                get_quilt_calibrations, quantum_processor_id=self.quantum_processor_id
-            ),
+            self._client.qcs_request(get_quilt_calibrations, quantum_processor_id=self.quantum_processor_id),
         )
         return parse_program(response.quilt)
 
@@ -182,9 +177,7 @@ class QVMCompiler(AbstractCompiler):
     """
 
     @_record_call
-    def __init__(
-        self, *, device: AbstractDevice, client: Optional[Client] = None, timeout: float = 10
-    ) -> None:
+    def __init__(self, *, device: AbstractDevice, client: Optional[Client] = None, timeout: float = 10) -> None:
         """
         Client to communicate with compiler.
 

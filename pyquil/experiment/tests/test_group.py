@@ -30,11 +30,17 @@ from pyquil.gates import H
 
 def test_results_by_qubit_groups():
     er1 = ExperimentResult(
-        setting=ExperimentSetting(plusX(0), sZ(0)), expectation=0.0, std_err=0.0, total_counts=1,
+        setting=ExperimentSetting(plusX(0), sZ(0)),
+        expectation=0.0,
+        std_err=0.0,
+        total_counts=1,
     )
 
     er2 = ExperimentResult(
-        setting=ExperimentSetting(plusX(0), sZ(1)), expectation=0.0, std_err=0.0, total_counts=1,
+        setting=ExperimentSetting(plusX(0), sZ(1)),
+        expectation=0.0,
+        std_err=0.0,
+        total_counts=1,
     )
 
     er3 = ExperimentResult(
@@ -141,13 +147,7 @@ def test_max_weight_operator_misc():
     assert _max_weight_operator([z0z1_term, sX(5) * sZ(7)]) is not None
 
     xxxx_terms = (
-        sX(1) * sX(2)
-        + sX(2)
-        + sX(3) * sX(4)
-        + sX(4)
-        + sX(1) * sX(3) * sX(4)
-        + sX(1) * sX(4)
-        + sX(1) * sX(2) * sX(3)
+        sX(1) * sX(2) + sX(2) + sX(3) * sX(4) + sX(4) + sX(1) * sX(3) * sX(4) + sX(1) * sX(4) + sX(1) * sX(2) * sX(3)
     )
     true_term = sX(1) * sX(2) * sX(3) * sX(4)
     assert _max_weight_operator(xxxx_terms.terms) == true_term
@@ -243,9 +243,7 @@ def test_group_experiments_greedy():
         [
             [
                 ExperimentSetting(
-                    TensorProductState.from_str(
-                        "Z0_7 * Y0_8 * Z0_1 * Y0_4 * Z0_2 * Y0_5 * Y0_0 * X0_6"
-                    ),
+                    TensorProductState.from_str("Z0_7 * Y0_8 * Z0_1 * Y0_4 * Z0_2 * Y0_5 * Y0_0 * X0_6"),
                     PauliTerm.from_compact_str("(1+0j)*Z4X8Y5X3Y7Y1"),
                 ),
                 ExperimentSetting(plusZ(7), sY(1)),

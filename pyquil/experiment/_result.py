@@ -180,7 +180,8 @@ def bitstrings_to_expectations(
 
 
 def correct_experiment_result(
-    result: ExperimentResult, calibration: ExperimentResult,
+    result: ExperimentResult,
+    calibration: ExperimentResult,
 ) -> ExperimentResult:
     """
     Given a raw, unmitigated result and its associated readout calibration, produce the result
@@ -204,8 +205,7 @@ def correct_experiment_result(
     if result.additional_results is not None and calibration.additional_results:
         assert len(result.additional_results) == len(calibration.additional_results)
         additional_results = [
-            correct_experiment_result(r, c)
-            for r, c in zip(result.additional_results, calibration.additional_results)
+            correct_experiment_result(r, c) for r, c in zip(result.additional_results, calibration.additional_results)
         ]
 
     return ExperimentResult(

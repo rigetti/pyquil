@@ -37,8 +37,7 @@ def qcs_isa_to_compiler_isa(isa: InstructionSetArchitecture) -> CompilerISA:
             if operation.node_count == 1:
                 if len(site.node_ids) != 1:
                     raise QCSISAParseError(
-                        f"operation {operation.name} has node count 1, but "
-                        f"site has {len(site.node_ids)} node_ids"
+                        f"operation {operation.name} has node count 1, but " f"site has {len(site.node_ids)} node_ids"
                     )
                 operation_qubit = get_qubit(device, site.node_ids[0])
                 if operation_qubit is None:
@@ -52,16 +51,13 @@ def qcs_isa_to_compiler_isa(isa: InstructionSetArchitecture) -> CompilerISA:
                 qubit_operations_seen[operation_qubit.id].add(operation.name)
 
                 operation_qubit.gates.extend(
-                    _transform_qubit_operation_to_gates(
-                        operation.name, operation_qubit.id, site.characteristics
-                    )
+                    _transform_qubit_operation_to_gates(operation.name, operation_qubit.id, site.characteristics)
                 )
 
             elif operation.node_count == 2:
                 if len(site.node_ids) != 2:
                     QCSISAParseError(
-                        f"operation {operation.name} has node count 2, but site "
-                        f"has {len(site.node_ids)} node_ids"
+                        f"operation {operation.name} has node count 2, but site " f"has {len(site.node_ids)} node_ids"
                     )
 
                 operation_edge = get_edge(device, site.node_ids[0], site.node_ids[1])
@@ -76,14 +72,10 @@ def qcs_isa_to_compiler_isa(isa: InstructionSetArchitecture) -> CompilerISA:
                     continue
                 edge_operations_seen[edge_id].add(operation.name)
 
-                operation_edge.gates.extend(
-                    _transform_edge_operation_to_gates(operation.name, site.characteristics)
-                )
+                operation_edge.gates.extend(_transform_edge_operation_to_gates(operation.name, site.characteristics))
 
             else:
-                raise QCSISAParseError(
-                    "unexpected operation node count: {}".format(operation.node_count)
-                )
+                raise QCSISAParseError("unexpected operation node count: {}".format(operation.node_count))
 
     return device
 
@@ -193,16 +185,16 @@ def _make_wildcard_1q_gates(node_id: int) -> List[GateInfo]:
 
 
 def _transform_qubit_operation_to_gates(
-    operation_name: str, node_id: int, characteristics: List[Characteristic],
+    operation_name: str,
+    node_id: int,
+    characteristics: List[Characteristic],
 ) -> List[Union[GateInfo, MeasureInfo]]:
     if operation_name == Supported1QGate.RX:
         return cast(List[Union[GateInfo, MeasureInfo]], _make_rx_gates(node_id, characteristics))
     elif operation_name == Supported1QGate.RZ:
         return cast(List[Union[GateInfo, MeasureInfo]], _make_rz_gates(node_id))
     elif operation_name == Supported1QGate.MEASURE:
-        return cast(
-            List[Union[GateInfo, MeasureInfo]], _make_measure_gates(node_id, characteristics)
-        )
+        return cast(List[Union[GateInfo, MeasureInfo]], _make_measure_gates(node_id, characteristics))
     elif operation_name == Supported1QGate.WILDCARD:
         return cast(List[Union[GateInfo, MeasureInfo]], _make_wildcard_1q_gates(node_id))
     elif operation_name in {"I", "RESET"}:
@@ -308,7 +300,8 @@ def _make_wildcard_2q_gates() -> List[GateInfo]:
 
 
 def _transform_edge_operation_to_gates(
-    operation_name: str, characteristics: List[Characteristic],
+    operation_name: str,
+    characteristics: List[Characteristic],
 ) -> List[GateInfo]:
     if operation_name == Supported2QGate.CZ:
         return _make_cz_gates(characteristics)

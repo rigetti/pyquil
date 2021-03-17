@@ -106,9 +106,7 @@ def test_split_measures():
 
 def test_unsupported_ops():
     target = Label("target")
-    base_prog = Program(
-        Declare("reg1", "BIT"), Declare("reg2", "BIT"), H(0), JumpTarget(target), CNOT(0, 1)
-    )
+    base_prog = Program(Declare("reg1", "BIT"), Declare("reg2", "BIT"), H(0), JumpTarget(target), CNOT(0, 1))
 
     bad_ops = [WAIT, Jump(target), MOVE(MemoryReference("reg1"), MemoryReference("reg2"))]
 

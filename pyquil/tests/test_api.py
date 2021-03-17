@@ -71,8 +71,7 @@ def test_sync_run_mock(qvm: QVMConnection, httpx_mock: HTTPXMock):
                 "type": "multishot",
                 "addresses": {"ro": [0, 1]},
                 "trials": 2,
-                "compiled-quil": "DECLARE ro BIT[2]\nH 0\nCNOT 0 1\nMEASURE 0 ro[0]"
-                + "\nMEASURE 1 ro[1]\n",
+                "compiled-quil": "DECLARE ro BIT[2]\nH 0\nCNOT 0 1\nMEASURE 0 ro[0]" + "\nMEASURE 1 ro[1]\n",
                 "rng-seed": 52,
             }
         ).encode(),
@@ -136,9 +135,7 @@ def test_sync_run_and_measure(qvm):
         qvm.run_and_measure(EMPTY_PROGRAM, [0])
 
 
-WAVEFUNCTION_PROGRAM = Program(
-    Declare("ro", "BIT"), H(0), CNOT(0, 1), MEASURE(0, MemoryReference("ro")), H(0)
-)
+WAVEFUNCTION_PROGRAM = Program(Declare("ro", "BIT"), H(0), CNOT(0, 1), MEASURE(0, MemoryReference("ro")), H(0))
 
 
 def test_sync_expectation_mock(qvm: QVMConnection, httpx_mock: HTTPXMock):

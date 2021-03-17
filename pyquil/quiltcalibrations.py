@@ -75,9 +75,7 @@ def fill_placeholders(obj, placeholder_values: Dict[Union[FormalArgument, Parame
             return obj
         elif isinstance(obj, Expression):
             # defer to the usual PyQuil substitution
-            return substitute(
-                obj, {k: v for k, v in placeholder_values.items() if isinstance(k, Parameter)}
-            )
+            return substitute(obj, {k: v for k, v in placeholder_values.items() if isinstance(k, Parameter)})
         elif isinstance(obj, FormalArgument):
             return placeholder_values[obj]
         elif isinstance(obj, Frame):
@@ -124,9 +122,7 @@ def fill_placeholders(obj, placeholder_values: Dict[Union[FormalArgument, Parame
                 attrs = specs[type(obj)]
                 updated = copy(obj)
                 for attr in attrs:
-                    setattr(
-                        updated, attr, fill_placeholders(getattr(updated, attr), placeholder_values)
-                    )
+                    setattr(updated, attr, fill_placeholders(getattr(updated, attr), placeholder_values))
                 return updated
             else:
                 raise CalibrationError(f"Unable to fill placeholders in object {obj}.")

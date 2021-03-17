@@ -1,0 +1,39 @@
+{
+  "name": "pyquil-semantic-release",
+  "version": "1.0.0",
+  "description": "Encapsulate dependencies needed to use semantic-release",
+  "dependencies": {
+    "@semantic-release/exec": "^5.0.0",
+    "@semantic-release/git": "^9.0.0",
+    "@semantic-release/gitlab": "^6.0.4",
+    "conventional-changelog-eslint": "^3.0.8",
+    "semantic-release": "^17.1.1"
+  },
+  "release": {
+    "branches": ["master"],
+    "plugins": [
+      ["@semantic-release/commit-analyzer",{
+        "preset": "eslint",
+        "releaseRules": [
+          {"tag": "Breaking", "release": "major"},
+          {"tag": "Update", "release": "minor"},
+          {"tag": "Fix", "release": "patch"},
+          {"tag": "New", "release": "patch"},
+          {"tag": "Upgrade", "release": "patch"}
+        ]
+      }],
+      ["@semantic-release/release-notes-generator", {
+        "preset": "eslint"
+      }],
+      ["@semantic-release/exec",{
+        "prepareCmd": "sh prepare_release.sh ${nextRelease.version}"
+      }],
+      "@semantic-release/github",
+      ["@semantic-release/git", {
+        "assets": ["pyproject.toml", "setup.py"],
+        "message": "Release v${nextRelease.version} [skip ci]"
+      }]
+    ],
+    "repositoryUrl": "ssh://git@github.com/rigetti/pyquil.git"
+  }
+}

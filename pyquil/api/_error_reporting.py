@@ -30,7 +30,7 @@ from functools import wraps
 from typing import List, Dict, Any, Callable, Optional
 
 from pyquil import Program
-from pyquil.version import __version__
+from pyquil._version import pyquil_version
 
 if sys.version_info < (3, 7):
     from pyquil.external.dataclasses import dataclass, is_dataclass, asdict
@@ -76,9 +76,7 @@ class CallLogKey:
     kwargs: Dict[str, Any]
 
     def __hash__(self) -> int:
-        finger_print = (
-            (self.name,) + tuple(self.args) + tuple(sorted(self.kwargs.items(), key=lambda i: i[0]))
-        )
+        finger_print = (self.name,) + tuple(self.args) + tuple(sorted(self.kwargs.items(), key=lambda i: i[0]))
         return hash(finger_print)
 
     def __repr__(self) -> str:
@@ -115,7 +113,7 @@ def json_serialization_helper(o: object) -> Any:
 
 
 def generate_system_info() -> Dict[str, str]:
-    system_info = {"python_version": sys.version, "pyquil_version": __version__}
+    system_info = {"python_version": sys.version, "pyquil_version": pyquil_version()}
 
     return system_info
 
@@ -152,9 +150,7 @@ class ErrorContext(object):
                 name=item.function,
                 filename=item.filename,
                 line_number=item.lineno,
-                locals={
-                    k: serialize_object_for_logging(v) for (k, v) in item.frame.f_locals.items()
-                },
+                locals={k: serialize_object_for_logging(v) for (k, v) in item.frame.f_locals.items()},
             )
             for item in trace
         ]
@@ -197,9 +193,7 @@ Rigetti Computing support by email at support@rigetti.com for assistance.
 global_error_context: Optional[ErrorContext] = None
 
 
-def pyquil_protect(
-    func: Callable[..., Any], log_filename: str = "pyquil_error.log"
-) -> Callable[..., Any]:
+def pyquil_protect(func: Callable[..., Any], log_filename: str = "pyquil_error.log") -> Callable[..., Any]:
     """
     A decorator that sets up an error context, captures errors, and tears down the context.
     """
@@ -243,9 +237,7 @@ def _record_call(func: Callable[..., Any]) -> Callable[..., Any]:
                 kwargs={k: serialize_object_for_logging(v) for k, v in kwargs.items()},
             )
 
-            pre_entry = CallLogValue(
-                timestamp_in=datetime.utcnow(), timestamp_out=None, return_value=None
-            )
+            pre_entry = CallLogValue(timestamp_in=datetime.utcnow(), timestamp_out=None, return_value=None)
             global_error_context.log[key] = pre_entry
 
         val = func(*args, **kwargs)

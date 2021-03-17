@@ -574,9 +574,7 @@ def DECLARE(
     )
 
 
-def MEASURE(
-    qubit: QubitDesignator, classical_reg: Optional[MemoryReferenceDesignator]
-) -> Measurement:
+def MEASURE(qubit: QubitDesignator, classical_reg: Optional[MemoryReferenceDesignator]) -> Measurement:
     """
     Produce a MEASURE instruction.
 
@@ -661,9 +659,7 @@ def AND(
     return ClassicalAnd(left, right)
 
 
-def OR(
-    classical_reg1: MemoryReferenceDesignator, classical_reg2: MemoryReferenceDesignator
-) -> ClassicalInclusiveOr:
+def OR(classical_reg1: MemoryReferenceDesignator, classical_reg2: MemoryReferenceDesignator) -> ClassicalInclusiveOr:
     """
     Produce an OR instruction.
 
@@ -722,9 +718,7 @@ def MOVE(
     return ClassicalMove(left, right)
 
 
-def EXCHANGE(
-    classical_reg1: MemoryReferenceDesignator, classical_reg2: MemoryReferenceDesignator
-) -> ClassicalExchange:
+def EXCHANGE(classical_reg1: MemoryReferenceDesignator, classical_reg2: MemoryReferenceDesignator) -> ClassicalExchange:
     """
     Produce an EXCHANGE instruction.
 
@@ -748,9 +742,7 @@ def LOAD(
     :param offset_reg: Offset into region of memory to load from. Must be a MemoryReference.
     :return: A ClassicalLoad instance.
     """
-    return ClassicalLoad(
-        unpack_classical_reg(target_reg), region_name, unpack_classical_reg(offset_reg)
-    )
+    return ClassicalLoad(unpack_classical_reg(target_reg), region_name, unpack_classical_reg(offset_reg))
 
 
 def STORE(
@@ -771,9 +763,7 @@ def STORE(
     return ClassicalStore(region_name, unpack_classical_reg(offset_reg), source)
 
 
-def CONVERT(
-    classical_reg1: MemoryReferenceDesignator, classical_reg2: MemoryReferenceDesignator
-) -> ClassicalConvert:
+def CONVERT(classical_reg1: MemoryReferenceDesignator, classical_reg2: MemoryReferenceDesignator) -> ClassicalConvert:
     """
     Produce a CONVERT instruction.
 
@@ -781,14 +771,10 @@ def CONVERT(
     :param classical_reg2: MemoryReference to read from.
     :return: A ClassicalConvert instance.
     """
-    return ClassicalConvert(
-        unpack_classical_reg(classical_reg1), unpack_classical_reg(classical_reg2)
-    )
+    return ClassicalConvert(unpack_classical_reg(classical_reg1), unpack_classical_reg(classical_reg2))
 
 
-def ADD(
-    classical_reg: MemoryReferenceDesignator, right: Union[MemoryReferenceDesignator, int, float]
-) -> ClassicalAdd:
+def ADD(classical_reg: MemoryReferenceDesignator, right: Union[MemoryReferenceDesignator, int, float]) -> ClassicalAdd:
     """
     Produce an ADD instruction.
 
@@ -801,9 +787,7 @@ def ADD(
     return ClassicalAdd(left, right)
 
 
-def SUB(
-    classical_reg: MemoryReferenceDesignator, right: Union[MemoryReferenceDesignator, int, float]
-) -> ClassicalSub:
+def SUB(classical_reg: MemoryReferenceDesignator, right: Union[MemoryReferenceDesignator, int, float]) -> ClassicalSub:
     """
     Produce a SUB instruction.
 
@@ -816,9 +800,7 @@ def SUB(
     return ClassicalSub(left, right)
 
 
-def MUL(
-    classical_reg: MemoryReferenceDesignator, right: Union[MemoryReferenceDesignator, int, float]
-) -> ClassicalMul:
+def MUL(classical_reg: MemoryReferenceDesignator, right: Union[MemoryReferenceDesignator, int, float]) -> ClassicalMul:
     """
     Produce a MUL instruction.
 
@@ -831,9 +813,7 @@ def MUL(
     return ClassicalMul(left, right)
 
 
-def DIV(
-    classical_reg: MemoryReferenceDesignator, right: Union[MemoryReferenceDesignator, int, float]
-) -> ClassicalDiv:
+def DIV(classical_reg: MemoryReferenceDesignator, right: Union[MemoryReferenceDesignator, int, float]) -> ClassicalDiv:
     """
     Produce an DIV instruction.
 
@@ -1163,9 +1143,7 @@ QUILT_INSTRUCTIONS: Mapping[str, Callable[..., AbstractInstruction]] = {
 Dictionary of Quil-T AST construction functions keyed by instruction name.
 """
 
-STANDARD_INSTRUCTIONS: Mapping[
-    str, Union[AbstractInstruction, Callable[..., AbstractInstruction]]
-] = {
+STANDARD_INSTRUCTIONS: Mapping[str, Union[AbstractInstruction, Callable[..., AbstractInstruction]]] = {
     "WAIT": WAIT,
     "RESET": RESET,
     "DECLARE": DECLARE,

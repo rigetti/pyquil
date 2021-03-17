@@ -71,11 +71,7 @@ def _abbrev_program(program: Program, max_len: int = 10) -> str:
         first_n = max_len // 2
         last_n = max_len - first_n
         excluded = len(program_lines) - max_len
-        program_lines = (
-            program_lines[:first_n]
-            + [f"... {excluded} instrs not shown ..."]
-            + program_lines[-last_n:]
-        )
+        program_lines = program_lines[:first_n] + [f"... {excluded} instrs not shown ..."] + program_lines[-last_n:]
 
     return "   " + "\n   ".join(program_lines)
 
@@ -168,8 +164,7 @@ class Experiment:
         self.program = program
         if qubits is not None:
             warnings.warn(
-                "The 'qubits' parameter has been deprecated and will be removed"
-                "in a future release of pyquil"
+                "The 'qubits' parameter has been deprecated and will be removed" "in a future release of pyquil"
             )
         self.qubits = qubits
         self.symmetrization = SymmetrizationLevel(symmetrization)
@@ -237,9 +232,7 @@ class Experiment:
     def reverse(self) -> None:
         self._settings.reverse()
 
-    def sort(
-        self, key: Optional[Callable[[List[ExperimentSetting]], Any]] = None, reverse: bool = False
-    ) -> None:
+    def sort(self, key: Optional[Callable[[List[ExperimentSetting]], Any]] = None, reverse: bool = False) -> None:
         return self._settings.sort(key=key, reverse=reverse)
 
     def setting_strings(self) -> Generator[str, None, None]:
@@ -254,11 +247,7 @@ class Experiment:
             first_n = abbrev_after // 2
             last_n = abbrev_after - first_n
             excluded = len(setting_strs) - abbrev_after
-            setting_strs = (
-                setting_strs[:first_n]
-                + [f"... {excluded} settings not shown ..."]
-                + setting_strs[-last_n:]
-            )
+            setting_strs = setting_strs[:first_n] + [f"... {excluded} settings not shown ..."] + setting_strs[-last_n:]
         return "   " + "\n   ".join(setting_strs)
 
     def __repr__(self) -> str:
@@ -389,12 +378,8 @@ class Experiment:
         """
         meas_qubits = self.get_meas_qubits()
 
-        in_pt = PauliTerm.from_list(
-            [(op, meas_qubits.index(cast(int, q))) for q, op in setting.in_operator]
-        )
-        out_pt = PauliTerm.from_list(
-            [(op, meas_qubits.index(cast(int, q))) for q, op in setting.out_operator]
-        )
+        in_pt = PauliTerm.from_list([(op, meas_qubits.index(cast(int, q))) for q, op in setting.in_operator])
+        out_pt = PauliTerm.from_list([(op, meas_qubits.index(cast(int, q))) for q, op in setting.out_operator])
 
         preparation_map = pauli_term_to_preparation_memory_map(in_pt)
         measurement_map = pauli_term_to_measurement_memory_map(out_pt)

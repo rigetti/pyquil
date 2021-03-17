@@ -25,7 +25,8 @@ def _get_qvm_noise_supported_gates(isa: CompilerISA) -> List[Gate]:
 
             assert isinstance(gate, GateInfo)
             qvm_noise_supported_gate = _transform_rpcq_qubit_gate_info_to_qvm_noise_supported_gate(
-                qubit_id=q.id, gate=gate,
+                qubit_id=q.id,
+                gate=gate,
             )
             if qvm_noise_supported_gate is not None:
                 gates.append(qvm_noise_supported_gate)
@@ -34,24 +35,18 @@ def _get_qvm_noise_supported_gates(isa: CompilerISA) -> List[Gate]:
         if edge.dead:
             continue
 
-        qvm_noise_supported_gates = _transform_rpcq_edge_gate_info_to_qvm_noise_supported_gates(
-            edge
-        )
+        qvm_noise_supported_gates = _transform_rpcq_edge_gate_info_to_qvm_noise_supported_gates(edge)
         gates.extend(qvm_noise_supported_gates)
 
     return gates
 
 
-def _transform_rpcq_qubit_gate_info_to_qvm_noise_supported_gate(
-    qubit_id: int, gate: GateInfo
-) -> Optional[Gate]:
+def _transform_rpcq_qubit_gate_info_to_qvm_noise_supported_gate(qubit_id: int, gate: GateInfo) -> Optional[Gate]:
     if gate.operator == Supported1QGate.RX:
         if len(gate.parameters) == 1 and gate.parameters[0] == 0.0:
             return None
 
-        parameters = [
-            Parameter(param) if isinstance(param, str) else param for param in gate.parameters
-        ]
+        parameters = [Parameter(param) if isinstance(param, str) else param for param in gate.parameters]
         return Gate(gate.operator, parameters, [unpack_qubit(qubit_id)])
 
     if gate.operator == Supported1QGate.RZ:

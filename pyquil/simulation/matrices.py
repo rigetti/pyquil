@@ -127,15 +127,11 @@ def PHASE(phi: float) -> np.ndarray:
 
 
 def RX(phi: float) -> np.ndarray:
-    return np.array(
-        [[np.cos(phi / 2.0), -1j * np.sin(phi / 2.0)], [-1j * np.sin(phi / 2.0), np.cos(phi / 2.0)]]
-    )
+    return np.array([[np.cos(phi / 2.0), -1j * np.sin(phi / 2.0)], [-1j * np.sin(phi / 2.0), np.cos(phi / 2.0)]])
 
 
 def RY(phi: float) -> np.ndarray:
-    return np.array(
-        [[np.cos(phi / 2.0), -np.sin(phi / 2.0)], [np.sin(phi / 2.0), np.cos(phi / 2.0)]]
-    )
+    return np.array([[np.cos(phi / 2.0), -np.sin(phi / 2.0)], [np.sin(phi / 2.0), np.cos(phi / 2.0)]])
 
 
 def RZ(phi: float) -> np.ndarray:
@@ -200,9 +196,7 @@ ISWAP = np.array([[1, 0, 0, 0], [0, 0, 1j, 0], [0, 1j, 0, 0], [0, 0, 0, 1]])
 
 
 def PSWAP(phi: float) -> np.ndarray:
-    return np.array(
-        [[1, 0, 0, 0], [0, 0, np.exp(1j * phi), 0], [0, np.exp(1j * phi), 0, 0], [0, 0, 0, 1]]
-    )
+    return np.array([[1, 0, 0, 0], [0, 0, np.exp(1j * phi), 0], [0, np.exp(1j * phi), 0, 0], [0, 0, 0, 1]])
 
 
 def XY(phi: float) -> np.ndarray:

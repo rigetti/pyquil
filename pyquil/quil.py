@@ -283,14 +283,10 @@ class Program(object):
             elif isinstance(instruction, DefGate):
                 defined_gate_names = [gate.name for gate in self._defined_gates]
                 if instruction.name in defined_gate_names:
-                    warnings.warn(
-                        "Gate {} has already been defined in this program".format(instruction.name)
-                    )
+                    warnings.warn("Gate {} has already been defined in this program".format(instruction.name))
 
                 self._defined_gates.append(instruction)
-            elif isinstance(instruction, DefCalibration) or isinstance(
-                instruction, DefMeasureCalibration
-            ):
+            elif isinstance(instruction, DefCalibration) or isinstance(instruction, DefMeasureCalibration):
                 self.calibrations.append(instruction)
             elif isinstance(instruction, DefWaveform):
                 self.waveforms[instruction.name] = instruction
@@ -354,9 +350,7 @@ class Program(object):
         """
         return self.inst(DefGate(name, matrix, parameters))
 
-    def define_noisy_gate(
-        self, name: str, qubit_indices: Sequence[int], kraus_ops: Sequence[Any]
-    ) -> "Program":
+    def define_noisy_gate(self, name: str, qubit_indices: Sequence[int], kraus_ops: Sequence[Any]) -> "Program":
         """
         Overload a static ideal gate with a noisy one defined in terms of a Kraus map.
 
@@ -377,9 +371,7 @@ class Program(object):
         _check_kraus_ops(len(qubit_indices), kraus_ops)
         return self.inst(_create_kraus_pragmas(name, tuple(qubit_indices), kraus_ops))
 
-    def define_noisy_readout(
-        self, qubit: Union[int, QubitPlaceholder], p00: float, p11: float
-    ) -> "Program":
+    def define_noisy_readout(self, qubit: Union[int, QubitPlaceholder], p00: float, p11: float) -> "Program":
         """
         For this program define a classical bit flip readout error channel parametrized by
         ``p00`` and ``p11``. This models the effect of thermal noise that corrupts the readout
@@ -416,9 +408,7 @@ class Program(object):
         """
         return self.inst(Pragma("NO-NOISE"))
 
-    def measure(
-        self, qubit: QubitDesignator, classical_reg: Optional[MemoryReferenceDesignator]
-    ) -> "Program":
+    def measure(self, qubit: QubitDesignator, classical_reg: Optional[MemoryReferenceDesignator]) -> "Program":
         """
         Measures a qubit at qubit_index and puts the result in classical_reg
 
@@ -440,9 +430,7 @@ class Program(object):
         """
         return self.inst(RESET(qubit_index))
 
-    def measure_all(
-        self, *qubit_reg_pairs: Tuple[QubitDesignator, Optional[MemoryReferenceDesignator]]
-    ) -> "Program":
+    def measure_all(self, *qubit_reg_pairs: Tuple[QubitDesignator, Optional[MemoryReferenceDesignator]]) -> "Program":
         """
         Measures many qubits into their specified classical bits, in the order
         they were entered. If no qubit/register pairs are provided, measure all qubits present in
@@ -469,9 +457,7 @@ class Program(object):
                     "pyquil.quil.address_qubits to instantiate the QubitPlaceholders."
                 )
             if any(isinstance(q, FormalArgument) for q in qubits):
-                raise ValueError(
-                    "Cannot call measure_all on a Program that contains FormalArguments."
-                )
+                raise ValueError("Cannot call measure_all on a Program that contains FormalArguments.")
             # Help mypy determine that qubits does not contain any QubitPlaceholders.
             qubit_inds = cast(List[int], qubits)
             ro = self.declare("ro", "BIT", max(qubit_inds) + 1)
@@ -707,9 +693,7 @@ class Program(object):
 
         return None
 
-    def get_calibration(
-        self, instr: AbstractInstruction
-    ) -> Optional[Union[DefCalibration, DefMeasureCalibration]]:
+    def get_calibration(self, instr: AbstractInstruction) -> Optional[Union[DefCalibration, DefMeasureCalibration]]:
         """
         Get the calibration corresponding to the provided instruction.
 
@@ -753,9 +737,7 @@ class Program(object):
                 " and would therefore result in a cyclic non-terminating expansion."
             )
         else:
-            previously_calibrated_instructions = previously_calibrated_instructions.union(
-                {instruction}
-            )
+            previously_calibrated_instructions = previously_calibrated_instructions.union({instruction})
         match = self.match_calibrations(instruction)
         if match is not None:
             return sum(
@@ -889,11 +871,7 @@ class Program(object):
         :param index: The action at the specified index.
         :return:
         """
-        return (
-            Program(self.instructions[index])
-            if isinstance(index, slice)
-            else self.instructions[index]
-        )
+        return Program(self.instructions[index]) if isinstance(index, slice) else self.instructions[index]
 
     def __iter__(self) -> Iterator[AbstractInstruction]:
         """
@@ -1006,9 +984,7 @@ def get_default_qubit_mapping(program: Program) -> Dict[Union[Qubit, QubitPlaceh
     """
     fake_qubits, real_qubits, qubits = _what_type_of_qubit_does_it_use(program)
     if real_qubits:
-        warnings.warn(
-            "This program contains integer qubits, so getting a mapping doesn't make sense."
-        )
+        warnings.warn("This program contains integer qubits, so getting a mapping doesn't make sense.")
         # _what_type_of_qubit_does_it_use ensures that if real_qubits is True, then qubits contains
         # only real Qubits, not QubitPlaceholders. Help mypy figure this out with cast.
         return {q: cast(Qubit, q) for q in qubits}
@@ -1036,10 +1012,7 @@ def address_qubits(
     fake_qubits, real_qubits, qubits = _what_type_of_qubit_does_it_use(program)
     if real_qubits:
         if qubit_mapping is not None:
-            warnings.warn(
-                "A qubit mapping was provided but the program does not "
-                "contain any placeholders to map!"
-            )
+            warnings.warn("A qubit mapping was provided but the program does not " "contain any placeholders to map!")
         return program
 
     if qubit_mapping is None:
@@ -1085,7 +1058,9 @@ def address_qubits(
 
 
 def _get_label(
-    placeholder: LabelPlaceholder, label_mapping: Dict[LabelPlaceholder, Label], label_i: int,
+    placeholder: LabelPlaceholder,
+    label_mapping: Dict[LabelPlaceholder, Label],
+    label_i: int,
 ) -> Tuple[Label, Dict[LabelPlaceholder, Label], int]:
     """Helper function to either get the appropriate label for a given placeholder or generate
     a new label and update the mapping.
@@ -1352,13 +1327,9 @@ def validate_protoquil(program: Program, quilt: bool = False) -> None:
         if program.calibrations:
             raise ValueError("ProtoQuil validation failed: Quil-T calibrations are not allowed.")
         if program.waveforms:
-            raise ValueError(
-                "ProtoQuil validation failed: Quil-T waveform definitions are not allowed."
-            )
+            raise ValueError("ProtoQuil validation failed: Quil-T waveform definitions are not allowed.")
         if program.frames:
-            raise ValueError(
-                "ProtoQuil validation failed: Quil-T frame definitions are not allowed."
-            )
+            raise ValueError("ProtoQuil validation failed: Quil-T frame definitions are not allowed.")
 
     for instr in program.instructions:
         if not isinstance(instr, valid_instruction_types):
