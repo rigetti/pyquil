@@ -1,5 +1,3 @@
-import shutil
-
 import numpy as np
 import pytest
 from requests import RequestException
@@ -7,18 +5,17 @@ from requests import RequestException
 from pyquil.api import (
     QVMConnection,
     QVMCompiler,
-    ForestConnection,
-    get_benchmarker,
-    local_forest_runtime,
+    Client,
+    BenchmarkConnection,
 )
-from pyquil.api._config import PyquilConfig
 from pyquil.api._errors import UnknownApiError
-from pyquil.api._compiler import QuilcNotRunning, QuilcVersionMismatch
+from pyquil.api._abstract_compiler import QuilcNotRunning, QuilcVersionMismatch
 from pyquil.api._qvm import QVMNotRunning, QVMVersionMismatch
 from pyquil.device import Device
 from pyquil.gates import I
 from pyquil.paulis import sX
 from pyquil.quil import Program
+from pyquil.tests.utils import DummyCompiler
 
 
 @pytest.fixture
@@ -124,9 +121,9 @@ def test_device(device_raw):
 
 
 @pytest.fixture(scope="session")
-def qvm():
+def qvm(client: Client):
     try:
-        qvm = QVMConnection(random_seed=52)
+        qvm = QVMConnection(client=client, random_seed=52)
         qvm.run(Program(I(0)), [])
         return qvm
     except (RequestException, QVMNotRunning, UnknownApiError) as e:
@@ -136,10 +133,9 @@ def qvm():
 
 
 @pytest.fixture()
-def compiler(test_device):
+def compiler(test_device, client: Client):
     try:
-        config = PyquilConfig()
-        compiler = QVMCompiler(endpoint=config.quilc_url, device=test_device, timeout=1)
+        compiler = QVMCompiler(device=test_device, client=client, timeout=1)
         compiler.quil_to_native_quil(Program(I(0)))
         return compiler
     except (RequestException, QuilcNotRunning, UnknownApiError, TimeoutError) as e:
@@ -148,38 +144,26 @@ def compiler(test_device):
         return pytest.skip("This test requires a different version of quilc: {}".format(e))
 
 
-@pytest.fixture(scope="session")
-def forest():
-    try:
-        connection = ForestConnection()
-        connection._wavefunction(Program(I(0)), 52)
-        return connection
-    except (RequestException, UnknownApiError) as e:
-        return pytest.skip("This test requires a Forest connection: {}".format(e))
+@pytest.fixture()
+def dummy_compiler(test_device: Device, client: Client):
+    return DummyCompiler(test_device, client)
 
 
 @pytest.fixture(scope="session")
-def benchmarker():
+def client():
+    return Client()
+
+
+@pytest.fixture(scope="session")
+def benchmarker(client: Client):
     try:
-        bm = get_benchmarker(timeout=2)
+        bm = BenchmarkConnection(client=client, timeout=2)
         bm.apply_clifford_to_pauli(Program(I(0)), sX(0))
         return bm
     except (RequestException, TimeoutError) as e:
         return pytest.skip(
             "This test requires a running local benchmarker endpoint (ie quilc): {}".format(e)
         )
-
-
-@pytest.fixture(scope="session")
-def local_qvm_quilc():
-    """Execute test with local qvm and quilc running"""
-    if shutil.which("qvm") is None or shutil.which("quilc") is None:
-        return pytest.skip(
-            "This test requires 'qvm' and 'quilc' executables to be installed locally."
-        )
-
-    with local_forest_runtime() as context:
-        yield context
 
 
 def _str_to_bool(s):

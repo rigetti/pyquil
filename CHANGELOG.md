@@ -1,15 +1,30 @@
 Changelog
 =========
 
-[next](https://github.com/rigetti/pyquil/compare/v2.28.1..master) (In development)
+[next](https://github.com/rigetti/pyquil/compare/rc..master) (In development)
+------------------------------------------------------------------------------------
 
 ### Announcements
 
+- Python 3.6 is no longer supported. Python 3.7 and 3.8 will continue to be supported.
+
 ### Improvements and Changes
 
+- `PyquilConfig` has been replaced by `QCSClientConfiguration`. As a result, the only supported configuration-related
+   environment variables are:
+    - `QCS_SETTINGS_APPLICATIONS_PYQUIL_QVM_URL` (replaces `QVM_URL`), and
+    - `QCS_SETTINGS_APPLICATIONS_PYQUIL_QUILC_URL` (replaces `QUILC_URL`)
+
+- `ForestConnection` and `ForestSession` have been replaced by `api.Client`.
+  
+- `QVMCompiler` now produces a `Program` instead of a `PyQuilExecutableResponse`. As a result, `QVM.load()` always
+  only accepts a `Program`, and `QVM.requires_executable` has been removed.
+  
+- `get_benchmarker()` has been removed in favor of calling `BenchmarkConnection` constructor directly.
+  
 ### Bugfixes
 
-[v2.28.1](https://github.com/rigetti/pyquil/compare/v2.28.1..master) (In development)
+[v2.28.1](https://github.com/rigetti/pyquil/compare/v2.28.0..v2.28.1) (May 5, 2021)
 ------------------------------------------------------------------------------------
 
 ### Announcements

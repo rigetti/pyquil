@@ -16,15 +16,18 @@
 """
 Module for facilitating connections to the QVM / QPU.
 """
+
 import warnings
 from typing import Any
 
 __all__ = [
     "QVMConnection",
+    "QuantumExecutable",
+    "EncryptedProgram",
     "QVMCompiler",
     "QPUCompiler",
+    "Client",
     "Device",
-    "ForestConnection",
     "pyquil_protect",
     "WavefunctionSimulator",
     "QuantumComputer",
@@ -35,14 +38,12 @@ __all__ = [
     "QAM",
     "QVM",
     "QPU",
-    "QPUConnection",
     "BenchmarkConnection",
-    "get_benchmarker",
 ]
 
-from pyquil.api._base_connection import ForestConnection
-from pyquil.api._benchmark import BenchmarkConnection, get_benchmarker
-from pyquil.api._compiler import QVMCompiler, QPUCompiler
+from pyquil.api._client import Client
+from pyquil.api._benchmark import BenchmarkConnection
+from pyquil.api._compiler import QVMCompiler, QPUCompiler, QuantumExecutable, EncryptedProgram
 from pyquil.api._error_reporting import pyquil_protect
 from pyquil.api._qam import QAM
 from pyquil.api._qpu import QPU

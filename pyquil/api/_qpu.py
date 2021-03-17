@@ -13,24 +13,24 @@
 #    See the License for the specific language governing permissions and
 #    limitations under the License.
 ##############################################################################
-from collections import defaultdict
 import uuid
 import warnings
-from typing import Any, Dict, List, Optional, Tuple, Union, cast
+from collections import defaultdict
+from typing import Any, Dict, List, Optional, Union, cast
 
 import numpy as np
-from rpcq._client import Client, ClientAuthConfig
-from rpcq.messages import QuiltBinaryExecutableResponse, QPURequest, ParameterAref, ParameterSpec
+from rpcq.messages import QPURequest, ParameterAref, ParameterSpec
 
-from pyquil.parser import parse
-from pyquil.api._base_connection import Engagement, ForestSession
+from pyquil.api import Client, QuantumExecutable, EncryptedProgram
 from pyquil.api._error_reporting import _record_call
-from pyquil.api._errors import UserMessageError
-from pyquil.api._logger import logger
 from pyquil.api._qam import QAM
-from pyquil.quil import Program
-from pyquil.quilatom import MemoryReference, BinaryExp, Function, Parameter, ExpressionDesignator
-from pyquil.quilbase import Gate
+from pyquil.quilatom import (
+    MemoryReference,
+    BinaryExp,
+    Function,
+    Parameter,
+    ExpressionDesignator,
+)
 
 
 def decode_buffer(buffer: Dict[str, Any]) -> np.ndarray:
@@ -46,7 +46,7 @@ def decode_buffer(buffer: Dict[str, Any]) -> np.ndarray:
 
 def _extract_memory_regions(
     memory_descriptors: Dict[str, ParameterSpec],
-    ro_sources: List[Tuple[MemoryReference, str]],
+    ro_sources: Dict[MemoryReference, str],
     buffers: Dict[str, np.ndarray],
 ) -> Dict[str, np.ndarray]:
 
@@ -68,7 +68,7 @@ def _extract_memory_regions(
 
     regions: Dict[str, np.array] = {}
 
-    for mref, key in ro_sources:
+    for mref, key in ro_sources.items():
         # Translation sometimes introduces ro_sources that the user didn't ask for.
         # That's fine, we just ignore them.
         if mref.name not in memory_descriptors:
@@ -100,86 +100,21 @@ def _extract_memory_regions(
 class QPU(QAM):
     @_record_call
     def __init__(
-        self,
-        endpoint: Optional[str] = None,
-        user: str = "pyquil-user",
-        priority: int = 1,
-        *,
-        session: Optional[ForestSession] = None,
+        self, *, quantum_processor_id: str, client: Optional[Client] = None, priority: int = 1
     ) -> None:
         """
         A connection to the QPU.
 
-        :param endpoint: Address to connect to the QPU server. If not provided, the
-                         endpoint provided by engagement with dispatch is used. One or both must be
-                         available and valid.
-        :param user: A string identifying who's running jobs.
+        :param quantum_processor_id: Processor to run against.
+        :param client: Optional QCS client. If none is provided, a default client will be created.
         :param priority: The priority with which to insert jobs into the QPU queue. Lower
                          integers correspond to higher priority.
-        :param session: ForestSession object, which manages engagement and configuration.
         """
-        if not (session or endpoint):
-            raise ValueError("QPU requires either `session` or `endpoint`.")
-
-        self.session = session
-
-        self.endpoint = endpoint
+        self.quantum_processor_id = quantum_processor_id
         self.priority = priority
-        self.user = user
-        self._client: Optional[Client] = None
-        self._client_engagement: Optional[Engagement] = None
         self._last_results: Dict[str, np.ndarray] = {}
 
-        super().__init__()
-
-    def _build_client(self) -> Client:
-        endpoint: Optional[str] = None
-        if self.endpoint:
-            endpoint = self.endpoint
-        elif self.session and self.session.config.qpu_url:
-            endpoint = self.session.config.qpu_url
-
-        if endpoint is None:
-            raise UserMessageError(
-                """It looks like you've tried to run a program against a QPU but do
-not currently have a reservation on one. To reserve time on Rigetti
-QPUs, use the command line interface, qcs, which comes pre-installed
-in your QMI. From within your QMI, type:
-
-    qcs reserve --lattice <lattice-name>
-
-For more information, please see the docs at
-https://www.rigetti.com/qcs/docs/reservations or reach out to Rigetti
-support at support@rigetti.com."""
-            )
-
-        logger.debug("QPU Client connecting to %s", endpoint)
-
-        return Client(endpoint, auth_config=self._get_client_auth_config())
-
-    @property
-    def client(self) -> Client:
-        """
-        Return a memoized client with a valid engagement if it exists; otherwise, build a new one
-        and return it. If this QPU object does not have a ForestSession, then engagement is not
-        applicable.
-        """
-        engagement_is_valid = self._client_engagement and self._client_engagement.is_valid()
-        if not (self._client and (self.session is None or engagement_is_valid)):
-            self._client = self._build_client()
-        return self._client
-
-    def _get_client_auth_config(self) -> Optional[ClientAuthConfig]:
-        if self.session and self.session.config.engagement is not None:
-            # We store the engagement used to construct this client so that we can later check
-            # for validity
-            self._client_engagement = self.session.config.engagement
-            return ClientAuthConfig(
-                client_public_key=self._client_engagement.client_public_key,
-                client_secret_key=self._client_engagement.client_secret_key,
-                server_public_key=self._client_engagement.server_public_key,
-            )
-        return None
+        super().__init__(client)
 
     def get_version_info(self) -> Dict[str, Any]:
         """
@@ -187,26 +122,28 @@ support at support@rigetti.com."""
 
         :return: Dictionary of version information.
         """
-        return cast(Dict[str, Any], self.client.call("get_version_info"))
+        return cast(
+            Dict[str, Any],
+            self._client.processor_rpcq_request(self.quantum_processor_id, "get_version_info"),
+        )
 
     @_record_call
-    def load(self, executable: QuiltBinaryExecutableResponse) -> "QPU":
+    def load(self, executable: QuantumExecutable) -> "QPU":
         """
         Initialize a QAM into a fresh state. Load the executable and parse the expressions
         in the recalculation table (if any) into pyQuil Expression objects.
 
         :param executable: Load a compiled executable onto the QAM.
         """
-        self._executable: QuiltBinaryExecutableResponse
+        if not isinstance(executable, EncryptedProgram):
+            raise TypeError(
+                "`executable` argument must be an `EncryptedProgram`. Make "
+                "sure you have explicitly compiled your program via `qc.compile` "
+                "or `qc.compiler.native_quil_to_executable(...)` for more "
+                "fine-grained control."
+            )
+
         super().load(executable)
-        if hasattr(self._executable, "recalculation_table"):
-            recalculation_table = self._executable.recalculation_table  # type: ignore
-            for memory_reference, recalc_rule in recalculation_table.items():
-                # We can only parse complete lines of Quil, so we wrap the arithmetic expression
-                # in a valid Quil instruction to parse it.
-                # TODO: This hack should be replaced after #687
-                expression = cast(Gate, parse(f"RZ({recalc_rule}) 0")[0]).params[0]
-                recalculation_table[memory_reference] = expression
         return self
 
     @_record_call
@@ -226,35 +163,26 @@ support at support@rigetti.com."""
                              object's default priority is used.
         :return: The QPU object itself.
         """
-        # This prevents a common error where users expect QVM.run()
-        # and QPU.run() to be interchangeable. QPU.run() needs the
-        # supplied executable to have been compiled, QVM.run() does not.
-        if isinstance(self._executable, Program):
-            raise TypeError(
-                "It looks like you have provided a Program where an Executable"
-                " is expected. Please use QuantumComputer.compile() to compile"
-                " your program."
-            )
         super().run()
+        assert isinstance(self.executable, EncryptedProgram)
 
-        assert self._executable is not None
         request = QPURequest(
-            program=self._executable.program,
+            program=self.executable.program,
             patch_values=self._build_patch_values(),
             id=str(uuid.uuid4()),
         )
 
         job_priority = run_priority if run_priority is not None else self.priority
-        job_id = self.client.call(
-            "execute_qpu_request", request=request, user=self.user, priority=job_priority
+        job_id = self._client.processor_rpcq_request(
+            self.quantum_processor_id, "execute_qpu_request", request, priority=job_priority,
         )
         results = self._get_buffers(job_id)
-        ro_sources = self._executable.ro_sources
+        ro_sources = self.executable.ro_sources
 
         self._memory_results = defaultdict(lambda: None)
         if results:
             extracted = _extract_memory_regions(
-                self._executable.memory_descriptors, ro_sources, results
+                self.executable.memory_descriptors, ro_sources, results
             )
             for name, array in extracted.items():
                 self._memory_results[name] = array
@@ -277,7 +205,9 @@ support at support@rigetti.com."""
         :param job_id: Unique identifier for the job in question
         :return: Decoded buffers or throw an error
         """
-        buffers = self.client.call("get_buffers", job_id, wait=True)
+        buffers = self._client.processor_rpcq_request(
+            self.quantum_processor_id, "get_buffers", job_id, wait=True
+        )
         return {k: decode_buffer(v) for k, v in buffers.items()}
 
     def _build_patch_values(self) -> Dict[str, List[Union[int, float]]]:
@@ -288,22 +218,21 @@ support at support@rigetti.com."""
         self._update_variables_shim_with_recalculation_table()
 
         # Initialize our patch table
-        recalculation_table = getattr(self._executable, "recalculation_table", None)
-        if recalculation_table is not None:
-            memory_ref_names = list(set(mr.name for mr in recalculation_table.keys()))
-            if memory_ref_names != []:
-                assert len(memory_ref_names) == 1, (
-                    "We expected only one declared memory region for "
-                    "the gate parameter arithmetic replacement references."
-                )
-                memory_reference_name = memory_ref_names[0]
-                patch_values[memory_reference_name] = [0.0] * len(recalculation_table)
+        assert isinstance(self.executable, EncryptedProgram)
+        recalculation_table = self.executable.recalculation_table
+        memory_ref_names = list(set(mr.name for mr in recalculation_table.keys()))
+        if memory_ref_names:
+            assert len(memory_ref_names) == 1, (
+                "We expected only one declared memory region for "
+                "the gate parameter arithmetic replacement references."
+            )
+            memory_reference_name = memory_ref_names[0]
+            patch_values[memory_reference_name] = [0.0] * len(recalculation_table)
 
-        assert isinstance(self._executable, QuiltBinaryExecutableResponse)
-        for name, spec in self._executable.memory_descriptors.items():
+        for name, spec in self.executable.memory_descriptors.items():
             # NOTE: right now we fake reading out measurement values into classical memory
             # hence we omit them here from the patch table.
-            if any(name == mref.name for mref, _ in self._executable.ro_sources):
+            if any(name == mref.name for mref in self.executable.ro_sources):
                 continue
             initial_value = 0.0 if spec.type == "REAL" else 0
             patch_values[name] = [initial_value] * spec.length
@@ -361,10 +290,8 @@ support at support@rigetti.com."""
 
         Once the _variables_shim is filled, execution continues as with regular binary patching.
         """
-        if not hasattr(self._executable, "recalculation_table"):
-            # No recalculation table, no work to be done here.
-            return
-        for mref, expression in self._executable.recalculation_table.items():  # type: ignore
+        assert isinstance(self.executable, EncryptedProgram)
+        for mref, expression in self.executable.recalculation_table.items():
             # Replace the user-declared memory references with any values the user has written,
             # coerced to a float because that is how we declared it.
             self._variables_shim[mref] = float(self._resolve_memory_references(expression))
@@ -396,12 +323,3 @@ support at support@rigetti.com."""
             )
         else:
             raise ValueError(f"Unexpected expression in gate parameter: {expression}")
-
-    @_record_call
-    def reset(self) -> None:
-        """
-        Reset the state of the underlying QAM, and the QPU Client connection.
-        """
-        super().reset()
-
-        self._client = None
