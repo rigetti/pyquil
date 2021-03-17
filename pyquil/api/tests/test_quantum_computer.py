@@ -1,9 +1,7 @@
-import networkx as nx
 import numpy as np
 
 from pyquil import Program
-from pyquil.api import QVM, QuantumComputer, get_qc
-from pyquil.device import NxDevice
+from pyquil.api import QVM, QuantumComputer, get_qc, Client
 from pyquil.experiment import ExperimentSetting, Experiment
 from pyquil.gates import CNOT, H, RESET, RY, X
 from pyquil.noise import NoiseModel
@@ -11,11 +9,8 @@ from pyquil.paulis import sX, sY, sZ
 from pyquil.tests.utils import DummyCompiler
 
 
-def test_qc_expectation(forest):
-    device = NxDevice(nx.complete_graph(2))
-    qc = QuantumComputer(
-        name="testy!", qam=QVM(connection=forest), device=device, compiler=DummyCompiler()
-    )
+def test_qc_expectation(client: Client, dummy_compiler: DummyCompiler):
+    qc = QuantumComputer(name="testy!", qam=QVM(client=client), compiler=dummy_compiler)
 
     # bell state program
     p = Program()
@@ -49,11 +44,8 @@ def test_qc_expectation(forest):
     assert results[2].total_counts == 40
 
 
-def test_qc_expectation_larger_lattice(forest):
-    device = NxDevice(nx.complete_graph(4))
-    qc = QuantumComputer(
-        name="testy!", qam=QVM(connection=forest), device=device, compiler=DummyCompiler()
-    )
+def test_qc_expectation_larger_lattice(client: Client, dummy_compiler: DummyCompiler):
+    qc = QuantumComputer(name="testy!", qam=QVM(client=client), compiler=dummy_compiler)
 
     q0 = 2
     q1 = 3
@@ -96,10 +88,10 @@ def asymmetric_ro_model(qubits: list, p00: float = 0.95, p11: float = 0.90) -> N
     return NoiseModel([], aprobs)
 
 
-def test_qc_calibration_1q(forest):
+def test_qc_calibration_1q(client: Client):
     # noise model with 95% symmetrized readout fidelity per qubit
     noise_model = asymmetric_ro_model([0], 0.945, 0.955)
-    qc = get_qc("1q-qvm")
+    qc = get_qc("1q-qvm", client=client)
     qc.qam.noise_model = noise_model
 
     # bell state program (doesn't matter)
@@ -120,10 +112,10 @@ def test_qc_calibration_1q(forest):
     assert results[0].total_counts == 20000
 
 
-def test_qc_calibration_2q(forest):
+def test_qc_calibration_2q(client: Client):
     # noise model with 95% symmetrized readout fidelity per qubit
     noise_model = asymmetric_ro_model([0, 1], 0.945, 0.955)
-    qc = get_qc("2q-qvm")
+    qc = get_qc("2q-qvm", client=client)
     qc.qam.noise_model = noise_model
 
     # bell state program (doesn't matter)
@@ -144,11 +136,8 @@ def test_qc_calibration_2q(forest):
     assert results[0].total_counts == 40000
 
 
-def test_qc_joint_expectation(forest):
-    device = NxDevice(nx.complete_graph(2))
-    qc = QuantumComputer(
-        name="testy!", qam=QVM(connection=forest), device=device, compiler=DummyCompiler()
-    )
+def test_qc_joint_expectation(client: Client, dummy_compiler: DummyCompiler):
+    qc = QuantumComputer(name="testy!", qam=QVM(client=client), compiler=dummy_compiler)
 
     # |01> state program
     p = Program()
@@ -176,10 +165,10 @@ def test_qc_joint_expectation(forest):
     assert results[0].additional_results[1].total_counts == 40
 
 
-def test_qc_joint_calibration(forest):
+def test_qc_joint_calibration(client: Client):
     # noise model with 95% symmetrized readout fidelity per qubit
     noise_model = asymmetric_ro_model([0, 1], 0.945, 0.955)
-    qc = get_qc("2q-qvm")
+    qc = get_qc("2q-qvm", client=client)
     qc.qam.noise_model = noise_model
 
     # |01> state program
@@ -207,15 +196,9 @@ def test_qc_joint_calibration(forest):
     assert results[0].additional_results[1].total_counts == 40000
 
 
-def test_qc_expectation_on_qvm_that_requires_executable(forest):
+def test_qc_expectation_on_qvm(client: Client, dummy_compiler: DummyCompiler):
     # regression test for https://github.com/rigetti/forest-tutorials/issues/2
-    device = NxDevice(nx.complete_graph(2))
-    qc = QuantumComputer(
-        name="testy!",
-        qam=QVM(connection=forest, requires_executable=True),
-        device=device,
-        compiler=DummyCompiler(),
-    )
+    qc = QuantumComputer(name="testy!", qam=QVM(client=client), compiler=dummy_compiler)
 
     p = Program()
     theta = p.declare("theta", "REAL")

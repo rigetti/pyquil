@@ -5,16 +5,12 @@ import pytest
 from pyquil import Program
 from pyquil.gates import H, CNOT
 
-from pyquil.api import WavefunctionSimulator, ForestConnection
+from pyquil.api import WavefunctionSimulator, Client
 from pyquil.paulis import PauliSum, sZ, sX
 
 
-def test_wavefunction(forest: ForestConnection):
-    # The forest fixture (argument) to this test is to ensure this is
-    # skipped when a forest web api key is unavailable. You could also
-    # pass it to the constructor of WavefunctionSimulator() but it is not
-    # necessary.
-    wfnsim = WavefunctionSimulator()
+def test_wavefunction(client: Client):
+    wfnsim = WavefunctionSimulator(client=client)
     bell = Program(H(0), CNOT(0, 1))
     wfn = wfnsim.wavefunction(bell)
     np.testing.assert_allclose(wfn.amplitudes, 1 / np.sqrt(2) * np.array([1, 0, 0, 1]))
@@ -26,20 +22,16 @@ def test_wavefunction(forest: ForestConnection):
     assert np.all(parity == 0)
 
 
-def test_random_seed():
-    wfnsim = WavefunctionSimulator(random_seed=100)
+def test_random_seed(client: Client):
+    wfnsim = WavefunctionSimulator(client=client, random_seed=100)
     assert wfnsim.random_seed == 100
 
     with pytest.raises(TypeError):
         WavefunctionSimulator(random_seed="NOT AN INTEGER")
 
 
-def test_expectation(forest: ForestConnection):
-    # The forest fixture (argument) to this test is to ensure this is
-    # skipped when a forest web api key is unavailable. You could also
-    # pass it to the constructor of WavefunctionSimulator() but it is not
-    # necessary.
-    wfnsim = WavefunctionSimulator()
+def test_expectation(client: Client):
+    wfnsim = WavefunctionSimulator(client=client)
     bell = Program(H(0), CNOT(0, 1))
     expects = wfnsim.expectation(bell, [sZ(0) * sZ(1), sZ(0), sZ(1), sX(0) * sX(1)])
     assert expects.size == 4
@@ -51,24 +43,16 @@ def test_expectation(forest: ForestConnection):
     np.testing.assert_allclose(expects, [1])
 
 
-def test_run_and_measure(forest: ForestConnection):
-    # The forest fixture (argument) to this test is to ensure this is
-    # skipped when a forest web api key is unavailable. You could also
-    # pass it to the constructor of WavefunctionSimulator() but it is not
-    # necessary.
-    wfnsim = WavefunctionSimulator()
+def test_run_and_measure(client: Client):
+    wfnsim = WavefunctionSimulator(client=client)
     bell = Program(H(0), CNOT(0, 1))
     bitstrings = wfnsim.run_and_measure(bell, trials=1000)
     parity = np.sum(bitstrings, axis=1) % 2
     assert np.all(parity == 0)
 
 
-def test_run_and_measure_qubits(forest: ForestConnection):
-    # The forest fixture (argument) to this test is to ensure this is
-    # skipped when a forest web api key is unavailable. You could also
-    # pass it to the constructor of WavefunctionSimulator() but it is not
-    # necessary.
-    wfnsim = WavefunctionSimulator()
+def test_run_and_measure_qubits(client: Client):
+    wfnsim = WavefunctionSimulator(client=client)
     bell = Program(H(0), CNOT(0, 1))
     bitstrings = wfnsim.run_and_measure(bell, qubits=[0, 100], trials=1000)
     assert np.all(bitstrings[:, 1] == 0)

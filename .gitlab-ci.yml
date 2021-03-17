@@ -9,8 +9,8 @@ include:
 # global build variables
 variables:
   IMAGE: rigetti/forest
-  QVM_URL: "http://qvm:5000"
-  QUILC_URL: "tcp://quilc:5555"
+  QCS_SETTINGS_APPLICATIONS_PYQUIL_QVM_URL: "http://qvm:5000"
+  QCS_SETTINGS_APPLICATIONS_PYQUIL_QUILC_URL: "tcp://quilc:5555"
 
 # Docker images to spin up along with the various CI jobs
 services:
@@ -29,7 +29,6 @@ services:
 # for all Python jobs, see rigetti/gitlab-pipelines/python.gitlab-ci.yml
 build-docs:
   extends: .python
-  image: python:3.6
   script:
     - apt-get update && apt-get install -y pandoc
     - make docs
@@ -51,13 +50,6 @@ check-types:
   extends: .python
   script:
     - make check-types
-
-# run the unit tests with Python 3.6
-test-py36:
-  extends: .python
-  image: python:3.6
-  script:
-    - make test
 
 # run the unit tests with Python 3.7, and report coverage
 test-py37:

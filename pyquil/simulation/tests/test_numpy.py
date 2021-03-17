@@ -194,7 +194,7 @@ def test_expectation():
     assert val == 0.4
 
 
-def test_expectation_vs_ref_qvm(qvm, n_qubits):
+def test_expectation_vs_ref_qvm(n_qubits):
     for _ in range(20):
         prog = _generate_random_program(n_qubits=n_qubits, length=10)
         operator = _generate_random_pauli(n_qubits=n_qubits, n_terms=5)

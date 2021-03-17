@@ -14,15 +14,16 @@
 #    limitations under the License.
 ##############################################################################
 import warnings
-
 from abc import ABC, abstractmethod
 from collections import defaultdict
 from typing import Dict, Sequence, Union, Optional
 
 import numpy as np
-from rpcq.messages import QuiltBinaryExecutableResponse, ParameterAref, PyQuilExecutableResponse
+from rpcq.messages import ParameterAref
 
+from pyquil.api import Client
 from pyquil.api._error_reporting import _record_call
+from pyquil.api._abstract_compiler import QuantumExecutable
 from pyquil.experiment._main import Experiment
 
 
@@ -41,16 +42,20 @@ class QAM(ABC):
     pretend to be a QPI-compliant quantum computer.
     """
 
+    status: str
+    _client: Client
+    _variables_shim: Dict[ParameterAref, Union[int, float]]
+    executable: Optional[QuantumExecutable]
+    experiment: Optional[Experiment] = None
     _memory_results: Dict[str, np.ndarray]
 
     @_record_call
-    def __init__(self) -> None:
+    def __init__(self, client: Optional[Client] = None) -> None:
+        self._client = client or Client()
         self.reset()
 
     @_record_call
-    def load(
-        self, executable: Union[QuiltBinaryExecutableResponse, PyQuilExecutableResponse]
-    ) -> "QAM":
+    def load(self, executable: QuantumExecutable) -> "QAM":
         """
         Initialize a QAM into a fresh state.
 
@@ -61,10 +66,8 @@ class QAM(ABC):
             warnings.warn("Overwriting previously loaded executable.")
         assert self.status in ["connected", "done", "loaded"]
 
-        self._variables_shim: Dict[ParameterAref, Union[int, float]] = {}
-        self._executable: Optional[
-            Union[QuiltBinaryExecutableResponse, PyQuilExecutableResponse]
-        ] = executable
+        self._variables_shim = {}
+        self.executable = executable
         self._memory_results = defaultdict(lambda: None)
         self.status = "loaded"
         return self
@@ -107,6 +110,7 @@ class QAM(ABC):
         """
         Reset the program counter on a QAM and run its loaded Quil program.
         """
+        assert self.executable is not None
         self.status = "running"
 
         return self
@@ -161,9 +165,10 @@ class QAM(ABC):
         when it has gotten into an unwanted state. This can happen, for example, if the QAM
         is interrupted in the middle of a run.
         """
+        self._client.reset()
         self._variables_shim = {}
-        self._executable = None
+        self.executable = None
         self._memory_results = defaultdict(lambda: None)
-        self._experiment: Optional[Experiment] = None
+        self.experiment = None
 
         self.status = "connected"
