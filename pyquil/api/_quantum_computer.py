@@ -62,7 +62,12 @@ from pyquil.external.rpcq import CompilerISA
 
 class QuantumComputer:
     def __init__(
-        self, *, name: str, qam: QAM, compiler: AbstractCompiler, symmetrize_readout: bool = False,
+        self,
+        *,
+        name: str,
+        qam: QAM,
+        compiler: AbstractCompiler,
+        symmetrize_readout: bool = False,
     ) -> None:
         """
         A quantum computer for running quantum programs.
@@ -222,9 +227,7 @@ class QuantumComputer:
             qubits = cast(List[int], setting.out_operator.get_qubits())
             experiment_setting_memory_map = experiment.build_setting_memory_map(setting)
             symmetrization_memory_maps = experiment.build_symmetrization_memory_maps(qubits)
-            merged_memory_maps = merge_memory_map_lists(
-                [experiment_setting_memory_map], symmetrization_memory_maps
-            )
+            merged_memory_maps = merge_memory_map_lists([experiment_setting_memory_map], symmetrization_memory_maps)
 
             all_bitstrings = []
             # TODO: accomplish symmetrization via batch endpoint
@@ -233,9 +236,7 @@ class QuantumComputer:
                 bitstrings = self.run(executable, memory_map=final_memory_map)
 
                 if "symmetrization" in final_memory_map:
-                    bitmask = np.array(
-                        np.array(final_memory_map["symmetrization"]) / np.pi, dtype=int
-                    )
+                    bitmask = np.array(np.array(final_memory_map["symmetrization"]) / np.pi, dtype=int)
                     bitstrings = np.bitwise_xor(bitstrings, bitmask)
                 all_bitstrings.append(bitstrings)
             symmetrized_bitstrings = np.concatenate(all_bitstrings)
@@ -243,26 +244,20 @@ class QuantumComputer:
             joint_expectations = [experiment.get_meas_registers(qubits)]
             if setting.additional_expectations:
                 joint_expectations += setting.additional_expectations
-            expectations = bitstrings_to_expectations(
-                symmetrized_bitstrings, joint_expectations=joint_expectations
-            )
+            expectations = bitstrings_to_expectations(symmetrized_bitstrings, joint_expectations=joint_expectations)
 
             means = np.mean(expectations, axis=0)
             std_errs = np.std(expectations, axis=0, ddof=1) / np.sqrt(len(expectations))
 
             joint_results = []
             for qubit_subset, mean, std_err in zip(joint_expectations, means, std_errs):
-                out_operator = PauliTerm.from_list(
-                    [(setting.out_operator[i], i) for i in qubit_subset]
-                )
+                out_operator = PauliTerm.from_list([(setting.out_operator[i], i) for i in qubit_subset])
                 s = ExperimentSetting(
                     in_state=setting.in_state,
                     out_operator=out_operator,
                     additional_expectations=None,
                 )
-                r = ExperimentResult(
-                    setting=s, expectation=mean, std_err=std_err, total_counts=len(expectations)
-                )
+                r = ExperimentResult(setting=s, expectation=mean, std_err=std_err, total_counts=len(expectations))
                 joint_results.append(r)
 
             result = ExperimentResult(
@@ -340,8 +335,7 @@ class QuantumComputer:
         """
         if not isinstance(symm_type, int):
             raise ValueError(
-                "Symmetrization options are indicated by an int. See "
-                "the docstrings for more information."
+                "Symmetrization options are indicated by an int. See " "the docstrings for more information."
             )
 
         if meas_qubits is None:
@@ -404,9 +398,7 @@ class QuantumComputer:
         validate_supported_quil(program)
         ro = program.declare("ro", "BIT", len(self.qubits()))
         measure_used = isinstance(self.qam, QVM) and self.qam.noise_model is None
-        qubits_to_measure = set(
-            map(qubit_index, program.get_qubits()) if measure_used else self.qubits()
-        )
+        qubits_to_measure = set(map(qubit_index, program.get_qubits()) if measure_used else self.qubits())
         for i, q in enumerate(qubits_to_measure):
             program.inst(MEASURE(q, ro[i]))
         program.wrap_in_numshots_loop(trials)
@@ -495,9 +487,7 @@ class QuantumComputer:
 
 
 @_record_call
-def list_quantum_computers(
-    client: Optional[Client] = None, qpus: bool = True, qvms: bool = True
-) -> List[str]:
+def list_quantum_computers(client: Optional[Client] = None, qpus: bool = True, qvms: bool = True) -> List[str]:
     """
     List the names of available quantum computers
 
@@ -520,9 +510,7 @@ def list_quantum_computers(
     return qc_names
 
 
-def _parse_name(
-    name: str, as_qvm: Optional[bool], noisy: Optional[bool]
-) -> Tuple[str, Optional[str], bool]:
+def _parse_name(name: str, as_qvm: Optional[bool], noisy: Optional[bool]) -> Tuple[str, Optional[str], bool]:
     """
     Try to figure out whether we're getting a (noisy) qvm, and the associated qpu name.
 
@@ -533,14 +521,12 @@ def _parse_name(
     if len(parts) >= 2 and parts[-2] == "noisy" and parts[-1] in ["qvm", "pyqvm"]:
         if as_qvm is not None and (not as_qvm):
             raise ValueError(
-                "The provided qc name indicates you are getting a noisy QVM, "
-                "but you have specified `as_qvm=False`"
+                "The provided qc name indicates you are getting a noisy QVM, " "but you have specified `as_qvm=False`"
             )
 
         if noisy is not None and (not noisy):
             raise ValueError(
-                "The provided qc name indicates you are getting a noisy QVM, "
-                "but you have specified `noisy=False`"
+                "The provided qc name indicates you are getting a noisy QVM, " "but you have specified `noisy=False`"
             )
 
         qvm_type = parts[-1]
@@ -551,8 +537,7 @@ def _parse_name(
     if len(parts) >= 1 and parts[-1] in ["qvm", "pyqvm"]:
         if as_qvm is not None and (not as_qvm):
             raise ValueError(
-                "The provided qc name indicates you are getting a QVM, "
-                "but you have specified `as_qvm=False`"
+                "The provided qc name indicates you are getting a QVM, " "but you have specified `as_qvm=False`"
             )
         qvm_type = parts[-1]
         if noisy is None:
@@ -629,7 +614,10 @@ def _get_qvm_qc(
     return QuantumComputer(
         name=name,
         qam=_get_qvm_or_pyqvm(
-            client=client, qvm_type=qvm_type, noise_model=noise_model, device=device,
+            client=client,
+            qvm_type=qvm_type,
+            noise_model=noise_model,
+            device=device,
         ),
         compiler=QVMCompiler(device=device, client=client, timeout=compiler_timeout),
     )
@@ -658,9 +646,7 @@ def _get_qvm_with_topology(
     # Note to developers: consider making this function public and advertising it.
     device = NxDevice(topology=topology)
     if noisy:
-        noise_model: Optional[NoiseModel] = decoherence_noise_with_asymmetric_ro(
-            isa=device.to_compiler_isa()
-        )
+        noise_model: Optional[NoiseModel] = decoherence_noise_with_asymmetric_ro(isa=device.to_compiler_isa())
     else:
         noise_model = None
     return _get_qvm_qc(
@@ -674,7 +660,11 @@ def _get_qvm_with_topology(
 
 
 def _get_9q_square_qvm(
-    client: Client, name: str, noisy: bool, qvm_type: str = "qvm", compiler_timeout: float = 10,
+    client: Client,
+    name: str,
+    noisy: bool,
+    qvm_type: str = "qvm",
+    compiler_timeout: float = 10,
 ) -> QuantumComputer:
     """
     A nine-qubit 3x3 square lattice.
@@ -902,16 +892,17 @@ def get_qc(
 
         qpu = QPU(quantum_processor_id=device.quantum_processor_id, client=client)
         compiler = QPUCompiler(
-            quantum_processor_id=prefix, device=device, client=client, timeout=compiler_timeout,
+            quantum_processor_id=prefix,
+            device=device,
+            client=client,
+            timeout=compiler_timeout,
         )
 
         return QuantumComputer(name=name, qam=qpu, compiler=compiler)
 
 
 @contextmanager
-def local_qvm() -> Iterator[  # type: ignore
-    Tuple[Optional[subprocess.Popen], Optional[subprocess.Popen]]
-]:
+def local_qvm() -> Iterator[Tuple[Optional[subprocess.Popen], Optional[subprocess.Popen]]]:  # type: ignore
     """A context manager for the Rigetti local QVM and QUIL compiler.
 
     .. deprecated:: 2.11
@@ -919,8 +910,7 @@ def local_qvm() -> Iterator[  # type: ignore
     """
     warnings.warn(
         DeprecationWarning(
-            "Use of pyquil.api.local_qvm has been deprecated.\n"
-            "Please use pyquil.api.local_forest_runtime instead."
+            "Use of pyquil.api.local_qvm has been deprecated.\n" "Please use pyquil.api.local_forest_runtime instead."
         )
     )
     with local_forest_runtime() as (qvm, quilc):
@@ -1001,18 +991,14 @@ def local_forest_runtime(
     # If the host we should listen to is 0.0.0.0, we replace it
     # with 127.0.0.1 to use a valid IP when checking if the port is in use.
     if _port_used(host if host != "0.0.0.0" else "127.0.0.1", qvm_port):
-        warning_msg = ("Unable to start qvm server, since the specified port {} is in use.").format(
-            qvm_port
-        )
+        warning_msg = ("Unable to start qvm server, since the specified port {} is in use.").format(qvm_port)
         warnings.warn(RuntimeWarning(warning_msg))
     else:
         qvm_cmd = ["qvm", "-S", "--host", host, "-p", str(qvm_port)]
         qvm = subprocess.Popen(qvm_cmd, stdout=subprocess.DEVNULL, stderr=subprocess.DEVNULL)
 
     if _port_used(host if host != "0.0.0.0" else "127.0.0.1", quilc_port):
-        warning_msg = (
-            "Unable to start quilc server, since the specified port {} is in use."
-        ).format(quilc_port)
+        warning_msg = ("Unable to start quilc server, since the specified port {} is in use.").format(quilc_port)
         warnings.warn(RuntimeWarning(warning_msg))
     else:
         quilc_cmd = ["quilc", "--host", host, "-p", str(quilc_port), "-R"]
@@ -1118,9 +1104,7 @@ def _symmetrization(
     return symm_programs, flip_arrays
 
 
-def _consolidate_symmetrization_outputs(
-    outputs: List[np.ndarray], flip_arrays: List[Tuple[bool]]
-) -> np.ndarray:
+def _consolidate_symmetrization_outputs(outputs: List[np.ndarray], flip_arrays: List[Tuple[bool]]) -> np.ndarray:
     """
     Given bitarray results from a series of symmetrization programs, appropriately flip output
     bits and consolidate results into new bitarrays.
@@ -1324,9 +1308,7 @@ def _construct_strength_two_orthogonal_array(num_qubits: int) -> np.ndarray:
     return orthogonal_array
 
 
-def _check_min_num_trials_for_symmetrized_readout(
-    num_qubits: int, trials: int, symm_type: int
-) -> int:
+def _check_min_num_trials_for_symmetrized_readout(num_qubits: int, trials: int, symm_type: int) -> int:
     """
     This function sets the minimum number of trials; it is desirable to have hundreds or
     thousands of trials more than the minimum.

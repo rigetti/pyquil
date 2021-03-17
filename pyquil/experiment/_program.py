@@ -79,9 +79,7 @@ def parameterized_euler_rotations(
     return p
 
 
-def parameterized_single_qubit_state_preparation(
-    qubits: Sequence[int], label: str = "preparation"
-) -> Program:
+def parameterized_single_qubit_state_preparation(qubits: Sequence[int], label: str = "preparation") -> Program:
     """
     Given a number of qubits, produce a program as in ``parameterized_euler_rotations`` where each
     memory region is prefixed by ``label``, where label defaults to "preparation".
@@ -93,9 +91,7 @@ def parameterized_single_qubit_state_preparation(
     return parameterized_euler_rotations(qubits, prefix=label)
 
 
-def parameterized_single_qubit_measurement_basis(
-    qubits: Sequence[int], label: str = "measurement"
-) -> Program:
+def parameterized_single_qubit_measurement_basis(qubits: Sequence[int], label: str = "measurement") -> Program:
     """
     Given a number of qubits, produce a program as in ``parameterized_euler_rotations`` where each
     memory region is prefixed by ``label``, where label defaults to "measurement".
@@ -107,9 +103,7 @@ def parameterized_single_qubit_measurement_basis(
     return parameterized_euler_rotations(qubits, prefix=label)
 
 
-def parameterized_readout_symmetrization(
-    qubits: Sequence[int], label: str = "symmetrization"
-) -> Program:
+def parameterized_readout_symmetrization(qubits: Sequence[int], label: str = "symmetrization") -> Program:
     """
     Given a number of qubits (n), produce a ``Program`` with an ``RX`` instruction on qubits
     0 through n-1, parameterized by memory regions label[0] through label[n-1], where "label"

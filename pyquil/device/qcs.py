@@ -55,8 +55,6 @@ class QCSDevice(AbstractDevice):
 
 
 def get_qcs_device(client: Client, quantum_processor_id: str) -> QCSDevice:
-    isa = client.qcs_request(
-        get_instruction_set_architecture, quantum_processor_id=quantum_processor_id
-    )
+    isa = client.qcs_request(get_instruction_set_architecture, quantum_processor_id=quantum_processor_id)
 
     return QCSDevice(quantum_processor_id=quantum_processor_id, isa=isa)

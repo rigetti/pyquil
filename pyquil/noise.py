@@ -190,20 +190,14 @@ def _check_kraus_ops(n: int, kraus_ops: Sequence[np.ndarray]) -> None:
     """
     for k in kraus_ops:
         if not np.shape(k) == (2 ** n, 2 ** n):
-            raise ValueError(
-                "Kraus operators for {0} qubits must have shape {1}x{1}: {2}".format(n, 2 ** n, k)
-            )
+            raise ValueError("Kraus operators for {0} qubits must have shape {1}x{1}: {2}".format(n, 2 ** n, k))
 
     kdk_sum = sum(np.transpose(k).conjugate().dot(k) for k in kraus_ops)
     if not np.allclose(kdk_sum, np.eye(2 ** n), atol=1e-3):
-        raise ValueError(
-            "Kraus operator not correctly normalized: sum_j K_j^*K_j == {}".format(kdk_sum)
-        )
+        raise ValueError("Kraus operator not correctly normalized: sum_j K_j^*K_j == {}".format(kdk_sum))
 
 
-def _create_kraus_pragmas(
-    name: str, qubit_indices: Sequence[int], kraus_ops: Sequence[np.ndarray]
-) -> List[Pragma]:
+def _create_kraus_pragmas(name: str, qubit_indices: Sequence[int], kraus_ops: Sequence[np.ndarray]) -> List[Pragma]:
     """
     Generate the pragmas to define a Kraus map for a specific gate on some qubits.
 
@@ -224,9 +218,7 @@ def _create_kraus_pragmas(
     return pragmas
 
 
-def append_kraus_to_gate(
-    kraus_ops: Sequence[np.ndarray], gate_matrix: np.ndarray
-) -> List[np.ndarray]:
+def append_kraus_to_gate(kraus_ops: Sequence[np.ndarray], gate_matrix: np.ndarray) -> List[np.ndarray]:
     """
     Follow a gate ``gate_matrix`` by a Kraus map described by ``kraus_ops``.
 
@@ -465,12 +457,10 @@ def _decoherence_noise_model(
         ro_fidelity = {q: ro_fidelity for q in all_qubits}
 
     noisy_identities_1q = {
-        q: damping_after_dephasing(T1.get(q, INFINITY), T2.get(q, INFINITY), gate_time_1q)
-        for q in all_qubits
+        q: damping_after_dephasing(T1.get(q, INFINITY), T2.get(q, INFINITY), gate_time_1q) for q in all_qubits
     }
     noisy_identities_2q = {
-        q: damping_after_dephasing(T1.get(q, INFINITY), T2.get(q, INFINITY), gate_time_2q)
-        for q in all_qubits
+        q: damping_after_dephasing(T1.get(q, INFINITY), T2.get(q, INFINITY), gate_time_2q) for q in all_qubits
     }
     kraus_maps = []
     for g in gates:
@@ -487,9 +477,7 @@ def _decoherence_noise_model(
 
             # note this ordering of the tensor factors is necessary due to how the QVM orders
             # the wavefunction basis
-            noisy_I = tensor_kraus_maps(
-                noisy_identities_2q[targets[1]], noisy_identities_2q[targets[0]]
-            )
+            noisy_I = tensor_kraus_maps(noisy_identities_2q[targets[1]], noisy_identities_2q[targets[0]])
         kraus_maps.append(
             KrausModel(
                 g.name,
@@ -508,9 +496,7 @@ def _decoherence_noise_model(
     return NoiseModel(kraus_maps, aprobs)
 
 
-def decoherence_noise_with_asymmetric_ro(
-    isa: CompilerISA, p00: float = 0.975, p11: float = 0.911
-) -> NoiseModel:
+def decoherence_noise_with_asymmetric_ro(isa: CompilerISA, p00: float = 0.975, p11: float = 0.911) -> NoiseModel:
     """Similar to :py:func:`_decoherence_noise_model`, but with asymmetric readout.
 
     For simplicity, we use the default values for T1, T2, gate times, et al. and only allow
@@ -707,23 +693,14 @@ def _apply_local_transforms(p: np.ndarray, ts: Iterable[np.ndarray]) -> np.ndarr
         # transformation to a single tensor-index without changing the order of
         # indices
         einsum_pat = (
-            "ij,"
-            + _CHARS[:idx]
-            + "j"
-            + _CHARS[idx : nq - 1]
-            + "->"
-            + _CHARS[:idx]
-            + "i"
-            + _CHARS[idx : nq - 1]
+            "ij," + _CHARS[:idx] + "j" + _CHARS[idx : nq - 1] + "->" + _CHARS[:idx] + "i" + _CHARS[idx : nq - 1]
         )
         p_corrected = np.einsum(einsum_pat, trafo_idx, p_corrected)
 
     return p_corrected
 
 
-def corrupt_bitstring_probs(
-    p: np.ndarray, assignment_probabilities: List[np.ndarray]
-) -> np.ndarray:
+def corrupt_bitstring_probs(p: np.ndarray, assignment_probabilities: List[np.ndarray]) -> np.ndarray:
     """
     Given a 2d array of true bitstring probabilities (outer axis iterates over shots, inner axis
     over bits) and a list of assignment probability matrices (one for each bit in the readout,
@@ -746,9 +723,7 @@ def corrupt_bitstring_probs(
     return _apply_local_transforms(p, assignment_probabilities)
 
 
-def correct_bitstring_probs(
-    p: np.ndarray, assignment_probabilities: List[np.ndarray]
-) -> np.ndarray:
+def correct_bitstring_probs(p: np.ndarray, assignment_probabilities: List[np.ndarray]) -> np.ndarray:
     """
     Given a 2d array of corrupted bitstring probabilities (outer axis iterates over shots, inner
     axis over bits) and a list of assignment probability matrices (one for each bit in the readout)
@@ -812,12 +787,8 @@ def estimate_assignment_probs(
 
     if p0 is None:  # pragma no coverage
         p0 = Program()
-    results_i = np.sum(
-        cxn.run(p0 + Program(I(q), MEASURE(q, MemoryReference("ro", 0))), [0], trials)
-    )
-    results_x = np.sum(
-        cxn.run(p0 + Program(X(q), MEASURE(q, MemoryReference("ro", 0))), [0], trials)
-    )
+    results_i = np.sum(cxn.run(p0 + Program(I(q), MEASURE(q, MemoryReference("ro", 0))), [0], trials))
+    results_x = np.sum(cxn.run(p0 + Program(X(q), MEASURE(q, MemoryReference("ro", 0))), [0], trials))
 
     p00 = 1.0 - results_i / float(trials)
     p11 = results_x / float(trials)

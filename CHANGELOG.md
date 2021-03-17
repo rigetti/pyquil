@@ -10,6 +10,8 @@ Changelog
 
 ### Improvements and Changes
 
+- `pyquil.version.__version__` has been moved to `pyquil.__version__`.
+
 - `PyquilConfig` has been replaced by `QCSClientConfiguration`. As a result, the only supported configuration-related
    environment variables are:
     - `QCS_SETTINGS_APPLICATIONS_PYQUIL_QVM_URL` (replaces `QVM_URL`), and
@@ -33,7 +35,6 @@ Changelog
 - Drop `api._quantum_processors`. Move `get_device` to `pyquil.device.qcs.get_qcs_device`.
 
 - Drop `gates_in_isa` and refactor as an internal function for preparing a list of `pyquil.Gate`'s that the user may use to initialize a `NoiseModel` based on the underlying `CompilerISA`.
-
   
 ### Bugfixes
 

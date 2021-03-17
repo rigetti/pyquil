@@ -255,9 +255,7 @@ def test_classical_regs_implicit_ro():
 
 def test_classical_regs_explicit_ro():
     p = Program()
-    p.inst(Declare("ro", "BIT", 2), Declare("reg", "BIT", 2), X(0)).measure(
-        0, MemoryReference("reg", 1)
-    )
+    p.inst(Declare("ro", "BIT", 2), Declare("reg", "BIT", 2), X(0)).measure(0, MemoryReference("reg", 1))
     assert p.out() == "DECLARE ro BIT[2]\nDECLARE reg BIT[2]\nX 0\nMEASURE 0 reg[1]\n"
     assert p.declarations == {
         "ro": Declare("ro", "BIT", 2),
@@ -445,11 +443,7 @@ def test_dagger():
 
 
 def test_construction_syntax():
-    p = (
-        Program()
-        .inst(Declare("ro", "BIT", 2), X(0), Y(1), Z(0))
-        .measure(0, MemoryReference("ro", 1))
-    )
+    p = Program().inst(Declare("ro", "BIT", 2), X(0), Y(1), Z(0)).measure(0, MemoryReference("ro", 1))
     assert p.out() == ("DECLARE ro BIT[2]\nX 0\nY 1\nZ 0\nMEASURE 0 ro[1]\n")
     p = (
         Program()
@@ -492,11 +486,7 @@ def test_phases():
         CPHASE10(np.pi, 0, 1),
         CPHASE(np.pi, 0, 1),
     )
-    assert (
-        p.out() == "PHASE(pi) 1\nCPHASE00(pi) 0 1\n"
-        "CPHASE01(pi) 0 1\nCPHASE10(pi) 0 1\n"
-        "CPHASE(pi) 0 1\n"
-    )
+    assert p.out() == "PHASE(pi) 1\nCPHASE00(pi) 0 1\n" "CPHASE01(pi) 0 1\nCPHASE10(pi) 0 1\n" "CPHASE(pi) 0 1\n"
 
 
 def test_swaps():
@@ -511,9 +501,7 @@ def test_def_gate():
 
     # Then we can use the new gate
     p.inst(("SQRT-X", 0))
-    assert (
-        p.out() == "DEFGATE SQRT-X:\n    0.5+0.5i, 0.5-0.5i\n    0.5-0.5i, 0.5+0.5i\n\nSQRT-X 0\n"
-    )
+    assert p.out() == "DEFGATE SQRT-X:\n    0.5+0.5i, 0.5-0.5i\n    0.5-0.5i, 0.5+0.5i\n\nSQRT-X 0\n"
 
 
 def test_def_gate_with_parameters():
@@ -575,10 +563,7 @@ def test_define_qft():
 
     prog = state_prep + qft3(0, 1, 2)
     output = prog.out()
-    assert (
-        output == "X 0\nH 2\nCPHASE(pi/2) 1 2\nH 1\nCPHASE(pi/4) 0 "
-        "2\nCPHASE(pi/2) 0 1\nH 0\nSWAP 0 2\n"
-    )
+    assert output == "X 0\nH 2\nCPHASE(pi/2) 1 2\nH 1\nCPHASE(pi/4) 0 " "2\nCPHASE(pi/2) 0 1\nH 0\nSWAP 0 2\n"
 
 
 def test_control_flows():
@@ -823,9 +808,7 @@ PERM 1 0
 """
     )
     assert (
-        merge_programs(
-            [Program("DECLARE ro BIT[1]"), Program("H 0"), Program("MEASURE 0 ro[0]")]
-        ).out()
+        merge_programs([Program("DECLARE ro BIT[1]"), Program("H 0"), Program("MEASURE 0 ro[0]")]).out()
         == """DECLARE ro BIT[1]
 H 0
 MEASURE 0 ro[0]
@@ -894,9 +877,7 @@ def test_get_qubits():
     assert pq.get_qubits() == {0, 4, 5}
 
     q = [QubitPlaceholder() for _ in range(6)]
-    pq = Program(
-        Declare("ro", "BIT"), X(q[0]), CNOT(q[0], q[4]), MEASURE(q[5], MemoryReference("ro", 0))
-    )
+    pq = Program(Declare("ro", "BIT"), X(q[0]), CNOT(q[0], q[4]), MEASURE(q[5], MemoryReference("ro", 0)))
     qq = QubitPlaceholder()
     pq.inst(Y(q[2]), X(qq))
     assert address_qubits(pq).get_qubits() == {0, 1, 2, 3, 4}
@@ -914,9 +895,7 @@ def test_get_qubits():
 
 def test_get_qubit_placeholders():
     qs = QubitPlaceholder.register(8)
-    pq = Program(
-        Declare("ro", "BIT"), X(qs[0]), CNOT(qs[0], qs[4]), MEASURE(qs[5], MemoryReference("ro", 0))
-    )
+    pq = Program(Declare("ro", "BIT"), X(qs[0]), CNOT(qs[0], qs[4]), MEASURE(qs[5], MemoryReference("ro", 0)))
     assert pq.get_qubits() == {qs[i] for i in [0, 4, 5]}
 
 
@@ -961,9 +940,7 @@ PRAGMA ADD-KRAUS X 1 "(0.0 0.0 0.0 0.0)"
         pq.define_noisy_gate("X", (0,), [[[0.0, 1.0], [1.0, 0.0]], [[0.0, 1.0], [1.0, 0.0]]])
     # test error due to bad shape of kraus op
     with pytest.raises(ValueError):
-        pq.define_noisy_gate(
-            "X", (0,), [[[0.0, 1.0, 0.0], [1.0, 0.0, 0.0]], [[0.0, 1.0], [1.0, 0.0]]]
-        )
+        pq.define_noisy_gate("X", (0,), [[[0.0, 1.0, 0.0], [1.0, 0.0, 0.0]], [[0.0, 1.0], [1.0, 0.0]]])
 
     pq1 = Program(X(0))
     pq1.define_noisy_gate("X", (0,), [[[0.0, 1.0], [1.0, 0.0]], [[0.0, 0.0], [0.0, 0.0]]])
@@ -1095,9 +1072,7 @@ def test_out_vs_str():
     assert e.match(r"Qubit q\d+ has not been assigned an index")
 
     string_version = str(pq)
-    should_be_re = (
-        r"DECLARE ro BIT\[6\]\nX \{q\d+\}\nCNOT \{q\d+\} \{q\d+\}\nMEASURE \{q\d+\} ro\[5\]\n"
-    )
+    should_be_re = r"DECLARE ro BIT\[6\]\nX \{q\d+\}\nCNOT \{q\d+\} \{q\d+\}\nMEASURE \{q\d+\} ro\[5\]\n"
     assert re.fullmatch(should_be_re, string_version, flags=re.MULTILINE)
 
 
@@ -1186,17 +1161,13 @@ def test_copy():
     prog1 = Program(H(0), CNOT(0, 1))
     prog2 = prog1.copy().measure_all()
     assert prog1.out() == "\n".join(["H 0", "CNOT 0 1", ""])
-    assert prog2.out() == "\n".join(
-        ["H 0", "CNOT 0 1", "DECLARE ro BIT[2]", "MEASURE 0 ro[0]", "MEASURE 1 ro[1]", ""]
-    )
+    assert prog2.out() == "\n".join(["H 0", "CNOT 0 1", "DECLARE ro BIT[2]", "MEASURE 0 ro[0]", "MEASURE 1 ro[1]", ""])
 
 
 def test_measure_all_noncontig():
     prog = Program(H(0), H(10))
     prog.measure_all()
-    assert prog.out() == "\n".join(
-        ["H 0", "H 10", "DECLARE ro BIT[11]", "MEASURE 0 ro[0]", "MEASURE 10 ro[10]", ""]
-    )
+    assert prog.out() == "\n".join(["H 0", "H 10", "DECLARE ro BIT[11]", "MEASURE 0 ro[0]", "MEASURE 10 ro[10]", ""])
 
 
 def test_validate_supported_quil_reset_first():

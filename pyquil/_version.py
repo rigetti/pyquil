@@ -13,12 +13,11 @@
 #    See the License for the specific language governing permissions and
 #    limitations under the License.
 ##############################################################################
-"""
-NOTE: This file will be overwritten by the packaging process.
-"""
-import os
+import sys
 
-directory_of_this_file = os.path.dirname(os.path.abspath(__file__))
+if sys.version_info < (3, 8):
+    from importlib_metadata import version
+else:
+    from importlib.metadata import version
 
-with open(f"{directory_of_this_file}/../VERSION.txt", "r") as f:
-    __version__ = f.read().strip()
+pyquil_version = version(__package__)  # type: ignore

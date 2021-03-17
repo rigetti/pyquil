@@ -214,9 +214,7 @@ class ExperimentSetting:
 
     @property
     def in_operator(self) -> PauliTerm:
-        warnings.warn(
-            "ExperimentSetting.in_operator is deprecated in favor of in_state", DeprecationWarning
-        )
+        warnings.warn("ExperimentSetting.in_operator is deprecated in favor of in_state", DeprecationWarning)
 
         # Backwards compat
         pt = sI()

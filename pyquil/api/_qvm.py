@@ -17,7 +17,7 @@ import warnings
 from typing import Any, Dict, Iterable, List, Mapping, Optional, Sequence, Union, cast, Tuple
 
 import numpy as np
-from requests.exceptions import ConnectionError
+from httpx import RequestError
 
 from pyquil.api import Client, QuantumExecutable
 from pyquil.api._compiler import QVMCompiler
@@ -29,7 +29,7 @@ from pyquil.noise import NoiseModel, apply_noise_model
 from pyquil.paulis import PauliSum, PauliTerm
 from pyquil.quil import Program, get_classical_addresses_from_program, percolate_declares
 from pyquil.quilatom import MemoryReference
-from pyquil.version import __version__
+from pyquil._version import pyquil_version
 from pyquil.wavefunction import Wavefunction
 
 
@@ -50,8 +50,7 @@ def check_qvm_version(version: str) -> None:
     major, minor, patch = map(int, version.split("."))
     if major == 1 and minor < 8:
         raise QVMVersionMismatch(
-            "Must use QVM >= 1.8.0 with pyquil >= 2.8.0, but you "
-            f"have QVM {version} and pyquil {__version__}"
+            "Must use QVM >= 1.8.0 with pyquil >= 2.8.0, but you " f"have QVM {version} and pyquil {pyquil_version}"
         )
 
 
@@ -128,7 +127,7 @@ programs run on this QVM.
         try:
             version_dict = self.get_version_info()
             check_qvm_version(version_dict)
-        except ConnectionError:
+        except RequestError:
             raise QVMNotRunning(f"No QVM server running at {self.client.qvm_url}")
 
     @_record_call
@@ -161,9 +160,7 @@ programs run on this QVM.
             `classical_addresses`.
         """
         if classical_addresses is None:
-            caddresses: Mapping[str, Sequence[int]] = get_classical_addresses_from_program(
-                quil_program
-            )
+            caddresses: Mapping[str, Sequence[int]] = get_classical_addresses_from_program(quil_program)
 
         else:
             caddresses = {"ro": classical_addresses}
@@ -189,9 +186,7 @@ programs run on this QVM.
         )
 
     @_record_call
-    def run_and_measure(
-        self, quil_program: Program, qubits: Sequence[int], trials: int = 1
-    ) -> List[List[int]]:
+    def run_and_measure(self, quil_program: Program, qubits: Sequence[int], trials: int = 1) -> List[List[int]]:
         """
         Run a Quil program once to determine the final wavefunction, and measure multiple times.
 
@@ -212,9 +207,7 @@ programs run on this QVM.
         return cast(List[List[int]], response.json())
 
     @_record_call
-    def _run_and_measure_payload(
-        self, quil_program: Program, qubits: Sequence[int], trials: int
-    ) -> Dict[str, Any]:
+    def _run_and_measure_payload(self, quil_program: Program, qubits: Sequence[int], trials: int) -> Dict[str, Any]:
         if not quil_program:
             raise ValueError(
                 "You have attempted to run an empty program."
@@ -280,9 +273,7 @@ programs run on this QVM.
         return payload
 
     @_record_call
-    def expectation(
-        self, prep_prog: Program, operator_programs: Optional[Iterable[Program]] = None
-    ) -> List[float]:
+    def expectation(self, prep_prog: Program, operator_programs: Optional[Iterable[Program]] = None) -> List[float]:
         """
         Calculate the expectation value of operators given a state prepared by
         prep_program.
@@ -603,7 +594,12 @@ def qvm_run(
     random_seed: Optional[int],
 ) -> Dict[str, np.ndarray]:
     payload = qvm_run_payload(
-        quil_program, classical_addresses, trials, measurement_noise, gate_noise, random_seed,
+        quil_program,
+        classical_addresses,
+        trials,
+        measurement_noise,
+        gate_noise,
+        random_seed,
     )
     response = client.post_json(client.qvm_url, payload)
     return {key: np.array(val) for key, val in response.json().items()}

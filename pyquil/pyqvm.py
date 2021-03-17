@@ -84,9 +84,7 @@ class AbstractQuantumSimulator(ABC):
         """
 
     @abstractmethod
-    def do_gate_matrix(
-        self, matrix: np.ndarray, qubits: Sequence[int]
-    ) -> "AbstractQuantumSimulator":
+    def do_gate_matrix(self, matrix: np.ndarray, qubits: Sequence[int]) -> "AbstractQuantumSimulator":
         """
         Apply an arbitrary unitary; not necessarily a named gate.
 
@@ -143,9 +141,7 @@ class AbstractQuantumSimulator(ABC):
         """
 
     @abstractmethod
-    def do_post_gate_noise(
-        self, noise_type: str, noise_prob: float, qubits: List[int]
-    ) -> "AbstractQuantumSimulator":
+    def do_post_gate_noise(self, noise_type: str, noise_prob: float, qubits: List[int]) -> "AbstractQuantumSimulator":
         """
         Apply noise that happens after each gate application.
 
@@ -242,9 +238,7 @@ class PyQVM(QAM):
             if dg.parameters is not None and len(dg.parameters) > 0:
                 raise NotImplementedError("PyQVM does not support parameterized DEFGATEs")
             if isinstance(dg, DefPermutationGate) or isinstance(dg, DefGateByPaulis):
-                raise NotImplementedError(
-                    "PyQVM does not support DEFGATE ... AS MATRIX | PAULI-SUM."
-                )
+                raise NotImplementedError("PyQVM does not support DEFGATE ... AS MATRIX | PAULI-SUM.")
             self.defined_gates[dg.name] = dg.matrix
 
     def write_memory(self, *, region_name: str, offset: int = 0, value: int = 0) -> "PyQVM":
@@ -358,9 +352,7 @@ class PyQVM(QAM):
             assert jump_reg is not None
             cond = self.ram[jump_reg.name][jump_reg.offset]
             if not isinstance(cond, (bool, np.bool, np.int8)):
-                raise ValueError(
-                    "{} requires a data type of BIT; not {}".format(instruction.op, type(cond))
-                )
+                raise ValueError("{} requires a data type of BIT; not {}".format(instruction.op, type(cond)))
             dest_index = self.find_label(instruction.target)
             if isinstance(instruction, JumpWhen):
                 jump_if_cond = True
@@ -382,9 +374,7 @@ class PyQVM(QAM):
             old = self.ram[target.name][target.offset]
             if isinstance(instruction, ClassicalNeg):
                 if not isinstance(old, (int, float, np.int, np.float)):
-                    raise ValueError(
-                        "NEG requires a data type of REAL or INTEGER; not {}".format(type(old))
-                    )
+                    raise ValueError("NEG requires a data type of REAL or INTEGER; not {}".format(type(old)))
                 self.ram[target.name][target.offset] *= -1
             elif isinstance(instruction, ClassicalNot):
                 if not isinstance(old, (bool, np.bool)):
@@ -433,9 +423,7 @@ class PyQVM(QAM):
             right_ind_ex = instruction.right
 
             tmp = self.ram[left_ind_ex.name][left_ind_ex.offset]
-            self.ram[left_ind_ex.name][left_ind_ex.offset] = self.ram[right_ind_ex.name][
-                right_ind_ex.offset
-            ]
+            self.ram[left_ind_ex.name][left_ind_ex.offset] = self.ram[right_ind_ex.name][right_ind_ex.offset]
             self.ram[right_ind_ex.name][right_ind_ex.offset] = tmp
             self.program_counter += 1
 

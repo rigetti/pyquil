@@ -152,8 +152,7 @@ def test_decoherence_noise():
     # check that headers have been embedded
     headers = _noise_model_program_header(m3)
     assert all(
-        (isinstance(i, Pragma) and i.command in ["ADD-KRAUS", "READOUT-POVM"])
-        or isinstance(i, DefGate)
+        (isinstance(i, Pragma) and i.command in ["ADD-KRAUS", "READOUT-POVM"]) or isinstance(i, DefGate)
         for i in headers
     )
     assert headers.out() in new_prog.out()
@@ -195,9 +194,7 @@ def test_kraus_model_2(kraus_model_I_dict):
         gate=kraus_model_I_dict["gate"],
         params=kraus_model_I_dict["params"],
         targets=kraus_model_I_dict["targets"],
-        kraus_ops=[
-            KrausModel.unpack_kraus_matrix(kraus_op) for kraus_op in kraus_model_I_dict["kraus_ops"]
-        ],
+        kraus_ops=[KrausModel.unpack_kraus_matrix(kraus_op) for kraus_op in kraus_model_I_dict["kraus_ops"]],
         fidelity=kraus_model_I_dict["fidelity"],
     )
     d = km.to_dict()

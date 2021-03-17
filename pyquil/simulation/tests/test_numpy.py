@@ -105,9 +105,7 @@ def test_einsum_simulator_10q():
 
 def test_measure():
     qam = PyQVM(n_qubits=3, quantum_simulator_type=NumpyWavefunctionSimulator)
-    qam.execute(
-        Program(Declare("ro", "BIT", 64), H(0), CNOT(0, 1), MEASURE(0, MemoryReference("ro", 63)))
-    )
+    qam.execute(Program(Declare("ro", "BIT", 64), H(0), CNOT(0, 1), MEASURE(0, MemoryReference("ro", 63))))
     measured_bit = qam.ram["ro"][-1]
     should_be = np.zeros((2, 2, 2))
     if measured_bit == 1:
@@ -140,18 +138,12 @@ def test_vs_ref_simulator(n_qubits, prog_length, include_measures):
         seed = None
 
     for _ in range(10):
-        prog = _generate_random_program(
-            n_qubits=n_qubits, length=prog_length, include_measures=include_measures
-        )
-        ref_qam = PyQVM(
-            n_qubits=n_qubits, seed=seed, quantum_simulator_type=ReferenceWavefunctionSimulator
-        )
+        prog = _generate_random_program(n_qubits=n_qubits, length=prog_length, include_measures=include_measures)
+        ref_qam = PyQVM(n_qubits=n_qubits, seed=seed, quantum_simulator_type=ReferenceWavefunctionSimulator)
         ref_qam.execute(prog)
         ref_wf = ref_qam.wf_simulator.wf
 
-        es_qam = PyQVM(
-            n_qubits=n_qubits, seed=seed, quantum_simulator_type=NumpyWavefunctionSimulator
-        )
+        es_qam = PyQVM(n_qubits=n_qubits, seed=seed, quantum_simulator_type=NumpyWavefunctionSimulator)
         es_qam.execute(prog)
         es_wf = es_qam.wf_simulator.wf
         # einsum has its wavefunction as a vector of shape (2, 2, 2, ...) where qubits are indexed
@@ -353,9 +345,7 @@ def test_tensordot_reorders_matrices():
     t = np.eye(4).reshape((2, 2, 2, 2))
     m = np.array([1, 0, 0, 0, 0, 1, 0, 0, 0, 0, 0, 1, 0, 0, 1, 0]).reshape((2, 2, 2, 2))
 
-    np.testing.assert_allclose(
-        targeted_tensordot(gate=m, wf=t, wf_target_inds=[0, 1]), m, atol=1e-8
-    )
+    np.testing.assert_allclose(targeted_tensordot(gate=m, wf=t, wf_target_inds=[0, 1]), m, atol=1e-8)
 
     np.testing.assert_allclose(
         targeted_tensordot(gate=m, wf=t, wf_target_inds=[1, 0]),

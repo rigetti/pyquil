@@ -70,9 +70,7 @@ class BenchmarkConnection(AbstractBenchmarker):
 
         payload = ConjugateByCliffordRequest(
             clifford=clifford.out(calibrations=False),
-            pauli=rpcq.messages.PauliTerm(
-                indices=list(indices_and_terms[0]), symbols=list(indices_and_terms[1])
-            ),
+            pauli=rpcq.messages.PauliTerm(indices=list(indices_and_terms[0]), symbols=list(indices_and_terms[1])),
         )
         response: ConjugateByCliffordResponse = self._client.compiler_rpcq_request(
             "conjugate_pauli_by_clifford", payload, timeout=self._timeout
@@ -82,9 +80,7 @@ class BenchmarkConnection(AbstractBenchmarker):
         pauli_out = PauliTerm("I", 0, 1.0j ** phase_factor)
         clifford_qubits = clifford.get_qubits()
         pauli_qubits = pauli_in.get_qubits()
-        all_qubits = sorted(
-            set(cast(List[int], pauli_qubits)).union(set(cast(List[int], clifford_qubits)))
-        )
+        all_qubits = sorted(set(cast(List[int], pauli_qubits)).union(set(cast(List[int], clifford_qubits))))
         # The returned pauli will have specified its value on all_qubits, sorted by index.
         #  This is maximal set of qubits that can be affected by this conjugation.
         for i, pauli in enumerate(paulis):

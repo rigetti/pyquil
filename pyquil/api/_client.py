@@ -190,9 +190,7 @@ class Client:
         )
 
 
-def _engagement_valid(
-    quantum_processor_id: str, engagement: Optional[EngagementWithCredentials]
-) -> bool:
+def _engagement_valid(quantum_processor_id: str, engagement: Optional[EngagementWithCredentials]) -> bool:
     if engagement is None:
         return False
 

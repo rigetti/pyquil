@@ -36,9 +36,7 @@ from pyquil.wavefunction import Wavefunction
 
 class WavefunctionSimulator:
     @_record_call
-    def __init__(
-        self, *, client: Optional[Client] = None, random_seed: Optional[int] = None
-    ) -> None:
+    def __init__(self, *, client: Optional[Client] = None, random_seed: Optional[int] = None) -> None:
         """
         A simulator that propagates a wavefunction representation of a quantum state.
 
@@ -156,9 +154,7 @@ class WavefunctionSimulator:
         quil_program: Program,
         qubits: Optional[List[int]] = None,
         trials: int = 1,
-        memory_map: Optional[
-            Union[Dict[str, List[Union[int, float]]], Dict[MemoryReference, Any]]
-        ] = None,
+        memory_map: Optional[Union[Dict[str, List[Union[int, float]]], Dict[MemoryReference, Any]]] = None,
     ) -> np.ndarray:
         """
         Run a Quil program once to determine the final wavefunction, and measure multiple times.

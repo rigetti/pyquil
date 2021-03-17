@@ -53,8 +53,7 @@ class Wavefunction(object):
         sumprob = np.sum(self.probabilities())
         if not np.isclose(sumprob, 1.0):
             raise ValueError(
-                "The wavefunction is not normalized. "
-                "The probabilities sum to {} instead of 1".format(sumprob)
+                "The wavefunction is not normalized. " "The probabilities sum to {} instead of 1".format(sumprob)
             )
 
     @staticmethod
@@ -151,9 +150,7 @@ class Wavefunction(object):
         pp_string = ""
         for index, amplitude in enumerate(self.amplitudes):
             outcome = get_bitstring_from_index(index, qubit_num)
-            amplitude = (
-                round(amplitude.real, decimal_digits) + round(amplitude.imag, decimal_digits) * 1.0j
-            )
+            amplitude = round(amplitude.real, decimal_digits) + round(amplitude.imag, decimal_digits) * 1.0j
             if amplitude != 0.0:
                 outcome_dict[outcome] = amplitude
                 pp_string += str(amplitude) + "|{}> + ".format(outcome)
@@ -179,9 +176,7 @@ class Wavefunction(object):
                 if i > (2 ** qubit_num - 1):
                     raise IndexError("Index {} too large for {} qubits.".format(i, qubit_num))
                 else:
-                    sub_dict[get_bitstring_from_index(i, qubit_num)] = prob_dict[
-                        get_bitstring_from_index(i, qubit_num)
-                    ]
+                    sub_dict[get_bitstring_from_index(i, qubit_num)] = prob_dict[get_bitstring_from_index(i, qubit_num)]
             prob_dict = sub_dict
         plt.bar(range(len(prob_dict)), prob_dict.values(), align="center", color="#6CAFB7")
         plt.xticks(range(len(prob_dict)), prob_dict.keys())

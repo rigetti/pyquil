@@ -24,7 +24,6 @@ jobs:
           sudo apt update
           sudo apt install pandoc
           make install
-          make requirements
           make docs
   check-format:
     name: Check formatting
@@ -38,7 +37,6 @@ jobs:
       - name: Check format
         run: |
           sudo apt update
-          make install
           make requirements
           make check-format
   check-style:
@@ -53,7 +51,6 @@ jobs:
       - name: Check style
         run: |
           sudo apt update
-          make install
           make requirements
           make check-style
   check-types:
@@ -68,7 +65,6 @@ jobs:
       - name: Check types
         run: |
           sudo apt update
-          make install
           make requirements
           make check-types
   test-pyquil:
@@ -86,9 +82,7 @@ jobs:
       - name: Test pyQuil (Python ${{ matrix.python-version }})
         run: |
           sudo apt update
-          make install
           make requirements
-          pip install --upgrade pytest
           docker run --rm -itd -p 5555:5555 rigetti/quilc -R
           docker run --rm -itd -p 5000:5000 rigetti/qvm -S
           make test

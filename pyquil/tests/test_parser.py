@@ -118,9 +118,7 @@ def test_standard_gates():
 
 def test_def_gate():
     sqrt_x = DefGate("SQRT-X", np.array([[0.5 + 0.5j, 0.5 - 0.5j], [0.5 - 0.5j, 0.5 + 0.5j]]))
-    hadamard = DefGate(
-        "HADAMARD", np.array([[1 / np.sqrt(2), 1 / np.sqrt(2)], [1 / np.sqrt(2), -1 / np.sqrt(2)]])
-    )
+    hadamard = DefGate("HADAMARD", np.array([[1 / np.sqrt(2), 1 / np.sqrt(2)], [1 / np.sqrt(2), -1 / np.sqrt(2)]]))
     defgates = """
 DEFGATE SQRT-X:
     0.5+0.5i, 0.5-0.5i
@@ -145,11 +143,7 @@ def test_def_gate_with_variables():
         ]
     )
 
-    defgate = (
-        "DEFGATE RX(%theta):\n"
-        "    COS(%theta/2), i*SIN(%theta/2)\n"
-        "    i*SIN(%theta/2), COS(%theta/2)\n\n"
-    )
+    defgate = "DEFGATE RX(%theta):\n" "    COS(%theta/2), i*SIN(%theta/2)\n" "    i*SIN(%theta/2), COS(%theta/2)\n\n"
 
     parse_equals(defgate, DefGate("RX", rx, [theta]))
 
@@ -277,9 +271,7 @@ def test_expressions():
     _expr("-3+4", 1)
     _expr("-(3+4)", -7)
     _expr("-(3-4)", 1)
-    _expr(
-        "-0.1423778799706841+0.5434363975682295i", complex(-0.1423778799706841, 0.5434363975682295)
-    )
+    _expr("-0.1423778799706841+0.5434363975682295i", complex(-0.1423778799706841, 0.5434363975682295))
 
 
 def test_measure():
@@ -305,17 +297,11 @@ def test_memory_commands():
         "DECLARE mem OCTET[32] SHARING mem2 OFFSET 16 REAL OFFSET 32 REAL",
         Declare("mem", "OCTET", 32, shared_region="mem2", offsets=[(16, "REAL"), (32, "REAL")]),
     )
-    parse_equals(
-        "STORE mem ro[2] ro[0]", STORE("mem", MemoryReference("ro", 2), MemoryReference("ro", 0))
-    )
+    parse_equals("STORE mem ro[2] ro[0]", STORE("mem", MemoryReference("ro", 2), MemoryReference("ro", 0)))
     parse_equals("STORE mem ro[2] 7", STORE("mem", MemoryReference("ro", 2), 7))
-    parse_equals(
-        "LOAD ro[8] mem mem[4]", LOAD(MemoryReference("ro", 8), "mem", MemoryReference("mem", 4))
-    )
+    parse_equals("LOAD ro[8] mem mem[4]", LOAD(MemoryReference("ro", 8), "mem", MemoryReference("mem", 4)))
     parse_equals("CONVERT ro[1] ro[2]", CONVERT(MemoryReference("ro", 1), MemoryReference("ro", 2)))
-    parse_equals(
-        "EXCHANGE ro[0] ro[1]", EXCHANGE(MemoryReference("ro", 0), MemoryReference("ro", 1))
-    )
+    parse_equals("EXCHANGE ro[0] ro[1]", EXCHANGE(MemoryReference("ro", 0), MemoryReference("ro", 1)))
     parse_equals("MOVE mem[2] 4", MOVE(MemoryReference("mem", 2), 4))
     parse_equals("MOVE mem[2] -4", MOVE(MemoryReference("mem", 2), -4))
     parse_equals("MOVE mem[2] -4.1", MOVE(MemoryReference("mem", 2), -4.1))
@@ -362,21 +348,11 @@ def test_classical():
     parse_equals("LE comp[1] ro[3] 2", LE(MemoryReference("comp", 1), MemoryReference("ro", 3), 2))
     parse_equals("GT comp[1] ro[3] 3", GT(MemoryReference("comp", 1), MemoryReference("ro", 3), 3))
     parse_equals("GE comp[1] ro[3] 4", GE(MemoryReference("comp", 1), MemoryReference("ro", 3), 4))
-    parse_equals(
-        "EQ comp[1] ro[3] 0.0", EQ(MemoryReference("comp", 1), MemoryReference("ro", 3), 0.0)
-    )
-    parse_equals(
-        "LT comp[1] ro[3] 1.1", LT(MemoryReference("comp", 1), MemoryReference("ro", 3), 1.1)
-    )
-    parse_equals(
-        "LE comp[1] ro[3] 2.2", LE(MemoryReference("comp", 1), MemoryReference("ro", 3), 2.2)
-    )
-    parse_equals(
-        "GT comp[1] ro[3] 3.3", GT(MemoryReference("comp", 1), MemoryReference("ro", 3), 3.3)
-    )
-    parse_equals(
-        "GE comp[1] ro[3] 4.4", GE(MemoryReference("comp", 1), MemoryReference("ro", 3), 4.4)
-    )
+    parse_equals("EQ comp[1] ro[3] 0.0", EQ(MemoryReference("comp", 1), MemoryReference("ro", 3), 0.0))
+    parse_equals("LT comp[1] ro[3] 1.1", LT(MemoryReference("comp", 1), MemoryReference("ro", 3), 1.1))
+    parse_equals("LE comp[1] ro[3] 2.2", LE(MemoryReference("comp", 1), MemoryReference("ro", 3), 2.2))
+    parse_equals("GT comp[1] ro[3] 3.3", GT(MemoryReference("comp", 1), MemoryReference("ro", 3), 3.3))
+    parse_equals("GE comp[1] ro[3] 4.4", GE(MemoryReference("comp", 1), MemoryReference("ro", 3), 4.4))
 
 
 def test_pragma():
@@ -461,9 +437,7 @@ def test_parse_template_waveforms():
         "flat(duration: 1.0, iq: 1.0, detuning: 1e-5)",
         FlatWaveform(duration=1.0, iq=1.0, detuning=1e-5),
     )
-    wf_agrees(
-        "flat(duration: 1.0, iq: 1.0, scale: 0.5)", FlatWaveform(duration=1.0, iq=1.0, scale=0.5)
-    )
+    wf_agrees("flat(duration: 1.0, iq: 1.0, scale: 0.5)", FlatWaveform(duration=1.0, iq=1.0, scale=0.5))
     wf_agrees(
         "gaussian(fwhm: 2.0, t0: 1.0, duration: 3.0)",
         GaussianWaveform(duration=3.0, fwhm=2.0, t0=1.0),
@@ -475,9 +449,7 @@ def test_parse_template_waveforms():
     wf_agrees(
         "hrm_gaussian(fwhm: 2.0, t0: 1.0, anh: 5.0, alpha: 3.0, "
         + "             duration: 5.0, second_order_hrm_coeff: 0.5)".strip(),
-        HrmGaussianWaveform(
-            duration=5.0, fwhm=2.0, t0=1.0, anh=5.0, alpha=3.0, second_order_hrm_coeff=0.5
-        ),
+        HrmGaussianWaveform(duration=5.0, fwhm=2.0, t0=1.0, anh=5.0, alpha=3.0, second_order_hrm_coeff=0.5),
     )
     wf_agrees(
         "erf_square(risetime: 0.5, pad_left: 1.0, pad_right: 0.0, duration: 3.0)",
@@ -504,9 +476,7 @@ PULSE 0 "rf" flat(duration: 1.0, iq: foo)"""
 def test_parse_pulse():
     wf = FlatWaveform(duration=1.0, iq=1.0)
     parse_equals('PULSE 0 "rf" flat(duration: 1.0, iq: 1.0)', Pulse(Frame([Qubit(0)], "rf"), wf))
-    parse_equals(
-        'PULSE 0 1 "ff" flat(duration: 1.0, iq: 1.0)', Pulse(Frame([Qubit(0), Qubit(1)], "ff"), wf)
-    )
+    parse_equals('PULSE 0 1 "ff" flat(duration: 1.0, iq: 1.0)', Pulse(Frame([Qubit(0), Qubit(1)], "ff"), wf))
     parse_equals(
         'NONBLOCKING PULSE 0 "rf" flat(duration: 1.0, iq: 1.0)',
         Pulse(Frame([Qubit(0)], "rf"), wf, nonblocking=True),
@@ -561,9 +531,7 @@ def test_parsing_frame_mutations():
 
 
 def test_parsing_swap_phase():
-    parse_equals(
-        'SWAP-PHASE 0 "rf" 1 "rf"', SwapPhase(Frame([Qubit(0)], "rf"), Frame([Qubit(1)], "rf"))
-    )
+    parse_equals('SWAP-PHASE 0 "rf" 1 "rf"', SwapPhase(Frame([Qubit(0)], "rf"), Frame([Qubit(1)], "rf")))
     parse_equals(
         'SWAP-PHASE 0 1 "ff" 1 0 "ff"',
         SwapPhase(Frame([Qubit(0), Qubit(1)], "ff"), Frame([Qubit(1), Qubit(0)], "ff")),
@@ -589,9 +557,7 @@ def test_parsing_fence():
 
 
 def test_parsing_defwaveform():
-    parse_equals(
-        "DEFWAVEFORM foo:\n" "    1.0, 1.0, 1.0\n", DefWaveform("foo", [], [1.0, 1.0, 1.0])
-    )
+    parse_equals("DEFWAVEFORM foo:\n" "    1.0, 1.0, 1.0\n", DefWaveform("foo", [], [1.0, 1.0, 1.0]))
     parse_equals(
         "DEFWAVEFORM foo:\n" "    1.0+2.0*i, 1.0-2.0*i, 3.0\n",
         DefWaveform("foo", [], [1 + 2j, 1 - 2j, 3 + 0j]),

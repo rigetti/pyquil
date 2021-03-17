@@ -39,10 +39,6 @@ config:
 coverage:
 	coveralls
 
-.PHONY: dist
-dist:
-	python setup.py sdist
-
 .PHONY: docs
 docs: CHANGELOG.md
 	pandoc --from=markdown --to=rst --output=docs/source/changes.rst CHANGELOG.md
@@ -63,23 +59,11 @@ info:
 
 .PHONY: install
 install:
-	pip install -e .
-
-.PHONY: requirements
-requirements: requirements.txt
-	pip install -r requirements.txt
+	poetry install
 
 .PHONY: test
 test:
 	pytest -n auto -v --runslow --cov=pyquil
-
-.PHONY: upload
-upload:
-	twine upload --repository-url "${TWINE_REPOSITORY_URL}"  dist/*
-
-.PHONY: version
-version:
-	@git describe --tags | sed 's/v//' | sed 's/\(.*\)-.*/\1/'| sed 's/-/./'
 
 docs/quil/grammars/Quil.g4:
 	git submodule init

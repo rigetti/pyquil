@@ -26,9 +26,7 @@ def simple_program():
 
 
 def test_invalid_protocol(qcs_aspen8_device: QCSDevice, monkeypatch: MonkeyPatch):
-    monkeypatch.setenv(
-        "QCS_SETTINGS_APPLICATIONS_PYQUIL_QUILC_URL", "not-http-or-tcp://example.com"
-    )
+    monkeypatch.setenv("QCS_SETTINGS_APPLICATIONS_PYQUIL_QUILC_URL", "not-http-or-tcp://example.com")
     client = Client()
 
     with pytest.raises(
@@ -45,9 +43,7 @@ def test_invalid_protocol(qcs_aspen8_device: QCSDevice, monkeypatch: MonkeyPatch
 def test_compile_with_quilt_calibrations(compiler: QPUCompiler):
     program = simple_program()
     q = FormalArgument("q")
-    defn = DefCalibration(
-        "H", [], [q], [RZ(math.pi / 2, q), RX(math.pi / 2, q), RZ(math.pi / 2, q)]
-    )
+    defn = DefCalibration("H", [], [q], [RZ(math.pi / 2, q), RX(math.pi / 2, q), RZ(math.pi / 2, q)])
     cals = [defn]
     program._calibrations = cals
     # this should more or less pass through

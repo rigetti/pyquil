@@ -225,9 +225,7 @@ def test_kraus_application_depolarizing():
     qam.execute(Program(I(0)))
 
     final_density = (1 - p) * rho + (p / 3) * (
-        qmats.X.dot(rho).dot(qmats.X)
-        + qmats.Y.dot(rho).dot(qmats.Y)
-        + qmats.Z.dot(rho).dot(qmats.Z)
+        qmats.X.dot(rho).dot(qmats.X) + qmats.Y.dot(rho).dot(qmats.Y) + qmats.Z.dot(rho).dot(qmats.Z)
     )
     np.testing.assert_allclose(final_density, qam.wf_simulator.density)
 
