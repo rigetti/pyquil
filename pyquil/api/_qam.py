@@ -23,6 +23,7 @@ from rpcq.messages import ParameterAref
 
 from pyquil.api._abstract_compiler import QuantumExecutable
 from pyquil.api._error_reporting import _record_call
+from pyquil.api._abstract_compiler import QuantumExecutable
 from pyquil.experiment._main import Experiment
 
 
@@ -138,6 +139,7 @@ class QAM(ABC):
         when it has gotten into an unwanted state. This can happen, for example, if the QAM
         is interrupted in the middle of a run.
         """
+        self._client.reset()
         self._variables_shim = {}
         self.executable = None
         self._memory_results = defaultdict(lambda: None)

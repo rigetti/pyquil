@@ -170,6 +170,19 @@ class WavefunctionSimulator:
         response = self._qvm_client.measure_expectation(request)
         return np.asarray(response.expectations)
 
+    def _expectation(self, prep_prog: Program, operator_programs: Iterable[Program]) -> np.ndarray:
+        if isinstance(operator_programs, Program):
+            warnings.warn(
+                "You have provided a Program rather than a list of Programs. The results "
+                "from expectation will be line-wise expectation values of the "
+                "operator_programs.",
+                SyntaxWarning,
+            )
+
+        payload = expectation_payload(prep_prog, operator_programs, self.random_seed)
+        response = self.client.post_json(self.client.qvm_url, payload)
+        return np.asarray(response.json())
+
     @_record_call
     def run_and_measure(
         self,

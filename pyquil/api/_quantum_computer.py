@@ -46,6 +46,7 @@ from pyquil.api._error_reporting import _record_call
 from pyquil.api._qam import QAM
 from pyquil.api._qcs_client import qcs_client
 from pyquil.api._qpu import QPU
+from pyquil.api._quantum_processors import get_device
 from pyquil.api._qvm import QVM
 from pyquil.experiment._main import Experiment
 from pyquil.experiment._memory import merge_memory_map_lists
@@ -583,6 +584,7 @@ def _get_qvm_qc(
         compiler=QVMCompiler(
             quantum_processor=quantum_processor, timeout=compiler_timeout, client_configuration=client_configuration
         ),
+        compiler=QVMCompiler(device=device, client=client, timeout=compiler_timeout),
     )
 
 

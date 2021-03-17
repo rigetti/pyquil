@@ -80,7 +80,7 @@ class QVM(QAM):
         :param timeout: Time limit for requests, in seconds.
         :param client_configuration: Optional client configuration. If none is provided, a default one will be loaded.
         """
-        super().__init__()
+        super().__init__(client)
 
         if (noise_model is not None) and (gate_noise is not None or measurement_noise is not None):
             raise ValueError(
