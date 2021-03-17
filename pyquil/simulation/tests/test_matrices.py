@@ -19,17 +19,13 @@ def test_singleq():
 
     assert np.isclose(QUANTUM_GATES["H"], (1.0 / np.sqrt(2)) * np.array([[1, 1], [1, -1]])).all()
     assert np.isclose(QUANTUM_GATES["S"], np.array([[1.0, 0], [0, 1j]])).all()
-    assert np.isclose(
-        QUANTUM_GATES["T"], np.array([[1.0, 0.0], [0.0, np.exp(1.0j * np.pi / 4.0)]])
-    ).all()
+    assert np.isclose(QUANTUM_GATES["T"], np.array([[1.0, 0.0], [0.0, np.exp(1.0j * np.pi / 4.0)]])).all()
 
 
 def test_parametric():
     phi_range = np.linspace(0, 2 * np.pi, 120)
     for phi in phi_range:
-        assert np.isclose(
-            QUANTUM_GATES["PHASE"](phi), np.array([[1.0, 0.0], [0.0, np.exp(1j * phi)]])
-        ).all()
+        assert np.isclose(QUANTUM_GATES["PHASE"](phi), np.array([[1.0, 0.0], [0.0, np.exp(1j * phi)]])).all()
         assert np.isclose(
             QUANTUM_GATES["RX"](phi),
             np.array(
@@ -41,9 +37,7 @@ def test_parametric():
         ).all()
         assert np.isclose(
             QUANTUM_GATES["RY"](phi),
-            np.array(
-                [[np.cos(phi / 2.0), -np.sin(phi / 2.0)], [np.sin(phi / 2.0), np.cos(phi / 2.0)]]
-            ),
+            np.array([[np.cos(phi / 2.0), -np.sin(phi / 2.0)], [np.sin(phi / 2.0), np.cos(phi / 2.0)]]),
         ).all()
         assert np.isclose(
             QUANTUM_GATES["RZ"](phi),
@@ -57,9 +51,7 @@ def test_parametric():
 
 
 def test_multiq():
-    assert np.isclose(
-        QUANTUM_GATES["CNOT"], np.array([[1, 0, 0, 0], [0, 1, 0, 0], [0, 0, 0, 1], [0, 0, 1, 0]])
-    ).all()
+    assert np.isclose(QUANTUM_GATES["CNOT"], np.array([[1, 0, 0, 0], [0, 1, 0, 0], [0, 0, 0, 1], [0, 0, 1, 0]])).all()
     assert np.isclose(
         QUANTUM_GATES["CCNOT"],
         np.array(

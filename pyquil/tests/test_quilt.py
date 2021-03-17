@@ -40,9 +40,7 @@ def test_waveform_samples():
         FlatWaveform(duration=duration, iq=1.0),
         FlatWaveform(duration=duration, iq=1.0 + 2.0j),
         GaussianWaveform(duration=duration, fwhm=2.0, t0=1.0),
-        DragGaussianWaveform(
-            duration=duration, fwhm=duration / 4, t0=duration / 2, anh=5.0, alpha=3.0
-        ),
+        DragGaussianWaveform(duration=duration, fwhm=duration / 4, t0=duration / 2, anh=5.0, alpha=3.0),
         HrmGaussianWaveform(
             duration=duration,
             fwhm=duration / 4,

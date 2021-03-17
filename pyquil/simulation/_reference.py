@@ -41,9 +41,7 @@ def _term_expectation(wf: np.ndarray, term: PauliTerm, n_qubits: int) -> Any:
     return term.coefficient * (wf.conj().T @ wf2)
 
 
-def _is_valid_quantum_state(
-    state_matrix: np.ndarray, rtol: float = 1e-05, atol: float = 1e-08
-) -> bool:
+def _is_valid_quantum_state(state_matrix: np.ndarray, rtol: float = 1e-05, atol: float = 1e-08) -> bool:
     """
     Checks if a quantum state is valid, i.e. the matrix is Hermitian; trace one, and that the
     eigenvalues are non-negative.
@@ -122,9 +120,7 @@ class ReferenceWavefunctionSimulator(AbstractQuantumSimulator):
         self.wf = unitary.dot(self.wf)
         return self
 
-    def do_gate_matrix(
-        self, matrix: np.ndarray, qubits: Sequence[int]
-    ) -> "ReferenceWavefunctionSimulator":
+    def do_gate_matrix(self, matrix: np.ndarray, qubits: Sequence[int]) -> "ReferenceWavefunctionSimulator":
         """
         Apply an arbitrary unitary; not necessarily a named gate.
 
@@ -188,9 +184,7 @@ class ReferenceWavefunctionSimulator(AbstractQuantumSimulator):
         self.wf[0] = complex(1.0, 0)
         return self
 
-    def do_post_gate_noise(
-        self, noise_type: str, noise_prob: float, qubits: List[int]
-    ) -> "AbstractQuantumSimulator":
+    def do_post_gate_noise(self, noise_type: str, noise_prob: float, qubits: List[int]) -> "AbstractQuantumSimulator":
         raise NotImplementedError("The reference wavefunction simulator cannot handle noise")
 
 
@@ -251,15 +245,12 @@ class ReferenceDensitySimulator(AbstractQuantumSimulator):
         if rows != cols:
             raise ValueError("The state matrix is not square.")
         if self.n_qubits != int(np.log2(rows)):
-            raise ValueError(
-                "The state matrix is not defined on the same numbers of qubits as the QVM."
-            )
+            raise ValueError("The state matrix is not defined on the same numbers of qubits as the QVM.")
         if _is_valid_quantum_state(state_matrix):
             self.initial_density = state_matrix
         else:
             raise ValueError(
-                "The state matrix is not valid. It must be Hermitian, trace one, "
-                "and have non-negative eigenvalues."
+                "The state matrix is not valid. It must be Hermitian, trace one, " "and have non-negative eigenvalues."
             )
         return self
 
@@ -304,9 +295,7 @@ class ReferenceDensitySimulator(AbstractQuantumSimulator):
         self.density = unitary.dot(self.density).dot(np.conj(unitary).T)
         return self
 
-    def do_gate_matrix(
-        self, matrix: np.ndarray, qubits: Sequence[int]
-    ) -> "AbstractQuantumSimulator":
+    def do_gate_matrix(self, matrix: np.ndarray, qubits: Sequence[int]) -> "AbstractQuantumSimulator":
         """
         Apply an arbitrary unitary; not necessarily a named gate.
 
@@ -357,9 +346,7 @@ class ReferenceDensitySimulator(AbstractQuantumSimulator):
         self.density = self.initial_density
         return self
 
-    def do_post_gate_noise(
-        self, noise_type: str, noise_prob: float, qubits: List[int]
-    ) -> "ReferenceDensitySimulator":
+    def do_post_gate_noise(self, noise_type: str, noise_prob: float, qubits: List[int]) -> "ReferenceDensitySimulator":
         kraus_ops = cast(Tuple[np.ndarray, ...], KRAUS_OPS[noise_type](p=noise_prob))
         if np.isclose(noise_prob, 0.0):
             warnings.warn(f"Skipping {noise_type} post-gate noise because noise_prob is close to 0")
@@ -368,9 +355,7 @@ class ReferenceDensitySimulator(AbstractQuantumSimulator):
         for q in qubits:
             new_density = np.zeros_like(self.density)
             for kraus_op in kraus_ops:
-                lifted_kraus_op = lifted_gate_matrix(
-                    matrix=kraus_op, qubit_inds=[q], n_qubits=self.n_qubits
-                )
+                lifted_kraus_op = lifted_gate_matrix(matrix=kraus_op, qubit_inds=[q], n_qubits=self.n_qubits)
                 new_density += lifted_kraus_op.dot(self.density).dot(np.conj(lifted_kraus_op.T))
             self.density = new_density
         return self

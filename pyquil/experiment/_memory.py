@@ -123,9 +123,7 @@ def pauli_term_to_euler_memory_map(
     return memory_map
 
 
-def pauli_term_to_preparation_memory_map(
-    term: PauliTerm, label: str = "preparation"
-) -> Dict[str, List[float]]:
+def pauli_term_to_preparation_memory_map(term: PauliTerm, label: str = "preparation") -> Dict[str, List[float]]:
     """
     Given a ``PauliTerm``, create a memory map corresponding to the ZXZXZ-decomposed single-qubit
     gates that prepare the plus one eigenstate of the ``PauliTerm``. For example, if we have the
@@ -150,9 +148,7 @@ def pauli_term_to_preparation_memory_map(
     return pauli_term_to_euler_memory_map(term, prefix=label, tuple_x=P_X, tuple_y=P_Y, tuple_z=P_Z)
 
 
-def pauli_term_to_measurement_memory_map(
-    term: PauliTerm, label: str = "measurement"
-) -> Dict[str, List[float]]:
+def pauli_term_to_measurement_memory_map(term: PauliTerm, label: str = "measurement") -> Dict[str, List[float]]:
     """
     Given a ``PauliTerm``, create a memory map corresponding to the ZXZXZ-decomposed single-qubit
     gates that allow for measurement in the eigenbasis of the ``PauliTerm``. For example, if we

@@ -27,9 +27,7 @@ from pyquil.latex._diagram import DiagramSettings
 from pyquil.quil import Program
 
 
-def display(
-    circuit: Program, settings: Optional[DiagramSettings] = None, **image_options: Any
-) -> Image:
+def display(circuit: Program, settings: Optional[DiagramSettings] = None, **image_options: Any) -> Image:
     """
     Displays a PyQuil circuit as an IPython image object.
 

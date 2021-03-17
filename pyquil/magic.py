@@ -138,12 +138,8 @@ class _IfTransformer(ast.NodeTransformer):
         # See: https://greentreesnakes.readthedocs.io/en/latest/nodes.html#If
         node = self.generic_visit(node)
 
-        if_function = ast.FunctionDef(
-            name="_if_branch", body=node.body, decorator_list=[], args=_EMPTY_ARGUMENTS
-        )
-        else_function = ast.FunctionDef(
-            name="_else_branch", body=node.orelse, decorator_list=[], args=_EMPTY_ARGUMENTS
-        )
+        if_function = ast.FunctionDef(name="_if_branch", body=node.body, decorator_list=[], args=_EMPTY_ARGUMENTS)
+        else_function = ast.FunctionDef(name="_else_branch", body=node.orelse, decorator_list=[], args=_EMPTY_ARGUMENTS)
 
         if_function_name = ast.Name(id="_if_branch", ctx=ast.Load())
         else_function_name = ast.Name(id="_else_branch", ctx=ast.Load())

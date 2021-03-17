@@ -49,9 +49,7 @@ def get_results_by_qubit_groups(
         subset of that qubit group. The result order is maintained within each group.
     """
     tuple_groups = [tuple(sorted(group)) for group in qubit_groups]
-    results_by_qubit_group: Dict[Tuple[int, ...], List[ExperimentResult]] = {
-        group: [] for group in tuple_groups
-    }
+    results_by_qubit_group: Dict[Tuple[int, ...], List[ExperimentResult]] = {group: [] for group in tuple_groups}
     for res in results:
         res_qs = res.setting.out_operator.get_qubits()
 
@@ -62,9 +60,7 @@ def get_results_by_qubit_groups(
     return results_by_qubit_group
 
 
-def merge_disjoint_experiments(
-    experiments: List[Experiment], group_merged_settings: bool = True
-) -> Experiment:
+def merge_disjoint_experiments(experiments: List[Experiment], group_merged_settings: bool = True) -> Experiment:
     """
     Merges the list of experiments into a single experiment that runs the sum of the individual
     experiment programs and contains all of the combined experiment settings.
@@ -98,15 +94,12 @@ def merge_disjoint_experiments(
     for expt in experiments:
         if expt.program.get_qubits().intersection(used_qubits):
             raise ValueError(
-                "Experiment programs act on some shared set of qubits and cannot be "
-                "merged unambiguously."
+                "Experiment programs act on some shared set of qubits and cannot be " "merged unambiguously."
             )
         used_qubits = used_qubits.union(cast(Set[int], expt.program.get_qubits()))
 
     # get a flat list of all settings, to be regrouped later
-    all_settings = [
-        setting for expt in experiments for simult_settings in expt for setting in simult_settings
-    ]
+    all_settings = [setting for expt in experiments for simult_settings in expt for setting in simult_settings]
     merged_program = sum([expt.program for expt in experiments], Program())
     merged_program.wrap_in_numshots_loop(max([expt.program.num_shots for expt in experiments]))
 
@@ -144,9 +137,7 @@ def construct_tpb_graph(experiments: Experiment) -> nx.Graph:
             continue
 
         max_weight_in = _max_weight_state([unpacked_expt1.in_state, unpacked_expt2.in_state])
-        max_weight_out = _max_weight_operator(
-            [unpacked_expt1.out_operator, unpacked_expt2.out_operator]
-        )
+        max_weight_out = _max_weight_operator([unpacked_expt1.out_operator, unpacked_expt2.out_operator])
         if max_weight_in is not None and max_weight_out is not None:
             g.add_edge(unpacked_expt1, unpacked_expt2)
 
@@ -174,7 +165,9 @@ def group_settings_clique_removal(experiments: Experiment) -> Experiment:
         new_cliqs += [new_cliq]
 
     return Experiment(
-        new_cliqs, program=experiments.program, symmetrization=experiments.symmetrization,
+        new_cliqs,
+        program=experiments.program,
+        symmetrization=experiments.symmetrization,
     )
 
 
@@ -221,7 +214,9 @@ def _max_weight_state(states: Iterable[TensorProductState]) -> Union[None, Tenso
     return TensorProductState(list(mapping.values()))
 
 
-def _max_tpb_overlap(tomo_expt: Experiment,) -> Dict[ExperimentSetting, List[ExperimentSetting]]:
+def _max_tpb_overlap(
+    tomo_expt: Experiment,
+) -> Dict[ExperimentSetting, List[ExperimentSetting]]:
     """
     Given an input Experiment, provide a dictionary indicating which ExperimentSettings
     share a tensor product basis
@@ -258,9 +253,7 @@ def _max_tpb_overlap(tomo_expt: Experiment,) -> Dict[ExperimentSetting, List[Exp
                 ), "Highest weight out-PauliTerm can't be smaller than the given out-PauliTerm"
 
                 # update the diagonalizing basis (key of dict) if necessary
-                if len(diag_in_term) > len(es.in_state) or len(diag_out_term) > len(
-                    es.out_operator
-                ):
+                if len(diag_in_term) > len(es.in_state) or len(diag_out_term) > len(es.out_operator):
                     del diagonal_sets[es]
                     new_es = ExperimentSetting(diag_in_term, diag_out_term)
                     diagonal_sets[new_es] = trial_es_list

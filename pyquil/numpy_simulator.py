@@ -24,7 +24,6 @@ from pyquil.simulation._numpy import (  # noqa: F401
 )
 
 warnings.warn(
-    "The code in pyquil.numpy_simulator has been moved to pyquil.simulation, "
-    "please update your import statements.",
+    "The code in pyquil.numpy_simulator has been moved to pyquil.simulation, " "please update your import statements.",
     FutureWarning,
 )

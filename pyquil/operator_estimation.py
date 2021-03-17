@@ -282,8 +282,7 @@ def measure_observables(
     # calibration readout only works with symmetrization turned on
     if calibrate_readout is not None and symmetrization != SymmetrizationLevel.EXHAUSTIVE:
         raise ValueError(
-            "Readout calibration only currently works with exhaustive readout "
-            "symmetrization turned on."
+            "Readout calibration only currently works with exhaustive readout " "symmetrization turned on."
         )
 
     # generate programs for each group of simultaneous settings.
@@ -317,9 +316,7 @@ def measure_observables(
             # Special case for measuring the "identity" operator, which doesn't make much
             #     sense but should happen perfectly.
             if is_identity(setting.out_operator):
-                yield ExperimentResult(
-                    setting=setting, expectation=coeff, std_err=0.0, total_counts=shots
-                )
+                yield ExperimentResult(setting=setting, expectation=coeff, std_err=0.0, total_counts=shots)
                 continue
 
             # Obtain statistics from result of experiment
@@ -420,9 +417,7 @@ def _stats_from_measurements(
     return obs_mean, obs_var
 
 
-def _calibration_program(
-    qc: QuantumComputer, tomo_experiment: Experiment, setting: ExperimentSetting
-) -> Program:
+def _calibration_program(qc: QuantumComputer, tomo_experiment: Experiment, setting: ExperimentSetting) -> Program:
     """
     Program required for calibration in a tomography-like experiment.
 
@@ -437,14 +432,10 @@ def _calibration_program(
     # and applications which can be handy in creating simulating noisy channels
     calibr_prog = Program()
     # Inherit readout errro instructions from main Program
-    readout_povm_instruction = [
-        i for i in tomo_experiment.program.out().split("\n") if "PRAGMA READOUT-POVM" in i
-    ]
+    readout_povm_instruction = [i for i in tomo_experiment.program.out().split("\n") if "PRAGMA READOUT-POVM" in i]
     calibr_prog += readout_povm_instruction
     # Inherit any definitions of noisy gates from main Program
-    kraus_instructions = [
-        i for i in tomo_experiment.program.out().split("\n") if "PRAGMA ADD-KRAUS" in i
-    ]
+    kraus_instructions = [i for i in tomo_experiment.program.out().split("\n") if "PRAGMA ADD-KRAUS" in i]
     calibr_prog += kraus_instructions
     # Prepare the +1 eigenstate for the out operator
     for q, op in setting.out_operator.operations_as_set():

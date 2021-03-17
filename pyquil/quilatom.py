@@ -164,9 +164,7 @@ class QubitPlaceholder(QuilAtom):
 QubitDesignator = Union[Qubit, QubitPlaceholder, FormalArgument, int]
 
 
-def unpack_qubit(
-    qubit: Union[QubitDesignator, FormalArgument]
-) -> Union[Qubit, QubitPlaceholder, FormalArgument]:
+def unpack_qubit(qubit: Union[QubitDesignator, FormalArgument]) -> Union[Qubit, QubitPlaceholder, FormalArgument]:
     """
     Get a qubit from an object.
 
@@ -343,9 +341,7 @@ class Expression(object):
         return _expression_to_string(self)
 
     def __repr__(self) -> str:
-        return (
-            str(self.__class__.__name__) + "(" + ",".join(map(repr, self.__dict__.values())) + ")"
-        )
+        return str(self.__class__.__name__) + "(" + ",".join(map(repr, self.__dict__.values())) + ")"
 
     def __add__(self, other: ExpressionDesignator) -> "Add":
         return Add(self, other)
@@ -391,9 +387,7 @@ class Expression(object):
 ParamSubstitutionsMapDesignator = Mapping["Parameter", ExpressionValueDesignator]
 
 
-def substitute(
-    expr: ExpressionDesignator, d: ParamSubstitutionsMapDesignator
-) -> ExpressionDesignator:
+def substitute(expr: ExpressionDesignator, d: ParamSubstitutionsMapDesignator) -> ExpressionDesignator:
     """
     Using a dictionary of substitutions ``d`` try and explicitly evaluate as much of ``expr`` as
     possible.
@@ -407,9 +401,7 @@ def substitute(
     return expr
 
 
-def substitute_array(
-    a: Union[Sequence[Expression], np.array], d: ParamSubstitutionsMapDesignator
-) -> np.array:
+def substitute_array(a: Union[Sequence[Expression], np.array], d: ParamSubstitutionsMapDesignator) -> np.array:
     """
     Apply ``substitute`` to all elements of an array ``a`` and return the resulting array.
 
@@ -432,9 +424,7 @@ class Parameter(QuilAtom, Expression):
     def out(self) -> str:
         return "%" + self.name
 
-    def _substitute(
-        self, d: ParamSubstitutionsMapDesignator
-    ) -> Union["Parameter", ExpressionValueDesignator]:
+    def _substitute(self, d: ParamSubstitutionsMapDesignator) -> Union["Parameter", ExpressionValueDesignator]:
         return d.get(self, self)
 
     def __str__(self) -> str:
@@ -462,20 +452,14 @@ class Function(Expression):
         self.expression = expression
         self.fn = fn
 
-    def _substitute(
-        self, d: ParamSubstitutionsMapDesignator
-    ) -> Union["Function", ExpressionValueDesignator]:
+    def _substitute(self, d: ParamSubstitutionsMapDesignator) -> Union["Function", ExpressionValueDesignator]:
         sop = substitute(self.expression, d)
         if isinstance(sop, Expression):
             return Function(self.name, sop, self.fn)
         return self.fn(sop)
 
     def __eq__(self, other: object) -> bool:
-        return (
-            isinstance(other, Function)
-            and self.name == other.name
-            and self.expression == other.expression
-        )
+        return isinstance(other, Function) and self.name == other.name and self.expression == other.expression
 
     def __neq__(self, other: "Function") -> bool:
         return not self.__eq__(other)
@@ -512,18 +496,14 @@ class BinaryExp(Expression):
     associates: ClassVar[str]
 
     @staticmethod
-    def fn(
-        a: ExpressionDesignator, b: ExpressionDesignator
-    ) -> Union["BinaryExp", ExpressionValueDesignator]:
+    def fn(a: ExpressionDesignator, b: ExpressionDesignator) -> Union["BinaryExp", ExpressionValueDesignator]:
         raise NotImplementedError
 
     def __init__(self, op1: ExpressionDesignator, op2: ExpressionDesignator):
         self.op1 = op1
         self.op2 = op2
 
-    def _substitute(
-        self, d: ParamSubstitutionsMapDesignator
-    ) -> Union["BinaryExp", ExpressionValueDesignator]:
+    def _substitute(self, d: ParamSubstitutionsMapDesignator) -> Union["BinaryExp", ExpressionValueDesignator]:
         sop1, sop2 = substitute(self.op1, d), substitute(self.op2, d)
         return self.fn(sop1, sop2)
 
@@ -540,9 +520,7 @@ class Add(BinaryExp):
     associates = "both"
 
     @staticmethod
-    def fn(
-        a: ExpressionDesignator, b: ExpressionDesignator
-    ) -> Union["Add", ExpressionValueDesignator]:
+    def fn(a: ExpressionDesignator, b: ExpressionDesignator) -> Union["Add", ExpressionValueDesignator]:
         return a + b
 
     def __init__(self, op1: ExpressionDesignator, op2: ExpressionDesignator):
@@ -555,9 +533,7 @@ class Sub(BinaryExp):
     associates = "left"
 
     @staticmethod
-    def fn(
-        a: ExpressionDesignator, b: ExpressionDesignator
-    ) -> Union["Sub", ExpressionValueDesignator]:
+    def fn(a: ExpressionDesignator, b: ExpressionDesignator) -> Union["Sub", ExpressionValueDesignator]:
         return a - b
 
     def __init__(self, op1: ExpressionDesignator, op2: ExpressionDesignator):
@@ -570,9 +546,7 @@ class Mul(BinaryExp):
     associates = "both"
 
     @staticmethod
-    def fn(
-        a: ExpressionDesignator, b: ExpressionDesignator
-    ) -> Union["Mul", ExpressionValueDesignator]:
+    def fn(a: ExpressionDesignator, b: ExpressionDesignator) -> Union["Mul", ExpressionValueDesignator]:
         return a * b
 
     def __init__(self, op1: ExpressionDesignator, op2: ExpressionDesignator):
@@ -585,9 +559,7 @@ class Div(BinaryExp):
     associates = "left"
 
     @staticmethod
-    def fn(
-        a: ExpressionDesignator, b: ExpressionDesignator
-    ) -> Union["Div", ExpressionValueDesignator]:
+    def fn(a: ExpressionDesignator, b: ExpressionDesignator) -> Union["Div", ExpressionValueDesignator]:
         return a / b
 
     def __init__(self, op1: ExpressionDesignator, op2: ExpressionDesignator):
@@ -600,9 +572,7 @@ class Pow(BinaryExp):
     associates = "right"
 
     @staticmethod
-    def fn(
-        a: ExpressionDesignator, b: ExpressionDesignator
-    ) -> Union["Pow", ExpressionValueDesignator]:
+    def fn(a: ExpressionDesignator, b: ExpressionDesignator) -> Union["Pow", ExpressionValueDesignator]:
         return a ** b
 
     def __init__(self, op1: ExpressionDesignator, op2: ExpressionDesignator):
@@ -727,11 +697,7 @@ class MemoryReference(QuilAtom, Expression):
         return "<MRef {}[{}]>".format(self.name, self.offset)
 
     def __eq__(self, other: object) -> bool:
-        return (
-            isinstance(other, MemoryReference)
-            and other.name == self.name
-            and other.offset == self.offset
-        )
+        return isinstance(other, MemoryReference) and other.name == self.name and other.offset == self.offset
 
     def __hash__(self) -> int:
         return hash((self.name, self.offset))
@@ -761,10 +727,7 @@ class Addr(MemoryReference):
     """
 
     def __init__(self, value: int):
-        warn(
-            'Addr objects have been deprecated. Defaulting to memory region "ro". Use '
-            "MemoryReference instead."
-        )
+        warn('Addr objects have been deprecated. Defaulting to memory region "ro". Use ' "MemoryReference instead.")
         if not isinstance(value, int) or value < 0:
             raise TypeError("Addr value must be a non-negative int")
         super(Addr, self).__init__("ro", offset=value, declared_size=None)
@@ -882,9 +845,7 @@ def _update_envelope(
     phase = default(phase, 0.0)
     detuning = default(detuning, 0.0)
 
-    iqs *= (
-        scale * np.exp(1j * phase) * np.exp(1j * 2 * np.pi * detuning * np.arange(len(iqs)) / rate)
-    )
+    iqs *= scale * np.exp(1j * phase) * np.exp(1j * 2 * np.pi * detuning * np.arange(len(iqs)) / rate)
 
     return iqs
 

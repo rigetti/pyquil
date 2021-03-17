@@ -393,8 +393,7 @@ class PauliTerm(object):
         """
         if not all([isinstance(op, tuple) for op in terms_list]):
             raise TypeError(
-                "The type of terms_list should be a list of (name, index) "
-                "tuples suitable for PauliTerm()."
+                "The type of terms_list should be a list of (name, index) " "tuples suitable for PauliTerm()."
             )
 
         pterm = PauliTerm("I", 0)
@@ -451,9 +450,7 @@ class PauliTerm(object):
         # parse the operator
         str_op = re.sub(r"\*", "", str_op)
         if not re.match(r"^(([XYZ])(\d+))+$", str_op):
-            raise ValueError(
-                fr"Could not parse operator string {str_op}. It should match ^(([XYZ])(\d+))+$"
-            )
+            raise ValueError(fr"Could not parse operator string {str_op}. It should match ^(([XYZ])(\d+))+$")
 
         for factor in re.finditer(r"([XYZ])(\d+)", str_op):
             op *= cls(factor.group(1), int(factor.group(2)))
@@ -575,9 +572,7 @@ class PauliSum(object):
         """
         :param Sequence terms: A Sequence of PauliTerms.
         """
-        if not (
-            isinstance(terms, Sequence) and all([isinstance(term, PauliTerm) for term in terms])
-        ):
+        if not (isinstance(terms, Sequence) and all([isinstance(term, PauliTerm) for term in terms])):
             raise ValueError("PauliSum's are currently constructed from Sequences of PauliTerms.")
         self.terms: Sequence[PauliTerm]
         if len(terms) == 0:
@@ -631,9 +626,7 @@ class PauliSum(object):
         :return: A new PauliSum object given by the multiplication.
         """
         if not isinstance(other, (Expression, Number, PauliTerm, PauliSum)):
-            raise ValueError(
-                "Cannot multiply PauliSum by term that is not a Number, PauliTerm, or PauliSum"
-            )
+            raise ValueError("Cannot multiply PauliSum by term that is not a Number, PauliTerm, or PauliSum")
 
         other_terms: List[Union[PauliTerm, ExpressionDesignator]] = []
         if isinstance(other, PauliSum):
@@ -878,11 +871,7 @@ def is_identity(term: PauliDesignator) -> bool:
     if isinstance(term, PauliTerm):
         return (len(term) == 0) and (not np.isclose(term.coefficient, 0))
     elif isinstance(term, PauliSum):
-        return (
-            (len(term.terms) == 1)
-            and (len(term.terms[0]) == 0)
-            and (not np.isclose(term.terms[0].coefficient, 0))
-        )
+        return (len(term.terms) == 1) and (len(term.terms[0]) == 0) and (not np.isclose(term.terms[0].coefficient, 0))
     else:
         raise TypeError("is_identity only checks PauliTerms and PauliSum objects!")
 
@@ -1094,9 +1083,7 @@ def trotterize(
     if not (1 <= trotter_order < 5):
         raise ValueError("trotterize only accepts trotter_order in {1, 2, 3, 4}.")
 
-    commutator = (first_pauli_term * second_pauli_term) + (
-        -1 * second_pauli_term * first_pauli_term
-    )
+    commutator = (first_pauli_term * second_pauli_term) + (-1 * second_pauli_term * first_pauli_term)
 
     prog = Program()
     if is_zero(commutator):

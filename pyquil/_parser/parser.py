@@ -146,8 +146,7 @@ class QuilTransformer(Transformer):  # type: ignore
                 options[name] = spec_value
             else:
                 raise ValueError(
-                    f"Unexpectected attribute {spec_name} in definition of frame {frame}. "
-                    f"{frame}, {specs}"
+                    f"Unexpectected attribute {spec_name} in definition of frame {frame}. " f"{frame}, {specs}"
                 )
 
         f = DefFrame(frame, **options)
@@ -165,9 +164,7 @@ class QuilTransformer(Transformer):  # type: ignore
         for p in params:
             mrefs = _contained_mrefs(p)
             if mrefs:
-                raise ValueError(
-                    f"Unexpected memory references {mrefs} in DEFCAL {name}. Did you forget a '%'?"
-                )
+                raise ValueError(f"Unexpected memory references {mrefs} in DEFCAL {name}. Did you forget a '%'?")
         dc = DefCalibration(name, params, qubits, instructions)
         return dc
 
@@ -538,7 +535,11 @@ class QuilTransformer(Transformer):  # type: ignore
 
 grammar = pkgutil.get_data("pyquil._parser", "grammar.lark").decode()
 parser = Lark(
-    grammar, start="quil", parser="lalr", transformer=QuilTransformer(), maybe_placeholders=True,
+    grammar,
+    start="quil",
+    parser="lalr",
+    transformer=QuilTransformer(),
+    maybe_placeholders=True,
 )
 
 

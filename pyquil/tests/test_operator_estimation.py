@@ -117,9 +117,7 @@ def test_append():
 
 def test_no_complex_coeffs(client: Client):
     qc = get_qc("2q-qvm", client=client)
-    suite = Experiment(
-        [ExperimentSetting(TensorProductState(), 1.0j * sY(0))], program=Program(X(0))
-    )
+    suite = Experiment([ExperimentSetting(TensorProductState(), 1.0j * sY(0))], program=Program(X(0)))
     with pytest.raises(ValueError):
         list(measure_observables(qc, suite, n_shots=2000))
 
@@ -284,9 +282,7 @@ def test_measure_observables_uncalibrated_symmetric_readout(client: Client, use_
 
     uncalibr_e = np.zeros(runs * len(expt_list))
 
-    for idx, res in enumerate(
-        measure_observables(qc, tomo_expt, n_shots=2000, calibrate_readout=None)
-    ):
+    for idx, res in enumerate(measure_observables(qc, tomo_expt, n_shots=2000, calibrate_readout=None)):
         uncalibr_e[idx] = res.expectation
 
     assert np.isclose(np.mean(uncalibr_e[::3]), expected_expectation_z_basis, atol=2e-2)
@@ -372,9 +368,7 @@ def test_measure_observables_result_zero_no_noisy_readout(client: Client, use_se
 
     expectations = []
     for _ in range(num_simulations):
-        expt_results = list(
-            measure_observables(qc, tomo_expt, n_shots=2000, calibrate_readout=None)
-        )
+        expt_results = list(measure_observables(qc, tomo_expt, n_shots=2000, calibrate_readout=None))
         expectations.append([res.expectation for res in expt_results])
     expectations = np.array(expectations)
     results = np.mean(expectations, axis=0)
@@ -402,9 +396,7 @@ def test_measure_observables_result_zero_no_symm_calibr(client: Client, use_seed
     expectations = []
     expected_result = (p00 * 0.5 + (1 - p11) * 0.5) - ((1 - p00) * 0.5 + p11 * 0.5)
     for _ in range(num_simulations):
-        expt_results = list(
-            measure_observables(qc, tomo_expt, n_shots=2000, calibrate_readout=None)
-        )
+        expt_results = list(measure_observables(qc, tomo_expt, n_shots=2000, calibrate_readout=None))
         expectations.append([res.expectation for res in expt_results])
     expectations = np.array(expectations)
     results = np.mean(expectations, axis=0)
@@ -1272,15 +1264,11 @@ def test_uncalibrated_asymmetric_readout_nontrivial_1q_state(client: Client, use
     # calculate expected expectation value
     amp_sqr0 = (np.cos(theta / 2)) ** 2
     amp_sqr1 = (np.sin(theta / 2)) ** 2
-    expected_expectation = (p00 * amp_sqr0 + (1 - p11) * amp_sqr1) - (
-        (1 - p00) * amp_sqr0 + p11 * amp_sqr1
-    )
+    expected_expectation = (p00 * amp_sqr0 + (1 - p11) * amp_sqr1) - ((1 - p00) * amp_sqr0 + p11 * amp_sqr1)
 
     expect_arr = np.zeros(runs * len(expt_list))
 
-    for idx, res in enumerate(
-        measure_observables(qc, tomo_expt, n_shots=2000, calibrate_readout=None)
-    ):
+    for idx, res in enumerate(measure_observables(qc, tomo_expt, n_shots=2000, calibrate_readout=None)):
         expect_arr[idx] = res.expectation
 
     assert np.isclose(np.mean(expect_arr), expected_expectation, atol=2e-2)
@@ -1313,9 +1301,7 @@ def test_uncalibrated_symmetric_readout_nontrivial_1q_state(client: Client, use_
 
     expect_arr = np.zeros(runs * len(expt_list))
 
-    for idx, res in enumerate(
-        measure_observables(qc, tomo_expt, n_shots=2000, calibrate_readout=None)
-    ):
+    for idx, res in enumerate(measure_observables(qc, tomo_expt, n_shots=2000, calibrate_readout=None)):
         expect_arr[idx] = res.expectation
 
     assert np.isclose(np.mean(expect_arr), expected_expectation, atol=2e-2)
@@ -1345,9 +1331,7 @@ def test_calibrated_symmetric_readout_nontrivial_1q_state(client: Client, use_se
 
     expect_arr = np.zeros(runs * len(expt_list))
 
-    for idx, res in enumerate(
-        measure_observables(qc, tomo_expt, n_shots=2000, calibrate_readout="plus-eig")
-    ):
+    for idx, res in enumerate(measure_observables(qc, tomo_expt, n_shots=2000, calibrate_readout="plus-eig")):
         expect_arr[idx] = res.expectation
 
     assert np.isclose(np.mean(expect_arr), expected_expectation, atol=2e-2)

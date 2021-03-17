@@ -129,9 +129,7 @@ def test_construct_strength_three_orthogonal_array():
 def test_construct_strength_two_orthogonal_array():
     # This is example 1.5 in [OATA]. Next to the np.array below the "line" number refers to
     # the row in example 1.5.
-    answer = np.array(
-        [[0, 0, 0], [1, 0, 1], [0, 1, 1], [1, 1, 0]]  # line 1  # line 3  # line 2
-    )  # line 4
+    answer = np.array([[0, 0, 0], [1, 0, 1], [0, 1, 1], [1, 1, 0]])  # line 1  # line 3  # line 2  # line 4
     assert np.allclose(_construct_strength_two_orthogonal_array(3), answer)
 
 
@@ -170,10 +168,7 @@ def test_consolidate_symmetrization_outputs():
 def test_check_min_num_trials_for_symmetrized_readout():
     # trials = -2 should get bumped up to 4 trials
     with pytest.warns(Warning):
-        assert (
-            _check_min_num_trials_for_symmetrized_readout(num_qubits=2, trials=-2, symm_type=-1)
-            == 4
-        )
+        assert _check_min_num_trials_for_symmetrized_readout(num_qubits=2, trials=-2, symm_type=-1) == 4
     # can't have symm_type < -2 or > 3
     with pytest.raises(ValueError):
         _check_min_num_trials_for_symmetrized_readout(num_qubits=2, trials=-2, symm_type=-2)
@@ -225,9 +220,7 @@ def test_run(client: Client):
 
 def test_run_pyqvm_noiseless(client: Client):
     device = NxDevice(nx.complete_graph(3))
-    qc = QuantumComputer(
-        name="testy!", qam=PyQVM(n_qubits=3), compiler=DummyCompiler(device=device, client=client)
-    )
+    qc = QuantumComputer(name="testy!", qam=PyQVM(n_qubits=3), compiler=DummyCompiler(device=device, client=client))
     prog = Program(H(0), CNOT(0, 1), CNOT(1, 2))
     ro = prog.declare("ro", "BIT", 3)
     for q in range(3):
@@ -266,9 +259,7 @@ def test_readout_symmetrization(client: Client):
         compiler=DummyCompiler(device=device, client=client),
     )
 
-    prog = Program(
-        I(0), X(1), MEASURE(0, MemoryReference("ro", 0)), MEASURE(1, MemoryReference("ro", 1))
-    )
+    prog = Program(I(0), X(1), MEASURE(0, MemoryReference("ro", 0)), MEASURE(1, MemoryReference("ro", 1)))
     prog.wrap_in_numshots_loop(1000)
 
     bs1 = qc.run(prog)
@@ -482,9 +473,7 @@ def test_run_and_measure_noiseless_qvm(client):
 
 def test_run_with_parameters(client: Client):
     device = NxDevice(nx.complete_graph(3))
-    qc = QuantumComputer(
-        name="testy!", qam=QVM(client=client), compiler=DummyCompiler(device=device, client=client)
-    )
+    qc = QuantumComputer(name="testy!", qam=QVM(client=client), compiler=DummyCompiler(device=device, client=client))
     bitstrings = qc.run(
         executable=Program(
             Declare(name="theta", memory_type="REAL"),
@@ -501,9 +490,7 @@ def test_run_with_parameters(client: Client):
 
 def test_reset(client: Client):
     device = NxDevice(nx.complete_graph(3))
-    qc = QuantumComputer(
-        name="testy!", qam=QVM(client=client), compiler=DummyCompiler(device=device, client=client)
-    )
+    qc = QuantumComputer(name="testy!", qam=QVM(client=client), compiler=DummyCompiler(device=device, client=client))
     p = Program(
         Declare(name="theta", memory_type="REAL"),
         Declare(name="ro", memory_type="BIT"),
