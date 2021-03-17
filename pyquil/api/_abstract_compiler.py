@@ -34,7 +34,7 @@ from pyquil.quantum_processor import AbstractQuantumProcessor
 from pyquil.quil import Program
 from pyquil.quilatom import MemoryReference, ExpressionDesignator
 from pyquil.quilbase import Gate
-from pyquil.version import __version__
+from pyquil._version import pyquil_version
 
 if sys.version_info < (3, 7):
     from rpcq.external.dataclasses import dataclass

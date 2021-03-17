@@ -126,10 +126,10 @@ def qvm(client: Client):
         qvm = QVMConnection(client=client, random_seed=52)
         qvm.run(Program(I(0)), [])
         return qvm
-    except (RequestException, QVMNotRunning, UnknownApiError) as e:
-        return pytest.skip("This test requires QVM connection: {}".format(e))
     except QVMVersionMismatch as e:
         return pytest.skip("This test requires a different version of the QVM: {}".format(e))
+    except Exception as e:
+        return pytest.skip("This test requires QVM connection: {}".format(e))
 
 
 @pytest.fixture()
@@ -156,14 +156,9 @@ def client():
 
 @pytest.fixture(scope="session")
 def benchmarker(client: Client):
-    try:
-        bm = BenchmarkConnection(client=client, timeout=2)
-        bm.apply_clifford_to_pauli(Program(I(0)), sX(0))
-        return bm
-    except (RequestException, TimeoutError) as e:
-        return pytest.skip(
-            "This test requires a running local benchmarker endpoint (ie quilc): {}".format(e)
-        )
+    bm = BenchmarkConnection(client=client, timeout=2)
+    bm.apply_clifford_to_pauli(Program(I(0)), sX(0))
+    return bm
 
 
 def _str_to_bool(s):

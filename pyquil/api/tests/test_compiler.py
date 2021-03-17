@@ -41,9 +41,7 @@ def test_invalid_protocol(test_device: Device, monkeypatch: MonkeyPatch):
 def test_compile_with_quilt_calibrations(compiler: QPUCompiler):
     program = simple_program()
     q = FormalArgument("q")
-    defn = DefCalibration(
-        "H", [], [q], [RZ(math.pi / 2, q), RX(math.pi / 2, q), RZ(math.pi / 2, q)]
-    )
+    defn = DefCalibration("H", [], [q], [RZ(math.pi / 2, q), RX(math.pi / 2, q), RZ(math.pi / 2, q)])
     cals = [defn]
     program._calibrations = cals
     # this should more or less pass through

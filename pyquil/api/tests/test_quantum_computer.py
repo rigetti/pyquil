@@ -146,9 +146,7 @@ def test_qc_joint_expectation(client: Client, dummy_compiler: DummyCompiler):
     p.wrap_in_numshots_loop(10)
 
     # ZZ experiment
-    sz = ExperimentSetting(
-        in_state=sZ(0) * sZ(1), out_operator=sZ(0) * sZ(1), additional_expectations=[[0], [1]]
-    )
+    sz = ExperimentSetting(in_state=sZ(0) * sZ(1), out_operator=sZ(0) * sZ(1), additional_expectations=[[0], [1]])
     e = Experiment(settings=[sz], program=p)
 
     results = qc.experiment(e)
@@ -178,9 +176,7 @@ def test_qc_joint_calibration(client: Client):
     p.wrap_in_numshots_loop(10000)
 
     # ZZ experiment
-    sz = ExperimentSetting(
-        in_state=sZ(0) * sZ(1), out_operator=sZ(0) * sZ(1), additional_expectations=[[0], [1]]
-    )
+    sz = ExperimentSetting(in_state=sZ(0) * sZ(1), out_operator=sZ(0) * sZ(1), additional_expectations=[[0], [1]])
     e = Experiment(settings=[sz], program=p)
 
     results = qc.experiment(e)
