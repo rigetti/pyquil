@@ -19,11 +19,11 @@ from typing import Any, Dict, List, Optional, Sequence, Union
 
 from rpcq.messages import (
     NativeQuilRequest,
-    TargetDevice,
     ParameterSpec,
     ParameterAref,
 )
 
+from pyquil.external.rpcq import compiler_isa_to_target_device
 from pyquil.api import Client
 from pyquil.api._error_reporting import _record_call
 from pyquil.device import AbstractDevice
@@ -101,16 +101,17 @@ class AbstractCompiler(ABC):
     @_record_call
     def quil_to_native_quil(self, program: Program, *, protoquil: Optional[bool] = None) -> Program:
         """
-        Compile an arbitrary quil program according to the ISA of target_device.
+        Compile an arbitrary quil program according to the ISA of ``self.device``.
 
         :param program: Arbitrary quil to compile
         :param protoquil: Whether to restrict to protoquil (``None`` means defer to server)
         :return: Native quil and compiler metadata
         """
         self._connect()
-        target_device = TargetDevice(isa=self.device.get_isa().to_dict(), specs={})
+        compiler_isa = self.device.to_compiler_isa()
         request = NativeQuilRequest(
-            quil=program.out(calibrations=False), target_device=target_device
+            quil=program.out(calibrations=False),
+            target_device=compiler_isa_to_target_device(compiler_isa),
         )
         response = self._client.compiler_rpcq_request(
             "quil_to_native_quil", request, protoquil=protoquil, timeout=self._timeout,

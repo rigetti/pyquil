@@ -1,9 +1,7 @@
-from collections import OrderedDict
-
 import numpy as np
 from unittest.mock import Mock
+import pytest
 
-from pyquil.gates import CZ, I, RX, RZ
 from pyquil.noise import (
     pauli_kraus_map,
     damping_kraus_map,
@@ -26,6 +24,9 @@ from pyquil.noise import (
     estimate_assignment_probs,
     NO_NOISE,
 )
+from pyquil.gates import RZ, RX, I, CZ
+from collections import OrderedDict
+
 from pyquil.quil import Pragma, Program
 from pyquil.quilbase import DefGate, Gate
 from pyquil.api import QVMConnection
@@ -162,7 +163,7 @@ def test_decoherence_noise():
     assert new_prog == new_prog2
 
 
-def test_kraus_model():
+def test_kraus_model_1():
     km = KrausModel("I", (5.0,), (0, 1), [np.array([[1 + 1j]])], 1.0)
     d = km.to_dict()
     assert d == OrderedDict(
@@ -177,7 +178,41 @@ def test_kraus_model():
     assert KrausModel.from_dict(d) == km
 
 
-def test_noise_model():
+@pytest.fixture
+def kraus_model_I_dict():
+    return {
+        "gate": "I",
+        "fidelity": 1.0,
+        "kraus_ops": [[[[1.0]], [[1.0]]]],
+        "targets": (0, 1),
+        "params": (5.0,),
+    }
+
+
+def test_kraus_model_2(kraus_model_I_dict):
+    km = KrausModel.from_dict(kraus_model_I_dict)
+    assert km == KrausModel(
+        gate=kraus_model_I_dict["gate"],
+        params=kraus_model_I_dict["params"],
+        targets=kraus_model_I_dict["targets"],
+        kraus_ops=[
+            KrausModel.unpack_kraus_matrix(kraus_op) for kraus_op in kraus_model_I_dict["kraus_ops"]
+        ],
+        fidelity=kraus_model_I_dict["fidelity"],
+    )
+    d = km.to_dict()
+    assert d == OrderedDict(
+        [
+            ("gate", km.gate),
+            ("params", km.params),
+            ("targets", (0, 1)),
+            ("kraus_ops", [[[[1.0]], [[1.0]]]]),
+            ("fidelity", 1.0),
+        ]
+    )
+
+
+def test_noise_model_1():
     km1 = KrausModel("I", (5.0,), (0, 1), [np.array([[1 + 1j]])], 1.0)
     km2 = KrausModel("RX", (np.pi / 2,), (0,), [np.array([[1 + 1j]])], 1.0)
     nm = NoiseModel([km1, km2], {0: np.eye(2), 1: np.eye(2)})
@@ -185,6 +220,32 @@ def test_noise_model():
     assert nm == NoiseModel.from_dict(nm.to_dict())
     assert nm.gates_by_name("I") == [km1]
     assert nm.gates_by_name("RX") == [km2]
+
+
+@pytest.fixture
+def kraus_model_RX90_dict():
+    return {
+        "gate": "RX",
+        "fidelity": 1.0,
+        "kraus_ops": [[[[1.0]], [[1.0]]]],
+        "targets": (0,),
+        "params": (np.pi / 2.0,),
+    }
+
+
+def test_noise_model_2(kraus_model_I_dict, kraus_model_RX90_dict):
+    noise_model_dict = {
+        "gates": [kraus_model_I_dict, kraus_model_RX90_dict],
+        "assignment_probs": {"1": [[1.0, 0.0], [0.0, 1.0]], "0": [[1.0, 0.0], [0.0, 1.0]]},
+    }
+
+    nm = NoiseModel.from_dict(noise_model_dict)
+    km1 = KrausModel.from_dict(kraus_model_I_dict)
+    km2 = KrausModel.from_dict(kraus_model_RX90_dict)
+    assert nm == NoiseModel(gates=[km1, km2], assignment_probs={0: np.eye(2), 1: np.eye(2)})
+    assert nm.gates_by_name("I") == [km1]
+    assert nm.gates_by_name("RX") == [km2]
+    assert nm.to_dict() == noise_model_dict
 
 
 def test_readout_compensation():

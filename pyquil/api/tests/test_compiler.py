@@ -6,7 +6,7 @@ from _pytest.monkeypatch import MonkeyPatch
 from pyquil import Program
 from pyquil.api import Client
 from pyquil.api._compiler import QPUCompiler
-from pyquil.device import Device
+from pyquil.device import QCSDevice
 from pyquil.gates import RX, MEASURE, RZ
 from pyquil.quilatom import FormalArgument
 from pyquil.quilbase import DefCalibration
@@ -25,7 +25,7 @@ def simple_program():
     return program
 
 
-def test_invalid_protocol(test_device: Device, monkeypatch: MonkeyPatch):
+def test_invalid_protocol(qcs_aspen8_device: QCSDevice, monkeypatch: MonkeyPatch):
     monkeypatch.setenv(
         "QCS_SETTINGS_APPLICATIONS_PYQUIL_QUILC_URL", "not-http-or-tcp://example.com"
     )
@@ -35,7 +35,11 @@ def test_invalid_protocol(test_device: Device, monkeypatch: MonkeyPatch):
         ValueError,
         match="Expected compiler URL 'not-http-or-tcp://example.com' to start with 'tcp://'",
     ):
-        QPUCompiler(quantum_processor_id=test_device.name, device=test_device, client=client)
+        QPUCompiler(
+            quantum_processor_id=qcs_aspen8_device.quantum_processor_id,
+            device=qcs_aspen8_device,
+            client=client,
+        )
 
 
 def test_compile_with_quilt_calibrations(compiler: QPUCompiler):
