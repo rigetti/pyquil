@@ -32,7 +32,7 @@ from pyquil.api import Client
 from pyquil.api._error_reporting import _record_call
 from pyquil.api._abstract_compiler import AbstractCompiler, QuantumExecutable, EncryptedProgram
 from pyquil.api._rewrite_arithmetic import rewrite_arithmetic
-from pyquil.device._main import AbstractDevice
+from pyquil.device import AbstractDevice
 from pyquil.parser import parse_program, parse
 from pyquil.quil import Program
 from pyquil.quilatom import MemoryReference, ExpressionDesignator

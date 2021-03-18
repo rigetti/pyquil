@@ -20,7 +20,7 @@ from pyquil.api._quantum_computer import (
     _consolidate_symmetrization_outputs,
     _check_min_num_trials_for_symmetrized_readout,
 )
-from pyquil.device import NxDevice, gates_in_isa
+from pyquil.device import NxDevice
 from pyquil.gates import CNOT, H, I, MEASURE, RX, X
 from pyquil.noise import decoherence_noise_with_asymmetric_ro
 from pyquil.pyqvm import PyQVM
@@ -186,13 +186,14 @@ def test_device_stuff(client: Client):
     qc = QuantumComputer(
         name="testy!",
         qam=None,  # not necessary for this test
-        compiler=DummyCompiler(device=NxDevice(topo), client=client),
+        compiler=DummyCompiler(device=NxDevice(topo, gates_2q=["CPHASE"]), client=client),
     )
     assert nx.is_isomorphic(qc.qubit_topology(), topo)
 
-    isa = qc.get_isa(twoq_type="CPHASE")
-    assert isa.edges[0].type == "CPHASE"
-    assert isa.edges[0].targets == (0, 4)
+    isa = qc.to_compiler_isa()
+
+    assert isa.edges["0-4"].gates[0].operator == "CPHASE"
+    assert isa.edges["0-4"].ids == [0, 4]
 
 
 # We sometimes narrowly miss the np.mean(parity) < 0.15 assertion, below. Alternatively, that upper
@@ -258,7 +259,7 @@ def test_run_pyqvm_noisy(client: Client):
 
 def test_readout_symmetrization(client: Client):
     device = NxDevice(nx.complete_graph(3))
-    noise_model = decoherence_noise_with_asymmetric_ro(gates=gates_in_isa(device.get_isa()))
+    noise_model = decoherence_noise_with_asymmetric_ro(device.to_compiler_isa())
     qc = QuantumComputer(
         name="testy!",
         qam=QVM(client=client, noise_model=noise_model),
@@ -403,8 +404,8 @@ def test_parse_qc_pyqvm():
     assert not noisy
 
 
-def test_qc():
-    qc = get_qc("9q-square-noisy-qvm")
+def test_qc(client):
+    qc = get_qc("9q-square-noisy-qvm", client=client)
     assert isinstance(qc, QuantumComputer)
     assert isinstance(qc.qam, QVM)
     assert qc.qam.noise_model is not None
@@ -414,46 +415,46 @@ def test_qc():
     assert str(qc) == "9q-square-noisy-qvm"
 
 
-def test_qc_run():
-    qc = get_qc("9q-square-noisy-qvm")
+def test_qc_run(client):
+    qc = get_qc("9q-square-noisy-qvm", client=client)
     bs = qc.run_and_measure(Program(X(0)), trials=3)
     assert len(bs) == 9
     for _, bits in bs.items():
         assert bits.shape == (3,)
 
 
-def test_nq_qvm_qc():
+def test_nq_qvm_qc(client):
     for n_qubits in [2, 4, 7, 19]:
-        qc = get_qc(f"{n_qubits}q-qvm")
+        qc = get_qc(f"{n_qubits}q-qvm", client=client)
         for q1, q2 in itertools.permutations(range(n_qubits), r=2):
             assert (q1, q2) in qc.qubit_topology().edges
         assert qc.name == f"{n_qubits}q-qvm"
 
 
-def test_qc_noisy():
-    qc = get_qc("5q", as_qvm=True, noisy=True)
+def test_qc_noisy(client):
+    qc = get_qc("5q", as_qvm=True, noisy=True, client=client)
     assert isinstance(qc, QuantumComputer)
 
 
-def test_qc_compile(dummy_compiler: DummyCompiler):
-    qc = get_qc("5q", as_qvm=True, noisy=True)
+def test_qc_compile(dummy_compiler: DummyCompiler, client):
+    qc = get_qc("5q", as_qvm=True, noisy=True, client=client)
     qc.compiler = dummy_compiler
     prog = Program()
     prog += H(0)
     assert qc.compile(prog) == prog
 
 
-def test_qc_error():
+def test_qc_error(client):
     # QVM is not a QPU
     with pytest.raises(ValueError):
-        get_qc("9q-square-noisy-qvm", as_qvm=False)
+        get_qc("9q-square-noisy-qvm", as_qvm=False, client=client)
 
     with pytest.raises(ValueError):
-        get_qc("5q", as_qvm=False)
+        get_qc("5q", as_qvm=False, client=client)
 
 
-def test_run_and_measure():
-    qc = get_qc("9q-square-qvm")
+def test_run_and_measure(client):
+    qc = get_qc("9q-square-qvm", client=client)
     prog = Program(I(8))
     trials = 11
     # note to devs: this is included as an example in the run_and_measure docstrings
@@ -463,9 +464,9 @@ def test_run_and_measure():
     assert bitstring_array.shape == (trials, len(qc.qubits()))
 
 
-def test_run_and_measure_noiseless_qvm():
+def test_run_and_measure_noiseless_qvm(client):
     """ Test that run_and_measure works as expected on a noiseless QVM. """
-    qc = get_qc("9q-square-qvm")
+    qc = get_qc("9q-square-qvm", client=client)
     prog = Program(X(0))
     trials = 1
     bitstrings = qc.run_and_measure(prog, trials)

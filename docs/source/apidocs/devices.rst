@@ -16,21 +16,7 @@ QVM.
     :toctree: autogen
 
     AbstractDevice
-    Device
+    CompilerDevice
     NxDevice
+    QCSDevice
 
-The data structures used are documented here
-
-.. autosummary::
-    :toctree: autogen
-
-    ISA
-    Specs
-
-Utility functions
-~~~~~~~~~~~~~~~~~
-
-.. autofunction:: isa_from_graph
-.. autofunction:: specs_from_graph
-.. autofunction:: isa_to_graph
-.. autofunction:: gates_in_isa
