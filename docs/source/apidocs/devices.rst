@@ -33,4 +33,3 @@ Utility functions
 .. autofunction:: isa_from_graph
 .. autofunction:: specs_from_graph
 .. autofunction:: isa_to_graph
-.. autofunction:: gates_in_isa

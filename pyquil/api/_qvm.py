@@ -23,7 +23,7 @@ from pyquil.api import Client, QuantumExecutable
 from pyquil.api._compiler import QVMCompiler
 from pyquil.api._error_reporting import _record_call
 from pyquil.api._qam import QAM
-from pyquil.device._main import Device
+from pyquil.device import QCSDevice
 from pyquil.gates import MOVE
 from pyquil.noise import NoiseModel, apply_noise_model
 from pyquil.paulis import PauliSum, PauliTerm
@@ -64,7 +64,7 @@ class QVMConnection(object):
     def __init__(
         self,
         client: Optional[Client] = None,
-        device: Optional[Device] = None,
+        device: Optional[QCSDevice] = None,
         gate_noise: Optional[Tuple[float, float, float]] = None,
         measurement_noise: Optional[Tuple[float, float, float]] = None,
         random_seed: Optional[int] = None,

@@ -27,7 +27,7 @@ def test_random_seed(client: Client):
     assert wfnsim.random_seed == 100
 
     with pytest.raises(TypeError):
-        WavefunctionSimulator(random_seed="NOT AN INTEGER")
+        WavefunctionSimulator(client=client, random_seed="NOT AN INTEGER")
 
 
 def test_expectation(client: Client):

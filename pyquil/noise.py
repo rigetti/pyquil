@@ -22,9 +22,11 @@ from typing import Any, Dict, Iterable, List, Optional, Sequence, Set, Tuple, TY
 import numpy as np
 import sys
 
+from pyquil.external.rpcq import CompilerISA
 from pyquil.gates import I, MEASURE, X
 from pyquil.quilbase import Pragma, Gate
 from pyquil.quilatom import MemoryReference, format_parameter, ParameterDesignator
+from pyquil.noise_gates import _get_qvm_noise_supported_gates
 
 if TYPE_CHECKING:
     from pyquil.quil import Program
@@ -394,6 +396,7 @@ def get_noisy_gate(gate_name: str, params: Iterable[ParameterDesignator]) -> Tup
     elif gate_name == "CZ":
         assert params == ()
         return np.diag([1, 1, 1, -1]), "NOISY-CZ"
+
     raise NoisyGateUndefined(
         "Undefined gate and params: {}{}\n"
         "Please restrict yourself to I, RX(+/-pi), RX(+/-pi/2), CZ".format(gate_name, params)
@@ -506,13 +509,14 @@ def _decoherence_noise_model(
 
 
 def decoherence_noise_with_asymmetric_ro(
-    gates: Sequence[Gate], p00: float = 0.975, p11: float = 0.911
+    isa: CompilerISA, p00: float = 0.975, p11: float = 0.911
 ) -> NoiseModel:
     """Similar to :py:func:`_decoherence_noise_model`, but with asymmetric readout.
 
     For simplicity, we use the default values for T1, T2, gate times, et al. and only allow
     the specification of readout fidelities.
     """
+    gates = _get_qvm_noise_supported_gates(isa)
     noise_model = _decoherence_noise_model(gates)
     aprobs = np.array([[p00, 1 - p00], [1 - p11, p11]])
     aprobs = {q: aprobs for q in noise_model.assignment_probs.keys()}
