@@ -9,8 +9,8 @@ from pyquil.gates import MEASURE, X
 from pyquil.quilbase import Declare, MemoryReference
 
 
-def test_qvm__default_client():
-    qvm = QVM()
+def test_qvm__default_client(client):
+    qvm = QVM(client=client)
     p = Program(Declare("ro", "BIT"), X(0), MEASURE(0, MemoryReference("ro")))
     qvm.load(p.wrap_in_numshots_loop(1000))
     qvm.run()

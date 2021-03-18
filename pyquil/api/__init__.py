@@ -27,7 +27,7 @@ __all__ = [
     "QVMCompiler",
     "QPUCompiler",
     "Client",
-    "Device",
+    "QCSDevice",
     "pyquil_protect",
     "WavefunctionSimulator",
     "QuantumComputer",
@@ -56,7 +56,7 @@ from pyquil.api._quantum_computer import (
 )
 from pyquil.api._qvm import QVMConnection, QVM
 from pyquil.api._wavefunction_simulator import WavefunctionSimulator
-from pyquil.device._main import Device
+from pyquil.device import QCSDevice
 
 
 class QPUConnection(QPU):

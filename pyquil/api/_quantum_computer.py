@@ -20,10 +20,22 @@ import subprocess
 import warnings
 from contextlib import contextmanager
 from math import pi, log
-from typing import List, Dict, Tuple, Iterator, Mapping, Optional, Sequence, Set, Union, cast
+from typing import (
+    Dict,
+    Tuple,
+    Iterator,
+    Mapping,
+    Optional,
+    Sequence,
+    Set,
+    Union,
+    cast,
+    List,
+)
 
 import networkx as nx
 import numpy as np
+
 from qcs_api_client.models import ListQuantumProcessorsResponse
 from qcs_api_client.operations.sync import list_quantum_processors
 
@@ -33,10 +45,8 @@ from pyquil.api._error_reporting import _record_call
 from pyquil.api._abstract_compiler import AbstractCompiler, QuantumExecutable
 from pyquil.api._qam import QAM
 from pyquil.api._qpu import QPU
-from pyquil.api._quantum_processors import get_device
 from pyquil.api._qvm import QVM
-from pyquil.device._isa import gates_in_isa, ISA
-from pyquil.device._main import AbstractDevice, Device, NxDevice
+from pyquil.device import AbstractDevice, QCSDevice, NxDevice, get_qcs_device
 from pyquil.experiment._main import Experiment
 from pyquil.experiment._memory import merge_memory_map_lists
 from pyquil.experiment._result import ExperimentResult, bitstrings_to_expectations
@@ -47,6 +57,7 @@ from pyquil.paulis import PauliTerm
 from pyquil.pyqvm import PyQVM
 from pyquil.quil import Program, validate_supported_quil
 from pyquil.quilatom import qubit_index
+from pyquil.external.rpcq import CompilerISA
 
 
 class QuantumComputer:
@@ -93,16 +104,13 @@ class QuantumComputer:
         """
         return self.compiler.device.qubit_topology()
 
-    def get_isa(self, oneq_type: str = "Xhalves", twoq_type: str = "CZ") -> ISA:
+    def to_compiler_isa(self) -> CompilerISA:
         """
-        Return a target ISA for this QuantumComputer's device.
+        Return a ``CompilerISA`` for this QuantumComputer's device.
 
-        See :py:func:`AbstractDevice.get_isa` for more.
-
-        :param oneq_type: The family of one-qubit gates to target
-        :param twoq_type: The family of two-qubit gates to target
+        See :py:func:`AbstractDevice.to_compiler_isa` for more.
         """
-        return self.compiler.device.get_isa(oneq_type=oneq_type, twoq_type=twoq_type)
+        return self.compiler.device.to_compiler_isa()
 
     @_record_call
     def run(
@@ -651,7 +659,7 @@ def _get_qvm_with_topology(
     device = NxDevice(topology=topology)
     if noisy:
         noise_model: Optional[NoiseModel] = decoherence_noise_with_asymmetric_ro(
-            gates=gates_in_isa(device.get_isa())
+            isa=device.to_compiler_isa()
         )
     else:
         noise_model = None
@@ -725,7 +733,7 @@ def _get_unrestricted_qvm(
 def _get_qvm_based_on_real_device(
     client: Client,
     name: str,
-    device: Device,
+    device: QCSDevice,
     noisy: bool,
     qvm_type: str = "qvm",
     compiler_timeout: float = 10,
@@ -873,7 +881,7 @@ def get_qc(
         )
 
     # 4. Not a special case, query the web for information about this device.
-    device = get_device(client, prefix)
+    device = get_qcs_device(client, prefix)
     if qvm_type is not None:
         # 4.1 QVM based on a real device.
         return _get_qvm_based_on_real_device(
@@ -892,8 +900,7 @@ def get_qc(
                 "is meant for controlling noise models on QVMs."
             )
 
-        qpu = QPU(quantum_processor_id=device.name, client=client)
-
+        qpu = QPU(quantum_processor_id=device.quantum_processor_id, client=client)
         compiler = QPUCompiler(
             quantum_processor_id=prefix, device=device, client=client, timeout=compiler_timeout,
         )

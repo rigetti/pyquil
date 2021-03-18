@@ -395,7 +395,7 @@ and specify which edges exist. Here is an example, using the topology of our 16Q
 
     import networkx as nx
 
-    from pyquil.device import NxDevice, gates_in_isa
+    from pyquil.device import NxDevice
     from pyquil.noise import decoherence_noise_with_asymmetric_ro
 
     qubits = [0, 1, 2, 3, 4, 5, 6, 7, 10, 11, 12, 13, 14, 15, 16, 17]  # qubits are numbered by octagon
@@ -408,7 +408,7 @@ and specify which edges exist. Here is an example, using the topology of our 16Q
     # You would uncomment the next line if you have disconnected qubits
     # topo.add_nodes_from(qubits)
     device = NxDevice(topo)
-    device.noise_model = decoherence_noise_with_asymmetric_ro(gates_in_isa(device.get_isa()))  # Optional
+    device.noise_model = decoherence_noise_with_asymmetric_ro(device.to_compiler_isa())  # Optional
 
 Now that you have your device, you could set ``qc.device`` and ``qc.compiler.device`` to point to your new device,
 or use it to make new objects.

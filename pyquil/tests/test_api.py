@@ -22,7 +22,7 @@ import pytest
 from pytest_httpx import HTTPXMock
 
 from pyquil.api import QVMConnection
-from pyquil.device import ISA
+from pyquil.external.rpcq import _compiler_isa_from_dict
 from pyquil.gates import CNOT, H, MEASURE, PHASE, Z, RZ, RX, CZ
 from pyquil.paulis import PauliTerm
 from pyquil.quil import Program
@@ -53,7 +53,7 @@ COMPILED_BELL_STATE = Program(
     ]
 )
 DUMMY_ISA_DICT = {"1Q": {"0": {}, "1": {}}, "2Q": {"0-1": {}}}
-DUMMY_ISA = ISA.from_dict(DUMMY_ISA_DICT)
+DUMMY_ISA = _compiler_isa_from_dict(DUMMY_ISA_DICT)
 
 COMPILED_BYTES_ARRAY = b"SUPER SECRET PACKAGE"
 RB_ENCODED_REPLY = [[0, 0], [1, 1]]

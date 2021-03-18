@@ -1,0 +1,11 @@
+[auth_servers]
+
+  [auth_servers.default]
+    client_id = ""
+    issuer = "https://rigetticomputing.okta.com/oauth2/ausmoidj5qavd4V310h7"
+
+[profiles]
+
+  [profiles.default]
+    api_url = "https://api.qcs.rigetti.com"
+
