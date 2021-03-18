@@ -22,5 +22,4 @@ Quantum Computer
         ~QuantumComputer.run_symmetrized_readout
         ~QuantumComputer.qubits
         ~QuantumComputer.qubit_topology
-        ~QuantumComputer.get_isa
         ~QuantumComputer.compile
