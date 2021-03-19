@@ -401,7 +401,7 @@ def substitute(expr: ExpressionDesignator, d: ParamSubstitutionsMapDesignator) -
     return expr
 
 
-def substitute_array(a: Union[Sequence[Expression], np.array], d: ParamSubstitutionsMapDesignator) -> np.array:
+def substitute_array(a: Union[Sequence[Expression], np.ndarray], d: ParamSubstitutionsMapDesignator) -> np.ndarray:
     """
     Apply ``substitute`` to all elements of an array ``a`` and return the resulting array.
 
@@ -410,7 +410,7 @@ def substitute_array(a: Union[Sequence[Expression], np.array], d: ParamSubstitut
     :return: An array of partially substituted Expressions or numbers.
     """
     a = np.asarray(a, order="C")
-    return np.array([substitute(v, d) for v in a.flat]).reshape(a.shape)
+    return np.array([substitute(v, d) for v in a.flat]).reshape(a.shape)  # type: ignore
 
 
 class Parameter(QuilAtom, Expression):

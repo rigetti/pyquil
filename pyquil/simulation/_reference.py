@@ -61,7 +61,7 @@ def _is_valid_quantum_state(state_matrix: np.ndarray, rtol: float = 1e-05, atol:
     non_neg_eigs = all([False if val < -atol else True for val in evals])
     if not non_neg_eigs:
         raise ValueError("The state matrix has negative Eigenvalues of order -" + str(atol) + ".")
-    return hermitian and trace_one and non_neg_eigs
+    return hermitian and trace_one and non_neg_eigs  # type: ignore
 
 
 class ReferenceWavefunctionSimulator(AbstractQuantumSimulator):
@@ -108,7 +108,7 @@ class ReferenceWavefunctionSimulator(AbstractQuantumSimulator):
         inds = self.rs.choice(2 ** self.n_qubits, n_samples, p=probabilities)
         bitstrings = possible_bitstrings[inds, :]
         bitstrings = np.flip(bitstrings, axis=1)  # qubit ordering: 0 on the left.
-        return bitstrings
+        return bitstrings  # type: ignore
 
     def do_gate(self, gate: Gate) -> "ReferenceWavefunctionSimulator":
         """
@@ -117,7 +117,7 @@ class ReferenceWavefunctionSimulator(AbstractQuantumSimulator):
         :return: ``self`` to support method chaining.
         """
         unitary = lifted_gate(gate=gate, n_qubits=self.n_qubits)
-        self.wf = unitary.dot(self.wf)
+        self.wf = unitary.dot(self.wf)  # type: ignore
         return self
 
     def do_gate_matrix(self, matrix: np.ndarray, qubits: Sequence[int]) -> "ReferenceWavefunctionSimulator":
@@ -129,7 +129,7 @@ class ReferenceWavefunctionSimulator(AbstractQuantumSimulator):
         :return: ``self`` to support method chaining.
         """
         unitary = lifted_gate_matrix(matrix, list(qubits), n_qubits=self.n_qubits)
-        self.wf = unitary.dot(self.wf)
+        self.wf = unitary.dot(self.wf)  # type: ignore
         return self
 
     def do_measurement(self, qubit: int) -> int:
@@ -274,16 +274,16 @@ class ReferenceDensitySimulator(AbstractQuantumSimulator):
         # for np.real_if_close the actual tolerance is (machine_eps * tol_factor),
         # where `machine_epsilon = np.finfo(float).eps`. If we use tol_factor = 1e8, then the
         # overall tolerance is \approx 2.2e-8.
-        probabilities = np.real_if_close(np.diagonal(self.density), tol=tol_factor)
+        probabilities = np.real_if_close(np.diagonal(self.density), tol=tol_factor)  # type: ignore
         # Next set negative probabilities to zero
-        probabilities = [0 if p < 0.0 else p for p in probabilities]
+        probabilities = np.array([0 if p < 0.0 else p for p in probabilities])
         # Ensure they sum to one
         probabilities = probabilities / np.sum(probabilities)
         possible_bitstrings = all_bitstrings(self.n_qubits)
         inds = self.rs.choice(2 ** self.n_qubits, n_samples, p=probabilities)
         bitstrings = possible_bitstrings[inds, :]
         bitstrings = np.flip(bitstrings, axis=1)  # qubit ordering: 0 on the left.
-        return bitstrings
+        return bitstrings  # type: ignore
 
     def do_gate(self, gate: Gate) -> "AbstractQuantumSimulator":
         """
@@ -292,7 +292,7 @@ class ReferenceDensitySimulator(AbstractQuantumSimulator):
         :return: ``self`` to support method chaining.
         """
         unitary = lifted_gate(gate=gate, n_qubits=self.n_qubits)
-        self.density = unitary.dot(self.density).dot(np.conj(unitary).T)
+        self.density = unitary.dot(self.density).dot(np.conj(unitary).T)  # type: ignore
         return self
 
     def do_gate_matrix(self, matrix: np.ndarray, qubits: Sequence[int]) -> "AbstractQuantumSimulator":
@@ -304,7 +304,7 @@ class ReferenceDensitySimulator(AbstractQuantumSimulator):
         :return: ``self`` to support method chaining.
         """
         unitary = lifted_gate_matrix(matrix=matrix, qubit_inds=qubits, n_qubits=self.n_qubits)
-        self.density = unitary.dot(self.density).dot(np.conj(unitary).T)
+        self.density = unitary.dot(self.density).dot(np.conj(unitary).T)  # type: ignore
         return self
 
     def do_measurement(self, qubit: int) -> int:
@@ -319,7 +319,7 @@ class ReferenceDensitySimulator(AbstractQuantumSimulator):
                 "random state of the simulator. Might I suggest using a PyQVM object?"
             )
         measure_0 = lifted_gate_matrix(matrix=P0, qubit_inds=[qubit], n_qubits=self.n_qubits)
-        prob_zero = np.trace(measure_0 @ self.density)
+        prob_zero = np.trace(measure_0 @ self.density)  # type: ignore
 
         # generate random number to 'roll' for measurement
         if self.rs.uniform() < prob_zero:
@@ -353,9 +353,9 @@ class ReferenceDensitySimulator(AbstractQuantumSimulator):
             return self
 
         for q in qubits:
-            new_density = np.zeros_like(self.density)
+            new_density = np.zeros_like(self.density)  # type: ignore
             for kraus_op in kraus_ops:
                 lifted_kraus_op = lifted_gate_matrix(matrix=kraus_op, qubit_inds=[q], n_qubits=self.n_qubits)
-                new_density += lifted_kraus_op.dot(self.density).dot(np.conj(lifted_kraus_op.T))
+                new_density += lifted_kraus_op.dot(self.density).dot(np.conj(lifted_kraus_op.T))  # type: ignore
             self.density = new_density
         return self

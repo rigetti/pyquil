@@ -218,7 +218,9 @@ def _create_kraus_pragmas(name: str, qubit_indices: Sequence[int], kraus_ops: Se
     return pragmas
 
 
-def append_kraus_to_gate(kraus_ops: Sequence[np.ndarray], gate_matrix: np.ndarray) -> List[np.ndarray]:
+def append_kraus_to_gate(
+    kraus_ops: Sequence[np.ndarray], gate_matrix: np.ndarray
+) -> List[Union[np.number, np.ndarray]]:  # type: ignore
     """
     Follow a gate ``gate_matrix`` by a Kraus map described by ``kraus_ops``.
 
@@ -377,14 +379,17 @@ def get_noisy_gate(gate_name: str, params: Iterable[ParameterDesignator]) -> Tup
         return np.eye(2), "NOISY-I"
     if gate_name == "RX":
         (angle,) = params
+        if not isinstance(angle, (int, float, complex)):
+            raise TypeError(f"Cannot produce noisy gate for parameter of type {type(angle)}")
+
         if np.isclose(angle, np.pi / 2, atol=ANGLE_TOLERANCE):
-            return (np.array([[1, -1j], [-1j, 1]]) / np.sqrt(2), "NOISY-RX-PLUS-90")
+            return np.array([[1, -1j], [-1j, 1]]) / np.sqrt(2), "NOISY-RX-PLUS-90"
         elif np.isclose(angle, -np.pi / 2, atol=ANGLE_TOLERANCE):
-            return (np.array([[1, 1j], [1j, 1]]) / np.sqrt(2), "NOISY-RX-MINUS-90")
+            return np.array([[1, 1j], [1j, 1]]) / np.sqrt(2), "NOISY-RX-MINUS-90"
         elif np.isclose(angle, np.pi, atol=ANGLE_TOLERANCE):
-            return (np.array([[0, -1j], [-1j, 0]]), "NOISY-RX-PLUS-180")
+            return np.array([[0, -1j], [-1j, 0]]), "NOISY-RX-PLUS-180"
         elif np.isclose(angle, -np.pi, atol=ANGLE_TOLERANCE):
-            return (np.array([[0, 1j], [1j, 0]]), "NOISY-RX-MINUS-180")
+            return np.array([[0, 1j], [1j, 0]]), "NOISY-RX-MINUS-180"
     elif gate_name == "CZ":
         assert params == ()
         return np.diag([1, 1, 1, -1]), "NOISY-CZ"
