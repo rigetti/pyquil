@@ -41,7 +41,7 @@ def decode_buffer(buffer: Dict[str, Any]) -> np.ndarray:
     :return: NumPy array of decoded data
     """
     buf = np.frombuffer(buffer["data"], dtype=buffer["dtype"])
-    return buf.reshape(buffer["shape"])
+    return buf.reshape(buffer["shape"])  # type: ignore
 
 
 def _extract_memory_regions(
@@ -54,7 +54,7 @@ def _extract_memory_regions(
     first, *rest = buffers.values()
     num_shots = first.shape[0]
 
-    def alloc(spec: ParameterSpec) -> np.array:
+    def alloc(spec: ParameterSpec) -> np.ndarray:
         dtype = {
             "BIT": np.int64,
             "INTEGER": np.int64,
@@ -66,7 +66,7 @@ def _extract_memory_regions(
         except KeyError:
             raise ValueError(f"Unexpected memory type {spec.type}.")
 
-    regions: Dict[str, np.array] = {}
+    regions: Dict[str, np.ndarray] = {}
 
     for mref, key in ro_sources.items():
         # Translation sometimes introduces ro_sources that the user didn't ask for.

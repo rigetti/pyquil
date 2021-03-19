@@ -13,7 +13,7 @@
 #    See the License for the specific language governing permissions and
 #    limitations under the License.
 ##############################################################################
-from typing import Any, List, Optional, Sequence, Tuple, Union
+from typing import Any, List, Optional, Sequence, Tuple, Union, cast
 
 import numpy as np
 from numpy.random.mtrand import RandomState
@@ -83,7 +83,7 @@ def targeted_einsum(gate: np.ndarray, wf: np.ndarray, wf_target_inds: List[int])
     # It might be worth re-investigating memory savings with `out` when numpy 1.15 becomes
     # commonplace.
 
-    return np.einsum(gate, input_indices, wf, data_indices, output_indices)
+    return np.einsum(gate, input_indices, wf, data_indices, output_indices)  # type: ignore
 
 
 def targeted_tensordot(gate: np.ndarray, wf: np.ndarray, wf_target_inds: Sequence[int]) -> np.ndarray:
@@ -138,7 +138,7 @@ def get_measure_probabilities(wf: np.ndarray, qubit: int) -> np.ndarray:
     n_qubits = len(wf.shape)
     all_inds = list(range(n_qubits))
 
-    return np.einsum(np.conj(wf), all_inds, wf, all_inds, [int(qubit)])
+    return np.einsum(np.conj(wf), all_inds, wf, all_inds, [int(qubit)])  # type: ignore
 
 
 def _get_gate_tensor_and_qubits(gate: Gate) -> Tuple[np.ndarray, List[int]]:
@@ -171,7 +171,7 @@ def _term_expectation(wf: np.ndarray, term: PauliTerm) -> Any:
 
     # `wf2` is XYZ..XXZ|psi>
     # hit it with a <psi| i.e. `wf.dag`
-    return term.coefficient * np.tensordot(wf.conj(), wf2, axes=len(wf.shape))
+    return cast(complex, term.coefficient) * np.tensordot(wf.conj(), wf2, axes=len(wf.shape))
 
 
 class NumpyWavefunctionSimulator(AbstractQuantumSimulator):
@@ -220,7 +220,7 @@ class NumpyWavefunctionSimulator(AbstractQuantumSimulator):
         probabilities = np.abs(self.wf.reshape(-1)) ** 2
         possible_bitstrings = all_bitstrings(self.n_qubits)
         inds = self.rs.choice(2 ** self.n_qubits, n_samples, p=probabilities)
-        return possible_bitstrings[inds, :]
+        return possible_bitstrings[inds, :]  # type: ignore
 
     def do_measurement(self, qubit: int) -> int:
         """

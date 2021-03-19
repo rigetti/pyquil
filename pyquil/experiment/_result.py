@@ -197,7 +197,7 @@ def correct_experiment_result(
     # combine standard errors (are we assuming the counts are the same?)
     assert result.std_err is not None and calibration.std_err is not None
     corrected_variance = ratio_variance(
-        result.expectation, result.std_err ** 2, calibration.expectation, calibration.std_err ** 2
+        result.expectation, result.std_err ** 2, calibration.expectation, calibration.std_err ** 2  # type: ignore
     )
 
     # recursively apply to additional results

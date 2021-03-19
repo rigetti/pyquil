@@ -132,8 +132,8 @@ class WavefunctionSimulator:
         bare_results = self._expectation(prep_prog, progs)
         results = coeffs * bare_results
         if is_pauli_sum:
-            return np.sum(results)
-        return results
+            return np.sum(results)  # type: ignore
+        return results  # type: ignore
 
     def _expectation(self, prep_prog: Program, operator_programs: Iterable[Program]) -> np.ndarray:
         if isinstance(operator_programs, Program):

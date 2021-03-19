@@ -337,7 +337,7 @@ programs run on this QVM.
             progs, coeffs = pauli_terms.get_programs()
             is_pauli_sum = True
         else:
-            coeffs = [pt.coefficient for pt in pauli_terms]
+            coeffs = np.array([pt.coefficient for pt in pauli_terms])
             progs = [pt.program for pt in pauli_terms]
 
         bare_results = self.expectation(prep_prog, progs)

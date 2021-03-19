@@ -13,7 +13,7 @@
 #    See the License for the specific language governing permissions and
 #    limitations under the License.
 ##############################################################################
-from typing import List, Sequence, Tuple, Union
+from typing import List, Sequence, Tuple, Union, cast
 
 import numpy as np
 
@@ -90,7 +90,7 @@ def qubit_adjacent_lifted_gate(i: int, matrix: np.ndarray, n_qubits: int) -> np.
     top_qubits = n_qubits - i - gate_size
     top_matrix = np.eye(2 ** top_qubits, dtype=np.complex128)
 
-    return np.kron(top_matrix, np.kron(matrix, bottom_matrix))
+    return np.kron(top_matrix, np.kron(matrix, bottom_matrix))  # type: ignore
 
 
 def two_swap_helper(j: int, k: int, num_qubits: int, qubit_map: np.ndarray) -> Tuple[np.ndarray, np.ndarray]:
@@ -253,7 +253,7 @@ def lifted_gate_matrix(matrix: np.ndarray, qubit_inds: Sequence[int], n_qubits: 
     np.testing.assert_allclose(check, qubit_inds)
 
     v_matrix = qubit_adjacent_lifted_gate(start_i, matrix, n_qubits)
-    return np.dot(np.conj(pi_permutation_matrix.T), np.dot(v_matrix, pi_permutation_matrix))
+    return np.dot(np.conj(pi_permutation_matrix.T), np.dot(v_matrix, pi_permutation_matrix))  # type: ignore
 
 
 def lifted_gate(gate: Gate, n_qubits: int) -> np.ndarray:
@@ -293,9 +293,9 @@ def lifted_gate(gate: Gate, n_qubits: int) -> np.ndarray:
     def _gate_matrix(gate: Gate) -> np.ndarray:
         if len(gate.modifiers) == 0:  # base case
             if len(gate.params) > 0:
-                return QUANTUM_GATES[gate.name](*gate.params)
+                return QUANTUM_GATES[gate.name](*gate.params)  # type: ignore
             else:
-                return QUANTUM_GATES[gate.name]
+                return QUANTUM_GATES[gate.name]  # type: ignore
         else:
             mod = gate.modifiers[0]
             if mod == "DAGGER":
@@ -304,7 +304,7 @@ def lifted_gate(gate: Gate, n_qubits: int) -> np.ndarray:
             elif mod == "CONTROLLED":
                 child = _strip_modifiers(gate, limit=1)
                 matrix = _gate_matrix(child)
-                return np.kron(zero, np.eye(*matrix.shape)) + np.kron(one, matrix)
+                return np.kron(zero, np.eye(*matrix.shape)) + np.kron(one, matrix)  # type: ignore
             elif mod == "FORKED":
                 assert len(gate.params) % 2 == 0
                 p0, p1 = gate.params[: len(gate.params) // 2], gate.params[len(gate.params) // 2 :]
@@ -315,7 +315,7 @@ def lifted_gate(gate: Gate, n_qubits: int) -> np.ndarray:
                 # handle the second half of the FORKED params
                 child.params = p1
                 mat1 = _gate_matrix(child)
-                return np.kron(zero, mat0) + np.kron(one, mat1)
+                return np.kron(zero, mat0) + np.kron(one, mat1)  # type: ignore
             else:
                 raise TypeError("Unsupported gate modifier {}".format(mod))
 
@@ -331,11 +331,11 @@ def program_unitary(program: Program, n_qubits: int) -> np.ndarray:
     :param program: A program consisting only of :py:class:`Gate`.:
     :return: a unitary corresponding to the composition of the program's gates.
     """
-    umat = np.eye(2 ** n_qubits)
+    umat: np.ndarray = np.eye(2 ** n_qubits)
     for instruction in program:
         if isinstance(instruction, Gate):
             unitary = lifted_gate(gate=instruction, n_qubits=n_qubits)
-            umat = unitary.dot(umat)
+            umat = unitary.dot(umat)  # type: ignore
         elif isinstance(instruction, Halt):
             pass
         else:
@@ -383,7 +383,7 @@ def lifted_pauli(pauli_sum: Union[PauliSum, PauliTerm], qubits: List[int]) -> np
         for qubit in qubits:
             term_hilbert = np.kron(QUANTUM_GATES[term[qubit]], term_hilbert)
 
-        result_hilbert += term_hilbert * term.coefficient
+        result_hilbert += term_hilbert * cast(complex, term.coefficient)
 
     return result_hilbert
 
@@ -415,7 +415,7 @@ def lifted_state_operator(state: TensorProductState, qubits: List[int]) -> np.nd
     :param state: The state
     :param qubits: list of qubits in the order they will be represented in the resultant matrix.
     """
-    mat = 1.0
+    mat: np.ndarray = np.eye(1)
     for qubit in qubits:
         oneq_state = state[qubit]
         assert oneq_state.qubit == qubit
@@ -446,4 +446,4 @@ def scale_out_phase(unitary1: np.ndarray, unitary2: np.ndarray) -> np.ndarray:
             goodness_value = np.abs(unitary1[j, 0])
             rescale_value = unitary2[j, 0] / unitary1[j, 0]
 
-    return rescale_value * unitary1
+    return rescale_value * unitary1  # type: ignore

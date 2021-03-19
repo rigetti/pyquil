@@ -162,19 +162,19 @@ CCNOT = np.array(
 
 
 def CPHASE00(phi: float) -> np.ndarray:
-    return np.diag([np.exp(1j * phi), 1.0, 1.0, 1.0])
+    return np.diag([np.exp(1j * phi), 1.0, 1.0, 1.0])  # type: ignore
 
 
 def CPHASE01(phi: float) -> np.ndarray:
-    return np.diag([1.0, np.exp(1j * phi), 1.0, 1.0])
+    return np.diag([1.0, np.exp(1j * phi), 1.0, 1.0])  # type: ignore
 
 
 def CPHASE10(phi: float) -> np.ndarray:
-    return np.diag([1.0, 1.0, np.exp(1j * phi), 1.0])
+    return np.diag([1.0, 1.0, np.exp(1j * phi), 1.0])  # type: ignore
 
 
 def CPHASE(phi: float) -> np.ndarray:
-    return np.diag([1.0, 1.0, 1.0, np.exp(1j * phi)])
+    return np.diag([1.0, 1.0, 1.0, np.exp(1j * phi)])  # type: ignore
 
 
 SWAP = np.array([[1, 0, 0, 0], [0, 0, 1, 0], [0, 1, 0, 0], [0, 0, 0, 1]])
@@ -224,7 +224,7 @@ def BARENCO(alpha: float, phi: float, theta: float) -> np.ndarray:
             [-1j * np.exp(1j * (alpha + phi)) * np.sin(theta), np.exp(1j * alpha) * np.cos(theta)],
         ]
     )
-    return np.kron(P0, np.eye(2)) + np.kron(P1, lower_unitary)
+    return np.kron(P0, np.eye(2)) + np.kron(P1, lower_unitary)  # type: ignore
 
 
 QUANTUM_GATES = {

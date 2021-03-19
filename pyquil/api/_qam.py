@@ -47,7 +47,7 @@ class QAM(ABC):
     _variables_shim: Dict[ParameterAref, Union[int, float]]
     executable: Optional[QuantumExecutable]
     experiment: Optional[Experiment] = None
-    _memory_results: Dict[str, np.ndarray]
+    _memory_results: Dict[str, Optional[np.ndarray]]
 
     @_record_call
     def __init__(self, client: Optional[Client] = None) -> None:
@@ -125,7 +125,7 @@ class QAM(ABC):
         return self
 
     @_record_call
-    def read_memory(self, *, region_name: str) -> np.ndarray:
+    def read_memory(self, *, region_name: str) -> Optional[np.ndarray]:
         """
         Reads from a memory region named region_name on the QAM.
 
@@ -140,7 +140,7 @@ class QAM(ABC):
         return self._memory_results[region_name]
 
     @_record_call
-    def read_from_memory_region(self, *, region_name: str) -> np.ndarray:
+    def read_from_memory_region(self, *, region_name: str) -> Optional[np.ndarray]:
         """
         Reads from a memory region named region_name on the QAM.
 
@@ -156,7 +156,7 @@ class QAM(ABC):
             DeprecationWarning,
         )
 
-        return self.read_memory(region_name=region_name)
+        return self.read_memory(region_name=region_name)  # type: ignore
 
     @_record_call
     def reset(self) -> None:
