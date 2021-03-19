@@ -31,8 +31,7 @@ class QCSDevice(AbstractDevice):
 
         :param quantum_processor_id: The id of the quantum processor.
         :param isa: The QCS API ``InstructionSetArchitecture``.
-        :param noise_model: An optional ``NoiseModel`` for configuring a noisy device
-        on the ``QVM``.
+        :param noise_model: An optional ``NoiseModel`` for configuring a noisy device on the ``QVM``.
         """
 
         self.quantum_processor_id = quantum_processor_id
