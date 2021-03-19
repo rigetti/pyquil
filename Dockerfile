@@ -9,7 +9,6 @@ FROM rigetti/qvm:$qvm_version as qvm
 FROM python:$python_version
 
 ARG pyquil_version
-ARG primary_index_url
 
 # copy over the pre-built quilc binary from the first build stage
 COPY --from=quilc /src/quilc/quilc /src/quilc/quilc
@@ -27,7 +26,7 @@ RUN apt-get update && apt-get -yq dist-upgrade && \
 RUN pip install --no-cache-dir ipython
 
 # install pyquil
-RUN pip install --index-url $primary_index_url --extra-index-url https://pypi.org/simple pyquil==$pyquil_version
+RUN pip install pyquil==$pyquil_version
 
 # use an entrypoint script to add startup commands (qvm & quilc server spinup)
 COPY ./entrypoint.sh /src/pyquil/entrypoint.sh
