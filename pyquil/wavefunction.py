@@ -100,7 +100,7 @@ class Wavefunction(object):
 
     def probabilities(self) -> np.ndarray:
         """Returns an array of probabilities in lexicographical order"""
-        return np.abs(self.amplitudes) ** 2
+        return np.abs(self.amplitudes) ** 2  # type: ignore
 
     def get_outcome_probs(self) -> Dict[str, float]:
         """
@@ -191,7 +191,7 @@ class Wavefunction(object):
         """
         possible_bitstrings = np.array(list(itertools.product((0, 1), repeat=len(self))))
         inds = np.random.choice(2 ** len(self), n_samples, p=self.probabilities())
-        bitstrings = possible_bitstrings[inds, :]
+        bitstrings: np.ndarray = possible_bitstrings[inds, :]
         return bitstrings
 
 

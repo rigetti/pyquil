@@ -136,7 +136,7 @@ class QuantumComputer:
         if memory_map:
             for region_name, values_list in memory_map.items():
                 self.qam.write_memory(region_name=region_name, value=values_list)
-        return self.qam.run().wait().read_memory(region_name="ro")
+        return self.qam.run().wait().read_memory(region_name="ro")  # type: ignore
 
     @_record_call
     def calibrate(self, experiment: Experiment) -> List[ExperimentResult]:
@@ -250,7 +250,7 @@ class QuantumComputer:
             std_errs = np.std(expectations, axis=0, ddof=1) / np.sqrt(len(expectations))
 
             joint_results = []
-            for qubit_subset, mean, std_err in zip(joint_expectations, means, std_errs):
+            for qubit_subset, mean, std_err in zip(joint_expectations, means, std_errs):  # type: ignore
                 out_operator = PauliTerm.from_list([(setting.out_operator[i], i) for i in qubit_subset])
                 s = ExperimentSetting(
                     in_state=setting.in_state,
@@ -1104,7 +1104,7 @@ def _symmetrization(
     return symm_programs, flip_arrays
 
 
-def _consolidate_symmetrization_outputs(outputs: List[np.ndarray], flip_arrays: List[Tuple[bool]]) -> np.ndarray:
+def _consolidate_symmetrization_outputs(outputs: List[np.ndarray], flip_arrays: List[np.ndarray]) -> np.ndarray:
     """
     Given bitarray results from a series of symmetrization programs, appropriately flip output
     bits and consolidate results into new bitarrays.
@@ -1195,7 +1195,7 @@ def _next_power_of_2(x: int) -> int:
 
 # The code below is directly copied from scipy see https://bit.ly/2RjAHJz, the docstrings have
 # been modified.
-def hadamard(n: int, dtype: np.dtype = int) -> np.ndarray:
+def hadamard(n: int, dtype: np.dtype = int) -> np.ndarray:  # type: ignore
     """
     Construct a Hadamard matrix.
     Constructs an n-by-n Hadamard matrix, using Sylvester's
@@ -1270,7 +1270,7 @@ def _construct_strength_three_orthogonal_array(num_qubits: int) -> np.ndarray:
     num_qubits_power_of_2 = _next_power_of_2(num_qubits)
     H = hadamard(num_qubits_power_of_2)
     Hfold = np.concatenate((H, -H), axis=0)
-    orthogonal_array = ((Hfold + 1) / 2).astype(int)
+    orthogonal_array: np.ndarray = ((Hfold + 1) / 2).astype(int)
     return orthogonal_array
 
 
@@ -1304,7 +1304,7 @@ def _construct_strength_two_orthogonal_array(num_qubits: int) -> np.ndarray:
     four_lam = min(x for x in valid_numbers if x >= num_qubits) + 1
     H = hadamard(_next_power_of_2(four_lam))
     # The minus sign in front of H fixes the 0 <-> 1 inversion relative to the reference [OATA]
-    orthogonal_array = ((-H[1:, :].T + 1) / 2).astype(int)
+    orthogonal_array: np.ndarray = ((-H[1:, :].T + 1) / 2).astype(int)
     return orthogonal_array
 
 

@@ -192,7 +192,7 @@ class PyQVM(QAM):
                 quantum_simulator_type = ReferenceDensitySimulator
 
         self.n_qubits = n_qubits
-        self.ram: Dict[str, List[Union[int, float]]] = {}
+        self.ram: Dict[str, np.ndarray] = {}
 
         if post_gate_noise_probabilities is None:
             post_gate_noise_probabilities = {}
@@ -256,8 +256,8 @@ class PyQVM(QAM):
             self.wf_simulator.reset()
             self._execute_program()
             for name in self.ram.keys():
-                self._memory_results.setdefault(name, list())
-                self._memory_results[name].append(self.ram[name])
+                self._memory_results.setdefault(name, list())  # type: ignore
+                self._memory_results[name].append(self.ram[name])  # type: ignore
 
         # TODO: this will need to be removed in merge conflict with #873
         self._bitstrings = self._memory_results["ro"]
@@ -351,7 +351,7 @@ class PyQVM(QAM):
             jump_reg: Optional[MemoryReference] = instruction.condition
             assert jump_reg is not None
             cond = self.ram[jump_reg.name][jump_reg.offset]
-            if not isinstance(cond, (bool, np.bool, np.int8)):
+            if not isinstance(cond, (bool, np.bool_, np.int8)):
                 raise ValueError("{} requires a data type of BIT; not {}".format(instruction.op, type(cond)))
             dest_index = self.find_label(instruction.target)
             if isinstance(instruction, JumpWhen):
@@ -373,11 +373,11 @@ class PyQVM(QAM):
             target = instruction.target
             old = self.ram[target.name][target.offset]
             if isinstance(instruction, ClassicalNeg):
-                if not isinstance(old, (int, float, np.int, np.float)):
+                if not isinstance(old, (int, float, np.int_, np.float_)):
                     raise ValueError("NEG requires a data type of REAL or INTEGER; not {}".format(type(old)))
                 self.ram[target.name][target.offset] *= -1
             elif isinstance(instruction, ClassicalNot):
-                if not isinstance(old, (bool, np.bool)):
+                if not isinstance(old, (bool, np.bool_)):
                     raise ValueError("NOT requires a data type of BIT; not {}".format(type(old)))
                 self.ram[target.name][target.offset] = not old
             else:
@@ -444,7 +444,7 @@ class PyQVM(QAM):
         elif isinstance(instruction, DefGate):
             if instruction.parameters is not None and len(instruction.parameters) > 0:
                 raise NotImplementedError("PyQVM does not support parameterized DEFGATEs")
-            self.defined_gates[instruction.name] = instruction.name
+            self.defined_gates[instruction.name] = instruction.matrix
             self.program_counter += 1
 
         elif isinstance(instruction, RawInstr):

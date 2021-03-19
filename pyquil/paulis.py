@@ -206,8 +206,8 @@ class PauliTerm(object):
         elif isinstance(other, PauliSum):
             return other == self
         else:
-            return self.operations_as_set() == other.operations_as_set() and np.isclose(
-                self.coefficient, other.coefficient
+            return self.operations_as_set() == other.operations_as_set() and np.allclose(
+                self.coefficient, other.coefficient  # type: ignore
             )
 
     def __hash__(self) -> int:
@@ -797,11 +797,11 @@ def simplify_pauli_sum(pauli_sum: PauliSum) -> PauliSum:
     terms = []
     for term_list in like_terms.values():
         first_term = term_list[0]
-        if len(term_list) == 1 and not np.isclose(first_term.coefficient, 0.0):
+        if len(term_list) == 1 and not np.isclose(first_term.coefficient, 0.0):  # type: ignore
             terms.append(first_term)
         else:
             coeff = sum(t.coefficient for t in term_list)
-            if not np.isclose(coeff, 0.0):
+            if not np.isclose(coeff, 0.0):  # type: ignore
                 terms.append(term_with_coeff(term_list[0], coeff))
     return PauliSum(terms)
 
@@ -869,9 +869,13 @@ def is_identity(term: PauliDesignator) -> bool:
     :returns: True if the PauliTerm or PauliSum is a scalar multiple of identity, False otherwise
     """
     if isinstance(term, PauliTerm):
-        return (len(term) == 0) and (not np.isclose(term.coefficient, 0))
+        return (len(term) == 0) and (not np.isclose(term.coefficient, 0))  # type: ignore
     elif isinstance(term, PauliSum):
-        return (len(term.terms) == 1) and (len(term.terms[0]) == 0) and (not np.isclose(term.terms[0].coefficient, 0))
+        return (
+            (len(term.terms) == 1)
+            and (len(term.terms[0]) == 0)
+            and (not np.isclose(term.terms[0].coefficient, 0))  # type: ignore
+        )
     else:
         raise TypeError("is_identity only checks PauliTerms and PauliSum objects!")
 
