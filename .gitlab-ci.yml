@@ -14,16 +14,6 @@ cache:
     - .cache/pip
     - .venv
 
-.install-dependencies:
-  &install-dependencies # Recommended install method for Poetry: https://python-poetry.org/docs/
-  - curl -sSL https://raw.githubusercontent.com/python-poetry/poetry/master/get-poetry.py | python
-  - source $HOME/.poetry/env
-  - poetry --version
-  - poetry config virtualenvs.in-project true
-  - poetry config experimental.new-installer false  # Address flaky poetry installs, see: https://github.com/python-poetry/poetry/issues/3199
-  - poetry run python -m ensurepip --upgrade
-  - poetry install -vv
-
 .install-dephell: &install-dephell # Install dephell to auto-generate setup.py
   - curl -L dephell.org/install | python
 
@@ -62,56 +52,59 @@ services:
 # EVERY-COMMIT JOBS
 ####################################################################################################
 
-#Test Docs:
-#  stage: test
-#  script:
-#    - *install-dependencies
-#    - apt-get update && apt-get install -y pandoc
-#    - poetry run make docs
-#
-#Style:
-#  stage: test
-#  script:
-#    - *install-dependencies
-#    - poetry run make check-all
-#  rules:
-#    # Skip this job if it was triggered by a tag
-#    - if: "$CI_COMMIT_TAG"
-#      when: never
-#    - when: always
-#
-#Test (3.7):
-#  stage: test
-#  image: python:3.7
-#  coverage: '/TOTAL.*?(\d+)\%/'
-#  script:
-#    - *install-dependencies
-#    - poetry run make test
-#
-#Test (3.8):
-#  stage: test
-#  image: python:3.8
-#  coverage: '/TOTAL.*?(\d+)\%/'
-#  script:
-#    - *install-dependencies
-#    - poetry run make test
-#
-#Coverage:
-#  stage: test
-#  script:
-#    - *install-dependencies
-#    - poetry run make coverage
-#  allow_failure: true
+Test Docs:
+  stage: test
+  script:
+    - . scripts/ci_install_deps
+    - apt-get update && apt-get install -y pandoc
+    - poetry run make docs
+
+Style:
+  stage: test
+  script:
+    - . scripts/ci_install_deps
+    - poetry run make check-all
+  rules:
+    # Skip this job if it was triggered by a tag
+    - if: "$CI_COMMIT_TAG"
+      when: never
+    - when: always
+
+Test (3.7):
+  stage: test
+  image: python:3.7
+  coverage: '/TOTAL.*?(\d+)\%/'
+  script:
+    - . scripts/ci_install_deps
+    - poetry run make test
+
+Test (3.8):
+  stage: test
+  image: python:3.8
+  coverage: '/TOTAL.*?(\d+)\%/'
+  script:
+    - . scripts/ci_install_deps
+    - poetry run make test
+
+Coverage:
+  stage: test
+  script:
+    - . scripts/ci_install_deps
+    - poetry run make coverage
+  allow_failure: true
 
 
 ####################################################################################################
 # BRANCH-ONLY JOBS
 ####################################################################################################
 
+# NOTE: Running this job requires the following env vars to be set when triggering:
+#  - GITHUB_TOKEN
+#  - TEST_PYPI_PASSWORD
 PyPI Publish Branch (TestPyPI):
   stage: deploy
   script:
-    - *install-dependencies
+    - . scripts/ci_install_deps
     - *install-dephell
     - *install-npm
     - npx semantic-release --branches $CI_COMMIT_BRANCH --dry-run
@@ -133,7 +126,7 @@ PyPI Publish Branch (TestPyPI):
 .pypi-publish:
   stage: deploy
   script:
-    - *install-dependencies
+    - . scripts/ci_install_deps
     - *install-dephell
     - *install-npm
     # This performs the semantic-release configured in package.json.
