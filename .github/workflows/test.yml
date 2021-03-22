@@ -2,9 +2,9 @@ name: Tests
 
 on:
   push:
-    branches: [ master ]
+    branches: [ master, rc ]
   pull_request:
-    branches: [ master ]
+    branches: [ master, rc ]
 
 
   workflow_dispatch:
@@ -19,12 +19,17 @@ jobs:
         uses: actions/setup-python@v2
         with:
           python-version: '3.7'
+      - uses: actions/cache@v2
+        with:
+          path: .venv
+          key: poetry-${{ hashFiles('poetry.lock') }}
       - name: Build and test the documentation
         run: |
           sudo apt update
           sudo apt install pandoc
-          make install
-          make docs
+          . scripts/ci_install_deps
+          poetry run make docs
+
   check-format:
     name: Check formatting
     runs-on: ubuntu-latest
@@ -34,11 +39,15 @@ jobs:
         uses: actions/setup-python@v2
         with:
           python-version: '3.7'
+      - uses: actions/cache@v2
+        with:
+          path: .venv
+          key: poetry-${{ hashFiles('poetry.lock') }}
       - name: Check format
         run: |
           sudo apt update
-          make requirements
-          make check-format
+          . scripts/ci_install_deps
+          poetry run make check-format
   check-style:
     name: Check style
     runs-on: ubuntu-latest
@@ -48,11 +57,15 @@ jobs:
         uses: actions/setup-python@v2
         with:
           python-version: '3.7'
+      - uses: actions/cache@v2
+        with:
+          path: .venv
+          key: poetry-${{ hashFiles('poetry.lock') }}
       - name: Check style
         run: |
           sudo apt update
-          make requirements
-          make check-style
+          . scripts/ci_install_deps
+          poetry run make check-style
   check-types:
     name: Check types
     runs-on: ubuntu-latest
@@ -62,11 +75,15 @@ jobs:
         uses: actions/setup-python@v2
         with:
           python-version: '3.7'
+      - uses: actions/cache@v2
+        with:
+          path: .venv
+          key: poetry-${{ hashFiles('poetry.lock') }}
       - name: Check types
         run: |
           sudo apt update
-          make requirements
-          make check-types
+          . scripts/ci_install_deps
+          poetry run make check-types
   test-pyquil:
     name: Test pyQuil
     runs-on: ubuntu-latest
@@ -79,11 +96,14 @@ jobs:
         uses: actions/setup-python@v2
         with:
           python-version: ${{ matrix.python-version }}
+      - uses: actions/cache@v2
+        with:
+          path: .venv
+          key: poetry-${{ hashFiles('poetry.lock') }}
       - name: Test pyQuil (Python ${{ matrix.python-version }})
         run: |
           sudo apt update
-          make requirements
+          . scripts/ci_install_deps
           docker run --rm -itd -p 5555:5555 rigetti/quilc -R
           docker run --rm -itd -p 5000:5000 rigetti/qvm -S
-          make test
-          
+          poetry run make test
