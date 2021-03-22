@@ -6,6 +6,7 @@ Insert your PR description here. Thanks for [contributing][contributing] to pyQu
 Checklist
 ---------
 
+- [ ] The PR targets the `rc` branch (**not** `master`)
 - [ ] The above description motivates these changes.
 - [ ] There is a unit test that covers these changes.
 - [ ] All new and existing tests pass locally and on [Travis CI][travis].
