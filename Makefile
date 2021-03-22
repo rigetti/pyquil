@@ -2,7 +2,6 @@ COMMIT_HASH=$(shell git rev-parse --short HEAD)
 DEFAULT_QUILC_URL=tcp://localhost:5555
 DEFAULT_QVM_URL=http://localhost:5000
 DOCKER_TAG=rigetti/forest:$(COMMIT_HASH)
-TWINE_REPOSITORY_URL=https://test.pypi.org/legacy/
 
 .PHONY: all
 all: dist
