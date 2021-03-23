@@ -32,7 +32,7 @@ from pyquil.api import Client
 from pyquil.api._error_reporting import _record_call
 from pyquil.api._abstract_compiler import AbstractCompiler, QuantumExecutable, EncryptedProgram
 from pyquil.api._rewrite_arithmetic import rewrite_arithmetic
-from pyquil.device import AbstractDevice
+from pyquil.quantum_processor import AbstractQuantumProcessor
 from pyquil.parser import parse_program, parse
 from pyquil.quil import Program
 from pyquil.quilatom import MemoryReference, ExpressionDesignator
@@ -86,7 +86,7 @@ class QPUCompiler(AbstractCompiler):
         self,
         *,
         quantum_processor_id: str,
-        device: AbstractDevice,
+        quantum_processor: AbstractQuantumProcessor,
         client: Optional[Client] = None,
         timeout: float = 10,
     ) -> None:
@@ -94,11 +94,11 @@ class QPUCompiler(AbstractCompiler):
         Instantiate a new QPU compiler client.
 
         :param quantum_processor_id: Processor to target.
-        :param device: PyQuil Device object to use as compilation target.
+        :param quantum_processor: Quantum processor to use as compilation target.
         :param client: Optional QCS client. If none is provided, a default client will be created.
         :param timeout: Number of seconds to wait for a response from the client.
         """
-        super().__init__(device=device, client=client, timeout=timeout)
+        super().__init__(quantum_processor=quantum_processor, client=client, timeout=timeout)
         self.quantum_processor_id = quantum_processor_id
 
     @_record_call
@@ -177,15 +177,17 @@ class QVMCompiler(AbstractCompiler):
     """
 
     @_record_call
-    def __init__(self, *, device: AbstractDevice, client: Optional[Client] = None, timeout: float = 10) -> None:
+    def __init__(
+        self, *, quantum_processor: AbstractQuantumProcessor, client: Optional[Client] = None, timeout: float = 10
+    ) -> None:
         """
         Client to communicate with compiler.
 
-        :param device: PyQuil Device object to use as compilation target.
+        :param quantum_processor: Quantum processor to use as compilation target.
         :param client: Optional QCS client. If none is provided, a default client will be created.
         :param timeout: Number of seconds to wait for a response from the client.
         """
-        super().__init__(device=device, client=client, timeout=timeout)
+        super().__init__(quantum_processor=quantum_processor, client=client, timeout=timeout)
 
     @_record_call
     def native_quil_to_executable(self, nq_program: Program) -> QuantumExecutable:

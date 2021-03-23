@@ -29,10 +29,10 @@ ASPEN_8_QUBITS_NO_RZ = {8, 9, 10, 18, 19, 28, 29, 31}
 ASPEN_8_EDGES_NO_CZ = {(0, 1), (10, 11), (1, 2), (21, 22), (17, 10), (12, 25)}
 
 
-def test_get_qvm_noise_supported_gates_from_aspen8_isa(qcs_aspen8_device, noise_model_dict):
-    gates = _get_qvm_noise_supported_gates(qcs_aspen8_device.to_compiler_isa())
+def test_get_qvm_noise_supported_gates_from_aspen8_isa(qcs_aspen8_quantum_processor, noise_model_dict):
+    gates = _get_qvm_noise_supported_gates(qcs_aspen8_quantum_processor.to_compiler_isa())
 
-    for q in range(len(qcs_aspen8_device._isa.architecture.nodes)):
+    for q in range(len(qcs_aspen8_quantum_processor._isa.architecture.nodes)):
         if q not in ASPEN_8_QUBITS_NO_RX:
             for g in [
                 RX(np.pi / 2, q),
@@ -44,7 +44,7 @@ def test_get_qvm_noise_supported_gates_from_aspen8_isa(qcs_aspen8_device, noise_
         if q not in ASPEN_8_QUBITS_NO_RZ:
             assert RZ(THETA, q) in gates
 
-    for edge in qcs_aspen8_device._isa.architecture.edges:
+    for edge in qcs_aspen8_quantum_processor._isa.architecture.edges:
         if (
             edge.node_ids[0],
             edge.node_ids[1],

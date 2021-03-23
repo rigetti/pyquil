@@ -23,7 +23,7 @@ from pyquil.api import Client, QuantumExecutable
 from pyquil.api._compiler import QVMCompiler
 from pyquil.api._error_reporting import _record_call
 from pyquil.api._qam import QAM
-from pyquil.device import QCSDevice
+from pyquil.quantum_processor import QCSQuantumProcessor
 from pyquil.gates import MOVE
 from pyquil.noise import NoiseModel, apply_noise_model
 from pyquil.paulis import PauliSum, PauliTerm
@@ -63,7 +63,7 @@ class QVMConnection(object):
     def __init__(
         self,
         client: Optional[Client] = None,
-        device: Optional[QCSDevice] = None,
+        quantum_processor: Optional[QCSQuantumProcessor] = None,
         gate_noise: Optional[Tuple[float, float, float]] = None,
         measurement_noise: Optional[Tuple[float, float, float]] = None,
         random_seed: Optional[int] = None,
@@ -73,7 +73,7 @@ class QVMConnection(object):
         model to use.
 
         :param client: Optional QCS client. If none is provided, a default client will be created.
-        :param device: The optional device, from which noise will be added by default to all
+        :param quantum_processor: The optional quantum_processor, from which noise will be added by default to all
             programs run on this instance.
         :param gate_noise: A tuple of three numbers [Px, Py, Pz] indicating the probability of an X,
             Y, or Z gate getting applied to each qubit after a gate application or reset.
@@ -84,13 +84,13 @@ class QVMConnection(object):
         """
         self.client = client or Client()
 
-        if (device is not None and device.noise_model is not None) and (
+        if (quantum_processor is not None and quantum_processor.noise_model is not None) and (
             gate_noise is not None or measurement_noise is not None
         ):
             raise ValueError(
                 """
-You have attempted to supply the QVM with both a device noise model
-(by having supplied a device argument), as well as either gate_noise
+You have attempted to supply the QVM with both a quantum_processor noise model
+(by having supplied a quantum_processor argument), as well as either gate_noise
 or measurement_noise. At this time, only one may be supplied.
 
 To read more about supplying noise to the QVM, see
@@ -98,16 +98,16 @@ http://pyquil.readthedocs.io/en/latest/noise_models.html#support-for-noisy-gates
 """
             )
 
-        if device is not None and device.noise_model is None:
+        if quantum_processor is not None and quantum_processor.noise_model is None:
             warnings.warn(
                 """
-You have supplied the QVM with a device that does not have a noise model. No noise will be added to
+You have supplied the QVM with a quantum_processor that does not have a noise model. No noise will be added to
 programs run on this QVM.
 """
             )
 
-        self.noise_model = device.noise_model if device else None
-        self.compiler = QVMCompiler(device=device, client=client) if device else None
+        self.noise_model = quantum_processor.noise_model if quantum_processor else None
+        self.compiler = QVMCompiler(quantum_processor=quantum_processor, client=client) if quantum_processor else None
 
         validate_noise_probabilities(gate_noise)
         validate_noise_probabilities(measurement_noise)

@@ -1,7 +1,7 @@
 import os
 
 from pyquil.api import Client
-from pyquil.device import AbstractDevice
+from pyquil.quantum_processor import AbstractQuantumProcessor
 from pyquil.parser import parse
 from pyquil.api._abstract_compiler import AbstractCompiler
 from pyquil import Program
@@ -19,8 +19,8 @@ def parse_equals(quil_string, *instructions):
 
 
 class DummyCompiler(AbstractCompiler):
-    def __init__(self, device: AbstractDevice, client: Client):
-        super().__init__(device=device, client=client, timeout=10)  # type: ignore
+    def __init__(self, quantum_processor: AbstractQuantumProcessor, client: Client):
+        super().__init__(quantum_processor=quantum_processor, client=client, timeout=10)  # type: ignore
 
     def get_version_info(self):
         return {}

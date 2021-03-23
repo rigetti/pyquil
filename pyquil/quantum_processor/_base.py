@@ -19,27 +19,27 @@ from typing import List
 from pyquil.external.rpcq import CompilerISA
 
 
-class AbstractDevice(ABC):
+class AbstractQuantumProcessor(ABC):
     """
     A generic interface describing the qubits, topology, and compiler representation
-    of any arbitrary device class.
+    of any arbitrary quantum_processor class.
     """
 
     @abstractmethod
     def qubits(self) -> List[int]:
         """
-        A sorted list of qubits in the device topology.
+        A sorted list of qubits in the quantum_processor topology.
         """
 
     @abstractmethod
     def qubit_topology(self) -> nx.Graph:
         """
-        The connectivity of qubits in this device given as a NetworkX graph.
+        The connectivity of qubits in this quantum_processor given as a NetworkX graph.
         """
 
     @abstractmethod
     def to_compiler_isa(self) -> CompilerISA:
         """
         Construct an ISA suitable for targeting by compilation.
-        This will raise an exception if the requested ISA is not supported by the device.
+        This will raise an exception if the requested ISA is not supported by the quantum_processor.
         """

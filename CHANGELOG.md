@@ -23,17 +23,21 @@ Changelog
   
 - `get_benchmarker()` has been removed in favor of calling `BenchmarkConnection` constructor directly.
 
-- Move compiler/ RPCQ models to `external/rpcq.py`, including `CompilerISA`. Eventually, we will move these into the RPCQ package.
+- Moved compiler/ RPCQ models to `external/rpcq.py`, including `CompilerISA`. Eventually, we will move these into the RPCQ package.
 
-- Replace intermediary `Qubit.type` with an explicit list of gates that the client may pass to the compiler without further transformation.
+- Replaced intermediary `Qubit.type` with an explicit list of gates that the client may pass to the compiler without further transformation.
 
-- Drop the intermediary `ISA` class. Rely exclusively on `CompilerISA` as a carrier of instruction set architecture information. 
+- Dropped the intermediary `ISA` class. Rely exclusively on `CompilerISA` as a carrier of instruction set architecture information. 
 
-- Support `AbstractDevice`s derived from QCS `InstructionSetArchitecture`, `CompilerISA`, and `nx.Graph`.
+- Renamed package `device` to `quantum_processor`. Also renamed any symbols including `device` to include `quantum_processor` instead.
 
-- Drop `api._quantum_processors`. Move `get_device` to `pyquil.device.qcs.get_qcs_device`.
+- Renamed `AbstractDevice` to `AbstractQuantumProcessor`, `CompilerDevice` to `CompilerQuantumProcessor`, `NxDevice` to `NxQuantumProcessor`, and `QCSDevice` to `QCSQuantumProcessor`.
 
-- Drop `gates_in_isa` and refactor as an internal function for preparing a list of `pyquil.Gate`'s that the user may use to initialize a `NoiseModel` based on the underlying `CompilerISA`.
+- Support `AbstractQuantumProcessor`s derived from QCS `InstructionSetArchitecture`, `CompilerISA`, and `nx.Graph`.
+
+- Dropped `api._quantum_processors`. Moved `get_device` to `pyquil.quantum_processor.qcs.get_qcs_quantum_processor`.
+
+- Dropped `gates_in_isa` and refactored as an internal function for preparing a list of `pyquil.Gate`'s that the user may use to initialize a `NoiseModel` based on the underlying `CompilerISA`.
   
 ### Bugfixes
 

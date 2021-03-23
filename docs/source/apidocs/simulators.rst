@@ -2,7 +2,7 @@ Simulators
 ==========
 
 QVMs promise to behave like a real QPU. However, under-the-hood there is usually a simulation
-that has fewer constraints than a physical device. For example, in a wavefunction (or statevector)
+that has fewer constraints than a physical quantum processor. For example, in a wavefunction (or statevector)
 simulation, you can directly inspect amplitudes and probabilities.
 
 

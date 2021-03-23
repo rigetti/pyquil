@@ -23,10 +23,10 @@ from rpcq.messages import (
     ParameterAref,
 )
 
-from pyquil.external.rpcq import compiler_isa_to_target_device
+from pyquil.external.rpcq import compiler_isa_to_target_quantum_processor
 from pyquil.api import Client
 from pyquil.api._error_reporting import _record_call
-from pyquil.device import AbstractDevice
+from pyquil.quantum_processor import AbstractQuantumProcessor
 from pyquil.parser import parse_program
 from pyquil.paulis import PauliTerm
 from pyquil.quil import Program
@@ -73,12 +73,14 @@ QuantumExecutable = Union[EncryptedProgram, Program]
 class AbstractCompiler(ABC):
     """The abstract interface for a compiler."""
 
-    device: AbstractDevice
+    quantum_processor: AbstractQuantumProcessor
     _client: Client
     _timeout: float
 
-    def __init__(self, *, device: AbstractDevice, client: Optional[Client], timeout: float) -> None:
-        self.device = device
+    def __init__(
+        self, *, quantum_processor: AbstractQuantumProcessor, client: Optional[Client], timeout: float
+    ) -> None:
+        self.quantum_processor = quantum_processor
         self._client = client or Client()
 
         if not self._client.quilc_url.startswith("tcp://"):
@@ -100,17 +102,17 @@ class AbstractCompiler(ABC):
     @_record_call
     def quil_to_native_quil(self, program: Program, *, protoquil: Optional[bool] = None) -> Program:
         """
-        Compile an arbitrary quil program according to the ISA of ``self.device``.
+        Compile an arbitrary quil program according to the ISA of ``self.quantum_processor``.
 
         :param program: Arbitrary quil to compile
         :param protoquil: Whether to restrict to protoquil (``None`` means defer to server)
         :return: Native quil and compiler metadata
         """
         self._connect()
-        compiler_isa = self.device.to_compiler_isa()
+        compiler_isa = self.quantum_processor.to_compiler_isa()
         request = NativeQuilRequest(
             quil=program.out(calibrations=False),
-            target_device=compiler_isa_to_target_device(compiler_isa),
+            target_device=compiler_isa_to_target_quantum_processor(compiler_isa),
         )
         response = self._client.compiler_rpcq_request(
             "quil_to_native_quil",

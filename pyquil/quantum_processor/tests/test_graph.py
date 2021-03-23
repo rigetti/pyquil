@@ -1,11 +1,11 @@
 import networkx as nx
-from pyquil.device.transformers.graph_to_compiler_isa import (
+from pyquil.quantum_processor.transformers.graph_to_compiler_isa import (
     compiler_isa_to_graph,
     DEFAULT_2Q_GATES,
     DEFAULT_1Q_GATES,
 )
-from pyquil.device.transformers import graph_to_compiler_isa
-from pyquil.device.graph import NxDevice
+from pyquil.quantum_processor.transformers import graph_to_compiler_isa
+from pyquil.quantum_processor.graph import NxQuantumProcessor
 from pyquil.external.rpcq import CompilerISA
 from typing import Dict, Any
 
@@ -28,15 +28,15 @@ def test_isa_from_graph_order():
 def test_compiler_isa_to_graph(compiler_isa: CompilerISA):
     """
     Test that compiler_isa_to_graph transforms a ``CompilerISA`` to an ``nx.Graph``
-    accurately and that an ``NxDevice.qubit_topology`` is isomorphic to the
+    accurately and that an ``NxQuantumProcessor.qubit_topology`` is isomorphic to the
     raw ``nx.Graph``.
     """
     graph = compiler_isa_to_graph(compiler_isa)
     should_be = nx.from_edgelist([(0, 1), (1, 2), (0, 2), (0, 3)])
     assert nx.is_isomorphic(graph, should_be)
 
-    nx_device = NxDevice(graph)
-    assert nx.is_isomorphic(graph, nx_device.qubit_topology())
+    nx_quantum_processor = NxQuantumProcessor(graph)
+    assert nx.is_isomorphic(graph, nx_quantum_processor.qubit_topology())
 
 
 def test_graph_to_compiler_isa(compiler_isa: CompilerISA, noise_model_dict: Dict[str, Any]):

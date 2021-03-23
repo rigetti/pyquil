@@ -20,7 +20,7 @@ from pyquil.api._quantum_computer import (
     _consolidate_symmetrization_outputs,
     _check_min_num_trials_for_symmetrized_readout,
 )
-from pyquil.device import NxDevice
+from pyquil.quantum_processor import NxQuantumProcessor
 from pyquil.gates import CNOT, H, I, MEASURE, RX, X
 from pyquil.noise import decoherence_noise_with_asymmetric_ro
 from pyquil.pyqvm import PyQVM
@@ -134,8 +134,8 @@ def test_construct_strength_two_orthogonal_array():
 
 
 def test_measure_bitstrings(client: Client):
-    device = NxDevice(nx.complete_graph(2))
-    dummy_compiler = DummyCompiler(device=device, client=client)
+    quantum_processor = NxQuantumProcessor(nx.complete_graph(2))
+    dummy_compiler = DummyCompiler(quantum_processor=quantum_processor, client=client)
     qc_pyqvm = QuantumComputer(name="testy!", qam=PyQVM(n_qubits=2), compiler=dummy_compiler)
     qc_forest = QuantumComputer(
         name="testy!",
@@ -176,12 +176,12 @@ def test_check_min_num_trials_for_symmetrized_readout():
         _check_min_num_trials_for_symmetrized_readout(num_qubits=2, trials=-2, symm_type=4)
 
 
-def test_device_stuff(client: Client):
+def test_quantum_processor_stuff(client: Client):
     topo = nx.from_edgelist([(0, 4), (0, 99)])
     qc = QuantumComputer(
         name="testy!",
         qam=None,  # not necessary for this test
-        compiler=DummyCompiler(device=NxDevice(topo, gates_2q=["CPHASE"]), client=client),
+        compiler=DummyCompiler(quantum_processor=NxQuantumProcessor(topo, gates_2q=["CPHASE"]), client=client),
     )
     assert nx.is_isomorphic(qc.qubit_topology(), topo)
 
@@ -195,11 +195,11 @@ def test_device_stuff(client: Client):
 # bound could be relaxed.
 @pytest.mark.flaky(reruns=1)
 def test_run(client: Client):
-    device = NxDevice(nx.complete_graph(3))
+    quantum_processor = NxQuantumProcessor(nx.complete_graph(3))
     qc = QuantumComputer(
         name="testy!",
         qam=QVM(client=client, gate_noise=(0.01, 0.01, 0.01)),
-        compiler=DummyCompiler(device=device, client=client),
+        compiler=DummyCompiler(quantum_processor=quantum_processor, client=client),
     )
     bitstrings = qc.run(
         Program(
@@ -219,8 +219,10 @@ def test_run(client: Client):
 
 
 def test_run_pyqvm_noiseless(client: Client):
-    device = NxDevice(nx.complete_graph(3))
-    qc = QuantumComputer(name="testy!", qam=PyQVM(n_qubits=3), compiler=DummyCompiler(device=device, client=client))
+    quantum_processor = NxQuantumProcessor(nx.complete_graph(3))
+    qc = QuantumComputer(
+        name="testy!", qam=PyQVM(n_qubits=3), compiler=DummyCompiler(quantum_processor=quantum_processor, client=client)
+    )
     prog = Program(H(0), CNOT(0, 1), CNOT(1, 2))
     ro = prog.declare("ro", "BIT", 3)
     for q in range(3):
@@ -233,11 +235,11 @@ def test_run_pyqvm_noiseless(client: Client):
 
 
 def test_run_pyqvm_noisy(client: Client):
-    device = NxDevice(nx.complete_graph(3))
+    quantum_processor = NxQuantumProcessor(nx.complete_graph(3))
     qc = QuantumComputer(
         name="testy!",
         qam=PyQVM(n_qubits=3, post_gate_noise_probabilities={"relaxation": 0.01}),
-        compiler=DummyCompiler(device=device, client=client),
+        compiler=DummyCompiler(quantum_processor=quantum_processor, client=client),
     )
     prog = Program(H(0), CNOT(0, 1), CNOT(1, 2))
     ro = prog.declare("ro", "BIT", 3)
@@ -251,12 +253,12 @@ def test_run_pyqvm_noisy(client: Client):
 
 
 def test_readout_symmetrization(client: Client):
-    device = NxDevice(nx.complete_graph(3))
-    noise_model = decoherence_noise_with_asymmetric_ro(device.to_compiler_isa())
+    quantum_processor = NxQuantumProcessor(nx.complete_graph(3))
+    noise_model = decoherence_noise_with_asymmetric_ro(quantum_processor.to_compiler_isa())
     qc = QuantumComputer(
         name="testy!",
         qam=QVM(client=client, noise_model=noise_model),
-        compiler=DummyCompiler(device=device, client=client),
+        compiler=DummyCompiler(quantum_processor=quantum_processor, client=client),
     )
 
     prog = Program(I(0), X(1), MEASURE(0, MemoryReference("ro", 0)), MEASURE(1, MemoryReference("ro", 1)))
@@ -472,8 +474,12 @@ def test_run_and_measure_noiseless_qvm(client):
 
 
 def test_run_with_parameters(client: Client):
-    device = NxDevice(nx.complete_graph(3))
-    qc = QuantumComputer(name="testy!", qam=QVM(client=client), compiler=DummyCompiler(device=device, client=client))
+    quantum_processor = NxQuantumProcessor(nx.complete_graph(3))
+    qc = QuantumComputer(
+        name="testy!",
+        qam=QVM(client=client),
+        compiler=DummyCompiler(quantum_processor=quantum_processor, client=client),
+    )
     bitstrings = qc.run(
         executable=Program(
             Declare(name="theta", memory_type="REAL"),
@@ -489,8 +495,12 @@ def test_run_with_parameters(client: Client):
 
 
 def test_reset(client: Client):
-    device = NxDevice(nx.complete_graph(3))
-    qc = QuantumComputer(name="testy!", qam=QVM(client=client), compiler=DummyCompiler(device=device, client=client))
+    quantum_processor = NxQuantumProcessor(nx.complete_graph(3))
+    qc = QuantumComputer(
+        name="testy!",
+        qam=QVM(client=client),
+        compiler=DummyCompiler(quantum_processor=quantum_processor, client=client),
+    )
     p = Program(
         Declare(name="theta", memory_type="REAL"),
         Declare(name="ro", memory_type="BIT"),

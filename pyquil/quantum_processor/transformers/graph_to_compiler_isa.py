@@ -34,16 +34,16 @@ def graph_to_compiler_isa(
     Generate an ``CompilerISA`` object from a NetworkX graph and list of 1Q and 2Q gates.
     May raise ``GraphGateError`` if the specified gates are not supported.
 
-    :param graph: The graph topology of the device.
-    :param gates_1q: A list of 1Q gate names to be made available for all qubits in the device.
+    :param graph: The graph topology of the quantum_processor.
+    :param gates_1q: A list of 1Q gate names to be made available for all qubits in the quantum_processor.
     Defaults to ``DEFAULT_1Q_GATES``.
-    :param gates_2q: A list of 2Q gate names to be made available for all edges in the device.
+    :param gates_2q: A list of 2Q gate names to be made available for all edges in the quantum_processor.
     Defaults to ``DEFAULT_2Q_GATES``.
     """
     gates_1q = gates_1q or DEFAULT_1Q_GATES.copy()
     gates_2q = gates_2q or DEFAULT_2Q_GATES.copy()
 
-    device = CompilerISA()
+    quantum_processor = CompilerISA()
 
     qubit_gates = []
     for gate in gates_1q:
@@ -51,7 +51,7 @@ def graph_to_compiler_isa(
 
     all_qubits = list(range(max(graph.nodes) + 1))
     for i in all_qubits:
-        qubit = add_qubit(device, i)
+        qubit = add_qubit(quantum_processor, i)
         qubit.gates = qubit_gates
         qubit.dead = i not in graph.nodes
 
@@ -60,10 +60,10 @@ def graph_to_compiler_isa(
         edge_gates.extend(_transform_edge_operation_to_gates(gate))
 
     for a, b in graph.edges:
-        edge = add_edge(device, a, b)
+        edge = add_edge(quantum_processor, a, b)
         edge.gates = edge_gates
 
-    return device
+    return quantum_processor
 
 
 def compiler_isa_to_graph(compiler_isa: CompilerISA) -> nx.Graph:
