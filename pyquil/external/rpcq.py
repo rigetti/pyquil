@@ -1,7 +1,7 @@
 from typing import Dict, List, Union, Optional, Any
 from typing_extensions import Literal
 from pydantic import BaseModel, Field
-from rpcq.messages import TargetDevice
+from rpcq.messages import TargetDevice as TargetQuantumProcessor
 
 
 class Operator(BaseModel):
@@ -53,30 +53,30 @@ class CompilerISA(BaseModel):
     edges: Dict[str, Edge] = Field(default_factory=dict, alias="2Q")
 
 
-def add_qubit(device: CompilerISA, node_id: int) -> Qubit:
-    if node_id not in device.qubits:
-        device.qubits[str(node_id)] = Qubit(id=node_id)
-    return device.qubits[str(node_id)]
+def add_qubit(quantum_processor: CompilerISA, node_id: int) -> Qubit:
+    if node_id not in quantum_processor.qubits:
+        quantum_processor.qubits[str(node_id)] = Qubit(id=node_id)
+    return quantum_processor.qubits[str(node_id)]
 
 
-def get_qubit(device: CompilerISA, node_id: int) -> Optional[Qubit]:
-    return device.qubits.get(str(node_id))
+def get_qubit(quantum_processor: CompilerISA, node_id: int) -> Optional[Qubit]:
+    return quantum_processor.qubits.get(str(node_id))
 
 
 def make_edge_id(qubit1: int, qubit2: int) -> str:
     return "-".join([str(qubit) for qubit in sorted([qubit1, qubit2])])
 
 
-def add_edge(device: CompilerISA, qubit1: int, qubit2: int) -> Edge:
+def add_edge(quantum_processor: CompilerISA, qubit1: int, qubit2: int) -> Edge:
     edge_id = make_edge_id(qubit1, qubit2)
-    if edge_id not in device.edges:
-        device.edges[edge_id] = Edge(ids=sorted([qubit1, qubit2]))
-    return device.edges[edge_id]
+    if edge_id not in quantum_processor.edges:
+        quantum_processor.edges[edge_id] = Edge(ids=sorted([qubit1, qubit2]))
+    return quantum_processor.edges[edge_id]
 
 
-def get_edge(device: CompilerISA, qubit1: int, qubit2: int) -> Optional[Edge]:
+def get_edge(quantum_processor: CompilerISA, qubit1: int, qubit2: int) -> Optional[Edge]:
     edge_id = make_edge_id(qubit1, qubit2)
-    return device.edges.get(edge_id)
+    return quantum_processor.edges.get(edge_id)
 
 
 def _edge_ids_from_id(edge_id: str) -> List[int]:
@@ -91,8 +91,8 @@ def _compiler_isa_from_dict(data: Dict[str, Dict[str, Any]]) -> CompilerISA:
     return CompilerISA.parse_obj(compiler_isa_data)
 
 
-def compiler_isa_to_target_device(compiler_isa: CompilerISA) -> TargetDevice:
-    return TargetDevice(isa=compiler_isa.dict(by_alias=True), specs={})
+def compiler_isa_to_target_quantum_processor(compiler_isa: CompilerISA) -> TargetQuantumProcessor:
+    return TargetQuantumProcessor(isa=compiler_isa.dict(by_alias=True), specs={})
 
 
 class Supported1QGate:

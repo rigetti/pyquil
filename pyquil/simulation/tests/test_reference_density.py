@@ -5,7 +5,7 @@ import pytest
 import pyquil.simulation.matrices as qmats
 from pyquil import Program
 from pyquil.api import QuantumComputer, Client
-from pyquil.device import NxDevice
+from pyquil.quantum_processor import NxQuantumProcessor
 from pyquil.experiment import ExperimentSetting, Experiment, zeros_state
 from pyquil.gates import CNOT, H, I, MEASURE, PHASE, RX, RY, RZ, X
 from pyquil.operator_estimation import measure_observables
@@ -325,11 +325,11 @@ def test_for_negative_probabilities(client: Client):
     experiment_1q = Experiment(settings=expt_settings, program=prog)
 
     # make a quantum computer object
-    device = NxDevice(nx.complete_graph(1))
+    device = NxQuantumProcessor(nx.complete_graph(1))
     qc_density = QuantumComputer(
         name="testy!",
         qam=PyQVM(n_qubits=1, quantum_simulator_type=ReferenceDensitySimulator),
-        compiler=DummyCompiler(device=device, client=client),
+        compiler=DummyCompiler(quantum_processor=device, client=client),
     )
 
     # initialize with a pure state
@@ -363,11 +363,11 @@ def test_set_initial_state(client: Client):
     prog += MEASURE(0, ro[0])
 
     # make a quantum computer object
-    device = NxDevice(nx.complete_graph(1))
+    device = NxQuantumProcessor(nx.complete_graph(1))
     qc_density = QuantumComputer(
         name="testy!",
         qam=PyQVM(n_qubits=1, quantum_simulator_type=ReferenceDensitySimulator),
-        compiler=DummyCompiler(device=device, client=client),
+        compiler=DummyCompiler(quantum_processor=device, client=client),
     )
 
     qc_density.qam.wf_simulator.set_initial_state(rho1).reset()

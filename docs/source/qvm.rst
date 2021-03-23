@@ -3,7 +3,7 @@
 The Quantum Computer
 ====================
 
-PyQuil is used to build Quil (Quantum Instruction Language) programs and execute them on simulated or real quantum devices. Quil is an opinionated
+PyQuil is used to build Quil (Quantum Instruction Language) programs and execute them on simulated or real quantum processors. Quil is an opinionated
 quantum instruction language: its basic belief is that in the near term quantum computers will
 operate as coprocessors, working in concert with traditional CPUs. This means that Quil is designed to execute on
 a Quantum Abstract Machine (QAM) that has a shared classical/quantum architecture at its core.
@@ -213,12 +213,12 @@ At a high level, the :py:class:`~pyquil.api.QuantumComputer` wraps around our fa
     :py:class:`~pyquil.api.QVM` or :py:class:`~pyquil.api.QPU` object in pyQuil.
   - **A compiler** ``.compiler`` : this determines how we manipulate the Quil input to something more efficient when possible,
     and then into a form which our QAM can accept as input.
-  - **A device** ``.device`` : this specifies the topology and Instruction Set Architecture (ISA) of
-    the targeted device by listing the supported 1Q and 2Q gates.
+  - **A quantum processor** ``.quantum_processor`` : this specifies the topology and Instruction Set Architecture (ISA) of
+    the targeted processor by listing the supported 1Q and 2Q gates.
 
 When you instantiate a :py:class:`~pyquil.api.QuantumComputer` instance, these subcomponents will be compatible with
 each other. So, if you get a ``QPU`` implementation for the ``.qam``, you will have a ``QPUCompiler`` for the
-``.compiler``, and your ``.device`` will match the device used by the ``.compiler.``
+``.compiler``, and your ``.quantum_processor`` will match the processor used by the ``.compiler.``
 
 The :py:class:`~pyquil.api.QuantumComputer` instance makes methods available which are built on the above objects. If
 you need more fine grained controls for your work, you might try exploring what is offered by these objects.
@@ -227,7 +227,7 @@ For more information on each of the above, check out the following pages:
 
  - `Compiler API Reference <apidocs/compilers.html>`_
  - :ref:`Quil Compiler docs <compiler>`
- - `Device API Reference <apidocs/devices.html>`_
+ - `Quantum Processor API Reference <apidocs/quantum_processors.html>`_
  - :ref:`new_topology`
  - `Quantum abstract machine (QAM) API Reference <apidocs/qam.html>`_
  - `The Quil Whitepaper <https://arxiv.org/abs/1608.03355>`_ which describes the QAM
@@ -235,11 +235,11 @@ For more information on each of the above, check out the following pages:
 Instantiation
 -------------
 
-A decent amount of information needs to be provided to initialize the ``compiler``, ``device``, and ``qam`` attributes,
+A decent amount of information needs to be provided to initialize the ``compiler``, ``quantum_processor``, and ``qam`` attributes,
 much of which is already in your :ref:`config files <advanced_usage>` (or provided reasonable defaults when running locally).
 Typically, you will want a :py:class:`~pyquil.api.QuantumComputer` which either:
 
-  - pertains to a real, available QPU device
+  - pertains to a real, available QPU
   - is a QVM but mimics the topology of a QPU
   - is some generic QVM
 
@@ -255,7 +255,7 @@ All of this can be accomplished with :py:func:`~pyquil.api.get_qc`.
     from pyquil import get_qc
 
     # Get a QPU
-    qc = get_qc(QPU_LATTICE_NAME)  # QPU_LATTICE_NAME is just a string naming the device
+    qc = get_qc(QPU_LATTICE_NAME)  # QPU_LATTICE_NAME is just a string naming the quantum_processor
 
     # Get a QVM with the same topology as the QPU lattice
     qc = get_qc(QPU_LATTICE_NAME, as_qvm=True)
@@ -290,7 +290,7 @@ Now that you have your ``qc``, there's a lot you can do with it. Most users will
 
     qc = get_qc('9q-square-qvm')            # not general to any number of qubits, 9q-square-qvm is special
 
-    qubits = qc.qubits()                    # this information comes from qc.device
+    qubits = qc.qubits()                    # this information comes from qc.quantum_processor
     p = Program()
     # ... build program, potentially making use of the qubits list
 
@@ -385,17 +385,17 @@ for more details about declaring and accessing classical memory regions.
 
 .. _new_topology:
 
-Providing Your Own Device Topology
-----------------------------------
+Providing Your Own Quantum Processor Topology
+---------------------------------------------
 
-It is simple to provide your own device topology as long as you can give your qubits each a number,
+It is simple to provide your own quantum processor topology as long as you can give your qubits each a number,
 and specify which edges exist. Here is an example, using the topology of our 16Q chip (two octagons connected by a square):
 
 .. code:: python
 
     import networkx as nx
 
-    from pyquil.device import NxDevice
+    from pyquil.quantum_processor import NxQuantumProcessor
     from pyquil.noise import decoherence_noise_with_asymmetric_ro
 
     qubits = [0, 1, 2, 3, 4, 5, 6, 7, 10, 11, 12, 13, 14, 15, 16, 17]  # qubits are numbered by octagon
@@ -407,10 +407,10 @@ and specify which edges exist. Here is an example, using the topology of our 16Q
     topo = nx.from_edgelist(edges)
     # You would uncomment the next line if you have disconnected qubits
     # topo.add_nodes_from(qubits)
-    device = NxDevice(topo)
-    device.noise_model = decoherence_noise_with_asymmetric_ro(device.to_compiler_isa())  # Optional
+    quantum_processor = NxQuantumProcessor(topo)
+    quantum_processor.noise_model = decoherence_noise_with_asymmetric_ro(quantum_processor.to_compiler_isa())  # Optional
 
-Now that you have your device, you could set ``qc.device`` and ``qc.compiler.device`` to point to your new device,
+Now that you have your quantum processor, you could set ``qc.compiler.quantum_processor`` to point to your new quantum processor,
 or use it to make new objects.
 
 Simulating the QPU using the QVM
@@ -419,7 +419,7 @@ Simulating the QPU using the QVM
 The :py:class:`~pyquil.api.QAM` methods are intended to be used in the same way, whether a QVM or QPU is being targeted.
 Everywhere on this page,
 you can swap out the type of the QAM (QVM <=> QPU) and you will still
-get reasonable results back. As long as the topologies of the devices are the same, programs compiled and run on the QVM
+get reasonable results back. As long as the topologies of the quantum processors are the same, programs compiled and run on the QVM
 will be able to run on the QPU and vice versa. Since :py:class:`~pyquil.api.QuantumComputer` is built on the ``QAM``
 abstract class, its methods will also work for both QAM implementations.
 

@@ -1,17 +1,17 @@
 from qcs_api_client.models import InstructionSetArchitecture
 from qcs_api_client.operations.sync import get_instruction_set_architecture
 from pyquil.external.rpcq import CompilerISA
-from pyquil.device.transformers import qcs_isa_to_compiler_isa, qcs_isa_to_graph
-from pyquil.device import AbstractDevice
+from pyquil.quantum_processor.transformers import qcs_isa_to_compiler_isa, qcs_isa_to_graph
+from pyquil.quantum_processor import AbstractQuantumProcessor
 from pyquil.noise import NoiseModel
 from pyquil.api import Client
 import networkx as nx
 from typing import List, Optional
 
 
-class QCSDevice(AbstractDevice):
+class QCSQuantumProcessor(AbstractQuantumProcessor):
     """
-    An AbstractDevice initialized with an ``InstructionSetArchitecture`` returned
+    An AbstractQuantumProcessor initialized with an ``InstructionSetArchitecture`` returned
     from the QCS API. Notably, this class is able to serialize a ``CompilerISA`` based
     on the architecture instructions.
     """
@@ -27,11 +27,11 @@ class QCSDevice(AbstractDevice):
         noise_model: Optional[NoiseModel] = None,
     ):
         """
-        Initialize a new QCSDevice.
+        Initialize a new QCSQuantumProcessor.
 
         :param quantum_processor_id: The id of the quantum processor.
         :param isa: The QCS API ``InstructionSetArchitecture``.
-        :param noise_model: An optional ``NoiseModel`` for configuring a noisy device on the ``QVM``.
+        :param noise_model: An optional ``NoiseModel`` for configuring a noisy quantum_processor on the ``QVM``.
         """
 
         self.quantum_processor_id = quantum_processor_id
@@ -48,13 +48,13 @@ class QCSDevice(AbstractDevice):
         return qcs_isa_to_compiler_isa(self._isa)
 
     def __str__(self) -> str:
-        return "<QCSDevice {}>".format(self.quantum_processor_id)
+        return "<QCSQuantumProcessor {}>".format(self.quantum_processor_id)
 
     def __repr__(self) -> str:
         return str(self)
 
 
-def get_qcs_device(client: Client, quantum_processor_id: str) -> QCSDevice:
+def get_qcs_quantum_processor(client: Client, quantum_processor_id: str) -> QCSQuantumProcessor:
     isa = client.qcs_request(get_instruction_set_architecture, quantum_processor_id=quantum_processor_id)
 
-    return QCSDevice(quantum_processor_id=quantum_processor_id, isa=isa)
+    return QCSQuantumProcessor(quantum_processor_id=quantum_processor_id, isa=isa)
