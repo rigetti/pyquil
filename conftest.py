@@ -15,8 +15,8 @@ from pyquil.api import (
     BenchmarkConnection,
 )
 from pyquil.api._qvm import QVMVersionMismatch
-from pyquil.device import QCSDevice, CompilerDevice
-from pyquil.device.transformers.graph_to_compiler_isa import (
+from pyquil.quantum_processor import QCSQuantumProcessor, CompilerQuantumProcessor
+from pyquil.quantum_processor.transformers.graph_to_compiler_isa import (
     DEFAULT_1Q_GATES,
     DEFAULT_2Q_GATES,
     _transform_edge_operation_to_gates,
@@ -35,7 +35,7 @@ DIR_PATH = os.path.dirname(os.path.realpath(__file__))
 def compiler_isa() -> CompilerISA:
     """
     Configures an arbitrary ``CompilerISA`` that may be used to initialize
-    a ``CompilerDevice``. Developers should create specific test cases of
+    a ``CompilerQuantumProcessor``. Developers should create specific test cases of
     ``CompilerISA`` as separate fixtures in conftest.py or in the test file.
     """
     gates_1q = []
@@ -81,8 +81,8 @@ def compiler_isa() -> CompilerISA:
 
 
 @pytest.fixture()
-def compiler_device(compiler_isa: CompilerISA) -> CompilerDevice:
-    return CompilerDevice(isa=compiler_isa)
+def compiler_quantum_processor(compiler_isa: CompilerISA) -> CompilerQuantumProcessor:
+    return CompilerQuantumProcessor(isa=compiler_isa)
 
 
 @pytest.fixture
@@ -105,8 +105,8 @@ def qcs_aspen8_isa() -> InstructionSetArchitecture:
 
 
 @pytest.fixture
-def qcs_aspen8_device(qcs_aspen8_isa: InstructionSetArchitecture) -> QCSDevice:
-    return QCSDevice(quantum_processor_id="Aspen-8", isa=qcs_aspen8_isa)
+def qcs_aspen8_quantum_processor(qcs_aspen8_isa: InstructionSetArchitecture) -> QCSQuantumProcessor:
+    return QCSQuantumProcessor(quantum_processor_id="Aspen-8", isa=qcs_aspen8_isa)
 
 
 @pytest.fixture
@@ -145,16 +145,16 @@ def qvm(client: Client):
 
 
 @pytest.fixture()
-def compiler(compiler_device: CompilerDevice, client: Client):
-    compiler = QVMCompiler(device=compiler_device, client=client, timeout=1)
+def compiler(compiler_quantum_processor: CompilerQuantumProcessor, client: Client):
+    compiler = QVMCompiler(quantum_processor=compiler_quantum_processor, client=client, timeout=1)
     program = Program(I(0))
     compiler.quil_to_native_quil(program)
     return compiler
 
 
 @pytest.fixture()
-def dummy_compiler(qcs_aspen8_device: QCSDevice, client: Client):
-    return DummyCompiler(qcs_aspen8_device, client)
+def dummy_compiler(qcs_aspen8_quantum_processor: QCSQuantumProcessor, client: Client):
+    return DummyCompiler(qcs_aspen8_quantum_processor, client)
 
 
 @pytest.fixture(scope="session")

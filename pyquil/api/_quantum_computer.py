@@ -46,7 +46,12 @@ from pyquil.api._abstract_compiler import AbstractCompiler, QuantumExecutable
 from pyquil.api._qam import QAM
 from pyquil.api._qpu import QPU
 from pyquil.api._qvm import QVM
-from pyquil.device import AbstractDevice, QCSDevice, NxDevice, get_qcs_device
+from pyquil.quantum_processor import (
+    AbstractQuantumProcessor,
+    QCSQuantumProcessor,
+    NxQuantumProcessor,
+    get_qcs_quantum_processor,
+)
 from pyquil.experiment._main import Experiment
 from pyquil.experiment._memory import merge_memory_map_lists
 from pyquil.experiment._result import ExperimentResult, bitstrings_to_expectations
@@ -92,30 +97,37 @@ class QuantumComputer:
 
         self.symmetrize_readout = symmetrize_readout
 
+    @property
+    def quantum_processor(self) -> AbstractQuantumProcessor:
+        """
+        The quantum processor associated with this quantum computer.
+        """
+        return self.compiler.quantum_processor
+
     def qubits(self) -> List[int]:
         """
-        Return a sorted list of this QuantumComputer's device's qubits
+        Return a sorted list of this QuantumComputer's quantum_processor's qubits
 
-        See :py:func:`AbstractDevice.qubits` for more.
+        See :py:func:`AbstractQuantumProcessor.qubits` for more.
         """
-        return self.compiler.device.qubits()
+        return self.compiler.quantum_processor.qubits()
 
     def qubit_topology(self) -> nx.graph:
         """
-        Return a NetworkX graph representation of this QuantumComputer's device's qubit
+        Return a NetworkX graph representation of this QuantumComputer's quantum_processor's qubit
         connectivity.
 
-        See :py:func:`AbstractDevice.qubit_topology` for more.
+        See :py:func:`AbstractQuantumProcessor.qubit_topology` for more.
         """
-        return self.compiler.device.qubit_topology()
+        return self.compiler.quantum_processor.qubit_topology()
 
     def to_compiler_isa(self) -> CompilerISA:
         """
-        Return a ``CompilerISA`` for this QuantumComputer's device.
+        Return a ``CompilerISA`` for this QuantumComputer's quantum_processor.
 
-        See :py:func:`AbstractDevice.to_compiler_isa` for more.
+        See :py:func:`AbstractQuantumProcessor.to_compiler_isa` for more.
         """
-        return self.compiler.device.to_compiler_isa()
+        return self.compiler.quantum_processor.to_compiler_isa()
 
     @_record_call
     def run(
@@ -283,7 +295,7 @@ class QuantumComputer:
         symmetric readout error is useful in simplifying the assumptions in some near
         term error mitigation strategies, see ``measure_observables`` for more information.
 
-        The simplest example is for one qubit. In a noisy device, the probability of accurately
+        The simplest example is for one qubit. In a noisy quantum_processor, the probability of accurately
         reading the 0 state might be higher than that of the 1 state; due to e.g. amplitude
         damping. This makes correcting for readout more difficult. In the simplest case, this
         function runs the program normally ``(trials//2)`` times. The other half of the time,
@@ -580,13 +592,13 @@ def _get_qvm_or_pyqvm(
     client: Client,
     qvm_type: str,
     noise_model: Optional[NoiseModel] = None,
-    device: Optional[AbstractDevice] = None,
+    quantum_processor: Optional[AbstractQuantumProcessor] = None,
 ) -> Union[QVM, PyQVM]:
     if qvm_type == "qvm":
         return QVM(client=client, noise_model=noise_model)
     elif qvm_type == "pyqvm":
-        assert device is not None
-        return PyQVM(n_qubits=device.qubit_topology().number_of_nodes())
+        assert quantum_processor is not None
+        return PyQVM(n_qubits=quantum_processor.qubit_topology().number_of_nodes())
 
     raise ValueError("Unknown qvm type {}".format(qvm_type))
 
@@ -595,7 +607,7 @@ def _get_qvm_qc(
     client: Client,
     name: str,
     qvm_type: str,
-    device: AbstractDevice,
+    quantum_processor: AbstractQuantumProcessor,
     noise_model: Optional[NoiseModel] = None,
     compiler_timeout: float = 10,
 ) -> QuantumComputer:
@@ -606,7 +618,7 @@ def _get_qvm_qc(
     :param client: QCS client.
     :param name: A string identifying this particular quantum computer.
     :param qvm_type: The type of QVM. Either qvm or pyqvm.
-    :param device: A device following the AbstractDevice interface.
+    :param quantum_processor: A quantum_processor following the AbstractQuantumProcessor interface.
     :param noise_model: An optional noise model
     :return: A QuantumComputer backed by a QVM with the above options.
     """
@@ -617,9 +629,9 @@ def _get_qvm_qc(
             client=client,
             qvm_type=qvm_type,
             noise_model=noise_model,
-            device=device,
+            quantum_processor=quantum_processor,
         ),
-        compiler=QVMCompiler(device=device, client=client, timeout=compiler_timeout),
+        compiler=QVMCompiler(quantum_processor=quantum_processor, client=client, timeout=compiler_timeout),
     )
 
 
@@ -644,16 +656,18 @@ def _get_qvm_with_topology(
     :return: A pre-configured QuantumComputer
     """
     # Note to developers: consider making this function public and advertising it.
-    device = NxDevice(topology=topology)
+    quantum_processor = NxQuantumProcessor(topology=topology)
     if noisy:
-        noise_model: Optional[NoiseModel] = decoherence_noise_with_asymmetric_ro(isa=device.to_compiler_isa())
+        noise_model: Optional[NoiseModel] = decoherence_noise_with_asymmetric_ro(
+            isa=quantum_processor.to_compiler_isa()
+        )
     else:
         noise_model = None
     return _get_qvm_qc(
         client=client,
         name=name,
         qvm_type=qvm_type,
-        device=device,
+        quantum_processor=quantum_processor,
         noise_model=noise_model,
         compiler_timeout=compiler_timeout,
     )
@@ -669,7 +683,7 @@ def _get_9q_square_qvm(
     """
     A nine-qubit 3x3 square lattice.
 
-    This uses a "generic" lattice not tied to any specific device. 9 qubits is large enough
+    This uses a "generic" lattice not tied to any specific quantum_processor. 9 qubits is large enough
     to do vaguely interesting algorithms and small enough to simulate quickly.
 
     :param client: QCS client.
@@ -720,34 +734,34 @@ def _get_unrestricted_qvm(
     )
 
 
-def _get_qvm_based_on_real_device(
+def _get_qvm_based_on_real_quantum_processor(
     client: Client,
     name: str,
-    device: QCSDevice,
+    quantum_processor: QCSQuantumProcessor,
     noisy: bool,
     qvm_type: str = "qvm",
     compiler_timeout: float = 10,
 ) -> QuantumComputer:
     """
-    A qvm with a based on a real device.
+    A qvm with a based on a real quantum_processor.
 
     This is the most realistic QVM.
 
     :param client: QCS client.
     :param name: The full name of this QVM
-    :param device: The device from :py:func:`get_lattice`.
-    :param noisy: Whether to construct a noisy quantum computer by using the device's
+    :param quantum_processor: The quantum_processor from :py:func:`get_lattice`.
+    :param noisy: Whether to construct a noisy quantum computer by using the quantum_processor's
         associated noise model.
-    :return: A pre-configured QuantumComputer based on the named device.
+    :return: A pre-configured QuantumComputer based on the named quantum_processor.
     """
     if noisy:
-        noise_model = device.noise_model
+        noise_model = quantum_processor.noise_model
     else:
         noise_model = None
     return _get_qvm_qc(
         client=client,
         name=name,
-        device=device,
+        quantum_processor=quantum_processor,
         noise_model=noise_model,
         qvm_type=qvm_type,
         compiler_timeout=compiler_timeout,
@@ -776,7 +790,7 @@ def get_qc(
         >>> qc = get_qc("Aspen-1-16Q-A-noisy-qvm")
         >>> qc = get_qc("Aspen-1-16Q-A", as_qvm=True, noisy=True)
 
-    and will construct a simulator of an Aspen-1 lattice with a noise model based on device
+    and will construct a simulator of an Aspen-1 lattice with a noise model based on quantum_processor
     characteristics. We also provide a means for constructing generic quantum simulators that
     are not related to a given piece of Rigetti hardware::
 
@@ -824,7 +838,7 @@ def get_qc(
     :param noisy: An optional flag to force inclusion of a noise model. If
         specified and set to ``True``, a quantum computer with a noise model will be returned
         regardless of the name's suffix. The noise model for QVMs based on a real QPU
-        is an empirically parameterized model based on real device noise characteristics.
+        is an empirically parameterized model based on real quantum_processor noise characteristics.
         The generic QVM noise model is simple T1 and T2 noise plus readout error. See
         :py:func:`~pyquil.noise.decoherence_noise_with_asymmetric_ro`.
     :param client: Optional QCS client. If none is provided, a default client will be created.
@@ -845,7 +859,7 @@ def get_qc(
     if ma is not None:
         n_qubits = int(ma.group(1))
         if qvm_type is None:
-            raise ValueError("Please name a valid device or run as a QVM")
+            raise ValueError("Please name a valid quantum_processor or run as a QVM")
         return _get_unrestricted_qvm(
             client=client,
             name=name,
@@ -861,7 +875,7 @@ def get_qc(
             warnings.warn("Please prefer '9q-square' instead of '9q-generic'", DeprecationWarning)
 
         if qvm_type is None:
-            raise ValueError("The device '9q-square' is only available as a QVM")
+            raise ValueError("The quantum_processor '9q-square' is only available as a QVM")
         return _get_9q_square_qvm(
             client=client,
             name=name,
@@ -870,30 +884,30 @@ def get_qc(
             compiler_timeout=compiler_timeout,
         )
 
-    # 4. Not a special case, query the web for information about this device.
-    device = get_qcs_device(client, prefix)
+    # 4. Not a special case, query the web for information about this quantum_processor.
+    quantum_processor = get_qcs_quantum_processor(client, prefix)
     if qvm_type is not None:
-        # 4.1 QVM based on a real device.
-        return _get_qvm_based_on_real_device(
+        # 4.1 QVM based on a real quantum_processor.
+        return _get_qvm_based_on_real_quantum_processor(
             client=client,
             name=name,
-            device=device,
+            quantum_processor=quantum_processor,
             noisy=noisy,
             qvm_type=qvm_type,
             compiler_timeout=compiler_timeout,
         )
     else:
-        # 4.2 A real device
+        # 4.2 A real quantum_processor
         if noisy is not None and noisy:
             warnings.warn(
                 "You have specified `noisy=True`, but you're getting a QPU. This flag "
                 "is meant for controlling noise models on QVMs."
             )
 
-        qpu = QPU(quantum_processor_id=device.quantum_processor_id, client=client)
+        qpu = QPU(quantum_processor_id=quantum_processor.quantum_processor_id, client=client)
         compiler = QPUCompiler(
             quantum_processor_id=prefix,
-            device=device,
+            quantum_processor=quantum_processor,
             client=client,
             timeout=compiler_timeout,
         )
