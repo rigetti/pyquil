@@ -14,7 +14,7 @@ readme = ""
 setup(
     long_description=readme,
     name="pyquil",
-    version="3.0.0-rc.3",
+    version="3.0.0-rc.4",
     python_requires="==3.*,>=3.7.0",
     packages=[
         "pyquil",
@@ -46,7 +46,7 @@ setup(
         "ipython==7.*,>=7.21.0",
         "lark==0.*,>=0.11.1",
         "networkx==2.*,>=2.5.0",
-        "numpy==1.19.*",
+        "numpy==1.*,>=1.20.0",
         "qcs-api-client==0.*,>=0.7.0",
         "rpcq==3.*,>=3.6.0",
         "scipy==1.*,>=1.6.1",
