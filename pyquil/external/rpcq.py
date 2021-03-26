@@ -18,7 +18,7 @@ class MeasureInfo(Operator):
 
 class GateInfo(Operator):
     parameters: List[Union[float, str]] = Field(default_factory=list)
-    arguments: List[Union[float, str]] = Field(default_factory=list)
+    arguments: List[Union[int, str]] = Field(default_factory=list)
     operator_type: Literal["gate"] = "gate"
 
 
