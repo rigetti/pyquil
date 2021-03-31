@@ -14,7 +14,7 @@ readme = ""
 setup(
     long_description=readme,
     name="pyquil",
-    version="3.0.0-rc.6",
+    version="3.0.0-rc.7",
     python_requires="==3.*,>=3.7.0",
     packages=[
         "pyquil",
