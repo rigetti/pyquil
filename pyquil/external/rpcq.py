@@ -31,7 +31,7 @@ class Qubit(BaseModel):
         exclude = kwargs.get("exclude") or set()
         if not self.dead:
             exclude.add("dead")
-        kwargs["exclude"] = {"dead"}
+        kwargs["exclude"] = exclude
         return super().dict(**kwargs)
 
 
@@ -44,7 +44,7 @@ class Edge(BaseModel):
         exclude = kwargs.get("exclude") or set()
         if not self.dead:
             exclude.add("dead")
-        kwargs["exclude"] = {"dead"}
+        kwargs["exclude"] = exclude
         return super().dict(**kwargs)
 
 
