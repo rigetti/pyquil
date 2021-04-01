@@ -17,22 +17,23 @@ import sys
 from abc import ABC, abstractmethod
 from typing import Any, Dict, List, Optional, Sequence, Union
 
+from qcs_api_client.client import QCSClientConfiguration
 from rpcq.messages import (
-    NativeQuilRequest,
     ParameterSpec,
     ParameterAref,
+    NativeQuilMetadata,
 )
 
-from pyquil.external.rpcq import compiler_isa_to_target_quantum_processor
-from pyquil.api import Client
+from pyquil._version import pyquil_version
+from pyquil.api._compiler_client import CompilerClient, CompileToNativeQuilRequest
 from pyquil.api._error_reporting import _record_call
-from pyquil.quantum_processor import AbstractQuantumProcessor
+from pyquil.external.rpcq import compiler_isa_to_target_quantum_processor
 from pyquil.parser import parse_program
 from pyquil.paulis import PauliTerm
+from pyquil.quantum_processor import AbstractQuantumProcessor
 from pyquil.quil import Program
 from pyquil.quilatom import MemoryReference, ExpressionDesignator
 from pyquil.quilbase import Gate
-from pyquil._version import pyquil_version
 
 if sys.version_info < (3, 7):
     from rpcq.external.dataclasses import dataclass
@@ -73,19 +74,18 @@ QuantumExecutable = Union[EncryptedProgram, Program]
 class AbstractCompiler(ABC):
     """The abstract interface for a compiler."""
 
-    quantum_processor: AbstractQuantumProcessor
-    _client: Client
-    _timeout: float
-
     def __init__(
-        self, *, quantum_processor: AbstractQuantumProcessor, client: Optional[Client], timeout: float
+        self,
+        *,
+        quantum_processor: AbstractQuantumProcessor,
+        timeout: float,
+        client_configuration: Optional[QCSClientConfiguration],
     ) -> None:
         self.quantum_processor = quantum_processor
-        self._client = client or Client()
-
-        if not self._client.quilc_url.startswith("tcp://"):
-            raise ValueError(f"Expected compiler URL '{self._client.quilc_url}' to start with 'tcp://'")
         self.set_timeout(timeout)
+
+        self._client_configuration = client_configuration or QCSClientConfiguration.load()
+        self._compiler_client = CompilerClient(client_configuration=self._client_configuration, request_timeout=timeout)
 
     def get_version_info(self) -> Dict[str, Any]:
         """
@@ -93,11 +93,7 @@ class AbstractCompiler(ABC):
 
         :return: Dictionary of version information.
         """
-        quilc_version_info = self._client.compiler_rpcq_request(
-            "get_version_info",
-            timeout=self._timeout,
-        )
-        return {"quilc": quilc_version_info}
+        return {"quilc": self._compiler_client.get_version()}
 
     @_record_call
     def quil_to_native_quil(self, program: Program, *, protoquil: Optional[bool] = None) -> Program:
@@ -110,29 +106,38 @@ class AbstractCompiler(ABC):
         """
         self._connect()
         compiler_isa = self.quantum_processor.to_compiler_isa()
-        request = NativeQuilRequest(
-            quil=program.out(calibrations=False),
-            target_device=compiler_isa_to_target_quantum_processor(compiler_isa),
-        )
-        response = self._client.compiler_rpcq_request(
-            "quil_to_native_quil",
-            request,
+        request = CompileToNativeQuilRequest(
+            program=program.out(calibrations=False),
+            target_quantum_processor=compiler_isa_to_target_quantum_processor(compiler_isa),
             protoquil=protoquil,
-            timeout=self._timeout,
-        ).asdict()
-        nq_program = parse_program(response["quil"])
-        nq_program.native_quil_metadata = response["metadata"]
+        )
+        response = self._compiler_client.compile_to_native_quil(request)
+
+        nq_program = parse_program(response.native_program)
+        nq_program.native_quil_metadata = (
+            None
+            if response.metadata is None
+            else NativeQuilMetadata(
+                final_rewiring=response.metadata.final_rewiring,
+                gate_depth=response.metadata.gate_depth,
+                gate_volume=response.metadata.gate_volume,
+                multiqubit_gate_depth=response.metadata.multiqubit_gate_depth,
+                program_duration=response.metadata.program_duration,
+                program_fidelity=response.metadata.program_fidelity,
+                topological_swaps=response.metadata.topological_swaps,
+                qpu_runtime_estimation=response.metadata.qpu_runtime_estimation,
+            )
+        )
         nq_program.num_shots = program.num_shots
         nq_program._calibrations = program.calibrations
         return nq_program
 
     def _connect(self) -> None:
         try:
-            quilc_version_dict = self._client.compiler_rpcq_request("get_version_info", timeout=self._timeout)
-            _check_quilc_version(quilc_version_dict)
+            _check_quilc_version(self._compiler_client.get_version())
         except TimeoutError:
             raise QuilcNotRunning(
-                f"Request to quilc at {self._client.quilc_url} timed out. "
+                f"Request to quilc at {self._compiler_client.base_url} timed out. "
                 "This could mean that quilc is not running, is not reachable, or is "
                 "responding slowly."
             )
@@ -161,23 +166,21 @@ class AbstractCompiler(ABC):
     @_record_call
     def reset(self) -> None:
         """
-        Reset the state of the this compiler client.
+        Reset the state of the this compiler.
         """
-        self._client.reset()
+        pass
 
 
-def _check_quilc_version(version_dict: Dict[str, str]) -> None:
+def _check_quilc_version(version: str) -> None:
     """
     Verify that there is no mismatch between pyquil and quilc versions.
 
-    :param version_dict: Dictionary containing version information about quilc.
+    :param version: quilc version.
     """
-    quilc_version = version_dict["quilc"]
-    major, minor, patch = map(int, quilc_version.split("."))
+    major, minor, patch = map(int, version.split("."))
     if major == 1 and minor < 8:
         raise QuilcVersionMismatch(
-            "Must use quilc >= 1.8.0 with pyquil >= 2.8.0, but you "
-            f"have quilc {quilc_version} and pyquil {pyquil_version}"
+            "Must use quilc >= 1.8.0 with pyquil >= 2.8.0, but you " f"have quilc {version} and pyquil {pyquil_version}"
         )
 
 

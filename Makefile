@@ -49,7 +49,7 @@ docker: Dockerfile
 
 .PHONY: format
 format:
-	black pyquil
+	black $(if $(format_file), $(format_file), pyquil)
 
 .PHONY: info
 info:

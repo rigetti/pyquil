@@ -1,20 +1,10 @@
 name: 'Commit Message Check'
 on:
-  pull_request:
-    types:
-      - opened
-      - edited
-      - reopened
-      - synchronize
-  pull_request_target:
-    types:
-      - opened
-      - edited
-      - reopened
-      - synchronize
   push:
-    branches:
-      - '*'
+    branches: [ master, rc ]
+  pull_request:
+    branches: [ master, rc ]
+  workflow_dispatch:
 
 jobs:
   check-commit-message:
@@ -27,5 +17,7 @@ jobs:
           pattern: '^(Breaking|Update|Fix|New|Upgrade|No code):'
           flags: ''
           error: 'Your commit message should start with a valid semantic release verb as defined in package.json. You may also prepend "No code:" to indicate the commit does not contain changes to the released code.'
-          checkAllCommitMessages: 'true'
+          checkAllCommitMessages: true
+          excludeDescription: true
+          excludeTitle: true
           accessToken: ${{ secrets.GITHUB_TOKEN }} # github access token is only required if checkAllCommitMessages is true

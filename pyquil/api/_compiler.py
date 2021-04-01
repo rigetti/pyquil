@@ -14,10 +14,11 @@
 #    limitations under the License.
 ##############################################################################
 import logging
-from typing import Dict, Optional, cast, List
+from contextlib import contextmanager
+from typing import Dict, Optional, cast, List, Iterator
 
-from qcs_api_client.models import TranslateNativeQuilToEncryptedBinaryResponse
-from qcs_api_client.models.get_quilt_calibrations_response import GetQuiltCalibrationsResponse
+import httpx
+from qcs_api_client.client import QCSClientConfiguration
 from qcs_api_client.models.translate_native_quil_to_encrypted_binary_request import (
     TranslateNativeQuilToEncryptedBinaryRequest,
 )
@@ -28,19 +29,17 @@ from qcs_api_client.operations.sync import (
 from qcs_api_client.types import UNSET
 from rpcq.messages import ParameterSpec
 
-from pyquil.api import Client
-from pyquil.api._error_reporting import _record_call
 from pyquil.api._abstract_compiler import AbstractCompiler, QuantumExecutable, EncryptedProgram
+from pyquil.api._error_reporting import _record_call
+from pyquil.api._qcs_client import qcs_client
 from pyquil.api._rewrite_arithmetic import rewrite_arithmetic
-from pyquil.quantum_processor import AbstractQuantumProcessor
 from pyquil.parser import parse_program, parse
+from pyquil.quantum_processor import AbstractQuantumProcessor
 from pyquil.quil import Program
 from pyquil.quilatom import MemoryReference, ExpressionDesignator
 from pyquil.quilbase import Declare, Gate
 
 _log = logging.getLogger(__name__)
-
-PYQUIL_PROGRAM_PROPERTIES = ["native_quil_metadata", "num_shots"]
 
 
 class QPUCompilerNotRunning(Exception):
@@ -78,45 +77,45 @@ class QPUCompiler(AbstractCompiler):
     Client to communicate with the compiler and translation service.
     """
 
-    quantum_processor_id: str
-    _calibration_program: Optional[Program] = None
-
     @_record_call
     def __init__(
         self,
         *,
         quantum_processor_id: str,
         quantum_processor: AbstractQuantumProcessor,
-        client: Optional[Client] = None,
-        timeout: float = 10,
+        timeout: float = 5.0,
+        client_configuration: Optional[QCSClientConfiguration] = None,
     ) -> None:
         """
         Instantiate a new QPU compiler client.
 
         :param quantum_processor_id: Processor to target.
         :param quantum_processor: Quantum processor to use as compilation target.
-        :param client: Optional QCS client. If none is provided, a default client will be created.
-        :param timeout: Number of seconds to wait for a response from the client.
+        :param timeout: Time limit for requests, in seconds.
+        :param client_configuration: Optional client configuration. If none is provided, a default one will be loaded.
         """
-        super().__init__(quantum_processor=quantum_processor, client=client, timeout=timeout)
+        super().__init__(
+            quantum_processor=quantum_processor,
+            timeout=timeout,
+            client_configuration=client_configuration,
+        )
+
         self.quantum_processor_id = quantum_processor_id
+        self._calibration_program: Optional[Program] = None
 
     @_record_call
     def native_quil_to_executable(self, nq_program: Program) -> QuantumExecutable:
         arithmetic_response = rewrite_arithmetic(nq_program)
+
         request = TranslateNativeQuilToEncryptedBinaryRequest(
             quil=arithmetic_response.quil, num_shots=nq_program.num_shots
         )
-
-        # TODO(andrew): timeout?
-        response = cast(
-            TranslateNativeQuilToEncryptedBinaryResponse,
-            self._client.qcs_request(
-                translate_native_quil_to_encrypted_binary,
+        with self._qcs_client() as qcs_client:  # type: httpx.Client
+            response = translate_native_quil_to_encrypted_binary(
+                client=qcs_client,
                 quantum_processor_id=self.quantum_processor_id,
                 json_body=request,
-            ),
-        )
+            ).parsed
 
         ro_sources = cast(List[List[str]], [] if response.ro_sources == UNSET else response.ro_sources)
 
@@ -136,10 +135,8 @@ class QPUCompiler(AbstractCompiler):
         )
 
     def _get_calibration_program(self) -> Program:
-        response = cast(
-            GetQuiltCalibrationsResponse,
-            self._client.qcs_request(get_quilt_calibrations, quantum_processor_id=self.quantum_processor_id),
-        )
+        with self._qcs_client() as qcs_client:  # type: httpx.Client
+            response = get_quilt_calibrations(client=qcs_client, quantum_processor_id=self.quantum_processor_id).parsed
         return parse_program(response.quilt)
 
     @property  # type: ignore
@@ -170,6 +167,13 @@ class QPUCompiler(AbstractCompiler):
         super().reset()
         self._calibration_program = None
 
+    @contextmanager
+    def _qcs_client(self) -> Iterator[httpx.Client]:
+        with qcs_client(
+            client_configuration=self._client_configuration, request_timeout=self._timeout
+        ) as client:  # type: httpx.Client
+            yield client
+
 
 class QVMCompiler(AbstractCompiler):
     """
@@ -178,16 +182,24 @@ class QVMCompiler(AbstractCompiler):
 
     @_record_call
     def __init__(
-        self, *, quantum_processor: AbstractQuantumProcessor, client: Optional[Client] = None, timeout: float = 10
+        self,
+        *,
+        quantum_processor: AbstractQuantumProcessor,
+        timeout: float = 5.0,
+        client_configuration: Optional[QCSClientConfiguration] = None,
     ) -> None:
         """
         Client to communicate with compiler.
 
         :param quantum_processor: Quantum processor to use as compilation target.
-        :param client: Optional QCS client. If none is provided, a default client will be created.
         :param timeout: Number of seconds to wait for a response from the client.
+        :param client_configuration: Optional client configuration. If none is provided, a default one will be loaded.
         """
-        super().__init__(quantum_processor=quantum_processor, client=client, timeout=timeout)
+        super().__init__(
+            quantum_processor=quantum_processor,
+            timeout=timeout,
+            client_configuration=client_configuration,
+        )
 
     @_record_call
     def native_quil_to_executable(self, nq_program: Program) -> QuantumExecutable:

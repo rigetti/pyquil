@@ -11,15 +11,18 @@ Changelog
 
 - `pyquil.version.__version__` has been moved to `pyquil.__version__`.
 
-- `PyquilConfig` has been replaced by `QCSClientConfiguration`. As a result, the only supported configuration-related
+- `PyquilConfig` has been replaced by `api.QCSClientConfiguration`. As a result, the only supported configuration-related
    environment variables are:
     - `QCS_SETTINGS_APPLICATIONS_PYQUIL_QVM_URL` (replaces `QVM_URL`), and
     - `QCS_SETTINGS_APPLICATIONS_PYQUIL_QUILC_URL` (replaces `QUILC_URL`)
 
-- `ForestConnection` and `ForestSession` have been replaced by `api.Client`.
+- `ForestConnection` and `ForestSession` have been removed. Connection information is now managed via `api.QCSClientConfiguration`
+  and `api.EngagementManager`.
   
 - `QVMCompiler` now produces a `Program` instead of a `PyQuilExecutableResponse`. As a result, `QVM.load()` always
   only accepts a `Program`, and `QVM.requires_executable` has been removed.
+  
+- `QPU.get_version_info()` has been removed.
   
 - `get_benchmarker()` has been removed in favor of calling `BenchmarkConnection` constructor directly.
 

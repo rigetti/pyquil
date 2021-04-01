@@ -21,12 +21,13 @@ import warnings
 from typing import Any
 
 __all__ = [
+    "QCSClientConfiguration",
     "QVMConnection",
     "QuantumExecutable",
     "EncryptedProgram",
     "QVMCompiler",
     "QPUCompiler",
-    "Client",
+    "EngagementManager",
     "QCSQuantumProcessor",
     "pyquil_protect",
     "WavefunctionSimulator",
@@ -41,9 +42,11 @@ __all__ = [
     "BenchmarkConnection",
 ]
 
-from pyquil.api._client import Client
+from qcs_api_client.client import QCSClientConfiguration
+
 from pyquil.api._benchmark import BenchmarkConnection
 from pyquil.api._compiler import QVMCompiler, QPUCompiler, QuantumExecutable, EncryptedProgram
+from pyquil.api._engagement_manager import EngagementManager
 from pyquil.api._error_reporting import pyquil_protect
 from pyquil.api._qam import QAM
 from pyquil.api._qpu import QPU

@@ -1,15 +1,53 @@
+import asyncio
 import os
+import signal
+import time
+from socket import socket
+from contextlib import contextmanager
+from multiprocessing import Process
 
-from pyquil.api import Client
-from pyquil.quantum_processor import AbstractQuantumProcessor
-from pyquil.parser import parse
-from pyquil.api._abstract_compiler import AbstractCompiler
+import rpcq
+from qcs_api_client.client import QCSClientConfiguration
+
 from pyquil import Program
+from pyquil.api._abstract_compiler import AbstractCompiler
+from pyquil.parser import parse
+from pyquil.quantum_processor import AbstractQuantumProcessor
 
 
-def api_fixture_path(path: str) -> str:
-    dir_path = os.path.dirname(os.path.realpath(__file__))
-    return os.path.join(dir_path, "../api/tests/data", path)
+@contextmanager
+def run_rpcq_server(server: rpcq.Server, port: int):
+    def run_server():
+        server.run(endpoint=f"tcp://*:{port}", loop=asyncio.new_event_loop())
+
+    def check_server():
+        connected = False
+        tries = 0
+        exception = None
+
+        while not connected and tries < 2:
+            s = socket()
+            try:
+                s.connect(("localhost", port))
+                connected = True
+            except Exception as ex:
+                exception = ex
+                time.sleep(0.25)
+            finally:
+                s.close()
+
+            tries += 1
+
+        if not connected:
+            raise Exception(f"Unable to connect to test rpcq server on port {port}: {exception}")
+
+    proc = Process(target=run_server)
+    try:
+        proc.start()
+        check_server()
+        yield
+    finally:
+        os.kill(proc.pid, signal.SIGINT)
 
 
 def parse_equals(quil_string, *instructions):
@@ -19,8 +57,8 @@ def parse_equals(quil_string, *instructions):
 
 
 class DummyCompiler(AbstractCompiler):
-    def __init__(self, quantum_processor: AbstractQuantumProcessor, client: Client):
-        super().__init__(quantum_processor=quantum_processor, client=client, timeout=10)  # type: ignore
+    def __init__(self, quantum_processor: AbstractQuantumProcessor, client_configuration: QCSClientConfiguration):
+        super().__init__(quantum_processor=quantum_processor, timeout=10, client_configuration=client_configuration)
 
     def get_version_info(self):
         return {}

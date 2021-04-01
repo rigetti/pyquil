@@ -7,7 +7,7 @@ import pytest
 from rpcq.messages import ParameterAref
 
 from pyquil import Program, get_qc, list_quantum_computers
-from pyquil.api import QVM, QuantumComputer, Client
+from pyquil.api import QVM, QuantumComputer
 from pyquil.api._quantum_computer import (
     _symmetrization,
     _flip_array_to_prog,
@@ -20,10 +20,11 @@ from pyquil.api._quantum_computer import (
     _consolidate_symmetrization_outputs,
     _check_min_num_trials_for_symmetrized_readout,
 )
-from pyquil.quantum_processor import NxQuantumProcessor
+from pyquil.api import QCSClientConfiguration
 from pyquil.gates import CNOT, H, I, MEASURE, RX, X
 from pyquil.noise import decoherence_noise_with_asymmetric_ro
 from pyquil.pyqvm import PyQVM
+from pyquil.quantum_processor import NxQuantumProcessor
 from pyquil.quilbase import Declare, MemoryReference
 from pyquil.tests.utils import DummyCompiler
 
@@ -133,13 +134,13 @@ def test_construct_strength_two_orthogonal_array():
     assert np.allclose(_construct_strength_two_orthogonal_array(3), answer)
 
 
-def test_measure_bitstrings(client: Client):
+def test_measure_bitstrings(client_configuration: QCSClientConfiguration):
     quantum_processor = NxQuantumProcessor(nx.complete_graph(2))
-    dummy_compiler = DummyCompiler(quantum_processor=quantum_processor, client=client)
+    dummy_compiler = DummyCompiler(quantum_processor=quantum_processor, client_configuration=client_configuration)
     qc_pyqvm = QuantumComputer(name="testy!", qam=PyQVM(n_qubits=2), compiler=dummy_compiler)
     qc_forest = QuantumComputer(
         name="testy!",
-        qam=QVM(client=client, gate_noise=(0.00, 0.00, 0.00)),
+        qam=QVM(client_configuration=client_configuration, gate_noise=(0.00, 0.00, 0.00)),
         compiler=dummy_compiler,
     )
     prog = Program(I(0), I(1))
@@ -176,12 +177,14 @@ def test_check_min_num_trials_for_symmetrized_readout():
         _check_min_num_trials_for_symmetrized_readout(num_qubits=2, trials=-2, symm_type=4)
 
 
-def test_quantum_processor_stuff(client: Client):
+def test_quantum_processor_stuff(client_configuration: QCSClientConfiguration):
     topo = nx.from_edgelist([(0, 4), (0, 99)])
     qc = QuantumComputer(
         name="testy!",
         qam=None,  # not necessary for this test
-        compiler=DummyCompiler(quantum_processor=NxQuantumProcessor(topo, gates_2q=["CPHASE"]), client=client),
+        compiler=DummyCompiler(
+            quantum_processor=NxQuantumProcessor(topo, gates_2q=["CPHASE"]), client_configuration=client_configuration
+        ),
     )
     assert nx.is_isomorphic(qc.qubit_topology(), topo)
 
@@ -194,12 +197,12 @@ def test_quantum_processor_stuff(client: Client):
 # We sometimes narrowly miss the np.mean(parity) < 0.15 assertion, below. Alternatively, that upper
 # bound could be relaxed.
 @pytest.mark.flaky(reruns=1)
-def test_run(client: Client):
+def test_run(client_configuration: QCSClientConfiguration):
     quantum_processor = NxQuantumProcessor(nx.complete_graph(3))
     qc = QuantumComputer(
         name="testy!",
-        qam=QVM(client=client, gate_noise=(0.01, 0.01, 0.01)),
-        compiler=DummyCompiler(quantum_processor=quantum_processor, client=client),
+        qam=QVM(client_configuration=client_configuration, gate_noise=(0.01, 0.01, 0.01)),
+        compiler=DummyCompiler(quantum_processor=quantum_processor, client_configuration=client_configuration),
     )
     bitstrings = qc.run(
         Program(
@@ -218,10 +221,12 @@ def test_run(client: Client):
     assert 0 < np.mean(parity) < 0.15
 
 
-def test_run_pyqvm_noiseless(client: Client):
+def test_run_pyqvm_noiseless(client_configuration: QCSClientConfiguration):
     quantum_processor = NxQuantumProcessor(nx.complete_graph(3))
     qc = QuantumComputer(
-        name="testy!", qam=PyQVM(n_qubits=3), compiler=DummyCompiler(quantum_processor=quantum_processor, client=client)
+        name="testy!",
+        qam=PyQVM(n_qubits=3),
+        compiler=DummyCompiler(quantum_processor=quantum_processor, client_configuration=client_configuration),
     )
     prog = Program(H(0), CNOT(0, 1), CNOT(1, 2))
     ro = prog.declare("ro", "BIT", 3)
@@ -234,12 +239,12 @@ def test_run_pyqvm_noiseless(client: Client):
     assert np.mean(parity) == 0
 
 
-def test_run_pyqvm_noisy(client: Client):
+def test_run_pyqvm_noisy(client_configuration: QCSClientConfiguration):
     quantum_processor = NxQuantumProcessor(nx.complete_graph(3))
     qc = QuantumComputer(
         name="testy!",
         qam=PyQVM(n_qubits=3, post_gate_noise_probabilities={"relaxation": 0.01}),
-        compiler=DummyCompiler(quantum_processor=quantum_processor, client=client),
+        compiler=DummyCompiler(quantum_processor=quantum_processor, client_configuration=client_configuration),
     )
     prog = Program(H(0), CNOT(0, 1), CNOT(1, 2))
     ro = prog.declare("ro", "BIT", 3)
@@ -252,13 +257,13 @@ def test_run_pyqvm_noisy(client: Client):
     assert 0 < np.mean(parity) < 0.15
 
 
-def test_readout_symmetrization(client: Client):
+def test_readout_symmetrization(client_configuration: QCSClientConfiguration):
     quantum_processor = NxQuantumProcessor(nx.complete_graph(3))
     noise_model = decoherence_noise_with_asymmetric_ro(quantum_processor.to_compiler_isa())
     qc = QuantumComputer(
         name="testy!",
-        qam=QVM(client=client, noise_model=noise_model),
-        compiler=DummyCompiler(quantum_processor=quantum_processor, client=client),
+        qam=QVM(client_configuration=client_configuration, noise_model=noise_model),
+        compiler=DummyCompiler(quantum_processor=quantum_processor, client_configuration=client_configuration),
     )
 
     prog = Program(I(0), X(1), MEASURE(0, MemoryReference("ro", 0)), MEASURE(1, MemoryReference("ro", 1)))
@@ -278,10 +283,10 @@ def test_readout_symmetrization(client: Client):
 
 
 @pytest.mark.slow
-def test_run_symmetrized_readout_error(client: Client):
+def test_run_symmetrized_readout_error(client_configuration: QCSClientConfiguration):
     # This test checks if the function runs for any possible input on a small number of qubits.
     # Locally this test was run on all 8 qubits, but it was slow.
-    qc = get_qc("8q-qvm", client=client)
+    qc = get_qc("8q-qvm", client_configuration=client_configuration)
     sym_type_vec = [-1, 0, 1, 2, 3]
     prog_vec = [Program(I(x) for x in range(0, 3))[0:n] for n in range(0, 4)]
     trials_vec = list(range(0, 5))
@@ -397,8 +402,8 @@ def test_parse_qc_pyqvm():
     assert not noisy
 
 
-def test_qc(client):
-    qc = get_qc("9q-square-noisy-qvm", client=client)
+def test_qc(client_configuration: QCSClientConfiguration):
+    qc = get_qc("9q-square-noisy-qvm", client_configuration=client_configuration)
     assert isinstance(qc, QuantumComputer)
     assert isinstance(qc.qam, QVM)
     assert qc.qam.noise_model is not None
@@ -408,46 +413,46 @@ def test_qc(client):
     assert str(qc) == "9q-square-noisy-qvm"
 
 
-def test_qc_run(client):
-    qc = get_qc("9q-square-noisy-qvm", client=client)
+def test_qc_run(client_configuration: QCSClientConfiguration):
+    qc = get_qc("9q-square-noisy-qvm", client_configuration=client_configuration)
     bs = qc.run_and_measure(Program(X(0)), trials=3)
     assert len(bs) == 9
     for _, bits in bs.items():
         assert bits.shape == (3,)
 
 
-def test_nq_qvm_qc(client):
+def test_nq_qvm_qc(client_configuration: QCSClientConfiguration):
     for n_qubits in [2, 4, 7, 19]:
-        qc = get_qc(f"{n_qubits}q-qvm", client=client)
+        qc = get_qc(f"{n_qubits}q-qvm", client_configuration=client_configuration)
         for q1, q2 in itertools.permutations(range(n_qubits), r=2):
             assert (q1, q2) in qc.qubit_topology().edges
         assert qc.name == f"{n_qubits}q-qvm"
 
 
-def test_qc_noisy(client):
-    qc = get_qc("5q", as_qvm=True, noisy=True, client=client)
+def test_qc_noisy(client_configuration: QCSClientConfiguration):
+    qc = get_qc("5q", as_qvm=True, noisy=True, client_configuration=client_configuration)
     assert isinstance(qc, QuantumComputer)
 
 
-def test_qc_compile(dummy_compiler: DummyCompiler, client):
-    qc = get_qc("5q", as_qvm=True, noisy=True, client=client)
+def test_qc_compile(dummy_compiler: DummyCompiler, client_configuration: QCSClientConfiguration):
+    qc = get_qc("5q", as_qvm=True, noisy=True, client_configuration=client_configuration)
     qc.compiler = dummy_compiler
     prog = Program()
     prog += H(0)
     assert qc.compile(prog) == prog
 
 
-def test_qc_error(client):
+def test_qc_error(client_configuration: QCSClientConfiguration):
     # QVM is not a QPU
     with pytest.raises(ValueError):
-        get_qc("9q-square-noisy-qvm", as_qvm=False, client=client)
+        get_qc("9q-square-noisy-qvm", as_qvm=False, client_configuration=client_configuration)
 
     with pytest.raises(ValueError):
-        get_qc("5q", as_qvm=False, client=client)
+        get_qc("5q", as_qvm=False, client_configuration=client_configuration)
 
 
-def test_run_and_measure(client):
-    qc = get_qc("9q-square-qvm", client=client)
+def test_run_and_measure(client_configuration: QCSClientConfiguration):
+    qc = get_qc("9q-square-qvm", client_configuration=client_configuration)
     prog = Program(I(8))
     trials = 11
     # note to devs: this is included as an example in the run_and_measure docstrings
@@ -457,9 +462,9 @@ def test_run_and_measure(client):
     assert bitstring_array.shape == (trials, len(qc.qubits()))
 
 
-def test_run_and_measure_noiseless_qvm(client):
+def test_run_and_measure_noiseless_qvm(client_configuration: QCSClientConfiguration):
     """ Test that run_and_measure works as expected on a noiseless QVM. """
-    qc = get_qc("9q-square-qvm", client=client)
+    qc = get_qc("9q-square-qvm", client_configuration=client_configuration)
     prog = Program(X(0))
     trials = 1
     bitstrings = qc.run_and_measure(prog, trials)
@@ -473,12 +478,12 @@ def test_run_and_measure_noiseless_qvm(client):
     assert all(bitstring_array[0][1:] == np.zeros(len(qc.qubits()) - 1))
 
 
-def test_run_with_parameters(client: Client):
+def test_run_with_parameters(client_configuration: QCSClientConfiguration):
     quantum_processor = NxQuantumProcessor(nx.complete_graph(3))
     qc = QuantumComputer(
         name="testy!",
-        qam=QVM(client=client),
-        compiler=DummyCompiler(quantum_processor=quantum_processor, client=client),
+        qam=QVM(client_configuration=client_configuration),
+        compiler=DummyCompiler(quantum_processor=quantum_processor, client_configuration=client_configuration),
     )
     bitstrings = qc.run(
         executable=Program(
@@ -494,12 +499,12 @@ def test_run_with_parameters(client: Client):
     assert all([bit == 1 for bit in bitstrings])
 
 
-def test_reset(client: Client):
+def test_reset(client_configuration: QCSClientConfiguration):
     quantum_processor = NxQuantumProcessor(nx.complete_graph(3))
     qc = QuantumComputer(
         name="testy!",
-        qam=QVM(client=client),
-        compiler=DummyCompiler(quantum_processor=quantum_processor, client=client),
+        qam=QVM(client_configuration=client_configuration),
+        compiler=DummyCompiler(quantum_processor=quantum_processor, client_configuration=client_configuration),
     )
     p = Program(
         Declare(name="theta", memory_type="REAL"),
@@ -524,17 +529,31 @@ def test_reset(client: Client):
     assert qc.qam.status == "connected"
 
 
-def test_get_qvm_with_topology(client: Client):
+def test_get_qvm_with_topology(client_configuration: QCSClientConfiguration):
     topo = nx.from_edgelist([(5, 6), (6, 7), (10, 11)])
     # Note to developers: perhaps make `get_qvm_with_topology` public in the future
-    qc = _get_qvm_with_topology(name="test-qvm", topology=topo, client=client)
+    qc = _get_qvm_with_topology(
+        name="test-qvm",
+        topology=topo,
+        noisy=False,
+        qvm_type="qvm",
+        timeout=5.0,
+        client_configuration=client_configuration,
+    )
     assert len(qc.qubits()) == 5
     assert min(qc.qubits()) == 5
 
 
-def test_get_qvm_with_topology_2(client: Client):
+def test_get_qvm_with_topology_2(client_configuration: QCSClientConfiguration):
     topo = nx.from_edgelist([(5, 6), (6, 7)])
-    qc = _get_qvm_with_topology(name="test-qvm", topology=topo, client=client)
+    qc = _get_qvm_with_topology(
+        name="test-qvm",
+        topology=topo,
+        noisy=False,
+        qvm_type="qvm",
+        timeout=5.0,
+        client_configuration=client_configuration,
+    )
     results = qc.run_and_measure(Program(X(5)), trials=5)
     assert sorted(results.keys()) == [5, 6, 7]
     assert all(x == 1 for x in results[5])
@@ -546,10 +565,10 @@ def test_parse_mix_qvm_and_noisy_flag():
     assert noisy
 
 
-def test_noisy(client: Client):
+def test_noisy(client_configuration: QCSClientConfiguration):
     # https://github.com/rigetti/pyquil/issues/764
     p = Program(X(0))
-    qc = get_qc("1q-qvm", noisy=True, client=client)
+    qc = get_qc("1q-qvm", noisy=True, client_configuration=client_configuration)
     result = qc.run_and_measure(p, trials=10000)
     assert result[0].mean() < 1.0
 

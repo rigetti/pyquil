@@ -14,22 +14,30 @@
 #    limitations under the License.
 ##############################################################################
 import warnings
-from typing import Any, Dict, Iterable, List, Mapping, Optional, Sequence, Union, cast, Tuple
+from typing import Dict, Iterable, List, Mapping, Optional, Sequence, Union, cast, Tuple
 
 import numpy as np
 from httpx import RequestError
+from qcs_api_client.client import QCSClientConfiguration
 
-from pyquil.api import Client, QuantumExecutable
+from pyquil._version import pyquil_version
+from pyquil.api import QuantumExecutable
 from pyquil.api._compiler import QVMCompiler
 from pyquil.api._error_reporting import _record_call
 from pyquil.api._qam import QAM
-from pyquil.quantum_processor import QCSQuantumProcessor
+from pyquil.api._qvm_client import (
+    QVMClient,
+    MeasureExpectationRequest,
+    GetWavefunctionRequest,
+    RunAndMeasureProgramRequest,
+    RunProgramRequest,
+)
 from pyquil.gates import MOVE
 from pyquil.noise import NoiseModel, apply_noise_model
 from pyquil.paulis import PauliSum, PauliTerm
+from pyquil.quantum_processor import QCSQuantumProcessor
 from pyquil.quil import Program, get_classical_addresses_from_program, percolate_declares
 from pyquil.quilatom import MemoryReference
-from pyquil._version import pyquil_version
 from pyquil.wavefunction import Wavefunction
 
 
@@ -62,17 +70,17 @@ class QVMConnection(object):
     @_record_call
     def __init__(
         self,
-        client: Optional[Client] = None,
         quantum_processor: Optional[QCSQuantumProcessor] = None,
         gate_noise: Optional[Tuple[float, float, float]] = None,
         measurement_noise: Optional[Tuple[float, float, float]] = None,
         random_seed: Optional[int] = None,
+        timeout: float = 5.0,
+        client_configuration: Optional[QCSClientConfiguration] = None,
     ):
         """
         Constructor for QVMConnection. Sets up any necessary security, and establishes the noise
         model to use.
 
-        :param client: Optional QCS client. If none is provided, a default client will be created.
         :param quantum_processor: The optional quantum_processor, from which noise will be added by default to all
             programs run on this instance.
         :param gate_noise: A tuple of three numbers [Px, Py, Pz] indicating the probability of an X,
@@ -81,8 +89,11 @@ class QVMConnection(object):
             of an X, Y, or Z gate getting applied before a a measurement.
         :param random_seed: A seed for the QVM's random number generators. Either None (for an
             automatically generated seed) or a non-negative integer.
+        :param timeout: Time limit for requests, in seconds.
+        :param client_configuration: Optional client configuration. If none is provided, a default one will be loaded.
         """
-        self.client = client or Client()
+        client_configuration = client_configuration or QCSClientConfiguration.load()
+        self._qvm_client = QVMClient(client_configuration=client_configuration, request_timeout=timeout)
 
         if (quantum_processor is not None and quantum_processor.noise_model is not None) and (
             gate_noise is not None or measurement_noise is not None
@@ -107,7 +118,15 @@ programs run on this QVM.
             )
 
         self.noise_model = quantum_processor.noise_model if quantum_processor else None
-        self.compiler = QVMCompiler(quantum_processor=quantum_processor, client=client) if quantum_processor else None
+        self.compiler = (
+            QVMCompiler(
+                quantum_processor=quantum_processor,
+                timeout=timeout,
+                client_configuration=client_configuration,
+            )
+            if quantum_processor
+            else None
+        )
 
         validate_noise_probabilities(gate_noise)
         validate_noise_probabilities(measurement_noise)
@@ -128,7 +147,7 @@ programs run on this QVM.
             version_dict = self.get_version_info()
             check_qvm_version(version_dict)
         except RequestError:
-            raise QVMNotRunning(f"No QVM server running at {self.client.qvm_url}")
+            raise QVMNotRunning(f"No QVM server running at {self._qvm_client.base_url}")
 
     @_record_call
     def get_version_info(self) -> str:
@@ -137,7 +156,7 @@ programs run on this QVM.
 
         :return: String with version information
         """
-        return self.client.qvm_version()
+        return self._qvm_client.get_version()
 
     @_record_call
     def run(
@@ -165,8 +184,7 @@ programs run on this QVM.
         else:
             caddresses = {"ro": classical_addresses}
 
-        buffers = qvm_run(
-            self.client,
+        request = qvm_run_request(
             quil_program,
             caddresses,
             trials,
@@ -174,6 +192,8 @@ programs run on this QVM.
             self.gate_noise,
             self.random_seed,
         )
+        response = self._qvm_client.run_program(request)
+        buffers = {key: np.array(val) for key, val in response.results.items()}
 
         if len(buffers) == 0:
             return []
@@ -201,13 +221,16 @@ programs run on this QVM.
         :param trials: Number of shots to collect.
         :return: A list of a list of bits.
         """
-
-        payload = self._run_and_measure_payload(quil_program, qubits, trials)
-        response = self.client.post_json(self.client.qvm_url, payload)
-        return cast(List[List[int]], response.json())
+        request = self._run_and_measure_request(quil_program, qubits, trials)
+        return self._qvm_client.run_and_measure_program(request).results
 
     @_record_call
-    def _run_and_measure_payload(self, quil_program: Program, qubits: Sequence[int], trials: int) -> Dict[str, Any]:
+    def _run_and_measure_request(
+        self,
+        quil_program: Program,
+        qubits: Sequence[int],
+        trials: int,
+    ) -> RunAndMeasureProgramRequest:
         if not quil_program:
             raise ValueError(
                 "You have attempted to run an empty program."
@@ -225,17 +248,14 @@ programs run on this QVM.
             compiled_program = self.compiler.quil_to_native_quil(quil_program)
             quil_program = apply_noise_model(compiled_program, self.noise_model)
 
-        payload = {
-            "type": TYPE_MULTISHOT_MEASURE,
-            "qubits": list(qubits),
-            "trials": trials,
-            "compiled-quil": quil_program.out(calibrations=False),
-        }
-
-        self._maybe_add_noise_to_payload(payload)
-        self._add_rng_seed_to_payload(payload)
-
-        return payload
+        return RunAndMeasureProgramRequest(
+            program=quil_program.out(calibrations=False),
+            qubits=list(qubits),
+            trials=trials,
+            measurement_noise=self.measurement_noise,
+            gate_noise=self.gate_noise,
+            seed=self.random_seed,
+        )
 
     @_record_call
     def wavefunction(self, quil_program: Program) -> Wavefunction:
@@ -251,26 +271,21 @@ programs run on this QVM.
         :param quil_program: A Quil program.
         :return: A Wavefunction object representing the state of the QVM.
         """
-
-        payload = self._wavefunction_payload(quil_program)
-        response = self.client.post_json(self.client.qvm_url, payload)
-        return Wavefunction.from_bit_packed_string(response.content)
+        request = self._wavefunction_request(quil_program)
+        response = self._qvm_client.get_wavefunction(request)
+        return Wavefunction.from_bit_packed_string(response.wavefunction)
 
     @_record_call
-    def _wavefunction_payload(self, quil_program: Program) -> Dict[str, Any]:
-        # Developer note: This code is for backwards compatibility. It can't be replaced with
-        # _base_connection._wavefunction_payload because we've turned off the ability to set
-        # `needs_compilation` (that usually indicates the user is doing something iffy like
-        # using a noise model with this function)
+    def _wavefunction_request(self, quil_program: Program) -> GetWavefunctionRequest:
         if not isinstance(quil_program, Program):
             raise TypeError("quil_program must be a Quil program object")
 
-        payload = {"type": TYPE_WAVEFUNCTION, "compiled-quil": quil_program.out(calibrations=False)}
-
-        self._maybe_add_noise_to_payload(payload)
-        self._add_rng_seed_to_payload(payload)
-
-        return payload
+        return GetWavefunctionRequest(
+            program=quil_program.out(calibrations=False),
+            measurement_noise=self.measurement_noise,
+            gate_noise=self.gate_noise,
+            seed=self.random_seed,
+        )
 
     @_record_call
     def expectation(self, prep_prog: Program, operator_programs: Optional[Iterable[Program]] = None) -> List[float]:
@@ -304,13 +319,15 @@ programs run on this QVM.
                 SyntaxWarning,
             )
 
-        payload = self._expectation_payload(prep_prog, operator_programs)
-        response = self.client.post_json(self.client.qvm_url, payload)
-        return cast(List[float], response.json())
+        request = self._expectation_request(prep_prog, operator_programs)
+        response = self._qvm_client.measure_expectation(request)
+        return response.expectations
 
     @_record_call
     def pauli_expectation(
-        self, prep_prog: Program, pauli_terms: Union[Sequence[PauliTerm], PauliSum]
+        self,
+        prep_prog: Program,
+        pauli_terms: Union[Sequence[PauliTerm], PauliSum],
     ) -> Union[float, List[float]]:
         """
         Calculate the expectation value of Pauli operators given a state prepared by prep_program.
@@ -346,56 +363,38 @@ programs run on this QVM.
             return sum(results)
         return results
 
-    def _expectation_payload(
-        self, prep_prog: Program, operator_programs: Optional[Iterable[Program]]
-    ) -> Dict[str, Any]:
+    def _expectation_request(
+        self,
+        prep_prog: Program,
+        operator_programs: Optional[Iterable[Program]],
+    ) -> MeasureExpectationRequest:
         if operator_programs is None:
             operator_programs = [Program()]
 
         if not isinstance(prep_prog, Program):
             raise TypeError("prep_prog variable must be a Quil program object")
 
-        payload = {
-            "type": TYPE_EXPECTATION,
-            "state-preparation": prep_prog.out(calibrations=False),
-            "operators": [x.out(calibrations=False) for x in operator_programs],
-        }
-
-        self._add_rng_seed_to_payload(payload)
-
-        return payload
-
-    def _maybe_add_noise_to_payload(self, payload: Dict[str, Any]) -> None:
-        """
-        Set the gate noise and measurement noise of a payload.
-        """
-        if self.measurement_noise is not None:
-            payload["measurement-noise"] = self.measurement_noise
-        if self.gate_noise is not None:
-            payload["gate-noise"] = self.gate_noise
-
-    def _add_rng_seed_to_payload(self, payload: Dict[str, Any]) -> None:
-        """
-        Add a random seed to the payload.
-        """
-        if self.random_seed is not None:
-            payload["rng-seed"] = self.random_seed
+        return MeasureExpectationRequest(
+            prep_program=prep_prog.out(calibrations=False),
+            pauli_operators=[x.out(calibrations=False) for x in operator_programs],
+            seed=self.random_seed,
+        )
 
 
 class QVM(QAM):
     @_record_call
     def __init__(
         self,
-        client: Optional[Client] = None,
         noise_model: Optional[NoiseModel] = None,
         gate_noise: Optional[Tuple[float, float, float]] = None,
         measurement_noise: Optional[Tuple[float, float, float]] = None,
         random_seed: Optional[int] = None,
+        timeout: float = 5.0,
+        client_configuration: Optional[QCSClientConfiguration] = None,
     ) -> None:
         """
         A virtual machine that classically emulates the execution of Quil programs.
 
-        :param client: Optional QCS client. If none is provided, a default client will be created.
         :param noise_model: A noise model that describes noise to apply when emulating a program's
             execution.
         :param gate_noise: A tuple of three numbers [Px, Py, Pz] indicating the probability of an X,
@@ -406,8 +405,10 @@ class QVM(QAM):
             None indicates no noise.
         :param random_seed: A seed for the QVM's random number generators. Either None (for an
             automatically generated seed) or a non-negative integer.
+        :param timeout: Time limit for requests, in seconds.
+        :param client_configuration: Optional client configuration. If none is provided, a default one will be loaded.
         """
-        super().__init__(client)
+        super().__init__()
 
         if (noise_model is not None) and (gate_noise is not None or measurement_noise is not None):
             raise ValueError(
@@ -435,14 +436,16 @@ http://pyquil.readthedocs.io/en/latest/noise_models.html#support-for-noisy-gates
         else:
             raise TypeError("random_seed should be None or a non-negative int")
 
+        client_configuration = client_configuration or QCSClientConfiguration.load()
+        self._qvm_client = QVMClient(client_configuration=client_configuration, request_timeout=timeout)
         self.connect()
 
     def connect(self) -> None:
         try:
-            version_dict = self.get_version_info()
-            check_qvm_version(version_dict)
+            version = self.get_version_info()
+            check_qvm_version(version)
         except ConnectionError:
-            raise QVMNotRunning(f"No QVM server running at {self._client.qvm_url}")
+            raise QVMNotRunning(f"No QVM server running at {self._qvm_client.base_url}")
 
     @_record_call
     def get_version_info(self) -> str:
@@ -451,7 +454,7 @@ http://pyquil.readthedocs.io/en/latest/noise_models.html#support-for-noisy-gates
 
         :return: String with version information
         """
-        return self._client.qvm_version()
+        return self._qvm_client.get_version()
 
     @_record_call
     def load(self, executable: QuantumExecutable) -> "QVM":
@@ -488,8 +491,7 @@ http://pyquil.readthedocs.io/en/latest/noise_models.html#support-for-noisy-gates
 
         quil_program = self.augment_program_with_memory_values(quil_program)
 
-        ram = qvm_run(
-            self._client,
+        request = qvm_run_request(
             quil_program,
             classical_addresses,
             trials,
@@ -497,6 +499,8 @@ http://pyquil.readthedocs.io/en/latest/noise_models.html#support-for-noisy-gates
             self.gate_noise,
             self.random_seed,
         )
+        response = self._qvm_client.run_program(request)
+        ram = {key: np.array(val) for key, val in response.results.items()}
         self._memory_results.update(ram)
 
         return self
@@ -510,12 +514,6 @@ http://pyquil.readthedocs.io/en/latest/noise_models.html#support-for-noisy-gates
         p += quil_program
 
         return percolate_declares(p)
-
-
-TYPE_EXPECTATION = "expectation"
-TYPE_MULTISHOT = "multishot"
-TYPE_MULTISHOT_MEASURE = "multishot-measure"
-TYPE_WAVEFUNCTION = "wavefunction"
 
 
 def validate_noise_probabilities(noise_parameter: Optional[Tuple[float, float, float]]) -> None:
@@ -584,36 +582,14 @@ def prepare_register_list(
     return register_dict
 
 
-def qvm_run(
-    client: Client,
+def qvm_run_request(
     quil_program: Program,
     classical_addresses: Mapping[str, Union[bool, Sequence[int]]],
     trials: int,
     measurement_noise: Optional[Tuple[float, float, float]],
     gate_noise: Optional[Tuple[float, float, float]],
     random_seed: Optional[int],
-) -> Dict[str, np.ndarray]:
-    payload = qvm_run_payload(
-        quil_program,
-        classical_addresses,
-        trials,
-        measurement_noise,
-        gate_noise,
-        random_seed,
-    )
-    response = client.post_json(client.qvm_url, payload)
-    return {key: np.array(val) for key, val in response.json().items()}
-
-
-def qvm_run_payload(
-    quil_program: Program,
-    classical_addresses: Mapping[str, Union[bool, Sequence[int]]],
-    trials: int,
-    measurement_noise: Optional[Tuple[float, float, float]],
-    gate_noise: Optional[Tuple[float, float, float]],
-    random_seed: Optional[int],
-) -> Dict[str, object]:
-    """REST payload for QVM execution`"""
+) -> RunProgramRequest:
     if not quil_program:
         raise ValueError(
             "You have attempted to run an empty program."
@@ -625,18 +601,11 @@ def qvm_run_payload(
     if not isinstance(trials, int):
         raise TypeError("trials must be an integer")
 
-    payload = {
-        "type": TYPE_MULTISHOT,
-        "addresses": classical_addresses,
-        "trials": trials,
-        "compiled-quil": quil_program.out(calibrations=False),
-    }
-
-    if measurement_noise is not None:
-        payload["measurement-noise"] = measurement_noise
-    if gate_noise is not None:
-        payload["gate-noise"] = gate_noise
-    if random_seed is not None:
-        payload["rng-seed"] = random_seed
-
-    return payload
+    return RunProgramRequest(
+        program=quil_program.out(calibrations=False),
+        addresses=classical_addresses,  # type: ignore
+        trials=trials,
+        measurement_noise=measurement_noise,
+        gate_noise=gate_noise,
+        seed=random_seed,
+    )
