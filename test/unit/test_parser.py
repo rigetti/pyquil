@@ -102,7 +102,7 @@ from pyquil.quiltwaveforms import (
     HrmGaussianWaveform,
     BoxcarAveragerKernel,
 )
-from pyquil.tests.utils import parse_equals
+from test.unit.utils import parse_equals
 
 
 def test_simple_gate():

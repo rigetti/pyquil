@@ -25,9 +25,9 @@ from pyquil.quantum_processor.transformers.graph_to_compiler_isa import (
     _transform_qubit_operation_to_gates,
 )
 from pyquil.quil import Program
-from pyquil.tests.utils import DummyCompiler
+from test.unit.utils import DummyCompiler
 
-TEST_DATA_DIR = os.path.join(os.path.dirname(os.path.realpath(__file__)), "pyquil", "tests", "data")
+TEST_DATA_DIR = os.path.join(os.path.dirname(os.path.realpath(__file__)), "data")
 
 
 @pytest.fixture
