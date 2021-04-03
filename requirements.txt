@@ -1,7 +1,7 @@
 # runtime deps
 numpy
 scipy
-lark
+lark-parser
 requests
 networkx >= 2.0.0
 

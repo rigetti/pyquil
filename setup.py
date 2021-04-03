@@ -77,7 +77,7 @@ setup(
         # note to developers: this should be a subset of requirements.txt
         "numpy",
         "scipy",
-        "lark",
+        "lark-parser",
         "requests",
         "networkx>=2.0.0",
         "rpcq>=3.6.0",
