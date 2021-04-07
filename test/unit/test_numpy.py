@@ -18,7 +18,7 @@ from pyquil.simulation._numpy import (
 )
 from pyquil.simulation._reference import ReferenceWavefunctionSimulator
 from pyquil.simulation.matrices import QUANTUM_GATES as GATES
-from pyquil.simulation.tests.test_reference_wavefunction import (
+from test.unit.test_reference_wavefunction import (
     _generate_random_program,
     _generate_random_pauli,
 )

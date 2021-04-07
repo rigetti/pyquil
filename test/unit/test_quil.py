@@ -90,7 +90,7 @@ from pyquil.quilbase import (
     ClassicalNot,
     DefPermutationGate,
 )
-from pyquil.tests.utils import parse_equals
+from test.unit.utils import parse_equals
 
 
 def test_gate():

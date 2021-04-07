@@ -27,7 +27,7 @@ from pyquil.api._qpu_client import (
     RunProgramRequest,
     RunProgramResponse,
 )
-from pyquil.tests.utils import run_rpcq_server
+from test.unit.utils import run_rpcq_server
 
 
 def test_init__sets_engagement_and_timeout(engagement: EngagementWithCredentials):

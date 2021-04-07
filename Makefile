@@ -62,7 +62,14 @@ install:
 
 .PHONY: test
 test:
-	pytest -n auto -v --runslow --cov=pyquil
+	pytest -n auto -v --runslow --cov=pyquil test/unit
+
+.PHONY: e2e
+e2e:
+	pytest -n auto -v --cov=pyquil test/e2e
+
+.PHONY: test-all
+test-all: test e2e
 
 docs/quil/grammars/Quil.g4:
 	git submodule init

@@ -70,7 +70,7 @@ Style:
       when: never
     - when: always
 
-Test (3.7):
+Test Unit (3.7):
   stage: test
   image: python:3.7
   coverage: '/TOTAL.*?(\d+)\%/'
@@ -78,13 +78,29 @@ Test (3.7):
     - . scripts/ci_install_deps
     - poetry run make test
 
-Test (3.8):
+Test e2e (3.7):
+  stage: test
+  image: python:3.7
+  coverage: '/TOTAL.*?(\d+)\%/'
+  script:
+    - . scripts/ci_install_deps
+    - poetry run make e2e
+
+Test Unit (3.8):
   stage: test
   image: python:3.8
   coverage: '/TOTAL.*?(\d+)\%/'
   script:
     - . scripts/ci_install_deps
     - poetry run make test
+
+Test e2e (3.8):
+  stage: test
+  image: python:3.8
+  coverage: '/TOTAL.*?(\d+)\%/'
+  script:
+    - . scripts/ci_install_deps
+    - poetry run make e2e
 
 Coverage:
   stage: test
