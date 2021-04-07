@@ -16,14 +16,16 @@
 import uuid
 import warnings
 from collections import defaultdict
-from typing import Any, Dict, List, Optional, Union, cast
+from typing import Dict, List, Optional, Union, cast
 
 import numpy as np
-from rpcq.messages import QPURequest, ParameterAref, ParameterSpec
+from qcs_api_client.client import QCSClientConfiguration
+from rpcq.messages import ParameterAref, ParameterSpec
 
-from pyquil.api import Client, QuantumExecutable, EncryptedProgram
+from pyquil.api import QuantumExecutable, EncryptedProgram, EngagementManager
 from pyquil.api._error_reporting import _record_call
 from pyquil.api._qam import QAM
+from pyquil.api._qpu_client import GetBuffersRequest, QPUClient, BufferResponse, RunProgramRequest
 from pyquil.quilatom import (
     MemoryReference,
     BinaryExp,
@@ -33,15 +35,15 @@ from pyquil.quilatom import (
 )
 
 
-def decode_buffer(buffer: Dict[str, Any]) -> np.ndarray:
+def decode_buffer(buffer: BufferResponse) -> np.ndarray:
     """
     Translate a DataBuffer into a numpy array.
 
     :param buffer: Dictionary with 'data' byte array, 'dtype', and 'shape' fields
     :return: NumPy array of decoded data
     """
-    buf = np.frombuffer(buffer["data"], dtype=buffer["dtype"])
-    return buf.reshape(buffer["shape"])  # type: ignore
+    buf = np.frombuffer(buffer.data, dtype=buffer.dtype)
+    return buf.reshape(buffer.shape)  # type: ignore
 
 
 def _extract_memory_regions(
@@ -99,31 +101,36 @@ def _extract_memory_regions(
 
 class QPU(QAM):
     @_record_call
-    def __init__(self, *, quantum_processor_id: str, client: Optional[Client] = None, priority: int = 1) -> None:
+    def __init__(
+        self,
+        *,
+        quantum_processor_id: str,
+        priority: int = 1,
+        timeout: float = 5.0,
+        client_configuration: Optional[QCSClientConfiguration] = None,
+        engagement_manager: Optional[EngagementManager] = None,
+    ) -> None:
         """
         A connection to the QPU.
 
         :param quantum_processor_id: Processor to run against.
-        :param client: Optional QCS client. If none is provided, a default client will be created.
         :param priority: The priority with which to insert jobs into the QPU queue. Lower
                          integers correspond to higher priority.
+        :param timeout: Time limit for requests, in seconds.
+        :param client_configuration: Optional client configuration. If none is provided, a default one will be loaded.
+        :param engagement_manager: Optional engagement manager. If none is provided, a default one will be created.
         """
+        super().__init__()
+
         self.quantum_processor_id = quantum_processor_id
         self.priority = priority
+        self._timeout = timeout
+
+        client_configuration = client_configuration or QCSClientConfiguration.load()
+        self._engagement_manager = engagement_manager or EngagementManager(client_configuration=client_configuration)
+
         self._last_results: Dict[str, np.ndarray] = {}
-
-        super().__init__(client)
-
-    def get_version_info(self) -> Dict[str, Any]:
-        """
-        Return version information for this QPU's execution engine and its dependencies.
-
-        :return: Dictionary of version information.
-        """
-        return cast(
-            Dict[str, Any],
-            self._client.processor_rpcq_request(self.quantum_processor_id, "get_version_info"),
-        )
+        self._memory_results: Dict[str, Optional[np.ndarray]] = defaultdict(lambda: None)
 
     @_record_call
     def load(self, executable: QuantumExecutable) -> "QPU":
@@ -164,19 +171,13 @@ class QPU(QAM):
         super().run()
         assert isinstance(self.executable, EncryptedProgram)
 
-        request = QPURequest(
+        request = RunProgramRequest(
+            id=str(uuid.uuid4()),
+            priority=run_priority if run_priority is not None else self.priority,
             program=self.executable.program,
             patch_values=self._build_patch_values(),
-            id=str(uuid.uuid4()),
         )
-
-        job_priority = run_priority if run_priority is not None else self.priority
-        job_id = self._client.processor_rpcq_request(
-            self.quantum_processor_id,
-            "execute_qpu_request",
-            request,
-            priority=job_priority,
-        )
+        job_id = self._qpu_client().run_program(request).job_id
         results = self._get_buffers(job_id)
         ro_sources = self.executable.ro_sources
 
@@ -197,6 +198,13 @@ class QPU(QAM):
 
         return self
 
+    def _qpu_client(self) -> QPUClient:
+        engagement = self._engagement_manager.get_engagement(
+            quantum_processor_id=self.quantum_processor_id,
+            request_timeout=self._timeout,
+        )
+        return QPUClient(engagement=engagement, request_timeout=self._timeout)
+
     def _get_buffers(self, job_id: str) -> Dict[str, np.ndarray]:
         """
         Return the decoded result buffers for particular job_id.
@@ -204,7 +212,8 @@ class QPU(QAM):
         :param job_id: Unique identifier for the job in question
         :return: Decoded buffers or throw an error
         """
-        buffers = self._client.processor_rpcq_request(self.quantum_processor_id, "get_buffers", job_id, wait=True)
+        request = GetBuffersRequest(job_id=job_id, wait=True)
+        buffers = self._qpu_client().get_buffers(request).buffers
         return {k: decode_buffer(v) for k, v in buffers.items()}
 
     def _build_patch_values(self) -> Dict[str, List[Union[int, float]]]:

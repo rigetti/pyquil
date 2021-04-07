@@ -33,36 +33,38 @@ from typing import (
     List,
 )
 
+import httpx
 import networkx as nx
 import numpy as np
-
+from qcs_api_client.client import QCSClientConfiguration
 from qcs_api_client.models import ListQuantumProcessorsResponse
 from qcs_api_client.operations.sync import list_quantum_processors
 
-from pyquil.api import Client
+from pyquil.api import EngagementManager
+from pyquil.api._abstract_compiler import AbstractCompiler, QuantumExecutable
 from pyquil.api._compiler import QPUCompiler, QVMCompiler
 from pyquil.api._error_reporting import _record_call
-from pyquil.api._abstract_compiler import AbstractCompiler, QuantumExecutable
 from pyquil.api._qam import QAM
+from pyquil.api._qcs_client import qcs_client
 from pyquil.api._qpu import QPU
 from pyquil.api._qvm import QVM
+from pyquil.experiment._main import Experiment
+from pyquil.experiment._memory import merge_memory_map_lists
+from pyquil.experiment._result import ExperimentResult, bitstrings_to_expectations
+from pyquil.experiment._setting import ExperimentSetting
+from pyquil.external.rpcq import CompilerISA
+from pyquil.gates import RX, MEASURE
+from pyquil.noise import decoherence_noise_with_asymmetric_ro, NoiseModel
+from pyquil.paulis import PauliTerm
+from pyquil.pyqvm import PyQVM
 from pyquil.quantum_processor import (
     AbstractQuantumProcessor,
     QCSQuantumProcessor,
     NxQuantumProcessor,
     get_qcs_quantum_processor,
 )
-from pyquil.experiment._main import Experiment
-from pyquil.experiment._memory import merge_memory_map_lists
-from pyquil.experiment._result import ExperimentResult, bitstrings_to_expectations
-from pyquil.experiment._setting import ExperimentSetting
-from pyquil.gates import RX, MEASURE
-from pyquil.noise import decoherence_noise_with_asymmetric_ro, NoiseModel
-from pyquil.paulis import PauliTerm
-from pyquil.pyqvm import PyQVM
 from pyquil.quil import Program, validate_supported_quil
 from pyquil.quilatom import qubit_index
-from pyquil.external.rpcq import CompilerISA
 
 
 class QuantumComputer:
@@ -499,21 +501,28 @@ class QuantumComputer:
 
 
 @_record_call
-def list_quantum_computers(client: Optional[Client] = None, qpus: bool = True, qvms: bool = True) -> List[str]:
+def list_quantum_computers(
+    qpus: bool = True,
+    qvms: bool = True,
+    timeout: float = 5.0,
+    client_configuration: Optional[QCSClientConfiguration] = None,
+) -> List[str]:
     """
     List the names of available quantum computers
 
-    :param client: Optional QCS client. If none is provided, a default client will be created.
     :param qpus: Whether to include QPUs in the list.
     :param qvms: Whether to include QVMs in the list.
+    :param timeout: Time limit for request, in seconds.
+    :param client_configuration: Optional client configuration. If none is provided, a default one will be loaded.
     """
-    client = client or Client()
+    client_configuration = client_configuration or QCSClientConfiguration.load()
     qc_names: List[str] = []
     if qpus:
-        qcs: ListQuantumProcessorsResponse = cast(
-            ListQuantumProcessorsResponse,
-            client.qcs_request(list_quantum_processors, page_size=100),
-        )
+        with qcs_client(
+            client_configuration=client_configuration, request_timeout=timeout
+        ) as client:  # type: httpx.Client
+            qcs: ListQuantumProcessorsResponse = list_quantum_processors(client=client, page_size=100).parsed
+
         qc_names += [qc.id for qc in qcs.quantum_processors]
 
     if qvms:
@@ -589,13 +598,14 @@ def _canonicalize_name(prefix: str, qvm_type: Optional[str], noisy: bool) -> str
 
 
 def _get_qvm_or_pyqvm(
-    client: Client,
+    client_configuration: QCSClientConfiguration,
     qvm_type: str,
-    noise_model: Optional[NoiseModel] = None,
-    quantum_processor: Optional[AbstractQuantumProcessor] = None,
+    noise_model: Optional[NoiseModel],
+    quantum_processor: Optional[AbstractQuantumProcessor],
+    timeout: float,
 ) -> Union[QVM, PyQVM]:
     if qvm_type == "qvm":
-        return QVM(client=client, noise_model=noise_model)
+        return QVM(noise_model=noise_model, timeout=timeout, client_configuration=client_configuration)
     elif qvm_type == "pyqvm":
         assert quantum_processor is not None
         return PyQVM(n_qubits=quantum_processor.qubit_topology().number_of_nodes())
@@ -604,48 +614,52 @@ def _get_qvm_or_pyqvm(
 
 
 def _get_qvm_qc(
-    client: Client,
+    client_configuration: QCSClientConfiguration,
     name: str,
     qvm_type: str,
     quantum_processor: AbstractQuantumProcessor,
-    noise_model: Optional[NoiseModel] = None,
-    compiler_timeout: float = 10,
+    timeout: float,
+    noise_model: Optional[NoiseModel],
 ) -> QuantumComputer:
     """Construct a QuantumComputer backed by a QVM.
 
     This is a minimal wrapper over the QuantumComputer, QVM, and QVMCompiler constructors.
 
-    :param client: QCS client.
+    :param client_configuration: Client configuration.
     :param name: A string identifying this particular quantum computer.
     :param qvm_type: The type of QVM. Either qvm or pyqvm.
     :param quantum_processor: A quantum_processor following the AbstractQuantumProcessor interface.
     :param noise_model: An optional noise model
+    :param timeout: Time limit for requests, in seconds.
     :return: A QuantumComputer backed by a QVM with the above options.
     """
 
     return QuantumComputer(
         name=name,
         qam=_get_qvm_or_pyqvm(
-            client=client,
+            client_configuration=client_configuration,
             qvm_type=qvm_type,
             noise_model=noise_model,
             quantum_processor=quantum_processor,
+            timeout=timeout,
         ),
-        compiler=QVMCompiler(quantum_processor=quantum_processor, client=client, timeout=compiler_timeout),
+        compiler=QVMCompiler(
+            quantum_processor=quantum_processor, timeout=timeout, client_configuration=client_configuration
+        ),
     )
 
 
 def _get_qvm_with_topology(
-    client: Client,
+    client_configuration: QCSClientConfiguration,
     name: str,
     topology: nx.Graph,
-    noisy: bool = False,
-    qvm_type: str = "qvm",
-    compiler_timeout: float = 10,
+    noisy: bool,
+    qvm_type: str,
+    timeout: float,
 ) -> QuantumComputer:
     """Construct a QVM with the provided topology.
 
-    :param client: QCS client.
+    :param client_configuration: Client configuration.
     :param name: A name for your quantum computer. This field does not affect behavior of the
         constructed QuantumComputer.
     :param topology: A graph representing the desired qubit connectivity.
@@ -653,6 +667,7 @@ def _get_qvm_with_topology(
         the noise model, please construct your own :py:class:`NoiseModel` and use
         :py:func:`_get_qvm_qc` instead of this function.
     :param qvm_type: The type of QVM. Either 'qvm' or 'pyqvm'.
+    :param timeout: Time limit for requests, in seconds.
     :return: A pre-configured QuantumComputer
     """
     # Note to developers: consider making this function public and advertising it.
@@ -664,21 +679,21 @@ def _get_qvm_with_topology(
     else:
         noise_model = None
     return _get_qvm_qc(
-        client=client,
+        client_configuration=client_configuration,
         name=name,
         qvm_type=qvm_type,
         quantum_processor=quantum_processor,
         noise_model=noise_model,
-        compiler_timeout=compiler_timeout,
+        timeout=timeout,
     )
 
 
 def _get_9q_square_qvm(
-    client: Client,
+    client_configuration: QCSClientConfiguration,
     name: str,
     noisy: bool,
-    qvm_type: str = "qvm",
-    compiler_timeout: float = 10,
+    qvm_type: str,
+    timeout: float,
 ) -> QuantumComputer:
     """
     A nine-qubit 3x3 square lattice.
@@ -686,72 +701,76 @@ def _get_9q_square_qvm(
     This uses a "generic" lattice not tied to any specific quantum_processor. 9 qubits is large enough
     to do vaguely interesting algorithms and small enough to simulate quickly.
 
-    :param client: QCS client.
+    :param client_configuration: Client configuration.
     :param name: The name of this QVM
     :param noisy: Whether to construct a noisy quantum computer
     :param qvm_type: The type of QVM. Either 'qvm' or 'pyqvm'.
+    :param timeout: Time limit for requests, in seconds.
     :return: A pre-configured QuantumComputer
     """
     topology = nx.convert_node_labels_to_integers(nx.grid_2d_graph(3, 3))
     return _get_qvm_with_topology(
-        client=client,
+        client_configuration=client_configuration,
         name=name,
         topology=topology,
         noisy=noisy,
         qvm_type=qvm_type,
-        compiler_timeout=compiler_timeout,
+        timeout=timeout,
     )
 
 
 def _get_unrestricted_qvm(
-    client: Client,
+    client_configuration: QCSClientConfiguration,
     name: str,
     noisy: bool,
-    n_qubits: int = 34,
-    qvm_type: str = "qvm",
-    compiler_timeout: float = 10,
+    n_qubits: int,
+    qvm_type: str,
+    timeout: float,
 ) -> QuantumComputer:
     """
     A qvm with a fully-connected topology.
 
     This is obviously the least realistic QVM, but who am I to tell users what they want.
 
-    :param client: QCS client.
+    :param client_configuration: Client configuration.
     :param name: The name of this QVM
     :param noisy: Whether to construct a noisy quantum computer
     :param n_qubits: 34 qubits ought to be enough for anybody.
     :param qvm_type: The type of QVM. Either 'qvm' or 'pyqvm'.
+    :param timeout: Time limit for requests, in seconds.
     :return: A pre-configured QuantumComputer
     """
     topology = nx.complete_graph(n_qubits)
     return _get_qvm_with_topology(
-        client=client,
+        client_configuration=client_configuration,
         name=name,
         topology=topology,
         noisy=noisy,
         qvm_type=qvm_type,
-        compiler_timeout=compiler_timeout,
+        timeout=timeout,
     )
 
 
 def _get_qvm_based_on_real_quantum_processor(
-    client: Client,
+    client_configuration: QCSClientConfiguration,
     name: str,
     quantum_processor: QCSQuantumProcessor,
     noisy: bool,
-    qvm_type: str = "qvm",
-    compiler_timeout: float = 10,
+    qvm_type: str,
+    timeout: float,
 ) -> QuantumComputer:
     """
     A qvm with a based on a real quantum_processor.
 
     This is the most realistic QVM.
 
-    :param client: QCS client.
+    :param client_configuration: Client configuration.
     :param name: The full name of this QVM
     :param quantum_processor: The quantum_processor from :py:func:`get_lattice`.
     :param noisy: Whether to construct a noisy quantum computer by using the quantum_processor's
         associated noise model.
+    :param qvm_type: The type of QVM. Either 'qvm' or 'pyqvm'.
+    :param timeout: Time limit for requests, in seconds.
     :return: A pre-configured QuantumComputer based on the named quantum_processor.
     """
     if noisy:
@@ -759,12 +778,12 @@ def _get_qvm_based_on_real_quantum_processor(
     else:
         noise_model = None
     return _get_qvm_qc(
-        client=client,
+        client_configuration=client_configuration,
         name=name,
         quantum_processor=quantum_processor,
         noise_model=noise_model,
         qvm_type=qvm_type,
-        compiler_timeout=compiler_timeout,
+        timeout=timeout,
     )
 
 
@@ -774,8 +793,9 @@ def get_qc(
     *,
     as_qvm: Optional[bool] = None,
     noisy: Optional[bool] = None,
-    client: Optional[Client] = None,
-    compiler_timeout: float = 10,
+    timeout: float = 5.0,
+    client_configuration: Optional[QCSClientConfiguration] = None,
+    engagement_manager: Optional[EngagementManager] = None,
 ) -> QuantumComputer:
     """
     Get a quantum computer.
@@ -841,13 +861,15 @@ def get_qc(
         is an empirically parameterized model based on real quantum_processor noise characteristics.
         The generic QVM noise model is simple T1 and T2 noise plus readout error. See
         :py:func:`~pyquil.noise.decoherence_noise_with_asymmetric_ro`.
-    :param client: Optional QCS client. If none is provided, a default client will be created.
-    :param compiler_timeout: The number of seconds after which a compilation request will raise
-        a TimeoutError.
+    :param timeout: Time limit for requests, in seconds.
+    :param client_configuration: Optional client configuration. If none is provided, a default one will be loaded.
+    :param engagement_manager: Optional engagement manager. If none is provided, a default one will be created.
+
     :return: A pre-configured QuantumComputer
     """
 
-    client = client or Client()
+    client_configuration = client_configuration or QCSClientConfiguration.load()
+    engagement_manager = engagement_manager or EngagementManager(client_configuration=client_configuration)
 
     # 1. Parse name, check for redundant options, canonicalize names.
     prefix, qvm_type, noisy = _parse_name(name, as_qvm, noisy)
@@ -861,12 +883,12 @@ def get_qc(
         if qvm_type is None:
             raise ValueError("Please name a valid quantum_processor or run as a QVM")
         return _get_unrestricted_qvm(
-            client=client,
+            client_configuration=client_configuration,
             name=name,
             noisy=noisy,
             n_qubits=n_qubits,
             qvm_type=qvm_type,
-            compiler_timeout=compiler_timeout,
+            timeout=timeout,
         )
 
     # 3. Check for "9q-square" qvm
@@ -877,24 +899,26 @@ def get_qc(
         if qvm_type is None:
             raise ValueError("The quantum_processor '9q-square' is only available as a QVM")
         return _get_9q_square_qvm(
-            client=client,
+            client_configuration=client_configuration,
             name=name,
             noisy=noisy,
             qvm_type=qvm_type,
-            compiler_timeout=compiler_timeout,
+            timeout=timeout,
         )
 
     # 4. Not a special case, query the web for information about this quantum_processor.
-    quantum_processor = get_qcs_quantum_processor(client, prefix)
+    quantum_processor = get_qcs_quantum_processor(
+        quantum_processor_id=prefix, client_configuration=client_configuration
+    )
     if qvm_type is not None:
         # 4.1 QVM based on a real quantum_processor.
         return _get_qvm_based_on_real_quantum_processor(
-            client=client,
+            client_configuration=client_configuration,
             name=name,
             quantum_processor=quantum_processor,
             noisy=noisy,
             qvm_type=qvm_type,
-            compiler_timeout=compiler_timeout,
+            timeout=timeout,
         )
     else:
         # 4.2 A real quantum_processor
@@ -904,12 +928,17 @@ def get_qc(
                 "is meant for controlling noise models on QVMs."
             )
 
-        qpu = QPU(quantum_processor_id=quantum_processor.quantum_processor_id, client=client)
+        qpu = QPU(
+            quantum_processor_id=quantum_processor.quantum_processor_id,
+            timeout=timeout,
+            client_configuration=client_configuration,
+            engagement_manager=engagement_manager,
+        )
         compiler = QPUCompiler(
             quantum_processor_id=prefix,
             quantum_processor=quantum_processor,
-            client=client,
-            timeout=compiler_timeout,
+            timeout=timeout,
+            client_configuration=client_configuration,
         )
 
         return QuantumComputer(name=name, qam=qpu, compiler=compiler)

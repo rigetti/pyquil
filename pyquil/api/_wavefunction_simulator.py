@@ -18,14 +18,17 @@ from typing import Dict, List, Union, Optional, Any, Set, cast, Iterable, Sequen
 from warnings import warn
 
 import numpy as np
+from qcs_api_client.client import QCSClientConfiguration
 
-from pyquil.api import Client
 from pyquil.api._error_reporting import _record_call
 from pyquil.api._qvm import (
     validate_qubit_list,
-    TYPE_MULTISHOT_MEASURE,
-    TYPE_WAVEFUNCTION,
-    TYPE_EXPECTATION,
+)
+from pyquil.api._qvm_client import (
+    MeasureExpectationRequest,
+    GetWavefunctionRequest,
+    RunAndMeasureProgramRequest,
+    QVMClient,
 )
 from pyquil.gates import MOVE
 from pyquil.paulis import PauliSum, PauliTerm
@@ -36,15 +39,21 @@ from pyquil.wavefunction import Wavefunction
 
 class WavefunctionSimulator:
     @_record_call
-    def __init__(self, *, client: Optional[Client] = None, random_seed: Optional[int] = None) -> None:
+    def __init__(
+        self,
+        *,
+        random_seed: Optional[int] = None,
+        timeout: float = 5.0,
+        client_configuration: Optional[QCSClientConfiguration] = None,
+    ) -> None:
         """
         A simulator that propagates a wavefunction representation of a quantum state.
 
-        :param client: Optional QCS client. If none is provided, a default client will be created.
         :param random_seed: A seed for the simulator's random number generators. Either None (for
             an automatically generated seed) or a non-negative integer.
+        :param timeout: Time limit for requests, in seconds.
+        :param client_configuration: Optional client configuration. If none is provided, a default one will be loaded.
         """
-        self.client = client or Client()
 
         if random_seed is None:
             self.random_seed = None
@@ -52,6 +61,9 @@ class WavefunctionSimulator:
             self.random_seed = random_seed
         else:
             raise TypeError("random_seed should be None or a non-negative int")
+
+        client_configuration = client_configuration or QCSClientConfiguration.load()
+        self._qvm_client = QVMClient(client_configuration=client_configuration, request_timeout=timeout)
 
     @_record_call
     def wavefunction(self, quil_program: Program, memory_map: Any = None) -> Wavefunction:
@@ -80,9 +92,9 @@ class WavefunctionSimulator:
         if memory_map is not None:
             quil_program = self.augment_program_with_memory_values(quil_program, memory_map)
 
-        payload = wavefunction_payload(quil_program, self.random_seed)
-        response = self.client.post_json(self.client.qvm_url, payload)
-        return Wavefunction.from_bit_packed_string(response.content)
+        request = wavefunction_request(quil_program, self.random_seed)
+        response = self._qvm_client.get_wavefunction(request)
+        return Wavefunction.from_bit_packed_string(response.wavefunction)
 
     @_record_call
     def expectation(
@@ -144,9 +156,9 @@ class WavefunctionSimulator:
                 SyntaxWarning,
             )
 
-        payload = expectation_payload(prep_prog, operator_programs, self.random_seed)
-        response = self.client.post_json(self.client.qvm_url, payload)
-        return np.asarray(response.json())
+        request = expectation_request(prep_prog, operator_programs, self.random_seed)
+        response = self._qvm_client.measure_expectation(request)
+        return np.asarray(response.expectations)
 
     @_record_call
     def run_and_measure(
@@ -195,9 +207,9 @@ class WavefunctionSimulator:
         if memory_map is not None:
             quil_program = self.augment_program_with_memory_values(quil_program, memory_map)
 
-        payload = run_and_measure_payload(quil_program, qubits, trials, self.random_seed)
-        response = self.client.post_json(self.client.qvm_url, payload)
-        return np.asarray(response.json())
+        request = run_and_measure_request(quil_program, qubits, trials, self.random_seed)
+        response = self._qvm_client.run_and_measure_program(request)
+        return np.asarray(response.results)
 
     @staticmethod
     def augment_program_with_memory_values(
@@ -232,9 +244,12 @@ class WavefunctionSimulator:
         return percolate_declares(p)
 
 
-def run_and_measure_payload(
-    quil_program: Program, qubits: Sequence[int], trials: int, random_seed: Optional[int]
-) -> Dict[str, object]:
+def run_and_measure_request(
+    quil_program: Program,
+    qubits: Sequence[int],
+    trials: int,
+    random_seed: Optional[int],
+) -> RunAndMeasureProgramRequest:
     if not quil_program:
         raise ValueError(
             "You have attempted to run an empty program."
@@ -247,50 +262,39 @@ def run_and_measure_payload(
     if not isinstance(trials, int):
         raise TypeError("trials must be an integer")
 
-    payload = {
-        "type": TYPE_MULTISHOT_MEASURE,
-        "qubits": list(qubits),
-        "trials": trials,
-        "compiled-quil": quil_program.out(calibrations=False),
-    }
-
-    if random_seed is not None:
-        payload["rng-seed"] = random_seed
-
-    return payload
+    return RunAndMeasureProgramRequest(
+        program=quil_program.out(calibrations=False),
+        qubits=list(qubits),
+        trials=trials,
+        measurement_noise=None,
+        gate_noise=None,
+        seed=random_seed,
+    )
 
 
-def wavefunction_payload(quil_program: Program, random_seed: Optional[int]) -> Dict[str, object]:
+def wavefunction_request(quil_program: Program, random_seed: Optional[int]) -> GetWavefunctionRequest:
     if not isinstance(quil_program, Program):
         raise TypeError("quil_program must be a Quil program object")
 
-    payload: Dict[str, object] = {
-        "type": TYPE_WAVEFUNCTION,
-        "compiled-quil": quil_program.out(calibrations=False),
-    }
-
-    if random_seed is not None:
-        payload["rng-seed"] = random_seed
-
-    return payload
+    return GetWavefunctionRequest(
+        program=quil_program.out(calibrations=False),
+        measurement_noise=None,
+        gate_noise=None,
+        seed=random_seed,
+    )
 
 
-def expectation_payload(
+def expectation_request(
     prep_prog: Program, operator_programs: Optional[Iterable[Program]], random_seed: Optional[int]
-) -> Dict[str, object]:
+) -> MeasureExpectationRequest:
     if operator_programs is None:
         operator_programs = [Program()]
 
     if not isinstance(prep_prog, Program):
         raise TypeError("prep_prog variable must be a Quil program object")
 
-    payload: Dict[str, object] = {
-        "type": TYPE_EXPECTATION,
-        "state-preparation": prep_prog.out(calibrations=False),
-        "operators": [x.out(calibrations=False) for x in operator_programs],
-    }
-
-    if random_seed is not None:
-        payload["rng-seed"] = random_seed
-
-    return payload
+    return MeasureExpectationRequest(
+        prep_program=prep_prog.out(calibrations=False),
+        pauli_operators=[x.out(calibrations=False) for x in operator_programs],
+        seed=random_seed,
+    )

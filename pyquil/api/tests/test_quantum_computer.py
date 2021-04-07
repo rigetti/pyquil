@@ -1,7 +1,8 @@
 import numpy as np
 
 from pyquil import Program
-from pyquil.api import QVM, QuantumComputer, get_qc, Client
+from pyquil.api import QCSClientConfiguration
+from pyquil.api import QVM, QuantumComputer, get_qc
 from pyquil.experiment import ExperimentSetting, Experiment
 from pyquil.gates import CNOT, H, RESET, RY, X
 from pyquil.noise import NoiseModel
@@ -9,8 +10,8 @@ from pyquil.paulis import sX, sY, sZ
 from pyquil.tests.utils import DummyCompiler
 
 
-def test_qc_expectation(client: Client, dummy_compiler: DummyCompiler):
-    qc = QuantumComputer(name="testy!", qam=QVM(client=client), compiler=dummy_compiler)
+def test_qc_expectation(client_configuration: QCSClientConfiguration, dummy_compiler: DummyCompiler):
+    qc = QuantumComputer(name="testy!", qam=QVM(client_configuration=client_configuration), compiler=dummy_compiler)
 
     # bell state program
     p = Program()
@@ -44,8 +45,8 @@ def test_qc_expectation(client: Client, dummy_compiler: DummyCompiler):
     assert results[2].total_counts == 40
 
 
-def test_qc_expectation_larger_lattice(client: Client, dummy_compiler: DummyCompiler):
-    qc = QuantumComputer(name="testy!", qam=QVM(client=client), compiler=dummy_compiler)
+def test_qc_expectation_larger_lattice(client_configuration: QCSClientConfiguration, dummy_compiler: DummyCompiler):
+    qc = QuantumComputer(name="testy!", qam=QVM(client_configuration=client_configuration), compiler=dummy_compiler)
 
     q0 = 2
     q1 = 3
@@ -88,10 +89,10 @@ def asymmetric_ro_model(qubits: list, p00: float = 0.95, p11: float = 0.90) -> N
     return NoiseModel([], aprobs)
 
 
-def test_qc_calibration_1q(client: Client):
+def test_qc_calibration_1q(client_configuration: QCSClientConfiguration):
     # noise model with 95% symmetrized readout fidelity per qubit
     noise_model = asymmetric_ro_model([0], 0.945, 0.955)
-    qc = get_qc("1q-qvm", client=client)
+    qc = get_qc("1q-qvm", client_configuration=client_configuration)
     qc.qam.noise_model = noise_model
 
     # bell state program (doesn't matter)
@@ -112,10 +113,10 @@ def test_qc_calibration_1q(client: Client):
     assert results[0].total_counts == 20000
 
 
-def test_qc_calibration_2q(client: Client):
+def test_qc_calibration_2q(client_configuration: QCSClientConfiguration):
     # noise model with 95% symmetrized readout fidelity per qubit
     noise_model = asymmetric_ro_model([0, 1], 0.945, 0.955)
-    qc = get_qc("2q-qvm", client=client)
+    qc = get_qc("2q-qvm", client_configuration=client_configuration)
     qc.qam.noise_model = noise_model
 
     # bell state program (doesn't matter)
@@ -136,8 +137,8 @@ def test_qc_calibration_2q(client: Client):
     assert results[0].total_counts == 40000
 
 
-def test_qc_joint_expectation(client: Client, dummy_compiler: DummyCompiler):
-    qc = QuantumComputer(name="testy!", qam=QVM(client=client), compiler=dummy_compiler)
+def test_qc_joint_expectation(client_configuration: QCSClientConfiguration, dummy_compiler: DummyCompiler):
+    qc = QuantumComputer(name="testy!", qam=QVM(client_configuration=client_configuration), compiler=dummy_compiler)
 
     # |01> state program
     p = Program()
@@ -163,10 +164,10 @@ def test_qc_joint_expectation(client: Client, dummy_compiler: DummyCompiler):
     assert results[0].additional_results[1].total_counts == 40
 
 
-def test_qc_joint_calibration(client: Client):
+def test_qc_joint_calibration(client_configuration: QCSClientConfiguration):
     # noise model with 95% symmetrized readout fidelity per qubit
     noise_model = asymmetric_ro_model([0, 1], 0.945, 0.955)
-    qc = get_qc("2q-qvm", client=client)
+    qc = get_qc("2q-qvm", client_configuration=client_configuration)
     qc.qam.noise_model = noise_model
 
     # |01> state program
@@ -192,9 +193,9 @@ def test_qc_joint_calibration(client: Client):
     assert results[0].additional_results[1].total_counts == 40000
 
 
-def test_qc_expectation_on_qvm(client: Client, dummy_compiler: DummyCompiler):
+def test_qc_expectation_on_qvm(client_configuration: QCSClientConfiguration, dummy_compiler: DummyCompiler):
     # regression test for https://github.com/rigetti/forest-tutorials/issues/2
-    qc = QuantumComputer(name="testy!", qam=QVM(client=client), compiler=dummy_compiler)
+    qc = QuantumComputer(name="testy!", qam=QVM(client_configuration=client_configuration), compiler=dummy_compiler)
 
     p = Program()
     theta = p.declare("theta", "REAL")

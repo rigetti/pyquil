@@ -21,9 +21,8 @@ from typing import Dict, Sequence, Union, Optional
 import numpy as np
 from rpcq.messages import ParameterAref
 
-from pyquil.api import Client
-from pyquil.api._error_reporting import _record_call
 from pyquil.api._abstract_compiler import QuantumExecutable
+from pyquil.api._error_reporting import _record_call
 from pyquil.experiment._main import Experiment
 
 
@@ -42,16 +41,12 @@ class QAM(ABC):
     pretend to be a QPI-compliant quantum computer.
     """
 
-    status: str
-    _client: Client
-    _variables_shim: Dict[ParameterAref, Union[int, float]]
-    executable: Optional[QuantumExecutable]
-    experiment: Optional[Experiment] = None
-    _memory_results: Dict[str, Optional[np.ndarray]]
-
     @_record_call
-    def __init__(self, client: Optional[Client] = None) -> None:
-        self._client = client or Client()
+    def __init__(self) -> None:
+        self._variables_shim: Dict[ParameterAref, Union[int, float]]
+        self.executable: Optional[QuantumExecutable]
+        self._memory_results: Dict[str, Optional[np.ndarray]]
+        self.experiment: Optional[Experiment]
         self.reset()
 
     @_record_call
@@ -165,10 +160,8 @@ class QAM(ABC):
         when it has gotten into an unwanted state. This can happen, for example, if the QAM
         is interrupted in the middle of a run.
         """
-        self._client.reset()
         self._variables_shim = {}
         self.executable = None
         self._memory_results = defaultdict(lambda: None)
         self.experiment = None
-
         self.status = "connected"
