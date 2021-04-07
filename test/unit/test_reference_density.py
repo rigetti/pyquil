@@ -14,7 +14,7 @@ from pyquil.pyqvm import PyQVM
 from pyquil.quantum_processor import NxQuantumProcessor
 from pyquil.simulation._reference import ReferenceDensitySimulator, _is_valid_quantum_state
 from pyquil.simulation.tools import lifted_gate_matrix
-from pyquil.tests.utils import DummyCompiler
+from test.unit.utils import DummyCompiler
 
 
 def test_qaoa_density():

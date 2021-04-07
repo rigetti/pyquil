@@ -31,7 +31,7 @@ from pyquil.api._compiler_client import (
     CompileToNativeQuilRequest,
 )
 from pyquil.external.rpcq import CompilerISA, compiler_isa_to_target_quantum_processor
-from pyquil.tests.utils import run_rpcq_server
+from test.unit.utils import run_rpcq_server
 
 
 def test_init__sets_base_url_and_timeout(monkeypatch: MonkeyPatch):
