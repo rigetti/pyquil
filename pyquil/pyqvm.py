@@ -205,7 +205,7 @@ class PyQVM(QAM):
         # private implementation details
         self._qubit_to_ram: Optional[Dict[int, int]] = None
         self._ro_size: Optional[int] = None
-        self._memory_results = {}
+        self._memory_results = {}  # type: ignore
 
         self.rs = np.random.RandomState(seed=seed)
         self.wf_simulator = quantum_simulator_type(n_qubits=n_qubits, rs=self.rs)
@@ -256,8 +256,8 @@ class PyQVM(QAM):
             self.wf_simulator.reset()
             self._execute_program()
             for name in self.ram.keys():
-                self._memory_results.setdefault(name, list())  # type: ignore
-                self._memory_results[name].append(self.ram[name])  # type: ignore
+                self._memory_results.setdefault(name, list())
+                self._memory_results[name].append(self.ram[name])
 
         # TODO: this will need to be removed in merge conflict with #873
         self._bitstrings = self._memory_results["ro"]

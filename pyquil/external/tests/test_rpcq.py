@@ -21,7 +21,7 @@ def test_qubit_dead_serialization():
         gates=[],
         dead=True,
     )
-    assert qubit.dict()['dead'] is True
+    assert qubit.dict()["dead"] is True
 
 
 def test_edge_dead_serialization():
@@ -44,4 +44,4 @@ def test_edge_dead_serialization():
         gates=[],
         dead=True,
     )
-    assert edge.dict()['dead'] is True
+    assert edge.dict()["dead"] is True

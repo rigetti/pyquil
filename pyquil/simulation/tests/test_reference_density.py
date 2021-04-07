@@ -4,13 +4,14 @@ import pytest
 
 import pyquil.simulation.matrices as qmats
 from pyquil import Program
-from pyquil.api import QuantumComputer, Client
-from pyquil.quantum_processor import NxQuantumProcessor
+from pyquil.api import QCSClientConfiguration
+from pyquil.api import QuantumComputer
 from pyquil.experiment import ExperimentSetting, Experiment, zeros_state
 from pyquil.gates import CNOT, H, I, MEASURE, PHASE, RX, RY, RZ, X
 from pyquil.operator_estimation import measure_observables
 from pyquil.paulis import sI, sX, sY, sZ
 from pyquil.pyqvm import PyQVM
+from pyquil.quantum_processor import NxQuantumProcessor
 from pyquil.simulation._reference import ReferenceDensitySimulator, _is_valid_quantum_state
 from pyquil.simulation.tools import lifted_gate_matrix
 from pyquil.tests.utils import DummyCompiler
@@ -316,7 +317,7 @@ def test_multiqubit_decay_bellstate():
 
 
 @pytest.mark.slow
-def test_for_negative_probabilities(client: Client):
+def test_for_negative_probabilities(client_configuration: QCSClientConfiguration):
     # trivial program to do state tomography on
     prog = Program(I(0))
 
@@ -329,7 +330,7 @@ def test_for_negative_probabilities(client: Client):
     qc_density = QuantumComputer(
         name="testy!",
         qam=PyQVM(n_qubits=1, quantum_simulator_type=ReferenceDensitySimulator),
-        compiler=DummyCompiler(quantum_processor=device, client=client),
+        compiler=DummyCompiler(quantum_processor=device, client_configuration=client_configuration),
     )
 
     # initialize with a pure state
@@ -352,7 +353,7 @@ def test_for_negative_probabilities(client: Client):
         assert str(e) != "probabilities are not non-negative"
 
 
-def test_set_initial_state(client: Client):
+def test_set_initial_state(client_configuration: QCSClientConfiguration):
     # That is test the assigned state matrix in ReferenceDensitySimulator is persistent between
     # rounds of run.
     rho1 = np.array([[0.0, 0.0], [0.0, 1.0]])
@@ -367,7 +368,7 @@ def test_set_initial_state(client: Client):
     qc_density = QuantumComputer(
         name="testy!",
         qam=PyQVM(n_qubits=1, quantum_simulator_type=ReferenceDensitySimulator),
-        compiler=DummyCompiler(quantum_processor=device, client=client),
+        compiler=DummyCompiler(quantum_processor=device, client_configuration=client_configuration),
     )
 
     qc_density.qam.wf_simulator.set_initial_state(rho1).reset()

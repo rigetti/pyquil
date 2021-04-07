@@ -15,17 +15,15 @@
 ##############################################################################
 from typing import List, Optional, Sequence, cast
 
-import rpcq
-from rpcq.messages import (
-    RandomizedBenchmarkingRequest,
-    RandomizedBenchmarkingResponse,
-    ConjugateByCliffordRequest,
-    ConjugateByCliffordResponse,
-)
+from qcs_api_client.client import QCSClientConfiguration
 
-from pyquil.api import Client
-from pyquil.api._error_reporting import _record_call
 from pyquil.api._abstract_compiler import AbstractBenchmarker
+from pyquil.api._compiler_client import (
+    GenerateRandomizedBenchmarkingSequenceRequest,
+    ConjugatePauliByCliffordRequest,
+    CompilerClient,
+)
+from pyquil.api._error_reporting import _record_call
 from pyquil.paulis import PauliTerm, is_identity
 from pyquil.quil import address_qubits, Program
 from pyquil.quilbase import Gate
@@ -37,17 +35,18 @@ class BenchmarkConnection(AbstractBenchmarker):
     """
 
     @_record_call
-    def __init__(self, *, client: Optional[Client] = None, timeout: float = 10):
+    def __init__(self, *, timeout: float = 5.0, client_configuration: Optional[QCSClientConfiguration] = None):
         """
         Client to communicate with the benchmarking data endpoint.
 
-
-        :param client: Optional QCS client. If none is provided, a default client will be created.
         :param timeout: Time limit for requests, in seconds.
+        :param client_configuration: Optional client configuration. If none is provided, a default one will be loaded.
         """
 
-        self._client = client or Client()
-        self._timeout = timeout
+        self._compiler_client = CompilerClient(
+            client_configuration=client_configuration or QCSClientConfiguration.load(),
+            request_timeout=timeout,
+        )
 
     @_record_call
     def apply_clifford_to_pauli(self, clifford: Program, pauli_in: PauliTerm) -> PauliTerm:
@@ -68,14 +67,14 @@ class BenchmarkConnection(AbstractBenchmarker):
 
         indices_and_terms = list(zip(*list(pauli_in.operations_as_set())))
 
-        payload = ConjugateByCliffordRequest(
+        request = ConjugatePauliByCliffordRequest(
+            pauli_indices=list(indices_and_terms[0]),
+            pauli_symbols=list(indices_and_terms[1]),
             clifford=clifford.out(calibrations=False),
-            pauli=rpcq.messages.PauliTerm(indices=list(indices_and_terms[0]), symbols=list(indices_and_terms[1])),
         )
-        response: ConjugateByCliffordResponse = self._client.compiler_rpcq_request(
-            "conjugate_pauli_by_clifford", payload, timeout=self._timeout
-        )
-        phase_factor, paulis = response.phase, response.pauli
+        response = self._compiler_client.conjugate_pauli_by_clifford(request)
+
+        phase_factor, paulis = response.phase_factor, response.pauli
 
         pauli_out = PauliTerm("I", 0, 1.0j ** phase_factor)
         clifford_qubits = clifford.get_qubits()
@@ -137,16 +136,14 @@ class BenchmarkConnection(AbstractBenchmarker):
 
         depth = int(depth)  # needs to be jsonable, no np.int64 please!
 
-        payload = RandomizedBenchmarkingRequest(
+        request = GenerateRandomizedBenchmarkingSequenceRequest(
             depth=depth,
-            qubits=qubits,
+            num_qubits=qubits,
             gateset=gateset_for_api,
             seed=seed,
             interleaver=interleaver_out,
         )
-        response = self._client.compiler_rpcq_request(
-            "generate_rb_sequence", payload, timeout=self._timeout
-        )  # type: RandomizedBenchmarkingResponse
+        response = self._compiler_client.generate_randomized_benchmarking_sequence(request)
 
         programs = []
         for clifford in response.sequence:

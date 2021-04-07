@@ -5,16 +5,18 @@ from typing import Dict, Any
 
 import numpy as np
 import pytest
+import rpcq
 from qcs_api_client.client._configuration import QCSClientConfiguration
-from qcs_api_client.models import InstructionSetArchitecture
+from qcs_api_client.models import InstructionSetArchitecture, EngagementCredentials
 
 from pyquil.api import (
     QVMConnection,
     QVMCompiler,
-    Client,
     BenchmarkConnection,
 )
-from pyquil.api._qvm import QVMVersionMismatch
+from pyquil.external.rpcq import CompilerISA
+from pyquil.gates import I
+from pyquil.paulis import sX
 from pyquil.quantum_processor import QCSQuantumProcessor, CompilerQuantumProcessor
 from pyquil.quantum_processor.transformers.graph_to_compiler_isa import (
     DEFAULT_1Q_GATES,
@@ -22,13 +24,10 @@ from pyquil.quantum_processor.transformers.graph_to_compiler_isa import (
     _transform_edge_operation_to_gates,
     _transform_qubit_operation_to_gates,
 )
-from pyquil.external.rpcq import CompilerISA
-from pyquil.gates import I
-from pyquil.paulis import sX
 from pyquil.quil import Program
 from pyquil.tests.utils import DummyCompiler
 
-DIR_PATH = os.path.dirname(os.path.realpath(__file__))
+TEST_DATA_DIR = os.path.join(os.path.dirname(os.path.realpath(__file__)), "pyquil", "tests", "data")
 
 
 @pytest.fixture
@@ -44,40 +43,42 @@ def compiler_isa() -> CompilerISA:
     gates_2q = []
     for gate in DEFAULT_2Q_GATES:
         gates_2q.extend(_transform_edge_operation_to_gates(gate))
-    return CompilerISA.parse_obj({
-        "1Q": {
-            "0": {"id": 0, "gates": gates_1q},
-            "1": {"id": 1, "gates": gates_1q},
-            "2": {"id": 2, "gates": gates_1q},
-            "3": {"id": 3, "dead": True}
-        },
-        "2Q": {
-            "0-1": {"ids": [0, 1], "gates": gates_2q},
-            "1-2": {
-                "ids": [1, 2],
-                "gates": [
-                    {
-                        "operator_type": "gate",
-                        "operator": "ISWAP",
-                        "parameters": [],
-                        "arguments": ["_", "_"],
-                    }
-                ]
+    return CompilerISA.parse_obj(
+        {
+            "1Q": {
+                "0": {"id": 0, "gates": gates_1q},
+                "1": {"id": 1, "gates": gates_1q},
+                "2": {"id": 2, "gates": gates_1q},
+                "3": {"id": 3, "dead": True},
             },
-            "0-2": {
-                "ids": [0, 2],
-                "gates": [
-                    {
-                        "operator_type": "gate",
-                        "operator": "CPHASE",
-                        "parameters": ["theta"],
-                        "arguments": ["_", "_"],
-                    },
-                ]
+            "2Q": {
+                "0-1": {"ids": [0, 1], "gates": gates_2q},
+                "1-2": {
+                    "ids": [1, 2],
+                    "gates": [
+                        {
+                            "operator_type": "gate",
+                            "operator": "ISWAP",
+                            "parameters": [],
+                            "arguments": ["_", "_"],
+                        }
+                    ],
+                },
+                "0-2": {
+                    "ids": [0, 2],
+                    "gates": [
+                        {
+                            "operator_type": "gate",
+                            "operator": "CPHASE",
+                            "parameters": ["theta"],
+                            "arguments": ["_", "_"],
+                        },
+                    ],
+                },
+                "0-3": {"ids": [0, 3], "dead": True},
             },
-            "0-3": {"ids": [0, 3], "dead": True},
-        },
-    })
+        }
+    )
 
 
 @pytest.fixture()
@@ -91,7 +92,7 @@ def aspen8_compiler_isa() -> CompilerISA:
     Read the Aspen-8 QCS ``CompilerISA`` from file. This should be an exact conversion of
     qcs_aspen8_isa to a ``CompilerISA``.
     """
-    return CompilerISA.parse_file(f"{DIR_PATH}/pyquil/tests/data/compiler-isa-Aspen-8.json")
+    return CompilerISA.parse_file(os.path.join(TEST_DATA_DIR, "compiler-isa-Aspen-8.json"))
 
 
 @pytest.fixture
@@ -100,7 +101,7 @@ def qcs_aspen8_isa() -> InstructionSetArchitecture:
     Read the Aspen-8 QCS InstructionSetArchitecture from file and load it into
     the ``InstructionSetArchitecture`` QCS API client model.
     """
-    with open(f"{DIR_PATH}/pyquil/tests/data/qcs-isa-Aspen-8.json") as f:
+    with open(os.path.join(TEST_DATA_DIR, "qcs-isa-Aspen-8.json")) as f:
         return InstructionSetArchitecture.from_dict(json.load(f))
 
 
@@ -133,46 +134,71 @@ def noise_model_dict() -> Dict[str, Any]:
 
 
 @pytest.fixture(scope="session")
-def qvm(client: Client):
-    try:
-        qvm = QVMConnection(client=client, random_seed=52)
-        qvm.run(Program(I(0)), [])
-        return qvm
-    except QVMVersionMismatch as e:
-        return pytest.skip("This test requires a different version of the QVM: {}".format(e))
-    except Exception as e:
-        return pytest.skip("This test requires QVM connection: {}".format(e))
+def qvm_connection(client_configuration: QCSClientConfiguration):
+    return QVMConnection(
+        client_configuration=client_configuration,
+        random_seed=52,
+    )
 
 
 @pytest.fixture()
-def compiler(compiler_quantum_processor: CompilerQuantumProcessor, client: Client):
-    compiler = QVMCompiler(quantum_processor=compiler_quantum_processor, client=client, timeout=1)
+def compiler(compiler_quantum_processor: CompilerQuantumProcessor, client_configuration: QCSClientConfiguration):
+    compiler = QVMCompiler(
+        quantum_processor=compiler_quantum_processor, timeout=1, client_configuration=client_configuration
+    )
     program = Program(I(0))
     compiler.quil_to_native_quil(program)
     return compiler
 
 
 @pytest.fixture()
-def dummy_compiler(qcs_aspen8_quantum_processor: QCSQuantumProcessor, client: Client):
-    return DummyCompiler(qcs_aspen8_quantum_processor, client)
+def dummy_compiler(qcs_aspen8_quantum_processor: QCSQuantumProcessor, client_configuration: QCSClientConfiguration):
+    return DummyCompiler(qcs_aspen8_quantum_processor, client_configuration)
 
 
 @pytest.fixture(scope="session")
-def qcs_client_configuration() -> QCSClientConfiguration:
+def client_configuration() -> QCSClientConfiguration:
     return QCSClientConfiguration.load(
-        secrets_file_path=Path(f"{DIR_PATH}/tests/data/qcs_secrets.toml"),
-        settings_file_path=Path(f"{DIR_PATH}/tests/data/qcs_settings.toml"),
+        secrets_file_path=Path(os.path.join(TEST_DATA_DIR, "qcs_secrets.toml")),
+        settings_file_path=Path(os.path.join(TEST_DATA_DIR, "qcs_settings.toml")),
     )
 
 
-@pytest.fixture(scope="session")
-def client(qcs_client_configuration: QCSClientConfiguration) -> Client:
-    return Client(configuration=qcs_client_configuration)
+# Valid, sample Z85-encoded keys specified by zmq curve for testing:
+#   http://api.zeromq.org/master:zmq-curve#toc4
+CLIENT_PUBLIC_KEY = "Yne@$w-vo<fVvi]a<NY6T1ed:M$fCG*[IaLV{hID"
+CLIENT_SECRET_KEY = "D:)Q[IlAW!ahhC2ac:9*A}h:p?([4%wOTJ%JR%cs"
+SERVER_PUBLIC_KEY = "rq:rM>}U?@Lns47E1%kR.o@n%FcmmsL/@{H8]yf7"
+SERVER_SECRET_KEY = "JTKVSB%%)wK0E.X)V>+}o?pNmC{O&4W4b!Ni{Lh6"
 
 
 @pytest.fixture(scope="session")
-def benchmarker(client: Client):
-    bm = BenchmarkConnection(client=client, timeout=2)
+def engagement_credentials() -> EngagementCredentials:
+    return EngagementCredentials(
+        client_public=CLIENT_PUBLIC_KEY,
+        client_secret=CLIENT_SECRET_KEY,
+        server_public=SERVER_PUBLIC_KEY,
+    )
+
+
+@pytest.fixture(scope="function")
+def rpcq_server_with_auth() -> rpcq.Server:
+    auth_config = rpcq.ServerAuthConfig(
+        server_secret_key=SERVER_SECRET_KEY.encode(),
+        server_public_key=SERVER_PUBLIC_KEY.encode(),
+        client_keys_directory=os.path.join(TEST_DATA_DIR, "rpcq_client_key"),
+    )
+    return rpcq.Server(auth_config=auth_config)
+
+
+@pytest.fixture(scope="function")
+def rpcq_server() -> rpcq.Server:
+    return rpcq.Server()
+
+
+@pytest.fixture(scope="session")
+def benchmarker(client_configuration: QCSClientConfiguration):
+    bm = BenchmarkConnection(timeout=2, client_configuration=client_configuration)
     bm.apply_clifford_to_pauli(Program(I(0)), sX(0))
     return bm
 
@@ -195,9 +221,7 @@ def pytest_addoption(parser):
         default=True,
         help="run operator estimation tests faster by using a fixed random seed",
     )
-    parser.addoption(
-        "--runslow", action="store_true", default=False, help="run tests marked as being 'slow'"
-    )
+    parser.addoption("--runslow", action="store_true", default=False, help="run tests marked as being 'slow'")
 
 
 def pytest_configure(config):

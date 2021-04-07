@@ -1,16 +1,15 @@
 import numpy as np
-
 import pytest
 
 from pyquil import Program
+from pyquil.api import WavefunctionSimulator
+from pyquil.api import QCSClientConfiguration
 from pyquil.gates import H, CNOT
-
-from pyquil.api import WavefunctionSimulator, Client
 from pyquil.paulis import PauliSum, sZ, sX
 
 
-def test_wavefunction(client: Client):
-    wfnsim = WavefunctionSimulator(client=client)
+def test_wavefunction(client_configuration: QCSClientConfiguration):
+    wfnsim = WavefunctionSimulator(client_configuration=client_configuration)
     bell = Program(H(0), CNOT(0, 1))
     wfn = wfnsim.wavefunction(bell)
     np.testing.assert_allclose(wfn.amplitudes, 1 / np.sqrt(2) * np.array([1, 0, 0, 1]))
@@ -22,16 +21,16 @@ def test_wavefunction(client: Client):
     assert np.all(parity == 0)
 
 
-def test_random_seed(client: Client):
-    wfnsim = WavefunctionSimulator(client=client, random_seed=100)
+def test_random_seed(client_configuration: QCSClientConfiguration):
+    wfnsim = WavefunctionSimulator(client_configuration=client_configuration, random_seed=100)
     assert wfnsim.random_seed == 100
 
     with pytest.raises(TypeError):
-        WavefunctionSimulator(client=client, random_seed="NOT AN INTEGER")
+        WavefunctionSimulator(client_configuration=client_configuration, random_seed="NOT AN INTEGER")
 
 
-def test_expectation(client: Client):
-    wfnsim = WavefunctionSimulator(client=client)
+def test_expectation(client_configuration: QCSClientConfiguration):
+    wfnsim = WavefunctionSimulator(client_configuration=client_configuration)
     bell = Program(H(0), CNOT(0, 1))
     expects = wfnsim.expectation(bell, [sZ(0) * sZ(1), sZ(0), sZ(1), sX(0) * sX(1)])
     assert expects.size == 4
@@ -43,16 +42,16 @@ def test_expectation(client: Client):
     np.testing.assert_allclose(expects, [1])
 
 
-def test_run_and_measure(client: Client):
-    wfnsim = WavefunctionSimulator(client=client)
+def test_run_and_measure(client_configuration: QCSClientConfiguration):
+    wfnsim = WavefunctionSimulator(client_configuration=client_configuration)
     bell = Program(H(0), CNOT(0, 1))
     bitstrings = wfnsim.run_and_measure(bell, trials=1000)
     parity = np.sum(bitstrings, axis=1) % 2
     assert np.all(parity == 0)
 
 
-def test_run_and_measure_qubits(client: Client):
-    wfnsim = WavefunctionSimulator(client=client)
+def test_run_and_measure_qubits(client_configuration: QCSClientConfiguration):
+    wfnsim = WavefunctionSimulator(client_configuration=client_configuration)
     bell = Program(H(0), CNOT(0, 1))
     bitstrings = wfnsim.run_and_measure(bell, qubits=[0, 100], trials=1000)
     assert np.all(bitstrings[:, 1] == 0)
