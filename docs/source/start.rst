@@ -13,9 +13,9 @@ take you through the process of installing all three of these. We also step you 
 
 Upgrading or Installing pyQuil
 ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
-PyQuil 2.0 is our library for generating and executing Quil programs on the Rigetti Forest platform.
+pyQuil is our library for generating and executing Quil programs on the Rigetti Forest platform.
 
-Before you install, we recommend that you activate a Python 3.6+ virtual environment. Then, install pyQuil using
+Before you install, we recommend that you activate a Python 3.7+ virtual environment. Then, install pyQuil using
 `pip <https://pip.pypa.io/en/stable/quickstart/>`_:
 
 ::
@@ -34,13 +34,13 @@ source `here <https://github.com/rigetti/pyquil>`__.
 
 .. note::
 
-    PyQuil requires Python 3.6 or later.
+    pyQuil requires Python 3.7 or later.
 
 .. _sdkinstall:
 
 Downloading the QVM and Compiler
 ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
-The Forest 2.0 Downloadable SDK Preview currently contains:
+The Forest 3.0 Downloadable SDK Preview currently contains:
 
 -  The Rigetti Quantum Virtual Machine (``qvm``) which allows high-performance simulation of Quil programs
 -  The Rigetti Quil Compiler (``quilc``) which allows compilation and optimization of Quil programs to native gate sets
@@ -59,8 +59,8 @@ and Quil Compiler from the bare-bones package, you will have to install the prer
    You can also find the open source code for `quilc <http://github.com/rigetti/quilc>`__ and `qvm <http://github.com/rigetti/qvm>`__
    on GitHub, where you can find instructions for compiling, installing, and contributing to the compiler and QVM.
 
-Installing on Windows
----------------------
+Installing the QVM and Compiler on Windows
+------------------------------------------
 Download the Windows distribution by clicking on the appropriate link on the `SDK download page <https://qcs.rigetti.com/sdk-downloads>`__.
 Open the file ``forest-sdk.msi`` by double clicking on it in your Downloads folder, and follow the system prompts.
 
@@ -73,8 +73,8 @@ Upon successful installation, one should be able to open a new terminal window a
 
 To uninstall the Forest SDK, search for "Add or remove programs" in the Windows search bar. Click on "Add or remove programs" and, in the resulting window, search for "Forest SDK for Windows" in the list of applications and click on "Uninstall" to remove it.
 
-Installing on macOS
--------------------
+Installing the QVM and Compiler on macOS
+----------------------------------------
 Download the macOS distribution by clicking on the appropriate link on the `SDK download page <https://qcs.rigetti.com/sdk-downloads>`__.
 Mount the file ``forest-sdk.dmg`` by double clicking on it in your Downloads folder. From there, open ``forest-sdk.pkg`` by
 double-clicking on it. Follow the installation instructions.
@@ -212,7 +212,7 @@ or ``man quilc`` (for the compiler). Quit out of the manual page by typing ``q``
 
 .. _server:
 
-Setting Up Server Mode for PyQuil
+Setting Up Server Mode for pyQuil
 ---------------------------------
 
 .. note::
@@ -272,7 +272,7 @@ gates from the ``pyquil.gates`` module, which allows us to add operations to our
 
 .. note::
 
-    PyQuil also provides a handy function for you to ensure that a local qvm and quilc are currently running in
+    pyQuil also provides a handy function for you to ensure that a local qvm and quilc are currently running in
     your environment. To make sure both are available you execute ``from pyquil.api import local_forest_runtime`` and then use
     :py:func:`~pyquil.api.local_forest_runtime()`. This will start qvm and quilc instances using subprocesses if they have not already been started.
     You can also use it as a context manager as in the following example:
@@ -322,6 +322,5 @@ are running, you should see output printed to the console regarding the requests
 
 
 In the following sections, we'll cover gates, program construction & execution, and go into detail about our Quantum
-Virtual Machine, our QPUs, noise models and more. If you've used pyQuil before, continue on to our :ref:`quickstart`.
-Once you're set with that, jump to :ref:`basics` to continue.
+Virtual Machine, our QPUs, noise models and more. Let's start with the :ref:`basics`.
 

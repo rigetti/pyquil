@@ -3,7 +3,7 @@
 The Quantum Computer
 ====================
 
-PyQuil is used to build Quil (Quantum Instruction Language) programs and execute them on simulated or real quantum processors. Quil is an opinionated
+pyQuil is used to build Quil (Quantum Instruction Language) programs and execute them on simulated or real quantum processors. Quil is an opinionated
 quantum instruction language: its basic belief is that in the near term quantum computers will
 operate as coprocessors, working in concert with traditional CPUs. This means that Quil is designed to execute on
 a Quantum Abstract Machine (QAM) that has a shared classical/quantum architecture at its core.
@@ -186,7 +186,7 @@ QPU lattice for a particular time block.
 When your reservation begins, you will be authorized to access the QPU. A configuration file will be
 automatically populated for you with the proper QPU endpoint for your reservation. Both your QMI and the QPU
 are located on premises, giving you low latency access to the QPU server. That server accepts jobs in the form
-of a ``BinaryExecutableRequest`` object, which is precisely what you get back when you compile your program in
+of a ``BinaryExecutableRequest`` object, which is similar to what you get back when you compile your program in
 pyQuil and target the QPU (more on this soon).  This request contains all the information necessary to run
 your program on the control rack which sends and receives waveforms from the QPU, so that you can receive
 classical binary readout results.

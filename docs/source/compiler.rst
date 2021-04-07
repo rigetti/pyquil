@@ -57,7 +57,7 @@ as in the following:
 
     ep = qc.compile(Program(H(0), CNOT(0,1), CNOT(1,2)))
 
-    print(ep.program) # here ep is of type PyquilExecutableResponse, which is not always inspectable
+    print(ep.program)
 
 with output
 
@@ -111,18 +111,17 @@ the previous example snippet is identical to the following:
     print(np.metadata)
 
     ep = qc.compiler.native_quil_to_executable(np)
-    print(ep.program) # here ep is of type PyquilExecutableResponse, which is not always inspectable
+    print(ep.program)
 
 Timeouts
 --------
 
 If your circuit is sufficiently complex the compiler may require more time than is permitted by
-default (``10`` seconds). To change this timeout, either use the `compiler_timeout` option to
-`get_qc`
+default (``5`` seconds). To change this timeout, either use the `timeout` option on `get_qc`
 
 .. code:: python
 
-    qc = get_qc(..., compiler_timeout=100) # 100 seconds
+    qc = get_qc(..., timeout=100) # 100 seconds
 
 or use the `set_timeout` method on the compiler object:
 
