@@ -14,7 +14,7 @@ readme = ""
 setup(
     long_description=readme,
     name="pyquil",
-    version="3.0.0-rc.7",
+    version="3.0.0-rc.8",
     python_requires="==3.*,>=3.7.0",
     packages=[
         "pyquil",
@@ -37,9 +37,8 @@ setup(
     package_data={
         "pyquil": ["*.typed"],
         "pyquil._parser": ["*.lark", "*.md"],
-        "pyquil.api.tests": ["data/*.ini", "data/*.json"],
         "pyquil.external": ["*.md"],
-        "pyquil.tests": ["data/*.json", "data/*.quil", "data/*.toml"],
+        "pyquil.tests": ["data/*.json", "data/*.quil", "data/*.toml", "data/rpcq_client_key/*.key"],
     },
     install_requires=[
         'importlib-metadata==3.*,>=3.7.3; python_version < "3.8"',
