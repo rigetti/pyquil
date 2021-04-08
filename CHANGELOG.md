@@ -23,6 +23,8 @@ Changelog
   only accepts a `Program`, and `QVM.requires_executable` has been removed.
   
 - `QPU.get_version_info()` has been removed.
+
+- `QPU.get_calibration_program()` as been removed in favor of `QPU.calibration_program` (and optionally `QPU.refresh_calibration_program()`).
   
 - `get_benchmarker()` has been removed in favor of calling `BenchmarkConnection` constructor directly.
 
