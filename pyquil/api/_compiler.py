@@ -139,6 +139,11 @@ class QPUCompiler(AbstractCompiler):
             response = get_quilt_calibrations(client=qcs_client, quantum_processor_id=self.quantum_processor_id).parsed
         return parse_program(response.quilt)
 
+    @_record_call
+    def refresh_calibration_program(self) -> None:
+        """Refresh the calibration program cache."""
+        self._calibration_program = self._get_calibration_program()
+
     @property  # type: ignore
     @_record_call
     def calibration_program(self) -> Program:
@@ -153,10 +158,11 @@ class QPUCompiler(AbstractCompiler):
         :returns: A Program object containing the calibration definitions."""
         if self._calibration_program is None:
             try:
-                self._calibration_program = self._get_calibration_program()
+                self.refresh_calibration_program()
             except Exception as ex:
                 raise RuntimeError("Could not refresh calibrations") from ex
 
+        assert self._calibration_program is not None
         return self._calibration_program
 
     @_record_call
