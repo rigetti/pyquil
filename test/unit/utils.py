@@ -26,13 +26,13 @@ def run_rpcq_server(server: rpcq.Server, port: int):
         exception = None
 
         while not connected and tries < 2:
+            time.sleep(0.25)
             s = socket()
             try:
                 s.connect(("localhost", port))
                 connected = True
             except Exception as ex:
                 exception = ex
-                time.sleep(0.25)
             finally:
                 s.close()
 

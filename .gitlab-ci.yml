@@ -64,11 +64,6 @@ Style:
   script:
     - . scripts/ci_install_deps
     - poetry run make check-all
-  rules:
-    # Skip this job if it was triggered by a tag
-    - if: "$CI_COMMIT_TAG"
-      when: never
-    - when: always
 
 Test Unit (3.7):
   stage: test
@@ -85,6 +80,8 @@ Test e2e (3.7):
   script:
     - . scripts/ci_install_deps
     - poetry run make e2e
+  rules:
+    - if: '$CI_COMMIT_BRANCH == $CI_DEFAULT_BRANCH || $CI_COMMIT_BRANCH == "rc"'
 
 Test Unit (3.8):
   stage: test
@@ -101,6 +98,8 @@ Test e2e (3.8):
   script:
     - . scripts/ci_install_deps
     - poetry run make e2e
+  rules:
+    - if: '$CI_COMMIT_BRANCH == $CI_DEFAULT_BRANCH || $CI_COMMIT_BRANCH == "rc"'
 
 Coverage:
   stage: test
