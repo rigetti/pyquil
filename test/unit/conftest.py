@@ -1,5 +1,7 @@
 import json
 import os
+import random
+import socket
 from pathlib import Path
 from typing import Dict, Any
 
@@ -25,7 +27,7 @@ from pyquil.quantum_processor.transformers.graph_to_compiler_isa import (
     _transform_qubit_operation_to_gates,
 )
 from pyquil.quil import Program
-from test.unit.utils import DummyCompiler
+from test.unit.utils import DummyCompiler, CLIENT_PUBLIC_KEY, CLIENT_SECRET_KEY, SERVER_PUBLIC_KEY, SERVER_SECRET_KEY
 
 TEST_DATA_DIR = os.path.join(os.path.dirname(os.path.realpath(__file__)), "data")
 
@@ -164,14 +166,6 @@ def client_configuration() -> QCSClientConfiguration:
     )
 
 
-# Valid, sample Z85-encoded keys specified by zmq curve for testing:
-#   http://api.zeromq.org/master:zmq-curve#toc4
-CLIENT_PUBLIC_KEY = "Yne@$w-vo<fVvi]a<NY6T1ed:M$fCG*[IaLV{hID"
-CLIENT_SECRET_KEY = "D:)Q[IlAW!ahhC2ac:9*A}h:p?([4%wOTJ%JR%cs"
-SERVER_PUBLIC_KEY = "rq:rM>}U?@Lns47E1%kR.o@n%FcmmsL/@{H8]yf7"
-SERVER_SECRET_KEY = "JTKVSB%%)wK0E.X)V>+}o?pNmC{O&4W4b!Ni{Lh6"
-
-
 @pytest.fixture(scope="session")
 def engagement_credentials() -> EngagementCredentials:
     return EngagementCredentials(
@@ -194,6 +188,17 @@ def rpcq_server_with_auth() -> rpcq.Server:
 @pytest.fixture(scope="function")
 def rpcq_server() -> rpcq.Server:
     return rpcq.Server()
+
+
+@pytest.fixture(scope="function")
+def port() -> int:
+    while True:
+        p = random.randint(10000, 60000)
+        sock = socket.socket()
+        err = sock.connect_ex(("localhost", p))
+        sock.close()
+        if err != 0:  # 0 => port in use
+            return p
 
 
 @pytest.fixture(scope="session")

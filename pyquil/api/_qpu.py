@@ -122,15 +122,22 @@ class QPU(QAM):
         """
         super().__init__()
 
-        self.quantum_processor_id = quantum_processor_id
         self.priority = priority
-        self._timeout = timeout
 
         client_configuration = client_configuration or QCSClientConfiguration.load()
-        self._engagement_manager = engagement_manager or EngagementManager(client_configuration=client_configuration)
-
+        engagement_manager = engagement_manager or EngagementManager(client_configuration=client_configuration)
+        self._qpu_client = QPUClient(
+            quantum_processor_id=quantum_processor_id,
+            engagement_manager=engagement_manager,
+            request_timeout=timeout,
+        )
         self._last_results: Dict[str, np.ndarray] = {}
         self._memory_results: Dict[str, Optional[np.ndarray]] = defaultdict(lambda: None)
+
+    @property
+    def quantum_processor_id(self) -> str:
+        """ID of quantum processor targeted."""
+        return self._qpu_client.quantum_processor_id
 
     @_record_call
     def load(self, executable: QuantumExecutable) -> "QPU":
@@ -177,7 +184,7 @@ class QPU(QAM):
             program=self.executable.program,
             patch_values=self._build_patch_values(),
         )
-        job_id = self._qpu_client().run_program(request).job_id
+        job_id = self._qpu_client.run_program(request).job_id
         results = self._get_buffers(job_id)
         ro_sources = self.executable.ro_sources
 
@@ -198,13 +205,6 @@ class QPU(QAM):
 
         return self
 
-    def _qpu_client(self) -> QPUClient:
-        engagement = self._engagement_manager.get_engagement(
-            quantum_processor_id=self.quantum_processor_id,
-            request_timeout=self._timeout,
-        )
-        return QPUClient(engagement=engagement, request_timeout=self._timeout)
-
     def _get_buffers(self, job_id: str) -> Dict[str, np.ndarray]:
         """
         Return the decoded result buffers for particular job_id.
@@ -213,7 +213,7 @@ class QPU(QAM):
         :return: Decoded buffers or throw an error
         """
         request = GetBuffersRequest(job_id=job_id, wait=True)
-        buffers = self._qpu_client().get_buffers(request).buffers
+        buffers = self._qpu_client.get_buffers(request).buffers
         return {k: decode_buffer(v) for k, v in buffers.items()}
 
     def _build_patch_values(self) -> Dict[str, List[Union[int, float]]]:

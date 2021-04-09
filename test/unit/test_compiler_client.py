@@ -13,6 +13,7 @@
 #    See the License for the specific language governing permissions and
 #    limitations under the License.
 ##############################################################################
+import time
 from typing import Dict
 
 import rpcq
@@ -34,17 +35,17 @@ from pyquil.external.rpcq import CompilerISA, compiler_isa_to_target_quantum_pro
 from test.unit.utils import run_rpcq_server
 
 
-def test_init__sets_base_url_and_timeout(monkeypatch: MonkeyPatch):
-    monkeypatch.setenv("QCS_SETTINGS_APPLICATIONS_PYQUIL_QUILC_URL", "tcp://localhost:5557")
+def test_init__sets_base_url_and_timeout(monkeypatch: MonkeyPatch, port: int):
+    monkeypatch.setenv("QCS_SETTINGS_APPLICATIONS_PYQUIL_QUILC_URL", f"tcp://localhost:{port}")
     client_configuration = QCSClientConfiguration.load()
 
     compiler_client = CompilerClient(client_configuration=client_configuration, request_timeout=3.14)
 
-    assert compiler_client.base_url == "tcp://localhost:5557"
+    assert compiler_client.base_url == f"tcp://localhost:{port}"
     assert compiler_client.timeout == 3.14
 
 
-def test_init__validates_compiler_url(monkeypatch: MonkeyPatch):
+def test_init__validates_compiler_url(monkeypatch: MonkeyPatch, port: int):
     monkeypatch.setenv("QCS_SETTINGS_APPLICATIONS_PYQUIL_QUILC_URL", "not-http-or-tcp://example.com")
     client_configuration = QCSClientConfiguration.load()
 
@@ -55,8 +56,22 @@ def test_init__validates_compiler_url(monkeypatch: MonkeyPatch):
         CompilerClient(client_configuration=client_configuration)
 
 
-def test_get_version__returns_version(rpcq_server: rpcq.Server, monkeypatch: MonkeyPatch):
-    monkeypatch.setenv("QCS_SETTINGS_APPLICATIONS_PYQUIL_QUILC_URL", "tcp://localhost:5557")
+def test_sets_timeout_on_requests(rpcq_server: rpcq.Server, monkeypatch: MonkeyPatch, port: int):
+    monkeypatch.setenv("QCS_SETTINGS_APPLICATIONS_PYQUIL_QUILC_URL", f"tcp://localhost:{port}")
+    client_configuration = QCSClientConfiguration.load()
+    compiler_client = CompilerClient(client_configuration=client_configuration, request_timeout=0.1)
+
+    @rpcq_server.rpc_handler
+    def get_version_info():
+        time.sleep(compiler_client.timeout * 2)
+
+    with run_rpcq_server(rpcq_server, port):
+        with raises(TimeoutError, match=f"Timeout on client tcp://localhost:{port}, method name get_version_info"):
+            compiler_client.get_version()
+
+
+def test_get_version__returns_version(rpcq_server: rpcq.Server, monkeypatch: MonkeyPatch, port: int):
+    monkeypatch.setenv("QCS_SETTINGS_APPLICATIONS_PYQUIL_QUILC_URL", f"tcp://localhost:{port}")
     client_configuration = QCSClientConfiguration.load()
     compiler_client = CompilerClient(client_configuration=client_configuration)
 
@@ -64,14 +79,17 @@ def test_get_version__returns_version(rpcq_server: rpcq.Server, monkeypatch: Mon
     def get_version_info() -> Dict[str, str]:
         return {"quilc": "1.2.3"}
 
-    with run_rpcq_server(rpcq_server, 5557):
+    with run_rpcq_server(rpcq_server, port):
         assert compiler_client.get_version() == "1.2.3"
 
 
 def test_compile_to_native_quil__returns_native_quil(
-    rpcq_server: rpcq.Server, aspen8_compiler_isa: CompilerISA, monkeypatch: MonkeyPatch
+    rpcq_server: rpcq.Server,
+    aspen8_compiler_isa: CompilerISA,
+    monkeypatch: MonkeyPatch,
+    port: int,
 ):
-    monkeypatch.setenv("QCS_SETTINGS_APPLICATIONS_PYQUIL_QUILC_URL", "tcp://localhost:5557")
+    monkeypatch.setenv("QCS_SETTINGS_APPLICATIONS_PYQUIL_QUILC_URL", f"tcp://localhost:{port}")
     client_configuration = QCSClientConfiguration.load()
     compiler_client = CompilerClient(client_configuration=client_configuration)
 
@@ -98,7 +116,7 @@ def test_compile_to_native_quil__returns_native_quil(
             ),
         )
 
-    with run_rpcq_server(rpcq_server, 5557):
+    with run_rpcq_server(rpcq_server, port):
         request = CompileToNativeQuilRequest(
             program="some-program",
             target_quantum_processor=compiler_isa_to_target_quantum_processor(aspen8_compiler_isa),
@@ -119,8 +137,10 @@ def test_compile_to_native_quil__returns_native_quil(
         )
 
 
-def test_conjugate_pauli_by_clifford__returns_conjugation_result(rpcq_server: rpcq.Server, monkeypatch: MonkeyPatch):
-    monkeypatch.setenv("QCS_SETTINGS_APPLICATIONS_PYQUIL_QUILC_URL", "tcp://localhost:5557")
+def test_conjugate_pauli_by_clifford__returns_conjugation_result(
+    rpcq_server: rpcq.Server, monkeypatch: MonkeyPatch, port: int
+):
+    monkeypatch.setenv("QCS_SETTINGS_APPLICATIONS_PYQUIL_QUILC_URL", f"tcp://localhost:{port}")
     client_configuration = QCSClientConfiguration.load()
     compiler_client = CompilerClient(client_configuration=client_configuration)
 
@@ -134,7 +154,7 @@ def test_conjugate_pauli_by_clifford__returns_conjugation_result(rpcq_server: rp
         )
         return rpcq.messages.ConjugateByCliffordResponse(phase=42, pauli="pauli")
 
-    with run_rpcq_server(rpcq_server, 5557):
+    with run_rpcq_server(rpcq_server, port):
         request = ConjugatePauliByCliffordRequest(
             pauli_indices=[0, 1, 2],
             pauli_symbols=["x", "y", "z"],
@@ -147,9 +167,11 @@ def test_conjugate_pauli_by_clifford__returns_conjugation_result(rpcq_server: rp
 
 
 def test_generate_randomized_benchmarking_sequence__returns_benchmarking_sequence(
-    rpcq_server: rpcq.Server, monkeypatch: MonkeyPatch
+    rpcq_server: rpcq.Server,
+    monkeypatch: MonkeyPatch,
+    port: int,
 ):
-    monkeypatch.setenv("QCS_SETTINGS_APPLICATIONS_PYQUIL_QUILC_URL", "tcp://localhost:5557")
+    monkeypatch.setenv("QCS_SETTINGS_APPLICATIONS_PYQUIL_QUILC_URL", f"tcp://localhost:{port}")
     client_configuration = QCSClientConfiguration.load()
     compiler_client = CompilerClient(client_configuration=client_configuration)
 
@@ -166,7 +188,7 @@ def test_generate_randomized_benchmarking_sequence__returns_benchmarking_sequenc
         )
         return rpcq.messages.RandomizedBenchmarkingResponse(sequence=[[3, 1, 4], [1, 6, 1]])
 
-    with run_rpcq_server(rpcq_server, 5557):
+    with run_rpcq_server(rpcq_server, port):
         request = GenerateRandomizedBenchmarkingSequenceRequest(
             depth=42,
             num_qubits=3,
