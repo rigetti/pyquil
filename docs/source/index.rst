@@ -38,11 +38,10 @@ you can also check out :ref:`intro`. There, you’ll learn the basic concepts ne
    concert with traditional processors to run hybrid quantum-classical algorithms. For references on problems addressable
    with near-term quantum computers, see `Quantum Computing in the NISQ era and beyond <https://arxiv.org/abs/1801.00862>`_.
 
-Our flagship product `Quantum Cloud Services <https://qcs.rigetti.com/request-access>`_ (QCS) offers users an on-premise, dedicated access
-point to our quantum computers. This access point is a fully-configured VM, which we call a Quantum Machine Image. A QMI
-is bundled with the same downloadable SDK mentioned above, and a command line interface (CLI), which is used for
-scheduling compute time on our quantum computers. To sign up for our waitlist, please click the link above. If you'd like
-to access to our quantum computers for research, please email support@rigetti.com.
+Our flagship product `Quantum Cloud Services <https://qcs.rigetti.com/request-access>`_ (QCS) offers users remote access
+to our quantum computers. Each QCS user will have a dedicated JupyterLab notebook deployed with the same downloadable SDK mentioned above.
+It also comes deployed with the QCS CLI, used for scheduling dedicated compute time on our quantum computers. To sign up for our waitlist,
+please click the link above. If you'd like to access to our quantum computers for research, please email support@rigetti.com.
 
 .. note::
 

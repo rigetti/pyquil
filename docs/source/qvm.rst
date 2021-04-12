@@ -179,17 +179,9 @@ The Quantum Processing Unit (QPU)
 ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
 
 To access a QPU endpoint, you will have to `sign up <https://www.rigetti.com/>`_ for Quantum Cloud Services (QCS).
-Documentation for getting started with your Quantum Machine Image (QMI) is found
-`here <https://www.rigetti.com/qcs/docs/intro-to-qcs>`_. Using QCS, you will ``ssh`` into your QMI, and reserve a
-QPU lattice for a particular time block.
-
-When your reservation begins, you will be authorized to access the QPU. A configuration file will be
-automatically populated for you with the proper QPU endpoint for your reservation. Both your QMI and the QPU
-are located on premises, giving you low latency access to the QPU server. That server accepts jobs in the form
-of a ``BinaryExecutableRequest`` object, which is similar to what you get back when you compile your program in
-pyQuil and target the QPU (more on this soon).  This request contains all the information necessary to run
-your program on the control rack which sends and receives waveforms from the QPU, so that you can receive
-classical binary readout results.
+Documentation for getting started can be found `here <https://www.rigetti.com/qcs/docs/intro-to-qcs>`_. The
+documentation will show you how to reserve time on a QPU. When your reservation begins, you will be authorized to
+access the QPU, and you can submit requests using pyQuil.
 
 For information on available lattices, you can check out your dashboard at https://qcs.rigetti.com/dashboard after you've
 been invited to QCS.
@@ -267,7 +259,7 @@ All of this can be accomplished with :py:func:`~pyquil.api.get_qc`.
     qc = get_qc(f"{number_of_qubits}q-qvm")
 
 For now, you will have to join QCS to get ``QPU_LATTICE_NAME`` by running the
-``qcs lattices`` command from your QMI. Access to the QPU is only possible from a QMI, during a booked reservation.
+``qcs lattices`` command via the QCS CLI. Access to the QPU is only possible during a booked reservation.
 If this sounds unfamiliar, check out our `documentation for QCS <https://www.rigetti.com/qcs/docs/intro-to-qcs>`_
 and `join the waitlist <https://www.rigetti.com/>`_.
 

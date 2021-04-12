@@ -147,7 +147,7 @@ make check-all
 ### Running the Tests
 
 We use `pytest` to run the pyQuil unit tests. These are run automatically on Python 3.7 and
-3.8 as part of the CI pipeline. But, you can run them yourself locally as well. Many of the
+3.8 as part of the CI pipeline, but you can run them yourself locally as well. Many of the
 tests depend on having running QVM and quilc servers. To start them, run each of the following
 in a separate terminal window:
 

@@ -216,7 +216,8 @@ Setting Up Server Mode for pyQuil
 ---------------------------------
 
 .. note::
-    This set up is only necessary to run pyQuil locally. If you're running in a QMI, this has already been done for you.
+    This set up is only necessary to run pyQuil locally. If you're running from your JupyterLab notebook, this has
+    already been done for you.
 
 It's easy to start up local servers for the QVM and quilc on your laptop. You should have two terminal windows open
 to run in the background. We recommend using a resource such as ``tmux`` for running and managing multiple programs in one
