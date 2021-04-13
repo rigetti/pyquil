@@ -14,14 +14,16 @@ Changelog
 
 - `PyquilConfig` has been replaced by `api.QCSClientConfiguration`. As a result, the only supported configuration-related
    environment variables are:
-    - `QCS_SETTINGS_APPLICATIONS_PYQUIL_QVM_URL` (replaces `QVM_URL`), and
+    - `QCS_SETTINGS_APPLICATIONS_PYQUIL_QVM_URL` (replaces `QVM_URL`)
     - `QCS_SETTINGS_APPLICATIONS_PYQUIL_QUILC_URL` (replaces `QUILC_URL`)
+    - `QCS_SETTINGS_FILE_PATH` (overrides location for `settings.toml`)
+    - `QCS_SECRETS_FILE_PATH` (overrides location for `secrets.toml`)
 
 - `ForestConnection` and `ForestSession` have been removed. Connection information is now managed via `api.QCSClientConfiguration`
   and `api.EngagementManager`.
   
-- `QVMCompiler` now produces a `Program` instead of a `PyQuilExecutableResponse`. As a result, `QVM.load()` always
-  only accepts a `Program`, and `QVM.requires_executable` has been removed.
+- `QVMCompiler` now produces a `Program` instead of a `PyQuilExecutableResponse`. As a result, `QVM.load()` only
+  accepts a `Program`, and `QVM.requires_executable` has been removed.
   
 - `QPU.get_version_info()` has been removed.
 

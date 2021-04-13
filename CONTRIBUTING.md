@@ -10,7 +10,7 @@ If all you want to do is ask a question, you should do so in our
 [Rigetti Forest Slack Workspace][slack-invite] rather than opening an issue. Otherwise,
 read on to learn more!
 
-This project and everyone participating in it is governed by pyQuil's
+This project and everyone participating in it are governed by pyQuil's
 [Code of Conduct](.github/CODE_OF_CONDUCT.md). In contributing, you are expected
 to uphold this code. Please report unacceptable behavior by contacting support@rigetti.com.
 
@@ -31,9 +31,11 @@ Table of Contents
 
 [Developer How-Tos](#developer-how-tos)
 
+- [Install Dependencies](#install-dependencies)
+
 - [Style Guidelines](#style-guidelines)
 
-- [Running the Unit Tests](#running-the-unit-tests)
+- [Running the Tests](#running-the-tests)
 
 - [Building the Docs](#building-the-docs)
 
@@ -47,11 +49,7 @@ Table of Contents
 
 - [Managing the CI Pipelines](#managing-the-ci-pipelines)
 
-- [Drafting a Release](#drafting-a-release)
-
-- [Publishing a Package on PyPI](#publishing-a-package-on-pypi)
-
-- [Publishing a Package on conda-forge](#publishing-a-package-on-conda-forge)
+- [Release Process](#release-process)
 
 - [Issue and PR Labels](#issue-and-pr-labels)
 
@@ -102,12 +100,19 @@ for [Jupyter][jupyter] notebooks. We're always looking for new tutorials to help
 learn about quantum programming, so if you'd like to contribute one, make a pull request
 to that repository directly!
 
-[forest-tutorials]: https://github.com/rigetti/forest-tutorials
-[jupyter]: https://jupyter.org/
-[mybinder]: https://mybinder.org
-
 Developer How-Tos
 -----------------
+
+### Install Dependencies
+
+Before running any of the below commands, you'll need to install [Poetry][poetry] and run the
+following from the top-level directory of this repo:
+
+```bash
+poetry install
+```
+
+[poetry]: https://python-poetry.org
 
 ### Style Guidelines
 
@@ -122,8 +127,7 @@ saves a lot of time by removing the need for style nitpicks in PR review. We onl
 default behavior in one category: we choose to use a line length of 100 rather than the Black
 default of 88 (this is configured in the [`pyproject.toml`](pyproject.toml) file). As for `flake8`,
 we ignore a couple of its rules (all for good reasons), and the specific configuration can be
-found in the [`.flake8`](.flake8) file. We additionally use the [`flake8-bugbear`][bugbear]
-plugin to add a collection of helpful and commonly observed style rules.
+found in the [`.flake8`](.flake8) file.
 
 In addition to linting and formatting, we use type hints for all parameters and return values,
 following the [PEP 484 syntax][pep-484]. This is enforced as part of the CI via the command
@@ -140,55 +144,77 @@ following:
 make check-all
 ```
 
-[bugbear]: https://github.com/PyCQA/flake8-bugbear
-[pep-484]: https://www.python.org/dev/peps/pep-0484/
-[sphinx]: https://sphinx-rtd-tutorial.readthedocs.io/en/latest/docstrings.html
+### Running the Tests
 
-### Running the Unit Tests
+We use `pytest` to run the pyQuil unit tests. These are run automatically on Python 3.7 and
+3.8 as part of the CI pipeline, but you can run them yourself locally as well. Many of the
+tests depend on having running QVM and quilc servers. To start them, run each of the following
+in a separate terminal window:
 
-We use `pytest` to run the pyQuil unit tests. These are run automatically on Python 3.6 and
-3.7 as part of the CI pipeline. But, you can run them yourself locally as well. Some of the
-tests depend on having running QVM and quilc servers, and otherwise will be skipped. Thus,
-to run the tests, you should begin by spinning up these servers via `qvm -S` and `quilc -S`,
-respectively. Once this is done, run `pytest` in the top-level directory of pyQuil, and the
-full unit test suite will start!
+```bash
+docker run --rm -it -p 5555:5555 rigetti/quilc -R -P
+```
+
+```bash
+docker run --rm -it -p 5000:5000 rigetti/qvm -S
+```
+
+> **Note:** The above commands require [Docker][docker], but you can also download the QVM and
+> quilc as part of the [Forest SDK][forest], and run them directly with `qvm -S` and
+> `quilc -R -P`, respectively.
+
+Once the QVM and quilc servers are running, you can run all the unit/integration tests with:
+
+```bash
+make test
+```
+
+To skip [slow tests](#slow-tests), you may run:
+
+```bash
+make test-fast
+```
+
+If you have access to a real Rigetti QPU via QCS (as opposed to a local QVM), you can run end-to-end
+tests with:
+
+```bash
+make e2e TEST_QUANTUM_PROCESSOR=<quantum processor ID>
+```
+
+Or you may run all tests (unit/integration/e2e) with:
+
+```bash
+make test-all TEST_QUANTUM_PROCESSOR=<quantum processor ID>
+```
 
 #### Slow Tests
 
 Some tests (particularly those related to operator estimation and readout symmetrization)
 require a nontrivial amount of computation. For this reason, they have been marked
-as slow and are not run by default unless `pytest` is given the `--runslow` option,
-which is defined in the [`conftest.py`](conftest.py) file. The full command is as follows:
-
-```bash
-pytest --runslow
-```
+as slow and are not run unless `pytest` is given the `--runslow` option, which is defined
+in the [`conftest.py`](test/unit/conftest.py) file.
 
 For a full, up-to-date list of these slow tests, you may invoke (from the top-level directory):
 
 ```bash
-grep -A 1 -r pytest.mark.slow  pyquil/tests/
+grep -A 1 -r pytest.mark.slow  test/unit/
 ```
 
 #### Seeded Tests
 
 When making considerable changes to `operator_estimation.py`, we recommend that you set the
-`pytest` option `--use-seed` (as defined in [`conftest.py`](conftest.py)) to `False` to make
-sure you have not broken anything. Thus, the command is:
+`pytest` option `--use-seed` (as defined in [`conftest.py`](test/unit/conftest.py)) to `False`
+to make sure you have not broken anything. Thus, the command is:
 
 ```bash
-pytest --use-seed=False
+pytest --use-seed=False <path/to/test-file-or-dir>
 ```
 
 #### Code Coverage
 
 In addition to testing the source code for correctness, we use `pytest` and the `pytest-cov`
-plugin to calculate code coverage as part of the CI pipeline (via the `make test` command).
-To produce this coverage report locally, run the following from the top-level directory:
-
-```bash
-pytest --cov=pyquil
-```
+plugin to calculate code coverage (via the `make test` command).
 
 The coverage report omits the autogenerated parser code, the `external` module, and all of
 the test code (as is specified in the [`.coveragerc`](.coveragerc) configuration file).
@@ -200,7 +226,7 @@ trying to accomplish. For example, if you want to carefully test the operator es
 code, run all of the slow tests, and also calculate code coverage, you could run:
 
 ```bash
-pytest --cov=pyquil --use-seed=False --runslow
+pytest --cov=pyquil --use-seed=False --runslow <path/to/test-file-or-dir>
 ```
 
 ### Building the Docs
@@ -210,12 +236,10 @@ However, you can also build them locally to make sure that everything renders co
 [Sphinx](http://www.sphinx-doc.org/en/master/) to build the documentation, and
 then host it on [Read the Docs](https://readthedocs.org/) (RTD).
 
-Before you can build the docs locally, you must make sure to install the additional
-Python-based requirements by running `pip install -r requirements.txt`, which will pick up
-the Sphinx RTD theme and autodocumentation functionality. In addition, you will need to
-install `pandoc` via your favorite OS-level package manager (e.g. `brew`, `apt`, `yum`) in
-order to convert the [Changelog](CHANGELOG.md) into reStructuredText (RST). Once you have done
-this, run the following from the top-level directory:
+Before you can build the docs locally, you must make sure to install `pandoc` via your favorite
+OS-level package manager (e.g. `brew`, `apt`, `yum`) in order to convert the [Changelog](CHANGELOG.md)
+into reStructuredText (RST). Once you have done this, run the following from the top-level directory
+of this repo:
 
 ```bash
 make docs
@@ -247,10 +271,10 @@ creates an image tagged by a shortened version of the current git commit hash (r
 `docker images` to see all local images). To then start a container from this image, run:
 
 ```bash
-docker run -it rigetti/forest:COMMIT_HASH
+docker run -it rigetti/forest:<commit hash>
 ```
 
-Where `COMMIT_HASH` is replaced by the actual git commit hash. This will drop you into an
+Where `<commit hash>` is replaced by the actual git commit hash. This will drop you into an
 `ipython` REPL with pyQuil installed and `quilc` / `qvm` servers running in the background.
 Exiting the REPL (via `C-d`) will additionally shut down the Docker container and return
 you to the shell that ran the image. Docker images typically only have one running process,
@@ -261,12 +285,13 @@ The image is defined by its [Dockerfile](Dockerfile), along with a [`.dockerigno
 to indicate which files to omit when building the image. It is additionally important to
 note that this image depends on a collection of parent images, pinned to specific versions.
 This pinning ensures reproducibility, but requires that these versions be updated manually
-as necessary. The section of the Dockerfile that would need to be edited looks like this:
+as necessary. The section of the Dockerfile that would need to be edited looks something like
+this:
 
 ```dockerfile
-ARG quilc_version=1.12.1
-ARG qvm_version=1.12.0
-ARG python_version=3.6
+ARG quilc_version=1.20.0
+ARG qvm_version=1.17.1
+ARG python_version=3.7
 ```
 
 Once a version has been changed, committed, and pushed, the CI will then use that new
@@ -289,73 +314,40 @@ When merging PRs, we have a couple of guidelines:
 3. When pressing the merge button, each commit message will be turned into a bullet point
    below the title of the issue. Make sure to truncate the PR title to ~50 characters
    (unless completely impossible) so it fits on one line in the commit history, and delete
-   any spurious bullet points that add no meaningful content.
-
-4. Make sure that the PR is associated with the current
-   [release milestone](https://github.com/rigetti/pyquil/milestones) once it is
-   merged. We use this to keep track of overall release progress, along with the
-   [Changelog](CHANGELOG.md).
+   any spurious bullet points that add no meaningful content. Also make sure the final commit
+   message is prefixed with an appropriate Semantic Release prefix, so that it appears
+   correctly in release notes.
 
 ### Managing the CI Pipelines
 
 The CI/CD pipelines that underpin pyQuil are critical for supporting the job of its maintainer.
 They validate formatting, style, correctness, and good code practice, and also build and
-distribute the repository via [PyPI][pypi] and DockerHub, all with minimal human intervention.
-These pipelines almost always work as expected, but every now and then something goes wrong
-and it requires a deeper dive.
+distribute the repository via [PyPI][pypi] and [DockerHub][docker-forest], all with minimal human
+intervention. These pipelines almost always work as expected, but every now and then something goes
+wrong, and it requires a deeper dive.
 
-We use a collection of services for CI/CD -- [GitLab CI][gitlab-ci], [Travis CI][travis-ci],
-and [Semaphore CI][semaphore-ci]. Semaphore is eventually going to be removed, as it has
-been wholly replaced by Travis. The reason that we use more than a single service stems from
-GitLab's inability to currently handle forks, and being able to build pull requests from
-external contributors is important for supporting a developer community. We could switch over
-entirely to Travis, but the rest of Rigetti's software stack uses GitLab CI, and it's also not
-unheard of for software to build on two CI/CD services as a sort of "double checking."
+We use a collection of services for CI/CD -- [GitLab CI][gitlab-ci] and [GitHub Actions][gha] (GHA).
 
-The configuration for GitLab CI is contained in the [`.gitlab-ci.yml`](.gitlab-ci.yml).
-GitLab, like Travis (which is configured in [`.travis.yml`](.travis.yml)), builds the docs,
-performs various style checks, and runs the unit tests on a variety of Python versions. However,
-it has additional responsibilities that Travis does not. For example, GitLab builds the
-[`rigetti/forest`][docker-forest] Docker image, handles release-related activities, and
-also pushes a source distribution to [Test PyPI][test-pypi] on every commit to master. At
-the top of the GitLab CI YAML, there is also an `include` section which references files not
-present in the pyQuil repository. These are in the [rigetti/gitlab-pipelines][gitlab-pipelines]
-repository, and they contain template jobs that are used in the pyQuil pipelines via the
-`extends` keyword. Finally, the configuration for the Sempahore pipelines is not
-source-controlled but rather is only available via the web interface, which is accessible
-via the link above.
+The configuration for GitLab CI is contained in the [`.gitlab-ci.yml`](.gitlab-ci.yml), and the
+GHA configuration is in the [`.github/workflows`](.github/workflows) directory. GHA is responsible
+for running checks and tests for PRs, while GitLab is responsible for additional tasks that require
+access to resources that are not available publicly. This includes publishing docs, publishing to PyPI,
+publishing Docker images, and running end-to-end tests on real QPUs.
 
-[docker-forest]: https://hub.docker.com/r/rigetti/forest
-[gitlab-ci]: https://gitlab.com/rigetti/forest/pyquil/pipelines
-[gitlab-pipelines]: https://github.com/rigetti/gitlab-pipelines
-[pypi]: https://pypi.org/project/pyquil/
-[semaphore-ci]: https://semaphoreci.com/rigetti/pyquil
-[test-pypi]: https://test.pypi.org/project/pyquil/
-[travis-ci]: https://travis-ci.org/rigetti/pyquil
+### Release Process
 
-#### Additional Third-party Packages in the Rigetti Channel
+Release is now automated through the use of Semantic Release. All development must occur on the `rc`
+branch. For each push to this branch, a release candidate will be published to [GitHub][gh-releases],
+[PyPI][pypi], and [DockerHub][docker-forest] (with image tags `rc` and `<version>`). When a final
+release is desired, the `rc` branch should be merged to `master`. This will trigger a non-RC release
+to [GitHub][gh-releases], [PyPI][pypi], and [DockerHub][docker-forest] (with image tags `latest` and
+`<version>`).
 
-In addition to pyQuil and rpcq, the [rigetti channel][rigetti-conda] includes any third-party
-packages that are pyQuil dependencies which are *not* included in the default conda channel. The
-idea is that pyQuil should be installable with only the default and rigetti channels enabled,
-without requiring the user to enable the conda-forge channel. As a result, if pyQuil's dependencies
-on any of these third-party packages changes, the new version of the third-party package also needs
-to be copied to the rigetti channel.
-
-The process for copying third-party packages is exactly the same as described for copying rigetti
-packages, above. For example, to copy version 4.7.2 of the `antlr-python-runtime` package:
-
-``` bash
-anaconda copy conda-forge/antlr-python-runtime/4.7.2 --to-owner rigetti
-```
-
-[rigetti-conda]: https://anaconda.org/rigetti
-[pyquil-conda-forge]: https://anaconda.org/conda-forge/pyquil
-[conda-forge-docs]: https://conda-forge.org/docs/
-[pyquil-feedstock]: https://github.com/conda-forge/pyquil-feedstock
-[rpcq-feedstock]: https://github.com/conda-forge/rpcq-feedstock
-[anaconda-cloud-docs]: https://docs.anaconda.com/anaconda-cloud/
-[install-anaconda-client]: https://docs.anaconda.com/anaconda-cloud/user-guide/getting-started/#installing-anaconda-client
+> **Note:** While Semantic Release does a good job of creating release notes for the GitHub release,
+> it may be necessary to hand-modify them after they're posted to simplify/clarify them. For instance,
+> if a feature or fix was introduced on `rc` over a series of commits/PRs (not necessarily adjacent),
+> it will result in multiple bullets in the release notes. It may be necessary to merge these bullets
+> into a single bullet (maintaining references to all commits/PRs) so that the release notes make sense.
 
 ### Issue and PR Labels
 
@@ -387,3 +379,16 @@ the pyQuil project.
 [wip-label]: https://github.com/rigetti/pyquil/labels/work%20in%20progress%20%3Aconstruction%3A
 
 [slack-invite]: https://join.slack.com/t/rigetti-forest/shared_invite/enQtNTUyNTE1ODg3MzE2LWQwNzBlMjZlMmNlN2M5MzQyZDlmOGViODQ5ODI0NWMwNmYzODY4YTc2ZjdjOTNmNzhiYTk2YjVhNTE2NTRkODY
+
+[docker]: https://www.docker.com/products/docker-desktop
+[docker-forest]: https://hub.docker.com/r/rigetti/forest
+[forest]: https://qcs.rigetti.com/sdk-downloads
+[forest-tutorials]: https://github.com/rigetti/forest-tutorials
+[gha]: https://github.com/rigetti/pyquil/actions
+[gh-releases]: https://github.com/rigetti/pyquil/releases
+[gitlab-ci]: https://gitlab.com/rigetti/forest/pyquil/pipelines
+[jupyter]: https://jupyter.org/
+[mybinder]: https://mybinder.org
+[pep-484]: https://www.python.org/dev/peps/pep-0484/
+[pypi]: https://pypi.org/project/pyquil/
+[sphinx]: https://sphinx-rtd-tutorial.readthedocs.io/en/latest/docstrings.html

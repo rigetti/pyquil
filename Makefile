@@ -40,8 +40,7 @@ coverage:
 
 .PHONY: docs
 docs: CHANGELOG.md
-	pandoc --from=markdown --to=rst --output=docs/source/changes.rst CHANGELOG.md
-	make -C docs html
+	make -C docs clean html
 
 .PHONY: docker
 docker: Dockerfile
@@ -63,6 +62,10 @@ install:
 .PHONY: test
 test:
 	pytest -n auto -v --runslow --cov=pyquil test/unit
+
+.PHONY: test-fast
+test-fast:
+	pytest -n auto -v --cov=pyquil test/unit
 
 .PHONY: e2e
 e2e:
