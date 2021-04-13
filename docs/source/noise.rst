@@ -602,7 +602,7 @@ We want to prepare :math:`e^{i \theta XY}` and measure it in the
     theta = pi/3
     xy = PauliTerm('X', 0) * PauliTerm('Y', 1)
 
-The Idiomatic PyQuil Program
+The Idiomatic pyQuil Program
 ~~~~~~~~~~~~~~~~~~~~~~~~~~~~
 
 .. code:: python

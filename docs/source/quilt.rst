@@ -24,11 +24,5 @@ go. With Quil-T you can define precisely what you mean by `H 0`, you
 can perform experiments to characterize the underlying hardware such
 as determining `T1`. The hardware is almost at your fingertips.
 
-.. note::
-
-   Quil-T is not yet finalized and subject to change. The following
-   link should be updated upon the release of Quil-T.
-
 For examples, see the adjacent notebooks. For more information, see
-the Quil-T proposal at the `Quil project homepage
-<https://github.com/rigetti/quil/tree/bugfix/quilt-rfc-improvements/rfcs/analog>`_.
+the `Quil project homepage <https://github.com/rigetti/quil>`_.

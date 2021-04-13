@@ -3,7 +3,7 @@
 Troubleshooting
 ===============
 
-If you're having any trouble running your Pyquil programs locally or on the QPU, please check the
+If you're having any trouble running your pyQuil programs locally or on the QPU, please check the
 following things before sending a support request. It will save you time and make it easier for us
 to help!
 
@@ -20,9 +20,8 @@ to help!
    `our releases page <https://github.com/rigetti/pyquil/releases>`_ or
    `on PyPi <https://pypi.org/project/pyquil/>`_.
 
-2. If the error appears to be authentication-related, or makes any mention of your
-   ``user_auth_token``, then please update your token following the directions at
-   https://qcs.rigetti.com/auth/token.
+2. If the error appears to be authentication-related, refer to the `QCS CLI documentation
+<https://docs.rigetti.com/en/command-line-interface/command-line-interface>`_.
 
 3. Run your script with debug logging enabled. If you're running a script, you can enable that
    using an environment variable:
@@ -38,6 +37,5 @@ to help!
 
     logger.setLevel(logging.DEBUG)
 
-If the problem still isn't clear, then we can help! Please send your debug log to us, 
-along with the contents of your ``~/.qcs_config`` and ``~/.forest_config`` files, at our
+If the problem still isn't clear, then we can help! Please contact us at our
 `support page <https://rigetti.zendesk.com>`_. Thanks for using pyQuil!

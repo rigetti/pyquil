@@ -124,7 +124,7 @@ Declaring Memory
 ~~~~~~~~~~~~~~~~
 
 Classical memory regions must be explicitly requested and named by a Quil program using the ``DECLARE`` directive.
-Details about can be found in the :ref:`migration guide <quil_2_declare>` or in :py:func:`pyquil.quil.Program.declare`.
+Details about this directive can be found in :py:func:`pyquil.quil.Program.declare`.
 
 In pyQuil, we declare memory with the ``.declare`` method on a ``Program``. Let's inspect the function signature
 
@@ -286,7 +286,6 @@ Parametric compilation allows one to compile the program ansatz just once. Makin
 memory regions, we can load values to the parametric gates at execution time, after compilation.
 Taking the compiler out of the execution loop for programs like this offers a huge performance
 improvement compared to compiling the program each time a parameter update is required.
-(Some more details about this and an example are found :doc:`here <migration3-declare>`.)
 
 The first step is to build our parametric program, which functions like a template for all the precise programs we will
 run. Below we create a simple example program to illustrate, which puts the qubit onto the equator of the Bloch Sphere and then
@@ -648,8 +647,8 @@ are not regular gate operations, and they do not affect the abstract semantics o
 Ways to Construct Programs
 ~~~~~~~~~~~~~~~~~~~~~~~~~~
 
-PyQuil supports a variety of methods for constructing programs however you prefer.
-Multiple instructions can be applied at once, and programs can be added together. PyQuil can also produce a
+pyQuil supports a variety of methods for constructing programs, however you prefer.
+Multiple instructions can be added at once, and programs can be concatenated together. pyQuil can also produce a
 ``Program`` by interpreting raw Quil text. You can still use the more pyQuil 1.X style of using
 the ``.inst`` method to add instruction gates. Thus, the following are all valid programs:
 
