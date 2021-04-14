@@ -100,7 +100,11 @@ class QPUClient:
     """
 
     def __init__(
-        self, *, quantum_processor_id: str, engagement_manager: EngagementManager, request_timeout: float = 5.0
+        self,
+        *,
+        quantum_processor_id: str,
+        engagement_manager: EngagementManager,
+        request_timeout: float = 10.0,
     ) -> None:
         """
         Instantiate a new QPU client, authenticated using the given engagement.

@@ -106,7 +106,7 @@ class QPU(QAM):
         *,
         quantum_processor_id: str,
         priority: int = 1,
-        timeout: float = 5.0,
+        timeout: float = 10.0,
         client_configuration: Optional[QCSClientConfiguration] = None,
         engagement_manager: Optional[EngagementManager] = None,
     ) -> None:
