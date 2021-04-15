@@ -14,8 +14,11 @@
 #    limitations under the License.
 ##############################################################################
 import json
+import time
+from typing import Any, Dict
 
-from pytest_httpx import HTTPXMock
+import httpx
+from pytest_httpx import HTTPXMock, to_response
 from qcs_api_client.client import QCSClientConfiguration
 
 from pyquil.api._qvm_client import (
@@ -36,6 +39,18 @@ def test_init__sets_base_url_and_timeout(client_configuration: QCSClientConfigur
 
     assert qvm_client.base_url == client_configuration.profile.applications.pyquil.qvm_url
     assert qvm_client.timeout == 3.14
+
+
+def test_sets_timeout_on_requests(client_configuration: QCSClientConfiguration, httpx_mock: HTTPXMock):
+    qvm_client = QVMClient(client_configuration=client_configuration, request_timeout=0.1)
+
+    def assert_timeout(request: httpx.Request, ext: Dict[str, Any]):
+        assert ext["timeout"] == httpx.Timeout(qvm_client.timeout).as_dict()
+        return to_response(data="1.2.3 [abc123]")
+
+    httpx_mock.add_callback(assert_timeout)
+
+    qvm_client.get_version()
 
 
 def test_get_version__returns_version(client_configuration: QCSClientConfiguration, httpx_mock: HTTPXMock):
