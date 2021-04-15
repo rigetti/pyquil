@@ -1,8 +1,6 @@
 import asyncio
 import os
 import signal
-import time
-from socket import socket
 from contextlib import contextmanager
 from multiprocessing import Process
 
@@ -14,37 +12,22 @@ from pyquil.api._abstract_compiler import AbstractCompiler
 from pyquil.parser import parse
 from pyquil.quantum_processor import AbstractQuantumProcessor
 
+# Valid, sample Z85-encoded keys specified by zmq curve for testing:
+#   http://api.zeromq.org/master:zmq-curve#toc4
+CLIENT_PUBLIC_KEY = "Yne@$w-vo<fVvi]a<NY6T1ed:M$fCG*[IaLV{hID"
+CLIENT_SECRET_KEY = "D:)Q[IlAW!ahhC2ac:9*A}h:p?([4%wOTJ%JR%cs"
+SERVER_PUBLIC_KEY = "rq:rM>}U?@Lns47E1%kR.o@n%FcmmsL/@{H8]yf7"
+SERVER_SECRET_KEY = "JTKVSB%%)wK0E.X)V>+}o?pNmC{O&4W4b!Ni{Lh6"
+
 
 @contextmanager
 def run_rpcq_server(server: rpcq.Server, port: int):
     def run_server():
         server.run(endpoint=f"tcp://*:{port}", loop=asyncio.new_event_loop())
 
-    def check_server():
-        connected = False
-        tries = 0
-        exception = None
-
-        while not connected and tries < 2:
-            time.sleep(0.25)
-            s = socket()
-            try:
-                s.connect(("localhost", port))
-                connected = True
-            except Exception as ex:
-                exception = ex
-            finally:
-                s.close()
-
-            tries += 1
-
-        if not connected:
-            raise Exception(f"Unable to connect to test rpcq server on port {port}: {exception}")
-
     proc = Process(target=run_server)
     try:
         proc.start()
-        check_server()
         yield
     finally:
         os.kill(proc.pid, signal.SIGINT)

@@ -13,12 +13,17 @@
 #    See the License for the specific language governing permissions and
 #    limitations under the License.
 ##############################################################################
-from contextlib import contextmanager
 from dataclasses import dataclass
-from typing import Dict, Iterator, cast, Tuple, Union, List
+from datetime import datetime
+from typing import Dict, cast, Tuple, Union, List, Any
 
 import rpcq
+from dateutil.parser import parse as parsedate
+from dateutil.tz import tzutc
 from qcs_api_client.models import EngagementWithCredentials, EngagementCredentials
+from retry import retry
+
+from pyquil.api import EngagementManager
 
 
 @dataclass
@@ -94,14 +99,18 @@ class QPUClient:
     Client for making requests to a QPU.
     """
 
-    def __init__(self, *, engagement: EngagementWithCredentials, request_timeout: float = 5.0) -> None:
+    def __init__(
+        self, *, quantum_processor_id: str, engagement_manager: EngagementManager, request_timeout: float = 5.0
+    ) -> None:
         """
         Instantiate a new QPU client, authenticated using the given engagement.
 
-        :param engagement: Engagement for target quantum processor.
+        :param quantum_processor_id: ID of quantum processor to target.
+        :param engagement_manager: Manager for QPU engagements.
         :param request_timeout: Timeout for requests, in seconds.
         """
-        self.engagement = engagement
+        self.quantum_processor_id = quantum_processor_id
+        self._engagement_manager = engagement_manager
         self.timeout = request_timeout
 
     def run_program(self, request: RunProgramRequest) -> RunProgramResponse:
@@ -113,47 +122,53 @@ class QPUClient:
             program=request.program,
             patch_values=request.patch_values,
         )
-        with self._rpcq_client() as rpcq_client:  # type: rpcq.Client
-            job_id = rpcq_client.call(
-                "execute_qpu_request",
-                request=rpcq_request,
-                priority=request.priority,
-                user=None,
-            )
-            return RunProgramResponse(job_id=job_id)
+        job_id = self._rpcq_request(
+            "execute_qpu_request",
+            request=rpcq_request,
+            priority=request.priority,
+            user=None,
+        )
+        return RunProgramResponse(job_id=job_id)
 
     def get_buffers(self, request: GetBuffersRequest) -> GetBuffersResponse:
         """
         Get job buffers.
         """
-        with self._rpcq_client() as rpcq_client:  # type: rpcq.Client
-            buffs = rpcq_client.call(
-                "get_buffers",
-                job_id=request.job_id,
-                wait=request.wait,
-            )
-            return GetBuffersResponse(
-                buffers={
-                    name: BufferResponse(
-                        shape=cast(Tuple[int, int], tuple(val["shape"])),
-                        dtype=val["dtype"],
-                        data=val["data"],
-                    )
-                    for name, val in buffs.items()
-                }
-            )
+        buffs = self._rpcq_request(
+            "get_buffers",
+            job_id=request.job_id,
+            wait=request.wait,
+        )
+        return GetBuffersResponse(
+            buffers={
+                name: BufferResponse(
+                    shape=cast(Tuple[int, int], tuple(val["shape"])),
+                    dtype=val["dtype"],
+                    data=val["data"],
+                )
+                for name, val in buffs.items()
+            }
+        )
 
-    @contextmanager
-    def _rpcq_client(self) -> Iterator[rpcq.Client]:
+    @retry(exceptions=TimeoutError, tries=2)  # type: ignore
+    def _rpcq_request(self, method_name: str, *args: Any, **kwargs: Any) -> Any:
+        engagement = self._engagement_manager.get_engagement(
+            quantum_processor_id=self.quantum_processor_id,
+            request_timeout=self.timeout,
+        )
         client = rpcq.Client(
-            endpoint=self.engagement.address,
-            timeout=self.timeout,
-            auth_config=self._auth_config(self.engagement.credentials),
+            endpoint=engagement.address,
+            timeout=self._calculate_timeout(engagement),
+            auth_config=self._auth_config(engagement.credentials),
         )
         try:
-            yield client
+            return client.call(method_name, *args, **kwargs)
         finally:
             client.close()  # type: ignore
+
+    def _calculate_timeout(self, engagement: EngagementWithCredentials) -> float:
+        engagement_time_left = parsedate(engagement.expires_at) - datetime.now(tzutc())
+        return min(self.timeout, engagement_time_left.total_seconds())
 
     @staticmethod
     def _auth_config(credentials: EngagementCredentials) -> rpcq.ClientAuthConfig:
