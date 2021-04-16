@@ -14,7 +14,8 @@ readme = ""
 setup(
     long_description=readme,
     name="pyquil",
-    version="3.0.0-rc.9",
+    version="3.0.0-rc.10",
+    description="A Python library for creating Quantum Instruction Language (Quil) programs.",
     python_requires="==3.*,>=3.7.0",
     packages=[
         "pyquil",
@@ -36,6 +37,7 @@ setup(
         "networkx==2.*,>=2.5.0",
         "numpy==1.*,>=1.20.0",
         "qcs-api-client==0.*,>=0.7.0",
+        "retry==0.*,>=0.9.2",
         "rpcq==3.*,>=3.6.0",
         "scipy==1.*,>=1.6.1",
     ],
@@ -47,6 +49,8 @@ setup(
             "pytest==6.*,>=6.2.2",
             "pytest-cov==2.*,>=2.11.1",
             "pytest-httpx==0.*,>=0.9.0",
+            "pytest-rerunfailures==9.*,>=9.1.1",
+            "pytest-timeout==1.*,>=1.4.2",
             "pytest-xdist==2.*,>=2.2.1",
         ],
         "docs": [
