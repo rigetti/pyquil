@@ -183,3 +183,6 @@ fabric.properties
 
 ### VSCode ###
 **/.vscode/
+
+
+node_modules/
