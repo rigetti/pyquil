@@ -264,7 +264,7 @@ def _make_cphase_gates(characteristics: List[Characteristic]) -> List[GateInfo]:
 
     return [
         GateInfo(
-            operator=Supported2QGate.ISWAP,
+            operator=Supported2QGate.CPHASE,
             parameters=["theta"],
             arguments=["_", "_"],
             fidelity=fidelity,
