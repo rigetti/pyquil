@@ -1,6 +1,6 @@
 [tool.poetry]
 name = "pyquil"
-version = "3.0.0-rc.10"
+version = "3.0.0-rc.11"
 description = "A Python library for creating Quantum Instruction Language (Quil) programs."
 authors = []
 packages = [
