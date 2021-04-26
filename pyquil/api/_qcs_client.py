@@ -13,6 +13,7 @@
 #    See the License for the specific language governing permissions and
 #    limitations under the License.
 ##############################################################################
+import asyncio
 from contextlib import contextmanager
 from typing import Iterator
 
@@ -21,14 +22,29 @@ from qcs_api_client.client import QCSClientConfiguration, build_sync_client
 
 
 @contextmanager
-def qcs_client(*, client_configuration: QCSClientConfiguration, request_timeout: float = 5.0) -> Iterator[httpx.Client]:
+def qcs_client(
+    *,
+    client_configuration: QCSClientConfiguration,
+    request_timeout: float = 10.0,
+) -> Iterator[httpx.Client]:
     """
     Build a QCS client.
 
     :param client_configuration: Client configuration.
     :param request_timeout: Time limit for requests, in seconds.
     """
+    _ensure_event_loop()
     with build_sync_client(
         configuration=client_configuration, client_kwargs={"timeout": request_timeout}
     ) as client:  # type: httpx.Client
         yield client
+
+
+def _ensure_event_loop() -> None:
+    try:
+        asyncio.get_event_loop()
+    except RuntimeError as ex:
+        if len(ex.args) > 0 and "There is no current event loop in thread" in ex.args[0]:
+            asyncio.set_event_loop(asyncio.new_event_loop())
+        else:
+            raise

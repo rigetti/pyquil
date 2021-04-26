@@ -35,7 +35,7 @@ class BenchmarkConnection(AbstractBenchmarker):
     """
 
     @_record_call
-    def __init__(self, *, timeout: float = 5.0, client_configuration: Optional[QCSClientConfiguration] = None):
+    def __init__(self, *, timeout: float = 10.0, client_configuration: Optional[QCSClientConfiguration] = None):
         """
         Client to communicate with the benchmarking data endpoint.
 

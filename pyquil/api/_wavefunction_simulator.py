@@ -43,7 +43,7 @@ class WavefunctionSimulator:
         self,
         *,
         random_seed: Optional[int] = None,
-        timeout: float = 5.0,
+        timeout: float = 10.0,
         client_configuration: Optional[QCSClientConfiguration] = None,
     ) -> None:
         """

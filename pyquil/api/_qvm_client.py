@@ -159,7 +159,7 @@ class QVMClient:
     Client for making requests to a Quantum Virtual Machine.
     """
 
-    def __init__(self, *, client_configuration: QCSClientConfiguration, request_timeout: float = 5.0) -> None:
+    def __init__(self, *, client_configuration: QCSClientConfiguration, request_timeout: float = 10.0) -> None:
         """
         Instantiate a new compiler client.
 

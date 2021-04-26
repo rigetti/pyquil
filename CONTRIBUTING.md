@@ -175,8 +175,7 @@ To skip [slow tests](#slow-tests), you may run:
 make test-fast
 ```
 
-If you have access to a real Rigetti QPU via QCS (as opposed to a local QVM), you can run end-to-end
-tests with:
+You can run end-to-end tests with:
 
 ```bash
 make e2e TEST_QUANTUM_PROCESSOR=<quantum processor ID>
@@ -187,6 +186,10 @@ Or you may run all tests (unit/integration/e2e) with:
 ```bash
 make test-all TEST_QUANTUM_PROCESSOR=<quantum processor ID>
 ```
+
+> **Note:** for `TEST_QUANTUM_PROCESSOR`, supply a value similar to what you would supply to
+> `get_qc()`. End-to-end tests are most useful against a real QPU, but they can also be run
+> against a QVM (e.g. `make e2e TEST_QUANTUM_PROCESSOR=2q-qvm`).
 
 #### Slow Tests
 

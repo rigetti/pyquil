@@ -13,6 +13,7 @@
 #    See the License for the specific language governing permissions and
 #    limitations under the License.
 ##############################################################################
+import threading
 from datetime import datetime
 from typing import Dict, Optional
 
@@ -31,6 +32,8 @@ class EngagementManager:
     Fetches (and caches) engagements for use when accessing a QPU.
     """
 
+    _lock = threading.Lock()
+
     def __init__(self, *, client_configuration: QCSClientConfiguration) -> None:
         """
         Instantiate a new engagement manager.
@@ -40,7 +43,7 @@ class EngagementManager:
         self._client_configuration = client_configuration
         self._cached_engagements: Dict[str, EngagementWithCredentials] = {}
 
-    def get_engagement(self, *, quantum_processor_id: str, request_timeout: float = 5.0) -> EngagementWithCredentials:
+    def get_engagement(self, *, quantum_processor_id: str, request_timeout: float = 10.0) -> EngagementWithCredentials:
         """
         Gets an engagement for the given quantum processor. If an engagement was already fetched previously and
         remains valid, it will be returned instead of creating a new engagement.
@@ -49,16 +52,19 @@ class EngagementManager:
         :param request_timeout: Timeout for request, in seconds.
         :return: Fetched or cached engagement.
         """
-        if not self._engagement_valid(self._cached_engagements.get(quantum_processor_id)):
-            with qcs_client(
-                client_configuration=self._client_configuration, request_timeout=request_timeout
-            ) as client:  # type: httpx.Client
-                request = CreateEngagementRequest(quantum_processor_id=quantum_processor_id)
-                self._cached_engagements[quantum_processor_id] = create_engagement(
-                    client=client, json_body=request
-                ).parsed
-
-        return self._cached_engagements[quantum_processor_id]
+        EngagementManager._lock.acquire()
+        try:
+            if not self._engagement_valid(self._cached_engagements.get(quantum_processor_id)):
+                with qcs_client(
+                    client_configuration=self._client_configuration, request_timeout=request_timeout
+                ) as client:  # type: httpx.Client
+                    request = CreateEngagementRequest(quantum_processor_id=quantum_processor_id)
+                    self._cached_engagements[quantum_processor_id] = create_engagement(
+                        client=client, json_body=request
+                    ).parsed
+            return self._cached_engagements[quantum_processor_id]
+        finally:
+            EngagementManager._lock.release()
 
     @staticmethod
     def _engagement_valid(engagement: Optional[EngagementWithCredentials]) -> bool:

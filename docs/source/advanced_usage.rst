@@ -15,8 +15,8 @@ pyQuil Configuration
 
 :py:class:`~pyquil.api.QCSClientConfiguration` instructs pyQuil on how to connect with the
 components needed to compile and run programs (quilc, QVMs, and QCS). Any APIs that take a configuration object
-as input (e.g. :func:`get_qc()`) typically do so optionally, so that a default configuration can be loaded for
-you if one is not provided. You can override this default configuration by either instantiating your own
+as input (e.g. :py:func:`~pyquil.get_qc()`) typically do so optionally, so that a default configuration can be loaded
+for you if one is not provided. You can override this default configuration by either instantiating your own
 :py:class:`~pyquil.api.QCSClientConfiguration` object and providing it as input to the function in question,
 or by setting the ``QCS_SETTINGS_FILE_PATH`` and/or ``QCS_SECRETS_FILE_PATH`` environment variables to have
 pyQuil load its settings and secrets from specific locations. By default, configuration will be loaded from
@@ -31,6 +31,87 @@ locally):
 
 - QVM URL: ``http://127.0.0.1:5000``
 - quilc URL: ``tcp://127.0.0.1:5555``
+
+Concurrency
+~~~~~~~~~~~
+
+Using pyQuil for concurrent programming is as simple as calling :py:func:`~pyquil.get_qc()` from within a given thread
+or process, then using the returned :py:class:`~pyquil.api.QuantumComputer` as usual. While
+:py:class:`~pyquil.api.QuantumComputer` objects as a whole are not safe to share between threads or processes (due to
+state related to currently-running compilation or execution requests), some information they use is. Information related
+to client configuration (:py:class:`~pyquil.api.QCSClientConfiguration`) and QPU auth
+(:py:class:`~pyquil.api.EngagementManager`) can be safely extracted and shared among
+:py:class:`~pyquil.api.QuantumComputer` instances, as shown below, to save your code from redundant disk reads and
+auth-related HTTP requests.
+
+.. note::
+    QVMs process incoming requests in parallel, while QPUs process them sequentially. If you encounter timeouts while
+    trying to run large numbers of programs against a QPU, try increasing the ``timeout`` parameter on calls to
+    :py:func:`~pyquil.get_qc()` (specified in seconds).
+
+Using Multithreading
+--------------------
+
+.. code:: python
+
+    from multiprocessing.pool import ThreadPool
+
+    from pyquil import get_qc, Program
+    from pyquil.api import EngagementManager, QCSClientConfiguration
+
+
+    configuration = QCSClientConfiguration.load()
+    engagement_manager = EngagementManager(client_configuration=configuration)
+
+
+    def run(program: Program):
+        qc = get_qc("Aspen-8", client_configuration=configuration, engagement_manager=engagement_manager)
+        return qc.run(qc.compile(program))
+
+
+    programs = [Program("DECLARE ro BIT", "RX(pi) 0", "MEASURE 0 ro").wrap_in_numshots_loop(10)] * 20
+    with ThreadPool(5) as pool:
+        results = pool.map(run, programs)
+
+    for i, result in enumerate(results):
+        print(f"Results for program {i}:\n{result}\n")
+
+
+Using Multiprocessing
+---------------------
+
+.. code:: python
+
+    from multiprocessing.pool import Pool
+
+    from pyquil import get_qc, Program
+    from pyquil.api import EngagementManager, QCSClientConfiguration
+
+
+    configuration = QCSClientConfiguration.load()
+    engagement_manager = EngagementManager(client_configuration=configuration)
+
+
+    def run(program: Program):
+        qc = get_qc("Aspen-8", client_configuration=configuration, engagement_manager=engagement_manager)
+        return qc.run(qc.compile(program))
+
+
+    programs = [Program("DECLARE ro BIT", "RX(pi) 0", "MEASURE 0 ro").wrap_in_numshots_loop(10)] * 20
+    with Pool(5) as pool:
+        results = pool.map(run, programs)
+
+    for i, result in enumerate(results):
+        print(f"Results for program {i}:\n{result}\n")
+
+.. note::
+    If you encounter error messages on macOS similar to the following:
+
+    .. parsed-literal::
+        +[__NSCFConstantString initialize] may have been in progress in another thread when fork() was called.
+
+    try setting the environment variable ``OBJC_DISABLE_INITIALIZE_FORK_SAFETY=YES``.
+
 
 Using Qubit Placeholders
 ~~~~~~~~~~~~~~~~~~~~~~~~
