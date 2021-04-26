@@ -83,7 +83,7 @@ class QPUCompiler(AbstractCompiler):
         *,
         quantum_processor_id: str,
         quantum_processor: AbstractQuantumProcessor,
-        timeout: float = 5.0,
+        timeout: float = 10.0,
         client_configuration: Optional[QCSClientConfiguration] = None,
     ) -> None:
         """
@@ -191,7 +191,7 @@ class QVMCompiler(AbstractCompiler):
         self,
         *,
         quantum_processor: AbstractQuantumProcessor,
-        timeout: float = 5.0,
+        timeout: float = 10.0,
         client_configuration: Optional[QCSClientConfiguration] = None,
     ) -> None:
         """

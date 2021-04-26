@@ -59,7 +59,9 @@ class QCSQuantumProcessor(AbstractQuantumProcessor):
 
 
 def get_qcs_quantum_processor(
-    quantum_processor_id: str, client_configuration: QCSClientConfiguration, timeout: float = 5.0
+    quantum_processor_id: str,
+    client_configuration: QCSClientConfiguration,
+    timeout: float = 10.0,
 ) -> QCSQuantumProcessor:
     with qcs_client(client_configuration=client_configuration, request_timeout=timeout) as client:  # type: httpx.Client
         isa = get_instruction_set_architecture(client=client, quantum_processor_id=quantum_processor_id).parsed

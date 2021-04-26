@@ -9,6 +9,8 @@ Changelog
 
 ### Improvements and Changes
 
+- Added support and documentation for concurrent compilation and execution (see "Advanced Usage" in docs)
+
 - `pyquil.version.__version__` has been moved to `pyquil.__version__`.
 
 - `PyquilConfig` has been replaced by `api.QCSClientConfiguration`. As a result, the only supported configuration-related

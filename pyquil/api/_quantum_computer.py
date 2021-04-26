@@ -504,7 +504,7 @@ class QuantumComputer:
 def list_quantum_computers(
     qpus: bool = True,
     qvms: bool = True,
-    timeout: float = 5.0,
+    timeout: float = 10.0,
     client_configuration: Optional[QCSClientConfiguration] = None,
 ) -> List[str]:
     """
@@ -793,7 +793,7 @@ def get_qc(
     *,
     as_qvm: Optional[bool] = None,
     noisy: Optional[bool] = None,
-    timeout: float = 5.0,
+    timeout: float = 10.0,
     client_configuration: Optional[QCSClientConfiguration] = None,
     engagement_manager: Optional[EngagementManager] = None,
 ) -> QuantumComputer:

@@ -46,6 +46,7 @@ jobs:
           sudo apt update
           . scripts/ci_install_deps
           poetry run make check-format
+
   check-style:
     name: Check style
     runs-on: ubuntu-latest
@@ -64,6 +65,7 @@ jobs:
           sudo apt update
           . scripts/ci_install_deps
           poetry run make check-style
+
   check-types:
     name: Check types
     runs-on: ubuntu-latest
@@ -82,8 +84,9 @@ jobs:
           sudo apt update
           . scripts/ci_install_deps
           poetry run make check-types
-  test-pyquil:
-    name: Test pyQuil
+
+  test-unit:
+    name: Test Unit
     runs-on: ubuntu-latest
     strategy:
       matrix:
@@ -98,10 +101,34 @@ jobs:
         with:
           path: .venv
           key: poetry-${{ hashFiles('poetry.lock') }}
-      - name: Test pyQuil (Python ${{ matrix.python-version }})
+      - name: Test Unit (Python ${{ matrix.python-version }})
         run: |
           sudo apt update
           . scripts/ci_install_deps
           docker run --rm -itd -p 5555:5555 rigetti/quilc -R
           docker run --rm -itd -p 5000:5000 rigetti/qvm -S
           poetry run make test
+
+  test-e2e:
+    name: Test e2e QVM
+    runs-on: ubuntu-latest
+    strategy:
+      matrix:
+        python-version: [3.7, 3.8]
+    steps:
+      - uses: actions/checkout@v2
+      - name: Set up Python ${{ matrix.python-version }}
+        uses: actions/setup-python@v2
+        with:
+          python-version: ${{ matrix.python-version }}
+      - uses: actions/cache@v2
+        with:
+          path: .venv
+          key: poetry-${{ hashFiles('poetry.lock') }}
+      - name: Test e2e QVM (Python ${{ matrix.python-version }})
+        run: |
+          sudo apt update
+          . scripts/ci_install_deps
+          docker run --rm -itd -p 5555:5555 rigetti/quilc -R
+          docker run --rm -itd -p 5000:5000 rigetti/qvm -S
+          poetry run make e2e TEST_QUANTUM_PROCESSOR=2q-qvm

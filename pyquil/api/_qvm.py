@@ -74,7 +74,7 @@ class QVMConnection(object):
         gate_noise: Optional[Tuple[float, float, float]] = None,
         measurement_noise: Optional[Tuple[float, float, float]] = None,
         random_seed: Optional[int] = None,
-        timeout: float = 5.0,
+        timeout: float = 10.0,
         client_configuration: Optional[QCSClientConfiguration] = None,
     ):
         """
@@ -389,7 +389,7 @@ class QVM(QAM):
         gate_noise: Optional[Tuple[float, float, float]] = None,
         measurement_noise: Optional[Tuple[float, float, float]] = None,
         random_seed: Optional[int] = None,
-        timeout: float = 5.0,
+        timeout: float = 10.0,
         client_configuration: Optional[QCSClientConfiguration] = None,
     ) -> None:
         """

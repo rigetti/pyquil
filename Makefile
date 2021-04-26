@@ -69,7 +69,7 @@ test-fast:
 
 .PHONY: e2e
 e2e:
-	pytest -n auto -v --cov=pyquil test/e2e
+	pytest -n 1 -v --cov=pyquil test/e2e
 
 .PHONY: test-all
 test-all: test e2e

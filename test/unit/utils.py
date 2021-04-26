@@ -3,9 +3,11 @@ import os
 import signal
 from contextlib import contextmanager
 from multiprocessing import Process
+from socket import socket
 
 import rpcq
 from qcs_api_client.client import QCSClientConfiguration
+from retry import retry
 
 from pyquil import Program
 from pyquil.api._abstract_compiler import AbstractCompiler
@@ -25,9 +27,18 @@ def run_rpcq_server(server: rpcq.Server, port: int):
     def run_server():
         server.run(endpoint=f"tcp://*:{port}", loop=asyncio.new_event_loop())
 
+    @retry(tries=10, delay=0.25)
+    def check_connection():
+        s = socket()
+        try:
+            s.connect(("localhost", port))
+        finally:
+            s.close()
+
     proc = Process(target=run_server)
     try:
         proc.start()
+        check_connection()
         yield
     finally:
         os.kill(proc.pid, signal.SIGINT)

@@ -4,6 +4,5 @@ curl -sSL https://raw.githubusercontent.com/python-poetry/poetry/master/get-poet
 . $HOME/.poetry/env
 poetry --version
 poetry config virtualenvs.in-project true
-poetry config experimental.new-installer false  # Address flaky poetry installs, see: https://github.com/python-poetry/poetry/issues/3199
 poetry run python -m ensurepip --upgrade
 poetry install -vv

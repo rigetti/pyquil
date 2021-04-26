@@ -13,35 +13,66 @@
 #    See the License for the specific language governing permissions and
 #    limitations under the License.
 ##############################################################################
-import pytest
-import os
+from multiprocessing.pool import Pool, ThreadPool
+
+from qcs_api_client.client import QCSClientConfiguration
 
 from pyquil import get_qc, Program
-from pyquil.api import QuantumComputer, QPU
+from pyquil.api import EngagementManager
 from pyquil.gates import H, CNOT, MEASURE
 from pyquil.quilbase import Declare
 
-
-@pytest.fixture()
-def qc() -> QuantumComputer:
-    quantum_processor_id = os.environ.get("TEST_QUANTUM_PROCESSOR")
-    if quantum_processor_id is None:
-        raise Exception("'TEST_QUANTUM_PROCESSOR' env var required for e2e tests.")
-
-    computer = get_qc(quantum_processor_id)
-    if not isinstance(computer.qam, QPU):
-        raise ValueError("'TARGET_QUANTUM_PROCESSOR' should name a QPU. Ensure it is not a QVM.")
-    return computer
+TEST_PROGRAM = Program(
+    Declare("ro", "BIT", 2),
+    H(0),
+    CNOT(0, 1),
+    MEASURE(0, ("ro", 0)),
+    MEASURE(1, ("ro", 1)),
+).wrap_in_numshots_loop(1000)
 
 
-def test_basic_program(qc: QuantumComputer):
-    program = Program(
-        Declare("ro", "BIT", 2),
-        H(0),
-        CNOT(0, 1),
-        MEASURE(0, ("ro", 0)),
-        MEASURE(1, ("ro", 1)),
-    ).wrap_in_numshots_loop(1000)
-    compiled = qc.compile(program)
-    results = qc.run(compiled)
+def test_basic_program(quantum_processor_id: str, client_configuration: QCSClientConfiguration):
+    qc = get_qc(quantum_processor_id, client_configuration=client_configuration)
+
+    results = qc.run(qc.compile(TEST_PROGRAM))
+
     assert results.shape == (1000, 2)
+
+
+def test_multithreading(
+    quantum_processor_id: str, client_configuration: QCSClientConfiguration, engagement_manager: EngagementManager
+):
+    args = [(TEST_PROGRAM, quantum_processor_id, client_configuration, engagement_manager) for _ in range(20)]
+    with ThreadPool(10) as pool:
+        results = pool.starmap(run_program, args)
+
+    assert len(results) == 20
+    for result in results:
+        assert result.shape == (1000, 2)
+
+
+def test_multiprocessing(
+    quantum_processor_id: str, client_configuration: QCSClientConfiguration, engagement_manager: EngagementManager
+):
+    args = [(TEST_PROGRAM, quantum_processor_id, client_configuration, engagement_manager) for _ in range(20)]
+    with Pool(10) as pool:
+        results = pool.starmap(run_program, args)
+
+    assert len(results) == 20
+    for result in results:
+        assert result.shape == (1000, 2)
+
+
+# NOTE: This must be outside of the test function, or multiprocessing complains that it can't be pickled
+def run_program(
+    program: Program,
+    quantum_processor_id: str,
+    client_configuration: QCSClientConfiguration,
+    engagement_manager: EngagementManager,
+):
+    qc = get_qc(
+        quantum_processor_id,
+        client_configuration=client_configuration,
+        engagement_manager=engagement_manager,
+    )
+    return qc.run(qc.compile(program))
