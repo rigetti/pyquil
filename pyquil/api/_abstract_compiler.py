@@ -82,7 +82,7 @@ class AbstractCompiler(ABC):
         client_configuration: Optional[QCSClientConfiguration],
     ) -> None:
         self.quantum_processor = quantum_processor
-        self.set_timeout(timeout)
+        self._timeout = timeout
 
         self._client_configuration = client_configuration or QCSClientConfiguration.load()
         self._compiler_client = CompilerClient(client_configuration=self._client_configuration, request_timeout=timeout)
@@ -150,18 +150,6 @@ class AbstractCompiler(ABC):
         :param nq_program: Native quil to compile
         :return: An (opaque) binary executable
         """
-
-    def set_timeout(self, timeout: float) -> None:
-        """
-        Set timeout for each individual stage of compilation.
-
-        :param timeout: Timeout value for each compilation stage, in seconds. If the stage does not
-            complete within this threshold, an exception is raised.
-        """
-        if timeout < 0:
-            raise ValueError(f"Cannot set timeout to negative value {timeout}")
-
-        self._timeout = timeout
 
     @_record_call
     def reset(self) -> None:

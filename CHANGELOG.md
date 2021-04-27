@@ -28,7 +28,14 @@ Changelog
   
 - `QPU.get_version_info()` has been removed.
 
-- `QPU.get_calibration_program()` as been removed in favor of `QPU.calibration_program` (and optionally `QPU.refresh_calibration_program()`).
+- `get_qc()` now accepts an `execution_timeout` parameter (in addition to the existing `compiler_timeout`) to specify
+  a time limit on execution requests.
+  
+- `AbstractCompiler.set_timeout()` has been removed. Set timeouts via `get_qc()` instead (`execution_timeout`, `compiler_timeout` parameters).
+
+- `QPUCompiler.get_calibration_program()` has been removed in favor of `QPUCompiler.calibration_program` (and optionally `QPUCompiler.refresh_calibration_program()`).
+
+- `QVMCompiler.get_calibration_program()`, `QVMCompiler.calibration_program`, and `QVMCompiler.refresh_calibration_program()` have been removed.
   
 - `get_benchmarker()` has been removed in favor of calling `BenchmarkConnection` constructor directly.
 
