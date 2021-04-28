@@ -21,7 +21,7 @@ from qcs_api_client.client import QCSClientConfiguration
 from pyquil._version import pyquil_version
 from pyquil.api import QuantumExecutable
 from pyquil.api._error_reporting import _record_call
-from pyquil.api._qam import QAM
+from pyquil.api._qam import QAM, QAMMemory, QAMExecutionResult
 from pyquil.api._qvm_client import (
     QVMClient,
     RunProgramRequest,
@@ -120,48 +120,27 @@ http://pyquil.readthedocs.io/en/latest/noise_models.html#support-for-noisy-gates
             raise QVMNotRunning(f"No QVM server running at {self._qvm_client.base_url}")
 
     @_record_call
-    def get_version_info(self) -> str:
+    def execute(self, executable: QuantumExecutable, *, memory: Optional[QAMMemory] = None) -> QVMExecuteResponse:
         """
-        Return version information for the QVM.
+        Synchronously execute the input program to completion.
+        """
 
-        :return: String with version information
-        """
-        return self._qvm_client.get_version()
-
-    @_record_call
-    def load(self, executable: QuantumExecutable) -> "QVM":
-        """
-        Initialize a QAM and load a program to be executed with a call to :py:func:`run`.
-
-        :param executable: A compiled executable.
-        """
         if not isinstance(executable, Program):
-            raise TypeError("`executable` argument must be a `Program`.")
+            raise TypeError("`QVM#executable` argument must be a `Program`")
 
-        super().load(executable)
+        if memory is None:
+            memory = QAMMemory(results={}, variables_shim={})
+
         for region in executable.declarations.keys():
-            self._memory_results[region] = np.ndarray((executable.num_shots, 0), dtype=np.int64)
-        return self
+            memory.results[region] = np.ndarray((executable.num_shots, 0), dtype=np.int64)
 
-    @_record_call
-    def run(self) -> "QVM":
-        """
-        Run a Quil program on the QVM multiple times and return the values stored in the
-        classical registers designated by the classical_addresses parameter.
-
-        :return: An array of bitstrings of shape ``(trials, len(classical_addresses))``
-        """
-        super().run()
-        assert isinstance(self.executable, Program)
-
-        quil_program = self.executable
-        trials = quil_program.num_shots
-        classical_addresses = get_classical_addresses_from_program(quil_program)
+        trials = executable.num_shots
+        classical_addresses = get_classical_addresses_from_program(executable)
 
         if self.noise_model is not None:
-            quil_program = apply_noise_model(quil_program, self.noise_model)
+            quil_program = apply_noise_model(executable, self.noise_model)
 
-        quil_program = self.augment_program_with_memory_values(quil_program)
+        quil_program = self.augment_program_with_memory_values(executable, variables_shim=memory.variables_shim)
 
         request = qvm_run_request(
             quil_program,
@@ -173,14 +152,37 @@ http://pyquil.readthedocs.io/en/latest/noise_models.html#support-for-noisy-gates
         )
         response = self._qvm_client.run_program(request)
         ram = {key: np.array(val) for key, val in response.results.items()}
-        self._memory_results.update(ram)
+        memory.results.update(ram)
 
-        return self
+        return QAMExecutionResult(executable=executable, memory=memory)
 
-    def augment_program_with_memory_values(self, quil_program: Program) -> Program:
+    @_record_call
+    def get_results(self, execute_response: QVMExecuteResponse) -> QAMExecutionResult:
+        """
+        Return the results of execution on the QVM.
+
+        Because QVM execution is synchronous, this is a no-op which returns its input.
+        """
+        return cast(QAMExecutionResult, execute_response)
+
+    @_record_call
+    def get_version_info(self) -> str:
+        """
+        Return version information for the QVM.
+
+        :return: String with version information
+        """
+        return self._qvm_client.get_version()
+
+    @staticmethod
+    def augment_program_with_memory_values(quil_program: Program, variables_shim: Dict) -> Program:
+        """
+        Store all memory values directly within the Program source for use by the QVM. Returns
+        a new program and does not mutate the input.
+        """
         p = Program()
 
-        for k, v in self._variables_shim.items():
+        for k, v in variables_shim.items():
             p += MOVE(MemoryReference(name=k.name, offset=k.index), v)
 
         p += quil_program

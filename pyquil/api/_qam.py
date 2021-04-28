@@ -13,10 +13,11 @@
 #    See the License for the specific language governing permissions and
 #    limitations under the License.
 ##############################################################################
+from dataclasses import dataclass, field
 import warnings
 from abc import ABC, abstractmethod
 from collections import defaultdict
-from typing import Dict, Sequence, Union, Optional
+from typing import Dict, Generic, Sequence, TypeVar, Union, Optional
 
 import numpy as np
 from rpcq.messages import ParameterAref
@@ -31,44 +32,25 @@ class QAMError(RuntimeError):
     pass
 
 
-class QAM(ABC):
-    """
-    The platonic ideal of this class is as a generic interface describing how a classical computer
-    interacts with a live quantum computer.  Eventually, it will turn into a thin layer over the
-    QPU and QVM's "QPI" interfaces.
+ExecuteResponse = TypeVar("ExecuteResponse")
+"""A generic parameter describing the opaque job handle returned from QAM#execute and subclasses."""
 
-    The reality is that neither the QPU nor the QVM currently support a full-on QPI interface,
-    and so the undignified job of this class is to collect enough state that it can convincingly
-    pretend to be a QPI-compliant quantum computer.
-    """
 
-    @_record_call
-    def __init__(self) -> None:
-        self._variables_shim: Dict[ParameterAref, Union[int, float]]
-        self.executable: Optional[QuantumExecutable]
-        self._memory_results: Dict[str, Optional[np.ndarray]]
-        self.experiment: Optional[Experiment]
-        self.reset()
+@dataclass
+class QAMMemory:
+    results: Dict[str, Optional[np.ndarray]] = field(default_factory=dict)
+    variables_shim: Dict[ParameterAref, Union[int, float]] = field(default_factory=dict)
 
-    @_record_call
-    def load(self, executable: QuantumExecutable) -> "QAM":
+    def read_memory(self, *, region_name: str) -> Optional[np.ndarray]:
         """
-        Initialize a QAM into a fresh state.
+        Reads from a memory region named ``region_name`` returned from the QAM.
 
-        :param executable: Load a compiled executable onto the QAM.
+        :param region_name: The string naming the declared memory region.
+        :return: A list of values of the appropriate type.
         """
-        self.status: str
-        if self.status == "loaded":
-            warnings.warn("Overwriting previously loaded executable.")
-        assert self.status in ["connected", "done", "loaded"]
+        assert self.results is not None, "No memory results available"
+        return self.results.get(region_name)
 
-        self._variables_shim = {}
-        self.executable = executable
-        self._memory_results = defaultdict(lambda: None)
-        self.status = "loaded"
-        return self
-
-    @_record_call
     def write_memory(
         self,
         *,
@@ -77,10 +59,9 @@ class QAM(ABC):
         offset: Optional[int] = None,
     ) -> "QAM":
         """
-        Writes a value or unwraps a list of values into a memory region on
-        the QAM at a specified offset.
+        Writes a value or unwraps a list of values into a memory region at a specified offset.
 
-        :param region_name: Name of the declared memory region on the QAM.
+        :param region_name: Name of the declared memory region within the target program.
         :param offset: Integer offset into the memory region to write to.
         :param value: Value(s) to store at the indicated location.
         """
@@ -93,44 +74,32 @@ class QAM(ABC):
 
         if isinstance(value, (int, float)):
             aref = ParameterAref(name=region_name, index=offset)
-            self._variables_shim[aref] = value
+            self.variables_shim[aref] = value
         else:
             for index, v in enumerate(value):
                 aref = ParameterAref(name=region_name, index=offset + index)
-                self._variables_shim[aref] = v
+                self.variables_shim[aref] = v
 
         return self
 
-    @abstractmethod
-    def run(self) -> "QAM":
-        """
-        Reset the program counter on a QAM and run its loaded Quil program.
-        """
-        assert self.executable is not None
-        self.status = "running"
 
-        return self
+@dataclass
+class QAMExecutionResult:
+    executable: QuantumExecutable
+    memory: QAMMemory
 
-    @_record_call
-    def wait(self) -> "QAM":
-        """
-        Blocks until the QPU enters the halted state.
-        """
-        assert self.status == "running"
-        self.status = "done"
-        return self
 
-    @_record_call
-    def read_memory(self, *, region_name: str) -> Optional[np.ndarray]:
-        """
-        Reads from a memory region named region_name on the QAM.
+class QAM(ABC, Generic[ExecuteResponse]):
+    """
+    This class acts as a generic interface describing how a classical computer interacts with a
+    live quantum computer.
+    """
 
         :param region_name: The string naming the declared memory region.
         :return: A list of values of the appropriate type.
         """
-        assert self.status == "done"
-        assert self._memory_results is not None
-        return self._memory_results[region_name]
+        Run an executable on a Quantum Abstract Machine, returning a handle to be used to retrieve
+        results.
 
     @_record_call
     def reset(self) -> None:
