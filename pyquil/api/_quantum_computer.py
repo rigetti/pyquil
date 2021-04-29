@@ -134,22 +134,22 @@ class QuantumComputer:
     def run(
         self,
         executable: QuantumExecutable,
-        memory_map: Optional[Mapping[str, Sequence[Union[int, float]]]] = None,
     ) -> np.ndarray:
         """
-        Run a quil executable. If the executable contains declared parameters, then a memory
-        map must be provided, which defines the runtime values of these parameters.
+        Run a quil executable. All parameters in the executable must have values applied using
+        ``Program#with_parameter_values`` or ``Program#set_parameter_value``.
 
-        :param executable: The program to run. You are responsible for compiling this first.
-        :param memory_map: The mapping of declared parameters to their values. The values
-            are a list of floats or integers.
+        :param executable: The program to run, compiled as needed for its target QAM.
         :return: A numpy array of shape (trials, len(ro-register)) that contains 0s and 1s.
         """
-        self.qam.load(executable)
-        if memory_map:
-            for region_name, values_list in memory_map.items():
-                self.qam.write_memory(region_name=region_name, value=values_list)
-        return self.qam.run().wait().read_memory(region_name="ro")  # type: ignore
+        result = self.qam.run(executable)
+
+        # QUESTION (@ameyer) - this is consistent with the V2 API, but in that API,
+        # QuantumComputer#run and QAM#run return different shapes.
+        #
+        # Does it make sense to align those now and return a QAMExecutionResult, given that
+        # it's a breaking change, or is it best to leave this as-is for ease/convenience?
+        return result.read_memory(region_name="ro")
 
     @_record_call
     def calibrate(self, experiment: Experiment) -> List[ExperimentResult]:
@@ -418,14 +418,6 @@ class QuantumComputer:
             nq_program = program
 
         return self.compiler.native_quil_to_executable(nq_program)
-
-    @_record_call
-    def reset(self) -> None:
-        """
-        Reset the QuantumComputer's QAM and compiler.
-        """
-        self.qam.reset()
-        self.compiler.reset()
 
     def __str__(self) -> str:
         return self.name

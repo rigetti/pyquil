@@ -35,6 +35,7 @@ __all__ = [
     "QVM",
     "QPU",
     "BenchmarkConnection",
+    "QAMExecutionResult",
 ]
 
 from qcs_api_client.client import QCSClientConfiguration
@@ -43,7 +44,7 @@ from pyquil.api._benchmark import BenchmarkConnection
 from pyquil.api._compiler import QVMCompiler, QPUCompiler, QuantumExecutable, EncryptedProgram
 from pyquil.api._engagement_manager import EngagementManager
 from pyquil.api._error_reporting import pyquil_protect
-from pyquil.api._qam import QAM
+from pyquil.api._qam import QAM, QAMExecutionResult
 from pyquil.api._qpu import QPU
 from pyquil.api._quantum_computer import (
     QuantumComputer,

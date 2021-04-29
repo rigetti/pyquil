@@ -13,6 +13,7 @@
 #    See the License for the specific language governing permissions and
 #    limitations under the License.
 ##############################################################################
+from dataclasses import dataclass
 import uuid
 import warnings
 from collections import defaultdict
@@ -24,7 +25,7 @@ from rpcq.messages import ParameterAref, ParameterSpec
 
 from pyquil.api import QuantumExecutable, EncryptedProgram, EngagementManager
 from pyquil.api._error_reporting import _record_call
-from pyquil.api._qam import QAM
+from pyquil.api._qam import QAM, QAMExecutionResult
 from pyquil.api._qpu_client import GetBuffersRequest, QPUClient, BufferResponse, RunProgramRequest
 from pyquil.quilatom import (
     MemoryReference,
@@ -99,7 +100,13 @@ def _extract_memory_regions(
     return regions
 
 
-class QPU(QAM):
+@dataclass
+class QPUExecuteResponse:
+    job_id: str
+    executable: EncryptedProgram
+
+
+class QPU(QAM[QPUExecuteResponse]):
     @_record_call
     def __init__(
         self,
@@ -140,70 +147,38 @@ class QPU(QAM):
         return self._qpu_client.quantum_processor_id
 
     @_record_call
-    def load(self, executable: QuantumExecutable) -> "QPU":
-        """
-        Initialize a QAM into a fresh state. Load the executable and parse the expressions
-        in the recalculation table (if any) into pyQuil Expression objects.
+    def execute(self, executable: QuantumExecutable) -> QPUExecuteResponse:
+        assert isinstance(
+            executable, EncryptedProgram
+        ), "QPU#execute requires an rpcq.EncryptedProgram. Create one with QuantumComputer#compile"
 
-        :param executable: Load a compiled executable onto the QAM.
-        """
-        if not isinstance(executable, EncryptedProgram):
-            raise TypeError(
-                "`executable` argument must be an `EncryptedProgram`. Make "
-                "sure you have explicitly compiled your program via `qc.compile` "
-                "or `qc.compiler.native_quil_to_executable(...)` for more "
-                "fine-grained control."
-            )
-
-        super().load(executable)
-        return self
-
-    @_record_call
-    def run(self, run_priority: Optional[int] = None) -> "QPU":
-        """
-        Run a pyquil program on the QPU.
-
-        This formats the classified data from the QPU server by stacking measured bits into
-        an array of shape (trials, classical_addresses). The mapping of qubit to
-        classical address is backed out from MEASURE instructions in the program, so
-        only do measurements where there is a 1-to-1 mapping between qubits and classical
-        addresses. If no MEASURE instructions are present in the program, a 0-by-0 array is
-        returned.
-
-        :param run_priority: The priority with which to insert jobs into the QPU queue. Lower
-                             integers correspond to higher priority. If not specified, the QPU
-                             object's default priority is used.
-        :return: The QPU object itself.
-        """
-        super().run()
-        assert isinstance(self.executable, EncryptedProgram)
+        assert (
+            executable.ro_sources is not None
+        ), "To run on a QPU, a program must include ``MEASURE``, ``CAPTURE``, and/or ``RAW-CAPTURE`` instructions"
 
         request = RunProgramRequest(
             id=str(uuid.uuid4()),
-            priority=run_priority if run_priority is not None else self.priority,
+            priority=self.priority,
             program=self.executable.program,
             patch_values=self._build_patch_values(),
         )
         job_id = self._qpu_client.run_program(request).job_id
-        results = self._get_buffers(job_id)
-        ro_sources = self.executable.ro_sources
+        return QPUExecuteResponse(job_id=job_id)
 
-        self._memory_results = defaultdict(lambda: None)
-        if results:
-            extracted = _extract_memory_regions(self.executable.memory_descriptors, ro_sources, results)
+    @_record_call
+    def get_results(self, execute_response: QPUExecuteResponse) -> QAMExecutionResult:
+        raw_results = self._get_buffers(execute_response.job_id)
+        ro_sources = execute_response.executable.ro_sources
+
+        result_memory = {}
+        if raw_results is not None:
+            extracted = _extract_memory_regions(execute_response.executable.memory_descriptors, ro_sources, raw_results)
             for name, array in extracted.items():
-                self._memory_results[name] = array
+                result_memory[name] = array
         elif not ro_sources:
-            warnings.warn(
-                "You are running a QPU program with no MEASURE instructions. "
-                "The result of this program will always be an empty array. Are "
-                "you sure you didn't mean to measure some of your qubits?"
-            )
-            self._memory_results["ro"] = np.zeros((0, 0), dtype=np.int64)
+            result_memory["ro"] = np.zeros((0, 0), dtype=np.int64)
 
-        self._last_results = results
-
-        return self
+        QAMExecutionResult(executable=execute_response.executable, results=result_memory)
 
     def _get_buffers(self, job_id: str) -> Dict[str, np.ndarray]:
         """
