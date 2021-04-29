@@ -13,20 +13,16 @@ from pyquil.quilbase import Declare, MemoryReference
 def test_qvm__default_client(client_configuration: QCSClientConfiguration):
     qvm = QVM(client_configuration=client_configuration)
     p = Program(Declare("ro", "BIT"), X(0), MEASURE(0, MemoryReference("ro")))
-    qvm.load(p.wrap_in_numshots_loop(1000))
-    qvm.run()
-    qvm.wait()
-    bitstrings = qvm.read_memory(region_name="ro")
+    result = qvm.run(p.wrap_in_numshots_loop(1000))
+    bitstrings = result.read_memory(region_name="ro")
     assert bitstrings.shape == (1000, 1)
 
 
 def test_qvm_run_pqer(client_configuration: QCSClientConfiguration):
     qvm = QVM(client_configuration=client_configuration, gate_noise=(0.01, 0.01, 0.01))
     p = Program(Declare("ro", "BIT"), X(0), MEASURE(0, MemoryReference("ro")))
-    qvm.load(p.wrap_in_numshots_loop(1000))
-    qvm.run()
-    qvm.wait()
-    bitstrings = qvm.read_memory(region_name="ro")
+    result = qvm.run(p.wrap_in_numshots_loop(1000))
+    bitstrings = result.read_memory(region_name="ro")
     assert bitstrings.shape == (1000, 1)
     assert np.mean(bitstrings) > 0.8
 
@@ -34,10 +30,8 @@ def test_qvm_run_pqer(client_configuration: QCSClientConfiguration):
 def test_qvm_run_just_program(client_configuration: QCSClientConfiguration):
     qvm = QVM(client_configuration=client_configuration, gate_noise=(0.01, 0.01, 0.01))
     p = Program(Declare("ro", "BIT"), X(0), MEASURE(0, MemoryReference("ro")))
-    qvm.load(p.wrap_in_numshots_loop(1000))
-    qvm.run()
-    qvm.wait()
-    bitstrings = qvm.read_memory(region_name="ro")
+    result = qvm.run(p.wrap_in_numshots_loop(1000))
+    bitstrings = result.read_memory(region_name="ro")
     assert bitstrings.shape == (1000, 1)
     assert np.mean(bitstrings) > 0.8
 
@@ -46,10 +40,8 @@ def test_qvm_run_only_pqer(client_configuration: QCSClientConfiguration):
     qvm = QVM(client_configuration=client_configuration, gate_noise=(0.01, 0.01, 0.01))
     p = Program(Declare("ro", "BIT"), X(0), MEASURE(0, MemoryReference("ro")))
 
-    qvm.load(p.wrap_in_numshots_loop(1000))
-    qvm.run()
-    qvm.wait()
-    bitstrings = qvm.read_memory(region_name="ro")
+    result = qvm.run(p.wrap_in_numshots_loop(1000))
+    bitstrings = result.read_memory(region_name="ro")
     assert bitstrings.shape == (1000, 1)
     assert np.mean(bitstrings) > 0.8
 
@@ -57,16 +49,16 @@ def test_qvm_run_only_pqer(client_configuration: QCSClientConfiguration):
 def test_qvm_run_region_declared_and_measured(client_configuration: QCSClientConfiguration):
     qvm = QVM(client_configuration=client_configuration)
     p = Program(Declare("reg", "BIT"), X(0), MEASURE(0, MemoryReference("reg")))
-    qvm.load(p.wrap_in_numshots_loop(100)).run().wait()
-    bitstrings = qvm.read_memory(region_name="reg")
+    result = qvm.run(p.wrap_in_numshots_loop(100))
+    bitstrings = result.read_memory(region_name="reg")
     assert bitstrings.shape == (100, 1)
 
 
 def test_qvm_run_region_declared_not_measured(client_configuration: QCSClientConfiguration):
     qvm = QVM(client_configuration=client_configuration)
     p = Program(Declare("reg", "BIT"), X(0))
-    qvm.load(p.wrap_in_numshots_loop(100)).run().wait()
-    bitstrings = qvm.read_memory(region_name="reg")
+    result = qvm.run(p.wrap_in_numshots_loop(100))
+    bitstrings = result.read_memory(region_name="reg")
     assert bitstrings.shape == (100, 0)
 
 
