@@ -20,7 +20,7 @@ from typing import Dict, List, Optional, Sequence, Type, Union
 import numpy as np
 from numpy.random.mtrand import RandomState
 
-from pyquil.api import QAM, QuantumExecutable
+from pyquil.api import QAM, QuantumExecutable, QAMExecutionResult
 from pyquil.paulis import PauliTerm, PauliSum
 from pyquil.quil import Program
 from pyquil.quilatom import Label, LabelPlaceholder, MemoryReference
@@ -211,26 +211,6 @@ class PyQVM(QAM):
         self.wf_simulator = quantum_simulator_type(n_qubits=n_qubits, rs=self.rs)
         self._last_measure_program_loc = None
 
-    def load(self, executable: QuantumExecutable) -> "PyQVM":
-        if not isinstance(executable, Program):
-            raise TypeError("`executable` argument must be a `Program`.")
-
-        # initialize program counter
-        self.program = executable
-        self.program_counter = 0
-        self._memory_results = {}
-
-        # clear RAM, although it's not strictly clear if this should happen here
-        self.ram = {}
-        # if we're clearing RAM, we ought to clear the WF too
-        self.wf_simulator.reset()
-
-        # grab the gate definitions for future use
-        self._extract_defined_gates()
-
-        self.status = "loaded"
-        return self
-
     def _extract_defined_gates(self) -> None:
         self.defined_gates = dict()
         assert self.program is not None
@@ -247,11 +227,30 @@ class PyQVM(QAM):
         self.ram[region_name][offset] = value
         return self
 
-    def run(self) -> "PyQVM":
-        self.status = "running"
+    def execute(self, executable: QuantumExecutable) -> "PyQVM":
+        """
+        Execute a program on the PyQVM.
+
+        Note that this subclass QAM is stateful! Subsequent calls to :py:func:`execute` will not
+        automatically reset the wavefunction or the classical RAM. If this is desired,
+        consider starting your program with ``RESET``.
+
+        :return: ``self`` to support method chaining.
+        """
+        if not isinstance(executable, Program):
+            raise TypeError("`executable` argument must be a `Program`")
+
+        self.program = executable
+        self.program_counter = 0
+        self._memory_results = {}
+
+        self.ram = {}
+        self.wf_simulator.reset()
+
+        # grab the gate definitions for future use
+        self._extract_defined_gates()
 
         self._memory_results = {}
-        assert self.program is not None
         for _ in range(self.program.num_shots):
             self.wf_simulator.reset()
             self._execute_program()
@@ -259,15 +258,14 @@ class PyQVM(QAM):
                 self._memory_results.setdefault(name, list())
                 self._memory_results[name].append(self.ram[name])
 
-        # TODO: this will need to be removed in merge conflict with #873
-        self._bitstrings = self._memory_results["ro"]
+        self._bitstrings = self._memory_results.get("ro")
 
         return self
 
-    def wait(self) -> "PyQVM":
-        assert self.status == "running"
-        self.status = "done"
-        return self
+    def get_results(self, execute_response: "PyQVM") -> QAMExecutionResult:
+        return QAMExecutionResult(
+            executable=self.program.copy(), memory={k: v for k, v in self._memory_results.items()}
+        )
 
     def read_memory(self, *, region_name: str) -> np.ndarray:
         assert self._memory_results is not None
@@ -469,16 +467,16 @@ class PyQVM(QAM):
 
         return self
 
-    def execute(self, program: Program) -> "PyQVM":
-        """
-        Execute one outer loop of a program on the QVM.
+    # def execute(self, program: Program) -> "PyQVM":
+    #     """
+    # Execute one outer loop of a program on the QVM.
 
-        Note that the QAM is stateful. Subsequent calls to :py:func:`execute` will not
-        automatically reset the wavefunction or the classical RAM. If this is desired,
-        consider starting your program with ``RESET``.
+    # Note that the QAM is stateful. Subsequent calls to :py:func:`execute` will not
+    # automatically reset the wavefunction or the classical RAM. If this is desired,
+    # consider starting your program with ``RESET``.
 
-        :return: ``self`` to support method chaining.
-        """
-        self.program = program
-        self._extract_defined_gates()
-        return self._execute_program()
+    # :return: ``self`` to support method chaining.
+    #     """
+    #     self.program = program
+    #     self._extract_defined_gates()
+    #     return self._execute_program()
