@@ -21,12 +21,11 @@ from qcs_api_client.client import QCSClientConfiguration
 from pyquil._version import pyquil_version
 from pyquil.api import QuantumExecutable
 from pyquil.api._error_reporting import _record_call
-from pyquil.api._qam import QAM, QAMMemory, QAMExecutionResult
+from pyquil.api._qam import QAM, QAMExecutionResult
 from pyquil.api._qvm_client import (
     QVMClient,
     RunProgramRequest,
 )
-from pyquil.gates import MOVE
 from pyquil.noise import NoiseModel, apply_noise_model
 from pyquil.quil import Program, get_classical_addresses_from_program, percolate_declares
 from pyquil.quilatom import MemoryReference
@@ -120,7 +119,7 @@ http://pyquil.readthedocs.io/en/latest/noise_models.html#support-for-noisy-gates
             raise QVMNotRunning(f"No QVM server running at {self._qvm_client.base_url}")
 
     @_record_call
-    def execute(self, executable: QuantumExecutable, *, memory: Optional[QAMMemory] = None) -> QVMExecuteResponse:
+    def execute(self, executable: QuantumExecutable) -> QVMExecuteResponse:
         """
         Synchronously execute the input program to completion.
         """
@@ -128,19 +127,18 @@ http://pyquil.readthedocs.io/en/latest/noise_models.html#support-for-noisy-gates
         if not isinstance(executable, Program):
             raise TypeError("`QVM#executable` argument must be a `Program`")
 
-        if memory is None:
-            memory = QAMMemory(results={}, variables_shim={})
+        result_memory = {}
 
         for region in executable.declarations.keys():
-            memory.results[region] = np.ndarray((executable.num_shots, 0), dtype=np.int64)
+            result_memory[region] = np.ndarray((executable.num_shots, 0), dtype=np.int64)
 
         trials = executable.num_shots
         classical_addresses = get_classical_addresses_from_program(executable)
 
         if self.noise_model is not None:
-            quil_program = apply_noise_model(executable, self.noise_model)
+            executable = apply_noise_model(executable, self.noise_model)
 
-        quil_program = self.augment_program_with_memory_values(executable, variables_shim=memory.variables_shim)
+        quil_program = executable._set_parameter_values_at_runtime()
 
         request = qvm_run_request(
             quil_program,
@@ -152,9 +150,9 @@ http://pyquil.readthedocs.io/en/latest/noise_models.html#support-for-noisy-gates
         )
         response = self._qvm_client.run_program(request)
         ram = {key: np.array(val) for key, val in response.results.items()}
-        memory.results.update(ram)
+        result_memory.update(ram)
 
-        return QAMExecutionResult(executable=executable, memory=memory)
+        return QAMExecutionResult(executable=executable, memory=result_memory)
 
     @_record_call
     def get_results(self, execute_response: QVMExecuteResponse) -> QAMExecutionResult:
@@ -173,21 +171,6 @@ http://pyquil.readthedocs.io/en/latest/noise_models.html#support-for-noisy-gates
         :return: String with version information
         """
         return self._qvm_client.get_version()
-
-    @staticmethod
-    def augment_program_with_memory_values(quil_program: Program, variables_shim: Dict) -> Program:
-        """
-        Store all memory values directly within the Program source for use by the QVM. Returns
-        a new program and does not mutate the input.
-        """
-        p = Program()
-
-        for k, v in variables_shim.items():
-            p += MOVE(MemoryReference(name=k.name, offset=k.index), v)
-
-        p += quil_program
-
-        return percolate_declares(p)
 
 
 def validate_noise_probabilities(noise_parameter: Optional[Tuple[float, float, float]]) -> None:

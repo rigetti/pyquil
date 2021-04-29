@@ -13,15 +13,11 @@
 #    See the License for the specific language governing permissions and
 #    limitations under the License.
 ##############################################################################
-from dataclasses import dataclass, field
-import warnings
 from abc import ABC, abstractmethod
-from collections import defaultdict
-from typing import Dict, Generic, Sequence, TypeVar, Union, Optional
+from dataclasses import dataclass, field
+from typing import Dict, Generic, Optional, TypeVar
 
 import numpy as np
-from rpcq.messages import ParameterAref
-
 from pyquil.api._abstract_compiler import QuantumExecutable
 from pyquil.api._error_reporting import _record_call
 from pyquil.api._abstract_compiler import QuantumExecutable
@@ -37,9 +33,9 @@ ExecuteResponse = TypeVar("ExecuteResponse")
 
 
 @dataclass
-class QAMMemory:
-    results: Dict[str, Optional[np.ndarray]] = field(default_factory=dict)
-    variables_shim: Dict[ParameterAref, Union[int, float]] = field(default_factory=dict)
+class QAMExecutionResult:
+    executable: QuantumExecutable
+    memory: Dict[str, Optional[np.ndarray]] = field(default_factory=dict)
 
     def read_memory(self, *, region_name: str) -> Optional[np.ndarray]:
         """
@@ -48,57 +44,20 @@ class QAMMemory:
         :param region_name: The string naming the declared memory region.
         :return: A list of values of the appropriate type.
         """
-        assert self.results is not None, "No memory results available"
-        return self.results.get(region_name)
-
-    def write_memory(
-        self,
-        *,
-        region_name: str,
-        value: Union[int, float, Sequence[int], Sequence[float]],
-        offset: Optional[int] = None,
-    ) -> "QAM":
-        """
-        Writes a value or unwraps a list of values into a memory region at a specified offset.
-
-        :param region_name: Name of the declared memory region within the target program.
-        :param offset: Integer offset into the memory region to write to.
-        :param value: Value(s) to store at the indicated location.
-        """
-        assert self.status in ["loaded", "done"]
-
-        if offset is None:
-            offset = 0
-        elif isinstance(value, Sequence):
-            warnings.warn("offset should be None when value is a Sequence")
-
-        if isinstance(value, (int, float)):
-            aref = ParameterAref(name=region_name, index=offset)
-            self.variables_shim[aref] = value
-        else:
-            for index, v in enumerate(value):
-                aref = ParameterAref(name=region_name, index=offset + index)
-                self.variables_shim[aref] = v
-
-        return self
-
-
-@dataclass
-class QAMExecutionResult:
-    executable: QuantumExecutable
-    memory: QAMMemory
+        assert self.memory is not None, "No memory results available"
+        return self.memory.get(region_name)
 
 
 class QAM(ABC, Generic[ExecuteResponse]):
     """
-    This class acts as a generic interface describing how a classical computer interacts with a
-    live quantum computer.
+    Quantum Abstract Machine: This class acts as a generic interface describing how a classical computer interacts with
+    a live quantum computer.
     """
 
         :param region_name: The string naming the declared memory region.
         :return: A list of values of the appropriate type.
         """
-        Run an executable on a Quantum Abstract Machine, returning a handle to be used to retrieve
+        Run an executable on a QAM, returning a handle to be used to retrieve
         results.
 
     @_record_call
