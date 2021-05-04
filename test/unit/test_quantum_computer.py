@@ -757,6 +757,13 @@ def test_qc_joint_expectation(client_configuration: QCSClientConfiguration, dumm
     assert results[0].additional_results[1].total_counts == 40
 
 
+def test_get_qc_noisy_qpu_error(client_configuration: QCSClientConfiguration, dummy_compiler: DummyCompiler):
+    expected_message = "pyQuil currently does not support initializing a noisy QuantumComputer " \
+        "based on a QCSQuantumProcessor. Change noisy to False or specify the name of a QVM."
+    with pytest.raises(ValueError, match=expected_message):
+        get_qc("Aspen-8", noisy=True)
+
+
 def test_qc_joint_calibration(client_configuration: QCSClientConfiguration):
     # noise model with 95% symmetrized readout fidelity per qubit
     noise_model = asymmetric_ro_model([0, 1], 0.945, 0.955)

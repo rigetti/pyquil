@@ -930,6 +930,12 @@ def get_qc(
             execution_timeout=execution_timeout,
         )
 
+    if noisy:
+        raise ValueError(
+            "pyQuil currently does not support initializing a noisy QuantumComputer "
+            "based on a QCSQuantumProcessor. Change noisy to False or specify the name of a QVM."
+        )
+
     # 4. Not a special case, query the web for information about this quantum_processor.
     quantum_processor = get_qcs_quantum_processor(
         quantum_processor_id=prefix, client_configuration=client_configuration
@@ -940,19 +946,12 @@ def get_qc(
             client_configuration=client_configuration,
             name=name,
             quantum_processor=quantum_processor,
-            noisy=noisy,
+            noisy=False,
             qvm_type=qvm_type,
             compiler_timeout=compiler_timeout,
             execution_timeout=execution_timeout,
         )
     else:
-        # 4.2 A real quantum processor
-        if noisy is not None and noisy:
-            warnings.warn(
-                "You have specified `noisy=True`, but you're getting a QPU. This flag "
-                "is meant for controlling noise models on QVMs."
-            )
-
         qpu = QPU(
             quantum_processor_id=quantum_processor.quantum_processor_id,
             timeout=execution_timeout,
