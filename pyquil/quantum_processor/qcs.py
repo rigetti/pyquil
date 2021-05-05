@@ -60,9 +60,21 @@ class QCSQuantumProcessor(AbstractQuantumProcessor):
 
 def get_qcs_quantum_processor(
     quantum_processor_id: str,
-    client_configuration: QCSClientConfiguration,
+    client_configuration: Optional[QCSClientConfiguration] = None,
     timeout: float = 10.0,
 ) -> QCSQuantumProcessor:
+    """
+    Retrieve an instruction set architecture for the specified ``quantum_processor_id`` and initialize a
+    ``QCSQuantumProcessor`` with it.
+
+    :param quantum_processor_id: QCS ID for the quantum processor.
+    :param timeout: Time limit for request, in seconds.
+    :param client_configuration: Optional client configuration. If none is provided, a default one will
+    be loaded.
+
+    :return: A ``QCSQuantumProcessor`` with the requested ISA.
+    """
+    client_configuration = client_configuration or QCSClientConfiguration.load()
     with qcs_client(client_configuration=client_configuration, request_timeout=timeout) as client:  # type: httpx.Client
         isa = get_instruction_set_architecture(client=client, quantum_processor_id=quantum_processor_id).parsed
 
