@@ -1,6 +1,15 @@
 Changelog
 =========
-[next](https://github.com/rigetti/pyquil/compare/v2.28.0..master) (In development)
+
+[next](https://github.com/rigetti/pyquil/compare/v2.28.1..master) (In development)
+
+### Announcements
+
+### Improvements and Changes
+
+### Bugfixes
+
+[v2.28.1](https://github.com/rigetti/pyquil/compare/v2.28.1..master) (In development)
 ------------------------------------------------------------------------------------
 
 ### Announcements
@@ -10,6 +19,7 @@ Changelog
 ### Bugfixes
 
 - Fix key error for unmeasured memory regions (@notmgsk, @ameyer-rigetti, #1156)
+- Remove extraneous debug prints from `def_gate_matrix()` (@notmgsk)
 
 [v2.28.0](https://github.com/rigetti/pyquil/compare/v2.27.0..v2.28.0) (January 26, 2021)
 ------------------------------------------------------------------------------------

@@ -94,8 +94,6 @@ class QuilTransformer(Transformer):  # type: ignore
 
     @v_args(inline=True)
     def def_gate_matrix(self, name, variables, matrix):
-        print(name)
-        print(matrix)
         return DefGate(name, matrix=matrix, parameters=variables)
 
     @v_args(inline=True)
