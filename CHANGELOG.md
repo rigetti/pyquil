@@ -1,7 +1,7 @@
 Changelog
 =========
 
-[next](https://github.com/rigetti/pyquil/compare/rc..master) (In development)
+[next](https://github.com/rigetti/pyquil/compare/master..rc) (In development)
 ------------------------------------------------------------------------------------
 
 ### Announcements
