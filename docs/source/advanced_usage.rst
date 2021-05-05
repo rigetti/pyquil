@@ -45,9 +45,10 @@ to client configuration (:py:class:`~pyquil.api.QCSClientConfiguration`) and QPU
 auth-related HTTP requests.
 
 .. note::
-    QVMs process incoming requests in parallel, while QPUs process them sequentially. If you encounter timeouts while
-    trying to run large numbers of programs against a QPU, try increasing the ``timeout`` parameter on calls to
-    :py:func:`~pyquil.get_qc()` (specified in seconds).
+    The QVM processes incoming requests in parallel, while a QPU may process them sequentially or in parallel
+    (depending on the qubits used). If you encounter timeouts while trying to run large numbers of programs against a
+    QPU, try increasing the ``execution_timeout`` parameter on calls  to :py:func:`~pyquil.get_qc()` (specified in
+    seconds).
 
 Using Multithreading
 --------------------

@@ -542,7 +542,8 @@ def test_get_qvm_with_topology(client_configuration: QCSClientConfiguration):
         topology=topo,
         noisy=False,
         qvm_type="qvm",
-        timeout=5.0,
+        compiler_timeout=5.0,
+        execution_timeout=5.0,
         client_configuration=client_configuration,
     )
     assert len(qc.qubits()) == 5
@@ -556,7 +557,8 @@ def test_get_qvm_with_topology_2(client_configuration: QCSClientConfiguration):
         topology=topo,
         noisy=False,
         qvm_type="qvm",
-        timeout=5.0,
+        compiler_timeout=5.0,
+        execution_timeout=5.0,
         client_configuration=client_configuration,
     )
     results = qc.run_and_measure(Program(X(5)), trials=5)
