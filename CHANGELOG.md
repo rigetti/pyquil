@@ -55,6 +55,8 @@ Changelog
 - Dropped `api._quantum_processors`. Moved `get_device` to `pyquil.quantum_processor.qcs.get_qcs_quantum_processor`.
 
 - Dropped `gates_in_isa` and refactored as an internal function for preparing a list of `pyquil.Gate`'s that the user may use to initialize a `NoiseModel` based on the underlying `CompilerISA`.
+
+- `get_qc` raises `ValueError` when the user passes a QCS quantum processor name and `noisy=True`.
   
 ### Bugfixes
 
