@@ -117,6 +117,32 @@ Test e2e QVM (3.8):
     - . scripts/ci_install_deps
     - poetry run make e2e TEST_QUANTUM_PROCESSOR=2q-qvm
 
+Test Unit (3.9):
+  stage: test
+  image: python:3.9
+  coverage: '/TOTAL.*?(\d+)\%/'
+  script:
+    - . scripts/ci_install_deps
+    - poetry run make test
+
+Test e2e QPU (3.9):
+  stage: test
+  image: python:3.9
+  coverage: '/TOTAL.*?(\d+)\%/'
+  script:
+    - . scripts/ci_install_deps
+    - poetry run make e2e
+  rules:
+    - if: '$CI_COMMIT_BRANCH == $CI_DEFAULT_BRANCH || $CI_COMMIT_BRANCH == "rc"'
+
+Test e2e QVM (3.9):
+  stage: test
+  image: python:3.9
+  coverage: '/TOTAL.*?(\d+)\%/'
+  script:
+    - . scripts/ci_install_deps
+    - poetry run make e2e TEST_QUANTUM_PROCESSOR=2q-qvm
+
 Coverage:
   stage: test
   script:
