@@ -6,7 +6,7 @@ Changelog
 
 ### Announcements
 
-- Python 3.6 is no longer supported. Python 3.7 and 3.8 will continue to be supported.
+- Python 3.6 is no longer supported. Python 3.7, 3.8, and 3.9 are supported.
 
 ### Improvements and Changes
 
