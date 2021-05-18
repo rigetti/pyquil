@@ -76,7 +76,6 @@ Utility Functions
 .. autofunction:: get_default_qubit_mapping
 .. autofunction:: address_qubits
 .. autofunction:: instantiate_labels
-.. autofunction:: implicitly_declare_ro
 .. autofunction:: merge_with_pauli_noise
 .. autofunction:: merge_programs
 .. autofunction:: get_classical_addresses_from_program

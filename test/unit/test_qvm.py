@@ -70,36 +70,19 @@ def test_qvm_run_region_declared_not_measured(client_configuration: QCSClientCon
     assert bitstrings.shape == (100, 0)
 
 
-# For backwards compatibility, we support omitting the declaration for "ro" specifically
-def test_qvm_run_region_not_declared_is_measured_ro(client_configuration: QCSClientConfiguration):
+def test_qvm_run_region_not_declared_is_measured(client_configuration: QCSClientConfiguration):
     qvm = QVM(client_configuration=client_configuration)
     p = Program(X(0), MEASURE(0, MemoryReference("ro")))
-    qvm.load(p.wrap_in_numshots_loop(100)).run().wait()
-    bitstrings = qvm.read_memory(region_name="ro")
-    assert bitstrings.shape == (100, 1)
 
-
-def test_qvm_run_region_not_declared_is_measured_non_ro(client_configuration: QCSClientConfiguration):
-    qvm = QVM(client_configuration=client_configuration)
-    p = Program(X(0), MEASURE(0, MemoryReference("reg")))
-
-    with pytest.raises(QVMError, match='Bad memory region name "reg" in MEASURE'):
+    with pytest.raises(QVMError, match='Bad memory region name "ro" in MEASURE'):
         qvm.load(p).run().wait()
 
 
-def test_qvm_run_region_not_declared_not_measured_ro(client_configuration: QCSClientConfiguration):
+def test_qvm_run_region_not_declared_not_measured(client_configuration: QCSClientConfiguration):
     qvm = QVM(client_configuration=client_configuration)
     p = Program(X(0))
     qvm.load(p.wrap_in_numshots_loop(100)).run().wait()
-    bitstrings = qvm.read_memory(region_name="ro")
-    assert bitstrings.shape == (100, 0)
-
-
-def test_qvm_run_region_not_declared_not_measured_non_ro(client_configuration: QCSClientConfiguration):
-    qvm = QVM(client_configuration=client_configuration)
-    p = Program(X(0))
-    qvm.load(p.wrap_in_numshots_loop(100)).run().wait()
-    assert qvm.read_memory(region_name="reg") is None
+    assert qvm.read_memory(region_name="ro") is None
 
 
 def test_qvm_version(client_configuration: QCSClientConfiguration):

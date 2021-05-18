@@ -271,7 +271,13 @@ def test_readout_symmetrization(client_configuration: QCSClientConfiguration):
         compiler=DummyCompiler(quantum_processor=quantum_processor, client_configuration=client_configuration),
     )
 
-    prog = Program(I(0), X(1), MEASURE(0, MemoryReference("ro", 0)), MEASURE(1, MemoryReference("ro", 1)))
+    prog = Program(
+        Declare("ro", "BIT", 2),
+        I(0),
+        X(1),
+        MEASURE(0, MemoryReference("ro", 0)),
+        MEASURE(1, MemoryReference("ro", 1)),
+    )
     prog.wrap_in_numshots_loop(1000)
 
     bs1 = qc.run(prog)
@@ -280,6 +286,10 @@ def test_readout_symmetrization(client_configuration: QCSClientConfiguration):
     diff_us = avg1_us - avg0_us
     assert diff_us > 0.03
 
+    prog = Program(
+        I(0),
+        X(1),
+    )
     bs2 = qc.run_symmetrized_readout(prog, 1000)
     avg0_s = np.mean(bs2[:, 0])
     avg1_s = 1 - np.mean(bs2[:, 1])

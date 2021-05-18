@@ -243,19 +243,13 @@ def test_prog_init():
     assert p.out() == ("DECLARE ro BIT[1]\nX 0\nMEASURE 0 ro[0]\n")
 
 
-def test_classical_regs_implicit_ro():
+def test_classical_regs():
     p = Program()
-    p.inst(Declare("reg", "BIT", 2), X(0)).measure(0, MemoryReference("reg", 1))
-    assert p.out() == "DECLARE reg BIT[2]\nX 0\nMEASURE 0 reg[1]\n"
-    assert p.declarations == {
-        "ro": Declare("ro", "BIT", 1),
-        "reg": Declare("reg", "BIT", 2),
-    }
-
-
-def test_classical_regs_explicit_ro():
-    p = Program()
-    p.inst(Declare("ro", "BIT", 2), Declare("reg", "BIT", 2), X(0)).measure(0, MemoryReference("reg", 1))
+    p.inst(
+        Declare("ro", "BIT", 2),
+        Declare("reg", "BIT", 2),
+        X(0),
+    ).measure(0, MemoryReference("reg", 1))
     assert p.out() == "DECLARE ro BIT[2]\nDECLARE reg BIT[2]\nX 0\nMEASURE 0 reg[1]\n"
     assert p.declarations == {
         "ro": Declare("ro", "BIT", 2),
@@ -1123,20 +1117,9 @@ PRAGMA READOUT-POVM 1 "(0.9 0.19999999999999996 0.09999999999999998 0.8)"
     )
 
 
-def test_implicit_declare():
-    with pytest.warns(UserWarning):
-        program = Program(MEASURE(0, MemoryReference("ro", 0)))
-        assert program.out() == ("DECLARE ro BIT[1]\nMEASURE 0 ro[0]\n")
-
-
-def test_no_implicit_declare():
+def test_declare():
     program = Program(Declare("read_out", "BIT", 5), MEASURE(0, MemoryReference("read_out", 4)))
     assert program.out() == ("DECLARE read_out BIT[5]\nMEASURE 0 read_out[4]\n")
-
-
-def test_no_implicit_declare_2():
-    program = Program(MEASURE(0, MemoryReference("asdf", 4)))
-    assert program.out() == "MEASURE 0 asdf[4]\n"
 
 
 def test_reset():
