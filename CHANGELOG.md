@@ -61,6 +61,10 @@ Changelog
 - `QuantumComputer.run_and_measure()` has been removed. Instead, add explicit `MEASURE` instructions to programs and use
   `QuantumComputer.compile()` along with `QuantumComputer.run()` to compile and execute.
   
+- The `ro` memory region is no longer implicitly declared. All memory regions must be declared explicitly.
+
+- The `pyquil.magic` package has been removed in favor of writing programs more explicitly.
+  
 ### Bugfixes
 
 [v2.28.1](https://github.com/rigetti/pyquil/compare/v2.28.0..v2.28.1) (May 5, 2021)

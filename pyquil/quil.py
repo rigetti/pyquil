@@ -138,8 +138,7 @@ class Program(object):
         # method.  It is marked as None whenever new instructions are added.
         self._synthesized_instructions: Optional[List[AbstractInstruction]] = None
 
-        # "ro" is always implicitly declared
-        self._declarations: Dict[str, Declare] = {"ro": Declare("ro", "BIT")}
+        self._declarations: Dict[str, Declare] = {}
 
         self.inst(*instructions)
 
@@ -811,8 +810,7 @@ class Program(object):
 
     def _synthesize(self) -> "Program":
         """
-        Assigns all placeholder labels to actual values and implicitly declares the ``ro``
-        register for backwards compatibility.
+        Assigns all placeholder labels to actual values.
 
         Changed in 1.9: Either all qubits must be defined or all undefined. If qubits are
         undefined, this method will not help you. You must explicitly call `address_qubits`
@@ -825,10 +823,11 @@ class Program(object):
         to declare a register of bits called ``ro`` if and only if there are no other
         declarations in the program.
 
+        Changed in 3.0: Removed above change regarding implicit ``ro`` declaration.
+
         :return: This object with the ``_synthesized_instructions`` member set.
         """
         self._synthesized_instructions = instantiate_labels(self._instructions)
-        self._synthesized_instructions = implicitly_declare_ro(self._synthesized_instructions)
         return self
 
     def __add__(self, other: InstructionDesignator) -> "Program":
@@ -1101,64 +1100,6 @@ def instantiate_labels(instructions: Iterable[AbstractInstruction]) -> List[Abst
             result.append(instr)
 
     return result
-
-
-def implicitly_declare_ro(instructions: List[AbstractInstruction]) -> List[AbstractInstruction]:
-    """
-    Implicitly declare a register named ``ro`` for backwards compatibility with Quil 1.
-
-    There used to be one un-named hunk of classical memory. Now there are variables with
-    declarations. Instead of::
-
-        MEASURE 0 [0]
-
-    You must now measure into a named register, idiomatically::
-
-        MEASURE 0 ro[0]
-
-    The ``MEASURE`` instruction will emit this (with a deprecation warning) if you're still
-    using bare integers for classical addresses. However, you must also declare memory in the
-    new scheme::
-
-        DECLARE ro BIT[8]
-        MEASURE 0 ro[0]
-
-    This method will determine if you are in "backwards compatibility mode" and will declare
-    a read-out ``ro`` register for you. If you program contains any DECLARE commands or if it
-    does not have any MEASURE x ro[x], this will not do anything.
-
-    This behavior is included for backwards compatibility and will be removed in future releases
-    of PyQuil. Please DECLARE all memory including ``ro``.
-    """
-    ro_addrs: List[int] = []
-    for instr in instructions:
-        if isinstance(instr, Declare):
-            # The user has declared their own memory
-            # so they are responsible for all declarations and memory references.
-            return instructions
-
-        if isinstance(instr, Measurement):
-            if instr.classical_reg is None:
-                continue
-
-            if instr.classical_reg.name == "ro":
-                ro_addrs += [instr.classical_reg.offset]
-            else:
-                # The user has used a classical register named something other than "ro"
-                # so they are responsible for all declarations and memory references.
-                return instructions
-
-    if len(ro_addrs) == 0:
-        return instructions
-
-    warnings.warn(
-        "Please DECLARE all memory. I'm adding a declaration for the `ro` register, "
-        "but I won't do this for you in the future."
-    )
-
-    new_instr = instructions.copy()
-    new_instr.insert(0, Declare(name="ro", memory_type="BIT", memory_size=max(ro_addrs) + 1))
-    return new_instr
 
 
 def merge_with_pauli_noise(
