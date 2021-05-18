@@ -378,9 +378,9 @@ def test_set_initial_state(client_configuration: QCSClientConfiguration):
     assert all([np.allclose(x, y) for x, y in zip(out, ans)])
 
     # Run and measure style
-    progRAM = Program(I(0))
+    progRAM = prog.copy().wrap_in_numshots_loop(10)
 
-    results = qc_density.run_and_measure(progRAM, trials=10)
+    results = qc_density.run(qc_density.compile(progRAM))
     ans = {0: np.array([1, 1, 1, 1, 1, 1, 1, 1, 1, 1])}
     assert np.allclose(results[0], ans[0])
 

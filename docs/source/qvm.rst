@@ -272,8 +272,8 @@ For more information about creating and adding your own noise models, check out 
 Methods
 -------
 
-Now that you have your ``qc``, there's a lot you can do with it. Most users will want to use ``compile``, ``run`` or
-``run_and_measure``, and ``qubits`` very regularly. The general flow of use would look like this:
+Now that you have your ``qc``, there's a lot you can do with it. Most users will want to use ``compile``, ``run``, and
+``qubits`` very regularly. The general flow of use would look like this:
 
 .. code:: python
 
@@ -295,48 +295,11 @@ Now that you have your ``qc``, there's a lot you can do with it. Most users will
     In addition to a running QVM server, you will need a running ``quilc`` server to compile your program. Setting
     up both of these is very easy, as explained :ref:`here <server>`.
 
-
-The ``.run_and_measure(...)`` method
-^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
-
-This is the most high level way to run your program. With this method, you are **not** responsible for compiling your program
-before running it, nor do you have to specify any ``MEASURE`` instructions; all qubits will get measured.
-
-.. code:: python
-
-    from pyquil import Program, get_qc
-    from pyquil.gates import X
-
-    qc = get_qc("8q-qvm")
-
-    p = Program(X(0))
-
-    results = qc.run_and_measure(p, trials=5)
-    print(results)
-
-``trials`` specifies how many times to run this program. Let's see our results:
-
-.. parsed-literal::
-
-    {0: array([1, 1, 1, 1, 1]),
-     1: array([0, 0, 0, 0, 0]),
-     2: array([0, 0, 0, 0, 0]),
-     3: array([0, 0, 0, 0, 0]),
-     4: array([0, 0, 0, 0, 0]),
-     5: array([0, 0, 0, 0, 0]),
-     6: array([0, 0, 0, 0, 0]),
-     7: array([0, 0, 0, 0, 0])}
-
-The return value is a dictionary from qubit index to results for all trials.
-Every qubit in the lattice is measured for you, and as expected, qubit 0 has been flipped to the excited state
-for each trial.
-
 The ``.run(...)`` method
 ^^^^^^^^^^^^^^^^^^^^^^^^
 
-The lower-level ``.run(...)`` method gives you more control over how you want to build and compile your program than
-``.run_and_measure`` does. **You are responsible for compiling your program before running it.**
-The above program would be written in this way to execute with ``run``:
+When using the ``.run(...)`` method, **you are responsible for compiling your program before running it.**
+For example:
 
 .. code:: python
 
@@ -353,11 +316,8 @@ The above program would be written in this way to execute with ``run``:
     p.wrap_in_numshots_loop(5)
 
     executable = qc.compile(p)
-    bitstrings = qc.run(executable)  # .run takes in a compiled program, unlike .run_and_measure
+    bitstrings = qc.run(executable)  # .run takes in a compiled program
     print(bitstrings)
-
-By specifying ``MEASURE`` ourselves, we will only get the results that we are interested in. To be completely equivalent
-to the previous example, we would have to measure all eight qubits.
 
 The results returned is a *list of lists of integers*. In the above case, that's
 
