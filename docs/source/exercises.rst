@@ -321,4 +321,4 @@ Inspecting the results, we see that no matter what Picard does, Q will always wi
 .. [1] https://link.aps.org/doi/10.1103/PhysRevLett.82.1052
 .. [2] https://arxiv.org/abs/quant-ph/0611234
 .. [3] See more: :ref:`basics`
-.. [4] More about measurements and ``run_and_measure``: :ref:`measurement`
+.. [4] More about measurements: :ref:`measurement`

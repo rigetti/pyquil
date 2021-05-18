@@ -21,7 +21,6 @@ import warnings
 from contextlib import contextmanager
 from math import pi, log
 from typing import (
-    Dict,
     Tuple,
     Iterator,
     Mapping,
@@ -63,8 +62,7 @@ from pyquil.quantum_processor import (
     NxQuantumProcessor,
     get_qcs_quantum_processor,
 )
-from pyquil.quil import Program, validate_supported_quil
-from pyquil.quilatom import qubit_index
+from pyquil.quil import Program
 
 
 class QuantumComputer:
@@ -374,56 +372,6 @@ class QuantumComputer:
         results = _measure_bitstrings(self, sym_programs, meas_qubits, num_shots_per_prog)
 
         return _consolidate_symmetrization_outputs(results, flip_arrays)
-
-    @_record_call
-    def run_and_measure(self, program: Program, trials: int) -> Dict[int, np.ndarray]:
-        """
-        Run the provided state preparation program and measure all qubits.
-
-        The returned data is a dictionary keyed by qubit index because qubits for a given
-        QuantumComputer may be non-contiguous and non-zero-indexed. To turn this dictionary
-        into a 2d numpy array of bitstrings, consider::
-
-            bitstrings = qc.run_and_measure(...)
-            bitstring_array = np.vstack([bitstrings[q] for q in qc.qubits()]).T
-            bitstring_array.shape  # (trials, len(qc.qubits()))
-
-        .. note::
-
-            If the target :py:class:`QuantumComputer` is a noiseless :py:class:`QVM` then
-            only the qubits explicitly used in the program will be measured. Otherwise all
-            qubits will be measured. In some circumstances this can exhaust the memory
-            available to the simulator, and this may be manifested by the QVM failing to
-            respond or timeout.
-
-        .. note::
-
-            In contrast to :py:class:`QVMConnection.run_and_measure`, this method simulates
-            noise correctly for noisy QVMs. However, this method is slower for ``trials > 1``.
-            For faster noise-free simulation, consider
-            :py:class:`WavefunctionSimulator.run_and_measure`.
-
-        :param program: The state preparation program to run and then measure.
-        :param trials: The number of times to run the program.
-        :return: A dictionary keyed by qubit index where the corresponding value is a 1D array of
-            measured bits.
-        """
-        program = program.copy()
-        validate_supported_quil(program)
-        ro = program.declare("ro", "BIT", len(self.qubits()))
-        measure_used = isinstance(self.qam, QVM) and self.qam.noise_model is None
-        qubits_to_measure = set(map(qubit_index, program.get_qubits()) if measure_used else self.qubits())
-        for i, q in enumerate(qubits_to_measure):
-            program.inst(MEASURE(q, ro[i]))
-        program.wrap_in_numshots_loop(trials)
-        executable = self.compile(program)
-        bitstring_array = self.run(executable=executable)
-        bitstring_dict = {}
-        for i, q in enumerate(qubits_to_measure):
-            bitstring_dict[q] = bitstring_array[:, i]
-        for q in set(self.qubits()) - set(qubits_to_measure):
-            bitstring_dict[q] = np.zeros(trials)
-        return bitstring_dict
 
     @_record_call
     def compile(

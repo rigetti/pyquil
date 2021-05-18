@@ -420,10 +420,12 @@ def test_qc(client_configuration: QCSClientConfiguration):
 
 def test_qc_run(client_configuration: QCSClientConfiguration):
     qc = get_qc("9q-square-noisy-qvm", client_configuration=client_configuration)
-    bs = qc.run_and_measure(Program(X(0)), trials=3)
-    assert len(bs) == 9
-    for _, bits in bs.items():
-        assert bits.shape == (3,)
+    bs = qc.run(qc.compile(Program(
+        Declare("ro", "BIT", 1),
+        X(0),
+        MEASURE(0, ("ro", 0)),
+    ).wrap_in_numshots_loop(3)))
+    assert bs.shape == (3, 1)
 
 
 def test_nq_qvm_qc(client_configuration: QCSClientConfiguration):
@@ -454,33 +456,6 @@ def test_qc_error(client_configuration: QCSClientConfiguration):
 
     with pytest.raises(ValueError):
         get_qc("5q", as_qvm=False, client_configuration=client_configuration)
-
-
-def test_run_and_measure(client_configuration: QCSClientConfiguration):
-    qc = get_qc("9q-square-qvm", client_configuration=client_configuration)
-    prog = Program(I(8))
-    trials = 11
-    # note to devs: this is included as an example in the run_and_measure docstrings
-    # so if you change it here ... change it there!
-    bitstrings = qc.run_and_measure(prog, trials)
-    bitstring_array = np.vstack([bitstrings[q] for q in qc.qubits()]).T
-    assert bitstring_array.shape == (trials, len(qc.qubits()))
-
-
-def test_run_and_measure_noiseless_qvm(client_configuration: QCSClientConfiguration):
-    """ Test that run_and_measure works as expected on a noiseless QVM. """
-    qc = get_qc("9q-square-qvm", client_configuration=client_configuration)
-    prog = Program(X(0))
-    trials = 1
-    bitstrings = qc.run_and_measure(prog, trials)
-    bitstring_array = np.vstack([bitstrings[q] for q in qc.qubits()]).T
-    # Test for appropriate shape
-    assert bitstring_array.shape == (trials, len(qc.qubits()))
-    # Test that X(0) flipped qubit 0.
-    assert bitstring_array[0, 0] == 1
-    # Test that all remaining qubits were measured and found to be in
-    # state |0>.
-    assert all(bitstring_array[0][1:] == np.zeros(len(qc.qubits()) - 1))
 
 
 def test_run_with_parameters(client_configuration: QCSClientConfiguration):
@@ -561,9 +536,15 @@ def test_get_qvm_with_topology_2(client_configuration: QCSClientConfiguration):
         execution_timeout=5.0,
         client_configuration=client_configuration,
     )
-    results = qc.run_and_measure(Program(X(5)), trials=5)
-    assert sorted(results.keys()) == [5, 6, 7]
-    assert all(x == 1 for x in results[5])
+    results = qc.run(qc.compile(Program(
+        Declare("ro", "BIT", 3),
+        X(5),
+        MEASURE(5, ("ro", 0)),
+        MEASURE(6, ("ro", 1)),
+        MEASURE(7, ("ro", 2)),
+    ).wrap_in_numshots_loop(5)))
+    assert results.shape == (5, 3)
+    assert all(r[0] == 1 for r in results)
 
 
 def test_parse_mix_qvm_and_noisy_flag():
@@ -574,10 +555,14 @@ def test_parse_mix_qvm_and_noisy_flag():
 
 def test_noisy(client_configuration: QCSClientConfiguration):
     # https://github.com/rigetti/pyquil/issues/764
-    p = Program(X(0))
+    p = Program(
+        Declare("ro", "BIT", 1),
+        X(0),
+        MEASURE(0, ("ro", 0)),
+    ).wrap_in_numshots_loop(10000)
     qc = get_qc("1q-qvm", noisy=True, client_configuration=client_configuration)
-    result = qc.run_and_measure(p, trials=10000)
-    assert result[0].mean() < 1.0
+    result = qc.run(qc.compile(p))
+    assert result.mean() < 1.0
 
 
 def test_orthogonal_array():

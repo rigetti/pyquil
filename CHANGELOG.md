@@ -57,6 +57,9 @@ Changelog
 - Dropped `gates_in_isa` and refactored as an internal function for preparing a list of `pyquil.Gate`'s that the user may use to initialize a `NoiseModel` based on the underlying `CompilerISA`.
 
 - `get_qc` raises `ValueError` when the user passes a QCS quantum processor name and `noisy=True`.
+
+- `QuantumComputer.run_and_measure()` has been removed. Instead, add explicit `MEASURE` instructions to programs and use
+  `QuantumComputer.compile()` along with `QuantumComputer.run()` to compile and execute.
   
 ### Bugfixes
 

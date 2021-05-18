@@ -266,10 +266,12 @@ Import a few things from pyQuil:
 
     from pyquil import Program, get_qc
     from pyquil.gates import *
+    from pyquil.quilbase import Declare
 
-The :py:class:`~pyquil.quil.Program` object allows us to build up a Quil program. :py:func:`~pyquil.get_qc` connects us to a
+The :py:class:`~pyquil.Program` object allows us to build up a Quil program. :py:func:`~pyquil.get_qc` connects us to a
 :py:class:`~pyquil.api.QuantumComputer` object, which specifies what our program should run on (see: :ref:`qvm`). We've also imported all (``*``)
-gates from the ``pyquil.gates`` module, which allows us to add operations to our program (:ref:`basics`).
+gates from the ``pyquil.gates`` module, which allows us to add operations to our program (:ref:`basics`). :py:class:`~pyquil.quilbase.Declare`
+allows us to declare classical memory regions.
 
 .. note::
 
@@ -281,21 +283,34 @@ gates from the ``pyquil.gates`` module, which allows us to add operations to our
     .. code:: python
 
         from pyquil import get_qc, Program
-        from pyquil.gates import CNOT, Z
+        from pyquil.gates import CNOT, Z, MEASURE
         from pyquil.api import local_forest_runtime
+        from pyquil.quilbase import Declare
 
-        prog = Program(Z(0), CNOT(0, 1))
+        prog = Program(
+            Declare("ro", "BIT", 2),
+            Z(0),
+            CNOT(0, 1),
+            MEASURE(0, ("ro", 0)),
+            MEASURE(1, ("ro", 1)),
+        ).wrap_in_numshots_loop(10)
 
         with local_forest_runtime():
             qvm = get_qc('9q-square-qvm')
-            results = qvm.run_and_measure(prog, trials=10)
+            results = qvm.run(qvm.compile(prog)))
 
 Next, let's construct our Bell State.
 
 .. code:: python
 
     # construct a Bell State program
-    p = Program(H(0), CNOT(0, 1))
+    p = Program(
+        Declare("ro", "BIT", 2),
+        H(0),
+        CNOT(0, 1),
+        MEASURE(0, ("ro", 0)),
+        MEASURE(1, ("ro", 1)),
+    ).wrap_in_numshots_loop(10)
 
 We've accomplished this by driving qubit 0 into a superposition state (that's what the "H" gate does), and then creating
 an entangled state between qubits 0 and 1 (that's what the "CNOT" gate does). Finally, we'll want to run our program:
@@ -304,22 +319,20 @@ an entangled state between qubits 0 and 1 (that's what the "CNOT" gate does). Fi
 
     # run the program on a QVM
     qc = get_qc('9q-square-qvm')
-    result = qc.run_and_measure(p, trials=10)
+    result = qc.run(qc.compile(p))
     print(result[0])
     print(result[1])
 
 Compare the two arrays of measurement results. The results will be correlated between the qubits and random from shot
 to shot.
 
-The ``qc`` is a simulated quantum computer. By specifying we want to ``.run_and_measure``, we've told our QVM to run
-the program specified above, collapse the state with a measurement, and return the results to us. ``trials`` refers to
-the number of times we run the whole program.
+The ``qc`` is a simulated quantum computer. We've told our QVM to run the program specified above ten times and return
+the results to us.
 
-The call to ``run_and_measure`` will make a request to the two servers we
-started up in the previous section: first, to the ``quilc`` server
-instance to compile the Quil program into native Quil, and then to the ``qvm`` server
-instance to simulate and return measurement results of the program 10 times. If you open up the terminal windows where your servers
-are running, you should see output printed to the console regarding the requests you just made.
+The calls to ``compile`` and ``run`` will make a request to the two servers we started up in the previous section:
+first, to the ``quilc`` server instance to compile the Quil program into native Quil, and then to the ``qvm`` server
+instance to simulate and return measurement results of the program 10 times. If you open up the terminal windows where
+your servers are running, you should see output printed to the console regarding the requests you just made.
 
 
 In the following sections, we'll cover gates, program construction & execution, and go into detail about our Quantum
