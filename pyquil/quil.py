@@ -501,8 +501,8 @@ class Program:
         if isinstance(value, (int, float)):
             self._variable_values[parameter] = value
         elif isinstance(value, Sequence):
-            if parameter.offset != 0:
-                raise ValueError("Parameter may not have a non-zero offset when its value is a sequence")
+            if parameter.index != 0:
+                raise ValueError("Parameter may not have a non-zero index when its value is a sequence")
 
             for index, v in enumerate(value):
                 aref = ParameterAref(name=parameter.name, index=index)

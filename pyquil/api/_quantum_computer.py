@@ -144,7 +144,7 @@ class QuantumComputer:
         """
         result = self.qam.run(executable)
 
-        # QUESTION (@ameyer) - this is consistent with the V2 API, but in that API,
+        # QUESTION (for @ameyer) - this is consistent with the V2 API, but in that API,
         # QuantumComputer#run and QAM#run return different shapes.
         #
         # Does it make sense to align those now and return a QAMExecutionResult, given that

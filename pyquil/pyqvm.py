@@ -229,11 +229,8 @@ class PyQVM(QAM):
 
     def execute(self, executable: QuantumExecutable) -> "PyQVM":
         """
-        Execute a program on the PyQVM.
-
-        Note that this subclass QAM is stateful! Subsequent calls to :py:func:`execute` will not
-        automatically reset the wavefunction or the classical RAM. If this is desired,
-        consider starting your program with ``RESET``.
+        Execute a program on the PyQVM. Note that the state of the instance is reset on each
+        call to ``execute``.
 
         :return: ``self`` to support method chaining.
         """
@@ -241,7 +238,6 @@ class PyQVM(QAM):
             raise TypeError("`executable` argument must be a `Program`")
 
         self.program = executable
-        self.program_counter = 0
         self._memory_results = {}
 
         self.ram = {}
@@ -263,6 +259,11 @@ class PyQVM(QAM):
         return self
 
     def get_results(self, execute_response: "PyQVM") -> QAMExecutionResult:
+        """
+        Return results from the PyQVM according to the common QAM API. Note that while the
+        ``execute_response`` is not used, it's accepted in order to conform to that API; it's
+        unused because the PyQVM, unlike other QAM's, is itself stateful.
+        """
         return QAMExecutionResult(
             executable=self.program.copy(), memory={k: v for k, v in self._memory_results.items()}
         )
@@ -466,17 +467,3 @@ class PyQVM(QAM):
             halted = self.transition()
 
         return self
-
-    # def execute(self, program: Program) -> "PyQVM":
-    #     """
-    # Execute one outer loop of a program on the QVM.
-
-    # Note that the QAM is stateful. Subsequent calls to :py:func:`execute` will not
-    # automatically reset the wavefunction or the classical RAM. If this is desired,
-    # consider starting your program with ``RESET``.
-
-    # :return: ``self`` to support method chaining.
-    #     """
-    #     self.program = program
-    #     self._extract_defined_gates()
-    #     return self._execute_program()

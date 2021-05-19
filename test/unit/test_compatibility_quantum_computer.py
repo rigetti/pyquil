@@ -1,26 +1,23 @@
 import itertools
 import random
+from test.unit.utils import DummyCompiler
 
 import networkx as nx
 import numpy as np
 import pytest
-from rpcq.messages import ParameterAref
-
-from pyquil import Program
-from pyquil import list_quantum_computers
+from pyquil import Program, list_quantum_computers
 from pyquil.api import QCSClientConfiguration
-from pyquil.api import QVM, QuantumComputer, get_qc
 from pyquil.api._quantum_computer import (
-    _symmetrization,
-    _flip_array_to_prog,
+    _check_min_num_trials_for_symmetrized_readout,
+    _consolidate_symmetrization_outputs,
     _construct_orthogonal_array,
-    _construct_strength_two_orthogonal_array,
     _construct_strength_three_orthogonal_array,
-    _parse_name,
+    _construct_strength_two_orthogonal_array,
+    _flip_array_to_prog,
     _get_qvm_with_topology,
     _measure_bitstrings,
-    _consolidate_symmetrization_outputs,
-    _check_min_num_trials_for_symmetrized_readout,
+    _parse_name,
+    _symmetrization,
 )
 from pyquil.experiment import ExperimentSetting, Experiment
 from pyquil.experiment._main import _pauli_to_product_state
@@ -32,7 +29,7 @@ from pyquil.paulis import sX, sY, sZ
 from pyquil.pyqvm import PyQVM
 from pyquil.quantum_processor import NxQuantumProcessor
 from pyquil.quilbase import Declare, MemoryReference
-from test.unit.utils import DummyCompiler
+from rpcq.messages import ParameterAref
 
 
 def test_flip_array_to_prog():
@@ -181,23 +178,6 @@ def test_check_min_num_trials_for_symmetrized_readout():
         _check_min_num_trials_for_symmetrized_readout(num_qubits=2, trials=-2, symm_type=-2)
     with pytest.raises(ValueError):
         _check_min_num_trials_for_symmetrized_readout(num_qubits=2, trials=-2, symm_type=4)
-
-
-def test_quantum_processor_stuff(client_configuration: QCSClientConfiguration):
-    topo = nx.from_edgelist([(0, 4), (0, 99)])
-    qc = QuantumComputer(
-        name="testy!",
-        qam=None,  # not necessary for this test
-        compiler=DummyCompiler(
-            quantum_processor=NxQuantumProcessor(topo, gates_2q=["CPHASE"]), client_configuration=client_configuration
-        ),
-    )
-    assert nx.is_isomorphic(qc.qubit_topology(), topo)
-
-    isa = qc.to_compiler_isa()
-
-    assert isa.edges["0-4"].gates[0].operator == "CPHASE"
-    assert isa.edges["0-4"].ids == [0, 4]
 
 
 # We sometimes narrowly miss the np.mean(parity) < 0.15 assertion, below. Alternatively, that upper

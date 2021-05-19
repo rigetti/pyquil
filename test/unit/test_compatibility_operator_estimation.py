@@ -5,9 +5,10 @@ from math import pi
 import numpy as np
 import pytest
 
-from pyquil import Program, get_qc
+from pyquil import Program
 from pyquil.api import WavefunctionSimulator
 from pyquil.api import QCSClientConfiguration
+from pyquil.compatibility.v2 import get_qc
 from pyquil.experiment import (
     ExperimentSetting,
     SIC0,
