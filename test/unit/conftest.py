@@ -12,7 +12,6 @@ from qcs_api_client.client._configuration import QCSClientConfiguration
 from qcs_api_client.models import InstructionSetArchitecture, EngagementCredentials
 
 from pyquil.api import (
-    QVMConnection,
     QVMCompiler,
     BenchmarkConnection,
 )
@@ -133,14 +132,6 @@ def noise_model_dict() -> Dict[str, Any]:
         ],
         "assignment_probs": {"1": [[1.0, 0.0], [0.0, 1.0]], "0": [[1.0, 0.0], [0.0, 1.0]]},
     }
-
-
-@pytest.fixture(scope="session")
-def qvm_connection(client_configuration: QCSClientConfiguration):
-    return QVMConnection(
-        client_configuration=client_configuration,
-        random_seed=52,
-    )
 
 
 @pytest.fixture()

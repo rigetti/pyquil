@@ -395,9 +395,9 @@ class QuilTransformer(Transformer):  # type: ignore
     @v_args(inline=True)
     def classical_unary(self, op, target):
         if op == "TRUE":
-            return ClassicalMove(target, 1)  # TODO(andrew): should this be removed?
+            return ClassicalMove(target, 1)
         elif op == "FALSE":
-            return ClassicalMove(target, 0)  # TODO(andrew): should this be removed?
+            return ClassicalMove(target, 0)
         elif op == "NEG":
             return ClassicalNeg(target)
         elif op == "NOT":
@@ -408,7 +408,7 @@ class QuilTransformer(Transformer):  # type: ignore
         if op == "AND":
             return ClassicalAnd(left, right)
         elif op == "OR":
-            return ClassicalInclusiveOr(left, right)  # TODO(andrew): should this be removed?
+            return ClassicalInclusiveOr(left, right)
         elif op == "IOR":
             return ClassicalInclusiveOr(left, right)
         elif op == "XOR":

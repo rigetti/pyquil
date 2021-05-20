@@ -1,7 +1,10 @@
+from collections import OrderedDict
+from unittest import mock
+
 import numpy as np
-from unittest.mock import Mock
 import pytest
 
+from pyquil.gates import RZ, RX, I, CZ
 from pyquil.noise import (
     pauli_kraus_map,
     damping_kraus_map,
@@ -24,12 +27,8 @@ from pyquil.noise import (
     estimate_assignment_probs,
     NO_NOISE,
 )
-from pyquil.gates import RZ, RX, I, CZ
-from collections import OrderedDict
-
 from pyquil.quil import Pragma, Program
 from pyquil.quilbase import DefGate, Gate
-from pyquil.api import QVMConnection
 
 
 def test_pauli_kraus_map():
@@ -279,24 +278,36 @@ def test_readout_compensation():
     assert np.isclose(zm[1, 1, 1], 1.0)
 
 
-def test_estimate_assignment_probs():
-    cxn = Mock(spec=QVMConnection)
+@mock.patch("pyquil.api._abstract_compiler.AbstractCompiler")
+@mock.patch("pyquil.api.QuantumComputer")
+def test_estimate_assignment_probs(mock_qc_class: mock.MagicMock, mock_compiler_class: mock.MagicMock):
+    mock_qc = mock_qc_class.return_value
+    mock_compiler = mock_compiler_class.return_value
+
     trials = 100
     p00 = 0.8
     p11 = 0.75
-    cxn.run.side_effect = [
-        [[0]] * int(round(p00 * trials)) + [[1]] * int(round((1 - p00) * trials)),
-        [[1]] * int(round(p11 * trials)) + [[0]] * int(round((1 - p11) * trials)),
+
+    mock_compiler.native_quil_to_executable.return_value = Program()
+    mock_qc.compiler = mock_compiler
+    mock_qc.run.side_effect = [
+        np.array([[0]]) * int(round(p00 * trials)) + np.array([[1]]) * int(round((1 - p00) * trials)),  # I gate results
+        np.array([[1]]) * int(round(p11 * trials)) + np.array([[0]]) * int(round((1 - p11) * trials)),  # X gate results
     ]
     ap_target = np.array([[p00, 1 - p11], [1 - p00, p11]])
 
     povm_pragma = Pragma("READOUT-POVM", (0, "({} {} {} {})".format(*ap_target.flatten())))
-    ap = estimate_assignment_probs(0, trials, cxn, Program(povm_pragma))
-    assert np.allclose(ap, ap_target)
-    for call in cxn.run.call_args_list:
+    ap = estimate_assignment_probs(0, trials, mock_qc, Program(povm_pragma))
+
+    assert mock_compiler.native_quil_to_executable.call_count == 2
+    assert mock_qc.run.call_count == 2
+
+    for call in mock_compiler.native_quil_to_executable.call_args_list:
         args, kwargs = call
         prog = args[0]
         assert prog._instructions[0] == povm_pragma
+
+    assert np.allclose(ap, ap_target)
 
 
 def test_apply_noise_model():

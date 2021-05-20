@@ -7,7 +7,6 @@ from pyquil.api import QCSClientConfiguration
 from pyquil.gates import H, CNOT
 from pyquil.paulis import PauliSum, sZ, sX
 
-
 def test_wavefunction(client_configuration: QCSClientConfiguration):
     wfnsim = WavefunctionSimulator(client_configuration=client_configuration)
     bell = Program(H(0), CNOT(0, 1))
@@ -27,6 +26,23 @@ def test_random_seed(client_configuration: QCSClientConfiguration):
 
     with pytest.raises(TypeError):
         WavefunctionSimulator(client_configuration=client_configuration, random_seed="NOT AN INTEGER")
+
+
+def test_noise(client_configuration: QCSClientConfiguration):
+    wfnsim = WavefunctionSimulator(
+        client_configuration=client_configuration,
+        gate_noise=(0.2, 0.3, 0.5),
+        measurement_noise=(0.5, 0.2, 0.3),
+    )
+
+    assert wfnsim.gate_noise == (0.2, 0.3, 0.5)
+    assert wfnsim.measurement_noise == (0.5, 0.2, 0.3)
+
+    with pytest.raises(TypeError):
+        WavefunctionSimulator(client_configuration=client_configuration, gate_noise="NOT A TUPLE")
+
+    with pytest.raises(TypeError):
+        WavefunctionSimulator(client_configuration=client_configuration, measurement_noise="NOT A TUPLE")
 
 
 def test_expectation(client_configuration: QCSClientConfiguration):

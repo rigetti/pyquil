@@ -239,8 +239,7 @@ All of this can be accomplished with :py:func:`~pyquil.api.get_qc`.
 
 .. code:: python
 
-    def get_qc(name: str, *, as_qvm: bool = None, noisy: bool = None,
-               connection: ForestConnection = None) -> QuantumComputer:
+    def get_qc(name: str, *, as_qvm: bool = None, noisy: bool = None, ...) -> QuantumComputer:
 
 .. code:: python
 
@@ -258,9 +257,8 @@ All of this can be accomplished with :py:func:`~pyquil.api.get_qc`.
     number_of_qubits = 10
     qc = get_qc(f"{number_of_qubits}q-qvm")
 
-For now, you will have to join QCS to get ``QPU_LATTICE_NAME`` by running the
-``qcs lattices`` command via the QCS CLI. Access to the QPU is only possible during a booked reservation.
-If this sounds unfamiliar, check out our `documentation for QCS <https://www.rigetti.com/qcs/docs/intro-to-qcs>`_
+For now, you will have to join QCS to get access to a specific quantum processor. Access to the QPU is only possible
+during a booked reservation. If this sounds unfamiliar, check out our `documentation for QCS <https://docs.rigetti.com>`_
 and `join the waitlist <https://www.rigetti.com/>`_.
 
 For more information about creating and adding your own noise models, check out :ref:`noise`.
@@ -272,8 +270,8 @@ For more information about creating and adding your own noise models, check out 
 Methods
 -------
 
-Now that you have your ``qc``, there's a lot you can do with it. Most users will want to use ``compile``, ``run``, and
-``qubits`` very regularly. The general flow of use would look like this:
+Now that you have your ``qc``, there's a lot you can do with it. Most users will want to use ``compile``, ``run`` very
+regularly. The general flow of use would look like this:
 
 .. code:: python
 

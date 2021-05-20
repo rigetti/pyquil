@@ -271,7 +271,7 @@ Import a few things from pyQuil:
 The :py:class:`~pyquil.Program` object allows us to build up a Quil program. :py:func:`~pyquil.get_qc` connects us to a
 :py:class:`~pyquil.api.QuantumComputer` object, which specifies what our program should run on (see: :ref:`qvm`). We've also imported all (``*``)
 gates from the ``pyquil.gates`` module, which allows us to add operations to our program (:ref:`basics`). :py:class:`~pyquil.quilbase.Declare`
-allows us to declare classical memory regions.
+allows us to declare classical memory regions so that we can receive data from the :py:class:`~pyquil.api.QuantumComputer`.
 
 .. note::
 
