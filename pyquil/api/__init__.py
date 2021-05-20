@@ -17,12 +17,8 @@
 Module for facilitating connections to the QVM / QPU.
 """
 
-import warnings
-from typing import Any
-
 __all__ = [
     "QCSClientConfiguration",
-    "QVMConnection",
     "QuantumExecutable",
     "EncryptedProgram",
     "QVMCompiler",
@@ -35,7 +31,6 @@ __all__ = [
     "list_quantum_computers",
     "get_qc",
     "local_forest_runtime",
-    "local_qvm",
     "QAM",
     "QVM",
     "QPU",
@@ -56,17 +51,6 @@ from pyquil.api._quantum_computer import (
     get_qc,
     local_forest_runtime,
 )
-from pyquil.api._qvm import QVMConnection, QVM
+from pyquil.api._qvm import QVM
 from pyquil.api._wavefunction_simulator import WavefunctionSimulator
 from pyquil.quantum_processor import QCSQuantumProcessor
-
-
-class QPUConnection(QPU):
-    def __init__(self, *args: Any, **kwargs: Any):
-        warnings.warn(
-            "QPUConnection's semantics have changed for Forest 2. Consider using "
-            "pyquil.get_qc('...') instead of creating this object directly. "
-            "Please consult the migration guide for full details.",
-            DeprecationWarning,
-        )
-        super(QPU, self).__init__(*args, **kwargs)

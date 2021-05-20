@@ -124,9 +124,6 @@ class QAM(ABC):
         """
         Reads from a memory region named region_name on the QAM.
 
-        This is a shim over the eventual API and only can return memory from a region named
-        "ro" of type ``BIT``.
-
         :param region_name: The string naming the declared memory region.
         :return: A list of values of the appropriate type.
         """

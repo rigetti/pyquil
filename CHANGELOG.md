@@ -111,6 +111,14 @@ Changelog
 - Removed `Program.alloc()` (deprecated). Instantiate a `QubitPlaceholder` instead.
 
 - Removed `Addr` (deprecated). Use `MemoryReference` instead.
+
+- `QPUConnection` and `QVMConnection` have been removed in favor of using `QuantumComputer`, `QVM` or`QPU`
+  (e.g. via `QuantumComputer.qam`), or `WavefunctionSimulator`.
+
+- `WavefunctionSimulator` constructor now accepts optional `measurement_noise` and `gate_noise`. These noise parameters
+  are passed to the QVM by `WavefunctionSimulator.run_and_measure()` and `WavefunctionSimulator.wavefunction()`.
+  
+- `noise.estimate_assignment_probs()` now accepts a `QuantumComputer` instead of `QVMConnection`.
   
 ### Bugfixes
 

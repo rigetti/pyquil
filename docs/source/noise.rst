@@ -282,6 +282,7 @@ Getting Started
 
     from pyquil import Program, get_qc
     from pyquil.gates import CZ, H, I, X, MEASURE
+    from pyquil.quilbase import Declare
     from scipy.linalg import expm
 
 .. code:: python
@@ -368,10 +369,13 @@ state decays to the :math:`\ket{0}` state.
         print("\r{}/{}, ".format(jj, len(lengths)), end="")
 
 
-        p = Program(X(0))
+        p = Program(
+            Declare("ro", "BIT", 1),
+            X(0),
+        )
         # want increasing number of I-gates
         p.inst([I(0) for _ in range(num_I)])
-        p.inst(MEASURE(0, 0))
+        p.inst(MEASURE(0, ("ro", 0)))
 
         # overload identity I on qc 0
         p.define_noisy_gate("I", [0], append_damping_to_gate(np.eye(2), damping_per_I))
@@ -522,10 +526,16 @@ good starting point.**
         print("\r{}/{}, ".format(jj, len(ps)), end="")
 
         # make Bell-state
-        p = Program(H(0), H(1), CZ(0,1), H(1))
+        p = Program(
+            Declare("ro", "BIT", 2),
+            H(0),
+            H(1),
+            CZ(0, 1),
+            H(1),
+        )
 
-        p.inst(MEASURE(0, 0))
-        p.inst(MEASURE(1, 1))
+        p.inst(MEASURE(0, ("ro", 0)))
+        p.inst(MEASURE(1, ("ro", 1)))
 
         # overload CZ on qc 0
         p.define_noisy_gate("CZ", [0, 1], corrupted_CZ)
@@ -588,6 +598,7 @@ gate.
     from pyquil.quil import Program
     from pyquil.paulis import PauliSum, PauliTerm, exponentiate, exponential_map, trotterize
     from pyquil.gates import MEASURE, H, Z, RX, RZ, CZ
+    from pyquil.quilbase import Declare
     import numpy as np
 
 The Task
@@ -672,8 +683,8 @@ gate noise, respectively.
 
 .. code:: python
 
-    from pyquil.api import QVMConnection
-    cxn = QVMConnection()
+    from pyquil import get_qc
+    qc = get_qc("2q-qvm")
 
 .. code:: python
 
@@ -695,10 +706,11 @@ gate noise, respectively.
         for t1 in t1s:
             prog = get_compiled_prog(theta)
             noisy = add_decoherence_noise(prog, T1=t1).inst([
-                MEASURE(0, 0),
-                MEASURE(1, 1),
+                Declare("ro", "BIT", 2),
+                MEASURE(0, ("ro", 0)),
+                MEASURE(1, ("ro", 1)),
             ])
-            bitstrings = np.array(cxn.run(noisy, [0,1], 1000))
+            bitstrings = np.array(qc.run(noisy, [0,1], 1000))
 
             # Expectation of Z0 and Z1
             z0, z1 = 1 - 2*np.mean(bitstrings, axis=0)
@@ -957,8 +969,8 @@ Working with Readout Noise
     import matplotlib.pyplot as plt
     %matplotlib inline
 
+    from pyquil import get_qc
     from pyquil.quil import Program, MEASURE, Pragma
-    from pyquil.api.qvm import QVMConnection
     from pyquil.gates import I, X, RX, H, CNOT
     from pyquil.noise import (estimate_bitstring_probs, correct_bitstring_probs,
                               bitstring_probs_to_z_moments, estimate_assignment_probs)
@@ -967,7 +979,7 @@ Working with Readout Noise
     FUSCHIA = '#D6619E'
     BEIGE = '#EAE8C6'
 
-    cxn = QVMConnection()
+    qc = get_qc("1q-qvm")
 
 Example 1: Rabi Sequence with Noisy Readout
 ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
@@ -990,12 +1002,13 @@ Example 1: Rabi Sequence with Noisy Readout
 
     for jj, theta in enumerate(thetas):
         for kk, p00 in enumerate(p00s):
-            cxn.random_seed = hash((jj, kk))
-            p = Program(RX(theta, 0))
+            qc.qam.random_seed = hash((jj, kk))
+            p = Program(RX(theta, 0)).wrap_in_numshots_loop(trials)
             # assume symmetric noise p11 = p00
             p.define_noisy_readout(0, p00=p00, p11=p00)
-            p.measure(0, 0)
-            res = cxn.run(p, [0], trials=trials)
+            ro = p.declare("ro", "BIT", 1)
+            p.measure(0, ro[0])
+            res = qc.run(p)
             results_rabi[jj, kk] = np.sum(res)
 
 .. parsed-literal::
@@ -1033,7 +1046,7 @@ probability matrix directly from a QPU.
 
 .. code:: python
 
-    estimate_assignment_probs(0, 1000, cxn, Program())
+    estimate_assignment_probs(0, 1000, qc)
 
 .. parsed-literal::
 
@@ -1044,14 +1057,14 @@ probability matrix directly from a QPU.
 
 .. code:: python
 
-    cxn.seed = None
+    qc.qam.random_seed = None
     header0 = Program().define_noisy_readout(0, .85, .95)
     header1 = Program().define_noisy_readout(1, .8, .9)
     header2 = Program().define_noisy_readout(2, .9, .85)
 
-    ap0 = estimate_assignment_probs(0, 100000, cxn, header0)
-    ap1 = estimate_assignment_probs(1, 100000, cxn, header1)
-    ap2 = estimate_assignment_probs(2, 100000, cxn, header2)
+    ap0 = estimate_assignment_probs(0, 100000, qc, header0)
+    ap1 = estimate_assignment_probs(1, 100000, qc, header1)
+    ap2 = estimate_assignment_probs(2, 100000, qc, header2)
 
 .. code:: python
 
@@ -1114,38 +1127,45 @@ Pauli-Z moments that indicate the qubit correlations are corrupted (and correcte
 
 .. code:: python
 
-    ghz_prog = Program(H(0), CNOT(0, 1), CNOT(1, 2),
-                       MEASURE(0, 0), MEASURE(1, 1), MEASURE(2, 2))
+    ghz_prog = Program(
+        Declare("ro", "BIT", 3),
+        H(0), CNOT(0, 1), CNOT(1, 2),
+        MEASURE(0, ("ro", 0)), MEASURE(1, ("ro", 1)), MEASURE(2, ("ro", 2)),
+    )
+    ghz_prog.wrap_in_numshots_loop(10000)
     print(ghz_prog)
-    results = cxn.run(ghz_prog, [0, 1, 2], trials=10000)
+    results = qc.run(ghz_prog)
 
 .. parsed-literal::
 
+    DECLARE ro BIT[3]
     H 0
     CNOT 0 1
     CNOT 1 2
-    MEASURE 0 [0]
-    MEASURE 1 [1]
-    MEASURE 2 [2]
+    MEASURE 0 ro[0]
+    MEASURE 1 ro[1]
+    MEASURE 2 ro[2]
 
 .. code:: python
 
     header = header0 + header1 + header2
     noisy_ghz = header + ghz_prog
+    noisy_ghz.wrap_in_numshots_loop(10000)
     print(noisy_ghz)
-    noisy_results = cxn.run(noisy_ghz, [0, 1, 2], trials=10000)
+    noisy_results = qc.run(noisy_ghz)
 
 .. parsed-literal::
 
     PRAGMA READOUT-POVM 0 "(0.85 0.050000000000000044 0.15000000000000002 0.95)"
     PRAGMA READOUT-POVM 1 "(0.8 0.09999999999999998 0.19999999999999996 0.9)"
     PRAGMA READOUT-POVM 2 "(0.9 0.15000000000000002 0.09999999999999998 0.85)"
+    DECLARE ro BIT[3]
     H 0
     CNOT 0 1
     CNOT 1 2
-    MEASURE 0 [0]
-    MEASURE 1 [1]
-    MEASURE 2 [2]
+    MEASURE 0 ro[0]
+    MEASURE 1 ro[1]
+    MEASURE 2 ro[2]
 
 Uncorrupted probability for :math:`\left|000\right\rangle` and :math:`\left|111\right\rangle`
 ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
@@ -1266,26 +1286,52 @@ set of 6 probabilities:
    *before* it is measured. These probabilities are called the
    *measurement noise probabilities*.
 
-We can instantiate a noisy QVM by creating a new connection with these
-probabilities specified.
+We can instantiate a QVM, then specify these probabilities.
 
 .. code:: python
 
     # 20% chance of a X gate being applied after gate applications and before measurements.
-    gate_noise_probs = [0.2, 0.0, 0.0]
-    meas_noise_probs = [0.2, 0.0, 0.0]
-    noisy_qvm = qvm(gate_noise=gate_noise_probs, measurement_noise=meas_noise_probs)
+    noisy_qc = get_qc("1q-qvm")
+    noisy_qc.qam.gate_noise=(0.2, 0.0, 0.0)
+    noisy_qc.qam.measurement_noise=(0.2, 0.0, 0.0)
 
 We can test this by applying an :math:`X`-gate and measuring. Nominally,
 we should always measure ``1``.
 
 .. code:: python
 
-    p = Program().inst(X(0)).measure(0, 0)
-    print("Without Noise: {}".format(qvm.run(p, [0], 10)))
-    print("With Noise   : {}".format(noisy_qvm.run(p, [0], 10)))
+    p = Program(
+        Declare("ro", "BIT", 1),
+        X(0),
+        MEASURE(0, ("ro", 0)),
+    ).wrap_in_numshots_loop(10)
+
+    print("Without Noise:")
+    print(qc.run(p))
+    print("With Noise:")
+    print(noisy_qc.run(p))
 
 .. parsed-literal::
 
-    Without Noise: [[1], [1], [1], [1], [1], [1], [1], [1], [1], [1]]
-    With Noise   : [[0], [0], [0], [0], [0], [1], [1], [1], [1], [0]]
+    Without Noise:
+    [[1]
+     [1]
+     [1]
+     [1]
+     [1]
+     [1]
+     [1]
+     [1]
+     [1]
+     [1]]
+    With Noise:
+    [[0]
+     [1]
+     [0]
+     [1]
+     [1]
+     [0]
+     [1]
+     [1]
+     [0]
+     [1]]

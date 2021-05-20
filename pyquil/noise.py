@@ -16,25 +16,24 @@
 """
 Module for creating and verifying noisy gate and readout definitions.
 """
+import sys
 from collections import namedtuple
-from typing import Any, Dict, Iterable, List, Optional, Sequence, Set, Tuple, TYPE_CHECKING, Union
+from typing import Any, Dict, Iterable, List, Optional, Sequence, Set, Tuple, TYPE_CHECKING, Union, cast
 
 import numpy as np
-import sys
 
 from pyquil.external.rpcq import CompilerISA
-from pyquil.gates import I, MEASURE, X
-from pyquil.quilbase import Pragma, Gate
-from pyquil.quilatom import MemoryReference, format_parameter, ParameterDesignator
+from pyquil.gates import I, RX, MEASURE
 from pyquil.noise_gates import _get_qvm_noise_supported_gates
+from pyquil.quilatom import MemoryReference, format_parameter, ParameterDesignator
+from pyquil.quilbase import Pragma, Gate, Declare
 
 if TYPE_CHECKING:
     from pyquil.quil import Program
-    from pyquil.api import QPUConnection, QVMConnection  # noqa: F401
+    from pyquil.api import QuantumComputer
 
 INFINITY = float("inf")
 "Used for infinite coherence times."
-
 
 _KrausModel = namedtuple("_KrausModel", ["gate", "params", "targets", "kraus_ops", "fidelity"])
 
@@ -692,7 +691,6 @@ def _apply_local_transforms(p: np.ndarray, ts: Iterable[np.ndarray]) -> np.ndarr
     p_corrected = _bitstring_probs_by_qubit(p)
     nq = p_corrected.ndim
     for idx, trafo_idx in enumerate(ts):
-
         # this contraction pattern looks like
         # 'ij,abcd...jklm...->abcd...iklm...' so it properly applies a "local"
         # transformation to a single tensor-index without changing the order of
@@ -772,7 +770,7 @@ def bitstring_probs_to_z_moments(p: np.ndarray) -> np.ndarray:
 def estimate_assignment_probs(
     q: int,
     trials: int,
-    cxn: Union["QVMConnection", "QPUConnection"],
+    qc: "QuantumComputer",
     p0: Optional["Program"] = None,
 ) -> np.ndarray:
     """
@@ -784,17 +782,40 @@ def estimate_assignment_probs(
 
     :param q: The index of the qubit.
     :param trials: The number of samples for each state preparation.
-    :param cxn: The quantum abstract machine to sample from.
-    :param p0: A header program to prepend to the state preparation programs.
+    :param qc: The quantum computer to sample from.
+    :param p0: A header program to prepend to the state preparation programs. Will not be compiled by quilc, so it must
+           be native Quil.
     :return: The assignment probability matrix
     """
     from pyquil.quil import Program
 
     if p0 is None:  # pragma no coverage
         p0 = Program()
-    results_i = np.sum(cxn.run(p0 + Program(I(q), MEASURE(q, MemoryReference("ro", 0))), [0], trials))
-    results_x = np.sum(cxn.run(p0 + Program(X(q), MEASURE(q, MemoryReference("ro", 0))), [0], trials))
+
+    p_i = (
+        p0
+        + Program(
+            Declare("ro", "BIT", 1),
+            I(q),
+            MEASURE(q, MemoryReference("ro", 0)),
+        )
+    ).wrap_in_numshots_loop(trials)
+    results_i = np.sum(_run(qc, p_i))
+
+    p_x = (
+        p0
+        + Program(
+            Declare("ro", "BIT", 1),
+            RX(np.pi, q),
+            MEASURE(q, MemoryReference("ro", 0)),
+        )
+    ).wrap_in_numshots_loop(trials)
+    results_x = np.sum(_run(qc, p_x))
 
     p00 = 1.0 - results_i / float(trials)
     p11 = results_x / float(trials)
     return np.array([[p00, 1 - p11], [1 - p00, p11]])
+
+
+def _run(qc: "QuantumComputer", program: "Program") -> List[List[int]]:
+    return cast(List[List[int]], qc.run(qc.compiler.native_quil_to_executable(program)).tolist())

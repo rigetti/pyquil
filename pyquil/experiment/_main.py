@@ -372,7 +372,6 @@ class Experiment:
         """
         meas_qubits = self.get_meas_qubits()
 
-        # TODO (andrew): How to use .in_state here instead?
         in_pt = PauliTerm.from_list([(op, meas_qubits.index(cast(int, q))) for q, op in setting._in_operator()])
         out_pt = PauliTerm.from_list([(op, meas_qubits.index(cast(int, q))) for q, op in setting.out_operator])
 

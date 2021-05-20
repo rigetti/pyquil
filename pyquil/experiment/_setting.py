@@ -192,7 +192,6 @@ class ExperimentSetting:
         object.__setattr__(self, "out_operator", out_operator)
         object.__setattr__(self, "additional_expectations", additional_expectations)
 
-    # TODO (andrew): can this be removed?
     def _in_operator(self) -> PauliTerm:
         # Backwards compat
         pt = sI()

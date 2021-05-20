@@ -27,7 +27,7 @@ def run_rpcq_server(server: rpcq.Server, port: int):
     def run_server():
         server.run(endpoint=f"tcp://*:{port}", loop=asyncio.new_event_loop())
 
-    @retry(tries=10, delay=0.25)
+    @retry(tries=10, delay=1.0)
     def check_connection():
         s = socket()
         try:

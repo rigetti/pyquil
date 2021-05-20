@@ -76,14 +76,7 @@ then please describe the problem in a GitHub issue at:
 class TooManyQubitsError(ApiError):
     def __init__(self, server_status: str):
         explanation = """
-You requested too many qubits on the QVM. More qubits are available when you use
-the queue. Pass the use_queue parameter to QVMConnection to enable additional
-qubits (however, each program will take longer to run). For example:
-
-    qvm = QVMConnection(use_queue=True)
-    qvm.run(twenty_qubit_program)
-
-See https://go.rigetti.com/connections for more info."""
+You requested too many qubits on the QVM."""
         super(TooManyQubitsError, self).__init__(server_status, explanation)
 
 
