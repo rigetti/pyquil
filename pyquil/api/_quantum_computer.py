@@ -379,7 +379,6 @@ class QuantumComputer:
         program: Program,
         to_native_gates: bool = True,
         optimize: bool = True,
-        protoquil_positional: Optional[bool] = None,
         *,
         protoquil: Optional[bool] = None,
     ) -> QuantumExecutable:
@@ -404,20 +403,6 @@ class QuantumComputer:
             to protoquil (executable on QPU). A value of ``None`` means defer to server.
         :return: An executable binary suitable for passing to :py:func:`QuantumComputer.run`.
         """
-        if protoquil_positional is not None:
-            warnings.warn(
-                'Setting "protoquil" via a positional argument has been deprecated and '
-                "will be removed in a future release. Please set it as a keyword arg.",
-                category=FutureWarning,
-            )
-            if protoquil is not None:
-                warnings.warn(
-                    'You have set "protoquil" via both a positional and keyword argument.'
-                    "Continuing with the value of the keyword argument.",
-                    category=FutureWarning,
-                )
-            else:
-                protoquil = protoquil_positional
 
         if isinstance(self.qam, QPU):
             self.reset()
@@ -863,10 +848,7 @@ def get_qc(
         )
 
     # 3. Check for "9q-square" qvm
-    if prefix == "9q-generic" or prefix == "9q-square":
-        if prefix == "9q-generic":
-            warnings.warn("Please prefer '9q-square' instead of '9q-generic'", DeprecationWarning)
-
+    if prefix == "9q-square":
         if qvm_type is None:
             raise ValueError("The quantum_processor '9q-square' is only available as a QVM")
         return _get_9q_square_qvm(
@@ -914,22 +896,6 @@ def get_qc(
         )
 
         return QuantumComputer(name=name, qam=qpu, compiler=compiler)
-
-
-@contextmanager
-def local_qvm() -> Iterator[Tuple[Optional[subprocess.Popen], Optional[subprocess.Popen]]]:  # type: ignore
-    """A context manager for the Rigetti local QVM and QUIL compiler.
-
-    .. deprecated:: 2.11
-        Use py:func:`local_forest_runtime` instead.
-    """
-    warnings.warn(
-        DeprecationWarning(
-            "Use of pyquil.api.local_qvm has been deprecated.\n" "Please use pyquil.api.local_forest_runtime instead."
-        )
-    )
-    with local_forest_runtime() as (qvm, quilc):
-        yield (qvm, quilc)
 
 
 def _port_used(host: str, port: int) -> bool:

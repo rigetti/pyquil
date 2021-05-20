@@ -56,7 +56,7 @@ Changelog
 
 - Dropped `gates_in_isa` and refactored as an internal function for preparing a list of `pyquil.Gate`'s that the user may use to initialize a `NoiseModel` based on the underlying `CompilerISA`.
 
-- `get_qc` raises `ValueError` when the user passes a QCS quantum processor name and `noisy=True`.
+- `get_qc()` raises `ValueError` when the user passes a QCS quantum processor name and `noisy=True`.
 
 - `QuantumComputer.run_and_measure()` has been removed. Instead, add explicit `MEASURE` instructions to programs and use
   `QuantumComputer.compile()` along with `QuantumComputer.run()` to compile and execute.
@@ -64,6 +64,53 @@ Changelog
 - The `ro` memory region is no longer implicitly declared. All memory regions must be declared explicitly.
 
 - The `pyquil.magic` package has been removed in favor of writing programs more explicitly.
+
+- Removed `TomographyExperiment` (deprecated). Use `Experiment` instead.
+
+- Removed `Experiment.qubits` (deprecated).
+
+- `ExperimentSetting` constructor no longer accepts a `PauliTerm` for its `in_state` parameter (deprecated). Supply a
+  `TensorProductState` instead.
+
+- Removed `ExperimentSetting.in_operator` (deprecated). Use `ExperimentSetting.in_state` instead.
+
+- Removed the following `ExperimentResult` attributes (deprecated):
+  - `stddev`: Use `std_err` instead.
+  - `raw_stddev`: Use `raw_std_err` instead.
+  - `calibration_stddev`: Use `calibration_std_err` instead.
+
+- Removed deprecated `protoquil_positional` parameter from `QuantumComputer.compile()`. Use `protoquil` keyword
+  parameter instead.
+
+- `get_qc()` no longer accepts `"9q-generic"` (deprecated). Use `"9q-square"` instead.
+
+- Removed `QAM.read_from_memory_region()` (deprecated). Use `QAM.read_memory()` instead.
+
+- Removed `local_qvm()` (deprecated). Use `local_forest_runtime()` instead.
+
+- Removed `Wavefunction.ground()` (deprecated). Use `Wavefunction.zeros()` instead.
+
+- `WavefunctionSimulator`'s `run_and_measure()`, `wavefunction()`, and `expectation()` methods no longer accept a
+  `Dict[MemoryReference, Any]` for the `memory_map` parameter (deprecated). Supply a
+  `Dict[str, List[Union[int, float]]]` instead.
+  
+- `gates.MEASURE()` no longer accepts an integer for `classical_reg` (deprecated). Use a `MemoryReference` instead.
+
+- Removed `gates.TRUE()`, `gates.FALSE()`, and classes `ClassicalTrue` and `ClassicalFalse` (deprecated).
+  Use `gates.MOVE()` and class `ClassicalMove` instead.
+
+- Removed `gates.OR()` and class `ClassicalOr` (deprecated). Use `gates.IOR()`  and class `ClassicalInclusiveOr` instead.
+
+- `measure_observables()` no longer accepts the following parameters (deprecated):
+  - `n_shots`: Set on experiment's program with `Program.wrap_in_numshots_loop()` instead.
+  - `active_reset`: Add `RESET` instruction to experiment's program instead.
+  - `symmetrize_readout` & `readout_symmetrize`: Set `Experiment.symmetrization` on experiment instead.
+  
+- `PauliTerm.pauli_string()` now requires `qubits` instead of accepting them optionally (deprecated).
+
+- Removed `Program.alloc()` (deprecated). Instantiate a `QubitPlaceholder` instead.
+
+- Removed `Addr` (deprecated). Use `MemoryReference` instead.
   
 ### Bugfixes
 

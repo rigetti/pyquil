@@ -14,8 +14,7 @@
 #    limitations under the License.
 ##############################################################################
 import warnings
-from typing import Dict, List, Union, Optional, Any, Set, cast, Iterable, Sequence
-from warnings import warn
+from typing import Dict, List, Union, Optional, Set, cast, Iterable, Sequence
 
 import numpy as np
 from qcs_api_client.client import QCSClientConfiguration
@@ -66,7 +65,7 @@ class WavefunctionSimulator:
         self._qvm_client = QVMClient(client_configuration=client_configuration, request_timeout=timeout)
 
     @_record_call
-    def wavefunction(self, quil_program: Program, memory_map: Any = None) -> Wavefunction:
+    def wavefunction(self, quil_program: Program, memory_map: Dict[str, List[Union[int, float]]] = {}) -> Wavefunction:
         """
         Simulate a Quil program and return the wavefunction.
 
@@ -83,13 +82,10 @@ class WavefunctionSimulator:
                            This is expected to be of type Dict[str, List[Union[int, float]]],
                            where the keys are memory region names and the values are arrays of
                            initialization data.
-
-                           For now, we also support input of type Dict[MemoryReference, Any],
-                           but this is deprecated and will be removed in a future release.
         :return: A Wavefunction object representing the state of the QVM.
         """
 
-        if memory_map is not None:
+        if memory_map:
             quil_program = self.augment_program_with_memory_values(quil_program, memory_map)
 
         request = wavefunction_request(quil_program, self.random_seed)
@@ -101,7 +97,7 @@ class WavefunctionSimulator:
         self,
         prep_prog: Program,
         pauli_terms: Union[PauliSum, List[PauliTerm]],
-        memory_map: Any = None,
+        memory_map: Dict[str, List[Union[int, float]]] = {},
     ) -> Union[float, np.ndarray]:
         """
         Calculate the expectation value of Pauli operators given a state prepared by prep_program.
@@ -124,9 +120,6 @@ class WavefunctionSimulator:
                            This is expected to be of type Dict[str, List[Union[int, float]]],
                            where the keys are memory region names and the values are arrays of
                            initialization data.
-
-                           For now, we also support input of type Dict[MemoryReference, Any],
-                           but this is deprecated and will be removed in a future release.
         :return: Either a float or array floats depending on ``pauli_terms``.
         """
 
@@ -138,7 +131,7 @@ class WavefunctionSimulator:
             coeffs = np.array([pt.coefficient for pt in pauli_terms])
             progs = [pt.program for pt in pauli_terms]
 
-        if memory_map is not None:
+        if memory_map:
             prep_prog = self.augment_program_with_memory_values(prep_prog, memory_map)
 
         bare_results = self._expectation(prep_prog, progs)
@@ -166,7 +159,7 @@ class WavefunctionSimulator:
         quil_program: Program,
         qubits: Optional[List[int]] = None,
         trials: int = 1,
-        memory_map: Optional[Union[Dict[str, List[Union[int, float]]], Dict[MemoryReference, Any]]] = None,
+        memory_map: Dict[str, List[Union[int, float]]] = {},
     ) -> np.ndarray:
         """
         Run a Quil program once to determine the final wavefunction, and measure multiple times.
@@ -196,15 +189,12 @@ class WavefunctionSimulator:
                            This is expected to be of type Dict[str, List[Union[int, float]]],
                            where the keys are memory region names and the values are arrays of
                            initialization data.
-
-                           For now, we also support input of type Dict[MemoryReference, Any],
-                           but this is deprecated and will be removed in a future release.
         :return: An array of measurement results (0 or 1) of shape (trials, len(qubits))
         """
         if qubits is None:
             qubits = sorted(cast(Set[int], quil_program.get_qubits(indices=True)))
 
-        if memory_map is not None:
+        if memory_map:
             quil_program = self.augment_program_with_memory_values(quil_program, memory_map)
 
         request = run_and_measure_request(quil_program, qubits, trials, self.random_seed)
@@ -214,7 +204,7 @@ class WavefunctionSimulator:
     @staticmethod
     def augment_program_with_memory_values(
         quil_program: Program,
-        memory_map: Union[Dict[str, List[Union[int, float]]], Dict[MemoryReference, Any]],
+        memory_map: Dict[str, List[Union[int, float]]],
     ) -> Program:
         p = Program()
 
@@ -224,18 +214,10 @@ class WavefunctionSimulator:
 
         if len(memory_map.keys()) == 0:
             return quil_program
-        elif isinstance(list(memory_map.keys())[0], MemoryReference):
-            warn(
-                "Use of memory_map values of type Dict[MemoryReference, Any] have been "
-                "deprecated.  Please use Dict[str, List[Union[int, float]]], as with "
-                "QuantumComputer.run ."
-            )
-            for k, v in memory_map.items():
-                p += MOVE(k, v)
         elif isinstance(list(memory_map.keys())[0], str):
             for name, arr in memory_map.items():
                 for index, value in enumerate(arr):
-                    p += MOVE(MemoryReference(cast(str, name), offset=index), value)
+                    p += MOVE(MemoryReference(name, offset=index), value)
         else:
             raise TypeError("Bad memory_map type; expected Dict[str, List[Union[int, float]]].")
 

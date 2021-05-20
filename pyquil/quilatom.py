@@ -15,10 +15,8 @@
 ##############################################################################
 
 import sys
-import numpy as np
-from numbers import Complex
-from warnings import warn
 from fractions import Fraction
+from numbers import Complex
 from typing import (
     Any,
     Callable,
@@ -34,6 +32,7 @@ from typing import (
     cast,
 )
 
+import numpy as np
 
 if sys.version_info < (3, 7):
     from pyquil.external.dataclasses import dataclass
@@ -714,23 +713,6 @@ class MemoryReference(QuilAtom, Expression):
             raise IndexError("MemoryReference index out of range")
 
         return MemoryReference(name=self.name, offset=offset)
-
-
-class Addr(MemoryReference):
-    """
-    Representation of a classical bit address.
-
-    WARNING: Addr has been deprecated. Addr(c) instances are auto-replaced by
-             MemoryReference("ro", c). Use MemoryReference instances.
-
-    :param value: The classical address.
-    """
-
-    def __init__(self, value: int):
-        warn('Addr objects have been deprecated. Defaulting to memory region "ro". Use ' "MemoryReference instead.")
-        if not isinstance(value, int) or value < 0:
-            raise TypeError("Addr value must be a non-negative int")
-        super(Addr, self).__init__("ro", offset=value, declared_size=None)
 
 
 def _contained_mrefs(expression: ExpressionDesignator) -> Set[MemoryReference]:

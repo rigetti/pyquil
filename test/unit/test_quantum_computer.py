@@ -23,6 +23,7 @@ from pyquil.api._quantum_computer import (
     _check_min_num_trials_for_symmetrized_readout,
 )
 from pyquil.experiment import ExperimentSetting, Experiment
+from pyquil.experiment._main import _pauli_to_product_state
 from pyquil.gates import CNOT, H, RESET, RY, X
 from pyquil.gates import I, MEASURE, RX
 from pyquil.noise import NoiseModel
@@ -609,9 +610,9 @@ def test_qc_expectation(client_configuration: QCSClientConfiguration, dummy_comp
     p.wrap_in_numshots_loop(10)
 
     # XX, YY, ZZ experiment
-    sx = ExperimentSetting(in_state=sZ(0) * sZ(1), out_operator=sX(0) * sX(1))
-    sy = ExperimentSetting(in_state=sZ(0) * sZ(1), out_operator=sY(0) * sY(1))
-    sz = ExperimentSetting(in_state=sZ(0) * sZ(1), out_operator=sZ(0) * sZ(1))
+    sx = ExperimentSetting(in_state=_pauli_to_product_state(sZ(0) * sZ(1)), out_operator=sX(0) * sX(1))
+    sy = ExperimentSetting(in_state=_pauli_to_product_state(sZ(0) * sZ(1)), out_operator=sY(0) * sY(1))
+    sz = ExperimentSetting(in_state=_pauli_to_product_state(sZ(0) * sZ(1)), out_operator=sZ(0) * sZ(1))
 
     e = Experiment(settings=[sx, sy, sz], program=p)
 
@@ -647,9 +648,9 @@ def test_qc_expectation_larger_lattice(client_configuration: QCSClientConfigurat
     p.wrap_in_numshots_loop(10)
 
     # XX, YY, ZZ experiment
-    sx = ExperimentSetting(in_state=sZ(q0) * sZ(q1), out_operator=sX(q0) * sX(q1))
-    sy = ExperimentSetting(in_state=sZ(q0) * sZ(q1), out_operator=sY(q0) * sY(q1))
-    sz = ExperimentSetting(in_state=sZ(q0) * sZ(q1), out_operator=sZ(q0) * sZ(q1))
+    sx = ExperimentSetting(in_state=_pauli_to_product_state(sZ(q0) * sZ(q1)), out_operator=sX(q0) * sX(q1))
+    sy = ExperimentSetting(in_state=_pauli_to_product_state(sZ(q0) * sZ(q1)), out_operator=sY(q0) * sY(q1))
+    sz = ExperimentSetting(in_state=_pauli_to_product_state(sZ(q0) * sZ(q1)), out_operator=sZ(q0) * sZ(q1))
 
     e = Experiment(settings=[sx, sy, sz], program=p)
 
@@ -691,7 +692,7 @@ def test_qc_calibration_1q(client_configuration: QCSClientConfiguration):
     p.wrap_in_numshots_loop(10000)
 
     # Z experiment
-    sz = ExperimentSetting(in_state=sZ(0), out_operator=sZ(0))
+    sz = ExperimentSetting(in_state=_pauli_to_product_state(sZ(0)), out_operator=sZ(0))
     e = Experiment(settings=[sz], program=p)
 
     results = qc.calibrate(e)
@@ -715,7 +716,7 @@ def test_qc_calibration_2q(client_configuration: QCSClientConfiguration):
     p.wrap_in_numshots_loop(10000)
 
     # ZZ experiment
-    sz = ExperimentSetting(in_state=sZ(0) * sZ(1), out_operator=sZ(0) * sZ(1))
+    sz = ExperimentSetting(in_state=_pauli_to_product_state(sZ(0) * sZ(1)), out_operator=sZ(0) * sZ(1))
     e = Experiment(settings=[sz], program=p)
 
     results = qc.calibrate(e)
@@ -735,7 +736,7 @@ def test_qc_joint_expectation(client_configuration: QCSClientConfiguration, dumm
     p.wrap_in_numshots_loop(10)
 
     # ZZ experiment
-    sz = ExperimentSetting(in_state=sZ(0) * sZ(1), out_operator=sZ(0) * sZ(1), additional_expectations=[[0], [1]])
+    sz = ExperimentSetting(in_state=_pauli_to_product_state(sZ(0) * sZ(1)), out_operator=sZ(0) * sZ(1), additional_expectations=[[0], [1]])
     e = Experiment(settings=[sz], program=p)
 
     results = qc.experiment(e)
@@ -772,7 +773,7 @@ def test_qc_joint_calibration(client_configuration: QCSClientConfiguration):
     p.wrap_in_numshots_loop(10000)
 
     # ZZ experiment
-    sz = ExperimentSetting(in_state=sZ(0) * sZ(1), out_operator=sZ(0) * sZ(1), additional_expectations=[[0], [1]])
+    sz = ExperimentSetting(in_state=_pauli_to_product_state(sZ(0) * sZ(1)), out_operator=sZ(0) * sZ(1), additional_expectations=[[0], [1]])
     e = Experiment(settings=[sz], program=p)
 
     results = qc.experiment(e)
@@ -798,7 +799,7 @@ def test_qc_expectation_on_qvm(client_configuration: QCSClientConfiguration, dum
     p += RY(theta, 0)
     p.wrap_in_numshots_loop(10000)
 
-    sx = ExperimentSetting(in_state=sZ(0), out_operator=sX(0))
+    sx = ExperimentSetting(in_state=_pauli_to_product_state(sZ(0)), out_operator=sX(0))
     e = Experiment(settings=[sx], program=p)
 
     thetas = [-np.pi / 2, 0.0, np.pi / 2]

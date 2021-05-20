@@ -19,7 +19,6 @@ measurements that are aimed at estimating the expectation value of some observab
 """
 import logging
 import sys
-import warnings
 from typing import Any, Dict, List, Optional, Union
 
 import numpy as np
@@ -61,13 +60,10 @@ class ExperimentResult:
         setting: ExperimentSetting,
         expectation: Union[float, complex],
         total_counts: int,
-        stddev: Optional[Union[float, complex]] = None,
         std_err: Optional[Union[float, complex]] = None,
         raw_expectation: Optional[Union[float, complex]] = None,
-        raw_stddev: Optional[Union[float, complex]] = None,
         raw_std_err: Optional[Union[float, complex]] = None,
         calibration_expectation: Optional[Union[float, complex]] = None,
-        calibration_stddev: Optional[Union[float, complex]] = None,
         calibration_std_err: Optional[Union[float, complex]] = None,
         calibration_counts: Optional[int] = None,
         additional_results: Optional[List["ExperimentResult"]] = None,
@@ -80,51 +76,9 @@ class ExperimentResult:
         object.__setattr__(self, "calibration_expectation", calibration_expectation)
         object.__setattr__(self, "calibration_counts", calibration_counts)
         object.__setattr__(self, "additional_results", additional_results)
-
-        if stddev is not None:
-            warnings.warn("'stddev' has been renamed to 'std_err'")
-            std_err = stddev
         object.__setattr__(self, "std_err", std_err)
-
-        if raw_stddev is not None:
-            warnings.warn("'raw_stddev' has been renamed to 'raw_std_err'")
-            raw_std_err = raw_stddev
         object.__setattr__(self, "raw_std_err", raw_std_err)
-
-        if calibration_stddev is not None:
-            warnings.warn("'calibration_stddev' has been renamed to 'calibration_std_err'")
-            calibration_std_err = calibration_stddev
         object.__setattr__(self, "calibration_std_err", calibration_std_err)
-
-    def get_stddev(self) -> Optional[Union[float, complex]]:
-        warnings.warn("'stddev' has been renamed to 'std_err'")
-        return self.std_err
-
-    def set_stddev(self, value: Union[float, complex]) -> None:
-        warnings.warn("'stddev' has been renamed to 'std_err'")
-        object.__setattr__(self, "std_err", value)
-
-    stddev = property(get_stddev, set_stddev)
-
-    def get_raw_stddev(self) -> Optional[float]:
-        warnings.warn("'raw_stddev' has been renamed to 'raw_std_err'")
-        return self.raw_std_err
-
-    def set_raw_stddev(self, value: float) -> None:
-        warnings.warn("'raw_stddev' has been renamed to 'raw_std_err'")
-        object.__setattr__(self, "raw_std_err", value)
-
-    raw_stddev = property(get_raw_stddev, set_raw_stddev)
-
-    def get_calibration_stddev(self) -> Optional[Union[float, complex]]:
-        warnings.warn("'calibration_stddev' has been renamed to 'calibration_std_err'")
-        return self.calibration_std_err
-
-    def set_calibration_stddev(self, value: Union[float, complex]) -> None:
-        warnings.warn("'calibration_stddev' has been renamed to 'calibration_std_err'")
-        object.__setattr__(self, "calibration_std_err", value)
-
-    calibration_stddev = property(get_calibration_stddev, set_calibration_stddev)
 
     def __str__(self) -> str:
         return f"{self.setting}: {self.expectation} +- {self.std_err}"

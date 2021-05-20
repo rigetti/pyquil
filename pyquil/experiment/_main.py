@@ -49,10 +49,10 @@ from pyquil.experiment._program import (
     measure_qubits,
 )
 from pyquil.experiment._result import ExperimentResult
-from pyquil.experiment._setting import ExperimentSetting
+from pyquil.experiment._setting import ExperimentSetting, _OneQState, TensorProductState
 from pyquil.experiment._symmetrization import SymmetrizationLevel
 from pyquil.gates import RESET
-from pyquil.paulis import PauliTerm
+from pyquil.paulis import PauliTerm, is_identity
 from pyquil.quil import Program
 from pyquil.quilbase import Reset, ResetQubit
 
@@ -146,7 +146,6 @@ class Experiment:
         self,
         settings: Union[List[ExperimentSetting], List[List[ExperimentSetting]]],
         program: Program,
-        qubits: Optional[List[int]] = None,
         *,
         symmetrization: int = SymmetrizationLevel.EXHAUSTIVE,
         calibration: int = CalibrationMethod.PLUS_EIGENSTATE,
@@ -162,11 +161,6 @@ class Experiment:
 
         self._settings = s
         self.program = program
-        if qubits is not None:
-            warnings.warn(
-                "The 'qubits' parameter has been deprecated and will be removed" "in a future release of pyquil"
-            )
-        self.qubits = qubits
         self.symmetrization = SymmetrizationLevel(symmetrization)
         if self.symmetrization != SymmetrizationLevel.EXHAUSTIVE:
             if type(calibration) == int and calibration != 0:
@@ -378,7 +372,8 @@ class Experiment:
         """
         meas_qubits = self.get_meas_qubits()
 
-        in_pt = PauliTerm.from_list([(op, meas_qubits.index(cast(int, q))) for q, op in setting.in_operator])
+        # TODO (andrew): How to use .in_state here instead?
+        in_pt = PauliTerm.from_list([(op, meas_qubits.index(cast(int, q))) for q, op in setting._in_operator()])
         out_pt = PauliTerm.from_list([(op, meas_qubits.index(cast(int, q))) for q, op in setting.out_operator])
 
         preparation_map = pauli_term_to_preparation_memory_map(in_pt)
@@ -454,7 +449,7 @@ class Experiment:
             assert len(settings) == 1
             calibration_settings.append(
                 ExperimentSetting(
-                    in_state=settings[0].out_operator,
+                    in_state=_pauli_to_product_state(settings[0].out_operator),
                     out_operator=settings[0].out_operator,
                     additional_expectations=settings[0].additional_expectations,
                 )
@@ -476,27 +471,18 @@ class Experiment:
         )
 
 
-class TomographyExperiment(Experiment):
+def _pauli_to_product_state(in_state: PauliTerm) -> TensorProductState:
     """
-    A tomography-like experiment. Has been renamed to ``Experiment``.
+    Convert a Pauli term to a TensorProductState.
     """
-
-    def __init__(
-        self,
-        settings: Union[List[ExperimentSetting], List[List[ExperimentSetting]]],
-        program: Program,
-        qubits: Optional[List[int]] = None,
-        *,
-        symmetrization: int = SymmetrizationLevel.EXHAUSTIVE,
-        calibration: int = CalibrationMethod.PLUS_EIGENSTATE,
-    ):
-        warnings.warn("'TomographyExperiment' has been renamed to 'Experiment'")
-        super().__init__(
-            settings=settings,
-            program=program,
-            qubits=qubits,
-            symmetrization=symmetrization,
-            calibration=calibration,
+    if is_identity(in_state):
+        return TensorProductState()
+    else:
+        return TensorProductState(
+            [
+                _OneQState(label=pauli_label, index=0, qubit=cast(int, qubit))
+                for qubit, pauli_label in in_state._ops.items()
+            ]
         )
 
 

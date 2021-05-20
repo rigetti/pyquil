@@ -42,10 +42,7 @@ from pyquil.quilbase import (
     ClassicalMove,
     ClassicalNeg,
     ClassicalNot,
-    ClassicalTrue,
-    ClassicalFalse,
     ClassicalAnd,
-    ClassicalOr,
     ClassicalInclusiveOr,
     ClassicalExclusiveOr,
     ClassicalAdd,
@@ -398,9 +395,9 @@ class QuilTransformer(Transformer):  # type: ignore
     @v_args(inline=True)
     def classical_unary(self, op, target):
         if op == "TRUE":
-            return ClassicalTrue(target)
+            return ClassicalMove(target, 1)  # TODO(andrew): should this be removed?
         elif op == "FALSE":
-            return ClassicalFalse(target)
+            return ClassicalMove(target, 0)  # TODO(andrew): should this be removed?
         elif op == "NEG":
             return ClassicalNeg(target)
         elif op == "NOT":
@@ -411,7 +408,7 @@ class QuilTransformer(Transformer):  # type: ignore
         if op == "AND":
             return ClassicalAnd(left, right)
         elif op == "OR":
-            return ClassicalOr(left, right)
+            return ClassicalInclusiveOr(left, right)  # TODO(andrew): should this be removed?
         elif op == "IOR":
             return ClassicalInclusiveOr(left, right)
         elif op == "XOR":

@@ -319,7 +319,7 @@ def test_multiqubit_decay_bellstate():
 @pytest.mark.slow
 def test_for_negative_probabilities(client_configuration: QCSClientConfiguration):
     # trivial program to do state tomography on
-    prog = Program(I(0))
+    prog = Program(I(0)).wrap_in_numshots_loop(3000)
 
     # make an Experiment
     expt_settings = [ExperimentSetting(zeros_state([0]), pt) for pt in [sI(0), sX(0), sY(0), sZ(0)]]
@@ -338,7 +338,7 @@ def test_for_negative_probabilities(client_configuration: QCSClientConfiguration
     qc_density.qam.wf_simulator.density = initial_density
 
     try:
-        list(measure_observables(qc=qc_density, tomo_experiment=experiment_1q, n_shots=3000))
+        list(measure_observables(qc=qc_density, tomo_experiment=experiment_1q))
     except ValueError as e:
         # the error is from np.random.choice by way of self.rs.choice in ReferenceDensitySimulator
         assert str(e) != "probabilities are not non-negative"
@@ -348,7 +348,7 @@ def test_for_negative_probabilities(client_configuration: QCSClientConfiguration
     qc_density.qam.wf_simulator.density = initial_density
 
     try:
-        list(measure_observables(qc=qc_density, tomo_experiment=experiment_1q, n_shots=3000))
+        list(measure_observables(qc=qc_density, tomo_experiment=experiment_1q))
     except ValueError as e:
         assert str(e) != "probabilities are not non-negative"
 

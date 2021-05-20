@@ -20,10 +20,9 @@ in a TensorProductState and measuring them in a PauliTerm-defined basis.
 import logging
 import re
 import sys
-import warnings
-from typing import Any, FrozenSet, Generator, Iterable, List, Optional, Union, cast
+from typing import Any, FrozenSet, Generator, Iterable, List, Optional, cast
 
-from pyquil.paulis import PauliTerm, sI, is_identity
+from pyquil.paulis import PauliTerm, sI
 
 if sys.version_info < (3, 7):
     from pyquil.external.dataclasses import dataclass
@@ -114,21 +113,6 @@ class TensorProductState:
         return TensorProductState(list(_OneQState.from_str(x) for x in s.split("*")))
 
 
-def _pauli_to_product_state(in_state: PauliTerm) -> TensorProductState:
-    """
-    Convert a Pauli term to a TensorProductState.
-    """
-    if is_identity(in_state):
-        return TensorProductState()
-    else:
-        return TensorProductState(
-            [
-                _OneQState(label=pauli_label, index=0, qubit=cast(int, qubit))
-                for qubit, pauli_label in in_state._ops.items()
-            ]
-        )
-
-
 def SIC0(q: int) -> TensorProductState:
     return TensorProductState([_OneQState(label="SIC", index=0, qubit=q)])
 
@@ -200,22 +184,16 @@ class ExperimentSetting:
 
     def __init__(
         self,
-        in_state: Union[TensorProductState, PauliTerm],
+        in_state: TensorProductState,
         out_operator: PauliTerm,
         additional_expectations: Optional[List[List[int]]] = None,
     ):
-        # For backwards compatibility, handle in_state specified by PauliTerm.
-        if isinstance(in_state, PauliTerm):
-            warnings.warn("Please specify in_state as a TensorProductState", DeprecationWarning)
-            in_state = _pauli_to_product_state(in_state)
         object.__setattr__(self, "in_state", in_state)
         object.__setattr__(self, "out_operator", out_operator)
         object.__setattr__(self, "additional_expectations", additional_expectations)
 
-    @property
-    def in_operator(self) -> PauliTerm:
-        warnings.warn("ExperimentSetting.in_operator is deprecated in favor of in_state", DeprecationWarning)
-
+    # TODO (andrew): can this be removed?
+    def _in_operator(self) -> PauliTerm:
         # Backwards compat
         pt = sI()
         for oneq_state in self.in_state.states:

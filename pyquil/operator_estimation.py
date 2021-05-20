@@ -1,8 +1,7 @@
 import logging
-import warnings
 from math import pi
 from numbers import Complex
-from typing import Callable, Generator, List, Mapping, Union, Tuple, Optional, cast
+from typing import Callable, Generator, List, Mapping, Tuple, Optional, cast
 
 import numpy as np
 
@@ -22,12 +21,10 @@ from pyquil.experiment._group import (
 from pyquil.experiment._main import (
     Experiment,
     OperatorEncoder,
-    TomographyExperiment,
 )
 from pyquil.experiment._result import ExperimentResult, ratio_variance
 from pyquil.experiment._setting import (
     _OneQState,
-    _pauli_to_product_state,
     ExperimentSetting,
     SIC0,
     SIC1,
@@ -45,6 +42,8 @@ from pyquil.experiment._setting import (
 from pyquil.experiment._symmetrization import SymmetrizationLevel
 from pyquil.gates import RESET, RX, RY, RZ, X
 from pyquil.paulis import is_identity
+from pyquil.quil import Program
+from pyquil.quilatom import QubitDesignator
 
 log = logging.getLogger(__name__)
 
@@ -189,12 +188,8 @@ def _generate_experiment_programs(
 def measure_observables(
     qc: QuantumComputer,
     tomo_experiment: Experiment,
-    n_shots: Optional[int] = None,
     progress_callback: Optional[Callable[[int, int], None]] = None,
-    active_reset: Optional[bool] = None,
-    symmetrize_readout: Optional[Union[int, str]] = "None",
     calibrate_readout: Optional[str] = "plus-eig",
-    readout_symmetrize: Optional[str] = None,
 ) -> Generator[ExperimentResult, None, None]:
     """
     Measure all the observables in a TomographyExperiment.
@@ -213,71 +208,6 @@ def measure_observables(
     shots = tomo_experiment.shots
     symmetrization = tomo_experiment.symmetrization
     reset = tomo_experiment.reset
-
-    if n_shots is not None:
-        warnings.warn(
-            "'n_shots' has been deprecated; if you want to set the number of shots "
-            "for this run of measure_observables please provide the number to "
-            "Program.wrap_in_numshots_loop() for the Quil program that you provide "
-            "when creating your TomographyExperiment object. For now, this value will "
-            "override that in the TomographyExperiment, but eventually this keyword "
-            "argument will be removed.",
-            FutureWarning,
-        )
-        shots = n_shots
-    else:
-        if shots == 1:
-            warnings.warn(
-                "'n_shots' has been deprecated; if you want to set the number of shots "
-                "for this run of measure_observables please provide the number to "
-                "Program.wrap_in_numshots_loop() for the Quil program that you provide "
-                "when creating your TomographyExperiment object. It looks like your "
-                "TomographyExperiment object has shots = 1, so for now we will change "
-                "that to 10000, which was the previous default value.",
-                FutureWarning,
-            )
-            shots = 10000
-
-    if active_reset is not None:
-        warnings.warn(
-            "'active_reset' has been deprecated; if you want to enable active qubit "
-            "reset please provide a Quil program that has a RESET instruction in it when "
-            "creating your TomographyExperiment object. For now, this value will "
-            "override that in the TomographyExperiment, but eventually this keyword "
-            "argument will be removed.",
-            FutureWarning,
-        )
-        reset = active_reset
-
-    if readout_symmetrize is not None and symmetrize_readout != "None":
-        raise ValueError(
-            "'readout_symmetrize' and 'symmetrize_readout' are conflicting keyword "
-            "arguments -- please provide only one."
-        )
-
-    if readout_symmetrize is not None:
-        warnings.warn(
-            "'readout_symmetrize' has been deprecated; please provide the symmetrization "
-            "level when creating your TomographyExperiment object. For now, this value "
-            "will override that in the TomographyExperiment, but eventually this keyword "
-            "argument will be removed.",
-            FutureWarning,
-        )
-        symmetrization = SymmetrizationLevel(readout_symmetrize)
-
-    if symmetrize_readout != "None":
-        warnings.warn(
-            "'symmetrize_readout' has been deprecated; please provide the symmetrization "
-            "level when creating your TomographyExperiment object. For now, this value "
-            "will override that in the TomographyExperiment, but eventually this keyword "
-            "argument will be removed.",
-            FutureWarning,
-        )
-        if symmetrize_readout is None:
-            symmetrize_readout = SymmetrizationLevel.NONE
-        elif symmetrize_readout == "exhaustive":
-            symmetrize_readout = SymmetrizationLevel.EXHAUSTIVE
-        symmetrization = SymmetrizationLevel(symmetrize_readout)
 
     # calibration readout only works with symmetrization turned on
     if calibrate_readout is not None and symmetrization != SymmetrizationLevel.EXHAUSTIVE:

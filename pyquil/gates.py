@@ -13,14 +13,12 @@
 #    See the License for the specific language governing permissions and
 #    limitations under the License.
 ##############################################################################
-from warnings import warn
-from typing import Callable, Mapping, Optional, Tuple, Union, Iterable, no_type_check
 from numbers import Real
+from typing import Callable, Mapping, Optional, Tuple, Union, Iterable, no_type_check
 
 import numpy as np
 
 from pyquil.quilatom import (
-    Addr,
     Expression,
     FormalArgument,
     Frame,
@@ -585,41 +583,9 @@ def MEASURE(qubit: QubitDesignator, classical_reg: Optional[MemoryReferenceDesig
     qubit = unpack_qubit(qubit)
     if classical_reg is None:
         address = None
-    elif isinstance(classical_reg, int):
-        warn(
-            "Indexing measurement addresses by integers is deprecated. "
-            "Replacing this with the MemoryReference ro[i] instead."
-        )
-        address = MemoryReference("ro", classical_reg)
     else:
         address = unpack_classical_reg(classical_reg)
     return Measurement(qubit, address)
-
-
-def TRUE(classical_reg: Union[MemoryReference, int]) -> ClassicalMove:
-    """
-    Produce a TRUE instruction.
-
-    :param classical_reg: A classical register to modify.
-    :return: An instruction object representing the equivalent MOVE.
-    """
-    warn("`TRUE a` has been deprecated. Use `MOVE a 1` instead.")
-    if isinstance(classical_reg, int):
-        classical_reg = Addr(classical_reg)
-    return MOVE(classical_reg, 1)
-
-
-def FALSE(classical_reg: Union[MemoryReference, int]) -> ClassicalMove:
-    """
-    Produce a FALSE instruction.
-
-    :param classical_reg: A classical register to modify.
-    :return: An instruction object representing the equivalent MOVE.
-    """
-    warn("`FALSE a` has been deprecated. Use `MOVE a 0` instead.")
-    if isinstance(classical_reg, int):
-        classical_reg = Addr(classical_reg)
-    return MOVE(classical_reg, 0)
 
 
 def NEG(classical_reg: MemoryReferenceDesignator) -> ClassicalNeg:
@@ -657,20 +623,6 @@ def AND(
     left, right = unpack_reg_val_pair(classical_reg1, classical_reg2)
     assert isinstance(right, (MemoryReference, int))  # placate mypy
     return ClassicalAnd(left, right)
-
-
-def OR(classical_reg1: MemoryReferenceDesignator, classical_reg2: MemoryReferenceDesignator) -> ClassicalInclusiveOr:
-    """
-    Produce an OR instruction.
-
-    NOTE: Deprecated. Use IOR instead.
-
-    :param classical_reg1: The first classical register.
-    :param classical_reg2: The second classical register, which gets modified.
-    :return: A ClassicalOr instance.
-    """
-    warn("OR has been deprecated. Use IOR, inclusive OR, instead.")
-    return IOR(classical_reg2, classical_reg1)
 
 
 def IOR(
@@ -1150,11 +1102,8 @@ STANDARD_INSTRUCTIONS: Mapping[str, Union[AbstractInstruction, Callable[..., Abs
     "NOP": NOP,
     "HALT": HALT,
     "MEASURE": MEASURE,
-    "TRUE": TRUE,
-    "FALSE": FALSE,
     "NOT": NOT,
     "AND": AND,
-    "OR": OR,
     "MOVE": MOVE,
     "EXCHANGE": EXCHANGE,
     "IOR": IOR,

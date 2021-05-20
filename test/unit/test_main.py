@@ -1,7 +1,7 @@
 import numpy as np
 
 from pyquil import Program
-from pyquil.experiment._main import _remove_reset_from_program
+from pyquil.experiment._main import _remove_reset_from_program, _pauli_to_product_state
 from pyquil.experiment._program import (
     parameterized_readout_symmetrization,
     parameterized_single_qubit_measurement_basis,
@@ -119,7 +119,7 @@ def test_remove_reset_from_program():
 def test_generate_experiment_program():
     # simplest example
     p = Program()
-    s = ExperimentSetting(in_state=sZ(0), out_operator=sZ(0))
+    s = ExperimentSetting(in_state=_pauli_to_product_state(sZ(0)), out_operator=sZ(0))
     e = Experiment(settings=[s], program=p, symmetrization=0)
     exp = e.generate_experiment_program()
     test_exp = Program()
@@ -130,7 +130,7 @@ def test_generate_experiment_program():
 
     # 2Q exhaustive symmetrization
     p = Program()
-    s = ExperimentSetting(in_state=sZ(0) * sZ(1), out_operator=sZ(0) * sZ(1))
+    s = ExperimentSetting(in_state=_pauli_to_product_state(sZ(0) * sZ(1)), out_operator=sZ(0) * sZ(1))
     e = Experiment(settings=[s], program=p)
     exp = e.generate_experiment_program()
     test_exp = Program()
@@ -144,7 +144,7 @@ def test_generate_experiment_program():
     # add shots
     p = Program()
     p.wrap_in_numshots_loop(1000)
-    s = ExperimentSetting(in_state=sZ(0), out_operator=sZ(0))
+    s = ExperimentSetting(in_state=_pauli_to_product_state(sZ(0)), out_operator=sZ(0))
     e = Experiment(settings=[s], program=p, symmetrization=0)
     exp = e.generate_experiment_program()
     test_exp = Program()
@@ -156,7 +156,7 @@ def test_generate_experiment_program():
     # active reset
     p = Program()
     p += RESET()
-    s = ExperimentSetting(in_state=sZ(0), out_operator=sZ(0))
+    s = ExperimentSetting(in_state=_pauli_to_product_state(sZ(0)), out_operator=sZ(0))
     e = Experiment(settings=[s], program=p, symmetrization=0)
     exp = e.generate_experiment_program()
     test_exp = Program()
@@ -168,7 +168,7 @@ def test_generate_experiment_program():
 
     # state preparation and measurement
     p = Program()
-    s = ExperimentSetting(in_state=sY(0), out_operator=sX(0))
+    s = ExperimentSetting(in_state=_pauli_to_product_state(sY(0)), out_operator=sX(0))
     e = Experiment(settings=[s], program=p, symmetrization=0)
     exp = e.generate_experiment_program()
     test_exp = Program()
@@ -181,7 +181,7 @@ def test_generate_experiment_program():
 
     # multi-qubit state preparation and measurement
     p = Program()
-    s = ExperimentSetting(in_state=sZ(0) * sY(1), out_operator=sZ(0) * sX(1))
+    s = ExperimentSetting(in_state=_pauli_to_product_state(sZ(0) * sY(1)), out_operator=sZ(0) * sX(1))
     e = Experiment(settings=[s], program=p, symmetrization=0)
     exp = e.generate_experiment_program()
     test_exp = Program()
@@ -196,7 +196,7 @@ def test_generate_experiment_program():
 
 def test_build_experiment_setting_memory_map():
     p = Program()
-    s = ExperimentSetting(in_state=sX(0), out_operator=sZ(0) * sY(1))
+    s = ExperimentSetting(in_state=_pauli_to_product_state(sX(0)), out_operator=sZ(0) * sY(1))
     e = Experiment(settings=[s], program=p)
     memory_map = e.build_setting_memory_map(s)
     assert memory_map == {
@@ -211,7 +211,7 @@ def test_build_experiment_setting_memory_map():
 
 def test_build_symmetrization_memory_maps():
     p = Program()
-    s = ExperimentSetting(in_state=sZ(0) * sZ(1), out_operator=sZ(0) * sZ(1))
+    s = ExperimentSetting(in_state=_pauli_to_product_state(sZ(0) * sZ(1)), out_operator=sZ(0) * sZ(1))
     e = Experiment(settings=[s], program=p)
     memory_maps = [
         {"symmetrization": [0.0, 0.0]},

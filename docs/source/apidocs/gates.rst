@@ -132,7 +132,6 @@ Furthermore, Quilt instructions may be executed natively, although are not fully
     NEG
     NOT
     AND
-    OR
     IOR
     XOR
     MOVE

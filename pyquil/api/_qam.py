@@ -135,25 +135,6 @@ class QAM(ABC):
         return self._memory_results[region_name]
 
     @_record_call
-    def read_from_memory_region(self, *, region_name: str) -> Optional[np.ndarray]:
-        """
-        Reads from a memory region named region_name on the QAM.
-
-        This is a shim over the eventual API and only can return memory from a region named
-        "ro" of type ``BIT``.
-
-        :param region_name: The string naming the declared memory region.
-        :return: A list of values of the appropriate type.
-        """
-        warnings.warn(
-            "pyquil.api._qam.QAM.read_from_memory_region is deprecated, please use "
-            "pyquil.api._qam.QAM.read_memory instead.",
-            DeprecationWarning,
-        )
-
-        return self.read_memory(region_name=region_name)  # type: ignore
-
-    @_record_call
     def reset(self) -> None:
         """
         Reset the Quantum Abstract Machine to its initial state, which is particularly useful
