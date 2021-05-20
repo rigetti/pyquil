@@ -1,7 +1,17 @@
 import itertools
+
 import pytest
 
-from pyquil.experiment._main import Experiment
+from pyquil import Program
+from pyquil.experiment._group import (
+    get_results_by_qubit_groups,
+    merge_disjoint_experiments,
+    group_settings,
+    _max_weight_operator,
+    _max_weight_state,
+    _max_tpb_overlap,
+)
+from pyquil.experiment._main import Experiment, _pauli_to_product_state
 from pyquil.experiment._result import ExperimentResult
 from pyquil.experiment._setting import (
     ExperimentSetting,
@@ -12,20 +22,10 @@ from pyquil.experiment._setting import (
     plusY,
     TensorProductState,
     zeros_state,
-    _pauli_to_product_state,
 )
-from pyquil.experiment._group import (
-    get_results_by_qubit_groups,
-    merge_disjoint_experiments,
-    group_settings,
-    _max_weight_operator,
-    _max_weight_state,
-    _max_tpb_overlap,
-)
+from pyquil.gates import H
 from pyquil.gates import X, Z
 from pyquil.paulis import sZ, sX, sY, sI, PauliTerm
-from pyquil import Program
-from pyquil.gates import H
 
 
 def test_results_by_qubit_groups():

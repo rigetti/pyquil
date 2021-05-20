@@ -17,7 +17,6 @@
 Module containing the Wavefunction object and methods for working with wavefunctions.
 """
 import itertools
-import warnings
 from typing import Dict, Iterator, List, Optional, Sequence, cast
 
 import numpy as np
@@ -55,11 +54,6 @@ class Wavefunction(object):
             raise ValueError(
                 "The wavefunction is not normalized. " "The probabilities sum to {} instead of 1".format(sumprob)
             )
-
-    @staticmethod
-    def ground(qubit_num: int) -> "Wavefunction":
-        warnings.warn("ground() has been deprecated in favor of zeros()", stacklevel=2)
-        return Wavefunction.zeros(qubit_num)
 
     @staticmethod
     def zeros(qubit_num: int) -> "Wavefunction":

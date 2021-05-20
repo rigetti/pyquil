@@ -37,7 +37,6 @@ Program
         ~Program.measure
         ~Program.reset
         ~Program.measure_all
-        ~Program.alloc
         ~Program.declare
         ~Program.wrap_in_numshots_loop
 

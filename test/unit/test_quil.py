@@ -49,7 +49,6 @@ from pyquil.gates import (
     RESET,
     NOT,
     AND,
-    OR,
     MOVE,
     EXCHANGE,
     LOAD,
@@ -276,10 +275,6 @@ def test_unary_classicals():
 def test_binary_classicals():
     p = Program()
 
-    # OR is deprecated in favor of IOR
-    with pytest.warns(UserWarning):
-        p.inst(OR(MemoryReference("ro", 1), MemoryReference("ro", 0)))
-
     p.inst(
         AND(MemoryReference("ro", 0), MemoryReference("ro", 1)),
         MOVE(MemoryReference("ro", 0), MemoryReference("ro", 1)),
@@ -294,8 +289,7 @@ def test_binary_classicals():
     )
 
     assert (
-        p.out() == "IOR ro[0] ro[1]\n"
-        "AND ro[0] ro[1]\n"
+        p.out() == "AND ro[0] ro[1]\n"
         "MOVE ro[0] ro[1]\n"
         "CONVERT ro[0] ro[1]\n"
         "IOR ro[0] ro[1]\n"
@@ -628,13 +622,6 @@ def test_if_option():
     )
 
     assert isinstance(p.instructions[3], JumpWhen)
-
-
-def test_alloc_deprecated():
-    p = Program()
-
-    with pytest.warns(DeprecationWarning):
-        p.alloc()
 
 
 def test_qubit_placeholder():

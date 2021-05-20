@@ -94,7 +94,9 @@ def pauli_term_to_euler_memory_map(
         of angles as values).
     """
     # no need to provide a memory map when no rotations are necessary
-    if ("X" not in term.pauli_string()) and ("Y" not in term.pauli_string()):
+    if ("X" not in term.pauli_string(cast(List[int], term.get_qubits()))) and (
+        "Y" not in term.pauli_string(cast(List[int], term.get_qubits()))
+    ):
         return {}
 
     alpha_label = f"{prefix}_{suffix_alpha}"

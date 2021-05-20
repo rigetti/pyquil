@@ -458,16 +458,13 @@ class PauliTerm(object):
         assert isinstance(op, PauliTerm)
         return op
 
-    def pauli_string(self, qubits: Optional[Iterable[int]] = None) -> str:
+    def pauli_string(self, qubits: Iterable[int]) -> str:
         """
         Return a string representation of this PauliTerm without its coefficient and with
         implicit qubit indices.
 
         If an iterable of qubits is provided, each character in the resulting string represents
-        a Pauli operator on the corresponding qubit. If qubit indices are not provided as input,
-        the returned string will be all non-identity operators in the order. This doesn't make
-        much sense, so please provide a list of qubits. Not providing a list of qubits is
-        deprecated.
+        a Pauli operator on the corresponding qubit.
 
         >>> p = PauliTerm("X", 0) * PauliTerm("Y", 1, 1.j)
         >>> p.pauli_string()
@@ -477,17 +474,9 @@ class PauliTerm(object):
         >>> p.pauli_string(qubits=[0, 2])
         "XI"
 
-        :param iterable of qubits: The iterable of qubits to represent, given as ints. If None,
-            defaults to all qubits in this PauliTerm.
+        :param iterable of qubits: The iterable of qubits to represent, given as ints.
         :return: The string representation of this PauliTerm, sans coefficient
         """
-        if qubits is None:
-            warnings.warn(
-                "Please provide a list of qubits when using PauliTerm.pauli_string",
-                DeprecationWarning,
-            )
-            qubits = cast(List[int], self.get_qubits())
-        assert qubits is not None
 
         return "".join(self[q] for q in qubits)
 

@@ -4,6 +4,7 @@ from operator import mul
 import numpy as np
 import pytest
 
+from pyquil.experiment._main import _pauli_to_product_state
 from pyquil.experiment._setting import (
     ExperimentSetting,
     SIC0,
@@ -55,23 +56,21 @@ def test_experiment_setting():
         assert expt2.out_operator == oop
 
 
-@pytest.mark.filterwarnings("ignore:ExperimentSetting")
 def test_setting_no_in_back_compat():
     out_ops = _generate_random_paulis(n_qubits=4, n_terms=7)
     for oop in out_ops:
         expt = ExperimentSetting(TensorProductState(), oop)
         expt2 = ExperimentSetting.from_str(str(expt))
         assert expt == expt2
-        assert expt2.in_operator == sI()
+        assert expt2.in_state == _pauli_to_product_state(sI())
         assert expt2.out_operator == oop
 
 
-@pytest.mark.filterwarnings("ignore:ExperimentSetting")
 def test_setting_no_in():
     out_ops = _generate_random_paulis(n_qubits=4, n_terms=7)
     for oop in out_ops:
         expt = ExperimentSetting(zeros_state(oop.get_qubits()), oop)
         expt2 = ExperimentSetting.from_str(str(expt))
         assert expt == expt2
-        assert expt2.in_operator == functools.reduce(mul, [sZ(q) for q in oop.get_qubits()], sI())
+        assert expt2.in_state == _pauli_to_product_state(functools.reduce(mul, [sZ(q) for q in oop.get_qubits()], sI()))
         assert expt2.out_operator == oop

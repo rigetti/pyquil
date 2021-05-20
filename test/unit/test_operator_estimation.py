@@ -40,13 +40,13 @@ def test_measure_observables(client_configuration: QCSClientConfiguration):
         ExperimentSetting(TensorProductState(), o1 * o2)
         for o1, o2 in itertools.product([sI(0), sX(0), sY(0), sZ(0)], [sI(1), sX(1), sY(1), sZ(1)])
     ]
-    suite = Experiment(expts, program=Program(X(0), CNOT(0, 1)))
+    suite = Experiment(expts, program=Program(X(0), CNOT(0, 1)).wrap_in_numshots_loop(2000))
     assert len(suite) == 4 * 4
     gsuite = group_experiments(suite)
     assert len(gsuite) == 3 * 3  # can get all the terms with I for free in this case
 
     qc = get_qc("2q-qvm", client_configuration=client_configuration)
-    for res in measure_observables(qc, gsuite, n_shots=2000):
+    for res in measure_observables(qc, gsuite):
         if res.setting.out_operator in [sI(), sZ(0), sZ(1), sZ(0) * sZ(1)]:
             assert np.abs(res.expectation) > 0.9
         else:
@@ -73,7 +73,7 @@ def _random_2q_programs(n_progs=3):
         prog += CZ(0, 1)
         prog += _random_1q_gate(0)
         prog += _random_1q_gate(1)
-        yield prog
+        yield prog.wrap_in_numshots_loop(10000)
 
 
 @pytest.mark.slow
@@ -118,9 +118,12 @@ def test_append():
 
 def test_no_complex_coeffs(client_configuration: QCSClientConfiguration):
     qc = get_qc("2q-qvm", client_configuration=client_configuration)
-    suite = Experiment([ExperimentSetting(TensorProductState(), 1.0j * sY(0))], program=Program(X(0)))
+    suite = Experiment(
+        [ExperimentSetting(TensorProductState(), 1.0j * sY(0))],
+        program=Program(X(0)).wrap_in_numshots_loop(2000),
+    )
     with pytest.raises(ValueError):
-        list(measure_observables(qc, suite, n_shots=2000))
+        list(measure_observables(qc, suite))
 
 
 def test_identity(client_configuration: QCSClientConfiguration):
@@ -151,7 +154,7 @@ def test_measure_observables_symmetrize(client_configuration: QCSClientConfigura
         ExperimentSetting(TensorProductState(), o1 * o2)
         for o1, o2 in itertools.product([sI(0), sX(0), sY(0), sZ(0)], [sI(1), sX(1), sY(1), sZ(1)])
     ]
-    suite = Experiment(expts, program=Program(X(0), CNOT(0, 1)))
+    suite = Experiment(expts, program=Program(X(0), CNOT(0, 1)).wrap_in_numshots_loop(10000))
     assert len(suite) == 4 * 4
     gsuite = group_experiments(suite)
     assert len(gsuite) == 3 * 3  # can get all the terms with I for free in this case
@@ -172,7 +175,7 @@ def test_measure_observables_symmetrize_calibrate(client_configuration: QCSClien
         ExperimentSetting(TensorProductState(), o1 * o2)
         for o1, o2 in itertools.product([sI(0), sX(0), sY(0), sZ(0)], [sI(1), sX(1), sY(1), sZ(1)])
     ]
-    suite = Experiment(expts, program=Program(X(0), CNOT(0, 1)))
+    suite = Experiment(expts, program=Program(X(0), CNOT(0, 1)).wrap_in_numshots_loop(10000))
     assert len(suite) == 4 * 4
     gsuite = group_experiments(suite)
     assert len(gsuite) == 3 * 3  # can get all the terms with I for free in this case
@@ -191,7 +194,7 @@ def test_measure_observables_zero_expectation(client_configuration: QCSClientCon
     """
     qc = get_qc("2q-qvm", client_configuration=client_configuration)
     exptsetting = ExperimentSetting(plusZ(0), sX(0))
-    suite = Experiment([exptsetting], program=Program(I(0)))
+    suite = Experiment([exptsetting], program=Program(I(0)).wrap_in_numshots_loop(10000))
     result = list(measure_observables(qc, suite))[0]
     np.testing.assert_almost_equal(result.expectation, 0.0, decimal=1)
 
@@ -277,7 +280,7 @@ def test_measure_observables_uncalibrated_symmetric_readout(
     expt1 = ExperimentSetting(TensorProductState(plusX(0)), sX(0))
     expt2 = ExperimentSetting(TensorProductState(plusY(0)), sY(0))
     expt3 = ExperimentSetting(TensorProductState(plusZ(0)), sZ(0))
-    p = Program()
+    p = Program().wrap_in_numshots_loop(2000)
     p00, p11 = 0.90, 0.80
     p.define_noisy_readout(0, p00=p00, p11=p11)
     expt_list = [expt1, expt2, expt3]
@@ -287,7 +290,7 @@ def test_measure_observables_uncalibrated_symmetric_readout(
 
     uncalibr_e = np.zeros(runs * len(expt_list))
 
-    for idx, res in enumerate(measure_observables(qc, tomo_expt, n_shots=2000, calibrate_readout=None)):
+    for idx, res in enumerate(measure_observables(qc, tomo_expt, calibrate_readout=None)):
         uncalibr_e[idx] = res.expectation
 
     assert np.isclose(np.mean(uncalibr_e[::3]), expected_expectation_z_basis, atol=2e-2)
@@ -370,12 +373,12 @@ def test_measure_observables_result_zero_no_noisy_readout(client_configuration: 
     expt2 = ExperimentSetting(TensorProductState(minusZ(0)), sY(0))
     expt3 = ExperimentSetting(TensorProductState(plusY(0)), sX(0))
     expt_settings = [expt1, expt2, expt3]
-    p = Program()
+    p = Program().wrap_in_numshots_loop(2000)
     tomo_expt = Experiment(settings=expt_settings, program=p, symmetrization=0)
 
     expectations = []
     for _ in range(num_simulations):
-        expt_results = list(measure_observables(qc, tomo_expt, n_shots=2000, calibrate_readout=None))
+        expt_results = list(measure_observables(qc, tomo_expt, calibrate_readout=None))
         expectations.append([res.expectation for res in expt_results])
     expectations = np.array(expectations)
     results = np.mean(expectations, axis=0)
@@ -395,7 +398,7 @@ def test_measure_observables_result_zero_no_symm_calibr(client_configuration: QC
     expt2 = ExperimentSetting(TensorProductState(minusZ(0)), sY(0))
     expt3 = ExperimentSetting(TensorProductState(minusY(0)), sX(0))
     expt_settings = [expt1, expt2, expt3]
-    p = Program()
+    p = Program().wrap_in_numshots_loop(2000)
     p00, p11 = 0.99, 0.80
     p.define_noisy_readout(0, p00=p00, p11=p11)
     tomo_expt = Experiment(settings=expt_settings, program=p, symmetrization=0)
@@ -403,7 +406,7 @@ def test_measure_observables_result_zero_no_symm_calibr(client_configuration: QC
     expectations = []
     expected_result = (p00 * 0.5 + (1 - p11) * 0.5) - ((1 - p00) * 0.5 + p11 * 0.5)
     for _ in range(num_simulations):
-        expt_results = list(measure_observables(qc, tomo_expt, n_shots=2000, calibrate_readout=None))
+        expt_results = list(measure_observables(qc, tomo_expt, calibrate_readout=None))
         expectations.append([res.expectation for res in expt_results])
     expectations = np.array(expectations)
     results = np.mean(expectations, axis=0)
@@ -423,7 +426,7 @@ def test_measure_observables_2q_readout_error_one_measured(
         runs = 100
     qubs = [0, 1]
     expt = ExperimentSetting(TensorProductState(plusZ(qubs[0]) * plusZ(qubs[1])), sZ(qubs[0]))
-    p = Program()
+    p = Program().wrap_in_numshots_loop(5000)
     p.define_noisy_readout(0, 0.999, 0.85)
     p.define_noisy_readout(1, 0.999, 0.75)
     tomo_experiment = Experiment(settings=[expt] * runs, program=p)
@@ -432,7 +435,7 @@ def test_measure_observables_2q_readout_error_one_measured(
     obs_e = np.zeros(runs)
     cal_e = np.zeros(runs)
 
-    for idx, res in enumerate(measure_observables(qc, tomo_experiment, n_shots=5000)):
+    for idx, res in enumerate(measure_observables(qc, tomo_experiment)):
         raw_e[idx] = res.raw_expectation
         obs_e[idx] = res.expectation
         cal_e[idx] = res.calibration_expectation
@@ -503,12 +506,12 @@ def test_expectations_sic0(client_configuration: QCSClientConfiguration, use_see
     expt1 = ExperimentSetting(SIC0(0), sX(0))
     expt2 = ExperimentSetting(SIC0(0), sY(0))
     expt3 = ExperimentSetting(SIC0(0), sZ(0))
-    tomo_expt = Experiment(settings=[expt1, expt2, expt3], program=Program())
+    tomo_expt = Experiment(settings=[expt1, expt2, expt3], program=Program().wrap_in_numshots_loop(2000))
 
     results_unavged = []
     for _ in range(num_simulations):
         measured_results = []
-        for res in measure_observables(qc, tomo_expt, n_shots=2000):
+        for res in measure_observables(qc, tomo_expt):
             measured_results.append(res.expectation)
         results_unavged.append(measured_results)
 
@@ -529,12 +532,12 @@ def test_expectations_sic1(client_configuration: QCSClientConfiguration, use_see
     expt1 = ExperimentSetting(SIC1(0), sX(0))
     expt2 = ExperimentSetting(SIC1(0), sY(0))
     expt3 = ExperimentSetting(SIC1(0), sZ(0))
-    tomo_expt = Experiment(settings=[expt1, expt2, expt3], program=Program())
+    tomo_expt = Experiment(settings=[expt1, expt2, expt3], program=Program().wrap_in_numshots_loop(2000))
 
     results_unavged = []
     for _ in range(num_simulations):
         measured_results = []
-        for res in measure_observables(qc, tomo_expt, n_shots=2000):
+        for res in measure_observables(qc, tomo_expt):
             measured_results.append(res.expectation)
         results_unavged.append(measured_results)
 
@@ -555,12 +558,12 @@ def test_expectations_sic2(client_configuration: QCSClientConfiguration, use_see
     expt1 = ExperimentSetting(SIC2(0), sX(0))
     expt2 = ExperimentSetting(SIC2(0), sY(0))
     expt3 = ExperimentSetting(SIC2(0), sZ(0))
-    tomo_expt = Experiment(settings=[expt1, expt2, expt3], program=Program())
+    tomo_expt = Experiment(settings=[expt1, expt2, expt3], program=Program().wrap_in_numshots_loop(2000))
 
     results_unavged = []
     for _ in range(num_simulations):
         measured_results = []
-        for res in measure_observables(qc, tomo_expt, n_shots=2000):
+        for res in measure_observables(qc, tomo_expt):
             measured_results.append(res.expectation)
         results_unavged.append(measured_results)
 
@@ -587,12 +590,12 @@ def test_expectations_sic3(client_configuration: QCSClientConfiguration, use_see
     expt1 = ExperimentSetting(SIC3(0), sX(0))
     expt2 = ExperimentSetting(SIC3(0), sY(0))
     expt3 = ExperimentSetting(SIC3(0), sZ(0))
-    tomo_expt = Experiment(settings=[expt1, expt2, expt3], program=Program())
+    tomo_expt = Experiment(settings=[expt1, expt2, expt3], program=Program().wrap_in_numshots_loop(2000))
 
     results_unavged = []
     for _ in range(num_simulations):
         measured_results = []
-        for res in measure_observables(qc, tomo_expt, n_shots=2000):
+        for res in measure_observables(qc, tomo_expt):
             measured_results.append(res.expectation)
         results_unavged.append(measured_results)
 
@@ -670,12 +673,12 @@ def test_measure_observables_grouped_expts(client_configuration: QCSClientConfig
     # create a list-of-lists-of-ExperimentSettings
     expt_settings = [expts_group1, expts_group2]
     # and use this to create a TomographyExperiment suite
-    tomo_expt = Experiment(settings=expt_settings, program=Program())
+    tomo_expt = Experiment(settings=expt_settings, program=Program().wrap_in_numshots_loop(2000))
 
     results_unavged = []
     for _ in range(num_simulations):
         measured_results = []
-        for res in measure_observables(qc, tomo_expt, n_shots=2000):
+        for res in measure_observables(qc, tomo_expt):
             measured_results.append(res.expectation)
         results_unavged.append(measured_results)
 
@@ -718,7 +721,7 @@ def test_bit_flip_channel_fidelity(client_configuration: QCSClientConfiguration,
         np.sqrt(1 - prob) * np.array([[1, 0], [0, 1]]),
         np.sqrt(prob) * np.array([[0, 1], [1, 0]]),
     ]
-    p = Program(Pragma("PRESERVE_BLOCK"), I(0), Pragma("END_PRESERVE_BLOCK"))
+    p = Program(Pragma("PRESERVE_BLOCK"), I(0), Pragma("END_PRESERVE_BLOCK")).wrap_in_numshots_loop(2000)
     p.define_noisy_gate("I", [0], kraus_ops)
 
     # prepare Experiment
@@ -727,7 +730,7 @@ def test_bit_flip_channel_fidelity(client_configuration: QCSClientConfiguration,
     expts = []
     for _ in range(num_expts):
         expt_results = []
-        for res in measure_observables(qc, process_exp, n_shots=2000):
+        for res in measure_observables(qc, process_exp):
             expt_results.append(res.expectation)
         expts.append(expt_results)
 
@@ -763,7 +766,7 @@ def test_dephasing_channel_fidelity(client_configuration: QCSClientConfiguration
         np.sqrt(1 - prob) * np.array([[1, 0], [0, 1]]),
         np.sqrt(prob) * np.array([[1, 0], [0, -1]]),
     ]
-    p = Program(Pragma("PRESERVE_BLOCK"), I(0), Pragma("END_PRESERVE_BLOCK"))
+    p = Program(Pragma("PRESERVE_BLOCK"), I(0), Pragma("END_PRESERVE_BLOCK")).wrap_in_numshots_loop(2000)
     p.define_noisy_gate("I", [0], kraus_ops)
 
     # prepare TomographyExperiment
@@ -772,7 +775,7 @@ def test_dephasing_channel_fidelity(client_configuration: QCSClientConfiguration
     expts = []
     for _ in range(num_expts):
         expt_results = []
-        for res in measure_observables(qc, process_exp, n_shots=2000):
+        for res in measure_observables(qc, process_exp):
             expt_results.append(res.expectation)
         expts.append(expt_results)
 
@@ -810,7 +813,7 @@ def test_depolarizing_channel_fidelity(client_configuration: QCSClientConfigurat
         np.sqrt(1 - prob) / 2 * np.array([[0, -1j], [1j, 0]]),
         np.sqrt(1 - prob) / 2 * np.array([[1, 0], [0, -1]]),
     ]
-    p = Program(Pragma("PRESERVE_BLOCK"), I(0), Pragma("END_PRESERVE_BLOCK"))
+    p = Program(Pragma("PRESERVE_BLOCK"), I(0), Pragma("END_PRESERVE_BLOCK")).wrap_in_numshots_loop(2000)
     p.define_noisy_gate("I", [0], kraus_ops)
 
     # prepare TomographyExperiment
@@ -819,7 +822,7 @@ def test_depolarizing_channel_fidelity(client_configuration: QCSClientConfigurat
     expts = []
     for _ in range(num_expts):
         expt_results = []
-        for res in measure_observables(qc, process_exp, n_shots=2000):
+        for res in measure_observables(qc, process_exp):
             expt_results.append(res.expectation)
         expts.append(expt_results)
 
@@ -851,14 +854,14 @@ def test_unitary_channel_fidelity(client_configuration: QCSClientConfiguration, 
     # prepare unitary channel as an RY rotation program for some random angle
     theta = np.random.uniform(0.0, 2 * np.pi)
     # unitary (RY) channel
-    p = Program(RY(theta, 0))
+    p = Program(RY(theta, 0)).wrap_in_numshots_loop(2000)
     # prepare TomographyExperiment
     process_exp = Experiment(settings=expt_list, program=p)
     # list to store experiment results
     expts = []
     for _ in range(num_expts):
         expt_results = []
-        for res in measure_observables(qc, process_exp, n_shots=2000):
+        for res in measure_observables(qc, process_exp):
             expt_results.append(res.expectation)
         expts.append(expt_results)
 
@@ -896,7 +899,7 @@ def test_bit_flip_channel_fidelity_readout_error(client_configuration: QCSClient
         np.sqrt(1 - prob) * np.array([[1, 0], [0, 1]]),
         np.sqrt(prob) * np.array([[0, 1], [1, 0]]),
     ]
-    p = Program(Pragma("PRESERVE_BLOCK"), I(0), Pragma("END_PRESERVE_BLOCK"))
+    p = Program(Pragma("PRESERVE_BLOCK"), I(0), Pragma("END_PRESERVE_BLOCK")).wrap_in_numshots_loop(2000)
     p.define_noisy_gate("I", [0], kraus_ops)
     # add some readout error
     p.define_noisy_readout(0, 0.95, 0.82)
@@ -907,7 +910,7 @@ def test_bit_flip_channel_fidelity_readout_error(client_configuration: QCSClient
     expts = []
     for _ in range(num_expts):
         expt_results = []
-        for res in measure_observables(qc, process_exp, n_shots=2000):
+        for res in measure_observables(qc, process_exp):
             expt_results.append(res.expectation)
         expts.append(expt_results)
 
@@ -943,7 +946,7 @@ def test_dephasing_channel_fidelity_readout_error(client_configuration: QCSClien
         np.sqrt(1 - prob) * np.array([[1, 0], [0, 1]]),
         np.sqrt(prob) * np.array([[1, 0], [0, -1]]),
     ]
-    p = Program(Pragma("PRESERVE_BLOCK"), I(0), Pragma("END_PRESERVE_BLOCK"))
+    p = Program(Pragma("PRESERVE_BLOCK"), I(0), Pragma("END_PRESERVE_BLOCK")).wrap_in_numshots_loop(2000)
     p.define_noisy_gate("I", [0], kraus_ops)
     # add some readout error
     p.define_noisy_readout(0, 0.95, 0.82)
@@ -954,7 +957,7 @@ def test_dephasing_channel_fidelity_readout_error(client_configuration: QCSClien
     expts = []
     for _ in range(num_expts):
         expt_results = []
-        for res in measure_observables(qc, process_exp, n_shots=2000):
+        for res in measure_observables(qc, process_exp):
             expt_results.append(res.expectation)
         expts.append(expt_results)
 
@@ -992,7 +995,7 @@ def test_depolarizing_channel_fidelity_readout_error(client_configuration: QCSCl
         np.sqrt(1 - prob) / 2 * np.array([[0, -1j], [1j, 0]]),
         np.sqrt(1 - prob) / 2 * np.array([[1, 0], [0, -1]]),
     ]
-    p = Program(Pragma("PRESERVE_BLOCK"), I(0), Pragma("END_PRESERVE_BLOCK"))
+    p = Program(Pragma("PRESERVE_BLOCK"), I(0), Pragma("END_PRESERVE_BLOCK")).wrap_in_numshots_loop(2000)
     p.define_noisy_gate("I", [0], kraus_ops)
     # add some readout error
     p.define_noisy_readout(0, 0.95, 0.82)
@@ -1003,7 +1006,7 @@ def test_depolarizing_channel_fidelity_readout_error(client_configuration: QCSCl
     expts = []
     for _ in range(num_expts):
         expt_results = []
-        for res in measure_observables(qc, process_exp, n_shots=2000):
+        for res in measure_observables(qc, process_exp):
             expt_results.append(res.expectation)
         expts.append(expt_results)
 
@@ -1035,7 +1038,7 @@ def test_unitary_channel_fidelity_readout_error(client_configuration: QCSClientC
     # prepare unitary channel as an RY rotation program for some random angle
     theta = np.random.uniform(0.0, 2 * np.pi)
     # unitary (RY) channel
-    p = Program(RY(theta, 0))
+    p = Program(RY(theta, 0)).wrap_in_numshots_loop(2000)
     # add some readout error
     p.define_noisy_readout(0, 0.95, 0.82)
     # prepare TomographyExperiment
@@ -1044,7 +1047,7 @@ def test_unitary_channel_fidelity_readout_error(client_configuration: QCSClientC
     expts = []
     for _ in range(num_expts):
         expt_results = []
-        for res in measure_observables(qc, process_exp, n_shots=2000):
+        for res in measure_observables(qc, process_exp):
             expt_results.append(res.expectation)
         expts.append(expt_results)
 
@@ -1111,7 +1114,7 @@ def test_2q_unitary_channel_fidelity_readout_error(client_configuration: QCSClie
     # prepare unitary channel as an RY rotation program for some random angle
     theta1, theta2 = np.random.uniform(0.0, 2 * np.pi, size=2)
     # unitary (RY) channel
-    p = Program(RY(theta1, 0), RY(theta2, 1))
+    p = Program(RY(theta1, 0), RY(theta2, 1)).wrap_in_numshots_loop(5000)
     # add some readout error
     p.define_noisy_readout(0, 0.95, 0.82)
     p.define_noisy_readout(1, 0.99, 0.73)
@@ -1121,7 +1124,7 @@ def test_2q_unitary_channel_fidelity_readout_error(client_configuration: QCSClie
     expts = []
     for _ in range(num_expts):
         expt_results = []
-        for res in measure_observables(qc, process_exp, n_shots=5000):
+        for res in measure_observables(qc, process_exp):
             expt_results.append(res.expectation)
         expts.append(expt_results)
 
@@ -1143,14 +1146,14 @@ def test_measure_1q_observable_raw_expectation(client_configuration: QCSClientCo
     else:
         num_expts = 100
     expt = ExperimentSetting(TensorProductState(plusZ(0)), sZ(0))
-    p = Program()
+    p = Program().wrap_in_numshots_loop(2000)
     p00, p11 = 0.99, 0.80
     p.define_noisy_readout(0, p00=p00, p11=p11)
     tomo_expt = Experiment(settings=[expt], program=p)
 
     raw_expectations = []
     for _ in range(num_expts):
-        expt_results = list(measure_observables(qc, tomo_expt, n_shots=2000))
+        expt_results = list(measure_observables(qc, tomo_expt))
         raw_expectations.append([res.raw_expectation for res in expt_results])
     raw_expectations = np.array(raw_expectations)
     result = np.mean(raw_expectations, axis=0)
@@ -1172,16 +1175,14 @@ def test_measure_1q_observable_raw_variance(client_configuration: QCSClientConfi
     else:
         num_expts = 100
     expt = ExperimentSetting(TensorProductState(plusZ(0)), sZ(0))
-    p = Program()
+    p = Program().wrap_in_numshots_loop(2000)
     p00, p11 = 0.99, 0.80
     p.define_noisy_readout(0, p00=p00, p11=p11)
     tomo_expt = Experiment(settings=[expt], program=p)
 
-    num_shots = 2000
-
     raw_std_errs = []
     for _ in range(num_expts):
-        expt_results = list(measure_observables(qc, tomo_expt, n_shots=num_shots))
+        expt_results = list(measure_observables(qc, tomo_expt))
         raw_std_errs.append([res.raw_std_err for res in expt_results])
     raw_std_errs = np.array(raw_std_errs)
     result = np.mean(raw_std_errs, axis=0)
@@ -1189,7 +1190,7 @@ def test_measure_1q_observable_raw_variance(client_configuration: QCSClientConfi
     # calculate expected raw_expectation
     eps_not = (p00 + p11) / 2
     eps = 1 - eps_not
-    expected_result = np.sqrt((1 - (1 - 2 * eps) ** 2) / num_shots)
+    expected_result = np.sqrt((1 - (1 - 2 * eps) ** 2) / p.num_shots)
     np.testing.assert_allclose(result, expected_result, atol=2e-2)
 
 
@@ -1203,14 +1204,14 @@ def test_measure_1q_observable_calibration_expectation(client_configuration: QCS
     else:
         num_expts = 100
     expt = ExperimentSetting(TensorProductState(plusZ(0)), sZ(0))
-    p = Program()
+    p = Program().wrap_in_numshots_loop(2000)
     p00, p11 = 0.93, 0.77
     p.define_noisy_readout(0, p00=p00, p11=p11)
     tomo_expt = Experiment(settings=[expt], program=p)
 
     calibration_expectations = []
     for _ in range(num_expts):
-        expt_results = list(measure_observables(qc, tomo_expt, n_shots=2000))
+        expt_results = list(measure_observables(qc, tomo_expt))
         calibration_expectations.append([res.calibration_expectation for res in expt_results])
     calibration_expectations = np.array(calibration_expectations)
     result = np.mean(calibration_expectations, axis=0)
@@ -1232,16 +1233,14 @@ def test_measure_1q_observable_calibration_variance(client_configuration: QCSCli
     else:
         num_expts = 100
     expt = ExperimentSetting(TensorProductState(plusZ(0)), sZ(0))
-    p = Program()
+    p = Program().wrap_in_numshots_loop(2000)
     p00, p11 = 0.93, 0.77
     p.define_noisy_readout(0, p00=p00, p11=p11)
     tomo_expt = Experiment(settings=[expt], program=p)
 
-    num_shots = 2000
-
     raw_std_errs = []
     for _ in range(num_expts):
-        expt_results = list(measure_observables(qc, tomo_expt, n_shots=num_shots))
+        expt_results = list(measure_observables(qc, tomo_expt))
         raw_std_errs.append([res.raw_std_err for res in expt_results])
     raw_std_errs = np.array(raw_std_errs)
     result = np.mean(raw_std_errs, axis=0)
@@ -1249,7 +1248,7 @@ def test_measure_1q_observable_calibration_variance(client_configuration: QCSCli
     # calculate expected raw_expectation
     eps_not = (p00 + p11) / 2
     eps = 1 - eps_not
-    expected_result = np.sqrt((1 - (1 - 2 * eps) ** 2) / num_shots)
+    expected_result = np.sqrt((1 - (1 - 2 * eps) ** 2) / p.num_shots)
     np.testing.assert_allclose(result, expected_result, atol=2e-2)
 
 
@@ -1266,7 +1265,7 @@ def test_uncalibrated_asymmetric_readout_nontrivial_1q_state(
     expt = ExperimentSetting(TensorProductState(), sZ(0))
     # pick some random value for RX rotation
     theta = np.random.uniform(0.0, 2 * np.pi)
-    p = Program(RX(theta, 0))
+    p = Program(RX(theta, 0)).wrap_in_numshots_loop(2000)
     # pick some random (but sufficiently large) asymmetric readout errors
     p00, p11 = np.random.uniform(0.7, 0.99, size=2)
     p.define_noisy_readout(0, p00=p00, p11=p11)
@@ -1279,7 +1278,7 @@ def test_uncalibrated_asymmetric_readout_nontrivial_1q_state(
 
     expect_arr = np.zeros(runs * len(expt_list))
 
-    for idx, res in enumerate(measure_observables(qc, tomo_expt, n_shots=2000, calibrate_readout=None)):
+    for idx, res in enumerate(measure_observables(qc, tomo_expt, calibrate_readout=None)):
         expect_arr[idx] = res.expectation
 
     assert np.isclose(np.mean(expect_arr), expected_expectation, atol=2e-2)
@@ -1298,7 +1297,7 @@ def test_uncalibrated_symmetric_readout_nontrivial_1q_state(
     expt = ExperimentSetting(TensorProductState(), sZ(0))
     # pick some random value for RX rotation
     theta = np.random.uniform(0.0, 2 * np.pi)
-    p = Program(RX(theta, 0))
+    p = Program(RX(theta, 0)).wrap_in_numshots_loop(2000)
     # pick some random (but sufficiently large) asymmetric readout errors
     p00, p11 = np.random.uniform(0.7, 0.99, size=2)
     p.define_noisy_readout(0, p00=p00, p11=p11)
@@ -1314,7 +1313,7 @@ def test_uncalibrated_symmetric_readout_nontrivial_1q_state(
 
     expect_arr = np.zeros(runs * len(expt_list))
 
-    for idx, res in enumerate(measure_observables(qc, tomo_expt, n_shots=2000, calibrate_readout=None)):
+    for idx, res in enumerate(measure_observables(qc, tomo_expt, calibrate_readout=None)):
         expect_arr[idx] = res.expectation
 
     assert np.isclose(np.mean(expect_arr), expected_expectation, atol=2e-2)
@@ -1331,7 +1330,7 @@ def test_calibrated_symmetric_readout_nontrivial_1q_state(client_configuration: 
     expt = ExperimentSetting(TensorProductState(), sZ(0))
     # pick some random value for RX rotation
     theta = np.random.uniform(0.0, 2 * np.pi)
-    p = Program(RX(theta, 0))
+    p = Program(RX(theta, 0)).wrap_in_numshots_loop(2000)
     # pick some random (but sufficiently large) asymmetric readout errors
     p00, p11 = np.random.uniform(0.7, 0.99, size=2)
     p.define_noisy_readout(0, p00=p00, p11=p11)
@@ -1344,7 +1343,7 @@ def test_calibrated_symmetric_readout_nontrivial_1q_state(client_configuration: 
 
     expect_arr = np.zeros(runs * len(expt_list))
 
-    for idx, res in enumerate(measure_observables(qc, tomo_expt, n_shots=2000, calibrate_readout="plus-eig")):
+    for idx, res in enumerate(measure_observables(qc, tomo_expt, calibrate_readout="plus-eig")):
         expect_arr[idx] = res.expectation
 
     assert np.isclose(np.mean(expect_arr), expected_expectation, atol=2e-2)
@@ -1364,20 +1363,18 @@ def test_measure_2q_observable_raw_statistics(client_configuration: QCSClientCon
     else:
         num_simulations = 100
     expt = ExperimentSetting(TensorProductState(), sZ(0) * sZ(1))
-    p = Program()
+    p = Program().wrap_in_numshots_loop(5000)
     p00, p11 = 0.99, 0.80
     q00, q11 = 0.93, 0.76
     p.define_noisy_readout(0, p00=p00, p11=p11)
     p.define_noisy_readout(1, p00=q00, p11=q11)
     tomo_expt = Experiment(settings=[expt], program=p)
 
-    num_shots = 5000
-
     raw_expectations = []
     raw_std_errs = []
 
     for _ in range(num_simulations):
-        expt_results = list(measure_observables(qc, tomo_expt, n_shots=num_shots))
+        expt_results = list(measure_observables(qc, tomo_expt))
         raw_expectations.append([res.raw_expectation for res in expt_results])
         raw_std_errs.append([res.raw_std_err for res in expt_results])
 
@@ -1395,7 +1392,7 @@ def test_measure_2q_observable_raw_statistics(client_configuration: QCSClientCon
     # calculate expectation value of Z^{\otimes 2}
     z_expectation = (p0000 + p1100) - (p0100 + p1000)
     # calculate standard deviation of the mean
-    simulated_std_err = np.sqrt((1 - z_expectation ** 2) / num_shots)
+    simulated_std_err = np.sqrt((1 - z_expectation ** 2) / p.num_shots)
     # compare against simulated results
     np.testing.assert_allclose(result_expectation, z_expectation, atol=2e-2)
     np.testing.assert_allclose(result_std_err, simulated_std_err, atol=2e-2)
@@ -1416,19 +1413,17 @@ def test_raw_statistics_2q_nontrivial_nonentangled_state(client_configuration: Q
         num_simulations = 100
     expt = ExperimentSetting(TensorProductState(), sZ(0) * sZ(1))
     theta1, theta2 = np.random.uniform(0.0, 2 * np.pi, size=2)
-    p = Program(RX(theta1, 0), RX(theta2, 1))
+    p = Program(RX(theta1, 0), RX(theta2, 1)).wrap_in_numshots_loop(5000)
     p00, p11, q00, q11 = np.random.uniform(0.70, 0.99, size=4)
     p.define_noisy_readout(0, p00=p00, p11=p11)
     p.define_noisy_readout(1, p00=q00, p11=q11)
     tomo_expt = Experiment(settings=[expt], program=p)
 
-    num_shots = 5000
-
     raw_expectations = []
     raw_std_errs = []
 
     for _ in range(num_simulations):
-        expt_results = list(measure_observables(qc, tomo_expt, n_shots=num_shots))
+        expt_results = list(measure_observables(qc, tomo_expt))
         raw_expectations.append([res.raw_expectation for res in expt_results])
         raw_std_errs.append([res.raw_std_err for res in expt_results])
     raw_expectations = np.array(raw_expectations)
@@ -1469,7 +1464,7 @@ def test_raw_statistics_2q_nontrivial_nonentangled_state(client_configuration: Q
     pr11 = p1100 * alph00 + p1101 * alph01 + p1110 * alph10 + p1111 * alph11
     # calculate Z^{\otimes 2} expectation, and error of the mean
     z_expectation = (pr00 + pr11) - (pr01 + pr10)
-    simulated_std_err = np.sqrt((1 - z_expectation ** 2) / num_shots)
+    simulated_std_err = np.sqrt((1 - z_expectation ** 2) / p.num_shots)
     # compare against simulated results
     np.testing.assert_allclose(result_expectation, z_expectation, atol=2e-2)
     np.testing.assert_allclose(result_std_err, simulated_std_err, atol=2e-2)
@@ -1490,19 +1485,17 @@ def test_raw_statistics_2q_nontrivial_entangled_state(client_configuration: QCSC
         num_simulations = 100
     expt = ExperimentSetting(TensorProductState(), sZ(0) * sZ(1))
     theta = np.random.uniform(0.0, 2 * np.pi)
-    p = Program(RX(theta, 0), CNOT(0, 1))
+    p = Program(RX(theta, 0), CNOT(0, 1)).wrap_in_numshots_loop(5000)
     p00, p11, q00, q11 = np.random.uniform(0.70, 0.99, size=4)
     p.define_noisy_readout(0, p00=p00, p11=p11)
     p.define_noisy_readout(1, p00=q00, p11=q11)
     tomo_expt = Experiment(settings=[expt], program=p)
 
-    num_shots = 5000
-
     raw_expectations = []
     raw_std_errs = []
 
     for _ in range(num_simulations):
-        expt_results = list(measure_observables(qc, tomo_expt, n_shots=num_shots))
+        expt_results = list(measure_observables(qc, tomo_expt))
         raw_expectations.append([res.raw_expectation for res in expt_results])
         raw_std_errs.append([res.raw_std_err for res in expt_results])
     raw_expectations = np.array(raw_expectations)
@@ -1531,7 +1524,7 @@ def test_raw_statistics_2q_nontrivial_entangled_state(client_configuration: QCSC
     pr11 = p1100 * alph00 + p1111 * alph11
     # calculate Z^{\otimes 2} expectation, and error of the mean
     z_expectation = (pr00 + pr11) - (pr01 + pr10)
-    simulated_std_err = np.sqrt((1 - z_expectation ** 2) / num_shots)
+    simulated_std_err = np.sqrt((1 - z_expectation ** 2) / p.num_shots)
     # compare against simulated results
     np.testing.assert_allclose(result_expectation, z_expectation, atol=2e-2)
     np.testing.assert_allclose(result_std_err, simulated_std_err, atol=2e-2)
@@ -1557,19 +1550,17 @@ def test_corrected_statistics_2q_nontrivial_nonentangled_state(
 
     expt = ExperimentSetting(TensorProductState(), sZ(0) * sZ(1))
     theta1, theta2 = np.random.uniform(0.0, 2 * np.pi, size=2)
-    p = Program(RX(theta1, 0), RX(theta2, 1))
+    p = Program(RX(theta1, 0), RX(theta2, 1)).wrap_in_numshots_loop(5000)
     p00, p11, q00, q11 = np.random.uniform(0.70, 0.99, size=4)
     p.define_noisy_readout(0, p00=p00, p11=p11)
     p.define_noisy_readout(1, p00=q00, p11=q11)
     tomo_expt = Experiment(settings=[expt], program=p)
 
-    num_shots = 5000
-
     expectations = []
     std_errs = []
 
     for _ in range(num_simulations):
-        expt_results = list(measure_observables(qc, tomo_expt, n_shots=num_shots))
+        expt_results = list(measure_observables(qc, tomo_expt))
         expectations.append([res.expectation for res in expt_results])
         std_errs.append([res.std_err for res in expt_results])
     expectations = np.array(expectations)
@@ -1616,7 +1607,7 @@ def test_bit_flip_state_fidelity(client_configuration: QCSClientConfiguration, u
         np.sqrt(1 - prob) * np.array([[1, 0], [0, 1]]),
         np.sqrt(prob) * np.array([[0, 1], [1, 0]]),
     ]
-    p = Program(Pragma("PRESERVE_BLOCK"), I(0), Pragma("END_PRESERVE_BLOCK"))
+    p = Program(Pragma("PRESERVE_BLOCK"), I(0), Pragma("END_PRESERVE_BLOCK")).wrap_in_numshots_loop(2000)
     p.define_noisy_gate("I", [0], kraus_ops)
 
     # prepare TomographyExperiment
@@ -1625,7 +1616,7 @@ def test_bit_flip_state_fidelity(client_configuration: QCSClientConfiguration, u
     expts = []
     for _ in range(num_expts):
         expt_results = []
-        for res in measure_observables(qc, process_exp, n_shots=2000):
+        for res in measure_observables(qc, process_exp):
             expt_results.append(res.expectation)
         expts.append(expt_results)
 
@@ -1655,7 +1646,7 @@ def test_dephasing_state_fidelity(client_configuration: QCSClientConfiguration, 
         np.sqrt(1 - prob) * np.array([[1, 0], [0, 1]]),
         np.sqrt(prob) * np.array([[1, 0], [0, -1]]),
     ]
-    p = Program(Pragma("PRESERVE_BLOCK"), I(0), Pragma("END_PRESERVE_BLOCK"))
+    p = Program(Pragma("PRESERVE_BLOCK"), I(0), Pragma("END_PRESERVE_BLOCK")).wrap_in_numshots_loop(2000)
     p.define_noisy_gate("I", [0], kraus_ops)
 
     # prepare TomographyExperiment
@@ -1664,7 +1655,7 @@ def test_dephasing_state_fidelity(client_configuration: QCSClientConfiguration, 
     expts = []
     for _ in range(num_expts):
         expt_results = []
-        for res in measure_observables(qc, process_exp, n_shots=2000):
+        for res in measure_observables(qc, process_exp):
             expt_results.append(res.expectation)
         expts.append(expt_results)
 
@@ -1696,7 +1687,7 @@ def test_depolarizing_state_fidelity(client_configuration: QCSClientConfiguratio
         np.sqrt(1 - prob) / 2 * np.array([[0, -1j], [1j, 0]]),
         np.sqrt(1 - prob) / 2 * np.array([[1, 0], [0, -1]]),
     ]
-    p = Program(Pragma("PRESERVE_BLOCK"), I(0), Pragma("END_PRESERVE_BLOCK"))
+    p = Program(Pragma("PRESERVE_BLOCK"), I(0), Pragma("END_PRESERVE_BLOCK")).wrap_in_numshots_loop(2000)
     p.define_noisy_gate("I", [0], kraus_ops)
 
     # prepare TomographyExperiment
@@ -1705,7 +1696,7 @@ def test_depolarizing_state_fidelity(client_configuration: QCSClientConfiguratio
     expts = []
     for _ in range(num_expts):
         expt_results = []
-        for res in measure_observables(qc, process_exp, n_shots=2000):
+        for res in measure_observables(qc, process_exp):
             expt_results.append(res.expectation)
         expts.append(expt_results)
 
@@ -1730,7 +1721,7 @@ def test_unitary_state_fidelity(client_configuration: QCSClientConfiguration, us
 
     # rotate |0> state by some random angle about X axis
     theta = np.random.uniform(0.0, 2 * np.pi)
-    p = Program(RX(theta, 0))
+    p = Program(RX(theta, 0)).wrap_in_numshots_loop(2000)
 
     # prepare TomographyExperiment
     process_exp = Experiment(settings=[expt], program=p)
@@ -1738,7 +1729,7 @@ def test_unitary_state_fidelity(client_configuration: QCSClientConfiguration, us
     expts = []
     for _ in range(num_expts):
         expt_results = []
-        for res in measure_observables(qc, process_exp, n_shots=2000):
+        for res in measure_observables(qc, process_exp):
             expt_results.append(res.expectation)
         expts.append(expt_results)
 
@@ -1770,7 +1761,7 @@ def test_bit_flip_state_fidelity_readout_error(client_configuration: QCSClientCo
         np.sqrt(1 - prob) * np.array([[1, 0], [0, 1]]),
         np.sqrt(prob) * np.array([[0, 1], [1, 0]]),
     ]
-    p = Program(Pragma("PRESERVE_BLOCK"), I(0), Pragma("END_PRESERVE_BLOCK"))
+    p = Program(Pragma("PRESERVE_BLOCK"), I(0), Pragma("END_PRESERVE_BLOCK")).wrap_in_numshots_loop(2000)
     p.define_noisy_gate("I", [0], kraus_ops)
     p.define_noisy_readout(0, 0.95, 0.76)
 
@@ -1780,7 +1771,7 @@ def test_bit_flip_state_fidelity_readout_error(client_configuration: QCSClientCo
     expts = []
     for _ in range(num_expts):
         expt_results = []
-        for res in measure_observables(qc, process_exp, n_shots=2000):
+        for res in measure_observables(qc, process_exp):
             expt_results.append(res.expectation)
         expts.append(expt_results)
 
@@ -1810,7 +1801,7 @@ def test_dephasing_state_fidelity_readout_error(client_configuration: QCSClientC
         np.sqrt(1 - prob) * np.array([[1, 0], [0, 1]]),
         np.sqrt(prob) * np.array([[1, 0], [0, -1]]),
     ]
-    p = Program(Pragma("PRESERVE_BLOCK"), I(0), Pragma("END_PRESERVE_BLOCK"))
+    p = Program(Pragma("PRESERVE_BLOCK"), I(0), Pragma("END_PRESERVE_BLOCK")).wrap_in_numshots_loop(2000)
     p.define_noisy_gate("I", [0], kraus_ops)
     p.define_noisy_readout(0, 0.95, 0.76)
 
@@ -1820,7 +1811,7 @@ def test_dephasing_state_fidelity_readout_error(client_configuration: QCSClientC
     expts = []
     for _ in range(num_expts):
         expt_results = []
-        for res in measure_observables(qc, process_exp, n_shots=2000):
+        for res in measure_observables(qc, process_exp):
             expt_results.append(res.expectation)
         expts.append(expt_results)
 
@@ -1852,7 +1843,7 @@ def test_depolarizing_state_fidelity_readout_error(client_configuration: QCSClie
         np.sqrt(1 - prob) / 2 * np.array([[0, -1j], [1j, 0]]),
         np.sqrt(1 - prob) / 2 * np.array([[1, 0], [0, -1]]),
     ]
-    p = Program(Pragma("PRESERVE_BLOCK"), I(0), Pragma("END_PRESERVE_BLOCK"))
+    p = Program(Pragma("PRESERVE_BLOCK"), I(0), Pragma("END_PRESERVE_BLOCK")).wrap_in_numshots_loop(2000)
     p.define_noisy_gate("I", [0], kraus_ops)
     p.define_noisy_readout(0, 0.95, 0.76)
 
@@ -1862,7 +1853,7 @@ def test_depolarizing_state_fidelity_readout_error(client_configuration: QCSClie
     expts = []
     for _ in range(num_expts):
         expt_results = []
-        for res in measure_observables(qc, process_exp, n_shots=2000):
+        for res in measure_observables(qc, process_exp):
             expt_results.append(res.expectation)
         expts.append(expt_results)
 
@@ -1887,7 +1878,7 @@ def test_unitary_state_fidelity_readout_error(client_configuration: QCSClientCon
 
     # rotate |0> state by some random angle about X axis
     theta = np.random.uniform(0.0, 2 * np.pi)
-    p = Program(RX(theta, 0))
+    p = Program(RX(theta, 0)).wrap_in_numshots_loop(2000)
     p.define_noisy_readout(0, 0.95, 0.76)
 
     # prepare TomographyExperiment
@@ -1896,7 +1887,7 @@ def test_unitary_state_fidelity_readout_error(client_configuration: QCSClientCon
     expts = []
     for _ in range(num_expts):
         expt_results = []
-        for res in measure_observables(qc, process_exp, n_shots=2000):
+        for res in measure_observables(qc, process_exp):
             expt_results.append(res.expectation)
         expts.append(expt_results)
 

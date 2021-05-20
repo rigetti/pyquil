@@ -55,7 +55,6 @@ from pyquil.api._quantum_computer import (
     list_quantum_computers,
     get_qc,
     local_forest_runtime,
-    local_qvm,
 )
 from pyquil.api._qvm import QVMConnection, QVM
 from pyquil.api._wavefunction_simulator import WavefunctionSimulator

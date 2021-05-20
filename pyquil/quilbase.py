@@ -16,9 +16,8 @@
 """
 Contains the core pyQuil objects that correspond to Quil instructions.
 """
-import sys
 import collections
-import numpy as np
+import sys
 from numbers import Complex
 from typing import (
     Any,
@@ -36,7 +35,8 @@ from typing import (
     TYPE_CHECKING,
     cast,
 )
-from warnings import warn
+
+import numpy as np
 
 from pyquil.quilatom import (
     Expression,
@@ -57,7 +57,6 @@ from pyquil.quilatom import (
     unpack_qubit,
     _complex_str,
 )
-
 
 if TYPE_CHECKING:
     from pyquil.paulis import PauliSum
@@ -746,21 +745,6 @@ class ClassicalExclusiveOr(LogicalBinaryOp):
     op = "XOR"
 
 
-class ClassicalOr(ClassicalInclusiveOr):
-    """
-    Deprecated class.
-    """
-
-    def __init__(self, left: MemoryReference, right: MemoryReference):
-        warn(
-            "ClassicalOr has been deprecated. Replacing with "
-            "ClassicalInclusiveOr. Use ClassicalInclusiveOr instead. "
-            "NOTE: The operands to ClassicalInclusiveOr are inverted from "
-            "ClassicalOr."
-        )
-        super().__init__(right, left)
-
-
 class ArithmeticBinaryOp(AbstractInstruction):
     """
     The abstract class for binary arithmetic classical instructions.
@@ -837,26 +821,6 @@ class ClassicalMove(AbstractInstruction):
 
     def out(self) -> str:
         return "%s %s %s" % (self.op, self.left, self.right)
-
-
-class ClassicalFalse(ClassicalMove):
-    """
-    Deprecated class.
-    """
-
-    def __init__(self, target: MemoryReference):
-        super().__init__(target, 0)
-        warn("ClassicalFalse is deprecated in favor of ClassicalMove.")
-
-
-class ClassicalTrue(ClassicalMove):
-    """
-    Deprecated class.
-    """
-
-    def __init__(self, target: MemoryReference):
-        super().__init__(target, 1)
-        warn("ClassicalTrue is deprecated in favor of ClassicalMove.")
 
 
 class ClassicalExchange(AbstractInstruction):

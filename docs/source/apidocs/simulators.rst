@@ -12,15 +12,15 @@ simulation, you can directly inspect amplitudes and probabilities.
     :template: autosumm.rst
 
     ~pyquil.api.WavefunctionSimulator
-    ~pyquil.reference_simulator.ReferenceWavefunctionSimulator
-    ~pyquil.reference_simulator.ReferenceDensitySimulator
-    ~pyquil.numpy_simulator.NumpyWavefunctionSimulator
+    ~pyquil.simulation.ReferenceWavefunctionSimulator
+    ~pyquil.simulation.ReferenceDensitySimulator
+    ~pyquil.simulation.NumpyWavefunctionSimulator
 
 
 Reference Utilities
 -------------------
 
-.. currentmodule:: pyquil.unitary_tools
+.. currentmodule:: pyquil.simulation.tools
 .. autosummary::
     :toctree: autogen
     :template: autosumm.rst
@@ -30,14 +30,3 @@ Reference Utilities
     program_unitary
     all_bitstrings
 
-
-Numpy Utilities
----------------
-
-.. currentmodule:: pyquil.numpy_simulator
-.. autosummary::
-    :toctree: autogen
-    :template: autosumm.rst
-
-    targeted_einsum
-    targeted_tensordot

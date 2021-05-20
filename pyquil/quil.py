@@ -541,19 +541,6 @@ class Program(object):
         self.inst(JumpTarget(label_end))
         return self
 
-    def alloc(self) -> QubitPlaceholder:
-        """
-        Get a new qubit.
-
-        :return: A qubit.
-        """
-        warnings.warn(
-            "`alloc` is deprecated and will be removed in a future version of pyQuil. "
-            "Please create a `QubitPlaceholder` directly",
-            DeprecationWarning,
-        )
-        return QubitPlaceholder()
-
     def declare(
         self,
         name: str,
@@ -636,7 +623,7 @@ class Program(object):
             >>> p.inst(("H", 1))
             >>> p.get_qubits()
             {1}
-            >>> q = p.alloc()
+            >>> q = QubitPlaceholder()
             >>> p.inst(H(q))
             >>> len(p.get_qubits())
             2
