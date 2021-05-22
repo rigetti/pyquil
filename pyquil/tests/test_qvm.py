@@ -6,6 +6,7 @@ from rpcq.messages import PyQuilExecutableResponse
 from pyquil import Program
 from pyquil.api import ForestConnection, QVM
 from pyquil.api._compiler import _extract_program_from_pyquil_executable_response
+from pyquil.api._errors import QVMError
 from pyquil.gates import MEASURE, X, CNOT, H
 from pyquil.quilbase import Declare, MemoryReference
 
@@ -55,13 +56,58 @@ def test_qvm_run_only_pqer(forest: ForestConnection):
     assert np.mean(bitstrings) > 0.8
 
 
-def test_qvm_run_no_measure(forest: ForestConnection):
+def test_qvm_run_region_declared_and_measured(forest: ForestConnection):
+    qvm = QVM(connection=forest)
+    p = Program(Declare("reg", "BIT"), X(0), MEASURE(0, MemoryReference("reg")))
+    nq = PyQuilExecutableResponse(program=p.out(), attributes={"num_shots": 100})
+    qvm.load(nq).run().wait()
+    bitstrings = qvm.read_memory(region_name="reg")
+    assert bitstrings.shape == (100, 1)
+
+
+def test_qvm_run_region_declared_not_measured(forest: ForestConnection):
+    qvm = QVM(connection=forest)
+    p = Program(Declare("reg", "BIT"), X(0))
+    nq = PyQuilExecutableResponse(program=p.out(), attributes={"num_shots": 100})
+    qvm.load(nq).run().wait()
+    bitstrings = qvm.read_memory(region_name="reg")
+    assert bitstrings.shape == (100, 0)
+
+
+# For backwards compatibility, we support omitting the declaration for "ro" specifically
+def test_qvm_run_region_not_declared_is_measured_ro(forest: ForestConnection):
+    qvm = QVM(connection=forest)
+    p = Program(X(0), MEASURE(0, MemoryReference("ro")))
+    nq = PyQuilExecutableResponse(program=p.out(), attributes={"num_shots": 100})
+    qvm.load(nq).run().wait()
+    bitstrings = qvm.read_memory(region_name="ro")
+    assert bitstrings.shape == (100, 1)
+
+
+def test_qvm_run_region_not_declared_is_measured_non_ro(forest: ForestConnection):
+    qvm = QVM(connection=forest)
+    p = Program(X(0), MEASURE(0, MemoryReference("reg")))
+    nq = PyQuilExecutableResponse(program=p.out(), attributes={"num_shots": 100})
+
+    with pytest.raises(QVMError, match='Bad memory region name "reg" in MEASURE'):
+        qvm.load(nq).run().wait()
+
+
+def test_qvm_run_region_not_declared_not_measured_ro(forest: ForestConnection):
     qvm = QVM(connection=forest)
     p = Program(X(0))
     nq = PyQuilExecutableResponse(program=p.out(), attributes={"num_shots": 100})
     qvm.load(nq).run().wait()
     bitstrings = qvm.read_memory(region_name="ro")
     assert bitstrings.shape == (100, 0)
+
+
+def test_qvm_run_region_not_declared_not_measured_non_ro(forest: ForestConnection):
+    qvm = QVM(connection=forest)
+    p = Program(X(0))
+    nq = PyQuilExecutableResponse(program=p.out(), attributes={"num_shots": 100})
+    qvm.load(nq).run().wait()
+    assert qvm.read_memory(region_name="reg") is None
 
 
 def test_roundtrip_pyquilexecutableresponse(compiler):

@@ -600,7 +600,7 @@ class ForestConnection:
         measurement_noise: Optional[Tuple[float, float, float]],
         gate_noise: Optional[Tuple[float, float, float]],
         random_seed: Optional[int],
-    ) -> np.ndarray:
+    ) -> Dict[str, np.ndarray]:
         """
         Run a Forest ``run`` job on a QVM.
 
@@ -611,7 +611,7 @@ class ForestConnection:
         )
         response = post_json(self.session, self.sync_endpoint + "/qvm", payload)
 
-        ram = response.json()
+        ram: Dict[str, np.ndarray] = {key: np.array(val) for key, val in response.json().items()}
 
         for k in ram.keys():
             ram[k] = np.array(ram[k])
