@@ -44,7 +44,7 @@ PAULI_GRAMMAR = r"""
 
 @v_args(inline=True)
 class PauliTree(Transformer):  # type: ignore
-    """ The imports here are lazy to prevent cyclic import issues """
+    """ An AST Transformer to convert the given string into a tree """
 
     def op_x(self) -> Callable[[int], PauliTerm]:
         return sX
@@ -76,10 +76,10 @@ class PauliTree(Transformer):  # type: ignore
         real, imag = args[0].children
         return float(real.value) + float(imag.value) * 1j
 
-    def pauli_mul_pauli(self, first: PauliTerm, second: PauliTerm) -> PauliTerm:
+    def pauli_mul_pauli(self, first: PauliTerm, second: PauliTerm) -> Union[PauliTerm, PauliSum]:
         return first * second
 
-    def pauli_add_pauli(self, first: PauliTerm, second: PauliTerm) -> PauliSum:
+    def pauli_add_pauli(self, first: PauliTerm, second: PauliTerm) -> Union[PauliTerm, PauliSum]:
         return first + second
 
 
