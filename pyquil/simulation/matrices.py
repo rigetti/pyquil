@@ -107,6 +107,8 @@ from typing import Tuple
 
 import numpy as np
 
+INV_ROOT2 = 1.0 / np.sqrt(2.0)
+
 I = np.array([[1.0, 0.0], [0.0, 1.0]])
 
 X = np.array([[0.0, 1.0], [1.0, 0.0]])
@@ -115,7 +117,16 @@ Y = np.array([[0.0, 0.0 - 1.0j], [0.0 + 1.0j, 0.0]])
 
 Z = np.array([[1.0, 0.0], [0.0, -1.0]])
 
-H = (1.0 / np.sqrt(2.0)) * np.array([[1.0, 1.0], [1.0, -1.0]])
+H = INV_ROOT2 * np.array([[1.0, 1.0], [1.0, -1.0]])
+
+CH = np.array(
+    [
+        [1.0, 0.0, 0.0, 0.0],
+        [0.0, 1.0, 0.0, 0.0],
+        [0.0, 0.0, INV_ROOT2, INV_ROOT2],
+        [0.0, 0.0, INV_ROOT2, -INV_ROOT2],
+    ]
+)
 
 S = np.array([[1.0, 0.0], [0.0, 1.0j]])
 
@@ -236,9 +247,11 @@ def BARENCO(alpha: float, phi: float, theta: float) -> np.ndarray:
 QUANTUM_GATES = {
     "I": I,
     "X": X,
+    "CX": CNOT,
     "Y": Y,
     "Z": Z,
     "H": H,
+    "CH": CH,
     "S": S,
     "T": T,
     "PHASE": PHASE,

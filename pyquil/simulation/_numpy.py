@@ -150,9 +150,9 @@ def _get_gate_tensor_and_qubits(gate: Gate) -> Tuple[np.ndarray, List[int]]:
     :return: tensor, qubit_inds.
     """
     if len(gate.params) > 0:
-        matrix = QUANTUM_GATES[gate.name](*gate.params)
+        matrix = QUANTUM_GATES[gate.modified_name](*gate.params)
     else:
-        matrix = QUANTUM_GATES[gate.name]
+        matrix = QUANTUM_GATES[gate.modified_name]
 
     qubit_inds = [q.index for q in gate.qubits]
 

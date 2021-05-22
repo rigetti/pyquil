@@ -221,6 +221,16 @@ class Gate(AbstractInstruction):
         self.qubits = qubits_list
         self.modifiers: List[str] = []
 
+    @property
+    def modified_name(self):
+        """ If there's a modifier on this gate then the 'official' name
+            of the gate needs to change, otherwise gate lookups for
+            matrices don't work.
+        """
+        if "CONTROLLED" in self.modifiers:
+            return "C" + self.name
+        return self.name
+
     def get_qubits(self, indices: bool = True) -> Set[QubitDesignator]:
         return {_extract_qubit_index(q, indices) for q in self.qubits}
 
