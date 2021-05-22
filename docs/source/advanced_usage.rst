@@ -109,7 +109,7 @@ These are all the configuration options available to you, and where they can be 
    * - QVM URL
 
        Simulator
-     - ``QCS_URL``
+     - ``QVM_URL``
      - ``.forest_config``
 
        Key: ``qvm_address``
