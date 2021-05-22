@@ -94,8 +94,6 @@ class QuilTransformer(Transformer):  # type: ignore
 
     @v_args(inline=True)
     def def_gate_matrix(self, name, variables, matrix):
-        print(name)
-        print(matrix)
         return DefGate(name, matrix=matrix, parameters=variables)
 
     @v_args(inline=True)
@@ -121,7 +119,7 @@ class QuilTransformer(Transformer):  # type: ignore
         space = " " if qubits else ""
         if variables:
             raw_defcircuit = "DEFCIRCUIT {}({}){}{}:".format(
-                name, ", ".join(variables), space, " ".join(map(str, qubits))
+                name, ", ".join(map(str, variables)), space, " ".join(map(str, qubits))
             )
         else:
             raw_defcircuit = "DEFCIRCUIT {}{}{}:".format(name, space, " ".join(map(str, qubits)))

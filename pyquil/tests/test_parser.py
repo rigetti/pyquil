@@ -395,13 +395,22 @@ DEFCIRCUIT bell a b:
     H a
     CNOT a b
 """.strip()
+
     defcircuit_no_qubits = """
 DEFCIRCUIT bell:
     H 0
     CNOT 0 1
 """.strip()
+
+    defcircuit_param = """
+DEFCIRCUIT parameterized(%theta, %phi) a:
+    RX(%theta) a
+    RZ(%phi) a
+""".strip()
+
     parse_equals(defcircuit, RawInstr(defcircuit))
     parse_equals(defcircuit_no_qubits, RawInstr(defcircuit_no_qubits))
+    parse_equals(defcircuit_param, RawInstr(defcircuit_param))
 
 
 def test_parse_reset_qubit():

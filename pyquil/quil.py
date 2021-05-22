@@ -40,7 +40,7 @@ import numpy as np
 from rpcq.messages import NativeQuilMetadata
 
 from pyquil._parser.parser import run_parser
-
+from pyquil.gates import MEASURE, RESET
 from pyquil.noise import _check_kraus_ops, _create_kraus_pragmas, pauli_kraus_map
 from pyquil.quilatom import (
     Label,
@@ -58,7 +58,6 @@ from pyquil.quilatom import (
     unpack_classical_reg,
     unpack_qubit,
 )
-from pyquil.gates import MEASURE, RESET
 from pyquil.quilbase import (
     DefGate,
     Gate,
@@ -100,7 +99,6 @@ from pyquil.quiltcalibrations import (
     match_calibration,
 )
 
-
 InstructionDesignator = Union[
     AbstractInstruction,
     DefGate,
@@ -140,6 +138,9 @@ class Program(object):
         # method.  It is marked as None whenever new instructions are added.
         self._synthesized_instructions: Optional[List[AbstractInstruction]] = None
 
+        # "ro" is always implicitly declared
+        self._declarations: Dict[str, Declare] = {"ro": Declare("ro", "BIT")}
+
         self.inst(*instructions)
 
         # Filled in with quil_to_native_quil
@@ -165,6 +166,11 @@ class Program(object):
     def frames(self) -> Dict[Frame, DefFrame]:
         """ A mapping from Quil-T frames to their definitions. """
         return self._frames
+
+    @property
+    def declarations(self) -> Dict[str, Declare]:
+        """ A mapping from declared region names to their declarations. """
+        return self._declarations
 
     def copy_everything_except_instructions(self) -> "Program":
         """
@@ -293,6 +299,9 @@ class Program(object):
             elif isinstance(instruction, AbstractInstruction):
                 self._instructions.append(instruction)
                 self._synthesized_instructions = None
+
+                if isinstance(instruction, Declare):
+                    self._declarations[instruction.name] = instruction
             else:
                 raise TypeError("Invalid instruction: {}".format(instruction))
 

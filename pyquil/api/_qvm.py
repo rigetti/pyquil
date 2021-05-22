@@ -538,7 +538,10 @@ http://pyquil.readthedocs.io/en/latest/noise_models.html#support-for-noisy-gates
                     "`Program`. You provided {}".format(type(executable))
                 )
 
-        return cast("QVM", super().load(executable))
+        qvm = cast("QVM", super().load(executable))
+        for region in executable.declarations.keys():
+            self._memory_results[region] = np.ndarray((executable.num_shots, 0), dtype=np.int64)
+        return qvm
 
     @_record_call
     def run(self) -> "QVM":
@@ -565,7 +568,7 @@ http://pyquil.readthedocs.io/en/latest/noise_models.html#support-for-noisy-gates
 
         quil_program = self.augment_program_with_memory_values(quil_program)
 
-        self._memory_results = self.connection._qvm_run(
+        results = self.connection._qvm_run(
             quil_program=quil_program,
             classical_addresses=classical_addresses,
             trials=trials,
@@ -573,9 +576,7 @@ http://pyquil.readthedocs.io/en/latest/noise_models.html#support-for-noisy-gates
             gate_noise=self.gate_noise,
             random_seed=self.random_seed,
         )
-
-        if "ro" not in self._memory_results or len(self._memory_results["ro"]) == 0:
-            self._memory_results["ro"] = np.zeros((trials, 0), dtype=np.int64)
+        self._memory_results.update(results)
 
         return self
 
