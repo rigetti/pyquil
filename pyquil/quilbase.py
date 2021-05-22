@@ -222,7 +222,7 @@ class Gate(AbstractInstruction):
         self.modifiers: List[str] = []
 
     @property
-    def modified_name(self):
+    def modified_name(self) -> str:
         """ If there's a modifier on this gate then the 'official' name
             of the gate needs to change, otherwise gate lookups for
             matrices don't work.
