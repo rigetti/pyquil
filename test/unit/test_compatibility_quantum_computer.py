@@ -7,6 +7,7 @@ import numpy as np
 import pytest
 from pyquil import Program, list_quantum_computers
 from pyquil.api import QCSClientConfiguration
+
 from pyquil.api._quantum_computer import (
     _check_min_num_trials_for_symmetrized_readout,
     _consolidate_symmetrization_outputs,
@@ -19,6 +20,8 @@ from pyquil.api._quantum_computer import (
     _parse_name,
     _symmetrization,
 )
+from pyquil.compatibility.v2 import QuantumComputer, get_qc
+from pyquil.compatibility.v2.api import QVM
 from pyquil.experiment import ExperimentSetting, Experiment
 from pyquil.experiment._main import _pauli_to_product_state
 from pyquil.gates import CNOT, H, RESET, RY, X
@@ -411,11 +414,15 @@ def test_qc(client_configuration: QCSClientConfiguration):
 
 def test_qc_run(client_configuration: QCSClientConfiguration):
     qc = get_qc("9q-square-noisy-qvm", client_configuration=client_configuration)
-    bs = qc.run(qc.compile(Program(
-        Declare("ro", "BIT", 1),
-        X(0),
-        MEASURE(0, ("ro", 0)),
-    ).wrap_in_numshots_loop(3)))
+    bs = qc.run(
+        qc.compile(
+            Program(
+                Declare("ro", "BIT", 1),
+                X(0),
+                MEASURE(0, ("ro", 0)),
+            ).wrap_in_numshots_loop(3)
+        )
+    )
     assert bs.shape == (3, 1)
 
 
@@ -486,18 +493,12 @@ def test_reset(client_configuration: QCSClientConfiguration):
     qc.run(executable=p, memory_map={"theta": [np.pi]})
 
     aref = ParameterAref(name="theta", index=0)
-    assert qc.qam._variables_shim[aref] == np.pi
-    assert qc.qam.executable == p
-    assert qc.qam._memory_results["ro"].shape == (1000, 1)
-    assert all([bit == 1 for bit in qc.qam._memory_results["ro"]])
-    assert qc.qam.status == "done"
+    assert qc.qam._loaded_executable._variable_values[aref] == np.pi
+    assert qc.qam._loaded_executable == p
+    assert qc.qam._result.memory["ro"].shape == (1000, 1)
+    assert all([bit == 1 for bit in qc.qam._result.memory["ro"]])
 
     qc.reset()
-
-    assert qc.qam._variables_shim == {}
-    assert qc.qam.executable is None
-    assert qc.qam._memory_results["ro"] is None
-    assert qc.qam.status == "connected"
 
 
 def test_get_qvm_with_topology(client_configuration: QCSClientConfiguration):
@@ -527,13 +528,17 @@ def test_get_qvm_with_topology_2(client_configuration: QCSClientConfiguration):
         execution_timeout=5.0,
         client_configuration=client_configuration,
     )
-    results = qc.run(qc.compile(Program(
-        Declare("ro", "BIT", 3),
-        X(5),
-        MEASURE(5, ("ro", 0)),
-        MEASURE(6, ("ro", 1)),
-        MEASURE(7, ("ro", 2)),
-    ).wrap_in_numshots_loop(5)))
+    results = qc.run(
+        qc.compile(
+            Program(
+                Declare("ro", "BIT", 3),
+                X(5),
+                MEASURE(5, ("ro", 0)),
+                MEASURE(6, ("ro", 1)),
+                MEASURE(7, ("ro", 2)),
+            ).wrap_in_numshots_loop(5)
+        )
+    )
     assert results.shape == (5, 3)
     assert all(r[0] == 1 for r in results)
 
@@ -716,7 +721,9 @@ def test_qc_joint_expectation(client_configuration: QCSClientConfiguration, dumm
     p.wrap_in_numshots_loop(10)
 
     # ZZ experiment
-    sz = ExperimentSetting(in_state=_pauli_to_product_state(sZ(0) * sZ(1)), out_operator=sZ(0) * sZ(1), additional_expectations=[[0], [1]])
+    sz = ExperimentSetting(
+        in_state=_pauli_to_product_state(sZ(0) * sZ(1)), out_operator=sZ(0) * sZ(1), additional_expectations=[[0], [1]]
+    )
     e = Experiment(settings=[sz], program=p)
 
     results = qc.experiment(e)
@@ -734,8 +741,10 @@ def test_qc_joint_expectation(client_configuration: QCSClientConfiguration, dumm
 
 
 def test_get_qc_noisy_qpu_error(client_configuration: QCSClientConfiguration, dummy_compiler: DummyCompiler):
-    expected_message = "pyQuil currently does not support initializing a noisy QuantumComputer " \
+    expected_message = (
+        "pyQuil currently does not support initializing a noisy QuantumComputer "
         "based on a QCSQuantumProcessor. Change noisy to False or specify the name of a QVM."
+    )
     with pytest.raises(ValueError, match=expected_message):
         get_qc("Aspen-8", noisy=True)
 
@@ -753,7 +762,9 @@ def test_qc_joint_calibration(client_configuration: QCSClientConfiguration):
     p.wrap_in_numshots_loop(10000)
 
     # ZZ experiment
-    sz = ExperimentSetting(in_state=_pauli_to_product_state(sZ(0) * sZ(1)), out_operator=sZ(0) * sZ(1), additional_expectations=[[0], [1]])
+    sz = ExperimentSetting(
+        in_state=_pauli_to_product_state(sZ(0) * sZ(1)), out_operator=sZ(0) * sZ(1), additional_expectations=[[0], [1]]
+    )
     e = Experiment(settings=[sz], program=p)
 
     results = qc.experiment(e)

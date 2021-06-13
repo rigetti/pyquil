@@ -14,8 +14,9 @@ class StatefulQAM(QAM):
         Mutate the provided QAM to add methods and data for backwards compatibility,
         by dynamically mixing in this wrapper class.
         """
-        qam.__class__ = type(str(qam.__class__.__name__), (StatefulQAM, qam.__class__), {})
-        qam.reset()
+        if not isinstance(qam, StatefulQAM):
+            qam.__class__ = type(str(qam.__class__.__name__), (StatefulQAM, qam.__class__), {})
+            qam.reset()
 
     def load(self, executable: QuantumExecutable) -> "QAM":
         self._loaded_executable = executable

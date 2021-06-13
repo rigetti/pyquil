@@ -13,7 +13,7 @@
 #    See the License for the specific language governing permissions and
 #    limitations under the License.
 ##############################################################################
-from typing import Dict, Mapping, Optional, Sequence, Union, Tuple
+from typing import Dict, Mapping, Optional, Sequence, Union, Tuple, cast
 
 import numpy as np
 from qcs_api_client.client import QCSClientConfiguration
@@ -27,8 +27,7 @@ from pyquil.api._qvm_client import (
     RunProgramRequest,
 )
 from pyquil.noise import NoiseModel, apply_noise_model
-from pyquil.quil import Program, get_classical_addresses_from_program, percolate_declares
-from pyquil.quilatom import MemoryReference
+from pyquil.quil import Program, get_classical_addresses_from_program
 
 
 class QVMVersionMismatch(Exception):
@@ -52,7 +51,12 @@ def check_qvm_version(version: str) -> None:
         )
 
 
-class QVM(QAM):
+class QVMExecuteResponse:
+    executable: Program
+    memory_results: Dict[str, np.ndarray]
+
+
+class QVM(QAM[QAMExecutionResult]):
     @_record_call
     def __init__(
         self,
@@ -79,7 +83,7 @@ class QVM(QAM):
         :param timeout: Time limit for requests, in seconds.
         :param client_configuration: Optional client configuration. If none is provided, a default one will be loaded.
         """
-        super().__init__(client)
+        super().__init__()
 
         if (noise_model is not None) and (gate_noise is not None or measurement_noise is not None):
             raise ValueError(

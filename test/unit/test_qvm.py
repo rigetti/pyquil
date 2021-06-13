@@ -67,14 +67,14 @@ def test_qvm_run_region_not_declared_is_measured(client_configuration: QCSClient
     p = Program(X(0), MEASURE(0, MemoryReference("ro")))
 
     with pytest.raises(QVMError, match='Bad memory region name "ro" in MEASURE'):
-        qvm.load(p).run().wait()
+        qvm.run(p)
 
 
 def test_qvm_run_region_not_declared_not_measured(client_configuration: QCSClientConfiguration):
     qvm = QVM(client_configuration=client_configuration)
     p = Program(X(0))
-    qvm.load(p.wrap_in_numshots_loop(100)).run().wait()
-    assert qvm.read_memory(region_name="ro") is None
+    result = qvm.run(p.wrap_in_numshots_loop(100))
+    assert result.read_memory(region_name="ro") is None
 
 
 def test_qvm_version(client_configuration: QCSClientConfiguration):

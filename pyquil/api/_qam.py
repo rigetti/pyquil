@@ -20,7 +20,6 @@ from typing import Dict, Generic, Optional, TypeVar
 import numpy as np
 from pyquil.api._abstract_compiler import QuantumExecutable
 from pyquil.api._error_reporting import _record_call
-from pyquil.api._abstract_compiler import QuantumExecutable
 from pyquil.experiment._main import Experiment
 
 
@@ -50,26 +49,33 @@ class QAMExecutionResult:
 
 class QAM(ABC, Generic[ExecuteResponse]):
     """
-    Quantum Abstract Machine: This class acts as a generic interface describing how a classical computer interacts with
-    a live quantum computer.
+    Quantum Abstract Machine: This class acts as a generic interface describing how a classical
+    computer interacts with a live quantum computer.
     """
 
-        :param region_name: The string naming the declared memory region.
-        :return: A list of values of the appropriate type.
+    @_record_call
+    def __init__(self) -> None:
+        self.experiment: Optional[Experiment]
+
+    @abstractmethod
+    def execute(self, executable: QuantumExecutable) -> ExecuteResponse:
         """
         Run an executable on a QAM, returning a handle to be used to retrieve
         results.
 
-    @_record_call
-    def reset(self) -> None:
+        :param executable: The executable program to be executed by the QAM.
         """
-        Reset the Quantum Abstract Machine to its initial state, which is particularly useful
-        when it has gotten into an unwanted state. This can happen, for example, if the QAM
-        is interrupted in the middle of a run.
+
+    @abstractmethod
+    def get_results(self, execute_response: ExecuteResponse) -> QAMExecutionResult:
         """
-        self._client.reset()
-        self._variables_shim = {}
-        self.executable = None
-        self._memory_results = defaultdict(lambda: None)
-        self.experiment = None
-        self.status = "connected"
+        Retrieve the results associated with a previous call to ``QAM#execute``.
+
+        :param execute_response: The return value from a call to ``execute``.
+        """
+
+    def run(self, executable: QuantumExecutable) -> QAMExecutionResult:
+        """
+        Run an executable to completion on the QAM.
+        """
+        return self.get_results(self.execute(executable))

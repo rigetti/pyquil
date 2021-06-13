@@ -175,7 +175,7 @@ class QuantumComputer(QuantumComputerV3):
             experiment_program = experiment.generate_experiment_program()
             executable = self.compile(experiment_program)
             self.qam._experiment = experiment
-        elif isinstance(self.qam, QVM) and isinstance(executable, Program) and self.qam.requires_executable:
+        elif isinstance(self.qam, QVM) and isinstance(executable, Program):
             executable = self.compiler.native_quil_to_executable(executable)
 
         if memory_map is None:
@@ -449,7 +449,11 @@ def get_qc(
         )
 
     qc = get_qc_v3(
-        name=name, as_qvm=as_qvm, noisy=noisy, timeout=compiler_timeout, client_configuration=client_configuration
+        name=name,
+        as_qvm=as_qvm,
+        noisy=noisy,
+        compiler_timeout=compiler_timeout,
+        client_configuration=client_configuration,
     )
 
     qc = cast(QuantumComputerV3, qc)
