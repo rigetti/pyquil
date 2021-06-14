@@ -13,8 +13,8 @@
 #    See the License for the specific language governing permissions and
 #    limitations under the License.
 ##############################################################################
-import sys
 from abc import ABC, abstractmethod
+from dataclasses import dataclass
 from typing import Any, Dict, List, Optional, Sequence, Union
 
 from qcs_api_client.client import QCSClientConfiguration
@@ -34,12 +34,6 @@ from pyquil.quantum_processor import AbstractQuantumProcessor
 from pyquil.quil import Program
 from pyquil.quilatom import MemoryReference, ExpressionDesignator
 from pyquil.quilbase import Gate
-from pyquil._version import pyquil_version
-
-if sys.version_info < (3, 7):
-    from rpcq.external.dataclasses import dataclass
-else:
-    from dataclasses import dataclass
 
 
 class QuilcVersionMismatch(Exception):
@@ -50,42 +44,7 @@ class QuilcNotRunning(Exception):
     pass
 
 
-@dataclass()
-class EncryptedProgram:
-    """
-    Encrypted binary, executable on a QPU.
-    """
-
-    program: str
-    """String representation of an encrypted Quil program."""
-
-    memory_descriptors: Dict[str, ParameterSpec]
-    """Descriptors for memory executable's regions, mapped by name."""
-
-    ro_sources: Dict[MemoryReference, str]
-    """Readout sources, mapped by memory reference."""
-
-    recalculation_table: Dict[ParameterAref, ExpressionDesignator]
-    """A mapping from memory references to the original gate arithmetic."""
-
-
-QuantumExecutable = Union[EncryptedProgram, Program]
-
-if sys.version_info < (3, 7):
-    from rpcq.external.dataclasses import dataclass
-else:
-    from dataclasses import dataclass
-
-
-class QuilcVersionMismatch(Exception):
-    pass
-
-
-class QuilcNotRunning(Exception):
-    pass
-
-
-@dataclass()
+@dataclass
 class EncryptedProgram:
     """
     Encrypted binary, executable on a QPU.
