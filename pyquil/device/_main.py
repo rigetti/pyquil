@@ -98,9 +98,7 @@ class Device(AbstractDevice):
         # TODO: Introduce distinction between supported ISAs and target ISA
         self._isa = ISA.from_dict(raw["isa"]) if "isa" in raw and raw["isa"] != {} else None
         self.specs = Specs.from_dict(raw["specs"]) if raw.get("specs") else None
-        self.noise_model = (
-            NoiseModel.from_dict(raw["noise_model"]) if raw.get("noise_model") else None
-        )
+        self.noise_model = NoiseModel.from_dict(raw["noise_model"]) if raw.get("noise_model") else None
 
     @property
     def isa(self) -> Optional[ISA]:
@@ -205,13 +203,7 @@ class Device(AbstractDevice):
 
         def edge_type_to_gates(e: Edge) -> List[GateInfo]:
             gates: List[GateInfo] = []
-            if (
-                e is None
-                or isinstance(e.type, str)
-                and "CZ" == e.type
-                or isinstance(e.type, list)
-                and "CZ" in e.type
-            ):
+            if e is None or isinstance(e.type, str) and "CZ" == e.type or isinstance(e.type, list) and "CZ" in e.type:
                 gates += [
                     GateInfo(
                         operator="CZ",
@@ -253,13 +245,7 @@ class Device(AbstractDevice):
                         fidelity=safely_get("fCPHASEs", tuple(e.targets), DEFAULT_CPHASE_FIDELITY),
                     )
                 ]
-            if (
-                e is None
-                or isinstance(e.type, str)
-                and "XY" == e.type
-                or isinstance(e.type, list)
-                and "XY" in e.type
-            ):
+            if e is None or isinstance(e.type, str) and "XY" == e.type or isinstance(e.type, list) and "XY" in e.type:
                 gates += [
                     GateInfo(
                         operator="XY",
@@ -288,14 +274,8 @@ class Device(AbstractDevice):
             return gates
 
         assert self._isa is not None
-        qubits = [
-            Qubit(id=q.id, type=None, dead=q.dead, gates=qubit_type_to_gates(q))
-            for q in self._isa.qubits
-        ]
-        edges = [
-            Edge(targets=e.targets, type=None, dead=e.dead, gates=edge_type_to_gates(e))
-            for e in self._isa.edges
-        ]
+        qubits = [Qubit(id=q.id, type=None, dead=q.dead, gates=qubit_type_to_gates(q)) for q in self._isa.qubits]
+        edges = [Edge(targets=e.targets, type=None, dead=e.dead, gates=edge_type_to_gates(e)) for e in self._isa.edges]
         return ISA(qubits, edges)
 
     def __str__(self) -> str:
@@ -321,9 +301,7 @@ class NxDevice(AbstractDevice):
     def qubit_topology(self) -> nx.Graph:
         return self.topology
 
-    def get_isa(
-        self, oneq_type: str = "Xhalves", twoq_type: Optional[Union[str, List[str]]] = None
-    ) -> ISA:
+    def get_isa(self, oneq_type: str = "Xhalves", twoq_type: Optional[Union[str, List[str]]] = None) -> ISA:
         return isa_from_graph(self.topology, oneq_type=oneq_type, twoq_type=twoq_type)
 
     def get_specs(self) -> Specs:

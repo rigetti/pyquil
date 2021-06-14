@@ -577,7 +577,7 @@ def apply_noise_model(prog: "Program", noise_model: NoiseModel) -> "Program":
                 new_prog += i
         else:
             new_prog += i
-    return new_prog
+    return prog.copy_everything_except_instructions() + new_prog
 
 
 def add_decoherence_noise(
