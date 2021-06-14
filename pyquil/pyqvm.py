@@ -241,7 +241,7 @@ class PyQVM(QAM):
         self._memory_results = {}
 
         self.ram = {}
-        self.wf_simulator.reset()
+        # self.wf_simulator.reset()
 
         # grab the gate definitions for future use
         self._extract_defined_gates()
@@ -253,6 +253,8 @@ class PyQVM(QAM):
             for name in self.ram.keys():
                 self._memory_results.setdefault(name, list())
                 self._memory_results[name].append(self.ram[name])
+
+        self._memory_results = {k: np.asarray(v) for k, v in self._memory_results.items()}
 
         self._bitstrings = self._memory_results.get("ro")
 
@@ -467,3 +469,17 @@ class PyQVM(QAM):
             halted = self.transition()
 
         return self
+
+    def execute_once(self, program: Program) -> "PyQVM":
+        """
+        Execute one outer loop of a program on the PyQVM without re-initializing its state.
+
+        Note that the PyQVM is stateful. Subsequent calls to :py:func:`execute` will not
+        automatically reset the wavefunction or the classical RAM. If this is desired,
+        consider starting your program with ``RESET``.
+
+        :return: ``self`` to support method chaining.
+        """
+        self.program = program
+        self._extract_defined_gates()
+        return self._execute_program()

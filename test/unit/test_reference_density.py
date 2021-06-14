@@ -145,7 +145,7 @@ def test_kraus_application_bitflip():
     )
     initial_density = _random_1q_density()
     qam.wf_simulator.density = initial_density
-    qam.execute(Program(I(0)))
+    qam.execute_once(Program(I(0)))
     final_density = (1 - p) * initial_density + p * qmats.X.dot(initial_density).dot(qmats.X)
     np.testing.assert_allclose(final_density, qam.wf_simulator.density)
 
@@ -159,7 +159,7 @@ def test_kraus_application_phaseflip():
     )
     initial_density = _random_1q_density()
     qam.wf_simulator.density = initial_density
-    qam.execute(Program(I(0)))
+    qam.execute_once(Program(I(0)))
 
     final_density = (1 - p) * initial_density + p * qmats.Z.dot(initial_density).dot(qmats.Z)
     np.testing.assert_allclose(final_density, qam.wf_simulator.density)
@@ -174,7 +174,7 @@ def test_kraus_application_bitphaseflip():
     )
     initial_density = _random_1q_density()
     qam.wf_simulator.density = initial_density
-    qam.execute(Program(I(0)))
+    qam.execute_once(Program(I(0)))
 
     final_density = (1 - p) * initial_density + p * qmats.Y.dot(initial_density).dot(qmats.Y)
     np.testing.assert_allclose(final_density, qam.wf_simulator.density)
@@ -189,7 +189,7 @@ def test_kraus_application_relaxation():
     )
     rho = _random_1q_density()
     qam.wf_simulator.density = rho
-    qam.execute(Program(I(0)))
+    qam.execute_once(Program(I(0)))
 
     final_density = np.array(
         [
@@ -209,7 +209,7 @@ def test_kraus_application_dephasing():
     )
     rho = _random_1q_density()
     qam.wf_simulator.density = rho
-    qam.execute(Program(I(0)))
+    qam.execute_once(Program(I(0)))
     final_density = np.array([[rho[0, 0], (1 - p) * rho[0, 1]], [(1 - p) * rho[1, 0], rho[1, 1]]])
     np.testing.assert_allclose(final_density, qam.wf_simulator.density)
 
@@ -223,7 +223,7 @@ def test_kraus_application_depolarizing():
     )
     rho = _random_1q_density()
     qam.wf_simulator.density = rho
-    qam.execute(Program(I(0)))
+    qam.execute_once(Program(I(0)))
 
     final_density = (1 - p) * rho + (p / 3) * (
         qmats.X.dot(rho).dot(qmats.X) + qmats.Y.dot(rho).dot(qmats.Y) + qmats.Z.dot(rho).dot(qmats.Z)
@@ -241,7 +241,7 @@ def test_kraus_compound_T1T2_application():
     )
     rho = _random_1q_density()
     qam.wf_simulator.density = rho
-    qam.execute(Program(I(0)))
+    qam.execute_once(Program(I(0)))
 
     final_density = np.array(
         [
@@ -311,7 +311,7 @@ def test_multiqubit_decay_bellstate():
         quantum_simulator_type=ReferenceDensitySimulator,
         post_gate_noise_probabilities={"relaxation": p1, "dephasing": p2},
     )
-    qam.execute(program)
+    qam.execute_once(program)
 
     assert np.allclose(qam.wf_simulator.density, state)
 
