@@ -19,7 +19,7 @@ class StatefulQAM(QAM):
             qam.reset()
 
     def load(self, executable: QuantumExecutable) -> "QAM":
-        self._loaded_executable = executable
+        self._loaded_executable = executable.copy()
         return self
 
     def read_memory(self, region_name: str) -> "QAM":

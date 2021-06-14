@@ -488,13 +488,12 @@ def test_reset(client_configuration: QCSClientConfiguration):
         Declare(name="ro", memory_type="BIT"),
         RX(MemoryReference("theta"), 0),
         MEASURE(0, MemoryReference("ro")),
-    ).wrap_in_numshots_loop(1000)
+    ).wrap_in_numshots_loop(10)
     qc.run(executable=p, memory_map={"theta": [np.pi]})
 
     aref = ParameterAref(name="theta", index=0)
     assert qc.qam._loaded_executable._variable_values[aref] == np.pi
-    assert qc.qam._loaded_executable == p
-    assert qc.qam._result.memory["ro"].shape == (1000, 1)
+    assert qc.qam._result.memory["ro"].shape == (10, 1)
     assert all([bit == 1 for bit in qc.qam._result.memory["ro"]])
 
     qc.reset()

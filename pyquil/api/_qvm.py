@@ -142,10 +142,10 @@ http://pyquil.readthedocs.io/en/latest/noise_models.html#support-for-noisy-gates
         if self.noise_model is not None:
             executable = apply_noise_model(executable, self.noise_model)
 
-        quil_program = executable._set_parameter_values_at_runtime()
+        executable._set_parameter_values_at_runtime()
 
         request = qvm_run_request(
-            quil_program,
+            executable,
             classical_addresses,
             trials,
             self.measurement_noise,
