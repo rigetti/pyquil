@@ -40,7 +40,7 @@ import numpy as np
 from rpcq.messages import NativeQuilMetadata, ParameterAref
 
 from pyquil._parser.parser import run_parser
-from pyquil.gates import MEASURE, RESET, MOVE
+from pyquil.gates import DECLARE, MEASURE, RESET, MOVE
 from pyquil.noise import _check_kraus_ops, _create_kraus_pragmas, pauli_kraus_map
 from pyquil.quilatom import (
     Label,
@@ -518,9 +518,18 @@ class Program:
             MOVE(MemoryReference(name=k.name, offset=k.index), v) for k, v in self._variable_values.items()
         ]
 
-        self._instructions = [*move_instructions, *self.instructions]
+        self.prepend_instructions(move_instructions)
+        self._sort_declares_to_program_start()
 
-        return percolate_declares(self)
+        return self
+
+    def prepend_instructions(self, instructions: Iterable[AbstractInstruction]) -> "Program":
+        """
+        Prepend instructions to the beginning of the program.
+        """
+        self._instructions = [*instructions, *self._instructions]
+        self._synthesized_instructions = None
+        return self
 
     def while_do(self, classical_reg: MemoryReferenceDesignator, q_program: "Program") -> "Program":
         """
@@ -821,6 +830,13 @@ class Program:
         except ValueError:
             return False
 
+    def _sort_declares_to_program_start(self) -> "Program":
+        """
+        Re-order DECLARE instructions within this program to the beginning, followed by
+        all other instructions. Reordering is stable among DECLARE and non-DECLARE instructions.
+        """
+        self._instructions = sorted(self._instructions, key=lambda instruction: not isinstance(instruction, Declare))
+
     def pop(self) -> AbstractInstruction:
         """
         Pops off the last instruction.
@@ -885,10 +901,12 @@ class Program:
         p._calibrations = self.calibrations
         p._waveforms = self.waveforms
         p._frames = self.frames
+        p._variable_values = {k.replace(): v for k, v in self._variable_values.items()}
         if isinstance(other, Program):
             p.calibrations.extend(other.calibrations)
             p.waveforms.update(other.waveforms)
             p.frames.update(other.frames)
+            p._variable_values.update({k.replace(): v for k, v in other._variable_values.items()})
         return p
 
     def __iadd__(self, other: InstructionDesignator) -> "Program":
@@ -903,6 +921,7 @@ class Program:
             self.calibrations.extend(other.calibrations)
             self.waveforms.update(other.waveforms)
             self.frames.update(other.frames)
+            self._variable_values.update({k.replace(): v for k, v in other._variable_values.items()})
         return self
 
     def __getitem__(self, index: Union[slice, int]) -> Union[AbstractInstruction, "Program"]:
