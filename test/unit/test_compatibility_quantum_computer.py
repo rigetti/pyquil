@@ -404,7 +404,6 @@ def test_parse_qc_pyqvm():
 def test_qc(client_configuration: QCSClientConfiguration):
     qc = get_qc("9q-square-noisy-qvm", client_configuration=client_configuration)
     assert isinstance(qc, QuantumComputer)
-    assert isinstance(qc.qam, QVM)
     assert qc.qam.noise_model is not None
     assert qc.qubit_topology().number_of_nodes() == 9
     assert qc.qubit_topology().degree[0] == 2
