@@ -268,8 +268,8 @@ class QPU(QAM[QPUExecuteResponse]):
 
         .. code-block:: python
 
-            compiled_program.memory.write(region_name='theta', value=0.5)
-            compiled_program.memory.write(region_name='beta', value=0.1)
+            compiled_program.write_memory(region_name='theta', value=0.5)
+            compiled_program.write_memory(region_name='beta', value=0.1)
 
         After executing this function, our self.variables_shim in the above example would contain
         the following:

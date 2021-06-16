@@ -474,7 +474,7 @@ class PyQVM(QAM):
         """
         Execute one outer loop of a program on the PyQVM without re-initializing its state.
 
-        Note that the PyQVM is stateful. Subsequent calls to :py:func:`execute` will not
+        Note that the PyQVM is stateful. Subsequent calls to :py:func:`execute_once` will not
         automatically reset the wavefunction or the classical RAM. If this is desired,
         consider starting your program with ``RESET``.
 
