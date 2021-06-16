@@ -165,7 +165,7 @@ class QPU(QAM[QPUExecuteResponse]):
             id=str(uuid.uuid4()),
             priority=self.priority,
             program=executable.program,
-            patch_values=self._build_patch_values(),
+            patch_values=self._build_patch_values(executable),
         )
         job_id = self._qpu_client.run_program(request).job_id
         return QPUExecuteResponse(job_id=job_id)

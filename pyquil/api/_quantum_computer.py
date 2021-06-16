@@ -394,9 +394,6 @@ class QuantumComputer:
         :return: An executable binary suitable for passing to :py:func:`QuantumComputer.run`.
         """
 
-        if isinstance(self.qam, QPU):
-            self.reset()
-
         flags = [to_native_gates, optimize]
         assert all(flags) or all(not f for f in flags), "Must turn quilc all on or all off"
         quilc = all(flags)
