@@ -725,6 +725,7 @@ def get_qc(
     compiler_timeout: float = 10.0,
     execution_timeout: float = 10.0,
     client_configuration: Optional[QCSClientConfiguration] = None,
+    endpoint_id: Optional[str] = None,
     engagement_manager: Optional[EngagementManager] = None,
 ) -> QuantumComputer:
     """
@@ -794,9 +795,12 @@ def get_qc(
     :param compiler_timeout: Time limit for compilation requests, in seconds.
     :param execution_timeout: Time limit for execution requests, in seconds.
     :param client_configuration: Optional client configuration. If none is provided, a default one will be loaded.
+    :param endpoint_id: Optional quantum processor endpoint ID, as used in the `QCS API Docs`_.
     :param engagement_manager: Optional engagement manager. If none is provided, a default one will be created.
 
     :return: A pre-configured QuantumComputer
+
+    .. _QCS API Docs: https://docs.api.qcs.rigetti.com/#tag/endpoints
     """
 
     client_configuration = client_configuration or QCSClientConfiguration.load()
@@ -862,6 +866,7 @@ def get_qc(
             quantum_processor_id=quantum_processor.quantum_processor_id,
             timeout=execution_timeout,
             client_configuration=client_configuration,
+            endpoint_id=endpoint_id,
             engagement_manager=engagement_manager,
         )
         compiler = QPUCompiler(
