@@ -22,7 +22,7 @@ from dateutil.tz import tzutc
 from qcs_api_client.client import QCSClientConfiguration
 from qcs_api_client.models import EngagementWithCredentials, CreateEngagementRequest
 from qcs_api_client.operations.sync import create_engagement
-from qcs_api_client.types import Unset
+from qcs_api_client.types import UNSET
 
 from pyquil.api._qcs_client import qcs_client
 
@@ -67,7 +67,7 @@ class EngagementManager:
                     client_configuration=self._client_configuration, request_timeout=request_timeout
                 ) as client:  # type: httpx.Client
                     request = CreateEngagementRequest(
-                        quantum_processor_id=quantum_processor_id, endpoint_id=endpoint_id or Unset()
+                        quantum_processor_id=quantum_processor_id, endpoint_id=endpoint_id or UNSET
                     )
                     self._cached_engagements[(quantum_processor_id, endpoint_id)] = create_engagement(
                         client=client, json_body=request
