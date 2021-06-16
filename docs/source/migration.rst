@@ -75,7 +75,7 @@ change any code.
    from pyquil.compatibility.v2 import get_qc, QuantumComputer
    from pyquil.compatibility.v2.api import QAM, QVM, QPU
 
-You can use these imported objects exactly how you already use their counterparts in pyQuil v2.
+You can use these imported objects similarly how you use their counterparts in pyQuil v2.
 Once you've verified that your scripts still work with v3, we recommend that you gradually convert
 them to use the new versions of each object. This compatibility layer won't see any new
 development, and without fully upgrading you'd miss out on all the new features to come in the

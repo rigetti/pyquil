@@ -36,8 +36,8 @@ class Memory:
         """
         Mutate the program to set the given parameter value.
 
-        :param ParameterAref|str parameter: Name of the memory region, or parameter reference with offset.
-        :param int|float|Sequence[int]|Sequence[float] value: the value or values to set for this parameter. If a list
+        :param parameter: Name of the memory region, or parameter reference with offset.
+        :param value: the value or values to set for this parameter. If a list
         is provided, parameter must be a ``str`` or ``parameter.offset == 0``.
         """
         if isinstance(parameter, str):

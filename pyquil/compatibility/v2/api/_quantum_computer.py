@@ -432,7 +432,8 @@ def get_qc(
     client_configuration: Optional[QCSClientConfiguration] = None,
 ) -> QuantumComputer:
     """
-    Compatibility layer to build a QuantumComputer supporting the pyQuil v2 API.
+    Compatibility layer to build a QuantumComputer supporting an API closely
+    similar to that in pyQuil v2.
     """
     if connection is not None:
         raise ValueError(
