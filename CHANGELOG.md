@@ -8,6 +8,9 @@ Changelog
 
 ### Improvements and Changes
 
+- `get_qc` and `QPU` now both accept an `endpoint_id` argument which is used to engage
+  against a specific QCS [quantum processor endpoint](https://docs.api.qcs.rigetti.com/#tag/endpoints).
+
 ### Bugfixes
 
 - Allow `np.ndarray` when writing QAM memory. Disallow non-integer and non-float types.
