@@ -65,7 +65,7 @@ class QAM(ABC, Generic[ExecuteResponse]):
         """
 
     @abstractmethod
-    def get_results(self, execute_response: ExecuteResponse) -> QAMExecutionResult:
+    def get_result(self, execute_response: ExecuteResponse) -> QAMExecutionResult:
         """
         Retrieve the results associated with a previous call to ``QAM#execute``.
 
@@ -76,4 +76,4 @@ class QAM(ABC, Generic[ExecuteResponse]):
         """
         Run an executable to completion on the QAM.
         """
-        return self.get_results(self.execute(executable))
+        return self.get_result(self.execute(executable))

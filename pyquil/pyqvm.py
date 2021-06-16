@@ -260,7 +260,7 @@ class PyQVM(QAM):
 
         return self
 
-    def get_results(self, execute_response: "PyQVM") -> QAMExecutionResult:
+    def get_result(self, execute_response: "PyQVM") -> QAMExecutionResult:
         """
         Return results from the PyQVM according to the common QAM API. Note that while the
         ``execute_response`` is not used, it's accepted in order to conform to that API; it's

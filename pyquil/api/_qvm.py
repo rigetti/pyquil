@@ -156,7 +156,7 @@ http://pyquil.readthedocs.io/en/latest/noise_models.html#support-for-noisy-gates
 
         return QAMExecutionResult(executable=executable, memory=result_memory)
 
-    def get_results(self, execute_response: QVMExecuteResponse) -> QAMExecutionResult:
+    def get_result(self, execute_response: QVMExecuteResponse) -> QAMExecutionResult:
         """
         Return the results of execution on the QVM.
 

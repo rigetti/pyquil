@@ -150,7 +150,7 @@ class QPU(QAM[QPUExecuteResponse]):
     def execute(self, executable: QuantumExecutable) -> QPUExecuteResponse:
         """
         Enqueue a job for execution on the QPU. Returns a ``QPUExecuteResponse``, a
-        job descriptor which should be passed directly to ``QPU.get_results`` to retrieve
+        job descriptor which should be passed directly to ``QPU.get_result`` to retrieve
         results.
         """
         assert isinstance(
@@ -170,7 +170,7 @@ class QPU(QAM[QPUExecuteResponse]):
         job_id = self._qpu_client.run_program(request).job_id
         return QPUExecuteResponse(job_id=job_id)
 
-    def get_results(self, execute_response: QPUExecuteResponse) -> QAMExecutionResult:
+    def get_result(self, execute_response: QPUExecuteResponse) -> QAMExecutionResult:
         """
         Retrieve results from execution on the QPU.
         """

@@ -130,7 +130,7 @@ Changelog
   of execution requests, and thus are safe to be used concurrently by different requests. `QAM.run`
   is now composed of two intermediate calls:
   -  `QAM.execute` starts execution of the provided executable, returning an opaque handle.
-  -  `QAM.get_results` uses the opaque handle returned by `execute` to retrieve the result values.
+  -  `QAM.get_result` uses the opaque handle returned by `execute` to retrieve the result values.
 
   These new calls can be used to enqueue multiple programs for execution prior to retrieving
   results for any of them. Note that this new pattern means that `QAM.load`, `QAM.reset`, and
