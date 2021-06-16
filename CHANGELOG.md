@@ -15,7 +15,6 @@ Changelog
   `QuantumComputer` and `get_qc`; `pyquil.compatibility.v2.api` offers `QPU` and `QVM`. These may be
   used to incrementally migrate from v2 to v3, but should not be relied on indefinitely, as the
   underlying mechanics of these two versions continue to diverge in the future.
-
 ### Improvements and Changes
 
 - Added support and documentation for concurrent compilation and execution (see "Advanced Usage" in docs)
@@ -32,8 +31,7 @@ Changelog
 - `ForestConnection` and `ForestSession` have been removed. Connection information is now managed via `api.QCSClientConfiguration`
   and `api.EngagementManager`.
   
-- `QVMCompiler` now produces a `Program` instead of a `PyQuilExecutableResponse`. As a result, `QVM.load()` only
-  accepts a `Program`, and `QVM.requires_executable` has been removed.
+- `QVMCompiler` now produces a `Program` instead of a `PyQuilExecutableResponse`.
   
 - `QPU.get_version_info()` has been removed.
 
@@ -92,7 +90,7 @@ Changelog
 
 - `get_qc()` no longer accepts `"9q-generic"` (deprecated). Use `"9q-square"` instead.
 
-- Removed `QAM.read_from_memory_region()` (deprecated). Use `QAM.read_memory()` instead.
+- Removed `QAM.read_from_memory_region()` (deprecated). Use `QAMExecutionResult.read_memory()` instead.
 
 - Removed `local_qvm()` (deprecated). Use `local_forest_runtime()` instead.
 
@@ -134,7 +132,15 @@ Changelog
   -  `QAM.execute` starts execution of the provided executable, returning an opaque handle.
   -  `QAM.get_results` uses the opaque handle returned by `execute` to retrieve the result values.
 
-  Note that this means that `QAM.load`, `QAM.reset`, and `QAM.wait` no longer exist.
+  These new calls can be used to enqueue multiple programs for execution prior to retrieving
+  results for any of them. Note that this new pattern means that `QAM.load`, `QAM.reset`, and
+  `QAM.wait` no longer exist.
+
+- `QAM.run` no longer accepts a `memory_map` argument. Memory values must be written onto
+  executable directly with `Program.write_memory()` and `EncryptedProgram.write_memory()` instead. 
+
+- `QuantumComputer`, `QAM`, `QPU`, and `QVM` are now safe to share across threads and processes,
+  as they no longer store request-related state.
 
 - `PyQVM.execute` has been renamed to `PyQVM.execute_once` to execute a single program from start
   to finish within the context of the existing `PyQVM` state. `PyQVM` is the only stateful `QAM`.
