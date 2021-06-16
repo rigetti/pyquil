@@ -13,7 +13,8 @@
 #    See the License for the specific language governing permissions and
 #    limitations under the License.
 ##############################################################################
-from typing import Dict, Mapping, Optional, Sequence, Union, Tuple, cast
+from dataclasses import dataclass
+from typing import Dict, Mapping, Optional, Sequence, Union, Tuple
 
 import numpy as np
 from qcs_api_client.client import QCSClientConfiguration
@@ -50,13 +51,13 @@ def check_qvm_version(version: str) -> None:
             "Must use QVM >= 1.8.0 with pyquil >= 2.8.0, but you " f"have QVM {version} and pyquil {pyquil_version}"
         )
 
-
+@dataclass
 class QVMExecuteResponse:
     executable: Program
-    memory_results: Dict[str, np.ndarray]
+    memory: Dict[str, np.ndarray]
 
 
-class QVM(QAM[QAMExecutionResult]):
+class QVM(QAM[QVMExecuteResponse]):
     def __init__(
         self,
         noise_model: Optional[NoiseModel] = None,
@@ -154,7 +155,7 @@ http://pyquil.readthedocs.io/en/latest/noise_models.html#support-for-noisy-gates
         ram = {key: np.array(val) for key, val in response.results.items()}
         result_memory.update(ram)
 
-        return QAMExecutionResult(executable=executable, memory=result_memory)
+        return QVMExecuteResponse(executable=executable, memory=result_memory)
 
     def get_result(self, execute_response: QVMExecuteResponse) -> QAMExecutionResult:
         """
@@ -164,7 +165,7 @@ http://pyquil.readthedocs.io/en/latest/noise_models.html#support-for-noisy-gates
         """
         return QAMExecutionResult(
             executable=execute_response.executable,
-            memory=execute_response.memory_results
+            memory=execute_response.memory
         )
 
     def get_version_info(self) -> str:
