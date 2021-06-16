@@ -1,4 +1,5 @@
 from typing import Optional, Sequence, Union
+import numpy as np
 
 from rpcq.messages import ParameterAref
 from pyquil.api._qam import QAM, QAMExecutionResult, QuantumExecutable
@@ -22,9 +23,9 @@ class StatefulQAM(QAM):
         self._loaded_executable = executable.copy()
         return self
 
-    def read_memory(self, region_name: str) -> "QAM":
+    def read_memory(self, region_name: str) -> np.ndarray:
         assert self._result is not None, "QAM#run must be called before QAM#read_memory"
-        return self._result.read_memory(region_name=region_name)
+        return self._result.readout_data.get(region_name)
 
     def reset(self) -> "QAM":
         self._loaded_executable = None

@@ -15,12 +15,11 @@ from pyquil.api._quantum_computer import (
     _construct_strength_three_orthogonal_array,
     _construct_strength_two_orthogonal_array,
     _flip_array_to_prog,
-    _get_qvm_with_topology,
-    _measure_bitstrings,
     _parse_name,
     _symmetrization,
 )
 from pyquil.compatibility.v2 import QuantumComputer, get_qc
+from pyquil.compatibility.v2.api._quantum_computer import  _get_qvm_with_topology, _measure_bitstrings
 from pyquil.compatibility.v2.api import QVM
 from pyquil.experiment import ExperimentSetting, Experiment
 from pyquil.experiment._main import _pauli_to_product_state
@@ -493,8 +492,8 @@ def test_reset(client_configuration: QCSClientConfiguration):
 
     aref = ParameterAref(name="theta", index=0)
     assert qc.qam._loaded_executable._memory.values[aref] == np.pi
-    assert qc.qam._result.memory["ro"].shape == (10, 1)
-    assert all([bit == 1 for bit in qc.qam._result.memory["ro"]])
+    assert qc.qam._result.readout_data["ro"].shape == (10, 1)
+    assert all([bit == 1 for bit in qc.qam._result.readout_data["ro"]])
 
     qc.reset()
 

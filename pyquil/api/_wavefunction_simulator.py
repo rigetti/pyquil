@@ -38,7 +38,6 @@ from pyquil.wavefunction import Wavefunction
 
 
 class WavefunctionSimulator:
-    
     def __init__(
         self,
         *,
@@ -76,7 +75,6 @@ class WavefunctionSimulator:
         client_configuration = client_configuration or QCSClientConfiguration.load()
         self._qvm_client = QVMClient(client_configuration=client_configuration, request_timeout=timeout)
 
-    
     def wavefunction(
         self, quil_program: Program, memory_map: Optional[Dict[str, List[Union[int, float]]]] = None
     ) -> Wavefunction:
@@ -106,7 +104,6 @@ class WavefunctionSimulator:
         response = self._qvm_client.get_wavefunction(request)
         return Wavefunction.from_bit_packed_string(response.wavefunction)
 
-    
     def expectation(
         self,
         prep_prog: Program,
@@ -170,7 +167,6 @@ class WavefunctionSimulator:
         response = self._qvm_client.measure_expectation(request)
         return np.asarray(response.expectations)
 
-    
     def run_and_measure(
         self,
         quil_program: Program,

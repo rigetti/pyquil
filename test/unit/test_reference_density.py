@@ -373,7 +373,7 @@ def test_set_initial_state(client_configuration: QCSClientConfiguration):
 
     qc_density.qam.wf_simulator.set_initial_state(rho1).reset()
 
-    out = [qc_density.run(prog) for _ in range(0, 4)]
+    out = [qc_density.run(prog).readout_data['ro'] for _ in range(0, 4)]
     ans = [np.array([[1]]), np.array([[1]]), np.array([[1]]), np.array([[1]])]
     assert all([np.allclose(x, y) for x, y in zip(out, ans)])
 
@@ -382,7 +382,7 @@ def test_set_initial_state(client_configuration: QCSClientConfiguration):
 
     results = qc_density.run(qc_density.compile(progRAM))
     ans = {0: np.array([1, 1, 1, 1, 1, 1, 1, 1, 1, 1])}
-    assert np.allclose(results[0], ans[0])
+    assert np.allclose(results.readout_data['ro'][0], ans[0])
 
     # test reverting ReferenceDensitySimulator to the default state
     rho0 = np.array([[1.0, 0.0], [0.0, 0.0]])

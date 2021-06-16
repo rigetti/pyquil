@@ -51,6 +51,7 @@ def check_qvm_version(version: str) -> None:
             "Must use QVM >= 1.8.0 with pyquil >= 2.8.0, but you " f"have QVM {version} and pyquil {pyquil_version}"
         )
 
+
 @dataclass
 class QVMExecuteResponse:
     executable: Program
@@ -163,10 +164,7 @@ http://pyquil.readthedocs.io/en/latest/noise_models.html#support-for-noisy-gates
 
         Because QVM execution is synchronous, this is a no-op which returns its input.
         """
-        return QAMExecutionResult(
-            executable=execute_response.executable,
-            memory=execute_response.memory
-        )
+        return QAMExecutionResult(executable=execute_response.executable, readout_data=execute_response.memory)
 
     def get_version_info(self) -> str:
         """

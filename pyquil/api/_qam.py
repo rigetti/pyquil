@@ -33,17 +33,10 @@ T = TypeVar("T")
 @dataclass
 class QAMExecutionResult:
     executable: QuantumExecutable
-    memory: Dict[str, Optional[np.ndarray]] = field(default_factory=dict)
+    """The executable corresponding to this result."""
 
-    def read_memory(self, *, region_name: str) -> Optional[np.ndarray]:
-        """
-        Reads from a memory region named ``region_name`` returned from the QAM.
-
-        :param region_name: The string naming the declared memory region.
-        :return: A list of values of the appropriate type.
-        """
-        assert self.memory is not None, "No memory results available"
-        return self.memory.get(region_name)
+    readout_data: Dict[str, Optional[np.ndarray]] = field(default_factory=dict)
+    """Readout data returned from the QAM, keyed on the name of the readout register or post-processing node."""
 
 
 class QAM(ABC, Generic[T]):

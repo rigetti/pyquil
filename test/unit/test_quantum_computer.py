@@ -191,7 +191,7 @@ def test_run(client_configuration: QCSClientConfiguration):
         qam=QVM(client_configuration=client_configuration, gate_noise=(0.01, 0.01, 0.01)),
         compiler=DummyCompiler(quantum_processor=quantum_processor, client_configuration=client_configuration),
     )
-    bitstrings = qc.run(
+    result = qc.run(
         Program(
             Declare("ro", "BIT", 3),
             H(0),
@@ -202,6 +202,7 @@ def test_run(client_configuration: QCSClientConfiguration):
             MEASURE(2, MemoryReference("ro", 2)),
         ).wrap_in_numshots_loop(1000)
     )
+    bitstrings = result.readout_data.get('ro')
 
     assert bitstrings.shape == (1000, 3)
     parity = np.sum(bitstrings, axis=1) % 3
@@ -219,7 +220,8 @@ def test_run_pyqvm_noiseless(client_configuration: QCSClientConfiguration):
     ro = prog.declare("ro", "BIT", 3)
     for q in range(3):
         prog += MEASURE(q, ro[q])
-    bitstrings = qc.run(prog.wrap_in_numshots_loop(1000))
+    result = qc.run(prog.wrap_in_numshots_loop(1000))
+    bitstrings = result.readout_data.get('ro')
 
     assert bitstrings.shape == (1000, 3)
     parity = np.sum(bitstrings, axis=1) % 3
@@ -237,7 +239,8 @@ def test_run_pyqvm_noisy(client_configuration: QCSClientConfiguration):
     ro = prog.declare("ro", "BIT", 3)
     for q in range(3):
         prog += MEASURE(q, ro[q])
-    bitstrings = qc.run(prog.wrap_in_numshots_loop(1000))
+    result = qc.run(prog.wrap_in_numshots_loop(1000))
+    bitstrings = result.readout_data.get('ro')
 
     assert bitstrings.shape == (1000, 3)
     parity = np.sum(bitstrings, axis=1) % 3
@@ -262,9 +265,10 @@ def test_readout_symmetrization(client_configuration: QCSClientConfiguration):
     )
     prog.wrap_in_numshots_loop(1000)
 
-    bs1 = qc.run(prog)
-    avg0_us = np.mean(bs1[:, 0])
-    avg1_us = 1 - np.mean(bs1[:, 1])
+    result_1 = qc.run(prog)
+    bitstrings_1 = result_1.readout_data.get('ro')
+    avg0_us = np.mean(bitstrings_1[:, 0])
+    avg1_us = 1 - np.mean(bitstrings_1[:, 1])
     diff_us = avg1_us - avg0_us
     assert diff_us > 0.03
 
@@ -272,9 +276,9 @@ def test_readout_symmetrization(client_configuration: QCSClientConfiguration):
         I(0),
         X(1),
     )
-    bs2 = qc.run_symmetrized_readout(prog, 1000)
-    avg0_s = np.mean(bs2[:, 0])
-    avg1_s = 1 - np.mean(bs2[:, 1])
+    bitstrings_2 = qc.run_symmetrized_readout(prog, 1000)
+    avg0_s = np.mean(bitstrings_2[:, 0])
+    avg1_s = 1 - np.mean(bitstrings_2[:, 1])
     diff_s = avg1_s - avg0_s
     assert diff_s < 0.05
 
@@ -293,7 +297,6 @@ def test_run_symmetrized_readout_error(client_configuration: QCSClientConfigurat
 
 def test_list_qc():
     qc_names = list_quantum_computers(qpus=False)
-    # TODO: update with deployed qpus
     assert qc_names == ["9q-square-qvm", "9q-square-noisy-qvm"]
 
 
@@ -419,7 +422,7 @@ def test_qc_run(client_configuration: QCSClientConfiguration):
                 MEASURE(0, ("ro", 0)),
             ).wrap_in_numshots_loop(3)
         )
-    )
+    ).readout_data.get('ro')
     assert bs.shape == (3, 1)
 
 
@@ -468,7 +471,7 @@ def test_run_with_parameters(client_configuration: QCSClientConfiguration):
     ).wrap_in_numshots_loop(1000)
 
     executable.write_memory(region_name="theta", value=np.pi)
-    bitstrings = qc.run(executable)
+    bitstrings = qc.run(executable).readout_data.get('ro')
 
     assert bitstrings.shape == (1000, 1)
     assert all([bit == 1 for bit in bitstrings])
@@ -492,8 +495,8 @@ def test_reset(client_configuration: QCSClientConfiguration):
 
     aref = ParameterAref(name="theta", index=0)
     assert p._memory.values[aref] == np.pi
-    assert result.memory["ro"].shape == (10, 1)
-    assert all([bit == 1 for bit in result.memory["ro"]])
+    assert result.readout_data["ro"].shape == (10, 1)
+    assert all([bit == 1 for bit in result.readout_data["ro"]])
 
 
 def test_get_qvm_with_topology(client_configuration: QCSClientConfiguration):
@@ -533,7 +536,7 @@ def test_get_qvm_with_topology_2(client_configuration: QCSClientConfiguration):
                 MEASURE(7, ("ro", 2)),
             ).wrap_in_numshots_loop(5)
         )
-    )
+    ).readout_data.get('ro')
     assert results.shape == (5, 3)
     assert all(r[0] == 1 for r in results)
 
@@ -552,7 +555,7 @@ def test_noisy(client_configuration: QCSClientConfiguration):
         MEASURE(0, ("ro", 0)),
     ).wrap_in_numshots_loop(10000)
     qc = get_qc("1q-qvm", noisy=True, client_configuration=client_configuration)
-    result = qc.run(qc.compile(p))
+    result = qc.run(qc.compile(p)).readout_data.get('ro')
     assert result.mean() < 1.0
 
 

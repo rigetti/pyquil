@@ -43,7 +43,7 @@ from pyquil.api import EngagementManager
 from pyquil.api._abstract_compiler import AbstractCompiler, QuantumExecutable
 from pyquil.api._compiler import QPUCompiler, QVMCompiler
 
-from pyquil.api._qam import QAM
+from pyquil.api._qam import QAM, QAMExecutionResult
 from pyquil.api._qcs_client import qcs_client
 from pyquil.api._qpu import QPU
 from pyquil.api._qvm import QVM
@@ -132,22 +132,15 @@ class QuantumComputer:
     def run(
         self,
         executable: QuantumExecutable,
-    ) -> np.ndarray:
+    ) -> QAMExecutionResult:
         """
         Run a quil executable. All parameters in the executable must have values applied using
-        ``Program#with_parameter_values`` or ``Program#set_parameter_value``.
+        ``Program#write_memory``.
 
-        :param executable: The program to run, compiled as needed for its target QAM.
-        :return: A numpy array of shape (trials, len(ro-register)) that contains 0s and 1s.
+        :param executable: The program to run, previously compiled as needed for its target QAM.
+        :return: execution result including readout data.
         """
-        result = self.qam.run(executable)
-
-        # QUESTION (for @ameyer) - this is consistent with the V2 API, but in that API,
-        # QuantumComputer#run and QAM#run return different shapes.
-        #
-        # Does it make sense to align those now and return a QAMExecutionResult, given that
-        # it's a breaking change, or is it best to leave this as-is for ease/convenience?
-        return result.read_memory(region_name="ro")
+        return self.qam.run(executable)
 
     def calibrate(self, experiment: Experiment) -> List[ExperimentResult]:
         """
@@ -232,12 +225,11 @@ class QuantumComputer:
             merged_memory_maps = merge_memory_map_lists([experiment_setting_memory_map], symmetrization_memory_maps)
 
             all_bitstrings = []
-            # TODO: accomplish symmetrization via batch endpoint
             for merged_memory_map in merged_memory_maps:
                 final_memory_map = {**memory_map, **merged_memory_map}
                 executable_copy = executable.copy()
                 executable_copy._memory.write(final_memory_map)
-                bitstrings = self.run(executable_copy)
+                bitstrings = self.run(executable_copy).readout_data.get("ro")
 
                 if "symmetrization" in final_memory_map:
                     bitmask = np.array(np.array(final_memory_map["symmetrization"]) / np.pi, dtype=int)
@@ -1113,9 +1105,10 @@ def _measure_bitstrings(
 
         prog.wrap_in_numshots_loop(num_shots)
         prog = qc.compiler.quil_to_native_quil(prog)
-        exe = qc.compiler.native_quil_to_executable(prog)
-        shots = qc.run(exe)
-        results.append(shots)
+        executable = qc.compiler.native_quil_to_executable(prog)
+        result = qc.run(executable)
+        shot_values = result.readout_data.get("ro")
+        results.append(shot_values)
     return results
 
 

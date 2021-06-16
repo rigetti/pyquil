@@ -267,7 +267,7 @@ class PyQVM(QAM):
         unused because the PyQVM, unlike other QAM's, is itself stateful.
         """
         return QAMExecutionResult(
-            executable=self.program.copy(), memory={k: v for k, v in self._memory_results.items()}
+            executable=self.program.copy(), readout_data={k: v for k, v in self._memory_results.items()}
         )
 
     def read_memory(self, *, region_name: str) -> np.ndarray:

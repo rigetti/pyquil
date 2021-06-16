@@ -14,12 +14,17 @@
 #    limitations under the License.
 ##############################################################################
 import itertools
+from pyquil.pyqvm import PyQVM
 import warnings
 from math import log, pi
 from typing import Any, Dict, List, Mapping, Optional, Sequence, Set, Tuple, Union, cast
 
+import networkx as nx
 import numpy as np
-from pyquil.api._compiler import AbstractCompiler
+from qcs_api_client.client import QCSClientConfiguration
+from rpcq.messages import PyQuilExecutableResponse, QuiltBinaryExecutableResponse
+
+from pyquil.api._compiler import AbstractCompiler, QVMCompiler
 from pyquil.api._qam import QAM
 from pyquil.api._qpu import QPU
 from pyquil.api._quantum_computer import QuantumComputer as QuantumComputerV3
@@ -30,11 +35,12 @@ from pyquil.experiment._memory import merge_memory_map_lists
 from pyquil.experiment._result import ExperimentResult, bitstrings_to_expectations
 from pyquil.experiment._setting import ExperimentSetting
 from pyquil.gates import MEASURE, RX
+from pyquil.noise import NoiseModel, decoherence_noise_with_asymmetric_ro
 from pyquil.paulis import PauliTerm
+from pyquil.quantum_processor import AbstractQuantumProcessor, NxQuantumProcessor
+from pyquil.quantum_processor.graph import NxQuantumProcessor
 from pyquil.quil import Program, validate_supported_quil
 from pyquil.quilatom import qubit_index
-from qcs_api_client.client import QCSClientConfiguration
-from rpcq.messages import PyQuilExecutableResponse, QuiltBinaryExecutableResponse
 
 from ._qam import StatefulQAM
 
@@ -173,7 +179,6 @@ class QuantumComputer(QuantumComputerV3):
 
         results = []
         for settings in experiment:
-            # TODO: add support for grouped ExperimentSettings
             if len(settings) > 1:
                 raise ValueError("settings must be of length 1")
             setting = settings[0]
@@ -184,7 +189,6 @@ class QuantumComputer(QuantumComputerV3):
             merged_memory_maps = merge_memory_map_lists([experiment_setting_memory_map], symmetrization_memory_maps)
 
             all_bitstrings = []
-            # TODO: accomplish symmetrization via batch endpoint
             for merged_memory_map in merged_memory_maps:
                 final_memory_map = {**memory_map, **merged_memory_map}
                 self.qam.reset()
@@ -775,3 +779,134 @@ def _check_min_num_trials_for_symmetrized_readout(num_qubits: int, trials: int, 
         trials = min_num_trials
         warnings.warn(f"Number of trials was too low, it is now {trials}.")
     return trials
+
+
+def _get_qvm_or_pyqvm(
+    *,
+    client_configuration: QCSClientConfiguration,
+    qvm_type: str,
+    noise_model: Optional[NoiseModel],
+    quantum_processor: Optional[AbstractQuantumProcessor],
+    execution_timeout: float,
+) -> Union[QVM, PyQVM]:
+    if qvm_type == "qvm":
+        return QVM(noise_model=noise_model, timeout=execution_timeout, client_configuration=client_configuration)
+    elif qvm_type == "pyqvm":
+        assert quantum_processor is not None
+        return PyQVM(n_qubits=quantum_processor.qubit_topology().number_of_nodes())
+
+    raise ValueError("Unknown qvm type {}".format(qvm_type))
+
+
+def _get_qvm_qc(
+    *,
+    client_configuration: QCSClientConfiguration,
+    name: str,
+    qvm_type: str,
+    quantum_processor: AbstractQuantumProcessor,
+    compiler_timeout: float,
+    execution_timeout: float,
+    noise_model: Optional[NoiseModel],
+) -> QuantumComputer:
+    """Construct a QuantumComputer backed by a QVM.
+
+    This is a minimal wrapper over the QuantumComputer, QVM, and QVMCompiler constructors.
+
+    :param client_configuration: Client configuration.
+    :param name: A string identifying this particular quantum computer.
+    :param qvm_type: The type of QVM. Either qvm or pyqvm.
+    :param quantum_processor: A quantum_processor following the AbstractQuantumProcessor interface.
+    :param noise_model: An optional noise model
+    :param compiler_timeout: Time limit for compilation requests, in seconds.
+    :param execution_timeout: Time limit for execution requests, in seconds.
+    :return: A QuantumComputer backed by a QVM with the above options.
+    """
+
+    return QuantumComputer(
+        name=name,
+        qam=_get_qvm_or_pyqvm(
+            client_configuration=client_configuration,
+            qvm_type=qvm_type,
+            noise_model=noise_model,
+            quantum_processor=quantum_processor,
+            execution_timeout=execution_timeout,
+        ),
+        compiler=QVMCompiler(
+            quantum_processor=quantum_processor,
+            timeout=compiler_timeout,
+            client_configuration=client_configuration,
+        ),
+    )
+
+
+def _get_qvm_with_topology(
+    *,
+    client_configuration: QCSClientConfiguration,
+    name: str,
+    topology: nx.Graph,
+    noisy: bool,
+    qvm_type: str,
+    compiler_timeout: float,
+    execution_timeout: float,
+) -> QuantumComputer:
+    """Construct a QVM with the provided topology.
+
+    :param client_configuration: Client configuration.
+    :param name: A name for your quantum computer. This field does not affect behavior of the
+        constructed QuantumComputer.
+    :param topology: A graph representing the desired qubit connectivity.
+    :param noisy: Whether to include a generic noise model. If you want more control over
+        the noise model, please construct your own :py:class:`NoiseModel` and use
+        :py:func:`_get_qvm_qc` instead of this function.
+    :param qvm_type: The type of QVM. Either 'qvm' or 'pyqvm'.
+    :param compiler_timeout: Time limit for compilation requests, in seconds.
+    :param execution_timeout: Time limit for execution requests, in seconds.
+    :return: A pre-configured QuantumComputer
+    """
+    # Note to developers: consider making this function public and advertising it.
+    quantum_processor = NxQuantumProcessor(topology=topology)
+    if noisy:
+        noise_model: Optional[NoiseModel] = decoherence_noise_with_asymmetric_ro(
+            isa=quantum_processor.to_compiler_isa()
+        )
+    else:
+        noise_model = None
+    return _get_qvm_qc(
+        client_configuration=client_configuration,
+        name=name,
+        qvm_type=qvm_type,
+        quantum_processor=quantum_processor,
+        noise_model=noise_model,
+        compiler_timeout=compiler_timeout,
+        execution_timeout=execution_timeout,
+    )
+
+
+def _measure_bitstrings(
+    qc: QuantumComputer, programs: List[Program], meas_qubits: List[int], num_shots: int = 600
+) -> List[np.ndarray]:
+    """
+    Wrapper for appending measure instructions onto each program, running the program,
+    and accumulating the resulting bitarrays.
+
+    :param qc: a quantum computer object on which to run each program
+    :param programs: a list of programs to run
+    :param meas_qubits: groups of qubits to measure for each program
+    :param num_shots: the number of shots to run for each program
+    :return: a len(programs) long list of num_shots by num_meas_qubits bit arrays of results for
+        each program.
+    """
+    results = []
+    for program in programs:
+        # copy the program so the original is not mutated
+        prog = program.copy()
+        ro = prog.declare("ro", "BIT", len(meas_qubits))
+        for idx, q in enumerate(meas_qubits):
+            prog += MEASURE(q, ro[idx])
+
+        prog.wrap_in_numshots_loop(num_shots)
+        prog = qc.compiler.quil_to_native_quil(prog)
+        executable = qc.compiler.native_quil_to_executable(prog)
+        shots = qc.run(executable)
+        results.append(shots)
+    return results
