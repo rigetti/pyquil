@@ -26,7 +26,7 @@ class QAMError(RuntimeError):
     pass
 
 
-ExecuteResponse = TypeVar("ExecuteResponse")
+T = TypeVar("T")
 """A generic parameter describing the opaque job handle returned from QAM#execute and subclasses."""
 
 
@@ -46,7 +46,7 @@ class QAMExecutionResult:
         return self.memory.get(region_name)
 
 
-class QAM(ABC, Generic[ExecuteResponse]):
+class QAM(ABC, Generic[T]):
     """
     Quantum Abstract Machine: This class acts as a generic interface describing how a classical
     computer interacts with a live quantum computer.
@@ -56,7 +56,7 @@ class QAM(ABC, Generic[ExecuteResponse]):
         self.experiment: Optional[Experiment]
 
     @abstractmethod
-    def execute(self, executable: QuantumExecutable) -> ExecuteResponse:
+    def execute(self, executable: QuantumExecutable) -> T:
         """
         Run an executable on a QAM, returning a handle to be used to retrieve
         results.
@@ -65,7 +65,7 @@ class QAM(ABC, Generic[ExecuteResponse]):
         """
 
     @abstractmethod
-    def get_result(self, execute_response: ExecuteResponse) -> QAMExecutionResult:
+    def get_result(self, execute_response: T) -> QAMExecutionResult:
         """
         Retrieve the results associated with a previous call to ``QAM#execute``.
 
