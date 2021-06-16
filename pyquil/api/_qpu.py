@@ -115,6 +115,7 @@ class QPU(QAM[QPUExecuteResponse]):
         timeout: float = 10.0,
         client_configuration: Optional[QCSClientConfiguration] = None,
         engagement_manager: Optional[EngagementManager] = None,
+        endpoint_id: Optional[str] = None,
     ) -> None:
         """
         A connection to the QPU.
@@ -123,10 +124,9 @@ class QPU(QAM[QPUExecuteResponse]):
         :param priority: The priority with which to insert jobs into the QPU queue. Lower integers
             correspond to higher priority.
         :param timeout: Time limit for requests, in seconds.
-        :param client_configuration: Optional client configuration. If none is provided, a default
-            one will be loaded.
-        :param engagement_manager: Optional engagement manager. If none is provided, a default one
-            will be created.
+        :param client_configuration: Optional client configuration. If none is provided, a default one will be loaded.
+        :param endpoint_id: Optional endpoint ID to be used for engagement.
+        :param engagement_manager: Optional engagement manager. If none is provided, a default one will be created.
         """
         super().__init__()
 
@@ -136,6 +136,7 @@ class QPU(QAM[QPUExecuteResponse]):
         engagement_manager = engagement_manager or EngagementManager(client_configuration=client_configuration)
         self._qpu_client = QPUClient(
             quantum_processor_id=quantum_processor_id,
+            endpoint_id=endpoint_id,
             engagement_manager=engagement_manager,
             request_timeout=timeout,
         )
