@@ -13,13 +13,8 @@ Authentication
 --------------
 
 pyQuil v3 relies on an updated authentication model. To get started, install the new `QCS CLI
-<https://docs.rigetti.com/en/command-line-interface/command-line-interface>`_  and
-log in with it before using pyQuil v3 with QCS and live QPUs. If the following CLI command succeeds and
-returns results, then we expect pyQuil authentication to work as well:
-
-.. code::
-
-  qcs api list-quantum-processors
+<https://docs.rigetti.com/>`_  and
+log in with it before using pyQuil v3 with QCS and live QPUs.
 
 
 Parameters & Memory
@@ -27,7 +22,7 @@ Parameters & Memory
 
 In order to give the user more control over and visibility into program execution, especially in
 parallel, objects such as ``QuantumComputer``, ``QAM``, ``QPU``, and ``QVM`` are no longer stateful
-with respect to individual programs. These objects (such as ``QuantumComputer``) are now safe to
+with respect to individual programs. These objects are now safe to
 share among different threads, so you can execute and retrieve results in parallel for even better
 performance. (See :doc:`advanced_usage` for more information).
 
@@ -53,18 +48,18 @@ This means that you should now execute your programs using one of these options:
    exe.write_memory(region_name='theta', value=np.pi)
 
    # Option 1
-   qc.run(exe)
+   ro_bitstring = qc.run(exe)
 
    # Option 2
-   qc.qam.run(exe)
+   result = qc.qam.run(exe)
 
    # Option 3
    job = qc.qam.execute(exe)
-   result = qc.qam.get_results(job)
+   result = qc.qam.get_result(job)
 
    # Run our program 10 times, enqueuing all the programs before retrieving results for any of them
    jobs = [qc.qam.execute(exe) for _ in range(10)]
-   results = [qc.qam.get_results(job) for job in jobs]
+   results = [qc.qam.get_result(job) for job in jobs]
 
 
 Compatibility Utilities

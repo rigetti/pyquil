@@ -70,7 +70,6 @@ def test_qvm_run_region_declared_not_measured(client_configuration: QCSClientCon
     assert bitstrings is None
 
 
-# For backwards compatibility, we support omitting the declaration for "ro" specifically
 def test_qvm_run_region_not_declared_is_measured_ro(client_configuration: QCSClientConfiguration):
     qvm = QVM(client_configuration=client_configuration)
     p = Program(X(0), MEASURE(0, MemoryReference("ro")))

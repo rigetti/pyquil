@@ -56,7 +56,7 @@ Using Multithreading
     from multiprocessing.pool import ThreadPool
 
     from pyquil import get_qc, Program
-    from pyquil.api import EngagementManager, QCSClientConfiguration
+    from pyquil.api import QCSClientConfiguration
 
     configuration = QCSClientConfiguration.load()
     qc = get_qc("Aspen-8", client_configuration=configuration)
@@ -82,7 +82,7 @@ Using Multiprocessing
     from multiprocessing.pool import Pool
 
     from pyquil import get_qc, Program
-    from pyquil.api import EngagementManager, QCSClientConfiguration
+    from pyquil.api import QCSClientConfiguration
 
 
     configuration = QCSClientConfiguration.load()

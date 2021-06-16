@@ -72,7 +72,7 @@ class EncryptedProgram:
         region_name: str,
         value: Union[int, float, Sequence[int], Sequence[float]],
         offset: Optional[int] = None,
-    ) -> "Program":
+    ) -> "EncryptedProgram":
         self._memory._write_value(parameter=ParameterAref(name=region_name, index=offset), value=value)
         return self
 

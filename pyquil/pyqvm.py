@@ -241,7 +241,7 @@ class PyQVM(QAM):
         self._memory_results = {}
 
         self.ram = {}
-        # self.wf_simulator.reset()
+        self.wf_simulator.reset()
 
         # grab the gate definitions for future use
         self._extract_defined_gates()

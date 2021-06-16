@@ -82,7 +82,7 @@ class QuantumComputer:
         run quantum programs.
 
         A quantum computer can be a real Rigetti QPU that uses superconducting transmon
-        qubits to run quantum programs, or it can be an emulator like the Rigetti QVM with
+        qubits to run quantum programs, or it can be an emulator like the QVM with
         noise models and mimicked topologies.
 
         :param name: A string identifying this particular quantum computer.

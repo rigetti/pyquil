@@ -123,6 +123,7 @@ class Program:
     """
 
     _memory: Memory
+    """Contents of memory to be used as program parameters during execution"""
 
     def __init__(self, *instructions: InstructionDesignator):
         self._defined_gates: List[DefGate] = []
