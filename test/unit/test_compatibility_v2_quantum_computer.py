@@ -492,7 +492,7 @@ def test_reset(client_configuration: QCSClientConfiguration):
     qc.run(executable=p, memory_map={"theta": [np.pi]})
 
     aref = ParameterAref(name="theta", index=0)
-    assert qc.qam._loaded_executable._variable_values[aref] == np.pi
+    assert qc.qam._loaded_executable._memory.values[aref] == np.pi
     assert qc.qam._result.memory["ro"].shape == (10, 1)
     assert all([bit == 1 for bit in qc.qam._result.memory["ro"]])
 
