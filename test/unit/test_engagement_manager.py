@@ -60,6 +60,45 @@ def test_get_engagement__reuses_engagement_when_cached_engagement_unexpired(
     assert engagement is cached_engagement
 
 
+def test_get_engagement__using_endpoint_id(client_configuration: QCSClientConfiguration, httpx_mock: HTTPXMock):
+    """
+    Assert that endpoint ID is correctly used to engage against an endpoint.
+    """
+    engagement_manager = EngagementManager(client_configuration=client_configuration)
+
+    engagement = unexpired_engagement(quantum_processor_id="some-processor")
+
+    endpoint_engagement = unexpired_engagement(quantum_processor_id="some-processor")
+    endpoint_engagement.endpoint_id = "test-endpoint"
+
+    httpx_mock.add_response(
+        method="POST",
+        url=f"{client_configuration.profile.api_url}/v1/engagements",
+        match_content=json.dumps(
+            {
+                "endpointId": endpoint_engagement.endpoint_id,
+                "quantumProcessorId": endpoint_engagement.quantum_processor_id,
+            }
+        ).encode(),
+        json=endpoint_engagement.to_dict(),
+    )
+
+    httpx_mock.add_response(
+        method="POST",
+        url=f"{client_configuration.profile.api_url}/v1/engagements",
+        match_content=json.dumps({"quantumProcessorId": engagement.quantum_processor_id}).encode(),
+        json=engagement.to_dict(),
+    )
+
+    fetched_quantum_processor_engagement = engagement_manager.get_engagement(quantum_processor_id="some-processor")
+    fetched_endpoint_engagement = engagement_manager.get_engagement(
+        quantum_processor_id="some-processor", endpoint_id="test-endpoint"
+    )
+
+    assert engagement == fetched_quantum_processor_engagement
+    assert endpoint_engagement == fetched_endpoint_engagement
+
+
 def cache_engagement(
     engagement_manager: EngagementManager,
     engagement: EngagementWithCredentials,
