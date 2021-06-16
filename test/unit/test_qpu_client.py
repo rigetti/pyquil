@@ -14,9 +14,11 @@
 #    limitations under the License.
 ##############################################################################
 from datetime import datetime, timedelta
+from typing import Union
 from unittest import mock
 
 import pytest
+from qcs_api_client.types import UNSET
 import rpcq
 from dateutil.tz import tzutc
 from pytest_mock import MockerFixture
@@ -132,8 +134,14 @@ def test_fetches_engagement_for_quantum_processor_on_request(
         engagement_manager=mock_engagement_manager,
         request_timeout=3.14,
     )
-    mock_engagement_manager.get_engagement.return_value = engagement(
-            quantum_processor_id=processor_id,
+
+    def mock_get_engagement(
+        quantum_processor_id: str, endpoint_id: Union[str, UNSET], request_timeout: float
+    ) -> EngagementWithCredentials:
+        assert quantum_processor_id == processor_id
+        assert request_timeout == qpu_client.timeout
+        return engagement(
+            quantum_processor_id="some-processor",
             seconds_left=9999,
             credentials=engagement_credentials,
             port=1234,
