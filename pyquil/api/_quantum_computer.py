@@ -42,7 +42,7 @@ from qcs_api_client.operations.sync import list_quantum_processors
 from pyquil.api import EngagementManager
 from pyquil.api._abstract_compiler import AbstractCompiler, QuantumExecutable
 from pyquil.api._compiler import QPUCompiler, QVMCompiler
-from pyquil.api._error_reporting import _record_call
+
 from pyquil.api._qam import QAM
 from pyquil.api._qcs_client import qcs_client
 from pyquil.api._qpu import QPU
@@ -129,7 +129,6 @@ class QuantumComputer:
         """
         return self.compiler.quantum_processor.to_compiler_isa()
 
-    @_record_call
     def run(
         self,
         executable: QuantumExecutable,
@@ -150,7 +149,6 @@ class QuantumComputer:
         # it's a breaking change, or is it best to leave this as-is for ease/convenience?
         return result.read_memory(region_name="ro")
 
-    @_record_call
     def calibrate(self, experiment: Experiment) -> List[ExperimentResult]:
         """
         Perform readout calibration on the various multi-qubit observables involved in the provided
@@ -161,10 +159,9 @@ class QuantumComputer:
             correspond to the scale factors resulting from symmetric readout error.
         """
         calibration_experiment = experiment.generate_calibration_experiment()
-        return cast(List[ExperimentResult], self.experiment(calibration_experiment))
+        return cast(List[ExperimentResult], self.run_experiment(calibration_experiment))
 
-    @_record_call
-    def experiment(
+    def run_experiment(
         self,
         experiment: Experiment,
         memory_map: Optional[Mapping[str, Sequence[Union[int, float]]]] = None,
@@ -184,17 +181,14 @@ class QuantumComputer:
         and symmetrization can all be realized at runtime by providing a ``memory_map``. Thus, the
         steps in the ``experiment`` method are as follows:
 
-            1. Check to see if this ``Experiment`` has already been loaded into this
-               ``QuantumComputer`` object. If so, skip to step 2. Otherwise, do the following:
+           1. Generate a parameterized program corresponding to the ``Experiment``
+                (see the ``Experiment.generate_experiment_program()`` method for more
+                details on how it changes the main body program to support state preparation,
+                measurement, and symmetrization).
+            2. Compile the parameterized program into a parametric (binary) executable, which
+                contains declared variables that can be assigned at runtime.
 
-                a. Generate a parameterized program corresponding to the ``Experiment``
-                   (see the ``Experiment.generate_experiment_program()`` method for more
-                   details on how it changes the main body program to support state preparation,
-                   measurement, and symmetrization).
-                b. Compile the parameterized program into a parametric (binary) executable, which
-                   contains declared variables that can be assigned at runtime.
-
-            2. For each ``ExperimentSetting`` in the ``Experiment``, we repeat the following:
+            3. For each ``ExperimentSetting`` in the ``Experiment``, we repeat the following:
 
                 a. Build a collection of memory maps that correspond to the various state
                    preparation, measurement, and symmetrization specifications.
@@ -218,13 +212,9 @@ class QuantumComputer:
         :return: A list of ``ExperimentResult`` objects containing the statistics gathered
             according to the specifications of the ``Experiment``.
         """
-        executable = self.qam.executable
-        # if this experiment was the last experiment run on this QuantumComputer,
-        # then use the executable that is already loaded into the object
-        if executable is None or self.qam.experiment != experiment:
-            experiment_program = experiment.generate_experiment_program()
-            executable = self.compile(experiment_program)
-            self.qam.experiment = experiment
+
+        experiment_program = experiment.generate_experiment_program()
+        executable = self.compile(experiment_program)
 
         if memory_map is None:
             memory_map = {}
@@ -245,7 +235,9 @@ class QuantumComputer:
             # TODO: accomplish symmetrization via batch endpoint
             for merged_memory_map in merged_memory_maps:
                 final_memory_map = {**memory_map, **merged_memory_map}
-                bitstrings = self.run(executable, memory_map=final_memory_map)
+                executable_copy = executable.copy()
+                executable_copy._memory.write(final_memory_map)
+                bitstrings = self.run(executable_copy)
 
                 if "symmetrization" in final_memory_map:
                     bitmask = np.array(np.array(final_memory_map["symmetrization"]) / np.pi, dtype=int)
@@ -282,7 +274,6 @@ class QuantumComputer:
             results.append(result)
         return results
 
-    @_record_call
     def run_symmetrized_readout(
         self,
         program: Program,
@@ -373,7 +364,6 @@ class QuantumComputer:
 
         return _consolidate_symmetrization_outputs(results, flip_arrays)
 
-    @_record_call
     def compile(
         self,
         program: Program,
@@ -425,7 +415,6 @@ class QuantumComputer:
         return f'QuantumComputer[name="{self.name}"]'
 
 
-@_record_call
 def list_quantum_computers(
     qpus: bool = True,
     qvms: bool = True,
@@ -734,7 +723,6 @@ def _get_qvm_based_on_real_quantum_processor(
     )
 
 
-@_record_call
 def get_qc(
     name: str,
     *,

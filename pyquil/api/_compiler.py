@@ -30,7 +30,7 @@ from qcs_api_client.types import UNSET
 from rpcq.messages import ParameterSpec
 
 from pyquil.api._abstract_compiler import AbstractCompiler, QuantumExecutable, EncryptedProgram
-from pyquil.api._error_reporting import _record_call
+
 from pyquil.api._qcs_client import qcs_client
 from pyquil.api._rewrite_arithmetic import rewrite_arithmetic
 from pyquil.parser import parse_program, parse
@@ -77,7 +77,6 @@ class QPUCompiler(AbstractCompiler):
     Client to communicate with the compiler and translation service.
     """
 
-    @_record_call
     def __init__(
         self,
         *,
@@ -103,7 +102,6 @@ class QPUCompiler(AbstractCompiler):
         self.quantum_processor_id = quantum_processor_id
         self._calibration_program: Optional[Program] = None
 
-    @_record_call
     def native_quil_to_executable(self, nq_program: Program) -> QuantumExecutable:
         arithmetic_response = rewrite_arithmetic(nq_program)
 
@@ -132,6 +130,7 @@ class QPUCompiler(AbstractCompiler):
             recalculation_table={
                 mref: to_expression(rule) for mref, rule in arithmetic_response.recalculation_table.items()
             },
+            _memory=nq_program._memory.copy(),
         )
 
     def _get_calibration_program(self) -> Program:
@@ -139,13 +138,11 @@ class QPUCompiler(AbstractCompiler):
             response = get_quilt_calibrations(client=qcs_client, quantum_processor_id=self.quantum_processor_id).parsed
         return parse_program(response.quilt)
 
-    @_record_call
     def refresh_calibration_program(self) -> None:
         """Refresh the calibration program cache."""
         self._calibration_program = self._get_calibration_program()
 
     @property  # type: ignore
-    @_record_call
     def calibration_program(self) -> Program:
         """
         Get the Quil-T calibration program associated with the underlying QPU.
@@ -165,7 +162,6 @@ class QPUCompiler(AbstractCompiler):
         assert self._calibration_program is not None
         return self._calibration_program
 
-    @_record_call
     def reset(self) -> None:
         """
         Reset the state of the QPUCompiler.
@@ -186,7 +182,6 @@ class QVMCompiler(AbstractCompiler):
     Client to communicate with the compiler.
     """
 
-    @_record_call
     def __init__(
         self,
         *,
@@ -207,6 +202,5 @@ class QVMCompiler(AbstractCompiler):
             client_configuration=client_configuration,
         )
 
-    @_record_call
     def native_quil_to_executable(self, nq_program: Program) -> QuantumExecutable:
         return nq_program

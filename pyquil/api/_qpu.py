@@ -23,7 +23,8 @@ from qcs_api_client.client import QCSClientConfiguration
 from rpcq.messages import ParameterAref, ParameterSpec
 
 from pyquil.api import QuantumExecutable, EncryptedProgram, EngagementManager
-from pyquil.api._error_reporting import _record_call
+
+from pyquil._memory import Memory
 from pyquil.api._qam import QAM, QAMExecutionResult
 from pyquil.api._qpu_client import GetBuffersRequest, QPUClient, BufferResponse, RunProgramRequest
 from pyquil.quilatom import (
@@ -102,11 +103,10 @@ def _extract_memory_regions(
 @dataclass
 class QPUExecuteResponse:
     job_id: str
-    executable: EncryptedProgram
+    _executable: EncryptedProgram
 
 
 class QPU(QAM[QPUExecuteResponse]):
-    @_record_call
     def __init__(
         self,
         *,
@@ -120,11 +120,13 @@ class QPU(QAM[QPUExecuteResponse]):
         A connection to the QPU.
 
         :param quantum_processor_id: Processor to run against.
-        :param priority: The priority with which to insert jobs into the QPU queue. Lower
-                         integers correspond to higher priority.
+        :param priority: The priority with which to insert jobs into the QPU queue. Lower integers
+            correspond to higher priority.
         :param timeout: Time limit for requests, in seconds.
-        :param client_configuration: Optional client configuration. If none is provided, a default one will be loaded.
-        :param engagement_manager: Optional engagement manager. If none is provided, a default one will be created.
+        :param client_configuration: Optional client configuration. If none is provided, a default
+            one will be loaded.
+        :param engagement_manager: Optional engagement manager. If none is provided, a default one
+            will be created.
         """
         super().__init__()
 
@@ -145,8 +147,12 @@ class QPU(QAM[QPUExecuteResponse]):
         """ID of quantum processor targeted."""
         return self._qpu_client.quantum_processor_id
 
-    @_record_call
     def execute(self, executable: QuantumExecutable) -> QPUExecuteResponse:
+        """
+        Enqueue a job for execution on the QPU. Returns a ``QPUExecuteResponse``, a
+        job descriptor which should be passed directly to ``QPU.get_results`` to retrieve
+        results.
+        """
         assert isinstance(
             executable, EncryptedProgram
         ), "QPU#execute requires an rpcq.EncryptedProgram. Create one with QuantumComputer#compile"
@@ -158,26 +164,30 @@ class QPU(QAM[QPUExecuteResponse]):
         request = RunProgramRequest(
             id=str(uuid.uuid4()),
             priority=self.priority,
-            program=self.executable.program,
+            program=executable.program,
             patch_values=self._build_patch_values(),
         )
         job_id = self._qpu_client.run_program(request).job_id
         return QPUExecuteResponse(job_id=job_id)
 
-    @_record_call
     def get_results(self, execute_response: QPUExecuteResponse) -> QAMExecutionResult:
+        """
+        Retrieve results from execution on the QPU.
+        """
         raw_results = self._get_buffers(execute_response.job_id)
-        ro_sources = execute_response.executable.ro_sources
+        ro_sources = execute_response._executable.ro_sources
 
         result_memory = {}
         if raw_results is not None:
-            extracted = _extract_memory_regions(execute_response.executable.memory_descriptors, ro_sources, raw_results)
+            extracted = _extract_memory_regions(
+                execute_response._executable.memory_descriptors, ro_sources, raw_results
+            )
             for name, array in extracted.items():
                 result_memory[name] = array
         elif not ro_sources:
             result_memory["ro"] = np.zeros((0, 0), dtype=np.int64)
 
-        QAMExecutionResult(executable=execute_response.executable, results=result_memory)
+        QAMExecutionResult(executable=execute_response._executable, results=result_memory)
 
     def _get_buffers(self, job_id: str) -> Dict[str, np.ndarray]:
         """
@@ -190,16 +200,20 @@ class QPU(QAM[QPUExecuteResponse]):
         buffers = self._qpu_client.get_buffers(request).buffers
         return {k: decode_buffer(v) for k, v in buffers.items()}
 
-    def _build_patch_values(self) -> Dict[str, List[Union[int, float]]]:
+    @classmethod
+    def _build_patch_values(cls, program: EncryptedProgram) -> Dict[str, List[Union[int, float]]]:
+        """
+        Construct the patch values from the program to be used in execution.
+        """
         patch_values = {}
 
         # Now that we are about to run, we have to resolve any gate parameter arithmetic that was
         # saved in the executable's recalculation table, and add those values to the variables shim
-        self._update_variables_shim_with_recalculation_table()
+        cls._update_memory_with_recalculation_table(program=program)
 
         # Initialize our patch table
-        assert isinstance(self.executable, EncryptedProgram)
-        recalculation_table = self.executable.recalculation_table
+        assert isinstance(program, EncryptedProgram)
+        recalculation_table = program.recalculation_table
         memory_ref_names = list(set(mr.name for mr in recalculation_table.keys()))
         if memory_ref_names:
             assert len(memory_ref_names) == 1, (
@@ -209,23 +223,24 @@ class QPU(QAM[QPUExecuteResponse]):
             memory_reference_name = memory_ref_names[0]
             patch_values[memory_reference_name] = [0.0] * len(recalculation_table)
 
-        for name, spec in self.executable.memory_descriptors.items():
+        for name, spec in program.memory_descriptors.items():
             # NOTE: right now we fake reading out measurement values into classical memory
             # hence we omit them here from the patch table.
-            if any(name == mref.name for mref in self.executable.ro_sources):
+            if any(name == mref.name for mref in program.ro_sources):
                 continue
             initial_value = 0.0 if spec.type == "REAL" else 0
             patch_values[name] = [initial_value] * spec.length
 
         # Fill in our patch table
-        for k, v in self._variables_shim.items():
+        for k, v in program._memory.values.items():
             patch_values[k.name][k.index] = v
 
         return patch_values
 
-    def _update_variables_shim_with_recalculation_table(self) -> None:
+    @classmethod
+    def _update_memory_with_recalculation_table(cls, program: EncryptedProgram) -> None:
         """
-        Update self._variables_shim with the final values to be patched into the gate parameters,
+        Update the program's memory with the final values to be patched into the gate parameters,
         according to the arithmetic expressions in the original program.
 
         For example::
@@ -253,8 +268,8 @@ class QPU(QAM[QPUExecuteResponse]):
 
         .. code-block:: python
 
-            qpu.write_memory(region_name='theta', value=0.5)
-            qpu.write_memory(region_name='beta', value=0.1)
+            compiled_program.memory.write(region_name='theta', value=0.5)
+            compiled_program.memory.write(region_name='beta', value=0.1)
 
         After executing this function, our self.variables_shim in the above example would contain
         the following:
@@ -270,13 +285,14 @@ class QPU(QAM[QPUExecuteResponse]):
 
         Once the _variables_shim is filled, execution continues as with regular binary patching.
         """
-        assert isinstance(self.executable, EncryptedProgram)
-        for mref, expression in self.executable.recalculation_table.items():
+        assert isinstance(program, EncryptedProgram)
+        for mref, expression in program.recalculation_table.items():
             # Replace the user-declared memory references with any values the user has written,
             # coerced to a float because that is how we declared it.
-            self._variables_shim[mref] = float(self._resolve_memory_references(expression))
+            program._memory.values[mref] = float(cls._resolve_memory_references(expression, memory=program._memory))
 
-    def _resolve_memory_references(self, expression: ExpressionDesignator) -> Union[float, int]:
+    @classmethod
+    def _resolve_memory_references(cls, expression: ExpressionDesignator, memory: Memory) -> Union[float, int]:
         """
         Traverse the given Expression, and replace any Memory References with whatever values
         have been so far provided by the user for those memory spaces. Declared memory defaults
@@ -285,19 +301,19 @@ class QPU(QAM[QPUExecuteResponse]):
         :param expression: an Expression
         """
         if isinstance(expression, BinaryExp):
-            left = self._resolve_memory_references(expression.op1)
-            right = self._resolve_memory_references(expression.op2)
+            left = cls._resolve_memory_references(expression.op1, memory=memory)
+            right = cls._resolve_memory_references(expression.op2, memory=memory)
             return cast(Union[float, int], expression.fn(left, right))
         elif isinstance(expression, Function):
             return cast(
                 Union[float, int],
-                expression.fn(self._resolve_memory_references(expression.expression)),
+                expression.fn(cls._resolve_memory_references(expression.expression)),
             )
         elif isinstance(expression, Parameter):
             raise ValueError(f"Unexpected Parameter in gate expression: {expression}")
         elif isinstance(expression, (float, int)):
             return expression
         elif isinstance(expression, MemoryReference):
-            return self._variables_shim.get(ParameterAref(name=expression.name, index=expression.offset), 0)
+            return memory.values.get(ParameterAref(name=expression.name, index=expression.offset), 0)
         else:
             raise ValueError(f"Unexpected expression in gate parameter: {expression}")

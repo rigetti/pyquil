@@ -26,7 +26,7 @@ from rpcq.messages import (
 
 from pyquil._version import pyquil_version
 from pyquil.api._compiler_client import CompilerClient, CompileToNativeQuilRequest
-from pyquil.api._error_reporting import _record_call
+from pyquil.api._memory import Memory
 from pyquil.external.rpcq import compiler_isa_to_target_quantum_processor
 from pyquil.parser import parse_program
 from pyquil.paulis import PauliTerm
@@ -62,6 +62,25 @@ class EncryptedProgram:
     recalculation_table: Dict[ParameterAref, ExpressionDesignator]
     """A mapping from memory references to the original gate arithmetic."""
 
+    _memory: Memory
+    """Memory values (parameters) to be sent with the program."""
+
+    def copy(self) -> "EncryptedProgram":
+        """
+        Return a deep copy of this EncryptedProgram.
+        """
+        return self.replace(memory=self._memory.copy())
+
+    def write_memory(
+        self,
+        *,
+        region_name: str,
+        value: Union[int, float, Sequence[int], Sequence[float]],
+        offset: Optional[int] = None,
+    ) -> "Program":
+        self._memory._write_value(parameter=ParameterAref(name=region_name, index=offset), value=value)
+        return self
+
 
 QuantumExecutable = Union[EncryptedProgram, Program]
 
@@ -90,7 +109,6 @@ class AbstractCompiler(ABC):
         """
         return {"quilc": self._compiler_client.get_version()}
 
-    @_record_call
     def quil_to_native_quil(self, program: Program, *, protoquil: Optional[bool] = None) -> Program:
         """
         Compile an arbitrary quil program according to the ISA of ``self.quantum_processor``.
@@ -125,6 +143,7 @@ class AbstractCompiler(ABC):
         )
         nq_program.num_shots = program.num_shots
         nq_program._calibrations = program.calibrations
+        nq_program._memory = program._memory.copy()
         return nq_program
 
     def _connect(self) -> None:
@@ -146,7 +165,6 @@ class AbstractCompiler(ABC):
         :return: An (opaque) binary executable
         """
 
-    @_record_call
     def reset(self) -> None:
         """
         Reset the state of the this compiler.
@@ -160,7 +178,7 @@ def _check_quilc_version(version: str) -> None:
 
     :param version: quilc version.
     """
-    major, minor, patch = map(int, version.split("."))
+    major, minor, _ = map(int, version.split("."))
     if major == 1 and minor < 8:
         raise QuilcVersionMismatch(
             "Must use quilc >= 1.8.0 with pyquil >= 2.8.0, but you " f"have quilc {version} and pyquil {pyquil_version}"

@@ -47,5 +47,5 @@ class StatefulQAM(QAM):
     ) -> "QAM":
         assert self._loaded_executable is not None, "Executable has not been loaded yet. Call QAM#load first"
         parameter_aref = ParameterAref(name=region_name, index=offset or 0)
-        self._loaded_executable.set_parameter_value(parameter=parameter_aref, value=value)
+        self._loaded_executable._memory._write_value(parameter=parameter_aref, value=value)
         return self

@@ -19,7 +19,6 @@ from typing import Dict, Generic, Optional, TypeVar
 
 import numpy as np
 from pyquil.api._abstract_compiler import QuantumExecutable
-from pyquil.api._error_reporting import _record_call
 from pyquil.experiment._main import Experiment
 
 
@@ -53,7 +52,6 @@ class QAM(ABC, Generic[ExecuteResponse]):
     computer interacts with a live quantum computer.
     """
 
-    @_record_call
     def __init__(self) -> None:
         self.experiment: Optional[Experiment]
 

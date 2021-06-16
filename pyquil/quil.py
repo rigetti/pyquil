@@ -40,6 +40,7 @@ import numpy as np
 from rpcq.messages import NativeQuilMetadata, ParameterAref
 
 from pyquil._parser.parser import run_parser
+from pyquil._memory import Memory
 from pyquil.gates import DECLARE, MEASURE, RESET, MOVE
 from pyquil.noise import _check_kraus_ops, _create_kraus_pragmas, pauli_kraus_map
 from pyquil.quilatom import (
@@ -121,7 +122,7 @@ class Program:
     >>> p += CNOT(0, 1)
     """
 
-    _variable_values: Dict[ParameterAref, Union[int, float]]
+    _memory: Memory
 
     def __init__(self, *instructions: InstructionDesignator):
         self._defined_gates: List[DefGate] = []
@@ -151,7 +152,7 @@ class Program:
         # default number of shots to loop through
         self.num_shots = 1
 
-        self._variable_values = {}
+        self._memory = Memory()
 
         # Note to developers: Have you changed this method? Have you changed the fields which
         # live on `Program`? Please update `Program.copy()`!
@@ -191,7 +192,7 @@ class Program:
             # TODO: remove this type: ignore once rpcq._base.Message gets type hints.
             new_prog.native_quil_metadata = self.native_quil_metadata.copy()  # type: ignore
         new_prog.num_shots = self.num_shots
-        new_prog._variable_values = {k.replace(): v for k, v in self._variable_values.items()}
+        new_prog._memory = self._memory.copy()
         return new_prog
 
     def copy(self) -> "Program":
@@ -473,54 +474,27 @@ class Program:
                 self.inst(MEASURE(qubit_index, classical_reg))
         return self
 
-    def with_parameter_values(self, parameter_values: Dict[Union[str, ParameterAref], Union[int, float]]) -> "Program":
-        """
-        Return a copy of this program with the given parameter values set.
-        """
-        program = self.copy()
-        for parameter, parameter_value in parameter_values.items():
-            program.set_parameter_value(parameter=parameter, value=parameter_value)
-        return program
-
-    def set_parameter_value(
-        self,
-        *,
-        parameter: Union[ParameterAref, str],
-        value: Union[int, float, Sequence[int], Sequence[float]],
-    ) -> "Program":
-        """
-        Mutate the program to set the given parameter value.
-
-        :param ParameterAref|str parameter: Name of the memory region, or parameter reference with offset.
-        :param int|float|Sequence[int]|Sequence[float] value: the value or values to set for this parameter. If a list
-        is provided, parameter must be a ``str`` or ``parameter.offset == 0``.
-        """
-        if isinstance(parameter, str):
-            parameter = ParameterAref(name=parameter, index=0)
-
-        if isinstance(value, (int, float)):
-            self._variable_values[parameter] = value
-        elif isinstance(value, Sequence):
-            if parameter.index != 0:
-                raise ValueError("Parameter may not have a non-zero index when its value is a sequence")
-
-            for index, v in enumerate(value):
-                aref = ParameterAref(name=parameter.name, index=index)
-                self._variable_values[aref] = v
-
-        return self
-
     def _set_parameter_values_at_runtime(self) -> "Program":
         """
         Store all parameter values directly within the Program using ``MOVE`` instructions. Mutates the receiver.
         """
         move_instructions = [
-            MOVE(MemoryReference(name=k.name, offset=k.index), v) for k, v in self._variable_values.items()
+            MOVE(MemoryReference(name=k.name, offset=k.index), v) for k, v in self._memory.values.items()
         ]
 
         self.prepend_instructions(move_instructions)
         self._sort_declares_to_program_start()
 
+        return self
+
+    def write_memory(
+        self,
+        *,
+        region_name: str,
+        value: Union[int, float, Sequence[int], Sequence[float]],
+        offset: Optional[int] = None,
+    ) -> "Program":
+        self._memory._write_value(parameter=ParameterAref(name=region_name, index=offset or 0), value=value)
         return self
 
     def prepend_instructions(self, instructions: Iterable[AbstractInstruction]) -> "Program":
@@ -901,12 +875,12 @@ class Program:
         p._calibrations = self.calibrations
         p._waveforms = self.waveforms
         p._frames = self.frames
-        p._variable_values = {k.replace(): v for k, v in self._variable_values.items()}
+        p._memory = self._memory.copy()
         if isinstance(other, Program):
             p.calibrations.extend(other.calibrations)
             p.waveforms.update(other.waveforms)
             p.frames.update(other.frames)
-            p._variable_values.update({k.replace(): v for k, v in other._variable_values.items()})
+            p._memory.values.update(other._memory.values)
         return p
 
     def __iadd__(self, other: InstructionDesignator) -> "Program":
@@ -921,7 +895,7 @@ class Program:
             self.calibrations.extend(other.calibrations)
             self.waveforms.update(other.waveforms)
             self.frames.update(other.frames)
-            self._variable_values.update({k.replace(): v for k, v in other._variable_values.items()})
+            self._memory.values.update(other._memory.copy().values)
         return self
 
     def __getitem__(self, index: Union[slice, int]) -> Union[AbstractInstruction, "Program"]:

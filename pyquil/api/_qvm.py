@@ -20,7 +20,7 @@ from qcs_api_client.client import QCSClientConfiguration
 
 from pyquil._version import pyquil_version
 from pyquil.api import QuantumExecutable
-from pyquil.api._error_reporting import _record_call
+
 from pyquil.api._qam import QAM, QAMExecutionResult
 from pyquil.api._qvm_client import (
     QVMClient,
@@ -57,7 +57,6 @@ class QVMExecuteResponse:
 
 
 class QVM(QAM[QAMExecutionResult]):
-    @_record_call
     def __init__(
         self,
         noise_model: Optional[NoiseModel] = None,
@@ -122,14 +121,13 @@ http://pyquil.readthedocs.io/en/latest/noise_models.html#support-for-noisy-gates
         except ConnectionError:
             raise QVMNotRunning(f"No QVM server running at {self._qvm_client.base_url}")
 
-    @_record_call
     def execute(self, executable: QuantumExecutable) -> QVMExecuteResponse:
         """
         Synchronously execute the input program to completion.
         """
 
         if not isinstance(executable, Program):
-            raise TypeError("`QVM#executable` argument must be a `Program`")
+            raise TypeError(f"`QVM#executable` argument must be a `Program`; got {type(executable)}")
 
         result_memory = {}
 
@@ -158,7 +156,6 @@ http://pyquil.readthedocs.io/en/latest/noise_models.html#support-for-noisy-gates
 
         return QAMExecutionResult(executable=executable, memory=result_memory)
 
-    @_record_call
     def get_results(self, execute_response: QVMExecuteResponse) -> QAMExecutionResult:
         """
         Return the results of execution on the QVM.
@@ -167,7 +164,6 @@ http://pyquil.readthedocs.io/en/latest/noise_models.html#support-for-noisy-gates
         """
         return cast(QAMExecutionResult, execute_response)
 
-    @_record_call
     def get_version_info(self) -> str:
         """
         Return version information for the QVM.
