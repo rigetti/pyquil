@@ -6,7 +6,15 @@ Changelog
 
 ### Announcements
 
+- pyQuil now directly supports the QCS API v1.0, offering you better performance and more
+  granular data about QCS quantum processors.
+
 - Python 3.6 is no longer supported. Python 3.7, 3.8, and 3.9 are supported.
+  
+- `pyquil.compatibility.v2` provides a number of classes which support the pyQuil v2 API, such as
+  `QuantumComputer` and `get_qc`; `pyquil.compatibility.v2.api` offers `QPU` and `QVM`. These may be
+  used to incrementally migrate from v2 to v3, but should not be relied on indefinitely, as the
+  underlying mechanics of these two versions continue to diverge in the future.
 
 ### Improvements and Changes
 
@@ -119,6 +127,20 @@ Changelog
   are passed to the QVM by `WavefunctionSimulator.run_and_measure()` and `WavefunctionSimulator.wavefunction()`.
   
 - `noise.estimate_assignment_probs()` now accepts a `QuantumComputer` instead of `QVMConnection`.
+
+- `QAM` and its subclasses (such as `QPU` and `QVM`) do not store any information specific to the state
+  of execution requests, and thus are safe to be used concurrently by different requests. `QAM.run`
+  is now composed of two intermediate calls:
+  -  `QAM.execute` starts execution of the provided executable, returning an opaque handle.
+  -  `QAM.get_results` uses the opaque handle returned by `execute` to retrieve the result values.
+
+  Note that this means that `QAM.load`, `QAM.reset`, and `QAM.wait` no longer exist.
+
+- `PyQVM.execute` has been renamed to `PyQVM.execute_once` to execute a single program from start
+  to finish within the context of the existing `PyQVM` state. `PyQVM` is the only stateful `QAM`.
+  `PyQVM.execute` now implements `QAM.execute` and resets the `PyQVM` state prior to program execution.
+
+- `QuantumComputer.experiment` has been renamed to `QuantumComputer.run_experiment`.
   
 ### Bugfixes
 
