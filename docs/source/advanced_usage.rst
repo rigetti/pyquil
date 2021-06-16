@@ -37,6 +37,8 @@ Concurrency
 
 :py:class:`~pyquil.api.QuantumComputer` objects are safe to share between threads or processes,
 enabling you to execute and retrieve results for multiple programs or parameter values at once.
+Note that :py:class`~pyquil.Program` and :py:class`~pyquil.api.EncryptedProgram` are **not**
+thread-safe, and should be copied (with ``copy()``) before use in a concurrent context.
 
 .. note::
     The QVM processes incoming requests in parallel, while a QPU may process them sequentially or in parallel
