@@ -35,20 +35,18 @@ locally):
 Concurrency
 ~~~~~~~~~~~
 
-Using pyQuil for concurrent programming is as simple as calling :py:func:`~pyquil.get_qc()` from within a given thread
-or process, then using the returned :py:class:`~pyquil.api.QuantumComputer` as usual. While
-:py:class:`~pyquil.api.QuantumComputer` objects as a whole are not safe to share between threads or processes (due to
-state related to currently-running compilation or execution requests), some information they use is. Information related
-to client configuration (:py:class:`~pyquil.api.QCSClientConfiguration`) and QPU auth
-(:py:class:`~pyquil.api.EngagementManager`) can be safely extracted and shared among
-:py:class:`~pyquil.api.QuantumComputer` instances, as shown below, to save your code from redundant disk reads and
-auth-related HTTP requests.
+:py:class:`~pyquil.api.QuantumComputer` objects are safe to share between threads or processes,
+enabling you to execute and retrieve results for multiple programs or parameter values at once.
 
 .. note::
     The QVM processes incoming requests in parallel, while a QPU may process them sequentially or in parallel
     (depending on the qubits used). If you encounter timeouts while trying to run large numbers of programs against a
     QPU, try increasing the ``execution_timeout`` parameter on calls  to :py:func:`~pyquil.get_qc()` (specified in
     seconds).
+
+.. note::
+    We suggest running jobs with a minimum of 2x parallelism, so that the QVM or QPU
+    is fully occupied while your program runs and no time is wasted in between jobs.
 
 Using Multithreading
 --------------------
@@ -60,13 +58,11 @@ Using Multithreading
     from pyquil import get_qc, Program
     from pyquil.api import EngagementManager, QCSClientConfiguration
 
-
     configuration = QCSClientConfiguration.load()
-    engagement_manager = EngagementManager(client_configuration=configuration)
+    qc = get_qc("Aspen-8", client_configuration=configuration)
 
 
     def run(program: Program):
-        qc = get_qc("Aspen-8", client_configuration=configuration, engagement_manager=engagement_manager)
         return qc.run(qc.compile(program))
 
 
@@ -90,11 +86,10 @@ Using Multiprocessing
 
 
     configuration = QCSClientConfiguration.load()
-    engagement_manager = EngagementManager(client_configuration=configuration)
+    qc = get_qc("Aspen-8", client_configuration=configuration)
 
 
     def run(program: Program):
-        qc = get_qc("Aspen-8", client_configuration=configuration, engagement_manager=engagement_manager)
         return qc.run(qc.compile(program))
 
 

@@ -299,8 +299,12 @@ filled in for, say, 200 values between :math:`0` and :math:`2\pi`. We demonstrat
     parametric_measurements = []
 
     for theta in np.linspace(0, 2 * np.pi, 200):
+        # Set the desired parameter value in executable memory
+        executable.write_memory(region_name='theta', value=theta)
+
         # Get the results of the run with the value we want to execute with
-        bitstrings = qc.run(executable, {'theta': [theta]})
+        bitstrings = qc.run(executable)
+
         # Store our results
         parametric_measurements.append(bitstrings)
 

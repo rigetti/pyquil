@@ -710,7 +710,7 @@ gate noise, respectively.
                 MEASURE(0, ("ro", 0)),
                 MEASURE(1, ("ro", 1)),
             ])
-            bitstrings = np.array(qc.run(noisy, [0,1], 1000))
+            bitstrings = qc.run(noisy)
 
             # Expectation of Z0 and Z1
             z0, z1 = 1 - 2*np.mean(bitstrings, axis=0)
