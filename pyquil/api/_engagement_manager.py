@@ -15,13 +15,14 @@
 ##############################################################################
 import threading
 from datetime import datetime
-from typing import Dict, Optional, TYPE_CHECKING
+from typing import Dict, Optional, Tuple, TYPE_CHECKING
 
 from dateutil.parser import parse as parsedate
 from dateutil.tz import tzutc
 from qcs_api_client.client import QCSClientConfiguration
 from qcs_api_client.models import EngagementWithCredentials, CreateEngagementRequest
 from qcs_api_client.operations.sync import create_engagement
+from qcs_api_client.types import Unset
 
 from pyquil.api._qcs_client import qcs_client
 
@@ -44,7 +45,7 @@ class EngagementManager:
         :param client_configuration: Client configuration, used for refreshing engagements.
         """
         self._client_configuration = client_configuration
-        self._cached_engagements: Dict[str, EngagementWithCredentials] = {}
+        self._cached_engagements: Dict[Tuple[str, Optional[str]], EngagementWithCredentials] = {}
         self._lock = threading.Lock()
 
     def get_engagement(
@@ -66,7 +67,7 @@ class EngagementManager:
                     client_configuration=self._client_configuration, request_timeout=request_timeout
                 ) as client:  # type: httpx.Client
                     request = CreateEngagementRequest(
-                        quantum_processor_id=quantum_processor_id, endpoint_id=endpoint_id
+                        quantum_processor_id=quantum_processor_id, endpoint_id=endpoint_id or Unset()
                     )
                     self._cached_engagements[(quantum_processor_id, endpoint_id)] = create_engagement(
                         client=client, json_body=request
