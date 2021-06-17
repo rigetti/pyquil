@@ -21,6 +21,8 @@ import warnings
 from contextlib import contextmanager
 from math import pi, log
 from typing import (
+    Any,
+    Dict,
     Tuple,
     Iterator,
     Mapping,
@@ -38,6 +40,7 @@ import numpy as np
 from qcs_api_client.client import QCSClientConfiguration
 from qcs_api_client.models import ListQuantumProcessorsResponse
 from qcs_api_client.operations.sync import list_quantum_processors
+from rpcq.messages import ParameterAref
 
 from pyquil.api import EngagementManager
 from pyquil.api._abstract_compiler import AbstractCompiler, QuantumExecutable
@@ -70,7 +73,7 @@ class QuantumComputer:
         self,
         *,
         name: str,
-        qam: QAM,
+        qam: QAM[Any],
         compiler: AbstractCompiler,
         symmetrize_readout: bool = False,
     ) -> None:
@@ -152,7 +155,7 @@ class QuantumComputer:
             correspond to the scale factors resulting from symmetric readout error.
         """
         calibration_experiment = experiment.generate_calibration_experiment()
-        return cast(List[ExperimentResult], self.run_experiment(calibration_experiment))
+        return self.run_experiment(calibration_experiment)
 
     def run_experiment(
         self,
@@ -228,8 +231,10 @@ class QuantumComputer:
             for merged_memory_map in merged_memory_maps:
                 final_memory_map = {**memory_map, **merged_memory_map}
                 executable_copy = executable.copy()
+                final_memory_map = cast(Mapping[Union[str, ParameterAref], Union[int, float]], final_memory_map)
                 executable_copy._memory.write(final_memory_map)
                 bitstrings = self.run(executable_copy).readout_data.get("ro")
+                assert bitstrings is not None
 
                 if "symmetrization" in final_memory_map:
                     bitmask = np.array(np.array(final_memory_map["symmetrization"]) / np.pi, dtype=int)
@@ -1108,6 +1113,7 @@ def _measure_bitstrings(
         executable = qc.compiler.native_quil_to_executable(prog)
         result = qc.run(executable)
         shot_values = result.readout_data.get("ro")
+        assert shot_values is not None
         results.append(shot_values)
     return results
 

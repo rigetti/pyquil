@@ -1,7 +1,10 @@
 from dataclasses import dataclass, field
-from typing import Dict, Sequence, Union
+import dataclasses
+from typing import Dict, Mapping, Sequence, Union
 
 from rpcq.messages import ParameterAref
+
+ParameterValue = Union[int, float, Sequence[int], Sequence[float]]
 
 
 @dataclass
@@ -17,9 +20,9 @@ class Memory:
         """
         Return a deep copy of this Memory object.
         """
-        return Memory(values={k.replace(): v for k, v in self.values.items()})
+        return Memory(values={dataclasses.replace(k): v for k, v in self.values.items()})
 
-    def write(self, parameter_values: Dict[Union[str, ParameterAref], Union[int, float]]) -> "Memory":
+    def write(self, parameter_values: Mapping[Union[str, ParameterAref], ParameterValue]) -> "Memory":
         """
         Set the given values for the given parameters.
         """
@@ -31,7 +34,7 @@ class Memory:
         self,
         *,
         parameter: Union[ParameterAref, str],
-        value: Union[int, float, Sequence[int], Sequence[float]],
+        value: ParameterValue,
     ) -> "Memory":
         """
         Mutate the program to set the given parameter value.

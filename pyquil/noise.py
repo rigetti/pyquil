@@ -818,4 +818,7 @@ def estimate_assignment_probs(
 
 
 def _run(qc: "QuantumComputer", program: "Program") -> List[List[int]]:
-    return cast(List[List[int]], qc.run(qc.compiler.native_quil_to_executable(program)).tolist())
+    result = qc.run(qc.compiler.native_quil_to_executable(program))
+    bitstrings = result.readout_data.get("ro")
+    assert bitstrings is not None
+    return cast(List[List[int]], bitstrings.tolist())

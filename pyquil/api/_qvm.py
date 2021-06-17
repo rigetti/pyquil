@@ -55,7 +55,7 @@ def check_qvm_version(version: str) -> None:
 @dataclass
 class QVMExecuteResponse:
     executable: Program
-    memory: Dict[str, np.ndarray]
+    memory: Mapping[str, np.ndarray]
 
 
 class QVM(QAM[QVMExecuteResponse]):

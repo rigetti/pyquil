@@ -15,7 +15,7 @@
 ##############################################################################
 from abc import ABC, abstractmethod
 from dataclasses import dataclass, field
-from typing import Dict, Generic, Optional, TypeVar
+from typing import Dict, Generic, Mapping, Optional, TypeVar
 
 import numpy as np
 from pyquil.api._abstract_compiler import QuantumExecutable
@@ -35,7 +35,7 @@ class QAMExecutionResult:
     executable: QuantumExecutable
     """The executable corresponding to this result."""
 
-    readout_data: Dict[str, Optional[np.ndarray]] = field(default_factory=dict)
+    readout_data: Mapping[str, Optional[np.ndarray]] = field(default_factory=dict)
     """Readout data returned from the QAM, keyed on the name of the readout register or post-processing node."""
 
 

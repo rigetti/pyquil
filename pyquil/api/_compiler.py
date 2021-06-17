@@ -146,7 +146,7 @@ class QPUCompiler(AbstractCompiler):
         """Refresh the calibration program cache."""
         self._calibration_program = self._get_calibration_program()
 
-    @property  # type: ignore
+    @property
     def calibration_program(self) -> Program:
         """
         Get the Quil-T calibration program associated with the underlying QPU.

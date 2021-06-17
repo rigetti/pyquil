@@ -28,7 +28,7 @@ from pyquil.api._compiler import AbstractCompiler, QVMCompiler
 from pyquil.api._qam import QAM
 from pyquil.api._qpu import QPU
 from pyquil.api._quantum_computer import QuantumComputer as QuantumComputerV3
-from pyquil.api._quantum_computer import get_qc as get_qc_v3
+from pyquil.api._quantum_computer import get_qc as get_qc_v3, QuantumExecutable
 from pyquil.api._qvm import QVM
 from pyquil.experiment._main import Experiment
 from pyquil.experiment._memory import merge_memory_map_lists
@@ -44,18 +44,16 @@ from pyquil.quilatom import qubit_index
 
 from ._qam import StatefulQAM
 
-ExecutableDesignator = Union[QuiltBinaryExecutableResponse, PyQuilExecutableResponse]
-
 
 class QuantumComputer(QuantumComputerV3):
     compiler: AbstractCompiler
-    qam: StatefulQAM
+    qam: StatefulQAM[Any]
 
     def __init__(
         self,
         *,
         name: str,
-        qam: QAM,
+        qam: QAM[Any],
         device: Any = None,
         compiler: AbstractCompiler,
         symmetrize_readout: bool = False,
@@ -82,15 +80,15 @@ class QuantumComputer(QuantumComputerV3):
             :py:func:`run_symmetrized_readout` for a complete description.
         """
         self.name = name
-        self.qam = qam
         StatefulQAM.wrap(self.qam)
+        self.qam = cast(StatefulQAM[Any], qam)
         self.compiler = compiler
 
         self.symmetrize_readout = symmetrize_readout
 
-    def run(
+    def run(  # type: ignore
         self,
-        executable: ExecutableDesignator,
+        executable: QuantumExecutable,
         memory_map: Optional[Mapping[str, Sequence[Union[int, float]]]] = None,
     ) -> np.ndarray:
         """
@@ -118,7 +116,7 @@ class QuantumComputer(QuantumComputerV3):
             correspond to the scale factors resulting from symmetric readout error.
         """
         calibration_experiment = experiment.generate_calibration_experiment()
-        return cast(List[ExperimentResult], self.experiment(calibration_experiment))
+        return self.experiment(calibration_experiment)
 
     def experiment(
         self,
@@ -205,7 +203,7 @@ class QuantumComputer(QuantumComputerV3):
                 joint_expectations += setting.additional_expectations
             expectations = bitstrings_to_expectations(symmetrized_bitstrings, joint_expectations=joint_expectations)
 
-            means = np.mean(expectations, axis=0)
+            means = cast(np.ndarray, np.mean(expectations, axis=0))
             std_errs = np.std(expectations, axis=0, ddof=1) / np.sqrt(len(expectations))
 
             joint_results = []
@@ -376,7 +374,7 @@ class QuantumComputer(QuantumComputerV3):
         optimize: bool = True,
         *,
         protoquil: Optional[bool] = None,
-    ) -> ExecutableDesignator:
+    ) -> QuantumExecutable:
         """
         A high-level interface to program compilation.
 
@@ -453,8 +451,6 @@ def get_qc(
         client_configuration=client_configuration,
     )
 
-    qc = cast(QuantumComputerV3, qc)
-
     return QuantumComputer(
         name=qc.name, qam=qc.qam, device=None, compiler=qc.compiler, symmetrize_readout=qc.symmetrize_readout
     )
@@ -487,7 +483,7 @@ def _flip_array_to_prog(flip_array: Tuple[bool], qubits: List[int]) -> Program:
 
 def _symmetrization(
     program: Program, meas_qubits: List[int], symm_type: int = 3
-) -> Tuple[List[Program], List[np.ndarray]]:
+) -> Tuple[List[Program], List[Tuple[bool]]]:
     """
     For the input program generate new programs which flip the measured qubits with an X gate in
     certain combinations in order to symmetrize readout.
@@ -593,8 +589,8 @@ def _measure_bitstrings(
 
         prog.wrap_in_numshots_loop(num_shots)
         prog = qc.compiler.quil_to_native_quil(prog)
-        exe = qc.compiler.native_quil_to_executable(prog)
-        shots = qc.run(exe)
+        executable = qc.compiler.native_quil_to_executable(prog)
+        shots = qc.run(executable)
         results.append(shots)
     return results
 
@@ -635,7 +631,7 @@ def _next_power_of_2(x: int) -> int:
 
 # The code below is directly copied from scipy see https://bit.ly/2RjAHJz, the docstrings have
 # been modified.
-def hadamard(n: int, dtype: np.dtype = int) -> np.ndarray:
+def hadamard(n: int, dtype: np.dtype[Any] = np.dtype("int")) -> np.ndarray:
     """
     Construct a Hadamard matrix.
     Constructs an n-by-n Hadamard matrix, using Sylvester's
@@ -710,7 +706,7 @@ def _construct_strength_three_orthogonal_array(num_qubits: int) -> np.ndarray:
     num_qubits_power_of_2 = _next_power_of_2(num_qubits)
     H = hadamard(num_qubits_power_of_2)
     Hfold = np.concatenate((H, -H), axis=0)
-    orthogonal_array = ((Hfold + 1) / 2).astype(int)
+    orthogonal_array = cast(np.ndarray, ((Hfold + 1) / 2).astype(int))
     return orthogonal_array
 
 
@@ -744,7 +740,7 @@ def _construct_strength_two_orthogonal_array(num_qubits: int) -> np.ndarray:
     four_lam = min(x for x in valid_numbers if x >= num_qubits) + 1
     H = hadamard(_next_power_of_2(four_lam))
     # The minus sign in front of H fixes the 0 <-> 1 inversion relative to the reference [OATA]
-    orthogonal_array = ((-H[1:, :].T + 1) / 2).astype(int)
+    orthogonal_array = cast(np.ndarray, ((-H[1:, :].T + 1) / 2).astype(int))
     return orthogonal_array
 
 
@@ -880,33 +876,3 @@ def _get_qvm_with_topology(
         compiler_timeout=compiler_timeout,
         execution_timeout=execution_timeout,
     )
-
-
-def _measure_bitstrings(
-    qc: QuantumComputer, programs: List[Program], meas_qubits: List[int], num_shots: int = 600
-) -> List[np.ndarray]:
-    """
-    Wrapper for appending measure instructions onto each program, running the program,
-    and accumulating the resulting bitarrays.
-
-    :param qc: a quantum computer object on which to run each program
-    :param programs: a list of programs to run
-    :param meas_qubits: groups of qubits to measure for each program
-    :param num_shots: the number of shots to run for each program
-    :return: a len(programs) long list of num_shots by num_meas_qubits bit arrays of results for
-        each program.
-    """
-    results = []
-    for program in programs:
-        # copy the program so the original is not mutated
-        prog = program.copy()
-        ro = prog.declare("ro", "BIT", len(meas_qubits))
-        for idx, q in enumerate(meas_qubits):
-            prog += MEASURE(q, ro[idx])
-
-        prog.wrap_in_numshots_loop(num_shots)
-        prog = qc.compiler.quil_to_native_quil(prog)
-        executable = qc.compiler.native_quil_to_executable(prog)
-        shots = qc.run(executable)
-        results.append(shots)
-    return results

@@ -154,7 +154,7 @@ class AbstractQuantumSimulator(ABC):
         """
 
 
-class PyQVM(QAM):
+class PyQVM(QAM["PyQVM"]):
     def __init__(
         self,
         n_qubits: int,
@@ -222,7 +222,6 @@ class PyQVM(QAM):
             self.defined_gates[dg.name] = dg.matrix
 
     def write_memory(self, *, region_name: str, offset: int = 0, value: int = 0) -> "PyQVM":
-        assert self.status in ["loaded", "done"]
         assert region_name != "ro"
         self.ram[region_name][offset] = value
         return self
@@ -266,6 +265,7 @@ class PyQVM(QAM):
         ``execute_response`` is not used, it's accepted in order to conform to that API; it's
         unused because the PyQVM, unlike other QAM's, is itself stateful.
         """
+        assert self.program is not None
         return QAMExecutionResult(
             executable=self.program.copy(), readout_data={k: v for k, v in self._memory_results.items()}
         )

@@ -168,7 +168,7 @@ class QPU(QAM[QPUExecuteResponse]):
             patch_values=self._build_patch_values(executable),
         )
         job_id = self._qpu_client.run_program(request).job_id
-        return QPUExecuteResponse(job_id=job_id)
+        return QPUExecuteResponse(_executable=executable, job_id=job_id)
 
     def get_result(self, execute_response: QPUExecuteResponse) -> QAMExecutionResult:
         """
@@ -187,7 +187,7 @@ class QPU(QAM[QPUExecuteResponse]):
         elif not ro_sources:
             result_memory["ro"] = np.zeros((0, 0), dtype=np.int64)
 
-        QAMExecutionResult(executable=execute_response._executable, results=result_memory)
+        return QAMExecutionResult(executable=execute_response._executable, readout_data=result_memory)
 
     def _get_buffers(self, job_id: str) -> Dict[str, np.ndarray]:
         """
@@ -307,7 +307,7 @@ class QPU(QAM[QPUExecuteResponse]):
         elif isinstance(expression, Function):
             return cast(
                 Union[float, int],
-                expression.fn(cls._resolve_memory_references(expression.expression)),
+                expression.fn(cls._resolve_memory_references(expression.expression, memory=memory)),
             )
         elif isinstance(expression, Parameter):
             raise ValueError(f"Unexpected Parameter in gate expression: {expression}")

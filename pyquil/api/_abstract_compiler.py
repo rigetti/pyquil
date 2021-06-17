@@ -15,6 +15,7 @@
 ##############################################################################
 from abc import ABC, abstractmethod
 from dataclasses import dataclass
+import dataclasses
 from typing import Any, Dict, List, Optional, Sequence, Union
 
 from pyquil._memory import Memory
@@ -64,7 +65,7 @@ class EncryptedProgram:
         """
         Return a deep copy of this EncryptedProgram.
         """
-        return self.replace(memory=self._memory.copy())
+        return dataclasses.replace(self, memory=self._memory.copy())
 
     def write_memory(
         self,
@@ -73,7 +74,7 @@ class EncryptedProgram:
         value: Union[int, float, Sequence[int], Sequence[float]],
         offset: Optional[int] = None,
     ) -> "EncryptedProgram":
-        self._memory._write_value(parameter=ParameterAref(name=region_name, index=offset), value=value)
+        self._memory._write_value(parameter=ParameterAref(name=region_name, index=(offset or 0)), value=value)
         return self
 
 

@@ -805,7 +805,7 @@ class Program:
         except ValueError:
             return False
 
-    def _sort_declares_to_program_start(self) -> "Program":
+    def _sort_declares_to_program_start(self) -> None:
         """
         Re-order DECLARE instructions within this program to the beginning, followed by
         all other instructions. Reordering is stable among DECLARE and non-DECLARE instructions.
