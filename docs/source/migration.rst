@@ -48,7 +48,7 @@ This means that you should now execute your programs using one of these options:
    exe.write_memory(region_name='theta', value=np.pi)
 
    # Option 1
-   ro_bitstring = qc.run(exe)
+   result = qc.run(exe)
 
    # Option 2
    result = qc.qam.run(exe)
@@ -60,6 +60,23 @@ This means that you should now execute your programs using one of these options:
    # Run our program 10 times, enqueuing all the programs before retrieving results for any of them
    jobs = [qc.qam.execute(exe) for _ in range(10)]
    results = [qc.qam.get_result(job) for job in jobs]
+
+Additionally, ``QuantumComputer.run()`` and ``QAM.run()`` now both return ``QAMExecutionResult``, rather
+than the bitstrings which were read out following execution. So, to retrieve the bitstrings from region ``ro``
+like you would have in pyQuil v2, query the readout data:
+
+.. code:: python
+
+   result = qc.run(exe)
+   bitstrings = result.readout_data.get('ro')
+
+Note that there is no "memory" in the result shape -- yet. Readout data is inherently collected and returned
+differently than memory values are, and that nuance is no longer masked in pyQuil v3. All of the results
+that, in pyQuil v2, you would have expected to retrieve using ``QAM.read_memory()`` are now present in
+``QAMExecutionResult.readout_data``.
+
+The notable exception to this is ``PyQVM``, which remains stateful, and whose memory you can still inspect using
+``PyQVM.read_memory()``.
 
 
 Compatibility Utilities

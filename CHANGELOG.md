@@ -147,7 +147,15 @@ Changelog
   `PyQVM.execute` now implements `QAM.execute` and resets the `PyQVM` state prior to program execution.
 
 - `QuantumComputer.experiment` has been renamed to `QuantumComputer.run_experiment`.
-  
+
+- Results returned from execution are now referred to as `readout_data` rather than `memory`, reflecting the reality
+  that the memory of the QAM is not currently exposed to the user. The exception to this rule is the stateful `PyQVM`,
+  whose state is maintained within the pyQuil process and whose memory _may truly be inspected._ For that,
+  `PyQVM.read_memory` remains available.
+
+- `QuantumComputer.run` now returns a `QAMExecutionResult` rather than the readout data from the `ro` readout
+  source. To access those same readout results, use `qc.run().readout_data.get('ro')`. This allows access to other
+  execution-related information and other readout sources.
 ### Bugfixes
 
 [v2.28.1](https://github.com/rigetti/pyquil/compare/v2.28.0..v2.28.1) (May 5, 2021)

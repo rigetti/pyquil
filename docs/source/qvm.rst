@@ -314,7 +314,8 @@ For example:
     p.wrap_in_numshots_loop(5)
 
     executable = qc.compile(p)
-    bitstrings = qc.run(executable)  # .run takes in a compiled program
+    result = qc.run(executable)  # .run takes in a compiled program
+    bitstrings = result.readout_data.get("ro")
     print(bitstrings)
 
 The results returned is a *list of lists of integers*. In the above case, that's

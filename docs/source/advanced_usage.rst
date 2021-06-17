@@ -65,7 +65,7 @@ Using Multithreading
 
 
     def run(program: Program):
-        return qc.run(qc.compile(program))
+        return qc.run(qc.compile(program)).readout_data.get("ro")
 
 
     programs = [Program("DECLARE ro BIT", "RX(pi) 0", "MEASURE 0 ro").wrap_in_numshots_loop(10)] * 20
@@ -92,7 +92,7 @@ Using Multiprocessing
 
 
     def run(program: Program):
-        return qc.run(qc.compile(program))
+        return qc.run(qc.compile(program)).readout_data.get("ro")
 
 
     programs = [Program("DECLARE ro BIT", "RX(pi) 0", "MEASURE 0 ro").wrap_in_numshots_loop(10)] * 20

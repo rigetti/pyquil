@@ -80,7 +80,8 @@ program on the Quantum Virtual Machine (QVM). We just have to add a few lines to
     qc = get_qc('1q-qvm')  # You can make any 'nq-qvm' this way for any reasonable 'n'
     executable = qc.compile(p)
     result = qc.run(executable)
-    print(result)
+    bitstrings = result.readout_data.get('ro')
+    print(bitstrings)
 
 Congratulations! You just ran your program on the QVM. The returned value should be:
 
