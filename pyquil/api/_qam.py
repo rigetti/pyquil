@@ -45,9 +45,6 @@ class QAM(ABC, Generic[T]):
     computer interacts with a live quantum computer.
     """
 
-    def __init__(self) -> None:
-        self.experiment: Optional[Experiment]
-
     @abstractmethod
     def execute(self, executable: QuantumExecutable) -> T:
         """
