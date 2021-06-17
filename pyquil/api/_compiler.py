@@ -14,6 +14,7 @@
 #    limitations under the License.
 ##############################################################################
 import logging
+import threading
 from contextlib import contextmanager
 from typing import Dict, Optional, cast, List, Iterator
 
@@ -77,6 +78,8 @@ class QPUCompiler(AbstractCompiler):
     Client to communicate with the compiler and translation service.
     """
 
+    _calibration_program_lock: threading.Lock
+
     def __init__(
         self,
         *,
@@ -101,6 +104,7 @@ class QPUCompiler(AbstractCompiler):
 
         self.quantum_processor_id = quantum_processor_id
         self._calibration_program: Optional[Program] = None
+        self._calibration_program_lock = threading.Lock()
 
     def native_quil_to_executable(self, nq_program: Program) -> QuantumExecutable:
         arithmetic_response = rewrite_arithmetic(nq_program)
@@ -153,11 +157,12 @@ class QPUCompiler(AbstractCompiler):
         hardware.
 
         :returns: A Program object containing the calibration definitions."""
-        if self._calibration_program is None:
-            try:
-                self.refresh_calibration_program()
-            except Exception as ex:
-                raise RuntimeError("Could not refresh calibrations") from ex
+        with self._calibration_program_lock:
+            if self._calibration_program is None:
+                try:
+                    self.refresh_calibration_program()
+                except Exception as ex:
+                    raise RuntimeError("Could not refresh calibrations") from ex
 
         assert self._calibration_program is not None
         return self._calibration_program
