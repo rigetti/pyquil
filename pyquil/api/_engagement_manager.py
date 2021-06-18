@@ -32,7 +32,8 @@ class EngagementManager:
     Fetches (and caches) engagements for use when accessing a QPU.
     """
 
-    _lock = threading.Lock()
+    _lock: threading.Lock
+    """Lock used to ensure that only one engagement request is in flight at once."""
 
     def __init__(self, *, client_configuration: QCSClientConfiguration) -> None:
         """
@@ -42,6 +43,7 @@ class EngagementManager:
         """
         self._client_configuration = client_configuration
         self._cached_engagements: Dict[str, EngagementWithCredentials] = {}
+        self._lock = threading.Lock()
 
     def get_engagement(self, *, quantum_processor_id: str, request_timeout: float = 10.0) -> EngagementWithCredentials:
         """
@@ -52,8 +54,7 @@ class EngagementManager:
         :param request_timeout: Timeout for request, in seconds.
         :return: Fetched or cached engagement.
         """
-        EngagementManager._lock.acquire()
-        try:
+        with self._lock:
             if not self._engagement_valid(self._cached_engagements.get(quantum_processor_id)):
                 with qcs_client(
                     client_configuration=self._client_configuration, request_timeout=request_timeout
@@ -63,8 +64,6 @@ class EngagementManager:
                         client=client, json_body=request
                     ).parsed
             return self._cached_engagements[quantum_processor_id]
-        finally:
-            EngagementManager._lock.release()
 
     @staticmethod
     def _engagement_valid(engagement: Optional[EngagementWithCredentials]) -> bool:
