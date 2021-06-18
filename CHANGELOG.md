@@ -120,6 +120,8 @@ Changelog
   
 - `noise.estimate_assignment_probs()` now accepts a `QuantumComputer` instead of `QVMConnection`.
   
+- Simultaneous, rather than independent, random benchmark scores are passed to quilc as the gate fidelity for RX and RZ operations.
+  
 ### Bugfixes
 
 [v2.28.1](https://github.com/rigetti/pyquil/compare/v2.28.0..v2.28.1) (May 5, 2021)
