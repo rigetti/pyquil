@@ -19,7 +19,7 @@
             0
           ],
           "duration": 50.0,
-          "fidelity": 0.95,
+          "fidelity": 0.989821537688075,
           "operator": "RX",
           "operator_type": "gate",
           "parameters": [
@@ -31,7 +31,7 @@
             0
           ],
           "duration": 50.0,
-          "fidelity": 0.95,
+          "fidelity": 0.989821537688075,
           "operator": "RX",
           "operator_type": "gate",
           "parameters": [
@@ -43,7 +43,7 @@
             0
           ],
           "duration": 50.0,
-          "fidelity": 0.95,
+          "fidelity": 0.989821537688075,
           "operator": "RX",
           "operator_type": "gate",
           "parameters": [
@@ -55,7 +55,7 @@
             0
           ],
           "duration": 50.0,
-          "fidelity": 0.95,
+          "fidelity": 0.989821537688075,
           "operator": "RX",
           "operator_type": "gate",
           "parameters": [
@@ -67,7 +67,7 @@
             0
           ],
           "duration": 0.01,
-          "fidelity": 1.0,
+          "fidelity": 0.989821537688075,
           "operator": "RZ",
           "operator_type": "gate",
           "parameters": [
@@ -112,7 +112,7 @@
             1
           ],
           "duration": 50.0,
-          "fidelity": 0.95,
+          "fidelity": 0.996832638579018,
           "operator": "RX",
           "operator_type": "gate",
           "parameters": [
@@ -124,7 +124,7 @@
             1
           ],
           "duration": 50.0,
-          "fidelity": 0.95,
+          "fidelity": 0.996832638579018,
           "operator": "RX",
           "operator_type": "gate",
           "parameters": [
@@ -136,7 +136,7 @@
             1
           ],
           "duration": 50.0,
-          "fidelity": 0.95,
+          "fidelity": 0.996832638579018,
           "operator": "RX",
           "operator_type": "gate",
           "parameters": [
@@ -148,7 +148,7 @@
             1
           ],
           "duration": 50.0,
-          "fidelity": 0.95,
+          "fidelity": 0.996832638579018,
           "operator": "RX",
           "operator_type": "gate",
           "parameters": [
@@ -160,7 +160,7 @@
             1
           ],
           "duration": 0.01,
-          "fidelity": 1.0,
+          "fidelity": 0.996832638579018,
           "operator": "RZ",
           "operator_type": "gate",
           "parameters": [
@@ -210,7 +210,7 @@
             11
           ],
           "duration": 50.0,
-          "fidelity": 0.95,
+          "fidelity": 0.989117848440883,
           "operator": "RX",
           "operator_type": "gate",
           "parameters": [
@@ -222,7 +222,7 @@
             11
           ],
           "duration": 50.0,
-          "fidelity": 0.95,
+          "fidelity": 0.989117848440883,
           "operator": "RX",
           "operator_type": "gate",
           "parameters": [
@@ -234,7 +234,7 @@
             11
           ],
           "duration": 50.0,
-          "fidelity": 0.95,
+          "fidelity": 0.989117848440883,
           "operator": "RX",
           "operator_type": "gate",
           "parameters": [
@@ -246,7 +246,7 @@
             11
           ],
           "duration": 50.0,
-          "fidelity": 0.95,
+          "fidelity": 0.989117848440883,
           "operator": "RX",
           "operator_type": "gate",
           "parameters": [
@@ -258,7 +258,7 @@
             11
           ],
           "duration": 0.01,
-          "fidelity": 1.0,
+          "fidelity": 0.989117848440883,
           "operator": "RZ",
           "operator_type": "gate",
           "parameters": [
@@ -303,7 +303,7 @@
             12
           ],
           "duration": 50.0,
-          "fidelity": 0.95,
+          "fidelity": 0.982010065085791,
           "operator": "RX",
           "operator_type": "gate",
           "parameters": [
@@ -315,7 +315,7 @@
             12
           ],
           "duration": 50.0,
-          "fidelity": 0.95,
+          "fidelity": 0.982010065085791,
           "operator": "RX",
           "operator_type": "gate",
           "parameters": [
@@ -327,7 +327,7 @@
             12
           ],
           "duration": 50.0,
-          "fidelity": 0.95,
+          "fidelity": 0.982010065085791,
           "operator": "RX",
           "operator_type": "gate",
           "parameters": [
@@ -339,7 +339,7 @@
             12
           ],
           "duration": 50.0,
-          "fidelity": 0.95,
+          "fidelity": 0.982010065085791,
           "operator": "RX",
           "operator_type": "gate",
           "parameters": [
@@ -351,7 +351,7 @@
             12
           ],
           "duration": 0.01,
-          "fidelity": 1.0,
+          "fidelity": 0.982010065085791,
           "operator": "RZ",
           "operator_type": "gate",
           "parameters": [
@@ -396,7 +396,7 @@
             13
           ],
           "duration": 50.0,
-          "fidelity": 0.95,
+          "fidelity": 0.994323758479715,
           "operator": "RX",
           "operator_type": "gate",
           "parameters": [
@@ -408,7 +408,7 @@
             13
           ],
           "duration": 50.0,
-          "fidelity": 0.95,
+          "fidelity": 0.994323758479715,
           "operator": "RX",
           "operator_type": "gate",
           "parameters": [
@@ -420,7 +420,7 @@
             13
           ],
           "duration": 50.0,
-          "fidelity": 0.95,
+          "fidelity": 0.994323758479715,
           "operator": "RX",
           "operator_type": "gate",
           "parameters": [
@@ -432,7 +432,7 @@
             13
           ],
           "duration": 50.0,
-          "fidelity": 0.95,
+          "fidelity": 0.994323758479715,
           "operator": "RX",
           "operator_type": "gate",
           "parameters": [
@@ -444,7 +444,7 @@
             13
           ],
           "duration": 0.01,
-          "fidelity": 1.0,
+          "fidelity": 0.994323758479715,
           "operator": "RZ",
           "operator_type": "gate",
           "parameters": [
@@ -489,7 +489,7 @@
             14
           ],
           "duration": 50.0,
-          "fidelity": 0.95,
+          "fidelity": 0.991983796298027,
           "operator": "RX",
           "operator_type": "gate",
           "parameters": [
@@ -501,7 +501,7 @@
             14
           ],
           "duration": 50.0,
-          "fidelity": 0.95,
+          "fidelity": 0.991983796298027,
           "operator": "RX",
           "operator_type": "gate",
           "parameters": [
@@ -513,7 +513,7 @@
             14
           ],
           "duration": 50.0,
-          "fidelity": 0.95,
+          "fidelity": 0.991983796298027,
           "operator": "RX",
           "operator_type": "gate",
           "parameters": [
@@ -525,7 +525,7 @@
             14
           ],
           "duration": 50.0,
-          "fidelity": 0.95,
+          "fidelity": 0.991983796298027,
           "operator": "RX",
           "operator_type": "gate",
           "parameters": [
@@ -537,7 +537,7 @@
             14
           ],
           "duration": 0.01,
-          "fidelity": 1.0,
+          "fidelity": 0.991983796298027,
           "operator": "RZ",
           "operator_type": "gate",
           "parameters": [
@@ -582,7 +582,7 @@
             15
           ],
           "duration": 50.0,
-          "fidelity": 0.95,
+          "fidelity": 0.989822943596874,
           "operator": "RX",
           "operator_type": "gate",
           "parameters": [
@@ -594,7 +594,7 @@
             15
           ],
           "duration": 50.0,
-          "fidelity": 0.95,
+          "fidelity": 0.989822943596874,
           "operator": "RX",
           "operator_type": "gate",
           "parameters": [
@@ -606,7 +606,7 @@
             15
           ],
           "duration": 50.0,
-          "fidelity": 0.95,
+          "fidelity": 0.989822943596874,
           "operator": "RX",
           "operator_type": "gate",
           "parameters": [
@@ -618,7 +618,7 @@
             15
           ],
           "duration": 50.0,
-          "fidelity": 0.95,
+          "fidelity": 0.989822943596874,
           "operator": "RX",
           "operator_type": "gate",
           "parameters": [
@@ -630,7 +630,7 @@
             15
           ],
           "duration": 0.01,
-          "fidelity": 1.0,
+          "fidelity": 0.989822943596874,
           "operator": "RZ",
           "operator_type": "gate",
           "parameters": [
@@ -675,7 +675,7 @@
             16
           ],
           "duration": 50.0,
-          "fidelity": 0.95,
+          "fidelity": 0.988256589534012,
           "operator": "RX",
           "operator_type": "gate",
           "parameters": [
@@ -687,7 +687,7 @@
             16
           ],
           "duration": 50.0,
-          "fidelity": 0.95,
+          "fidelity": 0.988256589534012,
           "operator": "RX",
           "operator_type": "gate",
           "parameters": [
@@ -699,7 +699,7 @@
             16
           ],
           "duration": 50.0,
-          "fidelity": 0.95,
+          "fidelity": 0.988256589534012,
           "operator": "RX",
           "operator_type": "gate",
           "parameters": [
@@ -711,7 +711,7 @@
             16
           ],
           "duration": 50.0,
-          "fidelity": 0.95,
+          "fidelity": 0.988256589534012,
           "operator": "RX",
           "operator_type": "gate",
           "parameters": [
@@ -723,7 +723,7 @@
             16
           ],
           "duration": 0.01,
-          "fidelity": 1.0,
+          "fidelity": 0.988256589534012,
           "operator": "RZ",
           "operator_type": "gate",
           "parameters": [
@@ -768,7 +768,7 @@
             17
           ],
           "duration": 50.0,
-          "fidelity": 0.95,
+          "fidelity": 0.994091587106797,
           "operator": "RX",
           "operator_type": "gate",
           "parameters": [
@@ -780,7 +780,7 @@
             17
           ],
           "duration": 50.0,
-          "fidelity": 0.95,
+          "fidelity": 0.994091587106797,
           "operator": "RX",
           "operator_type": "gate",
           "parameters": [
@@ -792,7 +792,7 @@
             17
           ],
           "duration": 50.0,
-          "fidelity": 0.95,
+          "fidelity": 0.994091587106797,
           "operator": "RX",
           "operator_type": "gate",
           "parameters": [
@@ -804,7 +804,7 @@
             17
           ],
           "duration": 50.0,
-          "fidelity": 0.95,
+          "fidelity": 0.994091587106797,
           "operator": "RX",
           "operator_type": "gate",
           "parameters": [
@@ -816,7 +816,7 @@
             17
           ],
           "duration": 0.01,
-          "fidelity": 1.0,
+          "fidelity": 0.994091587106797,
           "operator": "RZ",
           "operator_type": "gate",
           "parameters": [
@@ -861,7 +861,7 @@
             2
           ],
           "duration": 50.0,
-          "fidelity": 0.95,
+          "fidelity": 0.927538230166735,
           "operator": "RX",
           "operator_type": "gate",
           "parameters": [
@@ -873,7 +873,7 @@
             2
           ],
           "duration": 50.0,
-          "fidelity": 0.95,
+          "fidelity": 0.927538230166735,
           "operator": "RX",
           "operator_type": "gate",
           "parameters": [
@@ -885,7 +885,7 @@
             2
           ],
           "duration": 50.0,
-          "fidelity": 0.95,
+          "fidelity": 0.927538230166735,
           "operator": "RX",
           "operator_type": "gate",
           "parameters": [
@@ -897,7 +897,7 @@
             2
           ],
           "duration": 50.0,
-          "fidelity": 0.95,
+          "fidelity": 0.927538230166735,
           "operator": "RX",
           "operator_type": "gate",
           "parameters": [
@@ -909,7 +909,7 @@
             2
           ],
           "duration": 0.01,
-          "fidelity": 1.0,
+          "fidelity": 0.927538230166735,
           "operator": "RZ",
           "operator_type": "gate",
           "parameters": [
@@ -954,7 +954,7 @@
             20
           ],
           "duration": 50.0,
-          "fidelity": 0.95,
+          "fidelity": 0.991288110944387,
           "operator": "RX",
           "operator_type": "gate",
           "parameters": [
@@ -966,7 +966,7 @@
             20
           ],
           "duration": 50.0,
-          "fidelity": 0.95,
+          "fidelity": 0.991288110944387,
           "operator": "RX",
           "operator_type": "gate",
           "parameters": [
@@ -978,7 +978,7 @@
             20
           ],
           "duration": 50.0,
-          "fidelity": 0.95,
+          "fidelity": 0.991288110944387,
           "operator": "RX",
           "operator_type": "gate",
           "parameters": [
@@ -990,7 +990,7 @@
             20
           ],
           "duration": 50.0,
-          "fidelity": 0.95,
+          "fidelity": 0.991288110944387,
           "operator": "RX",
           "operator_type": "gate",
           "parameters": [
@@ -1002,7 +1002,7 @@
             20
           ],
           "duration": 0.01,
-          "fidelity": 1.0,
+          "fidelity": 0.991288110944387,
           "operator": "RZ",
           "operator_type": "gate",
           "parameters": [
@@ -1047,7 +1047,7 @@
             21
           ],
           "duration": 50.0,
-          "fidelity": 0.95,
+          "fidelity": 0.992884053396768,
           "operator": "RX",
           "operator_type": "gate",
           "parameters": [
@@ -1059,7 +1059,7 @@
             21
           ],
           "duration": 50.0,
-          "fidelity": 0.95,
+          "fidelity": 0.992884053396768,
           "operator": "RX",
           "operator_type": "gate",
           "parameters": [
@@ -1071,7 +1071,7 @@
             21
           ],
           "duration": 50.0,
-          "fidelity": 0.95,
+          "fidelity": 0.992884053396768,
           "operator": "RX",
           "operator_type": "gate",
           "parameters": [
@@ -1083,7 +1083,7 @@
             21
           ],
           "duration": 50.0,
-          "fidelity": 0.95,
+          "fidelity": 0.992884053396768,
           "operator": "RX",
           "operator_type": "gate",
           "parameters": [
@@ -1095,7 +1095,7 @@
             21
           ],
           "duration": 0.01,
-          "fidelity": 1.0,
+          "fidelity": 0.992884053396768,
           "operator": "RZ",
           "operator_type": "gate",
           "parameters": [
@@ -1140,7 +1140,7 @@
             22
           ],
           "duration": 50.0,
-          "fidelity": 0.95,
+          "fidelity": 0.979355596748001,
           "operator": "RX",
           "operator_type": "gate",
           "parameters": [
@@ -1152,7 +1152,7 @@
             22
           ],
           "duration": 50.0,
-          "fidelity": 0.95,
+          "fidelity": 0.979355596748001,
           "operator": "RX",
           "operator_type": "gate",
           "parameters": [
@@ -1164,7 +1164,7 @@
             22
           ],
           "duration": 50.0,
-          "fidelity": 0.95,
+          "fidelity": 0.979355596748001,
           "operator": "RX",
           "operator_type": "gate",
           "parameters": [
@@ -1176,7 +1176,7 @@
             22
           ],
           "duration": 50.0,
-          "fidelity": 0.95,
+          "fidelity": 0.979355596748001,
           "operator": "RX",
           "operator_type": "gate",
           "parameters": [
@@ -1188,7 +1188,7 @@
             22
           ],
           "duration": 0.01,
-          "fidelity": 1.0,
+          "fidelity": 0.979355596748001,
           "operator": "RZ",
           "operator_type": "gate",
           "parameters": [
@@ -1233,7 +1233,7 @@
             23
           ],
           "duration": 50.0,
-          "fidelity": 0.95,
+          "fidelity": 0.992797468887461,
           "operator": "RX",
           "operator_type": "gate",
           "parameters": [
@@ -1245,7 +1245,7 @@
             23
           ],
           "duration": 50.0,
-          "fidelity": 0.95,
+          "fidelity": 0.992797468887461,
           "operator": "RX",
           "operator_type": "gate",
           "parameters": [
@@ -1257,7 +1257,7 @@
             23
           ],
           "duration": 50.0,
-          "fidelity": 0.95,
+          "fidelity": 0.992797468887461,
           "operator": "RX",
           "operator_type": "gate",
           "parameters": [
@@ -1269,7 +1269,7 @@
             23
           ],
           "duration": 50.0,
-          "fidelity": 0.95,
+          "fidelity": 0.992797468887461,
           "operator": "RX",
           "operator_type": "gate",
           "parameters": [
@@ -1281,7 +1281,7 @@
             23
           ],
           "duration": 0.01,
-          "fidelity": 1.0,
+          "fidelity": 0.992797468887461,
           "operator": "RZ",
           "operator_type": "gate",
           "parameters": [
@@ -1326,7 +1326,7 @@
             24
           ],
           "duration": 50.0,
-          "fidelity": 0.95,
+          "fidelity": 0.988868971757648,
           "operator": "RX",
           "operator_type": "gate",
           "parameters": [
@@ -1338,7 +1338,7 @@
             24
           ],
           "duration": 50.0,
-          "fidelity": 0.95,
+          "fidelity": 0.988868971757648,
           "operator": "RX",
           "operator_type": "gate",
           "parameters": [
@@ -1350,7 +1350,7 @@
             24
           ],
           "duration": 50.0,
-          "fidelity": 0.95,
+          "fidelity": 0.988868971757648,
           "operator": "RX",
           "operator_type": "gate",
           "parameters": [
@@ -1362,7 +1362,7 @@
             24
           ],
           "duration": 50.0,
-          "fidelity": 0.95,
+          "fidelity": 0.988868971757648,
           "operator": "RX",
           "operator_type": "gate",
           "parameters": [
@@ -1374,7 +1374,7 @@
             24
           ],
           "duration": 0.01,
-          "fidelity": 1.0,
+          "fidelity": 0.988868971757648,
           "operator": "RZ",
           "operator_type": "gate",
           "parameters": [
@@ -1419,7 +1419,7 @@
             25
           ],
           "duration": 50.0,
-          "fidelity": 0.95,
+          "fidelity": 0.998004517863263,
           "operator": "RX",
           "operator_type": "gate",
           "parameters": [
@@ -1431,7 +1431,7 @@
             25
           ],
           "duration": 50.0,
-          "fidelity": 0.95,
+          "fidelity": 0.998004517863263,
           "operator": "RX",
           "operator_type": "gate",
           "parameters": [
@@ -1443,7 +1443,7 @@
             25
           ],
           "duration": 50.0,
-          "fidelity": 0.95,
+          "fidelity": 0.998004517863263,
           "operator": "RX",
           "operator_type": "gate",
           "parameters": [
@@ -1455,7 +1455,7 @@
             25
           ],
           "duration": 50.0,
-          "fidelity": 0.95,
+          "fidelity": 0.998004517863263,
           "operator": "RX",
           "operator_type": "gate",
           "parameters": [
@@ -1467,7 +1467,7 @@
             25
           ],
           "duration": 0.01,
-          "fidelity": 1.0,
+          "fidelity": 0.998004517863263,
           "operator": "RZ",
           "operator_type": "gate",
           "parameters": [
@@ -1512,7 +1512,7 @@
             26
           ],
           "duration": 50.0,
-          "fidelity": 0.95,
+          "fidelity": 0.992046520987421,
           "operator": "RX",
           "operator_type": "gate",
           "parameters": [
@@ -1524,7 +1524,7 @@
             26
           ],
           "duration": 50.0,
-          "fidelity": 0.95,
+          "fidelity": 0.992046520987421,
           "operator": "RX",
           "operator_type": "gate",
           "parameters": [
@@ -1536,7 +1536,7 @@
             26
           ],
           "duration": 50.0,
-          "fidelity": 0.95,
+          "fidelity": 0.992046520987421,
           "operator": "RX",
           "operator_type": "gate",
           "parameters": [
@@ -1548,7 +1548,7 @@
             26
           ],
           "duration": 50.0,
-          "fidelity": 0.95,
+          "fidelity": 0.992046520987421,
           "operator": "RX",
           "operator_type": "gate",
           "parameters": [
@@ -1560,7 +1560,7 @@
             26
           ],
           "duration": 0.01,
-          "fidelity": 1.0,
+          "fidelity": 0.992046520987421,
           "operator": "RZ",
           "operator_type": "gate",
           "parameters": [
@@ -1605,7 +1605,7 @@
             27
           ],
           "duration": 50.0,
-          "fidelity": 0.95,
+          "fidelity": 0.998533591062586,
           "operator": "RX",
           "operator_type": "gate",
           "parameters": [
@@ -1617,7 +1617,7 @@
             27
           ],
           "duration": 50.0,
-          "fidelity": 0.95,
+          "fidelity": 0.998533591062586,
           "operator": "RX",
           "operator_type": "gate",
           "parameters": [
@@ -1629,7 +1629,7 @@
             27
           ],
           "duration": 50.0,
-          "fidelity": 0.95,
+          "fidelity": 0.998533591062586,
           "operator": "RX",
           "operator_type": "gate",
           "parameters": [
@@ -1641,7 +1641,7 @@
             27
           ],
           "duration": 50.0,
-          "fidelity": 0.95,
+          "fidelity": 0.998533591062586,
           "operator": "RX",
           "operator_type": "gate",
           "parameters": [
@@ -1653,7 +1653,7 @@
             27
           ],
           "duration": 0.01,
-          "fidelity": 1.0,
+          "fidelity": 0.998533591062586,
           "operator": "RZ",
           "operator_type": "gate",
           "parameters": [
@@ -1698,7 +1698,7 @@
             3
           ],
           "duration": 50.0,
-          "fidelity": 0.95,
+          "fidelity": 0.995159653742827,
           "operator": "RX",
           "operator_type": "gate",
           "parameters": [
@@ -1710,7 +1710,7 @@
             3
           ],
           "duration": 50.0,
-          "fidelity": 0.95,
+          "fidelity": 0.995159653742827,
           "operator": "RX",
           "operator_type": "gate",
           "parameters": [
@@ -1722,7 +1722,7 @@
             3
           ],
           "duration": 50.0,
-          "fidelity": 0.95,
+          "fidelity": 0.995159653742827,
           "operator": "RX",
           "operator_type": "gate",
           "parameters": [
@@ -1734,7 +1734,7 @@
             3
           ],
           "duration": 50.0,
-          "fidelity": 0.95,
+          "fidelity": 0.995159653742827,
           "operator": "RX",
           "operator_type": "gate",
           "parameters": [
@@ -1746,7 +1746,7 @@
             3
           ],
           "duration": 0.01,
-          "fidelity": 1.0,
+          "fidelity": 0.995159653742827,
           "operator": "RZ",
           "operator_type": "gate",
           "parameters": [
@@ -1791,7 +1791,7 @@
             30
           ],
           "duration": 50.0,
-          "fidelity": 0.95,
+          "fidelity": 0.983897042282644,
           "operator": "RX",
           "operator_type": "gate",
           "parameters": [
@@ -1803,7 +1803,7 @@
             30
           ],
           "duration": 50.0,
-          "fidelity": 0.95,
+          "fidelity": 0.983897042282644,
           "operator": "RX",
           "operator_type": "gate",
           "parameters": [
@@ -1815,7 +1815,7 @@
             30
           ],
           "duration": 50.0,
-          "fidelity": 0.95,
+          "fidelity": 0.983897042282644,
           "operator": "RX",
           "operator_type": "gate",
           "parameters": [
@@ -1827,7 +1827,7 @@
             30
           ],
           "duration": 50.0,
-          "fidelity": 0.95,
+          "fidelity": 0.983897042282644,
           "operator": "RX",
           "operator_type": "gate",
           "parameters": [
@@ -1839,7 +1839,7 @@
             30
           ],
           "duration": 0.01,
-          "fidelity": 1.0,
+          "fidelity": 0.983897042282644,
           "operator": "RZ",
           "operator_type": "gate",
           "parameters": [
@@ -1889,7 +1889,7 @@
             32
           ],
           "duration": 50.0,
-          "fidelity": 0.95,
+          "fidelity": 0.998120225824461,
           "operator": "RX",
           "operator_type": "gate",
           "parameters": [
@@ -1901,7 +1901,7 @@
             32
           ],
           "duration": 50.0,
-          "fidelity": 0.95,
+          "fidelity": 0.998120225824461,
           "operator": "RX",
           "operator_type": "gate",
           "parameters": [
@@ -1913,7 +1913,7 @@
             32
           ],
           "duration": 50.0,
-          "fidelity": 0.95,
+          "fidelity": 0.998120225824461,
           "operator": "RX",
           "operator_type": "gate",
           "parameters": [
@@ -1925,7 +1925,7 @@
             32
           ],
           "duration": 50.0,
-          "fidelity": 0.95,
+          "fidelity": 0.998120225824461,
           "operator": "RX",
           "operator_type": "gate",
           "parameters": [
@@ -1937,7 +1937,7 @@
             32
           ],
           "duration": 0.01,
-          "fidelity": 1.0,
+          "fidelity": 0.998120225824461,
           "operator": "RZ",
           "operator_type": "gate",
           "parameters": [
@@ -1982,7 +1982,7 @@
             33
           ],
           "duration": 50.0,
-          "fidelity": 0.95,
+          "fidelity": 0.997635034524841,
           "operator": "RX",
           "operator_type": "gate",
           "parameters": [
@@ -1994,7 +1994,7 @@
             33
           ],
           "duration": 50.0,
-          "fidelity": 0.95,
+          "fidelity": 0.997635034524841,
           "operator": "RX",
           "operator_type": "gate",
           "parameters": [
@@ -2006,7 +2006,7 @@
             33
           ],
           "duration": 50.0,
-          "fidelity": 0.95,
+          "fidelity": 0.997635034524841,
           "operator": "RX",
           "operator_type": "gate",
           "parameters": [
@@ -2018,7 +2018,7 @@
             33
           ],
           "duration": 50.0,
-          "fidelity": 0.95,
+          "fidelity": 0.997635034524841,
           "operator": "RX",
           "operator_type": "gate",
           "parameters": [
@@ -2030,7 +2030,7 @@
             33
           ],
           "duration": 0.01,
-          "fidelity": 1.0,
+          "fidelity": 0.997635034524841,
           "operator": "RZ",
           "operator_type": "gate",
           "parameters": [
@@ -2075,7 +2075,7 @@
             34
           ],
           "duration": 50.0,
-          "fidelity": 0.95,
+          "fidelity": 0.996864438593304,
           "operator": "RX",
           "operator_type": "gate",
           "parameters": [
@@ -2087,7 +2087,7 @@
             34
           ],
           "duration": 50.0,
-          "fidelity": 0.95,
+          "fidelity": 0.996864438593304,
           "operator": "RX",
           "operator_type": "gate",
           "parameters": [
@@ -2099,7 +2099,7 @@
             34
           ],
           "duration": 50.0,
-          "fidelity": 0.95,
+          "fidelity": 0.996864438593304,
           "operator": "RX",
           "operator_type": "gate",
           "parameters": [
@@ -2111,7 +2111,7 @@
             34
           ],
           "duration": 50.0,
-          "fidelity": 0.95,
+          "fidelity": 0.996864438593304,
           "operator": "RX",
           "operator_type": "gate",
           "parameters": [
@@ -2123,7 +2123,7 @@
             34
           ],
           "duration": 0.01,
-          "fidelity": 1.0,
+          "fidelity": 0.996864438593304,
           "operator": "RZ",
           "operator_type": "gate",
           "parameters": [
@@ -2168,7 +2168,7 @@
             35
           ],
           "duration": 50.0,
-          "fidelity": 0.95,
+          "fidelity": 0.997937749157514,
           "operator": "RX",
           "operator_type": "gate",
           "parameters": [
@@ -2180,7 +2180,7 @@
             35
           ],
           "duration": 50.0,
-          "fidelity": 0.95,
+          "fidelity": 0.997937749157514,
           "operator": "RX",
           "operator_type": "gate",
           "parameters": [
@@ -2192,7 +2192,7 @@
             35
           ],
           "duration": 50.0,
-          "fidelity": 0.95,
+          "fidelity": 0.997937749157514,
           "operator": "RX",
           "operator_type": "gate",
           "parameters": [
@@ -2204,7 +2204,7 @@
             35
           ],
           "duration": 50.0,
-          "fidelity": 0.95,
+          "fidelity": 0.997937749157514,
           "operator": "RX",
           "operator_type": "gate",
           "parameters": [
@@ -2216,7 +2216,7 @@
             35
           ],
           "duration": 0.01,
-          "fidelity": 1.0,
+          "fidelity": 0.997937749157514,
           "operator": "RZ",
           "operator_type": "gate",
           "parameters": [
@@ -2261,7 +2261,7 @@
             36
           ],
           "duration": 50.0,
-          "fidelity": 0.95,
+          "fidelity": 0.990523139563343,
           "operator": "RX",
           "operator_type": "gate",
           "parameters": [
@@ -2273,7 +2273,7 @@
             36
           ],
           "duration": 50.0,
-          "fidelity": 0.95,
+          "fidelity": 0.990523139563343,
           "operator": "RX",
           "operator_type": "gate",
           "parameters": [
@@ -2285,7 +2285,7 @@
             36
           ],
           "duration": 50.0,
-          "fidelity": 0.95,
+          "fidelity": 0.990523139563343,
           "operator": "RX",
           "operator_type": "gate",
           "parameters": [
@@ -2297,7 +2297,7 @@
             36
           ],
           "duration": 50.0,
-          "fidelity": 0.95,
+          "fidelity": 0.990523139563343,
           "operator": "RX",
           "operator_type": "gate",
           "parameters": [
@@ -2309,7 +2309,7 @@
             36
           ],
           "duration": 0.01,
-          "fidelity": 1.0,
+          "fidelity": 0.990523139563343,
           "operator": "RZ",
           "operator_type": "gate",
           "parameters": [
@@ -2354,7 +2354,7 @@
             37
           ],
           "duration": 50.0,
-          "fidelity": 0.95,
+          "fidelity": 0.999999385622736,
           "operator": "RX",
           "operator_type": "gate",
           "parameters": [
@@ -2366,7 +2366,7 @@
             37
           ],
           "duration": 50.0,
-          "fidelity": 0.95,
+          "fidelity": 0.999999385622736,
           "operator": "RX",
           "operator_type": "gate",
           "parameters": [
@@ -2378,7 +2378,7 @@
             37
           ],
           "duration": 50.0,
-          "fidelity": 0.95,
+          "fidelity": 0.999999385622736,
           "operator": "RX",
           "operator_type": "gate",
           "parameters": [
@@ -2390,7 +2390,7 @@
             37
           ],
           "duration": 50.0,
-          "fidelity": 0.95,
+          "fidelity": 0.999999385622736,
           "operator": "RX",
           "operator_type": "gate",
           "parameters": [
@@ -2402,7 +2402,7 @@
             37
           ],
           "duration": 0.01,
-          "fidelity": 1.0,
+          "fidelity": 0.999999385622736,
           "operator": "RZ",
           "operator_type": "gate",
           "parameters": [
@@ -2447,7 +2447,7 @@
             4
           ],
           "duration": 50.0,
-          "fidelity": 0.95,
+          "fidelity": 0.990387707932765,
           "operator": "RX",
           "operator_type": "gate",
           "parameters": [
@@ -2459,7 +2459,7 @@
             4
           ],
           "duration": 50.0,
-          "fidelity": 0.95,
+          "fidelity": 0.990387707932765,
           "operator": "RX",
           "operator_type": "gate",
           "parameters": [
@@ -2471,7 +2471,7 @@
             4
           ],
           "duration": 50.0,
-          "fidelity": 0.95,
+          "fidelity": 0.990387707932765,
           "operator": "RX",
           "operator_type": "gate",
           "parameters": [
@@ -2483,7 +2483,7 @@
             4
           ],
           "duration": 50.0,
-          "fidelity": 0.95,
+          "fidelity": 0.990387707932765,
           "operator": "RX",
           "operator_type": "gate",
           "parameters": [
@@ -2495,7 +2495,7 @@
             4
           ],
           "duration": 0.01,
-          "fidelity": 1.0,
+          "fidelity": 0.990387707932765,
           "operator": "RZ",
           "operator_type": "gate",
           "parameters": [
@@ -2540,7 +2540,7 @@
             5
           ],
           "duration": 50.0,
-          "fidelity": 0.95,
+          "fidelity": 0.996065286885264,
           "operator": "RX",
           "operator_type": "gate",
           "parameters": [
@@ -2552,7 +2552,7 @@
             5
           ],
           "duration": 50.0,
-          "fidelity": 0.95,
+          "fidelity": 0.996065286885264,
           "operator": "RX",
           "operator_type": "gate",
           "parameters": [
@@ -2564,7 +2564,7 @@
             5
           ],
           "duration": 50.0,
-          "fidelity": 0.95,
+          "fidelity": 0.996065286885264,
           "operator": "RX",
           "operator_type": "gate",
           "parameters": [
@@ -2576,7 +2576,7 @@
             5
           ],
           "duration": 50.0,
-          "fidelity": 0.95,
+          "fidelity": 0.996065286885264,
           "operator": "RX",
           "operator_type": "gate",
           "parameters": [
@@ -2588,7 +2588,7 @@
             5
           ],
           "duration": 0.01,
-          "fidelity": 1.0,
+          "fidelity": 0.996065286885264,
           "operator": "RZ",
           "operator_type": "gate",
           "parameters": [
@@ -2633,7 +2633,7 @@
             6
           ],
           "duration": 50.0,
-          "fidelity": 0.95,
+          "fidelity": 0.993098695450792,
           "operator": "RX",
           "operator_type": "gate",
           "parameters": [
@@ -2645,7 +2645,7 @@
             6
           ],
           "duration": 50.0,
-          "fidelity": 0.95,
+          "fidelity": 0.993098695450792,
           "operator": "RX",
           "operator_type": "gate",
           "parameters": [
@@ -2657,7 +2657,7 @@
             6
           ],
           "duration": 50.0,
-          "fidelity": 0.95,
+          "fidelity": 0.993098695450792,
           "operator": "RX",
           "operator_type": "gate",
           "parameters": [
@@ -2669,7 +2669,7 @@
             6
           ],
           "duration": 50.0,
-          "fidelity": 0.95,
+          "fidelity": 0.993098695450792,
           "operator": "RX",
           "operator_type": "gate",
           "parameters": [
@@ -2681,7 +2681,7 @@
             6
           ],
           "duration": 0.01,
-          "fidelity": 1.0,
+          "fidelity": 0.993098695450792,
           "operator": "RZ",
           "operator_type": "gate",
           "parameters": [
@@ -2726,7 +2726,7 @@
             7
           ],
           "duration": 50.0,
-          "fidelity": 0.95,
+          "fidelity": 0.993901137706895,
           "operator": "RX",
           "operator_type": "gate",
           "parameters": [
@@ -2738,7 +2738,7 @@
             7
           ],
           "duration": 50.0,
-          "fidelity": 0.95,
+          "fidelity": 0.993901137706895,
           "operator": "RX",
           "operator_type": "gate",
           "parameters": [
@@ -2750,7 +2750,7 @@
             7
           ],
           "duration": 50.0,
-          "fidelity": 0.95,
+          "fidelity": 0.993901137706895,
           "operator": "RX",
           "operator_type": "gate",
           "parameters": [
@@ -2762,7 +2762,7 @@
             7
           ],
           "duration": 50.0,
-          "fidelity": 0.95,
+          "fidelity": 0.993901137706895,
           "operator": "RX",
           "operator_type": "gate",
           "parameters": [
@@ -2774,7 +2774,7 @@
             7
           ],
           "duration": 0.01,
-          "fidelity": 1.0,
+          "fidelity": 0.993901137706895,
           "operator": "RZ",
           "operator_type": "gate",
           "parameters": [
