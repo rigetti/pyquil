@@ -15,11 +15,10 @@
 ##############################################################################
 from abc import ABC, abstractmethod
 from dataclasses import dataclass, field
-from typing import Dict, Generic, Mapping, Optional, TypeVar
+from typing import Generic, Mapping, Optional, TypeVar
 
 import numpy as np
 from pyquil.api._abstract_compiler import QuantumExecutable
-from pyquil.experiment._main import Experiment
 
 
 class QAMError(RuntimeError):

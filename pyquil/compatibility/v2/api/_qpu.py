@@ -1,4 +1,4 @@
-from typing import Any, Iterable, Mapping
+from typing import Any
 from pyquil.api._qpu import QPU as QPUV3
 from ._qam import StatefulQAM
 

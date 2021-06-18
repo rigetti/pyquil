@@ -15,9 +15,8 @@
 ##############################################################################
 import threading
 from datetime import datetime
-from typing import Dict, Optional
+from typing import Dict, Optional, TYPE_CHECKING
 
-import httpx
 from dateutil.parser import parse as parsedate
 from dateutil.tz import tzutc
 from qcs_api_client.client import QCSClientConfiguration
@@ -25,6 +24,9 @@ from qcs_api_client.models import EngagementWithCredentials, CreateEngagementReq
 from qcs_api_client.operations.sync import create_engagement
 
 from pyquil.api._qcs_client import qcs_client
+
+if TYPE_CHECKING:
+    import httpx
 
 
 class EngagementManager:

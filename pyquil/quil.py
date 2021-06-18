@@ -41,7 +41,7 @@ from rpcq.messages import NativeQuilMetadata, ParameterAref
 
 from pyquil._parser.parser import run_parser
 from pyquil._memory import Memory
-from pyquil.gates import DECLARE, MEASURE, RESET, MOVE
+from pyquil.gates import MEASURE, RESET, MOVE
 from pyquil.noise import _check_kraus_ops, _create_kraus_pragmas, pauli_kraus_map
 from pyquil.quilatom import (
     Label,

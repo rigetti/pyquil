@@ -22,7 +22,6 @@ from typing import Any, Dict, List, Mapping, Optional, Sequence, Set, Tuple, Uni
 import networkx as nx
 import numpy as np
 from qcs_api_client.client import QCSClientConfiguration
-from rpcq.messages import PyQuilExecutableResponse, QuiltBinaryExecutableResponse
 
 from pyquil.api._compiler import AbstractCompiler, QVMCompiler
 from pyquil.api._qam import QAM
@@ -38,7 +37,6 @@ from pyquil.gates import MEASURE, RX
 from pyquil.noise import NoiseModel, decoherence_noise_with_asymmetric_ro
 from pyquil.paulis import PauliTerm
 from pyquil.quantum_processor import AbstractQuantumProcessor, NxQuantumProcessor
-from pyquil.quantum_processor.graph import NxQuantumProcessor
 from pyquil.quil import Program, validate_supported_quil
 from pyquil.quilatom import qubit_index
 
@@ -631,7 +629,7 @@ def _next_power_of_2(x: int) -> int:
 
 # The code below is directly copied from scipy see https://bit.ly/2RjAHJz, the docstrings have
 # been modified.
-def hadamard(n: int, dtype: np.dtype[Any] = np.dtype("int")) -> np.ndarray:
+def hadamard(n: int, dtype: np.dtype = int) -> np.ndarray:  # type: ignore
     """
     Construct a Hadamard matrix.
     Constructs an n-by-n Hadamard matrix, using Sylvester's

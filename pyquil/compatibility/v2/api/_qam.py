@@ -1,4 +1,4 @@
-from typing import Any, Optional, Sequence, TypeVar, Union, cast
+from typing import Optional, Sequence, TypeVar, Union, cast
 import numpy as np
 
 from rpcq.messages import ParameterAref
