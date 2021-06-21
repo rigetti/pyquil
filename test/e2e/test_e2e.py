@@ -14,6 +14,7 @@
 #    limitations under the License.
 ##############################################################################
 from multiprocessing.pool import Pool, ThreadPool
+import numpy as np
 
 from qcs_api_client.client import QCSClientConfiguration
 
@@ -69,10 +70,10 @@ def run_program(
     quantum_processor_id: str,
     client_configuration: QCSClientConfiguration,
     engagement_manager: EngagementManager,
-):
+)-> np.ndarray:
     qc = get_qc(
         quantum_processor_id,
         client_configuration=client_configuration,
         engagement_manager=engagement_manager,
     )
-    return qc.run(qc.compile(program))
+    return qc.run(qc.compile(program)).readout_data['ro']
