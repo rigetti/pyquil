@@ -90,7 +90,7 @@ Changelog
 
 - `get_qc()` no longer accepts `"9q-generic"` (deprecated). Use `"9q-square"` instead.
 
-- Removed `QAM.read_from_memory_region()` (deprecated). Use `QAMExecutionResult.read_memory()` instead.
+- Removed `QAM.read_from_memory_region()` (deprecated). Use `QAMExecutionResult.readout_data.get(region_name)` instead.
 
 - Removed `local_qvm()` (deprecated). Use `local_forest_runtime()` instead.
 
