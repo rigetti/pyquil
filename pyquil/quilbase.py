@@ -17,7 +17,6 @@
 Contains the core pyQuil objects that correspond to Quil instructions.
 """
 import collections
-import sys
 from numbers import Complex
 from typing import (
     Any,
@@ -61,10 +60,7 @@ from pyquil.quilatom import (
 if TYPE_CHECKING:
     from pyquil.paulis import PauliSum
 
-if sys.version_info < (3, 7):
-    from pyquil.external.dataclasses import dataclass
-else:
-    from dataclasses import dataclass
+from dataclasses import dataclass
 
 
 class AbstractInstruction(object):

@@ -70,7 +70,7 @@ def get_qcs_quantum_processor(
     :param quantum_processor_id: QCS ID for the quantum processor.
     :param timeout: Time limit for request, in seconds.
     :param client_configuration: Optional client configuration. If none is provided, a default one will
-    be loaded.
+           be loaded.
 
     :return: A ``QCSQuantumProcessor`` with the requested ISA.
     """

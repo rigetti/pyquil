@@ -12,7 +12,7 @@ help:
 	@$(SPHINXBUILD) -M help "$(SOURCEDIR)" "$(BUILDDIR)" $(SPHINXOPTS) $(O)
 
 clean:
-	rm -rf "$(BUILDDIR)" "$(SOURCEDIR)/apidocs/autogen"
+	rm -rf "$(BUILDDIR)" "$(SOURCEDIR)/apidocs"
 
 .PHONY: clean help Makefile
 

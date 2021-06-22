@@ -14,7 +14,7 @@
 #    limitations under the License.
 ##############################################################################
 
-import sys
+from dataclasses import dataclass
 from fractions import Fraction
 from numbers import Complex
 from typing import (
@@ -33,11 +33,6 @@ from typing import (
 )
 
 import numpy as np
-
-if sys.version_info < (3, 7):
-    from pyquil.external.dataclasses import dataclass
-else:
-    from dataclasses import dataclass
 
 
 class QuilAtom(object):

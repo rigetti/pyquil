@@ -177,11 +177,12 @@ class QuantumComputer:
         steps in the ``experiment`` method are as follows:
 
            1. Generate a parameterized program corresponding to the ``Experiment``
-                (see the ``Experiment.generate_experiment_program()`` method for more
-                details on how it changes the main body program to support state preparation,
-                measurement, and symmetrization).
+              (see the ``Experiment.generate_experiment_program()`` method for more
+              details on how it changes the main body program to support state preparation,
+              measurement, and symmetrization).
+
             2. Compile the parameterized program into a parametric (binary) executable, which
-                contains declared variables that can be assigned at runtime.
+               contains declared variables that can be assigned at runtime.
 
             3. For each ``ExperimentSetting`` in the ``Experiment``, we repeat the following:
 

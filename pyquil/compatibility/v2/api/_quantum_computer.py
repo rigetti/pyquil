@@ -14,7 +14,6 @@
 #    limitations under the License.
 ##############################################################################
 import itertools
-from pyquil.pyqvm import PyQVM
 import warnings
 from math import log, pi
 from typing import Any, Dict, List, Mapping, Optional, Sequence, Set, Tuple, Union, cast
@@ -36,10 +35,10 @@ from pyquil.experiment._setting import ExperimentSetting
 from pyquil.gates import MEASURE, RX
 from pyquil.noise import NoiseModel, decoherence_noise_with_asymmetric_ro
 from pyquil.paulis import PauliTerm
+from pyquil.pyqvm import PyQVM
 from pyquil.quantum_processor import AbstractQuantumProcessor, NxQuantumProcessor
 from pyquil.quil import Program, validate_supported_quil
 from pyquil.quilatom import qubit_index
-
 from ._qam import StatefulQAM
 
 
