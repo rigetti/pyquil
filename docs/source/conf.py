@@ -45,7 +45,6 @@ extensions = [
     "sphinx.ext.mathjax",
     "sphinx.ext.ifconfig",
     "sphinx.ext.viewcode",
-    "sphinx_autodoc_typehints",
     "nbsphinx",
     "recommonmark",
 ]
@@ -71,7 +70,7 @@ master_doc = "index"
 
 # General information about the project.
 project = "pyQuil"
-copyright = "2019, Rigetti Computing"
+copyright = "2021, Rigetti Computing"
 author = "Rigetti Computing"
 
 # The version info for the project you're documenting, acts as replacement for
@@ -356,9 +355,9 @@ texinfo_documents = [
 # Example configuration for intersphinx: refer to the Python standard library.
 intersphinx_mapping = {"https://docs.python.org/3/": None}
 
-mathjax_config = {
-    "TeX": {
-        "Macros": {
+mathjax3_config = {
+    "tex": {
+        "macros": {
             "sket": ["\\left|\\left. #1 \\right\\rangle\\!\\right\\rangle", 1],
             "sbra": ["\\left\\langle\\!\\left\\langle #1 \\right.\\right|", 1],
             "sbraket": [
@@ -387,6 +386,17 @@ def builder_inited_handler(app):
             "--to=rst",
             f"--output={dirname}/changes.rst",
             f"{dirname}/../../CHANGELOG.md",
+        ]
+    )
+
+    subprocess.call(
+        [
+            "sphinx-apidoc",
+            "--module-first",
+            "--force",
+            "--separate",
+            f"--output-dir={dirname}/apidocs",
+            f"{dirname}/../../pyquil",
         ]
     )
 

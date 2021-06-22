@@ -1,12 +1,6 @@
-import sys
 from copy import copy
-
+from dataclasses import dataclass
 from typing import Union, Dict, List, Any, Optional, no_type_check
-
-if sys.version_info < (3, 7):
-    from pyquil.external.dataclasses import dataclass
-else:
-    from dataclasses import dataclass
 
 from pyquil.quilatom import (
     substitute,

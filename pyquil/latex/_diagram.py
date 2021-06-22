@@ -14,8 +14,8 @@
 #    limitations under the License.
 ##############################################################################
 
-import sys
 from collections import defaultdict
+from dataclasses import dataclass, replace
 from typing import Iterable, List, Sequence, Mapping, Optional, Set, Tuple, cast
 from warnings import warn
 
@@ -43,11 +43,6 @@ from pyquil.quilbase import (
     Gate,
     Pragma,
 )
-
-if sys.version_info < (3, 7):
-    from pyquil.external.dataclasses import dataclass, replace
-else:
-    from dataclasses import dataclass, replace
 
 
 @dataclass

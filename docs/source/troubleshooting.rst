@@ -21,7 +21,7 @@ to help!
    `on PyPi <https://pypi.org/project/pyquil/>`_.
 
 2. If the error appears to be authentication-related, refer to the `QCS CLI documentation
-<https://docs.rigetti.com/en/command-line-interface/command-line-interface>`_.
+<https://docs.rigetti.com>`_.
 
 3. Run your script with debug logging enabled. If you're running a script, you can enable that
    using an environment variable:

@@ -13,8 +13,8 @@ programs, writing to shared classical memory, and executing programs.
 
 The program execution itself is sent from pyQuil to quantum computer endpoints, which will be one of two options:
 
-  - A Rigetti Quantum Virtual Machine (QVM)
-  - A Rigetti Quantum Processing Unit (QPU)
+  - A Quantum Virtual Machine (QVM)
+  - A Quantum Processing Unit (QPU)
 
 Within pyQuil, there is a :py:class:`~pyquil.api.QVM` object and a :py:class:`~pyquil.api.QPU` object which use
 the exposed APIs of the QVM and QPU servers, respectively.
@@ -179,11 +179,11 @@ The Quantum Processing Unit (QPU)
 ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
 
 To access a QPU endpoint, you will have to `sign up <https://www.rigetti.com/>`_ for Quantum Cloud Services (QCS).
-Documentation for getting started can be found `here <https://www.rigetti.com/qcs/docs/intro-to-qcs>`_. The
-documentation will show you how to reserve time on a QPU. When your reservation begins, you will be authorized to
-access the QPU, and you can submit requests using pyQuil.
+Documentation for getting started can be found `here <https://docs.rigetti.com>`_. The documentation will show you how to
+reserve time on a QPU. When your reservation begins, you will be authorized to access the QPU, and you can submit
+requests using pyQuil.
 
-For information on available lattices, you can check out your dashboard at https://qcs.rigetti.com/dashboard after you've
+For information on available QPUs, you can check out your dashboard at https://qcs.rigetti.com/dashboard after you've
 been invited to QCS.
 
 
@@ -246,12 +246,10 @@ All of this can be accomplished with :py:func:`~pyquil.api.get_qc`.
     from pyquil import get_qc
 
     # Get a QPU
-    qc = get_qc(QPU_LATTICE_NAME)  # QPU_LATTICE_NAME is just a string naming the quantum_processor
+    qc = get_qc(QPU_NAME)  # QPU_NAME is just a string naming the quantum_processor
 
-    # Get a QVM with the same topology as the QPU lattice
-    qc = get_qc(QPU_LATTICE_NAME, as_qvm=True)
-    # or, equivalently
-    qc = get_qc(f"{QPU_LATTICE_NAME}-qvm")
+    # Get a QVM with the same topology as the QPU
+    qc = get_qc(QPU_NAME, as_qvm=True)
 
     # A fully connected QVM
     number_of_qubits = 10
@@ -378,8 +376,7 @@ Simulating the QPU using the QVM
 --------------------------------
 
 The :py:class:`~pyquil.api.QAM` methods are intended to be used in the same way, whether a QVM or QPU is being targeted.
-Everywhere on this page,
-you can swap out the type of the QAM (QVM <=> QPU) and you will still
+For everywhere on this page, you can swap out the type of the QAM (QVM <=> QPU) and you will still
 get reasonable results back. As long as the topologies of the quantum processors are the same, programs compiled and run on the QVM
 will be able to run on the QPU and vice versa. Since :py:class:`~pyquil.api.QuantumComputer` is built on the ``QAM``
 abstract class, its methods will also work for both QAM implementations.
@@ -388,15 +385,15 @@ This makes the QVM a powerful tool for testing quantum programs before executing
 
 .. code:: python
 
-    qpu = get_qc(QPU_LATTICE_NAME)
-    qvm = get_qc(QPU_LATTICE_NAME, as_qvm=True)
+    qpu = get_qc(QPU_NAME)
+    qvm = get_qc(QPU_NAME, as_qvm=True)
 
 By simply providing ``as_qvm=True``, we get a QVM which will have the same topology as
 the named QPU. It's a good idea to run your programs against the QVM before booking QPU time to iron out
 bugs. To learn more about how to add noise models to your virtual ``QuantumComputer`` instance, check out
 :ref:`noise`.
 
-In the next section, we will see how to use the Wavefunction Simulator aspect of the Rigetti QVM to inspect the full
+In the next section, we will see how to use the Wavefunction Simulator aspect of the QVM server to inspect the full
 wavefunction set up by a Quil program.
 
 .. [1] https://arxiv.org/abs/1608.03355
