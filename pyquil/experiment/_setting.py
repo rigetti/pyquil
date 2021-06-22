@@ -19,16 +19,10 @@ in a TensorProductState and measuring them in a PauliTerm-defined basis.
 """
 import logging
 import re
-import sys
+from dataclasses import dataclass
 from typing import Any, FrozenSet, Generator, Iterable, List, Optional, cast
 
 from pyquil.paulis import PauliTerm, sI
-
-if sys.version_info < (3, 7):
-    from pyquil.external.dataclasses import dataclass
-else:
-    from dataclasses import dataclass
-
 
 log = logging.getLogger(__name__)
 

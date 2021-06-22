@@ -79,7 +79,7 @@ with output
 
 The compiler connection is also available directly via the property ``qc.compiler``.  The
 precise class of this object changes based on context (e.g., ``QPUCompiler``,
-``QVMCompiler``), but it always conforms to the interface laid out by ``pyquil.api._qac``:
+``QVMCompiler``), but it always conforms to the interface laid out by ``AbstractCompiler``:
 
 * ``compiler.quil_to_native_quil(program, *, protoquil)``: This method converts a Quil program into
   native Quil, according to the ISA that the compiler is initialized with.  The input parameter is

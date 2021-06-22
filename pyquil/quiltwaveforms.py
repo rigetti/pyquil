@@ -1,18 +1,12 @@
-import sys
 from copy import copy
-import numpy as np
-from scipy.special import erf
+from dataclasses import dataclass
 from numbers import Complex, Real
-
 from typing import Callable, Dict, Union, List, Optional, no_type_check
 
+import numpy as np
+from scipy.special import erf
+
 from pyquil.quilatom import TemplateWaveform, _update_envelope, _complex_str, Expression, substitute
-
-if sys.version_info < (3, 7):
-    from pyquil.external.dataclasses import dataclass
-else:
-    from dataclasses import dataclass
-
 
 _waveform_classes: Dict[str, type] = {}
 """A mapping from Quil-T waveform names to their corresponding classes.

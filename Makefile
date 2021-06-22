@@ -39,7 +39,7 @@ coverage:
 	coveralls
 
 .PHONY: docs
-docs: CHANGELOG.md
+docs:
 	make -C docs clean html
 
 .PHONY: docker

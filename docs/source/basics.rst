@@ -34,7 +34,7 @@ Let's instantiate a ``Program`` and add an operation to it. We will act an ``X``
 
 All qubits begin in the ground state. This means that if we measure a qubit without applying operations on it, we expect to receive
 a 0 result. The ``X`` gate will rotate qubit 0 from the ground state to the excited state, so a measurement immediately
-after should return a 1 result. More details about gate operations are explained in :ref:`intro`.
+after should return a 1 result.
 
 We can print our pyQuil program (``print(p)``) to see the equivalent Quil representation:
 
@@ -43,9 +43,7 @@ We can print our pyQuil program (``print(p)``) to see the equivalent Quil repres
     X 0
 
 
-This isn't going to be very useful to us without measurements. In pyQuil 2.0, we have to ``DECLARE`` a memory space
-to read measurement results, which we call "readout results" and abbreviate as ``ro``. With measurement, our whole program
-looks like this:
+This isn't going to be very useful to us without measurements. To declare memory and measure into it, write:
 
 .. code:: python
 
@@ -200,6 +198,7 @@ use the compiler to :ref:`re-index <rewiring>` your qubits):
 
     qubits = [5, 6, 7]
     # ...
+    ro = p.declare('ro', 'BIT', len(qubits))
     for i, q in enumerate(qubits):
         p += MEASURE(q, ro[i])
 
@@ -304,7 +303,7 @@ filled in for, say, 200 values between :math:`0` and :math:`2\pi`. We demonstrat
         executable.write_memory(region_name='theta', value=theta)
 
         # Get the results of the run with the value we want to execute with
-        bitstrings = qc.run(executable)
+        bitstrings = qc.run(executable).readout_data.get('ro')
 
         # Store our results
         parametric_measurements.append(bitstrings)
@@ -573,8 +572,8 @@ Consider the following program.
 
     p = Program(X(3))
 
-We've tested this on the QVM, and we've reserved a lattice on the QPU which has qubits 4, 5, and 6, but not qubit 3.
-Rather than rewrite our program for each reservation, we modify our program to tell the compiler to do this for us.
+We've tested this on the QVM, and we've targeted a lattice on the QPU which has qubits 4, 5, and 6, but not qubit 3.
+Rather than rewrite our program, we modify our program to tell the compiler to do this for us.
 
 .. code:: python
 

@@ -30,9 +30,9 @@ However, this required three small but important changes:
 
 1. ``write_memory`` is no longer a method on ``QAM`` but rather on ``Program`` and ``EncryptedProgram``.
 2. ``qc.run()`` no longer accepts a ``memory_map`` argument. All memory values must be set directly
-  on the ``Program`` or ``EncryptedProgram`` using ``write_memory``.
+   on the ``Program`` or ``EncryptedProgram`` using ``write_memory``.
 3. ``QAM.load()``, ``QAM.wait()``, and ``QAM.reset()`` no longer exist, because the
-  ``QAM`` no longer "stores" program state.
+   ``QAM`` no longer "stores" program state.
 
 This means that you should now execute your programs using one of these options:
 
@@ -89,8 +89,8 @@ change any code.
 
 .. code:: python
 
-   from pyquil.compatibility.v2 import get_qc, QuantumComputer
-   from pyquil.compatibility.v2.api import QAM, QVM, QPU
+   from pyquil.compatibility.v2 import get_qc
+   from pyquil.compatibility.v2.api import QuantumComputer, QAM, QVM, QPU
 
 You can use these imported objects similarly how you use their counterparts in pyQuil v2.
 Once you've verified that your scripts still work with v3, we recommend that you gradually convert

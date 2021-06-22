@@ -168,14 +168,13 @@ def permutation_arbitrary(qubit_inds: Sequence[int], n_qubits: int) -> Tuple[np.
     adjacent qubits.
 
     :param qubit_inds: Qubit indices in the order the gate is
-        applied to.
+           applied to.
     :param n_qubits: Number of qubits in system
     :return:
         perm - permutation matrix providing the desired qubit reordering
-        qubit_arr - new indexing of qubits presented in left to right
-            decreasing index order. Should be identical to passed 'args'.
+        qubit_arr - new indexing of qubits presented in left to right decreasing index order. Should be identical to passed 'args'.
         start_i - starting index to lift gate from
-    """
+    """  # noqa: E501
     # Begin construction of permutation
     perm = np.eye(2 ** n_qubits, dtype=np.complex128)
 

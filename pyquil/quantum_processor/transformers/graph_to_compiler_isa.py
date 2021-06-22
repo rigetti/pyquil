@@ -36,9 +36,9 @@ def graph_to_compiler_isa(
 
     :param graph: The graph topology of the quantum_processor.
     :param gates_1q: A list of 1Q gate names to be made available for all qubits in the quantum_processor.
-    Defaults to ``DEFAULT_1Q_GATES``.
+           Defaults to ``DEFAULT_1Q_GATES``.
     :param gates_2q: A list of 2Q gate names to be made available for all edges in the quantum_processor.
-    Defaults to ``DEFAULT_2Q_GATES``.
+           Defaults to ``DEFAULT_2Q_GATES``.
     """
     gates_1q = gates_1q or DEFAULT_1Q_GATES.copy()
     gates_2q = gates_2q or DEFAULT_2Q_GATES.copy()
