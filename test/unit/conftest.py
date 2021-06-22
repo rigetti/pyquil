@@ -4,6 +4,7 @@ import random
 import socket
 from pathlib import Path
 from typing import Dict, Any
+from threading import Lock
 
 import numpy as np
 import pytest
@@ -181,15 +182,19 @@ def rpcq_server() -> rpcq.Server:
     return rpcq.Server()
 
 
+port_lock = Lock()
+
+
 @pytest.fixture(scope="function")
 def port() -> int:
-    while True:
-        p = random.randint(10000, 60000)
-        sock = socket.socket()
-        err = sock.connect_ex(("localhost", p))
-        sock.close()
-        if err != 0:  # 0 => port in use
-            return p
+    with port_lock:
+        while True:
+            p = random.randint(10000, 60000)
+            sock = socket.socket()
+            err = sock.connect_ex(("localhost", p))
+            sock.close()
+            if err != 0:  # 0 => port in use
+                return p
 
 
 @pytest.fixture(scope="session")
