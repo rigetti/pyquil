@@ -177,11 +177,12 @@ class QuantumComputer:
         steps in the ``experiment`` method are as follows:
 
            1. Generate a parameterized program corresponding to the ``Experiment``
-                (see the ``Experiment.generate_experiment_program()`` method for more
-                details on how it changes the main body program to support state preparation,
-                measurement, and symmetrization).
+              (see the ``Experiment.generate_experiment_program()`` method for more
+              details on how it changes the main body program to support state preparation,
+              measurement, and symmetrization).
+
             2. Compile the parameterized program into a parametric (binary) executable, which
-                contains declared variables that can be assigned at runtime.
+               contains declared variables that can be assigned at runtime.
 
             3. For each ``ExperimentSetting`` in the ``Experiment``, we repeat the following:
 
@@ -250,7 +251,7 @@ class QuantumComputer:
             std_errs = np.std(expectations, axis=0, ddof=1) / np.sqrt(len(expectations))
 
             joint_results = []
-            for qubit_subset, mean, std_err in zip(joint_expectations, means, std_errs):  # type: ignore
+            for qubit_subset, mean, std_err in zip(joint_expectations, means, std_errs):
                 out_operator = PauliTerm.from_list([(setting.out_operator[i], i) for i in qubit_subset])
                 s = ExperimentSetting(
                     in_state=setting.in_state,

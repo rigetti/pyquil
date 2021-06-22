@@ -18,18 +18,12 @@ Schema definition of an ExperimentResult, which encapsulates the outcome of a co
 measurements that are aimed at estimating the expectation value of some observable.
 """
 import logging
-import sys
+from dataclasses import dataclass
 from typing import Any, Dict, List, Optional, Union
 
 import numpy as np
 
 from pyquil.experiment._setting import ExperimentSetting
-
-if sys.version_info < (3, 7):
-    from pyquil.external.dataclasses import dataclass
-else:
-    from dataclasses import dataclass
-
 
 log = logging.getLogger(__name__)
 

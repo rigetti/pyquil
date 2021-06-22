@@ -11,10 +11,11 @@ Changelog
 
 - Python 3.6 is no longer supported. Python 3.7, 3.8, and 3.9 are supported.
   
-- `pyquil.compatibility.v2` provides a number of classes which support the pyQuil v2 API, such as
-  `QuantumComputer` and `get_qc`; `pyquil.compatibility.v2.api` offers `QPU` and `QVM`. These may be
+- `pyquil.compatibility.v2` provides a number of classes/utilities which support the pyQuil v2 API, such as
+  `get_qc`; `pyquil.compatibility.v2.api` offers `QuantumComputer`, `QPU`, and `QVM`. These may be
   used to incrementally migrate from v2 to v3, but should not be relied on indefinitely, as the
-  underlying mechanics of these two versions continue to diverge in the future.
+  underlying mechanics of these two versions will continue to diverge in the future.
+
 ### Improvements and Changes
 
 - Added support and documentation for concurrent compilation and execution (see "Advanced Usage" in docs)

@@ -87,8 +87,8 @@ change any code.
 
 .. code:: python
 
-   from pyquil.compatibility.v2 import get_qc, QuantumComputer
-   from pyquil.compatibility.v2.api import QAM, QVM, QPU
+   from pyquil.compatibility.v2 import get_qc
+   from pyquil.compatibility.v2.api import QuantumComputer, QAM, QVM, QPU
 
 You can use these imported objects similarly how you use their counterparts in pyQuil v2.
 Once you've verified that your scripts still work with v3, we recommend that you gradually convert

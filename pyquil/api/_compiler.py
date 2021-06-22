@@ -14,7 +14,7 @@
 #    limitations under the License.
 ##############################################################################
 import logging
-import multiprocessing
+import threading
 from contextlib import contextmanager
 from typing import Dict, Optional, cast, List, Iterator
 
@@ -31,7 +31,6 @@ from qcs_api_client.types import UNSET
 from rpcq.messages import ParameterSpec
 
 from pyquil.api._abstract_compiler import AbstractCompiler, QuantumExecutable, EncryptedProgram
-
 from pyquil.api._qcs_client import qcs_client
 from pyquil.api._rewrite_arithmetic import rewrite_arithmetic
 from pyquil.parser import parse_program, parse
@@ -78,7 +77,7 @@ class QPUCompiler(AbstractCompiler):
     Client to communicate with the compiler and translation service.
     """
 
-    _calibration_program_lock: multiprocessing.Lock  # type: ignore
+    _calibration_program_lock: threading.Lock
 
     def __init__(
         self,
@@ -104,7 +103,7 @@ class QPUCompiler(AbstractCompiler):
 
         self.quantum_processor_id = quantum_processor_id
         self._calibration_program: Optional[Program] = None
-        self._calibration_program_lock = multiprocessing.Lock()
+        self._calibration_program_lock = threading.Lock()
 
     def native_quil_to_executable(self, nq_program: Program) -> QuantumExecutable:
         arithmetic_response = rewrite_arithmetic(nq_program)
@@ -157,12 +156,12 @@ class QPUCompiler(AbstractCompiler):
         hardware.
 
         :returns: A Program object containing the calibration definitions."""
-        with self._calibration_program_lock:  # type: ignore
-            if self._calibration_program is None:
-                try:
-                    self.refresh_calibration_program()
-                except Exception as ex:
-                    raise RuntimeError("Could not refresh calibrations") from ex
+        # with self._calibration_program_lock:  # type: ignore
+        if self._calibration_program is None:
+            try:
+                self.refresh_calibration_program()
+            except Exception as ex:
+                raise RuntimeError("Could not refresh calibrations") from ex
 
         assert self._calibration_program is not None
         return self._calibration_program

@@ -61,7 +61,7 @@ def _is_valid_quantum_state(state_matrix: np.ndarray, rtol: float = 1e-05, atol:
     non_neg_eigs = all([False if val < -atol else True for val in evals])
     if not non_neg_eigs:
         raise ValueError("The state matrix has negative Eigenvalues of order -" + str(atol) + ".")
-    return hermitian and trace_one and non_neg_eigs  # type: ignore
+    return hermitian and trace_one and non_neg_eigs
 
 
 class ReferenceWavefunctionSimulator(AbstractQuantumSimulator):
@@ -117,7 +117,7 @@ class ReferenceWavefunctionSimulator(AbstractQuantumSimulator):
         :return: ``self`` to support method chaining.
         """
         unitary = lifted_gate(gate=gate, n_qubits=self.n_qubits)
-        self.wf = unitary.dot(self.wf)  # type: ignore
+        self.wf = unitary.dot(self.wf)
         return self
 
     def do_gate_matrix(self, matrix: np.ndarray, qubits: Sequence[int]) -> "ReferenceWavefunctionSimulator":
@@ -129,7 +129,7 @@ class ReferenceWavefunctionSimulator(AbstractQuantumSimulator):
         :return: ``self`` to support method chaining.
         """
         unitary = lifted_gate_matrix(matrix, list(qubits), n_qubits=self.n_qubits)
-        self.wf = unitary.dot(self.wf)  # type: ignore
+        self.wf = unitary.dot(self.wf)
         return self
 
     def do_measurement(self, qubit: int) -> int:

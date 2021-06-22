@@ -13,7 +13,7 @@
 #    See the License for the specific language governing permissions and
 #    limitations under the License.
 ##############################################################################
-import multiprocessing
+import threading
 from datetime import datetime
 from typing import Dict, Optional, TYPE_CHECKING
 
@@ -34,7 +34,7 @@ class EngagementManager:
     Fetches (and caches) engagements for use when accessing a QPU.
     """
 
-    _lock: multiprocessing.Lock  # type: ignore
+    _lock: threading.Lock
     """Lock used to ensure that only one engagement request is in flight at once."""
 
     def __init__(self, *, client_configuration: QCSClientConfiguration) -> None:
@@ -45,7 +45,7 @@ class EngagementManager:
         """
         self._client_configuration = client_configuration
         self._cached_engagements: Dict[str, EngagementWithCredentials] = {}
-        self._lock = multiprocessing.Lock()
+        self._lock = threading.Lock()
 
     def get_engagement(self, *, quantum_processor_id: str, request_timeout: float = 10.0) -> EngagementWithCredentials:
         """
@@ -56,7 +56,7 @@ class EngagementManager:
         :param request_timeout: Timeout for request, in seconds.
         :return: Fetched or cached engagement.
         """
-        with self._lock:  # type: ignore
+        with self._lock:
             if not self._engagement_valid(self._cached_engagements.get(quantum_processor_id)):
                 with qcs_client(
                     client_configuration=self._client_configuration, request_timeout=request_timeout
