@@ -34,7 +34,7 @@ class EngagementManager:
     Fetches (and caches) engagements for use when accessing a QPU.
     """
 
-    _lock: multiprocessing.Lock   # type: ignore
+    _lock: multiprocessing.Lock  # type: ignore
     """Lock used to ensure that only one engagement request is in flight at once."""
 
     def __init__(self, *, client_configuration: QCSClientConfiguration) -> None:
