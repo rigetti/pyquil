@@ -15,7 +15,7 @@ cache:
     - .venv
 
 .install-dephell: &install-dephell # Install dephell to auto-generate setup.py
-  - curl -L https://raw.githubusercontent.com/dephell/dephell/v.0.8.3/install.py | python
+  - curl -L https://raw.githubusercontent.com/rigetti/dephell/master/install.py | python
 
 .install-npm: &install-npm
   - curl -sL https://deb.nodesource.com/setup_12.x | bash -
