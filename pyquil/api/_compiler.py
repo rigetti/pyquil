@@ -14,7 +14,7 @@
 #    limitations under the License.
 ##############################################################################
 import logging
-import threading
+import multiprocessing
 from contextlib import contextmanager
 from typing import Dict, Optional, cast, List, Iterator
 
@@ -78,7 +78,7 @@ class QPUCompiler(AbstractCompiler):
     Client to communicate with the compiler and translation service.
     """
 
-    _calibration_program_lock: threading.Lock
+    _calibration_program_lock: multiprocessing.Lock
 
     def __init__(
         self,
@@ -104,7 +104,7 @@ class QPUCompiler(AbstractCompiler):
 
         self.quantum_processor_id = quantum_processor_id
         self._calibration_program: Optional[Program] = None
-        self._calibration_program_lock = threading.Lock()
+        self._calibration_program_lock = multiprocessing.Lock()
 
     def native_quil_to_executable(self, nq_program: Program) -> QuantumExecutable:
         arithmetic_response = rewrite_arithmetic(nq_program)
