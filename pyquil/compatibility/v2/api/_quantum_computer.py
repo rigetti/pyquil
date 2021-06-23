@@ -78,7 +78,7 @@ class QuantumComputer(QuantumComputerV3):
             :py:func:`run_symmetrized_readout` for a complete description.
         """
         self.name = name
-        StatefulQAM.wrap(self.qam)
+        StatefulQAM.wrap(qam)
         self.qam = cast(StatefulQAM[Any], qam)
         self.compiler = compiler
 

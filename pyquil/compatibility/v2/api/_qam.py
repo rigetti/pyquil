@@ -26,10 +26,9 @@ class StatefulQAM(QAM[T]):
         self._loaded_executable = executable.copy()
         return self
 
-    def read_memory(self, region_name: str) -> np.ndarray:
+    def read_memory(self, region_name: str) -> Optional[np.ndarray]:
         assert self._result is not None, "QAM#run must be called before QAM#read_memory"
         data = self._result.readout_data.get(region_name)
-        assert data is not None
         return data
 
     def reset(self) -> "StatefulQAM[T]":
