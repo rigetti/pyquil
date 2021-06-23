@@ -597,7 +597,7 @@ measurements. This functionality is emulated by :py:func:`QuantumComputer.run`. 
 
 
     qc = get_qc('9q-square-qvm')
-    print (qc.run(qc.compile(p)))
+    print (qc.run(qc.compile(p)).readout_data.get("ro"))
 
 
 .. parsed-literal::
@@ -615,7 +615,7 @@ qubit before measurement then we obtain:
     p += Program(X(0))   # Flip the qubit
     p.measure(0, classical_register[0])   # Measure the qubit
 
-    print (qc.run(qc.compile(p)))
+    print (qc.run(qc.compile(p)).readout_data.get("ro"))
 
 
 .. parsed-literal::
@@ -636,7 +636,7 @@ times then we always get the same outcome:
     trials = 10
     p.wrap_in_numshots_loop(shots=trials)
 
-    print (qc.run(qc.compile(p)))
+    print (qc.run(qc.compile(p)).readout_data.get("ro"))
 
 
 .. parsed-literal::
@@ -705,7 +705,7 @@ extra power over regular bits.
     p.wrap_in_numshots_loop(shots=10)
 
     # We see probabilistic results of about half 1's and half 0's
-    print (qc.run(qc.compile(p)))
+    print (qc.run(qc.compile(p)).readout_data.get("ro"))
 
 
 .. parsed-literal::
@@ -799,7 +799,7 @@ quantum operations to run.
     p.measure(7, ro[7])
 
     # Run and check register [7]
-    print (qc.run(qc.compile(p)))
+    print (qc.run(qc.compile(p)).readout_data.get("ro"))
 
 
 .. parsed-literal::
@@ -824,7 +824,7 @@ increasing chance of halting, but that may run forever!
     p.inst(X(0)).while_do(ro[0], inside_loop)
 
     qc = get_qc('9q-square-qvm')
-    print (qc.run(qc.compile(p)))
+    print (qc.run(qc.compile(p)).readout_data.get("ro"))
 
 
 .. parsed-literal::

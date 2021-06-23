@@ -171,7 +171,7 @@ def test_sample_bitstrings():
 
 def test_expectation_helper():
     n_qubits = 3
-    wf = np.zeros(shape=((2,) * n_qubits), dtype=np.complex)
+    wf = np.zeros(shape=((2,) * n_qubits), dtype=np.complex128)
     wf[0, 0, 0] = 1
     z0 = _term_expectation(wf, 0.4 * sZ(0))
     assert z0 == 0.4

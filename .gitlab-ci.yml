@@ -15,7 +15,7 @@ cache:
     - .venv
 
 .install-dephell: &install-dephell # Install dephell to auto-generate setup.py
-  - curl -L https://raw.githubusercontent.com/dephell/dephell/v.0.8.3/install.py | python
+  - curl -L https://raw.githubusercontent.com/rigetti/dephell/master/install.py | python
 
 .install-npm: &install-npm
   - curl -sL https://deb.nodesource.com/setup_12.x | bash -
@@ -75,6 +75,7 @@ Test Unit (3.7):
 
 Test e2e QPU (3.7):
   stage: test
+  allow_failure: true
   image: python:3.7
   coverage: '/TOTAL.*?(\d+)\%/'
   script:
@@ -101,6 +102,7 @@ Test Unit (3.8):
 
 Test e2e QPU (3.8):
   stage: test
+  allow_failure: true
   image: python:3.8
   coverage: '/TOTAL.*?(\d+)\%/'
   script:
@@ -127,6 +129,7 @@ Test Unit (3.9):
 
 Test e2e QPU (3.9):
   stage: test
+  allow_failure: true
   image: python:3.9
   coverage: '/TOTAL.*?(\d+)\%/'
   script:

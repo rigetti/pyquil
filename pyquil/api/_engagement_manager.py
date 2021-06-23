@@ -13,11 +13,10 @@
 #    See the License for the specific language governing permissions and
 #    limitations under the License.
 ##############################################################################
-import threading
+import multiprocessing
 from datetime import datetime
-from typing import Dict, Optional
+from typing import Dict, Optional, TYPE_CHECKING
 
-import httpx
 from dateutil.parser import parse as parsedate
 from dateutil.tz import tzutc
 from qcs_api_client.client import QCSClientConfiguration
@@ -26,13 +25,17 @@ from qcs_api_client.operations.sync import create_engagement
 
 from pyquil.api._qcs_client import qcs_client
 
+if TYPE_CHECKING:
+    import httpx
+
 
 class EngagementManager:
     """
     Fetches (and caches) engagements for use when accessing a QPU.
     """
 
-    _lock = threading.Lock()
+    _lock: multiprocessing.Lock  # type: ignore
+    """Lock used to ensure that only one engagement request is in flight at once."""
 
     def __init__(self, *, client_configuration: QCSClientConfiguration) -> None:
         """
@@ -42,6 +45,7 @@ class EngagementManager:
         """
         self._client_configuration = client_configuration
         self._cached_engagements: Dict[str, EngagementWithCredentials] = {}
+        self._lock = multiprocessing.Lock()
 
     def get_engagement(self, *, quantum_processor_id: str, request_timeout: float = 10.0) -> EngagementWithCredentials:
         """
@@ -52,8 +56,7 @@ class EngagementManager:
         :param request_timeout: Timeout for request, in seconds.
         :return: Fetched or cached engagement.
         """
-        EngagementManager._lock.acquire()
-        try:
+        with self._lock:  # type: ignore
             if not self._engagement_valid(self._cached_engagements.get(quantum_processor_id)):
                 with qcs_client(
                     client_configuration=self._client_configuration, request_timeout=request_timeout
@@ -63,8 +66,6 @@ class EngagementManager:
                         client=client, json_body=request
                     ).parsed
             return self._cached_engagements[quantum_processor_id]
-        finally:
-            EngagementManager._lock.release()
 
     @staticmethod
     def _engagement_valid(engagement: Optional[EngagementWithCredentials]) -> bool:

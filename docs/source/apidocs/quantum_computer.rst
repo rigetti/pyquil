@@ -17,7 +17,6 @@ Quantum Computer
 
         ~QuantumComputer.run
         ~QuantumComputer.calibrate
-        ~QuantumComputer.experiment
         ~QuantumComputer.run_symmetrized_readout
         ~QuantumComputer.qubits
         ~QuantumComputer.qubit_topology

@@ -4,6 +4,7 @@ from unittest import mock
 import numpy as np
 import pytest
 
+from pyquil.api._qam import QAMExecutionResult
 from pyquil.gates import RZ, RX, I, CZ
 from pyquil.noise import (
     pauli_kraus_map,
@@ -290,9 +291,10 @@ def test_estimate_assignment_probs(mock_qc_class: mock.MagicMock, mock_compiler_
 
     mock_compiler.native_quil_to_executable.return_value = Program()
     mock_qc.compiler = mock_compiler
+    mock_qc
     mock_qc.run.side_effect = [
-        np.array([[0]]) * int(round(p00 * trials)) + np.array([[1]]) * int(round((1 - p00) * trials)),  # I gate results
-        np.array([[1]]) * int(round(p11 * trials)) + np.array([[0]]) * int(round((1 - p11) * trials)),  # X gate results
+        QAMExecutionResult(executable=None, readout_data={'ro': np.array([[0]]) * int(round(p00 * trials)) + np.array([[1]]) * int(round((1 - p00) * trials))}),  # I gate results
+        QAMExecutionResult(executable=None, readout_data={'ro': np.array([[1]]) * int(round(p11 * trials)) + np.array([[0]]) * int(round((1 - p11) * trials))}),  # X gate results
     ]
     ap_target = np.array([[p00, 1 - p11], [1 - p00, p11]])
 

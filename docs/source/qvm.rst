@@ -314,7 +314,8 @@ For example:
     p.wrap_in_numshots_loop(5)
 
     executable = qc.compile(p)
-    bitstrings = qc.run(executable)  # .run takes in a compiled program
+    result = qc.run(executable)  # .run takes in a compiled program
+    bitstrings = result.readout_data.get("ro")
     print(bitstrings)
 
 The results returned is a *list of lists of integers*. In the above case, that's
@@ -334,6 +335,16 @@ for more details about declaring and accessing classical memory regions.
 .. tip:: Get the results for qubit 0 with ``numpy.array(bitstrings)[:,0]``.
 
 .. _new_topology:
+
+``.execute`` and ``.get_result``
+^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+
+The ``.run(...)`` method is itself a convenience wrapper around two other methods: ``.execute(...)`` and
+``.get_result(...)``. ``run`` makes your program appear synchronous (request and then wait for the response),
+when in reality on some backends (such as a live QPU), execution is in fact asynchronous (request execution,
+then request results at a later time). For finer-grained control over your program execution process,
+you can use these two methods in place of ``.run``. This is most useful when you want to execute work
+concurrently - for that, please see "Advanced Usage."
 
 Providing Your Own Quantum Processor Topology
 ---------------------------------------------

@@ -7,25 +7,26 @@ import numpy as np
 import pytest
 from pyquil import Program, list_quantum_computers
 from pyquil.api import QCSClientConfiguration
+
 from pyquil.api._quantum_computer import (
-    QuantumComputer,
     _check_min_num_trials_for_symmetrized_readout,
     _consolidate_symmetrization_outputs,
     _construct_orthogonal_array,
     _construct_strength_three_orthogonal_array,
     _construct_strength_two_orthogonal_array,
     _flip_array_to_prog,
-    _get_qvm_with_topology,
-    _measure_bitstrings,
     _parse_name,
     _symmetrization,
-    get_qc,
 )
-from pyquil.api._qvm import QVM
-from pyquil.experiment import Experiment, ExperimentSetting
+from pyquil.compatibility.v2 import QuantumComputer, get_qc
+from pyquil.compatibility.v2.api._quantum_computer import  _get_qvm_with_topology, _measure_bitstrings
+from pyquil.compatibility.v2.api import QVM
+from pyquil.experiment import ExperimentSetting, Experiment
 from pyquil.experiment._main import _pauli_to_product_state
-from pyquil.gates import CNOT, MEASURE, RESET, RX, RY, H, I, X
-from pyquil.noise import NoiseModel, decoherence_noise_with_asymmetric_ro
+from pyquil.gates import CNOT, H, RESET, RY, X
+from pyquil.gates import I, MEASURE, RX
+from pyquil.noise import NoiseModel
+from pyquil.noise import decoherence_noise_with_asymmetric_ro
 from pyquil.paulis import sX, sY, sZ
 from pyquil.pyqvm import PyQVM
 from pyquil.quantum_processor import NxQuantumProcessor
@@ -191,7 +192,7 @@ def test_run(client_configuration: QCSClientConfiguration):
         qam=QVM(client_configuration=client_configuration, gate_noise=(0.01, 0.01, 0.01)),
         compiler=DummyCompiler(quantum_processor=quantum_processor, client_configuration=client_configuration),
     )
-    result = qc.run(
+    bitstrings = qc.run(
         Program(
             Declare("ro", "BIT", 3),
             H(0),
@@ -202,7 +203,6 @@ def test_run(client_configuration: QCSClientConfiguration):
             MEASURE(2, MemoryReference("ro", 2)),
         ).wrap_in_numshots_loop(1000)
     )
-    bitstrings = result.readout_data.get('ro')
 
     assert bitstrings.shape == (1000, 3)
     parity = np.sum(bitstrings, axis=1) % 3
@@ -220,8 +220,7 @@ def test_run_pyqvm_noiseless(client_configuration: QCSClientConfiguration):
     ro = prog.declare("ro", "BIT", 3)
     for q in range(3):
         prog += MEASURE(q, ro[q])
-    result = qc.run(prog.wrap_in_numshots_loop(1000))
-    bitstrings = result.readout_data.get('ro')
+    bitstrings = qc.run(prog.wrap_in_numshots_loop(1000))
 
     assert bitstrings.shape == (1000, 3)
     parity = np.sum(bitstrings, axis=1) % 3
@@ -239,8 +238,7 @@ def test_run_pyqvm_noisy(client_configuration: QCSClientConfiguration):
     ro = prog.declare("ro", "BIT", 3)
     for q in range(3):
         prog += MEASURE(q, ro[q])
-    result = qc.run(prog.wrap_in_numshots_loop(1000))
-    bitstrings = result.readout_data.get('ro')
+    bitstrings = qc.run(prog.wrap_in_numshots_loop(1000))
 
     assert bitstrings.shape == (1000, 3)
     parity = np.sum(bitstrings, axis=1) % 3
@@ -265,10 +263,9 @@ def test_readout_symmetrization(client_configuration: QCSClientConfiguration):
     )
     prog.wrap_in_numshots_loop(1000)
 
-    result_1 = qc.run(prog)
-    bitstrings_1 = result_1.readout_data.get('ro')
-    avg0_us = np.mean(bitstrings_1[:, 0])
-    avg1_us = 1 - np.mean(bitstrings_1[:, 1])
+    bs1 = qc.run(prog)
+    avg0_us = np.mean(bs1[:, 0])
+    avg1_us = 1 - np.mean(bs1[:, 1])
     diff_us = avg1_us - avg0_us
     assert diff_us > 0.03
 
@@ -276,9 +273,9 @@ def test_readout_symmetrization(client_configuration: QCSClientConfiguration):
         I(0),
         X(1),
     )
-    bitstrings_2 = qc.run_symmetrized_readout(prog, 1000)
-    avg0_s = np.mean(bitstrings_2[:, 0])
-    avg1_s = 1 - np.mean(bitstrings_2[:, 1])
+    bs2 = qc.run_symmetrized_readout(prog, 1000)
+    avg0_s = np.mean(bs2[:, 0])
+    avg1_s = 1 - np.mean(bs2[:, 1])
     diff_s = avg1_s - avg0_s
     assert diff_s < 0.05
 
@@ -297,6 +294,7 @@ def test_run_symmetrized_readout_error(client_configuration: QCSClientConfigurat
 
 def test_list_qc():
     qc_names = list_quantum_computers(qpus=False)
+    # TODO: update with deployed qpus
     assert qc_names == ["9q-square-qvm", "9q-square-noisy-qvm"]
 
 
@@ -422,7 +420,7 @@ def test_qc_run(client_configuration: QCSClientConfiguration):
                 MEASURE(0, ("ro", 0)),
             ).wrap_in_numshots_loop(3)
         )
-    ).readout_data.get('ro')
+    )
     assert bs.shape == (3, 1)
 
 
@@ -463,15 +461,15 @@ def test_run_with_parameters(client_configuration: QCSClientConfiguration):
         qam=QVM(client_configuration=client_configuration),
         compiler=DummyCompiler(quantum_processor=quantum_processor, client_configuration=client_configuration),
     )
-    executable = Program(
-        Declare(name="theta", memory_type="REAL"),
-        Declare(name="ro", memory_type="BIT"),
-        RX(MemoryReference("theta"), 0),
-        MEASURE(0, MemoryReference("ro")),
-    ).wrap_in_numshots_loop(1000)
-
-    executable.write_memory(region_name="theta", value=np.pi)
-    bitstrings = qc.run(executable).readout_data.get('ro')
+    bitstrings = qc.run(
+        executable=Program(
+            Declare(name="theta", memory_type="REAL"),
+            Declare(name="ro", memory_type="BIT"),
+            RX(MemoryReference("theta"), 0),
+            MEASURE(0, MemoryReference("ro")),
+        ).wrap_in_numshots_loop(1000),
+        memory_map={"theta": [np.pi]},
+    )
 
     assert bitstrings.shape == (1000, 1)
     assert all([bit == 1 for bit in bitstrings])
@@ -490,13 +488,14 @@ def test_reset(client_configuration: QCSClientConfiguration):
         RX(MemoryReference("theta"), 0),
         MEASURE(0, MemoryReference("ro")),
     ).wrap_in_numshots_loop(10)
-    p.write_memory(region_name="theta", value=np.pi)
-    result = qc.qam.run(p)
+    qc.run(executable=p, memory_map={"theta": [np.pi]})
 
     aref = ParameterAref(name="theta", index=0)
-    assert p._memory.values[aref] == np.pi
-    assert result.readout_data["ro"].shape == (10, 1)
-    assert all([bit == 1 for bit in result.readout_data["ro"]])
+    assert qc.qam._loaded_executable._memory.values[aref] == np.pi
+    assert qc.qam._result.readout_data["ro"].shape == (10, 1)
+    assert all([bit == 1 for bit in qc.qam._result.readout_data["ro"]])
+
+    qc.reset()
 
 
 def test_get_qvm_with_topology(client_configuration: QCSClientConfiguration):
@@ -536,7 +535,7 @@ def test_get_qvm_with_topology_2(client_configuration: QCSClientConfiguration):
                 MEASURE(7, ("ro", 2)),
             ).wrap_in_numshots_loop(5)
         )
-    ).readout_data.get('ro')
+    )
     assert results.shape == (5, 3)
     assert all(r[0] == 1 for r in results)
 
@@ -555,7 +554,7 @@ def test_noisy(client_configuration: QCSClientConfiguration):
         MEASURE(0, ("ro", 0)),
     ).wrap_in_numshots_loop(10000)
     qc = get_qc("1q-qvm", noisy=True, client_configuration=client_configuration)
-    result = qc.run(qc.compile(p)).readout_data.get('ro')
+    result = qc.run(qc.compile(p))
     assert result.mean() < 1.0
 
 
@@ -599,7 +598,7 @@ def test_qc_expectation(client_configuration: QCSClientConfiguration, dummy_comp
 
     e = Experiment(settings=[sx, sy, sz], program=p)
 
-    results = qc.run_experiment(e)
+    results = qc.experiment(e)
 
     # XX expectation value for bell state |00> + |11> is 1
     assert np.isclose(results[0].expectation, 1)
@@ -637,7 +636,7 @@ def test_qc_expectation_larger_lattice(client_configuration: QCSClientConfigurat
 
     e = Experiment(settings=[sx, sy, sz], program=p)
 
-    results = qc.run_experiment(e)
+    results = qc.experiment(e)
 
     # XX expectation value for bell state |00> + |11> is 1
     assert np.isclose(results[0].expectation, 1)
@@ -724,7 +723,7 @@ def test_qc_joint_expectation(client_configuration: QCSClientConfiguration, dumm
     )
     e = Experiment(settings=[sz], program=p)
 
-    results = qc.run_experiment(e)
+    results = qc.experiment(e)
 
     # ZZ expectation value for state |01> is -1
     assert np.isclose(results[0].expectation, -1)
@@ -765,7 +764,7 @@ def test_qc_joint_calibration(client_configuration: QCSClientConfiguration):
     )
     e = Experiment(settings=[sz], program=p)
 
-    results = qc.run_experiment(e)
+    results = qc.experiment(e)
 
     # ZZ expectation value for state |01> with 95% RO fid on both qubits is about -0.81
     assert np.isclose(results[0].expectation, -0.81, atol=0.01)
@@ -797,7 +796,7 @@ def test_qc_expectation_on_qvm(client_configuration: QCSClientConfiguration, dum
     # Verify that multiple calls to qc.experiment with the same experiment backed by a QVM that
     # requires_exectutable does not raise an exception.
     for theta in thetas:
-        results.append(qc.run_experiment(e, memory_map={"theta": [theta]}))
+        results.append(qc.experiment(e, memory_map={"theta": [theta]}))
 
     assert np.isclose(results[0][0].expectation, -1.0, atol=0.01)
     assert np.isclose(results[0][0].std_err, 0)

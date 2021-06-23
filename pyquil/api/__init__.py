@@ -18,23 +18,24 @@ Module for facilitating connections to the QVM / QPU.
 """
 
 __all__ = [
-    "QCSClientConfiguration",
-    "QuantumExecutable",
-    "EncryptedProgram",
-    "QVMCompiler",
-    "QPUCompiler",
-    "EngagementManager",
-    "QCSQuantumProcessor",
-    "pyquil_protect",
-    "WavefunctionSimulator",
-    "QuantumComputer",
-    "list_quantum_computers",
-    "get_qc",
-    "local_forest_runtime",
-    "QAM",
-    "QVM",
-    "QPU",
     "BenchmarkConnection",
+    "EncryptedProgram",
+    "EngagementManager",
+    "get_qc",
+    "list_quantum_computers",
+    "local_forest_runtime",
+    "pyquil_protect",
+    "QAM",
+    "QAMExecutionResult",
+    "QCSClientConfiguration",
+    "QCSQuantumProcessor",
+    "QPU",
+    "QPUCompiler",
+    "QuantumComputer",
+    "QuantumExecutable",
+    "QVM",
+    "QVMCompiler",
+    "WavefunctionSimulator",
 ]
 
 from qcs_api_client.client import QCSClientConfiguration
@@ -42,8 +43,7 @@ from qcs_api_client.client import QCSClientConfiguration
 from pyquil.api._benchmark import BenchmarkConnection
 from pyquil.api._compiler import QVMCompiler, QPUCompiler, QuantumExecutable, EncryptedProgram
 from pyquil.api._engagement_manager import EngagementManager
-from pyquil.api._error_reporting import pyquil_protect
-from pyquil.api._qam import QAM
+from pyquil.api._qam import QAM, QAMExecutionResult
 from pyquil.api._qpu import QPU
 from pyquil.api._quantum_computer import (
     QuantumComputer,

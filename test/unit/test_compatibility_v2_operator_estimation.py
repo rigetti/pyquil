@@ -8,7 +8,7 @@ import pytest
 from pyquil import Program
 from pyquil.api import WavefunctionSimulator
 from pyquil.api import QCSClientConfiguration
-from pyquil import get_qc
+from pyquil.compatibility.v2 import get_qc
 from pyquil.experiment import (
     ExperimentSetting,
     SIC0,

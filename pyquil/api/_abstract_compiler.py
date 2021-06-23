@@ -13,32 +13,23 @@
 #    See the License for the specific language governing permissions and
 #    limitations under the License.
 ##############################################################################
-import sys
 from abc import ABC, abstractmethod
+from dataclasses import dataclass
+import dataclasses
 from typing import Any, Dict, List, Optional, Sequence, Union
 
-from qcs_api_client.client import QCSClientConfiguration
-from rpcq.messages import (
-    ParameterSpec,
-    ParameterAref,
-    NativeQuilMetadata,
-)
-
+from pyquil._memory import Memory
 from pyquil._version import pyquil_version
 from pyquil.api._compiler_client import CompilerClient, CompileToNativeQuilRequest
-from pyquil.api._error_reporting import _record_call
 from pyquil.external.rpcq import compiler_isa_to_target_quantum_processor
 from pyquil.parser import parse_program
 from pyquil.paulis import PauliTerm
 from pyquil.quantum_processor import AbstractQuantumProcessor
 from pyquil.quil import Program
-from pyquil.quilatom import MemoryReference, ExpressionDesignator
+from pyquil.quilatom import ExpressionDesignator, MemoryReference
 from pyquil.quilbase import Gate
-
-if sys.version_info < (3, 7):
-    from rpcq.external.dataclasses import dataclass
-else:
-    from dataclasses import dataclass
+from qcs_api_client.client import QCSClientConfiguration
+from rpcq.messages import NativeQuilMetadata, ParameterAref, ParameterSpec
 
 
 class QuilcVersionMismatch(Exception):
@@ -49,7 +40,7 @@ class QuilcNotRunning(Exception):
     pass
 
 
-@dataclass()
+@dataclass
 class EncryptedProgram:
     """
     Encrypted binary, executable on a QPU.
@@ -66,6 +57,25 @@ class EncryptedProgram:
 
     recalculation_table: Dict[ParameterAref, ExpressionDesignator]
     """A mapping from memory references to the original gate arithmetic."""
+
+    _memory: Memory
+    """Memory values (parameters) to be sent with the program."""
+
+    def copy(self) -> "EncryptedProgram":
+        """
+        Return a deep copy of this EncryptedProgram.
+        """
+        return dataclasses.replace(self, memory=self._memory.copy())
+
+    def write_memory(
+        self,
+        *,
+        region_name: str,
+        value: Union[int, float, Sequence[int], Sequence[float]],
+        offset: Optional[int] = None,
+    ) -> "EncryptedProgram":
+        self._memory._write_value(parameter=ParameterAref(name=region_name, index=(offset or 0)), value=value)
+        return self
 
 
 QuantumExecutable = Union[EncryptedProgram, Program]
@@ -95,7 +105,6 @@ class AbstractCompiler(ABC):
         """
         return {"quilc": self._compiler_client.get_version()}
 
-    @_record_call
     def quil_to_native_quil(self, program: Program, *, protoquil: Optional[bool] = None) -> Program:
         """
         Compile an arbitrary quil program according to the ISA of ``self.quantum_processor``.
@@ -130,6 +139,7 @@ class AbstractCompiler(ABC):
         )
         nq_program.num_shots = program.num_shots
         nq_program._calibrations = program.calibrations
+        nq_program._memory = program._memory.copy()
         return nq_program
 
     def _connect(self) -> None:
@@ -151,7 +161,6 @@ class AbstractCompiler(ABC):
         :return: An (opaque) binary executable
         """
 
-    @_record_call
     def reset(self) -> None:
         """
         Reset the state of the this compiler.
@@ -165,7 +174,7 @@ def _check_quilc_version(version: str) -> None:
 
     :param version: quilc version.
     """
-    major, minor, patch = map(int, version.split("."))
+    major, minor, _ = map(int, version.split("."))
     if major == 1 and minor < 8:
         raise QuilcVersionMismatch(
             "Must use quilc >= 1.8.0 with pyquil >= 2.8.0, but you " f"have quilc {version} and pyquil {pyquil_version}"

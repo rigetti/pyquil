@@ -1,5 +1,5 @@
 ##############################################################################
-# Copyright 2018 Rigetti Computing
+# Copyright 2021 Rigetti Computing
 #
 #    Licensed under the Apache License, Version 2.0 (the "License");
 #    you may not use this file except in compliance with the License.
@@ -14,69 +14,52 @@
 #    limitations under the License.
 ##############################################################################
 import itertools
-import re
-import socket
-import subprocess
+from pyquil.pyqvm import PyQVM
 import warnings
-from contextlib import contextmanager
-from math import pi, log
-from typing import (
-    Any,
-    Tuple,
-    Iterator,
-    Mapping,
-    Optional,
-    Sequence,
-    Set,
-    Union,
-    cast,
-    List,
-)
+from math import log, pi
+from typing import Any, Dict, List, Mapping, Optional, Sequence, Set, Tuple, Union, cast
 
-import httpx
 import networkx as nx
 import numpy as np
 from qcs_api_client.client import QCSClientConfiguration
-from qcs_api_client.models import ListQuantumProcessorsResponse
-from qcs_api_client.operations.sync import list_quantum_processors
-from rpcq.messages import ParameterAref
 
-from pyquil.api import EngagementManager
-from pyquil.api._abstract_compiler import AbstractCompiler, QuantumExecutable
-from pyquil.api._compiler import QPUCompiler, QVMCompiler
-
-from pyquil.api._qam import QAM, QAMExecutionResult
-from pyquil.api._qcs_client import qcs_client
+from pyquil.api._compiler import AbstractCompiler, QVMCompiler
+from pyquil.api._qam import QAM
 from pyquil.api._qpu import QPU
+from pyquil.api._quantum_computer import QuantumComputer as QuantumComputerV3
+from pyquil.api._quantum_computer import get_qc as get_qc_v3, QuantumExecutable
 from pyquil.api._qvm import QVM
 from pyquil.experiment._main import Experiment
 from pyquil.experiment._memory import merge_memory_map_lists
 from pyquil.experiment._result import ExperimentResult, bitstrings_to_expectations
 from pyquil.experiment._setting import ExperimentSetting
-from pyquil.external.rpcq import CompilerISA
-from pyquil.gates import RX, MEASURE
-from pyquil.noise import decoherence_noise_with_asymmetric_ro, NoiseModel
+from pyquil.gates import MEASURE, RX
+from pyquil.noise import NoiseModel, decoherence_noise_with_asymmetric_ro
 from pyquil.paulis import PauliTerm
-from pyquil.pyqvm import PyQVM
-from pyquil.quantum_processor import (
-    AbstractQuantumProcessor,
-    QCSQuantumProcessor,
-    NxQuantumProcessor,
-    get_qcs_quantum_processor,
-)
-from pyquil.quil import Program
+from pyquil.quantum_processor import AbstractQuantumProcessor, NxQuantumProcessor
+from pyquil.quil import Program, validate_supported_quil
+from pyquil.quilatom import qubit_index
+
+from ._qam import StatefulQAM
 
 
-class QuantumComputer:
+class QuantumComputer(QuantumComputerV3):
+    compiler: AbstractCompiler
+    qam: StatefulQAM[Any]
+
     def __init__(
         self,
         *,
         name: str,
         qam: QAM[Any],
+        device: Any = None,
         compiler: AbstractCompiler,
         symmetrize_readout: bool = False,
     ) -> None:
         """
+        An interface designed to ease migration from pyQuil v2 to v3, and compatible with most
+        use cases for the pyQuil v2 QuantumComputer.
+
         A quantum computer for running quantum programs.
 
         A quantum computer has various characteristics like supported gates, qubits, qubit
@@ -90,59 +73,38 @@ class QuantumComputer:
         :param name: A string identifying this particular quantum computer.
         :param qam: A quantum abstract machine which handles executing quantum programs. This
             dispatches to a QVM or QPU.
+        :param device: Ignored and accepted only for backwards compatibility.
         :param symmetrize_readout: Whether to apply readout error symmetrization. See
             :py:func:`run_symmetrized_readout` for a complete description.
         """
         self.name = name
-        self.qam = qam
+        StatefulQAM.wrap(qam)
+        self.qam = cast(StatefulQAM[Any], qam)
         self.compiler = compiler
 
         self.symmetrize_readout = symmetrize_readout
 
-    @property
-    def quantum_processor(self) -> AbstractQuantumProcessor:
-        """
-        The quantum processor associated with this quantum computer.
-        """
-        return self.compiler.quantum_processor
-
-    def qubits(self) -> List[int]:
-        """
-        Return a sorted list of this QuantumComputer's quantum_processor's qubits
-
-        See :py:func:`AbstractQuantumProcessor.qubits` for more.
-        """
-        return self.compiler.quantum_processor.qubits()
-
-    def qubit_topology(self) -> nx.graph:
-        """
-        Return a NetworkX graph representation of this QuantumComputer's quantum_processor's qubit
-        connectivity.
-
-        See :py:func:`AbstractQuantumProcessor.qubit_topology` for more.
-        """
-        return self.compiler.quantum_processor.qubit_topology()
-
-    def to_compiler_isa(self) -> CompilerISA:
-        """
-        Return a ``CompilerISA`` for this QuantumComputer's quantum_processor.
-
-        See :py:func:`AbstractQuantumProcessor.to_compiler_isa` for more.
-        """
-        return self.compiler.quantum_processor.to_compiler_isa()
-
-    def run(
+    def run(  # type: ignore
         self,
         executable: QuantumExecutable,
-    ) -> QAMExecutionResult:
+        memory_map: Optional[Mapping[str, Sequence[Union[int, float]]]] = None,
+    ) -> np.ndarray:
         """
-        Run a quil executable. All parameters in the executable must have values applied using
-        ``Program#write_memory``.
+        Run a quil executable. If the executable contains declared parameters, then a memory
+        map must be provided, which defines the runtime values of these parameters.
 
-        :param executable: The program to run, previously compiled as needed for its target QAM.
-        :return: execution result including readout data.
+        :param executable: The program to run. You are responsible for compiling this first.
+        :param memory_map: The mapping of declared parameters to their values. The values
+            are a list of floats or integers.
+        :return: A numpy array of shape (trials, len(ro-register)) that contains 0s and 1s.
         """
-        return self.qam.run(executable)
+        self.qam.load(executable)
+        if memory_map:
+            for region_name, values_list in memory_map.items():
+                self.qam.write_memory(region_name=region_name, value=values_list)
+        result = self.qam.run().read_memory(region_name="ro")
+        assert result is not None
+        return result
 
     def calibrate(self, experiment: Experiment) -> List[ExperimentResult]:
         """
@@ -154,9 +116,9 @@ class QuantumComputer:
             correspond to the scale factors resulting from symmetric readout error.
         """
         calibration_experiment = experiment.generate_calibration_experiment()
-        return self.run_experiment(calibration_experiment)
+        return self.experiment(calibration_experiment)
 
-    def run_experiment(
+    def experiment(
         self,
         experiment: Experiment,
         memory_map: Optional[Mapping[str, Sequence[Union[int, float]]]] = None,
@@ -176,12 +138,12 @@ class QuantumComputer:
         and symmetrization can all be realized at runtime by providing a ``memory_map``. Thus, the
         steps in the ``experiment`` method are as follows:
 
-           1. Generate a parameterized program corresponding to the ``Experiment``
+            1. Generate a parameterized program corresponding to the ``Experiment``
                 (see the ``Experiment.generate_experiment_program()`` method for more
                 details on how it changes the main body program to support state preparation,
                 measurement, and symmetrization).
             2. Compile the parameterized program into a parametric (binary) executable, which
-                contains declared variables that can be assigned at runtime.
+                   contains declared variables that can be assigned at runtime.
 
             3. For each ``ExperimentSetting`` in the ``Experiment``, we repeat the following:
 
@@ -192,7 +154,7 @@ class QuantumComputer:
                 c. Extract the desired statistics from the classified bitstrings that are produced
                    by the QVM or QPU backend, and package them in an ``ExperimentResult`` object.
 
-            3. Return the list of ``ExperimentResult`` objects.
+            4. Return the list of ``ExperimentResult`` objects.
 
         This method is extremely useful shorthand for running near-term applications and algorithms,
         which often have this ansatz + settings structure.
@@ -207,7 +169,6 @@ class QuantumComputer:
         :return: A list of ``ExperimentResult`` objects containing the statistics gathered
             according to the specifications of the ``Experiment``.
         """
-
         experiment_program = experiment.generate_experiment_program()
         executable = self.compile(experiment_program)
 
@@ -216,9 +177,8 @@ class QuantumComputer:
 
         results = []
         for settings in experiment:
-            # TODO: add support for grouped ExperimentSettings
             if len(settings) > 1:
-                raise ValueError("We only support length-1 settings for now.")
+                raise ValueError("settings must be of length 1")
             setting = settings[0]
 
             qubits = cast(List[int], setting.out_operator.get_qubits())
@@ -229,11 +189,8 @@ class QuantumComputer:
             all_bitstrings = []
             for merged_memory_map in merged_memory_maps:
                 final_memory_map = {**memory_map, **merged_memory_map}
-                executable_copy = executable.copy()
-                final_memory_map = cast(Mapping[Union[str, ParameterAref], Union[int, float]], final_memory_map)
-                executable_copy._memory.write(final_memory_map)
-                bitstrings = self.run(executable_copy).readout_data.get("ro")
-                assert bitstrings is not None
+                self.qam.reset()
+                bitstrings = self.run(executable, memory_map=final_memory_map)
 
                 if "symmetrization" in final_memory_map:
                     bitmask = np.array(np.array(final_memory_map["symmetrization"]) / np.pi, dtype=int)
@@ -246,11 +203,11 @@ class QuantumComputer:
                 joint_expectations += setting.additional_expectations
             expectations = bitstrings_to_expectations(symmetrized_bitstrings, joint_expectations=joint_expectations)
 
-            means = np.mean(expectations, axis=0)
+            means = cast(np.ndarray, np.mean(expectations, axis=0))
             std_errs = np.std(expectations, axis=0, ddof=1) / np.sqrt(len(expectations))
 
             joint_results = []
-            for qubit_subset, mean, std_err in zip(joint_expectations, means, std_errs):  # type: ignore
+            for qubit_subset, mean, std_err in zip(joint_expectations, means, std_errs):
                 out_operator = PauliTerm.from_list([(setting.out_operator[i], i) for i in qubit_subset])
                 s = ExperimentSetting(
                     in_state=setting.in_state,
@@ -268,6 +225,7 @@ class QuantumComputer:
                 additional_results=joint_results[1:],
             )
             results.append(result)
+
         return results
 
     def run_symmetrized_readout(
@@ -282,7 +240,7 @@ class QuantumComputer:
         symmetric readout error is useful in simplifying the assumptions in some near
         term error mitigation strategies, see ``measure_observables`` for more information.
 
-        The simplest example is for one qubit. In a noisy quantum_processor, the probability of accurately
+        The simplest example is for one qubit. In a noisy device, the probability of accurately
         reading the 0 state might be higher than that of the 1 state; due to e.g. amplitude
         damping. This makes correcting for readout more difficult. In the simplest case, this
         function runs the program normally ``(trials//2)`` times. The other half of the time,
@@ -360,6 +318,55 @@ class QuantumComputer:
 
         return _consolidate_symmetrization_outputs(results, flip_arrays)
 
+    def run_and_measure(self, program: Program, trials: int) -> Dict[int, np.ndarray]:
+        """
+        Run the provided state preparation program and measure all qubits.
+
+        The returned data is a dictionary keyed by qubit index because qubits for a given
+        QuantumComputer may be non-contiguous and non-zero-indexed. To turn this dictionary
+        into a 2d numpy array of bitstrings, consider::
+
+            bitstrings = qc.run_and_measure(...)
+            bitstring_array = np.vstack([bitstrings[q] for q in qc.qubits()]).T
+            bitstring_array.shape  # (trials, len(qc.qubits()))
+
+        .. note::
+
+            If the target :py:class:`QuantumComputer` is a noiseless :py:class:`QVM` then
+            only the qubits explicitly used in the program will be measured. Otherwise all
+            qubits will be measured. In some circumstances this can exhaust the memory
+            available to the simulator, and this may be manifested by the QVM failing to
+            respond or timeout.
+
+        .. note::
+
+            In contrast to :py:class:`QVMConnection.run_and_measure`, this method simulates
+            noise correctly for noisy QVMs. However, this method is slower for ``trials > 1``.
+            For faster noise-free simulation, consider
+            :py:class:`WavefunctionSimulator.run_and_measure`.
+
+        :param program: The state preparation program to run and then measure.
+        :param trials: The number of times to run the program.
+        :return: A dictionary keyed by qubit index where the corresponding value is a 1D array of
+            measured bits.
+        """
+        program = program.copy()
+        validate_supported_quil(program)
+        ro = program.declare("ro", "BIT", len(self.qubits()))
+        measure_used = isinstance(self.qam, QVM) and self.qam.noise_model is None
+        qubits_to_measure = set(map(qubit_index, program.get_qubits()) if measure_used else self.qubits())
+        for i, q in enumerate(qubits_to_measure):
+            program.inst(MEASURE(q, ro[i]))
+        program.wrap_in_numshots_loop(trials)
+        executable = self.compile(program)
+        bitstring_array = self.run(executable=executable)
+        bitstring_dict = {}
+        for i, q in enumerate(qubits_to_measure):
+            bitstring_dict[q] = bitstring_array[:, i]
+        for q in set(self.qubits()) - set(qubits_to_measure):
+            bitstring_dict[q] = np.zeros(trials)
+        return bitstring_dict
+
     def compile(
         self,
         program: Program,
@@ -390,6 +397,9 @@ class QuantumComputer:
         :return: An executable binary suitable for passing to :py:func:`QuantumComputer.run`.
         """
 
+        if isinstance(self.qam, QPU):
+            self.reset()
+
         flags = [to_native_gates, optimize]
         assert all(flags) or all(not f for f in flags), "Must turn quilc all on or all off"
         quilc = all(flags)
@@ -398,8 +408,14 @@ class QuantumComputer:
             nq_program = self.compiler.quil_to_native_quil(program, protoquil=protoquil)
         else:
             nq_program = program
+        binary = self.compiler.native_quil_to_executable(nq_program)
+        return binary
 
-        return self.compiler.native_quil_to_executable(nq_program)
+    def reset(self) -> None:
+        """
+        Reset the QuantumComputer's QAM to its initial state.
+        """
+        self.qam.reset()
 
     def __str__(self) -> str:
         return self.name
@@ -408,572 +424,36 @@ class QuantumComputer:
         return f'QuantumComputer[name="{self.name}"]'
 
 
-def list_quantum_computers(
-    qpus: bool = True,
-    qvms: bool = True,
-    timeout: float = 10.0,
-    client_configuration: Optional[QCSClientConfiguration] = None,
-) -> List[str]:
-    """
-    List the names of available quantum computers
-
-    :param qpus: Whether to include QPUs in the list.
-    :param qvms: Whether to include QVMs in the list.
-    :param timeout: Time limit for request, in seconds.
-    :param client_configuration: Optional client configuration. If none is provided, a default one will be loaded.
-    """
-    client_configuration = client_configuration or QCSClientConfiguration.load()
-    qc_names: List[str] = []
-    if qpus:
-        with qcs_client(
-            client_configuration=client_configuration, request_timeout=timeout
-        ) as client:  # type: httpx.Client
-            qcs: ListQuantumProcessorsResponse = list_quantum_processors(client=client, page_size=100).parsed
-
-        qc_names += [qc.id for qc in qcs.quantum_processors]
-
-    if qvms:
-        qc_names += ["9q-square-qvm", "9q-square-noisy-qvm"]
-
-    return qc_names
-
-
-def _parse_name(name: str, as_qvm: Optional[bool], noisy: Optional[bool]) -> Tuple[str, Optional[str], bool]:
-    """
-    Try to figure out whether we're getting a (noisy) qvm, and the associated qpu name.
-
-    See :py:func:`get_qc` for examples of valid names + flags.
-    """
-    qvm_type: Optional[str]
-    parts = name.split("-")
-    if len(parts) >= 2 and parts[-2] == "noisy" and parts[-1] in ["qvm", "pyqvm"]:
-        if as_qvm is not None and (not as_qvm):
-            raise ValueError(
-                "The provided qc name indicates you are getting a noisy QVM, " "but you have specified `as_qvm=False`"
-            )
-
-        if noisy is not None and (not noisy):
-            raise ValueError(
-                "The provided qc name indicates you are getting a noisy QVM, " "but you have specified `noisy=False`"
-            )
-
-        qvm_type = parts[-1]
-        noisy = True
-        prefix = "-".join(parts[:-2])
-        return prefix, qvm_type, noisy
-
-    if len(parts) >= 1 and parts[-1] in ["qvm", "pyqvm"]:
-        if as_qvm is not None and (not as_qvm):
-            raise ValueError(
-                "The provided qc name indicates you are getting a QVM, " "but you have specified `as_qvm=False`"
-            )
-        qvm_type = parts[-1]
-        if noisy is None:
-            noisy = False
-        prefix = "-".join(parts[:-1])
-        return prefix, qvm_type, noisy
-
-    if as_qvm is not None and as_qvm:
-        qvm_type = "qvm"
-    else:
-        qvm_type = None
-
-    if noisy is None:
-        noisy = False
-
-    return name, qvm_type, noisy
-
-
-def _canonicalize_name(prefix: str, qvm_type: Optional[str], noisy: bool) -> str:
-    """Take the output of _parse_name to create a canonical name."""
-    if noisy:
-        noise_suffix = "-noisy"
-    else:
-        noise_suffix = ""
-
-    if qvm_type is None:
-        qvm_suffix = ""
-    elif qvm_type == "qvm":
-        qvm_suffix = "-qvm"
-    elif qvm_type == "pyqvm":
-        qvm_suffix = "-pyqvm"
-    else:
-        raise ValueError(f"Unknown qvm_type {qvm_type}")
-
-    name = f"{prefix}{noise_suffix}{qvm_suffix}"
-    return name
-
-
-def _get_qvm_or_pyqvm(
-    *,
-    client_configuration: QCSClientConfiguration,
-    qvm_type: str,
-    noise_model: Optional[NoiseModel],
-    quantum_processor: Optional[AbstractQuantumProcessor],
-    execution_timeout: float,
-) -> Union[QVM, PyQVM]:
-    if qvm_type == "qvm":
-        return QVM(noise_model=noise_model, timeout=execution_timeout, client_configuration=client_configuration)
-    elif qvm_type == "pyqvm":
-        assert quantum_processor is not None
-        return PyQVM(n_qubits=quantum_processor.qubit_topology().number_of_nodes())
-
-    raise ValueError("Unknown qvm type {}".format(qvm_type))
-
-
-def _get_qvm_qc(
-    *,
-    client_configuration: QCSClientConfiguration,
-    name: str,
-    qvm_type: str,
-    quantum_processor: AbstractQuantumProcessor,
-    compiler_timeout: float,
-    execution_timeout: float,
-    noise_model: Optional[NoiseModel],
-) -> QuantumComputer:
-    """Construct a QuantumComputer backed by a QVM.
-
-    This is a minimal wrapper over the QuantumComputer, QVM, and QVMCompiler constructors.
-
-    :param client_configuration: Client configuration.
-    :param name: A string identifying this particular quantum computer.
-    :param qvm_type: The type of QVM. Either qvm or pyqvm.
-    :param quantum_processor: A quantum_processor following the AbstractQuantumProcessor interface.
-    :param noise_model: An optional noise model
-    :param compiler_timeout: Time limit for compilation requests, in seconds.
-    :param execution_timeout: Time limit for execution requests, in seconds.
-    :return: A QuantumComputer backed by a QVM with the above options.
-    """
-
-    return QuantumComputer(
-        name=name,
-        qam=_get_qvm_or_pyqvm(
-            client_configuration=client_configuration,
-            qvm_type=qvm_type,
-            noise_model=noise_model,
-            quantum_processor=quantum_processor,
-            execution_timeout=execution_timeout,
-        ),
-        compiler=QVMCompiler(
-            quantum_processor=quantum_processor,
-            timeout=compiler_timeout,
-            client_configuration=client_configuration,
-        ),
-    )
-
-
-def _get_qvm_with_topology(
-    *,
-    client_configuration: QCSClientConfiguration,
-    name: str,
-    topology: nx.Graph,
-    noisy: bool,
-    qvm_type: str,
-    compiler_timeout: float,
-    execution_timeout: float,
-) -> QuantumComputer:
-    """Construct a QVM with the provided topology.
-
-    :param client_configuration: Client configuration.
-    :param name: A name for your quantum computer. This field does not affect behavior of the
-        constructed QuantumComputer.
-    :param topology: A graph representing the desired qubit connectivity.
-    :param noisy: Whether to include a generic noise model. If you want more control over
-        the noise model, please construct your own :py:class:`NoiseModel` and use
-        :py:func:`_get_qvm_qc` instead of this function.
-    :param qvm_type: The type of QVM. Either 'qvm' or 'pyqvm'.
-    :param compiler_timeout: Time limit for compilation requests, in seconds.
-    :param execution_timeout: Time limit for execution requests, in seconds.
-    :return: A pre-configured QuantumComputer
-    """
-    # Note to developers: consider making this function public and advertising it.
-    quantum_processor = NxQuantumProcessor(topology=topology)
-    if noisy:
-        noise_model: Optional[NoiseModel] = decoherence_noise_with_asymmetric_ro(
-            isa=quantum_processor.to_compiler_isa()
-        )
-    else:
-        noise_model = None
-    return _get_qvm_qc(
-        client_configuration=client_configuration,
-        name=name,
-        qvm_type=qvm_type,
-        quantum_processor=quantum_processor,
-        noise_model=noise_model,
-        compiler_timeout=compiler_timeout,
-        execution_timeout=execution_timeout,
-    )
-
-
-def _get_9q_square_qvm(
-    *,
-    client_configuration: QCSClientConfiguration,
-    name: str,
-    noisy: bool,
-    qvm_type: str,
-    compiler_timeout: float,
-    execution_timeout: float,
-) -> QuantumComputer:
-    """
-    A nine-qubit 3x3 square lattice.
-
-    This uses a "generic" lattice not tied to any specific quantum_processor. 9 qubits is large enough
-    to do vaguely interesting algorithms and small enough to simulate quickly.
-
-    :param client_configuration: Client configuration.
-    :param name: The name of this QVM
-    :param noisy: Whether to construct a noisy quantum computer
-    :param qvm_type: The type of QVM. Either 'qvm' or 'pyqvm'.
-    :param compiler_timeout: Time limit for compilation requests, in seconds.
-    :param execution_timeout: Time limit for execution requests, in seconds.
-    :return: A pre-configured QuantumComputer
-    """
-    topology = nx.convert_node_labels_to_integers(nx.grid_2d_graph(3, 3))
-    return _get_qvm_with_topology(
-        client_configuration=client_configuration,
-        name=name,
-        topology=topology,
-        noisy=noisy,
-        qvm_type=qvm_type,
-        compiler_timeout=compiler_timeout,
-        execution_timeout=execution_timeout,
-    )
-
-
-def _get_unrestricted_qvm(
-    *,
-    client_configuration: QCSClientConfiguration,
-    name: str,
-    noisy: bool,
-    n_qubits: int,
-    qvm_type: str,
-    compiler_timeout: float,
-    execution_timeout: float,
-) -> QuantumComputer:
-    """
-    A qvm with a fully-connected topology.
-
-    This is obviously the least realistic QVM, but who am I to tell users what they want.
-
-    :param client_configuration: Client configuration.
-    :param name: The name of this QVM
-    :param noisy: Whether to construct a noisy quantum computer
-    :param n_qubits: 34 qubits ought to be enough for anybody.
-    :param qvm_type: The type of QVM. Either 'qvm' or 'pyqvm'.
-    :param compiler_timeout: Time limit for compilation requests, in seconds.
-    :param execution_timeout: Time limit for execution requests, in seconds.
-    :return: A pre-configured QuantumComputer
-    """
-    topology = nx.complete_graph(n_qubits)
-    return _get_qvm_with_topology(
-        client_configuration=client_configuration,
-        name=name,
-        topology=topology,
-        noisy=noisy,
-        qvm_type=qvm_type,
-        compiler_timeout=compiler_timeout,
-        execution_timeout=execution_timeout,
-    )
-
-
-def _get_qvm_based_on_real_quantum_processor(
-    *,
-    client_configuration: QCSClientConfiguration,
-    name: str,
-    quantum_processor: QCSQuantumProcessor,
-    noisy: bool,
-    qvm_type: str,
-    compiler_timeout: float,
-    execution_timeout: float,
-) -> QuantumComputer:
-    """
-    A qvm with a based on a real quantum_processor.
-
-    This is the most realistic QVM.
-
-    :param client_configuration: Client configuration.
-    :param name: The full name of this QVM
-    :param quantum_processor: The quantum_processor from :py:func:`get_lattice`.
-    :param noisy: Whether to construct a noisy quantum computer by using the quantum_processor's
-        associated noise model.
-    :param qvm_type: The type of QVM. Either 'qvm' or 'pyqvm'.
-    :param compiler_timeout: Time limit for compilation requests, in seconds.
-    :param execution_timeout: Time limit for execution requests, in seconds.
-    :return: A pre-configured QuantumComputer based on the named quantum_processor.
-    """
-    if noisy:
-        noise_model = quantum_processor.noise_model
-    else:
-        noise_model = None
-    return _get_qvm_qc(
-        client_configuration=client_configuration,
-        name=name,
-        quantum_processor=quantum_processor,
-        noise_model=noise_model,
-        qvm_type=qvm_type,
-        compiler_timeout=compiler_timeout,
-        execution_timeout=execution_timeout,
-    )
-
-
 def get_qc(
     name: str,
     *,
     as_qvm: Optional[bool] = None,
     noisy: Optional[bool] = None,
-    compiler_timeout: float = 10.0,
-    execution_timeout: float = 10.0,
+    connection: Any = None,
+    compiler_timeout: float = 10,
     client_configuration: Optional[QCSClientConfiguration] = None,
-    engagement_manager: Optional[EngagementManager] = None,
 ) -> QuantumComputer:
     """
-    Get a quantum computer.
-
-    A quantum computer is an object of type :py:class:`QuantumComputer` and can be backed
-    either by a QVM simulator ("Quantum/Quil Virtual Machine") or a physical Rigetti QPU ("Quantum
-    Processing Unit") made of superconducting qubits.
-
-    You can choose the quantum computer to target through a combination of its name and optional
-    flags. There are multiple ways to get the same quantum computer. The following are equivalent::
-
-        >>> qc = get_qc("Aspen-1-16Q-A-noisy-qvm")
-        >>> qc = get_qc("Aspen-1-16Q-A", as_qvm=True, noisy=True)
-
-    and will construct a simulator of an Aspen-1 lattice with a noise model based on quantum_processor
-    characteristics. We also provide a means for constructing generic quantum simulators that
-    are not related to a given piece of Rigetti hardware::
-
-        >>> qc = get_qc("9q-square-qvm")
-        >>> qc = get_qc("9q-square", as_qvm=True)
-
-    Finally, you can get request a QVM with "no" topology of a given number of qubits
-    (technically, it's a fully connected graph among the given number of qubits) with::
-
-        >>> qc = get_qc("5q-qvm") # or "6q-qvm", or "34q-qvm", ...
-
-    These less-realistic, fully-connected QVMs will also be more lenient on what types of programs
-    they will ``run``. Specifically, you do not need to do any compilation. For the other, realistic
-    QVMs you must use :py:func:`qc.compile` or :py:func:`qc.compiler.native_quil_to_executable`
-    prior to :py:func:`qc.run`.
-
-    The Rigetti QVM must be downloaded from https://www.rigetti.com/forest and run as a server
-    alongside your python program. To use pyQuil's built-in QVM, replace all ``"-qvm"`` suffixes
-    with ``"-pyqvm"``::
-
-        >>> qc = get_qc("5q-pyqvm")
-
-    Redundant flags are acceptable, but conflicting flags will raise an exception::
-
-        >>> qc = get_qc("9q-square-qvm") # qc is fully specified by its name
-        >>> qc = get_qc("9q-square-qvm", as_qvm=True) # redundant, but ok
-        >>> qc = get_qc("9q-square-qvm", as_qvm=False) # Error!
-
-    Use :py:func:`list_quantum_computers` to retrieve a list of known qc names.
-
-    This method is provided as a convenience to quickly construct and use QVM's and QPU's.
-    Power users may wish to have more control over the specification of a quantum computer
-    (e.g. custom noise models, bespoke topologies, etc.). This is possible by constructing
-    a :py:class:`QuantumComputer` object by hand. Please refer to the documentation on
-    :py:class:`QuantumComputer` for more information.
-
-    :param name: The name of the desired quantum computer. This should correspond to a name
-        returned by :py:func:`list_quantum_computers`. Names ending in "-qvm" will return
-        a QVM. Names ending in "-pyqvm" will return a :py:class:`PyQVM`. Names ending in
-        "-noisy-qvm" will return a QVM with a noise model. Otherwise, we will return a QPU with
-        the given name.
-    :param as_qvm: An optional flag to force construction of a QVM (instead of a QPU). If
-        specified and set to ``True``, a QVM-backed quantum computer will be returned regardless
-        of the name's suffix
-    :param noisy: An optional flag to force inclusion of a noise model. If
-        specified and set to ``True``, a quantum computer with a noise model will be returned
-        regardless of the name's suffix. The noise model for QVMs based on a real QPU
-        is an empirically parameterized model based on real quantum_processor noise characteristics.
-        The generic QVM noise model is simple T1 and T2 noise plus readout error. See
-        :py:func:`~pyquil.noise.decoherence_noise_with_asymmetric_ro`.
-    :param compiler_timeout: Time limit for compilation requests, in seconds.
-    :param execution_timeout: Time limit for execution requests, in seconds.
-    :param client_configuration: Optional client configuration. If none is provided, a default one will be loaded.
-    :param engagement_manager: Optional engagement manager. If none is provided, a default one will be created.
-
-    :return: A pre-configured QuantumComputer
+    Compatibility layer to build a QuantumComputer supporting an API closely
+    similar to that in pyQuil v2.
     """
-
-    client_configuration = client_configuration or QCSClientConfiguration.load()
-    engagement_manager = engagement_manager or EngagementManager(client_configuration=client_configuration)
-
-    # 1. Parse name, check for redundant options, canonicalize names.
-    prefix, qvm_type, noisy = _parse_name(name, as_qvm, noisy)
-    del as_qvm  # do not use after _parse_name
-    name = _canonicalize_name(prefix, qvm_type, noisy)
-
-    # 2. Check for unrestricted {n}q-qvm
-    ma = re.fullmatch(r"(\d+)q", prefix)
-    if ma is not None:
-        n_qubits = int(ma.group(1))
-        if qvm_type is None:
-            raise ValueError("Please name a valid quantum_processor or run as a QVM")
-        return _get_unrestricted_qvm(
-            client_configuration=client_configuration,
-            name=name,
-            noisy=noisy,
-            n_qubits=n_qubits,
-            qvm_type=qvm_type,
-            compiler_timeout=compiler_timeout,
-            execution_timeout=execution_timeout,
-        )
-
-    # 3. Check for "9q-square" qvm
-    if prefix == "9q-square":
-        if qvm_type is None:
-            raise ValueError("The quantum_processor '9q-square' is only available as a QVM")
-        return _get_9q_square_qvm(
-            client_configuration=client_configuration,
-            name=name,
-            noisy=noisy,
-            qvm_type=qvm_type,
-            compiler_timeout=compiler_timeout,
-            execution_timeout=execution_timeout,
-        )
-
-    if noisy:
+    if connection is not None:
         raise ValueError(
-            "pyQuil currently does not support initializing a noisy QuantumComputer "
-            "based on a QCSQuantumProcessor. Change noisy to False or specify the name of a QVM."
+            "`get_qc` no longer supports the `connection` parameter. "
+            "Please update your code to use the current interface of `pyquil.get_qc`."
         )
 
-    # 4. Not a special case, query the web for information about this quantum_processor.
-    quantum_processor = get_qcs_quantum_processor(
-        quantum_processor_id=prefix, client_configuration=client_configuration
+    qc = get_qc_v3(
+        name=name,
+        as_qvm=as_qvm,
+        noisy=noisy,
+        compiler_timeout=compiler_timeout,
+        client_configuration=client_configuration,
     )
-    if qvm_type is not None:
-        # 4.1 QVM based on a real quantum_processor.
-        return _get_qvm_based_on_real_quantum_processor(
-            client_configuration=client_configuration,
-            name=name,
-            quantum_processor=quantum_processor,
-            noisy=False,
-            qvm_type=qvm_type,
-            compiler_timeout=compiler_timeout,
-            execution_timeout=execution_timeout,
-        )
-    else:
-        qpu = QPU(
-            quantum_processor_id=quantum_processor.quantum_processor_id,
-            timeout=execution_timeout,
-            client_configuration=client_configuration,
-            engagement_manager=engagement_manager,
-        )
-        compiler = QPUCompiler(
-            quantum_processor_id=prefix,
-            quantum_processor=quantum_processor,
-            timeout=compiler_timeout,
-            client_configuration=client_configuration,
-        )
 
-        return QuantumComputer(name=name, qam=qpu, compiler=compiler)
-
-
-def _port_used(host: str, port: int) -> bool:
-    """Check if a (TCP) port is listening.
-
-    :param host: Host address to check.
-    :param port: TCP port to check.
-
-    :returns: ``True`` if a process is listening on the specified host/port, ``False`` otherwise
-    """
-    s = socket.socket(socket.AF_INET, socket.SOCK_STREAM)
-    try:
-        s.connect((host, port))
-        return True
-    except ConnectionRefusedError:
-        return False
-    finally:
-        s.close()
-
-
-@contextmanager
-def local_forest_runtime(
-    *,
-    host: str = "127.0.0.1",
-    qvm_port: int = 5000,
-    quilc_port: int = 5555,
-    use_protoquil: bool = False,
-) -> Iterator[Tuple[Optional[subprocess.Popen], Optional[subprocess.Popen]]]:  # type: ignore
-    """A context manager for local QVM and QUIL compiler.
-
-    You must first have installed the `qvm` and `quilc` executables from
-    the forest SDK. [https://www.rigetti.com/forest]
-
-    This context manager will ensure that the designated ports are not used, start up `qvm` and
-    `quilc` proccesses if possible and terminate them when the context is exited.
-    If one of the ports is in use, a ``RuntimeWarning`` will be issued and the `qvm`/`quilc` process
-    won't be started.
-
-    .. note::
-        Only processes started by this context manager will be terminated on exit, no external
-        process will be touched.
-
-
-    >>> from pyquil import get_qc, Program
-    >>> from pyquil.gates import CNOT, Z
-    >>> from pyquil.api import local_forest_runtime
-    >>>
-    >>> qvm = get_qc('9q-square-qvm')
-    >>> prog = Program(Z(0), CNOT(0, 1))
-    >>>
-    >>> with local_forest_runtime():
-    >>>     results = qvm.run_and_measure(prog, trials=10)
-
-    :param host: Host on which `qvm` and `quilc` should listen on.
-    :param qvm_port: Port which should be used by `qvm`.
-    :param quilc_port: Port which should be used by `quilc`.
-    :param use_protoquil: Restrict input/output to protoquil.
-
-    .. warning::
-        If ``use_protoquil`` is set to ``True`` language features you need
-        may be disabled. Please use it with caution.
-
-    :raises: FileNotFoundError: If either executable is not installed.
-
-    :returns: The returned tuple contains two ``subprocess.Popen`` objects
-        for the `qvm` and the `quilc` processes.  If one of the designated
-        ports is in use, the process won't be started and the respective
-        value in the tuple will be ``None``.
-    """
-
-    qvm: Optional[subprocess.Popen] = None  # type: ignore
-    quilc: Optional[subprocess.Popen] = None  # type: ignore
-
-    # If the host we should listen to is 0.0.0.0, we replace it
-    # with 127.0.0.1 to use a valid IP when checking if the port is in use.
-    if _port_used(host if host != "0.0.0.0" else "127.0.0.1", qvm_port):
-        warning_msg = ("Unable to start qvm server, since the specified port {} is in use.").format(qvm_port)
-        warnings.warn(RuntimeWarning(warning_msg))
-    else:
-        qvm_cmd = ["qvm", "-S", "--host", host, "-p", str(qvm_port)]
-        qvm = subprocess.Popen(qvm_cmd, stdout=subprocess.DEVNULL, stderr=subprocess.DEVNULL)
-
-    if _port_used(host if host != "0.0.0.0" else "127.0.0.1", quilc_port):
-        warning_msg = ("Unable to start quilc server, since the specified port {} is in use.").format(quilc_port)
-        warnings.warn(RuntimeWarning(warning_msg))
-    else:
-        quilc_cmd = ["quilc", "--host", host, "-p", str(quilc_port), "-R"]
-
-        if use_protoquil:
-            quilc_cmd += ["-P"]
-
-        quilc = subprocess.Popen(quilc_cmd, stdout=subprocess.DEVNULL, stderr=subprocess.DEVNULL)
-
-    # Return context
-    try:
-        yield (qvm, quilc)
-
-    finally:
-        # Exit. Release resource
-        if qvm:
-            qvm.terminate()
-        if quilc:
-            quilc.terminate()
+    return QuantumComputer(
+        name=qc.name, qam=qc.qam, device=None, compiler=qc.compiler, symmetrize_readout=qc.symmetrize_readout
+    )
 
 
 def _flip_array_to_prog(flip_array: Tuple[bool], qubits: List[int]) -> Program:
@@ -1003,7 +483,7 @@ def _flip_array_to_prog(flip_array: Tuple[bool], qubits: List[int]) -> Program:
 
 def _symmetrization(
     program: Program, meas_qubits: List[int], symm_type: int = 3
-) -> Tuple[List[Program], List[np.ndarray]]:
+) -> Tuple[List[Program], List[Tuple[bool]]]:
     """
     For the input program generate new programs which flip the measured qubits with an X gate in
     certain combinations in order to symmetrize readout.
@@ -1060,7 +540,7 @@ def _symmetrization(
     return symm_programs, flip_arrays
 
 
-def _consolidate_symmetrization_outputs(outputs: List[np.ndarray], flip_arrays: List[np.ndarray]) -> np.ndarray:
+def _consolidate_symmetrization_outputs(outputs: List[np.ndarray], flip_arrays: List[Tuple[bool]]) -> np.ndarray:
     """
     Given bitarray results from a series of symmetrization programs, appropriately flip output
     bits and consolidate results into new bitarrays.
@@ -1110,10 +590,8 @@ def _measure_bitstrings(
         prog.wrap_in_numshots_loop(num_shots)
         prog = qc.compiler.quil_to_native_quil(prog)
         executable = qc.compiler.native_quil_to_executable(prog)
-        result = qc.run(executable)
-        shot_values = result.readout_data.get("ro")
-        assert shot_values is not None
-        results.append(shot_values)
+        shots = qc.run(executable)
+        results.append(shots)
     return results
 
 
@@ -1228,7 +706,7 @@ def _construct_strength_three_orthogonal_array(num_qubits: int) -> np.ndarray:
     num_qubits_power_of_2 = _next_power_of_2(num_qubits)
     H = hadamard(num_qubits_power_of_2)
     Hfold = np.concatenate((H, -H), axis=0)
-    orthogonal_array: np.ndarray = ((Hfold + 1) / 2).astype(int)
+    orthogonal_array = cast(np.ndarray, ((Hfold + 1) / 2).astype(int))
     return orthogonal_array
 
 
@@ -1262,7 +740,7 @@ def _construct_strength_two_orthogonal_array(num_qubits: int) -> np.ndarray:
     four_lam = min(x for x in valid_numbers if x >= num_qubits) + 1
     H = hadamard(_next_power_of_2(four_lam))
     # The minus sign in front of H fixes the 0 <-> 1 inversion relative to the reference [OATA]
-    orthogonal_array: np.ndarray = ((-H[1:, :].T + 1) / 2).astype(int)
+    orthogonal_array = cast(np.ndarray, ((-H[1:, :].T + 1) / 2).astype(int))
     return orthogonal_array
 
 
@@ -1297,3 +775,104 @@ def _check_min_num_trials_for_symmetrized_readout(num_qubits: int, trials: int, 
         trials = min_num_trials
         warnings.warn(f"Number of trials was too low, it is now {trials}.")
     return trials
+
+
+def _get_qvm_or_pyqvm(
+    *,
+    client_configuration: QCSClientConfiguration,
+    qvm_type: str,
+    noise_model: Optional[NoiseModel],
+    quantum_processor: Optional[AbstractQuantumProcessor],
+    execution_timeout: float,
+) -> Union[QVM, PyQVM]:
+    if qvm_type == "qvm":
+        return QVM(noise_model=noise_model, timeout=execution_timeout, client_configuration=client_configuration)
+    elif qvm_type == "pyqvm":
+        assert quantum_processor is not None
+        return PyQVM(n_qubits=quantum_processor.qubit_topology().number_of_nodes())
+
+    raise ValueError("Unknown qvm type {}".format(qvm_type))
+
+
+def _get_qvm_qc(
+    *,
+    client_configuration: QCSClientConfiguration,
+    name: str,
+    qvm_type: str,
+    quantum_processor: AbstractQuantumProcessor,
+    compiler_timeout: float,
+    execution_timeout: float,
+    noise_model: Optional[NoiseModel],
+) -> QuantumComputer:
+    """Construct a QuantumComputer backed by a QVM.
+
+    This is a minimal wrapper over the QuantumComputer, QVM, and QVMCompiler constructors.
+
+    :param client_configuration: Client configuration.
+    :param name: A string identifying this particular quantum computer.
+    :param qvm_type: The type of QVM. Either qvm or pyqvm.
+    :param quantum_processor: A quantum_processor following the AbstractQuantumProcessor interface.
+    :param noise_model: An optional noise model
+    :param compiler_timeout: Time limit for compilation requests, in seconds.
+    :param execution_timeout: Time limit for execution requests, in seconds.
+    :return: A QuantumComputer backed by a QVM with the above options.
+    """
+
+    return QuantumComputer(
+        name=name,
+        qam=_get_qvm_or_pyqvm(
+            client_configuration=client_configuration,
+            qvm_type=qvm_type,
+            noise_model=noise_model,
+            quantum_processor=quantum_processor,
+            execution_timeout=execution_timeout,
+        ),
+        compiler=QVMCompiler(
+            quantum_processor=quantum_processor,
+            timeout=compiler_timeout,
+            client_configuration=client_configuration,
+        ),
+    )
+
+
+def _get_qvm_with_topology(
+    *,
+    client_configuration: QCSClientConfiguration,
+    name: str,
+    topology: nx.Graph,
+    noisy: bool,
+    qvm_type: str,
+    compiler_timeout: float,
+    execution_timeout: float,
+) -> QuantumComputer:
+    """Construct a QVM with the provided topology.
+
+    :param client_configuration: Client configuration.
+    :param name: A name for your quantum computer. This field does not affect behavior of the
+        constructed QuantumComputer.
+    :param topology: A graph representing the desired qubit connectivity.
+    :param noisy: Whether to include a generic noise model. If you want more control over
+        the noise model, please construct your own :py:class:`NoiseModel` and use
+        :py:func:`_get_qvm_qc` instead of this function.
+    :param qvm_type: The type of QVM. Either 'qvm' or 'pyqvm'.
+    :param compiler_timeout: Time limit for compilation requests, in seconds.
+    :param execution_timeout: Time limit for execution requests, in seconds.
+    :return: A pre-configured QuantumComputer
+    """
+    # Note to developers: consider making this function public and advertising it.
+    quantum_processor = NxQuantumProcessor(topology=topology)
+    if noisy:
+        noise_model: Optional[NoiseModel] = decoherence_noise_with_asymmetric_ro(
+            isa=quantum_processor.to_compiler_isa()
+        )
+    else:
+        noise_model = None
+    return _get_qvm_qc(
+        client_configuration=client_configuration,
+        name=name,
+        qvm_type=qvm_type,
+        quantum_processor=quantum_processor,
+        noise_model=noise_model,
+        compiler_timeout=compiler_timeout,
+        execution_timeout=execution_timeout,
+    )

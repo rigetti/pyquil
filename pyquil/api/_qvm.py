@@ -13,6 +13,7 @@
 #    See the License for the specific language governing permissions and
 #    limitations under the License.
 ##############################################################################
+from dataclasses import dataclass
 from typing import Dict, Mapping, Optional, Sequence, Union, Tuple
 
 import numpy as np
@@ -20,16 +21,14 @@ from qcs_api_client.client import QCSClientConfiguration
 
 from pyquil._version import pyquil_version
 from pyquil.api import QuantumExecutable
-from pyquil.api._error_reporting import _record_call
-from pyquil.api._qam import QAM
+
+from pyquil.api._qam import QAM, QAMExecutionResult
 from pyquil.api._qvm_client import (
     QVMClient,
     RunProgramRequest,
 )
-from pyquil.gates import MOVE
 from pyquil.noise import NoiseModel, apply_noise_model
-from pyquil.quil import Program, get_classical_addresses_from_program, percolate_declares
-from pyquil.quilatom import MemoryReference
+from pyquil.quil import Program, get_classical_addresses_from_program
 
 
 class QVMVersionMismatch(Exception):
@@ -53,8 +52,13 @@ def check_qvm_version(version: str) -> None:
         )
 
 
-class QVM(QAM):
-    @_record_call
+@dataclass
+class QVMExecuteResponse:
+    executable: Program
+    memory: Mapping[str, np.ndarray]
+
+
+class QVM(QAM[QVMExecuteResponse]):
     def __init__(
         self,
         noise_model: Optional[NoiseModel] = None,
@@ -119,52 +123,29 @@ http://pyquil.readthedocs.io/en/latest/noise_models.html#support-for-noisy-gates
         except ConnectionError:
             raise QVMNotRunning(f"No QVM server running at {self._qvm_client.base_url}")
 
-    @_record_call
-    def get_version_info(self) -> str:
+    def execute(self, executable: QuantumExecutable) -> QVMExecuteResponse:
         """
-        Return version information for the QVM.
+        Synchronously execute the input program to completion.
+        """
 
-        :return: String with version information
-        """
-        return self._qvm_client.get_version()
-
-    @_record_call
-    def load(self, executable: QuantumExecutable) -> "QVM":
-        """
-        Initialize a QAM and load a program to be executed with a call to :py:func:`run`.
-
-        :param executable: A compiled executable.
-        """
         if not isinstance(executable, Program):
-            raise TypeError("`executable` argument must be a `Program`.")
+            raise TypeError(f"`QVM#executable` argument must be a `Program`; got {type(executable)}")
 
-        super().load(executable)
+        result_memory = {}
+
         for region in executable.declarations.keys():
-            self._memory_results[region] = np.ndarray((executable.num_shots, 0), dtype=np.int64)
-        return self
+            result_memory[region] = np.ndarray((executable.num_shots, 0), dtype=np.int64)
 
-    @_record_call
-    def run(self) -> "QVM":
-        """
-        Run a Quil program on the QVM multiple times and return the values stored in the
-        classical registers designated by the classical_addresses parameter.
-
-        :return: An array of bitstrings of shape ``(trials, len(classical_addresses))``
-        """
-        super().run()
-        assert isinstance(self.executable, Program)
-
-        quil_program = self.executable
-        trials = quil_program.num_shots
-        classical_addresses = get_classical_addresses_from_program(quil_program)
+        trials = executable.num_shots
+        classical_addresses = get_classical_addresses_from_program(executable)
 
         if self.noise_model is not None:
-            quil_program = apply_noise_model(quil_program, self.noise_model)
+            executable = apply_noise_model(executable, self.noise_model)
 
-        quil_program = self.augment_program_with_memory_values(quil_program)
+        executable._set_parameter_values_at_runtime()
 
         request = qvm_run_request(
-            quil_program,
+            executable,
             classical_addresses,
             trials,
             self.measurement_noise,
@@ -173,19 +154,25 @@ http://pyquil.readthedocs.io/en/latest/noise_models.html#support-for-noisy-gates
         )
         response = self._qvm_client.run_program(request)
         ram = {key: np.array(val) for key, val in response.results.items()}
-        self._memory_results.update(ram)
+        result_memory.update(ram)
 
-        return self
+        return QVMExecuteResponse(executable=executable, memory=result_memory)
 
-    def augment_program_with_memory_values(self, quil_program: Program) -> Program:
-        p = Program()
+    def get_result(self, execute_response: QVMExecuteResponse) -> QAMExecutionResult:
+        """
+        Return the results of execution on the QVM.
 
-        for k, v in self._variables_shim.items():
-            p += MOVE(MemoryReference(name=k.name, offset=k.index), v)
+        Because QVM execution is synchronous, this is a no-op which returns its input.
+        """
+        return QAMExecutionResult(executable=execute_response.executable, readout_data=execute_response.memory)
 
-        p += quil_program
+    def get_version_info(self) -> str:
+        """
+        Return version information for the QVM.
 
-        return percolate_declares(p)
+        :return: String with version information
+        """
+        return self._qvm_client.get_version()
 
 
 def validate_noise_probabilities(noise_parameter: Optional[Tuple[float, float, float]]) -> None:

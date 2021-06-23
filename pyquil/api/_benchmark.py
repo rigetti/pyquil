@@ -23,7 +23,7 @@ from pyquil.api._compiler_client import (
     ConjugatePauliByCliffordRequest,
     CompilerClient,
 )
-from pyquil.api._error_reporting import _record_call
+
 from pyquil.paulis import PauliTerm, is_identity
 from pyquil.quil import address_qubits, Program
 from pyquil.quilbase import Gate
@@ -34,7 +34,6 @@ class BenchmarkConnection(AbstractBenchmarker):
     Represents a connection to a server that generates benchmarking data.
     """
 
-    @_record_call
     def __init__(self, *, timeout: float = 10.0, client_configuration: Optional[QCSClientConfiguration] = None):
         """
         Client to communicate with the benchmarking data endpoint.
@@ -48,7 +47,6 @@ class BenchmarkConnection(AbstractBenchmarker):
             request_timeout=timeout,
         )
 
-    @_record_call
     def apply_clifford_to_pauli(self, clifford: Program, pauli_in: PauliTerm) -> PauliTerm:
         r"""
         Given a circuit that consists only of elements of the Clifford group,
@@ -86,7 +84,6 @@ class BenchmarkConnection(AbstractBenchmarker):
             pauli_out = cast(PauliTerm, pauli_out * PauliTerm(pauli, all_qubits[i]))
         return cast(PauliTerm, pauli_out * pauli_in.coefficient)
 
-    @_record_call
     def generate_rb_sequence(
         self,
         depth: int,

@@ -37,10 +37,11 @@ from typing import (
 )
 
 import numpy as np
-from rpcq.messages import NativeQuilMetadata
+from rpcq.messages import NativeQuilMetadata, ParameterAref
 
 from pyquil._parser.parser import run_parser
-from pyquil.gates import MEASURE, RESET
+from pyquil._memory import Memory
+from pyquil.gates import MEASURE, RESET, MOVE
 from pyquil.noise import _check_kraus_ops, _create_kraus_pragmas, pauli_kraus_map
 from pyquil.quilatom import (
     Label,
@@ -110,8 +111,9 @@ InstructionDesignator = Union[
 ]
 
 
-class Program(object):
-    """A list of pyQuil instructions that comprise a quantum program.
+class Program:
+    """
+    A list of pyQuil instructions that comprise a quantum program.
 
     >>> from pyquil import Program
     >>> from pyquil.gates import H, CNOT
@@ -119,6 +121,9 @@ class Program(object):
     >>> p += H(0)
     >>> p += CNOT(0, 1)
     """
+
+    _memory: Memory
+    """Contents of memory to be used as program parameters during execution"""
 
     def __init__(self, *instructions: InstructionDesignator):
         self._defined_gates: List[DefGate] = []
@@ -147,6 +152,8 @@ class Program(object):
 
         # default number of shots to loop through
         self.num_shots = 1
+
+        self._memory = Memory()
 
         # Note to developers: Have you changed this method? Have you changed the fields which
         # live on `Program`? Please update `Program.copy()`!
@@ -179,6 +186,7 @@ class Program(object):
         """
         new_prog = Program()
         new_prog._calibrations = self.calibrations.copy()
+        new_prog._declarations = self._declarations.copy()
         new_prog._waveforms = self.waveforms.copy()
         new_prog._defined_gates = self._defined_gates.copy()
         new_prog._frames = self.frames.copy()
@@ -186,6 +194,7 @@ class Program(object):
             # TODO: remove this type: ignore once rpcq._base.Message gets type hints.
             new_prog.native_quil_metadata = self.native_quil_metadata.copy()  # type: ignore
         new_prog.num_shots = self.num_shots
+        new_prog._memory = self._memory.copy()
         return new_prog
 
     def copy(self) -> "Program":
@@ -465,6 +474,37 @@ class Program(object):
         else:
             for qubit_index, classical_reg in qubit_reg_pairs:
                 self.inst(MEASURE(qubit_index, classical_reg))
+        return self
+
+    def _set_parameter_values_at_runtime(self) -> "Program":
+        """
+        Store all parameter values directly within the Program using ``MOVE`` instructions. Mutates the receiver.
+        """
+        move_instructions = [
+            MOVE(MemoryReference(name=k.name, offset=k.index), v) for k, v in self._memory.values.items()
+        ]
+
+        self.prepend_instructions(move_instructions)
+        self._sort_declares_to_program_start()
+
+        return self
+
+    def write_memory(
+        self,
+        *,
+        region_name: str,
+        value: Union[int, float, Sequence[int], Sequence[float]],
+        offset: Optional[int] = None,
+    ) -> "Program":
+        self._memory._write_value(parameter=ParameterAref(name=region_name, index=offset or 0), value=value)
+        return self
+
+    def prepend_instructions(self, instructions: Iterable[AbstractInstruction]) -> "Program":
+        """
+        Prepend instructions to the beginning of the program.
+        """
+        self._instructions = [*instructions, *self._instructions]
+        self._synthesized_instructions = None
         return self
 
     def while_do(self, classical_reg: MemoryReferenceDesignator, q_program: "Program") -> "Program":
@@ -766,6 +806,13 @@ class Program(object):
         except ValueError:
             return False
 
+    def _sort_declares_to_program_start(self) -> None:
+        """
+        Re-order DECLARE instructions within this program to the beginning, followed by
+        all other instructions. Reordering is stable among DECLARE and non-DECLARE instructions.
+        """
+        self._instructions = sorted(self._instructions, key=lambda instruction: not isinstance(instruction, Declare))
+
     def pop(self) -> AbstractInstruction:
         """
         Pops off the last instruction.
@@ -830,10 +877,12 @@ class Program(object):
         p._calibrations = self.calibrations
         p._waveforms = self.waveforms
         p._frames = self.frames
+        p._memory = self._memory.copy()
         if isinstance(other, Program):
             p.calibrations.extend(other.calibrations)
             p.waveforms.update(other.waveforms)
             p.frames.update(other.frames)
+            p._memory.values.update(other._memory.values)
         return p
 
     def __iadd__(self, other: InstructionDesignator) -> "Program":
@@ -848,6 +897,7 @@ class Program(object):
             self.calibrations.extend(other.calibrations)
             self.waveforms.update(other.waveforms)
             self.frames.update(other.frames)
+            self._memory.values.update(other._memory.copy().values)
         return self
 
     def __getitem__(self, index: Union[slice, int]) -> Union[AbstractInstruction, "Program"]:

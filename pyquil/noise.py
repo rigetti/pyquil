@@ -577,7 +577,7 @@ def apply_noise_model(prog: "Program", noise_model: NoiseModel) -> "Program":
                 new_prog += i
         else:
             new_prog += i
-    return new_prog
+    return prog.copy_everything_except_instructions() + new_prog
 
 
 def add_decoherence_noise(
@@ -818,4 +818,7 @@ def estimate_assignment_probs(
 
 
 def _run(qc: "QuantumComputer", program: "Program") -> List[List[int]]:
-    return cast(List[List[int]], qc.run(qc.compiler.native_quil_to_executable(program)).tolist())
+    result = qc.run(qc.compiler.native_quil_to_executable(program))
+    bitstrings = result.readout_data.get("ro")
+    assert bitstrings is not None
+    return cast(List[List[int]], bitstrings.tolist())

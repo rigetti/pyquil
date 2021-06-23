@@ -20,7 +20,7 @@ from typing import Dict, List, Optional, Sequence, Type, Union
 import numpy as np
 from numpy.random.mtrand import RandomState
 
-from pyquil.api import QAM, QuantumExecutable
+from pyquil.api import QAM, QuantumExecutable, QAMExecutionResult
 from pyquil.paulis import PauliTerm, PauliSum
 from pyquil.quil import Program
 from pyquil.quilatom import Label, LabelPlaceholder, MemoryReference
@@ -154,7 +154,7 @@ class AbstractQuantumSimulator(ABC):
         """
 
 
-class PyQVM(QAM):
+class PyQVM(QAM["PyQVM"]):
     def __init__(
         self,
         n_qubits: int,
@@ -211,26 +211,6 @@ class PyQVM(QAM):
         self.wf_simulator = quantum_simulator_type(n_qubits=n_qubits, rs=self.rs)
         self._last_measure_program_loc = None
 
-    def load(self, executable: QuantumExecutable) -> "PyQVM":
-        if not isinstance(executable, Program):
-            raise TypeError("`executable` argument must be a `Program`.")
-
-        # initialize program counter
-        self.program = executable
-        self.program_counter = 0
-        self._memory_results = {}
-
-        # clear RAM, although it's not strictly clear if this should happen here
-        self.ram = {}
-        # if we're clearing RAM, we ought to clear the WF too
-        self.wf_simulator.reset()
-
-        # grab the gate definitions for future use
-        self._extract_defined_gates()
-
-        self.status = "loaded"
-        return self
-
     def _extract_defined_gates(self) -> None:
         self.defined_gates = dict()
         assert self.program is not None
@@ -242,16 +222,30 @@ class PyQVM(QAM):
             self.defined_gates[dg.name] = dg.matrix
 
     def write_memory(self, *, region_name: str, offset: int = 0, value: int = 0) -> "PyQVM":
-        assert self.status in ["loaded", "done"]
         assert region_name != "ro"
         self.ram[region_name][offset] = value
         return self
 
-    def run(self) -> "PyQVM":
-        self.status = "running"
+    def execute(self, executable: QuantumExecutable) -> "PyQVM":
+        """
+        Execute a program on the PyQVM. Note that the state of the instance is reset on each
+        call to ``execute``.
+
+        :return: ``self`` to support method chaining.
+        """
+        if not isinstance(executable, Program):
+            raise TypeError("`executable` argument must be a `Program`")
+
+        self.program = executable
+        self._memory_results = {}
+
+        self.ram = {}
+        self.wf_simulator.reset()
+
+        # grab the gate definitions for future use
+        self._extract_defined_gates()
 
         self._memory_results = {}
-        assert self.program is not None
         for _ in range(self.program.num_shots):
             self.wf_simulator.reset()
             self._execute_program()
@@ -259,15 +253,22 @@ class PyQVM(QAM):
                 self._memory_results.setdefault(name, list())
                 self._memory_results[name].append(self.ram[name])
 
-        # TODO: this will need to be removed in merge conflict with #873
-        self._bitstrings = self._memory_results["ro"]
+        self._memory_results = {k: np.asarray(v) for k, v in self._memory_results.items()}
+
+        self._bitstrings = self._memory_results.get("ro")
 
         return self
 
-    def wait(self) -> "PyQVM":
-        assert self.status == "running"
-        self.status = "done"
-        return self
+    def get_result(self, execute_response: "PyQVM") -> QAMExecutionResult:
+        """
+        Return results from the PyQVM according to the common QAM API. Note that while the
+        ``execute_response`` is not used, it's accepted in order to conform to that API; it's
+        unused because the PyQVM, unlike other QAM's, is itself stateful.
+        """
+        assert self.program is not None
+        return QAMExecutionResult(
+            executable=self.program.copy(), readout_data={k: v for k, v in self._memory_results.items()}
+        )
 
     def read_memory(self, *, region_name: str) -> np.ndarray:
         assert self._memory_results is not None
@@ -469,11 +470,11 @@ class PyQVM(QAM):
 
         return self
 
-    def execute(self, program: Program) -> "PyQVM":
+    def execute_once(self, program: Program) -> "PyQVM":
         """
-        Execute one outer loop of a program on the QVM.
+        Execute one outer loop of a program on the PyQVM without re-initializing its state.
 
-        Note that the QAM is stateful. Subsequent calls to :py:func:`execute` will not
+        Note that the PyQVM is stateful. Subsequent calls to :py:func:`execute_once` will not
         automatically reset the wavefunction or the classical RAM. If this is desired,
         consider starting your program with ``RESET``.
 

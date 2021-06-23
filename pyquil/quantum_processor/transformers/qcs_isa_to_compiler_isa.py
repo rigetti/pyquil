@@ -81,11 +81,11 @@ def qcs_isa_to_compiler_isa(isa: InstructionSetArchitecture) -> CompilerISA:
 
             else:
                 raise QCSISAParseError("unexpected operation node count: {}".format(operation.node_count))
-    for _, qubit in device.qubits.items():
+    for qubit in device.qubits.values():
         if len(qubit.gates) == 0:
             qubit.dead = True
 
-    for _, edge in device.edges.items():
+    for edge in device.edges.values():
         if len(edge.gates) == 0:
             edge.dead = True
 

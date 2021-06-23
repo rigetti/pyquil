@@ -6,8 +6,15 @@ Changelog
 
 ### Announcements
 
-- Python 3.6 is no longer supported. Python 3.7, 3.8, and 3.9 are supported.
+- pyQuil now directly supports the QCS API v1.0, offering you better performance and more
+  granular data about QCS quantum processors.
 
+- Python 3.6 is no longer supported. Python 3.7, 3.8, and 3.9 are supported.
+  
+- `pyquil.compatibility.v2` provides a number of classes which support the pyQuil v2 API, such as
+  `QuantumComputer` and `get_qc`; `pyquil.compatibility.v2.api` offers `QPU` and `QVM`. These may be
+  used to incrementally migrate from v2 to v3, but should not be relied on indefinitely, as the
+  underlying mechanics of these two versions continue to diverge in the future.
 ### Improvements and Changes
 
 - Added support and documentation for concurrent compilation and execution (see "Advanced Usage" in docs)
@@ -24,8 +31,7 @@ Changelog
 - `ForestConnection` and `ForestSession` have been removed. Connection information is now managed via `api.QCSClientConfiguration`
   and `api.EngagementManager`.
   
-- `QVMCompiler` now produces a `Program` instead of a `PyQuilExecutableResponse`. As a result, `QVM.load()` only
-  accepts a `Program`, and `QVM.requires_executable` has been removed.
+- `QVMCompiler` now produces a `Program` instead of a `PyQuilExecutableResponse`.
   
 - `QPU.get_version_info()` has been removed.
 
@@ -84,7 +90,7 @@ Changelog
 
 - `get_qc()` no longer accepts `"9q-generic"` (deprecated). Use `"9q-square"` instead.
 
-- Removed `QAM.read_from_memory_region()` (deprecated). Use `QAM.read_memory()` instead.
+- Removed `QAM.read_from_memory_region()` (deprecated). Use `QAMExecutionResult.readout_data.get(region_name)` instead.
 
 - Removed `local_qvm()` (deprecated). Use `local_forest_runtime()` instead.
 
@@ -119,6 +125,37 @@ Changelog
   are passed to the QVM by `WavefunctionSimulator.run_and_measure()` and `WavefunctionSimulator.wavefunction()`.
   
 - `noise.estimate_assignment_probs()` now accepts a `QuantumComputer` instead of `QVMConnection`.
+
+- `QAM` and its subclasses (such as `QPU` and `QVM`) do not store any information specific to the state
+  of execution requests, and thus are safe to be used concurrently by different requests. `QAM.run`
+  is now composed of two intermediate calls:
+  -  `QAM.execute` starts execution of the provided executable, returning an opaque handle.
+  -  `QAM.get_result` uses the opaque handle returned by `execute` to retrieve the result values.
+
+  These new calls can be used to enqueue multiple programs for execution prior to retrieving
+  results for any of them. Note that this new pattern means that `QAM.load`, `QAM.reset`, and
+  `QAM.wait` no longer exist.
+
+- `QAM.run` no longer accepts a `memory_map` argument. Memory values must be written onto
+  executable directly with `Program.write_memory()` and `EncryptedProgram.write_memory()` instead. 
+
+- `QuantumComputer`, `QAM`, `QPU`, and `QVM` are now safe to share across threads and processes,
+  as they no longer store request-related state.
+
+- `PyQVM.execute` has been renamed to `PyQVM.execute_once` to execute a single program from start
+  to finish within the context of the existing `PyQVM` state. `PyQVM` is the only stateful `QAM`.
+  `PyQVM.execute` now implements `QAM.execute` and resets the `PyQVM` state prior to program execution.
+
+- `QuantumComputer.experiment` has been renamed to `QuantumComputer.run_experiment`.
+
+- Results returned from execution are now referred to as `readout_data` rather than `memory`, reflecting the reality
+  that the memory of the QAM is not currently exposed to the user. The exception to this rule is the stateful `PyQVM`,
+  whose state is maintained within the pyQuil process and whose memory _may truly be inspected._ For that,
+  `PyQVM.read_memory` remains available.
+
+- `QuantumComputer.run` now returns a `QAMExecutionResult` rather than the readout data from the `ro` readout
+  source. To access those same readout results, use `qc.run().readout_data.get('ro')`. This allows access to other
+  execution-related information and other readout sources.
   
 - Simultaneous, rather than independent, random benchmark scores are passed to quilc as the gate fidelity for RX and RZ operations.
   

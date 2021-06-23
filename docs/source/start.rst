@@ -297,7 +297,7 @@ allows us to declare classical memory regions so that we can receive data from t
 
         with local_forest_runtime():
             qvm = get_qc('9q-square-qvm')
-            results = qvm.run(qvm.compile(prog)))
+            bitstrings = qvm.run(qvm.compile(prog))).readout_data.get("ro")
 
 Next, let's construct our Bell State.
 
@@ -319,7 +319,7 @@ an entangled state between qubits 0 and 1 (that's what the "CNOT" gate does). Fi
 
     # run the program on a QVM
     qc = get_qc('9q-square-qvm')
-    result = qc.run(qc.compile(p))
+    result = qc.run(qc.compile(p)).readout_data.get("ro")
     print(result[0])
     print(result[1])
 
