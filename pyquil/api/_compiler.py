@@ -78,7 +78,7 @@ class QPUCompiler(AbstractCompiler):
     Client to communicate with the compiler and translation service.
     """
 
-    _calibration_program_lock: multiprocessing.Lock
+    _calibration_program_lock: multiprocessing.Lock  # type: ignore
 
     def __init__(
         self,
@@ -157,7 +157,7 @@ class QPUCompiler(AbstractCompiler):
         hardware.
 
         :returns: A Program object containing the calibration definitions."""
-        with self._calibration_program_lock:
+        with self._calibration_program_lock:  # type: ignore
             if self._calibration_program is None:
                 try:
                     self.refresh_calibration_program()

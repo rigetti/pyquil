@@ -34,7 +34,7 @@ class EngagementManager:
     Fetches (and caches) engagements for use when accessing a QPU.
     """
 
-    _lock: multiprocessing.Lock
+    _lock: multiprocessing.Lock   # type: ignore
     """Lock used to ensure that only one engagement request is in flight at once."""
 
     def __init__(self, *, client_configuration: QCSClientConfiguration) -> None:
@@ -56,7 +56,7 @@ class EngagementManager:
         :param request_timeout: Timeout for request, in seconds.
         :return: Fetched or cached engagement.
         """
-        with self._lock:
+        with self._lock:  # type: ignore
             if not self._engagement_valid(self._cached_engagements.get(quantum_processor_id)):
                 with qcs_client(
                     client_configuration=self._client_configuration, request_timeout=request_timeout
