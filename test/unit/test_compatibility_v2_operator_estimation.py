@@ -657,7 +657,7 @@ def test_measure_observables_grouped_expts(client_configuration: QCSClientConfig
 
     if use_seed:
         num_simulations = 1
-        qc.qam.random_seed = 2
+        qc.qam.random_seed = 4
     else:
         num_simulations = 100
 
