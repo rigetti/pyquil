@@ -79,8 +79,8 @@ ro = p.declare('ro', 'BIT', 2)
 p += MEASURE(0, ro[0])
 p += MEASURE(1, ro[1])
 p.wrap_in_numshots_loop(10)
- 
-qvm.run(p).tolist()
+
+qvm.run(p).readout_data['ro'].tolist()
 ```
 
 The output of the above program should look something like the following,
