@@ -14,13 +14,16 @@ readme = ""
 setup(
     long_description=readme,
     name="pyquil",
-    version="3.0.0-rc.13",
+    version="3.0.0-rc.15",
     description="A Python library for creating Quantum Instruction Language (Quil) programs.",
     python_requires="==3.*,>=3.7.0",
     packages=[
         "pyquil",
         "pyquil._parser",
         "pyquil.api",
+        "pyquil.compatibility",
+        "pyquil.compatibility.v2",
+        "pyquil.compatibility.v2.api",
         "pyquil.experiment",
         "pyquil.external",
         "pyquil.latex",
