@@ -186,6 +186,7 @@ class Program:
         """
         new_prog = Program()
         new_prog._calibrations = self.calibrations.copy()
+        new_prog._declarations = self._declarations.copy()
         new_prog._waveforms = self.waveforms.copy()
         new_prog._defined_gates = self._defined_gates.copy()
         new_prog._frames = self.frames.copy()
