@@ -22,10 +22,12 @@ SERVER_PUBLIC_KEY = "rq:rM>}U?@Lns47E1%kR.o@n%FcmmsL/@{H8]yf7"
 SERVER_SECRET_KEY = "JTKVSB%%)wK0E.X)V>+}o?pNmC{O&4W4b!Ni{Lh6"
 
 
+def run_server(server: rpcq.Server, port: int) -> None:
+    server.run(endpoint=f"tcp://*:{port}", loop=asyncio.new_event_loop())
+
+
 @contextmanager
 def run_rpcq_server(server: rpcq.Server, port: int):
-    def run_server():
-        server.run(endpoint=f"tcp://*:{port}", loop=asyncio.new_event_loop())
 
     @retry(tries=10, delay=1.0)
     def check_connection():
@@ -35,13 +37,14 @@ def run_rpcq_server(server: rpcq.Server, port: int):
         finally:
             s.close()
 
-    proc = Process(target=run_server)
+    proc = Process(target=run_server, args=(server, port))
     try:
         proc.start()
         check_connection()
         yield
     finally:
-        os.kill(proc.pid, signal.SIGINT)
+        if proc.pid:
+            os.kill(proc.pid, signal.SIGINT)
 
 
 def parse_equals(quil_string, *instructions):

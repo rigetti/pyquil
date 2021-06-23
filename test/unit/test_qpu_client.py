@@ -15,6 +15,7 @@
 ##############################################################################
 import time
 from datetime import datetime, timedelta
+from functools import partial
 from typing import Any, Dict
 from unittest import mock
 
@@ -46,6 +47,19 @@ def test_init__sets_processor_and_timeout(mock_engagement_manager: mock.MagicMoc
     assert qpu_client.timeout == 3.14
 
 
+def execute_qpu_request(request: rpcq.messages.QPURequest, user: str, priority: int) -> str:
+    assert request == rpcq.messages.QPURequest(
+        id="some-qpu-request",
+        program="encrypted-program",
+        patch_values={"foo": [42]},
+    )
+    # NOTE: user no longer needs to be passed to server by client-under-test, but we still need to ensure the mock
+    # handler signature matches that of the server
+    assert user is None
+    assert priority == 1
+    return "some-job"
+
+
 def test_run_program__returns_job_info(
     mock_engagement_manager: mock.MagicMock,
     engagement_credentials: EngagementCredentials,
@@ -61,18 +75,8 @@ def test_run_program__returns_job_info(
         port=port,
     )
 
-    @rpcq_server_with_auth.rpc_handler
-    def execute_qpu_request(request: rpcq.messages.QPURequest, user: str, priority: int) -> str:
-        assert request == rpcq.messages.QPURequest(
-            id="some-qpu-request",
-            program="encrypted-program",
-            patch_values={"foo": [42]},
-        )
-        # NOTE: user no longer needs to be passed to server by client-under-test, but we still need to ensure the mock
-        # handler signature matches that of the server
-        assert user is None
-        assert priority == 1
-        return "some-job"
+    rpcq_server_with_auth.rpc_handler(execute_qpu_request)
+
 
     with run_rpcq_server(rpcq_server_with_auth, port):
         request = RunProgramRequest(
@@ -82,6 +86,18 @@ def test_run_program__returns_job_info(
             patch_values={"foo": [42]},
         )
         assert qpu_client.run_program(request) == RunProgramResponse(job_id="some-job")
+
+
+def get_buffers(job_id: str, wait: bool) -> Dict[str, Any]:
+    assert job_id == "some-job"
+    assert wait is True
+    return {
+        "ro": {
+            "shape": (1000, 2),
+            "dtype": "float64",
+            "data": b"buffer-data",
+        },
+    }
 
 
 def test_get_buffers__returns_buffers_for_job(
@@ -99,17 +115,7 @@ def test_get_buffers__returns_buffers_for_job(
         port=port,
     )
 
-    @rpcq_server_with_auth.rpc_handler
-    def get_buffers(job_id: str, wait: bool) -> Dict[str, Any]:
-        assert job_id == "some-job"
-        assert wait is True
-        return {
-            "ro": {
-                "shape": (1000, 2),
-                "dtype": "float64",
-                "data": b"buffer-data",
-            },
-        }
+    rpcq_server_with_auth.rpc_handler(get_buffers)
 
     with run_rpcq_server(rpcq_server_with_auth, port):
         request = GetBuffersRequest(
@@ -125,6 +131,10 @@ def test_get_buffers__returns_buffers_for_job(
                 )
             }
         )
+
+
+def execute_qpu_request_empty(request: rpcq.messages.QPURequest, user: str, priority: int):
+    return ""
 
 
 def test_fetches_engagement_for_quantum_processor_on_request(
@@ -151,9 +161,9 @@ def test_fetches_engagement_for_quantum_processor_on_request(
 
     mock_engagement_manager.get_engagement.side_effect = mock_get_engagement
 
-    @rpcq_server_with_auth.rpc_handler
-    def execute_qpu_request(request: rpcq.messages.QPURequest, user: str, priority: int):
-        return ""
+    _execute_qpu_request = execute_qpu_request_empty
+    _execute_qpu_request.__name__ = "execute_qpu_request"
+    rpcq_server_with_auth.rpc_handler(_execute_qpu_request)
 
     with run_rpcq_server(rpcq_server_with_auth, port):
         request = RunProgramRequest(
@@ -163,6 +173,11 @@ def test_fetches_engagement_for_quantum_processor_on_request(
             patch_values={},
         )
         qpu_client.run_program(request)
+
+
+def execute_qpu_request_sleep(timeout: int, request: rpcq.messages.QPURequest, user: str, priority: int):
+    time.sleep(timeout * 2)
+    return "some-job"
 
 
 def test_sets_timeout_on_requests__engagement_expires_later(
@@ -187,9 +202,9 @@ def test_sets_timeout_on_requests__engagement_expires_later(
         port=port,
     )
 
-    @rpcq_server_with_auth.rpc_handler
-    def execute_qpu_request(request: rpcq.messages.QPURequest, user: str, priority: int):
-        time.sleep(qpu_client.timeout * 2)
+    _execute_qpu_request = partial(execute_qpu_request_sleep, qpu_client.timeout)
+    _execute_qpu_request.__name__ = "execute_qpu_request"
+    rpcq_server_with_auth.rpc_handler(_execute_qpu_request)
 
     with run_rpcq_server(rpcq_server_with_auth, port):
         with raises(TimeoutError, match=f"Timeout on client tcp://localhost:{port}, method name execute_qpu_request"):
@@ -225,9 +240,9 @@ def test_sets_timeout_on_requests__engagement_expires_sooner(
         port=port,
     )
 
-    @rpcq_server_with_auth.rpc_handler
-    def execute_qpu_request(request: rpcq.messages.QPURequest, user: str, priority: int):
-        time.sleep(engagement_seconds_left * 2)
+    _execute_qpu_request = partial(execute_qpu_request_sleep, engagement_seconds_left)
+    _execute_qpu_request.__name__ = "execute_qpu_request"
+    rpcq_server_with_auth.rpc_handler(_execute_qpu_request)
 
     with run_rpcq_server(rpcq_server_with_auth, port):
         with raises(TimeoutError, match=f"Timeout on client tcp://localhost:{port}, method name execute_qpu_request"):
@@ -270,10 +285,9 @@ def test_handles_contiguous_engagements(
         ),
     ]
 
-    @rpcq_server_with_auth.rpc_handler
-    def execute_qpu_request(request: rpcq.messages.QPURequest, user: str, priority: int):
-        time.sleep(first_engagement_seconds_left * 2)
-        return "some-job"
+    _execute_qpu_request = partial(execute_qpu_request_sleep, first_engagement_seconds_left)
+    _execute_qpu_request.__name__ = "execute_qpu_request"
+    rpcq_server_with_auth.rpc_handler(_execute_qpu_request)
 
     with run_rpcq_server(rpcq_server_with_auth, port):
         request = RunProgramRequest(
