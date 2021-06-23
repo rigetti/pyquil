@@ -29,10 +29,8 @@ performance. (See :doc:`advanced_usage` for more information).
 However, this required three small but important changes:
 
 1. ``write_memory`` is no longer a method on ``QAM`` but rather on ``Program`` and ``EncryptedProgram``.
-2. ``qc.run()`` no longer accepts a ``memory_map`` argument. All memory values must be set directly
-  on the ``Program`` or ``EncryptedProgram`` using ``write_memory``.
-3. ``QAM.load()``, ``QAM.wait()``, and ``QAM.reset()`` no longer exist, because the
-  ``QAM`` no longer "stores" program state.
+2. ``qc.run()`` no longer accepts a ``memory_map`` argument. All memory values must be set directly on the ``Program`` or ``EncryptedProgram`` using ``write_memory``.
+3. ``QAM.load()``, ``QAM.wait()``, and ``QAM.reset()`` no longer exist, because the ``QAM`` no longer "stores" program state.
 
 This means that you should now execute your programs using one of these options:
 
