@@ -1,4 +1,4 @@
-from qcs_api_client.models import InstructionSetArchitecture, Characteristic
+from qcs_api_client.models import InstructionSetArchitecture, Characteristic, Operation
 from pyquil.external.rpcq import CompilerISA, add_edge, add_qubit, get_qubit, get_edge
 import numpy as np
 from pyquil.external.rpcq import (
@@ -51,7 +51,12 @@ def qcs_isa_to_compiler_isa(isa: InstructionSetArchitecture) -> CompilerISA:
                 qubit_operations_seen[operation_qubit.id].add(operation.name)
 
                 operation_qubit.gates.extend(
-                    _transform_qubit_operation_to_gates(operation.name, operation_qubit.id, site.characteristics)
+                    _transform_qubit_operation_to_gates(
+                        operation.name,
+                        operation_qubit.id,
+                        site.characteristics,
+                        isa.benchmarks,
+                    )
                 )
 
             elif operation.node_count == 2:
@@ -135,15 +140,8 @@ def _make_measure_gates(node_id: int, characteristics: List[Characteristic]) -> 
     ]
 
 
-def _make_rx_gates(node_id: int, characteristics: List[Characteristic]) -> List[GateInfo]:
+def _make_rx_gates(node_id: int, benchmarks: List[Operation]) -> List[GateInfo]:
     default_duration = _operation_names_to_compiler_duration_default[Supported1QGate.RX]
-
-    default_fidelity = _operation_names_to_compiler_fidelity_default[Supported1QGate.RX]
-    fidelity = default_fidelity
-    for characteristic in characteristics:
-        if characteristic.name == "f1QRB":
-            fidelity = characteristic.value
-            break
 
     gates = [
         GateInfo(
@@ -154,6 +152,8 @@ def _make_rx_gates(node_id: int, characteristics: List[Characteristic]) -> List[
             duration=default_duration,
         )
     ]
+
+    fidelity = _get_frb_sim_1q(node_id, benchmarks)
     for param in [np.pi, -np.pi, np.pi / 2, -np.pi / 2]:
         gates.append(
             GateInfo(
@@ -167,16 +167,40 @@ def _make_rx_gates(node_id: int, characteristics: List[Characteristic]) -> List[
     return gates
 
 
-def _make_rz_gates(node_id: int) -> List[GateInfo]:
+def _make_rz_gates(node_id: int, benchmarks: List[Operation]) -> List[GateInfo]:
+    fidelity = _get_frb_sim_1q(node_id, benchmarks)
     return [
         GateInfo(
             operator=Supported1QGate.RZ,
             parameters=["_"],
             arguments=[node_id],
-            fidelity=PERFECT_FIDELITY,
+            fidelity=fidelity,
             duration=PERFECT_DURATION,
         )
     ]
+
+
+def _get_frb_sim_1q(node_id: int, benchmarks: List[Operation]) -> float:
+    frb_sim_1q = next(
+        (benchmark for benchmark in benchmarks if benchmark.name == "randomized_benchmark_simultaneous_1q"), None
+    )
+    if frb_sim_1q is None:
+        raise ValueError('benchmarks do not include "randomized_benchmark_simultaneous_1q"')
+
+    site = next(
+        (
+            characteristic
+            for characteristic in frb_sim_1q.sites[0].characteristics
+            if isinstance(characteristic.node_ids, list)
+            and len(characteristic.node_ids) == 1
+            and characteristic.node_ids[0] == node_id
+        ),
+        None,
+    )
+    if site is None:
+        raise ValueError(f"randomized_benchmark_simultaneous_1q benchmarks do not include node {node_id}")
+
+    return site.value
 
 
 def _make_wildcard_1q_gates(node_id: int) -> List[GateInfo]:
@@ -195,11 +219,12 @@ def _transform_qubit_operation_to_gates(
     operation_name: str,
     node_id: int,
     characteristics: List[Characteristic],
+    benchmarks: List[Operation],
 ) -> List[Union[GateInfo, MeasureInfo]]:
     if operation_name == Supported1QGate.RX:
-        return cast(List[Union[GateInfo, MeasureInfo]], _make_rx_gates(node_id, characteristics))
+        return cast(List[Union[GateInfo, MeasureInfo]], _make_rx_gates(node_id, benchmarks))
     elif operation_name == Supported1QGate.RZ:
-        return cast(List[Union[GateInfo, MeasureInfo]], _make_rz_gates(node_id))
+        return cast(List[Union[GateInfo, MeasureInfo]], _make_rz_gates(node_id, benchmarks))
     elif operation_name == Supported1QGate.MEASURE:
         return cast(List[Union[GateInfo, MeasureInfo]], _make_measure_gates(node_id, characteristics))
     elif operation_name == Supported1QGate.WILDCARD:

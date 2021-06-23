@@ -156,6 +156,9 @@ Changelog
 - `QuantumComputer.run` now returns a `QAMExecutionResult` rather than the readout data from the `ro` readout
   source. To access those same readout results, use `qc.run().readout_data.get('ro')`. This allows access to other
   execution-related information and other readout sources.
+  
+- Simultaneous, rather than independent, random benchmark scores are passed to quilc as the gate fidelity for RX and RZ operations.
+  
 ### Bugfixes
 
 [v2.28.1](https://github.com/rigetti/pyquil/compare/v2.28.0..v2.28.1) (May 5, 2021)
