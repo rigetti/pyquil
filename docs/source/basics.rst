@@ -304,7 +304,7 @@ filled in for, say, 200 values between :math:`0` and :math:`2\pi`. We demonstrat
         executable.write_memory(region_name='theta', value=theta)
 
         # Get the results of the run with the value we want to execute with
-        bitstrings = qc.run(executable)
+        bitstrings = qc.run(executable).readout_data.get("ro")
 
         # Store our results
         parametric_measurements.append(bitstrings)
