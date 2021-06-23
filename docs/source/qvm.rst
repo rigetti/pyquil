@@ -336,6 +336,16 @@ for more details about declaring and accessing classical memory regions.
 
 .. _new_topology:
 
+``.execute`` and ``.get_result``
+^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+
+The ``.run(...)`` method is itself a convenience wrapper around two other methods: ``.execute(...)`` and
+``.get_result(...)``. ``run`` makes your program appear synchronous (request and then wait for the response),
+when in reality on some backends (such as a live QPU), execution is in fact asynchronous (request execution,
+then request results at a later time). For finer-grained control over your program execution process,
+you can use these two methods in place of ``.run``. This is most useful when you want to execute work
+concurrently - for that, please see "Advanced Usage."
+
 Providing Your Own Quantum Processor Topology
 ---------------------------------------------
 
