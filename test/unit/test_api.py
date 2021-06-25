@@ -15,22 +15,11 @@
 #    limitations under the License.
 ##############################################################################
 from math import pi
-from unittest import mock
 
 import numpy as np
-import pytest
-from qcs_api_client.client import QCSClientConfiguration
 
-from pyquil.api._qvm_client import (
-    MeasureExpectationResponse,
-    MeasureExpectationRequest,
-    RunAndMeasureProgramResponse,
-    RunAndMeasureProgramRequest,
-    RunProgramRequest,
-    RunProgramResponse,
-)
 from pyquil.external.rpcq import _compiler_isa_from_dict
-from pyquil.gates import CNOT, H, MEASURE, PHASE, Z, RZ, RX, CZ
+from pyquil.gates import CNOT, H, MEASURE, PHASE, RZ, RX, CZ
 from pyquil.paulis import PauliTerm
 from pyquil.quil import Program
 from pyquil.quilatom import MemoryReference

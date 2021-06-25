@@ -1,14 +1,10 @@
 import json
 import os
-import random
-import socket
 from pathlib import Path
 from typing import Dict, Any
-from threading import Lock
 
 import numpy as np
 import pytest
-import rpcq
 from qcs_api_client.client._configuration import QCSClientConfiguration
 from qcs_api_client.models import InstructionSetArchitecture, EngagementCredentials
 
@@ -27,7 +23,7 @@ from pyquil.quantum_processor.transformers.graph_to_compiler_isa import (
     _transform_qubit_operation_to_gates,
 )
 from pyquil.quil import Program
-from test.unit.utils import DummyCompiler, CLIENT_PUBLIC_KEY, CLIENT_SECRET_KEY, SERVER_PUBLIC_KEY, SERVER_SECRET_KEY
+from test.unit.utils import DummyCompiler, CLIENT_PUBLIC_KEY, CLIENT_SECRET_KEY, SERVER_PUBLIC_KEY
 
 TEST_DATA_DIR = os.path.join(os.path.dirname(os.path.realpath(__file__)), "data")
 
@@ -165,36 +161,6 @@ def engagement_credentials() -> EngagementCredentials:
         client_secret=CLIENT_SECRET_KEY,
         server_public=SERVER_PUBLIC_KEY,
     )
-
-
-@pytest.fixture(scope="function")
-def rpcq_server_with_auth() -> rpcq.Server:
-    auth_config = rpcq.ServerAuthConfig(
-        server_secret_key=SERVER_SECRET_KEY.encode(),
-        server_public_key=SERVER_PUBLIC_KEY.encode(),
-        client_keys_directory=os.path.join(TEST_DATA_DIR, "rpcq_client_key"),
-    )
-    return rpcq.Server(auth_config=auth_config)
-
-
-@pytest.fixture(scope="function")
-def rpcq_server() -> rpcq.Server:
-    return rpcq.Server()
-
-
-port_lock = Lock()
-
-
-@pytest.fixture(scope="function")
-def port() -> int:
-    with port_lock:
-        while True:
-            p = random.randint(10000, 60000)
-            sock = socket.socket()
-            err = sock.connect_ex(("localhost", p))
-            sock.close()
-            if err != 0:  # 0 => port in use
-                return p
 
 
 @pytest.fixture(scope="session")

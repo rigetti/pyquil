@@ -1,13 +1,8 @@
-import asyncio
-import os
-import signal
-from contextlib import contextmanager
-from multiprocessing import Process
-from socket import socket
+from typing import Any
+from unittest.mock import MagicMock
 
-import rpcq
+from pytest_mock import MockerFixture
 from qcs_api_client.client import QCSClientConfiguration
-from retry import retry
 
 from pyquil import Program
 from pyquil.api._abstract_compiler import AbstractCompiler
@@ -22,26 +17,25 @@ SERVER_PUBLIC_KEY = "rq:rM>}U?@Lns47E1%kR.o@n%FcmmsL/@{H8]yf7"
 SERVER_SECRET_KEY = "JTKVSB%%)wK0E.X)V>+}o?pNmC{O&4W4b!Ni{Lh6"
 
 
-@contextmanager
-def run_rpcq_server(server: rpcq.Server, port: int):
-    def run_server():
-        server.run(endpoint=f"tcp://*:{port}", loop=asyncio.new_event_loop())
+def patch_rpc_client(*, mocker: MockerFixture, return_value: Any) -> MagicMock:
+    """Patch rpc.Client and return the MagicMock object it's patched with.
 
-    @retry(tries=10, delay=1.0)
-    def check_connection():
-        s = socket()
-        try:
-            s.connect(("localhost", port))
-        finally:
-            s.close()
+    :param return_value: The response that should come back from calling client.call()
+    :return the instance of MagicMock standing in for rpc.Client that other functions will use.
+    """
 
-    proc = Process(target=run_server)
-    try:
-        proc.start()
-        check_connection()
-        yield
-    finally:
-        os.kill(proc.pid, signal.SIGINT)
+    client = mocker.MagicMock()
+    client.call.return_value = return_value
+
+    def _construct(endpoint, timeout=None, auth_config=None):
+        client.endpoint = endpoint
+        client.timeout = timeout
+        client.auth_config = auth_config
+        return client
+
+    constructor = mocker.patch("rpcq.Client", side_effect=_construct)
+
+    return client
 
 
 def parse_equals(quil_string, *instructions):

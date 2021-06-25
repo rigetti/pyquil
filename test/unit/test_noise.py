@@ -1,8 +1,8 @@
 from collections import OrderedDict
-from unittest import mock
 
 import numpy as np
 import pytest
+from pytest_mock import MockerFixture
 
 from pyquil.api._qam import QAMExecutionResult
 from pyquil.gates import RZ, RX, I, CZ
@@ -279,11 +279,9 @@ def test_readout_compensation():
     assert np.isclose(zm[1, 1, 1], 1.0)
 
 
-@mock.patch("pyquil.api._abstract_compiler.AbstractCompiler")
-@mock.patch("pyquil.api.QuantumComputer")
-def test_estimate_assignment_probs(mock_qc_class: mock.MagicMock, mock_compiler_class: mock.MagicMock):
-    mock_qc = mock_qc_class.return_value
-    mock_compiler = mock_compiler_class.return_value
+def test_estimate_assignment_probs(mocker: MockerFixture):
+    mock_qc = mocker.patch("pyquil.api.QuantumComputer").return_value
+    mock_compiler = mocker.patch("pyquil.api._abstract_compiler.AbstractCompiler").return_value
 
     trials = 100
     p00 = 0.8
