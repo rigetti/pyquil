@@ -34,6 +34,8 @@ mypy = "0.740"
 pytest-xdist = "^2.2.1"
 pytest-rerunfailures = "^9.1.1"
 pytest-timeout = "^1.4.2"
+pytest-mock = "^3.6.1"
+pytest-freezegun = "^0.4.2"
 
 [tool.poetry.extras]
 docs = [

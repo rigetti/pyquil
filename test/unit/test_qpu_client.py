@@ -13,16 +13,15 @@
 #    See the License for the specific language governing permissions and
 #    limitations under the License.
 ##############################################################################
-import time
 from datetime import datetime, timedelta
-from typing import Any, Dict
 from unittest import mock
 
 import pytest
 import rpcq
 from dateutil.tz import tzutc
-from pytest import raises
+from pytest_mock import MockerFixture
 from qcs_api_client.models import EngagementWithCredentials, EngagementCredentials
+from rpcq.messages import QPURequest
 
 from pyquil.api._qpu_client import (
     QPUClient,
@@ -32,7 +31,7 @@ from pyquil.api._qpu_client import (
     RunProgramRequest,
     RunProgramResponse,
 )
-from test.unit.utils import run_rpcq_server
+from test.unit.utils import patch_rpcq_client
 
 
 def test_init__sets_processor_and_timeout(mock_engagement_manager: mock.MagicMock):
@@ -49,8 +48,7 @@ def test_init__sets_processor_and_timeout(mock_engagement_manager: mock.MagicMoc
 def test_run_program__returns_job_info(
     mock_engagement_manager: mock.MagicMock,
     engagement_credentials: EngagementCredentials,
-    rpcq_server_with_auth: rpcq.Server,
-    port: int,
+    mocker: MockerFixture,
 ):
     qpu_client = QPUClient(quantum_processor_id="some-processor", engagement_manager=mock_engagement_manager)
 
@@ -58,231 +56,205 @@ def test_run_program__returns_job_info(
         quantum_processor_id="some-processor",
         seconds_left=10,
         credentials=engagement_credentials,
-        port=port,
+        port=1234,
     )
 
-    @rpcq_server_with_auth.rpc_handler
-    def execute_qpu_request(request: rpcq.messages.QPURequest, user: str, priority: int) -> str:
-        assert request == rpcq.messages.QPURequest(
+    rpcq_client = patch_rpcq_client(mocker=mocker, return_value="some-job")
+    request = RunProgramRequest(
+        id="some-qpu-request",
+        priority=1,
+        program="encrypted-program",
+        patch_values={"foo": [42]},
+    )
+    assert qpu_client.run_program(request) == RunProgramResponse(job_id="some-job")
+    rpcq_client.call.assert_called_once_with(
+        "execute_qpu_request",
+        request=rpcq.messages.QPURequest(
             id="some-qpu-request",
             program="encrypted-program",
             patch_values={"foo": [42]},
-        )
-        # NOTE: user no longer needs to be passed to server by client-under-test, but we still need to ensure the mock
-        # handler signature matches that of the server
-        assert user is None
-        assert priority == 1
-        return "some-job"
-
-    with run_rpcq_server(rpcq_server_with_auth, port):
-        request = RunProgramRequest(
-            id="some-qpu-request",
-            priority=1,
-            program="encrypted-program",
-            patch_values={"foo": [42]},
-        )
-        assert qpu_client.run_program(request) == RunProgramResponse(job_id="some-job")
+        ),
+        priority=request.priority,
+        user=None,
+    )
 
 
 def test_get_buffers__returns_buffers_for_job(
     mock_engagement_manager: mock.MagicMock,
     engagement_credentials: EngagementCredentials,
-    rpcq_server_with_auth: rpcq.Server,
-    port: int,
+    mocker: MockerFixture,
 ):
     qpu_client = QPUClient(quantum_processor_id="some-processor", engagement_manager=mock_engagement_manager)
-
     mock_engagement_manager.get_engagement.return_value = engagement(
         quantum_processor_id="some-processor",
         seconds_left=10,
         credentials=engagement_credentials,
-        port=port,
+        port=1234,
+    )
+    rpcq_client = patch_rpcq_client(mocker=mocker, return_value={
+        "ro": {
+            "shape": (1000, 2),
+            "dtype": "float64",
+            "data": b"buffer-data",
+        },
+    })
+    job_id = "some-job"
+    wait = True
+    request = GetBuffersRequest(
+        job_id=job_id,
+        wait=wait,
     )
 
-    @rpcq_server_with_auth.rpc_handler
-    def get_buffers(job_id: str, wait: bool) -> Dict[str, Any]:
-        assert job_id == "some-job"
-        assert wait is True
-        return {
-            "ro": {
-                "shape": (1000, 2),
-                "dtype": "float64",
-                "data": b"buffer-data",
-            },
+    assert qpu_client.get_buffers(request) == GetBuffersResponse(
+        buffers={
+            "ro": BufferResponse(
+                shape=(1000, 2),
+                dtype="float64",
+                data=b"buffer-data",
+            )
         }
-
-    with run_rpcq_server(rpcq_server_with_auth, port):
-        request = GetBuffersRequest(
-            job_id="some-job",
-            wait=True,
-        )
-        assert qpu_client.get_buffers(request) == GetBuffersResponse(
-            buffers={
-                "ro": BufferResponse(
-                    shape=(1000, 2),
-                    dtype="float64",
-                    data=b"buffer-data",
-                )
-            }
-        )
+    )
+    rpcq_client.call.assert_called_once_with(
+        "get_buffers",
+        job_id=job_id,
+        wait=wait,
+    )
 
 
 def test_fetches_engagement_for_quantum_processor_on_request(
     mock_engagement_manager: mock.MagicMock,
     engagement_credentials: EngagementCredentials,
-    rpcq_server_with_auth: rpcq.Server,
-    port: int,
+    mocker: MockerFixture,
 ):
+    processor_id = "some-processor"
     qpu_client = QPUClient(
-        quantum_processor_id="some-processor",
+        quantum_processor_id=processor_id,
         engagement_manager=mock_engagement_manager,
         request_timeout=3.14,
     )
-
-    def mock_get_engagement(quantum_processor_id: str, request_timeout: float) -> EngagementWithCredentials:
-        assert quantum_processor_id == "some-processor"
-        assert request_timeout == qpu_client.timeout
-        return engagement(
-            quantum_processor_id="some-processor",
+    mock_engagement_manager.get_engagement.return_value = engagement(
+            quantum_processor_id=processor_id,
             seconds_left=9999,
             credentials=engagement_credentials,
-            port=port,
+            port=1234,
         )
 
-    mock_engagement_manager.get_engagement.side_effect = mock_get_engagement
+    patch_rpcq_client(mocker=mocker, return_value="")
 
-    @rpcq_server_with_auth.rpc_handler
-    def execute_qpu_request(request: rpcq.messages.QPURequest, user: str, priority: int):
-        return ""
+    request = RunProgramRequest(
+        id="",
+        priority=0,
+        program="",
+        patch_values={},
+    )
+    qpu_client.run_program(request)
+    mock_engagement_manager.get_engagement.assert_called_once_with(
+        quantum_processor_id=processor_id,
+        request_timeout=qpu_client.timeout,
+    )
 
-    with run_rpcq_server(rpcq_server_with_auth, port):
-        request = RunProgramRequest(
-            id="",
-            priority=0,
-            program="",
-            patch_values={},
-        )
-        qpu_client.run_program(request)
 
-
-def test_sets_timeout_on_requests__engagement_expires_later(
+def test__calculate_timeout__engagement_is_longer_than_timeout(
     mock_engagement_manager: mock.MagicMock,
     engagement_credentials: EngagementCredentials,
-    rpcq_server_with_auth: rpcq.Server,
-    port: int,
 ):
     """
     Tests that the original request timeout is honored when time until engagement expiration is longer than timeout.
     """
+    client_timeout = 0.1
     qpu_client = QPUClient(
         quantum_processor_id="some-processor",
         engagement_manager=mock_engagement_manager,
-        request_timeout=0.1,
+        request_timeout=client_timeout,
     )
-
-    mock_engagement_manager.get_engagement.return_value = engagement(
+    _engagement = engagement(
         quantum_processor_id="some-processor",
         seconds_left=qpu_client.timeout * 10,
         credentials=engagement_credentials,
-        port=port,
+        port=1234,
     )
+    mock_engagement_manager.get_engagement.return_value = _engagement
 
-    @rpcq_server_with_auth.rpc_handler
-    def execute_qpu_request(request: rpcq.messages.QPURequest, user: str, priority: int):
-        time.sleep(qpu_client.timeout * 2)
-
-    with run_rpcq_server(rpcq_server_with_auth, port):
-        with raises(TimeoutError, match=f"Timeout on client tcp://localhost:{port}, method name execute_qpu_request"):
-            request = RunProgramRequest(
-                id="",
-                priority=0,
-                program="",
-                patch_values={},
-            )
-            qpu_client.run_program(request)
+    assert qpu_client._calculate_timeout(engagement=_engagement) == client_timeout
 
 
-def test_sets_timeout_on_requests__engagement_expires_sooner(
+def test__calculate_timeout__engagement_is_shorter_than_timeout(
+    freezer,  # This freezes time so that timeout can be compared with ==
     mock_engagement_manager: mock.MagicMock,
     engagement_credentials: EngagementCredentials,
-    rpcq_server_with_auth: rpcq.Server,
-    port: int,
 ):
     """
     Tests that the original request timeout is truncated when time until engagement expiration is sooner than timeout.
     """
+    mock_engagement_manager.get_engagement.return_value = {}
+    client_timeout = 1.0
+    seconds_left = 0.5
     qpu_client = QPUClient(
         quantum_processor_id="some-processor",
         engagement_manager=mock_engagement_manager,
-        request_timeout=1.0,
+        request_timeout=client_timeout,
     )
-
-    engagement_seconds_left = qpu_client.timeout / 10
-    mock_engagement_manager.get_engagement.return_value = engagement(
+    _engagement = engagement(
         quantum_processor_id="some-processor",
-        seconds_left=engagement_seconds_left,
+        seconds_left=seconds_left,
         credentials=engagement_credentials,
-        port=port,
+        port=1234,
     )
+    mock_engagement_manager.get_engagement.return_value = _engagement
 
-    @rpcq_server_with_auth.rpc_handler
-    def execute_qpu_request(request: rpcq.messages.QPURequest, user: str, priority: int):
-        time.sleep(engagement_seconds_left * 2)
-
-    with run_rpcq_server(rpcq_server_with_auth, port):
-        with raises(TimeoutError, match=f"Timeout on client tcp://localhost:{port}, method name execute_qpu_request"):
-            request = RunProgramRequest(
-                id="",
-                priority=0,
-                program="",
-                patch_values={},
-            )
-            qpu_client.run_program(request)
+    assert qpu_client._calculate_timeout(engagement=_engagement) == seconds_left
 
 
-def test_handles_contiguous_engagements(
+def test_run_program__retries_on_timeout(
     mock_engagement_manager: mock.MagicMock,
     engagement_credentials: EngagementCredentials,
-    rpcq_server_with_auth: rpcq.Server,
-    port: int,
+    mocker: MockerFixture,
 ):
-    """Test that a request crossing the boundary between two contiguous engagements can successfully complete."""
+    """Test that if a run request times out, it will be retried.
 
+    A real-world example is a request crossing the boundary between two contiguous engagements.
+    """
+
+    # SETUP
+    processor_id = "some-processor"
+    job_id = "some-job"
     qpu_client = QPUClient(
-        quantum_processor_id="some-processor",
+        quantum_processor_id=processor_id,
         engagement_manager=mock_engagement_manager,
         request_timeout=1.0,
     )
-
-    first_engagement_seconds_left = qpu_client.timeout / 10
-    mock_engagement_manager.get_engagement.side_effect = [
-        engagement(
-            quantum_processor_id="some-processor",
-            seconds_left=first_engagement_seconds_left,
+    mock_engagement_manager.get_engagement.return_value = engagement(
+            quantum_processor_id=processor_id,
+            seconds_left=0,
             credentials=engagement_credentials,
-            port=port,
-        ),
-        engagement(
-            quantum_processor_id="some-processor",
-            seconds_left=9999,
-            credentials=engagement_credentials,
-            port=port,
-        ),
-    ]
-
-    @rpcq_server_with_auth.rpc_handler
-    def execute_qpu_request(request: rpcq.messages.QPURequest, user: str, priority: int):
-        time.sleep(first_engagement_seconds_left * 2)
-        return "some-job"
-
-    with run_rpcq_server(rpcq_server_with_auth, port):
-        request = RunProgramRequest(
-            id="",
-            priority=0,
-            program="",
-            patch_values={},
+            port=1234,
         )
-        assert qpu_client.run_program(request) == RunProgramResponse(job_id="some-job")
+    rpcq_client = patch_rpcq_client(mocker=mocker, return_value=None)
+    rpcq_client.call.side_effect = [
+        TimeoutError,  # First request must look like it timed out so we can verify retry
+        job_id,
+    ]
+    request_kwargs = {"id": "TestingContiguous", "patch_values": {}, "program": ""}
+    request = RunProgramRequest(  # Thing we give to QPUClient
+        priority=0,
+        **request_kwargs,
+    )
+
+    # ACT
+    assert qpu_client.run_program(request) == RunProgramResponse(job_id=job_id)
+
+    # ASSERT
+    # Engagement should be fetched twice, once per RPC call
+    mock_engagement_manager.get_engagement.assert_has_calls([
+        mocker.call(quantum_processor_id='some-processor', request_timeout=1.0),
+        mocker.call(quantum_processor_id='some-processor', request_timeout=1.0),
+    ])
+    # RPC call should happen twice since the first one times out
+    qpu_request = QPURequest(**request_kwargs)  # Thing QPUClient gives to rpcq.Client
+    rpcq_client.call.assert_has_calls([
+        mocker.call("execute_qpu_request", request=qpu_request, priority=0, user=None),
+        mocker.call("execute_qpu_request", request=qpu_request, priority=0, user=None),
+    ])
 
 
 def engagement(
@@ -299,6 +271,6 @@ def engagement(
 
 
 @pytest.fixture()
-@mock.patch("pyquil.api.EngagementManager", autospec=True)
-def mock_engagement_manager(mock_engagement_manager_class: mock.MagicMock) -> mock.MagicMock:
+def mock_engagement_manager(mocker: MockerFixture) -> mock.MagicMock:
+    mock_engagement_manager_class = mocker.patch("pyquil.api.EngagementManager", autospec=True)
     return mock_engagement_manager_class.return_value
