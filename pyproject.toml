@@ -16,7 +16,7 @@ rpcq = "^3.6.0"
 networkx = "^2.5"
 ipython = "^7.21.0"
 importlib-metadata = {version = "^3.7.3", python = "<3.8"}
-qcs-api-client = "^0.7.0"
+qcs-api-client = "^0.8.0"
 Sphinx = "^3.5.2"
 sphinx-rtd-theme = "^0.5.1"
 sphinx-autodoc-typehints = "^1.11.1"
