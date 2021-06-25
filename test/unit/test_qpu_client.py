@@ -31,7 +31,7 @@ from pyquil.api._qpu_client import (
     RunProgramRequest,
     RunProgramResponse,
 )
-from test.unit.utils import patch_rpc_client
+from test.unit.utils import patch_rpcq_client
 
 
 def test_init__sets_processor_and_timeout(mock_engagement_manager: mock.MagicMock):
@@ -59,7 +59,7 @@ def test_run_program__returns_job_info(
         port=1234,
     )
 
-    client = patch_rpc_client(mocker=mocker, return_value="some-job")
+    rpcq_client = patch_rpcq_client(mocker=mocker, return_value="some-job")
     request = RunProgramRequest(
         id="some-qpu-request",
         priority=1,
@@ -67,7 +67,7 @@ def test_run_program__returns_job_info(
         patch_values={"foo": [42]},
     )
     assert qpu_client.run_program(request) == RunProgramResponse(job_id="some-job")
-    client.call.assert_called_once_with(
+    rpcq_client.call.assert_called_once_with(
         "execute_qpu_request",
         request=rpcq.messages.QPURequest(
             id="some-qpu-request",
@@ -91,7 +91,7 @@ def test_get_buffers__returns_buffers_for_job(
         credentials=engagement_credentials,
         port=1234,
     )
-    client = patch_rpc_client(mocker=mocker, return_value={
+    rpcq_client = patch_rpcq_client(mocker=mocker, return_value={
         "ro": {
             "shape": (1000, 2),
             "dtype": "float64",
@@ -114,7 +114,7 @@ def test_get_buffers__returns_buffers_for_job(
             )
         }
     )
-    client.call.assert_called_once_with(
+    rpcq_client.call.assert_called_once_with(
         "get_buffers",
         job_id=job_id,
         wait=wait,
@@ -139,7 +139,7 @@ def test_fetches_engagement_for_quantum_processor_on_request(
             port=1234,
         )
 
-    patch_rpc_client(mocker=mocker, return_value="")
+    patch_rpcq_client(mocker=mocker, return_value="")
 
     request = RunProgramRequest(
         id="",
@@ -154,7 +154,7 @@ def test_fetches_engagement_for_quantum_processor_on_request(
     )
 
 
-def test__calculate_timeout_engagement_is_longer_than_timeout(
+def test__calculate_timeout__engagement_is_longer_than_timeout(
     mock_engagement_manager: mock.MagicMock,
     engagement_credentials: EngagementCredentials,
 ):
@@ -178,7 +178,7 @@ def test__calculate_timeout_engagement_is_longer_than_timeout(
     assert qpu_client._calculate_timeout(engagement=_engagement) == client_timeout
 
 
-def test__calculate_timeout_engagement_is_shorter_than_timeout(
+def test__calculate_timeout__engagement_is_shorter_than_timeout(
     freezer,  # This freezes time so that timeout can be compared with ==
     mock_engagement_manager: mock.MagicMock,
     engagement_credentials: EngagementCredentials,
@@ -210,7 +210,7 @@ def test_run_program__retries_on_timeout(
     engagement_credentials: EngagementCredentials,
     mocker: MockerFixture,
 ):
-    """Test that if a program times out, it will be retried.
+    """Test that if a run request times out, it will be retried.
 
     A real-world example is a request crossing the boundary between two contiguous engagements.
     """
@@ -229,8 +229,8 @@ def test_run_program__retries_on_timeout(
             credentials=engagement_credentials,
             port=1234,
         )
-    client = patch_rpc_client(mocker=mocker, return_value=None)
-    client.call.side_effect = [
+    rpcq_client = patch_rpcq_client(mocker=mocker, return_value=None)
+    rpcq_client.call.side_effect = [
         TimeoutError,  # First request must look like it timed out so we can verify retry
         job_id,
     ]
@@ -239,7 +239,6 @@ def test_run_program__retries_on_timeout(
         priority=0,
         **request_kwargs,
     )
-    qpu_request = QPURequest(**request_kwargs)  # Thing QPUClient gives to rpcq.Client
 
     # ACT
     assert qpu_client.run_program(request) == RunProgramResponse(job_id=job_id)
@@ -251,7 +250,8 @@ def test_run_program__retries_on_timeout(
         mocker.call(quantum_processor_id='some-processor', request_timeout=1.0),
     ])
     # RPC call should happen twice since the first one times out
-    client.call.assert_has_calls([
+    qpu_request = QPURequest(**request_kwargs)  # Thing QPUClient gives to rpcq.Client
+    rpcq_client.call.assert_has_calls([
         mocker.call("execute_qpu_request", request=qpu_request, priority=0, user=None),
         mocker.call("execute_qpu_request", request=qpu_request, priority=0, user=None),
     ])

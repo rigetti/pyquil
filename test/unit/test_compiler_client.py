@@ -31,7 +31,7 @@ from pyquil.api._compiler_client import (
     CompileToNativeQuilRequest,
 )
 from pyquil.external.rpcq import CompilerISA, compiler_isa_to_target_quantum_processor
-from test.unit.utils import patch_rpc_client
+from test.unit.utils import patch_rpcq_client
 
 
 def test_init__sets_base_url_and_timeout(monkeypatch: MonkeyPatch):
@@ -60,7 +60,7 @@ def test_sets_timeout_on_requests(mocker: MockerFixture):
     client_configuration = QCSClientConfiguration.load()
     compiler_client = CompilerClient(client_configuration=client_configuration, request_timeout=0.1)
 
-    patch_rpc_client(mocker=mocker, return_value={})
+    patch_rpcq_client(mocker=mocker, return_value={})
 
     with compiler_client._rpcq_client() as client:
         assert client.timeout == compiler_client.timeout
@@ -70,10 +70,10 @@ def test_get_version__returns_version(mocker: MockerFixture):
     client_configuration = QCSClientConfiguration.load()
     compiler_client = CompilerClient(client_configuration=client_configuration)
 
-    client = patch_rpc_client(mocker=mocker, return_value={"quilc": "1.2.3"})
+    rpcq_client = patch_rpcq_client(mocker=mocker, return_value={"quilc": "1.2.3"})
 
     assert compiler_client.get_version() == "1.2.3"
-    client.call.assert_called_once_with(
+    rpcq_client.call.assert_called_once_with(
         "get_version_info"
     )
 
@@ -85,7 +85,7 @@ def test_compile_to_native_quil__returns_native_quil(
     client_configuration = QCSClientConfiguration.load()
     compiler_client = CompilerClient(client_configuration=client_configuration)
 
-    client = patch_rpc_client(
+    rpcq_client = patch_rpcq_client(
         mocker=mocker,
         return_value=rpcq.messages.NativeQuilResponse(
             quil="native-program",
@@ -120,12 +120,12 @@ def test_compile_to_native_quil__returns_native_quil(
             qpu_runtime_estimation=0.1618,
         ),
     )
-    client.call.assert_called_once_with(
+    rpcq_client.call.assert_called_once_with(
         "quil_to_native_quil",
-    rpcq.messages.NativeQuilRequest(
-        quil="some-program",
-        target_device=compiler_isa_to_target_quantum_processor(aspen8_compiler_isa),
-    ),
+        rpcq.messages.NativeQuilRequest(
+            quil="some-program",
+            target_device=compiler_isa_to_target_quantum_processor(aspen8_compiler_isa),
+        ),
         protoquil=True,
     )
 
@@ -135,7 +135,7 @@ def test_conjugate_pauli_by_clifford__returns_conjugation_result(
 ):
     client_configuration = QCSClientConfiguration.load()
     compiler_client = CompilerClient(client_configuration=client_configuration)
-    client = patch_rpc_client(mocker=mocker, return_value=rpcq.messages.ConjugateByCliffordResponse(phase=42, pauli="pauli"))
+    rpcq_client = patch_rpcq_client(mocker=mocker, return_value=rpcq.messages.ConjugateByCliffordResponse(phase=42, pauli="pauli"))
 
     request = ConjugatePauliByCliffordRequest(
         pauli_indices=[0, 1, 2],
@@ -146,7 +146,7 @@ def test_conjugate_pauli_by_clifford__returns_conjugation_result(
         phase_factor=42,
         pauli="pauli",
     )
-    client.call.assert_called_once_with(
+    rpcq_client.call.assert_called_once_with(
         "conjugate_pauli_by_clifford",
         rpcq.messages.ConjugateByCliffordRequest(
             pauli=rpcq.messages.PauliTerm(indices=[0, 1, 2], symbols=["x", "y", "z"]),
@@ -161,7 +161,7 @@ def test_generate_randomized_benchmarking_sequence__returns_benchmarking_sequenc
     client_configuration = QCSClientConfiguration.load()
     compiler_client = CompilerClient(client_configuration=client_configuration)
 
-    client = patch_rpc_client(mocker=mocker, return_value=rpcq.messages.RandomizedBenchmarkingResponse(sequence=[[3, 1, 4], [1, 6, 1]]))
+    rpcq_client = patch_rpcq_client(mocker=mocker, return_value=rpcq.messages.RandomizedBenchmarkingResponse(sequence=[[3, 1, 4], [1, 6, 1]]))
 
     request = GenerateRandomizedBenchmarkingSequenceRequest(
         depth=42,
@@ -173,7 +173,7 @@ def test_generate_randomized_benchmarking_sequence__returns_benchmarking_sequenc
     assert compiler_client.generate_randomized_benchmarking_sequence(
         request
     ) == GenerateRandomizedBenchmarkingSequenceResponse(sequence=[[3, 1, 4], [1, 6, 1]])
-    client.call.assert_called_once_with(
+    rpcq_client.call.assert_called_once_with(
         "generate_rb_sequence",
         rpcq.messages.RandomizedBenchmarkingRequest(
             depth=42,

@@ -17,8 +17,8 @@ SERVER_PUBLIC_KEY = "rq:rM>}U?@Lns47E1%kR.o@n%FcmmsL/@{H8]yf7"
 SERVER_SECRET_KEY = "JTKVSB%%)wK0E.X)V>+}o?pNmC{O&4W4b!Ni{Lh6"
 
 
-def patch_rpc_client(*, mocker: MockerFixture, return_value: Any) -> MagicMock:
-    """Patch rpc.Client and return the MagicMock object it's patched with.
+def patch_rpcq_client(*, mocker: MockerFixture, return_value: Any) -> MagicMock:
+    """Patch rpcq.Client and return the MagicMock object it's patched with.
 
     :param return_value: The response that should come back from calling client.call()
     :return the instance of MagicMock standing in for rpc.Client that other functions will use.
