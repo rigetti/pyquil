@@ -8,7 +8,7 @@ take you through the process of installing all three of these. We also step you 
 
 .. note::
 
-    If you're running from a Quantum Machine Image, installation has been completed for you. Continue to
+    If you're running from a Rigetti-provisioned JupyterLab IDE, installation has been completed for you. Continue to
     :ref:`exampleprogram`.
 
 Upgrading or Installing pyQuil
@@ -42,8 +42,8 @@ Downloading the QVM and Compiler
 ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
 The Forest 3.0 Downloadable SDK Preview currently contains:
 
--  The Rigetti Quantum Virtual Machine (``qvm``) which allows high-performance simulation of Quil programs
--  The Rigetti Quil Compiler (``quilc``) which allows compilation and optimization of Quil programs to native gate sets
+-  The Quantum Virtual Machine (``qvm``) which allows high-performance simulation of Quil programs
+-  The Quil Compiler (``quilc``) which allows compilation and optimization of Quil programs to native gate sets
 
 The QVM and the compiler are packed as program binaries that are accessed through the command line. Both of them provide
 support for direct command-line interaction, as well as a server mode. The :ref:`server mode <server>` is required for use with pyQuil.
@@ -56,7 +56,7 @@ and Quil Compiler from the bare-bones package, you will have to install the prer
 
 .. note::
 
-   You can also find the open source code for `quilc <http://github.com/rigetti/quilc>`__ and `qvm <http://github.com/rigetti/qvm>`__
+   You can also find the open source code for `quilc <http://github.com/quil-lang/quilc>`__ and `qvm <http://github.com/quil-lang/qvm>`__
    on GitHub, where you can find instructions for compiling, installing, and contributing to the compiler and QVM.
 
 Installing the QVM and Compiler on Windows
@@ -100,18 +100,18 @@ Installing the QVM and Compiler on Linux (deb)
 ----------------------------------------------
 
 Download the Debian distribution by clicking on the appropriate link on the `SDK download page <https://qcs.rigetti.com/sdk-downloads>`__. Unpack the tarball and change to that directory
-by doing:
+by doing (filling in ``<version>`` appropriately):
 
 ::
 
     tar -xf forest-sdk-linux-deb.tar.bz2
-    cd forest-sdk-2.0rc2-linux-deb
+    cd forest-sdk-<version>-linux-deb
 
 From here, run the following command:
 
 ::
 
-    sudo ./forest-sdk-2.0rc2-linux-deb.run
+    sudo ./forest-sdk-<version>-linux-deb.run
 
 Upon successful installation, one should be able to run the following
 two commands:
@@ -131,18 +131,18 @@ Installing the QVM and Compiler on Linux (rpm)
 ----------------------------------------------
 
 Download the RPM-based distribution by clicking on the appropriate link on the `SDK download page <https://qcs.rigetti.com/sdk-downloads>`__. Unpack the tarball and change to that
-directory by doing:
+directory by doing (filling in ``<version>`` appropriately):
 
 ::
 
     tar -xf forest-sdk-linux-rpm.tar.bz2
-    cd forest-sdk-2.0rc2-linux-rpm
+    cd forest-sdk-<version>-linux-rpm
 
 From here, run the following command:
 
 ::
 
-    sudo ./forest-sdk-2.0rc2-linux-rpm.run
+    sudo ./forest-sdk-<version>-linux-rpm.run
 
 Upon successful installation, one should be able to run the following two commands:
 
@@ -167,18 +167,18 @@ manual pages, and doesn't contain any of the requisite dynamic
 libraries. As such, installation doesn't require administrative or
 ``sudo`` privileges.
 
-First, unpack the tarball and change to that directory by doing:
+First, unpack the tarball and change to that directory by doing (filling in ``<version>`` appropriately):
 
 ::
 
     tar -xf forest-sdk-linux-barebones.tar.bz2
-    cd forest-sdk-2.1-linux-barebones
+    cd forest-sdk-<version>-linux-barebones
 
 From here, run the following command:
 
 ::
 
-    ./forest-sdk-2.1-linux-barebones.run
+    ./forest-sdk-<version>-linux-barebones.run
 
 Upon successful installation, this will have created a new directory ``rigetti`` in your home directory that contains all
 of the binary and documentation artifacts.
@@ -253,8 +253,7 @@ We will run a simple program on the Quantum Virtual Machine (QVM).
 
 The program we will create prepares a fully entangled state between two qubits, called a Bell State. This state is in an equal
 superposition between :math:`\ket{00}` and :math:`\ket{11}`, meaning that it is equally likely that a measurement will result in measuring
-both qubits in the ground state or both qubits in the excited state. For more details about the physics behind these
-concepts, see :ref:`intro`.
+both qubits in the ground state or both qubits in the excited state.
 
 To begin, start up python however you like. You can open a jupyter notebook (type ``jupyter notebook`` in your terminal),
 open an interactive python notebook in your terminal (with ``ipython3``), or simply launch python in your terminal

@@ -32,13 +32,13 @@ locally):
 - QVM URL: ``http://127.0.0.1:5000``
 - quilc URL: ``tcp://127.0.0.1:5555``
 
-Concurrency
-~~~~~~~~~~~
+Multithreading
+~~~~~~~~~~~~~~
 
-:py:class:`~pyquil.api.QuantumComputer` objects are safe to share between threads or processes,
-enabling you to execute and retrieve results for multiple programs or parameter values at once.
-Note that :py:class`~pyquil.Program` and :py:class`~pyquil.api.EncryptedProgram` are **not**
-thread-safe, and should be copied (with ``copy()``) before use in a concurrent context.
+:py:class:`~pyquil.api.QuantumComputer` objects are safe to share between threads, enabling you to execute and retrieve
+results for multiple programs or parameter values at once.  Note that :py:class:`~pyquil.Program` and
+:py:class:`~pyquil.api.EncryptedProgram` are **not** thread-safe, and should be copied (with ``copy()``) before use in a
+concurrent context.
 
 .. note::
     The QVM processes incoming requests in parallel, while a QPU may process them sequentially or in parallel
@@ -50,8 +50,7 @@ thread-safe, and should be copied (with ``copy()``) before use in a concurrent c
     We suggest running jobs with a minimum of 2x parallelism, so that the QVM or QPU
     is fully occupied while your program runs and no time is wasted in between jobs.
 
-Using Multithreading
---------------------
+Below is an example that demonstrates how to use pyQuil in a multithreading scenario:
 
 .. code:: python
 
@@ -61,54 +60,26 @@ Using Multithreading
     from pyquil.api import QCSClientConfiguration
 
     configuration = QCSClientConfiguration.load()
-    qc = get_qc("Aspen-8", client_configuration=configuration)
+    qc = get_qc("Aspen-X", client_configuration=configuration)
 
 
     def run(program: Program):
         return qc.run(qc.compile(program)).readout_data.get("ro")
 
 
-    programs = [Program("DECLARE ro BIT", "RX(pi) 0", "MEASURE 0 ro").wrap_in_numshots_loop(10)] * 20
+    programs = [
+        Program(
+            "DECLARE ro BIT",
+            "RX(pi) 0",
+            "MEASURE 0 ro",
+        ).wrap_in_numshots_loop(10),
+    ] * 20
+
     with ThreadPool(5) as pool:
         results = pool.map(run, programs)
 
     for i, result in enumerate(results):
         print(f"Results for program {i}:\n{result}\n")
-
-
-Using Multiprocessing
----------------------
-
-.. code:: python
-
-    from multiprocessing.pool import Pool
-
-    from pyquil import get_qc, Program
-    from pyquil.api import QCSClientConfiguration
-
-
-    configuration = QCSClientConfiguration.load()
-    qc = get_qc("Aspen-8", client_configuration=configuration)
-
-
-    def run(program: Program):
-        return qc.run(qc.compile(program)).readout_data.get("ro")
-
-
-    programs = [Program("DECLARE ro BIT", "RX(pi) 0", "MEASURE 0 ro").wrap_in_numshots_loop(10)] * 20
-    with Pool(5) as pool:
-        results = pool.map(run, programs)
-
-    for i, result in enumerate(results):
-        print(f"Results for program {i}:\n{result}\n")
-
-.. note::
-    If you encounter error messages on macOS similar to the following:
-
-    .. parsed-literal::
-        +[__NSCFConstantString initialize] may have been in progress in another thread when fork() was called.
-
-    try setting the environment variable ``OBJC_DISABLE_INITIALIZE_FORK_SAFETY=YES``.
 
 
 Using Qubit Placeholders

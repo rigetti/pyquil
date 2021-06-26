@@ -39,7 +39,8 @@ coverage:
 	coveralls
 
 .PHONY: docs
-docs: CHANGELOG.md
+docs:
+	poetry install --extras docs --extras latex
 	make -C docs clean html
 
 .PHONY: docker
@@ -61,10 +62,12 @@ install:
 
 .PHONY: test
 test:
+	poetry install --extras latex
 	pytest -n auto -v --runslow --cov=pyquil test/unit
 
 .PHONY: test-fast
 test-fast:
+	poetry install --extras latex
 	pytest -n auto -v --cov=pyquil test/unit
 
 .PHONY: e2e

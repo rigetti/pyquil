@@ -18,9 +18,9 @@ from pyquil.api._quantum_computer import (
     _parse_name,
     _symmetrization,
 )
-from pyquil.compatibility.v2 import QuantumComputer, get_qc
+from pyquil.compatibility.v2 import get_qc
 from pyquil.compatibility.v2.api._quantum_computer import  _get_qvm_with_topology, _measure_bitstrings
-from pyquil.compatibility.v2.api import QVM
+from pyquil.compatibility.v2.api import QVM, QuantumComputer
 from pyquil.experiment import ExperimentSetting, Experiment
 from pyquil.experiment._main import _pauli_to_product_state
 from pyquil.gates import CNOT, H, RESET, RY, X

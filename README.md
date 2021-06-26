@@ -58,7 +58,7 @@ If you choose to use `pip`, we highly recommend installing pyQuil within a virtu
 
 PyQuil, along with quilc, the QVM, and other libraries, make up what is called the Forest
 SDK. To make full use of pyQuil, you will need to additionally have installed
-[quilc](https://github.com/rigetti/quilc) and the [QVM](https://github.com/rigetti/qvm).
+[quilc](https://github.com/quil-lang/quilc) and the [QVM](https://github.com/quil-lang/qvm).
 For more information, check out the docs!
 
 Running your first quantum program

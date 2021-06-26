@@ -13,7 +13,7 @@
 #    See the License for the specific language governing permissions and
 #    limitations under the License.
 ##############################################################################
-from multiprocessing.pool import Pool, ThreadPool
+from multiprocessing.pool import ThreadPool
 
 import numpy as np
 
@@ -32,12 +32,18 @@ TEST_PROGRAM = Program(
 
 
 def test_basic_program(qc: QuantumComputer):
-    results = qc.run(qc.compile(TEST_PROGRAM)).readout_data["ro"]
+    results = qc.run(qc.compile(TEST_PROGRAM)).readout_data.get("ro")
 
     assert results.shape == (1000, 2)
 
 
 def test_multithreading(qc: QuantumComputer):
+    def run_program(
+            program: Program,
+            qc: QuantumComputer,
+    ) -> np.ndarray:
+        return qc.run(qc.compile(program)).readout_data.get('ro')
+
     args = [(TEST_PROGRAM, qc) for _ in range(20)]
     with ThreadPool(10) as pool:
         results = pool.starmap(run_program, args)
@@ -45,21 +51,3 @@ def test_multithreading(qc: QuantumComputer):
     assert len(results) == 20
     for result in results:
         assert result.shape == (1000, 2)
-
-
-def test_multiprocessing(qc: QuantumComputer):
-    args = [(TEST_PROGRAM, qc) for _ in range(20)]
-    with Pool(10) as pool:
-        results = pool.starmap(run_program, args)
-
-    assert len(results) == 20
-    for result in results:
-        assert result.shape == (1000, 2)
-
-
-# NOTE: This must be outside of the test function, or multiprocessing complains that it can't be pickled
-def run_program(
-        program: Program,
-        qc: QuantumComputer,
-) -> np.ndarray:
-    return qc.run(qc.compile(program)).readout_data['ro']

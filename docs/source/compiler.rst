@@ -79,7 +79,7 @@ with output
 
 The compiler connection is also available directly via the property ``qc.compiler``.  The
 precise class of this object changes based on context (e.g., ``QPUCompiler``,
-``QVMCompiler``), but it always conforms to the interface laid out by ``pyquil.api._qac``:
+``QVMCompiler``), but it always conforms to the interface laid out by ``AbstractCompiler``:
 
 * ``compiler.quil_to_native_quil(program, *, protoquil)``: This method converts a Quil program into
   native Quil, according to the ISA that the compiler is initialized with.  The input parameter is
@@ -175,8 +175,8 @@ For example, to inspect the ``qpu_runtime_estimation`` you might do the followin
 
     from pyquil import get_qc, Program
 
-    # If you have a reserved lattice, use it here
-    qc = get_qc("Aspen-4-4Q-A")
+    # If you have a reserved QPU, use it here
+    qc = get_qc("Aspen-X")
     # Otherwise use a QVM
     # qc = get_qc("8q-qvm")
 
@@ -430,7 +430,7 @@ For example, if your program consists of two-qubit instructions where the qubits
    from pyquil import Program, get_qc
    from pyquil.gates import CZ
 
-   qc = get_qc("Aspen-8", as_qvm=True)
+   qc = get_qc("Aspen-X", as_qvm=True)
    p = Program(CZ(3, 4))
 
    print(qc.compile(p).program)
@@ -449,7 +449,7 @@ partial strategy:
    from pyquil import Program, get_qc
    from pyquil.gates import CZ
 
-   qc = get_qc("Aspen-8", as_qvm=True)
+   qc = get_qc("Aspen-X", as_qvm=True)
    p = Program(CZ(3, 4))
 
    print(qc.compile(p).program)
@@ -474,7 +474,7 @@ NAIVE
 In this mode, the compiler chooses the ``naive`` mapping between logical qubits and physical qubits,
 where logical qubit ``i`` is assigned to physical qubit ``i``. With this initial rewiring, the
 compiler will generally **not** move an instruction's qubits around even if it results in a poor
-execution fidelity. For example assume that ``Aspen-8`` has a low-fidelity ``CZ 0 1``, then
+execution fidelity. For example assume that ``Aspen-X`` has a low-fidelity ``CZ 0 1``, then
 compiling this program with naive rewiring will **not** move the ``CZ`` to a better qubit pair:
 
 .. code:: python
@@ -482,7 +482,7 @@ compiling this program with naive rewiring will **not** move the ``CZ`` to a bet
    from pyquil import Program, get_qc
    from pyquil.gates import CZ
 
-   qc = get_qc("Aspen-8", as_qvm=True)
+   qc = get_qc("Aspen-X", as_qvm=True)
    p = Program('PRAGMA INITIAL_REWIRING "NAIVE"', CZ(0, 1))
 
    print(qc.compile(p).program)
@@ -499,7 +499,7 @@ logical-physical qubit mapping. For example,
    from pyquil import Program, get_qc
    from pyquil.gates import CZ
 
-   qc = get_qc("Aspen-8", as_qvm=True)
+   qc = get_qc("Aspen-X", as_qvm=True)
    p = Program('PRAGMA INITIAL_REWIRING "NAIVE"', CZ(0, 2))
 
    print(qc.compile(p).program)
@@ -531,7 +531,7 @@ the compiler can find an alternative that improves the program fidelity:
    from pyquil import Program, get_qc
    from pyquil.gates import CZ
 
-   qc = get_qc("Aspen-8", as_qvm=True)
+   qc = get_qc("Aspen-X", as_qvm=True)
    p = Program('PRAGMA INITIAL_REWIRING "PARTIAL"', CZ(0, 1))
 
    print(qc.compile(p).program)
