@@ -128,6 +128,10 @@ class QuilTransformer(Transformer):  # type: ignore
         return RawInstr(raw_defcircuit)
 
     @v_args(inline=True)
+    def def_circuit_without_qubits(self, name, variables, instrs):
+        return self.def_circuit_qubits(name, variables, [], instrs)
+
+    @v_args(inline=True)
     def def_frame(self, frame, *specs):
         names = {
             "DIRECTION": "direction",
@@ -212,6 +216,10 @@ class QuilTransformer(Transformer):  # type: ignore
                 raise ValueError(f"Unsupported gate modifier {modifier}.")
 
         return gate
+
+    @v_args(inline=True)
+    def gate_no_qubits(self, name):
+        return RawInstr(name)
 
     modifiers = list
     modifier = v_args(inline=True)(str)

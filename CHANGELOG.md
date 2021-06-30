@@ -9,7 +9,10 @@ Changelog
 
 ### Bugfixes
 
-[v2.28.1](https://github.com/rigetti/pyquil/compare/v2.28.1..master) (In development)
+- Fix parser bug that prevented calling a circuit without parameters, e.g.
+  `BELL` (@notmgsk).
+
+[v2.28.1](https://github.com/rigetti/pyquil/compare/v2.28.1..master) (May 5, 2021)
 ------------------------------------------------------------------------------------
 
 ### Announcements

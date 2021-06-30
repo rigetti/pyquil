@@ -41,6 +41,7 @@ quil : (all_instr _NEWLINE?)*
        | classical_binary
        | classical_comparison
        | include
+       | gate_no_qubits
 
 COMMENT : "#" /[^\n]*/ NEWLINE
 
@@ -54,6 +55,9 @@ pauli_terms : ( _NEWLINE_TAB pauli_term )*
 pauli_term : name "(" expression ")" qubit_variables
 
 def_circuit : "DEFCIRCUIT" name [ variables ] [ qubit_designators ] ":" indented_instrs
+
+// def_circuit : "DEFCIRCUIT" name [ variables ] ":" indented_instrs -> def_circuit_bare
+//             | "DEFCIRCUIT" name [ variables ] qubit_designators ":" indented_instrs -> def_circuit_qubits
 
 def_frame : "DEFFRAME" frame ( ":" frame_spec+ )?
 frame_spec : _NEWLINE_TAB frame_attr ":" (expression | "\"" name "\"" )
@@ -70,6 +74,12 @@ def_calibration : "DEFCAL" name params qubit_designators ":" indented_instrs
 def_measure_calibration : "DEFCAL" "MEASURE" qubit_designator [ name ] ":" indented_instrs
 
 gate : [ modifiers ] name [ params ] qubit_designators
+// The .2 tells lark to give this higher priority, which is required to resolve
+// a collision with the above rule. If modifiers is empty, both rules are
+// equivalent up to the name and thus Lark needs a way to choose which to follow
+// first.
+gate_no_qubits.2 : name 
+
 
 modifiers : modifier+
 !modifier : "CONTROLLED" | "DAGGER" | "FORKED"
@@ -301,7 +311,7 @@ FORKED              : "FORKED"
 name                : IDENTIFIER
 IDENTIFIER          : ("_"|LETTER) [ ("_"|"-"|LETTER|DIGIT)* ("_"|LETTER|DIGIT) ]
 string              : ESCAPED_STRING
-_NEWLINE_TAB        : NEWLINE "    "
+_NEWLINE_TAB        : NEWLINE "    " | NEWLINE "\t"
 _NEWLINE            : NEWLINE
 %import common.DIGIT
 %import common.ESCAPED_STRING
