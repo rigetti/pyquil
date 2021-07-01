@@ -19,7 +19,8 @@ import numpy as np
 
 from pyquil import Program
 from pyquil.api import QuantumComputer
-from pyquil.gates import H, CNOT, MEASURE
+from pyquil.gates import H, CNOT, MEASURE, RX
+from pyquil.quilatom import MemoryReference
 from pyquil.quilbase import Declare
 
 TEST_PROGRAM = Program(
@@ -35,6 +36,27 @@ def test_basic_program(qc: QuantumComputer):
     results = qc.run(qc.compile(TEST_PROGRAM)).readout_data.get("ro")
 
     assert results.shape == (1000, 2)
+
+
+def test_parametric_program(qc: QuantumComputer):
+    compiled = qc.compile(
+        Program(
+            Declare("ro", "BIT", 1),
+            Declare("theta", "REAL", 1),
+            RX(MemoryReference("theta"), 0),
+            MEASURE(0, ("ro", 0)),
+        ).wrap_in_numshots_loop(1000),
+    )
+
+    all_results = []
+    for theta in [0, np.pi, 2 * np.pi]:
+        compiled.write_memory(region_name="theta", value=theta)
+        results = qc.run(compiled).readout_data.get("ro")
+        all_results.append(np.mean(results))
+
+    assert all_results[0] == 0.0
+    assert all_results[1] > 0.8
+    assert all_results[2] == 0.0
 
 
 def test_multithreading(qc: QuantumComputer):

@@ -23,7 +23,7 @@ class StatefulQAM(QAM[T]):
             qam.reset()
 
     def load(self, executable: QuantumExecutable) -> "StatefulQAM[T]":
-        self._loaded_executable = executable.copy()
+        self._loaded_executable = executable.copy()  # copy here because calls to self.write_memory() will mutate it
         return self
 
     def read_memory(self, region_name: str) -> Optional[np.ndarray]:

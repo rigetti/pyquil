@@ -153,6 +153,8 @@ class QPU(QAM[QPUExecuteResponse]):
         job descriptor which should be passed directly to ``QPU.get_result`` to retrieve
         results.
         """
+        executable = executable.copy()
+
         assert isinstance(
             executable, EncryptedProgram
         ), "QPU#execute requires an rpcq.EncryptedProgram. Create one with QuantumComputer#compile"
