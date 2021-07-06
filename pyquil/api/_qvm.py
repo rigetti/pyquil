@@ -21,7 +21,6 @@ from qcs_api_client.client import QCSClientConfiguration
 
 from pyquil._version import pyquil_version
 from pyquil.api import QuantumExecutable
-
 from pyquil.api._qam import QAM, QAMExecutionResult
 from pyquil.api._qvm_client import (
     QVMClient,
@@ -127,6 +126,7 @@ http://pyquil.readthedocs.io/en/latest/noise_models.html#support-for-noisy-gates
         """
         Synchronously execute the input program to completion.
         """
+        executable = executable.copy()
 
         if not isinstance(executable, Program):
             raise TypeError(f"`QVM#executable` argument must be a `Program`; got {type(executable)}")
