@@ -159,8 +159,18 @@ Changelog
   execution-related information and other readout sources.
   
 - Simultaneous, rather than independent, random benchmark scores are passed to quilc as the gate fidelity for RX and RZ operations.
-  
+
+[v2.28.2](https://github.com/rigetti/pyquil/compare/v2.28.1..v2.28.2) (July 6, 2021)
+------------------------------------------------------------------------------------
+
+### Announcements
+
+### Improvements and Changes
+
 ### Bugfixes
+
+- Fix parser bug that prevented calling a circuit without parameters, e.g.
+  `BELL` (@notmgsk).
 
 [v2.28.1](https://github.com/rigetti/pyquil/compare/v2.28.0..v2.28.1) (May 5, 2021)
 ------------------------------------------------------------------------------------

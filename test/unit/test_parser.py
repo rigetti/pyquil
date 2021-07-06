@@ -371,22 +371,35 @@ DEFCIRCUIT bell a b:
     H a
     CNOT a b
 """.strip()
+    gate = "bell 0 1"
 
     defcircuit_no_qubits = """
 DEFCIRCUIT bell:
     H 0
     CNOT 0 1
 """.strip()
+    gate_no_qubits = "bell"
 
     defcircuit_param = """
 DEFCIRCUIT parameterized(%theta, %phi) a:
     RX(%theta) a
     RZ(%phi) a
 """.strip()
+    gate_param = "parameterized(0.0, 1.0) 0"
 
-    parse_equals(defcircuit, RawInstr(defcircuit))
-    parse_equals(defcircuit_no_qubits, RawInstr(defcircuit_no_qubits))
-    parse_equals(defcircuit_param, RawInstr(defcircuit_param))
+    parse_equals(
+        defcircuit + "\n" + gate, RawInstr(defcircuit), Gate("bell", [], [Qubit(0), Qubit(1)])
+    )
+    parse_equals(
+        defcircuit_no_qubits + "\n" + gate_no_qubits,
+        RawInstr(defcircuit_no_qubits),
+        RawInstr(gate_no_qubits),
+    )
+    parse_equals(
+        defcircuit_param + "\n" + gate_param,
+        RawInstr(defcircuit_param),
+        Gate("parameterized", [0.0, 1.0], [Qubit(0)]),
+    )
 
 
 def test_parse_reset_qubit():
