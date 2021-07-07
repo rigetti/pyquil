@@ -23,6 +23,7 @@ from operator import mul
 
 import numpy as np
 import pytest
+from lark import UnexpectedCharacters, UnexpectedToken
 
 from pyquil.gates import RX, RZ, CNOT, H, X, PHASE
 from pyquil.paulis import (
@@ -749,7 +750,7 @@ def test_str():
 
 
 def test_from_str():
-    with pytest.raises(ValueError):
+    with pytest.raises(UnexpectedCharacters):
         PauliTerm.from_compact_str("1*A0→1*Z0")
 
 
@@ -774,15 +775,11 @@ def test_qubit_validation():
 
 def test_pauli_term_from_str():
     # tests that should _not_ fail are in test_pauli_sum_from_str
-    with pytest.raises(ValueError):
-        PauliTerm.from_compact_str("X0")
-    with pytest.raises(ValueError):
+    with pytest.raises(UnexpectedToken):
         PauliTerm.from_compact_str("10")
-    with pytest.raises(ValueError):
-        PauliTerm.from_compact_str("1.0X0")
-    with pytest.raises(ValueError):
+    with pytest.raises(UnexpectedCharacters):
         PauliTerm.from_compact_str("(1.0+9i)*X0")
-    with pytest.raises(ValueError):
+    with pytest.raises(UnexpectedCharacters, match="Expecting:"):
         PauliTerm.from_compact_str("(1.0+0j)*A0")
 
 

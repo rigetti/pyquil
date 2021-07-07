@@ -423,43 +423,9 @@ class PauliTerm(object):
     @classmethod
     def from_compact_str(cls, str_pauli_term: str) -> "PauliTerm":
         """Construct a PauliTerm from the result of str(pauli_term)"""
-        # split into str_coef, str_op at first '*'' outside parenthesis
-        try:
-            str_coef, str_op = re.split(r"\*(?![^(]*\))", str_pauli_term, maxsplit=1)
-        except ValueError:
-            raise ValueError(
-                "Could not separate the pauli string into "
-                f"coefficient and operator. {str_pauli_term} does"
-                " not match <coefficient>*<operator>"
-            )
+        from .paulis_parser import parse_pauli_str
 
-        # parse the coefficient into either a float or complex
-        str_coef = str_coef.replace(" ", "")
-        try:
-            coef: Union[float, complex] = float(str_coef)
-        except ValueError:
-            try:
-                coef = complex(str_coef)
-            except ValueError:
-                raise ValueError(f"Could not parse the coefficient {str_coef}")
-
-        op = sI() * coef
-        if str_op == "I":
-            assert isinstance(op, PauliTerm)
-            return op
-
-        # parse the operator
-        str_op = re.sub(r"\*", "", str_op)
-        if not re.match(r"^(([XYZ])(\d+))+$", str_op):
-            raise ValueError(
-                fr"Could not parse operator string {str_op}. It should match ^(([XYZ])(\d+))+$"
-            )
-
-        for factor in re.finditer(r"([XYZ])(\d+)", str_op):
-            op *= cls(factor.group(1), int(factor.group(2)))
-
-        assert isinstance(op, PauliTerm)
-        return op
+        return parse_pauli_str(str_pauli_term)
 
     def pauli_string(self, qubits: Optional[Iterable[int]] = None) -> str:
         """
