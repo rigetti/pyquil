@@ -15,7 +15,6 @@
 ##############################################################################
 from collections import defaultdict
 import uuid
-import warnings
 from typing import Any, Dict, List, Optional, Tuple, Union, cast
 
 import numpy as np
@@ -259,11 +258,6 @@ support at support@rigetti.com."""
             for name, array in extracted.items():
                 self._memory_results[name] = array
         elif not ro_sources:
-            warnings.warn(
-                "You are running a QPU program with no MEASURE instructions. "
-                "The result of this program will always be an empty array. Are "
-                "you sure you didn't mean to measure some of your qubits?"
-            )
             self._memory_results["ro"] = np.zeros((0, 0), dtype=np.int64)
 
         self._last_results = results
