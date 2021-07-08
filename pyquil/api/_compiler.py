@@ -136,32 +136,31 @@ class QPUCompiler(AbstractCompiler):
             _memory=nq_program._memory.copy(),
         )
 
-    def _get_calibration_program(self) -> Program:
+    def _fetch_calibration_program(self) -> Program:
         with self._qcs_client() as qcs_client:  # type: httpx.Client
             response = get_quilt_calibrations(client=qcs_client, quantum_processor_id=self.quantum_processor_id).parsed
         return parse_program(response.quilt)
 
-    def refresh_calibration_program(self) -> None:
-        """Refresh the calibration program cache."""
-        self._calibration_program = self._get_calibration_program()
-
-    @property
-    def calibration_program(self) -> Program:
+    def get_calibration_program(self, force_refresh: bool = False) -> Program:
         """
         Get the Quil-T calibration program associated with the underlying QPU.
+
+        This will return a cached copy of the calibration program if present.
+        Otherwise (or if forcing a refresh), it will fetch and store the
+        calibration program from the QCS API.
 
         A calibration program contains a number of DEFCAL, DEFWAVEFORM, and
         DEFFRAME instructions. In sum, those instructions describe how a Quil-T
         program should be translated into analog instructions for execution on
         hardware.
 
+        :param force_refresh: Whether or not to fetch a new calibration program before returning.
         :returns: A Program object containing the calibration definitions."""
-        # with self._calibration_program_lock:  # type: ignore
-        if self._calibration_program is None:
+        if force_refresh or self._calibration_program is None:
             try:
-                self.refresh_calibration_program()
+                self._calibration_program = self._fetch_calibration_program()
             except Exception as ex:
-                raise RuntimeError("Could not refresh calibrations") from ex
+                raise RuntimeError("Could not fetch calibrations") from ex
 
         assert self._calibration_program is not None
         return self._calibration_program

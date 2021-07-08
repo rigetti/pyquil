@@ -41,7 +41,8 @@ Changelog
   
 - `AbstractCompiler.set_timeout()` has been removed. Set timeouts via `get_qc()` instead (`execution_timeout`, `compiler_timeout` parameters).
 
-- `QPUCompiler.get_calibration_program()` has been removed in favor of `QPUCompiler.calibration_program` (and optionally `QPUCompiler.refresh_calibration_program()`).
+- `QPUCompiler.refresh_calibration_program()` and `QPUCompiler.calibration_program` have been removed. Instead, use `QPUCompiler.get_calibration_program()`
+  (with optional `force_refresh` argument).
 
 - `QVMCompiler.get_calibration_program()`, `QVMCompiler.calibration_program`, and `QVMCompiler.refresh_calibration_program()` have been removed.
   
