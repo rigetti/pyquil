@@ -18,7 +18,7 @@ from multiprocessing.pool import ThreadPool
 import numpy as np
 
 from pyquil import Program
-from pyquil.api import QuantumComputer
+from pyquil.api import QuantumComputer, QPU
 from pyquil.gates import H, CNOT, MEASURE, RX
 from pyquil.quilatom import MemoryReference
 from pyquil.quilbase import Declare
@@ -54,9 +54,14 @@ def test_parametric_program(qc: QuantumComputer):
         results = qc.run(compiled).readout_data.get("ro")
         all_results.append(np.mean(results))
 
-    assert all_results[0] == 0.0
-    assert all_results[1] > 0.8
-    assert all_results[2] == 0.0
+    if isinstance(qc.qam, QPU):
+        assert all_results[0] < 0.2
+        assert all_results[1] > 0.8
+        assert all_results[2] < 0.2
+    else:
+        assert all_results[0] == 0.0
+        assert all_results[1] > 0.8
+        assert all_results[2] == 0.0
 
 
 def test_multithreading(qc: QuantumComputer):
