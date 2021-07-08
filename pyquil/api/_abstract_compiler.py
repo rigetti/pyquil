@@ -65,7 +65,7 @@ class EncryptedProgram:
         """
         Return a deep copy of this EncryptedProgram.
         """
-        return dataclasses.replace(self, memory=self._memory.copy())
+        return dataclasses.replace(self, _memory=self._memory.copy())
 
     def write_memory(
         self,
