@@ -6,6 +6,15 @@ Changelog
 
 ### Announcements
 
+### Improvements and Changes
+
+### Bugfixes
+
+[v3.0.0](https://github.com/rigetti/pyquil/releases/tag/v3.0.0)
+------------------------------------------------------------------------------------
+
+### Announcements
+
 - pyQuil now directly supports the QCS API v1.0, offering you better performance and more
   granular data about QCS quantum processors.
 
