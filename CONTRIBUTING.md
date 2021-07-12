@@ -346,6 +346,17 @@ release is desired, the `rc` branch should be merged to `master`. This will trig
 to [GitHub][gh-releases], [PyPI][pypi], and [DockerHub][docker-forest] (with image tags `latest` and
 `<version>`).
 
+After a final release is produced by Semantic Release, `master` will need to be `merged` back into `rc`
+(due to additional `master` commits created by Semantic Release). This is necessary to re-synchronize
+`rc` with `master` so that further development can continue on `rc`.
+
+> ⚠️ **WARNING**:
+> 
+> Never rebase (or force-push to) the `rc` or `master` branches. Merge only, as Semantic Release
+> relies heavily on tags and notes attached to previous release commits. See [this help page][sr-fp] for more info.
+
+[sr-fp]: https://semantic-release.gitbook.io/semantic-release/support/troubleshooting#release-not-found-release-branch-after-git-push-force
+
 > **Note:** While Semantic Release does a good job of creating release notes for the GitHub release,
 > it may be necessary to hand-modify them after they're posted to simplify/clarify them. For instance,
 > if a feature or fix was introduced on `rc` over a series of commits/PRs (not necessarily adjacent),
