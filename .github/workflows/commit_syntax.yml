@@ -14,7 +14,7 @@ jobs:
       - name: Check Commit Type
         uses: gsactions/commit-message-checker@v1
         with:
-          pattern: '^(Breaking|Update|Fix|New|Upgrade|No code|Release v.*):'
+          pattern: '^((Breaking|Update|Fix|New|Upgrade|No code):|Release v.*)'
           flags: ''
           error: 'Your commit message should start with a valid semantic release verb as defined in package.json. You may also prepend "No code:" to indicate the commit does not contain changes to the released code.'
           checkAllCommitMessages: true
