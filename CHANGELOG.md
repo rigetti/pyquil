@@ -1,7 +1,7 @@
 Changelog
 =========
 
-[next](https://github.com/rigetti/pyquil/compare/master..rc) (In development)
+[next](https://github.com/rigetti/pyquil/compare/v3.0.0..master) (In development)
 ------------------------------------------------------------------------------------
 
 ### Announcements
@@ -9,6 +9,8 @@ Changelog
 ### Improvements and Changes
 
 ### Bugfixes
+
+- Allow `np.ndarray` when writing QAM memory. Disallow non-integer and non-float types.
 
 [v3.0.0](https://github.com/rigetti/pyquil/releases/tag/v3.0.0)
 ------------------------------------------------------------------------------------
