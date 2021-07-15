@@ -787,10 +787,10 @@ def get_qc(
         of the name's suffix
     :param noisy: An optional flag to force inclusion of a noise model. If
         specified and set to ``True``, a quantum computer with a noise model will be returned
-        regardless of the name's suffix. The noise model for QVMs based on a real QPU
-        is an empirically parameterized model based on real quantum_processor noise characteristics.
-        The generic QVM noise model is simple T1 and T2 noise plus readout error. See
-        :py:func:`~pyquil.noise.decoherence_noise_with_asymmetric_ro`.
+        regardless of the name's suffix. The generic QVM noise model is simple T1 and T2 noise
+        plus readout error. See :py:func:`~pyquil.noise.decoherence_noise_with_asymmetric_ro`.
+        Note, we currently do not support noise models based on QCS hardware; a value of
+        `True`` will result in an error if the requested QPU is a QCS hardware QPU.
     :param compiler_timeout: Time limit for compilation requests, in seconds.
     :param execution_timeout: Time limit for execution requests, in seconds.
     :param client_configuration: Optional client configuration. If none is provided, a default one will be loaded.
