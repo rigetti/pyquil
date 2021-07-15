@@ -163,6 +163,7 @@ Coverage:
 #  - TEST_PYPI_PASSWORD
 PyPI Publish Branch (TestPyPI):
   stage: deploy
+  allow_failure: true
   script:
     - . scripts/ci_install_deps
     - *install-dephell
