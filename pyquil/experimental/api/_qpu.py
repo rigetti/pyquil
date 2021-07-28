@@ -16,7 +16,7 @@ from qcs_api_client.models.endpoint import Endpoint
 from qcs_api_client.operations.asyncio import get_default_endpoint
 from qcs_api_client.client._configuration.configuration import QCSClientConfiguration
 from qcs_api_client.client.client import build_async_client
-from qcs_api_client.grpc.client import Client as GrpcClient
+from qcs_api_client.grpc.services.controller import ControllerStub
 from qcs_api_client.grpc.models.controller import ControllerJobExecutionResultStatus, DataValue, ReadoutValues
 
 
@@ -49,8 +49,7 @@ class ExperimentalQPUExecutionResult:
 
 class ExperimentalQPU:
     _client_configuration: QCSClientConfiguration
-    _endpoints_cache: Dict[str, str]
-    _grpc_clients: Dict[str, GrpcClient]
+    _service_stub_cache: Optional[ControllerStub]
     _quantum_processor_id: str
     _timeout: Optional[int]
 
@@ -64,17 +63,14 @@ class ExperimentalQPU:
         self._quantum_processor_id = quantum_processor_id
         self._client_configuration = client_configuration or QCSClientConfiguration.load()
         self._timeout = timeout
+        self._service_stub_cache = None
 
     async def execute(self, executable: ExperimentalExecutable) -> ExperimentalQPUExecuteResponse:
         assert isinstance(
             executable, ExperimentalExecutable
         ), "ExperimentalQPU#execute requires an ExperimentalExecutable. Create one with ExperimentalQuantumComputer#compile"
 
-        # TODO: Determine the correct endpoint URL
-        url = "bf04.qpu.qcs.rigetti.com"
-
-        with self._grpc_client(url=url) as client:
-            response = await client.execute_encrypted_controller_job(job=executable.job)
+        response = await self._get_service_stub().execute_encrypted_controller_job(job=executable.job)
 
         return ExperimentalQPUExecuteResponse(job_id=response.job_id, executable=executable)
 
@@ -82,11 +78,7 @@ class ExperimentalQPU:
         """
         Retrieve results from execution on the QPU.
         """
-        # TODO: Determine the correct endpoint URL
-        url = "bf04.qpu.qcs.rigetti.com"
-
-        with self._grpc_client(url=url) as client:
-            response = await client.get_controller_job_results(job_id=execute_response.job_id)
+        response = await self._get_service_stub().get_controller_job_results(job_id=execute_response.job_id)
 
         return ExperimentalQPUExecutionResult(
             memory_values=_transform_memory_values(
@@ -99,37 +91,30 @@ class ExperimentalQPU:
     async def run(self, executable: ExperimentalExecutable) -> ExperimentalQPUExecutionResult:
         return await self.get_result(execute_response=self.execute(executable=executable))
 
-    async def _get_execution_url(self, *, quantum_processor_id: str) -> str:
+    async def _get_execution_url(self) -> str:
         """
         Return the URL to which to send requests for execution.
 
         Return a cached result if stored; otherwise, query the QCS API and store the result.
         """
-        if quantum_processor_id not in self._endpoints_cache:
-            async with self._qcs_client() as client:
-                response = await get_default_endpoint(client, quantum_processor_id=quantum_processor_id)
-                response.raise_for_status()
-                body = cast(Endpoint, response.parsed)
-                url = body.address
+        async with self._qcs_client() as client:
+            response = await get_default_endpoint(client, quantum_processor_id=self._quantum_processor_id)
+            response.raise_for_status()
+            body = cast(Endpoint, response.parsed)
+            url = body.addresses.grpc
+            assert url is not None, f"no gRPC address found for quantum processor {self._quantum_processor_id}"
 
-                # TODO: Fix this service-side to use a distinct key for gRPC addresses
-                assert not url.startswith(
-                    "tcp://"
-                ), "the service provided an RPCQ endpoint where a gRPC endpoint was expected"
-                self._endpoints_cache[quantum_processor_id] = url
-
-        return self._endpoints_cache[quantum_processor_id]
 
     @asynccontextmanager
     async def _qcs_client(self) -> Iterator[httpx.Client]:
         async with build_async_client(configuration=self._client_configuration) as client:  # type: httpx.Client
             yield client
 
-    @contextmanager
-    def _grpc_client(self, *, url: str) -> Iterator[GrpcClient]:
-        if url not in self._grpc_clients:
-            self._grpc_clients[url] = GrpcClient(url=url)
-        return self._grpc_clients[url]
+    def _get_service_stub(self) -> Iterator[ControllerStub]:
+        if self._service_stub_cache is None:
+            url = self._get_execution_url()
+            self._service_stub_cache = ControllerStub(url=url)
+        return self._service_stub_cache
 
 
 def _transform_memory_values(

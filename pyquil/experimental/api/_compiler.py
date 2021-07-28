@@ -8,7 +8,8 @@ from pyquil.api._abstract_compiler import AbstractCompiler, EncryptedProgram, Qu
 from pyquil.api._compiler import QPUCompiler, rewrite_arithmetic, _collect_memory_descriptors
 from pyquil.experimental._program import ExperimentalProgram
 from pyquil.quilatom import ExpressionDesignator, MemoryReference
-from qcs_api_client.grpc.client import Client as GrpcClient
+from qcs_api_client.client._configuration.configuration import QCSClientConfiguration
+from qcs_api_client.grpc.services.translation import TranslationStub
 from qcs_api_client.grpc.models.controller import EncryptedControllerJob
 from rpcq.messages import NativeQuilMetadata, ParameterAref, ParameterSpec
 from pyquil.parser import parse_program, parse
@@ -24,11 +25,15 @@ class ExperimentalExecutable:
 
 class ExperimentalQPUCompiler:
     quantum_processor_id: str
+    _client_configuration: QCSClientConfiguration
+    _service_stub_cache: Optional[TranslationStub]
     _timeout: Optional[int] = None
 
-    def __init__(self, *, quantum_processor_id: str, timeout: Optional[int] = None):
+    def __init__(self, *, client_configuration: Optional[QCSClientConfiguration] = None, quantum_processor_id: str, timeout: Optional[int] = None):
         self.quantum_processor_id = quantum_processor_id
+        self._client_configuration = client_configuration or QCSClientConfiguration.load()
         self._timeout = timeout
+        self._service_stub_cache = None
 
     async def quil_to_native_quil(self, program: ExperimentalProgram):
         raise NotImplementedError("compilation of quil to native quil is not yet supported for ExperimentalProgram")
@@ -43,12 +48,11 @@ class ExperimentalQPUCompiler:
 
         arithmetic_response = rewrite_arithmetic(native_quil_program)
 
-        with self._qcs_client() as client:
-            job = await client.translate_quil_to_encrypted_controller_job(
-                quantum_processor_id=self.quantum_processor_id,
-                quil_program=arithmetic_response.quil,
-                num_shots=native_quil_program.num_shots,
-            )
+        job = await self._get_service_stub().translate_quil_to_encrypted_controller_job(
+            quantum_processor_id=self.quantum_processor_id,
+            quil_program=arithmetic_response.quil,
+            num_shots_value=native_quil_program.num_shots,
+        )
 
         return ExperimentalExecutable(
             job=job,
@@ -57,13 +61,13 @@ class ExperimentalQPUCompiler:
             },
         )
 
-    @contextmanager
-    def _qcs_client(self) -> Iterator[GrpcClient]:
-        client = GrpcClient(url="https://grpc.qcs.rigetti.com")
-        try:
-            yield client
-        finally:
-            client.close()
+    def _get_service_stub(self) -> Iterator[TranslationStub]:
+        """
+        Return a service stub targeting the configured 
+        """
+        if self._service_stub_cache is None:
+            self._service_stub_cache = TranslationStub(url=self._client_configuration.profile.grpc_api_url)
+        return self._service_stub_cache
 
 
 def _to_expression(rule: str) -> ExpressionDesignator:
