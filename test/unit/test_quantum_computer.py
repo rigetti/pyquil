@@ -493,7 +493,7 @@ def test_run_with_bad_parameters(client_configuration: QCSClientConfiguration, p
         MEASURE(0, MemoryReference("ro")),
     ).wrap_in_numshots_loop(1000)
 
-    with pytest.raises(TypeError, match="Parameter must be numeric or an iterable of numeric values"):
+    with pytest.raises(TypeError, match=r"Parameter must be"):
         executable.write_memory(region_name="theta", value=param)
 
 
