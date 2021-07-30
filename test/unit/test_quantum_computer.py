@@ -456,7 +456,7 @@ def test_qc_error(client_configuration: QCSClientConfiguration):
         get_qc("5q", as_qvm=False, client_configuration=client_configuration)
 
 
-@pytest.mark.parametrize("param", [1, np.pi, [np.pi], np.array([np.pi])])
+@pytest.mark.parametrize("param", [np.pi, [np.pi], np.array([np.pi])])
 def test_run_with_parameters(client_configuration: QCSClientConfiguration, param):
     quantum_processor = NxQuantumProcessor(nx.complete_graph(3))
     qc = QuantumComputer(
