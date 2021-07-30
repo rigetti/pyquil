@@ -456,7 +456,8 @@ def test_qc_error(client_configuration: QCSClientConfiguration):
         get_qc("5q", as_qvm=False, client_configuration=client_configuration)
 
 
-def test_run_with_parameters(client_configuration: QCSClientConfiguration):
+@pytest.mark.parametrize("param", [np.pi, [np.pi], np.array([np.pi])])
+def test_run_with_parameters(client_configuration: QCSClientConfiguration, param):
     quantum_processor = NxQuantumProcessor(nx.complete_graph(3))
     qc = QuantumComputer(
         name="testy!",
@@ -470,11 +471,30 @@ def test_run_with_parameters(client_configuration: QCSClientConfiguration):
         MEASURE(0, MemoryReference("ro")),
     ).wrap_in_numshots_loop(1000)
 
-    executable.write_memory(region_name="theta", value=np.pi)
+    executable.write_memory(region_name="theta", value=param)
     bitstrings = qc.run(executable).readout_data.get('ro')
 
     assert bitstrings.shape == (1000, 1)
     assert all([bit == 1 for bit in bitstrings])
+
+
+@pytest.mark.parametrize("param", [1j, "not_a_number", ["not_a_number"]])
+def test_run_with_bad_parameters(client_configuration: QCSClientConfiguration, param):
+    quantum_processor = NxQuantumProcessor(nx.complete_graph(3))
+    qc = QuantumComputer(
+        name="testy!",
+        qam=QVM(client_configuration=client_configuration),
+        compiler=DummyCompiler(quantum_processor=quantum_processor, client_configuration=client_configuration),
+    )
+    executable = Program(
+        Declare(name="theta", memory_type="REAL"),
+        Declare(name="ro", memory_type="BIT"),
+        RX(MemoryReference("theta"), 0),
+        MEASURE(0, MemoryReference("ro")),
+    ).wrap_in_numshots_loop(1000)
+
+    with pytest.raises(TypeError, match=r"Parameter must be"):
+        executable.write_memory(region_name="theta", value=param)
 
 
 def test_reset(client_configuration: QCSClientConfiguration):

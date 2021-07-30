@@ -10,6 +10,8 @@ Changelog
 
 ### Bugfixes
 
+- Allow `np.ndarray` when writing QAM memory. Disallow non-integer and non-float types.
+
 [v3.0.0](https://github.com/rigetti/pyquil/releases/tag/v3.0.0)
 ------------------------------------------------------------------------------------
 
