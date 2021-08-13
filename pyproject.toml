@@ -25,7 +25,7 @@ python = "^3.7"
 numpy = "^1.20"
 scipy = "^1.6.1"
 lark = "^0.11.1"
-rpcq = "^3.6.0"
+rpcq = "^3.9.2"
 networkx = "^2.5"
 importlib-metadata = { version = "^3.7.3", python = "<3.8" }
 qcs-api-client = ">=0.8.1,<0.13.0"
