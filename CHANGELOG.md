@@ -8,7 +8,7 @@ Changelog
 
 ### Improvements and Changes
 
-- `get_qc` and `QPU` now both accept an `endpoint_id` argument which is used to engage
+- Both `get_qc` and `QPU` now accept an `endpoint_id` argument which is used to engage
   against a specific QCS [quantum processor endpoint](https://docs.api.qcs.rigetti.com/#tag/endpoints).
 
 ### Bugfixes
