@@ -52,8 +52,9 @@ class EngagementManager:
         self, *, quantum_processor_id: str, request_timeout: float = 10.0, endpoint_id: Optional[str] = None
     ) -> EngagementWithCredentials:
         """
-        Gets an engagement for the given quantum processor. If an engagement was already fetched previously and
-        remains valid, it will be returned instead of creating a new engagement.
+        Gets an engagement for the given quantum processor endpoint.
+        If an engagement was already fetched previously and remains valid, it will be returned instead
+        of creating a new engagement.
 
         :param endpoint_id: Optional ID of the endpoint to use for engagement. If provided, it must
             correspond to an endpoint serving the provided Quantum Processor.
@@ -62,7 +63,7 @@ class EngagementManager:
         :return: Fetched or cached engagement.
         """
         with self._lock:
-            if not self._engagement_valid(self._cached_engagements.get(quantum_processor_id)):
+            if not self._engagement_valid(self._cached_engagements.get((quantum_processor_id, endpoint_id))):
                 with qcs_client(
                     client_configuration=self._client_configuration, request_timeout=request_timeout
                 ) as client:  # type: httpx.Client
@@ -72,7 +73,7 @@ class EngagementManager:
                     self._cached_engagements[(quantum_processor_id, endpoint_id)] = create_engagement(
                         client=client, json_body=request
                     ).parsed
-            return self._cached_engagements[quantum_processor_id]
+            return self._cached_engagements[(quantum_processor_id, endpoint_id)]
 
     @staticmethod
     def _engagement_valid(engagement: Optional[EngagementWithCredentials]) -> bool:

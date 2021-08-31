@@ -14,11 +14,11 @@
 #    limitations under the License.
 ##############################################################################
 from datetime import datetime, timedelta
-from typing import Union
+from typing import Optional, Union
 from unittest import mock
 
 import pytest
-from qcs_api_client.types import UNSET
+from qcs_api_client.types import UNSET, Unset
 import rpcq
 from dateutil.tz import tzutc
 from pytest_mock import MockerFixture
@@ -136,7 +136,7 @@ def test_fetches_engagement_for_quantum_processor_on_request(
     )
 
     def mock_get_engagement(
-        quantum_processor_id: str, endpoint_id: Union[str, UNSET], request_timeout: float
+        quantum_processor_id: str, request_timeout: float = 10.0, endpoint_id: Optional[str] = None
     ) -> EngagementWithCredentials:
         assert quantum_processor_id == processor_id
         assert request_timeout == qpu_client.timeout
@@ -146,6 +146,8 @@ def test_fetches_engagement_for_quantum_processor_on_request(
             credentials=engagement_credentials,
             port=1234,
         )
+
+    mock_engagement_manager.get_engagement.side_effect = mock_get_engagement
 
     patch_rpcq_client(mocker=mocker, return_value="")
 
@@ -157,6 +159,7 @@ def test_fetches_engagement_for_quantum_processor_on_request(
     )
     qpu_client.run_program(request)
     mock_engagement_manager.get_engagement.assert_called_once_with(
+        endpoint_id=None,
         quantum_processor_id=processor_id,
         request_timeout=qpu_client.timeout,
     )
@@ -254,8 +257,8 @@ def test_run_program__retries_on_timeout(
     # ASSERT
     # Engagement should be fetched twice, once per RPC call
     mock_engagement_manager.get_engagement.assert_has_calls([
-        mocker.call(quantum_processor_id='some-processor', request_timeout=1.0),
-        mocker.call(quantum_processor_id='some-processor', request_timeout=1.0),
+        mocker.call(quantum_processor_id='some-processor', request_timeout=1.0, endpoint_id=None),
+        mocker.call(quantum_processor_id='some-processor', request_timeout=1.0, endpoint_id=None),
     ])
     # RPC call should happen twice since the first one times out
     qpu_request = QPURequest(**request_kwargs)  # Thing QPUClient gives to rpcq.Client

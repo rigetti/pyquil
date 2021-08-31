@@ -5,6 +5,8 @@ from test.unit.utils import DummyCompiler
 import networkx as nx
 import numpy as np
 import pytest
+import respx
+
 from pyquil import Program, list_quantum_computers
 from pyquil.api import QCSClientConfiguration
 from pyquil.api._quantum_computer import (
@@ -30,7 +32,6 @@ from pyquil.paulis import sX, sY, sZ
 from pyquil.pyqvm import PyQVM
 from pyquil.quantum_processor import NxQuantumProcessor
 from pyquil.quilbase import Declare, MemoryReference
-from pytest_httpx import HTTPXMock
 from qcs_api_client.models.instruction_set_architecture import InstructionSetArchitecture
 from rpcq.messages import ParameterAref
 
@@ -835,18 +836,15 @@ def test_qc_expectation_on_qvm(client_configuration: QCSClientConfiguration, dum
     assert results[2][0].total_counts == 20000
 
 
-def test_get_qc_endpoint_id(
-    client_configuration: QCSClientConfiguration, httpx_mock: HTTPXMock, qcs_aspen8_isa: InstructionSetArchitecture
-):
+@respx.mock
+def test_get_qc_endpoint_id(client_configuration: QCSClientConfiguration, qcs_aspen8_isa: InstructionSetArchitecture):
     """
     Assert that get_qc passes a specified ``endpoint_id`` through to its QPU when constructed
     for a live quantum processor.
     """
-    httpx_mock.add_response(
-        method="GET",
+    respx.get(
         url=f"{client_configuration.profile.api_url}/v1/quantumProcessors/test/instructionSetArchitecture",
-        json=qcs_aspen8_isa.to_dict(),
-    )
+    ).respond(json=qcs_aspen8_isa.to_dict())
 
     qc = get_qc("test", endpoint_id="test-endpoint")
 
