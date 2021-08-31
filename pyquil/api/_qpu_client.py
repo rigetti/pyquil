@@ -103,8 +103,8 @@ class QPUClient:
         self,
         *,
         quantum_processor_id: str,
-        endpoint_id: Optional[str] = None,
         engagement_manager: EngagementManager,
+        endpoint_id: Optional[str] = None,
         request_timeout: float = 10.0,
     ) -> None:
         """

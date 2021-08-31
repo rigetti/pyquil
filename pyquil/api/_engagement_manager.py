@@ -58,13 +58,14 @@ class EngagementManager:
     ) -> EngagementWithCredentials:
         """
         Gets an engagement for the given quantum processor endpoint.
+
         If an engagement was already fetched previously and remains valid, it will be returned instead
         of creating a new engagement.
 
-        :param endpoint_id: Optional ID of the endpoint to use for engagement. If provided, it must
-            correspond to an endpoint serving the provided Quantum Processor.
         :param quantum_processor_id: Quantum processor being engaged.
         :param request_timeout: Timeout for request, in seconds.
+        :param endpoint_id: Optional ID of the endpoint to use for engagement. If provided, it must
+            correspond to an endpoint serving the provided Quantum Processor.
         :return: Fetched or cached engagement.
         """
         key = EngagementCacheKey(quantum_processor_id, endpoint_id)
