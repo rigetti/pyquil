@@ -45,13 +45,13 @@ black = "^20.8b1"
 flake8 = "^3.8.1"
 pytest = "^6.2.2"
 pytest-cov = "^2.11.1"
-pytest-httpx = "^0.9"
 mypy = "0.740"
 pytest-xdist = "^2.2.1"
 pytest-rerunfailures = "^9.1.1"
 pytest-timeout = "^1.4.2"
 pytest-mock = "^3.6.1"
 pytest-freezegun = "^0.4.2"
+respx = "^0.15"
 
 [tool.poetry.extras]
 latex = ["ipython"]
