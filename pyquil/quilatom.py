@@ -378,30 +378,31 @@ class Expression(object):
         return self
 
 
-ParamSubstitutionsMapDesignator = Mapping["Parameter", ExpressionValueDesignator]
+ParameterSubstitutionsMapDesignator = Mapping[Union["Parameter", "MemoryReference"], ExpressionValueDesignator]
 
 
-def substitute(expr: ExpressionDesignator, d: ParamSubstitutionsMapDesignator) -> ExpressionDesignator:
+def substitute(expr: ExpressionDesignator, d: ParameterSubstitutionsMapDesignator) -> ExpressionDesignator:
     """
-    Using a dictionary of substitutions ``d`` try and explicitly evaluate as much of ``expr`` as
-    possible.
+    Using a dictionary of substitutions ``d``, try and explicitly evaluate as much of ``expr`` as
+    possible. This supports substitution of both parameters and memory references. Each memory
+    reference must be individually assigned a value at each memory offset to be substituted.
 
-    :param expr: The expression whose parameters are substituted.
-    :param d: Numerical substitutions for parameters.
-    :return: A partially simplified Expression or a number.
+    :param expr: The expression whose parameters or memory references are to be substituted.
+    :param d: Numerical substitutions for parameters or memory references.
+    :return: A partially simplified Expression, or a number.
     """
     if isinstance(expr, Expression):
         return expr._substitute(d)
     return expr
 
 
-def substitute_array(a: Union[Sequence[Expression], np.ndarray], d: ParamSubstitutionsMapDesignator) -> np.ndarray:
+def substitute_array(a: Union[Sequence[Expression], np.ndarray], d: ParameterSubstitutionsMapDesignator) -> np.ndarray:
     """
     Apply ``substitute`` to all elements of an array ``a`` and return the resulting array.
 
-    :param a: The expression array to substitute.
-    :param d: Numerical substitutions for parameters.
-    :return: An array of partially substituted Expressions or numbers.
+    :param a: The array of expressions whose parameters or memory references are to be substituted.
+    :param d: Numerical substitutions for parameters or memory references, for all array elements.
+    :return: An array of partially substituted Expressions, or numbers.
     """
     a = np.asarray(a, order="C")
     return np.array([substitute(v, d) for v in a.flat]).reshape(a.shape)  # type: ignore
@@ -418,7 +419,7 @@ class Parameter(QuilAtom, Expression):
     def out(self) -> str:
         return "%" + self.name
 
-    def _substitute(self, d: ParamSubstitutionsMapDesignator) -> Union["Parameter", ExpressionValueDesignator]:
+    def _substitute(self, d: ParameterSubstitutionsMapDesignator) -> Union["Parameter", ExpressionValueDesignator]:
         return d.get(self, self)
 
     def __str__(self) -> str:
@@ -446,7 +447,7 @@ class Function(Expression):
         self.expression = expression
         self.fn = fn
 
-    def _substitute(self, d: ParamSubstitutionsMapDesignator) -> Union["Function", ExpressionValueDesignator]:
+    def _substitute(self, d: ParameterSubstitutionsMapDesignator) -> Union["Function", ExpressionValueDesignator]:
         sop = substitute(self.expression, d)
         if isinstance(sop, Expression):
             return Function(self.name, sop, self.fn)
@@ -497,7 +498,7 @@ class BinaryExp(Expression):
         self.op1 = op1
         self.op2 = op2
 
-    def _substitute(self, d: ParamSubstitutionsMapDesignator) -> Union["BinaryExp", ExpressionValueDesignator]:
+    def _substitute(self, d: ParameterSubstitutionsMapDesignator) -> Union["BinaryExp", ExpressionValueDesignator]:
         sop1, sop2 = substitute(self.op1, d), substitute(self.op2, d)
         return self.fn(sop1, sop2)
 
@@ -708,6 +709,12 @@ class MemoryReference(QuilAtom, Expression):
             raise IndexError("MemoryReference index out of range")
 
         return MemoryReference(name=self.name, offset=offset)
+
+    def _substitute(self, parameter_memory_map) -> ExpressionDesignator:
+        if self in parameter_memory_map:
+            return parameter_memory_map[self]
+
+        return self
 
 
 def _contained_mrefs(expression: ExpressionDesignator) -> Set[MemoryReference]:
