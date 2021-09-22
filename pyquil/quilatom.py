@@ -710,9 +710,11 @@ class MemoryReference(QuilAtom, Expression):
 
         return MemoryReference(name=self.name, offset=offset)
 
-    def _substitute(self, parameter_memory_map) -> ExpressionDesignator:
-        if self in parameter_memory_map:
-            return parameter_memory_map[self]
+    def _substitute(
+        self, d: ParameterSubstitutionsMapDesignator
+    ) -> Union["MemoryReference", ExpressionValueDesignator]:
+        if self in d:
+            return d[self]
 
         return self
 
