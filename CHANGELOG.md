@@ -14,6 +14,7 @@ Changelog
 ### Bugfixes
 
 - Allow `np.ndarray` when writing QAM memory. Disallow non-integer and non-float types.
+- Fix typo where `qc.compiler.calibration_program` should be `qc.compiler.get_calibration_program()`.
 
 [v3.0.0](https://github.com/rigetti/pyquil/releases/tag/v3.0.0)
 ------------------------------------------------------------------------------------
