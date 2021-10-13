@@ -10,6 +10,8 @@ Changelog
 
 - Both `get_qc` and `QPU` now accept an `endpoint_id` argument which is used to engage
   against a specific QCS [quantum processor endpoint](https://docs.api.qcs.rigetti.com/#tag/endpoints).
+- Compiler and QPU timeout errors now provide a link to the pyQuil troubleshooting docs,
+  which explain common causes of timeouts.
 
 ### Bugfixes
 

@@ -24,6 +24,7 @@ from qcs_api_client.models import EngagementWithCredentials, EngagementCredentia
 from retry import retry
 
 from pyquil.api import EngagementManager
+from pyquil._version import DOCS_URL
 
 
 @dataclass
@@ -170,6 +171,11 @@ class QPUClient:
         )
         try:
             return client.call(method_name, *args, **kwargs)
+        except TimeoutError as e:
+            raise TimeoutError(
+                f"Request to QPU at {engagement.address} timed out. "
+                f"See the Troubleshooting Guide: {DOCS_URL}/troubleshooting.html"
+            ) from e
         finally:
             client.close()  # type: ignore
 
