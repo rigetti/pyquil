@@ -21,7 +21,7 @@ if os.path.exists(readme_path):
 setup(
     long_description=readme,
     name="pyquil",
-    version="3.1.0-rc.1",
+    version="3.1.0-rc.2",
     description="A Python library for creating Quantum Instruction Language (Quil) programs.",
     python_requires="==3.*,>=3.7.0",
     project_urls={
