@@ -10,6 +10,8 @@ Changelog
 
 - Both `get_qc` and `QPU` now accept an `endpoint_id` argument which is used to engage
   against a specific QCS [quantum processor endpoint](https://docs.api.qcs.rigetti.com/#tag/endpoints).
+- Function `pyquil.quilatom.substitute()` now supports substitution of classical `MemoryReference`
+  objects such as `theta[4]` with their parameter values, enabling user-side parameter substitution.
 
 ### Bugfixes
 
