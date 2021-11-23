@@ -725,6 +725,7 @@ def get_qc(
     compiler_timeout: float = 10.0,
     execution_timeout: float = 10.0,
     client_configuration: Optional[QCSClientConfiguration] = None,
+    endpoint_id: Optional[str] = None,
     engagement_manager: Optional[EngagementManager] = None,
 ) -> QuantumComputer:
     """
@@ -787,16 +788,19 @@ def get_qc(
         of the name's suffix
     :param noisy: An optional flag to force inclusion of a noise model. If
         specified and set to ``True``, a quantum computer with a noise model will be returned
-        regardless of the name's suffix. The noise model for QVMs based on a real QPU
-        is an empirically parameterized model based on real quantum_processor noise characteristics.
-        The generic QVM noise model is simple T1 and T2 noise plus readout error. See
-        :py:func:`~pyquil.noise.decoherence_noise_with_asymmetric_ro`.
+        regardless of the name's suffix. The generic QVM noise model is simple T1 and T2 noise
+        plus readout error. See :py:func:`~pyquil.noise.decoherence_noise_with_asymmetric_ro`.
+        Note, we currently do not support noise models based on QCS hardware; a value of
+        `True`` will result in an error if the requested QPU is a QCS hardware QPU.
     :param compiler_timeout: Time limit for compilation requests, in seconds.
     :param execution_timeout: Time limit for execution requests, in seconds.
     :param client_configuration: Optional client configuration. If none is provided, a default one will be loaded.
+    :param endpoint_id: Optional quantum processor endpoint ID, as used in the `QCS API Docs`_.
     :param engagement_manager: Optional engagement manager. If none is provided, a default one will be created.
 
     :return: A pre-configured QuantumComputer
+
+    .. _QCS API Docs: https://docs.api.qcs.rigetti.com/#tag/endpoints
     """
 
     client_configuration = client_configuration or QCSClientConfiguration.load()
@@ -862,6 +866,7 @@ def get_qc(
             quantum_processor_id=quantum_processor.quantum_processor_id,
             timeout=execution_timeout,
             client_configuration=client_configuration,
+            endpoint_id=endpoint_id,
             engagement_manager=engagement_manager,
         )
         compiler = QPUCompiler(

@@ -8,7 +8,16 @@ Changelog
 
 ### Improvements and Changes
 
+- Both `get_qc` and `QPU` now accept an `endpoint_id` argument which is used to engage
+  against a specific QCS [quantum processor endpoint](https://docs.api.qcs.rigetti.com/#tag/endpoints).
+- Function `pyquil.quilatom.substitute()` now supports substitution of classical `MemoryReference`
+  objects such as `theta[4]` with their parameter values, enabling user-side parameter substitution.
+
 ### Bugfixes
+
+- Allow `np.ndarray` when writing QAM memory. Disallow non-integer and non-float types.
+- Fix typo where `qc.compiler.calibration_program` should be `qc.compiler.get_calibration_program()`.
+- Fixed typo where `scale` was being used as the `phase` in generation of several waveforms.
 
 [v3.0.0](https://github.com/rigetti/pyquil/releases/tag/v3.0.0)
 ------------------------------------------------------------------------------------

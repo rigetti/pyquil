@@ -60,7 +60,7 @@ def_circuit : "DEFCIRCUIT" name [ variables ] [ qubit_designators ] ":" indented
 //             | "DEFCIRCUIT" name [ variables ] qubit_designators ":" indented_instrs -> def_circuit_qubits
 
 def_frame : "DEFFRAME" frame ( ":" frame_spec+ )?
-frame_spec : _NEWLINE_TAB frame_attr ":" (expression | "\"" name "\"" )
+frame_spec : _NEWLINE_TAB frame_attr ":" (expression | string )
 !frame_attr : "SAMPLE-RATE"
             | "INITIAL-FREQUENCY"
             | "DIRECTION"
