@@ -684,3 +684,14 @@ H 0 # mid-line comment on second line
 )
 def test_parse_comments(program):
     Program(program)
+
+
+def test_parse_strings_with_spaces():
+    Program(str(Program("""
+DEFFRAME 0 "readout_tx":
+    DIRECTION: "tx"
+    INITIAL-FREQUENCY: 7220000000.0
+    CENTER-FREQUENCY: 7125000000
+    HARDWARE-OBJECT: "A_string_with_one space"
+    SAMPLE-RATE: 1000000000.0
+""")))

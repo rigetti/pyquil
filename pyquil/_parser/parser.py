@@ -142,6 +142,9 @@ class QuilTransformer(Transformer):  # type: ignore
         for (spec_name, spec_value) in specs:
             name = names.get(spec_name, None)
             if name:
+                if isinstance(spec_value, str) and spec_value[0] == '"' and spec_value[-1] == '"':
+                    # Strip quotes if necessary
+                    spec_value = spec_value[1:-1]
                 options[name] = spec_value
             else:
                 raise ValueError(
