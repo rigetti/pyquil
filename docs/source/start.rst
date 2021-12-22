@@ -282,7 +282,7 @@ allows us to declare classical memory regions so that we can receive data from t
     .. code:: python
 
         from pyquil import get_qc, Program
-        from pyquil.gates import CNOT, Z, MEASURE
+        from pyquil.gates import CNOT, Z, MEASURE, H
         from pyquil.api import local_forest_runtime
         from pyquil.quilbase import Declare
 
@@ -296,7 +296,7 @@ allows us to declare classical memory regions so that we can receive data from t
 
         with local_forest_runtime():
             qvm = get_qc('9q-square-qvm')
-            bitstrings = qvm.run(qvm.compile(prog))).readout_data.get("ro")
+            bitstrings = qvm.run(qvm.compile(prog)).readout_data.get("ro")
 
 Next, let's construct our Bell State.
 
