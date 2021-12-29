@@ -17,6 +17,7 @@ Changelog
 
 - Allow `np.ndarray` when writing QAM memory. Disallow non-integer and non-float types.
 - Fix typo where `qc.compiler.calibration_program` should be `qc.compiler.get_calibration_program()`.
+- Fix docs typo in `start.rst`, where an extra parentheses was present in a python code block (@ThomasMerkh).
 - Fixed typo where `scale` was being used as the `phase` in generation of several waveforms.
 
 [v3.0.0](https://github.com/rigetti/pyquil/releases/tag/v3.0.0)
