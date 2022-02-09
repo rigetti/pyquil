@@ -17,6 +17,8 @@
 Contains the core pyQuil objects that correspond to Quil instructions.
 """
 import collections
+import json
+
 from numbers import Complex
 from typing import (
     Any,
@@ -1375,7 +1377,6 @@ class DefFrame(AbstractInstruction):
             for value, name in options:
                 if value is None:
                     continue
-                if isinstance(value, str):
-                    value = f'"{value}"'
-                r += f"\n    {name}: {value}"
+                else:
+                    r += f"\n    {name}: {json.dumps(value)}"
         return r + "\n"
