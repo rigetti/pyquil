@@ -15,6 +15,9 @@ Changelog
 
 - Allow `np.ndarray` when writing QAM memory. Disallow non-integer and non-float types.
 - Fix typo where `qc.compiler.calibration_program` should be `qc.compiler.get_calibration_program()`.
+- `DefFrame` string-valued fields that contain JSON strings now round trip to valid Quil and back to
+  JSON via `DefFrame.out` and `parse`. Quil and JSON both claim `"` as their only string delimiter,
+  so the JSON `"`s are escaped in the Quil.
 
 [v3.0.0](https://github.com/rigetti/pyquil/releases/tag/v3.0.0)
 ------------------------------------------------------------------------------------
