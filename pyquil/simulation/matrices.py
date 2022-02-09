@@ -218,6 +218,12 @@ def BARENCO(alpha: float, phi: float, theta: float) -> np.ndarray:
 
 
 QUANTUM_GATES = {
+    "RZ": RZ,
+    "RX": RX,
+    "RY": RY,
+    "CZ": CZ,
+    "XY": XY,
+    "CPHASE": CPHASE,
     "I": I,
     "X": X,
     "Y": Y,
@@ -226,22 +232,16 @@ QUANTUM_GATES = {
     "S": S,
     "T": T,
     "PHASE": PHASE,
-    "RX": RX,
-    "RY": RY,
-    "RZ": RZ,
     "CNOT": CNOT,
     "CCNOT": CCNOT,
     "CPHASE00": CPHASE00,
     "CPHASE01": CPHASE01,
     "CPHASE10": CPHASE10,
-    "CPHASE": CPHASE,
     "SWAP": SWAP,
     "CSWAP": CSWAP,
     "ISWAP": ISWAP,
     "PSWAP": PSWAP,
     "BARENCO": BARENCO,
-    "CZ": CZ,
-    "XY": XY,
 }
 
 
