@@ -6,6 +6,8 @@ Changelog
 
 ### Announcements
 
+- `setup.py` has been removed and will no longer be generated as part of the automated release process.
+
 ### Improvements and Changes
 
 - Function `pyquil.quilatom.substitute()` now supports substitution of classical `MemoryReference`

@@ -16,6 +16,5 @@ exclude =
   .venv,
   __init__.py,
   docs,
-  setup.py
   external
   operator_estimation.py
