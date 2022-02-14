@@ -24,6 +24,31 @@ Changelog
 
 ### Improvements and Changes
 
+### Bugfixes
+
+[v3.1.0](https://github.com/rigetti/pyquil/releases/tag/v3.1.0)
+------------------------------------------------------------------------------------
+
+### Announcements
+
+- `setup.py` has been removed and will no longer be generated as part of the automated release process.
+
+### Improvements and Changes
+
+- Function `pyquil.quilatom.substitute()` now supports substitution of classical `MemoryReference`
+  objects such as `theta[4]` with their parameter values, enabling user-side parameter substitution.
+- Versions of `qcs-api-client` up to 0.20.x are now supported.
+
+### Bugfixes
+
+- Fix docs typo in `start.rst`, where an extra parentheses was present in a python code block (@ThomasMerkh).
+- Fixed typo where `scale` was being used as the `phase` in generation of several waveforms.
+
+[v3.0.1](https://github.com/rigetti/pyquil/releases/tag/v3.0.1)
+------------------------------------------------------------------------------------
+
+### Improvements and Changes
+
 - Both `get_qc` and `QPU` now accept an `endpoint_id` argument which is used to engage
   against a specific QCS [quantum processor endpoint](https://docs.api.qcs.rigetti.com/#tag/endpoints).
 
