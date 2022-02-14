@@ -6,6 +6,15 @@ Changelog
 
 ### Announcements
 
+### Improvements and Changes
+
+### Bugfixes
+
+[v3.1.0](https://github.com/rigetti/pyquil/releases/tag/v3.1.0)
+------------------------------------------------------------------------------------
+
+### Announcements
+
 - `setup.py` has been removed and will no longer be generated as part of the automated release process.
 
 ### Improvements and Changes
