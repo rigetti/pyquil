@@ -1,5 +1,6 @@
 import pytest
 import os
+import subprocess
 from pyquil._parser.parser import run_parser
 from pyquil.quil import Program
 
@@ -7,6 +8,9 @@ from pyquil.quil import Program
 def from_corpus():
     programs = []
     dir = os.path.join(os.path.dirname(__file__), "quilc", "tests", "good-test-files")
+    if not os.path.exists(dir):
+        subprocess.Popen(["git", "submodule", "update", "--init", "--recursive"]).wait()
+
     for path in os.listdir(dir):
         filepath = os.path.join(dir, path)
         if os.path.isfile(filepath):
