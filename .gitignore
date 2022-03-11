@@ -188,3 +188,5 @@ fabric.properties
 
 
 node_modules/
+
+.benchmarks

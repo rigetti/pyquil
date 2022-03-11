@@ -1,3 +1,6 @@
 [submodule "quillang"]
 	path = docs/quil
 	url = https://github.com/rigetti/quil.git
+[submodule "benchmarks/quilc"]
+	path = benchmarks/quilc
+	url = https://github.com/quil-lang/quilc.git

@@ -1,0 +1,49 @@
+on: [ push, pull_request ]
+
+name: Benchmark
+
+jobs:
+  benchmark:
+    name: Run benchmarks
+    runs-on: ${{ matrix.os }}
+    strategy:
+      matrix:
+        os: [ubuntu-latest, macOS-latest]
+    steps:
+      - name: Checkout sources
+        uses: actions/checkout@v2
+        with:
+          submodules: recursive
+
+      - name: Set up Python 3.7
+        uses: actions/setup-python@v2
+        with:
+          python-version: '3.7'
+      
+      - uses: actions/cache@v2
+        with:
+          path: .venv
+          key: poetry-${{ hashFiles('poetry.lock') }}      
+      
+      - name: Download benchmark artifacts
+        uses: dawidd6/action-download-artifact@v2
+        with:
+          workflow: bench.yml
+          name: benchmarks-${{ matrix.os }}
+          path: .benchmarks
+        continue-on-error: true
+      
+      - name: Run pytest-benchmark
+        run: |
+          . scripts/ci_install_deps
+          poetry run pytest benchmarks \
+            --benchmark-compare \
+            --benchmark-save=main-${{ matrix.os }} \
+            --benchmark-warmup=on
+      
+      - name: Archive benchmark results
+        if: ${{ github.ref == 'refs/heads/main'}}
+        uses: actions/upload-artifact@v3
+        with:
+          name: benchmarks-${{ matrix.os }}
+          path: .benchmarks
