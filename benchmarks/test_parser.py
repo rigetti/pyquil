@@ -1,29 +1,25 @@
 import pytest
-import os
+import shlex
 import subprocess
+from pathlib import Path
+from typing import List, Tuple
 from pyquil._parser.parser import run_parser
 from pyquil.quil import Program
 
 
-def from_corpus():
+def from_corpus() -> List[Tuple[str, str]]:
     programs = []
-    dir = os.path.join(os.path.dirname(__file__), "quilc", "tests", "good-test-files")
-    if not os.path.exists(dir):
-        subprocess.Popen(["git", "submodule", "update", "--init", "--recursive"]).wait()
-
-    for path in os.listdir(dir):
-        filepath = os.path.join(dir, path)
-        if os.path.isfile(filepath):
-            file = open(filepath, "r")
-            program = file.read()
+    DIR = Path(__file__).parent / "quilc" / "tests" / "good-test-files"
+    if not DIR.exists():
+        subprocess.run(shlex.split("git submodule update --init --recursive"))
+    for path in DIR.glob("*.quil"):
+        with path.open() as f:
+            program = f.read()
             try:
                 run_parser(program)
-                programs.append((path, program))
+                programs.append((path.name, program))
             except:
-                continue
-            finally:
-                file.close()
-
+                continue  # TODO log these or something?
     return programs
 
 
