@@ -52,6 +52,7 @@ pytest-timeout = "^1.4.2"
 pytest-mock = "^3.6.1"
 pytest-freezegun = "^0.4.2"
 respx = "^0.15"
+pytest-benchmark = "^3.4.1"
 
 [tool.poetry.extras]
 latex = ["ipython"]
