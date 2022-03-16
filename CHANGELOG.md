@@ -13,6 +13,7 @@ Changelog
 - Function `pyquil.quilatom.substitute()` now supports substitution of classical `MemoryReference`
   objects such as `theta[4]` with their parameter values, enabling user-side parameter substitution.
 - Versions of `qcs-api-client` up to 0.20.x are now supported.
+- The CompilerISA of physical QPUs now assigns a fidelity of 1 to virtual RZs.
 
 ### Bugfixes
 
