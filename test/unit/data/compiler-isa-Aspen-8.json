@@ -67,7 +67,7 @@
             0
           ],
           "duration": 0.01,
-          "fidelity": 0.989821537688075,
+          "fidelity": 1.0,
           "operator": "RZ",
           "operator_type": "gate",
           "parameters": [
@@ -160,7 +160,7 @@
             1
           ],
           "duration": 0.01,
-          "fidelity": 0.996832638579018,
+          "fidelity": 1.0,
           "operator": "RZ",
           "operator_type": "gate",
           "parameters": [
@@ -258,7 +258,7 @@
             11
           ],
           "duration": 0.01,
-          "fidelity": 0.989117848440883,
+          "fidelity": 1.0,
           "operator": "RZ",
           "operator_type": "gate",
           "parameters": [
@@ -351,7 +351,7 @@
             12
           ],
           "duration": 0.01,
-          "fidelity": 0.982010065085791,
+          "fidelity": 1.0,
           "operator": "RZ",
           "operator_type": "gate",
           "parameters": [
@@ -444,7 +444,7 @@
             13
           ],
           "duration": 0.01,
-          "fidelity": 0.994323758479715,
+          "fidelity": 1.0,
           "operator": "RZ",
           "operator_type": "gate",
           "parameters": [
@@ -537,7 +537,7 @@
             14
           ],
           "duration": 0.01,
-          "fidelity": 0.991983796298027,
+          "fidelity": 1.0,
           "operator": "RZ",
           "operator_type": "gate",
           "parameters": [
@@ -630,7 +630,7 @@
             15
           ],
           "duration": 0.01,
-          "fidelity": 0.989822943596874,
+          "fidelity": 1.0,
           "operator": "RZ",
           "operator_type": "gate",
           "parameters": [
@@ -723,7 +723,7 @@
             16
           ],
           "duration": 0.01,
-          "fidelity": 0.988256589534012,
+          "fidelity": 1.0,
           "operator": "RZ",
           "operator_type": "gate",
           "parameters": [
@@ -816,7 +816,7 @@
             17
           ],
           "duration": 0.01,
-          "fidelity": 0.994091587106797,
+          "fidelity": 1.0,
           "operator": "RZ",
           "operator_type": "gate",
           "parameters": [
@@ -909,7 +909,7 @@
             2
           ],
           "duration": 0.01,
-          "fidelity": 0.927538230166735,
+          "fidelity": 1.0,
           "operator": "RZ",
           "operator_type": "gate",
           "parameters": [
@@ -1002,7 +1002,7 @@
             20
           ],
           "duration": 0.01,
-          "fidelity": 0.991288110944387,
+          "fidelity": 1.0,
           "operator": "RZ",
           "operator_type": "gate",
           "parameters": [
@@ -1095,7 +1095,7 @@
             21
           ],
           "duration": 0.01,
-          "fidelity": 0.992884053396768,
+          "fidelity": 1.0,
           "operator": "RZ",
           "operator_type": "gate",
           "parameters": [
@@ -1188,7 +1188,7 @@
             22
           ],
           "duration": 0.01,
-          "fidelity": 0.979355596748001,
+          "fidelity": 1.0,
           "operator": "RZ",
           "operator_type": "gate",
           "parameters": [
@@ -1281,7 +1281,7 @@
             23
           ],
           "duration": 0.01,
-          "fidelity": 0.992797468887461,
+          "fidelity": 1.0,
           "operator": "RZ",
           "operator_type": "gate",
           "parameters": [
@@ -1374,7 +1374,7 @@
             24
           ],
           "duration": 0.01,
-          "fidelity": 0.988868971757648,
+          "fidelity": 1.0,
           "operator": "RZ",
           "operator_type": "gate",
           "parameters": [
@@ -1467,7 +1467,7 @@
             25
           ],
           "duration": 0.01,
-          "fidelity": 0.998004517863263,
+          "fidelity": 1.0,
           "operator": "RZ",
           "operator_type": "gate",
           "parameters": [
@@ -1560,7 +1560,7 @@
             26
           ],
           "duration": 0.01,
-          "fidelity": 0.992046520987421,
+          "fidelity": 1.0,
           "operator": "RZ",
           "operator_type": "gate",
           "parameters": [
@@ -1653,7 +1653,7 @@
             27
           ],
           "duration": 0.01,
-          "fidelity": 0.998533591062586,
+          "fidelity": 1.0,
           "operator": "RZ",
           "operator_type": "gate",
           "parameters": [
@@ -1746,7 +1746,7 @@
             3
           ],
           "duration": 0.01,
-          "fidelity": 0.995159653742827,
+          "fidelity": 1.0,
           "operator": "RZ",
           "operator_type": "gate",
           "parameters": [
@@ -1839,7 +1839,7 @@
             30
           ],
           "duration": 0.01,
-          "fidelity": 0.983897042282644,
+          "fidelity": 1.0,
           "operator": "RZ",
           "operator_type": "gate",
           "parameters": [
@@ -1937,7 +1937,7 @@
             32
           ],
           "duration": 0.01,
-          "fidelity": 0.998120225824461,
+          "fidelity": 1.0,
           "operator": "RZ",
           "operator_type": "gate",
           "parameters": [
@@ -2030,7 +2030,7 @@
             33
           ],
           "duration": 0.01,
-          "fidelity": 0.997635034524841,
+          "fidelity": 1.0,
           "operator": "RZ",
           "operator_type": "gate",
           "parameters": [
@@ -2123,7 +2123,7 @@
             34
           ],
           "duration": 0.01,
-          "fidelity": 0.996864438593304,
+          "fidelity": 1.0,
           "operator": "RZ",
           "operator_type": "gate",
           "parameters": [
@@ -2216,7 +2216,7 @@
             35
           ],
           "duration": 0.01,
-          "fidelity": 0.997937749157514,
+          "fidelity": 1.0,
           "operator": "RZ",
           "operator_type": "gate",
           "parameters": [
@@ -2309,7 +2309,7 @@
             36
           ],
           "duration": 0.01,
-          "fidelity": 0.990523139563343,
+          "fidelity": 1.0,
           "operator": "RZ",
           "operator_type": "gate",
           "parameters": [
@@ -2402,7 +2402,7 @@
             37
           ],
           "duration": 0.01,
-          "fidelity": 0.999999385622736,
+          "fidelity": 1.0,
           "operator": "RZ",
           "operator_type": "gate",
           "parameters": [
@@ -2495,7 +2495,7 @@
             4
           ],
           "duration": 0.01,
-          "fidelity": 0.990387707932765,
+          "fidelity": 1.0,
           "operator": "RZ",
           "operator_type": "gate",
           "parameters": [
@@ -2588,7 +2588,7 @@
             5
           ],
           "duration": 0.01,
-          "fidelity": 0.996065286885264,
+          "fidelity": 1.0,
           "operator": "RZ",
           "operator_type": "gate",
           "parameters": [
@@ -2681,7 +2681,7 @@
             6
           ],
           "duration": 0.01,
-          "fidelity": 0.993098695450792,
+          "fidelity": 1.0,
           "operator": "RZ",
           "operator_type": "gate",
           "parameters": [
@@ -2774,7 +2774,7 @@
             7
           ],
           "duration": 0.01,
-          "fidelity": 0.993901137706895,
+          "fidelity": 1.0,
           "operator": "RZ",
           "operator_type": "gate",
           "parameters": [
