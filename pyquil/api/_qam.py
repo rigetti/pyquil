@@ -37,6 +37,9 @@ class QAMExecutionResult:
     readout_data: Mapping[str, Optional[np.ndarray]] = field(default_factory=dict)
     """Readout data returned from the QAM, keyed on the name of the readout register or post-processing node."""
 
+    execution_duration_microseconds: int = field(default=0)
+    """Duration job held exclusive hardware access."""
+
 
 class QAM(ABC, Generic[T]):
     """

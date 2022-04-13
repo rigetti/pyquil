@@ -93,6 +93,9 @@ class GetBuffersResponse:
     buffers: Dict[str, BufferResponse]
     """Job buffers, by buffer name."""
 
+    execution_duration_microseconds: int
+    "Duration job held exclusive hardware access."
+
 
 class QPUClient:
     """
@@ -154,6 +157,27 @@ class QPUClient:
                 )
                 for name, val in buffs.items()
             }
+        )
+
+    def get_execution_results(self, request: GetBuffersRequest) -> GetBuffersResponse:
+        """
+        Get job buffers and execution metadata.
+        """
+        result = self._rpcq_request(
+            "get_execution_results",
+            job_id=request.job_id,
+            wait=request.wait,
+        )
+        return GetBuffersResponse(
+            buffers={
+                name: BufferResponse(
+                    shape=cast(Tuple[int, int], tuple(val["shape"])),
+                    dtype=val["dtype"],
+                    data=val["data"],
+                )
+                for name, val in result.buffers.items()
+            },
+            execution_duration_microseconds=result.execution_duration_microseconds,
         )
 
     @retry(exceptions=TimeoutError, tries=2)  # type: ignore
