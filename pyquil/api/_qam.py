@@ -38,7 +38,7 @@ class QAMExecutionResult:
     """Readout data returned from the QAM, keyed on the name of the readout register or post-processing node."""
 
     execution_duration_microseconds: Optional[int] = field(default=None)
-    """Duration job held exclusive hardware access. Defaults to None when information is not available."""
+    """Duration job held exclusive hardware access. Defaults to ``None`` when information is not available."""
 
 
 class QAM(ABC, Generic[T]):
