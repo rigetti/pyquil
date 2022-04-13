@@ -16,6 +16,7 @@
 from dataclasses import dataclass
 from datetime import datetime
 from typing import Dict, Optional, cast, Tuple, Union, List, Any
+from attr import field
 
 import rpcq
 from dateutil.parser import parse as parsedate
@@ -93,7 +94,7 @@ class GetBuffersResponse:
     buffers: Dict[str, BufferResponse]
     """Job buffers, by buffer name."""
 
-    execution_duration_microseconds: int
+    execution_duration_microseconds: Optional[int] = field(default=None)
     "Duration job held exclusive hardware access."
 
 
