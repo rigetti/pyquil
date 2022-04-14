@@ -332,6 +332,9 @@ for more details about declaring and accessing classical memory regions.
 
 .. tip:: Get the results for qubit 0 with ``numpy.array(bitstrings)[:,0]``.
 
+In addition to ``readout_data``, the result of ``.run(...)`` includes other information about the job's execution, such
+as the run duration. See :py:class:`~pyquil.api.QAMExecutionResult` for details.
+
 .. _new_topology:
 
 ``.execute`` and ``.get_result``

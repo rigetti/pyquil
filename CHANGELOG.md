@@ -6,6 +6,18 @@ Changelog
 
 ### Announcements
 
+### Improvements and Changes
+
+- `QAMExecutionResult` now includes `execution_duration_microseconds`, providing the amount of time
+  a job held exclusive hardware access. (@randall-fulton, #1436)
+
+### Bugfixes
+
+[v3.1.0](https://github.com/rigetti/pyquil/releases/tag/v3.1.0)
+------------------------------------------------------------------------------------
+
+### Announcements
+
 - `setup.py` has been removed and will no longer be generated as part of the automated release process.
 
 ### Improvements and Changes

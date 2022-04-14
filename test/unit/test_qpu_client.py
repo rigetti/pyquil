@@ -23,7 +23,7 @@ import rpcq
 from dateutil.tz import tzutc
 from pytest_mock import MockerFixture
 from qcs_api_client.models import EngagementWithCredentials, EngagementCredentials
-from rpcq.messages import QPURequest
+from rpcq.messages import QPURequest, GetExecutionResultsResponse
 
 from pyquil.api._qpu_client import (
     QPUClient,
@@ -93,13 +93,16 @@ def test_get_buffers__returns_buffers_for_job(
         credentials=engagement_credentials,
         port=1234,
     )
-    rpcq_client = patch_rpcq_client(mocker=mocker, return_value={
-        "ro": {
-            "shape": (1000, 2),
-            "dtype": "float64",
-            "data": b"buffer-data",
+    rpcq_client = patch_rpcq_client(
+        mocker=mocker,
+        return_value={
+            "ro": {
+                "shape": (1000, 2),
+                "dtype": "float64",
+                "data": b"buffer-data",
+            },
         },
-    })
+    )
     job_id = "some-job"
     wait = True
     request = GetBuffersRequest(
@@ -118,6 +121,55 @@ def test_get_buffers__returns_buffers_for_job(
     )
     rpcq_client.call.assert_called_once_with(
         "get_buffers",
+        job_id=job_id,
+        wait=wait,
+    )
+
+
+def test_get_execution_results__returns_results_for_job(
+    mock_engagement_manager: mock.MagicMock,
+    engagement_credentials: EngagementCredentials,
+    mocker: MockerFixture,
+):
+    qpu_client = QPUClient(quantum_processor_id="some-processor", engagement_manager=mock_engagement_manager)
+    mock_engagement_manager.get_engagement.return_value = engagement(
+        quantum_processor_id="some-processor",
+        seconds_left=10,
+        credentials=engagement_credentials,
+        port=1234,
+    )
+    rpcq_client = patch_rpcq_client(
+        mocker=mocker,
+        return_value=GetExecutionResultsResponse(
+            buffers={
+                "ro": {
+                    "shape": (1000, 2),
+                    "dtype": "float64",
+                    "data": b"buffer-data",
+                }
+            },
+            execution_duration_microseconds=100,
+        ),
+    )
+    job_id = "some-job"
+    wait = True
+    request = GetBuffersRequest(
+        job_id=job_id,
+        wait=wait,
+    )
+
+    assert qpu_client.get_execution_results(request) == GetBuffersResponse(
+        buffers={
+            "ro": BufferResponse(
+                shape=(1000, 2),
+                dtype="float64",
+                data=b"buffer-data",
+            )
+        },
+        execution_duration_microseconds=100,
+    )
+    rpcq_client.call.assert_called_once_with(
+        "get_execution_results",
         job_id=job_id,
         wait=wait,
     )
@@ -235,11 +287,11 @@ def test_run_program__retries_on_timeout(
         request_timeout=1.0,
     )
     mock_engagement_manager.get_engagement.return_value = engagement(
-            quantum_processor_id=processor_id,
-            seconds_left=0,
-            credentials=engagement_credentials,
-            port=1234,
-        )
+        quantum_processor_id=processor_id,
+        seconds_left=0,
+        credentials=engagement_credentials,
+        port=1234,
+    )
     rpcq_client = patch_rpcq_client(mocker=mocker, return_value=None)
     rpcq_client.call.side_effect = [
         TimeoutError,  # First request must look like it timed out so we can verify retry
@@ -256,16 +308,20 @@ def test_run_program__retries_on_timeout(
 
     # ASSERT
     # Engagement should be fetched twice, once per RPC call
-    mock_engagement_manager.get_engagement.assert_has_calls([
-        mocker.call(quantum_processor_id='some-processor', request_timeout=1.0, endpoint_id=None),
-        mocker.call(quantum_processor_id='some-processor', request_timeout=1.0, endpoint_id=None),
-    ])
+    mock_engagement_manager.get_engagement.assert_has_calls(
+        [
+            mocker.call(quantum_processor_id="some-processor", request_timeout=1.0, endpoint_id=None),
+            mocker.call(quantum_processor_id="some-processor", request_timeout=1.0, endpoint_id=None),
+        ]
+    )
     # RPC call should happen twice since the first one times out
     qpu_request = QPURequest(**request_kwargs)  # Thing QPUClient gives to rpcq.Client
-    rpcq_client.call.assert_has_calls([
-        mocker.call("execute_qpu_request", request=qpu_request, priority=0, user=None),
-        mocker.call("execute_qpu_request", request=qpu_request, priority=0, user=None),
-    ])
+    rpcq_client.call.assert_has_calls(
+        [
+            mocker.call("execute_qpu_request", request=qpu_request, priority=0, user=None),
+            mocker.call("execute_qpu_request", request=qpu_request, priority=0, user=None),
+        ]
+    )
 
 
 def engagement(
