@@ -1,6 +1,7 @@
 import itertools
 import random
 from test.unit.utils import DummyCompiler
+from typing import cast
 
 import networkx as nx
 import numpy as np
@@ -23,6 +24,7 @@ from pyquil.api._quantum_computer import (
     _symmetrization,
     get_qc,
 )
+from pyquil.api._qpu import QPU
 from pyquil.api._qvm import QVM
 from pyquil.experiment import Experiment, ExperimentSetting
 from pyquil.experiment._main import _pauli_to_product_state
@@ -32,6 +34,7 @@ from pyquil.paulis import sX, sY, sZ
 from pyquil.pyqvm import PyQVM
 from pyquil.quantum_processor import NxQuantumProcessor
 from pyquil.quilbase import Declare, MemoryReference
+from qcs_api_client.client import QCSAccountType
 from qcs_api_client.models.instruction_set_architecture import InstructionSetArchitecture
 from rpcq.messages import ParameterAref
 
@@ -849,3 +852,91 @@ def test_get_qc_endpoint_id(client_configuration: QCSClientConfiguration, qcs_as
     qc = get_qc("test", endpoint_id="test-endpoint")
 
     assert qc.qam._qpu_client._endpoint_id == "test-endpoint"
+
+
+@respx.mock
+def test_get_qc_with_explicit_account(client_configuration: QCSClientConfiguration, qcs_aspen8_isa: InstructionSetArchitecture):
+    """
+    Assert that get_qc will pass QCS account via kwargs to ``EngagementManager`` which will in turn set the appropriate
+    QCS Account headers.
+    """
+    respx.get(
+        url=f"{client_configuration.profile.api_url}/v1/quantumProcessors/test/instructionSetArchitecture",
+    ).respond(json=qcs_aspen8_isa.to_dict())
+
+    qc = get_qc("test", endpoint_id="test-endpoint", account_id="group0", account_type=QCSAccountType.group)
+
+    assert isinstance(qc, QuantumComputer)
+    quantum_computer = cast(QuantumComputer, qc)
+    assert isinstance(quantum_computer.qam, QPU)
+    qpu = cast(QPU, quantum_computer.qam)
+    engagement_manager = qpu._qpu_client._engagement_manager
+
+    assert "group0" == engagement_manager._account_id
+    assert QCSAccountType.group == engagement_manager._account_type
+
+    respx.post(
+        url=f"{client_configuration.profile.api_url}/v1/engagements",
+        headers__contains={
+            'X-QCS-ACCOUNT-ID': 'group0',
+            'X-QCS-ACCOUNT-TYPE': QCSAccountType.group.value,
+        },
+    ).respond(json={
+        'address': 'address',
+        'endpointId': 'endpointId',
+        'quantumProcessorId': 'quantumProcessorId',
+        'userId': 'userId',
+        'expiresAt': '01-01-2200T00:00:00Z',
+        'credentials': {
+            'clientPublic': 'faux',
+            'clientSecret': 'faux',
+            'serverPublic': 'faux',
+        }
+    })
+
+    engagement = engagement_manager.get_engagement(quantum_processor_id='test')
+    assert 'faux' == engagement.credentials.client_public
+
+
+@respx.mock
+def test_get_qc_with_account_profile(client_configuration: QCSClientConfiguration, qcs_aspen8_isa: InstructionSetArchitecture):
+    """
+    Assert that get_qc will pass QCS account via QCS API Profile to ``EngagementManager`` which will in turn set the appropriate
+    QCS Account headers.
+    """
+    respx.get(
+        url=f"{client_configuration.profile.api_url}/v1/quantumProcessors/test/instructionSetArchitecture",
+    ).respond(json=qcs_aspen8_isa.to_dict())
+
+    client_configuration.profile.account_id = 'group0'
+    client_configuration.profile.account_type = QCSAccountType.group
+
+    qc = get_qc("test", client_configuration=client_configuration, account_type=QCSAccountType.group)
+
+    assert isinstance(qc, QuantumComputer)
+    quantum_computer = cast(QuantumComputer, qc)
+    assert isinstance(quantum_computer.qam, QPU)
+    qpu = cast(QPU, quantum_computer.qam)
+    engagement_manager = qpu._qpu_client._engagement_manager
+
+    respx.post(
+        url=f"{client_configuration.profile.api_url}/v1/engagements",
+        headers__contains={
+            'X-QCS-ACCOUNT-ID': 'group0',
+            'X-QCS-ACCOUNT-TYPE': QCSAccountType.group.value,
+        },
+    ).respond(json={
+        'address': 'address',
+        'endpointId': 'endpointId',
+        'quantumProcessorId': 'quantumProcessorId',
+        'userId': 'userId',
+        'expiresAt': '01-01-2200T00:00:00Z',
+        'credentials': {
+            'clientPublic': 'faux',
+            'clientSecret': 'faux',
+            'serverPublic': 'faux',
+        }
+    })
+
+    engagement = engagement_manager.get_engagement(quantum_processor_id='test')
+    assert 'faux' == engagement.credentials.client_public

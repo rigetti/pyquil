@@ -10,6 +10,8 @@ Changelog
 
 - `QAMExecutionResult` now includes `execution_duration_microseconds`, providing the amount of time
   a job held exclusive hardware access. (@randall-fulton, #1436)
+  
+- `get_qc` accepts `account_id` and `account_type` keyword arguments, which `EngagementManager` can use to specify `X-QCS-ACCOUNT-{ID/TYPE}` headers on engagement requests. (@erichulburd, #1438)
 
 ### Bugfixes
 

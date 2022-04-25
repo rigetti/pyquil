@@ -36,7 +36,7 @@ from typing import (
 import httpx
 import networkx as nx
 import numpy as np
-from qcs_api_client.client import QCSClientConfiguration
+from qcs_api_client.client import QCSClientConfiguration, QCSAccountType
 from qcs_api_client.models import ListQuantumProcessorsResponse
 from qcs_api_client.operations.sync import list_quantum_processors
 from rpcq.messages import ParameterAref
@@ -727,6 +727,8 @@ def get_qc(
     client_configuration: Optional[QCSClientConfiguration] = None,
     endpoint_id: Optional[str] = None,
     engagement_manager: Optional[EngagementManager] = None,
+    account_id: Optional[str] = None,
+    account_type: Optional[QCSAccountType] = None,
 ) -> QuantumComputer:
     """
     Get a quantum computer.
@@ -797,6 +799,14 @@ def get_qc(
     :param client_configuration: Optional client configuration. If none is provided, a default one will be loaded.
     :param endpoint_id: Optional quantum processor endpoint ID, as used in the `QCS API Docs`_.
     :param engagement_manager: Optional engagement manager. If none is provided, a default one will be created.
+    :param account_id: Optional account id. If engagement manager is not set, ``EngagementManager`` will be
+        initialized with this ``account_id``. In practice, this should be left blank unless specifying a QCS
+        group account name, which will be used for the purposes of billing and metrics. This will
+        override the QCS account id set on your QCS profile.
+    :param account_type: Optional account type. If engagement manager is not set, ``EngagementManager`` will be
+        initialized with this ``account_type``. In practice, this should be left blank unless specifying a QCS
+        group account type, which will be used for the purposes of billing and metrics. This will
+        override the QCS account type set on your QCS profile.
 
     :return: A pre-configured QuantumComputer
 
@@ -804,7 +814,11 @@ def get_qc(
     """
 
     client_configuration = client_configuration or QCSClientConfiguration.load()
-    engagement_manager = engagement_manager or EngagementManager(client_configuration=client_configuration)
+    engagement_manager = engagement_manager or EngagementManager(
+        client_configuration=client_configuration,
+        account_id=account_id,
+        account_type=account_type,
+    )
 
     # 1. Parse name, check for redundant options, canonicalize names.
     prefix, qvm_type, noisy = _parse_name(name, as_qvm, noisy)

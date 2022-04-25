@@ -19,7 +19,7 @@ from typing import Dict, NamedTuple, Optional, TYPE_CHECKING
 
 from dateutil.parser import parse as parsedate
 from dateutil.tz import tzutc
-from qcs_api_client.client import QCSClientConfiguration
+from qcs_api_client.client import QCSClientConfiguration, QCSAccountType
 from qcs_api_client.models import EngagementWithCredentials, CreateEngagementRequest
 from qcs_api_client.operations.sync import create_engagement
 from qcs_api_client.types import UNSET
@@ -43,15 +43,29 @@ class EngagementManager:
     _lock: threading.Lock
     """Lock used to ensure that only one engagement request is in flight at once."""
 
-    def __init__(self, *, client_configuration: QCSClientConfiguration) -> None:
+    def __init__(
+        self,
+        *,
+        client_configuration: QCSClientConfiguration,
+        account_id: Optional[str] = None,
+        account_type: Optional[QCSAccountType] = None,
+    ) -> None:
         """
         Instantiate a new engagement manager.
 
         :param client_configuration: Client configuration, used for refreshing engagements.
+        :param account_id: Optional account id. In practice, this should be left blank unless specifying a QCS
+            group account name, which will be used for the purposes of billing and metrics. This will
+            override the QCS account id set on your QCS profile.
+        :param account_type: Optional account type. In practice, this should be left blank unless specifying a QCS
+            group account type, which will be used for the purposes of billing and metrics. This will
+            override the QCS account type set on your QCS profile.
         """
         self._client_configuration = client_configuration
         self._cached_engagements: Dict[EngagementCacheKey, EngagementWithCredentials] = {}
         self._lock = threading.Lock()
+        self._account_id = account_id
+        self._account_type = account_type
 
     def get_engagement(
         self, *, quantum_processor_id: str, request_timeout: float = 10.0, endpoint_id: Optional[str] = None
@@ -73,12 +87,21 @@ class EngagementManager:
         with self._lock:
             if not self._engagement_valid(self._cached_engagements.get(key)):
                 with qcs_client(
-                    client_configuration=self._client_configuration, request_timeout=request_timeout
+                    client_configuration=self._client_configuration,
+                    request_timeout=request_timeout,
                 ) as client:  # type: httpx.Client
                     request = CreateEngagementRequest(
-                        quantum_processor_id=quantum_processor_id, endpoint_id=endpoint_id or UNSET
+                        quantum_processor_id=quantum_processor_id,
+                        endpoint_id=endpoint_id or UNSET,
                     )
-                    self._cached_engagements[key] = create_engagement(client=client, json_body=request).parsed
+                    headers = {}
+                    if self._account_id is not None:
+                        headers["X-QCS-ACCOUNT-ID"] = self._account_id
+                    if self._account_type is not None:
+                        headers["X-QCS-ACCOUNT-TYPE"] = self._account_type.value
+                    self._cached_engagements[key] = create_engagement(
+                        client=client, json_body=request, httpx_request_kwargs={"headers": headers}
+                    ).parsed
             return self._cached_engagements[key]
 
     @staticmethod
