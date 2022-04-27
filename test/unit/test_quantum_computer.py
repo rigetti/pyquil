@@ -1,6 +1,7 @@
 import itertools
 import random
 from test.unit.utils import DummyCompiler
+from typing import cast
 
 import networkx as nx
 import numpy as np
@@ -8,7 +9,6 @@ import pytest
 import respx
 
 from pyquil import Program, list_quantum_computers
-from pyquil.api import QCSClientConfiguration
 from pyquil.api._quantum_computer import (
     QuantumComputer,
     _check_min_num_trials_for_symmetrized_readout,
@@ -23,6 +23,7 @@ from pyquil.api._quantum_computer import (
     _symmetrization,
     get_qc,
 )
+from pyquil.api._qpu import QPU
 from pyquil.api._qvm import QVM
 from pyquil.experiment import Experiment, ExperimentSetting
 from pyquil.experiment._main import _pauli_to_product_state
@@ -32,6 +33,7 @@ from pyquil.paulis import sX, sY, sZ
 from pyquil.pyqvm import PyQVM
 from pyquil.quantum_processor import NxQuantumProcessor
 from pyquil.quilbase import Declare, MemoryReference
+from qcs_api_client.client import QCSAccountType, QCSClientConfiguration
 from qcs_api_client.models.instruction_set_architecture import InstructionSetArchitecture
 from rpcq.messages import ParameterAref
 
@@ -849,3 +851,49 @@ def test_get_qc_endpoint_id(client_configuration: QCSClientConfiguration, qcs_as
     qc = get_qc("test", endpoint_id="test-endpoint")
 
     assert qc.qam._qpu_client._endpoint_id == "test-endpoint"
+
+
+@respx.mock
+def test_get_qc_with_group_account(client_configuration: QCSClientConfiguration, qcs_aspen8_isa: InstructionSetArchitecture):
+    """
+    Assert that a client may specify a ``QCSClientConfigurationSettingsProfile`` representing a QCS group
+    account and create a group account engagement via headers.
+    """
+    respx.get(
+        url=f"{client_configuration.profile.api_url}/v1/quantumProcessors/test/instructionSetArchitecture",
+    ).respond(json=qcs_aspen8_isa.to_dict())
+
+    group_profile = client_configuration.profile.copy()
+    group_profile.account_id = "group0"
+    group_profile.account_type = QCSAccountType.group
+    client_configuration.settings.profiles["my-group-profile"] = group_profile
+    client_configuration.profile_name = "my-group-profile"
+    qc = get_qc("test", endpoint_id="test-endpoint", client_configuration=client_configuration)
+
+    assert isinstance(qc, QuantumComputer)
+    quantum_computer = cast(QuantumComputer, qc)
+    assert isinstance(quantum_computer.qam, QPU)
+    qpu = cast(QPU, quantum_computer.qam)
+    engagement_manager = qpu._qpu_client._engagement_manager
+
+    respx.post(
+        url=f"{client_configuration.profile.api_url}/v1/engagements",
+        headers__contains={
+            'X-QCS-ACCOUNT-ID': 'group0',
+            'X-QCS-ACCOUNT-TYPE': QCSAccountType.group.value,
+        },
+    ).respond(json={
+        'address': 'address',
+        'endpointId': 'endpointId',
+        'quantumProcessorId': 'quantumProcessorId',
+        'userId': 'userId',
+        'expiresAt': '01-01-2200T00:00:00Z',
+        'credentials': {
+            'clientPublic': 'faux',
+            'clientSecret': 'faux',
+            'serverPublic': 'faux',
+        }
+    })
+
+    engagement = engagement_manager.get_engagement(quantum_processor_id='test')
+    assert 'faux' == engagement.credentials.client_public

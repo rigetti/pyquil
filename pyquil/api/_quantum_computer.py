@@ -795,6 +795,8 @@ def get_qc(
     :param compiler_timeout: Time limit for compilation requests, in seconds.
     :param execution_timeout: Time limit for execution requests, in seconds.
     :param client_configuration: Optional client configuration. If none is provided, a default one will be loaded.
+        For more information on setting up QCS credentials, see documentation for using the QCS CLI:
+        [https://docs.rigetti.com/qcs/guides/using-the-qcs-cli#configuring-credentials].
     :param endpoint_id: Optional quantum processor endpoint ID, as used in the `QCS API Docs`_.
     :param engagement_manager: Optional engagement manager. If none is provided, a default one will be created.
 

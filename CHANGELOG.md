@@ -10,6 +10,8 @@ Changelog
 
 - `QAMExecutionResult` now includes `execution_duration_microseconds`, providing the amount of time
   a job held exclusive hardware access. (@randall-fulton, #1436)
+  
+- Upgrade `qcs-api-client` so that clients can specify a QCS account on their profile, which `qcs-api-client` will in turn use to set `X-QCS-ACCOUNT-{ID/TYPE}` headers on outgoing QCS requests, most notably during engagement creation. (@erichulburd, #1439)
 
 ### Bugfixes
 
