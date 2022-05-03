@@ -13,6 +13,8 @@ Changelog
   
 - Upgrade `qcs-api-client` so that clients can specify a QCS account on their profile, which `qcs-api-client` will in turn use to set `X-QCS-ACCOUNT-{ID/TYPE}` headers on outgoing QCS requests, most notably during engagement creation. (@erichulburd, #1439)
 
+- Upgrade `qcs-api-client` to address bug that occurs when the QCS profile and credentials name do not match. (@erichulburd, #1442)
+
 ### Bugfixes
 
 [v3.1.0](https://github.com/rigetti/pyquil/releases/tag/v3.1.0)

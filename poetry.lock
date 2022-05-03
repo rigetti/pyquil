@@ -1005,7 +1005,7 @@ py = {version = "*", markers = "implementation_name == \"pypy\""}
 
 [[package]]
 name = "qcs-api-client"
-version = "0.20.12"
+version = "0.20.13"
 description = "A client library for accessing the Rigetti QCS API"
 category = "main"
 optional = false
@@ -1411,7 +1411,7 @@ latex = ["ipython"]
 [metadata]
 lock-version = "1.1"
 python-versions = "^3.7"
-content-hash = "d2af98c6620da01edbf16ab8815b833152357794f62122671ca937e3a5ecede3"
+content-hash = "1e73e4840de90361b22c92b6efdc643f9fcfce5c6390f6b1dd4054d42bc5c014"
 
 [metadata.files]
 alabaster = [
@@ -2057,8 +2057,8 @@ pyzmq = [
     {file = "pyzmq-22.1.0.tar.gz", hash = "sha256:7040d6dd85ea65703904d023d7f57fab793d7ffee9ba9e14f3b897f34ff2415d"},
 ]
 qcs-api-client = [
-    {file = "qcs-api-client-0.20.12.tar.gz", hash = "sha256:e7815d0d3e819c95aac741716f664172e0e8d84caad8e29c1f6c2bf02cf497b4"},
-    {file = "qcs_api_client-0.20.12-py3-none-any.whl", hash = "sha256:075b13bd97ed624d7f702c2f6a43dd7f1caf947bf73db5031e947377a63eb39c"},
+    {file = "qcs-api-client-0.20.13.tar.gz", hash = "sha256:b64db8aad0e14c1b60b55653b667ba74edd4cc41de44b4897b50fe992d82f7e1"},
+    {file = "qcs_api_client-0.20.13-py3-none-any.whl", hash = "sha256:36f3c7b9af618029798df6b358737ba0516521b15dd149bb3ab09dc5551d3e4f"},
 ]
 recommonmark = [
     {file = "recommonmark-0.7.1-py2.py3-none-any.whl", hash = "sha256:1b1db69af0231efce3fa21b94ff627ea33dee7079a01dd0a7f8482c3da148b3f"},
