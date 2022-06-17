@@ -104,10 +104,9 @@ class ExperimentalQPU:
             url = body.addresses.grpc
             assert url is not None, f"no gRPC address found for quantum processor {self._quantum_processor_id}"
 
-
     @asynccontextmanager
     async def _qcs_client(self) -> Iterator[httpx.Client]:
-        async with build_async_client(configuration=self._client_configuration) as client:  # type: httpx.Client
+        async with build_async_client(configuration=self._client_configuration) as client:
             yield client
 
     def _get_service_stub(self) -> Iterator[ControllerStub]:
