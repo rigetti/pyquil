@@ -339,21 +339,15 @@ publishing Docker images, and running end-to-end tests on real QPUs.
 
 ### Release Process
 
-Release is now automated through the use of Semantic Release. All development must occur on the `rc`
-branch. For each push to this branch, a release candidate will be published to [GitHub][gh-releases],
-[PyPI][pypi], and [DockerHub][docker-forest] (with image tags `rc` and `<version>`). When a final
-release is desired, the `rc` branch should be merged to `master`. This will trigger a non-RC release
-to [GitHub][gh-releases], [PyPI][pypi], and [DockerHub][docker-forest] (with image tags `latest` and
-`<version>`).
+Releases are now automated through the use of Semantic Release. All development must occur on the `rc` branch. For each push to this branch, a release candidate will be published to [GitHub][gh-releases], [PyPI][pypi], and [DockerHub][docker-forest] (with image tags `rc` and `<version>`). 
 
-After a final release is produced by Semantic Release, `master` will need to be `merged` back into `rc`
-(due to additional `master` commits created by Semantic Release). This is necessary to re-synchronize
-`rc` with `master` so that further development can continue on `rc`.
+When a final release is desired, create a PR from `rc` to `master` and merge (via "Rebase" strategy is okay here, it fast forwards). Update `CHANGELOG.md` with the new to-be-released version number and push that to `master`. Then, in GitLab CI, trigger the manual release action to create a final release for [GitHub][gh-releases], [PyPI][pypi], and [DockerHub][docker-forest] (with image tags `latest` and `<version>`).
+
+After a final release is produced by Semantic Release, `master` will need to be `merged` back into `rc` (due to additional `master` commits created by Semantic Release). This is necessary to re-synchronize `rc` with `master` so that further development can continue on `rc`. **USE A MERGE COMMIT** to do this only after the new version has been committed to master by Semantic Release.
 
 > ⚠️ **WARNING**:
 > 
-> Never rebase (or force-push to) the `rc` or `master` branches. Merge only, as Semantic Release
-> relies heavily on tags and notes attached to previous release commits. See [this help page][sr-fp] for more info.
+> Never change the history of (e.g., rebasing or force-pushing) the `rc` or `master` branches. Semantic Release relies heavily on tags and notes attached to previous release commits. See [this help page][sr-fp] for more info.
 
 [sr-fp]: https://semantic-release.gitbook.io/semantic-release/support/troubleshooting#release-not-found-release-branch-after-git-push-force
 

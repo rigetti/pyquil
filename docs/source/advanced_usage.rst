@@ -82,6 +82,30 @@ Below is an example that demonstrates how to use pyQuil in a multithreading scen
         print(f"Results for program {i}:\n{result}\n")
 
 
+Alternative QPU Endpoints
+~~~~~~~~~~~~~~~~~~~~~~~~~
+
+Rigetti QCS supports alternative endpoints for access to a QPU architecture, useful for very particular cases.
+Generally, this is useful to call "mock" or test endpoints, which simulate the results of execution for the
+purposes of integration testing without the need for an active reservation or contention with other users.
+See the `QCS API Docs <https://docs.api.qcs.rigetti.com/#tag/endpoints>`_ for more information on QPU Endpoints.
+
+To be able to call these endpoints using pyQuil, enter the ``endpoint_id`` of your desired endpoint in one
+of the sites where ``quantum_processor_id`` is used:
+
+.. code:: python
+
+    # Option 1
+    qc = get_qc("Aspen-9", endpoint_id="my_endpoint")
+
+    # Option 2
+    qam = QPU("Aspen-9", endpoint_id="my_endpoint")
+
+After doing so, for all intents and purposes - compilation, optimization, etc - your program will behave the same
+as when using "default" endpoint for a given quantum processor, except that it will be executed by an
+alternate QCS service, and the results of execution should not be treated as correct or meaningful.
+
+
 Using Qubit Placeholders
 ~~~~~~~~~~~~~~~~~~~~~~~~
 

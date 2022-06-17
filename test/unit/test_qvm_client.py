@@ -14,11 +14,10 @@
 #    limitations under the License.
 ##############################################################################
 import json
-import time
 from typing import Any, Dict
 
 import httpx
-from pytest_httpx import HTTPXMock, to_response
+import respx
 from qcs_api_client.client import QCSClientConfiguration
 
 from pyquil.api._qvm_client import (
@@ -41,48 +40,34 @@ def test_init__sets_base_url_and_timeout(client_configuration: QCSClientConfigur
     assert qvm_client.timeout == 3.14
 
 
-def test_sets_timeout_on_requests(client_configuration: QCSClientConfiguration, httpx_mock: HTTPXMock):
-    qvm_client = QVMClient(client_configuration=client_configuration, request_timeout=0.1)
-
-    def assert_timeout(request: httpx.Request, ext: Dict[str, Any]):
-        assert ext["timeout"] == httpx.Timeout(qvm_client.timeout).as_dict()
-        return to_response(data="1.2.3 [abc123]")
-
-    httpx_mock.add_callback(assert_timeout)
-
-    qvm_client.get_version()
-
-
-def test_get_version__returns_version(client_configuration: QCSClientConfiguration, httpx_mock: HTTPXMock):
+@respx.mock
+def test_get_version__returns_version(client_configuration: QCSClientConfiguration):
     qvm_client = QVMClient(client_configuration=client_configuration)
 
-    httpx_mock.add_response(
+    respx.post(
         url=client_configuration.profile.applications.pyquil.qvm_url,
-        match_content=json.dumps({"type": "version"}).encode(),
-        data="1.2.3 [abc123]",
-    )
+        json={"type": "version"},
+    ).respond(status_code=200, text="1.2.3 [abc123]")
 
     assert qvm_client.get_version() == "1.2.3"
 
 
-def test_run_program__returns_results(client_configuration: QCSClientConfiguration, httpx_mock: HTTPXMock):
+@respx.mock
+def test_run_program__returns_results(client_configuration: QCSClientConfiguration):
     qvm_client = QVMClient(client_configuration=client_configuration)
 
-    httpx_mock.add_response(
+    respx.post(
         url=client_configuration.profile.applications.pyquil.qvm_url,
-        match_content=json.dumps(
-            {
-                "type": "multishot",
-                "compiled-quil": "some-program",
-                "addresses": {"ro": True},
-                "trials": 1,
-                "measurement-noise": (3.14, 1.61, 6.28),
-                "gate-noise": (1.0, 2.0, 3.0),
-                "rng-seed": 314,
-            },
-        ).encode(),
-        json={"ro": [[1, 0, 1]]},
-    )
+        json={
+            "type": "multishot",
+            "compiled-quil": "some-program",
+            "addresses": {"ro": True},
+            "trials": 1,
+            "measurement-noise": (3.14, 1.61, 6.28),
+            "gate-noise": (1.0, 2.0, 3.0),
+            "rng-seed": 314,
+        },
+    ).respond(status_code=200, json={"ro": [[1, 0, 1]]})
 
     request = RunProgramRequest(
         program="some-program",
@@ -95,24 +80,22 @@ def test_run_program__returns_results(client_configuration: QCSClientConfigurati
     assert qvm_client.run_program(request) == RunProgramResponse(results={"ro": [[1, 0, 1]]})
 
 
-def test_run_and_measure_program__returns_results(client_configuration: QCSClientConfiguration, httpx_mock: HTTPXMock):
+@respx.mock
+def test_run_and_measure_program__returns_results(client_configuration: QCSClientConfiguration):
     qvm_client = QVMClient(client_configuration=client_configuration)
 
-    httpx_mock.add_response(
+    respx.post(
         url=client_configuration.profile.applications.pyquil.qvm_url,
-        match_content=json.dumps(
-            {
-                "type": "multishot-measure",
-                "compiled-quil": "some-program",
-                "qubits": [0, 1, 2],
-                "trials": 1,
-                "measurement-noise": (3.14, 1.61, 6.28),
-                "gate-noise": (1.0, 2.0, 3.0),
-                "rng-seed": 314,
-            },
-        ).encode(),
-        json=[[1, 0, 1]],
-    )
+        json={
+            "type": "multishot-measure",
+            "compiled-quil": "some-program",
+            "qubits": [0, 1, 2],
+            "trials": 1,
+            "measurement-noise": (3.14, 1.61, 6.28),
+            "gate-noise": (1.0, 2.0, 3.0),
+            "rng-seed": 314,
+        },
+    ).respond(status_code=200, json=[[1, 0, 1]])
 
     request = RunAndMeasureProgramRequest(
         program="some-program",
@@ -125,19 +108,20 @@ def test_run_and_measure_program__returns_results(client_configuration: QCSClien
     assert qvm_client.run_and_measure_program(request) == RunAndMeasureProgramResponse(results=[[1, 0, 1]])
 
 
-def test_measure_expectation__returns_expectation(client_configuration: QCSClientConfiguration, httpx_mock: HTTPXMock):
+@respx.mock
+def test_measure_expectation__returns_expectation(client_configuration: QCSClientConfiguration):
     qvm_client = QVMClient(client_configuration=client_configuration)
 
-    httpx_mock.add_response(
+    respx.post(
         url=client_configuration.profile.applications.pyquil.qvm_url,
-        match_content=json.dumps(
-            {
-                "type": "expectation",
-                "state-preparation": "some-program",
-                "operators": ["some-op-program"],
-                "rng-seed": 314,
-            },
-        ).encode(),
+        json={
+            "type": "expectation",
+            "state-preparation": "some-program",
+            "operators": ["some-op-program"],
+            "rng-seed": 314,
+        },
+    ).respond(
+        status_code=200,
         json=[0.161],
     )
 
@@ -149,22 +133,20 @@ def test_measure_expectation__returns_expectation(client_configuration: QCSClien
     assert qvm_client.measure_expectation(request) == MeasureExpectationResponse(expectations=[0.161])
 
 
-def test_get_wavefunction__returns_wavefunction(client_configuration: QCSClientConfiguration, httpx_mock: HTTPXMock):
+@respx.mock
+def test_get_wavefunction__returns_wavefunction(client_configuration: QCSClientConfiguration):
     qvm_client = QVMClient(client_configuration=client_configuration)
 
-    httpx_mock.add_response(
+    respx.post(
         url=client_configuration.profile.applications.pyquil.qvm_url,
-        match_content=json.dumps(
-            {
+        json={
                 "type": "wavefunction",
                 "compiled-quil": "some-program",
                 "measurement-noise": (3.14, 1.61, 6.28),
                 "gate-noise": (1.0, 2.0, 3.0),
                 "rng-seed": 314,
             },
-        ).encode(),
-        data=b"some-wavefunction",
-    )
+    ).respond(status_code=200, text="some-wavefunction")
 
     request = GetWavefunctionRequest(
         program="some-program",

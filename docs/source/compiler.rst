@@ -57,7 +57,7 @@ as in the following:
 
     ep = qc.compile(Program(H(0), CNOT(0,1), CNOT(1,2)))
 
-    print(ep.program)
+    print(ep)
 
 with output
 
@@ -111,7 +111,7 @@ the previous example snippet is identical to the following:
     print(np.metadata)
 
     ep = qc.compiler.native_quil_to_executable(np)
-    print(ep.program)
+    print(ep)
 
 Timeouts
 --------
@@ -346,7 +346,7 @@ For example, consider running a ``CZ`` on non-neighboring qubits on a linear dev
    qc = _get_qvm_with_topology(name="line", topology=graph)
 
    p = Program(CZ(0, 2))
-   print(qc.compile(p).program)
+   print(qc.compile(p))
 
    CZ 2 1
 
@@ -368,7 +368,7 @@ inserting swaps. For example, the following program requires a ``SWAP`` that inc
    qc = _get_qvm_with_topology(name="line", topology=graph)
 
    p = Program(CZ(0, 1), H(0), CZ(1, 2), CZ(0, 2))
-   print(qc.compile(p).program)
+   print(qc.compile(p))
 
    CZ 2 1
    RX(-pi/2) 2
@@ -433,7 +433,7 @@ For example, if your program consists of two-qubit instructions where the qubits
    qc = get_qc("Aspen-X", as_qvm=True)
    p = Program(CZ(3, 4))
 
-   print(qc.compile(p).program)
+   print(qc.compile(p))
 
    CZ 3 4
 
@@ -452,7 +452,7 @@ partial strategy:
    qc = get_qc("Aspen-X", as_qvm=True)
    p = Program(CZ(3, 4))
 
-   print(qc.compile(p).program)
+   print(qc.compile(p))
 
    RZ(-pi/2) 0
    RX(pi/2) 0
@@ -485,7 +485,7 @@ compiling this program with naive rewiring will **not** move the ``CZ`` to a bet
    qc = get_qc("Aspen-X", as_qvm=True)
    p = Program('PRAGMA INITIAL_REWIRING "NAIVE"', CZ(0, 1))
 
-   print(qc.compile(p).program)
+   print(qc.compile(p))
 
    PRAGMA INITIAL_REWIRING "NAIVE"
    CZ 0 1
@@ -502,7 +502,7 @@ logical-physical qubit mapping. For example,
    qc = get_qc("Aspen-X", as_qvm=True)
    p = Program('PRAGMA INITIAL_REWIRING "NAIVE"', CZ(0, 2))
 
-   print(qc.compile(p).program)
+   print(qc.compile(p))
 
    PRAGMA INITIAL_REWIRING "NAIVE"
    CZ 6 5
@@ -534,7 +534,7 @@ the compiler can find an alternative that improves the program fidelity:
    qc = get_qc("Aspen-X", as_qvm=True)
    p = Program('PRAGMA INITIAL_REWIRING "PARTIAL"', CZ(0, 1))
 
-   print(qc.compile(p).program)
+   print(qc.compile(p))
 
    PRAGMA INITIAL_REWIRING "PARTIAL"
    CZ 20 27

@@ -7,7 +7,6 @@ Checklist
 ---------
 
 - [ ] The PR targets the `rc` branch (**not** `master`).
-- [ ] Commit messages are prefixed with one of the prefixes outlined in the [commit syntax checker][commit-syntax] (see `pattern` field).
 - [ ] The above description motivates these changes.
 - [ ] There is a unit test that covers these changes.
 - [ ] All new and existing tests pass locally and on the PR's checks.
@@ -22,7 +21,6 @@ Checklist
 [auto-close]: https://help.github.com/en/articles/closing-issues-using-keywords
 [black]: https://black.readthedocs.io/en/stable/index.html
 [changelog]: https://github.com/rigetti/pyquil/blob/master/CHANGELOG.md
-[commit-syntax]: https://github.com/rigetti/pyquil/blob/master/.github/workflows/commit_syntax.yml
 [contributing]: https://github.com/rigetti/pyquil/blob/master/CONTRIBUTING.md
 [docs]: https://pyquil.readthedocs.io
 [flake8]: http://flake8.pycqa.org

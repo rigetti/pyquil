@@ -14,9 +14,6 @@ cache:
     - .cache/pip
     - .venv
 
-.install-dephell: &install-dephell # Install dephell to auto-generate setup.py
-  - curl -L https://raw.githubusercontent.com/rigetti/dephell/master/install.py | python
-
 .install-npm: &install-npm
   - curl -sL https://deb.nodesource.com/setup_12.x | bash -
   - apt-get update
@@ -166,13 +163,11 @@ PyPI Publish Branch (TestPyPI):
   allow_failure: true
   script:
     - . scripts/ci_install_deps
-    - *install-dephell
     - *install-npm
     - npx semantic-release --branches $CI_COMMIT_BRANCH --dry-run
     - export MOST_RECENT_VERSION=$(git describe --abbrev=0 --tags | sed 's/v//')
     - export VERSION_TAG="${MOST_RECENT_VERSION}.dev${CI_JOB_ID}"
     - poetry version "$VERSION_TAG"
-    - dephell deps convert
     - *publish-pypi-test
   rules:
     # Skip this job if running on master or rc
@@ -188,7 +183,6 @@ PyPI Publish Branch (TestPyPI):
   stage: deploy
   script:
     - . scripts/ci_install_deps
-    - *install-dephell
     - *install-npm
     # This performs the semantic-release configured in package.json.
     # Depending on the config, this may add a tag and then publish a GitLab/GitHub release.

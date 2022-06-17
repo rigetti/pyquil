@@ -604,6 +604,29 @@ def test_parsing_defframe():
     assert excp.value.token == Token("IDENTIFIER", "UNSUPPORTED")
 
 
+def test_parsing_defframe_round_trip_with_json():
+    fdef = DefFrame(
+        frame=Frame(qubits=[FormalArgument("My-Cool-Qubit")], name="bananas"),
+        direction="go west",
+        initial_frequency=123.4,
+        center_frequency=124.5,
+        hardware_object='{"key1": 3.1, "key2": "value2"}',
+        sample_rate=5,
+    )
+    fdef_out = fdef.out()
+    assert (
+        fdef.out()
+        == r"""DEFFRAME My-Cool-Qubit "bananas":
+    DIRECTION: "go west"
+    INITIAL-FREQUENCY: 123.4
+    CENTER-FREQUENCY: 124.5
+    HARDWARE-OBJECT: "{\"key1\": 3.1, \"key2\": \"value2\"}"
+    SAMPLE-RATE: 5
+"""
+    )
+    parse_equals(fdef_out, fdef)
+
+
 def test_parsing_defcal():
     parse_equals("DEFCAL X 0:\n" "    NOP\n", DefCalibration("X", [], [Qubit(0)], [NOP]))
     parse_equals(
@@ -684,3 +707,14 @@ H 0 # mid-line comment on second line
 )
 def test_parse_comments(program):
     Program(program)
+
+
+def test_parse_strings_with_spaces():
+    Program(str(Program("""
+DEFFRAME 0 "readout_tx":
+    DIRECTION: "tx"
+    INITIAL-FREQUENCY: 7220000000.0
+    CENTER-FREQUENCY: 7125000000
+    HARDWARE-OBJECT: "A_string_with_one space"
+    SAMPLE-RATE: 1000000000.0
+""")))

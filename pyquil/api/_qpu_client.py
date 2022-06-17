@@ -15,7 +15,8 @@
 ##############################################################################
 from dataclasses import dataclass
 from datetime import datetime
-from typing import Dict, cast, Tuple, Union, List, Any
+from typing import Dict, Optional, cast, Tuple, Union, List, Any
+from attr import field
 
 import rpcq
 from dateutil.parser import parse as parsedate
@@ -93,6 +94,9 @@ class GetBuffersResponse:
     buffers: Dict[str, BufferResponse]
     """Job buffers, by buffer name."""
 
+    execution_duration_microseconds: Optional[int] = field(default=None)
+    "Duration job held exclusive hardware access."
+
 
 class QPUClient:
     """
@@ -104,6 +108,7 @@ class QPUClient:
         *,
         quantum_processor_id: str,
         engagement_manager: EngagementManager,
+        endpoint_id: Optional[str] = None,
         request_timeout: float = 10.0,
     ) -> None:
         """
@@ -114,6 +119,7 @@ class QPUClient:
         :param request_timeout: Timeout for requests, in seconds.
         """
         self.quantum_processor_id = quantum_processor_id
+        self._endpoint_id = endpoint_id
         self._engagement_manager = engagement_manager
         self.timeout = request_timeout
 
@@ -154,9 +160,31 @@ class QPUClient:
             }
         )
 
+    def get_execution_results(self, request: GetBuffersRequest) -> GetBuffersResponse:
+        """
+        Get job buffers and execution metadata.
+        """
+        result = self._rpcq_request(
+            "get_execution_results",
+            job_id=request.job_id,
+            wait=request.wait,
+        )
+        return GetBuffersResponse(
+            buffers={
+                name: BufferResponse(
+                    shape=cast(Tuple[int, int], tuple(val["shape"])),
+                    dtype=val["dtype"],
+                    data=val["data"],
+                )
+                for name, val in result.buffers.items()
+            },
+            execution_duration_microseconds=result.execution_duration_microseconds,
+        )
+
     @retry(exceptions=TimeoutError, tries=2)  # type: ignore
     def _rpcq_request(self, method_name: str, *args: Any, **kwargs: Any) -> Any:
         engagement = self._engagement_manager.get_engagement(
+            endpoint_id=self._endpoint_id,
             quantum_processor_id=self.quantum_processor_id,
             request_timeout=self.timeout,
         )

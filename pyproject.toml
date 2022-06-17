@@ -1,6 +1,6 @@
 [tool.poetry]
 name = "pyquil"
-version = "3.0.0"
+version = "3.2.0-rc.7"
 description = "A Python library for creating Quantum Instruction Language (Quil) programs."
 authors = ["Rigetti Computing <softapps@rigetti.com>"]
 readme = "README.md"
@@ -25,7 +25,7 @@ python = "^3.7"
 numpy = "^1.20"
 scipy = "^1.6.1"
 lark = "^0.11.1"
-rpcq = "^3.6.0"
+rpcq = "^3.10.0"
 networkx = "^2.5"
 importlib-metadata = { version = "^3.7.3", python = "<3.8" }
 qcs-api-client = "0.8.0.dev1457087914"
@@ -45,13 +45,13 @@ black = "^20.8b1"
 flake8 = "^3.8.1"
 pytest = "^6.2.2"
 pytest-cov = "^2.11.1"
-pytest-httpx = "^0.9"
 mypy = "0.740"
 pytest-xdist = "^2.2.1"
 pytest-rerunfailures = "^9.1.1"
 pytest-timeout = "^1.4.2"
 pytest-mock = "^3.6.1"
 pytest-freezegun = "^0.4.2"
+respx = "^0.15"
 
 [tool.poetry.extras]
 latex = ["ipython"]
@@ -81,10 +81,6 @@ exclude = '''
 
 )
 '''
-
-[tool.dephell.main]
-from = { format = "poetry", path = "pyproject.toml" }
-to = { format = "setuppy", path = "setup.py" }
 
 [build-system]
 requires = ["poetry-core>=1.0.0"]

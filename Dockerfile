@@ -6,7 +6,7 @@ ARG python_version=3.7
 # use multi-stage builds to independently pull dependency versions
 FROM rigetti/quilc:$quilc_version as quilc
 FROM rigetti/qvm:$qvm_version as qvm
-FROM python:$python_version
+FROM python:$python_version-buster
 
 ARG pyquil_version
 

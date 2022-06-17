@@ -1,12 +1,14 @@
 import itertools
 import random
 from test.unit.utils import DummyCompiler
+from typing import cast
 
 import networkx as nx
 import numpy as np
 import pytest
+import respx
+
 from pyquil import Program, list_quantum_computers
-from pyquil.api import QCSClientConfiguration
 from pyquil.api._quantum_computer import (
     QuantumComputer,
     _check_min_num_trials_for_symmetrized_readout,
@@ -21,6 +23,7 @@ from pyquil.api._quantum_computer import (
     _symmetrization,
     get_qc,
 )
+from pyquil.api._qpu import QPU
 from pyquil.api._qvm import QVM
 from pyquil.experiment import Experiment, ExperimentSetting
 from pyquil.experiment._main import _pauli_to_product_state
@@ -30,6 +33,8 @@ from pyquil.paulis import sX, sY, sZ
 from pyquil.pyqvm import PyQVM
 from pyquil.quantum_processor import NxQuantumProcessor
 from pyquil.quilbase import Declare, MemoryReference
+from qcs_api_client.client import QCSAccountType, QCSClientConfiguration
+from qcs_api_client.models.instruction_set_architecture import InstructionSetArchitecture
 from rpcq.messages import ParameterAref
 
 
@@ -202,7 +207,7 @@ def test_run(client_configuration: QCSClientConfiguration):
             MEASURE(2, MemoryReference("ro", 2)),
         ).wrap_in_numshots_loop(1000)
     )
-    bitstrings = result.readout_data.get('ro')
+    bitstrings = result.readout_data.get("ro")
 
     assert bitstrings.shape == (1000, 3)
     parity = np.sum(bitstrings, axis=1) % 3
@@ -221,7 +226,7 @@ def test_run_pyqvm_noiseless(client_configuration: QCSClientConfiguration):
     for q in range(3):
         prog += MEASURE(q, ro[q])
     result = qc.run(prog.wrap_in_numshots_loop(1000))
-    bitstrings = result.readout_data.get('ro')
+    bitstrings = result.readout_data.get("ro")
 
     assert bitstrings.shape == (1000, 3)
     parity = np.sum(bitstrings, axis=1) % 3
@@ -240,7 +245,7 @@ def test_run_pyqvm_noisy(client_configuration: QCSClientConfiguration):
     for q in range(3):
         prog += MEASURE(q, ro[q])
     result = qc.run(prog.wrap_in_numshots_loop(1000))
-    bitstrings = result.readout_data.get('ro')
+    bitstrings = result.readout_data.get("ro")
 
     assert bitstrings.shape == (1000, 3)
     parity = np.sum(bitstrings, axis=1) % 3
@@ -266,7 +271,7 @@ def test_readout_symmetrization(client_configuration: QCSClientConfiguration):
     prog.wrap_in_numshots_loop(1000)
 
     result_1 = qc.run(prog)
-    bitstrings_1 = result_1.readout_data.get('ro')
+    bitstrings_1 = result_1.readout_data.get("ro")
     avg0_us = np.mean(bitstrings_1[:, 0])
     avg1_us = 1 - np.mean(bitstrings_1[:, 1])
     diff_us = avg1_us - avg0_us
@@ -422,7 +427,7 @@ def test_qc_run(client_configuration: QCSClientConfiguration):
                 MEASURE(0, ("ro", 0)),
             ).wrap_in_numshots_loop(3)
         )
-    ).readout_data.get('ro')
+    ).readout_data.get("ro")
     assert bs.shape == (3, 1)
 
 
@@ -456,7 +461,8 @@ def test_qc_error(client_configuration: QCSClientConfiguration):
         get_qc("5q", as_qvm=False, client_configuration=client_configuration)
 
 
-def test_run_with_parameters(client_configuration: QCSClientConfiguration):
+@pytest.mark.parametrize("param", [np.pi, [np.pi], np.array([np.pi])])
+def test_run_with_parameters(client_configuration: QCSClientConfiguration, param):
     quantum_processor = NxQuantumProcessor(nx.complete_graph(3))
     qc = QuantumComputer(
         name="testy!",
@@ -470,11 +476,30 @@ def test_run_with_parameters(client_configuration: QCSClientConfiguration):
         MEASURE(0, MemoryReference("ro")),
     ).wrap_in_numshots_loop(1000)
 
-    executable.write_memory(region_name="theta", value=np.pi)
-    bitstrings = qc.run(executable).readout_data.get('ro')
+    executable.write_memory(region_name="theta", value=param)
+    bitstrings = qc.run(executable).readout_data.get("ro")
 
     assert bitstrings.shape == (1000, 1)
     assert all([bit == 1 for bit in bitstrings])
+
+
+@pytest.mark.parametrize("param", [1j, "not_a_number", ["not_a_number"]])
+def test_run_with_bad_parameters(client_configuration: QCSClientConfiguration, param):
+    quantum_processor = NxQuantumProcessor(nx.complete_graph(3))
+    qc = QuantumComputer(
+        name="testy!",
+        qam=QVM(client_configuration=client_configuration),
+        compiler=DummyCompiler(quantum_processor=quantum_processor, client_configuration=client_configuration),
+    )
+    executable = Program(
+        Declare(name="theta", memory_type="REAL"),
+        Declare(name="ro", memory_type="BIT"),
+        RX(MemoryReference("theta"), 0),
+        MEASURE(0, MemoryReference("ro")),
+    ).wrap_in_numshots_loop(1000)
+
+    with pytest.raises(TypeError, match=r"Parameter must be"):
+        executable.write_memory(region_name="theta", value=param)
 
 
 def test_reset(client_configuration: QCSClientConfiguration):
@@ -536,7 +561,7 @@ def test_get_qvm_with_topology_2(client_configuration: QCSClientConfiguration):
                 MEASURE(7, ("ro", 2)),
             ).wrap_in_numshots_loop(5)
         )
-    ).readout_data.get('ro')
+    ).readout_data.get("ro")
     assert results.shape == (5, 3)
     assert all(r[0] == 1 for r in results)
 
@@ -555,7 +580,7 @@ def test_noisy(client_configuration: QCSClientConfiguration):
         MEASURE(0, ("ro", 0)),
     ).wrap_in_numshots_loop(10000)
     qc = get_qc("1q-qvm", noisy=True, client_configuration=client_configuration)
-    result = qc.run(qc.compile(p)).readout_data.get('ro')
+    result = qc.run(qc.compile(p)).readout_data.get("ro")
     assert result.mean() < 1.0
 
 
@@ -811,3 +836,64 @@ def test_qc_expectation_on_qvm(client_configuration: QCSClientConfiguration, dum
     assert np.isclose(results[2][0].expectation, 1.0, atol=0.01)
     assert np.isclose(results[2][0].std_err, 0)
     assert results[2][0].total_counts == 20000
+
+
+@respx.mock
+def test_get_qc_endpoint_id(client_configuration: QCSClientConfiguration, qcs_aspen8_isa: InstructionSetArchitecture):
+    """
+    Assert that get_qc passes a specified ``endpoint_id`` through to its QPU when constructed
+    for a live quantum processor.
+    """
+    respx.get(
+        url=f"{client_configuration.profile.api_url}/v1/quantumProcessors/test/instructionSetArchitecture",
+    ).respond(json=qcs_aspen8_isa.to_dict())
+
+    qc = get_qc("test", endpoint_id="test-endpoint")
+
+    assert qc.qam._qpu_client._endpoint_id == "test-endpoint"
+
+
+@respx.mock
+def test_get_qc_with_group_account(client_configuration: QCSClientConfiguration, qcs_aspen8_isa: InstructionSetArchitecture):
+    """
+    Assert that a client may specify a ``QCSClientConfigurationSettingsProfile`` representing a QCS group
+    account and create a group account engagement via headers.
+    """
+    respx.get(
+        url=f"{client_configuration.profile.api_url}/v1/quantumProcessors/test/instructionSetArchitecture",
+    ).respond(json=qcs_aspen8_isa.to_dict())
+
+    group_profile = client_configuration.profile.copy()
+    group_profile.account_id = "group0"
+    group_profile.account_type = QCSAccountType.group
+    client_configuration.settings.profiles["my-group-profile"] = group_profile
+    client_configuration.profile_name = "my-group-profile"
+    qc = get_qc("test", endpoint_id="test-endpoint", client_configuration=client_configuration)
+
+    assert isinstance(qc, QuantumComputer)
+    quantum_computer = cast(QuantumComputer, qc)
+    assert isinstance(quantum_computer.qam, QPU)
+    qpu = cast(QPU, quantum_computer.qam)
+    engagement_manager = qpu._qpu_client._engagement_manager
+
+    respx.post(
+        url=f"{client_configuration.profile.api_url}/v1/engagements",
+        headers__contains={
+            'X-QCS-ACCOUNT-ID': 'group0',
+            'X-QCS-ACCOUNT-TYPE': QCSAccountType.group.value,
+        },
+    ).respond(json={
+        'address': 'address',
+        'endpointId': 'endpointId',
+        'quantumProcessorId': 'quantumProcessorId',
+        'userId': 'userId',
+        'expiresAt': '01-01-2200T00:00:00Z',
+        'credentials': {
+            'clientPublic': 'faux',
+            'clientSecret': 'faux',
+            'serverPublic': 'faux',
+        }
+    })
+
+    engagement = engagement_manager.get_engagement(quantum_processor_id='test')
+    assert 'faux' == engagement.credentials.client_public

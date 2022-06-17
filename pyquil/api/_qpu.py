@@ -115,6 +115,7 @@ class QPU(QAM[QPUExecuteResponse]):
         timeout: float = 10.0,
         client_configuration: Optional[QCSClientConfiguration] = None,
         engagement_manager: Optional[EngagementManager] = None,
+        endpoint_id: Optional[str] = None,
     ) -> None:
         """
         A connection to the QPU.
@@ -123,10 +124,9 @@ class QPU(QAM[QPUExecuteResponse]):
         :param priority: The priority with which to insert jobs into the QPU queue. Lower integers
             correspond to higher priority.
         :param timeout: Time limit for requests, in seconds.
-        :param client_configuration: Optional client configuration. If none is provided, a default
-            one will be loaded.
-        :param engagement_manager: Optional engagement manager. If none is provided, a default one
-            will be created.
+        :param client_configuration: Optional client configuration. If none is provided, a default one will be loaded.
+        :param endpoint_id: Optional endpoint ID to be used for engagement.
+        :param engagement_manager: Optional engagement manager. If none is provided, a default one will be created.
         """
         super().__init__()
 
@@ -136,6 +136,7 @@ class QPU(QAM[QPUExecuteResponse]):
         engagement_manager = engagement_manager or EngagementManager(client_configuration=client_configuration)
         self._qpu_client = QPUClient(
             quantum_processor_id=quantum_processor_id,
+            endpoint_id=endpoint_id,
             engagement_manager=engagement_manager,
             request_timeout=timeout,
         )
@@ -176,31 +177,27 @@ class QPU(QAM[QPUExecuteResponse]):
         """
         Retrieve results from execution on the QPU.
         """
-        raw_results = self._get_buffers(execute_response.job_id)
+        request = GetBuffersRequest(job_id=execute_response.job_id, wait=True)
+        results = self._qpu_client.get_execution_results(request)
+
         ro_sources = execute_response._executable.ro_sources
+        decoded_buffers = {k: decode_buffer(v) for k, v in results.buffers.items()}
 
         result_memory = {}
-        if raw_results is not None:
+        if decoded_buffers is not None:
             extracted = _extract_memory_regions(
-                execute_response._executable.memory_descriptors, ro_sources, raw_results
+                execute_response._executable.memory_descriptors, ro_sources, decoded_buffers
             )
             for name, array in extracted.items():
                 result_memory[name] = array
         elif not ro_sources:
             result_memory["ro"] = np.zeros((0, 0), dtype=np.int64)
 
-        return QAMExecutionResult(executable=execute_response._executable, readout_data=result_memory)
-
-    def _get_buffers(self, job_id: str) -> Dict[str, np.ndarray]:
-        """
-        Return the decoded result buffers for particular job_id.
-
-        :param job_id: Unique identifier for the job in question
-        :return: Decoded buffers or throw an error
-        """
-        request = GetBuffersRequest(job_id=job_id, wait=True)
-        buffers = self._qpu_client.get_buffers(request).buffers
-        return {k: decode_buffer(v) for k, v in buffers.items()}
+        return QAMExecutionResult(
+            executable=execute_response._executable,
+            readout_data=result_memory,
+            execution_duration_microseconds=results.execution_duration_microseconds,
+        )
 
     @classmethod
     def _build_patch_values(cls, program: EncryptedProgram) -> Dict[str, List[Union[int, float]]]:

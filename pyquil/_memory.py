@@ -46,14 +46,20 @@ class Memory:
         if isinstance(parameter, str):
             parameter = ParameterAref(name=parameter, index=0)
 
+        import numpy as np
+
         if isinstance(value, (int, float)):
             self.values[parameter] = value
-        elif isinstance(value, Sequence):
+        elif isinstance(value, (Sequence, np.ndarray)):
             if parameter.index != 0:
                 raise ValueError("Parameter may not have a non-zero index when its value is a sequence")
 
             for index, v in enumerate(value):
+                if not isinstance(v, (int, float)):
+                    raise TypeError(f"Parameter must be numeric, not {type(value)}")
                 aref = ParameterAref(name=parameter.name, index=index)
                 self.values[aref] = v
+        else:
+            raise TypeError(f"Parameter must be numeric or an iterable of numeric values, not {type(value)}")
 
         return self
