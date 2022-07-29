@@ -23,11 +23,24 @@ from qcs_api_client.client import QCSClientConfiguration
 from qcs_api_client.models import EngagementWithCredentials, CreateEngagementRequest
 from qcs_api_client.operations.sync import create_engagement
 from qcs_api_client.types import UNSET
+from qcs_api_client.util.errors import QCSHTTPStatusError
 
 from pyquil.api._qcs_client import qcs_client
 
 if TYPE_CHECKING:
     import httpx
+
+
+class QPUUnavailableError(Exception):
+    """
+    Exception raised when a QPU is unavailable due to maintenance.
+    """
+
+    retry_after: Optional[int]
+    """The number of seconds after which to retry the engagement request."""
+
+    def __init__(self, retry_after: Optional[str]) -> None:
+        super().__init__(f"QPU unavailable due to maintenance. Please retry after {retry_after}s.")
 
 
 class EngagementCacheKey(NamedTuple):
@@ -62,6 +75,9 @@ class EngagementManager:
         If an engagement was already fetched previously and remains valid, it will be returned instead
         of creating a new engagement.
 
+        If an engagement cannot be created because the QPU is unavailable, a `QPUUnavailableError`
+        exception is raised, which includes the time to wait before retrying.
+
         :param quantum_processor_id: Quantum processor being engaged.
         :param request_timeout: Timeout for request, in seconds.
         :param endpoint_id: Optional ID of the endpoint to use for engagement. If provided, it must
@@ -78,7 +94,12 @@ class EngagementManager:
                     request = CreateEngagementRequest(
                         quantum_processor_id=quantum_processor_id, endpoint_id=endpoint_id or UNSET
                     )
-                    self._cached_engagements[key] = create_engagement(client=client, json_body=request).parsed
+                    response = create_engagement(client=client, json_body=request)
+                    try:
+                        self._cached_engagements[key] = response.parsed
+                    except QCSHTTPStatusError as e:
+                        if response.status_code == 503:
+                            raise QPUUnavailableError(retry_after=response.headers.get("Retry-After")) from e
             return self._cached_engagements[key]
 
     @staticmethod
