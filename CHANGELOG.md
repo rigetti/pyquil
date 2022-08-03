@@ -8,6 +8,13 @@ Changelog
 
 ### Improvements and Changes
 
+### Bugfixes
+
+[v3.2.0](https://github.com/rigetti/pyquil/releases/tag/v3.2.0)
+------------------------------------------------------------------------------------
+
+### Improvements and Changes
+
 - `QAMExecutionResult` now includes `execution_duration_microseconds`, providing the amount of time
   a job held exclusive hardware access. (@randall-fulton, #1436)
   
@@ -16,8 +23,6 @@ Changelog
 - Upgrade `qcs-api-client` to address bug that occurs when the QCS profile and credentials name do not match. (@erichulburd, #1442)
 
 - Allow newer versions of `qcs-api-client` (which allows newer versions of `iso8601` and `pyjwt`) to be used. (@vtomole, #1449)
-
-### Bugfixes
 
 [v3.1.0](https://github.com/rigetti/pyquil/releases/tag/v3.1.0)
 ------------------------------------------------------------------------------------
