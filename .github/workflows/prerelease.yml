@@ -15,7 +15,7 @@ jobs:
         run: |
           wget https://github.com/knope-dev/knope/releases/download/$KNOPE_VERSION/knope-x86_64-unknown-linux-musl-$KNOPE_VERSION.tgz
           tar -xvf knope-x86_64-unknown-linux-musl-$KNOPE_VERSION.tgz
-          cp knope $HOME/.cargo/bin
+          cp knope-x86_64-unknown-linux-musl-$KNOPE_VERSION/knope $HOME/.cargo/bin
         env:
           KNOPE_VERSION: v0.4.0-rc.4
       - name: Create Prerelease
