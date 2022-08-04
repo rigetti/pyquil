@@ -196,7 +196,7 @@ PyPI Publish:
 
 Docker Publish (RC):
   extends: .docker-publish
-  needs: ["PyPI Publish (RC)"]
+  needs: ["PyPI Publish"]
   rules:
     - if: $CI_COMMIT_TAG =~ /^v\d+\.\d+\.\d+-rc\.\d+$/
   variables:
@@ -205,7 +205,7 @@ Docker Publish (RC):
 Docker Publish (Final):
   services: []
   extends: .docker-publish
-  needs: ["PyPI Publish (Final)"]
+  needs: ["PyPI Publish"]
   rules:
     - if: $CI_COMMIT_TAG =~ /^v\d+\.\d+\.\d+$/
   variables:
