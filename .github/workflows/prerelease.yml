@@ -13,7 +13,7 @@ jobs:
           token: ${{ secrets.PAT }}
       - name: Install Knope
         run: |
-          wget https://github.com/knope-dev/knope/releases/latest/download/knope-x86_64-unknown-linux-musl-$KNOPE_VERSION.tgz
+          wget https://github.com/knope-dev/knope/releases/$KNOPE_VERSION/download/knope-x86_64-unknown-linux-musl-$KNOPE_VERSION.tgz
           tar -xvf knope-x86_64-unknown-linux-musl-$KNOPE_VERSION.tgz
           cp knope $HOME/.cargo/bin
         env:
