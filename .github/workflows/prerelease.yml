@@ -1,0 +1,24 @@
+name: Prerelease
+
+on:
+  workflow_dispatch
+
+jobs:
+  prerrelease:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v3
+        with:
+          fetch-depth: 0
+          token: ${{ secrets.PAT }}
+      - name: Install Knope
+        run: |
+          wget https://github.com/knope-dev/knope/releases/latest/download/knope-x86_64-unknown-linux-musl-$KNOPE_VERSION.tgz
+          tar -xvf knope-x86_64-unknown-linux-musl-$KNOPE_VERSION.tgz
+          cp knope $HOME/.cargo/bin
+        env:
+          KNOPE_VERSION: v0.4.0-rc.4
+      - name: Create Prerelease
+        run: knope prerelease
+        env:
+          GITHUB_TOKEN: ${{ secrets.PAT }}

@@ -152,42 +152,13 @@ Coverage:
 
 
 ####################################################################################################
-# BRANCH-ONLY JOBS
-####################################################################################################
-
-# NOTE: Running this job requires the following env vars to be set when triggering:
-#  - GITHUB_TOKEN
-#  - TEST_PYPI_PASSWORD
-PyPI Publish Branch (TestPyPI):
-  stage: deploy
-  allow_failure: true
-  script:
-    - . scripts/ci_install_deps
-    - *install-npm
-    - npx semantic-release --branches $CI_COMMIT_BRANCH --dry-run
-    - export MOST_RECENT_VERSION=$(git describe --abbrev=0 --tags | sed 's/v//')
-    - export VERSION_TAG="${MOST_RECENT_VERSION}.dev${CI_JOB_ID}"
-    - poetry version "$VERSION_TAG"
-    - *publish-pypi-test
-  rules:
-    # Skip this job if running on master or rc
-    - if: '$CI_COMMIT_BRANCH != $CI_DEFAULT_BRANCH && $CI_COMMIT_BRANCH != "rc"'
-      when: manual
-
-
-####################################################################################################
 # RELEASE-ONLY JOBS
 ####################################################################################################
 
 .pypi-publish:
   stage: deploy
   script:
-    - . scripts/ci_install_deps
-    - *install-npm
-    # This performs the semantic-release configured in package.json.
-    # Depending on the config, this may add a tag and then publish a GitLab/GitHub release.
-    - npx semantic-release
-    # This reads the tag chosen by semantic-release
+    - pip install --upgrade poetry
     - *publish-pypi-public
     - poetry version -s >> version_tag
   artifacts:
@@ -217,37 +188,25 @@ PyPI Publish Branch (TestPyPI):
     max: 2
     when: script_failure
 
-
-# PUBLISH RC
-# -------------------------------
-
-PyPI Publish (RC):
+PyPI Publish:
+  services: []
   extends: .pypi-publish
   rules:
-    - if: '$CI_COMMIT_BRANCH == "rc"'
+    - if: "$CI_COMMIT_TAG =~ ^v\d+\.\d+\.\d+(-rc\.\d+)?$"
 
 Docker Publish (RC):
   extends: .docker-publish
   needs: ["PyPI Publish (RC)"]
   rules:
-    - if: '$CI_COMMIT_BRANCH == "rc"'
+    - if: '$CI_COMMIT_TAG =~ ^v\d+\.\d+\.\d+-rc\.\d+$'
   variables:
     EXTRA_TAG: rc
 
-
-# PUBLISH FINAL RELEASE
-# -------------------------------
-
-PyPI Publish (Final):
-  extends: .pypi-publish
-  rules:
-    - if: "$CI_COMMIT_BRANCH == $CI_DEFAULT_BRANCH"
-      when: manual
-
 Docker Publish (Final):
+  services: []
   extends: .docker-publish
   needs: ["PyPI Publish (Final)"]
   rules:
-    - if: "$CI_COMMIT_BRANCH == $CI_DEFAULT_BRANCH"
+    - if: "$CI_COMMIT_TAG =~ ^v\d+\.\d+\.\d+$"
   variables:
     EXTRA_TAG: latest

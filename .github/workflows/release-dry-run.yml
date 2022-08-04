@@ -1,0 +1,25 @@
+name: Release Dry Run
+
+on: push
+
+jobs:
+  release-dry-run:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v3
+        with:
+          fetch-depth: 0
+          token: ${{ secrets.PAT }}
+      - name: Install Knope
+        run: |
+          wget https://github.com/knope-dev/knope/releases/latest/download/knope-x86_64-unknown-linux-musl-$KNOPE_VERSION.tgz
+          tar -xvf knope-x86_64-unknown-linux-musl-$KNOPE_VERSION.tgz
+          cp knope $HOME/.cargo/bin
+        env:
+          KNOPE_VERSION: v0.4.0-rc.4
+      - name: Install Knope
+        run: cargo-binstall --no-confirm knope
+      - name: Display Pending Release
+        run: knope release --dry-run
+        env:
+          GITHUB_TOKEN: ${{ secrets.PAT }}
