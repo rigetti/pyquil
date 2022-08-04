@@ -17,8 +17,6 @@ jobs:
           cp knope-x86_64-unknown-linux-musl-$KNOPE_VERSION/knope $HOME/.cargo/bin
         env:
           KNOPE_VERSION: v0.4.0-rc.4
-      - name: Install Knope
-        run: cargo-binstall --no-confirm knope
       - name: Display Pending Release
         run: knope release --dry-run
         env:
