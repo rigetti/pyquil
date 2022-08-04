@@ -192,13 +192,13 @@ PyPI Publish:
   services: []
   extends: .pypi-publish
   rules:
-    - if: $CI_COMMIT_TAG =~ ^v\d+\.\d+\.\d+(-rc\.\d+)?$
+    - if: $CI_COMMIT_TAG =~ /^v\d+\.\d+\.\d+(-rc\.\d+)?$/
 
 Docker Publish (RC):
   extends: .docker-publish
   needs: ["PyPI Publish (RC)"]
   rules:
-    - if: $CI_COMMIT_TAG =~ ^v\d+\.\d+\.\d+-rc\.\d+$
+    - if: $CI_COMMIT_TAG =~ /^v\d+\.\d+\.\d+-rc\.\d+$/
   variables:
     EXTRA_TAG: rc
 
@@ -207,6 +207,6 @@ Docker Publish (Final):
   extends: .docker-publish
   needs: ["PyPI Publish (Final)"]
   rules:
-    - if: $CI_COMMIT_TAG =~ ^v\d+\.\d+\.\d+$
+    - if: $CI_COMMIT_TAG =~ /^v\d+\.\d+\.\d+$/
   variables:
     EXTRA_TAG: latest
