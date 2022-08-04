@@ -34,3 +34,7 @@ command = "git add . && git commit -m \"chore: prepare release $version\" && git
 
 [[workflows.steps]]
 type = "Release"
+
+[github]
+owner = "rigetti"
+repo = "pyquil"
