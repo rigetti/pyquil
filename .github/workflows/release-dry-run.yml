@@ -16,7 +16,7 @@ jobs:
           tar -xvf knope-x86_64-unknown-linux-musl-$KNOPE_VERSION.tgz
           cp knope-x86_64-unknown-linux-musl-$KNOPE_VERSION/knope $HOME/.cargo/bin
         env:
-          KNOPE_VERSION: v0.4.0-rc.4
+          KNOPE_VERSION: v0.4.0
       - name: Display Pending Release
         run: knope release --dry-run
         env:
