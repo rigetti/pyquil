@@ -289,7 +289,7 @@ Getting Started
 
     # We could ask for "2q-noisy-qvm" but we will be specifying
     # our noise model as PRAGMAs on the Program itself.
-    qc = get_qc('2q-qvm')
+    qc = get_qc('4q-pyqvm')
 
 
 Example 1: Amplitude Damping
