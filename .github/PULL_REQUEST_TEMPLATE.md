@@ -4,7 +4,7 @@ Insert your PR description here. Thanks for [contributing][contributing] to pyQu
 
 ## Checklist
 
-- [ ] The PR targets the `main` branch
+- [ ] The PR targets the `master` branch
 - [ ] The above description motivates these changes.
 - [ ] The change is atomic and can be described by a single commit (your PR will be squashed on merge).
 - [ ] All changes to code are covered via unit tests.
