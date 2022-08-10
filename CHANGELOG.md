@@ -1,5 +1,11 @@
 # Changelog
 
+## 3.3.0
+
+### Features
+
+- gracefully handle error when QPU unavailable for engagement (#1457)
+
 ## 3.3.0-rc.0
 
 ### Features
