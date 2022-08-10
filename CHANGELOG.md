@@ -1,5 +1,11 @@
 # Changelog
 
+## 3.3.0-rc.0
+
+### Features
+
+- gracefully handle error when QPU unavailable for engagement (#1457)
+
 ## [v3.2.0](https://github.com/rigetti/pyquil/releases/tag/v3.2.0)
 
 ### Improvements and Changes
