@@ -75,14 +75,13 @@ class EngagementManager:
         If an engagement was already fetched previously and remains valid, it will be returned instead
         of creating a new engagement.
 
-        If an engagement cannot be created because the QPU is unavailable, a `QPUUnavailableError`
-        exception is raised, which includes the time to wait before retrying.
-
         :param quantum_processor_id: Quantum processor being engaged.
         :param request_timeout: Timeout for request, in seconds.
         :param endpoint_id: Optional ID of the endpoint to use for engagement. If provided, it must
             correspond to an endpoint serving the provided Quantum Processor.
         :return: Fetched or cached engagement.
+        :raises QPUUnavailableError: raised when the QPU is unavailable due, and provides a suggested
+            number of seconds to wait until retrying.
         """
         key = EngagementCacheKey(quantum_processor_id, endpoint_id)
 
