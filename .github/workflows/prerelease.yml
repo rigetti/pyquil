@@ -20,8 +20,8 @@ jobs:
           KNOPE_VERSION: v0.4.1
       - name: Configure Git
         run: |
-          git config --global user.name "{{ github.triggering_actor }}"
-          git config --global user.email "{{ github.triggering_actor}}@users.noreply.github.com"
+          git config --global user.name "${{ github.triggering_actor }}"
+          git config --global user.email "${{ github.triggering_actor}}@users.noreply.github.com"
       - name: Create Prerelease
         run: knope prerelease
         env:
