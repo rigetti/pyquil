@@ -1,5 +1,4 @@
-Contributing to pyQuil
-======================
+# Contributing to pyQuil
 
 Welcome to pyQuil, and thanks for wanting to be a contributor! 🎉
 
@@ -14,8 +13,7 @@ This project and everyone participating in it are governed by pyQuil's
 [Code of Conduct](.github/CODE_OF_CONDUCT.md). In contributing, you are expected
 to uphold this code. Please report unacceptable behavior by contacting support@rigetti.com.
 
-Table of Contents
------------------
+## Table of Contents
 
 [Ways to Contribute](#ways-to-contribute)
 
@@ -53,8 +51,7 @@ Table of Contents
 
 - [Issue and PR Labels](#issue-and-pr-labels)
 
-Ways to Contribute
-------------------
+## Ways to Contribute
 
 ### Reporting a Bug
 
@@ -83,12 +80,7 @@ see completed, but that we don't currently have the bandwidth for.
 
 ### Making a Pull Request
 
-Once you've selected an issue to tackle, 
-[forked the repository](https://github.com/rigetti/pyquil/fork), and made your changes,
-the next step is to [open a pull request](https://github.com/rigetti/pyquil/compare)!
-We've made opening one easy by providing a [Pull Request Template](.github/PULL_REQUEST_TEMPLATE.md)
-that includes a checklist of things to complete before asking for code review. We look
-forward to reviewing your work! 🙂
+Once you've selected an issue to tackle, [forked the repository](https://github.com/rigetti/pyquil/fork), and made your changes, the next step is to [open a pull request](https://github.com/rigetti/pyquil/compare)! We've made opening one easy by providing a [Pull Request Template](.github/PULL_REQUEST_TEMPLATE.md) that includes a checklist of things to complete before asking for code review. Additionally, all CI checks must pass before the PR will be merged. We look forward to reviewing your work! 🙂
 
 ### Adding a Tutorial Notebook
 
@@ -100,8 +92,7 @@ for [Jupyter][jupyter] notebooks. We're always looking for new tutorials to help
 learn about quantum programming, so if you'd like to contribute one, make a pull request
 to that repository directly!
 
-Developer How-Tos
------------------
+## Developer How-Tos
 
 ### Install Dependencies
 
@@ -300,26 +291,16 @@ ARG python_version=3.7
 Once a version has been changed, committed, and pushed, the CI will then use that new
 version in all builds going forward.
 
-Tips for Maintainers
---------------------
+## Tips for Maintainers
 
 ### Merging a Pull Request
 
 When merging PRs, we have a couple of guidelines:
 
-1. Double-check that the PR author has completed everything in the PR checklist that
-   is applicable to the changes.
-
-2. Always use the "squash and merge" option so that every PR corresponds to one commit.
-   This keeps the git history clean and encourages many small (quickly reviewable) PRs
-   rather than behemoth ones with lots of commits.
-
-3. When pressing the merge button, each commit message will be turned into a bullet point
-   below the title of the issue. Make sure to truncate the PR title to ~50 characters
-   (unless completely impossible) so it fits on one line in the commit history, and delete
-   any spurious bullet points that add no meaningful content. Also make sure the final commit
-   message is prefixed with an appropriate Semantic Release prefix, so that it appears
-   correctly in release notes.
+1. Double-check that the PR author has completed everything in the PR checklist that is applicable to the changes.
+2. Rename the title of the PR to use the correct [Angular-style commit prefix](https://github.com/angular/angular/blob/22b96b9/CONTRIBUTING.md#type). Also be sure to include the [Conventional Commits breaking change][Conventional Commits] indicators in the final commit message if necessary.
+3. Always use the "squash and merge" option so that every PR corresponds to one commit. This keeps the git history clean and encourages many small (quickly reviewable) PRs rather than behemoth ones with lots of commits.
+4. When pressing the merge button, each commit message will be turned into a bullet point below the title of the issue. Make sure to truncate the PR title to ~50 characters (unless completely impossible) so it fits on one line in the commit history, and delete any spurious bullet points that add no meaningful content. Also make sure the final commit message is formatted correctly for [Conventional Commits].
 
 ### Managing the CI Pipelines
 
@@ -339,43 +320,29 @@ publishing Docker images, and running end-to-end tests on real QPUs.
 
 ### Release Process
 
-Releases are now automated through the use of Semantic Release. All development must occur on the `rc` branch. For each push to this branch, a release candidate will be published to [GitHub][gh-releases], [PyPI][pypi], and [DockerHub][docker-forest] (with image tags `rc` and `<version>`). 
+All releases are triggered manually in GitHub Actions. There is a workflow for generating a "Prerelease" as well as one for "Release". Prereleases should only be generated if there's something specific that needs additional testing before distributing to everyone. The full release process is as lightweight as possible to encourage quicker releases of merged PRs. Don't feel the need to "wait for more content" before releasing!
 
-When a final release is desired, create a PR from `rc` to `master` and merge (via "Rebase" strategy is okay here, it fast forwards). Update `CHANGELOG.md` with the new to-be-released version number and push that to `master`. Then, in GitLab CI, trigger the manual release action to create a final release for [GitHub][gh-releases], [PyPI][pypi], and [DockerHub][docker-forest] (with image tags `latest` and `<version>`).
-
-After a final release is produced by Semantic Release, `master` will need to be `merged` back into `rc` (due to additional `master` commits created by Semantic Release). This is necessary to re-synchronize `rc` with `master` so that further development can continue on `rc`. **USE A MERGE COMMIT** to do this only after the new version has been committed to master by Semantic Release.
-
-> ⚠️ **WARNING**:
-> 
-> Never change the history of (e.g., rebasing or force-pushing) the `rc` or `master` branches. Semantic Release relies heavily on tags and notes attached to previous release commits. See [this help page][sr-fp] for more info.
-
-[sr-fp]: https://semantic-release.gitbook.io/semantic-release/support/troubleshooting#release-not-found-release-branch-after-git-push-force
-
-> **Note:** While Semantic Release does a good job of creating release notes for the GitHub release,
-> it may be necessary to hand-modify them after they're posted to simplify/clarify them. For instance,
-> if a feature or fix was introduced on `rc` over a series of commits/PRs (not necessarily adjacent),
-> it will result in multiple bullets in the release notes. It may be necessary to merge these bullets
-> into a single bullet (maintaining references to all commits/PRs) so that the release notes make sense.
+The release process will automatically pick the next semantic version, generate a changelog, and publish to [GitHub][gh-releases], [PyPI][pypi], and [DockerHub][docker-forest] (with image tags `latest` and `<version>`). The docs on [Read the Docs][rtd] will also be updated.
 
 ### Issue and PR Labels
 
-We use a collection of labels to add metadata to the issues and pull requests in
-the pyQuil project.
+We use a collection of labels to add metadata to the issues and pull requests in the pyQuil project.
 
-| Label | Description |
-| --- | --- |
-| [`bug 🐛`][bug-label] | An issue that needs fixing. |
-| [`devops 🚀`][devops-label] | An issue related to CI/CD. |
-| [`discussion 🤔`][discussion-label] | For design discussions. |
-| [`documentation 📝`][documentation-label] | An issue for improving docs. |
-| [`enhancement ✨`][enhancement-label] | A request for a new feature. |
-| [`good first issue 👶`][good-first-issue-label] | A place to get started. |
-| [`help wanted 👋`][help-wanted-label] | Looking for takers. |
-| [`quality 🎨`][quality-label] | Improve code quality. |
-| [`refactor 🔨`][refactor-label] | Rework existing functionality. |
-| [`work in progress 🚧`][wip-label] | This PR is not ready to be merged. |
+| Label                                           | Description                        |
+|-------------------------------------------------|------------------------------------|
+| [`bug 🐛`][bug-label]                           | An issue that needs fixing.        |
+| [`devops 🚀`][devops-label]                     | An issue related to CI/CD.         |
+| [`discussion 🤔`][discussion-label]             | For design discussions.            |
+| [`documentation 📝`][documentation-label]       | An issue for improving docs.       |
+| [`enhancement ✨`][enhancement-label]            | A request for a new feature.       |
+| [`good first issue 👶`][good-first-issue-label] | A place to get started.            |
+| [`help wanted 👋`][help-wanted-label]           | Looking for takers.                |
+| [`quality 🎨`][quality-label]                   | Improve code quality.              |
+| [`refactor 🔨`][refactor-label]                 | Rework existing functionality.     |
+| [`work in progress 🚧`][wip-label]              | This PR is not ready to be merged. |
 
 [bug-label]: https://github.com/rigetti/pyquil/labels/bug%20%3Abug%3A
+[Conventional Commits]: (https://www.conventionalcommits.org/en/v1.0.0/) 
 [devops-label]: https://github.com/rigetti/pyquil/labels/devops%20%3Arocket%3A
 [discussion-label]: https://github.com/rigetti/pyquil/labels/discussion%20%3Athinking%3A
 [documentation-label]: https://github.com/rigetti/pyquil/labels/documentation%20%3Amemo%3A
@@ -385,9 +352,7 @@ the pyQuil project.
 [quality-label]: https://github.com/rigetti/pyquil/labels/quality%20%3Aart%3A
 [refactor-label]: https://github.com/rigetti/pyquil/labels/refactor%20%3Ahammer%3A
 [wip-label]: https://github.com/rigetti/pyquil/labels/work%20in%20progress%20%3Aconstruction%3A
-
 [slack-invite]: https://join.slack.com/t/rigetti-forest/shared_invite/enQtNTUyNTE1ODg3MzE2LWQwNzBlMjZlMmNlN2M5MzQyZDlmOGViODQ5ODI0NWMwNmYzODY4YTc2ZjdjOTNmNzhiYTk2YjVhNTE2NTRkODY
-
 [docker]: https://www.docker.com/products/docker-desktop
 [docker-forest]: https://hub.docker.com/r/rigetti/forest
 [forest]: https://qcs.rigetti.com/sdk-downloads
@@ -399,4 +364,5 @@ the pyQuil project.
 [mybinder]: https://mybinder.org
 [pep-484]: https://www.python.org/dev/peps/pep-0484/
 [pypi]: https://pypi.org/project/pyquil/
+[rtd]: https://readthedocs.org/projects/pyquil/
 [sphinx]: https://sphinx-rtd-tutorial.readthedocs.io/en/latest/docstrings.html
