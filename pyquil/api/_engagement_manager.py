@@ -33,14 +33,17 @@ if TYPE_CHECKING:
 
 class QPUUnavailableError(Exception):
     """
-    Exception raised when a QPU is unavailable due to maintenance.
+    Exception raised when a QPU is unavailable.
     """
 
     retry_after: Optional[int]
     """The number of seconds after which to retry the engagement request."""
 
     def __init__(self, retry_after: Optional[str]) -> None:
-        super().__init__(f"QPU unavailable due to maintenance. Please retry after {retry_after}s.")
+        if retry_after is not None:
+            super().__init__(f"QPU unavailable. Please retry after {retry_after}s.")
+        else:
+            super().__init__("QPU unavailable.")
 
 
 class EngagementCacheKey(NamedTuple):
