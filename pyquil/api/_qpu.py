@@ -182,12 +182,14 @@ class QPU(QAM[QPUExecuteResponse]):
 
         ro_sources = execute_response._executable.ro_sources
         decoded_buffers = {k: decode_buffer(v) for k, v in results.buffers.items()}
+        print(decoded_buffers)
 
         result_memory = {}
         if decoded_buffers is not None:
             extracted = _extract_memory_regions(
                 execute_response._executable.memory_descriptors, ro_sources, decoded_buffers
             )
+            print(extracted)
             for name, array in extracted.items():
                 result_memory[name] = array
         elif not ro_sources:
