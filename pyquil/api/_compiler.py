@@ -215,8 +215,9 @@ class LocalCompiler(AbstractCompiler):
     Compiler based on the QCS Rust SDK.
     """
 
-    def __init__(self, *, quantum_processor: AbstractQuantumProcessor) -> None:
+    def __init__(self, *, quantum_processor: AbstractQuantumProcessor, quantum_processor_id) -> None:
         self.quantum_processor = quantum_processor
+        self._quantum_processor_id = quantum_processor_id
 
     async def quil_to_native_quil(self, program: Program, *, protoquil: Optional[bool] = None) -> Program:
         """
@@ -226,7 +227,8 @@ class LocalCompiler(AbstractCompiler):
         import json
         # TODO This ISA isn't always going to be available. Specifically, if the quantum processor is
         # a QVM-type processor, then `quantum_processor` will have a CompilerISA, not a QCSISA.
-        return await qcs.compile(program.out(), json.dumps(self.quantum_processor._isa.to_dict()))
+        native_quil = await qcs.compile(program.out(), json.dumps(self.quantum_processor._isa.to_dict()))
+        return Program(native_quil).wrap_in_numshots_loop(program.num_shots)
 
     async def native_quil_to_executable(self, nq_program: Program) -> QuantumExecutable:
         """
@@ -234,7 +236,7 @@ class LocalCompiler(AbstractCompiler):
         """
         import qcs
 
-        translated_program = await qcs.translate(nq_program.out(), nq_program.num_shots, self.quantum_processor_id)
+        translated_program = await qcs.translate(nq_program.out(), nq_program.num_shots, self._quantum_processor_id)
 
         return EncryptedProgram(
             program=translated_program["program"],

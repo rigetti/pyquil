@@ -6,7 +6,7 @@ from pyquil.api._qpu import QPU
 from pyquil import Program, get_qc
 
 
-QPID = os.getenv("QPID", "Aspen-11")
+QPID = os.getenv("QPID", "Aspen-12")
 
 
 async def main():
@@ -14,7 +14,7 @@ async def main():
     p = Program("DECLARE ro BIT[2]", "X 0", "CNOT 0 1", "MEASURE 0 ro[0]", "MEASURE 1 ro[1]")
     p.wrap_in_numshots_loop(10)
     lc = LocalCompiler(quantum_processor=qc.quantum_processor, quantum_processor_id=QPID)
-    native = Program(await lc.quil_to_native_quil(p))
+    native = await lc.quil_to_native_quil(p)
     executable = await lc.native_quil_to_executable(native)
     
     qpu = QPU(quantum_processor_id=QPID)
