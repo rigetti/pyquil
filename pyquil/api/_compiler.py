@@ -47,7 +47,7 @@ class QPUCompilerNotRunning(Exception):
 
 
 def parse_mref(val: str) -> MemoryReference:
-    """ Parse a memory reference from its string representation. """
+    """Parse a memory reference from its string representation."""
     val = val.strip()
     try:
         if val[-1] == "]":
@@ -213,31 +213,33 @@ class LocalCompiler(AbstractCompiler):
     """
     Compiler based on the QCS Rust SDK.
     """
-    
+
     def __init__(self, *, quantum_processor_id: str) -> None:
         self.quantum_processor_id = quantum_processor_id
-        
+
     async def quil_to_native_quil(self, program: Program, *, protoquil: Optional[bool] = None) -> Program:
         """
         Fill me in.
         """
-        #compiler_isa = self.quantum_processor_id.to_compiler_isa() # TODO: Actually use this.
+        # compiler_isa = self.quantum_processor_id.to_compiler_isa() # TODO: Actually use this.
         import qcs
+
         return await qcs.compile(program.out(), self.quantum_processor_id)
-        
+
     async def native_quil_to_executable(self, nq_program: Program) -> QuantumExecutable:
         """
         Fill me in.
         """
         import qcs
+
         translated_program = await qcs.translate(nq_program.out(), nq_program.num_shots, self.quantum_processor_id)
-        
+
         return EncryptedProgram(
             program=translated_program["program"],
-            memory_descriptors=translated_program["memory_descriptors"],
+            memory_descriptors=_collect_memory_descriptors(
+                nq_program
+            ),  # TODO Should this be prepopulated in the translated_program?
             ro_sources={parse_mref(mref): source for mref, source in translated_program["ro_sources"]},
-            recalculation_table={},
+            recalculation_table={},  # TODO
             _memory=nq_program._memory.copy(),
         )
-        
-        
