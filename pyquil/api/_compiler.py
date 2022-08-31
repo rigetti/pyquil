@@ -33,6 +33,7 @@ from rpcq.messages import ParameterSpec
 from pyquil.api._abstract_compiler import AbstractCompiler, QuantumExecutable, EncryptedProgram
 from pyquil.api._qcs_client import qcs_client
 from pyquil.api._rewrite_arithmetic import rewrite_arithmetic
+from pyquil.external.rpcq import compiler_isa_to_target_quantum_processor
 from pyquil.parser import parse_program, parse
 from pyquil.quantum_processor import AbstractQuantumProcessor
 from pyquil.quil import Program
@@ -214,21 +215,22 @@ class LocalCompiler(AbstractCompiler):
     Compiler based on the QCS Rust SDK.
     """
 
-    def __init__(self, *, quantum_processor_id: str) -> None:
-        self.quantum_processor_id = quantum_processor_id
+    def __init__(self, *, quantum_processor: AbstractQuantumProcessor) -> None:
+        self.quantum_processor = quantum_processor
 
     async def quil_to_native_quil(self, program: Program, *, protoquil: Optional[bool] = None) -> Program:
         """
-        Fill me in.
+        Convert a Quil program into native Quil, which is supported for execution on a QPU.
         """
-        # compiler_isa = self.quantum_processor_id.to_compiler_isa() # TODO: Actually use this.
         import qcs
-
-        return await qcs.compile(program.out(), self.quantum_processor_id)
+        import json
+        # TODO This ISA isn't always going to be available. Specifically, if the quantum processor is
+        # a QVM-type processor, then `quantum_processor` will have a CompilerISA, not a QCSISA.
+        return await qcs.compile(program.out(), json.dumps(self.quantum_processor._isa.to_dict()))
 
     async def native_quil_to_executable(self, nq_program: Program) -> QuantumExecutable:
         """
-        Fill me in.
+        Convert a native Quil program into an executable binary which can be executed by a QPU.
         """
         import qcs
 
@@ -238,7 +240,7 @@ class LocalCompiler(AbstractCompiler):
             program=translated_program["program"],
             memory_descriptors=_collect_memory_descriptors(
                 nq_program
-            ),  # TODO Should this be prepopulated in the translated_program?
+            ),
             ro_sources={parse_mref(mref): source for mref, source in translated_program["ro_sources"]},
             recalculation_table={},  # TODO
             _memory=nq_program._memory.copy(),
