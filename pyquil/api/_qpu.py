@@ -34,6 +34,7 @@ from pyquil.quilatom import (
     Parameter,
     ExpressionDesignator,
 )
+import qcs
 
 
 def decode_buffer(buffer: BufferResponse) -> np.ndarray:
@@ -164,13 +165,20 @@ class QPU(QAM[QPUExecuteResponse]):
             executable.ro_sources is not None
         ), "To run on a QPU, a program must include ``MEASURE``, ``CAPTURE``, and/or ``RAW-CAPTURE`` instructions"
 
-        request = RunProgramRequest(
-            id=str(uuid.uuid4()),
-            priority=self.priority,
-            program=executable.program,
-            patch_values=self._build_patch_values(executable),
+        job_id = qcs.submit(
+            executable.program,
+            {}, # executable._memory.values,
+            executable.recalculation_table,
+            self.quantum_processor_id,
         )
-        job_id = self._qpu_client.run_program(request).job_id
+
+        # request = RunProgramRequest(
+        #     id=str(uuid.uuid4()),
+        #     priority=self.priority,
+        #     program=executable.program,
+        #     patch_values=self._build_patch_values(executable),
+        # )
+        # job_id = self._qpu_client.run_program(request).job_id
         return QPUExecuteResponse(_executable=executable, job_id=job_id)
 
     def get_result(self, execute_response: QPUExecuteResponse) -> QAMExecutionResult:

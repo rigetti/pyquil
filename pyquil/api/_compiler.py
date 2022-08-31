@@ -236,7 +236,13 @@ class LocalCompiler(AbstractCompiler):
         """
         import qcs
 
-        translated_program = await qcs.translate(nq_program.out(), nq_program.num_shots, self._quantum_processor_id)
+        rewrite_response = qcs.rewrite_arithmetic(nq_program.out())
+
+        translated_program = await qcs.translate(
+            rewrite_response["program"],
+            nq_program.num_shots,
+            self._quantum_processor_id,
+        )
 
         return EncryptedProgram(
             program=translated_program["program"],
@@ -244,6 +250,6 @@ class LocalCompiler(AbstractCompiler):
                 nq_program
             ),
             ro_sources={parse_mref(mref): source for mref, source in translated_program["ro_sources"]},
-            recalculation_table={},  # TODO
+            recalculation_table=rewrite_response["recalculation_table"],
             _memory=nq_program._memory.copy(),
         )
