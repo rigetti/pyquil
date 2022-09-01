@@ -517,7 +517,7 @@ Some gates can be compactly represented as a permutation. For example, ``CCNOT``
        [0, 0, 0, 0, 1, 0, 0, 0],
        [0, 0, 0, 0, 0, 1, 0, 0],
        [0, 0, 0, 0, 0, 0, 0, 1],
-       [1, 0, 0, 0, 0, 0, 1, 0]
+       [0, 0, 0, 0, 0, 0, 1, 0]
    ])
 
    ccnot_gate = DefGate("CCNOT", ccnot_matrix)
