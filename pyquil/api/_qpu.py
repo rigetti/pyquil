@@ -44,8 +44,10 @@ def decode_buffer(buffer: BufferResponse) -> np.ndarray:
     :param buffer: Dictionary with 'data' byte array, 'dtype', and 'shape' fields
     :return: NumPy array of decoded data
     """
-    buf = np.frombuffer(buffer.data, dtype=buffer.dtype)
-    return buf.reshape(buffer.shape)  # type: ignore
+    if buffer["dtype"] == "complex64":
+        buffer["data"] = [complex(re, im) for re, im in buffer["data"]]
+    buf = np.fromiter(buffer["data"], dtype=buffer["dtype"])
+    return buf.reshape(buffer["shape"])  # type: ignore
 
 
 def _extract_memory_regions(
@@ -175,28 +177,18 @@ class QPU(QAM[QPUExecuteResponse]):
         job_id = await qcs.submit(
             executable.program,
             patch_values,
-            executable.recalculation_table,
             self.quantum_processor_id,
         )
-
-        # request = RunProgramRequest(
-        #     id=str(uuid.uuid4()),
-        #     priority=self.priority,
-        #     program=executable.program,
-        #     patch_values=self._build_patch_values(executable),
-        # )
-        # job_id = self._qpu_client.run_program(request).job_id
         return QPUExecuteResponse(_executable=executable, job_id=job_id)
 
-    def get_result(self, execute_response: QPUExecuteResponse) -> QAMExecutionResult:
+    async def get_result(self, execute_response: QPUExecuteResponse) -> QAMExecutionResult:
         """
         Retrieve results from execution on the QPU.
         """
-        request = GetBuffersRequest(job_id=execute_response.job_id, wait=True)
-        results = self._qpu_client.get_execution_results(request)
+        results = await qcs.retrieve_results(execute_response.job_id, self.quantum_processor_id)
 
         ro_sources = execute_response._executable.ro_sources
-        decoded_buffers = {k: decode_buffer(v) for k, v in results.buffers.items()}
+        decoded_buffers = {k: decode_buffer(v) for k, v in results["buffers"].items()}
 
         result_memory = {}
         if decoded_buffers is not None:
@@ -211,7 +203,7 @@ class QPU(QAM[QPUExecuteResponse]):
         return QAMExecutionResult(
             executable=execute_response._executable,
             readout_data=result_memory,
-            execution_duration_microseconds=results.execution_duration_microseconds,
+            execution_duration_microseconds=results["execution_duration_microseconds"],
         )
 
     @classmethod
