@@ -149,7 +149,7 @@ class QPU(QAM[QPUExecuteResponse]):
         """ID of quantum processor targeted."""
         return self._qpu_client.quantum_processor_id
 
-    def execute(self, executable: QuantumExecutable) -> QPUExecuteResponse:
+    async def execute(self, executable: QuantumExecutable) -> QPUExecuteResponse:
         """
         Enqueue a job for execution on the QPU. Returns a ``QPUExecuteResponse``, a
         job descriptor which should be passed directly to ``QPU.get_result`` to retrieve
@@ -167,10 +167,12 @@ class QPU(QAM[QPUExecuteResponse]):
 
         # executable._memory.values is a dict of ParameterARef -> numbers, where ParameterARef is data class w/ name and index
         # ParamterARef == Parameter on the Rust side
-        mem_values = {k.name: [v, k.index] for k, v in executable._memory.values.items()}
+        mem_values = defaultdict(list)
+        for k, v in executable._memory.values.items():
+            mem_values[k.name].append(v)
         patch_values = qcs.build_patch_values(executable.recalculation_table, mem_values)
 
-        job_id = qcs.submit(
+        job_id = await qcs.submit(
             executable.program,
             patch_values,
             executable.recalculation_table,
