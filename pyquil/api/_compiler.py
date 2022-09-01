@@ -223,22 +223,22 @@ class LocalCompiler(AbstractCompiler):
         """
         Convert a Quil program into native Quil, which is supported for execution on a QPU.
         """
-        import qcs
+        import qcs_sdk
         import json
         # TODO This ISA isn't always going to be available. Specifically, if the quantum processor is
         # a QVM-type processor, then `quantum_processor` will have a CompilerISA, not a QCSISA.
-        native_quil = await qcs.compile(program.out(), json.dumps(self.quantum_processor._isa.to_dict()))
+        native_quil = await qcs_sdk.compile(program.out(), json.dumps(self.quantum_processor._isa.to_dict()))
         return Program(native_quil).wrap_in_numshots_loop(program.num_shots)
 
     async def native_quil_to_executable(self, nq_program: Program) -> QuantumExecutable:
         """
         Convert a native Quil program into an executable binary which can be executed by a QPU.
         """
-        import qcs
+        import qcs_sdk
 
-        rewrite_response = qcs.rewrite_arithmetic(nq_program.out())
+        rewrite_response = qcs_sdk.rewrite_arithmetic(nq_program.out())
 
-        translated_program = await qcs.translate(
+        translated_program = await qcs_sdk.translate(
             rewrite_response["program"],
             nq_program.num_shots,
             self._quantum_processor_id,

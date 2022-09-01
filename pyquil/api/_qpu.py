@@ -34,7 +34,7 @@ from pyquil.quilatom import (
     Parameter,
     ExpressionDesignator,
 )
-import qcs
+import qcs_sdk
 
 
 def decode_buffer(buffer: BufferResponse) -> np.ndarray:
@@ -172,9 +172,9 @@ class QPU(QAM[QPUExecuteResponse]):
         mem_values = defaultdict(list)
         for k, v in executable._memory.values.items():
             mem_values[k.name].append(v)
-        patch_values = qcs.build_patch_values(executable.recalculation_table, mem_values)
+        patch_values = qcs_sdk.build_patch_values(executable.recalculation_table, mem_values)
 
-        job_id = await qcs.submit(
+        job_id = await qcs_sdk.submit(
             executable.program,
             patch_values,
             self.quantum_processor_id,
@@ -185,7 +185,7 @@ class QPU(QAM[QPUExecuteResponse]):
         """
         Retrieve results from execution on the QPU.
         """
-        results = await qcs.retrieve_results(execute_response.job_id, self.quantum_processor_id)
+        results = await qcs_sdk.retrieve_results(execute_response.job_id, self.quantum_processor_id)
 
         ro_sources = execute_response._executable.ro_sources
         decoded_buffers = {k: decode_buffer(v) for k, v in results["buffers"].items()}
