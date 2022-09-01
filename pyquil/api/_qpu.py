@@ -165,9 +165,14 @@ class QPU(QAM[QPUExecuteResponse]):
             executable.ro_sources is not None
         ), "To run on a QPU, a program must include ``MEASURE``, ``CAPTURE``, and/or ``RAW-CAPTURE`` instructions"
 
+        # executable._memory.values is a dict of ParameterARef -> numbers, where ParameterARef is data class w/ name and index
+        # ParamterARef == Parameter on the Rust side
+        mem_values = {k.name: [v, k.index] for k, v in executable._memory.values.items()}
+        patch_values = qcs.build_patch_values(executable.recalculation_table, mem_values)
+
         job_id = qcs.submit(
             executable.program,
-            {}, # executable._memory.values,
+            patch_values,
             executable.recalculation_table,
             self.quantum_processor_id,
         )

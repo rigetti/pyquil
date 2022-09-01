@@ -27,7 +27,7 @@ async def main():
     native = await lc.quil_to_native_quil(p)
     executable = await lc.native_quil_to_executable(native)
     executable.write_memory(region_name='theta', value=np.pi)
-    
+
     qpu = QPU(quantum_processor_id=QPID)
     execute_response = qpu.execute(executable=executable)
     print(execute_response)
@@ -36,4 +36,3 @@ async def main():
 
 if __name__ == "__main__":
     asyncio.run(main())
-    
