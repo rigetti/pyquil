@@ -148,7 +148,7 @@ class QPU(QAM[QPUExecuteResponse]):
         """ID of quantum processor targeted."""
         return self._qpu_client.quantum_processor_id
 
-    def execute(self, executable: QuantumExecutable) -> QPUExecuteResponse:
+    async def execute(self, executable: QuantumExecutable) -> QPUExecuteResponse:
         """
         Enqueue a job for execution on the QPU. Returns a ``QPUExecuteResponse``, a
         job descriptor which should be passed directly to ``QPU.get_result`` to retrieve
@@ -173,7 +173,7 @@ class QPU(QAM[QPUExecuteResponse]):
         job_id = self._qpu_client.run_program(request).job_id
         return QPUExecuteResponse(_executable=executable, job_id=job_id)
 
-    def get_result(self, execute_response: QPUExecuteResponse) -> QAMExecutionResult:
+    async def get_result(self, execute_response: QPUExecuteResponse) -> QAMExecutionResult:
         """
         Retrieve results from execution on the QPU.
         """

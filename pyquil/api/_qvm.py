@@ -122,7 +122,7 @@ http://pyquil.readthedocs.io/en/latest/noise_models.html#support-for-noisy-gates
         except ConnectionError:
             raise QVMNotRunning(f"No QVM server running at {self._qvm_client.base_url}")
 
-    def execute(self, executable: QuantumExecutable) -> QVMExecuteResponse:
+    async def execute(self, executable: QuantumExecutable) -> QVMExecuteResponse:
         """
         Synchronously execute the input program to completion.
         """
@@ -158,7 +158,7 @@ http://pyquil.readthedocs.io/en/latest/noise_models.html#support-for-noisy-gates
 
         return QVMExecuteResponse(executable=executable, memory=result_memory)
 
-    def get_result(self, execute_response: QVMExecuteResponse) -> QAMExecutionResult:
+    async def get_result(self, execute_response: QVMExecuteResponse) -> QAMExecutionResult:
         """
         Return the results of execution on the QVM.
 

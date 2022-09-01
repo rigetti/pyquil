@@ -105,7 +105,7 @@ class QPUCompiler(AbstractCompiler):
         self._calibration_program: Optional[Program] = None
         self._calibration_program_lock = threading.Lock()
 
-    def native_quil_to_executable(self, nq_program: Program) -> QuantumExecutable:
+    async def native_quil_to_executable(self, nq_program: Program) -> QuantumExecutable:
         arithmetic_response = rewrite_arithmetic(nq_program)
 
         request = TranslateNativeQuilToEncryptedBinaryRequest(
@@ -205,5 +205,5 @@ class QVMCompiler(AbstractCompiler):
             client_configuration=client_configuration,
         )
 
-    def native_quil_to_executable(self, nq_program: Program) -> QuantumExecutable:
+    async def native_quil_to_executable(self, nq_program: Program) -> QuantumExecutable:
         return nq_program

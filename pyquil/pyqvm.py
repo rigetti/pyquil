@@ -226,7 +226,7 @@ class PyQVM(QAM["PyQVM"]):
         self.ram[region_name][offset] = value
         return self
 
-    def execute(self, executable: QuantumExecutable) -> "PyQVM":
+    async def execute(self, executable: QuantumExecutable) -> "PyQVM":
         """
         Execute a program on the PyQVM. Note that the state of the instance is reset on each
         call to ``execute``.
@@ -259,7 +259,7 @@ class PyQVM(QAM["PyQVM"]):
 
         return self
 
-    def get_result(self, execute_response: "PyQVM") -> QAMExecutionResult:
+    async def get_result(self, execute_response: "PyQVM") -> QAMExecutionResult:
         """
         Return results from the PyQVM according to the common QAM API. Note that while the
         ``execute_response`` is not used, it's accepted in order to conform to that API; it's

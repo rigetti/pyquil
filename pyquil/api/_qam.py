@@ -48,7 +48,7 @@ class QAM(ABC, Generic[T]):
     """
 
     @abstractmethod
-    def execute(self, executable: QuantumExecutable) -> T:
+    async def execute(self, executable: QuantumExecutable) -> T:
         """
         Run an executable on a QAM, returning a handle to be used to retrieve
         results.
@@ -57,15 +57,15 @@ class QAM(ABC, Generic[T]):
         """
 
     @abstractmethod
-    def get_result(self, execute_response: T) -> QAMExecutionResult:
+    async def get_result(self, execute_response: T) -> QAMExecutionResult:
         """
         Retrieve the results associated with a previous call to ``QAM#execute``.
 
         :param execute_response: The return value from a call to ``execute``.
         """
 
-    def run(self, executable: QuantumExecutable) -> QAMExecutionResult:
+    async def run(self, executable: QuantumExecutable) -> QAMExecutionResult:
         """
         Run an executable to completion on the QAM.
         """
-        return self.get_result(self.execute(executable))
+        return await self.get_result(await self.execute(executable))

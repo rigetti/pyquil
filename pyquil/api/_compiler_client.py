@@ -165,7 +165,7 @@ class CompilerClient:
         self.base_url = base_url
         self.timeout = request_timeout
 
-    def get_version(self) -> str:
+    async def get_version(self) -> str:
         """
         Get version info for compiler server.
         """
@@ -176,7 +176,7 @@ class CompilerClient:
 
             return version
 
-    def compile_to_native_quil(self, request: CompileToNativeQuilRequest) -> CompileToNativeQuilResponse:
+    async def compile_to_native_quil(self, request: CompileToNativeQuilRequest) -> CompileToNativeQuilResponse:
         """
         Compile Quil program to native Quil.
         """
@@ -204,7 +204,7 @@ class CompilerClient:
                 )
             return CompileToNativeQuilResponse(native_program=response.quil, metadata=metadata)
 
-    def conjugate_pauli_by_clifford(self, request: ConjugatePauliByCliffordRequest) -> ConjugatePauliByCliffordResponse:
+    async def conjugate_pauli_by_clifford(self, request: ConjugatePauliByCliffordRequest) -> ConjugatePauliByCliffordResponse:
         """
         Conjugate a Pauli element by a Clifford element.
         """
@@ -219,7 +219,7 @@ class CompilerClient:
             )
             return ConjugatePauliByCliffordResponse(phase_factor=response.phase, pauli=response.pauli)
 
-    def generate_randomized_benchmarking_sequence(
+    async def generate_randomized_benchmarking_sequence(
         self, request: GenerateRandomizedBenchmarkingSequenceRequest
     ) -> GenerateRandomizedBenchmarkingSequenceResponse:
         """

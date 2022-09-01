@@ -131,7 +131,7 @@ class QuantumComputer:
         """
         return self.compiler.quantum_processor.to_compiler_isa()
 
-    def run(
+    async def run(
         self,
         executable: QuantumExecutable,
     ) -> QAMExecutionResult:
@@ -142,7 +142,7 @@ class QuantumComputer:
         :param executable: The program to run, previously compiled as needed for its target QAM.
         :return: execution result including readout data.
         """
-        return self.qam.run(executable)
+        return await self.qam.run(executable)
 
     def calibrate(self, experiment: Experiment) -> List[ExperimentResult]:
         """
@@ -361,7 +361,7 @@ class QuantumComputer:
 
         return _consolidate_symmetrization_outputs(results, flip_arrays)
 
-    def compile(
+    async def compile(
         self,
         program: Program,
         to_native_gates: bool = True,
@@ -396,11 +396,11 @@ class QuantumComputer:
         quilc = all(flags)
 
         if quilc:
-            nq_program = self.compiler.quil_to_native_quil(program, protoquil=protoquil)
+            nq_program = await self.compiler.quil_to_native_quil(program, protoquil=protoquil)
         else:
             nq_program = program
 
-        return self.compiler.native_quil_to_executable(nq_program)
+        return await self.compiler.native_quil_to_executable(nq_program)
 
     def __str__(self) -> str:
         return self.name

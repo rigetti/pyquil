@@ -97,7 +97,7 @@ class AbstractCompiler(ABC):
         self._client_configuration = client_configuration or QCSClientConfiguration.load()
         self._compiler_client = CompilerClient(client_configuration=self._client_configuration, request_timeout=timeout)
 
-    def get_version_info(self) -> Dict[str, Any]:
+    async def get_version_info(self) -> Dict[str, Any]:
         """
         Return version information for this compiler and its dependencies.
 
@@ -105,7 +105,7 @@ class AbstractCompiler(ABC):
         """
         return {"quilc": self._compiler_client.get_version()}
 
-    def quil_to_native_quil(self, program: Program, *, protoquil: Optional[bool] = None) -> Program:
+    async def quil_to_native_quil(self, program: Program, *, protoquil: Optional[bool] = None) -> Program:
         """
         Compile an arbitrary quil program according to the ISA of ``self.quantum_processor``.
 
@@ -113,14 +113,14 @@ class AbstractCompiler(ABC):
         :param protoquil: Whether to restrict to protoquil (``None`` means defer to server)
         :return: Native quil and compiler metadata
         """
-        self._connect()
+        await self._connect()
         compiler_isa = self.quantum_processor.to_compiler_isa()
         request = CompileToNativeQuilRequest(
             program=program.out(calibrations=False),
             target_quantum_processor=compiler_isa_to_target_quantum_processor(compiler_isa),
             protoquil=protoquil,
         )
-        response = self._compiler_client.compile_to_native_quil(request)
+        response = await self._compiler_client.compile_to_native_quil(request)
 
         nq_program = parse_program(response.native_program)
         nq_program.native_quil_metadata = (
@@ -142,9 +142,9 @@ class AbstractCompiler(ABC):
         nq_program._memory = program._memory.copy()
         return nq_program
 
-    def _connect(self) -> None:
+    async def _connect(self) -> None:
         try:
-            _check_quilc_version(self._compiler_client.get_version())
+            _check_quilc_version(await self._compiler_client.get_version())
         except TimeoutError:
             raise QuilcNotRunning(
                 f"Request to quilc at {self._compiler_client.base_url} timed out. "
@@ -153,7 +153,7 @@ class AbstractCompiler(ABC):
             )
 
     @abstractmethod
-    def native_quil_to_executable(self, nq_program: Program) -> QuantumExecutable:
+    async def native_quil_to_executable(self, nq_program: Program) -> QuantumExecutable:
         """
         Compile a native quil program to a binary executable.
 
