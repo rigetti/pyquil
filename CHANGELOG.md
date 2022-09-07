@@ -1,5 +1,11 @@
 # Changelog
 
+## 4.0
+
+### Removed
+
+- The v2 compatibility layer.
+
 ## 3.3.0
 
 ### Features

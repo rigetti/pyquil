@@ -1,4 +1,4 @@
-##############################################################################
+k  ##############################################################################
 # Copyright 2016-2021 Rigetti Computing
 #
 #    Licensed under the Apache License, Version 2.0 (the "License");
@@ -66,10 +66,10 @@ def test_parametric_program(qc: QuantumComputer):
 
 def test_multithreading(qc: QuantumComputer):
     def run_program(
-            program: Program,
-            qc: QuantumComputer,
+        program: Program,
+        qc: QuantumComputer,
     ) -> np.ndarray:
-        return qc.run(qc.compile(program)).readout_data.get('ro')
+        return qc.run(qc.compile(program)).readout_data.get("ro")
 
     args = [(TEST_PROGRAM, qc) for _ in range(20)]
     with ThreadPool(10) as pool:
