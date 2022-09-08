@@ -204,7 +204,7 @@ class CompilerClient:
                 )
             return CompileToNativeQuilResponse(native_program=response.quil, metadata=metadata)
 
-    async def conjugate_pauli_by_clifford(self, request: ConjugatePauliByCliffordRequest) -> ConjugatePauliByCliffordResponse:
+    def conjugate_pauli_by_clifford(self, request: ConjugatePauliByCliffordRequest) -> ConjugatePauliByCliffordResponse:
         """
         Conjugate a Pauli element by a Clifford element.
         """
@@ -219,7 +219,7 @@ class CompilerClient:
             )
             return ConjugatePauliByCliffordResponse(phase_factor=response.phase, pauli=response.pauli)
 
-    async def generate_randomized_benchmarking_sequence(
+    def generate_randomized_benchmarking_sequence(
         self, request: GenerateRandomizedBenchmarkingSequenceRequest
     ) -> GenerateRandomizedBenchmarkingSequenceResponse:
         """

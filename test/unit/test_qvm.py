@@ -10,70 +10,78 @@ from pyquil.gates import MEASURE, X
 from pyquil.quilbase import Declare, MemoryReference
 
 
-def test_qvm__default_client(client_configuration: QCSClientConfiguration):
+@pytest.mark.asyncio
+async def test_qvm__default_client(client_configuration: QCSClientConfiguration):
     qvm = QVM(client_configuration=client_configuration)
     p = Program(Declare("ro", "BIT"), X(0), MEASURE(0, MemoryReference("ro")))
-    result = qvm.run(p.wrap_in_numshots_loop(1000))
+    result = await qvm.run(p.wrap_in_numshots_loop(1000))
     bitstrings = result.readout_data.get("ro")
     assert bitstrings.shape == (1000, 1)
 
 
-def test_qvm_run_pqer(client_configuration: QCSClientConfiguration):
+@pytest.mark.asyncio
+async def test_qvm_run_pqer(client_configuration: QCSClientConfiguration):
     qvm = QVM(client_configuration=client_configuration, gate_noise=(0.01, 0.01, 0.01))
     p = Program(Declare("ro", "BIT"), X(0), MEASURE(0, MemoryReference("ro")))
-    result = qvm.run(p.wrap_in_numshots_loop(1000))
+    result = await qvm.run(p.wrap_in_numshots_loop(1000))
     bitstrings = result.readout_data.get("ro")
     assert bitstrings.shape == (1000, 1)
     assert np.mean(bitstrings) > 0.8
 
 
-def test_qvm_run_just_program(client_configuration: QCSClientConfiguration):
+@pytest.mark.asyncio
+async def test_qvm_run_just_program(client_configuration: QCSClientConfiguration):
     qvm = QVM(client_configuration=client_configuration, gate_noise=(0.01, 0.01, 0.01))
     p = Program(Declare("ro", "BIT"), X(0), MEASURE(0, MemoryReference("ro")))
-    result = qvm.run(p.wrap_in_numshots_loop(1000))
+    result = await qvm.run(p.wrap_in_numshots_loop(1000))
     bitstrings = result.readout_data.get("ro")
     assert bitstrings.shape == (1000, 1)
     assert np.mean(bitstrings) > 0.8
 
 
-def test_qvm_run_only_pqer(client_configuration: QCSClientConfiguration):
+@pytest.mark.asyncio
+async def test_qvm_run_only_pqer(client_configuration: QCSClientConfiguration):
     qvm = QVM(client_configuration=client_configuration, gate_noise=(0.01, 0.01, 0.01))
     p = Program(Declare("ro", "BIT"), X(0), MEASURE(0, MemoryReference("ro")))
 
-    result = qvm.run(p.wrap_in_numshots_loop(1000))
+    result = await qvm.run(p.wrap_in_numshots_loop(1000))
     bitstrings = result.readout_data.get("ro")
     assert bitstrings.shape == (1000, 1)
     assert np.mean(bitstrings) > 0.8
 
 
-def test_qvm_run_region_declared_and_measured(client_configuration: QCSClientConfiguration):
+@pytest.mark.asyncio
+async def test_qvm_run_region_declared_and_measured(client_configuration: QCSClientConfiguration):
     qvm = QVM(client_configuration=client_configuration)
     p = Program(Declare("reg", "BIT"), X(0), MEASURE(0, MemoryReference("reg")))
-    result = qvm.run(p.wrap_in_numshots_loop(100))
+    result = await qvm.run(p.wrap_in_numshots_loop(100))
     bitstrings = result.readout_data.get("reg")
     assert bitstrings.shape == (100, 1)
 
 
-def test_qvm_run_region_declared_not_measured(client_configuration: QCSClientConfiguration):
+@pytest.mark.asyncio
+async def test_qvm_run_region_declared_not_measured(client_configuration: QCSClientConfiguration):
     qvm = QVM(client_configuration=client_configuration)
     p = Program(Declare("reg", "BIT"), X(0))
-    result = qvm.run(p.wrap_in_numshots_loop(100))
+    result = await qvm.run(p.wrap_in_numshots_loop(100))
     bitstrings = result.readout_data.get("reg")
     assert bitstrings.shape == (100, 0)
 
 
-def test_qvm_run_region_not_declared_is_measured(client_configuration: QCSClientConfiguration):
+@pytest.mark.asyncio
+async def test_qvm_run_region_not_declared_is_measured(client_configuration: QCSClientConfiguration):
     qvm = QVM(client_configuration=client_configuration)
     p = Program(X(0), MEASURE(0, MemoryReference("ro")))
 
     with pytest.raises(QVMError, match='Bad memory region name "ro" in MEASURE'):
-        qvm.run(p)
+        await qvm.run(p)
 
 
-def test_qvm_run_region_not_declared_not_measured(client_configuration: QCSClientConfiguration):
+@pytest.mark.asyncio
+async def test_qvm_run_region_not_declared_not_measured(client_configuration: QCSClientConfiguration):
     qvm = QVM(client_configuration=client_configuration)
     p = Program(X(0))
-    result = qvm.run(p.wrap_in_numshots_loop(100))
+    result = await qvm.run(p.wrap_in_numshots_loop(100))
     assert result.readout_data.get("ro") is None
 
 

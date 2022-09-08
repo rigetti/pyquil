@@ -136,8 +136,6 @@ def compiler(compiler_quantum_processor: CompilerQuantumProcessor, client_config
     compiler = QVMCompiler(
         quantum_processor=compiler_quantum_processor, timeout=1, client_configuration=client_configuration
     )
-    program = Program(I(0))
-    compiler.quil_to_native_quil(program)
     return compiler
 
 

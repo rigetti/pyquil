@@ -6,6 +6,11 @@
 
 - The v2 compatibility layer.
 
+### Features
+
+- Compilation and execution are now `async`. Materially, this means that calls to `QuantumComputer.compile()`
+  and `QuantumComputer.run()` must be invoked with `await`.
+
 ## 3.3.0
 
 ### Features

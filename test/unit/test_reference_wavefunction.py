@@ -596,12 +596,13 @@ def arbitrary_state(request):
     return ARBITRARY_STATE_GEN_INSTRUCTIONS[request.param], ARBITRARY_STATE_GEN_WF[request.param]
 
 
-def test_generate_arbitrary_states(arbitrary_state):
+@pytest.mark.asyncio
+async def test_generate_arbitrary_states(arbitrary_state):
     prog, v = arbitrary_state
     prog = Program(prog)
 
     qam = PyQVM(n_qubits=8, quantum_simulator_type=ReferenceWavefunctionSimulator)
-    qam.execute(prog)
+    await qam.execute(prog)
     wf = qam.wf_simulator.wf
 
     # check actual part of wavefunction
@@ -611,7 +612,8 @@ def test_generate_arbitrary_states(arbitrary_state):
     np.testing.assert_allclose(np.zeros(wf.shape[0] - len(v)), wf[len(v) :])
 
 
-def test_if_then():
+@pytest.mark.asyncio
+async def test_if_then():
     # if TRUE creg, then measure 0 should give 0
     prog = Program()
     creg = prog.declare("creg", "BIT")
@@ -621,11 +623,12 @@ def test_if_then():
     prog.if_then(creg, branch_a, branch_b)
     prog += MEASURE(0, creg)
     qam = PyQVM(n_qubits=1, quantum_simulator_type=ReferenceWavefunctionSimulator)
-    qam.execute(prog)
+    await qam.execute(prog)
     assert qam.ram["creg"][0] == 0
 
 
-def test_if_then_2():
+@pytest.mark.asyncio
+async def test_if_then_2():
     # if FALSE creg, then measure 0 should give 1
     prog = Program()
     creg = prog.declare("creg", "BIT")
@@ -635,11 +638,12 @@ def test_if_then_2():
     prog.if_then(creg, branch_a, branch_b)
     prog += MEASURE(0, creg)
     qam = PyQVM(n_qubits=1, quantum_simulator_type=ReferenceWavefunctionSimulator)
-    qam.execute(prog)
+    await qam.execute(prog)
     assert qam.ram["creg"][0] == 1
 
 
-def test_while():
+@pytest.mark.asyncio
+async def test_while():
     init_register = Program()
     classical_flag_register = init_register.declare("classical_flag_register", "BIT")
     init_register += MOVE(classical_flag_register, True)
@@ -650,76 +654,83 @@ def test_while():
     loop_prog = init_register.while_do(classical_flag_register, loop_body)
 
     qam = PyQVM(n_qubits=1, quantum_simulator_type=ReferenceWavefunctionSimulator)
-    qam.execute(loop_prog)
+    await qam.execute(loop_prog)
     assert qam.ram[classical_flag_register.name][0] == 0
 
 
-def test_halt():
+@pytest.mark.asyncio
+async def test_halt():
     prog = Program(Declare("ro", "BIT"), X(0), MEASURE(0, MemoryReference("ro", 0)))
     prog.inst(HALT)
     prog.inst(X(0), MEASURE(0, MemoryReference("ro", 0)))
     qam = PyQVM(n_qubits=1, quantum_simulator_type=ReferenceWavefunctionSimulator)
-    qam.execute(prog)
+    await qam.execute(prog)
     # HALT should stop execution; measure should give 1
     assert qam.ram["ro"][0] == 1
 
     prog = Program(Declare("ro", "BIT"), X(0)).inst(X(0)).inst(MEASURE(0, MemoryReference("ro", 0)))
     qam = PyQVM(n_qubits=1, quantum_simulator_type=ReferenceWavefunctionSimulator)
-    qam.execute(prog)
+    await qam.execute(prog)
     assert qam.ram["ro"][0] == 0
 
 
-def test_biased_coin():
+@pytest.mark.asyncio
+async def test_biased_coin():
     # sample from a 75% heads and 25% tails coin
     prog = Program().inst(Declare("ro", "BIT"), RX(np.pi / 3, 0)).measure(0, MemoryReference("ro", 0))
 
     results = []
     qam = PyQVM(n_qubits=1, quantum_simulator_type=ReferenceWavefunctionSimulator)
     for _ in range(1000):
-        qam.execute(prog)
+        await qam.execute(prog)
         results += [qam.ram["ro"][0]]
-        qam.execute(Program(RESET()))
+        await qam.execute(Program(RESET()))
 
     coin_bias = sum(results) / 1000
     assert np.isclose(coin_bias, 0.25, atol=0.05, rtol=0.05)
 
 
-def test_against_ref_hadamard():
+@pytest.mark.asyncio
+async def test_against_ref_hadamard():
     p = Program(H(0))
     qam = PyQVM(n_qubits=1, quantum_simulator_type=ReferenceWavefunctionSimulator)
-    qam.execute(p)
+    await qam.execute(p)
     np.testing.assert_allclose(HADAMARD_WF, qam.wf_simulator.wf)
 
 
-def test_against_ref_qft_8():
+@pytest.mark.asyncio
+async def test_against_ref_qft_8():
     p = Program(QFT_8_INSTRUCTIONS)
     qam = PyQVM(n_qubits=8, quantum_simulator_type=ReferenceWavefunctionSimulator)
-    qam.execute(p)
+    await qam.execute(p)
     wf = qam.wf_simulator.wf
     np.testing.assert_allclose(QFT_8_WF_PROBS, wf)
 
 
-def test_bell_state():
+@pytest.mark.asyncio
+async def test_bell_state():
     prog = Program().inst([H(0), CNOT(0, 1)])
     qam = PyQVM(n_qubits=2, quantum_simulator_type=ReferenceWavefunctionSimulator)
-    qam.execute(prog)
+    await qam.execute(prog)
     wf = qam.wf_simulator.wf
     ref_bell = np.zeros(4)
     ref_bell[0] = ref_bell[-1] = 1.0 / np.sqrt(2)
     np.testing.assert_allclose(ref_bell, wf)
 
 
-def test_occupation_basis():
+@pytest.mark.asyncio
+async def test_occupation_basis():
     prog = Program().inst([X(0), X(1), I(2), I(3)])
     state = np.zeros(2 ** 4)
     state[3] = 1.0
 
     qam = PyQVM(n_qubits=4, quantum_simulator_type=ReferenceWavefunctionSimulator)
-    qam.execute(prog)
+    await qam.execute(prog)
     np.testing.assert_allclose(state, qam.wf_simulator.wf)
 
 
-def test_exp_circuit():
+@pytest.mark.asyncio
+async def test_exp_circuit():
     true_wf = np.array(
         [
             0.54030231 - 0.84147098j,
@@ -744,12 +755,13 @@ def test_exp_circuit():
         prog += single_exp_prog
 
     qam = PyQVM(n_qubits=3, quantum_simulator_type=ReferenceWavefunctionSimulator)
-    qam.execute(prog)
+    await qam.execute(prog)
     wf = qam.wf_simulator.wf
     np.testing.assert_allclose(wf.dot(np.conj(wf).T), true_wf.dot(np.conj(true_wf).T))
 
 
-def test_qaoa_circuit():
+@pytest.mark.asyncio
+async def test_qaoa_circuit():
     wf_true = [
         0.00167784 + 1.00210180e-05 * 1j,
         0.50000000 - 4.99997185e-01 * 1j,
@@ -774,12 +786,13 @@ def test_qaoa_circuit():
     )
 
     qam = PyQVM(n_qubits=2, quantum_simulator_type=ReferenceWavefunctionSimulator)
-    qam.execute(prog)
+    await qam.execute(prog)
     wf = qam.wf_simulator.wf
     np.testing.assert_allclose(wf_true, wf, atol=1e-8)
 
 
-def test_larger_qaoa_circuit():
+@pytest.mark.asyncio
+async def test_larger_qaoa_circuit():
     square_qaoa_circuit = [
         H(0),
         H(1),
@@ -829,7 +842,7 @@ def test_larger_qaoa_circuit():
 
     prog = Program(square_qaoa_circuit)
     qam = PyQVM(n_qubits=4, quantum_simulator_type=ReferenceWavefunctionSimulator)
-    qam.execute(prog)
+    await qam.execute(prog)
     wf = qam.wf_simulator.wf
 
     wf_true = np.array(
@@ -919,7 +932,8 @@ def include_measures(request):
     return request.param
 
 
-def test_vs_lisp_qvm(n_qubits, prog_length, client_configuration):
+@pytest.mark.asyncio
+async def test_vs_lisp_qvm(n_qubits, prog_length, client_configuration):
     for _ in range(10):
         prog = _generate_random_program(n_qubits=n_qubits, length=prog_length)
         lisp_wf = WavefunctionSimulator(client_configuration=client_configuration)
@@ -928,19 +942,21 @@ def test_vs_lisp_qvm(n_qubits, prog_length, client_configuration):
         lisp_wf = lisp_wf.amplitudes
 
         ref_qam = PyQVM(n_qubits=n_qubits, quantum_simulator_type=ReferenceWavefunctionSimulator)
-        ref_qam.execute(prog)
+        await ref_qam.execute(prog)
         ref_wf = ref_qam.wf_simulator.wf
 
         np.testing.assert_allclose(lisp_wf, ref_wf, atol=1e-15)
 
 
-def test_default_wf_simulator():
+@pytest.mark.asyncio
+async def test_default_wf_simulator():
     qam = PyQVM(n_qubits=2)
-    qam.execute(Program(H(0), H(1)))
+    await qam.execute(Program(H(0), H(1)))
     assert qam.wf_simulator.wf.reshape(-1).shape == (4,)
 
 
-def test_expectation():
+@pytest.mark.asyncio
+async def test_expectation():
     wfn = ReferenceWavefunctionSimulator(n_qubits=3)
     val = wfn.expectation(0.4 * sZ(0) + sX(2))
     assert val == 0.4

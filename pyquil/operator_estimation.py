@@ -185,7 +185,7 @@ def _generate_experiment_programs(
     return programs, meas_qubits
 
 
-def measure_observables(
+async def measure_observables(
     qc: QuantumComputer,
     tomo_experiment: Experiment,
     progress_callback: Optional[Callable[[int, int], None]] = None,
@@ -225,7 +225,7 @@ def measure_observables(
         # identity, i.e. weight=0. We handle this specially below.
         if len(qubits) > 0:
             # obtain (optionally symmetrized) bitstring results for all of the qubits
-            bitstrings = qc.run_symmetrized_readout(prog, shots, symmetrization, qubits)
+            bitstrings = await qc.run_symmetrized_readout(prog, shots, symmetrization, qubits)
 
         if progress_callback is not None:
             progress_callback(i, len(tomo_experiment))
@@ -262,7 +262,7 @@ def measure_observables(
                 calibr_qub_dict = {cast(int, q): idx for idx, q in enumerate(calibr_qubs)}
 
                 # Perform symmetrization on the calibration program
-                calibr_results = qc.run_symmetrized_readout(
+                calibr_results = await qc.run_symmetrized_readout(
                     calibr_prog, shots, SymmetrizationLevel.EXHAUSTIVE, calibr_qubs
                 )
 

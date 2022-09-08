@@ -18,6 +18,8 @@ from math import pi
 
 import numpy as np
 
+import pytest
+
 from pyquil.external.rpcq import _compiler_isa_from_dict
 from pyquil.gates import CNOT, H, MEASURE, PHASE, RZ, RX, CZ
 from pyquil.paulis import PauliTerm
@@ -56,8 +58,9 @@ RB_ENCODED_REPLY = [[0, 0], [1, 1]]
 RB_REPLY = [Program("H 0\nH 0\n"), Program("PHASE(pi/2) 0\nPHASE(pi/2) 0\n")]
 
 
-def test_quil_to_native_quil(compiler):
-    response = compiler.quil_to_native_quil(BELL_STATE)
+@pytest.mark.asyncio
+async def test_quil_to_native_quil(compiler):
+    response = await compiler.quil_to_native_quil(BELL_STATE)
     p_unitary = program_unitary(response, n_qubits=2)
     compiled_p_unitary = program_unitary(COMPILED_BELL_STATE, n_qubits=2)
     from pyquil.simulation.tools import scale_out_phase
@@ -82,4 +85,3 @@ def test_local_conjugate_request(benchmarker):
 def test_apply_clifford_to_pauli(benchmarker):
     response = benchmarker.apply_clifford_to_pauli(Program("H 0"), PauliTerm("I", 0, 0.34))
     assert response == PauliTerm("I", 0, 0.34)
-

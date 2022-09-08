@@ -51,8 +51,8 @@ class DummyCompiler(AbstractCompiler):
     def get_version_info(self):
         return {}
 
-    def quil_to_native_quil(self, program: Program, *, protoquil=None):
+    async def quil_to_native_quil(self, program: Program, *, protoquil=None):
         return program
 
-    def native_quil_to_executable(self, nq_program: Program):
+    async def native_quil_to_executable(self, nq_program: Program):
         return nq_program

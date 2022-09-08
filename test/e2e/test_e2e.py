@@ -1,4 +1,3 @@
-k  ##############################################################################
 # Copyright 2016-2021 Rigetti Computing
 #
 #    Licensed under the Apache License, Version 2.0 (the "License");
@@ -14,6 +13,8 @@ k  #############################################################################
 #    limitations under the License.
 ##############################################################################
 from multiprocessing.pool import ThreadPool
+import asyncio
+import pytest
 
 import numpy as np
 
@@ -32,14 +33,16 @@ TEST_PROGRAM = Program(
 ).wrap_in_numshots_loop(1000)
 
 
-def test_basic_program(qc: QuantumComputer):
-    results = qc.run(qc.compile(TEST_PROGRAM)).readout_data.get("ro")
+@pytest.mark.asyncio
+async def test_basic_program(qc: QuantumComputer):
+    results = (await qc.run(await qc.compile(TEST_PROGRAM))).readout_data.get("ro")
 
     assert results.shape == (1000, 2)
 
 
-def test_parametric_program(qc: QuantumComputer):
-    compiled = qc.compile(
+@pytest.mark.asyncio
+async def test_parametric_program(qc: QuantumComputer):
+    compiled = await qc.compile(
         Program(
             Declare("ro", "BIT", 1),
             Declare("theta", "REAL", 1),
@@ -51,7 +54,7 @@ def test_parametric_program(qc: QuantumComputer):
     all_results = []
     for theta in [0, np.pi, 2 * np.pi]:
         compiled.write_memory(region_name="theta", value=theta)
-        results = qc.run(compiled).readout_data.get("ro")
+        results = (await qc.run(compiled)).readout_data.get("ro")
         all_results.append(np.mean(results))
 
     if isinstance(qc.qam, QPU):
@@ -64,16 +67,17 @@ def test_parametric_program(qc: QuantumComputer):
         assert all_results[2] == 0.0
 
 
-def test_multithreading(qc: QuantumComputer):
-    def run_program(
+@pytest.mark.asyncio
+async def test_multithreading(qc: QuantumComputer):
+    async def run_program(
         program: Program,
         qc: QuantumComputer,
     ) -> np.ndarray:
-        return qc.run(qc.compile(program)).readout_data.get("ro")
+        return (await qc.run(await qc.compile(program))).readout_data.get("ro")
 
     args = [(TEST_PROGRAM, qc) for _ in range(20)]
     with ThreadPool(10) as pool:
-        results = pool.starmap(run_program, args)
+        results = pool.starmap(lambda *args: asyncio.run(run_program(*args)), args)
 
     assert len(results) == 20
     for result in results:

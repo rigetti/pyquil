@@ -17,7 +17,8 @@ from pyquil.simulation.tools import lifted_gate_matrix
 from test.unit.utils import DummyCompiler
 
 
-def test_qaoa_density():
+@pytest.mark.asyncio
+async def test_qaoa_density():
     wf_true = [
         0.00167784 + 1.00210180e-05 * 1j,
         0.50000000 - 4.99997185e-01 * 1j,
@@ -43,12 +44,13 @@ def test_qaoa_density():
         ]
     )
 
-    qam = PyQVM(n_qubits=2, quantum_simulator_type=ReferenceDensitySimulator).execute(prog)
+    qam = await PyQVM(n_qubits=2, quantum_simulator_type=ReferenceDensitySimulator).execute(prog)
     rho = qam.wf_simulator.density
     np.testing.assert_allclose(rho_true, rho, atol=1e-8)
 
 
-def test_larger_qaoa_density():
+@pytest.mark.asyncio
+async def test_larger_qaoa_density():
     prog = Program(
         H(0),
         H(1),
@@ -96,7 +98,7 @@ def test_larger_qaoa_density():
         H(3),
     )
 
-    qam = PyQVM(n_qubits=4, quantum_simulator_type=ReferenceDensitySimulator).execute(prog)
+    qam = await PyQVM(n_qubits=4, quantum_simulator_type=ReferenceDensitySimulator).execute(prog)
     rho_test = qam.wf_simulator.density
     wf_true = np.array(
         [
@@ -252,8 +254,9 @@ def test_kraus_compound_T1T2_application():
     np.testing.assert_allclose(final_density, qam.wf_simulator.density)
 
 
+@pytest.mark.asyncio
 @pytest.mark.xfail(reason="We don't support different noise parameters for 2q vs 1q gates!")
-def test_multiqubit_decay_bellstate():
+async def test_multiqubit_decay_bellstate():
     program = Program(RY(np.pi / 3, 0), CNOT(0, 1))
 
     # commence manually dotting the above program
@@ -311,13 +314,14 @@ def test_multiqubit_decay_bellstate():
         quantum_simulator_type=ReferenceDensitySimulator,
         post_gate_noise_probabilities={"relaxation": p1, "dephasing": p2},
     )
-    qam.execute_once(program)
+    await qam.execute_once(program)
 
     assert np.allclose(qam.wf_simulator.density, state)
 
 
+@pytest.mark.asyncio
 @pytest.mark.slow
-def test_for_negative_probabilities(client_configuration: QCSClientConfiguration):
+async def test_for_negative_probabilities(client_configuration: QCSClientConfiguration):
     # trivial program to do state tomography on
     prog = Program(I(0)).wrap_in_numshots_loop(3000)
 
@@ -338,7 +342,7 @@ def test_for_negative_probabilities(client_configuration: QCSClientConfiguration
     qc_density.qam.wf_simulator.density = initial_density
 
     try:
-        list(measure_observables(qc=qc_density, tomo_experiment=experiment_1q))
+        asyncstdlib.list(measure_observables(qc=qc_density, tomo_experiment=experiment_1q))
     except ValueError as e:
         # the error is from np.random.choice by way of self.rs.choice in ReferenceDensitySimulator
         assert str(e) != "probabilities are not non-negative"
@@ -348,12 +352,13 @@ def test_for_negative_probabilities(client_configuration: QCSClientConfiguration
     qc_density.qam.wf_simulator.density = initial_density
 
     try:
-        list(measure_observables(qc=qc_density, tomo_experiment=experiment_1q))
+        asyncstdlib.list(measure_observables(qc=qc_density, tomo_experiment=experiment_1q))
     except ValueError as e:
         assert str(e) != "probabilities are not non-negative"
 
 
-def test_set_initial_state(client_configuration: QCSClientConfiguration):
+@pytest.mark.asyncio
+async def test_set_initial_state(client_configuration: QCSClientConfiguration):
     # That is test the assigned state matrix in ReferenceDensitySimulator is persistent between
     # rounds of run.
     rho1 = np.array([[0.0, 0.0], [0.0, 1.0]])
@@ -373,16 +378,16 @@ def test_set_initial_state(client_configuration: QCSClientConfiguration):
 
     qc_density.qam.wf_simulator.set_initial_state(rho1).reset()
 
-    out = [qc_density.run(prog).readout_data['ro'] for _ in range(0, 4)]
+    out = [(await qc_density.run(prog)).readout_data["ro"] for _ in range(0, 4)]
     ans = [np.array([[1]]), np.array([[1]]), np.array([[1]]), np.array([[1]])]
     assert all([np.allclose(x, y) for x, y in zip(out, ans)])
 
     # Run and measure style
     progRAM = prog.copy().wrap_in_numshots_loop(10)
 
-    results = qc_density.run(qc_density.compile(progRAM))
+    results = await qc_density.run(await qc_density.compile(progRAM))
     ans = {0: np.array([1, 1, 1, 1, 1, 1, 1, 1, 1, 1])}
-    assert np.allclose(results.readout_data['ro'][0], ans[0])
+    assert np.allclose(results.readout_data["ro"][0], ans[0])
 
     # test reverting ReferenceDensitySimulator to the default state
     rho0 = np.array([[1.0, 0.0], [0.0, 0.0]])

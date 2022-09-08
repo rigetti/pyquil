@@ -56,46 +56,51 @@ def test_wfn_ordering_tensordot():
     np.testing.assert_allclose(two_q_wfn[:, 0], 1 / np.sqrt(2) * np.ones(2))
 
 
-def test_einsum_simulator_H():
+@pytest.mark.asyncio
+async def test_einsum_simulator_H():
     prog = Program(H(0))
     qam = PyQVM(n_qubits=1, quantum_simulator_type=NumpyWavefunctionSimulator)
-    qam.execute(prog)
+    await qam.execute(prog)
     wf = qam.wf_simulator.wf
     np.testing.assert_allclose(wf, 1 / np.sqrt(2) * np.ones(2))
 
 
-def test_einsum_simulator_1():
+@pytest.mark.asyncio
+async def test_einsum_simulator_1():
     prog = Program(H(0), CNOT(0, 1))
     qam = PyQVM(n_qubits=2, quantum_simulator_type=NumpyWavefunctionSimulator)
-    qam.execute(prog)
+    await qam.execute(prog)
     wf = qam.wf_simulator.wf
     np.testing.assert_allclose(wf, 1 / np.sqrt(2) * np.reshape([1, 0, 0, 1], (2, 2)))
 
 
-def test_einsum_simulator_CNOT():
+@pytest.mark.asyncio
+async def test_einsum_simulator_CNOT():
     prog = Program(X(0), CNOT(0, 1))
     qam = PyQVM(n_qubits=2, quantum_simulator_type=NumpyWavefunctionSimulator)
-    qam.execute(prog)
+    await qam.execute(prog)
     wf = qam.wf_simulator.wf
     np.testing.assert_allclose(wf, np.reshape([0, 0, 0, 1], (2, 2)))
 
 
-def test_einsum_simulator_CCNOT():
+@pytest.mark.asyncio
+async def test_einsum_simulator_CCNOT():
     prog = Program(X(2), X(0), CCNOT(2, 1, 0))
     qam = PyQVM(n_qubits=3, quantum_simulator_type=NumpyWavefunctionSimulator)
-    qam.execute(prog)
+    await qam.execute(prog)
     wf = qam.wf_simulator.wf
     should_be = np.zeros((2, 2, 2))
     should_be[1, 0, 1] = 1
     np.testing.assert_allclose(wf, should_be)
 
 
-def test_einsum_simulator_10q():
+@pytest.mark.asyncio
+async def test_einsum_simulator_10q():
     prog = Program(H(0))
     for i in range(10 - 1):
         prog += CNOT(i, i + 1)
     qam = PyQVM(n_qubits=10, quantum_simulator_type=NumpyWavefunctionSimulator)
-    qam.execute(prog)
+    await qam.execute(prog)
     wf = qam.wf_simulator.wf
     should_be = np.zeros((2,) * 10)
     should_be[0, 0, 0, 0, 0, 0, 0, 0, 0, 0] = 1 / np.sqrt(2)
@@ -103,9 +108,10 @@ def test_einsum_simulator_10q():
     np.testing.assert_allclose(wf, should_be)
 
 
-def test_measure():
+@pytest.mark.asyncio
+async def test_measure():
     qam = PyQVM(n_qubits=3, quantum_simulator_type=NumpyWavefunctionSimulator)
-    qam.execute(Program(Declare("ro", "BIT", 64), H(0), CNOT(0, 1), MEASURE(0, MemoryReference("ro", 63))))
+    await qam.execute(Program(Declare("ro", "BIT", 64), H(0), CNOT(0, 1), MEASURE(0, MemoryReference("ro", 63))))
     measured_bit = qam.ram["ro"][-1]
     should_be = np.zeros((2, 2, 2))
     if measured_bit == 1:
@@ -131,7 +137,8 @@ def include_measures(request):
     return request.param
 
 
-def test_vs_ref_simulator(n_qubits, prog_length, include_measures):
+@pytest.mark.asyncio
+async def test_vs_ref_simulator(n_qubits, prog_length, include_measures):
     if include_measures:
         seed = 52
     else:
@@ -140,11 +147,11 @@ def test_vs_ref_simulator(n_qubits, prog_length, include_measures):
     for _ in range(10):
         prog = _generate_random_program(n_qubits=n_qubits, length=prog_length, include_measures=include_measures)
         ref_qam = PyQVM(n_qubits=n_qubits, seed=seed, quantum_simulator_type=ReferenceWavefunctionSimulator)
-        ref_qam.execute(prog)
+        await ref_qam.execute(prog)
         ref_wf = ref_qam.wf_simulator.wf
 
         es_qam = PyQVM(n_qubits=n_qubits, seed=seed, quantum_simulator_type=NumpyWavefunctionSimulator)
-        es_qam.execute(prog)
+        await es_qam.execute(prog)
         es_wf = es_qam.wf_simulator.wf
         # einsum has its wavefunction as a vector of shape (2, 2, 2, ...) where qubits are indexed
         # from left to right. We transpose then flatten.
@@ -160,10 +167,11 @@ def test_all_bitstrings():
         np.testing.assert_array_equal(bitstrings_ref, bitstrings_new)
 
 
-def test_sample_bitstrings():
+@pytest.mark.asyncio
+async def test_sample_bitstrings():
     prog = Program(H(0), H(1))
     qam = PyQVM(n_qubits=3, quantum_simulator_type=NumpyWavefunctionSimulator, seed=52)
-    qam.execute(prog)
+    await qam.execute(prog)
     bitstrings = qam.wf_simulator.sample_bitstrings(10000)
     assert bitstrings.shape == (10000, 3)
     np.testing.assert_allclose([0.5, 0.5, 0], np.mean(bitstrings, axis=0), rtol=1e-2)
@@ -201,7 +209,8 @@ def test_expectation_vs_ref_qvm(n_qubits):
         np.testing.assert_allclose(ref_exp, np_exp, atol=1e-15)
 
 
-def test_defgate():
+@pytest.mark.asyncio
+async def test_defgate():
     # regression test for https://github.com/rigetti/pyquil/issues/1059
     theta = np.pi / 2
     U = np.array(
@@ -221,7 +230,7 @@ def test_defgate():
     p += X(1)
     p += U_test(1, 0)
     qam = PyQVM(n_qubits=2, quantum_simulator_type=NumpyWavefunctionSimulator)
-    qam.execute(p)
+    await qam.execute(p)
     wf1 = qam.wf_simulator.wf
     should_be = np.zeros((2, 2), dtype=np.complex128)
     one_over_sqrt2 = 1 / np.sqrt(2)
@@ -237,7 +246,7 @@ def test_defgate():
     p += X(1)
     p += RX(theta, 0)
     qam = PyQVM(n_qubits=2, quantum_simulator_type=NumpyWavefunctionSimulator)
-    qam.execute(p)
+    await qam.execute(p)
     wf2 = qam.wf_simulator.wf
     np.testing.assert_allclose(wf1, wf2)
 

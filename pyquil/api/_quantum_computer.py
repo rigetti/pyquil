@@ -144,7 +144,7 @@ class QuantumComputer:
         """
         return await self.qam.run(executable)
 
-    def calibrate(self, experiment: Experiment) -> List[ExperimentResult]:
+    async def calibrate(self, experiment: Experiment) -> List[ExperimentResult]:
         """
         Perform readout calibration on the various multi-qubit observables involved in the provided
         ``Experiment``.
@@ -154,9 +154,9 @@ class QuantumComputer:
             correspond to the scale factors resulting from symmetric readout error.
         """
         calibration_experiment = experiment.generate_calibration_experiment()
-        return self.run_experiment(calibration_experiment)
+        return await self.run_experiment(calibration_experiment)
 
-    def run_experiment(
+    async def run_experiment(
         self,
         experiment: Experiment,
         memory_map: Optional[Mapping[str, Sequence[Union[int, float]]]] = None,
@@ -210,7 +210,7 @@ class QuantumComputer:
         """
 
         experiment_program = experiment.generate_experiment_program()
-        executable = self.compile(experiment_program)
+        executable = await self.compile(experiment_program)
 
         if memory_map is None:
             memory_map = {}
@@ -233,7 +233,7 @@ class QuantumComputer:
                 executable_copy = executable.copy()
                 final_memory_map = cast(Mapping[Union[str, ParameterAref], Union[int, float]], final_memory_map)
                 executable_copy._memory.write(final_memory_map)
-                bitstrings = self.run(executable_copy).readout_data.get("ro")
+                bitstrings = (await self.run(executable_copy)).readout_data.get("ro")
                 assert bitstrings is not None
 
                 if "symmetrization" in final_memory_map:
@@ -271,7 +271,7 @@ class QuantumComputer:
             results.append(result)
         return results
 
-    def run_symmetrized_readout(
+    async def run_symmetrized_readout(
         self,
         program: Program,
         trials: int,
@@ -357,7 +357,7 @@ class QuantumComputer:
                 f"chosen."
             )
 
-        results = _measure_bitstrings(self, sym_programs, meas_qubits, num_shots_per_prog)
+        results = await _measure_bitstrings(self, sym_programs, meas_qubits, num_shots_per_prog)
 
         return _consolidate_symmetrization_outputs(results, flip_arrays)
 
@@ -1093,7 +1093,7 @@ def _consolidate_symmetrization_outputs(outputs: List[np.ndarray], flip_arrays: 
     return np.vstack(output)
 
 
-def _measure_bitstrings(
+async def _measure_bitstrings(
     qc: QuantumComputer, programs: List[Program], meas_qubits: List[int], num_shots: int = 600
 ) -> List[np.ndarray]:
     """
@@ -1116,9 +1116,9 @@ def _measure_bitstrings(
             prog += MEASURE(q, ro[idx])
 
         prog.wrap_in_numshots_loop(num_shots)
-        prog = qc.compiler.quil_to_native_quil(prog)
-        executable = qc.compiler.native_quil_to_executable(prog)
-        result = qc.run(executable)
+        prog = await qc.compiler.quil_to_native_quil(prog)
+        executable = await qc.compiler.native_quil_to_executable(prog)
+        result = await qc.run(executable)
         shot_values = result.readout_data.get("ro")
         assert shot_values is not None
         results.append(shot_values)
