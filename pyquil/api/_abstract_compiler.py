@@ -132,9 +132,9 @@ class AbstractCompiler(ABC):
 
         # TODO This ISA isn't always going to be available. Specifically, if the quantum processor is
         # a QVM-type processor, then `quantum_processor` will have a CompilerISA, not a QCSISA.
-        native_quil = self._event_loop.run_until_complete(
-            _compile(program.out(), json.dumps(self.quantum_processor._isa.to_dict()))
-        )
+        target_device = compiler_isa_to_target_quantum_processor(self.quantum_processor.to_compiler_isa())
+        native_quil = self._event_loop.run_until_complete(_compile(program.out(), json.dumps(target_device.asdict())))
+
         return Program(native_quil).wrap_in_numshots_loop(program.num_shots)
 
     def _connect(self) -> None:
