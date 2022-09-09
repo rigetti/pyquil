@@ -14,25 +14,20 @@
 #    limitations under the License.
 ##############################################################################
 from dataclasses import dataclass
-import uuid
+import asyncio
 from collections import defaultdict
-from typing import Dict, List, Optional, Union, cast
+from typing import Dict, Optional
 
 import numpy as np
 from qcs_api_client.client import QCSClientConfiguration
-from rpcq.messages import ParameterAref, ParameterSpec
+from rpcq.messages import ParameterSpec
 
 from pyquil.api import QuantumExecutable, EncryptedProgram, EngagementManager
 
-from pyquil._memory import Memory
 from pyquil.api._qam import QAM, QAMExecutionResult
-from pyquil.api._qpu_client import GetBuffersRequest, QPUClient, BufferResponse, RunProgramRequest
+from pyquil.api._qpu_client import QPUClient, BufferResponse
 from pyquil.quilatom import (
     MemoryReference,
-    BinaryExp,
-    Function,
-    Parameter,
-    ExpressionDesignator,
 )
 import qcs_sdk
 
@@ -119,6 +114,7 @@ class QPU(QAM[QPUExecuteResponse]):
         client_configuration: Optional[QCSClientConfiguration] = None,
         engagement_manager: Optional[EngagementManager] = None,
         endpoint_id: Optional[str] = None,
+        event_loop: Optional[asyncio.AbstractEventLoop] = None,
     ) -> None:
         """
         A connection to the QPU.
@@ -146,12 +142,16 @@ class QPU(QAM[QPUExecuteResponse]):
         self._last_results: Dict[str, np.ndarray] = {}
         self._memory_results: Dict[str, Optional[np.ndarray]] = defaultdict(lambda: None)
 
+        if event_loop is None:
+            event_loop = asyncio.get_event_loop()
+        self._event_loop = event_loop
+
     @property
     def quantum_processor_id(self) -> str:
         """ID of quantum processor targeted."""
         return self._qpu_client.quantum_processor_id
 
-    async def execute(self, executable: QuantumExecutable) -> QPUExecuteResponse:
+    def execute(self, executable: QuantumExecutable) -> QPUExecuteResponse:
         """
         Enqueue a job for execution on the QPU. Returns a ``QPUExecuteResponse``, a
         job descriptor which should be passed directly to ``QPU.get_result`` to retrieve
@@ -174,18 +174,28 @@ class QPU(QAM[QPUExecuteResponse]):
             mem_values[k.name].append(v)
         patch_values = qcs_sdk.build_patch_values(executable.recalculation_table, mem_values)
 
-        job_id = await qcs_sdk.submit(
-            executable.program,
-            patch_values,
-            self.quantum_processor_id,
+        async def _submit(*args):
+            return await qcs_sdk.submit(*args)
+
+        job_id = self._event_loop.run_until_complete(
+            _submit(
+                executable.program,
+                patch_values,
+                self.quantum_processor_id,
+            )
         )
+
         return QPUExecuteResponse(_executable=executable, job_id=job_id)
 
-    async def get_result(self, execute_response: QPUExecuteResponse) -> QAMExecutionResult:
+    def get_result(self, execute_response: QPUExecuteResponse) -> QAMExecutionResult:
         """
         Retrieve results from execution on the QPU.
         """
-        results = await qcs_sdk.retrieve_results(execute_response.job_id, self.quantum_processor_id)
+
+        async def _get_result(*args):
+            return await qcs_sdk.retrieve_results(*args)
+
+        results = self._event_loop.run_until_complete(_get_result(execute_response.job_id, self.quantum_processor_id))
 
         ro_sources = execute_response._executable.ro_sources
         decoded_buffers = {k: decode_buffer(v) for k, v in results["buffers"].items()}
@@ -205,121 +215,3 @@ class QPU(QAM[QPUExecuteResponse]):
             readout_data=result_memory,
             execution_duration_microseconds=results["execution_duration_microseconds"],
         )
-
-    @classmethod
-    def _build_patch_values(cls, program: EncryptedProgram) -> Dict[str, List[Union[int, float]]]:
-        """
-        Construct the patch values from the program to be used in execution.
-        """
-        patch_values = {}
-
-        # Now that we are about to run, we have to resolve any gate parameter arithmetic that was
-        # saved in the executable's recalculation table, and add those values to the variables shim
-        cls._update_memory_with_recalculation_table(program=program)
-
-        # Initialize our patch table
-        assert isinstance(program, EncryptedProgram)
-        recalculation_table = program.recalculation_table
-        memory_ref_names = list(set(mr.name for mr in recalculation_table.keys()))
-        if memory_ref_names:
-            assert len(memory_ref_names) == 1, (
-                "We expected only one declared memory region for "
-                "the gate parameter arithmetic replacement references."
-            )
-            memory_reference_name = memory_ref_names[0]
-            patch_values[memory_reference_name] = [0.0] * len(recalculation_table)
-
-        for name, spec in program.memory_descriptors.items():
-            # NOTE: right now we fake reading out measurement values into classical memory
-            # hence we omit them here from the patch table.
-            if any(name == mref.name for mref in program.ro_sources):
-                continue
-            initial_value = 0.0 if spec.type == "REAL" else 0
-            patch_values[name] = [initial_value] * spec.length
-
-        # Fill in our patch table
-        for k, v in program._memory.values.items():
-            patch_values[k.name][k.index] = v
-
-        return patch_values
-
-    @classmethod
-    def _update_memory_with_recalculation_table(cls, program: EncryptedProgram) -> None:
-        """
-        Update the program's memory with the final values to be patched into the gate parameters,
-        according to the arithmetic expressions in the original program.
-
-        For example::
-
-            DECLARE theta REAL
-            DECLARE beta REAL
-            RZ(3 * theta) 0
-            RZ(beta+theta) 0
-
-        gets translated to::
-
-            DECLARE theta REAL
-            DECLARE __P REAL[2]
-            RZ(__P[0]) 0
-            RZ(__P[1]) 0
-
-        and the recalculation table will contain::
-
-            {
-                ParameterAref('__P', 0): Mul(3.0, <MemoryReference theta[0]>),
-                ParameterAref('__P', 1): Add(<MemoryReference beta[0]>, <MemoryReference theta[0]>)
-            }
-
-        Let's say we've made the following two function calls:
-
-        .. code-block:: python
-
-            compiled_program.write_memory(region_name='theta', value=0.5)
-            compiled_program.write_memory(region_name='beta', value=0.1)
-
-        After executing this function, our self.variables_shim in the above example would contain
-        the following:
-
-        .. code-block:: python
-
-            {
-                ParameterAref('theta', 0): 0.5,
-                ParameterAref('beta', 0): 0.1,
-                ParameterAref('__P', 0): 1.5,       # (3.0) * theta[0]
-                ParameterAref('__P', 1): 0.6        # beta[0] + theta[0]
-            }
-
-        Once the _variables_shim is filled, execution continues as with regular binary patching.
-        """
-        assert isinstance(program, EncryptedProgram)
-        for mref, expression in program.recalculation_table.items():
-            # Replace the user-declared memory references with any values the user has written,
-            # coerced to a float because that is how we declared it.
-            program._memory.values[mref] = float(cls._resolve_memory_references(expression, memory=program._memory))
-
-    @classmethod
-    def _resolve_memory_references(cls, expression: ExpressionDesignator, memory: Memory) -> Union[float, int]:
-        """
-        Traverse the given Expression, and replace any Memory References with whatever values
-        have been so far provided by the user for those memory spaces. Declared memory defaults
-        to zero.
-
-        :param expression: an Expression
-        """
-        if isinstance(expression, BinaryExp):
-            left = cls._resolve_memory_references(expression.op1, memory=memory)
-            right = cls._resolve_memory_references(expression.op2, memory=memory)
-            return cast(Union[float, int], expression.fn(left, right))
-        elif isinstance(expression, Function):
-            return cast(
-                Union[float, int],
-                expression.fn(cls._resolve_memory_references(expression.expression, memory=memory)),
-            )
-        elif isinstance(expression, Parameter):
-            raise ValueError(f"Unexpected Parameter in gate expression: {expression}")
-        elif isinstance(expression, (float, int)):
-            return expression
-        elif isinstance(expression, MemoryReference):
-            return memory.values.get(ParameterAref(name=expression.name, index=expression.offset), 0)
-        else:
-            raise ValueError(f"Unexpected expression in gate parameter: {expression}")

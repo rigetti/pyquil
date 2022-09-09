@@ -13,7 +13,9 @@
 #    See the License for the specific language governing permissions and
 #    limitations under the License.
 ##############################################################################
+import asyncio
 import itertools
+from optparse import Option
 import re
 import socket
 import subprocess
@@ -33,7 +35,6 @@ from typing import (
     List,
 )
 
-import httpx
 import networkx as nx
 import numpy as np
 from qcs_api_client.client import QCSClientConfiguration
@@ -531,6 +532,7 @@ def _get_qvm_qc(
     compiler_timeout: float,
     execution_timeout: float,
     noise_model: Optional[NoiseModel],
+    event_loop: asyncio.AbstractEventLoop,
 ) -> QuantumComputer:
     """Construct a QuantumComputer backed by a QVM.
 
@@ -559,6 +561,7 @@ def _get_qvm_qc(
             quantum_processor=quantum_processor,
             timeout=compiler_timeout,
             client_configuration=client_configuration,
+            event_loop=event_loop,
         ),
     )
 
@@ -572,6 +575,7 @@ def _get_qvm_with_topology(
     qvm_type: str,
     compiler_timeout: float,
     execution_timeout: float,
+    event_loop: asyncio.AbstractEventLoop,
 ) -> QuantumComputer:
     """Construct a QVM with the provided topology.
 
@@ -603,6 +607,7 @@ def _get_qvm_with_topology(
         noise_model=noise_model,
         compiler_timeout=compiler_timeout,
         execution_timeout=execution_timeout,
+        event_loop=event_loop,
     )
 
 
@@ -614,6 +619,7 @@ def _get_9q_square_qvm(
     qvm_type: str,
     compiler_timeout: float,
     execution_timeout: float,
+    event_loop: asyncio.AbstractEventLoop,
 ) -> QuantumComputer:
     """
     A nine-qubit 3x3 square lattice.
@@ -638,6 +644,7 @@ def _get_9q_square_qvm(
         qvm_type=qvm_type,
         compiler_timeout=compiler_timeout,
         execution_timeout=execution_timeout,
+        event_loop=event_loop,
     )
 
 
@@ -650,6 +657,7 @@ def _get_unrestricted_qvm(
     qvm_type: str,
     compiler_timeout: float,
     execution_timeout: float,
+    event_loop: asyncio.AbstractEventLoop,
 ) -> QuantumComputer:
     """
     A qvm with a fully-connected topology.
@@ -674,6 +682,7 @@ def _get_unrestricted_qvm(
         qvm_type=qvm_type,
         compiler_timeout=compiler_timeout,
         execution_timeout=execution_timeout,
+        event_loop=event_loop,
     )
 
 
@@ -686,6 +695,7 @@ def _get_qvm_based_on_real_quantum_processor(
     qvm_type: str,
     compiler_timeout: float,
     execution_timeout: float,
+    event_loop: asyncio.AbstractEventLoop,
 ) -> QuantumComputer:
     """
     A qvm with a based on a real quantum_processor.
@@ -714,6 +724,7 @@ def _get_qvm_based_on_real_quantum_processor(
         qvm_type=qvm_type,
         compiler_timeout=compiler_timeout,
         execution_timeout=execution_timeout,
+        event_loop=event_loop,
     )
 
 
@@ -727,6 +738,7 @@ def get_qc(
     client_configuration: Optional[QCSClientConfiguration] = None,
     endpoint_id: Optional[str] = None,
     engagement_manager: Optional[EngagementManager] = None,
+    event_loop: Optional[asyncio.AbstractEventLoop] = None,
 ) -> QuantumComputer:
     """
     Get a quantum computer.
@@ -808,6 +820,9 @@ def get_qc(
     client_configuration = client_configuration or QCSClientConfiguration.load()
     engagement_manager = engagement_manager or EngagementManager(client_configuration=client_configuration)
 
+    if event_loop is None:
+        event_loop = asyncio.get_event_loop()
+
     # 1. Parse name, check for redundant options, canonicalize names.
     prefix, qvm_type, noisy = _parse_name(name, as_qvm, noisy)
     del as_qvm  # do not use after _parse_name
@@ -827,6 +842,7 @@ def get_qc(
             qvm_type=qvm_type,
             compiler_timeout=compiler_timeout,
             execution_timeout=execution_timeout,
+            event_loop=event_loop,
         )
 
     # 3. Check for "9q-square" qvm
@@ -840,6 +856,7 @@ def get_qc(
             qvm_type=qvm_type,
             compiler_timeout=compiler_timeout,
             execution_timeout=execution_timeout,
+            event_loop=event_loop,
         )
 
     if noisy:
@@ -862,6 +879,7 @@ def get_qc(
             qvm_type=qvm_type,
             compiler_timeout=compiler_timeout,
             execution_timeout=execution_timeout,
+            event_loop=event_loop,
         )
     else:
         qpu = QPU(
@@ -870,12 +888,14 @@ def get_qc(
             client_configuration=client_configuration,
             endpoint_id=endpoint_id,
             engagement_manager=engagement_manager,
+            event_loop=event_loop,
         )
         compiler = QPUCompiler(
             quantum_processor_id=prefix,
             quantum_processor=quantum_processor,
             timeout=compiler_timeout,
             client_configuration=client_configuration,
+            event_loop=event_loop,
         )
 
         return QuantumComputer(name=name, qam=qpu, compiler=compiler)
