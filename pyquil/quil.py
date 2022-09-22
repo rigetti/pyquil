@@ -874,9 +874,9 @@ class Program:
         p = Program()
         p.inst(self)
         p.inst(other)
-        p._calibrations = self.calibrations
-        p._waveforms = self.waveforms
-        p._frames = self.frames
+        p._calibrations = self.calibrations.copy()
+        p._waveforms = self.waveforms.copy()
+        p._frames = self.frames.copy()
         p._memory = self._memory.copy()
         if isinstance(other, Program):
             p.calibrations.extend(other.calibrations)
