@@ -85,6 +85,8 @@ class EngagementManager:
         :return: Fetched or cached engagement.
         :raises QPUUnavailableError: raised when the QPU is unavailable due, and provides a suggested
             number of seconds to wait until retrying.
+        :raises QCSHTTPStatusError: raised when creating an engagement fails for a reason that is not
+            due to unavailability.
         """
         key = EngagementCacheKey(quantum_processor_id, endpoint_id)
 
@@ -102,6 +104,7 @@ class EngagementManager:
                     except QCSHTTPStatusError as e:
                         if response.status_code == 503:
                             raise QPUUnavailableError(retry_after=response.headers.get("Retry-After")) from e
+                        raise e
             return self._cached_engagements[key]
 
     @staticmethod
