@@ -86,7 +86,7 @@ class EngagementManager:
         :raises QPUUnavailableError: raised when the QPU is unavailable due, and provides a suggested
             number of seconds to wait until retrying.
         :raises QCSHTTPStatusError: raised when creating an engagement fails for a reason that is not
-            due to unavailability.
+            due to QPU unavailability.
         """
         key = EngagementCacheKey(quantum_processor_id, endpoint_id)
 
