@@ -1,5 +1,12 @@
 # Changelog
 
+## 3.3.1
+
+### Fixes
+
+- report non-503 http status errors when creating engagements (#1479)
+- Ensure adding programs doesn't mutate the first (#1477)
+
 ## 3.3.0
 
 ### Features
