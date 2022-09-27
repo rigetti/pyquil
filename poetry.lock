@@ -1147,14 +1147,14 @@ socks = ["PySocks (>=1.5.6,!=1.5.7)"]
 
 [[package]]
 name = "respx"
-version = "0.15.1"
+version = "0.20.0"
 description = "A utility for mocking out the Python HTTPX and HTTP Core libraries."
 category = "dev"
 optional = false
 python-versions = ">=3.6"
 
 [package.dependencies]
-httpx = ">=0.15"
+httpx = ">=0.21.0"
 
 [[package]]
 name = "retry"
@@ -1505,7 +1505,7 @@ latex = ["ipython"]
 [metadata]
 lock-version = "1.1"
 python-versions = "^3.7"
-content-hash = "599a04a256f8490ddf3604405a4a118a711286452b347abab756a3a738a53e4f"
+content-hash = "1cc925f28360007bb15431e0ce905aa012f23a9b989dc50bda991a012d53daf2"
 
 [metadata.files]
 alabaster = []
