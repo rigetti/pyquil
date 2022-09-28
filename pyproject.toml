@@ -39,11 +39,11 @@ nbsphinx = { version = "^0.8.6", optional = true }
 recommonmark = { version = "^0.7.1", optional = true }
 
 [tool.poetry.dev-dependencies]
-black = "^20.8b1"
+black = "^22.8.0"
 flake8 = "^3.8.1"
 pytest = "^6.2.2"
 pytest-cov = "^2.11.1"
-mypy = "0.740"
+mypy = "0.981"
 pytest-xdist = "^2.2.1"
 pytest-rerunfailures = "^9.1.1"
 pytest-timeout = "^1.4.2"
