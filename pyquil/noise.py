@@ -30,7 +30,7 @@ from pyquil.quilbase import Pragma, Gate, Declare
 
 if TYPE_CHECKING:
     from pyquil.quil import Program
-    from pyquil.api import QuantumComputer
+    from pyquil.api import QuantumComputer as PyquilApiQuantumComputer
 
 INFINITY = float("inf")
 "Used for infinite coherence times."
@@ -770,7 +770,7 @@ def bitstring_probs_to_z_moments(p: np.ndarray) -> np.ndarray:
 def estimate_assignment_probs(
     q: int,
     trials: int,
-    qc: "QuantumComputer",
+    qc: "PyquilApiQuantumComputer",
     p0: Optional["Program"] = None,
 ) -> np.ndarray:
     """
@@ -817,7 +817,7 @@ def estimate_assignment_probs(
     return np.array([[p00, 1 - p11], [1 - p00, p11]])
 
 
-def _run(qc: "QuantumComputer", program: "Program") -> List[List[int]]:
+def _run(qc: "PyquilApiQuantumComputer", program: "Program") -> List[List[int]]:
     result = qc.run(qc.compiler.native_quil_to_executable(program))
     bitstrings = result.readout_data.get("ro")
     assert bitstrings is not None
