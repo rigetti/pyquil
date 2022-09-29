@@ -61,11 +61,11 @@ def test_get_engagement__refreshes_engagement_when_cached_engagement_expired__us
     respx.post(
         url=f"{client_configuration.profile.api_url}/v1/engagements",
         json={"quantumProcessorId": "some-processor", "endpointId": "custom-endpoint"},
-    ).respond(json=unexpired_engagement(quantum_processor_id="some-processor").to_dict())
+    ).respond(json=unexpired_engagement(quantum_processor_id="some-processor", endpoint_id="custom-endpoint").to_dict())
 
-    engagement = engagement_manager.get_engagement(quantum_processor_id="some-processor")
+    engagement = engagement_manager.get_engagement(quantum_processor_id="some-processor", endpoint_id="custom-endpoint")
 
-    assert engagement == unexpired_engagement(quantum_processor_id="some-processor")
+    assert engagement == unexpired_engagement(quantum_processor_id="some-processor", endpoint_id="custom-endpoint")
 
 
 @respx.mock
@@ -135,14 +135,13 @@ def mock_engagement(engagement: EngagementWithCredentials, *, client_configurati
     """
 
     if engagement.endpoint_id == DEFAULT_ENDPOINT_ID:
-        respx.post(
-            url=f"{client_configuration.profile.api_url}/v1/engagements",
-            json={"quantumProcessorId": engagement.quantum_processor_ids[0]},
-        ).respond(json=engagement.to_dict())
+        json = {"quantumProcessorId": engagement.quantum_processor_ids[0]}
+    else:
+        json = {"quantumProcessorId": engagement.quantum_processor_ids[0], "endpointId": engagement.endpoint_id}
 
-    respx.post(
-        url=f"{client_configuration.profile.api_url}/v1/engagements", json={"endpointId": engagement.endpoint_id}
-    ).respond(json=engagement.to_dict())
+    respx.post(url=f"{client_configuration.profile.api_url}/v1/engagements", json=json).respond(
+        json=engagement.to_dict()
+    )
 
 
 def make_engagement(
