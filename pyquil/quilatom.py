@@ -568,7 +568,7 @@ class Pow(BinaryExp):
 
     @staticmethod
     def fn(a: ExpressionDesignator, b: ExpressionDesignator) -> Union["Pow", ExpressionValueDesignator]:
-        return a ** b
+        return a**b
 
     def __init__(self, op1: ExpressionDesignator, op2: ExpressionDesignator):
         super(Pow, self).__init__(op1, op2)
@@ -840,7 +840,7 @@ Waveform = Union[WaveformReference, TemplateWaveform]
 
 
 def _complex_str(iq: Any) -> str:
-    """ Convert a number to a string. """
+    """Convert a number to a string."""
     if isinstance(iq, Complex):
         return f"{iq.real}" if iq.imag == 0.0 else f"{iq.real} + ({iq.imag})*i"
     else:

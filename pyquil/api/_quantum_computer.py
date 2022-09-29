@@ -1198,7 +1198,7 @@ def hadamard(n: int, dtype: np.dtype = int) -> np.ndarray:  # type: ignore
         lg2 = 0
     else:
         lg2 = int(log(n, 2))
-    if 2 ** lg2 != n:
+    if 2**lg2 != n:
         raise ValueError("n must be an positive integer, and n must be a power of 2")
 
     H = np.array([[1]], dtype=dtype)
@@ -1288,7 +1288,7 @@ def _check_min_num_trials_for_symmetrized_readout(num_qubits: int, trials: int, 
         raise ValueError("symm_type must be one of the following ints [-1, 0, 1, 2, 3].")
 
     if symm_type == -1:
-        min_num_trials = 2 ** num_qubits
+        min_num_trials = 2**num_qubits
     elif symm_type == 2:
 
         def _f(x: int) -> int:

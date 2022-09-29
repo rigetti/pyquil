@@ -47,7 +47,7 @@ class QPUCompilerNotRunning(Exception):
 
 
 def parse_mref(val: str) -> MemoryReference:
-    """ Parse a memory reference from its string representation. """
+    """Parse a memory reference from its string representation."""
     val = val.strip()
     try:
         if val[-1] == "]":

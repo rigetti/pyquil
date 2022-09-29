@@ -63,7 +63,7 @@ class Wavefunction(object):
         :param qubit_num:
         :return: A Wavefunction in the ground state
         """
-        amplitude_vector = np.zeros(2 ** qubit_num)
+        amplitude_vector = np.zeros(2**qubit_num)
         amplitude_vector[0] = 1.0
         return Wavefunction(amplitude_vector)
 
@@ -167,7 +167,7 @@ class Wavefunction(object):
             sub_dict = {}
             qubit_num = len(self)
             for i in qubit_subset:
-                if i > (2 ** qubit_num - 1):
+                if i > (2**qubit_num - 1):
                     raise IndexError("Index {} too large for {} qubits.".format(i, qubit_num))
                 else:
                     sub_dict[get_bitstring_from_index(i, qubit_num)] = prob_dict[get_bitstring_from_index(i, qubit_num)]
@@ -197,7 +197,7 @@ def get_bitstring_from_index(index: int, qubit_num: int) -> str:
     :return: the bitstring
     :rtype: str
     """
-    if index > (2 ** qubit_num - 1):
+    if index > (2**qubit_num - 1):
         raise IndexError("Index {} too large for {} qubits.".format(index, qubit_num))
     return bin(index)[2:].rjust(qubit_num, "0")
 

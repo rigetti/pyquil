@@ -31,7 +31,7 @@ def all_bitstrings(n_bits: int) -> np.ndarray:
     This should be the same as ``np.array(list(itertools.product([0,1], repeat=n_bits)))``
     but faster.
     """
-    n_bitstrings = 2 ** n_bits
+    n_bitstrings = 2**n_bits
     out = np.zeros(shape=(n_bitstrings, n_bits), dtype=np.int8)
 
     tf = np.array([False, True])
@@ -43,7 +43,7 @@ def all_bitstrings(n_bits: int) -> np.ndarray:
         # j indexes from the *right*
         j = n_bits - i - 1
 
-        out[np.tile(np.repeat(tf, 2 ** j), 2 ** i), i] = 1
+        out[np.tile(np.repeat(tf, 2**j), 2**i), i] = 1
     return out
 
 
@@ -85,10 +85,10 @@ def qubit_adjacent_lifted_gate(i: int, matrix: np.ndarray, n_qubits: int) -> np.
     # Outer-product to lift gate to complete Hilbert space
 
     # bottom: i qubits below target
-    bottom_matrix = np.eye(2 ** i, dtype=np.complex128)
+    bottom_matrix = np.eye(2**i, dtype=np.complex128)
     # top: Nq - i (bottom) - gate_size (gate) qubits above target
     top_qubits = n_qubits - i - gate_size
-    top_matrix = np.eye(2 ** top_qubits, dtype=np.complex128)
+    top_matrix = np.eye(2**top_qubits, dtype=np.complex128)
 
     return np.kron(top_matrix, np.kron(matrix, bottom_matrix))  # type: ignore
 
@@ -119,7 +119,7 @@ def two_swap_helper(j: int, k: int, num_qubits: int, qubit_map: np.ndarray) -> T
     if not (0 <= j < num_qubits and 0 <= k < num_qubits):
         raise ValueError("Permutation SWAP index not valid")
 
-    perm = np.eye(2 ** num_qubits, dtype=np.complex128)
+    perm = np.eye(2**num_qubits, dtype=np.complex128)
     new_qubit_map = np.copy(qubit_map)
 
     if j == k:
@@ -175,7 +175,7 @@ def permutation_arbitrary(qubit_inds: Sequence[int], n_qubits: int) -> Tuple[np.
         start_i - starting index to lift gate from
     """  # noqa: E501
     # Begin construction of permutation
-    perm = np.eye(2 ** n_qubits, dtype=np.complex128)
+    perm = np.eye(2**n_qubits, dtype=np.complex128)
 
     # First, sort the list and find the median.
     sorted_inds = np.sort(qubit_inds)
@@ -329,7 +329,7 @@ def program_unitary(program: Program, n_qubits: int) -> np.ndarray:
     :param program: A program consisting only of :py:class:`Gate`.:
     :return: a unitary corresponding to the composition of the program's gates.
     """
-    umat: np.ndarray = np.eye(2 ** n_qubits)
+    umat: np.ndarray = np.eye(2**n_qubits)
     for instruction in program:
         if isinstance(instruction, Gate):
             unitary = lifted_gate(gate=instruction, n_qubits=n_qubits)
@@ -374,7 +374,7 @@ def lifted_pauli(pauli_sum: Union[PauliSum, PauliTerm], qubits: List[int]) -> np
         pauli_sum = PauliSum([pauli_sum])
 
     n_qubits = len(qubits)
-    result_hilbert = np.zeros((2 ** n_qubits, 2 ** n_qubits), dtype=np.complex128)
+    result_hilbert = np.zeros((2**n_qubits, 2**n_qubits), dtype=np.complex128)
     # left kronecker product corresponds to the correct basis ordering
     for term in pauli_sum.terms:
         term_hilbert = np.array([1])

@@ -79,7 +79,7 @@ def rewrite_arithmetic(prog: Program) -> RewriteArithmeticResponse:
     mref_idx = 0
 
     def expr_mref(expr: object) -> MemoryReference:
-        """ Get a suitable MemoryReference for a given expression. """
+        """Get a suitable MemoryReference for a given expression."""
         nonlocal mref_idx
         expr = str(expr)
         if expr in seen_exprs:

@@ -188,11 +188,11 @@ def _check_kraus_ops(n: int, kraus_ops: Sequence[np.ndarray]) -> None:
     :param kraus_ops: The Kraus operators as numpy.ndarrays.
     """
     for k in kraus_ops:
-        if not np.shape(k) == (2 ** n, 2 ** n):
-            raise ValueError("Kraus operators for {0} qubits must have shape {1}x{1}: {2}".format(n, 2 ** n, k))
+        if not np.shape(k) == (2**n, 2**n):
+            raise ValueError("Kraus operators for {0} qubits must have shape {1}x{1}: {2}".format(n, 2**n, k))
 
     kdk_sum = sum(np.transpose(k).conjugate().dot(k) for k in kraus_ops)
-    if not np.allclose(kdk_sum, np.eye(2 ** n), atol=1e-3):
+    if not np.allclose(kdk_sum, np.eye(2**n), atol=1e-3):
         raise ValueError("Kraus operator not correctly normalized: sum_j K_j^*K_j == {}".format(kdk_sum))
 
 
@@ -664,7 +664,7 @@ def estimate_bitstring_probs(results: np.ndarray) -> np.ndarray:
     """
     nshots, nq = np.shape(results)
     outcomes = np.array([int("".join(map(str, r)), 2) for r in results])
-    probs = np.histogram(outcomes, bins=np.arange(-0.5, 2 ** nq, 1))[0] / float(nshots)
+    probs = np.histogram(outcomes, bins=np.arange(-0.5, 2**nq, 1))[0] / float(nshots)
     return _bitstring_probs_by_qubit(probs)
 
 
