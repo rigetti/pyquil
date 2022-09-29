@@ -723,7 +723,7 @@ test = ["pytest (>=6.2)", "pytest-cov (>=2.12)", "codecov (>=2.1)"]
 
 [[package]]
 name = "numpy"
-version = "1.21.1"
+version = "1.20.3"
 description = "NumPy is the fundamental package for array computing with Python."
 category = "main"
 optional = false
@@ -1513,7 +1513,7 @@ latex = ["ipython"]
 [metadata]
 lock-version = "1.1"
 python-versions = "^3.7"
-content-hash = "14a554b44dd23fafa00b0f6ed92271785c3f4375aedf4b8a9a90f318db5fc8c0"
+content-hash = "0f4d50aeaf21b85a83694a06563f6ea6675848be7ad1e9c82e552b0db24be233"
 
 [metadata.files]
 alabaster = []

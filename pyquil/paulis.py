@@ -107,7 +107,7 @@ class UnequalLengthWarning(Warning):
         # recent typeshed that contains the following fix:
         # https://github.com/python/typeshed/pull/1704
         # https://github.com/python/mypy/pull/8139
-        super().__init__(*args, **kwargs)  # type: ignore
+        super().__init__(*args, **kwargs)
 
 
 integer_types = (int, np.int64, np.int32, np.int16, np.int8)
@@ -185,7 +185,7 @@ class PauliTerm(object):
                 "sortable and should be avoided in favor of `operations_as_set`.",
                 FutureWarning,
             )
-            return "".join("{}{}".format(self._ops[q], q) for q in sorted(self._ops.keys()))
+            return "".join("{}{}".format(self._ops[q], q) for q in sorted(self._ops.keys()))  # type: ignore
         else:
             return "".join("{}{}".format(p, q) for q, p in self._ops.items())
 
@@ -450,7 +450,7 @@ class PauliTerm(object):
         # parse the operator
         str_op = re.sub(r"\*", "", str_op)
         if not re.match(r"^(([XYZ])(\d+))+$", str_op):
-            raise ValueError(fr"Could not parse operator string {str_op}. It should match ^(([XYZ])(\d+))+$")
+            raise ValueError(rf"Could not parse operator string {str_op}. It should match ^(([XYZ])(\d+))+$")
 
         for factor in re.finditer(r"([XYZ])(\d+)", str_op):
             op *= cls(factor.group(1), int(factor.group(2)))

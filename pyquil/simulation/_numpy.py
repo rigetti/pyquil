@@ -219,7 +219,7 @@ class NumpyWavefunctionSimulator(AbstractQuantumSimulator):
         # reminder: qubit 0 is on the left in einsum simulator.
         probabilities = np.abs(self.wf.reshape(-1)) ** 2
         possible_bitstrings = all_bitstrings(self.n_qubits)
-        inds = self.rs.choice(2 ** self.n_qubits, n_samples, p=probabilities)
+        inds = self.rs.choice(2**self.n_qubits, n_samples, p=probabilities)
         return possible_bitstrings[inds, :]  # type: ignore
 
     def do_measurement(self, qubit: int) -> int:
@@ -291,7 +291,7 @@ class NumpyWavefunctionSimulator(AbstractQuantumSimulator):
         if not isinstance(operator, PauliSum):
             operator = PauliSum([operator])
 
-        return sum(_term_expectation(self.wf, term) for term in operator)
+        return sum(_term_expectation(self.wf, term) for term in operator)  # type: ignore
 
     def reset(self) -> "NumpyWavefunctionSimulator":
         """
