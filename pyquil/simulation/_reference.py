@@ -14,7 +14,7 @@
 #    limitations under the License.
 ##############################################################################
 import warnings
-from typing import Any, List, Optional, Sequence, Tuple, Union, cast
+from typing import Any, List, Optional, Sequence, Union
 
 import numpy as np
 from numpy.random.mtrand import RandomState
@@ -347,7 +347,6 @@ class ReferenceDensitySimulator(AbstractQuantumSimulator):
         return self
 
     def do_post_gate_noise(self, noise_type: str, noise_prob: float, qubits: List[int]) -> "ReferenceDensitySimulator":
-        # kraus_ops = cast(Tuple[np.ndarray, ...], KRAUS_OPS[noise_type](p=noise_prob))
         kraus_ops = KRAUS_OPS[noise_type](p=noise_prob)
         if np.isclose(noise_prob, 0.0):
             warnings.warn(f"Skipping {noise_type} post-gate noise because noise_prob is close to 0")
