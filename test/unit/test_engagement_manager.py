@@ -24,13 +24,16 @@ from qcs_api_client.models import EngagementCredentials, EngagementWithCredentia
 
 DEFAULT_ENDPOINT_ID = "some-endpoint"
 
+
 @respx.mock
 def test_get_engagement__refreshes_engagement_when_cached_engagement_expired(
     client_configuration: QCSClientConfiguration,
 ):
     engagement_manager = EngagementManager(client_configuration=client_configuration)
     cache_engagement(
-        engagement_manager, expired_engagement(quantum_processor_id="some-processor"), client_configuration,
+        engagement_manager,
+        expired_engagement(quantum_processor_id="some-processor"),
+        client_configuration,
     )
     respx.post(
         url=f"{client_configuration.profile.api_url}/v1/engagements",
@@ -119,7 +122,7 @@ def cache_engagement(
         endpoint_id = engagement.endpoint_id
 
     cached_engagement = engagement_manager.get_engagement(
-        quantum_processor_id=engagement.quantum_processor_id, endpoint_id=endpoint_id
+        quantum_processor_id=engagement.quantum_processor_ids[0], endpoint_id=endpoint_id
     )
 
     assert cached_engagement == engagement
@@ -134,12 +137,11 @@ def mock_engagement(engagement: EngagementWithCredentials, *, client_configurati
     if engagement.endpoint_id == DEFAULT_ENDPOINT_ID:
         respx.post(
             url=f"{client_configuration.profile.api_url}/v1/engagements",
-            json={"quantumProcessorId": engagement.quantum_processor_id}
+            json={"quantumProcessorId": engagement.quantum_processor_ids[0]},
         ).respond(json=engagement.to_dict())
 
     respx.post(
-        url=f"{client_configuration.profile.api_url}/v1/engagements",
-        json={"endpointId": engagement.endpoint_id}
+        url=f"{client_configuration.profile.api_url}/v1/engagements", json={"endpointId": engagement.endpoint_id}
     ).respond(json=engagement.to_dict())
 
 
@@ -155,7 +157,7 @@ def make_engagement(
         ),
         endpoint_id=endpoint_id or DEFAULT_ENDPOINT_ID,
         expires_at=expires_at,
-        quantum_processor_id=quantum_processor_id,
+        quantum_processor_ids=[quantum_processor_id],
         user_id="some-user",
         minimum_priority=42,
     )
