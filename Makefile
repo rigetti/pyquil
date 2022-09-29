@@ -15,6 +15,7 @@ check-format:
 
 .PHONY: check-types
 check-types:
+	mypy --install-types --non-interactive
 	mypy pyquil
 
 .PHONY: check-style
