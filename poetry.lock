@@ -1458,6 +1458,22 @@ optional = false
 python-versions = ">=3.6"
 
 [[package]]
+name = "types-python-dateutil"
+version = "2.8.19"
+description = "Typing stubs for python-dateutil"
+category = "main"
+optional = false
+python-versions = "*"
+
+[[package]]
+name = "types-retry"
+version = "0.9.9"
+description = "Typing stubs for retry"
+category = "main"
+optional = false
+python-versions = "*"
+
+[[package]]
 name = "typing-extensions"
 version = "4.3.0"
 description = "Backported and Experimental Type Hints for Python 3.7+"
@@ -1513,7 +1529,7 @@ latex = ["ipython"]
 [metadata]
 lock-version = "1.1"
 python-versions = "^3.7"
-content-hash = "0f4d50aeaf21b85a83694a06563f6ea6675848be7ad1e9c82e552b0db24be233"
+content-hash = "0fb6f28006bcfa46c2766def019c4a9fea3da2d7d2b97c3290a0d266b01bb874"
 
 [metadata.files]
 alabaster = []
@@ -1843,6 +1859,8 @@ tomli = [
 tornado = []
 traitlets = []
 typed-ast = []
+types-python-dateutil = []
+types-retry = []
 typing-extensions = []
 urllib3 = []
 wcwidth = []
