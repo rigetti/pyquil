@@ -405,7 +405,7 @@ def substitute_array(a: Union[Sequence[Expression], np.ndarray], d: ParameterSub
     :return: An array of partially substituted Expressions, or numbers.
     """
     a = np.asarray(a, order="C")
-    return np.array([substitute(v, d) for v in a.flat]).reshape(a.shape)  # type: ignore
+    return np.array([substitute(v, d) for v in a.flat]).reshape(a.shape)
 
 
 class Parameter(QuilAtom, Expression):

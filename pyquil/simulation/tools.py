@@ -43,7 +43,7 @@ def all_bitstrings(n_bits: int) -> np.ndarray:
         # j indexes from the *right*
         j = n_bits - i - 1
 
-        out[np.tile(np.repeat(tf, 2**j), 2**i), i] = 1
+        out[np.tile(np.repeat(tf, 2**j), 2**i), i] = 1  # type: ignore
     return out
 
 
@@ -120,7 +120,7 @@ def two_swap_helper(j: int, k: int, num_qubits: int, qubit_map: np.ndarray) -> T
         raise ValueError("Permutation SWAP index not valid")
 
     perm = np.eye(2**num_qubits, dtype=np.complex128)
-    new_qubit_map = np.copy(qubit_map)
+    new_qubit_map = np.copy(qubit_map)  # type: ignore
 
     if j == k:
         # nothing happens
@@ -248,7 +248,7 @@ def lifted_gate_matrix(matrix: np.ndarray, qubit_inds: Sequence[int], n_qubits: 
     else:
         # Python can't deal with `arr[:-0]`
         check = final_map[-gate_size - start_i :]
-    np.testing.assert_allclose(check, qubit_inds)
+    np.testing.assert_allclose(check, qubit_inds)  # type: ignore
 
     v_matrix = qubit_adjacent_lifted_gate(start_i, matrix, n_qubits)
     return np.dot(np.conj(pi_permutation_matrix.T), np.dot(v_matrix, pi_permutation_matrix))  # type: ignore
@@ -379,7 +379,7 @@ def lifted_pauli(pauli_sum: Union[PauliSum, PauliTerm], qubits: List[int]) -> np
     for term in pauli_sum.terms:
         term_hilbert = np.array([1])
         for qubit in qubits:
-            term_hilbert = np.kron(QUANTUM_GATES[term[qubit]], term_hilbert)
+            term_hilbert = np.kron(QUANTUM_GATES[term[qubit]], term_hilbert)  # type: ignore
 
         result_hilbert += term_hilbert * cast(complex, term.coefficient)
 
@@ -419,7 +419,7 @@ def lifted_state_operator(state: TensorProductState, qubits: List[int]) -> np.nd
         assert oneq_state.qubit == qubit
         state_vector = STATES[oneq_state.label][oneq_state.index][:, np.newaxis]
         state_matrix = state_vector @ state_vector.conj().T
-        mat = np.kron(state_matrix, mat)
+        mat = np.kron(state_matrix, mat)  # type: ignore
     return mat
 
 
@@ -444,4 +444,4 @@ def scale_out_phase(unitary1: np.ndarray, unitary2: np.ndarray) -> np.ndarray:
             goodness_value = np.abs(unitary1[j, 0])
             rescale_value = unitary2[j, 0] / unitary1[j, 0]
 
-    return rescale_value * unitary1  # type: ignore
+    return rescale_value * unitary1

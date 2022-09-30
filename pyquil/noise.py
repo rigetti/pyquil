@@ -219,7 +219,7 @@ def _create_kraus_pragmas(name: str, qubit_indices: Sequence[int], kraus_ops: Se
 
 def append_kraus_to_gate(
     kraus_ops: Sequence[np.ndarray], gate_matrix: np.ndarray
-) -> List[Union[np.number, np.ndarray]]:  # type: ignore
+) -> List[Union[np.number, np.ndarray]]:
     """
     Follow a gate ``gate_matrix`` by a Kraus map described by ``kraus_ops``.
 
@@ -265,7 +265,7 @@ def pauli_kraus_map(probabilities: Sequence[float]) -> List[np.ndarray]:
     if len(probabilities) == 4:
         operators = paulis
     else:
-        operators = np.kron(paulis, paulis)
+        operators = np.kron(paulis, paulis)  # type: ignore
 
     return [coeff * op for coeff, op in zip(np.sqrt(probabilities), operators)]
 
@@ -281,7 +281,7 @@ def damping_kraus_map(p: float = 0.10) -> List[np.ndarray]:
     """
     damping_op = np.sqrt(p) * np.array([[0, 1], [0, 0]])
 
-    residual_kraus = np.diag([1, np.sqrt(1 - p)])
+    residual_kraus = np.diag([1, np.sqrt(1 - p)])  # type: ignore
     return [residual_kraus, damping_op]
 
 
@@ -293,7 +293,7 @@ def dephasing_kraus_map(p: float = 0.10) -> List[np.ndarray]:
     :return: A list [k1, k2] of the Kraus operators that parametrize the map.
     :rtype: list
     """
-    return [np.sqrt(1 - p) * np.eye(2), np.sqrt(p) * np.diag([1, -1])]
+    return [np.sqrt(1 - p) * np.eye(2), np.sqrt(p) * np.diag([1, -1])]  # type: ignore
 
 
 def tensor_kraus_maps(k1: List[np.ndarray], k2: List[np.ndarray]) -> List[np.ndarray]:
@@ -305,7 +305,7 @@ def tensor_kraus_maps(k1: List[np.ndarray], k2: List[np.ndarray]) -> List[np.nda
     :param k2: The Kraus operators for the second qubit.
     :return: A list of tensored Kraus operators.
     """
-    return [np.kron(k1j, k2l) for k1j in k1 for k2l in k2]
+    return [np.kron(k1j, k2l) for k1j in k1 for k2l in k2]  # type: ignore
 
 
 def combine_kraus_maps(k1: List[np.ndarray], k2: List[np.ndarray]) -> List[np.ndarray]:
@@ -318,7 +318,7 @@ def combine_kraus_maps(k1: List[np.ndarray], k2: List[np.ndarray]) -> List[np.nd
     :param k2: The list of Kraus operators that are applied first.
     :return: A combinatorially generated list of composed Kraus operators.
     """
-    return [np.dot(k1j, k2l) for k1j in k1 for k2l in k2]
+    return [np.dot(k1j, k2l) for k1j in k1 for k2l in k2]  # type: ignore
 
 
 def damping_after_dephasing(T1: float, T2: float, gate_time: float) -> List[np.ndarray]:
@@ -391,7 +391,7 @@ def get_noisy_gate(gate_name: str, params: Iterable[ParameterDesignator]) -> Tup
             return np.array([[0, 1j], [1j, 0]]), "NOISY-RX-MINUS-180"
     elif gate_name == "CZ":
         assert params == ()
-        return np.diag([1, 1, 1, -1]), "NOISY-CZ"
+        return np.diag([1, 1, 1, -1]), "NOISY-CZ"  # type: ignore
 
     raise NoisyGateUndefined(
         "Undefined gate and params: {}{}\n"
@@ -664,7 +664,7 @@ def estimate_bitstring_probs(results: np.ndarray) -> np.ndarray:
     """
     nshots, nq = np.shape(results)
     outcomes = np.array([int("".join(map(str, r)), 2) for r in results])
-    probs = np.histogram(outcomes, bins=np.arange(-0.5, 2**nq, 1))[0] / float(nshots)
+    probs = np.histogram(outcomes, bins=np.arange(-0.5, 2**nq, 1))[0] / float(nshots)  # type: ignore
     return _bitstring_probs_by_qubit(probs)
 
 
@@ -746,7 +746,7 @@ def correct_bitstring_probs(p: np.ndarray, assignment_probabilities: List[np.nda
         the noisy-readout-corrected estimated probabilities for each measured bitstring, i.e.,
         ``p[i,j,...,k]`` gives the estimated probability of bitstring ``ij...k``.
     """
-    return _apply_local_transforms(p, (np.linalg.inv(ap) for ap in assignment_probabilities))
+    return _apply_local_transforms(p, (np.linalg.inv(ap) for ap in assignment_probabilities))  # type: ignore
 
 
 def bitstring_probs_to_z_moments(p: np.ndarray) -> np.ndarray:

@@ -57,7 +57,7 @@ def _is_valid_quantum_state(state_matrix: np.ndarray, rtol: float = 1e-05, atol:
     trace_one = np.isclose(np.trace(state_matrix), 1, rtol, atol)
     if not trace_one:
         raise ValueError("The state matrix is not trace one.")
-    evals = np.linalg.eigvals(state_matrix)
+    evals = np.linalg.eigvals(state_matrix)  # type: ignore
     non_neg_eigs = all([False if val < -atol else True for val in evals])
     if not non_neg_eigs:
         raise ValueError("The state matrix has negative Eigenvalues of order -" + str(atol) + ".")
@@ -81,7 +81,7 @@ class ReferenceWavefunctionSimulator(AbstractQuantumSimulator):
         :param rs: a RandomState (should be shared with the owning :py:class:`PyQVM`) for
             doing anything stochastic. A value of ``None`` disallows doing anything stochastic.
         """
-        super().__init__(n_qubits=n_qubits, rs=rs)
+        super().__init__(n_qubits=n_qubits, rs=rs)  # type: ignore
 
         self.n_qubits = n_qubits
         self.rs = rs
@@ -107,7 +107,7 @@ class ReferenceWavefunctionSimulator(AbstractQuantumSimulator):
         possible_bitstrings = all_bitstrings(self.n_qubits)
         inds = self.rs.choice(2**self.n_qubits, n_samples, p=probabilities)
         bitstrings = possible_bitstrings[inds, :]
-        bitstrings = np.flip(bitstrings, axis=1)  # qubit ordering: 0 on the left.
+        bitstrings = np.flip(bitstrings, axis=1)  # type: ignore # qubit ordering: 0 on the left.
         return bitstrings  # type: ignore
 
     def do_gate(self, gate: Gate) -> "ReferenceWavefunctionSimulator":
@@ -217,7 +217,7 @@ class ReferenceDensitySimulator(AbstractQuantumSimulator):
     """
 
     def __init__(self, n_qubits: int, rs: Optional[RandomState] = None):
-        super().__init__(n_qubits=n_qubits, rs=rs)
+        super().__init__(n_qubits=n_qubits, rs=rs)  # type: ignore
 
         self.n_qubits = n_qubits
         self.rs = rs
@@ -282,7 +282,7 @@ class ReferenceDensitySimulator(AbstractQuantumSimulator):
         possible_bitstrings = all_bitstrings(self.n_qubits)
         inds = self.rs.choice(2**self.n_qubits, n_samples, p=probabilities)
         bitstrings = possible_bitstrings[inds, :]
-        bitstrings = np.flip(bitstrings, axis=1)  # qubit ordering: 0 on the left.
+        bitstrings = np.flip(bitstrings, axis=1)  # type: ignore  # qubit ordering: 0 on the left.
         return bitstrings  # type: ignore
 
     def do_gate(self, gate: Gate) -> "AbstractQuantumSimulator":
@@ -319,7 +319,7 @@ class ReferenceDensitySimulator(AbstractQuantumSimulator):
                 "random state of the simulator. Might I suggest using a PyQVM object?"
             )
         measure_0 = lifted_gate_matrix(matrix=P0, qubit_inds=[qubit], n_qubits=self.n_qubits)
-        prob_zero = np.trace(measure_0 @ self.density)  # type: ignore
+        prob_zero = np.trace(measure_0 @ self.density)
 
         # generate random number to 'roll' for measurement
         if self.rs.uniform() < prob_zero:

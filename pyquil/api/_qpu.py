@@ -43,7 +43,7 @@ def decode_buffer(buffer: BufferResponse) -> np.ndarray:
     :param buffer: Dictionary with 'data' byte array, 'dtype', and 'shape' fields
     :return: NumPy array of decoded data
     """
-    buf = np.frombuffer(buffer.data, dtype=buffer.dtype)
+    buf = np.frombuffer(buffer.data, dtype=buffer.dtype)  # type: ignore
     return buf.reshape(buffer.shape)  # type: ignore
 
 
@@ -83,8 +83,8 @@ def _extract_memory_regions(
         if buf.ndim == 1:
             buf = buf.reshape((num_shots, 1))
 
-        if np.iscomplexobj(buf):
-            buf = np.column_stack((buf.real, buf.imag))
+        if np.iscomplexobj(buf):  # type: ignore
+            buf = np.column_stack((buf.real, buf.imag))  # type: ignore
         _, width = buf.shape
 
         end = mref.offset + width

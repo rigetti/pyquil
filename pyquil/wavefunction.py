@@ -74,7 +74,7 @@ class Wavefunction(object):
         :param coef_string:
         """
         num_cfloat = len(coef_string) // OCTETS_PER_COMPLEX_DOUBLE
-        amplitude_vector = np.ndarray(shape=(num_cfloat,), buffer=coef_string, dtype=">c16")
+        amplitude_vector: np.ndarray = np.ndarray(shape=(num_cfloat,), buffer=coef_string, dtype=">c16")
         return Wavefunction(amplitude_vector)
 
     def __len__(self) -> int:
@@ -94,7 +94,7 @@ class Wavefunction(object):
 
     def probabilities(self) -> np.ndarray:
         """Returns an array of probabilities in lexicographical order"""
-        return np.abs(self.amplitudes) ** 2  # type: ignore
+        return np.abs(self.amplitudes) ** 2
 
     def get_outcome_probs(self) -> Dict[str, float]:
         """
