@@ -74,7 +74,7 @@ class BenchmarkConnection(AbstractBenchmarker):
 
         phase_factor, paulis = response.phase_factor, response.pauli
 
-        pauli_out = PauliTerm("I", 0, 1.0j ** phase_factor)
+        pauli_out = PauliTerm("I", 0, 1.0j**phase_factor)
         clifford_qubits = clifford.get_qubits()
         pauli_qubits = pauli_in.get_qubits()
         all_qubits = sorted(set(cast(List[int], pauli_qubits)).union(set(cast(List[int], clifford_qubits))))
@@ -123,7 +123,7 @@ class BenchmarkConnection(AbstractBenchmarker):
 
         # Support QubitPlaceholders: we temporarily index to arbitrary integers.
         # `generate_rb_sequence` handles mapping back to the original gateset gates.
-        gateset_as_program = address_qubits(sum(gateset, Program()))
+        gateset_as_program = address_qubits(sum(gateset, Program()))  # type: ignore
         qubits = len(gateset_as_program.get_qubits())
         gateset_for_api = gateset_as_program.out().splitlines()
         interleaver_out: Optional[str] = None

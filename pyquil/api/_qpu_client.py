@@ -181,7 +181,7 @@ class QPUClient:
             execution_duration_microseconds=result.execution_duration_microseconds,
         )
 
-    @retry(exceptions=TimeoutError, tries=2)  # type: ignore
+    @retry(exceptions=TimeoutError, tries=2)
     def _rpcq_request(self, method_name: str, *args: Any, **kwargs: Any) -> Any:
         engagement = self._engagement_manager.get_engagement(
             endpoint_id=self._endpoint_id,
