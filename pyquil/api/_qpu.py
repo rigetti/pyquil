@@ -118,6 +118,7 @@ class QPU(QAM[QPUExecuteResponse]):
         engagement_manager: Optional[EngagementManager] = None,
         endpoint_id: Optional[str] = None,
         event_loop: Optional[asyncio.AbstractEventLoop] = None,
+        use_gateway: bool = True,
     ) -> None:
         """
         A connection to the QPU.
@@ -129,6 +130,7 @@ class QPU(QAM[QPUExecuteResponse]):
         :param client_configuration: Optional client configuration. If none is provided, a default one will be loaded.
         :param endpoint_id: Optional endpoint ID to be used for engagement.
         :param engagement_manager: Optional engagement manager. If none is provided, a default one will be created.
+        :param use_gateway: Disable to skip the Gateway server and perform direct execution.
         """
         super().__init__()
 
@@ -148,6 +150,7 @@ class QPU(QAM[QPUExecuteResponse]):
         if event_loop is None:
             event_loop = asyncio.get_event_loop()
         self._event_loop = event_loop
+        self._use_gateway = use_gateway
 
     @property
     def quantum_processor_id(self) -> str:
@@ -185,6 +188,7 @@ class QPU(QAM[QPUExecuteResponse]):
                 executable.program,
                 patch_values,
                 self.quantum_processor_id,
+                self._use_gateway
             )
         )
 
@@ -198,7 +202,7 @@ class QPU(QAM[QPUExecuteResponse]):
         async def _get_result(*args):
             return await qcs_sdk.retrieve_results(*args)
 
-        results = self._event_loop.run_until_complete(_get_result(execute_response.job_id, self.quantum_processor_id))
+        results = self._event_loop.run_until_complete(_get_result(execute_response.job_id, self.quantum_processor_id, self._use_gateway))
 
         ro_sources = execute_response._executable.ro_sources
         decoded_buffers = {k: decode_buffer(v) for k, v in results["buffers"].items()}
