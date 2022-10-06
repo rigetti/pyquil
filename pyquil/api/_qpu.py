@@ -39,8 +39,11 @@ def decode_buffer(buffer: BufferResponse) -> np.ndarray:
     :param buffer: Dictionary with 'data' byte array, 'dtype', and 'shape' fields
     :return: NumPy array of decoded data
     """
-    if buffer["dtype"] == "complex64":
+    if buffer["dtype"] == "complex":
         buffer["data"] = [complex(re, im) for re, im in buffer["data"]]
+        buffer["dtype"] = np.complex64
+    if buffer["dtype"] == "integer":
+        buffer["dtype"] = np.int32
     buf = np.fromiter(buffer["data"], dtype=buffer["dtype"])
     return buf.reshape(buffer["shape"])  # type: ignore
 

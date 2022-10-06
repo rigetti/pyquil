@@ -121,7 +121,7 @@ class QPUCompiler(AbstractCompiler):
         return EncryptedProgram(
             program=translated_program["program"],
             memory_descriptors=_collect_memory_descriptors(nq_program),
-            ro_sources={parse_mref(mref): source for mref, source in translated_program["ro_sources"]},
+            ro_sources={parse_mref(mref): source for mref, source in translated_program["ro_sources"].items()},
             recalculation_table=rewrite_response["recalculation_table"],
             _memory=nq_program._memory.copy(),
         )
