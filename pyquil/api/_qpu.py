@@ -208,7 +208,7 @@ class QPU(QAM[QPUExecuteResponse]):
         decoded_buffers = {k: decode_buffer(v) for k, v in results["buffers"].items()}
 
         result_memory = {}
-        if decoded_buffers is not None:
+        if len(decoded_buffers) != 0:
             extracted = _extract_memory_regions(
                 execute_response._executable.memory_descriptors, ro_sources, decoded_buffers
             )
