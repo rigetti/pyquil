@@ -168,5 +168,5 @@ def match_calibration(
 
 
 def expand_calibration(match: CalibrationMatch) -> List[AbstractInstruction]:
-    """" Expand the body of a calibration from a match. """
+    """ " Expand the body of a calibration from a match."""
     return [fill_placeholders(instr, match.settings) for instr in match.cal.instrs]
