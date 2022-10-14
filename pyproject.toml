@@ -27,7 +27,7 @@ rpcq = "^3.10.0"
 networkx = "^2.5"
 importlib-metadata = { version = ">=3.7.3,<5", python = "<3.8" }
 qcs-api-client = ">=0.20.13,<0.22.0"
-qcs-sdk-python = {version = "0.2.0rc0", allow-prereleases = true}
+qcs-sdk-python = {version = "0.3.0rc6", allow-prereleases = true}
 retry = "^0.9.2"
 
 # latex extra
