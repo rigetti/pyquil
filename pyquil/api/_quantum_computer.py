@@ -240,7 +240,7 @@ class QuantumComputer:
                     bitmask = np.array(np.array(final_memory_map["symmetrization"]) / np.pi, dtype=int)
                     bitstrings = np.bitwise_xor(bitstrings, bitmask)
                 all_bitstrings.append(bitstrings)
-            symmetrized_bitstrings = np.concatenate(all_bitstrings)
+            symmetrized_bitstrings = np.concatenate(all_bitstrings)  # type: ignore
 
             joint_expectations = [experiment.get_meas_registers(qubits)]
             if setting.additional_expectations:
@@ -925,7 +925,7 @@ def local_forest_runtime(
     qvm_port: int = 5000,
     quilc_port: int = 5555,
     use_protoquil: bool = False,
-) -> Iterator[Tuple[Optional[subprocess.Popen], Optional[subprocess.Popen]]]:  # type: ignore
+) -> Iterator[Tuple[Optional[subprocess.Popen], Optional[subprocess.Popen]]]:
     """A context manager for local QVM and QUIL compiler.
 
     You must first have installed the `qvm` and `quilc` executables from
@@ -968,8 +968,8 @@ def local_forest_runtime(
         value in the tuple will be ``None``.
     """
 
-    qvm: Optional[subprocess.Popen] = None  # type: ignore
-    quilc: Optional[subprocess.Popen] = None  # type: ignore
+    qvm: Optional[subprocess.Popen] = None
+    quilc: Optional[subprocess.Popen] = None
 
     # If the host we should listen to is 0.0.0.0, we replace it
     # with 127.0.0.1 to use a valid IP when checking if the port is in use.
@@ -1165,7 +1165,7 @@ def _construct_orthogonal_array(num_qubits: int, strength: int = 3) -> np.ndarra
         # `construct_strength_two_orthogonal_array` docstrings, for more details.
         zero_array = np.zeros((1, num_qubits))
         one_array = np.ones((1, num_qubits))
-        flip_matrix = np.concatenate((zero_array, one_array), axis=0).astype(int)
+        flip_matrix = np.concatenate((zero_array, one_array), axis=0).astype(int)  # type: ignore
     elif strength == 2:
         flip_matrix = _construct_strength_two_orthogonal_array(num_qubits)
     elif strength == 3:
@@ -1217,7 +1217,7 @@ def hadamard(n: int, dtype: np.dtype = int) -> np.ndarray:  # type: ignore
         lg2 = 0
     else:
         lg2 = int(log(n, 2))
-    if 2 ** lg2 != n:
+    if 2**lg2 != n:
         raise ValueError("n must be an positive integer, and n must be a power of 2")
 
     H = np.array([[1]], dtype=dtype)
@@ -1254,7 +1254,7 @@ def _construct_strength_three_orthogonal_array(num_qubits: int) -> np.ndarray:
     """
     num_qubits_power_of_2 = _next_power_of_2(num_qubits)
     H = hadamard(num_qubits_power_of_2)
-    Hfold = np.concatenate((H, -H), axis=0)
+    Hfold = np.concatenate((H, -H), axis=0)  # type: ignore
     orthogonal_array: np.ndarray = ((Hfold + 1) / 2).astype(int)
     return orthogonal_array
 
@@ -1307,7 +1307,7 @@ def _check_min_num_trials_for_symmetrized_readout(num_qubits: int, trials: int, 
         raise ValueError("symm_type must be one of the following ints [-1, 0, 1, 2, 3].")
 
     if symm_type == -1:
-        min_num_trials = 2 ** num_qubits
+        min_num_trials = 2**num_qubits
     elif symm_type == 2:
 
         def _f(x: int) -> int:

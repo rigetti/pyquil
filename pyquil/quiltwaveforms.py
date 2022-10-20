@@ -140,7 +140,7 @@ class GaussianWaveform(TemplateWaveform):
     def samples(self, rate: float) -> np.ndarray:
         ts = np.arange(self.num_samples(rate), dtype=np.complex128) / rate
         sigma = 0.5 * self.fwhm / np.sqrt(2.0 * np.log(2.0))
-        iqs = np.exp(-0.5 * (ts - self.t0) ** 2 / sigma ** 2)
+        iqs = np.exp(-0.5 * (ts - self.t0) ** 2 / sigma**2)
         return _update_envelope(iqs, rate, scale=self.scale, phase=self.phase, detuning=self.detuning)
 
 
@@ -190,8 +190,8 @@ class DragGaussianWaveform(TemplateWaveform):
     def samples(self, rate: float) -> np.ndarray:
         ts = np.arange(self.num_samples(rate), dtype=np.complex128) / rate
         sigma = 0.5 * self.fwhm / np.sqrt(2.0 * np.log(2.0))
-        env = np.exp(-0.5 * (ts - self.t0) ** 2 / sigma ** 2)
-        env_der = (self.alpha * (1.0 / (2 * np.pi * self.anh * sigma ** 2))) * (ts - self.t0) * env
+        env = np.exp(-0.5 * (ts - self.t0) ** 2 / sigma**2)
+        env_der = (self.alpha * (1.0 / (2 * np.pi * self.anh * sigma**2))) * (ts - self.t0) * env
         iqs = env + 1.0j * env_der
         return _update_envelope(iqs, rate, scale=self.scale, phase=self.phase, detuning=self.detuning)
 
@@ -251,14 +251,14 @@ class HrmGaussianWaveform(TemplateWaveform):
     def samples(self, rate: float) -> np.ndarray:
         ts = np.arange(self.num_samples(rate), dtype=np.complex128) / rate
         sigma = 0.5 * self.fwhm / np.sqrt(2.0 * np.log(2.0))
-        exponent_of_t = 0.5 * (ts - self.t0) ** 2 / sigma ** 2
+        exponent_of_t = 0.5 * (ts - self.t0) ** 2 / sigma**2
         gauss = np.exp(-exponent_of_t)
         env = (1 - self.second_order_hrm_coeff * exponent_of_t) * gauss
         deriv_prefactor = -self.alpha / (2 * np.pi * self.anh)
         env_der = (
             deriv_prefactor
             * (ts - self.t0)
-            / (sigma ** 2)
+            / (sigma**2)
             * gauss
             * (self.second_order_hrm_coeff * (exponent_of_t - 1) - 1)
         )
@@ -312,7 +312,7 @@ class ErfSquareWaveform(TemplateWaveform):
         vals = 0.5 * (erf((ts - t1) / sigma) - erf((ts - t2) / sigma))
         zeros_left = np.zeros(int(np.ceil(self.pad_left * rate)), dtype=np.complex128)
         zeros_right = np.zeros(int(np.ceil(self.pad_right * rate)), dtype=np.complex128)
-        iqs = np.concatenate((zeros_left, vals, zeros_right))
+        iqs = np.concatenate((zeros_left, vals, zeros_right))  # type: ignore
         return _update_envelope(iqs, rate, scale=self.scale, phase=self.phase, detuning=self.detuning)
 
 

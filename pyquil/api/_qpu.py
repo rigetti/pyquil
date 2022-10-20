@@ -84,8 +84,8 @@ def _extract_memory_regions(
         if buf.ndim == 1:
             buf = buf.reshape((num_shots, 1))
 
-        if np.iscomplexobj(buf):
-            buf = np.column_stack((buf.real, buf.imag))
+        if np.iscomplexobj(buf):  # type: ignore
+            buf = np.column_stack((buf.real, buf.imag))  # type: ignore
         _, width = buf.shape
 
         end = mref.offset + width
