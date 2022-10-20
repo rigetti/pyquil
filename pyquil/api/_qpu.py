@@ -56,7 +56,6 @@ def _extract_memory_regions(
 
     # hack to extract num_shots indirectly from the shape of the returned data
     first, *rest = buffers.values()
-    print(first.shape)
     num_shots = first.shape[0]
 
     def alloc(spec: ParameterSpec) -> np.ndarray:
