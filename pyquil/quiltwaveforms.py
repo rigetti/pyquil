@@ -17,7 +17,7 @@ decorator.
 
 
 def waveform(name: str) -> Callable[[type], type]:
-    """ Define a Quil-T wavefom with the given name. """
+    """Define a Quil-T wavefom with the given name."""
 
     def wrap(cls: type) -> type:
         cls: type = dataclass(cls)
@@ -109,7 +109,7 @@ class FlatWaveform(TemplateWaveform):
 
 @waveform("gaussian")
 class GaussianWaveform(TemplateWaveform):
-    """ A Gaussian pulse. """
+    """A Gaussian pulse."""
 
     fwhm: float
     """ The Full-Width-Half-Max of the Gaussian (seconds). """
@@ -146,7 +146,7 @@ class GaussianWaveform(TemplateWaveform):
 
 @waveform("drag_gaussian")
 class DragGaussianWaveform(TemplateWaveform):
-    """ A DRAG Gaussian pulse. """
+    """A DRAG Gaussian pulse."""
 
     fwhm: float
     """ The Full-Width-Half-Max of the gaussian (seconds). """
@@ -268,7 +268,7 @@ class HrmGaussianWaveform(TemplateWaveform):
 
 @waveform("erf_square")
 class ErfSquareWaveform(TemplateWaveform):
-    """ A pulse with a flat top and edges that are error functions (erf). """
+    """A pulse with a flat top and edges that are error functions (erf)."""
 
     risetime: float
     """ The width of each of the rise and fall sections of the pulse (seconds). """

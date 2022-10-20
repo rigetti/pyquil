@@ -160,22 +160,22 @@ class Program:
 
     @property
     def calibrations(self) -> List[Union[DefCalibration, DefMeasureCalibration]]:
-        """ A list of Quil-T calibration definitions. """
+        """A list of Quil-T calibration definitions."""
         return self._calibrations
 
     @property
     def waveforms(self) -> Dict[str, DefWaveform]:
-        """ A mapping from waveform names to their corresponding definitions. """
+        """A mapping from waveform names to their corresponding definitions."""
         return self._waveforms
 
     @property
     def frames(self) -> Dict[Frame, DefFrame]:
-        """ A mapping from Quil-T frames to their definitions. """
+        """A mapping from Quil-T frames to their definitions."""
         return self._frames
 
     @property
     def declarations(self) -> Dict[str, Declare]:
-        """ A mapping from declared region names to their declarations. """
+        """A mapping from declared region names to their declarations."""
         return self._declarations
 
     def copy_everything_except_instructions(self) -> "Program":

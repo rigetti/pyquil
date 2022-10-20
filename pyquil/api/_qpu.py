@@ -56,6 +56,7 @@ def _extract_memory_regions(
 
     # hack to extract num_shots indirectly from the shape of the returned data
     first, *rest = buffers.values()
+    print(first.shape)
     num_shots = first.shape[0]
 
     def alloc(spec: ParameterSpec) -> np.ndarray:
@@ -184,12 +185,7 @@ class QPU(QAM[QPUExecuteResponse]):
             return await qcs_sdk.submit(*args)
 
         job_id = self._event_loop.run_until_complete(
-            _submit(
-                executable.program,
-                patch_values,
-                self.quantum_processor_id,
-                self._use_gateway
-            )
+            _submit(executable.program, patch_values, self.quantum_processor_id, self._use_gateway)
         )
 
         return QPUExecuteResponse(_executable=executable, job_id=job_id)
@@ -202,7 +198,9 @@ class QPU(QAM[QPUExecuteResponse]):
         async def _get_result(*args):
             return await qcs_sdk.retrieve_results(*args)
 
-        results = self._event_loop.run_until_complete(_get_result(execute_response.job_id, self.quantum_processor_id, self._use_gateway))
+        results = self._event_loop.run_until_complete(
+            _get_result(execute_response.job_id, self.quantum_processor_id, self._use_gateway)
+        )
 
         ro_sources = execute_response._executable.ro_sources
         decoded_buffers = {k: decode_buffer(v) for k, v in results["buffers"].items()}

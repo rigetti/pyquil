@@ -15,7 +15,6 @@
 ##############################################################################
 import asyncio
 import itertools
-from optparse import Option
 import re
 import socket
 import subprocess
@@ -532,7 +531,7 @@ def _get_qvm_qc(
     compiler_timeout: float,
     execution_timeout: float,
     noise_model: Optional[NoiseModel],
-    event_loop: asyncio.AbstractEventLoop,
+    event_loop: Optional[asyncio.AbstractEventLoop] = None,
 ) -> QuantumComputer:
     """Construct a QuantumComputer backed by a QVM.
 
@@ -575,7 +574,7 @@ def _get_qvm_with_topology(
     qvm_type: str,
     compiler_timeout: float,
     execution_timeout: float,
-    event_loop: asyncio.AbstractEventLoop,
+    event_loop: Optional[asyncio.AbstractEventLoop] = None,
 ) -> QuantumComputer:
     """Construct a QVM with the provided topology.
 
@@ -619,7 +618,7 @@ def _get_9q_square_qvm(
     qvm_type: str,
     compiler_timeout: float,
     execution_timeout: float,
-    event_loop: asyncio.AbstractEventLoop,
+    event_loop: Optional[asyncio.AbstractEventLoop] = None,
 ) -> QuantumComputer:
     """
     A nine-qubit 3x3 square lattice.
@@ -657,7 +656,7 @@ def _get_unrestricted_qvm(
     qvm_type: str,
     compiler_timeout: float,
     execution_timeout: float,
-    event_loop: asyncio.AbstractEventLoop,
+    event_loop: Optional[asyncio.AbstractEventLoop] = None,
 ) -> QuantumComputer:
     """
     A qvm with a fully-connected topology.
@@ -695,7 +694,7 @@ def _get_qvm_based_on_real_quantum_processor(
     qvm_type: str,
     compiler_timeout: float,
     execution_timeout: float,
-    event_loop: asyncio.AbstractEventLoop,
+    event_loop: Optional[asyncio.AbstractEventLoop] = None,
 ) -> QuantumComputer:
     """
     A qvm with a based on a real quantum_processor.

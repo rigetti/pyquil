@@ -450,7 +450,7 @@ class PauliTerm(object):
         # parse the operator
         str_op = re.sub(r"\*", "", str_op)
         if not re.match(r"^(([XYZ])(\d+))+$", str_op):
-            raise ValueError(fr"Could not parse operator string {str_op}. It should match ^(([XYZ])(\d+))+$")
+            raise ValueError(rf"Could not parse operator string {str_op}. It should match ^(([XYZ])(\d+))+$")
 
         for factor in re.finditer(r"([XYZ])(\d+)", str_op):
             op *= cls(factor.group(1), int(factor.group(2)))

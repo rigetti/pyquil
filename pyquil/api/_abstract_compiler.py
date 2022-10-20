@@ -95,8 +95,8 @@ class AbstractCompiler(ABC):
         *,
         quantum_processor: AbstractQuantumProcessor,
         timeout: float,
-        client_configuration: Optional[QCSClientConfiguration],
-        event_loop: Optional[asyncio.AbstractEventLoop],
+        client_configuration: Optional[QCSClientConfiguration] = None,
+        event_loop: Optional[asyncio.AbstractEventLoop] = None,
     ) -> None:
         self.quantum_processor = quantum_processor
         self._timeout = timeout
@@ -133,9 +133,17 @@ class AbstractCompiler(ABC):
         # TODO This ISA isn't always going to be available. Specifically, if the quantum processor is
         # a QVM-type processor, then `quantum_processor` will have a CompilerISA, not a QCSISA.
         target_device = compiler_isa_to_target_quantum_processor(self.quantum_processor.to_compiler_isa())
-        native_quil = self._event_loop.run_until_complete(_compile(program.out(), json.dumps(target_device.asdict())))
+        native_quil = self._event_loop.run_until_complete(
+            _compile(program.out(calibrations=False), json.dumps(target_device.asdict(), indent=2))
+        )
 
-        return Program(native_quil).wrap_in_numshots_loop(program.num_shots)
+        native_program = Program(native_quil)
+        native_program.num_shots = program.num_shots
+        native_program._calibrations = program._calibrations
+        native_program._waveforms = program._waveforms
+        native_program._memory = program._memory.copy()
+
+        return native_program
 
     def _connect(self) -> None:
         try:
