@@ -26,6 +26,8 @@ from pyquil.quil import Program
 from test.unit.utils import DummyCompiler, CLIENT_PUBLIC_KEY, CLIENT_SECRET_KEY, SERVER_PUBLIC_KEY
 
 TEST_DATA_DIR = os.path.join(os.path.dirname(os.path.realpath(__file__)), "data")
+os.environ["QCS_SETTINGS_FILE_PATH"] = os.path.join(TEST_DATA_DIR, "qcs_settings.toml")
+os.environ["QCS_SECRETS_FILE_PATH"] = os.path.join(TEST_DATA_DIR, "qcs_secrets.toml")
 
 
 @pytest.fixture

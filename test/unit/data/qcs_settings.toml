@@ -1,3 +1,5 @@
+default_profile_name = "default"
+
 [auth_servers]
 
   [auth_servers.default]
@@ -8,4 +10,6 @@
 
   [profiles.default]
     api_url = "https://api.qcs.rigetti.com"
+    auth_server_name = "default"
+    credentials_name = "default"
 
