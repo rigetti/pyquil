@@ -24,6 +24,9 @@ from pyquil.gates import H, CNOT, MEASURE, RX
 from pyquil.quilatom import MemoryReference
 from pyquil.quilbase import Declare
 
+nest_asyncio.apply()
+
+
 TEST_PROGRAM = Program(
     Declare("ro", "BIT", 2),
     H(0),
@@ -63,9 +66,6 @@ def test_parametric_program(qc: QuantumComputer):
         assert all_results[0] == 0.0
         assert all_results[1] > 0.8
         assert all_results[2] == 0.0
-
-
-nest_asyncio.apply()
 
 
 def test_multithreading(qc: QuantumComputer):
