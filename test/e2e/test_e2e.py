@@ -15,6 +15,7 @@
 ##############################################################################
 from multiprocessing.pool import ThreadPool
 
+import nest_asyncio
 import numpy as np
 
 from pyquil import Program
@@ -62,6 +63,9 @@ def test_parametric_program(qc: QuantumComputer):
         assert all_results[0] == 0.0
         assert all_results[1] > 0.8
         assert all_results[2] == 0.0
+
+
+nest_asyncio.apply()
 
 
 def test_multithreading(qc: QuantumComputer):

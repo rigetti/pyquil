@@ -24,10 +24,10 @@ from pyquil.quantum_processor.transformers.graph_to_compiler_isa import (
 )
 from pyquil.quil import Program
 from test.unit.utils import DummyCompiler, CLIENT_PUBLIC_KEY, CLIENT_SECRET_KEY, SERVER_PUBLIC_KEY
+from .. import override_qcs_config
 
 TEST_DATA_DIR = os.path.join(os.path.dirname(os.path.realpath(__file__)), "data")
-os.environ["QCS_SETTINGS_FILE_PATH"] = os.path.join(TEST_DATA_DIR, "qcs_settings.toml")
-os.environ["QCS_SECRETS_FILE_PATH"] = os.path.join(TEST_DATA_DIR, "qcs_secrets.toml")
+override_qcs_config()
 
 
 @pytest.fixture
@@ -150,10 +150,7 @@ def dummy_compiler(qcs_aspen8_quantum_processor: QCSQuantumProcessor, client_con
 
 @pytest.fixture(scope="session")
 def client_configuration() -> QCSClientConfiguration:
-    return QCSClientConfiguration.load(
-        secrets_file_path=Path(os.path.join(TEST_DATA_DIR, "qcs_secrets.toml")),
-        settings_file_path=Path(os.path.join(TEST_DATA_DIR, "qcs_settings.toml")),
-    )
+    return QCSClientConfiguration.load()
 
 
 @pytest.fixture(scope="session")
