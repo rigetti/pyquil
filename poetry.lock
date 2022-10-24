@@ -700,10 +700,10 @@ traitlets = ">=5"
 
 [[package]]
 name = "nest-asyncio"
-version = "1.5.5"
+version = "1.5.6"
 description = "Patch asyncio to allow nested event loops"
 category = "main"
-optional = true
+optional = false
 python-versions = ">=3.5"
 
 [[package]]
@@ -1537,7 +1537,7 @@ latex = ["ipython"]
 [metadata]
 lock-version = "1.1"
 python-versions = "^3.7,<3.11"
-content-hash = "5af3a232817488642abe2d1a94b9749a858d0ff26d0c2f7a57fe925a1adb7b2c"
+content-hash = "e980105b08e21c10683445e2630fe0a0147488ec987ff34c8be1bfab59698897"
 
 [metadata.files]
 alabaster = [
@@ -2033,8 +2033,8 @@ nbsphinx = [
     {file = "nbsphinx-0.8.9.tar.gz", hash = "sha256:4ade86b2a41f8f41efd3ea99dae84c3368fe8ba3f837d50c8815ce9424c5994f"},
 ]
 nest-asyncio = [
-    {file = "nest_asyncio-1.5.5-py3-none-any.whl", hash = "sha256:b98e3ec1b246135e4642eceffa5a6c23a3ab12c82ff816a92c612d68205813b2"},
-    {file = "nest_asyncio-1.5.5.tar.gz", hash = "sha256:e442291cd942698be619823a17a86a5759eabe1f8613084790de189fe9e16d65"},
+    {file = "nest_asyncio-1.5.6-py3-none-any.whl", hash = "sha256:b9a953fb40dceaa587d109609098db21900182b16440652454a146cffb06e8b8"},
+    {file = "nest_asyncio-1.5.6.tar.gz", hash = "sha256:d267cc1ff794403f7df692964d1d2a3fa9418ffea2a3f6859a439ff482fef290"},
 ]
 networkx = [
     {file = "networkx-2.6.3-py3-none-any.whl", hash = "sha256:80b6b89c77d1dfb64a4c7854981b60aeea6360ac02c6d4e4913319e0a313abef"},
