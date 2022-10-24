@@ -32,6 +32,7 @@ from typing import (
     Union,
     cast,
     List,
+    TYPE_CHECKING,
 )
 
 import networkx as nx
@@ -65,6 +66,9 @@ from pyquil.quantum_processor import (
     get_qcs_quantum_processor,
 )
 from pyquil.quil import Program
+
+if TYPE_CHECKING:
+    import httpx
 
 
 class QuantumComputer:
