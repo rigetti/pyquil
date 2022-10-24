@@ -16,7 +16,7 @@
 from dataclasses import dataclass
 import asyncio
 from collections import defaultdict
-from typing import Any, Awaitable, Dict, Optional, List
+from typing import Dict, Optional
 
 import numpy as np
 from qcs_api_client.client import QCSClientConfiguration

@@ -59,7 +59,6 @@ class EncryptedProgram:
     ro_sources: Dict[MemoryReference, str]
     """Readout sources, mapped by memory reference."""
 
-    # recalculation_table: Dict[ParameterAref, ExpressionDesignator]
     recalculation_table: List[str]
     """A mapping from memory references to the original gate arithmetic."""
 

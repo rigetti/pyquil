@@ -15,7 +15,7 @@
 ##############################################################################
 from dataclasses import dataclass
 from datetime import datetime
-from typing import Dict, Optional, cast, Tuple, Union, List, Any, Iterable
+from typing import Dict, Optional, cast, Tuple, Union, List, Any
 from attr import field
 
 import rpcq
@@ -81,7 +81,7 @@ class BufferResponse:
     dtype: str
     """Buffer data type."""
 
-    data: Iterable
+    data: bytes
     """Raw buffer data (C order)."""
 
 
