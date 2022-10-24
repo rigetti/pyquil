@@ -32,7 +32,7 @@ from pyquil.quilatom import (
 import qcs_sdk
 
 
-def decode_buffer(buffer: qcs_sdk.ExecutionResult) -> np.ndarray:
+def decode_buffer(buffer: "qcs_sdk.ExecutionResult") -> np.ndarray:
     """
     Translate a DataBuffer into a numpy array.
 
