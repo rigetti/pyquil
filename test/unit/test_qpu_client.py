@@ -332,7 +332,7 @@ def engagement(
         credentials=credentials,
         endpoint_id="some-endpoint",
         expires_at=str(datetime.now(tzutc()) + timedelta(seconds=seconds_left)),
-        quantum_processor_id=quantum_processor_id,
+        quantum_processor_ids=[quantum_processor_id],
         user_id="some-user",
     )
 

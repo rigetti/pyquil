@@ -47,7 +47,7 @@ def _transform_rpcq_qubit_gate_info_to_qvm_noise_supported_gate(qubit_id: int, g
             return None
 
         parameters = [Parameter(param) if isinstance(param, str) else param for param in gate.parameters]
-        return Gate(gate.operator, parameters, [unpack_qubit(qubit_id)])
+        return Gate(gate.operator, parameters, [unpack_qubit(qubit_id)])  # type: ignore
 
     if gate.operator == Supported1QGate.RZ:
         return Gate(Supported1QGate.RZ, [Parameter("theta")], [unpack_qubit(qubit_id)])
@@ -85,8 +85,8 @@ def _transform_rpcq_edge_gate_info_to_qvm_noise_supported_gates(edge: Edge) -> L
         return gates
 
     if Supported2QGate.WILDCARD in operators:
-        gates.append(Gate("_", "_", targets))
-        gates.append(Gate("_", "_", targets[::-1]))
+        gates.append(Gate("_", "_", targets))  # type: ignore
+        gates.append(Gate("_", "_", targets[::-1]))  # type: ignore
         return gates
 
     _log.warning(f"no gate for edge {edge.ids}")

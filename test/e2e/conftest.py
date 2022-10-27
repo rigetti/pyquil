@@ -6,6 +6,8 @@ from qcs_api_client.client import QCSClientConfiguration
 from pyquil import get_qc
 from pyquil.api import EngagementManager, QuantumComputer
 
+from .. import override_qcs_config
+
 
 @pytest.fixture()
 def qc(client_configuration: QCSClientConfiguration, engagement_manager: EngagementManager) -> QuantumComputer:
@@ -23,6 +25,7 @@ def qc(client_configuration: QCSClientConfiguration, engagement_manager: Engagem
 
 @pytest.fixture()
 def client_configuration() -> QCSClientConfiguration:
+    override_qcs_config()
     return QCSClientConfiguration.load()
 
 

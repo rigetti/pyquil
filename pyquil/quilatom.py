@@ -405,7 +405,7 @@ def substitute_array(a: Union[Sequence[Expression], np.ndarray], d: ParameterSub
     :return: An array of partially substituted Expressions, or numbers.
     """
     a = np.asarray(a, order="C")
-    return np.array([substitute(v, d) for v in a.flat]).reshape(a.shape)  # type: ignore
+    return np.array([substitute(v, d) for v in a.flat]).reshape(a.shape)
 
 
 class Parameter(QuilAtom, Expression):
@@ -568,7 +568,7 @@ class Pow(BinaryExp):
 
     @staticmethod
     def fn(a: ExpressionDesignator, b: ExpressionDesignator) -> Union["Pow", ExpressionValueDesignator]:
-        return a ** b
+        return a**b
 
     def __init__(self, op1: ExpressionDesignator, op2: ExpressionDesignator):
         super(Pow, self).__init__(op1, op2)
@@ -840,7 +840,7 @@ Waveform = Union[WaveformReference, TemplateWaveform]
 
 
 def _complex_str(iq: Any) -> str:
-    """ Convert a number to a string. """
+    """Convert a number to a string."""
     if isinstance(iq, Complex):
         return f"{iq.real}" if iq.imag == 0.0 else f"{iq.real} + ({iq.imag})*i"
     else:

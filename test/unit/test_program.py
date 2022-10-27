@@ -56,3 +56,31 @@ def test_parameterized_readout_symmetrization():
     p += RX(symmetrization[0], 0)
     p += RX(symmetrization[1], 1)
     assert parameterized_readout_symmetrization([0, 1]).out() == p.out()
+
+
+def test_adding_does_not_mutate():
+    # https://github.com/rigetti/pyquil/issues/1476
+    p1 = Program(
+        """
+DEFCAL RX(pi/2) 32:
+    FENCE 32
+    NONBLOCKING PULSE 32 "rf" drag_gaussian(duration: 3.2e-08, fwhm: 8e-09, t0: 1.6e-08, anh: -190000000.0, alpha: -1.8848698349348032, scale: 0.30631340170943533, phase: 0.0, detuning: 1622438.2425563578)
+    FENCE 32
+
+RX(pi/2) 32
+"""
+    )
+    original_p1 = p1.copy()
+    p2 = Program(
+        """
+DEFCAL RX(pi/2) 33:
+    FENCE 33
+    NONBLOCKING PULSE 33 "rf" drag_gaussian(duration: 2e-08, fwhm: 5e-09, t0: 1e-08, anh: -190000000.0, alpha: -0.9473497322033984, scale: 0.25680107985232403, phase: 0.0, detuning: 1322130.5458282642)
+    FENCE 33
+
+RX(pi/2) 33
+"""
+    )
+    p_all = p1 + p2
+    assert p1 == original_p1
+    assert p1.calibrations != p_all.calibrations

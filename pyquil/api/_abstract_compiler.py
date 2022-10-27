@@ -17,6 +17,10 @@ from abc import ABC, abstractmethod
 from dataclasses import dataclass
 import dataclasses
 from typing import Any, Dict, List, Optional, Sequence, Union
+import asyncio
+import json
+
+import qcs_sdk
 
 from pyquil._memory import Memory
 from pyquil._version import pyquil_version
@@ -55,7 +59,7 @@ class EncryptedProgram:
     ro_sources: Dict[MemoryReference, str]
     """Readout sources, mapped by memory reference."""
 
-    recalculation_table: Dict[ParameterAref, ExpressionDesignator]
+    recalculation_table: List[str]
     """A mapping from memory references to the original gate arithmetic."""
 
     _memory: Memory
@@ -84,18 +88,27 @@ QuantumExecutable = Union[EncryptedProgram, Program]
 class AbstractCompiler(ABC):
     """The abstract interface for a compiler."""
 
+    _event_loop: asyncio.AbstractEventLoop
+
     def __init__(
         self,
         *,
         quantum_processor: AbstractQuantumProcessor,
         timeout: float,
-        client_configuration: Optional[QCSClientConfiguration],
+        client_configuration: Optional[QCSClientConfiguration] = None,
+        event_loop: Optional[asyncio.AbstractEventLoop] = None,
     ) -> None:
         self.quantum_processor = quantum_processor
         self._timeout = timeout
 
         self._client_configuration = client_configuration or QCSClientConfiguration.load()
         self._compiler_client = CompilerClient(client_configuration=self._client_configuration, request_timeout=timeout)
+
+        if event_loop is None:
+            event_loop = asyncio.get_event_loop()
+        self._event_loop = event_loop
+
+        self._connect()
 
     def get_version_info(self) -> Dict[str, Any]:
         """
@@ -107,40 +120,30 @@ class AbstractCompiler(ABC):
 
     def quil_to_native_quil(self, program: Program, *, protoquil: Optional[bool] = None) -> Program:
         """
-        Compile an arbitrary quil program according to the ISA of ``self.quantum_processor``.
-
-        :param program: Arbitrary quil to compile
-        :param protoquil: Whether to restrict to protoquil (``None`` means defer to server)
-        :return: Native quil and compiler metadata
+        Convert a Quil program into native Quil, which is supported for execution on a QPU.
         """
-        self._connect()
-        compiler_isa = self.quantum_processor.to_compiler_isa()
-        request = CompileToNativeQuilRequest(
-            program=program.out(calibrations=False),
-            target_quantum_processor=compiler_isa_to_target_quantum_processor(compiler_isa),
-            protoquil=protoquil,
-        )
-        response = self._compiler_client.compile_to_native_quil(request)
 
-        nq_program = parse_program(response.native_program)
-        nq_program.native_quil_metadata = (
-            None
-            if response.metadata is None
-            else NativeQuilMetadata(
-                final_rewiring=response.metadata.final_rewiring,
-                gate_depth=response.metadata.gate_depth,
-                gate_volume=response.metadata.gate_volume,
-                multiqubit_gate_depth=response.metadata.multiqubit_gate_depth,
-                program_duration=response.metadata.program_duration,
-                program_fidelity=response.metadata.program_fidelity,
-                topological_swaps=response.metadata.topological_swaps,
-                qpu_runtime_estimation=response.metadata.qpu_runtime_estimation,
-            )
+        # This is a work-around needed because calling `qcs_sdk.compile` happens _before_
+        # the event loop is available. Wrapping it in a Python async function ensures that
+        # the event loop is available. This is a limitation of pyo3:
+        # https://pyo3.rs/v0.17.1/ecosystem/async-await.html#a-note-about-asynciorun
+        async def _compile(*args) -> str:  # type: ignore
+            return await qcs_sdk.compile(*args)
+
+        # TODO This ISA isn't always going to be available. Specifically, if the quantum processor is
+        # a QVM-type processor, then `quantum_processor` will have a CompilerISA, not a QCSISA.
+        target_device = compiler_isa_to_target_quantum_processor(self.quantum_processor.to_compiler_isa())
+        native_quil = self._event_loop.run_until_complete(
+            _compile(program.out(calibrations=False), json.dumps(target_device.asdict(), indent=2))  # type: ignore
         )
-        nq_program.num_shots = program.num_shots
-        nq_program._calibrations = program.calibrations
-        nq_program._memory = program._memory.copy()
-        return nq_program
+
+        native_program = Program(native_quil)
+        native_program.num_shots = program.num_shots
+        native_program._calibrations = program._calibrations
+        native_program._waveforms = program._waveforms
+        native_program._memory = program._memory.copy()
+
+        return native_program
 
     def _connect(self) -> None:
         try:

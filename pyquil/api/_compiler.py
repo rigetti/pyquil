@@ -13,33 +13,26 @@
 #    See the License for the specific language governing permissions and
 #    limitations under the License.
 ##############################################################################
-import logging
 import threading
 from contextlib import contextmanager
-from typing import Dict, Optional, cast, List, Iterator
+from typing import Dict, Optional, Iterator
+import asyncio
 
 import httpx
+from pyquil.parser import parse_program
+from pyquil.quilatom import MemoryReference
+from pyquil.quilbase import Declare
+import qcs_sdk
 from qcs_api_client.client import QCSClientConfiguration
-from qcs_api_client.models.translate_native_quil_to_encrypted_binary_request import (
-    TranslateNativeQuilToEncryptedBinaryRequest,
-)
 from qcs_api_client.operations.sync import (
-    translate_native_quil_to_encrypted_binary,
     get_quilt_calibrations,
 )
-from qcs_api_client.types import UNSET
 from rpcq.messages import ParameterSpec
 
 from pyquil.api._abstract_compiler import AbstractCompiler, QuantumExecutable, EncryptedProgram
 from pyquil.api._qcs_client import qcs_client
-from pyquil.api._rewrite_arithmetic import rewrite_arithmetic
-from pyquil.parser import parse_program, parse
 from pyquil.quantum_processor import AbstractQuantumProcessor
 from pyquil.quil import Program
-from pyquil.quilatom import MemoryReference, ExpressionDesignator
-from pyquil.quilbase import Declare, Gate
-
-_log = logging.getLogger(__name__)
 
 
 class QPUCompilerNotRunning(Exception):
@@ -47,7 +40,7 @@ class QPUCompilerNotRunning(Exception):
 
 
 def parse_mref(val: str) -> MemoryReference:
-    """ Parse a memory reference from its string representation. """
+    """Parse a memory reference from its string representation."""
     val = val.strip()
     try:
         if val[-1] == "]":
@@ -77,8 +70,6 @@ class QPUCompiler(AbstractCompiler):
     Client to communicate with the compiler and translation service.
     """
 
-    _calibration_program_lock: threading.Lock
-
     def __init__(
         self,
         *,
@@ -86,6 +77,7 @@ class QPUCompiler(AbstractCompiler):
         quantum_processor: AbstractQuantumProcessor,
         timeout: float = 10.0,
         client_configuration: Optional[QCSClientConfiguration] = None,
+        event_loop: Optional[asyncio.AbstractEventLoop] = None,
     ) -> None:
         """
         Instantiate a new QPU compiler client.
@@ -99,40 +91,38 @@ class QPUCompiler(AbstractCompiler):
             quantum_processor=quantum_processor,
             timeout=timeout,
             client_configuration=client_configuration,
+            event_loop=event_loop,
         )
 
         self.quantum_processor_id = quantum_processor_id
         self._calibration_program: Optional[Program] = None
-        self._calibration_program_lock = threading.Lock()
 
     def native_quil_to_executable(self, nq_program: Program) -> QuantumExecutable:
-        arithmetic_response = rewrite_arithmetic(nq_program)
+        """
+        Convert a native Quil program into an executable binary which can be executed by a QPU.
+        """
+        rewrite_response = qcs_sdk.rewrite_arithmetic(nq_program.out())
 
-        request = TranslateNativeQuilToEncryptedBinaryRequest(
-            quil=arithmetic_response.quil, num_shots=nq_program.num_shots
+        # This is a work-around needed because calling `qcs_sdk.translate` happens _before_
+        # the event loop is available. Wrapping it in a Python async function ensures that
+        # the event loop is available. This is a limitation of pyo3:
+        # https://pyo3.rs/v0.17.1/ecosystem/async-await.html#a-note-about-asynciorun
+        async def _translate(*args) -> qcs_sdk.TranslationResult:  # type: ignore
+            return await qcs_sdk.translate(*args)
+
+        translated_program = self._event_loop.run_until_complete(
+            _translate(
+                rewrite_response["program"],
+                nq_program.num_shots,
+                self.quantum_processor_id,
+            )
         )
-        with self._qcs_client() as qcs_client:  # type: httpx.Client
-            response = translate_native_quil_to_encrypted_binary(
-                client=qcs_client,
-                quantum_processor_id=self.quantum_processor_id,
-                json_body=request,
-            ).parsed
-
-        ro_sources = cast(List[List[str]], [] if response.ro_sources == UNSET else response.ro_sources)
-
-        def to_expression(rule: str) -> ExpressionDesignator:
-            # We can only parse complete lines of Quil, so we wrap the arithmetic expression
-            # in a valid Quil instruction to parse it.
-            # TODO: This hack should be replaced after #687
-            return cast(ExpressionDesignator, cast(Gate, parse(f"RZ({rule}) 0")[0]).params[0])
 
         return EncryptedProgram(
-            program=response.program,
+            program=translated_program["program"],
             memory_descriptors=_collect_memory_descriptors(nq_program),
-            ro_sources={parse_mref(mref): source for mref, source in ro_sources},
-            recalculation_table={
-                mref: to_expression(rule) for mref, rule in arithmetic_response.recalculation_table.items()
-            },
+            ro_sources={parse_mref(mref): source for mref, source in translated_program["ro_sources"] or []},
+            recalculation_table=rewrite_response["recalculation_table"],
             _memory=nq_program._memory.copy(),
         )
 
@@ -191,6 +181,7 @@ class QVMCompiler(AbstractCompiler):
         quantum_processor: AbstractQuantumProcessor,
         timeout: float = 10.0,
         client_configuration: Optional[QCSClientConfiguration] = None,
+        event_loop: Optional[asyncio.AbstractEventLoop] = None,
     ) -> None:
         """
         Client to communicate with compiler.
@@ -203,6 +194,7 @@ class QVMCompiler(AbstractCompiler):
             quantum_processor=quantum_processor,
             timeout=timeout,
             client_configuration=client_configuration,
+            event_loop=event_loop,
         )
 
     def native_quil_to_executable(self, nq_program: Program) -> QuantumExecutable:
