@@ -107,7 +107,7 @@ class QPUCompiler(AbstractCompiler):
         # the event loop is available. Wrapping it in a Python async function ensures that
         # the event loop is available. This is a limitation of pyo3:
         # https://pyo3.rs/v0.17.1/ecosystem/async-await.html#a-note-about-asynciorun
-        async def _translate(*args):
+        async def _translate(*args) -> qcs_sdk.TranslationResult:  # type: ignore
             return await qcs_sdk.translate(*args)
 
         translated_program = self._event_loop.run_until_complete(
@@ -121,7 +121,7 @@ class QPUCompiler(AbstractCompiler):
         return EncryptedProgram(
             program=translated_program["program"],
             memory_descriptors=_collect_memory_descriptors(nq_program),
-            ro_sources={parse_mref(mref): source for mref, source in translated_program["ro_sources"].items()},
+            ro_sources={parse_mref(mref): source for mref, source in translated_program["ro_sources"] or []},
             recalculation_table=rewrite_response["recalculation_table"],
             _memory=nq_program._memory.copy(),
         )

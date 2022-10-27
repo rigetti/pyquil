@@ -59,7 +59,7 @@ class EncryptedProgram:
     ro_sources: Dict[MemoryReference, str]
     """Readout sources, mapped by memory reference."""
 
-    recalculation_table: Dict[ParameterAref, ExpressionDesignator]
+    recalculation_table: List[str]
     """A mapping from memory references to the original gate arithmetic."""
 
     _memory: Memory
@@ -127,14 +127,14 @@ class AbstractCompiler(ABC):
         # the event loop is available. Wrapping it in a Python async function ensures that
         # the event loop is available. This is a limitation of pyo3:
         # https://pyo3.rs/v0.17.1/ecosystem/async-await.html#a-note-about-asynciorun
-        async def _compile(*args):
+        async def _compile(*args) -> str:  # type: ignore
             return await qcs_sdk.compile(*args)
 
         # TODO This ISA isn't always going to be available. Specifically, if the quantum processor is
         # a QVM-type processor, then `quantum_processor` will have a CompilerISA, not a QCSISA.
         target_device = compiler_isa_to_target_quantum_processor(self.quantum_processor.to_compiler_isa())
         native_quil = self._event_loop.run_until_complete(
-            _compile(program.out(calibrations=False), json.dumps(target_device.asdict(), indent=2))
+            _compile(program.out(calibrations=False), json.dumps(target_device.asdict(), indent=2))  # type: ignore
         )
 
         native_program = Program(native_quil)

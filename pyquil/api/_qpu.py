@@ -32,7 +32,7 @@ from pyquil.quilatom import (
 import qcs_sdk
 
 
-def decode_buffer(buffer: BufferResponse) -> np.ndarray:
+def decode_buffer(buffer: "qcs_sdk.ExecutionResult") -> np.ndarray:
     """
     Translate a DataBuffer into a numpy array.
 
@@ -40,12 +40,11 @@ def decode_buffer(buffer: BufferResponse) -> np.ndarray:
     :return: NumPy array of decoded data
     """
     if buffer["dtype"] == "complex":
-        buffer["data"] = [complex(re, im) for re, im in buffer["data"]]
-        buffer["dtype"] = np.complex64
-    if buffer["dtype"] == "integer":
-        buffer["dtype"] = np.int32
-    buf = np.fromiter(buffer["data"], dtype=buffer["dtype"])
-    return buf.reshape(buffer["shape"])  # type: ignore
+        buffer["data"] = [complex(re, im) for re, im in buffer["data"]]  # type: ignore
+        buffer["dtype"] = np.complex64  # type: ignore
+    elif buffer["dtype"] == "integer":
+        buffer["dtype"] = np.int32  # type: ignore
+    return np.array(buffer["data"], dtype=buffer["dtype"])
 
 
 def _extract_memory_regions(
@@ -180,7 +179,7 @@ class QPU(QAM[QPUExecuteResponse]):
             mem_values[k.name].append(v)
         patch_values = qcs_sdk.build_patch_values(executable.recalculation_table, mem_values)
 
-        async def _submit(*args):
+        async def _submit(*args) -> str:  # type: ignore
             return await qcs_sdk.submit(*args)
 
         job_id = self._event_loop.run_until_complete(
@@ -194,7 +193,7 @@ class QPU(QAM[QPUExecuteResponse]):
         Retrieve results from execution on the QPU.
         """
 
-        async def _get_result(*args):
+        async def _get_result(*args) -> qcs_sdk.ExecutionResults:  # type: ignore
             return await qcs_sdk.retrieve_results(*args)
 
         results = self._event_loop.run_until_complete(
