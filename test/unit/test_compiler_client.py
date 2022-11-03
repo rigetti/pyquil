@@ -15,7 +15,11 @@
 ##############################################################################
 
 from test.unit.utils import patch_rpcq_client
-from unittest.mock import AsyncMock
+
+try:
+    from unittest.mock import AsyncMock
+except ImportError:  # 3.7 requires this backport of AsyncMock
+    from asyncmock import AsyncMock
 
 import qcs_sdk
 import rpcq
