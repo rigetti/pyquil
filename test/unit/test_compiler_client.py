@@ -14,6 +14,10 @@
 #    limitations under the License.
 ##############################################################################
 
+from test.unit.utils import patch_rpcq_client
+from unittest.mock import AsyncMock
+
+import qcs_sdk
 import rpcq
 from _pytest.monkeypatch import MonkeyPatch
 from pytest import raises
@@ -22,16 +26,15 @@ from qcs_api_client.client import QCSClientConfiguration
 
 from pyquil.api._compiler_client import (
     CompilerClient,
-    GenerateRandomizedBenchmarkingSequenceResponse,
-    GenerateRandomizedBenchmarkingSequenceRequest,
-    ConjugatePauliByCliffordResponse,
-    ConjugatePauliByCliffordRequest,
-    NativeQuilMetadataResponse,
-    CompileToNativeQuilResponse,
     CompileToNativeQuilRequest,
+    CompileToNativeQuilResponse,
+    ConjugatePauliByCliffordRequest,
+    ConjugatePauliByCliffordResponse,
+    GenerateRandomizedBenchmarkingSequenceRequest,
+    GenerateRandomizedBenchmarkingSequenceResponse,
+    NativeQuilMetadataResponse,
 )
 from pyquil.external.rpcq import CompilerISA, compiler_isa_to_target_quantum_processor
-from test.unit.utils import patch_rpcq_client
 
 
 def test_init__sets_base_url_and_timeout(monkeypatch: MonkeyPatch):
@@ -66,16 +69,14 @@ def test_sets_timeout_on_requests(mocker: MockerFixture):
         assert client.timeout == compiler_client.timeout
 
 
-def test_get_version__returns_version(mocker: MockerFixture):
+def test_get_version__returns_version(monkeypatch: MonkeyPatch):
     client_configuration = QCSClientConfiguration.load()
     compiler_client = CompilerClient(client_configuration=client_configuration)
 
-    rpcq_client = patch_rpcq_client(mocker=mocker, return_value={"quilc": "1.2.3"})
+    version_mock = AsyncMock(return_value="1.2.3")
+    monkeypatch.setattr(qcs_sdk, "get_quilc_version", version_mock)
 
     assert compiler_client.get_version() == "1.2.3"
-    rpcq_client.call.assert_called_once_with(
-        "get_version_info"
-    )
 
 
 def test_compile_to_native_quil__returns_native_quil(
@@ -99,7 +100,7 @@ def test_compile_to_native_quil__returns_native_quil(
                 topological_swaps=3,
                 qpu_runtime_estimation=0.1618,
             ),
-        )
+        ),
     )
     request = CompileToNativeQuilRequest(
         program="some-program",
@@ -130,12 +131,12 @@ def test_compile_to_native_quil__returns_native_quil(
     )
 
 
-def test_conjugate_pauli_by_clifford__returns_conjugation_result(
-    mocker: MockerFixture
-):
+def test_conjugate_pauli_by_clifford__returns_conjugation_result(mocker: MockerFixture):
     client_configuration = QCSClientConfiguration.load()
     compiler_client = CompilerClient(client_configuration=client_configuration)
-    rpcq_client = patch_rpcq_client(mocker=mocker, return_value=rpcq.messages.ConjugateByCliffordResponse(phase=42, pauli="pauli"))
+    rpcq_client = patch_rpcq_client(
+        mocker=mocker, return_value=rpcq.messages.ConjugateByCliffordResponse(phase=42, pauli="pauli")
+    )
 
     request = ConjugatePauliByCliffordRequest(
         pauli_indices=[0, 1, 2],
@@ -151,7 +152,7 @@ def test_conjugate_pauli_by_clifford__returns_conjugation_result(
         rpcq.messages.ConjugateByCliffordRequest(
             pauli=rpcq.messages.PauliTerm(indices=[0, 1, 2], symbols=["x", "y", "z"]),
             clifford="cliff",
-        )
+        ),
     )
 
 
@@ -161,7 +162,9 @@ def test_generate_randomized_benchmarking_sequence__returns_benchmarking_sequenc
     client_configuration = QCSClientConfiguration.load()
     compiler_client = CompilerClient(client_configuration=client_configuration)
 
-    rpcq_client = patch_rpcq_client(mocker=mocker, return_value=rpcq.messages.RandomizedBenchmarkingResponse(sequence=[[3, 1, 4], [1, 6, 1]]))
+    rpcq_client = patch_rpcq_client(
+        mocker=mocker, return_value=rpcq.messages.RandomizedBenchmarkingResponse(sequence=[[3, 1, 4], [1, 6, 1]])
+    )
 
     request = GenerateRandomizedBenchmarkingSequenceRequest(
         depth=42,
@@ -181,5 +184,5 @@ def test_generate_randomized_benchmarking_sequence__returns_benchmarking_sequenc
             gateset=["some", "gate", "set"],
             seed=314,
             interleaver="some-interleaver",
-        )
+        ),
     )
