@@ -73,14 +73,15 @@ def test_sets_timeout_on_requests(mocker: MockerFixture):
         assert client.timeout == compiler_client.timeout
 
 
-def test_get_version__returns_version(monkeypatch: MonkeyPatch):
+def test_get_version__returns_version(mocker: MockerFixture):
     client_configuration = QCSClientConfiguration.load()
     compiler_client = CompilerClient(client_configuration=client_configuration)
 
     version_mock = AsyncMock(return_value="1.2.3")
-    monkeypatch.setattr(qcs_sdk, "get_quilc_version", version_mock)
+    get_quilc_version_mock = mocker.patch("qcs_sdk.get_quilc_version", version_mock)
 
     assert compiler_client.get_version() == "1.2.3"
+    assert get_quilc_version_mock.call_count == 1
 
 
 def test_compile_to_native_quil__returns_native_quil(
