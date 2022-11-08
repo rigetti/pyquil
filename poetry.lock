@@ -1116,7 +1116,7 @@ toml = ">=0.10.2,<0.11.0"
 
 [[package]]
 name = "qcs-sdk-python"
-version = "0.3.3"
+version = "0.4.0"
 description = "Python interface for the QCS Rust SDK"
 category = "main"
 optional = false
@@ -1537,7 +1537,7 @@ latex = ["ipython"]
 [metadata]
 lock-version = "1.1"
 python-versions = "^3.7,<3.11"
-content-hash = "21e8f7b645ba4736dea5f6e1341857641273ac8ceec51e7dadf60c9fc3d66fe8"
+content-hash = "0483a3d9fa330153a56155a0302778b3d33aef6f45bcfc2ecb1e5279debb0492"
 
 [metadata.files]
 alabaster = [
@@ -2379,19 +2379,19 @@ qcs-api-client = [
     {file = "qcs_api_client-0.21.2-py3-none-any.whl", hash = "sha256:3f33ccf92a2ad7ef1f2368f7e98181c06aa267fe9817b81a4a3134535d00728c"},
 ]
 qcs-sdk-python = [
-    {file = "qcs_sdk_python-0.3.3-cp310-cp310-macosx_10_9_x86_64.macosx_11_0_arm64.macosx_10_9_universal2.whl", hash = "sha256:336a502738061ff5741f64bb3d0beed585fad0fda52cb4de2ee13a7e2ef003d3"},
-    {file = "qcs_sdk_python-0.3.3-cp310-cp310-manylinux_2_17_aarch64.manylinux2014_aarch64.whl", hash = "sha256:9ff8a6a3fe9868d662fccf899fce69e7e0404cd8ca1284d57df3b801e7353970"},
-    {file = "qcs_sdk_python-0.3.3-cp310-cp310-manylinux_2_17_x86_64.manylinux2014_x86_64.whl", hash = "sha256:2eb6d482e744c927cf0ed4e9a4eee81e1d991f8ab16cf62682801c26bb123652"},
-    {file = "qcs_sdk_python-0.3.3-cp37-cp37m-macosx_10_7_x86_64.whl", hash = "sha256:079d22614e3c27d73dee0ecba665692ce7fa2c5e12287af28f3a603e6b39ae2b"},
-    {file = "qcs_sdk_python-0.3.3-cp37-cp37m-manylinux_2_17_aarch64.manylinux2014_aarch64.whl", hash = "sha256:6c0786b0f0b66ab956e01a8a3b3332bcc8d774625643ee6f12bae473848e7760"},
-    {file = "qcs_sdk_python-0.3.3-cp37-cp37m-manylinux_2_17_x86_64.manylinux2014_x86_64.whl", hash = "sha256:7638a077849e64c0c2482f7284f5e351c1ef06ab544c40b772e62531a3c4f18d"},
-    {file = "qcs_sdk_python-0.3.3-cp38-cp38-macosx_10_9_x86_64.macosx_11_0_arm64.macosx_10_9_universal2.whl", hash = "sha256:d797973a6b3c892aab194623a8af66d5a4ba695140a1108302fbbfe6845047b6"},
-    {file = "qcs_sdk_python-0.3.3-cp38-cp38-manylinux_2_17_aarch64.manylinux2014_aarch64.whl", hash = "sha256:69e0a9df88dc2880bac45d560f95e4734efbb0e09f10aad946b9099b567a24ab"},
-    {file = "qcs_sdk_python-0.3.3-cp38-cp38-manylinux_2_17_x86_64.manylinux2014_x86_64.whl", hash = "sha256:ccf6f28bc25caee2700f949458d6ab6dd07871789cf926eab35cc7bbdfe0d46c"},
-    {file = "qcs_sdk_python-0.3.3-cp39-cp39-macosx_10_9_x86_64.macosx_11_0_arm64.macosx_10_9_universal2.whl", hash = "sha256:ecc74039610dd938fa51e25843d4c67b0ec2dfaa202b90c9627554016c90f69d"},
-    {file = "qcs_sdk_python-0.3.3-cp39-cp39-manylinux_2_17_aarch64.manylinux2014_aarch64.whl", hash = "sha256:eb36f8812f3b72429c12451d3dc44cc299ece99d3ac2caa30e4f91f34fcb0fde"},
-    {file = "qcs_sdk_python-0.3.3-cp39-cp39-manylinux_2_17_x86_64.manylinux2014_x86_64.whl", hash = "sha256:0dce2cc4f262644fa265171252285791d8af31877f7917c2410232c228e97071"},
-    {file = "qcs_sdk_python-0.3.3.tar.gz", hash = "sha256:b36e47842023ff8fa85d348d908363066147effb25e631d3f8b0498724ffd693"},
+    {file = "qcs_sdk_python-0.4.0-cp310-cp310-macosx_10_9_x86_64.macosx_11_0_arm64.macosx_10_9_universal2.whl", hash = "sha256:fd557ce06ed481073ed658ef0adbf5d14fa12d9748c48578d85766f6f03c47b2"},
+    {file = "qcs_sdk_python-0.4.0-cp310-cp310-manylinux_2_17_aarch64.manylinux2014_aarch64.whl", hash = "sha256:42f30136a084e09096024c9a4f12be32062338176cf3cfd98cd2239a8790fa22"},
+    {file = "qcs_sdk_python-0.4.0-cp310-cp310-manylinux_2_17_x86_64.manylinux2014_x86_64.whl", hash = "sha256:75c9a68d056b4e758a16c7c2f3433107ff1f879fdcef56b3a0f90dcb8222733b"},
+    {file = "qcs_sdk_python-0.4.0-cp37-cp37m-macosx_10_7_x86_64.whl", hash = "sha256:980e9b50b722f6937d4169c8e35097287a467e0b1ee2ab0fb08f9187dda70a80"},
+    {file = "qcs_sdk_python-0.4.0-cp37-cp37m-manylinux_2_17_aarch64.manylinux2014_aarch64.whl", hash = "sha256:8d3cf2740e45bd00d1e0def19068298801691a772e6e466bf3e85b66fc7f6a76"},
+    {file = "qcs_sdk_python-0.4.0-cp37-cp37m-manylinux_2_17_x86_64.manylinux2014_x86_64.whl", hash = "sha256:15a95fa4178fca68aa8cdfa257d0cc4b5845ac0613d5df1c636575e8b990de1e"},
+    {file = "qcs_sdk_python-0.4.0-cp38-cp38-macosx_10_9_x86_64.macosx_11_0_arm64.macosx_10_9_universal2.whl", hash = "sha256:050d3cb353f99258ac1d2e754670a6938f71e8549ab37028a4530739dc99cf65"},
+    {file = "qcs_sdk_python-0.4.0-cp38-cp38-manylinux_2_17_aarch64.manylinux2014_aarch64.whl", hash = "sha256:33c47c703574d93fd1e2d0b6f88a8fc03aa463359addb7283850523c8aa91d19"},
+    {file = "qcs_sdk_python-0.4.0-cp38-cp38-manylinux_2_17_x86_64.manylinux2014_x86_64.whl", hash = "sha256:6b400329280c17b21ee6512176885b1e5668cce0705128897592e67add25cd12"},
+    {file = "qcs_sdk_python-0.4.0-cp39-cp39-macosx_10_9_x86_64.macosx_11_0_arm64.macosx_10_9_universal2.whl", hash = "sha256:bf6c42260e652c37ce227cc40cfe0869dea5a80673a90070ed7c021f3251b43b"},
+    {file = "qcs_sdk_python-0.4.0-cp39-cp39-manylinux_2_17_aarch64.manylinux2014_aarch64.whl", hash = "sha256:9660b4a78a25933d4a9aaed7706221547253bb475d68cc635c4bc9253e1e0e2d"},
+    {file = "qcs_sdk_python-0.4.0-cp39-cp39-manylinux_2_17_x86_64.manylinux2014_x86_64.whl", hash = "sha256:1ad214c42b704139546d8ade0a16ce78e8367f21cb2edfe60e00efd570afd93e"},
+    {file = "qcs_sdk_python-0.4.0.tar.gz", hash = "sha256:e3d037994a3de5d6f7adb1ccbbec972b131bdad3b361f522730e23ad368599a7"},
 ]
 recommonmark = [
     {file = "recommonmark-0.7.1-py2.py3-none-any.whl", hash = "sha256:1b1db69af0231efce3fa21b94ff627ea33dee7079a01dd0a7f8482c3da148b3f"},
