@@ -102,11 +102,14 @@ class AbstractCompiler(ABC):
         self._timeout = timeout
 
         self._client_configuration = client_configuration or QCSClientConfiguration.load()
-        self._compiler_client = CompilerClient(client_configuration=self._client_configuration, request_timeout=timeout)
 
         if event_loop is None:
             event_loop = asyncio.get_event_loop()
         self._event_loop = event_loop
+
+        self._compiler_client = CompilerClient(
+            client_configuration=self._client_configuration, request_timeout=timeout, event_loop=self._event_loop
+        )
 
         self._connect()
 

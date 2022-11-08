@@ -13,10 +13,12 @@
 #    See the License for the specific language governing permissions and
 #    limitations under the License.
 ##############################################################################
+import asyncio
 from contextlib import contextmanager
 from dataclasses import dataclass
-from typing import Iterator, Optional, List
+from typing import Iterator, List, Optional
 
+import qcs_sdk
 import rpcq
 from qcs_api_client.client import QCSClientConfiguration
 from rpcq.messages import TargetDevice as TargetQuantumProcessor
@@ -151,7 +153,13 @@ class CompilerClient:
     Client for making requests to a Quil compiler.
     """
 
-    def __init__(self, *, client_configuration: QCSClientConfiguration, request_timeout: float = 10.0) -> None:
+    def __init__(
+        self,
+        *,
+        client_configuration: QCSClientConfiguration,
+        request_timeout: float = 10.0,
+        event_loop: Optional[asyncio.AbstractEventLoop] = None,
+    ) -> None:
         """
         Instantiate a new compiler client.
 
@@ -164,17 +172,19 @@ class CompilerClient:
 
         self.base_url = base_url
         self.timeout = request_timeout
+        if event_loop is None:
+            event_loop = asyncio.get_event_loop()
+        self._event_loop = event_loop
 
     def get_version(self) -> str:
         """
         Get version info for compiler server.
         """
-        with self._rpcq_client() as rpcq_client:  # type: rpcq.Client
-            version: Optional[str] = rpcq_client.call("get_version_info").get("quilc")
-            if version is None:
-                raise ValueError("Expected compiler version info to contain a 'quilc' field.")
 
-            return version
+        async def _get_quilc_version() -> str:
+            return await qcs_sdk.get_quilc_version()
+
+        return self._event_loop.run_until_complete(_get_quilc_version())
 
     def compile_to_native_quil(self, request: CompileToNativeQuilRequest) -> CompileToNativeQuilResponse:
         """

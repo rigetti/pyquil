@@ -54,6 +54,7 @@ pytest-mock = "^3.6.1"
 pytest-freezegun = "^0.4.2"
 respx = "^0.20"
 nest-asyncio = "^1.5.6"
+asyncmock = { version = "^0.4.2", python = "<3.8" }
 
 [tool.poetry.extras]
 latex = ["ipython"]
