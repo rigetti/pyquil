@@ -19,7 +19,7 @@ from test.unit.utils import patch_rpcq_client
 try:
     from unittest.mock import AsyncMock
 except ImportError:  # 3.7 requires this backport of AsyncMock
-    from asyncmock import AsyncMock
+    from mock import AsyncMock
 
 import qcs_sdk
 import rpcq
@@ -81,7 +81,7 @@ def test_get_version__returns_version(mocker: MockerFixture):
     get_quilc_version_mock = mocker.patch("qcs_sdk.get_quilc_version", version_mock)
 
     assert compiler_client.get_version() == "1.2.3"
-    assert get_quilc_version_mock.call_count == 1
+    assert get_quilc_version_mock.called
 
 
 def test_compile_to_native_quil__returns_native_quil(
