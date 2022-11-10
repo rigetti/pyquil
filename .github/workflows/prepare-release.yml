@@ -6,7 +6,6 @@ on:
   push:
     branches:
       - v4
-      - revamp-release-workflows
   workflow_dispatch:
     inputs:
       type:
