@@ -1,4 +1,4 @@
-[[packages]]
+[package]
 versioned_files = ["pyproject.toml"]
 changelog = "CHANGELOG.md"
 
@@ -10,7 +10,7 @@ type = "PrepareRelease"
 
 [[workflows.steps]]
 type = "Command"
-command = "git add pyproject.toml CHANGELOG.md && git commit -m \"chore: prepare release $version\" && git push"
+command = "git add pyproject.toml CHANGELOG.md && git commit -m \"chore: prepare release $version [skip ci]\" && git push"
 
 [workflows.steps.variables]
 "$version" = "Version"
@@ -27,7 +27,7 @@ prerelease_label = "rc"
 
 [[workflows.steps]]
 type = "Command"
-command = "git add pyproject.toml CHANGELOG.md && git commit -m \"chore: prepare release $version\" && git push"
+command = "git add pyproject.toml CHANGELOG.md && git commit -m \"chore: prepare release $version [skip ci]\" && git push"
 
 [workflows.steps.variables]
 "$version" = "Version"
