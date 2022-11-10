@@ -5,9 +5,6 @@ on:
     types: [published]
   workflow_dispatch:
     description: "Manually publish release"
-  push:
-    branches:
-      - revamp-release-workflows
 
 jobs:
   build-publish:
@@ -22,6 +19,5 @@ jobs:
         poetry build --no-interaction
     - name: "Publish"
       run: |
-        poetry config repositories.testpypi https://test.pypi.org/legacy/
-        poetry config pypi-token.testpypi ${{ secrets.TEST_PYPI_API_TOKEN }}
-        poetry publish -r testpypi
+        poetry config pypi-token.pypi ${{ secrets.PYPI_API_TOKEN }}
+        poetry publish -r pypi
