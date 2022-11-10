@@ -1,0 +1,35 @@
+name: Prepare Release
+
+on:
+  push:
+    branches:
+      - v4
+  workflow_dispatch:
+    inputs:
+      type:
+        description: Bump versions and trigger a new release.
+        required: true
+        default: prerelease
+        options: # TODO: Add option to create full release once v4 is ready
+          - prerelease
+
+jobs:
+  prepare-release:
+    runs-on: ubuntu-latest
+    env:
+      GITHUB_TOKEN: ${{ secrets.PAT }}
+    steps:
+    - uses: actions/checkout@v3
+      with:
+        fetch-depth: 0
+        token: ${{ secrets.PAT }}
+    - name: Install Knope
+      uses: knope-dev/action@v1
+      with:
+        version: 0.6.1 # Test before updating, breaking changes likely: https://github.com/knope-dev/action#install-latest-version
+    - name: Configure Git
+      run: |
+        git config --global user.name "${{ github.triggering_actor }}"
+        git config --global user.email "${{ github.triggering_actor}}@users.noreply.github.com"
+    - name: Prepare Prerelease
+      run: knope prerelease
