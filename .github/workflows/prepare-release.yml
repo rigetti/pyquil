@@ -1,5 +1,7 @@
 name: Prepare Release
 
+# TODO: When v4 is ready to be merged this should be updated to trigger off main and support full releases via a workflow_dispatch event.
+# See https://github.com/rigetti/pyquil/issues/1501
 on:
   push:
     branches:
@@ -10,7 +12,7 @@ on:
         description: Bump versions and trigger a new release.
         required: true
         default: prerelease
-        options: # TODO: Add option to create full release once v4 is ready
+        options:
           - prerelease
 
 jobs:
