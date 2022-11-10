@@ -26,7 +26,7 @@ lark = "^0.11.1"
 rpcq = "^3.10.0"
 networkx = "^2.5"
 importlib-metadata = { version = ">=3.7.3,<5", python = "<3.8" }
-qcs-sdk-python = "0.3.4"
+qcs-sdk-python = "0.4.0"
 qcs-api-client = ">=0.21.0,<0.22.0"
 retry = "^0.9.2"
 types-python-dateutil = "^2.8.19"
@@ -54,7 +54,7 @@ pytest-mock = "^3.6.1"
 pytest-freezegun = "^0.4.2"
 respx = "^0.20"
 nest-asyncio = "^1.5.6"
-asyncmock = { version = "^0.4.2", python = "<3.8" }
+mock = { version = "^4.0", python = "<3.8" }
 
 [tool.poetry.extras]
 latex = ["ipython"]
