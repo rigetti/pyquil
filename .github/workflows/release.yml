@@ -3,15 +3,12 @@ name: Release pyQuil
 on:
   release:
     types: [published]
-  push:
-    branches:
-      - revamp-release-workflows
   workflow_dispatch:
     description: "Manually publish release"
 
 jobs:
   build:
-    name: Build sdist
+    name: Build
     runs-on: ubuntu-latest
     steps:
     - uses: actions/checkout@v3
