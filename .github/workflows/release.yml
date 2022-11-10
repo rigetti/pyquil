@@ -5,6 +5,9 @@ on:
     types: [published]
   workflow_dispatch:
     description: "Manually publish release"
+  push:
+    branches:
+      - v4
 
 jobs:
   build:
