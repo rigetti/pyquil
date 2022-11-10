@@ -135,6 +135,7 @@ class AbstractCompiler(ABC):
 
         # TODO This ISA isn't always going to be available. Specifically, if the quantum processor is
         # a QVM-type processor, then `quantum_processor` will have a CompilerISA, not a QCSISA.
+        # This will have to be addressed as part of this issue: https://github.com/rigetti/pyquil/issues/1496
         target_device = compiler_isa_to_target_quantum_processor(self.quantum_processor.to_compiler_isa())
         native_quil = self._event_loop.run_until_complete(
             _compile(program.out(calibrations=False), json.dumps(target_device.asdict(), indent=2))  # type: ignore
