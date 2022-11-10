@@ -3,7 +3,7 @@ name: Release Dry Run
 on: push
 
 jobs:
-  prepare-release:
+  release-dry-run:
     runs-on: ubuntu-latest
     env:
       GITHUB_TOKEN: ${{ secrets.PAT }}

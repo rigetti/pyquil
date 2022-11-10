@@ -17,7 +17,6 @@ jobs:
       run: |
         . scripts/ci_install_deps
         poetry build --no-interaction --format sdist
-    - name: Check metadata
     - uses: actions/upload-artifact@v3
       with:
         path: dist/*.tar.gz
