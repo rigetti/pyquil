@@ -3,6 +3,9 @@ name: Release pyQuil
 on:
   release:
     types: [published]
+  push:
+    branches:
+      - revamp-release-workflows
   workflow_dispatch:
     description: "Manually publish release"
 
