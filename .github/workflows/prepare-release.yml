@@ -5,7 +5,7 @@ name: Prepare Release
 on:
   push:
     branches:
-      - revamp-release-workflows
+      - v4
   workflow_dispatch:
     inputs:
       type:
