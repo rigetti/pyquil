@@ -5,8 +5,6 @@ on: push
 jobs:
   release-dry-run:
     runs-on: ubuntu-latest
-    env:
-      GITHUB_TOKEN: ${{ secrets.PAT }}
     steps:
     - uses: actions/checkout@v3
       with:
@@ -16,9 +14,5 @@ jobs:
       uses: knope-dev/action@v1
       with:
         version: 0.6.1 # Test before updating, breaking changes likely: https://github.com/knope-dev/action#install-latest-version
-    - name: Configure Git
-      run: |
-        git config --global user.name "${{ github.triggering_actor }}"
-        git config --global user.email "${{ github.triggering_actor}}@users.noreply.github.com"
     - name: Display Pending Prerelease
       run: knope prerelease --dry-run
