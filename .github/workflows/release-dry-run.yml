@@ -6,18 +6,13 @@ jobs:
   release-dry-run:
     runs-on: ubuntu-latest
     steps:
-      - uses: actions/checkout@v3
-        with:
-          fetch-depth: 0
-          token: ${{ secrets.PAT }}
-      - name: Install Knope
-        run: |
-          wget https://github.com/knope-dev/knope/releases/download/$KNOPE_VERSION/knope-x86_64-unknown-linux-musl-$KNOPE_VERSION.tgz
-          tar -xvf knope-x86_64-unknown-linux-musl-$KNOPE_VERSION.tgz
-          cp knope-x86_64-unknown-linux-musl-$KNOPE_VERSION/knope $HOME/.cargo/bin
-        env:
-          KNOPE_VERSION: v0.4.1
-      - name: Display Pending Release
-        run: knope release --dry-run
-        env:
-          GITHUB_TOKEN: ${{ secrets.PAT }}
+    - uses: actions/checkout@v3
+      with:
+        fetch-depth: 0
+        token: ${{ secrets.PAT }}
+    - name: Install Knope
+      uses: knope-dev/action@v1
+      with:
+        version: 0.6.3 # Test before updating, breaking changes likely: https://github.com/knope-dev/action#install-latest-version
+    - name: Display Pending Prerelease
+      run: knope prerelease --dry-run
