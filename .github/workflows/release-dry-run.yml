@@ -13,6 +13,6 @@ jobs:
     - name: Install Knope
       uses: knope-dev/action@v1
       with:
-        version: 0.6.1 # Test before updating, breaking changes likely: https://github.com/knope-dev/action#install-latest-version
+        version: 0.6.3 # Test before updating, breaking changes likely: https://github.com/knope-dev/action#install-latest-version
     - name: Display Pending Prerelease
       run: knope prerelease --dry-run
