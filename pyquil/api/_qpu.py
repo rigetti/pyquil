@@ -193,7 +193,7 @@ class QPU(QAM[QPUExecuteResponse]):
         Retrieve results from execution on the QPU.
         """
 
-        async def _get_result(*args) -> qcs_sdk.ExecutionResults:  # type: ignore
+        async def _get_result(*args):
             return await qcs_sdk.retrieve_results(*args)
 
         results = self._event_loop.run_until_complete(
