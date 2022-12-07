@@ -26,7 +26,7 @@ lark = "^0.11.1"
 rpcq = "^3.10.0"
 networkx = "^2.5"
 importlib-metadata = { version = ">=3.7.3,<5", python = "<3.8" }
-qcs-sdk-python = "0.4.1"
+qcs-sdk-python = "0.4.2"
 qcs-api-client = ">=0.21.0,<0.22.0"
 retry = "^0.9.2"
 types-python-dateutil = "^2.8.19"
