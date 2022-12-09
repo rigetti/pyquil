@@ -289,11 +289,24 @@ class Program:
 
             # Implementation note: these two base cases are the only ones which modify the program
             elif isinstance(instruction, DefGate):
-                defined_gate_names = [gate.name for gate in self._defined_gates]
-                if instruction.name in defined_gate_names:
-                    warnings.warn("Gate {} has already been defined in this program".format(instruction.name))
+                # If the gate definition differs from the current one, print a warning and replace it.
+                try:
+                    existing_defgate = next(gate for gate in self._defined_gates if gate.name == instruction.name)
+                    if (instruction.matrix.dtype == np.complex_) or (instruction.matrix.dtype == np.float_):
+                        if not np.allclose(existing_defgate.matrix, instruction.matrix):
+                            warnings.warn("Redefining gate {}".format(instruction.name))
+                            self._defined_gates = [
+                                gate if gate.name != instruction.name else instruction for gate in self._defined_gates
+                            ]
+                    else:
+                        if not existing_defgate.matrix == instruction.matrix:
+                            warnings.warn("Redefining gate {}".format(instruction.name))
+                            self._defined_gates = [
+                                gate if gate.name != instruction.name else instruction for gate in self._defined_gates
+                            ]
+                except Exception:
+                    self._defined_gates.append(instruction)
 
-                self._defined_gates.append(instruction)
             elif isinstance(instruction, DefCalibration) or isinstance(instruction, DefMeasureCalibration):
                 self.calibrations.append(instruction)
             elif isinstance(instruction, DefWaveform):
