@@ -94,6 +94,8 @@ def test_twoq_gate_kwarg(twoq_gate):
         qubits = {"control": 234, "target": 567}
     elif "SWAP" in func_name:
         qubits = {"q1": 234, "q2": 567}
+    elif func_name.startswith("R"):
+        qubits = {"q1": 234, "q2": 567}
     else:
         raise ValueError()
 
