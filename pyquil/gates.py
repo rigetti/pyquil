@@ -506,7 +506,7 @@ def XY(angle: ParameterDesignator, q1: QubitDesignator, q2: QubitDesignator) -> 
         XY(phi) = [[1,               0,               0, 0],
                    [0,      cos(phi/2), 1j * sin(phi/2), 0],
                    [0, 1j * sin(phi/2),      cos(phi/2), 0],
-                   [0,               0,               0, 1]
+                   [0,               0,               0, 1]]
 
     :param angle: The angle of the rotation to apply to the population 1 subspace.
     :param q1: Qubit 1.
@@ -514,6 +514,89 @@ def XY(angle: ParameterDesignator, q1: QubitDesignator, q2: QubitDesignator) -> 
     :returns: A Gate object.
     """
     return Gate(name="XY", params=[angle], qubits=[unpack_qubit(q) for q in (q1, q2)])
+
+
+def SQiSW(q1: QubitDesignator, q2: QubitDesignator) -> Gate:
+    """Produces a SQiSW gate::
+
+        SQiSW = [[1,               0,               0, 0],
+                [0,     1 / sqrt(2),    1j / sqrt(2), 0],
+                [0,    1j / sqrt(2),     1 / sqrt(2), 0],
+                [0,               0,               0, 1]]
+
+    :param q1: Qubit 1.
+    :param q2: Qubit 2.
+    :returns: A Gate object.
+    """
+    return Gate(name="SQiSW", params=[], qubits=[unpack_qubit(q) for q in (q1, q2)])
+
+
+def FSim(theta: ParameterDesignator, phi: ParameterDesignator, q1: QubitDesignator, q2: QubitDesignator) -> Gate:
+    """Produces an fsim (Fermionic simulation) gate:
+
+        FSim(theta, phi) = [[1,                  0,                  0,           0],
+                            [0,       cos(theta/2), -1j * sin(theta/2),           0],
+                            [0, -1j * sin(theta/2),       cos(theta/2),           0],
+                            [0,                  0,                  0, exp(1j*phi)]]
+
+    Note the convention here matches neither the Excitation-Preserving gate in Qiskit, nor FSim gate in Cirq. Rather,
+    it constructed so that the theta and phi angles correspond the convention of the Quil XY and CPHASE gates.
+
+    :param theta: The angle for the XX + YY rotation.
+    :param phi: The angle for the ZZ rotation.
+    :param q1: Qubit 1.
+    :param q2: Qubit 2.
+    :returns: A Gate object.
+    """
+    return Gate(name="FSim", params=[theta, phi], qubits=[unpack_qubit(q) for q in (q1, q2)])
+
+
+def RZZ(phi: ParameterDesignator, q1: QubitDesignator, q2: QubitDesignator) -> Gate:
+    """Produces a RZZ(phi) gate:
+
+        RZZ(phi) = [[ exp(-1j*phi/2),             0,             0,              0],
+                    [              0, exp(1j*phi/2),             0,              0],
+                    [              0,             0, exp(1j*phi/2),              0],
+                    [              0,             0,             0, exp(-1j*phi/2)]]
+
+    :param phi: The angle for the ZZ rotation.
+    :param q1: Qubit 1.
+    :param q2: Qubit 2.
+    :returns: A Gate object.
+    """
+    return Gate(name="RZZ", params=[phi], qubits=[unpack_qubit(q) for q in (q1, q2)])
+
+
+def RXX(phi: ParameterDesignator, q1: QubitDesignator, q2: QubitDesignator) -> Gate:
+    """Produces a RXX(phi) gate:
+
+        RXX(phi) = [[     cos(phi/2),              0,              0, -1j*sin(phi/2)],
+                    [              0,     cos(phi/2), -1j*sin(phi/2),              0],
+                    [              0, -1j*sin(phi/2),     cos(phi/2),              0],
+                    [ -1j*sin(phi/2),              0,              0,     cos(phi/2)]]
+
+    :param phi: The angle for the XX rotation.
+    :param q1: Qubit 1.
+    :param q2: Qubit 2.
+    :returns: A Gate object.
+    """
+    return Gate(name="RXX", params=[phi], qubits=[unpack_qubit(q) for q in (q1, q2)])
+
+
+def RYY(phi: ParameterDesignator, q1: QubitDesignator, q2: QubitDesignator) -> Gate:
+    """Produces a RYY(phi) gate:
+
+        RYY(phi) = [[    cos(phi/2),              0,              0, 1j*sin(phi/2)],
+                    [             0,     cos(phi/2), -1j*sin(phi/2),             0],
+                    [             0, -1j*sin(phi/2),     cos(phi/2),             0],
+                    [ 1j*sin(phi/2),              0,              0,    cos(phi/2)]]
+
+    :param phi: The angle for the YY rotation.
+    :param q1: Qubit 1.
+    :param q2: Qubit 2.
+    :returns: A Gate object.
+    """
+    return Gate(name="RYY", params=[phi], qubits=[unpack_qubit(q) for q in (q1, q2)])
 
 
 WAIT = Wait()

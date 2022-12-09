@@ -82,6 +82,10 @@ Currently includes:
     XY(:math:`\phi`) - XY-interaction
     :math:`\begin{pmatrix} 1&0&0&0 \\ 0&\cos(\phi/2)&i\sin(\phi/2)&0 \\ 0&i\sin(\phi/2)&\cos(\phi/2)&0 \\  0&0&0&1 \end{pmatrix}`
 
+    SQiSW - XY(:math: `\pi/2`)-interaction
+    :math:`\begin{pmatrix} 1&0&0&0 \\ 0&\frac{1}{\sqrt{2}}&\frac{i}{\sqrt{2}}&0 \\ \frac{i}{\sqrt{2}}&\frac{1}{\sqrt{2}} \\  0&0&0&1 \end{pmatrix}`
+
+
 Specialized gates / internal utility gates:
     BARENCO(:math:`\alpha, \phi, \theta`) - Barenco gate
     :math:`\begin{pmatrix} 1&0&0&0 \\ 0&1&0&0 \\ 0&0&e^{i\phi} \cos\theta & -i e^{i(\alpha-\phi)} \sin\theta \\ 0&0&-i e^{i(\alpha+\phi)} \sin\theta & e^{i\alpha} \cos\theta \end{pmatrix}`
@@ -199,6 +203,59 @@ def XY(phi: float) -> np.ndarray:
         ]
     )
 
+
+def FSim(theta: float, phi: float) -> np.ndarray:
+    return np.array(
+        [
+            [1, 0, 0, 0],
+            [0, np.cos(theta / 2), 1j * np.sin(theta / 2), 0],
+            [0, 1j * np.sin(theta / 2), np.cos(theta / 2), 0],
+            [0, 0, 0, np.exp(1j * phi)],
+        ]
+    )
+
+
+def RZZ(phi: float) -> np.ndarray:
+    return np.array(
+        [
+            [np.exp(-1j * phi / 2), 0, 0, 0],
+            [0, np.exp(+1j * phi / 2), 0, 0],
+            [0, 0, np.exp(+1j * phi / 2), 0],
+            [0, 0, 0, np.exp(-1j * phi / 2)],
+        ]
+    )
+
+
+def RXX(phi: float) -> np.ndarray:
+    return np.array(
+        [
+            [np.cos(phi / 2), 0, 0, -1j * np.sin(phi / 2)],
+            [0, np.cos(phi / 2), -1j * np.sin(phi / 2), 0],
+            [0, -1j * np.sin(phi / 2), np.cos(phi / 2), 0],
+            [-1j * np.sin(phi / 2), 0, 0, np.cos(phi / 2)],
+        ]
+    )
+
+
+def RYY(phi: float) -> np.ndarray:
+    return np.array(
+        [
+            [np.cos(phi / 2), 0, 0, -1j * np.sin(phi / 2)],
+            [0, np.cos(phi / 2), +1j * np.sin(phi / 2), 0],
+            [0, +1j * np.sin(phi / 2), np.cos(phi / 2), 0],
+            [-1j * np.sin(phi / 2), 0, 0, np.cos(phi / 2)],
+        ]
+    )
+
+
+SQiSW = np.array(
+    [
+        [1, 0, 0, 0],
+        [0, 1 / np.sqrt(2), 1j / np.sqrt(2), 0],
+        [0, 1j / np.sqrt(2), 1 / np.sqrt(2), 0],
+        [0, 0, 0, 1],
+    ]
+)
 
 # Utility gates for internal QVM use
 P0 = np.array([[1, 0], [0, 0]])

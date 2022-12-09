@@ -20,6 +20,11 @@ from pyquil.gates import (
     X,
     Y,
     Z,
+    SQiSW,
+    FSim,
+    RZZ,
+    RXX,
+    RYY,
 )
 from pyquil.quilbase import _strip_modifiers
 
@@ -34,13 +39,18 @@ def param_oneq_gate(request):
     return request.param
 
 
-@pytest.fixture(params=[CZ, CNOT, SWAP, ISWAP])
+@pytest.fixture(params=[CZ, CNOT, SWAP, ISWAP, SQiSW])
 def twoq_gate(request):
     return request.param
 
 
-@pytest.fixture(params=[CPHASE, CPHASE00, CPHASE01, CPHASE10, PSWAP])
+@pytest.fixture(params=[CPHASE, CPHASE00, CPHASE01, CPHASE10, PSWAP, RZZ, RXX, RYY])
 def param_twoq_gate(request):
+    return request.param
+
+
+@pytest.fixture(params=[FSim])
+def two_param_twoq_gate(request):
     return request.param
 
 
@@ -96,6 +106,14 @@ def test_param_twoq_gate(param_twoq_gate):
     assert g.out() == "{}(0.2) 234 567".format(g.name)
 
     func_name = param_twoq_gate.__name__
+    assert g.name == func_name
+
+
+def test_two_param_twoq_gate(two_param_twoq_gate):
+    g = param_twoq_gate(0.2, 0.4, 234, 567)
+    assert g.out() == "{}(0.2, 0.4) 234 567".format(g.name)
+
+    func_name = two_param_twoq_gate.__name__
     assert g.name == func_name
 
 
