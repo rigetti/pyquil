@@ -1,0 +1,20 @@
+// For use with Visual Studio Code
+{
+  "name": "${localWorkspaceFolderBasename}",
+  "dockerComposeFile": [
+    "../docker-compose.yml", "docker-compose.extend.yml"
+  ],
+  "remoteUser": "rigetti",
+  "service": "lab",
+  "workspaceFolder": "/home/rigetti/${localWorkspaceFolderBasename}",
+  "shutdownAction": "stopCompose",
+  "extensions": [
+    "ms-python.python",
+    "ms-python.vscode-pylance",
+    "ms-toolsai.jupyter",
+  ],
+  "settings": {
+    "python.defaultInterpreterPath": "/home/quil/.venv/${localWorkspaceFolderBasename}/bin/python",
+    "python.pythonpath": "/home/rigetti/.venv/${localWorkspaceFolderBasename}/bin/python"
+  }
+}

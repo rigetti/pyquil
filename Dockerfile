@@ -1,34 +1,63 @@
-# use multi-stage builds to independently pull dependency versions
-ARG quilc_version=1.20.0
-ARG qvm_version=1.17.1
-ARG python_version=3.7
+# syntax=docker/dockerfile:1.3
 
-# use multi-stage builds to independently pull dependency versions
-FROM rigetti/quilc:$quilc_version as quilc
-FROM rigetti/qvm:$qvm_version as qvm
-FROM python:$python_version-buster
+FROM python:3.7 AS dev
 
-ARG pyquil_version
+USER root
 
-# copy over the pre-built quilc binary from the first build stage
-COPY --from=quilc /src/quilc/quilc /src/quilc/quilc
+ENV DEBIAN_FRONTEND=noninteractive
+RUN apt-get update \
+    && apt-get install -y \
+    curl \
+    wget \
+    git \
+    build-essential \
+    software-properties-common \
+    bash-completion \
+    sudo
 
-# copy over the pre-built qvm binary from the second build stage
-COPY --from=qvm /src/qvm/qvm /src/qvm/qvm
+# Create the docker user 'rigetti'
+ENV USER=rigetti
+ARG UID=1000
+ARG GID=1000
+RUN addgroup --gid ${GID} ${USER} \
+    && adduser \
+    --disabled-password \
+    --gecos ${USER} \
+    --gid ${GID} \
+    --uid ${UID} \
+    --home /home/rigetti/ \
+    ${USER} \
+    && usermod -aG sudo ${USER} \
+    && passwd -d ${USER}
 
-# install the missing apt packages that aren't copied over
-RUN apt-get update && apt-get -yq dist-upgrade && \
-    apt-get install --no-install-recommends -yq \
-    git libblas-dev libffi-dev liblapack-dev libzmq3-dev && \
-    rm -rf /var/lib/apt/lists/*
+# Create our project directory and switch to it
+ARG PROJECT_SLUG=pyquil
+ARG SRC_DIR=.
+ENV APP_DIR=/home/${USER}/${PROJECT_SLUG}
+RUN mkdir -p ${APP_DIR}/${SRC_DIR} && chown -R ${USER}:${USER} ${APP_DIR}/${SRC_DIR}
 
-# install ipython
-RUN pip install --no-cache-dir ipython
+WORKDIR ${APP_DIR}/${SRC_DIR}
 
-# install pyquil
-RUN pip install pyquil==$pyquil_version
+USER ${USER}
 
-# use an entrypoint script to add startup commands (qvm & quilc server spinup)
-COPY ./entrypoint.sh /src/pyquil/entrypoint.sh
-ENTRYPOINT ["/src/pyquil/entrypoint.sh"]
-CMD ["ipython"]
+# Install poetry
+RUN curl -sSL https://install.python-poetry.org | python3 -
+ENV PATH="${PATH}:/home/${USER}/.local/bin"
+RUN mkdir -p /home/${USER}/.config/pypoetry/
+
+# Install the package
+COPY --chown=${USER}:${USER} ${SRC_DIR}/README.md ${SRC_DIR}/pyproject.toml ${SRC_DIR}/poetry.lock ./
+COPY --chown=${USER}:${USER} --chmod=775 ${SRC_DIR}/pyquil/__init__.py ./pyquil/__init__.py
+RUN poetry install \
+    --no-interaction \
+    --no-ansi \
+    --extras latex
+RUN rm -r ./pyquil
+
+# Set up the venv
+RUN mkdir ${HOME}/.venv/ && ln -s $(poetry env info -p) /home/${USER}/.venv/${PROJECT_SLUG}
+ENV VIRTUAL_ENV=/home/${USER}/.venv/${PROJECT_SLUG}
+ENV PATH="$VIRTUAL_ENV/bin:$PATH"
+
+WORKDIR ${APP_DIR}
+ENV SHELL /bin/bash

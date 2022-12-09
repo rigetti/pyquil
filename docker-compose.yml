@@ -1,0 +1,25 @@
+version: '3.5'
+
+services:
+  lab:
+    build:
+      context: .
+      dockerfile: Dockerfile
+    volumes:
+      - .:/home/rigetti/pyquil/
+    environment:
+      - QCS_SETTINGS_APPLICATIONS_PYQUIL_QVM_URL=http://qvm:5000
+      - QCS_SETTINGS_APPLICATIONS_PYQUIL_QUILC_URL=tcp://quilc:5555
+  quilc:
+    image: rigetti/quilc
+    command:
+      - -R
+      - -p
+      - "5555"
+      - -P
+  qvm:
+    image: rigetti/qvm
+    command:
+      - -p
+      - "5000"
+      - -S
