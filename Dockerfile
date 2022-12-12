@@ -13,6 +13,10 @@ RUN apt-get update \
     build-essential \
     software-properties-common \
     bash-completion \
+    libblas-dev \
+    libffi-dev \
+    liblapack-dev \ 
+    libzmq3-dev \
     sudo
 
 # Create the docker user 'rigetti'
