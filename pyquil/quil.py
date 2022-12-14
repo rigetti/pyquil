@@ -299,7 +299,7 @@ class Program:
                                 gate if gate.name != instruction.name else instruction for gate in self._defined_gates
                             ]
                     else:
-                        if not existing_defgate.matrix == instruction.matrix:
+                        if not np.all(existing_defgate.matrix == instruction.matrix):
                             warnings.warn("Redefining gate {}".format(instruction.name))
                             self._defined_gates = [
                                 gate if gate.name != instruction.name else instruction for gate in self._defined_gates
