@@ -551,7 +551,7 @@ def SQISW(q1: QubitDesignator, q2: QubitDesignator) -> Gate:
 def FSIM(theta: ParameterDesignator, phi: ParameterDesignator, q1: QubitDesignator, q2: QubitDesignator) -> Gate:
     """Produces an fsim (Fermionic simulation) gate:
 
-        FSim(theta, phi) = [[1,                  0,                  0,            0],
+        FSIM(theta, phi) = [[1,                  0,                  0,            0],
                             [0,       cos(theta/2), -1j * sin(theta/2),            0],
                             [0, -1j * sin(theta/2),       cos(theta/2),            0],
                             [0,                  0,                  0, exp(-1j*phi)]]
@@ -576,7 +576,7 @@ def PHASEDFSIM(
 ) -> Gate:
     """Produces an phasedfsim (Fermionic simulation) gate:
 
-        FSim(theta, zeta, chi, gamma, phi) = [
+        PHASEDFSIM(theta, zeta, chi, gamma, phi) = [
             [1,                                        0,                                        0,                       0],
             [0,     exp(-1j*(gamma+zeta)) * cos(theta/2), -1j* exp(-1j*(gamma-chi)) * sin(theta/2),                       0],
             [0, -1j* exp(-1j*(gamma+chi)) * sin(theta/2),     exp(-1j*(gamma-zeta)) * cos(theta/2),                       0],
