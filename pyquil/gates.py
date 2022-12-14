@@ -577,10 +577,10 @@ def PHASEDFSIM(
     """Produces an phasedfsim (Fermionic simulation) gate:
 
         PHASEDFSIM(theta, zeta, chi, gamma, phi) = [
-            [1,                                        0,                                        0,                       0],
-            [0,     exp(-1j*(gamma+zeta)) * cos(theta/2), -1j* exp(-1j*(gamma-chi)) * sin(theta/2),                       0],
-            [0, -1j* exp(-1j*(gamma+chi)) * sin(theta/2),     exp(-1j*(gamma-zeta)) * cos(theta/2),                       0],
-            [0,                                        0,                                        0, exp(-2j*gamma - 1j*phi)]]
+            [1, 0, 0, 0],
+            [0, exp(-1j*(gamma+zeta)) * cos(theta/2), -1j* exp(-1j*(gamma-chi)) * sin(theta/2), 0],
+            [0, -1j* exp(-1j*(gamma+chi)) * sin(theta/2),     exp(-1j*(gamma-zeta)) * cos(theta/2), 0],
+            [0, 0, 0, exp(-2j*gamma - 1j*phi)]]
 
     :param theta: The angle for the XX + YY rotation.
     :param zeta: Zeta phase.
