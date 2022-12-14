@@ -46,6 +46,9 @@ Currently includes:
     RZ(:math:`\phi`) - RZ
     :math:`\begin{pmatrix} \cos(\phi/2) - i \sin(\phi/2) & 0 \\ 0 & \cos(\phi/2) + i \sin(\phi/2) \end{pmatrix}`
 
+    U(:math:`\theta, \phi, \lambda`) - U3
+    :math:`\begin{pmatrix} \cos(\theta/2) & - \exp{i\lambda} \sin(\theta/2) \\ \exp{i\phi} \sin(\theta/2) & \exp{i\phi + \lambda} \cos(\theta/2) \end{pmatrix}`
+
     CZ - controlled-Z
     :math:`P_0 \otimes I + P_1 \otimes Z = \begin{pmatrix} 1&0&0&0 \\ 0&1&0&0 \\ 0&0&1&0 \\ 0&0&0&-1 \end{pmatrix}`
 
@@ -82,9 +85,14 @@ Currently includes:
     XY(:math:`\phi`) - XY-interaction
     :math:`\begin{pmatrix} 1&0&0&0 \\ 0&\cos(\phi/2)&i\sin(\phi/2)&0 \\ 0&i\sin(\phi/2)&\cos(\phi/2)&0 \\  0&0&0&1 \end{pmatrix}`
 
-    SQiSW - XY(:math: `\pi/2`)-interaction
+    SQISW - XY(:math: `\pi/2`)-interaction
     :math:`\begin{pmatrix} 1&0&0&0 \\ 0&\frac{1}{\sqrt{2}}&\frac{i}{\sqrt{2}}&0 \\ \frac{i}{\sqrt{2}}&\frac{1}{\sqrt{2}} \\  0&0&0&1 \end{pmatrix}`
 
+    FSIM(:math:`\theta, \phi`) - XX+YY interaction with conditonal phase on \|11\>
+    :math:`\begin{pmatrix} 1&0&0&0 \\ 0&\cos(\theta/2)&-i\sin(\theta/2)&0 \\ 0&-i\sin(theta/2)&\cos(\theta/2)&0 \\  0&0&0&e^{-i \phi} \end{pmatrix}`
+
+    PHASEDFSIM(:math:`\theta, \zeta, \chi, \gamma, \phi`) - XX+YY interaction with conditonal phase on \|11\>
+    :math:`\begin{pmatrix} 1&0&0&0 \\ 0&\ exp(-1j*(gamma+zeta))*cos(\theta/2)&-iexp(-1j*(gamma-chi))\sin(\theta/2)&0 \\ 0&-iexp(-1j*(gamma+chi))\sin(theta/2)&exp(-1j*(gamma-zeta))\cos(\theta/2)&0 \\  0&0&0&e^{-2i\gamma - i\phi} \end{pmatrix}`
 
 Specialized gates / internal utility gates:
     BARENCO(:math:`\alpha, \phi, \theta`) - Barenco gate
@@ -133,6 +141,15 @@ def RZ(phi: float) -> np.ndarray:
         [
             [np.cos(phi / 2.0) - 1j * np.sin(phi / 2.0), 0],
             [0, np.cos(phi / 2.0) + 1j * np.sin(phi / 2.0)],
+        ]
+    )
+
+
+def U(theta: float, phi: float, lam: float) -> np.ndarray:
+    return np.array(
+        [
+            [np.cos(theta / 2.0), -1 * np.exp(1j * lam) * np.sin(theta / 2.0)],
+            [np.exp(1j * phi) * np.sin(theta / 2.0), np.exp(1j * (phi + lam)) * np.cos(theta / 2.0)],
         ]
     )
 
@@ -204,12 +221,33 @@ def XY(phi: float) -> np.ndarray:
     )
 
 
-def FSim(theta: float, phi: float) -> np.ndarray:
+def FSIM(theta: float, phi: float) -> np.ndarray:
     return np.array(
         [
             [1, 0, 0, 0],
             [0, np.cos(theta / 2), 1j * np.sin(theta / 2), 0],
             [0, 1j * np.sin(theta / 2), np.cos(theta / 2), 0],
+            [0, 0, 0, np.exp(1j * phi)],
+        ]
+    )
+
+
+def PHASEDFSIM(theta: float, zeta: float, chi: float, gamma: float, phi: float) -> np.ndarray:
+    return np.array(
+        [
+            [1, 0, 0, 0],
+            [
+                0,
+                np.exp(-1j * (gamma + zeta)) * np.cos(theta / 2),
+                -1j * np.exp(-1j * (gamma - chi)) * np.sin(theta / 2),
+                0,
+            ],
+            [
+                0,
+                -1j * np.exp(-1j * (gamma + chi)) * np.sin(theta / 2),
+                np.exp(-1j * (gamma - zeta)) * np.cos(theta / 2),
+                0,
+            ],
             [0, 0, 0, np.exp(1j * phi)],
         ]
     )

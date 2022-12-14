@@ -268,6 +268,23 @@ def RZ(angle: ParameterDesignator, qubit: QubitDesignator) -> Gate:
     return Gate(name="RZ", params=[angle], qubits=[unpack_qubit(qubit)])
 
 
+def U(theta: ParameterDesignator, phi: ParameterDesignator, lam: ParameterDesignator, qubit: QubitDesignator) -> Gate:
+    """Produces the RZ gate::
+
+        U(theta, phi, lam) = [[              cos(theta / 2),  -1 * exp(1j*lam) * sin(theta / 2)]
+                              [exp(1j*phi) * sin(theta / 2), exp(1j*(phi+lam)) * cos(theta / 2)]]
+
+    Single qubit rotation with 3 Euler angles.
+
+    :param theta: The theta Euler angle.
+    :param phi: The phi Euler angle.
+    :param lam: The lambda Euler angle.
+    :param qubit: The qubit apply the gate to.
+    :returns: A Gate object.
+    """
+    return Gate(name="U", params=[theta, phi, lam], qubits=[unpack_qubit(qubit)])
+
+
 def PHASE(angle: ParameterDesignator, qubit: QubitDesignator) -> Gate:
     """Produces the PHASE gate::
 
@@ -516,8 +533,8 @@ def XY(angle: ParameterDesignator, q1: QubitDesignator, q2: QubitDesignator) -> 
     return Gate(name="XY", params=[angle], qubits=[unpack_qubit(q) for q in (q1, q2)])
 
 
-def SQiSW(q1: QubitDesignator, q2: QubitDesignator) -> Gate:
-    """Produces a SQiSW gate::
+def SQISW(q1: QubitDesignator, q2: QubitDesignator) -> Gate:
+    """Produces a SQISW gate::
 
         SQiSW = [[1,               0,               0, 0],
                 [0,     1 / sqrt(2),    1j / sqrt(2), 0],
@@ -528,19 +545,16 @@ def SQiSW(q1: QubitDesignator, q2: QubitDesignator) -> Gate:
     :param q2: Qubit 2.
     :returns: A Gate object.
     """
-    return Gate(name="SQiSW", params=[], qubits=[unpack_qubit(q) for q in (q1, q2)])
+    return Gate(name="SQISW", params=[], qubits=[unpack_qubit(q) for q in (q1, q2)])
 
 
-def FSim(theta: ParameterDesignator, phi: ParameterDesignator, q1: QubitDesignator, q2: QubitDesignator) -> Gate:
+def FSIM(theta: ParameterDesignator, phi: ParameterDesignator, q1: QubitDesignator, q2: QubitDesignator) -> Gate:
     """Produces an fsim (Fermionic simulation) gate:
 
-        FSim(theta, phi) = [[1,                  0,                  0,           0],
-                            [0,       cos(theta/2), -1j * sin(theta/2),           0],
-                            [0, -1j * sin(theta/2),       cos(theta/2),           0],
-                            [0,                  0,                  0, exp(1j*phi)]]
-
-    Note the convention here matches neither the Excitation-Preserving gate in Qiskit, nor FSim gate in Cirq. Rather,
-    it constructed so that the theta and phi angles correspond the convention of the Quil XY and CPHASE gates.
+        FSim(theta, phi) = [[1,                  0,                  0,            0],
+                            [0,       cos(theta/2), -1j * sin(theta/2),            0],
+                            [0, -1j * sin(theta/2),       cos(theta/2),            0],
+                            [0,                  0,                  0, exp(-1j*phi)]]
 
     :param theta: The angle for the XX + YY rotation.
     :param phi: The angle for the ZZ rotation.
@@ -548,7 +562,36 @@ def FSim(theta: ParameterDesignator, phi: ParameterDesignator, q1: QubitDesignat
     :param q2: Qubit 2.
     :returns: A Gate object.
     """
-    return Gate(name="FSim", params=[theta, phi], qubits=[unpack_qubit(q) for q in (q1, q2)])
+    return Gate(name="FSIM", params=[theta, phi], qubits=[unpack_qubit(q) for q in (q1, q2)])
+
+
+def PHASEDFSIM(
+    theta: ParameterDesignator,
+    zeta: ParameterDesignator,
+    chi: ParameterDesignator,
+    gamma: ParameterDesignator,
+    phi: ParameterDesignator,
+    q1: QubitDesignator,
+    q2: QubitDesignator,
+) -> Gate:
+    """Produces an phasedfsim (Fermionic simulation) gate:
+
+        FSim(theta, zeta, chi, gamma, phi) = [
+            [1,                                        0,                                        0,                       0],
+            [0,     exp(-1j*(gamma+zeta)) * cos(theta/2), -1j* exp(-1j*(gamma-chi)) * sin(theta/2),                       0],
+            [0, -1j* exp(-1j*(gamma+chi)) * sin(theta/2),     exp(-1j*(gamma-zeta)) * cos(theta/2),                       0],
+            [0,                                        0,                                        0, exp(-2j*gamma - 1j*phi)]]
+
+    :param theta: The angle for the XX + YY rotation.
+    :param zeta: Zeta phase.
+    :param chi: Chi phase.
+    :param gamma: Gamma phase.
+    :param phi: The angle for the ZZ rotation.
+    :param q1: Qubit 1.
+    :param q2: Qubit 2.
+    :returns: A Gate object.
+    """
+    return Gate(name="PHASEDFSIM", params=[theta, zeta, chi, gamma, phi], qubits=[unpack_qubit(q) for q in (q1, q2)])
 
 
 def RZZ(phi: ParameterDesignator, q1: QubitDesignator, q2: QubitDesignator) -> Gate:
