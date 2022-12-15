@@ -89,10 +89,10 @@ Currently includes:
     :math:`\begin{pmatrix} 1&0&0&0 \\ 0&\frac{1}{\sqrt{2}}&\frac{i}{\sqrt{2}}&0 \\ \frac{i}{\sqrt{2}}&\frac{1}{\sqrt{2}} \\  0&0&0&1 \end{pmatrix}`
 
     FSIM(:math:`\theta, \phi`) - XX+YY interaction with conditonal phase on \|11\>
-    :math:`\begin{pmatrix} 1&0&0&0 \\ 0&\cos(\theta/2)&-i\sin(\theta/2)&0 \\ 0&-i\sin(theta/2)&\cos(\theta/2)&0 \\  0&0&0&e^{-i \phi} \end{pmatrix}`
+    :math:`\begin{pmatrix} 1&0&0&0 \\ 0&\cos(\frac{\theta}{2})&i\sin(\frac{\theta}{2})&0 \\ 0&i\sin(\frac{\theta}{2})&\cos(\frac{\theta}{2})&0 \\  0&0&0&e^{i \phi} \end{pmatrix}`
 
     PHASEDFSIM(:math:`\theta, \zeta, \chi, \gamma, \phi`) - XX+YY interaction with conditonal phase on \|11\>
-    :math:`\begin{pmatrix} 1&0&0&0 \\ 0&\ exp(-1j*(gamma+zeta))*cos(\theta/2)&-iexp(-1j*(gamma-chi))\sin(\theta/2)&0 \\ 0&-iexp(-1j*(gamma+chi))\sin(theta/2)&exp(-1j*(gamma-zeta))\cos(\theta/2)&0 \\  0&0&0&e^{-2i\gamma - i\phi} \end{pmatrix}`
+    :math:`\begin{pmatrix} 1&0&0&0 \\ 0&\ e^{-i(\gamma+\zeta)}\cos(\frac{\theta}{2})&ie^{-i(\gamma-\chi)}\sin(\frac{\theta}{2})&0 \\ 0&ie^{-i(\gamma+\chi)}\sin(\frac{\theta}{2})&e^{-i(\gamma-\zeta)}\cos(\frac{\theta}{2})&0 \\  0&0&0&e^{ i\phi - 2i\gamma} \end{pmatrix}`
 
 Specialized gates / internal utility gates:
     BARENCO(:math:`\alpha, \phi, \theta`) - Barenco gate
@@ -239,12 +239,12 @@ def PHASEDFSIM(theta: float, zeta: float, chi: float, gamma: float, phi: float) 
             [
                 0,
                 np.exp(-1j * (gamma + zeta)) * np.cos(theta / 2),
-                -1j * np.exp(-1j * (gamma - chi)) * np.sin(theta / 2),
+                1j * np.exp(-1j * (gamma - chi)) * np.sin(theta / 2),
                 0,
             ],
             [
                 0,
-                -1j * np.exp(-1j * (gamma + chi)) * np.sin(theta / 2),
+                1j * np.exp(-1j * (gamma + chi)) * np.sin(theta / 2),
                 np.exp(-1j * (gamma - zeta)) * np.cos(theta / 2),
                 0,
             ],
