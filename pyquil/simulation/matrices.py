@@ -286,7 +286,7 @@ def RYY(phi: float) -> np.ndarray:
     )
 
 
-SQiSW = np.array(
+SQISW = np.array(
     [
         [1, 0, 0, 0],
         [0, 1 / np.sqrt(2), 1j / np.sqrt(2), 0],
