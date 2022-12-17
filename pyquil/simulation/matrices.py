@@ -248,7 +248,7 @@ def PHASEDFSIM(theta: float, zeta: float, chi: float, gamma: float, phi: float) 
                 np.exp(-1j * (gamma - zeta)) * np.cos(theta / 2),
                 0,
             ],
-            [0, 0, 0, np.exp(1j * phi)],
+            [0, 0, 0, np.exp(1j * phi - 2j*gamma)],
         ]
     )
 
@@ -337,6 +337,12 @@ QUANTUM_GATES = {
     "ISWAP": ISWAP,
     "PSWAP": PSWAP,
     "BARENCO": BARENCO,
+    "FSIM": FSIM,
+    "PHASEDFSIM": PHASEDFSIM,
+    "RXX": RXX,
+    "RYY": RYY,
+    "RZZ": RZZ,
+    "U": U,
 }
 
 
