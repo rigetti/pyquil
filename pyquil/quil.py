@@ -100,9 +100,10 @@ from pyquil.quiltcalibrations import (
     match_calibration,
 )
 
+from qcs_sdk.quil import Program as QuilProgram, Instruction as QuilInstruction, parse_instructions
+
 InstructionDesignator = Union[
     AbstractInstruction,
-    DefGate,
     "Program",
     List[Any],
     Tuple[Any, ...],
@@ -126,37 +127,14 @@ class Program:
     """Contents of memory to be used as program parameters during execution"""
 
     def __init__(self, *instructions: InstructionDesignator):
-        self._defined_gates: List[DefGate] = []
-
-        self._calibrations: List[Union[DefCalibration, DefMeasureCalibration]] = []
-        self._waveforms: Dict[str, DefWaveform] = {}
-        self._frames: Dict[Frame, DefFrame] = {}
-
-        # Implementation note: the key difference between the private _instructions and
-        # the public instructions property below is that the private _instructions list
-        # may contain placeholder labels.
-        self._instructions: List[AbstractInstruction] = []
-
-        # Performance optimization: as stated above _instructions may contain placeholder
-        # labels so the program must first be have its labels instantiated.
-        # _synthesized_instructions is simply a cache on the result of the _synthesize()
-        # method.  It is marked as None whenever new instructions are added.
-        self._synthesized_instructions: Optional[List[AbstractInstruction]] = None
-
-        self._declarations: Dict[str, Declare] = {}
-
+        self._program = QuilProgram("")
         self.inst(*instructions)
-
-        # Filled in with quil_to_native_quil
-        self.native_quil_metadata: Optional[NativeQuilMetadata] = None
 
         # default number of shots to loop through
         self.num_shots = 1
 
+        # Will be moved to rust... later
         self._memory = Memory()
-
-        # Note to developers: Have you changed this method? Have you changed the fields which
-        # live on `Program`? Please update `Program.copy()`!
 
     @property
     def calibrations(self) -> List[Union[DefCalibration, DefMeasureCalibration]]:
@@ -222,10 +200,11 @@ class Program:
         """
         Fill in any placeholders and return a list of quil AbstractInstructions.
         """
-        if self._synthesized_instructions is None:
-            self._synthesize()
-        assert self._synthesized_instructions is not None
-        return self._synthesized_instructions
+        # if self._synthesized_instructions is None:
+        #     self._synthesize()
+        # assert self._synthesized_instructions is not None
+        # return self._synthesized_instructions
+        return self._instructions
 
     def inst(self, *instructions: InstructionDesignator) -> "Program":
         """
@@ -252,7 +231,7 @@ class Program:
         """
         for instruction in instructions:
             if isinstance(instruction, list):
-                self.inst(*instruction)
+                self.inst(*instruction)  # results.append(...)
             elif isinstance(instruction, types.GeneratorType):
                 self.inst(*instruction)
             elif isinstance(instruction, tuple):
@@ -277,37 +256,15 @@ class Program:
                             rest = [possible_params] + list(rest)
                         self.gate(op, params, rest)
             elif isinstance(instruction, str):
-                self.inst(run_parser(instruction.strip()))
-            elif isinstance(instruction, Program):
-                if id(self) == id(instruction):
-                    raise ValueError("Nesting a program inside itself is not supported")
-
-                for defgate in instruction._defined_gates:
-                    self.inst(defgate)
-                for instr in instruction._instructions:
-                    self.inst(instr)
-
-            # Implementation note: these two base cases are the only ones which modify the program
-            elif isinstance(instruction, DefGate):
-                defined_gate_names = [gate.name for gate in self._defined_gates]
-                if instruction.name in defined_gate_names:
-                    warnings.warn("Gate {} has already been defined in this program".format(instruction.name))
-
-                self._defined_gates.append(instruction)
-            elif isinstance(instruction, DefCalibration) or isinstance(instruction, DefMeasureCalibration):
-                self.calibrations.append(instruction)
-            elif isinstance(instruction, DefWaveform):
-                self.waveforms[instruction.name] = instruction
-            elif isinstance(instruction, DefFrame):
-                self.frames[instruction.frame] = instruction
+                self.inst(parse_instructions(instruction.strip()))
+            elif isinstance(instruction, QuilProgram):  # TODO: Add programs together in rs
+                raise ValueError("unimplemented")
             elif isinstance(instruction, AbstractInstruction):
-                self._instructions.append(instruction)
-                self._synthesized_instructions = None
-
-                if isinstance(instruction, Declare):
-                    self._declarations[instruction.name] = instruction
+                self.inst(parse_instructions(instruction.out()))
+            elif isinstance(instruction, QuilInstruction):
+                self._program.add_instruction(instruction)
             else:
-                raise TypeError("Invalid instruction: {}".format(instruction))
+                raise TypeError("Invalid instruction: {}".format(repr(instruction)))
 
         return self
 
@@ -503,7 +460,7 @@ class Program:
         """
         Prepend instructions to the beginning of the program.
         """
-        self._instructions = [*instructions, *self._instructions]
+        # self._instructions = [*instructions, *self._instructions]
         self._synthesized_instructions = None
         return self
 
@@ -811,7 +768,8 @@ class Program:
         Re-order DECLARE instructions within this program to the beginning, followed by
         all other instructions. Reordering is stable among DECLARE and non-DECLARE instructions.
         """
-        self._instructions = sorted(self._instructions, key=lambda instruction: not isinstance(instruction, Declare))
+        pass  # TODO no-op
+        # self._instructions = sorted(self._instructions, key=lambda instruction: not isinstance(instruction, Declare))
 
     def pop(self) -> AbstractInstruction:
         """
@@ -819,10 +777,13 @@ class Program:
 
         :return: The instruction that was popped.
         """
-        res = self._instructions.pop()
+        # res = self._instructions.pop() # TODO: deprecate unless needed otherwise implement rs
         self._synthesized_instructions = None
         return res
 
+    # TODO: Why and where is this needed?
+    # Ask Mark about it
+    # If needed, should be in rs
     def dagger(self, inv_dict: Optional[Any] = None, suffix: str = "-INV") -> "Program":
         """
         Creates the conjugate transpose of the Quil program. The program must
@@ -842,27 +803,28 @@ class Program:
         surely_gate_instructions = cast(List[Gate], Program(self.out())._instructions)
         return Program([instr.dagger() for instr in reversed(surely_gate_instructions)])
 
-    def _synthesize(self) -> "Program":
-        """
-        Assigns all placeholder labels to actual values.
-
-        Changed in 1.9: Either all qubits must be defined or all undefined. If qubits are
-        undefined, this method will not help you. You must explicitly call `address_qubits`
-        which will return a new Program.
-
-        Changed in 1.9: This function now returns ``self`` and updates
-        ``self._synthesized_instructions``.
-
-        Changed in 2.0: This function will add an instruction to the top of the program
-        to declare a register of bits called ``ro`` if and only if there are no other
-        declarations in the program.
-
-        Changed in 3.0: Removed above change regarding implicit ``ro`` declaration.
-
-        :return: This object with the ``_synthesized_instructions`` member set.
-        """
-        self._synthesized_instructions = instantiate_labels(self._instructions)
-        return self
+    # TODO: Probably deprecate
+    # def _synthesize(self) -> "Program":
+    #     """
+    #     Assigns all placeholder labels to actual values.
+    #
+    #     Changed in 1.9: Either all qubits must be defined or all undefined. If qubits are
+    #     undefined, this method will not help you. You must explicitly call `address_qubits`
+    #     which will return a new Program.
+    #
+    #     Changed in 1.9: This function now returns ``self`` and updates
+    #     ``self._synthesized_instructions``.
+    #
+    #     Changed in 2.0: This function will add an instruction to the top of the program
+    #     to declare a register of bits called ``ro`` if and only if there are no other
+    #     declarations in the program.
+    #
+    #     Changed in 3.0: Removed above change regarding implicit ``ro`` declaration.
+    #
+    #     :return: This object with the ``_synthesized_instructions`` member set.
+    #     """
+    #     self._synthesized_instructions = instantiate_labels(self._instructions)
+    #     return self
 
     def __add__(self, other: InstructionDesignator) -> "Program":
         """
@@ -933,17 +895,7 @@ class Program:
         This may not be suitable for submission to a QPU or QVM for example if
         your program contains unaddressed QubitPlaceholders
         """
-        return "\n".join(
-            itertools.chain(
-                (str(dg) for dg in self._defined_gates),
-                (str(wf) for wf in self.waveforms.values()),
-                (str(fdef) for fdef in self.frames.values()),
-                (str(cal) for cal in self.calibrations),
-                (str(instr) for instr in self.instructions),
-                [""],
-            )
-        )
-
+        return str(self._program)
 
 def _what_type_of_qubit_does_it_use(
     program: Program,
@@ -1093,50 +1045,51 @@ def address_qubits(
     return new_program
 
 
-def _get_label(
-    placeholder: LabelPlaceholder,
-    label_mapping: Dict[LabelPlaceholder, Label],
-    label_i: int,
-) -> Tuple[Label, Dict[LabelPlaceholder, Label], int]:
-    """Helper function to either get the appropriate label for a given placeholder or generate
-    a new label and update the mapping.
-
-    See :py:func:`instantiate_labels` for usage.
-    """
-    if placeholder in label_mapping:
-        return label_mapping[placeholder], label_mapping, label_i
-
-    new_target = Label("{}{}".format(placeholder.prefix, label_i))
-    label_i += 1
-    label_mapping[placeholder] = new_target
-    return new_target, label_mapping, label_i
-
-
-def instantiate_labels(instructions: Iterable[AbstractInstruction]) -> List[AbstractInstruction]:
-    """
-    Takes an iterable of instructions which may contain label placeholders and assigns
-    them all defined values.
-
-    :return: list of instructions with all label placeholders assigned to real labels.
-    """
-    label_i = 1
-    result: List[AbstractInstruction] = []
-    label_mapping: Dict[LabelPlaceholder, Label] = dict()
-    for instr in instructions:
-        if isinstance(instr, Jump) and isinstance(instr.target, LabelPlaceholder):
-            new_target, label_mapping, label_i = _get_label(instr.target, label_mapping, label_i)
-            result.append(Jump(new_target))
-        elif isinstance(instr, JumpConditional) and isinstance(instr.target, LabelPlaceholder):
-            new_target, label_mapping, label_i = _get_label(instr.target, label_mapping, label_i)
-            cls = instr.__class__  # Make the correct subclass
-            result.append(cls(new_target, instr.condition))
-        elif isinstance(instr, JumpTarget) and isinstance(instr.label, LabelPlaceholder):
-            new_label, label_mapping, label_i = _get_label(instr.label, label_mapping, label_i)
-            result.append(JumpTarget(new_label))
-        else:
-            result.append(instr)
-
-    return result
+# TODO: consider deprecate
+# def _get_label(
+#     placeholder: LabelPlaceholder,
+#     label_mapping: Dict[LabelPlaceholder, Label],
+#     label_i: int,
+# ) -> Tuple[Label, Dict[LabelPlaceholder, Label], int]:
+#     """Helper function to either get the appropriate label for a given placeholder or generate
+#     a new label and update the mapping.
+#
+#     See :py:func:`instantiate_labels` for usage.
+#     """
+#     if placeholder in label_mapping:
+#         return label_mapping[placeholder], label_mapping, label_i
+#
+#     new_target = Label("{}{}".format(placeholder.prefix, label_i))
+#     label_i += 1
+#     label_mapping[placeholder] = new_target
+#     return new_target, label_mapping, label_i
+#
+#
+# def instantiate_labels(instructions: Iterable[AbstractInstruction]) -> List[AbstractInstruction]:
+#     """
+#     Takes an iterable of instructions which may contain label placeholders and assigns
+#     them all defined values.
+#
+#     :return: list of instructions with all label placeholders assigned to real labels.
+#     """
+#     label_i = 1
+#     result: List[AbstractInstruction] = []
+#     label_mapping: Dict[LabelPlaceholder, Label] = dict()
+#     for instr in instructions:
+#         if isinstance(instr, Jump) and isinstance(instr.target, LabelPlaceholder):
+#             new_target, label_mapping, label_i = _get_label(instr.target, label_mapping, label_i)
+#             result.append(Jump(new_target))
+#         elif isinstance(instr, JumpConditional) and isinstance(instr.target, LabelPlaceholder):
+#             new_target, label_mapping, label_i = _get_label(instr.target, label_mapping, label_i)
+#             cls = instr.__class__  # Make the correct subclass
+#             result.append(cls(new_target, instr.condition))
+#         elif isinstance(instr, JumpTarget) and isinstance(instr.label, LabelPlaceholder):
+#             new_label, label_mapping, label_i = _get_label(instr.label, label_mapping, label_i)
+#             result.append(JumpTarget(new_label))
+#         else:
+#             result.append(instr)
+#
+#     return result
 
 
 def merge_with_pauli_noise(
