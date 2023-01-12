@@ -37,9 +37,8 @@ from typing import (
 )
 
 import numpy as np
-from rpcq.messages import NativeQuilMetadata, ParameterAref
+from rpcq.messages import ParameterAref
 
-from pyquil._parser.parser import run_parser
 from pyquil._memory import Memory
 from pyquil.gates import MEASURE, RESET, MOVE
 from pyquil.noise import _check_kraus_ops, _create_kraus_pragmas, pauli_kraus_map
@@ -100,7 +99,7 @@ from pyquil.quiltcalibrations import (
     match_calibration,
 )
 
-from qcs_sdk.quil import Program as QuilProgram, Instruction as QuilInstruction, parse_instructions
+from qcs_sdk.quil import Program as QuilProgram, Instruction as QuilInstruction
 
 InstructionDesignator = Union[
     AbstractInstruction,
@@ -139,22 +138,27 @@ class Program:
     @property
     def calibrations(self) -> List[Union[DefCalibration, DefMeasureCalibration]]:
         """A list of Quil-T calibration definitions."""
-        return self._calibrations
+        return self._program.calibrations.calibrations + self._program.calibrations.measure_calibrations
+
+    @property
+    def measure_calibrations(self) -> List[DefMeasureCalibration]:
+        """A list of measure calibrations"""
+        return self._program.measure_calibrations
 
     @property
     def waveforms(self) -> Dict[str, DefWaveform]:
         """A mapping from waveform names to their corresponding definitions."""
-        return self._waveforms
+        return self._program.waveforms
 
     @property
     def frames(self) -> Dict[Frame, DefFrame]:
         """A mapping from Quil-T frames to their definitions."""
-        return self._frames
+        return self._program.frames.get_all_frames()
 
     @property
     def declarations(self) -> Dict[str, Declare]:
         """A mapping from declared region names to their declarations."""
-        return self._declarations
+        return self._program.declarations
 
     def copy_everything_except_instructions(self) -> "Program":
         """
@@ -162,49 +166,32 @@ class Program:
 
         :return: a new Program
         """
-        new_prog = Program()
-        new_prog._calibrations = self.calibrations.copy()
-        new_prog._declarations = self._declarations.copy()
-        new_prog._waveforms = self.waveforms.copy()
-        new_prog._defined_gates = self._defined_gates.copy()
-        new_prog._frames = self.frames.copy()
-        if self.native_quil_metadata is not None:
-            # TODO: remove this type: ignore once rpcq._base.Message gets type hints.
-            new_prog.native_quil_metadata = self.native_quil_metadata.copy()  # type: ignore
+        new_prog = Program(self._program.to_headers())
         new_prog.num_shots = self.num_shots
         new_prog._memory = self._memory.copy()
         return new_prog
 
     def copy(self) -> "Program":
         """
-        Perform a shallow copy of this program.
-
-        QuilAtom and AbstractInstruction objects should be treated as immutable to avoid
-        strange behavior when performing a copy.
+        Performs a deep copy of this program.
 
         :return: a new Program
         """
-        new_prog = self.copy_everything_except_instructions()
-        new_prog._instructions = self._instructions.copy()
-        return new_prog
+        return Program(self)
 
     @property
     def defined_gates(self) -> List[DefGate]:
         """
         A list of defined gates on the program.
         """
-        return self._defined_gates
+        return self._program.defined_gates
 
     @property
     def instructions(self) -> List[AbstractInstruction]:
         """
         Fill in any placeholders and return a list of quil AbstractInstructions.
         """
-        # if self._synthesized_instructions is None:
-        #     self._synthesize()
-        # assert self._synthesized_instructions is not None
-        # return self._synthesized_instructions
-        return self._instructions
+        return self._program.to_instructions(False)
 
     def inst(self, *instructions: InstructionDesignator) -> "Program":
         """
@@ -231,38 +218,24 @@ class Program:
         """
         for instruction in instructions:
             if isinstance(instruction, list):
-                self.inst(*instruction)  # results.append(...)
+                self.inst(*instruction)
             elif isinstance(instruction, types.GeneratorType):
                 self.inst(*instruction)
             elif isinstance(instruction, tuple):
                 if len(instruction) == 0:
                     raise ValueError("tuple should have at least one element")
-                elif len(instruction) == 1:
-                    self.inst(instruction[0])
                 else:
-                    op = instruction[0]
-                    if op == "MEASURE":
-                        if len(instruction) == 2:
-                            self.measure(instruction[1], None)
-                        else:
-                            self.measure(instruction[1], instruction[2])
-                    else:
-                        params: List[ParameterDesignator] = []
-                        possible_params = instruction[1]
-                        rest: Sequence[Any] = instruction[2:]
-                        if isinstance(possible_params, list):
-                            params = possible_params
-                        else:
-                            rest = [possible_params] + list(rest)
-                        self.gate(op, params, rest)
+                    self.inst(' '.join(instruction))
             elif isinstance(instruction, str):
-                self.inst(parse_instructions(instruction.strip()))
-            elif isinstance(instruction, QuilProgram):  # TODO: Add programs together in rs
-                raise ValueError("unimplemented")
+                self.inst(QuilProgram(instruction.strip()))
             elif isinstance(instruction, AbstractInstruction):
-                self.inst(parse_instructions(instruction.out()))
+                self.inst(QuilProgram(instruction.out()))
             elif isinstance(instruction, QuilInstruction):
                 self._program.add_instruction(instruction)
+            elif isinstance(instruction, QuilProgram):  # TODO: Add programs together in rs
+                self._program += instruction
+            elif isinstance(instruction, Program):
+                self.inst(instruction._program)
             else:
                 raise TypeError("Invalid instruction: {}".format(repr(instruction)))
 
@@ -442,7 +415,6 @@ class Program:
         ]
 
         self.prepend_instructions(move_instructions)
-        self._sort_declares_to_program_start()
 
         return self
 
@@ -460,9 +432,8 @@ class Program:
         """
         Prepend instructions to the beginning of the program.
         """
-        # self._instructions = [*instructions, *self._instructions]
-        self._synthesized_instructions = None
-        return self
+        new_prog = Program(*instructions)
+        return new_prog + self
 
     def while_do(self, classical_reg: MemoryReferenceDesignator, q_program: "Program") -> "Program":
         """
@@ -600,16 +571,8 @@ class Program:
         Serializes the Quil program to a string suitable for submitting to the QVM or QPU.
         """
 
-        return "\n".join(
-            itertools.chain(
-                (dg.out() for dg in self._defined_gates),
-                (wf.out() for wf in self.waveforms.values()),
-                (fdef.out() for fdef in self.frames.values()),
-                (cal.out() for cal in self.calibrations) if calibrations else list(),
-                (instr.out() for instr in self.instructions),
-                [""],
-            )
-        )
+        # TODO: program str without calibrations
+        return str(self._program)
 
     def get_qubits(self, indices: bool = True) -> Set[QubitDesignator]:
         """
@@ -629,27 +592,8 @@ class Program:
             wrapping :py:class:`Qubit` object
         :return: A set of all the qubit indices used in this program
         """
-        qubits: Set[QubitDesignator] = set()
-        for instr in self.instructions:
-            if isinstance(
-                instr,
-                (
-                    Gate,
-                    Measurement,
-                    ResetQubit,
-                    Pulse,
-                    Capture,
-                    RawCapture,
-                    ShiftFrequency,
-                    SetFrequency,
-                    SetPhase,
-                    ShiftPhase,
-                    SwapPhase,
-                    SetScale,
-                ),
-            ):
-                qubits |= instr.get_qubits(indices=indices)
-        return qubits
+        # TODO: what to do about indices flag?
+        self._program.get_used_qubits()
 
     def match_calibrations(self, instr: AbstractInstruction) -> Optional[CalibrationMatch]:
         """
@@ -742,9 +686,9 @@ class Program:
         """
         try:
             if quilt:
-                validate_protoquil(self, quilt=quilt)
+                self._program.validate_quilt()
             else:
-                validate_protoquil(self)
+                self._program.validate_protoquil()
             return True
         except ValueError:
             return False
@@ -767,19 +711,11 @@ class Program:
         """
         Re-order DECLARE instructions within this program to the beginning, followed by
         all other instructions. Reordering is stable among DECLARE and non-DECLARE instructions.
-        """
-        pass  # TODO no-op
-        # self._instructions = sorted(self._instructions, key=lambda instruction: not isinstance(instruction, Declare))
 
-    def pop(self) -> AbstractInstruction:
+        .. deprecated:: 4.0
+           Sorting the program is managed by `qcs_sdk.quil`. This is a no-op.
         """
-        Pops off the last instruction.
-
-        :return: The instruction that was popped.
-        """
-        # res = self._instructions.pop() # TODO: deprecate unless needed otherwise implement rs
-        self._synthesized_instructions = None
-        return res
+        pass
 
     # TODO: Why and where is this needed?
     # Ask Mark about it
@@ -794,13 +730,13 @@ class Program:
 
         :return: The Quil program's inverse
         """
-        if any(not isinstance(instr, Gate) for instr in self._instructions):
+        if any(not isinstance(instr, Gate) for instr in self.instructions):
             raise ValueError("Program to be daggered must contain only gate applications")
 
         # This is a bit hacky. Gate.dagger() mutates the gate object, rather than returning a fresh
         # (and daggered) copy. Also, mypy doesn't understand that we already asserted that every
         # instr in _instructions is a Gate, above, so help mypy out with a cast.
-        surely_gate_instructions = cast(List[Gate], Program(self.out())._instructions)
+        surely_gate_instructions = cast(List[Gate], Program(self.out()).instructions)
         return Program([instr.dagger() for instr in reversed(surely_gate_instructions)])
 
     # TODO: Probably deprecate
@@ -836,30 +772,16 @@ class Program:
         p = Program()
         p.inst(self)
         p.inst(other)
-        p._calibrations = self.calibrations.copy()
-        p._waveforms = self.waveforms.copy()
-        p._frames = self.frames.copy()
-        p._memory = self._memory.copy()
-        if isinstance(other, Program):
-            p.calibrations.extend(other.calibrations)
-            p.waveforms.update(other.waveforms)
-            p.frames.update(other.frames)
-            p._memory.values.update(other._memory.values)
         return p
 
     def __iadd__(self, other: InstructionDesignator) -> "Program":
         """
-        Concatenate two programs together using +=, returning a new one.
+        Concatenate two programs together using +=, appending the program on the right hand side to the one on the left hand side.
 
         :param other: Another program or instruction to concatenate to this one.
-        :return: A newly concatenated program.
+        :return: The updated program.
         """
         self.inst(other)
-        if isinstance(other, Program):
-            self.calibrations.extend(other.calibrations)
-            self.waveforms.update(other.waveforms)
-            self.frames.update(other.frames)
-            self._memory.values.update(other._memory.copy().values)
         return self
 
     def __getitem__(self, index: Union[slice, int]) -> Union[AbstractInstruction, "Program"]:
@@ -879,10 +801,10 @@ class Program:
         """
         return self.instructions.__iter__()
 
-    def __eq__(self, other: object) -> bool:
-        return isinstance(other, self.__class__) and self.out() == other.out()
+    def __eq__(self, other: "Program") -> bool:
+        return self._program == other._program
 
-    def __ne__(self, other: object) -> bool:
+    def __ne__(self, other: "Program") -> bool:
         return not self.__eq__(other)
 
     def __len__(self) -> int:
