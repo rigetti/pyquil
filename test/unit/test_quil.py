@@ -126,6 +126,23 @@ def test_defgate_param():
     tg = test(Qubit(1))
     assert tg.out() == "TEST 1"
 
+def test_defgate_redefintion():
+    """Test that adding a defgate with the same name updates the definition."""
+    program = Program()
+    mat = np.array([[1.0, 0.0], [0.0, 1.0]])
+    dgp = DefGate("TEST", mat)
+    program += dgp
+
+    assert program.defined_gates[0].name == "TEST"
+    assert np.all(program.defined_gates[0].matrix == mat)
+
+    new_mat = np.array([[0.0, -1.0j], [1.0j, 0.0]])
+    dgp = DefGate("TEST", new_mat)
+    program += dgp
+
+    assert program.defined_gates[0].name == "TEST"
+    assert np.all(program.defined_gates[0].matrix == new_mat)
+
 
 def test_inst_gates():
     p = Program()
