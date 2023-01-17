@@ -269,7 +269,7 @@ def RZ(angle: ParameterDesignator, qubit: QubitDesignator) -> Gate:
 
 
 def U(theta: ParameterDesignator, phi: ParameterDesignator, lam: ParameterDesignator, qubit: QubitDesignator) -> Gate:
-    """Produces the RZ gate::
+    """Produces a generic single-qubit rotation::
 
         U(theta, phi, lam) = [[              cos(theta / 2),  -1 * exp(1j*lam) * sin(theta / 2)]
                               [exp(1j*phi) * sin(theta / 2), exp(1j*(phi+lam)) * cos(theta / 2)]]
@@ -279,7 +279,7 @@ def U(theta: ParameterDesignator, phi: ParameterDesignator, lam: ParameterDesign
     :param theta: The theta Euler angle.
     :param phi: The phi Euler angle.
     :param lam: The lambda Euler angle.
-    :param qubit: The qubit apply the gate to.
+    :param qubit: The qubit to apply the gate to.
     :returns: A Gate object.
     """
     return Gate(name="U", params=[theta, phi, lam], qubits=[unpack_qubit(qubit)])
@@ -537,9 +537,9 @@ def SQISW(q1: QubitDesignator, q2: QubitDesignator) -> Gate:
     """Produces a SQISW gate::
 
         SQiSW = [[1,               0,               0, 0],
-                [0,     1 / sqrt(2),    1j / sqrt(2), 0],
-                [0,    1j / sqrt(2),     1 / sqrt(2), 0],
-                [0,               0,               0, 1]]
+                 [0,     1 / sqrt(2),    1j / sqrt(2), 0],
+                 [0,    1j / sqrt(2),     1 / sqrt(2), 0],
+                 [0,               0,               0, 1]]
 
     :param q1: Qubit 1.
     :param q2: Qubit 2.
