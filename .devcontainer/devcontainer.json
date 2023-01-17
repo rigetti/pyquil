@@ -2,7 +2,8 @@
 {
   "name": "${localWorkspaceFolderBasename}",
   "dockerComposeFile": [
-    "../docker-compose.yml", "docker-compose.extend.yml"
+    "../docker-compose.yaml",
+    "docker-compose.extend.yaml"
   ],
   "remoteUser": "rigetti",
   "service": "lab",
