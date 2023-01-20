@@ -506,6 +506,9 @@ class DiagramBuilder:
             offset = target_qubits[0] - q
             self.diagram.append(q, TIKZ_CONTROL(q, offset))
 
+        # sort the qubit list because the first qubit indicates wire placement on the diagram
+        target_qubits.sort()
+
         # we put the gate on the first target line, and nop on the others
         self.diagram.append(
             target_qubits[0],
