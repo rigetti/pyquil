@@ -168,3 +168,35 @@ def test_2q_cphase_circuit():
 
     start_idx = actual.index("\\begin{tikzcd}")
     assert expected == actual[start_idx : start_idx + len(expected)]
+
+
+def test_2q_cnot_circuit():
+    """Check CNOT circuit displays expected control and target qubits."""
+    prog = Program(CNOT(0, 1))
+
+    expected = r"""
+    \begin{tikzcd}
+    \lstick{\ket{q_{0}}} & \ctrl{1} & \qw \\
+    \lstick{\ket{q_{1}}} & \targ{} & \qw
+    \end{tikzcd}
+    """.strip().split()
+
+    actual = to_latex(prog).split()
+    start_idx = actual.index("\\begin{tikzcd}")
+    assert expected == actual[start_idx : start_idx + len(expected)]
+
+
+def test_2q_swap_cnot_circuit():
+    """Check qubit swap of CNOT circuit displays expected control and target qubits."""
+    prog = Program(CNOT(1, 0))
+
+    expected = r"""
+    \begin{tikzcd}
+    \lstick{\ket{q_{0}}} & \targ{} & \qw \\
+    \lstick{\ket{q_{1}}} & \ctrl{-1} & \qw
+    \end{tikzcd}
+    """.strip().split()
+
+    actual = to_latex(prog).split()
+    start_idx = actual.index("\\begin{tikzcd}")
+    assert expected == actual[start_idx : start_idx + len(expected)]
