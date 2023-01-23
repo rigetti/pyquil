@@ -162,10 +162,6 @@ def test_2q_cphase_circuit():
     """.strip().split()
 
     actual = to_latex(prog).split()
-
-    for d in actual:
-        print(d)
-
     start_idx = actual.index("\\begin{tikzcd}")
     assert expected == actual[start_idx : start_idx + len(expected)]
 
