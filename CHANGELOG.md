@@ -1,5 +1,11 @@
 # Changelog
 
+## 3.3.3
+
+### Fixes
+
+- incorrect circuit rendering (#1520)
+
 ## 3.3.2
 
 ## 3.3.1
