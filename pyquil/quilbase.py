@@ -1329,6 +1329,7 @@ class DefMeasureCalibration(AbstractInstruction):
         memory_reference: Optional[MemoryReference],
         instrs: List[AbstractInstruction],
     ):
+        self.name = "MEASURE"
         self.qubit = qubit
         self.memory_reference = memory_reference
         self.instrs = instrs
