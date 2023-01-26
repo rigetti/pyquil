@@ -497,16 +497,14 @@ class DiagramBuilder:
         self.diagram.extend_lines_to_common_edge(qubits)
 
         control_qubits = qubits[:controls]
-        target_qubits = qubits[controls:]
-        if not self.diagram.is_interval(sorted(target_qubits)):
+        # sort the target qubit list because the first qubit indicates wire placement on the diagram
+        target_qubits = sorted(qubits[controls:])
+        if not self.diagram.is_interval(target_qubits):
             raise ValueError(f"Unable to render instruction {instr} which targets non-adjacent qubits.")
 
         for q in control_qubits:
             offset = target_qubits[0] - q
             self.diagram.append(q, TIKZ_CONTROL(q, offset))
-
-        # sort the qubit list because the first qubit indicates wire placement on the diagram
-        target_qubits.sort()
 
         # we put the gate on the first target line, and nop on the others
         self.diagram.append(
