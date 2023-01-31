@@ -56,6 +56,7 @@ RB_ENCODED_REPLY = [[0, 0], [1, 1]]
 RB_REPLY = [Program("H 0\nH 0\n"), Program("PHASE(pi/2) 0\nPHASE(pi/2) 0\n")]
 
 
+# TODO: quil-rs needs to implement program_unitary
 def test_quil_to_native_quil(compiler):
     response = compiler.quil_to_native_quil(BELL_STATE)
     p_unitary = program_unitary(response, n_qubits=2)
@@ -65,6 +66,7 @@ def test_quil_to_native_quil(compiler):
     assert np.allclose(p_unitary, scale_out_phase(compiled_p_unitary, p_unitary))
 
 
+# TODO: Gate: params have extra () on output
 def test_local_rb_sequence(benchmarker):
     response = benchmarker.generate_rb_sequence(2, [PHASE(np.pi / 2, 0), H(0)], seed=52)
     assert [prog.out() for prog in response] == [
@@ -82,4 +84,3 @@ def test_local_conjugate_request(benchmarker):
 def test_apply_clifford_to_pauli(benchmarker):
     response = benchmarker.apply_clifford_to_pauli(Program("H 0"), PauliTerm("I", 0, 0.34))
     assert response == PauliTerm("I", 0, 0.34)
-

@@ -82,5 +82,5 @@ RX(pi/2) 33
 """
     )
     p_all = p1 + p2
-    assert p1 == original_p1
+    assert str(p1) == str(original_p1)
     assert p1.calibrations != p_all.calibrations

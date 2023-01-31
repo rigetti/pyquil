@@ -35,10 +35,10 @@ from pyquil.quilbase import DefGate, Gate
 def test_pauli_kraus_map():
     probabilities = [0.1, 0.2, 0.3, 0.4]
     k1, k2, k3, k4 = pauli_kraus_map(probabilities)
-    assert np.allclose(k1, np.sqrt(0.1) * np.eye(2), atol=1 * 10 ** -8)
-    assert np.allclose(k2, np.sqrt(0.2) * np.array([[0, 1.0], [1.0, 0]]), atol=1 * 10 ** -8)
-    assert np.allclose(k3, np.sqrt(0.3) * np.array([[0, -1.0j], [1.0j, 0]]), atol=1 * 10 ** -8)
-    assert np.allclose(k4, np.sqrt(0.4) * np.array([[1, 0], [0, -1]]), atol=1 * 10 ** -8)
+    assert np.allclose(k1, np.sqrt(0.1) * np.eye(2), atol=1 * 10**-8)
+    assert np.allclose(k2, np.sqrt(0.2) * np.array([[0, 1.0], [1.0, 0]]), atol=1 * 10**-8)
+    assert np.allclose(k3, np.sqrt(0.3) * np.array([[0, -1.0j], [1.0j, 0]]), atol=1 * 10**-8)
+    assert np.allclose(k4, np.sqrt(0.4) * np.array([[1, 0], [0, -1]]), atol=1 * 10**-8)
 
     two_q_pauli_kmaps = pauli_kraus_map(np.kron(probabilities, list(reversed(probabilities))))
     q1_pauli_kmaps = [k1, k2, k3, k4]
@@ -103,6 +103,7 @@ def test_damping_after_dephasing():
     np.testing.assert_allclose(noisy_rho, target_rho)
 
 
+# TODO isinstance compatibility
 def test_noise_helpers():
     gates = RX(np.pi / 2, 0), RX(-np.pi / 2, 1), I(1), CZ(0, 1)
     prog = Program(*gates)
@@ -110,6 +111,7 @@ def test_noise_helpers():
     assert set(inferred_gates) == set(gates)
 
 
+# TODO isinstance compatibility
 def test_decoherence_noise():
     prog = Program(RX(np.pi / 2, 0), CZ(0, 1), RZ(np.pi, 0))
     gates = _get_program_gates(prog)
@@ -279,6 +281,7 @@ def test_readout_compensation():
     assert np.isclose(zm[1, 1, 1], 1.0)
 
 
+# TODO: quil-rs PRAGMA parsing
 def test_estimate_assignment_probs(mocker: MockerFixture):
     mock_qc = mocker.patch("pyquil.api.QuantumComputer").return_value
     mock_compiler = mocker.patch("pyquil.api._abstract_compiler.AbstractCompiler").return_value
@@ -291,8 +294,18 @@ def test_estimate_assignment_probs(mocker: MockerFixture):
     mock_qc.compiler = mock_compiler
     mock_qc
     mock_qc.run.side_effect = [
-        QAMExecutionResult(executable=None, readout_data={'ro': np.array([[0]]) * int(round(p00 * trials)) + np.array([[1]]) * int(round((1 - p00) * trials))}),  # I gate results
-        QAMExecutionResult(executable=None, readout_data={'ro': np.array([[1]]) * int(round(p11 * trials)) + np.array([[0]]) * int(round((1 - p11) * trials))}),  # X gate results
+        QAMExecutionResult(
+            executable=None,
+            readout_data={
+                "ro": np.array([[0]]) * int(round(p00 * trials)) + np.array([[1]]) * int(round((1 - p00) * trials))
+            },
+        ),  # I gate results
+        QAMExecutionResult(
+            executable=None,
+            readout_data={
+                "ro": np.array([[1]]) * int(round(p11 * trials)) + np.array([[0]]) * int(round((1 - p11) * trials))
+            },
+        ),  # X gate results
     ]
     ap_target = np.array([[p00, 1 - p11], [1 - p00, p11]])
 

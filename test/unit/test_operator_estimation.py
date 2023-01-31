@@ -36,6 +36,7 @@ from pyquil.paulis import sI, sX, sY, sZ, PauliSum
 from pyquil.quilbase import Pragma
 
 
+# TODO: Instruction API and compatibility
 def test_measure_observables(client_configuration: QCSClientConfiguration):
     expts = [
         ExperimentSetting(TensorProductState(), o1 * o2)

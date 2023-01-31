@@ -99,23 +99,15 @@ DEFGATE XGATE:
 """
 
 
-TRIMMED_PROG = """
-DEFGATE XGATE:
-    0, 1
-    1, 0
-
-X 0
-"""
-
-
-def test_remove_reset_from_program():
+def test_remove_reset_from_program(snapshot):
     p = Program(DEFGATE_X)
     p += RESET()
     p += X(0)
     new_p = _remove_reset_from_program(p)
-    assert "\n" + new_p.out() == TRIMMED_PROG
+    assert new_p.out() == snapshot
 
 
+# TODO: isinstance compatibility
 def test_generate_experiment_program():
     # simplest example
     p = Program()
@@ -163,6 +155,8 @@ def test_generate_experiment_program():
     test_exp += RESET()
     ro = test_exp.declare("ro", "BIT")
     test_exp += MEASURE(0, ro[0])
+    print("exp\n", exp.out())
+    print("exp\n", test_exp.out())
     assert exp.out() == test_exp.out()
     assert exp.num_shots == 1
 

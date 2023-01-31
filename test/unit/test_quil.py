@@ -712,7 +712,7 @@ U(2.0) 1 0
     assert p.out() == s
 
 
-# TODO: Deprecate or migrate logic to quil-rs
+# TODO: Deprecate or migrate program merging logic to quil-rs
 def test_prog_merge():
     prog_0 = Program(X(0))
     prog_1 = Program(Y(0))
@@ -844,7 +844,7 @@ def test_get_qubits_not_as_indices():
     assert pq.get_qubits(indices=False) == {Qubit(i) for i in [0, 4, 5]}
 
 
-# TODO: Instruction placeholders
+# TODO: Qubit placeholders
 def test_eq():
     p1 = Program()
     q1 = QubitPlaceholder()
@@ -1023,7 +1023,7 @@ def test_out_vs_str():
     assert re.fullmatch(should_be_re, string_version, flags=re.MULTILINE)
 
 
-# TODO: Re-implement
+# TODO: Re-implement get_classical_addresses_from_program
 def test_get_classical_addresses_from_program():
     p = Program(Declare("ro", "BIT", 4), [H(i) for i in range(4)])
     assert get_classical_addresses_from_program(p) == {}
@@ -1032,7 +1032,7 @@ def test_get_classical_addresses_from_program():
     assert get_classical_addresses_from_program(p) == {"ro": [0, 1, 3]}
 
 
-# TODO: Re-implement
+# TODO: Re-implement get_classical_addresses_from_program
 def test_get_classical_addresses_from_quil_program():
     """
     Tests that can get_classical_addresses_from_program can handle both MEASURE
@@ -1271,7 +1271,7 @@ def test_is_protoquil():
     assert prog.is_protoquil(quilt=True)
 
 
-# TODO: Subtract what now?
+# TODO: Subtract memory regions
 def test_subtracting_memory_regions():
     # https://github.com/rigetti/pyquil/issues/709
     p = Program()

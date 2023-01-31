@@ -153,6 +153,7 @@ http://pyquil.readthedocs.io/en/latest/noise_models.html#support-for-noisy-gates
             self.random_seed,
         )
         response = self._qvm_client.run_program(request)
+        print("response", response)
         ram = {key: np.array(val) for key, val in response.results.items()}
         result_memory.update(ram)
 

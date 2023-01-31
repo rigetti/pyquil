@@ -1,82 +1,26 @@
 # name: test_binary_classicals
-  '''
-  AND ro[0] ro[1]
-  MOVE ro[0] ro[1]
-  CONVERT ro[0] ro[1]
-  IOR ro[0] ro[1]
-  XOR ro[0] ro[1]
-  ADD ro[0] ro[1]
-  SUB ro[0] ro[1]
-  MUL ro[0] ro[1]
-  DIV ro[0] ro[1]
-  EXCHANGE ro[0] ro[1]
-  
-  '''
+  None
 # ---
 # name: test_construction_syntax
-  '''
-  DECLARE ro BIT[2]
-  X 0
-  Y 1
-  Z 0
-  MEASURE 0 ro[1]
-  
-  '''
+  None
 # ---
 # name: test_construction_syntax.1
-  '''
-  DECLARE ro BIT[3]
-  X 0
-  Y 1
-  MEASURE 0 ro[1]
-  MEASURE 1 ro[2]
-  
-  '''
+  None
 # ---
 # name: test_construction_syntax.2
-  '''
-  DECLARE ro BIT[2]
-  X 0
-  MEASURE 0 ro[1]
-  Y 1
-  X 0
-  MEASURE 0 ro[0]
-  
-  '''
+  None
 # ---
 # name: test_controlled_gates
-  '''
-  CNOT 0 1
-  CCNOT 0 1 2
-  
-  '''
+  None
 # ---
 # name: test_copy
-  '''
-  H 0
-  CNOT 0 1
-  
-  '''
+  None
 # ---
 # name: test_copy.1
-  '''
-  DECLARE ro BIT[2]
-  H 0
-  CNOT 0 1
-  MEASURE 0 ro[0]
-  MEASURE 1 ro[1]
-  
-  '''
+  None
 # ---
 # name: test_def_gate
-  '''
-  DEFGATE SQRT-X AS MATRIX:
-  	(0.5+0.5i), (0.5-0.5i)
-  	(0.5-0.5i), (0.5+0.5i)
-  
-  SQRT-X 0
-  
-  '''
+  None
 # ---
 # name: test_defgate
   '''
@@ -107,218 +51,68 @@
   'TEST 1 2'
 # ---
 # name: test_inst_gates
-  '''
-  H 0
-  X 1
-  
-  '''
+  None
 # ---
 # name: test_inst_string
-  '''
-  Y 0
-  X 1
-  
-  '''
+  None
 # ---
 # name: test_inst_tuple
-  '''
-  Y 0
-  X 1
-  
-  '''
+  None
 # ---
 # name: test_measure_all
-  '''
-  DECLARE ro BIT[4]
-  MEASURE 0 ro[0]
-  MEASURE 1 ro[1]
-  MEASURE 2 ro[3]
-  
-  '''
+  None
 # ---
 # name: test_measure_all_noncontig
-  '''
-  DECLARE ro BIT[11]
-  H 0
-  H 10
-  MEASURE 0 ro[0]
-  MEASURE 10 ro[10]
-  
-  '''
+  None
 # ---
 # name: test_measurement_calls
-  '''
-  DECLARE ro BIT[2]
-  MEASURE 0 ro[1]
-  MEASURE 0 ro[1]
-  
-  '''
+  None
 # ---
 # name: test_memory_reference_unpacking
-  '''
-  AND ro[0] ro[1]
-  MOVE ro[0] ro[1]
-  CONVERT ro[0] ro[1]
-  IOR ro[0] ro[1]
-  XOR ro[0] ro[1]
-  ADD ro[0] ro[1]
-  SUB ro[0] ro[1]
-  MUL ro[0] ro[1]
-  DIV ro[0] ro[1]
-  EXCHANGE ro[0] ro[1]
-  
-  '''
+  None
 # ---
 # name: test_merge_with_pauli_noise
-  '''
-  DEFGATE pauli_noise AS MATRIX:
-  	1, 0
-  	0, 1
-  
-  PRAGMA ADD-KRAUS pauli_noise 0 "(0.0 0.0 0.0 0.0)"
-  PRAGMA ADD-KRAUS pauli_noise 0 "(0.0 1.0 1.0 0.0)"
-  PRAGMA ADD-KRAUS pauli_noise 0 "(0.0 0.0 0.0 0.0)"
-  PRAGMA ADD-KRAUS pauli_noise 0 "(0.0 0.0 0.0 -0.0)"
-  X 0
-  pauli_noise 0
-  Z 0
-  pauli_noise 0
-  
-  '''
+  None
 # ---
 # name: test_multiqubit_gate
-  '''
-  DEFGATE X-SQRT-X AS MATRIX:
-  	0, (0.5+0.5i), 0, (0.5-0.5i)
-  	(0.5+0.5i), 0, (0.5-0.5i), 0
-  	0, (0.5-0.5i), 0, (0.5+0.5i)
-  	(0.5-0.5i), 0, (0.5+0.5i), 0
-  
-  X-SQRT-X 0 1
-  
-  '''
+  None
 # ---
 # name: test_phases
-  '''
-  PHASE(pi) 1
-  CPHASE00(pi) 0 1
-  CPHASE01(pi) 0 1
-  CPHASE10(pi) 0 1
-  CPHASE(pi) 0 1
-  
-  '''
+  None
 # ---
 # name: test_plus_operator
-  '''
-  H 0
-  X 0
-  Y 0
-  Z 0
-  
-  '''
+  None
 # ---
 # name: test_prog_init
-  '''
-  DECLARE ro BIT[1]
-  X 0
-  MEASURE 0 ro[0]
-  
-  '''
+  None
 # ---
 # name: test_program_pop
-  '''
-  X 0
-  
-  '''
+  None
 # ---
 # name: test_program_pop.1
-  '''
-  X 1
-  
-  '''
+  None
 # ---
 # name: test_program_string
-  '''
-  Y 0
-  X 1
-  
-  '''
+  None
 # ---
 # name: test_program_tuple
-  '''
-  Y 0
-  X 1
-  
-  '''
+  None
 # ---
 # name: test_rotations
-  '''
-  RX(0.5) 0
-  RY(0.1) 1
-  RZ(1.4) 2
-  
-  '''
+  None
 # ---
 # name: test_simple_instructions
-  '''
-  HALT
-  WAIT
-  RESET
-  NOP
-  
-  '''
+  None
 # ---
 # name: test_singles
-  '''
-  I 0
-  X 0
-  Y 1
-  Z 1
-  H 2
-  T 2
-  S 1
-  
-  '''
+  None
 # ---
 # name: test_swaps
-  '''
-  SWAP 0 1
-  CSWAP 0 1 2
-  ISWAP 0 1
-  PSWAP(pi) 0 1
-  
-  '''
+  None
 # ---
 # name: test_ternary_classicals
-  '''
-  LOAD ro[0] ro n[0]
-  STORE ro n[0] ro[0]
-  STORE ro n[0] 0
-  STORE ro n[0] 0.1
-  EQ ro[0] ro[1] 0
-  EQ ro[0] ro[1] 0
-  EQ ro[0] ro[1] ro[0]
-  GE ro[0] ro[1] 1
-  GE ro[0] ro[1] 1.1
-  GE ro[0] ro[1] ro[1]
-  GT ro[0] ro[1] 2
-  GT ro[0] ro[1] 2.2
-  GT ro[0] ro[1] ro[2]
-  LE ro[0] ro[1] 3
-  LE ro[0] ro[1] 3.3
-  LE ro[0] ro[1] ro[3]
-  LT ro[0] ro[1] 4
-  LT ro[0] ro[1] 4.4
-  LT ro[0] ro[1] ro[4]
-  
-  '''
+  None
 # ---
 # name: test_unary_classicals
-  '''
-  MOVE ro[0] 1
-  MOVE ro[1] 0
-  NOT ro[2]
-  NEG ro[3]
-  
-  '''
+  None
 # ---

@@ -147,8 +147,6 @@ class AbstractCompiler(ABC):
 
         native_program = Program(native_quil)
         native_program.num_shots = program.num_shots
-        native_program._calibrations = program._calibrations
-        native_program._waveforms = program._waveforms
         native_program._memory = program._memory.copy()
 
         return native_program

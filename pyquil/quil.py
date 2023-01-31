@@ -177,7 +177,11 @@ class Program:
 
         :return: a new Program
         """
-        return Program(self)
+        copy = Program(self)
+        copy.num_shots = self.num_shots
+        copy._memory = self._memory
+
+        return copy
 
     @property
     def defined_gates(self) -> List[DefGate]:
@@ -575,7 +579,10 @@ class Program:
         """
 
         # TODO: program str without calibrations
-        return str(self._program)
+        if calibrations:
+            str(self._program)
+        else:
+            str(self._program.into_simplified())
 
     def get_qubits(self, indices: bool = True) -> Set[QubitDesignator]:
         """

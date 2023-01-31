@@ -80,6 +80,7 @@ def _match(cal, instr):
     return match_calibration(instr, cal)
 
 
+# TODO: Calibration API: match calibration
 def test_simple_gate_calibration_match():
     matches = [
         ("DEFCAL X 0", "X 0"),
@@ -104,6 +105,7 @@ def test_simple_gate_calibration_match():
         assert _match(cal, instr) is None
 
 
+# TODO: Calibration API: match calibration
 def test_parametric_calibration_match():
     matches = [
         ("DEFCAL RX(0.0) 0", "RX(0.0) 0"),
@@ -134,6 +136,7 @@ def test_memory_reference_parameter():
     assert _match("DEFCAL RX(%theta) q", "DECLARE theta REAL\nRZ(theta) 0") is None
 
 
+# TODO: Calibration API: match calibration
 def test_measure_calibration_match():
     matches = [
         ("DEFCAL MEASURE 0", "MEASURE 0"),
@@ -190,6 +193,7 @@ def test_program_match_last():
     assert match == CalibrationMatch(cal=second, settings={})
 
 
+# TODO: Calibrate single instructions
 @pytest.mark.parametrize(
     "program_input,gate,program_output",
     [

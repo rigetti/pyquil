@@ -143,6 +143,7 @@ def test_construct_strength_two_orthogonal_array():
     assert np.allclose(_construct_strength_two_orthogonal_array(3), answer)
 
 
+# TODO: isinstance compatibility
 def test_measure_bitstrings(client_configuration: QCSClientConfiguration):
     quantum_processor = NxQuantumProcessor(nx.complete_graph(2))
     dummy_compiler = DummyCompiler(quantum_processor=quantum_processor, client_configuration=client_configuration)
@@ -188,6 +189,7 @@ def test_check_min_num_trials_for_symmetrized_readout():
 
 # We sometimes narrowly miss the np.mean(parity) < 0.15 assertion, below. Alternatively, that upper
 # bound could be relaxed.
+# TODO: get_classical_adresses implementation
 @pytest.mark.flaky(reruns=1)
 def test_run(client_configuration: QCSClientConfiguration):
     quantum_processor = NxQuantumProcessor(nx.complete_graph(3))
@@ -196,17 +198,17 @@ def test_run(client_configuration: QCSClientConfiguration):
         qam=QVM(client_configuration=client_configuration, gate_noise=(0.01, 0.01, 0.01)),
         compiler=DummyCompiler(quantum_processor=quantum_processor, client_configuration=client_configuration),
     )
-    result = qc.run(
-        Program(
-            Declare("ro", "BIT", 3),
-            H(0),
-            CNOT(0, 1),
-            CNOT(1, 2),
-            MEASURE(0, MemoryReference("ro", 0)),
-            MEASURE(1, MemoryReference("ro", 1)),
-            MEASURE(2, MemoryReference("ro", 2)),
-        ).wrap_in_numshots_loop(1000)
-    )
+    p = Program(
+        Declare("ro", "BIT", 3),
+        H(0),
+        CNOT(0, 1),
+        CNOT(1, 2),
+        MEASURE(0, MemoryReference("ro", 0)),
+        MEASURE(1, MemoryReference("ro", 1)),
+        MEASURE(2, MemoryReference("ro", 2)),
+    ).wrap_in_numshots_loop(1000)
+    result = qc.run(p)
+    print(result)
     bitstrings = result.readout_data.get("ro")
 
     assert bitstrings.shape == (1000, 3)
@@ -214,6 +216,7 @@ def test_run(client_configuration: QCSClientConfiguration):
     assert 0 < np.mean(parity) < 0.15
 
 
+# TODO: isintance compatibility
 def test_run_pyqvm_noiseless(client_configuration: QCSClientConfiguration):
     quantum_processor = NxQuantumProcessor(nx.complete_graph(3))
     qc = QuantumComputer(
@@ -233,6 +236,7 @@ def test_run_pyqvm_noiseless(client_configuration: QCSClientConfiguration):
     assert np.mean(parity) == 0
 
 
+# TODO: isinstance compatibility
 def test_run_pyqvm_noisy(client_configuration: QCSClientConfiguration):
     quantum_processor = NxQuantumProcessor(nx.complete_graph(3))
     qc = QuantumComputer(
@@ -252,6 +256,7 @@ def test_run_pyqvm_noisy(client_configuration: QCSClientConfiguration):
     assert 0 < np.mean(parity) < 0.15
 
 
+# TODO: Noisy gates
 def test_readout_symmetrization(client_configuration: QCSClientConfiguration):
     quantum_processor = NxQuantumProcessor(nx.complete_graph(3))
     noise_model = decoherence_noise_with_asymmetric_ro(quantum_processor.to_compiler_isa())
@@ -417,6 +422,7 @@ def test_qc(client_configuration: QCSClientConfiguration):
     assert str(qc) == "9q-square-noisy-qvm"
 
 
+# TODO: Noisy gates
 def test_qc_run(client_configuration: QCSClientConfiguration):
     qc = get_qc("9q-square-noisy-qvm", client_configuration=client_configuration)
     bs = qc.run(
@@ -461,6 +467,7 @@ def test_qc_error(client_configuration: QCSClientConfiguration):
         get_qc("5q", as_qvm=False, client_configuration=client_configuration)
 
 
+# TODO:  Declarations API
 @pytest.mark.parametrize("param", [np.pi, [np.pi], np.array([np.pi])])
 def test_run_with_parameters(client_configuration: QCSClientConfiguration, param):
     quantum_processor = NxQuantumProcessor(nx.complete_graph(3))
@@ -502,6 +509,7 @@ def test_run_with_bad_parameters(client_configuration: QCSClientConfiguration, p
         executable.write_memory(region_name="theta", value=param)
 
 
+# TODO: Declarations API
 def test_reset(client_configuration: QCSClientConfiguration):
     quantum_processor = NxQuantumProcessor(nx.complete_graph(3))
     qc = QuantumComputer(
@@ -540,6 +548,7 @@ def test_get_qvm_with_topology(client_configuration: QCSClientConfiguration):
     assert min(qc.qubits()) == 5
 
 
+# TODO: get_classical_adresses implementation
 def test_get_qvm_with_topology_2(client_configuration: QCSClientConfiguration):
     topo = nx.from_edgelist([(5, 6), (6, 7)])
     qc = _get_qvm_with_topology(
@@ -572,6 +581,7 @@ def test_parse_mix_qvm_and_noisy_flag():
     assert noisy
 
 
+# TODO: noisy gates
 def test_noisy(client_configuration: QCSClientConfiguration):
     # https://github.com/rigetti/pyquil/issues/764
     p = Program(
@@ -607,6 +617,7 @@ def test_orthogonal_array():
                 check_random_columns(oa, strength)
 
 
+# TODO: Memory management
 def test_qc_expectation(client_configuration: QCSClientConfiguration, dummy_compiler: DummyCompiler):
     qc = QuantumComputer(name="testy!", qam=QVM(client_configuration=client_configuration), compiler=dummy_compiler)
 
@@ -642,6 +653,7 @@ def test_qc_expectation(client_configuration: QCSClientConfiguration, dummy_comp
     assert results[2].total_counts == 40
 
 
+# TODO: Memory management
 def test_qc_expectation_larger_lattice(client_configuration: QCSClientConfiguration, dummy_compiler: DummyCompiler):
     qc = QuantumComputer(name="testy!", qam=QVM(client_configuration=client_configuration), compiler=dummy_compiler)
 
@@ -686,6 +698,7 @@ def asymmetric_ro_model(qubits: list, p00: float = 0.95, p11: float = 0.90) -> N
     return NoiseModel([], aprobs)
 
 
+# TODO: get_classical_adresses implementation
 def test_qc_calibration_1q(client_configuration: QCSClientConfiguration):
     # noise model with 95% symmetrized readout fidelity per qubit
     noise_model = asymmetric_ro_model([0], 0.945, 0.955)
@@ -710,6 +723,7 @@ def test_qc_calibration_1q(client_configuration: QCSClientConfiguration):
     assert results[0].total_counts == 20000
 
 
+# TODO: get_classical_adresses implementation
 def test_qc_calibration_2q(client_configuration: QCSClientConfiguration):
     # noise model with 95% symmetrized readout fidelity per qubit
     noise_model = asymmetric_ro_model([0, 1], 0.945, 0.955)
@@ -734,6 +748,7 @@ def test_qc_calibration_2q(client_configuration: QCSClientConfiguration):
     assert results[0].total_counts == 40000
 
 
+# TODO: get_classical_adresses implementation
 def test_qc_joint_expectation(client_configuration: QCSClientConfiguration, dummy_compiler: DummyCompiler):
     qc = QuantumComputer(name="testy!", qam=QVM(client_configuration=client_configuration), compiler=dummy_compiler)
 
@@ -772,6 +787,7 @@ def test_get_qc_noisy_qpu_error(client_configuration: QCSClientConfiguration, du
         get_qc("Aspen-8", noisy=True)
 
 
+# TODO: get_classical_adresses implementation
 def test_qc_joint_calibration(client_configuration: QCSClientConfiguration):
     # noise model with 95% symmetrized readout fidelity per qubit
     noise_model = asymmetric_ro_model([0, 1], 0.945, 0.955)
@@ -803,6 +819,7 @@ def test_qc_joint_calibration(client_configuration: QCSClientConfiguration):
     assert results[0].additional_results[1].total_counts == 40000
 
 
+# TODO: get_classical_adresses implementation
 def test_qc_expectation_on_qvm(client_configuration: QCSClientConfiguration, dummy_compiler: DummyCompiler):
     # regression test for https://github.com/rigetti/forest-tutorials/issues/2
     qc = QuantumComputer(name="testy!", qam=QVM(client_configuration=client_configuration), compiler=dummy_compiler)
