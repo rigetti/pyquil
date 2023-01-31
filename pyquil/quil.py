@@ -187,7 +187,7 @@ class Program:
         return self._program.defined_gates
 
     @property
-    def instructions(self) -> List[AbstractInstruction]:
+    def instructions(self) -> List[QuilInstruction]:
         """
         Fill in any placeholders and return a list of quil AbstractInstructions.
         """
@@ -225,7 +225,7 @@ class Program:
                 if len(instruction) == 0:
                     raise ValueError("tuple should have at least one element")
                 else:
-                    self.inst(' '.join(instruction))
+                    self.inst(" ".join(map(str, instruction)))
             elif isinstance(instruction, str):
                 self.inst(QuilProgram(instruction.strip()))
             elif isinstance(instruction, AbstractInstruction):
@@ -286,6 +286,7 @@ class Program:
         :param parameters: list of parameters that are used in this gate
         :return: The Program instance.
         """
+        print("defgate", DefGate(name, matrix, parameters).out())
         return self.inst(DefGate(name, matrix, parameters))
 
     def define_noisy_gate(self, name: str, qubit_indices: Sequence[int], kraus_ops: Sequence[Any]) -> "Program":
@@ -501,7 +502,9 @@ class Program:
 
         label_then = LabelPlaceholder("THEN")
         label_end = LabelPlaceholder("END")
-        self.inst(JumpWhen(target=label_then, condition=unpack_classical_reg(classical_reg)))
+        jump_when = JumpWhen(target=label_then, condition=unpack_classical_reg(classical_reg))
+        print("jump_when", jump_when.out())
+        self.inst(jump_when)
         self.inst(else_program)
         self.inst(Jump(label_end))
         self.inst(JumpTarget(label_then))
@@ -593,7 +596,10 @@ class Program:
         :return: A set of all the qubit indices used in this program
         """
         # TODO: what to do about indices flag?
-        self._program.get_used_qubits()
+        qubits = self._program.get_used_qubits()
+        if indices:
+            qubits = {q.as_fixed() for q in qubits}
+        return qubits
 
     def match_calibrations(self, instr: AbstractInstruction) -> Optional[CalibrationMatch]:
         """
@@ -683,6 +689,9 @@ class Program:
         classical instructions or jumps.
 
         :return: True if the Program is Protoquil, False otherwise
+
+        .. deprecated:: 4.0
+           The quilt flag will be removed. Use is_quilt instead.
         """
         try:
             if quilt:
@@ -692,6 +701,28 @@ class Program:
             return True
         except ValueError:
             return False
+
+    def is_quilt(self) -> bool:
+        """
+        Returns true if the program is valid quil-t
+        """
+        try:
+            self.validate_quilt()
+            return True
+        except ValueError:
+            return False
+
+    def validate_protoquil(self) -> None:
+        """
+        Raises a ValueError if the program isn't valid protoquil
+        """
+        self._program.validate_protoquil()
+
+    def validate_quilt(self) -> None:
+        """
+        Raises a ValueError if the program isn't valid quil-t
+        """
+        self._program.validate_quilt()
 
     def is_supported_on_qpu(self) -> bool:
         """
@@ -739,6 +770,20 @@ class Program:
         surely_gate_instructions = cast(List[Gate], Program(self.out()).instructions)
         return Program([instr.dagger() for instr in reversed(surely_gate_instructions)])
 
+    def pop(self) -> "Program":
+        """
+        Removes the last instruction from the program and return it
+
+        .. deprecated:: 4.0
+           This method will be removed in future versions in pyQuil
+        """
+        last = self.instructions[-1]
+        instructions = self._program.to_headers() + self.instructions
+        new_program = Program(instructions[:-1])
+        self._program = new_program._program
+        self._memory = new_program._memory
+        return last
+
     # TODO: Probably deprecate
     # def _synthesize(self) -> "Program":
     #     """
@@ -776,7 +821,8 @@ class Program:
 
     def __iadd__(self, other: InstructionDesignator) -> "Program":
         """
-        Concatenate two programs together using +=, appending the program on the right hand side to the one on the left hand side.
+        Concatenate two programs together using +=, appending the program on the right hand side to the one on the left
+        hand side.
 
         :param other: Another program or instruction to concatenate to this one.
         :return: The updated program.
@@ -818,6 +864,7 @@ class Program:
         your program contains unaddressed QubitPlaceholders
         """
         return str(self._program)
+
 
 def _what_type_of_qubit_does_it_use(
     program: Program,
@@ -1045,7 +1092,7 @@ def merge_with_pauli_noise(
     return p
 
 
-# TODO: does this need modification?
+# TODO: this needs to be deprecated or quil-rs needs to dedupe
 def merge_programs(prog_list: Sequence[Program]) -> Program:
     """
     Merges a list of pyQuil programs into a single one by appending them in sequence.
@@ -1057,32 +1104,10 @@ def merge_programs(prog_list: Sequence[Program]) -> Program:
     :param prog_list: A list of pyquil programs
     :return: a single pyQuil program
     """
-    definitions = [gate for prog in prog_list for gate in Program(prog).defined_gates]
-    seen: Dict[str, List[DefGate]] = {}
-    # Collect definitions in reverse order and reapply definitions in reverse
-    # collected order to ensure that the last occurrence of a definition is applied last.
-    for definition in reversed(definitions):
-        name = definition.name
-        if name in seen.keys():
-            # Do not add truly identical definitions with the same name
-            # If two different definitions share a name, we include each definition so as to provide
-            # a waring to the user when the contradictory defgate is called.
-            if definition not in seen[name]:
-                seen[name].append(definition)
-        else:
-            seen[name] = [definition]
-    new_definitions = [gate for key in seen.keys() for gate in reversed(seen[key])]
-
-    # Combine programs without gate definitions; avoid call to _synthesize by using _instructions
-    p = Program(*[prog._instructions for prog in prog_list])
-
-    for definition in new_definitions:
-        if isinstance(definition, DefPermutationGate):
-            p.inst(DefPermutationGate(definition.name, list(definition.permutation)))
-        else:
-            p.defgate(definition.name, definition.matrix, definition.parameters)
-
-    return p
+    merged_program = Program()
+    for prog in prog_list:
+        merged_program += prog
+    return merged_program
 
 
 def get_classical_addresses_from_program(program: Program) -> Dict[str, List[int]]:
@@ -1145,49 +1170,15 @@ def validate_protoquil(program: Program, quilt: bool = False) -> None:
     Protoquil is a subset of Quil which excludes control flow and classical instructions.
 
     :param program: The Quil program to validate.
+
+    .. deprecated:: 4.0
+       This function will be removed, used the validate_protoquil and validate_quilt
+       methods on the Program instead.
     """
     if quilt:
-        valid_instruction_types = tuple(
-            [
-                Pragma,
-                Declare,
-                Halt,
-                Gate,
-                Measurement,
-                Reset,
-                ResetQubit,
-                DelayQubits,
-                DelayFrames,
-                Fence,
-                FenceAll,
-                ShiftFrequency,
-                SetFrequency,
-                SetScale,
-                ShiftPhase,
-                SetPhase,
-                SwapPhase,
-                Pulse,
-                Capture,
-                RawCapture,
-                DefCalibration,
-                DefFrame,
-                DefMeasureCalibration,
-                DefWaveform,
-            ]
-        )
+        program.validate_quilt()
     else:
-        valid_instruction_types = tuple([Pragma, Declare, Gate, Reset, ResetQubit, Measurement])
-        if program.calibrations:
-            raise ValueError("ProtoQuil validation failed: Quil-T calibrations are not allowed.")
-        if program.waveforms:
-            raise ValueError("ProtoQuil validation failed: Quil-T waveform definitions are not allowed.")
-        if program.frames:
-            raise ValueError("ProtoQuil validation failed: Quil-T frame definitions are not allowed.")
-
-    for instr in program.instructions:
-        if not isinstance(instr, valid_instruction_types):
-            # Instructions like MOVE, NOT, JUMP, JUMP-UNLESS will fail here
-            raise ValueError(f"ProtoQuil validation failed: {instr} is not allowed.")
+        program.validate_protoquil()
 
 
 def validate_supported_quil(program: Program) -> None:
